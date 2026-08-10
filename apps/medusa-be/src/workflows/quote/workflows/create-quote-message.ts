@@ -2,6 +2,7 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import type {
   ModuleCreateQuoteMessage,
   ModuleQuoteMessage,
@@ -16,5 +17,5 @@ import { createQuoteMessageStep } from "../steps/create-quote-message"
 export const createQuoteMessageWorkflow = createWorkflow(
   "create-quote-message",
   (input: ModuleCreateQuoteMessage): WorkflowResponse<ModuleQuoteMessage> =>
-    new WorkflowResponse(createQuoteMessageStep(input))
+    new WorkflowResponse(createQuoteMessageStep(input)),
 )

@@ -3,44 +3,42 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import type { AdminApproval, AdminCartWithApprovals } from "../../../types"
+import { isRecord, getRecordValue } from "@techsio/std/object"
+
 import type { AdminGetApprovalsType } from "./validators"
 
-type ApprovalStatusFilters = {
+interface ApprovalStatusFilters {
   status?: AdminGetApprovalsType["status"]
 }
 
-type GraphApprovalCart = Omit<AdminCartWithApprovals, "approval_requests"> & {
-  approvals?: AdminApproval[]
-  approval_requests?: AdminApproval[]
-}
+const normalizeApprovalCart = (cart: object): object => {
+  const approvals = getRecordValue(cart, "approvals")
+  const approvalRequests = getRecordValue(cart, "approval_requests")
+  const normalizedCart = { ...cart }
+  Reflect.deleteProperty(normalizedCart, "approvals")
+  Reflect.deleteProperty(normalizedCart, "approval_requests")
 
-const normalizeApprovalCart = (
-  cart: GraphApprovalCart
-): AdminCartWithApprovals => {
-  const { approvals, approval_requests, ...normalizedCart } = cart
+  let normalizedApprovals: unknown[] = []
+  if (Array.isArray(approvalRequests)) {
+    normalizedApprovals = approvalRequests
+  } else if (Array.isArray(approvals)) {
+    normalizedApprovals = approvals
+  }
 
   return {
     ...normalizedCart,
-    approval_requests: approval_requests ?? approvals ?? [],
+    approval_requests: normalizedApprovals,
   }
 }
 
-const isApprovalCart = (
-  cart: GraphApprovalCart | null
-): cart is GraphApprovalCart => Boolean(cart)
-
-export const GET = async (
+const getRoute = async (
   req: AuthenticatedMedusaRequest<AdminGetApprovalsType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-
-  const { status } = req.validatedQuery || {}
-
-  const filters: ApprovalStatusFilters = status ? { status } : {}
-
-  const { data: approvalStatuses, metadata } = await query.graph({
+  const { status } = req.validatedQuery
+  const filters: ApprovalStatusFilters = status === undefined ? {} : { status }
+  const graphResult: unknown = await query.graph({
     entity: "approval_status",
     ...req.queryConfig,
     fields: [
@@ -55,13 +53,32 @@ export const GET = async (
     filters,
   })
 
-  const carts = approvalStatuses
-    .map((approvalStatus) => approvalStatus.cart as GraphApprovalCart | null)
-    .filter(isApprovalCart)
-    .map(normalizeApprovalCart)
+  const carts: object[] = []
+  const data: unknown = isRecord(graphResult)
+    ? getRecordValue(graphResult, "data")
+    : undefined
+  if (Array.isArray(data)) {
+    for (const approvalStatus of data) {
+      if (!isRecord(approvalStatus)) {
+        continue
+      }
+
+      const cart = getRecordValue(approvalStatus, "cart")
+      if (isRecord(cart)) {
+        carts.push(normalizeApprovalCart(cart))
+      }
+    }
+  }
+
+  const rawMetadata: unknown = isRecord(graphResult)
+    ? getRecordValue(graphResult, "metadata")
+    : undefined
+  const metadata = isRecord(rawMetadata) ? rawMetadata : {}
 
   res.json({
     carts_with_approvals: carts,
     ...metadata,
   })
 }
+
+export { getRoute as GET }

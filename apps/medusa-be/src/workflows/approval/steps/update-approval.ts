@@ -4,57 +4,83 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { APPROVAL_MODULE } from "../../../modules/approval"
-import {
-  ApprovalStatusType,
-  type IApprovalModuleService,
-  type ModuleApproval,
-  type ModuleUpdateApproval,
-} from "../../../types"
+import { ApprovalStatusType } from "../../../types/approval/module"
+import type {
+  ModuleApproval,
+  ModuleUpdateApproval,
+} from "../../../types/approval/module"
+import type { IApprovalModuleService } from "../../../types/approval/service"
+
+const parseApprovalId = (value: unknown): string => {
+  if (typeof value === "string" && value !== "") {
+    return value
+  }
+  throw new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
+    "Approval has an invalid id",
+  )
+}
+
+const parseApprovalStatus = (value: unknown): ApprovalStatusType => {
+  if (
+    value === ApprovalStatusType.PENDING ||
+    value === ApprovalStatusType.APPROVED ||
+    value === ApprovalStatusType.REJECTED
+  ) {
+    return value
+  }
+  throw new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
+    "Approval has an invalid status",
+  )
+}
 
 export const updateApprovalStep = createStep(
   "update-approval",
   async (
     input: ModuleUpdateApproval,
-    { container }
+    { container },
   ): Promise<StepResponse<ModuleApproval, ModuleUpdateApproval>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const approvalModule =
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
-    const {
-      data: [approval],
-    } = await query.graph({
+    const approvalQueryResult: { data: ModuleApproval[] } = await query.graph({
       entity: "approval",
       fields: ["*"],
       filters: {
         id: input.id,
       },
     })
+    const [approval] = approvalQueryResult.data
 
-    if (!approval) {
+    if (approval === undefined) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Approval ${input.id} was not found`
+        `Approval ${input.id} was not found`,
       )
     }
 
     if (input.status === ApprovalStatusType.REJECTED) {
-      const { data: approvalsToReject } = await query.graph({
-        entity: "approval",
-        fields: ["*"],
-        filters: {
-          cart_id: approval.cart_id,
-          id: {
-            $ne: approval.id,
+      const approvalsQueryResult: { data: ModuleApproval[] } =
+        await query.graph({
+          entity: "approval",
+          fields: ["*"],
+          filters: {
+            cart_id: approval.cart_id,
+            id: {
+              $ne: approval.id,
+            },
           },
-        },
-      })
+        })
+      const { data: approvalsToReject } = approvalsQueryResult
 
       const updateData = approvalsToReject.map((approvalToReject) => ({
-        id: approvalToReject.id,
-        status: ApprovalStatusType.REJECTED,
         handled_by: input.handled_by,
+        id: parseApprovalId(approvalToReject.id),
+        status: ApprovalStatusType.REJECTED,
       }))
 
       await approvalModule.updateApprovals(updateData)
@@ -62,8 +88,8 @@ export const updateApprovalStep = createStep(
 
     const previousData: ModuleUpdateApproval = {
       handled_by: approval.handled_by,
-      id: approval.id,
-      status: approval.status,
+      id: parseApprovalId(approval.id),
+      status: parseApprovalStatus(approval.status),
     }
 
     const [updatedApproval] = await approvalModule.updateApprovals([input])
@@ -71,7 +97,7 @@ export const updateApprovalStep = createStep(
     return new StepResponse(updatedApproval, previousData)
   },
   async (previousData: ModuleUpdateApproval | undefined, { container }) => {
-    if (!previousData) {
+    if (previousData === undefined) {
       return
     }
 
@@ -83,5 +109,5 @@ export const updateApprovalStep = createStep(
       : [previousData]
 
     await approvalModule.updateApprovals(updateData)
-  }
+  },
 )

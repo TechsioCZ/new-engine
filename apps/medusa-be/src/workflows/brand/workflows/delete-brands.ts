@@ -8,19 +8,21 @@ import {
   emitEventStep,
   releaseLockStep,
 } from "@medusajs/medusa/core-flows"
+
 import {
   BRAND_SEARCH_PROJECTION_CHANGED,
   BRAND_SEARCH_PROJECTION_EVENT_OPTIONS,
   buildBrandSearchProjectionEventData,
 } from "../../meilisearch/events"
-import { deleteBrandsStep, getBrandLifecycleLockKeys } from "../steps"
+import { deleteBrandsStep } from "../steps/delete-brands"
+import { getBrandLifecycleLockKeys } from "../steps/helpers"
 import type { DeleteBrandsWorkflowInput } from "../types"
 
 export const deleteBrandsWorkflow = createWorkflow(
   "delete-brands",
   (input: DeleteBrandsWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) =>
-      getBrandLifecycleLockKeys(workflowInput.ids)
+      getBrandLifecycleLockKeys(workflowInput.ids),
     )
 
     acquireLockStep({
@@ -40,7 +42,7 @@ export const deleteBrandsWorkflow = createWorkflow(
     const eventData = transform({ input }, ({ input: workflowInput }) =>
       buildBrandSearchProjectionEventData({
         brandIds: workflowInput.ids,
-      })
+      }),
     )
 
     emitEventStep({
@@ -50,5 +52,5 @@ export const deleteBrandsWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(result)
-  }
+  },
 )

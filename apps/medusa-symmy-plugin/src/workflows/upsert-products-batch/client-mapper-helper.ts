@@ -1,12 +1,16 @@
+import { MedusaError } from "@medusajs/framework/utils"
 import type {
   CreateProductsWorkflowInput,
   UpdateProductsWorkflowInputProducts,
 } from "@medusajs/medusa/core-flows"
+
+import type { JsonMetadata } from "../../lib/json-metadata"
 import type {
   ExistingProduct,
   ExistingProductIndex,
   ResolvedCategoryMap,
 } from "./client"
+import { ExistingProductSchema, ProductVariantReferenceSchema } from "./schemas"
 import type {
   CategoryRefInput,
   ImageInput,
@@ -15,68 +19,76 @@ import type {
   VariantInput,
 } from "./types"
 
-type ExistingVariantIndex = {
+interface ExistingVariantIndex {
   byId: Map<string, string>
   bySku: Map<string, string>
   byEan: Map<string, string>
 }
 
-type RawExistingProduct = {
-  id: string
-  external_id?: string | null
-  metadata?: Record<string, unknown> | null
-  variants?: { id: string; sku?: string | null; ean?: string | null }[]
-}
-
-type ProductIdentifierSets = {
+interface ProductIdentifierSets {
   erpIds: Set<string>
   skus: Set<string>
   eans: Set<string>
 }
 
-type CategoryRefSets = {
+interface CategoryRefSets {
   handles: Set<string>
   names: Set<string>
 }
 
+const INVALID_MAPPER_RECEIVER_MESSAGE = "Invalid mapper receiver"
+
+const toExistingProduct = (raw: unknown): ExistingProduct => {
+  const parsed = ExistingProductSchema.safeParse(raw)
+  if (parsed.success) {
+    return parsed.data
+  }
+  throw new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
+    "Expected existing product query result to match its schema",
+  )
+}
+
 export class ProductBatchClientMapperHelper {
-  toExistingProduct(
-    raw: RawExistingProduct | Record<string, unknown>
-  ): ExistingProduct {
-    const product = raw as RawExistingProduct
-    return {
-      id: product.id,
-      external_id: product.external_id ?? null,
-      metadata: (product.metadata ?? null) as Record<string, unknown> | null,
-      variants: (product.variants ?? []).map((variant) => ({
-        id: variant.id,
-        sku: variant.sku ?? null,
-        ean: variant.ean ?? null,
-      })),
-    }
+  readonly toExistingProduct = toExistingProduct
+
+  private get helperInstance(): this {
+    return this
   }
 
-  findExistingProduct(
+  findExistingProduct = (
     product: ProductInput,
-    index: ExistingProductIndex
-  ): ExistingProduct | null {
-    if (product.identifier_type === "erp_id" && product.erp_id) {
+    index: ExistingProductIndex,
+  ): ExistingProduct | null => {
+    if (this.helperInstance !== this) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
+    }
+    if (product.identifier_type === "erp_id" && product.erp_id !== undefined) {
       return index.byErpId.get(product.erp_id) ?? null
     }
-    if (product.identifier_type === "sku" && product.sku) {
+    if (product.identifier_type === "sku" && product.sku !== undefined) {
       return index.bySku.get(product.sku) ?? null
     }
-    if (product.identifier_type === "ean" && product.ean) {
+    if (product.identifier_type === "ean" && product.ean !== undefined) {
       return index.byEan.get(product.ean) ?? null
     }
     return null
   }
 
-  private buildOptionsDefinition(
-    variants: VariantInput[] | undefined
-  ): { title: string; values: string[] }[] | undefined {
-    if (!variants?.length) {
-      return
+  private readonly buildOptionsDefinition = (
+    variants: VariantInput[] | undefined,
+  ): { title: string; values: string[] }[] | undefined => {
+    if (this.helperInstance !== this) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
+    }
+    if (variants === undefined || variants.length === 0) {
+      return undefined
     }
     const optionMap = new Map<string, Set<string>>()
     for (const variant of variants) {
@@ -93,17 +105,23 @@ export class ProductBatchClientMapperHelper {
     if (optionMap.size === 0) {
       return [{ title: "Default", values: ["Default"] }]
     }
-    return Array.from(optionMap.entries()).map(([title, values]) => ({
+    return [...optionMap.entries()].map(([title, values]) => ({
       title,
-      values: Array.from(values),
+      values: [...values],
     }))
   }
 
-  private normalizeVariantOptions(
+  private readonly normalizeVariantOptions = (
     variant: VariantInput,
-    productOptions: { title: string }[] | undefined
-  ): Record<string, string> {
-    if (!productOptions?.length) {
+    productOptions: { title: string }[] | undefined,
+  ): Record<string, string> => {
+    if (this.helperInstance !== this) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
+    }
+    if (productOptions === undefined || productOptions.length === 0) {
       return { Default: "Default" }
     }
     const result: Record<string, string> = {}
@@ -114,159 +132,211 @@ export class ProductBatchClientMapperHelper {
     return result
   }
 
-  private normalizePrices(prices: PriceInput[] | undefined) {
-    if (!prices?.length) {
-      return
+  private readonly normalizePrices = (
+    prices: PriceInput[] | undefined,
+  ): { amount: number; currency_code: string }[] | undefined => {
+    if (this.helperInstance !== this) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
+    }
+    if (prices === undefined || prices.length === 0) {
+      return undefined
     }
     return prices.map((price) => ({
-      currency_code: price.currency_code.toLowerCase(),
       amount: price.amount,
+      currency_code: price.currency_code.toLowerCase(),
     }))
   }
 
-  private buildVariantMetadata(variant: VariantInput) {
-    if (variant.vat_rate === undefined && !variant.metadata) {
-      return
+  private readonly buildVariantMetadata = (
+    variant: VariantInput,
+  ): JsonMetadata | undefined => {
+    if (this.helperInstance !== this) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
+    }
+    if (variant.vat_rate === undefined && variant.metadata === undefined) {
+      return undefined
     }
     return {
-      ...(variant.metadata ?? {}),
-      ...(variant.vat_rate !== undefined ? { vat_rate: variant.vat_rate } : {}),
+      ...variant.metadata,
+      ...(variant.vat_rate === undefined ? {} : { vat_rate: variant.vat_rate }),
     }
   }
 
-  private buildExistingVariantIndex(
-    existing: ExistingProduct
-  ): ExistingVariantIndex {
+  private readonly buildExistingVariantIndex = (
+    existing: ExistingProduct,
+  ): ExistingVariantIndex => {
+    if (this.helperInstance !== this) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
+    }
     const byId = new Map<string, string>()
     const bySku = new Map<string, string>()
     const byEan = new Map<string, string>()
 
     for (const variant of existing.variants) {
       byId.set(variant.id, variant.id)
-      if (variant.sku) {
+      if (variant.sku !== null) {
         bySku.set(variant.sku, variant.id)
       }
-      if (variant.ean) {
+      if (variant.ean !== null) {
         byEan.set(variant.ean, variant.id)
       }
     }
 
-    return { byId, bySku, byEan }
+    return { byEan, byId, bySku }
   }
 
-  private findExistingVariantId(
+  private readonly findExistingVariantId = (
     variant: VariantInput,
-    index: ExistingVariantIndex
-  ): string | null {
-    if (variant.identifier_type === "variant_id") {
-      return variant.variant_id
-        ? (index.byId.get(variant.variant_id) ?? null)
-        : null
+    index: ExistingVariantIndex,
+  ): string | null => {
+    if (this.helperInstance !== this) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
     }
-    if (variant.identifier_type === "sku" && variant.sku) {
+    if (variant.identifier_type === "variant_id") {
+      return variant.variant_id === undefined
+        ? null
+        : (index.byId.get(variant.variant_id) ?? null)
+    }
+    if (variant.identifier_type === "sku" && variant.sku !== undefined) {
       return index.bySku.get(variant.sku) ?? null
     }
-    if (variant.identifier_type === "ean" && variant.ean) {
+    if (variant.identifier_type === "ean" && variant.ean !== undefined) {
       return index.byEan.get(variant.ean) ?? null
     }
     return null
   }
 
-  resolveCategoryIds(
+  resolveCategoryIds = (
     refs: CategoryRefInput[] | undefined,
-    resolved: ResolvedCategoryMap
-  ): string[] {
-    if (!refs?.length) {
+    resolved: ResolvedCategoryMap,
+  ): string[] => {
+    if (this.helperInstance !== this) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
+    }
+    if (refs === undefined || refs.length === 0) {
       return []
     }
     const ids = new Set<string>()
     for (const ref of refs) {
       let id: string | undefined
-      if (ref.handle) {
+      if (ref.handle !== undefined) {
         id = resolved.byHandle.get(ref.handle)
       }
-      if (!id && ref.name) {
+      if (id === undefined && ref.name !== undefined) {
         id = resolved.byName.get(ref.name)
       }
-      if (id) {
+      if (id !== undefined) {
         ids.add(id)
       }
     }
-    return Array.from(ids)
+    return [...ids]
   }
 
-  buildImagesPayload(images: ImageInput[] | undefined) {
-    if (!images?.length) {
-      return
+  buildImagesPayload = (
+    images: ImageInput[] | undefined,
+  ): { url: string }[] | undefined => {
+    if (this.helperInstance !== this) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
+    }
+    if (images === undefined || images.length === 0) {
+      return undefined
     }
     return images.map((image) => ({ url: image.url }))
   }
 
-  buildIdentifierEcho(product: ProductInput) {
-    return {
-      identifier_type: product.identifier_type,
-      ...(product.sku ? { sku: product.sku } : {}),
-      ...(product.ean ? { ean: product.ean } : {}),
-      ...(product.erp_id ? { erp_id: product.erp_id } : {}),
-    }
-  }
+  buildIdentifierEcho = (product: ProductInput) => ({
+    ...this.identifierEchoBase,
+    identifier_type: product.identifier_type,
+    ...(product.sku === undefined ? {} : { sku: product.sku }),
+    ...(product.ean === undefined ? {} : { ean: product.ean }),
+    ...(product.erp_id === undefined ? {} : { erp_id: product.erp_id }),
+  })
+
+  private readonly identifierEchoBase = {}
 
   buildCreatePayload(
     product: ProductInput,
     resolvedCategories: ResolvedCategoryMap,
-    defaultSalesChannelId: string | null
+    defaultSalesChannelId: string | null,
   ): CreateProductsWorkflowInput["products"][number] {
     const variants = product.variants ?? []
     const productOptions = this.buildOptionsDefinition(variants)
     const fallbackPrices = this.normalizePrices(product.base_prices)
     const variantPayload = variants.length
-      ? variants.map((variant) => ({
-          title: variant.title,
-          sku: variant.sku,
-          ean: variant.ean,
-          manage_inventory: variant.manage_inventory ?? true,
-          prices: this.normalizePrices(variant.prices) ?? fallbackPrices ?? [],
-          options: this.normalizeVariantOptions(variant, productOptions),
-          metadata: this.buildVariantMetadata(variant),
-        }))
+      ? variants.map((variant) => {
+          const metadata = this.buildVariantMetadata(variant)
+          return {
+            ...(variant.ean === undefined ? {} : { ean: variant.ean }),
+            manage_inventory: variant.manage_inventory ?? true,
+            ...(metadata === undefined ? {} : { metadata }),
+            options: this.normalizeVariantOptions(variant, productOptions),
+            prices:
+              this.normalizePrices(variant.prices) ?? fallbackPrices ?? [],
+            ...(variant.sku === undefined ? {} : { sku: variant.sku }),
+            title: variant.title,
+          }
+        })
       : [
           {
-            title: product.title,
             manage_inventory: true,
-            prices: fallbackPrices ?? [],
             options: { Default: "Default" },
+            prices: fallbackPrices ?? [],
+            title: product.title,
           },
         ]
 
     const categoryIds = this.resolveCategoryIds(
       product.categories,
-      resolvedCategories
+      resolvedCategories,
     )
 
+    const images = this.buildImagesPayload(product.images)
+
     return {
-      title: product.title,
-      subtitle: product.subtitle,
-      description: product.description,
-      handle: product.handle,
-      status: product.status ?? "published",
+      ...(categoryIds.length ? { category_ids: categoryIds } : {}),
+      ...(product.description === undefined
+        ? {}
+        : { description: product.description }),
       discountable: product.discountable ?? true,
-      weight: product.weight,
-      hs_code: product.hs_code,
-      external_id:
-        product.identifier_type === "erp_id" ? product.erp_id : undefined,
-      options: productOptions,
-      images: this.buildImagesPayload(product.images),
+      ...(product.identifier_type === "erp_id" && product.erp_id !== undefined
+        ? { external_id: product.erp_id }
+        : {}),
+      ...(product.handle === undefined ? {} : { handle: product.handle }),
+      ...(product.hs_code === undefined ? {} : { hs_code: product.hs_code }),
+      ...(images === undefined ? {} : { images }),
       metadata: {
-        ...(product.metadata ?? {}),
-        ...(product.identifier_type === "erp_id" && product.erp_id
+        ...product.metadata,
+        ...(product.identifier_type === "erp_id" && product.erp_id !== undefined
           ? { erp_id: product.erp_id }
           : {}),
       },
+      ...(productOptions === undefined ? {} : { options: productOptions }),
+      ...(defaultSalesChannelId === null
+        ? {}
+        : { sales_channels: [{ id: defaultSalesChannelId }] }),
+      status: product.status ?? "published",
+      ...(product.subtitle === undefined ? {} : { subtitle: product.subtitle }),
+      title: product.title,
       variants: variantPayload,
-      sales_channels: defaultSalesChannelId
-        ? [{ id: defaultSalesChannelId }]
-        : undefined,
-      category_ids: categoryIds.length ? categoryIds : undefined,
+      ...(product.weight === undefined ? {} : { weight: product.weight }),
     }
   }
 
@@ -274,7 +344,7 @@ export class ProductBatchClientMapperHelper {
     productId: string,
     product: ProductInput,
     existing: ExistingProduct,
-    resolvedCategories: ResolvedCategoryMap
+    resolvedCategories: ResolvedCategoryMap,
   ): UpdateProductsWorkflowInputProducts["products"][number] {
     const variants = product.variants ?? []
     const productOptions = this.buildOptionsDefinition(variants) ?? [
@@ -284,7 +354,7 @@ export class ProductBatchClientMapperHelper {
     const existingVariantIndex = this.buildExistingVariantIndex(existing)
     const categoryIds = this.resolveCategoryIds(
       product.categories,
-      resolvedCategories
+      resolvedCategories,
     )
     const images = this.buildImagesPayload(product.images)
     let categoryIdsForUpdate: string[] | undefined
@@ -296,73 +366,100 @@ export class ProductBatchClientMapperHelper {
     }
 
     return {
-      id: productId,
-      title: product.title,
-      subtitle: product.subtitle,
-      description: product.description,
-      handle: product.handle,
-      status: product.status ?? "published",
+      ...(categoryIdsForUpdate === undefined
+        ? {}
+        : { category_ids: categoryIdsForUpdate }),
+      ...(product.description === undefined
+        ? {}
+        : { description: product.description }),
       discountable: product.discountable ?? true,
-      weight: product.weight,
-      hs_code: product.hs_code,
-      external_id:
-        product.identifier_type === "erp_id" ? product.erp_id : undefined,
-      images,
+      ...(product.identifier_type === "erp_id" && product.erp_id !== undefined
+        ? { external_id: product.erp_id }
+        : {}),
+      ...(product.handle === undefined ? {} : { handle: product.handle }),
+      ...(product.hs_code === undefined ? {} : { hs_code: product.hs_code }),
+      id: productId,
+      ...(images === undefined ? {} : { images }),
       metadata: {
-        ...(existing.metadata ?? {}),
-        ...(product.metadata ?? {}),
-        ...(product.identifier_type === "erp_id" && product.erp_id
+        ...existing.metadata,
+        ...product.metadata,
+        ...(product.identifier_type === "erp_id" && product.erp_id !== undefined
           ? { erp_id: product.erp_id }
           : {}),
       },
-      variants: variants.length
-        ? variants.map((variant) => {
-            const variantId = this.findExistingVariantId(
-              variant,
-              existingVariantIndex
-            )
-            return {
-              ...(variantId ? { id: variantId } : {}),
-              title: variant.title,
-              sku: variant.sku,
-              ean: variant.ean,
-              manage_inventory: variant.manage_inventory ?? true,
-              prices: this.normalizePrices(variant.prices) ?? fallbackPrices,
-              ...(variantId
-                ? {}
-                : {
-                    options: this.normalizeVariantOptions(
-                      variant,
-                      productOptions
-                    ),
-                  }),
-              metadata: this.buildVariantMetadata(variant),
-            }
-          })
-        : undefined,
-      category_ids: categoryIdsForUpdate,
+      status: product.status ?? "published",
+      ...(product.subtitle === undefined ? {} : { subtitle: product.subtitle }),
+      title: product.title,
+      ...(variants.length
+        ? {
+            variants: variants.map((variant) => {
+              const variantId = this.findExistingVariantId(
+                variant,
+                existingVariantIndex,
+              )
+              const prices =
+                this.normalizePrices(variant.prices) ?? fallbackPrices
+              const metadata = this.buildVariantMetadata(variant)
+              return {
+                ...(variant.ean === undefined ? {} : { ean: variant.ean }),
+                ...(variantId === null ? {} : { id: variantId }),
+                manage_inventory: variant.manage_inventory ?? true,
+                ...(metadata === undefined ? {} : { metadata }),
+                ...(variantId === null
+                  ? {
+                      options: this.normalizeVariantOptions(
+                        variant,
+                        productOptions,
+                      ),
+                    }
+                  : {}),
+                ...(prices === undefined ? {} : { prices }),
+                ...(variant.sku === undefined ? {} : { sku: variant.sku }),
+                title: variant.title,
+              }
+            }),
+          }
+        : {}),
+      ...(product.weight === undefined ? {} : { weight: product.weight }),
     }
   }
 
-  collectProductIdentifiers(products: ProductInput[]): ProductIdentifierSets {
+  collectProductIdentifiers = (
+    products: ProductInput[],
+  ): ProductIdentifierSets => {
+    if (this.helperInstance !== this) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
+    }
     const erpIds = new Set<string>()
     const skus = new Set<string>()
     const eans = new Set<string>()
 
     for (const product of products) {
-      if (product.identifier_type === "erp_id" && product.erp_id) {
+      if (
+        product.identifier_type === "erp_id" &&
+        product.erp_id !== undefined
+      ) {
         erpIds.add(product.erp_id)
-      } else if (product.identifier_type === "sku" && product.sku) {
+      } else if (
+        product.identifier_type === "sku" &&
+        product.sku !== undefined
+      ) {
         skus.add(product.sku)
-      } else if (product.identifier_type === "ean" && product.ean) {
+      } else if (
+        product.identifier_type === "ean" &&
+        product.ean !== undefined
+      ) {
         eans.add(product.ean)
       }
     }
 
-    return { erpIds, skus, eans }
+    return { eans, erpIds, skus }
   }
 
-  cacheProductsByErpId(products: Record<string, unknown>[]): {
+  cacheProductsByErpId(products: readonly unknown[]): {
     existingProductsById: Map<string, ExistingProduct>
     byErpId: Map<string, ExistingProduct>
   } {
@@ -372,35 +469,50 @@ export class ProductBatchClientMapperHelper {
     for (const raw of products) {
       const existingProduct = this.toExistingProduct(raw)
       existingProductsById.set(existingProduct.id, existingProduct)
-      if (existingProduct.external_id) {
+      if (existingProduct.external_id !== null) {
         byErpId.set(existingProduct.external_id, existingProduct)
       }
     }
 
-    return { existingProductsById, byErpId }
+    return { byErpId, existingProductsById }
   }
 
-  buildProductIdByVariantField(
-    variants: Record<string, unknown>[],
-    field: "sku" | "ean"
-  ): Map<string, string> {
+  buildProductIdByVariantField = (
+    variants: readonly unknown[],
+    field: "sku" | "ean",
+  ): Map<string, string> => {
+    if (this.helperInstance !== this) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
+    }
     const result = new Map<string, string>()
 
     for (const variant of variants) {
-      const value = variant[field]
-      const productId = variant.product_id
-      if (typeof value === "string" && typeof productId === "string") {
-        result.set(value, productId)
+      const parsed = ProductVariantReferenceSchema.safeParse(variant)
+      if (!parsed.success) {
+        continue
+      }
+      const value = parsed.data[field]
+      if (value !== null) {
+        result.set(value, parsed.data.product_id)
       }
     }
 
     return result
   }
 
-  collectMissingProductIds(
+  collectMissingProductIds = (
     existingProductsById: Map<string, ExistingProduct>,
-    productIdMaps: Map<string, string>[]
-  ): Set<string> {
+    productIdMaps: Map<string, string>[],
+  ): Set<string> => {
+    if (this.helperInstance !== this) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
+    }
     const missingProductIds = new Set<string>()
 
     for (const productIdMap of productIdMaps) {
@@ -414,10 +526,16 @@ export class ProductBatchClientMapperHelper {
     return missingProductIds
   }
 
-  buildExistingProductsByIdentifier(
+  buildExistingProductsByIdentifier = (
     existingProductsById: Map<string, ExistingProduct>,
-    identifierToProductId: Map<string, string>
-  ): Map<string, ExistingProduct> {
+    identifierToProductId: Map<string, string>,
+  ): Map<string, ExistingProduct> => {
+    if (this.helperInstance !== this) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
+    }
     const result = new Map<string, ExistingProduct>()
 
     for (const [identifier, productId] of identifierToProductId) {
@@ -430,15 +548,21 @@ export class ProductBatchClientMapperHelper {
     return result
   }
 
-  collectCategoryRefs(products: ProductInput[]): CategoryRefSets {
+  collectCategoryRefs = (products: ProductInput[]): CategoryRefSets => {
+    if (this.helperInstance !== this) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        INVALID_MAPPER_RECEIVER_MESSAGE,
+      )
+    }
     const handles = new Set<string>()
     const names = new Set<string>()
 
     for (const product of products) {
       for (const ref of product.categories ?? []) {
-        if (ref.handle) {
+        if (ref.handle !== undefined) {
           handles.add(ref.handle)
-        } else if (ref.name) {
+        } else if (ref.name !== undefined) {
           names.add(ref.name)
         }
       }

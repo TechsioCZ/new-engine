@@ -4,6 +4,8 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { omitUndefined } from "@techsio/std/object"
+
 import {
   fetchOrderById,
   formatTotal,
@@ -14,39 +16,37 @@ import {
 import { getMedusaStoreName } from "../../../../../utils/store-name"
 import { sendOrderPaymentReminderWorkflow } from "../../../../../workflows/send-order-payment-reminder"
 
-export async function POST(req: MedusaRequest, res: MedusaResponse) {
+const post = async (req: MedusaRequest, res: MedusaResponse) => {
   const { id } = req.params
 
-  if (!id) {
+  if (id === undefined || id === "") {
     throw new MedusaError(MedusaError.Types.INVALID_DATA, "Order id is missing")
   }
 
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const order = await fetchOrderById(query, id)
 
-  if (!order) {
+  if (order === undefined || order === null) {
     throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")
   }
 
-  if (!order.email) {
+  if (order.email === undefined || order.email === null || order.email === "") {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Order has no customer email"
+      "Order has no customer email",
     )
   }
 
   await sendOrderPaymentReminderWorkflow(req.scope).run({
-    input: {
+    input: omitUndefined({
       customer_id: order.customer_id ?? undefined,
       email: order.email,
       order_display_id: getOrderDisplayId(order),
       order_id: order.id,
       payment_url: getPaymentUrl(order),
-      store_name: await getMedusaStoreName(
-        req.scope as Record<string, unknown>
-      ),
+      store_name: await getMedusaStoreName(req.scope),
       total: formatTotal(order),
-    },
+    }),
   })
 
   res.json({
@@ -54,3 +54,5 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     sent: true,
   })
 }
+
+export { post as POST }

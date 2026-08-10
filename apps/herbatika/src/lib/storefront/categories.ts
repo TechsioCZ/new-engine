@@ -1,35 +1,31 @@
 "use client"
 
 import type { FindParams, HttpTypes } from "@medusajs/types"
+
 import type { CategoryListInput as StorefrontCategoryListInput } from "./category-query-config"
-import {
-  buildCategoryListParams as buildStorefrontCategoryListParams,
-  DEFAULT_CATEGORY_PAGE_SIZE as STOREFRONT_DEFAULT_CATEGORY_PAGE_SIZE,
-} from "./category-query-config"
+import { buildCategoryListParams as buildStorefrontCategoryListParams } from "./category-query-config"
 import { storefront } from "./storefront"
 
 export type CategoryListInput = StorefrontCategoryListInput
-export const DEFAULT_CATEGORY_PAGE_SIZE = STOREFRONT_DEFAULT_CATEGORY_PAGE_SIZE
-export const buildCategoryListParams = buildStorefrontCategoryListParams
+const buildCategoryListParams = buildStorefrontCategoryListParams
 
 type CategoryHooks = typeof storefront.hooks.categories
 
 const categoryHooks = storefront.hooks.categories
 const toCategoryListParams = (
-  input: CategoryListInput
-): FindParams & HttpTypes.StoreProductCategoryListParams =>
-  input as unknown as FindParams & HttpTypes.StoreProductCategoryListParams
+  input: CategoryListInput,
+): FindParams & HttpTypes.StoreProductCategoryListParams => input
 
 export const useCategories = (
   input: CategoryListInput,
-  options?: Parameters<CategoryHooks["useCategories"]>[1]
+  options?: Parameters<CategoryHooks["useCategories"]>[1],
 ) =>
   categoryHooks.useCategories(
     toCategoryListParams(buildCategoryListParams(input)),
-    options
+    options,
   )
 
-export const usePrefetchCategory = categoryHooks.usePrefetchCategory
+export const { usePrefetchCategory } = categoryHooks
 
 export const usePrefetchCategories = (
   ...args: Parameters<CategoryHooks["usePrefetchCategories"]>
@@ -38,18 +34,6 @@ export const usePrefetchCategories = (
 
   return {
     ...prefetch,
-    prefetchCategories: (
-      input: CategoryListInput,
-      ...prefetchArgs: Parameters<typeof prefetch.prefetchCategories> extends [
-        unknown,
-      ]
-        ? []
-        : never
-    ) =>
-      prefetch.prefetchCategories(
-        toCategoryListParams(buildCategoryListParams(input)),
-        ...prefetchArgs
-      ),
     delayedPrefetch: (
       input: CategoryListInput,
       ...prefetchArgs: Parameters<typeof prefetch.delayedPrefetch> extends [
@@ -61,7 +45,20 @@ export const usePrefetchCategories = (
     ) =>
       prefetch.delayedPrefetch(
         toCategoryListParams(buildCategoryListParams(input)),
-        ...prefetchArgs
+        ...prefetchArgs,
       ),
+    prefetchCategories: async (
+      input: CategoryListInput,
+      ...prefetchArgs: Parameters<typeof prefetch.prefetchCategories> extends [
+        unknown,
+      ]
+        ? []
+        : never
+    ) => {
+      await prefetch.prefetchCategories(
+        toCategoryListParams(buildCategoryListParams(input)),
+        ...prefetchArgs,
+      )
+    },
   }
 }

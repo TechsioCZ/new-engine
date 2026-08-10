@@ -1,9 +1,4 @@
-import {
-  type CheckoutAddressInput,
-  defaultCheckoutAddressRequiredFields,
-} from "@techsio/storefront-data/checkout/address"
-
-export type CheckoutAddressValues = {
+export interface CheckoutAddressValues {
   email: string
   firstName: string
   lastName: string
@@ -20,7 +15,7 @@ export type CheckoutAddressValues = {
   customerNote: string
 }
 
-export type CheckoutDetailsValues = {
+export interface CheckoutDetailsValues {
   shipping: CheckoutAddressValues
   billing: CheckoutAddressValues
   useSameAddress: boolean
@@ -50,46 +45,27 @@ export const CHECKOUT_ADDRESS_FIELDS = [
   "postalCode",
   "countryCode",
   "customerNote",
-] as const satisfies ReadonlyArray<keyof CheckoutAddressValues>
+] as const satisfies readonly (keyof CheckoutAddressValues)[]
 
 export const DEFAULT_CHECKOUT_ADDRESS_VALUES: CheckoutAddressValues = {
+  address1: "",
+  address2: "",
+  city: "",
+  company: "",
+  companyId: "",
+  countryCode: "",
+  customerNote: "",
   email: "",
   firstName: "",
   lastName: "",
   phone: "",
-  company: "",
-  companyId: "",
+  postalCode: "",
   taxId: "",
   vatId: "",
-  address1: "",
-  address2: "",
-  city: "",
-  postalCode: "",
-  countryCode: "",
-  customerNote: "",
 }
 
-export const CHECKOUT_BILLING_REQUIRED_FIELDS =
-  defaultCheckoutAddressRequiredFields
-
-export const CHECKOUT_SHIPPING_REQUIRED_FIELDS = [
-  ...defaultCheckoutAddressRequiredFields,
-  "phone",
-] as const satisfies readonly (keyof CheckoutAddressInput)[]
-
-export const CHECKOUT_COMPANY_REQUIRED_FIELDS = [
-  "company",
-  "companyId",
-  "taxId",
-] as const satisfies readonly (keyof CheckoutAddressValues)[]
-
-export const createDefaultCheckoutAddressValues =
-  (): CheckoutAddressValues => ({
-    ...DEFAULT_CHECKOUT_ADDRESS_VALUES,
-  })
-
 const clearCheckoutCompanyFields = (
-  address: CheckoutAddressValues
+  address: CheckoutAddressValues,
 ): CheckoutAddressValues => ({
   ...address,
   company: "",
@@ -99,7 +75,7 @@ const clearCheckoutCompanyFields = (
 })
 
 export const resolveEffectiveCheckoutAddressDetails = (
-  values: CheckoutAddressDetailsValues
+  values: CheckoutAddressDetailsValues,
 ): CheckoutAddressDetailsValues => {
   const shouldKeepShippingCompanyFields =
     values.useSameAddress && values.isCompanyPurchase

@@ -1,10 +1,8 @@
 import type { CheckoutDetailsValues } from "@/lib/forms/checkout/address.form"
-import {
-  type AddressValidationMessages,
-  createAddressFieldValidators,
-} from "@/lib/forms/validators/address"
+import { createAddressFieldValidators } from "@/lib/forms/validators/address"
+import type { AddressValidationMessages } from "@/lib/forms/validators/address"
 import { createChangeBlurSubmitScopedFieldValidators } from "@/lib/forms/validators/field-validator-factories"
-import type { HerbatikaCountryCode } from "@/lib/storefront/market-context"
+import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
 
 export type CheckoutAddressValidationMessages = AddressValidationMessages
 
@@ -19,7 +17,7 @@ const validateBillingCompanyFields = (values: CheckoutDetailsValues) =>
 
 export const createCheckoutFieldValidators = (
   messages: CheckoutAddressValidationMessages,
-  countryCode: HerbatikaCountryCode
+  countryCode: HerbatikaMarketContext["countryCode"],
 ) => {
   const validators = createAddressFieldValidators(messages, countryCode)
 
@@ -28,66 +26,66 @@ export const createCheckoutFieldValidators = (
     city: createChangeBlurSubmitScopedFieldValidators(validators.city),
     company: createChangeBlurSubmitScopedFieldValidators(
       validators.company,
-      validateShippingCompanyFields
+      validateShippingCompanyFields,
     ),
     companyId: createChangeBlurSubmitScopedFieldValidators(
       validators.companyId,
-      validateShippingCompanyFields
+      validateShippingCompanyFields,
     ),
     countryCode: createChangeBlurSubmitScopedFieldValidators(
-      validators.countryCode
+      validators.countryCode,
     ),
     email: createChangeBlurSubmitScopedFieldValidators(validators.email),
     firstName: createChangeBlurSubmitScopedFieldValidators(
-      validators.firstName
+      validators.firstName,
     ),
     lastName: createChangeBlurSubmitScopedFieldValidators(validators.lastName),
     phone: createChangeBlurSubmitScopedFieldValidators(validators.phone),
     postalCode: createChangeBlurSubmitScopedFieldValidators(
-      validators.postalCode
+      validators.postalCode,
     ),
     taxId: createChangeBlurSubmitScopedFieldValidators(
       validators.taxId,
-      validateShippingCompanyFields
+      validateShippingCompanyFields,
     ),
   }
 
   const billing = {
     address1: createChangeBlurSubmitScopedFieldValidators(
       validators.address1,
-      validateBillingFields
+      validateBillingFields,
     ),
     city: createChangeBlurSubmitScopedFieldValidators(
       validators.city,
-      validateBillingFields
+      validateBillingFields,
     ),
     company: createChangeBlurSubmitScopedFieldValidators(
       validators.company,
-      validateBillingCompanyFields
+      validateBillingCompanyFields,
     ),
     companyId: createChangeBlurSubmitScopedFieldValidators(
       validators.companyId,
-      validateBillingCompanyFields
+      validateBillingCompanyFields,
     ),
     countryCode: createChangeBlurSubmitScopedFieldValidators(
       validators.countryCode,
-      validateBillingFields
+      validateBillingFields,
     ),
     firstName: createChangeBlurSubmitScopedFieldValidators(
       validators.firstName,
-      validateBillingFields
+      validateBillingFields,
     ),
     lastName: createChangeBlurSubmitScopedFieldValidators(
       validators.lastName,
-      validateBillingFields
+      validateBillingFields,
     ),
     postalCode: createChangeBlurSubmitScopedFieldValidators(
       validators.postalCode,
-      validateBillingFields
+      validateBillingFields,
     ),
     taxId: createChangeBlurSubmitScopedFieldValidators(
       validators.taxId,
-      validateBillingCompanyFields
+      validateBillingCompanyFields,
     ),
   }
 

@@ -1,8 +1,8 @@
-/**
+/*
  * Pagination — @techsio/ui-kit molecule.
  *
  * @component Pagination
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill pagination-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,211 +11,95 @@
  */
 import {
   connect as connectPagination,
-  type IntlTranslations as PaginationIntlTranslations,
-  type PageUrlDetails as PaginationPageUrlDetails,
   machine as paginationMachine,
 } from "@zag-js/pagination"
+import type { IntlTranslations as PaginationIntlTranslations } from "@zag-js/pagination"
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
-import {
-  type ElementType,
-  type HTMLAttributes,
-  type ReactNode,
-  useId,
+import { createElement, useId } from "react"
+import type {
+  AnchorHTMLAttributes,
+  ElementType,
+  HTMLAttributes,
+  ReactNode,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
-import { Icon } from "../atoms/icon"
-import { LinkButton, type LinkButtonProps } from "../atoms/link-button"
-import { tv } from "../utils"
 
-export const paginationVariants = tv({
-  slots: {
-    base: "",
-    list: ["inline-flex items-center gap-pagination-list"],
-    item: [
-      "grid cursor-pointer",
-      'has-[[data-part="ellipsis"]]:bg-pagination-bg-neutral',
-      'has-[[data-part="compact-text"]]:bg-pagination-bg-neutral',
-    ],
-    link: [
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-      "focus-visible:outline-pagination-ring",
-      "focus-visible:outline-offset-(length:--default-ring-offset)",
-      "border-(length:--border-pagination-width) rounded-pagination border-pagination-border-base",
-      "aspect-square",
-      "data-disabled:text-pagination-fg-disabled data-disabled:hover:bg-pagination-bg-disabled",
-      "data-disabled:bg-pagination-bg-disabled",
-      "data-disabled:cursor-not-allowed data-disabled:border-pagination-border-disabled",
-    ],
-    ellipsis: "",
-    compactText: "",
-  },
-  compoundSlots: [
-    {
-      slots: ["link", "ellipsis"],
-      className: [
-        "inline-flex items-center justify-center",
-        "transition-colors duration-200 motion-reduce:transition-none",
-        "text-pagination-fg",
-      ],
-    },
-  ],
-  variants: {
-    variant: {
-      filled: {
-        item: "bg-pagination-bg-base",
-        link: [
-          "data-selected:border-pagination-border-active data-selected:bg-pagination-bg-active data-selected:text-pagination-fg-filled-active",
-          "hover:border-pagination-border-hover hover:bg-pagination-bg-hover",
-          "hover:text-pagination-fg-filled-active",
-        ],
-      },
-      outlined: {
-        item: "bg-pagination-bg-base",
-        link: [
-          "data-selected:border-pagination-border-active data-selected:text-pagination-fg-outlined-active",
-          "hover:border-pagination-border-hover hover:text-pagination-fg-outlined-active",
-        ],
-      },
-      minimal: {
-        link: [
-          "border-transparent",
-          "data-selected:text-pagination-fg-minimal-active",
-          "hover:text-pagination-fg-minimal-active",
-        ],
-      },
-    },
-    size: {
-      sm: {
-        link: "h-pagination-sm text-pagination-sm",
-        compactText: "text-pagination-sm",
-      },
-      md: {
-        link: "h-pagination-md text-pagination-md",
-        compactText: "text-pagination-md",
-      },
-      lg: {
-        link: "h-pagination-lg text-pagination-lg",
-        compactText: "text-pagination-lg",
-      },
-    },
-  },
-  defaultVariants: {
-    variant: "filled",
-    size: "md",
-  },
-})
+import { Icon } from "../atoms/icon"
+import { LinkButton } from "../atoms/link-button"
+import type { LinkButtonProps } from "../atoms/link-button"
+import type { PaginationGetPageUrl } from "./pagination-utils"
+import { paginationVariants } from "./pagination-variants"
 
 export type PaginationBaseProps = Omit<
   HTMLAttributes<HTMLElement>,
   "onChange"
 > &
   VariantProps<typeof paginationVariants> & {
-    page?: number
-    defaultPage?: number
+    page?: number | undefined
+    defaultPage?: number | undefined
     count: number
-    pageSize?: number
-    siblingCount?: number
-    boundaryCount?: number
-    showPrevNext?: boolean
-    dir?: "ltr" | "rtl"
-    compact?: boolean
-    compactLabel?: (details: { page: number; totalPages: number }) => ReactNode
-    onChange?: (page: number) => void
-    onPageChange?: (page: number) => void
-    translations?: PaginationIntlTranslations
+    pageSize?: number | undefined
+    siblingCount?: number | undefined
+    boundaryCount?: number | undefined
+    showPrevNext?: boolean | undefined
+    dir?: "ltr" | "rtl" | undefined
+    compact?: boolean | undefined
+    compactLabel?:
+      | ((details: { page: number; totalPages: number }) => ReactNode)
+      | undefined
+    onChange?: ((page: number) => void) | undefined
+    onPageChange?: ((page: number) => void) | undefined
+    translations?: PaginationIntlTranslations | undefined
   }
 
-type PaginationLinkProps<T extends ElementType> = Omit<
-  LinkButtonProps<T>,
-  | "href"
-  | "children"
+type PaginationLinkElement = ElementType
+
+type PaginationControlledLinkProp =
   | "as"
+  | "children"
   | "className"
-  | "size"
-  | "theme"
   | "disabled"
+  | "href"
   | "icon"
   | "iconPosition"
->
+  | "size"
+  | "theme"
 
-export type PaginationProps<T extends ElementType = "a"> =
+type PaginationLinkProps<T extends PaginationLinkElement> = LinkButtonProps<T> &
+  Partial<Record<PaginationControlledLinkProp, never>>
+
+export type PaginationProps<T extends PaginationLinkElement = "a"> =
   PaginationBaseProps & {
     getPageUrl: PaginationGetPageUrl
-    linkAs?: T
-    linkProps?: PaginationLinkProps<T>
+    linkAs?: T | undefined
+    linkProps?: PaginationLinkProps<T> | undefined
   }
 
-type PaginationTriggerProps = Record<string, unknown>
-type PaginationSearchParamValue = string | number | boolean | null | undefined
-type PaginationSearchParamsRecord = Record<string, PaginationSearchParamValue>
+type PaginationTriggerProps<T extends PaginationLinkElement> = Pick<
+  LinkButtonProps<T>,
+  "href"
+> &
+  Pick<AnchorHTMLAttributes<HTMLAnchorElement>, "id">
+type PaginationButtonOverrides = Pick<LinkButtonProps, "icon">
 
-export type PaginationGetPageUrl = (details: PaginationPageUrlDetails) => string
+export { paginationVariants } from "./pagination-variants"
+export {
+  createPaginationGetPageUrl,
+  type CreatePaginationGetPageUrlOptions,
+  type PaginationGetPageUrl,
+  type PaginationSearchParamsInput,
+} from "./pagination-utils"
 
-export type PaginationSearchParamsInput =
-  | string
-  | URLSearchParams
-  | { toString: () => string }
+const hasHref = <T extends PaginationLinkElement>(
+  triggerProps: PaginationTriggerProps<T>,
+): triggerProps is PaginationTriggerProps<T> & {
+  href: NonNullable<PaginationTriggerProps<T>["href"]>
+} =>
+  "href" in triggerProps &&
+  triggerProps.href !== null &&
+  triggerProps.href !== undefined
 
-export type CreatePaginationGetPageUrlOptions = {
-  pathname: string
-  searchParams?: PaginationSearchParamsInput
-  pageParam?: string
-  defaultPage?: number
-  searchParamOverrides?: PaginationSearchParamsRecord
-}
-
-function toURLSearchParams(searchParams?: PaginationSearchParamsInput) {
-  if (!searchParams) {
-    return new URLSearchParams()
-  }
-
-  if (typeof searchParams === "string") {
-    return new URLSearchParams(searchParams)
-  }
-
-  return new URLSearchParams(searchParams.toString())
-}
-
-export function createPaginationGetPageUrl({
-  pathname,
-  searchParams,
-  pageParam = "page",
-  defaultPage = 1,
-  searchParamOverrides,
-}: CreatePaginationGetPageUrlOptions): PaginationGetPageUrl {
-  const baseSearchParams = toURLSearchParams(searchParams)
-
-  return ({ page }) => {
-    const nextSearchParams = new URLSearchParams(baseSearchParams)
-
-    if (searchParamOverrides) {
-      for (const [key, value] of Object.entries(searchParamOverrides)) {
-        if (value == null) {
-          nextSearchParams.delete(key)
-        } else {
-          nextSearchParams.set(key, String(value))
-        }
-      }
-    }
-
-    if (page === defaultPage) {
-      nextSearchParams.delete(pageParam)
-    } else {
-      nextSearchParams.set(pageParam, page.toString())
-    }
-
-    const query = nextSearchParams.toString()
-    return query ? `${pathname}?${query}` : pathname
-  }
-}
-
-function hasHref(
-  triggerProps: PaginationTriggerProps
-): triggerProps is PaginationTriggerProps & { href: unknown } {
-  return triggerProps.href != null
-}
-
-export function Pagination<T extends ElementType = "a">({
+export const Pagination = <T extends PaginationLinkElement = "a">({
   page,
   defaultPage = 1,
   count,
@@ -236,80 +120,80 @@ export function Pagination<T extends ElementType = "a">({
   onPageChange,
   translations,
   ...props
-}: PaginationProps<T>) {
+}: PaginationProps<T>) => {
   const uniqueId = useId()
 
   const service = useMachine(paginationMachine, {
-    id: uniqueId,
-    count,
-    pageSize,
-    siblingCount,
     boundaryCount,
-    page,
-    dir,
+    count,
     defaultPage,
-    type: "link",
+    dir,
     getPageUrl,
+    id: uniqueId,
     onPageChange: (details) => {
       onChange?.(details.page)
       onPageChange?.(details.page)
     },
-    translations,
+    ...(page !== undefined && { page }),
+    pageSize,
+    siblingCount,
+    ...(translations !== undefined && { translations }),
+    type: "link",
   })
 
   const api = connectPagination(service, normalizeProps)
   const { base, list, link, item, ellipsis, compactText } = paginationVariants({
-    variant,
     size,
+    variant,
   })
-  const rootProps = mergeProps(props, api.getRootProps())
+  const rootProps = mergeProps(api.getRootProps(), props)
 
-  const sharedLinkProps =
-    linkProps && typeof linkProps === "object"
-      ? (({ href: _ignoredHref, ...rest }) => rest)(
-          linkProps as Record<string, unknown>
-        )
-      : undefined
-
-  const getTriggerButtonProps = (
-    triggerProps: PaginationTriggerProps,
-    overrides: Record<string, unknown> = {}
+  const renderTriggerButton = (
+    triggerProps: PaginationTriggerProps<T>,
+    overrides: PaginationButtonOverrides = {},
+    children?: ReactNode,
   ) => {
     const isNavigable = hasHref(triggerProps)
-    const baseTriggerProps = mergeProps(triggerProps, {
-      className: link(),
-      size: "current" as const,
-      theme: "borderless" as const,
-      ...overrides,
-    })
 
-    return mergeProps(
-      isNavigable ? sharedLinkProps : undefined,
-      baseTriggerProps,
-      {
-        ...(isNavigable && linkAs ? { as: linkAs } : {}),
-        ...(isNavigable
-          ? {}
-          : {
-              disabled: true,
-            }),
-      }
-    ) as LinkButtonProps<T>
+    const interactionProps = mergeProps<
+      PaginationLinkProps<T> | PaginationTriggerProps<T> | { className: string }
+    >(linkProps, triggerProps, { className: link() })
+    const buttonProps = { ...linkProps }
+    const presentationProps: {
+      as: T | undefined
+      children: ReactNode | undefined
+      disabled: boolean
+      icon: LinkButtonProps["icon"]
+      size: "current"
+      theme: "borderless"
+    } = {
+      as: isNavigable ? linkAs : undefined,
+      children,
+      disabled: !isNavigable,
+      icon: overrides.icon,
+      size: "current",
+      theme: "borderless",
+    }
+    const completeButtonProps = Object.assign(
+      buttonProps,
+      interactionProps,
+      presentationProps,
+    )
+
+    return createElement(LinkButton<T>, completeButtonProps)
   }
 
-  const prevTriggerProps = api.getPrevTriggerProps() as PaginationTriggerProps
-  const nextTriggerProps = api.getNextTriggerProps() as PaginationTriggerProps
+  const prevTriggerProps = api.getPrevTriggerProps()
+  const nextTriggerProps = api.getNextTriggerProps()
 
   return (
-    <nav className={base({ className })} {...rootProps}>
+    <nav {...rootProps} className={base({ className })}>
       <ul className={list()}>
         {showPrevNext && (
           <li className={item()}>
-            <LinkButton
-              {...getTriggerButtonProps(prevTriggerProps, {
-                icon: "token-icon-pagination-prev",
-              })}
-            />
+            {renderTriggerButton(prevTriggerProps, {
+              icon: "token-icon-pagination-prev",
+            })}
           </li>
         )}
         {compact ? (
@@ -326,16 +210,11 @@ export function Pagination<T extends ElementType = "a">({
             if (paginationPage.type === "page") {
               return (
                 <li className={item()} key={paginationPage.value}>
-                  <LinkButton
-                    {...getTriggerButtonProps(
-                      api.getItemProps(paginationPage) as Record<
-                        string,
-                        unknown
-                      >
-                    )}
-                  >
-                    {paginationPage.value}
-                  </LinkButton>
+                  {renderTriggerButton(
+                    api.getItemProps(paginationPage),
+                    undefined,
+                    paginationPage.value,
+                  )}
                 </li>
               )
             }
@@ -366,11 +245,9 @@ export function Pagination<T extends ElementType = "a">({
 
         {showPrevNext && (
           <li className={item()}>
-            <LinkButton
-              {...getTriggerButtonProps(nextTriggerProps, {
-                icon: "token-icon-pagination-next",
-              })}
-            />
+            {renderTriggerButton(nextTriggerProps, {
+              icon: "token-icon-pagination-next",
+            })}
           </li>
         )}
       </ul>

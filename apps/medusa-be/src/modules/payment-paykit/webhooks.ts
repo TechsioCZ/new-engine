@@ -2,40 +2,34 @@ import type { MedusaRequest } from "@medusajs/framework/http"
 import type { Logger, PaymentModuleOptions } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
-  MedusaError,
   Modules,
   PaymentWebhookEvents,
 } from "@medusajs/framework/utils"
 
-type EmitPaykitPaymentWebhookEventInput = {
-  data: Record<string, unknown>
+interface PaykitWebhookData {
+  fullUrl: string
+  url: string
+}
+
+interface EmitPaykitPaymentWebhookEventInput {
+  data: PaykitWebhookData
   provider: string
   rawData?: string | Buffer
   req: MedusaRequest
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
-const getPaymentModuleOptions = (
-  paymentModule: unknown
-): PaymentModuleOptions => {
-  if (!isRecord(paymentModule)) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "Payment module could not be resolved for PayKit webhook"
-    )
-  }
-
-  return isRecord(paymentModule.options)
-    ? (paymentModule.options as PaymentModuleOptions)
-    : {}
+interface PaykitWebhookEmitErrorContext {
+  eventName: typeof PaymentWebhookEvents.WebhookReceived
+  headers: MedusaRequest["headers"]
+  paymentModuleOptions: PaymentModuleOptions
+  provider: string
+  rawData: string | Buffer
 }
 
 const logWebhookEmitError = (
   req: MedusaRequest,
   error: unknown,
-  context: Record<string, unknown>
+  context: PaykitWebhookEmitErrorContext,
 ): void => {
   const logger = req.scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const errorObject = error instanceof Error ? error : new Error(String(error))
@@ -45,7 +39,7 @@ const logWebhookEmitError = (
     JSON.stringify({
       ...context,
       error,
-    })
+    }),
   )
 }
 
@@ -58,26 +52,28 @@ export const emitPaykitPaymentWebhookEvent = async ({
   let options: PaymentModuleOptions = {}
 
   try {
-    const paymentModule = req.scope.resolve(Modules.PAYMENT)
-    options = getPaymentModuleOptions(paymentModule)
+    const paymentModule = req.scope.resolve<{
+      options?: PaymentModuleOptions
+    }>(Modules.PAYMENT)
+    options = paymentModule.options ?? {}
     const eventBus = req.scope.resolve(Modules.EVENT_BUS)
 
     await eventBus.emit(
       {
-        name: PaymentWebhookEvents.WebhookReceived,
         data: {
-          provider,
           payload: {
             data,
-            rawData,
             headers: req.headers,
+            rawData,
           },
+          provider,
         },
+        name: PaymentWebhookEvents.WebhookReceived,
       },
       {
-        delay: options.webhook_delay ?? 5000,
         attempts: options.webhook_retries ?? 3,
-      }
+        delay: options.webhook_delay ?? 5000,
+      },
     )
   } catch (error) {
     // Provider callback routes acknowledge the callback; emit failures are

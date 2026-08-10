@@ -1,4 +1,6 @@
-import type { CollectionConfig } from "payload"
+import { getRecordValue, isRecord } from "@techsio/std/object"
+import type { CollectionBeforeValidateHook, CollectionConfig } from "payload"
+
 import { requireAuth } from "../lib/access/require-auth"
 import {
   adminGroups,
@@ -6,6 +8,7 @@ import {
   fieldLabels,
 } from "../lib/constants/labels"
 import { createMedusaCacheHook } from "../lib/hooks/medusa-cache"
+import type { HeroCarousel } from "../payload-types"
 
 /** Collection slug for hero carousels. */
 const COLLECTION_SLUG = "hero-carousels"
@@ -13,16 +16,13 @@ const COLLECTION_SLUG = "hero-carousels"
 const invalidateHeroCarouselsCache = createMedusaCacheHook(COLLECTION_SLUG)
 const DEFAULT_INTERNAL_TITLE = "Hero banner"
 
-const cleanString = (value: unknown) =>
+const cleanString = (value: unknown): string =>
   typeof value === "string" ? value.trim() : ""
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
+const firstNonEmptyString = (values: unknown[]): string =>
+  values.map(cleanString).find((value) => value !== "") ?? ""
 
-const resolveLocalizedString = (
-  value: unknown,
-  locale: string | undefined
-) => {
+const resolveLocalizedString = (value: unknown, locale: string | undefined) => {
   if (typeof value === "string") {
     return cleanString(value)
   }
@@ -31,104 +31,117 @@ const resolveLocalizedString = (
     return ""
   }
 
-  return (
-    cleanString(locale ? value[locale] : undefined) ||
-    cleanString(value.en) ||
-    cleanString(value.sk) ||
-    cleanString(value.cs) ||
-    cleanString(Object.values(value).find((entry) => cleanString(entry)))
-  )
+  const cs = getRecordValue(value, "cs")
+  const en = getRecordValue(value, "en")
+  const sk = getRecordValue(value, "sk")
+  return firstNonEmptyString([
+    locale === undefined ? undefined : getRecordValue(value, locale),
+    en,
+    sk,
+    cs,
+    ...Object.keys(value).map((key) => getRecordValue(value, key)),
+  ])
 }
 
 const resolveInternalTitle = (
-  data: Record<string, unknown>,
-  locale: string | undefined
-) =>
-  cleanString(data.internalTitle) ||
-  resolveLocalizedString(data.heading, locale) ||
-  resolveLocalizedString(data.button, locale) ||
-  cleanString(data.buttonHref) ||
-  DEFAULT_INTERNAL_TITLE
+  data: Partial<HeroCarousel>,
+  locale: string | undefined,
+): string =>
+  firstNonEmptyString([
+    data.internalTitle,
+    resolveLocalizedString(data.heading, locale),
+    resolveLocalizedString(data.button, locale),
+    data.buttonHref,
+    DEFAULT_INTERNAL_TITLE,
+  ])
+
+const populateInternalTitle: CollectionBeforeValidateHook<HeroCarousel> = ({
+  data,
+  operation,
+  originalDoc,
+  req,
+}) => {
+  if (data === undefined) {
+    return data
+  }
+
+  if (operation === "update" && data.internalTitle === undefined) {
+    return data
+  }
+
+  const source =
+    operation === "update" && originalDoc !== undefined
+      ? { ...originalDoc, ...data }
+      : data
+  const { locale } = req
+  data.internalTitle = resolveInternalTitle(
+    source,
+    locale === "all" ? undefined : locale,
+  )
+
+  return data
+}
 
 /** Payload collection config for hero carousels. */
 export const HeroCarousels: CollectionConfig = {
-  slug: COLLECTION_SLUG,
   access: {
-    read: requireAuth,
     create: requireAuth,
-    update: requireAuth,
     delete: requireAuth,
+    read: requireAuth,
+    update: requireAuth,
   },
-  labels: collectionLabels.heroCarousels,
   admin: {
-    useAsTitle: "internalTitle",
     defaultColumns: ["internalTitle", "heading", "image"],
     group: adminGroups.content,
+    useAsTitle: "internalTitle",
   },
   fields: [
     {
-      name: "internalTitle",
       label: fieldLabels.internalTitle,
-      type: "text",
+      name: "internalTitle",
       required: true,
+      type: "text",
     },
     {
-      name: "image",
       label: fieldLabels.image,
-      type: "upload",
+      name: "image",
       relationTo: "media",
       required: true,
+      type: "upload",
     },
     {
-      name: "heading",
       label: fieldLabels.heading,
-      type: "text",
-      required: false,
       localized: true,
+      name: "heading",
+      required: false,
+      type: "text",
     },
     {
-      name: "subheading",
       label: fieldLabels.subheading,
-      type: "text",
-      required: false,
       localized: true,
+      name: "subheading",
+      required: false,
+      type: "text",
     },
     {
-      name: "button",
       label: fieldLabels.buttonText,
-      type: "text",
-      required: false,
       localized: true,
+      name: "button",
+      required: false,
+      type: "text",
     },
     {
-      name: "buttonHref",
       label: fieldLabels.buttonUrl,
-      type: "text",
+      name: "buttonHref",
       required: false,
+      type: "text",
     },
   ],
   hooks: {
-    beforeValidate: [
-      ({ data, operation, originalDoc, req }) => {
-        if (!data) {
-          return data
-        }
-
-        if (operation === "update" && data.internalTitle === undefined) {
-          return data
-        }
-
-        data.internalTitle = resolveInternalTitle(
-          operation === "update" && originalDoc
-            ? { ...originalDoc, ...data }
-            : data,
-          req?.locale
-        )
-
-        return data
-      },
-    ],
     afterChange: [invalidateHeroCarouselsCache],
     afterDelete: [invalidateHeroCarouselsCache],
+    beforeValidate: [populateInternalTitle],
   },
+  labels: collectionLabels.heroCarousels,
+  slug: COLLECTION_SLUG,
 }

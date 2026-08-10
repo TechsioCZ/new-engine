@@ -3,7 +3,7 @@ import type { CatalogQueryState } from "./parsers"
 import { normalizeStatusFilterInput } from "./status-filters"
 import { normalizePriceRange, toNonEmptyArray } from "./utils"
 
-type BuildCatalogProductsParamsInput = {
+interface BuildCatalogProductsParamsInput {
   queryState: CatalogQueryState
   categoryIds?: string[]
   limit?: number
@@ -12,7 +12,7 @@ type BuildCatalogProductsParamsInput = {
   currencyCode?: string
 }
 
-export type CatalogProductsParams = {
+export interface CatalogProductsParams {
   q?: string
   page: number
   limit: number
@@ -38,8 +38,8 @@ export const resolveCatalogPriceBounds = (priceFacet: {
   }
 
   return {
-    min: priceFacet.min ?? 0,
     max: priceFacet.max ?? priceFacet.min ?? 1,
+    min: priceFacet.min ?? 0,
   }
 }
 
@@ -54,32 +54,43 @@ export const buildCatalogProductsParams = ({
   const normalizedSearchQuery = queryState.q.trim()
   const normalizedPriceRange = normalizePriceRange(
     queryState.price_min,
-    queryState.price_max
+    queryState.price_max,
   )
 
+  const categoryIdsValue = toNonEmptyArray(categoryIds ?? [])
+  const status = toNonEmptyArray(normalizeStatusFilterInput(queryState.status))
+  const form = toNonEmptyArray(queryState.form)
+  const brand = toNonEmptyArray(queryState.brand)
+  const ingredient = toNonEmptyArray(queryState.ingredient)
   const params: CatalogProductsParams = {
-    q: normalizedSearchQuery || undefined,
-    page: queryState.page,
+    ...(normalizedSearchQuery ? { q: normalizedSearchQuery } : {}),
     limit,
+    page: queryState.page,
     sort: queryState.sort,
-    category_id: toNonEmptyArray(categoryIds ?? []),
-    status: toNonEmptyArray(normalizeStatusFilterInput(queryState.status)),
-    form: toNonEmptyArray(queryState.form),
-    brand: toNonEmptyArray(queryState.brand),
-    ingredient: toNonEmptyArray(queryState.ingredient),
-    price_min: normalizedPriceRange.min,
-    price_max: normalizedPriceRange.max,
+    ...(categoryIdsValue === undefined
+      ? {}
+      : { category_id: categoryIdsValue }),
+    ...(status === undefined ? {} : { status }),
+    ...(form === undefined ? {} : { form }),
+    ...(brand === undefined ? {} : { brand }),
+    ...(ingredient === undefined ? {} : { ingredient }),
+    ...(normalizedPriceRange.min === undefined
+      ? {}
+      : { price_min: normalizedPriceRange.min }),
+    ...(normalizedPriceRange.max === undefined
+      ? {}
+      : { price_max: normalizedPriceRange.max }),
   }
 
-  if (regionId) {
+  if (typeof regionId === "string" && regionId.length > 0) {
     params.region_id = regionId
   }
 
-  if (countryCode) {
+  if (typeof countryCode === "string" && countryCode.length > 0) {
     params.country_code = countryCode
   }
 
-  if (currencyCode) {
+  if (typeof currencyCode === "string" && currencyCode.length > 0) {
     params.currency_code = currencyCode
   }
 
@@ -87,11 +98,11 @@ export const buildCatalogProductsParams = ({
 }
 
 export const resolveCatalogActiveFilterCount = (
-  queryState: CatalogQueryState
+  queryState: CatalogQueryState,
 ): number => {
   const normalizedPriceRange = normalizePriceRange(
     queryState.price_min,
-    queryState.price_max
+    queryState.price_max,
   )
 
   return (

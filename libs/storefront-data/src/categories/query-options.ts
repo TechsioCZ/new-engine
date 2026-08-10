@@ -1,3 +1,5 @@
+import { omitUndefined } from "@techsio/std/object"
+
 import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import type {
   QueryFactoryOptions,
@@ -14,13 +16,13 @@ import type {
   CategoryService,
 } from "./types"
 
-export type CreateCategoryQueryOptionsFactoryConfig<
+export interface CreateCategoryQueryOptionsFactoryConfig<
   TCategory,
-  TListInput extends CategoryListInputBase,
+  TListInput extends CategoryListInputBase & TListParams,
   TListParams,
-  TDetailInput extends CategoryDetailInputBase,
+  TDetailInput extends CategoryDetailInputBase & TDetailParams,
   TDetailParams,
-> = {
+> {
   service: CategoryService<TCategory, TListParams, TDetailParams>
   buildListParams?: (input: TListInput) => TListParams
   buildDetailParams?: (input: TDetailInput) => TDetailParams
@@ -29,32 +31,32 @@ export type CreateCategoryQueryOptionsFactoryConfig<
   cacheConfig?: CacheConfig
 }
 
-export type CategoryQueryOptionsFactory<
+export interface CategoryQueryOptionsFactory<
   TCategory,
   TListInput extends CategoryListInputBase,
   TDetailInput extends CategoryDetailInputBase,
-> = {
+> {
   getListQueryOptions: (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<CategoryListResponse<TCategory>>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<CategoryListResponse<TCategory>>
   getDetailQueryOptions: (
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TCategory | null>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<TCategory | null>
 }
 
-export function createCategoryQueryOptionsFactory<
+export const createCategoryQueryOptionsFactory = <
   TCategory,
-  TListInput extends CategoryListInputBase,
+  TListInput extends CategoryListInputBase & TListParams,
   TListParams,
-  TDetailInput extends CategoryDetailInputBase,
+  TDetailInput extends CategoryDetailInputBase & TDetailParams,
   TDetailParams,
 >({
   service,
@@ -69,19 +71,23 @@ export function createCategoryQueryOptionsFactory<
   TListParams,
   TDetailInput,
   TDetailParams
->): CategoryQueryOptionsFactory<TCategory, TListInput, TDetailInput> {
+>): CategoryQueryOptionsFactory<TCategory, TListInput, TDetailInput> => {
+  const buildList = buildListParams ?? ((input: TListInput) => input)
+  const buildDetail = buildDetailParams ?? ((input: TDetailInput) => input)
   const resolvedQueryKeys =
     queryKeys ??
     createCategoryQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
 
-  return createSimpleListDetailQueryOptionsFactory({
-    getList: service.getCategories,
-    getDetail: service.getCategory,
-    buildListParams,
-    buildDetailParams,
-    queryKeys: resolvedQueryKeys,
-    cacheConfig,
-    defaultCacheStrategy: "static",
-    missingDetailErrorMessage: "Category id is required for category queries",
-  })
+  return createSimpleListDetailQueryOptionsFactory(
+    omitUndefined({
+      buildDetailParams: buildDetail,
+      buildListParams: buildList,
+      cacheConfig,
+      defaultCacheStrategy: "static" as const,
+      getDetail: service.getCategory,
+      getList: service.getCategories,
+      missingDetailErrorMessage: "Category id is required for category queries",
+      queryKeys: resolvedQueryKeys,
+    }),
+  )
 }

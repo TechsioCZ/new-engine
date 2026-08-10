@@ -1,28 +1,43 @@
 const spacingScale = Array.from({ length: 19 }, (_, index) =>
-  String((index + 1) * 50)
+  String((index + 1) * 50),
 )
 
 export default {
-  scanDirectories: ["src/app", "src/components"],
+  exclude: ["**/*.stories.tsx", "**/*.test.tsx", "**/*.spec.tsx"],
   fileExtensions: [".ts", ".tsx"],
-  exclude: [
-    "**/*.stories.tsx",
-    "**/*.test.tsx",
-    "**/*.spec.tsx",
-    "src/app/theme/**",
-  ],
   rules: {
     noArbitraryValues: {
       enabled: true,
-      allowClassPatterns: [
-        /^icon-\[[^\]]+\]$/,
-        /^token-icon-[\w-]+$/,
-        /^\[scrollbar-width:none\]$/,
-        /^\[&::-webkit-scrollbar\]:hidden$/,
+      validClassPatterns: [
+        /^icon-\[[^\]]+\]$/u,
+        /^token-icon-[\w-]+$/u,
+        /^\[scrollbar-width:none\]$/u,
+        /^\[&::-webkit-scrollbar\]:hidden$/u,
       ],
     },
-    noTailwindPalette: {
+    noTailwindContainerScale: {
+      disallowedValues: [
+        "xs",
+        "sm",
+        "md",
+        "lg",
+        "xl",
+        "2xl",
+        "3xl",
+        "4xl",
+        "5xl",
+        "6xl",
+        "7xl",
+        "screen-sm",
+        "screen-md",
+        "screen-lg",
+        "screen-xl",
+        "screen-2xl",
+      ],
       enabled: true,
+      prefixes: ["w", "min-w", "max-w", "h", "min-h", "max-h"],
+    },
+    noTailwindPalette: {
       colorUtilityPrefixes: [
         "bg",
         "text",
@@ -40,6 +55,7 @@ export default {
         "via",
         "to",
       ],
+      enabled: true,
       paletteNames: [
         "black",
         "white",
@@ -68,6 +84,19 @@ export default {
       ],
     },
     noTailwindSpacingScale: {
+      allowedKeywords: [
+        "px",
+        "auto",
+        "full",
+        "screen",
+        "min",
+        "max",
+        "fit",
+        "svh",
+        "lvh",
+        "dvh",
+      ],
+      allowedNumericValues: ["0", ...spacingScale],
       enabled: true,
       prefixes: [
         "p",
@@ -103,41 +132,7 @@ export default {
         "inset-x",
         "inset-y",
       ],
-      allowedNumericValues: ["0", ...spacingScale],
-      allowedKeywords: [
-        "px",
-        "auto",
-        "full",
-        "screen",
-        "min",
-        "max",
-        "fit",
-        "svh",
-        "lvh",
-        "dvh",
-      ],
-    },
-    noTailwindContainerScale: {
-      enabled: true,
-      prefixes: ["w", "min-w", "max-w", "h", "min-h", "max-h"],
-      disallowedValues: [
-        "xs",
-        "sm",
-        "md",
-        "lg",
-        "xl",
-        "2xl",
-        "3xl",
-        "4xl",
-        "5xl",
-        "6xl",
-        "7xl",
-        "screen-sm",
-        "screen-md",
-        "screen-lg",
-        "screen-xl",
-        "screen-2xl",
-      ],
     },
   },
+  scanDirectories: ["src/app", "src/components"],
 }

@@ -1,26 +1,30 @@
 "use client"
 
 import { Icon } from "@techsio/ui-kit/atoms/icon"
-import { Rating } from "@techsio/ui-kit/atoms/rating"
-import type { StaticImageData } from "next/image"
-import NextImage from "next/image"
-import NextLink from "next/link"
 import { useFormatter, useTranslations } from "next-intl"
+import type { StaticImageData } from "next/image"
 import type { MouseEvent } from "react"
+
+import verifiedCustomerBadge from "@/assets/third-parties/overeny-zakaznik.avif"
+import NextLink from "@/components/app-link"
 import { FractionalRating } from "@/components/reviews/fractional-rating"
+import { ReviewCard } from "@/components/reviews/review-card"
+import type { ReviewsVariant } from "@/components/reviews/review-card"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
 import {
-  PRODUCT_REVIEWS,
-  REVIEW_VERIFIED_CUSTOMER_BADGE,
-} from "@/components/reviews/reviews.data"
+  resolveLinkClickProps,
+  resolveReviewsHeading,
+  resolveReviewsLinkHref,
+  resolveReviewsLinkLabel,
+  resolveTrustSourceProps,
+} from "@/components/reviews/reviews-section-options"
+import { PRODUCT_REVIEWS } from "@/components/reviews/reviews.data"
 import type {
   ReviewItem,
   ReviewTrustSource,
 } from "@/components/reviews/reviews.types"
 
-type ReviewsVariant = "product" | "homepage"
-
-type ReviewsSectionProps = {
+interface ReviewsSectionProps {
   sectionClassName?: string
   variant?: ReviewsVariant
   linkHref?: string | null
@@ -35,84 +39,7 @@ type ReviewsSectionProps = {
   sourceBadge?: StaticImageData
 }
 
-function resolveReviewInitial(author: string): string {
-  const trimmed = author.trim()
-  return trimmed.charAt(0).toUpperCase() || "A"
-}
-
-function ReviewCard({
-  review,
-  sourceBadge,
-  sourceBadgeAlt,
-  variant,
-  verifiedPurchaseLabel,
-}: {
-  review: ReviewItem
-  sourceBadge: StaticImageData
-  sourceBadgeAlt: string
-  variant: ReviewsVariant
-  verifiedPurchaseLabel: string
-}) {
-  const isHomepage = variant === "homepage"
-  const shouldShowVerifiedPurchase = !isHomepage && review.verifiedPurchase
-
-  return (
-    <article className="flex h-full flex-col gap-350 rounded-md border border-border-secondary bg-highlight p-350 font-roboto shadow-md">
-      <header className="flex items-center gap-350">
-        {isHomepage ? (
-          <div className="flex h-800 w-800 flex-shrink-0 items-center justify-center">
-            <NextImage
-              alt={sourceBadgeAlt}
-              className="h-full w-full object-contain"
-              src={sourceBadge}
-            />
-          </div>
-        ) : (
-          <div className="flex h-800 w-800 flex-shrink-0 items-center justify-center rounded-full bg-surface">
-            <span className="font-normal text-3xl text-fg-secondary leading-none">
-              {resolveReviewInitial(review.author)}
-            </span>
-          </div>
-        )}
-
-        <div className="flex min-w-0 flex-1 flex-col gap-150">
-          <div className="flex items-start justify-between gap-250">
-            <Rating
-              className="pointer-events-none"
-              readOnly
-              size="md"
-              value={review.rating}
-            />
-            <p className="text-fg-placeholder text-xs leading-tight">
-              {review.dateLabel}
-            </p>
-          </div>
-
-          <p className="truncate font-semibold text-fg-primary text-md leading-tight">
-            {review.author}
-          </p>
-        </div>
-      </header>
-
-      <div className="flex flex-1 flex-col gap-250">
-        <p className="line-clamp-3 text-fg-secondary text-md leading-relaxed">
-          {review.message}
-        </p>
-      </div>
-
-      {shouldShowVerifiedPurchase ? (
-        <div className="mt-auto flex items-center gap-150 text-primary">
-          <Icon icon="token-icon-check" size="lg" />
-          <span className="font-medium text-sm leading-relaxed">
-            {verifiedPurchaseLabel}
-          </span>
-        </div>
-      ) : null}
-    </article>
-  )
-}
-
-export function ReviewsSection({
+export const ReviewsSection = ({
   sectionClassName = "space-y-500 pt-750",
   variant = "product",
   linkHref,
@@ -124,22 +51,28 @@ export function ReviewsSection({
   ratingValue = 5,
   reviews = PRODUCT_REVIEWS,
   trustSources,
-  sourceBadge = REVIEW_VERIFIED_CUSTOMER_BADGE,
-}: ReviewsSectionProps) {
+  sourceBadge = verifiedCustomerBadge,
+}: ReviewsSectionProps) => {
   const format = useFormatter()
   const tCatalog = useTranslations("catalog")
   const isHomepage = variant === "homepage"
-  const resolvedHeadingText =
-    headingText ??
-    (isHomepage
-      ? tCatalog("reviews.homepage_title")
-      : tCatalog("reviews.product_title"))
-  const defaultLinkHref = isHomepage ? null : "#reviews"
-  const defaultLinkLabel = isHomepage ? null : tCatalog("reviews.all_reviews")
-  const resolvedLinkHref = linkHref === undefined ? defaultLinkHref : linkHref
-  const resolvedLinkLabel =
-    linkLabel === undefined ? defaultLinkLabel : linkLabel
-  const shouldShowLink = Boolean(resolvedLinkHref && resolvedLinkLabel)
+  const resolvedHeadingText = resolveReviewsHeading(
+    headingText,
+    isHomepage,
+    tCatalog("reviews.homepage_title"),
+    tCatalog("reviews.product_title"),
+  )
+  const resolvedLinkHref = resolveReviewsLinkHref(linkHref, isHomepage)
+  const resolvedLinkLabel = resolveReviewsLinkLabel(
+    linkLabel,
+    isHomepage,
+    tCatalog("reviews.all_reviews"),
+  )
+  const shouldShowLink =
+    resolvedLinkHref !== null &&
+    resolvedLinkHref.length > 0 &&
+    resolvedLinkLabel !== null &&
+    resolvedLinkLabel.length > 0
   const formattedRatingLabel = format.number(ratingValue, {
     maximumFractionDigits: 1,
     minimumFractionDigits: 1,
@@ -147,6 +80,8 @@ export function ReviewsSection({
   const resolvedScoreLabel =
     scoreLabel === undefined ? formattedRatingLabel : scoreLabel
   const ratingAriaLabel = resolvedScoreLabel ?? formattedRatingLabel
+  const trustSourceProps = resolveTrustSourceProps(trustSources)
+  const linkClickProps = resolveLinkClickProps(onLinkClick)
 
   return (
     <section className={sectionClassName}>
@@ -155,14 +90,16 @@ export function ReviewsSection({
           <div>
             <h2 className="font-semibold text-3xl text-fg-primary leading-tight">
               {resolvedHeadingText}
-              {resolvedScoreLabel ? (
+              {resolvedScoreLabel !== null && resolvedScoreLabel.length > 0 ? (
                 <>
                   {" "}
                   - <span className="text-primary">{resolvedScoreLabel}</span>
                 </>
               ) : null}
             </h2>
-            {summaryText ? (
+            {summaryText !== null &&
+            summaryText !== undefined &&
+            summaryText.length > 0 ? (
               <p className="mt-100 text-fg-secondary text-sm leading-relaxed">
                 {summaryText}
               </p>
@@ -180,14 +117,14 @@ export function ReviewsSection({
         </div>
 
         {isHomepage ? (
-          <ReviewTrustBadges className="sm:w-auto" sources={trustSources} />
+          <ReviewTrustBadges className="sm:w-auto" {...trustSourceProps} />
         ) : null}
 
-        {shouldShowLink && resolvedLinkHref && resolvedLinkLabel ? (
+        {shouldShowLink ? (
           <NextLink
             className="inline-flex items-center gap-50 font-verdana text-fg-strong text-sm leading-relaxed underline decoration-1 underline-offset-2 hover:text-fg-primary"
             href={resolvedLinkHref}
-            onClick={onLinkClick}
+            {...linkClickProps}
           >
             {resolvedLinkLabel}
             <Icon icon="token-icon-chevron-right" size="md" />

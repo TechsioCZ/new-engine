@@ -1,19 +1,19 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
 
-export type BrandScalarWriteInput = {
-  handle?: string
-  title?: string
-  gpsr_contact_email?: string | null
-  gpsr_european_reseller_contact_email?: string | null
-  gpsr_european_reseller_manufacturing_company_name?: string | null
-  gpsr_european_reseller_postal_address?: string | null
-  gpsr_manufactured_outside_eu?: boolean
-  gpsr_manufacturing_company_name?: string | null
-  gpsr_postal_address?: string | null
+export interface BrandScalarWriteInput {
+  handle?: string | undefined
+  title?: string | undefined
+  gpsr_contact_email?: string | null | undefined
+  gpsr_european_reseller_contact_email?: string | null | undefined
+  gpsr_european_reseller_manufacturing_company_name?: string | null | undefined
+  gpsr_european_reseller_postal_address?: string | null | undefined
+  gpsr_manufactured_outside_eu?: boolean | undefined
+  gpsr_manufacturing_company_name?: string | null | undefined
+  gpsr_postal_address?: string | null | undefined
 }
 
-const emailSchema = z.string().email()
+const emailSchema = z.email()
 const GPSR_TEXT_FIELDS = [
   "gpsr_contact_email",
   "gpsr_european_reseller_contact_email",
@@ -32,24 +32,25 @@ export const getBrandHandleCollisionMessage = (brand: {
   deleted_at?: string | Date | null
   handle: string
 }) => {
-  const suffix = brand.deleted_at
-    ? " as a deleted record. Restore it through the explicit restore action"
-    : ""
+  const suffix =
+    brand.deleted_at === null || brand.deleted_at === undefined
+      ? ""
+      : " as a deleted record. Restore it through the explicit restore action"
 
   return `Brand with handle "${brand.handle}" already exists${suffix}.`
 }
 
 export const normalizeBrandWriteInput = (
-  brand: BrandScalarWriteInput
+  brand: BrandScalarWriteInput,
 ): BrandScalarWriteInput => {
   const normalized: BrandScalarWriteInput = {
-    ...(brand.handle !== undefined ? { handle: brand.handle.trim() } : {}),
-    ...(brand.title !== undefined ? { title: brand.title.trim() } : {}),
-    ...(brand.gpsr_manufactured_outside_eu !== undefined
-      ? {
+    ...(brand.handle === undefined ? {} : { handle: brand.handle.trim() }),
+    ...(brand.title === undefined ? {} : { title: brand.title.trim() }),
+    ...(brand.gpsr_manufactured_outside_eu === undefined
+      ? {}
+      : {
           gpsr_manufactured_outside_eu: brand.gpsr_manufactured_outside_eu,
-        }
-      : {}),
+        }),
   }
 
   for (const field of GPSR_TEXT_FIELDS) {
@@ -67,7 +68,7 @@ export const normalizeBrandWriteInput = (
 
 export const validateBrandGpsrState = (
   brand: BrandScalarWriteInput,
-  identity = brand.handle ?? brand.title ?? "brand"
+  identity = brand.handle ?? brand.title ?? "brand",
 ) => {
   const normalized = normalizeBrandWriteInput(brand)
 
@@ -77,16 +78,20 @@ export const validateBrandGpsrState = (
   ] as const) {
     const value = normalized[field]
 
-    if (value && !emailSchema.safeParse(value).success) {
+    if (
+      value !== null &&
+      value !== undefined &&
+      !emailSchema.safeParse(value).success
+    ) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Brand "${identity}" has an invalid ${field}`
+        `Brand "${identity}" has an invalid ${field}`,
       )
     }
   }
 
   const presentRepresentativeFields = REQUIRED_OUTSIDE_EU_FIELDS.filter(
-    (field) => !!normalized[field]
+    (field) => normalized[field] !== null && normalized[field] !== undefined,
   )
 
   if (
@@ -94,12 +99,12 @@ export const validateBrandGpsrState = (
     presentRepresentativeFields.length !== REQUIRED_OUTSIDE_EU_FIELDS.length
   ) {
     const missingFields = REQUIRED_OUTSIDE_EU_FIELDS.filter(
-      (field) => !normalized[field]
+      (field) => normalized[field] === null || normalized[field] === undefined,
     )
 
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Brand "${identity}" must provide all EU representative fields or none; missing: ${missingFields.join(", ")}`
+      `Brand "${identity}" must provide all EU representative fields or none; missing: ${missingFields.join(", ")}`,
     )
   }
 
@@ -112,7 +117,7 @@ export const validateBrandGpsrState = (
   if (isManufacturedOutsideEu !== hasEuropeanRepresentative) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Brand "${identity}" must set gpsr_manufactured_outside_eu to ${hasEuropeanRepresentative} when EU representative fields are ${hasEuropeanRepresentative ? "present" : "absent"}`
+      `Brand "${identity}" must set gpsr_manufactured_outside_eu to ${hasEuropeanRepresentative} when EU representative fields are ${hasEuropeanRepresentative ? "present" : "absent"}`,
     )
   }
 

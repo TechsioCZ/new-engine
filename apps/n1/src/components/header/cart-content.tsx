@@ -2,15 +2,17 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Link from "next/link"
+
 import { useRemoveLineItem, useUpdateLineItem } from "@/hooks/use-cart"
 import { useCartToast } from "@/hooks/use-toast"
 import type { Cart } from "@/services/cart-service"
 import { getOptimisticFlag } from "@/utils/cart/cart-helpers"
 import { formatAmount } from "@/utils/format/format-product"
+
 import { CartEmptyState } from "./cart-empty-state"
 import { CartItem } from "./cart-item"
 
-type CartContentProps = {
+interface CartContentProps {
   cart: Cart | null | undefined
   onClose?: () => void
 }
@@ -35,7 +37,7 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
         onError: (error) => {
           toast.cartError(error.message)
         },
-      }
+      },
     )
   }
 
@@ -50,18 +52,20 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
         lineItemId: itemId,
       },
       {
-        onSuccess: () => {
-          toast.removedFromCart(itemTitle)
-        },
         onError: (error) => {
           toast.cartError(error.message)
         },
-      }
+        onSuccess: () => {
+          toast.removedFromCart(itemTitle)
+        },
+      },
     )
   }
 
   if (!cart?.items || cart.items.length === 0) {
-    return <CartEmptyState onContinueShopping={onClose} />
+    return (
+      <CartEmptyState {...(onClose ? { onContinueShopping: onClose } : {})} />
+    )
   }
 
   const isPending = isUpdating || isRemoving
@@ -71,7 +75,7 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
     <div className="flex flex-col gap-400">
       <div className="max-h-sm divide-y divide-border-secondary overflow-y-auto">
         {cart.items.map((item) => {
-          const itemTitle = item.product_title || item.title || "Product"
+          const itemTitle = (item.product_title ?? item.title) || "Product"
           const itemOptimistic = getOptimisticFlag(item)
 
           return (
@@ -134,7 +138,7 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
           className="w-full justify-center"
           disabled={isPending}
           href="/pokladna"
-          onClick={onClose}
+          {...(onClose ? { onClick: onClose } : {})}
           size="md"
           theme="solid"
           variant="primary"
@@ -144,7 +148,7 @@ export const CartContent = ({ cart, onClose }: CartContentProps) => {
 
         <Button
           className="w-full justify-center"
-          onClick={onClose}
+          {...(onClose ? { onClick: onClose } : {})}
           size="sm"
           theme="outlined"
           variant="secondary"

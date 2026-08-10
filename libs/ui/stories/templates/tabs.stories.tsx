@@ -1,11 +1,79 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { TabsTemplate } from '../../src/templates/tabs'
+import type { Meta, StoryObj } from "@storybook/react"
+
+import { TabsTemplate } from "../../src/templates/tabs"
 
 const meta: Meta<typeof TabsTemplate> = {
-  title: 'Templates/TabsTemplate',
+  argTypes: {
+    defaultValue: {
+      control: "text",
+      description: "Default active tab value",
+      table: {
+        category: "State",
+      },
+    },
+    fitted: {
+      control: "boolean",
+      description: "Make tabs fill container width",
+      table: {
+        category: "Layout",
+      },
+    },
+    items: {
+      control: "object",
+      description:
+        "Array of tab items with value, label, content, and optional disabled state",
+      table: {
+        category: "Content",
+      },
+    },
+    justify: {
+      control: "select",
+      description: "Horizontal alignment of tabs",
+      options: ["start", "center", "end"],
+      table: {
+        category: "Layout",
+      },
+    },
+    onValueChange: {
+      action: "value-changed",
+      table: {
+        category: "Events",
+      },
+    },
+    orientation: {
+      control: "select",
+      description: "Tab orientation",
+      options: ["horizontal", "vertical"],
+      table: {
+        category: "Layout",
+      },
+    },
+    showIndicator: {
+      control: "boolean",
+      description: "Show visual indicator for active tab",
+      table: {
+        category: "Appearance",
+      },
+    },
+    size: {
+      control: "select",
+      description: "Size variant",
+      options: ["sm", "md", "lg"],
+      table: {
+        category: "Appearance",
+      },
+    },
+    variant: {
+      control: "select",
+      description: "Visual style variant",
+      options: ["default", "line", "solid", "outline"],
+      table: {
+        category: "Appearance",
+      },
+    },
+  },
   component: TabsTemplate,
   parameters: {
-    layout: 'centered',
     docs: {
       description: {
         component: `
@@ -17,76 +85,10 @@ const meta: Meta<typeof TabsTemplate> = {
         `,
       },
     },
+    layout: "centered",
   },
-  tags: ['autodocs'],
-  argTypes: {
-    items: {
-      control: 'object',
-      description: 'Array of tab items with value, label, content, and optional disabled state',
-      table: {
-        category: 'Content',
-      },
-    },
-    variant: {
-      control: 'select',
-      options: ['default', 'line', 'solid', 'outline'],
-      description: 'Visual style variant',
-      table: {
-        category: 'Appearance',
-      },
-    },
-    size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Size variant',
-      table: {
-        category: 'Appearance',
-      },
-    },
-    fitted: {
-      control: 'boolean',
-      description: 'Make tabs fill container width',
-      table: {
-        category: 'Layout',
-      },
-    },
-    justify: {
-      control: 'select',
-      options: ['start', 'center', 'end'],
-      description: 'Horizontal alignment of tabs',
-      table: {
-        category: 'Layout',
-      },
-    },
-    orientation: {
-      control: 'select',
-      options: ['horizontal', 'vertical'],
-      description: 'Tab orientation',
-      table: {
-        category: 'Layout',
-      },
-    },
-    showIndicator: {
-      control: 'boolean',
-      description: 'Show visual indicator for active tab',
-      table: {
-        category: 'Appearance',
-      },
-    },
-    defaultValue: {
-      control: 'text',
-      description: 'Default active tab value',
-      table: {
-        category: 'State',
-      },
-    },
-    onValueChange: {
-      action: 'value-changed',
-      table: {
-        category: 'Events',
-      },
-    },
-  },
+  tags: ["autodocs"],
+  title: "Templates/TabsTemplate",
 }
 
 export default meta
@@ -94,72 +96,74 @@ type Story = StoryObj<typeof TabsTemplate>
 
 const defaultItems = [
   {
-    value: 'tab1',
-    label: 'Overview',
     content: (
       <div className="p-400">
-        <h3 className="text-lg font-semibold mb-200">Overview</h3>
-        <p className="text-fg-muted">
-          This is the overview tab content. It contains general information about the product or feature.
+        <h3 className="mb-200 text-lg font-semibold">Overview</h3>
+        <p className="text-fg-secondary">
+          This is the overview tab content. It contains general information
+          about the product or feature.
         </p>
       </div>
     ),
+    label: "Overview",
+    value: "tab1",
   },
   {
-    value: 'tab2',
-    label: 'Details',
     content: (
       <div className="p-400">
-        <h3 className="text-lg font-semibold mb-200">Details</h3>
-        <p className="text-fg-muted">
-          Here you'll find detailed specifications and technical information.
+        <h3 className="mb-200 text-lg font-semibold">Details</h3>
+        <p className="text-fg-secondary">
+          Here you&apos;ll find detailed specifications and technical
+          information.
         </p>
       </div>
     ),
+    label: "Details",
+    value: "tab2",
   },
   {
-    value: 'tab3',
-    label: 'Reviews',
     content: (
       <div className="p-400">
-        <h3 className="text-lg font-semibold mb-200">Reviews</h3>
-        <p className="text-fg-muted">
+        <h3 className="mb-200 text-lg font-semibold">Reviews</h3>
+        <p className="text-fg-secondary">
           Customer reviews and ratings appear in this section.
         </p>
       </div>
     ),
+    label: "Reviews",
+    value: "tab3",
   },
 ]
 
 export const Default: Story = {
   args: {
-    items: defaultItems,
-    variant: 'default',
-    size: 'md',
     fitted: false,
-    justify: 'start',
-    orientation: 'horizontal',
+    items: defaultItems,
+    justify: "start",
+    orientation: "horizontal",
     showIndicator: false,
+    size: "md",
+    variant: "default",
   },
 }
 
 export const Playground: Story = {
-  name: '🎮 Interactive Playground',
   args: {
+    fitted: false,
     items: [
       ...defaultItems,
       {
-        value: 'tab4',
-        label: 'Disabled',
         content: <div className="p-400">This tab is disabled</div>,
         disabled: true,
+        label: "Disabled",
+        value: "tab4",
       },
     ],
-    variant: 'line',
-    size: 'md',
-    fitted: false,
-    justify: 'start',
-    orientation: 'horizontal',
+    justify: "start",
+    orientation: "horizontal",
     showIndicator: true,
+    size: "md",
+    variant: "line",
   },
+  name: "🎮 Interactive Playground",
 }

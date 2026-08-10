@@ -1,24 +1,17 @@
-type ErrorLikeMessage = { message?: unknown }
-type ErrorLikeCode = { code?: unknown }
-
 const hasStringMessage = (error: unknown): error is { message: string } =>
-  Boolean(
-    error &&
-      typeof error === "object" &&
-      "message" in error &&
-      typeof (error as ErrorLikeMessage).message === "string"
-  )
+  typeof error === "object" &&
+  error !== null &&
+  "message" in error &&
+  typeof error.message === "string"
 
 const hasStringCode = (error: unknown): error is { code: string } =>
-  Boolean(
-    error &&
-      typeof error === "object" &&
-      "code" in error &&
-      typeof (error as ErrorLikeCode).code === "string"
-  )
+  typeof error === "object" &&
+  error !== null &&
+  "code" in error &&
+  typeof error.code === "string"
 
 export const toErrorMessage = (error: unknown): string | null => {
-  if (!error) {
+  if (error === null || error === undefined) {
     return null
   }
 
@@ -34,42 +27,61 @@ export const toErrorMessage = (error: unknown): string | null => {
     return error
   }
 
-  const serialized = String(error)
-  return serialized === "[object Object]" ? null : serialized
+  if (
+    typeof error === "number" ||
+    typeof error === "bigint" ||
+    typeof error === "boolean"
+  ) {
+    return String(error)
+  }
+
+  return null
 }
 
 export const toErrorMessageWithFallback = (
   error: unknown,
-  fallback: string
+  fallback: string,
 ): string => toErrorMessage(error) ?? fallback
 
 export const toErrorWithCode = (
   error: unknown,
-  fallback: string
+  fallback: string,
 ): { message: string; code?: string } => {
   const message = toErrorMessage(error)
   if (hasStringCode(error)) {
     return {
-      message: message ?? fallback,
       code: error.code,
+      message: message ?? fallback,
     }
   }
 
   return { message: message ?? fallback }
 }
 
-export type ErrorWithStage<TStage extends string> = {
-  stage: TStage
-  message: string
-  cause?: unknown
+export interface ErrorWithStage<TStage extends string> extends Error {
+  readonly stage: TStage
+  readonly cause?: unknown
+}
+
+class StorefrontStageError<TStage extends string>
+  extends Error
+  implements ErrorWithStage<TStage>
+{
+  readonly stage: TStage
+  override readonly cause?: unknown
+
+  constructor(stage: TStage, fallback: string, cause?: unknown) {
+    super(toErrorMessageWithFallback(cause, fallback))
+    this.name = "StorefrontStageError"
+    this.stage = stage
+    if (cause !== undefined) {
+      this.cause = cause
+    }
+  }
 }
 
 export const createErrorWithStage = <TStage extends string>(
   stage: TStage,
   fallback: string,
-  cause?: unknown
-): ErrorWithStage<TStage> => ({
-  stage,
-  message: toErrorMessageWithFallback(cause, fallback),
-  cause,
-})
+  cause?: unknown,
+): ErrorWithStage<TStage> => new StorefrontStageError(stage, fallback, cause)

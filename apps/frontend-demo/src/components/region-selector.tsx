@@ -1,9 +1,13 @@
 "use client"
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
-import { type SelectItem } from "@techsio/ui-kit/molecules/select"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import type { IconType } from "@techsio/ui-kit/atoms/icon"
+import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
+
 import { SkeletonLoader } from "@/components/atoms/skeleton-loader"
 import { useRegions } from "@/hooks/use-region"
+
+const DEFAULT_REGION_ICON: IconType = "token-icon-globe"
 
 const currencyToIcon: Record<string, IconType> = {
   CZK: "token-icon-cz",
@@ -11,35 +15,54 @@ const currencyToIcon: Record<string, IconType> = {
   USD: "token-icon-usa",
 }
 
-export function RegionSelector({ className }: { className?: string }) {
+const renderSelectedRegion = (selectedItems: SelectItem[]) => {
+  const [selectedItem] = selectedItems
+  if (selectedItem === undefined) {
+    return "Region"
+  }
+
+  const icon =
+    typeof selectedItem.displayValue === "string"
+      ? (currencyToIcon[selectedItem.displayValue] ?? DEFAULT_REGION_ICON)
+      : DEFAULT_REGION_ICON
+
+  return (
+    <span className="flex items-center gap-1">
+      <Icon icon={icon} />
+      {selectedItem.displayValue}
+    </span>
+  )
+}
+
+export const RegionSelector = ({ className }: { className?: string }) => {
   const { regions, selectedRegion, setSelectedRegion, isLoading } = useRegions()
 
-  if (isLoading || !regions.length) {
+  if (isLoading || regions.length === 0) {
     return <SkeletonLoader className="hidden h-8 w-28 lg:block" variant="box" />
   }
 
   const handleChange = (details: { value: string[] }) => {
-    const regionId = details.value[0]
+    const [regionId] = details.value
     const region = regions.find((r) => r.id === regionId)
-    if (region) {
-      setSelectedRegion(region)
+    if (region !== undefined) {
+      void setSelectedRegion(region)
     }
   }
 
   const items: SelectItem[] = regions.map((region) => ({
-    value: region.id,
+    displayValue: region.currency_code.toUpperCase(),
     label: (
       <span className="flex items-center gap-1">
         <Icon
           icon={
-            currencyToIcon[region.currency_code.toUpperCase()] ||
+            currencyToIcon[region.currency_code.toUpperCase()] ??
             "token-icon-globe"
           }
         />
         {region.currency_code.toUpperCase()}
       </span>
     ),
-    displayValue: region.currency_code.toUpperCase(),
+    value: region.id,
   }))
 
   return (
@@ -51,22 +74,8 @@ export function RegionSelector({ className }: { className?: string }) {
       onValueChange={handleChange}
       placeholder="Region"
       size="xs"
-      value={selectedRegion ? [selectedRegion.id] : []}
-      valueText={(selectedItems) =>
-        selectedItems[0] ? (
-          <span className="flex items-center gap-1">
-            <Icon
-              icon={
-                currencyToIcon[selectedItems[0].displayValue as string] ||
-                "token-icon-globe"
-              }
-            />
-            {selectedItems[0].displayValue}
-          </span>
-        ) : (
-          "Region"
-        )
-      }
+      value={selectedRegion === null ? [] : [selectedRegion.id]}
+      valueText={renderSelectedRegion}
     />
   )
 }

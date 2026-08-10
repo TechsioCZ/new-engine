@@ -1,13 +1,23 @@
+import { getRecordValue, isRecord } from "@techsio/std/object"
+
 /**
  * Resolve an optional dependency from an Awilix-style container.
  *
  * Some container proxies throw when a key is unregistered, so optional
- * dependencies must treat resolution failures the same as missing values.
+ * dependencies treat resolution failures and invalid registrations as missing.
  */
-export const safeResolve = <T>(container: object, key: string): T | null => {
+export const safeResolve = <T>(
+  container: unknown,
+  key: string,
+  isT: (value: unknown) => value is T,
+): T | null => {
   try {
-    const value = (container as Record<string, unknown>)[key]
-    return value !== undefined && value !== null ? (value as T) : null
+    if (!isRecord(container)) {
+      return null
+    }
+
+    const value = getRecordValue(container, key)
+    return isT(value) ? value : null
   } catch {
     return null
   }

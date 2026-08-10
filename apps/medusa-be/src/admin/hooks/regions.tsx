@@ -1,8 +1,9 @@
 import type { HttpTypes } from "@medusajs/framework/types"
 import { useEffect, useState } from "react"
+
 import { sdk } from "../lib/sdk"
 
-export function useRegions() {
+export const useRegions = () => {
   const [data, setData] = useState<HttpTypes.AdminRegion[] | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<unknown>(null)
@@ -12,19 +13,19 @@ export function useRegions() {
       try {
         const result = await sdk.admin.region.list()
         setData(result.regions)
-      } catch (err) {
-        setError(err)
+      } catch (caughtError) {
+        setError(caughtError)
       } finally {
         setLoading(false)
       }
     }
 
-    fetchRegions()
+    void fetchRegions()
   }, [])
 
   return {
     data,
-    loading,
     error,
+    loading,
   }
 }

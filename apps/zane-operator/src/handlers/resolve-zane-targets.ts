@@ -1,24 +1,30 @@
 import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
-import { parseResolveTargetsInput } from "../zane-inputs"
 import { ZaneClient } from "../zane"
+import { parseResolveTargetsInput } from "../zane-inputs"
 
 interface ResolveZaneTargetsDeps {
   config: AppConfig
 }
 
-export async function handleResolveZaneTargets(request: Request, deps: ResolveZaneTargetsDeps): Promise<Response> {
+export const handleResolveZaneTargets = async (
+  request: Request,
+  deps: ResolveZaneTargetsDeps,
+): Promise<Response> => {
   try {
-    const rawBody = await request.json().catch(() => {
+    let rawBody: unknown
+    try {
+      rawBody = await request.json()
+    } catch {
       throw new BadRequestError("request body must be valid JSON")
-    })
+    }
 
     const client = new ZaneClient(deps.config)
     const payload = parseResolveTargetsInput(rawBody)
     const result = await client.resolveTargets({
-      projectSlug: payload.projectSlug,
       environmentName: payload.environmentName,
+      projectSlug: payload.projectSlug,
       services: payload.services,
     })
 

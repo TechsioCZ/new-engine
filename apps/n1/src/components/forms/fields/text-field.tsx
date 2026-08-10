@@ -2,24 +2,25 @@
 
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import type { ChangeEvent, InputHTMLAttributes } from "react"
-import type { AnyFieldApiCompat } from "@/types/form"
 
-type TextFieldProps = {
-  field: AnyFieldApiCompat
+import type { FieldApiCompat } from "@/types/form"
+
+interface TextFieldProps<TValue> {
+  field: FieldApiCompat<TValue, string>
   label: string
   type?: InputHTMLAttributes<HTMLInputElement>["type"]
   placeholder?: string
   required?: boolean
-  disabled?: boolean
+  disabled?: boolean | undefined
   transform?: (value: string) => string
   className?: string
   autoComplete?: string
   maxLength?: number
-  externalError?: string
+  externalError?: string | undefined
   onExternalErrorClear?: () => void
 }
 
-export function TextField({
+export const TextField = <TValue,>({
   field,
   label,
   type = "text",
@@ -31,7 +32,7 @@ export function TextField({
   maxLength,
   externalError,
   onExternalErrorClear,
-}: TextFieldProps) {
+}: TextFieldProps<TValue>) => {
   const fieldErrors = field.state.meta.errors
   const showFieldErrors = field.state.meta.isBlurred && fieldErrors.length > 0
 
@@ -42,8 +43,8 @@ export function TextField({
       : ""
 
   const errorId = `${field.name}-error`
-  const showError = !!externalError || showFieldErrors
-  const errorMessage = externalError || fieldErrors[0]
+  const showError = (externalError?.length ?? 0) > 0 || showFieldErrors
+  const errorMessage = externalError ?? fieldErrors[0]
   const errorText =
     typeof errorMessage === "string" || typeof errorMessage === "number"
       ? String(errorMessage)
@@ -54,7 +55,7 @@ export function TextField({
     field.handleChange(value)
 
     // Clear external error when user starts typing
-    if (externalError && onExternalErrorClear) {
+    if ((externalError?.length ?? 0) > 0 && onExternalErrorClear) {
       onExternalErrorClear()
     }
   }

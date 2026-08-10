@@ -1,9 +1,9 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
+
+import { UpsertProductsBatchSchema } from "../api/api/symmy/v1/products/batch/validators"
 import { runImportJob } from "../lib/import-job-runner"
-import {
-  SYMMY_PRODUCTS_UPSERT_REQUESTED_EVENT,
-  type SymmyProductsUpsertRequestedEvent,
-} from "../workflows/upsert-products-batch/async"
+import { SYMMY_PRODUCTS_UPSERT_REQUESTED_EVENT } from "../workflows/upsert-products-batch/async"
+import type { SymmyProductsUpsertRequestedEvent } from "../workflows/upsert-products-batch/async"
 import type {
   UpsertProductsBatchInput,
   UpsertProductsBatchOutput,
@@ -16,6 +16,14 @@ export default async function productsUpsertRequestedHandler({
 }: SubscriberArgs<SymmyProductsUpsertRequestedEvent>) {
   await runImportJob<UpsertProductsBatchInput, UpsertProductsBatchOutput>({
     container,
+    decodeInput: (value): value is UpsertProductsBatchInput => {
+      UpsertProductsBatchSchema.parse(value)
+      return true
+    },
+    getCompletionStats: (output) => ({
+      failed: output.failed,
+      processed: output.processed,
+    }),
     jobId: data.job_id,
     jobLabel: "Product upsert",
     lockKey: `symmy-products-upsert:${data.job_id}`,
@@ -23,12 +31,8 @@ export default async function productsUpsertRequestedHandler({
       const { result } = await upsertProductsBatchWorkflow(container).run({
         input,
       })
-      return result as UpsertProductsBatchOutput
+      return result
     },
-    getCompletionStats: (output) => ({
-      processed: output.processed,
-      failed: output.failed,
-    }),
   })
 }
 

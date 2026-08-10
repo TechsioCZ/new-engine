@@ -2,10 +2,8 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
-import {
-  getProductAttributeService,
-  type ProductAttributeOptionRecord,
-} from "../../../../utils/product-attributes"
+
+import { getProductAttributeService } from "../../../../utils/product-attributes"
 import {
   applyProductAttributeStatusFilter,
   escapeProductAttributeLikePattern,
@@ -15,35 +13,42 @@ import {
 } from "../utils"
 import type { AdminGetProductAttributeOptionsSchemaType } from "../validators"
 
-export async function GET(
+const get = async (
   req: AuthenticatedMedusaRequest<
     unknown,
     AdminGetProductAttributeOptionsSchemaType
   >,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { definition_id, limit, offset, order, q, status } = req.validatedQuery
-  const filters: Record<string, unknown> = { definition_id }
-  const escapedQuery = q ? escapeProductAttributeLikePattern(q) : undefined
-  if (escapedQuery) {
-    filters.$or = [
-      { key: { $ilike: `%${escapedQuery}%` } },
-      { label: { $ilike: `%${escapedQuery}%` } },
-    ]
+  const escapedQuery =
+    typeof q === "string" && q.length > 0
+      ? escapeProductAttributeLikePattern(q)
+      : undefined
+  const baseFilters = {
+    definition_id,
+    ...(typeof escapedQuery === "string" && escapedQuery.length > 0
+      ? {
+          $or: [
+            { key: { $ilike: `%${escapedQuery}%` } },
+            { label: { $ilike: `%${escapedQuery}%` } },
+          ],
+        }
+      : {}),
   }
-  applyProductAttributeStatusFilter(filters, status)
+  const filters = applyProductAttributeStatusFilter(baseFilters, status)
 
-  const [options, count] = (await getProductAttributeService(
-    req.scope
+  const [options, count] = await getProductAttributeService(
+    req.scope,
   ).listAndCountProductAttributeOptions(filters, {
     order: parseProductAttributeOrder(order),
     skip: offset,
     take: limit,
     withDeleted: status !== "active",
-  })) as [ProductAttributeOptionRecord[], number]
+  })
   const usageCounts = await getOptionUsageCountMap(
     req.scope,
-    options.map((option) => option.id)
+    options.map((option) => option.id),
   )
 
   res.json({
@@ -51,7 +56,9 @@ export async function GET(
     limit,
     offset,
     options: options.map((option) =>
-      toProductAttributeOptionResponse(option, usageCounts.get(option.id) ?? 0)
+      toProductAttributeOptionResponse(option, usageCounts.get(option.id) ?? 0),
     ),
   })
 }
+
+export { get as GET }

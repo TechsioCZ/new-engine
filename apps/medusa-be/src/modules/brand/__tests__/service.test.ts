@@ -1,0 +1,179 @@
+import { moduleIntegrationTestRunner } from "@medusajs/test-utils"
+import { describe, expect, it, vi } from "vitest"
+
+import { BRAND_MODULE } from "../index"
+import Brand, { BrandAttribute, BrandAttributeType } from "../models/brand"
+import type BrandModuleService from "../service"
+
+vi.setConfig({ testTimeout: 60_000 })
+
+moduleIntegrationTestRunner<BrandModuleService>({
+  moduleModels: [Brand, BrandAttribute, BrandAttributeType],
+  moduleName: BRAND_MODULE,
+  resolve: "./src/modules/brand",
+  testSuite: ({ service }) => {
+    describe("brand persistence", () => {
+      it("persists snake_case GPSR fields", async () => {
+        const brand = await service.createBrands({
+          gpsr_contact_email: "contact@example.com",
+          gpsr_european_reseller_contact_email: "reseller@example.com",
+          gpsr_european_reseller_manufacturing_company_name: "Reseller Co",
+          gpsr_european_reseller_postal_address: "Reseller Street 1",
+          gpsr_manufactured_outside_eu: true,
+          gpsr_manufacturing_company_name: "Manufacturer Co",
+          gpsr_postal_address: "Main Street 1",
+          handle: "gpsr-brand",
+          title: "GPSR Brand",
+        })
+
+        const persisted = await service.retrieveBrand(brand.id)
+
+        expect(persisted).toMatchObject({
+          gpsr_contact_email: "contact@example.com",
+          gpsr_european_reseller_contact_email: "reseller@example.com",
+          gpsr_european_reseller_manufacturing_company_name: "Reseller Co",
+          gpsr_european_reseller_postal_address: "Reseller Street 1",
+          gpsr_manufactured_outside_eu: true,
+          gpsr_manufacturing_company_name: "Manufacturer Co",
+          gpsr_postal_address: "Main Street 1",
+        })
+      })
+
+      it("reconciles attributes inside the brand module", async () => {
+        const brand = await service.createBrands({
+          handle: "attribute-brand",
+          title: "Attribute Brand",
+        })
+
+        await service.setBrandAttributes(brand.id, [
+          { name: "Country", value: "CZ" },
+          { name: "Color", value: "Red" },
+        ])
+        await service.setBrandAttributes(brand.id, [
+          { name: "Country", value: "SK" },
+          { name: "Founded", value: "2020" },
+        ])
+
+        const attributes = await service.listBrandAttributes(
+          { brand_id: brand.id },
+          { relations: ["attributeType"] },
+        )
+        const values = new Map(
+          attributes.map((attribute) => [
+            attribute.attributeType.name,
+            attribute.value,
+          ]),
+        )
+
+        expect(values).toStrictEqual(
+          new Map([
+            ["Country", "SK"],
+            ["Founded", "2020"],
+          ]),
+        )
+      })
+
+      it("soft-deletes removed attributes and reuses them when explicitly reintroduced", async () => {
+        const brand = await service.createBrands({
+          handle: "restore-attribute-brand",
+          title: "Restore Attribute Brand",
+        })
+
+        await service.setBrandAttributes(brand.id, [
+          { name: "Country", value: "CZ" },
+        ])
+        const [original] = await service.listBrandAttributes({
+          brand_id: brand.id,
+        })
+
+        if (!original) {
+          throw new Error("Expected the original Country attribute to exist")
+        }
+
+        await service.setBrandAttributes(brand.id, [])
+        const [deleted] = await service.listBrandAttributes(
+          { brand_id: brand.id },
+          { withDeleted: true },
+        )
+
+        if (!deleted) {
+          throw new Error("Expected the removed Country attribute to exist")
+        }
+
+        expect(deleted.id).toBe(original.id)
+        expect(deleted.deleted_at).toBeTruthy()
+
+        await service.setBrandAttributes(brand.id, [
+          { name: "Country", value: "SK" },
+        ])
+
+        const [restored] = await service.listBrandAttributes(
+          { brand_id: brand.id },
+          { relations: ["attributeType"] },
+        )
+
+        if (!restored) {
+          throw new Error("Expected the restored Country attribute to exist")
+        }
+
+        expect(restored).toMatchObject({
+          id: original.id,
+          value: "SK",
+        })
+      })
+
+      it("preserves attributes whose type is soft-deleted during replacement", async () => {
+        const brand = await service.createBrands({
+          handle: "deleted-type-attribute-brand",
+          title: "Deleted Type Attribute Brand",
+        })
+
+        await service.setBrandAttributes(brand.id, [
+          { name: "Legacy", value: "Keep me" },
+          { name: "Country", value: "CZ" },
+        ])
+        const originalAttributes = await service.listBrandAttributes(
+          { brand_id: brand.id },
+          { relations: ["attributeType"] },
+        )
+        const legacyAttribute = originalAttributes.find(
+          (attribute) => attribute.attributeType.name === "Legacy",
+        )
+
+        expect(legacyAttribute).toBeDefined()
+
+        if (!legacyAttribute) {
+          throw new Error("Expected the Legacy attribute to exist")
+        }
+
+        await service.softDeleteBrandAttributeTypes(
+          legacyAttribute.attributeType.id,
+        )
+        await service.setBrandAttributes(brand.id, [
+          { name: "Country", value: "SK" },
+        ])
+
+        const attributes = await service.listBrandAttributes(
+          { brand_id: brand.id },
+          {
+            relations: ["attributeType"],
+            withDeleted: true,
+          },
+        )
+        const preservedLegacyAttribute = attributes.find(
+          (attribute) => attribute.id === legacyAttribute.id,
+        )
+        const countryAttribute = attributes.find(
+          (attribute) => attribute.attributeType.name === "Country",
+        )
+
+        expect(preservedLegacyAttribute).toMatchObject({
+          deleted_at: null,
+          value: "Keep me",
+        })
+        expect(preservedLegacyAttribute?.attributeType.deleted_at).toBeTruthy()
+        expect(countryAttribute?.value).toBe("SK")
+      })
+    })
+  },
+})

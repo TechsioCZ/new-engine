@@ -39,19 +39,25 @@ export interface HeurekaOrderParams {
 /**
  * Heureka SDK function signature
  */
-export interface HeurekaFunction {
-  (command: "authenticate", apiKey: string): void
-  (command: "set_order_id", orderId: string): void
-  (
-    command: "add_product",
+interface HeurekaCommandArguments {
+  add_product: [
     productId: string,
     productName: string,
     priceWithVat: string,
-    quantity: string
+    quantity: string,
+  ]
+  authenticate: [apiKey: string]
+  send: [type: "Order"]
+  set_currency: [currency: string]
+  set_order_id: [orderId: string]
+  set_total_vat: [totalWithVat: string]
+}
+
+export interface HeurekaFunction {
+  <TCommand extends keyof HeurekaCommandArguments>(
+    command: TCommand,
+    ...args: HeurekaCommandArguments[TCommand]
   ): void
-  (command: "set_total_vat", totalWithVat: string): void
-  (command: "set_currency", currency: string): void
-  (command: "send", type: "Order"): void
   /** Queue for commands before SDK loads */
   q?: unknown[]
   /** Country code */

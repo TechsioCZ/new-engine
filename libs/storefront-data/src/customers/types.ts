@@ -8,51 +8,55 @@ import type {
 import type { MutationOptions } from "../shared/hook-types"
 import type { QueryKey } from "../shared/query-keys"
 
-export type CustomerAddressListInputBase = {
+export interface CustomerAddressListInputBase {
   enabled?: boolean
 }
 
-export type CustomerAddressInputBase = {
-  first_name?: string
-  last_name?: string
-  company?: string
-  address_1?: string
-  address_2?: string
-  city?: string
-  province?: string
-  postal_code?: string
-  country_code?: string
-  phone?: string
+export interface CustomerAddressInputBase<TMetadata extends object = object> {
+  first_name?: string | null
+  last_name?: string | null
+  company?: string | null
+  address_1?: string | null
+  address_2?: string | null
+  city?: string | null
+  province?: string | null
+  postal_code?: string | null
+  country_code?: string | null
+  phone?: string | null
   is_default_shipping?: boolean
   is_default_billing?: boolean
-  metadata?: Record<string, unknown>
+  metadata?: TMetadata | null
 }
 
-export type CustomerAddressCreateInputBase = CustomerAddressInputBase
+export type CustomerAddressCreateInputBase<TMetadata extends object = object> =
+  CustomerAddressInputBase<TMetadata>
 
-export type CustomerAddressUpdateInputBase = CustomerAddressInputBase & {
-  addressId?: string
+export type CustomerAddressUpdateInputBase<TMetadata extends object = object> =
+  CustomerAddressInputBase<TMetadata> & {
+    addressId?: string
+  }
+
+export interface CustomerProfileUpdateInputBase<
+  TMetadata extends object = object,
+> {
+  metadata?: TMetadata | null
 }
 
-export type CustomerProfileUpdateInputBase = {
-  metadata?: Record<string, unknown>
-}
-
-export type CustomerAddressListResponse<TAddress> = {
+export interface CustomerAddressListResponse<TAddress> {
   addresses: TAddress[]
 }
 
-export type CustomerService<
+export interface CustomerService<
   TCustomer,
   TAddress,
   TListParams,
   TCreateParams,
   TUpdateParams,
   TUpdateCustomerParams,
-> = {
+> {
   getAddresses: (
     params: TListParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<CustomerAddressListResponse<TAddress>>
   createAddress: (params: TCreateParams) => Promise<TAddress>
   updateAddress: (addressId: string, params: TUpdateParams) => Promise<TAddress>
@@ -60,7 +64,7 @@ export type CustomerService<
   updateCustomer?: (params: TUpdateCustomerParams) => Promise<TCustomer>
 }
 
-export type CustomerQueryKeys<TListParams> = {
+export interface CustomerQueryKeys<TListParams> {
   all: () => QueryKey
   profile: () => QueryKey
   addresses: (params: TListParams) => QueryKey

@@ -4,36 +4,91 @@ import {
   WorkflowResponse,
   when,
 } from "@medusajs/framework/workflows-sdk"
+
 import { buildInventoryItemsInput } from "../helpers/build-inventory-items-input"
-// biome-ignore lint/performance/noNamespaceImport: Existing seed workflow groups many step helpers through this barrel.
-import * as Steps from "../steps"
+import { cleanupProductBrandAttributesStep } from "../steps/cleanup-product-brand-attributes"
+import type { CleanupProductBrandAttributesStepInput } from "../steps/cleanup-product-brand-attributes"
+import { createFulfillmentSetStep } from "../steps/create-fulfillment-set"
+import type { CreateFulfillmentSetStepInput } from "../steps/create-fulfillment-set"
+import { createInventoryLevelsStep } from "../steps/create-inventory-levels"
+import type { CreateInventoryLevelsStepInput } from "../steps/create-inventory-levels"
+import { createProductCategoriesStep } from "../steps/create-product-categories"
+import type { CreateProductCategoriesStepInput } from "../steps/create-product-categories"
+import { createProductsStep } from "../steps/create-products"
+import type { CreateProductsStepInput } from "../steps/create-products"
+import { createPublishableKeyStep } from "../steps/create-publishable-key"
+import type { CreatePublishableKeyStepInput } from "../steps/create-publishable-key"
+import { createRegionsStep } from "../steps/create-regions"
+import type { CreateRegionsStepInput } from "../steps/create-regions"
+import { createSalesChannelsStep } from "../steps/create-sales-channels"
+import type { CreateSalesChannelsStepInput } from "../steps/create-sales-channels"
+import { createShippingOptionsStep } from "../steps/create-shipping-options"
+import type {
+  CreateShippingOptionsStepInput,
+  CreateShippingOptionsStepSeedInput,
+} from "../steps/create-shipping-options"
+import { createDefaultShippingProfileStep } from "../steps/create-shipping-profile"
+import type { CreateDefaultShippingProfileStepInput } from "../steps/create-shipping-profile"
+import { createStockLocationSeedStep } from "../steps/create-stock-location"
+import type { CreateStockLocationStepInput } from "../steps/create-stock-location"
+import { createTaxRatesStep } from "../steps/create-tax-rates"
+import type { CreateTaxRatesStepInput } from "../steps/create-tax-rates"
+import { createTaxRegionsStep } from "../steps/create-tax-regions"
+import type { CreateTaxRegionsStepInput } from "../steps/create-tax-regions"
+import { ensurePricePreferencesStep } from "../steps/ensure-price-preferences"
+import type { EnsurePricePreferencesStepInput } from "../steps/ensure-price-preferences"
+import { linkSalesChannelsApiKeyStep } from "../steps/link-sales-channels-api-key"
+import type { LinkSalesChannelsApiKeyStepInput } from "../steps/link-sales-channels-api-key"
+import { linkSalesChannelsStockLocationStep } from "../steps/link-sales-channels-stock-location"
+import type { LinkSalesChannelsStockLocationStepInput } from "../steps/link-sales-channels-stock-location"
+import { linkStockLocationFulfillmentProviderSeedStep } from "../steps/link-stock-location-fulfillment-provider"
+import type { LinkStockLocationFulfillmentProviderStepInput } from "../steps/link-stock-location-fulfillment-provider"
+import { linkStockLocationFulfillmentSetStep } from "../steps/link-stock-location-fulfillment-set"
+import type { LinkStockLocationFulfillmentSetStepInput } from "../steps/link-stock-location-fulfillment-set"
+import { reconcileProductAttributesStep } from "../steps/reconcile-product-attributes"
+import { reconcileProductMeasurementsStep } from "../steps/reconcile-product-measurements"
+import { reconcileProductVariantEansStep } from "../steps/reconcile-product-variant-eans"
+import { syncPriceListsStep } from "../steps/sync-price-lists"
+import type { SyncPriceListsStepInput } from "../steps/sync-price-lists"
+import { updateStoreCurrenciesStep } from "../steps/update-store-currencies"
+import type { UpdateStoreCurrenciesStepCurrenciesInput } from "../steps/update-store-currencies"
 
 const SeedDatabaseWorkflowId = "seed-database-workflow"
 
-export type SeedDatabaseWorkflowInput = {
+const getRegionShippingAmount = (
+  prices: CreateShippingOptionsStepSeedInput[number]["prices"],
+  currencyCode: string | undefined,
+  fallbackAmount: number,
+) =>
+  prices.find(
+    (price) =>
+      price.currencyCode?.toLowerCase() === currencyCode?.toLowerCase(),
+  )?.amount ?? fallbackAmount
+
+export interface SeedDatabaseWorkflowInput {
   workflowDefaults: {
     fulfillmentProviderId: string
     shippingOptionPriceAmount: number
   }
-  salesChannels: Steps.CreateSalesChannelsStepInput
-  currencies: Steps.UpdateStoreCurrenciesStepCurrenciesInput
-  regions: Steps.CreateRegionsStepInput
-  taxRegions: Steps.CreateTaxRegionsStepInput
-  taxRates?: Omit<Steps.CreateTaxRatesStepInput, "productIds" | "enabled">
-  stockLocations: Steps.CreateStockLocationStepInput
-  defaultShippingProfile: Steps.CreateDefaultShippingProfileStepInput
-  fulfillmentSets: Steps.CreateFulfillmentSetStepInput
-  shippingOptions: Steps.CreateShippingOptionsStepSeedInput
-  publishableKey: Steps.CreatePublishableKeyStepInput
-  productCategories: Steps.CreateProductCategoriesStepInput
-  products: Steps.CreateProductsStepInput
+  salesChannels: CreateSalesChannelsStepInput
+  currencies: UpdateStoreCurrenciesStepCurrenciesInput
+  regions: CreateRegionsStepInput
+  taxRegions: CreateTaxRegionsStepInput
+  taxRates?: Omit<CreateTaxRatesStepInput, "productIds" | "enabled">
+  stockLocations: CreateStockLocationStepInput
+  defaultShippingProfile: CreateDefaultShippingProfileStepInput
+  fulfillmentSets: CreateFulfillmentSetStepInput
+  shippingOptions: CreateShippingOptionsStepSeedInput
+  publishableKey: CreatePublishableKeyStepInput
+  productCategories: CreateProductCategoriesStepInput
+  products: CreateProductsStepInput
   legacyBrandAttributeNames?: string[]
-  priceLists?: Steps.SyncPriceListsStepInput["priceLists"]
-  priceListSync?: Steps.SyncPriceListsStepInput["config"]
+  priceLists?: SyncPriceListsStepInput["priceLists"]
+  priceListSync?: SyncPriceListsStepInput["config"]
 }
 
-function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
-  const salesChannelsResult = Steps.createSalesChannelsStep(input.salesChannels)
+const seedDatabaseWorkflowComposer = (input: SeedDatabaseWorkflowInput) => {
+  const salesChannelsResult = createSalesChannelsStep(input.salesChannels)
 
   const updateStoreCurrenciesStepInput = transform(
     {
@@ -43,127 +98,128 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
     (data) => ({
       currencies: data.input.currencies,
       defaultSalesChannelId: data.salesChannelsResult.defaultSalesChannel.id,
-    })
+    }),
   )
-  const updateStoreCurrenciesResult = Steps.updateStoreCurrenciesStep(
-    updateStoreCurrenciesStepInput
+  const updateStoreCurrenciesResult = updateStoreCurrenciesStep(
+    updateStoreCurrenciesStepInput,
   )
 
-  const createRegionsResult = Steps.createRegionsStep(input.regions)
+  const createRegionsResult = createRegionsStep(input.regions)
 
-  const ensurePricePreferencesStepInput: Steps.EnsurePricePreferencesStepInput =
+  const ensurePricePreferencesStepInput: EnsurePricePreferencesStepInput =
     transform(
       {
         createRegionsResult,
         input,
       },
       (data) => ({
-        regionIds: data.createRegionsResult.result.map((region) => region.id),
         currencyCodes: data.input.currencies.map((currency) => currency.code),
         isTaxInclusive: true,
-      })
+        regionIds: data.createRegionsResult.result.map((region) => region.id),
+      }),
     )
 
-  const ensurePricePreferencesResult = Steps.ensurePricePreferencesStep(
-    ensurePricePreferencesStepInput
+  const ensurePricePreferencesResult = ensurePricePreferencesStep(
+    ensurePricePreferencesStepInput,
   )
 
-  const createTaxRegionsResult = Steps.createTaxRegionsStep(input.taxRegions)
+  const createTaxRegionsResult = createTaxRegionsStep(input.taxRegions)
 
-  const createStockLocationResult = Steps.createStockLocationSeedStep(
-    input.stockLocations
+  const createStockLocationResult = createStockLocationSeedStep(
+    input.stockLocations,
   )
 
   // link stock locations to fulfillment providers (derived from shipping options)
-  const linkStockLocationsFulfillmentProviderInput: Steps.LinkStockLocationFulfillmentProviderStepInput =
+  const linkStockLocationsFulfillmentProviderInput: LinkStockLocationFulfillmentProviderStepInput =
     transform(
       {
         createStockLocationResult,
         input,
       },
       (data) => ({
-        stockLocations: data.createStockLocationResult.result,
         fulfillmentProviderIds: [
           ...new Set(
             data.input.shippingOptions.map(
               (opt) =>
                 opt.providerId ??
-                data.input.workflowDefaults.fulfillmentProviderId
-            )
+                data.input.workflowDefaults.fulfillmentProviderId,
+            ),
           ),
         ],
-      })
+        stockLocations: data.createStockLocationResult.result,
+      }),
     )
 
   const linkStockLocationsFulfillmentProviderResult =
-    Steps.linkStockLocationFulfillmentProviderSeedStep(
-      linkStockLocationsFulfillmentProviderInput
+    linkStockLocationFulfillmentProviderSeedStep(
+      linkStockLocationsFulfillmentProviderInput,
     )
 
-  const createDefaultShippingProfileResult =
-    Steps.createDefaultShippingProfileStep(input.defaultShippingProfile)
-
-  const createFulfillmentSetsResult = Steps.createFulfillmentSetStep(
-    input.fulfillmentSets
+  const createDefaultShippingProfileResult = createDefaultShippingProfileStep(
+    input.defaultShippingProfile,
   )
 
-  const linkStockLocationsFulfillmentSetInput: Steps.LinkStockLocationFulfillmentSetStepInput =
+  const createFulfillmentSetsResult = createFulfillmentSetStep(
+    input.fulfillmentSets,
+  )
+
+  const linkStockLocationsFulfillmentSetInput: LinkStockLocationFulfillmentSetStepInput =
     transform(
       {
+        createFulfillmentSetsResult,
         createStockLocationResult,
         input,
-        createFulfillmentSetsResult,
       },
       (data) => ({
-        stockLocations: data.createStockLocationResult.result,
         fulfillmentSet: data.createFulfillmentSetsResult.fulfillmentSet,
-      })
+        stockLocations: data.createStockLocationResult.result,
+      }),
     )
 
   const linkStockLocationsFulfillmentSetResult =
-    Steps.linkStockLocationFulfillmentSetStep(
-      linkStockLocationsFulfillmentSetInput
-    )
+    linkStockLocationFulfillmentSetStep(linkStockLocationsFulfillmentSetInput)
 
-  const createShippingOptionsInput: Steps.CreateShippingOptionsStepInput =
-    transform(
-      {
-        input,
-        createFulfillmentSetsResult,
-        createDefaultShippingProfileResult,
-        createRegionsResult,
-      },
-      (data) =>
-        data.input.shippingOptions.map((option) => ({
+  const createShippingOptionsInput: CreateShippingOptionsStepInput = transform(
+    {
+      createDefaultShippingProfileResult,
+      createFulfillmentSetsResult,
+      createRegionsResult,
+      input,
+    },
+    (data) =>
+      data.input.shippingOptions.map((option) => {
+        const shippingOption: CreateShippingOptionsStepInput[number] = {
           name: option.name,
+          prices: option.prices,
           providerId:
             option.providerId ??
             data.input.workflowDefaults.fulfillmentProviderId,
+          regions: data.createRegionsResult.result.map((region) => ({
+            ...region,
+            amount: getRegionShippingAmount(
+              option.prices,
+              region.currency_code,
+              data.input.workflowDefaults.shippingOptionPriceAmount,
+            ),
+          })),
+          rules: option.rules,
           serviceZoneId: data.createFulfillmentSetsResult.serviceZone.id,
           shippingProfileId:
             data.createDefaultShippingProfileResult.shippingProfile.id,
-          regions: data.createRegionsResult.result.map((region) => ({
-            ...region,
-            amount:
-              option.prices.find(
-                (p) =>
-                  p.currencyCode?.toLowerCase() ===
-                  region.currency_code?.toLowerCase()
-              )?.amount ??
-              data.input.workflowDefaults.shippingOptionPriceAmount,
-          })),
           type: option.type,
-          prices: option.prices,
-          rules: option.rules,
-          data: option.data,
-        }))
-    )
-
-  const createShippingOptionsResult = Steps.createShippingOptionsStep(
-    createShippingOptionsInput
+        }
+        if (option.data !== undefined) {
+          shippingOption.data = option.data
+        }
+        return shippingOption
+      }),
   )
 
-  const linkSalesChannelsToStockLocationInput: Steps.LinkSalesChannelsStockLocationStepInput =
+  const createShippingOptionsResult = createShippingOptionsStep(
+    createShippingOptionsInput,
+  )
+
+  const linkSalesChannelsToStockLocationInput: LinkSalesChannelsStockLocationStepInput =
     transform(
       {
         createStockLocationResult,
@@ -171,21 +227,19 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
         salesChannelsResult,
       },
       (data) => ({
-        stockLocations: data.createStockLocationResult.result,
         salesChannels: data.salesChannelsResult.result,
-      })
+        stockLocations: data.createStockLocationResult.result,
+      }),
     )
 
   const linkSalesChannelsToStockLocationResult =
-    Steps.linkSalesChannelsStockLocationStep(
-      linkSalesChannelsToStockLocationInput
-    )
+    linkSalesChannelsStockLocationStep(linkSalesChannelsToStockLocationInput)
 
-  const createPublishableKeyResult = Steps.createPublishableKeyStep(
-    input.publishableKey
+  const createPublishableKeyResult = createPublishableKeyStep(
+    input.publishableKey,
   )
 
-  const linkSalesChannelsApiKeyStepInput: Steps.LinkSalesChannelsApiKeyStepInput =
+  const linkSalesChannelsApiKeyStepInput: LinkSalesChannelsApiKeyStepInput =
     transform(
       {
         createPublishableKeyResult,
@@ -193,82 +247,93 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
         salesChannelsResult,
       },
       (data) => ({
-        salesChannels: data.salesChannelsResult.result,
         publishableApiKey: data.createPublishableKeyResult.publishableApiKey,
-        salesChannelNames: data.input.publishableKey.salesChannelNames,
-      })
+        salesChannels: data.salesChannelsResult.result,
+        ...(data.input.publishableKey.salesChannelNames === undefined
+          ? {}
+          : {
+              salesChannelNames: data.input.publishableKey.salesChannelNames,
+            }),
+      }),
     )
 
-  const linkSalesChannelsApiKeyStepInputResult =
-    Steps.linkSalesChannelsApiKeyStep(linkSalesChannelsApiKeyStepInput)
-
-  const createProductCategoriesResult = Steps.createProductCategoriesStep(
-    input.productCategories
+  const linkSalesChannelsApiKeyStepInputResult = linkSalesChannelsApiKeyStep(
+    linkSalesChannelsApiKeyStepInput,
   )
 
-  const productSeedInput: Steps.CreateProductsStepInput = transform(
+  const createProductCategoriesResult = createProductCategoriesStep(
+    input.productCategories,
+  )
+
+  const productSeedInput: CreateProductsStepInput = transform(
     {
-      input,
-      createProductCategoriesResult,
-      salesChannelsResult,
       createDefaultShippingProfileResult,
+      createProductCategoriesResult,
+      input,
+      salesChannelsResult,
     },
-    (data) => data.input.products
+    (data) => data.input.products,
   )
 
   const reconcileProductVariantEansResult =
-    Steps.reconcileProductVariantEansStep(productSeedInput)
-  const createProductsStepInput: Steps.CreateProductsStepInput = transform(
+    reconcileProductVariantEansStep(productSeedInput)
+  const createProductsStepInput: CreateProductsStepInput = transform(
     { reconcileProductVariantEansResult },
-    (data) => data.reconcileProductVariantEansResult.products
+    (data) => data.reconcileProductVariantEansResult.products,
   )
-  const createProductsResult = Steps.createProductsStep(createProductsStepInput)
-  const reconcileProductAttributesInput: Steps.CreateProductsStepInput =
-    transform(
-      {
-        createProductsResult,
-        createProductsStepInput,
-      },
-      (data) => data.createProductsStepInput
-    )
-  const reconcileProductAttributesResult = Steps.reconcileProductAttributesStep(
-    reconcileProductAttributesInput
+  const createProductsResult = createProductsStep(createProductsStepInput)
+  const reconcileProductAttributesInput: CreateProductsStepInput = transform(
+    {
+      createProductsResult,
+      createProductsStepInput,
+    },
+    (data) => data.createProductsStepInput,
   )
-  const reconcileProductMeasurementsResult =
-    Steps.reconcileProductMeasurementsStep(reconcileProductAttributesInput)
-  const cleanupProductBrandAttributesInput: Steps.CleanupProductBrandAttributesStepInput =
+  const reconcileProductAttributesResult = reconcileProductAttributesStep(
+    reconcileProductAttributesInput,
+  )
+  const reconcileProductMeasurementsResult = reconcileProductMeasurementsStep(
+    reconcileProductAttributesInput,
+  )
+  const cleanupProductBrandAttributesInput: CleanupProductBrandAttributesStepInput =
     transform(
       {
         createProductsResult,
         input,
       },
       (data) => ({
-        attributeNames: data.input.legacyBrandAttributeNames,
+        ...(data.input.legacyBrandAttributeNames === undefined
+          ? {}
+          : { attributeNames: data.input.legacyBrandAttributeNames }),
         productIds: data.createProductsResult.result,
-      })
+      }),
     )
-  const cleanupProductBrandAttributesResult =
-    Steps.cleanupProductBrandAttributesStep(cleanupProductBrandAttributesInput)
+  const cleanupProductBrandAttributesResult = cleanupProductBrandAttributesStep(
+    cleanupProductBrandAttributesInput,
+  )
 
-  const syncPriceListsInput: Steps.SyncPriceListsStepInput = transform(
+  const syncPriceListsInput: SyncPriceListsStepInput = transform(
     {
       createProductsResult,
       input,
     },
     (data) => ({
       productIds: data.createProductsResult.result,
-      priceLists: data.input.priceLists,
+      ...(data.input.priceLists === undefined
+        ? {}
+        : { priceLists: data.input.priceLists }),
       config: data.input.priceListSync,
-    })
+    }),
   )
 
-  const syncPriceListsResult = Steps.syncPriceListsStep(syncPriceListsInput)
+  const syncPriceListsResult = syncPriceListsStep(syncPriceListsInput)
 
-  const createTaxRatesResult = when(
+  const { then: createTaxRatesWhenConfigured } = when(
     { input },
-    ({ input: workflowInput }) => !!workflowInput.taxRates
-  ).then(() => {
-    const createTaxRatesStepInput: Steps.CreateTaxRatesStepInput = transform(
+    ({ input: workflowInput }) => workflowInput.taxRates !== undefined,
+  )
+  const createTaxRatesResult = createTaxRatesWhenConfigured(() => {
+    const createTaxRatesStepInput: CreateTaxRatesStepInput = transform(
       {
         createProductsResult,
         createTaxRegionsResult,
@@ -276,62 +341,63 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
       },
       (data) => ({
         enabled: true,
-        countries: data.input.taxRates?.countries,
+        ...(data.input.taxRates?.countries === undefined
+          ? {}
+          : { countries: data.input.taxRates?.countries }),
         config: data.input.taxRates?.config,
         productIds: data.createProductsResult.result,
-      })
+      }),
     )
 
-    return Steps.createTaxRatesStep(createTaxRatesStepInput)
+    return createTaxRatesStep(createTaxRatesStepInput)
   })
 
-  const createInventoryLevelsInput: Steps.CreateInventoryLevelsStepInput =
-    transform(
-      {
-        createStockLocationResult,
-        createProductsResult,
-        input,
-      },
-      (data) => ({
-        stockLocations: data.createStockLocationResult.result,
-        inventoryItems: buildInventoryItemsInput(data.input.products),
-      })
-    )
+  const createInventoryLevelsInput: CreateInventoryLevelsStepInput = transform(
+    {
+      createProductsResult,
+      createStockLocationResult,
+      input,
+    },
+    (data) => ({
+      inventoryItems: buildInventoryItemsInput(data.input.products),
+      stockLocations: data.createStockLocationResult.result,
+    }),
+  )
 
-  const createInventoryLevelsResult = Steps.createInventoryLevelsStep(
-    createInventoryLevelsInput
+  const createInventoryLevelsResult = createInventoryLevelsStep(
+    createInventoryLevelsInput,
   )
 
   return new WorkflowResponse({
-    salesChannelsResult,
-    updateStoreCurrenciesResult,
-    createRegionsResult,
-    ensurePricePreferencesResult,
-    createTaxRegionsResult,
-    createStockLocationResult,
-    linkStockLocationsFulfillmentProviderResult,
+    cleanupProductBrandAttributesResult,
     createDefaultShippingProfileResult,
     createFulfillmentSetsResult,
-    linkStockLocationsFulfillmentSetResult,
-    createShippingOptionsResult,
-    linkSalesChannelsToStockLocationResult,
-    createPublishableKeyResult,
-    linkSalesChannelsApiKeyStepInputResult,
+    createInventoryLevelsResult,
     createProductCategoriesResult,
-    reconcileProductVariantEansResult,
     createProductsResult,
+    createPublishableKeyResult,
+    createRegionsResult,
+    createShippingOptionsResult,
+    createStockLocationResult,
+    createTaxRatesResult,
+    createTaxRegionsResult,
+    ensurePricePreferencesResult,
+    linkSalesChannelsApiKeyStepInputResult,
+    linkSalesChannelsToStockLocationResult,
+    linkStockLocationsFulfillmentProviderResult,
+    linkStockLocationsFulfillmentSetResult,
     reconcileProductAttributesResult,
     reconcileProductMeasurementsResult,
-    cleanupProductBrandAttributesResult,
+    reconcileProductVariantEansResult,
+    salesChannelsResult,
     syncPriceListsResult,
-    createTaxRatesResult,
-    createInventoryLevelsResult,
+    updateStoreCurrenciesResult,
   })
 }
 
 const seedDatabaseWorkflow = createWorkflow(
   SeedDatabaseWorkflowId,
-  seedDatabaseWorkflowComposer
+  seedDatabaseWorkflowComposer,
 )
 
 export default seedDatabaseWorkflow

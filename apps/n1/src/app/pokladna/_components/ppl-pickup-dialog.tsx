@@ -2,9 +2,11 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
-import { type PplAccessPointData, PplWidget } from "./ppl-widget"
 
-type PplPickupDialogProps = {
+import { PplWidget } from "./ppl-widget"
+import type { PplAccessPointData } from "./ppl-widget"
+
+interface PplPickupDialogProps {
   /** Whether dialog is open (controlled) */
   open: boolean
   /** Current selected access point data */
@@ -25,13 +27,13 @@ type PplPickupDialogProps = {
  *
  * Widget remounts automatically via conditional render {open && ...}
  */
-export function PplPickupDialog({
+export const PplPickupDialog = ({
   open,
   selectedPoint,
   onSelect,
   onClose,
   address,
-}: PplPickupDialogProps) {
+}: PplPickupDialogProps) => {
   const handleSelect = (data: PplAccessPointData) => {
     if (process.env.NODE_ENV === "development") {
       console.log("[PplPickupDialog] Access point selected:", data)

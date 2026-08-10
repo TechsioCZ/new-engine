@@ -1,8 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
+
 import { queryKeys } from "@/lib/query-keys"
 import { logout } from "@/services/auth-service"
 
-export type UseLogoutOptions = {
+export interface UseLogoutOptions {
   onSuccess?: () => void
   onError?: (error: Error) => void
 }
@@ -15,17 +16,22 @@ export type UseLogoutOptions = {
  * - Cart (active cart)
  * - Customer (addresses)
  */
-export function useLogout(options?: UseLogoutOptions) {
+export const useLogout = (options?: UseLogoutOptions) => {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: logout,
-    onSuccess: () => {
+    onError: (error: Error) => {
+      options?.onError?.(error)
+    },
+    onSuccess: async () => {
       // Invalidate all user data first (triggers refetch on mounted queries)
-      queryClient.invalidateQueries({ queryKey: queryKeys.auth.all() })
-      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all() })
-      queryClient.invalidateQueries({ queryKey: queryKeys.cart.all() })
-      queryClient.invalidateQueries({ queryKey: queryKeys.customer.all() })
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.auth.all() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.orders.all() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.cart.all() }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.customer.all() }),
+      ])
 
       // Then remove from cache (clears stale data)
       queryClient.removeQueries({ queryKey: queryKeys.auth.all() })
@@ -34,9 +40,6 @@ export function useLogout(options?: UseLogoutOptions) {
       queryClient.removeQueries({ queryKey: queryKeys.customer.all() })
 
       options?.onSuccess?.()
-    },
-    onError: (error: Error) => {
-      options?.onError?.(error)
     },
   })
 }

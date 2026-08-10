@@ -1,23 +1,11 @@
 import figma from "@figma/code-connect"
+
 import { RadioGroup } from "./radio-group"
 
 figma.connect(
   RadioGroup,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1149-66",
   {
-    imports: ['import { RadioGroup } from "@libs/ui/molecules/radio-group"'],
-    props: {
-      size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
-        lg: "lg",
-      }),
-      orientation: figma.enum("orientation", {
-        horizontal: "horizontal",
-        vertical: "vertical",
-      }),
-      disabled: figma.boolean("disabled"),
-    },
     example: ({ size, orientation, disabled }) => (
       <RadioGroup disabled={disabled} orientation={orientation} size={size}>
         <RadioGroup.Item value="a">
@@ -30,5 +18,18 @@ figma.connect(
         </RadioGroup.Item>
       </RadioGroup>
     ),
-  }
+    imports: ['import { RadioGroup } from "@libs/ui/molecules/radio-group"'],
+    props: {
+      disabled: figma.boolean("disabled"),
+      orientation: figma.enum("orientation", {
+        horizontal: "horizontal",
+        vertical: "vertical",
+      }),
+      size: figma.enum("size", {
+        lg: "lg",
+        md: "md",
+        sm: "sm",
+      }),
+    },
+  },
 )

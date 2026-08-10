@@ -1,42 +1,64 @@
 import { Button, Drawer, Input, Label, Select, Text } from "@medusajs/ui"
-import {
-  type ChangeEvent,
-  type FormEvent,
-  type ReactNode,
-  useState,
-} from "react"
+import { useState } from "react"
+import type { ChangeEvent, ReactNode, SubmitEvent } from "react"
 import { useTranslation } from "react-i18next"
+
 import type { AdminUpdateCompany } from "../../../../types"
-import { useRegions } from "../../../hooks/api"
+import { useRegions } from "../../../hooks/api/regions"
 
 const requiredCompanyFields = ["name", "email", "currency_code"] as const
 
 type RequiredCompanyField = (typeof requiredCompanyFields)[number]
 
+type CompanyFormValues = Record<keyof AdminUpdateCompany, string>
+
+type CompanyValidationErrors = Partial<Record<RequiredCompanyField, string>>
+
 const isRequiredCompanyField = (field: string): field is RequiredCompanyField =>
-  requiredCompanyFields.includes(field as RequiredCompanyField)
+  requiredCompanyFields.some((candidate) => candidate === field)
 
 const normalizeCompanyFormData = (
-  company?: AdminUpdateCompany
-): AdminUpdateCompany => ({
-  address: company?.address ?? "",
-  city: company?.city ?? "",
-  country: company?.country ?? "",
-  currency_code: company?.currency_code ?? "",
-  email: company?.email ?? "",
-  logo_url: company?.logo_url ?? "",
-  name: company?.name ?? "",
-  phone: company?.phone ?? "",
-  state: company?.state ?? "",
-  zip: company?.zip ?? "",
-})
+  company?: AdminUpdateCompany,
+): CompanyFormValues => {
+  const source: AdminUpdateCompany = company ?? {}
+
+  return {
+    address: source.address ?? "",
+    city: source.city ?? "",
+    country: source.country ?? "",
+    currency_code: source.currency_code ?? "",
+    email: source.email ?? "",
+    logo_url: source.logo_url ?? "",
+    name: source.name ?? "",
+    phone: source.phone ?? "",
+    state: source.state ?? "",
+    zip: source.zip ?? "",
+  }
+}
+
+const omitValidationError = (
+  errors: CompanyValidationErrors,
+  field: RequiredCompanyField,
+): CompanyValidationErrors => {
+  const next: CompanyValidationErrors = {}
+
+  for (const candidate of requiredCompanyFields) {
+    const message = errors[candidate]
+
+    if (candidate !== field && message !== undefined) {
+      next[candidate] = message
+    }
+  }
+
+  return next
+}
 
 const RequiredLabel = ({
   children,
   required,
 }: {
   children: ReactNode
-  required?: boolean
+  required: boolean
 }) => (
   <Label size="xsmall">
     {children}
@@ -49,8 +71,14 @@ const RequiredLabel = ({
   </Label>
 )
 
-const FieldError = ({ error, id }: { error?: string; id: string }) => {
-  if (!error) {
+const FieldError = ({
+  error,
+  id,
+}: {
+  error?: string | undefined
+  id: string
+}) => {
+  if (error === undefined || error.length === 0) {
     return null
   }
 
@@ -72,7 +100,7 @@ const CompanyTextInput = ({
   type = "text",
   value,
 }: {
-  error?: string
+  error?: string | undefined
   errorId: string
   label: string
   name: string
@@ -80,26 +108,30 @@ const CompanyTextInput = ({
   placeholder: string
   required?: boolean
   type?: string
-  value?: string | null
-}) => (
-  <>
-    <RequiredLabel required={required}>{label}</RequiredLabel>
-    <Input
-      aria-describedby={error ? errorId : undefined}
-      aria-invalid={!!error}
-      aria-required={required}
-      name={name}
-      onChange={onChange}
-      placeholder={placeholder}
-      required={required}
-      type={type}
-      value={value || ""}
-    />
-    <FieldError error={error} id={errorId} />
-  </>
-)
+  value: string
+}) => {
+  const hasError = error !== undefined && error.length > 0
 
-export function CompanyForm({
+  return (
+    <>
+      <RequiredLabel required={required ?? false}>{label}</RequiredLabel>
+      <Input
+        aria-describedby={hasError ? errorId : undefined}
+        aria-invalid={hasError}
+        aria-required={required}
+        name={name}
+        onChange={onChange}
+        placeholder={placeholder}
+        required={required}
+        type={type}
+        value={value}
+      />
+      <FieldError error={error} id={errorId} />
+    </>
+  )
+}
+
+export const CompanyForm = ({
   company,
   handleSubmit,
   loading,
@@ -109,14 +141,13 @@ export function CompanyForm({
   handleSubmit: (data: AdminUpdateCompany) => Promise<void>
   loading: boolean
   error: Error | null
-}) {
+}) => {
   const { t } = useTranslation("companies")
-  const [formData, setFormData] = useState<AdminUpdateCompany>(
-    normalizeCompanyFormData(company)
+  const [formData, setFormData] = useState<CompanyFormValues>(() =>
+    normalizeCompanyFormData(company),
   )
-  const [validationErrors, setValidationErrors] = useState<
-    Partial<Record<RequiredCompanyField, string>>
-  >({})
+  const [validationErrors, setValidationErrors] =
+    useState<CompanyValidationErrors>({})
 
   const { regions, isPending: regionsLoading } = useRegions()
 
@@ -129,13 +160,13 @@ export function CompanyForm({
     setFormData({ ...formData, [field]: e.target.value })
 
     if (isRequiredCompanyField(field)) {
-      setValidationErrors((prev) => ({ ...prev, [field]: undefined }))
+      setValidationErrors((prev) => omitValidationError(prev, field))
     }
   }
 
   const handleCurrencyChange = (value: string) => {
     setFormData({ ...formData, currency_code: value })
-    setValidationErrors((prev) => ({ ...prev, currency_code: undefined }))
+    setValidationErrors((prev) => omitValidationError(prev, "currency_code"))
   }
 
   const handleCountryChange = (value: string) => {
@@ -143,18 +174,18 @@ export function CompanyForm({
   }
 
   const validateForm = () => {
-    const nextErrors: Partial<Record<RequiredCompanyField, string>> = {}
+    const nextErrors: CompanyValidationErrors = {}
     const requiredMessage = t("validation.required")
 
-    if (!formData.name?.trim()) {
+    if (formData.name.trim().length === 0) {
       nextErrors.name = requiredMessage
     }
 
-    if (!formData.email?.trim()) {
+    if (formData.email.trim().length === 0) {
       nextErrors.email = requiredMessage
     }
 
-    if (!formData.currency_code) {
+    if (formData.currency_code.length === 0) {
       nextErrors.currency_code = requiredMessage
     }
 
@@ -163,17 +194,20 @@ export function CompanyForm({
     return Object.keys(nextErrors).length === 0
   }
 
-  const handleFormSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleFormSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
 
     if (!validateForm()) {
       return
     }
 
-    await handleSubmit(normalizeCompanyFormData(formData))
+    void handleSubmit(normalizeCompanyFormData(formData))
   }
 
   const hasValidationErrors = Object.values(validationErrors).some(Boolean)
+  const currencyError = validationErrors.currency_code
+  const hasCurrencyError =
+    currencyError !== undefined && currencyError.length > 0
 
   return (
     <form noValidate onSubmit={handleFormSubmit}>
@@ -188,7 +222,7 @@ export function CompanyForm({
             placeholder={t("placeholders.name")}
             required
             type="text"
-            value={formData.name || ""}
+            value={formData.name}
           />
           <CompanyTextInput
             errorId="company-phone-error"
@@ -197,7 +231,7 @@ export function CompanyForm({
             onChange={handleChange}
             placeholder={t("placeholders.phone")}
             type="text"
-            value={formData.phone || ""}
+            value={formData.phone}
           />
           <CompanyTextInput
             error={validationErrors.email}
@@ -208,7 +242,7 @@ export function CompanyForm({
             placeholder={t("placeholders.email")}
             required
             type="email"
-            value={formData.email || ""}
+            value={formData.email}
           />
           <CompanyTextInput
             errorId="company-address-error"
@@ -217,7 +251,7 @@ export function CompanyForm({
             onChange={handleChange}
             placeholder={t("placeholders.address")}
             type="text"
-            value={formData.address || ""}
+            value={formData.address}
           />
           <CompanyTextInput
             errorId="company-city-error"
@@ -226,7 +260,7 @@ export function CompanyForm({
             onChange={handleChange}
             placeholder={t("placeholders.city")}
             type="text"
-            value={formData.city || ""}
+            value={formData.city}
           />
           <CompanyTextInput
             errorId="company-state-error"
@@ -235,7 +269,7 @@ export function CompanyForm({
             onChange={handleChange}
             placeholder={t("placeholders.state")}
             type="text"
-            value={formData.state || ""}
+            value={formData.state}
           />
           <CompanyTextInput
             errorId="company-zip-error"
@@ -244,7 +278,7 @@ export function CompanyForm({
             onChange={handleChange}
             placeholder={t("placeholders.zip")}
             type="text"
-            value={formData.zip || ""}
+            value={formData.zip}
           />
           <div className="flex w-full flex-col gap-4 sm:flex-row">
             <div className="flex w-full flex-col gap-2 sm:w-1/2">
@@ -253,7 +287,7 @@ export function CompanyForm({
                 disabled={regionsLoading}
                 name="country"
                 onValueChange={handleCountryChange}
-                value={formData.country || ""}
+                value={formData.country}
               >
                 <Select.Trigger disabled={regionsLoading}>
                   <Select.Value placeholder={t("form.selectCountry")} />
@@ -261,8 +295,8 @@ export function CompanyForm({
                 <Select.Content className="z-50">
                   {countries?.map((country) => (
                     <Select.Item
-                      key={country?.iso_2 || ""}
-                      value={country?.iso_2 || ""}
+                      key={country?.iso_2 ?? ""}
+                      value={country?.iso_2 ?? ""}
                     >
                       {country?.name}
                     </Select.Item>
@@ -274,19 +308,17 @@ export function CompanyForm({
               <RequiredLabel required>{t("fields.currency")}</RequiredLabel>
 
               <Select
-                defaultValue={currencyCodes?.[0]}
+                defaultValue={currencyCodes?.[0] ?? ""}
                 disabled={regionsLoading}
                 name="currency_code"
                 onValueChange={handleCurrencyChange}
-                value={formData.currency_code || ""}
+                value={formData.currency_code}
               >
                 <Select.Trigger
                   aria-describedby={
-                    validationErrors.currency_code
-                      ? "company-currency-error"
-                      : undefined
+                    hasCurrencyError ? "company-currency-error" : undefined
                   }
-                  aria-invalid={!!validationErrors.currency_code}
+                  aria-invalid={hasCurrencyError}
                   aria-required
                   disabled={regionsLoading}
                 >
@@ -301,13 +333,10 @@ export function CompanyForm({
                   ))}
                 </Select.Content>
               </Select>
-              <FieldError
-                error={validationErrors.currency_code}
-                id="company-currency-error"
-              />
+              <FieldError error={currencyError} id="company-currency-error" />
             </div>
           </div>
-          {/* TODO: Add logo upload */}
+          {/* Logo is supplied as a URL until upload support ships. */}
           <CompanyTextInput
             errorId="company-logo-url-error"
             label={t("fields.logoUrl")}
@@ -315,7 +344,7 @@ export function CompanyForm({
             onChange={handleChange}
             placeholder={t("placeholders.logoUrl")}
             type="text"
-            value={formData.logo_url || ""}
+            value={formData.logo_url}
           />
         </div>
       </Drawer.Body>

@@ -1,7 +1,9 @@
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { TrackingBatchClient, type TrackingOrderIndex } from "../client"
+
+import { TrackingBatchClient } from "../client"
+import type { TrackingOrderIndex } from "../client"
 import { trackingBatchClientMapperHelper } from "../client-mapper-helper"
 import type {
   AddTrackingBatchInput,
@@ -31,7 +33,7 @@ const processShipmentForBatch = async ({
   shipment,
 }: {
   client: TrackingBatchClient
-  createdBy?: string
+  createdBy?: string | undefined
   logger: Logger
   orderIndex: TrackingOrderIndex
   shipment: TrackingShipmentInput
@@ -42,9 +44,9 @@ const processShipmentForBatch = async ({
     const order = client.findExistingOrder(shipment, orderIndex)
     if (!order) {
       return {
+        error: "Order was not found",
         order_identifier: orderIdentifier,
         status: "not_found",
-        error: "Order was not found",
       }
     }
 
@@ -57,22 +59,22 @@ const processShipmentForBatch = async ({
     })
 
     return {
-      order_identifier: orderIdentifier,
-      status: "success",
-      order_id: order.id,
       fulfillment_id: result.fulfillmentId,
-      shipment_id: result.shipmentId,
       notification_sent: result.notificationSent,
+      order_id: order.id,
+      order_identifier: orderIdentifier,
+      shipment_id: result.shipmentId,
+      status: "success",
     }
   } catch (error) {
     const message = toErrorMessage(error)
     logger.warn(
-      `[symmy-plugin] Failed to add tracking (${shipment.identifier_type}:${orderIdentifier}): ${message}`
+      `[symmy-plugin] Failed to add tracking (${shipment.identifier_type}:${orderIdentifier}): ${message}`,
     )
     return {
+      error: message,
       order_identifier: orderIdentifier,
       status: "failed",
-      error: message,
     }
   }
 }
@@ -84,8 +86,12 @@ export const symmyProcessTrackingBatchStep = createStep(
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const orderIndex = await client.preload(input.shipments)
 
-    const results: AddTrackingBatchResult[] = []
-    for (const shipment of input.shipments) {
+    const results: AddTrackingBatchOutput["results"] = []
+    const processAt = async (index: number): Promise<void> => {
+      const shipment = input.shipments[index]
+      if (shipment === undefined) {
+        return
+      }
       results.push(
         await processShipmentForBatch({
           client,
@@ -93,19 +99,21 @@ export const symmyProcessTrackingBatchStep = createStep(
           logger,
           orderIndex,
           shipment,
-        })
+        }),
       )
+      await processAt(index + 1)
     }
+    await processAt(0)
 
     const processed = results.filter((r) => r.status === "success").length
     const failed = results.length - processed
 
     const output: AddTrackingBatchOutput = {
-      success: failed === 0,
-      processed,
       failed,
+      processed,
       results,
+      success: failed === 0,
     }
     return new StepResponse(output)
-  }
+  },
 )

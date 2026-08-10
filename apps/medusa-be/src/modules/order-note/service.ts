@@ -5,9 +5,10 @@ import {
   MedusaError,
   MedusaService,
 } from "@medusajs/framework/utils"
+
 import OrderNote from "./models/order-note"
 
-type UpsertOrderNoteInput = {
+interface UpsertOrderNoteInput {
   note: string
   order_id: string
 }
@@ -16,12 +17,12 @@ class OrderNoteModuleService extends MedusaService({ OrderNote }) {
   @InjectManager()
   async getOrderNoteByOrderId(
     orderId: string,
-    @MedusaContext() sharedContext?: Context
+    @MedusaContext() sharedContext?: Context,
   ) {
     const [orderNote] = await this.listOrderNotes(
       { order_id: orderId },
       { take: 1 },
-      sharedContext
+      sharedContext,
     )
 
     return orderNote ?? null
@@ -30,14 +31,14 @@ class OrderNoteModuleService extends MedusaService({ OrderNote }) {
   @InjectManager()
   async upsertOrderNote(
     input: UpsertOrderNoteInput,
-    @MedusaContext() sharedContext?: Context
+    @MedusaContext() sharedContext?: Context,
   ) {
     const note = input.note.trim()
 
     if (!note) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Order note cannot be empty"
+        "Order note cannot be empty",
       )
     }
 
@@ -47,7 +48,7 @@ class OrderNoteModuleService extends MedusaService({ OrderNote }) {
           note,
           order_id: input.order_id,
         },
-        sharedContext
+        sharedContext,
       )
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
@@ -63,7 +64,7 @@ class OrderNoteModuleService extends MedusaService({ OrderNote }) {
 
       const existing = await this.getOrderNoteByOrderId(
         input.order_id,
-        sharedContext
+        sharedContext,
       )
 
       if (!existing) {
@@ -76,7 +77,7 @@ class OrderNoteModuleService extends MedusaService({ OrderNote }) {
           note,
           order_id: input.order_id,
         },
-        sharedContext
+        sharedContext,
       )
     }
   }

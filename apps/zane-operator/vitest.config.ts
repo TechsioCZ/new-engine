@@ -5,9 +5,7 @@ import { defineConfig } from "vitest/config"
 export default defineConfig({
   resolve: {
     alias: {
-      bun: fileURLToPath(
-        new URL("./src/__tests__/bun-stub.ts", import.meta.url)
-      ),
+      bun: fileURLToPath(new URL("src/__tests__/bun-stub.ts", import.meta.url)),
     },
   },
   test: {

@@ -1,38 +1,35 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { useEffect, useState } from "react"
+import { redirect } from "next/navigation"
+import { useEffect } from "react"
+
 import { useSuspenseAuth } from "@/hooks/use-auth"
+
 import { AccountProvider } from "./context/account-context"
 
-export default function AccountLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  const router = useRouter()
+const AccountLayout = ({ children }: { children: React.ReactNode }) => {
   const { customer, isAuthenticated, isTokenExpired } = useSuspenseAuth()
-  const [showExpiredMessage, setShowExpiredMessage] = useState(false)
 
   useEffect(() => {
-    if (!isTokenExpired) {
-      return
+    let timeout: number | null = null
+    if (isTokenExpired) {
+      timeout = window.setTimeout(() => {
+        window.location.assign("/prihlaseni")
+      }, 3000)
     }
 
-    setShowExpiredMessage(true)
-    const timeout = setTimeout(() => {
-      router.push("/prihlaseni")
-    }, 3000)
-    return () => clearTimeout(timeout)
-  }, [isTokenExpired, router])
-
-  useEffect(() => {
-    if (!(isAuthenticated || isTokenExpired)) {
-      router.push("/prihlaseni")
+    return () => {
+      if (timeout !== null) {
+        window.clearTimeout(timeout)
+      }
     }
-  }, [isAuthenticated, isTokenExpired, router])
+  }, [isTokenExpired])
 
-  if (showExpiredMessage) {
+  if (!isAuthenticated && !isTokenExpired) {
+    redirect("/prihlaseni")
+  }
+
+  if (isTokenExpired) {
     return (
       <main className="mx-auto w-2xl max-w-full py-300">
         <div className="rounded bg-warning-light p-250">
@@ -58,3 +55,5 @@ export default function AccountLayout({
     </AccountProvider>
   )
 }
+
+export default AccountLayout

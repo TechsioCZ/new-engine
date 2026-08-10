@@ -1,5 +1,10 @@
 import { lexicalHTMLField } from "@payloadcms/richtext-lexical"
-import type { CollectionConfig } from "payload"
+import type {
+  CollectionAfterReadHook,
+  CollectionBeforeValidateHook,
+  CollectionConfig,
+} from "payload"
+
 import { requireAuth } from "../lib/access/require-auth"
 import { fieldDescriptions } from "../lib/constants/descriptions"
 import {
@@ -18,25 +23,59 @@ import { createLexicalEditor } from "../lib/editors/lexical"
 import { createMedusaCacheHook } from "../lib/hooks/medusa-cache"
 import { generateSlugFromTitle } from "../lib/hooks/slug"
 import { shouldReturnHtmlForRequest } from "../lib/utils/request"
+import type { Page } from "../payload-types"
 
 /** Collection slug for pages. */
 const COLLECTION_SLUG = "pages"
 /** Hook to invalidate Medusa cache when pages change. */
 const invalidatePagesCache = createMedusaCacheHook(COLLECTION_SLUG)
 
+const replaceContentWithHtml: CollectionAfterReadHook<Page> = ({
+  doc,
+  req,
+}) => {
+  if (!shouldReturnHtmlForRequest(req) || doc.contentHTML === undefined) {
+    return doc
+  }
+
+  const { contentHTML, ...rest } = doc
+  return { ...rest, content: contentHTML }
+}
+
+const populateSlug: CollectionBeforeValidateHook<Page> = ({ data, req }) => {
+  if (data === undefined) {
+    return data
+  }
+
+  const { slug: existingSlug, title } = data
+  if (
+    title !== undefined &&
+    (existingSlug === undefined || existingSlug === null || existingSlug === "")
+  ) {
+    const { locale } = req
+    const slug = generateSlugFromTitle(
+      title,
+      locale === undefined || locale === "all" ? {} : { locale },
+    )
+    if (slug !== "") {
+      data.slug = slug
+    }
+  }
+
+  return data
+}
+
 /** Payload collection config for pages. */
 export const Pages: CollectionConfig = {
-  slug: COLLECTION_SLUG,
-  labels: collectionLabels.pages,
-  admin: {
-    useAsTitle: "title",
-    group: adminGroups.content,
-  },
   access: {
-    read: requireAuth,
     create: requireAuth,
-    update: requireAuth,
     delete: requireAuth,
+    read: requireAuth,
+    update: requireAuth,
+  },
+  admin: {
+    group: adminGroups.content,
+    useAsTitle: "title",
   },
   fields: [
     createTitleField(),
@@ -44,11 +83,11 @@ export const Pages: CollectionConfig = {
       description: fieldDescriptions.slugPage,
     }),
     {
-      name: "category",
       label: fieldLabels.category,
-      type: "relationship",
+      name: "category",
       relationTo: "page-categories",
       required: false,
+      type: "relationship",
     },
     createContentField({ editor: createLexicalEditor() }),
     lexicalHTMLField({
@@ -56,11 +95,9 @@ export const Pages: CollectionConfig = {
       lexicalFieldName: "content",
     }),
     {
-      name: "visibility",
-      label: fieldLabels.visibility,
-      type: "select",
-      required: true,
       defaultValue: "public",
+      label: fieldLabels.visibility,
+      name: "visibility",
       options: [
         {
           label: fieldLabels.visibilityPublic,
@@ -71,43 +108,18 @@ export const Pages: CollectionConfig = {
           value: "customers-only",
         },
       ],
+      required: true,
+      type: "select",
     },
     createStatusField(),
     createPublishedDateField(),
   ],
   hooks: {
-    beforeValidate: [
-      ({ data, req }) => {
-        if (data?.title && !data?.slug) {
-          const slug = generateSlugFromTitle(data.title, {
-            locale: req?.locale,
-          })
-          if (slug) {
-            data.slug = slug
-          }
-        }
-
-        return data
-      },
-    ],
     afterChange: [invalidatePagesCache],
     afterDelete: [invalidatePagesCache],
-    afterRead: [
-      ({ doc, req }) => {
-        if (!shouldReturnHtmlForRequest(req)) {
-          return doc
-        }
-
-        if (doc.contentHTML !== undefined) {
-          const { contentHTML, ...rest } = doc
-          return {
-            ...rest,
-            content: contentHTML,
-          }
-        }
-
-        return doc
-      },
-    ],
+    afterRead: [replaceContentWithHtml],
+    beforeValidate: [populateSlug],
   },
+  labels: collectionLabels.pages,
+  slug: COLLECTION_SLUG,
 }

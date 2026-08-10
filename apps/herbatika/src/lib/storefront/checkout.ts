@@ -1,12 +1,11 @@
 "use client"
 
-import { resolveSelectedPaymentProviderId as resolveSelectedPaymentProviderIdShared } from "@techsio/storefront-data/shared/checkout-flow-utils"
 import { storefront } from "./storefront"
 
-const checkoutHooks = storefront.hooks.checkout
+export { resolveSelectedPaymentProviderId } from "@techsio/storefront-data/shared/checkout-flow-utils"
 
-export const { getPaymentProvidersQueryOptions, fetchPaymentProviders } =
-  checkoutHooks
+const checkoutHooks: typeof storefront.hooks.checkout =
+  storefront.hooks.checkout
 
-export const resolveSelectedPaymentProviderId =
-  resolveSelectedPaymentProviderIdShared
+export const fetchPaymentProviders: typeof checkoutHooks.fetchPaymentProviders =
+  checkoutHooks.fetchPaymentProviders

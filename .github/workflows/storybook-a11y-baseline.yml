@@ -8,7 +8,7 @@ on:
       - "libs/ui/.storybook/**"
       - "libs/ui/assets/**"
       - "libs/ui/package.json"
-      - "libs/ui/playwright.config.cts"
+      - "libs/ui/playwright.config.mts"
       - "libs/ui/postcss.config.mjs"
       - "libs/ui/project.json"
       - "libs/ui/rslib.config.ts"
@@ -16,11 +16,21 @@ on:
       - "libs/ui/src/**"
       - "libs/ui/stories/**"
       - "libs/ui/tsconfig.json"
+      - "libs/std/**"
       - ".github/workflows/storybook-a11y.yml"
       - ".github/workflows/storybook-a11y-baseline.yml"
       - "package.json"
       - "pnpm-lock.yaml"
+      - "tsconfig.base.json"
+      - "scripts/install-storybook-playwright.mjs"
+  schedule:
+    # Keep the comparison artifacts alive even during long periods without UI merges.
+    - cron: "17 3 * * 1"
   workflow_dispatch:
+
+concurrency:
+  group: storybook-a11y-master-baseline
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -43,7 +53,12 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline --filter=@techsio/ui-kit...
+        run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter=@techsio/ui-kit...
+
+      # --ignore-scripts skips the std `prepare` build; the Storybook build
+      # resolves @techsio/std/* through dist-backed exports.
+      - name: Build @techsio/std
+        run: pnpm --filter @techsio/std build && pnpm --filter @techsio/ui-kit build
 
       - name: Build Storybook (UI)
         run: pnpm -C libs/ui run build:storybook
@@ -82,11 +97,20 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...'
+        run: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter='.' --filter='@techsio/ui-kit...'
+
+      # The test-runner config imports @techsio/std through dist-backed package
+      # exports, so the scan jobs need the same clean-runner build sequence as
+      # the Storybook build job.
+      - name: Build test-runner dependencies
+        run: pnpm --filter @techsio/std build && pnpm --filter @techsio/ui-kit build
 
       - name: Install Playwright browsers
         # Storybook's test runner can use a different Playwright version than
         # the workspace root. Install its exact matching browser revision.
+        # Bounded: GitHub-hosted runners can stall indefinitely extracting the
+        # browser archive, which would otherwise never produce the
+        # authorization artifact this workflow exists to publish.
         run: timeout 420 node scripts/install-storybook-playwright.mjs libs/ui install --only-shell chromium
 
       - name: Download Storybook static
@@ -106,9 +130,9 @@ jobs:
 
       - name: Run a11y tests (${{ matrix.theme }} theme)
         id: a11y
-        continue-on-error: true
         env:
           A11Y_REPORT_OUTPUT_DIR: a11y-report/${{ matrix.theme }}
+          A11Y_THEME: ${{ matrix.theme }}
         run: |
           mkdir -p "libs/ui/a11y-report/${{ matrix.theme }}"
           python3 -m http.server 6006 --directory libs/ui/storybook-static &
@@ -128,6 +152,13 @@ jobs:
             exit 1
           fi
           pnpm -C libs/ui exec test-storybook --url "http://127.0.0.1:6006/?globals=theme:${{ matrix.theme }}" --config-dir .storybook --maxWorkers 2 --testTimeout 60000
+          node libs/ui/scripts/storybook-a11y-index.mjs \
+            --input libs/ui/storybook-static/index.json \
+            --output "libs/ui/a11y-report/${{ matrix.theme }}/index.json"
+          node libs/ui/scripts/storybook-a11y-finalize.mjs \
+            --index "libs/ui/a11y-report/${{ matrix.theme }}/index.json" \
+            --report-dir "libs/ui/a11y-report/${{ matrix.theme }}" \
+            --theme "${{ matrix.theme }}"
 
       - name: Upload baseline report (${{ matrix.theme }})
         if: always() && hashFiles(format('libs/ui/a11y-report/{0}/report.json', matrix.theme)) != ''
@@ -135,4 +166,5 @@ jobs:
         with:
           name: storybook-a11y-baseline-${{ matrix.theme }}
           path: libs/ui/a11y-report/${{ matrix.theme }}/report.json
+          # A weekly master refresh keeps this comparison baseline available.
           retention-days: 30

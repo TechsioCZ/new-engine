@@ -1,4 +1,5 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { QUOTE_MODULE } from "../../../modules/quote"
 import type {
   IQuoteModuleService,
@@ -17,7 +18,7 @@ export const createQuoteMessageStep = createStep(
   "create-quote-message",
   async (
     input: ModuleCreateQuoteMessage,
-    { container }
+    { container },
   ): Promise<StepResponse<ModuleQuoteMessage, string>> => {
     const quoteModule = container.resolve<IQuoteModuleService>(QUOTE_MODULE)
 
@@ -26,12 +27,12 @@ export const createQuoteMessageStep = createStep(
     return new StepResponse(quoteMessage, quoteMessage.id)
   },
   async (id: string | undefined, { container }) => {
-    if (!id) {
+    if (id === undefined || id.length === 0) {
       return
     }
 
     const quoteModule = container.resolve<IQuoteModuleService>(QUOTE_MODULE)
 
     await quoteModule.deleteMessages([id])
-  }
+  },
 )

@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import { getRecordValue, omitKeys } from "@techsio/std/object"
 
 export const DEFAULT_PRODUCT_PAGE_SIZE = 12
 
@@ -7,32 +8,30 @@ export const VARIANT_DEFAULT_STOCK_INVENTORY_FIELD_SUFFIXES = [
   "inventory_items.required_quantity",
   "inventory_items.inventory.location_levels.*",
   "inventory_items.inventory.location_levels.stock_locations.name",
-] as const
+]
 
-export const PRODUCT_VARIANT_INVENTORY_FIELDS = [
+const PRODUCT_VARIANT_INVENTORY_FIELDS = [
   "+variants.inventory_quantity",
   "+variants.manage_inventory",
   "+variants.allow_backorder",
   ...VARIANT_DEFAULT_STOCK_INVENTORY_FIELD_SUFFIXES.map(
-    (field) => `variants.${field}`
+    (field) => `variants.${field}`,
   ),
 ].join(",")
 
 export const PRODUCT_CARD_FIELDS = `id,title,handle,thumbnail,*variants.calculated_price,${PRODUCT_VARIANT_INVENTORY_FIELDS},+metadata.flags,+metadata.top_offer,+metadata.short_description,+metadata.content_sections_map`
 
-export const SEARCH_PRODUCT_CARD_FIELDS = PRODUCT_CARD_FIELDS
-
 export const RELATED_PRODUCT_FIELDS = `${PRODUCT_CARD_FIELDS},+metadata.source_shopitem_id`
 
 export const PRODUCT_DETAIL_FIELDS = `${PRODUCT_CARD_FIELDS},description,images.url,categories.id,categories.name,categories.handle,categories.parent_category_id,brand.id,brand.title,brand.handle,options.id,options.title,variants.id,variants.title,variants.sku,variants.ean,variants.options.value,variants.options.option_id,+variants.metadata,+variants.calculated_price.price_per_unit,+metadata.content_sections,+metadata.related_products,+metadata.alternative_products`
 
-export type StorefrontProductListInput = HttpTypes.StoreProductListParams & {
-  handle?: string | string[]
+export interface StorefrontProductListInput
+  extends HttpTypes.StoreProductListParams {
   page?: number
 }
 
 export const buildProductListParams = (
-  input: StorefrontProductListInput
+  input: StorefrontProductListInput,
 ): HttpTypes.StoreProductListParams => {
   const { page, limit, offset, ...rest } = input
 
@@ -40,25 +39,31 @@ export const buildProductListParams = (
     typeof limit === "number" && limit > 0 ? limit : DEFAULT_PRODUCT_PAGE_SIZE
   const resolvedPage = typeof page === "number" && page > 0 ? page : 1
 
-  const params: Record<string, unknown> = {
+  const params = {
     ...rest,
     limit: resolvedLimit,
     offset:
       typeof offset === "number" ? offset : (resolvedPage - 1) * resolvedLimit,
   }
 
-  const categoryIds = params.category_id
-  if (Array.isArray(categoryIds) && categoryIds.length > 0) {
-    // Medusa Store parser accepts multi-value `category_id[]` as CSV.
-    params["category_id[]"] = categoryIds.join(",")
-    params.category_id = undefined
-  }
+  const categoryIds = getRecordValue(params, "category_id")
+  const categoryParams =
+    Array.isArray(categoryIds) && categoryIds.length > 0
+      ? {
+          ...omitKeys(params, ["category_id"]),
+          // Medusa Store parser accepts multi-value `category_id[]` as CSV.
+          "category_id[]": categoryIds.join(","),
+        }
+      : params
 
-  const handles = params.handle
-  if (Array.isArray(handles) && handles.length > 0) {
-    params["handle[]"] = handles.join(",")
-    params.handle = undefined
-  }
+  const handles = getRecordValue(categoryParams, "handle")
+  const handleParams =
+    Array.isArray(handles) && handles.length > 0
+      ? {
+          ...omitKeys(categoryParams, ["handle"]),
+          "handle[]": handles.join(","),
+        }
+      : categoryParams
 
-  return params as HttpTypes.StoreProductListParams
+  return handleParams
 }

@@ -1,8 +1,8 @@
-/**
+/*
  * Image — @techsio/ui-kit atom.
  *
  * @component Image
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill image-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,27 +11,28 @@
  */
 import type { ComponentPropsWithoutRef, ElementType } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
 
 const imageVariants = tv({
-  variants: {
-    size: {
-      sm: "size-image-sm",
-      md: "size-image-md",
-      lg: "size-image-lg",
-      full: "w-full",
-      custom: "",
-    },
-  },
   defaultVariants: {
     size: "full",
   },
+  variants: {
+    size: {
+      custom: "",
+      full: "w-full",
+      lg: "size-image-lg",
+      md: "size-image-md",
+      sm: "size-image-sm",
+    },
+  },
 })
 
-export type BaseImageProps = {
+export interface BaseImageProps {
   src: string
   alt: string
-  className?: string
+  className?: string | undefined
 }
 
 type HasImageProps<T extends ElementType> =
@@ -61,20 +62,20 @@ export type ImageProps<T extends ElementType = "img"> = T extends "img"
   ? NativeImageProps & { as?: "img" }
   : CustomImageProps<T>
 
-export function Image<T extends ElementType = "img">({
+export const Image = <T extends ElementType = "img">({
   as,
   src,
   alt,
   size,
   className,
   ...props
-}: ImageProps<T>) {
-  const Component = (as || "img") as ElementType
+}: ImageProps<T>) => {
+  const Component = as ?? "img"
 
   return (
     <Component
       alt={alt}
-      className={imageVariants({ size, className })}
+      className={imageVariants({ className, size })}
       src={src}
       {...props}
     />

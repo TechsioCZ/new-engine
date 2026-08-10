@@ -1,9 +1,10 @@
 "use client"
 
-import { Button } from "@ui/atoms/button"
-import { Dialog } from "@ui/molecules/dialog"
-import { SelectTemplate } from "@ui/templates/select"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { Dialog } from "@techsio/ui-kit/molecules/dialog"
+import { SelectTemplate } from "@techsio/ui-kit/templates/select"
 import { useState } from "react"
+
 import { useCart } from "@/hooks/use-cart"
 import { truncateProductTitle } from "@/lib/order-utils"
 import type { Product } from "@/types/product"
@@ -15,36 +16,39 @@ interface AddToCartDialogProps {
   onOpenChange: (details: { open: boolean }) => void
 }
 
-export function AddToCartDialog({
+export const AddToCartDialog = ({
   product,
   open,
   onOpenChange,
-}: AddToCartDialogProps) {
+}: AddToCartDialogProps) => {
   const { addItem, addItemMutation } = useCart()
   const [selectedVariantId, setSelectedVariantId] = useState<string>("")
 
-  const variants = product.variants || []
+  const variants = product.variants ?? []
 
   const variantOptions = variants.map((variant) => {
-    const variantName = variant.options
-      ? Object.values(variant.options).join(" / ")
-      : variant.title
+    const optionName = variant.options
+      ?.map((option) => option.value)
+      .join(" / ")
+    const variantName =
+      optionName === undefined || optionName === "" ? variant.title : optionName
 
-    const price = variant.calculated_price
-      ? formatPrice(
-          variant.calculated_price.calculated_amount || 0,
-          variant.calculated_price.currency_code
-        )
-      : ""
+    const price =
+      variant.calculated_price === undefined
+        ? ""
+        : formatPrice(
+            variant.calculated_price.calculated_amount ?? 0,
+            variant.calculated_price.currency_code ?? undefined,
+          )
 
     return {
+      label: `${variantName}${price === "" ? "" : " - "}${price}`,
       value: variant.id,
-      label: `${variantName}${price ? ` - ${price}` : ""}`,
     }
   })
 
   const handleAddToCart = () => {
-    if (!selectedVariantId) {
+    if (selectedVariantId === "") {
       return
     }
 
@@ -73,7 +77,7 @@ export function AddToCartDialog({
             Zrušit
           </Button>
           <Button
-            disabled={!selectedVariantId || addItemMutation.isPending}
+            disabled={selectedVariantId === "" || addItemMutation.isPending}
             isLoading={addItemMutation.isPending}
             onClick={handleAddToCart}
             size="sm"
@@ -96,14 +100,14 @@ export function AddToCartDialog({
             items={variantOptions}
             label="Vyberte variantu"
             onValueChange={(details) => {
-              const value = details.value[0]
-              if (value) {
+              const [value] = details.value
+              if (value !== undefined) {
                 setSelectedVariantId(value)
               }
             }}
             placeholder="Vyberte variantu..."
             size="sm"
-            value={selectedVariantId ? [selectedVariantId] : []}
+            value={selectedVariantId === "" ? [] : [selectedVariantId]}
           />
         </div>
       </div>

@@ -1,6 +1,7 @@
 "use client"
 import { usePathname } from "next/navigation"
 import { useEffect, useRef } from "react"
+
 import { usePrefetchProducts } from "@/hooks/use-prefetch-products"
 import { useRegion } from "@/hooks/use-region"
 import { CATEGORY_MAP } from "@/lib/constants"
@@ -12,38 +13,38 @@ const PREFETCH_DELAY = 200
  * Prefetches all root categories on non-category pages
  * Category pages use usePrefetchRootCategories hook instead
  */
-export function PrefetchManager() {
+const usePrefetchManager = () => {
   const { prefetchRootCategories } = usePrefetchProducts()
   const { regionId } = useRegion()
   const pathname = usePathname()
   const hasPrefetched = useRef(false)
 
   useEffect(() => {
-    if (!regionId) {
-      return
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const shouldPrefetch =
+      (regionId?.length ?? 0) > 0 &&
+      !hasPrefetched.current &&
+      !pathname.startsWith("/kategorie/")
+
+    if (shouldPrefetch) {
+      hasPrefetched.current = true
+      timer = setTimeout(() => {
+        prefetchLogger.info("Root", `Manager started from ${pathname}`)
+
+        for (const categoryIds of Object.values(CATEGORY_MAP)) {
+          void prefetchRootCategories(categoryIds)
+        }
+      }, PREFETCH_DELAY)
     }
-    if (hasPrefetched.current) {
-      return
-    }
 
-    // Skip category pages - they have their own prefetch logic
-    if (pathname.startsWith("/kategorie/")) {
-      return
-    }
-
-    hasPrefetched.current = true
-
-    const timer = setTimeout(() => {
-      prefetchLogger.info("Root", `Manager started from ${pathname}`)
-
-      // Prefetch ALL root categories (without AbortSignal)
-      for (const categoryIds of Object.values(CATEGORY_MAP)) {
-        prefetchRootCategories(categoryIds)
+    return () => {
+      if (timer !== null) {
+        clearTimeout(timer)
       }
-    }, PREFETCH_DELAY)
-
-    return () => clearTimeout(timer)
+    }
   }, [regionId, pathname, prefetchRootCategories])
 
   return null
 }
+
+export { usePrefetchManager as PrefetchManager }

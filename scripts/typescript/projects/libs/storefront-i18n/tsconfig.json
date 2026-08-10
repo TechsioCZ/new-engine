@@ -1,0 +1,8 @@
+{
+  "extends": "../../../../../libs/storefront-i18n/tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false,
+    "noEmit": true
+  }
+}

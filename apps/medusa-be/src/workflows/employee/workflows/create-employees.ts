@@ -1,28 +1,24 @@
-import type { RemoteQueryEntryPoints } from "@medusajs/framework/types"
 import {
   createWorkflow,
   WorkflowResponse,
   when,
 } from "@medusajs/framework/workflows-sdk"
-import type { ModuleCreateEmployee } from "../../../types"
-import { validateCompanyActiveStep } from "../../company/steps"
-import {
-  createOrRestoreEmployeeStep,
-  prepareEmployeeCustomerLinkStep,
-  setAdminRoleStep,
-} from "../steps"
-import { addEmployeeToCustomerGroupStep } from "../steps/add-employee-to-customer-group"
 
-type WorkflowInput = {
+import type { ModuleCreateEmployee, QueryGraphEmployee } from "../../../types"
+import { validateCompanyActiveStep } from "../../company/steps/validate-company-active"
+import { addEmployeeToCustomerGroupStep } from "../steps/add-employee-to-customer-group"
+import { createOrRestoreEmployeeStep } from "../steps/create-or-restore-employee"
+import { prepareEmployeeCustomerLinkStep } from "../steps/prepare-employee-customer-link"
+import { setAdminRoleStep } from "../steps/set-admin-role"
+
+interface WorkflowInput {
   employeeData: ModuleCreateEmployee
   customerId: string
 }
 
 export const createEmployeesWorkflow = createWorkflow(
   "create-employees",
-  (
-    input: WorkflowInput
-  ): WorkflowResponse<RemoteQueryEntryPoints["employee"]> => {
+  (input: WorkflowInput): WorkflowResponse<QueryGraphEmployee> => {
     validateCompanyActiveStep(input.employeeData.company_id)
     prepareEmployeeCustomerLinkStep({
       company_id: input.employeeData.company_id,
@@ -31,12 +27,14 @@ export const createEmployeesWorkflow = createWorkflow(
 
     const employee = createOrRestoreEmployeeStep(input.employeeData)
 
-    when(input.employeeData, (employeeData) =>
-      Boolean(employeeData.is_admin)
-    ).then(() => {
+    const { then: setAdminRoleWhenRequested } = when(
+      input.employeeData,
+      (employeeData) => employeeData.is_admin === true,
+    )
+    setAdminRoleWhenRequested(() => {
       setAdminRoleStep({
-        employeeId: employee.id,
         customerId: input.customerId,
+        employeeId: employee.id,
       })
     })
 
@@ -46,5 +44,5 @@ export const createEmployeesWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(employee)
-  }
+  },
 )

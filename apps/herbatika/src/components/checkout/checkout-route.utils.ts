@@ -1,30 +1,17 @@
-import {
-  CHECKOUT_STEPS,
-  type CheckoutStepSlug,
-  DEFAULT_CHECKOUT_STEP_SLUG,
-} from "./checkout.constants"
+import { appHref } from "@/lib/routing"
 
-const CHECKOUT_STEP_SLUGS = CHECKOUT_STEPS.map((step) => step.slug)
+import { CHECKOUT_STEPS } from "./checkout.constants"
+import type { CheckoutStepSlug } from "./checkout.constants"
 
 export const isCheckoutStepSlug = (value: string): value is CheckoutStepSlug =>
-  CHECKOUT_STEP_SLUGS.includes(value as CheckoutStepSlug)
-
-export const resolveCheckoutStepSlug = (
-  value: string | undefined
-): CheckoutStepSlug => {
-  if (!value) {
-    return DEFAULT_CHECKOUT_STEP_SLUG
-  }
-
-  return isCheckoutStepSlug(value) ? value : DEFAULT_CHECKOUT_STEP_SLUG
-}
+  CHECKOUT_STEPS.some((step) => step.slug === value)
 
 export const resolveCheckoutStepHref = (step: CheckoutStepSlug) =>
-  `/checkout/${step}`
+  appHref(`/checkout/${step}`)
 
 export const resolveCheckoutStepIndexBySlug = (step: CheckoutStepSlug) => {
   const index = CHECKOUT_STEPS.findIndex((item) => item.slug === step)
-  return index >= 0 ? index : 0
+  return Math.max(index, 0)
 }
 
 export const resolveRequiredCheckoutStepSlug = (params: {
@@ -56,20 +43,25 @@ export const canAccessCheckoutStep = (params: {
   hasStoredAddress: boolean
 }) => {
   switch (params.requestedStep) {
-    case "kosik":
+    case "kosik": {
       return true
-    case "doprava-platba":
+    }
+    case "doprava-platba": {
       return params.hasItems
-    case "udaje":
+    }
+    case "udaje": {
       return params.hasItems && params.hasShipping && params.hasPayment
-    case "suhrn":
+    }
+    case "suhrn": {
       return (
         params.hasItems &&
         params.hasShipping &&
         params.hasPayment &&
         params.hasStoredAddress
       )
-    default:
+    }
+    default: {
       return false
+    }
   }
 }

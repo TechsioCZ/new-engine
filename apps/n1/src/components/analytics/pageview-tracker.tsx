@@ -2,13 +2,14 @@
 
 import { usePathname } from "next/navigation"
 import { useEffect, useRef } from "react"
+
 import { useAnalytics } from "@/providers/analytics-provider"
 
 /**
  * Tracks pageviews on route changes (Leadhub only)
  * Place inside AnalyticsProvider in layout.tsx
  */
-export function PageviewTracker() {
+const usePageviewTracker = () => {
   const pathname = usePathname()
   const analytics = useAnalytics()
   const lastPathname = useRef<string | null>(null)
@@ -25,3 +26,5 @@ export function PageviewTracker() {
 
   return null
 }
+
+export { usePageviewTracker as PageviewTracker }

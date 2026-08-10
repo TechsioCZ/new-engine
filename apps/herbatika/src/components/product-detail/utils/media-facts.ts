@@ -9,24 +9,25 @@ import { stripHtml } from "@/components/product-detail/utils/html-sanitizer"
 import {
   asRecord,
   asString,
+  readRecordProperty,
 } from "@/components/product-detail/utils/value-utils"
 
 const CAPSULE_COUNT_PATTERN =
-  /(\d{1,4})\s*(?:kaps[úu]l(?:a|y|i|í)?|capsules?|caps)\b/gi
+  /(?:\d{1,4})\s*(?:kaps[úu]l(?:a|y|i|í)?|capsules?|caps)\b/giu
 
 const DAILY_CAPSULE_PATTERNS = [
-  /(\d+)\s*x\s*denne[^0-9]{0,20}(\d+)\s*(?:kaps[úu]l(?:a|y|i|í)?|capsules?|caps)\b/i,
-  /(\d+)\s*[-–]\s*(\d+)\s*(?:kaps[úu]l(?:a|y|i|í)?|capsules?|caps)\s*(?:denne|za deň|za den|daily)\b/i,
-  /(\d+)\s*(?:kaps[úu]l(?:a|y|i|í)?|capsules?|caps)\s*(?:denne|za deň|za den|daily)\b/i,
-  /(?:odporúčaná|odporucana|denná|denna)[^.]{0,60}?(\d+)\s*(?:kaps[úu]l(?:a|y|i|í)?|capsules?|caps)\b/i,
+  /(?:\d+)\s*x\s*denne[^0-9]{0,20}(?:\d+)\s*(?:kaps[úu]l(?:a|y|i|í)?|capsules?|caps)\b/iu,
+  /(?:\d+)\s*[-–]\s*(?:\d+)\s*(?:kaps[úu]l(?:a|y|i|í)?|capsules?|caps)\s*(?:denne|za deň|za den|daily)\b/iu,
+  /(?:\d+)\s*(?:kaps[úu]l(?:a|y|i|í)?|capsules?|caps)\s*(?:denne|za deň|za den|daily)\b/iu,
+  /(?:odporúčaná|odporucana|denná|denna)[^.]{0,60}?(?:\d+)\s*(?:kaps[úu]l(?:a|y|i|í)?|capsules?|caps)\b/iu,
 ]
 
 const parsePositiveInt = (value: string | undefined): number | null => {
-  if (!value) {
+  if (value === undefined || value === "") {
     return null
   }
 
-  const parsed = Number.parseInt(value, 10)
+  const parsed = Math.trunc(Number(value))
   if (!Number.isFinite(parsed) || parsed < 1) {
     return null
   }
@@ -40,8 +41,9 @@ const collectCapsuleCounts = (text: string): number[] => {
 
   let match = CAPSULE_COUNT_PATTERN.exec(text)
   while (match) {
-    const parsed = parsePositiveInt(match[1])
-    if (parsed) {
+    const [matchedCount] = match[0].match(/\d+/gu) ?? []
+    const parsed = parsePositiveInt(matchedCount)
+    if (parsed !== null) {
       matches.push(parsed)
     }
 
@@ -61,30 +63,29 @@ const resolveCapsuleCount = (texts: string[]): number | null => {
 }
 
 const resolveDailyCapsuleMatchDose = (
-  match: RegExpExecArray
+  match: RegExpExecArray,
 ): number | null => {
-  if (match[2]) {
-    const timesPerDay = parsePositiveInt(match[1])
-    const capsulesPerIntake = parsePositiveInt(match[2])
-    return timesPerDay && capsulesPerIntake
+  const [firstCount, secondCount] = match[0].match(/\d+/gu) ?? []
+  if (secondCount !== undefined) {
+    const timesPerDay = parsePositiveInt(firstCount)
+    const capsulesPerIntake = parsePositiveInt(secondCount)
+    return timesPerDay !== null && capsulesPerIntake !== null
       ? timesPerDay * capsulesPerIntake
       : null
   }
 
-  return parsePositiveInt(match[1])
+  return parsePositiveInt(firstCount)
 }
 
 const resolveDailyCapsuleDose = (texts: string[]): number | null => {
   for (const text of texts) {
     for (const pattern of DAILY_CAPSULE_PATTERNS) {
       const match = pattern.exec(text)
-      if (!match) {
-        continue
-      }
-
-      const dose = resolveDailyCapsuleMatchDose(match)
-      if (dose) {
-        return dose
+      if (match !== null) {
+        const dose = resolveDailyCapsuleMatchDose(match)
+        if (dose !== null) {
+          return dose
+        }
       }
     }
   }
@@ -94,36 +95,39 @@ const resolveDailyCapsuleDose = (texts: string[]): number | null => {
 
 const collectParameterTexts = (product: Product | null): string[] => {
   const metadata = asRecord(product?.metadata)
-  const topOffer = asRecord(metadata?.top_offer)
-  const parameters = Array.isArray(topOffer?.parameters)
-    ? topOffer.parameters
-    : []
+  const topOffer = asRecord(readRecordProperty(metadata, "top_offer"))
+  const parametersValue = readRecordProperty(topOffer, "parameters")
+  const parameters = Array.isArray(parametersValue) ? parametersValue : []
 
-  return parameters
-    .map((parameter) => asRecord(parameter))
-    .filter((parameter): parameter is Record<string, unknown> =>
-      Boolean(parameter)
-    )
-    .flatMap((parameter) => [
-      asString(parameter.name),
-      asString(parameter.value),
-    ])
-    .filter((value): value is string => Boolean(value))
+  return parameters.flatMap((parameter) => {
+    const parameterRecord = asRecord(parameter)
+    if (parameterRecord === null) {
+      return []
+    }
+
+    return [
+      asString(readRecordProperty(parameterRecord, "name")),
+      asString(readRecordProperty(parameterRecord, "value")),
+    ].flatMap((value) => (value === null ? [] : [value]))
+  })
 }
 
 const collectTexts = (
   product: Product | null,
-  sections: ProductDetailContentSection[]
+  sections: ProductDetailContentSection[],
 ): string[] => {
-  if (!product) {
+  if (product === null) {
     return []
   }
 
   const metadata = asRecord(product.metadata)
-  const shortDescriptionText = stripHtml(asString(metadata?.short_description))
-  const sectionTexts = sections
-    .map((section) => stripHtml(section.html))
-    .filter(Boolean)
+  const shortDescriptionText = stripHtml(
+    asString(readRecordProperty(metadata, "short_description")),
+  )
+  const sectionTexts = sections.flatMap((section) => {
+    const text = stripHtml(section.html)
+    return text === "" ? [] : [text]
+  })
   const parameterTexts = collectParameterTexts(product)
 
   return [
@@ -132,7 +136,7 @@ const collectTexts = (
     shortDescriptionText,
     ...sectionTexts,
     ...parameterTexts,
-  ].filter((value): value is string => Boolean(value))
+  ].filter((value): value is string => value !== "")
 }
 
 export const resolveProductMediaFacts = (
@@ -141,7 +145,7 @@ export const resolveProductMediaFacts = (
   labels: {
     doses: (count: number) => string
     dailyCapsules: (count: number) => string
-  }
+  },
 ): ProductMediaFact[] => {
   const texts = collectTexts(product, sections)
   if (texts.length === 0) {
@@ -149,7 +153,7 @@ export const resolveProductMediaFacts = (
   }
 
   const capsuleCount = resolveCapsuleCount(texts)
-  if (!capsuleCount) {
+  if (capsuleCount === null) {
     return []
   }
 
@@ -159,16 +163,16 @@ export const resolveProductMediaFacts = (
 
   return [
     {
-      id: "doses",
       icon: "token-icon-calendar",
-      value: `${doses}`,
+      id: "doses",
       label: labels.doses(doses),
+      value: `${doses}`,
     },
     {
-      id: "daily-intake",
       icon: "token-icon-pill",
-      value: `${safeDailyDose}`,
+      id: "daily-intake",
       label: labels.dailyCapsules(safeDailyDose),
+      value: `${safeDailyDose}`,
     },
   ]
 }

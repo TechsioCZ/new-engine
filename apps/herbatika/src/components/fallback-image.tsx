@@ -1,7 +1,9 @@
 "use client"
 
-import NextImage, { type ImageProps } from "next/image"
-import { useEffect, useState } from "react"
+import NextImage from "next/image"
+import type { ImageProps } from "next/image"
+import { useState } from "react"
+
 import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 
 type FallbackImageProps = Omit<ImageProps, "src"> & {
@@ -11,28 +13,22 @@ type FallbackImageProps = Omit<ImageProps, "src"> & {
 
 const resolveImageSrc = (
   src: FallbackImageProps["src"],
-  fallbackSrc: ImageProps["src"]
-) => src || fallbackSrc
+  fallbackSrc: ImageProps["src"],
+) => src ?? fallbackSrc
 
-export function FallbackImage({
+export const FallbackImage = ({
   fallbackSrc = FALLBACK_IMAGE_SRC,
   onError,
   src,
   ...props
-}: FallbackImageProps) {
-  const [imageSrc, setImageSrc] = useState<ImageProps["src"]>(
-    resolveImageSrc(src, fallbackSrc)
-  )
-
-  useEffect(() => {
-    setImageSrc(resolveImageSrc(src, fallbackSrc))
-  }, [fallbackSrc, src])
+}: FallbackImageProps) => {
+  const resolvedSrc = resolveImageSrc(src, fallbackSrc)
+  const [failedSrc, setFailedSrc] = useState<ImageProps["src"] | null>(null)
+  const imageSrc = failedSrc === resolvedSrc ? fallbackSrc : resolvedSrc
 
   const handleError: NonNullable<ImageProps["onError"]> = (event) => {
     onError?.(event)
-    setImageSrc((currentImageSrc) =>
-      currentImageSrc === fallbackSrc ? currentImageSrc : fallbackSrc
-    )
+    setFailedSrc(resolvedSrc)
   }
 
   return <NextImage {...props} onError={handleError} src={imageSrc} />

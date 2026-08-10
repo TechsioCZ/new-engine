@@ -1,21 +1,22 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import {
-  SYMMY_WEBHOOK_CONFIG_MODULE,
-  type SymmyWebhookConfigDTO,
-  type SymmyWebhookConfigModuleService,
+
+import { SYMMY_WEBHOOK_CONFIG_MODULE } from "../../../modules/webhook-config"
+import type {
+  SymmyWebhookConfigDTO,
+  SymmyWebhookConfigModuleService,
 } from "../../../modules/webhook-config"
 import { symmyUpdateWebhookConfigWorkflow } from "../../../workflows/update-webhook-config/workflow"
 import type { PostAdminSymmyWebhookConfigSchemaType } from "./validators"
 
 const toConfigResponse = (config: SymmyWebhookConfigDTO) => ({
+  created_at: config.created_at,
+  endpoints: config.endpoints,
   id: config.id,
   is_enabled: config.is_enabled,
-  endpoints: config.endpoints,
-  created_at: config.created_at,
   updated_at: config.updated_at,
 })
 
-/**
+/*
  * @api [get] /admin/symmy-webhooks
  * operationId: GetAdminSymmyWebhookConfig
  * summary: Get Symmy webhook configuration
@@ -37,16 +38,16 @@ const toConfigResponse = (config: SymmyWebhookConfigDTO) => ({
  *   "401":
  *     description: Missing or invalid admin authentication.
  */
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+const get = async (req: MedusaRequest, res: MedusaResponse) => {
   const webhookService = req.scope.resolve<SymmyWebhookConfigModuleService>(
-    SYMMY_WEBHOOK_CONFIG_MODULE
+    SYMMY_WEBHOOK_CONFIG_MODULE,
   )
 
   const config = await webhookService.getConfig()
   res.json({ config: toConfigResponse(config) })
 }
 
-/**
+/*
  * @api [post] /admin/symmy-webhooks
  * operationId: PostAdminSymmyWebhookConfig
  * summary: Update Symmy webhook configuration
@@ -76,14 +77,16 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
  *   "401":
  *     description: Missing or invalid admin authentication.
  */
-export async function POST(
+const post = async (
   req: MedusaRequest<PostAdminSymmyWebhookConfigSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { result: config } = await symmyUpdateWebhookConfigWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: req.validatedBody,
   })
   res.json({ config: toConfigResponse(config) })
 }
+
+export { get as GET, post as POST }

@@ -2,23 +2,70 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { useEffect, useState } from "react"
+
 import { Disclaimer } from "./disclaimer"
 
-export function DisclaimerWrapper() {
+const DISCLAIMER_COOKIE_NAME = "disclaimerDismissed"
+const DISCLAIMER_COOKIE_MAX_AGE_MS = 864_000 * 1000
+const DISCLAIMER_STORAGE_KEY = "disclaimer-dismissed"
+
+const persistDisclaimerDismissal = async () => {
+  try {
+    if (window.cookieStore === undefined) {
+      localStorage.setItem(DISCLAIMER_STORAGE_KEY, "true")
+      return
+    }
+
+    await window.cookieStore.set({
+      expires: Date.now() + DISCLAIMER_COOKIE_MAX_AGE_MS,
+      name: DISCLAIMER_COOKIE_NAME,
+      path: "/",
+      sameSite: "strict",
+      value: "true",
+    })
+  } catch (error: unknown) {
+    console.error("Failed to persist disclaimer dismissal", error)
+  }
+}
+
+export const DisclaimerWrapper = () => {
   const [dismissed, setDismissed] = useState<boolean | null>(null)
 
   useEffect(() => {
-    const hasCookie = document.cookie.includes("disclaimerDismissed=true")
-    setDismissed(hasCookie)
+    let isActive = true
+
+    const readDismissal = async () => {
+      try {
+        let hasDismissed =
+          localStorage.getItem(DISCLAIMER_STORAGE_KEY) === "true"
+        if (window.cookieStore !== undefined) {
+          const cookie = await window.cookieStore.get(DISCLAIMER_COOKIE_NAME)
+          hasDismissed = cookie?.value === "true"
+        }
+        if (isActive) {
+          setDismissed(hasDismissed)
+        }
+      } catch (error: unknown) {
+        console.error("Failed to read disclaimer dismissal", error)
+        if (isActive) {
+          setDismissed(false)
+        }
+      }
+    }
+
+    void readDismissal()
+
+    return () => {
+      isActive = false
+    }
   }, [])
 
   const handleDismiss = () => {
-    document.cookie =
-      "disclaimerDismissed=true; path=/; max-age=864000; SameSite=Strict" // 1 year
     setDismissed(true)
+    void persistDisclaimerDismissal()
   }
 
-  if (dismissed || dismissed === null) {
+  if (dismissed !== false) {
     return null
   }
 

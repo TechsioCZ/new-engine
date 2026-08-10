@@ -1,9 +1,9 @@
 type FieldValueValidator<TValue> = (value: TValue) => string | undefined
 type FieldValidationPredicate<TFormValues> = (values: TFormValues) => boolean
-type ValueValidationContext<TValue> = {
+export interface ValueValidationContext<TValue> {
   value: TValue
 }
-type ScopedValueValidationContext<TValue, TFormValues> = {
+export interface ScopedValueValidationContext<TValue, TFormValues> {
   fieldApi: {
     form: {
       state: {
@@ -15,7 +15,7 @@ type ScopedValueValidationContext<TValue, TFormValues> = {
 }
 
 export const createChangeBlurFieldValidators = <TValue>(
-  validator: FieldValueValidator<TValue>
+  validator: FieldValueValidator<TValue>,
 ) => ({
   onBlur: ({ value }: ValueValidationContext<TValue>) => validator(value),
   onChange: ({ value }: ValueValidationContext<TValue>) => validator(value),
@@ -24,7 +24,7 @@ export const createChangeBlurFieldValidators = <TValue>(
 export const createChangeBlurContextualFieldValidators = <
   TContext extends { value: unknown },
 >(
-  validator: (context: TContext) => string | undefined
+  validator: (context: TContext) => string | undefined,
 ) => ({
   onBlur: (context: TContext) => validator(context),
   onChange: (context: TContext) => validator(context),
@@ -35,7 +35,7 @@ export const createChangeBlurSubmitScopedFieldValidators = <
   TFormValues,
 >(
   validator: FieldValueValidator<TValue>,
-  shouldValidate?: FieldValidationPredicate<TFormValues>
+  shouldValidate?: FieldValidationPredicate<TFormValues>,
 ) => {
   const validateWhenActive = shouldValidate ?? ((_values: TFormValues) => true)
 

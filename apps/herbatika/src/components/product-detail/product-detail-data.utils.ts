@@ -1,5 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
+import { getRecordValue } from "@techsio/std/object"
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
+
 import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import { stripHtml } from "@/components/product-detail/utils/html-sanitizer"
@@ -12,9 +14,11 @@ import {
   asString,
 } from "@/components/product-detail/utils/value-utils"
 
+const SHORT_DESCRIPTION_KEY = "short_description"
+
 export const resolveSelectedVariant = (
   variants: HttpTypes.StoreProductVariant[],
-  selectedVariantId: string | null
+  selectedVariantId: string | null,
 ) =>
   variants.find((variant) => variant.id === selectedVariantId) ??
   variants[0] ??
@@ -24,16 +28,15 @@ export const resolveOptionTitlesById = (product: Product | null) => {
   const optionTitlesById = new Map<string, string>()
 
   for (const option of product?.options ?? []) {
-    if (!option.id) {
-      continue
-    }
-
     const title = asString(option.title)
-    if (!title) {
-      continue
+    if (
+      option.id !== null &&
+      option.id !== undefined &&
+      title !== null &&
+      title !== ""
+    ) {
+      optionTitlesById.set(option.id, title)
     }
-
-    optionTitlesById.set(option.id, title)
   }
 
   return optionTitlesById
@@ -41,29 +44,35 @@ export const resolveOptionTitlesById = (product: Product | null) => {
 
 export const resolveVariantItems = (
   variants: HttpTypes.StoreProductVariant[],
-  optionTitlesById: Map<string, string>
+  optionTitlesById: Map<string, string>,
 ): SelectItem[] =>
   variants
     .filter(
       (variant): variant is HttpTypes.StoreProductVariant & { id: string } =>
-        Boolean(variant.id)
+        Boolean(variant.id),
     )
     .map((variant) => ({
-      value: variant.id,
       label: resolveVariantLabel(variant, optionTitlesById),
+      value: variant.id,
     }))
 
 export const resolveShortDescriptionHtml = (product: Product | null) => {
   const metadata = asRecord(product?.metadata)
-  return asString(metadata?.short_description) ?? ""
+  return (
+    asString(
+      metadata === null
+        ? undefined
+        : getRecordValue(metadata, SHORT_DESCRIPTION_KEY),
+    ) ?? ""
+  )
 }
 
 export const resolveProductSummaryText = (
   product: Product | null,
-  shortDescriptionHtml: string
+  shortDescriptionHtml: string,
 ) => {
   const shortText = stripHtml(shortDescriptionHtml)
-  if (shortText) {
+  if (shortText !== "") {
     return shortText
   }
 
@@ -75,21 +84,28 @@ export const resolveProductBreadcrumbItems = (
   productCategories: HttpTypes.StoreProductCategory[],
   product: Product | null,
   handle: string,
-  homeLabel: string
+  homeLabel: string,
 ): HerbatikaBreadcrumbItem[] => {
-  const primaryCategory = productCategories[0]
+  const [primaryCategory] = productCategories
   const primaryCategoryName = normalizeCategoryName(primaryCategory?.name, "")
 
   return [
-    { label: homeLabel, href: "/", icon: "token-icon-home" },
-    ...(primaryCategory?.handle && primaryCategoryName
+    { href: "/", icon: "token-icon-home", label: homeLabel },
+    ...(primaryCategory?.handle !== undefined &&
+    primaryCategory.handle !== "" &&
+    primaryCategoryName !== ""
       ? [
           {
-            label: primaryCategoryName,
             href: `/c/${primaryCategory.handle}`,
+            label: primaryCategoryName,
           },
         ]
       : []),
-    { label: product?.title || handle },
+    {
+      label:
+        product?.title === undefined || product.title === ""
+          ? handle
+          : product.title,
+    },
   ]
 }

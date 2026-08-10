@@ -61,7 +61,7 @@ Canonical rules: `libs/ui/AGENTS.md`. Deep dives: the bundled skills `component-
 
 1. `bunx nx run ui-kit:build` (rslib + publint)
 2. `pnpm --dir libs/ui validate:tokens` (+ `check:unused-tokens` on renames/removals)
-3. `bunx biome check --write <changed files>` — never `.`
+3. `pnpm exec oxfmt --config oxfmt.config.ts <changed files>` — never `.`
 4. `pnpm --dir libs/ui lint:tailwind` when class names changed
 5. `pnpm --dir libs/ui test:components` (Playwright visual snapshots) when visuals changed
 6. Consistency checklist: bundled `component-consistency-validation` skill

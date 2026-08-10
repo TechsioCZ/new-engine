@@ -14,38 +14,114 @@ import {
   Text,
   toast,
 } from "@medusajs/ui"
+import { getErrorMessage } from "@techsio/std/object"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { ActionMenu, AmountCell, Thumbnail } from "../../../../components"
+
+import { ActionMenu } from "../../../../components/common/action-menu"
 import { Form } from "../../../../components/common/form"
+import { AmountCell } from "../../../../components/common/table/table-cells/amount-cell"
+import { Thumbnail } from "../../../../components/common/thumbnail"
 import {
   useAddItemsToQuote,
   useRemoveQuoteItem,
   useUpdateAddedQuoteItem,
   useUpdateQuoteItem,
-} from "../../../../hooks/api"
-import { currencySymbolMap } from "../../../../utils"
+} from "../../../../hooks/api/quotes"
+import { currencySymbolMap } from "../../../../utils/currency-symbol-map"
 
-type ManageItemProps = {
-  originalItem?: AdminOrder["items"][0]
+interface ManageItemProps {
+  originalItem?: AdminOrder["items"][0] | undefined
   item: AdminOrderPreview["items"][0]
   currencyCode: string
   orderId: string
 }
 
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error)
+interface ManageItemUpdate {
+  quantity?: number
+  unit_price?: number
+}
 
-const getCurrencySymbol = (currencyCode: string) =>
-  currencySymbolMap[currencyCode as keyof typeof currencySymbolMap] ??
-  currencyCode.toUpperCase()
+const getCurrencySymbol = (currencyCode: string) => {
+  const symbol: unknown = Reflect.get(currencySymbolMap, currencyCode)
+  return typeof symbol === "string" ? symbol : currencyCode.toUpperCase()
+}
 
-function ManageItem({
+const ManageItemPriceForm = ({
+  currencyCode,
+  item,
+  onClose,
+  onUpdate,
+}: {
+  currencyCode: string
+  item: AdminOrderPreview["items"][0]
+  onClose: () => void
+  onUpdate: (update: ManageItemUpdate) => void
+}) => {
+  const { t } = useTranslation("quotes")
+
+  return (
+    <div className="grid grid-cols-1 gap-2 p-3 md:grid-cols-2">
+      <div>
+        <Form.Label>{t("fields.price")}</Form.Label>
+        <Form.Hint className="!mt-1">{t("form.unitPriceHint")}</Form.Hint>
+      </div>
+
+      <div className="flex items-center gap-1">
+        <div className="flex-grow">
+          <Form.Field
+            name={`inbound_items.${item.id}.unit_price`}
+            render={({ field }) => (
+              <Form.Item>
+                <Form.Control>
+                  <CurrencyInput
+                    {...field}
+                    className="bg-ui-bg-field-component hover:bg-ui-bg-field-component-hover"
+                    code={currencyCode}
+                    defaultValue={item.unit_price}
+                    min={0}
+                    onBlur={() => {
+                      field.onChange(field.value)
+                      const fieldValue: unknown = field.value
+                      const unitPrice =
+                        typeof fieldValue === "string" ||
+                        typeof fieldValue === "number"
+                          ? Number(fieldValue)
+                          : Number.NaN
+                      onUpdate({
+                        quantity: item.quantity,
+                        unit_price: unitPrice,
+                      })
+                    }}
+                    symbol={getCurrencySymbol(currencyCode)}
+                    type="numeric"
+                  />
+                </Form.Control>
+                <Form.ErrorMessage />
+              </Form.Item>
+            )}
+          />
+        </div>
+
+        <IconButton
+          className="flex-shrink"
+          onClick={onClose}
+          type="button"
+          variant="transparent"
+        >
+          <XMark className="text-ui-fg-muted" />
+        </IconButton>
+      </div>
+    </div>
+  )
+}
+
+const ManageItem = ({
   originalItem,
   item,
   currencyCode,
   orderId,
-}: ManageItemProps) {
+}: ManageItemProps) => {
   const { t } = useTranslation("quotes")
   const [showPriceForm, setShowPriceForm] = useState(false)
 
@@ -64,13 +140,7 @@ function ManageItem({
   /**
    * HANDLERS
    */
-  const onUpdate = async ({
-    quantity,
-    unit_price,
-  }: {
-    quantity?: number
-    unit_price?: number
-  }) => {
+  const onUpdate = async ({ quantity, unit_price }: ManageItemUpdate) => {
     if (
       typeof quantity === "number" &&
       quantity <= item.detail.fulfilled_quantity
@@ -82,21 +152,19 @@ function ManageItem({
     const addItemAction = item.actions?.find((a) => a.action === "ITEM_ADD")
 
     try {
-      if (addItemAction) {
-        await updateAddedItem({
-          quantity,
-          unit_price,
-          actionId: addItemAction.id,
-        })
-      } else {
-        await updateOriginalItem({
-          quantity,
-          unit_price,
-          itemId: item.id,
-        })
-      }
-    } catch (e) {
-      toast.error(getErrorMessage(e))
+      await (addItemAction === undefined
+        ? updateOriginalItem({
+            ...(quantity === undefined ? {} : { quantity }),
+            ...(unit_price === undefined ? {} : { unit_price }),
+            itemId: item.id,
+          })
+        : updateAddedItem({
+            ...(quantity === undefined ? {} : { quantity }),
+            ...(unit_price === undefined ? {} : { unit_price }),
+            actionId: addItemAction.id,
+          }))
+    } catch (error) {
+      toast.error(getErrorMessage(error))
     }
   }
 
@@ -104,35 +172,37 @@ function ManageItem({
     const addItemAction = item.actions?.find((a) => a.action === "ITEM_ADD")
 
     try {
-      if (addItemAction) {
-        await undoAction(addItemAction.id)
-      } else {
-        await updateOriginalItem({
-          quantity: item.detail.fulfilled_quantity,
-          itemId: item.id,
-        })
-      }
-    } catch (e) {
-      toast.error(getErrorMessage(e))
+      await (addItemAction === undefined
+        ? updateOriginalItem({
+            itemId: item.id,
+            quantity: item.detail.fulfilled_quantity,
+          })
+        : undoAction(addItemAction.id))
+    } catch (error) {
+      toast.error(getErrorMessage(error))
     }
   }
 
   const onRemoveUndo = async () => {
     const updateItemAction = item.actions?.find(
-      (a) => a.action === "ITEM_UPDATE"
+      (a) => a.action === "ITEM_UPDATE",
     )
 
     try {
       if (updateItemAction) {
         await undoAction(updateItemAction.id)
       }
-    } catch (e) {
-      toast.error(getErrorMessage(e))
+    } catch (error) {
+      toast.error(getErrorMessage(error))
     }
   }
 
   const onDuplicate = async () => {
-    if (!item.variant_id) {
+    if (
+      item.variant_id === null ||
+      item.variant_id === undefined ||
+      item.variant_id.length === 0
+    ) {
       return
     }
 
@@ -140,13 +210,13 @@ function ManageItem({
       await addItems({
         items: [
           {
-            variant_id: item.variant_id,
             quantity: item.quantity,
+            variant_id: item.variant_id,
           },
         ],
       })
-    } catch (e) {
-      toast.error(getErrorMessage(e))
+    } catch (error) {
+      toast.error(getErrorMessage(error))
     }
   }
 
@@ -166,7 +236,11 @@ function ManageItem({
                   {item.title}{" "}
                 </Text>
 
-                {item.variant_sku && <span>({item.variant_sku})</span>}
+                {item.variant_sku !== null &&
+                item.variant_sku !== undefined &&
+                item.variant_sku.length > 0 ? (
+                  <span>({item.variant_sku})</span>
+                ) : null}
               </div>
               <Text as="div" className="txt-small text-ui-fg-subtle">
                 {item.product_title}
@@ -209,8 +283,12 @@ function ManageItem({
                 const val = e.target.value
                 const quantity = val === "" ? null : Number(val)
 
-                if (quantity) {
-                  onUpdate({ quantity })
+                if (
+                  quantity !== null &&
+                  quantity !== 0 &&
+                  Number.isFinite(quantity)
+                ) {
+                  void onUpdate({ quantity })
                 }
               }}
               type="number"
@@ -224,7 +302,7 @@ function ManageItem({
             <AmountCell
               amount={item.total}
               currencyCode={currencyCode}
-              originalAmount={originalItem?.total}
+              originalAmount={originalItem?.total ?? null}
             />
           </div>
 
@@ -233,14 +311,18 @@ function ManageItem({
               {
                 actions: [
                   {
-                    label: t("actions.updatePrice"),
-                    onClick: () => setShowPriceForm(!showPriceForm),
                     icon: <PencilSquare />,
+                    label: t("actions.updatePrice"),
+                    onClick: () => {
+                      setShowPriceForm(!showPriceForm)
+                    },
                   },
                   {
-                    label: t("actions.duplicate"),
-                    onClick: onDuplicate,
                     icon: <DocumentSeries />,
+                    label: t("actions.duplicate"),
+                    onClick: () => {
+                      void onDuplicate()
+                    },
                   },
                 ],
               },
@@ -248,16 +330,20 @@ function ManageItem({
                 actions: [
                   isItemRemoved
                     ? {
-                        label: t("actions.undo"),
-                        onClick: onRemoveUndo,
                         icon: <ArrowUturnLeft />,
+                        label: t("actions.undo"),
+                        onClick: () => {
+                          void onRemoveUndo()
+                        },
                       }
                     : {
-                        label: t("actions.remove"),
-                        onClick: onRemove,
-                        icon: <XCircle />,
                         disabled:
                           item.detail.fulfilled_quantity === item.quantity,
+                        icon: <XCircle />,
+                        label: t("actions.remove"),
+                        onClick: () => {
+                          void onRemove()
+                        },
                       },
                 ].filter(Boolean),
               },
@@ -266,57 +352,18 @@ function ManageItem({
         </div>
       </div>
 
-      {showPriceForm && (
-        <div className="grid grid-cols-1 gap-2 p-3 md:grid-cols-2">
-          <div>
-            <Form.Label>{t("fields.price")}</Form.Label>
-            <Form.Hint className="!mt-1">{t("form.unitPriceHint")}</Form.Hint>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <div className="flex-grow">
-              <Form.Field
-                name={`inbound_items.${item.id}.unit_price`}
-                render={({ field: { ref, ...field } }) => (
-                  <Form.Item>
-                    <Form.Control>
-                      <CurrencyInput
-                        {...field}
-                        className="bg-ui-bg-field-component hover:bg-ui-bg-field-component-hover"
-                        code={currencyCode}
-                        defaultValue={item.unit_price}
-                        min={0}
-                        onBlur={() => {
-                          field.onChange(field.value)
-
-                          onUpdate({
-                            unit_price: Number.parseFloat(field.value),
-                            quantity: item.quantity,
-                          })
-                        }}
-                        symbol={getCurrencySymbol(currencyCode)}
-                        type="numeric"
-                      />
-                    </Form.Control>
-                    <Form.ErrorMessage />
-                  </Form.Item>
-                )}
-              />
-            </div>
-
-            <IconButton
-              className="flex-shrink"
-              onClick={() => {
-                setShowPriceForm(false)
-              }}
-              type="button"
-              variant="transparent"
-            >
-              <XMark className="text-ui-fg-muted" />
-            </IconButton>
-          </div>
-        </div>
-      )}
+      {showPriceForm ? (
+        <ManageItemPriceForm
+          currencyCode={currencyCode}
+          item={item}
+          onClose={() => {
+            setShowPriceForm(false)
+          }}
+          onUpdate={(update) => {
+            void onUpdate(update)
+          }}
+        />
+      ) : null}
     </div>
   )
 }

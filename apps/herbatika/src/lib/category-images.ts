@@ -1,24 +1,28 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { StaticImageData } from "next/image"
-import {
-  type CategoryImageSlug,
-  categoryImagesBySlug,
-} from "@/assets/categories-images"
 
-export type ResolveCategoryImageInput = {
+import { categoryImagesBySlug } from "@/assets/categories-images"
+import type { CategoryImageSlug } from "@/assets/categories-images"
+
+export interface ResolveCategoryImageInput {
   categoryById?: ReadonlyMap<string, HttpTypes.StoreProductCategory>
   handle?: string | null
   label?: string | null
   parentCategoryId?: string | null
 }
 
-export const normalizeCategoryImageKey = (value: string) =>
+const HEALTHY_GUM_SLUG = "prirodne-a-zdrave-zuvacky"
+
+const normalizeCategoryImageKey = (value: string) =>
   value
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replaceAll(/[\u0300-\u036F]/gu, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
+    .replaceAll(/[^a-z0-9]+/gu, "-")
+    .replaceAll(/^-+|-+$/gu, "")
+
+const isCategoryImageSlug = (value: string): value is CategoryImageSlug =>
+  Object.hasOwn(categoryImagesBySlug, value)
 
 const CATEGORY_IMAGE_HANDLE_PREFIXES = [
   "trapi-ma-",
@@ -29,43 +33,41 @@ const CATEGORY_IMAGE_HANDLE_PREFIXES = [
   "ucinne-zlozky-od-a-po-z-",
 ] as const
 
-export const CATEGORY_IMAGE_ALIASES_BY_HANDLE = {
+const CATEGORY_IMAGE_ALIASES_BY_HANDLE = {
   "ine-podpora-a-rast-vlasov": "vlasy-vypadavanie-lupiny",
-  "potraviny-a-napoje-prirodne-a-zdrave-zuvacky": "prirodne-a-zdrave-zuvacky",
+  "potraviny-a-napoje-prirodne-a-zdrave-zuvacky": HEALTHY_GUM_SLUG,
   "potraviny-a-napoje-sirupy-a-medy": "sirupy",
-  "potraviny-a-napoje-zuvacky": "prirodne-a-zdrave-zuvacky",
+  "potraviny-a-napoje-zuvacky": HEALTHY_GUM_SLUG,
   "prirodna-kozmetika-cbd": "cbd-2",
   "trapi-ma-imunita-a-obranyschopnost": "imunita",
 } satisfies Record<string, CategoryImageSlug>
 
-export const CATEGORY_IMAGE_ALIASES_BY_LABEL = {
+const CATEGORY_IMAGE_ALIASES_BY_LABEL = {
   cbd: "cbd-2",
   "imunita-a-obranyschopnost": "imunita",
   "podpora-a-rast-vlasov": "vlasy-vypadavanie-lupiny",
   "sirupy-a-medy": "sirupy",
-  zuvacky: "prirodne-a-zdrave-zuvacky",
+  zuvacky: HEALTHY_GUM_SLUG,
 } satisfies Record<string, CategoryImageSlug>
 
 const resolveImageBySlug = (
-  slug?: string | null
+  slug?: string | null,
 ): StaticImageData | undefined => {
-  if (!slug) {
-    return
+  if (slug === undefined || slug === null || slug === "") {
+    return undefined
   }
 
   const normalizedSlug = normalizeCategoryImageKey(slug)
-  if (Object.hasOwn(categoryImagesBySlug, normalizedSlug)) {
-    return categoryImagesBySlug[normalizedSlug as CategoryImageSlug]
-  }
-
-  return
+  return isCategoryImageSlug(normalizedSlug)
+    ? categoryImagesBySlug[normalizedSlug]
+    : undefined
 }
 
 const resolveImageByPrefixedHandle = (
-  handle?: string | null
+  handle?: string | null,
 ): StaticImageData | undefined => {
-  if (!handle) {
-    return
+  if (handle === undefined || handle === null || handle === "") {
+    return undefined
   }
 
   const normalizedHandle = normalizeCategoryImageKey(handle)
@@ -75,35 +77,37 @@ const resolveImageByPrefixedHandle = (
     }
   }
 
-  return
+  return undefined
 }
 
 const resolveImageByAlias = (
   aliasMap: Record<string, CategoryImageSlug>,
-  value?: string | null
+  value?: string | null,
 ): StaticImageData | undefined => {
-  if (!value) {
-    return
+  if (value === undefined || value === null || value === "") {
+    return undefined
   }
 
   const normalizedValue = normalizeCategoryImageKey(value)
   const aliasSlug = aliasMap[normalizedValue]
-  if (!aliasSlug) {
-    return
-  }
-
-  return categoryImagesBySlug[aliasSlug]
+  return aliasSlug === undefined ? undefined : categoryImagesBySlug[aliasSlug]
 }
 
 const resolveOwnCategoryImage = ({
   handle,
   label,
-}: Pick<ResolveCategoryImageInput, "handle" | "label">) =>
-  resolveImageBySlug(handle) ??
-  resolveImageByPrefixedHandle(handle) ??
-  resolveImageByAlias(CATEGORY_IMAGE_ALIASES_BY_HANDLE, handle) ??
-  resolveImageBySlug(label) ??
-  resolveImageByAlias(CATEGORY_IMAGE_ALIASES_BY_LABEL, label)
+}: Pick<ResolveCategoryImageInput, "handle" | "label">) => {
+  const handleImage =
+    resolveImageBySlug(handle) ??
+    resolveImageByPrefixedHandle(handle) ??
+    resolveImageByAlias(CATEGORY_IMAGE_ALIASES_BY_HANDLE, handle)
+
+  return (
+    handleImage ??
+    resolveImageBySlug(label) ??
+    resolveImageByAlias(CATEGORY_IMAGE_ALIASES_BY_LABEL, label)
+  )
+}
 
 export const resolveCategoryImage = ({
   categoryById,
@@ -111,24 +115,36 @@ export const resolveCategoryImage = ({
   label,
   parentCategoryId,
 }: ResolveCategoryImageInput): StaticImageData | undefined => {
-  const ownImage = resolveOwnCategoryImage({ handle, label })
+  const ownImage = resolveOwnCategoryImage({
+    ...(handle === undefined ? {} : { handle }),
+    ...(label === undefined ? {} : { label }),
+  })
   if (ownImage) {
     return ownImage
   }
 
-  if (!(parentCategoryId && categoryById)) {
-    return
+  if (
+    parentCategoryId === undefined ||
+    parentCategoryId === null ||
+    parentCategoryId === "" ||
+    categoryById === undefined
+  ) {
+    return undefined
   }
 
   let currentParentId: string | null = parentCategoryId
   const visitedCategoryIds = new Set<string>()
 
-  while (currentParentId && !visitedCategoryIds.has(currentParentId)) {
+  while (
+    currentParentId !== null &&
+    currentParentId !== "" &&
+    !visitedCategoryIds.has(currentParentId)
+  ) {
     visitedCategoryIds.add(currentParentId)
 
     const parentCategory = categoryById.get(currentParentId)
     if (!parentCategory) {
-      return
+      return undefined
     }
 
     const parentImage = resolveOwnCategoryImage({
@@ -142,5 +158,5 @@ export const resolveCategoryImage = ({
     currentParentId = parentCategory.parent_category_id ?? null
   }
 
-  return
+  return undefined
 }

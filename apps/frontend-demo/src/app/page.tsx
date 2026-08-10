@@ -1,5 +1,6 @@
 "use client"
 import { useEffect } from "react"
+
 import { ProductGridSkeleton } from "@/components/molecules/product-grid-skeleton"
 import { SaleBanner } from "@/components/molecules/sale-banner"
 import { CategoryGrid } from "@/components/organisms/category-grid"
@@ -10,9 +11,10 @@ import { usePrefetchProducts } from "@/hooks/use-prefetch-products"
 import { useProducts } from "@/hooks/use-products"
 import { useRegions } from "@/hooks/use-region"
 import { getCategoryIdByHandle } from "@/utils/category-helpers"
+
 import homeImage from "../../assets/hero/home.webp"
 
-export default function Home() {
+const Home = () => {
   const { prefetchDefaultProducts } = usePrefetchProducts()
   const { selectedRegion } = useRegions()
   const {
@@ -23,18 +25,20 @@ export default function Home() {
     newArrivals,
   } = homeContent
   const { products, isLoading } = useProducts({
-    q: "triko",
-    sort: "newest",
-    limit: 8,
     category: getCategoryIdByHandle("kratke-rukavy"),
+    limit: 8,
+    q: "triko",
     region_id: selectedRegion?.id,
+    sort: "newest",
   })
 
   useEffect(() => {
     const timer = setTimeout(() => {
       prefetchDefaultProducts()
     }, 100)
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+    }
   }, [prefetchDefaultProducts])
 
   const featuredProducts = products.slice(0, 4)
@@ -71,10 +75,10 @@ export default function Home() {
       {/* Categories - Grid View */}
       <CategoryGrid
         categories={homeCategories.map((cat) => ({
-          name: cat.name,
+          description: cat.description,
           imageUrl: cat.imageUrl,
           leaves: cat.leaves,
-          description: cat.description,
+          name: cat.name,
         }))}
         subtitle={categoriesSection.subtitle}
         title={categoriesSection.title}
@@ -108,3 +112,5 @@ export default function Home() {
     </div>
   )
 }
+
+export default Home

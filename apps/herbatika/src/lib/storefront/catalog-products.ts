@@ -2,10 +2,12 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import type {
-  CatalogFacets,
-  CatalogListResponse,
-  UseCatalogProductsResult,
-} from "@techsio/storefront-data/catalog/types"
+  MedusaCatalogProduct,
+  MedusaCatalogProductVariant,
+} from "@techsio/storefront-data/catalog/medusa-service"
+import type { UseCatalogProductsResult } from "@techsio/storefront-data/catalog/types"
+import { useLocale } from "next-intl"
+
 import type {
   CatalogProductsParams,
   CatalogQueryState,
@@ -20,32 +22,22 @@ export type CatalogProductsInput = CatalogProductsParams & {
   enabled?: boolean
 }
 
-export type CatalogProductsResponse = CatalogListResponse<
-  HttpTypes.StoreProduct,
-  CatalogFacets
->
-
-const catalogService = storefront.services.catalog
 const catalogHooks = storefront.hooks.catalog
 
 type UseCatalogProductsOptions = Parameters<
   typeof catalogHooks.useCatalogProducts
 >[1]
 
-const variantNeedsInventorySnapshot = (
-  variant: HttpTypes.StoreProductVariant
-) =>
+const variantNeedsInventorySnapshot = (variant: MedusaCatalogProductVariant) =>
   Boolean(variant.id) &&
   variant.manage_inventory !== false &&
   variant.allow_backorder !== true &&
   !hasDefaultStockInventoryQuantity(variant)
 
-const productNeedsInventorySnapshot = (product: HttpTypes.StoreProduct) =>
+const productNeedsInventorySnapshot = (product: MedusaCatalogProduct) =>
   (product.variants ?? []).some(variantNeedsInventorySnapshot)
 
-const resolveInventorySnapshotHandles = (
-  products: HttpTypes.StoreProduct[]
-) => {
+const resolveInventorySnapshotHandles = (products: MedusaCatalogProduct[]) => {
   const handles = new Set<string>()
 
   for (const product of products) {
@@ -54,19 +46,23 @@ const resolveInventorySnapshotHandles = (
     }
   }
 
-  return Array.from(handles)
+  return [...handles]
 }
 
 const mergeProductInventorySnapshot = (
-  product: HttpTypes.StoreProduct,
-  inventoryProduct?: HttpTypes.StoreProduct
-): HttpTypes.StoreProduct => {
-  if (!inventoryProduct?.variants?.length) {
+  product: MedusaCatalogProduct,
+  inventoryProduct?: HttpTypes.StoreProduct,
+): MedusaCatalogProduct => {
+  if (
+    inventoryProduct === undefined ||
+    !Array.isArray(inventoryProduct.variants) ||
+    inventoryProduct.variants.length === 0
+  ) {
     return product
   }
 
   const inventoryVariantById = new Map(
-    inventoryProduct.variants.map((variant) => [variant.id, variant])
+    inventoryProduct.variants.map((variant) => [variant.id, variant]),
   )
 
   return {
@@ -74,16 +70,15 @@ const mergeProductInventorySnapshot = (
     variants:
       product.variants?.map((variant) => {
         const inventoryVariant = inventoryVariantById.get(variant.id)
-        const inventoryVariantRecord = inventoryVariant as
-          | (HttpTypes.StoreProductVariant & { inventory_items?: unknown })
-          | undefined
 
         return inventoryVariant
           ? {
+              ...inventoryVariant,
               ...variant,
               allow_backorder: inventoryVariant.allow_backorder,
-              inventory_items: inventoryVariantRecord?.inventory_items,
-              inventory_quantity: inventoryVariant.inventory_quantity,
+              ...(inventoryVariant.inventory_quantity === undefined
+                ? {}
+                : { inventory_quantity: inventoryVariant.inventory_quantity }),
               manage_inventory: inventoryVariant.manage_inventory,
             }
           : variant
@@ -93,24 +88,29 @@ const mergeProductInventorySnapshot = (
 
 export const useCatalogProducts = (
   input: CatalogProductsInput,
-  options?: UseCatalogProductsOptions
-): UseCatalogProductsResult<HttpTypes.StoreProduct, CatalogFacets> => {
-  const catalogQuery = catalogHooks.useCatalogProducts(input, options)
+  options?: UseCatalogProductsOptions,
+): UseCatalogProductsResult<MedusaCatalogProduct> => {
+  const locale = useLocale()
+  const catalogQuery = catalogHooks.useCatalogProducts(
+    { ...input, locale },
+    options,
+  )
   const inventorySnapshotHandles = resolveInventorySnapshotHandles(
-    catalogQuery.products
+    catalogQuery.products,
   )
   const shouldLoadInventorySnapshots = inventorySnapshotHandles.length > 0
   const inventorySnapshotsQuery = useProducts({
+    enabled: catalogQuery.isSuccess && shouldLoadInventorySnapshots,
+    fields: PRODUCT_CARD_FIELDS,
     handle: inventorySnapshotHandles,
     limit: Math.max(1, inventorySnapshotHandles.length),
-    fields: PRODUCT_CARD_FIELDS,
-    enabled: catalogQuery.isSuccess && shouldLoadInventorySnapshots,
   })
-  const inventoryProductByHandle = new Map(
-    inventorySnapshotsQuery.products
-      .filter((product) => product.handle)
-      .map((product) => [product.handle, product])
-  )
+  const inventoryProductByHandle = new Map<string, HttpTypes.StoreProduct>()
+  for (const product of inventorySnapshotsQuery.products) {
+    if ((product.handle ?? "").length > 0) {
+      inventoryProductByHandle.set(product.handle, product)
+    }
+  }
   const products =
     shouldLoadInventorySnapshots && inventorySnapshotsQuery.isLoading
       ? []
@@ -119,30 +119,19 @@ export const useCatalogProducts = (
             product,
             product.handle
               ? inventoryProductByHandle.get(product.handle)
-              : undefined
-          )
+              : undefined,
+          ),
         )
 
   return {
     ...catalogQuery,
-    products,
-    isLoading:
-      catalogQuery.isLoading ||
-      (shouldLoadInventorySnapshots && inventorySnapshotsQuery.isLoading),
+    error: catalogQuery.error ?? inventorySnapshotsQuery.error,
     isFetching:
       catalogQuery.isFetching ||
       (shouldLoadInventorySnapshots && inventorySnapshotsQuery.isFetching),
-    error: catalogQuery.error ?? inventorySnapshotsQuery.error,
+    isLoading:
+      catalogQuery.isLoading ||
+      (shouldLoadInventorySnapshots && inventorySnapshotsQuery.isLoading),
+    products,
   }
 }
-
-export const useSuspenseCatalogProducts =
-  catalogHooks.useSuspenseCatalogProducts
-export const usePrefetchCatalogProducts =
-  catalogHooks.usePrefetchCatalogProducts
-export const prefetchCatalogProducts = catalogHooks.prefetchCatalogProducts
-
-export const fetchCatalogProducts = (
-  input: CatalogProductsInput,
-  signal?: AbortSignal
-) => catalogService.getCatalogProducts(input, signal)

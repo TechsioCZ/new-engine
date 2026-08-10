@@ -1,4 +1,5 @@
 import { z } from "@medusajs/framework/zod"
+
 import {
   ORDER_BUSINESS_STATUS_GROUP_IDS,
   ORDER_BUSINESS_STATUS_IDS,
@@ -10,19 +11,27 @@ import {
   ORDER_EXPEDITION_TARGET_STATUSES,
 } from "../../../utils/order-expedition"
 
+const firstQueryValue = (value: unknown): unknown => {
+  if (!Array.isArray(value)) {
+    return value
+  }
+
+  return z.array(z.unknown()).parse(value).at(0)
+}
+
 const OptionalNonNegativeIntQuerySchema = z.preprocess(
-  (value) => (Array.isArray(value) ? value[0] : value),
-  z.coerce.number().int().min(0).optional()
+  firstQueryValue,
+  z.coerce.number().int().min(0).optional(),
 )
 
 const OptionalLimitQuerySchema = z.preprocess(
-  (value) => (Array.isArray(value) ? value[0] : value),
-  z.coerce.number().int().min(1).max(ORDER_EXPEDITION_MAX_LIMIT).optional()
+  firstQueryValue,
+  z.coerce.number().int().min(1).max(ORDER_EXPEDITION_MAX_LIMIT).optional(),
 )
 
 export const GetAdminOrderExpeditionOrdersSchema = z.object({
-  business_status_group: z.enum(ORDER_BUSINESS_STATUS_GROUP_IDS).optional(),
   business_status: z.enum(ORDER_BUSINESS_STATUS_IDS).optional(),
+  business_status_group: z.enum(ORDER_BUSINESS_STATUS_GROUP_IDS).optional(),
   carrier: z.enum(ORDER_EXPEDITION_CARRIER_KEYS).optional(),
   limit: OptionalLimitQuerySchema,
   offset: OptionalNonNegativeIntQuerySchema,

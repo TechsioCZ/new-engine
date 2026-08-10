@@ -4,6 +4,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
+
 import { assertCustomerOwnsProductListStep } from "../steps/assert-customer-owns-product-list"
 import { retrieveProductListItemStep } from "../steps/retrieve-product-list-item"
 import { updateProductListItemStep } from "../steps/update-product-list-item"
@@ -25,7 +26,7 @@ export const updateProductListItemWorkflow = createWorkflow(
 
     const itemId = transform(
       { input },
-      ({ input: workflowInput }) => workflowInput.item_id
+      ({ input: workflowInput }) => workflowInput.item_id,
     )
     const currentItem = retrieveProductListItemStep(itemId)
     const ownershipInput = transform(
@@ -33,7 +34,7 @@ export const updateProductListItemWorkflow = createWorkflow(
       ({ currentItem: productListItem, input: workflowInput }) => ({
         customer_id: workflowInput.customer_id,
         list_id: productListItem.list_id,
-      })
+      }),
     )
 
     assertCustomerOwnsProductListStep(ownershipInput)
@@ -45,7 +46,7 @@ export const updateProductListItemWorkflow = createWorkflow(
         item_id: workflowInput.item_id,
         list_id: productListItem.list_id,
         previous_item: productListItem,
-      })
+      }),
     )
     const item = updateProductListItemStep(updateInput)
 
@@ -55,5 +56,5 @@ export const updateProductListItemWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(item)
-  }
+  },
 )

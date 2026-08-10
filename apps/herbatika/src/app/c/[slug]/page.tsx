@@ -1,10 +1,11 @@
 import { HydrationBoundary } from "@tanstack/react-query"
 import { redirect } from "next/navigation"
+
 import { CategoryListing } from "@/components/category-listing"
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state"
 import { prefetchCategoryPageStorefrontData } from "@/lib/storefront/ssr"
 
-type CategoryPageProps = {
+interface CategoryPageProps {
   params: Promise<{
     slug: string
   }>
@@ -15,10 +16,7 @@ const CATEGORY_SLUG_ALIASES: Record<string, string> = {
   akcie: "vypredaj-zlavy-a-akcie",
 }
 
-export default async function CategoryPage({
-  params,
-  searchParams,
-}: CategoryPageProps) {
+const CategoryPage = async ({ params, searchParams }: CategoryPageProps) => {
   const [{ slug }, resolvedSearchParams] = await Promise.all([
     params,
     searchParams,
@@ -27,14 +25,14 @@ export default async function CategoryPage({
   const normalizedSlug = slug.trim().toLowerCase()
   const canonicalSlug = CATEGORY_SLUG_ALIASES[normalizedSlug]
 
-  if (canonicalSlug) {
+  if (canonicalSlug !== undefined && canonicalSlug.length > 0) {
     redirect(`/c/${canonicalSlug}`)
   }
 
   const queryState = parsePlpQueryStateFromSearchParams(resolvedSearchParams)
   const { dehydratedState } = await prefetchCategoryPageStorefrontData(
     normalizedSlug,
-    queryState
+    queryState,
   )
 
   return (
@@ -43,3 +41,5 @@ export default async function CategoryPage({
     </HydrationBoundary>
   )
 }
+
+export default CategoryPage

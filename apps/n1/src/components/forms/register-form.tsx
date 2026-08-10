@@ -1,9 +1,11 @@
 "use client"
 
-import { useForm, useStore } from "@tanstack/react-form"
+import { useForm } from "@tanstack/react-form"
+import { Button } from "@techsio/ui-kit/atoms/button"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
-import { Button } from "@ui/atoms/button"
 import Link from "next/link"
+import { useEffect, useRef } from "react"
+
 import { TextField } from "@/components/forms/fields/text-field"
 import { useRegister } from "@/hooks/use-register"
 import { useAuthToast } from "@/hooks/use-toast"
@@ -11,17 +13,18 @@ import { AUTH_MESSAGES } from "@/lib/auth-messages"
 import { registerValidators } from "@/lib/form-validators"
 import { VALIDATION_MESSAGES } from "@/lib/validation-messages"
 import { useAnalytics } from "@/providers/analytics-provider"
+
 import { ErrorBanner } from "../atoms/error-banner"
 import { PasswordValidator } from "./password-validator"
 
-type RegisterFormProps = {
+interface RegisterFormProps {
   onSuccess?: () => void
   toggle?: () => void
   showLoginLink?: boolean
   className?: string
 }
 
-type RegisterFormData = {
+interface RegisterFormData {
   first_name: string
   last_name: string
   email: string
@@ -30,72 +33,75 @@ type RegisterFormData = {
   acceptTerms: boolean
 }
 
-export function RegisterForm({
+const defaultValues: RegisterFormData = {
+  acceptTerms: false,
+  confirmPassword: "",
+  email: "",
+  first_name: "",
+  last_name: "",
+  password: "",
+}
+
+export const RegisterForm = ({
   onSuccess,
   toggle,
   showLoginLink = true,
   className,
-}: RegisterFormProps) {
+}: RegisterFormProps) => {
   const toast = useAuthToast()
   const analytics = useAnalytics()
+  const formRef = useRef<typeof form | null>(null)
 
   const register = useRegister({
-    onSuccess: () => {
-      // Track customer identification in Leadhub
-      const values = form.state.values
-      analytics.trackIdentify({
-        email: values.email,
-        subscribe: [],
-        first_name: values.first_name,
-        last_name: values.last_name,
-      })
-
-      toast.registerSuccess()
-      form.reset()
-      onSuccess?.()
-    },
     onError: (error) => {
       console.error("Registration failed:", error.message)
     },
+    onSuccess: () => {
+      // Track customer identification in Leadhub
+      const currentForm = formRef.current
+      if (currentForm === null) {
+        return
+      }
+      const { values } = currentForm.state
+      analytics.trackIdentify({
+        email: values.email,
+        first_name: values.first_name,
+        last_name: values.last_name,
+        subscribe: [],
+      })
+
+      toast.registerSuccess()
+      currentForm.reset()
+      onSuccess?.()
+    },
   })
 
-  const defaultValues: RegisterFormData = {
-    first_name: "",
-    last_name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    acceptTerms: false,
-  }
   const form = useForm({
     defaultValues,
     onSubmit: ({ value }) => {
       register.mutate({
         email: value.email,
-        password: value.password,
         first_name: value.first_name,
         last_name: value.last_name,
+        password: value.password,
       })
     },
   })
 
-  const password = useStore(form.store, (state) => state.values.password)
-  const confirmPassword = useStore(
-    form.store,
-    (state) => state.values.confirmPassword
-  )
-  const passwordsMatch =
-    confirmPassword.length > 0 && password === confirmPassword
-  const passwordsDontMatch =
-    confirmPassword.length > 0 && password !== confirmPassword
+  useEffect(() => {
+    formRef.current = form
+    return () => {
+      formRef.current = null
+    }
+  }, [form])
 
   return (
     <form
       className={`mt-100 flex flex-col gap-200 ${className}`}
       noValidate
-      onSubmit={(e) => {
-        e.preventDefault()
-        form.handleSubmit()
+      onSubmit={(event) => {
+        event.preventDefault()
+        void form.handleSubmit()
       }}
     >
       {register.error && (
@@ -182,16 +188,29 @@ export function RegisterForm({
               required
               type="password"
             />
-            {passwordsMatch && (
-              <span className="font-medium text-success text-xs">
-                {VALIDATION_MESSAGES.password.match}
-              </span>
-            )}
-            {passwordsDontMatch && (
-              <span className="font-medium text-danger text-xs">
-                {VALIDATION_MESSAGES.password.mismatch}
-              </span>
-            )}
+            <form.Subscribe
+              selector={(state) => ({
+                confirmPassword: state.values.confirmPassword,
+                password: state.values.password,
+              })}
+            >
+              {({ confirmPassword, password }) => (
+                <>
+                  {confirmPassword.length > 0 &&
+                    password === confirmPassword && (
+                      <span className="font-medium text-success text-xs">
+                        {VALIDATION_MESSAGES.password.match}
+                      </span>
+                    )}
+                  {confirmPassword.length > 0 &&
+                    password !== confirmPassword && (
+                      <span className="font-medium text-danger text-xs">
+                        {VALIDATION_MESSAGES.password.mismatch}
+                      </span>
+                    )}
+                </>
+              )}
+            </form.Subscribe>
           </div>
         )}
       </form.Field>
@@ -206,7 +225,9 @@ export function RegisterForm({
             id="accept-terms"
             label="Souhlasím s podmínkami"
             name="accept-terms"
-            onCheckedChange={(checked) => field.handleChange(checked)}
+            onCheckedChange={(checked) => {
+              field.handleChange(checked)
+            }}
             size="sm"
           />
         )}
@@ -227,7 +248,7 @@ export function RegisterForm({
           <Link
             className="font-medium hover:underline"
             href="/prihlaseni"
-            onClick={toggle}
+            {...(toggle ? { onClick: toggle } : {})}
           >
             Přihlaste se
           </Link>

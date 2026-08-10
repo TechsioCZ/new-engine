@@ -4,9 +4,10 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Switch } from "@techsio/ui-kit/molecules/switch"
 import { getBrand } from "@techsio/ui-kit/theme/theme-config"
+
 import { useTheme } from "@/hooks/use-theme"
 
-export function ThemeToggle() {
+export const ThemeToggle = () => {
   const {
     theme,
     toggleTheme,
@@ -26,7 +27,9 @@ export function ThemeToggle() {
         {brands.map((key) => (
           <Button
             key={key}
-            onClick={() => setBrand(key)}
+            onClick={() => {
+              setBrand(key)
+            }}
             size="sm"
             theme={mounted && key === brand ? "solid" : "outlined"}
             variant="primary"

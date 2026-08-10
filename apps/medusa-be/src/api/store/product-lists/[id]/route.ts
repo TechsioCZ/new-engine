@@ -4,6 +4,8 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+import { omitUndefined } from "@techsio/std/object"
+
 import { PRODUCT_LIST_MODULE } from "../../../../modules/product-list/constants"
 import type ProductListModuleService from "../../../../modules/product-list/service"
 import { assertCustomerOwnsProductList } from "../../../../utils/product-list-links"
@@ -14,22 +16,20 @@ import {
   toProductListResponse,
   withProductListItems,
 } from "../utils"
-import {
-  StoreProductListParamsSchema,
-  type StoreUpdateProductListSchemaType,
-} from "../validators"
+import { StoreProductListParamsSchema } from "../validators"
+import type { StoreUpdateProductListSchemaType } from "../validators"
 
 type RequestWithOptionalCustomerAuth = MedusaRequest & {
   auth_context?: { actor_id?: unknown } | null
 }
 
 const getAuthenticatedCustomerId = (
-  req: RequestWithOptionalCustomerAuth
+  req: RequestWithOptionalCustomerAuth,
 ): string | undefined => {
   const authContext = req.auth_context
 
-  if (!authContext || typeof authContext !== "object") {
-    return
+  if (authContext === undefined || authContext === null) {
+    return undefined
   }
 
   const { actor_id: actorId } = authContext
@@ -37,10 +37,10 @@ const getAuthenticatedCustomerId = (
   return typeof actorId === "string" ? actorId : undefined
 }
 
-export async function GET(
+const getProductList = async (
   req: RequestWithOptionalCustomerAuth,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   const productListService =
     req.scope.resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
@@ -49,10 +49,10 @@ export async function GET(
   if (productList.access_type !== "public") {
     const customerId = getAuthenticatedCustomerId(req)
 
-    if (!customerId) {
+    if (customerId === undefined || customerId.length === 0) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Product list ${listId} was not found`
+        `Product list ${listId} was not found`,
       )
     }
 
@@ -61,9 +61,9 @@ export async function GET(
   const productListsWithItems = await withProductListItems(
     req.scope,
     [productList],
-    { previewLimit: INLINE_PRODUCT_LIST_ITEMS_LIMIT }
+    { previewLimit: INLINE_PRODUCT_LIST_ITEMS_LIMIT },
   )
-  const productListWithItems = productListsWithItems[0]
+  const [productListWithItems] = productListsWithItems
 
   if (!productListWithItems) {
     res.json({ product_list: toProductListResponse(productList) })
@@ -73,24 +73,24 @@ export async function GET(
   res.json({ product_list: toProductListResponse(productListWithItems) })
 }
 
-export async function POST(
+const postProductList = async (
   req: AuthenticatedMedusaRequest<StoreUpdateProductListSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   const { result: productList } = await updateProductListWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: {
       customer_id: req.auth_context.actor_id,
-      data: req.validatedBody,
+      data: omitUndefined(req.validatedBody),
       list_id: listId,
     },
   })
   const [productListWithItems] = await withProductListItems(
     req.scope,
     [productList],
-    { previewLimit: INLINE_PRODUCT_LIST_ITEMS_LIMIT }
+    { previewLimit: INLINE_PRODUCT_LIST_ITEMS_LIMIT },
   )
 
   res.json({
@@ -98,10 +98,10 @@ export async function POST(
   })
 }
 
-export async function DELETE(
+const deleteProductList = async (
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   await deleteProductListWorkflow(req.scope).run({
     input: {
@@ -111,4 +111,10 @@ export async function DELETE(
   })
 
   res.status(200).json({ deleted: true, id: listId })
+}
+
+export {
+  getProductList as GET,
+  postProductList as POST,
+  deleteProductList as DELETE,
 }

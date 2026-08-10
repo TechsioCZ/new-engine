@@ -2,19 +2,22 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { Button } from "@techsio/ui-kit/atoms/button"
+
 import { queryKeys } from "@/lib/query-keys"
 
-type ErrorProps = {
+interface ErrorProps {
   error: Error & { digest?: string }
   reset: () => void
 }
 
-export default function ErrorProduct({ reset }: ErrorProps) {
+const ErrorProduct = ({ reset }: ErrorProps) => {
   const queryClient = useQueryClient()
 
-  const handleRetry = () => {
-    queryClient.resetQueries({ queryKey: queryKeys.regions() })
-    queryClient.resetQueries({ queryKey: queryKeys.products.all() })
+  const handleRetry = async () => {
+    await Promise.all([
+      queryClient.resetQueries({ queryKey: queryKeys.regions() }),
+      queryClient.resetQueries({ queryKey: queryKeys.products.all() }),
+    ])
     reset()
   }
 
@@ -29,7 +32,9 @@ export default function ErrorProduct({ reset }: ErrorProps) {
         </p>
         <div className="flex justify-center">
           <Button
-            onClick={handleRetry}
+            onClick={() => {
+              void handleRetry()
+            }}
             size="sm"
             theme="solid"
             variant="secondary"
@@ -41,3 +46,5 @@ export default function ErrorProduct({ reset }: ErrorProps) {
     </div>
   )
 }
+
+export default ErrorProduct

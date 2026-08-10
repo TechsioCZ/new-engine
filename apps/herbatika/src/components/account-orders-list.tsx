@@ -6,12 +6,13 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { parseAsInteger, useQueryState } from "nuqs"
 import { useEffect, useTransition } from "react"
+
 import { AccountSurface } from "@/components/account/account-surface"
 import { AccountOrderGroup } from "@/components/account/orders/account-order-group"
+import NextLink from "@/components/app-link"
 import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton"
 import { useAuth } from "@/lib/storefront/auth"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
@@ -20,7 +21,7 @@ import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-bui
 
 const ORDER_PAGE_SIZE = 10
 
-export function AccountOrdersList() {
+export const AccountOrdersList = () => {
   const tAuth = useTranslations("auth")
   const queryClient = useQueryClient()
   const authQuery = useAuth()
@@ -28,12 +29,12 @@ export function AccountOrdersList() {
   const getPageUrl = usePaginationUrlBuilder()
   const [currentPage, setCurrentPage] = useQueryState(
     "page",
-    parseAsInteger.withDefault(1)
+    parseAsInteger.withDefault(1),
   )
   const ordersQuery = useOrders({
-    page: currentPage,
-    limit: ORDER_PAGE_SIZE,
     enabled: authQuery.isAuthenticated,
+    limit: ORDER_PAGE_SIZE,
+    page: currentPage,
   })
   const hasVisibleOrders = ordersQuery.orders.length > 0
   const isOrdersRefreshing =
@@ -54,14 +55,14 @@ export function AccountOrdersList() {
       runDetachedPromise(
         setCurrentPage(normalizedPage, {
           history: "replace",
-        })
+        }),
       )
     })
   }, [currentPage, ordersQuery.totalPages, setCurrentPage])
 
   const prefetchOrderDetail = (orderId: string) => {
     runDetachedPromise(
-      queryClient.prefetchQuery(getOrderDetailQueryOptions({ id: orderId }))
+      queryClient.prefetchQuery(getOrderDetailQueryOptions({ id: orderId })),
     )
   }
 
@@ -69,7 +70,7 @@ export function AccountOrdersList() {
     return <AccountOrdersSkeleton />
   }
 
-  if (ordersQuery.error) {
+  if (ordersQuery.error !== null && ordersQuery.error.length > 0) {
     return (
       <AccountSurface className="space-y-400">
         <StatusText showIcon status="error">

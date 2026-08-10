@@ -2,6 +2,7 @@
 
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
+
 import {
   AccountSkeletonSurface,
   AccountSurface,
@@ -9,14 +10,14 @@ import {
 import { useAuth } from "@/lib/storefront/auth"
 import { useOrders } from "@/lib/storefront/orders"
 
-export function AccountOverview() {
+export const AccountOverview = () => {
   const tAuth = useTranslations("auth")
   const tForm = useTranslations("form")
   const authQuery = useAuth()
   const ordersQuery = useOrders({
-    page: 1,
-    limit: 1,
     enabled: authQuery.isAuthenticated,
+    limit: 1,
+    page: 1,
   })
 
   if (authQuery.isLoading) {
@@ -58,7 +59,7 @@ export function AccountOverview() {
         </li>
       </ul>
 
-      {ordersQuery.error && (
+      {ordersQuery.error !== null && (
         <StatusText showIcon status="error">
           {ordersQuery.error}
         </StatusText>

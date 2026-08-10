@@ -1,4 +1,39 @@
-import { BigNumber, MathBN } from "@medusajs/framework/utils"
+import { BigNumber, MathBN, MedusaError } from "@medusajs/framework/utils"
+
+interface PaymentAmountValue {
+  readonly value: unknown
+}
+
+const hasOwnPaymentAmountValue = (
+  value: unknown,
+): value is PaymentAmountValue =>
+  typeof value === "object" && value !== null && Object.hasOwn(value, "value")
+
+const invalidPaymentAmount = (
+  message: string,
+  invalidDataType: typeof MedusaError.Types.INVALID_DATA,
+): MedusaError => new MedusaError(invalidDataType, message)
+
+export const toNumericPaymentAmount = (
+  value: unknown,
+  message: string,
+  invalidDataType: typeof MedusaError.Types.INVALID_DATA = MedusaError.Types
+    .INVALID_DATA,
+): number => {
+  let normalized: number
+
+  try {
+    normalized = Number(hasOwnPaymentAmountValue(value) ? value.value : value)
+  } catch {
+    throw invalidPaymentAmount(message, invalidDataType)
+  }
+
+  if (!Number.isFinite(normalized)) {
+    throw invalidPaymentAmount(message, invalidDataType)
+  }
+
+  return normalized
+}
 
 const ZERO_DECIMAL_CURRENCIES = new Set([
   "bif",
@@ -33,7 +68,7 @@ const getNormalizedCurrency = (currencyCode?: string): string =>
 
 const roundToSmallestCurrencyUnit = (
   amount: number,
-  multiplier: number
+  multiplier: number,
 ): number => {
   const roundedMajor =
     Math.round(new BigNumber(MathBN.mult(amount, multiplier)).numeric) /
@@ -72,23 +107,23 @@ export const getStripeCurrencyMultiplier = (currencyCode?: string): number => {
 
 export const toSmallestCurrencyUnit = (
   amount: number,
-  currencyCode?: string
+  currencyCode?: string,
 ): number =>
   roundToSmallestCurrencyUnit(amount, getCurrencyMultiplier(currencyCode))
 
 export const fromSmallestCurrencyUnit = (
   amount: number,
-  currencyCode?: string
+  currencyCode?: string,
 ): number => amount / getCurrencyMultiplier(currencyCode)
 
 export const fromStripeSmallestCurrencyUnit = (
   amount: number,
-  currencyCode?: string
+  currencyCode?: string,
 ): number => amount / getStripeCurrencyMultiplier(currencyCode)
 
 export const toStripeSmallestCurrencyUnit = (
   amount: number,
-  currencyCode?: string
+  currencyCode?: string,
 ): number => {
   const multiplier = getStripeCurrencyMultiplier(currencyCode)
   const smallestUnitAmount = roundToSmallestCurrencyUnit(amount, multiplier)

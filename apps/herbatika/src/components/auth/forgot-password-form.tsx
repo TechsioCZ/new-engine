@@ -3,18 +3,18 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
-import { useMemo, useState } from "react"
-import {
-  createForgotPasswordValidators,
-  type ForgotPasswordFormValues,
-} from "@/lib/auth/auth-form-validators"
+import { useState } from "react"
+
+import NextLink from "@/components/app-link"
+import { createForgotPasswordValidators } from "@/lib/auth/auth-form-validators"
+import type { ForgotPasswordFormValues } from "@/lib/auth/auth-form-validators"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+
 import { AuthFooter } from "./auth-footer"
 
-type ForgotPasswordFormProps = {
+interface ForgotPasswordFormProps {
   isBusy: boolean
   defaultValues: ForgotPasswordFormValues
   loginHref: string
@@ -31,21 +31,17 @@ export const ForgotPasswordForm = ({
   const tForm = useTranslations("form")
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [submittedEmail, setSubmittedEmail] = useState<string | null>(null)
-  const forgotPasswordValidators = useMemo(
-    () =>
-      createForgotPasswordValidators({
-        emailInvalid: tForm("validation.email_invalid"),
-        emailRequired: tForm("validation.email_required"),
-      }),
-    [tForm]
-  )
+  const forgotPasswordValidators = createForgotPasswordValidators({
+    emailInvalid: tForm("validation.email_invalid"),
+    emailRequired: tForm("validation.email_required"),
+  })
 
   const form = useHerbatikaForm({
     defaultValues,
     onSubmit: async ({ value }) => {
       setSubmitError(null)
       const error = await onSubmit(value)
-      if (error) {
+      if (error !== null) {
         setSubmitError(error)
         return
       }
@@ -53,7 +49,7 @@ export const ForgotPasswordForm = ({
     },
   })
 
-  if (submittedEmail) {
+  if (submittedEmail !== null) {
     return (
       <div className="flex flex-col gap-300">
         <StatusText showIcon={false} status="success">
@@ -86,7 +82,7 @@ export const ForgotPasswordForm = ({
         runDetachedPromise(form.handleSubmit())
       }}
     >
-      {submitError && (
+      {submitError !== null && (
         <StatusText showIcon status="error">
           {submitError}
         </StatusText>
@@ -98,7 +94,9 @@ export const ForgotPasswordForm = ({
             autoComplete="email"
             id="auth-forgot-password-email"
             label={tForm("email")}
-            onValueChange={() => setSubmitError(null)}
+            onValueChange={() => {
+              setSubmitError(null)
+            }}
             required
             type="email"
             validationMode="blur"

@@ -1,14 +1,12 @@
 ---
 name: button-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Button for
-  actions, including correct variant, theme, size, loading state, icon props,
-  and token-first styling rules.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Button for actions, including correct variant, theme, size, loading state, icon props, and token-first styling rules.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
 component: Button
-component_version: "0.3.2"
+component_version: "0.3.3"
 requires:
   - component-usage-ux
   - app-token-overrides
@@ -21,15 +19,14 @@ sources:
 
 # @techsio/ui-kit Button Usage
 
-Use Button for in-place actions. Use `LinkButton` for navigation that should
-look like a button.
+Use Button for in-place actions. Use `LinkButton` for navigation that should look like a button.
 
 ## Setup
 
 ```tsx
 import { Button } from "@techsio/ui-kit/atoms/button"
 
-<Button variant="primary" theme="solid" size="md">
+;<Button variant="primary" theme="solid" size="md">
   Save
 </Button>
 ```
@@ -81,9 +78,7 @@ There is no `variant="ghost"`. Use `theme="borderless"` for that intent.
 </Button>
 ```
 
-Do not add background, foreground, padding, border, radius, or font classes
-that duplicate Button tokens. If the app needs different colors or sizing,
-change app token overrides first.
+Do not add background, foreground, padding, border, radius, or font classes that duplicate Button tokens. If the app needs different colors or sizing, change app token overrides first.
 
 ### Use loading props instead of custom disabling
 
@@ -93,8 +88,7 @@ change app token overrides first.
 </Button>
 ```
 
-Use the component API for loading and disabled state instead of wrapping the
-button in a conditional spinner.
+Use the component API for loading and disabled state instead of wrapping the button in a conditional spinner.
 
 ## Common Mistakes
 
@@ -109,7 +103,9 @@ Wrong:
 Correct:
 
 ```tsx
-<Button variant="primary" theme="solid">Save</Button>
+<Button variant="primary" theme="solid">
+  Save
+</Button>
 ```
 
 Source: libs/ui/src/atoms/button.tsx
@@ -125,7 +121,9 @@ Wrong:
 Correct:
 
 ```tsx
-<Button variant="secondary" theme="borderless">Cancel</Button>
+<Button variant="secondary" theme="borderless">
+  Cancel
+</Button>
 ```
 
 Source: libs/ui/src/atoms/button.tsx
@@ -147,11 +145,12 @@ Wrong:
 Correct:
 
 ```tsx
-<Button variant="danger" theme="solid">Delete</Button>
+<Button variant="danger" theme="solid">
+  Delete
+</Button>
 ```
 
-If Button danger should look different in the app, override
-`--color-button-*` or related semantic tokens in CSS.
+If Button danger should look different in the app, override `--color-button-*` or related semantic tokens in CSS.
 
 Source: libs/ui/src/tokens/components/atoms/_button.css
 
@@ -179,4 +178,3 @@ rg -n "<Button[^>]*className=.*(bg-|text-|px-|py-|rounded-|border-)" apps
 rg -n "<Button[^>]*onClick=.*router\\.push" apps
 rg -n "isLoading|loadingText" apps
 ```
-

@@ -1,3 +1,5 @@
+import type { MetadataType } from "@medusajs/framework/types"
+
 export const ORDER_BUSINESS_STATUS_METADATA_KEY =
   "order_business_status_manual" as const
 
@@ -44,33 +46,35 @@ export type OrderBusinessStatusTone =
   | "red"
   | "purple"
 
-export type OrderBusinessStatus = {
+export interface OrderBusinessStatus {
   id: OrderBusinessStatusId
   priority: number
   tone: OrderBusinessStatusTone
   translation_key: `statuses.${OrderBusinessStatusId}`
 }
 
-export type OrderBusinessStatusPaymentCollection = {
+interface OrderBusinessStatusPaymentCollection {
   status?: string | null
 }
 
-export type OrderBusinessStatusFulfillment = {
-  canceled_at?: Date | string | null
-  delivered_at?: Date | string | null
-  shipped_at?: Date | string | null
+type OrderBusinessStatusTimestamp = Date | string | null
+
+interface OrderBusinessStatusFulfillment {
+  canceled_at?: OrderBusinessStatusTimestamp
+  delivered_at?: OrderBusinessStatusTimestamp
+  shipped_at?: OrderBusinessStatusTimestamp
 }
 
-export type OrderBusinessStatusInput = {
+export interface OrderBusinessStatusInput {
   fulfillment_status?: string | null
   fulfillments?: OrderBusinessStatusFulfillment[] | null
-  metadata?: Record<string, unknown> | null
+  metadata?: MetadataType
   payment_collections?: OrderBusinessStatusPaymentCollection[] | null
   payment_status?: string | null
   status?: string | null
 }
 
-export type OrderBusinessStatusSummary = {
+export interface OrderBusinessStatusSummary {
   business_status: OrderBusinessStatus
   created_at?: string | null
   currency_code?: string | null
@@ -82,32 +86,30 @@ export type OrderBusinessStatusSummary = {
   total?: number | string | null
 }
 
-function createOrderBusinessStatus<const TId extends OrderBusinessStatusId>(
+const createOrderBusinessStatus = <const TId extends OrderBusinessStatusId>(
   id: TId,
   priority: number,
-  tone: OrderBusinessStatusTone
-) {
-  return {
-    id,
-    priority,
-    tone,
-    translation_key: `statuses.${id}` as const,
-  }
-}
+  tone: OrderBusinessStatusTone,
+) => ({
+  id,
+  priority,
+  tone,
+  translation_key: `statuses.${id}` as const,
+})
 
 export const ORDER_BUSINESS_STATUSES = {
+  awaiting_payment: createOrderBusinessStatus("awaiting_payment", 7, "orange"),
   canceled: createOrderBusinessStatus("canceled", 1, "red"),
   delivered: createOrderBusinessStatus("delivered", 2, "green"),
+  new: createOrderBusinessStatus("new", 8, "grey"),
+  paid: createOrderBusinessStatus("paid", 6, "green"),
+  processing: createOrderBusinessStatus("processing", 5, "blue"),
   shipped: createOrderBusinessStatus("shipped", 3, "purple"),
   waiting_for_supplier: createOrderBusinessStatus(
     "waiting_for_supplier",
     4,
-    "orange"
+    "orange",
   ),
-  processing: createOrderBusinessStatus("processing", 5, "blue"),
-  paid: createOrderBusinessStatus("paid", 6, "green"),
-  awaiting_payment: createOrderBusinessStatus("awaiting_payment", 7, "orange"),
-  new: createOrderBusinessStatus("new", 8, "grey"),
 } as const satisfies Record<OrderBusinessStatusId, OrderBusinessStatus>
 
 // Failed/canceled payment attempts still need payment action; only order/manual cancellation maps to Storno.
@@ -137,111 +139,70 @@ const SHIPPED_FULFILLMENT_STATUSES = new Set([
   "shipped",
 ])
 
-function hasValue(
-  value: Date | string | null | undefined
-): value is Date | string {
-  return (
-    value instanceof Date || (typeof value === "string" && value.length > 0)
-  )
-}
+const hasValue = (
+  value: OrderBusinessStatusTimestamp | undefined,
+): value is Date | string =>
+  value instanceof Date || (typeof value === "string" && value.length > 0)
 
-function getActiveFulfillments(order: OrderBusinessStatusInput) {
-  return (order.fulfillments ?? []).filter(
-    (fulfillment) => !hasValue(fulfillment.canceled_at)
+const getActiveFulfillments = (order: OrderBusinessStatusInput) =>
+  (order.fulfillments ?? []).filter(
+    (fulfillment) => !hasValue(fulfillment.canceled_at),
   )
-}
 
-function isIncluded<const TValue extends string>(
+const isIncluded = <const TValue extends string>(
   values: readonly TValue[],
-  value: unknown
-): value is TValue {
-  return typeof value === "string" && values.includes(value as TValue)
-}
+  value: unknown,
+): value is TValue =>
+  typeof value === "string" && (values as readonly string[]).includes(value)
 
-export function isOrderBusinessStatusId(
-  value: unknown
-): value is OrderBusinessStatusId {
-  return isIncluded(ORDER_BUSINESS_STATUS_IDS, value)
-}
+export const isOrderBusinessStatusId = (
+  value: unknown,
+): value is OrderBusinessStatusId =>
+  isIncluded(ORDER_BUSINESS_STATUS_IDS, value)
 
-export function isActionRequiredOrderBusinessStatusId(
-  value: OrderBusinessStatusId
-) {
-  return (
+export const isActionRequiredOrderBusinessStatusId = (
+  value: OrderBusinessStatusId,
+) =>
+  (
     ACTION_REQUIRED_ORDER_BUSINESS_STATUS_IDS as readonly OrderBusinessStatusId[]
   ).includes(value)
-}
 
-export function isManualOrderBusinessStatusId(
-  value: unknown
-): value is ManualOrderBusinessStatusId {
-  return isIncluded(MANUAL_ORDER_BUSINESS_STATUS_IDS, value)
-}
+export const isManualOrderBusinessStatusId = (
+  value: unknown,
+): value is ManualOrderBusinessStatusId =>
+  isIncluded(MANUAL_ORDER_BUSINESS_STATUS_IDS, value)
 
-export function getManualOrderBusinessStatusId(
-  order: OrderBusinessStatusInput
-): ManualOrderBusinessStatusId | undefined {
+export const getManualOrderBusinessStatusId = (
+  order: OrderBusinessStatusInput,
+): ManualOrderBusinessStatusId | undefined => {
   const manualStatus = order.metadata?.[ORDER_BUSINESS_STATUS_METADATA_KEY]
 
   if (!isManualOrderBusinessStatusId(manualStatus)) {
-    return
+    return undefined
   }
 
   return manualStatus
 }
 
-export function getOrderBusinessManualStatusUpdateBlockReason(
-  order: OrderBusinessStatusInput,
-  status: ManualOrderBusinessStatusId | null
-) {
-  const currentManualStatus = getManualOrderBusinessStatusId(order) ?? null
+const getOrderBusinessPaymentStatus = (order: OrderBusinessStatusInput) =>
+  order.payment_status ??
+  order.payment_collections?.find(
+    (collection) =>
+      typeof collection.status === "string" && collection.status.length > 0,
+  )?.status ??
+  (order.payment_collections?.length === 0 ? "not_paid" : undefined)
 
-  if (currentManualStatus === status) {
-    return status === null
-      ? "Manual status is already clear"
-      : `Manual status is already ${formatBusinessStatus(status)}`
-  }
-
-  if (status === null) {
-    return
-  }
-
-  const nextOrder = {
-    ...order,
-    metadata: {
-      ...(order.metadata ?? {}),
-      [ORDER_BUSINESS_STATUS_METADATA_KEY]: status,
-    },
-  }
-  const nextBusinessStatus = resolveOrderBusinessStatus(nextOrder)
-
-  if (nextBusinessStatus.id !== status) {
-    return `${formatBusinessStatus(nextBusinessStatus.id)} status has higher priority`
-  }
-
-  return
-}
-
-export function getOrderBusinessPaymentStatus(order: OrderBusinessStatusInput) {
-  return (
-    order.payment_status ??
-    order.payment_collections?.find((collection) => collection.status)
-      ?.status ??
-    (order.payment_collections?.length === 0 ? "not_paid" : undefined)
-  )
-}
-
-export function isPendingUnpaidOrder(order: OrderBusinessStatusInput) {
+export const isPendingUnpaidOrder = (order: OrderBusinessStatusInput) => {
   if (order.status !== "pending") {
     return false
   }
 
   return PENDING_UNPAID_PAYMENT_STATUSES.has(
-    getOrderBusinessPaymentStatus(order) ?? ""
+    getOrderBusinessPaymentStatus(order) ?? "",
   )
 }
 
-function hasPaidPaymentSignal(order: OrderBusinessStatusInput) {
+const hasPaidPaymentSignal = (order: OrderBusinessStatusInput) => {
   const paymentStatus = order.payment_status
 
   if (hasValue(paymentStatus)) {
@@ -249,17 +210,16 @@ function hasPaidPaymentSignal(order: OrderBusinessStatusInput) {
   }
 
   return (order.payment_collections ?? []).some((collection) =>
-    PAID_PAYMENT_STATUSES.has(collection.status ?? "")
+    PAID_PAYMENT_STATUSES.has(collection.status ?? ""),
   )
 }
 
-function formatBusinessStatus(status: OrderBusinessStatusId) {
-  return status.replace(/_/g, " ")
-}
+const formatBusinessStatus = (status: OrderBusinessStatusId) =>
+  status.replaceAll("_", " ")
 
-export function resolveOrderBusinessStatus(
-  order: OrderBusinessStatusInput
-): OrderBusinessStatus {
+export const resolveOrderBusinessStatus = (
+  order: OrderBusinessStatusInput,
+): OrderBusinessStatus => {
   const manualStatus = getManualOrderBusinessStatusId(order)
 
   if (manualStatus === "canceled" || order.status === "canceled") {
@@ -272,7 +232,7 @@ export function resolveOrderBusinessStatus(
   const allActiveFulfillmentsDelivered =
     hasActiveFulfillments &&
     activeFulfillments.every((fulfillment) =>
-      hasValue(fulfillment.delivered_at)
+      hasValue(fulfillment.delivered_at),
     )
 
   if (
@@ -283,7 +243,7 @@ export function resolveOrderBusinessStatus(
   }
 
   const anyActiveFulfillmentShipped = activeFulfillments.some((fulfillment) =>
-    hasValue(fulfillment.shipped_at)
+    hasValue(fulfillment.shipped_at),
   )
 
   if (
@@ -312,4 +272,34 @@ export function resolveOrderBusinessStatus(
   }
 
   return ORDER_BUSINESS_STATUSES.new
+}
+
+export const getOrderBusinessManualStatusUpdateBlockReason = (
+  order: OrderBusinessStatusInput,
+  status: ManualOrderBusinessStatusId | null,
+): string | undefined => {
+  const currentManualStatus = getManualOrderBusinessStatusId(order) ?? null
+
+  if (currentManualStatus === status) {
+    return status === null
+      ? "Manual status is already clear"
+      : `Manual status is already ${formatBusinessStatus(status)}`
+  }
+
+  if (status === null) {
+    return undefined
+  }
+
+  const nextOrder = {
+    ...order,
+    metadata: {
+      ...order.metadata,
+      [ORDER_BUSINESS_STATUS_METADATA_KEY]: status,
+    },
+  }
+  const nextBusinessStatus = resolveOrderBusinessStatus(nextOrder)
+
+  return nextBusinessStatus.id === status
+    ? undefined
+    : `${formatBusinessStatus(nextBusinessStatus.id)} status has higher priority`
 }

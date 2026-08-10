@@ -3,47 +3,47 @@
  */
 
 export const AUTH_ERRORS = {
-  INVALID_EMAIL: "Zadejte prosím platnou e-mailovou adresu",
-  INVALID_CREDENTIALS: "Neplatný e-mail nebo heslo",
-  USER_NOT_FOUND: "S tímto e-mailem nebyl nalezen žádný účet",
-  USER_EXISTS: "Účet s tímto e-mailem již existuje",
-  PASSWORD_REQUIRED: "Zadejte prosím své heslo",
-  PASSWORD_MISMATCH: "Hesla se neshodují",
-  TERMS_REQUIRED: "Musíte přijmout obchodní podmínky",
   GENERIC_ERROR: "Došlo k chybě. Zkuste to prosím znovu.",
+  INVALID_CREDENTIALS: "Neplatný e-mail nebo heslo",
+  INVALID_EMAIL: "Zadejte prosím platnou e-mailovou adresu",
+  PASSWORD_MISMATCH: "Hesla se neshodují",
+  PASSWORD_REQUIRED: "Zadejte prosím své heslo",
+  TERMS_REQUIRED: "Musíte přijmout obchodní podmínky",
+  USER_EXISTS: "Účet s tímto e-mailem již existuje",
+  USER_NOT_FOUND: "S tímto e-mailem nebyl nalezen žádný účet",
 } as const
 
 export const AUTH_MESSAGES = {
-  LOGIN_SUCCESS: {
-    title: "Vítejte zpět!",
-    description: "Úspěšně jste se přihlásili.",
-  },
-  REGISTER_SUCCESS: {
-    title: "Účet vytvořen!",
-    description: "Byli jste automaticky přihlášeni.",
-  },
-  LOGOUT_SUCCESS: {
-    title: "Odhlášeno",
-    description: "Úspěšně jste se odhlásili.",
-  },
   LOGIN_ERROR: {
     title: "Přihlášení se nezdařilo",
+  },
+  LOGIN_SUCCESS: {
+    description: "Úspěšně jste se přihlásili.",
+    title: "Vítejte zpět!",
+  },
+  LOGOUT_SUCCESS: {
+    description: "Úspěšně jste se odhlásili.",
+    title: "Odhlášeno",
   },
   REGISTER_ERROR: {
     title: "Registrace se nezdařila",
   },
-  UPDATE_SUCCESS: {
-    title: "Profil aktualizován",
-    description: "Váš profil byl úspěšně aktualizován.",
+  REGISTER_SUCCESS: {
+    description: "Byli jste automaticky přihlášeni.",
+    title: "Účet vytvořen!",
   },
   UPDATE_ERROR: {
     title: "Aktualizace se nezdařila",
   },
+  UPDATE_SUCCESS: {
+    description: "Váš profil byl úspěšně aktualizován.",
+    title: "Profil aktualizován",
+  },
 } as const
 
 export const AUTH_FORM_CONFIG = {
-  EMAIL_PLACEHOLDER: "uzivatel@email.cz",
   EMAIL_HELP_TEXT: "Použijte platný formát e-mailu (např. uzivatel@email.cz)",
-  PASSWORD_PLACEHOLDER: "••••••••",
+  EMAIL_PLACEHOLDER: "uzivatel@email.cz",
   PASSWORD_HELP_TEXT: "Alespoň 8 znaků včetně velkých a malých písmen a čísel",
+  PASSWORD_PLACEHOLDER: "••••••••",
 } as const

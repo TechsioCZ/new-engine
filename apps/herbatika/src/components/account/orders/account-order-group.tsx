@@ -1,54 +1,52 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextImage from "next/image"
-import NextLink from "next/link"
 import { useLocale, useTranslations } from "next-intl"
+
+import NextLink from "@/components/app-link"
 import {
   formatOrderAmount,
   formatOrderDate,
-  type OrderStatusTranslator,
   resolveOrderDisplayId,
   resolveOrderInvoiceUrl,
-  resolveOrderItemQuantity,
-  resolveOrderItemTotalAmount,
+  resolveOrderItemCount,
   resolveOrderProgressState,
   resolveOrderTotalAmount,
 } from "@/lib/storefront/order-format"
+import type { OrderStatusTranslator } from "@/lib/storefront/order-format"
 
-type AccountOrderGroupProps = {
+import { AccountOrderGroupItems } from "./account-order-group-items"
+
+interface AccountOrderGroupProps {
   order: HttpTypes.StoreOrder
   onPrefetchOrderDetail: (orderId: string) => void
 }
 
-export function AccountOrderGroup({
+export const AccountOrderGroup = ({
   order,
   onPrefetchOrderDetail,
-}: AccountOrderGroupProps) {
+}: AccountOrderGroupProps) => {
   const locale = useLocale()
-  const tAuth = useTranslations("auth")
-  const translateOrderStatus: OrderStatusTranslator = (group, status) =>
-    tAuth(`account.orders.status.${group}`, { status })
+  const t = useTranslations("auth")
+  const translateStatus: OrderStatusTranslator = (group, status) =>
+    t(`account.orders.status.${group}`, { status })
   const detailHref = `/account/orders/${order.id}`
   const invoiceUrl = resolveOrderInvoiceUrl(order)
-  const orderTotalAmount = resolveOrderTotalAmount(order)
-  const orderProgress = resolveOrderProgressState(order, translateOrderStatus)
-  const orderItems = order.items ?? []
-  const orderItemCount = orderItems.reduce(
-    (count, item) => count + resolveOrderItemQuantity(item),
-    0
-  )
-  const desktopGridColumns =
-    "lg:grid-cols-[minmax(0,1fr)_max-content_max-content]"
-  const desktopSubgridColumns =
+  const progress = resolveOrderProgressState(order, translateStatus)
+  const items = order.items ?? []
+  const prefetch = () => {
+    onPrefetchOrderDetail(order.id)
+  }
+  const gridColumns = "lg:grid-cols-[minmax(0,1fr)_max-content_max-content]"
+  const subgrid =
     "lg:supports-[grid-template-columns:subgrid]:grid-cols-subgrid"
 
   return (
     <article
-      className={`overflow-hidden rounded-order-group-lg border border-order-group-border bg-order-group-surface lg:grid ${desktopGridColumns}`}
+      className={`overflow-hidden rounded-order-group-lg border border-order-group-border bg-order-group-surface lg:grid ${gridColumns}`}
     >
       <header
-        className={`flex flex-col gap-order-group-header-gap border-order-group-border border-b bg-order-group-overlay p-order-group-3xl lg:col-span-3 lg:grid lg:items-start lg:gap-order-group-column ${desktopGridColumns} ${desktopSubgridColumns}`}
+        className={`flex flex-col gap-order-group-header-gap border-order-group-border border-b bg-order-group-overlay p-order-group-3xl lg:col-span-3 lg:grid lg:items-start lg:gap-order-group-column ${gridColumns} ${subgrid}`}
       >
         <section className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-order-group-lg gap-y-order-group-sm">
@@ -61,30 +59,32 @@ export function AccountOrderGroup({
             <Badge
               className="whitespace-nowrap px-150"
               size="sm"
-              variant={orderProgress.variant}
+              variant={progress.variant}
             >
-              {orderProgress.label}
+              {progress.label}
             </Badge>
           </div>
-
           <div className="flex flex-wrap items-center">
             <p className="text-order-group-fg-secondary text-order-group-secondary-size">
-              {tAuth("account.orders.item_count", { count: orderItemCount })}
+              {t("account.orders.item_count", {
+                count: resolveOrderItemCount(items),
+              })}
             </p>
           </div>
         </section>
-
         <section className="leading-none lg:justify-self-end lg:text-start">
           <p className="font-medium text-order-group-fg-tertiary text-order-group-tertiary-size uppercase">
-            {tAuth("account.orders.total_amount")}
+            {t("account.orders.total_amount")}
           </p>
           <p className="font-semibold">
-            {formatOrderAmount(orderTotalAmount, order.currency_code)}
+            {formatOrderAmount(
+              resolveOrderTotalAmount(order),
+              order.currency_code,
+            )}
           </p>
         </section>
-
         <div className="flex flex-wrap gap-order-group-md lg:justify-self-end">
-          {invoiceUrl && (
+          {invoiceUrl !== null && invoiceUrl.length > 0 && (
             <LinkButton
               as={NextLink}
               href={invoiceUrl}
@@ -94,172 +94,34 @@ export function AccountOrderGroup({
               theme="outlined"
               variant="secondary"
             >
-              {tAuth("account.orders.view_invoice")}
+              {t("account.orders.view_invoice")}
             </LinkButton>
           )}
           <LinkButton
             as={NextLink}
             href={detailHref}
-            onFocus={() => {
-              onPrefetchOrderDetail(order.id)
-            }}
-            onMouseEnter={() => {
-              onPrefetchOrderDetail(order.id)
-            }}
+            onFocus={prefetch}
+            onMouseEnter={prefetch}
             size="sm"
             variant="secondary"
           >
-            {tAuth("account.orders.view_order")}
+            {t("account.orders.view_order")}
           </LinkButton>
         </div>
       </header>
-
       <div
-        className={`hidden px-order-group-3xl py-order-group-lg text-order-group-fg-tertiary text-order-group-tertiary-size uppercase tracking-wide lg:col-span-3 lg:grid lg:items-center lg:gap-order-group-column ${desktopGridColumns} ${desktopSubgridColumns}`}
+        className={`hidden px-order-group-3xl py-order-group-lg text-order-group-fg-tertiary text-order-group-tertiary-size uppercase tracking-wide lg:col-span-3 lg:grid lg:items-center lg:gap-order-group-column ${gridColumns} ${subgrid}`}
       >
-        <p>{tAuth("account.orders.product")}</p>
-        <p className="text-start">{tAuth("account.orders.price")}</p>
-        <p className="pr-500 text-end">{tAuth("account.orders.info")}</p>
+        <p>{t("account.orders.product")}</p>
+        <p className="text-start">{t("account.orders.price")}</p>
+        <p className="pr-500 text-end">{t("account.orders.info")}</p>
       </div>
-
-      {orderItems.length > 0 ? (
-        <ul
-          className={`hidden lg:col-span-3 lg:grid ${desktopGridColumns} ${desktopSubgridColumns}`}
-        >
-          {orderItems.map((item) => {
-            const itemQuantity = resolveOrderItemQuantity(item)
-            const lineTotal = resolveOrderItemTotalAmount(item)
-
-            return (
-              <li
-                className={`border-order-group-border border-t px-order-group-3xl py-order-group-3xl lg:col-span-3 lg:grid lg:items-start lg:gap-order-group-column ${desktopGridColumns} ${desktopSubgridColumns}`}
-                key={item.id}
-              >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-order-group-lg">
-                    {item.thumbnail ? (
-                      <NextImage
-                        alt={
-                          item.title ?? tAuth("account.orders.product_fallback")
-                        }
-                        className="object-cover"
-                        height={32}
-                        loading="lazy"
-                        src={item.thumbnail}
-                        width={32}
-                      />
-                    ) : null}
-
-                    <div className="min-w-0">
-                      <p className="line-clamp-2 font-medium text-order-group-fg-primary text-order-group-secondary-size">
-                        {item.title ?? "-"}
-                      </p>
-                      {item.variant_title ? (
-                        <p className="line-clamp-1 text-order-group-fg-secondary text-order-group-tertiary-size">
-                          {item.variant_title}
-                        </p>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="min-w-fit text-start lg:justify-self-start">
-                  <p className="font-medium text-order-group-fg-primary text-order-group-secondary-size">
-                    {formatOrderAmount(lineTotal, order.currency_code)}
-                  </p>
-                  <p className="text-order-group-fg-secondary text-order-group-secondary-size">
-                    {tAuth("account.orders.quantity_value", {
-                      count: itemQuantity,
-                    })}
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-end lg:justify-self-end">
-                  <LinkButton
-                    as={NextLink}
-                    href={`/p/${item.product_handle}`}
-                    onFocus={() => {
-                      onPrefetchOrderDetail(order.id)
-                    }}
-                    onMouseEnter={() => {
-                      onPrefetchOrderDetail(order.id)
-                    }}
-                    size="sm"
-                    theme="outlined"
-                    variant="secondary"
-                  >
-                    {tAuth("account.orders.product_detail")}
-                  </LinkButton>
-                </div>
-              </li>
-            )
-          })}
-        </ul>
-      ) : (
-        <p className="hidden border-order-group-border border-t px-order-group-3xl py-order-group-3xl text-order-group-fg-secondary text-order-group-secondary-size lg:col-span-3 lg:block">
-          {tAuth("account.orders.no_items")}
-        </p>
-      )}
-
-      <div className="p-order-group-order-group-2xl lg:hidden">
-        {orderItems.length > 0 ? (
-          orderItems.map((item) => {
-            const itemQuantity = resolveOrderItemQuantity(item)
-            const lineTotal = resolveOrderItemTotalAmount(item)
-
-            return (
-              <article
-                className="rounded-order-group-md border border-order-group-border bg-order-group-overlay p-order-group-xl"
-                key={item.id}
-              >
-                <div className="flex items-start gap-order-group-lg">
-                  {item.thumbnail ? (
-                    <NextImage
-                      alt={
-                        item.title ?? tAuth("account.orders.product_fallback")
-                      }
-                      className="shrink-0 object-cover"
-                      height={32}
-                      loading="lazy"
-                      src={item.thumbnail}
-                      width={32}
-                    />
-                  ) : null}
-
-                  <div className="min-w-0 flex-1 space-y-order-group-md">
-                    <div className="flex items-start justify-between gap-order-group-lg">
-                      <div className="min-w-0">
-                        <p className="line-clamp-2 font-medium text-order-group-fg-primary text-order-group-secondary-size">
-                          {item.title ?? "-"}
-                        </p>
-                        {item.variant_title && (
-                          <p className="text-order-group-fg-secondary text-order-group-tertiary-size">
-                            {item.variant_title}
-                          </p>
-                        )}
-                      </div>
-
-                      <p className="shrink-0 font-semibold text-order-group-fg-primary text-order-group-secondary-size">
-                        {formatOrderAmount(lineTotal, order.currency_code)}
-                      </p>
-                    </div>
-
-                    <p className="text-order-group-fg-secondary text-order-group-tertiary-size">
-                      {tAuth("account.orders.quantity_value", {
-                        count: itemQuantity,
-                      })}
-                    </p>
-                  </div>
-                </div>
-              </article>
-            )
-          })
-        ) : (
-          <p className="text-order-group-fg-secondary text-order-group-secondary-size">
-            {tAuth("account.orders.no_items")}
-          </p>
-        )}
-      </div>
+      <AccountOrderGroupItems
+        currencyCode={order.currency_code}
+        items={items}
+        onPrefetch={prefetch}
+        t={t}
+      />
     </article>
   )
 }

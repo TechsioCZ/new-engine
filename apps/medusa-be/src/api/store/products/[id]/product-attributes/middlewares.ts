@@ -1,8 +1,6 @@
 import { validateAndTransformQuery } from "@medusajs/framework"
-import {
-  applyDefaultFilters,
-  type MiddlewareRoute,
-} from "@medusajs/framework/http"
+import { applyDefaultFilters } from "@medusajs/framework/http"
+import type { MiddlewareRoute } from "@medusajs/framework/http"
 import { ProductStatus } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
 import { filterByValidSalesChannels } from "@medusajs/medusa/api/utils/middlewares/products/filter-by-valid-sales-channels"
@@ -23,8 +21,8 @@ export type StoreProductAttributesQuery = z.infer<
 
 export const storeProductAttributesRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["GET"],
     matcher: "/store/products/:id/product-attributes",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(StoreProductAttributesQuerySchema, {
         isList: true,

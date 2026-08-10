@@ -1,8 +1,9 @@
 import { Table } from "@techsio/ui-kit/organisms/table"
+import type { ReactNode } from "react"
 
-export type ProductTableRowProps = {
+export interface ProductTableRowProps {
   key: string
-  value?: string | number | null
+  value?: ReactNode
 }
 
 export const ProductTable = ({ rows }: { rows: ProductTableRowProps[] }) => (

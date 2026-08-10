@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from '@storybook/react'
+import type { Meta, StoryObj } from "@storybook/react"
 
 /**
  * Per-component changelog for `@techsio/ui-kit`, rendered in Storybook.
@@ -11,6 +11,153 @@ import type { Meta, StoryObj } from '@storybook/react'
  */
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
+
+### SafeHtml v1.0.0
+- Added a fail-closed rich-text atom that sanitizes, parses, and validates explicit app tag/attribute policies into SSR-stable React nodes without dangerous HTML injection.
+
+### Combobox v1.1.0
+- Exported the canonical Zag-backed \`useCombobox\` headless hook for grouped rich linked suggestions while preserving the existing styled component on the same machine owner.
+
+### SearchForm v1.1.0
+- Composed external machine input and clear handlers before SearchForm context updates so headless widgets retain one controlled value and all keyboard/pointer behavior.
+
+### FormNumericInput v1.0.2
+- Simplified falsy help-text detection to target-compatible boolean coercion so ES2017 consumers compile without changing rendering behavior.
+
+### Accordion v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
+
+### ActionIcon v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Badge v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Breadcrumb v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
+
+### Button v0.3.3
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Carousel v2.0.0
+- Made slide sources and image props follow the concrete renderer type, rejecting cross-renderer prop widening while keeping \`alt\` and \`src\` authoritative.
+
+### Checkbox v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### ColorSelect v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Combobox v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Dialog v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Footer v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
+
+### FormCheckbox v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### FormInput v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### FormNumericInput v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### FormTextarea v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Gallery v2.0.0
+- Made gallery items, thumbnails, callbacks, and compound slide renderers preserve one concrete image type; custom compound renderers now require matching item data.
+
+### Header v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Icon v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Image v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Input v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Label v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Link v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### LinkButton v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Menu v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### NumericInput v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Pagination v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### PhoneInput v2.0.0
+- Narrowed \`PhoneInputCountry\` to its supported country fields; arbitrary custom properties are no longer part of the public item contract.
+
+### Popover v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
+
+### ProductCard v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
+
+### RadioCard v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
+
+### RadioGroup v1.0.3
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
+
+### Rating v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### SearchForm v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
+
+### Select v2.0.0
+- Narrowed \`SelectItem\` to the fields consumed by Select and bound the Zag collection to that public type; arbitrary custom item properties are no longer supported.
+
+### Skeleton v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Slider v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### StatusText v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Steps v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
+
+### Switch v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Table v1.0.2
+- Exported the existing compound component prop interfaces so generated Storybook and package declarations can name the public Table type surface without changing runtime behavior.
+
+### Tabs v1.0.2
+- Emitted compound members as callable properties so downstream JSX type-aware lint recognizes them as components without changing runtime behavior, refs, or accessibility.
+
+### Textarea v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Toast v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### Tooltip v1.0.1
+- Cumulative quality-enforcement remediation refactored internals for strict lint and type safety while preserving the component’s public behavior and accessibility contract.
+
+### TreeView v2.0.0
+- Narrowed \`TreeNode\` to the fields consumed by TreeView; app-domain properties must remain in the owning application model and be resolved by node ID.
 
 ### Button v0.3.2
 - Introduced per-component versioning: the component now carries \`@componentVersion\` + \`@skill\`,
@@ -150,23 +297,21 @@ const CHANGELOG = `
 - Opted into per-component versioning; paired 1:1 with the tree-view-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 `.trim()
 
-function Changelog() {
-  return (
-    <div className="min-h-screen bg-base p-400">
-      <div className="mx-auto max-w-container rounded-2xl bg-surface p-300 shadow-2">
-        <pre className="whitespace-pre-wrap font-sans text-fg-primary text-sm leading-relaxed">
-          {CHANGELOG}
-        </pre>
-      </div>
+const Changelog = () => (
+  <div className="min-h-screen bg-base p-400">
+    <div className="mx-auto max-w-max-w rounded-2xl bg-surface p-300 shadow-primary">
+      <pre className="font-sans text-sm leading-relaxed whitespace-pre-wrap text-fg-primary">
+        {CHANGELOG}
+      </pre>
     </div>
-  )
-}
+  </div>
+)
 
 const meta: Meta<typeof Changelog> = {
-  title: 'Guide/Changelog',
   component: Changelog,
-  tags: ['autodocs'],
-  parameters: { layout: 'fullscreen' },
+  parameters: { layout: "fullscreen" },
+  tags: ["autodocs"],
+  title: "Guide/Changelog",
 }
 
 export default meta

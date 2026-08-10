@@ -1,19 +1,20 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Table } from "@techsio/ui-kit/organisms/table"
 import { useTranslations } from "next-intl"
+
 import {
   formatOrderAmount,
   resolveOrderItemQuantity,
   resolveOrderItemTotalAmount,
 } from "@/lib/storefront/order-format"
 
-type AccountOrderDetailItemsProps = {
+interface AccountOrderDetailItemsProps {
   order: HttpTypes.StoreOrder
 }
 
-export function AccountOrderDetailItems({
+export const AccountOrderDetailItems = ({
   order,
-}: AccountOrderDetailItemsProps) {
+}: AccountOrderDetailItemsProps) => {
   const tAuth = useTranslations("auth")
   const orderItems = order.items ?? []
 
@@ -95,11 +96,12 @@ export function AccountOrderDetailItems({
                 <p className="font-medium text-fg-primary text-sm">
                   {item.title ?? "-"}
                 </p>
-                {item.variant_title && (
-                  <p className="text-fg-secondary text-xs">
-                    {item.variant_title}
-                  </p>
-                )}
+                {item.variant_title !== null &&
+                  item.variant_title.length > 0 && (
+                    <p className="text-fg-secondary text-xs">
+                      {item.variant_title}
+                    </p>
+                  )}
                 <div className="grid grid-cols-2 gap-150 text-xs">
                   <p className="text-fg-secondary">
                     {tAuth("account.orders.quantity_value", {

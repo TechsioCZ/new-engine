@@ -1,100 +1,88 @@
-import {
-  isPresent,
-  remoteQueryObjectFromString,
-} from "@medusajs/framework/utils"
+import type {
+  FilterableProductProps,
+  FilterableProductVariantProps,
+  RemoteQueryFunction,
+  RemoteQueryInput,
+} from "@medusajs/framework/types"
 
-type ProductFilters = Record<string, unknown>
-type QueryLike = {
-  graph: (config: {
-    entity: string
-    fields: string[]
-    filters?: Record<string, unknown>
-  }) => Promise<{
-    data?: Record<string, unknown>[]
-  }>
-}
-type RemoteQueryLike = (query: unknown) => Promise<Record<string, unknown>[]>
+type ProductIdFilter = NonNullable<FilterableProductProps["id"]>
+type ProductQueryFilters = NonNullable<RemoteQueryInput<"product">["filters"]>
 
-const isRecord = (value: unknown): value is ProductFilters =>
-  Boolean(value) && typeof value === "object" && !Array.isArray(value)
+type ProductVariantFilters = NonNullable<FilterableProductProps["variants"]> &
+  Pick<FilterableProductVariantProps, "id">
 
-const asArray = (value: unknown): unknown[] =>
+export type ProductFilters = Omit<
+  ProductQueryFilters,
+  "id" | "q" | "variants"
+> &
+  Pick<FilterableProductProps, "q"> & {
+    id?: ProductIdFilter
+    price_list_id?: string | string[] | undefined
+    sales_channel_id?: string | string[] | undefined
+    variants?: ProductVariantFilters
+  }
+
+const asArray = (value: string | string[]): string[] =>
   Array.isArray(value) ? value : [value]
 
 export const normalizeProductSalesChannelFilter = async (
-  query: QueryLike,
-  remoteQuery: RemoteQueryLike,
-  filterableFields: ProductFilters
+  remoteQuery: RemoteQueryFunction,
+  filterableFields: ProductFilters,
 ): Promise<ProductFilters> => {
-  let filters = { ...filterableFields }
+  const {
+    price_list_id: priceListId,
+    sales_channel_id: salesChannelId,
+    ...baseFilters
+  } = filterableFields
+  const { id: productId, ...filtersWithoutId } = baseFilters
+  let filters: ProductFilters =
+    productId === undefined
+      ? filtersWithoutId
+      : { ...filtersWithoutId, id: productId }
 
-  if (isPresent(filters.price_list_id)) {
-    const priceListIds = asArray(filters.price_list_id)
-    const { price_list_id: _priceListId, ...filtersWithoutPriceListId } =
-      filters
-    filters = filtersWithoutPriceListId
-
-    const queryObject = remoteQueryObjectFromString({
-      entryPoint: "price",
+  if (priceListId !== undefined) {
+    const { data: prices } = await remoteQuery.graph({
+      entity: "price",
       fields: ["price_set.variant.id"],
-      variables: {
-        filters: { price_list_id: priceListIds },
+      filters: { price_list_id: asArray(priceListId) },
+    })
+    const variantIds = prices.flatMap((price) =>
+      price.price_set?.variant === null ||
+      price.price_set?.variant === undefined
+        ? []
+        : [price.price_set.variant.id],
+    )
+
+    filters = {
+      ...filters,
+      variants: {
+        ...filters.variants,
+        id: [...new Set(variantIds)],
       },
-    })
-
-    const prices = await remoteQuery(queryObject)
-    const variantIds = prices.flatMap((price) => {
-      const priceSet = price.price_set
-      if (!isRecord(priceSet)) {
-        return []
-      }
-
-      const variant = priceSet.variant
-      if (!isRecord(variant) || typeof variant.id !== "string") {
-        return []
-      }
-
-      return [variant.id]
-    })
-
-    filters.variants = {
-      ...(isRecord(filters.variants) ? filters.variants : {}),
-      id: Array.from(new Set(variantIds)),
     }
   }
 
-  if (!isPresent(filters.sales_channel_id)) {
+  if (salesChannelId === undefined) {
     return filters
   }
 
-  const salesChannelIds = asArray(filters.sales_channel_id)
-  const { sales_channel_id: _salesChannelId, ...filtersWithoutSalesChannelId } =
-    filters
-  filters = filtersWithoutSalesChannelId
-
-  const linkFilters: ProductFilters = {
-    sales_channel_id: salesChannelIds,
-  }
-
-  if (isPresent(filters.id)) {
-    linkFilters.product_id = filters.id
-  }
-
-  const { data: links = [] } = await query.graph({
+  const filteredProductId = filters.id
+  const linkFilters: NonNullable<
+    RemoteQueryInput<"product_sales_channel">["filters"]
+  > =
+    filteredProductId === undefined
+      ? { sales_channel_id: asArray(salesChannelId) }
+      : {
+          product_id: filteredProductId,
+          sales_channel_id: asArray(salesChannelId),
+        }
+  const { data: links } = await remoteQuery.graph({
     entity: "product_sales_channel",
     fields: ["product_id"],
     filters: linkFilters,
   })
-
-  filters.id = links
-    .map((link) => link.product_id)
-    .filter((id): id is string => typeof id === "string")
-
-  if (isRecord(filters.sales_channels)) {
-    const { sales_channels: _salesChannels, ...filtersWithoutSalesChannels } =
-      filters
-    filters = filtersWithoutSalesChannels
+  return {
+    ...filters,
+    id: links.map((link) => link.product_id),
   }
-
-  return filters
 }

@@ -2,37 +2,49 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
+import { MedusaError } from "@medusajs/framework/utils"
+import { getErrorMessage, isRecord, getRecordValue } from "@techsio/std/object"
+
 import type { AdminUpdateApproval } from "../../../../types/approval/http"
 import { requirePathParam } from "../../../../utils/path-params"
-import { updateApprovalsWorkflow } from "../../../../workflows/approval/workflows"
+import { updateApprovalsWorkflow } from "../../../../workflows/approval/workflows/update-approval"
 
-export const POST = async (
+const updateApproval = async (
   req: AuthenticatedMedusaRequest<AdminUpdateApproval>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
-  const { user_id } = req.auth_context.app_metadata as {
-    user_id: string
+  const appMetadata: unknown = req.auth_context.app_metadata
+  const userId: unknown = isRecord(appMetadata)
+    ? getRecordValue(appMetadata, "user_id")
+    : undefined
+  if (typeof userId !== "string" || userId.length === 0) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_ALLOWED,
+      "Approval updates require an authenticated admin user.",
+    )
   }
-
-  const approvalId = requirePathParam(req.params.id, "Approval id")
+  const approvalId = requirePathParam(req.params["id"], "Approval id")
   const { status } = req.validatedBody
 
   const { result: approval, errors } = await updateApprovalsWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: {
-      status,
-      handled_by: user_id,
+      handled_by: userId,
       id: approvalId,
+      status,
     },
   })
 
   if (errors.length > 0) {
+    const workflowError: unknown = errors[0]?.error
     res.status(400).json({
-      message: errors[0]?.error.message,
       code: "INVALID_DATA",
+      message: getErrorMessage(workflowError),
     })
     return
   }
   res.json({ approval })
 }
+
+export { updateApproval as POST }

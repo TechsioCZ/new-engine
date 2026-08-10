@@ -10,23 +10,25 @@ interface CliArgs {
   allowProdBroadGrants: boolean
 }
 
-function printUsage(): void {
+const printUsage = (): void => {
   console.error("Usage:")
   console.error(
     "  bun src/cli.ts create-dev-user --username <name> --password-env <ENV_VAR> [--no-grant-connect-all-dbs] [--allow-prod-broad-grants]",
   )
-  console.error("  plaintext --password is not supported; provide the password via environment variable")
+  console.error(
+    "  plaintext --password is not supported; provide the password via environment variable",
+  )
 }
 
-function readFlagValue(args: string[], index: number, flag: string): string {
+const readFlagValue = (args: string[], index: number, flag: string): string => {
   const value = args[index + 1]
-  if (!value || value.startsWith("--")) {
+  if (value === undefined || value === "" || value.startsWith("--")) {
     throw new BadRequestError(`${flag} requires a value`)
   }
   return value
 }
 
-function parseCreateDevUserArgs(args: string[]): CliArgs {
+const parseCreateDevUserArgs = (args: string[]): CliArgs => {
   let username = ""
   let passwordEnvVar = ""
   let grantConnectToAllDatabases = true
@@ -37,37 +39,27 @@ function parseCreateDevUserArgs(args: string[]): CliArgs {
     if (arg === "--username") {
       username = readFlagValue(args, index, "--username")
       index += 1
-      continue
-    }
-
-    if (arg === "--password-env") {
+    } else if (arg === "--password-env") {
       passwordEnvVar = readFlagValue(args, index, "--password-env")
       index += 1
-      continue
-    }
-
-    if (arg === "--password") {
-      throw new BadRequestError("plaintext --password is not supported; use --password-env <ENV_VAR>")
-    }
-
-    if (arg === "--no-grant-connect-all-dbs") {
+    } else if (arg === "--password") {
+      throw new BadRequestError(
+        "plaintext --password is not supported; use --password-env <ENV_VAR>",
+      )
+    } else if (arg === "--no-grant-connect-all-dbs") {
       grantConnectToAllDatabases = false
-      continue
-    }
-
-    if (arg === "--allow-prod-broad-grants") {
+    } else if (arg === "--allow-prod-broad-grants") {
       allowProdBroadGrants = true
-      continue
+    } else {
+      throw new BadRequestError(`unknown argument: ${arg}`)
     }
-
-    throw new BadRequestError(`unknown argument: ${arg}`)
   }
 
-  if (!username) {
+  if (username === "") {
     throw new BadRequestError("--username is required")
   }
 
-  if (!passwordEnvVar) {
+  if (passwordEnvVar === "") {
     throw new BadRequestError("--password-env is required")
   }
 
@@ -85,17 +77,21 @@ function parseCreateDevUserArgs(args: string[]): CliArgs {
   }
 
   return {
-    username,
-    password,
-    grantConnectToAllDatabases,
     allowProdBroadGrants,
+    grantConnectToAllDatabases,
+    password,
+    username,
   }
 }
 
-async function runCreateDevUser(args: string[]): Promise<void> {
+const runCreateDevUser = async (args: string[]): Promise<void> => {
   const parsed = parseCreateDevUserArgs(args)
   const isProduction = process.env.NODE_ENV === "production"
-  if (isProduction && parsed.grantConnectToAllDatabases && !parsed.allowProdBroadGrants) {
+  if (
+    isProduction &&
+    parsed.grantConnectToAllDatabases &&
+    !parsed.allowProdBroadGrants
+  ) {
     throw new BadRequestError(
       "broad cross-database grants are blocked in production by default; use --no-grant-connect-all-dbs or explicitly pass --allow-prod-broad-grants",
     )
@@ -103,32 +99,34 @@ async function runCreateDevUser(args: string[]): Promise<void> {
 
   const databaseUrl = buildPostgresConnectionUrl(process.env)
   const sql = new SQL({
-    url: databaseUrl,
-    max: 2,
-    idleTimeout: 10,
     connectionTimeout: 10,
+    idleTimeout: 10,
+    max: 2,
+    url: databaseUrl,
   })
 
   try {
     await sql.connect()
     const result = await createOrUpdateDevRole(sql, {
-      username: parsed.username,
-      password: parsed.password,
       databaseUrl,
       grantConnectToAllDatabases: parsed.grantConnectToAllDatabases,
+      password: parsed.password,
+      username: parsed.username,
     })
 
     console.info(
       JSON.stringify({
-        event: "cli.create-dev-user",
-        username: result.username,
-        created: result.created,
+        connect_grant_scope: parsed.grantConnectToAllDatabases
+          ? "all_non_template_databases"
+          : "none",
         connect_grants_applied: result.connectGrantsApplied,
         connect_grants_revoked: result.connectGrantsRevoked,
-        schema_grants_applied: result.schemaGrantsApplied,
+        created: result.created,
         default_privilege_owners_applied: result.defaultPrivilegeOwnersApplied,
         default_privilege_owners_skipped: result.defaultPrivilegeOwnersSkipped,
-        connect_grant_scope: parsed.grantConnectToAllDatabases ? "all_non_template_databases" : "none",
+        event: "cli.create-dev-user",
+        schema_grants_applied: result.schemaGrantsApplied,
+        username: result.username,
       }),
     )
   } finally {
@@ -136,7 +134,7 @@ async function runCreateDevUser(args: string[]): Promise<void> {
   }
 }
 
-async function main(argv: string[]): Promise<void> {
+const main = async (argv: string[]): Promise<void> => {
   const [command, ...args] = argv
   if (command !== "create-dev-user") {
     printUsage()

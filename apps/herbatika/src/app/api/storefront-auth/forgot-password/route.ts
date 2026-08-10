@@ -1,31 +1,34 @@
+import { isRecord, getRecordValue } from "@techsio/std/object"
 import { NextResponse } from "next/server"
+
 import {
   badRequest,
   buildErrorResponse,
   buildMedusaUrl,
   serverError,
-} from "../_lib"
+} from "../auth-route-utils"
 
-type ForgotPasswordBody = {
-  email?: string
-}
-
-type ForgotPasswordResponse = {
+interface ForgotPasswordResponse {
   success: true
 }
 
-export async function POST(request: Request) {
-  let body: ForgotPasswordBody
+const post = async (request: Request) => {
+  let body: unknown
 
   try {
-    body = (await request.json()) as ForgotPasswordBody
+    body = await request.json()
   } catch {
     return badRequest("Telo požiadavky musí byť platné JSON.")
   }
 
-  const email = body.email?.trim()
+  if (!isRecord(body)) {
+    return badRequest("Telo požiadavky musí byť objekt JSON.")
+  }
 
-  if (!email) {
+  const emailValue = getRecordValue(body, "email")
+  const email = typeof emailValue === "string" ? emailValue.trim() : undefined
+
+  if ((email ?? "").length <= 0) {
     return badRequest("E-mail je povinný.")
   }
 
@@ -33,25 +36,25 @@ export async function POST(request: Request) {
     const medusaResponse = await fetch(
       buildMedusaUrl("/auth/customer/emailpass/reset-password"),
       {
-        method: "POST",
-        headers: {
-          accept: "text/plain",
-          "content-type": "application/json",
-        },
         body: JSON.stringify({
           identifier: email,
         }),
         cache: "no-store",
-      }
+        headers: {
+          accept: "text/plain",
+          "content-type": "application/json",
+        },
+        method: "POST",
+      },
     )
 
     if (!medusaResponse.ok) {
-      return buildErrorResponse(medusaResponse)
+      return await buildErrorResponse(medusaResponse)
     }
 
     return NextResponse.json<ForgotPasswordResponse>(
       { success: true },
-      { status: 200 }
+      { status: 200 },
     )
   } catch (error) {
     return serverError("Nepodarilo sa odoslať odkaz na obnovu hesla.", {
@@ -59,3 +62,5 @@ export async function POST(request: Request) {
     })
   }
 }
+
+export { post as POST }

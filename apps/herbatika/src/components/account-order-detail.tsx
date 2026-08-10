@@ -2,35 +2,36 @@
 
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+
 import { AccountSurface } from "@/components/account/account-surface"
 import { AccountOrderDetailItems } from "@/components/account/orders/account-order-detail-items"
 import { AccountOrderDetailSummary } from "@/components/account/orders/account-order-detail-summary"
+import NextLink from "@/components/app-link"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import { OrderSkeleton } from "@/components/loading/order-skeleton"
 import { useAuth } from "@/lib/storefront/auth"
 import { resolveOrderDisplayId } from "@/lib/storefront/order-format"
 import { useOrder } from "@/lib/storefront/orders"
 
-type AccountOrderDetailProps = {
+interface AccountOrderDetailProps {
   orderId: string
 }
 
-export function AccountOrderDetail({ orderId }: AccountOrderDetailProps) {
+export const AccountOrderDetail = ({ orderId }: AccountOrderDetailProps) => {
   const tAuth = useTranslations("auth")
   const tNavigation = useTranslations("navigation")
   const authQuery = useAuth()
   const orderQuery = useOrder({
-    id: orderId,
     enabled: authQuery.isAuthenticated,
+    id: orderId,
   })
 
   if (authQuery.isLoading || orderQuery.isLoading) {
     return <OrderSkeleton />
   }
 
-  if (orderQuery.error) {
+  if (orderQuery.error !== null && orderQuery.error.length > 0) {
     return (
       <AccountSurface className="space-y-400">
         <StatusText showIcon status="error">
@@ -69,24 +70,26 @@ export function AccountOrderDetail({ orderId }: AccountOrderDetailProps) {
     )
   }
 
-  const order = orderQuery.order
+  const { order } = orderQuery
 
   return (
     <div className="space-y-400">
       <HerbatikaBreadcrumb
         items={[
-          { label: tNavigation("breadcrumbs.home"), href: "/" },
-          { label: tAuth("account_label"), href: "/account" },
+          { href: "/", label: tNavigation("breadcrumbs.home") },
+          { href: "/account", label: tAuth("account_label") },
           {
-            label: tAuth("account.navigation.orders"),
             href: "/account/orders",
+            label: tAuth("account.navigation.orders"),
           },
           { label: resolveOrderDisplayId(order) },
         ]}
       />
 
       <AccountOrderDetailSummary
-        customerEmail={authQuery.customer?.email}
+        {...(authQuery.customer?.email === undefined
+          ? {}
+          : { customerEmail: authQuery.customer?.email })}
         order={order}
       />
 

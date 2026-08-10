@@ -1,6 +1,6 @@
 import "server-only"
-
 import { dehydrate } from "@tanstack/react-query"
+
 import { buildCatalogProductsParams } from "../catalog-query-state"
 import {
   buildCategoryListParams,
@@ -18,19 +18,19 @@ import { getRegionServerContext } from "./context"
 
 export const prefetchCategoryPageStorefrontData = async (
   slug: string,
-  queryState: PlpQueryState
+  queryState: PlpQueryState,
 ) => {
   const { queryClient, region } = await getRegionServerContext()
 
   const categoryListParams = buildCategoryListParams({
-    page: 1,
-    limit: CATEGORY_TREE_LIMIT,
     fields: CATEGORY_TREE_FIELDS,
+    limit: CATEGORY_TREE_LIMIT,
+    page: 1,
   })
 
   const categoryResponse = await fetchServerCategories(
     queryClient,
-    categoryListParams
+    categoryListParams,
   )
 
   const activeCategory =
@@ -42,22 +42,24 @@ export const prefetchCategoryPageStorefrontData = async (
       activeCategory.id,
       ...collectDescendantCategoryIds(
         categoryResponse.categories,
-        activeCategory.id
+        activeCategory.id,
       ),
     ]
     const catalogListParams = buildCatalogProductsParams({
-      queryState,
       categoryIds,
       limit: PLP_PAGE_SIZE,
-      regionId: region.region_id,
-      countryCode: region.country_code,
+      queryState,
+      ...(region.region_id === undefined ? {} : { regionId: region.region_id }),
+      ...(region.country_code === undefined
+        ? {}
+        : { countryCode: region.country_code }),
     })
 
     await prefetchServerCatalogProducts(queryClient, catalogListParams)
   }
 
   return {
-    region,
     dehydratedState: dehydrate(queryClient),
+    region,
   }
 }

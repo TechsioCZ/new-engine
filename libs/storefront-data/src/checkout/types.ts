@@ -11,98 +11,95 @@ export type CheckoutMutationOptions<
   TContext = unknown,
 > = MutationOptions<TData, TVariables, TContext>
 
-export type ShippingOptionLike = {
+export interface ShippingOptionLike {
   id: string
   price_type?: string | null
   amount?: number | null
 }
 
-export type CheckoutCartLike = {
+export interface CheckoutCartLike {
   id: string
   region_id?: string | null
   shipping_methods?: {
     shipping_option_id?: string
-    data?: Record<string, unknown>
+    data?: object
   }[]
   payment_collection?: { payment_sessions?: unknown[] }
 }
 
-export type CheckoutShippingInputBase = {
+export interface CheckoutShippingInputBase {
   cartId?: string
   enabled?: boolean
   cacheKey?: string
 }
 
-export type CheckoutPaymentInputBase = {
+export interface CheckoutPaymentInputBase {
   cartId?: string
   regionId?: string
   enabled?: boolean
 }
 
-export type CheckoutService<
+export interface CheckoutService<
   TCart,
   TShippingOption,
   TPaymentProvider,
   TPaymentCollection,
   TCompleteResult,
-> = {
+> {
   listShippingOptions: (
     cartId: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TShippingOption[]>
   calculateShippingOption?: (
     optionId: string,
-    input: { cart_id: string; data?: Record<string, unknown> },
-    signal?: AbortSignal
+    input: { cart_id: string; data?: object },
+    signal?: AbortSignal,
   ) => Promise<TShippingOption>
   addShippingMethod: (
     cartId: string,
     optionId: string,
-    data?: Record<string, unknown>
+    data?: object,
   ) => Promise<TCart>
   listPaymentProviders: (
     regionId: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TPaymentProvider[]>
   initiatePaymentSession: (
     cartId: string,
     providerId: string,
-    cart?: TCart | null
+    cart?: TCart | null,
   ) => Promise<TPaymentCollection>
   completeCart?: (cartId: string) => Promise<TCompleteResult>
 }
 
-export type CheckoutQueryKeys = {
+export interface CheckoutQueryKeys {
   all: () => QueryKey
   shippingOptions: (cartId: string, cacheKey?: string) => QueryKey
   shippingOptionPrice: (params: {
     cartId: string
     optionId: string
-    data?: Record<string, unknown>
+    data?: object
   }) => QueryKey
   paymentProviders: (regionId: string) => QueryKey
 }
 
-export type UseCheckoutShippingResult<TShippingOption, TCart = unknown> = {
+export interface UseCheckoutShippingResult<TShippingOption, TCart = unknown> {
   shippingOptions: TShippingOption[]
   shippingPrices: Record<string, number>
   isLoading: boolean
   isFetching: boolean
   isCalculating: boolean
-  setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void
-  setShippingMethodAsync: (
-    optionId: string,
-    data?: Record<string, unknown>
-  ) => Promise<TCart>
+  setShippingMethod: (optionId: string, data?: object) => void
+  setShippingMethodAsync: (optionId: string, data?: object) => Promise<TCart>
   isSettingShipping: boolean
   selectedShippingMethodId?: string
-  selectedShippingMethodData?: Record<string, unknown>
+  selectedShippingMethodData?: object
   selectedOption?: TShippingOption
 }
-export type UseCheckoutPaymentResult<
+export interface UseCheckoutPaymentResult<
   TPaymentProvider,
   TPaymentCollection = unknown,
-> = {
+> {
   paymentProviders: TPaymentProvider[]
   initiatePayment: (providerId: string) => void
   initiatePaymentAsync: (providerId: string) => Promise<TPaymentCollection>

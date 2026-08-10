@@ -1,18 +1,25 @@
 "use client"
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea"
-import { type SelectItem } from "@techsio/ui-kit/molecules/select"
+import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
 import { slugify } from "@techsio/ui-kit/utils"
 import Image from "next/image"
+
 import { contactContent } from "@/data/contact-content"
 import { useContactForm } from "@/hooks/use-contact-form"
+
 import contactImage from "../../../assets/hero/contact.webp"
 
-export default function ContactPage() {
+const isIconType = (value: string): value is IconType =>
+  value.startsWith("token-icon-") ||
+  (value.startsWith("icon-[") && value.endsWith("]"))
+
+const ContactPage = () => {
   const { hero, form, info, help } = contactContent
   const { formData, updateField, handleSubmit, isSubmitting } = useContactForm()
   const subjectItems: SelectItem[] = form.subjects.map((subject) => ({
@@ -31,6 +38,7 @@ export default function ContactPage() {
           objectFit="cover"
           placeholder="blur"
           priority={true}
+          sizes="100vw"
           src={contactImage}
         />
         <div className="inset-0 mx-auto max-w-container-max px-container-x text-white">
@@ -62,9 +70,9 @@ export default function ContactPage() {
                   <FormInput
                     id="firstName"
                     label={form.labels.firstName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       updateField("firstName", e.target.value)
-                    }
+                    }}
                     required
                     size="sm"
                     value={formData.firstName}
@@ -72,9 +80,9 @@ export default function ContactPage() {
                   <FormInput
                     id="lastName"
                     label={form.labels.lastName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       updateField("lastName", e.target.value)
-                    }
+                    }}
                     required
                     size="sm"
                     value={formData.lastName}
@@ -82,9 +90,9 @@ export default function ContactPage() {
                   <FormInput
                     id="email"
                     label={form.labels.email}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       updateField("email", e.target.value)
-                    }
+                    }}
                     required
                     size="sm"
                     type="email"
@@ -93,9 +101,9 @@ export default function ContactPage() {
                   <FormInput
                     id="phone"
                     label={form.labels.phone}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                       updateField("phone", e.target.value)
-                    }
+                    }}
                     required
                     size="sm"
                     type="tel"
@@ -105,9 +113,16 @@ export default function ContactPage() {
                     <SelectTemplate
                       items={subjectItems}
                       label={form.labels.subject}
-                      onValueChange={(details) =>
-                        updateField("subject", details.value[0] || "general")
-                      }
+                      onValueChange={(details) => {
+                        const [selectedSubject] = details.value
+                        updateField(
+                          "subject",
+                          selectedSubject === undefined ||
+                            selectedSubject.length === 0
+                            ? "general"
+                            : selectedSubject,
+                        )
+                      }}
                       placeholder="Vyberte téma"
                       size="sm"
                       value={[formData.subject]}
@@ -117,9 +132,9 @@ export default function ContactPage() {
                     <FormTextarea
                       id="message"
                       label={form.labels.message}
-                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                      onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
                         updateField("message", e.target.value)
-                      }
+                      }}
                       required
                       rows={6}
                       size="sm"
@@ -145,34 +160,39 @@ export default function ContactPage() {
                 <h3 className="mb-contact-info-title-bottom font-contact-info-title text-contact-info-title-fg text-contact-info-title-size">
                   {info.title}
                 </h3>
-                {info.items.map((item) => (
-                  <div
-                    className="mb-contact-info-item-gap flex items-start space-x-contact-info-icon-gap"
-                    key={slugify(item.label)}
-                  >
-                    <Icon
-                      className="h-6 text-md"
-                      icon={item.icon as IconType}
-                    />
-                    <div>
-                      <p className="text-contact-info-text-fg text-contact-info-text-size">
-                        {item.label}
-                      </p>
-                      {item.link ? (
-                        <a
-                          className="text-contact-info-link-fg transition-colors hover:text-contact-info-link-fg-hover"
-                          href={item.link}
-                        >
-                          {item.value}
-                        </a>
-                      ) : (
-                        <p className="whitespace-pre-line text-contact-info-text-fg text-contact-info-text-size">
-                          {item.value}
+                {info.items.map((item) => {
+                  const icon = isIconType(item.icon)
+                    ? item.icon
+                    : "token-icon-info"
+                  const hasLink =
+                    item.link !== undefined && item.link.length > 0
+
+                  return (
+                    <div
+                      className="mb-contact-info-item-gap flex items-start space-x-contact-info-icon-gap"
+                      key={slugify(item.label)}
+                    >
+                      <Icon className="h-6 text-md" icon={icon} />
+                      <div>
+                        <p className="text-contact-info-text-fg text-contact-info-text-size">
+                          {item.label}
                         </p>
-                      )}
+                        {hasLink ? (
+                          <a
+                            className="text-contact-info-link-fg transition-colors hover:text-contact-info-link-fg-hover"
+                            href={item.link}
+                          >
+                            {item.value}
+                          </a>
+                        ) : (
+                          <p className="whitespace-pre-line text-contact-info-text-fg text-contact-info-text-size">
+                            {item.value}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
 
               {/* FAQ Link */}
@@ -200,3 +220,5 @@ export default function ContactPage() {
     </>
   )
 }
+
+export default ContactPage

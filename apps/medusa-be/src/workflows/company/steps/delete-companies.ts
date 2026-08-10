@@ -1,4 +1,5 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { COMPANY_MODULE } from "../../../modules/company"
 import type { ICompanyModuleService } from "../../../types"
 
@@ -21,5 +22,5 @@ export const deleteCompaniesStep = createStep(
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 
     await companyModule.restoreCompanies(companyIds)
-  }
+  },
 )

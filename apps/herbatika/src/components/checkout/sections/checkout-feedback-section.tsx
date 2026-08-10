@@ -1,26 +1,24 @@
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 
-type CheckoutFeedbackSectionProps = {
+interface CheckoutFeedbackSectionProps {
   cartError: string | null
   checkoutError: string | null
 }
 
-export function CheckoutFeedbackSection({
+export const CheckoutFeedbackSection = ({
   cartError,
   checkoutError,
-}: CheckoutFeedbackSectionProps) {
-  return (
-    <>
-      {checkoutError ? (
-        <StatusText showIcon status="error">
-          {checkoutError}
-        </StatusText>
-      ) : null}
-      {cartError ? (
-        <StatusText showIcon status="error">
-          {cartError}
-        </StatusText>
-      ) : null}
-    </>
-  )
-}
+}: CheckoutFeedbackSectionProps) => (
+  <>
+    {checkoutError !== null && checkoutError.length > 0 ? (
+      <StatusText showIcon status="error">
+        {checkoutError}
+      </StatusText>
+    ) : null}
+    {cartError !== null && cartError.length > 0 ? (
+      <StatusText showIcon status="error">
+        {cartError}
+      </StatusText>
+    ) : null}
+  </>
+)

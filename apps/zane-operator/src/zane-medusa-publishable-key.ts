@@ -1,81 +1,85 @@
+import { sleep } from "@techsio/std/async"
+import { z } from "zod"
+
 import { BadRequestError } from "./db"
 import type {
   ProvisionMedusaPublishableKeyInput,
   ProvisionMedusaPublishableKeyOutputInput,
+  ZaneEnvVariable,
+  ZaneServiceDetails,
 } from "./zane-contract"
 import { buildServicePublicUrls } from "./zane-effective-service-urls"
 import { UpstreamHttpError } from "./zane-errors"
-import { parseErrorMessage, type ZaneSession } from "./zane-upstream"
+import { parseErrorMessage } from "./zane-upstream"
+import type { ZaneSession } from "./zane-upstream"
 
-type ProvisionEnvironmentLookup = {
+const TEMPLATE_ENV_PATTERN = /^\{\{\s*env\.(?<envName>[A-Z0-9_]+)\s*\}\}$/u
+const TRAILING_SLASHES_PATTERN = /\/+$/u
+const LEADING_SLASHES_PATTERN = /^\/+/u
+
+interface ProvisionEnvironmentLookup {
   is_preview: boolean
   name: string
 }
 
-type MedusaProvisionServiceDetails = {
+interface MedusaProvisionServiceDetails {
+  env_variables: Pick<ZaneEnvVariable, "key" | "value">[]
+  environment?:
+    | {
+        variables?: Pick<ZaneEnvVariable, "key" | "value">[] | undefined
+      }
+    | null
+    | undefined
+  global_network_alias?: string | null | undefined
+  network_alias?: string | null | undefined
   slug: string
-  network_alias?: string | null
-  global_network_alias?: string | null
-  env_variables: Array<{
-    key: string
-    value: string
-  }>
-  system_env_variables?: Array<{
-    key: string
-    value: string
-  }>
-  environment?: {
-    variables?: Array<{
-      key: string
-      value: string
-    }>
-  } | null
-  urls: Array<{
-    domain: string
-    base_path: string
-    associated_port?: number | null
-  }>
+  system_env_variables?: Pick<ZaneEnvVariable, "key" | "value">[] | undefined
+  urls: Pick<
+    ZaneServiceDetails["urls"][number],
+    "associated_port" | "base_path" | "domain"
+  >[]
 }
 
-type ProvisionMedusaPublishableKeyDeps = {
-  authenticate(): Promise<ZaneSession>
-  getEnvironment(
-    session: ZaneSession,
-    projectSlug: string,
-    environmentName: string
-  ): Promise<ProvisionEnvironmentLookup | null>
-  getServiceDetails(
+interface ProvisionMedusaPublishableKeyDeps {
+  authenticate: () => Promise<ZaneSession>
+  getEnvironment: (
     session: ZaneSession,
     projectSlug: string,
     environmentName: string,
-    serviceSlug: string
-  ): Promise<MedusaProvisionServiceDetails>
+  ) => Promise<ProvisionEnvironmentLookup | null>
+  getServiceDetails: (
+    session: ZaneSession,
+    projectSlug: string,
+    environmentName: string,
+    serviceSlug: string,
+  ) => Promise<MedusaProvisionServiceDetails>
 }
 
-function resolveTemplateEnvValue(
+const resolveTemplateEnvValue = (
   serviceDetails: MedusaProvisionServiceDetails,
-  value: string
-): string {
-  const match = /^\{\{\s*env\.([A-Z0-9_]+)\s*\}\}$/.exec(value.trim())
+  value: string,
+): string => {
+  const match = TEMPLATE_ENV_PATTERN.exec(value.trim())
   if (!match) {
     return value
   }
 
+  const { envName } = match.groups ?? {}
   const environmentVariables = Array.isArray(
-    serviceDetails.environment?.variables
+    serviceDetails.environment?.variables,
   )
     ? serviceDetails.environment.variables
     : []
   const resolved = environmentVariables.find(
-    (envVar) => envVar.key === match[1]
+    (envVar) => envVar.key === envName,
   )?.value
   return typeof resolved === "string" && resolved.trim() ? resolved : value
 }
 
-function getServiceEnvValue(
+const getServiceEnvValue = (
   serviceDetails: MedusaProvisionServiceDetails,
-  keys: string[]
-): string | null {
+  keys: string[],
+): string | null => {
   const envVariables = [
     ...(Array.isArray(serviceDetails.env_variables)
       ? serviceDetails.env_variables
@@ -88,7 +92,7 @@ function getServiceEnvValue(
     envVariables.map((envVar) => [
       envVar.key,
       resolveTemplateEnvValue(serviceDetails, envVar.value),
-    ])
+    ]),
   )
 
   for (const key of keys) {
@@ -101,25 +105,30 @@ function getServiceEnvValue(
   return null
 }
 
-function parsePort(value: string | null): number | null {
-  if (!value?.trim()) {
+const parsePort = (value: string | null): number | null => {
+  if (value === null) {
     return null
   }
 
-  const parsed = Number.parseInt(value, 10)
+  const trimmed = value.trim()
+  if (trimmed === "") {
+    return null
+  }
+
+  const parsed = Math.trunc(Number(trimmed))
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null
 }
 
-function resolveServicePort(
-  serviceDetails: MedusaProvisionServiceDetails
-): number {
+const resolveServicePort = (
+  serviceDetails: MedusaProvisionServiceDetails,
+): number => {
   const envPort = parsePort(getServiceEnvValue(serviceDetails, ["PORT"]))
   if (envPort !== null) {
     return envPort
   }
 
   const urlPort = serviceDetails.urls.find(
-    (url) => typeof url.associated_port === "number"
+    (url) => typeof url.associated_port === "number",
   )?.associated_port
   if (typeof urlPort === "number" && urlPort > 0) {
     return urlPort
@@ -128,53 +137,66 @@ function resolveServicePort(
   return 9000
 }
 
-function buildServicePrivateUrl(
-  serviceDetails: MedusaProvisionServiceDetails
-): string | null {
+const resolveTrimmedField = (
+  value: string | null | undefined,
+): string | null => {
+  if (typeof value !== "string") {
+    return null
+  }
+  const trimmed = value.trim()
+  return trimmed === "" ? null : trimmed
+}
+
+const buildServicePrivateUrl = (
+  serviceDetails: MedusaProvisionServiceDetails,
+): string | null => {
+  const globalAlias = resolveTrimmedField(serviceDetails.global_network_alias)
+  const networkAlias = resolveTrimmedField(serviceDetails.network_alias)
+  const aliasDomain =
+    networkAlias === null ? null : `${networkAlias}.zaneops.internal`
   const privateDomain =
     getServiceEnvValue(serviceDetails, ["ZANE_GLOBAL_PRIVATE_DOMAIN"]) ??
-    (typeof serviceDetails.global_network_alias === "string" &&
-    serviceDetails.global_network_alias.trim()
-      ? serviceDetails.global_network_alias.trim()
-      : null) ??
+    globalAlias ??
     getServiceEnvValue(serviceDetails, ["ZANE_PRIVATE_DOMAIN"]) ??
-    (typeof serviceDetails.network_alias === "string" &&
-    serviceDetails.network_alias.trim()
-      ? `${serviceDetails.network_alias.trim()}.zaneops.internal`
-      : null)
-  if (!privateDomain) {
+    aliasDomain
+  if (privateDomain === null) {
     return null
   }
 
   return new URL(
     "/",
-    `http://${privateDomain}:${resolveServicePort(serviceDetails)}`
+    `http://${privateDomain}:${resolveServicePort(serviceDetails)}`,
   ).toString()
 }
 
-function resolveMedusaUrl(baseUrl: string, path: string): string {
+const resolveMedusaUrl = (baseUrl: string, path: string): string => {
   const serviceUrl = new URL(baseUrl)
-  const normalizedBasePath = serviceUrl.pathname.replace(/\/+$/, "")
+  const normalizedBasePath = serviceUrl.pathname.replace(
+    TRAILING_SLASHES_PATTERN,
+    "",
+  )
   serviceUrl.pathname = normalizedBasePath ? `${normalizedBasePath}/` : "/"
-  return new URL(path.replace(/^\/+/, ""), serviceUrl).toString()
+  return new URL(
+    path.replace(LEADING_SLASHES_PATTERN, ""),
+    serviceUrl,
+  ).toString()
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms)
-  })
-}
+const trimmedTokenSchema = z.string().trim().min(1)
 
-type AuthResponse = {
-  token: string
-}
+const authResponseSchema = z.object({
+  token: trimmedTokenSchema,
+})
 
-type PublishableKeyResponse = {
-  api_key: {
-    token: string
-  }
-  created: boolean
-}
+const publishableKeyResponseSchema = z.object({
+  api_key: z.object({
+    token: trimmedTokenSchema,
+  }),
+  created: z.preprocess((value) => value === true, z.boolean()),
+})
+
+type AuthResponse = z.infer<typeof authResponseSchema>
+type PublishableKeyResponse = z.infer<typeof publishableKeyResponseSchema>
 
 export class ZaneMedusaPublishableKeyProvisioner {
   readonly #deps: ProvisionMedusaPublishableKeyDeps
@@ -184,7 +206,7 @@ export class ZaneMedusaPublishableKeyProvisioner {
   }
 
   async provisionPublishableKey(
-    input: ProvisionMedusaPublishableKeyInput
+    input: ProvisionMedusaPublishableKeyInput,
   ): Promise<{
     project_slug: string
     environment_name: string
@@ -195,21 +217,22 @@ export class ZaneMedusaPublishableKeyProvisioner {
     frontend_created: boolean
     frontend_updated: boolean
   }> {
-    const frontendEnvVar = this.requireOutputEnvVar(
-      input.frontendOutput,
-      "frontend_output"
-    )
+    const frontendEnvVar =
+      ZaneMedusaPublishableKeyProvisioner.requireOutputEnvVar(
+        input.frontendOutput,
+        "frontend_output",
+      )
     const session = await this.#deps.authenticate()
     const environment = await this.#deps.getEnvironment(
       session,
       input.projectSlug,
-      input.environmentName
+      input.environmentName,
     )
     if (!environment) {
       throw new UpstreamHttpError(
         404,
         "zane_environment_not_found",
-        `Environment ${input.environmentName} does not exist in project ${input.projectSlug}`
+        `Environment ${input.environmentName} does not exist in project ${input.projectSlug}`,
       )
     }
 
@@ -217,16 +240,16 @@ export class ZaneMedusaPublishableKeyProvisioner {
       session,
       input.projectSlug,
       input.environmentName,
-      input.serviceSlug
+      input.serviceSlug,
     )
     const serviceUrls = buildServicePublicUrls(serviceDetails)
-    const publicMedusaUrl = serviceUrls[0]
+    const [publicMedusaUrl] = serviceUrls
     const medusaUrl = buildServicePrivateUrl(serviceDetails) ?? publicMedusaUrl
-    if (!medusaUrl) {
+    if (medusaUrl === undefined) {
       throw new UpstreamHttpError(
         409,
         "zane_medusa_url_missing",
-        `Service ${input.serviceSlug} does not expose an operator-reachable URL in ${input.projectSlug}/${input.environmentName}`
+        `Service ${input.serviceSlug} does not expose an operator-reachable URL in ${input.projectSlug}/${input.environmentName}`,
       )
     }
 
@@ -234,38 +257,51 @@ export class ZaneMedusaPublishableKeyProvisioner {
     const adminPassword = getServiceEnvValue(serviceDetails, [
       "SUPERADMIN_PASSWORD",
     ])
-    if (!(adminEmail && adminPassword)) {
+    if (adminEmail === null || adminPassword === null) {
       throw new UpstreamHttpError(
         409,
         "zane_medusa_admin_credentials_missing",
-        `Service ${input.serviceSlug} does not expose SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD in ${input.projectSlug}/${input.environmentName}`
+        `Service ${input.serviceSlug} does not expose SUPERADMIN_EMAIL and SUPERADMIN_PASSWORD in ${input.projectSlug}/${input.environmentName}`,
       )
     }
 
-    await this.waitForServiceHealth(medusaUrl, input.readinessPath)
-    const auth = await this.authenticateMedusaAdmin(
+    await ZaneMedusaPublishableKeyProvisioner.waitForServiceHealth(
       medusaUrl,
-      adminEmail,
-      adminPassword
+      input.readinessPath,
     )
-    const title = input.frontendOutput.policy.title?.trim() || undefined
-    const result = await this.requestPublishableKey(medusaUrl, auth.token, title)
+    const auth =
+      await ZaneMedusaPublishableKeyProvisioner.authenticateMedusaAdmin(
+        medusaUrl,
+        adminEmail,
+        adminPassword,
+      )
+    const trimmedTitle = input.frontendOutput.policy.title?.trim()
+    const title =
+      trimmedTitle === undefined || trimmedTitle === ""
+        ? undefined
+        : trimmedTitle
+    const result =
+      await ZaneMedusaPublishableKeyProvisioner.requestPublishableKey(
+        medusaUrl,
+        auth.token,
+        title,
+      )
 
     return {
-      project_slug: input.projectSlug,
       environment_name: input.environmentName,
-      service_slug: input.serviceSlug,
-      medusa_url: medusaUrl,
-      frontend_key: result.api_key.token,
-      frontend_env_var: frontendEnvVar,
       frontend_created: result.created,
+      frontend_env_var: frontendEnvVar,
+      frontend_key: result.api_key.token,
       frontend_updated: false,
+      medusa_url: medusaUrl,
+      project_slug: input.projectSlug,
+      service_slug: input.serviceSlug,
     }
   }
 
-  private requireOutputEnvVar(
+  private static requireOutputEnvVar(
     output: ProvisionMedusaPublishableKeyOutputInput,
-    label: string
+    label: string,
   ): string {
     if (!output.envVar.trim()) {
       throw new BadRequestError(`${label}.envVar must be provided`)
@@ -274,46 +310,71 @@ export class ZaneMedusaPublishableKeyProvisioner {
     return output.envVar.trim()
   }
 
-  private async waitForServiceHealth(
-    medusaUrl: string,
-    healthPath: string
-  ): Promise<void> {
-    const healthUrl = resolveMedusaUrl(medusaUrl, healthPath)
-    for (let attempt = 0; attempt < 30; attempt += 1) {
-      const response = await fetch(healthUrl, {
-        method: "GET",
+  private static async pollMedusaHealth(
+    healthUrl: string,
+    attempt: number,
+  ): Promise<boolean> {
+    if (attempt >= 30) {
+      return false
+    }
+
+    let response: Response | null = null
+    try {
+      response = await fetch(healthUrl, {
         headers: {
           Accept: "application/json",
         },
-      }).catch(() => null)
-
-      if (response?.ok) {
-        return
-      }
-
-      await sleep(2000)
+        method: "GET",
+      })
+    } catch {
+      response = null
     }
 
-    throw new UpstreamHttpError(
-      504,
-      "zane_medusa_unhealthy",
-      `Timed out waiting for Medusa health at ${healthUrl}`
+    if (response !== null && response.ok) {
+      return true
+    }
+
+    await sleep(2000)
+    return await ZaneMedusaPublishableKeyProvisioner.pollMedusaHealth(
+      healthUrl,
+      attempt + 1,
     )
   }
 
-  private async authenticateMedusaAdmin(
+  private static async waitForServiceHealth(
+    medusaUrl: string,
+    healthPath: string,
+  ): Promise<void> {
+    const healthUrl = resolveMedusaUrl(medusaUrl, healthPath)
+    const healthy = await ZaneMedusaPublishableKeyProvisioner.pollMedusaHealth(
+      healthUrl,
+      0,
+    )
+    if (!healthy) {
+      throw new UpstreamHttpError(
+        504,
+        "zane_medusa_unhealthy",
+        `Timed out waiting for Medusa health at ${healthUrl}`,
+      )
+    }
+  }
+
+  private static async authenticateMedusaAdmin(
     medusaUrl: string,
     email: string,
-    password: string
+    password: string,
   ): Promise<AuthResponse> {
-    const response = await fetch(resolveMedusaUrl(medusaUrl, "/auth/user/emailpass"), {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
+    const response = await fetch(
+      resolveMedusaUrl(medusaUrl, "/auth/user/emailpass"),
+      {
+        body: JSON.stringify({ email, password }),
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        method: "POST",
       },
-      body: JSON.stringify({ email, password }),
-    })
+    )
 
     if (!response.ok) {
       let errorMessage = `Medusa admin auth failed (HTTP ${response.status})`
@@ -325,40 +386,35 @@ export class ZaneMedusaPublishableKeyProvisioner {
       throw new UpstreamHttpError(
         response.status,
         "zane_medusa_admin_auth_failed",
-        errorMessage
+        errorMessage,
       )
     }
 
-    const payload = await response.json()
-    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-      throw new BadRequestError("medusa admin auth response must be a JSON object")
-    }
-
-    const payloadObject = payload as Record<string, unknown>
-    const token = payloadObject.token
-    if (typeof token !== "string" || !token.trim()) {
+    const payload: unknown = await response.json()
+    const result = authResponseSchema.safeParse(payload)
+    if (!result.success) {
       throw new BadRequestError("medusa admin auth response missing token")
     }
 
-    return { token: token.trim() }
+    return result.data
   }
 
-  private async requestPublishableKey(
+  private static async requestPublishableKey(
     medusaUrl: string,
     token: string,
-    title: string | undefined
+    title: string | undefined,
   ): Promise<PublishableKeyResponse> {
     const response = await fetch(
       resolveMedusaUrl(medusaUrl, "/admin/provisioning/publishable-key"),
       {
-        method: "POST",
+        body: JSON.stringify(title === undefined ? {} : { title }),
         headers: {
           Accept: "application/json",
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(title ? { title } : {}),
-      }
+        method: "POST",
+      },
     )
 
     if (!response.ok) {
@@ -371,38 +427,18 @@ export class ZaneMedusaPublishableKeyProvisioner {
       throw new UpstreamHttpError(
         response.status,
         "zane_medusa_publishable_key_failed",
-        errorMessage
+        errorMessage,
       )
     }
 
-    const payload = await response.json()
-    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    const payload: unknown = await response.json()
+    const result = publishableKeyResponseSchema.safeParse(payload)
+    if (!result.success) {
       throw new BadRequestError(
-        "medusa publishable key response must be a JSON object"
+        "medusa publishable key response missing api_key.token",
       )
     }
 
-    const payloadObject = payload as Record<string, unknown>
-    const apiKey = payloadObject.api_key
-    if (!apiKey || typeof apiKey !== "object" || Array.isArray(apiKey)) {
-      throw new BadRequestError(
-        "medusa publishable key response missing api_key object"
-      )
-    }
-
-    const apiKeyObject = apiKey as Record<string, unknown>
-    const tokenValue = apiKeyObject.token
-    if (typeof tokenValue !== "string" || !tokenValue.trim()) {
-      throw new BadRequestError(
-        "medusa publishable key response missing api_key.token"
-      )
-    }
-
-    return {
-      api_key: {
-        token: tokenValue.trim(),
-      },
-      created: payloadObject.created === true,
-    }
+    return result.data
   }
 }

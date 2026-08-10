@@ -1,14 +1,19 @@
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { cache } from "react"
+
 import { makeQueryClient } from "../shared/query-client"
 
 const ensureServerEnvironment = () => {
+  const environment: unknown =
+    typeof process === "undefined" ? undefined : process.env
   const isVitest =
-    typeof process !== "undefined" &&
-    (process.env.VITEST === "true" || process.env.NODE_ENV === "test")
+    isRecord(environment) &&
+    (getRecordValue(environment, "VITEST") === "true" ||
+      getRecordValue(environment, "NODE_ENV") === "test")
 
   if (typeof window !== "undefined" && !isVitest) {
     throw new Error(
-      "[storefront-data] server/get-query-client must not be imported in client code."
+      "[storefront-data] server/get-query-client must not be imported in client code.",
     )
   }
 }
@@ -22,7 +27,7 @@ ensureServerEnvironment()
  * is returned throughout a single server request. This allows
  * multiple server components to share prefetched data.
  *
- * @remarks
+ *
  * React's `cache()` memoization applies only when called during a React Server
  * Component render. Calling `getServerQueryClient()` outside an RSC context
  * (for example in route handlers or standalone server utilities) bypasses this

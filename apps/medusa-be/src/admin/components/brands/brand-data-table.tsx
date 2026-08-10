@@ -1,17 +1,17 @@
-import {
-  DataTable,
-  type DataTableColumnDef,
-  type DataTableEmptyStateProps,
-  type DataTablePaginationState,
-  type DataTableRow,
-  type DataTableRowSelectionState,
-  useDataTable,
+import { DataTable, useDataTable } from "@medusajs/ui"
+import type {
+  DataTableColumnDef,
+  DataTableEmptyStateProps,
+  DataTablePaginationState,
+  DataTableRow,
+  DataTableRowSelectionState,
 } from "@medusajs/ui"
 import type { MouseEvent } from "react"
 import { useTranslation } from "react-i18next"
+
 import { getPaginationTranslations } from "../../lib/table"
 
-type BrandDataTableProps<TData> = {
+interface BrandDataTableProps<TData> {
   columns: DataTableColumnDef<TData>[]
   count: number
   data: TData[]
@@ -19,10 +19,7 @@ type BrandDataTableProps<TData> = {
   getRowId: (row: TData) => string
   isLoading: boolean
   onPageIndexChange: (pageIndex: number) => void
-  onRowClick?: (
-    event: MouseEvent<HTMLTableRowElement, globalThis.MouseEvent>,
-    row: TData
-  ) => void
+  onRowClick?: (event: MouseEvent<HTMLTableRowElement>, row: TData) => void
   pageIndex: number
   pageSize: number
   rowSelection?: {
@@ -52,7 +49,7 @@ export const BrandDataTable = <TData,>({
     data,
     getRowId,
     isLoading,
-    onRowClick,
+    ...(onRowClick === undefined ? {} : { onRowClick }),
     pagination: {
       onPaginationChange: (next: DataTablePaginationState) => {
         onPageIndexChange(next.pageIndex)
@@ -60,12 +57,12 @@ export const BrandDataTable = <TData,>({
       state: pagination,
     },
     rowCount: count,
-    rowSelection,
+    ...(rowSelection === undefined ? {} : { rowSelection }),
   })
 
   return (
     <DataTable instance={instance}>
-      <DataTable.Table emptyState={emptyState} />
+      <DataTable.Table {...(emptyState === undefined ? {} : { emptyState })} />
       <DataTable.Pagination translations={getPaginationTranslations(t)} />
     </DataTable>
   )

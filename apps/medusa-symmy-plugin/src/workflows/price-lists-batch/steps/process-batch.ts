@@ -1,6 +1,7 @@
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { PriceListsClient } from "../client"
 import { priceListsClientMapperHelper } from "../client-mapper-helper"
 import type {
@@ -21,50 +22,50 @@ const toErrorMessage = (error: unknown) =>
 const updatePrices = async (
   client: PriceListsClient,
   priceListId: string,
-  prices: PriceInput[]
+  prices: PriceInput[],
 ): Promise<UpdatePriceListPricesBatchOutput> => {
   const variantMaps = await client.preloadVariants(prices)
   const existingPrices = await client.preloadPrices(
     priceListId,
     prices,
-    variantMaps
+    variantMaps,
   )
   const payload = priceListsClientMapperHelper.buildPriceBatchPayload(
     prices,
     variantMaps,
-    existingPrices
+    existingPrices,
   )
 
   try {
     await client.applyPrices(priceListId, payload.create, payload.update)
     priceListsClientMapperHelper.markPriceBatchSuccess(
       payload.owners,
-      payload.results
+      payload.results,
     )
   } catch (error) {
     const message = toErrorMessage(error)
     for (const owner of payload.owners) {
       payload.results[owner.index] = {
+        ean: owner.input.ean,
+        error: message,
         identifier_type: owner.input.identifier_type,
         sku: owner.input.sku,
-        ean: owner.input.ean,
-        variant_id: owner.input.variant_id,
         status: "failed",
-        error: message,
+        variant_id: owner.input.variant_id,
       }
     }
   }
 
   const pricesUpdated = payload.results.filter(
-    (result) => result?.status === "updated"
+    (result) => result?.status === "updated",
   ).length
   const pricesFailed = payload.results.length - pricesUpdated
   return {
-    success: pricesFailed === 0,
     price_list_id: priceListId,
-    prices_updated: pricesUpdated,
     prices_failed: pricesFailed,
+    prices_updated: pricesUpdated,
     results: payload.results,
+    success: pricesFailed === 0,
   }
 }
 
@@ -86,36 +87,38 @@ const processPriceListForBatch = async ({
     if (!existing) {
       const created = await client.createPriceList(input, groupIndex)
       priceListIndex.byCode.set(input.code, created)
-      const priceResult = input.prices?.length
-        ? await updatePrices(client, created.id, input.prices)
-        : undefined
+      const priceResult =
+        input.prices !== undefined && input.prices.length > 0
+          ? await updatePrices(client, created.id, input.prices)
+          : undefined
       return {
         code: input.code,
-        status: "created",
         price_list_id: created.id,
         prices_updated: priceResult?.prices_updated ?? 0,
+        status: "created",
       }
     }
 
     await client.updatePriceList(existing.id, input, groupIndex)
-    const priceResult = input.prices?.length
-      ? await updatePrices(client, existing.id, input.prices)
-      : undefined
+    const priceResult =
+      input.prices !== undefined && input.prices.length > 0
+        ? await updatePrices(client, existing.id, input.prices)
+        : undefined
     return {
       code: input.code,
-      status: "updated",
       price_list_id: existing.id,
       prices_updated: priceResult?.prices_updated ?? 0,
+      status: "updated",
     }
   } catch (error) {
     const message = toErrorMessage(error)
     logger.warn(
-      `[symmy-plugin] Failed to upsert price list (${input.code}): ${message}`
+      `[symmy-plugin] Failed to upsert price list (${input.code}): ${message}`,
     )
     return {
       code: input.code,
-      status: "failed",
       error: message,
+      status: "failed",
     }
   }
 }
@@ -125,28 +128,28 @@ export const symmyUpdatePriceListPricesBatchStep = createStep(
   async (input: UpdatePriceListPricesBatchInput, { container }) => {
     const client = new PriceListsClient(container)
     const priceListIndex = await client.preloadPriceListsByCodes(
-      new Set([input.code])
+      new Set([input.code]),
     )
     const priceList = priceListIndex.byCode.get(input.code)
     if (!priceList) {
       return new StepResponse<UpdatePriceListPricesBatchOutput>({
-        success: false,
-        prices_updated: 0,
         prices_failed: input.prices.length,
+        prices_updated: 0,
         results: input.prices.map((price) => ({
+          ean: price.ean,
+          error: `Price list '${input.code}' was not found`,
           identifier_type: price.identifier_type,
           sku: price.sku,
-          ean: price.ean,
-          variant_id: price.variant_id,
           status: "not_found",
-          error: `Price list '${input.code}' was not found`,
+          variant_id: price.variant_id,
         })),
+        success: false,
       })
     }
     return new StepResponse(
-      await updatePrices(client, priceList.id, input.prices)
+      await updatePrices(client, priceList.id, input.prices),
     )
-  }
+  },
 )
 
 export const symmyUpsertPriceListsBatchStep = createStep(
@@ -159,8 +162,12 @@ export const symmyUpsertPriceListsBatchStep = createStep(
       client.preloadCustomerGroups(input.price_lists),
     ])
 
-    const results: UpsertPriceListsBatchResult[] = []
-    for (const priceList of input.price_lists) {
+    const results: UpsertPriceListsBatchOutput["results"] = []
+    const processAt = async (index: number): Promise<void> => {
+      const priceList = input.price_lists[index]
+      if (priceList === undefined) {
+        return
+      }
       results.push(
         await processPriceListForBatch({
           client,
@@ -168,21 +175,23 @@ export const symmyUpsertPriceListsBatchStep = createStep(
           input: priceList,
           logger,
           priceListIndex,
-        })
+        }),
       )
+      await processAt(index + 1)
     }
+    await processAt(0)
 
     const processed = results.filter(
-      (result) => result.status !== "failed"
+      (result) => result.status !== "failed",
     ).length
     const failed = results.length - processed
     return new StepResponse<UpsertPriceListsBatchOutput>({
-      success: failed === 0,
-      processed,
       failed,
+      processed,
       results,
+      success: failed === 0,
     })
-  }
+  },
 )
 
 export const symmyListPriceListsStep = createStep(
@@ -192,7 +201,11 @@ export const symmyListPriceListsStep = createStep(
     const limit = Math.max(1, Math.min(input.limit ?? 50, 1000))
     const offset = Math.max(0, input.offset ?? 0)
     return new StepResponse<ListPriceListsOutput>(
-      await client.listPriceLists({ code: input.code, limit, offset })
+      await client.listPriceLists({
+        ...(input.code === undefined ? {} : { code: input.code }),
+        limit,
+        offset,
+      }),
     )
-  }
+  },
 )

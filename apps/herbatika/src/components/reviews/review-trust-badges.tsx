@@ -1,11 +1,12 @@
 "use client"
 
-import NextImage from "next/image"
 import { useTranslations } from "next-intl"
+import NextImage from "next/image"
+
 import { REVIEW_TRUST_SOURCES } from "@/components/reviews/reviews.data"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 
-type ReviewTrustBadgesProps = {
+interface ReviewTrustBadgesProps {
   sources?: readonly ReviewTrustSource[]
   size?: ReviewTrustBadgeSize
   className?: string
@@ -19,25 +20,24 @@ const SIZE_CLASS_NAMES: Record<
   ReviewTrustBadgeSize,
   { root: string; item: string }
 > = {
-  sm: {
-    root: "gap-200",
-    item: "gap-200 bg-surface px-350 py-200",
-  },
   md: {
-    root: "gap-x-400 gap-y-300",
     item: "gap-200 bg-overlay px-500 py-500",
+    root: "gap-x-400 gap-y-300",
+  },
+  sm: {
+    item: "gap-200 bg-surface px-350 py-200",
+    root: "gap-200",
   },
 }
 
-function joinClassNames(...classNames: Array<string | undefined>) {
-  return classNames.filter(Boolean).join(" ")
-}
+const joinClassNames = (...classNames: (string | undefined)[]) =>
+  classNames.filter(Boolean).join(" ")
 
-export function ReviewTrustBadges({
+export const ReviewTrustBadges = ({
   sources = REVIEW_TRUST_SOURCES,
   size = "sm",
   className,
-}: ReviewTrustBadgesProps) {
+}: ReviewTrustBadgesProps) => {
   const tCatalog = useTranslations("catalog")
 
   if (sources.length === 0) {
@@ -52,14 +52,14 @@ export function ReviewTrustBadges({
       className={joinClassNames(
         ROOT_CLASS_NAME,
         sizeClassNames.root,
-        className
+        className,
       )}
     >
       {sources.map((source) => (
         <li
           className={joinClassNames(
             "flex items-center justify-center rounded-sm",
-            sizeClassNames.item
+            sizeClassNames.item,
           )}
           key={source.id}
         >

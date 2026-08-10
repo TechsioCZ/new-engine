@@ -3,7 +3,8 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
-import { createBrandAttributeTypesWorkflow } from "../../../../workflows/brand"
+
+import { createBrandAttributeTypesWorkflow } from "../../../../workflows/brand/workflows/create-brand-attribute-types"
 import {
   escapeLikePattern,
   getBrandAttributeTypeUsageCounts,
@@ -16,10 +17,9 @@ import type {
 } from "../validators"
 
 const ORDER_FIELDS = new Set(["name", "created_at", "updated_at"])
-const LEADING_DASH_REGEX = /^-/
+const LEADING_DASH_REGEX = /^-/u
 
-const parseOrder = (input?: string) => {
-  const value = input ?? "name"
+const parseOrder = (value = "name") => {
   const direction = value.startsWith("-") ? "DESC" : "ASC"
   const field = value.replace(LEADING_DASH_REGEX, "")
 
@@ -32,21 +32,22 @@ const parseOrder = (input?: string) => {
   }
 }
 
-export async function GET(
+const get = async (
   req: AuthenticatedMedusaRequest<
     unknown,
     AdminGetBrandAttributeTypesSchemaType
   >,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const service = getBrandService(req.scope)
   const { include_deleted, limit, name, offset, q } = req.validatedQuery
-  const escapedQuery = q ? escapeLikePattern(q) : undefined
+  const escapedQuery =
+    q === undefined || q === "" ? undefined : escapeLikePattern(q)
   let filters = {}
 
-  if (name) {
+  if (name !== undefined && name !== "") {
     filters = { name }
-  } else if (escapedQuery) {
+  } else if (escapedQuery !== undefined && escapedQuery !== "") {
     filters = {
       name: { $ilike: `%${escapedQuery}%` },
     }
@@ -56,24 +57,24 @@ export async function GET(
     filters,
     {
       order: parseOrder(
-        req.validatedQuery.order_by ?? req.validatedQuery.order
+        req.validatedQuery.order_by ?? req.validatedQuery.order,
       ),
       skip: offset,
       take: limit,
       withDeleted: include_deleted,
-    }
+    },
   )
   const usageCounts = await getBrandAttributeTypeUsageCounts(
     req.scope,
-    attributeTypes.map((attributeType) => attributeType.id)
+    attributeTypes.map((attributeType) => attributeType.id),
   )
 
   res.json({
     attribute_types: attributeTypes.map((attributeType) =>
       toBrandAttributeTypeResponse(
         attributeType,
-        usageCounts.get(attributeType.id) ?? 0
-      )
+        usageCounts.get(attributeType.id) ?? 0,
+      ),
     ),
     count,
     limit,
@@ -81,22 +82,22 @@ export async function GET(
   })
 }
 
-export async function POST(
+const post = async (
   req: AuthenticatedMedusaRequest<AdminCreateBrandAttributeTypeSchemaType>,
-  res: MedusaResponse
-) {
-  const name = req.validatedBody.name
+  res: MedusaResponse,
+) => {
+  const { name } = req.validatedBody
   const { result } = await createBrandAttributeTypesWorkflow(req.scope).run({
     input: {
       attribute_types: [{ name }],
     },
   })
-  const ensured = result[0]
+  const [ensured] = result
 
-  if (!ensured) {
+  if (ensured === undefined) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `Brand attribute type "${name}" was not returned by its workflow`
+      `Brand attribute type "${name}" was not returned by its workflow`,
     )
   }
 
@@ -108,7 +109,9 @@ export async function POST(
     action: ensured.action,
     attribute_type: toBrandAttributeTypeResponse(
       ensured.attribute_type,
-      usageCounts.get(ensured.attribute_type.id) ?? 0
+      usageCounts.get(ensured.attribute_type.id) ?? 0,
     ),
   })
 }
+
+export { get as GET, post as POST }

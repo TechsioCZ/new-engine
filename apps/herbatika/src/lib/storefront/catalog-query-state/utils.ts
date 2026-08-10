@@ -8,15 +8,13 @@ export const normalizeMultiValueInput = (values: string[]): string[] => {
 
   for (const value of values) {
     const normalizedValue = value.trim()
-    if (!normalizedValue || seenValues.has(normalizedValue)) {
-      continue
-    }
+    if (normalizedValue && !seenValues.has(normalizedValue)) {
+      seenValues.add(normalizedValue)
+      normalizedValues.push(normalizedValue)
 
-    seenValues.add(normalizedValue)
-    normalizedValues.push(normalizedValue)
-
-    if (normalizedValues.length >= MAX_MULTI_VALUE_ITEMS) {
-      break
+      if (normalizedValues.length >= MAX_MULTI_VALUE_ITEMS) {
+        break
+      }
     }
   }
 
@@ -38,23 +36,15 @@ export const areStringArraysEqual = (left: string[], right: string[]) => {
 }
 
 const normalizeNonNegativeNumber = (
-  value: number | null
-): number | undefined => {
-  if (
-    typeof value !== "number" ||
-    Number.isNaN(value) ||
-    !Number.isFinite(value) ||
-    value < 0
-  ) {
-    return
-  }
-
-  return value
-}
+  value: number | null,
+): number | undefined =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? value
+    : undefined
 
 export const normalizePriceRange = (
   minValue: number | null,
-  maxValue: number | null
+  maxValue: number | null,
 ): { min?: number; max?: number } => {
   let normalizedMin = normalizeNonNegativeNumber(minValue)
   let normalizedMax = normalizeNonNegativeNumber(maxValue)
@@ -70,28 +60,24 @@ export const normalizePriceRange = (
   }
 
   return {
-    min: normalizedMin,
-    max: normalizedMax,
+    ...(normalizedMin === undefined ? {} : { min: normalizedMin }),
+    ...(normalizedMax === undefined ? {} : { max: normalizedMax }),
   }
 }
 
 export const toNonEmptyArray = (values: string[]): string[] | undefined => {
   const normalizedValues = normalizeMultiValueInput(values)
-  if (normalizedValues.length === 0) {
-    return
-  }
-
-  return normalizedValues
+  return normalizedValues.length > 0 ? normalizedValues : undefined
 }
 
 export const hasOwnKey = <T extends object>(
   value: T,
-  key: PropertyKey
+  key: PropertyKey,
 ): key is keyof T => Object.hasOwn(value, key)
 
 export const areCatalogQueryValuesEqual = (
   left: CatalogQueryState[keyof CatalogQueryState],
-  right: CatalogQueryState[keyof CatalogQueryState]
+  right: CatalogQueryState[keyof CatalogQueryState],
 ) => {
   if (Array.isArray(left) && Array.isArray(right)) {
     return areStringArraysEqual(left, right)

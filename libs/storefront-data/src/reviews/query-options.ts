@@ -19,11 +19,11 @@ type ProductReviewListService<TReview, TListParams> = Pick<
   "listProductReviews"
 >
 
-export type CreateProductReviewQueryOptionsFactoryConfig<
+export interface CreateProductReviewQueryOptionsFactoryConfig<
   TReview,
   TListInput extends ProductReviewListInputBase,
   TListParams,
-> = {
+> {
   service: ProductReviewListService<TReview, TListParams>
   buildListParams?: (input: TListInput) => TListParams
   queryKeys?: ProductReviewQueryKeys<TListParams>
@@ -32,22 +32,22 @@ export type CreateProductReviewQueryOptionsFactoryConfig<
   defaultPageSize?: number
 }
 
-export type ProductReviewQueryOptionsFactory<
+export interface ProductReviewQueryOptionsFactory<
   TReview,
   TListInput extends ProductReviewListInputBase,
-> = {
+> {
   getProductReviewsQueryOptions: (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<ProductReviewListResponse<TReview>>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<ProductReviewListResponse<TReview>>
 }
 
-export function createProductReviewQueryOptionsFactory<
+export const createProductReviewQueryOptionsFactory = <
   TReview,
-  TListInput extends ProductReviewListInputBase,
+  TListInput extends ProductReviewListInputBase & TListParams,
   TListParams,
 >({
   service,
@@ -60,28 +60,28 @@ export function createProductReviewQueryOptionsFactory<
   TReview,
   TListInput,
   TListParams
->): ProductReviewQueryOptionsFactory<TReview, TListInput> {
+>): ProductReviewQueryOptionsFactory<TReview, TListInput> => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ?? createProductReviewQueryKeys<TListParams>(queryKeyNamespace)
   const buildList =
     buildListParams ??
-    ((input: TListInput) =>
-      createDefaultListParams(input, defaultPageSize) as TListParams)
+    ((input: TListInput) => createDefaultListParams(input, defaultPageSize))
 
   return {
     getProductReviewsQueryOptions: (
       input,
-      options
+      options,
     ): QueryFactoryOptions<ProductReviewListResponse<TReview>> => {
       const listParams = buildList(input)
       const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
 
       return {
+        queryFn: async ({ signal }) =>
+          await service.listProductReviews(listParams, signal),
         queryKey: resolvedQueryKeys.productList(listParams),
-        queryFn: ({ signal }) => service.listProductReviews(listParams, signal),
         ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
+        ...options?.queryOptions,
       }
     },
   }

@@ -1,3 +1,5 @@
+import type { JsonMetadata } from "../../lib/json-metadata"
+
 export type CustomerIdentifierType =
   | "email"
   | "erp_id"
@@ -5,7 +7,7 @@ export type CustomerIdentifierType =
   | "vat_id"
   | "company_registration_number"
 
-export type CustomerAddressInput = {
+export interface CustomerAddressInput {
   address_id?: string
   first_name?: string
   last_name?: string
@@ -18,7 +20,7 @@ export type CustomerAddressInput = {
   phone?: string
 }
 
-export type CustomerInput = {
+export interface CustomerInput {
   identifier_type: CustomerIdentifierType
   email?: string
   customer_id?: string
@@ -28,21 +30,21 @@ export type CustomerInput = {
   company_name?: string
   addresses?: CustomerAddressInput[]
   customer_group_codes?: string[]
-  metadata?: Record<string, unknown>
+  metadata?: JsonMetadata
 }
 
-export type UpsertCustomersBatchInput = {
+export interface UpsertCustomersBatchInput {
   customers: CustomerInput[]
 }
 
-export type UpsertCustomersBatchResult = {
-  email?: string
+export interface UpsertCustomersBatchResult {
+  email?: string | undefined
   status: "created" | "updated" | "failed"
   customer_id?: string
   error?: string
 }
 
-export type UpsertCustomersBatchOutput = {
+export interface UpsertCustomersBatchOutput {
   success: boolean
   processed: number
   failed: number

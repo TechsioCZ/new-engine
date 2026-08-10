@@ -1,4 +1,5 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { COMPANY_MODULE } from "../../../modules/company"
 import type { ICompanyModuleService } from "../../../types"
 
@@ -13,7 +14,7 @@ export const restoreCompaniesStep = createStep(
     return new StepResponse(ids, ids)
   },
   async (restoredIds: string[] | undefined, { container }) => {
-    if (!restoredIds?.length) {
+    if (restoredIds === undefined || restoredIds.length === 0) {
       return
     }
 
@@ -21,5 +22,5 @@ export const restoreCompaniesStep = createStep(
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 
     await companyModule.softDeleteCompanies(restoredIds)
-  }
+  },
 )

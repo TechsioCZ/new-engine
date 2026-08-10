@@ -1,19 +1,21 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { useTranslations } from "next-intl"
+
 import type { ProductSortValue } from "@/lib/storefront/plp-query-state"
+
 import { SORT_TAB_ITEMS } from "./category-listing.constants"
 
-type CategorySortTabsProps = {
+interface CategorySortTabsProps {
   activeSort: ProductSortValue
   onSortChange: (value: ProductSortValue) => void
   totalProducts: number
 }
 
-export function CategorySortTabs({
+export const CategorySortTabs = ({
   activeSort,
   onSortChange,
   totalProducts,
-}: CategorySortTabsProps) {
+}: CategorySortTabsProps) => {
   const t = useTranslations("catalog")
 
   return (
@@ -31,7 +33,9 @@ export function CategorySortTabs({
                   : "text-fg-primary hover:text-primary"
               }`}
               key={item.value}
-              onClick={() => onSortChange(item.value)}
+              onClick={() => {
+                onSortChange(item.value)
+              }}
               size="current"
               theme="unstyled"
               type="button"

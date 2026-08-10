@@ -1,20 +1,43 @@
 import type { HerbatikaLocale } from "@/lib/storefront/market-context"
 
-export type CarrierPickupType = "gls" | "packeta" | "ppl"
+const normalizeIdentifier = (value: unknown) =>
+  typeof value === "string" ? value.trim().toLowerCase() : ""
+
+type CarrierPickupType = "gls" | "packeta" | "ppl"
+
+export interface CarrierPickupData {
+  access_point_city?: string | null
+  access_point_country?: string | null
+  access_point_id?: number | string | null
+  access_point_name?: string | null
+  access_point_street?: string | null
+  access_point_type?: string | null
+  access_point_zip?: string | null
+}
+
+export interface StoredCarrierPickupData extends CarrierPickupData {
+  access_point_id: number | string
+}
+
+interface ShippingOptionPickupData {
+  code?: string | null
+  product_type?: string | null
+  requires_access_point?: boolean | null
+}
 
 export type CarrierPickupFailureReason =
   | "point_unavailable"
   | "selection_failed"
   | "selector_unavailable"
 
-export type CarrierPickupWidgetLanguage = "cs" | "hu" | "ro" | "sk"
+type CarrierPickupWidgetLanguage = "cs" | "hu" | "ro" | "sk"
 
-export type CarrierPickupRequirement = {
+export interface CarrierPickupRequirement {
   carrier: CarrierPickupType
 }
 
-export type ShippingOptionWithPickupData = {
-  data?: Record<string, unknown> | null
+export interface ShippingOptionWithPickupData {
+  data?: ShippingOptionPickupData | null
   id: string
   name?: string | null
   provider_id?: string | null
@@ -36,22 +59,26 @@ export const CARRIER_PICKUP_FAILURE_KEYS = {
   selector_unavailable: "pickup_selector_unavailable",
 } as const satisfies Record<CarrierPickupFailureReason, string>
 
-export function resolveCarrierPickupRequirement(
-  option: ShippingOptionWithPickupData
-): CarrierPickupRequirement | null {
+export const resolveCarrierPickupRequirement = (
+  option: ShippingOptionWithPickupData,
+): CarrierPickupRequirement | null => {
   const optionData = option.data ?? {}
   const optionCode = normalizeIdentifier(optionData.code)
   const productType = normalizeIdentifier(optionData.product_type)
   const providerId = normalizeIdentifier(option.provider_id)
   const optionName = normalizeIdentifier(option.name)
-  const looksLikePickupOption =
-    optionName.includes("pickup") ||
-    optionName.includes("parcel") ||
-    optionName.includes("parcelshop") ||
-    optionName.includes("výdaj") ||
-    optionName.includes("vyzdvih") ||
-    optionName.includes("z-point") ||
-    optionName.includes("zásielkov")
+  const pickupOptionMarkers = [
+    "pickup",
+    "parcel",
+    "parcelshop",
+    "výdaj",
+    "vyzdvih",
+    "z-point",
+    "zásielkov",
+  ]
+  const looksLikePickupOption = pickupOptionMarkers.some((marker) =>
+    optionName.includes(marker),
+  )
 
   if (
     providerId.includes("gls") &&
@@ -78,19 +105,5 @@ export function resolveCarrierPickupRequirement(
   return null
 }
 
-export function resolveCarrierPickupHint(
-  requirement: CarrierPickupRequirement
-) {
-  if (requirement.carrier === "gls") {
-    return "GLS výdaj"
-  }
-
-  return requirement.carrier === "packeta" ? "Packeta výdaj" : "PPL výdaj"
-}
-
 export const resolveCarrierPickupWidgetLanguage = (locale: HerbatikaLocale) =>
   CARRIER_PICKUP_WIDGET_LANGUAGES[locale]
-
-function normalizeIdentifier(value: unknown) {
-  return typeof value === "string" ? value.trim().toLowerCase() : ""
-}

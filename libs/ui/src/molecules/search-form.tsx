@@ -1,96 +1,41 @@
-/**
+/*
  * SearchForm — @techsio/ui-kit molecule.
  *
  * @component SearchForm
- * @componentVersion v1.0.0
+ * @componentVersion v1.1.0
  * @skill search-form-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the search-form-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import {
-  type ComponentPropsWithoutRef,
-  createContext,
-  type FormEvent,
-  type ReactNode,
-  type Ref,
-  useContext,
-  useEffect,
-  useId,
-  useState,
+import { omitKeys } from "@techsio/std/object"
+import { createContext, useContext, useEffect, useId, useState } from "react"
+import type {
+  ComponentPropsWithoutRef,
+  ReactNode,
+  SubmitEvent,
+  Ref,
 } from "react"
 import { createPortal } from "react-dom"
 import type { VariantProps } from "tailwind-variants"
-import { ActionIcon, type ActionIconProps } from "../atoms/action-icon"
-import { Button, type ButtonProps } from "../atoms/button"
-import type { IconType } from "../atoms/icon"
-import { Input, type InputProps } from "../atoms/input"
-import { Label, type LabelProps } from "../atoms/label"
-import { tv } from "../utils"
 
-const searchFormVariants = tv({
-  slots: {
-    // Layout-only wrapper. The input and button are composed side by side and
-    // each keep their own border, background, radius, and focus ring so they
-    // focus independently instead of sharing one ring around the whole group.
-    root: ["relative grid"],
-    control: ["flex items-stretch"],
-    // Positioning context for the absolutely-placed clear button, and the
-    // flex item that holds the input. `focus-within:z-10` lifts the focused
-    // input (and its outline) above the adjacent button so the focus ring is
-    // never painted underneath it.
-    inputWrapper: ["relative min-w-0 flex-1", "focus-within:z-10"],
-    // The input keeps its own styling/focus ring from the Input atom.
-    input: ["w-full"],
-    // The button keeps its own styling/focus ring from the Button atom.
-    // `focus-visible:z-10` mirrors the input so a focused button outline wins.
-    button: ["relative shrink-0", "focus-visible:z-10"],
-    // The clear button (an ActionIcon) lives inside the input, pinned to the
-    // trailing edge at the input's inline padding (set per size below) and
-    // vertically centered. ActionIcon owns its size, glyph and hover pill.
-    clearButton: ["-translate-y-1/2 absolute top-1/2"],
-  },
-  variants: {
-    size: {
-      // Pin the button to the shared form-control height so it always matches
-      // the input height — including `lg`, which the Button atom sizes by
-      // padding alone. The clear button trails the input by its inline padding.
-      sm: {
-        root: "gap-search-form-sm",
-        button: "h-form-control-sm",
-        clearButton: "end-(length:--padding-input-sm)",
-      },
-      md: {
-        root: "gap-search-form-md",
-        button: "h-form-control-md",
-        clearButton: "end-(length:--padding-input-md)",
-      },
-      lg: {
-        root: "gap-search-form-lg",
-        button: "h-form-control-lg",
-        clearButton: "end-(length:--padding-input-lg)",
-      },
-    },
-    gapped: {
-      // Joined: strip the touching corners so the two controls read as one.
-      false: {
-        input: "rounded-e-none",
-        button: "rounded-s-none",
-      },
-      // Detached: 8px gap and the controls keep their full rounded corners.
-      true: { control: "gap-search-form-gapped" },
-    },
-  },
-  defaultVariants: {
-    size: "md",
-    gapped: false,
-  },
-})
+import { ActionIcon } from "../atoms/action-icon"
+import type { ActionIconProps } from "../atoms/action-icon"
+import { Button as ButtonAtom } from "../atoms/button"
+import type { ButtonProps } from "../atoms/button"
+import type { IconType } from "../atoms/icon"
+import { Input as InputAtom } from "../atoms/input"
+import type { InputProps } from "../atoms/input"
+import { Label as LabelAtom } from "../atoms/label"
+import type { LabelProps } from "../atoms/label"
+import { searchFormVariants } from "./search-form-variants"
+
+export { searchFormVariants } from "./search-form-variants"
 
 export type SearchFormSize = "sm" | "md" | "lg"
 
-type SearchFormContextValue = {
+interface SearchFormContextValue {
   size: SearchFormSize
   gapped: boolean
   inputId: string
@@ -110,36 +55,42 @@ type SearchFormContextValue = {
 
 const SearchFormContext = createContext<SearchFormContextValue | null>(null)
 
-function useSearchFormContext() {
+const useSearchFormContext = () => {
   const context = useContext(SearchFormContext)
-  if (!context) {
+  if (context === null) {
     throw new Error("SearchForm components must be used within SearchForm")
   }
   return context
 }
 
 export interface SearchFormProps
-  extends VariantProps<typeof searchFormVariants>,
+  extends
+    VariantProps<typeof searchFormVariants>,
     Omit<ComponentPropsWithoutRef<"form">, "size"> {
   children: ReactNode
-  defaultValue?: string
-  value?: string
-  onValueChange?: (value: string) => void
-  ref?: Ref<HTMLFormElement>
+  defaultValue?: string | undefined
+  value?: string | undefined
+  onValueChange?: ((value: string) => void) | undefined
+  ref?: Ref<HTMLFormElement> | undefined
 }
 
-export function SearchForm({
-  size = "md",
-  gapped = false,
-  children,
-  defaultValue = "",
-  value,
-  onValueChange,
-  className,
-  ref,
+interface UseSearchFormStateOptions {
+  defaultValue: string
+  gapped: boolean
+  onSubmit: SearchFormProps["onSubmit"]
+  onValueChange: SearchFormProps["onValueChange"]
+  size: SearchFormSize
+  value: SearchFormProps["value"]
+}
+
+const useSearchFormState = ({
+  defaultValue,
+  gapped,
   onSubmit,
-  ...props
-}: SearchFormProps) {
+  onValueChange,
+  size,
+  value,
+}: UseSearchFormStateOptions) => {
   const generatedId = useId()
   const inputId = `search-input-${generatedId}`
   const [internalValue, setInternalValue] = useState(defaultValue)
@@ -159,29 +110,53 @@ export function SearchForm({
     setInputValue("")
   }
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    onSubmit?.(e)
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    onSubmit?.(event)
   }
 
-  const styles = searchFormVariants({ size, gapped })
+  return {
+    contextValue: {
+      clearInput,
+      clearSlot,
+      gapped,
+      hasClearButton,
+      hasValue: inputValue.length > 0,
+      inputId,
+      inputValue,
+      setClearSlot,
+      setHasClearButton,
+      setInputValue,
+      size,
+    } satisfies SearchFormContextValue,
+    handleSubmit,
+  }
+}
+
+const SearchFormRoot = ({
+  size = "md",
+  gapped = false,
+  children,
+  defaultValue = "",
+  value,
+  onValueChange,
+  className,
+  ref,
+  onSubmit,
+  ...props
+}: SearchFormProps) => {
+  const { contextValue, handleSubmit } = useSearchFormState({
+    defaultValue,
+    gapped,
+    onSubmit,
+    onValueChange,
+    size,
+    value,
+  })
+  const styles = searchFormVariants({ gapped, size })
 
   return (
-    <SearchFormContext.Provider
-      value={{
-        size,
-        gapped,
-        inputId,
-        inputValue,
-        setInputValue,
-        clearInput,
-        hasValue: inputValue.length > 0,
-        clearSlot,
-        setClearSlot,
-        hasClearButton,
-        setHasClearButton,
-      }}
-    >
+    <SearchFormContext.Provider value={contextValue}>
       <search>
         <form
           className={styles.root({ className })}
@@ -196,34 +171,40 @@ export function SearchForm({
   )
 }
 
-interface SearchFormLabelProps extends Omit<LabelProps, "htmlFor" | "size"> {}
+type SearchFormLabelProps = Omit<LabelProps, "size">
 
-SearchForm.Label = function SearchFormLabel({
+const SearchFormLabel = ({
   children,
   className,
+  htmlFor,
   ...props
-}: SearchFormLabelProps) {
+}: SearchFormLabelProps) => {
   const { inputId, size } = useSearchFormContext()
 
   return (
-    <Label className={className} htmlFor={inputId} size={size} {...props}>
+    <LabelAtom
+      {...props}
+      className={className}
+      htmlFor={htmlFor ?? inputId}
+      size={size}
+    >
       {children}
-    </Label>
+    </LabelAtom>
   )
 }
 
 interface SearchFormControlProps extends ComponentPropsWithoutRef<"div"> {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
-SearchForm.Control = function SearchFormControl({
+const SearchFormControl = ({
   children,
   className,
   ref,
   ...props
-}: SearchFormControlProps) {
+}: SearchFormControlProps) => {
   const { size, gapped } = useSearchFormContext()
-  const styles = searchFormVariants({ size, gapped })
+  const styles = searchFormVariants({ gapped, size })
 
   return (
     <div className={styles.control({ className })} ref={ref} {...props}>
@@ -232,18 +213,18 @@ SearchForm.Control = function SearchFormControl({
   )
 }
 
-interface SearchFormInputProps
-  extends Omit<
-    InputProps,
-    "size" | "value" | "onChange" | "withButtonInside"
-  > {}
+type SearchFormInputProps = Omit<
+  InputProps,
+  "size" | "value" | "withButtonInside"
+>
 
-SearchForm.Input = function SearchFormInput({
+const SearchFormInput = ({
   className,
+  onChange,
   placeholder = "Search...",
   ref,
   ...props
-}: SearchFormInputProps) {
+}: SearchFormInputProps) => {
   const {
     inputId,
     inputValue,
@@ -254,48 +235,59 @@ SearchForm.Input = function SearchFormInput({
     hasClearButton,
     setClearSlot,
   } = useSearchFormContext()
-  const styles = searchFormVariants({ size, gapped })
+  const styles = searchFormVariants({ gapped, size })
+  const providedInputProps: InputProps = props
+  const machineInputProps = omitKeys(providedInputProps, [
+    "defaultValue",
+    "value",
+  ])
 
   return (
     <div className={styles.inputWrapper()} ref={setClearSlot}>
-      <Input
-        aria-label={props["aria-label"] || "Search"}
+      <InputAtom
+        {...machineInputProps}
+        aria-label={props["aria-label"] ?? "Search"}
         className={styles.input({ className })}
-        id={inputId}
-        onChange={(e) => setInputValue(e.target.value)}
+        id={props.id ?? inputId}
+        onChange={(event) => {
+          const nextValue = event.currentTarget.value
+          onChange?.(event)
+          if (!event.defaultPrevented) {
+            setInputValue(nextValue)
+          }
+        }}
         placeholder={placeholder}
         ref={ref}
         size={size}
         type="search"
         value={inputValue}
         withButtonInside={hasValue && hasClearButton ? "right" : undefined}
-        {...props}
       />
     </div>
   )
 }
 
 interface SearchFormButtonProps extends Omit<ButtonProps, "size"> {
-  showSearchIcon?: boolean
+  showSearchIcon?: boolean | undefined
 }
 
-SearchForm.Button = function SearchFormButton({
+const SearchFormButton = ({
   className,
   children,
   showSearchIcon = false,
   icon,
   iconPosition = "right",
   ...props
-}: SearchFormButtonProps) {
+}: SearchFormButtonProps) => {
   const { size, gapped } = useSearchFormContext()
-  const styles = searchFormVariants({ size, gapped })
+  const styles = searchFormVariants({ gapped, size })
 
   // Use provided icon, or search icon if showSearchIcon is true
   const effectiveIcon =
     icon ?? (showSearchIcon ? "token-icon-search" : undefined)
 
   return (
-    <Button
+    <ButtonAtom
       className={styles.button({ className })}
       icon={effectiveIcon}
       iconPosition={iconPosition}
@@ -304,23 +296,24 @@ SearchForm.Button = function SearchFormButton({
       {...props}
     >
       {children}
-    </Button>
+    </ButtonAtom>
   )
 }
 
 type SearchFormClearButtonProps = Omit<
   ActionIconProps,
-  "size" | "onClick" | "type" | "icon"
+  "size" | "type" | "icon"
 > & {
-  icon?: IconType
+  icon?: IconType | undefined
 }
 
-SearchForm.ClearButton = function SearchFormClearButton({
+const SearchFormClearButton = ({
   className,
   icon = "token-icon-close",
+  onClick,
   tone = "neutral",
   ...props
-}: SearchFormClearButtonProps) {
+}: SearchFormClearButtonProps) => {
   const {
     size,
     gapped,
@@ -330,12 +323,14 @@ SearchForm.ClearButton = function SearchFormClearButton({
     clearSlot,
     setHasClearButton,
   } = useSearchFormContext()
-  const styles = searchFormVariants({ size, gapped })
+  const styles = searchFormVariants({ gapped, size })
 
   // Tell the input a clear button is composed so it reserves trailing padding.
   useEffect(() => {
     setHasClearButton(true)
-    return () => setHasClearButton(false)
+    return () => {
+      setHasClearButton(false)
+    }
   }, [setHasClearButton])
 
   if (!(hasValue && clearSlot)) {
@@ -345,20 +340,39 @@ SearchForm.ClearButton = function SearchFormClearButton({
   // Render inside the input wrapper so the clear button sits inside the input,
   // pinned to its trailing edge, instead of between the input and the button.
   // ActionIcon supplies the shared size, glyph and hover pill.
-  return createPortal(
-    <ActionIcon
-      aria-label={`Clear search: ${inputValue}`}
-      className={styles.clearButton({ className })}
-      icon={icon}
-      onClick={clearInput}
-      size={size}
-      tone={tone}
-      {...props}
-    />,
-    clearSlot
+  return (
+    <>
+      {createPortal(
+        <ActionIcon
+          {...props}
+          aria-label={props["aria-label"] ?? `Clear search: ${inputValue}`}
+          className={styles.clearButton({ className })}
+          icon={icon}
+          onClick={(event) => {
+            onClick?.(event)
+            if (!event.defaultPrevented) {
+              clearInput()
+            }
+          }}
+          size={size}
+          tone={tone}
+        />,
+        clearSlot,
+      )}
+      {null}
+    </>
   )
 }
 
-export { useSearchFormContext, searchFormVariants }
+export { useSearchFormContext }
 
-SearchForm.displayName = "SearchForm"
+SearchFormRoot.displayName = "SearchForm"
+const SearchFormCompound = Object.assign(SearchFormRoot, {
+  Button: SearchFormButton,
+  ClearButton: SearchFormClearButton,
+  Control: SearchFormControl,
+  Input: SearchFormInput,
+  Label: SearchFormLabel,
+})
+
+export const SearchForm = SearchFormCompound

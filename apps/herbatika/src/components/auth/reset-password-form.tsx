@@ -4,16 +4,15 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
-import { useMemo, useState } from "react"
+import { useState } from "react"
+
 import { PasswordRequirements } from "@/components/auth/password-requirements"
-import {
-  createResetPasswordValidators,
-  type ResetPasswordFormValues,
-} from "@/lib/auth/auth-form-validators"
+import { createResetPasswordValidators } from "@/lib/auth/auth-form-validators"
+import type { ResetPasswordFormValues } from "@/lib/auth/auth-form-validators"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
-type ResetPasswordFormText = {
+interface ResetPasswordFormText {
   expiredHref: string
   expiredHelp: string
   expiredLinkLabel: string
@@ -22,7 +21,7 @@ type ResetPasswordFormText = {
   successMessage: string
 }
 
-type ResetPasswordFormProps = {
+interface ResetPasswordFormProps {
   isBusy: boolean
   defaultValues: ResetPasswordFormValues
   loginHref: string
@@ -42,24 +41,20 @@ export const ResetPasswordForm = ({
   const tAuth = useTranslations("auth")
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [isSuccess, setIsSuccess] = useState(false)
-  const resetPasswordValidators = useMemo(
-    () =>
-      createResetPasswordValidators({
-        confirmPasswordRequired: tAuth("validation.confirm_password_required"),
-        passwordMinLength: tAuth("validation.password_min_length"),
-        passwordMismatch: tAuth("validation.password_mismatch"),
-        passwordNumber: tAuth("validation.password_number"),
-        passwordRequired: tAuth("validation.password_required"),
-      }),
-    [tAuth]
-  )
+  const resetPasswordValidators = createResetPasswordValidators({
+    confirmPasswordRequired: tAuth("validation.confirm_password_required"),
+    passwordMinLength: tAuth("validation.password_min_length"),
+    passwordMismatch: tAuth("validation.password_mismatch"),
+    passwordNumber: tAuth("validation.password_number"),
+    passwordRequired: tAuth("validation.password_required"),
+  })
 
   const form = useHerbatikaForm({
     defaultValues,
     onSubmit: async ({ value }) => {
       setSubmitError(null)
       const error = await onSubmit(value)
-      if (error) {
+      if (error !== null && error.length > 0) {
         setSubmitError(error)
         return
       }
@@ -107,7 +102,7 @@ export const ResetPasswordForm = ({
         runDetachedPromise(form.handleSubmit())
       }}
     >
-      {submitError && (
+      {submitError !== null && submitError.length > 0 && (
         <StatusText showIcon status="error">
           {submitError}
         </StatusText>
@@ -123,12 +118,14 @@ export const ResetPasswordForm = ({
               autoComplete="new-password"
               id="auth-reset-password"
               label={tAuth("new_password")}
-              onValueChange={() => setSubmitError(null)}
+              onValueChange={() => {
+                setSubmitError(null)
+              }}
               required
               type="password"
               validationMode="blur"
             />
-            <PasswordRequirements password={String(field.state.value ?? "")} />
+            <PasswordRequirements password={field.state.value ?? ""} />
           </div>
         )}
       </form.AppField>
@@ -142,7 +139,9 @@ export const ResetPasswordForm = ({
             autoComplete="new-password"
             id="auth-reset-confirm-password"
             label={tAuth("password_confirmation")}
-            onValueChange={() => setSubmitError(null)}
+            onValueChange={() => {
+              setSubmitError(null)
+            }}
             required
             type="password"
             validationMode="blur"

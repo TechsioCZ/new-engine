@@ -9,45 +9,40 @@ import {
   Text,
   Toaster,
 } from "@medusajs/ui"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { useTranslation } from "react-i18next"
-import {
-  type LoaderFunctionArgs,
-  type UIMatch,
-  useNavigate,
-  useParams,
-} from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
+import type { LoaderFunctionArgs, UIMatch } from "react-router-dom"
+
 import type {
   AdminCompanyResponse,
   QueryCompany,
   QueryEmployee,
 } from "../../../../types"
 import { adminCompanyDisplayFieldsQuery } from "../../../../types/company/admin-fields"
-import { useCompany } from "../../../hooks/api"
+import { useCompany } from "../../../hooks/api/companies"
 import { translateBreadcrumb } from "../../../lib/breadcrumb"
 import { sdk } from "../../../lib/sdk"
-import { onRowKeyboardActivate } from "../../../lib/table"
-import { formatAmount } from "../../../utils"
-import { CompanyActionsMenu } from "../components"
-import {
-  EmployeeCreateDrawer,
-  EmployeesActionsMenu,
-} from "../components/employees"
+import { formatAmount } from "../../../utils/format-amount"
+import { CompanyActionsMenu } from "../components/company-actions-menu"
+import { EmployeesActionsMenu } from "../components/employees/employees-actions-menu"
+import { EmployeeCreateDrawer } from "../components/employees/employees-create-drawer"
 
-export async function loader({ params }: LoaderFunctionArgs) {
-  const companyId = params.companyId
+export const loader = async ({ params }: LoaderFunctionArgs) => {
+  const { companyId } = params
 
-  if (!companyId) {
-    return { company: undefined }
+  if (companyId === undefined || companyId === "") {
+    return { company: null }
   }
 
-  return sdk.client.fetch<AdminCompanyResponse>(
+  return await sdk.client.fetch<AdminCompanyResponse>(
     `/admin/companies/${companyId}`,
     {
       query: {
         fields: "id,name,deleted_at",
         with_deleted: "true",
       },
-    }
+    },
   )
 }
 
@@ -56,6 +51,15 @@ export const handle = {
     match.data?.company?.name ??
     match.data?.company?.id ??
     translateBreadcrumb("companies:columns.company", "Company"),
+}
+
+const getCustomerGroupName = (value: unknown): string | null => {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const name = getRecordValue(value, "name")
+  return typeof name === "string" && name.length > 0 ? name : null
 }
 
 const EmployeeActionCell = ({
@@ -68,13 +72,62 @@ const EmployeeActionCell = ({
   isDeleted: boolean
 }) => {
   if (isDeleted) {
-    return <Table.Cell onClick={(e) => e.stopPropagation()}>-</Table.Cell>
+    return (
+      <Table.Cell
+        onClick={(e) => {
+          e.stopPropagation()
+        }}
+      >
+        -
+      </Table.Cell>
+    )
   }
 
   return (
-    <Table.Cell onClick={(e) => e.stopPropagation()}>
+    <Table.Cell
+      onClick={(e) => {
+        e.stopPropagation()
+      }}
+    >
       <EmployeesActionsMenu company={company} employee={employee} />
     </Table.Cell>
+  )
+}
+
+const ApprovalSettingsBadges = ({
+  adminLabel,
+  noneLabel,
+  requiresAdminApproval,
+  requiresSalesManagerApproval,
+  salesManagerLabel,
+}: {
+  adminLabel: string
+  noneLabel: string
+  requiresAdminApproval: boolean | undefined
+  requiresSalesManagerApproval: boolean | undefined
+  salesManagerLabel: string
+}) => {
+  const hasAdminApproval = requiresAdminApproval === true
+  const hasSalesManagerApproval = requiresSalesManagerApproval === true
+
+  return (
+    <div className="flex gap-2">
+      {hasAdminApproval && (
+        <Badge color="purple" size="small">
+          {adminLabel}
+        </Badge>
+      )}
+      {hasSalesManagerApproval && (
+        <Badge color="purple" size="small">
+          {salesManagerLabel}
+        </Badge>
+      )}
+      {!hasAdminApproval && !hasSalesManagerApproval && (
+        <Badge color="grey" size="small">
+          {noneLabel}
+        </Badge>
+      )}
+    </div>
   )
 }
 
@@ -88,17 +141,15 @@ const CompanyDetails = () => {
       fields: adminCompanyDisplayFieldsQuery,
       with_deleted: "true",
     },
-    { enabled: Boolean(companyId) }
+    { enabled: Boolean(companyId) },
   )
 
   const company = data?.company
-  const isDeleted = Boolean(company?.deleted_at)
-  const activeEmployees =
-    company?.employees?.filter((employee) => !employee.deleted_at) ?? []
 
   const openCustomer = (employee: QueryEmployee) => {
-    if (employee.customer?.id) {
-      navigate(`/customers/${employee.customer.id}`)
+    const customerId = employee.customer?.id
+    if (customerId !== undefined && customerId !== "") {
+      navigate(`/customers/${customerId}`)
     }
   }
 
@@ -110,9 +161,18 @@ const CompanyDetails = () => {
     )
   }
 
-  if (!company) {
+  if (company === undefined) {
     return <div>{t("errors.companyNotFound")}</div>
   }
+
+  const customerGroupName = getCustomerGroupName(company.customer_group)
+  const isDeleted =
+    company.deleted_at !== null && company.deleted_at !== undefined
+  const activeEmployees =
+    company.employees?.filter(
+      (employee) =>
+        employee.deleted_at === null || employee.deleted_at === undefined,
+    ) ?? []
 
   return (
     <div className="flex flex-col gap-4">
@@ -120,11 +180,11 @@ const CompanyDetails = () => {
         <div className="flex items-center justify-between gap-2 border-ui-border-base border-b px-6 py-4">
           <div className="flex items-center gap-2">
             <Avatar
-              fallback={company?.name?.charAt(0)}
-              src={company?.logo_url || undefined}
+              fallback={company.name?.charAt(0)}
+              src={company.logo_url ?? ""}
             />
             <Heading className="h1-core font-medium font-sans">
-              {company?.name}
+              {company.name}
             </Heading>
             <StatusBadge color={company.deleted_at ? "red" : "green"}>
               {company.deleted_at ? t("status.deleted") : t("status.active")}
@@ -138,49 +198,49 @@ const CompanyDetails = () => {
               <Table.Cell className="txt-compact-small max-w-fit font-medium font-sans">
                 {t("columns.phone")}
               </Table.Cell>
-              <Table.Cell>{company?.phone}</Table.Cell>
+              <Table.Cell>{company.phone}</Table.Cell>
             </Table.Row>
             <Table.Row>
               <Table.Cell className="txt-compact-small font-medium font-sans">
                 {t("columns.email")}
               </Table.Cell>
-              <Table.Cell>{company?.email}</Table.Cell>
+              <Table.Cell>{company.email}</Table.Cell>
             </Table.Row>
             <Table.Row>
               <Table.Cell className="txt-compact-small font-medium font-sans">
                 {t("columns.address")}
               </Table.Cell>
-              <Table.Cell>{company?.address}</Table.Cell>
+              <Table.Cell>{company.address}</Table.Cell>
             </Table.Row>
             <Table.Row>
               <Table.Cell className="txt-compact-small font-medium font-sans">
                 {t("columns.city")}
               </Table.Cell>
-              <Table.Cell>{company?.city}</Table.Cell>
+              <Table.Cell>{company.city}</Table.Cell>
             </Table.Row>
             <Table.Row>
               <Table.Cell className="txt-compact-small font-medium font-sans">
                 {t("columns.state")}
               </Table.Cell>
-              <Table.Cell>{company?.state}</Table.Cell>
+              <Table.Cell>{company.state}</Table.Cell>
             </Table.Row>
             <Table.Row>
               <Table.Cell className="txt-compact-small font-medium font-sans">
                 {t("columns.currency")}
               </Table.Cell>
-              <Table.Cell>{company?.currency_code?.toUpperCase()}</Table.Cell>
+              <Table.Cell>{company.currency_code?.toUpperCase()}</Table.Cell>
             </Table.Row>
             <Table.Row>
               <Table.Cell className="txt-compact-small font-medium font-sans">
                 {t("columns.customerGroup")}
               </Table.Cell>
               <Table.Cell>
-                {company?.customer_group ? (
-                  <Badge color="blue" size="small">
-                    {company?.customer_group?.name}
-                  </Badge>
-                ) : (
+                {customerGroupName === null ? (
                   "-"
+                ) : (
+                  <Badge color="blue" size="small">
+                    {customerGroupName}
+                  </Badge>
                 )}
               </Table.Cell>
             </Table.Row>
@@ -189,27 +249,17 @@ const CompanyDetails = () => {
                 {t("columns.approvalSettings")}
               </Table.Cell>
               <Table.Cell>
-                <div className="flex gap-2">
-                  {company?.approval_settings?.requires_admin_approval && (
-                    <Badge color="purple" size="small">
-                      {t("approvalSettings.badgeAdmin")}
-                    </Badge>
-                  )}
-                  {company?.approval_settings
-                    ?.requires_sales_manager_approval && (
-                    <Badge color="purple" size="small">
-                      {t("approvalSettings.badgeSalesManager")}
-                    </Badge>
-                  )}
-                  {!(
-                    company?.approval_settings?.requires_admin_approval ||
-                    company?.approval_settings?.requires_sales_manager_approval
-                  ) && (
-                    <Badge color="grey" size="small">
-                      {t("approvalSettings.badgeNone")}
-                    </Badge>
-                  )}
-                </div>
+                <ApprovalSettingsBadges
+                  adminLabel={t("approvalSettings.badgeAdmin")}
+                  noneLabel={t("approvalSettings.badgeNone")}
+                  requiresAdminApproval={
+                    company.approval_settings?.requires_admin_approval
+                  }
+                  requiresSalesManagerApproval={
+                    company.approval_settings?.requires_sales_manager_approval
+                  }
+                  salesManagerLabel={t("approvalSettings.badgeSalesManager")}
+                />
               </Table.Cell>
             </Table.Row>
           </Table.Body>
@@ -239,39 +289,40 @@ const CompanyDetails = () => {
             </Table.Header>
             <Table.Body>
               {activeEmployees.map((employee: QueryEmployee) => (
-                <Table.Row
-                  aria-label={employee.customer?.email || employee.id}
-                  className="cursor-pointer"
-                  key={employee.id}
-                  onClick={() => openCustomer(employee)}
-                  onKeyDown={onRowKeyboardActivate(() =>
-                    openCustomer(employee)
-                  )}
-                  role="button"
-                  tabIndex={0}
-                >
+                <Table.Row key={employee.id}>
                   <Table.Cell className="h-6 w-6 items-center justify-center">
                     <Avatar
-                      fallback={employee.customer?.first_name?.charAt(0) || ""}
+                      fallback={employee.customer?.first_name?.charAt(0) ?? ""}
                     />
                   </Table.Cell>
-                  <Table.Cell className="flex w-fit items-center gap-2">
-                    {employee.customer?.first_name}{" "}
-                    {employee.customer?.last_name}
-                    {employee.is_admin && (
-                      <Badge
-                        color={employee.is_admin ? "green" : "grey"}
-                        size="2xsmall"
-                      >
-                        {t("employees.adminBadge")}
-                      </Badge>
-                    )}
+                  <Table.Cell>
+                    <button
+                      aria-label={
+                        employee.customer?.email !== undefined &&
+                        employee.customer.email !== ""
+                          ? employee.customer.email
+                          : employee.id
+                      }
+                      className="flex w-fit items-center gap-2 text-left"
+                      onClick={() => {
+                        openCustomer(employee)
+                      }}
+                      type="button"
+                    >
+                      {employee.customer?.first_name}{" "}
+                      {employee.customer?.last_name}
+                      {employee.is_admin && (
+                        <Badge color="green" size="2xsmall">
+                          {t("employees.adminBadge")}
+                        </Badge>
+                      )}
+                    </button>
                   </Table.Cell>
                   <Table.Cell>{employee.customer?.email}</Table.Cell>
                   <Table.Cell>
                     {formatAmount(
                       employee.spending_limit,
-                      company?.currency_code || "USD"
+                      company.currency_code ?? "USD",
                     )}
                   </Table.Cell>
                   <EmployeeActionCell

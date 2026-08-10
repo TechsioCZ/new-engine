@@ -1,14 +1,45 @@
-import { join } from "node:path"
+import path from "node:path"
+
 import type { NextConfig } from "next"
 
-const nextConfig: NextConfig = {
+import { createStorefrontSecurityConfig } from "../../libs/storefront-security/index.mjs"
+
+// Shared storefront hardening instead of a hand-rolled headers() block.
+// The preset's CSP is suppressed for now: N1 loads third-party analytics
+// (Heureka, Meta, Google, Leadhub), and the preset deliberately ships no
+// vendor origins, so enforcing it as-is would block those scripts and their
+// beacons. Enumerate the vendor origins into additionalScriptSrc/
+// additionalConnectSrc and drop this override to turn the CSP on.
+const storefrontSecurity = createStorefrontSecurityConfig({
   allowedDevOrigins: ["n1.medusa.localhost"],
-  reactStrictMode: true,
-  output: "standalone",
-  transpilePackages: ["@new-engine/ui", "@techsio/analytics"],
-  reactCompiler: true,
+  preset: "medusaStorefront",
+  replace: { headers: [{ key: "Content-Security-Policy", value: null }] },
+})
+
+const nextConfig: NextConfig = {
+  ...storefrontSecurity,
   cacheComponents: true,
-  outputFileTracingRoot: join(__dirname, "../../"),
+  cacheLife: {
+    product: {
+      expire: 86_400,
+      revalidate: 3600,
+      stale: 3600,
+    },
+  },
+  experimental: {
+    turbopackRustReactCompiler: true,
+    typedEnv: true,
+  },
+  images: {
+    qualities: [40, 50, 60, 75, 90],
+    remotePatterns: [
+      {
+        hostname: "pub-adde8a563e2c43f7b6bc296d81c86358.r2.dev",
+        protocol: "https",
+      },
+    ],
+  },
+  output: "standalone",
   outputFileTracingExcludes: {
     "*": [
       "node_modules/@swc/core-linux-x64-gnu",
@@ -23,63 +54,11 @@ const nextConfig: NextConfig = {
       "node_modules/puppeteer",
     ],
   },
-  images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "pub-adde8a563e2c43f7b6bc296d81c86358.r2.dev",
-      },
-    ],
-    qualities: [40, 50, 60, 75, 90],
-  },
-
-  cacheLife: {
-    product: {
-      stale: 3600,
-      revalidate: 3600,
-      expire: 86_400,
-    },
-  },
-
-  experimental: {
-    typedEnv: true,
-    turbopackRustReactCompiler: true,
-  },
-
-  // Security headers
-  headers() {
-    return [
-      {
-        source: "/:path*",
-        headers: [
-          {
-            key: "X-Frame-Options",
-            value: "DENY",
-          },
-          {
-            key: "X-Content-Type-Options",
-            value: "nosniff",
-          },
-          {
-            key: "Referrer-Policy",
-            value: "origin-when-cross-origin",
-          },
-          {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=(self)",
-          },
-          ...(process.env.NODE_ENV === "production"
-            ? [
-                {
-                  key: "Strict-Transport-Security",
-                  value: "max-age=31536000; includeSubDomains",
-                },
-              ]
-            : []),
-        ],
-      },
-    ]
-  },
+  outputFileTracingRoot: path.join(import.meta.dirname, "../../"),
+  reactCompiler: true,
+  reactStrictMode: true,
+  transpilePackages: ["@new-engine/ui", "@techsio/analytics"],
+  typedRoutes: true,
 }
 
 export default nextConfig

@@ -5,6 +5,7 @@ import {
   resolveStorefrontPrice,
   resolveTopOfferInStock,
 } from "@/lib/storefront/product-pricing"
+
 import { normalizeString } from "./search-autocomplete-normalizers"
 import type {
   RawSearchAutocompleteProductHit,
@@ -13,7 +14,7 @@ import type {
 
 const resolveProductPrice = (
   hit: RawSearchAutocompleteProductHit,
-  expectedCurrencyCode: HerbatikaCurrencyCode
+  expectedCurrencyCode: HerbatikaCurrencyCode,
 ) => {
   const calculatedPrice = hit.variants?.[0]?.calculated_price
   const topOffer = resolveProductTopOffer(hit)
@@ -31,9 +32,17 @@ const resolveProductInStock = (hit: RawSearchAutocompleteProductHit) => {
   return resolveTopOfferInStock(topOffer)
 }
 
+const createProductHref = (handle: string, variantId: string) => {
+  if (variantId === "") {
+    return `/p/${handle}`
+  }
+  const encodedVariantId = encodeURIComponent(variantId)
+  return `/p/${handle}?variant=${encodedVariantId}`
+}
+
 const createProductSuggestion = (
   hit: RawSearchAutocompleteProductHit,
-  currencyCode: HerbatikaCurrencyCode
+  currencyCode: HerbatikaCurrencyCode,
 ): SearchAutocompleteSuggestion | null => {
   const id = normalizeString(hit.id)
   const productTitle = normalizeString(hit.title)
@@ -45,32 +54,34 @@ const createProductSuggestion = (
 
   const variantId = normalizeString(hit.search_result?.variant_id)
   const variantTitle = normalizeString(hit.search_result?.variant_title)
-  const title = variantTitle ? `${productTitle} – ${variantTitle}` : productTitle
+  const title = variantTitle
+    ? `${productTitle} – ${variantTitle}`
+    : productTitle
   const brandTitle = normalizeString(hit.brand?.title)
   const firstCategory = hit.categories?.find((category) =>
-    Boolean(normalizeString(category.name))
+    Boolean(normalizeString(category.name)),
   )
   const categoryName = normalizeString(firstCategory?.name)
   const price = resolveProductPrice(hit, currencyCode)
 
   return {
+    href: createProductHref(handle, variantId),
     id: variantId ? `${id}-${variantId}` : id,
-    type: "product",
-    title,
-    href: `/p/${handle}${variantId ? `?variant=${encodeURIComponent(variantId)}` : ""}`,
-    subtitle: [brandTitle, categoryName].filter(Boolean).join(" | "),
     imageUrl: normalizeString(hit.thumbnail) || undefined,
+    ...(variantId === "" ? { inStock: resolveProductInStock(hit) } : {}),
     priceLabel: price
       ? formatCurrencyAmount(price.currentAmount, price.currencyCode)
       : undefined,
-    inStock: resolveProductInStock(hit),
+    subtitle: [brandTitle, categoryName].filter(Boolean).join(" | "),
+    title,
+    type: "product",
   }
 }
 
 export const createProductSuggestions = (
   hits: RawSearchAutocompleteProductHit[],
   currencyCode: HerbatikaCurrencyCode,
-  limit = hits.length
+  limit = hits.length,
 ) =>
   hits
     .map((hit) => createProductSuggestion(hit, currencyCode))

@@ -3,16 +3,16 @@ import type {
   StorefrontTextStatus,
 } from "../../modules/storefront-text/configuration"
 
-export type ImportStorefrontTextCatalogWorkflowInput = {
+export interface ImportStorefrontTextCatalogWorkflowInput {
   catalog: unknown
   market: StorefrontTextMarket
 }
 
-export type SyncStorefrontTextsWorkflowInput = {
+export interface SyncStorefrontTextsWorkflowInput {
   market?: StorefrontTextMarket
 }
 
-export type UpdateStorefrontTextWorkflowInput = {
+export interface UpdateStorefrontTextWorkflowInput {
   id: string
   update: {
     override_value?: null | string

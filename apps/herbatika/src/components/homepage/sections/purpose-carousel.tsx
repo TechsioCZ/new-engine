@@ -1,14 +1,13 @@
 "use client"
 
 import { Link } from "@techsio/ui-kit/atoms/link"
-import {
-  Carousel,
-  type CarouselSlide,
-} from "@techsio/ui-kit/molecules/carousel"
-import NextImage from "next/image"
-import NextLink from "next/link"
+import { Carousel } from "@techsio/ui-kit/molecules/carousel"
+import type { CarouselSlide } from "@techsio/ui-kit/molecules/carousel"
 import { useTranslations } from "next-intl"
+import NextImage from "next/image"
 import type { ComponentProps } from "react"
+
+import NextLink from "@/components/app-link"
 import type { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "@/components/header/herbatika-header.submenu-data"
 import { useHerbatikaHeaderSubmenu } from "@/components/header/use-herbatika-header-submenu"
 import { TextActionLink } from "@/components/text-action-link"
@@ -17,21 +16,21 @@ type ImageSource = ComponentProps<typeof NextImage>["src"]
 type PurposeCarouselRootHandle =
   (typeof HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS)[number]["rootHandle"]
 
-type PurposeCarouselItem = {
+interface PurposeCarouselItem {
   href: string
   id: string
   label: string
   src: ImageSource
 }
 
-type PurposeCarouselProps = {
+interface PurposeCarouselProps {
   items?: PurposeCarouselItem[]
   rootHandle?: PurposeCarouselRootHandle
   title?: string
   viewAllHref?: string
 }
 
-type PurposeCarouselSlidesProps = {
+interface PurposeCarouselSlidesProps {
   slides: CarouselSlide[]
   slidesPerPage: number
 }
@@ -42,7 +41,7 @@ const buildResolvedPurposeCarouselItems = (
   rootHandle: PurposeCarouselRootHandle,
   groupsByRootHandle: ReturnType<
     typeof useHerbatikaHeaderSubmenu
-  >["groupsByRootHandle"]
+  >["groupsByRootHandle"],
 ): PurposeCarouselItem[] => {
   const group = groupsByRootHandle.get(rootHandle)
   if (!group) {
@@ -67,11 +66,10 @@ const buildResolvedPurposeCarouselItems = (
 
 const buildImageSlides = (items: PurposeCarouselItem[]): CarouselSlide[] =>
   items.map((item) => ({
-    id: item.id,
     content: (
       <Link
         as={NextLink}
-        className="grid h-full min-h-800 w-full grid-rows-[auto_1fr] items-start justify-center gap-150 rounded-md border border-border-secondary bg-surface px-200 py-200 text-center text-fg-primary"
+        className="grid h-full min-h-800 w-full purpose-card-layout items-start justify-center gap-150 rounded-md border border-border-secondary bg-surface px-200 py-200 text-center text-fg-primary"
         href={item.href}
       >
         <div className="flex h-850 w-full items-center justify-center">
@@ -88,12 +86,13 @@ const buildImageSlides = (items: PurposeCarouselItem[]): CarouselSlide[] =>
         </span>
       </Link>
     ),
+    id: item.id,
   }))
 
-function PurposeCarouselSlides({
+const PurposeCarouselSlides = ({
   slides,
   slidesPerPage,
-}: PurposeCarouselSlidesProps) {
+}: PurposeCarouselSlidesProps) => {
   const hasOverflow = slides.length > slidesPerPage
 
   return (
@@ -124,12 +123,12 @@ function PurposeCarouselSlides({
   )
 }
 
-export function PurposeCarousel({
+export const PurposeCarousel = ({
   items,
   rootHandle = DEFAULT_ROOT_HANDLE,
   title,
   viewAllHref,
-}: PurposeCarouselProps) {
+}: PurposeCarouselProps) => {
   const tContent = useTranslations("content")
   const { groupsByRootHandle } = useHerbatikaHeaderSubmenu()
   const resolvedItems =

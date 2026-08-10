@@ -3,55 +3,11 @@
  * Provides consistent logging format across all prefetch systems
  */
 
+import { formatLogValue } from "./format-log-value"
+
 type PrefetchType = "Root" | "Categories" | "Pages" | "Children" | "Product"
 
 export const prefetchLogger = {
-  /**
-   * Log prefetch start
-   */
-  start: (
-    type: PrefetchType,
-    label: string,
-    metadata?: Record<string, unknown>
-  ) => {
-    if (process.env.NODE_ENV !== "development") {
-      return
-    }
-
-    const metaStr = metadata
-      ? ` ${Object.entries(metadata)
-          .map(([k, v]) => `${k}:${v}`)
-          .join(", ")}`
-      : ""
-
-    console.log(`🚀 [Prefetch ${type}] ${label}${metaStr}`)
-  },
-
-  /**
-   * Log prefetch completion
-   */
-  complete: (type: PrefetchType, label: string, duration: number) => {
-    if (process.env.NODE_ENV !== "development") {
-      return
-    }
-
-    console.log(
-      `✅ [Prefetch ${type}] ${label} ready in ${Math.round(duration)}ms`
-    )
-  },
-
-  /**
-   * Log prefetch skip
-   */
-  skip: (type: PrefetchType, label: string, reason?: string) => {
-    if (process.env.NODE_ENV !== "development") {
-      return
-    }
-
-    const reasonStr = reason ? ` (${reason})` : ""
-    console.log(`⏭️ [Prefetch ${type}] ${label} skipped${reasonStr}`)
-  },
-
   /**
    * Log cache hit
    */
@@ -64,6 +20,19 @@ export const prefetchLogger = {
   },
 
   /**
+   * Log prefetch completion
+   */
+  complete: (type: PrefetchType, label: string, duration: number) => {
+    if (process.env.NODE_ENV !== "development") {
+      return
+    }
+
+    console.log(
+      `✅ [Prefetch ${type}] ${label} ready in ${Math.round(duration)}ms`,
+    )
+  },
+
+  /**
    * Log general info
    */
   info: (type: PrefetchType, message: string) => {
@@ -72,5 +41,41 @@ export const prefetchLogger = {
     }
 
     console.log(`ℹ️ [Prefetch ${type}] ${message}`)
+  },
+
+  /**
+   * Log prefetch skip
+   */
+  skip: (type: PrefetchType, label: string, reason?: string) => {
+    if (process.env.NODE_ENV !== "development") {
+      return
+    }
+
+    const reasonStr =
+      reason !== null && reason !== undefined && reason !== ""
+        ? ` (${reason})`
+        : ""
+    console.log(`⏭️ [Prefetch ${type}] ${label} skipped${reasonStr}`)
+  },
+
+  /**
+   * Log prefetch start
+   */
+  start: (
+    type: PrefetchType,
+    label: string,
+    metadata?: Record<string, string | number | boolean | null | undefined>,
+  ) => {
+    if (process.env.NODE_ENV !== "development") {
+      return
+    }
+
+    const metaStr = metadata
+      ? ` ${Object.entries(metadata)
+          .map(([key, value]) => `${key}:${formatLogValue(value)}`)
+          .join(", ")}`
+      : ""
+
+    console.log(`🚀 [Prefetch ${type}] ${label}${metaStr}`)
   },
 }

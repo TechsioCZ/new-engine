@@ -1,8 +1,8 @@
-/**
+/*
  * PhoneInput — @techsio/ui-kit molecule.
  *
  * @component PhoneInput
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill phone-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,36 +10,55 @@
  * the phone-input-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import {
-  AsYouType,
-  type CountryCode,
-  type E164Number,
-  formatIncompletePhoneNumber,
-  getCountryCallingCode,
   isSupportedCountry,
-  parseIncompletePhoneNumber,
   parsePhoneNumberFromString,
 } from "libphonenumber-js/max"
+import type { CountryCode } from "libphonenumber-js/max"
 import {
-  type ChangeEventHandler,
-  type ComponentPropsWithoutRef,
   createContext,
-  type ReactNode,
-  type Ref,
-  useCallback,
   useContext,
   useEffect,
   useId,
-  useMemo,
   useRef,
   useState,
 } from "react"
+import type {
+  ChangeEventHandler,
+  ComponentPropsWithoutRef,
+  ReactNode,
+  Ref,
+} from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import type { IconProps } from "../atoms/icon"
-import { Input, type InputProps } from "../atoms/input"
-import { Label, type LabelProps } from "../atoms/label"
-import { StatusText } from "../atoms/status-text"
+import { Input as InputPrimitive } from "../atoms/input"
+import type { InputProps } from "../atoms/input"
+import { Label as LabelPrimitive } from "../atoms/label"
+import type { LabelProps } from "../atoms/label"
+import { StatusText as StatusTextPrimitive } from "../atoms/status-text"
 import { tv } from "../utils"
+import {
+  defaultPhoneInputCountries,
+  formatPhoneInputValue,
+  getPhoneCountryCallingCode,
+  getPhoneInputValueDetailsInternal,
+  isCountryAvailable,
+} from "./phone-input-public"
+import type {
+  PhoneInputCountry,
+  PhoneInputValueChangeDetails,
+} from "./phone-input-public"
 import { Select } from "./select"
+
+export {
+  defaultPhoneInputCountries,
+  formatPhoneInputValue,
+  getPhoneInputValueDetails,
+} from "./phone-input-public"
+export type {
+  PhoneInputCountry,
+  PhoneInputValueChangeDetails,
+} from "./phone-input-public"
 
 export type PhoneInputSize = "sm" | "md" | "lg"
 export type PhoneInputValidateStatus =
@@ -48,51 +67,17 @@ export type PhoneInputValidateStatus =
   | "success"
   | "warning"
 
-export type PhoneInputCountry = {
-  value: CountryCode
-  label: ReactNode
-  disabled?: boolean
-  displayValue?: string
-  name?: string
-  flag?: ReactNode
-  callingCode?: string
-  [key: string]: unknown
-}
-
-export type PhoneInputValueChangeDetails = {
-  value: string
-  e164: E164Number | ""
-  country: CountryCode
-  callingCode: string
-  nationalNumber: string
-  isPossible: boolean
-  isValid: boolean
-}
-
 export type PhoneInputCountryChangeDetails = PhoneInputValueChangeDetails & {
   countryItem: PhoneInputCountry
 }
 
-type PhoneInputValueDetailsOptions = {
-  countries?: PhoneInputCountry[]
-  syncCountryFromValue?: boolean
-}
-
 const defaultNativeValidationMessage = "Enter a valid phone number."
 
-export const defaultPhoneInputCountries: PhoneInputCountry[] = [
-  { value: "SK", label: "Slovakia", name: "Slovakia" },
-  { value: "CZ", label: "Czechia", name: "Czechia" },
-  { value: "HU", label: "Hungary", name: "Hungary" },
-  { value: "RO", label: "Romania", name: "Romania" },
-  { value: "PL", label: "Poland", name: "Poland" },
-  { value: "AT", label: "Austria", name: "Austria" },
-  { value: "DE", label: "Germany", name: "Germany" },
-]
-
 const phoneInputVariants = tv({
+  defaultVariants: {
+    size: "md",
+  },
   slots: {
-    root: ["relative flex w-full flex-col gap-phone-input"],
     control: [
       "form-control-base",
       "relative flex w-full items-center overflow-hidden",
@@ -105,20 +90,28 @@ const phoneInputVariants = tv({
       "data-[disabled]:text-phone-input-fg-disabled",
       "data-[validation=error]:border-(length:--border-width-validation)",
       "data-[validation=error]:border-phone-input-border-danger data-[validation=error]:outline-phone-input-border-danger",
-      "data-[validation=error]:outline-(style:--default-ring-style) data-[validation=error]:outline-(length:--default-ring-width)",
+      "data-[validation=error]:outline-(length:--default-ring-width) data-[validation=error]:outline-(style:--default-ring-style)",
       "data-[validation=error]:outline-offset-(length:--default-ring-offset)",
       "data-[validation=success]:border-(length:--border-width-validation)",
       "data-[validation=success]:border-phone-input-border-success data-[validation=success]:outline-phone-input-border-success",
-      "data-[validation=success]:outline-(style:--default-ring-style) data-[validation=success]:outline-(length:--default-ring-width)",
+      "data-[validation=success]:outline-(length:--default-ring-width) data-[validation=success]:outline-(style:--default-ring-style)",
       "data-[validation=success]:outline-offset-(length:--default-ring-offset)",
       "data-[validation=warning]:border-(length:--border-width-validation)",
       "data-[validation=warning]:border-phone-input-border-warning data-[validation=warning]:outline-phone-input-border-warning",
-      "data-[validation=warning]:outline-(style:--default-ring-style) data-[validation=warning]:outline-(length:--default-ring-width)",
+      "data-[validation=warning]:outline-(length:--default-ring-width) data-[validation=warning]:outline-(style:--default-ring-style)",
       "data-[validation=warning]:outline-offset-(length:--default-ring-offset)",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    countrySelectRoot: ["contents"],
+    countryCallingCode: [
+      "font-medium text-phone-input-country-calling-code-fg",
+    ],
+    countryFlag: [
+      "inline-flex min-w-phone-input-country-flag items-center justify-center",
+      "rounded-phone-input-country-flag",
+      "text-phone-input-country-flag font-medium uppercase",
+    ],
     countrySelectControl: ["h-full w-auto shrink-0"],
+    countrySelectRoot: ["contents"],
     countryTrigger: [
       "shrink-0",
       "bg-phone-input-trigger-bg-base",
@@ -133,14 +126,6 @@ const phoneInputVariants = tv({
       "rounded-e-none",
     ],
     countryValue: ["flex items-center gap-phone-input-country-value"],
-    countryFlag: [
-      "inline-flex min-w-phone-input-country-flag items-center justify-center",
-      "rounded-phone-input-country-flag",
-      "font-medium text-phone-input-country-flag uppercase",
-    ],
-    countryCallingCode: [
-      "font-medium text-phone-input-country-calling-code-fg",
-    ],
     input: [
       "min-w-0 flex-1 border-0",
       "bg-phone-input-input-bg-base",
@@ -153,35 +138,33 @@ const phoneInputVariants = tv({
     ],
     itemContent: ["flex min-w-0 items-center gap-phone-input-item"],
     itemMeta: ["shrink-0 text-phone-input-item-meta-fg"],
+    root: ["relative flex w-full flex-col gap-phone-input"],
   },
   variants: {
     size: {
-      sm: {
-        control: "h-form-control-sm rounded-phone-input-sm text-phone-input-sm",
-        input: "text-phone-input-sm",
+      lg: {
+        control: "h-form-control-lg rounded-phone-input-lg text-phone-input-lg",
+        input: "text-phone-input-lg",
       },
       md: {
         control: "h-form-control-md rounded-phone-input-md text-phone-input-md",
         input: "text-phone-input-md",
       },
-      lg: {
-        control: "h-form-control-lg rounded-phone-input-lg text-phone-input-lg",
-        input: "text-phone-input-lg",
+      sm: {
+        control: "h-form-control-sm rounded-phone-input-sm text-phone-input-sm",
+        input: "text-phone-input-sm",
       },
     },
   },
-  defaultVariants: {
-    size: "md",
-  },
 })
 
-type PhoneInputContextValue = {
+interface PhoneInputContextValue {
   countries: PhoneInputCountry[]
   selectedCountry: CountryCode
   selectedCountryItem: PhoneInputCountry
   setCountryValue: (country: CountryCode) => void
-  countryName?: string
-  form?: string
+  countryName?: string | undefined
+  form?: string | undefined
   size: PhoneInputSize
   inputId: string
   inputValue: string
@@ -195,9 +178,109 @@ type PhoneInputContextValue = {
   validateStatus: PhoneInputValidateStatus
 }
 
+const assignRef = <T,>(ref: Ref<T> | undefined, value: T | null): void => {
+  if (!ref) {
+    return
+  }
+
+  if (typeof ref === "function") {
+    ref(value)
+    return
+  }
+
+  ref.current = value
+}
+
+const renderCountryFlag = (item: PhoneInputCountry): ReactNode =>
+  item.flag ?? item.value
+
+const getCountryDisplayValue = (item: PhoneInputCountry): string => {
+  if (item.displayValue !== undefined && item.displayValue !== "") {
+    return item.displayValue
+  }
+
+  if (item.name !== undefined && item.name !== "") {
+    return item.name
+  }
+
+  return typeof item.label === "string" ? item.label : item.value
+}
+
+const normalizePhoneInputCountries = (
+  countries: PhoneInputCountry[],
+): PhoneInputCountry[] =>
+  countries.map((item) => {
+    const displayValue = getCountryDisplayValue(item)
+
+    if (item.displayValue === displayValue) {
+      return item
+    }
+
+    return {
+      ...item,
+      displayValue,
+    }
+  })
+
+const getCountryFromValue = (
+  value: string,
+  countries: PhoneInputCountry[],
+): CountryCode | undefined => {
+  const parsedCountry = parsePhoneNumberFromString(value)?.country
+
+  return parsedCountry !== undefined &&
+    isCountryAvailable(countries, parsedCountry)
+    ? parsedCountry
+    : undefined
+}
+
+const getInitialCountry = (
+  value: string,
+  defaultCountry: CountryCode,
+  countries: PhoneInputCountry[],
+): CountryCode => getCountryFromValue(value, countries) ?? defaultCountry
+
+const resolveCountry = (
+  countries: PhoneInputCountry[],
+  country: CountryCode,
+): CountryCode => {
+  const supportedCountry = isSupportedCountry(country) ? country : "SK"
+
+  if (isCountryAvailable(countries, supportedCountry)) {
+    return supportedCountry
+  }
+
+  return countries.find((item) => item.disabled !== true)?.value ?? "SK"
+}
+
+const getCountryItem = (
+  countries: PhoneInputCountry[],
+  country: CountryCode,
+): PhoneInputCountry =>
+  countries.find((item) => item.value === country) ?? {
+    label: country,
+    name: country,
+    value: country,
+  }
+
+const getAvailablePhoneInputCountries = (
+  countries: PhoneInputCountry[],
+): PhoneInputCountry[] =>
+  normalizePhoneInputCountries(
+    countries.length > 0 ? countries : defaultPhoneInputCountries,
+  )
+
+const createPhoneInputContextValue = (
+  value: PhoneInputContextValue,
+): PhoneInputContextValue => value
+
+const createPhoneInputItemContextValue = (
+  item: PhoneInputCountry,
+): PhoneInputItemContextValue => ({ item })
+
 const PhoneInputContext = createContext<PhoneInputContextValue | null>(null)
 
-function usePhoneInputContext() {
+export const usePhoneInputContext = (): PhoneInputContextValue => {
   const context = useContext(PhoneInputContext)
   if (!context) {
     throw new Error("PhoneInput components must be used within PhoneInput")
@@ -205,19 +288,19 @@ function usePhoneInputContext() {
   return context
 }
 
-type PhoneInputItemContextValue = {
+interface PhoneInputItemContextValue {
   item: PhoneInputCountry
 }
 
 const PhoneInputItemContext = createContext<PhoneInputItemContextValue | null>(
-  null
+  null,
 )
 
-function usePhoneInputItemContext() {
+const usePhoneInputItemContext = (): PhoneInputItemContextValue => {
   const context = useContext(PhoneInputItemContext)
   if (!context) {
     throw new Error(
-      "PhoneInput item components must be used within PhoneInput.Item"
+      "PhoneInput item components must be used within PhoneInput.Item",
     )
   }
   return context
@@ -225,26 +308,83 @@ function usePhoneInputItemContext() {
 
 export type PhoneInputProps = VariantProps<typeof phoneInputVariants> &
   Omit<ComponentPropsWithoutRef<"div">, "defaultValue" | "onChange"> & {
-    countries?: PhoneInputCountry[]
-    value?: string
-    defaultValue?: string
-    country?: CountryCode
-    defaultCountry?: CountryCode
-    name?: string
-    countryName?: string
-    form?: string
-    required?: boolean
-    disabled?: boolean
-    readOnly?: boolean
-    nativeValidation?: boolean
-    nativeValidationMessage?: string
-    validateStatus?: PhoneInputValidateStatus
-    onValueChange?: (details: PhoneInputValueChangeDetails) => void
-    onCountryChange?: (details: PhoneInputCountryChangeDetails) => void
-    ref?: Ref<HTMLDivElement>
+    countries?: PhoneInputCountry[] | undefined
+    value?: string | undefined
+    defaultValue?: string | undefined
+    country?: CountryCode | undefined
+    defaultCountry?: CountryCode | undefined
+    name?: string | undefined
+    countryName?: string | undefined
+    form?: string | undefined
+    required?: boolean | undefined
+    disabled?: boolean | undefined
+    readOnly?: boolean | undefined
+    nativeValidation?: boolean | undefined
+    nativeValidationMessage?: string | undefined
+    validateStatus?: PhoneInputValidateStatus | undefined
+    onValueChange?:
+      | ((details: PhoneInputValueChangeDetails) => void)
+      | undefined
+    onCountryChange?:
+      | ((details: PhoneInputCountryChangeDetails) => void)
+      | undefined
+    ref?: Ref<HTMLDivElement> | undefined
   }
 
-export function PhoneInput({
+const getSelectedPhoneCountry = (
+  countries: PhoneInputCountry[],
+  country: CountryCode | undefined,
+  value: string | undefined,
+  internalCountry: CountryCode,
+): CountryCode => {
+  const valueCountry =
+    value === undefined ? undefined : getCountryFromValue(value, countries)
+  return resolveCountry(countries, country ?? valueCountry ?? internalCountry)
+}
+
+const getDisplayedPhoneValue = (
+  value: string | undefined,
+  internalValue: string,
+  country: CountryCode,
+): string =>
+  value === undefined ? internalValue : formatPhoneInputValue(value, country)
+
+const updatePhoneInputState = (
+  nextDetails: PhoneInputValueChangeDetails,
+  options: {
+    updateCountry: boolean
+    updateValue: boolean
+    setCountry: (country: CountryCode) => void
+    setValue: (value: string) => void
+  },
+): void => {
+  if (options.updateCountry) {
+    options.setCountry(nextDetails.country)
+  }
+
+  if (options.updateValue) {
+    options.setValue(nextDetails.value)
+  }
+}
+
+const notifyPhoneInputChanges = (
+  nextDetails: PhoneInputValueChangeDetails,
+  countries: PhoneInputCountry[],
+  countryChanged: boolean,
+  onCountryChange: PhoneInputProps["onCountryChange"],
+  onValueChange: PhoneInputProps["onValueChange"],
+): void => {
+  if (countryChanged) {
+    onCountryChange?.({
+      ...nextDetails,
+      countryItem: getCountryItem(countries, nextDetails.country),
+    })
+  }
+
+  onValueChange?.(nextDetails)
+}
+
+const PhoneInputRoot = ({
   countries: countriesProp = defaultPhoneInputCountries,
   value,
   defaultValue = "",
@@ -267,61 +407,42 @@ export function PhoneInput({
   children,
   ref,
   ...props
-}: PhoneInputProps) {
+}: PhoneInputProps) => {
   const generatedId = useId()
-  const id = providedId || generatedId
-  const countries = useMemo(
-    () =>
-      normalizePhoneInputCountries(
-        countriesProp.length > 0 ? countriesProp : defaultPhoneInputCountries
-      ),
-    [countriesProp]
-  )
+  const id =
+    providedId === undefined || providedId === "" ? generatedId : providedId
+  const countries = getAvailablePhoneInputCountries(countriesProp)
   const fallbackCountry = resolveCountry(
     countries,
-    getInitialCountry(value ?? defaultValue, defaultCountry, countries)
+    getInitialCountry(value ?? defaultValue, defaultCountry, countries),
   )
 
   const [internalCountry, setInternalCountry] =
     useState<CountryCode>(fallbackCountry)
-  const selectedCountry = resolveCountry(countries, country ?? internalCountry)
+  const selectedCountry = getSelectedPhoneCountry(
+    countries,
+    country,
+    value,
+    internalCountry,
+  )
   const selectedCountryItem = getCountryItem(countries, selectedCountry)
-  const previousControlledValueRef = useRef(value)
 
   const [internalValue, setInternalValue] = useState(() =>
-    formatPhoneInputValue(defaultValue, selectedCountry)
+    formatPhoneInputValue(defaultValue, selectedCountry),
   )
   const isValueControlled = value !== undefined
-  const inputValue = isValueControlled
-    ? formatPhoneInputValue(value, selectedCountry)
-    : internalValue
+  const inputValue = getDisplayedPhoneValue(
+    value,
+    internalValue,
+    selectedCountry,
+  )
 
-  const details = useMemo(
-    () =>
-      getPhoneInputValueDetailsInternal(inputValue, selectedCountry, {
-        countries,
-      }),
-    [countries, inputValue, selectedCountry]
+  const details = getPhoneInputValueDetailsInternal(
+    inputValue,
+    selectedCountry,
+    { countries },
   )
   const nativeFormValue = details.isValid ? details.e164 : inputValue
-
-  useEffect(() => {
-    if (
-      !isValueControlled ||
-      country ||
-      value === previousControlledValueRef.current
-    ) {
-      return
-    }
-
-    previousControlledValueRef.current = value
-
-    const nextCountry = getCountryFromValue(value ?? "", countries)
-
-    if (nextCountry && nextCountry !== internalCountry) {
-      setInternalCountry(nextCountry)
-    }
-  }, [countries, country, internalCountry, isValueControlled, value])
 
   const setInputValue = (nextValue: string) => {
     const nextDetails = getPhoneInputValueDetailsInternal(
@@ -330,78 +451,73 @@ export function PhoneInput({
       {
         countries,
         syncCountryFromValue: true,
-      }
+      },
     )
     const didChangeCountry = nextDetails.country !== selectedCountry
 
-    if (!isValueControlled) {
-      setInternalValue(nextDetails.value)
-    }
-
-    if (didChangeCountry && !country) {
-      setInternalCountry(nextDetails.country)
-    }
-
-    if (didChangeCountry) {
-      onCountryChange?.({
-        ...nextDetails,
-        countryItem: getCountryItem(countries, nextDetails.country),
-      })
-    }
-
-    onValueChange?.(nextDetails)
+    updatePhoneInputState(nextDetails, {
+      setCountry: setInternalCountry,
+      setValue: setInternalValue,
+      updateCountry: didChangeCountry && country === undefined,
+      updateValue: !isValueControlled,
+    })
+    notifyPhoneInputChanges(
+      nextDetails,
+      countries,
+      didChangeCountry,
+      onCountryChange,
+      onValueChange,
+    )
   }
 
   const setCountryValue = (nextCountry: CountryCode) => {
-    const nextCountryItem = getCountryItem(countries, nextCountry)
     const nextDetails = getPhoneInputValueDetailsInternal(
       inputValue,
       nextCountry,
       {
         countries,
-      }
+      },
     )
 
-    if (!country) {
-      setInternalCountry(nextCountry)
-    }
-
-    if (!isValueControlled) {
-      setInternalValue(nextDetails.value)
-    }
-
-    onCountryChange?.({
-      ...nextDetails,
-      countryItem: nextCountryItem,
+    updatePhoneInputState(nextDetails, {
+      setCountry: setInternalCountry,
+      setValue: setInternalValue,
+      updateCountry: country === undefined,
+      updateValue: !isValueControlled,
     })
-    onValueChange?.(nextDetails)
+    notifyPhoneInputChanges(
+      nextDetails,
+      countries,
+      true,
+      onCountryChange,
+      onValueChange,
+    )
   }
 
   const styles = phoneInputVariants({ size })
+  const contextValue = createPhoneInputContextValue({
+    countries,
+    countryName,
+    details,
+    disabled,
+    form,
+    inputId: `${id}-input`,
+    inputValue,
+    nativeValidation,
+    nativeValidationMessage,
+    readOnly,
+    required,
+    selectedCountry,
+    selectedCountryItem,
+    setCountryValue,
+    setInputValue,
+    size,
+    validateStatus,
+  })
 
   return (
-    <PhoneInputContext.Provider
-      value={{
-        countries,
-        selectedCountry,
-        selectedCountryItem,
-        setCountryValue,
-        countryName,
-        form,
-        size,
-        inputId: `${id}-input`,
-        inputValue,
-        setInputValue,
-        details,
-        disabled,
-        nativeValidation,
-        nativeValidationMessage,
-        readOnly,
-        required,
-        validateStatus,
-      }}
-    >
-      {name && (
+    <PhoneInputContext.Provider value={contextValue}>
+      {name !== undefined && name !== "" && (
         <input
           disabled={disabled}
           form={form}
@@ -424,14 +540,11 @@ export function PhoneInput({
 
 type PhoneInputLabelProps = Omit<LabelProps, "htmlFor" | "size">
 
-PhoneInput.Label = function PhoneInputLabel({
-  children,
-  ...props
-}: PhoneInputLabelProps) {
+const PhoneInputLabel = ({ children, ...props }: PhoneInputLabelProps) => {
   const { disabled, inputId, required, size } = usePhoneInputContext()
 
   return (
-    <Label
+    <LabelPrimitive
       disabled={disabled}
       htmlFor={inputId}
       required={required}
@@ -439,24 +552,24 @@ PhoneInput.Label = function PhoneInputLabel({
       {...props}
     >
       {children}
-    </Label>
+    </LabelPrimitive>
   )
 }
 
 type PhoneInputControlProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
-PhoneInput.Control = function PhoneInputControl({
+const PhoneInputControl = ({
   children,
   className,
   ref,
   ...props
-}: PhoneInputControlProps) {
+}: PhoneInputControlProps) => {
   const { disabled, readOnly, size, validateStatus } = usePhoneInputContext()
   const styles = phoneInputVariants({ size })
   const validationDataAttrs =
-    validateStatus !== "default" ? { "data-validation": validateStatus } : {}
+    validateStatus === "default" ? {} : { "data-validation": validateStatus }
 
   return (
     <div
@@ -472,17 +585,17 @@ PhoneInput.Control = function PhoneInputControl({
   )
 }
 
-type PhoneInputCountrySelectProps = {
+interface PhoneInputCountrySelectProps {
   children: ReactNode
-  className?: string
-  closeOnSelect?: boolean
+  className?: string | undefined
+  closeOnSelect?: boolean | undefined
 }
 
-PhoneInput.CountrySelect = function PhoneInputCountrySelect({
+const PhoneInputCountrySelect = ({
   children,
   className,
   closeOnSelect = true,
-}: PhoneInputCountrySelectProps) {
+}: PhoneInputCountrySelectProps) => {
   const {
     countries,
     countryName,
@@ -504,8 +617,12 @@ PhoneInput.CountrySelect = function PhoneInputCountrySelect({
       items={countries}
       name={countryName}
       onValueChange={(selectDetails) => {
-        const nextCountry = selectDetails.value[0]
-        if (nextCountry && isSupportedCountry(nextCountry)) {
+        const [nextCountry] = selectDetails.value
+        if (
+          nextCountry !== undefined &&
+          nextCountry !== "" &&
+          isSupportedCountry(nextCountry)
+        ) {
           setCountryValue(nextCountry)
         }
       }}
@@ -518,57 +635,16 @@ PhoneInput.CountrySelect = function PhoneInputCountrySelect({
   )
 }
 
-type PhoneInputCountryPickerProps = {
-  className?: string
-  selectProps?: Omit<PhoneInputCountrySelectProps, "children">
-  controlProps?: PhoneInputCountryControlProps
-  triggerProps?: PhoneInputCountryTriggerProps
-  positionerProps?: PhoneInputCountryPositionerProps
-  contentProps?: PhoneInputCountryContentProps
-}
-
-PhoneInput.CountryPicker = function PhoneInputCountryPicker({
-  className,
-  selectProps,
-  controlProps,
-  triggerProps,
-  positionerProps,
-  contentProps,
-}: PhoneInputCountryPickerProps) {
-  const { countries } = usePhoneInputContext()
-
-  return (
-    <PhoneInput.CountrySelect
-      {...selectProps}
-      className={selectProps?.className ?? className}
-    >
-      <PhoneInput.CountryControl {...controlProps}>
-        <PhoneInput.CountryTrigger {...triggerProps} />
-      </PhoneInput.CountryControl>
-      <PhoneInput.CountryPositioner {...positionerProps}>
-        <PhoneInput.CountryContent {...contentProps}>
-          {countries.map((item) => (
-            <PhoneInput.CountryItem item={item} key={item.value}>
-              <PhoneInput.CountryItemText />
-              <PhoneInput.CountryItemMeta />
-            </PhoneInput.CountryItem>
-          ))}
-        </PhoneInput.CountryContent>
-      </PhoneInput.CountryPositioner>
-    </PhoneInput.CountrySelect>
-  )
-}
-
 type PhoneInputCountryControlProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
-PhoneInput.CountryControl = function PhoneInputCountryControl({
+const PhoneInputCountryControl = ({
   children,
   className,
   ref,
   ...props
-}: PhoneInputCountryControlProps) {
+}: PhoneInputCountryControlProps) => {
   const { size } = usePhoneInputContext()
   const styles = phoneInputVariants({ size })
 
@@ -583,46 +659,16 @@ PhoneInput.CountryControl = function PhoneInputCountryControl({
   )
 }
 
-type PhoneInputCountryTriggerProps = ComponentPropsWithoutRef<"button"> & {
-  iconSize?: IconProps["size"]
-  ref?: Ref<HTMLButtonElement>
-}
-
-PhoneInput.CountryTrigger = function PhoneInputCountryTrigger({
-  children,
-  className,
-  ref,
-  ...props
-}: PhoneInputCountryTriggerProps) {
-  const { selectedCountryItem, size } = usePhoneInputContext()
-  const styles = phoneInputVariants({ size })
-
-  return (
-    <Select.Trigger
-      className={styles.countryTrigger({ className })}
-      ref={ref}
-      {...props}
-    >
-      {children ?? (
-        <PhoneInput.CountryValue>
-          <PhoneInput.CountryFlag item={selectedCountryItem} />
-          <PhoneInput.CountryCallingCode item={selectedCountryItem} />
-        </PhoneInput.CountryValue>
-      )}
-    </Select.Trigger>
-  )
-}
-
 type PhoneInputCountryValueProps = ComponentPropsWithoutRef<"span"> & {
-  ref?: Ref<HTMLSpanElement>
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
-PhoneInput.CountryValue = function PhoneInputCountryValue({
+const PhoneInputCountryValue = ({
   children,
   className,
   ref,
   ...props
-}: PhoneInputCountryValueProps) {
+}: PhoneInputCountryValueProps) => {
   const { size } = usePhoneInputContext()
   const styles = phoneInputVariants({ size })
 
@@ -634,16 +680,16 @@ PhoneInput.CountryValue = function PhoneInputCountryValue({
 }
 
 type PhoneInputCountryFlagProps = ComponentPropsWithoutRef<"span"> & {
-  item?: PhoneInputCountry
-  ref?: Ref<HTMLSpanElement>
+  item?: PhoneInputCountry | undefined
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
-PhoneInput.CountryFlag = function PhoneInputCountryFlag({
+const PhoneInputCountryFlag = ({
   item,
   className,
   ref,
   ...props
-}: PhoneInputCountryFlagProps) {
+}: PhoneInputCountryFlagProps) => {
   const { selectedCountryItem, size } = usePhoneInputContext()
   const styles = phoneInputVariants({ size })
 
@@ -655,16 +701,16 @@ PhoneInput.CountryFlag = function PhoneInputCountryFlag({
 }
 
 type PhoneInputCountryCallingCodeProps = ComponentPropsWithoutRef<"span"> & {
-  item?: PhoneInputCountry
-  ref?: Ref<HTMLSpanElement>
+  item?: PhoneInputCountry | undefined
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
-PhoneInput.CountryCallingCode = function PhoneInputCountryCallingCode({
+const PhoneInputCountryCallingCode = ({
   item,
   className,
   ref,
   ...props
-}: PhoneInputCountryCallingCodeProps) {
+}: PhoneInputCountryCallingCodeProps) => {
   const { selectedCountryItem, size } = usePhoneInputContext()
   const styles = phoneInputVariants({ size })
 
@@ -676,6 +722,36 @@ PhoneInput.CountryCallingCode = function PhoneInputCountryCallingCode({
     >
       +{getPhoneCountryCallingCode(item ?? selectedCountryItem)}
     </span>
+  )
+}
+
+type PhoneInputCountryTriggerProps = ComponentPropsWithoutRef<"button"> & {
+  iconSize?: IconProps["size"] | undefined
+  ref?: Ref<HTMLButtonElement> | undefined
+}
+
+const PhoneInputCountryTrigger = ({
+  children,
+  className,
+  ref,
+  ...props
+}: PhoneInputCountryTriggerProps) => {
+  const { selectedCountryItem, size } = usePhoneInputContext()
+  const styles = phoneInputVariants({ size })
+
+  return (
+    <Select.Trigger
+      className={styles.countryTrigger({ className })}
+      ref={ref}
+      {...props}
+    >
+      {children ?? (
+        <PhoneInputCountryValue>
+          <PhoneInputCountryFlag item={selectedCountryItem} />
+          <PhoneInputCountryCallingCode item={selectedCountryItem} />
+        </PhoneInputCountryValue>
+      )}
+    </Select.Trigger>
   )
 }
 
@@ -696,16 +772,16 @@ type PhoneInputInputProps = Omit<
   | "value"
   | "variant"
 > & {
-  onChange?: ChangeEventHandler<HTMLInputElement>
+  onChange?: ChangeEventHandler<HTMLInputElement> | undefined
 }
 
-PhoneInput.Input = function PhoneInputInput({
+const PhoneInputInput = ({
   className,
   onChange,
   placeholder = "Phone number",
   ref,
   ...props
-}: PhoneInputInputProps) {
+}: PhoneInputInputProps) => {
   const {
     details,
     disabled,
@@ -722,45 +798,33 @@ PhoneInput.Input = function PhoneInputInput({
   } = usePhoneInputContext()
   const styles = phoneInputVariants({ size })
   const inputRef = useRef<HTMLInputElement>(null)
-  const setInputRef = useCallback(
-    (node: HTMLInputElement | null) => {
-      inputRef.current = node
-      assignRef(ref, node)
-    },
-    [ref]
-  )
+  const setInputRef = (node: HTMLInputElement | null) => {
+    inputRef.current = node
+    assignRef(ref, node)
+  }
+
+  const hasInputValue = inputValue.trim() !== ""
+  const canUseNativeValidation = nativeValidation && !disabled && !readOnly
+  const hasNativeValidationError =
+    canUseNativeValidation && hasInputValue && !details.isValid
 
   useEffect(() => {
     const input = inputRef.current
 
-    if (!input) {
+    if (input === null) {
       return
     }
 
-    const hasInvalidValue =
-      nativeValidation &&
-      inputValue.trim() !== "" &&
-      !details.isValid &&
-      !disabled &&
-      !readOnly
-
-    input.setCustomValidity(hasInvalidValue ? nativeValidationMessage : "")
-  }, [
-    details.isValid,
-    disabled,
-    inputValue,
-    nativeValidation,
-    nativeValidationMessage,
-    readOnly,
-  ])
+    input.setCustomValidity(
+      hasNativeValidationError ? nativeValidationMessage : "",
+    )
+  }, [hasNativeValidationError, nativeValidationMessage])
 
   return (
-    <Input
+    <InputPrimitive
       {...props}
       aria-invalid={
-        validateStatus === "error" ||
-        (nativeValidation && inputValue.trim() !== "" && !details.isValid) ||
-        undefined
+        validateStatus === "error" || hasNativeValidationError || undefined
       }
       className={styles.input({ className })}
       disabled={disabled}
@@ -784,39 +848,41 @@ PhoneInput.Input = function PhoneInputInput({
 }
 
 type PhoneInputCountryPositionerProps = ComponentPropsWithoutRef<"div"> & {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
-PhoneInput.CountryPositioner = function PhoneInputCountryPositioner({
+const PhoneInputCountryPositioner = ({
   children,
   ...props
-}: PhoneInputCountryPositionerProps) {
-  return <Select.Positioner {...props}>{children}</Select.Positioner>
-}
+}: PhoneInputCountryPositionerProps) => (
+  <Select.Positioner {...props}>{children}</Select.Positioner>
+)
 
 type PhoneInputCountryContentProps = ComponentPropsWithoutRef<"ul"> & {
-  ref?: Ref<HTMLUListElement>
+  ref?: Ref<HTMLUListElement> | undefined
 }
 
-PhoneInput.CountryContent = function PhoneInputCountryContent({
+const PhoneInputCountryContent = ({
   children,
   ...props
-}: PhoneInputCountryContentProps) {
-  return <Select.Content {...props}>{children}</Select.Content>
-}
+}: PhoneInputCountryContentProps) => (
+  <Select.Content {...props}>{children}</Select.Content>
+)
 
 type PhoneInputCountryItemProps = ComponentPropsWithoutRef<"li"> & {
   item: PhoneInputCountry
-  ref?: Ref<HTMLLIElement>
+  ref?: Ref<HTMLLIElement> | undefined
 }
 
-PhoneInput.CountryItem = function PhoneInputCountryItem({
+const PhoneInputCountryItem = ({
   item,
   children,
   ...props
-}: PhoneInputCountryItemProps) {
+}: PhoneInputCountryItemProps) => {
+  const contextValue = createPhoneInputItemContextValue(item)
+
   return (
-    <PhoneInputItemContext.Provider value={{ item }}>
+    <PhoneInputItemContext.Provider value={contextValue}>
       <Select.Item item={item} {...props}>
         {children}
       </Select.Item>
@@ -825,13 +891,13 @@ PhoneInput.CountryItem = function PhoneInputCountryItem({
 }
 
 type PhoneInputCountryItemTextProps = ComponentPropsWithoutRef<"span"> & {
-  ref?: Ref<HTMLSpanElement>
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
-PhoneInput.CountryItemText = function PhoneInputCountryItemText({
+const PhoneInputCountryItemText = ({
   children,
   ...props
-}: PhoneInputCountryItemTextProps) {
+}: PhoneInputCountryItemTextProps) => {
   const { size } = usePhoneInputContext()
   const { item } = usePhoneInputItemContext()
   const styles = phoneInputVariants({ size })
@@ -840,7 +906,7 @@ PhoneInput.CountryItemText = function PhoneInputCountryItemText({
     <Select.ItemText {...props}>
       {children ?? (
         <span className={styles.itemContent()}>
-          <PhoneInput.CountryFlag item={item} />
+          <PhoneInputCountryFlag item={item} />
           <span className="truncate">{item.label}</span>
         </span>
       )}
@@ -849,15 +915,15 @@ PhoneInput.CountryItemText = function PhoneInputCountryItemText({
 }
 
 type PhoneInputCountryItemMetaProps = ComponentPropsWithoutRef<"span"> & {
-  ref?: Ref<HTMLSpanElement>
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
-PhoneInput.CountryItemMeta = function PhoneInputCountryItemMeta({
+const PhoneInputCountryItemMeta = ({
   children,
   className,
   ref,
   ...props
-}: PhoneInputCountryItemMetaProps) {
+}: PhoneInputCountryItemMetaProps) => {
   const { size } = usePhoneInputContext()
   const { item } = usePhoneInputItemContext()
   const styles = phoneInputVariants({ size })
@@ -870,284 +936,106 @@ PhoneInput.CountryItemMeta = function PhoneInputCountryItemMeta({
 }
 
 type PhoneInputCountryItemIndicatorProps = ComponentPropsWithoutRef<"span"> & {
-  iconSize?: IconProps["size"]
-  ref?: Ref<HTMLSpanElement>
+  iconSize?: IconProps["size"] | undefined
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
-PhoneInput.CountryItemIndicator = function PhoneInputCountryItemIndicator({
-  ...props
-}: PhoneInputCountryItemIndicatorProps) {
-  return <Select.ItemIndicator {...props} />
+const PhoneInputCountryItemIndicator = (
+  props: PhoneInputCountryItemIndicatorProps,
+) => <Select.ItemIndicator {...props} />
+
+interface PhoneInputCountryPickerProps {
+  className?: string | undefined
+  selectProps?: Omit<PhoneInputCountrySelectProps, "children"> | undefined
+  controlProps?: PhoneInputCountryControlProps | undefined
+  triggerProps?: PhoneInputCountryTriggerProps | undefined
+  positionerProps?: PhoneInputCountryPositionerProps | undefined
+  contentProps?: PhoneInputCountryContentProps | undefined
 }
 
-PhoneInput.Positioner = PhoneInput.CountryPositioner
-PhoneInput.Content = PhoneInput.CountryContent
-PhoneInput.Item = PhoneInput.CountryItem
-PhoneInput.ItemText = PhoneInput.CountryItemText
-PhoneInput.ItemMeta = PhoneInput.CountryItemMeta
-PhoneInput.ItemIndicator = PhoneInput.CountryItemIndicator
+const PhoneInputCountryPicker = ({
+  className,
+  selectProps,
+  controlProps,
+  triggerProps,
+  positionerProps,
+  contentProps,
+}: PhoneInputCountryPickerProps) => {
+  const { countries } = usePhoneInputContext()
+
+  return (
+    <PhoneInputCountrySelect
+      {...selectProps}
+      className={selectProps?.className ?? className}
+    >
+      <PhoneInputCountryControl {...controlProps}>
+        <PhoneInputCountryTrigger {...triggerProps} />
+      </PhoneInputCountryControl>
+      <PhoneInputCountryPositioner {...positionerProps}>
+        <PhoneInputCountryContent {...contentProps}>
+          {countries.map((item) => (
+            <PhoneInputCountryItem item={item} key={item.value}>
+              <PhoneInputCountryItemText />
+              <PhoneInputCountryItemMeta />
+            </PhoneInputCountryItem>
+          ))}
+        </PhoneInputCountryContent>
+      </PhoneInputCountryPositioner>
+    </PhoneInputCountrySelect>
+  )
+}
 
 type PhoneInputStatusTextProps = ComponentPropsWithoutRef<"div"> & {
-  status?: PhoneInputValidateStatus
-  showIcon?: boolean
-  ref?: Ref<HTMLDivElement>
+  status?: PhoneInputValidateStatus | undefined
+  showIcon?: boolean | undefined
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
-PhoneInput.StatusText = function PhoneInputStatusText({
+const PhoneInputStatusText = ({
   status,
   showIcon,
   children,
   ...props
-}: PhoneInputStatusTextProps) {
+}: PhoneInputStatusTextProps) => {
   const { size, validateStatus } = usePhoneInputContext()
 
   return (
-    <StatusText
+    <StatusTextPrimitive
       showIcon={showIcon}
       size={size}
       status={status ?? validateStatus}
       {...props}
     >
       {children}
-    </StatusText>
+    </StatusTextPrimitive>
   )
 }
+PhoneInputRoot.displayName = "PhoneInput"
 
-export function formatPhoneInputValue(
-  value: string,
-  country: CountryCode
-): string {
-  if (!value.trim()) {
-    return ""
-  }
+const PhoneInputCompound = Object.assign(PhoneInputRoot, {
+  Content: PhoneInputCountryContent,
+  Control: PhoneInputControl,
+  CountryCallingCode: PhoneInputCountryCallingCode,
+  CountryContent: PhoneInputCountryContent,
+  CountryControl: PhoneInputCountryControl,
+  CountryFlag: PhoneInputCountryFlag,
+  CountryItem: PhoneInputCountryItem,
+  CountryItemIndicator: PhoneInputCountryItemIndicator,
+  CountryItemMeta: PhoneInputCountryItemMeta,
+  CountryItemText: PhoneInputCountryItemText,
+  CountryPicker: PhoneInputCountryPicker,
+  CountryPositioner: PhoneInputCountryPositioner,
+  CountrySelect: PhoneInputCountrySelect,
+  CountryTrigger: PhoneInputCountryTrigger,
+  CountryValue: PhoneInputCountryValue,
+  Input: PhoneInputInput,
+  Item: PhoneInputCountryItem,
+  ItemIndicator: PhoneInputCountryItemIndicator,
+  ItemMeta: PhoneInputCountryItemMeta,
+  ItemText: PhoneInputCountryItemText,
+  Label: PhoneInputLabel,
+  Positioner: PhoneInputCountryPositioner,
+  StatusText: PhoneInputStatusText,
+})
 
-  const parsedNumber = parsePhoneNumberFromString(value, country)
-  if (parsedNumber?.country === country) {
-    return formatNationalSignificantPhoneValue(
-      parsedNumber.nationalNumber,
-      country
-    )
-  }
-
-  if (parsedNumber?.country) {
-    return formatIncompletePhoneNumber(value, country)
-  }
-
-  return formatNationalSignificantPhoneValue(value, country)
-}
-
-export function getPhoneInputValueDetails(
-  value: string,
-  country: CountryCode
-): PhoneInputValueChangeDetails {
-  return getPhoneInputValueDetailsInternal(value, country)
-}
-
-function getPhoneInputValueDetailsInternal(
-  value: string,
-  country: CountryCode,
-  options: PhoneInputValueDetailsOptions = {}
-): PhoneInputValueChangeDetails {
-  const parsedValue = parsePhoneNumberFromString(value, country)
-  const valueCountry = parsedValue?.country
-  const detailsCountry =
-    options.syncCountryFromValue &&
-    valueCountry &&
-    isCountryAvailable(options.countries, valueCountry)
-      ? valueCountry
-      : country
-  const formattedValue = formatPhoneInputValue(value, detailsCountry)
-  const formatter = new AsYouType(detailsCountry)
-
-  formatter.input(value)
-
-  const parsedNumber =
-    parsePhoneNumberFromString(value, detailsCountry) ??
-    parsePhoneNumberFromString(formattedValue, detailsCountry)
-  const hasCountryMismatch =
-    !!parsedNumber?.country && parsedNumber.country !== detailsCountry
-  const detailsNumber = hasCountryMismatch ? undefined : parsedNumber
-  const formatterNumber = formatter.getNumber()
-  const isPossible = hasCountryMismatch
-    ? false
-    : (detailsNumber?.isPossible() ?? formatter.isPossible())
-  const isValid = hasCountryMismatch
-    ? false
-    : (detailsNumber?.isValid() ?? formatter.isValid())
-
-  return {
-    value: formattedValue,
-    e164: isValid
-      ? (detailsNumber?.number ?? formatter.getNumberValue() ?? "")
-      : "",
-    country: detailsCountry,
-    callingCode: getPhoneCountryCallingCode(detailsCountry),
-    nationalNumber: hasCountryMismatch
-      ? ""
-      : (detailsNumber?.nationalNumber.toString() ??
-        formatterNumber?.nationalNumber ??
-        ""),
-    isPossible,
-    isValid,
-  }
-}
-
-function normalizePhoneInputCountries(
-  countries: PhoneInputCountry[]
-): PhoneInputCountry[] {
-  return countries.map((item) => {
-    const displayValue = getCountryDisplayValue(item)
-
-    if (item.displayValue === displayValue) {
-      return item
-    }
-
-    return {
-      ...item,
-      displayValue,
-    }
-  })
-}
-
-function getCountryDisplayValue(item: PhoneInputCountry): string {
-  if (item.displayValue) {
-    return item.displayValue
-  }
-
-  if (item.name) {
-    return item.name
-  }
-
-  return typeof item.label === "string" ? item.label : item.value
-}
-
-function isCountryAvailable(
-  countries: PhoneInputCountry[] | undefined,
-  country: CountryCode
-): boolean {
-  if (!isSupportedCountry(country)) {
-    return false
-  }
-
-  return (
-    !countries ||
-    countries.some((item) => item.value === country && !item.disabled)
-  )
-}
-
-function getInitialCountry(
-  value: string,
-  defaultCountry: CountryCode,
-  countries: PhoneInputCountry[]
-): CountryCode {
-  const parsedCountry = getCountryFromValue(value, countries)
-
-  if (parsedCountry) {
-    return parsedCountry
-  }
-
-  return defaultCountry
-}
-
-function getCountryFromValue(
-  value: string,
-  countries: PhoneInputCountry[]
-): CountryCode | undefined {
-  const parsedCountry = parsePhoneNumberFromString(value)?.country
-
-  return parsedCountry && isCountryAvailable(countries, parsedCountry)
-    ? parsedCountry
-    : undefined
-}
-
-function formatNationalSignificantPhoneValue(
-  value: string,
-  country: CountryCode
-) {
-  const callingCode = getPhoneCountryCallingCode(country)
-  const incompleteValue = parseIncompletePhoneNumber(value)
-
-  if (incompleteValue.startsWith("+")) {
-    if (incompleteValue.startsWith(`+${callingCode}`)) {
-      return stripCountryCallingCode(
-        formatIncompletePhoneNumber(incompleteValue, country),
-        callingCode
-      )
-    }
-
-    return formatIncompletePhoneNumber(value, country)
-  }
-
-  return stripCountryCallingCode(
-    formatIncompletePhoneNumber(`+${callingCode}${incompleteValue}`, country),
-    callingCode
-  )
-}
-
-function stripCountryCallingCode(value: string, callingCode: string) {
-  const prefix = `+${callingCode}`
-
-  return value.startsWith(prefix)
-    ? value.slice(prefix.length).trimStart()
-    : value
-}
-
-function resolveCountry(
-  countries: PhoneInputCountry[],
-  country: CountryCode
-): CountryCode {
-  const supportedCountry = isSupportedCountry(country) ? country : "SK"
-
-  if (isCountryAvailable(countries, supportedCountry)) {
-    return supportedCountry
-  }
-
-  return countries.find((item) => !item.disabled)?.value ?? "SK"
-}
-
-function getCountryItem(
-  countries: PhoneInputCountry[],
-  country: CountryCode
-): PhoneInputCountry {
-  return (
-    countries.find((item) => item.value === country) ?? {
-      value: country,
-      label: country,
-      name: country,
-    }
-  )
-}
-
-function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
-  if (!ref) {
-    return
-  }
-
-  if (typeof ref === "function") {
-    ref(value)
-    return
-  }
-
-  ;(ref as { current: T | null }).current = value
-}
-
-function getPhoneCountryCallingCode(
-  country: CountryCode | PhoneInputCountry
-): string {
-  const countryCode = typeof country === "string" ? country : country.value
-  const callingCode = getCountryCallingCode(countryCode)
-
-  if (typeof country !== "string" && country.callingCode === callingCode) {
-    return country.callingCode
-  }
-
-  return callingCode
-}
-
-function renderCountryFlag(item: PhoneInputCountry) {
-  return item.flag ?? item.value
-}
-
-export { phoneInputVariants, usePhoneInputContext }
-
-PhoneInput.displayName = "PhoneInput"
+export const PhoneInput = PhoneInputCompound

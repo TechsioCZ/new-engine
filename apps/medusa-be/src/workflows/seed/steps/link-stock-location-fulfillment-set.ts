@@ -4,16 +4,21 @@ import type {
   Logger,
   StockLocationDTO,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
-export type LinkStockLocationFulfillmentSetStepInput = {
+export interface LinkStockLocationFulfillmentSetStepInput {
   stockLocations: StockLocationDTO[]
   fulfillmentSet: FulfillmentSetDTO
 }
 
 const LinkStockLocationFulfillmentSetStepId =
   "link-stock-location-fulfillment-set-seed-step"
+const MAX_STOCK_LOCATION_LINKS = 10_000
 export const linkStockLocationFulfillmentSetStep = createStep(
   LinkStockLocationFulfillmentSetStepId,
   async (input: LinkStockLocationFulfillmentSetStepInput, { container }) => {
@@ -24,7 +29,19 @@ export const linkStockLocationFulfillmentSetStep = createStep(
 
     logger.info("Linking stock location to fulfillment set...")
 
-    for (const stockLocation of input.stockLocations) {
+    if (input.stockLocations.length > MAX_STOCK_LOCATION_LINKS) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Refusing to link ${input.stockLocations.length} stock locations; maximum is ${MAX_STOCK_LOCATION_LINKS}.`,
+      )
+    }
+
+    const createNextLink = async (index: number): Promise<void> => {
+      const stockLocation = input.stockLocations[index]
+      if (stockLocation === undefined) {
+        return
+      }
+
       try {
         const linkResult = await link.create({
           [Modules.STOCK_LOCATION]: {
@@ -34,26 +51,27 @@ export const linkStockLocationFulfillmentSetStep = createStep(
             fulfillment_set_id: input.fulfillmentSet.id,
           },
         })
-
         result.push(linkResult)
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
         if (
-          message.includes(
-            "Cannot create multiple links between 'stock_location' and 'fulfillment'"
-          )
+          error instanceof MedusaError &&
+          error.type === MedusaError.Types.DUPLICATE_ERROR
         ) {
           logger.warn(
-            `Skipping existing stock location -> fulfillment set link for stock location "${stockLocation.id}" and fulfillment set "${input.fulfillmentSet.id}"`
+            `Skipping existing stock location -> fulfillment set link for stock location "${stockLocation.id}" and fulfillment set "${input.fulfillmentSet.id}"`,
           )
-          continue
+        } else {
+          throw error
         }
-        throw error
       }
+
+      await createNextLink(index + 1)
     }
+
+    await createNextLink(0)
 
     return new StepResponse({
       result,
     })
-  }
+  },
 )

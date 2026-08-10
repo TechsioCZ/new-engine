@@ -8,6 +8,7 @@ import {
   emitEventStep,
   releaseLockStep,
 } from "@medusajs/medusa/core-flows"
+
 import {
   BRAND_SEARCH_PROJECTION_CHANGED,
   BRAND_SEARCH_PROJECTION_EVENT_OPTIONS,
@@ -16,8 +17,8 @@ import {
 import {
   getBrandAttributeTypeLockKeys,
   getBrandMutationLockKeys,
-  updateBrandsStep,
-} from "../steps"
+} from "../steps/helpers"
+import { updateBrandsStep } from "../steps/update-brands"
 import type { UpdateBrandsWorkflowInput } from "../types"
 
 export const updateBrandsWorkflow = createWorkflow(
@@ -25,7 +26,7 @@ export const updateBrandsWorkflow = createWorkflow(
   (input: UpdateBrandsWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) => {
       const attributeNames = (workflowInput.update.attributes ?? []).map(
-        ({ name }) => name.trim()
+        ({ name }) => name.trim(),
       )
 
       return [
@@ -53,7 +54,7 @@ export const updateBrandsWorkflow = createWorkflow(
     const eventData = transform({ input }, ({ input: workflowInput }) =>
       buildBrandSearchProjectionEventData({
         brandIds: [workflowInput.selector.id],
-      })
+      }),
     )
 
     emitEventStep({
@@ -63,5 +64,5 @@ export const updateBrandsWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(result)
-  }
+  },
 )

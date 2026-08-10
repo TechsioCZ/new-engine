@@ -1,15 +1,17 @@
+import { getRecordValue } from "@techsio/std/object"
+
 import { sdk } from "./sdk"
 
 export type ReviewStatus = "approved" | "pending" | "rejected"
 
-export type ReviewProduct = {
+export interface ReviewProduct {
   handle?: string
   id: string
   thumbnail?: null | string
   title?: string
 }
 
-export type Review = {
+export interface Review {
   content: string
   created_at?: string
   customer_id: string
@@ -24,14 +26,14 @@ export type Review = {
   updated_at?: string
 }
 
-export type ReviewsResponse = {
+export interface ReviewsResponse {
   count: number
   limit: number
   offset: number
   reviews: Review[]
 }
 
-export type ReviewFormInput = {
+export interface ReviewFormInput {
   content: string
   first_name?: null | string
   last_name?: null | string
@@ -42,19 +44,23 @@ export type ReviewFormInput = {
 
 export type ReviewInput = Partial<ReviewFormInput>
 
-export type ReviewResponse = {
+export interface ReviewResponse {
   review: Review
 }
 
-export type UpdateReviewStatusResponse = {
+export interface UpdateReviewStatusResponse {
   reviews: Review[]
 }
 
-const toSearch = (params: Record<string, number | string | undefined>) => {
+const toSearch = (params: object) => {
   const search = new URLSearchParams()
 
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "") {
+  for (const key of Object.keys(params)) {
+    const value = getRecordValue(params, key)
+    if (
+      typeof value === "number" ||
+      (typeof value === "string" && value !== "")
+    ) {
       search.set(key, String(value))
     }
   }
@@ -62,34 +68,37 @@ const toSearch = (params: Record<string, number | string | undefined>) => {
   return search.toString()
 }
 
-export const reviewQueryKeys = {
-  detail: (id: string) => ["reviews", id] as const,
-  list: (params: Record<string, unknown>) => ["reviews", params] as const,
-  lists: () => ["reviews"] as const,
-}
-
-export const listReviews = (params: {
+interface ListReviewsParams {
   limit: number
   offset: number
   order_by?: string
   q?: string
   status?: ReviewStatus
-}) => sdk.client.fetch<ReviewsResponse>(`/admin/reviews?${toSearch(params)}`)
+}
 
-export const retrieveReview = (id: string) =>
-  sdk.client.fetch<ReviewResponse>(`/admin/reviews/${id}`)
+export const reviewQueryKeys = {
+  detail: (id: string) => ["reviews", id] as const,
+  list: (params: ListReviewsParams) => ["reviews", params] as const,
+  lists: () => ["reviews"] as const,
+}
 
-export const updateReview = (id: string, input: ReviewInput) =>
-  sdk.client.fetch<ReviewResponse>(`/admin/reviews/${id}`, {
+export const listReviews = async (params: ListReviewsParams) =>
+  await sdk.client.fetch<ReviewsResponse>(`/admin/reviews?${toSearch(params)}`)
+
+export const retrieveReview = async (id: string) =>
+  await sdk.client.fetch<ReviewResponse>(`/admin/reviews/${id}`)
+
+export const updateReview = async (id: string, input: ReviewInput) =>
+  await sdk.client.fetch<ReviewResponse>(`/admin/reviews/${id}`, {
     body: input,
     method: "PATCH",
   })
 
-export const updateReviewStatus = (input: {
+export const updateReviewStatus = async (input: {
   ids: string[]
   status: ReviewStatus
 }) =>
-  sdk.client.fetch<UpdateReviewStatusResponse>("/admin/reviews/status", {
+  await sdk.client.fetch<UpdateReviewStatusResponse>("/admin/reviews/status", {
     body: input,
     method: "POST",
   })

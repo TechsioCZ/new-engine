@@ -1,10 +1,13 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
-import { type ComponentProps, useState } from "react"
+import { useState } from "react"
+import type { ComponentProps } from "react"
+
+import NextLink from "@/components/app-link"
 import { resolveCarrierPickupRequirement } from "@/components/checkout/carrier-pickup.utils"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
+
 import { CheckoutPaymentSection } from "./checkout-payment-section"
 import { CheckoutShippingSection } from "./checkout-shipping-section"
 
@@ -20,7 +23,7 @@ type CheckoutShippingPaymentStepController = Pick<
   | "isBusy"
 >
 
-type CheckoutShippingPaymentStepSectionProps = {
+interface CheckoutShippingPaymentStepSectionProps {
   backStepHref: string
   controller: CheckoutShippingPaymentStepController
   nextStepHref: string
@@ -29,22 +32,22 @@ type CheckoutShippingPaymentStepSectionProps = {
   >["selectedPaymentProviderId"]
 }
 
-export function CheckoutShippingPaymentStepSection({
+export const CheckoutShippingPaymentStepSection = ({
   backStepHref,
   controller,
   nextStepHref,
   selectedPaymentProviderId,
-}: CheckoutShippingPaymentStepSectionProps) {
+}: CheckoutShippingPaymentStepSectionProps) => {
   const tCheckout = useTranslations("checkout")
   const [pendingPickupOptionId, setPendingPickupOptionId] = useState<
     string | null
   >(null)
   const pendingPickupOption =
     controller.checkoutShippingQuery.shippingOptions.find(
-      (option) => option.id === pendingPickupOptionId
+      (option) => option.id === pendingPickupOptionId,
     )
   const hasPendingPickupRequirement = Boolean(
-    pendingPickupOption && resolveCarrierPickupRequirement(pendingPickupOption)
+    pendingPickupOption && resolveCarrierPickupRequirement(pendingPickupOption),
   )
   let paymentSelectionMessage: string | null = null
   if (!controller.checkoutPaymentQuery.canInitiatePayment) {
@@ -62,7 +65,7 @@ export function CheckoutShippingPaymentStepSection({
         onSelectShipping={controller.handleSelectShipping}
         pendingPickupOptionId={pendingPickupOptionId}
         selectedShippingMethodId={
-          controller.checkoutShippingQuery.selectedShippingMethodId
+          controller.checkoutShippingQuery.selectedShippingMethodId ?? null
         }
         shippingOptions={controller.checkoutShippingQuery.shippingOptions}
         shippingPrices={controller.checkoutShippingQuery.shippingPrices}
@@ -75,7 +78,9 @@ export function CheckoutShippingPaymentStepSection({
         }
         onSelectPaymentProvider={controller.handleSelectPaymentProvider}
         paymentProviders={controller.checkoutPaymentQuery.paymentProviders}
-        selectedPaymentProviderId={selectedPaymentProviderId}
+        {...(selectedPaymentProviderId === undefined
+          ? {}
+          : { selectedPaymentProviderId })}
         selectionMessage={paymentSelectionMessage}
       />
 

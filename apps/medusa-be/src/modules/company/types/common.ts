@@ -1,6 +1,6 @@
 import type { CustomerDTO, CustomerGroupDTO } from "@medusajs/framework/types"
 
-export type CompanyDTO = {
+export interface CompanyDTO {
   id: string
   name: string
   phone: string

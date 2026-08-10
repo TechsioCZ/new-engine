@@ -1,29 +1,22 @@
 /**
- * Form types and utilities for TanStack Form
- */
-
-/**
- * A permissive FieldApi type that accepts any field from any form.
- * Use this for reusable field components that should work with any form structure.
+ * Minimal field capabilities consumed by reusable form controls.
  *
- * This type extracts only the properties used by field components,
- * avoiding variance issues with generic parameters.
+ * `TValue` describes values the control can render. `TDirectChange` describes
+ * direct values it emits; TanStack's broader `Updater<T>` handler satisfies
+ * this capability structurally when the field accepts those values.
  */
-export type AnyFieldApiCompat = {
+export interface FieldApiCompat<TValue, TDirectChange = TValue> {
   name: string
   state: {
-    value: unknown
+    value: TValue
     meta: {
-      isTouched: boolean
+      errors: readonly unknown[]
       isBlurred: boolean
       isDirty: boolean
+      isTouched: boolean
       isValidating: boolean
-      errors: readonly unknown[] // More permissive to accept TanStack Form's complex error types
-      errorMap: Record<string, unknown>
     }
   }
-  // biome-ignore lint/suspicious/noExplicitAny: TanStack FieldApi uses generic updater signature
-  handleChange: (value: any) => void
   handleBlur: () => void
-  // Add other methods/properties as needed by field components
+  handleChange: (value: TDirectChange) => void
 }

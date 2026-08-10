@@ -4,23 +4,17 @@ const reportDetachedPromiseError = (error: unknown) => {
   })
 }
 
-const isPromiseLike = (
-  operation: unknown
-): operation is PromiseLike<unknown> => {
-  if (!(operation && typeof operation === "object")) {
-    return false
-  }
-
-  return typeof (operation as { then?: unknown }).then === "function"
-}
-
 export const runDetachedPromise = (
   operation: unknown,
-  onError: (error: unknown) => void = reportDetachedPromiseError
+  onError: (error: unknown) => void = reportDetachedPromiseError,
 ): void => {
-  if (!isPromiseLike(operation)) {
-    return
+  const observeOperation = async () => {
+    try {
+      await operation
+    } catch (error) {
+      onError(error)
+    }
   }
 
-  operation.then(undefined, onError)
+  void observeOperation()
 }

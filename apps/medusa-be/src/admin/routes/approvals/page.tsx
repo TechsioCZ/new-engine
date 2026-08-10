@@ -2,6 +2,7 @@ import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { CheckCircle } from "@medusajs/icons"
 import { Container, Heading, Toaster } from "@medusajs/ui"
 import { useTranslation } from "react-i18next"
+
 import { translateBreadcrumb } from "../../lib/breadcrumb"
 import { ApprovalsTable } from "./components/approvals-table"
 
@@ -26,8 +27,8 @@ const Approvals = () => {
 }
 
 export const config = defineRouteConfig({
-  label: "menuItem",
   icon: CheckCircle,
+  label: "menuItem",
   translationNs: "approvals",
 })
 

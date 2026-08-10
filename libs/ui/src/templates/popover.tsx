@@ -1,8 +1,8 @@
-/**
+/*
  * Popover — @techsio/ui-kit template.
  *
  * @component Popover
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.2
  * @skill popover-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,33 +10,35 @@
  * the popover-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import type { ReactNode, Ref } from "react"
-import {
-  Popover,
-  type PopoverContentProps,
-  type PopoverRootProps,
-  type PopoverTriggerProps,
+
+import { Popover } from "../molecules/popover"
+import type {
+  PopoverContentProps,
+  PopoverRootProps,
+  PopoverTriggerProps,
 } from "../molecules/popover"
 
 export type PopoverTemplateProps = Omit<PopoverRootProps, "children"> & {
   children: ReactNode
-  contentClassName?: string
-  contentProps?: Omit<PopoverContentProps, "children" | "className" | "ref">
-  contentRef?: Ref<HTMLDivElement>
-  description?: ReactNode
-  disabled?: boolean
-  showArrow?: boolean
-  showCloseButton?: boolean
-  title?: ReactNode
+  contentClassName?: string | undefined
+  contentProps?:
+    | Omit<PopoverContentProps, "children" | "className" | "ref">
+    | undefined
+  contentRef?: Ref<HTMLDivElement> | undefined
+  description?: ReactNode | undefined
+  disabled?: boolean | undefined
+  showArrow?: boolean | undefined
+  showCloseButton?: boolean | undefined
+  title?: ReactNode | undefined
   trigger: ReactNode
-  triggerClassName?: string
-  triggerProps?: Omit<
-    PopoverTriggerProps,
-    "children" | "className" | "disabled" | "ref"
-  >
-  triggerRef?: Ref<HTMLButtonElement>
+  triggerClassName?: string | undefined
+  triggerProps?:
+    | Omit<PopoverTriggerProps, "children" | "className" | "disabled" | "ref">
+    | undefined
+  triggerRef?: Ref<HTMLButtonElement> | undefined
 }
 
-export function PopoverTemplate({
+export const PopoverTemplate = ({
   children,
   contentClassName,
   contentProps,
@@ -51,32 +53,30 @@ export function PopoverTemplate({
   triggerProps,
   triggerRef,
   ...rootProps
-}: PopoverTemplateProps) {
-  return (
-    <Popover.Root {...rootProps}>
-      <Popover.Trigger
-        {...triggerProps}
-        className={triggerClassName}
-        disabled={disabled}
-        ref={triggerRef}
+}: PopoverTemplateProps) => (
+  <Popover.Root {...rootProps}>
+    <Popover.Trigger
+      {...triggerProps}
+      className={triggerClassName}
+      disabled={disabled}
+      ref={triggerRef}
+    >
+      {trigger}
+    </Popover.Trigger>
+    <Popover.Positioner>
+      <Popover.Content
+        {...contentProps}
+        className={contentClassName}
+        ref={contentRef}
       >
-        {trigger}
-      </Popover.Trigger>
-      <Popover.Positioner>
-        <Popover.Content
-          {...contentProps}
-          className={contentClassName}
-          ref={contentRef}
-        >
-          {showCloseButton && <Popover.CloseTrigger />}
-          {showArrow && <Popover.Arrow />}
-          {title && <Popover.Title>{title}</Popover.Title>}
-          {description && (
-            <Popover.Description>{description}</Popover.Description>
-          )}
-          {children}
-        </Popover.Content>
-      </Popover.Positioner>
-    </Popover.Root>
-  )
-}
+        {showCloseButton && <Popover.CloseTrigger />}
+        {showArrow && <Popover.Arrow />}
+        {Boolean(title) && <Popover.Title>{title}</Popover.Title>}
+        {Boolean(description) && (
+          <Popover.Description>{description}</Popover.Description>
+        )}
+        {children}
+      </Popover.Content>
+    </Popover.Positioner>
+  </Popover.Root>
+)

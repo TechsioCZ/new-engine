@@ -1,33 +1,29 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
-  transpilePackages: ["ui"],
-  reactCompiler: true,
+  // Removed 'output: export' to enable SSG with dynamic functions
   experimental: {
     turbopackRustReactCompiler: true,
   },
-  // Removed 'output: export' to enable SSG with dynamic functions
   images: {
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    formats: ["image/webp"],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    qualities: [20, 40, 50, 60, 75, 90],
     remotePatterns: [
       {
-        protocol: "https",
         hostname: "medusa-13d1-9000.prg1.zerops.app",
+        protocol: "https",
       },
       {
-        protocol: "https",
         hostname: "pub-adde8a563e2c43f7b6bc296d81c86358.r2.dev",
+        protocol: "https",
       },
       {
-        protocol: "https",
         hostname: "images.unsplash.com",
+        protocol: "https",
       },
     ],
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    formats: ["image/webp"],
-    qualities: [20, 40, 50, 60, 75, 90],
   },
-  trailingSlash: true,
   // Optimize for serverless - exclude large binaries
   outputFileTracingExcludes: {
     "*": [
@@ -41,6 +37,11 @@ const nextConfig = {
       "node_modules/uglify-js",
     ],
   },
+  reactCompiler: true,
+  reactStrictMode: true,
+  trailingSlash: true,
+  transpilePackages: ["ui"],
+  typedRoutes: true,
 }
 
-module.exports = nextConfig
+export default nextConfig

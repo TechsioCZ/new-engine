@@ -1,89 +1,69 @@
 import type { GLSShipmentState } from "./types"
 
 const NEGATIVE_DELIVERY_PATTERNS = [
-  /\bnot\s+(?:delivered|collected|picked\s+up)\b/,
-  /\b(?:undelivered|uncollected)\b/,
-  /\bne(?:doručen|dorucen|vyzved|vyzdvih|prevzat|převzat|dodán|dodan)\b/,
+  /\bnot\s+(?:delivered|collected|picked\s+up)\b/u,
+  /\b(?:undelivered|uncollected)\b/u,
+  /\bne(?:doručen|dorucen|vyzved|vyzdvih|prevzat|převzat|dodán|dodan)\b/u,
 ]
+
+const STATUS_BY_CODE: Readonly<Record<string, GLSShipmentState>> = {
+  "1": "handed_to_carrier",
+  "2": "departed",
+  "22": "departed",
+  "23": "returned",
+  "26": "arrived",
+  "27": "arrived",
+  "3": "arrived",
+  "32": "prepared_for_departure",
+  "4": "prepared_for_departure",
+  "40": "returned",
+  "42": "cancelled",
+  "47": "departed",
+  "5": "delivered",
+  "51": "received_data",
+  "53": "arrived",
+  "54": "delivered",
+  "55": "delivered",
+  "56": "ready_for_pickup",
+  "58": "delivered",
+  "59": "collected",
+  "6": "arrived",
+  "60": "customs_declaration",
+  "61": "customs_declaration",
+  "62": "customs_declaration",
+  "64": "customs_declaration",
+  "65": "customs_declaration",
+  "66": "customs_declaration",
+  "67": "customs_declaration",
+  "68": "customs_declaration",
+  "69": "customs_declaration",
+  "7": "arrived",
+  "70": "customs_declaration",
+  "71": "customs_declaration",
+  "72": "customs_declaration",
+  "73": "customs_declaration",
+  "74": "customs_declaration",
+  "75": "customs_declaration",
+  "76": "customs_declaration",
+}
 
 /**
  * Map MyGLS status codes/descriptions to our normalized shipment states.
  * @see MyGLS_API.pdf Appendix G: GLS Status Codes
  */
-export function mapGLSStatusCode(
+export const mapGLSStatusCode = (
   code: string | number,
-  description?: string
-): GLSShipmentState {
+  description?: string,
+): GLSShipmentState => {
   const key = String(code).trim().toLowerCase()
-  const text = `${key} ${description ?? ""}`.toLowerCase()
-
-  switch (key) {
-    case "51":
-      return "received_data"
-
-    case "1":
-      return "handed_to_carrier"
-
-    case "2":
-    case "22":
-    case "47":
-      return "departed"
-
-    case "3":
-    case "6":
-    case "7":
-    case "26":
-    case "27":
-    case "53":
-      return "arrived"
-
-    case "4":
-    case "32":
-      return "prepared_for_departure"
-
-    case "56":
-      return "ready_for_pickup"
-
-    case "5":
-    case "54":
-    case "55":
-    case "58":
-      return "delivered"
-
-    case "59":
-      return "collected"
-
-    case "23":
-    case "40":
-      return "returned"
-
-    case "42":
-      return "cancelled"
-
-    case "60":
-    case "61":
-    case "62":
-    case "64":
-    case "65":
-    case "66":
-    case "67":
-    case "68":
-    case "69":
-    case "70":
-    case "71":
-    case "72":
-    case "73":
-    case "74":
-    case "75":
-    case "76":
-      return "customs_declaration"
-
-    default:
-      break
+  const status = STATUS_BY_CODE[key]
+  if (status !== undefined) {
+    return status
   }
 
+  const text = `${key} ${description ?? ""}`.toLowerCase()
   const hasNegativeDeliveryText = NEGATIVE_DELIVERY_PATTERNS.some((pattern) =>
-    pattern.test(text)
+    pattern.test(text),
   )
 
   if (

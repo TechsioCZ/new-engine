@@ -6,17 +6,16 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+import { omitUndefined } from "@techsio/std/object"
+
 import type { CartQueryKeys } from "../cart/types"
 import {
-  type CacheConfig,
-  type CacheStrategy,
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
-import {
-  type ActiveCartQueryKeyMatcher,
-  syncCartCaches,
-} from "../shared/cart-cache-sync"
+import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
+import { syncCartCaches } from "../shared/cart-cache-sync"
+import type { ActiveCartQueryKeyMatcher } from "../shared/cart-cache-sync"
 import { toErrorMessage } from "../shared/error-utils"
 import type { QueryResult } from "../shared/hook-result-types"
 import type {
@@ -24,15 +23,11 @@ import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
-import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
+import { shouldSkipPrefetch } from "../shared/prefetch"
+import type { PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import type { StorageValueStore } from "../shared/storage-value-store"
 import { useDelayedPrefetchController } from "../shared/use-delayed-prefetch-controller"
-import {
-  createDefaultListParams,
-  stripDetailInput,
-  withCustomerScope,
-} from "./input-utils"
 import { createProductListQueryKeys } from "./query-keys"
 import type {
   AddFavoriteProductListItemInput,
@@ -70,22 +65,31 @@ type SuspenseDetailInput<TInput extends ProductListDetailInputBase> = Omit<
 > & {
   id: NonNullable<TInput["id"]>
 }
+type ProductListListReadInput<TInput extends ProductListListInputBase> =
+  | TInput
+  | SuspenseListInput<TInput>
+type ProductListDetailReadInput<TInput extends ProductListDetailInputBase> =
+  | TInput
+  | SuspenseDetailInput<TInput>
 
-export type ProductListPrefetchHookOptions = {
+const hasText = (value: string | null | undefined): value is string =>
+  typeof value === "string" && value.length > 0
+
+export interface ProductListPrefetchHookOptions {
   cacheStrategy?: CacheStrategy
   defaultDelay?: number
   skipIfCached?: boolean
   skipMode?: PrefetchSkipMode
 }
 
-export type ProductListPrefetchOptions = {
+export interface ProductListPrefetchOptions {
   cacheStrategy?: CacheStrategy
   prefetchedBy?: string
   skipIfCached?: boolean
   skipMode?: PrefetchSkipMode
 }
 
-export type CreateProductListHooksConfig<
+export interface CreateProductListHooksConfig<
   TProductList,
   TProductListItem,
   TCart extends ProductListCartLike,
@@ -95,7 +99,7 @@ export type CreateProductListHooksConfig<
   TDetailParams,
   TListKeyParams = TListParams & { customerId?: string | null },
   TDetailKeyParams = TDetailParams & { customerId?: string | null },
-> = {
+> {
   service: ProductListService<
     TProductList,
     TProductListItem,
@@ -103,96 +107,98 @@ export type CreateProductListHooksConfig<
     TListParams,
     TDetailParams
   >
-  buildListParams?: (input: TListInput) => TListParams
-  buildDetailParams?: (input: TDetailInput) => TDetailParams
-  buildListKeyParams?: (
-    input: TListInput,
-    params: TListParams
+  buildListParams: (input: ProductListListReadInput<TListInput>) => TListParams
+  buildDetailParams: (
+    input: ProductListDetailReadInput<TDetailInput>,
+  ) => TDetailParams
+  buildListKeyParams: (
+    input: ProductListListReadInput<TListInput>,
+    params: TListParams,
   ) => TListKeyParams
-  buildDetailKeyParams?: (
-    input: TDetailInput,
-    params: TDetailParams
+  buildDetailKeyParams: (
+    input: ProductListDetailReadInput<TDetailInput>,
+    params: TDetailParams,
   ) => TDetailKeyParams
   queryKeys?: ProductListQueryKeys<TListKeyParams, TDetailKeyParams>
   queryKeyNamespace?: QueryNamespace
   cacheConfig?: CacheConfig
   defaultPageSize?: number
   cartQueryKeys?: CartQueryKeys
-  cartStorage?: StorageValueStore
-  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher
+  cartStorage?: StorageValueStore | undefined
+  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher | undefined
 }
 
-export type ProductListHooks<
+export interface ProductListHooks<
   TProductList,
   TProductListItem,
   TCart extends ProductListCartLike,
   TListInput extends ProductListListInputBase,
   TDetailInput extends ProductListDetailInputBase,
-> = {
+> {
   getListQueryOptions: (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<ProductListListResult<TProductList>>
-    }
+    },
   ) => QueryFactoryOptions<ProductListListResult<TProductList>>
   getDetailQueryOptions: (
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TProductList | null>
-    }
+    },
   ) => QueryFactoryOptions<TProductList | null>
   useProductLists: (
-    input?: TListInput,
+    input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<ProductListListResult<TProductList>>
-    }
+    },
   ) => UseProductListsResult<TProductList>
   useSuspenseProductLists: (
-    input?: SuspenseListInput<TListInput>,
+    input: SuspenseListInput<TListInput>,
     options?: {
       queryOptions?: SuspenseQueryOptions<ProductListListResult<TProductList>>
-    }
+    },
   ) => UseSuspenseProductListsResult<TProductList>
   useProductList: (
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TProductList | null>
-    }
+    },
   ) => UseProductListResult<TProductList>
   useSuspenseProductList: (
     input: SuspenseDetailInput<TDetailInput>,
     options?: {
       queryOptions?: SuspenseQueryOptions<TProductList | null>
-    }
+    },
   ) => UseSuspenseProductListResult<TProductList>
   useProductListDetails: (
     inputs: TDetailInput[],
     options?: {
       enabled?: boolean
       queryOptions?: ReadQueryOptions<TProductList | null>
-    }
+    },
   ) => QueryResult<TProductList | null>[]
   usePrefetchProductLists: (options?: ProductListPrefetchHookOptions) => {
     prefetchProductLists: (
-      input?: TListInput,
-      prefetchOptions?: ProductListPrefetchOptions
+      input: TListInput,
+      prefetchOptions?: ProductListPrefetchOptions,
     ) => Promise<void>
     delayedPrefetch: (
-      input?: TListInput,
+      input: TListInput,
       delay?: number,
-      prefetchId?: string
+      prefetchId?: string,
     ) => string
     cancelPrefetch: (prefetchId: string) => void
   }
   usePrefetchProductList: (options?: ProductListPrefetchHookOptions) => {
     prefetchProductList: (
       input: TDetailInput,
-      prefetchOptions?: ProductListPrefetchOptions
+      prefetchOptions?: ProductListPrefetchOptions,
     ) => Promise<void>
     delayedPrefetch: (
       input: TDetailInput,
       delay?: number,
-      prefetchId?: string
+      prefetchId?: string,
     ) => string
     cancelPrefetch: (prefetchId: string) => void
   }
@@ -201,7 +207,7 @@ export type ProductListHooks<
       TProductList | null,
       CreateFavoriteProductListInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     TProductList | null,
     unknown,
@@ -213,7 +219,7 @@ export type ProductListHooks<
       TProductList | null,
       CreateCustomProductListInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     TProductList | null,
     unknown,
@@ -225,7 +231,7 @@ export type ProductListHooks<
       TProductList | null,
       UpdateProductListInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     TProductList | null,
     unknown,
@@ -237,7 +243,7 @@ export type ProductListHooks<
       ProductListDeleteResponse,
       DeleteProductListInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     ProductListDeleteResponse,
     unknown,
@@ -249,7 +255,7 @@ export type ProductListHooks<
       TProductListItem | null,
       AddProductListItemInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     TProductListItem | null,
     unknown,
@@ -261,7 +267,7 @@ export type ProductListHooks<
       TProductListItem | null,
       AddFavoriteProductListItemInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     TProductListItem | null,
     unknown,
@@ -273,14 +279,14 @@ export type ProductListHooks<
       TCart,
       CreateProductListCartInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<TCart, unknown, CreateProductListCartInput, TContext>
   useUpdateProductListItem: <TContext = unknown>(
     options?: ProductListMutationOptions<
       TProductListItem | null,
       UpdateProductListItemInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     TProductListItem | null,
     unknown,
@@ -292,7 +298,7 @@ export type ProductListHooks<
       TProductListItem | null,
       ChangeProductListItemQuantityInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     TProductListItem | null,
     unknown,
@@ -304,7 +310,7 @@ export type ProductListHooks<
       TProductListItem | null,
       IncrementProductListItemInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     TProductListItem | null,
     unknown,
@@ -316,7 +322,7 @@ export type ProductListHooks<
       ProductListDeleteResponse,
       DeleteProductListItemInput,
       TContext
-    >
+    >,
   ) => UseMutationResult<
     ProductListDeleteResponse,
     unknown,
@@ -325,7 +331,7 @@ export type ProductListHooks<
   >
 }
 
-export function createProductListHooks<
+export const createProductListHooks = function createProductListHooks<
   TProductList,
   TProductListItem,
   TCart extends ProductListCartLike,
@@ -369,123 +375,112 @@ export function createProductListHooks<
   const resolvedQueryKeys =
     queryKeys ??
     createProductListQueryKeys<TListKeyParams, TDetailKeyParams>(
-      queryKeyNamespace
+      queryKeyNamespace,
     )
-  const buildList =
-    buildListParams ??
-    ((input: TListInput) =>
-      createDefaultListParams(input, defaultPageSize) as TListParams)
-  const buildDetail =
-    buildDetailParams ??
-    ((input: TDetailInput) => stripDetailInput(input) as TDetailParams)
-  const buildListKey =
-    buildListKeyParams ??
-    ((input: TListInput, params: TListParams) =>
-      withCustomerScope(params, input) as TListKeyParams)
-  const buildDetailKey =
-    buildDetailKeyParams ??
-    ((input: TDetailInput, params: TDetailParams) =>
-      withCustomerScope(params, input) as TDetailKeyParams)
+  const buildList = buildListParams
+  const buildDetail = buildDetailParams
+  const buildListKey = buildListKeyParams
+  const buildDetailKey = buildDetailKeyParams
 
   const getListQueryOptions = (
-    input: TListInput,
+    input: ProductListListReadInput<TListInput>,
     options?: {
       queryOptions?: ReadQueryOptions<ProductListListResult<TProductList>>
-    }
+    },
   ): QueryFactoryOptions<ProductListListResult<TProductList>> => {
     const listParams = buildList(input)
 
-    return {
+    return omitUndefined({
+      queryFn: async ({ signal }: { signal?: AbortSignal }) =>
+        await service.listProductLists(listParams, signal),
       queryKey: resolvedQueryKeys.list(buildListKey(input, listParams)),
-      queryFn: ({ signal }) => service.listProductLists(listParams, signal),
       ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
-    }
+      ...options?.queryOptions,
+    })
   }
 
   const getDetailQueryOptions = (
-    input: TDetailInput,
+    input: ProductListDetailReadInput<TDetailInput>,
     options?: {
       queryOptions?: ReadQueryOptions<TProductList | null>
-    }
+    },
   ): QueryFactoryOptions<TProductList | null> => {
     const detailParams = buildDetail(input)
 
-    return {
-      queryKey: resolvedQueryKeys.detail(buildDetailKey(input, detailParams)),
-      queryFn: ({ signal }) => {
-        if (!input.id) {
+    return omitUndefined({
+      queryFn: async ({ signal }: { signal?: AbortSignal }) => {
+        if (!hasText(input.id)) {
           throw new Error("Product list id is required")
         }
 
-        return service.getProductList(detailParams, signal)
+        return await service.getProductList(detailParams, signal)
       },
+      queryKey: resolvedQueryKeys.detail(buildDetailKey(input, detailParams)),
       ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
-    }
+      ...options?.queryOptions,
+    })
   }
 
   const createProductListsPrefetchQueryOptions = (
-    input: TListInput,
+    input: ProductListListReadInput<TListInput>,
     options?: {
       cacheStrategy?: CacheStrategy
       prefetchedBy?: string
-    }
+    },
   ) => {
     const listParams = buildList(input)
     const prefetchCacheOptions = getPrefetchCacheOptions(
       resolvedCacheConfig,
-      options?.cacheStrategy ?? "userData"
+      options?.cacheStrategy ?? "userData",
     )
+    const prefetchedBy = options?.prefetchedBy
 
-    return {
+    return omitUndefined({
+      queryFn: async ({ signal }: { signal?: AbortSignal }) =>
+        await service.listProductLists(listParams, signal),
       queryKey: resolvedQueryKeys.list(buildListKey(input, listParams)),
-      queryFn: ({ signal }: { signal?: AbortSignal }) =>
-        service.listProductLists(listParams, signal),
       ...prefetchCacheOptions,
-      meta: options?.prefetchedBy
-        ? { prefetchedBy: options.prefetchedBy }
-        : undefined,
-    }
+      meta: hasText(prefetchedBy) ? { prefetchedBy } : undefined,
+    })
   }
 
   const createProductListPrefetchQueryOptions = (
-    input: TDetailInput,
+    input: ProductListDetailReadInput<TDetailInput>,
     options?: {
       cacheStrategy?: CacheStrategy
       prefetchedBy?: string
-    }
+    },
   ) => {
     const detailParams = buildDetail(input)
     const prefetchCacheOptions = getPrefetchCacheOptions(
       resolvedCacheConfig,
-      options?.cacheStrategy ?? "userData"
+      options?.cacheStrategy ?? "userData",
     )
+    const prefetchedBy = options?.prefetchedBy
 
-    return {
+    return omitUndefined({
+      queryFn: async ({ signal }: { signal?: AbortSignal }) =>
+        await service.getProductList(detailParams, signal),
       queryKey: resolvedQueryKeys.detail(buildDetailKey(input, detailParams)),
-      queryFn: ({ signal }: { signal?: AbortSignal }) =>
-        service.getProductList(detailParams, signal),
       ...prefetchCacheOptions,
-      meta: options?.prefetchedBy
-        ? { prefetchedBy: options.prefetchedBy }
-        : undefined,
-    }
+      meta: hasText(prefetchedBy) ? { prefetchedBy } : undefined,
+    })
   }
 
-  const invalidateProductLists = (
-    queryClient: ReturnType<typeof useQueryClient>
-  ) =>
-    queryClient.invalidateQueries({
+  const invalidateProductLists = async (
+    queryClient: ReturnType<typeof useQueryClient>,
+  ) => {
+    await queryClient.invalidateQueries({
       queryKey: resolvedQueryKeys.all(),
     })
+  }
 
-  function useProductLists(
-    input = {} as TListInput,
+  const useProductLists = (
+    input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<ProductListListResult<TProductList>>
-    }
-  ): UseProductListsResult<TProductList> {
+    },
+  ): UseProductListsResult<TProductList> => {
     const enabled = input.enabled ?? true
     const query = useQuery({
       ...getListQueryOptions(input, options),
@@ -494,52 +489,51 @@ export function createProductListHooks<
     const { data, isLoading, isFetching, isSuccess, error } = query
 
     return {
-      productLists: data?.productLists ?? [],
       count: data?.count ?? 0,
+      error: toErrorMessage(error),
+      isFetching,
+      isLoading,
+      isSuccess,
       limit: data?.limit ?? input.limit ?? defaultPageSize,
       offset: data?.offset ?? input.offset ?? 0,
-      isLoading,
-      isFetching,
-      isSuccess,
-      error: toErrorMessage(error),
+      productLists: data?.productLists ?? [],
       query,
     }
   }
 
-  function useSuspenseProductLists(
-    input = {} as SuspenseListInput<TListInput>,
+  const useSuspenseProductLists = (
+    input: SuspenseListInput<TListInput>,
     options?: {
       queryOptions?: SuspenseQueryOptions<ProductListListResult<TProductList>>
-    }
-  ): UseSuspenseProductListsResult<TProductList> {
+    },
+  ): UseSuspenseProductListsResult<TProductList> => {
     const query = useSuspenseQuery({
-      ...getListQueryOptions(input as TListInput, {
-        queryOptions: options?.queryOptions as ReadQueryOptions<
-          ProductListListResult<TProductList>
-        >,
-      }),
+      ...getListQueryOptions(
+        input,
+        omitUndefined({ queryOptions: options?.queryOptions }),
+      ),
     })
     const { data, isFetching } = query
 
     return {
-      productLists: data.productLists,
       count: data.count,
+      error: null,
+      isFetching,
+      isLoading: false,
+      isSuccess: true,
       limit: data.limit,
       offset: data.offset,
-      isLoading: false,
-      isFetching,
-      isSuccess: true,
-      error: null,
+      productLists: data.productLists,
       query,
     }
   }
 
-  function useProductList(
+  const useProductList = (
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TProductList | null>
-    }
-  ): UseProductListResult<TProductList> {
+    },
+  ): UseProductListResult<TProductList> => {
     const enabled = Boolean(input.id) && (input.enabled ?? true)
     const query = useQuery({
       ...getDetailQueryOptions(input, options),
@@ -548,63 +542,66 @@ export function createProductListHooks<
     const { data, isLoading, isFetching, isSuccess, error } = query
 
     return {
-      productList: data ?? null,
-      isLoading,
-      isFetching,
-      isSuccess,
       error: toErrorMessage(error),
+      isFetching,
+      isLoading,
+      isSuccess,
+      productList: data ?? null,
       query,
     }
   }
 
-  function useSuspenseProductList(
+  const useSuspenseProductList = (
     input: SuspenseDetailInput<TDetailInput>,
     options?: {
       queryOptions?: SuspenseQueryOptions<TProductList | null>
-    }
-  ): UseSuspenseProductListResult<TProductList> {
+    },
+  ): UseSuspenseProductListResult<TProductList> => {
     if (!input.id) {
       throw new Error("Product list id is required")
     }
 
     const query = useSuspenseQuery({
-      ...getDetailQueryOptions(input as TDetailInput, {
-        queryOptions:
-          options?.queryOptions as ReadQueryOptions<TProductList | null>,
-      }),
+      ...getDetailQueryOptions(
+        input,
+        omitUndefined({ queryOptions: options?.queryOptions }),
+      ),
     })
     const { data, isFetching } = query
 
     return {
-      productList: data ?? null,
-      isLoading: false,
-      isFetching,
-      isSuccess: true,
       error: null,
+      isFetching,
+      isLoading: false,
+      isSuccess: true,
+      productList: data ?? null,
       query,
     }
   }
 
-  function useProductListDetails(
+  const useProductListDetails = (
     inputs: TDetailInput[],
     options?: {
       enabled?: boolean
       queryOptions?: ReadQueryOptions<TProductList | null>
-    }
-  ): QueryResult<TProductList | null>[] {
+    },
+  ): QueryResult<TProductList | null>[] => {
     const enabled = options?.enabled ?? true
 
     return useQueries({
       queries: inputs.map((input) => ({
-        ...getDetailQueryOptions(input, {
-          queryOptions: options?.queryOptions,
-        }),
+        ...getDetailQueryOptions(
+          input,
+          omitUndefined({ queryOptions: options?.queryOptions }),
+        ),
         enabled: enabled && Boolean(input.id),
       })),
     })
   }
 
-  function usePrefetchProductLists(options?: ProductListPrefetchHookOptions) {
+  const usePrefetchProductLists = (
+    options?: ProductListPrefetchHookOptions,
+  ) => {
     const queryClient = useQueryClient()
     const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
     const cacheStrategy = options?.cacheStrategy ?? "userData"
@@ -613,27 +610,30 @@ export function createProductListHooks<
     const skipMode = options?.skipMode ?? "fresh"
 
     const prefetchProductLists = async (
-      input = {} as TListInput,
-      prefetchOptions?: ProductListPrefetchOptions
+      input: TListInput,
+      prefetchOptions?: ProductListPrefetchOptions,
     ) => {
       const cacheStrategyResolved =
         prefetchOptions?.cacheStrategy ?? cacheStrategy
       const skipIfCachedResolved = prefetchOptions?.skipIfCached ?? skipIfCached
       const skipModeResolved = prefetchOptions?.skipMode ?? skipMode
-      const queryOptions = createProductListsPrefetchQueryOptions(input, {
-        cacheStrategy: cacheStrategyResolved,
-        prefetchedBy: prefetchOptions?.prefetchedBy,
-      })
+      const queryOptions = createProductListsPrefetchQueryOptions(
+        input,
+        omitUndefined({
+          cacheStrategy: cacheStrategyResolved,
+          prefetchedBy: prefetchOptions?.prefetchedBy,
+        }),
+      )
       const prefetchCacheOptions = getPrefetchCacheOptions(
         resolvedCacheConfig,
-        cacheStrategyResolved
+        cacheStrategyResolved,
       )
 
       if (
         shouldSkipPrefetch({
+          cacheOptions: prefetchCacheOptions,
           queryClient,
           queryKey: queryOptions.queryKey,
-          cacheOptions: prefetchCacheOptions,
           skipIfCached: skipIfCachedResolved,
           skipMode: skipModeResolved,
         })
@@ -645,32 +645,33 @@ export function createProductListHooks<
     }
 
     const delayedPrefetch = (
-      input = {} as TListInput,
+      input: TListInput,
       delay = defaultDelay,
-      prefetchId?: string
+      prefetchId?: string,
     ) => {
-      const queryOptions = createProductListsPrefetchQueryOptions(input, {
-        cacheStrategy,
-      })
+      const queryOptions = createProductListsPrefetchQueryOptions(
+        input,
+        omitUndefined({ cacheStrategy }),
+      )
       const id = prefetchId ?? JSON.stringify(queryOptions.queryKey)
 
       return schedulePrefetch(
-        () => {
-          prefetchProductLists(input)
+        async () => {
+          await prefetchProductLists(input)
         },
         id,
-        delay
+        delay,
       )
     }
 
     return {
-      prefetchProductLists,
-      delayedPrefetch,
       cancelPrefetch,
+      delayedPrefetch,
+      prefetchProductLists,
     }
   }
 
-  function usePrefetchProductList(options?: ProductListPrefetchHookOptions) {
+  const usePrefetchProductList = (options?: ProductListPrefetchHookOptions) => {
     const queryClient = useQueryClient()
     const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
     const cacheStrategy = options?.cacheStrategy ?? "userData"
@@ -680,9 +681,9 @@ export function createProductListHooks<
 
     const prefetchProductList = async (
       input: TDetailInput,
-      prefetchOptions?: ProductListPrefetchOptions
+      prefetchOptions?: ProductListPrefetchOptions,
     ) => {
-      if (!input.id) {
+      if (!hasText(input.id)) {
         return
       }
 
@@ -690,20 +691,23 @@ export function createProductListHooks<
         prefetchOptions?.cacheStrategy ?? cacheStrategy
       const skipIfCachedResolved = prefetchOptions?.skipIfCached ?? skipIfCached
       const skipModeResolved = prefetchOptions?.skipMode ?? skipMode
-      const queryOptions = createProductListPrefetchQueryOptions(input, {
-        cacheStrategy: cacheStrategyResolved,
-        prefetchedBy: prefetchOptions?.prefetchedBy,
-      })
+      const queryOptions = createProductListPrefetchQueryOptions(
+        input,
+        omitUndefined({
+          cacheStrategy: cacheStrategyResolved,
+          prefetchedBy: prefetchOptions?.prefetchedBy,
+        }),
+      )
       const prefetchCacheOptions = getPrefetchCacheOptions(
         resolvedCacheConfig,
-        cacheStrategyResolved
+        cacheStrategyResolved,
       )
 
       if (
         shouldSkipPrefetch({
+          cacheOptions: prefetchCacheOptions,
           queryClient,
           queryKey: queryOptions.queryKey,
-          cacheOptions: prefetchCacheOptions,
           skipIfCached: skipIfCachedResolved,
           skipMode: skipModeResolved,
         })
@@ -717,36 +721,37 @@ export function createProductListHooks<
     const delayedPrefetch = (
       input: TDetailInput,
       delay = defaultDelay,
-      prefetchId?: string
+      prefetchId?: string,
     ) => {
-      const queryOptions = createProductListPrefetchQueryOptions(input, {
-        cacheStrategy,
-      })
+      const queryOptions = createProductListPrefetchQueryOptions(
+        input,
+        omitUndefined({ cacheStrategy }),
+      )
       const id = prefetchId ?? JSON.stringify(queryOptions.queryKey)
 
       return schedulePrefetch(
-        () => {
-          prefetchProductList(input)
+        async () => {
+          await prefetchProductList(input)
         },
         id,
-        delay
+        delay,
       )
     }
 
     return {
-      prefetchProductList,
-      delayedPrefetch,
       cancelPrefetch,
+      delayedPrefetch,
+      prefetchProductList,
     }
   }
 
-  function useCreateFavoriteProductList<TContext = unknown>(
+  const useCreateFavoriteProductList = <TContext = unknown>(
     options?: ProductListMutationOptions<
       TProductList | null,
       CreateFavoriteProductListInput,
       TContext
-    >
-  ) {
+    >,
+  ) => {
     const queryClient = useQueryClient()
 
     return useMutation<
@@ -756,23 +761,23 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.createFavoriteProductList,
-      onMutate: options?.onMutate,
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
-  function useCreateCustomProductList<TContext = unknown>(
+  const useCreateCustomProductList = <TContext = unknown>(
     options?: ProductListMutationOptions<
       TProductList | null,
       CreateCustomProductListInput,
       TContext
-    >
-  ) {
+    >,
+  ) => {
     const queryClient = useQueryClient()
 
     return useMutation<
@@ -782,23 +787,23 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.createCustomProductList,
-      onMutate: options?.onMutate,
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
-  function useUpdateProductList<TContext = unknown>(
+  const useUpdateProductList = <TContext = unknown>(
     options?: ProductListMutationOptions<
       TProductList | null,
       UpdateProductListInput,
       TContext
-    >
-  ) {
+    >,
+  ) => {
     const queryClient = useQueryClient()
 
     return useMutation<
@@ -808,23 +813,23 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.updateProductList,
-      onMutate: options?.onMutate,
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
-  function useDeleteProductList<TContext = unknown>(
+  const useDeleteProductList = <TContext = unknown>(
     options?: ProductListMutationOptions<
       ProductListDeleteResponse,
       DeleteProductListInput,
       TContext
-    >
-  ) {
+    >,
+  ) => {
     const queryClient = useQueryClient()
 
     return useMutation<
@@ -834,23 +839,23 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.deleteProductList,
-      onMutate: options?.onMutate,
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
-  function useAddProductListItem<TContext = unknown>(
+  const useAddProductListItem = <TContext = unknown>(
     options?: ProductListMutationOptions<
       TProductListItem | null,
       AddProductListItemInput,
       TContext
-    >
-  ) {
+    >,
+  ) => {
     const queryClient = useQueryClient()
 
     return useMutation<
@@ -860,23 +865,23 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.addProductListItem,
-      onMutate: options?.onMutate,
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
-  function useAddFavoriteProductListItem<TContext = unknown>(
+  const useAddFavoriteProductListItem = <TContext = unknown>(
     options?: ProductListMutationOptions<
       TProductListItem | null,
       AddFavoriteProductListItemInput,
       TContext
-    >
-  ) {
+    >,
+  ) => {
     const queryClient = useQueryClient()
 
     return useMutation<
@@ -886,50 +891,52 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.addFavoriteProductListItem,
-      onMutate: options?.onMutate,
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
-  function useCreateProductListCart<TContext = unknown>(
+  const useCreateProductListCart = <TContext = unknown>(
     options?: ProductListMutationOptions<
       TCart,
       CreateProductListCartInput,
       TContext
-    >
-  ) {
+    >,
+  ) => {
     const queryClient = useQueryClient()
 
     return useMutation<TCart, unknown, CreateProductListCartInput, TContext>({
       mutationFn: service.createProductListCart,
-      onMutate: options?.onMutate,
-      onSuccess: (cart, variables, context) => {
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSuccess: async (cart, variables, context) => {
         if (cartQueryKeys) {
           syncCartCaches(queryClient, cartQueryKeys, cart, {
             isActiveCartQueryKey,
           })
-          queryClient.invalidateQueries({ queryKey: cartQueryKeys.all() })
+          await queryClient.invalidateQueries({
+            queryKey: cartQueryKeys.all(),
+          })
         }
         cartStorage?.set(cart.id)
         options?.onSuccess?.(cart, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
-  function useUpdateProductListItem<TContext = unknown>(
+  const useUpdateProductListItem = <TContext = unknown>(
     options?: ProductListMutationOptions<
       TProductListItem | null,
       UpdateProductListItemInput,
       TContext
-    >
-  ) {
+    >,
+  ) => {
     const queryClient = useQueryClient()
 
     return useMutation<
@@ -939,23 +946,23 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.updateProductListItem,
-      onMutate: options?.onMutate,
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
-  function useChangeProductListItemQuantity<TContext = unknown>(
+  const useChangeProductListItemQuantity = <TContext = unknown>(
     options?: ProductListMutationOptions<
       TProductListItem | null,
       ChangeProductListItemQuantityInput,
       TContext
-    >
-  ) {
+    >,
+  ) => {
     const queryClient = useQueryClient()
 
     return useMutation<
@@ -965,23 +972,23 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.changeProductListItemQuantity,
-      onMutate: options?.onMutate,
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
-  function useIncrementProductListItem<TContext = unknown>(
+  const useIncrementProductListItem = <TContext = unknown>(
     options?: ProductListMutationOptions<
       TProductListItem | null,
       IncrementProductListItemInput,
       TContext
-    >
-  ) {
+    >,
+  ) => {
     const queryClient = useQueryClient()
 
     return useMutation<
@@ -991,23 +998,23 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.incrementProductListItem,
-      onMutate: options?.onMutate,
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
-  function useDeleteProductListItem<TContext = unknown>(
+  const useDeleteProductListItem = <TContext = unknown>(
     options?: ProductListMutationOptions<
       ProductListDeleteResponse,
       DeleteProductListItemInput,
       TContext
-    >
-  ) {
+    >,
+  ) => {
     const queryClient = useQueryClient()
 
     return useMutation<
@@ -1017,36 +1024,36 @@ export function createProductListHooks<
       TContext
     >({
       mutationFn: service.deleteProductListItem,
-      onMutate: options?.onMutate,
-      onSuccess: (data, variables, context) => {
-        invalidateProductLists(queryClient)
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onSuccess: async (data, variables, context) => {
+        await invalidateProductLists(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: options?.onError,
-      onSettled: options?.onSettled,
+      ...(options?.onError ? { onError: options.onError } : {}),
+      ...(options?.onSettled ? { onSettled: options.onSettled } : {}),
     })
   }
 
   return {
-    getListQueryOptions,
     getDetailQueryOptions,
-    useProductLists,
-    useSuspenseProductLists,
-    useProductList,
-    useSuspenseProductList,
-    useProductListDetails,
-    usePrefetchProductLists,
-    usePrefetchProductList,
-    useCreateFavoriteProductList,
-    useCreateCustomProductList,
-    useUpdateProductList,
-    useDeleteProductList,
-    useAddProductListItem,
+    getListQueryOptions,
     useAddFavoriteProductListItem,
-    useCreateProductListCart,
-    useUpdateProductListItem,
+    useAddProductListItem,
     useChangeProductListItemQuantity,
-    useIncrementProductListItem,
+    useCreateCustomProductList,
+    useCreateFavoriteProductList,
+    useCreateProductListCart,
+    useDeleteProductList,
     useDeleteProductListItem,
+    useIncrementProductListItem,
+    usePrefetchProductList,
+    usePrefetchProductLists,
+    useProductList,
+    useProductListDetails,
+    useProductLists,
+    useSuspenseProductList,
+    useSuspenseProductLists,
+    useUpdateProductList,
+    useUpdateProductListItem,
   }
 }

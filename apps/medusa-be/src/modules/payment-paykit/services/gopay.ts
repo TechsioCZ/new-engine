@@ -3,11 +3,10 @@ import type {
   InitiatePaymentInput,
 } from "@medusajs/framework/types"
 import { ModuleProvider, Modules } from "@medusajs/framework/utils"
+
 import { PAYKIT_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
-import {
-  type PaykitInjectedDependencies,
-  PaykitPaymentProviderBase,
-} from "../core/base"
+import { PaykitPaymentProviderBase } from "../core/base"
+import type { PaykitInjectedDependencies } from "../core/base"
 import { createPaykitClient, getGopayProviderOptions } from "../runtime"
 import { resolveGopayRuntimeOptions } from "../runtime-config"
 import type {
@@ -28,23 +27,25 @@ const getStringValue = (...values: unknown[]): string | undefined => {
     }
   }
 
-  return
+  return undefined
 }
 
 export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<PaykitGopayOptions> {
-  static override identifier = PAYKIT_PAYMENT_PROVIDER_IDENTIFIER
+  static override readonly identifier = PAYKIT_PAYMENT_PROVIDER_IDENTIFIER
 
-  // Medusa's provider loader instantiates provider classes directly.
-  // biome-ignore lint/complexity/noUselessConstructor: the base constructor is protected; this keeps the provider constructor public.
-  constructor(
+  public constructor(
     container: PaykitInjectedDependencies,
-    options: PaykitGopayOptions
+    options: PaykitGopayOptions,
   ) {
     super(container, options)
   }
 
   static override validateOptions(options: PaykitGopayOptions = {}): void {
-    if (options.client || options.clientFactory || options.apiStoreName) {
+    if (
+      options.client !== undefined ||
+      options.clientFactory !== undefined ||
+      (options.apiStoreName !== undefined && options.apiStoreName.length > 0)
+    ) {
       return
     }
 
@@ -58,20 +59,20 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
 
   protected async createDefaultClient(): Promise<PaykitPaymentClient> {
     const options = await resolveGopayRuntimeOptions(
-      this.container_,
-      this.options_
+      this.providerContainer,
+      this.providerOptions,
     )
 
     return await createPaykitClient(
       "@paykit-sdk/gopay",
       "createGopay",
-      getGopayProviderOptions(options)
+      getGopayProviderOptions(options),
     )
   }
 
   protected override normalizeAmount(
     amount: InitiatePaymentInput["amount"],
-    currencyCode?: string
+    currencyCode?: string,
   ): number {
     const normalized = super.normalizeAmount(amount, currencyCode)
 
@@ -80,14 +81,14 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
 
   protected override normalizePaymentDataAmount(
     amount: InitiatePaymentInput["amount"],
-    currencyCode?: string
+    currencyCode?: string,
   ): number {
     return super.normalizeAmount(amount, currencyCode)
   }
 
   protected override normalizeWebhookAmount(
     amount: BigNumberValue | undefined,
-    payment: PaykitPayment
+    payment: PaykitPayment,
   ): BigNumberValue | undefined {
     if (amount === undefined) {
       return amount
@@ -101,19 +102,19 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
 
   protected override getCreateProviderMetadata(
     input: InitiatePaymentInput,
-    data: Record<string, unknown>
-  ): Record<string, unknown> {
+    data: NonNullable<InitiatePaymentInput["data"]>,
+  ) {
     const providerMetadata = super.getCreateProviderMetadata(input, data)
     const successUrl = getStringValue(
-      providerMetadata.success_url,
-      providerMetadata.return_url
+      providerMetadata["success_url"],
+      providerMetadata["return_url"],
     )
 
     return {
       ...providerMetadata,
       // GoPay calls the callback URL `return_url`; PayKit's provider-level
       // abstraction expects `success_url` and writes it to GoPay's callback.return_url.
-      ...(successUrl ? { success_url: successUrl } : {}),
+      ...(successUrl === undefined ? {} : { success_url: successUrl }),
     }
   }
 }

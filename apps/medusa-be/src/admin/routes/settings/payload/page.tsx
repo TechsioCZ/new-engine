@@ -1,4 +1,6 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
+import { z } from "@medusajs/framework/zod"
+import { useQuery } from "@tanstack/react-query"
 import type { CSSProperties, ReactNode } from "react"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 
@@ -7,28 +9,49 @@ export const handle = {
 }
 
 /** Runtime config returned by the Payload admin config endpoint. */
-type PayloadRuntimeConfig = {
-  iframeUrl?: string
-  isIframeEnabled?: boolean
-}
+const payloadRuntimeConfigSchema = z.object({
+  iframeUrl: z.string().optional(),
+  isIframeEnabled: z.boolean().optional(),
+})
+
+type PayloadRuntimeConfig = z.infer<typeof payloadRuntimeConfigSchema>
 
 const payloadFrameBackground = "rgb(20, 20, 20)"
 const payloadFrameForeground = "#f9fafb"
-const trailingSlashRegex = /\/$/
+const trailingSlashRegex = /\/$/u
 
 const darkStatusStyle: CSSProperties = {
-  minHeight: "100vh",
-  padding: "1.5rem",
   backgroundColor: payloadFrameBackground,
   color: payloadFrameForeground,
   colorScheme: "dark",
+  minHeight: "100vh",
+  padding: "1.5rem",
 }
 
 const getAdminUrl = (backendUrl: string | undefined, path: string) =>
-  backendUrl ? `${backendUrl.replace(trailingSlashRegex, "")}${path}` : path
+  backendUrl !== undefined && backendUrl.length > 0
+    ? `${backendUrl.replace(trailingSlashRegex, "")}${path}`
+    : path
+
+const fetchPayloadRuntimeConfig = async (
+  configUrl: string,
+): Promise<PayloadRuntimeConfig> => {
+  const response = await fetch(configUrl)
+  if (!response.ok) {
+    throw new Error(`Payload configuration request failed (${response.status})`)
+  }
+
+  const data: unknown = await response.json()
+  const parsed = payloadRuntimeConfigSchema.safeParse(data)
+  if (!parsed.success) {
+    throw new Error("Payload configuration response is invalid")
+  }
+
+  return parsed.data
+}
 
 const getPayloadReturnTo = (iframeUrl: string | undefined) => {
-  if (!iframeUrl) {
+  if (iframeUrl === undefined || iframeUrl.length === 0) {
     return "/"
   }
   try {
@@ -46,38 +69,17 @@ const PayloadDarkStatus = ({ children }: { children: ReactNode }) => (
 
 /** Admin settings page that embeds (or links to) the Payload admin UI. */
 const PayloadRedirectPage = () => {
-  const [runtimeConfig, setRuntimeConfig] =
-    useState<PayloadRuntimeConfig | null>(null)
-  const [configError, setConfigError] = useState(false)
   const backendUrl = import.meta.env.VITE_BACKEND_URL
   const ssoBase = getAdminUrl(backendUrl, "/admin/payload/sso")
   const configUrl = getAdminUrl(backendUrl, "/admin/payload/config")
-
-  useEffect(() => {
-    let isMounted = true
-    fetch(configUrl)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!(isMounted && data)) {
-          if (isMounted) {
-            setConfigError(true)
-          }
-          return
-        }
-        setRuntimeConfig({
-          iframeUrl: data.iframeUrl,
-          isIframeEnabled: data.isIframeEnabled,
-        })
-      })
-      .catch(() => {
-        if (isMounted) {
-          setConfigError(true)
-        }
-      })
-    return () => {
-      isMounted = false
-    }
-  }, [configUrl])
+  const {
+    data: runtimeConfig,
+    isError: configError,
+    isLoading: configLoading,
+  } = useQuery({
+    queryFn: async () => await fetchPayloadRuntimeConfig(configUrl),
+    queryKey: ["payload-runtime-config", configUrl],
+  })
 
   const iframeUrl = runtimeConfig?.iframeUrl
   const isIframeEnabled = runtimeConfig?.isIframeEnabled ?? true
@@ -89,43 +91,56 @@ const PayloadRedirectPage = () => {
   const hasOpenedRef = useRef(false)
 
   useLayoutEffect(() => {
-    const updateHeight = () => {
-      if (!containerRef.current) {
-        return
+    const container = containerRef.current
+    let observer: ResizeObserver | undefined
+
+    if (container !== null) {
+      const updateHeight = () => {
+        const rect = container.getBoundingClientRect()
+        const parent = container.parentElement
+        const parentStyles =
+          parent === null ? null : window.getComputedStyle(parent)
+        const parsedPadding =
+          parentStyles === null ? 0 : Number(parentStyles.paddingBottom)
+        const paddingBottom = Number.isNaN(parsedPadding) ? 0 : parsedPadding
+        const nextHeight = Math.max(
+          0,
+          window.innerHeight - rect.top - paddingBottom,
+        )
+        setHeight(nextHeight)
       }
-      const rect = containerRef.current.getBoundingClientRect()
-      const parent = containerRef.current.parentElement
-      const parentStyles = parent ? window.getComputedStyle(parent) : null
-      const paddingBottom = parentStyles
-        ? Number.parseFloat(parentStyles.paddingBottom) || 0
-        : 0
-      const nextHeight = Math.max(
-        0,
-        window.innerHeight - rect.top - paddingBottom
-      )
-      setHeight(nextHeight)
+
+      updateHeight()
+      observer = new ResizeObserver(updateHeight)
+      observer.observe(container)
+      if (container.parentElement !== null) {
+        observer.observe(container.parentElement)
+      }
     }
 
-    updateHeight()
-    window.addEventListener("resize", updateHeight)
     return () => {
-      window.removeEventListener("resize", updateHeight)
+      observer?.disconnect()
     }
   }, [])
 
   useEffect(() => {
-    if (isIframeEnabled || hasOpenedRef.current || !iframeUrl) {
-      return
+    const shouldOpen =
+      !isIframeEnabled &&
+      !hasOpenedRef.current &&
+      iframeUrl !== undefined &&
+      iframeUrl.length > 0
+
+    if (shouldOpen) {
+      hasOpenedRef.current = true
+      window.open(iframeSrc, "_blank", "noopener,noreferrer")
     }
-    hasOpenedRef.current = true
-    window.open(iframeSrc, "_blank", "noopener,noreferrer")
   }, [iframeSrc, iframeUrl, isIframeEnabled])
 
-  if (!(runtimeConfig || configError)) {
+  if (configLoading) {
     return <PayloadDarkStatus>Loading Payload configuration…</PayloadDarkStatus>
   }
 
-  if (configError && !runtimeConfig) {
+  if (configError && runtimeConfig === undefined) {
     return (
       <PayloadDarkStatus>
         Unable to load Payload configuration.
@@ -133,7 +148,7 @@ const PayloadRedirectPage = () => {
     )
   }
 
-  if (!iframeUrl) {
+  if (iframeUrl === undefined || iframeUrl.length === 0) {
     return (
       <PayloadDarkStatus>
         Payload iframe URL is not configured.
@@ -155,22 +170,23 @@ const PayloadRedirectPage = () => {
     <div
       ref={containerRef}
       style={{
-        width: "100%",
-        height: height !== null ? `${height}px` : iframeHeight,
         backgroundColor: payloadFrameBackground,
         colorScheme: "dark",
+        height: height === null ? iframeHeight : `${height}px`,
         overflow: "hidden",
+        width: "100%",
       }}
     >
       <iframe
+        sandbox="allow-downloads allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-scripts allow-top-navigation-by-user-activation"
         src={iframeSrc}
         style={{
-          width: "100%",
-          height: "100%",
-          display: "block",
           backgroundColor: payloadFrameBackground,
-          colorScheme: "dark",
           border: "0",
+          colorScheme: "dark",
+          display: "block",
+          height: "100%",
+          width: "100%",
         }}
         title="Payload Admin"
       />

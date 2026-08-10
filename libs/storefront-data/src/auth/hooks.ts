@@ -1,21 +1,20 @@
 import {
-  type QueryClient,
   useMutation,
   useQuery,
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
+import type { QueryClient, UseMutationResult } from "@tanstack/react-query"
+
+import { createCacheConfig } from "../shared/cache-config"
+import type { CacheConfig } from "../shared/cache-config"
 import { toErrorMessage } from "../shared/error-utils"
 import type {
   MutationOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
-import {
-  createQueryKey,
-  type QueryKey,
-  type QueryNamespace,
-} from "../shared/query-keys"
+import { createQueryKey } from "../shared/query-keys"
+import type { QueryKey, QueryNamespace } from "../shared/query-keys"
 import { createAuthQueryKeys } from "./query-keys"
 import type {
   AuthQueryInput,
@@ -25,7 +24,7 @@ import type {
   UseSuspenseAuthResult,
 } from "./types"
 
-export type CreateAuthHooksConfig<
+export interface CreateAuthHooksConfig<
   TCustomer,
   TLoginInput,
   TRegisterInput,
@@ -36,7 +35,7 @@ export type CreateAuthHooksConfig<
   TRequestAccountDeactivationResult = unknown,
   TConfirmAccountDeactivationInput = unknown,
   TConfirmAccountDeactivationResult = unknown,
-> = {
+> {
   service: AuthService<
     TCustomer,
     TLoginInput,
@@ -71,7 +70,7 @@ export type AuthMutationOptions<
   TContext = unknown,
 > = MutationOptions<TData, TVariables, TContext>
 
-export function createAuthHooks<
+export const createAuthHooks = function createAuthHooks<
   TCustomer,
   TLoginInput,
   TRegisterInput,
@@ -119,10 +118,12 @@ export function createAuthHooks<
     ...(invalidateOnAuthChange?.removeOnLogout ?? []),
   ]
 
-  const invalidateCrossDomain = (queryClient: QueryClient) => {
-    for (const queryKey of invalidateKeys) {
-      queryClient.invalidateQueries({ queryKey })
-    }
+  const invalidateCrossDomain = async (queryClient: QueryClient) => {
+    await Promise.all(
+      invalidateKeys.map(async (queryKey) => {
+        await queryClient.invalidateQueries({ queryKey })
+      }),
+    )
   }
 
   const removeCrossDomainOnLogout = (queryClient: QueryClient) => {
@@ -139,16 +140,16 @@ export function createAuthHooks<
     removeCrossDomainOnLogout(queryClient)
   }
 
-  function useAuth(
-    options?: AuthQueryInput<TCustomer>
-  ): UseAuthResult<TCustomer> {
+  const useAuth = (
+    options?: AuthQueryInput<TCustomer>,
+  ): UseAuthResult<TCustomer> => {
     const query = useQuery({
-      queryKey: resolvedQueryKeys.customer(),
-      queryFn: ({ signal }) => service.getCustomer(signal),
       enabled: options?.enabled ?? true,
+      queryFn: async ({ signal }) => await service.getCustomer(signal),
+      queryKey: resolvedQueryKeys.customer(),
       retry: false,
       ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
+      ...options?.queryOptions,
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
 
@@ -156,180 +157,187 @@ export function createAuthHooks<
 
     return {
       customer,
-      isAuthenticated: customer !== null,
-      isLoading,
-      isFetching,
-      isSuccess,
       error: toErrorMessage(error),
+      isAuthenticated: customer !== null,
+      isFetching,
+      isLoading,
+      isSuccess,
       query,
     }
   }
 
-  function useSuspenseAuth(options?: {
+  const useSuspenseAuth = (options?: {
     queryOptions?: SuspenseQueryOptions<TCustomer | null>
-  }): UseSuspenseAuthResult<TCustomer> {
+  }): UseSuspenseAuthResult<TCustomer> => {
     // TanStack Query limitation: cancellation does not work with Suspense hooks.
     // Source: https://tanstack.com/query/latest/docs/framework/react/guides/query-cancellation#limitations
     const query = useSuspenseQuery<TCustomer | null>({
+      queryFn: async ({ signal }) => await service.getCustomer(signal),
       queryKey: resolvedQueryKeys.customer(),
-      queryFn: ({ signal }) => service.getCustomer(signal),
       ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
+      ...options?.queryOptions,
     })
     const { data, isFetching } = query
     const customer = data ?? null
 
     return {
       customer,
-      isAuthenticated: customer !== null,
-      isLoading: false,
-      isFetching,
-      isSuccess: true,
       error: null,
+      isAuthenticated: customer !== null,
+      isFetching,
+      isLoading: false,
+      isSuccess: true,
       query,
     }
   }
 
-  function useLogin<TContext = unknown>(
-    options?: AuthMutationOptions<TLoginResult, TLoginInput, TContext>
-  ) {
+  const useLogin = <TContext = unknown>(
+    options?: AuthMutationOptions<TLoginResult, TLoginInput, TContext>,
+  ) => {
     const queryClient = useQueryClient()
     return useMutation<TLoginResult, unknown, TLoginInput, TContext>({
-      mutationFn: (input: TLoginInput) => service.login(input),
+      mutationFn: async (input: TLoginInput) => await service.login(input),
       retry: false,
-      onMutate: options?.onMutate,
-      onSuccess: (data, variables, context) => {
-        queryClient.invalidateQueries({
-          queryKey: resolvedQueryKeys.customer(),
-        })
-        invalidateCrossDomain(queryClient)
-        options?.onSuccess?.(data, variables, context)
-      },
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onError: (error, variables, context) => {
         options?.onError?.(error, variables, context)
       },
       onSettled: (data, error, variables, context) => {
         options?.onSettled?.(data, error, variables, context)
       },
+      onSuccess: async (data, variables, context) => {
+        await queryClient.invalidateQueries({
+          queryKey: resolvedQueryKeys.customer(),
+        })
+        await invalidateCrossDomain(queryClient)
+        options?.onSuccess?.(data, variables, context)
+      },
     })
   }
 
-  function useRegister<TContext = unknown>(
-    options?: AuthMutationOptions<TRegisterResult, TRegisterInput, TContext>
-  ) {
+  const useRegister = <TContext = unknown>(
+    options?: AuthMutationOptions<TRegisterResult, TRegisterInput, TContext>,
+  ) => {
     const queryClient = useQueryClient()
     return useMutation<TRegisterResult, unknown, TRegisterInput, TContext>({
-      mutationFn: (input: TRegisterInput) => service.register(input),
+      mutationFn: async (input: TRegisterInput) =>
+        await service.register(input),
       retry: false,
-      onMutate: options?.onMutate,
-      onSuccess: (data, variables, context) => {
-        queryClient.invalidateQueries({
-          queryKey: resolvedQueryKeys.customer(),
-        })
-        invalidateCrossDomain(queryClient)
-        options?.onSuccess?.(data, variables, context)
-      },
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onError: (error, variables, context) => {
         options?.onError?.(error, variables, context)
       },
       onSettled: (data, error, variables, context) => {
         options?.onSettled?.(data, error, variables, context)
       },
+      onSuccess: async (data, variables, context) => {
+        await queryClient.invalidateQueries({
+          queryKey: resolvedQueryKeys.customer(),
+        })
+        await invalidateCrossDomain(queryClient)
+        options?.onSuccess?.(data, variables, context)
+      },
     })
   }
 
-  function useCreateCustomer<TContext = unknown>(
-    options?: AuthMutationOptions<TCustomer, TCreateCustomerInput, TContext>
-  ) {
+  const useCreateCustomer = <TContext = unknown>(
+    options?: AuthMutationOptions<TCustomer, TCreateCustomerInput, TContext>,
+  ) => {
     const queryClient = useQueryClient()
     return useMutation<TCustomer, unknown, TCreateCustomerInput, TContext>({
-      mutationFn: (input: TCreateCustomerInput) => {
+      mutationFn: async (input: TCreateCustomerInput) => {
         if (!service.createCustomer) {
           throw new Error("createCustomer service is not configured")
         }
-        return service.createCustomer(input)
+        return await service.createCustomer(input)
       },
       retry: false,
-      onMutate: options?.onMutate,
-      onSuccess: (data, variables, context) => {
-        queryClient.invalidateQueries({
-          queryKey: resolvedQueryKeys.customer(),
-        })
-        invalidateCrossDomain(queryClient)
-        options?.onSuccess?.(data, variables, context)
-      },
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onError: (error, variables, context) => {
         options?.onError?.(error, variables, context)
       },
       onSettled: (data, error, variables, context) => {
         options?.onSettled?.(data, error, variables, context)
       },
+      onSuccess: async (data, variables, context) => {
+        await queryClient.invalidateQueries({
+          queryKey: resolvedQueryKeys.customer(),
+        })
+        await invalidateCrossDomain(queryClient)
+        options?.onSuccess?.(data, variables, context)
+      },
     })
   }
 
-  function useLogout<TContext = unknown>(
-    options?: AuthMutationOptions<void, void, TContext>
-  ) {
+  const useLogout = <TContext = unknown>(
+    options?: AuthMutationOptions<void, void, TContext>,
+  ): UseMutationResult<void, unknown, void, TContext> => {
     const queryClient = useQueryClient()
-    return useMutation<void, unknown, void, TContext>({
-      mutationFn: () => service.logout(),
+    return useMutation({
+      mutationFn: async () => {
+        await service.logout()
+      },
       retry: false,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
+      },
       onSuccess: (_data, _variables, context) => {
         clearCustomerSessionCache(queryClient)
         options?.onSuccess?.(undefined, undefined, context)
       },
-      onError: (error, variables, context) => {
-        options?.onError?.(error, variables, context)
-      },
-      onSettled: (data, error, variables, context) => {
-        options?.onSettled?.(data, error, variables, context)
-      },
     })
   }
 
-  function useRequestAccountDeactivation<TContext = unknown>(
+  const useRequestAccountDeactivation = <TContext = unknown>(
     options?: AuthMutationOptions<
       TRequestAccountDeactivationResult,
       void,
       TContext
-    >
-  ) {
-    return useMutation<
-      TRequestAccountDeactivationResult,
-      unknown,
-      void,
-      TContext
-    >({
-      mutationFn: () => {
+    >,
+  ): UseMutationResult<
+    TRequestAccountDeactivationResult,
+    unknown,
+    void,
+    TContext
+  > => {
+    const queryClient = useQueryClient()
+    return useMutation({
+      mutationFn: async () => {
         if (!service.requestAccountDeactivation) {
           throw new Error(
-            "requestAccountDeactivation service is not configured"
+            "requestAccountDeactivation service is not configured",
           )
         }
-        return service.requestAccountDeactivation()
+        return await service.requestAccountDeactivation()
       },
       retry: false,
-      onMutate: options?.onMutate,
-      onSuccess: (data, variables, context) => {
-        options?.onSuccess?.(data, variables, context)
-      },
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onError: (error, variables, context) => {
         options?.onError?.(error, variables, context)
       },
       onSettled: (data, error, variables, context) => {
         options?.onSettled?.(data, error, variables, context)
       },
+      onSuccess: async (data, variables, context) => {
+        await queryClient.invalidateQueries({
+          queryKey: resolvedQueryKeys.customer(),
+        })
+        options?.onSuccess?.(data, variables, context)
+      },
     })
   }
 
-  function useConfirmAccountDeactivation<TContext = unknown>(
+  const useConfirmAccountDeactivation = <TContext = unknown>(
     options?: AuthMutationOptions<
       TConfirmAccountDeactivationResult,
       TConfirmAccountDeactivationInput,
       TContext
-    >
-  ) {
+    >,
+  ) => {
     const queryClient = useQueryClient()
     return useMutation<
       TConfirmAccountDeactivationResult,
@@ -337,95 +345,95 @@ export function createAuthHooks<
       TConfirmAccountDeactivationInput,
       TContext
     >({
-      mutationFn: (input: TConfirmAccountDeactivationInput) => {
+      mutationFn: async (input: TConfirmAccountDeactivationInput) => {
         if (!service.confirmAccountDeactivation) {
           throw new Error(
-            "confirmAccountDeactivation service is not configured"
+            "confirmAccountDeactivation service is not configured",
           )
         }
-        return service.confirmAccountDeactivation(input)
+        return await service.confirmAccountDeactivation(input)
       },
       retry: false,
-      onMutate: options?.onMutate,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
+      },
       onSuccess: (data, variables, context) => {
         clearCustomerSessionCache(queryClient)
         options?.onSuccess?.(data, variables, context)
       },
+    })
+  }
+
+  const useUpdateCustomer = <TContext = unknown>(
+    options?: AuthMutationOptions<TCustomer, TUpdateInput, TContext>,
+  ) => {
+    const queryClient = useQueryClient()
+    return useMutation<TCustomer, unknown, TUpdateInput, TContext>({
+      mutationFn: async (input: TUpdateInput) => {
+        if (!service.updateCustomer) {
+          throw new Error("updateCustomer service is not configured")
+        }
+        return await service.updateCustomer(input)
+      },
+      retry: false,
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onError: (error, variables, context) => {
         options?.onError?.(error, variables, context)
       },
       onSettled: (data, error, variables, context) => {
         options?.onSettled?.(data, error, variables, context)
       },
-    })
-  }
-
-  function useUpdateCustomer<TContext = unknown>(
-    options?: AuthMutationOptions<TCustomer, TUpdateInput, TContext>
-  ) {
-    const queryClient = useQueryClient()
-    return useMutation<TCustomer, unknown, TUpdateInput, TContext>({
-      mutationFn: (input: TUpdateInput) => {
-        if (!service.updateCustomer) {
-          throw new Error("updateCustomer service is not configured")
-        }
-        return service.updateCustomer(input)
-      },
-      retry: false,
-      onMutate: options?.onMutate,
       onSuccess: (data, variables, context) => {
         queryClient.setQueryData(resolvedQueryKeys.customer(), data)
         options?.onSuccess?.(data, variables, context)
       },
-      onError: (error, variables, context) => {
-        options?.onError?.(error, variables, context)
-      },
-      onSettled: (data, error, variables, context) => {
-        options?.onSettled?.(data, error, variables, context)
-      },
     })
   }
 
-  function useRefreshAuth<TContext = unknown>(
-    options?: AuthMutationOptions<unknown, void, TContext>
-  ) {
+  const useRefreshAuth = <TContext = unknown>(
+    options?: AuthMutationOptions<unknown, void, TContext>,
+  ): UseMutationResult<unknown, unknown, void, TContext> => {
     const queryClient = useQueryClient()
-    return useMutation<unknown, unknown, void, TContext>({
-      mutationFn: () => {
+    return useMutation({
+      mutationFn: async () => {
         if (!service.refresh) {
           throw new Error("refresh service is not configured")
         }
-        return service.refresh()
+        return await service.refresh()
       },
       retry: false,
-      onMutate: options?.onMutate,
-      onSuccess: (data, variables, context) => {
-        queryClient.invalidateQueries({
-          queryKey: resolvedQueryKeys.customer(),
-        })
-        invalidateCrossDomain(queryClient)
-        options?.onSuccess?.(data, variables, context)
-      },
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onError: (error, variables, context) => {
         options?.onError?.(error, variables, context)
       },
       onSettled: (data, error, variables, context) => {
         options?.onSettled?.(data, error, variables, context)
+      },
+      onSuccess: async (data, variables, context) => {
+        await queryClient.invalidateQueries({
+          queryKey: resolvedQueryKeys.customer(),
+        })
+        await invalidateCrossDomain(queryClient)
+        options?.onSuccess?.(data, variables, context)
       },
     })
   }
 
   return {
     useAuth,
-    useSuspenseAuth,
-    useLogin,
-    useRegister,
-    useCreateCustomer,
-    useRequestAccountDeactivation,
     useConfirmAccountDeactivation,
+    useCreateCustomer,
+    useLogin,
     useLogout,
-    useUpdateCustomer,
     useRefreshAuth,
+    useRegister,
+    useRequestAccountDeactivation,
+    useSuspenseAuth,
+    useUpdateCustomer,
   }
 }
 

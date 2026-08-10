@@ -3,16 +3,15 @@ import { Button, FocusModal, Input, Label, Text, toast } from "@medusajs/ui"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import {
-  getStorefrontTextMarketConfiguration,
-  type StorefrontTextMarket,
-} from "../../../../modules/storefront-text/configuration"
+
+import { getStorefrontTextMarketConfiguration } from "../../../../modules/storefront-text/configuration"
+import type { StorefrontTextMarket } from "../../../../modules/storefront-text/configuration"
 import {
   getStorefrontTextCatalog,
   importStorefrontTextCatalog,
-  type StorefrontTextCatalogResponse,
   storefrontTextQueryKeys,
 } from "../../../lib/storefront-texts"
+import type { StorefrontTextCatalogResponse } from "../../../lib/storefront-texts"
 
 const downloadCatalog = (catalog: StorefrontTextCatalogResponse) => {
   const blob = new Blob([`${JSON.stringify(catalog, null, 2)}\n`], {
@@ -23,7 +22,7 @@ const downloadCatalog = (catalog: StorefrontTextCatalogResponse) => {
 
   anchor.download = `${catalog.market}-${catalog.locale}.json`
   anchor.href = url
-  document.body.appendChild(anchor)
+  document.body.append(anchor)
   anchor.click()
   anchor.remove()
   URL.revokeObjectURL(url)
@@ -52,7 +51,7 @@ export const StorefrontTextCatalogActions = ({
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.exportFailed")
+        error instanceof Error ? error.message : t("errors.exportFailed"),
       )
     },
     onSuccess: () => toast.success(t("toasts.exported")),
@@ -71,11 +70,11 @@ export const StorefrontTextCatalogActions = ({
         throw new Error(t("errors.invalidCatalog"))
       }
 
-      return importStorefrontTextCatalog({ catalog, market })
+      return await importStorefrontTextCatalog({ catalog, market })
     },
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.importFailed")
+        error instanceof Error ? error.message : t("errors.importFailed"),
       )
     },
     onSuccess: async (response) => {
@@ -86,7 +85,7 @@ export const StorefrontTextCatalogActions = ({
         t("toasts.imported", {
           unchanged: response.result.unchanged_count,
           updated: response.result.updated_count,
-        })
+        }),
       )
       setOpen(false)
       setFile(null)
@@ -98,7 +97,9 @@ export const StorefrontTextCatalogActions = ({
       <Button
         disabled={!market || exportMutation.isPending}
         isLoading={exportMutation.isPending}
-        onClick={() => exportMutation.mutate()}
+        onClick={() => {
+          exportMutation.mutate()
+        }}
         size="small"
         type="button"
         variant="secondary"
@@ -108,7 +109,9 @@ export const StorefrontTextCatalogActions = ({
       </Button>
       <Button
         disabled={!market || importMutation.isPending}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setOpen(true)
+        }}
         size="small"
         type="button"
         variant="secondary"
@@ -156,7 +159,9 @@ export const StorefrontTextCatalogActions = ({
                   accept=".json,application/json"
                   disabled={importMutation.isPending}
                   id="storefront-text-catalog"
-                  onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                  onChange={(event) => {
+                    setFile(event.target.files?.[0] ?? null)
+                  }}
                   type="file"
                 />
               </div>
@@ -165,7 +170,9 @@ export const StorefrontTextCatalogActions = ({
           <FocusModal.Footer>
             <Button
               disabled={importMutation.isPending}
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                setOpen(false)
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -175,7 +182,9 @@ export const StorefrontTextCatalogActions = ({
             <Button
               disabled={!file || importMutation.isPending}
               isLoading={importMutation.isPending}
-              onClick={() => importMutation.mutate()}
+              onClick={() => {
+                importMutation.mutate()
+              }}
               size="small"
               type="button"
             >

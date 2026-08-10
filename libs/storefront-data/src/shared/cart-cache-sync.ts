@@ -1,6 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query"
+import { getRecordValue, isRecord as isPlainRecord } from "@techsio/std/object"
+
 import type { CartQueryKeys } from "../cart/types"
-import { isPlainRecord } from "./object-utils"
 import {
   areQueryKeySegmentsEqual,
   getSortedRecordKeys,
@@ -8,23 +9,23 @@ import {
 } from "./query-key-match-utils"
 import type { QueryKey } from "./query-keys"
 
-type CartLike = {
+interface CartLike {
   id: string
-  region_id?: string | null
+  region_id?: string | null | undefined
 }
 
 export type ActiveCartQueryKeyMatcher = (
   queryKey: QueryKey,
-  cartId: string
+  cartId: string,
 ) => boolean
 
-export type CartCacheSyncOptions = {
-  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher
+export interface CartCacheSyncOptions {
+  isActiveCartQueryKey?: ActiveCartQueryKeyMatcher | undefined
 }
 
 export type CartUpdater<TCart extends CartLike> = (cart: TCart) => TCart
 
-type ActiveKeySegmentMatchInput = {
+interface ActiveKeySegmentMatchInput {
   candidate: unknown
   base: unknown
   cartVariant: unknown
@@ -48,10 +49,7 @@ const matchActiveLeafSegment = ({
   if (changesWithCart && !changesWithRegion) {
     return candidate === cartId
   }
-  if (!changesWithCart && changesWithRegion) {
-    return true
-  }
-  return false
+  return !changesWithCart && changesWithRegion
 }
 
 const matchesActiveKeySegment = ({
@@ -66,19 +64,23 @@ const matchesActiveKeySegment = ({
     Array.isArray(cartVariant) &&
     Array.isArray(regionVariant)
   ) {
-    return (
-      Array.isArray(candidate) &&
+    if (!Array.isArray(candidate)) {
+      return false
+    }
+    const hasMatchingLengths =
       candidate.length === base.length &&
       cartVariant.length === base.length &&
-      regionVariant.length === base.length &&
+      regionVariant.length === base.length
+    return (
+      hasMatchingLengths &&
       base.every((_, index) =>
         matchesActiveKeySegment({
-          candidate: candidate[index],
           base: base[index],
+          candidate: candidate[index],
+          cartId,
           cartVariant: cartVariant[index],
           regionVariant: regionVariant[index],
-          cartId,
-        })
+        }),
       )
     )
   }
@@ -91,33 +93,30 @@ const matchesActiveKeySegment = ({
   ) {
     return getSortedRecordKeys(base, cartVariant, regionVariant).every((key) =>
       matchesActiveKeySegment({
-        candidate: candidate[key],
-        base: base[key],
-        cartVariant: cartVariant[key],
-        regionVariant: regionVariant[key],
+        base: getRecordValue(base, key),
+        candidate: getRecordValue(candidate, key),
         cartId,
-      })
+        cartVariant: getRecordValue(cartVariant, key),
+        regionVariant: getRecordValue(regionVariant, key),
+      }),
     )
   }
 
   return matchActiveLeafSegment({
-    candidate,
     base,
+    candidate,
+    cartId,
     cartVariant,
     regionVariant,
-    cartId,
   })
 }
 
-const hasCartId = <TCart extends CartLike>(
-  value: unknown,
-  cartId?: string
-): value is TCart => {
+const hasCartId = (value: unknown, cartId?: string): value is CartLike => {
   if (!isPlainRecord(value)) {
     return false
   }
 
-  const valueId = value.id
+  const valueId = getRecordValue(value, "id")
   if (typeof valueId !== "string") {
     return false
   }
@@ -130,7 +129,7 @@ const hasCartId = <TCart extends CartLike>(
 }
 
 export const createDefaultActiveCartQueryMatcher = (
-  queryKeys: CartQueryKeys
+  queryKeys: CartQueryKeys,
 ): ActiveCartQueryKeyMatcher => {
   const cartPrefix = queryKeys.all()
   const baseActiveKey = queryKeys.active({
@@ -152,65 +151,67 @@ export const createDefaultActiveCartQueryMatcher = (
     }
 
     return matchesActiveKeySegment({
-      candidate: queryKey,
       base: baseActiveKey,
+      candidate: queryKey,
+      cartId,
       cartVariant: cartVariantActiveKey,
       regionVariant: regionVariantActiveKey,
-      cartId,
     })
   }
 }
 
 const resolveActiveCartQueryMatcher = (
   queryKeys: CartQueryKeys,
-  options?: CartCacheSyncOptions
+  options?: CartCacheSyncOptions,
 ): ActiveCartQueryKeyMatcher =>
   options?.isActiveCartQueryKey ??
   createDefaultActiveCartQueryMatcher(queryKeys)
 
-export function syncCartCaches<TCart extends CartLike>(
+export const syncCartCaches = (
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
-  cart: TCart,
-  options?: CartCacheSyncOptions
-): void {
+  cart: CartLike,
+  options?: CartCacheSyncOptions,
+): void => {
   const isActiveCartQueryKey = resolveActiveCartQueryMatcher(queryKeys, options)
   const activeKey = queryKeys.active({
     cartId: cart.id,
     regionId: typeof cart.region_id === "string" ? cart.region_id : null,
   })
 
-  queryClient.setQueriesData<TCart>(
+  queryClient.setQueriesData<unknown>(
     {
       predicate: (query) => isActiveCartQueryKey(query.queryKey, cart.id),
     },
-    cart
+    cart,
   )
 
   queryClient.setQueryData(activeKey, cart)
   queryClient.setQueryData(queryKeys.detail(cart.id), cart)
 }
 
-export function invalidateCartCaches(
+export const invalidateCartCaches = async (
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
   cartId: string,
-  options?: CartCacheSyncOptions
-): void {
+  options?: CartCacheSyncOptions,
+): Promise<void> => {
   const isActiveCartQueryKey = resolveActiveCartQueryMatcher(queryKeys, options)
 
-  queryClient.invalidateQueries({
-    predicate: (query) => isActiveCartQueryKey(query.queryKey, cartId),
-  })
-  queryClient.invalidateQueries({ queryKey: queryKeys.detail(cartId) })
+  await Promise.all([
+    queryClient.invalidateQueries({
+      predicate: (query) => isActiveCartQueryKey(query.queryKey, cartId),
+    }),
+    queryClient.invalidateQueries({ queryKey: queryKeys.detail(cartId) }),
+  ])
 }
 
-export async function cancelCartCaches(
+export const cancelCartCaches = async (
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
   cartId: string,
-  options?: CartCacheSyncOptions
-): Promise<void> {
+  options?: CartCacheSyncOptions,
+): Promise<void> => {
   const isActiveCartQueryKey = resolveActiveCartQueryMatcher(queryKeys, options)
 
   await Promise.all([
@@ -218,65 +219,90 @@ export async function cancelCartCaches(
       {
         predicate: (query) => isActiveCartQueryKey(query.queryKey, cartId),
       },
-      { silent: true }
+      { silent: true },
     ),
     queryClient.cancelQueries(
       { queryKey: queryKeys.detail(cartId) },
-      { silent: true }
+      { silent: true },
     ),
   ])
 }
 
-export type PatchCartCachesParams<TCart extends CartLike> = {
+export type CartDecoder<TCart extends CartLike> = (
+  value: unknown,
+) => TCart | null
+
+export interface PatchCartCachesParams<TCart extends CartLike> {
+  decodeCart: CartDecoder<TCart>
   patch: CartUpdater<TCart>
-  options?: CartCacheSyncOptions
+  options?: CartCacheSyncOptions | undefined
 }
 
-export function patchCartCaches<TCart extends CartLike>(
+const patchCachedCart = <TCart extends CartLike>(
+  value: unknown,
+  cartId: string,
+  decodeCart: CartDecoder<TCart>,
+  patch: CartUpdater<TCart>,
+): unknown => {
+  const cart = decodeCart(value)
+  return cart !== null && hasCartId(cart, cartId) ? patch(cart) : value
+}
+
+export const patchCartCaches = <TCart extends CartLike>(
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
   cartId: string,
-  params: PatchCartCachesParams<TCart>
-): void {
+  params: PatchCartCachesParams<TCart>,
+): void => {
   const isActiveCartQueryKey = resolveActiveCartQueryMatcher(
     queryKeys,
-    params.options
+    params.options,
   )
 
-  queryClient.setQueriesData<TCart>(
+  queryClient.setQueriesData<unknown>(
     {
       predicate: (query) => isActiveCartQueryKey(query.queryKey, cartId),
     },
-    (existing) =>
-      hasCartId<TCart>(existing, cartId) ? params.patch(existing) : existing
+    (existing: unknown) =>
+      patchCachedCart(existing, cartId, params.decodeCart, params.patch),
   )
 
-  queryClient.setQueryData<TCart | undefined>(
-    queryKeys.detail(cartId),
-    (existing) =>
-      hasCartId<TCart>(existing, cartId) ? params.patch(existing) : existing
+  queryClient.setQueryData(queryKeys.detail(cartId), (existing: unknown) =>
+    patchCachedCart(existing, cartId, params.decodeCart, params.patch),
   )
 }
 
-export function getCachedCartById<TCart extends CartLike>(
+const decodeMatchingCart = <TCart extends CartLike>(
+  value: unknown,
+  cartId: string,
+  decodeCart: CartDecoder<TCart>,
+): TCart | null => {
+  const cart = decodeCart(value)
+  return cart !== null && hasCartId(cart, cartId) ? cart : null
+}
+
+export const getCachedCartById = <TCart extends CartLike>(
   queryClient: QueryClient,
   queryKeys: CartQueryKeys,
   cartId: string,
-  options?: CartCacheSyncOptions
-): TCart | null {
-  const detailCart = queryClient.getQueryData<TCart>(queryKeys.detail(cartId))
-  if (hasCartId<TCart>(detailCart, cartId)) {
-    return detailCart
+  decodeCart: CartDecoder<TCart>,
+  options?: CartCacheSyncOptions,
+): TCart | null => {
+  const detailCart: unknown = queryClient.getQueryData(queryKeys.detail(cartId))
+  const decodedDetailCart = decodeMatchingCart(detailCart, cartId, decodeCart)
+  if (decodedDetailCart !== null) {
+    return decodedDetailCart
   }
 
   const isActiveCartQueryKey = resolveActiveCartQueryMatcher(queryKeys, options)
-  const activeCarts = queryClient.getQueriesData<TCart>({
+  const activeCarts = queryClient.getQueriesData({
     predicate: (query) => isActiveCartQueryKey(query.queryKey, cartId),
   })
 
   for (const [, cachedCart] of activeCarts) {
-    if (hasCartId<TCart>(cachedCart, cartId)) {
-      return cachedCart
+    const decodedCart = decodeMatchingCart(cachedCart, cartId, decodeCart)
+    if (decodedCart !== null) {
+      return decodedCart
     }
   }
 

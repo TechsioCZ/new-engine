@@ -5,79 +5,93 @@ import type {
   SuspenseQueryResult,
   SuspenseResultBase,
 } from "../shared/hook-result-types"
+import type { StorefrontMetadata } from "../shared/metadata"
 import type { QueryKey } from "../shared/query-keys"
 import type { RegionInfo } from "../shared/region"
 
-export type CartLineItemLike = {
+export { isStorefrontMetadata } from "../shared/metadata"
+export type {
+  StorefrontMetadata,
+  StorefrontMetadataValue,
+} from "../shared/metadata"
+
+export interface CartLineItemLike {
   quantity?: number
 }
 
-export type CartLike = {
+export interface CartLike {
   id: string
   region_id?: string | null
   items?: CartLineItemLike[]
 }
 
-export type CartCreateInputBase = RegionInfo & {
-  email?: string
-  salesChannelId?: string
-  metadata?: Record<string, unknown>
-}
+export type CartCreateInputBase<TMetadata extends object = StorefrontMetadata> =
+  RegionInfo & {
+    email?: string
+    salesChannelId?: string
+    metadata?: TMetadata
+  }
 
-export type CartInputBase = CartCreateInputBase & {
-  cartId?: string
-  enabled?: boolean
-  autoCreate?: boolean
-  autoUpdateRegion?: boolean
-}
+export type CartInputBase<TMetadata extends object = StorefrontMetadata> =
+  CartCreateInputBase<TMetadata> & {
+    cartId?: string
+    enabled?: boolean
+    autoCreate?: boolean
+    autoUpdateRegion?: boolean
+  }
 
-export type AddLineItemInputBase = CartCreateInputBase & {
+export type AddLineItemInputBase<
+  TMetadata extends object = StorefrontMetadata,
+> = CartCreateInputBase<TMetadata> & {
   cartId?: string
   variantId: string
   quantity?: number
   autoCreate?: boolean
 }
 
-export type UpdateLineItemInputBase = {
+export interface UpdateLineItemInputBase {
   cartId?: string
   lineItemId: string
   quantity: number
 }
 
-export type RemoveLineItemInputBase = {
+export interface RemoveLineItemInputBase {
   cartId?: string
   lineItemId: string
 }
 
-export type UpdateCartInputBase = CartCreateInputBase & {
-  cartId?: string
-}
-
-export type CartAddressInputBase<TAddressInput = Record<string, unknown>> =
-  UpdateCartInputBase & {
-    shippingAddress: TAddressInput
-    billingAddress?: TAddressInput
-    useSameAddress?: boolean
+export type UpdateCartInputBase<TMetadata extends object = StorefrontMetadata> =
+  CartCreateInputBase<TMetadata> & {
+    cartId?: string
   }
 
+export type CartAddressInputBase<
+  TAddressInput = object,
+  TMetadata extends object = StorefrontMetadata,
+> = UpdateCartInputBase<TMetadata> & {
+  shippingAddress: TAddressInput
+  billingAddress?: TAddressInput
+  useSameAddress?: boolean
+}
+
 export type CartAddressAdapter<
-  TAddressInput = Record<string, unknown>,
+  TAddressInput = object,
   TAddressPayload = TAddressInput,
   TStoredAddress = unknown,
 > = StorefrontCartAddressAdapter<TAddressInput, TAddressPayload, TStoredAddress>
 
-export type TransferCartInputBase = {
+export interface TransferCartInputBase {
   cartId?: string
 }
 
-export type CartService<
+export interface CartService<
   TCart,
   TCreateParams,
   TUpdateParams,
   TAddItemParams,
   TUpdateItemParams,
   TCompleteResult,
-> = {
+> {
   retrieveCart: (cartId: string, signal?: AbortSignal) => Promise<TCart | null>
   createCart: (params: TCreateParams) => Promise<TCart>
   updateCart?: (cartId: string, params: TUpdateParams) => Promise<TCart>
@@ -85,14 +99,14 @@ export type CartService<
   updateLineItem?: (
     cartId: string,
     lineItemId: string,
-    params: TUpdateItemParams
+    params: TUpdateItemParams,
   ) => Promise<TCart>
   removeLineItem?: (cartId: string, lineItemId: string) => Promise<TCart>
   transferCart?: (cartId: string) => Promise<TCart>
   completeCart?: (cartId: string) => Promise<TCompleteResult>
 }
 
-export type CartQueryKeys = {
+export interface CartQueryKeys {
   all: () => QueryKey
   active: (params: {
     cartId?: string | null

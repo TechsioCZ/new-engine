@@ -1,17 +1,18 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
+
 import { CmsPageArticle } from "@/components/cms-page-article"
 import { getCmsPage } from "@/services/cms-service"
 
-type CmsDynamicPageProps = {
+interface CmsDynamicPageProps {
   params: Promise<{
     slug: string
   }>
 }
 
-export async function generateMetadata({
+export const generateMetadata = async ({
   params,
-}: CmsDynamicPageProps): Promise<Metadata> {
+}: CmsDynamicPageProps): Promise<Metadata> => {
   const { slug } = await params
   const page = await getCmsPage(slug)
 
@@ -20,12 +21,12 @@ export async function generateMetadata({
   }
 
   return {
-    title: page.meta?.title || page.title,
-    description: page.meta?.description || undefined,
+    description: page.meta?.description ?? undefined,
+    title: page.meta?.title ?? page.title,
   }
 }
 
-export default async function CmsDynamicPage({ params }: CmsDynamicPageProps) {
+const CmsDynamicPage = async ({ params }: CmsDynamicPageProps) => {
   const { slug } = await params
   const page = await getCmsPage(slug)
 
@@ -35,3 +36,5 @@ export default async function CmsDynamicPage({ params }: CmsDynamicPageProps) {
 
   return <CmsPageArticle page={page} />
 }
+
+export default CmsDynamicPage

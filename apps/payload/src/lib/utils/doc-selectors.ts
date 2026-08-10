@@ -1,36 +1,38 @@
+import { getRecordValue, isRecord } from "@techsio/std/object"
+
 /** Minimal category document shape used in collection aggregation. */
-export type CategoryDoc = {
+export interface CategoryDoc {
   id: number
-  title: string | null
   slug: string | null
+  title: string | null
 }
 
 /** Extract a category document from an unknown relationship value. */
 export const getCategoryDoc = (category: unknown): CategoryDoc | null => {
-  if (!category || typeof category !== "object") {
+  if (!isRecord(category)) {
     return null
   }
 
-  const record = category as Record<string, unknown>
-  const id = record.id
+  const id = getRecordValue(category, "id")
   if (typeof id !== "number") {
     return null
   }
 
+  const slug = getRecordValue(category, "slug")
+  const title = getRecordValue(category, "title")
   return {
     id,
-    title: typeof record.title === "string" ? record.title : null,
-    slug: typeof record.slug === "string" ? record.slug : null,
+    slug: typeof slug === "string" ? slug : null,
+    title: typeof title === "string" ? title : null,
   }
 }
 
 /** Resolve a media URL from an upload relationship value. */
 export const getMediaUrl = (featuredImage: unknown): string | null => {
-  if (!featuredImage || typeof featuredImage !== "object") {
+  if (!isRecord(featuredImage)) {
     return null
   }
 
-  const record = featuredImage as Record<string, unknown>
-  const url = record.url
+  const url = getRecordValue(featuredImage, "url")
   return typeof url === "string" ? url : null
 }

@@ -2,7 +2,9 @@ import {
   validateAndTransformBody,
   validateAndTransformQuery,
 } from "@medusajs/framework"
-import { authenticate, type MiddlewareRoute } from "@medusajs/framework/http"
+import { authenticate } from "@medusajs/framework/http"
+import type { MiddlewareRoute } from "@medusajs/framework/http"
+
 import {
   StoreChangeProductListItemQuantitySchema,
   StoreCreateCustomProductListSchema,
@@ -16,6 +18,7 @@ import {
   StoreUpdateProductListSchema,
 } from "./validators"
 
+const PRODUCT_LIST_MATCHER = "/store/product-lists/:id"
 const customerAuth = authenticate("customer", ["session", "bearer"])
 const optionalCustomerAuth = authenticate("customer", ["session", "bearer"], {
   allowUnauthenticated: true,
@@ -23,8 +26,8 @@ const optionalCustomerAuth = authenticate("customer", ["session", "bearer"], {
 
 export const storeProductListsRoutesMiddlewares: MiddlewareRoute[] = [
   {
-    methods: ["GET"],
     matcher: "/store/product-lists",
+    methods: ["GET"],
     middlewares: [
       customerAuth,
       validateAndTransformQuery(StoreGetProductListsSchema, {
@@ -33,92 +36,92 @@ export const storeProductListsRoutesMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
+    matcher: PRODUCT_LIST_MATCHER,
     methods: ["GET"],
-    matcher: "/store/product-lists/:id",
     middlewares: [optionalCustomerAuth],
   },
   {
+    matcher: PRODUCT_LIST_MATCHER,
     methods: ["POST"],
-    matcher: "/store/product-lists/:id",
     middlewares: [
       customerAuth,
       validateAndTransformBody(StoreUpdateProductListSchema),
     ],
   },
   {
+    matcher: PRODUCT_LIST_MATCHER,
     methods: ["DELETE"],
-    matcher: "/store/product-lists/:id",
     middlewares: [customerAuth],
   },
   {
-    methods: ["POST"],
     matcher: "/store/product-lists/favorites",
+    methods: ["POST"],
     middlewares: [
       customerAuth,
       validateAndTransformBody(StoreCreateFavoriteProductListSchema),
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/store/product-lists/favorites/items",
+    methods: ["POST"],
     middlewares: [
       customerAuth,
       validateAndTransformBody(StoreCreateFavoriteProductListItemSchema),
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/store/product-lists/custom",
+    methods: ["POST"],
     middlewares: [
       customerAuth,
       validateAndTransformBody(StoreCreateCustomProductListSchema),
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/store/product-lists/:id/cart",
+    methods: ["POST"],
     middlewares: [
       customerAuth,
       validateAndTransformBody(StoreCreateProductListCartSchema),
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/store/product-lists/:id/items",
+    methods: ["POST"],
     middlewares: [
       customerAuth,
       validateAndTransformBody(StoreCreateProductListItemSchema),
     ],
   },
   {
-    methods: ["DELETE"],
     matcher: "/store/product-lists/:id/items/:item_id",
+    methods: ["DELETE"],
     middlewares: [customerAuth],
   },
   {
-    methods: ["POST"],
     matcher: "/store/product-lists/items/:id",
+    methods: ["POST"],
     middlewares: [
       customerAuth,
       validateAndTransformBody(StoreUpdateProductListItemSchema),
     ],
   },
   {
-    methods: ["DELETE"],
     matcher: "/store/product-lists/items/:id",
+    methods: ["DELETE"],
     middlewares: [customerAuth],
   },
   {
-    methods: ["POST"],
     matcher: "/store/product-lists/items/:id/change-quantity",
+    methods: ["POST"],
     middlewares: [
       customerAuth,
       validateAndTransformBody(StoreChangeProductListItemQuantitySchema),
     ],
   },
   {
-    methods: ["POST"],
     matcher: "/store/product-lists/items/:id/increment",
+    methods: ["POST"],
     middlewares: [
       customerAuth,
       validateAndTransformBody(StoreIncrementProductListItemQuantitySchema),

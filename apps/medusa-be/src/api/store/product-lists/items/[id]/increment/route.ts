@@ -2,24 +2,23 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+
 import { incrementProductListItemWorkflow } from "../../../../../../workflows/product-list/workflows/increment-product-list-item"
 import {
   toProductListItemResponse,
   withProductListItemSelections,
 } from "../../../utils"
-import {
-  type StoreIncrementProductListItemQuantitySchemaType,
-  StoreProductListItemParamsSchema,
-} from "../../../validators"
+import { StoreProductListItemParamsSchema } from "../../../validators"
+import type { StoreIncrementProductListItemQuantitySchemaType } from "../../../validators"
 
-export async function POST(
+const incrementProductListItem = async (
   req: AuthenticatedMedusaRequest<StoreIncrementProductListItemQuantitySchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { id: itemId } = StoreProductListItemParamsSchema.parse(req.params)
 
   const { result: item } = await incrementProductListItemWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: {
       customer_id: req.auth_context.actor_id,
@@ -36,3 +35,5 @@ export async function POST(
     item: toProductListItemResponse(itemWithSelection ?? item),
   })
 }
+
+export { incrementProductListItem as POST }

@@ -6,11 +6,8 @@ import { statusOptions } from "./status-options"
 /** Locale-aware label shape for Payload admin fields. */
 type LocalizedLabel = Record<string, string>
 
-/** Description text for localized fields. */
-type Description = LocalizedLabel
-
 /** Options for creating a standardized title field. */
-type TextFieldOptions = {
+interface TextFieldOptions {
   label?: LocalizedLabel
   required?: boolean
   localized?: boolean
@@ -18,14 +15,14 @@ type TextFieldOptions = {
 }
 
 /** Options for creating a standardized slug field. */
-type SlugFieldOptions = {
+interface SlugFieldOptions {
   label?: LocalizedLabel
-  description: Description
+  description: LocalizedLabel
   localized?: boolean
 }
 
 /** Options for creating a standardized rich text content field. */
-type ContentFieldOptions = {
+interface ContentFieldOptions {
   label?: LocalizedLabel
   localized?: boolean
   editor: RichTextField["editor"]
@@ -35,63 +32,65 @@ type ContentFieldOptions = {
 
 /** Build a localized title field definition. */
 export const createTitleField = (
-  options: TextFieldOptions = {}
+  options: TextFieldOptions = {},
 ): TextField => ({
-  name: "title",
-  type: "text",
-  required: options.required ?? true,
-  localized: options.localized ?? true,
-  ...(options.maxLength ? { maxLength: options.maxLength } : {}),
   label: options.label ?? fieldLabels.title,
+  localized: options.localized ?? true,
+  ...(options.maxLength === undefined || options.maxLength === 0
+    ? {}
+    : { maxLength: options.maxLength }),
+  name: "title",
+  required: options.required ?? true,
+  type: "text",
 })
 
 /** Build a localized slug field definition with a description. */
 export const createSlugField = (options: SlugFieldOptions): TextField => ({
-  name: "slug",
-  type: "text",
-  required: true,
-  unique: true,
-  localized: options.localized ?? true,
-  label: options.label ?? fieldLabels.slug,
   admin: {
     description: options.description,
   },
+  label: options.label ?? fieldLabels.slug,
+  localized: options.localized ?? true,
+  name: "slug",
+  required: true,
+  type: "text",
+  unique: true,
 })
 
 /** Build a localized rich text content field definition. */
 export const createContentField = (
-  options: ContentFieldOptions
+  options: ContentFieldOptions,
 ): RichTextField => ({
-  name: "content",
-  type: "richText",
-  editor: options.editor,
-  localized: options.localized ?? true,
-  required: options.required ?? true,
-  admin: options.admin,
+  ...(options.admin === undefined ? {} : { admin: options.admin }),
+  ...(options.editor === undefined ? {} : { editor: options.editor }),
   label: options.label ?? fieldLabels.content,
+  localized: options.localized ?? true,
+  name: "content",
+  required: options.required ?? true,
+  type: "richText",
 })
 
 /** Build a shared status select field definition. */
 export const createStatusField = (): SelectField => ({
-  name: "status",
-  type: "select",
-  required: true,
   defaultValue: "draft",
   label: fieldLabels.status,
+  name: "status",
   options: statusOptions,
+  required: true,
+  type: "select",
 })
 
 /** Build a published date field with a date-only picker. */
 export const createPublishedDateField = (): DateField => ({
-  name: "publishedDate",
-  type: "date",
-  required: true,
-  defaultValue: () => new Date(),
-  label: fieldLabels.publishDate,
   admin: {
     date: {
-      pickerAppearance: "dayOnly",
       displayFormat: "dd.MM.yyyy",
+      pickerAppearance: "dayOnly",
     },
   },
+  defaultValue: () => new Date(),
+  label: fieldLabels.publishDate,
+  name: "publishedDate",
+  required: true,
+  type: "date",
 })

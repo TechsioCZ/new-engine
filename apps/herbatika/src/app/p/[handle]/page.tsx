@@ -1,8 +1,9 @@
 import { HydrationBoundary } from "@tanstack/react-query"
+
 import { ProductDetail } from "@/components/product-detail"
 import { prefetchProductDetailPageStorefrontData } from "@/lib/storefront/ssr"
 
-type ProductDetailPageProps = {
+interface ProductDetailPageProps {
   params: Promise<{
     handle: string
   }>
@@ -11,10 +12,10 @@ type ProductDetailPageProps = {
   }>
 }
 
-export default async function ProductDetailPage({
+const ProductDetailPage = async ({
   params,
   searchParams,
-}: ProductDetailPageProps) {
+}: ProductDetailPageProps) => {
   const { handle } = await params
   const resolvedSearchParams = await searchParams
   const initialVariantId =
@@ -26,7 +27,12 @@ export default async function ProductDetailPage({
 
   return (
     <HydrationBoundary state={dehydratedState}>
-      <ProductDetail handle={handle} initialVariantId={initialVariantId} />
+      <ProductDetail
+        handle={handle}
+        {...(initialVariantId === undefined ? {} : { initialVariantId })}
+      />
     </HydrationBoundary>
   )
 }
+
+export default ProductDetailPage

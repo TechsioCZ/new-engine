@@ -1,106 +1,41 @@
-import { buttonVariants } from "@techsio/ui-kit/atoms/button"
-import {
-  Carousel,
-  type CarouselSlide,
-} from "@techsio/ui-kit/molecules/carousel"
-import Image from "next/image"
-import NextLink from "next/link"
-import { useTranslations } from "next-intl"
+import { Carousel } from "@techsio/ui-kit/molecules/carousel"
+import type { CarouselSlide } from "@techsio/ui-kit/molecules/carousel"
 import type { MouseEventHandler, PointerEventHandler } from "react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
+
 import type { HeroBannerItem } from "@/components/homepage/homepage.data"
+
+import { HomepageHeroBannerCard } from "./homepage-hero-banner-card"
 
 const HERO_SLIDE_SPACING = "var(--spacing-400)"
 const HERO_SLIDES_PER_PAGE = {
-  xs: 1,
-  sm: 2,
-  md: 3.1,
   lg: 4.1,
+  md: 3.1,
+  sm: 2,
+  xs: 1,
 } as const
-
-type HeroBannerCardProps = {
-  banner: HeroBannerItem
-  onClickCapture: MouseEventHandler<HTMLAnchorElement>
-  onPointerDownCapture: PointerEventHandler<HTMLAnchorElement>
-}
-
-function HeroBannerCard({
-  banner,
-  onClickCapture,
-  onPointerDownCapture,
-}: HeroBannerCardProps) {
-  const tContent = useTranslations("content")
-  const label = banner.title ?? banner.imageAlt ?? banner.badge
-  const ariaLabel =
-    label && banner.ctaLabel
-      ? tContent("home.hero.link_aria", {
-          cta: banner.ctaLabel,
-          label,
-        })
-      : label
-
-  return (
-    <NextLink
-      aria-label={ariaLabel}
-      className="group relative h-full overflow-hidden rounded-lg font-open-sans shadow-sm"
-      href={banner.href}
-      onClickCapture={onClickCapture}
-      onPointerDownCapture={onPointerDownCapture}
-    >
-      <Image
-        alt={banner.imageAlt ?? label ?? ""}
-        className="object-cover transition-transform duration-500 group-hover:scale-105"
-        fill
-        src={banner.imageSrc}
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-fg-primary/85 via-fg-primary/35 to-transparent" />
-      {banner.title && (
-        <div className="absolute inset-x-0 bottom-0 flex flex-col items-start p-600 text-fg-reverse">
-          <p className="line-clamp-2 font-bold text-2xl leading-[26px]">
-            {banner.title}
-          </p>
-          {banner.subtitle && (
-            <p className="line-clamp-2 font-semibold text-fg-reverse text-md leading-snug">
-              {banner.subtitle}
-            </p>
-          )}
-          {banner.ctaLabel ? (
-            <span
-              className={buttonVariants({
-                className: "mt-350 rounded-xl px-450 py-250 text-md",
-                size: "md",
-              })}
-            >
-              {banner.ctaLabel}
-            </span>
-          ) : null}
-        </div>
-      )}
-    </NextLink>
-  )
-}
 
 const buildHeroSlides = (
   banners: HeroBannerItem[],
   onClickCapture: MouseEventHandler<HTMLAnchorElement>,
-  onPointerDownCapture: PointerEventHandler<HTMLAnchorElement>
+  onPointerDownCapture: PointerEventHandler<HTMLAnchorElement>,
 ): CarouselSlide[] =>
   banners.map((banner) => ({
-    id: banner.id,
     content: (
-      <HeroBannerCard
+      <HomepageHeroBannerCard
         banner={banner}
         onClickCapture={onClickCapture}
         onPointerDownCapture={onPointerDownCapture}
       />
     ),
+    id: banner.id,
   }))
 
-type HomepageHeroCarouselSectionProps = {
+interface HomepageHeroCarouselSectionProps {
   banners: HeroBannerItem[]
 }
 
-type HeroCarouselProps = {
+interface HeroCarouselProps {
   banners: HeroBannerItem[]
   restoreKey: number
   slidesClassName?: string
@@ -108,7 +43,7 @@ type HeroCarouselProps = {
   spacing?: string
 }
 
-function usePageRestoreKey() {
+const usePageRestoreKey = () => {
   const [restoreKey, setRestoreKey] = useState(0)
 
   useEffect(() => {
@@ -128,39 +63,39 @@ function usePageRestoreKey() {
   return restoreKey
 }
 
-function HeroCarousel({
+const HeroCarousel = ({
   banners,
   restoreKey,
   slidesClassName = "h-homepage-hero-carousel",
   slidesPerPage = 1,
   spacing = HERO_SLIDE_SPACING,
-}: HeroCarouselProps) {
-  const didDragRef = useRef(false)
+}: HeroCarouselProps) => {
+  const [didDrag, setDidDrag] = useState(false)
   const handleSlidePointerDownCapture: PointerEventHandler<
     HTMLAnchorElement
   > = () => {
-    didDragRef.current = false
+    setDidDrag(false)
   }
   const handleSlideClickCapture: MouseEventHandler<HTMLAnchorElement> = (
-    event
+    event,
   ) => {
     if (event.detail === 0) {
-      didDragRef.current = false
+      setDidDrag(false)
       return
     }
 
-    if (!didDragRef.current) {
+    if (!didDrag) {
       return
     }
 
     event.preventDefault()
     event.stopPropagation()
-    didDragRef.current = false
+    setDidDrag(false)
   }
   const slides = buildHeroSlides(
     banners,
     handleSlideClickCapture,
-    handleSlidePointerDownCapture
+    handleSlidePointerDownCapture,
   )
   const hasOverflow = slides.length > slidesPerPage
 
@@ -170,9 +105,9 @@ function HeroCarousel({
       className="w-full"
       key={restoreKey}
       loop={hasOverflow}
-      onDragStatusChange={(details) => {
+      onDragStatusChange={(details: { type: string }) => {
         if (details.type === "dragging") {
-          didDragRef.current = true
+          setDidDrag(true)
         }
       }}
       size="full"
@@ -192,9 +127,9 @@ function HeroCarousel({
   )
 }
 
-export function HomepageHeroCarouselSection({
+export const HomepageHeroCarouselSection = ({
   banners,
-}: HomepageHeroCarouselSectionProps) {
+}: HomepageHeroCarouselSectionProps) => {
   const restoreKey = usePageRestoreKey()
 
   return (

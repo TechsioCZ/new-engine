@@ -1,85 +1,81 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
-import { Button } from '../../src/atoms/button'
-import { FormInput } from '../../src/molecules/form-input'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useState } from "react"
+
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Button } from "../../src/atoms/button"
+import { FormInput } from "../../src/molecules/form-input"
 
 const meta: Meta<typeof FormInput> = {
-  title: 'Molecules/FormInput',
-  component: FormInput,
-  parameters: {
-    layout: 'centered',
-  },
-  tags: ['autodocs'],
   argTypes: {
-    // Text inputs
-    label: {
-      control: 'text',
-      description: 'Input label',
-    },
-    placeholder: {
-      control: 'text',
-      description: 'Placeholder text',
+    disabled: {
+      control: "boolean",
+      description: "Disable the input",
+      table: { defaultValue: { summary: "false" } },
     },
     helpText: {
-      control: 'text',
-      description: 'Helper text or validation message below input',
+      control: "text",
+      description: "Helper text or validation message below input",
     },
-
-    // Appearance
-    size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Size of input and label',
-      table: { defaultValue: { summary: 'md' } },
+    label: {
+      control: "text",
+      description: "Input label",
     },
-    validateStatus: {
-      control: 'select',
-      options: ['default', 'error', 'success', 'warning'],
-      description: 'Validation state',
-      table: { defaultValue: { summary: 'default' } },
-    },
-    showHelpTextIcon: {
-      control: 'boolean',
-      description: 'Show icon with help text',
-      table: { defaultValue: { summary: 'false' } },
-    },
-    type: {
-      control: 'select',
-      options: ['text', 'email', 'password', 'tel', 'number', 'url'],
-      description: 'HTML input type',
-      table: { defaultValue: { summary: 'text' } },
-    },
-
-    // States
-    disabled: {
-      control: 'boolean',
-      description: 'Disable the input',
-      table: { defaultValue: { summary: 'false' } },
-    },
-    required: {
-      control: 'boolean',
-      description: 'Mark as required field',
-      table: { defaultValue: { summary: 'false' } },
+    placeholder: {
+      control: "text",
+      description: "Placeholder text",
     },
     readOnly: {
-      control: 'boolean',
-      description: 'Make input read-only',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Make input read-only",
+      table: { defaultValue: { summary: "false" } },
+    },
+    required: {
+      control: "boolean",
+      description: "Mark as required field",
+      table: { defaultValue: { summary: "false" } },
+    },
+    showHelpTextIcon: {
+      control: "boolean",
+      description: "Show icon with help text",
+      table: { defaultValue: { summary: "false" } },
+    },
+    size: {
+      control: "select",
+      description: "Size of input and label",
+      options: ["sm", "md", "lg"],
+      table: { defaultValue: { summary: "md" } },
+    },
+    type: {
+      control: "select",
+      description: "HTML input type",
+      options: ["text", "email", "password", "tel", "number", "url"],
+      table: { defaultValue: { summary: "text" } },
+    },
+    validateStatus: {
+      control: "select",
+      description: "Validation state",
+      options: ["default", "error", "success", "warning"],
+      table: { defaultValue: { summary: "default" } },
     },
   },
   args: {
-    label: 'Username',
-    placeholder: 'Enter username',
-    helpText: 'Will be visible on your profile',
-    size: 'md',
-    validateStatus: 'default',
-    showHelpTextIcon: false,
-    type: 'text',
     disabled: false,
-    required: false,
+    helpText: "Will be visible on your profile",
+    label: "Username",
+    placeholder: "Enter username",
     readOnly: false,
+    required: false,
+    showHelpTextIcon: false,
+    size: "md",
+    type: "text",
+    validateStatus: "default",
   },
+  component: FormInput,
+  parameters: {
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/FormInput",
 }
 
 export default meta
@@ -87,7 +83,7 @@ type Story = StoryObj<typeof FormInput>
 
 export const Playground: Story = {
   args: {
-    label: 'Playground Input',
+    label: "Playground Input",
   },
 }
 
@@ -237,7 +233,7 @@ export const AllVariants: Story = {
 // Validation States - Dedicated story showing all 4 validation states
 export const ValidationStates: Story = {
   render: () => (
-    <div className="flex flex-col gap-200 w-3xs">
+    <div className="flex w-3xs flex-col gap-200">
       <FormInput
         id="default-validation"
         label="Default State"
@@ -273,7 +269,7 @@ export const ValidationStates: Story = {
 // Sizes - Dedicated story showing all size variants
 export const Sizes: Story = {
   render: () => (
-    <div className="flex flex-col gap-200 w-3xs">
+    <div className="flex w-3xs flex-col gap-200">
       <FormInput
         id="small-size"
         label="Small Size"
@@ -300,84 +296,105 @@ export const Sizes: Story = {
 }
 
 // Interactive validation example
-export const InteractiveValidation: Story = {
-  render: () => {
-    return <EmailValidationExample />
-  },
+const getEmailValidateStatus = (
+  showError: boolean,
+  showSuccess: boolean,
+): "default" | "error" | "success" => {
+  if (showError) {
+    return "error"
+  }
+  if (showSuccess) {
+    return "success"
+  }
+  return "default"
 }
 
-function EmailValidationExample() {
-  const [email, setEmail] = useState('')
+const getEmailStatusLabel = (isTouched: boolean, valid: boolean) => {
+  if (!isTouched) {
+    return "Untouched"
+  }
+  return valid ? "Valid email" : "Invalid email"
+}
+
+const EmailValidationExample = () => {
+  const [email, setEmail] = useState("")
   const [touched, setTouched] = useState(false)
 
-  const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
-  const showError = touched && email && !isValid
-  const showSuccess = touched && email && isValid
+  const isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(email.trim())
+  const isEmailFilled = email.length > 0
+  const showError = touched && isEmailFilled && !isValid
+  const showSuccess = touched && isEmailFilled && isValid
 
   // Determine validation status
-  const validateStatus = showError
-    ? 'error'
-    : showSuccess
-      ? 'success'
-      : 'default'
+  const validateStatus = getEmailValidateStatus(showError, showSuccess)
 
   return (
     <div className="w-xs">
-      <h3 className="mb-200 font-medium text-lg">Email Validation</h3>
+      <h3 className="mb-200 text-lg font-medium">Email Validation</h3>
       <FormInput
         id="success-input"
         label="Email"
         placeholder="your@email.com"
         required
         value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        onBlur={() => setTouched(true)}
+        onChange={(e) => {
+          setEmail(e.target.value)
+        }}
+        onBlur={() => {
+          setTouched(true)
+        }}
         validateStatus={validateStatus}
         helpText={
           showError
-            ? 'Please enter a valid email'
-            : 'Used for login and notifications'
+            ? "Please enter a valid email"
+            : "Used for login and notifications"
         }
       />
       <div className="mt-300 text-sm">
-        <p>
-          Status:{' '}
-          {touched ? (isValid ? 'Valid email' : 'Invalid email') : 'Untouched'}
-        </p>
+        <p>Status: {getEmailStatusLabel(touched, isValid)}</p>
       </div>
     </div>
   )
 }
 
-// Form usage example
-export const RegistrationForm: Story = {
-  render: () => <RegistrationFormExample />,
+export const InteractiveValidation: Story = {
+  render: () => <EmailValidationExample />,
 }
 
-function PasswordCheck({ passed, label }: { passed: boolean; label: string }) {
-  return (
-    <li className={`flex items-center gap-100 ${passed ? 'text-success' : 'text-fg-secondary'}`}>
-      <span className={passed ? 'icon-[mdi--check-circle]' : 'icon-[mdi--circle-outline]'} />
-      {label}
-    </li>
-  )
-}
+const PasswordCheck = ({
+  passed,
+  label,
+}: {
+  passed: boolean
+  label: string
+}) => (
+  <li
+    className={`flex items-center gap-100 ${passed ? "text-success" : "text-fg-secondary"}`}
+  >
+    <span
+      className={
+        passed ? "token-icon-check-circle" : "token-icon-circle-outline"
+      }
+    />
+    {label}
+  </li>
+)
 
-function RegistrationFormExample() {
+const RegistrationFormExample = () => {
   const [form, setForm] = useState({
-    fullName: '',
-    email: '',
-    username: '',
-    password: '',
-    phone: '',
+    email: "",
+    fullName: "",
+    password: "",
+    phone: "",
+    username: "",
   })
 
   const [touched, setTouched] = useState({
-    fullName: false,
     email: false,
-    username: false,
+    fullName: false,
     password: false,
     phone: false,
+    username: false,
   })
 
   const updateField = (field: keyof typeof form, value: string) => {
@@ -390,47 +407,54 @@ function RegistrationFormExample() {
 
   // Validation rules
   const validations = {
-    fullName: {
-      isValid: form.fullName.length >= 2,
-      error: 'Name must be at least 2 characters',
-      success: 'Looks good!',
-    },
     email: {
-      isValid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()),
-      error: 'Please enter a valid email address',
+      error: "Please enter a valid email address",
+      isValid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(form.email.trim()),
       success: "Email is correct",
     },
-    username: {
-      isValid: /^[a-zA-Z0-9_]{3,}$/.test(form.username),
-      error: 'Min 3 characters, only letters, numbers, underscore',
-      success: 'Username is available',
+    fullName: {
+      error: "Name must be at least 2 characters",
+      isValid: form.fullName.length >= 2,
+      success: "Looks good!",
     },
     password: {
       checks: {
         length: form.password.length >= 8,
-        uppercase: /[A-Z]/.test(form.password),
-        number: /\d/.test(form.password),
+        number: /\d/u.test(form.password),
+        uppercase: /[A-Z]/u.test(form.password),
       },
+      error: "Weak password",
       get isValid() {
         return this.checks.length && this.checks.uppercase && this.checks.number
       },
-      error: 'Weak password',
-      success: 'Strong password!',
+      success: "Strong password!",
     },
     phone: {
-      isValid: form.phone === '' || /^\+?[\d\s()-]{7,}$/.test(form.phone),
-      error: 'Please enter a valid phone number',
-      success: 'Valid phone number',
+      error: "Please enter a valid phone number",
+      isValid: form.phone === "" || /^\+?[\d\s()-]{7,}$/u.test(form.phone),
+      success: "Valid phone number",
+    },
+    username: {
+      error: "Min 3 characters, only letters, numbers, underscore",
+      isValid: /^[a-zA-Z0-9_]{3,}$/u.test(form.username),
+      success: "Username is available",
     },
   }
 
   const getStatus = (field: keyof typeof validations) => {
-    if (!touched[field] || !form[field]) return 'default'
-    return validations[field].isValid ? 'success' : 'error'
+    if (!touched[field] || !form[field]) {
+      return "default"
+    }
+    return validations[field].isValid ? "success" : "error"
   }
 
-  const getHelpText = (field: keyof typeof validations, defaultText: string) => {
-    if (!touched[field] || !form[field]) return defaultText
+  const getHelpText = (
+    field: keyof typeof validations,
+    defaultText: string,
+  ) => {
+    if (!touched[field] || !form[field]) {
+      return defaultText
+    }
     return validations[field].isValid
       ? validations[field].success
       : validations[field].error
@@ -438,7 +462,7 @@ function RegistrationFormExample() {
 
   return (
     <div className="w-md rounded-md border border-border-primary p-300 shadow-sm">
-      <h2 className="mb-300 font-semibold text-xl">Account Registration</h2>
+      <h2 className="mb-300 text-xl font-semibold">Account Registration</h2>
 
       <div className="space-y-200">
         <FormInput
@@ -447,10 +471,14 @@ function RegistrationFormExample() {
           placeholder="John Doe"
           required
           value={form.fullName}
-          onChange={(e) => updateField('fullName', e.target.value)}
-          onBlur={() => touchField('fullName')}
-          validateStatus={getStatus('fullName')}
-          helpText={getHelpText('fullName', 'Enter your full name')}
+          onChange={(e) => {
+            updateField("fullName", e.target.value)
+          }}
+          onBlur={() => {
+            touchField("fullName")
+          }}
+          validateStatus={getStatus("fullName")}
+          helpText={getHelpText("fullName", "Enter your full name")}
         />
 
         <FormInput
@@ -460,10 +488,17 @@ function RegistrationFormExample() {
           placeholder="john@example.com"
           required
           value={form.email}
-          onChange={(e) => updateField('email', e.target.value)}
-          onBlur={() => touchField('email')}
-          validateStatus={getStatus('email')}
-          helpText={getHelpText('email', "We'll send confirmation to this email")}
+          onChange={(e) => {
+            updateField("email", e.target.value)
+          }}
+          onBlur={() => {
+            touchField("email")
+          }}
+          validateStatus={getStatus("email")}
+          helpText={getHelpText(
+            "email",
+            "We'll send confirmation to this email",
+          )}
         />
 
         <FormInput
@@ -472,10 +507,14 @@ function RegistrationFormExample() {
           placeholder="johndoe"
           required
           value={form.username}
-          onChange={(e) => updateField('username', e.target.value)}
-          onBlur={() => touchField('username')}
-          validateStatus={getStatus('username')}
-          helpText={getHelpText('username', 'Visible to other users')}
+          onChange={(e) => {
+            updateField("username", e.target.value)
+          }}
+          onBlur={() => {
+            touchField("username")
+          }}
+          validateStatus={getStatus("username")}
+          helpText={getHelpText("username", "Visible to other users")}
         />
 
         <div>
@@ -486,22 +525,14 @@ function RegistrationFormExample() {
             placeholder="••••••••"
             required
             value={form.password}
-            onChange={(e) => updateField('password', e.target.value)}
-            onBlur={() => touchField('password')}
-            validateStatus={
-              !touched.password || !form.password
-                ? 'default'
-                : validations.password.isValid
-                  ? 'success'
-                  : 'error'
-            }
-            helpText={
-              touched.password && form.password && !validations.password.isValid
-                ? 'Weak password'
-                : touched.password && validations.password.isValid
-                  ? 'Strong password!'
-                  : undefined
-            }
+            onChange={(e) => {
+              updateField("password", e.target.value)
+            }}
+            onBlur={() => {
+              touchField("password")
+            }}
+            validateStatus={getStatus("password")}
+            helpText={getHelpText("password", "")}
           />
           <ul className="mt-150 space-y-100 text-sm">
             <PasswordCheck
@@ -525,10 +556,14 @@ function RegistrationFormExample() {
           type="tel"
           placeholder="+1 (XXX) XXX-XXXX"
           value={form.phone}
-          onChange={(e) => updateField('phone', e.target.value)}
-          onBlur={() => touchField('phone')}
-          validateStatus={getStatus('phone')}
-          helpText={getHelpText('phone', 'Optional')}
+          onChange={(e) => {
+            updateField("phone", e.target.value)
+          }}
+          onBlur={() => {
+            touchField("phone")
+          }}
+          validateStatus={getStatus("phone")}
+          helpText={getHelpText("phone", "Optional")}
         />
       </div>
 
@@ -548,4 +583,9 @@ function RegistrationFormExample() {
       </div>
     </div>
   )
+}
+
+// Form usage example
+export const RegistrationForm: Story = {
+  render: () => <RegistrationFormExample />,
 }

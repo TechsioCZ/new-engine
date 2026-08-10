@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "@techsio/ui-kit/src/tokens/tokens-only.css";
+@import "@techsio/ui-kit/tokens";
 @import "./_n1-semantic.css";
 @import "./_n1shop-overrides.css";
 

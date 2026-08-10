@@ -2,14 +2,18 @@ import type {
   IFulfillmentModuleService,
   Logger,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import {
   createShippingProfilesWorkflow,
   updateShippingProfilesWorkflow,
 } from "@medusajs/medusa/core-flows"
 
-export type CreateDefaultShippingProfileStepInput = {
+export interface CreateDefaultShippingProfileStepInput {
   name: string
 }
 
@@ -24,8 +28,8 @@ export const createDefaultShippingProfileStep = createStep(
 
     const shippingProfiles =
       await fulfillmentModuleService.listShippingProfiles({
-        type: "default",
         name: input.name,
+        type: "default",
       })
     const shippingProfile = shippingProfiles.length ? shippingProfiles[0] : null
 
@@ -34,8 +38,8 @@ export const createDefaultShippingProfileStep = createStep(
       await updateShippingProfilesWorkflow(container).run({
         input: {
           selector: {
-            type: "default",
             name: input.name,
+            type: "default",
           },
           update: {
             name: input.name,
@@ -65,12 +69,15 @@ export const createDefaultShippingProfileStep = createStep(
       : null
 
     if (!finalShippingProfile) {
-      throw new Error("Could not find default shipping profile")
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Could not find default shipping profile",
+      )
     }
 
     return new StepResponse({
       result: [finalShippingProfile],
       shippingProfile: finalShippingProfile,
     })
-  }
+  },
 )

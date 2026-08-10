@@ -1,6 +1,8 @@
 import { clx, FocusModal } from "@medusajs/ui"
-import { type PropsWithChildren, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
+import type { PropsWithChildren, ReactNode } from "react"
 import { useNavigate } from "react-router-dom"
+
 import { RouteModalForm } from "./route-modal-form"
 import { RouteModalProvider } from "./route-modal-provider"
 import { StackedModalProvider } from "./stacked-modal-provider"
@@ -10,21 +12,48 @@ type RouteFocusModalProps = PropsWithChildren<{
   prev?: string
 }>
 
+type ContentProps = PropsWithChildren<{
+  stackedModalOpen: boolean
+}>
+
+const Content = ({ stackedModalOpen, children }: ContentProps) => {
+  const { __internal } = useRouteModal()
+
+  const shouldPreventClose = !__internal.closeOnEscape
+
+  return (
+    <FocusModal.Content
+      className={clx({
+        "!bg-ui-bg-disabled !inset-x-5 !inset-y-3": stackedModalOpen,
+      })}
+      {...(shouldPreventClose
+        ? {
+            onEscapeKeyDown: (e: globalThis.KeyboardEvent) => {
+              e.preventDefault()
+            },
+          }
+        : {})}
+    >
+      {children}
+    </FocusModal.Content>
+  )
+}
+
 const Root = ({ prev = "..", children }: RouteFocusModalProps) => {
   const navigate = useNavigate()
   const [open, setOpen] = useState(false)
-  const [stackedModalOpen, onStackedModalOpen] = useState(false)
+  const [stackedModalOpen, setStackedModalOpen] = useState(false)
 
   /**
    * Open the modal when the component mounts. This
    * ensures that the entry animation is played.
    */
   useEffect(() => {
-    setOpen(true)
-
+    const animationFrame = requestAnimationFrame(() => {
+      setOpen(true)
+    })
     return () => {
-      setOpen(false)
-      onStackedModalOpen(false)
+      cancelAnimationFrame(animationFrame)
     }
   }, [])
 
@@ -44,7 +73,7 @@ const Root = ({ prev = "..", children }: RouteFocusModalProps) => {
       <FocusModal.Description />
 
       <RouteModalProvider prev={prev}>
-        <StackedModalProvider onOpenChange={onStackedModalOpen}>
+        <StackedModalProvider onOpenChange={setStackedModalOpen}>
           <Content stackedModalOpen={stackedModalOpen}>{children}</Content>
         </StackedModalProvider>
       </RouteModalProvider>
@@ -52,39 +81,12 @@ const Root = ({ prev = "..", children }: RouteFocusModalProps) => {
   )
 }
 
-type ContentProps = PropsWithChildren<{
-  stackedModalOpen: boolean
-}>
-
-const Content = ({ stackedModalOpen, children }: ContentProps) => {
-  const { __internal } = useRouteModal()
-
-  const shouldPreventClose = !__internal.closeOnEscape
-
-  return (
-    <FocusModal.Content
-      className={clx({
-        "!bg-ui-bg-disabled !inset-x-5 !inset-y-3": stackedModalOpen,
-      })}
-      onEscapeKeyDown={
-        shouldPreventClose
-          ? (e) => {
-              e.preventDefault()
-            }
-          : undefined
-      }
-    >
-      {children}
-    </FocusModal.Content>
-  )
-}
-
-const Header = FocusModal.Header
-const Title = FocusModal.Title
-const Description = FocusModal.Description
-const Footer = FocusModal.Footer
-const Body = FocusModal.Body
-const Close = FocusModal.Close
+const { Header } = FocusModal
+const { Title } = FocusModal
+const { Description } = FocusModal
+const { Footer } = FocusModal
+const { Body } = FocusModal
+const { Close } = FocusModal
 const Form = RouteModalForm
 
 /**
@@ -93,12 +95,23 @@ const Form = RouteModalForm
  * Typically used for forms creating a resource or forms that require
  * a lot of space.
  */
-export const RouteFocusModal = Object.assign(Root, {
-  Header,
-  Title,
+interface RouteFocusModalComponent {
+  (props: RouteFocusModalProps): ReactNode
+  Body: typeof FocusModal.Body
+  Close: typeof FocusModal.Close
+  Description: typeof FocusModal.Description
+  Footer: typeof FocusModal.Footer
+  Form: typeof RouteModalForm
+  Header: typeof FocusModal.Header
+  Title: typeof FocusModal.Title
+}
+
+export const RouteFocusModal: RouteFocusModalComponent = Object.assign(Root, {
   Body,
+  Close,
   Description,
   Footer,
-  Close,
   Form,
+  Header,
+  Title,
 })

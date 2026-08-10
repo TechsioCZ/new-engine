@@ -1,17 +1,11 @@
 import type { ProductListBase, ProductListItemBase } from "./types"
 
-export const getProductListItems = <
-  TItem,
-  TProductList extends ProductListBase<TItem>,
->(
-  list?: TProductList | null
+export const getProductListItems = <TItem>(
+  list?: ProductListBase<TItem> | null,
 ): TItem[] => list?.items ?? []
 
-export const getProductListItemCount = <
-  TItem,
-  TProductList extends ProductListBase<TItem>,
->(
-  list?: TProductList | null
+export const getProductListItemCount = <TItem>(
+  list?: ProductListBase<TItem> | null,
 ): number => {
   if (!list) {
     return 0
@@ -31,19 +25,19 @@ export const getProductListItemCount = <
 }
 
 export const isFavoriteProductList = <TItem>(
-  list?: ProductListBase<TItem> | null
+  list?: ProductListBase<TItem> | null,
 ): boolean => list?.type === "favorite" || list?.handle === "favorites"
 
 export const getProductListItemProductId = (
-  item: ProductListItemBase
+  item: ProductListItemBase,
 ): string | null => item.product_id ?? item.product?.id ?? null
 
 export const getProductListItemVariantId = (
-  item: ProductListItemBase
+  item: ProductListItemBase,
 ): string | null => item.variant_id ?? item.variant?.id ?? null
 
 export const resolveProductListItemQuantity = (
-  item: ProductListItemBase
+  item: ProductListItemBase,
 ): number =>
   typeof item.quantity === "number" && item.quantity > 0
     ? Math.floor(item.quantity)
@@ -55,13 +49,13 @@ const normalizeVariantId = (variantId?: string | null) => {
   }
 
   const trimmedVariantId = variantId.trim()
-  return trimmedVariantId ? trimmedVariantId : null
+  return trimmedVariantId.length > 0 ? trimmedVariantId : null
 }
 
 export const productListItemMatchesSelection = (
   item: ProductListItemBase,
   productId: string,
-  variantId?: string | null
+  variantId?: string | null,
 ): boolean => {
   if (getProductListItemProductId(item) !== productId) {
     return false
@@ -70,33 +64,27 @@ export const productListItemMatchesSelection = (
   const requestedVariantId = normalizeVariantId(variantId)
   const itemVariantId = normalizeVariantId(getProductListItemVariantId(item))
 
-  if (requestedVariantId) {
+  if (requestedVariantId !== null) {
     return itemVariantId === requestedVariantId
   }
 
-  return !itemVariantId
+  return itemVariantId === null
 }
 
-export const isProductInProductList = <
-  TItem extends ProductListItemBase,
-  TProductList extends ProductListBase<TItem>,
->(
-  list: TProductList | null | undefined,
+export const isProductInProductList = <TItem extends ProductListItemBase>(
+  list: ProductListBase<TItem> | null | undefined,
   productId: string,
-  variantId?: string | null
+  variantId?: string | null,
 ): boolean =>
   (list?.items ?? []).some((item) =>
-    productListItemMatchesSelection(item, productId, variantId)
+    productListItemMatchesSelection(item, productId, variantId),
   )
 
-export const findProductListItem = <
-  TItem extends ProductListItemBase,
-  TProductList extends ProductListBase<TItem>,
->(
-  list: TProductList | null | undefined,
+export const findProductListItem = <TItem extends ProductListItemBase>(
+  list: ProductListBase<TItem> | null | undefined,
   productId: string,
-  variantId?: string | null
+  variantId?: string | null,
 ): TItem | undefined =>
   (list?.items ?? []).find((item) =>
-    productListItemMatchesSelection(item, productId, variantId)
+    productListItemMatchesSelection(item, productId, variantId),
   )

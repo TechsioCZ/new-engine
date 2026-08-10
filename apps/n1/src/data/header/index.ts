@@ -1,4 +1,5 @@
 import type { StaticImageData } from "next/image"
+
 import cykloBoty from "@/assets/header/cyklo-boty.webp"
 import cykloChranice from "@/assets/header/cyklo-chranice.webp"
 import cykloDoplnky from "@/assets/header/cyklo-doplnky.webp"
@@ -54,12 +55,21 @@ import { allCategories, rootCategories } from "@/data/static/categories"
 import { ALL_CATEGORIES_MAP } from "@/lib/constants"
 
 const headerImgs = {
-  panske: {
-    cyklo: panskeCyklo,
-    moto: panskeMoto,
-    obleceni: panskeObleceni,
-    ski: panskeSki,
-    snbSkate: panskeSnbSkate,
+  cyklo: {
+    boty: cykloBoty,
+    chranice: cykloChranice,
+    doplnky: cykloDoplnky,
+    elektrokola: cykloElektrokola,
+    kola: cykloKola,
+    komponenty: cykloKomponenty,
+    naradi: cykloNaradi,
+    obleceni: cykloObleceni,
+    preprava: cykloPreprava,
+    prilby: cykloPrilby,
+    sedla: cykloSedla,
+    tasky: cykloTasky,
+    vyziva: cykloVyziva,
+    zapletenaKola: cykloZapletenaKola,
   },
   damske: {
     cyklo: damskeCyklo,
@@ -75,62 +85,54 @@ const headerImgs = {
     ski: detskeSki,
     snbSkate: detskeSnbSkate,
   },
+  moto: {
+    boty: motoBoty,
+    bryle: motoBryle,
+    chranice: motoChranice,
+    doplnky: motoDoplnky,
+    obleceni: motoObleceni,
+    prilby: motoPrilby,
+  },
   obleceni: {
     bryle: obleceniBryle,
     bundy: obleceniBundy,
+    doplnky: obleceniDoplnky,
     kalhoty: obleceniKalhoty,
     kosile: obleceniKosile,
     kratasy: obleceniKratasy,
     mikiny: obleceniMikiny,
     plavky: obleceniPlavky,
     saty: obleceniSaty,
-    doplnky: obleceniDoplnky,
     svetry: obleceniSvetry,
     trika: obleceniTrika,
   },
-  cyklo: {
-    boty: cykloBoty,
-    doplnky: cykloDoplnky,
-    elektrokola: cykloElektrokola,
-    chranice: cykloChranice,
-    kola: cykloKola,
-    komponenty: cykloKomponenty,
-    naradi: cykloNaradi,
-    obleceni: cykloObleceni,
-    preprava: cykloPreprava,
-    prilby: cykloPrilby,
-    sedla: cykloSedla,
-    tasky: cykloTasky,
-    vyziva: cykloVyziva,
-    zapletenaKola: cykloZapletenaKola,
+  panske: {
+    cyklo: panskeCyklo,
+    moto: panskeMoto,
+    obleceni: panskeObleceni,
+    ski: panskeSki,
+    snbSkate: panskeSnbSkate,
   },
-  moto: {
-    boty: motoBoty,
-    bryle: motoBryle,
-    doplnky: motoDoplnky,
-    chranice: motoChranice,
-    obleceni: motoObleceni,
-    prilby: motoPrilby,
+  ski: {
+    doplnky: skiDoplnky,
+    obleceni: skiObleceni,
   },
   snbSkate: {
     brusle: snbBrusle,
     skate: snbSkate,
     snowboard: snbSnowboard,
   },
-  ski: {
-    doplnky: skiDoplnky,
-    obleceni: skiObleceni,
-  },
 }
 
-export type SubMenuItem = {
+interface SubMenuItem {
   name: string
   href: string
-  image?: StaticImageData
-  categoryIds?: string[] // Optional for backward compatibility
+  image?: StaticImageData | undefined
+  // Optional for backward compatibility
+  categoryIds?: string[]
 }
 
-export type SubmenuCategory = {
+export interface SubmenuCategory {
   name: string
   href: string
   items: SubMenuItem[]
@@ -142,13 +144,13 @@ export type SubmenuCategory = {
 
 // Exception mapping for special category names
 const CATEGORY_IMAGE_EXCEPTIONS: Record<string, string> = {
+  "doplnky-komponenty": "doplnky",
+  "saty-a-sukne": "saty",
   skateboarding: "skateboard",
   snowboarding: "snowboard",
-  "saty-a-sukne": "saty",
   "trika-a-tilka": "trika",
-  "doplnky-komponenty": "doplnky",
 }
-const CATEGORY_SUFFIX_REGEX = /-category-\d+$/
+const CATEGORY_SUFFIX_REGEX = /-category-\d+$/u
 
 // Helper: Convert handle to headerImgs key (removes -category-XXX pattern and converts to camelCase)
 const handleToImageKey = (handle: string): string => {
@@ -156,15 +158,16 @@ const handleToImageKey = (handle: string): string => {
   const cleanHandle = handle.replace(CATEGORY_SUFFIX_REGEX, "")
 
   // Check for exceptions first
-  if (CATEGORY_IMAGE_EXCEPTIONS[cleanHandle]) {
-    return CATEGORY_IMAGE_EXCEPTIONS[cleanHandle]
+  const exception = CATEGORY_IMAGE_EXCEPTIONS[cleanHandle]
+  if (exception !== undefined && exception !== "") {
+    return exception
   }
 
   // Convert to camelCase
   return cleanHandle
     .split("-")
     .map((word, i) =>
-      i === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1)
+      i === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1),
     )
     .join("")
 }
@@ -172,28 +175,32 @@ const handleToImageKey = (handle: string): string => {
 // Helper: Get image for category based on handle path
 const getImageForCategory = (
   parentHandle: string,
-  childHandle: string
+  childHandle: string,
 ): StaticImageData | undefined => {
-  const parentKey = handleToImageKey(parentHandle) as keyof typeof headerImgs
+  const parentKey = handleToImageKey(parentHandle)
 
   // Try to find matching image in headerImgs structure
-  const parentImages = headerImgs[parentKey]
-  if (!parentImages || typeof parentImages !== "object") {
+  const parentEntry = Object.entries(headerImgs).find(
+    ([key]) => key === parentKey,
+  )
+  const parentImages = parentEntry?.[1]
+  if (parentImages === undefined) {
     if (process.env.NODE_ENV === "development") {
       console.warn(
-        `[Header] No images found for parent category: ${parentHandle} (key: ${parentKey})`
+        `[Header] No images found for parent category: ${parentHandle} (key: ${parentKey})`,
       )
     }
-    return
+    return undefined
   }
 
   // Convert child handle to camelCase for image lookup
-  const childKey = handleToImageKey(childHandle) as keyof typeof parentImages
-
-  const image = parentImages[childKey] as StaticImageData | undefined
-  if (!image && process.env.NODE_ENV === "development") {
+  const childKey = handleToImageKey(childHandle)
+  const image = Object.entries(parentImages).find(
+    ([key]) => key === childKey,
+  )?.[1]
+  if (image === undefined && process.env.NODE_ENV === "development") {
     console.warn(
-      `[Header] No image found for category: ${parentHandle}/${childHandle} (keys: ${parentKey}/${childKey})`
+      `[Header] No image found for category: ${parentHandle}/${childHandle} (keys: ${parentKey}/${childKey})`,
     )
   }
   return image
@@ -219,17 +226,17 @@ export const links = [
 export const submenuItems: SubmenuCategory[] = rootCategories.map((rootCat) => {
   // Find all direct children of this root category
   const directChildren = allCategories.filter(
-    (cat) => cat.parent_category_id === rootCat.id
+    (cat) => cat.parent_category_id === rootCat.id,
   )
 
   return {
-    name: rootCat.name,
     href: `/kategorie/${rootCat.handle}`,
     items: directChildren.map((child) => ({
-      name: child.name,
+      categoryIds: ALL_CATEGORIES_MAP[child.handle] ?? [],
       href: `/kategorie/${child.handle}`,
       image: getImageForCategory(rootCat.handle, child.handle),
-      categoryIds: ALL_CATEGORIES_MAP[child.handle] || [],
+      name: child.name,
     })),
+    name: rootCat.name,
   }
 })

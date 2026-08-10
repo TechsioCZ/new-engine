@@ -1,9 +1,9 @@
 import type { HttpTypes } from "@medusajs/types"
 
-const CATEGORY_NAME_PREFIX_PATTERN = /^>\s*/
+const CATEGORY_NAME_PREFIX_PATTERN = /^>\s*/u
 
 export const normalizeCategoryName = (value?: string | null) => {
-  if (!value) {
+  if (value === null || value === undefined || value.length === 0) {
     return "Kategória"
   }
 
@@ -11,7 +11,7 @@ export const normalizeCategoryName = (value?: string | null) => {
 }
 
 export const resolveCategoryRank = (
-  category: HttpTypes.StoreProductCategory
+  category: HttpTypes.StoreProductCategory,
 ) => {
   if (typeof category.rank === "number") {
     return category.rank

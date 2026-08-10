@@ -8,7 +8,9 @@ export const ORDER_EXPEDITION_SUMMARY_CACHE_TTL_SECONDS = 120
 
 type RequestScope = MedusaRequest["scope"]
 
-export function resolveOrderExpeditionSummaryCacheService(scope: RequestScope) {
+export const resolveOrderExpeditionSummaryCacheService = (
+  scope: RequestScope,
+) => {
   try {
     return scope.resolve<ICachingModuleService>(Modules.CACHING)
   } catch {
@@ -16,7 +18,20 @@ export function resolveOrderExpeditionSummaryCacheService(scope: RequestScope) {
   }
 }
 
-export async function clearOrderExpeditionSummaryCache(scope: RequestScope) {
+const resolveLogger = (scope: RequestScope) => {
+  try {
+    const logger = scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+
+    return typeof logger?.warn === "function" ? logger : null
+  } catch {
+    return null
+  }
+}
+
+const getCacheFailureMessage = (error: unknown) =>
+  error instanceof Error ? error.message : String(error)
+
+export const clearOrderExpeditionSummaryCache = async (scope: RequestScope) => {
   const cacheService = resolveOrderExpeditionSummaryCacheService(scope)
 
   if (!cacheService) {
@@ -32,22 +47,8 @@ export async function clearOrderExpeditionSummaryCache(scope: RequestScope) {
 
     if (typeof logger?.warn === "function") {
       logger.warn(
-        `Order expedition summary cache invalidation failed: ${getErrorMessage(error)}`
+        `Order expedition summary cache invalidation failed: ${getCacheFailureMessage(error)}`,
       )
     }
   }
-}
-
-function resolveLogger(scope: RequestScope) {
-  try {
-    const logger = scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-
-    return typeof logger?.warn === "function" ? logger : null
-  } catch {
-    return null
-  }
-}
-
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : String(error)
 }

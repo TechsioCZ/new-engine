@@ -1,4 +1,5 @@
 import { z } from "@medusajs/framework/zod"
+
 import { MANUAL_ORDER_BUSINESS_STATUS_IDS } from "../../../utils/order-business-status"
 
 export const GetAdminOrderBusinessStatusesSchema = z
@@ -11,16 +12,17 @@ export const GetAdminOrderBusinessStatusesSchema = z
 export const GetAdminOrderBusinessStatusesByIdsSchema = z
   .object({
     ids: z.preprocess(
-      (value) => {
+      (value: unknown): unknown => {
         if (Array.isArray(value)) {
-          return value.flatMap((item) =>
-            typeof item === "string" ? item.split(",") : item
+          const values: unknown[] = value
+          return values.flatMap((item): unknown[] =>
+            typeof item === "string" ? item.split(",") : [item],
           )
         }
 
         return typeof value === "string" ? value.split(",") : value
       },
-      z.array(z.string().min(1)).min(1).max(100)
+      z.array(z.string().min(1)).min(1).max(100),
     ),
   })
   .strict()

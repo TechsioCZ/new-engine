@@ -6,18 +6,21 @@ import type {
 } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { chunk } from "@techsio/std/array"
+import { getRecordValue } from "@techsio/std/object"
+
 import { EMAIL_LOG_MODULE } from "../../modules/email-log"
 import type EmailLogModuleService from "../../modules/email-log/service"
 import { getResendTemplateSubject } from "../../modules/resend/templates"
 import { CHECKED_RESEND_EVENT_TYPES } from "../../utils/resend-webhook-events"
 
-type EmailLogDTO = {
+interface EmailLogDTO {
   id: string
   checked_at: Date | null
   email_id: string
 }
 
-type EmailWebhookEventDTO = {
+interface EmailWebhookEventDTO {
   id: string
   processed_at: Date | null
   received_at: Date
@@ -35,165 +38,217 @@ type EmailLogService = EmailLogModuleService & {
       sent_to: string
       subject: string
       type: string
-    }[]
+    }[],
   ) => Promise<EmailLogDTO[]>
   listEmailWebhookEvents: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    filters?: Parameters<EmailLogModuleService["listEmailWebhookEvents"]>[0],
+    config?: Parameters<EmailLogModuleService["listEmailWebhookEvents"]>[1],
   ) => Promise<EmailWebhookEventDTO[]>
   updateEmailLogs: (
-    data: { id: string; checked_at: Date }[]
+    data: { id: string; checked_at: Date }[],
   ) => Promise<EmailLogDTO[]>
   updateEmailWebhookEvents: (
-    data: { id: string; processed_at: Date }[]
+    data: { id: string; processed_at: Date }[],
   ) => Promise<EmailWebhookEventDTO[]>
 }
 
 const CUSTOMER_LOOKUP_CHUNK_SIZE = 25
 
-function getStringField(
-  data: Record<string, unknown> | null | undefined,
-  field: string
-) {
-  const raw: unknown = data?.[field]
+/** Matches the truthiness semantics the notification payload fields rely on. */
+const isPresentString = (value: unknown): value is string =>
+  typeof value === "string" && value.length > 0
+
+const firstPresentString = (values: readonly unknown[]) =>
+  values.find(isPresentString)
+
+const getStringField = (data: CreateNotificationDTO["data"], field: string) => {
+  const raw =
+    data === null || data === undefined
+      ? undefined
+      : getRecordValue(data, field)
 
   return typeof raw === "string" && raw.trim() ? raw : undefined
 }
 
-function getNotificationSubject(input: CreateNotificationDTO) {
+const getNotificationSubject = (input: CreateNotificationDTO) => {
+  const templateSubject = isPresentString(input.template)
+    ? getResendTemplateSubject(input.template)
+    : undefined
+
   return (
-    input.content?.subject ||
-    getStringField(input.provider_data, "subject") ||
-    getStringField(input.data, "subject") ||
-    (input.template ? getResendTemplateSubject(input.template) : undefined) ||
-    input.template ||
-    "Email"
+    firstPresentString([
+      input.content?.subject,
+      getStringField(input.provider_data, "subject"),
+      getStringField(input.data, "subject"),
+      templateSubject,
+      input.template,
+    ]) ?? "Email"
   )
 }
 
-function getCustomerId(input: CreateNotificationDTO) {
-  return (
-    input.receiver_id ||
-    getStringField(input.data, "customer_id") ||
-    getStringField(input.provider_data, "customer_id") ||
-    null
-  )
-}
+const getCustomerId = (input: CreateNotificationDTO) =>
+  firstPresentString([
+    input.receiver_id,
+    getStringField(input.data, "customer_id"),
+    getStringField(input.provider_data, "customer_id"),
+  ]) ?? null
 
-function getOrderId(input: CreateNotificationDTO) {
-  return (
-    (input.resource_type === "order" ? input.resource_id : undefined) ||
-    getStringField(input.data, "order_id") ||
-    getStringField(input.provider_data, "order_id") ||
-    null
-  )
-}
+const getOrderId = (input: CreateNotificationDTO) =>
+  firstPresentString([
+    input.resource_type === "order" ? input.resource_id : undefined,
+    getStringField(input.data, "order_id"),
+    getStringField(input.provider_data, "order_id"),
+  ]) ?? null
 
-function getEmailType(input: CreateNotificationDTO) {
-  return input.template || input.trigger_type || input.resource_type || "email"
-}
+const getEmailType = (input: CreateNotificationDTO) =>
+  firstPresentString([
+    input.template,
+    input.trigger_type,
+    input.resource_type,
+  ]) ?? "email"
 
-function getNotificationList(
-  notification: NotificationDTO | NotificationDTO[]
-) {
-  return Array.isArray(notification) ? notification : [notification]
-}
+const getNotificationList = (
+  notification: NotificationDTO | NotificationDTO[],
+) => (Array.isArray(notification) ? notification : [notification])
 
-async function getCustomerIdByEmail(
+const getCustomerIdByEmail = async (
   customerModuleService: ICustomerModuleService,
-  email: string
-) {
-  const customer = (
-    await customerModuleService.listCustomers(
-      { email },
-      { select: ["id"], take: 1 }
-    )
-  ).shift()
+  email: string,
+) => {
+  const [customer] = await customerModuleService.listCustomers(
+    { email },
+    { select: ["id"], take: 1 },
+  )
 
   return customer?.id ?? null
 }
 
-function chunkItems<T>(items: T[], chunkSize: number) {
-  const chunks: T[][] = []
-
-  for (let index = 0; index < items.length; index += chunkSize) {
-    chunks.push(items.slice(index, index + chunkSize))
-  }
-
-  return chunks
-}
-
-async function getCustomerIdsByEmail(
+/**
+ * Walks the chunks recursively so lookups stay bounded to one chunk of
+ * concurrent customer queries at a time.
+ */
+const collectCustomerIdsByEmail = async (
   customerModuleService: ICustomerModuleService,
-  emails: string[]
-) {
-  const customerIdsByEmail = new Map<string, string | null>()
+  emailChunks: readonly string[][],
+  customerIdsByEmail: Map<string, string | null>,
+): Promise<Map<string, string | null>> => {
+  const [emailChunk, ...remainingChunks] = emailChunks
 
-  for (const chunk of chunkItems(emails, CUSTOMER_LOOKUP_CHUNK_SIZE)) {
-    const results = await Promise.all(
-      chunk.map(async (email) => ({
-        customerId: await getCustomerIdByEmail(customerModuleService, email),
-        email,
-      }))
-    )
-
-    for (const result of results) {
-      customerIdsByEmail.set(result.email, result.customerId)
-    }
+  if (!emailChunk) {
+    return customerIdsByEmail
   }
 
-  return customerIdsByEmail
+  const results = await Promise.all(
+    emailChunk.map(async (email) => ({
+      customerId: await getCustomerIdByEmail(customerModuleService, email),
+      email,
+    })),
+  )
+
+  for (const result of results) {
+    customerIdsByEmail.set(result.email, result.customerId)
+  }
+
+  return await collectCustomerIdsByEmail(
+    customerModuleService,
+    remainingChunks,
+    customerIdsByEmail,
+  )
 }
 
-async function replayPendingCheckedEvents({
+const getCustomerIdsByEmail = async (
+  customerModuleService: ICustomerModuleService,
+  emails: readonly string[],
+) =>
+  await collectCustomerIdsByEmail(
+    customerModuleService,
+    chunk(emails, CUSTOMER_LOOKUP_CHUNK_SIZE),
+    new Map<string, string | null>(),
+  )
+
+const listCheckedEvents = async (
+  emailLogModuleService: EmailLogService,
+  emailLog: EmailLogDTO,
+) => {
+  const pendingEvents = await emailLogModuleService.listEmailWebhookEvents(
+    {
+      email_id: emailLog.email_id,
+    },
+    {
+      order: { received_at: "ASC" },
+      select: ["id", "email_id", "processed_at", "received_at", "type"],
+    },
+  )
+
+  return pendingEvents.filter(
+    (event) =>
+      !event.processed_at && CHECKED_RESEND_EVENT_TYPES.has(event.type),
+  )
+}
+
+const replayEmailLogEvents = async ({
+  emailLog,
+  emailLogModuleService,
+  processedAt,
+}: {
+  emailLog: EmailLogDTO
+  emailLogModuleService: EmailLogService
+  processedAt: Date
+}) => {
+  const checkedEvents = await listCheckedEvents(emailLogModuleService, emailLog)
+  const [firstEvent] = checkedEvents
+
+  if (!firstEvent) {
+    return
+  }
+
+  if (!emailLog.checked_at) {
+    await emailLogModuleService.updateEmailLogs([
+      {
+        checked_at: firstEvent.received_at,
+        id: emailLog.id,
+      },
+    ])
+  }
+
+  await emailLogModuleService.updateEmailWebhookEvents(
+    checkedEvents.map((event) => ({
+      id: event.id,
+      processed_at: processedAt,
+    })),
+  )
+}
+
+/**
+ * Replays one email log at a time so webhook catch-up never fans out into an
+ * unbounded number of concurrent module calls.
+ */
+const replayPendingCheckedEvents = async ({
   emailLogModuleService,
   emailLogs,
+  processedAt,
 }: {
   emailLogModuleService: EmailLogService
-  emailLogs: EmailLogDTO[]
-}) {
-  const processedAt = new Date()
+  emailLogs: readonly EmailLogDTO[]
+  processedAt: Date
+}): Promise<void> => {
+  const [emailLog, ...remainingEmailLogs] = emailLogs
 
-  for (const emailLog of emailLogs) {
-    const pendingEvents = await emailLogModuleService.listEmailWebhookEvents(
-      {
-        email_id: emailLog.email_id,
-      },
-      {
-        order: { received_at: "ASC" },
-        select: ["id", "email_id", "processed_at", "received_at", "type"],
-      }
-    )
-    const checkedEvents = pendingEvents.filter(
-      (event) =>
-        !event.processed_at && CHECKED_RESEND_EVENT_TYPES.has(event.type)
-    )
-
-    if (!checkedEvents.length) {
-      continue
-    }
-
-    const firstEvent = checkedEvents[0]
-    if (!firstEvent) {
-      continue
-    }
-
-    if (!emailLog.checked_at) {
-      await emailLogModuleService.updateEmailLogs([
-        {
-          checked_at: firstEvent.received_at,
-          id: emailLog.id,
-        },
-      ])
-    }
-
-    await emailLogModuleService.updateEmailWebhookEvents(
-      checkedEvents.map((event) => ({
-        id: event.id,
-        processed_at: processedAt,
-      }))
-    )
+  if (!emailLog) {
+    return
   }
+
+  await replayEmailLogEvents({
+    emailLog,
+    emailLogModuleService,
+    processedAt,
+  })
+
+  await replayPendingCheckedEvents({
+    emailLogModuleService,
+    emailLogs: remainingEmailLogs,
+    processedAt,
+  })
 }
 
 export const sendNotificationStep = createStep(
@@ -204,7 +259,7 @@ export const sendNotificationStep = createStep(
     const notification =
       await notificationModuleService.createNotifications(data)
     const customerModuleService: ICustomerModuleService = container.resolve(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
 
     const notificationList = getNotificationList(notification)
@@ -230,29 +285,30 @@ export const sendNotificationStep = createStep(
         },
       ]
     })
-    const customerLookupEmails = Array.from(
-      new Set(
-        emailLogInputs
-          .filter((item) => !item.explicitCustomerId)
-          .map((item) => item.input.to)
-      )
-    )
+    const customerLookupEmails = new Set<string>()
+
+    for (const item of emailLogInputs) {
+      if (!isPresentString(item.explicitCustomerId)) {
+        customerLookupEmails.add(item.input.to)
+      }
+    }
+
     const customerIdsByEmail = await getCustomerIdsByEmail(
       customerModuleService,
-      customerLookupEmails
+      [...customerLookupEmails],
     )
     const emailLogs = emailLogInputs.map(
       ({ createdNotification, explicitCustomerId, input }) => ({
-        email_id: createdNotification.external_id ?? createdNotification.id,
+        checked_at: null,
         customer_id:
           explicitCustomerId ?? customerIdsByEmail.get(input.to) ?? null,
+        email_id: createdNotification.external_id ?? createdNotification.id,
         order_id: getOrderId(input),
-        type: createdNotification.template ?? getEmailType(input),
-        subject: getNotificationSubject(input),
-        sent_to: createdNotification.to ?? input.to,
         sent_at: new Date(),
-        checked_at: null,
-      })
+        sent_to: createdNotification.to ?? input.to,
+        subject: getNotificationSubject(input),
+        type: createdNotification.template ?? getEmailType(input),
+      }),
     )
 
     if (emailLogs.length) {
@@ -264,9 +320,10 @@ export const sendNotificationStep = createStep(
       await replayPendingCheckedEvents({
         emailLogModuleService,
         emailLogs: createdEmailLogs,
+        processedAt: new Date(),
       })
     }
 
     return new StepResponse(notification)
-  }
+  },
 )

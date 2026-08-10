@@ -1,187 +1,169 @@
-import type { ExecArgs, Logger } from "@medusajs/framework/types"
+import type {
+  ExecArgs,
+  IProductModuleService,
+  Logger,
+  ProductCategoryDTO,
+  ProductDTO,
+} from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
-type ProductCategoryRecord = {
-  handle: string
-  id: string
-}
+const T_SHIRTS_TOPS = "t-shirts-tops"
+const JEANS_PANTS = "jeans-pants"
+const SHOES_SNEAKERS = "shoes-sneakers"
+const JACKETS_COATS = "jackets-coats"
+const ACCESSORIES = "accessories"
+const KNITWEAR = "knitwear"
 
-type ProductRecord = {
-  categories?: { id: string }[]
-  handle: string
-  id: string
-}
-
-type ProductService = {
-  listProductCategories: (
-    filters: Record<string, unknown>
-  ) => Promise<ProductCategoryRecord[]>
-  listProducts: (
-    filters: Record<string, unknown>,
-    config?: { relations?: string[] }
-  ) => Promise<ProductRecord[]>
-  updateProducts: (
-    id: string,
-    data: { category_ids: string[] }
-  ) => Promise<unknown>
-}
-
-// Mapping of product handles to category handles
 const productCategoryMapping: Record<string, string[]> = {
-  // T-Shirts & Tops
-  "t-shirt": ["t-shirts-tops"],
-  "white-cotton-t-shirt": ["t-shirts-tops"],
-  "classic-oxford-shirt": ["t-shirts-tops"],
-  "linen-button-up-shirt": ["t-shirts-tops"],
-  "wrap-blouse": ["t-shirts-tops"],
-
-  // Jeans & Pants
-  sweatpants: ["jeans-pants"],
-  "blue-denim-jeans": ["jeans-pants"],
-  "slim-fit-chinos": ["jeans-pants"],
-  "cargo-pants": ["jeans-pants"],
-  "wide-leg-trousers": ["jeans-pants"],
-  shorts: ["jeans-pants"],
-
-  // Shoes & Sneakers
-  "sport-running-shoes": ["shoes-sneakers"],
-  "high-top-canvas-sneakers": ["shoes-sneakers"],
-  loafers: ["shoes-sneakers"],
-  "chelsea-boots": ["shoes-sneakers"],
-
-  // Jackets & Coats
-  "black-leather-jacket": ["jackets-coats"],
-  "wool-blend-coat": ["jackets-coats"],
-  "denim-jacket": ["jackets-coats"],
-  "bomber-jacket": ["jackets-coats"],
-  "track-jacket": ["jackets-coats", "activewear"], // Can be in multiple categories
-
-  // Dresses
-  "striped-summer-dress": ["dresses"],
-  "maxi-dress": ["dresses"],
-
-  // Accessories
-  "casual-canvas-backpack": ["accessories"],
-  "wool-winter-scarf": ["accessories"],
-  "leather-crossbody-bag": ["accessories"],
-  "baseball-cap": ["accessories"],
-  "silk-blend-scarf": ["accessories"],
-  "bucket-hat": ["accessories"],
-
-  // Knitwear
-  sweatshirt: ["knitwear"],
-  "cashmere-v-neck-sweater": ["knitwear"],
-  "turtleneck-sweater": ["knitwear"],
-  cardigan: ["knitwear"],
-
-  // Activewear
   "athletic-performance-leggings": ["activewear"],
-
-  // Skirts
+  "baseball-cap": [ACCESSORIES],
+  "black-leather-jacket": [JACKETS_COATS],
+  "blue-denim-jeans": [JEANS_PANTS],
+  "bomber-jacket": [JACKETS_COATS],
+  "bucket-hat": [ACCESSORIES],
+  cardigan: [KNITWEAR],
+  "cargo-pants": [JEANS_PANTS],
+  "cashmere-v-neck-sweater": [KNITWEAR],
+  "casual-canvas-backpack": [ACCESSORIES],
+  "chelsea-boots": [SHOES_SNEAKERS],
+  "classic-oxford-shirt": [T_SHIRTS_TOPS],
+  "denim-jacket": [JACKETS_COATS],
+  "high-top-canvas-sneakers": [SHOES_SNEAKERS],
+  "leather-crossbody-bag": [ACCESSORIES],
+  "linen-button-up-shirt": [T_SHIRTS_TOPS],
+  loafers: [SHOES_SNEAKERS],
+  "maxi-dress": ["dresses"],
   "pleated-midi-skirt": ["skirts"],
+  shorts: [JEANS_PANTS],
+  "silk-blend-scarf": [ACCESSORIES],
+  "slim-fit-chinos": [JEANS_PANTS],
+  "sport-running-shoes": [SHOES_SNEAKERS],
+  "striped-summer-dress": ["dresses"],
+  sweatpants: [JEANS_PANTS],
+  sweatshirt: [KNITWEAR],
+  "t-shirt": [T_SHIRTS_TOPS],
+  "track-jacket": [JACKETS_COATS, "activewear"],
+  "turtleneck-sweater": [KNITWEAR],
+  "white-cotton-t-shirt": [T_SHIRTS_TOPS],
+  "wide-leg-trousers": [JEANS_PANTS],
+  "wool-blend-coat": [JACKETS_COATS],
+  "wool-winter-scarf": [ACCESSORIES],
+  "wrap-blouse": [T_SHIRTS_TOPS],
 }
 
-async function logCategoryProductCounts(
-  productService: ProductService,
-  categories: ProductCategoryRecord[],
-  logger: Logger
-) {
-  for (const category of categories) {
+const logCategoryProductCounts = async (
+  productService: IProductModuleService,
+  categories: ProductCategoryDTO[],
+  logger: Logger,
+) => {
+  const logCategoryAtIndex = async (index: number): Promise<void> => {
+    const category = categories[index]
+    if (category === undefined) {
+      return
+    }
+
     const productsInCategory = await productService.listProducts({
       categories: { id: category.id },
     })
-
     const count = productsInCategory.length
     if (count > 0) {
       logger.info(`Category ${category.handle} has ${count} products`)
     }
+
+    await logCategoryAtIndex(index + 1)
   }
+
+  await logCategoryAtIndex(0)
 }
 
 export default async function linkProductsToCategories({
   container,
 }: ExecArgs) {
-  const productService = container.resolve<ProductService>(Modules.PRODUCT)
+  const productService = container.resolve<IProductModuleService>(
+    Modules.PRODUCT,
+  )
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
   logger.info("Starting to link products to categories...")
 
-  // Get all categories
   const categories = await productService.listProductCategories({})
-  const categoryMap = categories.reduce(
-    (acc, cat) => {
-      acc[cat.handle] = cat.id
-      return acc
-    },
-    {} as Record<string, string>
-  )
-
+  const categoryMap = new Map<string, string>()
+  for (const category of categories) {
+    categoryMap.set(category.handle, category.id)
+  }
   logger.info(`Found ${categories.length} categories`)
 
-  // Get all products
   const products = await productService.listProducts(
     {},
     {
       relations: ["categories"],
-    }
+    },
   )
-
   logger.info(`Found ${products.length} products`)
 
-  let linkedCount = 0
-
-  // Link products to categories
-  for (const product of products) {
+  const linkProduct = async (product: ProductDTO): Promise<boolean> => {
     const categoryHandles = productCategoryMapping[product.handle]
-
-    if (!categoryHandles) {
+    if (categoryHandles === undefined) {
       logger.warn(`No category mapping found for product: ${product.handle}`)
-      continue
+      return false
     }
 
-    const categoryIds = categoryHandles
-      .map((handle) => categoryMap[handle])
-      .filter((id) => typeof id === "string")
-
+    const categoryIds: string[] = []
+    for (const handle of categoryHandles) {
+      const categoryId = categoryMap.get(handle)
+      if (categoryId !== undefined) {
+        categoryIds.push(categoryId)
+      }
+    }
     if (categoryIds.length === 0) {
       logger.warn(
-        `No category IDs found for handles: ${categoryHandles.join(", ")}`
+        `No category IDs found for handles: ${categoryHandles.join(", ")}`,
       )
-      continue
+      return false
     }
 
-    // Check if product already has categories
-    const existingCategoryIds = product.categories?.map((c) => c.id) || []
+    const existingCategoryIds =
+      product.categories?.map((category) => category.id) ?? []
     const newCategoryIds = categoryIds.filter(
-      (id) => !existingCategoryIds.includes(id)
+      (id) => !existingCategoryIds.includes(id),
     )
-
     if (newCategoryIds.length === 0) {
       logger.info(`Product ${product.handle} already has all categories`)
-      continue
+      return false
     }
 
     try {
-      // Update product with categories
       await productService.updateProducts(product.id, {
         category_ids: [...existingCategoryIds, ...newCategoryIds],
       })
-
-      linkedCount += 1
       logger.info(
-        `Linked product ${product.handle} to ${newCategoryIds.length} new categories`
+        `Linked product ${product.handle} to ${newCategoryIds.length} new categories`,
       )
+      return true
     } catch (error) {
       logger.error(
         `Failed to link product ${product.handle}:`,
-        error instanceof Error ? error : new Error(String(error))
+        error instanceof Error ? error : new Error(String(error)),
       )
+      return false
     }
   }
 
+  let linkedCount = 0
+  const linkProductAtIndex = async (index: number): Promise<void> => {
+    const product = products[index]
+    if (product === undefined) {
+      return
+    }
+
+    if (await linkProduct(product)) {
+      linkedCount += 1
+    }
+    await linkProductAtIndex(index + 1)
+  }
+
+  await linkProductAtIndex(0)
   logger.info(`Successfully linked ${linkedCount} products to categories`)
-
   await logCategoryProductCounts(productService, categories, logger)
-
   logger.info("Finished linking products to categories!")
 }

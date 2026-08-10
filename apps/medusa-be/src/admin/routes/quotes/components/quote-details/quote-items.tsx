@@ -5,30 +5,9 @@ import type {
 } from "@medusajs/framework/types"
 import { Badge, Copy, Text } from "@medusajs/ui"
 import { useTranslation } from "react-i18next"
-import { AmountCell, Thumbnail } from "../../../../components/common"
 
-export const QuoteItems = ({
-  order,
-  preview,
-}: {
-  order: AdminOrder
-  preview: AdminOrderPreview
-}) => {
-  const originalItemsMap = new Map(order.items.map((item) => [item.id, item]))
-
-  return (
-    <div>
-      {preview.items?.map((item) => (
-        <QuoteItem
-          currencyCode={order.currency_code}
-          item={item}
-          key={item.id}
-          originalItem={originalItemsMap.get(item.id)}
-        />
-      ))}
-    </div>
-  )
-}
+import { AmountCell } from "../../../../components/common/table/table-cells/amount-cell"
+import { Thumbnail } from "../../../../components/common/thumbnail"
 
 export const QuoteItem = ({
   item,
@@ -43,11 +22,14 @@ export const QuoteItem = ({
 }) => {
   const { t } = useTranslation("quotes")
 
-  const isAddedItem = !!item.actions?.find((a) => a.action === "ITEM_ADD")
-  const isItemUpdated = !!item.actions?.find((a) => a.action === "ITEM_UPDATE")
+  const isAddedItem =
+    item.actions?.some((a) => a.action === "ITEM_ADD") === true
+  const isItemUpdated =
+    item.actions?.some((a) => a.action === "ITEM_UPDATE") === true
   const updateAction = item.actions?.find((a) => a.action === "ITEM_UPDATE")
   const isItemRemoved =
-    !!updateAction && item.quantity === item.detail.fulfilled_quantity
+    updateAction !== undefined &&
+    item.quantity === item.detail.fulfilled_quantity
 
   return (
     <div
@@ -67,12 +49,14 @@ export const QuoteItem = ({
             {item.title}
           </Text>
 
-          {item.variant_sku && (
-            <div className="flex items-center gap-x-1">
-              <Text size="small">{item.variant_sku}</Text>
-              <Copy className="text-ui-fg-muted" content={item.variant_sku} />
-            </div>
-          )}
+          {item.variant_sku !== null &&
+            item.variant_sku !== undefined &&
+            item.variant_sku !== "" && (
+              <div className="flex items-center gap-x-1">
+                <Text size="small">{item.variant_sku}</Text>
+                <Copy className="text-ui-fg-muted" content={item.variant_sku} />
+              </div>
+            )}
           <Text size="small">
             {item.variant?.options?.map((o) => o.value).join(" · ")}
           </Text>
@@ -86,7 +70,7 @@ export const QuoteItem = ({
             className="items-end justify-end text-right text-sm"
             currencyCode={currencyCode}
             originalAmount={
-              isAddedItem ? item.unit_price : originalItem?.unit_price
+              isAddedItem ? item.unit_price : (originalItem?.unit_price ?? null)
             }
           />
         </div>
@@ -137,9 +121,38 @@ export const QuoteItem = ({
           }
           className="items-end justify-end text-right text-sm"
           currencyCode={currencyCode}
-          originalAmount={isAddedItem ? item?.total : originalItem?.total}
+          originalAmount={
+            isAddedItem ? item.total : (originalItem?.total ?? null)
+          }
         />
       </div>
+    </div>
+  )
+}
+
+export const QuoteItems = ({
+  order,
+  preview,
+}: {
+  order: AdminOrder
+  preview: AdminOrderPreview
+}) => {
+  const originalItemsMap = new Map(order.items.map((item) => [item.id, item]))
+
+  return (
+    <div>
+      {preview.items?.map((item) => {
+        const originalItem = originalItemsMap.get(item.id)
+
+        return (
+          <QuoteItem
+            currencyCode={order.currency_code}
+            item={item}
+            key={item.id}
+            {...(originalItem === undefined ? {} : { originalItem })}
+          />
+        )
+      })}
     </div>
   )
 }

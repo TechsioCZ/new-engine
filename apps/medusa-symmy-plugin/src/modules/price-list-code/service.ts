@@ -1,7 +1,8 @@
 import { MedusaService } from "@medusajs/framework/utils"
+
 import SymmyPriceListCode from "./models/symmy-price-list-code"
 
-export type SymmyPriceListCodeDTO = {
+export interface SymmyPriceListCodeDTO {
   code: string
   erp_code: string
   price_list_id: string
@@ -9,12 +10,12 @@ export type SymmyPriceListCodeDTO = {
   updated_at?: Date | string
 }
 
-export type UpsertSymmyPriceListCodeInput = {
+export interface UpsertSymmyPriceListCodeInput {
   erpCode: string
   priceListId: string
 }
 
-export type ListSymmyPriceListCodesInput = {
+export interface ListSymmyPriceListCodesInput {
   erpCode?: string
   limit: number
   offset: number
@@ -24,13 +25,13 @@ export class SymmyPriceListCodeModuleService extends MedusaService({
   SymmyPriceListCode,
 }) {
   async listByErpCodes(codes: Set<string>): Promise<SymmyPriceListCodeDTO[]> {
-    if (!codes.size) {
+    if (codes.size === 0) {
       return []
     }
 
-    return (await this.listSymmyPriceListCodes({
-      erp_code: Array.from(codes),
-    })) as unknown as SymmyPriceListCodeDTO[]
+    return await this.listSymmyPriceListCodes({
+      erp_code: [...codes],
+    })
   }
 
   async listPage({
@@ -41,19 +42,19 @@ export class SymmyPriceListCodeModuleService extends MedusaService({
     mappings: SymmyPriceListCodeDTO[]
     count: number
   }> {
-    const filters = erpCode ? { erp_code: erpCode } : {}
+    const filters = erpCode === undefined ? {} : { erp_code: erpCode }
     const [mappings, count] = await this.listAndCountSymmyPriceListCodes(
       filters,
       {
+        order: { erp_code: "ASC" },
         skip: offset,
         take: limit,
-        order: { erp_code: "ASC" },
-      }
+      },
     )
 
     return {
-      mappings: mappings as unknown as SymmyPriceListCodeDTO[],
       count,
+      mappings,
     }
   }
 
@@ -61,37 +62,38 @@ export class SymmyPriceListCodeModuleService extends MedusaService({
     erpCode,
     priceListId,
   }: UpsertSymmyPriceListCodeInput): Promise<SymmyPriceListCodeDTO> {
-    const existingByCode = (
-      await this.listSymmyPriceListCodes({ erp_code: erpCode }, { take: 1 })
-    )[0] as unknown as SymmyPriceListCodeDTO | undefined
+    const existingByCodeResults = await this.listSymmyPriceListCodes(
+      { erp_code: erpCode },
+      { take: 1 },
+    )
+    const [existingByCode] = existingByCodeResults
 
-    if (existingByCode) {
+    if (existingByCode !== undefined) {
       if (existingByCode.price_list_id === priceListId) {
         return existingByCode
       }
-      return (await this.updateSymmyPriceListCodes({
+      return await this.updateSymmyPriceListCodes({
         code: existingByCode.code,
         price_list_id: priceListId,
-      })) as unknown as SymmyPriceListCodeDTO
+      })
     }
 
-    const existingByPriceList = (
-      await this.listSymmyPriceListCodes(
-        { price_list_id: priceListId },
-        { take: 1 }
-      )
-    )[0] as unknown as SymmyPriceListCodeDTO | undefined
+    const existingByPriceListResults = await this.listSymmyPriceListCodes(
+      { price_list_id: priceListId },
+      { take: 1 },
+    )
+    const [existingByPriceList] = existingByPriceListResults
 
-    if (existingByPriceList) {
-      return (await this.updateSymmyPriceListCodes({
+    if (existingByPriceList !== undefined) {
+      return await this.updateSymmyPriceListCodes({
         code: existingByPriceList.code,
         erp_code: erpCode,
-      })) as unknown as SymmyPriceListCodeDTO
+      })
     }
 
-    return (await this.createSymmyPriceListCodes({
+    return await this.createSymmyPriceListCodes({
       erp_code: erpCode,
       price_list_id: priceListId,
-    })) as unknown as SymmyPriceListCodeDTO
+    })
   }
 }

@@ -3,11 +3,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { Toaster } from "@techsio/ui-kit/molecules/toast"
 import { Suspense } from "react"
+
 import { cacheConfig } from "@/lib/cache-config"
+
 import { PrefetchManager } from "./prefetch-manager"
 
-function createQueryClient() {
-  return new QueryClient({
+const createQueryClient = () =>
+  new QueryClient({
     defaultOptions: {
       queries: {
         retry: 3,
@@ -17,11 +19,10 @@ function createQueryClient() {
       },
     },
   })
-}
 
 let browserQueryClient: QueryClient | undefined
 
-function getQueryClient() {
+const getQueryClient = () => {
   if (typeof window === "undefined") {
     return createQueryClient()
   }
@@ -30,7 +31,7 @@ function getQueryClient() {
   return browserQueryClient
 }
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export const Providers = ({ children }: { children: React.ReactNode }) => {
   const queryClient = getQueryClient()
 
   return (

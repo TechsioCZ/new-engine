@@ -1,15 +1,13 @@
 "use client"
 
-import {
-  Select,
-  type SelectItem,
-  type SelectSize,
-} from "@techsio/ui-kit/molecules/select"
+import { Select } from "@techsio/ui-kit/molecules/select"
+import type { SelectItem, SelectSize } from "@techsio/ui-kit/molecules/select"
 import type { ReactNode } from "react"
+
 import { resolveVisibleFieldFeedback } from "@/lib/forms/core/field-errors"
 import { useFieldContext } from "@/lib/forms/core/herbatika-form-context"
 
-type FormSelectFieldProps = {
+interface FormSelectFieldProps {
   id: string
   items: SelectItem[]
   label: ReactNode
@@ -22,7 +20,7 @@ type FormSelectFieldProps = {
   onValueChange?: (value: string) => void
 }
 
-export function FormSelectField({
+export const FormSelectField = ({
   disabled = false,
   id,
   items,
@@ -33,7 +31,7 @@ export function FormSelectField({
   required = false,
   size = "md",
   validationMode = "blur",
-}: FormSelectFieldProps) {
+}: FormSelectFieldProps) => {
   const field = useFieldContext<string>()
   const value = typeof field.state.value === "string" ? field.state.value : ""
   const fieldFeedback = resolveVisibleFieldFeedback({
@@ -48,7 +46,7 @@ export function FormSelectField({
       id={id}
       items={items}
       name={field.name}
-      onValueChange={(details) => {
+      onValueChange={(details: { value: string[] }) => {
         const nextValue = details.value[0] ?? ""
         field.handleChange(nextValue)
         field.handleBlur()
@@ -58,7 +56,7 @@ export function FormSelectField({
       required={required}
       size={size}
       validateStatus={fieldFeedback.validateStatus}
-      value={value ? [value] : []}
+      value={value === "" ? [] : [value]}
     >
       <Select.Label>{label}</Select.Label>
       <Select.Control>
@@ -76,7 +74,8 @@ export function FormSelectField({
           ))}
         </Select.Content>
       </Select.Positioner>
-      {fieldFeedback.errorText ? (
+      {fieldFeedback.errorText !== undefined &&
+      fieldFeedback.errorText !== "" ? (
         <Select.StatusText>{fieldFeedback.errorText}</Select.StatusText>
       ) : null}
     </Select>

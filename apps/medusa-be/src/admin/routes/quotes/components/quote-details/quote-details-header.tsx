@@ -2,6 +2,7 @@ import { EllipsisHorizontal, PencilSquare } from "@medusajs/icons"
 import { DropdownMenu, Heading, IconButton } from "@medusajs/ui"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
+
 import type { AdminQuoteResponse } from "../../../../../types"
 import QuoteStatusBadge from "../quote-status-badge"
 
@@ -38,7 +39,9 @@ export const QuoteDetailsHeader = ({
                   "merchant_rejected",
                 ].includes(quote.status)
               }
-              onClick={() => navigate("manage")}
+              onClick={() => {
+                navigate("manage")
+              }}
             >
               <PencilSquare />
               {t("actions.manage")}

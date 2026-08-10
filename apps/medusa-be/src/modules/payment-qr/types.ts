@@ -1,13 +1,13 @@
-export type QrPaymentConfigDTO = {
+export interface QrPaymentConfigDTO {
   id: string
   iban?: string | null
 }
 
-export type QrPaymentConfigResponse = {
+export interface QrPaymentConfigResponse {
   id: string
   iban: string | null
 }
 
-export type UpdateQrPaymentConfigInput = {
+export interface UpdateQrPaymentConfigInput {
   iban?: string | null
 }

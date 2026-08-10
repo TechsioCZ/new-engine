@@ -1,15 +1,16 @@
-import type { StoreCustomer, StoreCustomerAddress } from "@medusajs/types"
+import type {
+  HttpTypes,
+  StoreCustomer,
+  StoreCustomerAddress,
+} from "@medusajs/types"
+
 import { logError } from "@/lib/errors"
 import { sdk } from "@/lib/medusa-client"
 
 // Export types for reuse in components/hooks
 export type { StoreCustomer, StoreCustomerAddress } from "@medusajs/types"
 
-export type AddressesResponse = {
-  addresses: StoreCustomerAddress[]
-}
-
-export type CreateAddressData = {
+export interface CreateAddressData {
   first_name: string
   last_name: string
   company?: string
@@ -22,94 +23,68 @@ export type CreateAddressData = {
   phone?: string
 }
 
-export async function getAddresses(): Promise<AddressesResponse> {
-  try {
-    const response = await sdk.store.customer.listAddress()
-
-    return {
-      addresses: response.addresses || [],
-    }
-  } catch (err) {
-    logError("CustomerService.getAddresses", err)
-    // Return empty array instead of throwing if no addresses exist
-    return { addresses: [] }
-  }
-}
-
-export async function createAddress(
-  data: CreateAddressData
-): Promise<StoreCustomerAddress> {
+export const createAddress = async (
+  data: CreateAddressData,
+): Promise<StoreCustomerAddress> => {
   try {
     const response = await sdk.store.customer.createAddress(data)
 
-    if (!response.customer.addresses) {
-      throw new Error("Nepodařilo se vytvořit adresu")
-    }
-
     const newAddress = response.customer.addresses.at(-1)
 
-    if (!newAddress) {
+    if (newAddress === null || newAddress === undefined) {
       throw new Error("Nepodařilo se vytvořit adresu")
     }
 
     return newAddress
-  } catch (err) {
-    logError("CustomerService.createAddress", err)
-    throw new Error("Nepodařilo se vytvořit adresu")
+  } catch (error) {
+    logError("CustomerService.createAddress", error)
+    throw new Error("Nepodařilo se vytvořit adresu", { cause: error })
   }
 }
 
-export async function updateAddress(
+export const updateAddress = async (
   addressId: string,
-  data: Partial<CreateAddressData>
-): Promise<StoreCustomerAddress> {
+  data: Partial<CreateAddressData>,
+): Promise<StoreCustomerAddress> => {
   try {
     const response = await sdk.store.customer.updateAddress(addressId, data)
 
-    if (!response.customer.addresses) {
-      throw new Error("Nepodařilo se aktualizovat adresu")
-    }
-
     const updatedAddress = response.customer.addresses.find(
-      (addr) => addr.id === addressId
+      (addr) => addr.id === addressId,
     )
 
-    if (!updatedAddress) {
+    if (updatedAddress === null || updatedAddress === undefined) {
       throw new Error("Aktualizovaná adresa nenalezena")
     }
 
     return updatedAddress
-  } catch (err) {
-    logError("CustomerService.updateAddress", err)
-    throw new Error("Nepodařilo se aktualizovat adresu")
+  } catch (error) {
+    logError("CustomerService.updateAddress", error)
+    throw new Error("Nepodařilo se aktualizovat adresu", { cause: error })
   }
 }
 
-export async function deleteAddress(addressId: string): Promise<void> {
+export const deleteAddress = async (addressId: string): Promise<void> => {
   try {
     await sdk.store.customer.deleteAddress(addressId)
-  } catch (err) {
-    logError("CustomerService.deleteAddress", err)
-    throw new Error("Nepodařilo se smazat adresu")
+  } catch (error) {
+    logError("CustomerService.deleteAddress", error)
+    throw new Error("Nepodařilo se smazat adresu", { cause: error })
   }
 }
 
-export type UpdateCustomerData = {
-  first_name?: string
-  last_name?: string
-  phone?: string
+export type UpdateCustomerData = HttpTypes.StoreUpdateCustomer & {
   password?: string
-  metadata?: Record<string, unknown>
 }
 
-export async function updateCustomer(
-  data: UpdateCustomerData
-): Promise<StoreCustomer> {
+export const updateCustomer = async (
+  data: UpdateCustomerData,
+): Promise<StoreCustomer> => {
   try {
     const response = await sdk.store.customer.update(data)
     return response.customer
-  } catch (err) {
-    logError("CustomerService.updateCustomer", err)
-    throw new Error("Nepodařilo se aktualizovat profil")
+  } catch (error) {
+    logError("CustomerService.updateCustomer", error)
+    throw new Error("Nepodařilo se aktualizovat profil", { cause: error })
   }
 }

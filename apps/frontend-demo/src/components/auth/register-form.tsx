@@ -2,20 +2,23 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
-import { type FormEvent, useState } from "react"
+import { useState } from "react"
+import type { SyntheticEvent } from "react"
+
 import { useAuth } from "@/hooks/use-auth"
 import {
   AUTH_ERRORS,
   authFormFields,
-  type ValidationError,
   validateEmail,
   validatePassword,
   withLoading,
 } from "@/lib/auth"
+import type { ValidationError } from "@/lib/auth"
+
 import { AuthFormWrapper } from "./auth-form-wrapper"
 import { PasswordRequirements } from "./password-requirements"
 
-export function RegisterForm() {
+export const RegisterForm = () => {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -33,7 +36,7 @@ export function RegisterForm() {
 
   const isFormLoading = registerMutation.isPending
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     clearErrors()
 
@@ -53,7 +56,7 @@ export function RegisterForm() {
     if (!passwordValidation.isValid) {
       errors.push({
         field: "password",
-        message: passwordValidation.errors[0], // Show first error
+        message: passwordValidation.errors[0] ?? AUTH_ERRORS.PASSWORD_REQUIRED,
       })
     }
 
@@ -95,20 +98,24 @@ export function RegisterForm() {
           <FormInput
             {...withLoading(
               authFormFields.firstName({
+                onChange: (e) => {
+                  setFirstName(e.target.value)
+                },
                 value: firstName,
-                onChange: (e) => setFirstName(e.target.value),
               }),
-              isFormLoading
+              isFormLoading,
             )}
           />
 
           <FormInput
             {...withLoading(
               authFormFields.lastName({
+                onChange: (e) => {
+                  setLastName(e.target.value)
+                },
                 value: lastName,
-                onChange: (e) => setLastName(e.target.value),
               }),
-              isFormLoading
+              isFormLoading,
             )}
           />
         </div>
@@ -116,33 +123,37 @@ export function RegisterForm() {
         <FormInput
           {...withLoading(
             authFormFields.email({
-              value: email,
               onChange: (e) => {
                 setEmail(e.target.value)
                 clearErrors()
               },
+              value: email,
             }),
-            isFormLoading
+            isFormLoading,
           )}
           helpText={getFieldError("email")}
-          validateStatus={getFieldError("email") ? "error" : "default"}
+          validateStatus={
+            getFieldError("email") === undefined ? "default" : "error"
+          }
         />
 
         <div>
           <FormInput
             {...withLoading(
               authFormFields.newPassword({
-                value: password,
                 onChange: (e) => {
                   setPassword(e.target.value)
                   clearErrors()
                 },
                 placeholder: "Zadejte heslo",
+                value: password,
               }),
-              isFormLoading
+              isFormLoading,
             )}
             helpText={getFieldError("password")}
-            validateStatus={getFieldError("password") ? "error" : "default"}
+            validateStatus={
+              getFieldError("password") === undefined ? "default" : "error"
+            }
           />
           <PasswordRequirements password={password} />
         </div>
@@ -150,18 +161,18 @@ export function RegisterForm() {
         <FormInput
           {...withLoading(
             authFormFields.confirmPassword({
-              value: confirmPassword,
               onChange: (e) => {
                 setConfirmPassword(e.target.value)
                 clearErrors()
               },
               placeholder: "Znovu zadejte heslo",
+              value: confirmPassword,
             }),
-            isFormLoading
+            isFormLoading,
           )}
           helpText={getFieldError("confirmPassword")}
           validateStatus={
-            getFieldError("confirmPassword") ? "error" : "default"
+            getFieldError("confirmPassword") === undefined ? "default" : "error"
           }
         />
 
@@ -172,7 +183,9 @@ export function RegisterForm() {
           id="acceptTerms"
           label="Souhlasím s obchodními podmínkami"
           onCheckedChange={setAcceptTerms}
-          validateStatus={getFieldError("terms") ? "error" : "default"}
+          validateStatus={
+            getFieldError("terms") === undefined ? "default" : "error"
+          }
         />
 
         <Button

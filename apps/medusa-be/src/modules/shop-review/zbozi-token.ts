@@ -1,11 +1,13 @@
 import { MedusaError } from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
+
 import type { ApiStoreModuleService } from "../api-store"
 import {
   getCredentialValue,
   normalizeSecret,
   toValidDate,
-  type ZboziApiStoreTokenSource,
 } from "./zbozi-token-normalizers"
+import type { ZboziApiStoreTokenSource } from "./zbozi-token-normalizers"
 
 export const REFRESH_TOKEN_API_STORE_NAME = "Zboží"
 export const ACCESS_TOKEN_API_STORE_NAME = "Zboží Access token"
@@ -18,56 +20,60 @@ export {
 } from "./zbozi-token-helpers"
 export type { ZboziApiStoreTokenSource } from "./zbozi-token-normalizers"
 
-export function extractZboziRefreshToken(
-  apiStore: ZboziApiStoreTokenSource | null
-): string {
+export const extractZboziRefreshToken = (
+  apiStore: ZboziApiStoreTokenSource | null,
+): string => {
   const refreshToken = normalizeSecret(apiStore?.api_key)
 
-  if (!refreshToken) {
+  if (refreshToken === null) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `API store config "${REFRESH_TOKEN_API_STORE_NAME}" must contain api_key`
+      `API store config "${REFRESH_TOKEN_API_STORE_NAME}" must contain api_key`,
     )
   }
 
   return refreshToken
 }
 
-export function extractZboziAccessToken(
+export const extractZboziAccessToken = (
   apiStore: ZboziApiStoreTokenSource | null,
-  now = new Date()
-): string {
+  now = new Date(),
+): string => {
   const accessToken = normalizeSecret(apiStore?.api_key)
   const expiresAt = toValidDate(apiStore?.access_token_expires_at)
 
-  if (!(accessToken && expiresAt && expiresAt.getTime() > now.getTime())) {
+  if (
+    accessToken === null ||
+    expiresAt === null ||
+    expiresAt.getTime() <= now.getTime()
+  ) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Zboží access token is missing or expired"
+      "Zboží access token is missing or expired",
     )
   }
 
   return accessToken
 }
 
-export function parseZboziTokenResponse(
+export const parseZboziTokenResponse = (
   data: { access_token?: unknown; expires_in?: unknown },
-  now = new Date()
-): { accessToken: string; expiresAt: Date } {
+  now = new Date(),
+): { accessToken: string; expiresAt: Date } => {
   const accessToken = normalizeSecret(data.access_token)
   const expiresIn = Number(data.expires_in)
 
-  if (!accessToken) {
+  if (accessToken === null) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Zboží access token response must contain access_token"
+      "Zboží access token response must contain access_token",
     )
   }
 
   if (!(Number.isFinite(expiresIn) && expiresIn > 0)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Zboží access token response must contain expires_in"
+      "Zboží access token response must contain expires_in",
     )
   }
 
@@ -77,7 +83,7 @@ export function parseZboziTokenResponse(
   }
 }
 
-export async function refreshZboziAccessTokenStore({
+export const refreshZboziAccessTokenStore = async ({
   apiStoreService,
   fetchImpl = fetch,
   now = new Date(),
@@ -85,14 +91,14 @@ export async function refreshZboziAccessTokenStore({
   apiStoreService: ApiStoreModuleService
   fetchImpl?: typeof fetch
   now?: Date
-}): Promise<{ accessToken: string; expiresAt: Date }> {
+}): Promise<{ accessToken: string; expiresAt: Date }> => {
   const refreshApiStore = await apiStoreService.retrieveApiStoreSecretsByName(
-    REFRESH_TOKEN_API_STORE_NAME
+    REFRESH_TOKEN_API_STORE_NAME,
   )
   if (!refreshApiStore) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `API store config for ${REFRESH_TOKEN_API_STORE_NAME} was not found`
+      `API store config for ${REFRESH_TOKEN_API_STORE_NAME} was not found`,
     )
   }
 
@@ -103,16 +109,16 @@ export async function refreshZboziAccessTokenStore({
   const clientId = getCredentialValue(refreshApiStore.credentials, "client_id")
   const clientSecret = getCredentialValue(
     refreshApiStore.credentials,
-    "client_secret"
+    "client_secret",
   )
 
-  if (userId) {
+  if (userId !== null) {
     body.set("user_id", userId)
   }
-  if (clientId) {
+  if (clientId !== null) {
     body.set("client_id", clientId)
   }
-  if (clientSecret) {
+  if (clientSecret !== null) {
     body.set("client_secret", clientSecret)
   }
 
@@ -126,24 +132,31 @@ export async function refreshZboziAccessTokenStore({
     method: "POST",
     signal: AbortSignal.timeout(15_000),
   })
-  const data = (await response.json().catch(() => null)) as {
-    access_token?: unknown
-    expires_in?: unknown
-  } | null
+  let data: unknown = null
+  try {
+    data = await response.json()
+  } catch (error) {
+    if (response.ok) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Zboží access token response was not valid JSON: ${String(error)}`,
+      )
+    }
+  }
 
-  if (!(response.ok && data)) {
+  if (!response.ok || !isRecord(data)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Zboží access token request failed with status ${response.status}`
+      `Zboží access token request failed with status ${response.status}`,
     )
   }
 
   const token = parseZboziTokenResponse(data, now)
   await apiStoreService.upsertApiStoreConfigByName({
-    name: ACCESS_TOKEN_API_STORE_NAME,
+    access_token_expires_at: token.expiresAt,
     api_key: token.accessToken,
     is_internal: true,
-    access_token_expires_at: token.expiresAt,
+    name: ACCESS_TOKEN_API_STORE_NAME,
   })
 
   return token

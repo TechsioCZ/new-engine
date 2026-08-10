@@ -5,36 +5,54 @@ import {
 } from "@medusajs/framework/utils"
 import { StepResponse } from "@medusajs/framework/workflows-sdk"
 import { updateCartWorkflow } from "@medusajs/medusa/core-flows"
+import type { UpdateCartWorkflowInput } from "@medusajs/medusa/core-flows"
+
 import { getCartApprovalStatus } from "../../utils/get-cart-approval-status"
 
-updateCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
-  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+interface CartApprovalProjection {
+  approvals?: ({ status?: string | null } | null)[] | null
+}
 
-  const {
-    data: [queryCart],
-  } = await query.graph({
-    entity: "cart",
-    fields: ["approvals.*"],
-    filters: {
-      id: cart.id,
-    },
-  })
+interface CartApprovalGraphResult {
+  data: CartApprovalProjection[]
+}
 
-  if (!queryCart) {
-    throw new MedusaError(
-      MedusaError.Types.NOT_FOUND,
-      `Cart "${cart.id}" was not found`
-    )
-  }
+updateCartWorkflow.hooks.validate(
+  async ({ cart }: { cart: UpdateCartWorkflowInput }, { container }) => {
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+    const cartId = cart.id
+    if (cartId === "") {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Cart id is required for update validation",
+      )
+    }
 
-  const { isPendingApproval } = getCartApprovalStatus(queryCart)
+    const queryResult: CartApprovalGraphResult = await query.graph({
+      entity: "cart",
+      fields: ["approvals.*"],
+      filters: {
+        id: cartId,
+      },
+    })
+    const [queryCart] = queryResult.data
 
-  if (isPendingApproval) {
-    throw new MedusaError(
-      MedusaError.Types.NOT_ALLOWED,
-      "Cart is pending approval"
-    )
-  }
+    if (queryCart === undefined) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Cart "${cartId}" was not found`,
+      )
+    }
 
-  return new StepResponse(undefined, null)
-})
+    const { isPendingApproval } = getCartApprovalStatus(queryCart)
+
+    if (isPendingApproval) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_ALLOWED,
+        "Cart is pending approval",
+      )
+    }
+
+    return new StepResponse(undefined, null)
+  },
+)

@@ -1,11 +1,7 @@
 ---
 name: configure-pagination-prefetch-and-cache-policy
 description: >
-  Load this skill when tuning @techsio/storefront-data cacheConfig,
-  skipIfCached, skipMode, usePrefetchProducts, usePrefetchCatalogProducts, or
-  usePrefetchPages. Use it for pagination, page planning, normalized query
-  inputs, and keeping prefetch behavior aligned with shared query keys and
-  cache strategy rules.
+  Load this skill when tuning @techsio/storefront-data cacheConfig, skipIfCached, skipMode, usePrefetchProducts, usePrefetchCatalogProducts, or usePrefetchPages. Use it for pagination, page planning, normalized query inputs, and keeping prefetch behavior aligned with shared query keys and cache strategy rules.
 type: core
 library: "@techsio/storefront-data"
 library_version: "0.1.0"
@@ -19,8 +15,8 @@ sources:
   - "TechsioCZ/new-engine:libs/storefront-data/src/shared/query-keys.ts"
   - "TechsioCZ/new-engine:libs/storefront-data/src/products/hooks.ts"
   - "TechsioCZ/new-engine:libs/storefront-data/src/catalog/hooks.ts"
-  - "TechsioCZ/new-engine:libs/storefront-data/tests/shared.prefetch-pages-plan.test.ts"
-  - "TechsioCZ/new-engine:libs/storefront-data/tests/regression.shared-orders-customers.test.tsx"
+  - "TechsioCZ/new-engine:libs/storefront-data/tests/shared-prefetch-pages-plan.test.ts"
+  - "TechsioCZ/new-engine:libs/storefront-data/tests/regression-shared-orders-customers.test.tsx"
 ---
 
 # Configure pagination, prefetch, and cache policy
@@ -36,7 +32,8 @@ import { createMedusaSdk } from "@techsio/storefront-data/shared/medusa-client"
 import { createMedusaStorefrontPreset } from "@techsio/storefront-data/medusa/preset"
 
 const sdk = createMedusaSdk({
-  baseUrl: process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000",
+  baseUrl:
+    process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL ?? "http://localhost:9000",
   publishableKey: process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? "",
 })
 
@@ -152,7 +149,7 @@ useQuery(options)
 
 Manual keys drift from normalized key builders and break cache identity across hooks, SSR prefetch, and cart cache sync.
 
-Source: `libs/storefront-data/src/shared/query-keys.ts`, `libs/storefront-data/tests/regression.shared-orders-customers.test.tsx`
+Source: `libs/storefront-data/src/shared/query-keys.ts`, `libs/storefront-data/tests/regression-shared-orders-customers.test.tsx`
 
 ### HIGH Reading `skipIfCached` as any-hit semantics
 
@@ -226,7 +223,7 @@ storefront.hooks.products.usePrefetchPages({
 
 The shared page planner encodes the platform's tested expectations for immediate and delayed prefetch order.
 
-Source: `libs/storefront-data/src/shared/prefetch-pages-plan.ts`, `libs/storefront-data/tests/shared.prefetch-pages-plan.test.ts`
+Source: `libs/storefront-data/src/shared/prefetch-pages-plan.ts`, `libs/storefront-data/tests/shared-prefetch-pages-plan.test.ts`
 
 ## References
 

@@ -3,7 +3,7 @@ import { Button, clx, Text } from "@medusajs/ui"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
 
-export type NoResultsProps = {
+export interface NoResultsProps {
   title?: string
   message?: string
   className?: string
@@ -16,7 +16,7 @@ export const NoResults = ({ title, message, className }: NoResultsProps) => {
     <div
       className={clx(
         "flex h-[400px] w-full items-center justify-center",
-        className
+        className,
       )}
     >
       <div className="flex flex-col items-center gap-y-2">
@@ -32,7 +32,7 @@ export const NoResults = ({ title, message, className }: NoResultsProps) => {
   )
 }
 
-type ActionProps = {
+interface ActionProps {
   action?: {
     to: string
     label: string
@@ -46,7 +46,7 @@ type NoRecordsProps = {
   buttonVariant?: string
 } & ActionProps
 
-const DefaultButton = ({ action }: ActionProps) =>
+const defaultButton = ({ action }: ActionProps) =>
   action && (
     <Link to={action.to}>
       <Button size="small" variant="secondary">
@@ -55,7 +55,7 @@ const DefaultButton = ({ action }: ActionProps) =>
     </Link>
   )
 
-const TransparentIconLeftButton = ({ action }: ActionProps) =>
+const transparentIconLeftButton = ({ action }: ActionProps) =>
   action && (
     <Link to={action.to}>
       <Button className="text-ui-fg-interactive" variant="transparent">
@@ -63,6 +63,9 @@ const TransparentIconLeftButton = ({ action }: ActionProps) =>
       </Button>
     </Link>
   )
+
+const DefaultButton = defaultButton
+const TransparentIconLeftButton = transparentIconLeftButton
 
 export const NoRecords = ({
   title,
@@ -77,7 +80,7 @@ export const NoRecords = ({
     <div
       className={clx(
         "flex h-[400px] w-full flex-col items-center justify-center gap-y-4",
-        className
+        className,
       )}
     >
       <div className="flex flex-col items-center gap-y-3">
@@ -94,9 +97,11 @@ export const NoRecords = ({
         </div>
       </div>
 
-      {buttonVariant === "default" && <DefaultButton action={action} />}
+      {buttonVariant === "default" && (
+        <DefaultButton {...(action ? { action } : {})} />
+      )}
       {buttonVariant === "transparentIconLeft" && (
-        <TransparentIconLeftButton action={action} />
+        <TransparentIconLeftButton {...(action ? { action } : {})} />
       )}
     </div>
   )

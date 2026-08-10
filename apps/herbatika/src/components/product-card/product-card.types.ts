@@ -1,4 +1,4 @@
-export type ProductPriceState = {
+export interface ProductPriceState {
   currentLabel: string
   originalLabel: string | null
   currentAmount: number | null
@@ -6,7 +6,7 @@ export type ProductPriceState = {
   currencyCode: string
 }
 
-export type ProductFlagState = {
+export interface ProductFlagState {
   label: string
   variant: "success" | "warning" | "discount"
 }

@@ -1,56 +1,57 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
-import { Textarea } from '../../src/atoms/textarea'
+import type { Meta, StoryObj } from "@storybook/react"
+
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Textarea } from "../../src/atoms/textarea"
 
 const meta: Meta<typeof Textarea> = {
-  title: 'Atoms/Textarea',
   component: Textarea,
   parameters: {
-    layout: 'centered',
+    layout: "centered",
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
+  title: "Atoms/Textarea",
 }
 
 export default meta
 type Story = StoryObj<typeof Textarea>
 
 export const Playground: Story = {
-  args: {
-    placeholder: 'Enter your text...',
-    size: 'md',
-    variant: 'default',
-    resize: 'y',
-    disabled: false,
-    readonly: false,
-  },
   argTypes: {
-    size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Size of the textarea',
-    },
-    variant: {
-      control: 'select',
-      options: ['default', 'error', 'success', 'warning', 'borderless'],
-      description: 'Visual variant for validation states',
-    },
-    resize: {
-      control: 'select',
-      options: ['none', 'y', 'x', 'both', 'auto'],
-      description: 'Resize behavior (auto = grows with content)',
-    },
     disabled: {
-      control: 'boolean',
-      description: 'Disable the textarea',
-    },
-    readonly: {
-      control: 'boolean',
-      description: 'Make textarea read-only (still focusable, sent on submit)',
+      control: "boolean",
+      description: "Disable the textarea",
     },
     placeholder: {
-      control: 'text',
-      description: 'Placeholder text',
+      control: "text",
+      description: "Placeholder text",
     },
+    readonly: {
+      control: "boolean",
+      description: "Make textarea read-only (still focusable, sent on submit)",
+    },
+    resize: {
+      control: "select",
+      description: "Resize behavior (auto = grows with content)",
+      options: ["none", "y", "x", "both", "auto"],
+    },
+    size: {
+      control: "select",
+      description: "Size of the textarea",
+      options: ["sm", "md", "lg"],
+    },
+    variant: {
+      control: "select",
+      description: "Visual variant for validation states",
+      options: ["default", "error", "success", "warning", "borderless"],
+    },
+  },
+  args: {
+    disabled: false,
+    placeholder: "Enter your text...",
+    readonly: false,
+    resize: "y",
+    size: "md",
+    variant: "default",
   },
 }
 
@@ -94,7 +95,10 @@ export const AllVariants: Story = {
         <Textarea resize="x" placeholder="Horizontal resize" />
         <Textarea resize="none" placeholder="No resize" />
         <Textarea resize="both" placeholder="Resize both" />
-        <Textarea resize="auto" placeholder="Auto-sizing - grows with content" />
+        <Textarea
+          resize="auto"
+          placeholder="Auto-sizing - grows with content"
+        />
       </VariantGroup>
 
       <VariantGroup title="Validation States">
@@ -125,9 +129,7 @@ export const AutoSizing: Story = {
             defaultValue="This auto-sizing textarea starts with content. Try adding more lines - it will grow automatically!"
           />
         </div>
-
       </VariantGroup>
-
     </VariantContainer>
   ),
 }

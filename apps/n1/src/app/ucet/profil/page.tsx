@@ -3,26 +3,28 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Tabs } from "@techsio/ui-kit/molecules/tabs"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
+
 import { useLogout } from "@/hooks/use-logout"
 import { useAuthToast } from "@/hooks/use-toast"
 import { resolveTab } from "@/lib/account-tabs"
+
 import { AddressList } from "./_components/address-list"
 import { OrderList } from "./_components/order-list"
 import { ProfileForm } from "./_components/profile-form"
 
-export default function ProfilePage() {
+const ProfilePage = () => {
   const router = useRouter()
   const toast = useAuthToast()
   const searchParams = useSearchParams()
   const pathname = usePathname()
   const activeTab = resolveTab(searchParams.get("tab"), pathname)
   const logoutMutation = useLogout({
+    onError: () => {
+      toast.logoutError()
+    },
     onSuccess: () => {
       toast.logoutSuccess()
       router.push("/prihlaseni")
-    },
-    onError: () => {
-      toast.logoutError()
     },
   })
 
@@ -60,7 +62,9 @@ export default function ProfilePage() {
           <Button
             className="justify-start"
             disabled={logoutMutation.isPending}
-            onClick={() => logoutMutation.mutate()}
+            onClick={() => {
+              logoutMutation.mutate()
+            }}
             size="sm"
           >
             <span className="font-medium hover:underline">
@@ -101,7 +105,9 @@ export default function ProfilePage() {
           <Button
             className="justify-start"
             disabled={logoutMutation.isPending}
-            onClick={() => logoutMutation.mutate()}
+            onClick={() => {
+              logoutMutation.mutate()
+            }}
             size="sm"
           >
             <span className="font-medium hover:underline">
@@ -130,3 +136,5 @@ export default function ProfilePage() {
     </>
   )
 }
+
+export default ProfilePage

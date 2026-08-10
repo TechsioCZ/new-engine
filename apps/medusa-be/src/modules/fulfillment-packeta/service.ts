@@ -8,19 +8,20 @@ import type {
   FulfillmentOption,
   FulfillmentOrderDTO,
   IFileModuleService,
+  IFulfillmentProvider,
   Logger,
+  Query,
   ValidateFulfillmentDataContext,
 } from "@medusajs/framework/types"
 import {
-  AbstractFulfillmentProviderService,
   ContainerRegistrationKeys,
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
-import {
-  PACKETA_CLIENT_MODULE,
-  type PacketaClientModuleService,
-} from "../packeta-client"
+import { z } from "@medusajs/framework/zod"
+
+import { PACKETA_CLIENT_MODULE } from "../packeta-client"
+import type { PacketaClientModuleService } from "../packeta-client"
 import type {
   PacketaFulfillmentData,
   PacketaOptions,
@@ -28,72 +29,175 @@ import type {
   PacketaShippingOptionData,
 } from "../packeta-client/types"
 
-type InjectedDependencies = {
+type PacketaClientDependency = Pick<
+  PacketaClientModuleService,
+  "cancelPacket" | "createPacket" | "downloadLabelPdf" | "getEffectiveConfig"
+>
+type FileServiceDependency = Pick<IFileModuleService, "createFiles">
+type QueryDependency = Pick<Query, "graph">
+
+interface InjectedDependencies {
   logger: Logger
-  [Modules.FILE]: IFileModuleService
-  [ContainerRegistrationKeys.QUERY]?: QueryService
-} & Record<typeof PACKETA_CLIENT_MODULE, PacketaClientModuleService>
+  [Modules.FILE]: FileServiceDependency
+  [ContainerRegistrationKeys.QUERY]?: QueryDependency
+  [PACKETA_CLIENT_MODULE]?: PacketaClientDependency
+}
 
 const DEFAULT_PACKET_WEIGHT_KG = 0.5
 const GRAMS_PER_KG = 1000
-
-type QueryService = {
-  graph: (input: {
-    entity: string
-    fields: string[]
-    filters?: Record<string, unknown>
-  }) => Promise<{ data: unknown[] }>
-}
-
-type ProductWeightRecord = {
-  id: string
-  weight?: unknown
-}
-
-type OrderLineItemWithWeight = {
-  id?: string
-  quantity?: unknown
-  product_id?: string | null
-  variant?: {
-    weight?: unknown
-    product?: {
-      id?: string | null
-      weight?: unknown
-    } | null
-  } | null
-}
-
-type FulfillmentItemWithQuantity = {
-  line_item_id?: string | null
-  quantity?: unknown
-}
 
 const toFiniteNumber = (value: unknown): number | undefined => {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value
   }
   if (typeof value === "string") {
-    const parsed = Number.parseFloat(value)
+    const parsed = Number(value)
     return Number.isFinite(parsed) ? parsed : undefined
   }
-  if (value && typeof value === "object" && "value" in value) {
-    return toFiniteNumber((value as { value: unknown }).value)
+  if (typeof value === "object" && value !== null) {
+    return toFiniteNumber(Reflect.get(value, "value"))
   }
 
-  return
+  return undefined
+}
+
+const optionalStringSchema = z
+  .unknown()
+  .transform((value) => (typeof value === "string" ? value : undefined))
+const optionalFiniteNumberSchema = z.unknown().transform(toFiniteNumber)
+
+const packetaOptionSchema = z.object({
+  code: z.enum(["z_point", "z_point_cod"]),
+})
+
+const checkoutDataSchema = z.object({
+  access_point_city: optionalStringSchema,
+  access_point_id: z.unknown(),
+  access_point_name: optionalStringSchema,
+  access_point_zip: optionalStringSchema,
+})
+
+const packetaShippingDataSchema = z.object({
+  access_point_id: z.number().optional(),
+  code: z.enum(["z_point", "z_point_cod"]),
+  requires_access_point: z.literal(true),
+  supports_cod: z.boolean(),
+  weight: optionalFiniteNumberSchema.optional(),
+})
+
+type PacketaShippingData = z.infer<typeof packetaShippingDataSchema>
+
+const packetaFulfillmentDataSchema = z.object({
+  label_url: optionalStringSchema.optional(),
+  packet_id: z.number().optional(),
+  tracking_url: optionalStringSchema.optional(),
+})
+
+type StoredPacketaFulfillmentData = z.infer<typeof packetaFulfillmentDataSchema>
+
+const orderLineItemWeightSchema = z.object({
+  id: z.string().optional(),
+  product_id: z.string().nullish(),
+  quantity: optionalFiniteNumberSchema,
+  variant: z
+    .object({
+      product: z
+        .object({
+          id: z.string().nullish(),
+          weight: optionalFiniteNumberSchema,
+        })
+        .nullish(),
+      weight: optionalFiniteNumberSchema,
+    })
+    .nullish(),
+})
+
+type OrderLineItemWithWeight = z.infer<typeof orderLineItemWeightSchema>
+
+interface FulfillmentDocument {
+  format?: string
+  type: string
+  url: string
+}
+
+type CancellationResult =
+  | { cancelled: true; packet_id: number }
+  | { cancelled: false; note: string; packet_id?: number }
+
+const getPacketaFulfillmentData = (
+  data: unknown,
+): StoredPacketaFulfillmentData => {
+  const parsed = packetaFulfillmentDataSchema.safeParse(data)
+  return parsed.success ? parsed.data : {}
+}
+
+const buildFulfillmentDocuments = (data: unknown): FulfillmentDocument[] => {
+  const fulfillmentData = getPacketaFulfillmentData(data)
+  const documents: FulfillmentDocument[] = []
+
+  if (fulfillmentData.label_url !== undefined) {
+    documents.push({
+      format: "pdf",
+      type: "label",
+      url: fulfillmentData.label_url,
+    })
+  }
+  if (fulfillmentData.tracking_url !== undefined) {
+    documents.push({
+      type: "tracking",
+      url: fulfillmentData.tracking_url,
+    })
+  }
+
+  return documents
+}
+
+const retrieveFulfillmentDocument = (
+  fulfillmentData: unknown,
+  documentType: string,
+): FulfillmentDocument | null => {
+  const data = getPacketaFulfillmentData(fulfillmentData)
+
+  switch (documentType) {
+    case "label": {
+      return data.label_url === undefined
+        ? null
+        : { format: "pdf", type: "label", url: data.label_url }
+    }
+    case "tracking": {
+      return data.tracking_url === undefined
+        ? null
+        : { type: "tracking", url: data.tracking_url }
+    }
+    default: {
+      return null
+    }
+  }
 }
 
 const medusaWeightGramsToKg = (weight: number): number => weight / GRAMS_PER_KG
 
 const getOrderItemRawWeight = (
   orderItem: OrderLineItemWithWeight,
-  productWeights: Map<string, unknown>
-): number | undefined =>
-  toFiniteNumber(orderItem.variant?.weight) ??
-  toFiniteNumber(orderItem.variant?.product?.weight) ??
-  (orderItem.product_id
-    ? toFiniteNumber(productWeights.get(orderItem.product_id))
-    : undefined)
+  productWeights: Map<string, number | null>,
+): number | undefined => {
+  const variantWeight = toFiniteNumber(orderItem.variant?.weight)
+  if (variantWeight !== undefined) {
+    return variantWeight
+  }
+
+  const variantProductWeight = toFiniteNumber(
+    orderItem.variant?.product?.weight,
+  )
+  if (variantProductWeight !== undefined) {
+    return variantProductWeight
+  }
+
+  const productId = orderItem.product_id
+  return productId === undefined || productId === null
+    ? undefined
+    : toFiniteNumber(productWeights.get(productId))
+}
 
 /**
  * Packeta Fulfillment Provider
@@ -107,151 +211,197 @@ const getOrderItemRawWeight = (
  */
 export const PACKETA_PROVIDER_IDENTIFIER = "packeta"
 
-class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderService {
-  static override identifier = PACKETA_PROVIDER_IDENTIFIER
+/**
+ * The framework's abstract provider currently narrows document methods below
+ * the canonical `IFulfillmentProvider` contract. Implementing that contract
+ * directly keeps the real document results typed while the discovery marker
+ * preserves Medusa's runtime provider identification.
+ */
+class PacketaFulfillmentProviderService implements IFulfillmentProvider {
+  static readonly _isFulfillmentService = true
+  static readonly identifier = PACKETA_PROVIDER_IDENTIFIER
 
-  protected readonly logger_: Logger
-  protected readonly packetaClient_: PacketaClientModuleService
-  protected readonly fileService_: IFileModuleService
-  protected readonly query_?: QueryService
+  protected readonly identifier = PACKETA_PROVIDER_IDENTIFIER
+  protected readonly logger: Logger
+  protected readonly packetaClient: PacketaClientDependency | undefined
+  protected readonly fileService: FileServiceDependency
+  protected readonly query: QueryDependency | undefined
 
   constructor(container: InjectedDependencies, _options: PacketaOptions) {
-    super()
-    this.logger_ = container.logger
-    this.packetaClient_ = container[PACKETA_CLIENT_MODULE]
-    this.fileService_ = container[Modules.FILE]
-    this.query_ = container[ContainerRegistrationKeys.QUERY]
+    this.logger = container.logger
+    this.packetaClient = container[PACKETA_CLIENT_MODULE]
+    this.fileService = container[Modules.FILE]
+    this.query = container[ContainerRegistrationKeys.QUERY]
   }
 
-  private getClient(): PacketaClientModuleService {
-    if (!this.packetaClient_) {
+  getIdentifier(): string {
+    return this.identifier
+  }
+
+  private getClient(): PacketaClientDependency {
+    if (!this.packetaClient) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        "Packeta: packeta_client module not available. Check medusa-config dependencies."
+        "Packeta: packeta_client module not available. Check medusa-config dependencies.",
       )
     }
-    return this.packetaClient_
+    return this.packetaClient
   }
 
   // ============================================
   // Shipping options
   // ============================================
 
-  override async getFulfillmentOptions(): Promise<FulfillmentOption[]> {
+  async getFulfillmentOptions(): Promise<FulfillmentOption[]> {
     try {
       const config = await this.getClient().getEffectiveConfig()
       if (!config) {
         return []
       }
     } catch (error) {
-      this.logger_.warn(
-        `Packeta: Could not check config status, returning no options: ${error instanceof Error ? error.message : String(error)}`
+      this.logger.warn(
+        `Packeta: Could not check config status, returning no options: ${error instanceof Error ? error.message : String(error)}`,
       )
       return []
     }
 
     return [
       {
+        code: "z_point",
         id: "packeta-z-point",
         name: "Packeta Z-Point (pickup point)",
-        code: "z_point",
         requires_access_point: true,
         supports_cod: false,
       },
       {
+        code: "z_point_cod",
         id: "packeta-z-point-cod",
         name: "Packeta Z-Point + COD",
-        code: "z_point_cod",
         requires_access_point: true,
         supports_cod: true,
       },
     ]
   }
 
-  override async validateOption(
-    data: Record<string, unknown>
-  ): Promise<boolean> {
-    return data.code === "z_point" || data.code === "z_point_cod"
+  async validateOption(data: unknown): Promise<boolean> {
+    await Promise.resolve(this)
+    return packetaOptionSchema.safeParse(data).success
   }
 
   /**
    * Called during checkout when the customer finalises the shipping method.
    * Validates that a Packeta pickup-point was selected by the widget.
    */
-  override async validateFulfillmentData(
-    optionData: Record<string, unknown>,
-    data: Record<string, unknown>,
-    _context: ValidateFulfillmentDataContext
-  ): Promise<Record<string, unknown>> {
+  async validateFulfillmentData(
+    optionData: unknown,
+    data: unknown,
+    _context: ValidateFulfillmentDataContext,
+  ): Promise<PacketaShippingOptionData> {
     const config = await this.getClient().getEffectiveConfig()
     if (!config) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        "Packeta shipping is currently unavailable. Please select a different shipping method."
+        "Packeta shipping is currently unavailable. Please select a different shipping method.",
       )
     }
 
-    const accessPointId = data.access_point_id as number | string | undefined
+    const checkoutResult = checkoutDataSchema.safeParse(data)
+    if (!checkoutResult.success) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Packeta: Pickup point (Z-Point) selection is required for this shipping method",
+      )
+    }
+    const accessPointId = checkoutResult.data.access_point_id
     if (accessPointId === undefined || accessPointId === null) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Packeta: Pickup point (Z-Point) selection is required for this shipping method"
+        "Packeta: Pickup point (Z-Point) selection is required for this shipping method",
       )
     }
 
     const parsedAccessPointId =
       typeof accessPointId === "string"
-        ? Number.parseInt(accessPointId, 10)
+        ? Math.trunc(Number(accessPointId))
         : accessPointId
-    if (!Number.isFinite(parsedAccessPointId) || parsedAccessPointId <= 0) {
+    if (
+      typeof parsedAccessPointId !== "number" ||
+      !Number.isFinite(parsedAccessPointId) ||
+      parsedAccessPointId <= 0
+    ) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Packeta: Invalid pickup point ID: ${accessPointId}`
-      )
-    }
-    const optionCode = optionData.code
-    if (optionCode !== "z_point" && optionCode !== "z_point_cod") {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "Packeta: Invalid shipping option code"
+        "Packeta: Invalid pickup point ID",
       )
     }
 
-    return {
+    const optionResult = packetaOptionSchema.safeParse(optionData)
+    if (!optionResult.success) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Packeta: Invalid shipping option code",
+      )
+    }
+    const optionCode = optionResult.data.code
+
+    const validatedData: PacketaShippingOptionData = {
+      access_point_id: parsedAccessPointId,
       code: optionCode,
       requires_access_point: true,
       supports_cod: optionCode === "z_point_cod",
-      access_point_id: parsedAccessPointId,
-      access_point_name: data.access_point_name as string | undefined,
-      access_point_zip: data.access_point_zip as string | undefined,
-      access_point_city: data.access_point_city as string | undefined,
-    } satisfies PacketaShippingOptionData
+    }
+    const { access_point_city, access_point_name, access_point_zip } =
+      checkoutResult.data
+
+    if (access_point_name !== undefined) {
+      validatedData.access_point_name = access_point_name
+    }
+    if (access_point_zip !== undefined) {
+      validatedData.access_point_zip = access_point_zip
+    }
+    if (access_point_city !== undefined) {
+      validatedData.access_point_city = access_point_city
+    }
+
+    return validatedData
   }
 
-  override async createFulfillment(
-    data: Record<string, unknown>,
+  async createFulfillment(
+    data: unknown,
     _items: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[],
     order: Partial<FulfillmentOrderDTO> | undefined,
-    fulfillment: Partial<Omit<FulfillmentDTO, "provider_id" | "data" | "items">>
+    fulfillment: Partial<
+      Omit<FulfillmentDTO, "provider_id" | "data" | "items">
+    >,
   ): Promise<CreateFulfillmentResult> {
-    const shippingData = data as unknown as PacketaShippingOptionData
+    const shippingDataResult = packetaShippingDataSchema.safeParse(data)
+    if (!shippingDataResult.success) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Packeta: Invalid shipping data",
+      )
+    }
+    const shippingData = shippingDataResult.data
 
     if (!order) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Packeta: Order is required for fulfillment"
+        "Packeta: Order is required for fulfillment",
       )
     }
     if (!order.shipping_address) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Packeta: Shipping address is required"
+        "Packeta: Shipping address is required",
       )
     }
-    if (!shippingData.access_point_id) {
+    if (
+      shippingData.access_point_id === undefined ||
+      shippingData.access_point_id === 0
+    ) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Packeta: access_point_id is required"
+        "Packeta: access_point_id is required",
       )
     }
 
@@ -259,22 +409,22 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     if (!config) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        "Packeta: Service is disabled or not configured. Enable it in Settings → Packeta."
+        "Packeta: Service is disabled or not configured. Enable it in Settings → Packeta.",
       )
     }
 
     const attributes = await this.buildPacketAttributes({
+      accessPointId: shippingData.access_point_id,
+      config,
+      items: _items,
       order,
       shippingAddress: order.shipping_address,
-      accessPointId: shippingData.access_point_id,
       shippingData,
-      items: _items,
-      config,
     })
 
-    const fulfillmentId = fulfillment.id || `temp-${Date.now()}`
-    this.logger_.info(
-      `Packeta: Creating packet for ${fulfillmentId}, access point ${shippingData.access_point_id}`
+    const fulfillmentId = fulfillment.id ?? `temp-${Date.now()}`
+    this.logger.info(
+      `Packeta: Creating packet for ${fulfillmentId}, access point ${shippingData.access_point_id}`,
     )
 
     const result = await this.getClient().createPacket(attributes)
@@ -283,53 +433,52 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     let labelUrl: string | undefined
     try {
       const pdfBuffer = await this.getClient().downloadLabelPdf(result.id)
-      const uploaded = await this.fileService_.createFiles([
+      const uploaded = await this.fileService.createFiles([
         {
+          content: pdfBuffer.toString("base64"),
           filename: `packeta-label-${result.barcode}.pdf`,
           mimeType: "application/pdf",
-          content: pdfBuffer.toString("base64"),
         },
       ])
       labelUrl = uploaded[0]?.url
     } catch (error) {
-      this.logger_.warn(
-        `Packeta: Packet ${result.id} created (barcode ${result.barcode}) but label download/upload failed: ${error instanceof Error ? error.message : String(error)}. The label can be retrieved later from Packeta directly.`
+      this.logger.warn(
+        `Packeta: Packet ${result.id} created (barcode ${result.barcode}) but label download/upload failed: ${error instanceof Error ? error.message : String(error)}. The label can be retrieved later from Packeta directly.`,
       )
     }
 
     const fulfillmentData: PacketaFulfillmentData = {
-      status: "completed",
-      packet_id: result.id,
-      barcode: result.barcode,
       access_point_id: shippingData.access_point_id,
+      barcode: result.barcode,
+      packet_id: result.id,
+      status: "completed",
       supports_cod: shippingData.supports_cod,
-      ...(labelUrl && { label_url: labelUrl }),
+      ...(labelUrl === undefined ? {} : { label_url: labelUrl }),
       tracking_url: trackingUrl,
     }
 
     return {
-      data: fulfillmentData,
-      labels: labelUrl
-        ? [
-            {
-              tracking_number: result.barcode,
-              tracking_url: trackingUrl,
-              label_url: labelUrl,
-            },
-          ]
-        : [],
+      data: { ...fulfillmentData },
+      labels:
+        labelUrl === undefined
+          ? []
+          : [
+              {
+                label_url: labelUrl,
+                tracking_number: result.barcode,
+                tracking_url: trackingUrl,
+              },
+            ],
     }
   }
 
-  override async cancelFulfillment(
-    data: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const fulfillmentData = data as unknown as PacketaFulfillmentData
+  async cancelFulfillment(data: unknown): Promise<CancellationResult> {
+    const fulfillmentData = getPacketaFulfillmentData(data)
     const packetId = fulfillmentData.packet_id
 
-    if (!packetId) {
-      this.logger_.warn(
-        "Packeta: Cannot cancel - no packet_id in fulfillment data"
+    if (packetId === undefined || packetId === 0) {
+      this.logger.warn(
+        "Packeta: Cannot cancel - no packet_id in fulfillment data",
       )
       return { cancelled: false, note: "No packet_id on fulfillment" }
     }
@@ -338,93 +487,60 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     if (!cancelled) {
       return {
         cancelled: false,
-        packet_id: packetId,
         note: "Cancellation failed. Packet may have been picked up by carrier. Contact Packeta support.",
+        packet_id: packetId,
       }
     }
     return { cancelled: true, packet_id: packetId }
   }
 
-  override async createReturnFulfillment(
-    _fulfillment: Record<string, unknown>
+  async createReturnFulfillment(
+    _fulfillment: unknown,
   ): Promise<CreateFulfillmentResult> {
+    await Promise.resolve(this)
     throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
-      "Packeta: Return fulfillment not yet implemented."
+      "Packeta: Return fulfillment not yet implemented.",
     )
   }
 
-  override async canCalculate(
-    _data: CreateShippingOptionDTO
-  ): Promise<boolean> {
+  async canCalculate(_data: CreateShippingOptionDTO): Promise<boolean> {
+    await Promise.resolve(this)
     return false
   }
 
-  override async calculatePrice(
+  async calculatePrice(
     _optionData: CalculateShippingOptionPriceDTO["optionData"],
     _data: CalculateShippingOptionPriceDTO["data"],
-    _context: CalculateShippingOptionPriceDTO["context"]
+    _context: CalculateShippingOptionPriceDTO["context"],
   ): Promise<CalculatedShippingOptionPrice> {
+    await Promise.resolve(this)
     return {
       calculated_amount: 0,
       is_calculated_price_tax_inclusive: false,
     }
   }
 
-  // @ts-expect-error Base class returns never[] but we return actual documents
-  override async getFulfillmentDocuments(
-    data: Record<string, unknown>
-  ): Promise<{ type: string; url: string; format?: string }[]> {
-    const fulfillmentData = data as unknown as PacketaFulfillmentData
-    const documents: { type: string; url: string; format?: string }[] = []
-
-    if (fulfillmentData.label_url) {
-      documents.push({
-        type: "label",
-        url: fulfillmentData.label_url,
-        format: "pdf",
-      })
-    }
-    if (fulfillmentData.tracking_url) {
-      documents.push({
-        type: "tracking",
-        url: fulfillmentData.tracking_url,
-      })
-    }
-
-    return documents
+  async getFulfillmentDocuments(data: unknown): Promise<FulfillmentDocument[]> {
+    await Promise.resolve(this)
+    return buildFulfillmentDocuments(data)
   }
 
-  // @ts-expect-error Base class returns void but we return document or null
-  override async retrieveDocuments(
-    fulfillmentData: Record<string, unknown>,
-    documentType: string
-  ): Promise<{ type: string; url: string; format?: string } | null> {
-    const data = fulfillmentData as unknown as PacketaFulfillmentData
-
-    switch (documentType) {
-      case "label":
-        return data.label_url
-          ? { type: "label", url: data.label_url, format: "pdf" }
-          : null
-      case "tracking":
-        return data.tracking_url
-          ? { type: "tracking", url: data.tracking_url }
-          : null
-      default:
-        return null
-    }
+  async retrieveDocuments(
+    fulfillmentData: unknown,
+    documentType: string,
+  ): Promise<FulfillmentDocument | null> {
+    await Promise.resolve(this)
+    return retrieveFulfillmentDocument(fulfillmentData, documentType)
   }
 
-  override async getReturnDocuments(
-    _data: Record<string, unknown>
-  ): Promise<never[]> {
+  async getReturnDocuments(_data: unknown): Promise<never[]> {
+    await Promise.resolve(this)
     return []
   }
 
-  override async getShipmentDocuments(
-    _data: Record<string, unknown>
-  ): Promise<never[]> {
+  async getShipmentDocuments(_data: unknown): Promise<never[]> {
+    await Promise.resolve(this)
     return []
   }
 
@@ -436,7 +552,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     order: Partial<FulfillmentOrderDTO>
     shippingAddress: NonNullable<FulfillmentOrderDTO["shipping_address"]>
     accessPointId: number
-    shippingData: PacketaShippingOptionData
+    shippingData: PacketaShippingData
     items: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[]
     config: PacketaOptions
   }): Promise<PacketaPacketAttributes> {
@@ -449,28 +565,39 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       config,
     } = params
 
-    const recipient = this.getRequiredRecipientName(shippingAddress)
-    const orderNumber = this.getPacketOrderNumber(order)
-    const totalNumber = this.getPacketOrderTotal(order, shippingData)
+    const recipient =
+      PacketaFulfillmentProviderService.getRequiredRecipientName(
+        shippingAddress,
+      )
+    const orderNumber =
+      PacketaFulfillmentProviderService.getPacketOrderNumber(order)
+    const totalNumber = PacketaFulfillmentProviderService.getPacketOrderTotal(
+      order,
+      shippingData,
+    )
     const packetWeight = await this.getPacketWeight(order, items, shippingData)
 
     if (packetWeight === DEFAULT_PACKET_WEIGHT_KG) {
-      this.logger_.warn(
-        `Packeta: Falling back to default packet weight ${DEFAULT_PACKET_WEIGHT_KG}kg for order ${orderNumber}. Fill product or variant weight in Medusa to send an exact parcel weight.`
+      this.logger.warn(
+        `Packeta: Falling back to default packet weight ${DEFAULT_PACKET_WEIGHT_KG}kg for order ${orderNumber}. Fill product or variant weight in Medusa to send an exact parcel weight.`,
       )
     }
 
-    const attributes = this.buildBasePacketAttributes({
-      accessPointId,
-      config,
-      currency: this.getPacketCurrency(order, shippingData),
-      order,
-      orderNumber,
-      packetWeight,
-      recipient,
-      shippingAddress,
-      totalNumber,
-    })
+    const attributes =
+      PacketaFulfillmentProviderService.buildBasePacketAttributes({
+        accessPointId,
+        config,
+        currency: PacketaFulfillmentProviderService.getPacketCurrency(
+          order,
+          shippingData,
+        ),
+        order,
+        orderNumber,
+        packetWeight,
+        recipient,
+        shippingAddress,
+        totalNumber,
+      })
 
     if (shippingData.supports_cod) {
       attributes.cod = totalNumber
@@ -479,8 +606,8 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     return attributes
   }
 
-  private getRequiredRecipientName(
-    shippingAddress: NonNullable<FulfillmentOrderDTO["shipping_address"]>
+  private static getRequiredRecipientName(
+    shippingAddress: NonNullable<FulfillmentOrderDTO["shipping_address"]>,
   ): { firstName: string; lastName: string } {
     const firstName = shippingAddress.first_name ?? ""
     const lastName = shippingAddress.last_name ?? ""
@@ -491,23 +618,29 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
 
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Packeta: Shipping address first_name or last_name is required"
+      "Packeta: Shipping address first_name or last_name is required",
     )
   }
 
-  private getPacketOrderNumber(order: Partial<FulfillmentOrderDTO>): string {
-    return (
-      order.display_id?.toString() || order.id || `fulfillment-${Date.now()}`
-    )
-  }
-
-  private getPacketOrderTotal(
+  private static getPacketOrderNumber(
     order: Partial<FulfillmentOrderDTO>,
-    shippingData: PacketaShippingOptionData
+  ): string {
+    const displayId = order.display_id?.toString()
+    if (displayId !== undefined && displayId !== "") {
+      return displayId
+    }
+    if (order.id !== undefined && order.id !== "") {
+      return order.id
+    }
+    return `fulfillment-${Date.now()}`
+  }
+
+  private static getPacketOrderTotal(
+    order: Partial<FulfillmentOrderDTO>,
+    shippingData: PacketaShippingData,
   ): number {
     const orderTotal =
-      toFiniteNumber(order.total) ??
-      toFiniteNumber((order as { item_total?: unknown }).item_total)
+      toFiniteNumber(order.total) ?? toFiniteNumber(order.item_total)
 
     if (orderTotal !== undefined) {
       return orderTotal
@@ -519,29 +652,29 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
 
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Packeta: order total or item_total is required for COD shipments"
+      "Packeta: order total or item_total is required for COD shipments",
     )
   }
 
   private async getPacketWeight(
     order: Partial<FulfillmentOrderDTO>,
     items: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[],
-    shippingData: PacketaShippingOptionData
+    shippingData: PacketaShippingData,
   ): Promise<number> {
     return (
-      toFiniteNumber((shippingData as { weight?: unknown }).weight) ??
+      shippingData.weight ??
       (await this.calculateOrderItemsWeightKg(order, items)) ??
       DEFAULT_PACKET_WEIGHT_KG
     )
   }
 
-  private getPacketCurrency(
+  private static getPacketCurrency(
     order: Partial<FulfillmentOrderDTO>,
-    shippingData: PacketaShippingOptionData
+    shippingData: PacketaShippingData,
   ): string {
     const currency = order.currency_code?.toUpperCase()
 
-    if (currency) {
+    if (currency !== undefined && currency !== "") {
       return currency
     }
 
@@ -551,11 +684,11 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
 
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Packeta: currency_code is required on the order for COD shipments"
+      "Packeta: currency_code is required on the order for COD shipments",
     )
   }
 
-  private buildBasePacketAttributes(params: {
+  private static buildBasePacketAttributes(params: {
     order: Partial<FulfillmentOrderDTO>
     shippingAddress: NonNullable<FulfillmentOrderDTO["shipping_address"]>
     accessPointId: number
@@ -578,41 +711,52 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       totalNumber,
     } = params
 
-    return {
-      number: orderNumber,
-      name: recipient.firstName,
-      surname: recipient.lastName,
-      email: order.email ?? undefined,
-      phone: shippingAddress.phone ?? undefined,
+    const attributes: PacketaPacketAttributes = {
       addressId: accessPointId,
-      value: totalNumber,
       currency,
+      name: recipient.firstName,
+      number: orderNumber,
+      surname: recipient.lastName,
+      value: totalNumber,
       weight: packetWeight,
-      eshop: config.sender_label ?? undefined,
     }
+
+    if (order.email !== undefined && order.email !== "") {
+      attributes.email = order.email
+    }
+    if (shippingAddress.phone !== undefined && shippingAddress.phone !== "") {
+      attributes.phone = shippingAddress.phone
+    }
+    if (config.sender_label !== undefined && config.sender_label !== "") {
+      attributes.eshop = config.sender_label
+    }
+
+    return attributes
   }
 
   private async calculateOrderItemsWeightKg(
     order: Partial<FulfillmentOrderDTO>,
-    fulfillmentItems: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[]
+    fulfillmentItems: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[],
   ): Promise<number | undefined> {
-    const orderItems = (order.items ?? []) as OrderLineItemWithWeight[]
-    if (!orderItems.length) {
-      return
+    const orderItemsResult = z
+      .array(orderLineItemWeightSchema)
+      .safeParse(order.items ?? [])
+    if (!orderItemsResult.success || orderItemsResult.data.length === 0) {
+      return undefined
     }
+    const orderItems = orderItemsResult.data
 
     const productWeights = await this.getProductWeights(orderItems)
-    const orderItemsById = new Map(
-      orderItems
-        .filter((item): item is OrderLineItemWithWeight & { id: string } =>
-          Boolean(item.id)
-        )
-        .map((item) => [item.id, item])
-    )
+    const orderItemsById = new Map<string, OrderLineItemWithWeight>()
+    for (const item of orderItems) {
+      if (item.id !== undefined && item.id.length > 0) {
+        orderItemsById.set(item.id, item)
+      }
+    }
 
     const itemsToWeigh =
       fulfillmentItems.length > 0
-        ? (fulfillmentItems as FulfillmentItemWithQuantity[])
+        ? fulfillmentItems
         : orderItems.map((item) => ({
             line_item_id: item.id,
             quantity: item.quantity,
@@ -620,60 +764,57 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
 
     let totalWeightKg = 0
     for (const item of itemsToWeigh) {
-      if (!item.line_item_id) {
-        continue
+      const lineItemId = item.line_item_id
+      const orderItem =
+        lineItemId === undefined || lineItemId === null || lineItemId === ""
+          ? undefined
+          : orderItemsById.get(lineItemId)
+      const rawWeight =
+        orderItem === undefined
+          ? undefined
+          : getOrderItemRawWeight(orderItem, productWeights)
+
+      if (orderItem !== undefined && rawWeight !== undefined && rawWeight > 0) {
+        const quantity = item.quantity ?? orderItem.quantity ?? 1
+        totalWeightKg += medusaWeightGramsToKg(rawWeight) * quantity
       }
-
-      const orderItem = orderItemsById.get(item.line_item_id)
-      if (!orderItem) {
-        continue
-      }
-
-      const rawWeight = getOrderItemRawWeight(orderItem, productWeights)
-
-      if (rawWeight === undefined || rawWeight <= 0) {
-        continue
-      }
-
-      const quantity =
-        toFiniteNumber(item.quantity) ?? toFiniteNumber(orderItem.quantity) ?? 1
-      totalWeightKg += medusaWeightGramsToKg(rawWeight) * quantity
     }
 
     return totalWeightKg > 0 ? totalWeightKg : undefined
   }
 
   private async getProductWeights(
-    orderItems: OrderLineItemWithWeight[]
-  ): Promise<Map<string, unknown>> {
-    const productIds = [
-      ...new Set(
-        orderItems
-          .map(
-            (item) => item.product_id ?? item.variant?.product?.id ?? undefined
-          )
-          .filter((id): id is string => Boolean(id))
-      ),
-    ]
+    orderItems: OrderLineItemWithWeight[],
+  ): Promise<Map<string, number | null>> {
+    const productIds = new Set<string>()
+    for (const item of orderItems) {
+      const productId = item.product_id ?? item.variant?.product?.id
+      if (
+        productId !== undefined &&
+        productId !== null &&
+        productId.length > 0
+      ) {
+        productIds.add(productId)
+      }
+    }
 
-    if (!this.query_ || productIds.length === 0) {
+    if (this.query === undefined || productIds.size === 0) {
       return new Map()
     }
 
-    const { data } = await this.query_.graph({
+    const { data } = await this.query.graph({
       entity: "product",
       fields: ["id", "weight"],
       filters: {
-        id: productIds,
+        id: [...productIds],
       },
     })
 
-    return new Map(
-      (data as ProductWeightRecord[]).map((product) => [
-        product.id,
-        product.weight,
-      ])
-    )
+    const productWeights = new Map<string, number | null>()
+    for (const product of data) {
+      productWeights.set(product.id, product.weight)
+    }
+    return productWeights
   }
 }
 

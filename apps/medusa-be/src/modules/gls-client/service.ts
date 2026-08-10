@@ -1,5 +1,13 @@
 import type { ICachingModuleService, Logger } from "@medusajs/framework/types"
 import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
+import {
+  getErrorMessage,
+  getRecordValue,
+  isRecord,
+  omitUndefined,
+} from "@techsio/std/object"
+
 import { decryptFields, encryptFields } from "../../utils/encryption"
 import { safeResolve } from "../../utils/safe-resolve"
 import { GLSClient } from "./client"
@@ -8,16 +16,18 @@ import {
   GLS_COUNTRY_CODES,
   GLS_PRINTER_TYPES,
   GLS_SENSITIVE_FIELDS,
-  type GLSBranch,
-  type GLSConfigDTO,
-  type GLSCountryCode,
-  type GLSCreatePacketResult,
-  type GLSEnvironment,
-  type GLSOptions,
-  type GLSPacketAttributes,
-  type GLSPacketStatusRecord,
-  type GLSPrinterType,
-  type UpdateGLSConfigInput,
+} from "./types"
+import type {
+  GLSBranch,
+  GLSConfigDTO,
+  GLSCountryCode,
+  GLSCreatePacketResult,
+  GLSEnvironment,
+  GLSOptions,
+  GLSPacketAttributes,
+  GLSPacketStatusRecord,
+  GLSPrinterType,
+  UpdateGLSConfigInput,
 } from "./types"
 
 const DEFAULT_COUNTRY_CODE: GLSCountryCode = "SK"
@@ -30,91 +40,125 @@ const CACHE_TAGS = {
 } as const
 
 const CACHE_TTL = {
-  CONFIG: 60,
   BRANCHES: 24 * 3600,
+  CONFIG: 60,
 } as const
 
-type InjectedDependencies = {
+type CachingDependency = Pick<
+  ICachingModuleService,
+  "clear" | "computeKey" | "get" | "set"
+>
+
+interface InjectedDependencies {
   logger: Logger
-  [Modules.CACHING]?: ICachingModuleService
+  [Modules.CACHING]?: CachingDependency
 }
 
-type GLSModuleOptions = {
+const isCachingDependency = (value: unknown): value is CachingDependency => {
+  if (!isRecord(value)) {
+    return false
+  }
+  return ["clear", "computeKey", "get", "set"].every(
+    (method) => typeof getRecordValue(value, method) === "function",
+  )
+}
+
+interface GLSModuleOptions {
   environment: GLSEnvironment
 }
 
-type DisabledConfigCacheEntry = {
+interface DisabledConfigCacheEntry {
   disabled: true
 }
 
-type CachedGLSOptions = Omit<GLSOptions, "password">
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
+/**
+ * Result of a cached effective-config lookup. `miss` (nothing usable cached,
+ * the database has to be consulted) is deliberately distinct from `disabled`
+ * (a cached negative answer that must be returned as-is).
+ */
+type CachedConfigLookup =
+  | { options: GLSOptions; status: "hit" }
+  | { status: "disabled" }
+  | { status: "miss" }
 
 const isDisabledConfigCacheEntry = (
-  value: unknown
+  value: unknown,
 ): value is DisabledConfigCacheEntry =>
-  isRecord(value) && value.disabled === true
+  isRecord(value) && getRecordValue(value, "disabled") === true
+
+const GLS_COUNTRY_CODE_SET: ReadonlySet<string> = new Set(GLS_COUNTRY_CODES)
+const GLS_PRINTER_TYPE_SET: ReadonlySet<string> = new Set(GLS_PRINTER_TYPES)
 
 const isGLSEnvironment = (value: unknown): value is GLSEnvironment =>
   value === "testing" || value === "production"
 
 const isGLSCountryCode = (value: unknown): value is GLSCountryCode =>
-  typeof value === "string" &&
-  (GLS_COUNTRY_CODES as readonly string[]).includes(value)
+  typeof value === "string" && GLS_COUNTRY_CODE_SET.has(value)
 
 const isGLSPrinterType = (value: unknown): value is GLSPrinterType =>
-  typeof value === "string" &&
-  (GLS_PRINTER_TYPES as readonly string[]).includes(value)
-
-const isOptionalString = (value: unknown): value is string | undefined =>
-  value === undefined || typeof value === "string"
+  typeof value === "string" && GLS_PRINTER_TYPE_SET.has(value)
 
 const isPositiveNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value > 0
 
-const isBoolean = (value: unknown): value is boolean =>
-  typeof value === "boolean"
+const isNonEmptyString = (value: unknown): value is string =>
+  typeof value === "string" && value.length > 0
 
-const isCachedGLSOptions = (value: unknown): value is CachedGLSOptions =>
-  isRecord(value) &&
-  !("password" in value) &&
-  typeof value.username === "string" &&
-  isPositiveNumber(value.client_number) &&
-  isGLSEnvironment(value.environment) &&
-  isGLSCountryCode(value.country_code) &&
-  isOptionalString(value.webshop_engine) &&
-  isGLSPrinterType(value.type_of_printer) &&
-  isPositiveNumber(value.print_position) &&
-  isBoolean(value.hide_phone_number_on_labels) &&
-  typeof value.sender_name === "string" &&
-  typeof value.sender_street === "string" &&
-  typeof value.sender_house_number === "string" &&
-  isOptionalString(value.sender_house_number_info) &&
-  typeof value.sender_city === "string" &&
-  typeof value.sender_zip_code === "string" &&
-  typeof value.sender_country === "string" &&
-  isOptionalString(value.sender_phone) &&
-  isOptionalString(value.sender_email)
+const cachedGLSOptionsSchema = z.object({
+  client_number: z.number().positive(),
+  country_code: z.enum(GLS_COUNTRY_CODES),
+  environment: z.enum(["testing", "production"]),
+  hide_phone_number_on_labels: z.boolean(),
+  print_position: z.number().positive(),
+  sender_city: z.string(),
+  sender_country: z.string(),
+  sender_email: z.string().optional(),
+  sender_house_number: z.string(),
+  sender_house_number_info: z.string().optional(),
+  sender_name: z.string(),
+  sender_phone: z.string().optional(),
+  sender_street: z.string(),
+  sender_zip_code: z.string(),
+  type_of_printer: z.enum(GLS_PRINTER_TYPES),
+  username: z.string(),
+  webshop_engine: z.string().optional(),
+})
+
+type CachedGLSOptions = z.infer<typeof cachedGLSOptionsSchema>
+
+const decodeCachedGLSOptions = (
+  value: unknown,
+): CachedGLSOptions | undefined => {
+  const parsed = cachedGLSOptionsSchema.safeParse(value)
+  return parsed.success ? parsed.data : undefined
+}
 
 const toCachedOptions = ({
   password: _password,
   ...options
 }: GLSOptions): CachedGLSOptions => options
 
-const isGLSBranch = (value: unknown): value is GLSBranch =>
-  isRecord(value) &&
-  typeof value.id === "string" &&
-  typeof value.name === "string" &&
-  typeof value.nameStreet === "string" &&
-  typeof value.street === "string" &&
-  typeof value.city === "string" &&
-  typeof value.zip === "string" &&
-  typeof value.country === "string"
+const glsBranchSchema = z.object({
+  branchType: z.string().optional(),
+  city: z.string(),
+  country: z.string(),
+  currency: z.string().optional(),
+  id: z.string(),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
+  name: z.string(),
+  nameStreet: z.string(),
+  openingHours: z.string().optional(),
+  street: z.string(),
+  zip: z.string(),
+})
 
-const isGLSBranchArray = (value: unknown): value is GLSBranch[] =>
-  Array.isArray(value) && value.every(isGLSBranch)
+const glsBranchArraySchema = z.array(glsBranchSchema)
+
+const decodeGLSBranches = (value: unknown): GLSBranch[] | undefined => {
+  const parsed = glsBranchArraySchema.safeParse(value)
+  return parsed.success ? parsed.data : undefined
+}
 
 const nullableString = (value: unknown): string | null =>
   typeof value === "string" ? value : null
@@ -125,11 +169,25 @@ const nullableNumber = (value: unknown): number | null =>
 const booleanValue = (value: unknown, defaultValue = false): boolean =>
   typeof value === "boolean" ? value : defaultValue
 
-const toDate = (value: unknown): Date =>
-  value instanceof Date ? value : new Date(String(value ?? Date.now()))
+/**
+ * Stored timestamps arrive as `Date` from the ORM. Strings and epoch numbers
+ * are still accepted defensively; anything else falls back to "now" rather
+ * than an Invalid Date.
+ */
+const toDate = (value: unknown): Date => {
+  if (value instanceof Date) {
+    return value
+  }
+
+  if (typeof value === "string" || typeof value === "number") {
+    return new Date(value)
+  }
+
+  return new Date()
+}
 
 const isUniqueConstraintError = (error: unknown): boolean => {
-  const message = error instanceof Error ? error.message : String(error)
+  const message = getErrorMessage(error)
   return (
     message.includes("unique constraint") || message.includes("duplicate key")
   )
@@ -149,27 +207,68 @@ const toPrintPosition = (value: unknown): number => {
   return Math.min(Math.max(value, 1), 4)
 }
 
-const hasRequiredPickupAddress = (config: GLSConfigDTO): boolean =>
-  Boolean(
-    config.sender_name &&
-      config.sender_street &&
-      config.sender_house_number &&
-      config.sender_city &&
-      config.sender_zip_code &&
-      config.sender_country
-  )
+// ============================================
+// Usable configuration (credentials + pickup address)
+// ============================================
+
+const REQUIRED_PICKUP_FIELDS = [
+  "sender_name",
+  "sender_street",
+  "sender_house_number",
+  "sender_city",
+  "sender_zip_code",
+  "sender_country",
+] as const satisfies readonly (keyof GLSConfigDTO)[]
+
+/** Sender fields that stay optional in `GLSOptions` when unset in the config. */
+const OPTIONAL_SENDER_FIELDS = [
+  "sender_house_number_info",
+  "sender_phone",
+  "sender_email",
+] as const satisfies readonly (keyof GLSConfigDTO & keyof GLSOptions)[]
+
+type GLSPickupAddress = Record<(typeof REQUIRED_PICKUP_FIELDS)[number], string>
+
+interface GLSCredentials {
+  client_number: number
+  password: string
+  username: string
+}
+
+/** A stored config that carries everything a MyGLS API call requires. */
+type UsableGLSConfig = GLSConfigDTO & GLSCredentials & GLSPickupAddress
+
+const hasRequiredPickupAddress = (
+  config: GLSConfigDTO,
+): config is GLSConfigDTO & GLSPickupAddress =>
+  REQUIRED_PICKUP_FIELDS.every((field) => isNonEmptyString(config[field]))
+
+const hasRequiredCredentials = (
+  config: GLSConfigDTO,
+): config is GLSConfigDTO & GLSCredentials =>
+  isNonEmptyString(config.username) &&
+  isNonEmptyString(config.password) &&
+  isPositiveNumber(config.client_number)
+
+const isUsableConfig = (
+  config: GLSConfigDTO | null,
+): config is UsableGLSConfig =>
+  config !== null &&
+  config.is_enabled &&
+  hasRequiredCredentials(config) &&
+  hasRequiredPickupAddress(config)
 
 const mapGLSConfigDTO = (config: unknown): GLSConfigDTO => {
   if (!isRecord(config)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "GLS: Invalid config record"
+      "GLS: Invalid config record",
     )
   }
 
-  const id: unknown = config.id
-  const environment: unknown = config.environment
-  const isEnabled: unknown = config.is_enabled
+  const environment = getRecordValue(config, "environment")
+  const id = getRecordValue(config, "id")
+  const isEnabled = getRecordValue(config, "is_enabled")
 
   if (
     typeof id !== "string" ||
@@ -178,35 +277,39 @@ const mapGLSConfigDTO = (config: unknown): GLSConfigDTO => {
   ) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "GLS: Invalid config record"
+      "GLS: Invalid config record",
     )
   }
 
   return {
-    id,
+    client_number: nullableNumber(getRecordValue(config, "client_number")),
+    country_code: toCountryCode(getRecordValue(config, "country_code")),
+    created_at: toDate(getRecordValue(config, "created_at")),
     environment,
-    is_enabled: isEnabled,
-    username: nullableString(config.username),
-    password: nullableString(config.password),
-    client_number: nullableNumber(config.client_number),
-    country_code: toCountryCode(config.country_code),
-    webshop_engine: nullableString(config.webshop_engine),
-    type_of_printer: toPrinterType(config.type_of_printer),
-    print_position: toPrintPosition(config.print_position),
     hide_phone_number_on_labels: booleanValue(
-      config.hide_phone_number_on_labels
+      getRecordValue(config, "hide_phone_number_on_labels"),
     ),
-    sender_name: nullableString(config.sender_name),
-    sender_street: nullableString(config.sender_street),
-    sender_house_number: nullableString(config.sender_house_number),
-    sender_house_number_info: nullableString(config.sender_house_number_info),
-    sender_city: nullableString(config.sender_city),
-    sender_zip_code: nullableString(config.sender_zip_code),
-    sender_country: nullableString(config.sender_country),
-    sender_phone: nullableString(config.sender_phone),
-    sender_email: nullableString(config.sender_email),
-    created_at: toDate(config.created_at),
-    updated_at: toDate(config.updated_at),
+    id,
+    is_enabled: isEnabled,
+    password: nullableString(getRecordValue(config, "password")),
+    print_position: toPrintPosition(getRecordValue(config, "print_position")),
+    sender_city: nullableString(getRecordValue(config, "sender_city")),
+    sender_country: nullableString(getRecordValue(config, "sender_country")),
+    sender_email: nullableString(getRecordValue(config, "sender_email")),
+    sender_house_number: nullableString(
+      getRecordValue(config, "sender_house_number"),
+    ),
+    sender_house_number_info: nullableString(
+      getRecordValue(config, "sender_house_number_info"),
+    ),
+    sender_name: nullableString(getRecordValue(config, "sender_name")),
+    sender_phone: nullableString(getRecordValue(config, "sender_phone")),
+    sender_street: nullableString(getRecordValue(config, "sender_street")),
+    sender_zip_code: nullableString(getRecordValue(config, "sender_zip_code")),
+    type_of_printer: toPrinterType(getRecordValue(config, "type_of_printer")),
+    updated_at: toDate(getRecordValue(config, "updated_at")),
+    username: nullableString(getRecordValue(config, "username")),
+    webshop_engine: nullableString(getRecordValue(config, "webshop_engine")),
   }
 }
 
@@ -219,44 +322,45 @@ const mapGLSConfigDTO = (config: unknown): GLSConfigDTO => {
 export class GLSClientModuleService extends MedusaService({
   GLSConfig,
 }) {
-  private client_: GLSClient | null = null
-  private clientConfigFingerprint_: string | null = null
-  private branchesRefresh_: Promise<GLSBranch[]> | null = null
-  protected readonly logger_: Logger
-  protected readonly environment_: GLSEnvironment
-  protected readonly cacheService_: ICachingModuleService | null
+  private _client: GLSClient | null = null
+  private _clientConfigFingerprint: string | null = null
+  private _branchesRefresh: Promise<GLSBranch[]> | null = null
+  protected readonly _logger: Logger
+  protected readonly _environment: GLSEnvironment
+  protected readonly _cacheService: CachingDependency | null
 
   constructor(container: InjectedDependencies, options: GLSModuleOptions) {
     super(container, options)
-    this.logger_ = container.logger
-    this.environment_ = options.environment
+    this._logger = container.logger
+    this._environment = options.environment
 
-    this.cacheService_ = safeResolve<ICachingModuleService>(
+    this._cacheService = safeResolve(
       container,
-      Modules.CACHING
+      Modules.CACHING,
+      isCachingDependency,
     )
 
-    if (!this.cacheService_) {
-      this.logger_.warn(
-        "GLS: Cache service not available. Using local-only mode (not suitable for multi-container)."
+    if (!this._cacheService) {
+      this._logger.warn(
+        "GLS: Cache service not available. Using local-only mode (not suitable for multi-container).",
       )
     }
 
-    this.logger_.info(
-      `GLS: Module service initialized (${this.environment_} environment)`
+    this._logger.info(
+      `GLS: Module service initialized (${this._environment} environment)`,
     )
   }
 
   async getEnvironment(): Promise<GLSEnvironment> {
-    return this.environment_
+    return await Promise.resolve(this._environment)
   }
 
   async getConfig(): Promise<GLSConfigDTO | null> {
     const configs = await this.listGLSConfigs(
-      { environment: this.environment_ },
-      { take: 1 }
+      { environment: this._environment },
+      { take: 1 },
     )
-    const config = configs[0]
+    const [config] = configs
     if (!config) {
       return null
     }
@@ -270,12 +374,11 @@ export class GLSClientModuleService extends MedusaService({
   async updateConfig(data: UpdateGLSConfigInput): Promise<GLSConfigDTO> {
     const existing = await this.getConfig()
 
+    // GLS_SENSITIVE_FIELDS is ["password"]; the key is dropped statically so
+    // the payload keeps its declared shape.
     const filteredData = { ...data }
-    for (const field of GLS_SENSITIVE_FIELDS) {
-      const key = field as keyof UpdateGLSConfigInput
-      if (filteredData[key] === "") {
-        delete filteredData[key]
-      }
+    if (filteredData.password === "") {
+      delete filteredData.password
     }
 
     const encrypted = encryptFields(filteredData, [...GLS_SENSITIVE_FIELDS])
@@ -292,7 +395,7 @@ export class GLSClientModuleService extends MedusaService({
     try {
       const created = await this.createGLSConfigs({
         ...encrypted,
-        environment: this.environment_,
+        environment: this._environment,
       })
       await this.invalidateConfigCache()
       return decryptFields(mapGLSConfigDTO(created), [...GLS_SENSITIVE_FIELDS])
@@ -321,20 +424,15 @@ export class GLSClientModuleService extends MedusaService({
    */
   async getEffectiveConfig(): Promise<GLSOptions | null> {
     const cached = await this.getCachedConfig()
-    if (cached !== undefined) {
-      return cached
+    if (cached.status === "hit") {
+      return cached.options
+    }
+    if (cached.status === "disabled") {
+      return null
     }
 
     const config = await this.getConfig()
-    if (
-      !(
-        config?.is_enabled &&
-        config.username &&
-        config.password &&
-        isPositiveNumber(config.client_number) &&
-        hasRequiredPickupAddress(config)
-      )
-    ) {
+    if (!isUsableConfig(config)) {
       await this.cacheDisabledConfig()
       return null
     }
@@ -345,131 +443,143 @@ export class GLSClientModuleService extends MedusaService({
     return options
   }
 
-  private async getCachedConfig(): Promise<GLSOptions | null | undefined> {
-    if (!this.cacheService_) {
-      return
+  private async getCachedConfig(): Promise<CachedConfigLookup> {
+    if (!this._cacheService) {
+      return { status: "miss" }
     }
-    const cached = (await this.cacheService_.get({
+
+    const cached: unknown = await this._cacheService.get({
       key: await this.getConfigCacheKey(),
-    })) as unknown
+    })
+
     if (isDisabledConfigCacheEntry(cached)) {
-      return null
-    }
-    if (isCachedGLSOptions(cached)) {
-      const config = await this.getConfig()
-      if (!(config?.is_enabled && config.password)) {
-        await this.cacheDisabledConfig()
-        return null
-      }
-      return { ...cached, password: config.password }
-    }
-    return
-  }
-
-  private toEffectiveOptions(config: GLSConfigDTO): GLSOptions {
-    if (!(config.username && config.password && config.client_number)) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "GLS: Missing MyGLS credentials"
-      )
+      return { status: "disabled" }
     }
 
-    if (!hasRequiredPickupAddress(config)) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "GLS: Missing pickup address fields"
-      )
+    const decodedOptions = decodeCachedGLSOptions(cached)
+    if (decodedOptions === undefined) {
+      return { status: "miss" }
+    }
+
+    // The password is never cached, so it is re-read from the database.
+    const config = await this.getConfig()
+    if (
+      config === null ||
+      !config.is_enabled ||
+      !isNonEmptyString(config.password)
+    ) {
+      await this.cacheDisabledConfig()
+      return { status: "disabled" }
     }
 
     return {
-      username: config.username,
-      password: config.password,
-      client_number: config.client_number,
-      environment: this.environment_,
-      country_code: toCountryCode(config.country_code),
-      webshop_engine: config.webshop_engine ?? DEFAULT_WEBSHOP_ENGINE,
-      type_of_printer: toPrinterType(config.type_of_printer),
-      print_position: toPrintPosition(config.print_position),
-      hide_phone_number_on_labels: config.hide_phone_number_on_labels,
-      sender_name: config.sender_name as string,
-      sender_street: config.sender_street as string,
-      sender_house_number: config.sender_house_number as string,
-      sender_house_number_info: config.sender_house_number_info ?? undefined,
-      sender_city: config.sender_city as string,
-      sender_zip_code: config.sender_zip_code as string,
-      sender_country: config.sender_country as string,
-      sender_phone: config.sender_phone ?? undefined,
-      sender_email: config.sender_email ?? undefined,
+      options: { ...omitUndefined(decodedOptions), password: config.password },
+      status: "hit",
     }
   }
 
+  /**
+   * The caller proves the config is usable via `isUsableConfig`, so the
+   * required credential and pickup-address fields are non-null by type.
+   */
+  private toEffectiveOptions(config: UsableGLSConfig): GLSOptions {
+    const options: GLSOptions = {
+      client_number: config.client_number,
+      country_code: toCountryCode(config.country_code),
+      environment: this._environment,
+      hide_phone_number_on_labels: config.hide_phone_number_on_labels,
+      password: config.password,
+      print_position: toPrintPosition(config.print_position),
+      sender_city: config.sender_city,
+      sender_country: config.sender_country,
+      sender_house_number: config.sender_house_number,
+      sender_name: config.sender_name,
+      sender_street: config.sender_street,
+      sender_zip_code: config.sender_zip_code,
+      type_of_printer: toPrinterType(config.type_of_printer),
+      username: config.username,
+      webshop_engine: config.webshop_engine ?? DEFAULT_WEBSHOP_ENGINE,
+    }
+
+    for (const field of OPTIONAL_SENDER_FIELDS) {
+      const value = config[field]
+      if (value !== null) {
+        options[field] = value
+      }
+    }
+
+    return options
+  }
+
   private async cacheEffectiveConfig(options: GLSOptions): Promise<void> {
-    if (!this.cacheService_) {
+    if (!this._cacheService) {
       return
     }
-    await this.cacheService_.set({
-      key: await this.getConfigCacheKey(),
+    await this._cacheService.set({
       data: toCachedOptions(options),
-      ttl: CACHE_TTL.CONFIG,
+      key: await this.getConfigCacheKey(),
       tags: [CACHE_TAGS.ALL],
+      ttl: CACHE_TTL.CONFIG,
     })
   }
 
   private async cacheDisabledConfig(): Promise<void> {
-    if (!this.cacheService_) {
+    if (!this._cacheService) {
       return
     }
-    await this.cacheService_.set({
-      key: await this.getConfigCacheKey(),
+    await this._cacheService.set({
       data: { disabled: true } satisfies DisabledConfigCacheEntry,
-      ttl: CACHE_TTL.CONFIG,
+      key: await this.getConfigCacheKey(),
       tags: [CACHE_TAGS.ALL],
+      ttl: CACHE_TTL.CONFIG,
     })
   }
 
   async invalidateConfigCache(): Promise<void> {
-    this.client_ = null
-    this.clientConfigFingerprint_ = null
-    if (this.cacheService_) {
-      await this.cacheService_.clear({ key: await this.getConfigCacheKey() })
+    this._client = null
+    this._clientConfigFingerprint = null
+    if (this._cacheService) {
+      await this._cacheService.clear({ key: await this.getConfigCacheKey() })
     }
   }
 
   async invalidateAllCaches(): Promise<void> {
-    this.client_ = null
-    this.clientConfigFingerprint_ = null
-    if (this.cacheService_) {
-      await this.cacheService_.clear({ tags: [CACHE_TAGS.ALL] })
-      this.logger_.info("GLS: Invalidated all caches")
+    this._client = null
+    this._clientConfigFingerprint = null
+    if (this._cacheService) {
+      await this._cacheService.clear({ tags: [CACHE_TAGS.ALL] })
+      this._logger.info("GLS: Invalidated all caches")
     }
   }
 
   async invalidateBranchCache(): Promise<void> {
-    if (this.cacheService_) {
-      await this.cacheService_.clear({ tags: [CACHE_TAGS.BRANCHES] })
+    if (this._cacheService) {
+      await this._cacheService.clear({ tags: [CACHE_TAGS.BRANCHES] })
     }
   }
 
   private async getConfigCacheKey(): Promise<string> {
-    return this.computeCacheKey("config", { environment: this.environment_ })
+    return await this.computeCacheKey("config", {
+      environment: this._environment,
+    })
   }
 
   private async getBranchesCacheKey(): Promise<string> {
-    return this.computeCacheKey("branches")
+    return await this.computeCacheKey("branches")
   }
 
   private async computeCacheKey(
     scope: string,
-    parts: Record<string, unknown> = {}
+    parts: Partial<{ environment: GLSEnvironment }> = {},
   ): Promise<string> {
-    if (!this.cacheService_) {
+    if (!this._cacheService) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "GLS: Cache service is not available"
+        "GLS: Cache service is not available",
       )
     }
 
-    return this.cacheService_.computeKey({
+    return await this._cacheService.computeKey({
       module: "gls",
       scope,
       ...parts,
@@ -481,75 +591,76 @@ export class GLSClientModuleService extends MedusaService({
     if (!config) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        "GLS is disabled or not configured. Enable it in Settings → GLS and fill MyGLS credentials plus pickup address."
+        "GLS is disabled or not configured. Enable it in Settings → GLS and fill MyGLS credentials plus pickup address.",
       )
     }
 
     const fingerprint = JSON.stringify(config)
-    if (this.client_ && this.clientConfigFingerprint_ === fingerprint) {
-      return this.client_
+    if (this._client && this._clientConfigFingerprint === fingerprint) {
+      return this._client
     }
 
-    this.client_ = new GLSClient(config)
-    this.clientConfigFingerprint_ = fingerprint
-    return this.client_
+    this._client = new GLSClient(config)
+    this._clientConfigFingerprint = fingerprint
+    return this._client
   }
 
   async createPacket(
-    attributes: GLSPacketAttributes
+    attributes: GLSPacketAttributes,
   ): Promise<GLSCreatePacketResult> {
     const client = await this.getClient()
-    return client.createPacket(attributes)
+    return await client.createPacket(attributes)
   }
 
   async cancelPacket(packetId: string | number): Promise<boolean> {
     const client = await this.getClient()
     const result = await client.cancelPacket(packetId)
     if (result) {
-      this.logger_.info(`GLS: Packet ${packetId} cancelled`)
+      this._logger.info(`GLS: Packet ${packetId} cancelled`)
     } else {
-      this.logger_.warn(`GLS: Cancellation failed for packet ${packetId}`)
+      this._logger.warn(`GLS: Cancellation failed for packet ${packetId}`)
     }
     return result
   }
 
   async getPacketStatus(
-    parcelNumber: string | number
+    parcelNumber: string | number,
   ): Promise<GLSPacketStatusRecord[]> {
     const client = await this.getClient()
-    return client.packetStatus(parcelNumber)
+    return await client.packetStatus(parcelNumber)
   }
 
   async downloadLabelPdf(packetId: string | number): Promise<Buffer> {
     const client = await this.getClient()
-    return client.downloadLabelPdf(packetId)
+    return await client.downloadLabelPdf(packetId)
   }
 
   async downloadLabelsPdf(packetIds: (string | number)[]): Promise<Buffer> {
     const client = await this.getClient()
-    return client.downloadLabelsPdf(packetIds)
+    return await client.downloadLabelsPdf(packetIds)
   }
 
   /** Pickup-point list from MyGLS MasterDataService, cached for 24h. */
   async getBranches(): Promise<GLSBranch[]> {
-    if (this.cacheService_) {
-      const cached = (await this.cacheService_.get({
+    if (this._cacheService) {
+      const cached: unknown = await this._cacheService.get({
         key: await this.getBranchesCacheKey(),
-      })) as unknown
-      if (isGLSBranchArray(cached)) {
-        return cached
+      })
+      const decodedBranches = decodeGLSBranches(cached)
+      if (decodedBranches !== undefined) {
+        return decodedBranches
       }
     }
 
-    if (this.branchesRefresh_) {
-      return this.branchesRefresh_
+    if (this._branchesRefresh) {
+      return await this._branchesRefresh
     }
 
-    this.branchesRefresh_ = this.refreshBranches()
+    this._branchesRefresh = this.refreshBranches()
     try {
-      return await this.branchesRefresh_
+      return await this._branchesRefresh
     } finally {
-      this.branchesRefresh_ = null
+      this._branchesRefresh = null
     }
   }
 
@@ -557,12 +668,12 @@ export class GLSClientModuleService extends MedusaService({
     const client = await this.getClient()
     const branches = await client.getBranchList()
 
-    if (this.cacheService_ && branches.length > 0) {
-      await this.cacheService_.set({
-        key: await this.getBranchesCacheKey(),
+    if (this._cacheService && branches.length > 0) {
+      await this._cacheService.set({
         data: branches,
-        ttl: CACHE_TTL.BRANCHES,
+        key: await this.getBranchesCacheKey(),
         tags: [CACHE_TAGS.ALL, CACHE_TAGS.BRANCHES],
+        ttl: CACHE_TTL.BRANCHES,
       })
     }
 

@@ -5,17 +5,32 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { createRemoteLinkStep } from "@medusajs/medusa/core-flows"
+
 import { APPROVAL_MODULE } from "../../../modules/approval"
-import type { ModuleCreateApproval } from "../../../types"
-import { createApprovalStep } from "../steps"
+import type { ModuleApprovalStatus, ModuleCreateApproval } from "../../../types"
 import { createApprovalStatusStep } from "../steps/create-approval-status"
+import { createApprovalStep } from "../steps/create-approvals"
+
+const getApprovalStatusLinkData = (
+  value: ModuleApprovalStatus | ModuleApprovalStatus[],
+) => {
+  const values = Array.isArray(value) ? value : [value]
+  return values.map((status) => ({
+    [Modules.CART]: {
+      cart_id: status.cart_id,
+    },
+    [APPROVAL_MODULE]: {
+      approval_status_id: status.id,
+    },
+  }))
+}
 
 export const createApprovalsWorkflow = createWorkflow(
   "create-approvals",
   (
     input:
       | Omit<ModuleCreateApproval, "type">
-      | Omit<ModuleCreateApproval, "type">[]
+      | Omit<ModuleCreateApproval, "type">[],
   ) => {
     const result = createApprovalStep(input)
 
@@ -40,25 +55,18 @@ export const createApprovalsWorkflow = createWorkflow(
       }))
     })
 
-    const approvalStatusLinkData = transform(approvalStatusResult, (status) => {
-      const statuses = Array.isArray(status) ? status : [status]
-      return statuses.map((statusItem) => ({
-        [Modules.CART]: {
-          cart_id: statusItem.cart_id,
-        },
-        [APPROVAL_MODULE]: {
-          approval_status_id: statusItem.id,
-        },
-      }))
-    })
+    const approvalStatusLinkData = transform(
+      approvalStatusResult,
+      getApprovalStatusLinkData,
+    )
 
     const linkData = transform(
       [approvalLinkData, approvalStatusLinkData],
-      (data) => data.flat()
+      (data) => data.flat(),
     )
 
     createRemoteLinkStep(linkData)
 
     return new WorkflowResponse(result)
-  }
+  },
 )

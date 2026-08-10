@@ -1,28 +1,28 @@
-import {
-  setAuthAppMetadataStep,
-  updateCustomersWorkflow,
-} from "@medusajs/core-flows"
+import type { MetadataType } from "@medusajs/framework/types"
 import {
   createWorkflow,
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+import {
+  setAuthAppMetadataStep,
+  updateCustomersWorkflow,
+} from "@medusajs/medusa/core-flows"
+
 import { ensureReactivatedCustomerStep } from "../steps/ensure-reactivated-customer"
 import { markCustomerAccountActiveStep } from "../steps/mark-customer-account-active"
-import {
-  type CustomerRecord,
-  prepareCustomerAccountReactivationStep,
-} from "../steps/prepare-customer-account-reactivation"
+import { prepareCustomerAccountReactivationStep } from "../steps/prepare-customer-account-reactivation"
+import type { CustomerRecord } from "../steps/prepare-customer-account-reactivation"
 import { restoreCustomerAccountStep } from "../steps/restore-customer-account"
 
-type ReactivateCustomerAccountWorkflowInput = {
+interface ReactivateCustomerAccountWorkflowInput {
   auth_identity_id: string
   company_name?: string | null
   customer: CustomerRecord
   email: string
   first_name?: string | null
   last_name?: string | null
-  metadata?: Record<string, unknown> | null
+  metadata?: MetadataType
   phone?: string | null
 }
 
@@ -35,7 +35,7 @@ export const reactivateCustomerAccountWorkflow = createWorkflow(
       transform({ prepared }, ({ prepared: data }) => ({
         customer_id: data.customer_id,
         was_soft_deleted: data.was_soft_deleted,
-      }))
+      })),
     )
 
     const updatedCustomers = updateCustomersWorkflow.runAsStep({
@@ -50,7 +50,7 @@ export const reactivateCustomerAccountWorkflow = createWorkflow(
     const activeCustomer = markCustomerAccountActiveStep(
       transform({ prepared, updatedCustomers }, ({ prepared: data }) => ({
         customer_id: data.customer_id,
-      }))
+      })),
     )
 
     setAuthAppMetadataStep(
@@ -58,7 +58,7 @@ export const reactivateCustomerAccountWorkflow = createWorkflow(
         actorType: "customer",
         authIdentityId: data.auth_identity_id,
         value: data.customer_id,
-      }))
+      })),
     )
 
     const reactivatedCustomer = ensureReactivatedCustomerStep(updatedCustomers)
@@ -69,8 +69,8 @@ export const reactivateCustomerAccountWorkflow = createWorkflow(
         ({ reactivatedCustomer: customer }) => ({
           customer,
           reactivated: true,
-        })
-      )
+        }),
+      ),
     )
-  }
+  },
 )

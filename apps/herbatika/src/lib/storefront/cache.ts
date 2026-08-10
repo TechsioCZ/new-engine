@@ -1,26 +1,26 @@
 import { createCacheConfig } from "@techsio/storefront-data/shared/cache-config"
 
 export const storefrontCacheConfig = createCacheConfig({
-  static: {
-    staleTime: 12 * 60 * 60 * 1000,
-    gcTime: 7 * 24 * 60 * 60 * 1000,
-  },
-  semiStatic: {
-    staleTime: 10 * 60 * 1000,
-    gcTime: 12 * 60 * 60 * 1000,
-  },
   realtime: {
-    staleTime: 10 * 1000,
     gcTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: true,
     refetchOnMount: "always",
     refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
+    staleTime: 10 * 1000,
+  },
+  semiStatic: {
+    gcTime: 12 * 60 * 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+  },
+  static: {
+    gcTime: 7 * 24 * 60 * 60 * 1000,
+    staleTime: 12 * 60 * 60 * 1000,
   },
   userData: {
-    staleTime: 60 * 1000,
     gcTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: true,
     refetchOnMount: true,
     refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
+    staleTime: 60 * 1000,
   },
 })

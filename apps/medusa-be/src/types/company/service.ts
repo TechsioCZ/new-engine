@@ -5,6 +5,7 @@ import type {
   IModuleService,
   RestoreReturn,
 } from "@medusajs/framework/types"
+
 import type {
   ModuleCompany,
   ModuleCreateCompany,
@@ -14,14 +15,12 @@ import type {
   ModuleUpdateEmployee,
 } from "./module"
 
-export interface ModuleCompanyFilters
-  extends BaseFilterable<ModuleCompanyFilters> {
+interface ModuleCompanyFilters extends BaseFilterable<ModuleCompanyFilters> {
   q?: string
   id?: string | string[]
 }
 
-export interface ModuleEmployeeFilters
-  extends BaseFilterable<ModuleEmployeeFilters> {
+interface ModuleEmployeeFilters extends BaseFilterable<ModuleEmployeeFilters> {
   q?: string
   id?: string | string[]
   company_id?: string | string[]
@@ -33,79 +32,75 @@ export interface ModuleEmployeeFilters
  */
 export interface ICompanyModuleService extends IModuleService {
   /* Entity: Companies */
-  createCompanies(
-    data: ModuleCreateCompany,
-    sharedContext?: Context
-  ): Promise<ModuleCompany>
+  createCompanies: {
+    (data: ModuleCreateCompany, sharedContext?: Context): Promise<ModuleCompany>
+    (
+      data: ModuleCreateCompany[],
+      sharedContext?: Context,
+    ): Promise<ModuleCompany[]>
+  }
 
-  createCompanies(
-    data: ModuleCreateCompany[],
-    sharedContext?: Context
-  ): Promise<ModuleCompany[]>
-
-  retrieveCompany(
+  retrieveCompany: (
     id: string,
     config?: FindConfig<ModuleCompany>,
-    sharedContext?: Context
-  ): Promise<ModuleCompany>
+    sharedContext?: Context,
+  ) => Promise<ModuleCompany>
 
-  updateCompanies(
-    data: ModuleUpdateCompany,
-    sharedContext?: Context
-  ): Promise<ModuleCompany>
+  updateCompanies: {
+    (data: ModuleUpdateCompany, sharedContext?: Context): Promise<ModuleCompany>
+    (
+      data: ModuleUpdateCompany[],
+      sharedContext?: Context,
+    ): Promise<ModuleCompany[]>
+  }
 
-  updateCompanies(
-    data: ModuleUpdateCompany[],
-    sharedContext?: Context
-  ): Promise<ModuleCompany[]>
-
-  listCompanies(
+  listCompanies: (
     filters?: ModuleCompanyFilters,
     config?: FindConfig<ModuleCompany>,
-    sharedContext?: Context
-  ): Promise<ModuleCompany[]>
+    sharedContext?: Context,
+  ) => Promise<ModuleCompany[]>
 
-  deleteCompanies(ids: string[], sharedContext?: Context): Promise<void>
+  deleteCompanies: (ids: string[], sharedContext?: Context) => Promise<void>
 
-  softDeleteCompanies(ids: string[], sharedContext?: Context): Promise<void>
+  softDeleteCompanies: (ids: string[], sharedContext?: Context) => Promise<void>
 
-  restoreCompanies<TReturnableLinkableKeys extends string = string>(
+  restoreCompanies: <TReturnableLinkableKeys extends string = string>(
     ids: string[],
     config?: RestoreReturn<TReturnableLinkableKeys>,
-    sharedContext?: Context
-  ): Promise<Record<TReturnableLinkableKeys, string[]> | undefined>
+    sharedContext?: Context,
+  ) => Promise<Record<TReturnableLinkableKeys, string[]> | undefined>
 
   /* Entity: Employees */
 
-  listEmployees(
+  listEmployees: (
     filters?: ModuleEmployeeFilters,
     config?: FindConfig<ModuleEmployee>,
-    sharedContext?: Context
-  ): Promise<ModuleEmployee[]>
+    sharedContext?: Context,
+  ) => Promise<ModuleEmployee[]>
 
-  retrieveEmployee(
+  retrieveEmployee: (
     id: string,
     config?: FindConfig<ModuleEmployee>,
-    sharedContext?: Context
-  ): Promise<ModuleEmployee>
+    sharedContext?: Context,
+  ) => Promise<ModuleEmployee>
 
-  createEmployees(
+  createEmployees: (
     data: ModuleCreateEmployee,
-    sharedContext?: Context
-  ): Promise<ModuleEmployee>
+    sharedContext?: Context,
+  ) => Promise<ModuleEmployee>
 
-  updateEmployees(
+  updateEmployees: (
     data: ModuleUpdateEmployee,
-    sharedContext?: Context
-  ): Promise<ModuleEmployee>
+    sharedContext?: Context,
+  ) => Promise<ModuleEmployee>
 
-  deleteEmployees(ids: string[], sharedContext?: Context): Promise<void>
+  deleteEmployees: (ids: string[], sharedContext?: Context) => Promise<void>
 
-  softDeleteEmployees(ids: string[], sharedContext?: Context): Promise<void>
+  softDeleteEmployees: (ids: string[], sharedContext?: Context) => Promise<void>
 
-  restoreEmployees<TReturnableLinkableKeys extends string = string>(
+  restoreEmployees: <TReturnableLinkableKeys extends string = string>(
     ids: string[],
     config?: RestoreReturn<TReturnableLinkableKeys>,
-    sharedContext?: Context
-  ): Promise<Record<TReturnableLinkableKeys, string[]> | undefined>
+    sharedContext?: Context,
+  ) => Promise<Record<TReturnableLinkableKeys, string[]> | undefined>
 }

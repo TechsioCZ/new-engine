@@ -1,16 +1,16 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import { listPriceListsWorkflow } from "../../../../../workflows/price-lists-batch/workflow"
 
-const parseQueryNumber = (value: unknown) => {
-  if (typeof value !== "string" || value.trim().length === 0) {
-    return
-  }
-
-  const parsed = Number(value)
+const parseQueryNumber = (value: unknown): number | undefined => {
+  const parsed =
+    typeof value === "string" && value.trim().length > 0
+      ? Number(value)
+      : Number.NaN
   return Number.isFinite(parsed) ? parsed : undefined
 }
 
-/**
+/*
  * @api [get] /api/symmy/v1/price-lists
  * operationId: ListSymmyPriceLists
  * summary: List Symmy price lists
@@ -74,13 +74,14 @@ const parseQueryNumber = (value: unknown) => {
  * x-workflow: listPriceListsWorkflow
  * x-events: []
  */
-export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
-  const limit = parseQueryNumber(req.query.limit)
-  const offset = parseQueryNumber(req.query.offset)
+const get = async (req: MedusaRequest, res: MedusaResponse) => {
+  const { code, limit: limitQuery, offset: offsetQuery } = req.query
+  const limit = parseQueryNumber(limitQuery)
+  const offset = parseQueryNumber(offsetQuery)
 
   if (
-    (req.query.limit !== undefined && limit === undefined) ||
-    (req.query.offset !== undefined && offset === undefined)
+    (limitQuery !== undefined && limit === undefined) ||
+    (offsetQuery !== undefined && offset === undefined)
   ) {
     res.status(400).json({
       error: {
@@ -93,10 +94,12 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
 
   const { result } = await listPriceListsWorkflow(req.scope).run({
     input: {
-      code: typeof req.query.code === "string" ? req.query.code : undefined,
+      code: typeof code === "string" ? code : undefined,
       limit: limit ?? 50,
       offset: offset ?? 0,
     },
   })
   res.status(200).json(result)
 }
+
+export { get as GET }

@@ -10,7 +10,7 @@ export const BRAND_SEARCH_PROJECTION_EVENT_OPTIONS = {
   },
 }
 
-export type BrandSearchProjectionChangedEventData = {
+export interface BrandSearchProjectionChangedEventData {
   brand_ids: string[]
   product_ids: string[]
 }

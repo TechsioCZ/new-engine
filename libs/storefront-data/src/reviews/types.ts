@@ -1,4 +1,5 @@
 import type { UseMutationResult } from "@tanstack/react-query"
+
 import type {
   QueryResult,
   ReadResultBase,
@@ -8,12 +9,12 @@ import type {
 import type { MutationOptions } from "../shared/hook-types"
 import type { QueryKey } from "../shared/query-keys"
 
-export type ReviewCustomerBase = {
+export interface ReviewCustomerBase {
   first_name?: null | string
   last_name?: null | string
 }
 
-export type ReviewBase = {
+export interface ReviewBase {
   content: string
   created_at?: string
   customer?: null | ReviewCustomerBase
@@ -22,12 +23,12 @@ export type ReviewBase = {
   title: string
 }
 
-export type ReviewSummary = {
+export interface ReviewSummary {
   average_rating: number
   count: number
 }
 
-export type ProductReviewListInputBase = {
+export interface ProductReviewListInputBase {
   productId?: string
   limit?: number
   offset?: number
@@ -35,7 +36,7 @@ export type ProductReviewListInputBase = {
   enabled?: boolean
 }
 
-export type ProductReviewListResponse<TReview> = {
+export interface ProductReviewListResponse<TReview> {
   count: number
   limit: number
   offset: number
@@ -43,7 +44,7 @@ export type ProductReviewListResponse<TReview> = {
   summary: ReviewSummary
 }
 
-export type CreateProductReviewInput = {
+export interface CreateProductReviewInput {
   content: string
   product_id: string
   rating: number
@@ -51,19 +52,19 @@ export type CreateProductReviewInput = {
   title: string
 }
 
-export type ProductReviewService<
+export interface ProductReviewService<
   TReview,
   TListParams,
   TCreateInput extends CreateProductReviewInput = CreateProductReviewInput,
-> = {
+> {
   listProductReviews: (
     params: TListParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<ProductReviewListResponse<TReview>>
   createProductReview: (input: TCreateInput) => Promise<TReview>
 }
 
-export type ProductReviewQueryKeys<TListParams> = {
+export interface ProductReviewQueryKeys<TListParams> {
   all: () => QueryKey
   productList: (params: TListParams) => QueryKey
 }

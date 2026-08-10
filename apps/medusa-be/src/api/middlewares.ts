@@ -6,7 +6,9 @@ import type {
 import { errorHandler } from "@medusajs/framework/http"
 import { defineMiddlewares } from "@medusajs/medusa"
 import { captureException } from "@sentry/node"
+
 import { normalizeError, shouldCaptureException } from "../utils/errors"
+import { serveAdminAppStatic } from "./admin-app-static"
 import { adminApiStoreRoutesMiddlewares } from "./admin/api-store/middlewares"
 import { adminBrandRoutesMiddlewares } from "./admin/brands/middlewares"
 import { adminGLSConfigRoutesMiddlewares } from "./admin/gls-config/middlewares"
@@ -29,7 +31,6 @@ import { adminQrPaymentConfigRoutesMiddlewares } from "./admin/qr-payment-config
 import { adminReviewRoutesMiddlewares } from "./admin/reviews/middlewares"
 import { adminSearchProfileRoutesMiddlewares } from "./admin/search-profiles/middlewares"
 import { adminStorefrontTextRoutesMiddlewares } from "./admin/storefront-texts/middlewares"
-import { serveAdminAppStatic } from "./admin-app-static"
 import { storeBrandsRoutesMiddlewares } from "./store/brands/middlewares"
 import { storeCatalogProductsRoutesMiddlewares } from "./store/catalog/products/middlewares"
 import { storeCmsRoutesMiddlewares } from "./store/cms/middlewares"
@@ -50,13 +51,13 @@ export default defineMiddlewares({
     error: unknown,
     req: MedusaRequest,
     res: MedusaResponse,
-    next: MedusaNextFunction
+    next: MedusaNextFunction,
   ) => {
     const normalizedError = normalizeError(error)
     if (shouldCaptureException(error)) {
       captureException(normalizedError)
     }
-    return originalErrorHandler(error, req, res, next)
+    originalErrorHandler(error, req, res, next)
   },
   routes: [
     {
@@ -64,9 +65,9 @@ export default defineMiddlewares({
       middlewares: [serveAdminAppStatic],
     },
     {
-      methods: ["POST"],
-      matcher: "/webhooks/*",
       bodyParser: { preserveRawBody: true },
+      matcher: "/webhooks/*",
+      methods: ["POST"],
     },
     ...adminMiddlewares,
     ...adminOrderExpeditionRoutesMiddlewares,

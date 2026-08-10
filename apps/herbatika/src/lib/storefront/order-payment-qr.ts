@@ -1,12 +1,9 @@
-import {
-  type StorefrontOrderPaymentQrStatus as BaseStorefrontOrderPaymentQrStatus,
-  ORDER_QR_PAYMENT_PROVIDER_ID as ORDER_QR_PAYMENT_PROVIDER_ID_VALUE,
-} from "./order-payment-qr.constants"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 
-export const ORDER_QR_PAYMENT_PROVIDER_ID = ORDER_QR_PAYMENT_PROVIDER_ID_VALUE
-export type StorefrontOrderPaymentQrStatus = BaseStorefrontOrderPaymentQrStatus
+import { ORDER_QR_PAYMENT_PROVIDER_ID } from "./order-payment-qr.constants"
+import type { StorefrontOrderPaymentQrStatus } from "./order-payment-qr.constants"
 
-export type StorefrontOrderPaymentQr = {
+export interface StorefrontOrderPaymentQr {
   amount: number | null
   currencyCode: string
   iban: string
@@ -29,88 +26,21 @@ export type StorefrontOrderPaymentQrResult =
       status: Exclude<StorefrontOrderPaymentQrStatus, "ready">
     }
 
-type StoreOrderPaymentQrResponse = {
-  qr_payment?: {
-    amount?: number | null
-    currency_code?: string | null
-    iban?: string | null
-    message?: string | null
-    order_display_id?: string | null
-    order_id?: string | null
-    provider_id?: string | null
-    qr_svg?: string | null
-    spayd?: string | null
-    variable_symbol?: string | null
-  } | null
-  status?: StorefrontOrderPaymentQrStatus | null
-}
-
-type FetchOrderPaymentQrOptions = {
+interface FetchOrderPaymentQrOptions {
   orderId: string
 }
 
-export const fetchOrderPaymentQr = async ({
-  orderId,
-}: FetchOrderPaymentQrOptions): Promise<StorefrontOrderPaymentQrResult> => {
-  const response = await fetch(
-    `/api/storefront/orders/${encodeURIComponent(orderId)}/qr-payment`,
-    { method: "GET" }
-  )
-
-  if (!response.ok) {
-    throw new Error(`QR payment request failed with status ${response.status}.`)
-  }
-
-  const payload = (await response.json()) as StoreOrderPaymentQrResponse
-
-  return mapOrderPaymentQr(payload)
+interface ReadyQrPayment {
+  iban: string
+  order_id: string
+  provider_id: typeof ORDER_QR_PAYMENT_PROVIDER_ID
+  qr_svg: string
+  spayd: string
 }
 
-function mapOrderPaymentQr(
-  payload: StoreOrderPaymentQrResponse
-): StorefrontOrderPaymentQrResult {
-  const status = normalizeQrPaymentStatus(payload.status)
-  const qrPayment = payload.qr_payment
-
-  if (status !== "ready") {
-    return { qrPayment: null, status }
-  }
-
-  if (
-    !qrPayment ||
-    qrPayment.provider_id !== ORDER_QR_PAYMENT_PROVIDER_ID ||
-    typeof qrPayment.iban !== "string" ||
-    typeof qrPayment.order_id !== "string" ||
-    typeof qrPayment.qr_svg !== "string" ||
-    typeof qrPayment.spayd !== "string"
-  ) {
-    return { qrPayment: null, status: "unavailable" }
-  }
-
-  return {
-    qrPayment: {
-      amount:
-        typeof qrPayment.amount === "number" &&
-        Number.isFinite(qrPayment.amount)
-          ? qrPayment.amount
-          : null,
-      currencyCode: qrPayment.currency_code?.trim().toUpperCase() || "EUR",
-      iban: qrPayment.iban,
-      message: qrPayment.message ?? null,
-      orderDisplayId: qrPayment.order_display_id ?? qrPayment.order_id,
-      orderId: qrPayment.order_id,
-      providerId: ORDER_QR_PAYMENT_PROVIDER_ID,
-      qrSvg: qrPayment.qr_svg,
-      spayd: qrPayment.spayd,
-      variableSymbol: qrPayment.variable_symbol ?? null,
-    },
-    status: "ready",
-  }
-}
-
-function normalizeQrPaymentStatus(
-  status: StoreOrderPaymentQrResponse["status"]
-): StorefrontOrderPaymentQrResult["status"] {
+const normalizeQrPaymentStatus = (
+  status: unknown,
+): StorefrontOrderPaymentQrResult["status"] => {
   if (
     status === "ready" ||
     status === "pending" ||
@@ -121,4 +51,88 @@ function normalizeQrPaymentStatus(
   }
 
   return "unavailable"
+}
+
+const isReadyQrPayment = (value: unknown): value is ReadyQrPayment => {
+  if (!isRecord(value)) {
+    return false
+  }
+  const requiredStrings = [
+    getRecordValue(value, "iban"),
+    getRecordValue(value, "order_id"),
+    getRecordValue(value, "qr_svg"),
+    getRecordValue(value, "spayd"),
+  ]
+  return (
+    getRecordValue(value, "provider_id") === ORDER_QR_PAYMENT_PROVIDER_ID &&
+    requiredStrings.every((field) => typeof field === "string")
+  )
+}
+
+const mapOrderPaymentQr = (
+  payload: unknown,
+): StorefrontOrderPaymentQrResult => {
+  if (!isRecord(payload)) {
+    return { qrPayment: null, status: "unavailable" }
+  }
+
+  const status = normalizeQrPaymentStatus(getRecordValue(payload, "status"))
+  const qrPayment = getRecordValue(payload, "qr_payment")
+
+  if (status !== "ready") {
+    return { qrPayment: null, status }
+  }
+
+  if (!isReadyQrPayment(qrPayment)) {
+    return { qrPayment: null, status: "unavailable" }
+  }
+
+  const currencyCodeValue = getRecordValue(qrPayment, "currency_code")
+  const currencyCode =
+    typeof currencyCodeValue === "string"
+      ? currencyCodeValue.trim().toUpperCase()
+      : "EUR"
+  const amountValue = getRecordValue(qrPayment, "amount")
+  const messageValue = getRecordValue(qrPayment, "message")
+  const orderDisplayIdValue = getRecordValue(qrPayment, "order_display_id")
+  const variableSymbolValue = getRecordValue(qrPayment, "variable_symbol")
+
+  return {
+    qrPayment: {
+      amount:
+        typeof amountValue === "number" && Number.isFinite(amountValue)
+          ? amountValue
+          : null,
+      currencyCode,
+      iban: qrPayment.iban,
+      message: typeof messageValue === "string" ? messageValue : null,
+      orderDisplayId:
+        typeof orderDisplayIdValue === "string"
+          ? orderDisplayIdValue
+          : qrPayment.order_id,
+      orderId: qrPayment.order_id,
+      providerId: ORDER_QR_PAYMENT_PROVIDER_ID,
+      qrSvg: qrPayment.qr_svg,
+      spayd: qrPayment.spayd,
+      variableSymbol:
+        typeof variableSymbolValue === "string" ? variableSymbolValue : null,
+    },
+    status: "ready",
+  }
+}
+
+export const fetchOrderPaymentQr = async ({
+  orderId,
+}: FetchOrderPaymentQrOptions): Promise<StorefrontOrderPaymentQrResult> => {
+  const response = await fetch(
+    `/api/storefront/orders/${encodeURIComponent(orderId)}/qr-payment`,
+    { method: "GET" },
+  )
+
+  if (!response.ok) {
+    throw new Error(`QR payment request failed with status ${response.status}.`)
+  }
+
+  const payload: unknown = await response.json()
+  return mapOrderPaymentQr(payload)
 }

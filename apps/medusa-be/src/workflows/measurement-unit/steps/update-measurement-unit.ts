@@ -1,5 +1,7 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { omitUndefined } from "@techsio/std/object"
+
 import { getMeasurementUnitService } from "../../../utils/measurement-units"
 import type { UpdateMeasurementUnitWorkflowInput } from "../types"
 import {
@@ -19,36 +21,39 @@ export const updateMeasurementUnitStep = createStep(
       {
         take: 1,
         withDeleted: true,
-      }
+      },
     )
     const update = { ...input.update }
 
     if (!previous) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Measurement unit with id "${input.id}" was not found`
+        `Measurement unit with id "${input.id}" was not found`,
       )
     }
 
-    if (previous.deleted_at) {
+    if (previous.deleted_at !== null) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        `Deleted measurement unit "${input.id}" must be restored before it can be updated.`
+        `Deleted measurement unit "${input.id}" must be restored before it can be updated.`,
       )
     }
 
-    if (
-      (update.code !== undefined && !normalizeUnitCode(update.code)) ||
-      (update.name !== undefined && !update.name.trim()) ||
-      (update.symbol !== undefined && !update.symbol.trim())
-    ) {
+    const hasEmptyCode =
+      update.code !== undefined && normalizeUnitCode(update.code).length === 0
+    const hasEmptyName =
+      update.name !== undefined && update.name.trim().length === 0
+    const hasEmptySymbol =
+      update.symbol !== undefined && update.symbol.trim().length === 0
+
+    if (hasEmptyCode || hasEmptyName || hasEmptySymbol) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Measurement unit code, name, and symbol must not be empty."
+        "Measurement unit code, name, and symbol must not be empty.",
       )
     }
 
-    if (update.code) {
+    if (update.code !== undefined && update.code.length > 0) {
       update.code = await ensureUnitCodeAvailable({
         code: update.code,
         container,
@@ -62,27 +67,32 @@ export const updateMeasurementUnitStep = createStep(
     ) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Measurement unit base quantity must be greater than zero."
+        "Measurement unit base quantity must be greater than zero.",
       )
     }
 
-    const updated = await service.updateMeasurementUnits({
-      id: input.id,
-      ...update,
-      base_quantity: update.base_quantity,
-      code: update.code ? normalizeUnitCode(update.code) : undefined,
-      description:
-        update.description === undefined
-          ? undefined
-          : normalizeDescription(update.description),
-      name: update.name?.trim(),
-      symbol: update.symbol?.trim(),
-    })
+    const updated = await service.updateMeasurementUnits(
+      omitUndefined({
+        id: input.id,
+        ...update,
+        base_quantity: update.base_quantity,
+        code:
+          update.code === undefined
+            ? undefined
+            : normalizeUnitCode(update.code),
+        description:
+          update.description === undefined
+            ? undefined
+            : normalizeDescription(update.description),
+        name: update.name?.trim(),
+        symbol: update.symbol?.trim(),
+      }),
+    )
 
     return new StepResponse(updated, previous)
   },
   async (previous, { container }) => {
-    if (previous?.id) {
+    if (previous?.id !== undefined && previous.id.length > 0) {
       await getMeasurementUnitService(container).updateMeasurementUnits({
         base_quantity: previous.base_quantity,
         code: previous.code,
@@ -92,5 +102,5 @@ export const updateMeasurementUnitStep = createStep(
         symbol: previous.symbol,
       })
     }
-  }
+  },
 )

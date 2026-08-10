@@ -1,0 +1,275 @@
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: object,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
+type StepImplementation = (...args: unknown[]) => unknown
+
+type CreateStepFn = (
+  name: string,
+  invoke: StepImplementation,
+  compensate?: StepImplementation,
+) => StepImplementation & { compensate?: StepImplementation }
+
+type AsyncMockFn = (...args: unknown[]) => Promise<unknown>
+
+vi.mock(import("@medusajs/framework/utils"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    ContainerRegistrationKeys: {
+      QUERY: "query",
+    },
+    Modules: {
+      AUTH: "auth",
+    },
+  }),
+)
+
+vi.mock(import("@medusajs/framework/workflows-sdk"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    StepResponse: class StepResponse<
+      TPayload = unknown,
+      TCompensationInput = unknown,
+    > {
+      compensateInput: TCompensationInput | undefined
+      payload: TPayload
+
+      constructor(payload: TPayload, compensateInput?: TCompensationInput) {
+        this.payload = payload
+        this.compensateInput = compensateInput
+      }
+    },
+    createStep: vi.fn<CreateStepFn>((_name, invoke, compensate) => {
+      if (compensate === undefined) {
+        return invoke
+      }
+      return Object.assign(invoke, { compensate })
+    }),
+  }),
+)
+
+type MockContainer = ReturnType<typeof makeContainer>
+
+interface MockStep {
+  (
+    input: { employeeId: string; customerId: string },
+    context: { container: MockContainer },
+  ): Promise<{
+    compensateInput?: {
+      customerId: string
+      email: string
+      employeeId: string
+      providerIdentityId: string
+    }
+    payload: unknown
+  }>
+  compensate: (
+    input:
+      | {
+          customerId: string
+          email: string
+          employeeId: string
+          providerIdentityId: string
+        }
+      | undefined,
+    context: { container: MockContainer },
+  ) => Promise<void>
+}
+
+const isMockStep = (candidate: unknown): candidate is MockStep =>
+  typeof candidate === "function" &&
+  "compensate" in candidate &&
+  typeof candidate.compensate === "function"
+
+const asMockStep = (candidate: unknown): MockStep => {
+  if (!isMockStep(candidate)) {
+    throw new TypeError(
+      "Expected the imported workflow step to expose a compensate function",
+    )
+  }
+
+  return candidate
+}
+
+const makeContainer = ({
+  graph,
+  updateProviderIdentities = vi.fn<AsyncMockFn>(),
+}: {
+  graph: ReturnType<typeof vi.fn<AsyncMockFn>>
+  updateProviderIdentities?: ReturnType<typeof vi.fn<AsyncMockFn>>
+}) => ({
+  resolve: vi.fn<(key: string) => unknown>((key) => {
+    if (key === "query") {
+      return { graph }
+    }
+
+    if (key === "auth") {
+      return { updateProviderIdentities }
+    }
+
+    throw new Error(`Unexpected dependency: ${key}`)
+  }),
+})
+
+describe("setAdminRoleStep", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("does nothing when the customer has no emailpass provider identity", async () => {
+    const { setAdminRoleStep } =
+      await import("../../../../../src/workflows/employee/steps/set-admin-role")
+    const graph = vi
+      .fn<AsyncMockFn>()
+      .mockResolvedValueOnce({
+        data: [{ customer: { has_account: true }, id: "employee_1" }],
+      })
+      .mockResolvedValueOnce({ data: [{ email: "employee@example.com" }] })
+      .mockResolvedValueOnce({ data: [] })
+    const updateProviderIdentities = vi.fn<AsyncMockFn>()
+    const container = makeContainer({ graph, updateProviderIdentities })
+
+    const result = await asMockStep(setAdminRoleStep)(
+      { customerId: "cus_1", employeeId: "employee_1" },
+      { container },
+    )
+
+    expect(updateProviderIdentities).not.toHaveBeenCalled()
+    expect(result.compensateInput).toBeUndefined()
+  })
+
+  it("sets the company admin role and returns compensation input", async () => {
+    const { setAdminRoleStep } =
+      await import("../../../../../src/workflows/employee/steps/set-admin-role")
+    const graph = vi
+      .fn<AsyncMockFn>()
+      .mockResolvedValueOnce({
+        data: [{ customer: { has_account: true }, id: "employee_1" }],
+      })
+      .mockResolvedValueOnce({ data: [{ email: "employee@example.com" }] })
+      .mockResolvedValueOnce({ data: [{ id: "authpi_1" }] })
+    const updateProviderIdentities = vi
+      .fn<AsyncMockFn>()
+      .mockImplementation(async () => {})
+    const container = makeContainer({ graph, updateProviderIdentities })
+
+    const result = await asMockStep(setAdminRoleStep)(
+      { customerId: "cus_1", employeeId: "employee_1" },
+      { container },
+    )
+
+    expect(updateProviderIdentities).toHaveBeenCalledWith([
+      {
+        id: "authpi_1",
+        user_metadata: {
+          role: "company_admin",
+        },
+      },
+    ])
+    expect(result.compensateInput).toStrictEqual({
+      customerId: "cus_1",
+      email: "employee@example.com",
+      employeeId: "employee_1",
+      providerIdentityId: "authpi_1",
+    })
+  })
+
+  it("clears the company admin role on compensation when no other active admin role remains", async () => {
+    const { setAdminRoleStep } =
+      await import("../../../../../src/workflows/employee/steps/set-admin-role")
+    const graph = vi
+      .fn<AsyncMockFn>()
+      .mockResolvedValueOnce({
+        data: [{ customer_id: "cus_1", employee_id: "employee_1" }],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company: { deleted_at: null, id: "comp_1" },
+            customer: { id: "cus_1" },
+            deleted_at: null,
+            id: "employee_1",
+            is_admin: true,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ data: [{ id: "authpi_1" }] })
+    const updateProviderIdentities = vi
+      .fn<AsyncMockFn>()
+      .mockImplementation(async () => {})
+    const container = makeContainer({ graph, updateProviderIdentities })
+
+    await asMockStep(setAdminRoleStep).compensate(
+      {
+        customerId: "cus_1",
+        email: "employee@example.com",
+        employeeId: "employee_1",
+        providerIdentityId: "authpi_1",
+      },
+      { container },
+    )
+
+    expect(updateProviderIdentities).toHaveBeenCalledWith([
+      {
+        id: "authpi_1",
+        user_metadata: {
+          role: null,
+        },
+      },
+    ])
+  })
+
+  it("keeps the company admin role on compensation when another active admin role remains", async () => {
+    const { setAdminRoleStep } =
+      await import("../../../../../src/workflows/employee/steps/set-admin-role")
+    const graph = vi
+      .fn<AsyncMockFn>()
+      .mockResolvedValueOnce({
+        data: [
+          { customer_id: "cus_1", employee_id: "employee_1" },
+          { customer_id: "cus_1", employee_id: "employee_2" },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company: { deleted_at: null, id: "comp_1" },
+            customer: { id: "cus_1" },
+            deleted_at: null,
+            id: "employee_1",
+            is_admin: true,
+          },
+          {
+            company: { deleted_at: null, id: "comp_2" },
+            customer: { id: "cus_1" },
+            deleted_at: null,
+            id: "employee_2",
+            is_admin: true,
+          },
+        ],
+      })
+    const updateProviderIdentities = vi
+      .fn<AsyncMockFn>()
+      .mockImplementation(async () => {})
+    const container = makeContainer({ graph, updateProviderIdentities })
+
+    await asMockStep(setAdminRoleStep).compensate(
+      {
+        customerId: "cus_1",
+        email: "employee@example.com",
+        employeeId: "employee_1",
+        providerIdentityId: "authpi_1",
+      },
+      { container },
+    )
+
+    expect(updateProviderIdentities).not.toHaveBeenCalled()
+  })
+})

@@ -8,14 +8,14 @@
       "executor": "nx:run-commands",
       "options": {
         "cwd": "apps/payload",
-        "command": "pnpm dev"
+        "command": "pnpm run dev"
       }
     },
     "build": {
       "executor": "nx:run-commands",
       "options": {
         "cwd": "apps/payload",
-        "command": "pnpm build"
+        "command": "pnpm run build:verify"
       }
     },
     "start": {

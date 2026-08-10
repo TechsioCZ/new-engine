@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next"
+
 import { DataTable } from "../../../components/common/table/data-table/data-table"
-import { useQuotes } from "../../../hooks/api"
+import { useQuotes } from "../../../hooks/api/quotes"
 import { useDataTable } from "../../../hooks/use-data-table"
 import { useQuotesTableColumns } from "./table/columns"
 import { useQuotesTableFilters } from "./table/filters"
@@ -31,10 +32,10 @@ export const QuotesTable = () => {
   const filters = useQuotesTableFilters()
 
   const { table } = useDataTable({
-    data: quotes,
     columns,
-    enablePagination: true,
     count,
+    data: quotes,
+    enablePagination: true,
     pageSize: PAGE_SIZE,
   })
 
@@ -47,8 +48,8 @@ export const QuotesTable = () => {
         isLoading={isPending}
         navigateTo={(row) => `/quotes/${row.original.id}`}
         noRecords={{
-          title: t("noRecords.title"),
           message: t("noRecords.message"),
+          title: t("noRecords.title"),
         }}
         orderBy={["id", "created_at"]}
         pageSize={PAGE_SIZE}

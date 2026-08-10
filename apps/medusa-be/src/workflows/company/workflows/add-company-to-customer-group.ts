@@ -2,10 +2,9 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import {
-  setCompanyCustomerGroupStep,
-  validateCompanyActiveStep,
-} from "../steps"
+
+import { setCompanyCustomerGroupStep } from "../steps/set-company-customer-group"
+import { validateCompanyActiveStep } from "../steps/validate-company-active"
 
 export const addCompanyToCustomerGroupWorkflow = createWorkflow(
   "add-company-to-customer-group",
@@ -18,5 +17,5 @@ export const addCompanyToCustomerGroupWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(input)
-  }
+  },
 )

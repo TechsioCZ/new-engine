@@ -13,49 +13,28 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
+
 import {
   listReviews,
-  type Review,
-  type ReviewStatus,
   reviewQueryKeys,
   updateReviewStatus,
 } from "../../lib/reviews"
+import type { Review, ReviewStatus } from "../../lib/reviews"
 import { useDebouncedValue } from "../../lib/use-debounced-value"
+import {
+  formatReviewDate,
+  getReviewCustomerName,
+  REVIEW_STATUS_BADGE_COLOR,
+} from "./review-formatters"
 
 const PAGE_SIZE = 20
 
-const STATUS_FILTERS: Array<{ label: string; value?: ReviewStatus }> = [
+const STATUS_FILTERS: { label: string; value?: ReviewStatus }[] = [
   { label: "All" },
   { label: "Pending", value: "pending" },
   { label: "Approved", value: "approved" },
   { label: "Rejected", value: "rejected" },
 ]
-
-const STATUS_BADGE_COLOR: Record<ReviewStatus, "green" | "orange" | "red"> = {
-  approved: "green",
-  pending: "orange",
-  rejected: "red",
-}
-
-const formatDate = (date: string | undefined) => {
-  if (!date) {
-    return "-"
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(date))
-}
-
-const getCustomerName = (review: Review) => {
-  const name = [review.first_name, review.last_name]
-    .filter(Boolean)
-    .join(" ")
-    .trim()
-
-  return name || review.customer_id
-}
 
 const ReviewRows = ({
   isLoading,
@@ -105,9 +84,15 @@ const ReviewRows = ({
       <Table.Row
         className="cursor-pointer"
         key={review.id}
-        onClick={() => onOpenReview(review.id)}
+        onClick={() => {
+          onOpenReview(review.id)
+        }}
       >
-        <Table.Cell onClick={(event) => event.stopPropagation()}>
+        <Table.Cell
+          onClick={(event) => {
+            event.stopPropagation()
+          }}
+        >
           <input
             aria-label={`Select review ${review.title}`}
             checked={checked}
@@ -135,22 +120,23 @@ const ReviewRows = ({
         </Table.Cell>
         <Table.Cell>{review.rating}/5</Table.Cell>
         <Table.Cell>
-          <StatusBadge color={STATUS_BADGE_COLOR[review.status]}>
+          <StatusBadge color={REVIEW_STATUS_BADGE_COLOR[review.status]}>
             {review.status}
           </StatusBadge>
         </Table.Cell>
         <Table.Cell>
           <div className="flex flex-col">
             <Text>{review.product?.title ?? review.product_id}</Text>
-            {review.product?.handle ? (
+            {review.product?.handle !== undefined &&
+            review.product.handle !== "" ? (
               <Text className="text-ui-fg-subtle" size="small">
                 {review.product.handle}
               </Text>
             ) : null}
           </div>
         </Table.Cell>
-        <Table.Cell>{getCustomerName(review)}</Table.Cell>
-        <Table.Cell>{formatDate(review.created_at)}</Table.Cell>
+        <Table.Cell>{getReviewCustomerName(review)}</Table.Cell>
+        <Table.Cell>{formatReviewDate(review.created_at)}</Table.Cell>
       </Table.Row>
     )
   })
@@ -168,11 +154,11 @@ const ReviewsPage = () => {
     limit: PAGE_SIZE,
     offset: pageIndex * PAGE_SIZE,
     order_by: "-created_at",
-    q: debouncedQuery || undefined,
-    status,
+    ...(debouncedQuery ? { q: debouncedQuery } : {}),
+    ...(status ? { status } : {}),
   }
   const { data, isLoading } = useQuery({
-    queryFn: () => listReviews(params),
+    queryFn: async () => await listReviews(params),
     queryKey: reviewQueryKeys.list(params),
   })
   const reviews = data?.reviews ?? []
@@ -180,7 +166,7 @@ const ReviewsPage = () => {
   const pageCount = Math.max(1, Math.ceil(count / PAGE_SIZE))
   const selectedCount = selectedIds.size
   const selectedReviewsOnPage = reviews.filter((review) =>
-    selectedIds.has(review.id)
+    selectedIds.has(review.id),
   )
   const allOnPageSelected =
     reviews.length > 0 && selectedReviewsOnPage.length === reviews.length
@@ -189,9 +175,9 @@ const ReviewsPage = () => {
     onError: () => {
       toast.error("Failed to update reviews")
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       setSelectedIds(new Set())
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: reviewQueryKeys.lists(),
       })
       toast.success("Reviews updated")
@@ -222,7 +208,9 @@ const ReviewsPage = () => {
           <div className="flex flex-wrap gap-2">
             <Button
               disabled={!selectedCount || statusMutation.isPending}
-              onClick={() => updateSelected("approved")}
+              onClick={() => {
+                updateSelected("approved")
+              }}
               size="small"
               variant="secondary"
             >
@@ -230,7 +218,9 @@ const ReviewsPage = () => {
             </Button>
             <Button
               disabled={!selectedCount || statusMutation.isPending}
-              onClick={() => updateSelected("rejected")}
+              onClick={() => {
+                updateSelected("rejected")
+              }}
               size="small"
               variant="secondary"
             >
@@ -305,7 +295,9 @@ const ReviewsPage = () => {
         <Table.Body>
           <ReviewRows
             isLoading={isLoading}
-            onOpenReview={(reviewId) => navigate(`/reviews/${reviewId}`)}
+            onOpenReview={(reviewId) => {
+              navigate(`/reviews/${reviewId}`)
+            }}
             reviews={reviews}
             selectedIds={selectedIds}
             setSelectedIds={setSelectedIds}
@@ -316,11 +308,15 @@ const ReviewsPage = () => {
         canNextPage={pageIndex + 1 < pageCount}
         canPreviousPage={pageIndex > 0}
         count={count}
-        nextPage={() => setPageIndex((current) => current + 1)}
+        nextPage={() => {
+          setPageIndex((current) => current + 1)
+        }}
         pageCount={pageCount}
         pageIndex={pageIndex}
         pageSize={PAGE_SIZE}
-        previousPage={() => setPageIndex((current) => Math.max(current - 1, 0))}
+        previousPage={() => {
+          setPageIndex((current) => Math.max(current - 1, 0))
+        }}
         translations={{
           next: "Next",
           of: "of",

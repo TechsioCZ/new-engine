@@ -1,28 +1,27 @@
+import { unique } from "@techsio/std/array"
+
 export type PrefetchPagesMode = "priority" | "simple"
 
-export type CreatePrefetchPagesPlanInput = {
-  mode?: PrefetchPagesMode
+export interface CreatePrefetchPagesPlanInput {
+  mode?: PrefetchPagesMode | undefined
   currentPage: number
   totalPages: number
   hasNextPage: boolean
   hasPrevPage: boolean
 }
 
-export type PrefetchPagesPlan = {
+export interface PrefetchPagesPlan {
   immediate: number[]
   medium: number[]
   low: number[]
 }
 
-const uniquePages = (pages: readonly number[]): number[] =>
-  Array.from(new Set(pages))
-
 const pushPageIfValid = (
   pages: number[],
   page: number | null,
-  input: CreatePrefetchPagesPlanInput
+  input: CreatePrefetchPagesPlanInput,
 ) => {
-  if (page == null) {
+  if (page === null) {
     return
   }
   if (page < 1 || page > input.totalPages) {
@@ -32,46 +31,46 @@ const pushPageIfValid = (
 }
 
 const createSimplePrefetchPagesPlan = (
-  input: CreatePrefetchPagesPlanInput
+  input: CreatePrefetchPagesPlanInput,
 ): PrefetchPagesPlan => {
   const pagesToPrefetch: number[] = []
 
-  pushPageIfValid(pagesToPrefetch, input.currentPage !== 1 ? 1 : null, input)
+  pushPageIfValid(pagesToPrefetch, input.currentPage === 1 ? null : 1, input)
   pushPageIfValid(
     pagesToPrefetch,
     input.hasPrevPage ? input.currentPage - 1 : null,
-    input
+    input,
   )
   pushPageIfValid(
     pagesToPrefetch,
     input.hasPrevPage ? input.currentPage - 2 : null,
-    input
+    input,
   )
   pushPageIfValid(
     pagesToPrefetch,
     input.hasNextPage ? input.currentPage + 1 : null,
-    input
+    input,
   )
   pushPageIfValid(
     pagesToPrefetch,
     input.hasNextPage ? input.currentPage + 2 : null,
-    input
+    input,
   )
   pushPageIfValid(
     pagesToPrefetch,
-    input.currentPage !== input.totalPages ? input.totalPages : null,
-    input
+    input.currentPage === input.totalPages ? null : input.totalPages,
+    input,
   )
 
   return {
-    immediate: uniquePages(pagesToPrefetch),
-    medium: [],
+    immediate: unique(pagesToPrefetch),
     low: [],
+    medium: [],
   }
 }
 
 const createPriorityPrefetchPagesPlan = (
-  input: CreatePrefetchPagesPlanInput
+  input: CreatePrefetchPagesPlanInput,
 ): PrefetchPagesPlan => {
   const high = input.hasNextPage ? [input.currentPage + 1] : []
   const medium =
@@ -80,26 +79,24 @@ const createPriorityPrefetchPagesPlan = (
       : []
   const lowCandidates = [
     input.hasPrevPage ? input.currentPage - 1 : null,
-    input.currentPage !== 1 ? 1 : null,
+    input.currentPage === 1 ? null : 1,
     input.totalPages > 1 && input.currentPage !== input.totalPages
       ? input.totalPages
       : null,
   ].filter((page): page is number => page !== null)
 
-  const immediate = uniquePages(high)
+  const immediate = unique(high)
   const immediateSet = new Set(immediate)
-  const mediumPages = uniquePages(medium).filter(
-    (page) => !immediateSet.has(page)
-  )
+  const mediumPages = unique(medium).filter((page) => !immediateSet.has(page))
   const mediumSet = new Set(mediumPages)
-  const lowPages = uniquePages(lowCandidates).filter(
-    (page) => !(immediateSet.has(page) || mediumSet.has(page))
+  const lowPages = unique(lowCandidates).filter(
+    (page) => !(immediateSet.has(page) || mediumSet.has(page)),
   )
 
   return {
     immediate,
-    medium: mediumPages,
     low: lowPages,
+    medium: mediumPages,
   }
 }
 
@@ -110,7 +107,7 @@ const createPriorityPrefetchPagesPlan = (
  * - `simple`: all candidate pages in one immediate queue
  */
 export const createPrefetchPagesPlan = (
-  input: CreatePrefetchPagesPlanInput
+  input: CreatePrefetchPagesPlanInput,
 ): PrefetchPagesPlan => {
   const mode = input.mode ?? "priority"
   if (mode === "simple") {

@@ -1,11 +1,7 @@
 ---
 name: implement-ssr-prefetch-and-query-client-boundaries
 description: >
-  Load this skill when using @techsio/storefront-data in Next.js Server
-  Components with getServerQueryClient, HydrationBoundary, dehydrate, and
-  preset-owned getListQueryOptions or getDetailQueryOptions. Use it for SSR
-  prefetch, request-scoped query-client ownership, and avoiding query-key drift
-  between server prefetch and client hooks.
+  Load this skill when using @techsio/storefront-data in Next.js Server Components with getServerQueryClient, HydrationBoundary, dehydrate, and preset-owned getListQueryOptions or getDetailQueryOptions. Use it for SSR prefetch, request-scoped query-client ownership, and avoiding query-key drift between server prefetch and client hooks.
 type: framework
 library: "@techsio/storefront-data"
 framework: react
@@ -18,7 +14,7 @@ sources:
   - "TechsioCZ/new-engine:libs/storefront-data/src/shared/query-client.ts"
   - "TechsioCZ/new-engine:libs/storefront-data/src/shared/query-keys.ts"
   - "TechsioCZ/new-engine:libs/storefront-data/src/products/hooks.ts"
-  - "TechsioCZ/new-engine:libs/storefront-data/tests/ssr-hydration.smoke.test.tsx"
+  - "TechsioCZ/new-engine:libs/storefront-data/tests/ssr-hydration-smoke.test.tsx"
 ---
 
 This skill builds on `setup-storefront-platform-in-next-app`. Read it first for the preset and provider boundary.
@@ -44,7 +40,7 @@ export default async function Page() {
       region_id: "reg_123",
       country_code: "cz",
       limit: 24,
-    })
+    }),
   )
 
   return (
@@ -79,7 +75,7 @@ export default async function Page({
       handle,
       region_id: "reg_123",
       country_code: "cz",
-    })
+    }),
   )
 
   return (
@@ -105,7 +101,7 @@ export async function loadSitemapProducts() {
       region_id: "reg_123",
       country_code: "cz",
       limit: 100,
-    })
+    }),
   )
 
   return queryClient.getQueryData(
@@ -113,7 +109,7 @@ export async function loadSitemapProducts() {
       region_id: "reg_123",
       country_code: "cz",
       limit: 100,
-    })
+    }),
   )
 }
 ```
@@ -185,13 +181,13 @@ Correct:
 
 ```ts
 await queryClient.prefetchQuery(
-  storefront.hooks.products.getListQueryOptions(params)
+  storefront.hooks.products.getListQueryOptions(params),
 )
 ```
 
 Manual keys drift from the normalized key builders and silently miss the hydrated client cache.
 
-Source: `libs/storefront-data/src/shared/query-keys.ts`, `libs/storefront-data/tests/ssr-hydration.smoke.test.tsx`
+Source: `libs/storefront-data/src/shared/query-keys.ts`, `libs/storefront-data/tests/ssr-hydration-smoke.test.tsx`
 
 ### HIGH Missing region-sensitive inputs in prefetch
 
@@ -201,7 +197,7 @@ Wrong:
 await queryClient.prefetchQuery(
   storefront.hooks.products.getListQueryOptions({
     limit: 24,
-  })
+  }),
 )
 ```
 
@@ -213,7 +209,7 @@ await queryClient.prefetchQuery(
     region_id: "reg_123",
     country_code: "cz",
     limit: 24,
-  })
+  }),
 )
 ```
 

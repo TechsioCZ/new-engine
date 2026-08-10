@@ -1,33 +1,32 @@
 "use client"
 
-import type { HttpTypes } from "@medusajs/types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import {
-  Carousel,
-  type CarouselSlide,
-} from "@techsio/ui-kit/molecules/carousel"
+import { Carousel } from "@techsio/ui-kit/molecules/carousel"
+import type { CarouselSlide } from "@techsio/ui-kit/molecules/carousel"
+
 import { HerbatikaProductCard } from "@/components/herbatika-product-card"
 import { useAddProductToCartAction } from "@/lib/storefront/use-add-product-to-cart-action"
 
-type InlineProductsCarouselProps = {
-  products: HttpTypes.StoreProduct[]
+interface InlineProductsCarouselProps {
+  products: MedusaCatalogProduct[]
   keyPrefix?: string
-  onProductHoverStart?: (product: HttpTypes.StoreProduct) => void
-  onProductHoverEnd?: (product: HttpTypes.StoreProduct) => void
+  onProductHoverStart?: (product: MedusaCatalogProduct) => void
+  onProductHoverEnd?: (product: MedusaCatalogProduct) => void
   slidesSm?: number
   slidesMd?: number
   slidesLg?: number
 }
 
-type InlineProductsSlidesProps = {
+interface InlineProductsSlidesProps {
   slides: CarouselSlide[]
   slidesPerPage: number
 }
 
-function InlineProductsSlides({
+const InlineProductsSlides = ({
   slides,
   slidesPerPage,
-}: InlineProductsSlidesProps) {
+}: InlineProductsSlidesProps) => {
   const hasOverflow = slides.length > slidesPerPage
 
   return (
@@ -52,7 +51,7 @@ function InlineProductsSlides({
   )
 }
 
-export function InlineProductsCarousel({
+export const InlineProductsCarousel = ({
   products,
   keyPrefix = "inline-product",
   onProductHoverStart,
@@ -60,14 +59,16 @@ export function InlineProductsCarousel({
   slidesSm = 1,
   slidesMd = 2,
   slidesLg = 4,
-}: InlineProductsCarouselProps) {
+}: InlineProductsCarouselProps) => {
   const region = useRegionContext()
   const addToCart = useAddProductToCartAction({
-    regionId: region?.region_id,
-    countryCode: region?.country_code,
+    ...(region?.region_id === undefined ? {} : { regionId: region?.region_id }),
+    ...(region?.country_code === undefined
+      ? {}
+      : { countryCode: region?.country_code }),
   })
 
-  const handleAddToCart = async (product: HttpTypes.StoreProduct) => {
+  const handleAddToCart = async (product: MedusaCatalogProduct) => {
     await addToCart.addProductToCart({
       product,
       quantity: 1,
@@ -75,16 +76,16 @@ export function InlineProductsCarousel({
   }
 
   const slides: CarouselSlide[] = products.map((product, index) => ({
-    id: `${keyPrefix}-${product.id ?? product.handle ?? index}`,
     content: (
       <HerbatikaProductCard
         isAdding={Boolean(product.id) && addToCart.isProductAdding(product.id)}
         onAddToCart={handleAddToCart}
-        onProductHoverEnd={onProductHoverEnd}
-        onProductHoverStart={onProductHoverStart}
+        {...(onProductHoverEnd === undefined ? {} : { onProductHoverEnd })}
+        {...(onProductHoverStart === undefined ? {} : { onProductHoverStart })}
         product={product}
       />
     ),
+    id: `${keyPrefix}-${product.id ?? product.handle ?? index}`,
   }))
 
   if (slides.length === 0) {

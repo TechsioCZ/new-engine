@@ -1,11 +1,15 @@
 import type { LoaderOptions } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
-type GLSConfigServiceType = {
+interface GLSConfigEnvironmentInput {
+  environment: string
+}
+
+interface GLSConfigServiceType {
   listAndCount: (
-    filter: Record<string, unknown>
+    filter: GLSConfigEnvironmentInput,
   ) => Promise<[unknown[], number]>
-  create: (data: Record<string, unknown>) => Promise<unknown>
+  create: (data: GLSConfigEnvironmentInput) => Promise<unknown>
 }
 
 /**

@@ -2,9 +2,10 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import { verifyCustomerAccountDeactivationTokenStep } from "../steps/verify-customer-account-deactivation-token"
 
-type VerifyCustomerAccountDeactivationWorkflowInput = {
+interface VerifyCustomerAccountDeactivationWorkflowInput {
   token: string
 }
 
@@ -14,5 +15,5 @@ export const verifyCustomerAccountDeactivationWorkflow = createWorkflow(
     const verified = verifyCustomerAccountDeactivationTokenStep(input)
 
     return new WorkflowResponse(verified)
-  }
+  },
 )

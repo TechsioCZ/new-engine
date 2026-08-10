@@ -1,5 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { QueryClient } from "@tanstack/react-query"
+import { isRecord } from "@techsio/std/object"
+
 import { cartStorage } from "./cart-storage"
 import { storefrontQueryKeys } from "./storefront-config"
 
@@ -12,9 +14,9 @@ const queryKeyContainsCartId = (value: unknown, cartId: string): boolean => {
     return value.some((item) => queryKeyContainsCartId(item, cartId))
   }
 
-  if (value && typeof value === "object") {
-    return Object.values(value as Record<string, unknown>).some((item) =>
-      queryKeyContainsCartId(item, cartId)
+  if (isRecord(value)) {
+    return Object.values(value).some((item) =>
+      queryKeyContainsCartId(item, cartId),
     )
   }
 
@@ -23,9 +25,15 @@ const queryKeyContainsCartId = (value: unknown, cartId: string): boolean => {
 
 export const resetEmptyCartState = (
   queryClient: QueryClient,
-  cart: HttpTypes.StoreCart | null | undefined
+  cart: HttpTypes.StoreCart | null | undefined,
 ): boolean => {
-  if (!(cart?.id && Array.isArray(cart.items)) || cart.items.length > 0) {
+  if (cart === null || cart === undefined) {
+    return false
+  }
+  if (cart.id === null || cart.id === undefined || cart.id.length === 0) {
+    return false
+  }
+  if (!Array.isArray(cart.items) || cart.items.length > 0) {
     return false
   }
 

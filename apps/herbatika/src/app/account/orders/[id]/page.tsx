@@ -1,15 +1,17 @@
 import { AccountOrderDetail } from "@/components/account-order-detail"
 
-type AccountOrderDetailPageProps = {
+interface AccountOrderDetailPageProps {
   params: Promise<{
     id: string
   }>
 }
 
-export default async function AccountOrderDetailPage({
+const AccountOrderDetailPage = async ({
   params,
-}: AccountOrderDetailPageProps) {
+}: AccountOrderDetailPageProps) => {
   const { id } = await params
 
   return <AccountOrderDetail orderId={id} />
 }
+
+export default AccountOrderDetailPage

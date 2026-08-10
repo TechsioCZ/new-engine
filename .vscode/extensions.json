@@ -1,3 +1,7 @@
 {
-  "recommendations": ["nrwl.angular-console", "ms-playwright.playwright"]
+  "recommendations": [
+    "nrwl.angular-console",
+    "ms-playwright.playwright",
+    "oxc.oxc-vscode"
+  ]
 }

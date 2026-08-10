@@ -1,8 +1,8 @@
-/**
+/*
  * NumericInput — @techsio/ui-kit template.
  *
  * @component NumericInput
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,21 +10,25 @@
  * the numeric-input-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import type { Ref } from "react"
-import type { IconType } from "../atoms/icon"
-import { NumericInput, type NumericInputProps } from "../atoms/numeric-input"
 
-export interface NumericInputTemplateProps
-  extends Omit<NumericInputProps, "children" | "ref"> {
-  showControls?: boolean
-  showScrubber?: boolean
-  controlsPosition?: "right" | "sides"
-  incrementIcon?: IconType
-  decrementIcon?: IconType
-  className?: string
-  ref?: Ref<HTMLDivElement>
+import type { IconType } from "../atoms/icon"
+import { NumericInput } from "../atoms/numeric-input"
+import type { NumericInputProps } from "../atoms/numeric-input"
+
+export interface NumericInputTemplateProps extends Omit<
+  NumericInputProps,
+  "children" | "ref"
+> {
+  showControls?: boolean | undefined
+  showScrubber?: boolean | undefined
+  controlsPosition?: "right" | "sides" | undefined
+  incrementIcon?: IconType | undefined
+  decrementIcon?: IconType | undefined
+  className?: string | undefined
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
-export function NumericInputTemplate({
+export const NumericInputTemplate = ({
   showControls = true,
   showScrubber = false,
   controlsPosition = "right",
@@ -33,7 +37,7 @@ export function NumericInputTemplate({
   className,
   ref,
   ...numericInputProps
-}: NumericInputTemplateProps) {
+}: NumericInputTemplateProps) => {
   // Layout for controls on the right (default)
   if (controlsPosition === "right") {
     return (

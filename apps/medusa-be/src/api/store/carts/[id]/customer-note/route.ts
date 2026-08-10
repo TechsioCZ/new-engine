@@ -7,33 +7,34 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import { updateCartWorkflow } from "@medusajs/medusa/core-flows"
+
 import type { StoreSetCartCustomerNoteType } from "../../validators"
 
-type CartRecord = {
-  customer_id?: string | null
-  id: string
-  metadata?: Record<string, unknown> | null
-}
+const CartMetadataSchema = z.record(z.string(), z.json())
+const CartRecordSchema = z.object({
+  customer_id: z.string().nullable().optional(),
+  id: z.string(),
+  metadata: CartMetadataSchema.nullable().optional(),
+})
 
-async function retrieveCart(scope: MedusaContainer, id: string) {
+const retrieveCart = async (scope: MedusaContainer, id: string) => {
   const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const {
-    data: [cart],
-  } = await query.graph({
+  const { data } = await query.graph({
     entity: "cart",
     fields: ["id", "customer_id", "metadata"],
     filters: { id },
   })
 
-  return cart as CartRecord | undefined
+  return z.array(CartRecordSchema).parse(data).at(0)
 }
 
-export async function POST(
+const post = async (
   req: AuthenticatedMedusaRequest<StoreSetCartCustomerNoteType>,
-  res: MedusaResponse
-) {
-  const cartId = typeof req.params.id === "string" ? req.params.id : ""
+  res: MedusaResponse,
+) => {
+  const cartId = typeof req.params["id"] === "string" ? req.params["id"] : ""
 
   if (!cartId) {
     throw new MedusaError(MedusaError.Types.INVALID_DATA, "Cart id is missing")
@@ -54,20 +55,24 @@ export async function POST(
   if (!cart) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Cart ${cartId} not found`
+      `Cart ${cartId} not found`,
     )
   }
 
-  if (!cart.customer_id || cart.customer_id !== customerId) {
+  if (
+    typeof cart.customer_id !== "string" ||
+    cart.customer_id.length === 0 ||
+    cart.customer_id !== customerId
+  ) {
     throw new MedusaError(MedusaError.Types.FORBIDDEN, "Forbidden")
   }
 
-  if (note) {
+  if (note.length > 0) {
     const now = new Date().toISOString()
     const metadata = cart.metadata ?? {}
     const createdAt =
-      typeof metadata.order_note_created_at === "string"
-        ? metadata.order_note_created_at
+      typeof metadata["order_note_created_at"] === "string"
+        ? metadata["order_note_created_at"]
         : now
 
     await updateCartWorkflow(req.scope).run({
@@ -87,3 +92,5 @@ export async function POST(
 
   res.status(200).json({ cart: updatedCart })
 }
+
+export { post as POST }

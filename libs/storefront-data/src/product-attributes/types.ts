@@ -3,46 +3,46 @@ import type { QueryKey } from "../shared/query-keys"
 
 export type ProductAttributeInputType = "select" | "text"
 
-export type ProductAttributeDefinition = {
+export interface ProductAttributeDefinition {
   id: string
   key: string
   label: string
   input_type: ProductAttributeInputType
 }
 
-export type ProductAttributeOption = {
+export interface ProductAttributeOption {
   id: string
   key: string
   label: string
 }
 
-export type ProductAttribute = {
+export interface ProductAttribute {
   id: string
   definition: ProductAttributeDefinition
   option: ProductAttributeOption | null
   text_value: string | null
 }
 
-export type ProductAttributeListResponse = {
+export interface ProductAttributeListResponse {
   count: number
   limit: number
   offset: number
   product_attributes: ProductAttribute[]
 }
 
-export type ProductAttributesInputBase = {
+export interface ProductAttributesInputBase {
   productId?: null | string
   enabled?: boolean
 }
 
-export type ProductAttributeService<TAttribute, TParams> = {
+export interface ProductAttributeService<TAttribute, TParams> {
   getProductAttributes: (
     params: TParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TAttribute[]>
 }
 
-export type ProductAttributeQueryKeys<TParams> = {
+export interface ProductAttributeQueryKeys<TParams> {
   detail: (params: TParams) => QueryKey
 }
 

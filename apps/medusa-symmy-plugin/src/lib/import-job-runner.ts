@@ -3,31 +3,39 @@ import type {
   Logger,
   MedusaContainer,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import {
-  SYMMY_IMPORT_JOB_MODULE,
-  type SymmyImportJobDTO,
-  type SymmyImportJobModuleService,
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
+
+import { SYMMY_IMPORT_JOB_MODULE } from "../modules/import-job"
+import type {
+  SymmyImportJobDTO,
+  SymmyImportJobModuleService,
 } from "../modules/import-job"
-import {
-  SYMMY_WEBHOOK_CONFIG_MODULE,
-  type SymmyWebhookConfigModuleService,
-  type SymmyWebhookJobPayload,
+import { SYMMY_WEBHOOK_CONFIG_MODULE } from "../modules/webhook-config"
+import type {
+  SymmyWebhookConfigModuleService,
+  SymmyWebhookJobPayload,
 } from "../modules/webhook-config"
 
 // Medusa's locking module expects timeout values in seconds.
 const LOCK_ACQUIRE_TIMEOUT_SECONDS = 60 * 60
+const importJobResultSchema = z.record(z.string(), z.json())
 
-type CompletionStats = {
+interface CompletionStats {
   processed: number
   failed: number
 }
 
-type RunImportJobInput<TInput, TOutput extends Record<string, unknown>> = {
+interface RunImportJobInput<TInput, TOutput extends object> {
   container: MedusaContainer
   jobId: string
   jobLabel: string
   lockKey: string
+  decodeInput: (value: unknown) => value is TInput
   run: (input: TInput) => Promise<TOutput>
   getCompletionStats: (output: TOutput) => CompletionStats
 }
@@ -50,42 +58,42 @@ const toErrorMessage = (error: unknown) => {
 }
 
 const buildJobFinishedWebhookPayload = (
-  job: SymmyImportJobDTO
+  job: SymmyImportJobDTO,
 ): SymmyWebhookJobPayload => ({
   event:
     job.status === "failed"
       ? "symmy.import_job.failed"
       : "symmy.import_job.completed",
   job: {
+    attempts: job.attempts,
+    created_at: job.created_at,
+    error: job.error,
+    failed: job.failed,
+    finished_at: job.finished_at,
     id: job.id,
-    type: job.type,
+    processed: job.processed,
+    result: job.result,
+    started_at: job.started_at,
     status: job.status,
     total: job.total,
-    processed: job.processed,
-    failed: job.failed,
-    attempts: job.attempts,
-    result: job.result,
-    error: job.error,
-    created_at: job.created_at,
+    type: job.type,
     updated_at: job.updated_at,
-    started_at: job.started_at,
-    finished_at: job.finished_at,
   },
 })
 
 const deliverJobFinishedWebhook = async (
   webhookConfigService: SymmyWebhookConfigModuleService,
   logger: Logger,
-  job: SymmyImportJobDTO
+  job: SymmyImportJobDTO,
 ) => {
   try {
     await webhookConfigService.deliverJobFinished(
-      buildJobFinishedWebhookPayload(job)
+      buildJobFinishedWebhookPayload(job),
     )
   } catch (error) {
     const message = toErrorMessage(error)
     logger.warn(
-      `[symmy-plugin] Failed to dispatch webhook for job ${job.id}: ${message}`
+      `[symmy-plugin] Failed to dispatch webhook for job ${job.id}: ${message}`,
     )
   }
 }
@@ -108,7 +116,7 @@ const failJobAfterLockError = async ({
   const message = toErrorMessage(error)
   logger.error(
     `[symmy-plugin] ${jobLabel} job ${jobId} failed before lock-protected processing completed: ${message}`,
-    error instanceof Error ? error : new Error(message)
+    error instanceof Error ? error : new Error(message),
   )
 
   try {
@@ -125,16 +133,14 @@ const failJobAfterLockError = async ({
       `[symmy-plugin] Failed to mark ${jobLabel} job ${jobId} as failed after lock error: ${failureUpdateMessage}`,
       failureUpdateError instanceof Error
         ? failureUpdateError
-        : new Error(failureUpdateMessage)
+        : new Error(failureUpdateMessage),
     )
   }
 }
 
-export const runImportJob = async <
-  TInput,
-  TOutput extends Record<string, unknown>,
->({
+export const runImportJob = async <TInput, TOutput extends object>({
   container,
+  decodeInput,
   getCompletionStats,
   jobId,
   jobLabel,
@@ -143,11 +149,11 @@ export const runImportJob = async <
 }: RunImportJobInput<TInput, TOutput>) => {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const importJobService = container.resolve<SymmyImportJobModuleService>(
-    SYMMY_IMPORT_JOB_MODULE
+    SYMMY_IMPORT_JOB_MODULE,
   )
   const webhookConfigService =
     container.resolve<SymmyWebhookConfigModuleService>(
-      SYMMY_WEBHOOK_CONFIG_MODULE
+      SYMMY_WEBHOOK_CONFIG_MODULE,
     )
   const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
 
@@ -162,41 +168,55 @@ export const runImportJob = async <
 
         if (job.status === "running") {
           logger.warn(
-            `[symmy-plugin] ${jobLabel} job ${job.id} was already running when the lock was acquired; retrying the job.`
+            `[symmy-plugin] ${jobLabel} job ${job.id} was already running when the lock was acquired; retrying the job.`,
           )
         }
 
         await importJobService.markRunning(job.id)
 
         try {
-          const output = await run(job.payload as TInput)
+          const input: unknown = job.payload
+          if (!decodeInput(input)) {
+            throw new MedusaError(
+              MedusaError.Types.INVALID_DATA,
+              "Import job payload failed validation",
+            )
+          }
+          const output = await run(input)
           const stats = getCompletionStats(output)
+          const persistedOutput = importJobResultSchema.safeParse(output)
+          if (!persistedOutput.success) {
+            throw new MedusaError(
+              MedusaError.Types.UNEXPECTED_STATE,
+              "Import job output is not a JSON record",
+            )
+          }
 
           const completedJob = await importJobService.markCompleted(job.id, {
-            result: output,
-            processed: stats.processed,
             failed: stats.failed,
+            processed: stats.processed,
+            result: persistedOutput.data,
           })
           await deliverJobFinishedWebhook(
             webhookConfigService,
             logger,
-            completedJob
+            completedJob,
           )
         } catch (error) {
           const message = toErrorMessage(error)
           logger.error(
             `[symmy-plugin] ${jobLabel} job ${job.id} failed: ${message}`,
-            error instanceof Error ? error : new Error(message)
+            error instanceof Error ? error : new Error(message),
           )
           const failedJob = await importJobService.markFailed(job.id, message)
           await deliverJobFinishedWebhook(
             webhookConfigService,
             logger,
-            failedJob
+            failedJob,
           )
         }
       },
-      { timeout: LOCK_ACQUIRE_TIMEOUT_SECONDS }
+      { timeout: LOCK_ACQUIRE_TIMEOUT_SECONDS },
     )
   } catch (error) {
     await failJobAfterLockError({

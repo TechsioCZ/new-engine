@@ -9,17 +9,17 @@ import {
 
 export const renderEnvOverridesCommandInputSchema = z.object({
   lane: laneSchema,
-  servicesCsv: z.string().default(""),
+  outputJson: z.string().min(1).optional(),
   previewDbName: z.string().default(""),
-  previewDbUser: z.string().default(""),
   previewDbPassword: z.string().default(""),
+  previewDbUser: z.string().default(""),
   previewRandomOnceSecrets: z
     .array(previewRandomOnceSecretInputSchema)
     .default([]),
   runtimeProviderOutputs: runtimeProviderOutputsSchema.default({}),
-  outputJson: z.string().min(1).optional(),
-  stackManifestPath: z.string().min(1),
+  servicesCsv: z.string().default(""),
   stackInputsPath: z.string().min(1),
+  stackManifestPath: z.string().min(1),
 })
 
 export const renderEnvOverridesResponseSchema = z.object({

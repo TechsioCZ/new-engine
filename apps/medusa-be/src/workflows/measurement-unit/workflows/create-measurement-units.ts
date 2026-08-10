@@ -4,6 +4,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
+
 import { createMeasurementUnitsStep } from "../steps/create-measurement-units"
 import { normalizeUnitCode } from "../steps/helpers"
 import type { CreateMeasurementUnitsWorkflowInput } from "../types"
@@ -16,7 +17,7 @@ export const createMeasurementUnitsWorkflow = createWorkflow(
         ...new Set(current.units.map((unit) => normalizeUnitCode(unit.code))),
       ]
         .filter(Boolean)
-        .sort()
+        .toSorted()
         .map((code) => `measurement-unit-code:${code}`),
       timeout: 5,
       ttl: 30,
@@ -30,5 +31,5 @@ export const createMeasurementUnitsWorkflow = createWorkflow(
     releaseLockStep(releaseInput)
 
     return new WorkflowResponse(created)
-  }
+  },
 )

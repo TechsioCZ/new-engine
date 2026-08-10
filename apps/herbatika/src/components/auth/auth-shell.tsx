@@ -2,7 +2,7 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import type { ReactNode } from "react"
 
-type AuthShellProps = {
+interface AuthShellProps {
   title: string
   description: string
   message?: string | null
@@ -23,7 +23,7 @@ export const AuthShell = ({
       <p className="text-fg-secondary text-sm">{description}</p>
     </header>
 
-    {message && (
+    {typeof message === "string" && message.length > 0 && (
       <Badge
         className="rounded-full px-300 py-100 font-semibold text-xs"
         variant="success"
@@ -32,7 +32,7 @@ export const AuthShell = ({
       </Badge>
     )}
 
-    {notice && (
+    {typeof notice === "string" && notice.length > 0 && (
       <StatusText showIcon status="warning">
         {notice}
       </StatusText>

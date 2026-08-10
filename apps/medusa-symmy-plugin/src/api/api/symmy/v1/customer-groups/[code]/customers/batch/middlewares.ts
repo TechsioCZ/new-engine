@@ -3,12 +3,13 @@ import {
   authenticate,
   validateAndTransformBody,
 } from "@medusajs/framework/http"
+
 import { AssignCustomersToGroupBatchSchema } from "./validators"
 
 export const symmyCustomerGroupCustomersBatchRoutes: MiddlewareRoute[] = [
   {
-    methods: ["POST"],
     matcher: "/api/symmy/v1/customer-groups/:code/customers/batch",
+    methods: ["POST"],
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformBody(AssignCustomersToGroupBatchSchema),

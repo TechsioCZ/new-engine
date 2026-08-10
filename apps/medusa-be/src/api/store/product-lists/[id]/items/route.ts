@@ -2,32 +2,27 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+import { omitUndefined } from "@techsio/std/object"
+
 import { createProductListItemWorkflow } from "../../../../../workflows/product-list/workflows/create-product-list-item"
 import {
   toProductListItemResponse,
   withProductListItemSelections,
 } from "../../utils"
-import {
-  type StoreCreateProductListItemSchemaType,
-  StoreProductListParamsSchema,
-} from "../../validators"
+import { StoreProductListParamsSchema } from "../../validators"
+import type { StoreCreateProductListItemSchemaType } from "../../validators"
 
-export async function POST(
+const postHandler = async (
   req: AuthenticatedMedusaRequest<StoreCreateProductListItemSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
   const { result: item } = await createProductListItemWorkflow(req.scope).run({
-    input: {
+    input: omitUndefined({
+      ...req.validatedBody,
       customer_id: req.auth_context.actor_id,
       list_id: listId,
-      metadata: req.validatedBody.metadata,
-      note: req.validatedBody.note,
-      product_id: req.validatedBody.product_id,
-      quantity: req.validatedBody.quantity,
-      sort_order: req.validatedBody.sort_order,
-      variant_id: req.validatedBody.variant_id,
-    },
+    }),
   })
   const [itemWithSelection] = await withProductListItemSelections(req.scope, [
     item,
@@ -37,3 +32,5 @@ export async function POST(
     item: toProductListItemResponse(itemWithSelection ?? item),
   })
 }
+
+export { postHandler as POST }

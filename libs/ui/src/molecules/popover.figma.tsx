@@ -1,23 +1,11 @@
 import figma from "@figma/code-connect"
+
 import { Popover } from "./popover"
 
 figma.connect(
   Popover,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1076-666",
   {
-    imports: ['import { Popover } from "@libs/ui/molecules/popover"'],
-    props: {
-      placement: figma.enum("placement", {
-        top: "top",
-        right: "right",
-        bottom: "bottom",
-        left: "left",
-        "top-start": "top-start",
-        "top-end": "top-end",
-        "bottom-start": "bottom-start",
-        "bottom-end": "bottom-end",
-      }),
-    },
     example: ({ placement }) => (
       <Popover defaultOpen id="popover" placement={placement}>
         <Popover.Trigger>Open</Popover.Trigger>
@@ -29,5 +17,18 @@ figma.connect(
         </Popover.Positioner>
       </Popover>
     ),
-  }
+    imports: ['import { Popover } from "@libs/ui/molecules/popover"'],
+    props: {
+      placement: figma.enum("placement", {
+        bottom: "bottom",
+        "bottom-end": "bottom-end",
+        "bottom-start": "bottom-start",
+        left: "left",
+        right: "right",
+        top: "top",
+        "top-end": "top-end",
+        "top-start": "top-start",
+      }),
+    },
+  },
 )

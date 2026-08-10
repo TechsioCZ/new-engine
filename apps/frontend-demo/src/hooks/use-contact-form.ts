@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
 import { useState } from "react"
+import type { SyntheticEvent } from "react"
 
 interface ContactFormData {
   firstName: string
@@ -15,86 +16,96 @@ interface UseContactFormProps {
   onSuccess?: () => void
 }
 
-async function sendContactForm(data: ContactFormData) {
+const INITIAL_FORM_DATA: ContactFormData = {
+  email: "",
+  firstName: "",
+  lastName: "",
+  message: "",
+  phone: "",
+  subject: "general",
+}
+
+const readContactError = (value: unknown): string | undefined => {
+  if (typeof value !== "object" || value === null || !("error" in value)) {
+    return undefined
+  }
+
+  if (typeof value.error !== "string" || value.error.length === 0) {
+    return undefined
+  }
+
+  return value.error
+}
+
+const sendContactForm = async (data: ContactFormData): Promise<void> => {
   const response = await fetch("/api/contact", {
-    method: "POST",
+    body: JSON.stringify(data),
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(data),
+    method: "POST",
   })
 
-  const result = await response.json()
+  const result: unknown = await response.json()
 
   if (!response.ok) {
-    throw new Error(result.error || "Něco se pokazilo")
+    throw new Error(readContactError(result) ?? "Něco se pokazilo")
   }
-
-  return result
 }
 
-export function useContactForm({ onSuccess }: UseContactFormProps = {}) {
+export const useContactForm = ({ onSuccess }: UseContactFormProps = {}) => {
   const toast = useToast()
-
-  const initialFormData: ContactFormData = {
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    subject: "general",
-    message: "",
-  }
-
-  const [formData, setFormData] = useState<ContactFormData>(initialFormData)
+  const [formData, setFormData] = useState<ContactFormData>(INITIAL_FORM_DATA)
 
   const mutation = useMutation({
     mutationFn: sendContactForm,
-    onSuccess: (data) => {
+    onError: (error: Error) => {
       toast.create({
-        title: "Zpráva odeslána",
+        description:
+          error.message.length > 0
+            ? error.message
+            : "Nepodařilo se odeslat zprávu. Zkuste to prosím později.",
+        duration: 5000,
+        title: "Chyba",
+        type: "error",
+      })
+    },
+    onSuccess: () => {
+      toast.create({
         description:
           "Vaše zpráva byla úspěšně odeslána. Ozveme se vám co nejdříve.",
-        type: "success",
         duration: 5000,
+        title: "Zpráva odeslána",
+        type: "success",
       })
 
       // Reset form
-      setFormData(initialFormData)
+      setFormData(INITIAL_FORM_DATA)
 
       // Call custom success handler if provided
       onSuccess?.()
-    },
-    onError: (error: Error) => {
-      toast.create({
-        title: "Chyba",
-        description:
-          error.message ||
-          "Nepodařilo se odeslat zprávu. Zkuste to prosím později.",
-        type: "error",
-        duration: 5000,
-      })
     },
   })
 
   const updateField = <K extends keyof ContactFormData>(
     field: K,
-    value: ContactFormData[K]
+    value: ContactFormData[K],
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
+    event.preventDefault()
     mutation.mutate(formData)
   }
 
   return {
+    error: mutation.error,
     formData,
-    updateField,
     handleSubmit,
+    isError: mutation.isError,
     isSubmitting: mutation.isPending,
     isSuccess: mutation.isSuccess,
-    isError: mutation.isError,
-    error: mutation.error,
+    updateField,
   }
 }

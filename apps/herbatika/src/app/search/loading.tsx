@@ -1,5 +1,5 @@
 import { PlpPageSkeleton } from "@/components/loading/plp-page-skeleton"
 
-export default function Loading() {
-  return <PlpPageSkeleton variant="search" />
-}
+const Loading = () => <PlpPageSkeleton variant="search" />
+
+export default Loading

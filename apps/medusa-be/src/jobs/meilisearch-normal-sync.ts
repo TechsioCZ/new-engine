@@ -1,11 +1,14 @@
-import type { MedusaContainer } from '@medusajs/framework/types'
-import { synchronizeSearchProfiles } from '../modules/meilisearch/synchronize'
+import type { MedusaContainer } from "@medusajs/framework/types"
 
-export default async function meilisearchNormalSyncJob(container: MedusaContainer) {
-	await synchronizeSearchProfiles(container, 'normal')
+import { synchronizeSearchProfiles } from "../modules/meilisearch/synchronize"
+
+export default async function meilisearchNormalSyncJob(
+  container: MedusaContainer,
+) {
+  await synchronizeSearchProfiles(container, "normal")
 }
 
 export const config = {
-	name: 'meilisearch-normal-sync',
-	schedule: '0 */4 * * *'
+  name: "meilisearch-normal-sync",
+  schedule: "0 */4 * * *",
 }

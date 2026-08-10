@@ -8,8 +8,6 @@ const RECENTLY_VISITED_PRODUCTS_STORAGE_KEY =
 const RECENTLY_VISITED_PRODUCTS_EVENT = "herbatika:recently-visited-products"
 const RECENTLY_VISITED_PRODUCTS_LIMIT = 12
 
-type RecentlyVisitedProductsEvent = CustomEvent<string[]>
-
 const isBrowser = () => typeof window !== "undefined"
 
 const readRecentlyVisitedProductHandles = (): string[] => {
@@ -19,9 +17,10 @@ const readRecentlyVisitedProductHandles = (): string[] => {
 
   try {
     const rawValue = window.localStorage.getItem(
-      RECENTLY_VISITED_PRODUCTS_STORAGE_KEY
+      RECENTLY_VISITED_PRODUCTS_STORAGE_KEY,
     )
-    const parsed = rawValue ? JSON.parse(rawValue) : []
+    const parsed: unknown =
+      rawValue === null || rawValue.length === 0 ? [] : JSON.parse(rawValue)
 
     if (!Array.isArray(parsed)) {
       return []
@@ -29,7 +28,7 @@ const readRecentlyVisitedProductHandles = (): string[] => {
 
     return parsed.filter(
       (handle): handle is string =>
-        typeof handle === "string" && handle.trim().length > 0
+        typeof handle === "string" && handle.trim().length > 0,
     )
   } catch {
     return []
@@ -44,19 +43,19 @@ const writeRecentlyVisitedProductHandles = (handles: string[]) => {
   try {
     window.localStorage.setItem(
       RECENTLY_VISITED_PRODUCTS_STORAGE_KEY,
-      JSON.stringify(handles)
+      JSON.stringify(handles),
     )
     window.dispatchEvent(
       new CustomEvent(RECENTLY_VISITED_PRODUCTS_EVENT, {
         detail: handles,
-      })
+      }),
     )
   } catch {
     // Browsers can block storage in strict privacy modes; history is optional.
   }
 }
 
-export const addRecentlyVisitedProductHandle = (handle: string) => {
+const addRecentlyVisitedProductHandle = (handle: string) => {
   const normalizedHandle = handle.trim()
   if (!normalizedHandle) {
     return
@@ -73,7 +72,7 @@ export const addRecentlyVisitedProductHandle = (handle: string) => {
 
 export const orderProductsByHandles = (
   products: HttpTypes.StoreProduct[],
-  handles: string[]
+  handles: string[],
 ) => {
   const productByHandle = new Map<string, HttpTypes.StoreProduct>()
 
@@ -91,13 +90,20 @@ export const orderProductsByHandles = (
 export const useRecentlyVisitedProductHandles = (options?: {
   excludeHandle?: string | null
 }) => {
-  const [handles, setHandles] = useState<string[]>([])
+  const [handles, setHandles] = useState(readRecentlyVisitedProductHandles)
 
   useEffect(() => {
-    setHandles(readRecentlyVisitedProductHandles())
-
     const handleRecentlyVisitedProductsEvent = (event: Event) => {
-      setHandles((event as RecentlyVisitedProductsEvent).detail ?? [])
+      if (!(event instanceof CustomEvent)) {
+        return
+      }
+
+      const detail: unknown = event.detail
+      if (Array.isArray(detail)) {
+        setHandles(
+          detail.filter((item): item is string => typeof item === "string"),
+        )
+      }
     }
     const handleStorageEvent = (event: StorageEvent) => {
       if (event.key !== RECENTLY_VISITED_PRODUCTS_STORAGE_KEY) {
@@ -109,14 +115,14 @@ export const useRecentlyVisitedProductHandles = (options?: {
 
     window.addEventListener(
       RECENTLY_VISITED_PRODUCTS_EVENT,
-      handleRecentlyVisitedProductsEvent
+      handleRecentlyVisitedProductsEvent,
     )
     window.addEventListener("storage", handleStorageEvent)
 
     return () => {
       window.removeEventListener(
         RECENTLY_VISITED_PRODUCTS_EVENT,
-        handleRecentlyVisitedProductsEvent
+        handleRecentlyVisitedProductsEvent,
       )
       window.removeEventListener("storage", handleStorageEvent)
     }
@@ -126,13 +132,14 @@ export const useRecentlyVisitedProductHandles = (options?: {
 }
 
 export const useRecordRecentlyVisitedProduct = (
-  product: Pick<HttpTypes.StoreProduct, "handle"> | null
+  product: Pick<HttpTypes.StoreProduct, "handle"> | null,
 ) => {
+  const handle = product?.handle
   useEffect(() => {
-    if (!product?.handle) {
+    if (handle === null || handle === undefined || handle.length === 0) {
       return
     }
 
-    addRecentlyVisitedProductHandle(product.handle)
-  }, [product?.handle])
+    addRecentlyVisitedProductHandle(handle)
+  }, [handle])
 }

@@ -13,9 +13,9 @@ import {
 export type CreateRegionsStepInput = {
   name: string
   currencyCode: string
-  countries?: string[]
-  paymentProviders?: string[]
-  isTaxInclusive?: boolean
+  countries?: string[] | undefined
+  paymentProviders?: string[] | undefined
+  isTaxInclusive?: boolean | undefined
 }[]
 
 const CreateRegionsStepId = "create-regions-seed-step"
@@ -26,7 +26,7 @@ export const createRegionsStep = createStep(
 
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const regionService = container.resolve<IRegionModuleService>(
-      Modules.REGION
+      Modules.REGION,
     )
 
     const regionNames = input.map((i) => i.name)
@@ -36,20 +36,20 @@ export const createRegionsStep = createStep(
     })
 
     const missingRegions = input.filter(
-      (i) => !existingRegions.find((j) => j.name === i.name)
+      (i) => !existingRegions.some((j) => j.name === i.name),
     )
     const updateRegions = input.flatMap((inputRegion) => {
       const existingRegion = existingRegions.find(
-        (existing) => existing.name === inputRegion.name
+        (existing) => existing.name === inputRegion.name,
       )
       if (existingRegion) {
         return [
           {
             ...existingRegion,
-            currency_code: inputRegion.currencyCode,
             countries: inputRegion.countries,
-            payment_providers: inputRegion.paymentProviders,
+            currency_code: inputRegion.currencyCode,
             is_tax_inclusive: inputRegion.isTaxInclusive ?? true,
+            payment_providers: inputRegion.paymentProviders,
           },
         ]
       }
@@ -60,15 +60,15 @@ export const createRegionsStep = createStep(
       logger.info("Creating missing region data...")
 
       const { result: createRegionsResult } = await createRegionsWorkflow(
-        container
+        container,
       ).run({
         input: {
           regions: missingRegions.map((i) => ({
-            name: i.name,
+            ...(i.countries === undefined ? {} : { countries: i.countries }),
             currency_code: i.currencyCode,
-            countries: i.countries,
-            payment_providers: i.paymentProviders ?? ["pp_system_default"],
             is_tax_inclusive: i.isTaxInclusive ?? true,
+            name: i.name,
+            payment_providers: i.paymentProviders ?? ["pp_system_default"],
           })),
         },
       })
@@ -82,26 +82,28 @@ export const createRegionsStep = createStep(
       const toUpdate = updateRegions.map((i) => ({
         selector: { name: i.name },
         update: {
+          ...(i.countries === undefined ? {} : { countries: i.countries }),
           currency_code: i.currency_code,
-          countries: i.countries,
-          payment_providers: i.payment_providers ?? ["pp_system_default"],
           is_tax_inclusive: i.is_tax_inclusive,
+          payment_providers: i.payment_providers ?? ["pp_system_default"],
         },
       }))
 
-      for (const regionToUpdate of toUpdate) {
-        const { result: updateResult } = await updateRegionsWorkflow(
-          container
-        ).run({
-          input: regionToUpdate,
-        })
-
-        result.push(...updateResult)
-      }
+      const updateResults = await Promise.all(
+        toUpdate.map(
+          async (regionToUpdate) =>
+            await updateRegionsWorkflow(container).run({
+              input: regionToUpdate,
+            }),
+        ),
+      )
+      result.push(
+        ...updateResults.flatMap(({ result: updateResult }) => updateResult),
+      )
     }
 
     return new StepResponse({
       result,
     })
-  }
+  },
 )

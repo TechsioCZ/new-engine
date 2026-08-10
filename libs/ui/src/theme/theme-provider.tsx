@@ -13,40 +13,41 @@
 import { ThemeProvider as BetterThemesProvider, useTheme } from "better-themes"
 import {
   createContext,
-  type PropsWithChildren,
+  createElement,
   useContext,
   useEffect,
   useState,
+  useSyncExternalStore,
 } from "react"
+import type { PropsWithChildren } from "react"
+
 import {
   availableModeSettings,
   BRAND_STORAGE_KEY,
-  type BrandKey,
   brandAttr,
   brandKeys,
   brandSupportsDark,
-  type ColorMode,
   DEFAULT_BRAND,
   DEFAULT_MODE,
   isBrandKey,
   MODE_STORAGE_KEY,
-  type ModeSetting,
 } from "./theme-config"
+import type { BrandKey, ColorMode, ModeSetting } from "./theme-config"
 
-function readStoredBrand(): BrandKey | null {
+const readStoredBrand = (): BrandKey | null => {
   if (typeof window === "undefined") {
     return null
   }
   try {
     const value = window.localStorage.getItem(BRAND_STORAGE_KEY)
-    return value && isBrandKey(value) ? value : null
+    return value !== null && isBrandKey(value) ? value : null
   } catch {
     // Storage may be unavailable (private mode / blocked cookies); fall back to default.
     return null
   }
 }
 
-function persistBrand(brand: BrandKey): void {
+const persistBrand = (brand: BrandKey): void => {
   if (typeof window === "undefined") {
     return
   }
@@ -57,46 +58,51 @@ function persistBrand(brand: BrandKey): void {
   }
 }
 
-function applyBrandAttr(brand: BrandKey): void {
+const applyBrandAttr = (brand: BrandKey): void => {
   if (typeof document === "undefined") {
     return
   }
   const attr = brandAttr(brand)
   const root = document.documentElement
-  if (attr) {
-    root.setAttribute("data-theme", attr)
+  if (typeof attr === "string" && attr.length > 0) {
+    Object.assign(root.dataset, { theme: attr })
   } else {
-    root.removeAttribute("data-theme")
+    Reflect.deleteProperty(root.dataset, "theme")
   }
 }
 
-type BrandContextValue = {
-  brand: BrandKey
-  setBrand: (brand: BrandKey) => void
-  /** False during SSR and the first client render; gate brand-dependent UI on it. */
-  mounted: boolean
+const BrandContext = createContext<BrandKey | null>(null)
+const BrandMountedContext = createContext(false)
+const BrandSetterContext = createContext<((brand: BrandKey) => void) | null>(
+  null,
+)
+const subscribeToHydration = (onStoreChange: () => void): (() => void) => {
+  window.addEventListener("pageshow", onStoreChange)
+  return () => {
+    window.removeEventListener("pageshow", onStoreChange)
+  }
 }
+const getClientHydrationSnapshot = (): boolean => true
+const getServerHydrationSnapshot = (): boolean => false
 
-const BrandContext = createContext<BrandContextValue | null>(null)
-
-function BrandProvider({
+const BrandProvider = ({
   defaultBrand,
   children,
-}: PropsWithChildren<{ defaultBrand: BrandKey }>) {
+}: PropsWithChildren<{ defaultBrand: BrandKey }>) => {
   const { setTheme } = useTheme()
   // Lazy-init from storage so the first client render already matches what the
   // pre-hydration BrandThemeScript wrote to <html> — the apply effect below
   // then re-applies the same value instead of clobbering it (no brand flash).
   // On the server readStoredBrand() returns null, so SSR uses the default and
   // the provider renders no brand-dependent markup (consumers gate on mounted).
-  const [brand, setBrandState] = useState<BrandKey>(
-    () => readStoredBrand() ?? defaultBrand
+  const [brand, setBrand] = useState<BrandKey>(
+    () => readStoredBrand() ?? defaultBrand,
   )
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const mounted = useSyncExternalStore(
+    subscribeToHydration,
+    getClientHydrationSnapshot,
+    getServerHydrationSnapshot,
+  )
 
   // Apply + persist whenever the brand changes; lock light-only brands to light.
   useEffect(() => {
@@ -108,37 +114,39 @@ function BrandProvider({
   }, [brand, setTheme])
 
   return (
-    <BrandContext.Provider value={{ brand, setBrand: setBrandState, mounted }}>
-      {children}
+    <BrandContext.Provider value={brand}>
+      <BrandMountedContext.Provider value={mounted}>
+        <BrandSetterContext.Provider value={setBrand}>
+          {children}
+        </BrandSetterContext.Provider>
+      </BrandMountedContext.Provider>
     </BrandContext.Provider>
   )
 }
 
 type AppThemeProviderProps = PropsWithChildren<{
-  defaultBrand?: BrandKey
-  defaultMode?: ModeSetting
+  defaultBrand?: BrandKey | undefined
+  defaultMode?: ModeSetting | undefined
 }>
 
-export function AppThemeProvider({
+export const AppThemeProvider = ({
   defaultBrand = DEFAULT_BRAND,
   defaultMode = DEFAULT_MODE,
   children,
-}: AppThemeProviderProps) {
-  return (
-    <BetterThemesProvider
-      attribute="class"
-      defaultTheme={defaultMode}
-      disableTransitionOnChange
-      enableSystem
-      storageKey={MODE_STORAGE_KEY}
-      themes={["light", "dark"]}
-    >
-      <BrandProvider defaultBrand={defaultBrand}>{children}</BrandProvider>
-    </BetterThemesProvider>
-  )
-}
+}: AppThemeProviderProps) => (
+  <BetterThemesProvider
+    attribute="class"
+    defaultTheme={defaultMode}
+    disableTransitionOnChange
+    enableSystem
+    storageKey={MODE_STORAGE_KEY}
+    themes={["light", "dark"]}
+  >
+    <BrandProvider defaultBrand={defaultBrand}>{children}</BrandProvider>
+  </BetterThemesProvider>
+)
 
-export type UseAppThemeResult = {
+export interface UseAppThemeResult {
   /** Active brand key. */
   brand: BrandKey
   /** All brand keys, for building a brand toggler. */
@@ -155,33 +163,51 @@ export type UseAppThemeResult = {
   mounted: boolean
 }
 
-export function useAppTheme(): UseAppThemeResult {
-  const brandCtx = useContext(BrandContext)
-  if (!brandCtx) {
+const isModeSetting = (value: unknown): value is ModeSetting =>
+  value === "light" || value === "dark" || value === "system"
+
+const isColorMode = (value: unknown): value is ColorMode =>
+  value === "light" || value === "dark"
+
+const resolveColorMode = (
+  mode: ModeSetting,
+  systemTheme: unknown,
+): ColorMode => {
+  if (mode !== "system") {
+    return mode
+  }
+  return isColorMode(systemTheme) ? systemTheme : "light"
+}
+
+export const useAppTheme = (): UseAppThemeResult => {
+  const brand = useContext(BrandContext)
+  const mounted = useContext(BrandMountedContext)
+  const setBrand = useContext(BrandSetterContext)
+  if (brand === null || setBrand === null) {
     throw new Error("useAppTheme must be used within AppThemeProvider")
   }
   const { theme, systemTheme, setTheme } = useTheme()
-  const { brand, setBrand, mounted } = brandCtx
 
-  const mode = (theme ?? DEFAULT_MODE) as ModeSetting
-  const resolvedMode: ColorMode =
-    mode === "system" ? (systemTheme ?? "light") : mode
+  const mode = isModeSetting(theme) ? theme : DEFAULT_MODE
+  const resolvedMode = resolveColorMode(mode, systemTheme)
+
+  // Light-only brands reject dark/system so the hook contract stays consistent
+  // even if a caller bypasses availableModes.
+  const setMode = (next: ModeSetting) => {
+    if (next === "light" || brandSupportsDark(brand)) {
+      setTheme(next)
+    }
+  }
 
   return {
+    availableModes: availableModeSettings(brand),
     brand,
     brands: brandKeys(),
-    setBrand,
     mode,
-    resolvedMode,
-    // Light-only brands reject dark/system so the hook contract stays consistent
-    // even if a caller bypasses availableModes.
-    setMode: (next: ModeSetting) => {
-      if (next === "light" || brandSupportsDark(brand)) {
-        setTheme(next)
-      }
-    },
-    availableModes: availableModeSettings(brand),
     mounted,
+    resolvedMode,
+    setBrand,
+    setMode,
   }
 }
 
@@ -193,28 +219,24 @@ export function useAppTheme(): UseAppThemeResult {
  * `<body>`, where it still runs synchronously before any body content renders.
  * better-themes injects its own equivalent script for the mode axis.
  */
-export function BrandThemeScript({
+interface BrandThemeScriptProps {
+  defaultBrand?: BrandKey | undefined
+}
+
+const brandThemeScript = ({
   defaultBrand = DEFAULT_BRAND,
-}: {
-  defaultBrand?: BrandKey
-}) {
+}: BrandThemeScriptProps) => {
   const attrByBrand: Record<string, string | undefined> = {}
   for (const key of brandKeys()) {
     attrByBrand[key] = brandAttr(key)
   }
-  // Validates the stored key against known brands before falling back to the
-  // default, so a stale/invalid value can't slip through as "no brand".
   const script = `(function(){try{var d=${JSON.stringify(
-    defaultBrand
+    defaultBrand,
   )};var m=${JSON.stringify(attrByBrand)};var k=localStorage.getItem(${JSON.stringify(
-    BRAND_STORAGE_KEY
+    BRAND_STORAGE_KEY,
   )});if(!k||!Object.prototype.hasOwnProperty.call(m,k)){k=d;}var a=m[k];var e=document.documentElement;if(a){e.setAttribute('data-theme',a);}else{e.removeAttribute('data-theme');}}catch(e){}})();`
-
-  return (
-    <script
-      // biome-ignore lint/security/noDangerouslySetInnerHtml: required to inline the synchronous pre-hydration brand script
-      dangerouslySetInnerHTML={{ __html: script }}
-      suppressHydrationWarning
-    />
-  )
+  return createElement("script", { suppressHydrationWarning: true }, script)
 }
+
+const themeComponents = { BrandThemeScript: brandThemeScript }
+export const { BrandThemeScript } = themeComponents

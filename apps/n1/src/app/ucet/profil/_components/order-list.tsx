@@ -6,8 +6,10 @@ import {
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Suspense } from "react"
+
 import { ErrorBoundary } from "@/components/error-boundary"
 import { useSuspenseOrders } from "@/hooks/use-orders"
+
 import { DesktopOrderCard } from "./orders/desktop-order-card"
 import { MobileOrderCard } from "./orders/mobile-order-card"
 import { OrdersEmpty } from "./orders/orders-empty"
@@ -18,8 +20,8 @@ import { OrdersSummary } from "./orders/orders-summary"
 const MIN_ORDERS_COUNT = 5
 const PAGE_SIZE = 5
 
-function parsePageParam(value: string | null) {
-  if (!value) {
+const parsePageParam = (value: string | null) => {
+  if ((value?.length ?? 0) === 0) {
     return 1
   }
 
@@ -27,21 +29,11 @@ function parsePageParam(value: string | null) {
   return Number.isFinite(parsedPage) ? Math.trunc(parsedPage) : 1
 }
 
-export function OrderList() {
-  return (
-    <ErrorBoundary fallback={<OrdersError />}>
-      <Suspense fallback={<OrdersSkeleton itemsCount={MIN_ORDERS_COUNT} />}>
-        <OrderListContent />
-      </Suspense>
-    </ErrorBoundary>
-  )
-}
-
-function OrderListContent() {
+const OrderListContent = () => {
   const searchParams = useSearchParams()
   const { data: ordersData } = useSuspenseOrders()
 
-  const orders = ordersData?.orders || []
+  const orders = ordersData?.orders ?? []
   const totalPages = Math.max(1, Math.ceil(orders.length / PAGE_SIZE))
   const requestedPage = parsePageParam(searchParams.get("ordersPage"))
   const page = Math.min(Math.max(requestedPage, 1), totalPages)
@@ -50,25 +42,25 @@ function OrderListContent() {
   const totalAmount = orders.reduce(
     (sum, order) =>
       sum + (order.summary?.current_order_total || order.total || 0),
-    0
+    0,
   )
   const completedOrders = orders.filter(
-    (order) => order.status === "completed"
+    (order) => order.status === "completed",
   ).length
   const pendingOrders = orders.filter(
-    (order) => order.status === "pending"
+    (order) => order.status === "pending",
   ).length
 
   // Pagination
   const startIndex = (page - 1) * PAGE_SIZE
   const paginatedOrders = orders.slice(startIndex, startIndex + PAGE_SIZE)
   const getPageUrl = createPaginationGetPageUrl({
-    pathname: "/ucet/profil",
-    searchParams: searchParams.toString(),
     pageParam: "ordersPage",
+    pathname: "/ucet/profil",
     searchParamOverrides: {
       tab: "orders",
     },
+    searchParams: searchParams.toString(),
   })
 
   return (
@@ -123,3 +115,11 @@ function OrderListContent() {
     </div>
   )
 }
+
+export const OrderList = () => (
+  <ErrorBoundary fallback={<OrdersError />}>
+    <Suspense fallback={<OrdersSkeleton itemsCount={MIN_ORDERS_COUNT} />}>
+      <OrderListContent />
+    </Suspense>
+  </ErrorBoundary>
+)

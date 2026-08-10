@@ -1,21 +1,22 @@
 import { NextResponse } from "next/server"
+
 import {
   getNotApplicableQrPaymentResponse,
   mapStoreOrderPaymentQr,
   ORDER_PAYMENT_QR_FIELDS,
-  type StoreOrderResponse,
 } from "@/lib/storefront/order-payment-qr-response"
+
 import {
   buildMedusaUrl,
   getPublishableHeaders,
   parseResponseJson,
-} from "../../../../storefront-auth/_lib"
+} from "../../../../storefront-auth/auth-route-utils"
 
-type RouteContext = {
+interface RouteContext {
   params: Promise<{ id: string }>
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+const get = async (_request: Request, context: RouteContext) => {
   const { id } = await context.params
 
   if (!id) {
@@ -23,7 +24,7 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   const medusaUrl = new URL(
-    buildMedusaUrl(`/store/orders/${encodeURIComponent(id)}`)
+    buildMedusaUrl(`/store/orders/${encodeURIComponent(id)}`),
   )
   medusaUrl.searchParams.set("fields", ORDER_PAYMENT_QR_FIELDS.join(","))
 
@@ -42,25 +43,25 @@ export async function GET(_request: Request, context: RouteContext) {
     if (!response.ok) {
       return NextResponse.json(
         {
-          message: "QR payment request failed.",
           details: payload ?? { status: response.status },
+          message: "QR payment request failed.",
         },
-        { status: 502 }
+        { status: 502 },
       )
     }
 
-    const qrPayment = await mapStoreOrderPaymentQr(
-      (payload ?? {}) as StoreOrderResponse
-    )
+    const qrPayment = await mapStoreOrderPaymentQr(payload ?? {})
 
     return NextResponse.json(qrPayment)
   } catch (error) {
     return NextResponse.json(
       {
-        message: "QR payment request failed.",
         details: error instanceof Error ? error.message : String(error),
+        message: "QR payment request failed.",
       },
-      { status: 502 }
+      { status: 502 },
     )
   }
 }
+
+export { get as GET }

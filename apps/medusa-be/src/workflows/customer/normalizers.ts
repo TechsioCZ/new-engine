@@ -1,23 +1,27 @@
 export const INACTIVE_CUSTOMER_NAME_PREFIX = "[INACTIVE]"
 
-export type CustomerNameInput = {
+export interface CustomerNameInput {
   first_name?: string | null
   last_name?: string | null
 }
 
-export function normalizeCustomerName(customer: CustomerNameInput) {
+export const normalizeCustomerName = (
+  customer: CustomerNameInput,
+): string | undefined => {
   const fullName = [customer.first_name, customer.last_name]
     .map((value) => value?.trim())
-    .filter(Boolean)
+    .filter((value): value is string => value !== undefined && value !== "")
     .join(" ")
 
   return fullName === "" ? undefined : fullName
 }
 
-export function normalizeInactiveCustomerFirstName(firstName?: string | null) {
+export const normalizeInactiveCustomerFirstName = (
+  firstName?: string | null,
+): string => {
   const normalizedFirstName = firstName?.trim()
 
-  if (!normalizedFirstName) {
+  if (normalizedFirstName === undefined || normalizedFirstName === "") {
     return INACTIVE_CUSTOMER_NAME_PREFIX
   }
 
@@ -28,12 +32,12 @@ export function normalizeInactiveCustomerFirstName(firstName?: string | null) {
   return `${INACTIVE_CUSTOMER_NAME_PREFIX} ${normalizedFirstName}`
 }
 
-export function normalizeReactivatedCustomerFirstName(
-  firstName?: string | null
-) {
+export const normalizeReactivatedCustomerFirstName = (
+  firstName?: string | null,
+): string | null => {
   const normalizedFirstName = firstName?.trim()
 
-  if (!normalizedFirstName) {
+  if (normalizedFirstName === undefined || normalizedFirstName === "") {
     return null
   }
 

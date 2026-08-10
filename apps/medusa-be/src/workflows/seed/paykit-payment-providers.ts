@@ -17,11 +17,12 @@ export const PAYKIT_REGION_PAYMENT_PROVIDER_IDS = [
 
 const mergePaymentProviders = (
   currentProviderIds: string[] | undefined,
-  paykitProviderIds: readonly string[]
+  paykitProviderIds: readonly string[],
 ) => {
-  const baseProviderIds = currentProviderIds?.length
-    ? currentProviderIds
-    : [SYSTEM_DEFAULT_PAYMENT_PROVIDER_ID]
+  const baseProviderIds =
+    currentProviderIds !== undefined && currentProviderIds.length > 0
+      ? currentProviderIds
+      : [SYSTEM_DEFAULT_PAYMENT_PROVIDER_ID]
 
   return [...new Set([...baseProviderIds, ...paykitProviderIds])]
 }
@@ -34,12 +35,12 @@ export const withPaykitPaymentProviders = <
   TRegion extends { paymentProviders?: string[] },
 >(
   regions: TRegion[],
-  paykitProviderIds: readonly string[] = PAYKIT_REGION_PAYMENT_PROVIDER_IDS
+  paykitProviderIds: readonly string[] = PAYKIT_REGION_PAYMENT_PROVIDER_IDS,
 ): WithPaykitPaymentProviders<TRegion>[] =>
   regions.map((region) => ({
     ...region,
     paymentProviders: mergePaymentProviders(
       region.paymentProviders,
-      paykitProviderIds
+      paykitProviderIds,
     ),
   }))

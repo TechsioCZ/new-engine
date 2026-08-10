@@ -1,5 +1,6 @@
 import { createWorkflow } from "@medusajs/framework/workflows-sdk"
 import { useRemoteQueryStep } from "@medusajs/medusa/core-flows"
+
 import { updateQuotesWorkflow } from "./update-quote"
 
 /*
@@ -15,9 +16,9 @@ export const merchantSendQuoteWorkflow = createWorkflow(
     useRemoteQueryStep({
       entry_point: "quote",
       fields: ["id"],
-      variables: { id: input.quote_id },
       list: false,
       throw_if_key_not_found: true,
+      variables: { id: input.quote_id },
     })
 
     updateQuotesWorkflow.runAsStep({
@@ -28,5 +29,5 @@ export const merchantSendQuoteWorkflow = createWorkflow(
         },
       ],
     })
-  }
+  },
 )

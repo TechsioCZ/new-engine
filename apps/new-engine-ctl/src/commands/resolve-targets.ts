@@ -1,32 +1,47 @@
 import { Command } from "commander"
+import { z } from "zod"
+
 import {
-  type ResolveTargetsResponse,
   resolveTargetsCommandInputSchema,
+  resolveTargetsResponseSchema,
 } from "../contracts/resolve-targets.js"
+import type { ResolveTargetsResponse } from "../contracts/resolve-targets.js"
 import { appendGitHubOutput } from "../github-actions.js"
 import { executeResolveTargets } from "../orchestration/resolve-targets.js"
 
-const redactableResolveTargetKeyPattern = /password|token|secret|key|url|env/i
+const commandOptionsSchema = z.object({
+  apiToken: z.string().optional(),
+  baseUrl: z.string().optional(),
+  dryRun: z.boolean(),
+  environmentName: z.string(),
+  lane: z.string(),
+  outputJson: z.string().optional(),
+  planJson: z.string(),
+  projectSlug: z.string().optional(),
+})
 
-function redactResolveTargetsResponse(
-  response: ResolveTargetsResponse
-): ResolveTargetsResponse {
-  return JSON.parse(
-    JSON.stringify(response, (key: string, value: unknown) => {
-      if (
-        key &&
-        redactableResolveTargetKeyPattern.test(key) &&
-        typeof value === "string"
-      ) {
-        return "***redacted***"
-      }
+const redactableResolveTargetKeyPattern = /password|token|secret|key|url|env/iu
 
-      return value
-    })
-  ) as ResolveTargetsResponse
-}
+const redactResolveTargetsResponse = (
+  response: ResolveTargetsResponse,
+): ResolveTargetsResponse =>
+  resolveTargetsResponseSchema.parse(
+    JSON.parse(
+      JSON.stringify(response, (key: string, value: unknown) => {
+        if (
+          key &&
+          redactableResolveTargetKeyPattern.test(key) &&
+          typeof value === "string"
+        ) {
+          return "***redacted***"
+        }
 
-export function createResolveTargetsCommand(): Command {
+        return value
+      }),
+    ),
+  )
+
+export const createResolveTargetsCommand = (): Command => {
   const command = new Command("resolve-targets")
 
   command
@@ -39,16 +54,22 @@ export function createResolveTargetsCommand(): Command {
     .option("--base-url <url>")
     .option("--api-token <token>")
     .option("--dry-run", "", false)
-    .action(async (options) => {
+    .action(async (options: unknown) => {
+      const parsedOptions = commandOptionsSchema.parse(options)
       const input = resolveTargetsCommandInputSchema.parse({
-        lane: options.lane,
-        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
-        environmentName: options.environmentName,
-        planJsonPath: options.planJson,
-        outputJson: options.outputJson,
-        baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
-        apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
-        dryRun: Boolean(options.dryRun),
+        apiToken:
+          parsedOptions.apiToken ??
+          process.env["ZANE_OPERATOR_API_TOKEN"] ??
+          "",
+        baseUrl:
+          parsedOptions.baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
+        dryRun: parsedOptions.dryRun,
+        environmentName: parsedOptions.environmentName,
+        lane: parsedOptions.lane,
+        outputJson: parsedOptions.outputJson,
+        planJsonPath: parsedOptions.planJson,
+        projectSlug:
+          parsedOptions.projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
       })
       const result = await executeResolveTargets(input)
       const serviceIdsCsv = result.services
@@ -57,7 +78,7 @@ export function createResolveTargetsCommand(): Command {
       await appendGitHubOutput("resolved_service_ids_csv", serviceIdsCsv)
       await appendGitHubOutput("target_service_ids_csv", serviceIdsCsv)
       process.stdout.write(
-        `${JSON.stringify(redactResolveTargetsResponse(result))}\n`
+        `${JSON.stringify(redactResolveTargetsResponse(result))}\n`,
       )
     })
 

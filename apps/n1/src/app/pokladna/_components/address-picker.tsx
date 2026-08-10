@@ -3,12 +3,13 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import { SelectTemplate } from "@techsio/ui-kit/templates/select"
+
 import type { StoreCustomerAddress } from "@/services/customer-service"
 import { addressToFormData } from "@/utils/address-helpers"
 import type { AddressFormData } from "@/utils/address-validation"
 import { formatPostalCode } from "@/utils/format/format-postal-code"
 
-type AddressPickerProps = {
+interface AddressPickerProps {
   addresses: StoreCustomerAddress[]
   selectedId: string | null
   onSelect: (address: AddressFormData, id: string) => void
@@ -26,18 +27,18 @@ const isAddressSelectItem = (item: SelectItem): item is AddressSelectItem =>
   "address" in item &&
   "isDefault" in item
 
-export function AddressPicker({
+export const AddressPicker = ({
   addresses,
   selectedId,
   onSelect,
   disabled,
-}: AddressPickerProps) {
+}: AddressPickerProps) => {
   const items: AddressSelectItem[] = addresses.map((address, index) => ({
-    value: address.id,
-    label: `${address.city}, ${address.address_1}`,
+    address,
     displayValue: `${address.city}, ${address.address_1}`,
     isDefault: index === 0,
-    address,
+    label: `${address.city}, ${address.address_1}`,
+    value: address.id,
   }))
 
   if (addresses.length === 0) {
@@ -51,15 +52,15 @@ export function AddressPicker({
       items={items}
       label="Vyberte z vašich adres"
       onValueChange={(details) => {
-        const newId = details.value[0]
-        if (!newId) {
+        const [newId] = details.value
+        if ((newId?.length ?? 0) === 0) {
           return
         }
         const address = addresses.find((a) => a.id === newId)
         if (!address) {
           return
         }
-        const formData = addressToFormData(address) as AddressFormData
+        const formData = addressToFormData(address)
         onSelect(formData, address.id)
       }}
       placeholder="Vyberte adresu"
@@ -77,7 +78,7 @@ export function AddressPicker({
               </span>
               <span className="truncate font-normal text-fg-secondary text-xs">
                 {addressItem.address.address_1}
-                {addressItem.address.address_2
+                {(addressItem.address.address_2?.length ?? 0) > 0
                   ? `, ${addressItem.address.address_2}`
                   : ""}
               </span>
@@ -91,7 +92,11 @@ export function AddressPicker({
         )
       }}
       size="lg"
-      value={selectedId ? [selectedId] : []}
+      value={
+        typeof selectedId === "string" && selectedId.length > 0
+          ? [selectedId]
+          : []
+      }
     />
   )
 }

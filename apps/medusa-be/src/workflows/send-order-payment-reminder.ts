@@ -13,16 +13,15 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import { ORDER_RECEIPT_MODULE } from "../modules/order-receipt"
 import type OrderReceiptModuleService from "../modules/order-receipt/service"
 import type { OrderReceiptOrder } from "../modules/order-receipt/service"
-import {
-  formatTotal,
-  type PaymentReminderOrder,
-} from "../utils/order-payment-reminders"
+import { formatTotal } from "../utils/order-payment-reminders"
+import type { PaymentReminderOrder } from "../utils/order-payment-reminders"
 import { sendNotificationStep } from "./steps/send-notification"
 
-type WorkflowInput = {
+interface WorkflowInput {
   customer_id?: string
   email: string
   order_display_id: string
@@ -34,7 +33,7 @@ type WorkflowInput = {
 
 type QueryOrder = OrderReceiptOrder & PaymentReminderOrder
 
-function isQueryOrder(value: unknown): value is QueryOrder {
+const isQueryOrder = (value: unknown): value is QueryOrder => {
   if (typeof value !== "object" || value === null) {
     return false
   }
@@ -100,7 +99,7 @@ const buildOrderPaymentReminderNotificationStep = createStep(
   "build-order-payment-reminder-notification",
   async (
     input: WorkflowInput,
-    { container }
+    { container },
   ): Promise<StepResponse<CreateNotificationDTO[]>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
@@ -141,7 +140,7 @@ const buildOrderPaymentReminderNotificationStep = createStep(
       logger.warn(
         `Payment reminder receipt PDF generation failed for order ${order.id}; sending reminder without attachment. ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       )
     }
 
@@ -156,7 +155,9 @@ const buildOrderPaymentReminderNotificationStep = createStep(
           store_name: input.store_name,
           total: formatTotal(order) ?? input.total,
         },
-        receiver_id: input.customer_id,
+        ...(input.customer_id === undefined
+          ? {}
+          : { receiver_id: input.customer_id }),
         resource_id: input.order_id,
         resource_type: "order",
         template: "order-payment-reminder",
@@ -164,7 +165,7 @@ const buildOrderPaymentReminderNotificationStep = createStep(
         trigger_type: "order.payment_reminder",
       },
     ])
-  }
+  },
 )
 
 export const sendOrderPaymentReminderWorkflow = createWorkflow(
@@ -176,5 +177,5 @@ export const sendOrderPaymentReminderWorkflow = createWorkflow(
     return new WorkflowResponse({
       notification,
     })
-  }
+  },
 )

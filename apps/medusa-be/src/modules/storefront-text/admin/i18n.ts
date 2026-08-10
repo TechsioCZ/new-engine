@@ -3,7 +3,7 @@ import type {
   StorefrontTextStatus,
 } from "../configuration"
 
-export type StorefrontTextAdminI18nNamespace = {
+export interface StorefrontTextAdminI18nNamespace {
   actions: Record<
     "cancel" | "edit" | "export" | "import" | "resetDefault" | "save" | "sync",
     string

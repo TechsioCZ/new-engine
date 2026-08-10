@@ -3,7 +3,9 @@ import { Header } from "@techsio/ui-kit/organisms/header"
 import Image from "next/image"
 import NextLink from "next/link"
 import { useState } from "react"
-import { links, type SubmenuCategory, submenuItems } from "@/data/header"
+
+import { links, submenuItems } from "@/data/header"
+import type { SubmenuCategory } from "@/data/header"
 import { usePrefetchProducts } from "@/hooks/use-prefetch-products"
 
 export const DesktopSubmenu = () => {
@@ -11,7 +13,7 @@ export const DesktopSubmenu = () => {
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const [activeCategory, setActiveCategory] = useState<SubmenuCategory | null>(
-    null
+    null,
   )
 
   const handleOpenSubmenu = (categoryName: string) => {
@@ -27,11 +29,15 @@ export const DesktopSubmenu = () => {
   }
   return (
     <Header.Desktop>
-      {/* biome-ignore lint/a11y/noNoninteractiveElementInteractions: hover-only wrapper for submenu */}
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: hover-only wrapper for submenu */}
-      <div className="w-full" onMouseLeave={() => setDrawerOpen(false)}>
-        <Header.Container className="w-full border-highlight border-t-[1px] bg-base-dark py-0">
-          <Header.Nav className="z-30 flex-wrap gap-x-0 px-0 py-0">
+      {/* hover-only wrapper for submenu */}
+      <div
+        className="w-full"
+        onMouseLeave={() => {
+          setDrawerOpen(false)
+        }}
+      >
+        <Header.Container className="w-full border-highlight border-t bg-base-dark py-0">
+          <Header.Nav className="z-30 flex-wrap gap-0 px-0 py-0">
             {links.map((link) => (
               <NextLink
                 className="group px-300 py-300 hover:bg-primary"
@@ -41,7 +47,9 @@ export const DesktopSubmenu = () => {
               >
                 <Header.NavItem
                   className="font-bold text-fg-reverse group-hover:text-black"
-                  onMouseEnter={() => handleOpenSubmenu(link.label)}
+                  onMouseEnter={() => {
+                    handleOpenSubmenu(link.label)
+                  }}
                 >
                   {link.label}
                 </Header.NavItem>
@@ -52,7 +60,7 @@ export const DesktopSubmenu = () => {
 
         <Dialog
           behavior="modeless"
-          className="top-full grid grid-rows-[1fr] starting:grid-rows-[0fr] bg-white shadow-none transition-all duration-500 ease-out"
+          className="top-full grid grid-rows-[1fr] starting:grid-rows-[0fr] bg-white shadow-none transition duration-500 ease-out"
           closeOnInteractOutside={true}
           customTrigger
           hideCloseButton
@@ -74,7 +82,7 @@ export const DesktopSubmenu = () => {
                   onMouseEnter={() => {
                     // Immediate prefetch on hover
                     if (item.categoryIds && item.categoryIds.length > 0) {
-                      prefetchCategoryProducts(item.categoryIds)
+                      void prefetchCategoryProducts(item.categoryIds)
                     }
                   }}
                 >

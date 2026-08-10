@@ -4,13 +4,21 @@ import { useQueryClient } from "@tanstack/react-query"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import { useState } from "react"
+
 import { useRegions } from "@/hooks/use-region"
 import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
-import data, { categoryTree } from "@/lib/static-data/categories"
+import {
+  categoryTree,
+  leafCategories,
+  leafParents,
+} from "@/lib/static-data/categories"
 import { getProducts } from "@/services/product-service"
+
 import { CategoryTreeFilter } from "../category-tree-filter"
 import { FilterSection } from "../molecules/filter-section"
+
+const PRODUCT_SIZES = ["XS", "S", "M", "L", "XL", "XXL"]
 
 export interface FilterState {
   categories: Set<string>
@@ -24,41 +32,46 @@ interface ProductFiltersProps {
   hideCategories?: boolean
 }
 
-export function ProductFilters({
+export const ProductFilters = ({
   className,
   filters,
   onFiltersChange,
   hideCategories = false,
-}: ProductFiltersProps) {
+}: ProductFiltersProps) => {
   const { selectedRegion } = useRegions()
-  const [categoryIds, setCategoryIds] = useState<string[]>([])
-
   const [isOpen, setIsOpen] = useState(false)
   const queryClient = useQueryClient()
 
+  const updateFilters = (updates: Partial<FilterState>) => {
+    onFiltersChange({
+      ...filters,
+      ...updates,
+    })
+  }
+
   const handleCategoryChange = (newCategoryIds: string[]) => {
-    setCategoryIds(newCategoryIds)
     updateFilters({ categories: new Set(newCategoryIds) })
   }
 
   // Prefetch products with specific filters
   const prefetchFilteredProducts = (newFilters: Partial<FilterState>) => {
     const updatedFilters = {
-      categories: newFilters.categories || filters.categories,
-      sizes: newFilters.sizes || filters.sizes,
+      categories: newFilters.categories ?? filters.categories,
+      sizes: newFilters.sizes ?? filters.sizes,
     }
 
     const productFilters = {
-      categories: Array.from(updatedFilters.categories),
-      sizes: Array.from(updatedFilters.sizes),
+      categories: [...updatedFilters.categories],
+      sizes: [...updatedFilters.sizes],
     }
 
     const queryKey = queryKeys.products.list({
-      page: 1,
-      limit: 12,
       filters: productFilters,
-      sort: "newest", // Add default sort to match products page
+      limit: 12,
+      page: 1,
       region_id: selectedRegion?.id,
+      // Match the products page default sort.
+      sort: "newest",
     })
 
     // Check if data is already in cache and fresh
@@ -66,27 +79,21 @@ export function ProductFilters({
     const queryState = queryClient.getQueryState(queryKey)
 
     // Only prefetch if data is not in cache or is stale
-    if (!cachedData || queryState?.isInvalidated) {
-      queryClient.prefetchQuery({
-        queryKey,
-        queryFn: () =>
-          getProducts({
+    if (cachedData === undefined || queryState?.isInvalidated === true) {
+      void queryClient.prefetchQuery({
+        queryFn: async () =>
+          await getProducts({
+            filters: productFilters,
             limit: 12,
             offset: 0,
-            filters: productFilters,
-            sort: "newest",
             region_id: selectedRegion?.id,
+            sort: "newest",
           }),
-        ...cacheConfig.semiStatic, // Use consistent cache config
+        queryKey,
+        // Use the shared semi-static cache policy.
+        ...cacheConfig.semiStatic,
       })
     }
-  }
-
-  const updateFilters = (updates: Partial<FilterState>) => {
-    onFiltersChange({
-      ...filters,
-      ...updates,
-    })
   }
 
   const clearAllFilters = () => {
@@ -101,19 +108,17 @@ export function ProductFilters({
   // Count active filters for mobile button
   const activeFilterCount = filters.categories.size + filters.sizes.size
 
-  const SIZES = ["XS", "S", "M", "L", "XL", "XXL"]
-
   const renderCategories = () => (
     <FilterSection title="Kategorie">
-      {categoryTree.length > 0 && (
+      {categoryTree.length !== 0 && (
         <>
           <div className="mb-2 text-gray-500 text-xs">
             Tip: Filtry se aplikují pouze na koncové podkategorie
           </div>
           <CategoryTreeFilter
             categories={categoryTree}
-            leafCategories={data.leafCategories}
-            leafParents={data.leafParents}
+            leafCategories={leafCategories}
+            leafParents={leafParents}
             onSelectionChange={handleCategoryChange}
           />
         </>
@@ -121,49 +126,49 @@ export function ProductFilters({
     </FilterSection>
   )
 
-  const renderSizes = () => {
-    return (
-      <FilterSection
-        onClear={
-          filters.sizes.size > 0
-            ? () => updateFilters({ sizes: new Set() })
-            : undefined
-        }
-        title="Velikost"
-      >
-        <div className="flex flex-wrap gap-2">
-          {SIZES.map((size) => {
-            const isSelected = filters.sizes.has(size)
-            return (
-              <Button
-                className="rounded-sm border"
-                key={size}
-                onClick={() => {
-                  const newSizes = new Set<string>()
-                  // If clicking on already selected size, deselect it
-                  // Otherwise, select only this size
-                  if (!isSelected) {
-                    newSizes.add(size)
-                  }
-                  updateFilters({ sizes: newSizes })
-                }}
-                onMouseEnter={() => {
-                  // Prefetch products with this size filter
-                  if (!isSelected) {
-                    prefetchFilteredProducts({ sizes: new Set([size]) })
-                  }
-                }}
-                size="sm"
-                theme={isSelected ? "solid" : "borderless"}
-              >
-                {size}
-              </Button>
-            )
-          })}
-        </div>
-      </FilterSection>
-    )
-  }
+  const renderSizes = () => (
+    <FilterSection
+      onClear={
+        filters.sizes.size > 0
+          ? () => {
+              updateFilters({ sizes: new Set() })
+            }
+          : undefined
+      }
+      title="Velikost"
+    >
+      <div className="flex flex-wrap gap-2">
+        {PRODUCT_SIZES.map((size) => {
+          const isSelected = filters.sizes.has(size)
+          return (
+            <Button
+              className="rounded-sm border"
+              key={size}
+              onClick={() => {
+                const newSizes = new Set<string>()
+                // If clicking on already selected size, deselect it
+                // Otherwise, select only this size
+                if (!isSelected) {
+                  newSizes.add(size)
+                }
+                updateFilters({ sizes: newSizes })
+              }}
+              onMouseEnter={() => {
+                // Prefetch products with this size filter
+                if (!isSelected) {
+                  prefetchFilteredProducts({ sizes: new Set([size]) })
+                }
+              }}
+              size="sm"
+              theme={isSelected ? "solid" : "borderless"}
+            >
+              {size}
+            </Button>
+          )
+        })}
+      </div>
+    </FilterSection>
+  )
 
   const filterContent = (
     <>
@@ -189,12 +194,14 @@ export function ProductFilters({
   )
 
   return (
-    <div className={`w-full ${className || ""}`}>
+    <div className={`w-full ${className ?? ""}`}>
       {/* Mobile Filter Button */}
       <Button
         className="flex items-center bg-surface md:hidden"
         icon="icon-[mdi--filter-variant]"
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          setIsOpen(true)
+        }}
         size="sm"
         theme="outlined"
       >
@@ -213,7 +220,9 @@ export function ProductFilters({
       <div className="hidden">
         <Dialog
           description="Upřesněte hledání produktů"
-          onOpenChange={({ open }) => setIsOpen(open)}
+          onOpenChange={({ open }) => {
+            setIsOpen(open)
+          }}
           open={isOpen}
           title="Filtry"
         >
@@ -223,7 +232,9 @@ export function ProductFilters({
               <Button
                 aria-label="Zavřít filtry"
                 icon="icon-[mdi--close]"
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  setIsOpen(false)
+                }}
                 size="sm"
                 theme="borderless"
               />
@@ -243,7 +254,9 @@ export function ProductFilters({
               </Button>
               <Button
                 className="flex-1"
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  setIsOpen(false)
+                }}
                 size="sm"
                 theme="solid"
               >

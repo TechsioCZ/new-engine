@@ -66,7 +66,7 @@ export type OrderDashboardTargetStatus =
 
 export type OrderDashboardLabelFormat = "A6" | "A7"
 
-export type OrderDashboardBlockingOrder = {
+export interface OrderDashboardBlockingOrder {
   id: string
   order_display_id: string
   reason: string
@@ -80,14 +80,14 @@ export type OrderDashboardBusinessStatusTone =
   | "purple"
   | "red"
 
-export type OrderDashboardBusinessStatus = {
+export interface OrderDashboardBusinessStatus {
   id: OrderDashboardBusinessStatusId
   priority: number
   tone: OrderDashboardBusinessStatusTone
   translation_key: `statuses.${OrderDashboardBusinessStatusId}`
 }
 
-export type OrderDashboardCarrier = {
+export interface OrderDashboardCarrier {
   label: string
   value: OrderDashboardCarrierKey
   shipping_method_id?: string
@@ -95,7 +95,7 @@ export type OrderDashboardCarrier = {
   shipping_option_id?: string
 }
 
-export type OrderDashboardItem = {
+export interface OrderDashboardItem {
   id?: string | null
   title: string
   quantity: number
@@ -103,7 +103,7 @@ export type OrderDashboardItem = {
   variant?: string | null
 }
 
-export type OrderDashboardOrder = {
+export interface OrderDashboardOrder {
   id: string
   business_status: OrderDashboardBusinessStatus
   carrier: OrderDashboardCarrier
@@ -124,7 +124,7 @@ export type OrderDashboardOrder = {
   total?: number | string | null
 }
 
-export type OrderDashboardPacketaFulfillment = {
+export interface OrderDashboardPacketaFulfillment {
   id: string
   canceled_at?: string | null
   data?: {
@@ -134,13 +134,13 @@ export type OrderDashboardPacketaFulfillment = {
   provider_id?: string | null
 }
 
-export type OrderDashboardPacketaEligibilityOrder = {
+export interface OrderDashboardPacketaEligibilityOrder {
   id: string
   display_id?: number | null
   fulfillments?: OrderDashboardPacketaFulfillment[] | null
 }
 
-export type OrderDashboardFulfillmentItem = {
+export interface OrderDashboardFulfillmentItem {
   id: string
   title: string
   quantity: number
@@ -159,13 +159,13 @@ export type OrderDashboardFulfillmentItem = {
   } | null
 }
 
-export type OrderDashboardFulfillmentShippingMethod = {
+export interface OrderDashboardFulfillmentShippingMethod {
   id?: string | null
   name?: string | null
   shipping_option_id?: string | null
 }
 
-export type OrderDashboardFulfillmentOrder = {
+export interface OrderDashboardFulfillmentOrder {
   id: string
   display_id?: number | string | null
   no_notification?: boolean | null
@@ -174,24 +174,24 @@ export type OrderDashboardFulfillmentOrder = {
   shipping_methods?: OrderDashboardFulfillmentShippingMethod[] | null
 }
 
-export type OrderDashboardStockLocation = {
+export interface OrderDashboardStockLocation {
   id: string
   name: string
 }
 
-export type OrderDashboardShippingOption = {
+export interface OrderDashboardShippingOption {
   id: string
   name: string
   provider_id?: string | null
   shipping_profile_id?: string | null
 }
 
-export type OrderDashboardFulfillmentCreateItem = {
+export interface OrderDashboardFulfillmentCreateItem {
   id: string
   quantity: number
 }
 
-export type OrderDashboardOrdersResponse = {
+export interface OrderDashboardOrdersResponse {
   orders: OrderDashboardOrder[]
   count: number
   has_next: boolean
@@ -205,7 +205,7 @@ export type OrderDashboardOrdersResponse = {
   business_status: OrderDashboardBusinessStatusId | null
 }
 
-export type OrderDashboardSummaryResponse = {
+export interface OrderDashboardSummaryResponse {
   action_required_count: number
   pending_unpaid_count: number
   scanned_count: number
@@ -214,28 +214,28 @@ export type OrderDashboardSummaryResponse = {
   unhandled_count: number
 }
 
-export type OrderDashboardStatusResponse = {
+export interface OrderDashboardStatusResponse {
   count: number
   target_status: OrderDashboardTargetStatus
-  orders: Array<{
+  orders: {
     id: string
     order_display_id: string
     status: string | null
-  }>
+  }[]
 }
 
-export type OrderDashboardManualStatusResponse = {
+export interface OrderDashboardManualStatusResponse {
   count: number
   skipped_count: number
   status: OrderDashboardManualStatusId | null
-  orders: Array<{
+  orders: {
     id: string
     business_status: OrderDashboardBusinessStatus
     manual_status?: OrderDashboardManualStatusId | null
-  }>
-  skipped: Array<{
+  }[]
+  skipped: {
     id: string
     order_display_id: string
     reason: string
-  }>
+  }[]
 }

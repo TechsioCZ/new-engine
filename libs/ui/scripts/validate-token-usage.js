@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+/// <reference types="node" />
+/// <reference types="glob" />
 
 /**
  * Token Usage Validation Script
@@ -9,13 +11,19 @@
 
 import fs from "node:fs"
 import path from "node:path"
-import { fileURLToPath, pathToFileURL } from "node:url"
+import { pathToFileURL } from "node:url"
+
 import { globSync } from "glob"
 
-const ROOT = path.resolve(fileURLToPath(new URL(".", import.meta.url)), "..")
+/** @typedef {{ className: string, expectedTokens: string[], line: number }} ValidationError */
+
+const ROOT = path.resolve(import.meta.dirname, "..")
 
 // Tailwind v4 namespace to utility prefix mappings
+/** @type {Readonly<Record<string, readonly string[]>>} */
 const NAMESPACE_MAPPINGS = {
+  blur: ["blur"],
+  border: ["border"],
   color: [
     "bg",
     "text",
@@ -31,6 +39,11 @@ const NAMESPACE_MAPPINGS = {
     "decoration",
   ],
   container: ["w", "h", "min-w", "min-h", "max-w", "max-h"],
+  font: ["font"],
+  "font-weight": ["font"],
+  opacity: ["opacity"],
+  radius: ["rounded"],
+  shadow: ["shadow", "drop-shadow", "inset-shadow"],
   spacing: [
     "p",
     "px",
@@ -70,171 +83,261 @@ const NAMESPACE_MAPPINGS = {
     "inset-y",
   ],
   text: ["text"],
-  "font-weight": ["font"],
-  font: ["font"],
-  radius: ["rounded"],
-  shadow: ["shadow", "drop-shadow", "inset-shadow"],
-  blur: ["blur"],
-  opacity: ["opacity"],
-  border: ["border"],
 }
 
 // Standard Tailwind utilities to ignore (not custom tokens)
 const IGNORE_PATTERNS = [
   // Standard positioning values
-  /^(top|right|bottom|left|inset)-(0|px|0\.5|1|1\.5|2|2\.5|3|3\.5|4|5|6|7|8|9|10|11|12|14|16|20|24|28|32|36|40|44|48|52|56|60|64|72|80|96|auto|full|screen|min|max|fit|start|end|1\/2)$/,
+  /^(?:top|right|bottom|left|inset|inset-x|inset-y)-(?:0|px|0\.5|1|1\.5|2|2\.5|3|3\.5|4|5|6|7|8|9|10|11|12|14|16|20|24|28|32|36|40|44|48|52|56|60|64|72|80|96|auto|full|screen|min|max|fit|end)$/u,
 
   // Layout & positioning
-  /^(flex|grid|block|inline|hidden|absolute|relative|fixed|sticky)$/,
-  /^(items|justify|content|self)-(start|end|center|stretch|between|around|evenly)$/,
-  /^(flex|grid)-(row|col|flow|wrap|nowrap)$/,
-  /^(order|col|row)-(start|end|\d+)$/,
+  /^(?:flex|grid|block|inline|hidden|absolute|relative|fixed|sticky)$/u,
+  /^(?:items|justify|content|self)-(?:start|end|center|stretch|between|around|evenly)$/u,
+  /^(?:flex|grid)-(?:row|col|flow|wrap|nowrap)$/u,
+  /^(?:order|col|row)-(?:start|end|\d+)$/u,
 
   // Standard spacing (without custom tokens)
-  /^(p|m|gap|w|h|max-w|min-w|max-h|min-h|top|right|bottom|left|inset|space)-(0|px|0\.5|1|1\.5|2|2\.5|3|3\.5|4|5|6|7|8|9|10|11|12|14|16|20|24|28|32|36|40|44|48|52|56|60|64|72|80|96|auto|full|screen|min|max|fit|end)$/,
+  /^(?:p|m|gap|w|h|max-w|min-w|max-h|min-h|top|right|bottom|left|inset|space)-(?:0|px|0\.5|1|1\.5|2|2\.5|3|3\.5|4|5|6|7|8|9|10|11|12|14|16|20|24|28|32|36|40|44|48|52|56|60|64|72|80|96|auto|full|screen|min|max|fit|end)$/u,
 
   // Margin/padding with directional prefixes
-  /^(ml|mr|mt|mb|mx|my|ms|me|pl|pr|pt|pb|px|py|ps|pe)-(0|px|0\.5|1|1\.5|2|2\.5|3|3\.5|4|5|6|7|8|9|10|11|12|14|16|20|24|28|32|36|40|44|48|52|56|60|64|72|80|96|auto|full|screen|min|max|fit)$/,
+  /^(?:ml|mr|mt|mb|mx|my|ms|me|pl|pr|pt|pb|px|py|ps|pe)-(?:0|px|0\.5|1|1\.5|2|2\.5|3|3\.5|4|5|6|7|8|9|10|11|12|14|16|20|24|28|32|36|40|44|48|52|56|60|64|72|80|96|auto|full|screen|min|max|fit)$/u,
 
   // Standard colors including transparent
-  /^(bg|text|border)-(transparent|current|black|white|slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)(?:-\d{1,3})?(?:\/\d{1,3})?$/,
-  /^(bg|text|border)-(transparent|current|black|white|inherit)$/,
+  /^(?:bg|text|border)-(?:transparent|current|black|white|slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)(?:-\d{1,3})?(?:\/\d{1,3})?$/u,
+  /^(?:bg|text|border)-(?:transparent|current|black|white|inherit)$/u,
 
   // Standard typography
-  /^text-(xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl|8xl|9xl|left|center|right|justify|start|end)$/,
-  /^font-(thin|extralight|light|normal|medium|semibold|bold|extrabold|black)$/,
-  /^font-(sans|serif|mono)$/,
-  /^(leading|tracking)-(none|tight|snug|normal|relaxed|loose|wide|wider|widest)$/,
+  /^text-(?:xs|sm|base|lg|xl|2xl|3xl|4xl|5xl|6xl|7xl|8xl|9xl|left|center|right|justify|start|end)$/u,
+  /^font-(?:thin|extralight|light|normal|medium|semibold|bold|extrabold|black)$/u,
+  /^font-(?:sans|serif|mono)$/u,
+  /^(?:leading|tracking)-(?:none|tight|snug|normal|relaxed|loose|wide|wider|widest)$/u,
 
   // Standard borders & effects
-  /^(border|rounded)-(none|sm|md|lg|xl|2xl|3xl|full)$/,
-  /^rounded-(s|e|t|r|b|l|ss|se|ee|es|tl|tr|br|bl)-(none|sm|md|lg|xl|2xl|3xl|full)$/,
-  /^border-(0|2|4|8|t|r|b|l|s|e|x|y|color)$/,
-  /^border-(collapse|separate)$/,
-  /^shadow-(sm|md|lg|xl|2xl|inner|none)$/,
-  /^opacity-(0|5|10|20|25|30|40|50|60|70|75|80|90|95|100)$/,
+  /^(?:border|rounded)-(?:none|sm|md|lg|xl|2xl|3xl|full)$/u,
+  /^rounded-(?:s|e|t|r|b|l|ss|se|ee|es|tl|tr|br|bl)-(?:none|sm|md|lg|xl|2xl|3xl|full)$/u,
+  /^border-(?:0|2|4|8|t|r|b|l|s|e|x|y|color)$/u,
+  /^border-(?:collapse|separate)$/u,
+  /^shadow-(?:sm|md|lg|xl|2xl|inner|none)$/u,
+  /^opacity-(?:0|5|10|20|25|30|40|50|60|70|75|80|90|95|100)$/u,
 
   // Pseudo-classes and state modifiers
-  /^(hover|focus|active|disabled|group-hover|group-focus):/,
-  /^data-\[.+\]:/,
+  /^(?:hover|focus|active|disabled|group-hover|group-focus):/u,
+  /^data-\[.+\]:/u,
 
   // Responsive prefixes
-  /^(sm|md|lg|xl|2xl):/,
+  /^(?:sm|md|lg|xl|2xl):/u,
 
   // Transform & animation
-  /^(transform|rotate|scale|translate|skew|transition|duration|ease|delay|animate)-.+$/,
+  /^(?:transform|rotate|scale|translate|skew|transition|duration|ease|delay|animate)-.+$/u,
 
   // Special edge cases
-  /^max-h-\(--available-height\)$/, // Dynamic height references
-  /^\*:max-h-\(--available-height\)$/, // Selector prefixes
-  /^left-(1\/2)$/, // Fractional positioning
+  // Dynamic height references
+  /^max-h-\(--available-height\)$/u,
+  // Selector prefixes
+  /^\*:max-h-\(--available-height\)$/u,
+  // Fractional positioning
+  /^(?:top|right|bottom|left)-(?:1\/2)$/u,
 
   // Misc utilities
-  /^(sr-only|not-sr-only|pointer-events|select|resize|appearance|cursor|outline|ring)-.+$/,
+  /^(?:sr-only|not-sr-only|pointer-events|select|resize|appearance|cursor|outline|ring)-.+$/u,
 ]
 
 // Precompute prefix helpers for mapping
-const KNOWN_PREFIXES = Object.values(NAMESPACE_MAPPINGS)
-  .flat()
-  .slice()
-  .sort((a, b) => b.length - a.length)
-const PREFIX_TO_NAMESPACES = (() => {
-  const map = new Map()
-  for (const [ns, prefixes] of Object.entries(NAMESPACE_MAPPINGS)) {
-    for (const p of prefixes) {
-      if (!map.has(p)) {
-        map.set(p, [])
-      }
-      map.get(p).push(ns)
+/** @type {string[]} */
+const KNOWN_PREFIXES = []
+for (const prefixes of Object.values(NAMESPACE_MAPPINGS)) {
+  KNOWN_PREFIXES.push(...prefixes)
+}
+KNOWN_PREFIXES.sort((first, second) => second.length - first.length)
+
+/** @type {Map<string, string[]>} */
+const PREFIX_TO_NAMESPACES = new Map()
+for (const [namespace, prefixes] of Object.entries(NAMESPACE_MAPPINGS)) {
+  for (const prefix of prefixes) {
+    const namespaces = PREFIX_TO_NAMESPACES.get(prefix)
+    if (namespaces === undefined) {
+      PREFIX_TO_NAMESPACES.set(prefix, [namespace])
+    } else {
+      namespaces.push(namespace)
     }
   }
-  return map
-})()
+}
 
-const CLASS_STRING_REGEX = /\S+/g
-const CLASS_NAME_PROP_REGEX = /className\s*=\s*["']([^"']+)["']/g
-const CLASS_NAME_ARRAY_REGEX = /className\s*[:=]\s*(?:\{)?\s*\[([^\]]+)\]/g
-const CLASS_NAME_TEMPLATE_REGEX = /className\s*=\s*`([^`]+)`/g
-const QUOTED_STRING_REGEX = /['"`]([^'"`]+)['"`]/g
-const TEMPLATE_INTERPOLATION_REGEX = /\$\{[^}]+\}/
-const TV_CONFIG_REGEX = /tv\s*\(\s*\{[\s\S]*?\}\s*\)/g
-const TV_SLOT_REGEX = /\[\s*['"`]([^'"`]+)['"`]/g
-const TV_VARIANT_REGEX = /:\s*\{\s*[^}]*['"`]([^'"`]+)['"`]/g
-const CLASS_HELPER_REGEX = /(?:clsx|cn)\s*\(\s*([^)]+)\)/g
-const POSSIBLE_CLASS_STRING_REGEX =
-  /['"`]([^'"`]*(?:bg-|text-|border-|p-|m-|w-|h-|flex|grid|rounded)[^'"`]*)['"`]/g
-const TAILWIND_CLASS_VALUE_REGEX = /^[a-z-\s:[\]()]+$/i
-const CLASS_MODIFIER_REGEX = /^(?:[a-z-]+:|data-\[[^\]]+\]:)/i
-const TOKEN_DEFINITION_REGEX = /--([a-z][a-z0-9-]*)\s*:/g
-const INLINE_TOKEN_REGEX = /["'](--[a-z][a-z0-9-]*)["']\s*:/gi
-const ARBITRARY_VAR_TOKEN_REGEX = /var\(\s*(--[a-z][a-z0-9-]*)/gi
-const ARBITRARY_KEY_TOKEN_REGEX = /[:=]\s*(--[a-z][a-z0-9-]*)/gi
-const ARBITRARY_BARE_TOKEN_REGEX = /\((--[a-z][a-z0-9-]*)/gi
-
-const PREFIX_TOKEN_ALIASES = [
-  {
-    prefixes: new Set(["p", "px", "py", "pt", "pr", "pb", "pl", "ps", "pe"]),
-    namespaces: ["padding", "spacing"],
-  },
-  {
-    prefixes: new Set(["m", "mx", "my", "mt", "mr", "mb", "ml", "ms", "me"]),
-    namespaces: ["margin", "spacing"],
-  },
-  {
-    prefixes: new Set(["gap", "gap-x", "gap-y"]),
-    namespaces: ["gap", "spacing"],
-  },
-  {
-    prefixes: new Set(["w", "min-w", "max-w"]),
-    namespaces: ["width"],
-  },
-  {
-    prefixes: new Set(["h", "min-h", "max-h"]),
-    namespaces: ["height"],
-  },
-  {
-    prefixes: new Set(["space-x", "space-y"]),
-    namespaces: ["space", "spacing"],
-  },
-  {
-    prefixes: new Set([
-      "inset",
-      "inset-x",
-      "inset-y",
-      "top",
-      "right",
-      "bottom",
-      "left",
-    ]),
-    namespaces: ["inset", "spacing"],
-  },
-]
-
+const CLASS_STRING_REGEX = /\S+/gu
+const CLASS_MODIFIER_REGEX = /^(?:[a-z-]+:|data-\[[^\]]+\]:)/iu
+/** @type {Set<string>} */
 const EXTERNAL_TOKENS = new Set([
   "--available-height",
   "--height",
   "--border-width-badge-dynamic",
 ])
 
-function addClasses(classes, classString) {
-  for (const className of classString.match(CLASS_STRING_REGEX) || []) {
+/**
+ * Add whitespace-separated classes to a set.
+ *
+ * @param {Set<string>} classes Collected classes
+ * @param {string} classString Whitespace-separated class string
+ */
+const addClassString = (classes, classString) => {
+  for (const className of classString.match(CLASS_STRING_REGEX) ?? []) {
     classes.add(className.trim())
   }
 }
 
-function addMatchedClasses(classes, matches) {
-  for (const match of matches) {
-    addClasses(classes, match[1])
+/**
+ * Extract one named capture from every match and add its classes.
+ *
+ * @param {Set<string>} classes Collected classes
+ * @param {string} content Source content
+ * @param {RegExp} pattern Global matching pattern
+ * @param {string} groupName Named capture group
+ */
+const addCapturedClassStrings = (classes, content, pattern, groupName) => {
+  for (const match of content.matchAll(pattern)) {
+    const classString = match.groups?.[groupName]
+    if (classString !== undefined) {
+      addClassString(classes, classString)
+    }
   }
 }
 
-function addNestedQuotedClasses(classes, matches) {
-  for (const match of matches) {
-    addMatchedClasses(classes, match[1].matchAll(QUOTED_STRING_REGEX))
+/**
+ * Extract classes from className arrays.
+ *
+ * @param {Set<string>} classes Collected classes
+ * @param {string} content Source content
+ */
+const extractClassNameArrays = (classes, content) => {
+  const arrayPattern =
+    /className\s*[:=]\s*(?:\{)?\s*\[(?<arrayContent>[^\]]+)\]/gu
+  const stringPattern = /['"`](?<classString>[^'"`]+)['"`]/gu
+
+  for (const match of content.matchAll(arrayPattern)) {
+    const arrayContent = match.groups?.arrayContent
+    if (arrayContent !== undefined) {
+      addCapturedClassStrings(
+        classes,
+        arrayContent,
+        stringPattern,
+        "classString",
+      )
+    }
   }
 }
 
-function stripClassModifiers(className) {
+/**
+ * Extract static classes from className template literals.
+ *
+ * @param {Set<string>} classes Collected classes
+ * @param {string} content Source content
+ */
+const extractClassNameTemplates = (classes, content) => {
+  const pattern = /className\s*=\s*`(?<classString>[^`]+)`/gu
+  for (const match of content.matchAll(pattern)) {
+    const classString = match.groups?.classString
+    if (classString !== undefined) {
+      for (const part of classString.split(/\$\{[^}]+\}/u)) {
+        addClassString(classes, part)
+      }
+    }
+  }
+}
+
+/**
+ * Extract classes from tailwind-variants configurations.
+ *
+ * @param {Set<string>} classes Collected classes
+ * @param {string} content Source content
+ */
+const extractTailwindVariantClasses = (classes, content) => {
+  const configPattern = /tv\s*\(\s*\{[\s\S]*?\}\s*\)/gu
+  const slotPattern = /\[\s*['"`](?<classString>[^'"`]+)['"`]/gu
+  const variantPattern = /:\s*\{\s*[^}]*['"`](?<classString>[^'"`]+)['"`]/gu
+
+  for (const match of content.matchAll(configPattern)) {
+    const [tvConfig] = match
+    addCapturedClassStrings(classes, tvConfig, slotPattern, "classString")
+    addCapturedClassStrings(classes, tvConfig, variantPattern, "classString")
+  }
+}
+
+/**
+ * Extract classes from clsx and cn calls.
+ *
+ * @param {Set<string>} classes Collected classes
+ * @param {string} content Source content
+ */
+const extractClassUtilityCalls = (classes, content) => {
+  const callPattern = /(?:clsx|cn)\s*\(\s*(?<arguments>[^)]+)\)/gu
+  const stringPattern = /['"`](?<classString>[^'"`]+)['"`]/gu
+
+  for (const match of content.matchAll(callPattern)) {
+    const argumentsContent = match.groups?.arguments
+    if (argumentsContent !== undefined) {
+      addCapturedClassStrings(
+        classes,
+        argumentsContent,
+        stringPattern,
+        "classString",
+      )
+    }
+  }
+}
+
+/**
+ * Extract broader quoted strings that resemble CSS classes.
+ *
+ * @param {Set<string>} classes Collected classes
+ * @param {string} content Source content
+ */
+const extractQuotedClassStrings = (classes, content) => {
+  const pattern =
+    /['"`](?<classString>[^'"`]*(?:bg-|text-|border-|p-|m-|w-|h-|flex|grid|rounded)[^'"`]*)['"`]/gu
+
+  for (const match of content.matchAll(pattern)) {
+    const classString = match.groups?.classString
+    if (classString !== undefined && /^[a-z-\s:[\]()]+$/iu.test(classString)) {
+      addClassString(classes, classString)
+    }
+  }
+}
+
+/**
+ * Extract Tailwind classes from TypeScript/JSX content.
+ *
+ * @param {string} content TypeScript or JSX source
+ * @returns {string[]} Extracted classes
+ */
+const extractTailwindClasses = (content) => {
+  /** @type {Set<string>} */
+  const classes = new Set()
+  const classContent = content.replaceAll(
+    /figma\.enum\(\s*["'][^"']+["']\s*,\s*\{[\s\S]*?\}\s*\)/gu,
+    "",
+  )
+
+  addCapturedClassStrings(
+    classes,
+    classContent,
+    /className\s*=\s*["'](?<classString>[^"']+)["']/gu,
+    "classString",
+  )
+  extractClassNameArrays(classes, classContent)
+  extractClassNameTemplates(classes, classContent)
+  extractTailwindVariantClasses(classes, classContent)
+  extractClassUtilityCalls(classes, classContent)
+  extractQuotedClassStrings(classes, classContent)
+
+  return [...classes].filter((className) => className.length > 0)
+}
+
+/**
+ * Remove chained state and data prefixes from a class.
+ *
+ * @param {string} className Tailwind class
+ * @returns {string} Class without modifiers
+ */
+const removeClassModifiers = (className) => {
   let baseClass = className
   while (CLASS_MODIFIER_REGEX.test(baseClass)) {
     baseClass = baseClass.replace(CLASS_MODIFIER_REGEX, "")
@@ -243,179 +346,255 @@ function stripClassModifiers(className) {
 }
 
 /**
- * Extract Tailwind classes from TypeScript/JSX content
+ * Map Tailwind utility class to possible CSS custom properties.
+ *
+ * @param {string} className Tailwind class
+ * @returns {string[]} Possible token names
  */
-function extractTailwindClasses(content) {
-  const classes = new Set()
-
-  addMatchedClasses(classes, content.matchAll(CLASS_NAME_PROP_REGEX))
-  addNestedQuotedClasses(classes, content.matchAll(CLASS_NAME_ARRAY_REGEX))
-
-  for (const match of content.matchAll(CLASS_NAME_TEMPLATE_REGEX)) {
-    for (const staticPart of match[1].split(TEMPLATE_INTERPOLATION_REGEX)) {
-      addClasses(classes, staticPart)
-    }
-  }
-
-  for (const match of content.matchAll(TV_CONFIG_REGEX)) {
-    addMatchedClasses(classes, match[0].matchAll(TV_SLOT_REGEX))
-    addMatchedClasses(classes, match[0].matchAll(TV_VARIANT_REGEX))
-  }
-
-  addNestedQuotedClasses(classes, content.matchAll(CLASS_HELPER_REGEX))
-
-  const possibleClassStrings = content.matchAll(POSSIBLE_CLASS_STRING_REGEX)
-  for (const match of possibleClassStrings) {
-    if (TAILWIND_CLASS_VALUE_REGEX.test(match[1])) {
-      addClasses(classes, match[1])
-    }
-  }
-
-  return Array.from(classes).filter((cls) => cls.length > 0)
-}
-
-/**
- * Map Tailwind utility class to possible CSS custom properties
- */
-function mapClassToPossibleTokens(className) {
-  const baseClass = stripClassModifiers(className)
+const mapClassToPossibleTokens = (className) => {
+  const baseClass = removeClassModifiers(className)
   const normalized = baseClass.startsWith("-") ? baseClass.slice(1) : baseClass
-  const prefix = KNOWN_PREFIXES.find((knownPrefix) =>
-    normalized.startsWith(`${knownPrefix}-`)
+  const prefix = KNOWN_PREFIXES.find((candidate) =>
+    normalized.startsWith(`${candidate}-`),
   )
 
-  if (!prefix) {
+  if (prefix === undefined) {
     return []
   }
 
   const value = normalized.slice(prefix.length + 1)
-  const possibleTokens = []
-  const namespaces = PREFIX_TO_NAMESPACES.get(prefix) || []
-  for (const namespace of namespaces) {
-    const tokenNamespace =
-      namespace === "font-weight" ? "font-weight" : namespace
-    possibleTokens.push(`--${tokenNamespace}-${value}`)
+  if (value.length === 0) {
+    return []
   }
 
-  for (const aliases of PREFIX_TOKEN_ALIASES) {
-    if (aliases.prefixes.has(prefix)) {
-      for (const namespace of aliases.namespaces) {
-        possibleTokens.push(`--${namespace}-${value}`)
-      }
-    }
+  const possibleTokens = []
+  for (const namespace of PREFIX_TO_NAMESPACES.get(prefix) ?? []) {
+    possibleTokens.push(
+      namespace === "font-weight"
+        ? `--font-weight-${value}`
+        : `--${namespace}-${value}`,
+    )
+  }
+
+  if (["p", "px", "py", "pt", "pr", "pb", "pl", "ps", "pe"].includes(prefix)) {
+    possibleTokens.push(`--padding-${value}`, `--spacing-${value}`)
+  }
+
+  if (["m", "mx", "my", "mt", "mr", "mb", "ml", "ms", "me"].includes(prefix)) {
+    possibleTokens.push(`--margin-${value}`, `--spacing-${value}`)
+  }
+
+  if (["gap", "gap-x", "gap-y"].includes(prefix)) {
+    possibleTokens.push(`--gap-${value}`, `--spacing-${value}`)
+  }
+
+  if (["w", "min-w", "max-w"].includes(prefix)) {
+    possibleTokens.push(`--width-${value}`)
+  }
+
+  if (["h", "min-h", "max-h"].includes(prefix)) {
+    possibleTokens.push(`--height-${value}`)
+  }
+
+  if (["space-x", "space-y"].includes(prefix)) {
+    possibleTokens.push(`--space-${value}`, `--spacing-${value}`)
+  }
+
+  if (
+    ["inset", "inset-x", "inset-y", "top", "right", "bottom", "left"].includes(
+      prefix,
+    )
+  ) {
+    possibleTokens.push(`--inset-${value}`, `--spacing-${value}`)
   }
 
   return [...new Set(possibleTokens)]
 }
 
 /**
- * Load all defined tokens from CSS files
+ * Load token declarations from CSS files.
+ *
+ * @param {Set<string>} tokens Collected token names
  */
-function loadDefinedTokens() {
-  const tokens = new Set()
+const loadCssTokens = (tokens) => {
   const tokenFiles = globSync("src/tokens/**/*.css", { cwd: ROOT })
-
   for (const file of tokenFiles) {
-    const content = fs.readFileSync(path.join(ROOT, file), "utf8")
-    // Match CSS custom properties defined in tokens
-    const tokenMatches = content.matchAll(TOKEN_DEFINITION_REGEX)
-    for (const match of tokenMatches) {
-      tokens.add(`--${match[1]}`)
+    const content = fs.readFileSync(path.join(ROOT, file), "utf-8")
+    for (const match of content.matchAll(/--(?<token>[a-z][a-z0-9-]*)\s*:/gu)) {
+      const token = match.groups?.token
+      if (token !== undefined) {
+        tokens.add(`--${token}`)
+      }
     }
   }
+}
 
-  // Also treat inline style custom properties in components as defined
+/**
+ * Load custom properties defined in component inline styles.
+ *
+ * @param {Set<string>} tokens Collected token names
+ */
+const loadInlineTokens = (tokens) => {
   const componentFiles = globSync("src/**/*.{ts,tsx}", {
     cwd: ROOT,
     ignore: ["**/*.stories.tsx", "**/*.test.tsx", "**/*.spec.tsx"],
   })
   for (const file of componentFiles) {
-    const content = fs.readFileSync(path.join(ROOT, file), "utf8")
-    // style={{ '--var': value }} or object entries '--var': value
-    for (const m of content.matchAll(INLINE_TOKEN_REGEX)) {
-      tokens.add(m[1])
+    const content = fs.readFileSync(path.join(ROOT, file), "utf-8")
+    const pattern = /["'](?<token>--[a-z][a-z0-9-]*)["']\s*:/giu
+    for (const match of content.matchAll(pattern)) {
+      const token = match.groups?.token
+      if (token !== undefined) {
+        tokens.add(token)
+      }
     }
   }
+}
 
+/**
+ * Load all defined tokens from CSS files and component inline styles.
+ *
+ * @returns {Set<string>} Defined token names
+ */
+const loadDefinedTokens = () => {
+  /** @type {Set<string>} */
+  const tokens = new Set()
+  loadCssTokens(tokens)
+  loadInlineTokens(tokens)
   return tokens
 }
 
 /**
- * Check if a class should be ignored
+ * Check if a class should be ignored.
+ *
+ * @param {string} className Tailwind class
+ * @returns {boolean} Whether class is a standard ignored utility
  */
-function shouldIgnoreClass(className) {
-  const baseClass = stripClassModifiers(className)
-  return IGNORE_PATTERNS.some((pattern) => pattern.test(baseClass))
-}
+const shouldIgnoreClass = (className) =>
+  IGNORE_PATTERNS.some((pattern) =>
+    pattern.test(removeClassModifiers(className)),
+  )
 
-// Extract tokens referenced directly inside arbitrary utility syntax
-function extractTokensFromArbitraryUtility(className) {
+/**
+ * Extract tokens referenced directly inside arbitrary utility syntax.
+ *
+ * @param {string} className Tailwind class
+ * @returns {string[]} Referenced token names
+ */
+const extractTokensFromArbitraryUtility = (className) => {
+  /** @type {Set<string>} */
   const tokens = new Set()
-  // var(--token)
-  for (const m of className.matchAll(ARBITRARY_VAR_TOKEN_REGEX)) {
-    tokens.add(m[1])
+  const patterns = [
+    /var\(\s*(?<token>--[a-z][a-z0-9-]*)/giu,
+    /[:=]\s*(?<token>--[a-z][a-z0-9-]*)/giu,
+    /\((?<token>--[a-z][a-z0-9-]*)/giu,
+  ]
+
+  for (const pattern of patterns) {
+    for (const match of className.matchAll(pattern)) {
+      const token = match.groups?.token
+      if (token !== undefined) {
+        tokens.add(token)
+      }
+    }
   }
-  // key:(--token) or key=--token forms inside parentheses/brackets
-  for (const m of className.matchAll(ARBITRARY_KEY_TOKEN_REGEX)) {
-    tokens.add(m[1])
-  }
-  // Bare --token immediately after an opening parenthesis. Avoid matching icon names like mdi--play in brackets.
-  for (const m of className.matchAll(ARBITRARY_BARE_TOKEN_REGEX)) {
-    tokens.add(m[1])
-  }
-  return Array.from(tokens)
+  return [...tokens]
 }
 
-function findMissingTokens(className, definedTokens) {
-  const arbitraryTokens = extractTokensFromArbitraryUtility(className)
-  if (arbitraryTokens.length > 0) {
-    const governedTokens = arbitraryTokens.filter(
-      (token) => !EXTERNAL_TOKENS.has(token)
-    )
-    const hasDefinedToken = governedTokens.some((token) =>
-      definedTokens.has(token)
-    )
-    return governedTokens.length === 0 || hasDefinedToken ? [] : governedTokens
-  }
+/**
+ * Find first line containing a class.
+ *
+ * @param {string} content Component source
+ * @param {string} className Tailwind class
+ * @returns {number} One-based line number, or zero when not found
+ */
+const findClassLine = (content, className) =>
+  content.split("\n").findIndex((line) => line.includes(className)) + 1
 
+/**
+ * Create a missing-token error.
+ *
+ * @param {string} content Component source
+ * @param {string} className Tailwind class
+ * @param {string[]} expectedTokens Expected token names
+ * @returns {ValidationError} Validation error
+ */
+const createValidationError = (content, className, expectedTokens) => ({
+  className,
+  expectedTokens,
+  line: findClassLine(content, className),
+})
+
+/**
+ * Validate one class against defined tokens.
+ *
+ * @param {string} content Component source
+ * @param {string} className Tailwind class
+ * @param {Set<string>} definedTokens Defined token names
+ * @returns {ValidationError[]} Missing-token errors
+ */
+const validateClass = (content, className, definedTokens) => {
+  const errors = []
+  const arbitraryTokens = extractTokensFromArbitraryUtility(className)
+  const tokensNeedingCheck = arbitraryTokens.filter(
+    (token) => !EXTERNAL_TOKENS.has(token),
+  )
+  const hasDefinedArbitraryToken = tokensNeedingCheck.some((token) =>
+    definedTokens.has(token),
+  )
+
+  if (tokensNeedingCheck.length > 0 && !hasDefinedArbitraryToken) {
+    errors.push(createValidationError(content, className, tokensNeedingCheck))
+  }
+  if (
+    arbitraryTokens.length > 0 &&
+    (tokensNeedingCheck.length === 0 || hasDefinedArbitraryToken)
+  ) {
+    return errors
+  }
   if (shouldIgnoreClass(className)) {
-    return []
+    return errors
   }
 
   const possibleTokens = mapClassToPossibleTokens(className)
-  const hasMatchingToken = possibleTokens.some((token) =>
-    definedTokens.has(token)
-  )
-  return possibleTokens.length === 0 || hasMatchingToken ? [] : possibleTokens
-}
-
-function collectFileErrors(file, definedTokens) {
-  const content = fs.readFileSync(path.join(ROOT, file), "utf8")
-  const contentLines = content.split("\n")
-  const fileErrors = []
-
-  for (const className of extractTailwindClasses(content)) {
-    const expectedTokens = findMissingTokens(className, definedTokens)
-    if (expectedTokens.length > 0) {
-      fileErrors.push({
-        className,
-        expectedTokens,
-        line: contentLines.findIndex((line) => line.includes(className)) + 1,
-      })
-    }
+  if (
+    possibleTokens.length > 0 &&
+    !possibleTokens.some((token) => definedTokens.has(token))
+  ) {
+    errors.push(createValidationError(content, className, possibleTokens))
   }
-
-  return fileErrors
+  return errors
 }
 
-function reportErrors(errorsByFile, totalErrors) {
+/**
+ * Validate all classes in one component file.
+ *
+ * @param {string} content Component source
+ * @param {Set<string>} definedTokens Defined token names
+ * @returns {ValidationError[]} Missing-token errors
+ */
+const validateComponentContent = (content, definedTokens) => {
+  const errors = []
+  for (const className of extractTailwindClasses(content)) {
+    errors.push(...validateClass(content, className, definedTokens))
+  }
+  return errors
+}
+
+/**
+ * Report validation errors.
+ *
+ * @param {Map<string, ValidationError[]>} errorsByFile Errors keyed by file
+ * @param {number} totalErrors Total error count
+ */
+const reportErrors = (errorsByFile, totalErrors) => {
   console.log(`❌ Found ${totalErrors} missing token definitions:\n`)
   for (const [file, errors] of errorsByFile) {
     console.log(`📄 ${file}:`)
     for (const error of errors) {
       const tokenList = error.expectedTokens.join(" OR ")
       console.log(
-        `  Line ${error.line}: ${error.className} → Missing token: ${tokenList}`
+        `  Line ${error.line}: ${error.className} → Missing token: ${tokenList}`,
       )
     }
     console.log()
@@ -423,9 +602,11 @@ function reportErrors(errorsByFile, totalErrors) {
 }
 
 /**
- * Main validation function
+ * Main validation function.
+ *
+ * @returns {boolean} Whether all classes reference defined tokens
  */
-function validateTokenUsage() {
+const validateTokenUsage = () => {
   console.log("🔍 Validating token usage in components...\n")
 
   const definedTokens = loadDefinedTokens()
@@ -435,11 +616,13 @@ function validateTokenUsage() {
     cwd: ROOT,
     ignore: ["**/*.stories.tsx", "**/*.test.tsx", "**/*.spec.tsx"],
   })
+  /** @type {Map<string, ValidationError[]>} */
   const errorsByFile = new Map()
   let totalErrors = 0
 
   for (const file of componentFiles) {
-    const fileErrors = collectFileErrors(file, definedTokens)
+    const content = fs.readFileSync(path.join(ROOT, file), "utf-8")
+    const fileErrors = validateComponentContent(content, definedTokens)
     if (fileErrors.length > 0) {
       errorsByFile.set(file, fileErrors)
       totalErrors += fileErrors.length
@@ -448,7 +631,7 @@ function validateTokenUsage() {
 
   if (totalErrors === 0) {
     console.log(
-      "✅ All component classes have corresponding token definitions!"
+      "✅ All component classes have corresponding token definitions!",
     )
     return true
   }
@@ -457,18 +640,16 @@ function validateTokenUsage() {
   return false
 }
 
-/**
- * Run validation
- */
+const [entryPath] = process.argv.slice(1)
 if (
-  process.argv[1] &&
-  pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url
+  entryPath !== undefined &&
+  pathToFileURL(path.resolve(entryPath)).href === import.meta.url
 ) {
   try {
-    const success = validateTokenUsage()
-    process.exit(success ? 0 : 1)
+    process.exit(validateTokenUsage() ? 0 : 1)
   } catch (error) {
-    console.error("💥 Validation failed:", error.message)
+    const message = error instanceof Error ? error.message : String(error)
+    console.error("💥 Validation failed:", message)
     process.exit(1)
   }
 }

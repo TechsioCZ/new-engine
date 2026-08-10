@@ -2,12 +2,12 @@ import { model } from "@medusajs/framework/utils"
 
 const EmailWebhookEvent = model
   .define("email_webhook_event", {
-    id: model.id().primaryKey(),
     email_id: model.text(),
-    type: model.text(),
+    id: model.id().primaryKey(),
     payload: model.json().nullable(),
-    received_at: model.dateTime(),
     processed_at: model.dateTime().nullable(),
+    received_at: model.dateTime(),
+    type: model.text(),
   })
   .indexes([
     {

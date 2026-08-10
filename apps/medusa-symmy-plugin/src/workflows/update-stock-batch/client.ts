@@ -1,14 +1,14 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { batchInventoryItemLevelsWorkflow } from "@medusajs/medusa/core-flows"
-import {
-  type ExistingLevel,
-  type LevelDTO,
-  type ResolvedUpdate,
-  type ResolverMaps,
-  type StockBatchPayload,
-  stockBatchClientMapperHelper,
-  type VariantInventoryItemRow,
+
+import { stockBatchClientMapperHelper } from "./client-mapper-helper"
+import type {
+  ExistingLevel,
+  LevelDTO,
+  ResolvedUpdate,
+  ResolverMaps,
+  StockBatchPayload,
 } from "./client-mapper-helper"
 import type { UpdateStockBatchInput } from "./types"
 
@@ -17,7 +17,7 @@ const getQuery = (container: MedusaContainer) =>
 
 export type Query = ReturnType<typeof getQuery>
 
-export type BatchApplyResult = {
+export interface BatchApplyResult {
   created: LevelDTO[]
   updated: LevelDTO[]
 }
@@ -51,20 +51,20 @@ export class StockBatchClient {
     ])
 
     return {
-      skuMap,
-      eanMap,
-      variantIdMap,
-      validInventoryItemIds,
       defaultLocationId,
+      eanMap,
+      skuMap,
+      validInventoryItemIds,
+      variantIdMap,
     }
   }
 
   async loadExistingLevels(
-    resolved: ResolvedUpdate[]
+    resolved: ResolvedUpdate[],
   ): Promise<Map<string, ExistingLevel>> {
     const { inventoryItemIds, locationIds } =
       this.mapper.collectLevelLookupKeys(resolved)
-    if (!(inventoryItemIds.length && locationIds.length)) {
+    if (inventoryItemIds.length === 0 || locationIds.length === 0) {
       return new Map()
     }
     const { data: levels } = await this.query.graph({
@@ -75,61 +75,54 @@ export class StockBatchClient {
         location_id: locationIds,
       },
     })
-    return this.mapper.buildExistingLevelIndex(
-      (levels ?? []) as ExistingLevel[]
-    )
+    return this.mapper.buildExistingLevelIndex(levels ?? [])
   }
 
   async applyBatch(payload: StockBatchPayload): Promise<BatchApplyResult> {
-    if (!(payload.create.length || payload.update.length)) {
+    if (payload.create.length === 0 && payload.update.length === 0) {
       return { created: [], updated: [] }
     }
     const { result } = await batchInventoryItemLevelsWorkflow(
-      this.container
+      this.container,
     ).run({
       input: {
-        create: payload.create as never,
-        update: payload.update as never,
+        create: payload.create,
+        update: payload.update,
       },
     })
     return {
-      created: (result?.created ?? []) as LevelDTO[],
-      updated: (result?.updated ?? []) as LevelDTO[],
+      created: result?.created ?? [],
+      updated: result?.updated ?? [],
     }
   }
 
   private async queryVariantsToInventoryItems(
     field: "sku" | "ean" | "id",
-    values: Set<string>
+    values: Set<string>,
   ): Promise<Map<string, string>> {
-    if (!values.size) {
+    if (values.size === 0) {
       return new Map()
     }
     const { data: variants } = await this.query.graph({
       entity: "variant",
       fields: [field, "inventory_items.inventory.id"],
-      filters: { [field]: Array.from(values) },
+      filters: { [field]: [...values] },
     })
-    return this.mapper.buildVariantInventoryItemMap(
-      field,
-      (variants ?? []) as VariantInventoryItemRow[]
-    )
+    return this.mapper.buildVariantInventoryItemMap(field, variants ?? [])
   }
 
   private async queryValidInventoryItemIds(
-    ids: Set<string>
+    ids: Set<string>,
   ): Promise<Set<string>> {
-    if (!ids.size) {
+    if (ids.size === 0) {
       return new Set()
     }
     const { data: items } = await this.query.graph({
       entity: "inventory_item",
       fields: ["id"],
-      filters: { id: Array.from(ids) },
+      filters: { id: [...ids] },
     })
-    return this.mapper.buildValidInventoryItemIdSet(
-      (items ?? []) as { id: string }[]
-    )
+    return this.mapper.buildValidInventoryItemIdSet(items ?? [])
   }
 
   private async resolveDefaultLocationId(): Promise<string | null> {
@@ -138,6 +131,13 @@ export class StockBatchClient {
       fields: ["id"],
       pagination: { take: 1 },
     })
-    return locations?.[0]?.id ?? null
+    const location: unknown = locations[0]
+    if (typeof location !== "object" || location === null) {
+      return null
+    }
+    if (!("id" in location) || typeof location.id !== "string") {
+      return null
+    }
+    return location.id
   }
 }

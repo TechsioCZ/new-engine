@@ -1,8 +1,6 @@
 # Payload CMS (apps/payload)
 
-This app is the Payload 3 admin + API for the CMS portion of the monorepo. It runs on Next.js 15, uses Postgres for
-data storage, S3-compatible storage for media, and includes integrations for SEO, localization, Medusa cache
-invalidation, and Medusa SSO.
+This app is the Payload 3 admin + API for the CMS portion of the monorepo. It runs on Next.js 15, uses Postgres for data storage, S3-compatible storage for media, and includes integrations for SEO, localization, Medusa cache invalidation, and Medusa SSO.
 
 ## What is included
 
@@ -59,8 +57,7 @@ pnpm --filter @nmit/payload payload migrate
 pnpm --filter @nmit/payload run seed
 ```
 
-The seed is idempotent. It creates or syncs the Payload admin user from the Medusa SSO email/key envs and one minimal
-record for each enabled content collection if that collection is empty.
+The seed is idempotent. It creates or syncs the Payload admin user from the Medusa SSO email/key envs and one minimal record for each enabled content collection if that collection is empty.
 
 ### 5) Start dev server
 
@@ -74,13 +71,11 @@ Or with Nx:
 npx nx dev payload
 ```
 
-Open the admin UI at `http://localhost:3000/admin` (adjust if you customize `routes.admin` in
-`apps/payload/src/payload.config.ts`).
+Open the admin UI at `http://localhost:3000/admin` (adjust if you customize `routes.admin` in `apps/payload/src/payload.config.ts`).
 
 ### Docker (monorepo)
 
-The root `docker-compose.yaml` runs Payload on port 8083, executes migrations, and runs the idempotent seed on startup.
-Use the root README steps (`make dev`) if you prefer the Docker stack.
+The root `docker-compose.yaml` runs Payload on port 8083, executes migrations, and runs the idempotent seed on startup. Use the root README steps (`make dev`) if you prefer the Docker stack.
 
 ## API endpoints
 
@@ -93,6 +88,7 @@ All endpoints are mounted under the Payload API base (default: `/api`):
 ## Scripts
 
 - `pnpm dev`, `pnpm devsafe`, `pnpm build`, `pnpm start`
+- `pnpm build:verify` runs the production build with explicit non-runtime verifier values; Nx and CI use this deterministic target. Deployments must provide the required runtime environment listed above.
 - `pnpm generate:types` after schema changes
 - `pnpm generate:importmap` after admin component changes
 - `pnpm test:int`, `pnpm test:e2e`, `pnpm test`
@@ -100,5 +96,4 @@ All endpoints are mounted under the Payload API base (default: `/api`):
 ## Notes
 
 - Postgres schema migrations live in `apps/payload/src/migrations`.
-- Localization is controlled by `PAYLOAD_LOCALES`; supported languages include: `en`, `cs`, `sk`, `pl`, `hu`, `ro`,
-  `sl`, `de`, `fr`, `es`.
+- Localization is controlled by `PAYLOAD_LOCALES`; supported languages include: `en`, `cs`, `sk`, `pl`, `hu`, `ro`, `sl`, `de`, `fr`, `es`.

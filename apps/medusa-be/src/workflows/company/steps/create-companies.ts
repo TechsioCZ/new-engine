@@ -1,4 +1,5 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { COMPANY_MODULE } from "../../../modules/company"
 import type { ICompanyModuleService, ModuleCreateCompany } from "../../../types"
 
@@ -12,7 +13,7 @@ export const createCompaniesStep = createStep(
 
     return new StepResponse(
       companies,
-      companies.map((company) => company.id)
+      companies.map((company) => company.id),
     )
   },
   async (companyIds: string[] | undefined, { container }) => {
@@ -24,5 +25,5 @@ export const createCompaniesStep = createStep(
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 
     await companyModuleService.deleteCompanies(companyIds)
-  }
+  },
 )

@@ -21,14 +21,20 @@
     "next-env.d.ts",
     "src/**/*.ts",
     "src/**/*.tsx",
+    "*.js",
+    "*.mts",
+    "scripts/**/*.mjs",
+    "agent-plugin/scripts/**/*.mjs",
     ".storybook/**/*.ts",
     ".storybook/**/*.tsx",
     "stories/**/*.ts",
     "stories/**/*.tsx",
+    "scripts/storybook-a11y-summary.mts",
     "test/*.ts",
     "test/*.tsx",
     "test/**/*.ts",
-    "test/**/*.tsx"
+    "test/**/*.tsx",
+    "test/**/*.js"
   ],
   "exclude": ["node_modules", "./local/"]
 }

@@ -1,7 +1,8 @@
-import { Container, clx, type Heading, type Text } from "@medusajs/ui"
+import { Container, clx } from "@medusajs/ui"
+import type { Heading, Text } from "@medusajs/ui"
 import type { ComponentPropsWithoutRef, CSSProperties } from "react"
 
-type SkeletonProps = {
+interface SkeletonProps {
   className?: string
   style?: CSSProperties
 }
@@ -11,19 +12,19 @@ export const Skeleton = ({ className, style }: SkeletonProps) => (
     aria-hidden
     className={clx(
       "h-3 w-3 animate-pulse rounded-[4px] bg-ui-bg-component",
-      className
+      className,
     )}
     style={style}
   />
 )
 
-type TextSkeletonProps = {
+interface TextSkeletonProps {
   size?: ComponentPropsWithoutRef<typeof Text>["size"]
   leading?: ComponentPropsWithoutRef<typeof Text>["leading"]
   characters?: number
 }
 
-type HeadingSkeletonProps = {
+interface HeadingSkeletonProps {
   level?: ComponentPropsWithoutRef<typeof Heading>["level"]
   characters?: number
 }
@@ -35,25 +36,28 @@ export const HeadingSkeleton = ({
   let charWidth = 9
 
   switch (level) {
-    case "h1":
+    case "h1": {
       charWidth = 11
       break
-    case "h2":
+    }
+    case "h2": {
       charWidth = 10
       break
-    case "h3":
-      charWidth = 9
+    }
+    case "h3": {
       break
-    default:
+    }
+    default: {
       break
+    }
   }
 
   return (
     <Skeleton
       className={clx({
-        "h-7": level === "h1",
-        "h-6": level === "h2",
         "h-5": level === "h3",
+        "h-6": level === "h2",
+        "h-7": level === "h1",
       })}
       style={{
         width: `${charWidth * characters}px`,
@@ -70,33 +74,38 @@ export const TextSkeleton = ({
   let charWidth = 9
 
   switch (size) {
-    case "xlarge":
+    case "xlarge": {
       charWidth = 13
       break
-    case "large":
+    }
+    case "large": {
       charWidth = 11
       break
-    case "base":
+    }
+    case "base": {
       charWidth = 10
       break
-    case "small":
-      charWidth = 9
+    }
+    case "small": {
       break
-    case "xsmall":
+    }
+    case "xsmall": {
       charWidth = 8
       break
-    default:
+    }
+    default: {
       break
+    }
   }
 
   return (
     <Skeleton
       className={clx({
+        "!h-5": leading === "compact",
         "h-5": size === "xsmall",
         "h-6": size === "small",
         "h-7": size === "base",
         "h-8": size === "xlarge",
-        "!h-5": leading === "compact",
       })}
       style={{
         width: `${charWidth * characters}px`,
@@ -109,7 +118,7 @@ export const IconButtonSkeleton = () => (
   <Skeleton className="h-7 w-7 rounded-md" />
 )
 
-type GeneralSectionSkeletonProps = {
+interface GeneralSectionSkeletonProps {
   rowCount?: number
 }
 
@@ -153,7 +162,7 @@ export const TableFooterSkeleton = ({ layout }: { layout: "fill" | "fit" }) => (
   </div>
 )
 
-type TableSkeletonProps = {
+interface TableSkeletonProps {
   rowCount?: number
   search?: boolean
   filters?: boolean
@@ -228,7 +237,7 @@ export const JsonViewSectionSkeleton = () => (
   </Container>
 )
 
-type SingleColumnPageSkeletonProps = {
+interface SingleColumnPageSkeletonProps {
   sections?: number
   showJSON?: boolean
   showMetadata?: boolean
@@ -238,28 +247,24 @@ export const SingleColumnPageSkeleton = ({
   sections = 2,
   showJSON = false,
   showMetadata = false,
-}: SingleColumnPageSkeletonProps) => {
-  return (
-    <div className="flex flex-col gap-y-3">
-      {Array.from({ length: sections }, (_, i) => i).map((section) => {
-        return (
-          <Skeleton
-            className={clx("h-full max-h-[460px] w-full rounded-lg", {
-              // First section is smaller on most pages, this gives us less
-              // layout shifting in general,
-              "max-h-[219px]": section === 0,
-            })}
-            key={section}
-          />
-        )
-      })}
-      {showMetadata && <Skeleton className="h-[60px] w-full rounded-lg" />}
-      {showJSON && <Skeleton className="h-[60px] w-full rounded-lg" />}
-    </div>
-  )
-}
+}: SingleColumnPageSkeletonProps) => (
+  <div className="flex flex-col gap-y-3">
+    {Array.from({ length: sections }, (_, i) => i).map((section) => (
+      <Skeleton
+        className={clx("h-full max-h-[460px] w-full rounded-lg", {
+          // First section is smaller on most pages, this gives us less
+          // layout shifting in general,
+          "max-h-[219px]": section === 0,
+        })}
+        key={section}
+      />
+    ))}
+    {showMetadata && <Skeleton className="h-[60px] w-full rounded-lg" />}
+    {showJSON && <Skeleton className="h-[60px] w-full rounded-lg" />}
+  </div>
+)
 
-type TwoColumnPageSkeletonProps = {
+interface TwoColumnPageSkeletonProps {
   mainSections?: number
   sidebarSections?: number
   showJSON?: boolean
@@ -304,7 +309,7 @@ export const TwoColumnPageSkeleton = ({
                 })}
                 key={section}
               />
-            )
+            ),
           )}
           {showExtraData && (
             <div className="flex flex-col gap-y-3 xl:hidden">

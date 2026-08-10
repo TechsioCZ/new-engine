@@ -2,18 +2,19 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
+
 import { requirePathParam } from "../../../../../../utils/path-params"
 import { removeCompanyFromCustomerGroupWorkflow } from "../../../../../../workflows/company/workflows/remove-company-from-customer-group"
 import type { AdminRemoveCompanyFromCustomerGroupType } from "../../../validators"
 
-export const DELETE = async (
+const deleteHandler = async (
   req: AuthenticatedMedusaRequest<AdminRemoveCompanyFromCustomerGroupType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
-  const id = requirePathParam(req.params.id, "Company id")
+  const id = requirePathParam(req.params["id"], "Company id")
   const customerGroupId = requirePathParam(
-    req.params.customerGroupId,
-    "Customer group id"
+    req.params["customerGroupId"],
+    "Customer group id",
   )
 
   await removeCompanyFromCustomerGroupWorkflow(req.scope).run({
@@ -22,3 +23,5 @@ export const DELETE = async (
 
   res.status(200).send()
 }
+
+export { deleteHandler as DELETE }

@@ -1,32 +1,40 @@
+import { getRecordValue, isRecord } from "@techsio/std/object"
+
 /** Convert a string into a URL-friendly slug. */
-export const generateSlug = (value: string): string =>
+const generateSlug = (value: string): string =>
   value
     .toLowerCase()
     .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\w\s-]/g, "")
+    .replaceAll(/[\u0300-\u036F]/gu, "")
+    .replaceAll(/[^\w\s-]/gu, "")
     .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
+    .replaceAll(/\s+/gu, "-")
+    .replaceAll(/-+/gu, "-")
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0
 
 const resolveTitleFromMap = (
-  titleMap: Record<string, unknown>,
-  locale?: string | null
+  titleMap: object,
+  locale?: string | null,
 ): string | undefined => {
-  if (locale && isNonEmptyString(titleMap[locale])) {
-    return titleMap[locale]
+  if (locale !== undefined && locale !== null) {
+    const localizedTitle = getRecordValue(titleMap, locale)
+    if (isNonEmptyString(localizedTitle)) {
+      return localizedTitle
+    }
   }
 
-  return Object.values(titleMap).find(isNonEmptyString)
+  const englishTitle = getRecordValue(titleMap, "en")
+  return isNonEmptyString(englishTitle)
+    ? englishTitle
+    : Object.values(titleMap).find(isNonEmptyString)
 }
 
 /** Generate a slug from a title or return the fallback value. */
 export const generateSlugFromTitle = (
   title: unknown,
-  options: { fallback?: string; locale?: string | null } = {}
+  options: { fallback?: string; locale?: string | null } = {},
 ): string => {
   const fallback = options.fallback ?? ""
 
@@ -34,14 +42,11 @@ export const generateSlugFromTitle = (
 
   if (typeof title === "string") {
     resolvedTitle = title
-  } else if (title && typeof title === "object") {
-    resolvedTitle = resolveTitleFromMap(
-      title as Record<string, unknown>,
-      options.locale
-    )
+  } else if (isRecord(title)) {
+    resolvedTitle = resolveTitleFromMap(title, options.locale)
   }
 
-  if (resolvedTitle && resolvedTitle.trim().length > 0) {
+  if (resolvedTitle !== undefined && resolvedTitle.trim().length > 0) {
     return generateSlug(resolvedTitle)
   }
 

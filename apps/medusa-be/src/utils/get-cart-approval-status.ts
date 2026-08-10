@@ -1,24 +1,28 @@
-import { ApprovalStatusType } from "../types/approval"
+import { ApprovalStatusType } from "../types/approval/module"
 
-type CartWithApprovals = {
-  approvals?: Array<{ status?: string | null } | null> | null
+interface CartWithApprovals {
+  approvals?: ({ status?: string | null } | null)[] | null
 }
 
 export const getCartApprovalStatus = (cart: CartWithApprovals | null) => {
   const defaultStatus = {
-    isPendingApproval: false,
     isApproved: false,
+    isPendingApproval: false,
     isRejected: false,
   }
 
-  if (!cart?.approvals?.length) {
+  if (
+    cart?.approvals === undefined ||
+    cart.approvals === null ||
+    cart.approvals.length === 0
+  ) {
     return defaultStatus
   }
 
   const { approvals } = cart
 
   const isPendingApproval = approvals.some(
-    (approval) => approval?.status === ApprovalStatusType.PENDING
+    (approval) => approval?.status === ApprovalStatusType.PENDING,
   )
 
   if (isPendingApproval) {
@@ -26,7 +30,7 @@ export const getCartApprovalStatus = (cart: CartWithApprovals | null) => {
   }
 
   const isApproved = approvals.some(
-    (approval) => approval?.status === ApprovalStatusType.APPROVED
+    (approval) => approval?.status === ApprovalStatusType.APPROVED,
   )
 
   if (isApproved) {
@@ -34,7 +38,7 @@ export const getCartApprovalStatus = (cart: CartWithApprovals | null) => {
   }
 
   const isRejected = approvals.some(
-    (approval) => approval?.status === ApprovalStatusType.REJECTED
+    (approval) => approval?.status === ApprovalStatusType.REJECTED,
   )
 
   return { ...defaultStatus, isRejected }

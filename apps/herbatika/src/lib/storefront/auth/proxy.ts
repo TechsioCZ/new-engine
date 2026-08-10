@@ -1,10 +1,19 @@
-import type { AuthProxyResponse } from "./types"
+import { isRecord, getRecordValue } from "@techsio/std/object"
+
+import type {
+  AuthLoginInput,
+  AuthProxyResponse,
+  AuthRegisterInput,
+} from "./types"
 
 const parseProxyError = async (response: Response) => {
   try {
-    const payload = (await response.json()) as { message?: string }
-    if (payload?.message) {
-      return payload.message
+    const payload: unknown = await response.json()
+    if (isRecord(payload)) {
+      const message = getRecordValue(payload, "message")
+      if (typeof message === "string") {
+        return message
+      }
     }
   } catch {
     // noop
@@ -13,39 +22,38 @@ const parseProxyError = async (response: Response) => {
   return `Autentifikačná požiadavka zlyhala so stavom ${response.status}`
 }
 
-export const requestAuthProxy = async <TBody extends Record<string, unknown>>(
+export const requestAuthProxy = async (
   path: "login" | "register",
-  body: TBody
+  body: AuthLoginInput | AuthRegisterInput,
 ): Promise<AuthProxyResponse> => {
   const response = await fetch(`/api/storefront-auth/${path}`, {
-    method: "POST",
+    body: JSON.stringify(body),
     headers: {
       "content-type": "application/json",
     },
-    body: JSON.stringify(body),
+    method: "POST",
   })
 
   if (!response.ok) {
     throw new Error(await parseProxyError(response))
   }
 
-  const payload = (await response.json()) as Partial<AuthProxyResponse>
-  if (typeof payload.token !== "string" || payload.token.length === 0) {
+  const payload: unknown = await response.json()
+  const token = isRecord(payload) ? getRecordValue(payload, "token") : null
+  if (typeof token !== "string" || token.length === 0) {
     throw new Error("Autentifikačné rozhranie nevrátilo token.")
   }
 
-  return {
-    token: payload.token,
-  }
+  return { token }
 }
 
 export const requestPasswordResetProxy = async (email: string) => {
   const response = await fetch("/api/storefront-auth/forgot-password", {
-    method: "POST",
+    body: JSON.stringify({ email }),
     headers: {
       "content-type": "application/json",
     },
-    body: JSON.stringify({ email }),
+    method: "POST",
   })
 
   if (!response.ok) {
@@ -61,11 +69,11 @@ export const requestPasswordUpdateProxy = async ({
   token: string
 }) => {
   const response = await fetch("/api/storefront-auth/reset-password", {
-    method: "POST",
+    body: JSON.stringify({ password, token }),
     headers: {
       "content-type": "application/json",
     },
-    body: JSON.stringify({ password, token }),
+    method: "POST",
   })
 
   if (!response.ok) {
@@ -76,8 +84,8 @@ export const requestPasswordUpdateProxy = async ({
 export const requestSessionProxy =
   async (): Promise<AuthProxyResponse | null> => {
     const response = await fetch("/api/storefront-auth/session", {
-      method: "GET",
       cache: "no-store",
+      method: "GET",
     })
 
     if (response.status === 401) {
@@ -88,14 +96,13 @@ export const requestSessionProxy =
       throw new Error(await parseProxyError(response))
     }
 
-    const payload = (await response.json()) as Partial<AuthProxyResponse>
-    if (typeof payload.token !== "string" || payload.token.length === 0) {
+    const payload: unknown = await response.json()
+    const token = isRecord(payload) ? getRecordValue(payload, "token") : null
+    if (typeof token !== "string" || token.length === 0) {
       return null
     }
 
-    return {
-      token: payload.token,
-    }
+    return { token }
   }
 
 export const requestLogoutProxy = async () => {

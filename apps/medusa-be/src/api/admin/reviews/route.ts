@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import { PRODUCT_REVIEW_MODULE } from "../../../modules/product-review"
 import type ProductReviewModuleService from "../../../modules/product-review/service"
 import {
@@ -11,13 +12,13 @@ import {
 import { getProductsById } from "./helpers"
 import type { AdminGetReviewsSchemaType } from "./validators"
 
-export async function GET(
+const get = async (
   req: MedusaRequest<unknown, AdminGetReviewsSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { limit, offset } = req.validatedQuery
   const order = normalizeReviewOrder(
-    req.validatedQuery.order_by ?? req.validatedQuery.order
+    req.validatedQuery.order_by ?? req.validatedQuery.order,
   )
   const filters = normalizeAdminReviewFilters(req.validatedQuery)
   const [reviews, count] = await req.scope
@@ -30,7 +31,7 @@ export async function GET(
   const reviewRecords = filterReviewRecords(reviews)
   const productsById = await getProductsById(
     req,
-    getUniqueReviewProductIds(reviewRecords)
+    getUniqueReviewProductIds(reviewRecords),
   )
 
   res.json({
@@ -38,7 +39,9 @@ export async function GET(
     limit,
     offset,
     reviews: reviewRecords.map((review) =>
-      normalizeAdminReview(review, productsById)
+      normalizeAdminReview(review, productsById),
     ),
   })
 }
+
+export { get as GET }

@@ -2,16 +2,21 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { requirePathParam } from "../../../../../utils/path-params"
-import { restoreCompaniesWorkflow } from "../../../../../workflows/company/workflows"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 
-export const POST = async (
+import { requirePathParam } from "../../../../../utils/path-params"
+import { restoreCompaniesWorkflow } from "../../../../../workflows/company/workflows/restore-companies"
+
+const restoreCompany = async (
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const id = requirePathParam(req.params.id, "Company id")
+  const id = requirePathParam(req.params["id"], "Company id")
 
   await restoreCompaniesWorkflow(req.scope).run({
     input: {
@@ -19,16 +24,26 @@ export const POST = async (
     },
   })
 
-  const {
-    data: [company],
-  } = await query.graph(
+  const graphResult: unknown = await query.graph(
     {
       entity: "companies",
       fields: req.queryConfig.fields,
       filters: { id },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
+  const graphData: unknown = isRecord(graphResult)
+    ? getRecordValue(graphResult, "data")
+    : undefined
+  const company: unknown = Array.isArray(graphData) ? graphData[0] : undefined
+  if (!isRecord(company)) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Restored company ${id} could not be loaded.`,
+    )
+  }
 
   res.status(200).json({ company })
 }
+
+export { restoreCompany as POST }

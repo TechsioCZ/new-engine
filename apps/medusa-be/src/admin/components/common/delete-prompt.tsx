@@ -1,7 +1,7 @@
 import { Trash } from "@medusajs/icons"
 import { Button, Prompt } from "@medusajs/ui"
 
-type DeletePromptProps = {
+interface DeletePromptProps {
   cancelText: string
   confirmText: string
   description: string
@@ -39,13 +39,20 @@ export const DeletePrompt = ({
         <Prompt.Footer>
           <Button
             isLoading={loading}
-            onClick={handleConfirmDelete}
+            onClick={() => {
+              void handleConfirmDelete()
+            }}
             variant="danger"
           >
             <Trash />
             {confirmText}
           </Button>
-          <Button onClick={() => setOpen(false)} variant="secondary">
+          <Button
+            onClick={() => {
+              setOpen(false)
+            }}
+            variant="secondary"
+          >
             {cancelText}
           </Button>
         </Prompt.Footer>

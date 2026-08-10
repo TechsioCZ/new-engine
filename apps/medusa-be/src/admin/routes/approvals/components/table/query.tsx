@@ -1,4 +1,21 @@
+import { z } from "@medusajs/framework/zod"
+import { omitUndefined } from "@techsio/std/object"
+
 import { useQueryParams } from "../../../../hooks/use-query-params"
+
+const dateFilterSchema = z.record(z.string(), z.string())
+
+const parseFilter = (value: string | undefined) => {
+  let parsed: unknown = null
+  if (value !== undefined) {
+    try {
+      parsed = JSON.parse(value)
+    } catch {
+      parsed = null
+    }
+  }
+  return dateFilterSchema.safeParse(parsed).data
+}
 
 export const useApprovalsTableQuery = ({
   pageSize = 50,
@@ -9,17 +26,17 @@ export const useApprovalsTableQuery = ({
 }) => {
   const raw = useQueryParams(
     ["q", "offset", "order", "created_at", "updated_at", "status"],
-    prefix
+    prefix,
   )
 
   const { offset, created_at, updated_at, ...rest } = raw
-  const searchParams = {
+  const searchParams = omitUndefined({
     ...rest,
+    created_at: parseFilter(created_at),
     limit: pageSize,
-    offset: offset ? Number(offset) : 0,
-    created_at: created_at ? JSON.parse(created_at) : undefined,
-    updated_at: updated_at ? JSON.parse(updated_at) : undefined,
-  }
+    offset: offset === null ? 0 : Number(offset),
+    updated_at: parseFilter(updated_at),
+  })
 
-  return { searchParams, raw }
+  return { raw, searchParams }
 }

@@ -1,11 +1,12 @@
+import type { Category } from "@/lib/server/categories"
 import { categoryMap } from "@/lib/static-data/categories"
 
-export function getCategoryIdByHandle(handle: string): string | undefined {
-  return Object.values(categoryMap).find((cat) => cat.handle === handle)?.id
-}
+const categoriesById: Record<string, Category> = categoryMap
 
-export function getCategoryIdsByHandles(handles: string[]): string[] {
-  return handles
+export const getCategoryIdByHandle = (handle: string): string | undefined =>
+  Object.values(categoriesById).find((cat) => cat.handle === handle)?.id
+
+export const getCategoryIdsByHandles = (handles: string[]): string[] =>
+  handles
     .map((handle) => getCategoryIdByHandle(handle))
     .filter((id) => id !== undefined)
-}

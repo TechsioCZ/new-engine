@@ -1,14 +1,13 @@
-import { dirname, resolve } from "node:path"
-import { fileURLToPath } from "node:url"
+import nodePath from "node:path"
 
-const sourceDir = dirname(fileURLToPath(import.meta.url))
+const sourceDir = import.meta.dirname
 
-export const repoRoot = resolve(sourceDir, "../../..")
-export const defaultStackManifestPath = resolve(
+export const repoRoot = nodePath.resolve(sourceDir, "../../..")
+export const defaultStackManifestPath = nodePath.resolve(
   repoRoot,
-  "apps/new-engine-ctl/config/stack-manifest.yaml"
+  "apps/new-engine-ctl/config/stack-manifest.yaml",
 )
-export const defaultStackInputsPath = resolve(
+export const defaultStackInputsPath = nodePath.resolve(
   repoRoot,
-  "apps/new-engine-ctl/config/stack-inputs.yaml"
+  "apps/new-engine-ctl/config/stack-inputs.yaml",
 )

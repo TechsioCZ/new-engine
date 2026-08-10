@@ -1,17 +1,15 @@
 import type { QueryClient } from "@tanstack/react-query"
+import { assertNever } from "@techsio/std/function"
+
 import type { CacheOptions } from "./cache-config"
 import type { QueryKey } from "./query-keys"
 
 export type PrefetchSkipMode = "fresh" | "any"
 
-const assertNever = (value: never): never => {
-  throw new Error(`Unsupported prefetch skip mode: ${String(value)}`)
-}
-
 export const isQueryFresh = (
   queryClient: QueryClient,
   queryKey: QueryKey,
-  staleTime: number
+  staleTime: number,
 ) => {
   const state = queryClient.getQueryState(queryKey)
   if (!state || state.isInvalidated || state.data === undefined) {
@@ -22,7 +20,7 @@ export const isQueryFresh = (
 
 export const isQueryInFlight = (
   queryClient: QueryClient,
-  queryKey: QueryKey
+  queryKey: QueryKey,
 ) => {
   const state = queryClient.getQueryState(queryKey)
   return state?.fetchStatus === "fetching"
@@ -44,15 +42,18 @@ export const shouldSkipPrefetch = (params: {
   }
 
   switch (params.skipMode) {
-    case "any":
+    case "any": {
       return params.queryClient.getQueryData(params.queryKey) !== undefined
-    case "fresh":
+    }
+    case "fresh": {
       return isQueryFresh(
         params.queryClient,
         params.queryKey,
-        params.cacheOptions.staleTime
+        params.cacheOptions.staleTime,
       )
-    default:
+    }
+    default: {
       return assertNever(params.skipMode)
+    }
   }
 }

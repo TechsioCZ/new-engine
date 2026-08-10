@@ -1,8 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
-import {
-  CHECKOUT_ADDRESS_FIELDS,
-  type CheckoutAddressValues,
-} from "@/lib/forms/checkout/address.form"
+
+import { CHECKOUT_ADDRESS_FIELDS } from "@/lib/forms/checkout/address.form"
+import type { CheckoutAddressValues } from "@/lib/forms/checkout/address.form"
 
 export type CheckoutAddressScope = "billing" | "shipping"
 
@@ -20,7 +19,7 @@ const ADDRESS_COMPARISON_FIELDS = [
   "postalCode",
   "countryCode",
   "customerNote",
-] as const satisfies ReadonlyArray<keyof CheckoutAddressValues>
+] as const satisfies readonly (keyof CheckoutAddressValues)[]
 
 type CheckoutAddressFieldPath<
   TScope extends CheckoutAddressScope,
@@ -36,12 +35,12 @@ export const resolveCheckoutAddressFieldName = <
   K extends keyof CheckoutAddressValues,
 >(
   scope: TScope,
-  field: K
-) => `${scope}.${field}` as CheckoutAddressFieldPath<TScope, K>
+  field: K,
+): CheckoutAddressFieldPath<TScope, K> => `${scope}.${field}`
 
 const createCheckoutAddressFieldPaths = <TScope extends CheckoutAddressScope>(
   scope: TScope,
-  fields: ReadonlyArray<keyof CheckoutAddressValues>
+  fields: readonly (keyof CheckoutAddressValues)[],
 ) => fields.map((field) => resolveCheckoutAddressFieldName(scope, field))
 
 const CHECKOUT_COMPANY_FIELD_NAMES = [
@@ -49,14 +48,14 @@ const CHECKOUT_COMPANY_FIELD_NAMES = [
   "companyId",
   "taxId",
   "vatId",
-] as const satisfies ReadonlyArray<keyof CheckoutAddressValues>
+] as const satisfies readonly (keyof CheckoutAddressValues)[]
 
 const CHECKOUT_BILLING_ACTIVE_FIELDS = CHECKOUT_ADDRESS_FIELDS.filter(
   (field) =>
     field !== "address2" &&
     field !== "customerNote" &&
     field !== "email" &&
-    field !== "phone"
+    field !== "phone",
 )
 
 export const CHECKOUT_BILLING_ACTIVE_FIELD_NAMES =
@@ -69,20 +68,20 @@ export const CHECKOUT_SHIPPING_COMPANY_FIELD_NAMES =
   createCheckoutAddressFieldPaths("shipping", CHECKOUT_COMPANY_FIELD_NAMES)
 
 const hasRequiredAddressFields = (
-  address: HttpTypes.StoreCartAddress | null | undefined
+  address: HttpTypes.StoreCartAddress | null | undefined,
 ) =>
-  Boolean(
-    address?.first_name &&
-      address?.last_name &&
-      address?.address_1 &&
-      address?.city &&
-      address?.postal_code &&
-      address?.country_code
-  )
+  [
+    address?.first_name,
+    address?.last_name,
+    address?.address_1,
+    address?.city,
+    address?.postal_code,
+    address?.country_code,
+  ].every((value) => typeof value === "string" && value.length > 0)
 
 export const resolveAddressFormsMatch = (
   left: Partial<CheckoutAddressValues> | null | undefined,
-  right: Partial<CheckoutAddressValues> | null | undefined
+  right: Partial<CheckoutAddressValues> | null | undefined,
 ) =>
   ADDRESS_COMPARISON_FIELDS.every((field) => {
     const leftValue = left?.[field]
@@ -95,9 +94,9 @@ export const resolveAddressFormsMatch = (
   })
 
 export const resolveHasStoredAddress = (
-  cart: HttpTypes.StoreCart | null | undefined
+  cart: HttpTypes.StoreCart | null | undefined,
 ) => {
-  if (!cart?.email) {
+  if (cart?.email === undefined || cart.email.length === 0) {
     return false
   }
 

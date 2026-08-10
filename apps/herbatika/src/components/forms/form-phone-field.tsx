@@ -2,18 +2,21 @@
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
-import {
-  PhoneInput,
-  type PhoneInputCountry,
+import { PhoneInput } from "@techsio/ui-kit/molecules/phone-input"
+import type {
+  PhoneInputCountry,
+  PhoneInputValueChangeDetails,
 } from "@techsio/ui-kit/molecules/phone-input"
-import { type ReactNode, useState } from "react"
+import { useState } from "react"
+import type { ReactNode } from "react"
+
 import {
   resolveVisibleFieldFeedback,
   shouldTrackLiveFieldFeedback,
 } from "@/lib/forms/core/field-errors"
 import { useFieldContext } from "@/lib/forms/core/herbatika-form-context"
 
-type FormPhoneFieldProps = {
+interface FormPhoneFieldProps {
   id: string
   label: ReactNode
   countries?: PhoneInputCountry[]
@@ -26,9 +29,6 @@ type FormPhoneFieldProps = {
 
 const HERBATIKA_PHONE_COUNTRIES: PhoneInputCountry[] = [
   {
-    value: "SK",
-    label: "Slovensko",
-    name: "Slovensko",
     flag: (
       <Icon
         className="brightness-95"
@@ -36,11 +36,11 @@ const HERBATIKA_PHONE_COUNTRIES: PhoneInputCountry[] = [
         size="md"
       />
     ),
+    label: "Slovensko",
+    name: "Slovensko",
+    value: "SK",
   },
   {
-    value: "CZ",
-    label: "Česko",
-    name: "Česko",
     flag: (
       <Icon
         className="brightness-95"
@@ -48,11 +48,11 @@ const HERBATIKA_PHONE_COUNTRIES: PhoneInputCountry[] = [
         size="md"
       />
     ),
+    label: "Česko",
+    name: "Česko",
+    value: "CZ",
   },
   {
-    value: "AT",
-    label: "Rakúsko",
-    name: "Rakúsko",
     flag: (
       <Icon
         className="brightness-95"
@@ -60,11 +60,11 @@ const HERBATIKA_PHONE_COUNTRIES: PhoneInputCountry[] = [
         size="md"
       />
     ),
+    label: "Rakúsko",
+    name: "Rakúsko",
+    value: "AT",
   },
   {
-    value: "HU",
-    label: "Maďarsko",
-    name: "Maďarsko",
     flag: (
       <Icon
         className="brightness-95"
@@ -72,11 +72,11 @@ const HERBATIKA_PHONE_COUNTRIES: PhoneInputCountry[] = [
         size="md"
       />
     ),
+    label: "Maďarsko",
+    name: "Maďarsko",
+    value: "HU",
   },
   {
-    value: "RO",
-    label: "Rumunsko",
-    name: "Rumunsko",
     flag: (
       <Icon
         className="brightness-95"
@@ -84,12 +84,15 @@ const HERBATIKA_PHONE_COUNTRIES: PhoneInputCountry[] = [
         size="md"
       />
     ),
+    label: "Rumunsko",
+    name: "Rumunsko",
+    value: "RO",
   },
 ]
 
 const resolveRegionPhoneCountry = (
   countryCode: string | null | undefined,
-  countries: PhoneInputCountry[]
+  countries: PhoneInputCountry[],
 ) => {
   const normalizedCountryCode = countryCode?.trim().toUpperCase()
 
@@ -97,7 +100,7 @@ const resolveRegionPhoneCountry = (
     ?.value
 }
 
-export function FormPhoneField({
+export const FormPhoneField = ({
   countries = HERBATIKA_PHONE_COUNTRIES,
   defaultCountry,
   id,
@@ -106,7 +109,7 @@ export function FormPhoneField({
   placeholder = "900 123 456",
   required = false,
   validationMode = "blur",
-}: FormPhoneFieldProps) {
+}: FormPhoneFieldProps) => {
   const field = useFieldContext<string>()
   const region = useRegionContext()
   const [hasChangedSinceBlur, setHasChangedSinceBlur] = useState(false)
@@ -128,7 +131,7 @@ export function FormPhoneField({
       defaultCountry={resolvedDefaultCountry}
       id={id}
       name={field.name}
-      onValueChange={(details) => {
+      onValueChange={(details: PhoneInputValueChangeDetails) => {
         if (
           shouldTrackLiveFieldFeedback({
             meta: field.state.meta,
@@ -159,7 +162,8 @@ export function FormPhoneField({
           placeholder={placeholder}
         />
       </PhoneInput.Control>
-      {fieldFeedback.errorText ? (
+      {fieldFeedback.errorText !== undefined &&
+      fieldFeedback.errorText !== "" ? (
         <PhoneInput.StatusText showIcon>
           {fieldFeedback.errorText}
         </PhoneInput.StatusText>

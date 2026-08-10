@@ -1,8 +1,7 @@
-import {
-  type MiddlewareRoute,
-  validateAndTransformBody,
-} from "@medusajs/framework"
+import { validateAndTransformBody } from "@medusajs/framework"
+import type { MiddlewareRoute } from "@medusajs/framework"
 import { authenticate } from "@medusajs/framework/http"
+
 import {
   StoreConfirmDeactivateCustomerAccountSchema,
   StoreCreateCustomerAccountSchema,
@@ -13,8 +12,8 @@ const customerAuth = authenticate("customer", ["session", "bearer"])
 
 export const storeCustomersMiddlewares: MiddlewareRoute[] = [
   {
-    method: ["POST"],
     matcher: "/store/customers",
+    methods: ["POST"],
     middlewares: [
       authenticate("customer", ["session", "bearer"], {
         allowUnregistered: true,
@@ -23,16 +22,16 @@ export const storeCustomersMiddlewares: MiddlewareRoute[] = [
     ],
   },
   {
-    method: ["POST"],
     matcher: "/store/customers/me/deactivate",
+    methods: ["POST"],
     middlewares: [
       customerAuth,
       validateAndTransformBody(StoreDeactivateCustomerAccountSchema),
     ],
   },
   {
-    method: ["POST"],
     matcher: "/store/customers/deactivate/confirm",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(StoreConfirmDeactivateCustomerAccountSchema),
     ],

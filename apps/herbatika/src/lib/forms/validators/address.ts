@@ -5,25 +5,25 @@ import {
   createEmailAddressValidator,
   createOptionalPhoneNumberValidator,
 } from "@/lib/forms/validators/shared"
-import type { HerbatikaCountryCode } from "@/lib/storefront/market-context"
+import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
 
 type AddressFieldValidator = (value: string) => string | undefined
 
 export type { AddressValidationMessages } from "@/lib/forms/validators/address-validation-messages"
 
-const POSTAL_CODE_ALLOWED_REGEX = /^[0-9\s-]+$/
+const POSTAL_CODE_ALLOWED_REGEX = /^[0-9\s-]+$/u
 const POSTAL_CODE_DIGIT_COUNT = {
   cz: 5,
   hu: 4,
   ro: 6,
   sk: 5,
-} as const satisfies Record<HerbatikaCountryCode, number>
+} as const satisfies Record<HerbatikaMarketContext["countryCode"], number>
 
 const createRequiredTextValidator =
   (
     requiredMessage: string,
     minLengthMessage: string,
-    minLength = 2
+    minLength = 2,
   ): AddressFieldValidator =>
   (value) => {
     const normalized = value.trim()
@@ -39,7 +39,7 @@ const createRequiredPhoneNumberValidator = (
   messages: Pick<
     AddressValidationMessageSet,
     "phoneInvalid" | "phoneMinDigits" | "phoneRequired"
-  >
+  >,
 ): AddressFieldValidator => {
   const validateOptionalPhoneNumber = createOptionalPhoneNumberValidator({
     invalid: messages.phoneInvalid,
@@ -56,7 +56,7 @@ const createPostalCodeValidator =
       AddressValidationMessageSet,
       "postalCodeInvalid" | "postalCodeRequired"
     >,
-    countryCode: HerbatikaCountryCode
+    countryCode: HerbatikaMarketContext["countryCode"],
   ): AddressFieldValidator =>
   (value) => {
     const normalized = value.trim()
@@ -69,7 +69,7 @@ const createPostalCodeValidator =
       return messages.postalCodeInvalid
     }
 
-    return normalized.replace(/\D/g, "").length ===
+    return normalized.replaceAll(/\D/gu, "").length ===
       POSTAL_CODE_DIGIT_COUNT[countryCode]
       ? undefined
       : messages.postalCodeInvalid
@@ -80,36 +80,38 @@ const createCountryCodeValidator =
     messages: Pick<
       AddressValidationMessageSet,
       "countryInvalid" | "countryRequired"
-    >
+    >,
   ): AddressFieldValidator =>
   (value) => {
     if (!value.trim()) {
       return messages.countryRequired
     }
 
-    return normalizeCountryCode(value) ? undefined : messages.countryInvalid
+    return (normalizeCountryCode(value) ?? "").length > 0
+      ? undefined
+      : messages.countryInvalid
   }
 
 export const createAddressFieldValidators = (
   messages: AddressValidationMessageSet,
-  countryCode: HerbatikaCountryCode
+  countryCode: HerbatikaMarketContext["countryCode"],
 ) => ({
   address1: createRequiredTextValidator(
     messages.addressRequired,
-    messages.addressMinLength
+    messages.addressMinLength,
   ),
   city: createRequiredTextValidator(
     messages.cityRequired,
-    messages.cityMinLength
+    messages.cityMinLength,
   ),
   company: createRequiredTextValidator(
     messages.companyNameRequired,
-    messages.companyNameMinLength
+    messages.companyNameMinLength,
   ),
   companyId: createRequiredTextValidator(
     messages.companyIdRequired,
     messages.companyIdMinLength,
-    4
+    4,
   ),
   countryCode: createCountryCodeValidator(messages),
   email: createEmailAddressValidator({
@@ -123,6 +125,6 @@ export const createAddressFieldValidators = (
   taxId: createRequiredTextValidator(
     messages.taxIdRequired,
     messages.taxIdMinLength,
-    4
+    4,
   ),
 })

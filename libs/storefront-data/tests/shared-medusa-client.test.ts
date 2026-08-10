@@ -1,0 +1,71 @@
+import { describe, expect, it } from "vitest"
+
+import { createMedusaSdk } from "../src/shared/medusa-client"
+
+const patchBlockedLocalStorage = () => {
+  const originalGetItem = Storage.prototype.getItem.bind(Storage.prototype)
+  const originalSetItem = Storage.prototype.setItem.bind(Storage.prototype)
+  const originalRemoveItem = Storage.prototype.removeItem.bind(
+    Storage.prototype,
+  )
+
+  Storage.prototype.getItem = function getItem(key: string) {
+    if (this === window.localStorage) {
+      throw new Error(`blocked getItem:${key}`)
+    }
+    return originalGetItem.call(this, key)
+  }
+
+  Storage.prototype.setItem = function setItem(key: string, value: string) {
+    if (this === window.localStorage) {
+      throw new Error(`blocked setItem:${key}`)
+    }
+    originalSetItem.call(this, key, value)
+  }
+
+  Storage.prototype.removeItem = function removeItem(key: string) {
+    if (this === window.localStorage) {
+      throw new Error(`blocked removeItem:${key}`)
+    }
+    originalRemoveItem.call(this, key)
+  }
+
+  return () => {
+    Storage.prototype.getItem = originalGetItem
+    Storage.prototype.setItem = originalSetItem
+    Storage.prototype.removeItem = originalRemoveItem
+  }
+}
+
+describe("createMedusaSdk degraded localStorage", () => {
+  it("constructs the sdk without crashing when localStorage access throws", () => {
+    const restore = patchBlockedLocalStorage()
+
+    try {
+      expect(() =>
+        createMedusaSdk({
+          baseUrl: "https://example.com",
+        }),
+      ).not.toThrow()
+    } finally {
+      restore()
+    }
+  })
+
+  it("keeps locale reads and writes in memory when localStorage is unavailable", () => {
+    const restore = patchBlockedLocalStorage()
+
+    try {
+      const sdk = createMedusaSdk({
+        baseUrl: "https://example.com",
+      })
+
+      expect(() => {
+        sdk.setLocale("sk")
+      }).not.toThrow()
+      expect(sdk.getLocale()).toBe("sk")
+    } finally {
+      restore()
+    }
+  })
+})

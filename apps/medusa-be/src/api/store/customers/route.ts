@@ -1,4 +1,3 @@
-import { createCustomerAccountWorkflow } from "@medusajs/core-flows"
 import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
@@ -8,36 +7,41 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { createCustomerAccountWorkflow } from "@medusajs/medusa/core-flows"
+import { omitUndefined } from "@techsio/std/object"
+
 import { normalizeEmail } from "../../../utils/email"
 import { reactivateCustomerAccountWorkflow } from "../../../workflows/customer/workflows/reactivate-customer-account"
-import { findInactiveCustomerWithEmail, refetchCustomer } from "./helpers"
+import {
+  assertInactiveCustomerReactivationIdentity,
+  findInactiveCustomerWithEmail,
+  refetchCustomer,
+} from "./helpers"
 import type { StoreCreateCustomerAccountSchemaType } from "./validators"
 
-export async function POST(
+const post = async (
   req: AuthenticatedMedusaRequest<StoreCreateCustomerAccountSchemaType>,
-  res: MedusaResponse
-) {
-  if (req.auth_context.actor_id) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "Request already authenticated as a customer."
-    )
-  }
-
+  res: MedusaResponse,
+) => {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const customerData = {
+  const customerData = omitUndefined({
     ...req.validatedBody,
     email: normalizeEmail(req.validatedBody.email),
-  }
+  })
   const inactiveCustomer = await findInactiveCustomerWithEmail({
     email: customerData.email,
     query,
   })
 
-  if (inactiveCustomer) {
+  if (inactiveCustomer !== null) {
+    assertInactiveCustomerReactivationIdentity({
+      actorId: req.auth_context.actor_id,
+      customerId: inactiveCustomer.id,
+    })
+
     const { result: reactivatedResult } =
       await reactivateCustomerAccountWorkflow(req.scope).run({
-        input: {
+        input: omitUndefined({
           auth_identity_id: req.auth_context.auth_identity_id,
           company_name: customerData.company_name,
           customer: inactiveCustomer,
@@ -46,17 +50,28 @@ export async function POST(
           last_name: customerData.last_name,
           metadata: customerData.metadata,
           phone: customerData.phone,
-        },
+        }),
       })
 
     const customer = await refetchCustomer(
       reactivatedResult.customer.id,
       query,
-      req.queryConfig.fields
+      req.queryConfig.fields,
     )
 
     res.status(200).json({ customer })
     return
+  }
+
+  if (
+    req.auth_context.actor_id !== undefined &&
+    req.auth_context.actor_id !== null &&
+    req.auth_context.actor_id !== ""
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Request already authenticated as a customer.",
+    )
   }
 
   const { result } = await createCustomerAccountWorkflow(req.scope).run({
@@ -69,8 +84,10 @@ export async function POST(
   const customer = await refetchCustomer(
     result.id,
     query,
-    req.queryConfig.fields
+    req.queryConfig.fields,
   )
 
   res.status(200).json({ customer })
 }
+
+export { post as POST }

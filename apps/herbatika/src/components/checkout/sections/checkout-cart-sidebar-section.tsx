@@ -2,13 +2,15 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Label } from "@techsio/ui-kit/atoms/label"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+
+import NextLink from "@/components/app-link"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+
 import { CheckoutSelectBenefits } from "../checkout-select-benefits"
 import { CheckoutSelectPromoCode } from "../checkout-select-promo-code"
 
-type CheckoutCartSidebarSectionProps = {
+interface CheckoutCartSidebarSectionProps {
   cartItemsTotalAmount: number
   cartTaxAmount: number
   cartTotalAmount: number
@@ -19,7 +21,7 @@ type CheckoutCartSidebarSectionProps = {
   shippingLabel?: string
 }
 
-export function CheckoutCartSidebarSection({
+export const CheckoutCartSidebarSection = ({
   cartItemsTotalAmount,
   cartTaxAmount,
   cartTotalAmount,
@@ -28,12 +30,15 @@ export function CheckoutCartSidebarSection({
   nextStepHref,
   shippingAmount,
   shippingLabel,
-}: CheckoutCartSidebarSectionProps) {
+}: CheckoutCartSidebarSectionProps) => {
   const tCart = useTranslations("cart")
   const tCheckout = useTranslations("checkout")
-  const shippingExclTaxLabel = shippingLabel
-    ? tCheckout("shipping_excl_tax_with_name", { shippingName: shippingLabel })
-    : tCart("shipping_excl_tax")
+  const shippingExclTaxLabel =
+    shippingLabel === undefined || shippingLabel.length === 0
+      ? tCart("shipping_excl_tax")
+      : tCheckout("shipping_excl_tax_with_name", {
+          shippingName: shippingLabel,
+        })
 
   return (
     <section className="w-full space-y-300 xl:max-w-header-search">

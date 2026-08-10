@@ -1,4 +1,6 @@
 import { Command } from "commander"
+import { z } from "zod"
+
 import { parseRuntimeProviderOutputs } from "../contracts/runtime-provider-outputs.js"
 import {
   parsePreviewRandomOnceSecrets,
@@ -9,7 +11,31 @@ import { appendGitHubOutput, maskGitHubValue } from "../github-actions.js"
 import { executeVerify } from "../orchestration/verify.js"
 import { defaultStackInputsPath, defaultStackManifestPath } from "../paths.js"
 
-export function createVerifyCommand(): Command {
+const CommandOptionsSchema = z.object({
+  apiToken: z.string().optional(),
+  baseUrl: z.string().optional(),
+  deployServicesCsv: z.string(),
+  deploymentsJson: z.string().optional(),
+  deploymentsJsonInline: z.string().optional(),
+  dryRun: z.boolean(),
+  environmentName: z.string(),
+  lane: z.string(),
+  outputJson: z.string().optional(),
+  previewClonedServiceIdsCsv: z.string(),
+  previewDbName: z.string(),
+  previewDbPassword: z.string(),
+  previewDbUser: z.string(),
+  previewExcludedServiceIdsCsv: z.string(),
+  previewRandomOnceSecretsJson: z.string(),
+  projectSlug: z.string().optional(),
+  requestedServicesCsv: z.string(),
+  runtimeProviderOutputsJson: z.string(),
+  stackInputsPath: z.string(),
+  stackManifestPath: z.string(),
+  triggeredServicesCsv: z.string(),
+})
+
+export const createVerifyCommand = (): Command => {
   const command = new Command("verify")
 
   command
@@ -35,50 +61,57 @@ export function createVerifyCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath,
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath,
     )
     .option(
       "--dry-run",
       "Skip network calls and emit deterministic verification output",
-      false
+      false,
     )
-    .action(async (options) => {
+    .action(async (options: unknown) => {
+      const parsedOptions = CommandOptionsSchema.parse(options)
       const deployments = await resolveDeploymentRefs(
-        options.deploymentsJson,
-        options.deploymentsJsonInline
+        parsedOptions.deploymentsJson,
+        parsedOptions.deploymentsJsonInline,
       )
       const previewRandomOnceSecrets = parsePreviewRandomOnceSecrets(
-        options.previewRandomOnceSecretsJson
+        parsedOptions.previewRandomOnceSecretsJson,
       )
       const runtimeProviderOutputs = parseRuntimeProviderOutputs(
-        options.runtimeProviderOutputsJson
+        parsedOptions.runtimeProviderOutputsJson,
       )
       const input = verifyCommandInputSchema.parse({
-        lane: options.lane,
-        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
-        environmentName: options.environmentName,
-        requestedServicesCsv: options.requestedServicesCsv,
-        deployServicesCsv: options.deployServicesCsv,
-        triggeredServicesCsv: options.triggeredServicesCsv,
-        previewClonedServiceIdsCsv: options.previewClonedServiceIdsCsv,
-        previewExcludedServiceIdsCsv: options.previewExcludedServiceIdsCsv,
-        previewDbName: options.previewDbName,
-        previewDbUser: options.previewDbUser,
-        previewDbPassword: options.previewDbPassword,
-        previewRandomOnceSecrets,
-        runtimeProviderOutputs,
+        apiToken:
+          parsedOptions.apiToken ??
+          process.env["ZANE_OPERATOR_API_TOKEN"] ??
+          "",
+        baseUrl:
+          parsedOptions.baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
+        deployServicesCsv: parsedOptions.deployServicesCsv,
         deployments,
-        outputJson: options.outputJson,
-        baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
-        apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
-        dryRun: Boolean(options.dryRun),
-        stackManifestPath: options.stackManifestPath,
-        stackInputsPath: options.stackInputsPath,
+        dryRun: parsedOptions.dryRun,
+        environmentName: parsedOptions.environmentName,
+        lane: parsedOptions.lane,
+        outputJson: parsedOptions.outputJson,
+        previewClonedServiceIdsCsv: parsedOptions.previewClonedServiceIdsCsv,
+        previewDbName: parsedOptions.previewDbName,
+        previewDbPassword: parsedOptions.previewDbPassword,
+        previewDbUser: parsedOptions.previewDbUser,
+        previewExcludedServiceIdsCsv:
+          parsedOptions.previewExcludedServiceIdsCsv,
+        previewRandomOnceSecrets,
+        projectSlug:
+          parsedOptions.projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
+        requestedServicesCsv: parsedOptions.requestedServicesCsv,
+        runtimeProviderOutputs,
+        stackInputsPath: parsedOptions.stackInputsPath,
+        stackManifestPath: parsedOptions.stackManifestPath,
+        triggeredServicesCsv: parsedOptions.triggeredServicesCsv,
       })
 
       maskGitHubValue(input.previewDbPassword)

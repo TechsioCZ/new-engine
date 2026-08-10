@@ -1,0 +1,8 @@
+{
+  "extends": "../../../../../libs/std/tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false,
+    "noEmit": true
+  }
+}

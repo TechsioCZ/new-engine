@@ -1,8 +1,8 @@
-/**
+/*
  * Accordion — @techsio/ui-kit template.
  *
  * @component Accordion
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.2
  * @skill accordion-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,23 +10,26 @@
  * the accordion-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import type { IconType } from "../atoms/icon"
-import { Accordion, type AccordionProps } from "../molecules/accordion"
+import { Accordion } from "../molecules/accordion"
+import type { AccordionProps } from "../molecules/accordion"
 
 export interface AccordionItem {
   value: string
   title: string
   content: React.ReactNode
-  disabled?: boolean
+  disabled?: boolean | undefined
 }
 
-export interface AccordionTemplateProps
-  extends Omit<AccordionProps, "children"> {
+export interface AccordionTemplateProps extends Omit<
+  AccordionProps,
+  "children"
+> {
   items: AccordionItem[]
-  showIndicator?: boolean
-  indicatorIcon?: IconType
+  showIndicator?: boolean | undefined
+  indicatorIcon?: IconType | undefined
 }
 
-export function AccordionTemplate({
+export const AccordionTemplate = ({
   items,
   showIndicator = true,
   indicatorIcon = "token-icon-accordion-chevron",
@@ -41,34 +44,32 @@ export function AccordionTemplate({
   ref,
   className,
   ...accordionProps
-}: AccordionTemplateProps) {
-  return (
-    <Accordion
-      className={className}
-      collapsible={collapsible}
-      defaultValue={defaultValue}
-      multiple={multiple}
-      onChange={onChange}
-      ref={ref}
-      shadow={shadow}
-      size={size}
-      value={value}
-      variant={variant}
-      {...accordionProps}
-    >
-      {items.map((item) => (
-        <Accordion.Item
-          disabled={item.disabled}
-          key={item.value}
-          value={item.value}
-        >
-          <Accordion.Header>
-            <Accordion.Title>{item.title}</Accordion.Title>
-            {showIndicator && <Accordion.Indicator icon={indicatorIcon} />}
-          </Accordion.Header>
-          <Accordion.Content>{item.content}</Accordion.Content>
-        </Accordion.Item>
-      ))}
-    </Accordion>
-  )
-}
+}: AccordionTemplateProps) => (
+  <Accordion
+    className={className}
+    collapsible={collapsible}
+    defaultValue={defaultValue}
+    multiple={multiple}
+    onChange={onChange}
+    ref={ref}
+    shadow={shadow}
+    size={size}
+    value={value}
+    variant={variant}
+    {...accordionProps}
+  >
+    {items.map((item) => (
+      <Accordion.Item
+        disabled={item.disabled}
+        key={item.value}
+        value={item.value}
+      >
+        <Accordion.Header>
+          <Accordion.Title>{item.title}</Accordion.Title>
+          {showIndicator && <Accordion.Indicator icon={indicatorIcon} />}
+        </Accordion.Header>
+        <Accordion.Content>{item.content}</Accordion.Content>
+      </Accordion.Item>
+    ))}
+  </Accordion>
+)

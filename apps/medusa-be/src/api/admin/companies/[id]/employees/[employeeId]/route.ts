@@ -2,87 +2,130 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { requirePathParam } from "../../../../../../utils/path-params"
+import type { Query } from "@medusajs/framework/types"
 import {
-  deleteEmployeesWorkflow,
-  updateEmployeesWorkflow,
-} from "../../../../../../workflows/employee/workflows"
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
+import { isRecord, omitUndefined, getRecordValue } from "@techsio/std/object"
+
+import { requirePathParam } from "../../../../../../utils/path-params"
+import { deleteEmployeesWorkflow } from "../../../../../../workflows/employee/workflows/delete-employees"
+import { updateEmployeesWorkflow } from "../../../../../../workflows/employee/workflows/update-employees"
 import type {
   AdminGetEmployeeParamsType,
   AdminUpdateEmployeeType,
 } from "../../../validators"
 
-export const GET = async (
-  req: AuthenticatedMedusaRequest<AdminGetEmployeeParamsType>,
-  res: MedusaResponse
-) => {
-  const { id, employeeId } = req.params
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+const COMPANY_ID_LABEL = "Company id"
+const EMPLOYEE_ID_LABEL = "Employee id"
 
-  const {
-    data: [employee],
-  } = await query.graph(
+const getEmployeeFromGraphResult = (result: unknown): object | undefined => {
+  const data: unknown = isRecord(result)
+    ? getRecordValue(result, "data")
+    : undefined
+  if (!Array.isArray(data)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Employee query returned an invalid data payload",
+    )
+  }
+
+  const records: unknown[] = data
+  const [employee] = records
+  if (employee === undefined) {
+    return undefined
+  }
+  if (!isRecord(employee)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Employee query returned a non-object employee",
+    )
+  }
+
+  return employee
+}
+
+const getEmployee = async (
+  req: AuthenticatedMedusaRequest<AdminGetEmployeeParamsType>,
+  res: MedusaResponse,
+) => {
+  const id = requirePathParam(req.params["id"], COMPANY_ID_LABEL)
+  const employeeId = requirePathParam(
+    req.params["employeeId"],
+    EMPLOYEE_ID_LABEL,
+  )
+  const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
+
+  const result: unknown = await query.graph(
     {
       entity: "employee",
       fields: req.queryConfig?.fields,
       filters: { ...req.filterableFields, company_id: id, id: employeeId },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
+  const employee = getEmployeeFromGraphResult(result)
 
   res.json({ employee })
 }
 
-export const POST = async (
+const updateEmployee = async (
   req: AuthenticatedMedusaRequest<AdminUpdateEmployeeType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const { id } = req.params
-  const employeeId = requirePathParam(req.params.employeeId, "Employee id")
+  const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const id = requirePathParam(req.params["id"], COMPANY_ID_LABEL)
+  const employeeId = requirePathParam(
+    req.params["employeeId"],
+    EMPLOYEE_ID_LABEL,
+  )
   const { spending_limit, is_admin } = req.validatedBody
 
   await updateEmployeesWorkflow(req.scope).run({
-    input: {
-      id: employeeId,
+    input: omitUndefined({
       company_id: id,
-      spending_limit,
+      id: employeeId,
       is_admin,
-    },
+      spending_limit,
+    }),
   })
 
-  const {
-    data: [employee],
-  } = await query.graph(
+  const result: unknown = await query.graph(
     {
       entity: "employee",
       fields: req.queryConfig?.fields,
       filters: { ...req.filterableFields, company_id: id, id: employeeId },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
+  const employee = getEmployeeFromGraphResult(result)
 
   res.json({ employee })
 }
 
-export const DELETE = async (
+const deleteEmployee = async (
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
-  const { id } = req.params
-  const employeeId = requirePathParam(req.params.employeeId, "Employee id")
+  const id = requirePathParam(req.params["id"], COMPANY_ID_LABEL)
+  const employeeId = requirePathParam(
+    req.params["employeeId"],
+    EMPLOYEE_ID_LABEL,
+  )
 
   await deleteEmployeesWorkflow(req.scope).run({
     input: {
-      id: employeeId,
       company_id: id,
+      id: employeeId,
     },
   })
 
   res.status(200).json({
+    deleted: true,
     id: employeeId,
     object: "employee",
-    deleted: true,
   })
 }
+
+export { deleteEmployee as DELETE, getEmployee as GET, updateEmployee as POST }

@@ -1,25 +1,28 @@
 #!/usr/bin/env node
+/// <reference types="node" />
 
 import { spawn } from "node:child_process"
+import { once } from "node:events"
 import net from "node:net"
 import path from "node:path"
 import process from "node:process"
+import { setTimeout as delay } from "node:timers/promises"
 
 import { medusaBeDir, repoRoot } from "./hash-safe-workdir.mjs"
 
 const dbEnv = {
-  DB_HOST: process.env.DB_HOST || "127.0.0.1",
-  DB_USERNAME: process.env.DB_USERNAME || "root",
-  DB_PASSWORD: process.env.DB_PASSWORD || "root",
-  DB_PORT: process.env.DB_PORT || "5432",
-  DB_TEMP_NAME: process.env.DB_TEMP_NAME || "medusa_test",
+  DB_HOST: process.env.DB_HOST ?? "127.0.0.1",
+  DB_PASSWORD: process.env.DB_PASSWORD ?? "root",
+  DB_PORT: process.env.DB_PORT ?? "5432",
+  DB_TEMP_NAME: process.env.DB_TEMP_NAME ?? "medusa_test",
+  DB_USERNAME: process.env.DB_USERNAME ?? "root",
 }
 
 const dbUser = encodeURIComponent(dbEnv.DB_USERNAME)
 const dbPassword = encodeURIComponent(dbEnv.DB_PASSWORD)
 const dbName = encodeURIComponent(dbEnv.DB_TEMP_NAME)
 dbEnv.DATABASE_URL =
-  process.env.DATABASE_URL ||
+  process.env.DATABASE_URL ??
   `postgres://${dbUser}:${dbPassword}@${dbEnv.DB_HOST}:${dbEnv.DB_PORT}/${dbName}`
 
 const nodeOptions = [
@@ -39,68 +42,132 @@ const testEnv = {
   TS_NODE_TRANSPILE_ONLY: "true",
 }
 
-function run(command, args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      cwd: options.cwd || repoRoot,
-      env: options.env || process.env,
-      stdio: options.stdio || "inherit",
-    })
+/**
+ * @typedef {object} RunOptions
+ * @property {string} [cwd] - Working directory for the spawned process.
+ * @property {NodeJS.ProcessEnv} [env] - Environment variables for the process.
+ * @property {"inherit" | "ignore"} [stdio] - Stdio mode for the process.
+ * @property {boolean} [allowFailure] - Whether a non-zero exit code should
+ *   resolve instead of throw.
+ */
 
-    child.on("error", reject)
-    child.on("exit", (code) => {
-      if (options.allowFailure) {
-        resolve(code ?? 1)
-        return
-      }
-
-      if (code === 0) {
-        resolve(0)
-        return
-      }
-
-      reject(new Error(`${command} ${args.join(" ")} exited with code ${code}`))
-    })
+/**
+ * Spawns a command and waits for it to exit.
+ * @param {string} command - Executable to run.
+ * @param {readonly string[]} args - Arguments passed to the command.
+ * @param {RunOptions} [options] - Spawn and failure-handling options.
+ * @returns {Promise<number>} Resolves with the process exit code (or `1`
+ *   when the exit code is unknown and `allowFailure` is set).
+ */
+const run = async (command, args, options = {}) => {
+  const child = spawn(command, args, {
+    cwd: options.cwd ?? repoRoot,
+    env: options.env ?? process.env,
+    stdio: options.stdio ?? "inherit",
   })
+
+  /** @type {readonly unknown[]} */
+  const exitArgs = await once(child, "exit")
+  const [rawCode] = exitArgs
+  const code = typeof rawCode === "number" ? rawCode : null
+
+  if (options.allowFailure === true) {
+    return code ?? 1
+  }
+
+  if (code === 0) {
+    return 0
+  }
+
+  throw new Error(`${command} ${args.join(" ")} exited with code ${code}`)
 }
 
-function canConnect(host, port, timeoutMs = 1000) {
-  return new Promise((resolve) => {
-    const socket = net.connect({ host, port }, () => {
-      socket.end()
-      resolve(true)
-    })
+/**
+ * Checks whether a TCP connection can be established before a timeout.
+ * @param {string} host - Target host.
+ * @param {number} port - Target port.
+ * @param {number} [timeoutMs] - Connection timeout in milliseconds.
+ * @returns {Promise<boolean>} `true` when the socket connected successfully.
+ */
+const canConnect = async (host, port, timeoutMs = 1000) => {
+  const socket = net.connect({ host, port })
+  socket.setTimeout(timeoutMs)
 
-    socket.on("error", () => resolve(false))
-    socket.setTimeout(timeoutMs, () => {
-      socket.destroy()
-      resolve(false)
-    })
-  })
-}
+  const waitForConnect = async () => {
+    await once(socket, "connect")
+    return "connect"
+  }
 
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
+  const waitForSocketTimeout = async () => {
+    await once(socket, "timeout")
+    return "timeout"
+  }
 
-async function waitUntil(attempts, check) {
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    if (await check()) {
-      return true
-    }
+  let outcome
+  try {
+    outcome = await Promise.race([waitForConnect(), waitForSocketTimeout()])
+  } catch {
+    outcome = "error"
+  }
 
-    await sleep(1000)
+  if (outcome === "connect") {
+    socket.end()
+    return true
+  }
+
+  if (outcome === "timeout") {
+    socket.destroy()
   }
 
   return false
 }
 
-async function waitForTcp(host, port, attempts = 30) {
-  return waitUntil(attempts, () => canConnect(host, port))
+/**
+ * Waits for a fixed duration.
+ * @param {number} ms - Duration to wait, in milliseconds.
+ * @returns {Promise<void>} Resolves once the duration has elapsed.
+ */
+const sleep = async (ms) => {
+  await delay(ms)
 }
 
-async function waitForDockerPostgres(containerName, attempts = 60) {
-  return waitUntil(attempts, async () => {
+/**
+ * Polls a check function until it succeeds or the attempt budget runs out.
+ * @param {number} attempts - Remaining attempts, decremented each recursion.
+ * @param {() => Promise<boolean>} check - Async predicate to poll.
+ * @returns {Promise<boolean>} `true` once `check` succeeds, else `false`.
+ */
+const waitUntil = async (attempts, check) => {
+  if (attempts <= 0) {
+    return false
+  }
+
+  if (await check()) {
+    return true
+  }
+
+  await sleep(1000)
+  return await waitUntil(attempts - 1, check)
+}
+
+/**
+ * Waits for a TCP port to accept connections.
+ * @param {string} host - Target host.
+ * @param {number} port - Target port.
+ * @param {number} [attempts] - Number of polling attempts.
+ * @returns {Promise<boolean>} `true` once the port accepts connections.
+ */
+const waitForTcp = async (host, port, attempts = 30) =>
+  await waitUntil(attempts, async () => await canConnect(host, port))
+
+/**
+ * Waits for a Dockerized Postgres container to report readiness.
+ * @param {string} containerName - Name of the running Postgres container.
+ * @param {number} [attempts] - Number of polling attempts.
+ * @returns {Promise<boolean>} `true` once `pg_isready` succeeds.
+ */
+const waitForDockerPostgres = async (containerName, attempts = 60) =>
+  await waitUntil(attempts, async () => {
     const code = await run(
       "docker",
       [
@@ -114,41 +181,59 @@ async function waitForDockerPostgres(containerName, attempts = 60) {
         "-d",
         dbEnv.DB_TEMP_NAME,
       ],
-      { allowFailure: true, stdio: "ignore" }
+      { allowFailure: true, stdio: "ignore" },
     )
 
     return code === 0
   })
-}
 
-async function canRunDocker() {
+/**
+ * Checks whether the Docker daemon is reachable.
+ * @returns {Promise<boolean>} `true` when `docker version` succeeds.
+ */
+const canRunDocker = async () => {
   const code = await run(
     "docker",
     ["version", "--format", "{{.Server.Version}}"],
     {
       allowFailure: true,
       stdio: "ignore",
-    }
+    },
   )
 
   return code === 0
 }
 
-function canBindDockerPostgres() {
-  return dbEnv.DB_HOST === "127.0.0.1" || dbEnv.DB_HOST === "localhost"
-}
+/**
+ * Checks whether the configured DB host is local enough to bind a
+ * disposable Docker Postgres container to it.
+ * @returns {boolean} `true` when `DB_HOST` is a loopback address.
+ */
+const canBindDockerPostgres = () =>
+  dbEnv.DB_HOST === "127.0.0.1" || dbEnv.DB_HOST === "localhost"
 
-function dockerContainerName() {
+/**
+ * Builds a unique, filesystem/CLI-safe name for the disposable Postgres
+ * container.
+ * @returns {string} Sanitized container name.
+ */
+const dockerContainerName = () => {
   const raw = [
     "new-engine-medusa-module-test-pg",
-    process.env.GITHUB_RUN_ID || "local",
-    process.env.GITHUB_RUN_ATTEMPT || process.pid,
+    process.env.GITHUB_RUN_ID ?? "local",
+    process.env.GITHUB_RUN_ATTEMPT ?? process.pid,
   ].join("-")
 
-  return raw.replace(/[^a-zA-Z0-9_.-]/g, "-")
+  return raw.replaceAll(/[^a-zA-Z0-9_.-]/gu, "-")
 }
 
-async function ensurePostgres() {
+/**
+ * Ensures Postgres is reachable, starting a disposable Docker container
+ * when no server is already listening.
+ * @returns {Promise<string | null>} The started container's name, or
+ *   `null` when an existing Postgres server was used instead.
+ */
+const ensurePostgres = async () => {
   const port = Number(dbEnv.DB_PORT)
   if (await waitForTcp(dbEnv.DB_HOST, port, 30)) {
     return null
@@ -191,13 +276,14 @@ async function ensurePostgres() {
   ) {
     await run("docker", ["logs", name], { allowFailure: true })
     throw new Error(
-      `Postgres did not become ready on ${dbEnv.DB_HOST}:${dbEnv.DB_PORT}`
+      `Postgres did not become ready on ${dbEnv.DB_HOST}:${dbEnv.DB_PORT}`,
     )
   }
 
   return name
 }
 
+/** @type {string | null} */
 let postgresContainer = null
 
 try {
@@ -208,19 +294,19 @@ try {
       "./scripts/run-vitest.mjs",
       "run",
       "--config",
-      "vitest.config.ts",
+      "vitest.config.mts",
       "--no-file-parallelism",
     ],
     {
+      allowFailure: true,
       cwd: medusaBeDir,
       env: testEnv,
-      allowFailure: true,
-    }
+    },
   )
 
   process.exitCode = exitCode
 } finally {
-  if (postgresContainer) {
+  if (postgresContainer !== null) {
     await run("docker", ["rm", "-f", postgresContainer], {
       allowFailure: true,
       stdio: "ignore",

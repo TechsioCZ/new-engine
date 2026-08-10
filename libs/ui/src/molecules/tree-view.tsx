@@ -1,107 +1,76 @@
-/**
+/*
  * TreeView — @techsio/ui-kit molecule.
  *
  * @component TreeView
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill tree-view-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the tree-view-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import { normalizeProps, useMachine } from "@zag-js/react"
-import * as tree from "@zag-js/tree-view"
-import {
-  type ComponentPropsWithoutRef,
-  createContext,
-  type MouseEvent,
-  type ReactNode,
-  useContext,
-  useId,
-} from "react"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
+import type { PropTypes } from "@zag-js/react"
+import { collection, connect, machine } from "@zag-js/tree-view"
+import type {
+  Api,
+  NodeState,
+  Props as ZagTreeViewProps,
+} from "@zag-js/tree-view"
+import { createContext, useContext, useId } from "react"
+import type { ComponentPropsWithoutRef, MouseEvent, ReactNode } from "react"
 import type { VariantProps } from "tailwind-variants"
-import { Icon, type IconType } from "../atoms/icon"
+
+import { Icon } from "../atoms/icon"
+import type { IconType } from "../atoms/icon"
 import { tv } from "../utils"
+
+interface SelectionBehaviorMap {
+  all: never
+  custom: never
+  "leaf-only": never
+}
+
+type SelectionBehavior = keyof SelectionBehaviorMap
 
 export interface TreeNode {
   id: string
   name: string
-  children?: TreeNode[]
+  children?: TreeNode[] | undefined
   icons?: {
-    branch?: IconType
-    leaf?: IconType
+    branch?: IconType | undefined
+    leaf?: IconType | undefined
   }
-  disabled?: boolean
-  selected?: boolean
-  selectable?: boolean // For 'custom' selection behavior
-  [key: string]: unknown
+  disabled?: boolean | undefined
+  selected?: boolean | undefined
+  // Controls selection when the TreeView uses custom selection behavior.
+  selectable?: boolean | undefined
 }
 
+const focusOutlineClasses = [
+  "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+  "focus-visible:outline-tree-view-ring",
+  "focus-visible:outline-offset-(length:--default-ring-offset)",
+]
+const transitionColors =
+  "transition-colors duration-200 motion-reduce:transition-none"
+const treeViewTextLarge = "text-tree-view-lg"
+const treeViewTextMedium = "text-tree-view-md"
+const treeViewTextSmall = "text-tree-view-sm"
+
 const treeViewVariants = tv({
-  slots: {
-    root: "relative rounded-tree-view bg-tree-view-root-bg",
-    label: ["font-tree-view-label text-tree-view-label-fg"],
-    tree: [
-      "bg-tree-view-bg",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-      "focus-visible:outline-tree-view-ring",
-      "focus-visible:outline-offset-(length:--default-ring-offset)",
-    ],
-    branch: [
-      "data-disabled:cursor-not-allowed",
-      "data-disabled:text-tree-view-fg-disabled",
-      "data-disabled:*:pointer-events-none",
-    ],
-    branchTrigger: [
-      "group flex items-center justify-between",
-      "hover:bg-tree-view-node-bg-hover",
-      "cursor-pointer",
-      "has-focus-visible:outline-(style:--default-ring-style) has-focus-visible:outline-(length:--default-ring-width)",
-      "has-focus-visible:outline-tree-view-ring",
-      "has-focus-visible:outline-offset-(length:--default-ring-offset)",
-      "transition-colors duration-200 motion-reduce:transition-none",
-    ],
-    branchControl: ["flex-1"],
-    branchText: ["flex-1"],
-    branchIndicator: [
-      "group-hover:text-tree-view-fg-hover",
-      "data-[state=open]:token-icon-tree-indicator-open cursor-pointer hover:scale-125",
-      "transition-all duration-200 motion-reduce:transition-none",
-    ],
-    branchContent: ["relative", "data-[state=closed]:hidden"],
-    indentGuide: [
-      "absolute start-1 top-0 bottom-0",
-      "w-tree-view-indent-width bg-tree-view-indent-bg",
-      "opacity-tree-view-indent",
-    ],
-    item: [
-      "hover:bg-tree-view-node-bg-hover hover:text-tree-view-fg-hover",
-      "data-selected:hover:bg-tree-view-node-bg-hover",
-      "data-selected:hover:text-tree-view-fg-hover",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-      "focus-visible:outline-tree-view-ring",
-      "focus-visible:outline-offset-(length:--default-ring-offset)",
-      "transition-colors duration-200 motion-reduce:transition-none",
-    ],
-    itemText: ["flex-1"],
-    nodeIcon: [
-      "hover:text-tree-view-icon-hover",
-      "transition-colors duration-200 motion-reduce:transition-none",
-    ],
-  },
   compoundSlots: [
     {
-      // leaf has a common style with branch
-      slots: ["branch", "item"],
       class: [
         "relative",
         // get --depth from zag-js api
-        "ms-[calc(var(--depth)*var(--tree-indent-per-level))]",
+        "tree-view-depth-indent",
         "data-[depth=1]:ms-0",
       ],
+      // leaf has a common style with branch
+      slots: ["branch", "item"],
     },
     {
-      slots: ["branchControl", "item"],
       class: [
         "flex items-center gap-tree-view-icon p-tree-view-node-padding",
         "cursor-pointer",
@@ -109,84 +78,155 @@ const treeViewVariants = tv({
         "group-hover:text-tree-view-fg-hover",
         "data-selected:group-hover:text-tree-view-fg-hover",
       ],
+      slots: ["branchControl", "item"],
     },
   ],
-  variants: {
-    size: {
-      sm: {
-        nodeIcon: "text-tree-view-icon-sm",
-        branchText: "text-tree-view-sm",
-        itemText: "text-tree-view-sm",
-        branchIndicator: "text-icon-control-sm",
-        label: "text-tree-view-sm",
-      },
-      md: {
-        nodeIcon: "text-tree-view-icon-md",
-        branchText: "text-tree-view-md",
-        itemText: "text-tree-view-md",
-        branchIndicator: "text-icon-control-md",
-        label: "text-tree-view-md",
-      },
-      lg: {
-        nodeIcon: "text-tree-view-icon-lg",
-        branchText: "text-tree-view-lg",
-        itemText: "text-tree-view-lg",
-        branchIndicator: "text-icon-control-lg",
-        label: "text-tree-view-lg",
-      },
-    },
-  },
   defaultVariants: {
     size: "md",
   },
+  slots: {
+    branch: [
+      "data-disabled:cursor-not-allowed",
+      "data-disabled:text-tree-view-fg-disabled",
+      "data-disabled:*:pointer-events-none",
+    ],
+    branchContent: ["relative", "data-[state=closed]:hidden"],
+    branchControl: ["flex-1"],
+    branchIndicator: [
+      "group-hover:text-tree-view-fg-hover",
+      "cursor-pointer hover:scale-125 data-[state=open]:token-icon-tree-indicator-open",
+      "transition-all duration-200 motion-reduce:transition-none",
+    ],
+    branchText: ["flex-1"],
+    branchTrigger: [
+      "group flex items-center justify-between",
+      "hover:bg-tree-view-node-bg-hover",
+      "cursor-pointer",
+      "has-focus-visible:outline-(length:--default-ring-width) has-focus-visible:outline-(style:--default-ring-style)",
+      "has-focus-visible:outline-tree-view-ring",
+      "has-focus-visible:outline-offset-(length:--default-ring-offset)",
+      transitionColors,
+    ],
+    indentGuide: [
+      "absolute inset-y-0 start-1",
+      "w-tree-view-indent-width bg-tree-view-indent-bg",
+      "opacity-tree-view-indent",
+    ],
+    item: [
+      "hover:bg-tree-view-node-bg-hover hover:text-tree-view-fg-hover",
+      "data-selected:hover:bg-tree-view-node-bg-hover",
+      "data-selected:hover:text-tree-view-fg-hover",
+      ...focusOutlineClasses,
+      transitionColors,
+    ],
+    itemText: ["flex-1"],
+    label: ["font-tree-view-label text-tree-view-label-fg"],
+    nodeIcon: ["hover:text-tree-view-icon-hover", transitionColors],
+    root: "relative rounded-tree-view bg-tree-view-root-bg",
+    tree: ["bg-tree-view-bg", ...focusOutlineClasses],
+  },
+  variants: {
+    size: {
+      lg: {
+        branchIndicator: "text-icon-control-lg",
+        branchText: treeViewTextLarge,
+        itemText: treeViewTextLarge,
+        label: treeViewTextLarge,
+        nodeIcon: "text-tree-view-icon-lg",
+      },
+      md: {
+        branchIndicator: "text-icon-control-md",
+        branchText: treeViewTextMedium,
+        itemText: treeViewTextMedium,
+        label: treeViewTextMedium,
+        nodeIcon: "text-tree-view-icon-md",
+      },
+      sm: {
+        branchIndicator: "text-icon-control-sm",
+        branchText: treeViewTextSmall,
+        itemText: treeViewTextSmall,
+        label: treeViewTextSmall,
+        nodeIcon: "text-tree-view-icon-sm",
+      },
+    },
+  },
 })
 
-interface TreeViewContextValue {
-  api: tree.Api
-  size?: "sm" | "md" | "lg"
-  styles: ReturnType<typeof treeViewVariants>
-  selectionBehavior?: "all" | "leaf-only" | "custom"
-}
+type TreeViewApi = Api<PropTypes, TreeNode>
+type TreeViewStyles = ReturnType<typeof treeViewVariants>
 
-const TreeViewContext = createContext<TreeViewContextValue | null>(null)
+const rootContextError = "TreeView components must be used within TreeView.Root"
+const nodeContextError =
+  "TreeView node components must be used within a node provider"
 
-function useTreeViewContext() {
-  const context = useContext(TreeViewContext)
-  if (!context) {
-    throw new Error("TreeView components must be used within TreeView.Root")
+const TreeViewApiContext = createContext<TreeViewApi | null>(null)
+const TreeViewSelectionContext = createContext<SelectionBehavior | null>(null)
+const TreeViewStylesContext = createContext<TreeViewStyles | null>(null)
+
+const useTreeViewApi = () => {
+  const api = useContext(TreeViewApiContext)
+  if (api === null) {
+    throw new Error(rootContextError)
   }
-  return context
+  return api
 }
 
-interface TreeViewNodeContextValue {
-  node: TreeNode
-  indexPath: number[]
-  nodeProps: tree.NodeProps
-  nodeState: tree.NodeState
-}
-
-const TreeViewNodeContext = createContext<TreeViewNodeContextValue | null>(null)
-
-function useTreeViewNodeContext() {
-  const context = useContext(TreeViewNodeContext)
-  if (!context) {
-    throw new Error(
-      "TreeView node components must be used within a node provider"
-    )
+const useTreeViewSelectionBehavior = () => {
+  const selectionBehavior = useContext(TreeViewSelectionContext)
+  if (selectionBehavior === null) {
+    throw new Error(rootContextError)
   }
-  return context
+  return selectionBehavior
+}
+
+const useTreeViewStyles = () => {
+  const styles = useContext(TreeViewStylesContext)
+  if (styles === null) {
+    throw new Error(rootContextError)
+  }
+  return styles
+}
+
+const TreeViewNodeContext = createContext<TreeNode | null>(null)
+const TreeViewIndexPathContext = createContext<number[] | null>(null)
+const TreeViewNodeStateContext = createContext<NodeState | null>(null)
+
+const useTreeViewNode = () => {
+  const node = useContext(TreeViewNodeContext)
+  if (node === null) {
+    throw new Error(nodeContextError)
+  }
+  return node
+}
+
+const useTreeViewNodeProps = () => {
+  const indexPath = useContext(TreeViewIndexPathContext)
+  const node = useTreeViewNode()
+  if (indexPath === null) {
+    throw new Error(nodeContextError)
+  }
+  return { indexPath, node }
+}
+
+const useTreeViewNodeState = () => {
+  const nodeState = useContext(TreeViewNodeStateContext)
+  if (nodeState === null) {
+    throw new Error(nodeContextError)
+  }
+  return nodeState
 }
 
 interface TreeViewRootProps
-  extends VariantProps<typeof treeViewVariants>,
-    Omit<tree.Props, "id" | "size">,
+  extends
+    VariantProps<typeof treeViewVariants>,
+    Omit<ZagTreeViewProps, "id" | "size">,
     Omit<ComponentPropsWithoutRef<"div">, "onChange" | "dir"> {
-  id?: string
   data: TreeNode[]
-  selectionBehavior?: "all" | "leaf-only" | "custom"
+  id?: string | undefined
+  selectionBehavior?: SelectionBehavior | undefined
 }
 
-export function TreeView({
+const TreeViewRoot = ({
   id,
   data,
   size,
@@ -208,83 +248,82 @@ export function TreeView({
   children,
   className,
   ...props
-}: TreeViewRootProps) {
+}: TreeViewRootProps) => {
   const generatedId = useId()
-  const uniqueId = id || generatedId
+  const uniqueId = id ?? generatedId
 
-  const collection = tree.collection<TreeNode>({
-    nodeToValue: (node) => node.id,
+  const treeCollection = collection<TreeNode>({
     nodeToString: (node) => node.name,
-    rootNode: { id: "ROOT", name: "", children: data },
+    nodeToValue: (node) => node.id,
+    rootNode: { children: data, id: "ROOT", name: "" },
   })
 
-  const service = useMachine(tree.machine, {
-    id: uniqueId,
-    collection,
+  const service = useMachine(machine, {
+    collection: treeCollection,
     dir,
-    selectionMode,
-    expandedValue,
-    selectedValue,
-    focusedValue,
-    defaultExpandedValue,
-    defaultSelectedValue,
     expandOnClick,
+    id: uniqueId,
+    selectionMode,
     typeahead,
-    onExpandedChange,
-    onSelectionChange,
-    onFocusChange,
+    ...(expandedValue !== undefined && { expandedValue }),
+    ...(selectedValue !== undefined && { selectedValue }),
+    ...(focusedValue !== undefined && { focusedValue }),
+    ...(defaultExpandedValue !== undefined && { defaultExpandedValue }),
+    ...(defaultSelectedValue !== undefined && { defaultSelectedValue }),
+    ...(onExpandedChange !== undefined && { onExpandedChange }),
+    ...(onSelectionChange !== undefined && { onSelectionChange }),
+    ...(onFocusChange !== undefined && { onFocusChange }),
   })
 
-  const api = tree.connect(service as unknown as tree.Service, normalizeProps)
+  const api = connect<PropTypes, TreeNode>(service, normalizeProps)
   const styles = treeViewVariants({ size })
 
   return (
-    <TreeViewContext.Provider value={{ api, size, styles, selectionBehavior }}>
-      <div
-        className={styles.root({ className })}
-        {...api.getRootProps()}
-        {...props}
-      >
-        {children}
-      </div>
-    </TreeViewContext.Provider>
+    <TreeViewApiContext.Provider value={api}>
+      <TreeViewSelectionContext.Provider value={selectionBehavior}>
+        <TreeViewStylesContext.Provider value={styles}>
+          <div
+            className={styles.root({ className })}
+            {...mergeProps(api.getRootProps(), props)}
+          >
+            {children}
+          </div>
+        </TreeViewStylesContext.Provider>
+      </TreeViewSelectionContext.Provider>
+    </TreeViewApiContext.Provider>
   )
 }
 
-interface TreeViewLabelProps extends ComponentPropsWithoutRef<"h3"> {}
+type TreeViewLabelProps = ComponentPropsWithoutRef<"h3">
 
-TreeView.Label = function TreeViewLabel({
+const TreeViewLabel = ({
   children,
   className,
   ...props
-}: TreeViewLabelProps) {
-  const { api, styles } = useTreeViewContext()
+}: TreeViewLabelProps) => {
+  const api = useTreeViewApi()
+  const styles = useTreeViewStyles()
 
   return (
     <h3
       className={styles.label({ className })}
-      {...api.getLabelProps()}
-      {...props}
+      {...mergeProps(api.getLabelProps(), props)}
     >
       {children}
     </h3>
   )
 }
 
-interface TreeViewTreeProps extends ComponentPropsWithoutRef<"div"> {}
+type TreeViewTreeProps = ComponentPropsWithoutRef<"div">
 
-TreeView.Tree = function TreeViewTree({
-  children,
-  className,
-  ...props
-}: TreeViewTreeProps) {
-  const { api, styles } = useTreeViewContext()
+const TreeViewTree = ({ children, className, ...props }: TreeViewTreeProps) => {
+  const api = useTreeViewApi()
+  const styles = useTreeViewStyles()
 
   return (
     <div
       className={styles.tree({ className })}
-      {...api.getTreeProps()}
-      {...props}
+      {...mergeProps(api.getTreeProps(), props)}
     >
       {children}
     </div>
@@ -297,53 +336,55 @@ interface TreeViewNodeProviderProps {
   children: ReactNode
 }
 
-TreeView.NodeProvider = function TreeViewNodeProvider({
+const TreeViewNodeProvider = ({
   node,
   indexPath,
   children,
-}: TreeViewNodeProviderProps) {
-  const { api } = useTreeViewContext()
-  const nodeProps = { node, indexPath }
+}: TreeViewNodeProviderProps) => {
+  const api = useTreeViewApi()
+  const nodeProps = { indexPath, node }
   const nodeState = api.getNodeState(nodeProps)
 
   return (
-    <TreeViewNodeContext.Provider
-      value={{ node, indexPath, nodeProps, nodeState }}
-    >
-      {children}
+    <TreeViewNodeContext.Provider value={node}>
+      <TreeViewIndexPathContext.Provider value={indexPath}>
+        <TreeViewNodeStateContext.Provider value={nodeState}>
+          {children}
+        </TreeViewNodeStateContext.Provider>
+      </TreeViewIndexPathContext.Provider>
     </TreeViewNodeContext.Provider>
   )
 }
 
-interface TreeViewBranchProps extends ComponentPropsWithoutRef<"div"> {}
+type TreeViewBranchProps = ComponentPropsWithoutRef<"div">
 
-TreeView.Branch = function TreeViewBranch({
+const TreeViewBranch = ({
   children,
   className,
   ...props
-}: TreeViewBranchProps) {
-  const { api, styles } = useTreeViewContext()
-  const { nodeProps } = useTreeViewNodeContext()
+}: TreeViewBranchProps) => {
+  const api = useTreeViewApi()
+  const styles = useTreeViewStyles()
+  const nodeProps = useTreeViewNodeProps()
 
   return (
     <div
       className={styles.branch({ className })}
-      {...api.getBranchProps(nodeProps)}
-      {...props}
+      {...mergeProps(api.getBranchProps(nodeProps), props)}
     >
       {children}
     </div>
   )
 }
 
-interface TreeViewBranchTriggerProps extends ComponentPropsWithoutRef<"div"> {}
+type TreeViewBranchTriggerProps = ComponentPropsWithoutRef<"div">
 
-TreeView.BranchTrigger = function TreeViewBranchTrigger({
+const TreeViewBranchTrigger = ({
   children,
   className,
   ...props
-}: TreeViewBranchTriggerProps) {
-  const { styles } = useTreeViewContext()
+}: TreeViewBranchTriggerProps) => {
+  const styles = useTreeViewStyles()
 
   return (
     <div className={styles.branchTrigger({ className })} {...props}>
@@ -352,55 +393,61 @@ TreeView.BranchTrigger = function TreeViewBranchTrigger({
   )
 }
 
-interface TreeViewBranchControlProps extends ComponentPropsWithoutRef<"div"> {}
+type TreeViewBranchControlProps = ComponentPropsWithoutRef<"div">
 
-TreeView.BranchControl = function TreeViewBranchControl({
+const TreeViewBranchControl = ({
   children,
   className,
   ...props
-}: TreeViewBranchControlProps) {
-  const { api, styles, selectionBehavior } = useTreeViewContext()
-  const { node, nodeProps, nodeState } = useTreeViewNodeContext()
+}: TreeViewBranchControlProps) => {
+  const api = useTreeViewApi()
+  const selectionBehavior = useTreeViewSelectionBehavior()
+  const styles = useTreeViewStyles()
+  const node = useTreeViewNode()
+  const nodeProps = useTreeViewNodeProps()
+  const nodeState = useTreeViewNodeState()
 
-  const isSelectable = (() => {
-    switch (selectionBehavior) {
-      case "all":
-        return true
-      case "leaf-only":
-        return false
-      case "custom":
-        return node.selectable !== false
-      default:
-        return true
+  let isSelectable: boolean
+  switch (selectionBehavior) {
+    case "all": {
+      isSelectable = true
+      break
     }
-  })()
+    case "leaf-only": {
+      isSelectable = false
+      break
+    }
+    case "custom": {
+      isSelectable = node.selectable !== false
+      break
+    }
+    default: {
+      isSelectable = true
+    }
+  }
 
   const controlProps = api.getBranchControlProps(nodeProps)
-
-  const finalProps = isSelectable
-    ? controlProps
-    : {
-        ...controlProps,
-        onClick: (e: MouseEvent<HTMLDivElement>) => {
-          e.preventDefault()
-          e.stopPropagation()
-          // Allow toggle on click for non-selectable branches
-          if (!nodeState.disabled) {
-            if (nodeState.expanded) {
-              api.collapse([node.id])
-            } else {
-              api.expand([node.id])
-            }
-          }
-        },
-        "aria-selected": undefined,
-        "data-disabled": !isSelectable || nodeState.disabled || undefined,
+  if (!isSelectable) {
+    delete controlProps["aria-selected"]
+    controlProps.onClick = (event: MouseEvent<HTMLDivElement>) => {
+      event.preventDefault()
+      event.stopPropagation()
+      // Allow toggle on click for non-selectable branches
+      if (!nodeState.disabled) {
+        if (nodeState.expanded) {
+          api.collapse([node.id])
+        } else {
+          api.expand([node.id])
+        }
       }
+    }
+  }
 
   return (
     <div
       className={styles.branchControl({ className })}
-      {...finalProps}
+      {...controlProps}
+      data-disabled={!isSelectable || nodeState.disabled || undefined}
       {...props}
     >
       {children}
@@ -409,38 +456,43 @@ TreeView.BranchControl = function TreeViewBranchControl({
 }
 
 interface TreeViewBranchTextProps {
-  children?: ReactNode
-  className?: string
+  children?: ReactNode | undefined
+  className?: string | undefined
 }
 
-TreeView.BranchText = function TreeViewBranchText({
+const TreeViewBranchText = ({
   children,
   className,
-}: TreeViewBranchTextProps) {
-  const { api, styles } = useTreeViewContext()
-  const { node, nodeProps } = useTreeViewNodeContext()
+}: TreeViewBranchTextProps) => {
+  const api = useTreeViewApi()
+  const styles = useTreeViewStyles()
+  const node = useTreeViewNode()
+  const nodeProps = useTreeViewNodeProps()
 
   return (
     <span
       className={styles.branchText({ className })}
       {...api.getBranchTextProps(nodeProps)}
     >
-      {children || node.name}
+      {children ?? node.name}
     </span>
   )
 }
 
 interface TreeViewBranchIndicatorProps {
-  icon?: IconType
-  className?: string
+  icon?: IconType | undefined
+  className?: string | undefined
 }
 
-TreeView.BranchIndicator = function TreeViewBranchIndicator({
+const TreeViewBranchIndicator = ({
   icon = "token-icon-tree-indicator",
   className,
-}: TreeViewBranchIndicatorProps) {
-  const { api, styles } = useTreeViewContext()
-  const { node, nodeProps, nodeState } = useTreeViewNodeContext()
+}: TreeViewBranchIndicatorProps) => {
+  const api = useTreeViewApi()
+  const styles = useTreeViewStyles()
+  const node = useTreeViewNode()
+  const nodeProps = useTreeViewNodeProps()
+  const nodeState = useTreeViewNodeState()
 
   const handleToggle = (id: string) => {
     if (nodeState.expanded) {
@@ -455,6 +507,7 @@ TreeView.BranchIndicator = function TreeViewBranchIndicator({
       className={styles.branchIndicator({ className })}
       icon={icon}
       {...api.getBranchIndicatorProps(nodeProps)}
+      color={undefined}
       onClick={(e) => {
         e.preventDefault()
         e.stopPropagation()
@@ -464,21 +517,21 @@ TreeView.BranchIndicator = function TreeViewBranchIndicator({
   )
 }
 
-interface TreeViewBranchContentProps extends ComponentPropsWithoutRef<"div"> {}
+type TreeViewBranchContentProps = ComponentPropsWithoutRef<"div">
 
-TreeView.BranchContent = function TreeViewBranchContent({
+const TreeViewBranchContent = ({
   children,
   className,
   ...props
-}: TreeViewBranchContentProps) {
-  const { api, styles } = useTreeViewContext()
-  const { nodeProps } = useTreeViewNodeContext()
+}: TreeViewBranchContentProps) => {
+  const api = useTreeViewApi()
+  const styles = useTreeViewStyles()
+  const nodeProps = useTreeViewNodeProps()
 
   return (
     <div
       className={styles.branchContent({ className })}
-      {...api.getBranchContentProps(nodeProps)}
-      {...props}
+      {...mergeProps(api.getBranchContentProps(nodeProps), props)}
     >
       {children}
     </div>
@@ -486,14 +539,13 @@ TreeView.BranchContent = function TreeViewBranchContent({
 }
 
 interface TreeViewIndentGuideProps {
-  className?: string
+  className?: string | undefined
 }
 
-TreeView.IndentGuide = function TreeViewIndentGuide({
-  className,
-}: TreeViewIndentGuideProps) {
-  const { api, styles } = useTreeViewContext()
-  const { nodeProps } = useTreeViewNodeContext()
+const TreeViewIndentGuide = ({ className }: TreeViewIndentGuideProps) => {
+  const api = useTreeViewApi()
+  const styles = useTreeViewStyles()
+  const nodeProps = useTreeViewNodeProps()
 
   return (
     <div
@@ -503,46 +555,46 @@ TreeView.IndentGuide = function TreeViewIndentGuide({
   )
 }
 
-interface TreeViewItemProps extends ComponentPropsWithoutRef<"div"> {}
+type TreeViewItemProps = ComponentPropsWithoutRef<"div">
 
-TreeView.Item = function TreeViewItem({
-  children,
-  className,
-  ...props
-}: TreeViewItemProps) {
-  const { api, styles, selectionBehavior } = useTreeViewContext()
-  const { node, nodeProps, nodeState } = useTreeViewNodeContext()
+const TreeViewItem = ({ children, className, ...props }: TreeViewItemProps) => {
+  const api = useTreeViewApi()
+  const selectionBehavior = useTreeViewSelectionBehavior()
+  const styles = useTreeViewStyles()
+  const node = useTreeViewNode()
+  const nodeProps = useTreeViewNodeProps()
+  const nodeState = useTreeViewNodeState()
 
-  const isSelectable = (() => {
-    switch (selectionBehavior) {
-      case "all":
-      case "leaf-only":
-        return true
-      case "custom":
-        return node.selectable !== false
-      default:
-        return true
+  let isSelectable: boolean
+  switch (selectionBehavior) {
+    case "all":
+    case "leaf-only": {
+      isSelectable = true
+      break
     }
-  })()
+    case "custom": {
+      isSelectable = node.selectable !== false
+      break
+    }
+    default: {
+      isSelectable = true
+    }
+  }
 
   const itemProps = api.getItemProps(nodeProps)
-
-  const finalProps = isSelectable
-    ? itemProps
-    : {
-        ...itemProps,
-        onClick: (e: MouseEvent<HTMLDivElement>) => {
-          e.preventDefault()
-          e.stopPropagation()
-        },
-        "aria-selected": undefined,
-        "data-disabled": !isSelectable || nodeState.disabled || undefined,
-      }
+  if (!isSelectable) {
+    delete itemProps["aria-selected"]
+    itemProps.onClick = (event: MouseEvent<HTMLDivElement>) => {
+      event.preventDefault()
+      event.stopPropagation()
+    }
+  }
 
   return (
     <div
       className={styles.item({ className })}
-      {...finalProps}
+      {...itemProps}
+      data-disabled={!isSelectable || nodeState.disabled || undefined}
       data-selected={nodeState.selected || undefined}
       {...props}
     >
@@ -552,47 +604,49 @@ TreeView.Item = function TreeViewItem({
 }
 
 interface TreeViewItemTextProps {
-  children?: ReactNode
-  className?: string
+  children?: ReactNode | undefined
+  className?: string | undefined
 }
 
-TreeView.ItemText = function TreeViewItemText({
-  children,
-  className,
-}: TreeViewItemTextProps) {
-  const { api, styles } = useTreeViewContext()
-  const { node, nodeProps } = useTreeViewNodeContext()
+const TreeViewItemText = ({ children, className }: TreeViewItemTextProps) => {
+  const api = useTreeViewApi()
+  const styles = useTreeViewStyles()
+  const node = useTreeViewNode()
+  const nodeProps = useTreeViewNodeProps()
 
   return (
     <span
       className={styles.itemText({ className })}
       {...api.getItemTextProps(nodeProps)}
     >
-      {children || node.name}
+      {children ?? node.name}
     </span>
   )
 }
 
 interface TreeViewNodeIconProps extends ComponentPropsWithoutRef<"span"> {
-  icon?: IconType
+  icon?: IconType | undefined
 }
 
-TreeView.NodeIcon = function TreeViewNodeIcon({
+const TreeViewNodeIcon = ({
   icon,
   className,
   ...props
-}: TreeViewNodeIconProps) {
-  const { styles } = useTreeViewContext()
-  const { node, nodeState } = useTreeViewNodeContext()
+}: TreeViewNodeIconProps) => {
+  const styles = useTreeViewStyles()
+  const node = useTreeViewNode()
+  const nodeState = useTreeViewNodeState()
 
-  const iconToShow =
-    icon ||
-    (nodeState.isBranch
-      ? node.icons?.branch ||
-        (nodeState.expanded
-          ? "token-icon-tree-node-open"
-          : "token-icon-tree-node")
-      : node.icons?.leaf || "token-icon-tree-item")
+  let defaultIcon: IconType
+  if (nodeState.isBranch) {
+    defaultIcon = nodeState.expanded
+      ? "token-icon-tree-node-open"
+      : "token-icon-tree-node"
+    defaultIcon = node.icons?.branch ?? defaultIcon
+  } else {
+    defaultIcon = node.icons?.leaf ?? "token-icon-tree-item"
+  }
+  const iconToShow = icon ?? defaultIcon
 
   return (
     <span
@@ -609,42 +663,42 @@ TreeView.NodeIcon = function TreeViewNodeIcon({
 interface TreeViewNodeProps {
   node: TreeNode
   indexPath: number[]
-  showIndentGuides?: boolean
-  showNodeIcons?: boolean
-  onNodeHover?: (node: TreeNode, indexPath: number[]) => void
-  onNodeLeave?: (node: TreeNode, indexPath: number[]) => void
+  showIndentGuides?: boolean | undefined
+  showNodeIcons?: boolean | undefined
+  onNodeHover?: ((node: TreeNode, indexPath: number[]) => void) | undefined
+  onNodeLeave?: ((node: TreeNode, indexPath: number[]) => void) | undefined
 }
 
-TreeView.Node = function TreeViewNode({
+const TreeViewNode = ({
   node,
   indexPath,
   showIndentGuides = true,
   showNodeIcons = true,
   onNodeHover,
   onNodeLeave,
-}: TreeViewNodeProps) {
-  const { api } = useTreeViewContext()
-  const nodeProps = { node, indexPath }
+}: TreeViewNodeProps) => {
+  const api = useTreeViewApi()
+  const nodeProps = { indexPath, node }
   const nodeState = api.getNodeState(nodeProps)
 
   return (
-    <TreeView.NodeProvider indexPath={indexPath} node={node}>
+    <TreeViewNodeProvider indexPath={indexPath} node={node}>
       {nodeState.isBranch ? (
-        <TreeView.Branch>
-          <TreeView.BranchTrigger
+        <TreeViewBranch>
+          <TreeViewBranchTrigger
             onMouseEnter={() => onNodeHover?.(node, indexPath)}
             onMouseLeave={() => onNodeLeave?.(node, indexPath)}
           >
-            <TreeView.BranchControl>
-              {showNodeIcons && <TreeView.NodeIcon />}
-              <TreeView.BranchText />
-            </TreeView.BranchControl>
-            <TreeView.BranchIndicator />
-          </TreeView.BranchTrigger>
-          <TreeView.BranchContent>
-            {showIndentGuides && <TreeView.IndentGuide />}
+            <TreeViewBranchControl>
+              {showNodeIcons && <TreeViewNodeIcon />}
+              <TreeViewBranchText />
+            </TreeViewBranchControl>
+            <TreeViewBranchIndicator />
+          </TreeViewBranchTrigger>
+          <TreeViewBranchContent>
+            {showIndentGuides && <TreeViewIndentGuide />}
             {node.children?.map((childNode, index) => (
-              <TreeView.Node
+              <TreeViewNode
                 indexPath={[...indexPath, index]}
                 key={childNode.id}
                 node={childNode}
@@ -654,19 +708,37 @@ TreeView.Node = function TreeViewNode({
                 showNodeIcons={showNodeIcons}
               />
             ))}
-          </TreeView.BranchContent>
-        </TreeView.Branch>
+          </TreeViewBranchContent>
+        </TreeViewBranch>
       ) : (
-        <TreeView.Item
+        <TreeViewItem
           onMouseEnter={() => onNodeHover?.(node, indexPath)}
           onMouseLeave={() => onNodeLeave?.(node, indexPath)}
         >
-          {showNodeIcons && <TreeView.NodeIcon />}
-          <TreeView.ItemText />
-        </TreeView.Item>
+          {showNodeIcons && <TreeViewNodeIcon />}
+          <TreeViewItemText />
+        </TreeViewItem>
       )}
-    </TreeView.NodeProvider>
+    </TreeViewNodeProvider>
   )
 }
 
-TreeView.displayName = "TreeView"
+TreeViewRoot.displayName = "TreeView"
+const TreeViewCompound = Object.assign(TreeViewRoot, {
+  Branch: TreeViewBranch,
+  BranchContent: TreeViewBranchContent,
+  BranchControl: TreeViewBranchControl,
+  BranchIndicator: TreeViewBranchIndicator,
+  BranchText: TreeViewBranchText,
+  BranchTrigger: TreeViewBranchTrigger,
+  IndentGuide: TreeViewIndentGuide,
+  Item: TreeViewItem,
+  ItemText: TreeViewItemText,
+  Label: TreeViewLabel,
+  Node: TreeViewNode,
+  NodeIcon: TreeViewNodeIcon,
+  NodeProvider: TreeViewNodeProvider,
+  Tree: TreeViewTree,
+})
+
+export const TreeView = TreeViewCompound

@@ -10,28 +10,27 @@ import {
   emitEventStep,
   releaseLockStep,
 } from "@medusajs/medusa/core-flows"
+
 import {
   BRAND_SEARCH_PROJECTION_CHANGED,
   BRAND_SEARCH_PROJECTION_EVENT_OPTIONS,
   buildBrandSearchProjectionEventData,
 } from "../../meilisearch/events"
-import {
-  getBrandProductsLockKeys,
-  prepareBatchLinkProductsToBrandStep,
-} from "../steps"
+import { prepareBatchLinkProductsToBrandStep } from "../steps/batch-link-products-to-brand"
+import { getBrandProductsLockKeys } from "../steps/helpers"
 import type { BatchLinkProductsToBrandWorkflowInput } from "../types"
 
 export const batchLinkProductsToBrandWorkflow = createWorkflow(
   {
-    name: "batch-link-products-to-brand",
     idempotent: false,
+    name: "batch-link-products-to-brand",
   },
   (input: BatchLinkProductsToBrandWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) =>
       getBrandProductsLockKeys(workflowInput.brand_id, [
         ...workflowInput.add,
         ...workflowInput.remove,
-      ])
+      ]),
     )
 
     acquireLockStep({
@@ -54,7 +53,7 @@ export const batchLinkProductsToBrandWorkflow = createWorkflow(
     const eventData = transform({ result: prepared.result }, ({ result }) =>
       buildBrandSearchProjectionEventData({
         productIds: [...result.added, ...result.removed],
-      })
+      }),
     )
 
     emitEventStep({
@@ -64,5 +63,5 @@ export const batchLinkProductsToBrandWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(prepared.result)
-  }
+  },
 )

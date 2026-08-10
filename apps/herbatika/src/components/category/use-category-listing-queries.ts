@@ -1,20 +1,16 @@
 "use client"
 
-import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useLocale, useTranslations } from "next-intl"
+
+import { resolveCategoryContextImageTiles } from "@/components/category/category-context-image-tiles.utils"
 import {
   resolveCategoryBottomHtml,
-  resolveCategoryContextImageTiles,
   resolveCategoryIntroHtml,
   resolveCategoryIntroText,
 } from "@/components/category/category-context.utils"
-import {
-  normalizeCategoryName,
-  resolveCategoryRank,
-} from "@/components/category/category-product-utils"
+import { buildCategoryListingNavigation } from "@/components/category/category-listing-navigation"
 import { useCategoryFacetItems } from "@/components/category/use-category-facet-items"
-import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb"
 import { useCatalogProducts } from "@/lib/storefront/catalog-products"
 import {
   buildCatalogProductsParams,
@@ -27,129 +23,60 @@ import {
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
 import { collectDescendantCategoryIds } from "@/lib/storefront/category-tree"
-import {
-  type NuqsPlpQueryState,
-  PLP_PAGE_SIZE,
-} from "@/lib/storefront/plp-query-state"
+import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
+import type { NuqsPlpQueryState } from "@/lib/storefront/plp-query-state"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 
-const resolveBreadcrumbItems = (
-  slug: string,
-  activeCategory: HttpTypes.StoreProductCategory | null,
-  categoryById: Map<string, HttpTypes.StoreProductCategory>,
-  homeLabel: string
-) => {
-  const items: HerbatikaBreadcrumbItem[] = [
-    { label: homeLabel, href: "/", icon: "token-icon-home" },
-  ]
-
-  if (!activeCategory) {
-    items.push({ label: normalizeCategoryName(slug) })
-    return items
-  }
-
-  const trail: HttpTypes.StoreProductCategory[] = []
-  let currentCategory: HttpTypes.StoreProductCategory | null = activeCategory
-
-  while (currentCategory) {
-    trail.unshift(currentCategory)
-
-    if (!currentCategory.parent_category_id) {
-      break
-    }
-
-    currentCategory =
-      categoryById.get(currentCategory.parent_category_id) ?? null
-  }
-
-  for (let index = 0; index < trail.length; index += 1) {
-    const category = trail[index]
-    const label = normalizeCategoryName(category.name)
-    const isLast = index === trail.length - 1
-    const href =
-      isLast || !category.handle ? undefined : `/c/${category.handle}`
-
-    items.push({
-      label,
-      href,
-    })
-  }
-
-  return items
-}
-
-type UseCategoryListingQueriesProps = {
+interface UseCategoryListingQueriesProps {
   queryState: NuqsPlpQueryState
   slug: string
 }
 
-export function useCategoryListingQueries({
+export const useCategoryListingQueries = ({
   queryState,
   slug,
-}: UseCategoryListingQueriesProps) {
+}: UseCategoryListingQueriesProps) => {
   const locale = useLocale()
   const tNavigation = useTranslations("navigation")
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const categoriesQuery = useCategories({
-    page: 1,
-    limit: CATEGORY_TREE_LIMIT,
     fields: CATEGORY_TREE_FIELDS,
+    limit: CATEGORY_TREE_LIMIT,
+    page: 1,
   })
 
-  const categoryByHandle = new Map<string, HttpTypes.StoreProductCategory>()
-  for (const category of categoriesQuery.categories) {
-    if (category.handle) {
-      categoryByHandle.set(category.handle, category)
-    }
-  }
-
-  const categoryById = new Map<string, HttpTypes.StoreProductCategory>()
-  for (const category of categoriesQuery.categories) {
-    categoryById.set(category.id, category)
-  }
-
-  const activeCategory = categoryByHandle.get(slug) ?? null
+  const {
+    activeCategory,
+    breadcrumbItems,
+    categoryByHandle,
+    categoryById,
+    topLevelCategories,
+  } = buildCategoryListingNavigation({
+    categories: categoriesQuery.categories,
+    homeLabel: tNavigation("breadcrumbs.home"),
+    locale,
+    slug,
+  })
 
   const activeCategoryFilterIds = activeCategory
     ? [
         activeCategory.id,
         ...collectDescendantCategoryIds(
           categoriesQuery.categories,
-          activeCategory.id
+          activeCategory.id,
         ),
       ]
     : []
 
-  const topLevelCategories = categoriesQuery.categories
-    .filter((category) => !category.parent_category_id && category.handle)
-    .sort((left, right) => {
-      const rankDifference =
-        resolveCategoryRank(left) - resolveCategoryRank(right)
-      if (rankDifference !== 0) {
-        return rankDifference
-      }
-
-      return normalizeCategoryName(left.name).localeCompare(
-        normalizeCategoryName(right.name),
-        locale
-      )
-    })
-
-  const breadcrumbItems = resolveBreadcrumbItems(
-    slug,
-    activeCategory,
-    categoryById,
-    tNavigation("breadcrumbs.home")
-  )
-
   const catalogProductsInput = buildCatalogProductsParams({
-    queryState,
     categoryIds: activeCategoryFilterIds,
     limit: PLP_PAGE_SIZE,
+    queryState,
   })
 
-  const isCatalogQueryEnabled = Boolean(region?.region_id && activeCategory?.id)
+  const isCatalogQueryEnabled =
+    region?.region_id !== undefined && activeCategory?.id !== undefined
 
   const catalogQuery = useCatalogProducts({
     ...catalogProductsInput,
@@ -157,19 +84,19 @@ export function useCategoryListingQueries({
   })
 
   const catalogFacetSeedInput = buildCatalogProductsParams({
-    queryState: {
-      ...queryState,
-      page: 1,
-      sort: "recommended",
-      status: [],
-      form: [],
-      brand: [],
-      ingredient: [],
-      price_min: null,
-      price_max: null,
-    },
     categoryIds: activeCategoryFilterIds,
     limit: 1,
+    queryState: {
+      ...queryState,
+      brand: [],
+      form: [],
+      ingredient: [],
+      page: 1,
+      price_max: null,
+      price_min: null,
+      sort: "recommended",
+      status: [],
+    },
   })
 
   const catalogFacetSeedQuery = useCatalogProducts({

@@ -3,6 +3,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import { slugify } from "@techsio/ui-kit/utils"
 import { useState } from "react"
+
 import { useAddToCart, useCart } from "@/hooks/use-cart"
 import { useRegion } from "@/hooks/use-region"
 import { useCartToast } from "@/hooks/use-toast"
@@ -26,7 +27,7 @@ export const AddToCartSection = ({
 
   const handleAddToCart = () => {
     // Validate region context
-    if (!regionId) {
+    if ((regionId?.length ?? 0) === 0) {
       toast.cartError("Nelze přidat do košíku bez regionálního kontextu")
       return
     }
@@ -40,29 +41,40 @@ export const AddToCartSection = ({
     // Validate stock availability (checks current cart + new quantity)
     const validation = validateAddToCart({
       cart,
-      variantId: selectedVariant.id,
       quantity,
-      inventoryQuantity: selectedVariant.inventory_quantity,
+      variantId: selectedVariant.id,
+      ...(selectedVariant.inventory_quantity === undefined
+        ? {}
+        : { inventoryQuantity: selectedVariant.inventory_quantity }),
     })
 
     if (!validation.valid) {
       toast.stockWarningWithDetails(
         validation.availableQuantity,
-        validation.requestedTotal
+        validation.requestedTotal,
       )
       return
     }
 
     addToCart(
       {
-        variantId: selectedVariant.id,
-        quantity,
         autoCreateCart: true,
         metadata: {
-          inventory_quantity: selectedVariant.inventory_quantity || 0,
+          inventory_quantity: selectedVariant.inventory_quantity ?? 0,
         },
+        quantity,
+        variantId: selectedVariant.id,
       },
       {
+        onError: (error) => {
+          if (error.message?.includes("stock")) {
+            toast.stockWarning()
+          } else if (error.message?.includes("network")) {
+            toast.networkError()
+          } else {
+            toast.cartError(error.message)
+          }
+        },
         onSuccess: () => {
           const currency = (
             selectedVariant.calculated_price?.currency_code ?? "CZK"
@@ -72,21 +84,21 @@ export const AddToCartSection = ({
 
           // Unified analytics - AddToCart tracking (sends to Meta, Google, Leadhub)
           analytics.trackAddToCart({
+            currency,
             productId: selectedVariant.id,
             productName: detail.title,
-            value: price * quantity,
-            currency,
             quantity,
+            value: price * quantity,
           })
 
           // Leadhub-specific - SetCart tracking for cart state sync
           analytics.trackSetCart({
             products: [
               {
+                currency,
                 product_id: selectedVariant.id,
                 quantity,
                 value: price,
-                currency,
               },
             ],
           })
@@ -99,20 +111,11 @@ export const AddToCartSection = ({
           const event = new CustomEvent("open-cart")
           window.dispatchEvent(event)
         },
-        onError: (error) => {
-          if (error.message?.includes("stock")) {
-            toast.stockWarning()
-          } else if (error.message?.includes("network")) {
-            toast.networkError()
-          } else {
-            toast.cartError(error.message)
-          }
-        },
-      }
+      },
     )
   }
 
-  const maxQuantity = selectedVariant?.inventory_quantity || 99
+  const maxQuantity = selectedVariant?.inventory_quantity ?? 99
   return (
     <div className="flex gap-200">
       <NumericInput
@@ -127,13 +130,13 @@ export const AddToCartSection = ({
         value={quantity}
       >
         <NumericInput.DecrementTrigger />
-        <NumericInput.Control className="w-12">
+        <NumericInput.Control className="w-900">
           <NumericInput.Input />
         </NumericInput.Control>
         <NumericInput.IncrementTrigger />
       </NumericInput>
       <Button
-        disabled={isPending || !selectedVariant?.id || !regionId}
+        disabled={isPending || (regionId?.length ?? 0) === 0}
         onClick={handleAddToCart}
         variant="secondary"
       >

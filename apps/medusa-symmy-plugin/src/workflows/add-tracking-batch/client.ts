@@ -1,31 +1,29 @@
-import type { MedusaContainer } from "@medusajs/framework/types"
+import type { MedusaContainer, MetadataType } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import {
   createOrderFulfillmentWorkflow,
   createOrderShipmentWorkflow,
 } from "@medusajs/medusa/core-flows"
-import {
-  type TrackingOrderLookupKeys,
-  trackingBatchClientMapperHelper,
-} from "./client-mapper-helper"
+
+import { trackingBatchClientMapperHelper } from "./client-mapper-helper"
+import type { TrackingOrderLookupKeys } from "./client-mapper-helper"
 import type { TrackingItemInput, TrackingShipmentInput } from "./types"
 
-type Metadata = Record<string, unknown>
-
-export type OrderLineItem = {
+export interface OrderLineItem {
   id: string
   quantity: number
   variant_sku?: string | null
 }
 
-export type ExistingOrder = {
+export interface ExistingOrder {
   id: string
   display_id: number
-  metadata: Metadata | null
+  metadata: MetadataType
   items: OrderLineItem[]
 }
 
-export type TrackingOrderIndex = {
+export interface TrackingOrderIndex {
   byId: Map<string, ExistingOrder>
   byDisplayId: Map<string, ExistingOrder>
   byErpId: Map<string, ExistingOrder>
@@ -36,7 +34,7 @@ export type ResolvedTrackingItems = {
   quantity: number
 }[]
 
-export type TrackingApplyResult = {
+export interface TrackingApplyResult {
   fulfillmentId: string
   shipmentId: string
   notificationSent: boolean
@@ -50,6 +48,69 @@ const ORDER_FIELDS = [
   "items.quantity",
   "items.variant_sku",
 ] as const
+const metadataSchema = z.record(z.string(), z.json()).nullable()
+
+const decodeOrderLineItem = (value: unknown): OrderLineItem | null => {
+  if (typeof value !== "object" || value === null) {
+    return null
+  }
+  if (!("id" in value) || typeof value.id !== "string") {
+    return null
+  }
+  if (!("quantity" in value) || typeof value.quantity !== "number") {
+    return null
+  }
+  const variantSku = "variant_sku" in value ? value.variant_sku : undefined
+  if (
+    variantSku !== undefined &&
+    variantSku !== null &&
+    typeof variantSku !== "string"
+  ) {
+    return null
+  }
+  return {
+    id: value.id,
+    quantity: value.quantity,
+    ...(variantSku === undefined ? {} : { variant_sku: variantSku }),
+  }
+}
+
+const decodeOrder = (value: unknown): ExistingOrder | null => {
+  if (typeof value !== "object" || value === null) {
+    return null
+  }
+  if (!("id" in value) || typeof value.id !== "string") {
+    return null
+  }
+  if (!("display_id" in value) || typeof value.display_id !== "number") {
+    return null
+  }
+  if (!("metadata" in value)) {
+    return null
+  }
+  const metadata = metadataSchema.safeParse(value.metadata)
+  if (!metadata.success) {
+    return null
+  }
+  if (!("items" in value) || !Array.isArray(value.items)) {
+    return null
+  }
+  const candidates: unknown[] = value.items
+  const items: OrderLineItem[] = []
+  for (const item of candidates) {
+    const decoded = decodeOrderLineItem(item)
+    if (decoded === null) {
+      return null
+    }
+    items.push(decoded)
+  }
+  return {
+    display_id: value.display_id,
+    id: value.id,
+    items,
+    metadata: metadata.data,
+  }
+}
 
 const getQuery = (container: MedusaContainer) =>
   container.resolve(ContainerRegistrationKeys.QUERY)
@@ -67,18 +128,18 @@ export class TrackingBatchClient {
   }
 
   async preload(
-    shipments: TrackingShipmentInput[]
+    shipments: TrackingShipmentInput[],
   ): Promise<TrackingOrderIndex> {
     const { orderIds, displayIds, erpIds } =
       this.mapper.collectOrderLookupKeys(shipments)
     const metadataOrderIds = await this.queryOrderIdsByMetadata(
       "erp_id",
-      erpIds
+      erpIds,
     )
     const [byIdOrders, byDisplayIdOrders, scannedOrders] = await Promise.all([
-      this.queryOrders({ id: Array.from(orderIds) }),
-      this.queryOrders({ display_id: Array.from(displayIds) }),
-      this.queryOrders({ id: Array.from(metadataOrderIds) }),
+      this.queryOrders({ id: [...orderIds] }),
+      this.queryOrders({ display_id: [...displayIds] }),
+      this.queryOrders({ id: [...metadataOrderIds] }),
     ])
 
     return this.mapper.buildOrderIndex([
@@ -90,14 +151,14 @@ export class TrackingBatchClient {
 
   findExistingOrder(
     shipment: TrackingShipmentInput,
-    index: TrackingOrderIndex
+    index: TrackingOrderIndex,
   ): ExistingOrder | null {
     return this.mapper.findExistingOrder(shipment, index)
   }
 
   resolveItems(
     order: ExistingOrder,
-    requestedItems: TrackingItemInput[] | undefined
+    requestedItems: TrackingItemInput[] | undefined,
   ): ResolvedTrackingItems {
     return this.mapper.resolveItems(order, requestedItems)
   }
@@ -108,7 +169,7 @@ export class TrackingBatchClient {
     order,
     shipment,
   }: {
-    createdBy?: string
+    createdBy?: string | undefined
     items: ResolvedTrackingItems
     order: ExistingOrder
     shipment: TrackingShipmentInput
@@ -116,14 +177,14 @@ export class TrackingBatchClient {
     const metadata = this.mapper.buildShipmentMetadata(shipment)
     const noNotification = shipment.send_notification === false
     const fulfillment = await createOrderFulfillmentWorkflow(
-      this.container
+      this.container,
     ).run({
       input: {
-        order_id: order.id,
-        created_by: createdBy,
+        ...(createdBy === undefined ? {} : { created_by: createdBy }),
         items,
-        no_notification: noNotification,
         metadata,
+        no_notification: noNotification,
+        order_id: order.id,
       },
     })
     const fulfillmentId = fulfillment.result.id
@@ -131,49 +192,53 @@ export class TrackingBatchClient {
 
     await createOrderShipmentWorkflow(this.container).run({
       input: {
-        order_id: order.id,
+        ...(createdBy === undefined ? {} : { created_by: createdBy }),
         fulfillment_id: fulfillmentId,
-        created_by: createdBy,
         items,
-        no_notification: noNotification,
         labels: [
           {
+            label_url: trackingUrl,
             tracking_number: shipment.tracking_number,
             tracking_url: trackingUrl,
-            label_url: trackingUrl,
           },
         ],
         metadata,
+        no_notification: noNotification,
+        order_id: order.id,
       },
     })
 
     return {
       fulfillmentId,
-      shipmentId: fulfillmentId,
       notificationSent: !noNotification,
+      shipmentId: fulfillmentId,
     }
   }
 
   private async queryOrders(
-    filters: Record<string, string[] | number[]>
+    filters: Record<string, string[] | number[]>,
   ): Promise<ExistingOrder[]> {
     if (Object.values(filters).every((values) => values.length === 0)) {
       return []
     }
     const { data } = await this.query.graph({
       entity: "order",
-      fields: ORDER_FIELDS as unknown as string[],
+      fields: [...ORDER_FIELDS],
       filters,
     })
-    return (data ?? []) as ExistingOrder[]
+    const rows: unknown[] = data ?? []
+    return rows.flatMap((row) => {
+      const order = decodeOrder(row)
+      return order === null ? [] : [order]
+    })
   }
 
   private async queryOrderIdsByMetadata(
     key: string,
-    values: TrackingOrderLookupKeys["erpIds"]
+    values: TrackingOrderLookupKeys["erpIds"],
   ): Promise<Set<string>> {
     const ids = new Set<string>()
-    if (!values.size) {
+    if (values.size === 0) {
       return ids
     }
     const { data } = await this.query.graph({
@@ -181,12 +246,20 @@ export class TrackingBatchClient {
       fields: ["id"],
       filters: {
         metadata: {
-          [key]: Array.from(values),
+          [key]: [...values],
         },
       },
     })
-    for (const row of (data ?? []) as { id: string }[]) {
-      ids.add(row.id)
+    const rows: unknown[] = data ?? []
+    for (const row of rows) {
+      if (
+        typeof row === "object" &&
+        row !== null &&
+        "id" in row &&
+        typeof row.id === "string"
+      ) {
+        ids.add(row.id)
+      }
     }
     return ids
   }

@@ -1,5 +1,10 @@
 import type { ExecArgs, Logger, Query } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
+
 import { PRODUCT_REVIEW_MODULE } from "../modules/product-review"
 import type ProductReviewModuleService from "../modules/product-review/service"
 import { HERBATICA_REVIEWS_XML_ENV } from "./herbatica-seed-config"
@@ -14,15 +19,15 @@ import {
 
 const REVIEW_SOURCE_PREFIX = "herbatica-review"
 const REVIEW_BATCH_SIZE = 100
-const VARIANT_ID_QUERY_REGEX = /[?&]variantId=([^&#]+)/
+const VARIANT_ID_QUERY_REGEX = /[?&]variantId=(?<variantId>[^&#]+)/u
 
-type ParsedReviewProduct = {
+interface ParsedReviewProduct {
   gtins: string[]
   skus: string[]
   variantId?: string
 }
 
-type ParsedReview = {
+interface ParsedReview {
   content: string
   id: string
   rating: number
@@ -31,39 +36,40 @@ type ParsedReview = {
   products: ParsedReviewProduct[]
 }
 
-type ProductVariantRecord = {
-  ean?: null | string
-  id: string
-  metadata?: null | Record<string, unknown>
-  product?: null | {
-    id?: string
-  }
-  sku?: null | string
-}
+const productVariantRecordSchema = z.object({
+  ean: z.string().nullish(),
+  id: z.string(),
+  metadata: z
+    .object({
+      code: z.string().optional(),
+      ean: z.string().optional(),
+      source_sku: z.string().optional(),
+      source_variant_id: z.string().optional(),
+      variant_id: z.string().optional(),
+    })
+    .nullish(),
+  product: z.object({ id: z.string().optional() }).nullish(),
+  sku: z.string().nullish(),
+})
 
-type ReviewRecord = {
+type ProductVariantRecord = z.infer<typeof productVariantRecordSchema>
+
+interface PendingReview {
+  content: string
+  created_at: Date | undefined
   customer_id: string
-  id: string
+  first_name: null | string
+  last_name: null
   product_id: string
+  rating: number
+  status: "approved"
+  title: string
+  updated_at: Date | undefined
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
-const isProductVariantRecord = (
-  value: unknown
-): value is ProductVariantRecord =>
-  isRecord(value) && typeof value.id === "string"
-
-const isReviewRecord = (value: unknown): value is ReviewRecord =>
-  isRecord(value) &&
-  typeof value.customer_id === "string" &&
-  typeof value.id === "string" &&
-  typeof value.product_id === "string"
-
-const toValidDate = (value?: string) => {
-  if (!value) {
-    return
+const toValidDate = (value?: string): Date | undefined => {
+  if (value === undefined || value.length === 0) {
+    return undefined
   }
 
   const date = new Date(value)
@@ -77,38 +83,46 @@ const parseRating = (value?: string) => {
     : undefined
 }
 
-const getUrlVariantId = (url?: string) => {
-  if (!url) {
-    return
+const getUrlVariantId = (url?: string): string | undefined => {
+  if (url === undefined || url.length === 0) {
+    return undefined
   }
 
   try {
     const parsedUrl = new URL(url)
     return normalizeInlineText(parsedUrl.searchParams.get("variantId") ?? "")
   } catch {
-    return normalizeInlineText(url.match(VARIANT_ID_QUERY_REGEX)?.[1])
+    return normalizeInlineText(
+      VARIANT_ID_QUERY_REGEX.exec(url)?.groups?.["variantId"],
+    )
   }
 }
 
 const parseReviewProducts = (source: string): ParsedReviewProduct[] => {
   const productsSource = extractFirstElementContent(source, "products")
-  if (!productsSource) {
+  if (productsSource === undefined || productsSource.length === 0) {
     return []
   }
 
   return extractElements(productsSource, "product").map((product) => {
     const url = normalizeInlineText(
-      extractFirstText(product.inner, "product_url")
+      extractFirstText(product.inner, "product_url"),
     )
+
+    const variantId = getUrlVariantId(url)
 
     return {
       gtins: extractElements(product.inner, "gtin")
         .map((gtin) => normalizeInlineText(gtin.inner))
-        .filter((gtin): gtin is string => Boolean(gtin)),
+        .filter(
+          (gtin): gtin is string => gtin !== undefined && gtin.length > 0,
+        ),
       skus: extractElements(product.inner, "sku")
         .map((sku) => normalizeInlineText(sku.inner))
-        .filter((sku): sku is string => Boolean(sku)),
-      variantId: getUrlVariantId(url),
+        .filter((sku): sku is string => sku !== undefined && sku.length > 0),
+      ...(variantId === undefined || variantId.length === 0
+        ? {}
+        : { variantId }),
     }
   })
 }
@@ -117,28 +131,37 @@ const parseHerbaticaReviewsXml = (xml: string): ParsedReview[] => {
   const reviews: ParsedReview[] = []
 
   for (const review of extractElements(xml, "review")) {
-    const id = normalizeInlineText(extractFirstText(review.inner, "review_id"))
-    const content = normalizeText(extractFirstText(review.inner, "content"))
+    const id =
+      normalizeInlineText(extractFirstText(review.inner, "review_id")) ?? ""
+    const content =
+      normalizeText(extractFirstText(review.inner, "content")) ?? ""
     const rating = parseRating(extractFirstText(review.inner, "overall"))
 
-    if (!(id && content && rating)) {
+    if (id.length === 0 || content.length === 0 || rating === undefined) {
       continue
     }
+
+    const reviewerName = normalizeInlineText(
+      extractFirstText(
+        extractFirstElementContent(review.inner, "reviewer") ?? "",
+        "name",
+      ),
+    )
+    const timestamp = normalizeInlineText(
+      extractFirstText(review.inner, "review_timestamp"),
+    )
 
     reviews.push({
       content,
       id,
       products: parseReviewProducts(review.inner),
       rating,
-      reviewerName: normalizeInlineText(
-        extractFirstText(
-          extractFirstElementContent(review.inner, "reviewer") ?? "",
-          "name"
-        )
-      ),
-      timestamp: normalizeInlineText(
-        extractFirstText(review.inner, "review_timestamp")
-      ),
+      ...(reviewerName === undefined || reviewerName.length === 0
+        ? {}
+        : { reviewerName }),
+      ...(timestamp === undefined || timestamp.length === 0
+        ? {}
+        : { timestamp }),
     })
   }
 
@@ -147,7 +170,7 @@ const parseHerbaticaReviewsXml = (xml: string): ParsedReview[] => {
 
 const getMetadataString = (
   metadata: ProductVariantRecord["metadata"],
-  key: string
+  key: keyof NonNullable<ProductVariantRecord["metadata"]>,
 ) => {
   const value = metadata?.[key]
   return typeof value === "string" ? normalizeInlineText(value) : undefined
@@ -156,10 +179,14 @@ const getMetadataString = (
 const addMapValue = (
   map: Map<string, Set<string>>,
   key: null | string | undefined,
-  productId: null | string | undefined
+  productId: null | string | undefined,
 ) => {
   const normalizedKey = normalizeInlineText(key ?? undefined)
-  if (!(normalizedKey && productId)) {
+  const hasNormalizedKey =
+    normalizedKey !== undefined && normalizedKey.length > 0
+  const hasProductId =
+    productId !== null && productId !== undefined && productId.length > 0
+  if (!(hasNormalizedKey && hasProductId)) {
     return
   }
 
@@ -179,28 +206,34 @@ const buildVariantProductIndexes = async (container: ExecArgs["container"]) => {
   const byGtin = new Map<string, Set<string>>()
   const byVariantId = new Map<string, Set<string>>()
 
-  for (const variant of Array.isArray(data)
-    ? data.filter(isProductVariantRecord)
-    : []) {
+  const variants = z.array(productVariantRecordSchema).safeParse(data)
+  if (!variants.success) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Product variant query returned invalid review import data",
+    )
+  }
+
+  for (const variant of variants.data) {
     const productId = variant.product?.id
     addMapValue(bySku, variant.sku, productId)
     addMapValue(bySku, getMetadataString(variant.metadata, "code"), productId)
     addMapValue(
       bySku,
       getMetadataString(variant.metadata, "source_sku"),
-      productId
+      productId,
     )
     addMapValue(byGtin, variant.ean, productId)
     addMapValue(byGtin, getMetadataString(variant.metadata, "ean"), productId)
     addMapValue(
       byVariantId,
       getMetadataString(variant.metadata, "variant_id"),
-      productId
+      productId,
     )
     addMapValue(
       byVariantId,
       getMetadataString(variant.metadata, "source_variant_id"),
-      productId
+      productId,
     )
   }
 
@@ -210,11 +243,11 @@ const buildVariantProductIndexes = async (container: ExecArgs["container"]) => {
 const addMatchedProducts = (
   matches: Set<string>,
   index: Map<string, Set<string>>,
-  values: Array<string | undefined>
+  values: (string | undefined)[],
 ) => {
   for (const value of values) {
     const normalized = normalizeInlineText(value)
-    if (!normalized) {
+    if (normalized === undefined || normalized.length === 0) {
       continue
     }
 
@@ -226,7 +259,7 @@ const addMatchedProducts = (
 
 const resolveReviewProductIds = (
   review: ParsedReview,
-  indexes: Awaited<ReturnType<typeof buildVariantProductIndexes>>
+  indexes: Awaited<ReturnType<typeof buildVariantProductIndexes>>,
 ) => {
   const productIds = new Set<string>()
 
@@ -241,33 +274,38 @@ const resolveReviewProductIds = (
 
 const resolveReviewsXmlPath = (args?: string[]) => {
   const argPath = normalizeInlineText(args?.[0])
-  if (argPath) {
+  if (argPath !== undefined && argPath.length > 0) {
     return argPath
   }
 
   const envPath = normalizeInlineText(process.env[HERBATICA_REVIEWS_XML_ENV])
-  if (envPath) {
+  if (envPath !== undefined && envPath.length > 0) {
     return envPath
   }
 
-  throw new Error(
-    `Could not find Herbatica reviews XML. Pass it as an argument or set ${HERBATICA_REVIEWS_XML_ENV}.`
+  throw new MedusaError(
+    MedusaError.Types.NOT_FOUND,
+    `Could not find Herbatica reviews XML. Pass it as an argument or set ${HERBATICA_REVIEWS_XML_ENV}.`,
   )
 }
 
-const chunk = <T>(items: T[], size: number) => {
-  const chunks: T[][] = []
+const chunkReviewBatches = <T>(items: T[], size: number) => {
+  const batches: T[][] = []
   for (let index = 0; index < items.length; index += size) {
-    chunks.push(items.slice(index, index + size))
+    batches.push(items.slice(index, index + size))
   }
-  return chunks
+  return batches
 }
 
 const getReviewCustomerId = (reviewId: string) =>
   `${REVIEW_SOURCE_PREFIX}:${reviewId}`
 
 const getReviewerFirstName = (reviewerName?: string) => {
-  if (!reviewerName || reviewerName.toLowerCase() === "anonym") {
+  if (
+    reviewerName === undefined ||
+    reviewerName.length === 0 ||
+    reviewerName.toLowerCase() === "anonym"
+  ) {
     return null
   }
 
@@ -286,29 +324,26 @@ export const importHerbaticaReviews = async ({
   logger.info("Starting Herbatica reviews import from XML feed...")
   logger.info(`Using reviews XML feed: ${xmlPath}`)
 
-  const reviews = parseHerbaticaReviewsXml(await readXmlSource(xmlPath))
+  const xml = await readXmlSource(xmlPath)
+  const reviews = parseHerbaticaReviewsXml(xml)
   const indexes = await buildVariantProductIndexes(container)
   const reviewService = container.resolve<ProductReviewModuleService>(
-    PRODUCT_REVIEW_MODULE
+    PRODUCT_REVIEW_MODULE,
   )
-  const existingReviews = (
-    await reviewService.listReviews(
-      {
-        customer_id: {
-          $like: `${REVIEW_SOURCE_PREFIX}:%`,
-        },
+  const listedReviews = await reviewService.listReviews(
+    {
+      customer_id: {
+        $like: `${REVIEW_SOURCE_PREFIX}:%`,
       },
-      {
-        select: ["id", "customer_id", "product_id"],
-      }
-    )
-  ).filter(isReviewRecord)
-  const existingKeys = new Set(
-    existingReviews.map(
-      (review) => `${review.customer_id}:${review.product_id}`
-    )
+    },
+    {
+      select: ["id", "customer_id", "product_id"],
+    },
   )
-  const pendingReviews: Record<string, unknown>[] = []
+  const existingKeys = new Set(
+    listedReviews.map((review) => `${review.customer_id}:${review.product_id}`),
+  )
+  const pendingReviews: PendingReview[] = []
   let matchedReviews = 0
   let skippedExisting = 0
   let unmatchedReviews = 0
@@ -346,12 +381,14 @@ export const importHerbaticaReviews = async ({
     }
   }
 
-  for (const reviewBatch of chunk(pendingReviews, REVIEW_BATCH_SIZE)) {
-    await reviewService.createReviews(reviewBatch)
-  }
+  await Promise.all(
+    chunkReviewBatches(pendingReviews, REVIEW_BATCH_SIZE).map(
+      async (reviewBatch) => await reviewService.createReviews(reviewBatch),
+    ),
+  )
 
   logger.info(
-    `Herbatica reviews import completed: parsed=${reviews.length}, matched=${matchedReviews}, unmatched=${unmatchedReviews}, created=${pendingReviews.length}, skipped_existing=${skippedExisting}`
+    `Herbatica reviews import completed: parsed=${reviews.length}, matched=${matchedReviews}, unmatched=${unmatchedReviews}, created=${pendingReviews.length}, skipped_existing=${skippedExisting}`,
   )
 }
 

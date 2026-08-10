@@ -9,7 +9,8 @@ const DEFAULT_DB_PREVIEW_DEV_ROLE = "medusa_dev"
 const DEFAULT_DB_APP_SCHEMA = "medusa"
 const BASE_PROTECTED_DB_NAMES = ["postgres", "template0", "template1"]
 
-const IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/
+const IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/u
+const INTEGER_PREFIX_REGEX = /^\s*[+-]?\d+/u
 
 export interface AppConfig {
   port: number
@@ -30,14 +31,41 @@ export interface AppConfig {
   zanePassword: string | null
 }
 
-type Environment = Record<string, string | undefined>
+interface Environment extends Record<string, string | undefined> {
+  API_AUTH_TOKEN?: string
+  DB_APP_SCHEMA?: string
+  DB_PREVIEW_APP_PASSWORD_SECRET?: string
+  DB_PREVIEW_APP_USER_PREFIX?: string
+  DB_PREVIEW_DEV_ROLE?: string
+  DB_PREVIEW_PREFIX?: string
+  DB_PROTECTED_NAMES?: string
+  DB_TEMPLATE_NAME?: string
+  PGDATABASE?: string
+  PGHOST?: string
+  PGPASSWORD?: string
+  PGPORT?: string
+  PGSSLMODE?: string
+  PGUSER?: string
+  PORT?: string
+  ZANE_BASE_URL?: string
+  ZANE_CONNECT_BASE_URL?: string
+  ZANE_CONNECT_HOST_HEADER?: string
+  ZANE_PASSWORD?: string
+  ZANE_USERNAME?: string
+}
 
-function parsePort(rawValue: string | undefined, fallback: number, label: string): number {
-  if (!rawValue) {
+const parsePort = (
+  rawValue: string | undefined,
+  fallback: number,
+  label: string,
+): number => {
+  if (rawValue === undefined || rawValue.length === 0) {
     return fallback
   }
 
-  const parsed = Number.parseInt(rawValue, 10)
+  const integerPrefix = INTEGER_PREFIX_REGEX.exec(rawValue)?.[0]
+  const parsed =
+    integerPrefix === undefined ? Number.NaN : Number(integerPrefix)
 
   if (!Number.isInteger(parsed) || parsed <= 0 || parsed > 65_535) {
     throw new Error(`${label} must be a valid TCP port (1-65535)`)
@@ -46,36 +74,51 @@ function parsePort(rawValue: string | undefined, fallback: number, label: string
   return parsed
 }
 
-function readRequiredEnv(env: Environment, name: string): string {
+const readRequiredEnv = (env: Environment, name: string): string => {
   const value = env[name]?.trim()
-  if (!value) {
+  if (value === undefined || value.length === 0) {
     throw new Error(`${name} is required`)
   }
   return value
 }
 
-function readOptionalEnv(env: Environment, name: string): string | null {
+const readOptionalEnv = (env: Environment, name: string): string | null => {
   const value = env[name]?.trim()
-  return value ? value : null
+  return value === undefined || value.length === 0 ? null : value
 }
 
-function assertSafeIdentifier(value: string, label: string): void {
+const readEnvWithFallback = (
+  value: string | undefined,
+  fallback: string,
+): string => {
+  const trimmedValue = value?.trim()
+  return trimmedValue === undefined || trimmedValue.length === 0
+    ? fallback
+    : trimmedValue
+}
+
+const assertSafeIdentifier = (value: string, label: string): void => {
   if (!IDENTIFIER_REGEX.test(value)) {
     throw new Error(`${label} must match ${IDENTIFIER_REGEX.source}`)
   }
 }
 
-function parseProtectedDatabaseNames(rawValue: string | undefined, requiredNames: string[]): Set<string> {
-  const protectedNames = new Set<string>(BASE_PROTECTED_DB_NAMES.map((name) => name.toLowerCase()))
+const parseProtectedDatabaseNames = (
+  rawValue: string | undefined,
+  requiredNames: string[],
+): Set<string> => {
+  const protectedNames = new Set<string>(
+    BASE_PROTECTED_DB_NAMES.map((name) => name.toLowerCase()),
+  )
 
   for (const requiredName of requiredNames) {
     const normalized = requiredName.trim().toLowerCase()
-    if (normalized) {
+    if (normalized.length > 0) {
       protectedNames.add(normalized)
     }
   }
 
-  if (!rawValue) {
+  if (rawValue === undefined || rawValue.length === 0) {
     return protectedNames
   }
 
@@ -92,13 +135,13 @@ function parseProtectedDatabaseNames(rawValue: string | undefined, requiredNames
   return protectedNames
 }
 
-export function buildPostgresConnectionUrl(env: Environment): string {
+export const buildPostgresConnectionUrl = (env: Environment): string => {
   const host = readRequiredEnv(env, "PGHOST")
   const port = parsePort(env.PGPORT, DEFAULT_PG_PORT, "PGPORT")
   const user = readRequiredEnv(env, "PGUSER")
   const password = readRequiredEnv(env, "PGPASSWORD")
-  const database = env.PGDATABASE?.trim() || DEFAULT_PG_DATABASE
-  const sslMode = env.PGSSLMODE?.trim() || DEFAULT_PG_SSL_MODE
+  const database = readEnvWithFallback(env.PGDATABASE, DEFAULT_PG_DATABASE)
+  const sslMode = readEnvWithFallback(env.PGSSLMODE, DEFAULT_PG_SSL_MODE)
 
   const url = new URL("postgresql://placeholder")
   url.hostname = host
@@ -111,18 +154,39 @@ export function buildPostgresConnectionUrl(env: Environment): string {
   return url.toString()
 }
 
-export function loadConfig(env: Environment = process.env): AppConfig {
+export const loadConfig = (env: Environment = process.env): AppConfig => {
   const connectionUser = readRequiredEnv(env, "PGUSER")
 
-  const previewPrefix = env.DB_PREVIEW_PREFIX?.trim() || DEFAULT_DB_PREVIEW_PREFIX
-  const defaultTemplateName = env.DB_TEMPLATE_NAME?.trim() || DEFAULT_DB_TEMPLATE_NAME
+  const previewPrefix = readEnvWithFallback(
+    env.DB_PREVIEW_PREFIX,
+    DEFAULT_DB_PREVIEW_PREFIX,
+  )
+  const defaultTemplateName = readEnvWithFallback(
+    env.DB_TEMPLATE_NAME,
+    DEFAULT_DB_TEMPLATE_NAME,
+  )
   const previewOwner = connectionUser
-  const previewAppUserPrefix = env.DB_PREVIEW_APP_USER_PREFIX?.trim() || DEFAULT_DB_PREVIEW_APP_USER_PREFIX
-  const previewDevRole = env.DB_PREVIEW_DEV_ROLE?.trim() || DEFAULT_DB_PREVIEW_DEV_ROLE
-  const appSchema = env.DB_APP_SCHEMA?.trim() || DEFAULT_DB_APP_SCHEMA
+  const previewAppUserPrefix = readEnvWithFallback(
+    env.DB_PREVIEW_APP_USER_PREFIX,
+    DEFAULT_DB_PREVIEW_APP_USER_PREFIX,
+  )
+  const previewDevRole = readEnvWithFallback(
+    env.DB_PREVIEW_DEV_ROLE,
+    DEFAULT_DB_PREVIEW_DEV_ROLE,
+  )
+  const appSchema = readEnvWithFallback(
+    env.DB_APP_SCHEMA,
+    DEFAULT_DB_APP_SCHEMA,
+  )
   const apiAuthToken = readRequiredEnv(env, "API_AUTH_TOKEN")
-  const previewAppPasswordSecret = readRequiredEnv(env, "DB_PREVIEW_APP_PASSWORD_SECRET")
-  const connectionDatabase = env.PGDATABASE?.trim() || DEFAULT_PG_DATABASE
+  const previewAppPasswordSecret = readRequiredEnv(
+    env,
+    "DB_PREVIEW_APP_PASSWORD_SECRET",
+  )
+  const connectionDatabase = readEnvWithFallback(
+    env.PGDATABASE,
+    DEFAULT_PG_DATABASE,
+  )
   const zaneBaseUrl = readOptionalEnv(env, "ZANE_BASE_URL")
   const zaneConnectBaseUrl = readOptionalEnv(env, "ZANE_CONNECT_BASE_URL")
   const zaneConnectHostHeader = readOptionalEnv(env, "ZANE_CONNECT_HOST_HEADER")
@@ -137,21 +201,24 @@ export function loadConfig(env: Environment = process.env): AppConfig {
   assertSafeIdentifier(appSchema, "DB_APP_SCHEMA")
 
   return {
-    port: parsePort(env.PORT, DEFAULT_PORT, "PORT"),
     apiAuthToken,
+    appSchema,
     databaseUrl: buildPostgresConnectionUrl(env),
     defaultTemplateName,
-    previewPrefix,
-    previewOwner,
+    port: parsePort(env.PORT, DEFAULT_PORT, "PORT"),
+    previewAppPasswordSecret,
     previewAppUserPrefix,
     previewDevRole,
-    appSchema,
-    previewAppPasswordSecret,
-    protectedDbNames: parseProtectedDatabaseNames(env.DB_PROTECTED_NAMES, [connectionDatabase, defaultTemplateName]),
+    previewOwner,
+    previewPrefix,
+    protectedDbNames: parseProtectedDatabaseNames(env.DB_PROTECTED_NAMES, [
+      connectionDatabase,
+      defaultTemplateName,
+    ]),
     zaneBaseUrl,
     zaneConnectBaseUrl,
     zaneConnectHostHeader,
-    zaneUsername,
     zanePassword,
+    zaneUsername,
   }
 }

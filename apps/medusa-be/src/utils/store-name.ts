@@ -1,29 +1,20 @@
-import type { Query } from "@medusajs/framework/types"
+import type { MedusaContainer, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
-export async function getMedusaStoreName(
-  container: Record<string, unknown>,
-  fallback = "N1 Shop"
-): Promise<string> {
-  const resolver = container.resolve
-
-  if (typeof resolver !== "function") {
-    return fallback
-  }
-
+export const getMedusaStoreName = async (
+  container: MedusaContainer,
+  fallback = "N1 Shop",
+): Promise<string> => {
   try {
-    const query = resolver.call(
-      container,
-      ContainerRegistrationKeys.QUERY
-    ) as Query
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const { data } = await query.graph({
       entity: "store",
       fields: ["name"],
-      pagination: { take: 1, skip: 0 },
+      pagination: { skip: 0, take: 1 },
     })
-    const name = (data[0] as { name?: unknown } | undefined)?.name
-
-    return typeof name === "string" && name.trim() ? name.trim() : fallback
+    const name = data[0]?.name
+    const normalizedName = typeof name === "string" ? name.trim() : ""
+    return normalizedName === "" ? fallback : normalizedName
   } catch {
     return fallback
   }

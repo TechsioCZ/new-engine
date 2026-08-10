@@ -1,7 +1,6 @@
-const TRAILING_SLASH_PATTERN = /\/$/
+const TRAILING_SLASH_PATTERN = /\/$/u
 
-export const DEFAULT_PUBLIC_BACKEND_ENV_NAME =
-  "NEXT_PUBLIC_MEDUSA_BACKEND_URL"
+export const DEFAULT_PUBLIC_BACKEND_ENV_NAME = "NEXT_PUBLIC_MEDUSA_BACKEND_URL"
 export const DEFAULT_DEVELOPMENT_BACKEND_URL = "http://localhost:9000"
 
 /**
@@ -10,21 +9,20 @@ export const DEFAULT_DEVELOPMENT_BACKEND_URL = "http://localhost:9000"
  *   publicBackendUrl?: string | undefined
  *   envVarName?: string
  *   defaultDevelopmentBackendUrl?: string
- * }} [options]
- * @returns {string}
+ * }} [options] - Backend URL resolution settings.
+ * @returns {string} Normalized public backend URL.
  */
-export function resolvePublicBackendUrl(options = {}) {
+export const resolvePublicBackendUrl = (options = {}) => {
   const {
     isProduction = process.env.NODE_ENV === "production",
     envVarName = DEFAULT_PUBLIC_BACKEND_ENV_NAME,
     defaultDevelopmentBackendUrl = DEFAULT_DEVELOPMENT_BACKEND_URL,
   } = options
-  const publicBackendUrl =
-    options.publicBackendUrl ?? process.env[envVarName]
+  const publicBackendUrl = options.publicBackendUrl ?? process.env[envVarName]
 
   const configuredUrl = publicBackendUrl?.trim()
 
-  if (!configuredUrl) {
+  if (configuredUrl === undefined || configuredUrl.length === 0) {
     if (isProduction) {
       throw new Error(`Missing ${envVarName} in production.`)
     }
@@ -37,7 +35,7 @@ export function resolvePublicBackendUrl(options = {}) {
   } catch {
     if (isProduction) {
       throw new Error(
-        `Invalid ${envVarName}: expected an absolute URL, received "${configuredUrl}".`
+        `Invalid ${envVarName}: expected an absolute URL, received "${configuredUrl}".`,
       )
     }
 
@@ -46,9 +44,8 @@ export function resolvePublicBackendUrl(options = {}) {
 }
 
 /**
- * @param {Parameters<typeof resolvePublicBackendUrl>[0]} [options]
- * @returns {string}
+ * @param {Parameters<typeof resolvePublicBackendUrl>[0]} [options] - Backend URL resolution settings.
+ * @returns {string} Public backend origin.
  */
-export function resolvePublicBackendOrigin(options = {}) {
-  return new URL(resolvePublicBackendUrl(options)).origin
-}
+export const resolvePublicBackendOrigin = (options = {}) =>
+  new URL(resolvePublicBackendUrl(options)).origin

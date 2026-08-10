@@ -67,11 +67,9 @@ import { HELLO_MODULE } from "../../../modules/hello"
 
 export async function GET(
   req: MedusaRequest,
-  res: MedusaResponse
+  res: MedusaResponse,
 ): Promise<void> {
-  const helloModuleService: HelloModuleService = req.scope.resolve(
-    HELLO_MODULE
-  )
+  const helloModuleService: HelloModuleService = req.scope.resolve(HELLO_MODULE)
 
   res.json({
     message: helloModuleService.getMessage(),

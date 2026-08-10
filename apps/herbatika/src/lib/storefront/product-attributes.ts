@@ -1,4 +1,5 @@
 import type { ProductAttribute } from "@techsio/storefront-data/product-attributes/types"
+
 import type { ProductDetailContentSection } from "@/components/product-detail/product-detail.types"
 
 const WARRANTY_DEFINITION_KEY = "warranty"
@@ -13,39 +14,39 @@ const escapeHtml = (value: string) =>
     .replaceAll("'", "&#039;")
 
 export const resolveProductWarranty = (
-  productAttributes: ProductAttribute[]
+  productAttributes: ProductAttribute[],
 ): string | null => {
   const warranty = productAttributes.find(
     (attribute) =>
       attribute.definition.key === WARRANTY_DEFINITION_KEY &&
-      attribute.definition.input_type === "select"
+      attribute.definition.input_type === "select",
   )
   const value = warranty?.option?.label.trim()
 
-  return value || null
+  return value ?? null
 }
 
 export const mergeWarrantyIntoProductContentSections = (
   sections: ProductDetailContentSection[],
   warranty: string | null,
-  otherSectionTitle: string
+  otherSectionTitle: string,
 ): ProductDetailContentSection[] => {
-  if (!warranty) {
+  if (warranty === null || warranty.length === 0) {
     return sections
   }
 
   const warrantyHtml = `<p><strong>Záruka:</strong> ${escapeHtml(warranty)}</p>`
   const otherSectionIndex = sections.findIndex(
-    (section) => section.key === OTHER_SECTION_KEY
+    (section) => section.key === OTHER_SECTION_KEY,
   )
 
   if (otherSectionIndex === -1) {
     return [
       ...sections,
       {
+        html: warrantyHtml,
         key: OTHER_SECTION_KEY,
         title: otherSectionTitle,
-        html: warrantyHtml,
       },
     ]
   }
@@ -56,6 +57,6 @@ export const mergeWarrantyIntoProductContentSections = (
           ...section,
           html: `${section.html}\n${warrantyHtml}`,
         }
-      : section
+      : section,
   )
 }

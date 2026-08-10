@@ -1,29 +1,32 @@
 import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
-import { parseApplyEnvOverridesInput } from "../zane-inputs"
 import { ZaneClient } from "../zane"
+import { parseApplyEnvOverridesInput } from "../zane-inputs"
 
 interface ApplyZaneEnvOverridesDeps {
   config: AppConfig
 }
 
-export async function handleApplyZaneEnvOverrides(
+export const handleApplyZaneEnvOverrides = async (
   request: Request,
   deps: ApplyZaneEnvOverridesDeps,
-): Promise<Response> {
+): Promise<Response> => {
   try {
-    const rawBody = await request.json().catch(() => {
+    let rawBody: unknown
+    try {
+      rawBody = await request.json()
+    } catch {
       throw new BadRequestError("request body must be valid JSON")
-    })
+    }
 
     const client = new ZaneClient(deps.config)
     const payload = parseApplyEnvOverridesInput(rawBody)
     const result = await client.applyEnvOverrides({
-      projectSlug: payload.projectSlug,
-      environmentName: payload.environmentName,
-      targets: payload.targets,
       envOverrides: payload.envOverrides,
+      environmentName: payload.environmentName,
+      projectSlug: payload.projectSlug,
+      targets: payload.targets,
     })
 
     return jsonResponse(200, result)

@@ -1,21 +1,19 @@
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import {
-  GLS_CLIENT_MODULE,
-  type GLSClientModuleService,
-} from "../../../modules/gls-client"
+
+import { GLS_CLIENT_MODULE } from "../../../modules/gls-client"
+import type { GLSClientModuleService } from "../../../modules/gls-client"
 import {
   buildGLSLabelsFilename,
   collectPrintableGLSLabels,
-  validateGLSLabelOrders,
 } from "../helpers/labels"
 
-export type GenerateGLSLabelPdfStepInput = {
+export interface GenerateGLSLabelPdfStepInput {
   order_ids: string[]
 }
 
-export type GenerateGLSLabelPdfStepOutput = {
+export interface GenerateGLSLabelPdfStepOutput {
   filename: string
   pdf_base64: string
 }
@@ -24,7 +22,7 @@ export const generateGLSLabelPdfStep = createStep(
   "generate-gls-label-pdf",
   async (
     input: GenerateGLSLabelPdfStepInput,
-    { container }
+    { container },
   ): Promise<StepResponse<GenerateGLSLabelPdfStepOutput>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const glsClient =
@@ -45,17 +43,14 @@ export const generateGLSLabelPdfStep = createStep(
       },
     })
 
-    const labels = collectPrintableGLSLabels(
-      input.order_ids,
-      validateGLSLabelOrders(orders)
-    )
+    const labels = collectPrintableGLSLabels(input.order_ids, orders)
     const pdf = await glsClient.downloadLabelsPdf(
-      labels.map((label) => label.packet_id)
+      labels.map((label) => label.packet_id),
     )
 
     return new StepResponse({
       filename: buildGLSLabelsFilename(labels),
       pdf_base64: pdf.toString("base64"),
     })
-  }
+  },
 )

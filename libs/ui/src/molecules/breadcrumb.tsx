@@ -1,156 +1,155 @@
-/**
+/*
  * Breadcrumb — @techsio/ui-kit molecule.
  *
  * @component Breadcrumb
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.2
  * @skill breadcrumb-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the breadcrumb-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import {
-  createContext,
-  type ComponentPropsWithoutRef,
-  type ElementType,
-  type Ref,
-  useContext,
-} from "react"
+import { createContext, useContext } from "react"
+import type { ComponentPropsWithoutRef, ElementType, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
-import { Icon, type IconProps, type IconType } from "../atoms/icon"
-import { Link, type LinkProps } from "../atoms/link"
+
+import { Icon as IconPrimitive } from "../atoms/icon"
+import type { IconProps, IconType } from "../atoms/icon"
+import { Link as LinkPrimitive } from "../atoms/link"
+import type { LinkProps } from "../atoms/link"
 import { tv } from "../utils"
 
-const BreadcrumbVariants = tv({
+const itemLayoutClassName = "inline-flex min-w-0 items-center"
+const centeredIconClassName = "inline-flex items-center justify-center"
+const emptyClassName = ""
+const itemColorClassName = "text-breadcrumb-item"
+
+const breadcrumbVariants = tv({
+  defaultVariants: {
+    size: "md",
+    variant: "plain",
+  },
   slots: {
-    root: ["inline-flex flex-wrap items-center", "bg-breadcrumb-bg"],
-    list: [
-      "flex flex-wrap items-center",
-      "break-words",
-      "list-none",
-      "text-breadcrumb-item",
-    ],
-    item: [
-      "inline-flex min-w-0 items-center",
-      "text-breadcrumb-item",
-    ],
-    link: [
-      "inline-flex min-w-0 items-center",
-      "rounded-breadcrumb-link",
-      "text-breadcrumb-item",
-      "no-underline",
-      "cursor-pointer",
-      "hover:text-breadcrumb-item-hover",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-      "focus-visible:outline-breadcrumb-ring",
-      "focus-visible:outline-offset-(length:--default-ring-offset)",
-      "transition-colors duration-200 motion-reduce:transition-none",
-    ],
     currentLink: [
-      "inline-flex min-w-0 items-center",
+      itemLayoutClassName,
       "rounded-breadcrumb-link",
       "text-breadcrumb-item-current",
       "cursor-default",
     ],
-    icon: ["inline-flex items-center justify-center"],
-    iconSize: "",
+    ellipsis: [
+      "inline-flex shrink-0 items-center justify-center",
+      "text-breadcrumb-ellipsis",
+    ],
+    ellipsisIcon: centeredIconClassName,
+    ellipsisIconSize: emptyClassName,
+    icon: centeredIconClassName,
+    iconSize: emptyClassName,
+    item: [itemLayoutClassName, itemColorClassName],
+    link: [
+      itemLayoutClassName,
+      "rounded-breadcrumb-link",
+      itemColorClassName,
+      "no-underline",
+      "cursor-pointer",
+      "hover:text-breadcrumb-item-hover",
+      "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
+      "focus-visible:outline-breadcrumb-ring",
+      "focus-visible:outline-offset-(length:--default-ring-offset)",
+      "transition-colors duration-200 motion-reduce:transition-none",
+    ],
+    list: [
+      "flex flex-wrap items-center",
+      "break-words",
+      "list-none",
+      itemColorClassName,
+    ],
+    root: ["inline-flex flex-wrap items-center", "bg-breadcrumb-bg"],
     separator: [
       "inline-flex shrink-0 items-center justify-center",
       "text-breadcrumb-separator",
       "rtl:rotate-180",
     ],
-    separatorIcon: ["inline-flex items-center justify-center"],
-    separatorIconSize: "",
-    ellipsis: [
-      "inline-flex shrink-0 items-center justify-center",
-      "text-breadcrumb-ellipsis",
-    ],
-    ellipsisIcon: ["inline-flex items-center justify-center"],
-    ellipsisIconSize: "",
+    separatorIcon: centeredIconClassName,
+    separatorIconSize: emptyClassName,
   },
   variants: {
+    size: {
+      lg: {
+        currentLink: "gap-breadcrumb-link-lg",
+        ellipsisIconSize: "text-breadcrumb-ellipsis-icon-lg",
+        iconSize: "text-breadcrumb-icon-lg",
+        link: "gap-breadcrumb-link-lg",
+        list: "gap-breadcrumb-lg",
+        root: "p-breadcrumb-lg text-breadcrumb-lg",
+        separator: "gap-breadcrumb-separator-lg",
+        separatorIconSize: "text-breadcrumb-separator-icon-lg",
+      },
+      md: {
+        currentLink: "gap-breadcrumb-link-md",
+        ellipsisIconSize: "text-breadcrumb-ellipsis-icon-md",
+        iconSize: "text-breadcrumb-icon-md",
+        link: "gap-breadcrumb-link-md",
+        list: "gap-breadcrumb-md",
+        root: "p-breadcrumb-md text-breadcrumb-md",
+        separator: "gap-breadcrumb-separator-md",
+        separatorIconSize: "text-breadcrumb-separator-icon-md",
+      },
+      sm: {
+        currentLink: "gap-breadcrumb-link-sm",
+        ellipsisIconSize: "text-breadcrumb-ellipsis-icon-sm",
+        iconSize: "text-breadcrumb-icon-sm",
+        link: "gap-breadcrumb-link-sm",
+        list: "gap-breadcrumb-sm",
+        root: "p-breadcrumb-sm text-breadcrumb-sm",
+        separator: "gap-breadcrumb-separator-sm",
+        separatorIconSize: "text-breadcrumb-separator-icon-sm",
+      },
+    },
     variant: {
       plain: {},
       underline: {
-        link: "underline",
         currentLink: "underline",
+        link: "underline",
       },
     },
-    size: {
-      sm: {
-        root: "p-breadcrumb-sm text-breadcrumb-sm",
-        list: "gap-breadcrumb-sm",
-        link: "gap-breadcrumb-link-sm",
-        currentLink: "gap-breadcrumb-link-sm",
-        iconSize: "text-breadcrumb-icon-sm",
-        separator: "gap-breadcrumb-separator-sm",
-        separatorIconSize: "text-breadcrumb-separator-icon-sm",
-        ellipsisIconSize: "text-breadcrumb-ellipsis-icon-sm",
-      },
-      md: {
-        root: "p-breadcrumb-md text-breadcrumb-md",
-        list: "gap-breadcrumb-md",
-        link: "gap-breadcrumb-link-md",
-        currentLink: "gap-breadcrumb-link-md",
-        iconSize: "text-breadcrumb-icon-md",
-        separator: "gap-breadcrumb-separator-md",
-        separatorIconSize: "text-breadcrumb-separator-icon-md",
-        ellipsisIconSize: "text-breadcrumb-ellipsis-icon-md",
-      },
-      lg: {
-        root: "p-breadcrumb-lg text-breadcrumb-lg",
-        list: "gap-breadcrumb-lg",
-        link: "gap-breadcrumb-link-lg",
-        currentLink: "gap-breadcrumb-link-lg",
-        iconSize: "text-breadcrumb-icon-lg",
-        separator: "gap-breadcrumb-separator-lg",
-        separatorIconSize: "text-breadcrumb-separator-icon-lg",
-        ellipsisIconSize: "text-breadcrumb-ellipsis-icon-lg",
-      },
-    },
-  },
-  defaultVariants: {
-    size: "md",
-    variant: "plain",
   },
 })
 
 export type BreadcrumbSize = NonNullable<
-  VariantProps<typeof BreadcrumbVariants>["size"]
+  VariantProps<typeof breadcrumbVariants>["size"]
 >
 
 export type BreadcrumbVariant = NonNullable<
-  VariantProps<typeof BreadcrumbVariants>["variant"]
+  VariantProps<typeof breadcrumbVariants>["variant"]
 >
 
-type BreadcrumbContextValue = {
-  styles: ReturnType<typeof BreadcrumbVariants>
-}
+const BreadcrumbSizeContext = createContext<BreadcrumbSize | null | undefined>(
+  null,
+)
+const BreadcrumbVariantContext = createContext<
+  BreadcrumbVariant | null | undefined
+>(null)
 
-const BreadcrumbContext =
-  createContext<BreadcrumbContextValue | null>(null)
+const useBreadcrumbContext = () => {
+  const size = useContext(BreadcrumbSizeContext)
+  const variant = useContext(BreadcrumbVariantContext)
 
-function useBreadcrumbContext() {
-  const context = useContext(BreadcrumbContext)
-
-  if (!context) {
-    throw new Error(
-      "Breadcrumb components must be used within Breadcrumb.Root"
-    )
+  if (size === null || variant === null) {
+    throw new Error("Breadcrumb components must be used within Breadcrumb.Root")
   }
 
-  return context
+  return { styles: breadcrumbVariants({ size, variant }) }
 }
 
-function getContextualIconClassName({
+const getContextualIconClassName = ({
   className,
   defaultClassName,
   useDefaultClassName,
 }: {
-  className?: string
+  className?: string | undefined
   defaultClassName: string
   useDefaultClassName: boolean
-}) {
+}) => {
   if (!useDefaultClassName) {
     return className
   }
@@ -159,11 +158,11 @@ function getContextualIconClassName({
 }
 
 export type BreadcrumbRootProps = ComponentPropsWithoutRef<"nav"> &
-  VariantProps<typeof BreadcrumbVariants> & {
-    ref?: Ref<HTMLElement>
+  VariantProps<typeof breadcrumbVariants> & {
+    ref?: Ref<HTMLElement> | undefined
   }
 
-export function Breadcrumb({
+const BreadcrumbRoot = ({
   children,
   className,
   ref,
@@ -171,33 +170,35 @@ export function Breadcrumb({
   variant,
   "aria-label": ariaLabel = "breadcrumb",
   ...props
-}: BreadcrumbRootProps) {
-  const styles = BreadcrumbVariants({ size, variant })
+}: BreadcrumbRootProps) => {
+  const { root } = breadcrumbVariants({ size, variant })
 
   return (
-    <BreadcrumbContext.Provider value={{ styles }}>
-      <nav
-        aria-label={ariaLabel}
-        className={styles.root({ className })}
-        ref={ref}
-        {...props}
-      >
-        {children}
-      </nav>
-    </BreadcrumbContext.Provider>
+    <BreadcrumbSizeContext.Provider value={size}>
+      <BreadcrumbVariantContext.Provider value={variant}>
+        <nav
+          aria-label={ariaLabel}
+          className={root({ className })}
+          ref={ref}
+          {...props}
+        >
+          {children}
+        </nav>
+      </BreadcrumbVariantContext.Provider>
+    </BreadcrumbSizeContext.Provider>
   )
 }
 
 export type BreadcrumbListProps = ComponentPropsWithoutRef<"ol"> & {
-  ref?: Ref<HTMLOListElement>
+  ref?: Ref<HTMLOListElement> | undefined
 }
 
-Breadcrumb.List = function BreadcrumbList({
+const BreadcrumbList = ({
   children,
   className,
   ref,
   ...props
-}: BreadcrumbListProps) {
+}: BreadcrumbListProps) => {
   const { styles } = useBreadcrumbContext()
 
   return (
@@ -208,15 +209,15 @@ Breadcrumb.List = function BreadcrumbList({
 }
 
 export type BreadcrumbItemProps = ComponentPropsWithoutRef<"li"> & {
-  ref?: Ref<HTMLLIElement>
+  ref?: Ref<HTMLLIElement> | undefined
 }
 
-Breadcrumb.Item = function BreadcrumbItem({
+const BreadcrumbItem = ({
   children,
   className,
   ref,
   ...props
-}: BreadcrumbItemProps) {
+}: BreadcrumbItemProps) => {
   const { styles } = useBreadcrumbContext()
 
   return (
@@ -229,38 +230,33 @@ Breadcrumb.Item = function BreadcrumbItem({
 type BreadcrumbLinkHref<T extends ElementType> =
   ComponentPropsWithoutRef<T> extends { href?: infer H } ? H : string
 
-export type BreadcrumbLinkProps<T extends ElementType = "a"> =
-  LinkProps<T> & {
-    href?: BreadcrumbLinkHref<T>
-  }
+export type BreadcrumbLinkProps<T extends ElementType = "a"> = LinkProps<T> & {
+  href?: BreadcrumbLinkHref<T> | undefined
+}
 
-Breadcrumb.Link = function BreadcrumbLink<
-  T extends ElementType = "a",
->({
-  children,
-  className,
-  ...props
-}: BreadcrumbLinkProps<T>) {
+const BreadcrumbLink = <T extends ElementType = "a">(
+  props: BreadcrumbLinkProps<T>,
+) => {
   const { styles } = useBreadcrumbContext()
 
   return (
-    <Link className={styles.link({ className })} {...(props as LinkProps<T>)}>
-      {children}
-    </Link>
+    <LinkPrimitive<T>
+      {...props}
+      className={styles.link({ className: props.className })}
+    />
   )
 }
 
-export type BreadcrumbCurrentLinkProps =
-  ComponentPropsWithoutRef<"span"> & {
-    ref?: Ref<HTMLSpanElement>
-  }
+export type BreadcrumbCurrentLinkProps = ComponentPropsWithoutRef<"span"> & {
+  ref?: Ref<HTMLSpanElement> | undefined
+}
 
-Breadcrumb.CurrentLink = function BreadcrumbCurrentLink({
+const BreadcrumbCurrentLink = ({
   children,
   className,
   ref,
   ...props
-}: BreadcrumbCurrentLinkProps) {
+}: BreadcrumbCurrentLinkProps) => {
   const { styles } = useBreadcrumbContext()
 
   return (
@@ -277,15 +273,11 @@ Breadcrumb.CurrentLink = function BreadcrumbCurrentLink({
 
 export type BreadcrumbIconProps = IconProps
 
-Breadcrumb.Icon = function BreadcrumbIcon({
-  className,
-  size,
-  ...props
-}: BreadcrumbIconProps) {
+const BreadcrumbIcon = ({ className, size, ...props }: BreadcrumbIconProps) => {
   const { styles } = useBreadcrumbContext()
 
   return (
-    <Icon
+    <IconPrimitive
       className={styles.icon({
         className: getContextualIconClassName({
           className,
@@ -299,15 +291,14 @@ Breadcrumb.Icon = function BreadcrumbIcon({
   )
 }
 
-export type BreadcrumbSeparatorProps =
-  ComponentPropsWithoutRef<"li"> & {
-    icon?: IconType
-    iconProps?: Omit<IconProps, "icon" | "size">
-    iconSize?: IconProps["size"]
-    ref?: Ref<HTMLLIElement>
-  }
+export type BreadcrumbSeparatorProps = ComponentPropsWithoutRef<"li"> & {
+  icon?: IconType | undefined
+  iconProps?: Omit<IconProps, "icon" | "size"> | undefined
+  iconSize?: IconProps["size"] | undefined
+  ref?: Ref<HTMLLIElement> | undefined
+}
 
-Breadcrumb.Separator = function BreadcrumbSeparator({
+const BreadcrumbSeparator = ({
   children,
   className,
   icon = "token-icon-breadcrumb-separator",
@@ -315,7 +306,7 @@ Breadcrumb.Separator = function BreadcrumbSeparator({
   iconSize,
   ref,
   ...props
-}: BreadcrumbSeparatorProps) {
+}: BreadcrumbSeparatorProps) => {
   const { styles } = useBreadcrumbContext()
   const { className: iconClassName, ...restIconProps } = iconProps ?? {}
 
@@ -327,7 +318,7 @@ Breadcrumb.Separator = function BreadcrumbSeparator({
       {...props}
     >
       {children ?? (
-        <Icon
+        <IconPrimitive
           className={styles.separatorIcon({
             className: getContextualIconClassName({
               className: iconClassName,
@@ -344,15 +335,14 @@ Breadcrumb.Separator = function BreadcrumbSeparator({
   )
 }
 
-export type BreadcrumbEllipsisProps =
-  ComponentPropsWithoutRef<"li"> & {
-    icon?: IconType
-    iconProps?: Omit<IconProps, "icon" | "size">
-    iconSize?: IconProps["size"]
-    ref?: Ref<HTMLLIElement>
-  }
+export type BreadcrumbEllipsisProps = ComponentPropsWithoutRef<"li"> & {
+  icon?: IconType | undefined
+  iconProps?: Omit<IconProps, "icon" | "size"> | undefined
+  iconSize?: IconProps["size"] | undefined
+  ref?: Ref<HTMLLIElement> | undefined
+}
 
-Breadcrumb.Ellipsis = function BreadcrumbEllipsis({
+const BreadcrumbEllipsis = ({
   children,
   className,
   icon = "token-icon-breadcrumb-ellipsis",
@@ -360,7 +350,7 @@ Breadcrumb.Ellipsis = function BreadcrumbEllipsis({
   iconSize,
   ref,
   ...props
-}: BreadcrumbEllipsisProps) {
+}: BreadcrumbEllipsisProps) => {
   const { styles } = useBreadcrumbContext()
   const { className: iconClassName, ...restIconProps } = iconProps ?? {}
 
@@ -373,7 +363,7 @@ Breadcrumb.Ellipsis = function BreadcrumbEllipsis({
       {...props}
     >
       {children ?? (
-        <Icon
+        <IconPrimitive
           className={styles.ellipsisIcon({
             className: getContextualIconClassName({
               className: iconClassName,
@@ -389,6 +379,18 @@ Breadcrumb.Ellipsis = function BreadcrumbEllipsis({
     </li>
   )
 }
+BreadcrumbRoot.displayName = "Breadcrumb"
 
-Breadcrumb.Root = Breadcrumb
-Breadcrumb.displayName = "Breadcrumb"
+const BreadcrumbCompound = Object.assign(BreadcrumbRoot, {
+  CurrentLink: BreadcrumbCurrentLink,
+  Ellipsis: BreadcrumbEllipsis,
+  Icon: BreadcrumbIcon,
+  Item: BreadcrumbItem,
+  Link: BreadcrumbLink,
+  List: BreadcrumbList,
+  Separator: BreadcrumbSeparator,
+})
+
+export const Breadcrumb = Object.assign(BreadcrumbCompound, {
+  Root: BreadcrumbCompound,
+})

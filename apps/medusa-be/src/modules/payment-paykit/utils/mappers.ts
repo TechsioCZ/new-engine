@@ -1,20 +1,18 @@
 import type {
-  BigNumberInput,
   BigNumberValue,
   WebhookActionResult,
 } from "@medusajs/framework/types"
-import {
-  BigNumber,
-  PaymentActions,
-  PaymentSessionStatus,
-} from "@medusajs/framework/utils"
+import { PaymentActions, PaymentSessionStatus } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
+import { paymentSchema } from "@paykit-sdk/core"
+
 import type { PaykitPayment, PaykitRefund, PaykitWebhookEvent } from "../types"
 
-type PaykitWebhookMappingOptions = {
+interface PaykitWebhookMappingOptions {
   normalizeAmount?: (
     amount: BigNumberValue | undefined,
     payment: PaykitPayment,
-    event: PaykitWebhookEvent
+    event: PaykitWebhookEvent,
   ) => BigNumberValue | undefined
 }
 
@@ -23,64 +21,109 @@ const MEDUSA_PROCESSABLE_WEBHOOK_ACTIONS = new Set<PaymentActions>([
   PaymentActions.SUCCESSFUL,
 ])
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
+const PAYKIT_PAYMENT_MARKER_FIELDS = [
+  "amount",
+  "amount_paid",
+  "status",
+  "state",
+]
 
-const isPaykitPayment = (value: unknown): value is PaykitPayment =>
-  isRecord(value) &&
-  (typeof value.id === "string" ||
-    "amount" in value ||
-    "amount_paid" in value ||
-    "status" in value ||
-    "state" in value)
+const paykitCompatibleStatusSchema = z.enum([
+  "pending",
+  "processing",
+  "requires_action",
+  "requires_capture",
+  "succeeded",
+  "canceled",
+  "failed",
+  "requires_more",
+  "authorized",
+  "captured",
+  "paid",
+  "cancelled",
+  "error",
+])
 
-const isBigNumberInput = (value: unknown): value is BigNumberInput =>
-  value instanceof BigNumber ||
-  (isRecord(value) &&
-    "value" in value &&
-    (typeof value.value === "number" || typeof value.value === "string")) ||
-  (isRecord(value) &&
-    typeof value.toJSON === "function" &&
-    typeof value.valueOf === "function")
+const compatibleWebhookPaymentSchema = z.object({
+  amount: z.union([z.number(), z.string()]).optional(),
+  amount_paid: z.union([z.number(), z.string()]).optional(),
+  currency: z.string().nullable().optional(),
+  currency_code: z.string().nullable().optional(),
+  id: z.string().optional(),
+  metadata: z.record(z.string(), z.string()).optional(),
+  state: paykitCompatibleStatusSchema.optional(),
+  status: paykitCompatibleStatusSchema.optional(),
+})
+
+const hasPaykitPaymentMarker = (payment: PaykitPayment): boolean =>
+  typeof payment.id === "string" ||
+  PAYKIT_PAYMENT_MARKER_FIELDS.some((field) => field in payment)
+
+const parseWebhookPayment = (value: unknown): PaykitPayment | null => {
+  const compatibilityResult = compatibleWebhookPaymentSchema.safeParse(value)
+  if (
+    compatibilityResult.success &&
+    hasPaykitPaymentMarker(compatibilityResult.data)
+  ) {
+    return compatibilityResult.data
+  }
+
+  const paymentResult = paymentSchema.partial().safeParse(value)
+  return paymentResult.success && hasPaykitPaymentMarker(paymentResult.data)
+    ? paymentResult.data
+    : null
+}
 
 const toBigNumberValue = (value: unknown): BigNumberValue | undefined => {
   if (typeof value === "number" || typeof value === "string") {
     return value
   }
 
-  if (!isBigNumberInput(value)) {
-    return
+  if (typeof value !== "object" || value === null) {
+    return undefined
   }
 
   try {
-    return new BigNumber(value)
+    const serialized = JSON.stringify(value)
+    if (serialized === undefined) {
+      return undefined
+    }
+
+    const result = z.number().safeParse(JSON.parse(serialized))
+    return result.success ? result.data : undefined
   } catch {
-    return
+    return undefined
   }
 }
 
 export const mapPaykitStatusToMedusa = (
-  status: unknown
+  status: unknown,
 ): PaymentSessionStatus => {
   switch (status) {
     case "requires_action":
-    case "requires_more":
+    case "requires_more": {
       return PaymentSessionStatus.REQUIRES_MORE
+    }
     case "requires_capture":
-    case "authorized":
+    case "authorized": {
       return PaymentSessionStatus.AUTHORIZED
+    }
     case "succeeded":
     case "captured":
-    case "paid":
+    case "paid": {
       return PaymentSessionStatus.CAPTURED
+    }
     case "canceled":
-    case "cancelled":
+    case "cancelled": {
       return PaymentSessionStatus.CANCELED
+    }
     case "failed":
-    case "error":
+    case "error": {
       return PaymentSessionStatus.ERROR
-    default:
+    }
+    default: {
       return PaymentSessionStatus.PENDING
+    }
   }
 }
 
@@ -88,98 +131,91 @@ export const getPaymentStatusValue = (payment: PaykitPayment): unknown =>
   payment.status ?? payment.state
 
 const getPaymentUrl = (payment: PaykitPayment): string | undefined =>
-  payment.payment_url ??
-  payment.paymentUrl ??
-  payment.checkout_url ??
-  payment.gw_url ??
-  payment.url ??
-  undefined
+  [
+    payment.payment_url,
+    payment.paymentUrl,
+    payment.checkout_url,
+    payment.gw_url,
+    payment.url,
+  ].find((value): value is string => typeof value === "string")
 
-export const toPaykitPaymentData = (
-  payment: PaykitPayment
-): Record<string, unknown> => {
+export const toPaykitPaymentData = (payment: PaykitPayment) => {
   const paymentUrl = getPaymentUrl(payment)
 
   return {
     ...payment,
     id: payment.id,
-    ...(paymentUrl ? { payment_url: paymentUrl } : {}),
+    ...(paymentUrl === undefined ? {} : { payment_url: paymentUrl }),
   }
 }
 
-export const toPaykitRefundData = (
-  refund: PaykitRefund
-): Record<string, unknown> => ({ ...refund })
+export const toPaykitRefundData = (refund: PaykitRefund) => ({ ...refund })
 
 const getWebhookPayment = (event: PaykitWebhookEvent): PaykitPayment | null => {
-  const data = event.data
-
-  if (isPaykitPayment(event.payment)) {
+  if (event.payment && hasPaykitPaymentMarker(event.payment)) {
     return event.payment
   }
 
-  if (isPaykitPayment(data)) {
-    return data
+  const directPayment = parseWebhookPayment(event.data)
+  if (directPayment) {
+    return directPayment
   }
 
-  if (isRecord(data) && isPaykitPayment(data.object)) {
-    return data.object
+  if (typeof event.data !== "object" || event.data === null) {
+    return null
   }
 
-  if (isRecord(data) && isPaykitPayment(data.payment)) {
-    return data.payment
-  }
-
-  return null
+  return (
+    parseWebhookPayment(Reflect.get(event.data, "object")) ??
+    parseWebhookPayment(Reflect.get(event.data, "payment"))
+  )
 }
 
 const getWebhookSessionId = (
   event: PaykitWebhookEvent,
-  payment: PaykitPayment
+  payment: PaykitPayment,
 ): string | undefined => {
-  if (
-    isRecord(payment.metadata) &&
-    typeof payment.metadata.session_id === "string"
-  ) {
-    return payment.metadata.session_id
+  if (typeof payment.metadata?.["session_id"] === "string") {
+    return payment.metadata["session_id"]
   }
 
-  if (
-    isRecord(event.metadata) &&
-    typeof event.metadata.session_id === "string"
-  ) {
-    return event.metadata.session_id
+  if (typeof event.metadata?.["session_id"] === "string") {
+    return event.metadata["session_id"]
   }
 
-  return
+  return undefined
+}
+
+const normalizeWebhookAmount = (
+  amount: unknown,
+): BigNumberValue | undefined => {
+  const result = z
+    .object({ value: z.union([z.number(), z.string()]) })
+    .safeParse(amount)
+  return result.success ? result.data.value : toBigNumberValue(amount)
 }
 
 const getWebhookAmount = (
   event: PaykitWebhookEvent,
-  payment: PaykitPayment
+  payment: PaykitPayment,
 ): BigNumberValue | undefined =>
   normalizeWebhookAmount(event.amount ?? payment.amount ?? payment.amount_paid)
 
-const normalizeWebhookAmount = (
-  amount: unknown
-): BigNumberValue | undefined => {
-  if (
-    typeof amount === "object" &&
-    amount !== null &&
-    "value" in amount &&
-    (typeof amount.value === "number" || typeof amount.value === "string")
-  ) {
-    return amount.value
-  }
-
-  return toBigNumberValue(amount)
-}
+const PAYMENT_ACTION_BY_SESSION_STATUS = {
+  [PaymentSessionStatus.AUTHORIZED]: PaymentActions.AUTHORIZED,
+  [PaymentSessionStatus.CANCELED]: PaymentActions.CANCELED,
+  [PaymentSessionStatus.CAPTURED]: PaymentActions.SUCCESSFUL,
+  [PaymentSessionStatus.ERROR]: PaymentActions.FAILED,
+  [PaymentSessionStatus.PENDING]: PaymentActions.PENDING,
+  [PaymentSessionStatus.PENDING_AUTHORIZATION]: PaymentActions.PENDING,
+  [PaymentSessionStatus.REQUIRES_MORE]: PaymentActions.REQUIRES_MORE,
+} satisfies Record<PaymentSessionStatus, PaymentActions>
 
 const mapPaykitWebhookAction = (
   event: PaykitWebhookEvent,
-  payment: PaykitPayment
+  payment: PaykitPayment,
 ): PaymentActions => {
-  if (event.is_raw) {
+  if (event.is_raw === true) {
     return PaymentActions.NOT_SUPPORTED
   }
 
@@ -203,56 +239,46 @@ const mapPaykitWebhookAction = (
 
   const medusaStatus = mapPaykitStatusToMedusa(status)
 
-  switch (event.type) {
-    case "invoice.generated":
-      return PaymentActions.SUCCESSFUL
-    case "payment.created":
-    case "payment.updated":
-      switch (medusaStatus) {
-        case PaymentSessionStatus.REQUIRES_MORE:
-          return PaymentActions.REQUIRES_MORE
-        case PaymentSessionStatus.AUTHORIZED:
-          return PaymentActions.AUTHORIZED
-        case PaymentSessionStatus.CAPTURED:
-          return PaymentActions.SUCCESSFUL
-        case PaymentSessionStatus.CANCELED:
-          return PaymentActions.CANCELED
-        case PaymentSessionStatus.ERROR:
-          return PaymentActions.FAILED
-        default:
-          return PaymentActions.PENDING
-      }
-    default:
-      return PaymentActions.NOT_SUPPORTED
+  if (event.type === "invoice.generated") {
+    return PaymentActions.SUCCESSFUL
   }
+
+  if (event.type === "payment.created" || event.type === "payment.updated") {
+    return PAYMENT_ACTION_BY_SESSION_STATUS[medusaStatus]
+  }
+
+  return PaymentActions.NOT_SUPPORTED
 }
 
 export const mapPaykitWebhookEvent = (
   event?: PaykitWebhookEvent,
-  options: PaykitWebhookMappingOptions = {}
+  options: PaykitWebhookMappingOptions = {},
 ): WebhookActionResult => {
-  if (!event) {
+  if (event === undefined) {
     return { action: PaymentActions.NOT_SUPPORTED }
   }
 
   const payment = getWebhookPayment(event)
 
-  if (!payment) {
+  if (payment === null) {
     return { action: PaymentActions.NOT_SUPPORTED }
   }
 
   const sessionId = getWebhookSessionId(event, payment)
   const rawAmount = getWebhookAmount(event, payment)
-  const amount = options.normalizeAmount
-    ? options.normalizeAmount(rawAmount, payment, event)
-    : rawAmount
+  const amount =
+    options.normalizeAmount === undefined
+      ? rawAmount
+      : options.normalizeAmount(rawAmount, payment, event)
   const action = mapPaykitWebhookAction(event, payment)
   const canProcessInMedusa =
-    MEDUSA_PROCESSABLE_WEBHOOK_ACTIONS.has(action) && sessionId
+    MEDUSA_PROCESSABLE_WEBHOOK_ACTIONS.has(action) &&
+    sessionId !== undefined &&
+    sessionId.length > 0
 
   if (
     event.type === "invoice.generated" &&
-    (!sessionId || amount === undefined)
+    (sessionId === undefined || sessionId.length === 0 || amount === undefined)
   ) {
     return { action: PaymentActions.NOT_SUPPORTED }
   }
@@ -264,8 +290,8 @@ export const mapPaykitWebhookEvent = (
   return {
     action,
     data: {
-      session_id: sessionId,
       amount,
+      session_id: sessionId,
     },
   }
 }

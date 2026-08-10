@@ -1,0 +1,171 @@
+id: no-unknown-property-bag-tsx
+valid:
+  - |
+    type Payload = object
+    const Panel = ({ payload }: { payload: Payload }) => <pre>{String(payload)}</pre>
+  - |
+    type KnownFields = Record<"id" | "slug", unknown>
+    const Panel = () => <div />
+  - |
+    interface Payload { id: string; metadata: unknown }
+    const Panel = ({ payload }: { payload: Payload }) => <span>{payload.id}</span>
+  - |
+    type KnownFields = Record<"id" | "slug", unknown | string>
+    const Panel = () => <div />
+  - |
+    type FiniteDictionary<T> = Record<"value", T>
+    const Panel = () => <div />
+  - |
+    type DeferredDictionary = Record<string, Promise<unknown>>
+    const Panel = () => <div />
+  - |
+    type DeferredOrTextDictionary = Record<string, Promise<unknown> | string>
+    const Panel = () => <div />
+  - |
+    interface DomainObject { value: unknown | undefined }
+    const Panel = () => <div />
+  - |
+    type SourceIdIndex<T> = Map<string, T[]>
+    const Panel = () => <div />
+  - |
+    type DeferredIndex<T> = Record<string, Promise<T>>
+    const Panel = () => <div />
+invalid:
+  - |
+    type Dictionary<T> = Record<string, T>
+    type Payload = Dictionary<unknown>
+    const Panel = () => <div />
+  - |
+    type Dictionary<T> = Map<PropertyKey, T>
+    type Payload = Dictionary<unknown>
+    const Panel = () => <div />
+  - |
+    interface Dictionary<T> { [key: string]: T }
+    type Payload = Dictionary<unknown>
+    const Panel = () => <div />
+  - |
+    type Dictionary<T> = { [Key in keyof any]: T }
+    type Payload = Dictionary<unknown>
+    const Panel = () => <div />
+  - |
+    type Dictionary<T extends unknown> = Record<string, T>
+    type Payload = Dictionary<unknown>
+    const Panel = () => <div />
+  - |
+    type Dictionary<T = unknown> = Record<string, T>
+    type Payload = Dictionary
+    const Panel = () => <div />
+  - |
+    type Dictionary<T> = globalThis.Record<string, T>
+    type Payload = Dictionary<unknown>
+    const Panel = () => <div />
+  - |
+    type Dictionary<Key, Value> = Record<string, Value | Key>
+    type Payload = Dictionary<string, unknown>
+    const Panel = () => <div />
+  - |
+    type Dictionary<T extends unknown> = Record<string, T | never>
+    type Payload = Dictionary<unknown>
+    const Panel = () => <div />
+  - |
+    type Dictionary<T = unknown> = Record<string, T | never>
+    type Payload = Dictionary
+    const Panel = () => <div />
+  - |
+    type Dictionary<T> = globalThis.Record<string, T | never>
+    type Payload = Dictionary<unknown>
+    const Panel = () => <div />
+  - |
+    type Dictionary<T> = (Record<string, T>)
+    type Payload = Dictionary<unknown>
+    const Panel = () => <div />
+  - |
+    type Dictionary<T> = Record<string, (T)>
+    type Payload = Dictionary<unknown>
+    const Panel = () => <div />
+  - |
+    type Dictionary<T> = { [key: string]: T | never }
+    type Payload = Dictionary<unknown>
+    const Panel = () => <div />
+  - |
+    type Dictionary<T> = { [Key in string]: T | never }
+    type Payload = Dictionary<unknown>
+    const Panel = () => <div />
+  - |
+    type Dictionary<T> = Record<string, T & unknown>
+    type Payload = Dictionary<unknown>
+    const Panel = () => <div />
+  - |
+    type Dictionary<T> = globalThis.Record<string, unknown & T>
+    type Payload = Dictionary<unknown>
+    const Panel = () => <div />
+  - |
+    type Dictionary<T> = { [key: string]: T & unknown }
+    type Payload = Dictionary<unknown>
+    const Panel = () => <div />
+  - |
+    type Dictionary<T> = Record<string, T extends unknown ? T : never>
+    type Payload = Dictionary<unknown>
+    const Panel = () => <div />
+  - |
+    type Dictionary<T> = Record<string, Extract<T, unknown>>
+    type Payload = Dictionary<unknown>
+    const Panel = () => <div />
+  - |
+    type Dictionary<T> = Record<string, { [nested: string]: T }>
+    type Payload = Dictionary<unknown>
+    const Panel = () => <div />
+  - |
+    type Payload = Record<string, unknown>
+    const Panel = ({ payload }: { payload: Payload }) => <pre>{String(payload)}</pre>
+  - |
+    type Payload = globalThis.Record<PropertyKey, unknown>
+    const Panel = () => <div />
+  - |
+    type Payload = Record<number, unknown>
+    const Panel = () => <div />
+  - |
+    type Payload = Record<symbol, unknown>
+    const Panel = () => <div />
+  - |
+    type Payload = Map<string, unknown>
+    const Panel = () => <div />
+  - |
+    type Payload = ReadonlyMap<PropertyKey, unknown>
+    const Panel = () => <div />
+  - |
+    type Payload = Record<string, unknown | string>
+    const Panel = () => <div />
+  - |
+    type Payload = Record<string, ((unknown | string))>
+    const Panel = () => <div />
+  - |
+    type Payload = Map<string, unknown | never>
+    const Panel = () => <div />
+  - |
+    type Payload = ReadonlyMap<PropertyKey, ((undefined | unknown))>
+    const Panel = () => <div />
+  - |
+    interface Payload { [key: string]: unknown }
+    const Panel = () => <div />
+  - |
+    interface Payload { [key: string]: unknown | undefined }
+    const Panel = () => <div />
+  - |
+    type Payload = { [key: string]: ((undefined | unknown)) }
+    const Panel = () => <div />
+  - |
+    type Payload = { readonly [Key in keyof any]?: unknown }
+    const Panel = () => <div />
+  - |
+    type Payload = UnknownRecord
+    const Panel = () => <div />
+  - |
+    type Payload = JsonRecord
+    const Panel = () => <div />
+  - |
+    type Payload = UnknownObject
+    const Panel = () => <div />
+  - |
+    import type { UnknownRecord as Payload } from "./types"
+    const Panel = () => <div />

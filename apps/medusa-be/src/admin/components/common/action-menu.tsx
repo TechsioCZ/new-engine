@@ -18,11 +18,11 @@ export type Action = {
     }
 )
 
-export type ActionGroup = {
+export interface ActionGroup {
   actions: Action[]
 }
 
-type ActionMenuProps = {
+interface ActionMenuProps {
   groups: ActionGroup[]
 }
 
@@ -52,9 +52,9 @@ export const ActionMenu = ({ groups }: ActionMenuProps) => (
                       "flex items-center gap-x-2 [&_svg]:text-ui-fg-subtle",
                       {
                         "[&_svg]:text-ui-fg-disabled": action.disabled,
-                      }
+                      },
                     )}
-                    disabled={action.disabled}
+                    disabled={action.disabled ?? false}
                     key={action.label}
                     onClick={(e) => {
                       e.stopPropagation()
@@ -75,11 +75,16 @@ export const ActionMenu = ({ groups }: ActionMenuProps) => (
                       "flex items-center gap-x-2 [&_svg]:text-ui-fg-subtle",
                       {
                         "[&_svg]:text-ui-fg-disabled": action.disabled,
-                      }
+                      },
                     )}
-                    disabled={action.disabled}
+                    disabled={action.disabled ?? false}
                   >
-                    <Link onClick={(e) => e.stopPropagation()} to={action.to}>
+                    <Link
+                      onClick={(e) => {
+                        e.stopPropagation()
+                      }}
+                      to={action.to}
+                    >
                       {action.icon}
                       <span>{action.label}</span>
                     </Link>

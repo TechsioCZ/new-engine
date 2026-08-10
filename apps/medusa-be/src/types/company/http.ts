@@ -1,24 +1,15 @@
-import type { FindParams, PaginatedResponse } from "@medusajs/framework/types"
-import type { ModuleCompanySpendingLimitResetFrequency } from "./module"
+import type { PaginatedResponse } from "@medusajs/framework/types"
+
 import type { QueryCompany, QueryEmployee } from "./query"
-import type { ModuleCompanyFilters, ModuleEmployeeFilters } from "./service"
-
-/* Filters */
-
-export interface CompanyFilterParams extends FindParams, ModuleCompanyFilters {}
-
-export interface EmployeeFilterParams
-  extends FindParams,
-    ModuleEmployeeFilters {}
 
 /* Admin */
 
 /* Company */
-export type AdminCompanyResponse = {
+export interface AdminCompanyResponse {
   company: QueryCompany
 }
 
-export type AdminCreateCompaniesResponse = {
+export interface AdminCreateCompaniesResponse {
   companies: QueryCompany[]
 }
 
@@ -26,7 +17,7 @@ export type AdminCompaniesResponse = PaginatedResponse<{
   companies: QueryCompany[]
 }>
 
-export type AdminCreateCompany = {
+export interface AdminCreateCompany {
   name: string
   phone: string
   email: string
@@ -43,7 +34,7 @@ export type AdminUpdateCompany = Partial<AdminCreateCompany>
 
 /* Employee */
 
-export type AdminEmployeeResponse = {
+export interface AdminEmployeeResponse {
   employee: QueryEmployee
 }
 
@@ -51,7 +42,7 @@ export type AdminEmployeesResponse = PaginatedResponse<{
   employees: QueryEmployee[]
 }>
 
-export type AdminCreateEmployee = {
+export interface AdminCreateEmployee {
   spending_limit: number
   is_admin: boolean
   company_id: string
@@ -61,71 +52,3 @@ export type AdminCreateEmployee = {
 export type AdminUpdateEmployee = Partial<
   Pick<AdminCreateEmployee, "spending_limit" | "is_admin">
 >
-
-/* Store */
-
-/* Company */
-
-export type StoreCompanyResponse = {
-  company: QueryCompany
-}
-
-export type StoreCompaniesResponse = PaginatedResponse<{
-  companies: QueryCompany[]
-}>
-
-export type StoreCompanyPreviewResponse = {
-  company: QueryCompany
-}
-
-export type StoreCreateCompany = {
-  name: string
-  phone?: string | null
-  email: string
-  address?: string | null
-  city?: string | null
-  state?: string | null
-  zip?: string | null
-  country?: string | null
-  logo_url?: string | null
-  currency_code: string
-}
-
-export type StoreUpdateCompany = {
-  id: string
-  name: string
-  phone: string
-  email: string
-  address: string | null
-  city: string | null
-  state: string | null
-  zip: string | null
-  country: string | null
-  logo_url: string | null
-  currency_code: string
-  spending_limit_reset_frequency?: ModuleCompanySpendingLimitResetFrequency
-}
-
-/* Employee */
-
-export type StoreEmployeeResponse = {
-  employee: QueryEmployee
-}
-
-export type StoreEmployeesResponse = PaginatedResponse<{
-  employees: QueryEmployee[]
-}>
-
-export type StoreCreateEmployee = {
-  customer_id: string
-  spending_limit: number
-  is_admin: boolean
-  company_id: string
-}
-
-export type StoreUpdateEmployee = {
-  id: string
-  spending_limit: number
-  is_admin: boolean
-  company_id: string
-}

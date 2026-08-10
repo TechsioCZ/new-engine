@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest"
+
 import { nestStorefrontMessages } from "../src/core/messages"
 
-describe("nestStorefrontMessages", () => {
+describe(nestStorefrontMessages, () => {
   it("converts dotted backend keys to nested messages", () => {
     expect(
       nestStorefrontMessages({
         "cart.add_to_cart": "Add to cart",
         "checkout.steps.summary": "Summary",
-      })
-    ).toEqual({
+      }),
+    ).toStrictEqual({
       cart: {
         add_to_cart: "Add to cart",
       },
@@ -25,7 +26,7 @@ describe("nestStorefrontMessages", () => {
       nestStorefrontMessages({
         cart: "Cart",
         "cart.title": "Your cart",
-      })
+      }),
     ).toThrow("Conflicting storefront message key: cart.title")
   })
 
@@ -33,21 +34,20 @@ describe("nestStorefrontMessages", () => {
     expect(
       nestStorefrontMessages({
         "toString.title": "Title",
-      })
-    ).toEqual({
+      }),
+    ).toStrictEqual({
       toString: {
         title: "Title",
       },
     })
   })
 
-  it.each([
-    "cart..title",
-    "cart.__proto__.title",
-    "cart.constructor.title",
-  ])("rejects invalid key %s", (key) => {
-    expect(() => nestStorefrontMessages({ [key]: "value" })).toThrow(
-      `Invalid storefront message key: ${key}`
-    )
-  })
+  it.each(["cart..title", "cart.__proto__.title", "cart.constructor.title"])(
+    "rejects invalid key %s",
+    (key) => {
+      expect(() => nestStorefrontMessages({ [key]: "value" })).toThrow(
+        `Invalid storefront message key: ${key}`,
+      )
+    },
+  )
 })

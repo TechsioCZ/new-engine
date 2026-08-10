@@ -2,26 +2,26 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+import { omitUndefined } from "@techsio/std/object"
+
 import { deleteProductListItemWorkflow } from "../../../../../workflows/product-list/workflows/delete-product-list-item"
 import { updateProductListItemWorkflow } from "../../../../../workflows/product-list/workflows/update-product-list-item"
 import {
   toProductListItemResponse,
   withProductListItemSelections,
 } from "../../utils"
-import {
-  StoreProductListItemParamsSchema,
-  type StoreUpdateProductListItemSchemaType,
-} from "../../validators"
+import { StoreProductListItemParamsSchema } from "../../validators"
+import type { StoreUpdateProductListItemSchemaType } from "../../validators"
 
-export async function POST(
+const postRoute = async (
   req: AuthenticatedMedusaRequest<StoreUpdateProductListItemSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { id: itemId } = StoreProductListItemParamsSchema.parse(req.params)
   const { result: item } = await updateProductListItemWorkflow(req.scope).run({
     input: {
       customer_id: req.auth_context.actor_id,
-      data: req.validatedBody,
+      data: omitUndefined(req.validatedBody),
       item_id: itemId,
     },
   })
@@ -32,10 +32,10 @@ export async function POST(
   res.json({ item: toProductListItemResponse(itemWithSelection ?? item) })
 }
 
-export async function DELETE(
+const deleteRoute = async (
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { id: itemId } = StoreProductListItemParamsSchema.parse(req.params)
   await deleteProductListItemWorkflow(req.scope).run({
     input: {
@@ -46,3 +46,5 @@ export async function DELETE(
 
   res.status(200).json({ deleted: true, id: itemId })
 }
+
+export { deleteRoute as DELETE, postRoute as POST }

@@ -33,11 +33,11 @@ export interface MetaAddToCartParams {
   content_name?: string
   currency?: string
   value?: number
-  contents?: Array<{
+  contents?: {
     id: string
     quantity: number
     item_price?: number
-  }>
+  }[]
 }
 
 // Parameters for InitiateCheckout event
@@ -47,11 +47,11 @@ export interface MetaInitiateCheckoutParams {
   currency?: string
   value?: number
   num_items?: number
-  contents?: Array<{
+  contents?: {
     id: string
     quantity: number
     item_price?: number
-  }>
+  }[]
 }
 
 // Parameters for Purchase event (currency and value are REQUIRED)
@@ -61,22 +61,18 @@ export interface MetaPurchaseParams {
   content_ids?: string[]
   content_type?: "product" | "product_group"
   num_items?: number
-  contents?: Array<{
+  contents?: {
     id: string
     quantity: number
     item_price?: number
-  }>
+  }[]
 }
 
 // fbq function signature
 export interface MetaPixelFbq {
   (action: "init", pixelId: string): void
-  (
-    action: "track",
-    event: MetaPixelStandardEvent,
-    params?: Record<string, unknown>
-  ): void
-  (action: "trackCustom", event: string, params?: Record<string, unknown>): void
+  (action: "track", event: MetaPixelStandardEvent, params?: object): void
+  (action: "trackCustom", event: string, params?: object): void
   callMethod?: (...args: unknown[]) => void
   queue?: unknown[][]
   loaded?: boolean

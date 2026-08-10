@@ -1,23 +1,34 @@
-import { normalizeString } from './search-autocomplete-normalizers'
-import type { RawSearchAutocompleteContentHit, SearchAutocompleteSuggestion } from './search-autocomplete-types'
+import { normalizeString } from "./search-autocomplete-normalizers"
+import type {
+  RawSearchAutocompleteContentHit,
+  SearchAutocompleteSuggestion,
+} from "./search-autocomplete-types"
 
-const createContentSuggestion = (hit: RawSearchAutocompleteContentHit): SearchAutocompleteSuggestion | null => {
-	const id = normalizeString(hit.id)
-	const title = normalizeString(hit.title)
-	const href = normalizeString(hit.href)
-	const type = normalizeString(hit.type)
+const createContentSuggestion = (
+  hit: RawSearchAutocompleteContentHit,
+): SearchAutocompleteSuggestion | null => {
+  const id = normalizeString(hit.id)
+  const title = normalizeString(hit.title)
+  const href = normalizeString(hit.href)
 
-	if (!id || !title || !href) {
-		return null
-	}
+  if (id === "" || title === "" || href === "") {
+    return null
+  }
 
-	return {
-		id: id,
-		type: 'content',
-		title: title,
-		href: href,
-		subtitle: type === 'article' ? 'Článok' : normalizeString(hit.excerpt) || 'Informačná stránka'
-	}
+  const subtitle = normalizeString(hit.excerpt)
+
+  return {
+    href,
+    id,
+    ...(subtitle === "" ? {} : { subtitle }),
+    title,
+    type: "content",
+  }
 }
 
-export const createContentSuggestions = (hits: RawSearchAutocompleteContentHit[]) => hits.map(createContentSuggestion).filter((item): item is SearchAutocompleteSuggestion => Boolean(item))
+export const createContentSuggestions = (
+  hits: RawSearchAutocompleteContentHit[],
+) =>
+  hits
+    .map(createContentSuggestion)
+    .filter((item): item is SearchAutocompleteSuggestion => Boolean(item))

@@ -3,24 +3,24 @@ import type {
   ProductLocationAvailabilityResponse,
 } from "@techsio/storefront-data/product-location-availability/types"
 
-export type ProductLocationAvailabilityState = {
+export interface ProductLocationAvailabilityState {
   items: ProductLocationAvailabilityLocation[] | null
   isLoading: boolean
   error: string | null
   isInventoryManaged: boolean
 }
 
-export type ProductLocationAvailabilityQueryState = {
+export interface ProductLocationAvailabilityQueryState {
   productLocationAvailability: ProductLocationAvailabilityResponse | null
   isLoading: boolean
   error: string | null
 }
 
-export const resolveSelectedVariantLocationAvailability = (
+const resolveSelectedVariantLocationAvailability = (
   availability: ProductLocationAvailabilityResponse | null,
-  variantId: string | null
+  variantId: string | null,
 ) => {
-  if (!(availability && variantId)) {
+  if (!(availability && (variantId ?? "").length > 0)) {
     return null
   }
 
@@ -33,20 +33,20 @@ export const resolveSelectedVariantLocationAvailability = (
 export const resolveProductLocationAvailabilityState = (
   availabilityQuery: ProductLocationAvailabilityQueryState,
   variantId: string | null,
-  options: { isInventoryManaged?: boolean | null } = {}
+  options: { isInventoryManaged?: boolean | null | undefined } = {},
 ): ProductLocationAvailabilityState => ({
-  items: resolveSelectedVariantLocationAvailability(
-    availabilityQuery.productLocationAvailability,
-    variantId
-  ),
-  isLoading: availabilityQuery.isLoading,
   error: availabilityQuery.error,
   isInventoryManaged: options.isInventoryManaged !== false,
+  isLoading: availabilityQuery.isLoading,
+  items: resolveSelectedVariantLocationAvailability(
+    availabilityQuery.productLocationAvailability,
+    variantId,
+  ),
 })
 
 export const formatLocationAvailability = (
   availableQuantity: number,
-  options: { isInventoryManaged?: boolean | null } = {}
+  options: { isInventoryManaged?: boolean | null | undefined } = {},
 ) => {
   if (options.isInventoryManaged === false) {
     return "Skladom"

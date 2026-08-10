@@ -1,12 +1,13 @@
 import { Module } from "@medusajs/framework/utils"
+
 import createDefaultConfigLoader from "./loaders/create-default-config"
 import { PacketaClientModuleService } from "./service"
 
 export const PACKETA_CLIENT_MODULE = "packeta_client"
 
 export default Module(PACKETA_CLIENT_MODULE, {
-  service: PacketaClientModuleService,
   loaders: [createDefaultConfigLoader],
+  service: PacketaClientModuleService,
 })
 
 export type { PacketaClientModuleService } from "./service"

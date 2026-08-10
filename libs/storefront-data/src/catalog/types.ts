@@ -22,21 +22,22 @@ export type CatalogListInputBase = RegionInfo & {
   price_min?: number
   price_max?: number
   currency_code?: string
+  locale?: string
   enabled?: boolean
 }
 
-export type CatalogFacetItem = {
+export interface CatalogFacetItem {
   id: string
   label: string
   count: number
 }
 
-export type CatalogPriceFacet = {
+export interface CatalogPriceFacet {
   min: number | null
   max: number | null
 }
 
-export type CatalogFacets = {
+export interface CatalogFacets {
   status: CatalogFacetItem[]
   form: CatalogFacetItem[]
   brand: CatalogFacetItem[]
@@ -44,8 +45,15 @@ export type CatalogFacets = {
   price: CatalogPriceFacet
 }
 
-export type CatalogListResponse<TProduct, TFacets = CatalogFacets> = {
+export interface CatalogSearchMetadata {
+  degraded: boolean
+  exactIdentifierMatch: boolean
+  profile: string
+}
+
+export interface CatalogListResponse<TProduct, TFacets = CatalogFacets> {
   products: TProduct[]
+  search?: CatalogSearchMetadata
   count: number
   page: number
   limit: number
@@ -53,19 +61,23 @@ export type CatalogListResponse<TProduct, TFacets = CatalogFacets> = {
   facets: TFacets
 }
 
-export type CatalogService<TProduct, TListParams, TFacets = CatalogFacets> = {
+export interface CatalogService<
+  TProduct,
+  TListParams,
+  TFacets = CatalogFacets,
+> {
   getCatalogProducts: (
     params: TListParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<CatalogListResponse<TProduct, TFacets>>
 }
 
-export type CatalogQueryKeys<TListParams> = {
+export interface CatalogQueryKeys<TListParams> {
   all: () => QueryKey
   list: (params: TListParams) => QueryKey
 }
 
-type CatalogProductsResultFields<TProduct, TFacets> = {
+interface CatalogProductsResultFields<TProduct, TFacets> {
   products: TProduct[]
   facets: TFacets
   totalCount: number

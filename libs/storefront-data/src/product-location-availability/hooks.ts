@@ -1,14 +1,13 @@
 import { useQuery } from "@tanstack/react-query"
+
 import type { CacheConfig } from "../shared/cache-config"
 import { createCacheConfig } from "../shared/cache-config"
 import { toErrorMessage } from "../shared/error-utils"
 import type { ReadQueryOptions } from "../shared/hook-types"
 import type { QueryNamespace } from "../shared/query-keys"
-import {
-  createProductLocationAvailabilityQueryOptionsFactory,
-  type ProductLocationAvailabilityQueryOptionsFactory,
-} from "./query-options"
 import { createProductLocationAvailabilityQueryKeys } from "./query-keys"
+import { createProductLocationAvailabilityQueryOptionsFactory } from "./query-options"
+import type { ProductLocationAvailabilityQueryOptionsFactory } from "./query-options"
 import type {
   ProductLocationAvailabilityInputBase,
   ProductLocationAvailabilityQueryKeys,
@@ -16,11 +15,11 @@ import type {
   UseProductLocationAvailabilityResult,
 } from "./types"
 
-export type CreateProductLocationAvailabilityHooksConfig<
+export interface CreateProductLocationAvailabilityHooksConfig<
   TResponse,
   TInput extends ProductLocationAvailabilityInputBase,
   TParams,
-> = {
+> {
   service: ProductLocationAvailabilityService<TResponse, TParams>
   buildDetailParams?: (input: TInput) => TParams
   queryKeys?: ProductLocationAvailabilityQueryKeys<TParams>
@@ -28,10 +27,10 @@ export type CreateProductLocationAvailabilityHooksConfig<
   cacheConfig?: CacheConfig
 }
 
-export type ProductLocationAvailabilityHooks<
+export interface ProductLocationAvailabilityHooks<
   TResponse,
   TInput extends ProductLocationAvailabilityInputBase,
-> = {
+> {
   getDetailQueryOptions: ProductLocationAvailabilityQueryOptionsFactory<
     TResponse,
     TInput
@@ -40,14 +39,14 @@ export type ProductLocationAvailabilityHooks<
     input: TInput,
     options?: {
       queryOptions?: ReadQueryOptions<TResponse>
-    }
+    },
   ) => UseProductLocationAvailabilityResult<TResponse>
 }
 
-export function createProductLocationAvailabilityHooks<
+export const createProductLocationAvailabilityHooks = <
   TResponse,
-  TInput extends ProductLocationAvailabilityInputBase,
-  TParams,
+  TInput extends ProductLocationAvailabilityInputBase & TParams,
+  TParams = TInput,
 >({
   service,
   buildDetailParams,
@@ -58,25 +57,25 @@ export function createProductLocationAvailabilityHooks<
   TResponse,
   TInput,
   TParams
->): ProductLocationAvailabilityHooks<TResponse, TInput> {
+>): ProductLocationAvailabilityHooks<TResponse, TInput> => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ??
     createProductLocationAvailabilityQueryKeys<TParams>(queryKeyNamespace)
   const { getDetailQueryOptions } =
     createProductLocationAvailabilityQueryOptionsFactory({
-      service,
       buildDetailParams,
-      queryKeys: resolvedQueryKeys,
       cacheConfig: resolvedCacheConfig,
+      queryKeys: resolvedQueryKeys,
+      service,
     })
 
-  function useProductLocationAvailability(
+  const useProductLocationAvailability = (
     input: TInput,
     options?: {
       queryOptions?: ReadQueryOptions<TResponse>
-    }
-  ): UseProductLocationAvailabilityResult<TResponse> {
+    },
+  ): UseProductLocationAvailabilityResult<TResponse> => {
     const enabled = input.enabled ?? Boolean(input.productId)
     const query = useQuery({
       ...getDetailQueryOptions(input, {
@@ -86,11 +85,11 @@ export function createProductLocationAvailabilityHooks<
     })
 
     return {
-      productLocationAvailability: query.data ?? null,
-      isLoading: query.isLoading,
-      isFetching: query.isFetching,
-      isSuccess: query.isSuccess,
       error: toErrorMessage(query.error),
+      isFetching: query.isFetching,
+      isLoading: query.isLoading,
+      isSuccess: query.isSuccess,
+      productLocationAvailability: query.data ?? null,
       query,
     }
   }

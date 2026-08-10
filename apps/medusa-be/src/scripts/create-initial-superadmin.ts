@@ -7,9 +7,9 @@ import { MedusaError, Modules } from "@medusajs/framework/utils"
 
 const EMAIL_PASS_PROVIDER = "emailpass"
 
-function maskEmailForLog(email: string): string {
+const maskEmailForLog = (email: string): string => {
   const [localPart = "", domain = ""] = email.split("@")
-  if (!(localPart && domain)) {
+  if (localPart === "" || domain === "") {
     return "<redacted>"
   }
 
@@ -20,15 +20,20 @@ function maskEmailForLog(email: string): string {
   return `${localPart[0]}***${localPart.at(-1)}@${domain}`
 }
 
-export default async function createInitialSuperadmin({
+const createInitialSuperadmin = async ({
   container,
-}: ExecArgs): Promise<void> {
-  const email = process.env.SUPERADMIN_EMAIL?.trim()
-  const password = process.env.SUPERADMIN_PASSWORD
+}: ExecArgs): Promise<void> => {
+  const email = process.env["SUPERADMIN_EMAIL"]?.trim()
+  const password = process.env["SUPERADMIN_PASSWORD"]
 
-  if (!(email && password)) {
+  if (
+    email === undefined ||
+    email === "" ||
+    password === undefined ||
+    password === ""
+  ) {
     console.log(
-      "Skipping superadmin initialization: SUPERADMIN_EMAIL or SUPERADMIN_PASSWORD is missing."
+      "Skipping superadmin initialization: SUPERADMIN_EMAIL or SUPERADMIN_PASSWORD is missing.",
     )
     return
   }
@@ -40,7 +45,7 @@ export default async function createInitialSuperadmin({
     { email },
     {
       take: 1,
-    }
+    },
   )
 
   const user = existingUser ?? (await userService.createUsers({ email }))
@@ -48,18 +53,18 @@ export default async function createInitialSuperadmin({
   const [existingAuthIdentity] = await authService.listAuthIdentities(
     {
       provider_identities: {
-        provider: EMAIL_PASS_PROVIDER,
         entity_id: email,
+        provider: EMAIL_PASS_PROVIDER,
       },
     },
     {
       take: 1,
-    }
+    },
   )
 
   let authIdentity = existingAuthIdentity
 
-  if (!authIdentity) {
+  if (authIdentity === undefined) {
     const registration = await authService.register(EMAIL_PASS_PROVIDER, {
       body: {
         email,
@@ -67,37 +72,45 @@ export default async function createInitialSuperadmin({
       },
     })
 
-    if (registration.error || !registration.success) {
+    const {
+      authIdentity: registeredAuthIdentity,
+      error: registrationError,
+      success: registrationSucceeded,
+    } = registration
+    if (registrationError !== undefined || !registrationSucceeded) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Failed to register superadmin auth identity: ${registration.error ?? "unknown error"}`
+        `Failed to register superadmin auth identity: ${registrationError ?? "unknown error"}`,
       )
     }
 
-    if (!registration.authIdentity) {
+    if (registeredAuthIdentity === undefined) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Failed to register superadmin auth identity."
+        "Failed to register superadmin auth identity.",
       )
     }
 
-    authIdentity = registration.authIdentity
+    authIdentity = registeredAuthIdentity
   }
 
+  const { app_metadata: appMetadata } = authIdentity
   const linkedUserId =
-    typeof authIdentity.app_metadata?.user_id === "string"
-      ? authIdentity.app_metadata.user_id
+    typeof appMetadata?.["user_id"] === "string"
+      ? appMetadata["user_id"]
       : undefined
 
   if (linkedUserId !== user.id) {
     await authService.updateAuthIdentities({
-      id: authIdentity.id,
       app_metadata: {
-        ...(authIdentity.app_metadata ?? {}),
+        ...authIdentity.app_metadata,
         user_id: user.id,
       },
+      id: authIdentity.id,
     })
   }
 
   console.log(`Superadmin is ready: ${maskEmailForLog(email)}`)
 }
+
+export default createInitialSuperadmin

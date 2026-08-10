@@ -2,12 +2,13 @@ import type { ILockingModule } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import { StepResponse } from "@medusajs/framework/workflows-sdk"
 import { deleteProductsWorkflow } from "@medusajs/medusa/core-flows"
+
 import { getProductAttributeService } from "../../utils/product-attributes"
 import {
   cleanupDeletedProductAttributes,
-  type ProductAttributeDeletionCompensation,
   restoreDeletedProductAttributes,
 } from "../product-attribute/product-deletion-cleanup"
+import type { ProductAttributeDeletionCompensation } from "../product-attribute/product-deletion-cleanup"
 
 deleteProductsWorkflow.hooks.productsDeleted(
   async ({ ids }, { container }) => {
@@ -23,7 +24,7 @@ deleteProductsWorkflow.hooks.productsDeleted(
   },
   async (
     compensation: ProductAttributeDeletionCompensation | undefined,
-    { container }
+    { container },
   ) => {
     if (compensation) {
       await restoreDeletedProductAttributes({
@@ -32,5 +33,5 @@ deleteProductsWorkflow.hooks.productsDeleted(
         service: getProductAttributeService(container),
       })
     }
-  }
+  },
 )

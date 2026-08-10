@@ -1,9 +1,10 @@
 "use client"
 
 import { useForm } from "@tanstack/react-form"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
-import { Button } from "@ui/atoms/button"
-import { FormInput } from "@ui/molecules/form-input"
+
 import { TextField } from "@/components/forms/fields/text-field"
 import { useAuth } from "@/hooks/use-auth"
 import { useUpdateCustomer } from "@/hooks/use-customer"
@@ -13,21 +14,21 @@ import {
   formatPhoneNumber,
 } from "@/utils/format/format-phone-number"
 
-type ProfileFormData = {
+interface ProfileFormData {
   first_name: string
   last_name: string
   phone: string
 }
 
-export function ProfileForm() {
+export const ProfileForm = () => {
   const { customer } = useAuth()
   const updateCustomer = useUpdateCustomer()
   const toaster = useToast()
 
   const defaultValues: ProfileFormData = {
-    first_name: customer?.first_name || "",
-    last_name: customer?.last_name || "",
-    phone: formatPhoneNumber(customer?.phone || ""),
+    first_name: customer?.first_name ?? "",
+    last_name: customer?.last_name ?? "",
+    phone: formatPhoneNumber(customer?.phone ?? ""),
   }
   const form = useForm({
     defaultValues,
@@ -38,18 +39,18 @@ export function ProfileForm() {
       }
 
       updateCustomer.mutate(cleanedData, {
-        onSuccess: () => {
-          toaster.create({
-            title: "Profil aktualizován",
-            description: "Vaše údaje byly úspěšně uloženy.",
-            type: "success",
-          })
-        },
         onError: () => {
           toaster.create({
-            title: "Chyba",
             description: "Nepodařilo se aktualizovat profil.",
+            title: "Chyba",
             type: "error",
+          })
+        },
+        onSuccess: () => {
+          toaster.create({
+            description: "Vaše údaje byly úspěšně uloženy.",
+            title: "Profil aktualizován",
+            type: "success",
           })
         },
       })
@@ -59,9 +60,9 @@ export function ProfileForm() {
   return (
     <form
       className="space-y-200"
-      onSubmit={(e) => {
-        e.preventDefault()
-        form.handleSubmit()
+      onSubmit={(event) => {
+        event.preventDefault()
+        void form.handleSubmit()
       }}
     >
       <div className="grid gap-200 md:grid-cols-2">
@@ -107,7 +108,7 @@ export function ProfileForm() {
         id="email"
         label="E-mail (nelze změnit)"
         readOnly
-        value={customer?.email || ""}
+        value={customer?.email ?? ""}
       />
 
       <Button

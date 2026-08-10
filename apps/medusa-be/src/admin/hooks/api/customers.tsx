@@ -1,20 +1,15 @@
 import type { HttpTypes } from "@medusajs/framework/types"
 import type { FetchError } from "@medusajs/js-sdk"
 import type { AdminCreateCustomer, AdminCustomer } from "@medusajs/types"
-import {
-  type QueryKey,
-  type UseMutationOptions,
-  type UseQueryOptions,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type { UseMutationOptions, UseQueryOptions } from "@tanstack/react-query"
+
 import { queryKeysFactory } from "../../lib/query-key-factory"
 import { sdk } from "../../lib/sdk"
 
 export const customerQueryKey = queryKeysFactory("customer")
 
-type CustomerGroupCompanyOwner = {
+interface CustomerGroupCompanyOwner {
   customer_group_id: string
   company: {
     deleted_at?: string | null
@@ -23,7 +18,7 @@ type CustomerGroupCompanyOwner = {
   }
 }
 
-type CustomerGroupCompanyOwnersResponse = {
+interface CustomerGroupCompanyOwnersResponse {
   customer_group_links: CustomerGroupCompanyOwner[]
 }
 
@@ -31,8 +26,7 @@ type CustomerGroupCompanyOwnersQueryOptions = Omit<
   UseQueryOptions<
     CustomerGroupCompanyOwnersResponse,
     FetchError,
-    CustomerGroupCompanyOwnersResponse,
-    QueryKey
+    CustomerGroupCompanyOwnersResponse
   >,
   "enabled" | "queryFn" | "queryKey"
 > & {
@@ -43,8 +37,7 @@ type AdminCustomerGroupsQueryOptions = Omit<
   UseQueryOptions<
     HttpTypes.AdminCustomerGroupListResponse,
     FetchError,
-    HttpTypes.AdminCustomerGroupListResponse,
-    QueryKey
+    HttpTypes.AdminCustomerGroupListResponse
   >,
   "queryFn" | "queryKey"
 >
@@ -57,8 +50,7 @@ type AdminCustomerSearchQueryOptions = Omit<
   UseQueryOptions<
     AdminCustomerSearchResponse,
     FetchError,
-    AdminCustomerSearchResponse,
-    QueryKey
+    AdminCustomerSearchResponse
   >,
   "enabled" | "queryFn" | "queryKey"
 > & {
@@ -67,48 +59,48 @@ type AdminCustomerSearchQueryOptions = Omit<
 
 export const useAdminCustomerGroups = (
   query?: HttpTypes.AdminGetCustomerGroupsParams,
-  options?: AdminCustomerGroupsQueryOptions
+  options?: AdminCustomerGroupsQueryOptions,
 ) =>
   useQuery({
-    queryKey: customerQueryKey.list({ scope: "groups", ...query }),
-    queryFn: () =>
-      sdk.admin.customerGroup.list({
+    queryFn: async () =>
+      await sdk.admin.customerGroup.list({
         ...query,
         fields: query?.fields ?? "id,name",
       }),
+    queryKey: customerQueryKey.list({ scope: "groups", ...query }),
     ...options,
   })
 
 export const useCustomerGroupCompanyOwners = (
   groupIds: string[],
-  options?: CustomerGroupCompanyOwnersQueryOptions
+  options?: CustomerGroupCompanyOwnersQueryOptions,
 ) => {
   const { enabled, ...queryOptions } = options ?? {}
 
   return useQuery({
     ...queryOptions,
     enabled: Boolean(groupIds.length) && (enabled ?? true),
-    queryKey: customerQueryKey.list({
-      groupIds,
-      scope: "group-company-owners",
-    }),
-    queryFn: () => {
+    queryFn: async () => {
       const searchParams = new URLSearchParams()
 
       for (const groupId of groupIds) {
         searchParams.append("group_id", groupId)
       }
 
-      return sdk.client.fetch<CustomerGroupCompanyOwnersResponse>(
-        `/admin/company-customer-group-links?${searchParams.toString()}`
+      return await sdk.client.fetch<CustomerGroupCompanyOwnersResponse>(
+        `/admin/company-customer-group-links?${searchParams.toString()}`,
       )
     },
+    queryKey: customerQueryKey.list({
+      groupIds,
+      scope: "group-company-owners",
+    }),
   })
 }
 
 export const useAdminCustomerSearch = (
   email: string,
-  options?: AdminCustomerSearchQueryOptions
+  options?: AdminCustomerSearchQueryOptions,
 ) => {
   const { enabled, ...queryOptions } = options ?? {}
   const normalizedEmail = email.trim().toLowerCase()
@@ -116,16 +108,16 @@ export const useAdminCustomerSearch = (
   return useQuery({
     ...queryOptions,
     enabled: Boolean(normalizedEmail) && (enabled ?? true),
-    queryKey: customerQueryKey.list({
-      email: normalizedEmail,
-      scope: "email-search",
-    }),
-    queryFn: () =>
-      sdk.admin.customer.list({
+    queryFn: async () =>
+      await sdk.admin.customer.list({
         fields: "id,email,first_name,last_name,phone",
         limit: 5,
         q: normalizedEmail,
       }),
+    queryKey: customerQueryKey.list({
+      email: normalizedEmail,
+      scope: "email-search",
+    }),
   })
 }
 
@@ -134,18 +126,18 @@ export const useAdminCreateCustomer = (
     { customer: AdminCustomer },
     FetchError,
     AdminCreateCustomer
-  >
+  >,
 ) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (customer: AdminCreateCustomer) =>
-      sdk.admin.customer.create(customer),
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
+    mutationFn: async (customer: AdminCreateCustomer) =>
+      await sdk.admin.customer.create(customer),
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: customerQueryKey.lists(),
       })
-      options?.onSuccess?.(data, variables, context)
+      await options?.onSuccess?.(data, variables, context)
     },
     ...options,
   })
@@ -156,9 +148,11 @@ export const useAdminFindCustomerByEmail = (
     HttpTypes.AdminCustomer | null,
     FetchError,
     string
-  >
-) =>
-  useMutation({
+  >,
+) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
     mutationFn: async (email: string) => {
       const normalizedEmail = email.trim().toLowerCase()
       const { customers } = await sdk.admin.customer.list({
@@ -169,9 +163,16 @@ export const useAdminFindCustomerByEmail = (
 
       return (
         customers.find(
-          (customer) => customer.email?.toLowerCase() === normalizedEmail
+          (customer) => customer.email?.toLowerCase() === normalizedEmail,
         ) ?? null
       )
     },
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
+        queryKey: customerQueryKey.lists(),
+      })
+      await options?.onSuccess?.(data, variables, context)
+    },
     ...options,
   })
+}

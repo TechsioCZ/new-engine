@@ -1,29 +1,34 @@
 import type { DeleteEntityInput, Link } from "@medusajs/framework/modules-sdk"
-import type { Query, RemoteQueryEntryPoints } from "@medusajs/framework/types"
+import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { omitUndefined } from "@techsio/std/object"
+
 import { COMPANY_MODULE } from "../../../modules/company"
 import type {
   ICompanyModuleService,
   ModuleCreateEmployee,
+  QueryGraphEmployee,
 } from "../../../types"
 
-type EmployeeCustomerLinkRow = {
+type EmployeeDeletionDate = Date | string | null
+
+interface EmployeeCustomerLinkRow {
   customer_id?: string
-  deleted_at?: Date | string | null
+  deleted_at?: EmployeeDeletionDate
   employee_id?: string
 }
 
-type RestorableEmployee = {
+interface RestorableEmployee {
   company?: {
-    deleted_at?: Date | string | null
+    deleted_at?: EmployeeDeletionDate
     id?: string
   } | null
-  deleted_at?: Date | string | null
+  deleted_at?: EmployeeDeletionDate
   id: string
   is_admin?: boolean
   spending_limit?: number
@@ -64,90 +69,109 @@ export const createOrRestoreEmployeeStep = createStep(
   "create-or-restore-employee",
   async (
     input: ModuleCreateEmployee,
-    { container }
+    { container },
   ): Promise<
-    StepResponse<
-      RemoteQueryEntryPoints["employee"],
-      CreateOrRestoreEmployeeCompensation
-    >
+    StepResponse<QueryGraphEmployee, CreateOrRestoreEmployeeCompensation>
   > => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 
-    const { data: existingLinks } = (await query.graph({
-      entity: EMPLOYEE_CUSTOMER_LINK_ENTRY_POINT,
-      fields: ["customer_id", "deleted_at", "employee_id"],
-      filters: {
-        customer_id: input.customer_id,
-      },
-      withDeleted: true,
-    })) as { data: EmployeeCustomerLinkRow[] }
+    const existingLinksResult: { data: EmployeeCustomerLinkRow[] } =
+      await query.graph({
+        entity: EMPLOYEE_CUSTOMER_LINK_ENTRY_POINT,
+        fields: ["customer_id", "deleted_at", "employee_id"],
+        filters: {
+          customer_id: input.customer_id,
+        },
+        withDeleted: true,
+      })
+    const { data: existingLinks } = existingLinksResult
     const employeeIds = [
       ...new Set(
         existingLinks
           .map((existingLink) => existingLink.employee_id)
-          .filter((employeeId): employeeId is string => Boolean(employeeId))
+          .filter(
+            (employeeId): employeeId is string =>
+              employeeId !== undefined && employeeId !== "",
+          ),
       ),
     ]
 
-    const { data: existingEmployees } = employeeIds.length
-      ? ((await query.graph({
-          entity: "employee",
-          fields: [
-            "id",
-            "deleted_at",
-            "is_admin",
-            "spending_limit",
-            "company.id",
-            "company.deleted_at",
-          ],
-          filters: { id: employeeIds },
-          withDeleted: true,
-        })) as { data: RestorableEmployee[] })
-      : { data: [] }
+    const existingEmployeesResult: { data: RestorableEmployee[] } =
+      employeeIds.length > 0
+        ? await query.graph({
+            entity: "employee",
+            fields: [
+              "id",
+              "deleted_at",
+              "is_admin",
+              "spending_limit",
+              "company.id",
+              "company.deleted_at",
+            ],
+            filters: { id: employeeIds },
+            withDeleted: true,
+          })
+        : { data: [] }
+    const { data: existingEmployees } = existingEmployeesResult
     const activeOtherCompanyEmployee = existingEmployees.find(
-      (existingEmployee) =>
-        !(
-          existingEmployee.deleted_at || existingEmployee.company?.deleted_at
-        ) && existingEmployee.company?.id !== input.company_id
+      (existingEmployee) => {
+        const employeeIsActive =
+          existingEmployee.deleted_at === null ||
+          existingEmployee.deleted_at === undefined
+        const companyIsActive =
+          existingEmployee.company?.deleted_at === null ||
+          existingEmployee.company?.deleted_at === undefined
+        return (
+          employeeIsActive &&
+          companyIsActive &&
+          existingEmployee.company?.id !== input.company_id
+        )
+      },
     )
-    const restorableEmployee = existingEmployees.find(
-      (existingEmployee) =>
-        !activeOtherCompanyEmployee &&
-        existingEmployee.deleted_at &&
+    const restorableEmployee = existingEmployees.find((existingEmployee) => {
+      const employeeIsDeleted =
+        existingEmployee.deleted_at !== null &&
+        existingEmployee.deleted_at !== undefined
+      return (
+        activeOtherCompanyEmployee === undefined &&
+        employeeIsDeleted &&
         existingEmployee.company?.id === input.company_id
-    )
+      )
+    })
 
-    if (restorableEmployee) {
+    if (restorableEmployee !== undefined) {
       const restoredLinkInput = getEmployeeLinkDeleteInput(
-        restorableEmployee.id
+        restorableEmployee.id,
       )
 
       await companyModuleService.restoreEmployees([restorableEmployee.id])
       await link.restore(restoredLinkInput)
-      const updatedEmployee = await companyModuleService.updateEmployees({
-        id: restorableEmployee.id,
-        is_admin: input.is_admin,
-        spending_limit: input.spending_limit,
-      })
-
-      const {
-        data: [restoredEmployee],
-      } = await query.graph(
-        {
-          entity: "employee",
-          fields: ["id", "company.*"],
-          filters: { id: updatedEmployee.id },
-        },
-        { throwIfKeyNotFound: true }
+      const updatedEmployee = await companyModuleService.updateEmployees(
+        omitUndefined({
+          id: restorableEmployee.id,
+          is_admin: input.is_admin,
+          spending_limit: input.spending_limit,
+        }),
       )
 
-      if (!restoredEmployee) {
+      const restoredEmployeeResult: { data: QueryGraphEmployee[] } =
+        await query.graph(
+          {
+            entity: "employee",
+            fields: ["id", "company.*"],
+            filters: { id: updatedEmployee.id },
+          },
+          { throwIfKeyNotFound: true },
+        )
+      const [restoredEmployee] = restoredEmployeeResult.data
+
+      if (restoredEmployee === undefined) {
         throw new MedusaError(
           MedusaError.Types.NOT_FOUND,
-          `Restored employee "${updatedEmployee.id}" was not found`
+          `Restored employee "${updatedEmployee.id}" was not found`,
         )
       }
 
@@ -163,24 +187,24 @@ export const createOrRestoreEmployeeStep = createStep(
     const createdEmployee = await companyModuleService.createEmployees(input)
 
     await link.create(
-      getEmployeeCustomerLink(createdEmployee.id, input.customer_id)
+      getEmployeeCustomerLink(createdEmployee.id, input.customer_id),
     )
 
-    const {
-      data: [createdEmployeeResult],
-    } = await query.graph(
-      {
-        entity: "employee",
-        filters: { id: createdEmployee.id },
-        fields: ["id", "company.*"],
-      },
-      { throwIfKeyNotFound: true }
-    )
+    const createdEmployeeQueryResult: { data: QueryGraphEmployee[] } =
+      await query.graph(
+        {
+          entity: "employee",
+          fields: ["id", "company.*"],
+          filters: { id: createdEmployee.id },
+        },
+        { throwIfKeyNotFound: true },
+      )
+    const [createdEmployeeResult] = createdEmployeeQueryResult.data
 
-    if (!createdEmployeeResult) {
+    if (createdEmployeeResult === undefined) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Created employee "${createdEmployee.id}" was not found`
+        `Created employee "${createdEmployee.id}" was not found`,
       )
     }
 
@@ -192,9 +216,9 @@ export const createOrRestoreEmployeeStep = createStep(
   },
   async (
     input: CreateOrRestoreEmployeeCompensation | undefined,
-    { container }
+    { container },
   ) => {
-    if (!input) {
+    if (input === undefined) {
       return
     }
 
@@ -204,7 +228,7 @@ export const createOrRestoreEmployeeStep = createStep(
 
     if (input.action === "created") {
       await link.dismiss(
-        getEmployeeCustomerLink(input.employee_id, input.customer_id)
+        getEmployeeCustomerLink(input.employee_id, input.customer_id),
       )
       await companyModuleService.deleteEmployees([input.employee_id])
       return
@@ -217,5 +241,5 @@ export const createOrRestoreEmployeeStep = createStep(
     })
     await link.delete(input.restored_link_input)
     await companyModuleService.softDeleteEmployees([input.employee_id])
-  }
+  },
 )

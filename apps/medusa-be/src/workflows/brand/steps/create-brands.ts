@@ -1,5 +1,6 @@
 import { kebabCase, MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import type { CreateBrandsWorkflowInput } from "../types"
 import {
   buildBrandWriteInput,
@@ -18,12 +19,16 @@ export const createBrandsStep = createStep(
     const service = getBrandService(container)
     const normalizedBrands = input.brands.map((brand) => {
       const title = brand.title.trim()
-      const handle = brand.handle?.trim() || kebabCase(title)
+      const explicitHandle = brand.handle?.trim()
+      const handle =
+        explicitHandle === undefined || explicitHandle === ""
+          ? kebabCase(title)
+          : explicitHandle
 
-      if (!(title && handle)) {
+      if (title === "" || handle === "") {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          "Brand title and handle must not be empty"
+          "Brand title and handle must not be empty",
         )
       }
 
@@ -35,7 +40,7 @@ export const createBrandsStep = createStep(
             handle,
             title,
           },
-          handle
+          handle,
         ),
         handle,
         title,
@@ -46,7 +51,7 @@ export const createBrandsStep = createStep(
     if (new Set(handles).size !== handles.length) {
       throw new MedusaError(
         MedusaError.Types.DUPLICATE_ERROR,
-        "The create request contains duplicate brand handles"
+        "The create request contains duplicate brand handles",
       )
     }
 
@@ -57,25 +62,25 @@ export const createBrandsStep = createStep(
       {
         take: Math.max(handles.length * 2, 1),
         withDeleted: true,
-      }
+      },
     )
 
-    if (existingBrands.length) {
-      const existing = existingBrands[0]
+    if (existingBrands.length > 0) {
+      const [existing] = existingBrands
       if (!existing) {
         throw new MedusaError(
           MedusaError.Types.UNEXPECTED_STATE,
-          "Brand lookup returned an empty record"
+          "Brand lookup returned an empty record",
         )
       }
       throw new MedusaError(
         MedusaError.Types.DUPLICATE_ERROR,
-        getBrandHandleCollisionMessage(existing)
+        getBrandHandleCollisionMessage(existing),
       )
     }
 
     const brands = await withBrandTransaction(service, async (context) => {
-      const createdBrands = (await service.createBrands(
+      const createdBrands = await service.createBrands(
         normalizedBrands.map((brand) =>
           buildBrandWriteInput({
             gpsr_contact_email: brand.gpsr_contact_email,
@@ -91,23 +96,23 @@ export const createBrandsStep = createStep(
             gpsr_postal_address: brand.gpsr_postal_address,
             handle: brand.handle,
             title: brand.title,
-          })
+          }),
         ),
-        context
-      )) as Array<{ id: string; handle: string }>
+        context,
+      )
 
       const createdBrandsByHandle = new Map(
-        createdBrands.map((brand) => [brand.handle, brand])
+        createdBrands.map((brand) => [brand.handle, brand]),
       )
 
       await Promise.all(
         normalizedBrands.map(async (brand) => {
           const createdBrand = createdBrandsByHandle.get(brand.handle)
 
-          if (!createdBrand) {
+          if (createdBrand === undefined) {
             throw new MedusaError(
               MedusaError.Types.UNEXPECTED_STATE,
-              `Created brand "${brand.handle}" was not found`
+              `Created brand "${brand.handle}" was not found`,
             )
           }
 
@@ -115,9 +120,9 @@ export const createBrandsStep = createStep(
             service,
             createdBrand.id,
             brand.attributes,
-            context
+            context,
           )
-        })
+        }),
       )
 
       return createdBrands
@@ -127,10 +132,10 @@ export const createBrandsStep = createStep(
     return new StepResponse(brands, createdIds)
   },
   async (createdIds, { container }) => {
-    if (!createdIds?.length) {
+    if (createdIds === undefined || createdIds.length === 0) {
       return
     }
 
     await getBrandService(container).deleteBrands(createdIds)
-  }
+  },
 )

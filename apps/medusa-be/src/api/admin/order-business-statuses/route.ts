@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import {
   ORDER_BUSINESS_STATUS_ORDER_FIELDS,
   parseOrderBusinessStatusOrders,
@@ -8,10 +9,10 @@ import {
 } from "./utils"
 import type { GetAdminOrderBusinessStatusesSchemaType } from "./validators"
 
-export async function GET(
+const get = async (
   req: MedusaRequest<unknown, GetAdminOrderBusinessStatusesSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { limit, offset } = req.validatedQuery
 
@@ -27,9 +28,11 @@ export async function GET(
   const orders = parseOrderBusinessStatusOrders(data)
 
   res.json({
-    orders: orders.map(toOrderBusinessStatusSummary),
     count: metadata?.count ?? orders.length,
     limit,
     offset,
+    orders: orders.map(toOrderBusinessStatusSummary),
   })
 }
+
+export { get as GET }

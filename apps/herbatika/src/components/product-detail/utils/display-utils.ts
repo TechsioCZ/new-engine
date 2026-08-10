@@ -1,27 +1,35 @@
 import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery"
+
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-detail/product-detail.constants"
 
-const SENTENCE_SEPARATOR_PATTERN = /[.!?]/
+const SENTENCE_SEPARATOR_PATTERN = /[.!?]/u
 
 export const resolveGalleryItems = (
   imageUrls: string[],
   title: string | null | undefined,
-  fallbackProductLabel: string
+  fallbackProductLabel: string,
 ): GalleryItem[] => {
   if (imageUrls.length === 0) {
     return [
       {
+        alt:
+          title === undefined || title === null || title === ""
+            ? fallbackProductLabel
+            : title,
         id: "gallery-fallback",
         src: PRODUCT_FALLBACK_IMAGE,
-        alt: title || fallbackProductLabel,
       },
     ]
   }
 
   return imageUrls.map((imageUrl, index) => ({
+    alt: `${
+      title === undefined || title === null || title === ""
+        ? fallbackProductLabel
+        : title
+    } (${index + 1})`,
     id: `gallery-${index}`,
     src: imageUrl,
-    alt: `${title || fallbackProductLabel} (${index + 1})`,
   }))
 }
 

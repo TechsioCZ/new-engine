@@ -4,6 +4,8 @@ import type {
 } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { omitUndefined } from "@techsio/std/object"
+
 import { applyOrderCommercialValues } from "../../../../../../workflows/order-commercial-values/apply-commercial-values"
 import {
   fetchEditableCommercialValuesOrder,
@@ -13,29 +15,31 @@ import {
 } from "../utils"
 import type { PostAdminOrderCommercialValuesConfirmSchemaType } from "../validators"
 
-export async function POST(
+const post = async (
   req: AuthenticatedMedusaRequest<PostAdminOrderCommercialValuesConfirmSchemaType>,
-  res: MedusaResponse
-) {
-  const id = requireCommercialValuesOrderId(req.params.id)
+  res: MedusaResponse,
+) => {
+  const id = requireCommercialValuesOrderId(req.params["id"])
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const order = await fetchEditableCommercialValuesOrder(
     req.scope,
     query,
     id,
-    req.validatedBody.expected_order_version
+    req.validatedBody.expected_order_version,
   )
 
   const result = await applyOrderCommercialValues({
     actor_id: req.auth_context?.actor_id,
     calculation_input: toCommercialValuesCalculationInput(
       order,
-      req.validatedBody
+      req.validatedBody,
     ),
     container: req.scope,
     order: toApplyCommercialValuesOrder(order),
-    request: req.validatedBody,
+    request: omitUndefined(req.validatedBody),
   })
 
   res.json({ commercial_values: result })
 }
+
+export { post as POST }

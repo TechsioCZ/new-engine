@@ -1,6 +1,6 @@
 import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group"
 
-type CheckoutPurchaseTypeToggleProps = {
+interface CheckoutPurchaseTypeToggleProps {
   companyLabel: string
   groupLabel: string
   id: string
@@ -9,43 +9,41 @@ type CheckoutPurchaseTypeToggleProps = {
   privateLabel: string
 }
 
-export function CheckoutPurchaseTypeToggle({
+export const CheckoutPurchaseTypeToggle = ({
   companyLabel,
   groupLabel,
   id,
   isCompanyPurchase,
   onValueChange,
   privateLabel,
-}: CheckoutPurchaseTypeToggleProps) {
-  return (
-    <RadioGroup
-      className="w-auto font-rubik"
-      id={id}
-      onValueChange={(value) => {
-        onValueChange(value === "company")
-      }}
-      orientation="horizontal"
-      size="sm"
-      value={isCompanyPurchase ? "company" : "private"}
-      variant="subtle"
-    >
-      <RadioGroup.Label className="sr-only">{groupLabel}</RadioGroup.Label>
-      <RadioGroup.ItemGroup>
-        <RadioGroup.Item value="private">
-          <RadioGroup.ItemHiddenInput />
-          <RadioGroup.ItemControl />
-          <RadioGroup.ItemContent>
-            <RadioGroup.ItemText>{privateLabel}</RadioGroup.ItemText>
-          </RadioGroup.ItemContent>
-        </RadioGroup.Item>
-        <RadioGroup.Item value="company">
-          <RadioGroup.ItemHiddenInput />
-          <RadioGroup.ItemControl />
-          <RadioGroup.ItemContent>
-            <RadioGroup.ItemText>{companyLabel}</RadioGroup.ItemText>
-          </RadioGroup.ItemContent>
-        </RadioGroup.Item>
-      </RadioGroup.ItemGroup>
-    </RadioGroup>
-  )
-}
+}: CheckoutPurchaseTypeToggleProps) => (
+  <RadioGroup
+    className="w-auto font-rubik"
+    id={id}
+    onValueChange={(value) => {
+      onValueChange(value === "company")
+    }}
+    orientation="horizontal"
+    size="sm"
+    value={isCompanyPurchase ? "company" : "private"}
+    variant="subtle"
+  >
+    <RadioGroup.Label className="sr-only">{groupLabel}</RadioGroup.Label>
+    <RadioGroup.ItemGroup>
+      <RadioGroup.Item value="private">
+        <RadioGroup.ItemHiddenInput />
+        <RadioGroup.ItemControl />
+        <RadioGroup.ItemContent>
+          <RadioGroup.ItemText>{privateLabel}</RadioGroup.ItemText>
+        </RadioGroup.ItemContent>
+      </RadioGroup.Item>
+      <RadioGroup.Item value="company">
+        <RadioGroup.ItemHiddenInput />
+        <RadioGroup.ItemControl />
+        <RadioGroup.ItemContent>
+          <RadioGroup.ItemText>{companyLabel}</RadioGroup.ItemText>
+        </RadioGroup.ItemContent>
+      </RadioGroup.Item>
+    </RadioGroup.ItemGroup>
+  </RadioGroup>
+)

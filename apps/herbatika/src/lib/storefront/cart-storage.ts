@@ -1,15 +1,12 @@
-import {
-  createLocalStorageValueStore,
-  type StorageValueStore,
-} from "@techsio/storefront-data/shared/storage-value-store"
+import { noop } from "@techsio/std/function"
+import { createLocalStorageValueStore } from "@techsio/storefront-data/shared/storage-value-store"
+import type { StorageValueStore } from "@techsio/storefront-data/shared/storage-value-store"
 
-export const CART_STORAGE_KEY = "herbatika_cart_id"
+const CART_STORAGE_KEY = "herbatika_cart_id"
 
 const baseCartStorage = createLocalStorageValueStore({
   key: CART_STORAGE_KEY,
 })
-
-const noop = () => null
 
 type HerbatikaCartStorage = StorageValueStore & {
   getCartId: () => string | null
@@ -18,31 +15,31 @@ type HerbatikaCartStorage = StorageValueStore & {
 }
 
 export const cartStorage: HerbatikaCartStorage = {
-  get() {
-    return baseCartStorage.get()
-  },
-  set(cartId: string) {
-    baseCartStorage.set(cartId)
-  },
   clear() {
     baseCartStorage.clear()
   },
-  subscribe(listener) {
-    return baseCartStorage.subscribe?.(listener) ?? noop
+  clearCartId() {
+    this.clear()
   },
-  getSnapshot() {
+  get() {
+    return baseCartStorage.get()
+  },
+  getCartId() {
     return baseCartStorage.getSnapshot?.() ?? baseCartStorage.get()
   },
   getServerSnapshot() {
     return baseCartStorage.getServerSnapshot?.() ?? null
   },
-  getCartId() {
+  getSnapshot() {
     return baseCartStorage.getSnapshot?.() ?? baseCartStorage.get()
+  },
+  set(cartId: string) {
+    baseCartStorage.set(cartId)
   },
   setCartId(cartId: string) {
     this.set(cartId)
   },
-  clearCartId() {
-    this.clear()
+  subscribe(listener) {
+    return baseCartStorage.subscribe?.(listener) ?? noop
   },
 }

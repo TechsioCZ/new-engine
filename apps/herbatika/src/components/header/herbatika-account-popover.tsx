@@ -3,24 +3,65 @@
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
-import { useEffect, useState } from "react"
+import { useState } from "react"
+
+import NextLink from "@/components/app-link"
 import { LoginForm } from "@/components/auth/login-form"
 import { useAuthController } from "@/components/auth/use-auth-controller"
 
-export function HerbatikaAccountPopover() {
-  const tAuth = useTranslations("auth")
-  const controller = useAuthController({ mode: "login" })
+type AuthController = ReturnType<typeof useAuthController>
+
+interface LoginAccountPopoverProps {
+  controller: AuthController
+  title: string
+}
+
+const LoginAccountPopover = ({
+  controller,
+  title,
+}: LoginAccountPopoverProps) => {
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
 
-  useEffect(() => {
-    if (!controller.authQuery.isAuthenticated) {
-      return
-    }
+  return (
+    <Popover.Root
+      gutter={12}
+      id="herbatika-login-popover"
+      onOpenChange={({ open }) => {
+        setIsPopoverOpen(open)
+      }}
+      open={isPopoverOpen}
+      placement="bottom-end"
+      shadow={false}
+    >
+      <Popover.Trigger className="px-0 py-0 text-3xl hover:bg-transparent data-[state=open]:bg-transparent">
+        <span className="sr-only">{title}</span>
+        <Icon
+          className="text-3xl text-fg-secondary hover:text-primary"
+          icon="token-icon-user"
+        />
+      </Popover.Trigger>
 
-    setIsPopoverOpen(false)
-  }, [controller.authQuery.isAuthenticated])
+      <Popover.Positioner>
+        <Popover.Content className="w-account-popover max-w-popover-viewport">
+          <Popover.Arrow />
+          <Popover.Title>{title}</Popover.Title>
+          <LoginForm
+            defaultValues={controller.loginDefaultValues}
+            forgotPasswordHref={controller.forgotPasswordHref}
+            isBusy={controller.isBusy}
+            onSubmit={controller.handleLoginSubmit}
+            registerHref={controller.registerHref}
+          />
+        </Popover.Content>
+      </Popover.Positioner>
+    </Popover.Root>
+  )
+}
+
+export const HerbatikaAccountPopover = () => {
+  const tAuth = useTranslations("auth")
+  const controller = useAuthController({ mode: "login" })
 
   if (controller.authQuery.isAuthenticated) {
     return (
@@ -38,35 +79,9 @@ export function HerbatikaAccountPopover() {
   }
 
   return (
-    <Popover.Root
-      gutter={12}
-      id="herbatika-login-popover"
-      onOpenChange={({ open }) => setIsPopoverOpen(open)}
-      open={isPopoverOpen}
-      placement="bottom-end"
-      shadow={false}
-    >
-      <Popover.Trigger className="px-0 py-0 text-3xl hover:bg-transparent data-[state=open]:bg-transparent">
-        <span className="sr-only">{tAuth("login.short_title")}</span>
-        <Icon
-          className="text-3xl text-fg-secondary hover:text-primary"
-          icon="token-icon-user"
-        />
-      </Popover.Trigger>
-
-      <Popover.Positioner>
-        <Popover.Content className="w-[22rem] max-w-[calc(100vw-2rem)]">
-          <Popover.Arrow />
-          <Popover.Title>{tAuth("login.short_title")}</Popover.Title>
-          <LoginForm
-            defaultValues={controller.loginDefaultValues}
-            forgotPasswordHref={controller.forgotPasswordHref}
-            isBusy={controller.isBusy}
-            onSubmit={controller.handleLoginSubmit}
-            registerHref={controller.registerHref}
-          />
-        </Popover.Content>
-      </Popover.Positioner>
-    </Popover.Root>
+    <LoginAccountPopover
+      controller={controller}
+      title={tAuth("login.short_title")}
+    />
   )
 }

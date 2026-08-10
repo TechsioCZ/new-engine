@@ -1,10 +1,31 @@
 import { Command } from "commander"
+import { z } from "zod"
+
 import { resolveEnvironmentCommandInputSchema } from "../contracts/resolve-environment.js"
 import { appendGitHubOutput, warnGitHub } from "../github-actions.js"
 import { executeResolveEnvironment } from "../orchestration/resolve-environment.js"
 import { defaultStackInputsPath, defaultStackManifestPath } from "../paths.js"
 
-export function createResolveEnvironmentCommand(): Command {
+const resolveEnvironmentOptionsSchema = z.object({
+  apiToken: z.unknown().optional(),
+  baseUrl: z.unknown().optional(),
+  dryRun: z.unknown().optional(),
+  dryRunCreated: z.unknown().optional(),
+  environmentName: z.unknown().optional(),
+  lane: z.unknown().optional(),
+  outputJson: z.unknown().optional(),
+  prNumber: z.unknown().optional(),
+  previewClonedServiceIdsCsv: z.unknown().optional(),
+  previewExcludedServiceIdsCsv: z.unknown().optional(),
+  previewGitBranch: z.unknown().optional(),
+  projectSlug: z.unknown().optional(),
+  reconcileServiceIdsCsv: z.unknown().optional(),
+  sourceEnvironmentName: z.unknown().optional(),
+  stackInputsPath: z.unknown().optional(),
+  stackManifestPath: z.unknown().optional(),
+})
+
+export const createResolveEnvironmentCommand = (): Command => {
   const command = new Command("resolve-environment")
 
   command
@@ -24,45 +45,48 @@ export function createResolveEnvironmentCommand(): Command {
     .option(
       "--stack-manifest-path <path>",
       "",
-      process.env.STACK_MANIFEST_PATH ?? defaultStackManifestPath
+      process.env["STACK_MANIFEST_PATH"] ?? defaultStackManifestPath,
     )
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath,
     )
     .option("--dry-run", "", false)
     .option("--dry-run-created", "", false)
-    .action(async (options) => {
+    .action(async (rawOptions: unknown) => {
+      const options = resolveEnvironmentOptionsSchema.parse(rawOptions)
       const parsedPrNumber =
-        typeof options.prNumber === "string" && options.prNumber.trim()
+        typeof options.prNumber === "string" && options.prNumber.trim() !== ""
           ? Number(options.prNumber)
           : undefined
       const input = resolveEnvironmentCommandInputSchema.parse({
-        lane: options.lane,
-        projectSlug: options.projectSlug ?? process.env.ZANE_PROJECT_SLUG ?? "",
-        prNumber: parsedPrNumber,
+        apiToken:
+          options.apiToken ?? process.env["ZANE_OPERATOR_API_TOKEN"] ?? "",
+        baseUrl: options.baseUrl ?? process.env["ZANE_OPERATOR_BASE_URL"] ?? "",
+        dryRun: Boolean(options.dryRun),
+        dryRunCreated: Boolean(options.dryRunCreated),
         environmentName: options.environmentName ?? "",
-        sourceEnvironmentName:
-          options.sourceEnvironmentName ??
-          process.env.ZANE_PRODUCTION_ENVIRONMENT_NAME ??
-          "",
-        reconcileServiceIdsCsv: options.reconcileServiceIdsCsv,
+        lane: options.lane,
+        outputJson: options.outputJson,
+        prNumber: parsedPrNumber,
         previewClonedServiceIdsCsv: options.previewClonedServiceIdsCsv,
+        previewEnvPrefix: process.env["ZANE_PREVIEW_ENV_PREFIX"] ?? "pr-",
         previewExcludedServiceIdsCsv: options.previewExcludedServiceIdsCsv,
         previewGitBranch:
           typeof options.previewGitBranch === "string" &&
-          options.previewGitBranch.trim()
+          options.previewGitBranch.trim() !== ""
             ? options.previewGitBranch.trim()
-            : (process.env.ZANE_PREVIEW_GIT_BRANCH?.trim() ?? ""),
-        outputJson: options.outputJson,
-        baseUrl: options.baseUrl ?? process.env.ZANE_OPERATOR_BASE_URL ?? "",
-        apiToken: options.apiToken ?? process.env.ZANE_OPERATOR_API_TOKEN ?? "",
-        dryRun: Boolean(options.dryRun),
-        dryRunCreated: Boolean(options.dryRunCreated),
-        stackManifestPath: options.stackManifestPath,
+            : (process.env["ZANE_PREVIEW_GIT_BRANCH"]?.trim() ?? ""),
+        projectSlug:
+          options.projectSlug ?? process.env["ZANE_PROJECT_SLUG"] ?? "",
+        reconcileServiceIdsCsv: options.reconcileServiceIdsCsv,
+        sourceEnvironmentName:
+          options.sourceEnvironmentName ??
+          process.env["ZANE_PRODUCTION_ENVIRONMENT_NAME"] ??
+          "",
         stackInputsPath: options.stackInputsPath,
-        previewEnvPrefix: process.env.ZANE_PREVIEW_ENV_PREFIX ?? "pr-",
+        stackManifestPath: options.stackManifestPath,
       })
 
       const result = await executeResolveEnvironment(input)
@@ -75,16 +99,16 @@ export function createResolveEnvironmentCommand(): Command {
       await appendGitHubOutput("environment_created", String(result.created))
       await appendGitHubOutput(
         "environment_baseline_complete",
-        String(result.baseline_complete)
+        String(result.baseline_complete),
       )
       await appendGitHubOutput("environment_ready", String(result.ready))
       await appendGitHubOutput(
         "missing_preview_service_slugs_csv",
-        result.missing_preview_service_slugs.join(",")
+        result.missing_preview_service_slugs.join(","),
       )
       await appendGitHubOutput(
         "environment_warning_count",
-        `${result.warnings.length}`
+        `${result.warnings.length}`,
       )
       process.stdout.write(`${JSON.stringify(result)}\n`)
     })

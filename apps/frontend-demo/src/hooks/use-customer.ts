@@ -1,11 +1,24 @@
 import type { HttpTypes } from "@medusajs/types"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
+
 import { sdk } from "@/lib/medusa-client"
 import { queryKeys } from "@/lib/query-keys"
 import type { FormAddressData, FormUserData } from "@/types/checkout"
 
-export function useCustomer() {
+interface AddressesQueryData {
+  addresses: HttpTypes.StoreCustomerAddress[]
+}
+
+interface SaveAddressContext {
+  previousAddresses: AddressesQueryData | undefined
+}
+
+interface UpdateProfileContext {
+  previousCustomer: HttpTypes.StoreCustomer | undefined
+}
+
+export const useCustomer = () => {
   const queryClient = useQueryClient()
   const toast = useToast()
 
@@ -15,20 +28,20 @@ export function useCustomer() {
     isLoading,
     error,
   } = useQuery({
-    queryKey: queryKeys.customer.addresses(),
     queryFn: async () => {
       try {
         const response = await sdk.store.customer.listAddress()
         return response
-      } catch (error) {
+      } catch {
         return { addresses: [] }
       }
     },
+    queryKey: queryKeys.customer.addresses(),
   })
 
   // Get the first address as the main address
-  const addresses = addressesResponse?.addresses || []
-  const mainAddress = addresses[0] as HttpTypes.StoreCustomerAddress | undefined
+  const addresses = addressesResponse?.addresses ?? []
+  const mainAddress = addresses.at(0)
 
   // Save address mutation (create or update)
   const saveAddressMutation = useMutation({
@@ -37,17 +50,38 @@ export function useCustomer() {
       const medusaAddress = {
         address_1: data.street,
         city: data.city,
-        postal_code: data.postalCode,
         country_code: data.country,
+        postal_code: data.postalCode,
       }
 
-      if (mainAddress?.id) {
+      if (mainAddress?.id !== undefined && mainAddress.id.length > 0) {
         return await sdk.store.customer.updateAddress(
           mainAddress.id,
-          medusaAddress
+          medusaAddress,
         )
       }
       return await sdk.store.customer.createAddress(medusaAddress)
+    },
+    onError: (
+      mutationError: Error,
+      _newData: FormAddressData,
+      context: SaveAddressContext | undefined,
+    ) => {
+      // Rollback on error
+      if (context?.previousAddresses !== undefined) {
+        queryClient.setQueryData(
+          queryKeys.customer.addresses(),
+          context.previousAddresses,
+        )
+      }
+      toast.create({
+        description:
+          mutationError.message.length > 0
+            ? mutationError.message
+            : "Zkuste to prosím znovu",
+        title: "Chyba při ukládání adresy",
+        type: "error",
+      })
     },
     onMutate: async (newData) => {
       // Cancel any outgoing refetches to avoid overwriting optimistic update
@@ -56,8 +90,8 @@ export function useCustomer() {
       })
 
       // Snapshot the previous value
-      const previousAddresses = queryClient.getQueryData(
-        queryKeys.customer.addresses()
+      const previousAddresses = queryClient.getQueryData<AddressesQueryData>(
+        queryKeys.customer.addresses(),
       )
 
       // Optimistically update to the new value
@@ -65,35 +99,22 @@ export function useCustomer() {
         ...mainAddress,
         address_1: newData.street,
         city: newData.city,
-        postal_code: newData.postalCode,
         country_code: newData.country,
+        postal_code: newData.postalCode,
       }
 
       queryClient.setQueryData(
         queryKeys.customer.addresses(),
         (old: { addresses: HttpTypes.StoreCustomerAddress[] } | undefined) => ({
-          addresses: old?.addresses?.length
-            ? [optimisticAddress, ...old.addresses.slice(1)]
-            : [optimisticAddress],
-        })
+          addresses:
+            old !== undefined && old.addresses.length > 0
+              ? [optimisticAddress, ...old.addresses.slice(1)]
+              : [optimisticAddress],
+        }),
       )
 
       // Return context with snapshot for rollback
       return { previousAddresses }
-    },
-    onError: (error: Error, newData, context) => {
-      // Rollback on error
-      if (context?.previousAddresses) {
-        queryClient.setQueryData(
-          queryKeys.customer.addresses(),
-          context.previousAddresses
-        )
-      }
-      toast.create({
-        title: "Chyba při ukládání adresy",
-        description: error?.message || "Zkuste to prosím znovu",
-        type: "error",
-      })
     },
     onSuccess: () => {
       toast.create({
@@ -107,50 +128,58 @@ export function useCustomer() {
     mutationFn: async (data: FormUserData) => {
       // Map FormUserData to Medusa API format - only send fields that can be updated
       const updateData = {
+        company_name: data.company_name.length > 0 ? data.company_name : null,
         first_name: data.first_name,
         last_name: data.last_name,
-        phone: data.phone || undefined,
-        company_name: data.company_name || undefined,
+        phone: data.phone.length > 0 ? data.phone : null,
       }
       const updatedCustomer = await sdk.store.customer.update(updateData)
       return updatedCustomer
+    },
+    onError: (
+      mutationError: Error,
+      _newData: FormUserData,
+      context: UpdateProfileContext | undefined,
+    ) => {
+      // Rollback on error
+      if (context?.previousCustomer !== undefined) {
+        queryClient.setQueryData(
+          queryKeys.auth.customer(),
+          context.previousCustomer,
+        )
+      }
+      toast.create({
+        description:
+          mutationError.message.length > 0
+            ? mutationError.message
+            : "Zkuste to prosím znovu",
+        title: "Chyba při aktualizaci profilu",
+        type: "error",
+      })
     },
     onMutate: async (newData) => {
       // Cancel any outgoing refetches
       await queryClient.cancelQueries({ queryKey: queryKeys.auth.customer() })
       // Snapshot the previous value
-      const previousCustomer = queryClient.getQueryData(
-        queryKeys.auth.customer()
-      )
+      const previousCustomer =
+        queryClient.getQueryData<HttpTypes.StoreCustomer>(
+          queryKeys.auth.customer(),
+        )
 
       // Optimistically update to the new value
       queryClient.setQueryData(
         queryKeys.auth.customer(),
         (old: HttpTypes.StoreCustomer) => ({
           ...old,
+          company_name: newData.company_name,
           first_name: newData.first_name,
           last_name: newData.last_name,
           phone: newData.phone,
-          company_name: newData.company_name,
-        })
+        }),
       )
 
       // Return context with snapshot
       return { previousCustomer }
-    },
-    onError: (error: Error, newData, context) => {
-      // Rollback on error
-      if (context?.previousCustomer) {
-        queryClient.setQueryData(
-          queryKeys.auth.customer(),
-          context.previousCustomer
-        )
-      }
-      toast.create({
-        title: "Chyba při aktualizaci profilu",
-        description: error?.message || "Zkuste to prosím znovu",
-        type: "error",
-      })
     },
     onSuccess: () => {
       toast.create({
@@ -163,20 +192,20 @@ export function useCustomer() {
   // Map the Medusa address to FormAddressData format
   const mappedAddress: FormAddressData | null = mainAddress
     ? {
-        street: mainAddress.address_1 || "",
-        city: mainAddress.city || "",
-        postalCode: mainAddress.postal_code || "",
-        country: mainAddress.country_code || "cz",
+        city: mainAddress.city ?? "",
+        country: mainAddress.country_code ?? "cz",
+        postalCode: mainAddress.postal_code ?? "",
+        street: mainAddress.address_1 ?? "",
       }
     : null
 
   return {
     address: mappedAddress,
-    isLoading,
     error,
-    saveAddress: saveAddressMutation.mutateAsync,
+    isLoading,
     isSaving: saveAddressMutation.isPending,
-    updateProfile: updateProfileMutation.mutateAsync,
     isUpdating: updateProfileMutation.isPending,
+    saveAddress: saveAddressMutation.mutateAsync,
+    updateProfile: updateProfileMutation.mutateAsync,
   }
 }

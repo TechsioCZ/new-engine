@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 /**
  * @typedef {{
  *   defaultSrc?: string[]
@@ -17,6 +19,14 @@
  * }} StorefrontCspDirectives
  */
 
+/**
+ * @typedef {"defaultSrc" | "baseUri" | "formAction" | "frameAncestors" |
+ *   "objectSrc" | "scriptSrc" | "styleSrc" | "imgSrc" | "fontSrc" |
+ *   "connectSrc" | "frameSrc" | "workerSrc" | "manifestSrc"}
+ * StorefrontCspSourceDirectiveKey
+ */
+
+/** @type {ReadonlyArray<readonly [StorefrontCspSourceDirectiveKey, string]>} */
 const CSP_DIRECTIVE_ORDER = [
   ["defaultSrc", "default-src"],
   ["baseUri", "base-uri"],
@@ -34,21 +44,30 @@ const CSP_DIRECTIVE_ORDER = [
 ]
 
 /**
- * @param {Array<string | null | undefined>} sources
- * @returns {string[]}
+ * @param {Array<string | null | undefined>} sources - Policy sources to deduplicate.
+ * @returns {string[]} Non-empty policy sources in first-seen order.
  */
-export function uniquePolicySources(sources) {
-  return [...new Set(sources.filter(Boolean))]
+export const uniquePolicySources = (sources) => {
+  /** @type {string[]} */
+  const uniqueSources = []
+
+  for (const source of sources) {
+    if (typeof source === "string" && source.length > 0) {
+      uniqueSources.push(source)
+    }
+  }
+
+  return [...new Set(uniqueSources)]
 }
 
 /**
- * @param {string} origin
- * @returns {{ hostname: string, port: string | null }}
+ * @param {string} origin - Development origin to normalize.
+ * @returns {{ hostname: string, port: string | null }} Normalized hostname and optional port.
  */
-function normalizeAllowedDevOrigin(origin) {
+const normalizeAllowedDevOrigin = (origin) => {
   const normalizedOrigin = origin.trim()
 
-  if (!normalizedOrigin) {
+  if (normalizedOrigin.length === 0) {
     throw new Error("allowedDevOrigins entries must not be empty.")
   }
 
@@ -67,10 +86,10 @@ function normalizeAllowedDevOrigin(origin) {
  *   isProduction?: boolean
  *   allowedDevOrigins?: string[]
  *   devPort?: number
- * }} [options]
- * @returns {string[]}
+ * }} [options] - Development origin settings.
+ * @returns {string[]} Allowed WebSocket origins for development HMR.
  */
-export function buildDevHmrOrigins(options = {}) {
+export const buildDevHmrOrigins = (options = {}) => {
   const {
     isProduction = process.env.NODE_ENV === "production",
     allowedDevOrigins = [],
@@ -87,7 +106,7 @@ export function buildDevHmrOrigins(options = {}) {
     ...allowedDevOrigins.flatMap((origin) => {
       const { hostname, port } = normalizeAllowedDevOrigin(origin)
 
-      if (port) {
+      if (port !== null) {
         return [`ws://${hostname}:${port}`, `wss://${hostname}:${port}`]
       }
 
@@ -104,13 +123,13 @@ export function buildDevHmrOrigins(options = {}) {
 /**
  * @param {{
  *   isProduction?: boolean
- *   publicBackendOrigin: string
+ *   publicBackendOrigin?: string | undefined
  *   allowedDevOrigins?: string[]
  *   devPort?: number
- * }} options
- * @returns {StorefrontCspDirectives}
+ * }} options - Base storefront CSP settings.
+ * @returns {StorefrontCspDirectives} Base storefront CSP directives.
  */
-export function createBaseStorefrontCsp(options) {
+export const createBaseStorefrontCsp = (options) => {
   const {
     isProduction = process.env.NODE_ENV === "production",
     publicBackendOrigin,
@@ -119,10 +138,19 @@ export function createBaseStorefrontCsp(options) {
   } = options
 
   return {
-    defaultSrc: ["'self'"],
     baseUri: ["'self'"],
+    connectSrc: uniquePolicySources([
+      "'self'",
+      publicBackendOrigin,
+      ...buildDevHmrOrigins({ allowedDevOrigins, devPort, isProduction }),
+    ]),
+    defaultSrc: ["'self'"],
+    fontSrc: ["'self'", "data:"],
     formAction: ["'self'"],
     frameAncestors: ["'none'"],
+    frameSrc: ["'self'"],
+    imgSrc: ["'self'", "data:", "blob:", "https:"],
+    manifestSrc: ["'self'"],
     objectSrc: ["'none'"],
     scriptSrc: uniquePolicySources([
       "'self'",
@@ -130,17 +158,8 @@ export function createBaseStorefrontCsp(options) {
       ...(isProduction ? [] : ["'unsafe-eval'"]),
     ]),
     styleSrc: ["'self'", "'unsafe-inline'"],
-    imgSrc: ["'self'", "data:", "blob:", "https:"],
-    fontSrc: ["'self'", "data:"],
-    connectSrc: uniquePolicySources([
-      "'self'",
-      publicBackendOrigin,
-      ...buildDevHmrOrigins({ isProduction, allowedDevOrigins, devPort }),
-    ]),
-    frameSrc: ["'self'"],
-    workerSrc: ["'self'", "blob:"],
-    manifestSrc: ["'self'"],
     upgradeInsecureRequests: isProduction,
+    workerSrc: ["'self'", "blob:"],
   }
 }
 
@@ -149,17 +168,19 @@ export function createBaseStorefrontCsp(options) {
  *   base?: StorefrontCspDirectives
  *   extend?: Partial<StorefrontCspDirectives>
  *   replace?: Partial<StorefrontCspDirectives>
- * }} [options]
- * @returns {StorefrontCspDirectives}
+ * }} [options] - CSP layers to merge.
+ * @returns {StorefrontCspDirectives} Merged storefront CSP directives.
  */
-export function mergeStorefrontCsp(options = {}) {
+export const mergeStorefrontCsp = (options = {}) => {
   const { base = {}, extend = {}, replace = {} } = options
 
   /** @type {StorefrontCspDirectives} */
   const merged = { ...base }
 
   for (const [directiveKey] of CSP_DIRECTIVE_ORDER) {
-    const baseValues = Array.isArray(base[directiveKey]) ? base[directiveKey] : []
+    const baseValues = Array.isArray(base[directiveKey])
+      ? base[directiveKey]
+      : []
     const extendValues = Array.isArray(extend[directiveKey])
       ? extend[directiveKey]
       : []
@@ -173,34 +194,37 @@ export function mergeStorefrontCsp(options = {}) {
     merged[directiveKey] = uniquePolicySources([...baseValues, ...extendValues])
   }
 
-  merged.upgradeInsecureRequests =
-    typeof replace.upgradeInsecureRequests === "boolean"
-      ? replace.upgradeInsecureRequests
-      : typeof extend.upgradeInsecureRequests === "boolean"
-        ? extend.upgradeInsecureRequests
-        : Boolean(base.upgradeInsecureRequests)
+  if (typeof replace.upgradeInsecureRequests === "boolean") {
+    merged.upgradeInsecureRequests = replace.upgradeInsecureRequests
+  } else if (typeof extend.upgradeInsecureRequests === "boolean") {
+    merged.upgradeInsecureRequests = extend.upgradeInsecureRequests
+  } else {
+    merged.upgradeInsecureRequests = Boolean(base.upgradeInsecureRequests)
+  }
 
   return merged
 }
 
 /**
- * @param {{ csp: StorefrontCspDirectives }} options
- * @returns {string}
+ * @param {{ csp: StorefrontCspDirectives }} options - CSP directives to serialize.
+ * @returns {string} Serialized Content-Security-Policy header value.
  */
-export function buildStorefrontContentSecurityPolicy(options) {
+export const buildStorefrontContentSecurityPolicy = (options) => {
   const { csp } = options
 
-  const directives = CSP_DIRECTIVE_ORDER.flatMap(([directiveKey, headerName]) => {
-    const values = csp[directiveKey]
+  const directives = CSP_DIRECTIVE_ORDER.flatMap(
+    ([directiveKey, headerName]) => {
+      const values = csp[directiveKey]
 
-    if (!Array.isArray(values) || values.length === 0) {
-      return []
-    }
+      if (!Array.isArray(values) || values.length === 0) {
+        return []
+      }
 
-    return `${headerName} ${values.join(" ")}`
-  })
+      return `${headerName} ${values.join(" ")}`
+    },
+  )
 
-  if (csp.upgradeInsecureRequests) {
+  if (csp.upgradeInsecureRequests === true) {
     directives.push("upgrade-insecure-requests")
   }
 

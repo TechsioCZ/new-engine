@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import { enqueueImportJob } from "../../../../../../lib/queued-job-handler"
 import {
   SYMMY_PRICE_LISTS_UPSERT_JOB_TYPE,
@@ -6,7 +7,7 @@ import {
 } from "../../../../../../workflows/price-lists-batch/async"
 import type { UpsertPriceListsBatchSchemaType } from "./validators"
 
-/**
+/*
  * @api [post] /api/symmy/v1/price-lists/batch-upsert
  * operationId: PostSymmyPriceListsBatchUpsert
  * summary: Queue price list batch upsert
@@ -66,14 +67,16 @@ import type { UpsertPriceListsBatchSchemaType } from "./validators"
  *       }
  *       ```
  */
-export const POST = async (
+const post = async (
   req: MedusaRequest<UpsertPriceListsBatchSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   await enqueueImportJob(req, res, {
-    type: SYMMY_PRICE_LISTS_UPSERT_JOB_TYPE,
     payload: { price_lists: req.validatedBody.price_lists },
-    total: req.validatedBody.price_lists.length,
     requestedEvent: SYMMY_PRICE_LISTS_UPSERT_REQUESTED_EVENT,
+    total: req.validatedBody.price_lists.length,
+    type: SYMMY_PRICE_LISTS_UPSERT_JOB_TYPE,
   })
 }
+
+export { post as POST }

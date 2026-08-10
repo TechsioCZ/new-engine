@@ -1,261 +1,513 @@
-import { MedusaError } from '@medusajs/framework/utils'
+import { setTimeout as delay } from "node:timers/promises"
 
-type MeilisearchTask = {
-	error?: {
-		message?: string
-	}
+import { MedusaError } from "@medusajs/framework/utils"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
-	status?: string
-	taskUid?: number
-	uid?: number
+import { MeilisearchError } from "./http-error"
+
+interface MeilisearchTask {
+  errorMessage: string | null
+  status: string | null
+  uid: number | null
 }
 
-type MeilisearchDocumentsResponse = {
-	results?: Array<{
-		id?: string | number
-	}>
+interface MeilisearchHealthResponse {
+  status: string | undefined
 }
 
-type MeilisearchDocumentResponse = {
-	id?: string | number
+interface MeilisearchResponse {
+  body: unknown
+  status: number
 }
 
-type MeilisearchHealthResponse = {
-	status?: string
+interface MeilisearchRequestOptions {
+  acceptedStatuses?: number[]
+  attempts?: number
+  body?: unknown
+  method: string
+  path: string
 }
 
-type MeilisearchRequestOptions = {
-	acceptedStatuses?: number[]
-	attempts?: number
-	body?: unknown
-	method: string
-	path: string
-}
-
-class MeilisearchHttpError extends Error {
-	readonly retryable: boolean
-
-	constructor(message: string, retryable: boolean) {
-		super(message)
-
-		this.retryable = retryable
-	}
-}
-
-const DEFAULT_TASK_TIMEOUT_MILLISECONDS = 60000
+const DEFAULT_TASK_TIMEOUT_MILLISECONDS = 60_000
 const TASK_POLL_INTERVAL_MILLISECONDS = 75
-const REQUEST_TIMEOUT_MILLISECONDS = 10000
+const REQUEST_TIMEOUT_MILLISECONDS = 10_000
 const REQUEST_ATTEMPTS = 3
-const TRAILING_SLASH_REGEX = /\/$/
+const TRAILING_SLASH_REGEX = /\/$/u
+const VALID_TASK_STATUSES = new Set([
+  "enqueued",
+  "processing",
+  "succeeded",
+  "failed",
+  "canceled",
+])
+
+const readOptionalString = (value: unknown): string | undefined =>
+  typeof value === "string" ? value : undefined
+
+const readOptionalNumber = (value: unknown): number | undefined =>
+  typeof value === "number" && Number.isFinite(value) ? value : undefined
+
+const readNullableString = (value: unknown): string | null =>
+  readOptionalString(value) ?? null
+
+const readNullableNumber = (value: unknown): number | null =>
+  readOptionalNumber(value) ?? null
+
+const readTask = (value: unknown): MeilisearchTask => {
+  if (!isRecord(value)) {
+    return { errorMessage: null, status: null, uid: null }
+  }
+
+  const errorValue = getRecordValue(value, "error")
+  const error = isRecord(errorValue) ? errorValue : undefined
+
+  return {
+    errorMessage: readNullableString(
+      error === undefined ? undefined : getRecordValue(error, "message"),
+    ),
+    status: readNullableString(getRecordValue(value, "status")),
+    uid: readNullableNumber(
+      getRecordValue(value, "taskUid") ?? getRecordValue(value, "uid"),
+    ),
+  }
+}
+
+const hasValidTaskUid = (task: MeilisearchTask): boolean =>
+  task.uid !== null && Number.isInteger(task.uid) && task.uid >= 0
+
+const hasValidTaskStatus = (task: MeilisearchTask): boolean =>
+  task.status !== null && VALID_TASK_STATUSES.has(task.status)
+
+const requireTask = (value: unknown, operation: string): MeilisearchTask => {
+  const task = readTask(value)
+
+  if (!hasValidTaskUid(task) || !hasValidTaskStatus(task)) {
+    throw new MeilisearchError({
+      code: "MEILISEARCH_TASK_RESPONSE_INVALID",
+      kind: "task",
+      message: `Meilisearch ${operation} returned an invalid task response`,
+    })
+  }
+
+  return task
+}
+
+const assertTaskSucceededOrPending = (task: MeilisearchTask): boolean => {
+  if (task.status === "succeeded") {
+    return true
+  }
+
+  if (task.status === "failed" || task.status === "canceled") {
+    throw new MeilisearchError({
+      code: "MEILISEARCH_TASK_FAILED",
+      kind: "task",
+      message: `Meilisearch task ${task.uid} ${task.status}: ${task.errorMessage ?? "unknown error"}`,
+      status: task.status,
+      ...(task.uid === null ? {} : { taskUid: task.uid }),
+    })
+  }
+
+  return false
+}
+
+const readDocumentId = (value: unknown): string | number | undefined => {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  const id = getRecordValue(value, "id")
+  return typeof id === "string" || typeof id === "number" ? id : undefined
+}
+
+const resolveMeilisearchErrorMessage = (
+  value: unknown,
+  fallback: string,
+): string =>
+  isRecord(value) && typeof getRecordValue(value, "message") === "string"
+    ? String(getRecordValue(value, "message"))
+    : fallback
+
+const readResponseCode = (value: unknown): string | undefined =>
+  isRecord(value) && typeof getRecordValue(value, "code") === "string"
+    ? String(getRecordValue(value, "code"))
+    : undefined
 
 export class MeilisearchAdminClient {
-	private readonly apiKey: string
-	private readonly baseUrl: string
+  private readonly apiKey: string
+  private readonly baseUrl: string
 
-	constructor(options?: { apiKey?: string; host?: string }) {
-		const host = options?.host ?? process.env.MEILISEARCH_HOST
-		const apiKey = options?.apiKey ?? process.env.MEILISEARCH_API_KEY
+  constructor(options?: { apiKey?: string; host?: string }) {
+    const host = options?.host ?? process.env["MEILISEARCH_HOST"]
+    const apiKey = options?.apiKey ?? process.env["MEILISEARCH_API_KEY"]
 
-		if (!host) {
-			throw new MedusaError(MedusaError.Types.INVALID_DATA, 'MEILISEARCH_HOST is required for profile indexing')
-		}
+    if (host === undefined || host.length === 0) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "MEILISEARCH_HOST is required for profile indexing",
+      )
+    }
 
-		if (!apiKey) {
-			throw new MedusaError(MedusaError.Types.INVALID_DATA, 'MEILISEARCH_API_KEY is required for profile indexing')
-		}
+    if (apiKey === undefined || apiKey.length === 0) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "MEILISEARCH_API_KEY is required for profile indexing",
+      )
+    }
 
-		this.baseUrl = host.replace(TRAILING_SLASH_REGEX, '')
-		this.apiKey = apiKey
-	}
+    this.baseUrl = host.replace(TRAILING_SLASH_REGEX, "")
+    this.apiKey = apiKey
+  }
 
-	private async requestOnce<ResponseBody>(options: MeilisearchRequestOptions): Promise<ResponseBody> {
-		const controller = new AbortController()
-		const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MILLISECONDS)
+  private async requestOnce(
+    options: MeilisearchRequestOptions,
+  ): Promise<MeilisearchResponse> {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => {
+      controller.abort()
+    }, REQUEST_TIMEOUT_MILLISECONDS)
 
-		try {
-			const response = await fetch(this.baseUrl + options.path, { method: options.method, headers: { Authorization: 'Bearer ' + this.apiKey, ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' }) }, body: options.body === undefined ? undefined : JSON.stringify(options.body), signal: controller.signal })
-			const raw = await response.text()
+    try {
+      const response = await fetch(`${this.baseUrl}${options.path}`, {
+        ...(options.body === undefined
+          ? {}
+          : { body: JSON.stringify(options.body) }),
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+          ...(options.body === undefined
+            ? {}
+            : { "Content-Type": "application/json" }),
+        },
+        method: options.method,
+        signal: controller.signal,
+      })
+      const raw = await response.text()
+      let parsed: unknown = null
 
-			let parsed: unknown
+      if (raw.length > 0) {
+        try {
+          parsed = JSON.parse(raw)
+        } catch {
+          parsed = null
+        }
+      }
 
-			try {
-				parsed = raw ? JSON.parse(raw) : undefined
-			} catch {
-				parsed = undefined
-			}
+      if (
+        response.ok ||
+        (options.acceptedStatuses ?? []).includes(response.status)
+      ) {
+        return { body: parsed, status: response.status }
+      }
 
-			if (response.ok || (options.acceptedStatuses ?? []).includes(response.status)) {
-				return parsed as ResponseBody
-			}
+      const parsedMessage = resolveMeilisearchErrorMessage(parsed, raw)
+      const responseCode = readResponseCode(parsed)
 
-			const parsedMessage = parsed && typeof parsed === 'object' && !Array.isArray(parsed) && typeof (parsed as { message?: unknown }).message === 'string' ? (parsed as { message: string }).message : raw
+      throw new MeilisearchError({
+        kind: "http",
+        message: `Meilisearch ${options.method} ${options.path} failed (${response.status}): ${parsedMessage}`,
+        ...(responseCode === undefined ? {} : { responseCode }),
+        retryable: response.status === 429 || response.status >= 500,
+        status: response.status,
+      })
+    } finally {
+      clearTimeout(timeoutId)
+    }
+  }
 
-			throw new MeilisearchHttpError('Meilisearch ' + options.method + ' ' + options.path + ' failed (' + response.status + '): ' + parsedMessage, response.status === 429 || response.status >= 500)
-		} finally {
-			clearTimeout(timeoutId)
-		}
-	}
+  private async request(
+    options: MeilisearchRequestOptions,
+    attempt = 0,
+    lastError?: unknown,
+  ): Promise<MeilisearchResponse> {
+    const attempts = options.attempts ?? REQUEST_ATTEMPTS
 
-	private async request<ResponseBody>(options: MeilisearchRequestOptions): Promise<ResponseBody> {
-		const attempts = options.attempts ?? REQUEST_ATTEMPTS
+    if (attempt >= attempts) {
+      if (lastError instanceof Error) {
+        throw lastError
+      }
 
-		let lastError: unknown
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Meilisearch ${options.method} ${options.path} failed without a response`,
+      )
+    }
 
-		for (let attempt = 0; attempt < attempts; attempt += 1) {
-			try {
-				return await this.requestOnce<ResponseBody>(options)
-			} catch (error) {
-				lastError = error
+    try {
+      return await this.requestOnce(options)
+    } catch (error) {
+      if (
+        !(error instanceof MeilisearchError) ||
+        error.kind !== "http" ||
+        !error.retryable
+      ) {
+        throw error
+      }
 
-				if (error instanceof MeilisearchHttpError && !error.retryable) {
-					throw error
-				}
-			}
+      if (attempt + 1 < attempts) {
+        await delay(100 * 2 ** attempt)
+      }
 
-			if (attempt + 1 < attempts) {
-				await new Promise((resolve) => setTimeout(resolve, 100 * 2 ** attempt))
-			}
-		}
+      return await this.request(options, attempt + 1, error)
+    }
+  }
 
-		throw lastError ?? new Error('Meilisearch ' + options.method + ' ' + options.path + ' failed without a response')
-	}
+  private async enqueue(options: MeilisearchRequestOptions): Promise<void> {
+    const response = await this.request(options)
 
-	private async enqueue(options: MeilisearchRequestOptions): Promise<void> {
-		const task = await this.request<MeilisearchTask>(options)
-		const taskUid = task.taskUid ?? task.uid
+    if (response.status < 200 || response.status >= 300) {
+      return
+    }
 
-		if (typeof taskUid === 'number') {
-			await this.waitForTask(taskUid)
-		}
-	}
+    const task = requireTask(response.body, `${options.method} ${options.path}`)
 
-	async waitForTask(taskUid: number, timeoutMilliseconds = DEFAULT_TASK_TIMEOUT_MILLISECONDS): Promise<void> {
-		const deadline = Date.now() + timeoutMilliseconds
+    if (!assertTaskSucceededOrPending(task) && task.uid !== null) {
+      await this.waitForTask(task.uid)
+    }
+  }
 
-		while (Date.now() < deadline) {
-			const task = await this.request<MeilisearchTask>({ method: 'GET', path: '/tasks/' + taskUid, acceptedStatuses: [404] })
+  async waitForTask(
+    taskUid: number,
+    timeoutMilliseconds = DEFAULT_TASK_TIMEOUT_MILLISECONDS,
+  ): Promise<void> {
+    const deadline = Date.now() + timeoutMilliseconds
 
-			if (task.status === 'succeeded') {
-				return
-			}
+    const poll = async (): Promise<void> => {
+      if (Date.now() >= deadline) {
+        throw new MeilisearchError({
+          code: "MEILISEARCH_TASK_TIMEOUT",
+          kind: "task",
+          message: `Meilisearch task ${taskUid} timed out after ${timeoutMilliseconds}ms`,
+          taskUid,
+        })
+      }
 
-			if (task.status === 'failed' || task.status === 'canceled') {
-				throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, 'Meilisearch task ' + taskUid + ' ' + task.status + ': ' + (task.error?.message ?? 'unknown error'))
-			}
+      const response = await this.request({
+        acceptedStatuses: [404],
+        method: "GET",
+        path: `/tasks/${taskUid}`,
+      })
 
-			await new Promise((resolve) => setTimeout(resolve, TASK_POLL_INTERVAL_MILLISECONDS))
-		}
+      if (response.status !== 404) {
+        const task = requireTask(response.body, `GET /tasks/${taskUid}`)
 
-		throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, 'Meilisearch task ' + taskUid + ' timed out after ' + timeoutMilliseconds + 'ms')
-	}
+        if (task.uid !== taskUid) {
+          throw new MeilisearchError({
+            code: "MEILISEARCH_TASK_RESPONSE_INVALID",
+            kind: "task",
+            message: `Meilisearch returned task ${task.uid} while polling task ${taskUid}`,
+            taskUid,
+          })
+        }
 
-	async ensureIndex(index: string): Promise<void> {
-		try {
-			await this.enqueue({ method: 'POST', path: '/indexes', body: { uid: index, primaryKey: 'id' } })
-		} catch (error) {
-			if (error instanceof Error && (error.message.includes('index_already_exists') || error.message.toLowerCase().includes('already exists'))) {
-				return
-			}
+        if (assertTaskSucceededOrPending(task)) {
+          return
+        }
+      }
 
-			throw error
-		}
-	}
+      await delay(TASK_POLL_INTERVAL_MILLISECONDS)
+      await poll()
+    }
 
-	async health(): Promise<MeilisearchHealthResponse> {
-		return this.request<MeilisearchHealthResponse>({ method: 'GET', path: '/health', attempts: 1 })
-	}
+    await poll()
+  }
 
-	async updateSettings(index: string, settings: Record<string, unknown>): Promise<void> {
-		await this.enqueue({ method: 'PATCH', path: '/indexes/' + encodeURIComponent(index) + '/settings', body: settings })
-	}
+  async ensureIndex(index: string): Promise<void> {
+    try {
+      await this.enqueue({
+        body: { primaryKey: "id", uid: index },
+        method: "POST",
+        path: "/indexes",
+      })
+    } catch (error) {
+      if (
+        error instanceof MeilisearchError &&
+        error.kind === "http" &&
+        (error.responseCode === "index_already_exists" || error.status === 409)
+      ) {
+        return
+      }
 
-	async addDocuments(index: string, documents: Record<string, unknown>[]): Promise<void> {
-		if (documents.length === 0) {
-			return
-		}
+      throw error
+    }
+  }
 
-		await this.enqueue({ method: 'POST', path: '/indexes/' + encodeURIComponent(index) + '/documents?primaryKey=id', body: documents })
-	}
+  async health(): Promise<MeilisearchHealthResponse> {
+    const { body } = await this.request({
+      attempts: 1,
+      method: "GET",
+      path: "/health",
+    })
 
-	async deleteDocuments(index: string, ids: string[]): Promise<void> {
-		if (ids.length === 0) {
-			return
-		}
+    return {
+      status: isRecord(body)
+        ? readOptionalString(getRecordValue(body, "status"))
+        : undefined,
+    }
+  }
 
-		await this.enqueue({ method: 'POST', path: '/indexes/' + encodeURIComponent(index) + '/documents/delete-batch', body: ids })
-	}
+  async updateSettings(index: string, settings: object): Promise<void> {
+    await this.enqueue({
+      body: settings,
+      method: "PATCH",
+      path: `/indexes/${encodeURIComponent(index)}/settings`,
+    })
+  }
 
-	async getDocumentIds(index: string, batchSize = 1000): Promise<string[]> {
-		const ids: string[] = []
+  async addDocuments(index: string, documents: object[]): Promise<void> {
+    if (documents.length === 0) {
+      return
+    }
 
-		let offset = 0
+    await this.enqueue({
+      body: documents,
+      method: "POST",
+      path: `/indexes/${encodeURIComponent(index)}/documents?primaryKey=id`,
+    })
+  }
 
-		while (true) {
-			const result = await this.request<MeilisearchDocumentsResponse>({ method: 'GET', path: '/indexes/' + encodeURIComponent(index) + '/documents?fields=id&limit=' + batchSize + '&offset=' + offset })
-			const batch = result.results ?? []
+  async deleteDocuments(index: string, ids: string[]): Promise<void> {
+    if (ids.length === 0) {
+      return
+    }
 
-			for (const document of batch) {
-				if (typeof document.id === 'string') {
-					ids.push(document.id)
-				} else if (typeof document.id === 'number') {
-					ids.push(String(document.id))
-				}
-			}
+    await this.enqueue({
+      body: ids,
+      method: "POST",
+      path: `/indexes/${encodeURIComponent(index)}/documents/delete-batch`,
+    })
+  }
 
-			if (batch.length < batchSize) {
-				break
-			}
+  async getDocumentIds(index: string): Promise<string[]> {
+    const batchSize = 10 ** 3
+    const maximumDocuments = 10 ** 6
+    const maximumPages = maximumDocuments / batchSize
+    const documentIds: string[] = []
+    const seenIds = new Set<string>()
 
-			offset += batch.length
-		}
+    const readPage = async (offset: number, page: number): Promise<void> => {
+      if (page >= maximumPages) {
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          `Meilisearch index ${index} exceeds the ${maximumDocuments} document enumeration limit`,
+        )
+      }
+      const { body } = await this.request({
+        method: "GET",
+        path: `/indexes/${encodeURIComponent(index)}/documents?fields=id&limit=${batchSize}&offset=${offset}`,
+      })
+      if (!isRecord(body)) {
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          `Meilisearch index ${index} returned an invalid document page`,
+        )
+      }
+      const results = getRecordValue(body, "results")
+      if (!Array.isArray(results)) {
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          `Meilisearch index ${index} returned an invalid document page`,
+        )
+      }
+      if (results.length > batchSize) {
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          `Meilisearch index ${index} returned an oversized document page`,
+        )
+      }
 
-		return ids
-	}
+      for (const document of results) {
+        const rawId = readDocumentId(document)
+        if (rawId === undefined) {
+          throw new MedusaError(
+            MedusaError.Types.UNEXPECTED_STATE,
+            `Meilisearch index ${index} returned a document without an id`,
+          )
+        }
+        const id = String(rawId)
+        if (seenIds.has(id)) {
+          throw new MedusaError(
+            MedusaError.Types.UNEXPECTED_STATE,
+            `Meilisearch index ${index} returned duplicate document id ${id}`,
+          )
+        }
+        seenIds.add(id)
+        documentIds.push(id)
+      }
 
-	async waitForDocument(index: string, documentId: string, timeoutMilliseconds = DEFAULT_TASK_TIMEOUT_MILLISECONDS): Promise<void> {
-		const deadline = Date.now() + timeoutMilliseconds
+      if (results.length === batchSize) {
+        await readPage(offset + results.length, page + 1)
+      }
+    }
 
-		while (Date.now() < deadline) {
-			const document = await this.request<MeilisearchDocumentResponse>({ method: 'GET', path: '/indexes/' + encodeURIComponent(index) + '/documents/' + encodeURIComponent(documentId), acceptedStatuses: [404], attempts: 1 })
+    await readPage(0, 0)
+    return documentIds
+  }
 
-			if (String(document.id) === documentId) {
-				return
-			}
+  async waitForDocument(
+    index: string,
+    documentId: string,
+    timeoutMilliseconds = DEFAULT_TASK_TIMEOUT_MILLISECONDS,
+  ): Promise<void> {
+    const deadline = Date.now() + timeoutMilliseconds
 
-			await new Promise((resolve) => setTimeout(resolve, TASK_POLL_INTERVAL_MILLISECONDS))
-		}
+    const poll = async (): Promise<void> => {
+      if (Date.now() >= deadline) {
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          `Meilisearch document ${documentId} did not become visible in ${index} after ${timeoutMilliseconds}ms`,
+        )
+      }
 
-		throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, 'Meilisearch document ' + documentId + ' did not become visible in ' + index + ' after ' + timeoutMilliseconds + 'ms')
-	}
+      const { body } = await this.request({
+        acceptedStatuses: [404],
+        attempts: 1,
+        method: "GET",
+        path: `/indexes/${encodeURIComponent(index)}/documents/${encodeURIComponent(documentId)}`,
+      })
 
-	async swapIndexPairs(
-		pairs: Array<{ first: string; second: string }>,
+      if (String(readDocumentId(body)) === documentId) {
+        return
+      }
 
-		completionProbe?: {
-			documentId: string
-			index: string
-		}
-	): Promise<void> {
-		if (pairs.length === 0) {
-			return
-		}
+      await delay(TASK_POLL_INTERVAL_MILLISECONDS)
+      await poll()
+    }
 
-		const task = await this.request<MeilisearchTask>({ method: 'POST', path: '/swap-indexes', body: pairs.map(({ first, second }) => ({ indexes: [first, second] })), attempts: 1 })
+    await poll()
+  }
 
-		if (completionProbe) {
-			await this.waitForDocument(completionProbe.index, completionProbe.documentId)
+  async swapIndexPairs(
+    pairs: { first: string; second: string }[],
+    completionProbe?: { documentId: string; index: string },
+  ): Promise<void> {
+    if (pairs.length === 0) {
+      return
+    }
 
-			return
-		}
+    const response = await this.request({
+      attempts: 1,
+      body: pairs.map(({ first, second }) => ({ indexes: [first, second] })),
+      method: "POST",
+      path: "/swap-indexes",
+    })
+    const task = requireTask(response.body, "POST /swap-indexes")
 
-		const taskUid = task.taskUid ?? task.uid
+    if (!assertTaskSucceededOrPending(task) && task.uid !== null) {
+      await this.waitForTask(task.uid)
+    }
 
-		if (typeof taskUid === 'number') {
-			await this.waitForTask(taskUid)
-		}
-	}
+    if (completionProbe !== undefined) {
+      await this.waitForDocument(
+        completionProbe.index,
+        completionProbe.documentId,
+      )
+    }
+  }
 
-	async deleteIndex(index: string): Promise<void> {
-		await this.enqueue({ method: 'DELETE', path: '/indexes/' + encodeURIComponent(index), acceptedStatuses: [404] })
-	}
+  async deleteIndex(index: string): Promise<void> {
+    await this.enqueue({
+      acceptedStatuses: [404],
+      method: "DELETE",
+      path: `/indexes/${encodeURIComponent(index)}`,
+    })
+  }
 }

@@ -1,3 +1,5 @@
+import { omitUndefined } from "@techsio/std/object"
+
 import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import type {
   QueryFactoryOptions,
@@ -14,13 +16,13 @@ import type {
   RegionService,
 } from "./types"
 
-export type CreateRegionQueryOptionsFactoryConfig<
+export interface CreateRegionQueryOptionsFactoryConfig<
   TRegion,
-  TListInput extends RegionListInputBase,
+  TListInput extends RegionListInputBase & TListParams,
   TListParams,
-  TDetailInput extends RegionDetailInputBase,
+  TDetailInput extends RegionDetailInputBase & TDetailParams,
   TDetailParams,
-> = {
+> {
   service: RegionService<TRegion, TListParams, TDetailParams>
   buildListParams?: (input: TListInput) => TListParams
   buildDetailParams?: (input: TDetailInput) => TDetailParams
@@ -29,32 +31,32 @@ export type CreateRegionQueryOptionsFactoryConfig<
   cacheConfig?: CacheConfig
 }
 
-export type RegionQueryOptionsFactory<
+export interface RegionQueryOptionsFactory<
   TRegion,
   TListInput extends RegionListInputBase,
   TDetailInput extends RegionDetailInputBase,
-> = {
+> {
   getListQueryOptions: (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<RegionListResponse<TRegion>>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<RegionListResponse<TRegion>>
   getDetailQueryOptions: (
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TRegion | null>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<TRegion | null>
 }
 
-export function createRegionQueryOptionsFactory<
+export const createRegionQueryOptionsFactory = <
   TRegion,
-  TListInput extends RegionListInputBase,
+  TListInput extends RegionListInputBase & TListParams,
   TListParams,
-  TDetailInput extends RegionDetailInputBase,
+  TDetailInput extends RegionDetailInputBase & TDetailParams,
   TDetailParams,
 >({
   service,
@@ -69,19 +71,23 @@ export function createRegionQueryOptionsFactory<
   TListParams,
   TDetailInput,
   TDetailParams
->): RegionQueryOptionsFactory<TRegion, TListInput, TDetailInput> {
+>): RegionQueryOptionsFactory<TRegion, TListInput, TDetailInput> => {
+  const buildList = buildListParams ?? ((input: TListInput) => input)
+  const buildDetail = buildDetailParams ?? ((input: TDetailInput) => input)
   const resolvedQueryKeys =
     queryKeys ??
     createRegionQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
 
-  return createSimpleListDetailQueryOptionsFactory({
-    getList: service.getRegions,
-    getDetail: service.getRegion,
-    buildListParams,
-    buildDetailParams,
-    queryKeys: resolvedQueryKeys,
-    cacheConfig,
-    defaultCacheStrategy: "static",
-    missingDetailErrorMessage: "Region id is required for region queries",
-  })
+  return createSimpleListDetailQueryOptionsFactory(
+    omitUndefined({
+      buildDetailParams: buildDetail,
+      buildListParams: buildList,
+      cacheConfig,
+      defaultCacheStrategy: "static" as const,
+      getDetail: service.getRegion,
+      getList: service.getRegions,
+      missingDetailErrorMessage: "Region id is required for region queries",
+      queryKeys: resolvedQueryKeys,
+    }),
+  )
 }

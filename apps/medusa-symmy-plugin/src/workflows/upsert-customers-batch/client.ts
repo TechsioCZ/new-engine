@@ -1,8 +1,9 @@
-import type { MedusaContainer } from "@medusajs/framework/types"
+import type { MedusaContainer, MetadataType } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import {
   createCustomerAddressesWorkflow,
   createCustomersWorkflow,
@@ -10,40 +11,35 @@ import {
   updateCustomerAddressesWorkflow,
   updateCustomersWorkflow,
 } from "@medusajs/medusa/core-flows"
-import {
-  SYMMY_CUSTOMER_GROUP_CODE_MODULE,
-  type SymmyCustomerGroupCodeModuleService,
-} from "../../modules/customer-group-code"
-import {
-  type CustomerLookupKeys,
-  customerBatchClientMapperHelper,
-} from "./client-mapper-helper"
+
+import { SYMMY_CUSTOMER_GROUP_CODE_MODULE } from "../../modules/customer-group-code"
+import type { SymmyCustomerGroupCodeModuleService } from "../../modules/customer-group-code"
+import { customerBatchClientMapperHelper } from "./client-mapper-helper"
+import type { CustomerLookupKeys } from "./client-mapper-helper"
 import type { CustomerAddressInput, CustomerInput } from "./types"
 
-type Metadata = Record<string, unknown>
-
-export type ExistingAddress = {
+export interface ExistingAddress {
   id: string
   customer_id: string
 }
 
-export type ExistingGroup = {
+export interface ExistingGroup {
   id: string
   name: string
   code?: string | null
   erp_code?: string | null
-  metadata: Metadata | null
+  metadata: MetadataType
 }
 
-export type ExistingCustomer = {
+export interface ExistingCustomer {
   id: string
   email: string | null
-  metadata: Metadata | null
+  metadata: MetadataType
   groups: ExistingGroup[]
   addresses: ExistingAddress[]
 }
 
-export type ExistingCustomerIndex = {
+export interface ExistingCustomerIndex {
   byId: Map<string, ExistingCustomer>
   byEmail: Map<string, ExistingCustomer>
   byErpId: Map<string, ExistingCustomer>
@@ -51,7 +47,7 @@ export type ExistingCustomerIndex = {
   byCompanyRegistrationNumber: Map<string, ExistingCustomer>
 }
 
-export type CustomerGroupIndex = {
+export interface CustomerGroupIndex {
   byCode: Map<string, ExistingGroup>
 }
 
@@ -65,6 +61,88 @@ const CUSTOMER_FIELDS = [
   "addresses.id",
   "addresses.customer_id",
 ] as const
+const metadataSchema = z.record(z.string(), z.json()).nullable()
+
+const decodeGroup = (value: unknown): ExistingGroup | null => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null
+  }
+  const id: unknown = Reflect.get(value, "id")
+  const name: unknown = Reflect.get(value, "name")
+  if (typeof id !== "string" || typeof name !== "string") {
+    return null
+  }
+  const metadata = metadataSchema.safeParse(
+    Reflect.get(value, "metadata") ?? null,
+  )
+  if (!metadata.success) {
+    return null
+  }
+  return { id, metadata: metadata.data, name }
+}
+
+const decodeGroups = (candidates: unknown[]): ExistingGroup[] | null => {
+  const groups: ExistingGroup[] = []
+  for (const raw of candidates) {
+    const group = decodeGroup(raw)
+    if (group === null) {
+      return null
+    }
+    groups.push(group)
+  }
+  return groups
+}
+
+const decodeAddresses = (candidates: unknown[]): ExistingAddress[] | null => {
+  const addresses: ExistingAddress[] = []
+  for (const address of candidates) {
+    if (
+      typeof address !== "object" ||
+      address === null ||
+      Array.isArray(address)
+    ) {
+      return null
+    }
+    const addressId: unknown = Reflect.get(address, "id")
+    const customerId: unknown = Reflect.get(address, "customer_id")
+    if (typeof addressId !== "string" || typeof customerId !== "string") {
+      return null
+    }
+    addresses.push({ customer_id: customerId, id: addressId })
+  }
+  return addresses
+}
+
+const decodeCustomer = (value: unknown): ExistingCustomer | null => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null
+  }
+  const id: unknown = Reflect.get(value, "id")
+  if (typeof id !== "string") {
+    return null
+  }
+  const email: unknown = Reflect.get(value, "email") ?? null
+  const metadata = metadataSchema.safeParse(
+    Reflect.get(value, "metadata") ?? null,
+  )
+  if (email !== null && typeof email !== "string") {
+    return null
+  }
+  if (!metadata.success) {
+    return null
+  }
+  const rawGroups: unknown = Reflect.get(value, "groups")
+  const rawAddresses: unknown = Reflect.get(value, "addresses")
+  if (!Array.isArray(rawGroups) || !Array.isArray(rawAddresses)) {
+    return null
+  }
+  const groups = decodeGroups(rawGroups)
+  const addresses = decodeAddresses(rawAddresses)
+  if (groups === null || addresses === null) {
+    return null
+  }
+  return { addresses, email, groups, id, metadata: metadata.data }
+}
 
 const getQuery = (container: MedusaContainer) =>
   container.resolve(ContainerRegistrationKeys.QUERY)
@@ -81,7 +159,7 @@ export class CustomerBatchClient {
     this.container = container
     this.customerGroupCodeService =
       container.resolve<SymmyCustomerGroupCodeModuleService>(
-        SYMMY_CUSTOMER_GROUP_CODE_MODULE
+        SYMMY_CUSTOMER_GROUP_CODE_MODULE,
       )
     this.query = getQuery(container)
   }
@@ -93,9 +171,9 @@ export class CustomerBatchClient {
       await this.queryCustomerIdsByMetadata(metadataIdentifiers)
     const [byIdCustomers, byEmailCustomers, byMetadataCustomers] =
       await Promise.all([
-        this.queryCustomers({ id: Array.from(ids) }),
-        this.queryCustomers({ email: Array.from(emails) }),
-        this.queryCustomers({ id: Array.from(metadataCustomerIds) }),
+        this.queryCustomers({ id: [...ids] }),
+        this.queryCustomers({ email: [...emails] }),
+        this.queryCustomers({ id: [...metadataCustomerIds] }),
       ])
 
     return this.mapper.buildCustomerIndex([
@@ -107,12 +185,12 @@ export class CustomerBatchClient {
 
   async preloadGroups(customers: CustomerInput[]): Promise<CustomerGroupIndex> {
     const codes = this.mapper.collectGroupCodes(customers)
-    if (!codes.size) {
+    if (codes.size === 0) {
       return { byCode: new Map() }
     }
 
     const [nameGroups, codeMappings] = await Promise.all([
-      this.queryGroups({ name: Array.from(codes) }),
+      this.queryGroups({ name: [...codes] }),
       this.customerGroupCodeService.listByCodes(codes),
     ])
     const codeGroups = await this.queryGroups({
@@ -124,12 +202,12 @@ export class CustomerBatchClient {
         ...nameGroups,
         ...this.mapper.applyGroupCodeMappings(codeGroups, codeMappings),
       ],
-      codes
+      codes,
     )
   }
 
   private async queryGroups(
-    filters: Record<string, string[]>
+    filters: Record<string, string[]>,
   ): Promise<ExistingGroup[]> {
     if (Object.values(filters).every((values) => values.length === 0)) {
       return []
@@ -139,49 +217,67 @@ export class CustomerBatchClient {
       fields: ["id", "name", "metadata"],
       filters,
     })
-    return (data ?? []) as ExistingGroup[]
+    const rows: unknown[] = data ?? []
+    return rows.flatMap((row) => {
+      const group = decodeGroup(row)
+      return group === null ? [] : [group]
+    })
   }
 
   cacheCustomer(
     index: ExistingCustomerIndex,
     customer: CustomerInput,
-    customerId: string
+    customerId: string,
   ): void {
     this.mapper.addCreatedCustomerToIndex(index, customer, customerId)
   }
 
   findExistingCustomer(
     customer: CustomerInput,
-    index: ExistingCustomerIndex
+    index: ExistingCustomerIndex,
   ): ExistingCustomer | null {
     return this.mapper.findExistingCustomer(customer, index)
   }
 
-  async createCustomer(customer: CustomerInput): Promise<ExistingCustomer> {
+  async createCustomer(customer: CustomerInput): Promise<{ id: string }> {
     const { result } = await createCustomersWorkflow(this.container).run({
       input: {
-        customersData: [this.mapper.buildCreatePayload(customer)] as never,
+        customersData: [this.mapper.buildCreatePayload(customer)],
       },
     })
-    const created = result?.[0] as unknown as ExistingCustomer | undefined
-    if (!created) {
+    const workflowResult: unknown = result
+    const created: unknown = Array.isArray(workflowResult)
+      ? workflowResult[0]
+      : undefined
+    if (
+      typeof created !== "object" ||
+      created === null ||
+      Array.isArray(created)
+    ) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        "createCustomersWorkflow returned empty result"
+        "createCustomersWorkflow returned empty result",
       )
     }
-    return created
+    const createdId: unknown = Reflect.get(created, "id")
+    if (typeof createdId !== "string") {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "createCustomersWorkflow returned empty result",
+      )
+    }
+    return { id: createdId }
   }
 
   async updateCustomer(
     customerId: string,
     existing: ExistingCustomer,
-    customer: CustomerInput
+    customer: CustomerInput,
   ): Promise<void> {
     await updateCustomersWorkflow(this.container).run({
       input: {
         selector: { id: customerId },
-        update: this.mapper.buildUpdatePayload(existing, customer) as never,
+        update: this.mapper.buildUpdatePayload(existing, customer),
       },
     })
   }
@@ -189,126 +285,148 @@ export class CustomerBatchClient {
   async upsertAddresses(
     customerId: string,
     existing: ExistingCustomer | null,
-    addresses: CustomerAddressInput[] | undefined
+    addresses: CustomerAddressInput[] | undefined,
   ): Promise<void> {
-    if (!addresses?.length) {
+    if (addresses === undefined || addresses.length === 0) {
       return
     }
 
-    if (!existing && addresses.some((address) => address.address_id)) {
+    if (
+      existing === null &&
+      addresses.some((address) => address.address_id !== undefined)
+    ) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "address_id can only be used when updating a customer"
+        "address_id can only be used when updating a customer",
       )
     }
 
     const existingAddressIds = new Set(
-      (existing?.addresses ?? []).map((address) => address.id)
+      (existing?.addresses ?? []).map((address) => address.id),
     )
-    for (const address of addresses) {
-      if (address.address_id) {
-        if (existing && !existingAddressIds.has(address.address_id)) {
-          throw new MedusaError(
-            MedusaError.Types.INVALID_DATA,
-            `Address '${address.address_id}' does not belong to customer '${customerId}'`
-          )
-        }
-        await updateCustomerAddressesWorkflow(this.container).run({
+    const processAddressAt = async (index: number): Promise<void> => {
+      const address = addresses[index]
+      if (address === undefined) {
+        return
+      }
+      if (address.address_id === undefined) {
+        await createCustomerAddressesWorkflow(this.container).run({
           input: {
-            selector: { id: address.address_id, customer_id: customerId },
-            update: this.mapper.buildAddressPayload(address) as never,
+            addresses: [
+              {
+                ...this.mapper.buildAddressPayload(address),
+                customer_id: customerId,
+              },
+            ],
           },
         })
-        continue
-      }
-
-      await createCustomerAddressesWorkflow(this.container).run({
-        input: {
-          addresses: [
-            {
-              ...this.mapper.buildAddressPayload(address),
-              customer_id: customerId,
+      } else {
+        const ownsAddress =
+          existing === null || existingAddressIds.has(address.address_id)
+        if (ownsAddress) {
+          await updateCustomerAddressesWorkflow(this.container).run({
+            input: {
+              selector: { customer_id: customerId, id: address.address_id },
+              update: this.mapper.buildAddressPayload(address),
             },
-          ] as never,
-        },
-      })
+          })
+        } else {
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            `Address '${address.address_id}' does not belong to customer '${customerId}'`,
+          )
+        }
+      }
+      await processAddressAt(index + 1)
     }
+    await processAddressAt(0)
   }
 
   async syncGroups(
     customerId: string,
     existing: ExistingCustomer | null,
     groupCodes: string[] | undefined,
-    groupIndex: CustomerGroupIndex
+    groupIndex: CustomerGroupIndex,
   ): Promise<void> {
-    if (!groupCodes) {
+    if (groupCodes === undefined) {
       return
     }
 
     const targetIds = new Set<string>()
     for (const code of groupCodes) {
       const group = groupIndex.byCode.get(code)
-      if (!group) {
+      if (group === undefined) {
         throw new MedusaError(
           MedusaError.Types.NOT_FOUND,
-          `Customer group code '${code}' was not found`
+          `Customer group code '${code}' was not found`,
         )
       }
       targetIds.add(group.id)
     }
 
     const currentIds = new Set(
-      (existing?.groups ?? []).map((group) => group.id)
+      (existing?.groups ?? []).map((group) => group.id),
     )
-    const add = Array.from(targetIds).filter((id) => !currentIds.has(id))
-    const remove = Array.from(currentIds).filter((id) => !targetIds.has(id))
+    const add = [...targetIds].filter((id) => !currentIds.has(id))
+    const remove = [...currentIds].filter((id) => !targetIds.has(id))
 
-    if (!(add.length || remove.length)) {
+    if (add.length === 0 && remove.length === 0) {
       return
     }
 
     await linkCustomerGroupsToCustomerWorkflow(this.container).run({
       input: {
-        id: customerId,
         add,
+        id: customerId,
         remove,
       },
     })
   }
 
   private async queryCustomers(
-    filters: Record<string, string[]>
+    filters: Record<string, string[]>,
   ): Promise<ExistingCustomer[]> {
     if (Object.values(filters).every((values) => values.length === 0)) {
       return []
     }
     const { data } = await this.query.graph({
       entity: "customer",
-      fields: CUSTOMER_FIELDS as unknown as string[],
+      fields: [...CUSTOMER_FIELDS],
       filters,
     })
-    return (data ?? []) as ExistingCustomer[]
+    const rows: unknown[] = data ?? []
+    return rows.flatMap((row) => {
+      const customer = decodeCustomer(row)
+      return customer === null ? [] : [customer]
+    })
   }
 
   private async queryCustomerIdsByMetadata(
-    identifiers: CustomerLookupKeys["metadataIdentifiers"]
+    identifiers: CustomerLookupKeys["metadataIdentifiers"],
   ): Promise<Set<string>> {
+    const queries = Object.entries(identifiers).flatMap(([key, values]) =>
+      values.size === 0
+        ? []
+        : [
+            this.query.graph({
+              entity: "customer",
+              fields: ["id"],
+              filters: { metadata: { [key]: [...values] } },
+            }),
+          ],
+    )
+    const queryResults = await Promise.all(queries)
     const ids = new Set<string>()
-    for (const [key, values] of Object.entries(identifiers)) {
-      if (!values.size) {
-        continue
-      }
-      const { data } = await this.query.graph({
-        entity: "customer",
-        fields: ["id"],
-        filters: {
-          metadata: {
-            [key]: Array.from(values),
-          },
-        },
-      })
-      for (const row of (data ?? []) as { id: string }[]) {
-        ids.add(row.id)
+    for (const { data } of queryResults) {
+      const rows: unknown[] = data ?? []
+      for (const row of rows) {
+        if (typeof row !== "object" || row === null || Array.isArray(row)) {
+          continue
+        }
+        const id: unknown = Reflect.get(row, "id")
+        if (typeof id === "string") {
+          ids.add(id)
+        }
       }
     }
     return ids

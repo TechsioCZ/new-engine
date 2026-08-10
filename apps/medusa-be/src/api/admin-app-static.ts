@@ -1,5 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
+
 import type {
   MedusaNextFunction,
   MedusaRequest,
@@ -15,10 +16,13 @@ const ADMIN_PUBLIC_DIRS = MEDUSA_PROJECT_DIRS.flatMap((projectDir) => [
   path.join(projectDir, ".medusa/server/public/admin"),
   path.join(projectDir, ".medusa/admin"),
 ])
-const APP_PATH_PREFIX_REGEX = /^\/app\/?/
+const ADMIN_INDEX_FILE = "index.html"
+const APP_PATH_PREFIX_REGEX = /^\/app\/?/u
 
 const getAdminPublicDir = () =>
-  ADMIN_PUBLIC_DIRS.find((dir) => fs.existsSync(path.join(dir, "index.html")))
+  ADMIN_PUBLIC_DIRS.find((dir) =>
+    fs.existsSync(path.join(dir, ADMIN_INDEX_FILE)),
+  )
 
 const isPathInsideDirectory = (baseDir: string, filePath: string) => {
   const relative = path.relative(baseDir, filePath)
@@ -31,10 +35,7 @@ const isPathInsideDirectory = (baseDir: string, filePath: string) => {
 }
 
 const getRequestPath = (req: MedusaRequest) => {
-  if (
-    "originalUrl" in req &&
-    typeof req.originalUrl === "string"
-  ) {
+  if ("originalUrl" in req && typeof req.originalUrl === "string") {
     return req.originalUrl.split("?")[0] ?? "/app"
   }
 
@@ -47,11 +48,11 @@ const getRequestPath = (req: MedusaRequest) => {
 
 const resolveAdminFile = (
   adminPublicDir: string,
-  requestPath: string
+  requestPath: string,
 ): string | undefined => {
   const relativePath =
     requestPath === "/app" || requestPath === "/app/"
-      ? "index.html"
+      ? ADMIN_INDEX_FILE
       : requestPath.replace(APP_PATH_PREFIX_REGEX, "")
   const normalizedRelativePath = path.normalize(relativePath)
 
@@ -59,44 +60,46 @@ const resolveAdminFile = (
     normalizedRelativePath.startsWith("..") ||
     path.isAbsolute(normalizedRelativePath)
   ) {
-    return
+    return undefined
   }
 
   const requestedFile = path.resolve(adminPublicDir, normalizedRelativePath)
 
   if (!isPathInsideDirectory(adminPublicDir, requestedFile)) {
-    return
+    return undefined
   }
 
   if (fs.existsSync(requestedFile) && fs.statSync(requestedFile).isFile()) {
     return requestedFile
   }
 
-  if (!path.extname(normalizedRelativePath)) {
-    const indexFile = path.resolve(adminPublicDir, "index.html")
+  if (path.extname(normalizedRelativePath).length === 0) {
+    const indexFile = path.resolve(adminPublicDir, ADMIN_INDEX_FILE)
     return isPathInsideDirectory(adminPublicDir, indexFile)
       ? indexFile
       : undefined
   }
 
-  return
+  return undefined
 }
 
 export const serveAdminAppStatic = (
   req: MedusaRequest,
   res: MedusaResponse,
-  next: MedusaNextFunction
+  next: MedusaNextFunction,
 ) => {
   const adminPublicDir = getAdminPublicDir()
 
-  if (!adminPublicDir) {
-    return next()
+  if (adminPublicDir === undefined) {
+    next()
+    return
   }
 
   const filePath = resolveAdminFile(adminPublicDir, getRequestPath(req))
 
-  if (!filePath) {
-    return next()
+  if (filePath === undefined) {
+    next()
+    return
   }
 
   res.sendFile(filePath)

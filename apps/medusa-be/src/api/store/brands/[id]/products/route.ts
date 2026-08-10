@@ -1,20 +1,22 @@
+import type { Query } from "@medusajs/framework"
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { isRecord, getRecordValue } from "@techsio/std/object"
+
 import { ProductBrandLink } from "../../../../../links/product-brand"
 import { normalizeProductSalesChannelFilter } from "../../../../utils/product-filters"
 import type { StoreBrandsDetailProductsSchemaType } from "../../validators"
 
-export async function GET(
+const get = async (
   req: MedusaRequest<unknown, StoreBrandsDetailProductsSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
-  const brandId = req.params.id ?? "-1"
+  const brandId = req.params["id"] ?? "-1"
   const { data: brands } = await query.graph({
     entity: "brand",
     fields: ["id"],
@@ -26,32 +28,39 @@ export async function GET(
   if (!brands.length) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Brand with id "${brandId}" was not found`
+      `Brand with id "${brandId}" was not found`,
     )
   }
 
-  const { data: productLinks } = await query.graph({
+  const productLinkResult = await query.graph({
     entity: ProductBrandLink.entryPoint,
+    fields: ["product_id"],
     filters: {
       brand_id: brandId,
     },
-    fields: ["product_id"],
   })
-  const linkedProductIds = productLinks.flatMap((link) =>
-    typeof link.product_id === "string" ? [link.product_id] : []
-  )
+  const productLinks: unknown = productLinkResult.data
+  const linkedProductIds = Array.isArray(productLinks)
+    ? productLinks.flatMap((link: unknown) => {
+        if (!isRecord(link)) {
+          return []
+        }
+        const productId: unknown = getRecordValue(link, "product_id")
+        return typeof productId === "string" ? [productId] : []
+      })
+    : []
 
   if (!linkedProductIds.length) {
     res.json({
-      products: [],
       count: 0,
-      offset: req.queryConfig.pagination?.skip ?? 0,
       limit: req.queryConfig.pagination?.take,
+      offset: req.queryConfig.pagination?.skip ?? 0,
+      products: [],
     })
     return
   }
 
-  const filters = await normalizeProductSalesChannelFilter(query, remoteQuery, {
+  const filters = await normalizeProductSalesChannelFilter(remoteQuery, {
     ...req.filterableFields,
     id: linkedProductIds,
   })
@@ -64,9 +73,11 @@ export async function GET(
   })
 
   res.json({
-    products,
     count: metadata?.count ?? products.length,
-    offset: metadata?.skip,
     limit: metadata?.take,
+    offset: metadata?.skip,
+    products,
   })
 }
+
+export { get as GET }

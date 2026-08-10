@@ -1,27 +1,26 @@
 import { UpstreamHttpError } from "./zane-errors"
 
-const REPO_PREVIEW_ENVIRONMENT_NAME = /^pr-\d+$/
+const REPO_PREVIEW_ENVIRONMENT_NAME = /^pr-\d+$/u
 
 interface LaneEnvironment {
   is_preview: boolean
   name: string
 }
 
-export function isRepoPreviewEnvironmentName(environmentName: string): boolean {
-  return REPO_PREVIEW_ENVIRONMENT_NAME.test(environmentName)
-}
+const isRepoPreviewEnvironmentName = (environmentName: string): boolean =>
+  REPO_PREVIEW_ENVIRONMENT_NAME.test(environmentName)
 
-export function assertEnvironmentMatchesLane(
+export const assertEnvironmentMatchesLane = (
   environment: LaneEnvironment,
-  lane: "preview" | "main"
-): void {
+  lane: "preview" | "main",
+): void => {
   const isRepoPreview = isRepoPreviewEnvironmentName(environment.name)
 
   if (lane === "main" && (environment.is_preview || isRepoPreview)) {
     throw new UpstreamHttpError(
       409,
       "zane_environment_lane_mismatch",
-      `Environment ${environment.name} is reserved for preview lane operations and cannot be used for main lane operations`
+      `Environment ${environment.name} is reserved for preview lane operations and cannot be used for main lane operations`,
     )
   }
 
@@ -29,7 +28,7 @@ export function assertEnvironmentMatchesLane(
     throw new UpstreamHttpError(
       409,
       "zane_environment_lane_mismatch",
-      `Environment ${environment.name} does not match the required preview environment naming rule pr-<number>`
+      `Environment ${environment.name} does not match the required preview environment naming rule pr-<number>`,
     )
   }
 }

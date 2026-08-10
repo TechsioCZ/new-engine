@@ -2,21 +2,21 @@
   "name": "medusa-order-dashboard-plugin",
   "version": "0.1.0",
   "description": "Internal Medusa v2 plugin that provides the unified order operations dashboard admin UI route.",
-  "author": "Web Revolution",
-  "license": "MIT",
   "keywords": [
+    "admin",
+    "dashboard",
     "medusa-plugin",
     "medusa-v2",
-    "orders",
-    "admin",
-    "dashboard"
+    "orders"
   ],
-  "main": "./.medusa/server/src/index.js",
-  "types": "./.medusa/server/src/index.d.ts",
+  "license": "MIT",
+  "author": "Web Revolution",
   "files": [
     ".medusa/server",
     "README.md"
   ],
+  "main": "./.medusa/server/src/index.js",
+  "types": "./.medusa/server/src/index.d.ts",
   "exports": {
     ".": {
       "import": "./.medusa/server/src/index.js",
@@ -34,49 +34,43 @@
   "scripts": {
     "build": "medusa plugin:build",
     "dev": "medusa plugin:develop",
-    "lint": "pnpm lint:biome && pnpm lint:medusa",
-    "lint:biome": "pnpm -w exec biome check apps/medusa-order-dashboard-plugin",
-    "lint:fix": "pnpm -w exec biome check --write apps/medusa-order-dashboard-plugin && pnpm lint:medusa",
-    "lint:medusa": "medusa lint",
+    "lint": "pnpm lint:oxlint && pnpm lint:medusa",
+    "lint:fix": "pnpm -w exec ultracite fix apps/medusa-order-dashboard-plugin && pnpm lint:medusa",
+    "lint:medusa": "eslint . --config eslint.config.mjs --max-warnings=0",
     "prepare": "pnpm build",
     "publish:local": "medusa plugin:publish",
-    "typecheck": "tsc --noEmit"
-  },
-  "devDependencies": {
-    "@medusajs/admin-sdk": "2.18.0",
-    "@medusajs/admin-shared": "2.18.0",
-    "@medusajs/cli": "2.18.0",
-    "@medusajs/framework": "^2.18.0",
-    "@medusajs/icons": "2.18.0",
-    "@medusajs/medusa": "^2.18.0",
-    "@medusajs/ui": "4.2.0",
-    "@swc/core": "1.15.3",
-    "@tanstack/react-query": "5.64.2",
-    "@types/react": "19.2.3",
-    "@types/react-dom": "19.2.3",
-    "mysql2": "3.15.3",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-i18next": "13.5.0",
-    "react-router-dom": "6.30.4",
-    "ts-node": "10.9.2",
-    "typescript": "5.9.3"
-  },
-  "peerDependencies": {
-    "@medusajs/admin-sdk": "2.18.0",
-    "@medusajs/admin-shared": "2.18.0",
-    "@medusajs/cli": "2.18.0",
-    "@medusajs/framework": "^2.18.0",
-    "@medusajs/icons": "2.18.0",
-    "@medusajs/medusa": "^2.18.0",
-    "@medusajs/ui": "4.2.0",
-    "@tanstack/react-query": "5.64.2",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-i18next": "13.5.0",
-    "react-router-dom": "6.30.4"
+    "typecheck": "pnpm -w exec tsc --noEmit -p scripts/typescript/projects/apps/medusa-order-dashboard-plugin/tsconfig.json",
+    "lint:oxlint": "pnpm -w exec oxlint apps/medusa-order-dashboard-plugin --type-aware --deny-warnings",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@medusajs/js-sdk": "2.18.0"
+    "@medusajs/admin-sdk": "2.18.0",
+    "@medusajs/icons": "2.18.0",
+    "@medusajs/js-sdk": "2.18.0",
+    "@medusajs/ui": "4.2.0",
+    "@tanstack/react-query": "5.64.2",
+    "react": "19.2.7",
+    "react-i18next": "17.0.10",
+    "react-router-dom": "6.30.4"
+  },
+  "devDependencies": {
+    "@medusajs/admin-shared": "2.18.0",
+    "@medusajs/cli": "2.18.0",
+    "@medusajs/framework": "^2.18.0",
+    "@medusajs/js-sdk": "2.18.0",
+    "@medusajs/medusa": "^2.18.0",
+    "@types/node": "24.12.4",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "express": "4.22.2",
+    "mysql2": "3.23.0",
+    "react-dom": "19.2.7",
+    "ts-node": "10.9.2",
+    "typescript": "5.9.3",
+    "vitest": "catalog:vite5-testing"
+  },
+  "peerDependencies": {
+    "@medusajs/framework": "^2.13.0",
+    "@medusajs/medusa": "^2.13.0"
   }
 }

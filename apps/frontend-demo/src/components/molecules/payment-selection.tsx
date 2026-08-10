@@ -1,8 +1,10 @@
-import Image from "next/image"
-import "../../tokens/app-components/molecules/_payment-selection.css"
 import { Button } from "@techsio/ui-kit/atoms/button"
+
+import "../../tokens/app-components/molecules/_payment-selection.css"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
+import Image from "next/image"
+
 import { PAYMENT_METHODS } from "@/lib/checkout-data"
 
 interface PaymentSelectionProps {
@@ -12,21 +14,21 @@ interface PaymentSelectionProps {
   setCurrentStep: (step: number) => void
 }
 
-export function PaymentSelection({
+export const PaymentSelection = ({
   selected,
   onSelect,
   currentStep,
   setCurrentStep,
-}: PaymentSelectionProps) {
+}: PaymentSelectionProps) => {
   const toast = useToast()
   const handleProgress = () => {
     if (selected) {
       setCurrentStep(currentStep + 1)
     } else {
       toast.create({
-        type: "error",
-        title: "Vyberte způsob platby",
         description: "Pro pokračování je nutné vybrat způsob platby",
+        title: "Vyberte způsob platby",
+        type: "error",
       })
     }
   }
@@ -41,14 +43,16 @@ export function PaymentSelection({
           <Button
             aria-label={`Vybrat platební metodu ${method.name}`}
             aria-pressed={selected === method.id}
-            className="relative flex h-[100px] flex-col items-center justify-center rounded-lg border-2 border-border-subtle bg-surface p-2 transition-all duration-200 hover:bg-surface-hover hover:shadow-md focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-ring focus-visible:outline-offset-(length:--default-ring-offset) data-[selected=true]:border-primary data-[selected=true]:bg-surface-selected data-[selected=true]:shadow-lg sm:h-[140px] sm:p-3 lg:h-[180px] lg:p-4"
+            className="relative flex h-[100px] flex-col items-center justify-center rounded-lg border-2 border-border-subtle bg-surface p-2 transition duration-200 hover:bg-surface-hover hover:shadow-md focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-ring focus-visible:outline-offset-(length:--default-ring-offset) data-[selected=true]:border-primary data-[selected=true]:bg-surface-selected data-[selected=true]:shadow-lg sm:h-[140px] sm:p-3 lg:h-[180px] lg:p-4"
             data-selected={selected === method.id}
             key={method.id}
-            onClick={() => onSelect(method.id)}
+            onClick={() => {
+              onSelect(method.id)
+            }}
             theme="borderless"
           >
             <div
-              className="absolute top-1 right-1 flex h-5 w-5 scale-0 items-center justify-center rounded-full bg-primary opacity-0 transition-all duration-200 data-[selected=true]:scale-100 data-[selected=true]:opacity-100 sm:top-2 sm:right-2 sm:h-6 sm:w-6"
+              className="absolute top-1 right-1 flex h-5 w-5 scale-95 items-center justify-center rounded-full bg-primary opacity-0 transition duration-200 data-[selected=true]:scale-100 data-[selected=true]:opacity-100 sm:top-2 sm:right-2 sm:h-6 sm:w-6"
               data-selected={selected === method.id}
             >
               <Icon className="text-fg-reverse" icon="token-icon-check" />
@@ -67,7 +71,12 @@ export function PaymentSelection({
         ))}
       </div>
       <div className="flex justify-between">
-        <Button onClick={() => setCurrentStep(currentStep - 1)} size="sm">
+        <Button
+          onClick={() => {
+            setCurrentStep(currentStep - 1)
+          }}
+          size="sm"
+        >
           Zpět
         </Button>
         <Button onClick={handleProgress} size="sm">

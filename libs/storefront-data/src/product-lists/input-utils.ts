@@ -1,4 +1,5 @@
-import { compactRecord } from "../shared/object-utils"
+import { omitKeys, omitUndefined } from "@techsio/std/object"
+
 import { resolvePagination } from "../shared/pagination"
 import type {
   ProductListDetailInputBase,
@@ -6,61 +7,45 @@ import type {
 } from "./types"
 
 export const stripListInput = <TInput extends ProductListListInputBase>(
-  input: TInput
-) => {
-  const {
-    enabled: _enabled,
-    customerId: _customerId,
-    page: _page,
-    ...params
-  } = input
-
-  return params
-}
+  input: TInput,
+) => omitKeys(input, ["customerId", "enabled", "page"])
 
 export const stripDetailInput = <TInput extends ProductListDetailInputBase>(
-  input: TInput
-) => {
-  const { enabled: _enabled, customerId: _customerId, ...params } = input
-
-  return params
-}
+  input: TInput,
+) => omitKeys(input, ["customerId", "enabled"])
 
 export const createDefaultListParams = <
   TInput extends ProductListListInputBase,
 >(
   input: TInput,
-  defaultPageSize: number
+  defaultPageSize: number,
 ) => {
-  const params = stripListInput(input) as Record<string, unknown>
+  const params = stripListInput(input)
 
   if (typeof input.page !== "number") {
-    return compactRecord(params)
+    return omitUndefined(params)
   }
 
   const pagination = resolvePagination(
-    {
-      page: input.page,
+    omitUndefined({
       limit: input.limit,
       offset: input.offset,
-    },
-    defaultPageSize
+      page: input.page,
+    }),
+    defaultPageSize,
   )
 
-  return compactRecord({
+  return omitUndefined({
     ...params,
     limit: pagination.limit,
     offset: pagination.offset,
   })
 }
 
-export const withCustomerScope = <
-  TParams,
-  TInput extends { customerId?: string | null },
->(
+export const withCustomerScope = <TParams extends object>(
   params: TParams,
-  input: TInput
+  input: { customerId?: string | null },
 ) => ({
-  ...(params as object),
+  ...params,
   customerId: input.customerId ?? null,
 })

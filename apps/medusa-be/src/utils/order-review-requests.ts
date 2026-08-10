@@ -1,3 +1,5 @@
+import type { MedusaContainer } from "@medusajs/framework/types"
+
 import {
   getCredentialString,
   INTEGRATION_CONFIG_NAMES,
@@ -5,20 +7,22 @@ import {
   retrieveIntegrationConfig,
 } from "../modules/api-store/integration-config"
 
-export type ReviewRequestOrder = {
+type ReviewRequestDate = Date | string | null
+
+interface ReviewRequestPaymentCollection {
+  completed_at?: ReviewRequestDate
+  payments?: ({ captured_at?: ReviewRequestDate } | null)[] | null
+  status?: string | null
+  updated_at?: ReviewRequestDate
+}
+
+export interface ReviewRequestOrder {
   id: string
   customer_id?: string | null
   custom_display_id?: string | null
-  display_id: number
+  display_id: number | null
   email?: string | null
-  payment_collections?:
-    | {
-        completed_at?: Date | string | null
-        payments?: { captured_at?: Date | string | null }[] | null
-        status?: string | null
-        updated_at?: Date | string | null
-      }[]
-    | null
+  payment_collections?: (ReviewRequestPaymentCollection | null)[] | null
   payment_status?: string | null
   status?: string | null
 }
@@ -28,9 +32,9 @@ const MINUTE_IN_MS = 60 * 1000
 const PAID_PAYMENT_STATUSES = new Set(["captured", "completed"])
 const PRODUCT_REVIEW_REQUEST_PATH = "/reviews/product"
 const SKIPPED_ORDER_STATUSES = new Set(["canceled", "archived", "draft"])
-const TRAILING_SLASH_REGEX = /\/+$/
+const TRAILING_SLASH_REGEX = /\/+$/u
 
-export function buildProductReviewRequestUrl({
+export const buildProductReviewRequestUrl = ({
   productId,
   storefrontUrl,
   token,
@@ -38,17 +42,17 @@ export function buildProductReviewRequestUrl({
   productId: string
   storefrontUrl: string
   token: string
-}) {
+}) => {
   const baseUrl = storefrontUrl.replace(TRAILING_SLASH_REGEX, "")
   const encodedToken = encodeURIComponent(token)
   const searchParams = new URLSearchParams({ product_id: productId })
 
-  return `${baseUrl}${PRODUCT_REVIEW_REQUEST_PATH}/${encodedToken}?${searchParams}`
+  return `${baseUrl}${PRODUCT_REVIEW_REQUEST_PATH}/${encodedToken}?${searchParams.toString()}`
 }
 
-function getReviewRequestDelayMs() {
+const getReviewRequestDelayMs = () => {
   const configuredMinutes = Number(
-    process.env.PRODUCT_REVIEW_REQUEST_DELAY_MINUTES
+    process.env["PRODUCT_REVIEW_REQUEST_DELAY_MINUTES"],
   )
 
   if (Number.isFinite(configuredMinutes) && configuredMinutes >= 0) {
@@ -58,30 +62,33 @@ function getReviewRequestDelayMs() {
   return DEFAULT_REVIEW_REQUEST_DELAY_MINUTES * MINUTE_IN_MS
 }
 
-function toDate(value?: Date | string | null) {
-  if (!value) {
-    return
+const toDate = (value?: ReviewRequestDate): Date | undefined => {
+  if (value === null || value === undefined) {
+    return undefined
   }
 
   const date = value instanceof Date ? value : new Date(value)
   return Number.isNaN(date.getTime()) ? undefined : date
 }
 
-function getEarliestDate(dates: Date[]) {
-  return dates.reduce<Date | undefined>((earliest, date) => {
-    if (!earliest || date.getTime() < earliest.getTime()) {
-      return date
+const getEarliestDate = (dates: Date[]): Date | undefined => {
+  let earliest: Date | undefined
+  for (const date of dates) {
+    if (earliest === undefined || date.getTime() < earliest.getTime()) {
+      earliest = date
     }
-
-    return earliest
-  }, undefined)
+  }
+  return earliest
 }
 
-export function getOrderPaidAt(order: ReviewRequestOrder) {
+export const getOrderPaidAt = (order: ReviewRequestOrder) => {
   const paidDates: Date[] = []
 
   for (const collection of order.payment_collections ?? []) {
-    if (!PAID_PAYMENT_STATUSES.has(collection.status ?? "")) {
+    if (
+      collection === null ||
+      !PAID_PAYMENT_STATUSES.has(collection.status ?? "")
+    ) {
       continue
     }
 
@@ -91,6 +98,9 @@ export function getOrderPaidAt(order: ReviewRequestOrder) {
     }
 
     for (const payment of collection.payments ?? []) {
+      if (payment === null) {
+        continue
+      }
       const capturedAt = toDate(payment.captured_at)
       if (capturedAt) {
         paidDates.push(capturedAt)
@@ -106,12 +116,15 @@ export function getOrderPaidAt(order: ReviewRequestOrder) {
   return getEarliestDate(paidDates)
 }
 
-export function isPaidOrder(order: ReviewRequestOrder) {
-  if (!order.email) {
+export const isPaidOrder = (order: ReviewRequestOrder) => {
+  if (typeof order.email !== "string" || order.email.length === 0) {
     return false
   }
 
-  if (order.status && SKIPPED_ORDER_STATUSES.has(order.status)) {
+  if (
+    typeof order.status === "string" &&
+    SKIPPED_ORDER_STATUSES.has(order.status)
+  ) {
     return false
   }
 
@@ -119,55 +132,40 @@ export function isPaidOrder(order: ReviewRequestOrder) {
     return true
   }
 
-  return (order.payment_collections ?? []).some((collection) =>
-    PAID_PAYMENT_STATUSES.has(collection.status ?? "")
+  return (order.payment_collections ?? []).some(
+    (collection) =>
+      collection !== null && PAID_PAYMENT_STATUSES.has(collection.status ?? ""),
   )
 }
 
-export function isReviewRequestReadyOrder(
+export const getReviewRequestRunAt = (
   order: ReviewRequestOrder,
-  now = new Date()
-) {
-  if (!isPaidOrder(order)) {
-    return false
-  }
-
+): Date | undefined => {
   const paidAt = getOrderPaidAt(order)
-  if (!paidAt) {
-    return false
-  }
-
-  return now.getTime() - paidAt.getTime() >= getReviewRequestDelayMs()
-}
-
-export function getReviewRequestRunAt(order: ReviewRequestOrder) {
-  const paidAt = getOrderPaidAt(order)
-  if (!paidAt) {
-    return
+  if (paidAt === undefined) {
+    return undefined
   }
 
   return new Date(paidAt.getTime() + getReviewRequestDelayMs())
 }
 
-export async function getReviewRequestMessage(
-  container?: Record<string, unknown>
-) {
+export const getReviewRequestMessage = async (container?: MedusaContainer) => {
   if (container) {
     const config = await retrieveIntegrationConfig(
       container,
-      INTEGRATION_CONFIG_NAMES.PRODUCT_REVIEW_REQUEST
+      INTEGRATION_CONFIG_NAMES.PRODUCT_REVIEW_REQUEST,
     )
 
-    if (config?.enabled) {
+    if (config?.enabled === true) {
       const credentials = requireCredentialObject(config)
       const message = getCredentialString(
         credentials,
         "message",
         "message_cs",
-        "cs"
+        "cs",
       )
 
-      if (message) {
+      if (message !== undefined && message !== "") {
         return message
       }
     }

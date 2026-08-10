@@ -4,6 +4,8 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { omitUndefined } from "@techsio/std/object"
+
 import {
   getOrderEmailTemplate,
   isOrderEmailTemplate,
@@ -19,68 +21,70 @@ import { getMedusaStoreName } from "../../../../../utils/store-name"
 import { sendOrderPaymentReminderWorkflow } from "../../../../../workflows/send-order-payment-reminder"
 import type { PostAdminOrderEmailSchemaType } from "./validators"
 
-export async function POST(
+const UNSUPPORTED_TEMPLATE_MESSAGE = "Order email template is not supported"
+
+const postOrderEmail = async (
   req: MedusaRequest<PostAdminOrderEmailSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { id } = req.params
   const { template: templateName } = req.validatedBody
 
-  if (!id) {
+  if (id === undefined || id.length === 0) {
     throw new MedusaError(MedusaError.Types.INVALID_DATA, "Order id is missing")
   }
 
   if (!isOrderEmailTemplate(templateName)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Order email template is not supported"
+      UNSUPPORTED_TEMPLATE_MESSAGE,
     )
   }
 
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const order = await fetchOrderById(query, id)
 
-  if (!order) {
+  if (order === undefined || order === null) {
     throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")
   }
 
-  if (!order.email) {
+  if (order.email === undefined || order.email === null || order.email === "") {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Order has no customer email"
+      "Order has no customer email",
     )
   }
 
   const template = getOrderEmailTemplate(templateName)
 
-  if (!template) {
+  if (template === undefined) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Order email template is not supported"
+      UNSUPPORTED_TEMPLATE_MESSAGE,
     )
   }
 
   switch (template.template) {
-    case "order-payment-reminder":
+    case "order-payment-reminder": {
       await sendOrderPaymentReminderWorkflow(req.scope).run({
-        input: {
+        input: omitUndefined({
           customer_id: order.customer_id ?? undefined,
           email: order.email,
           order_display_id: getOrderDisplayId(order),
           order_id: order.id,
           payment_url: getPaymentUrl(order),
-          store_name: await getMedusaStoreName(
-            req.scope as Record<string, unknown>
-          ),
+          store_name: await getMedusaStoreName(req.scope),
           total: formatTotal(order),
-        },
+        }),
       })
       break
-    default:
+    }
+    default: {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Order email template is not supported"
+        UNSUPPORTED_TEMPLATE_MESSAGE,
       )
+    }
   }
 
   res.json({
@@ -89,3 +93,5 @@ export async function POST(
     template,
   })
 }
+
+export { postOrderEmail as POST }

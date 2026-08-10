@@ -1,5 +1,5 @@
 import { HomeRouteSkeleton } from "@/components/loading/home-route-skeleton"
 
-export default function Loading() {
-  return <HomeRouteSkeleton />
-}
+const Loading = () => <HomeRouteSkeleton />
+
+export default Loading

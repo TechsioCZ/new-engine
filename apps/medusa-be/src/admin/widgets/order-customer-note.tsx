@@ -3,32 +3,34 @@ import type { AdminOrder, DetailWidgetProps } from "@medusajs/framework/types"
 import { Container, Text } from "@medusajs/ui"
 import { useQuery } from "@tanstack/react-query"
 import type { ReactNode } from "react"
+
 import { sdk } from "../lib/sdk"
 
-type OrderCustomerNote = {
+interface OrderCustomerNote {
   created_at: string | null
   note: string | null
   order_id: string | null
   updated_at: string | null
 }
 
-type OrderCustomerNoteResponse = {
+interface OrderCustomerNoteResponse {
   customer_note: OrderCustomerNote | null
 }
 
 type OrderCustomerNoteWidgetProps = Partial<DetailWidgetProps<AdminOrder>>
 
 const QUERY_KEY_PREFIX = "order-customer-note"
+const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+})
 
-function formatDateTime(value: string | null) {
-  if (!value) {
+const formatDateTime = (value: string | null) => {
+  if (value === null || value.length === 0) {
     return "-"
   }
 
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value))
+  return dateTimeFormatter.format(new Date(value))
 }
 
 const OrderCustomerNoteWidget = ({ data }: OrderCustomerNoteWidgetProps) => {
@@ -39,12 +41,12 @@ const OrderCustomerNoteWidget = ({ data }: OrderCustomerNoteWidgetProps) => {
     isLoading,
     isError,
   } = useQuery({
-    queryFn: () =>
-      sdk.client.fetch<OrderCustomerNoteResponse>(
-        `/admin/orders/${orderId}/customer-note`
+    enabled: Boolean(orderId),
+    queryFn: async () =>
+      await sdk.client.fetch<OrderCustomerNoteResponse>(
+        `/admin/orders/${orderId}/customer-note`,
       ),
     queryKey: [QUERY_KEY_PREFIX, orderId],
-    enabled: Boolean(orderId),
   })
 
   const customerNote = response?.customer_note
@@ -62,7 +64,11 @@ const OrderCustomerNoteWidget = ({ data }: OrderCustomerNoteWidgetProps) => {
         Failed to load note.
       </Text>
     )
-  } else if (customerNote?.note) {
+  } else if (
+    customerNote?.note !== null &&
+    customerNote?.note !== undefined &&
+    customerNote.note.length > 0
+  ) {
     noteContent = (
       <div className="rounded-md bg-ui-bg-subtle px-3 py-2">
         <Text size="small">{customerNote.note}</Text>

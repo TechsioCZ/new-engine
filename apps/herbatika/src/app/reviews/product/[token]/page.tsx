@@ -1,8 +1,9 @@
 import type { Metadata } from "next"
 import { getTranslations } from "next-intl/server"
+
 import { ProductReviewTokenPage } from "@/components/reviews/product-review-token-page"
 
-type ProductReviewTokenRouteProps = {
+interface ProductReviewTokenRouteProps {
   params: Promise<{
     token: string
   }>
@@ -14,7 +15,7 @@ type ProductReviewTokenRouteProps = {
 const resolveSearchParam = (value?: string | string[]) =>
   Array.isArray(value) ? value[0] : value
 
-export async function generateMetadata(): Promise<Metadata> {
+export const generateMetadata = async (): Promise<Metadata> => {
   const tCatalog = await getTranslations("catalog")
 
   return {
@@ -22,19 +23,23 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default async function ProductReviewTokenRoute({
+const ProductReviewTokenRoute = async ({
   params,
   searchParams,
-}: ProductReviewTokenRouteProps) {
+}: ProductReviewTokenRouteProps) => {
   const [{ token }, resolvedSearchParams] = await Promise.all([
     params,
     searchParams,
   ])
 
+  const productId = resolveSearchParam(resolvedSearchParams.product_id)
+
   return (
     <ProductReviewTokenPage
-      productId={resolveSearchParam(resolvedSearchParams.product_id)}
+      {...(productId === undefined ? {} : { productId })}
       token={token}
     />
   )
 }
+
+export default ProductReviewTokenRoute

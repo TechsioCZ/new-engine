@@ -5,98 +5,71 @@ import {
   archiveOrderWorkflow,
   completeOrderWorkflow,
 } from "@medusajs/medusa/core-flows"
+
 import {
   fetchOrderedOrderExpeditionOrdersByIds,
   getOrderExpeditionDisplayId,
   getOrderExpeditionTransitionBlockReason,
   isOrderExpeditionRawOrder,
-  type OrderExpeditionBlockingOrder,
-  type OrderExpeditionRawOrder,
-  type OrderExpeditionTargetStatus,
   toOrderExpeditionBlockingOrder,
+} from "../../../../utils/order-expedition"
+import type {
+  OrderExpeditionBlockingOrder,
+  OrderExpeditionGraph,
+  OrderExpeditionRawOrder,
+  OrderExpeditionTargetStatus,
 } from "../../../../utils/order-expedition"
 import { clearOrderExpeditionSummaryCache } from "../../../../utils/order-expedition-summary-cache"
 import { bulkCancelOrdersWorkflow } from "../../../../workflows/order-expedition/bulk-cancel-orders"
+import type { OrderExpeditionDirectUpdateStatus } from "../../../../workflows/order-expedition/bulk-update-order-statuses"
 import {
   bulkUpdateOrderStatusesWorkflow,
   isOrderExpeditionDirectUpdateStatus,
 } from "../../../../workflows/order-expedition/bulk-update-order-statuses"
 import type { PostAdminOrderExpeditionStatusSchemaType } from "../validators"
 
-type StatusChangedOrder = {
+interface StatusChangedOrder {
   id: string
   order_display_id: string
   status: string | null
 }
-
-function isOrderExpeditionQueryOrder<T>(
-  order: T
-): order is T & OrderExpeditionRawOrder {
-  return isOrderExpeditionRawOrder(order)
+interface OrderExpeditionStatusDependencies {
+  archive: (orderIds: string[]) => Promise<void>
+  cancel: (orderIds: string[]) => Promise<void>
+  clearCache: () => Promise<void>
+  complete: (orderIds: string[]) => Promise<void>
+  query: OrderExpeditionGraph
+  update: (
+    orderIds: string[],
+    targetStatus: OrderExpeditionDirectUpdateStatus,
+  ) => Promise<void>
+}
+interface OrderExpeditionStatusResponse {
+  json: (body: object) => unknown
+  status: (statusCode: number) => OrderExpeditionStatusResponse
 }
 
-export async function POST(
-  req: MedusaRequest<PostAdminOrderExpeditionStatusSchemaType>,
-  res: MedusaResponse
-): Promise<void> {
-  const { order_ids: requestedOrderIds, target_status: targetStatus } =
-    req.validatedBody
-  const orderIds = uniqueOrderIds(requestedOrderIds)
-  const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
+const isOrderExpeditionQueryOrder = <T>(
+  order: T,
+): order is T & OrderExpeditionRawOrder => isOrderExpeditionRawOrder(order)
 
-  const { missingOrderIds, orders } =
-    await fetchOrderedOrderExpeditionOrdersByIds(query, orderIds)
-  const expeditionOrders = orders.filter(isOrderExpeditionQueryOrder)
-  const blockingOrders = collectBlockingOrders(
-    missingOrderIds,
-    expeditionOrders,
-    targetStatus
-  )
-
-  if (blockingOrders.length) {
-    res.status(400).json({
-      code: "order_expedition_status_blocked",
-      message: "One or more selected orders cannot transition to target status",
-      target_status: targetStatus,
-      blocked_orders: blockingOrders,
-    })
-    return
-  }
-
-  await runStatusWorkflow(req.scope, orderIds, targetStatus)
-
-  const { orders: changedOrders } =
-    await fetchOrderedOrderExpeditionOrdersByIds(query, orderIds)
-  const changedExpeditionOrders = changedOrders.filter(
-    isOrderExpeditionQueryOrder
-  )
-
-  await clearOrderExpeditionSummaryCache(req.scope)
-
-  res.json({
-    count: changedExpeditionOrders.length,
-    target_status: targetStatus,
-    orders: changedExpeditionOrders.map(toChangedOrder),
-  })
-}
-
-function collectBlockingOrders(
+const collectBlockingOrders = (
   missingOrderIds: string[],
   orders: OrderExpeditionRawOrder[],
-  targetStatus: OrderExpeditionTargetStatus
-) {
+  targetStatus: OrderExpeditionTargetStatus,
+) => {
   const blockers: OrderExpeditionBlockingOrder[] = missingOrderIds.map(
     (orderId) => ({
       id: orderId,
       order_display_id: orderId,
       reason: "Order was not found",
-    })
+    }),
   )
 
   for (const order of orders) {
     const reason = getOrderExpeditionTransitionBlockReason(order, targetStatus)
 
-    if (reason) {
+    if (reason !== undefined && reason !== null && reason !== "") {
       blockers.push(toOrderExpeditionBlockingOrder(order, reason))
     }
   }
@@ -104,46 +77,120 @@ function collectBlockingOrders(
   return blockers
 }
 
-async function runStatusWorkflow(
-  scope: MedusaRequest["scope"],
+const runStatusWorkflow = async (
+  dependencies: OrderExpeditionStatusDependencies,
   orderIds: string[],
-  targetStatus: OrderExpeditionTargetStatus
-) {
+  targetStatus: OrderExpeditionTargetStatus,
+) => {
   if (targetStatus === "completed") {
-    await completeOrderWorkflow(scope).run({ input: { orderIds } })
+    await dependencies.complete(orderIds)
     return
   }
 
   if (targetStatus === "archived") {
-    await archiveOrderWorkflow(scope).run({ input: { orderIds } })
+    await dependencies.archive(orderIds)
     return
   }
 
   if (isOrderExpeditionDirectUpdateStatus(targetStatus)) {
-    await bulkUpdateOrderStatusesWorkflow(scope).run({
-      input: {
-        order_ids: orderIds,
-        target_status: targetStatus,
-      },
+    await dependencies.update(orderIds, targetStatus)
+    return
+  }
+
+  await dependencies.cancel(orderIds)
+}
+
+const toChangedOrder = (
+  order: OrderExpeditionRawOrder,
+): StatusChangedOrder => ({
+  id: order.id,
+  order_display_id: getOrderExpeditionDisplayId(order),
+  status: order.status ?? null,
+})
+
+const uniqueOrderIds = (orderIds: string[]) => [...new Set(orderIds)]
+
+export const postOrderExpeditionStatus = async (
+  dependencies: OrderExpeditionStatusDependencies,
+  validatedBody: PostAdminOrderExpeditionStatusSchemaType,
+  res: OrderExpeditionStatusResponse,
+): Promise<void> => {
+  const { order_ids: requestedOrderIds, target_status: targetStatus } =
+    validatedBody
+  const orderIds = uniqueOrderIds(requestedOrderIds)
+
+  const { missingOrderIds, orders } =
+    await fetchOrderedOrderExpeditionOrdersByIds(dependencies.query, orderIds)
+  const expeditionOrders = orders.filter(isOrderExpeditionQueryOrder)
+  const blockingOrders = collectBlockingOrders(
+    missingOrderIds,
+    expeditionOrders,
+    targetStatus,
+  )
+
+  if (blockingOrders.length) {
+    res.status(400).json({
+      blocked_orders: blockingOrders,
+      code: "order_expedition_status_blocked",
+      message: "One or more selected orders cannot transition to target status",
+      target_status: targetStatus,
     })
     return
   }
 
-  await bulkCancelOrdersWorkflow(scope).run({
-    input: {
-      order_ids: orderIds,
-    },
+  await runStatusWorkflow(dependencies, orderIds, targetStatus)
+
+  const { orders: changedOrders } =
+    await fetchOrderedOrderExpeditionOrdersByIds(dependencies.query, orderIds)
+  const changedExpeditionOrders = changedOrders.filter(
+    isOrderExpeditionQueryOrder,
+  )
+
+  await dependencies.clearCache()
+
+  res.json({
+    count: changedExpeditionOrders.length,
+    orders: changedExpeditionOrders.map(toChangedOrder),
+    target_status: targetStatus,
   })
 }
 
-function toChangedOrder(order: OrderExpeditionRawOrder): StatusChangedOrder {
-  return {
-    id: order.id,
-    order_display_id: getOrderExpeditionDisplayId(order),
-    status: order.status ?? null,
-  }
+const post = async (
+  req: MedusaRequest<PostAdminOrderExpeditionStatusSchemaType>,
+  res: MedusaResponse,
+): Promise<void> => {
+  const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  await postOrderExpeditionStatus(
+    {
+      archive: async (orderIds) => {
+        await archiveOrderWorkflow(req.scope).run({ input: { orderIds } })
+      },
+      cancel: async (orderIds) => {
+        await bulkCancelOrdersWorkflow(req.scope).run({
+          input: { order_ids: orderIds },
+        })
+      },
+      clearCache: async () => {
+        await clearOrderExpeditionSummaryCache(req.scope)
+      },
+      complete: async (orderIds) => {
+        await completeOrderWorkflow(req.scope).run({ input: { orderIds } })
+      },
+      query: {
+        graph: async (input) => await query.graph(input),
+      },
+      update: async (orderIds, targetStatus) => {
+        await bulkUpdateOrderStatusesWorkflow(req.scope).run({
+          input: {
+            order_ids: orderIds,
+            target_status: targetStatus,
+          },
+        })
+      },
+    },
+    req.validatedBody,
+    res,
+  )
 }
 
-function uniqueOrderIds(orderIds: string[]) {
-  return [...new Set(orderIds)]
-}
+export { post as POST }

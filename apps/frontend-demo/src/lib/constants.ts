@@ -4,26 +4,17 @@
 
 // Storage keys
 export const STORAGE_KEYS = {
-  // Authentication & Cart
   AUTH_TOKEN: "medusa_auth_token",
   CART_ID: "medusa_cart_id",
-
-  // User preferences
-  THEME: "theme",
-  LANGUAGE: "language",
+  CHECKOUT_DRAFT: "temp_checkout_draft",
   CURRENCY: "currency",
-
-  // UI state
-  SIDEBAR_OPEN: "sidebar_open",
   FILTERS_OPEN: "filters_open",
-
-  // Feature data
+  FORM_DRAFT: "temp_form_draft",
+  LANGUAGE: "language",
   RECENTLY_VIEWED: "recently_viewed_products",
   SEARCH_HISTORY: "search_history",
-
-  // Temporary data
-  FORM_DRAFT: "temp_form_draft",
-  CHECKOUT_DRAFT: "temp_checkout_draft",
+  SIDEBAR_OPEN: "sidebar_open",
+  THEME: "theme",
 } as const
 
 // API configuration

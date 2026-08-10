@@ -1,11 +1,11 @@
-export type RegionInfo = {
+export interface RegionInfo {
   region_id?: string
   country_code?: string
 }
 
 export const applyRegion = <T extends RegionInfo>(
   input: T,
-  region?: RegionInfo | null
+  region?: RegionInfo | null,
 ): T => {
   if (!region) {
     return input
@@ -16,9 +16,9 @@ export const applyRegion = <T extends RegionInfo>(
 
   return {
     ...input,
-    ...(resolvedRegionId !== undefined ? { region_id: resolvedRegionId } : {}),
-    ...(resolvedCountryCode !== undefined
-      ? { country_code: resolvedCountryCode }
-      : {}),
+    ...(resolvedRegionId === undefined ? {} : { region_id: resolvedRegionId }),
+    ...(resolvedCountryCode === undefined
+      ? {}
+      : { country_code: resolvedCountryCode }),
   }
 }

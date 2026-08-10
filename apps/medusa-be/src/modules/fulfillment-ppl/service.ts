@@ -6,15 +6,16 @@ import type {
   FulfillmentDTO,
   FulfillmentItemDTO,
   FulfillmentOption,
+  IFulfillmentProvider,
   FulfillmentOrderDTO,
   Logger,
   ValidateFulfillmentDataContext,
 } from "@medusajs/framework/types"
-import {
-  AbstractFulfillmentProviderService,
-  MedusaError,
-} from "@medusajs/framework/utils"
-import { PPL_CLIENT_MODULE, type PplClientModuleService } from "../ppl-client"
+import { MedusaError } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
+
+import { PPL_CLIENT_MODULE } from "../ppl-client"
+import type { PplClientModuleService } from "../ppl-client"
 import type {
   PplCodSettings,
   PplFulfillmentData,
@@ -24,9 +25,83 @@ import type {
   PplShippingOptionData,
 } from "../ppl-client/types"
 
-type InjectedDependencies = {
+interface InjectedDependencies {
   logger: Logger
-} & Record<typeof PPL_CLIENT_MODULE, PplClientModuleService>
+  [PPL_CLIENT_MODULE]: PplClientModuleService
+}
+
+const pplProductTypeSchema = z.enum(["SMAR", "SMAD", "PRIV", "PRID"])
+
+const pplOptionDataSchema = z.object({
+  product_type: pplProductTypeSchema,
+  requires_access_point: z.unknown().transform((value) => value === true),
+  supports_cod: z.unknown().transform((value) => value === true),
+})
+
+type PplOptionData = z.infer<typeof pplOptionDataSchema>
+
+const optionalStringProbeSchema = z
+  .unknown()
+  .transform((value): string | undefined =>
+    typeof value === "string" ? value : undefined,
+  )
+
+const pplAccessPointDataSchema = z.object({
+  access_point_id: z.string().optional(),
+  access_point_name: optionalStringProbeSchema.optional(),
+  access_point_type: optionalStringProbeSchema.optional(),
+})
+
+type PplAccessPointData = z.infer<typeof pplAccessPointDataSchema>
+
+const pplShippingDataSchema = z.object({
+  access_point_id: z.string().optional(),
+  product_type: pplProductTypeSchema,
+  supports_cod: z.boolean(),
+})
+
+type PplShippingData = z.infer<typeof pplShippingDataSchema>
+
+const pplFulfillmentDataSchema = z.object({
+  batch_id: optionalStringProbeSchema.optional(),
+  label_url: optionalStringProbeSchema.optional(),
+  shipment_number: optionalStringProbeSchema.optional(),
+  tracking_url: optionalStringProbeSchema.optional(),
+})
+
+type StoredPplFulfillmentData = z.infer<typeof pplFulfillmentDataSchema>
+
+const isNonEmptyString = (value: string | null | undefined): value is string =>
+  typeof value === "string" && value.length > 0
+
+const truncate = (value: string, maxLength: number): string =>
+  value.length > maxLength ? value.slice(0, maxLength) : value
+
+interface SenderAddressValues {
+  sender_name: string | null | undefined
+  sender_street: string | null | undefined
+  sender_city: string | null | undefined
+  sender_zip_code: string | null | undefined
+  sender_country: string | null | undefined
+}
+
+interface RequiredSenderAddressValues {
+  sender_name: string
+  sender_street: string
+  sender_city: string
+  sender_zip_code: string
+  sender_country: string
+}
+
+const hasRequiredSenderAddress = (
+  values: SenderAddressValues,
+): values is RequiredSenderAddressValues =>
+  Object.values(values).every(isNonEmptyString)
+
+const getPplFulfillmentData = (data: unknown): StoredPplFulfillmentData => {
+  const result = pplFulfillmentDataSchema.safeParse(data)
+  return result.success ? result.data : {}
+}
 
 /**
  * PPL Fulfillment Provider Service
@@ -39,33 +114,38 @@ type InjectedDependencies = {
  */
 export const PPL_PROVIDER_IDENTIFIER = "ppl"
 
-class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
-  static override identifier = PPL_PROVIDER_IDENTIFIER
+/**
+ * The framework's abstract provider currently narrows document methods below
+ * the canonical `IFulfillmentProvider` contract. Implementing that contract
+ * directly keeps the real document results typed while the discovery marker
+ * preserves Medusa's runtime provider identification.
+ */
+class PplFulfillmentProviderService implements IFulfillmentProvider {
+  static readonly _isFulfillmentService = true
+  static readonly identifier = PPL_PROVIDER_IDENTIFIER
 
-  protected readonly logger_: Logger
-  protected readonly pplClient_: PplClientModuleService
+  protected readonly identifier = PPL_PROVIDER_IDENTIFIER
+  protected readonly logger: Logger
+  protected readonly pplClient: PplClientModuleService
 
   constructor(container: InjectedDependencies, _options: PplOptions) {
-    super()
-    this.logger_ = container.logger
-    this.pplClient_ = container[PPL_CLIENT_MODULE]
+    this.logger = container.logger
+    this.pplClient = container[PPL_CLIENT_MODULE]
+  }
+
+  getIdentifier(): string {
+    return this.identifier
   }
 
   private getClient(): PplClientModuleService {
-    if (!this.pplClient_) {
-      throw new MedusaError(
-        MedusaError.Types.NOT_ALLOWED,
-        "PPL: ppl_client module not available. Check medusa-config dependencies."
-      )
-    }
-    return this.pplClient_
+    return this.pplClient
   }
 
   /**
    * Returns available PPL shipping options for admin UI
    * Returns empty array if PPL is disabled or not configured
    */
-  override async getFulfillmentOptions(): Promise<FulfillmentOption[]> {
+  async getFulfillmentOptions(): Promise<FulfillmentOption[]> {
     // Check if PPL is enabled and configured
     // Wrapped in try-catch to prevent admin UI crash if ppl-client unavailable
     try {
@@ -74,8 +154,8 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
         return []
       }
     } catch (error) {
-      this.logger_.warn(
-        `PPL: Could not check config status, returning no options: ${error instanceof Error ? error.message : String(error)}`
+      this.logger.warn(
+        `PPL: Could not check config status, returning no options: ${error instanceof Error ? error.message : String(error)}`,
       )
       return []
     }
@@ -84,28 +164,28 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
       {
         id: "ppl-parcel-smart",
         name: "PPL Parcel Smart (ParcelShop/ParcelBox)",
-        product_type: "SMAR" as PplProductType,
+        product_type: "SMAR",
         requires_access_point: true,
         supports_cod: false,
       },
       {
         id: "ppl-parcel-smart-cod",
         name: "PPL Parcel Smart + COD",
-        product_type: "SMAD" as PplProductType,
+        product_type: "SMAD",
         requires_access_point: true,
         supports_cod: true,
       },
       {
         id: "ppl-private",
         name: "PPL Private (Home Delivery)",
-        product_type: "PRIV" as PplProductType,
+        product_type: "PRIV",
         requires_access_point: false,
         supports_cod: false,
       },
       {
         id: "ppl-private-cod",
         name: "PPL Private + COD (Home Delivery)",
-        product_type: "PRID" as PplProductType,
+        product_type: "PRID",
         requires_access_point: false,
         supports_cod: true,
       },
@@ -115,64 +195,103 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
   /**
    * Validates shipping option configuration
    */
-  override async validateOption(
-    data: Record<string, unknown>
-  ): Promise<boolean> {
-    const validProducts: PplProductType[] = ["SMAR", "SMAD", "PRIV", "PRID"]
-    return validProducts.includes(data.product_type as PplProductType)
+  async validateOption(data: unknown): Promise<boolean> {
+    await Promise.resolve(this)
+    return pplOptionDataSchema.pick({ product_type: true }).safeParse(data)
+      .success
   }
 
   /**
    * Called during checkout when customer selects shipping method
    * Validates and stores access point selection from PPL Widget
    */
-  override async validateFulfillmentData(
-    optionData: Record<string, unknown>,
-    data: Record<string, unknown>,
-    _context: ValidateFulfillmentDataContext
-  ): Promise<Record<string, unknown>> {
+  async validateFulfillmentData(
+    optionData: unknown,
+    data: unknown,
+    _context: ValidateFulfillmentDataContext,
+  ): Promise<PplShippingOptionData> {
     // Check if PPL is enabled (blocks checkout with stale shipping options)
     const config = await this.getClient().getEffectiveConfig()
     if (!config) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        "PPL shipping is currently unavailable. Please select a different shipping method."
+        "PPL shipping is currently unavailable. Please select a different shipping method.",
       )
     }
 
-    const requiresAccessPoint = optionData.requires_access_point as boolean
+    const optionResult = pplOptionDataSchema.safeParse(optionData)
+    if (!optionResult.success) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "PPL: Invalid shipping option data",
+      )
+    }
+    const {
+      product_type: productType,
+      requires_access_point: requiresAccessPoint,
+      supports_cod: supportsCod,
+    }: PplOptionData = optionResult.data
+
+    const accessPointResult = pplAccessPointDataSchema.safeParse(data)
+    if (!accessPointResult.success) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "PPL: Access point ID must be a string",
+      )
+    }
+    const {
+      access_point_id: accessPointId,
+      access_point_name: accessPointName,
+      access_point_type: accessPointType,
+    }: PplAccessPointData = accessPointResult.data
 
     // If this option requires access point, validate it was selected
     if (requiresAccessPoint) {
-      const accessPointId = data.access_point_id as string | undefined
-      if (!accessPointId) {
+      if (!isNonEmptyString(accessPointId)) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          "PPL: Access point (pickup location) is required for this shipping method"
+          "PPL: Access point (pickup location) is required for this shipping method",
         )
       }
 
-      this.logger_.debug(`PPL: Access point selected: ${accessPointId}`)
+      this.logger.debug(`PPL: Access point selected: ${accessPointId}`)
     }
 
     // Return data to be stored in shipping_method.data
-    return {
-      product_type: optionData.product_type as PplProductType,
+    const validatedData: PplShippingOptionData = {
+      product_type: productType,
       requires_access_point: requiresAccessPoint,
-      supports_cod: optionData.supports_cod as boolean,
-      access_point_id: data.access_point_id as string | undefined,
-      access_point_name: data.access_point_name as string | undefined,
-      access_point_type: data.access_point_type as string | undefined,
+      supports_cod: supportsCod,
     }
+    if (accessPointId !== undefined) {
+      validatedData.access_point_id = accessPointId
+    }
+    if (accessPointName !== undefined) {
+      validatedData.access_point_name = accessPointName
+    }
+    if (accessPointType !== undefined) {
+      validatedData.access_point_type = accessPointType
+    }
+
+    return validatedData
   }
 
-  override async createFulfillment(
-    data: Record<string, unknown>,
+  async createFulfillment(
+    data: unknown,
     _items: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[],
     order: Partial<FulfillmentOrderDTO> | undefined,
-    fulfillment: Partial<Omit<FulfillmentDTO, "provider_id" | "data" | "items">>
+    fulfillment: Partial<
+      Omit<FulfillmentDTO, "provider_id" | "data" | "items">
+    >,
   ): Promise<CreateFulfillmentResult> {
-    const shippingData = data as unknown as PplShippingOptionData
+    const shippingDataResult = pplShippingDataSchema.safeParse(data)
+    if (!shippingDataResult.success) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "PPL: Invalid shipping data",
+      )
+    }
+    const shippingData: PplShippingData = shippingDataResult.data
     const {
       product_type: productType,
       access_point_id: accessPointId,
@@ -182,17 +301,20 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
     if (!order) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "PPL: Order is required for fulfillment"
+        "PPL: Order is required for fulfillment",
       )
     }
     if (!order.shipping_address) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "PPL: Shipping address is required"
+        "PPL: Shipping address is required",
       )
     }
 
-    const recipient = this.buildRecipient(order.shipping_address, order.email)
+    const recipient = PplFulfillmentProviderService.buildRecipient(
+      order.shipping_address,
+      order.email,
+    )
     const countryCode = recipient.country
 
     const codSettings = supportsCod
@@ -202,43 +324,45 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
     // Warn if PPL customer profile not configured
     const customerInfo = await this.getClient().getCustomerInfo()
     if (!customerInfo) {
-      this.logger_.warn(
-        "PPL: Customer profile not configured. Shipment creation may fail. Contact ithelp@ppl.cz"
+      this.logger.warn(
+        "PPL: Customer profile not configured. Shipment creation may fail. Contact ithelp@ppl.cz",
       )
     }
 
     const sender = await this.getSenderAddress()
-    const fulfillmentId = fulfillment.id || `temp-${Date.now()}`
-    const orderId = order.display_id?.toString() || order.id || ""
+    const fulfillmentId = fulfillment.id ?? `temp-${Date.now()}`
+    const orderId = order.display_id?.toString() ?? order.id ?? ""
 
-    const shipmentRequest = this.buildShipmentRequest({
+    const shipmentRequest = PplFulfillmentProviderService.buildShipmentRequest({
+      accessPointId,
+      codSettings,
       fulfillmentId,
+      orderId,
       productType,
       recipient,
       sender,
-      orderId,
-      accessPointId,
-      codSettings,
     })
 
-    this.logger_.info(
-      `PPL: Creating shipment for ${fulfillmentId}, product: ${productType}`
+    this.logger.info(
+      `PPL: Creating shipment for ${fulfillmentId}, product: ${productType}`,
     )
 
     const batchId = await this.getClient().createShipmentBatch([
       shipmentRequest,
     ])
 
-    this.logger_.info(
-      `PPL: Batch ${batchId} created. Status updated by ppl-label-sync job.`
+    this.logger.info(
+      `PPL: Batch ${batchId} created. Status updated by ppl-label-sync job.`,
     )
 
     return {
       data: {
-        status: "pending",
         batch_id: batchId,
         product_type: productType,
-        access_point_id: accessPointId,
+        status: "pending",
+        ...(accessPointId === undefined
+          ? {}
+          : { access_point_id: accessPointId }),
       } satisfies PplFulfillmentData,
       labels: [],
     }
@@ -249,25 +373,29 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
     let sender: PplShipmentRequest["sender"] | undefined
     const customerAddresses = await this.getClient().getCustomerAddresses()
     const defaultSeatAddress = customerAddresses?.find(
-      (a) => a.code === "SEAT" && a.default === true
+      (a) => a.code === "SEAT" && a.default === true,
     )
 
     if (defaultSeatAddress) {
       sender = {
+        city: defaultSeatAddress.city,
+        country: defaultSeatAddress.country,
         name: defaultSeatAddress.name,
         street: defaultSeatAddress.street,
-        city: defaultSeatAddress.city,
         zipCode: defaultSeatAddress.zipCode,
-        country: defaultSeatAddress.country,
-        ...(defaultSeatAddress.phone && { phone: defaultSeatAddress.phone }),
-        ...(defaultSeatAddress.email && { email: defaultSeatAddress.email }),
+        ...(isNonEmptyString(defaultSeatAddress.phone)
+          ? { phone: defaultSeatAddress.phone }
+          : {}),
+        ...(isNonEmptyString(defaultSeatAddress.email)
+          ? { email: defaultSeatAddress.email }
+          : {}),
       }
     } else {
       const config = await this.getClient().getEffectiveConfig()
       if (!config) {
         throw new MedusaError(
           MedusaError.Types.NOT_ALLOWED,
-          "PPL: Service is disabled or not configured. Enable it in Settings → PPL."
+          "PPL: Service is disabled or not configured. Enable it in Settings → PPL.",
         )
       }
       const {
@@ -280,34 +408,33 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
         sender_email,
       } = config
 
-      if (
-        !(
-          sender_name &&
-          sender_street &&
-          sender_city &&
-          sender_zip_code &&
-          sender_country
-        )
-      ) {
+      const requiredSenderValues = {
+        sender_city,
+        sender_country,
+        sender_name,
+        sender_street,
+        sender_zip_code,
+      }
+      if (!hasRequiredSenderAddress(requiredSenderValues)) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
           "PPL: No sender address configured in PPL system and no fallback sender address provided. " +
-            "Please configure a sender address in Settings → PPL."
+            "Please configure a sender address in Settings → PPL.",
         )
       }
 
       sender = {
-        name: sender_name,
-        street: sender_street,
-        city: sender_city,
-        zipCode: sender_zip_code,
-        country: sender_country,
-        ...(sender_phone && { phone: sender_phone }),
-        ...(sender_email && { email: sender_email }),
+        city: requiredSenderValues.sender_city,
+        country: requiredSenderValues.sender_country,
+        name: requiredSenderValues.sender_name,
+        street: requiredSenderValues.sender_street,
+        zipCode: requiredSenderValues.sender_zip_code,
+        ...(isNonEmptyString(sender_phone) ? { phone: sender_phone } : {}),
+        ...(isNonEmptyString(sender_email) ? { email: sender_email } : {}),
       }
 
-      this.logger_.info(
-        "PPL: Using fallback sender address from environment variables"
+      this.logger.info(
+        "PPL: Using fallback sender address from environment variables",
       )
     }
 
@@ -322,59 +449,58 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
    *
    * NOTE: Cancellation only works BEFORE physical pickup by PPL courier
    */
-  override async cancelFulfillment(
-    data: Record<string, unknown>
-  ): Promise<Record<string, unknown>> {
-    const fulfillmentData = data as unknown as PplFulfillmentData
+  async cancelFulfillment(data: unknown) {
+    const fulfillmentData = getPplFulfillmentData(data)
     let shipmentNumber = fulfillmentData.shipment_number
     const batchId = fulfillmentData.batch_id
 
     // If no shipment_number yet, try to fetch it from PPL batch status
     // (batch may have been processed since fulfillment was created)
-    if (!shipmentNumber && batchId) {
-      this.logger_.info(
-        `PPL: No shipment_number in fulfillment data, checking batch ${batchId} status`
+    if (!isNonEmptyString(shipmentNumber) && isNonEmptyString(batchId)) {
+      this.logger.info(
+        `PPL: No shipment_number in fulfillment data, checking batch ${batchId} status`,
       )
 
       const batchStatus = await this.getClient().getBatchStatus(batchId)
       const batchItem = batchStatus.items?.[0]
 
-      if (batchItem?.shipmentNumber) {
-        shipmentNumber = batchItem.shipmentNumber
-        this.logger_.info(
-          `PPL: Found shipment_number ${shipmentNumber} from batch status`
+      const { shipmentNumber: processedShipmentNumber } = batchItem ?? {}
+      if (isNonEmptyString(processedShipmentNumber)) {
+        shipmentNumber = processedShipmentNumber
+        this.logger.info(
+          `PPL: Found shipment_number ${shipmentNumber} from batch status`,
         )
       }
     }
 
     // If still no shipment number, batch hasn't been processed yet
-    if (!shipmentNumber) {
-      this.logger_.warn(
-        `PPL: Cannot cancel - batch ${batchId} not yet processed by PPL. Manual intervention may be needed.`
+    if (!isNonEmptyString(shipmentNumber)) {
+      this.logger.warn(
+        `PPL: Cannot cancel - batch ${batchId} not yet processed by PPL. Manual intervention may be needed.`,
       )
       return {
-        cancelled: false,
         batch_id: batchId,
+        cancelled: false,
         note: "Batch not yet processed by PPL. Check PPL portal or retry later.",
       }
     }
 
-    this.logger_.info(`PPL: Attempting to cancel shipment ${shipmentNumber}`)
+    this.logger.info(`PPL: Attempting to cancel shipment ${shipmentNumber}`)
 
     const cancelled = await this.getClient().cancelShipment(shipmentNumber)
 
     if (!cancelled) {
-      this.logger_.warn(
-        `PPL: Cancellation failed for ${shipmentNumber}. Shipment may have been picked up.`
+      this.logger.warn(
+        `PPL: Cancellation failed for ${shipmentNumber}. Shipment may have been picked up.`,
       )
       return {
         cancelled: false,
-        shipment_number: shipmentNumber,
         note: "Cancellation failed. Shipment may have been picked up. Contact PPL support.",
+        shipment_number: shipmentNumber,
       }
     }
 
-    this.logger_.info(`PPL: Shipment ${shipmentNumber} successfully cancelled`)
+    this.logger.info(`PPL: Shipment ${shipmentNumber} successfully cancelled`)
 
     return {
       cancelled: true,
@@ -386,12 +512,13 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
    * Called when creating a return fulfillment
    * NOTE: Return flow may differ - verify with PPL documentation
    */
-  override async createReturnFulfillment(
-    _fulfillment: Record<string, unknown>
+  async createReturnFulfillment(
+    _fulfillment: unknown,
   ): Promise<CreateFulfillmentResult> {
+    await Promise.resolve(this)
     throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
-      "PPL: Return fulfillment not yet implemented. Contact PPL for return label process."
+      "PPL: Return fulfillment not yet implemented. Contact PPL for return label process.",
     )
   }
 
@@ -399,20 +526,20 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
    * Whether this provider can calculate shipping prices dynamically
    * Returns false to use flat rates configured in Medusa
    */
-  override async canCalculate(
-    _data: CreateShippingOptionDTO
-  ): Promise<boolean> {
+  async canCalculate(_data: CreateShippingOptionDTO): Promise<boolean> {
+    await Promise.resolve(this)
     return false
   }
 
   /**
    * Calculate shipping price (not used when canCalculate returns false)
    */
-  override async calculatePrice(
+  async calculatePrice(
     _optionData: CalculateShippingOptionPriceDTO["optionData"],
     _data: CalculateShippingOptionPriceDTO["data"],
-    _context: CalculateShippingOptionPriceDTO["context"]
+    _context: CalculateShippingOptionPriceDTO["context"],
   ): Promise<CalculatedShippingOptionPrice> {
+    await Promise.resolve(this)
     return {
       calculated_amount: 0,
       is_calculated_price_tax_inclusive: false,
@@ -423,22 +550,22 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
    * Returns all documents for a fulfillment (labels, etc.)
    * Called by Medusa to get fulfillment documents
    */
-  // @ts-expect-error Base class returns never[] but we return actual documents
-  override async getFulfillmentDocuments(
-    data: Record<string, unknown>
+  async getFulfillmentDocuments(
+    data: unknown,
   ): Promise<{ type: string; url: string; format?: string }[]> {
-    const fulfillmentData = data as unknown as PplFulfillmentData
+    await Promise.resolve(this)
+    const fulfillmentData = getPplFulfillmentData(data)
     const documents: { type: string; url: string; format?: string }[] = []
 
-    if (fulfillmentData.label_url) {
+    if (isNonEmptyString(fulfillmentData.label_url)) {
       documents.push({
+        format: "png",
         type: "label",
         url: fulfillmentData.label_url,
-        format: "png",
       })
     }
 
-    if (fulfillmentData.tracking_url) {
+    if (isNonEmptyString(fulfillmentData.tracking_url)) {
       documents.push({
         type: "tracking",
         url: fulfillmentData.tracking_url,
@@ -451,90 +578,95 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
   /**
    * Retrieves a specific document type for a fulfillment
    */
-  // @ts-expect-error Base class returns void but we return document or null
-  override async retrieveDocuments(
-    fulfillmentData: Record<string, unknown>,
-    documentType: string
+  async retrieveDocuments(
+    fulfillmentData: unknown,
+    documentType: string,
   ): Promise<{ type: string; url: string; format?: string } | null> {
-    const data = fulfillmentData as unknown as PplFulfillmentData
+    await Promise.resolve(this)
+    const data = getPplFulfillmentData(fulfillmentData)
 
     switch (documentType) {
-      case "label":
-        return data.label_url
-          ? { type: "label", url: data.label_url, format: "png" }
+      case "label": {
+        return isNonEmptyString(data.label_url)
+          ? { format: "png", type: "label", url: data.label_url }
           : null
-      case "tracking":
-        return data.tracking_url
+      }
+      case "tracking": {
+        return isNonEmptyString(data.tracking_url)
           ? { type: "tracking", url: data.tracking_url }
           : null
-      default:
+      }
+      default: {
         return null
+      }
     }
   }
 
   /**
-   * Returns documents for a return fulfillment
-   * TODO: Implement when return flow is added
+   * Returns documents for a return fulfillment.
+   * PPL return fulfillment is currently unsupported.
    */
-  override async getReturnDocuments(
-    _data: Record<string, unknown>
-  ): Promise<never[]> {
+  async getReturnDocuments(_data: unknown): Promise<never[]> {
+    await Promise.resolve(this)
     return []
   }
 
   /**
-   * Returns shipment documents (commercial invoice, packing list, etc.)
-   * TODO: Implement if PPL provides these documents
+   * Returns shipment documents (commercial invoice, packing list, etc.).
+   * PPL does not currently expose additional shipment documents here.
    */
-  override async getShipmentDocuments(
-    _data: Record<string, unknown>
-  ): Promise<never[]> {
+  async getShipmentDocuments(_data: unknown): Promise<never[]> {
+    await Promise.resolve(this)
     return []
   }
 
-  private buildRecipient(
+  private static buildRecipient(
     shippingAddress: NonNullable<FulfillmentOrderDTO["shipping_address"]>,
-    email: string | undefined
+    email: string | undefined,
   ): PplShipmentRequest["recipient"] {
     const countryCode = shippingAddress.country_code?.toUpperCase()
-    if (!countryCode) {
+    if (!isNonEmptyString(countryCode)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "PPL: Shipping address must include country_code"
+        "PPL: Shipping address must include country_code",
       )
     }
 
     return {
-      name: this.truncate(
-        `${shippingAddress.first_name || ""} ${shippingAddress.last_name || ""}`.trim(),
-        50
-      ),
-      street: this.truncate(shippingAddress.address_1 || "", 60),
-      city: this.truncate(shippingAddress.city || "", 50),
-      zipCode: shippingAddress.postal_code || "",
+      city: truncate(shippingAddress.city ?? "", 50),
       country: countryCode,
-      phone: this.truncate(shippingAddress.phone || "", 30),
-      email: this.truncate(email || "", 50),
+      email: truncate(email ?? "", 50),
+      name: truncate(
+        `${shippingAddress.first_name ?? ""} ${shippingAddress.last_name ?? ""}`.trim(),
+        50,
+      ),
+      phone: truncate(shippingAddress.phone ?? "", 30),
+      street: truncate(shippingAddress.address_1 ?? "", 60),
+      zipCode: shippingAddress.postal_code ?? "",
     }
   }
 
   private async buildCodSettings(
     order: Partial<FulfillmentOrderDTO>,
-    countryCode: string
+    countryCode: string,
   ): Promise<PplCodSettings> {
     const codAmount = order.total
-    if (codAmount == null || typeof codAmount !== "number") {
+    if (
+      codAmount === null ||
+      codAmount === undefined ||
+      typeof codAmount !== "number"
+    ) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "PPL: Order total must be a valid number for COD shipments"
+        "PPL: Order total must be a valid number for COD shipments",
       )
     }
 
     const orderCurrency = order.currency_code?.toUpperCase()
-    if (!orderCurrency) {
+    if (!isNonEmptyString(orderCurrency)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "PPL: Order currency_code is required for COD shipments"
+        "PPL: Order currency_code is required for COD shipments",
       )
     }
 
@@ -542,7 +674,7 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
     if (!supportedCurrencies.some((c) => c.code === orderCurrency)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `PPL: Currency ${orderCurrency} is not supported for COD. Supported: ${supportedCurrencies.map((c) => c.code).join(", ")}`
+        `PPL: Currency ${orderCurrency} is not supported for COD. Supported: ${supportedCurrencies.map((c) => c.code).join(", ")}`,
       )
     }
 
@@ -551,34 +683,42 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
     if (destCountry?.codAllowed === false) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `PPL: COD is not allowed for country ${countryCode}`
+        `PPL: COD is not allowed for country ${countryCode}`,
       )
     }
 
-    const orderId =
-      order.display_id?.toString() || order.id?.substring(0, 10) || ""
+    const orderId = order.display_id?.toString() ?? order.id?.slice(0, 10) ?? ""
     const config = await this.getClient().getEffectiveConfig()
     if (!config) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
-        "PPL: Service is disabled or not configured. Enable it in Settings → PPL."
+        "PPL: Service is disabled or not configured. Enable it in Settings → PPL.",
       )
     }
 
     return {
-      codPrice: codAmount,
       codCurrency: orderCurrency,
+      codPrice: codAmount,
       codVarSym: orderId,
-      ...(config.cod_iban
-        ? { iban: config.cod_iban, swift: config.cod_swift }
+      ...(isNonEmptyString(config.cod_iban)
+        ? {
+            iban: config.cod_iban,
+            ...(config.cod_swift === undefined
+              ? {}
+              : { swift: config.cod_swift }),
+          }
         : {
-            bankAccount: config.cod_bank_account,
-            bankCode: config.cod_bank_code,
+            ...(config.cod_bank_account === undefined
+              ? {}
+              : { bankAccount: config.cod_bank_account }),
+            ...(config.cod_bank_code === undefined
+              ? {}
+              : { bankCode: config.cod_bank_code }),
           }),
     }
   }
 
-  private buildShipmentRequest(params: {
+  private static buildShipmentRequest(params: {
     fulfillmentId: string
     productType: PplProductType
     recipient: PplShipmentRequest["recipient"]
@@ -588,23 +728,20 @@ class PplFulfillmentProviderService extends AbstractFulfillmentProviderService {
     codSettings: PplCodSettings | undefined
   }): PplShipmentRequest {
     return {
-      referenceId: params.fulfillmentId,
+      ...(params.codSettings === undefined
+        ? {}
+        : { cashOnDelivery: params.codSettings }),
+      externalNumbers: [{ code: "CUST", externalNumber: params.orderId }],
       productType: params.productType,
       recipient: params.recipient,
-      ...(params.sender && { sender: params.sender }),
-      externalNumbers: [{ code: "CUST", externalNumber: params.orderId }],
-      ...(params.accessPointId && {
-        specificDelivery: { parcelShopCode: params.accessPointId },
-      }),
-      ...(params.codSettings && { cashOnDelivery: params.codSettings }),
+      referenceId: params.fulfillmentId,
+      ...(params.sender === undefined ? {} : { sender: params.sender }),
+      ...(isNonEmptyString(params.accessPointId)
+        ? {
+            specificDelivery: { parcelShopCode: params.accessPointId },
+          }
+        : {}),
     }
-  }
-
-  private truncate(str: string, maxLength: number): string {
-    if (!str) {
-      return ""
-    }
-    return str.length > maxLength ? str.substring(0, maxLength) : str
   }
 }
 

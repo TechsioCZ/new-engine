@@ -4,29 +4,29 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 type PricePreferenceAttribute = "region_id" | "currency_code"
 
-type EnsurePricePreferencesStepOutput = {
+export interface EnsurePricePreferencesStepOutput {
   createdCount: number
   updatedCount: number
   targetCount: number
 }
 
-type ExistingPreference = {
+interface ExistingPreference {
   id: string
   isTaxInclusive: boolean
 }
 
-type PricePreferencePayload = {
+interface PricePreferencePayload {
   attribute: PricePreferenceAttribute
   value: string
   is_tax_inclusive: boolean
 }
 
-type PricePreferencePlan = {
+interface PricePreferencePlan {
   createPayloads: PricePreferencePayload[]
   updateIds: string[]
 }
 
-export type EnsurePricePreferencesStepInput = {
+export interface EnsurePricePreferencesStepInput {
   regionIds?: string[]
   currencyCodes?: string[]
   isTaxInclusive?: boolean
@@ -34,61 +34,59 @@ export type EnsurePricePreferencesStepInput = {
 
 const EnsurePricePreferencesStepId = "ensure-price-preferences-seed-step"
 
-function normalizeId(value: unknown): string | undefined {
+const normalizeId = (value: unknown): string | undefined => {
   if (typeof value !== "string") {
-    return
+    return undefined
   }
 
   const normalized = value.trim()
-  return normalized || undefined
+  return normalized.length > 0 ? normalized : undefined
 }
 
-function normalizeCurrencyCode(value: unknown): string | undefined {
+const normalizeCurrencyCode = (value: unknown): string | undefined => {
   if (typeof value !== "string") {
-    return
+    return undefined
   }
 
   const normalized = value.trim().toLowerCase()
-  if (!normalized) {
-    return
+  if (normalized.length === 0) {
+    return undefined
   }
 
   return normalized
 }
 
-function isDefinedString(value: string | undefined): value is string {
-  return typeof value === "string" && value.length > 0
-}
+const isDefinedString = (value: string | undefined): value is string =>
+  typeof value === "string" && value.length > 0
 
-function buildKey(attribute: PricePreferenceAttribute, value: string): string {
-  return `${attribute}:${value}`
-}
+const buildKey = (attribute: PricePreferenceAttribute, value: string): string =>
+  `${attribute}:${value}`
 
-function uniqueDefinedStrings(values: Array<string | undefined>): string[] {
-  return [...new Set(values.filter(isDefinedString))]
-}
+const uniqueDefinedStrings = (values: (string | undefined)[]): string[] => [
+  ...new Set(values.filter(isDefinedString)),
+]
 
-function normalizeRegionIds(regionIds: string[] | undefined): string[] {
-  return uniqueDefinedStrings((regionIds ?? []).map(normalizeId))
-}
+const normalizeRegionIds = (regionIds: string[] | undefined): string[] =>
+  uniqueDefinedStrings((regionIds ?? []).map(normalizeId))
 
-function normalizeCurrencyCodes(currencyCodes: string[] | undefined): string[] {
-  return uniqueDefinedStrings((currencyCodes ?? []).map(normalizeCurrencyCode))
-}
+const normalizeCurrencyCodes = (
+  currencyCodes: string[] | undefined,
+): string[] =>
+  uniqueDefinedStrings((currencyCodes ?? []).map(normalizeCurrencyCode))
 
-function buildExistingPreferenceMap(
-  preferences: Array<{
+const buildExistingPreferenceMap = (
+  preferences: {
     attribute: unknown
     value: unknown
     id?: unknown
     is_tax_inclusive: boolean
-  }>
-): Map<string, ExistingPreference> {
+  }[],
+): Map<string, ExistingPreference> => {
   const existingByKey = new Map<string, ExistingPreference>()
 
   for (const preference of preferences) {
-    const attribute = preference.attribute
-    const value = preference.value
+    const { attribute } = preference
+    const { value } = preference
 
     if (
       (attribute !== "region_id" && attribute !== "currency_code") ||
@@ -109,23 +107,23 @@ function buildExistingPreferenceMap(
   return existingByKey
 }
 
-function addPreferencePlanEntry(params: {
+const addPreferencePlanEntry = (params: {
   plan: PricePreferencePlan
   existingByKey: Map<string, ExistingPreference>
   attribute: PricePreferenceAttribute
   value: string
   isTaxInclusive: boolean
-}): void {
+}): void => {
   const { plan, existingByKey, attribute, value, isTaxInclusive } = params
   const existingPreference = existingByKey.get(buildKey(attribute, value))
 
   if (!existingPreference) {
     plan.createPayloads.push({
       attribute,
-      value,
       is_tax_inclusive: isTaxInclusive,
+      value,
     })
-    return
+    return undefined
   }
 
   if (existingPreference.isTaxInclusive !== isTaxInclusive) {
@@ -133,12 +131,12 @@ function addPreferencePlanEntry(params: {
   }
 }
 
-function buildPricePreferencePlan(params: {
+const buildPricePreferencePlan = (params: {
   regionIds: string[]
   currencyCodes: string[]
   existingByKey: Map<string, ExistingPreference>
   isTaxInclusive: boolean
-}): PricePreferencePlan {
+}): PricePreferencePlan => {
   const plan: PricePreferencePlan = {
     createPayloads: [],
     updateIds: [],
@@ -146,21 +144,21 @@ function buildPricePreferencePlan(params: {
 
   for (const regionId of params.regionIds) {
     addPreferencePlanEntry({
-      plan,
-      existingByKey: params.existingByKey,
       attribute: "region_id",
-      value: regionId,
+      existingByKey: params.existingByKey,
       isTaxInclusive: params.isTaxInclusive,
+      plan,
+      value: regionId,
     })
   }
 
   for (const currencyCode of params.currencyCodes) {
     addPreferencePlanEntry({
-      plan,
-      existingByKey: params.existingByKey,
       attribute: "currency_code",
-      value: currencyCode,
+      existingByKey: params.existingByKey,
       isTaxInclusive: params.isTaxInclusive,
+      plan,
+      value: currencyCode,
     })
   }
 
@@ -172,7 +170,7 @@ export const ensurePricePreferencesStep = createStep(
   async (input: EnsurePricePreferencesStepInput, { container }) => {
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const pricingService = container.resolve<IPricingModuleService>(
-      Modules.PRICING
+      Modules.PRICING,
     )
 
     const isTaxInclusive = input.isTaxInclusive ?? true
@@ -182,8 +180,8 @@ export const ensurePricePreferencesStep = createStep(
     if (regionIds.length === 0 && currencyCodes.length === 0) {
       const output: EnsurePricePreferencesStepOutput = {
         createdCount: 0,
-        updatedCount: 0,
         targetCount: 0,
+        updatedCount: 0,
       }
 
       return new StepResponse({ result: output })
@@ -210,10 +208,10 @@ export const ensurePricePreferencesStep = createStep(
       ...existingCurrencyPreferences,
     ])
     const { createPayloads, updateIds } = buildPricePreferencePlan({
-      regionIds,
       currencyCodes,
       existingByKey,
       isTaxInclusive,
+      regionIds,
     })
 
     if (createPayloads.length > 0) {
@@ -224,20 +222,20 @@ export const ensurePricePreferencesStep = createStep(
     if (uniqueUpdateIds.length > 0) {
       await pricingService.updatePricePreferences(
         { id: uniqueUpdateIds },
-        { is_tax_inclusive: isTaxInclusive }
+        { is_tax_inclusive: isTaxInclusive },
       )
     }
 
     logger.info(
-      `Ensured price preferences: created ${createPayloads.length}, updated ${uniqueUpdateIds.length}`
+      `Ensured price preferences: created ${createPayloads.length}, updated ${uniqueUpdateIds.length}`,
     )
 
     const output: EnsurePricePreferencesStepOutput = {
       createdCount: createPayloads.length,
-      updatedCount: uniqueUpdateIds.length,
       targetCount: regionIds.length + currencyCodes.length,
+      updatedCount: uniqueUpdateIds.length,
     }
 
     return new StepResponse({ result: output })
-  }
+  },
 )

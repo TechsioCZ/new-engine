@@ -2,39 +2,40 @@
 
 import { SearchForm } from "@techsio/ui-kit/molecules/search-form"
 import { useTranslations } from "next-intl"
-import type { FormEvent } from "react"
+import type { SubmitEvent } from "react"
+
 import { SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH } from "@/lib/search-autocomplete/search-autocomplete-types"
+
 import { SearchAutocompletePanel } from "./search-autocomplete-panel"
 import { useSearchAutocompleteController } from "./use-search-autocomplete-controller"
 
-type SearchAutocompleteProps = {
+interface SearchAutocompleteProps {
   countryCode?: string
   currencyCode: string
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  onSubmit: (event: SubmitEvent<HTMLFormElement>) => void
   regionId?: string
   variant: "desktop" | "mobile"
 }
 
-export function SearchAutocomplete({
+export const SearchAutocomplete = ({
   countryCode,
   currencyCode,
   onSubmit,
   regionId,
   variant,
-}: SearchAutocompleteProps) {
+}: SearchAutocompleteProps) => {
   const t = useTranslations("search")
   const isMobile = variant === "mobile"
+  const inputClassName = isMobile ? "px-350 text-sm" : "px-400"
   const controller = useSearchAutocompleteController({
-    countryCode,
+    ...(countryCode === undefined ? {} : { countryCode }),
     currencyCode,
     onSubmit,
-    regionId,
+    ...(regionId === undefined ? {} : { regionId }),
   })
 
   return (
-    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: Blur on the combobox wrapper closes the suggestion panel when focus leaves the whole search control.
-    // biome-ignore lint/a11y/noStaticElementInteractions: This wrapper manages composite combobox focus rather than acting as an interactive control.
-    <div className="relative w-full" onBlur={controller.handleBlur}>
+    <div className="relative w-full">
       <SearchForm
         className="w-full"
         onSubmit={controller.handleSubmit}
@@ -43,19 +44,12 @@ export function SearchAutocomplete({
       >
         <SearchForm.Control className="h-search-form rounded-base bg-fill-secondary">
           <SearchForm.Input
-            aria-activedescendant={controller.activeItemId}
-            aria-autocomplete="list"
-            aria-controls={controller.hasItems ? controller.panelId : undefined}
-            aria-expanded={controller.shouldShowPanel}
-            aria-haspopup="listbox"
+            {...controller.api.getInputProps()}
             aria-label={t("input_aria")}
-            className={`${isMobile ? "px-350 text-sm" : "px-400"} -outline-offset-1 h-full border-none font-verdana outline outline-border-search focus-visible:outline-search-form-border-focused focus-visible:outline-offset-0`}
+            className={`${inputClassName} -outline-offset-1 h-full border-none font-verdana outline outline-border-search focus-visible:outline-search-form-border-focused focus-visible:outline-offset-0`}
             maxLength={SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH}
             name="q"
-            onFocus={controller.handleFocus}
-            onKeyDown={controller.handleKeyDown}
             placeholder={t("input_placeholder")}
-            role="combobox"
           />
           <SearchForm.Button
             aria-label={t("submit_aria")}
@@ -64,6 +58,7 @@ export function SearchAutocomplete({
             showSearchIcon
           />
           <SearchForm.ClearButton
+            {...controller.api.getClearTriggerProps()}
             aria-label={t("clear_aria")}
             className="right-0 text-fg-secondary hover:text-fg-primary"
           />
@@ -71,11 +66,8 @@ export function SearchAutocomplete({
 
         {controller.shouldShowPanel ? (
           <SearchAutocompletePanel
-            activeItemId={controller.activeItemId}
-            id={controller.panelId}
-            onItemClick={controller.closePanel}
-            onItemMouseEnter={controller.handleItemMouseEnter}
-            onMouseDown={controller.handlePanelMouseDown}
+            api={controller.api}
+            degraded={controller.degraded}
             query={controller.normalizedQuery}
             sections={controller.sections}
             status={controller.status}

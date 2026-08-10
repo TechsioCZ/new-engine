@@ -1,12 +1,12 @@
-import type { StoreProductVariantWithPricePerUnit } from "@techsio/storefront-data/products/types"
 import { describe, expect, it } from "vitest"
+
 import { formatUnitPriceLabel, resolveVariantPricePerUnit } from "./unit-price"
 
-describe("formatUnitPriceLabel", () => {
+describe(formatUnitPriceLabel, () => {
   it("formats the calculated unit price and reference quantity", () => {
     expect(
       formatUnitPriceLabel({
-        calculated_amount: 13.453_333,
+        calculated_amount: 13.453333,
         currency_code: "eur",
         product_unit_quantity: 75,
         unit_base_quantity: 100,
@@ -14,7 +14,7 @@ describe("formatUnitPriceLabel", () => {
         unit_id: "unit_ml",
         unit_name: "millilitre",
         unit_symbol: "ml",
-      })
+      }),
     ).toBe("13,45 € / 100 ml")
   })
 
@@ -29,14 +29,13 @@ describe("formatUnitPriceLabel", () => {
         unit_id: "unit_kg",
         unit_name: "kilogram",
         unit_symbol: "kg",
-      })
+      }),
     ).toBe("4,50 € / 0,5 kg")
   })
 
   it.each([
     null,
     {
-      calculated_amount: undefined,
       currency_code: "eur",
       product_unit_quantity: 75,
       unit_base_quantity: 100,
@@ -70,7 +69,7 @@ describe("formatUnitPriceLabel", () => {
   })
 })
 
-describe("resolveVariantPricePerUnit", () => {
+describe(resolveVariantPricePerUnit, () => {
   it("reads price_per_unit from the selected variant calculation", () => {
     const pricePerUnit = {
       calculated_amount: 13.45,
@@ -84,13 +83,13 @@ describe("resolveVariantPricePerUnit", () => {
     }
     const variant = {
       calculated_price: { price_per_unit: pricePerUnit },
-    } as StoreProductVariantWithPricePerUnit
+    }
 
     expect(
       resolveVariantPricePerUnit(variant, {
         currencyCode: "EUR",
         source: "calculated_price",
-      })
+      }),
     ).toBe(pricePerUnit)
   })
 
@@ -99,7 +98,7 @@ describe("resolveVariantPricePerUnit", () => {
       resolveVariantPricePerUnit(undefined, {
         currencyCode: "EUR",
         source: "calculated_price",
-      })
+      }),
     ).toBeNull()
   })
 
@@ -117,13 +116,13 @@ describe("resolveVariantPricePerUnit", () => {
           unit_symbol: "ml",
         },
       },
-    } as StoreProductVariantWithPricePerUnit
+    }
 
     expect(
       resolveVariantPricePerUnit(variant, {
         currencyCode: "EUR",
         source: "top_offer",
-      })
+      }),
     ).toBeNull()
   })
 
@@ -141,13 +140,13 @@ describe("resolveVariantPricePerUnit", () => {
           unit_symbol: "ml",
         },
       },
-    } as StoreProductVariantWithPricePerUnit
+    }
 
     expect(
       resolveVariantPricePerUnit(variant, {
         currencyCode: "EUR",
         source: "calculated_price",
-      })
+      }),
     ).toBeNull()
   })
 })

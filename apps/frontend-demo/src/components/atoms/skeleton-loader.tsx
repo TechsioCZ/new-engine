@@ -1,6 +1,7 @@
 import { tv } from "@techsio/ui-kit/utils"
-import type * as React from "react"
+import type { HTMLAttributes } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import "../../tokens/app-components/atoms/_skeleton-loader.css"
 
 const skeletonVariants = tv({
@@ -17,65 +18,66 @@ const skeletonVariants = tv({
     "before:via-skeleton-shimmer",
     "before:to-transparent",
   ],
-  variants: {
-    variant: {
-      text: "rounded-skeleton-text",
-      box: "rounded-skeleton-box",
-      circle: "aspect-square rounded-skeleton-circle",
-    },
-    size: {
-      sm: "h-skeleton-sm",
-      md: "h-skeleton-md",
-      lg: "h-skeleton-lg",
-      xl: "h-skeleton-xl",
-      fit: "h-fit",
-      full: "h-full",
-    },
-    block: {
-      true: "w-full",
-    },
-  },
   compoundVariants: [
     {
-      variant: "text",
-      size: "sm",
       className: "h-skeleton-text-sm",
+      size: "sm",
+      variant: "text",
     },
     {
-      variant: "text",
-      size: "md",
       className: "h-skeleton-text-md",
+      size: "md",
+      variant: "text",
     },
     {
-      variant: "text",
-      size: "lg",
       className: "h-skeleton-text-lg",
+      size: "lg",
+      variant: "text",
     },
     {
-      variant: "text",
-      size: "xl",
       className: "h-skeleton-text-xl",
+      size: "xl",
+      variant: "text",
     },
     {
-      variant: "text",
-      size: "full",
       className: "h-full",
+      size: "full",
+      variant: "text",
     },
   ],
   defaultVariants: {
-    variant: "text",
     size: "fit",
+    variant: "text",
+  },
+  variants: {
+    block: {
+      true: "w-full",
+    },
+    size: {
+      fit: "h-fit",
+      full: "h-full",
+      lg: "h-skeleton-lg",
+      md: "h-skeleton-md",
+      sm: "h-skeleton-sm",
+      xl: "h-skeleton-xl",
+    },
+    variant: {
+      box: "rounded-skeleton-box",
+      circle: "aspect-square rounded-skeleton-circle",
+      text: "rounded-skeleton-text",
+    },
   },
 })
 
 export interface SkeletonLoaderProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends
+    HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof skeletonVariants> {
   count?: number
   containerClassName?: string
 }
 
-export function SkeletonLoader({
+export const SkeletonLoader = ({
   variant,
   size,
   block,
@@ -84,13 +86,13 @@ export function SkeletonLoader({
   className,
   style,
   ...props
-}: SkeletonLoaderProps) {
+}: SkeletonLoaderProps) => {
   if (count > 1) {
     return (
       <div className={containerClassName}>
         {Array.from({ length: count }).map((_, index) => (
           <div
-            className={skeletonVariants({ variant, size, block, className })}
+            className={skeletonVariants({ block, className, size, variant })}
             key={`skeleton-${index}`}
             style={style}
             {...props}
@@ -102,7 +104,7 @@ export function SkeletonLoader({
 
   return (
     <div
-      className={skeletonVariants({ variant, size, block, className })}
+      className={skeletonVariants({ block, className, size, variant })}
       style={style}
       {...props}
     />

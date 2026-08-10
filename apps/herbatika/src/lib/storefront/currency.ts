@@ -1,11 +1,11 @@
 export const DEFAULT_CURRENCY_CODE = "EUR"
 
-export type HerbatikaCurrencyCode = string
+export type HerbatikaCurrencyCode = string & Record<never, never>
 
-const CURRENCY_CODE_PATTERN = /^[A-Z]{3}$/
+const CURRENCY_CODE_PATTERN = /^[A-Z]{3}$/u
 
 export const normalizeSupportedCurrencyCode = (
-  value: unknown
+  value: unknown,
 ): HerbatikaCurrencyCode | null => {
   if (typeof value !== "string") {
     return null
@@ -19,6 +19,6 @@ export const normalizeSupportedCurrencyCode = (
 
 export const resolveSupportedCurrencyCode = (
   value: unknown,
-  fallbackCurrencyCode: HerbatikaCurrencyCode = DEFAULT_CURRENCY_CODE
+  fallbackCurrencyCode: HerbatikaCurrencyCode = DEFAULT_CURRENCY_CODE,
 ): HerbatikaCurrencyCode =>
   normalizeSupportedCurrencyCode(value) ?? fallbackCurrencyCode

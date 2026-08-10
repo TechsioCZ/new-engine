@@ -5,6 +5,7 @@ import type {
   UseQueryOptions,
   UseSuspenseQueryOptions,
 } from "@tanstack/react-query"
+
 import type { QueryKey } from "./query-keys"
 
 export type ReadQueryOptions<
@@ -48,22 +49,22 @@ export type QueryFactoryOptions<
   queryFn: QueryFunction<TQueryFnData, TQueryKey>
 } & ReadQueryOptions<TQueryFnData, TError, TData, TQueryKey>
 
-export type MutationOptions<TData, TVariables, TContext = unknown> = {
+export interface MutationOptions<TData, TVariables, TContext = unknown> {
   onMutate?: (variables: TVariables) => Promise<TContext> | TContext
   onSuccess?: (
     data: TData,
     variables: TVariables,
-    context: TContext | undefined
+    context: TContext | undefined,
   ) => void
   onError?: (
     error: unknown,
     variables: TVariables,
-    context: TContext | undefined
+    context: TContext | undefined,
   ) => void
   onSettled?: (
     data: TData | undefined,
-    error: unknown | null,
+    error: unknown,
     variables: TVariables,
-    context: TContext | undefined
+    context: TContext | undefined,
   ) => void
 }

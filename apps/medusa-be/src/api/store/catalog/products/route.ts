@@ -6,11 +6,10 @@ import {
   ProductStatus,
   QueryContext,
 } from "@medusajs/framework/utils"
-import {
-  type RequestWithContext,
-  wrapProductsWithTaxPrices,
-} from "@medusajs/medusa/api/store/products/helpers"
+import type { RequestWithContext } from "@medusajs/medusa/api/store/products/helpers"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
+import { isRecord, getRecordValue } from "@techsio/std/object"
+
 import { cleanSearchText } from "../../../../modules/meilisearch/documents"
 import { isMeilisearchEnabled } from "../../../../modules/meilisearch/env"
 import {
@@ -21,17 +20,17 @@ import {
   STATUS_FACET_DEFINITIONS,
   STATUS_FACET_LABEL_BY_ID,
 } from "../../../../modules/meilisearch/facets/product-facets"
+import type { SearchProfile } from "../../../../modules/meilisearch/profiles"
 import {
+  isSearchProfileResolutionError,
   loadSearchProfiles,
   resolveSearchProfile,
-  type SearchProfile,
-  SearchProfileResolutionError,
 } from "../../../../modules/meilisearch/profiles"
+import type { RankedProductMatch } from "../../../../modules/meilisearch/search-results"
 import {
   buildProductResultFilter,
   expandProductsBySearchMatches,
   getSalesChannelIds,
-  type RankedProductMatch,
   selectRankedProductIds,
 } from "../../../../modules/meilisearch/search-results"
 import {
@@ -39,14 +38,15 @@ import {
   getMeasurementDecorationOptions,
 } from "../../../../utils/measurement-units"
 import { MEILISEARCH } from "../../../../workflows/meilisearch"
+import type { ProductFilters } from "../../../utils/product-filters"
 import { normalizeProductSalesChannelFilter } from "../../../utils/product-filters"
+import type { StoreProductProjection } from "../../products/product-graph-validation"
+import { parseStoreProductListGraphResponse } from "../../products/product-graph-validation"
+import { decorateProductProjectionsWithTaxPrices } from "../../products/product-projection-decorators"
+import type { FacetCountItem } from "./utils"
 import {
   buildCatalogFilterExpressions,
-  type FacetCountItem,
-  getFacetDistribution,
   getFacetDistributionFromHits,
-  getNumericFacetStats,
-  getNumericFacetStatsFromHits,
   humanizeFacetHandle,
   normalizeBrandParam,
   normalizeCategoryIdsParam,
@@ -56,34 +56,11 @@ import {
   resolveCatalogSort,
   sortFacetCountItems,
 } from "./utils"
+import type { StoreCatalogProductsSchemaType } from "./validators"
 import {
   STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
   STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
-  type StoreCatalogProductsSchemaType,
 } from "./validators"
-
-type BrandRecord = {
-  handle?: string
-  title?: string
-}
-
-type CategoryRecord = {
-  handle?: string
-  name?: string
-}
-
-type ProductWithCalculatedPrices = {
-  id?: unknown
-  search_result?: {
-    variant_id?: unknown
-  }
-  variants?: Array<{
-    id?: unknown
-    calculated_price?: {
-      calculated_amount?: unknown
-    } | null
-  }> | null
-}
 
 const FACETS_TO_FETCH = [
   "facet_status",
@@ -93,75 +70,103 @@ const FACETS_TO_FETCH = [
   "facet_price",
 ]
 
-const mapStatusFacets = (
-  facetCounts: Map<string, number>
+type CatalogRequest = RequestWithContext<
+  unknown,
+  StoreCatalogProductsSchemaType
+>
+type CatalogSearchResult = Awaited<ReturnType<MeiliSearchService["search"]>>
+type RemoteQuery = Parameters<typeof normalizeProductSalesChannelFilter>[0]
+type PriceSortDirection = -1 | 1 | undefined
+
+interface CatalogDependencies {
+  meilisearchService: MeiliSearchService
+  queryService: Query
+  remoteQuery: RemoteQuery
+}
+
+interface CatalogProductQueryResult {
+  metadata: { count?: number | undefined } | undefined
+  products: StoreProductProjection[]
+}
+
+interface CatalogSearchPlan {
+  authoritativePriceSortDirection: PriceSortDirection
+  cleanedQuery: string
+  filter: string
+  limit: number
+  offset: number
+  page: number
+  priceMax: number | undefined
+  priceMin: number | undefined
+  profile: SearchProfile
+  sort: string[] | undefined
+}
+
+interface FacetResponse {
+  brand: FacetCountItem[]
+  form: FacetCountItem[]
+  ingredient: FacetCountItem[]
+  price: {
+    max: null | number
+    min: null | number
+  }
+  status: FacetCountItem[]
+}
+
+const mapDefinedFacets = (
+  definitions: readonly { id: string; label: string }[],
+  fallbackLabels: ReadonlyMap<string, string>,
+  facetCounts: Map<string, number>,
 ): FacetCountItem[] => {
   const usedIds = new Set<string>()
-
-  const result: FacetCountItem[] = STATUS_FACET_DEFINITIONS.map((item) => {
+  const result = definitions.map((item) => {
     usedIds.add(item.id)
-
     return {
+      count: facetCounts.get(item.id) ?? 0,
       id: item.id,
       label: item.label,
-      count: facetCounts.get(item.id) ?? 0,
     }
   })
+  const additionalItems: FacetCountItem[] = []
 
-  const additionalItems = sortFacetCountItems(
-    Array.from(facetCounts.entries())
-      .filter(([id]) => !usedIds.has(id))
-      .map(([id, count]) => ({
-        id,
-        label: STATUS_FACET_LABEL_BY_ID.get(id) ?? id,
+  for (const [id, count] of facetCounts) {
+    if (!usedIds.has(id)) {
+      additionalItems.push({
         count,
-      }))
-  )
-
-  return [...result, ...additionalItems]
-}
-
-const mapFormFacets = (facetCounts: Map<string, number>): FacetCountItem[] => {
-  const usedIds = new Set<string>()
-
-  const result: FacetCountItem[] = FORM_FACET_DEFINITIONS.map((item) => {
-    usedIds.add(item.id)
-
-    return {
-      id: item.id,
-      label: item.label,
-      count: facetCounts.get(item.id) ?? 0,
+        id,
+        label: fallbackLabels.get(id) ?? id,
+      })
     }
-  })
+  }
 
-  const additionalItems = sortFacetCountItems(
-    Array.from(facetCounts.entries())
-      .filter(([id]) => !usedIds.has(id))
-      .map(([id, count]) => ({
-        id,
-        label: FORM_FACET_LABEL_BY_ID.get(id) ?? id,
-        count,
-      }))
+  return [...result, ...sortFacetCountItems(additionalItems)]
+}
+
+const mapStatusFacets = (facetCounts: Map<string, number>): FacetCountItem[] =>
+  mapDefinedFacets(
+    STATUS_FACET_DEFINITIONS,
+    STATUS_FACET_LABEL_BY_ID,
+    facetCounts,
   )
 
-  return [...result, ...additionalItems]
-}
+const mapFormFacets = (facetCounts: Map<string, number>): FacetCountItem[] =>
+  mapDefinedFacets(FORM_FACET_DEFINITIONS, FORM_FACET_LABEL_BY_ID, facetCounts)
 
 const escapeMeiliFilterValue = (value: string): string =>
   value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
 
 const buildMeiliOrExpression = (
   field: string,
-  values: string[]
+  values: string[],
 ): string | undefined => {
-  const uniqueValues = Array.from(new Set(values.filter(Boolean)))
+  const uniqueValues = [...new Set(values.filter((value) => value.length > 0))]
   if (uniqueValues.length === 0) {
-    return
+    return undefined
   }
 
-  if (uniqueValues.length === 1) {
-    const [value] = uniqueValues
-    return value ? `${field} = "${escapeMeiliFilterValue(value)}"` : undefined
+  const [firstValue] = uniqueValues
+  if (uniqueValues.length === 1 && firstValue !== undefined) {
+    return `${field} = "${escapeMeiliFilterValue(firstValue)}"`
   }
 
   return `(${uniqueValues
@@ -170,117 +175,80 @@ const buildMeiliOrExpression = (
 }
 
 const buildVisibilityFilterExpressions = (
-  salesChannelIdFilter: unknown
+  salesChannelIdFilter: unknown,
 ): string[] => {
   const expressions = [
     `facet_product_status = "${escapeMeiliFilterValue(ProductStatus.PUBLISHED)}"`,
   ]
   const salesChannelExpression = buildMeiliOrExpression(
     "facet_sales_channel_ids",
-    getSalesChannelIds(salesChannelIdFilter)
+    getSalesChannelIds(salesChannelIdFilter),
   )
 
-  if (salesChannelExpression) {
+  if (salesChannelExpression !== undefined) {
     expressions.push(salesChannelExpression)
   }
 
   return expressions
 }
-const resolveBrandFacetLabels = async (
-  queryService: Query,
-  facetIds: string[]
-): Promise<Map<string, string>> => {
-  const labelsById = new Map<string, string>()
-  const handles = Array.from(
-    new Set(
-      facetIds
-        .map((id) => extractBrandHandleFromFacetId(id))
-        .filter((handle): handle is string => Boolean(handle))
-    )
-  )
 
-  if (handles.length === 0) {
-    return labelsById
+const getGraphRecords = (value: unknown): object[] => {
+  if (!isRecord(value)) {
+    return []
   }
-
-  const { data: brands } = await queryService.graph({
-    entity: "brand",
-    fields: ["handle", "title"],
-    filters: {
-      handle: {
-        $in: handles,
-      },
-    },
-  })
-
-  const brandTitleByHandle = new Map<string, string>()
-  for (const brand of brands as BrandRecord[]) {
-    if (!(brand.handle && brand.title)) {
-      continue
-    }
-    brandTitleByHandle.set(brand.handle, brand.title)
-  }
-
-  for (const facetId of facetIds) {
-    const handle = extractBrandHandleFromFacetId(facetId)
-    if (!handle) {
-      continue
-    }
-
-    labelsById.set(
-      facetId,
-      brandTitleByHandle.get(handle) ?? humanizeFacetHandle(handle)
-    )
-  }
-
-  return labelsById
+  const data = getRecordValue(value, "data")
+  return Array.isArray(data) ? data.filter(isRecord) : []
 }
 
-const resolveIngredientFacetLabels = async (
-  queryService: Query,
-  facetIds: string[]
-): Promise<Map<string, string>> => {
-  const labelsById = new Map<string, string>()
-  const handles = Array.from(
-    new Set(
-      facetIds
-        .map((id) => extractIngredientHandleFromFacetId(id))
-        .filter((handle): handle is string => Boolean(handle))
-    )
-  )
+const getFacetHandles = (
+  facetIds: string[],
+  extractHandle: (facetId: string) => string | undefined,
+): string[] => {
+  const handles = new Set<string>()
+  for (const facetId of facetIds) {
+    const handle = extractHandle(facetId)
+    if (handle !== undefined && handle.length > 0) {
+      handles.add(handle)
+    }
+  }
+  return [...handles]
+}
 
+const resolveFacetLabels = async (options: {
+  entity: "brand" | "product_category"
+  extractHandle: (facetId: string) => string | undefined
+  facetIds: string[]
+  labelField: "name" | "title"
+  queryService: Query
+}): Promise<Map<string, string>> => {
+  const labelsById = new Map<string, string>()
+  const handles = getFacetHandles(options.facetIds, options.extractHandle)
   if (handles.length === 0) {
     return labelsById
   }
 
-  const { data: categories } = await queryService.graph({
-    entity: "product_category",
-    fields: ["handle", "name"],
-    filters: {
-      handle: {
-        $in: handles,
-      },
-    },
+  const rawResult: unknown = await options.queryService.graph({
+    entity: options.entity,
+    fields: ["handle", options.labelField],
+    filters: { handle: { $in: handles } },
   })
-
-  const categoryNameByHandle = new Map<string, string>()
-  for (const category of categories as CategoryRecord[]) {
-    if (!(category.handle && category.name)) {
-      continue
+  const labelsByHandle = new Map<string, string>()
+  for (const record of getGraphRecords(rawResult)) {
+    const handle = getRecordValue(record, "handle")
+    const label = getRecordValue(record, options.labelField)
+    if (typeof handle === "string" && typeof label === "string") {
+      labelsByHandle.set(handle, label)
     }
-    categoryNameByHandle.set(category.handle, category.name)
   }
 
-  for (const facetId of facetIds) {
-    const handle = extractIngredientHandleFromFacetId(facetId)
-    if (!handle) {
-      continue
+  for (const facetId of options.facetIds) {
+    const handle = options.extractHandle(facetId)
+    if (handle !== undefined && handle.length > 0) {
+      labelsById.set(
+        facetId,
+        labelsByHandle.get(handle) ?? humanizeFacetHandle(handle),
+      )
     }
-
-    labelsById.set(
-      facetId,
-      categoryNameByHandle.get(handle) ?? humanizeFacetHandle(handle)
-    )
   }
 
   return labelsById
@@ -288,430 +256,619 @@ const resolveIngredientFacetLabels = async (
 
 const mapDynamicFacets = (
   facetCounts: Map<string, number>,
-  labelsById: Map<string, string>
+  labelsById: Map<string, string>,
 ): FacetCountItem[] =>
   sortFacetCountItems(
-    Array.from(facetCounts.entries()).map(([id, count]) => ({
+    [...facetCounts.entries()].map(([id, count]) => ({
+      count,
       id,
       label: labelsById.get(id) ?? humanizeFacetHandle(id),
-      count,
-    }))
+    })),
   )
+
+const getAuthoritativeCurrencyCode = (
+  req: CatalogRequest,
+): string | undefined => {
+  if (isRecord(req.pricingContext)) {
+    const contextCurrency = req.pricingContext.currency_code
+    if (
+      typeof contextCurrency === "string" &&
+      contextCurrency.trim().length > 0
+    ) {
+      return contextCurrency.trim().toLowerCase()
+    }
+  }
+  const requestedCurrency = req.validatedQuery.currency_code
+    ?.trim()
+    .toLowerCase()
+  return requestedCurrency !== undefined && requestedCurrency.length > 0
+    ? requestedCurrency
+    : undefined
+}
 
 const getLowestCalculatedProductPrice = (
-  product: ProductWithCalculatedPrices
+  product: unknown,
+  authoritativeCurrencyCode: string | undefined,
 ): number | undefined => {
-  const selectedVariantId = product.search_result?.variant_id
-  const selectedVariant = (product.variants ?? []).find(
-    (variant) =>
-      typeof selectedVariantId === "string" &&
-      variant.id === selectedVariantId
-  )
-  const selectedVariantPrice =
-    selectedVariant?.calculated_price?.calculated_amount
-
-  if (
-    typeof selectedVariantPrice === "number" &&
-    Number.isFinite(selectedVariantPrice)
-  ) {
-    return selectedVariantPrice
+  if (!isRecord(product)) {
+    return undefined
   }
 
-  const prices = (product.variants ?? [])
-    .map((variant) => variant.calculated_price?.calculated_amount)
-    .filter(
-      (amount): amount is number =>
-        typeof amount === "number" && Number.isFinite(amount)
-    )
+  const searchResult = getRecordValue(product, "search_result")
+  const selectedVariantId = isRecord(searchResult)
+    ? getRecordValue(searchResult, "variant_id")
+    : undefined
+  const rawVariants: unknown = getRecordValue(product, "variants")
+  const variants = Array.isArray(rawVariants)
+    ? rawVariants.filter(isRecord)
+    : []
+  const selectedVariant = variants.find(
+    (variant) =>
+      typeof selectedVariantId === "string" &&
+      getRecordValue(variant, "id") === selectedVariantId,
+  )
+  const candidates =
+    selectedVariant === undefined ? variants : [selectedVariant]
+  const prices: number[] = []
 
-  return prices.length > 0 ? Math.min(...prices) : undefined
+  for (const variant of candidates) {
+    const calculatedPrice = getRecordValue(variant, "calculated_price")
+    if (!isRecord(calculatedPrice)) {
+      continue
+    }
+    const amount = getRecordValue(calculatedPrice, "calculated_amount")
+    const currencyCode = getRecordValue(calculatedPrice, "currency_code")
+    const hasAuthoritativeCurrency =
+      authoritativeCurrencyCode === undefined ||
+      (typeof currencyCode === "string" &&
+        currencyCode.toLowerCase() === authoritativeCurrencyCode)
+    if (
+      hasAuthoritativeCurrency &&
+      typeof amount === "number" &&
+      Number.isFinite(amount) &&
+      amount >= 0
+    ) {
+      prices.push(amount)
+    }
+  }
+
+  return prices.length === 0 ? undefined : Math.min(...prices)
 }
 
 const resolveAuthoritativePriceSortDirection = (
-  sort: string
-): 1 | -1 | undefined => {
+  sort: string,
+): PriceSortDirection => {
   if (sort === "price-asc") {
     return 1
   }
   if (sort === "price-desc") {
     return -1
   }
-  return
+  return undefined
 }
 
-const selectProductMatchesForHydration = (options: {
-  cleanedQuery: string
-  limit: number
-  matchingProducts: RankedProductMatch[]
-  offset: number
-  priceSortDirection?: 1 | -1
-}): RankedProductMatch[] => {
-  if (options.priceSortDirection) {
-    return options.matchingProducts
+const resolveRequestProfile = async (
+  req: CatalogRequest,
+): Promise<SearchProfile> => {
+  const { locale, profile: requestedKey } = req.validatedQuery
+  return resolveSearchProfile(
+    {
+      ...(locale === undefined ? {} : { locale }),
+      ...(requestedKey === undefined ? {} : { requestedKey }),
+      salesChannelIds: getSalesChannelIds(
+        req.filterableFields.sales_channel_id,
+      ),
+    },
+    await loadSearchProfiles(req.scope),
+  )
+}
+
+const buildSearchPlan = (
+  req: CatalogRequest,
+  profile: SearchProfile,
+): CatalogSearchPlan => {
+  const { page } = req.validatedQuery
+  const limit = Math.min(req.validatedQuery.limit, profile.limits.page)
+  const offset = (page - 1) * limit
+  const cleanedQuery = cleanSearchText(req.validatedQuery.q)
+  const authoritativePriceSortDirection =
+    resolveAuthoritativePriceSortDirection(req.validatedQuery.sort)
+  let meiliSort: string[] | undefined
+  if (authoritativePriceSortDirection === undefined) {
+    meiliSort = resolveCatalogSort(req.validatedQuery.sort)
+    if (meiliSort === undefined && cleanedQuery.length === 0) {
+      meiliSort = ["facet_popularity:desc"]
+    }
   }
-  if (options.cleanedQuery) {
-    return options.matchingProducts.slice(
-      options.offset,
-      options.offset + options.limit
+  const { brand, category_id, form, ingredient, price_max, price_min, status } =
+    req.validatedQuery
+  const catalogFilters = buildCatalogFilterExpressions({
+    brandIds: normalizeBrandParam(brand),
+    categoryIds: normalizeCategoryIdsParam(category_id),
+    formIds: normalizeFormParam(form),
+    ingredientIds: normalizeIngredientParam(ingredient),
+    statusIds: normalizeStatusParam(status),
+  })
+  const filter = [
+    buildProductResultFilter(profile.separateVariantResults, cleanedQuery),
+    ...catalogFilters,
+    ...buildVisibilityFilterExpressions(req.filterableFields.sales_channel_id),
+  ].join(" AND ")
+
+  return {
+    authoritativePriceSortDirection,
+    cleanedQuery,
+    filter,
+    limit,
+    offset,
+    page,
+    priceMax: price_max,
+    priceMin: price_min,
+    profile,
+    sort: meiliSort,
+  }
+}
+
+const searchCatalog = async (
+  service: MeiliSearchService,
+  plan: CatalogSearchPlan,
+): Promise<CatalogSearchResult> =>
+  await service.search(plan.profile.indexes.product, plan.cleanedQuery, {
+    additionalOptions: {
+      attributesToRetrieve: [
+        "id",
+        "title",
+        "brand",
+        "search_product_id",
+        "search_variant_id",
+        "search_variant_title",
+        "search_variant_titles",
+        "search_identifiers_normalized",
+        "facet_status",
+        "facet_form",
+        "facet_brand",
+        "facet_ingredient",
+        "facet_price",
+      ],
+      facets: FACETS_TO_FETCH,
+      ...(plan.cleanedQuery.length > 0 ? { showRankingScore: true } : {}),
+      ...(plan.sort === undefined ? {} : { sort: plan.sort }),
+    },
+    filter: plan.filter,
+    paginationOptions: {
+      limit: plan.profile.limits.fullSearch,
+      offset: 0,
+    },
+  })
+
+const getProductQueryContext = (req: CatalogRequest) =>
+  req.pricingContext === undefined || req.pricingContext === null
+    ? undefined
+    : { variants: { calculated_price: QueryContext(req.pricingContext) } }
+
+const getProductFields = (req: CatalogRequest): string[] => {
+  const requestedFields = Array.isArray(req.queryConfig.fields)
+    ? req.queryConfig.fields.filter(
+        (field): field is string =>
+          typeof field === "string" && field.length > 0,
+      )
+    : []
+  return [
+    ...new Set([
+      ...STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
+      ...requestedFields,
+      ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
+    ]),
+  ]
+}
+
+const queryProducts = async (options: {
+  dependencies: CatalogDependencies
+  filters: ProductFilters
+  pagination?: { skip: number; take: number }
+  req: CatalogRequest
+}): Promise<CatalogProductQueryResult> => {
+  const context = getProductQueryContext(options.req)
+  const normalizedFilters = await normalizeProductSalesChannelFilter(
+    options.dependencies.remoteQuery,
+    options.filters,
+  )
+  const rawResult: unknown = await options.dependencies.queryService.graph({
+    ...(context === undefined ? {} : { context }),
+    entity: "product",
+    fields: getProductFields(options.req),
+    filters: normalizedFilters,
+    ...(options.pagination === undefined
+      ? {}
+      : { pagination: options.pagination }),
+  })
+  const parsed = parseStoreProductListGraphResponse(rawResult)
+  return {
+    metadata: parsed.metadata,
+    products: parsed.products,
+  }
+}
+
+const decorateProducts = async (
+  req: CatalogRequest,
+  products: StoreProductProjection[],
+): Promise<void> => {
+  await decorateProductProjectionsWithTaxPrices(req, products)
+  await decorateProductsWithMeasurements(
+    req.scope,
+    products,
+    getMeasurementDecorationOptions(req.queryConfig.fields),
+  )
+}
+
+const hasConstrainedFallbackRequest = (req: CatalogRequest): boolean => {
+  const {
+    brand,
+    category_id,
+    form,
+    ingredient,
+    price_max,
+    price_min,
+    sort,
+    status,
+  } = req.validatedQuery
+  const facetValues = [
+    normalizeBrandParam(brand),
+    normalizeCategoryIdsParam(category_id),
+    normalizeFormParam(form),
+    normalizeIngredientParam(ingredient),
+    normalizeStatusParam(status),
+  ]
+  const hasFacetConstraint = facetValues.some((values) => values.length > 0)
+  const hasPriceConstraint = price_min !== undefined || price_max !== undefined
+  return hasFacetConstraint || hasPriceConstraint || sort !== "recommended"
+}
+
+const sendDegradedFallback = async (
+  req: CatalogRequest,
+  res: MedusaResponse,
+  dependencies: CatalogDependencies,
+  plan: CatalogSearchPlan,
+  error: unknown,
+): Promise<void> => {
+  const logger = req.scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+  const errorMessage = error instanceof Error ? error.message : String(error)
+  if (hasConstrainedFallbackRequest(req)) {
+    logger.error(
+      `Meilisearch catalog query failed for a constrained request: ${errorMessage}`,
     )
-  }
-  return options.matchingProducts
-}
-
-const resolveResultCount = (options: {
-  estimatedTotalHits?: number
-  exhaustiveCandidateSearch: boolean
-  fallbackCount: number
-  matchingCount: number
-}): number => {
-  if (options.exhaustiveCandidateSearch) {
-    return options.matchingCount
-  }
-  return options.estimatedTotalHits ?? options.fallbackCount
-}
-
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: This route coordinates search, authoritative hydration, facets, pricing, and degraded fallback.
-export async function GET(
-  req: RequestWithContext<unknown, StoreCatalogProductsSchemaType>,
-  res: MedusaResponse
-) {
-  if (!isMeilisearchEnabled()) {
     res.status(503).json({
-      message: "Catalog search is disabled",
+      code: "CATALOG_SEARCH_UNAVAILABLE_FOR_CONSTRAINED_QUERY",
+      message:
+        "Catalog search is temporarily unavailable; active filters or sorting cannot be applied safely.",
     })
     return
   }
 
-  const validatedQuery = req.validatedQuery
-  const measurementDecorationOptions = getMeasurementDecorationOptions(
-    req.queryConfig.fields
+  logger.warn(
+    `Meilisearch catalog query failed; using capped Medusa fallback: ${errorMessage}`,
   )
-  const queryService = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
-  const meilisearchService = req.scope.resolve<MeiliSearchService>(MEILISEARCH)
+  const fallback = await queryProducts({
+    dependencies,
+    filters: {
+      ...(plan.cleanedQuery.length === 0 ? {} : { q: plan.cleanedQuery }),
+      sales_channel_id: req.filterableFields.sales_channel_id,
+      status: ProductStatus.PUBLISHED,
+    },
+    pagination: { skip: plan.offset, take: plan.limit },
+    req,
+  })
+  await decorateProducts(req, fallback.products)
+  const count = fallback.metadata?.count ?? fallback.products.length
 
-  const page = validatedQuery.page
-  const salesChannelIds = getSalesChannelIds(
-    req.filterableFields.sales_channel_id
-  )
-  let searchProfile: SearchProfile
-  try {
-    searchProfile = resolveSearchProfile(
-      {
-        locale: validatedQuery.locale,
-        requestedKey: validatedQuery.profile,
-        salesChannelIds,
-      },
-      await loadSearchProfiles(req.scope)
+  res.json({
+    count,
+    facets: {
+      brand: [],
+      form: mapFormFacets(new Map()),
+      ingredient: [],
+      price: { max: null, min: null },
+      status: mapStatusFacets(new Map()),
+    },
+    limit: plan.limit,
+    page: plan.page,
+    products: fallback.products,
+    search: {
+      degraded: true,
+      exactIdentifierMatch: false,
+      profile: plan.profile.key,
+    },
+    totalPages: Math.ceil(count / plan.limit),
+  })
+}
+
+const hydrateRankedProducts = async (
+  req: CatalogRequest,
+  dependencies: CatalogDependencies,
+  matches: RankedProductMatch[],
+): Promise<StoreProductProjection[]> => {
+  const productIds = [...new Set(matches.map((match) => match.productId))]
+  if (productIds.length === 0) {
+    return []
+  }
+
+  const { products } = await queryProducts({
+    dependencies,
+    filters: {
+      id: { $in: productIds },
+      sales_channel_id: req.filterableFields.sales_channel_id,
+      status: ProductStatus.PUBLISHED,
+    },
+    req,
+  })
+  const expanded = expandProductsBySearchMatches(products, matches)
+  return parseStoreProductListGraphResponse({ data: expanded }).products
+}
+
+const filterProductsByPrice = (options: {
+  authoritativeCurrencyCode: string | undefined
+  priceMax: number | undefined
+  priceMin: number | undefined
+  products: StoreProductProjection[]
+}): StoreProductProjection[] =>
+  options.products.filter((product) => {
+    const price = getLowestCalculatedProductPrice(
+      product,
+      options.authoritativeCurrencyCode,
     )
+    if (price === undefined) {
+      return options.priceMin === undefined && options.priceMax === undefined
+    }
+    return (
+      (options.priceMin === undefined || price >= options.priceMin) &&
+      (options.priceMax === undefined || price <= options.priceMax)
+    )
+  })
+
+const getProductResultKey = (value: unknown): string | undefined => {
+  if (!isRecord(value)) {
+    return undefined
+  }
+  const id = getRecordValue(value, "id")
+  const searchProductId = getRecordValue(value, "search_product_id")
+  let productId: string | undefined
+  if (typeof searchProductId === "string") {
+    productId = searchProductId
+  } else if (typeof id === "string") {
+    productId = id
+  }
+  if (productId === undefined) {
+    return undefined
+  }
+  const searchResult = getRecordValue(value, "search_result")
+  const variantId = isRecord(searchResult)
+    ? getRecordValue(searchResult, "variant_id")
+    : getRecordValue(value, "search_variant_id")
+  return typeof variantId === "string" && variantId.length > 0
+    ? `${productId}:${variantId}`
+    : productId
+}
+
+const filterHitsForProducts = (
+  hits: unknown[],
+  products: StoreProductProjection[],
+): unknown[] => {
+  const productKeys = new Set(
+    products
+      .map(getProductResultKey)
+      .filter((key): key is string => key !== undefined),
+  )
+  return hits.filter((hit) => {
+    const key = getProductResultKey(hit)
+    return key !== undefined && productKeys.has(key)
+  })
+}
+
+const getAuthoritativePriceStats = (
+  products: StoreProductProjection[],
+  authoritativeCurrencyCode: string | undefined,
+): { max: number | undefined; min: number | undefined } => {
+  const prices = products
+    .map((product) =>
+      getLowestCalculatedProductPrice(product, authoritativeCurrencyCode),
+    )
+    .filter((price): price is number => price !== undefined)
+  return {
+    max: prices.length === 0 ? undefined : Math.max(...prices),
+    min: prices.length === 0 ? undefined : Math.min(...prices),
+  }
+}
+
+const hasCompleteCandidateSet = (
+  result: CatalogSearchResult,
+  candidateLimit: number,
+): boolean => {
+  if (!Array.isArray(result.hits)) {
+    return false
+  }
+  if (typeof result.estimatedTotalHits === "number") {
+    return result.estimatedTotalHits <= result.hits.length
+  }
+  return result.hits.length < candidateLimit
+}
+
+const sortAndPageProducts = (
+  products: StoreProductProjection[],
+  direction: PriceSortDirection,
+  offset: number,
+  limit: number,
+  authoritativeCurrencyCode: string | undefined,
+): StoreProductProjection[] => {
+  if (direction === undefined) {
+    return products.slice(offset, offset + limit)
+  }
+
+  return products
+    .toSorted((left, right) => {
+      const leftPrice = getLowestCalculatedProductPrice(
+        left,
+        authoritativeCurrencyCode,
+      )
+      const rightPrice = getLowestCalculatedProductPrice(
+        right,
+        authoritativeCurrencyCode,
+      )
+      if (leftPrice === undefined) {
+        return rightPrice === undefined ? 0 : 1
+      }
+      if (rightPrice === undefined) {
+        return -1
+      }
+      return (leftPrice - rightPrice) * direction
+    })
+    .slice(offset, offset + limit)
+}
+
+const buildFacets = async (
+  queryService: Query,
+  selectedHits: unknown,
+  authoritativePriceStats: { max: number | undefined; min: number | undefined },
+): Promise<FacetResponse> => {
+  const getDistribution = (key: string) =>
+    getFacetDistributionFromHits(selectedHits, key)
+  const statusCounts = getDistribution("facet_status")
+  const formCounts = getDistribution("facet_form")
+  const brandCounts = getDistribution("facet_brand")
+  const ingredientCounts = getDistribution("facet_ingredient")
+  const priceStats = authoritativePriceStats
+  const [brandLabels, ingredientLabels] = await Promise.all([
+    resolveFacetLabels({
+      entity: "brand",
+      extractHandle: extractBrandHandleFromFacetId,
+      facetIds: [...brandCounts.keys()],
+      labelField: "title",
+      queryService,
+    }),
+    resolveFacetLabels({
+      entity: "product_category",
+      extractHandle: extractIngredientHandleFromFacetId,
+      facetIds: [...ingredientCounts.keys()],
+      labelField: "name",
+      queryService,
+    }),
+  ])
+
+  return {
+    brand: mapDynamicFacets(brandCounts, brandLabels),
+    form: mapFormFacets(formCounts),
+    ingredient: mapDynamicFacets(ingredientCounts, ingredientLabels),
+    price: {
+      max: priceStats.max ?? null,
+      min: priceStats.min ?? null,
+    },
+    status: mapStatusFacets(statusCounts),
+  }
+}
+
+const getCatalogProducts = async (
+  req: CatalogRequest,
+  res: MedusaResponse,
+): Promise<void> => {
+  if (!isMeilisearchEnabled()) {
+    res.status(503).json({ message: "Catalog search is disabled" })
+    return
+  }
+
+  let profile: SearchProfile
+  try {
+    profile = await resolveRequestProfile(req)
   } catch (error) {
-    if (error instanceof SearchProfileResolutionError) {
+    if (isSearchProfileResolutionError(error)) {
       res.status(400).json({ message: error.message })
       return
     }
     throw error
   }
-  const limit = Math.min(validatedQuery.limit, searchProfile.limits.page)
-  const offset = (page - 1) * limit
-  const cleanedQuery = cleanSearchText(validatedQuery.q)
 
-  const categoryIds = normalizeCategoryIdsParam(validatedQuery.category_id)
-  const statusIds = normalizeStatusParam(validatedQuery.status)
-  const formIds = normalizeFormParam(validatedQuery.form)
-  const brandIds = normalizeBrandParam(validatedQuery.brand)
-  const ingredientIds = normalizeIngredientParam(validatedQuery.ingredient)
-
-  const filterExpressions = buildCatalogFilterExpressions({
-    categoryIds,
-    statusIds,
-    formIds,
-    brandIds,
-    ingredientIds,
-    priceMin: validatedQuery.price_min,
-    priceMax: validatedQuery.price_max,
-  })
-
-  const authoritativePriceSortDirection =
-    resolveAuthoritativePriceSortDirection(validatedQuery.sort)
-  const exhaustiveCandidateSearch = Boolean(
-    cleanedQuery || authoritativePriceSortDirection
-  )
-  const sort =
-    resolveCatalogSort(validatedQuery.sort) ??
-    (cleanedQuery ? undefined : ["facet_popularity:desc"])
-  const meiliSort = authoritativePriceSortDirection ? undefined : sort
-  const searchFilters = [
-    buildProductResultFilter(
-      searchProfile.separateVariantResults,
-      cleanedQuery
+  const dependencies: CatalogDependencies = {
+    meilisearchService: req.scope.resolve<MeiliSearchService>(MEILISEARCH),
+    queryService: req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY),
+    remoteQuery: req.scope.resolve<RemoteQuery>(
+      ContainerRegistrationKeys.REMOTE_QUERY,
     ),
-    ...filterExpressions,
-    ...buildVisibilityFilterExpressions(req.filterableFields.sales_channel_id),
-  ]
-  const searchFilter =
-    searchFilters.length > 0 ? searchFilters.join(" AND ") : undefined
-  let searchResult: Awaited<ReturnType<MeiliSearchService["search"]>>
+  }
+  const plan = buildSearchPlan(req, profile)
+  let searchResult: CatalogSearchResult
   try {
-    searchResult = await meilisearchService.search(
-      searchProfile.indexes.product,
-      cleanedQuery,
-      {
-        paginationOptions: {
-          limit: exhaustiveCandidateSearch
-            ? searchProfile.limits.fullSearch
-            : limit,
-          offset: exhaustiveCandidateSearch ? 0 : offset,
-        },
-        filter: searchFilter,
-        additionalOptions: {
-          attributesToRetrieve: [
-            "id",
-            "title",
-            "brand",
-            "search_product_id",
-            "search_variant_id",
-            "search_variant_title",
-            "search_variant_titles",
-            "search_identifiers_normalized",
-            "facet_status",
-            "facet_form",
-            "facet_brand",
-            "facet_ingredient",
-            "facet_price",
-          ],
-          facets: FACETS_TO_FETCH,
-          ...(cleanedQuery ? { showRankingScore: true } : {}),
-          ...(meiliSort ? { sort: meiliSort } : {}),
-        },
-      }
-    )
+    searchResult = await searchCatalog(dependencies.meilisearchService, plan)
   } catch (error) {
-    const logger = req.scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-    logger.warn(
-      `Meilisearch catalog query failed; using capped Medusa fallback: ${
-        error instanceof Error ? error.message : String(error)
-      }`
-    )
-    const pricingContext = req.pricingContext
-      ? QueryContext(req.pricingContext)
-      : undefined
-    const productFields = pricingContext
-      ? [
-          ...STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
-          ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
-        ]
-      : STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS
-    const { data: fallbackProducts, metadata: fallbackMetadata } = await queryService.graph({
-      entity: "product",
-      fields: productFields,
-      filters: await normalizeProductSalesChannelFilter(
-        queryService,
-        remoteQuery,
-        {
-          ...(cleanedQuery ? { q: cleanedQuery } : {}),
-          sales_channel_id: req.filterableFields.sales_channel_id,
-          status: ProductStatus.PUBLISHED,
-        }
-      ),
-      pagination: {
-        take: limit,
-        skip: offset,
-      },
-      context: pricingContext
-        ? {
-            variants: {
-              calculated_price: pricingContext,
-            },
-          }
-        : undefined,
-    })
+    await sendDegradedFallback(req, res, dependencies, plan, error)
+    return
+  }
 
-    await wrapProductsWithTaxPrices(
-      req,
-      fallbackProducts as Parameters<typeof wrapProductsWithTaxPrices>[1]
+  if (!hasCompleteCandidateSet(searchResult, profile.limits.fullSearch)) {
+    const logger = req.scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+    logger.error(
+      `Catalog candidate set exceeded the configured limit of ${profile.limits.fullSearch}`,
     )
-    await decorateProductsWithMeasurements(
-      req.scope,
-      fallbackProducts as Parameters<
-        typeof decorateProductsWithMeasurements
-      >[1],
-      measurementDecorationOptions
-    )
-    res.json({
-      products: fallbackProducts,
-      count: fallbackMetadata?.count ?? fallbackProducts.length,
-      page,
-      limit,
-      totalPages: Math.ceil((fallbackMetadata?.count ?? fallbackProducts.length) / limit),
-      facets: {
-        status: mapStatusFacets(new Map()),
-        form: mapFormFacets(new Map()),
-        brand: [],
-        ingredient: [],
-        price: {
-          min: null,
-          max: null,
-        },
-      },
-      search: {
-        degraded: true,
-        exactIdentifierMatch: false,
-        profile: searchProfile.key,
-      },
+    res.status(503).json({
+      code: "CATALOG_CANDIDATE_LIMIT_EXCEEDED",
+      message:
+        "Catalog search is temporarily unable to evaluate the full filtered result set.",
     })
     return
   }
 
   const rankedProducts = selectRankedProductIds(
     searchResult.hits,
-    cleanedQuery,
-    searchProfile.minimumRankingScore,
-    searchProfile.strict
+    plan.cleanedQuery,
+    profile.minimumRankingScore,
+    profile.strict,
   )
-  const matchingProducts = rankedProducts.matches
-  const productMatches = selectProductMatchesForHydration({
-    cleanedQuery,
-    limit,
-    matchingProducts,
-    offset,
-    priceSortDirection: authoritativePriceSortDirection,
-  })
-  const productIds = Array.from(
-    new Set(productMatches.map((match) => match.productId))
-  )
-  const pricingContext = req.pricingContext
-    ? QueryContext(req.pricingContext)
-    : undefined
-  const productFields = pricingContext
-    ? [
-        ...STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
-        ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
-      ]
-    : STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS
-
-  const { data: products } =
-    productIds.length === 0
-      ? { data: [] as Record<string, unknown>[] }
-      : await queryService.graph({
-          entity: "product",
-          fields: productFields,
-          filters: await normalizeProductSalesChannelFilter(
-            queryService,
-            remoteQuery,
-            {
-              id: {
-                $in: productIds,
-              },
-              sales_channel_id: req.filterableFields.sales_channel_id,
-              status: ProductStatus.PUBLISHED,
-            }
-          ),
-          context: pricingContext
-            ? {
-                variants: {
-                  calculated_price: pricingContext,
-                },
-              }
-            : undefined,
-        })
-
-  const orderedProducts = expandProductsBySearchMatches(
-    products as Record<string, unknown>[],
-    productMatches
-  )
-  await wrapProductsWithTaxPrices(
+  const hydratedProducts = await hydrateRankedProducts(
     req,
-    orderedProducts as unknown as Parameters<typeof wrapProductsWithTaxPrices>[1]
+    dependencies,
+    rankedProducts.matches,
   )
-
-  const finalProducts = authoritativePriceSortDirection
-    ? [...orderedProducts]
-        .sort((left, right) => {
-          const leftPrice = getLowestCalculatedProductPrice(
-            left as ProductWithCalculatedPrices
-          )
-          const rightPrice = getLowestCalculatedProductPrice(
-            right as ProductWithCalculatedPrices
-          )
-
-          if (leftPrice === undefined && rightPrice === undefined) {
-            return 0
-          }
-          if (leftPrice === undefined) {
-            return 1
-          }
-          if (rightPrice === undefined) {
-            return -1
-          }
-
-          return (leftPrice - rightPrice) * authoritativePriceSortDirection
-        })
-        .slice(offset, offset + limit)
-    : orderedProducts
-
-  const statusFacetCounts = cleanedQuery
-    ? getFacetDistributionFromHits(rankedProducts.selectedHits, "facet_status")
-    : getFacetDistribution(searchResult.facetDistribution, "facet_status")
-  const formFacetCounts = cleanedQuery
-    ? getFacetDistributionFromHits(rankedProducts.selectedHits, "facet_form")
-    : getFacetDistribution(searchResult.facetDistribution, "facet_form")
-  const brandFacetCounts = cleanedQuery
-    ? getFacetDistributionFromHits(rankedProducts.selectedHits, "facet_brand")
-    : getFacetDistribution(searchResult.facetDistribution, "facet_brand")
-  const ingredientFacetCounts = cleanedQuery
-    ? getFacetDistributionFromHits(
-        rankedProducts.selectedHits,
-        "facet_ingredient"
-      )
-    : getFacetDistribution(searchResult.facetDistribution, "facet_ingredient")
-  const priceFacetStats = cleanedQuery
-    ? getNumericFacetStatsFromHits(
-        rankedProducts.selectedHits,
-        "facet_price"
-      )
-    : getNumericFacetStats(searchResult.facetStats, "facet_price")
-
-  const [brandLabelsById, ingredientLabelsById] = await Promise.all([
-    resolveBrandFacetLabels(queryService, Array.from(brandFacetCounts.keys())),
-    resolveIngredientFacetLabels(
-      queryService,
-      Array.from(ingredientFacetCounts.keys())
-    ),
-  ])
-
-  const count = resolveResultCount({
-    estimatedTotalHits: searchResult.estimatedTotalHits,
-    exhaustiveCandidateSearch,
-    fallbackCount: finalProducts.length,
-    matchingCount: matchingProducts.length,
+  await decorateProductProjectionsWithTaxPrices(req, hydratedProducts)
+  const authoritativeCurrencyCode = getAuthoritativeCurrencyCode(req)
+  const filteredProducts = filterProductsByPrice({
+    authoritativeCurrencyCode,
+    priceMax: plan.priceMax,
+    priceMin: plan.priceMin,
+    products: hydratedProducts,
   })
-  const totalPages = count > 0 ? Math.ceil(count / limit) : 0
+  const products = sortAndPageProducts(
+    filteredProducts,
+    plan.authoritativePriceSortDirection,
+    plan.offset,
+    plan.limit,
+    authoritativeCurrencyCode,
+  )
   await decorateProductsWithMeasurements(
     req.scope,
-    finalProducts as Parameters<typeof decorateProductsWithMeasurements>[1],
-    measurementDecorationOptions
+    products,
+    getMeasurementDecorationOptions(req.queryConfig.fields),
+  )
+  const count = filteredProducts.length
+  const selectedHits = filterHitsForProducts(
+    rankedProducts.selectedHits,
+    filteredProducts,
+  )
+  const facets = await buildFacets(
+    dependencies.queryService,
+    selectedHits,
+    getAuthoritativePriceStats(hydratedProducts, authoritativeCurrencyCode),
   )
 
   res.json({
-    products: finalProducts,
     count,
-    page,
-    limit,
-    totalPages,
+    facets,
+    limit: plan.limit,
+    page: plan.page,
+    products,
     search: {
       degraded: false,
       exactIdentifierMatch: rankedProducts.exactIdentifierMatch,
-      profile: searchProfile.key,
+      profile: profile.key,
     },
-    facets: {
-      status: mapStatusFacets(statusFacetCounts),
-      form: mapFormFacets(formFacetCounts),
-      brand: mapDynamicFacets(brandFacetCounts, brandLabelsById),
-      ingredient: mapDynamicFacets(ingredientFacetCounts, ingredientLabelsById),
-      price: {
-        min: priceFacetStats.min ?? null,
-        max: priceFacetStats.max ?? null,
-      },
-    },
+    totalPages: count > 0 ? Math.ceil(count / plan.limit) : 0,
   })
 }
+
+export { getCatalogProducts as GET }

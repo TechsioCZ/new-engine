@@ -10,12 +10,14 @@ import {
   createRemoteLinkStep,
   releaseLockStep,
 } from "@medusajs/medusa/core-flows"
+
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
 import { createCustomerProductListStep } from "../steps/create-customer-product-list"
 import { createProductListItemStep } from "../steps/create-product-list-item"
 import type {
   AddFavoriteProductListItemWorkflowInput,
   AddFavoriteProductListItemWorkflowResult,
+  CreateProductListItemWorkflowInput,
 } from "../types"
 
 export const addFavoriteProductListItemWorkflow = createWorkflow(
@@ -38,7 +40,7 @@ export const addFavoriteProductListItemWorkflow = createWorkflow(
         customer_id: workflowInput.customer_id,
         data: {},
         type: "favorite" as const,
-      })
+      }),
     )
 
     const favoriteList = createCustomerProductListStep(favoriteListInput)
@@ -59,7 +61,7 @@ export const addFavoriteProductListItemWorkflow = createWorkflow(
             },
           },
         ]
-      }
+      },
     )
 
     createRemoteLinkStep(customerProductListLinks).config({
@@ -70,7 +72,7 @@ export const addFavoriteProductListItemWorkflow = createWorkflow(
       { favoriteList, input },
       ({ favoriteList: listResult, input: workflowInput }) => [
         `product-list-item:${listResult.product_list.id}:${workflowInput.product_id}:${workflowInput.variant_id ?? "product"}`,
-      ]
+      ],
     )
 
     acquireLockStep({
@@ -82,16 +84,31 @@ export const addFavoriteProductListItemWorkflow = createWorkflow(
 
     const itemInput = transform(
       { favoriteList, input },
-      ({ favoriteList: listResult, input: workflowInput }) => ({
-        customer_id: workflowInput.customer_id,
-        list_id: listResult.product_list.id,
-        metadata: workflowInput.metadata,
-        note: workflowInput.note,
-        product_id: workflowInput.product_id,
-        quantity: workflowInput.quantity,
-        sort_order: workflowInput.sort_order,
-        variant_id: workflowInput.variant_id,
-      })
+      ({ favoriteList: listResult, input: workflowInput }) => {
+        const data: CreateProductListItemWorkflowInput = {
+          customer_id: workflowInput.customer_id,
+          list_id: listResult.product_list.id,
+          product_id: workflowInput.product_id,
+        }
+
+        if (workflowInput.metadata !== undefined) {
+          data.metadata = workflowInput.metadata
+        }
+        if (workflowInput.note !== undefined) {
+          data.note = workflowInput.note
+        }
+        if (workflowInput.quantity !== undefined) {
+          data.quantity = workflowInput.quantity
+        }
+        if (workflowInput.sort_order !== undefined) {
+          data.sort_order = workflowInput.sort_order
+        }
+        if (workflowInput.variant_id !== undefined) {
+          data.variant_id = workflowInput.variant_id
+        }
+
+        return data
+      },
     )
 
     const itemResult = createProductListItemStep(itemInput)
@@ -113,7 +130,10 @@ export const addFavoriteProductListItemWorkflow = createWorkflow(
           },
         ]
 
-        if (workflowInput.variant_id) {
+        if (
+          workflowInput.variant_id !== undefined &&
+          workflowInput.variant_id !== ""
+        ) {
           links.push({
             [PRODUCT_LIST_MODULE]: {
               product_list_item_id: createdItemResult.item.id,
@@ -125,7 +145,7 @@ export const addFavoriteProductListItemWorkflow = createWorkflow(
         }
 
         return links
-      }
+      },
     )
 
     createRemoteLinkStep(productListItemLinks).config({
@@ -148,9 +168,9 @@ export const addFavoriteProductListItemWorkflow = createWorkflow(
         ({
           item: createdItemResult.item,
           product_list: listResult.product_list,
-        }) satisfies AddFavoriteProductListItemWorkflowResult
+        }) satisfies AddFavoriteProductListItemWorkflowResult,
     )
 
     return new WorkflowResponse(result)
-  }
+  },
 )

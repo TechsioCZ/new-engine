@@ -1,36 +1,43 @@
 import type { Query } from "@medusajs/framework"
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type { MedusaResponse } from "@medusajs/framework/http"
+import type { HttpTypes, QueryContextType } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
-  isPresent,
   QueryContext,
 } from "@medusajs/framework/utils"
-import { wrapProductsWithTaxPrices } from "@medusajs/medusa/api/store/products/helpers"
-import { wrapVariantsWithInventoryQuantityForSalesChannel } from "@medusajs/medusa/api/utils/middlewares/products/variant-inventory-quantity"
+import type { RequestWithContext } from "@medusajs/medusa/api/store/products/helpers"
+
 import {
   decorateProductsWithMeasurements,
   getMeasurementDecorationOptions,
   getMeasurementDecorationQueryFields,
 } from "../../../utils/measurement-units"
 import { normalizeProductSalesChannelFilter } from "../../utils/product-filters"
+import type { StoreProductProjection } from "./product-graph-validation"
+import { parseStoreProductListGraphResponse } from "./product-graph-validation"
+import {
+  decorateInventoryQuantityForProductProjections,
+  decorateProductProjectionsWithTaxPrices,
+} from "./product-projection-decorators"
 
-type ProductRecord = {
-  variants?: unknown[]
+interface StoreProductListProjectionResponse {
+  count: number
+  limit: number | undefined
+  offset: number | undefined
+  products: StoreProductProjection[]
 }
 
-type GraphWithOptions = (
-  config: Parameters<Query["graph"]>[0],
-  options?: Record<string, unknown>
-) => ReturnType<Query["graph"]>
-
-export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
+const getHandler = async (
+  req: RequestWithContext<HttpTypes.StoreProductParams>,
+  res: MedusaResponse<StoreProductListProjectionResponse>,
+) => {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
-  const context: Record<string, unknown> = {}
+  const context: QueryContextType = {}
   const fields = req.queryConfig.fields ?? []
   const measurementDecorationOptions = getMeasurementDecorationOptions(fields)
   const withInventoryQuantity = fields.some((field) =>
-    field.includes("variants.inventory_quantity")
+    field.includes("variants.inventory_quantity"),
   )
 
   const productFieldsBeforeDecoration = withInventoryQuantity
@@ -38,64 +45,51 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     : fields
   const productFields = getMeasurementDecorationQueryFields(
     productFieldsBeforeDecoration,
-    measurementDecorationOptions
+    measurementDecorationOptions,
   )
 
-  if (isPresent(req.pricingContext)) {
-    context.variants ??= {}
-    ;(context.variants as Record<string, unknown>).calculated_price =
-      QueryContext(req.pricingContext as Record<string, unknown>)
+  if (req.pricingContext !== undefined && req.pricingContext !== null) {
+    context["variants"] = {
+      calculated_price: QueryContext(req.pricingContext),
+    }
   }
 
-  const { data: products = [], metadata } = await (
-    query.graph as GraphWithOptions
-  )(
+  const rawProductsResult: unknown = await query.graph(
     {
+      context,
       entity: "product",
       fields: productFields,
       filters: await normalizeProductSalesChannelFilter(
-        query,
         remoteQuery,
-        req.filterableFields
+        req.filterableFields,
       ),
       pagination: req.queryConfig.pagination,
-      context,
     },
     {
-      cache: {
-        enable: true,
-      },
-      locale: req.locale,
-    }
+      cache: { enable: true },
+      ...(req.locale === undefined ? {} : { locale: req.locale }),
+    },
   )
+  const { metadata, products } =
+    parseStoreProductListGraphResponse(rawProductsResult)
 
   if (withInventoryQuantity) {
-    await wrapVariantsWithInventoryQuantityForSalesChannel(
-      req as Parameters<
-        typeof wrapVariantsWithInventoryQuantityForSalesChannel
-      >[0],
-      (products as ProductRecord[]).flatMap(
-        (product) => product.variants ?? []
-      ) as Parameters<
-        typeof wrapVariantsWithInventoryQuantityForSalesChannel
-      >[1]
-    )
+    await decorateInventoryQuantityForProductProjections(req, products)
   }
 
-  await wrapProductsWithTaxPrices(
-    req as Parameters<typeof wrapProductsWithTaxPrices>[0],
-    products
-  )
+  await decorateProductProjectionsWithTaxPrices(req, products)
   await decorateProductsWithMeasurements(
     req.scope,
-    products as Parameters<typeof decorateProductsWithMeasurements>[1],
-    measurementDecorationOptions
+    products,
+    measurementDecorationOptions,
   )
 
   res.json({
-    products,
     count: metadata?.count ?? products.length,
-    offset: metadata?.skip,
     limit: metadata?.take,
+    offset: metadata?.skip,
+    products,
   })
 }
+
+export { getHandler as GET }

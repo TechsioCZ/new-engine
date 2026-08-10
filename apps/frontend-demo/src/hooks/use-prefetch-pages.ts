@@ -2,8 +2,10 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
+
 import { queryKeys } from "@/lib/query-keys"
-import { getProducts, type ProductFilters } from "@/services/product-service"
+import { getProducts } from "@/services/product-service"
+import type { ProductFilters } from "@/services/product-service"
 
 interface UsePrefetchPagesParams {
   currentPage: number
@@ -22,7 +24,7 @@ interface UsePrefetchPagesParams {
  * Hook for prefetching product pages to improve perceived performance
  * This is a simple extraction of the existing prefetch logic
  */
-export function usePrefetchPages({
+export const usePrefetchPages = ({
   currentPage,
   hasNextPage,
   hasPrevPage,
@@ -33,64 +35,70 @@ export function usePrefetchPages({
   regionId,
   searchQuery,
   filters,
-}: UsePrefetchPagesParams) {
+}: UsePrefetchPagesParams) => {
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    if (productsLength > 0) {
-      const pagesToPrefetch = []
+    if (productsLength === 0) {
+      return
+    }
 
-      // Always prefetch first page (if not current)
-      if (currentPage !== 1) {
-        pagesToPrefetch.push(1)
+    const pagesToPrefetch: number[] = []
+    const query =
+      searchQuery === undefined || searchQuery.length === 0
+        ? undefined
+        : searchQuery
+
+    // Always prefetch first page (if not current)
+    if (currentPage !== 1) {
+      pagesToPrefetch.push(1)
+    }
+
+    // Prefetch previous pages
+    if (hasPrevPage) {
+      pagesToPrefetch.push(currentPage - 1)
+      // Also prefetch page -2 if it exists
+      if (currentPage - 2 >= 1) {
+        pagesToPrefetch.push(currentPage - 2)
       }
+    }
 
-      // Prefetch previous pages
-      if (hasPrevPage) {
-        pagesToPrefetch.push(currentPage - 1)
-        // Also prefetch page -2 if it exists
-        if (currentPage - 2 >= 1) {
-          pagesToPrefetch.push(currentPage - 2)
-        }
+    // Prefetch next pages
+    if (hasNextPage) {
+      pagesToPrefetch.push(currentPage + 1)
+      // Also prefetch page +2 if it exists
+      if (currentPage + 2 <= totalPages) {
+        pagesToPrefetch.push(currentPage + 2)
       }
+    }
 
-      // Prefetch next pages
-      if (hasNextPage) {
-        pagesToPrefetch.push(currentPage + 1)
-        // Also prefetch page +2 if it exists
-        if (currentPage + 2 <= totalPages) {
-          pagesToPrefetch.push(currentPage + 2)
-        }
-      }
+    // Prefetch last page (if known and not current)
+    if (totalPages > 1 && currentPage !== totalPages) {
+      pagesToPrefetch.push(totalPages)
+    }
 
-      // Prefetch last page (if known and not current)
-      if (totalPages > 1 && currentPage !== totalPages) {
-        pagesToPrefetch.push(totalPages)
-      }
-
-      // Execute all prefetches
-      for (const page of pagesToPrefetch) {
-        const offset = (page - 1) * pageSize
-        queryClient.prefetchQuery({
-          queryKey: queryKeys.products.list({
-            page,
-            limit: pageSize,
+    // Execute all prefetches
+    for (const page of pagesToPrefetch) {
+      const offset = (page - 1) * pageSize
+      void queryClient.prefetchQuery({
+        queryFn: async () =>
+          await getProducts({
             filters,
-            sort: sortBy === "relevance" ? undefined : sortBy,
-            q: searchQuery || undefined,
+            limit: pageSize,
+            offset,
+            q: query,
             region_id: regionId,
+            sort: sortBy === "relevance" ? undefined : sortBy,
           }),
-          queryFn: () =>
-            getProducts({
-              limit: pageSize,
-              offset,
-              filters,
-              sort: sortBy === "relevance" ? undefined : sortBy,
-              q: searchQuery || undefined,
-              region_id: regionId,
-            }),
-        })
-      }
+        queryKey: queryKeys.products.list({
+          filters,
+          limit: pageSize,
+          page,
+          q: query,
+          region_id: regionId,
+          sort: sortBy === "relevance" ? undefined : sortBy,
+        }),
+      })
     }
   }, [
     currentPage,

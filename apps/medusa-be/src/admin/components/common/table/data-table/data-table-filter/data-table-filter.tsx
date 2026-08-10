@@ -5,48 +5,146 @@ import {
   Root as PopoverRoot,
   Trigger as PopoverTrigger,
 } from "@radix-ui/react-popover"
-import { useEffect, useRef, useState } from "react"
+import { useReducer, useState } from "react"
+import type { Dispatch, SetStateAction } from "react"
 import { useTranslation } from "react-i18next"
 import { useSearchParams } from "react-router-dom"
+
 import { DataTableFilterContext, useDataTableFilterContext } from "./context"
 import { NumberFilter } from "./number-filter"
 import { SelectFilter } from "./select-filter"
 import { StringFilter } from "./string-filter"
 
-type Option = {
+interface Option {
   label: string
   value: unknown
 }
 
-export type Filter = {
+interface ScalarFilterTypes {
+  date: true
+  number: true
+  string: true
+}
+
+interface FilterBase {
   key: string
   label: string
-} & (
-  | {
-      type: "select"
-      options: Option[]
-      multiple?: boolean
-      searchable?: boolean
-    }
-  | {
-      type: "date"
-      options?: never
-    }
-  | {
-      type: "string"
-      options?: never
-    }
-  | {
-      type: "number"
-      options?: never
-    }
-)
+}
 
-type DataTableFilterProps = {
+export type Filter = FilterBase &
+  (
+    | {
+        multiple?: boolean
+        options: Option[]
+        searchable?: boolean
+        type: "select"
+      }
+    | {
+        options?: never
+        type: keyof ScalarFilterTypes
+      }
+  )
+
+interface DataTableFilterProps {
   filters: Filter[]
   readonly?: boolean
   prefix?: string
 }
+
+interface ClearAllFiltersProps {
+  filters: Filter[]
+  prefix?: string
+}
+
+const ClearAllFilters = ({ filters, prefix }: ClearAllFiltersProps) => {
+  const { t } = useTranslation()
+  const { removeAllFilters } = useDataTableFilterContext()
+  const [, setSearchParams] = useSearchParams()
+
+  const handleRemoveAll = () => {
+    setSearchParams((prev) => {
+      const newValues = new URLSearchParams(prev)
+
+      for (const filter of filters) {
+        newValues.delete(
+          prefix === undefined || prefix.length === 0
+            ? filter.key
+            : `${prefix}_${filter.key}`,
+        )
+      }
+
+      return newValues
+    })
+
+    removeAllFilters()
+  }
+
+  return (
+    <button
+      className={clx(
+        "txt-compact-small-plus rounded-md px-2 py-1 text-ui-fg-muted transition-fg",
+        "hover:text-ui-fg-subtle",
+        "focus-visible:shadow-borders-focus",
+      )}
+      onClick={handleRemoveAll}
+      type="button"
+    >
+      {t("filters.clearAll")}
+    </button>
+  )
+}
+
+const getInitialFilters = ({
+  searchParams,
+  filters,
+  prefix,
+}: {
+  searchParams: URLSearchParams
+  filters: Filter[]
+  prefix?: string
+}) => {
+  const params = new URLSearchParams(searchParams)
+  const activeFilters: (Filter & { openOnMount: boolean })[] = []
+
+  for (const filter of filters) {
+    const key =
+      prefix === undefined || prefix.length === 0
+        ? filter.key
+        : `${prefix}_${filter.key}`
+    const value = params.get(key)
+    if (value !== null && value.length > 0) {
+      if (filter.type === "select") {
+        activeFilters.push({
+          ...filter,
+          openOnMount: false,
+          options: filter.options,
+        })
+      } else {
+        activeFilters.push({ ...filter, openOnMount: false })
+      }
+    }
+  }
+
+  return activeFilters
+}
+
+type ActiveFilter = Filter & { openOnMount: boolean }
+
+const removeFilterByKey = (activeFilters: ActiveFilter[], key: string) =>
+  activeFilters.filter((filter) => filter.key !== key)
+
+const createFilterContextValue = (
+  setActiveFilters: Dispatch<SetStateAction<ActiveFilter[]>>,
+) => ({
+  removeAllFilters: () => {
+    setActiveFilters([])
+  },
+  removeFilter: (key: string) => {
+    setActiveFilters((prev) => removeFilterByKey(prev, key))
+  },
+})
+
+const keepFilterContextValue = <T,>(value: T) => value
 
 export const DataTableFilter = ({
   filters,
@@ -57,99 +155,89 @@ export const DataTableFilter = ({
   const [searchParams] = useSearchParams()
   const [open, setOpen] = useState(false)
 
-  const [activeFilters, setActiveFilters] = useState(
-    getInitialFilters({ searchParams, filters, prefix })
+  const [activeFilters, setActiveFilters] = useState(() =>
+    getInitialFilters({
+      filters,
+      searchParams,
+      ...(prefix === undefined || prefix.length === 0 ? {} : { prefix }),
+    }),
   )
 
   const availableFilters = filters.filter(
-    (f) => !activeFilters.find((af) => af.key === f.key)
+    (f) => !activeFilters.some((af) => af.key === f.key),
   )
-
-  /**
-   * If there are any filters in the URL that are not in the active filters,
-   * add them to the active filters. This ensures that we display the filters
-   * if a user navigates to a page with filters in the URL.
-   */
-  const initialMount = useRef(true)
-
-  useEffect(() => {
-    if (initialMount.current) {
-      const missingFilters = getMissingActiveFilters({
-        activeFilters,
-        filters,
-        prefix,
-        searchParams,
-      })
-
-      if (missingFilters.length) {
-        setActiveFilters((prev) => [...prev, ...missingFilters])
-      }
-    }
-
-    initialMount.current = false
-  }, [activeFilters, filters, prefix, searchParams])
 
   const addFilter = (filter: Filter) => {
     setOpen(false)
     setActiveFilters((prev) => [...prev, { ...filter, openOnMount: true }])
   }
 
-  const removeFilter = (key: string) => {
-    setActiveFilters((prev) => prev.filter((f) => f.key !== key))
-  }
-
-  const removeAllFilters = () => {
-    setActiveFilters([])
-  }
+  const [contextValue] = useReducer(
+    keepFilterContextValue,
+    setActiveFilters,
+    createFilterContextValue,
+  )
 
   return (
-    <DataTableFilterContext.Provider
-      value={{
-        removeFilter,
-        removeAllFilters,
-      }}
-    >
+    <DataTableFilterContext.Provider value={contextValue}>
       <div className="flex max-w-2/3 flex-wrap items-center gap-2">
         {activeFilters.map((filter) => {
           switch (filter.type) {
-            case "select":
+            case "select": {
               return (
                 <SelectFilter
                   filter={filter}
                   key={filter.key}
-                  multiple={filter.multiple}
+                  {...(filter.multiple === undefined
+                    ? {}
+                    : { multiple: filter.multiple })}
                   openOnMount={filter.openOnMount}
                   options={filter.options}
-                  prefix={prefix}
-                  readonly={readonly}
-                  searchable={filter.searchable}
+                  {...(prefix === undefined || prefix.length === 0
+                    ? {}
+                    : { prefix })}
+                  {...(readonly === undefined ? {} : { readonly })}
+                  {...(filter.searchable === undefined
+                    ? {}
+                    : { searchable: filter.searchable })}
                 />
               )
-            case "string":
+            }
+            case "string": {
               return (
                 <StringFilter
                   filter={filter}
                   key={filter.key}
                   openOnMount={filter.openOnMount}
-                  prefix={prefix}
-                  readonly={readonly}
+                  {...(prefix === undefined || prefix.length === 0
+                    ? {}
+                    : { prefix })}
+                  {...(readonly === undefined ? {} : { readonly })}
                 />
               )
-            case "number":
+            }
+            case "number": {
               return (
                 <NumberFilter
                   filter={filter}
                   key={filter.key}
                   openOnMount={filter.openOnMount}
-                  prefix={prefix}
-                  readonly={readonly}
+                  {...(prefix === undefined || prefix.length === 0
+                    ? {}
+                    : { prefix })}
+                  {...(readonly === undefined ? {} : { readonly })}
                 />
               )
-            default:
+            }
+            case "date": {
               return null
+            }
+            default: {
+              return null
+            }
           }
         })}
-        {!readonly && availableFilters.length > 0 && (
+        {readonly !== true && availableFilters.length > 0 && (
           <PopoverRoot modal onOpenChange={setOpen} open={open}>
             <PopoverTrigger asChild id="filters_menu_trigger">
               <Button size="small" variant="secondary">
@@ -160,13 +248,13 @@ export const DataTableFilter = ({
               <PopoverContent
                 align="start"
                 className={clx(
-                  "z-[1] h-full max-h-[200px] w-[300px] overflow-auto rounded-lg bg-ui-bg-base p-1 text-ui-fg-base shadow-elevation-flyout outline-none"
+                  "z-[1] h-full max-h-[200px] w-[300px] overflow-auto rounded-lg bg-ui-bg-base p-1 text-ui-fg-base shadow-elevation-flyout outline-none",
                 )}
                 collisionPadding={8}
                 data-name="filters_menu_content"
                 onCloseAutoFocus={(e) => {
-                  const hasOpenFilter = activeFilters.find(
-                    (filter) => filter.openOnMount
+                  const hasOpenFilter = activeFilters.some(
+                    (filter) => filter.openOnMount,
                   )
 
                   if (hasOpenFilter) {
@@ -191,116 +279,13 @@ export const DataTableFilter = ({
             </PopoverPortal>
           </PopoverRoot>
         )}
-        {!readonly && activeFilters.length > 0 && (
-          <ClearAllFilters filters={filters} prefix={prefix} />
+        {readonly !== true && activeFilters.length > 0 && (
+          <ClearAllFilters
+            filters={filters}
+            {...(prefix === undefined || prefix.length === 0 ? {} : { prefix })}
+          />
         )}
       </div>
     </DataTableFilterContext.Provider>
   )
-}
-
-type ClearAllFiltersProps = {
-  filters: Filter[]
-  prefix?: string
-}
-
-const ClearAllFilters = ({ filters, prefix }: ClearAllFiltersProps) => {
-  const { t } = useTranslation()
-  const { removeAllFilters } = useDataTableFilterContext()
-  const [_, setSearchParams] = useSearchParams()
-
-  const handleRemoveAll = () => {
-    setSearchParams((prev) => {
-      const newValues = new URLSearchParams(prev)
-
-      for (const filter of filters) {
-        newValues.delete(prefix ? `${prefix}_${filter.key}` : filter.key)
-      }
-
-      return newValues
-    })
-
-    removeAllFilters()
-  }
-
-  return (
-    <button
-      className={clx(
-        "txt-compact-small-plus rounded-md px-2 py-1 text-ui-fg-muted transition-fg",
-        "hover:text-ui-fg-subtle",
-        "focus-visible:shadow-borders-focus"
-      )}
-      onClick={handleRemoveAll}
-      type="button"
-    >
-      {t("filters.clearAll")}
-    </button>
-  )
-}
-
-const getInitialFilters = ({
-  searchParams,
-  filters,
-  prefix,
-}: {
-  searchParams: URLSearchParams
-  filters: Filter[]
-  prefix?: string
-}) => {
-  const params = new URLSearchParams(searchParams)
-  const activeFilters: (Filter & { openOnMount: boolean })[] = []
-
-  for (const filter of filters) {
-    const key = prefix ? `${prefix}_${filter.key}` : filter.key
-    const value = params.get(key)
-    if (value) {
-      if (filter.type === "select") {
-        activeFilters.push({
-          ...filter,
-          multiple: filter.multiple,
-          options: filter.options,
-          openOnMount: false,
-        })
-      } else {
-        activeFilters.push({ ...filter, openOnMount: false })
-      }
-    }
-  }
-
-  return activeFilters
-}
-
-const getMissingActiveFilters = ({
-  searchParams,
-  filters,
-  activeFilters,
-  prefix,
-}: {
-  searchParams: URLSearchParams
-  filters: Filter[]
-  activeFilters: (Filter & { openOnMount: boolean })[]
-  prefix?: string
-}) => {
-  const params = new URLSearchParams(searchParams)
-  const missingFilters: (Filter & { openOnMount: boolean })[] = []
-
-  for (const filter of filters) {
-    const key = prefix ? `${prefix}_${filter.key}` : filter.key
-    const value = params.get(key)
-
-    if (value && !activeFilters.find((af) => af.key === filter.key)) {
-      if (filter.type === "select") {
-        missingFilters.push({
-          ...filter,
-          multiple: filter.multiple,
-          options: filter.options,
-          openOnMount: false,
-        })
-      } else {
-        missingFilters.push({ ...filter, openOnMount: false })
-      }
-    }
-  }
-
-  return missingFilters
 }

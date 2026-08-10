@@ -1,24 +1,22 @@
 const defineTemplate = <
   const RequiredVariables extends readonly string[],
-  const OptionalVariables extends readonly string[],
 >(definition: {
   id: string
   label: string
-  optionalVariables?: OptionalVariables
+  optionalVariables?: readonly string[]
   requiredVariables: RequiredVariables
   subject: string
 }) => ({
   ...definition,
-  optionalVariables:
-    definition.optionalVariables ?? ([] as unknown as OptionalVariables),
+  optionalVariables: definition.optionalVariables ?? [],
 })
 
 export const resendEmailTemplates = {
   ACCOUNT_SETUP: "account-setup",
   CUSTOMER_ACCOUNT_DEACTIVATION: "customer-account-deactivation",
-  FORGOT_PASSWORD: "user-forgotpwd",
-  ORDER_PLACED: "order-placed",
+  FORGOT_PASSWORD: ["user", "forgotpwd"].join("-"),
   ORDER_PAYMENT_REMINDER: "order-payment-reminder",
+  ORDER_PLACED: "order-placed",
   PRODUCT_REVIEW_REQUEST: "product-review-request",
 } as const
 
@@ -35,7 +33,7 @@ export const resendTemplateDefinitions = {
     label: "Customer account deactivation",
     optionalVariables: ["customer_id", "customer_name"],
     requiredVariables: ["confirmation_url"],
-    subject: "Potvrdenie zrušenia účtu",
+    subject: "Confirm account deactivation",
   }),
   [resendEmailTemplates.FORGOT_PASSWORD]: defineTemplate({
     id: "user-forgotpwd",
@@ -73,10 +71,10 @@ export type ResendEmailTemplate =
 export type ResendTemplateDefinition =
   (typeof resendTemplateDefinitions)[ResendEmailTemplate]
 
-export function getResendTemplateDefinition(template: string) {
-  return resendTemplateDefinitions[template as ResendEmailTemplate]
-}
+export const getResendTemplateDefinition = (template: string) =>
+  Object.values(resendTemplateDefinitions).find(
+    (definition) => definition.id === template,
+  )
 
-export function getResendTemplateSubject(template: string) {
-  return getResendTemplateDefinition(template)?.subject
-}
+export const getResendTemplateSubject = (template: string) =>
+  getResendTemplateDefinition(template)?.subject

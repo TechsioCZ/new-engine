@@ -1,32 +1,40 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import { updateStorefrontTextWorkflow } from "../../../../../workflows/storefront-text/workflows/update-storefront-text"
 import { handleStorefrontTextLockError } from "../../lock-error"
 import type { AdminUpdateStorefrontTextSchemaType } from "../../validators"
 
 const getStorefrontTextId = (req: MedusaRequest) =>
-  typeof req.params.id === "string" ? req.params.id : undefined
+  typeof req.params["id"] === "string" ? req.params["id"] : undefined
 
-export async function POST(
+const toWorkflowUpdate = (body: AdminUpdateStorefrontTextSchemaType) => ({
+  ...(body.override_value === undefined
+    ? {}
+    : { override_value: body.override_value }),
+  ...(body.status === undefined ? {} : { status: body.status }),
+})
+
+const postStorefrontTextUpdate = async (
   req: MedusaRequest<AdminUpdateStorefrontTextSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const id = getStorefrontTextId(req)
 
-  if (!id) {
+  if (id === undefined || id.length === 0) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Storefront text id is required"
+      "Storefront text id is required",
     )
   }
 
   try {
     const { result: storefrontText } = await updateStorefrontTextWorkflow(
-      req.scope
+      req.scope,
     ).run({
       input: {
         id,
-        update: req.validatedBody,
+        update: toWorkflowUpdate(req.validatedBody),
       },
     })
 
@@ -35,3 +43,5 @@ export async function POST(
     handleStorefrontTextLockError(error, res)
   }
 }
+
+export { postStorefrontTextUpdate as POST }

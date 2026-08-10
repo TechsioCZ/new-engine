@@ -1,21 +1,26 @@
 import { MedusaError } from "@medusajs/framework/utils"
+import { getRecordValue, isRecord } from "@techsio/std/object"
+
 import {
   flattenStorefrontTextCatalog,
   getFlatStorefrontTextCatalog,
   STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
-  type StorefrontTextCatalogEnvelope,
 } from "./catalog"
+import type { StorefrontTextCatalogEnvelope } from "./catalog"
 import {
   isStorefrontTextLocale,
   isStorefrontTextMarket,
   isStorefrontTextMarketLocalePair,
   STOREFRONT_TEXT_MARKETS,
-  type StorefrontTextDefinition,
-  type StorefrontTextLocale,
-  type StorefrontTextMarket,
-  type StorefrontTextNamespace,
-  type StorefrontTextStatus,
 } from "./configuration"
+import type {
+  StorefrontTextDefinition,
+  StorefrontTextLocale,
+  StorefrontTextMarket,
+  StorefrontTextNamespace,
+  StorefrontTextStatus,
+} from "./configuration"
+import { STOREFRONT_ACCOUNT_DEACTIVATION_TEXT_DEFINITIONS } from "./definitions/account-deactivation"
 import { STOREFRONT_ACCOUNT_ORDERS_TEXT_DEFINITIONS } from "./definitions/account-orders"
 import { STOREFRONT_AUTH_TEXT_DEFINITIONS } from "./definitions/auth"
 import { STOREFRONT_CATALOG_TEXT_DEFINITIONS } from "./definitions/catalog"
@@ -36,7 +41,27 @@ import { STOREFRONT_PRODUCT_LIST_TEXT_DEFINITIONS } from "./definitions/product-
 import { STOREFRONT_SEARCH_TEXT_DEFINITIONS } from "./definitions/search"
 import { STOREFRONT_SEARCH_RESULTS_TEXT_DEFINITIONS } from "./definitions/search-results"
 
-export * from "./configuration"
+export {
+  getStorefrontTextMarketConfiguration,
+  isStorefrontTextLocale,
+  isStorefrontTextMarket,
+  isStorefrontTextMarketLocalePair,
+  isStorefrontTextNamespace,
+  isStorefrontTextStatus,
+  STOREFRONT_TEXT_LOCALES,
+  STOREFRONT_TEXT_MARKET_IDS,
+  STOREFRONT_TEXT_MARKETS,
+  STOREFRONT_TEXT_NAMESPACES,
+  STOREFRONT_TEXT_STATUSES,
+} from "./configuration"
+export type {
+  StorefrontTextDefinition,
+  StorefrontTextLocale,
+  StorefrontTextMarket,
+  StorefrontTextNamespace,
+  StorefrontTextRegistryAssertions,
+  StorefrontTextStatus,
+} from "./configuration"
 
 export const STOREFRONT_TEXT_DEFINITIONS = [
   {
@@ -347,6 +372,7 @@ export const STOREFRONT_TEXT_DEFINITIONS = [
     namespace: "checkout",
   },
   ...STOREFRONT_AUTH_TEXT_DEFINITIONS,
+  ...STOREFRONT_ACCOUNT_DEACTIVATION_TEXT_DEFINITIONS,
   ...STOREFRONT_ACCOUNT_ORDERS_TEXT_DEFINITIONS,
   ...STOREFRONT_CHECKOUT_CART_TEXT_DEFINITIONS,
   ...STOREFRONT_CHECKOUT_COMPLETED_ORDER_TEXT_DEFINITIONS,
@@ -373,18 +399,21 @@ export type StorefrontTextKey =
 export type StorefrontTextMessages = Partial<Record<StorefrontTextKey, string>>
 
 const STOREFRONT_TEXT_KEYS = new Set<string>(
-  STOREFRONT_TEXT_DEFINITIONS.map((definition) => definition.key)
+  STOREFRONT_TEXT_DEFINITIONS.map((definition) => definition.key),
 )
+
+const isStorefrontTextKey = (value: unknown): value is StorefrontTextKey =>
+  typeof value === "string" && STOREFRONT_TEXT_KEYS.has(value)
 
 const validateCatalogKeys = (
   messages: Record<string, string>,
-  label: string
+  label: string,
 ): Record<StorefrontTextKey, string> => {
   const missingKeys = STOREFRONT_TEXT_DEFINITIONS.filter(
-    (definition) => messages[definition.key] === undefined
+    (definition) => messages[definition.key] === undefined,
   ).map((definition) => definition.key)
   const unknownKeys = Object.keys(messages).filter(
-    (key) => !STOREFRONT_TEXT_KEYS.has(key)
+    (key) => !STOREFRONT_TEXT_KEYS.has(key),
   )
 
   if (missingKeys.length || unknownKeys.length) {
@@ -396,30 +425,27 @@ const validateCatalogKeys = (
         unknownKeys.length ? `Unknown keys: ${unknownKeys.join(", ")}.` : "",
       ]
         .filter(Boolean)
-        .join(" ")
+        .join(" "),
     )
   }
 
-  return messages as Record<StorefrontTextKey, string>
+  return messages
 }
 
-const STOREFRONT_TEXT_DEFAULT_MESSAGES = Object.fromEntries(
-  STOREFRONT_TEXT_MARKETS.map((market) => [
-    market.market,
-    validateCatalogKeys(
-      getFlatStorefrontTextCatalog(market.locale),
-      market.locale
-    ),
-  ])
-) as Record<StorefrontTextMarket, Record<StorefrontTextKey, string>>
+const STOREFRONT_TEXT_DEFAULT_MESSAGES: Record<
+  StorefrontTextMarket,
+  Record<StorefrontTextKey, string>
+> = {
+  cz: validateCatalogKeys(getFlatStorefrontTextCatalog("cs-CZ"), "cs-CZ"),
+  hu: validateCatalogKeys(getFlatStorefrontTextCatalog("hu-HU"), "hu-HU"),
+  ro: validateCatalogKeys(getFlatStorefrontTextCatalog("ro-RO"), "ro-RO"),
+  sk: validateCatalogKeys(getFlatStorefrontTextCatalog("sk-SK"), "sk-SK"),
+}
 
 export const parseStorefrontTextCatalog = (
-  catalog: unknown
+  catalog: unknown,
 ): Record<StorefrontTextKey, string> =>
   validateCatalogKeys(flattenStorefrontTextCatalog(catalog), "Imported catalog")
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
 
 export const parseStorefrontTextCatalogEnvelope = ({
   catalog,
@@ -433,7 +459,7 @@ export const parseStorefrontTextCatalogEnvelope = ({
   if (!isRecord(catalog)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Storefront text catalog must be a JSON object"
+      "Storefront text catalog must be a JSON object",
     )
   }
 
@@ -444,60 +470,64 @@ export const parseStorefrontTextCatalogEnvelope = ({
     "schema_version",
   ])
   const unknownEnvelopeKeys = Object.keys(catalog).filter(
-    (key) => !envelopeKeys.has(key)
+    (key) => !envelopeKeys.has(key),
   )
 
   if (unknownEnvelopeKeys.length) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Unknown storefront text catalog fields: ${unknownEnvelopeKeys.join(", ")}`
+      `Unknown storefront text catalog fields: ${unknownEnvelopeKeys.join(", ")}`,
     )
   }
 
-  if (catalog.schema_version !== STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION) {
+  const schemaVersion = getRecordValue(catalog, "schema_version")
+  const market = getRecordValue(catalog, "market")
+  const locale = getRecordValue(catalog, "locale")
+
+  if (schemaVersion !== STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Unsupported storefront text catalog schema version "${String(catalog.schema_version)}"`
+      `Unsupported storefront text catalog schema version "${String(schemaVersion)}"`,
     )
   }
 
-  if (!isStorefrontTextMarket(catalog.market)) {
+  if (!isStorefrontTextMarket(market)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Unsupported storefront text market "${catalog.market}"`
+      `Unsupported storefront text market "${String(market)}"`,
     )
   }
 
-  if (catalog.market !== targetMarket) {
+  if (market !== targetMarket) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Catalog market "${catalog.market}" does not match target market "${targetMarket}"`
+      `Catalog market "${market}" does not match target market "${targetMarket}"`,
     )
   }
 
-  if (!isStorefrontTextLocale(catalog.locale)) {
+  if (!isStorefrontTextLocale(locale)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Unsupported storefront text locale "${catalog.locale}"`
+      `Unsupported storefront text locale "${String(locale)}"`,
     )
   }
 
-  if (!isStorefrontTextMarketLocalePair(catalog.market, catalog.locale)) {
+  if (!isStorefrontTextMarketLocalePair(market, locale)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Locale "${catalog.locale}" does not belong to market "${catalog.market}"`
+      `Locale "${locale}" does not belong to market "${market}"`,
     )
   }
 
   return {
-    locale: catalog.locale,
-    market: catalog.market,
-    messages: parseStorefrontTextCatalog(catalog.messages),
+    locale,
+    market,
+    messages: parseStorefrontTextCatalog(getRecordValue(catalog, "messages")),
     schema_version: STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
   }
 }
 
-export type StorefrontTextSeedRow = {
+export interface StorefrontTextSeedRow {
   country: string
   default_value: string
   description: string
@@ -514,24 +544,32 @@ export const getStorefrontTextSeedRows = ({
   market,
 }: {
   market?: StorefrontTextMarket
-} = {}): StorefrontTextSeedRow[] =>
-  STOREFRONT_TEXT_DEFINITIONS.flatMap((definition) =>
-    STOREFRONT_TEXT_MARKETS.filter(
-      (configuration) => !market || configuration.market === market
-    ).map((configuration) => ({
-      country: configuration.country,
-      default_value:
-        STOREFRONT_TEXT_DEFAULT_MESSAGES[configuration.market][definition.key],
-      description: definition.description,
-      domain: configuration.domain,
-      key: definition.key,
-      locale: configuration.locale,
-      market: configuration.market,
-      namespace: definition.namespace,
-      override_value: null,
-      status: "active",
-    }))
-  )
+} = {}): StorefrontTextSeedRow[] => {
+  const rows: StorefrontTextSeedRow[] = []
+  for (const definition of STOREFRONT_TEXT_DEFINITIONS) {
+    for (const configuration of STOREFRONT_TEXT_MARKETS) {
+      if (market !== undefined && configuration.market !== market) {
+        continue
+      }
+      rows.push({
+        country: configuration.country,
+        default_value:
+          STOREFRONT_TEXT_DEFAULT_MESSAGES[configuration.market][
+            definition.key
+          ],
+        description: definition.description,
+        domain: configuration.domain,
+        key: definition.key,
+        locale: configuration.locale,
+        market: configuration.market,
+        namespace: definition.namespace,
+        override_value: null,
+        status: "active",
+      })
+    }
+  }
+  return rows
+}
 
 export const getStorefrontTextDefaultMessages = ({
   market,
@@ -562,21 +600,31 @@ export const findStorefrontTextDefault = ({
   key: string
   locale: unknown
   market: unknown
-}) => {
+}):
+  | {
+      locale: StorefrontTextLocale
+      market: StorefrontTextMarket
+      value: string
+    }
+  | undefined => {
+  let result:
+    | {
+        locale: StorefrontTextLocale
+        market: StorefrontTextMarket
+        value: string
+      }
+    | undefined
   if (
-    !(
-      isStorefrontTextMarket(market) &&
-      isStorefrontTextLocale(locale) &&
-      isStorefrontTextMarketLocalePair(market, locale) &&
-      STOREFRONT_TEXT_KEYS.has(key)
-    )
+    isStorefrontTextMarket(market) &&
+    isStorefrontTextLocale(locale) &&
+    isStorefrontTextMarketLocalePair(market, locale) &&
+    isStorefrontTextKey(key)
   ) {
-    return
+    result = {
+      locale,
+      market,
+      value: STOREFRONT_TEXT_DEFAULT_MESSAGES[market][key],
+    }
   }
-
-  return {
-    locale,
-    market,
-    value: STOREFRONT_TEXT_DEFAULT_MESSAGES[market][key as StorefrontTextKey],
-  }
+  return result
 }

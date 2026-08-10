@@ -1,23 +1,24 @@
 import { mkdir, writeFile } from "node:fs/promises"
-import { dirname } from "node:path"
+import nodePath from "node:path"
+
 import {
-  type ResolvedEnvironmentCommandInput,
-  type ResolveEnvironmentCommandInput,
-  type ResolveEnvironmentResponse,
   resolveEnvironmentCommandInputSchema,
   resolveEnvironmentResponseSchema,
 } from "../contracts/resolve-environment.js"
-import {
-  listDeployableServices,
-  type StackManifest,
-} from "../contracts/stack-manifest.js"
+import type {
+  ResolvedEnvironmentCommandInput,
+  ResolveEnvironmentCommandInput,
+  ResolveEnvironmentResponse,
+} from "../contracts/resolve-environment.js"
+import { listDeployableServices } from "../contracts/stack-manifest.js"
+import type { StackManifest } from "../contracts/stack-manifest.js"
 import { ZaneOperatorClient } from "../zane-operator-client/client.js"
 import { loadDeployContracts, normalizeCsvToArray } from "./deploy-inputs.js"
 import { buildServiceReconciliationSpecs } from "./preview-runtime-reconciliation.js"
 
-function buildPreviewEnvironmentName(
-  input: ResolvedEnvironmentCommandInput
-): string {
+const buildPreviewEnvironmentName = (
+  input: ResolvedEnvironmentCommandInput,
+): string => {
   if (input.environmentName) {
     return input.environmentName
   }
@@ -25,111 +26,118 @@ function buildPreviewEnvironmentName(
   return `${input.previewEnvPrefix}${input.prNumber}`
 }
 
-function buildPreviewServiceSlugSets(
+const buildPreviewServiceSlugSets = (
   input: ResolvedEnvironmentCommandInput,
-  manifest: StackManifest
+  manifest: StackManifest,
 ): {
   expectedPreviewServiceSlugs: string[]
   excludedPreviewServiceSlugs: string[]
-} {
+} => {
   const deployableServices = listDeployableServices(manifest)
   const clonedServiceIds = normalizeCsvToArray(input.previewClonedServiceIdsCsv)
   const excludedServiceIds = normalizeCsvToArray(
-    input.previewExcludedServiceIdsCsv
+    input.previewExcludedServiceIdsCsv,
   )
   const serviceById = new Map(
-    deployableServices.map((service) => [service.id, service.serviceSlug])
+    deployableServices.map((service) => [service.id, service.serviceSlug]),
   )
 
   return {
-    expectedPreviewServiceSlugs: clonedServiceIds.flatMap((serviceId) => {
-      const serviceSlug = serviceById.get(serviceId)
-      return serviceSlug ? [serviceSlug] : []
-    }),
     excludedPreviewServiceSlugs: excludedServiceIds.flatMap((serviceId) => {
       const serviceSlug = serviceById.get(serviceId)
-      return serviceSlug ? [serviceSlug] : []
+      return serviceSlug === undefined || serviceSlug === ""
+        ? []
+        : [serviceSlug]
+    }),
+    expectedPreviewServiceSlugs: clonedServiceIds.flatMap((serviceId) => {
+      const serviceSlug = serviceById.get(serviceId)
+      return serviceSlug === undefined || serviceSlug === ""
+        ? []
+        : [serviceSlug]
     }),
   }
 }
 
-async function writeJsonFile(path: string, value: unknown): Promise<void> {
-  await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
+const writeJsonFile = async (path: string, value: unknown): Promise<void> => {
+  await mkdir(nodePath.dirname(path), { recursive: true })
+  await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
-export async function executeResolveEnvironment(
-  input: ResolveEnvironmentCommandInput
-): Promise<ResolveEnvironmentResponse> {
+export const executeResolveEnvironment = async (
+  input: ResolveEnvironmentCommandInput,
+): Promise<ResolveEnvironmentResponse> => {
   const resolvedInput = resolveEnvironmentCommandInputSchema.parse(input)
   const contracts = await loadDeployContracts(
     resolvedInput.stackManifestPath,
-    resolvedInput.stackInputsPath
+    resolvedInput.stackInputsPath,
   )
-  const manifest = contracts.manifest
+  const { manifest } = contracts
   const environmentName = buildPreviewEnvironmentName(resolvedInput)
   const previewServiceSlugSets =
     resolvedInput.lane === "preview"
       ? buildPreviewServiceSlugSets(resolvedInput, manifest)
       : {
-          expectedPreviewServiceSlugs: [],
           excludedPreviewServiceSlugs: [],
+          expectedPreviewServiceSlugs: [],
         }
   const serviceSpecs =
     resolvedInput.lane === "preview" || resolvedInput.reconcileServiceIdsCsv
       ? buildServiceReconciliationSpecs({
-          stackInputs: contracts.stackInputs,
-          manifest,
           lane: resolvedInput.lane,
+          manifest,
+          previewGitBranch: resolvedInput.previewGitBranch,
           serviceIds:
             resolvedInput.lane === "preview"
               ? normalizeCsvToArray(resolvedInput.previewClonedServiceIdsCsv)
               : normalizeCsvToArray(resolvedInput.reconcileServiceIdsCsv),
-          previewGitBranch: resolvedInput.previewGitBranch,
+          stackInputs: contracts.stackInputs,
         })
       : []
 
   const response = resolvedInput.dryRun
     ? resolveEnvironmentResponseSchema.parse({
-        lane: resolvedInput.lane,
-        project_slug: resolvedInput.projectSlug,
-        environment_name: environmentName,
-        environment_id: `dry-run:${environmentName}`,
-        created: resolvedInput.dryRunCreated,
         baseline_complete: !resolvedInput.dryRunCreated,
-        ready: true,
-        expected_preview_service_slugs:
-          previewServiceSlugSets.expectedPreviewServiceSlugs,
+        created: resolvedInput.dryRunCreated,
+        environment_id: `dry-run:${environmentName}`,
+        environment_name: environmentName,
         excluded_preview_service_slugs:
           previewServiceSlugSets.excludedPreviewServiceSlugs,
+        expected_preview_service_slugs:
+          previewServiceSlugSets.expectedPreviewServiceSlugs,
+        lane: resolvedInput.lane,
+        missing_preview_service_slugs: [],
         present_service_slugs:
           previewServiceSlugSets.expectedPreviewServiceSlugs,
-        missing_preview_service_slugs: [],
+        project_slug: resolvedInput.projectSlug,
+        ready: true,
         warnings: [],
       })
     : await new ZaneOperatorClient(
         resolvedInput.baseUrl,
-        resolvedInput.apiToken
+        resolvedInput.apiToken,
       ).resolveEnvironment({
-        lane: resolvedInput.lane,
-        project_slug: resolvedInput.projectSlug,
         environment_name: environmentName,
-        source_environment_name:
-          resolvedInput.sourceEnvironmentName || environmentName,
-        expected_preview_service_slugs:
-          previewServiceSlugSets.expectedPreviewServiceSlugs,
         excluded_preview_service_slugs:
           previewServiceSlugSets.excludedPreviewServiceSlugs,
+        expected_preview_service_slugs:
+          previewServiceSlugSets.expectedPreviewServiceSlugs,
+        lane: resolvedInput.lane,
+        project_slug: resolvedInput.projectSlug,
         service_specs: serviceSpecs,
+        source_environment_name:
+          resolvedInput.sourceEnvironmentName || environmentName,
       })
 
   if (resolvedInput.lane === "preview" && !response.ready) {
     throw new Error(
-      `Preview environment ${response.environment_name} is missing required cloned services: ${response.missing_preview_service_slugs.join(",")}`
+      `Preview environment ${response.environment_name} is missing required cloned services: ${response.missing_preview_service_slugs.join(",")}`,
     )
   }
 
-  if (resolvedInput.outputJson) {
+  if (
+    resolvedInput.outputJson !== undefined &&
+    resolvedInput.outputJson !== ""
+  ) {
     await writeJsonFile(resolvedInput.outputJson, response)
   }
 

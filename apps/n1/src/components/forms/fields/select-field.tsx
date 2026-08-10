@@ -1,24 +1,26 @@
 "use client"
 
-import { Select } from "@ui/molecules/select"
-import type { AnyFieldApiCompat } from "@/types/form"
+import { Select } from "@techsio/ui-kit/molecules/select"
+import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 
-type SelectOption = {
+import type { FieldApiCompat } from "@/types/form"
+
+interface SelectOption extends SelectItem {
   value: string
   label: string
 }
 
-type SelectFieldProps = {
-  field: AnyFieldApiCompat
+interface SelectFieldProps<TValue> {
+  field: FieldApiCompat<TValue, string>
   label: string
   options: SelectOption[]
   required?: boolean
-  disabled?: boolean
+  disabled?: boolean | undefined
   placeholder?: string
   className?: string
 }
 
-export function SelectField({
+export const SelectField = <TValue,>({
   field,
   label,
   options,
@@ -26,8 +28,8 @@ export function SelectField({
   disabled,
   placeholder,
   className,
-}: SelectFieldProps) {
-  const errors = field.state.meta.errors
+}: SelectFieldProps<TValue>) => {
+  const { errors } = field.state.meta
   const showErrors = field.state.meta.isBlurred && errors.length > 0
   const validateStatus = showErrors ? "error" : "default"
   const selectedValue =
@@ -39,8 +41,8 @@ export function SelectField({
       : undefined
 
   const handleValueChange = (details: { value: string[] }) => {
-    const value = details.value[0]
-    if (value) {
+    const [value] = details.value
+    if (typeof value === "string" && value.length > 0) {
       field.handleChange(value)
       if (!field.state.meta.isTouched) {
         field.handleBlur()

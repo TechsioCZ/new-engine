@@ -1,0 +1,11 @@
+{
+  "extends": "../../../../../apps/medusa-symmy-plugin/tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false,
+    "noEmit": true
+  },
+  "exclude": [
+    "../../../../../apps/medusa-symmy-plugin/src/modules/*/migrations/**"
+  ]
+}

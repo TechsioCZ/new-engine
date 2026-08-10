@@ -2,58 +2,65 @@ import type { Meta, StoryObj } from "@storybook/react"
 import type { ComponentProps } from "react"
 import { useState } from "react"
 import { fn } from "storybook/test"
+
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
 import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
 import {
   PhoneInput,
-  type PhoneInputCountry,
-  type PhoneInputValueChangeDetails,
   usePhoneInputContext,
 } from "../../src/molecules/phone-input"
+import type {
+  PhoneInputCountry,
+  PhoneInputValueChangeDetails,
+} from "../../src/molecules/phone-input"
+
+const phoneInputSizes: NonNullable<
+  ComponentProps<typeof PhoneInput>["size"]
+>[] = ["sm", "md", "lg"]
 
 const countries: PhoneInputCountry[] = [
   {
-    value: "SK",
+    flag: <Icon icon="icon-[twemoji--flag-slovakia]" size="md" />,
     label: "Slovakia",
     name: "Slovakia",
-    flag: <Icon icon="icon-[twemoji--flag-slovakia]" size="md" />,
+    value: "SK",
   },
   {
-    value: "CZ",
+    flag: <Icon icon="icon-[twemoji--flag-czechia]" size="md" />,
     label: "Czechia",
     name: "Czechia",
-    flag: <Icon icon="icon-[twemoji--flag-czechia]" size="md" />,
+    value: "CZ",
   },
   {
-    value: "HU",
+    flag: <Icon icon="icon-[twemoji--flag-hungary]" size="md" />,
     label: "Hungary",
     name: "Hungary",
-    flag: <Icon icon="icon-[twemoji--flag-hungary]" size="md" />,
+    value: "HU",
   },
   {
-    value: "RO",
+    flag: <Icon icon="icon-[twemoji--flag-romania]" size="md" />,
     label: "Romania",
     name: "Romania",
-    flag: <Icon icon="icon-[twemoji--flag-romania]" size="md" />,
+    value: "RO",
   },
   {
-    value: "PL",
+    flag: <Icon icon="icon-[twemoji--flag-poland]" size="md" />,
     label: "Poland",
     name: "Poland",
-    flag: <Icon icon="icon-[twemoji--flag-poland]" size="md" />,
+    value: "PL",
   },
   {
-    value: "AT",
+    flag: <Icon icon="icon-[twemoji--flag-austria]" size="md" />,
     label: "Austria",
     name: "Austria",
-    flag: <Icon icon="icon-[twemoji--flag-austria]" size="md" />,
+    value: "AT",
   },
   {
-    value: "DE",
+    flag: <Icon icon="icon-[twemoji--flag-germany]" size="md" />,
     label: "Germany",
     name: "Germany",
-    flag: <Icon icon="icon-[twemoji--flag-germany]" size="md" />,
+    value: "DE",
   },
 ]
 
@@ -62,14 +69,57 @@ const limitedCountries = countries
   .map((item) => (item.value === "PL" ? { ...item, disabled: true } : item))
 
 const czechCountries = countries.filter((item) => item.value === "CZ")
-const trackPhoneValueChange = fn()
+const trackPhoneValueChange =
+  fn<NonNullable<ComponentProps<typeof PhoneInput>["onValueChange"]>>()
 const trackNativeFormSubmit = fn()
 
 const meta: Meta<typeof PhoneInput> = {
-  title: "Molecules/PhoneInput",
+  argTypes: {
+    disabled: {
+      control: "boolean",
+      description: "Disable country selection and text entry",
+    },
+    nativeValidation: {
+      control: "boolean",
+      description: "Use native form validation for invalid non-empty numbers",
+    },
+    nativeValidationMessage: {
+      control: "text",
+      description: "Message shown by native validation for invalid numbers",
+    },
+    readOnly: {
+      control: "boolean",
+      description: "Make the phone input read-only",
+    },
+    required: {
+      control: "boolean",
+      description: "Mark the field as required",
+    },
+    size: {
+      control: { type: "select" },
+      description: "Size of the phone input",
+      options: ["sm", "md", "lg"],
+      table: { defaultValue: { summary: "md" } },
+    },
+    validateStatus: {
+      control: { type: "select" },
+      description: "Validation status",
+      options: ["default", "error", "success", "warning"],
+      table: { defaultValue: { summary: "default" } },
+    },
+  },
+  args: {
+    countries,
+    defaultCountry: "SK",
+    disabled: false,
+    onValueChange: trackPhoneValueChange,
+    readOnly: false,
+    required: false,
+    size: "md",
+    validateStatus: "default",
+  },
   component: PhoneInput,
   parameters: {
-    layout: "centered",
     docs: {
       description: {
         component: `
@@ -92,86 +142,42 @@ It keeps the visible input ergonomic for users, emits formatted phone details th
         `,
       },
     },
+    layout: "centered",
   },
   tags: ["autodocs"],
-  argTypes: {
-    size: {
-      control: { type: "select" },
-      options: ["sm", "md", "lg"],
-      description: "Size of the phone input",
-      table: { defaultValue: { summary: "md" } },
-    },
-    validateStatus: {
-      control: { type: "select" },
-      options: ["default", "error", "success", "warning"],
-      description: "Validation status",
-      table: { defaultValue: { summary: "default" } },
-    },
-    disabled: {
-      control: "boolean",
-      description: "Disable country selection and text entry",
-    },
-    readOnly: {
-      control: "boolean",
-      description: "Make the phone input read-only",
-    },
-    required: {
-      control: "boolean",
-      description: "Mark the field as required",
-    },
-    nativeValidation: {
-      control: "boolean",
-      description: "Use native form validation for invalid non-empty numbers",
-    },
-    nativeValidationMessage: {
-      control: "text",
-      description: "Message shown by native validation for invalid numbers",
-    },
-  },
-  args: {
-    countries,
-    defaultCountry: "SK",
-    size: "md",
-    validateStatus: "default",
-    disabled: false,
-    readOnly: false,
-    required: false,
-    onValueChange: trackPhoneValueChange,
-  },
+  title: "Molecules/PhoneInput",
 }
 
 export default meta
 type Story = StoryObj<typeof PhoneInput>
 
-function PhoneInputExample({
+const PhoneInputExample = ({
   helpText = "Use a number we can reach for delivery updates.",
   label = "Phone number",
   ...props
 }: ComponentProps<typeof PhoneInput> & {
   helpText?: string
   label?: string
-}) {
-  return (
-    <div className="w-2xs max-w-full">
-      <PhoneInput {...props}>
-        <PhoneInput.Label>{label}</PhoneInput.Label>
-        <PhoneInput.Control>
-          <PhoneInput.CountryPicker />
-          <PhoneInput.Input placeholder="900 123 456" />
-        </PhoneInput.Control>
-        <PhoneInput.StatusText>{helpText}</PhoneInput.StatusText>
-      </PhoneInput>
-    </div>
-  )
-}
+}) => (
+  <div className="w-2xs max-w-full">
+    <PhoneInput {...props}>
+      <PhoneInput.Label>{label}</PhoneInput.Label>
+      <PhoneInput.Control>
+        <PhoneInput.CountryPicker />
+        <PhoneInput.Input placeholder="900 123 456" />
+      </PhoneInput.Control>
+      <PhoneInput.StatusText>{helpText}</PhoneInput.StatusText>
+    </PhoneInput>
+  </div>
+)
 
-type PhoneInputCountryItemsProps = {
+interface PhoneInputCountryItemsProps {
   showFlags?: boolean
 }
 
-function PhoneInputCountryItems({
+const PhoneInputCountryItems = ({
   showFlags = true,
-}: PhoneInputCountryItemsProps) {
+}: PhoneInputCountryItemsProps) => {
   const { countries: contextCountries } = usePhoneInputContext()
 
   return (
@@ -191,19 +197,17 @@ function PhoneInputCountryItems({
   )
 }
 
-function PhoneInputDetailsPanel({
+const PhoneInputDetailsPanel = ({
   details,
 }: {
   details: PhoneInputValueChangeDetails | null
-}) {
-  return (
-    <div className="rounded-md border border-border-primary bg-surface p-200 text-sm">
-      <div>E.164: {details?.e164 || "None"}</div>
-      <div>Country: {details?.country || "SK"}</div>
-      <div>Valid: {details?.isValid ? "yes" : "no"}</div>
-    </div>
-  )
-}
+}) => (
+  <div className="rounded-md border border-border-primary bg-surface p-200 text-sm">
+    <div>E.164: {details?.e164 ?? "None"}</div>
+    <div>Country: {details?.country ?? "SK"}</div>
+    <div>Valid: {details?.isValid === true ? "yes" : "no"}</div>
+  </div>
+)
 
 export const Playground: Story = {
   render: (args) => <PhoneInputExample {...args} />,
@@ -220,7 +224,7 @@ export const Sizes: Story = {
   render: (args) => (
     <VariantContainer>
       <VariantGroup fullWidth title="Sizes">
-        {(["sm", "md", "lg"] as const).map((size) => (
+        {phoneInputSizes.map((size) => (
           <PhoneInputExample
             {...args}
             helpText={`${size.toUpperCase()} phone input`}
@@ -330,7 +334,10 @@ export const CountryDisplayVariants: Story = {
             <PhoneInput.Control>
               <PhoneInput.CountrySelect>
                 <PhoneInput.CountryControl>
-                  <PhoneInput.CountryTrigger aria-label="Select country" className="max-w-fit">
+                  <PhoneInput.CountryTrigger
+                    aria-label="Select country"
+                    className="max-w-fit"
+                  >
                     <PhoneInput.CountryValue>
                       <PhoneInput.CountryFlag />
                     </PhoneInput.CountryValue>
@@ -374,83 +381,102 @@ export const FixedCountry: Story = {
   ),
 }
 
-export const Controlled: Story = {
-  render: (args) => {
-    const [value, setValue] = useState("")
-    const [details, setDetails] =
-      useState<PhoneInputValueChangeDetails | null>(null)
+const ControlledStory: NonNullable<Story["render"]> = (args) => {
+  const [value, setValue] = useState("")
+  const [details, setDetails] = useState<PhoneInputValueChangeDetails | null>(
+    null,
+  )
 
-    return (
-      <div className="grid w-sm max-w-full gap-200">
-        <PhoneInputExample
-          {...args}
-          helpText={details?.isValid ? "Valid phone number" : "Keep typing"}
-          label="Controlled phone"
-          onValueChange={(nextDetails) => {
-            args.onValueChange?.(nextDetails)
-            setValue(nextDetails.value)
-            setDetails(nextDetails)
-          }}
-          validateStatus={details?.isValid ? "success" : "default"}
-          value={value}
-        />
-        <PhoneInputDetailsPanel details={details} />
-      </div>
-    )
-  },
+  return (
+    <div className="grid w-sm max-w-full gap-200">
+      <PhoneInputExample
+        {...args}
+        helpText={
+          details?.isValid === true ? "Valid phone number" : "Keep typing"
+        }
+        label="Controlled phone"
+        onValueChange={(nextDetails) => {
+          args.onValueChange?.(nextDetails)
+          setValue(nextDetails.value)
+          setDetails(nextDetails)
+        }}
+        validateStatus={details?.isValid === true ? "success" : "default"}
+        value={value}
+      />
+      <PhoneInputDetailsPanel details={details} />
+    </div>
+  )
+}
+
+export const Controlled: Story = {
+  render: ControlledStory,
+}
+
+const AsyncControlledValueStory: NonNullable<Story["render"]> = (args) => {
+  const [value, setValue] = useState("")
+
+  return (
+    <div className="grid w-sm max-w-full gap-200">
+      <PhoneInputExample
+        {...args}
+        helpText={
+          value
+            ? "Profile phone value is loaded into the controlled input."
+            : "Load a saved profile phone into the controlled input."
+        }
+        label="Profile phone"
+        value={value}
+        onValueChange={(nextDetails) => {
+          args.onValueChange?.(nextDetails)
+          setValue(nextDetails.value)
+        }}
+      />
+      <Button
+        onClick={() => {
+          setValue("+420777123456")
+        }}
+        type="button"
+      >
+        Load profile phone
+      </Button>
+    </div>
+  )
 }
 
 export const AsyncControlledValue: Story = {
-  render: (args) => {
-    const [value, setValue] = useState("")
+  render: AsyncControlledValueStory,
+}
 
-    return (
-      <div className="grid w-sm max-w-full gap-200">
-        <PhoneInputExample
-          {...args}
-          helpText={
-            value
-              ? "Profile phone value is loaded into the controlled input."
-              : "Load a saved profile phone into the controlled input."
-          }
-          label="Profile phone"
-          value={value}
-          onValueChange={(nextDetails) => {
-            args.onValueChange?.(nextDetails)
-            setValue(nextDetails.value)
-          }}
-        />
-        <Button onClick={() => setValue("+420777123456")} type="button">
-          Load profile phone
-        </Button>
-      </div>
-    )
-  },
+const PasteInternationalNumberStory: NonNullable<Story["render"]> = (args) => {
+  const [value, setValue] = useState("")
+
+  return (
+    <div className="grid w-sm max-w-full gap-200">
+      <PhoneInputExample
+        {...args}
+        defaultCountry="SK"
+        helpText="Apply an international value and the country syncs from it."
+        label="International paste"
+        value={value}
+        onValueChange={(nextDetails) => {
+          args.onValueChange?.(nextDetails)
+          setValue(nextDetails.value)
+        }}
+      />
+      <Button
+        onClick={() => {
+          setValue("+420777123456")
+        }}
+        type="button"
+      >
+        Paste Czech number
+      </Button>
+    </div>
+  )
 }
 
 export const PasteInternationalNumber: Story = {
-  render: (args) => {
-    const [value, setValue] = useState("")
-
-    return (
-      <div className="grid w-sm max-w-full gap-200">
-        <PhoneInputExample
-          {...args}
-          defaultCountry="SK"
-          helpText="Apply an international value and the country syncs from it."
-          label="International paste"
-          value={value}
-          onValueChange={(nextDetails) => {
-            args.onValueChange?.(nextDetails)
-            setValue(nextDetails.value)
-          }}
-        />
-        <Button onClick={() => setValue("+420777123456")} type="button">
-          Paste Czech number
-        </Button>
-      </div>
-    )
-  },
+  render: PasteInternationalNumberStory,
 }
 
 export const LimitedCountries: Story = {
@@ -471,7 +497,7 @@ export const CustomCountryList: Story = {
         <PhoneInput.Label>Delivery phone</PhoneInput.Label>
         <PhoneInput.Control>
           <PhoneInput.CountrySelect>
-            <PhoneInput.CountryControl className="border-phone-input-divider border-r">
+            <PhoneInput.CountryControl className="border-r border-phone-input-divider">
               <PhoneInput.CountryTrigger className="min-w-24">
                 <PhoneInput.CountryValue>
                   <PhoneInput.CountryCallingCode />
@@ -504,35 +530,38 @@ export const CustomCountryList: Story = {
   ),
 }
 
-export const NativeFormValue: Story = {
-  render: (args) => {
-    const [submittedValue, setSubmittedValue] = useState("None")
+const NativeFormValueStory: NonNullable<Story["render"]> = (args) => {
+  const [submittedValue, setSubmittedValue] = useState("None")
 
-    return (
-      <form
-        className="grid w-sm max-w-full gap-200"
-        onSubmit={(event) => {
-          event.preventDefault()
-          const formData = new FormData(event.currentTarget)
-          const phone = String(formData.get("phone") || "None")
-          trackNativeFormSubmit(phone)
-          setSubmittedValue(phone)
-        }}
-      >
-        <PhoneInputExample
-          {...args}
-          helpText="Submit to inspect the hidden E.164 form value."
-          label="Native form phone"
-          name="phone"
-          nativeValidation
-          nativeValidationMessage="Enter a valid delivery phone number."
-          required
-        />
-        <Button type="submit">Submit</Button>
-        <div className="rounded-md border border-border-primary bg-surface p-200 text-sm">
-          Submitted: {submittedValue}
-        </div>
-      </form>
-    )
-  },
+  return (
+    <form
+      className="grid w-sm max-w-full gap-200"
+      onSubmit={(event) => {
+        event.preventDefault()
+        const formData = new FormData(event.currentTarget)
+        const phoneValue = formData.get("phone")
+        const phone = typeof phoneValue === "string" ? phoneValue : "None"
+        trackNativeFormSubmit(phone)
+        setSubmittedValue(phone)
+      }}
+    >
+      <PhoneInputExample
+        {...args}
+        helpText="Submit to inspect the hidden E.164 form value."
+        label="Native form phone"
+        name="phone"
+        nativeValidation
+        nativeValidationMessage="Enter a valid delivery phone number."
+        required
+      />
+      <Button type="submit">Submit</Button>
+      <div className="rounded-md border border-border-primary bg-surface p-200 text-sm">
+        Submitted: {submittedValue}
+      </div>
+    </form>
+  )
+}
+
+export const NativeFormValue: Story = {
+  render: NativeFormValueStory,
 }

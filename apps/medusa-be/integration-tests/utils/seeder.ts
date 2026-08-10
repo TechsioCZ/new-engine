@@ -1,77 +1,126 @@
-export async function regionSeeder({ api, adminHeaders, data }) {
-  return (
-    await api.post(
-      "/admin/regions",
-      { name: "Test region", currency_code: "usd", ...data },
-      adminHeaders
-    )
-  ).data.region
+import { getRecordValue, isRecord } from "@techsio/std/object"
+
+interface TestHeaders {
+  headers: Record<string, string>
 }
 
-export async function salesChannelSeeder({ api, adminHeaders, data }) {
-  return (
-    await api.post(
-      "/admin/sales-channels",
-      { name: "test sales channel", ...data },
-      adminHeaders
-    )
-  ).data.sales_channel
+interface TestApi {
+  post: (url: string, body?: unknown, config?: TestHeaders) => Promise<unknown>
 }
 
-export async function productSeeder({ api, adminHeaders, data }) {
-  return (
-    await api.post(
-      "/admin/products",
-      {
-        title: "Test Product",
-        handle: "test-product",
-        status: "published",
-        options: [
-          { title: "size", values: ["large", "small"] },
-          { title: "color", values: ["green"] },
-        ],
-        variants: [
-          {
-            title: "Test variant",
-            sku: "test-variant",
-            manage_inventory: false,
-            prices: [
-              {
-                currency_code: "usd",
-                amount: 100,
-              },
-            ],
-            options: {
-              size: "large",
-              color: "green",
-            },
+interface AdminSeederInput {
+  api: TestApi
+  adminHeaders: TestHeaders
+  data: object
+}
+
+interface StoreSeederInput {
+  api: TestApi
+  storeHeaders: TestHeaders
+  data: object
+}
+
+const extractSeededEntity = (
+  response: unknown,
+  entityKey: string,
+  context: string,
+): unknown => {
+  if (!isRecord(response)) {
+    throw new TypeError(`Expected ${context} to return an HTTP response`)
+  }
+  const data = getRecordValue(response, "data")
+  if (!isRecord(data)) {
+    throw new TypeError(`Expected ${context} response data to be a record`)
+  }
+  return getRecordValue(data, entityKey)
+}
+
+export const regionSeeder = async ({
+  api,
+  adminHeaders,
+  data,
+}: AdminSeederInput): Promise<unknown> => {
+  const response = await api.post(
+    "/admin/regions",
+    { currency_code: "usd", name: "Test region", ...data },
+    adminHeaders,
+  )
+  return extractSeededEntity(response, "region", "regionSeeder")
+}
+
+export const salesChannelSeeder = async ({
+  api,
+  adminHeaders,
+  data,
+}: AdminSeederInput): Promise<unknown> => {
+  const response = await api.post(
+    "/admin/sales-channels",
+    { name: "test sales channel", ...data },
+    adminHeaders,
+  )
+  return extractSeededEntity(response, "sales_channel", "salesChannelSeeder")
+}
+
+export const productSeeder = async ({
+  api,
+  adminHeaders,
+  data,
+}: AdminSeederInput): Promise<unknown> => {
+  const response = await api.post(
+    "/admin/products",
+    {
+      handle: "test-product",
+      options: [
+        { title: "size", values: ["large", "small"] },
+        { title: "color", values: ["green"] },
+      ],
+      status: "published",
+      title: "Test Product",
+      variants: [
+        {
+          manage_inventory: false,
+          options: {
+            color: "green",
+            size: "large",
           },
-        ],
-        ...data,
-      },
-      adminHeaders
-    )
-  ).data.product
+          prices: [
+            {
+              amount: 100,
+              currency_code: "usd",
+            },
+          ],
+          sku: "test-variant",
+          title: "Test variant",
+        },
+      ],
+      ...data,
+    },
+    adminHeaders,
+  )
+  return extractSeededEntity(response, "product", "productSeeder")
 }
 
-export async function cartSeeder({ api, storeHeaders, data }) {
-  return (
-    await api.post(
-      "/store/carts",
-      {
-        currency_code: "usd",
-        email: "tony@stark-industries.com",
-        shipping_address: {
-          address_1: "test address 1",
-          address_2: "test address 2",
-          city: "ny",
-          country_code: "us",
-          province: "ny",
-          postal_code: "94016",
-        },
-        ...data,
+export const cartSeeder = async ({
+  api,
+  storeHeaders,
+  data,
+}: StoreSeederInput): Promise<unknown> => {
+  const response = await api.post(
+    "/store/carts",
+    {
+      currency_code: "usd",
+      email: "tony@stark-industries.com",
+      shipping_address: {
+        address_1: "test address 1",
+        address_2: "test address 2",
+        city: "ny",
+        country_code: "us",
+        postal_code: "94016",
+        province: "ny",
       },
-      storeHeaders
-    )
-  ).data.cart
+      ...data,
+    },
+    storeHeaders,
+  )
+  return extractSeededEntity(response, "cart", "cartSeeder")
 }

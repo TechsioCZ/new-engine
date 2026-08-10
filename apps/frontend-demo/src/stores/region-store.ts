@@ -12,25 +12,63 @@ export const regionStore = new Store<RegionState>({
   selectedRegionId: null,
 })
 
-function setCookie(name: string, value: string) {
-  if (typeof window !== "undefined") {
-    document.cookie = `${name}=${value}; path=/; max-age=${COOKIE_MAX_AGE}; SameSite=Lax`
+const persistCookie = async (name: string, value: string): Promise<void> => {
+  if (typeof window === "undefined") {
+    return
+  }
+
+  try {
+    if (!("cookieStore" in window)) {
+      localStorage.setItem(name, value)
+      return
+    }
+
+    await window.cookieStore.set({
+      expires: Date.now() + COOKIE_MAX_AGE * 1000,
+      name,
+      path: "/",
+      sameSite: "lax",
+      value,
+    })
+  } catch (error) {
+    console.error("[RegionStore] Failed to persist the selected region", error)
+    if ("cookieStore" in window) {
+      try {
+        localStorage.setItem(name, value)
+      } catch (storageError) {
+        console.error(
+          "[RegionStore] Failed to use legacy region storage",
+          storageError,
+        )
+      }
+    }
   }
 }
 
-function getCookie(name: string): string | null {
-  if (typeof window === "undefined") return null
+const setCookie = (name: string, value: string): void => {
+  void persistCookie(name, value)
+}
 
-  const value = `; ${document.cookie}`
-  const parts = value.split(`; ${name}=`)
-  if (parts.length === 2) {
-    return parts.pop()?.split(";").shift() || null
+const getCookie = async (name: string): Promise<string | null> => {
+  if (typeof window === "undefined") {
+    return null
   }
-  return null
+
+  if (!("cookieStore" in window)) {
+    return null
+  }
+
+  try {
+    const cookie = await window.cookieStore.get(name)
+    return cookie?.value ?? null
+  } catch (error) {
+    console.error("[RegionStore] Failed to read the selected region", error)
+    return null
+  }
 }
 
 // Helper functions
-export function setSelectedRegionId(regionId: string) {
+export const setSelectedRegionId = (regionId: string): void => {
   regionStore.setState((state) => ({
     ...state,
     selectedRegionId: regionId,
@@ -40,17 +78,30 @@ export function setSelectedRegionId(regionId: string) {
 }
 
 if (typeof window !== "undefined") {
-  const cookieRegionId = getCookie(COOKIE_NAME)
+  const initializeRegion = async (): Promise<void> => {
+    const cookieRegionId = await getCookie(COOKIE_NAME)
 
-  // migration from localStorage to cookie
-  if (cookieRegionId) {
-    regionStore.setState({ selectedRegionId: cookieRegionId })
-  } else {
+    // Migrate from localStorage to the cookie store.
+    if (cookieRegionId !== null && cookieRegionId.length > 0) {
+      regionStore.setState((state) => ({
+        ...state,
+        selectedRegionId: cookieRegionId,
+      }))
+      return
+    }
+
     const legacyRegionId = localStorage.getItem(COOKIE_NAME)
-    if (legacyRegionId) {
+    if (legacyRegionId !== null && legacyRegionId.length > 0) {
       setCookie(COOKIE_NAME, legacyRegionId)
-      localStorage.removeItem(COOKIE_NAME)
-      regionStore.setState({ selectedRegionId: legacyRegionId })
+      if ("cookieStore" in window) {
+        localStorage.removeItem(COOKIE_NAME)
+      }
+      regionStore.setState((state) => ({
+        ...state,
+        selectedRegionId: legacyRegionId,
+      }))
     }
   }
+
+  void initializeRegion()
 }

@@ -1,8 +1,8 @@
-/**
+/*
  * Carousel — @techsio/ui-kit template.
  *
  * @component Carousel
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,50 +10,77 @@
  * the carousel-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import type { ElementType } from "react"
+
 import type { IconType } from "../atoms/icon"
-import {
-  Carousel,
-  type CarouselRootProps,
-  type CarouselSlide,
+import type { Image } from "../atoms/image"
+import { rendererCapability } from "../internal/renderer-capability"
+import { Carousel, CarouselInheritedSlides } from "../molecules/carousel"
+import type {
+  CarouselImageRenderer,
+  CarouselRootProps,
+  CarouselSlide,
 } from "../molecules/carousel"
 
-export interface CarouselTemplateProps<T extends ElementType>
-  extends Omit<CarouselRootProps<T>, "children" | "slideCount"> {
-  slides: CarouselSlide[]
-  showControls?: boolean
-  showIndicators?: boolean
-  showAutoplay?: boolean
-  prevIcon?: IconType
-  nextIcon?: IconType
+type IsUncheckedValue<Value> = 0 extends 1 & Value ? true : false
+
+type IsDefaultImageComponent<T extends ElementType> =
+  IsUncheckedValue<T> extends true
+    ? false
+    : [T] extends [typeof Image]
+      ? [typeof Image] extends [T]
+        ? true
+        : false
+      : false
+
+type CarouselTemplateBaseProps<T extends ElementType> = Omit<
+  CarouselRootProps<T>,
+  "children" | "imageAs" | "slideCount"
+> & {
+  slides: CarouselSlide<T>[]
+  showControls?: boolean | undefined
+  showIndicators?: boolean | undefined
+  showAutoplay?: boolean | undefined
+  prevIcon?: IconType | undefined
+  nextIcon?: IconType | undefined
 }
 
-export function CarouselTemplate<T extends ElementType>({
-  slides,
-  showControls = true,
-  showIndicators = true,
-  showAutoplay = false,
-  prevIcon = "token-icon-carousel-prev",
-  nextIcon = "token-icon-carousel-next",
-  size,
-  objectFit,
-  aspectRatio,
-  orientation,
-  loop,
-  autoplay,
-  allowMouseDrag,
-  slidesPerPage,
-  slidesPerMove,
-  spacing,
-  padding,
-  imageAs,
-  width,
-  height,
-  className,
-  onPageChange,
-  ...carouselProps
-}: CarouselTemplateProps<T>) {
+export type CarouselTemplateProps<T extends ElementType = typeof Image> =
+  | (CarouselTemplateBaseProps<T> & { imageAs: CarouselImageRenderer<T> })
+  | (IsDefaultImageComponent<T> extends true
+      ? CarouselTemplateBaseProps<T> & { imageAs?: undefined }
+      : never)
+
+export const CarouselTemplate = <T extends ElementType = typeof Image>(
+  templateProps: CarouselTemplateProps<T>,
+) => {
+  const {
+    slides,
+    showControls = true,
+    showIndicators = true,
+    showAutoplay = false,
+    prevIcon = "token-icon-carousel-prev",
+    nextIcon = "token-icon-carousel-next",
+    size,
+    objectFit,
+    aspectRatio,
+    orientation,
+    loop,
+    autoplay,
+    allowMouseDrag,
+    slidesPerPage,
+    slidesPerMove,
+    spacing,
+    padding,
+    imageAs,
+    width,
+    height,
+    className,
+    onPageChange,
+    ...carouselProps
+  } = templateProps
+
   return (
-    <Carousel
+    <Carousel<T>
       allowMouseDrag={allowMouseDrag}
       aspectRatio={aspectRatio}
       autoplay={autoplay}
@@ -73,8 +100,9 @@ export function CarouselTemplate<T extends ElementType>({
       width={width}
       {...carouselProps}
     >
-      <Carousel.Slides
+      <CarouselInheritedSlides<T>
         imageAs={imageAs}
+        rendererCapability={rendererCapability}
         slides={slides}
       />
 

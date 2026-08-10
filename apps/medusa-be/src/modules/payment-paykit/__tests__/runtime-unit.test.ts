@@ -1,0 +1,187 @@
+import { describe, expect, it, vi } from "vitest"
+
+import {
+  callPaykitProviderWebhook,
+  getComgateProviderOptions,
+  getGopayProviderOptions,
+  getPaykitPackageLoadErrorMessage,
+  getStripeProviderOptions,
+  getStripeWebhookOptions,
+} from "../runtime"
+import type { PaykitProviderRuntime } from "../runtime"
+
+describe("PayKit runtime helpers", () => {
+  it("maps GoPay options to PayKit's public createGopay options", () => {
+    expect(
+      getGopayProviderOptions({
+        clientId: "client",
+        clientSecret: "secret",
+        goId: "goid",
+        isSandbox: false,
+        webhookUrl: "https://example.com/hooks/gopay",
+      }),
+    ).toStrictEqual({
+      clientId: "client",
+      clientSecret: "secret",
+      debug: false,
+      goId: "goid",
+      isSandbox: false,
+      webhookUrl: "https://example.com/hooks/gopay",
+    })
+  })
+
+  it("keeps GoPay sandbox mode enabled", () => {
+    expect(
+      getGopayProviderOptions({
+        clientId: "client",
+        clientSecret: "secret",
+        goId: "goid",
+        isSandbox: true,
+        webhookUrl: "https://example.com/hooks/gopay",
+      }),
+    ).toStrictEqual({
+      clientId: "client",
+      clientSecret: "secret",
+      debug: false,
+      goId: "goid",
+      isSandbox: true,
+      webhookUrl: "https://example.com/hooks/gopay",
+    })
+  })
+
+  it("omits Stripe sandbox mode so PayKit can infer it from the key", () => {
+    expect(
+      getStripeProviderOptions({
+        apiKey: "sk_test_123",
+        debug: true,
+        isSandbox: false,
+        webhookSecret: "whsec_123",
+      }),
+    ).toStrictEqual({
+      apiKey: "sk_test_123",
+      apiVersion: "2026-06-24.dahlia",
+      debug: true,
+    })
+  })
+
+  it("does not default Stripe sandbox mode", () => {
+    expect(
+      getStripeProviderOptions({
+        apiKey: "sk_test_123",
+      }),
+    ).toStrictEqual({
+      apiKey: "sk_test_123",
+      apiVersion: "2026-06-24.dahlia",
+      debug: false,
+    })
+  })
+
+  it("maps Stripe webhook secret to PayKit webhook payload options", () => {
+    expect(
+      getStripeWebhookOptions({
+        apiKey: "sk_test_123",
+        webhookSecret: "whsec_123",
+      }),
+    ).toStrictEqual({
+      webhookSecret: "whsec_123",
+    })
+  })
+
+  it("calls PayKit 1.2 provider webhooks with headersAsObject and secret argument", async () => {
+    const provider = {
+      handleWebhook: vi
+        .fn<PaykitProviderRuntime["handleWebhook"]>()
+        .mockResolvedValue([]),
+    }
+
+    await callPaykitProviderWebhook(
+      provider,
+      {
+        data: {
+          url: "/hooks/payment/paykit_stripe",
+        },
+        headers: {
+          host: "backend.example",
+          "stripe-signature": "sig_123",
+          "x-forwarded-for": ["client", "proxy"],
+          "x-forwarded-proto": "https",
+        },
+        rawData: Buffer.from("webhook-body"),
+      },
+      {
+        webhookSecret: "whsec_123",
+      },
+    )
+
+    expect(provider.handleWebhook).toHaveBeenCalledWith(
+      {
+        body: "webhook-body",
+        fullUrl: "https://backend.example/hooks/payment/paykit_stripe",
+        headersAsObject: {
+          host: "backend.example",
+          "stripe-signature": "sig_123",
+          "x-forwarded-for": "client,proxy",
+          "x-forwarded-proto": "https",
+        },
+      },
+      "whsec_123",
+    )
+  })
+
+  it("passes null webhook secret when a provider has no webhook secret option", async () => {
+    const provider = {
+      handleWebhook: vi
+        .fn<PaykitProviderRuntime["handleWebhook"]>()
+        .mockResolvedValue([]),
+    }
+
+    await callPaykitProviderWebhook(provider, {
+      data: {},
+      headers: {},
+      rawData: "",
+    })
+
+    expect(provider.handleWebhook).toHaveBeenCalledWith(
+      expect.any(Object),
+      null,
+    )
+  })
+
+  it("maps Comgate options to PayKit's public createComgate options", () => {
+    expect(
+      getComgateProviderOptions({
+        isSandbox: false,
+        merchant: "merchant",
+        secret: "secret",
+      }),
+    ).toStrictEqual({
+      debug: false,
+      isSandbox: false,
+      merchant: "merchant",
+      secret: "secret",
+    })
+  })
+
+  it("describes missing PayKit packages as install issues", () => {
+    const error = Object.assign(
+      new Error(
+        "Cannot find package '@paykit-sdk/gopay' imported from /app/src/modules/payment-paykit/runtime.js",
+      ),
+      { code: "ERR_MODULE_NOT_FOUND" },
+    )
+
+    expect(getPaykitPackageLoadErrorMessage("@paykit-sdk/gopay", error)).toBe(
+      "PayKit package \"@paykit-sdk/gopay\" is not installed. Install it before enabling this provider. Original error: Cannot find package '@paykit-sdk/gopay' imported from /app/src/modules/payment-paykit/runtime.js",
+    )
+  })
+
+  it("describes PayKit package import failures as SDK/package issues", () => {
+    const error = new SyntaxError(
+      "The requested module '@paykit-sdk/core' does not provide an export named 'OAuth2TokenManager'",
+    )
+
+    expect(getPaykitPackageLoadErrorMessage("@paykit-sdk/gopay", error)).toBe(
+      "PayKit package \"@paykit-sdk/gopay\" failed to load. The package is installed, but Node could not import it. This usually means the PayKit SDK packages are version-incompatible or the package build is invalid. Original error: The requested module '@paykit-sdk/core' does not provide an export named 'OAuth2TokenManager'",
+    )
+  })
+})

@@ -1,40 +1,42 @@
-export const IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/
-export const MAX_IDENTIFIER_LENGTH = 63
+const IDENTIFIER_REGEX = /^[A-Za-z_][A-Za-z0-9_]*$/u
+const MAX_IDENTIFIER_LENGTH = 63
 
 type ErrorFactory = (message: string) => Error
 
-function defaultErrorFactory(message: string): Error {
-  return new Error(message)
-}
+const defaultErrorFactory = (message: string): Error => new Error(message)
 
-export function assertSafeIdentifier(
+export const assertSafeIdentifier = (
   value: string,
   label: string,
   errorFactory: ErrorFactory = defaultErrorFactory,
-): void {
+): void => {
   if (!IDENTIFIER_REGEX.test(value)) {
     throw errorFactory(`${label} must match ${IDENTIFIER_REGEX.source}`)
   }
 
   if (value.length > MAX_IDENTIFIER_LENGTH) {
-    throw errorFactory(`${label} must be at most ${MAX_IDENTIFIER_LENGTH} characters`)
+    throw errorFactory(
+      `${label} must be at most ${MAX_IDENTIFIER_LENGTH} characters`,
+    )
   }
 }
 
-export function quoteIdentifier(
+export const quoteIdentifier = (
   identifier: string,
   label = "identifier",
   errorFactory: ErrorFactory = defaultErrorFactory,
-): string {
+): string => {
   assertSafeIdentifier(identifier, label, errorFactory)
   return `"${identifier}"`
 }
 
-export function quoteLiteral(value: string): string {
-  return `'${value.replaceAll("'", "''")}'`
-}
+export const quoteLiteral = (value: string): string =>
+  `'${value.replaceAll("'", "''")}'`
 
-export async function roleExists(sql: Bun.SQL, roleName: string): Promise<boolean> {
+export const roleExists = async (
+  sql: Bun.SQL,
+  roleName: string,
+): Promise<boolean> => {
   const rows = await sql<{ exists: boolean }[]>`
     SELECT EXISTS(
       SELECT 1
@@ -46,7 +48,10 @@ export async function roleExists(sql: Bun.SQL, roleName: string): Promise<boolea
   return rows[0]?.exists === true
 }
 
-export async function databaseExists(sql: Bun.SQL, databaseName: string): Promise<boolean> {
+export const databaseExists = async (
+  sql: Bun.SQL,
+  databaseName: string,
+): Promise<boolean> => {
   const rows = await sql<{ exists: boolean }[]>`
     SELECT EXISTS(
       SELECT 1

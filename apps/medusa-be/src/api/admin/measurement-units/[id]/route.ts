@@ -1,4 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { omitUndefined } from "@techsio/std/object"
+
 import { deleteMeasurementUnitsWorkflow } from "../../../../workflows/measurement-unit/workflows/delete-measurement-units"
 import { updateMeasurementUnitWorkflow } from "../../../../workflows/measurement-unit/workflows/update-measurement-unit"
 import {
@@ -7,8 +9,8 @@ import {
 } from "../utils"
 import type { AdminUpdateMeasurementUnitSchemaType } from "../validators"
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
-  const unitId = req.params.id ?? ""
+const getRoute = async (req: MedusaRequest, res: MedusaResponse) => {
+  const unitId = req.params["id"] ?? ""
   const unit = await retrieveMeasurementUnitOrThrow(req.scope, unitId, {
     withDeleted: true,
   })
@@ -18,24 +20,24 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   })
 }
 
-export async function POST(
+const postRoute = async (
   req: MedusaRequest<AdminUpdateMeasurementUnitSchemaType>,
-  res: MedusaResponse
-) {
-  const unitId = req.params.id ?? ""
+  res: MedusaResponse,
+) => {
+  const unitId = req.params["id"] ?? ""
 
   await retrieveMeasurementUnitOrThrow(req.scope, unitId)
 
   const { result } = await updateMeasurementUnitWorkflow(req.scope).run({
     input: {
       id: unitId,
-      update: req.validatedBody,
+      update: omitUndefined(req.validatedBody),
     },
   })
 
   const unit = await retrieveMeasurementUnitOrThrow(
     req.scope,
-    result?.id ?? unitId
+    result?.id ?? unitId,
   )
 
   res.status(200).json({
@@ -43,8 +45,8 @@ export async function POST(
   })
 }
 
-export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
-  const id = req.params.id ?? ""
+const deleteRoute = async (req: MedusaRequest, res: MedusaResponse) => {
+  const id = req.params["id"] ?? ""
 
   await retrieveMeasurementUnitOrThrow(req.scope, id)
   await deleteMeasurementUnitsWorkflow(req.scope).run({
@@ -59,3 +61,5 @@ export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
     object: "measurement_unit",
   })
 }
+
+export { deleteRoute as DELETE, getRoute as GET, postRoute as POST }

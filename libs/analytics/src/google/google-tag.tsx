@@ -1,10 +1,11 @@
 "use client"
 
 import Script from "next/script"
+
 import type { GoogleAdsConfig } from "./types"
 
 /** Valid Google Ads ID format: AW-XXXXXXXXX or G-XXXXXXXXX */
-const VALID_ADS_ID_PATTERN = /^(AW|G)-[A-Z0-9]+$/i
+const VALID_ADS_ID_PATTERN = /^(?:AW|G)-[A-Z0-9]+$/iu
 
 /**
  * Google Tag (gtag.js) base component
@@ -29,7 +30,7 @@ const VALID_ADS_ID_PATTERN = /^(AW|G)-[A-Z0-9]+$/i
  * }
  * ```
  */
-export function GoogleTag({ adsId, debug = false, nonce }: GoogleAdsConfig) {
+export const GoogleTag = ({ adsId, debug = false, nonce }: GoogleAdsConfig) => {
   const isValidAdsId =
     typeof adsId === "string" && VALID_ADS_ID_PATTERN.test(adsId)
 
@@ -63,19 +64,14 @@ export function GoogleTag({ adsId, debug = false, nonce }: GoogleAdsConfig) {
         }}
       />
       {/* Initialize gtag */}
-      <Script
-        id="google-tag-init"
-        strategy="afterInteractive"
-        nonce={nonce}
-        dangerouslySetInnerHTML={{
-          __html: `
-            window.dataLayer = window.dataLayer || [];
-            window.gtag = function gtag(){window.dataLayer.push(arguments);};
-            window.gtag('js', new Date());
-            window.gtag('config', ${JSON.stringify(adsId)});
-          `,
-        }}
-      />
+      <Script id="google-tag-init" strategy="afterInteractive" nonce={nonce}>
+        {`
+          window.dataLayer = window.dataLayer || [];
+          window.gtag = function gtag(){window.dataLayer.push(arguments);};
+          window.gtag('js', new Date());
+          window.gtag('config', ${JSON.stringify(adsId)});
+        `}
+      </Script>
     </>
   )
 }

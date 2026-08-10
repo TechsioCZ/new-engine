@@ -3,12 +3,13 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import Image from "next/image"
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useReducer } from "react"
+
 import { useDebounce } from "@/hooks/use-debounce"
 import type { CartLineItem } from "@/services/cart-service"
 import { formatToTaxIncluded } from "@/utils/format/format-product"
 
-type CartItemProps = {
+interface CartItemProps {
   item: CartLineItem
   onUpdateQuantity: (quantity: number) => void
   onRemove: () => void
@@ -16,27 +17,25 @@ type CartItemProps = {
   isOptimistic?: boolean
 }
 
-export const CartItem = ({
+const CartItemContent = ({
   item,
   onUpdateQuantity,
   onRemove,
   isPending = false,
   isOptimistic = false,
 }: CartItemProps) => {
-  const [localQuantity, setLocalQuantity] = useState(item.quantity)
-  const title = item.product_title || item.title || "Unknown Product"
+  const [localQuantity, setLocalQuantity] = useReducer(
+    (_current: number, next: number) => next,
+    item.quantity,
+  )
+  const title = (item.product_title ?? item.title) || "Unknown Product"
   const variantTitle = item.variant_title
-  const thumbnail = item.thumbnail
+  const { thumbnail } = item
+  const { inventory_quantity: inventoryQuantity } = item.metadata ?? {}
   const effectiveMax =
-    (item.metadata?.inventory_quantity as number | undefined) ?? 10
+    typeof inventoryQuantity === "number" ? inventoryQuantity : 10
 
-  useEffect(() => {
-    setLocalQuantity(item.quantity)
-  }, [item.quantity])
-
-  const debouncedUpdate = useDebounce((quantity: number) => {
-    onUpdateQuantity(quantity)
-  }, 300)
+  const debouncedUpdate = useDebounce(onUpdateQuantity, 300)
 
   const handleQuantityChange = (newQuantity: number) => {
     if (Number.isNaN(newQuantity) || !Number.isFinite(newQuantity)) {
@@ -56,8 +55,8 @@ export const CartItem = ({
         ${isPending ? "pointer-events-none" : ""}
       `}
     >
-      <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-md">
-        {thumbnail ? (
+      <div className="h-cart-thumbnail w-cart-thumbnail flex-shrink-0 overflow-hidden rounded-md">
+        {typeof thumbnail === "string" && thumbnail.length > 0 ? (
           <Image
             alt={title}
             className="h-full w-full object-cover"
@@ -83,7 +82,7 @@ export const CartItem = ({
           </h4>
         </Link>
 
-        {variantTitle && variantTitle !== "Default" && (
+        {(variantTitle?.length ?? 0) > 0 && variantTitle !== "Default" && (
           <p className="truncate text-fg-secondary text-xs">{variantTitle}</p>
         )}
 
@@ -97,7 +96,7 @@ export const CartItem = ({
       <div className="flex items-center">
         <NumericInput
           allowOverflow={false}
-          className="h-8 border-collapse gap-0"
+          className="h-650 border-collapse gap-0"
           max={effectiveMax}
           min={1}
           onChange={handleQuantityChange}
@@ -121,7 +120,7 @@ export const CartItem = ({
 
       <Button
         aria-label={`Odstranit ${title} z košíku`}
-        className="h-7 w-7 p-0 text-fg-5 transition-colors hover:text-fg-secondary"
+        className="h-650 w-650 p-0 text-fg-5 transition-colors hover:text-fg-secondary"
         disabled={isPending}
         icon="icon-[mdi--trash-can-outline]"
         onClick={onRemove}
@@ -132,3 +131,7 @@ export const CartItem = ({
     </div>
   )
 }
+
+export const CartItem = (props: CartItemProps) => (
+  <CartItemContent key={props.item.quantity} {...props} />
+)

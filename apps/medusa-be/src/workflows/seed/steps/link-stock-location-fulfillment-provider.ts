@@ -3,31 +3,29 @@ import type { Logger, StockLocationDTO } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
-export type LinkStockLocationFulfillmentProviderStepInput = {
+export interface LinkStockLocationFulfillmentProviderStepInput {
   stockLocations: StockLocationDTO[]
-  fulfillmentProviderIds?: Array<string | null | undefined>
+  fulfillmentProviderIds?: (string | null | undefined)[]
 }
 
 const LinkStockLocationFulfillmentProviderStepId =
   "link-stock-location-fulfillment-provider-seed-step"
 
-function normalizeFulfillmentProviderIds(
-  ids?: Array<string | null | undefined>
-): string[] {
-  return [
-    ...new Set(
-      (ids ?? [])
-        .map((id) => id?.toString().trim())
-        .filter((id): id is string => Boolean(id))
-    ),
-  ]
-}
+const normalizeFulfillmentProviderIds = (
+  ids?: (string | null | undefined)[],
+): string[] => [
+  ...new Set(
+    (ids ?? [])
+      .map((id) => id?.toString().trim())
+      .filter((id): id is string => Boolean(id)),
+  ),
+]
 
 export const linkStockLocationFulfillmentProviderSeedStep = createStep(
   LinkStockLocationFulfillmentProviderStepId,
   async (
     input: LinkStockLocationFulfillmentProviderStepInput,
-    { container }
+    { container },
   ) => {
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
@@ -36,49 +34,65 @@ export const linkStockLocationFulfillmentProviderSeedStep = createStep(
 
     const result: unknown[] = []
     const providerIds = normalizeFulfillmentProviderIds(
-      input.fulfillmentProviderIds
+      input.fulfillmentProviderIds,
     )
     if (providerIds.length === 0) {
       logger.warn(
-        "No fulfillment provider IDs supplied, skipping stock-location fulfillment-provider links."
+        "No fulfillment provider IDs supplied, skipping stock-location fulfillment-provider links.",
       )
       return new StepResponse({
         result,
       })
     }
 
-    for (const stockLocation of input.stockLocations) {
-      for (const providerId of providerIds) {
-        try {
-          const linkResult = await link.create({
-            [Modules.STOCK_LOCATION]: {
-              stock_location_id: stockLocation.id,
-            },
-            [Modules.FULFILLMENT]: {
-              fulfillment_provider_id: providerId,
-            },
-          })
+    const createLinkAt = async (
+      stockLocationIndex: number,
+      providerIndex: number,
+    ): Promise<void> => {
+      const stockLocation = input.stockLocations[stockLocationIndex]
+      if (stockLocation === undefined) {
+        return
+      }
 
-          result.push(linkResult)
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error)
-          if (
-            message.includes(
-              "Cannot create multiple links between 'stock_location' and 'fulfillment'"
-            )
-          ) {
-            logger.warn(
-              `Skipping existing stock location -> fulfillment provider link for stock location "${stockLocation.id}" and provider "${providerId}"`
-            )
-            continue
-          }
+      const providerId = providerIds[providerIndex]
+      if (providerId === undefined) {
+        await createLinkAt(stockLocationIndex + 1, 0)
+        return
+      }
+
+      try {
+        const linkResult = await link.create({
+          [Modules.STOCK_LOCATION]: {
+            stock_location_id: stockLocation.id,
+          },
+          [Modules.FULFILLMENT]: {
+            fulfillment_provider_id: providerId,
+          },
+        })
+
+        result.push(linkResult)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        if (
+          message.includes(
+            "Cannot create multiple links between 'stock_location' and 'fulfillment'",
+          )
+        ) {
+          logger.warn(
+            `Skipping existing stock location -> fulfillment provider link for stock location "${stockLocation.id}" and provider "${providerId}"`,
+          )
+        } else {
           throw error
         }
       }
+
+      await createLinkAt(stockLocationIndex, providerIndex + 1)
     }
+
+    await createLinkAt(0, 0)
 
     return new StepResponse({
       result,
     })
-  }
+  },
 )

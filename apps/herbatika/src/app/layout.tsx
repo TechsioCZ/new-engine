@@ -1,15 +1,14 @@
-import {
-  type DehydratedState,
-  dehydrate,
-  HydrationBoundary,
-} from "@tanstack/react-query"
+import { dehydrate, HydrationBoundary } from "@tanstack/react-query"
+import type { DehydratedState } from "@tanstack/react-query"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import type { Metadata } from "next"
+import { NextIntlClientProvider } from "next-intl"
+import type { AbstractIntlMessages } from "next-intl"
+import { getMessages } from "next-intl/server"
 import { Inter, Open_Sans, Roboto, Rubik } from "next/font/google"
 import localFont from "next/font/local"
-import { type AbstractIntlMessages, NextIntlClientProvider } from "next-intl"
-import { getMessages } from "next-intl/server"
 import { Suspense } from "react"
+
 import { AppShell } from "@/components/app-shell"
 import {
   buildCategoryListParams,
@@ -20,57 +19,58 @@ import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { getMarketServerContext } from "@/lib/storefront/market-context.server"
 import { getRegionServerContext } from "@/lib/storefront/ssr/context"
 import { fetchServerCategories } from "@/lib/storefront/storefront-server"
+
 import "./globals.css"
 import { Providers } from "./providers"
 
 const verdana = localFont({
+  display: "swap",
   src: [
     {
       path: "./fonts/Verdana-Regular.woff2",
-      weight: "400",
       style: "normal",
+      weight: "400",
     },
     {
       path: "./fonts/Verdana-Bold.woff2",
-      weight: "700",
       style: "normal",
+      weight: "700",
     },
   ],
   variable: "--font-verdana",
-  display: "swap",
 })
 
 const openSans = Open_Sans({
-  variable: "--font-sans",
-  subsets: ["latin", "latin-ext"],
   display: "swap",
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-sans",
 })
 
 const inter = Inter({
-  variable: "--font-inter-font",
-  subsets: ["latin", "latin-ext"],
   display: "swap",
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-inter-font",
 })
 
 const rubik = Rubik({
-  variable: "--font-rubik",
-  subsets: ["latin", "latin-ext"],
   display: "swap",
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-rubik",
 })
 
 const roboto = Roboto({
+  display: "swap",
+  subsets: ["latin", "latin-ext"],
   variable: "--font-roboto",
   weight: ["400", "700"],
-  subsets: ["latin", "latin-ext"],
-  display: "swap",
 })
 
-export async function generateMetadata(): Promise<Metadata> {
+export const generateMetadata = async (): Promise<Metadata> => {
   const marketContext = await getMarketServerContext()
 
   return {
-    title: marketContext.metadata.title,
     description: marketContext.metadata.description,
+    title: marketContext.metadata.title,
   }
 }
 
@@ -82,36 +82,34 @@ type LayoutShellProps = Readonly<{
   messages: AbstractIntlMessages
 }>
 
-function LayoutShell({
+const LayoutShell = ({
   children,
   dehydratedState,
   initialRegion = null,
   marketContext,
   messages,
-}: LayoutShellProps) {
-  return (
-    <NextIntlClientProvider messages={messages}>
-      <Providers
-        initialMarketContext={marketContext}
-        initialRegion={initialRegion}
-      >
-        <HydrationBoundary state={dehydratedState}>
-          <Suspense fallback={<div className="min-h-dvh bg-base" />}>
-            <AppShell>{children}</AppShell>
-          </Suspense>
-        </HydrationBoundary>
-      </Providers>
-    </NextIntlClientProvider>
-  )
-}
+}: LayoutShellProps) => (
+  <NextIntlClientProvider messages={messages}>
+    <Providers
+      initialMarketContext={marketContext}
+      initialRegion={initialRegion}
+    >
+      <HydrationBoundary state={dehydratedState}>
+        <Suspense fallback={<div className="min-h-dvh bg-base" />}>
+          <AppShell>{children}</AppShell>
+        </Suspense>
+      </HydrationBoundary>
+    </Providers>
+  </NextIntlClientProvider>
+)
 
-async function ResolvedLayoutShell({
+const ResolvedLayoutShell = async ({
   children,
   marketContext,
 }: Readonly<{
   children: React.ReactNode
   marketContext: HerbatikaMarketContext
-}>) {
+}>) => {
   const [{ queryClient, region }, messages] = await Promise.all([
     getRegionServerContext(),
     getMessages(),
@@ -121,10 +119,10 @@ async function ResolvedLayoutShell({
     await fetchServerCategories(
       queryClient,
       buildCategoryListParams({
-        page: 1,
-        limit: CATEGORY_TREE_LIMIT,
         fields: CATEGORY_TREE_FIELDS,
-      })
+        limit: CATEGORY_TREE_LIMIT,
+        page: 1,
+      }),
     )
   } catch (error) {
     console.error("Failed to prefetch storefront categories", error)
@@ -142,11 +140,11 @@ async function ResolvedLayoutShell({
   )
 }
 
-async function ResolvedRootLayout({
+const ResolvedRootLayout = async ({
   children,
 }: Readonly<{
   children: React.ReactNode
-}>) {
+}>) => {
   const marketContext = await getMarketServerContext()
 
   return (
@@ -169,14 +167,14 @@ async function ResolvedRootLayout({
   )
 }
 
-export default function RootLayout({
+const RootLayout = ({
   children,
 }: Readonly<{
   children: React.ReactNode
-}>) {
-  return (
-    <Suspense fallback={null}>
-      <ResolvedRootLayout>{children}</ResolvedRootLayout>
-    </Suspense>
-  )
-}
+}>) => (
+  <Suspense fallback={null}>
+    <ResolvedRootLayout>{children}</ResolvedRootLayout>
+  </Suspense>
+)
+
+export default RootLayout

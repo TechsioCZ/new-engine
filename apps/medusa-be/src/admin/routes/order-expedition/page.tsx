@@ -14,40 +14,40 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import {
-  type Dispatch,
-  type SetStateAction,
-  useEffect,
-  useMemo,
-  useState,
-} from "react"
+import { useEffect, useState } from "react"
+import type { Dispatch, SetStateAction } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
+
 import {
   isManualOrderBusinessStatusId,
   isOrderBusinessStatusId,
   MANUAL_ORDER_BUSINESS_STATUS_IDS,
-  type ManualOrderBusinessStatusId,
   ORDER_BUSINESS_STATUS_IDS,
   ORDER_BUSINESS_STATUSES,
-  type OrderBusinessStatusId,
-  type OrderBusinessStatusSummary,
+} from "../../../utils/order-business-status"
+import type {
+  ManualOrderBusinessStatusId,
+  OrderBusinessStatusId,
+  OrderBusinessStatusSummary,
 } from "../../../utils/order-business-status"
 import {
   getOrderExpeditionTransitionBlockReason,
   isOrderExpeditionCarrierKey,
   isOrderExpeditionTargetStatus,
   ORDER_EXPEDITION_MAX_ORDER_IDS,
-  type OrderExpeditionBlockingOrder,
-  type OrderExpeditionCarrierKey,
-  type OrderExpeditionCarrierOption,
-  type OrderExpeditionOrderDto,
-  type OrderExpeditionTargetStatus,
+} from "../../../utils/order-expedition"
+import type {
+  OrderExpeditionBlockingOrder,
+  OrderExpeditionCarrierKey,
+  OrderExpeditionCarrierOption,
+  OrderExpeditionOrderDto,
+  OrderExpeditionTargetStatus,
 } from "../../../utils/order-expedition"
 import { formatLocaleCode } from "../../lib/format-locale-code"
 import { sdk } from "../../lib/sdk"
 
-type OrdersResponse = {
+interface OrdersResponse {
   orders: OrderExpeditionOrderDto[]
   count: number
   has_next: boolean
@@ -60,15 +60,15 @@ type OrdersResponse = {
   business_status: OrderBusinessStatusId | null
 }
 
-type CarriersResponse = {
+interface CarriersResponse {
   carriers: OrderExpeditionCarrierOption[]
 }
 
-type BusinessStatusesResponse = {
+interface BusinessStatusesResponse {
   orders: OrderBusinessStatusSummary[]
 }
 
-type BulkBusinessStatusResponse = {
+interface BulkBusinessStatusResponse {
   count: number
   skipped_count: number
   status: ManualOrderBusinessStatusId | null
@@ -76,7 +76,7 @@ type BulkBusinessStatusResponse = {
   skipped: OrderExpeditionBlockingOrder[]
 }
 
-type OrderExpeditionFilters = {
+interface OrderExpeditionFilters {
   carrier: typeof ALL_CARRIERS | OrderExpeditionCarrierKey
   businessStatus: typeof ALL_BUSINESS_STATUSES | OrderBusinessStatusId
   offset: number
@@ -91,16 +91,16 @@ export const handle = {
   breadcrumb: () => "Order Operations",
 }
 
-const TARGET_STATUSES: Array<{
+const TARGET_STATUSES: {
   value: OrderExpeditionTargetStatus
   label: string
-}> = [
-  { value: "pending", label: "Pending" },
-  { value: "completed", label: "Completed" },
-  { value: "draft", label: "Draft" },
-  { value: "archived", label: "Archived" },
-  { value: "canceled", label: "Canceled" },
-  { value: "requires_action", label: "Requires action" },
+}[] = [
+  { label: "Pending", value: "pending" },
+  { label: "Completed", value: "completed" },
+  { label: "Draft", value: "draft" },
+  { label: "Archived", value: "archived" },
+  { label: "Canceled", value: "canceled" },
+  { label: "Requires action", value: "requires_action" },
 ]
 
 type TargetStatusOption = (typeof TARGET_STATUSES)[number] & {
@@ -109,10 +109,10 @@ type TargetStatusOption = (typeof TARGET_STATUSES)[number] & {
 
 type ManualStatusValue = ManualOrderBusinessStatusId | "clear"
 
-const MANUAL_STATUS_OPTIONS: Array<{
+const MANUAL_STATUS_OPTIONS: {
   translationKey: string
   value: ManualStatusValue
-}> = [
+}[] = [
   ...MANUAL_ORDER_BUSINESS_STATUS_IDS.map((value) => ({
     translationKey: ORDER_BUSINESS_STATUSES[value].translation_key,
     value,
@@ -123,7 +123,7 @@ const MANUAL_STATUS_OPTIONS: Array<{
   },
 ]
 
-function getOrderItemsSummary(order: OrderExpeditionOrderDto) {
+const getOrderItemsSummary = (order: OrderExpeditionOrderDto) => {
   if (!order.items.length) {
     return "-"
   }
@@ -134,29 +134,25 @@ function getOrderItemsSummary(order: OrderExpeditionOrderDto) {
     .join(", ")
 }
 
-function getCarrierLabel(order: OrderExpeditionOrderDto) {
-  return order.carrier.shipping_method_name ?? order.carrier.label
-}
+const getCarrierLabel = (order: OrderExpeditionOrderDto) =>
+  order.carrier.shipping_method_name ?? order.carrier.label
 
-function TruncatedTooltipText({
+const TruncatedTooltipText = ({
   className,
   text,
 }: {
   className: string
   text: string
-}) {
-  return (
-    <Tooltip content={text} maxWidth={520}>
-      <span className={`block truncate ${className}`}>{text}</span>
-    </Tooltip>
-  )
-}
+}) => (
+  <Tooltip content={text} maxWidth={520}>
+    <span className={`block truncate ${className}`}>{text}</span>
+  </Tooltip>
+)
 
-function getBusinessStatus(order: OrderExpeditionOrderDto) {
-  return order.business_status ?? ORDER_BUSINESS_STATUSES.new
-}
+const getBusinessStatus = (order: OrderExpeditionOrderDto) =>
+  order.business_status ?? ORDER_BUSINESS_STATUSES.new
 
-function buildOrdersQueryPath(filters: OrderExpeditionFilters): string {
+const buildOrdersQueryPath = (filters: OrderExpeditionFilters): string => {
   const search = new URLSearchParams({
     limit: String(PAGE_SIZE),
     offset: String(filters.offset),
@@ -173,655 +169,10 @@ function buildOrdersQueryPath(filters: OrderExpeditionFilters): string {
   return `/admin/order-expedition/orders?${search}`
 }
 
-function useOrderExpeditionQueries(filters: OrderExpeditionFilters) {
-  const carriersQuery = useQuery({
-    queryFn: () =>
-      sdk.client.fetch<CarriersResponse>("/admin/order-expedition/carriers"),
-    queryKey: ["order-expedition-carriers"],
-  })
-
-  const ordersQuery = useQuery({
-    queryFn: () =>
-      sdk.client.fetch<OrdersResponse>(buildOrdersQueryPath(filters)),
-    queryKey: [
-      ORDER_EXPEDITION_QUERY_KEY,
-      filters.carrier,
-      filters.businessStatus,
-      filters.offset,
-    ],
-  })
-
-  const rawOrders = useMemo(
-    () => ordersQuery.data?.orders ?? [],
-    [ordersQuery.data?.orders]
-  )
-  const rawOrderIds = useMemo(
-    () => rawOrders.map((order) => order.id),
-    [rawOrders]
-  )
-  const businessStatusesQuery = useQuery({
-    enabled: rawOrderIds.length > 0,
-    queryFn: () => {
-      const search = new URLSearchParams({
-        ids: rawOrderIds.join(","),
-      })
-
-      return sdk.client.fetch<BusinessStatusesResponse>(
-        `/admin/order-business-statuses/by-ids?${search}`
-      )
-    },
-    queryKey: ["order-business-statuses-by-ids", rawOrderIds],
-  })
-  const businessStatusesById = useMemo(
-    () =>
-      new Map(
-        (businessStatusesQuery.data?.orders ?? []).map((order) => [
-          order.id,
-          order,
-        ])
-      ),
-    [businessStatusesQuery.data?.orders]
-  )
-  const orders = useMemo(
-    () =>
-      rawOrders.map((order) =>
-        mergeBusinessStatusSummary(order, businessStatusesById.get(order.id))
-      ),
-    [businessStatusesById, rawOrders]
-  )
-
-  return {
-    businessStatusesQuery,
-    carriersQuery,
-    orders,
-    ordersQuery,
-  }
-}
-
-function useSelectedOrdersSync(
-  orders: OrderExpeditionOrderDto[],
-  setSelectedOrdersById: Dispatch<
-    SetStateAction<Map<string, OrderExpeditionOrderDto>>
-  >
-): void {
-  useEffect(() => {
-    if (!orders.length) {
-      return
-    }
-
-    setSelectedOrdersById((prev) => {
-      let changed = false
-      const next = new Map(prev)
-
-      for (const order of orders) {
-        if (next.has(order.id)) {
-          next.set(order.id, order)
-          changed = true
-        }
-      }
-
-      return changed ? next : prev
-    })
-  }, [orders, setSelectedOrdersById])
-}
-
-function useClearBulkControlsWhenSelectionEmpty(params: {
-  bulkManualStatus: ManualStatusValue | ""
-  selectedCount: number
-  targetStatus: OrderExpeditionTargetStatus | ""
-  setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
-  setBulkManualStatus: Dispatch<SetStateAction<ManualStatusValue | "">>
-  setTargetStatus: Dispatch<SetStateAction<OrderExpeditionTargetStatus | "">>
-}): void {
-  useEffect(() => {
-    if (params.selectedCount > 0) {
-      return
-    }
-
-    if (params.targetStatus) {
-      params.setTargetStatus("")
-    }
-
-    if (params.bulkManualStatus) {
-      params.setBulkManualStatus("")
-    }
-
-    params.setBlockingOrders((prev) => (prev.length ? [] : prev))
-  }, [
-    params.bulkManualStatus,
-    params.selectedCount,
-    params.setBlockingOrders,
-    params.setBulkManualStatus,
-    params.setTargetStatus,
-    params.targetStatus,
-  ])
-}
-
-function useOrderExpeditionSelection(
-  selectedOrdersById: Map<string, OrderExpeditionOrderDto>,
-  orders: OrderExpeditionOrderDto[]
-) {
-  const selectedOrders = [...selectedOrdersById.values()]
-  const selectedOrderIds = new Set(selectedOrdersById.keys())
-  const selectedOrderIdsList = [...selectedOrdersById.keys()]
-  const allPageOrdersSelected =
-    orders.length > 0 && orders.every((order) => selectedOrderIds.has(order.id))
-  const somePageOrdersSelected =
-    orders.some((order) => selectedOrderIds.has(order.id)) &&
-    !allPageOrdersSelected
-  const selectedCount = selectedOrdersById.size
-
-  return {
-    allPageOrdersSelected,
-    isSelectionLimitReached: selectedCount >= ORDER_EXPEDITION_MAX_ORDER_IDS,
-    selectedCount,
-    selectedOrderIds,
-    selectedOrderIdsList,
-    selectedOrders,
-    somePageOrdersSelected,
-  }
-}
-
-function resetOrderExpeditionControls(params: {
-  setOffset: Dispatch<SetStateAction<number>>
-  setSelectedOrdersById: Dispatch<
-    SetStateAction<Map<string, OrderExpeditionOrderDto>>
-  >
-  setTargetStatus: Dispatch<SetStateAction<OrderExpeditionTargetStatus | "">>
-  setBulkManualStatus: Dispatch<SetStateAction<ManualStatusValue | "">>
-  setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
-}): void {
-  params.setOffset(0)
-  params.setSelectedOrdersById(new Map())
-  params.setTargetStatus("")
-  params.setBulkManualStatus("")
-  params.setBlockingOrders([])
-}
-
-function useOrderExpeditionFilterHandlers(params: {
-  setCarrier: Dispatch<
-    SetStateAction<typeof ALL_CARRIERS | OrderExpeditionCarrierKey>
-  >
-  setBusinessStatus: Dispatch<
-    SetStateAction<typeof ALL_BUSINESS_STATUSES | OrderBusinessStatusId>
-  >
-  setOffset: Dispatch<SetStateAction<number>>
-  setSelectedOrdersById: Dispatch<
-    SetStateAction<Map<string, OrderExpeditionOrderDto>>
-  >
-  setTargetStatus: Dispatch<SetStateAction<OrderExpeditionTargetStatus | "">>
-  setBulkManualStatus: Dispatch<SetStateAction<ManualStatusValue | "">>
-  setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
-}) {
-  const resetControls = () => resetOrderExpeditionControls(params)
-
-  return {
-    handleCarrierChange: (value: string) => {
-      const nextCarrier = getCarrierSelectValue(value)
-
-      if (!nextCarrier) {
-        return
-      }
-
-      params.setCarrier(nextCarrier)
-      resetControls()
-    },
-    handleBusinessStatusChange: (value: string) => {
-      const nextBusinessStatus = getBusinessStatusSelectValue(value)
-
-      if (!nextBusinessStatus) {
-        return
-      }
-
-      params.setBusinessStatus(nextBusinessStatus)
-      resetControls()
-    },
-  }
-}
-
-function useOrderExpeditionSelectionHandlers(params: {
-  allPageOrdersSelected: boolean
-  orders: OrderExpeditionOrderDto[]
-  selectedCount: number
-  selectedOrderIds: Set<string>
-  setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
-  setSelectedOrdersById: Dispatch<
-    SetStateAction<Map<string, OrderExpeditionOrderDto>>
-  >
-}) {
-  return {
-    toggleOrder: (order: OrderExpeditionOrderDto) => {
-      if (
-        isOrderSelectionLimitBlocked(
-          order.id,
-          params.selectedOrderIds,
-          params.selectedCount
-        )
-      ) {
-        toast.error(
-          `Select up to ${ORDER_EXPEDITION_MAX_ORDER_IDS} orders at a time`
-        )
-        return
-      }
-
-      params.setBlockingOrders([])
-      params.setSelectedOrdersById((prev) => {
-        const next = new Map(prev)
-        if (next.has(order.id)) {
-          next.delete(order.id)
-        } else {
-          next.set(order.id, order)
-        }
-        return next
-      })
-    },
-    togglePage: () => {
-      if (
-        shouldWarnPageSelectionLimit(
-          params.allPageOrdersSelected,
-          params.orders,
-          params.selectedOrderIds,
-          params.selectedCount
-        )
-      ) {
-        toast.error(
-          `Select up to ${ORDER_EXPEDITION_MAX_ORDER_IDS} orders at a time`
-        )
-      }
-
-      params.setBlockingOrders([])
-      params.setSelectedOrdersById((prev) =>
-        getNextPageSelection(prev, params.orders, params.allPageOrdersSelected)
-      )
-    },
-  }
-}
-
-function useOrderExpeditionStatusHandlers(params: {
-  selectedOrderIdsList: string[]
-  selectedCount: number
-  targetStatus: OrderExpeditionTargetStatus | ""
-  targetStatusOptions: TargetStatusOption[]
-  selectedTargetStatusBlockers: OrderExpeditionBlockingOrder[]
-  setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
-  setIsPrinting: Dispatch<SetStateAction<boolean>>
-  setIsUpdatingStatus: Dispatch<SetStateAction<boolean>>
-  setSelectedOrdersById: Dispatch<
-    SetStateAction<Map<string, OrderExpeditionOrderDto>>
-  >
-  setTargetStatus: Dispatch<SetStateAction<OrderExpeditionTargetStatus | "">>
-  ordersQuery: ReturnType<typeof useOrderExpeditionQueries>["ordersQuery"]
-}) {
-  return {
-    handleTargetStatusChange: (value: string) => {
-      if (!isOrderExpeditionTargetStatus(value)) {
-        return
-      }
-
-      const option = params.targetStatusOptions.find(
-        (status) => status.value === value
-      )
-
-      if (option?.blockedOrders.length) {
-        return
-      }
-
-      params.setTargetStatus(value)
-      params.setBlockingOrders([])
-    },
-    handlePrint: async () => {
-      if (!params.selectedOrderIdsList.length) {
-        return
-      }
-
-      params.setIsPrinting(true)
-      params.setBlockingOrders([])
-      try {
-        await downloadPdf(params.selectedOrderIdsList)
-        toast.success("Order expedition PDF generated")
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to print PDF")
-      } finally {
-        params.setIsPrinting(false)
-      }
-    },
-    handleStatusUpdate: async () => {
-      if (!params.selectedOrderIdsList.length) {
-        return
-      }
-
-      if (!params.targetStatus) {
-        toast.error("Select a target status")
-        return
-      }
-
-      if (params.selectedTargetStatusBlockers.length) {
-        params.setBlockingOrders(params.selectedTargetStatusBlockers)
-        toast.error("Selected orders no longer support that status change")
-        return
-      }
-
-      params.setIsUpdatingStatus(true)
-      params.setBlockingOrders([])
-      try {
-        const result = await updateStatus(
-          params.selectedOrderIdsList,
-          params.targetStatus
-        )
-
-        if (!result.ok) {
-          params.setBlockingOrders(result.blockedOrders)
-          toast.error(result.message)
-          return
-        }
-
-        toast.success(`${params.selectedCount} order(s) updated`)
-        params.setSelectedOrdersById(new Map())
-        params.setTargetStatus("")
-        await params.ordersQuery.refetch()
-      } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "Failed to update order status"
-        )
-      } finally {
-        params.setIsUpdatingStatus(false)
-      }
-    },
-  }
-}
-
-function useOrderExpeditionBusinessStatusHandlers(params: {
-  bulkBusinessStatusTarget: ManualOrderBusinessStatusId | null | undefined
-  bulkBusinessStatusPreview: {
-    skipped: OrderExpeditionBlockingOrder[]
-    updatable: OrderExpeditionOrderDto[]
-  }
-  selectedOrderIdsList: string[]
-  setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
-  setBulkManualStatus: Dispatch<SetStateAction<ManualStatusValue | "">>
-  setIsBulkBusinessStatusPromptOpen: Dispatch<SetStateAction<boolean>>
-  setIsUpdatingBusinessStatus: Dispatch<SetStateAction<boolean>>
-  setSelectedOrdersById: Dispatch<
-    SetStateAction<Map<string, OrderExpeditionOrderDto>>
-  >
-  ordersQuery: ReturnType<typeof useOrderExpeditionQueries>["ordersQuery"]
-  businessStatusesQuery: ReturnType<
-    typeof useOrderExpeditionQueries
-  >["businessStatusesQuery"]
-}) {
-  return {
-    handleBulkManualStatusChange: (value: string) => {
-      if (value === "clear" || isManualOrderBusinessStatusId(value)) {
-        params.setBulkManualStatus(value)
-        params.setBlockingOrders([])
-      }
-    },
-    handleBusinessStatusUpdateRequest: () => {
-      if (!params.selectedOrderIdsList.length) {
-        return
-      }
-
-      if (params.bulkBusinessStatusTarget === undefined) {
-        toast.error("Select a manual status")
-        return
-      }
-
-      params.setBlockingOrders([])
-      params.setIsBulkBusinessStatusPromptOpen(true)
-    },
-    handleBusinessStatusUpdateConfirm: async () => {
-      if (params.bulkBusinessStatusTarget === undefined) {
-        return
-      }
-
-      const orderIdsToUpdate = params.bulkBusinessStatusPreview.updatable.map(
-        (order) => order.id
-      )
-
-      if (!orderIdsToUpdate.length) {
-        params.setBlockingOrders(params.bulkBusinessStatusPreview.skipped)
-        params.setIsBulkBusinessStatusPromptOpen(false)
-        toast.error("No selected orders can be updated")
-        return
-      }
-
-      params.setIsUpdatingBusinessStatus(true)
-      params.setBlockingOrders([])
-      try {
-        const result = await bulkUpdateOrderBusinessStatus({
-          orderIds: params.selectedOrderIdsList,
-          status: params.bulkBusinessStatusTarget,
-        })
-
-        params.setBlockingOrders(result.skipped)
-        toast.success(
-          `Manual status updated for ${result.count} order(s). ${result.skipped_count} skipped.`
-        )
-        params.setSelectedOrdersById(new Map())
-        params.setBulkManualStatus("")
-        params.setIsBulkBusinessStatusPromptOpen(false)
-        await Promise.all([
-          params.ordersQuery.refetch(),
-          params.businessStatusesQuery.refetch(),
-        ])
-      } catch (err) {
-        toast.error(
-          err instanceof Error
-            ? err.message
-            : "Failed to update manual business status"
-        )
-      } finally {
-        params.setIsUpdatingBusinessStatus(false)
-      }
-    },
-  }
-}
-
-function throwOrderExpeditionQueryErrors(errors: unknown[]): void {
-  for (const error of errors) {
-    if (error) {
-      throw error
-    }
-  }
-}
-
-function BulkBusinessStatusPrompt({
-  bulkBusinessStatusLabel,
-  bulkBusinessStatusPreview,
-  isBulkBusinessStatusPromptOpen,
-  isUpdatingBusinessStatus,
-  onConfirm,
-  onOpenChange,
-}: {
-  bulkBusinessStatusLabel: string
-  bulkBusinessStatusPreview: {
-    skipped: OrderExpeditionBlockingOrder[]
-    updatable: OrderExpeditionOrderDto[]
-  }
-  isBulkBusinessStatusPromptOpen: boolean
-  isUpdatingBusinessStatus: boolean
-  onConfirm: () => void
-  onOpenChange: (open: boolean) => void
-}) {
-  return (
-    <Prompt
-      onOpenChange={onOpenChange}
-      open={isBulkBusinessStatusPromptOpen}
-      variant="confirmation"
-    >
-      <Prompt.Content>
-        <Prompt.Header>
-          <Prompt.Title>Apply manual status</Prompt.Title>
-          <Prompt.Description>
-            Only manually selected orders will be updated.
-          </Prompt.Description>
-        </Prompt.Header>
-        <div className="flex flex-col gap-3 px-6 py-4">
-          <Text size="small">
-            Target manual status:{" "}
-            <span className="font-medium">{bulkBusinessStatusLabel}</span>
-          </Text>
-          <Text size="small">
-            {bulkBusinessStatusPreview.updatable.length} order(s) will be
-            updated. {bulkBusinessStatusPreview.skipped.length} order(s) will be
-            skipped.
-          </Text>
-          {bulkBusinessStatusPreview.updatable.length ? (
-            <div className="flex max-h-[160px] flex-col gap-1 overflow-auto rounded-md border border-ui-border-base bg-ui-bg-subtle p-3">
-              {bulkBusinessStatusPreview.updatable.slice(0, 10).map((order) => (
-                <Text key={order.id} size="small">
-                  {order.order_display_id}: set manual status to{" "}
-                  {bulkBusinessStatusLabel}
-                </Text>
-              ))}
-              {bulkBusinessStatusPreview.updatable.length > 10 ? (
-                <Text className="text-ui-fg-muted" size="small">
-                  {bulkBusinessStatusPreview.updatable.length - 10} more will be
-                  updated
-                </Text>
-              ) : null}
-            </div>
-          ) : null}
-          {bulkBusinessStatusPreview.skipped.length ? (
-            <div className="flex max-h-[160px] flex-col gap-1 overflow-auto rounded-md border border-ui-border-base bg-ui-bg-subtle p-3">
-              {bulkBusinessStatusPreview.skipped.slice(0, 10).map((order) => (
-                <Text key={`${order.id}-${order.reason}`} size="small">
-                  {order.order_display_id}: skipped - {order.reason}
-                </Text>
-              ))}
-              {bulkBusinessStatusPreview.skipped.length > 10 ? (
-                <Text className="text-ui-fg-muted" size="small">
-                  {bulkBusinessStatusPreview.skipped.length - 10} more will be
-                  skipped
-                </Text>
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-        <Prompt.Footer>
-          <Prompt.Cancel>Cancel</Prompt.Cancel>
-          <Prompt.Action
-            disabled={
-              !bulkBusinessStatusPreview.updatable.length ||
-              isUpdatingBusinessStatus
-            }
-            onClick={onConfirm}
-          >
-            Apply
-          </Prompt.Action>
-        </Prompt.Footer>
-      </Prompt.Content>
-    </Prompt>
-  )
-}
-
-function getManualStatusLabel(
-  status: ManualOrderBusinessStatusId | null,
-  t: (key: string) => string
-) {
-  return status === null
-    ? t("manualStatus.clear")
-    : t(ORDER_BUSINESS_STATUSES[status].translation_key)
-}
-
-function getBusinessStatusBulkBlockReason(
+const mergeBusinessStatusSummary = (
   order: OrderExpeditionOrderDto,
-  status: ManualOrderBusinessStatusId | null,
-  t: (key: string) => string
-) {
-  const currentManualStatus = order.manual_status ?? null
-
-  if (currentManualStatus === status) {
-    return status === null
-      ? "Manual status is already clear"
-      : `Manual status is already ${getManualStatusLabel(status, t)}`
-  }
-
-  if (status === null || status === "canceled") {
-    return
-  }
-
-  const businessStatus = getBusinessStatus(order)
-
-  if (order.status === "canceled") {
-    return "Canceled orders stay canceled"
-  }
-
-  if (businessStatus.id === "delivered" || businessStatus.id === "shipped") {
-    return `${t(businessStatus.translation_key)} status has higher priority`
-  }
-
-  return
-}
-
-function getBulkBusinessStatusPreview(
-  orders: OrderExpeditionOrderDto[],
-  status: ManualOrderBusinessStatusId | null,
-  t: (key: string) => string
-) {
-  const skipped: OrderExpeditionBlockingOrder[] = []
-  const updatable: OrderExpeditionOrderDto[] = []
-
-  for (const order of orders) {
-    const reason = getBusinessStatusBulkBlockReason(order, status, t)
-
-    if (reason) {
-      skipped.push({
-        id: order.id,
-        order_display_id: order.order_display_id,
-        reason,
-      })
-      continue
-    }
-
-    updatable.push(order)
-  }
-
-  return { skipped, updatable }
-}
-
-function getBulkBusinessStatusTarget(value: ManualStatusValue | "") {
-  if (value === "") {
-    return
-  }
-
-  return value === "clear" ? null : value
-}
-
-const formatDate = (date: string | null | undefined, locale?: string) => {
-  if (!date) {
-    return "-"
-  }
-
-  return new Intl.DateTimeFormat(locale, {
-    day: "numeric",
-    month: "numeric",
-    year: "numeric",
-  }).format(new Date(date))
-}
-
-const formatTotal = (order: OrderExpeditionOrderDto, locale?: string) => {
-  if (order.total === null || order.total === undefined) {
-    return "-"
-  }
-
-  const total =
-    typeof order.total === "string" ? Number(order.total) : order.total
-
-  if (!(order.currency_code && Number.isFinite(total))) {
-    return String(order.total)
-  }
-
-  return new Intl.NumberFormat(locale, {
-    currency: order.currency_code.toUpperCase(),
-    style: "currency",
-  }).format(total)
-}
-
-function mergeBusinessStatusSummary(
-  order: OrderExpeditionOrderDto,
-  summary: OrderBusinessStatusSummary | undefined
-): OrderExpeditionOrderDto {
+  summary: OrderBusinessStatusSummary | undefined,
+): OrderExpeditionOrderDto => {
   if (!summary) {
     return order
   }
@@ -829,18 +180,24 @@ function mergeBusinessStatusSummary(
   return {
     ...order,
     business_status: summary.business_status,
-    created_at: summary.created_at,
-    currency_code: summary.currency_code,
-    manual_status: summary.manual_status,
-    total: summary.total,
+    ...(summary.created_at === undefined
+      ? {}
+      : { created_at: summary.created_at }),
+    ...(summary.currency_code === undefined
+      ? {}
+      : { currency_code: summary.currency_code }),
+    ...(summary.manual_status === undefined
+      ? {}
+      : { manual_status: summary.manual_status }),
+    ...(summary.total === undefined ? {} : { total: summary.total }),
   }
 }
 
-function getNextPageSelection(
+const getNextPageSelection = (
   prev: Map<string, OrderExpeditionOrderDto>,
   orders: OrderExpeditionOrderDto[],
-  allPageOrdersSelected: boolean
-) {
+  allPageOrdersSelected: boolean,
+) => {
   const next = new Map(prev)
 
   if (allPageOrdersSelected) {
@@ -862,49 +219,56 @@ function getNextPageSelection(
   return next
 }
 
-function getTargetStatusOptions(
-  selectedOrders: OrderExpeditionOrderDto[]
-): TargetStatusOption[] {
-  return TARGET_STATUSES.map((status) => ({
-    ...status,
-    blockedOrders: selectedOrders
-      .map((order) => {
-        const reason = getOrderExpeditionTransitionBlockReason(
-          order,
-          status.value
-        )
-
-        return reason
-          ? {
-              id: order.id,
-              order_display_id: order.order_display_id,
-              reason,
-            }
-          : null
-      })
-      .filter((order): order is OrderExpeditionBlockingOrder => Boolean(order)),
-  }))
-}
-
-function getStatusBlockerLabel(blockedCount: number) {
-  return blockedCount === 1 ? "Blocked" : `${blockedCount} blocked`
-}
-
-function getSelectedStatusBlockedMessage(
-  statusLabel: string,
-  blockedOrders: OrderExpeditionBlockingOrder[]
-) {
-  if (blockedOrders.length === 1) {
-    const [order] = blockedOrders
-    return `${statusLabel} is blocked for 1 selected order: ${order.order_display_id} - ${order.reason}.`
+const getCarrierSelectValue = (value: string): CarrierSelectValue | null => {
+  if (value === ALL_CARRIERS) {
+    return ALL_CARRIERS
   }
 
-  return `${statusLabel} is blocked for ${blockedOrders.length} selected orders. Open the status menu for details.`
+  return isOrderExpeditionCarrierKey(value) ? value : null
 }
 
-function getErrorMessage(payload: unknown, fallback: string) {
+const getBusinessStatusSelectValue = (
+  value: string,
+): BusinessStatusSelectValue | null => {
+  if (value === ALL_BUSINESS_STATUSES) {
+    return ALL_BUSINESS_STATUSES
+  }
+
+  return isOrderBusinessStatusId(value) ? value : null
+}
+
+const isOrderSelectionLimitBlocked = (
+  orderId: string,
+  selectedOrderIds: Set<string>,
+  selectedCount: number,
+) =>
+  !selectedOrderIds.has(orderId) &&
+  selectedCount >= ORDER_EXPEDITION_MAX_ORDER_IDS
+
+const shouldWarnPageSelectionLimit = (
+  allPageOrdersSelected: boolean,
+  orders: OrderExpeditionOrderDto[],
+  selectedOrderIds: Set<string>,
+  selectedCount: number,
+) => {
+  if (allPageOrdersSelected) {
+    return false
+  }
+
+  const remainingSlots = ORDER_EXPEDITION_MAX_ORDER_IDS - selectedCount
+  let unselectedPageOrderCount = 0
+  for (const order of orders) {
+    if (!selectedOrderIds.has(order.id)) {
+      unselectedPageOrderCount += 1
+    }
+  }
+
+  return unselectedPageOrderCount > remainingSlots
+}
+
+const getPayloadErrorMessage = (payload: unknown, fallback: string) => {
   if (typeof payload === "object" && payload !== null && "message" in payload) {
-    const message = (payload as { message?: unknown }).message
+    const { message } = payload
     if (typeof message === "string") {
       return message
     }
@@ -913,22 +277,28 @@ function getErrorMessage(payload: unknown, fallback: string) {
   return fallback
 }
 
-function isBlockingOrder(
-  value: unknown
-): value is OrderExpeditionBlockingOrder {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "id" in value &&
-    typeof value.id === "string" &&
-    "order_display_id" in value &&
-    typeof value.order_display_id === "string" &&
-    "reason" in value &&
-    typeof value.reason === "string"
-  )
+const isBlockingOrder = (
+  value: unknown,
+): value is OrderExpeditionBlockingOrder => {
+  if (typeof value !== "object" || value === null) {
+    return false
+  }
+  if (!("id" in value) || typeof value.id !== "string") {
+    return false
+  }
+  if (
+    !("order_display_id" in value) ||
+    typeof value.order_display_id !== "string"
+  ) {
+    return false
+  }
+
+  return "reason" in value && typeof value.reason === "string"
 }
 
-function getBlockingOrders(payload: unknown): OrderExpeditionBlockingOrder[] {
+const getBlockingOrders = (
+  payload: unknown,
+): OrderExpeditionBlockingOrder[] => {
   if (
     typeof payload === "object" &&
     payload !== null &&
@@ -941,7 +311,15 @@ function getBlockingOrders(payload: unknown): OrderExpeditionBlockingOrder[] {
   return []
 }
 
-async function downloadPdf(orderIds: string[]) {
+const readJsonPayload = async (response: Response): Promise<unknown> => {
+  try {
+    return await response.json()
+  } catch {
+    return null
+  }
+}
+
+const downloadPdf = async (orderIds: string[]) => {
   const response = await fetch("/admin/order-expedition/pdf", {
     body: JSON.stringify({
       order_ids: orderIds,
@@ -954,9 +332,9 @@ async function downloadPdf(orderIds: string[]) {
   })
 
   if (!response.ok) {
-    const payload: unknown = await response.json().catch(() => null)
+    const payload = await readJsonPayload(response)
     throw new Error(
-      getErrorMessage(payload, "Failed to generate expedition PDF")
+      getPayloadErrorMessage(payload, "Failed to generate expedition PDF"),
     )
   }
 
@@ -967,16 +345,16 @@ async function downloadPdf(orderIds: string[]) {
   anchor.download = `order-expedition-${new Date()
     .toISOString()
     .slice(0, 10)}.pdf`
-  document.body.appendChild(anchor)
+  document.body.append(anchor)
   anchor.click()
   anchor.remove()
   URL.revokeObjectURL(url)
 }
 
-async function updateStatus(
+const updateStatus = async (
   orderIds: string[],
-  targetStatus: OrderExpeditionTargetStatus
-) {
+  targetStatus: OrderExpeditionTargetStatus,
+) => {
   const response = await fetch("/admin/order-expedition/status", {
     body: JSON.stringify({
       order_ids: orderIds,
@@ -989,13 +367,13 @@ async function updateStatus(
     method: "POST",
   })
 
-  const payload: unknown = await response.json().catch(() => null)
+  const payload = await readJsonPayload(response)
 
   if (!response.ok) {
     return {
       blockedOrders: getBlockingOrders(payload),
+      message: getPayloadErrorMessage(payload, "Failed to update order status"),
       ok: false as const,
-      message: getErrorMessage(payload, "Failed to update order status"),
     }
   }
 
@@ -1005,28 +383,14 @@ async function updateStatus(
   }
 }
 
-const updateOrderBusinessStatus = ({
-  orderId,
-  status,
-}: {
-  orderId: string
-  status: ManualOrderBusinessStatusId | null
-}) =>
-  sdk.client.fetch(`/admin/orders/${orderId}/business-status`, {
-    body: {
-      status,
-    },
-    method: "POST",
-  })
-
-const bulkUpdateOrderBusinessStatus = ({
+const bulkUpdateOrderBusinessStatus = async ({
   orderIds,
   status,
 }: {
   orderIds: string[]
   status: ManualOrderBusinessStatusId | null
 }) =>
-  sdk.client.fetch<BulkBusinessStatusResponse>(
+  await sdk.client.fetch<BulkBusinessStatusResponse>(
     "/admin/order-business-statuses/bulk",
     {
       body: {
@@ -1034,10 +398,686 @@ const bulkUpdateOrderBusinessStatus = ({
         status,
       },
       method: "POST",
-    }
+    },
   )
 
-type OrdersTableProps = {
+const useOrderExpeditionQueries = (filters: OrderExpeditionFilters) => {
+  const carriersQuery = useQuery({
+    queryFn: async () =>
+      await sdk.client.fetch<CarriersResponse>(
+        "/admin/order-expedition/carriers",
+      ),
+    queryKey: ["order-expedition-carriers"],
+  })
+
+  const ordersQuery = useQuery({
+    queryFn: async () =>
+      await sdk.client.fetch<OrdersResponse>(buildOrdersQueryPath(filters)),
+    queryKey: [
+      ORDER_EXPEDITION_QUERY_KEY,
+      filters.carrier,
+      filters.businessStatus,
+      filters.offset,
+    ],
+  })
+
+  const rawOrders = ordersQuery.data?.orders ?? []
+  const rawOrderIds = rawOrders.map((order) => order.id)
+  const businessStatusesQuery = useQuery({
+    enabled: rawOrderIds.length > 0,
+    queryFn: async () => {
+      const search = new URLSearchParams({
+        ids: rawOrderIds.join(","),
+      })
+
+      return await sdk.client.fetch<BusinessStatusesResponse>(
+        `/admin/order-business-statuses/by-ids?${search}`,
+      )
+    },
+    queryKey: ["order-business-statuses-by-ids", rawOrderIds],
+  })
+  const businessStatusesById = new Map(
+    (businessStatusesQuery.data?.orders ?? []).map((order) => [
+      order.id,
+      order,
+    ]),
+  )
+  const orders = rawOrders.map((order) =>
+    mergeBusinessStatusSummary(order, businessStatusesById.get(order.id)),
+  )
+
+  return {
+    businessStatusesQuery,
+    carriersQuery,
+    orders,
+    ordersQuery,
+  }
+}
+
+const useClearBulkControlsWhenSelectionEmpty = ({
+  bulkManualStatus,
+  selectedCount,
+  setBlockingOrders,
+  setBulkManualStatus,
+  setTargetStatus,
+  targetStatus,
+}: {
+  bulkManualStatus: ManualStatusValue | ""
+  selectedCount: number
+  targetStatus: OrderExpeditionTargetStatus | ""
+  setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
+  setBulkManualStatus: Dispatch<SetStateAction<ManualStatusValue | "">>
+  setTargetStatus: Dispatch<SetStateAction<OrderExpeditionTargetStatus | "">>
+}): void => {
+  useEffect(() => {
+    if (selectedCount > 0) {
+      return
+    }
+    if (targetStatus !== "") {
+      setTargetStatus("")
+    }
+    if (bulkManualStatus !== "") {
+      setBulkManualStatus("")
+    }
+    setBlockingOrders((previous) => (previous.length > 0 ? [] : previous))
+  }, [
+    bulkManualStatus,
+    selectedCount,
+    setBlockingOrders,
+    setBulkManualStatus,
+    setTargetStatus,
+    targetStatus,
+  ])
+}
+
+const useOrderExpeditionSelection = (
+  selectedOrdersById: Map<string, OrderExpeditionOrderDto>,
+  orders: OrderExpeditionOrderDto[],
+) => {
+  const currentOrdersById = new Map(orders.map((order) => [order.id, order]))
+  const selectedOrders = [...selectedOrdersById.values()].map(
+    (order) => currentOrdersById.get(order.id) ?? order,
+  )
+  const selectedOrderIds = new Set(selectedOrdersById.keys())
+  const selectedOrderIdsList = [...selectedOrdersById.keys()]
+  const allPageOrdersSelected =
+    orders.length > 0 && orders.every((order) => selectedOrderIds.has(order.id))
+  const somePageOrdersSelected =
+    orders.some((order) => selectedOrderIds.has(order.id)) &&
+    !allPageOrdersSelected
+  const selectedCount = selectedOrdersById.size
+
+  return {
+    allPageOrdersSelected,
+    isSelectionLimitReached: selectedCount >= ORDER_EXPEDITION_MAX_ORDER_IDS,
+    selectedCount,
+    selectedOrderIds,
+    selectedOrderIdsList,
+    selectedOrders,
+    somePageOrdersSelected,
+  }
+}
+
+const resetOrderExpeditionControls = (params: {
+  setOffset: Dispatch<SetStateAction<number>>
+  setSelectedOrdersById: Dispatch<
+    SetStateAction<Map<string, OrderExpeditionOrderDto>>
+  >
+  setTargetStatus: Dispatch<SetStateAction<OrderExpeditionTargetStatus | "">>
+  setBulkManualStatus: Dispatch<SetStateAction<ManualStatusValue | "">>
+  setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
+}): void => {
+  params.setOffset(0)
+  params.setSelectedOrdersById(new Map())
+  params.setTargetStatus("")
+  params.setBulkManualStatus("")
+  params.setBlockingOrders([])
+}
+
+const useOrderExpeditionFilterHandlers = (params: {
+  setCarrier: Dispatch<
+    SetStateAction<typeof ALL_CARRIERS | OrderExpeditionCarrierKey>
+  >
+  setBusinessStatus: Dispatch<
+    SetStateAction<typeof ALL_BUSINESS_STATUSES | OrderBusinessStatusId>
+  >
+  setOffset: Dispatch<SetStateAction<number>>
+  setSelectedOrdersById: Dispatch<
+    SetStateAction<Map<string, OrderExpeditionOrderDto>>
+  >
+  setTargetStatus: Dispatch<SetStateAction<OrderExpeditionTargetStatus | "">>
+  setBulkManualStatus: Dispatch<SetStateAction<ManualStatusValue | "">>
+  setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
+}) => {
+  const resetControls = () => {
+    resetOrderExpeditionControls(params)
+  }
+
+  return {
+    handleBusinessStatusChange: (value: string) => {
+      const nextBusinessStatus = getBusinessStatusSelectValue(value)
+
+      if (!nextBusinessStatus) {
+        return
+      }
+
+      params.setBusinessStatus(nextBusinessStatus)
+      resetControls()
+    },
+    handleCarrierChange: (value: string) => {
+      const nextCarrier = getCarrierSelectValue(value)
+
+      if (!nextCarrier) {
+        return
+      }
+
+      params.setCarrier(nextCarrier)
+      resetControls()
+    },
+  }
+}
+
+const useOrderExpeditionSelectionHandlers = (params: {
+  allPageOrdersSelected: boolean
+  orders: OrderExpeditionOrderDto[]
+  selectedCount: number
+  selectedOrderIds: Set<string>
+  setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
+  setSelectedOrdersById: Dispatch<
+    SetStateAction<Map<string, OrderExpeditionOrderDto>>
+  >
+}) => ({
+  toggleOrder: (order: OrderExpeditionOrderDto) => {
+    if (
+      isOrderSelectionLimitBlocked(
+        order.id,
+        params.selectedOrderIds,
+        params.selectedCount,
+      )
+    ) {
+      toast.error(
+        `Select up to ${ORDER_EXPEDITION_MAX_ORDER_IDS} orders at a time`,
+      )
+      return
+    }
+
+    params.setBlockingOrders([])
+    params.setSelectedOrdersById((prev) => {
+      const next = new Map(prev)
+      if (next.has(order.id)) {
+        next.delete(order.id)
+      } else {
+        next.set(order.id, order)
+      }
+      return next
+    })
+  },
+  togglePage: () => {
+    if (
+      shouldWarnPageSelectionLimit(
+        params.allPageOrdersSelected,
+        params.orders,
+        params.selectedOrderIds,
+        params.selectedCount,
+      )
+    ) {
+      toast.error(
+        `Select up to ${ORDER_EXPEDITION_MAX_ORDER_IDS} orders at a time`,
+      )
+    }
+
+    params.setBlockingOrders([])
+    params.setSelectedOrdersById((prev) =>
+      getNextPageSelection(prev, params.orders, params.allPageOrdersSelected),
+    )
+  },
+})
+
+const useOrderExpeditionStatusHandlers = (params: {
+  selectedOrderIdsList: string[]
+  selectedCount: number
+  targetStatus: OrderExpeditionTargetStatus | ""
+  targetStatusOptions: TargetStatusOption[]
+  selectedTargetStatusBlockers: OrderExpeditionBlockingOrder[]
+  setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
+  setIsPrinting: Dispatch<SetStateAction<boolean>>
+  setIsUpdatingStatus: Dispatch<SetStateAction<boolean>>
+  setSelectedOrdersById: Dispatch<
+    SetStateAction<Map<string, OrderExpeditionOrderDto>>
+  >
+  setTargetStatus: Dispatch<SetStateAction<OrderExpeditionTargetStatus | "">>
+  ordersQuery: ReturnType<typeof useOrderExpeditionQueries>["ordersQuery"]
+}) => ({
+  handlePrint: async () => {
+    if (!params.selectedOrderIdsList.length) {
+      return
+    }
+
+    params.setIsPrinting(true)
+    params.setBlockingOrders([])
+    try {
+      await downloadPdf(params.selectedOrderIdsList)
+      toast.success("Order expedition PDF generated")
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to print PDF",
+      )
+    } finally {
+      params.setIsPrinting(false)
+    }
+  },
+  handleStatusUpdate: async () => {
+    if (!params.selectedOrderIdsList.length) {
+      return
+    }
+
+    if (!params.targetStatus) {
+      toast.error("Select a target status")
+      return
+    }
+
+    if (params.selectedTargetStatusBlockers.length) {
+      params.setBlockingOrders(params.selectedTargetStatusBlockers)
+      toast.error("Selected orders no longer support that status change")
+      return
+    }
+
+    params.setIsUpdatingStatus(true)
+    params.setBlockingOrders([])
+    try {
+      const result = await updateStatus(
+        params.selectedOrderIdsList,
+        params.targetStatus,
+      )
+
+      if (!result.ok) {
+        params.setBlockingOrders(result.blockedOrders)
+        toast.error(result.message)
+        return
+      }
+
+      toast.success(`${params.selectedCount} order(s) updated`)
+      params.setSelectedOrdersById(new Map())
+      params.setTargetStatus("")
+      await params.ordersQuery.refetch()
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to update order status",
+      )
+    } finally {
+      params.setIsUpdatingStatus(false)
+    }
+  },
+  handleTargetStatusChange: (value: string) => {
+    if (!isOrderExpeditionTargetStatus(value)) {
+      return
+    }
+
+    const option = params.targetStatusOptions.find(
+      (status) => status.value === value,
+    )
+
+    if ((option?.blockedOrders.length ?? 0) > 0) {
+      return
+    }
+
+    params.setTargetStatus(value)
+    params.setBlockingOrders([])
+  },
+})
+
+const useOrderExpeditionBusinessStatusHandlers = (params: {
+  bulkBusinessStatusTarget: ManualOrderBusinessStatusId | null | undefined
+  bulkBusinessStatusPreview: {
+    skipped: OrderExpeditionBlockingOrder[]
+    updatable: OrderExpeditionOrderDto[]
+  }
+  selectedOrderIdsList: string[]
+  setBlockingOrders: Dispatch<SetStateAction<OrderExpeditionBlockingOrder[]>>
+  setBulkManualStatus: Dispatch<SetStateAction<ManualStatusValue | "">>
+  setIsBulkBusinessStatusPromptOpen: Dispatch<SetStateAction<boolean>>
+  setIsUpdatingBusinessStatus: Dispatch<SetStateAction<boolean>>
+  setSelectedOrdersById: Dispatch<
+    SetStateAction<Map<string, OrderExpeditionOrderDto>>
+  >
+  ordersQuery: ReturnType<typeof useOrderExpeditionQueries>["ordersQuery"]
+  businessStatusesQuery: ReturnType<
+    typeof useOrderExpeditionQueries
+  >["businessStatusesQuery"]
+}) => ({
+  handleBulkManualStatusChange: (value: string) => {
+    if (value === "clear" || isManualOrderBusinessStatusId(value)) {
+      params.setBulkManualStatus(value)
+      params.setBlockingOrders([])
+    }
+  },
+  handleBusinessStatusUpdateConfirm: async () => {
+    if (params.bulkBusinessStatusTarget === undefined) {
+      return
+    }
+
+    const orderIdsToUpdate = params.bulkBusinessStatusPreview.updatable.map(
+      (order) => order.id,
+    )
+
+    if (!orderIdsToUpdate.length) {
+      params.setBlockingOrders(params.bulkBusinessStatusPreview.skipped)
+      params.setIsBulkBusinessStatusPromptOpen(false)
+      toast.error("No selected orders can be updated")
+      return
+    }
+
+    params.setIsUpdatingBusinessStatus(true)
+    params.setBlockingOrders([])
+    try {
+      const result = await bulkUpdateOrderBusinessStatus({
+        orderIds: params.selectedOrderIdsList,
+        status: params.bulkBusinessStatusTarget,
+      })
+
+      params.setBlockingOrders(result.skipped)
+      toast.success(
+        `Manual status updated for ${result.count} order(s). ${result.skipped_count} skipped.`,
+      )
+      params.setSelectedOrdersById(new Map())
+      params.setBulkManualStatus("")
+      params.setIsBulkBusinessStatusPromptOpen(false)
+      await Promise.all([
+        params.ordersQuery.refetch(),
+        params.businessStatusesQuery.refetch(),
+      ])
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to update manual business status",
+      )
+    } finally {
+      params.setIsUpdatingBusinessStatus(false)
+    }
+  },
+  handleBusinessStatusUpdateRequest: () => {
+    if (!params.selectedOrderIdsList.length) {
+      return
+    }
+
+    if (params.bulkBusinessStatusTarget === undefined) {
+      toast.error("Select a manual status")
+      return
+    }
+
+    params.setBlockingOrders([])
+    params.setIsBulkBusinessStatusPromptOpen(true)
+  },
+})
+
+const throwOrderExpeditionQueryErrors = (errors: unknown[]): void => {
+  for (const error of errors) {
+    if (error instanceof Error) {
+      throw new TypeError(error.message, { cause: error })
+    }
+    if (typeof error === "string") {
+      throw new TypeError(error)
+    }
+    if (error !== null && error !== undefined) {
+      throw new Error("Order expedition query failed")
+    }
+  }
+}
+
+const BulkBusinessStatusPrompt = ({
+  bulkBusinessStatusLabel,
+  bulkBusinessStatusPreview,
+  isBulkBusinessStatusPromptOpen,
+  isUpdatingBusinessStatus,
+  onConfirm,
+  onOpenChange,
+}: {
+  bulkBusinessStatusLabel: string
+  bulkBusinessStatusPreview: {
+    skipped: OrderExpeditionBlockingOrder[]
+    updatable: OrderExpeditionOrderDto[]
+  }
+  isBulkBusinessStatusPromptOpen: boolean
+  isUpdatingBusinessStatus: boolean
+  onConfirm: () => void
+  onOpenChange: (open: boolean) => void
+}) => (
+  <Prompt
+    onOpenChange={onOpenChange}
+    open={isBulkBusinessStatusPromptOpen}
+    variant="confirmation"
+  >
+    <Prompt.Content>
+      <Prompt.Header>
+        <Prompt.Title>Apply manual status</Prompt.Title>
+        <Prompt.Description>
+          Only manually selected orders will be updated.
+        </Prompt.Description>
+      </Prompt.Header>
+      <div className="flex flex-col gap-3 px-6 py-4">
+        <Text size="small">
+          Target manual status:{" "}
+          <span className="font-medium">{bulkBusinessStatusLabel}</span>
+        </Text>
+        <Text size="small">
+          {bulkBusinessStatusPreview.updatable.length} order(s) will be updated.{" "}
+          {bulkBusinessStatusPreview.skipped.length} order(s) will be skipped.
+        </Text>
+        {bulkBusinessStatusPreview.updatable.length > 0 ? (
+          <div className="flex max-h-[160px] flex-col gap-1 overflow-auto rounded-md border border-ui-border-base bg-ui-bg-subtle p-3">
+            {bulkBusinessStatusPreview.updatable.slice(0, 10).map((order) => (
+              <Text key={order.id} size="small">
+                {order.order_display_id}: set manual status to{" "}
+                {bulkBusinessStatusLabel}
+              </Text>
+            ))}
+            {bulkBusinessStatusPreview.updatable.length > 10 ? (
+              <Text className="text-ui-fg-muted" size="small">
+                {bulkBusinessStatusPreview.updatable.length - 10} more will be
+                updated
+              </Text>
+            ) : null}
+          </div>
+        ) : null}
+        {bulkBusinessStatusPreview.skipped.length > 0 ? (
+          <div className="flex max-h-[160px] flex-col gap-1 overflow-auto rounded-md border border-ui-border-base bg-ui-bg-subtle p-3">
+            {bulkBusinessStatusPreview.skipped.slice(0, 10).map((order) => (
+              <Text key={`${order.id}-${order.reason}`} size="small">
+                {order.order_display_id}: skipped - {order.reason}
+              </Text>
+            ))}
+            {bulkBusinessStatusPreview.skipped.length > 10 ? (
+              <Text className="text-ui-fg-muted" size="small">
+                {bulkBusinessStatusPreview.skipped.length - 10} more will be
+                skipped
+              </Text>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
+      <Prompt.Footer>
+        <Prompt.Cancel>Cancel</Prompt.Cancel>
+        <Prompt.Action
+          disabled={
+            bulkBusinessStatusPreview.updatable.length === 0 ||
+            isUpdatingBusinessStatus
+          }
+          onClick={onConfirm}
+        >
+          Apply
+        </Prompt.Action>
+      </Prompt.Footer>
+    </Prompt.Content>
+  </Prompt>
+)
+
+const getManualStatusLabel = (
+  status: ManualOrderBusinessStatusId | null,
+  t: (key: string) => string,
+) =>
+  status === null
+    ? t("manualStatus.clear")
+    : t(ORDER_BUSINESS_STATUSES[status].translation_key)
+
+const getBusinessStatusBulkBlockReason = (
+  order: OrderExpeditionOrderDto,
+  status: ManualOrderBusinessStatusId | null,
+  t: (key: string) => string,
+): string | undefined => {
+  const currentManualStatus = order.manual_status ?? null
+
+  if (currentManualStatus === status) {
+    return status === null
+      ? "Manual status is already clear"
+      : `Manual status is already ${getManualStatusLabel(status, t)}`
+  }
+
+  if (status === null || status === "canceled") {
+    return undefined
+  }
+
+  const businessStatus = getBusinessStatus(order)
+
+  if (order.status === "canceled") {
+    return "Canceled orders stay canceled"
+  }
+
+  if (businessStatus.id === "delivered" || businessStatus.id === "shipped") {
+    return `${t(businessStatus.translation_key)} status has higher priority`
+  }
+
+  return undefined
+}
+
+const getBulkBusinessStatusPreview = (
+  orders: OrderExpeditionOrderDto[],
+  status: ManualOrderBusinessStatusId | null,
+  t: (key: string) => string,
+) => {
+  const skipped: OrderExpeditionBlockingOrder[] = []
+  const updatable: OrderExpeditionOrderDto[] = []
+
+  for (const order of orders) {
+    const reason = getBusinessStatusBulkBlockReason(order, status, t)
+
+    if (reason !== undefined) {
+      skipped.push({
+        id: order.id,
+        order_display_id: order.order_display_id,
+        reason,
+      })
+      continue
+    }
+
+    updatable.push(order)
+  }
+
+  return { skipped, updatable }
+}
+
+const getBulkBusinessStatusTarget = (
+  value: ManualStatusValue | "",
+): ManualOrderBusinessStatusId | null | undefined => {
+  if (value === "") {
+    return undefined
+  }
+
+  return value === "clear" ? null : value
+}
+
+const formatDate = (date: string | null | undefined, locale?: string) => {
+  if (date === null || date === undefined || date === "") {
+    return "-"
+  }
+
+  return new Intl.DateTimeFormat(locale, {
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+  }).format(new Date(date))
+}
+
+const formatTotal = (order: OrderExpeditionOrderDto, locale?: string) => {
+  if (order.total === null || order.total === undefined) {
+    return "-"
+  }
+
+  const total =
+    typeof order.total === "string" ? Number(order.total) : order.total
+
+  if (
+    order.currency_code !== null &&
+    order.currency_code !== undefined &&
+    order.currency_code !== "" &&
+    Number.isFinite(total)
+  ) {
+    return new Intl.NumberFormat(locale, {
+      currency: order.currency_code.toUpperCase(),
+      style: "currency",
+    }).format(total)
+  }
+
+  return String(order.total)
+}
+
+const getTargetStatusOptions = (
+  selectedOrders: OrderExpeditionOrderDto[],
+): TargetStatusOption[] =>
+  TARGET_STATUSES.map((status) => ({
+    ...status,
+    blockedOrders: selectedOrders
+      .map((order) => {
+        const reason = getOrderExpeditionTransitionBlockReason(
+          order,
+          status.value,
+        )
+
+        if (reason === undefined) {
+          return null
+        }
+
+        return {
+          id: order.id,
+          order_display_id: order.order_display_id,
+          reason,
+        }
+      })
+      .filter((order): order is OrderExpeditionBlockingOrder => order !== null),
+  }))
+
+const getStatusBlockerLabel = (blockedCount: number) =>
+  blockedCount === 1 ? "Blocked" : `${blockedCount} blocked`
+
+const getSelectedStatusBlockedMessage = (
+  statusLabel: string,
+  blockedOrders: OrderExpeditionBlockingOrder[],
+) => {
+  const [order] = blockedOrders
+  if (order) {
+    return `${statusLabel} is blocked for 1 selected order: ${order.order_display_id} - ${order.reason}.`
+  }
+
+  return `${statusLabel} is blocked for ${blockedOrders.length} selected orders. Open the status menu for details.`
+}
+
+const updateOrderBusinessStatus = async ({
+  orderId,
+  status,
+}: {
+  orderId: string
+  status: ManualOrderBusinessStatusId | null
+}) =>
+  await sdk.client.fetch(`/admin/orders/${orderId}/business-status`, {
+    body: {
+      status,
+    },
+    method: "POST",
+  })
+
+interface OrdersTableProps {
   allPageOrdersSelected: boolean
   intlLocale?: string
   isSelectionLimitReached: boolean
@@ -1049,7 +1089,7 @@ type OrdersTableProps = {
   somePageOrdersSelected: boolean
 }
 
-type OrderExpeditionPaginationProps = {
+interface OrderExpeditionPaginationProps {
   canNextPage: boolean
   canPreviousPage: boolean
   carrierFilterLimitReached: boolean
@@ -1068,80 +1108,41 @@ type BusinessStatusSelectValue =
   | typeof ALL_BUSINESS_STATUSES
   | OrderBusinessStatusId
 
-function getCarrierSelectValue(value: string): CarrierSelectValue | null {
-  if (value === ALL_CARRIERS) {
-    return ALL_CARRIERS
-  }
-
-  return isOrderExpeditionCarrierKey(value) ? value : null
-}
-
-function getBusinessStatusSelectValue(
-  value: string
-): BusinessStatusSelectValue | null {
-  if (value === ALL_BUSINESS_STATUSES) {
-    return ALL_BUSINESS_STATUSES
-  }
-
-  return isOrderBusinessStatusId(value) ? value : null
-}
-
-function getOrderExpeditionPaginationState(
+const getOrderExpeditionPaginationState = (
   data: OrdersResponse | undefined,
-  offset: number
-) {
+  offset: number,
+) => {
   const count = data?.count ?? 0
   const canNextPage = data?.has_next ?? offset + PAGE_SIZE < count
   const countExact = data?.count_exact ?? true
   const pageIndex = Math.floor(offset / PAGE_SIZE)
+
+  let pageCount: number
+  if (countExact) {
+    pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
+  } else {
+    pageCount = pageIndex + 1
+    if (canNextPage) {
+      pageCount += 1
+    }
+  }
 
   return {
     canNextPage,
     carrierFilterLimitReached: data?.carrier_filter_limit_reached ?? false,
     count,
     countExact,
-    pageCount: countExact
-      ? Math.max(Math.ceil(count / PAGE_SIZE), 1)
-      : pageIndex + (canNextPage ? 2 : 1),
+    pageCount,
     pageIndex,
     scannedCount: data?.scanned_count ?? null,
   }
 }
 
-function isOrderSelectionLimitBlocked(
-  orderId: string,
-  selectedOrderIds: Set<string>,
-  selectedCount: number
-) {
-  return (
-    !selectedOrderIds.has(orderId) &&
-    selectedCount >= ORDER_EXPEDITION_MAX_ORDER_IDS
-  )
-}
-
-function shouldWarnPageSelectionLimit(
-  allPageOrdersSelected: boolean,
-  orders: OrderExpeditionOrderDto[],
-  selectedOrderIds: Set<string>,
-  selectedCount: number
-) {
-  if (allPageOrdersSelected) {
-    return false
-  }
-
-  const remainingSlots = ORDER_EXPEDITION_MAX_ORDER_IDS - selectedCount
-  const unselectedPageOrderIds = orders
-    .map((order) => order.id)
-    .filter((orderId) => !selectedOrderIds.has(orderId))
-
-  return unselectedPageOrderIds.length > remainingSlots
-}
-
-function StatusBlockersTooltipContent({
+const StatusBlockersTooltipContent = ({
   blockedOrders,
 }: {
   blockedOrders: OrderExpeditionBlockingOrder[]
-}) {
+}) => {
   const visibleOrders = blockedOrders.slice(0, 5)
   const hiddenCount = blockedOrders.length - visibleOrders.length
 
@@ -1152,12 +1153,13 @@ function StatusBlockersTooltipContent({
           {order.order_display_id}: {order.reason}
         </span>
       ))}
+
       {hiddenCount > 0 ? <span>{hiddenCount} more blocked</span> : null}
     </div>
   )
 }
 
-function StatusSelectItem({ option }: { option: TargetStatusOption }) {
+const StatusSelectItem = ({ option }: { option: TargetStatusOption }) => {
   const blockedCount = option.blockedOrders.length
   const isBlocked = blockedCount > 0
   const item = (
@@ -1190,6 +1192,7 @@ function StatusSelectItem({ option }: { option: TargetStatusOption }) {
       content={
         <StatusBlockersTooltipContent blockedOrders={option.blockedOrders} />
       }
+
       maxWidth={360}
       side="right"
     >
@@ -1208,18 +1211,20 @@ const ManualStatusControl = ({
   const { t } = useTranslation("orderBusinessStatuses")
   const queryClient = useQueryClient()
   const mutation = useMutation({
-    mutationFn: (value: ManualStatusValue) =>
-      updateOrderBusinessStatus({
+    mutationFn: async (value: ManualStatusValue) =>
+      await updateOrderBusinessStatus({
         orderId,
         status: value === "clear" ? null : value,
       }),
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : t("toast.saveError"))
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success(t("toast.saveSuccess"))
-      queryClient.invalidateQueries({ queryKey: [ORDER_EXPEDITION_QUERY_KEY] })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
+        queryKey: [ORDER_EXPEDITION_QUERY_KEY],
+      })
+      await queryClient.invalidateQueries({
         queryKey: ["order-business-statuses-by-ids"],
       })
     },
@@ -1228,7 +1233,7 @@ const ManualStatusControl = ({
   return (
     <div className="flex items-center justify-end gap-2">
       <Select
-        defaultValue={manualStatus ?? undefined}
+        defaultValue={manualStatus ?? ""}
         disabled={mutation.isPending}
         key={manualStatus ?? "none"}
         onValueChange={(value) => {
@@ -1257,7 +1262,7 @@ const ManualStatusControl = ({
   )
 }
 
-function OrdersTable({
+const OrdersTable = ({
   allPageOrdersSelected,
   intlLocale,
   isSelectionLimitReached,
@@ -1267,7 +1272,7 @@ function OrdersTable({
   orders,
   selectedOrderIds,
   somePageOrdersSelected,
-}: OrdersTableProps) {
+}: OrdersTableProps) => {
   const { t } = useTranslation("orderBusinessStatuses")
 
   return (
@@ -1312,7 +1317,7 @@ function OrdersTable({
             </Table.Row>
           ) : null}
 
-          {isLoading || orders.length ? null : (
+          {isLoading || orders.length > 0 ? null : (
             <Table.Row>
               <td
                 className="px-6 py-8 text-center text-ui-fg-subtle"
@@ -1331,7 +1336,9 @@ function OrdersTable({
                   disabled={
                     !selectedOrderIds.has(order.id) && isSelectionLimitReached
                   }
-                  onCheckedChange={() => onToggleOrder(order)}
+                  onCheckedChange={() => {
+                    onToggleOrder(order)
+                  }}
                 />
               </Table.Cell>
               <Table.Cell className="whitespace-nowrap text-ui-fg-base">
@@ -1388,7 +1395,9 @@ function OrdersTable({
               </Table.Cell>
               <Table.Cell className="text-right">
                 <ManualStatusControl
-                  manualStatus={order.manual_status}
+                  {...(order.manual_status === undefined
+                    ? {}
+                    : { manualStatus: order.manual_status })}
                   orderId={order.id}
                 />
               </Table.Cell>
@@ -1400,7 +1409,7 @@ function OrdersTable({
   )
 }
 
-function OrderExpeditionPagination({
+const OrderExpeditionPagination = ({
   canNextPage,
   canPreviousPage,
   carrierFilterLimitReached,
@@ -1412,7 +1421,7 @@ function OrderExpeditionPagination({
   pageSize,
   previousPage,
   scannedCount,
-}: OrderExpeditionPaginationProps) {
+}: OrderExpeditionPaginationProps) => {
   if (countExact) {
     return (
       <Table.Pagination
@@ -1450,6 +1459,7 @@ function OrderExpeditionPagination({
         </Button>
         <Button
           disabled={!canNextPage}
+
           onClick={nextPage}
           type="button"
           variant="transparent"
@@ -1460,6 +1470,180 @@ function OrderExpeditionPagination({
     </div>
   )
 }
+
+interface OrderExpeditionToolbarProps {
+  bulkManualStatus: ManualStatusValue | ""
+  businessStatus: BusinessStatusSelectValue
+  carrier: CarrierSelectValue
+  carriers: OrderExpeditionCarrierOption[]
+  handleBusinessStatusChange: (value: string) => void
+  handleBusinessStatusUpdateRequest: () => void
+  handleBulkManualStatusChange: (value: string) => void
+  handleCarrierChange: (value: string) => void
+  handlePrint: () => Promise<void>
+  handleStatusUpdate: () => Promise<void>
+  handleTargetStatusChange: (value: string) => void
+  isPrinting: boolean
+  isUpdatingBusinessStatus: boolean
+  isUpdatingStatus: boolean
+  selectedCount: number
+  selectedStatusBlockedMessage: string | null
+  selectedTargetStatusBlockers: OrderExpeditionBlockingOrder[]
+  targetStatus: OrderExpeditionTargetStatus | ""
+  targetStatusOptions: TargetStatusOption[]
+  t: (key: string) => string
+}
+
+const OrderExpeditionToolbar = ({
+  bulkManualStatus,
+  businessStatus,
+  carrier,
+  carriers,
+  handleBusinessStatusChange,
+  handleBusinessStatusUpdateRequest,
+  handleBulkManualStatusChange,
+  handleCarrierChange,
+  handlePrint,
+  handleStatusUpdate,
+  handleTargetStatusChange,
+  isPrinting,
+  isUpdatingBusinessStatus,
+  isUpdatingStatus,
+  selectedCount,
+  selectedStatusBlockedMessage,
+  selectedTargetStatusBlockers,
+  targetStatus,
+  targetStatusOptions,
+  t,
+}: OrderExpeditionToolbarProps) => (
+  <div className="flex flex-col gap-3 px-6 py-4">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <Heading className="whitespace-nowrap" level="h1">
+        Order Operations
+      </Heading>
+
+      <div className="flex items-center border-ui-border-base border-l pl-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Select onValueChange={handleCarrierChange} value={carrier}>
+            <Select.Trigger className="w-[220px]">
+              <Select.Value placeholder="Carrier" />
+            </Select.Trigger>
+            <Select.Content>
+              <Select.Item value={ALL_CARRIERS}>All carriers</Select.Item>
+              {carriers.map((option) => (
+                <Select.Item key={option.value} value={option.value}>
+                  {option.label}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select>
+
+          <Select
+            onValueChange={handleBusinessStatusChange}
+            value={businessStatus}
+          >
+            <Select.Trigger className="w-[220px]">
+              <Select.Value placeholder="Business status" />
+            </Select.Trigger>
+            <Select.Content>
+              <Select.Item value={ALL_BUSINESS_STATUSES}>
+                All business statuses
+              </Select.Item>
+              {ORDER_BUSINESS_STATUS_IDS.map((status) => (
+                <Select.Item key={status} value={status}>
+                  {t(ORDER_BUSINESS_STATUSES[status].translation_key)}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select>
+        </div>
+      </div>
+    </div>
+
+    <div className="flex min-w-0 flex-col items-start gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Text className="whitespace-nowrap text-ui-fg-subtle" size="small">
+          {selectedCount} selected
+        </Text>
+
+        <Button
+          disabled={selectedCount === 0}
+          isLoading={isPrinting}
+          onClick={() => {
+            void handlePrint()
+          }}
+          size="small"
+          variant="secondary"
+        >
+          <DocumentSeries />
+          PDF
+        </Button>
+
+        <Select
+          disabled={selectedCount === 0}
+          onValueChange={handleBulkManualStatusChange}
+          value={bulkManualStatus}
+        >
+          <Select.Trigger className="w-[180px]" disabled={selectedCount === 0}>
+            <Select.Value placeholder="Manual status" />
+          </Select.Trigger>
+          <Select.Content>
+            {MANUAL_STATUS_OPTIONS.map((option) => (
+              <Select.Item key={option.value} value={option.value}>
+                {t(option.translationKey)}
+              </Select.Item>
+            ))}
+          </Select.Content>
+        </Select>
+
+        <Button
+          disabled={selectedCount === 0 || bulkManualStatus === ""}
+          isLoading={isUpdatingBusinessStatus}
+          onClick={handleBusinessStatusUpdateRequest}
+          size="small"
+          variant="secondary"
+        >
+          Apply manual status
+        </Button>
+
+        <Select
+          disabled={selectedCount === 0}
+          onValueChange={handleTargetStatusChange}
+          value={targetStatus}
+        >
+          <Select.Trigger className="w-[144px]" disabled={selectedCount === 0}>
+            <Select.Value placeholder="Medusa status" />
+          </Select.Trigger>
+          <Select.Content>
+            {targetStatusOptions.map((status) => (
+              <StatusSelectItem key={status.value} option={status} />
+            ))}
+          </Select.Content>
+        </Select>
+
+        <Button
+          disabled={
+            selectedCount === 0 ||
+            targetStatus === "" ||
+            selectedTargetStatusBlockers.length > 0
+          }
+          isLoading={isUpdatingStatus}
+          onClick={() => {
+            void handleStatusUpdate()
+          }}
+          size="small"
+        >
+          Apply Medusa status
+        </Button>
+      </div>
+      {selectedStatusBlockedMessage === null ? null : (
+        <Text className="max-w-full text-ui-fg-error" size="small">
+          {selectedStatusBlockedMessage}
+        </Text>
+      )}
+    </div>
+  </div>
+)
 
 const OrderExpeditionPage = () => {
   const { i18n, t } = useTranslation("orderBusinessStatuses")
@@ -1491,8 +1675,7 @@ const OrderExpeditionPage = () => {
   const intlLocale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
 
   const { businessStatusesQuery, carriersQuery, orders, ordersQuery } =
-    useOrderExpeditionQueries({ carrier, businessStatus, offset })
-  useSelectedOrdersSync(orders, setSelectedOrdersById)
+    useOrderExpeditionQueries({ businessStatus, carrier, offset })
   const {
     allPageOrdersSelected,
     isSelectionLimitReached,
@@ -1512,18 +1695,20 @@ const OrderExpeditionPage = () => {
   })
 
   const targetStatusOptions = getTargetStatusOptions(selectedOrders)
-  const selectedTargetStatusOption = targetStatus
-    ? targetStatusOptions.find((option) => option.value === targetStatus)
-    : undefined
+  const selectedTargetStatusOption =
+    targetStatus === ""
+      ? undefined
+      : targetStatusOptions.find((option) => option.value === targetStatus)
   const selectedTargetStatusBlockers =
     selectedTargetStatusOption?.blockedOrders ?? []
   const selectedStatusBlockedMessage =
-    selectedTargetStatusOption && selectedTargetStatusBlockers.length > 0
-      ? getSelectedStatusBlockedMessage(
+    selectedTargetStatusOption === undefined ||
+    selectedTargetStatusBlockers.length === 0
+      ? null
+      : getSelectedStatusBlockedMessage(
           selectedTargetStatusOption.label,
-          selectedTargetStatusBlockers
+          selectedTargetStatusBlockers,
         )
-      : null
   const bulkBusinessStatusTarget = getBulkBusinessStatusTarget(bulkManualStatus)
   const bulkBusinessStatusPreview =
     bulkBusinessStatusTarget === undefined
@@ -1531,7 +1716,7 @@ const OrderExpeditionPage = () => {
       : getBulkBusinessStatusPreview(
           selectedOrders,
           bulkBusinessStatusTarget,
-          t
+          t,
         )
   const bulkBusinessStatusLabel =
     bulkBusinessStatusTarget === undefined
@@ -1600,141 +1785,35 @@ const OrderExpeditionPage = () => {
         bulkBusinessStatusPreview={bulkBusinessStatusPreview}
         isBulkBusinessStatusPromptOpen={isBulkBusinessStatusPromptOpen}
         isUpdatingBusinessStatus={isUpdatingBusinessStatus}
-        onConfirm={handleBusinessStatusUpdateConfirm}
+        onConfirm={() => {
+          void handleBusinessStatusUpdateConfirm()
+        }}
         onOpenChange={setIsBulkBusinessStatusPromptOpen}
       />
 
-      <div className="flex flex-col gap-3 px-6 py-4">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <Heading className="whitespace-nowrap" level="h1">
-            Order Operations
-          </Heading>
-
-          <div className="flex items-center border-ui-border-base border-l pl-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <Select onValueChange={handleCarrierChange} value={carrier}>
-                <Select.Trigger className="w-[220px]">
-                  <Select.Value placeholder="Carrier" />
-                </Select.Trigger>
-                <Select.Content>
-                  <Select.Item value={ALL_CARRIERS}>All carriers</Select.Item>
-                  {(carriersQuery.data?.carriers ?? []).map((option) => (
-                    <Select.Item key={option.value} value={option.value}>
-                      {option.label}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select>
-
-              <Select
-                onValueChange={handleBusinessStatusChange}
-                value={businessStatus}
-              >
-                <Select.Trigger className="w-[220px]">
-                  <Select.Value placeholder="Business status" />
-                </Select.Trigger>
-                <Select.Content>
-                  <Select.Item value={ALL_BUSINESS_STATUSES}>
-                    All business statuses
-                  </Select.Item>
-                  {ORDER_BUSINESS_STATUS_IDS.map((status) => (
-                    <Select.Item key={status} value={status}>
-                      {t(ORDER_BUSINESS_STATUSES[status].translation_key)}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex min-w-0 flex-col items-start gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <Text className="whitespace-nowrap text-ui-fg-subtle" size="small">
-              {selectedCount} selected
-            </Text>
-
-            <Button
-              disabled={selectedCount === 0}
-              isLoading={isPrinting}
-              onClick={handlePrint}
-              size="small"
-              variant="secondary"
-            >
-              <DocumentSeries />
-              PDF
-            </Button>
-
-            <Select
-              disabled={selectedCount === 0}
-              onValueChange={handleBulkManualStatusChange}
-              value={bulkManualStatus}
-            >
-              <Select.Trigger
-                className="w-[180px]"
-                disabled={selectedCount === 0}
-              >
-                <Select.Value placeholder="Manual status" />
-              </Select.Trigger>
-              <Select.Content>
-                {MANUAL_STATUS_OPTIONS.map((option) => (
-                  <Select.Item key={option.value} value={option.value}>
-                    {t(option.translationKey)}
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select>
-
-            <Button
-              disabled={selectedCount === 0 || !bulkManualStatus}
-              isLoading={isUpdatingBusinessStatus}
-              onClick={handleBusinessStatusUpdateRequest}
-              size="small"
-              variant="secondary"
-            >
-              Apply manual status
-            </Button>
-
-            <Select
-              disabled={selectedCount === 0}
-              onValueChange={handleTargetStatusChange}
-              value={targetStatus}
-            >
-              <Select.Trigger
-                className="w-[144px]"
-                disabled={selectedCount === 0}
-              >
-                <Select.Value placeholder="Medusa status" />
-              </Select.Trigger>
-              <Select.Content>
-                {targetStatusOptions.map((status) => (
-                  <StatusSelectItem key={status.value} option={status} />
-                ))}
-              </Select.Content>
-            </Select>
-
-            <Button
-              disabled={
-                selectedCount === 0 ||
-                !targetStatus ||
-                selectedTargetStatusBlockers.length > 0
-              }
-              isLoading={isUpdatingStatus}
-              onClick={handleStatusUpdate}
-              size="small"
-            >
-              Apply Medusa status
-            </Button>
-          </div>
-          {selectedStatusBlockedMessage ? (
-            <Text className="max-w-full text-ui-fg-error" size="small">
-              {selectedStatusBlockedMessage}
-            </Text>
-          ) : null}
-        </div>
-      </div>
-
-      {blockingOrders.length ? (
+      <OrderExpeditionToolbar
+        bulkManualStatus={bulkManualStatus}
+        businessStatus={businessStatus}
+        carrier={carrier}
+        carriers={carriersQuery.data?.carriers ?? []}
+        handleBusinessStatusChange={handleBusinessStatusChange}
+        handleBusinessStatusUpdateRequest={handleBusinessStatusUpdateRequest}
+        handleBulkManualStatusChange={handleBulkManualStatusChange}
+        handleCarrierChange={handleCarrierChange}
+        handlePrint={handlePrint}
+        handleStatusUpdate={handleStatusUpdate}
+        handleTargetStatusChange={handleTargetStatusChange}
+        isPrinting={isPrinting}
+        isUpdatingBusinessStatus={isUpdatingBusinessStatus}
+        isUpdatingStatus={isUpdatingStatus}
+        selectedCount={selectedCount}
+        selectedStatusBlockedMessage={selectedStatusBlockedMessage}
+        selectedTargetStatusBlockers={selectedTargetStatusBlockers}
+        targetStatus={targetStatus}
+        targetStatusOptions={targetStatusOptions}
+        t={t}
+      />
+      {blockingOrders.length > 0 ? (
         <div className="flex flex-col gap-2 bg-ui-bg-subtle px-6 py-4">
           <Text className="font-medium text-ui-fg-error">
             Some orders could not be updated.
@@ -1767,11 +1846,15 @@ const OrderExpeditionPage = () => {
         carrierFilterLimitReached={pagination.carrierFilterLimitReached}
         count={pagination.count}
         countExact={pagination.countExact}
-        nextPage={() => setOffset((prev) => prev + PAGE_SIZE)}
+        nextPage={() => {
+          setOffset((prev) => prev + PAGE_SIZE)
+        }}
         pageCount={pagination.pageCount}
         pageIndex={pagination.pageIndex}
         pageSize={PAGE_SIZE}
-        previousPage={() => setOffset((prev) => Math.max(0, prev - PAGE_SIZE))}
+        previousPage={() => {
+          setOffset((prev) => Math.max(0, prev - PAGE_SIZE))
+        }}
         scannedCount={pagination.scannedCount}
       />
     </Container>

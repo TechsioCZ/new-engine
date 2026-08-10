@@ -1,5 +1,6 @@
 import { Icon } from "@techsio/ui-kit/atoms/icon"
-import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select"
+import { Select } from "@techsio/ui-kit/molecules/select"
+import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import { useTranslations } from "next-intl"
 
 const PROMO_CODE_ITEMS: SelectItem[] = []
@@ -14,7 +15,7 @@ export const CheckoutSelectPromoCode = () => {
       </Select.Label>
       <Select.Control>
         <Select.Trigger
-          className="min-h-12 border-1 bg-base px-400"
+          className="min-h-form-control-lg border-1 bg-base px-400"
           iconSize="lg"
         >
           <Icon icon="token-icon-label" size="lg" />

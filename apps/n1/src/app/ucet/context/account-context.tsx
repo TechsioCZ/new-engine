@@ -2,24 +2,28 @@
 
 import type { StoreCustomer } from "@medusajs/types"
 import { useQueryClient } from "@tanstack/react-query"
-import { createContext, type ReactNode, useContext, useEffect } from "react"
+import { createContext, useContext, useEffect } from "react"
+import type { ReactNode } from "react"
+
 import { useAuth } from "@/hooks/use-auth"
 import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
 import { getOrders } from "@/services/order-service"
 
-type AccountContextType = {
+interface AccountContextType {
   customer: StoreCustomer | null
 }
 
-const AccountContext = createContext<AccountContextType | undefined>(undefined)
+const AccountContext = createContext<
+  AccountContextType["customer"] | undefined
+>(undefined)
 
 export const useAccountContext = () => {
-  const context = useContext(AccountContext)
-  if (!context) {
+  const customer = useContext(AccountContext)
+  if (customer === undefined) {
     throw new Error("useAccountContext must be used within AccountProvider")
   }
-  return context
+  return { customer }
 }
 
 export const AccountProvider = ({ children }: { children: ReactNode }) => {
@@ -30,17 +34,12 @@ export const AccountProvider = ({ children }: { children: ReactNode }) => {
     if (!customer) {
       return
     }
-    // Prefetch orders for order-list
-    queryClient.prefetchQuery({
+    void queryClient.prefetchQuery({
+      queryFn: async () => await getOrders({ limit: 20, offset: 0 }),
       queryKey: queryKeys.orders.list({ limit: 20, offset: 0 }),
-      queryFn: () => getOrders({ limit: 20, offset: 0 }),
       ...cacheConfig.userData,
     })
   }, [customer, queryClient])
 
-  const contextValue = {
-    customer,
-  }
-
-  return <AccountContext value={contextValue}>{children}</AccountContext>
+  return <AccountContext value={customer}>{children}</AccountContext>
 }

@@ -1,18 +1,18 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
-import {
-  Pagination,
-  type PaginationProps as UIPaginationProps,
-} from "@techsio/ui-kit/molecules/pagination"
+import { Pagination } from "@techsio/ui-kit/molecules/pagination"
+import type { PaginationProps as UIPaginationProps } from "@techsio/ui-kit/molecules/pagination"
 import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
 import Image from "next/image"
 import Link from "next/link"
 import { Fragment } from "react"
+
 import { usePrefetchProduct } from "@/hooks/use-prefetch-product"
 import type { Product } from "@/types/product"
+
 import { ProductCardSkeleton } from "../skeletons/product-card-skeleton"
 import { VariantsBox } from "./variants-box"
 
-type ProductGridProps = {
+interface ProductGridProps {
   products: Product[]
   totalCount?: number
   currentPage?: number
@@ -32,10 +32,10 @@ export const ProductGrid = ({
   skeletonCount = 12,
 }: ProductGridProps) => {
   const { delayedPrefetch } = usePrefetchProduct()
-  const totalPages = Math.ceil((totalCount || products.length) / pageSize)
+  const totalPages = Math.ceil((totalCount ?? products.length) / pageSize)
   const skeletonKeys = Array.from(
     { length: skeletonCount },
-    (_, index) => `product-skeleton-${index}`
+    (_, index) => `product-skeleton-${index}`,
   )
 
   // Loading state
@@ -67,12 +67,12 @@ export const ProductGrid = ({
             {index !== 0 &&
               index % 4 === 0 &&
               index + 1 !== products.length && (
-                <div className="col-span-full h-[1px] bg-border-secondary md:hidden lg:flex" />
+                <div className="col-span-full h-px bg-border-secondary md:hidden lg:flex" />
               )}
             {index !== 0 &&
               index % 3 === 0 &&
               index + 1 !== products.length && (
-                <div className="col-span-full hidden h-[1px] bg-border-secondary md:flex lg:hidden" />
+                <div className="col-span-full hidden h-px bg-border-secondary md:flex lg:hidden" />
               )}
             <Link
               className="contents"
@@ -105,7 +105,7 @@ export const ProductGrid = ({
                 />
                 <div className="flex flex-col items-center gap-300 self-start">
                   <ProductCard.Actions>
-                    <VariantsBox variants={product.variants || []} />
+                    <VariantsBox variants={product.variants ?? []} />
                   </ProductCard.Actions>
                 </div>
                 <ProductCard.Stock
@@ -144,7 +144,7 @@ export const ProductGrid = ({
         <div className="mt-700 flex justify-end">
           <Pagination
             className="sm:hidden"
-            count={totalCount || products.length}
+            count={totalCount ?? products.length}
             getPageUrl={getPageUrl}
             linkAs={Link}
             page={currentPage}
@@ -153,7 +153,7 @@ export const ProductGrid = ({
           />
           <Pagination
             className="hidden sm:flex"
-            count={totalCount || products.length}
+            count={totalCount ?? products.length}
             getPageUrl={getPageUrl}
             linkAs={Link}
             page={currentPage}

@@ -1,19 +1,89 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import type { SelectItem } from '../../src/molecules/select'
-import { SelectTemplate } from '../../src/templates/select'
+import type { Meta, StoryObj } from "@storybook/react"
+import type { ComponentProps } from "react"
+
+import type { SelectItem } from "../../src/molecules/select"
+import { SelectTemplate } from "../../src/templates/select"
+
+const selectSizes: NonNullable<
+  ComponentProps<typeof SelectTemplate>["size"]
+>[] = ["xs", "sm", "md", "lg"]
 
 const defaultItems: SelectItem[] = [
-  { value: 'cz', label: 'Czech Republic' },
-  { value: 'de', label: 'Germany' },
-  { value: 'fr', label: 'France' },
-  { value: 'pl', label: 'Poland' },
+  { label: "Czech Republic", value: "cz" },
+  { label: "Germany", value: "de" },
+  { label: "France", value: "fr" },
+  { label: "Poland", value: "pl" },
 ]
 
 const meta: Meta<typeof SelectTemplate> = {
-  title: 'Templates/SelectTemplate',
+  argTypes: {
+    disabled: {
+      control: "boolean",
+      description: "Disable the select",
+      table: {
+        category: "State",
+      },
+    },
+    items: {
+      control: "object",
+      description: "Array of select items",
+      table: {
+        category: "Content",
+      },
+    },
+    label: {
+      control: "text",
+      description: "Select label text",
+      table: {
+        category: "Content",
+      },
+    },
+    onValueChange: {
+      action: "value-changed",
+      table: {
+        category: "Events",
+      },
+    },
+    placeholder: {
+      control: "text",
+      description: "Placeholder text when no value is selected",
+      table: {
+        category: "Content",
+      },
+    },
+    required: {
+      control: "boolean",
+      description: "Mark as required field",
+      table: {
+        category: "State",
+      },
+    },
+    showIndicator: {
+      control: "boolean",
+      description: "Show selection indicator for items",
+      table: {
+        category: "Appearance",
+      },
+    },
+    size: {
+      control: "select",
+      description: "Size variant",
+      options: ["xs", "sm", "md", "lg"],
+      table: {
+        category: "Appearance",
+      },
+    },
+    validateStatus: {
+      control: "select",
+      description: "Validation status styling",
+      options: ["default", "error", "success", "warning"],
+      table: {
+        category: "State",
+      },
+    },
+  },
   component: SelectTemplate,
   parameters: {
-    layout: 'centered',
     docs: {
       description: {
         component: `
@@ -25,108 +95,41 @@ const meta: Meta<typeof SelectTemplate> = {
         `,
       },
     },
+    layout: "centered",
   },
-  tags: ['autodocs'],
-  argTypes: {
-    items: {
-      control: 'object',
-      description: 'Array of select items',
-      table: {
-        category: 'Content',
-      },
-    },
-    label: {
-      control: 'text',
-      description: 'Select label text',
-      table: {
-        category: 'Content',
-      },
-    },
-    placeholder: {
-      control: 'text',
-      description: 'Placeholder text when no value is selected',
-      table: {
-        category: 'Content',
-      },
-    },
-    size: {
-      control: 'select',
-      options: ['xs', 'sm', 'md', 'lg'],
-      description: 'Size variant',
-      table: {
-        category: 'Appearance',
-      },
-    },
-    validateStatus: {
-      control: 'select',
-      options: ['default', 'error', 'success', 'warning'],
-      description: 'Validation status styling',
-      table: {
-        category: 'State',
-      },
-    },
-    disabled: {
-      control: 'boolean',
-      description: 'Disable the select',
-      table: {
-        category: 'State',
-      },
-    },
-    required: {
-      control: 'boolean',
-      description: 'Mark as required field',
-      table: {
-        category: 'State',
-      },
-    },
-    showIndicator: {
-      control: 'boolean',
-      description: 'Show selection indicator for items',
-      table: {
-        category: 'Appearance',
-      },
-    },
-    onValueChange: {
-      action: 'value-changed',
-      table: {
-        category: 'Events',
-      },
-    },
-  },
+  tags: ["autodocs"],
+  title: "Templates/SelectTemplate",
 }
 
 export default meta
 type Story = StoryObj<typeof SelectTemplate>
 
 export const Playground: Story = {
-  name: '🎮 Interactive Playground',
   args: {
-    items: [
-      ...defaultItems,
-      { value: 'es', label: 'Spain', disabled: true },
-    ],
-    label: 'Country',
-    placeholder: 'Select a country',
-    size: 'md',
+    items: [...defaultItems, { disabled: true, label: "Spain", value: "es" }],
+    label: "Country",
+    placeholder: "Select a country",
+    size: "md",
   },
+  name: "🎮 Interactive Playground",
 }
 
 export const Default: Story = {
   args: {
+    defaultValue: ["cz"],
     items: defaultItems,
-    label: 'Country',
-    placeholder: 'Select a country',
-    size: 'md',
-    defaultValue: ['cz'],
+    label: "Country",
+    placeholder: "Select a country",
+    size: "md",
   },
 }
 
 export const Sizes: Story = {
   render: () => (
-    <div className="flex w-full max-w-container-sm flex-col gap-300">
-      {(['xs', 'sm', 'md', 'lg'] as const).map((size) => (
+    <div className="flex w-full max-w-sm flex-col gap-300">
+      {selectSizes.map((size) => (
         <SelectTemplate
-          defaultValue={['cz']}
+          defaultValue={["cz"]}
           items={defaultItems}
           key={size}
           label={`Size ${size.toUpperCase()}`}
@@ -140,7 +143,7 @@ export const Sizes: Story = {
 
 export const States: Story = {
   render: () => (
-    <div className="flex w-full max-w-container-sm flex-col gap-300">
+    <div className="flex w-full max-w-sm flex-col gap-300">
       <SelectTemplate
         items={defaultItems}
         label="Default"

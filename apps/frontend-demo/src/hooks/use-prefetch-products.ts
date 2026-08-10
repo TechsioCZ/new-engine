@@ -1,10 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query"
+
 import { useRegions } from "@/hooks/use-region"
 import { cacheConfig } from "@/lib/cache-config"
 import { queryKeys } from "@/lib/query-keys"
-import { getProducts, type ProductListParams } from "@/services/product-service"
+import { getProducts } from "@/services/product-service"
+import type { ProductListParams } from "@/services/product-service"
 
-type UsePrefetchProductsOptions = {
+interface UsePrefetchProductsOptions {
   enabled?: boolean
   // Allow custom cache config if needed
   cacheStrategy?: keyof typeof cacheConfig
@@ -12,35 +14,40 @@ type UsePrefetchProductsOptions = {
 
 const DEFAULT_LIMIT = 12
 
-export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
+export const usePrefetchProducts = (options?: UsePrefetchProductsOptions) => {
   const { selectedRegion } = useRegions()
   const queryClient = useQueryClient()
   const enabled = options?.enabled ?? true
   const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
 
   const prefetchProducts = (params?: Omit<ProductListParams, "region_id">) => {
-    if (!(enabled && selectedRegion?.id)) {
+    const regionId = selectedRegion?.id
+    if (!enabled || regionId === undefined || regionId.length === 0) {
       return
     }
 
+    const offset = params?.offset ?? 0
+    const paginationLimit =
+      params?.limit === undefined || params.limit === 0
+        ? DEFAULT_LIMIT
+        : params.limit
+    const page = offset === 0 ? 1 : Math.floor(offset / paginationLimit) + 1
     const queryParams = {
       ...params,
-      region_id: selectedRegion.id,
+      region_id: regionId,
     }
 
-    queryClient.prefetchQuery({
+    void queryClient.prefetchQuery({
+      queryFn: async () => await getProducts(queryParams),
       queryKey: queryKeys.products.list({
-        page: params?.offset
-          ? Math.floor(params.offset / (params.limit || DEFAULT_LIMIT)) + 1
-          : 1,
-        limit: params?.limit,
-        filters: params?.filters,
-        sort: params?.sort,
         category: params?.category,
+        filters: params?.filters,
+        limit: params?.limit,
+        page,
         q: params?.q,
-        region_id: selectedRegion.id,
+        region_id: regionId,
+        sort: params?.sort,
       }),
-      queryFn: () => getProducts(queryParams),
       ...cacheConfig[cacheStrategy],
     })
   }
@@ -48,12 +55,12 @@ export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
   // Prefetch default products page (first page, no filters)
   const prefetchDefaultProducts = () => {
     prefetchProducts({
-      limit: DEFAULT_LIMIT,
-      offset: 0,
       filters: {
         categories: [],
         sizes: [],
       },
+      limit: DEFAULT_LIMIT,
+      offset: 0,
       sort: "newest",
     })
   }
@@ -64,16 +71,20 @@ export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
       category: categoryHandle,
       limit: DEFAULT_LIMIT,
       offset: 0,
-      sort: "newest", // Add default sort
+      // Keep category prefetches aligned with the default product sort.
+      sort: "newest",
     })
   }
 
   // Prefetch next page of current query
   const prefetchNextPage = (
     currentParams: ProductListParams,
-    currentPage: number
+    currentPage: number,
   ) => {
-    const limit = currentParams.limit || DEFAULT_LIMIT
+    const limit =
+      currentParams.limit === undefined || currentParams.limit === 0
+        ? DEFAULT_LIMIT
+        : currentParams.limit
     prefetchProducts({
       ...currentParams,
       offset: currentPage * limit,
@@ -81,9 +92,9 @@ export function usePrefetchProducts(options?: UsePrefetchProductsOptions) {
   }
 
   return {
-    prefetchProducts,
-    prefetchDefaultProducts,
     prefetchCategoryProducts,
+    prefetchDefaultProducts,
     prefetchNextPage,
+    prefetchProducts,
   }
 }

@@ -13,44 +13,36 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Link, useParams } from "react-router-dom"
+
 import {
-  type Review,
-  type ReviewFormInput,
-  type ReviewInput,
-  type ReviewStatus,
   retrieveReview,
   reviewQueryKeys,
   updateReview,
 } from "../../../lib/reviews"
-
-const STATUS_BADGE_COLOR: Record<ReviewStatus, "green" | "orange" | "red"> = {
-  approved: "green",
-  pending: "orange",
-  rejected: "red",
-}
+import type {
+  Review,
+  ReviewFormInput,
+  ReviewInput,
+  ReviewStatus,
+} from "../../../lib/reviews"
+import {
+  formatReviewDate,
+  getReviewCustomerName,
+  REVIEW_STATUS_BADGE_COLOR,
+} from "../review-formatters"
 
 const STATUS_OPTIONS: ReviewStatus[] = ["pending", "approved", "rejected"]
 
-const formatDate = (date: string | undefined) => {
-  if (!date) {
-    return "-"
+const isReviewStatus = (value: unknown): value is ReviewStatus =>
+  typeof value === "string" && STATUS_OPTIONS.some((status) => status === value)
+
+const retrieveSelectedReview = async (id: string | undefined) => {
+  if (id === undefined) {
+    throw new Error("Review id is required")
   }
-
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(date))
-}
-
-const getCustomerName = (review: Review) => {
-  const name = [review.first_name, review.last_name]
-    .filter(Boolean)
-    .join(" ")
-    .trim()
-
-  return name || review.customer_id
+  return await retrieveReview(id)
 }
 
 const toFormState = (review: Review): ReviewFormInput => ({
@@ -62,26 +54,23 @@ const toFormState = (review: Review): ReviewFormInput => ({
   title: review.title,
 })
 
-const ReviewEditDrawer = ({
-  onOpenChange,
-  open,
-  review,
-}: {
+interface ReviewEditDrawerProps {
   onOpenChange: (open: boolean) => void
   open: boolean
   review: Review
-}) => {
+}
+
+const ReviewEditDrawerContent = ({
+  onOpenChange,
+  open,
+  review,
+}: ReviewEditDrawerProps) => {
   const queryClient = useQueryClient()
   const [form, setForm] = useState<ReviewFormInput>(() => toFormState(review))
 
-  useEffect(() => {
-    if (open) {
-      setForm(toFormState(review))
-    }
-  }, [open, review])
-
   const mutation = useMutation({
-    mutationFn: (input: ReviewInput) => updateReview(review.id, input),
+    mutationFn: async (input: ReviewInput) =>
+      await updateReview(review.id, input),
     onError: () => {
       toast.error("Failed to update review")
     },
@@ -105,24 +94,24 @@ const ReviewEditDrawer = ({
           <div className="flex flex-col gap-2">
             <Label>Title</Label>
             <Input
-              onChange={(event) =>
+              onChange={(event) => {
                 setForm((current) => ({
                   ...current,
                   title: event.target.value,
                 }))
-              }
+              }}
               value={form.title}
             />
           </div>
           <div className="flex flex-col gap-2">
             <Label>Content</Label>
             <Textarea
-              onChange={(event) =>
+              onChange={(event) => {
                 setForm((current) => ({
                   ...current,
                   content: event.target.value,
                 }))
-              }
+              }}
               rows={8}
               value={form.content}
             />
@@ -133,12 +122,12 @@ const ReviewEditDrawer = ({
               <Input
                 max={5}
                 min={1}
-                onChange={(event) =>
+                onChange={(event) => {
                   setForm((current) => ({
                     ...current,
                     rating: Number(event.target.value),
                   }))
-                }
+                }}
                 type="number"
                 value={form.rating}
               />
@@ -146,12 +135,11 @@ const ReviewEditDrawer = ({
             <div className="flex flex-col gap-2">
               <Label>Status</Label>
               <Select
-                onValueChange={(value) =>
-                  setForm((current) => ({
-                    ...current,
-                    status: value as ReviewStatus,
-                  }))
-                }
+                onValueChange={(value) => {
+                  if (isReviewStatus(value)) {
+                    setForm((current) => ({ ...current, status: value }))
+                  }
+                }}
                 value={form.status}
               >
                 <Select.Trigger>
@@ -171,24 +159,24 @@ const ReviewEditDrawer = ({
             <div className="flex flex-col gap-2">
               <Label>First name</Label>
               <Input
-                onChange={(event) =>
+                onChange={(event) => {
                   setForm((current) => ({
                     ...current,
                     first_name: event.target.value,
                   }))
-                }
+                }}
                 value={form.first_name ?? ""}
               />
             </div>
             <div className="flex flex-col gap-2">
               <Label>Last name</Label>
               <Input
-                onChange={(event) =>
+                onChange={(event) => {
                   setForm((current) => ({
                     ...current,
                     last_name: event.target.value,
                   }))
-                }
+                }}
                 value={form.last_name ?? ""}
               />
             </div>
@@ -203,7 +191,9 @@ const ReviewEditDrawer = ({
           <Button
             disabled={mutation.isPending}
             isLoading={mutation.isPending}
-            onClick={() => mutation.mutate(form)}
+            onClick={() => {
+              mutation.mutate(form)
+            }}
             size="small"
           >
             Save
@@ -214,13 +204,20 @@ const ReviewEditDrawer = ({
   )
 }
 
+const ReviewEditDrawer = (props: ReviewEditDrawerProps) => (
+  <ReviewEditDrawerContent
+    key={`${props.review.id}:${String(props.open)}`}
+    {...props}
+  />
+)
+
 const ReviewsDetailPage = () => {
   const { id } = useParams()
   const [editOpen, setEditOpen] = useState(false)
   const { data, isLoading } = useQuery({
-    enabled: Boolean(id),
-    queryFn: () => retrieveReview(id as string),
-    queryKey: reviewQueryKeys.detail(id as string),
+    enabled: id !== undefined,
+    queryFn: async () => await retrieveSelectedReview(id),
+    queryKey: reviewQueryKeys.detail(id ?? ""),
   })
   const review = data?.review
 
@@ -252,7 +249,9 @@ const ReviewsDetailPage = () => {
             </Text>
           </div>
           <Button
-            onClick={() => setEditOpen(true)}
+            onClick={() => {
+              setEditOpen(true)
+            }}
             size="small"
             variant="secondary"
           >
@@ -272,7 +271,7 @@ const ReviewsDetailPage = () => {
               <Text leading="compact" size="small" weight="plus">
                 Status
               </Text>
-              <StatusBadge color={STATUS_BADGE_COLOR[review.status]}>
+              <StatusBadge color={REVIEW_STATUS_BADGE_COLOR[review.status]}>
                 {review.status}
               </StatusBadge>
             </div>
@@ -286,19 +285,19 @@ const ReviewsDetailPage = () => {
               <Text leading="compact" size="small" weight="plus">
                 Customer
               </Text>
-              <Text>{getCustomerName(review)}</Text>
+              <Text>{getReviewCustomerName(review)}</Text>
             </div>
             <div>
               <Text leading="compact" size="small" weight="plus">
                 Created
               </Text>
-              <Text>{formatDate(review.created_at)}</Text>
+              <Text>{formatReviewDate(review.created_at)}</Text>
             </div>
             <div>
               <Text leading="compact" size="small" weight="plus">
                 Updated
               </Text>
-              <Text>{formatDate(review.updated_at)}</Text>
+              <Text>{formatReviewDate(review.updated_at)}</Text>
             </div>
           </div>
         </div>

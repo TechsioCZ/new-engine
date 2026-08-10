@@ -2,18 +2,16 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
-import { restoreBrandsWorkflow } from "../../../../../workflows/brand"
+
+import { restoreBrandsWorkflow } from "../../../../../workflows/brand/workflows/restore-brands"
 import {
   getBrandActiveProductCounts,
   retrieveBrandOrThrow,
   toBrandResponse,
 } from "../../utils"
 
-export async function POST(
-  req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
-  const id = req.params.id ?? ""
+const post = async (req: AuthenticatedMedusaRequest, res: MedusaResponse) => {
+  const id = req.params["id"] ?? ""
 
   await restoreBrandsWorkflow(req.scope).run({
     input: {
@@ -30,3 +28,5 @@ export async function POST(
     brand: toBrandResponse(brand, activeProductCounts.get(brand.id) ?? 0),
   })
 }
+
+export { post as POST }

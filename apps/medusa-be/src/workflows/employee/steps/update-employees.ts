@@ -1,13 +1,16 @@
-import type { Query, RemoteQueryEntryPoints } from "@medusajs/framework/types"
+import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { omitUndefined } from "@techsio/std/object"
+
 import { COMPANY_MODULE } from "../../../modules/company"
 import type {
   ICompanyModuleService,
   ModuleUpdateEmployee,
+  QueryGraphEmployee,
 } from "../../../types"
 
 type UpdateEmployeeCompensation = Pick<
@@ -19,10 +22,8 @@ export const updateEmployeesStep = createStep(
   "update-employees",
   async (
     input: ModuleUpdateEmployee,
-    { container }
-  ): Promise<
-    StepResponse<RemoteQueryEntryPoints["employee"], UpdateEmployeeCompensation>
-  > => {
+    { container },
+  ): Promise<StepResponse<QueryGraphEmployee, UpdateEmployeeCompensation>> => {
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 
@@ -30,33 +31,32 @@ export const updateEmployeesStep = createStep(
     const { company_id: companyId, ...updatePayload } = input
     const filters = {
       id: input.id,
-      ...(companyId ? { company_id: companyId } : {}),
+      ...(companyId === undefined || companyId === ""
+        ? {}
+        : { company_id: companyId }),
     }
 
-    const {
-      data: [currentData],
-    } = await query.graph(
+    const currentDataResult: { data: QueryGraphEmployee[] } = await query.graph(
       {
         entity: "employee",
         fields: ["*"],
         filters,
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
+    const [currentData] = currentDataResult.data
 
-    if (!currentData) {
+    if (currentData === undefined) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        "Employee was not found for the requested company."
+        "Employee was not found for the requested company.",
       )
     }
 
     const updatedEmployee =
       await companyModuleService.updateEmployees(updatePayload)
 
-    const {
-      data: [employee],
-    } = await query.graph(
+    const employeeResult: { data: QueryGraphEmployee[] } = await query.graph(
       {
         entity: "employee",
         fields: ["*", "customer.*", "company.*"],
@@ -65,27 +65,31 @@ export const updateEmployeesStep = createStep(
           id: updatedEmployee.id,
         },
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
+    const [employee] = employeeResult.data
 
-    if (!employee) {
+    if (employee === undefined) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Updated employee "${updatedEmployee.id}" was not found`
+        `Updated employee "${updatedEmployee.id}" was not found`,
       )
     }
 
-    return new StepResponse(employee, {
-      id: currentData.id,
-      is_admin: currentData.is_admin,
-      spending_limit: currentData.spending_limit,
-    })
+    return new StepResponse(
+      employee,
+      omitUndefined({
+        id: currentData.id,
+        is_admin: currentData.is_admin,
+        spending_limit: currentData.spending_limit,
+      }),
+    )
   },
   async (
     currentData: UpdateEmployeeCompensation | undefined,
-    { container }
+    { container },
   ) => {
-    if (!currentData) {
+    if (currentData === undefined) {
       return
     }
 
@@ -93,5 +97,5 @@ export const updateEmployeesStep = createStep(
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
 
     await companyModuleService.updateEmployees(currentData)
-  }
+  },
 )

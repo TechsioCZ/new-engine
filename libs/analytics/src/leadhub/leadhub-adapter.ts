@@ -39,43 +39,41 @@ export interface UseLeadhubAdapterConfig {
  * leadhubAdapter.trackIdentify({ email: 'user@example.com', subscribe: [] })
  * ```
  */
-export function useLeadhubAdapter(
-  config?: UseLeadhubAdapterConfig
-): AnalyticsAdapter & LeadhubExtras {
+export const useLeadhubAdapter = (
+  config?: UseLeadhubAdapterConfig,
+): AnalyticsAdapter & LeadhubExtras => {
   const debug = config?.debug
-  const adapterKey = "leadhub" as const
+  const adapterKey = "leadhub"
 
   return {
     key: adapterKey,
 
-    trackViewContent: createTracker(
-      getLhi,
-      (lhi, params) => {
-        lhi("ViewContent", {
-          products: [{ product_id: params.productId }],
-        })
-      },
-      debug,
-      adapterKey
-    ),
-
-    // Leadhub uses SetCart instead of AddToCart
+    // Leadhub uses SetCart instead of AddToCart.
     trackAddToCart: createTracker(
       getLhi,
       (lhi, params) => {
         lhi("SetCart", {
           products: [
             {
+              currency: params.currency,
               product_id: params.productId,
               quantity: params.quantity,
               value: params.value,
-              currency: params.currency,
             },
           ],
         })
       },
       debug,
-      adapterKey
+      adapterKey,
+    ),
+
+    trackIdentify: createTracker<LeadhubFunction, LeadhubIdentifyParams>(
+      getLhi,
+      (lhi, params) => {
+        lhi("Identify", params)
+      },
+      debug,
+      adapterKey,
     ),
 
     // Leadhub doesn't support InitiateCheckout event - using SetCart as workaround.
@@ -87,7 +85,10 @@ export function useLeadhubAdapter(
         const products =
           params.items?.map((item) => ({
             product_id: item.productId,
-            quantity: item.quantity || 1,
+            quantity:
+              item.quantity === 0 || Number.isNaN(item.quantity)
+                ? 1
+                : item.quantity,
           })) ??
           params.productIds.map((id) => ({
             product_id: id,
@@ -99,35 +100,46 @@ export function useLeadhubAdapter(
         })
       },
       debug,
-      adapterKey
+      adapterKey,
+    ),
+
+    trackPageview: createSimpleTracker<LeadhubFunction>(
+      getLhi,
+      (lhi) => {
+        lhi("pageview")
+      },
+      debug,
+      adapterKey,
     ),
 
     trackPurchase: createTracker(
       getLhi,
       (lhi, params) => {
         lhi("Purchase", {
-          email: params.email,
-          value: params.value,
+          ...(params.email === undefined ? {} : { email: params.email }),
           currency: params.currency,
           order_id: params.orderId,
-          products: params.products.map((p) => ({
-            product_id: p.id,
-            quantity: p.quantity ?? 1,
-            value: p.price,
-            currency: p.currency,
+          products: params.products.map((product) => ({
+            currency: product.currency,
+            product_id: product.id,
+            quantity: product.quantity ?? 1,
+            value: product.price,
           })),
+          value: params.value,
         })
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
-    // Leadhub doesn't support arbitrary custom events
-    trackCustom: undefined,
-
-    // ========================================
-    // Leadhub-specific methods (LeadhubExtras)
-    // ========================================
+    trackSetCart: createTracker<LeadhubFunction, LeadhubSetCartParams>(
+      getLhi,
+      (lhi, params) => {
+        lhi("SetCart", params)
+      },
+      debug,
+      adapterKey,
+    ),
 
     trackViewCategory: createTracker<
       LeadhubFunction,
@@ -138,34 +150,18 @@ export function useLeadhubAdapter(
         lhi("ViewCategory", params)
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
-    trackIdentify: createTracker<LeadhubFunction, LeadhubIdentifyParams>(
+    trackViewContent: createTracker(
       getLhi,
       (lhi, params) => {
-        lhi("Identify", params)
+        lhi("ViewContent", {
+          products: [{ product_id: params.productId }],
+        })
       },
       debug,
-      adapterKey
-    ),
-
-    trackSetCart: createTracker<LeadhubFunction, LeadhubSetCartParams>(
-      getLhi,
-      (lhi, params) => {
-        lhi("SetCart", params)
-      },
-      debug,
-      adapterKey
-    ),
-
-    trackPageview: createSimpleTracker<LeadhubFunction>(
-      getLhi,
-      (lhi) => {
-        lhi("pageview")
-      },
-      debug,
-      adapterKey
+      adapterKey,
     ),
   }
 }

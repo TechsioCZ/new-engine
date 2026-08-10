@@ -1,66 +1,147 @@
-import type { Logger, MedusaContainer } from '@medusajs/framework/types'
-import { MeilisearchAdminClient } from './admin-client'
-import { buildContentSearchDocument, cleanSearchText } from './documents'
-import { isMeilisearchEnabled } from './env'
-import { loadSearchProfiles } from './profiles'
-import { CONTENT_INDEX_SETTINGS } from './settings'
+import type { Logger, MedusaContainer } from "@medusajs/framework/types"
+import { getRecordValue } from "@techsio/std/object"
 
-export type CmsSearchChange = {
-	collection: string
-	doc?: Record<string, unknown>
-	operation?: string
+import { MeilisearchAdminClient } from "./admin-client"
+import {
+  buildContentDocumentId,
+  buildContentSearchDocument,
+  cleanSearchText,
+} from "./documents"
+import { isMeilisearchEnabled } from "./env"
+import { loadSearchProfiles } from "./profiles"
+import type { SearchProfile } from "./profiles"
+import { CONTENT_INDEX_SETTINGS } from "./settings"
+
+const CMS_PROFILE_CONCURRENCY = 4
+
+export interface CmsSearchChange {
+  collection: string
+  doc?: object
+  operation?: string
 }
 
-const SEARCHABLE_COLLECTION_TYPES = {
-	articles: 'article',
-	pages: 'page'
-} as const
+const getSearchableCollectionType = (
+  collection: string,
+): "article" | "page" | undefined => {
+  if (collection === "articles") {
+    return "article"
+  }
 
-const normalizeLocale = (value: string): string => value.trim().toLowerCase().replaceAll('_', '-').split('-')[0] ?? ''
+  return collection === "pages" ? "page" : undefined
+}
 
-const isPublished = (change: CmsSearchChange, type: 'article' | 'page'): boolean => change.operation !== 'delete' && change.doc?.status === 'published' && (type === 'article' || change.doc?.visibility === 'public')
+const normalizeLocale = (value: string): string =>
+  value.trim().toLowerCase().replaceAll("_", "-").split("-")[0] ?? ""
 
-export const reconcileContentSearchChange = async (change: CmsSearchChange, logger: Logger, container: MedusaContainer): Promise<void> => {
-	if (!isMeilisearchEnabled()) {
-		return
-	}
+export const selectContentSearchProfiles = (
+  profiles: SearchProfile[],
+  locale?: string,
+): SearchProfile[] =>
+  locale === undefined
+    ? profiles
+    : profiles.filter(
+        (profile) =>
+          normalizeLocale(profile.locale) === normalizeLocale(locale),
+      )
 
-	const type = SEARCHABLE_COLLECTION_TYPES[change.collection as keyof typeof SEARCHABLE_COLLECTION_TYPES]
+const isPublished = (
+  change: CmsSearchChange,
+  type: "article" | "page",
+): boolean => {
+  if (change.operation === "delete" || change.doc === undefined) {
+    return false
+  }
+  if (getRecordValue(change.doc, "status") !== "published") {
+    return false
+  }
 
-	if (!type) {
-		return
-	}
+  return (
+    type === "article" || getRecordValue(change.doc, "visibility") === "public"
+  )
+}
 
-	const rawId = change.doc?.id
+export const reconcileContentSearchChange = async (
+  change: CmsSearchChange,
+  logger: Logger,
+  container: MedusaContainer,
+): Promise<void> => {
+  if (!isMeilisearchEnabled()) {
+    return
+  }
 
-	if ((typeof rawId !== 'string' || !rawId.trim()) && (typeof rawId !== 'number' || !Number.isFinite(rawId))) {
-		logger.warn('Skipping ' + change.collection + ' search projection because the document id is missing')
+  const type = getSearchableCollectionType(change.collection)
 
-		return
-	}
+  if (type === undefined) {
+    return
+  }
 
-	const locale = typeof change.doc?.locale === 'string' ? normalizeLocale(change.doc.locale) : undefined
-	const profiles = (await loadSearchProfiles(container)).filter((profile) => !locale || normalizeLocale(profile.locale) === locale)
-	const client = new MeilisearchAdminClient()
-	const documentId = type + '_' + String(rawId)
+  const rawId =
+    change.doc === undefined ? undefined : getRecordValue(change.doc, "id")
 
-	for (const profile of profiles) {
-		const index = profile.indexes.content
+  if (
+    (typeof rawId !== "string" || rawId.trim().length === 0) &&
+    (typeof rawId !== "number" || !Number.isFinite(rawId))
+  ) {
+    logger.warn(
+      `Skipping ${
+        change.collection
+      } search projection because the document id is missing`,
+    )
 
-		await client.ensureIndex(index)
-		await client.updateSettings(index, CONTENT_INDEX_SETTINGS as Record<string, unknown>)
+    return
+  }
 
-		if (isPublished(change, type)) {
-			const contentSource = {
-				...change.doc,
-				slug: typeof change.doc?.slug === 'string' ? cleanSearchText(change.doc.slug) : change.doc?.slug
-			}
+  const rawLocale =
+    change.doc === undefined ? undefined : getRecordValue(change.doc, "locale")
+  const locale = typeof rawLocale === "string" ? rawLocale : undefined
+  const loadedProfiles = await loadSearchProfiles(container)
+  const profiles = selectContentSearchProfiles(loadedProfiles, locale)
+  const client = new MeilisearchAdminClient()
+  const documentId = buildContentDocumentId(type, rawId)
 
-			const document = buildContentSearchDocument(contentSource, type, profile.locale)
+  const reconcileProfile = async (
+    profile: (typeof profiles)[number],
+  ): Promise<void> => {
+    const index = profile.indexes.content
 
-			await client.addDocuments(index, [document])
-		} else {
-			await client.deleteDocuments(index, [documentId])
-		}
-	}
+    await client.ensureIndex(index)
+    await client.updateSettings(index, CONTENT_INDEX_SETTINGS)
+
+    if (isPublished(change, type)) {
+      const sourceSlug =
+        change.doc === undefined
+          ? undefined
+          : getRecordValue(change.doc, "slug")
+      const contentSource = {
+        ...change.doc,
+        slug:
+          typeof sourceSlug === "string"
+            ? cleanSearchText(sourceSlug)
+            : sourceSlug,
+      }
+      const document = buildContentSearchDocument(
+        contentSource,
+        type,
+        profile.locale,
+      )
+
+      await client.addDocuments(index, [document])
+      return
+    }
+
+    await client.deleteDocuments(index, [documentId])
+  }
+
+  const reconcileBatch = async (offset: number): Promise<void> => {
+    const batch = profiles.slice(offset, offset + CMS_PROFILE_CONCURRENCY)
+
+    if (batch.length === 0) {
+      return
+    }
+
+    await Promise.all(batch.map(reconcileProfile))
+    await reconcileBatch(offset + batch.length)
+  }
+
+  await reconcileBatch(0)
 }

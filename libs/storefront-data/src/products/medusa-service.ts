@@ -1,13 +1,15 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+import { omitUndefined, toPlainRecord } from "@techsio/std/object"
+
+import type { IsExactly } from "../shared/type-utils"
 import type { ProductListResponse, ProductService } from "./types"
 
-type MedusaProductListQuery = HttpTypes.StoreProductListParams &
-  Record<string, unknown>
+type MedusaProductListQuery = HttpTypes.StoreProductListParams
 
 export type MedusaProductListInput = HttpTypes.StoreProductListParams
 
-export type MedusaProductDetailInput = {
+export interface MedusaProductDetailInput {
   handle: string
   region_id?: string
   country_code?: string
@@ -17,27 +19,26 @@ export type MedusaProductDetailInput = {
   fields?: string
 }
 
-export type MedusaProductTransformListContext<
+export interface MedusaProductTransformListContext<
   TListParams extends MedusaProductListInput,
-> = {
+> {
   params: TListParams
   query: MedusaProductListQuery
   response: HttpTypes.StoreProductListResponse
 }
 
-export type MedusaProductTransformDetailContext<
+export interface MedusaProductTransformDetailContext<
   TDetailParams extends MedusaProductDetailInput,
-> = {
+> {
   params: TDetailParams
   query: MedusaProductListQuery
   response: HttpTypes.StoreProductListResponse
 }
 
-export type MedusaProductServiceConfig<
-  TProduct,
+interface MedusaProductServiceConfigBase<
   TListParams extends MedusaProductListInput,
   TDetailParams extends MedusaProductDetailInput,
-> = {
+> {
   listPath?: string
   defaultListFields?: string
   defaultDetailFields?: string
@@ -55,20 +56,48 @@ export type MedusaProductServiceConfig<
    * Include desired `fields` directly in the returned query object.
    */
   normalizeDetailQuery?: (params: TDetailParams) => MedusaProductListQuery
-  transformProduct?: (product: HttpTypes.StoreProduct) => TProduct
-  transformListProduct?: (
-    product: HttpTypes.StoreProduct,
-    context: MedusaProductTransformListContext<TListParams>
-  ) => TProduct
-  transformDetailProduct?: (
-    product: HttpTypes.StoreProduct,
-    context: MedusaProductTransformDetailContext<TDetailParams>
-  ) => TProduct
   createGlobalFetcher?: boolean
 }
 
+type MedusaProductTransforms<
+  TProduct,
+  TListParams extends MedusaProductListInput,
+  TDetailParams extends MedusaProductDetailInput,
+> =
+  | {
+      transformProduct: (product: HttpTypes.StoreProduct) => TProduct
+      transformListProduct?: (
+        product: HttpTypes.StoreProduct,
+        context: MedusaProductTransformListContext<TListParams>,
+      ) => TProduct
+      transformDetailProduct?: (
+        product: HttpTypes.StoreProduct,
+        context: MedusaProductTransformDetailContext<TDetailParams>,
+      ) => TProduct
+    }
+  | {
+      transformProduct?: never
+      transformListProduct: (
+        product: HttpTypes.StoreProduct,
+        context: MedusaProductTransformListContext<TListParams>,
+      ) => TProduct
+      transformDetailProduct: (
+        product: HttpTypes.StoreProduct,
+        context: MedusaProductTransformDetailContext<TDetailParams>,
+      ) => TProduct
+    }
+
+export type MedusaProductServiceConfig<
+  TProduct,
+  TListParams extends MedusaProductListInput,
+  TDetailParams extends MedusaProductDetailInput,
+> = MedusaProductServiceConfigBase<TListParams, TDetailParams> &
+  (IsExactly<TProduct, HttpTypes.StoreProduct> extends true
+    ? Partial<MedusaProductTransforms<TProduct, TListParams, TDetailParams>>
+    : MedusaProductTransforms<TProduct, TListParams, TDetailParams>)
+
 const normalizeCountryCode = (
-  query: MedusaProductListQuery
+  query: MedusaProductListQuery,
 ): MedusaProductListQuery => {
   const countryCode = query.country_code
   if (typeof countryCode === "string") {
@@ -83,19 +112,19 @@ const normalizeCountryCode = (
 const toListResponse = <TProduct>(
   response: HttpTypes.StoreProductListResponse,
   query: MedusaProductListQuery,
-  products: TProduct[]
+  products: TProduct[],
 ): ProductListResponse<TProduct> => {
   const queryLimit = query.limit
   const queryOffset = query.offset
 
   return {
-    products,
     count: response.count ?? products.length,
     limit:
       response.limit ??
       (typeof queryLimit === "number" ? queryLimit : products.length),
     offset:
       response.offset ?? (typeof queryOffset === "number" ? queryOffset : 0),
+    products,
   }
 }
 
@@ -122,14 +151,35 @@ const toListResponse = <TProduct>(
  * })
  * ```
  */
+type MedusaProductServiceArgs<
+  TProduct,
+  TListParams extends MedusaProductListInput,
+  TDetailParams extends MedusaProductDetailInput,
+> =
+  IsExactly<TProduct, HttpTypes.StoreProduct> extends true
+    ? [
+        config?:
+          | MedusaProductServiceConfig<TProduct, TListParams, TDetailParams>
+          | undefined,
+      ]
+    : [config: MedusaProductServiceConfig<TProduct, TListParams, TDetailParams>]
+
 export function createMedusaProductService<
   TProduct = HttpTypes.StoreProduct,
   TListParams extends MedusaProductListInput = MedusaProductListInput,
   TDetailParams extends MedusaProductDetailInput = MedusaProductDetailInput,
 >(
   sdk: Medusa,
-  config?: MedusaProductServiceConfig<TProduct, TListParams, TDetailParams>
-): ProductService<TProduct, TListParams, TDetailParams> {
+  ...[config]: MedusaProductServiceArgs<TProduct, TListParams, TDetailParams>
+): ProductService<TProduct, TListParams, TDetailParams>
+export function createMedusaProductService<
+  TListParams extends MedusaProductListInput,
+  TDetailParams extends MedusaProductDetailInput,
+>(
+  sdk: Medusa,
+  config?: MedusaProductServiceConfigBase<TListParams, TDetailParams> &
+    Partial<MedusaProductTransforms<unknown, TListParams, TDetailParams>>,
+): ProductService<unknown, TListParams, TDetailParams> {
   const {
     listPath = "/store/products",
     defaultListFields,
@@ -143,92 +193,97 @@ export function createMedusaProductService<
   } = config ?? {}
 
   const baseTransform =
-    transformProduct ?? ((product) => product as unknown as TProduct)
+    transformProduct ?? ((product: HttpTypes.StoreProduct) => product)
 
-  const mapListProduct: (
-    product: HttpTypes.StoreProduct,
-    context: MedusaProductTransformListContext<TListParams>
-  ) => TProduct =
+  const mapListProduct =
     transformListProduct ??
     ((product: HttpTypes.StoreProduct) => baseTransform(product))
 
-  const mapDetailProduct: (
-    product: HttpTypes.StoreProduct,
-    context: MedusaProductTransformDetailContext<TDetailParams>
-  ) => TProduct =
+  const mapDetailProduct =
     transformDetailProduct ??
     ((product: HttpTypes.StoreProduct) => baseTransform(product))
 
   const buildListQuery = (params: TListParams): MedusaProductListQuery => {
-    const query = normalizeListQuery
+    const hasDefaultFields =
+      defaultListFields !== undefined && defaultListFields.length > 0
+    const hasParamFields =
+      params.fields !== undefined && params.fields.length > 0
+    const query: MedusaProductListQuery = normalizeListQuery
       ? normalizeListQuery(params)
-      : ({
-          ...params,
-          ...(defaultListFields && !params.fields
+      : {
+          ...toPlainRecord(params),
+          ...(hasDefaultFields && !hasParamFields
             ? { fields: defaultListFields }
             : {}),
-        } as MedusaProductListQuery)
+        }
 
     return normalizeCountryCode(query)
   }
 
   const buildDetailQuery = (params: TDetailParams): MedusaProductListQuery => {
-    const query = normalizeDetailQuery
-      ? normalizeDetailQuery(params)
-      : ({
-          handle: params.handle,
-          limit: 1,
-          region_id: params.region_id,
-          country_code: params.country_code,
-          province: params.province,
-          cart_id: params.cart_id,
-          locale: params.locale,
-          ...(params.fields || defaultDetailFields
-            ? { fields: params.fields ?? defaultDetailFields }
-            : {}),
-        } as MedusaProductListQuery)
+    if (normalizeDetailQuery !== undefined) {
+      return normalizeCountryCode(normalizeDetailQuery(params))
+    }
+
+    const fields =
+      params.fields !== undefined && params.fields.length > 0
+        ? params.fields
+        : defaultDetailFields
+    const query = omitUndefined({
+      cart_id: params.cart_id,
+      country_code: params.country_code,
+      fields,
+      handle: params.handle,
+      limit: 1,
+      locale: params.locale,
+      province: params.province,
+      region_id: params.region_id,
+    })
 
     return normalizeCountryCode(query)
   }
 
   const getProducts = async (
     params: TListParams,
-    signal?: AbortSignal
-  ): Promise<ProductListResponse<TProduct>> => {
+    signal?: AbortSignal,
+  ): Promise<ProductListResponse<unknown>> => {
     const query = buildListQuery(params)
     const response = await sdk.client.fetch<HttpTypes.StoreProductListResponse>(
       listPath,
-      { query, signal }
+      {
+        query,
+        signal: signal ?? null,
+      },
     )
 
     const products = (response.products ?? []).map((product) =>
-      mapListProduct(product, { params, query, response })
+      mapListProduct(product, { params, query, response }),
     )
 
     return toListResponse(response, query, products)
   }
 
+  // The global fetcher intentionally bypasses per-call cancellation because it
+  // is meant for shared deduplicated prefetch usage.
   const getProductsGlobal = createGlobalFetcher
-    ? // Global fetcher intentionally bypasses per-call cancellation.
-      // It is meant for shared deduped prefetch usage.
-      async (params: TListParams) => getProducts(params, undefined)
+    ? async (params: TListParams) => await getProducts(params)
     : undefined
 
   return {
     getProducts,
-    getProductsGlobal,
+    ...(getProductsGlobal ? { getProductsGlobal } : {}),
     async getProductByHandle(
       params: TDetailParams,
-      signal?: AbortSignal
-    ): Promise<TProduct | null> {
+      signal?: AbortSignal,
+    ): Promise<unknown> {
       const query = buildDetailQuery(params)
       const response =
         await sdk.client.fetch<HttpTypes.StoreProductListResponse>(listPath, {
           query,
-          signal,
+          signal: signal ?? null,
         })
       const product = response.products?.[0]
-      if (!product) {
+      if (product === undefined) {
         return null
       }
       return mapDetailProduct(product, { params, query, response })

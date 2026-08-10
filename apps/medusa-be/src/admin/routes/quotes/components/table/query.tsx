@@ -1,4 +1,13 @@
+import { z } from "@medusajs/framework/zod"
+
 import { useQueryParams } from "../../../../hooks/use-query-params"
+
+const dateFilterSchema = z.record(z.string(), z.string())
+
+const parseDateFilter = (value: string) => {
+  const parsed: unknown = JSON.parse(value)
+  return dateFilterSchema.parse(parsed)
+}
 
 export const useQuotesTableQuery = ({
   pageSize = 50,
@@ -9,17 +18,22 @@ export const useQuotesTableQuery = ({
 }) => {
   const raw = useQueryParams(
     ["q", "offset", "order", "created_at", "updated_at"],
-    prefix
+    prefix,
   )
 
   const { offset, created_at, updated_at, ...rest } = raw
+  const hasCreatedAt = created_at !== undefined && created_at.length > 0
+  const hasUpdatedAt = updated_at !== undefined && updated_at.length > 0
   const searchParams = {
-    ...rest,
+    ...(rest.q !== undefined && rest.q.length > 0 ? { q: rest.q } : {}),
+    ...(rest.order !== undefined && rest.order.length > 0
+      ? { order: rest.order }
+      : {}),
     limit: pageSize,
-    offset: offset ? Number(offset) : 0,
-    created_at: created_at ? JSON.parse(created_at) : undefined,
-    updated_at: updated_at ? JSON.parse(updated_at) : undefined,
+    offset: offset !== undefined && offset.length > 0 ? Number(offset) : 0,
+    ...(hasCreatedAt ? { created_at: parseDateFilter(created_at) } : {}),
+    ...(hasUpdatedAt ? { updated_at: parseDateFilter(updated_at) } : {}),
   }
 
-  return { searchParams, raw }
+  return { raw, searchParams }
 }

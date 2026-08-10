@@ -1,9 +1,18 @@
-import type { MedusaRequest, MedusaResponse } from '@medusajs/framework/http'
-import { synchronizeSearchProfiles } from '../../../../modules/meilisearch/synchronize'
-import type { AdminSearchProfileSyncSchemaType } from '../validators'
+import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 
-export async function POST(request: MedusaRequest<AdminSearchProfileSyncSchemaType>, response: MedusaResponse) {
-	const result = await synchronizeSearchProfiles(request.scope, request.validatedBody.mode)
+import { synchronizeSearchProfiles } from "../../../../modules/meilisearch/synchronize"
+import type { AdminSearchProfileSyncSchemaType } from "../validators"
 
-	response.json({ result })
+const synchronizeAllSearchProfiles = async (
+  request: MedusaRequest<AdminSearchProfileSyncSchemaType>,
+  response: MedusaResponse,
+) => {
+  const result = await synchronizeSearchProfiles(
+    request.scope,
+    request.validatedBody.mode,
+  )
+
+  response.json({ result })
 }
+
+export { synchronizeAllSearchProfiles as POST }

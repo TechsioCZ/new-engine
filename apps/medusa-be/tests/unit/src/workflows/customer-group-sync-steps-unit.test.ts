@@ -1,0 +1,1192 @@
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/utils"
+import type { Mock } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { COMPANY_MODULE } from "../../../../src/modules/company"
+
+const { overrideModule } = vi.hoisted(() => ({
+  overrideModule: <Module extends object>(
+    original: Module,
+    replacements: object,
+  ): Module =>
+    Object.defineProperties(
+      { ...original },
+      Object.getOwnPropertyDescriptors(replacements),
+    ),
+}))
+
+const COMPANY_CUSTOMER_GROUP_ENTRY_POINT = "company_customer_group"
+
+type StepImplementation = (...args: unknown[]) => unknown
+
+type CreateStepFn = (
+  name: string,
+  invoke: StepImplementation,
+  compensate?: StepImplementation,
+) => StepImplementation & { compensate?: StepImplementation }
+
+vi.mock(import("@medusajs/framework/workflows-sdk"), async (importOriginal) =>
+  overrideModule(await importOriginal(), {
+    StepResponse: class StepResponse<
+      TPayload = unknown,
+      TCompensationInput = unknown,
+    > {
+      compensateInput: TCompensationInput | undefined
+      payload: TPayload
+
+      constructor(payload: TPayload, compensateInput?: TCompensationInput) {
+        this.payload = payload
+        this.compensateInput = compensateInput
+      }
+    },
+    createStep: vi.fn<CreateStepFn>((_name, invoke, compensate) => {
+      if (compensate === undefined) {
+        return invoke
+      }
+      return Object.assign(invoke, { compensate })
+    }),
+  }),
+)
+
+type AsyncMockFn<TArgs extends unknown[] = unknown[], TReturn = unknown> = (
+  ...args: TArgs
+) => Promise<TReturn>
+
+interface CustomerGroupLinkInput {
+  customer_group_id: string
+  customer_id: string
+}
+
+interface CustomerService {
+  addCustomerToGroup: Mock<
+    AsyncMockFn<[CustomerGroupLinkInput | CustomerGroupLinkInput[]]>
+  >
+  removeCustomerFromGroup: Mock<
+    AsyncMockFn<[CustomerGroupLinkInput | CustomerGroupLinkInput[]]>
+  >
+  retrieveCustomerGroup: Mock<AsyncMockFn<[string], { id: string }>>
+}
+
+interface LinkService {
+  create: Mock<AsyncMockFn>
+  delete: Mock<AsyncMockFn>
+  dismiss: Mock<AsyncMockFn>
+  list: Mock<AsyncMockFn<unknown[], unknown[]>>
+  restore: Mock<AsyncMockFn>
+}
+
+interface CompanyService {
+  createEmployees: Mock<AsyncMockFn>
+  deleteEmployees: Mock<AsyncMockFn>
+  listCompanies: Mock<AsyncMockFn<unknown[], unknown[]>>
+  retrieveCompany: Mock<AsyncMockFn>
+  restoreEmployees: Mock<AsyncMockFn>
+  softDeleteEmployees: Mock<AsyncMockFn>
+  updateEmployees: Mock<AsyncMockFn>
+}
+
+interface AuthService {
+  updateProviderIdentities: Mock<AsyncMockFn>
+}
+
+type GraphQueryFn = AsyncMockFn<[unknown], { data: unknown[] }>
+
+type MockContainer = ReturnType<typeof makeContainer>
+
+type MockStep<TInput> = (
+  input: TInput,
+  context: { container: MockContainer },
+) => Promise<{
+  compensateInput?: unknown
+  payload: unknown
+}>
+
+const isMockStep = <TInput>(
+  candidate: unknown,
+): candidate is MockStep<TInput> => typeof candidate === "function"
+
+const asMockStep = <TInput>(candidate: unknown): MockStep<TInput> => {
+  if (!isMockStep<TInput>(candidate)) {
+    throw new TypeError(
+      "Expected the imported workflow step to be a mocked function",
+    )
+  }
+
+  return candidate
+}
+
+const makeCustomerService = (
+  overrides: Partial<CustomerService> = {},
+): CustomerService => ({
+  addCustomerToGroup:
+    vi.fn<AsyncMockFn<[CustomerGroupLinkInput | CustomerGroupLinkInput[]]>>(),
+  removeCustomerFromGroup:
+    vi.fn<AsyncMockFn<[CustomerGroupLinkInput | CustomerGroupLinkInput[]]>>(),
+  retrieveCustomerGroup: vi
+    .fn<AsyncMockFn<[string], { id: string }>>()
+    .mockResolvedValue({ id: "cgrp_1" }),
+  ...overrides,
+})
+
+const makeLinkService = (
+  overrides: Partial<LinkService> = {},
+): LinkService => ({
+  create: vi.fn<AsyncMockFn>(),
+  delete: vi.fn<AsyncMockFn>(),
+  dismiss: vi.fn<AsyncMockFn>(),
+  list: vi.fn<AsyncMockFn<unknown[], unknown[]>>().mockResolvedValue([]),
+  restore: vi.fn<AsyncMockFn>(),
+  ...overrides,
+})
+
+const makeCompanyService = (
+  overrides: Partial<CompanyService> = {},
+): CompanyService => ({
+  createEmployees: vi.fn<AsyncMockFn>(),
+  deleteEmployees: vi.fn<AsyncMockFn>(),
+  listCompanies: vi
+    .fn<AsyncMockFn<unknown[], unknown[]>>()
+    .mockResolvedValue([]),
+  restoreEmployees: vi.fn<AsyncMockFn>(),
+  retrieveCompany: vi
+    .fn<AsyncMockFn>()
+    .mockResolvedValue({ deleted_at: null, id: "comp_1" }),
+  softDeleteEmployees: vi.fn<AsyncMockFn>(),
+  updateEmployees: vi.fn<AsyncMockFn>(),
+  ...overrides,
+})
+
+const makeAuthService = (
+  overrides: Partial<AuthService> = {},
+): AuthService => ({
+  updateProviderIdentities: vi.fn<AsyncMockFn>(),
+  ...overrides,
+})
+
+const makeContainer = ({
+  authService = makeAuthService(),
+  companyService = makeCompanyService(),
+  customerService = makeCustomerService(),
+  linkService = makeLinkService(),
+  graph,
+}: {
+  authService?: AuthService
+  companyService?: CompanyService
+  customerService?: CustomerService
+  linkService?: LinkService
+  graph: Mock<GraphQueryFn>
+}) => ({
+  resolve: vi.fn<(key: string) => unknown>((key) => {
+    if (key === ContainerRegistrationKeys.QUERY) {
+      return { graph }
+    }
+
+    if (key === Modules.CUSTOMER) {
+      return customerService
+    }
+
+    if (key === Modules.AUTH) {
+      return authService
+    }
+
+    if (key === ContainerRegistrationKeys.LINK) {
+      return linkService
+    }
+
+    if (key === COMPANY_MODULE) {
+      return companyService
+    }
+
+    throw new Error(`Unexpected dependency: ${key}`)
+  }),
+})
+
+describe("customer-group sync steps", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("adds a newly linked employee customer to the company's customer group by known customer id", async () => {
+    const { addEmployeeToCustomerGroupStep } =
+      await import("../../../../src/workflows/employee/steps/add-employee-to-customer-group")
+    const customerService = makeCustomerService()
+    const graph = vi
+      .fn<GraphQueryFn>()
+      .mockResolvedValueOnce({
+        data: [{ company: { id: "comp_1" }, id: "emp_1" }],
+      })
+      .mockResolvedValueOnce({
+        data: [{ customer_group: { id: "cgrp_1" }, id: "comp_1" }],
+      })
+    const container = makeContainer({ customerService, graph })
+
+    const result = await asMockStep<{
+      customer_id: string
+      employee_id: string
+    }>(addEmployeeToCustomerGroupStep)(
+      { customer_id: "cus_1", employee_id: "emp_1" },
+      { container },
+    )
+
+    expect(customerService.addCustomerToGroup).toHaveBeenCalledWith({
+      customer_group_id: "cgrp_1",
+      customer_id: "cus_1",
+    })
+    expect(result.compensateInput).toStrictEqual({
+      customer_id: "cus_1",
+      group_id: "cgrp_1",
+    })
+  })
+
+  it("replaces an existing company customer group link before creating the new link", async () => {
+    const { setCompanyCustomerGroupStep } =
+      await import("../../../../src/workflows/company/steps/set-company-customer-group")
+    const customerService = makeCustomerService()
+    const linkService = makeLinkService()
+    const graph = vi
+      .fn<GraphQueryFn>()
+      .mockResolvedValueOnce({
+        data: [
+          {
+            customer_group: { id: "cgrp_old" },
+            employees: [
+              { customer: { id: "cus_1" } },
+              { customer: { id: "cus_2" } },
+            ],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({ data: [] })
+    const container = makeContainer({ customerService, graph, linkService })
+
+    const result = await asMockStep<{
+      company_id: string
+      group_id: string
+    }>(setCompanyCustomerGroupStep)(
+      { company_id: "comp_1", group_id: "cgrp_new" },
+      { container },
+    )
+
+    expect(linkService.dismiss).toHaveBeenCalledWith({
+      company: { company_id: "comp_1" },
+      customer: { customer_group_id: "cgrp_old" },
+    })
+    expect(linkService.create).toHaveBeenCalledWith({
+      company: { company_id: "comp_1" },
+      customer: { customer_group_id: "cgrp_new" },
+    })
+    expect(customerService.removeCustomerFromGroup).toHaveBeenCalledWith([
+      { customer_group_id: "cgrp_old", customer_id: "cus_1" },
+      { customer_group_id: "cgrp_old", customer_id: "cus_2" },
+    ])
+    expect(customerService.addCustomerToGroup).toHaveBeenCalledWith([
+      { customer_group_id: "cgrp_new", customer_id: "cus_1" },
+      { customer_group_id: "cgrp_new", customer_id: "cus_2" },
+    ])
+    expect(result.compensateInput).toStrictEqual({
+      company_id: "comp_1",
+      customer_ids: ["cus_1", "cus_2"],
+      dismissed_deleted_owner_links: [],
+      new_group_id: "cgrp_new",
+      previous_group_id: "cgrp_old",
+    })
+  })
+
+  it("dismisses a stale soft-deleted company owner before linking a customer group", async () => {
+    const { setCompanyCustomerGroupStep } =
+      await import("../../../../src/workflows/company/steps/set-company-customer-group")
+    const companyService = makeCompanyService({
+      listCompanies: vi
+        .fn<AsyncMockFn<unknown[], unknown[]>>()
+        .mockResolvedValue([{ deleted_at: new Date(), id: "comp_deleted" }]),
+    })
+    const linkService = makeLinkService()
+    const graph = vi
+      .fn<GraphQueryFn>()
+      .mockResolvedValueOnce({
+        data: [
+          {
+            customer_group: null,
+            employees: [],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company_id: "comp_deleted",
+            customer_group_id: "cgrp_new",
+          },
+        ],
+      })
+    const container = makeContainer({
+      companyService,
+      graph,
+      linkService,
+    })
+
+    await asMockStep<{
+      company_id: string
+      group_id: string
+    }>(setCompanyCustomerGroupStep)(
+      { company_id: "comp_1", group_id: "cgrp_new" },
+      { container },
+    )
+
+    expect(graph).toHaveBeenNthCalledWith(2, {
+      entity: COMPANY_CUSTOMER_GROUP_ENTRY_POINT,
+      fields: ["company_id", "customer_group_id"],
+      filters: {
+        customer_group_id: "cgrp_new",
+      },
+    })
+    expect(linkService.dismiss).toHaveBeenCalledWith([
+      {
+        company: { company_id: "comp_deleted" },
+        customer: { customer_group_id: "cgrp_new" },
+      },
+    ])
+    expect(linkService.create).toHaveBeenCalledWith({
+      company: { company_id: "comp_1" },
+      customer: { customer_group_id: "cgrp_new" },
+    })
+  })
+
+  it("rejects linking a customer group owned by another active company", async () => {
+    const { setCompanyCustomerGroupStep } =
+      await import("../../../../src/workflows/company/steps/set-company-customer-group")
+    const companyService = makeCompanyService({
+      listCompanies: vi
+        .fn<AsyncMockFn<unknown[], unknown[]>>()
+        .mockResolvedValue([{ deleted_at: null, id: "comp_2", name: "ACME" }]),
+    })
+    const linkService = makeLinkService()
+    const graph = vi
+      .fn<GraphQueryFn>()
+      .mockResolvedValueOnce({
+        data: [
+          {
+            customer_group: null,
+            employees: [],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company_id: "comp_2",
+            customer_group_id: "cgrp_new",
+          },
+        ],
+      })
+    const container = makeContainer({
+      companyService,
+      graph,
+      linkService,
+    })
+
+    await expect(
+      asMockStep<{
+        company_id: string
+        group_id: string
+      }>(setCompanyCustomerGroupStep)(
+        { company_id: "comp_1", group_id: "cgrp_new" },
+        { container },
+      ),
+    ).rejects.toThrow(MedusaError)
+
+    expect(linkService.create).not.toHaveBeenCalled()
+  })
+
+  it("removes the company customer group link and employee group memberships when explicitly removed", async () => {
+    const { removeCompanyCustomerGroupLinkStep } =
+      await import("../../../../src/workflows/company/steps/remove-company-customer-group-link")
+    const customerService = makeCustomerService()
+    const linkService = makeLinkService()
+    const graph = vi.fn<GraphQueryFn>().mockResolvedValue({
+      data: [
+        {
+          customer_group: { id: "cgrp_1" },
+          employees: [
+            { customer: { id: "cus_1" } },
+            { customer: { id: "cus_2" } },
+          ],
+        },
+      ],
+    })
+    const container = makeContainer({ customerService, graph, linkService })
+
+    const result = await asMockStep<string>(removeCompanyCustomerGroupLinkStep)(
+      "comp_1",
+      { container },
+    )
+
+    expect(customerService.removeCustomerFromGroup).toHaveBeenCalledWith([
+      { customer_group_id: "cgrp_1", customer_id: "cus_1" },
+      { customer_group_id: "cgrp_1", customer_id: "cus_2" },
+    ])
+    expect(linkService.dismiss).toHaveBeenCalledWith({
+      company: { company_id: "comp_1" },
+      customer: { customer_group_id: "cgrp_1" },
+    })
+    expect(result.compensateInput).toStrictEqual({
+      company_id: "comp_1",
+      customer_ids: ["cus_1", "cus_2"],
+      group_id: "cgrp_1",
+      link_removed: true,
+    })
+  })
+
+  it("preserves the company customer group link while removing memberships before company deletion", async () => {
+    const { removeCompanyCustomerGroupLinkStep } =
+      await import("../../../../src/workflows/company/steps/remove-company-customer-group-link")
+    const customerService = makeCustomerService()
+    const linkService = makeLinkService()
+    const graph = vi.fn<GraphQueryFn>().mockResolvedValue({
+      data: [
+        {
+          customer_group: { id: "cgrp_1" },
+          employees: [
+            { customer: { id: "cus_1" } },
+            { customer: { id: "cus_2" } },
+          ],
+        },
+      ],
+    })
+    const container = makeContainer({ customerService, graph, linkService })
+
+    const result = await asMockStep<{
+      company_id: string
+      preserve_link: boolean
+    }>(removeCompanyCustomerGroupLinkStep)(
+      { company_id: "comp_1", preserve_link: true },
+      { container },
+    )
+
+    expect(customerService.removeCustomerFromGroup).toHaveBeenCalledWith([
+      { customer_group_id: "cgrp_1", customer_id: "cus_1" },
+      { customer_group_id: "cgrp_1", customer_id: "cus_2" },
+    ])
+    expect(linkService.dismiss).not.toHaveBeenCalled()
+    expect(result.compensateInput).toStrictEqual({
+      company_id: "comp_1",
+      customer_ids: ["cus_1", "cus_2"],
+      group_id: "cgrp_1",
+      link_removed: false,
+    })
+  })
+
+  it("does not remove a company customer group link when the expected group does not match", async () => {
+    const { removeCompanyCustomerGroupLinkStep } =
+      await import("../../../../src/workflows/company/steps/remove-company-customer-group-link")
+    const customerService = makeCustomerService()
+    const linkService = makeLinkService()
+    const graph = vi.fn<GraphQueryFn>().mockResolvedValue({
+      data: [
+        {
+          customer_group: { id: "cgrp_current" },
+          employees: [{ customer: { id: "cus_1" } }],
+        },
+      ],
+    })
+    const container = makeContainer({ customerService, graph, linkService })
+
+    await expect(
+      asMockStep<{
+        company_id: string
+        expected_group_id: string
+      }>(removeCompanyCustomerGroupLinkStep)(
+        { company_id: "comp_1", expected_group_id: "cgrp_requested" },
+        { container },
+      ),
+    ).rejects.toThrow(MedusaError)
+
+    expect(customerService.removeCustomerFromGroup).not.toHaveBeenCalled()
+    expect(linkService.dismiss).not.toHaveBeenCalled()
+  })
+
+  it("rejects employee mutations for a soft-deleted company", async () => {
+    const { validateCompanyActiveStep } =
+      await import("../../../../src/workflows/company/steps/validate-company-active")
+    const companyService = makeCompanyService({
+      retrieveCompany: vi.fn<AsyncMockFn>().mockResolvedValue({
+        deleted_at: new Date(),
+        id: "comp_deleted",
+      }),
+    })
+    const graph = vi.fn<GraphQueryFn>()
+    const container = makeContainer({ companyService, graph })
+
+    await expect(
+      asMockStep<string>(validateCompanyActiveStep)("comp_deleted", {
+        container,
+      }),
+    ).rejects.toThrow(MedusaError)
+  })
+
+  it("cleans stale employee state owned by a soft-deleted company: queries and link cleanup", async () => {
+    const { prepareEmployeeCustomerLinkStep } =
+      await import("../../../../src/workflows/employee/steps/prepare-employee-customer-link")
+    const authService = makeAuthService()
+    const companyService = makeCompanyService()
+    const customerService = makeCustomerService()
+    const linkService = makeLinkService()
+    const graph = vi
+      .fn<GraphQueryFn>()
+      .mockResolvedValueOnce({
+        data: [
+          {
+            customer_id: "cus_1",
+            employee_id: "emp_deleted",
+            id: "link_deleted",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company: {
+              customer_group: { id: "cgrp_deleted" },
+              deleted_at: new Date(),
+              id: "comp_deleted",
+              name: "Deleted Co",
+            },
+            customer: {
+              email: "admin@example.com",
+              id: "cus_1",
+            },
+            id: "emp_deleted",
+            is_admin: true,
+            spending_limit: 120,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            customer_id: "cus_1",
+            employee_id: "emp_deleted",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company: {
+              deleted_at: new Date(),
+              id: "comp_deleted",
+            },
+            customer: { id: "cus_1" },
+            deleted_at: null,
+            id: "emp_deleted",
+            is_admin: true,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [{ id: "authpi_1" }],
+      })
+    const container = makeContainer({
+      authService,
+      companyService,
+      customerService,
+      graph,
+      linkService,
+    })
+
+    await asMockStep<{
+      company_id: string
+      customer_id: string
+    }>(prepareEmployeeCustomerLinkStep)(
+      { company_id: "comp_1", customer_id: "cus_1" },
+      { container },
+    )
+
+    expect(graph).toHaveBeenNthCalledWith(1, {
+      entity: "employee_customer",
+      fields: ["id", "customer_id", "employee_id"],
+      filters: {
+        customer_id: "cus_1",
+      },
+      withDeleted: true,
+    })
+    expect(linkService.dismiss).toHaveBeenCalledWith({
+      company: { employee_id: "emp_deleted" },
+      customer: { customer_id: "cus_1" },
+    })
+    expect(customerService.removeCustomerFromGroup).toHaveBeenCalledWith([
+      {
+        customer_group_id: "cgrp_deleted",
+        customer_id: "cus_1",
+      },
+    ])
+  })
+
+  it("cleans stale employee state owned by a soft-deleted company: auth and compensation", async () => {
+    const { prepareEmployeeCustomerLinkStep } =
+      await import("../../../../src/workflows/employee/steps/prepare-employee-customer-link")
+    const authService = makeAuthService()
+    const companyService = makeCompanyService()
+    const customerService = makeCustomerService()
+    const linkService = makeLinkService()
+    const graph = vi
+      .fn<GraphQueryFn>()
+      .mockResolvedValueOnce({
+        data: [
+          {
+            customer_id: "cus_1",
+            employee_id: "emp_deleted",
+            id: "link_deleted",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company: {
+              customer_group: { id: "cgrp_deleted" },
+              deleted_at: new Date(),
+              id: "comp_deleted",
+              name: "Deleted Co",
+            },
+            customer: {
+              email: "admin@example.com",
+              id: "cus_1",
+            },
+            id: "emp_deleted",
+            is_admin: true,
+            spending_limit: 120,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            customer_id: "cus_1",
+            employee_id: "emp_deleted",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company: {
+              deleted_at: new Date(),
+              id: "comp_deleted",
+            },
+            customer: { id: "cus_1" },
+            deleted_at: null,
+            id: "emp_deleted",
+            is_admin: true,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [{ id: "authpi_1" }],
+      })
+    const container = makeContainer({
+      authService,
+      companyService,
+      customerService,
+      graph,
+      linkService,
+    })
+
+    const result = await asMockStep<{
+      company_id: string
+      customer_id: string
+    }>(prepareEmployeeCustomerLinkStep)(
+      { company_id: "comp_1", customer_id: "cus_1" },
+      { container },
+    )
+
+    expect(authService.updateProviderIdentities).toHaveBeenCalledWith([
+      {
+        id: "authpi_1",
+        user_metadata: {
+          role: null,
+        },
+      },
+    ])
+    expect(companyService.softDeleteEmployees).toHaveBeenCalledWith([
+      "emp_deleted",
+    ])
+    expect(result.compensateInput).toStrictEqual({
+      deleted_employees: [
+        {
+          company_id: "comp_deleted",
+          customer_id: "cus_1",
+          id: "emp_deleted",
+          is_admin: true,
+          spending_limit: 120,
+        },
+      ],
+      links: [
+        {
+          customer_id: "cus_1",
+          employee_id: "emp_deleted",
+          id: "link_deleted",
+        },
+      ],
+      provider_identity_ids: ["authpi_1"],
+      restored_customer_groups: [
+        {
+          customer_group_id: "cgrp_deleted",
+          customer_id: "cus_1",
+        },
+      ],
+    })
+  })
+
+  it("rejects an employee customer link owned by an active company", async () => {
+    const { prepareEmployeeCustomerLinkStep } =
+      await import("../../../../src/workflows/employee/steps/prepare-employee-customer-link")
+    const companyService = makeCompanyService()
+    const linkService = makeLinkService()
+    const graph = vi
+      .fn<GraphQueryFn>()
+      .mockResolvedValueOnce({
+        data: [
+          {
+            customer_id: "cus_1",
+            employee_id: "emp_2",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company: {
+              deleted_at: null,
+              id: "comp_2",
+              name: "Active Co",
+            },
+            deleted_at: null,
+            id: "emp_2",
+          },
+        ],
+      })
+    const container = makeContainer({
+      companyService,
+      graph,
+      linkService,
+    })
+
+    await expect(
+      asMockStep<{
+        company_id: string
+        customer_id: string
+      }>(prepareEmployeeCustomerLinkStep)(
+        { company_id: "comp_1", customer_id: "cus_1" },
+        { container },
+      ),
+    ).rejects.toThrow(MedusaError)
+
+    expect(linkService.dismiss).not.toHaveBeenCalled()
+    expect(companyService.deleteEmployees).not.toHaveBeenCalled()
+  })
+
+  it("cleans stale employee state when the employee is deleted but its company is active", async () => {
+    const { prepareEmployeeCustomerLinkStep } =
+      await import("../../../../src/workflows/employee/steps/prepare-employee-customer-link")
+    const authService = makeAuthService()
+    const companyService = makeCompanyService()
+    const customerService = makeCustomerService()
+    const linkService = makeLinkService()
+    const graph = vi
+      .fn<GraphQueryFn>()
+      .mockResolvedValueOnce({
+        data: [
+          {
+            customer_id: "cus_1",
+            employee_id: "emp_deleted",
+            id: "link_deleted",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company: {
+              customer_group: { id: "cgrp_active" },
+              deleted_at: null,
+              id: "comp_active",
+              name: "Active Co",
+            },
+            customer: {
+              email: "admin@example.com",
+              id: "cus_1",
+            },
+            deleted_at: new Date(),
+            id: "emp_deleted",
+            is_admin: true,
+            spending_limit: 120,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            customer_id: "cus_1",
+            employee_id: "emp_deleted",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company: {
+              deleted_at: null,
+              id: "comp_active",
+            },
+            customer: { id: "cus_1" },
+            deleted_at: new Date(),
+            id: "emp_deleted",
+            is_admin: true,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [{ id: "authpi_1" }],
+      })
+    const container = makeContainer({
+      authService,
+      companyService,
+      customerService,
+      graph,
+      linkService,
+    })
+
+    await asMockStep<{
+      company_id: string
+      customer_id: string
+    }>(prepareEmployeeCustomerLinkStep)(
+      { company_id: "comp_1", customer_id: "cus_1" },
+      { container },
+    )
+
+    expect(linkService.dismiss).toHaveBeenCalledWith({
+      company: { employee_id: "emp_deleted" },
+      customer: { customer_id: "cus_1" },
+    })
+    expect(customerService.removeCustomerFromGroup).toHaveBeenCalledWith([
+      {
+        customer_group_id: "cgrp_active",
+        customer_id: "cus_1",
+      },
+    ])
+    expect(authService.updateProviderIdentities).toHaveBeenCalledWith([
+      {
+        id: "authpi_1",
+        user_metadata: {
+          role: null,
+        },
+      },
+    ])
+    expect(companyService.softDeleteEmployees).toHaveBeenCalledWith([
+      "emp_deleted",
+    ])
+  })
+
+  it("keeps a same-company soft-deleted employee available for restore", async () => {
+    const { prepareEmployeeCustomerLinkStep } =
+      await import("../../../../src/workflows/employee/steps/prepare-employee-customer-link")
+    const companyService = makeCompanyService()
+    const customerService = makeCustomerService()
+    const linkService = makeLinkService()
+    const graph = vi
+      .fn<GraphQueryFn>()
+      .mockResolvedValueOnce({
+        data: [
+          {
+            customer_id: "cus_1",
+            employee_id: "emp_deleted",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company: {
+              customer_group: { id: "cgrp_active" },
+              deleted_at: null,
+              id: "comp_1",
+              name: "Active Co",
+            },
+            customer: {
+              email: "admin@example.com",
+              id: "cus_1",
+            },
+            deleted_at: new Date(),
+            id: "emp_deleted",
+            is_admin: true,
+            spending_limit: 120,
+          },
+        ],
+      })
+    const container = makeContainer({
+      companyService,
+      customerService,
+      graph,
+      linkService,
+    })
+
+    await asMockStep<{
+      company_id: string
+      customer_id: string
+    }>(prepareEmployeeCustomerLinkStep)(
+      { company_id: "comp_1", customer_id: "cus_1" },
+      { container },
+    )
+
+    expect(linkService.dismiss).not.toHaveBeenCalled()
+    expect(customerService.removeCustomerFromGroup).not.toHaveBeenCalled()
+    expect(companyService.deleteEmployees).not.toHaveBeenCalled()
+    expect(companyService.softDeleteEmployees).not.toHaveBeenCalled()
+  })
+
+  it("restores a same-company soft-deleted employee instead of creating a duplicate", async () => {
+    const { createOrRestoreEmployeeStep } =
+      await import("../../../../src/workflows/employee/steps/create-or-restore-employee")
+    const companyService = makeCompanyService({
+      restoreEmployees: vi.fn<AsyncMockFn>(),
+      updateEmployees: vi
+        .fn<AsyncMockFn>()
+        .mockResolvedValue({ id: "emp_deleted" }),
+    })
+    const linkService = makeLinkService()
+    const graph = vi
+      .fn<GraphQueryFn>()
+      .mockResolvedValueOnce({
+        data: [
+          {
+            customer_id: "cus_1",
+            deleted_at: new Date(),
+            employee_id: "emp_deleted",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company: { deleted_at: null, id: "comp_1" },
+            deleted_at: new Date(),
+            id: "emp_deleted",
+            is_admin: true,
+            spending_limit: 120,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [{ company: { id: "comp_1" }, id: "emp_deleted" }],
+      })
+    const container = makeContainer({
+      companyService,
+      graph,
+      linkService,
+    })
+
+    const result = await asMockStep<{
+      company_id: string
+      customer_id: string
+      is_admin: boolean
+      spending_limit: number
+    }>(createOrRestoreEmployeeStep)(
+      {
+        company_id: "comp_1",
+        customer_id: "cus_1",
+        is_admin: false,
+        spending_limit: 50,
+      },
+      { container },
+    )
+
+    expect(companyService.restoreEmployees).toHaveBeenCalledWith([
+      "emp_deleted",
+    ])
+    expect(linkService.restore).toHaveBeenCalledWith({
+      company: {
+        employee_id: ["emp_deleted"],
+      },
+    })
+    expect(companyService.updateEmployees).toHaveBeenCalledWith({
+      id: "emp_deleted",
+      is_admin: false,
+      spending_limit: 50,
+    })
+    expect(companyService.createEmployees).not.toHaveBeenCalled()
+    expect(result.compensateInput).toStrictEqual({
+      action: "restored",
+      employee_id: "emp_deleted",
+      previous_is_admin: true,
+      previous_spending_limit: 120,
+      restored_link_input: {
+        company: {
+          employee_id: ["emp_deleted"],
+        },
+      },
+    })
+  })
+
+  it("does not restore a same-company deleted employee when another active company owns the customer", async () => {
+    const { createOrRestoreEmployeeStep } =
+      await import("../../../../src/workflows/employee/steps/create-or-restore-employee")
+    const companyService = makeCompanyService({
+      createEmployees: vi
+        .fn<AsyncMockFn>()
+        .mockResolvedValue({ id: "emp_new" }),
+      restoreEmployees: vi.fn<AsyncMockFn>(),
+    })
+    const linkService = makeLinkService()
+    const graph = vi
+      .fn<GraphQueryFn>()
+      .mockResolvedValueOnce({
+        data: [
+          {
+            customer_id: "cus_1",
+            deleted_at: new Date(),
+            employee_id: "emp_deleted",
+          },
+          {
+            customer_id: "cus_1",
+            deleted_at: null,
+            employee_id: "emp_active_other",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company: { deleted_at: null, id: "comp_1" },
+            deleted_at: new Date(),
+            id: "emp_deleted",
+            is_admin: true,
+            spending_limit: 120,
+          },
+          {
+            company: { deleted_at: null, id: "comp_2" },
+            deleted_at: null,
+            id: "emp_active_other",
+            is_admin: false,
+            spending_limit: 0,
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [{ company: { id: "comp_1" }, id: "emp_new" }],
+      })
+    const container = makeContainer({
+      companyService,
+      graph,
+      linkService,
+    })
+
+    const result = await asMockStep<{
+      company_id: string
+      customer_id: string
+      is_admin: boolean
+      spending_limit: number
+    }>(createOrRestoreEmployeeStep)(
+      {
+        company_id: "comp_1",
+        customer_id: "cus_1",
+        is_admin: false,
+        spending_limit: 50,
+      },
+      { container },
+    )
+
+    expect(companyService.restoreEmployees).not.toHaveBeenCalled()
+    expect(linkService.restore).not.toHaveBeenCalled()
+    expect(companyService.createEmployees).toHaveBeenCalledWith({
+      company_id: "comp_1",
+      customer_id: "cus_1",
+      is_admin: false,
+      spending_limit: 50,
+    })
+    expect(linkService.create).toHaveBeenCalledWith({
+      company: { employee_id: "emp_new" },
+      customer: { customer_id: "cus_1" },
+    })
+    expect(result.compensateInput).toStrictEqual({
+      action: "created",
+      customer_id: "cus_1",
+      employee_id: "emp_new",
+    })
+  })
+
+  it("creates a new employee when only another company's soft-deleted employee exists", async () => {
+    const { createOrRestoreEmployeeStep } =
+      await import("../../../../src/workflows/employee/steps/create-or-restore-employee")
+    const companyService = makeCompanyService({
+      createEmployees: vi
+        .fn<AsyncMockFn>()
+        .mockResolvedValue({ id: "emp_new" }),
+    })
+    const linkService = makeLinkService()
+    const graph = vi
+      .fn<GraphQueryFn>()
+      .mockResolvedValueOnce({
+        data: [
+          {
+            customer_id: "cus_1",
+            deleted_at: new Date(),
+            employee_id: "emp_old",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [
+          {
+            company: { id: "comp_old" },
+            deleted_at: new Date(),
+            id: "emp_old",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        data: [{ company: { id: "comp_1" }, id: "emp_new" }],
+      })
+    const container = makeContainer({
+      companyService,
+      graph,
+      linkService,
+    })
+
+    const result = await asMockStep<{
+      company_id: string
+      customer_id: string
+      is_admin: boolean
+      spending_limit: number
+    }>(createOrRestoreEmployeeStep)(
+      {
+        company_id: "comp_1",
+        customer_id: "cus_1",
+        is_admin: false,
+        spending_limit: 50,
+      },
+      { container },
+    )
+
+    expect(companyService.restoreEmployees).not.toHaveBeenCalled()
+    expect(companyService.createEmployees).toHaveBeenCalledWith({
+      company_id: "comp_1",
+      customer_id: "cus_1",
+      is_admin: false,
+      spending_limit: 50,
+    })
+    expect(linkService.create).toHaveBeenCalledWith({
+      company: { employee_id: "emp_new" },
+      customer: { customer_id: "cus_1" },
+    })
+    expect(result.compensateInput).toStrictEqual({
+      action: "created",
+      customer_id: "cus_1",
+      employee_id: "emp_new",
+    })
+  })
+})

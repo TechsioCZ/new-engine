@@ -1,6 +1,12 @@
 import type { Logger } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
-import type { ApiStoreModuleService, ApiStoreSecretDTO } from "../api-store"
+import { getRecordValue, isRecord } from "@techsio/std/object"
+
+import type {
+  ApiStoreCredentials,
+  ApiStoreModuleService,
+  ApiStoreSecretDTO,
+} from "../api-store"
 import { API_STORE_MODULE } from "../api-store"
 import type {
   FetchHeurekaShopReviewsInput,
@@ -27,39 +33,41 @@ const DEFAULT_CONTENT_TYPE = "application/xml; charset=utf-8"
 const DEFAULT_JSON_CONTENT_TYPE = "application/json; charset=utf-8"
 const REQUEST_TIMEOUT_MS = 15_000
 
-type InjectedDependencies = {
+interface InjectedDependencies {
   [API_STORE_MODULE]: ApiStoreModuleService
   logger: Logger
 }
 
 const getCredentialValue = (
-  credentials: Record<string, unknown> | null,
-  key: string
+  credentials: ApiStoreCredentials | null,
+  key: string,
 ): string | null => {
-  const value = credentials?.[key]
-  return typeof value === "string" && value.trim() ? value.trim() : null
+  const value = isRecord(credentials)
+    ? getRecordValue(credentials, key)
+    : undefined
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : null
 }
 
 class ShopReviewModuleService {
-  protected readonly apiStoreService_: ApiStoreModuleService
-  protected readonly logger_: Logger
+  protected readonly apiStoreService: ApiStoreModuleService
+  protected readonly logger: Pick<Logger, "warn">
 
   constructor(container: InjectedDependencies) {
-    this.apiStoreService_ = container[API_STORE_MODULE]
-    this.logger_ = container.logger
+    this.apiStoreService = container[API_STORE_MODULE]
+    this.logger = container.logger
   }
 
   async fetchHeurekaShopReviews(
-    input: FetchHeurekaShopReviewsInput = {}
+    input: FetchHeurekaShopReviewsInput = {},
   ): Promise<ShopReviewProviderResponse> {
     const locale = input.locale ?? DEFAULT_HEUREKA_LOCALE
     const { apiStore, apiStoreName } =
       await this.retrieveHeurekaApiStore(locale)
 
-    if (!apiStore) {
+    if (apiStore === null) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `API store config for Heureka ${locale.toUpperCase()} was not found. Tried: ${HEUREKA_API_STORE_NAMES[locale].join(", ")}`
+        `API store config for Heureka ${locale.toUpperCase()} was not found. Tried: ${HEUREKA_API_STORE_NAMES[locale].join(", ")}`,
       )
     }
 
@@ -68,14 +76,18 @@ class ShopReviewModuleService {
       getCredentialValue(apiStore.credentials, "api_key") ??
       getCredentialValue(apiStore.credentials, "key")
 
-    if (!apiKey) {
+    if (apiKey === null || apiKey === "") {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `API store config "${apiStoreName}" must contain api_key`
+        `API store config "${apiStoreName}" must contain api_key`,
       )
     }
 
-    const url = this.buildHeurekaExportUrl(apiStore.api_url, apiKey, locale)
+    const url = ShopReviewModuleService.buildHeurekaExportUrl(
+      apiStore.api_url,
+      apiKey,
+      locale,
+    )
     const response = await fetch(url, {
       headers: {
         accept: "application/xml,text/xml,*/*",
@@ -85,12 +97,12 @@ class ShopReviewModuleService {
     const body = await response.text()
 
     if (!response.ok) {
-      this.logger_.warn(
-        `Heureka shop reviews request failed with status ${response.status}`
+      this.logger.warn(
+        `Heureka shop reviews request failed with status ${response.status}`,
       )
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Heureka shop reviews request failed with status ${response.status}`
+        `Heureka shop reviews request failed with status ${response.status}`,
       )
     }
 
@@ -99,7 +111,7 @@ class ShopReviewModuleService {
       content_type:
         response.headers.get("content-type") ?? DEFAULT_CONTENT_TYPE,
       provider: "heureka",
-      source_url: this.redactUrl(url),
+      source_url: ShopReviewModuleService.redactUrl(url),
     }
   }
 
@@ -107,15 +119,18 @@ class ShopReviewModuleService {
     const { refreshApiStore, accessApiStore } =
       await this.retrieveZboziApiStores()
 
-    if (!refreshApiStore.api_url) {
+    if (refreshApiStore.api_url === null || refreshApiStore.api_url === "") {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `API store config "${REFRESH_TOKEN_API_STORE_NAME}" must contain api_url`
+        `API store config "${REFRESH_TOKEN_API_STORE_NAME}" must contain api_url`,
       )
     }
 
     const accessToken = extractZboziAccessToken(accessApiStore)
-    const url = this.buildUrl(refreshApiStore.api_url, accessToken)
+    const url = ShopReviewModuleService.buildUrl(
+      refreshApiStore.api_url,
+      accessToken,
+    )
     const response = await fetch(url, {
       headers: {
         accept: "application/json,*/*",
@@ -126,12 +141,12 @@ class ShopReviewModuleService {
     const body = await response.text()
 
     if (!response.ok) {
-      this.logger_.warn(
-        `Zboží shop reviews request failed with status ${response.status}`
+      this.logger.warn(
+        `Zboží shop reviews request failed with status ${response.status}`,
       )
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Zboží shop reviews request failed with status ${response.status}`
+        `Zboží shop reviews request failed with status ${response.status}`,
       )
     }
 
@@ -140,13 +155,13 @@ class ShopReviewModuleService {
       content_type:
         response.headers.get("content-type") ?? DEFAULT_JSON_CONTENT_TYPE,
       provider: "zbozi",
-      source_url: this.redactUrl(url),
+      source_url: ShopReviewModuleService.redactUrl(url),
     }
   }
 
   async retrieveZboziAccessTokenApiStore(): Promise<ApiStoreSecretDTO | null> {
-    return this.apiStoreService_.retrieveApiStoreSecretsByName(
-      ACCESS_TOKEN_API_STORE_NAME
+    return await this.apiStoreService.retrieveApiStoreSecretsByName(
+      ACCESS_TOKEN_API_STORE_NAME,
     )
   }
 
@@ -154,8 +169,8 @@ class ShopReviewModuleService {
     accessToken: string
     expiresAt: Date
   }> {
-    return refreshZboziAccessTokenStore({
-      apiStoreService: this.apiStoreService_,
+    return await refreshZboziAccessTokenStore({
+      apiStoreService: this.apiStoreService,
     })
   }
 
@@ -164,23 +179,23 @@ class ShopReviewModuleService {
     accessApiStore: ApiStoreSecretDTO | null
   }> {
     const refreshApiStore =
-      await this.apiStoreService_.retrieveApiStoreSecretsByName(
-        REFRESH_TOKEN_API_STORE_NAME
+      await this.apiStoreService.retrieveApiStoreSecretsByName(
+        REFRESH_TOKEN_API_STORE_NAME,
       )
 
-    if (!refreshApiStore) {
+    if (refreshApiStore === null) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `API store config for ${REFRESH_TOKEN_API_STORE_NAME} was not found`
+        `API store config for ${REFRESH_TOKEN_API_STORE_NAME} was not found`,
       )
     }
 
     const accessApiStore =
-      await this.apiStoreService_.retrieveApiStoreSecretsByName(
-        ACCESS_TOKEN_API_STORE_NAME
+      await this.apiStoreService.retrieveApiStoreSecretsByName(
+        ACCESS_TOKEN_API_STORE_NAME,
       )
 
-    return { refreshApiStore, accessApiStore }
+    return { accessApiStore, refreshApiStore }
   }
 
   private async retrieveHeurekaApiStore(locale: HeurekaLocale): Promise<{
@@ -189,45 +204,50 @@ class ShopReviewModuleService {
   }> {
     const apiStoreNames = HEUREKA_API_STORE_NAMES[locale]
 
-    return this.retrieveApiStoreByNames(apiStoreNames)
+    return await this.retrieveApiStoreByNames(apiStoreNames)
   }
 
   private async retrieveApiStoreByNames(apiStoreNames: string[]): Promise<{
     apiStore: ApiStoreSecretDTO | null
     apiStoreName: string
   }> {
-    for (const apiStoreName of apiStoreNames) {
-      const apiStore =
-        await this.apiStoreService_.retrieveApiStoreSecretsByName(apiStoreName)
-
-      if (apiStore) {
-        return { apiStore, apiStoreName }
+    const apiStores = await Promise.all(
+      apiStoreNames.map(async (apiStoreName) => ({
+        apiStore:
+          await this.apiStoreService.retrieveApiStoreSecretsByName(
+            apiStoreName,
+          ),
+        apiStoreName,
+      })),
+    )
+    return (
+      apiStores.find(({ apiStore }) => apiStore !== null) ?? {
+        apiStore: null,
+        apiStoreName: apiStoreNames[0] ?? "API Store",
       }
-    }
-
-    return {
-      apiStore: null,
-      apiStoreName: apiStoreNames[0] ?? "API Store",
-    }
+    )
   }
 
-  private buildHeurekaExportUrl(
+  private static buildHeurekaExportUrl(
     apiUrl: string | null,
     apiKey: string,
-    locale: HeurekaLocale
+    locale: HeurekaLocale,
   ): string {
-    const rawUrl = apiUrl || DEFAULT_HEUREKA_EXPORT_URLS[locale]
-    const url = this.buildUrl(rawUrl, apiKey)
+    const rawUrl =
+      apiUrl === null || apiUrl === ""
+        ? DEFAULT_HEUREKA_EXPORT_URLS[locale]
+        : apiUrl
+    const url = ShopReviewModuleService.buildUrl(rawUrl, apiKey)
     const key = url.searchParams.get("key")
 
-    if (!key) {
+    if (key === null || key === "") {
       url.searchParams.set("key", apiKey)
     }
 
     return url.toString()
   }
 
-  private buildUrl(rawUrl: string, apiKey: string): URL {
+  private static buildUrl(rawUrl: string, apiKey: string): URL {
     const url = new URL(rawUrl.replace("API_KEY", apiKey))
 
     for (const secretParam of ["key", "api_key", "access_token", "token"]) {
@@ -239,7 +259,7 @@ class ShopReviewModuleService {
     return url
   }
 
-  private redactUrl(url: string | URL): string {
+  private static redactUrl(url: string | URL): string {
     const parsedUrl = new URL(url.toString())
     for (const secretParam of ["key", "api_key", "access_token", "token"]) {
       if (parsedUrl.searchParams.has(secretParam)) {

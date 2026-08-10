@@ -1,19 +1,27 @@
 "use client"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
 import Link from "next/link"
-import { type ComponentPropsWithoutRef, type ReactNode, useState } from "react"
+import { useState } from "react"
+import type { ComponentPropsWithoutRef, ReactNode } from "react"
+
 import { useCart } from "@/hooks/use-cart"
+
 import { Logo } from "./atoms/logo"
 import { AuthDropdown } from "./auth/auth-dropdown"
 import { CartPreview } from "./molecules/cart-preview"
 import { HeaderSearch } from "./molecules/header-search"
-import { type NavItem, Navigation } from "./molecules/navigation"
+import { Navigation } from "./molecules/navigation"
+import type { NavItem } from "./molecules/navigation"
 import { MobileMenu } from "./organisms/mobile-menu"
 import { RegionSelector } from "./region-selector"
 import { ThemeToggle } from "./theme-toggle"
+
+const DEFAULT_LOGO = { href: "/", text: "Logo" }
+const DEFAULT_NAVIGATION_ITEMS: NavItem[] = []
 
 interface HeaderProps extends ComponentPropsWithoutRef<"header"> {
   logo?: {
@@ -26,18 +34,18 @@ interface HeaderProps extends ComponentPropsWithoutRef<"header"> {
   showMobileMenu?: boolean
 }
 
-export function Header({
-  logo = { text: "Logo", href: "/" },
-  navigationItems = [],
+export const Header = ({
+  logo: _logo = DEFAULT_LOGO,
+  navigationItems = DEFAULT_NAVIGATION_ITEMS,
   actions,
   showMobileMenu = true,
   className,
   ...props
-}: HeaderProps) {
+}: HeaderProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const { cart } = useCart()
   const itemCount =
-    cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0
+    cart?.items?.reduce((sum, item) => sum + item.quantity, 0) ?? 0
 
   return (
     <header
@@ -48,7 +56,7 @@ export function Header({
         <div className="flex h-header-height-lg items-center justify-between">
           {/* Logo Section */}
           <div className="flex items-center">
-            <Link href={"/"}>
+            <Link href="/">
               <Logo size="sm" />
             </Link>
 
@@ -111,7 +119,9 @@ export function Header({
                 <Button
                   className="focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-offset-(length:--default-ring-offset) inline-flex items-center justify-center rounded-header-mobile-menu p-header-mobile-menu-padding text-header-icon-size text-header-mobile-menu-text hover:bg-header-mobile-menu-hover hover:text-header-mobile-menu-text-hover lg:hidden"
                   icon="token-icon-menu"
-                  onClick={() => setIsMobileMenuOpen(true)}
+                  onClick={() => {
+                    setIsMobileMenuOpen(true)
+                  }}
                   size="sm"
                   theme="borderless"
                 />
@@ -125,7 +135,9 @@ export function Header({
       <MobileMenu
         isOpen={isMobileMenuOpen}
         navigationItems={navigationItems}
-        onClose={() => setIsMobileMenuOpen(false)}
+        onClose={() => {
+          setIsMobileMenuOpen(false)
+        }}
       />
     </header>
   )

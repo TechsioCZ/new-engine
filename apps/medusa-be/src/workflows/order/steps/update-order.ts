@@ -28,17 +28,23 @@ export const updateOrderStep = createStep(
 
     const { selects, relations } = getSelectsAndRelationsFromObjectArray([data])
 
+    const updateAfterSnapshot = async (
+      dataBeforeUpdate: Awaited<ReturnType<IOrderModuleService["listOrders"]>>,
+    ) => ({
+      dataBeforeUpdate,
+      updatedQuotes: await orderModule.updateOrders(id, update),
+    })
+
     const dataBeforeUpdate = await orderModule.listOrders(
       { id: data.id },
-      { relations, select: selects }
+      { relations, select: selects },
     )
+    const updateResult = await updateAfterSnapshot(dataBeforeUpdate)
 
-    const updatedQuotes = await orderModule.updateOrders(id, update)
-
-    return new StepResponse(updatedQuotes, {
-      dataBeforeUpdate,
-      selects,
+    return new StepResponse(updateResult.updatedQuotes, {
+      dataBeforeUpdate: updateResult.dataBeforeUpdate,
       relations,
+      selects,
     })
   },
   async (revertInput, { container }) => {
@@ -51,8 +57,8 @@ export const updateOrderStep = createStep(
 
     await orderModule.updateOrders(
       dataBeforeUpdate.map((data) =>
-        convertItemResponseToUpdateRequest(data, selects, relations)
-      )
+        convertItemResponseToUpdateRequest(data, selects, relations),
+      ),
     )
-  }
+  },
 )

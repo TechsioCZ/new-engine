@@ -6,27 +6,50 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { z } from "@medusajs/framework/zod"
+
 import { COMPANY_MODULE } from "../../../modules/company"
 import type { ICompanyModuleService } from "../../../types"
 
 const COMPANY_CUSTOMER_GROUP_LINK_ENTRY_POINT = "company_customer_group"
 
-type EmployeeWithCustomer = {
-  customer?: { id?: string } | null
-}
+const employeeWithCustomerSchema = z.object({
+  customer: z.object({ id: z.string().optional() }).nullable().optional(),
+})
+type EmployeeWithCustomer = z.infer<typeof employeeWithCustomerSchema>
 
-type SetCompanyCustomerGroupInput = {
+const companyQuerySchema = z.object({
+  data: z.array(
+    z.object({
+      customer_group: z
+        .object({ id: z.string().optional() })
+        .nullable()
+        .optional(),
+      employees: z.array(employeeWithCustomerSchema).optional(),
+    }),
+  ),
+})
+const companyCustomerGroupLinkQuerySchema = z.object({
+  data: z.array(
+    z.object({
+      company_id: z.string().optional(),
+      customer_group_id: z.string().optional(),
+    }),
+  ),
+})
+
+interface SetCompanyCustomerGroupInput {
   company_id: string
   group_id: string
 }
 
-type SetCompanyCustomerGroupCompensation = {
+interface SetCompanyCustomerGroupCompensation {
   company_id: string
   customer_ids: string[]
-  dismissed_deleted_owner_links: Array<{
+  dismissed_deleted_owner_links: {
     company_id: string
     customer_group_id: string
-  }>
+  }[]
   new_group_id: string
   previous_group_id?: string
 }
@@ -40,32 +63,27 @@ const getCompanyCustomerGroupLink = (companyId: string, groupId: string) => ({
   },
 })
 
-type CompanyCustomerGroupLinkRow = {
-  company_id?: string
-  customer_group_id?: string
-}
-
 const getCustomerGroupCustomers = (
   employees: EmployeeWithCustomer[] | undefined,
-  groupId: string
+  groupId: string,
 ) =>
   (employees ?? [])
     .filter(
       (
-        employee
+        employee,
       ): employee is EmployeeWithCustomer & { customer: { id: string } } =>
-        Boolean(employee?.customer?.id)
+        employee.customer?.id !== undefined && employee.customer.id.length > 0,
     )
     .map((employee) => ({
-      customer_id: employee.customer.id,
       customer_group_id: groupId,
+      customer_id: employee.customer.id,
     }))
 
 export const setCompanyCustomerGroupStep = createStep(
   "set-company-customer-group",
   async (
     input: SetCompanyCustomerGroupInput,
-    { container }
+    { container },
   ): Promise<
     StepResponse<
       { group_id: string; previous_group_id?: string },
@@ -77,111 +95,118 @@ export const setCompanyCustomerGroupStep = createStep(
     const companyModuleService =
       container.resolve<ICompanyModuleService>(COMPANY_MODULE)
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
 
-    const {
-      data: [company],
-    } = await query.graph(
+    const companyQueryResult: unknown = await query.graph(
       {
         entity: "companies",
-        filters: { id: input.company_id },
         fields: [
           "id",
           "customer_group.*",
           "employees.*",
           "employees.customer.*",
         ],
+        filters: { id: input.company_id },
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
+    const [company] = companyQuerySchema.parse(companyQueryResult).data
 
-    if (!company) {
+    if (company === undefined) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Company ${input.company_id} was not found`
+        `Company ${input.company_id} was not found`,
       )
     }
 
     const previousGroupId = company.customer_group?.id
-    const previousGroupCustomers = previousGroupId
-      ? getCustomerGroupCustomers(
-          company.employees as EmployeeWithCustomer[] | undefined,
-          previousGroupId
-        )
+    const hasPreviousGroup =
+      previousGroupId !== undefined && previousGroupId.length > 0
+    const previousGroupCustomers = hasPreviousGroup
+      ? getCustomerGroupCustomers(company.employees, previousGroupId)
       : []
     const newGroupCustomers = getCustomerGroupCustomers(
-      company.employees as EmployeeWithCustomer[] | undefined,
-      input.group_id
+      company.employees,
+      input.group_id,
     )
-    const { data: targetGroupLinks } = await query.graph({
+    const targetGroupLinksQueryResult: unknown = await query.graph({
       entity: COMPANY_CUSTOMER_GROUP_LINK_ENTRY_POINT,
       fields: ["company_id", "customer_group_id"],
       filters: {
         customer_group_id: input.group_id,
       },
     })
+    const targetGroupLinks = companyCustomerGroupLinkQuerySchema.parse(
+      targetGroupLinksQueryResult,
+    ).data
     const targetGroupOwnerIds = [
       ...new Set(
-        (targetGroupLinks as CompanyCustomerGroupLinkRow[])
+        targetGroupLinks
           .map((targetGroupLink) => targetGroupLink.company_id)
           .filter(
             (companyId): companyId is string =>
-              typeof companyId === "string" && companyId !== input.company_id
-          )
+              typeof companyId === "string" && companyId !== input.company_id,
+          ),
       ),
     ]
 
-    if (targetGroupOwnerIds.length) {
+    if (targetGroupOwnerIds.length > 0) {
       const targetGroupOwners = await companyModuleService.listCompanies(
         { id: targetGroupOwnerIds },
         {
           select: ["id", "name", "deleted_at"],
           withDeleted: true,
-        }
+        },
       )
       const activeOwner = targetGroupOwners.find(
-        (targetGroupOwner) => !targetGroupOwner.deleted_at
+        (targetGroupOwner) =>
+          targetGroupOwner.deleted_at === null ||
+          targetGroupOwner.deleted_at === undefined,
       )
 
-      if (activeOwner) {
+      if (activeOwner !== undefined) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          `Customer group is already linked to active company "${activeOwner.name}".`
+          `Customer group is already linked to active company "${activeOwner.name}".`,
         )
       }
 
       await link.dismiss(
         targetGroupOwnerIds.map((ownerId) =>
-          getCompanyCustomerGroupLink(ownerId, input.group_id)
-        )
+          getCompanyCustomerGroupLink(ownerId, input.group_id),
+        ),
       )
     }
 
-    if (previousGroupId && previousGroupId !== input.group_id) {
-      if (previousGroupCustomers.length) {
+    if (hasPreviousGroup && previousGroupId !== input.group_id) {
+      if (previousGroupCustomers.length > 0) {
         await customerModuleService.removeCustomerFromGroup(
-          previousGroupCustomers
+          previousGroupCustomers,
         )
       }
 
       await link.dismiss(
-        getCompanyCustomerGroupLink(input.company_id, previousGroupId)
+        getCompanyCustomerGroupLink(input.company_id, previousGroupId),
       )
     }
 
     if (previousGroupId !== input.group_id) {
       await link.create(
-        getCompanyCustomerGroupLink(input.company_id, input.group_id)
+        getCompanyCustomerGroupLink(input.company_id, input.group_id),
       )
     }
 
-    if (newGroupCustomers.length) {
+    if (newGroupCustomers.length > 0) {
       await customerModuleService.addCustomerToGroup(newGroupCustomers)
     }
 
+    const previousGroupPayload = hasPreviousGroup
+      ? { previous_group_id: previousGroupId }
+      : {}
+
     return new StepResponse(
-      { group_id: input.group_id, previous_group_id: previousGroupId },
+      { group_id: input.group_id, ...previousGroupPayload },
       {
         company_id: input.company_id,
         customer_ids: newGroupCustomers.map(({ customer_id }) => customer_id),
@@ -190,62 +215,65 @@ export const setCompanyCustomerGroupStep = createStep(
           customer_group_id: input.group_id,
         })),
         new_group_id: input.group_id,
-        previous_group_id: previousGroupId,
-      }
+        ...previousGroupPayload,
+      },
     )
   },
   async (
     input: SetCompanyCustomerGroupCompensation | undefined,
-    { container }
+    { container },
   ) => {
-    if (!input) {
+    if (input === undefined) {
       return
     }
 
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
 
-    if (input.customer_ids.length) {
+    if (input.customer_ids.length > 0) {
       await customerModuleService.removeCustomerFromGroup(
         input.customer_ids.map((id) => ({
-          customer_id: id,
           customer_group_id: input.new_group_id,
-        }))
+          customer_id: id,
+        })),
       )
     }
 
     await link.dismiss(
-      getCompanyCustomerGroupLink(input.company_id, input.new_group_id)
+      getCompanyCustomerGroupLink(input.company_id, input.new_group_id),
     )
 
-    if (input.previous_group_id) {
+    if (
+      input.previous_group_id !== undefined &&
+      input.previous_group_id.length > 0
+    ) {
       const previousGroupId = input.previous_group_id
 
       await link.create(
-        getCompanyCustomerGroupLink(input.company_id, previousGroupId)
+        getCompanyCustomerGroupLink(input.company_id, previousGroupId),
       )
 
-      if (input.customer_ids.length) {
+      if (input.customer_ids.length > 0) {
         await customerModuleService.addCustomerToGroup(
           input.customer_ids.map((id) => ({
-            customer_id: id,
             customer_group_id: previousGroupId,
-          }))
+            customer_id: id,
+          })),
         )
       }
     }
 
-    if (input.dismissed_deleted_owner_links.length) {
+    if (input.dismissed_deleted_owner_links.length > 0) {
       await link.create(
         input.dismissed_deleted_owner_links.map((dismissedLink) =>
           getCompanyCustomerGroupLink(
             dismissedLink.company_id,
-            dismissedLink.customer_group_id
-          )
-        )
+            dismissedLink.customer_group_id,
+          ),
+        ),
       )
     }
-  }
+  },
 )

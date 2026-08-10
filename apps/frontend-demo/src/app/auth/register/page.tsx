@@ -1,5 +1,5 @@
 import { RegisterForm } from "@/components/auth/register-form"
 
-export default function RegisterPage() {
-  return <RegisterForm />
-}
+const RegisterPage = () => <RegisterForm />
+
+export default RegisterPage

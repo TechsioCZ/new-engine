@@ -2,11 +2,13 @@
 
 import type { CatalogFacets } from "@techsio/storefront-data/catalog/types"
 import { useTranslations } from "next-intl"
+
 import { isCatalogStatusFilterSupported } from "@/lib/storefront/catalog-query-state/status-filters"
 import type { NuqsPlpQueryState } from "@/lib/storefront/plp-query-state"
+
 import { buildFacetChipItems } from "./category-selection-utils"
 
-type UseCategoryFacetItemsProps = {
+interface UseCategoryFacetItemsProps {
   catalogFacets: CatalogFacets
   queryState: NuqsPlpQueryState
   seedFacets: CatalogFacets
@@ -32,50 +34,56 @@ const FORM_LABEL_KEYS: Readonly<Record<string, string>> = {
   "form-tablets": "filters.form_values.tablets",
 }
 
-export function useCategoryFacetItems({
+export const useCategoryFacetItems = ({
   catalogFacets,
   queryState,
   seedFacets,
-}: UseCategoryFacetItemsProps) {
+}: UseCategoryFacetItemsProps) => {
   const t = useTranslations("catalog")
   const asideStatusItems = buildFacetChipItems(
     catalogFacets.status.filter((item) =>
-      isCatalogStatusFilterSupported(item.id)
+      isCatalogStatusFilterSupported(item.id),
     ),
     seedFacets.status.filter((item) => isCatalogStatusFilterSupported(item.id)),
-    queryState.status.filter(isCatalogStatusFilterSupported)
+    queryState.status.filter(isCatalogStatusFilterSupported),
   ).map((item) => {
     const labelKey = STATUS_LABEL_KEYS[item.id]
 
     return {
       ...item,
-      label: labelKey ? t(labelKey) : item.label,
+      label:
+        labelKey === undefined || labelKey.length === 0
+          ? item.label
+          : t(labelKey),
     }
   })
 
   const asideFormItems = buildFacetChipItems(
     catalogFacets.form,
     seedFacets.form,
-    queryState.form
+    queryState.form,
   ).map((item) => {
     const labelKey = FORM_LABEL_KEYS[item.id]
 
     return {
       ...item,
-      label: labelKey ? t(labelKey) : item.label,
+      label:
+        labelKey === undefined || labelKey.length === 0
+          ? item.label
+          : t(labelKey),
     }
   })
 
   const asideBrandItems = buildFacetChipItems(
     catalogFacets.brand,
     seedFacets.brand,
-    queryState.brand
+    queryState.brand,
   )
 
   const asideIngredientItems = buildFacetChipItems(
     catalogFacets.ingredient,
     seedFacets.ingredient,
-    queryState.ingredient
+    queryState.ingredient,
   )
 
   return {

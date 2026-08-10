@@ -3,15 +3,48 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Link from "next/link"
+
 import { formatPrice } from "@/lib/format-price"
 import type {
+  AddressData,
   CheckoutAddressData,
   PaymentMethod,
   ReducedShippingMethod,
 } from "@/types/checkout"
 
+const BillingAddressSummary = ({
+  billing,
+  hidden,
+}: {
+  billing: AddressData
+  hidden: boolean
+}) => {
+  if (hidden) {
+    return null
+  }
+
+  return (
+    <div>
+      <h3 className="mb-2 font-semibold text-fg-primary">Fakturační adresa</h3>
+      <p className="text-fg-secondary text-sm">
+        {billing.firstName} {billing.lastName}
+        <br />
+        {billing.company !== undefined && (
+          <>
+            {billing.company}
+            <br />
+          </>
+        )}
+        {billing.street}
+        <br />
+        {billing.city}, {billing.postalCode}
+      </p>
+    </div>
+  )
+}
+
 interface OrderSummaryProps {
-  addressData?: CheckoutAddressData
+  addressData?: CheckoutAddressData | undefined
   selectedShipping: ReducedShippingMethod | undefined
   selectedPayment: PaymentMethod | undefined
   onCompleteClick: () => void
@@ -21,7 +54,7 @@ interface OrderSummaryProps {
   isLoading?: boolean
 }
 
-export function OrderSummary({
+export const OrderSummary = ({
   addressData,
   selectedShipping,
   selectedPayment,
@@ -30,10 +63,10 @@ export function OrderSummary({
   isOrderComplete = false,
   orderNumber,
   isLoading = false,
-}: OrderSummaryProps) {
-  if (!(addressData && addressData.shipping)) {
+}: OrderSummaryProps) => {
+  if (addressData === undefined) {
     return (
-      <div className="fade-in slide-in-from-bottom-2 animate-in duration-300">
+      <div className="transition-opacity">
         <div className="rounded-lg bg-surface p-4 sm:p-6">
           <h2 className="mb-4 font-bold text-lg sm:mb-6 sm:text-xl">
             Zkontrolujte objednávku
@@ -47,17 +80,18 @@ export function OrderSummary({
   }
 
   const shippingPrice = formatPrice(
-    selectedShipping?.calculated_price.calculated_amount || 0,
-    selectedShipping?.calculated_price.currency_code || "CZK"
+    selectedShipping?.calculated_price.calculated_amount ?? 0,
+    selectedShipping?.calculated_price.currency_code ?? "CZK",
   )
 
   // Order complete state
-  if (isOrderComplete && orderNumber) {
+  if (isOrderComplete && orderNumber !== undefined && orderNumber !== "") {
     const deliveryDate = new Date()
-    deliveryDate.setDate(deliveryDate.getDate() + 3) // Add 3 days for delivery
+    // Add three days for delivery.
+    deliveryDate.setDate(deliveryDate.getDate() + 3)
 
     return (
-      <div className="fade-in slide-in-from-bottom-2 animate-in duration-300">
+      <div className="transition-opacity">
         <div className="rounded-lg bg-surface p-4 sm:p-6">
           <div className="mb-4 text-center sm:mb-6">
             <div className="no-print mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-success sm:mb-4 sm:h-14 sm:w-14 lg:h-16 lg:w-16">
@@ -78,10 +112,10 @@ export function OrderSummary({
               </h3>
               <p className="text-fg-secondary text-sm">
                 {deliveryDate.toLocaleDateString("cs-CZ", {
+                  day: "numeric",
+                  month: "long",
                   weekday: "long",
                   year: "numeric",
-                  month: "long",
-                  day: "numeric",
                 })}
               </p>
             </div>
@@ -139,14 +173,13 @@ export function OrderSummary({
               icon="token-icon-printer"
               onClick={() => {
                 // Add print date to body for CSS
-                document.body.setAttribute(
-                  "data-print-date",
-                  new Date().toLocaleDateString("cs-CZ")
-                )
+                const printDataset: { printDate?: string } =
+                  document.body.dataset
+                printDataset.printDate = new Date().toLocaleDateString("cs-CZ")
                 window.print()
                 // Clean up after print
                 setTimeout(() => {
-                  document.body.removeAttribute("data-print-date")
+                  delete printDataset.printDate
                 }, 1000)
               }}
               size="sm"
@@ -171,7 +204,7 @@ export function OrderSummary({
   }
 
   return (
-    <div className="fade-in slide-in-from-bottom-2 animate-in duration-300">
+    <div className="transition-opacity">
       <div className="rounded-lg bg-surface p-4 sm:p-6">
         <h2 className="mb-4 font-bold text-lg sm:mb-6 sm:text-xl">
           Zkontrolujte objednávku
@@ -185,7 +218,7 @@ export function OrderSummary({
             <p className="text-fg-secondary text-sm">
               {addressData.shipping.firstName} {addressData.shipping.lastName}
               <br />
-              {addressData.shipping.company && (
+              {addressData.shipping.company !== undefined && (
                 <>
                   {addressData.shipping.company}
                   <br />
@@ -195,36 +228,20 @@ export function OrderSummary({
               <br />
               {addressData.shipping.city}, {addressData.shipping.postalCode}
               <br />
-              {addressData.shipping.email && (
+              {addressData.shipping.email !== "" && (
                 <>
                   {addressData.shipping.email}
                   <br />
                 </>
               )}
-              {addressData.shipping.phone && addressData.shipping.phone}
+              {addressData.shipping.phone}
             </p>
           </div>
 
-          {!addressData.useSameAddress && addressData.billing && (
-            <div>
-              <h3 className="mb-2 font-semibold text-fg-primary">
-                Fakturační adresa
-              </h3>
-              <p className="text-fg-secondary text-sm">
-                {addressData.billing.firstName} {addressData.billing.lastName}
-                <br />
-                {addressData.billing.company && (
-                  <>
-                    {addressData.billing.company}
-                    <br />
-                  </>
-                )}
-                {addressData.billing.street}
-                <br />
-                {addressData.billing.city}, {addressData.billing.postalCode}
-              </p>
-            </div>
-          )}
+          <BillingAddressSummary
+            billing={addressData.billing}
+            hidden={addressData.useSameAddress}
+          />
 
           <div>
             <h3 className="mb-2 font-semibold text-fg-primary">Doprava</h3>
@@ -239,7 +256,9 @@ export function OrderSummary({
             <h3 className="mb-2 font-semibold text-fg-primary">Platba</h3>
             <p className="text-fg-secondary text-sm">
               {selectedPayment?.name}{" "}
-              {selectedPayment?.fee ? `(+${selectedPayment.fee} Kč)` : ""}
+              {selectedPayment?.fee === undefined || selectedPayment.fee === 0
+                ? ""
+                : `(+${selectedPayment.fee} Kč)`}
             </p>
           </div>
         </div>

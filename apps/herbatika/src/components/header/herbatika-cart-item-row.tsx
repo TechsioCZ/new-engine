@@ -3,9 +3,10 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Link } from "@techsio/ui-kit/atoms/link"
-import Image from "next/image"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+import Image from "next/image"
+
+import NextLink from "@/components/app-link"
 import { CartLineItemQuantityInput } from "@/components/cart/cart-line-item-quantity-input"
 import {
   resolveCartItemName,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/storefront/cart-calculations"
 import type { HerbatikaCurrencyCode } from "@/lib/storefront/currency"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+
 import {
   FALLBACK_MAX_QUANTITY,
   resolveLineItemHref,
@@ -21,7 +23,7 @@ import {
   resolveLineItemThumbnail,
 } from "./herbatika-cart-item.utils"
 
-type CartItemRowProps = {
+interface CartItemRowProps {
   currencyCode: HerbatikaCurrencyCode
   isPending: boolean
   item: HttpTypes.StoreCartLineItem
@@ -29,34 +31,38 @@ type CartItemRowProps = {
   onUpdateQuantity: (lineItemId: string, quantity: number) => void
 }
 
-export function CartItemRow({
+export const CartItemRow = ({
   currencyCode,
   isPending,
   item,
   onRemove,
   onUpdateQuantity,
-}: CartItemRowProps) {
+}: CartItemRowProps) => {
   const t = useTranslations("cart")
   const baseQuantity = resolveLineItemQuantity(item)
   const itemName = resolveCartItemName(item)
   const itemHref = resolveLineItemHref(item)
   const itemVariant = item.variant_title
   const itemInventory = resolveLineItemInventory(item)
+  const shouldShowVariant =
+    typeof itemVariant === "string" &&
+    itemVariant !== "" &&
+    itemVariant !== "Default"
   const itemMaxQuantity = Math.max(
     baseQuantity,
-    itemInventory ?? FALLBACK_MAX_QUANTITY
+    itemInventory ?? FALLBACK_MAX_QUANTITY,
   )
   const itemUnitAmountLabel = formatCurrencyAmount(
     resolveLineItemUnitAmount(item),
-    currencyCode
+    currencyCode,
   )
 
   return (
-    <article className="grid grid-cols-[auto_1fr_auto] items-start gap-200">
+    <article className="header-cart-item-layout grid items-start gap-200">
       <NextLink href={itemHref}>
         <Image
           alt={itemName}
-          className="h-16 w-16 rounded-md object-cover"
+          className="size-cart-preview-image rounded-md object-cover"
           height={60}
           src={resolveLineItemThumbnail(item)}
           width={60}
@@ -72,7 +78,7 @@ export function CartItemRow({
           {itemName}
         </Link>
 
-        {itemVariant && itemVariant !== "Default" ? (
+        {shouldShowVariant ? (
           <p className="truncate text-fg-secondary text-xs">{itemVariant}</p>
         ) : null}
 
@@ -89,7 +95,7 @@ export function CartItemRow({
 
       <div className="ml-auto flex items-center gap-150">
         <CartLineItemQuantityInput
-          className="w-24"
+          className="w-cart-quantity"
           inputClassName="text-center"
           isPending={isPending}
           itemName={itemName}
@@ -107,7 +113,9 @@ export function CartItemRow({
           className="h-650 w-650 p-0 text-fg-secondary hover:text-fg-primary"
           disabled={isPending}
           icon="token-icon-trash"
-          onClick={() => onRemove(item.id)}
+          onClick={() => {
+            onRemove(item.id)
+          }}
           size="sm"
           theme="unstyled"
           variant="secondary"

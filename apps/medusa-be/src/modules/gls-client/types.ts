@@ -19,7 +19,7 @@ export type GLSPrinterType =
   | "ThermoZPL_300DPI"
   | "ShipItThermoZpl"
 
-export type GLSAddress = {
+export interface GLSAddress {
   name: string
   street: string
   house_number: string
@@ -32,7 +32,7 @@ export type GLSAddress = {
   contact_email?: string
 }
 
-export type GLSOptions = {
+export interface GLSOptions {
   /** MyGLS login e-mail / username. */
   username: string
   /** Raw MyGLS password. Sent to MyGLS as SHA512 byte array. */
@@ -64,7 +64,7 @@ export type GLSOptions = {
 // Label / Parcel creation
 // ============================================
 
-export type GLSPacketAttributes = {
+export interface GLSPacketAttributes {
   /** Client custom tag identifying parcel — order ID/display ID. */
   number: string
   name: string
@@ -90,7 +90,7 @@ export type GLSPacketAttributes = {
   content?: string
 }
 
-export type GLSCreatePacketResult = {
+export interface GLSCreatePacketResult {
   /** MyGLS ParcelId (database label/parcel record ID). */
   id: string | number
   /** MyGLS ParcelNumberWithCheckdigit, used as customer-facing tracking code. */
@@ -133,22 +133,22 @@ export const GLS_FAILED_STATES: readonly GLSShipmentState[] = [
 ]
 
 export const GLS_STATUS_MESSAGES: Record<GLSShipmentState, string> = {
-  received_data: "Přijata data zásilky",
   arrived: "Zásilka dorazila na depo",
-  prepared_for_departure: "Připravena k odeslání",
-  departed: "Odeslána",
-  ready_for_pickup: "Připravena k vyzvednutí",
-  handed_to_carrier: "Předána dopravci",
-  delivered: "Doručeno",
-  posted_back: "Vráceno odesílateli",
-  returned: "Vráceno",
   cancelled: "Stornováno",
-  customs_declaration: "Celní odbavení",
   collected: "Vyzvednuto zákazníkem",
+  customs_declaration: "Celní odbavení",
+  delivered: "Doručeno",
+  departed: "Odeslána",
+  handed_to_carrier: "Předána dopravci",
+  posted_back: "Vráceno odesílateli",
+  prepared_for_departure: "Připravena k odeslání",
+  ready_for_pickup: "Připravena k vyzvednutí",
+  received_data: "Přijata data zásilky",
+  returned: "Vráceno",
   unknown: "Neznámý stav",
 }
 
-export type GLSPacketStatusRecord = {
+export interface GLSPacketStatusRecord {
   dateTime: string
   statusCode: string | number
   statusName: string
@@ -159,7 +159,7 @@ export type GLSPacketStatusRecord = {
 // Branch / Pickup Point feed
 // ============================================
 
-export type GLSBranch = {
+export interface GLSBranch {
   id: string
   name: string
   nameStreet: string
@@ -167,11 +167,11 @@ export type GLSBranch = {
   city: string
   zip: string
   country: string
-  currency?: string
-  latitude?: string
-  longitude?: string
-  openingHours?: string
-  branchType?: string
+  currency?: string | undefined
+  latitude?: string | undefined
+  longitude?: string | undefined
+  openingHours?: string | undefined
+  branchType?: string | undefined
 }
 
 // ============================================
@@ -180,7 +180,7 @@ export type GLSBranch = {
 
 export type GLSFulfillmentStatus = "completed" | "error"
 
-export interface GLSFulfillmentData extends Record<string, unknown> {
+export interface GLSFulfillmentData {
   status: GLSFulfillmentStatus
   /** MyGLS ParcelId (label/parcel database record ID). */
   packet_id: string | number
@@ -202,7 +202,7 @@ export interface GLSFulfillmentData extends Record<string, unknown> {
 }
 
 /** Data stored on the shipping_option and shipping_method. */
-export type GLSShippingOptionData = {
+export interface GLSShippingOptionData {
   code: "parcelshop" | "parcelshop_cod"
   requires_access_point: true
   supports_cod: boolean
@@ -241,7 +241,7 @@ export const GLS_PRINTER_TYPES = [
 
 export const GLS_SENSITIVE_FIELDS = ["password"] as const
 
-export type GLSConfigDTO = {
+export interface GLSConfigDTO {
   id: string
   environment: GLSEnvironment
   is_enabled: boolean
@@ -271,7 +271,7 @@ export type GLSConfigDTO = {
  * Empty string on a sensitive field = keep existing value.
  * null on a sensitive field = clear it.
  */
-export type UpdateGLSConfigInput = {
+export interface UpdateGLSConfigInput {
   is_enabled?: boolean
   username?: string
   password?: string | null
@@ -293,7 +293,7 @@ export type UpdateGLSConfigInput = {
 }
 
 /** Admin API response — sensitive fields replaced with *_set booleans. */
-export type GLSConfigResponse = {
+export interface GLSConfigResponse {
   id: string
   environment: GLSEnvironment
   is_enabled: boolean

@@ -1,8 +1,8 @@
-/**
+/*
  * FormNumericInput — @techsio/ui-kit molecule.
  *
  * @component FormNumericInput
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.2
  * @skill form-numeric-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,8 +10,10 @@
  * the form-numeric-input-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import type { ReactNode } from "react"
+
 import { Label } from "../atoms/label"
-import { NumericInput, type NumericInputProps } from "../atoms/numeric-input"
+import { NumericInput } from "../atoms/numeric-input"
+import type { NumericInputProps } from "../atoms/numeric-input"
 import { StatusText } from "../atoms/status-text"
 
 type ValidateStatus = "default" | "error" | "success" | "warning"
@@ -19,13 +21,13 @@ type ValidateStatus = "default" | "error" | "success" | "warning"
 interface FormNumericInputProps extends Omit<NumericInputProps, "children"> {
   id: string
   label: ReactNode
-  validateStatus?: ValidateStatus
-  helpText?: ReactNode
-  showHelpTextIcon?: boolean
+  validateStatus?: ValidateStatus | undefined
+  helpText?: ReactNode | undefined
+  showHelpTextIcon?: boolean | undefined
   children: ReactNode
 }
 
-export function FormNumericInput({
+export const FormNumericInput = ({
   id,
   label,
   validateStatus = "default",
@@ -36,11 +38,11 @@ export function FormNumericInput({
   disabled,
   children,
   ...numericInputProps
-}: FormNumericInputProps) {
+}: FormNumericInputProps) => {
+  const hasHelpText = Boolean(helpText)
+
   return (
-    <div
-      className="flex flex-col gap-form-field-gap"
-    >
+    <div className="flex flex-col gap-form-field-gap">
       <Label disabled={disabled} htmlFor={id} required={required} size={size}>
         {label}
       </Label>
@@ -56,7 +58,7 @@ export function FormNumericInput({
         {children}
       </NumericInput>
 
-      {helpText && (
+      {hasHelpText ? (
         <StatusText
           status={validateStatus}
           showIcon={showHelpTextIcon}
@@ -64,6 +66,8 @@ export function FormNumericInput({
         >
           {helpText}
         </StatusText>
+      ) : (
+        helpText
       )}
     </div>
   )

@@ -2,6 +2,7 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import {
   symmyListPriceListsStep,
   symmyUpdatePriceListPricesBatchStep,
@@ -21,7 +22,7 @@ const symmyUpsertPriceListsBatchWorkflow = createWorkflow(
   (input: UpsertPriceListsBatchInput) => {
     const result = symmyUpsertPriceListsBatchStep(input)
     return new WorkflowResponse<UpsertPriceListsBatchOutput>(result)
-  }
+  },
 )
 
 const symmyUpdatePriceListPricesBatchWorkflow = createWorkflow(
@@ -29,7 +30,7 @@ const symmyUpdatePriceListPricesBatchWorkflow = createWorkflow(
   (input: UpdatePriceListPricesBatchInput) => {
     const result = symmyUpdatePriceListPricesBatchStep(input)
     return new WorkflowResponse<UpdatePriceListPricesBatchOutput>(result)
-  }
+  },
 )
 
 const symmyListPriceListsWorkflow = createWorkflow(
@@ -37,7 +38,7 @@ const symmyListPriceListsWorkflow = createWorkflow(
   (input: ListPriceListsInput) => {
     const result = symmyListPriceListsStep(input)
     return new WorkflowResponse<ListPriceListsOutput>(result)
-  }
+  },
 )
 
 export {

@@ -3,7 +3,11 @@ import type {
   Logger,
   StoreDTO,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { updateStoresWorkflow } from "@medusajs/medusa/core-flows"
 
@@ -12,7 +16,7 @@ export type UpdateStoreCurrenciesStepCurrenciesInput = {
   default: boolean
 }[]
 
-export type UpdateStoreCurrenciesStepInput = {
+export interface UpdateStoreCurrenciesStepInput {
   currencies: UpdateStoreCurrenciesStepCurrenciesInput
   defaultSalesChannelId: string
 }
@@ -23,13 +27,19 @@ export const updateStoreCurrenciesStep = createStep(
   async (input: UpdateStoreCurrenciesStepInput, { container }) => {
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const storeModuleService = container.resolve<IStoreModuleService>(
-      Modules.STORE
+      Modules.STORE,
     )
 
     logger.info("Updating store currencies data...")
 
     // medusa bug? storeModuleService interface is not exported / defined?
     const [store]: StoreDTO[] = await storeModuleService.listStores()
+    if (!store) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        "Store not found while updating seed currencies",
+      )
+    }
 
     const currencies = input.currencies.map((i) => ({
       currency_code: i.code,
@@ -37,10 +47,10 @@ export const updateStoreCurrenciesStep = createStep(
     }))
     const result = await updateStoresWorkflow(container).run({
       input: {
-        selector: { id: store?.id },
+        selector: { id: store.id },
         update: {
-          supported_currencies: currencies,
           default_sales_channel_id: input.defaultSalesChannelId,
+          supported_currencies: currencies,
         },
       },
     })
@@ -48,5 +58,5 @@ export const updateStoreCurrenciesStep = createStep(
     return new StepResponse({
       result: result.result,
     })
-  }
+  },
 )

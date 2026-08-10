@@ -8,25 +8,27 @@ import {
   Label,
   Text,
 } from "@medusajs/ui"
-import { type ChangeEvent, type FormEvent, useEffect, useState } from "react"
+import { useState } from "react"
+import type { ChangeEvent, SubmitEvent } from "react"
 import { useTranslation } from "react-i18next"
+
 import type { AdminCreateEmployee, QueryCompany } from "../../../../../types"
-import { CoolSwitch } from "../../../../components"
-import { useAdminCustomerSearch } from "../../../../hooks/api"
+import { CoolSwitch } from "../../../../components/common/cool-switch"
+import { useAdminCustomerSearch } from "../../../../hooks/api/customers"
 import { useDebouncedValue } from "../../../../lib/use-debounced-value"
-import { currencySymbolMap } from "../../../../utils"
+import { currencySymbolMap } from "../../../../utils/currency-symbol-map"
 
 type EmployeeCreateFormData = Omit<
   AdminCreateEmployee,
   "customer_id" | "spending_limit"
-> &
-  Pick<
-    HttpTypes.AdminCreateCustomer,
-    "email" | "first_name" | "last_name" | "phone"
-  > & {
-    customer_id: string
-    spending_limit: string
-  }
+> & {
+  customer_id: string
+  email: string
+  first_name: string
+  last_name: string
+  phone: string
+  spending_limit: string
+}
 
 export type EmployeeCreateSubmitData = Omit<
   AdminCreateEmployee,
@@ -45,17 +47,28 @@ export type EmployeeCreateSubmitData = Omit<
 
 type EmployeeCreateRequiredField = "email"
 
+type EmployeeValidationErrors = Partial<
+  Record<EmployeeCreateRequiredField, string>
+>
+
 type CustomerOption = Pick<
   HttpTypes.AdminCustomer,
   "email" | "first_name" | "id" | "last_name" | "phone"
 >
 
+const currencySymbols: Record<string, string> = currencySymbolMap
+
 const getCurrencySymbol = (currencyCode: string) =>
-  currencySymbolMap[currencyCode as keyof typeof currencySymbolMap] ??
-  currencyCode.toUpperCase()
+  currencySymbols[currencyCode] ?? currencyCode.toUpperCase()
+
+const resolveCurrencyCode = (rawCurrencyCode: string | null) => {
+  const normalized = rawCurrencyCode?.toLowerCase() ?? ""
+
+  return normalized.length === 0 ? "usd" : normalized
+}
 
 const toCustomerOption = (
-  customer: HttpTypes.AdminCustomer
+  customer: HttpTypes.AdminCustomer,
 ): CustomerOption | null => {
   if (!customer.id) {
     return null
@@ -66,8 +79,88 @@ const toCustomerOption = (
     first_name: customer.first_name,
     id: customer.id,
     last_name: customer.last_name,
-    phone: customer.phone,
+    phone: customer.phone ?? null,
   }
+}
+
+const toCustomerOptions = (
+  customers: readonly HttpTypes.AdminCustomer[] | undefined,
+): CustomerOption[] =>
+  (customers ?? []).flatMap((customer) => {
+    const customerOption = toCustomerOption(customer)
+
+    return customerOption === null ? [] : [customerOption]
+  })
+
+const findCustomerByEmail = (
+  options: CustomerOption[],
+  normalizedEmail: string,
+): CustomerOption | null =>
+  options.find(
+    (customer) => customer.email?.toLowerCase() === normalizedEmail,
+  ) ?? null
+
+const findCustomerById = (
+  options: CustomerOption[],
+  customerId: string,
+): CustomerOption | null =>
+  options.find((customer) => customer.id === customerId) ?? null
+
+/**
+ * Applies the exact-email customer match during render instead of syncing it
+ * back into state from an effect, so the drawer never paints a stale selection.
+ */
+const resolveFormData = (
+  formState: EmployeeCreateFormData,
+  exactCustomer: CustomerOption | null,
+): EmployeeCreateFormData => {
+  if (exactCustomer === null) {
+    return formState
+  }
+
+  if (formState.customer_id === exactCustomer.id) {
+    return formState
+  }
+
+  return {
+    ...formState,
+    customer_id: exactCustomer.id,
+    first_name: "",
+    last_name: "",
+    phone: "",
+  }
+}
+
+const shouldShowNewCustomerFields = ({
+  customerId,
+  emailInput,
+  exactCustomer,
+  isSearching,
+  searchEnabled,
+}: {
+  customerId: string
+  emailInput: string
+  exactCustomer: CustomerOption | null
+  isSearching: boolean
+  searchEnabled: boolean
+}): boolean => {
+  if (emailInput.length === 0) {
+    return false
+  }
+
+  if (customerId.length > 0) {
+    return false
+  }
+
+  if (!searchEnabled) {
+    return false
+  }
+
+  if (isSearching) {
+    return false
+  }
+
+  return exactCustomer === null
 }
 
 const RequiredLabel = ({
@@ -75,7 +168,7 @@ const RequiredLabel = ({
   required,
 }: {
   children: string
-  required?: boolean
+  required: boolean
 }) => (
   <Label className="txt-compact-small font-medium" size="xsmall">
     {children}
@@ -88,8 +181,14 @@ const RequiredLabel = ({
   </Label>
 )
 
-const FieldError = ({ error, id }: { error?: string; id: string }) => {
-  if (!error) {
+const FieldError = ({
+  error,
+  id,
+}: {
+  error?: string | undefined
+  id: string
+}) => {
+  if (error === undefined || error.length === 0) {
     return null
   }
 
@@ -161,10 +260,12 @@ const CustomerSelection = ({
           className={clx(
             "flex w-full flex-col px-3 py-2 text-left hover:bg-ui-bg-base-hover",
             customer.email?.toLowerCase() === normalizedEmail &&
-              "bg-ui-bg-subtle"
+              "bg-ui-bg-subtle",
           )}
           key={customer.id}
-          onClick={() => onSelect(customer)}
+          onClick={() => {
+            onSelect(customer)
+          }}
           type="button"
         >
           <Text leading="compact" size="small" weight="plus">
@@ -179,8 +280,7 @@ const CustomerSelection = ({
   )
 }
 
-// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: existing employee form branching is outside this compiler cleanup.
-export function EmployeesCreateForm({
+export const EmployeesCreateForm = ({
   handleSubmit,
   loading,
   company,
@@ -188,9 +288,9 @@ export function EmployeesCreateForm({
   handleSubmit: (data: EmployeeCreateSubmitData) => Promise<void>
   loading: boolean
   company: QueryCompany
-}) {
+}) => {
   const { t } = useTranslation("companies")
-  const [formData, setFormData] = useState<EmployeeCreateFormData>({
+  const [formState, setFormState] = useState<EmployeeCreateFormData>({
     company_id: company.id,
     customer_id: "",
     email: "",
@@ -200,10 +300,9 @@ export function EmployeesCreateForm({
     phone: "",
     spending_limit: "0",
   })
-  const [validationErrors, setValidationErrors] = useState<
-    Partial<Record<EmployeeCreateRequiredField, string>>
-  >({})
-  const emailInput = formData.email?.trim() ?? ""
+  const [validationErrors, setValidationErrors] =
+    useState<EmployeeValidationErrors>({})
+  const emailInput = formState.email.trim()
   const debouncedEmail = useDebouncedValue(emailInput, 300)
   const searchEnabled = debouncedEmail.length >= 3
   const { data: customerSearch, isFetching: customerSearchLoading } =
@@ -211,100 +310,69 @@ export function EmployeesCreateForm({
       enabled: searchEnabled,
     })
 
-  const currencyCode = company.currency_code?.toLowerCase() || "usd"
-  const customerOptions = (customerSearch?.customers ?? []).flatMap(
-    (customer) => {
-      const customerOption = toCustomerOption(customer)
-      return customerOption ? [customerOption] : []
-    }
+  const currencyCode = resolveCurrencyCode(company.currency_code)
+  const customerOptions = toCustomerOptions(customerSearch?.customers)
+  const exactCustomer = findCustomerByEmail(
+    customerOptions,
+    emailInput.toLowerCase(),
   )
-  const normalizedEmail = emailInput.toLowerCase()
-  const exactCustomer =
-    customerOptions.find(
-      (customer) => customer.email?.toLowerCase() === normalizedEmail
-    ) ?? null
-  const selectedCustomer =
-    customerOptions.find((customer) => customer.id === formData.customer_id) ??
-    null
-  const showNewCustomerFields =
-    Boolean(emailInput) &&
-    !formData.customer_id &&
-    searchEnabled &&
-    !customerSearchLoading &&
-    !exactCustomer
+  const formData = resolveFormData(formState, exactCustomer)
+  const selectedCustomer = findCustomerById(
+    customerOptions,
+    formData.customer_id,
+  )
+  const showNewCustomerFields = shouldShowNewCustomerFields({
+    customerId: formData.customer_id,
+    emailInput,
+    exactCustomer,
+    isSearching: customerSearchLoading,
+    searchEnabled,
+  })
+  const emailError = validationErrors.email
+  const hasEmailError = emailError !== undefined && emailError.length > 0
 
-  useEffect(() => {
-    if (!exactCustomer || formData.customer_id === exactCustomer.id) {
-      return
-    }
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { checked, name, type, value } = event.target
+    const nextValue = type === "checkbox" ? checked : value
+    const field = name === "employee_customer_email" ? "email" : name
 
-    setFormData((current) => ({
-      ...current,
-      customer_id: exactCustomer.id,
-      first_name: "",
-      last_name: "",
-      phone: "",
-    }))
-  }, [exactCustomer, formData.customer_id])
-
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const value =
-      e.target.type === "checkbox" ? e.target.checked : e.target.value
-    const field =
-      e.target.name === "employee_customer_email" ? "email" : e.target.name
-
-    setFormData({
+    setFormState({
       ...formData,
-      [field]: value,
+      [field]: nextValue,
       ...(field === "email" ? { customer_id: "" } : {}),
     })
 
     if (field === "email") {
-      setValidationErrors((prev) => ({ ...prev, email: undefined }))
+      setValidationErrors({})
     }
   }
 
-  const validateForm = () => {
-    const nextErrors: Partial<Record<EmployeeCreateRequiredField, string>> = {}
+  const handleFormSubmit = (event: SubmitEvent<HTMLFormElement>) => {
+    event.preventDefault()
 
-    if (!formData.email?.trim()) {
-      nextErrors.email = t("validation.required")
-    }
+    const email = formData.email.trim()
 
-    setValidationErrors(nextErrors)
-
-    return Object.keys(nextErrors).length === 0
-  }
-
-  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-
-    if (!validateForm()) {
-      return
-    }
-
-    const spendingLimit = formData.spending_limit
-      ? Number.parseInt(formData.spending_limit, 10)
-      : 0
-
-    const email = formData.email?.trim()
-
-    if (!email) {
+    if (email.length === 0) {
       setValidationErrors({ email: t("validation.required") })
       return
     }
 
-    const data: EmployeeCreateSubmitData = {
+    setValidationErrors({})
+
+    const spendingLimit =
+      formData.spending_limit.length === 0
+        ? 0
+        : Math.trunc(Number(formData.spending_limit))
+
+    void handleSubmit({
       ...formData,
       email,
       spending_limit: spendingLimit,
-    }
-
-    await handleSubmit(data)
+    })
   }
 
   const handleCustomerSelect = (customer: CustomerOption) => {
-    setFormData({
+    setFormState({
       ...formData,
       customer_id: customer.id,
       email: customer.email ?? emailInput,
@@ -315,7 +383,7 @@ export function EmployeesCreateForm({
   }
 
   const handleCustomerClear = () => {
-    setFormData({
+    setFormState({
       ...formData,
       customer_id: "",
       email: "",
@@ -326,7 +394,7 @@ export function EmployeesCreateForm({
   }
 
   return (
-    <form autoComplete="off" noValidate onSubmit={onSubmit}>
+    <form autoComplete="off" noValidate onSubmit={handleFormSubmit}>
       <Drawer.Body className="flex flex-col gap-6 p-4">
         <div className="flex flex-col gap-3">
           <Text leading="compact" size="small" weight="plus">
@@ -336,9 +404,9 @@ export function EmployeesCreateForm({
             <RequiredLabel required>{t("columns.email")}</RequiredLabel>
             <Input
               aria-describedby={
-                validationErrors.email ? "employee-email-error" : undefined
+                hasEmailError ? "employee-email-error" : undefined
               }
-              aria-invalid={!!validationErrors.email}
+              aria-invalid={hasEmailError}
               aria-required
               autoComplete="off"
               autoFocus
@@ -347,12 +415,9 @@ export function EmployeesCreateForm({
               placeholder={t("placeholders.employeeEmail")}
               required
               type="email"
-              value={formData.email || ""}
+              value={formData.email}
             />
-            <FieldError
-              error={validationErrors.email}
-              id="employee-email-error"
-            />
+            <FieldError error={emailError} id="employee-email-error" />
             {customerSearchLoading && (
               <Text
                 className="text-ui-fg-subtle"
@@ -383,33 +448,39 @@ export function EmployeesCreateForm({
           {showNewCustomerFields && (
             <>
               <div className="flex flex-col gap-2">
-                <RequiredLabel>{t("employees.firstName")}</RequiredLabel>
+                <RequiredLabel required={false}>
+                  {t("employees.firstName")}
+                </RequiredLabel>
                 <Input
                   name="first_name"
                   onChange={handleChange}
                   placeholder={t("placeholders.firstName")}
                   type="text"
-                  value={formData.first_name || ""}
+                  value={formData.first_name}
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <RequiredLabel>{t("employees.lastName")}</RequiredLabel>
+                <RequiredLabel required={false}>
+                  {t("employees.lastName")}
+                </RequiredLabel>
                 <Input
                   name="last_name"
                   onChange={handleChange}
                   placeholder={t("placeholders.lastName")}
                   type="text"
-                  value={formData.last_name || ""}
+                  value={formData.last_name}
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <RequiredLabel>{t("columns.phone")}</RequiredLabel>
+                <RequiredLabel required={false}>
+                  {t("columns.phone")}
+                </RequiredLabel>
                 <Input
                   name="phone"
                   onChange={handleChange}
                   placeholder={t("placeholders.phone")}
                   type="text"
-                  value={formData.phone || ""}
+                  value={formData.phone}
                 />
               </div>
             </>
@@ -428,16 +499,16 @@ export function EmployeesCreateForm({
             <CurrencyInput
               code={currencyCode}
               name="spending_limit"
-              onChange={(e) =>
-                setFormData({
+              onChange={(event) => {
+                setFormState({
                   ...formData,
-                  spending_limit: e.target.value.replace(/[^0-9]/g, ""),
+                  spending_limit: event.target.value.replaceAll(/[^0-9]/gu, ""),
                 })
-              }
+              }}
               placeholder={t("placeholders.spendingLimit")}
               symbol={getCurrencySymbol(currencyCode)}
               type="text"
-              value={formData.spending_limit ? formData.spending_limit : ""}
+              value={formData.spending_limit}
             />
           </div>
           <div className="flex flex-col gap-2">
@@ -449,9 +520,9 @@ export function EmployeesCreateForm({
               description={t("employees.adminDescription")}
               fieldName="is_admin"
               label={t("employees.adminBadge")}
-              onChange={(checked) =>
-                setFormData({ ...formData, is_admin: checked })
-              }
+              onChange={(checked) => {
+                setFormState({ ...formData, is_admin: checked })
+              }}
               tooltip={t("employees.adminTooltip")}
             />
           </div>

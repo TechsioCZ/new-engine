@@ -1,141 +1,93 @@
 "use client"
 
-import DOMPurify from "dompurify"
+import { SafeHtml } from "@techsio/ui-kit/atoms/safe-html"
+import type { SafeHtmlPolicy } from "@techsio/ui-kit/atoms/safe-html"
 
-type SanitizerConfig = NonNullable<Parameters<typeof DOMPurify.sanitize>[1]>
-
-type SafeHtmlContentProps = {
+interface SafeHtmlContentProps {
   content: string | null | undefined
   className?: string
-  /** Custom DOMPurify config for allowed tags and attributes */
-  config?: SanitizerConfig
+  policy?: SafeHtmlPolicy
 }
 
-const HTML_TAG_PATTERN = /<[^>]*>/
-const HTML_ENTITY_PATTERN = /&#?\w+;/
-const REL_TOKEN_PATTERN = /\s+/
-const BLANK_TARGET_REL_TOKENS = ["noopener", "noreferrer"]
+const HTML_TAG_PATTERN = /<[^>]*>/u
+const HTML_ENTITY_PATTERN = /&#?\w+;/u
 
-DOMPurify.addHook("afterSanitizeAttributes", (node) => {
-  if (
-    node.nodeType !== 1 ||
-    !("tagName" in node) ||
-    typeof node.getAttribute !== "function" ||
-    typeof node.setAttribute !== "function"
-  ) {
-    return
+const PRODUCT_CONTENT_POLICY: SafeHtmlPolicy = {
+  allowedAttributes: {
+    "*": ["class"],
+    a: ["href", "rel", "target"],
+    td: ["colspan", "rowspan"],
+    th: ["colspan", "rowspan"],
+  },
+  allowedTags: [
+    "a",
+    "b",
+    "blockquote",
+    "br",
+    "code",
+    "del",
+    "div",
+    "em",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "hr",
+    "i",
+    "li",
+    "ol",
+    "p",
+    "pre",
+    "s",
+    "span",
+    "strike",
+    "strong",
+    "table",
+    "tbody",
+    "td",
+    "th",
+    "thead",
+    "tr",
+    "u",
+    "ul",
+  ],
+}
+
+const processSafeHtmlContent = (content: string | null | undefined) => {
+  if (content === null || content === undefined || content === "") {
+    return { content: "", isHtml: false }
   }
 
-  if (
-    node.tagName.toLowerCase() !== "a" ||
-    node.getAttribute("target")?.toLowerCase() !== "_blank"
-  ) {
-    return
+  return {
+    content,
+    isHtml: HTML_TAG_PATTERN.test(content) || HTML_ENTITY_PATTERN.test(content),
   }
-
-  const relTokens = new Set(
-    (node.getAttribute("rel") ?? "").split(REL_TOKEN_PATTERN).filter(Boolean)
-  )
-
-  for (const token of BLANK_TARGET_REL_TOKENS) {
-    relTokens.add(token)
-  }
-
-  node.setAttribute("rel", Array.from(relTokens).join(" "))
-})
-
-function processSafeHtmlContent(
-  content: string | null | undefined,
-  config?: SanitizerConfig
-) {
-  if (!content) {
-    return { isHtml: false, content: "" }
-  }
-
-  // Check if content contains HTML tags or HTML entities
-  const hasHtmlTags = HTML_TAG_PATTERN.test(content)
-  const hasHtmlEntities = HTML_ENTITY_PATTERN.test(content)
-  const isHtml = hasHtmlTags || hasHtmlEntities
-
-  if (isHtml) {
-    // Default safe config for product descriptions
-    const defaultConfig = {
-      ALLOWED_TAGS: [
-        "p",
-        "br",
-        "strong",
-        "del",
-        "em",
-        "b",
-        "i",
-        "s",
-        "strike",
-        "u",
-        "hr",
-        "ul",
-        "ol",
-        "li",
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "a",
-        "blockquote",
-        "code",
-        "pre",
-        "table",
-        "thead",
-        "tbody",
-        "tr",
-        "th",
-        "td",
-        "span",
-        "div",
-      ],
-      ALLOWED_ATTR: ["class", "style", "href", "target", "rel"],
-      ALLOW_DATA_ATTR: false,
-      FORBID_TAGS: ["script", "iframe", "form", "input"],
-      FORBID_ATTR: ["onerror", "onclick", "onload"],
-    }
-
-    // Custom config shallow-overrides defaults; array fields are replaced.
-    const finalConfig = { ...defaultConfig, ...config }
-    const sanitized = DOMPurify.sanitize(content, finalConfig)
-
-    return { isHtml: true, content: String(sanitized) }
-  }
-
-  return { isHtml: false, content }
 }
 
 /**
  * Safely renders HTML content with automatic detection and sanitization.
- * Detects if content contains HTML tags or entities and sanitizes accordingly.
  * Falls back to plain text rendering for non-HTML content.
  */
-export function SafeHtmlContent({
+export const SafeHtmlContent = ({
   content,
   className,
-  config,
-}: SafeHtmlContentProps) {
-  const processedContent = processSafeHtmlContent(content, config)
+  policy = PRODUCT_CONTENT_POLICY,
+}: SafeHtmlContentProps) => {
+  const processedContent = processSafeHtmlContent(content)
 
-  if (!processedContent.content) {
+  if (processedContent.content === "") {
     return null
   }
 
   if (processedContent.isHtml) {
     return (
-      <div
-        className={className}
-        // biome-ignore lint/security/noDangerouslySetInnerHtml: Product HTML is sanitized by DOMPurify immediately above.
-        dangerouslySetInnerHTML={{ __html: processedContent.content }}
-      />
+      <div className={className}>
+        <SafeHtml html={processedContent.content} policy={policy} />
+      </div>
     )
   }
 
-  // Render plain text - React handles this safely by default
   return <p className={className}>{processedContent.content}</p>
 }

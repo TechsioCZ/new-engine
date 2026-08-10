@@ -1,34 +1,32 @@
-import type { MedusaContainer } from "@medusajs/framework/types"
+import type { MedusaContainer, MetadataType } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import {
   createCustomerGroupsWorkflow,
   updateCustomerGroupsWorkflow,
 } from "@medusajs/medusa/core-flows"
-import {
-  SYMMY_CUSTOMER_GROUP_CODE_MODULE,
-  type SymmyCustomerGroupCodeDTO,
-  type SymmyCustomerGroupCodeModuleService,
+
+import { SYMMY_CUSTOMER_GROUP_CODE_MODULE } from "../../modules/customer-group-code"
+import type {
+  SymmyCustomerGroupCodeDTO,
+  SymmyCustomerGroupCodeModuleService,
 } from "../../modules/customer-group-code"
-import {
-  type CustomerGroupLookupKeys,
-  customerGroupsBatchClientMapperHelper,
-} from "./client-mapper-helper"
+import { customerGroupsBatchClientMapperHelper } from "./client-mapper-helper"
+import type { CustomerGroupLookupKeys } from "./client-mapper-helper"
 import type { CustomerGroupInput } from "./types"
 
-type Metadata = Record<string, unknown>
-
-export type ExistingCustomerGroup = {
+export interface ExistingCustomerGroup {
   id: string
   name: string
   code?: string | null
   erp_code?: string | null
-  metadata: Metadata | null
+  metadata: MetadataType
 }
 
-export type ExistingCustomerGroupIndex = {
+export interface ExistingCustomerGroupIndex {
   byId: Map<string, ExistingCustomerGroup>
   byName: Map<string, ExistingCustomerGroup>
   byCode: Map<string, ExistingCustomerGroup>
@@ -36,6 +34,26 @@ export type ExistingCustomerGroupIndex = {
 }
 
 const CUSTOMER_GROUP_FIELDS = ["id", "name", "metadata"] as const
+const metadataSchema = z.record(z.string(), z.json()).nullable()
+
+const decodeCustomerGroup = (value: unknown): ExistingCustomerGroup | null => {
+  if (typeof value !== "object" || value === null) {
+    return null
+  }
+  if (!("id" in value) || typeof value.id !== "string") {
+    return null
+  }
+  if (!("name" in value) || typeof value.name !== "string") {
+    return null
+  }
+  const metadata = metadataSchema.safeParse(
+    "metadata" in value ? value.metadata : null,
+  )
+  if (!metadata.success) {
+    return null
+  }
+  return { id: value.id, metadata: metadata.data, name: value.name }
+}
 
 const getQuery = (container: MedusaContainer) =>
   container.resolve(ContainerRegistrationKeys.QUERY)
@@ -52,13 +70,13 @@ export class CustomerGroupsBatchClient {
     this.container = container
     this.customerGroupCodeService =
       container.resolve<SymmyCustomerGroupCodeModuleService>(
-        SYMMY_CUSTOMER_GROUP_CODE_MODULE
+        SYMMY_CUSTOMER_GROUP_CODE_MODULE,
       )
     this.query = getQuery(container)
   }
 
   async preload(
-    groups: CustomerGroupInput[]
+    groups: CustomerGroupInput[],
   ): Promise<ExistingCustomerGroupIndex> {
     const { ids, names, codes, erpCodes } =
       this.mapper.collectLookupKeys(groups)
@@ -67,8 +85,8 @@ export class CustomerGroupsBatchClient {
       erpCodes,
     })
     const [byIdGroups, byNameGroups, byCodeGroups] = await Promise.all([
-      this.queryCustomerGroups({ id: Array.from(ids) }),
-      this.queryCustomerGroups({ name: Array.from(names) }),
+      this.queryCustomerGroups({ id: [...ids] }),
+      this.queryCustomerGroups({ name: [...names] }),
       this.queryCustomerGroups({
         id: codeMappings.map((mapping) => mapping.customer_group_id),
       }),
@@ -83,7 +101,7 @@ export class CustomerGroupsBatchClient {
 
   findExistingCustomerGroup(
     group: CustomerGroupInput,
-    index: ExistingCustomerGroupIndex
+    index: ExistingCustomerGroupIndex,
   ): ExistingCustomerGroup | null {
     return this.mapper.findExistingCustomerGroup(group, index)
   }
@@ -91,77 +109,81 @@ export class CustomerGroupsBatchClient {
   cacheCustomerGroup(
     index: ExistingCustomerGroupIndex,
     group: CustomerGroupInput,
-    groupId: string
+    groupId: string,
   ): void {
     this.mapper.addCreatedCustomerGroupToIndex(index, group, groupId)
   }
 
   async createCustomerGroup(
     group: CustomerGroupInput,
-    createdBy?: string
+    createdBy?: string,
   ): Promise<ExistingCustomerGroup> {
     const { result } = await createCustomerGroupsWorkflow(this.container).run({
       input: {
-        customersData: [
-          this.mapper.buildCreatePayload(group, createdBy),
-        ] as never,
+        customersData: [this.mapper.buildCreatePayload(group, createdBy)],
       },
     })
-    const created = result?.[0] as unknown as ExistingCustomerGroup | undefined
-    if (!created) {
+    const [created] = result
+    if (created === undefined) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        "createCustomerGroupsWorkflow returned empty result"
+        "createCustomerGroupsWorkflow returned empty result",
       )
     }
     await this.customerGroupCodeService.upsertCode({
       code: group.code,
-      erpCode: group.erp_code,
       customerGroupId: created.id,
+      erpCode: group.erp_code,
     })
     return {
-      ...created,
       code: group.code ?? null,
       erp_code: group.erp_code ?? null,
+      id: created.id,
+      metadata: created.metadata ?? null,
+      name: created.name,
     }
   }
 
   async updateCustomerGroup(
     groupId: string,
     existing: ExistingCustomerGroup,
-    group: CustomerGroupInput
+    group: CustomerGroupInput,
   ): Promise<void> {
     await updateCustomerGroupsWorkflow(this.container).run({
       input: {
         selector: { id: groupId },
-        update: this.mapper.buildUpdatePayload(existing, group) as never,
+        update: this.mapper.buildUpdatePayload(existing, group),
       },
     })
     await this.customerGroupCodeService.upsertCode({
       code: group.code,
-      erpCode: group.erp_code,
       customerGroupId: groupId,
+      erpCode: group.erp_code,
     })
   }
 
   private async queryCustomerGroups(
-    filters: Record<string, string[]>
+    filters: Record<string, string[]>,
   ): Promise<ExistingCustomerGroup[]> {
     if (Object.values(filters).every((values) => values.length === 0)) {
       return []
     }
     const { data } = await this.query.graph({
       entity: "customer_group",
-      fields: CUSTOMER_GROUP_FIELDS as unknown as string[],
+      fields: [...CUSTOMER_GROUP_FIELDS],
       filters,
     })
-    return (data ?? []) as ExistingCustomerGroup[]
+    const rows: unknown[] = data ?? []
+    return rows.flatMap((row) => {
+      const group = decodeCustomerGroup(row)
+      return group === null ? [] : [group]
+    })
   }
 
-  private queryGroupCodeMappings(
-    identifiers: Pick<CustomerGroupLookupKeys, "codes" | "erpCodes">
+  private async queryGroupCodeMappings(
+    identifiers: Pick<CustomerGroupLookupKeys, "codes" | "erpCodes">,
   ): Promise<SymmyCustomerGroupCodeDTO[]> {
     const codes = new Set([...identifiers.codes, ...identifiers.erpCodes])
-    return this.customerGroupCodeService.listByCodes(codes)
+    return await this.customerGroupCodeService.listByCodes(codes)
   }
 }

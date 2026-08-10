@@ -12,35 +12,35 @@ import type {
   ProductLocationAvailabilityService,
 } from "./types"
 
-export type CreateProductLocationAvailabilityQueryOptionsFactoryConfig<
+export interface CreateProductLocationAvailabilityQueryOptionsFactoryConfig<
   TResponse,
   TInput extends ProductLocationAvailabilityInputBase,
   TParams,
-> = {
+> {
   service: ProductLocationAvailabilityService<TResponse, TParams>
-  buildDetailParams?: (input: TInput) => TParams
+  buildDetailParams?: ((input: TInput) => TParams) | undefined
   queryKeys?: ProductLocationAvailabilityQueryKeys<TParams>
   queryKeyNamespace?: QueryNamespace
   cacheConfig?: CacheConfig
 }
 
-export type ProductLocationAvailabilityQueryOptionsFactory<
+export interface ProductLocationAvailabilityQueryOptionsFactory<
   TResponse,
   TInput extends ProductLocationAvailabilityInputBase,
-> = {
+> {
   getDetailQueryOptions: (
     input: TInput,
     options?: {
-      queryOptions?: ReadQueryOptions<TResponse>
+      queryOptions?: ReadQueryOptions<TResponse> | undefined
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<TResponse>
 }
 
-export function createProductLocationAvailabilityQueryOptionsFactory<
+export const createProductLocationAvailabilityQueryOptionsFactory = <
   TResponse,
-  TInput extends ProductLocationAvailabilityInputBase,
-  TParams,
+  TInput extends ProductLocationAvailabilityInputBase & TParams,
+  TParams = TInput,
 >({
   service,
   buildDetailParams,
@@ -51,33 +51,36 @@ export function createProductLocationAvailabilityQueryOptionsFactory<
   TResponse,
   TInput,
   TParams
->): ProductLocationAvailabilityQueryOptionsFactory<TResponse, TInput> {
+>): ProductLocationAvailabilityQueryOptionsFactory<TResponse, TInput> => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ??
     createProductLocationAvailabilityQueryKeys<TParams>(queryKeyNamespace)
-  const buildDetail =
-    buildDetailParams ?? ((input: TInput) => input as unknown as TParams)
+  const buildDetail = buildDetailParams ?? ((input: TInput) => input)
 
   return {
-    getDetailQueryOptions: (
-      input,
-      options
-    ): QueryFactoryOptions<TResponse> => {
+    getDetailQueryOptions: (input, options): QueryFactoryOptions<TResponse> => {
       const detailParams = buildDetail(input)
       const cacheStrategy = options?.cacheStrategy ?? "realtime"
 
       return {
-        queryKey: resolvedQueryKeys.detail(detailParams),
-        queryFn: ({ signal }) => {
-          if (!input.productId) {
+        queryFn: async ({ signal }) => {
+          if (
+            input.productId === undefined ||
+            input.productId === null ||
+            input.productId.length === 0
+          ) {
             throw new Error("Product id is required for location availability.")
           }
 
-          return service.getProductLocationAvailability(detailParams, signal)
+          return await service.getProductLocationAvailability(
+            detailParams,
+            signal,
+          )
         },
+        queryKey: resolvedQueryKeys.detail(detailParams),
         ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
+        ...options?.queryOptions,
       }
     },
   }

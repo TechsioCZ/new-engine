@@ -1,7 +1,11 @@
 import { redirect } from "next/navigation"
-import { DEFAULT_CHECKOUT_STEP_SLUG } from "@/components/checkout/checkout.constants"
-import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils"
 
-export default function CheckoutPage() {
-  redirect(resolveCheckoutStepHref(DEFAULT_CHECKOUT_STEP_SLUG))
+import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils"
+import { DEFAULT_CHECKOUT_STEP_SLUG } from "@/components/checkout/checkout.constants"
+import { appHref } from "@/lib/routing"
+
+const checkoutPage = () => {
+  redirect(appHref(resolveCheckoutStepHref(DEFAULT_CHECKOUT_STEP_SLUG)))
 }
+
+export default checkoutPage

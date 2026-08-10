@@ -1,8 +1,8 @@
-/**
+/*
  * LinkButton — @techsio/ui-kit atom.
  *
  * @component LinkButton
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill link-button-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -17,17 +17,19 @@ import type {
   Ref,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
 import { buttonVariants } from "./button"
-import { Icon, type IconProps, type IconType } from "./icon"
+import { Icon } from "./icon"
+import type { IconProps, IconType } from "./icon"
 import { Link } from "./link"
 
 const linkButton = tv({
-  extend: buttonVariants,
   base: "data-disabled:cursor-not-allowed",
   defaultVariants: {
     size: "current",
   },
+  extend: buttonVariants,
 })
 
 type LinkButtonHref<T extends ElementType> =
@@ -36,21 +38,26 @@ type LinkButtonHref<T extends ElementType> =
 export type LinkButtonProps<T extends ElementType = "a"> = VariantProps<
   typeof linkButton
 > & {
-  href?: LinkButtonHref<T>
-  icon?: IconType
-  iconPosition?: "left" | "right"
-  iconSize?: IconProps["size"]
-  children?: ReactNode
-  disabled?: boolean
-  uppercase?: boolean
-  as?: T
-  ref?: Ref<HTMLAnchorElement>
+  href?: LinkButtonHref<T> | undefined
+  icon?: IconType | undefined
+  iconPosition?: "left" | "right" | undefined
+  iconSize?: IconProps["size"] | undefined
+  children?: ReactNode | undefined
+  disabled?: boolean | undefined
+  uppercase?: boolean | undefined
+  as?: T | undefined
+  ref?: Ref<HTMLAnchorElement> | undefined
 } & Omit<
     ComponentPropsWithoutRef<T>,
     "as" | "ref" | "children" | keyof VariantProps<typeof linkButton>
   >
 
-export function LinkButton<T extends ElementType = "a">({
+const handleDisabledClick = (event: MouseEvent) => {
+  event.preventDefault()
+  event.stopPropagation()
+}
+
+export const LinkButton = <T extends ElementType = "a">({
   href,
   icon,
   as,
@@ -68,43 +75,35 @@ export function LinkButton<T extends ElementType = "a">({
   onClick,
   tabIndex,
   ...props
-}: LinkButtonProps<T>) {
-  const handleClick = onClick as
-    | ((event: MouseEvent<Element>) => void)
-    | undefined
+}: LinkButtonProps<T>) => {
+  const Component: ElementType = as ?? "a"
+  const hasIcon = icon !== undefined
+  const isDisabled = disabled === true
 
   return (
     <Link
       {...props}
       aria-disabled={disabled}
-      as={as as ElementType}
+      as={Component}
       className={linkButton({
-        variant,
-        theme,
-        size,
         block,
-        uppercase,
         className,
+        size,
+        theme,
+        uppercase,
+        variant,
       })}
-      data-disabled={disabled || undefined}
+      data-disabled={isDisabled ? true : undefined}
       href={href}
-      onClick={(e: MouseEvent) => {
-        if (disabled) {
-          e.preventDefault()
-          e.stopPropagation()
-          return
-        }
-
-        handleClick?.(e)
-      }}
+      onClick={isDisabled ? handleDisabledClick : onClick}
       ref={ref}
-      tabIndex={disabled ? -1 : tabIndex}
+      tabIndex={isDisabled ? -1 : tabIndex}
     >
-      {icon && iconPosition === "left" && (
+      {hasIcon && iconPosition === "left" && (
         <Icon icon={icon} size={iconSize ?? size} />
       )}
       {children}
-      {icon && iconPosition === "right" && (
+      {hasIcon && iconPosition === "right" && (
         <Icon icon={icon} size={iconSize ?? size} />
       )}
     </Link>

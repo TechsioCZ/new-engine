@@ -1,4 +1,4 @@
-export type StorefrontBrand = {
+export interface StorefrontBrand {
   id: string
   title: string
   handle: string
@@ -6,12 +6,12 @@ export type StorefrontBrand = {
   facetId: string
 }
 
-export type StorefrontBrandGroup = {
+export interface StorefrontBrandGroup {
   letter: string
   brands: StorefrontBrand[]
 }
 
-type RawStorefrontBrandInput = {
+interface RawStorefrontBrandInput {
   id?: string | null
   title?: string | null
   handle?: string | null
@@ -19,8 +19,8 @@ type RawStorefrontBrandInput = {
 
 const BRAND_FACET_PREFIX = "brand-"
 const NUMERIC_BRAND_GROUP = "0-9"
-const DIGIT_CHARACTER_PATTERN = /^\d$/
-const LATIN_UPPERCASE_CHARACTER_PATTERN = /^[A-Z]$/
+const DIGIT_CHARACTER_PATTERN = /^\d$/u
+const LATIN_UPPERCASE_CHARACTER_PATTERN = /^[A-Z]$/u
 const BRAND_GROUP_ORDER = [
   "A",
   "B",
@@ -61,38 +61,44 @@ export const createBrandSlug = (value: string): string =>
     .toLowerCase()
     .normalize("NFD")
     .replaceAll(/\p{Diacritic}/gu, "")
-    .replaceAll(/[^a-z0-9]+/g, "-")
-    .replaceAll(/-+/g, "-")
-    .replaceAll(/^-+|-+$/g, "")
+    .replaceAll(/[^a-z0-9]+/gu, "-")
+    .replaceAll(/-+/gu, "-")
+    .replaceAll(/^-+|-+$/gu, "")
 
 export const createBrandHref = (brand: Pick<StorefrontBrand, "slug">) =>
   `/znacka/${brand.slug}`
 
-export const createBrandFacetId = (value: string) =>
+const createBrandFacetId = (value: string) =>
   `${BRAND_FACET_PREFIX}${createBrandSlug(value)}`
 
 export const normalizeStorefrontBrand = (
-  input: RawStorefrontBrandInput
+  input: RawStorefrontBrandInput,
 ): StorefrontBrand | null => {
   const title = input.title?.trim()
 
-  if (!(input.id && title)) {
+  if (input.id === null || input.id === undefined) {
+    return null
+  }
+  if (input.id.length === 0) {
+    return null
+  }
+  if (title === undefined || title.length === 0) {
     return null
   }
 
-  const handle = input.handle?.trim() || title
+  const handle = input.handle?.trim() ?? title
   const slug = createBrandSlug(handle)
 
-  if (!slug) {
+  if (slug.length === 0) {
     return null
   }
 
   return {
-    id: input.id,
-    title,
-    handle,
-    slug,
     facetId: createBrandFacetId(handle),
+    handle,
+    id: input.id,
+    slug,
+    title,
   }
 }
 
@@ -126,7 +132,7 @@ const resolveBrandGroupLetter = (brand: StorefrontBrand) => {
 }
 
 export const groupStorefrontBrands = (
-  brands: StorefrontBrand[]
+  brands: StorefrontBrand[],
 ): StorefrontBrandGroup[] => {
   const groupsByLetter = new Map<string, StorefrontBrand[]>()
 
@@ -144,10 +150,10 @@ export const groupStorefrontBrands = (
 
     return [
       {
-        letter,
-        brands: [...groupBrands].sort((left, right) =>
-          brandCollator.compare(left.title, right.title)
+        brands: [...groupBrands].toSorted((left, right) =>
+          brandCollator.compare(left.title, right.title),
         ),
+        letter,
       },
     ]
   })

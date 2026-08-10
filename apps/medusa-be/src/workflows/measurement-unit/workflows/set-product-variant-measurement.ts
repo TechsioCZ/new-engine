@@ -8,6 +8,7 @@ import {
   createRemoteLinkStep,
   releaseLockStep,
 } from "@medusajs/medusa/core-flows"
+
 import { productVariantMeasurementLink } from "../steps/helpers"
 import {
   dismissProductVariantMeasurementLinksStep,
@@ -41,14 +42,14 @@ export const setProductVariantMeasurementWorkflow = createWorkflow(
     const plan = prepareSetProductVariantMeasurementStep(input)
     restoreProductVariantMeasurementsStep(plan.restore)
     const previous = transform({ plan }, ({ plan: current }) =>
-      current.existing ? [current.existing] : []
+      current.existing ? [current.existing] : [],
     )
     const updated = updateProductVariantMeasurementsStep({
       previous,
       updates: plan.update,
     })
     const createInput = transform({ plan }, ({ plan: current }) =>
-      current.create ? [current.create] : []
+      current.create ? [current.create] : [],
     )
     const created = createProductVariantMeasurementsStep(createInput)
     const targetRecords = transform({ created, updated }, (data) => [
@@ -63,9 +64,9 @@ export const setProductVariantMeasurementWorkflow = createWorkflow(
       links.map((link) =>
         productVariantMeasurementLink(
           link.product_variant_id,
-          link.product_variant_measurement_id
-        )
-      )
+          link.product_variant_measurement_id,
+        ),
+      ),
     )
     createRemoteLinkStep(linksToCreate).config({
       name: "create-set-product-variant-measurement-link",
@@ -75,5 +76,5 @@ export const setProductVariantMeasurementWorkflow = createWorkflow(
 
     const result = transform(targetRecords, (records) => records[0] ?? null)
     return new WorkflowResponse(result)
-  }
+  },
 )

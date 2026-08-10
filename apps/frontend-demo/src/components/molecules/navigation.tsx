@@ -1,13 +1,15 @@
 "use client"
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
 import { slugify } from "@techsio/ui-kit/utils"
+import type { Route } from "next"
 import Link from "next/link"
 import type { ComponentPropsWithoutRef } from "react"
 
-export type NavItem = {
+export interface NavItem {
   title: string
-  href?: string
+  href?: Route
   prefetch?: boolean
   icon?: IconType
   label?: string
@@ -15,8 +17,8 @@ export type NavItem = {
   children?: NavItem[]
 }
 
-function NavigationItem({ item }: { item: NavItem }) {
-  if (item.role === "submenu" && item.children) {
+const NavigationItem = ({ item }: { item: NavItem }) => {
+  if (item.role === "submenu" && item.children !== undefined) {
     return (
       <li>
         <Popover
@@ -25,7 +27,7 @@ function NavigationItem({ item }: { item: NavItem }) {
           showArrow={true}
           trigger={
             <div className="flex items-center gap-2">
-              {item.icon && <Icon icon={item.icon} size="sm" />}
+              {item.icon !== undefined && <Icon icon={item.icon} size="sm" />}
               <span className="text-sm">{item.title}</span>
               <Icon icon="token-icon-chevron-down" size="sm" />
             </div>
@@ -36,11 +38,15 @@ function NavigationItem({ item }: { item: NavItem }) {
             {item.children.map((child) => (
               <Link
                 className="px-nav-submenu-padding hover:bg-nav-submenu-item-hover"
-                href={child.href || "#"}
+                href={child.href ?? "/"}
                 key={slugify(child.title)}
-                prefetch={child.prefetch}
+                {...(child.prefetch !== undefined && {
+                  prefetch: child.prefetch,
+                })}
               >
-                {child.icon && <Icon icon={child.icon} size="sm" />}
+                {child.icon !== undefined && (
+                  <Icon icon={child.icon} size="sm" />
+                )}
                 {child.title}
               </Link>
             ))}
@@ -54,12 +60,12 @@ function NavigationItem({ item }: { item: NavItem }) {
     <li className="relative">
       <Link
         className="flex items-center gap-nav-link-icon-gap rounded-nav-item px-nav-item-x py-nav-item-y font-nav-item text-nav-fg text-nav-item transition-colors hover:bg-nav-item-hover-bg hover:text-nav-fg-hover"
-        href={item.href || "#"}
+        href={item.href ?? "/"}
         prefetch={item.prefetch ?? false}
       >
-        {item.icon && <Icon icon={item.icon} size="sm" />}
+        {item.icon !== undefined && <Icon icon={item.icon} size="sm" />}
         {item.title}
-        {item.label && (
+        {item.label !== undefined && (
           <span className="ml-nav-badge-ml rounded-full bg-nav-badge-bg px-nav-badge-x py-nav-badge-y font-medium text-nav-badge text-nav-badge-fg">
             {item.label}
           </span>
@@ -73,14 +79,12 @@ interface NavigationProps extends ComponentPropsWithoutRef<"nav"> {
   items: NavItem[]
 }
 
-export function Navigation({ items, className, ...props }: NavigationProps) {
-  return (
-    <nav className="bg-nav-bg" {...props}>
-      <ul className="flex items-center gap-nav-gap">
-        {items.map((item) => (
-          <NavigationItem item={item} key={slugify(item.title)} />
-        ))}
-      </ul>
-    </nav>
-  )
-}
+export const Navigation = ({ items, className, ...props }: NavigationProps) => (
+  <nav className={`bg-nav-bg ${className ?? ""}`} {...props}>
+    <ul className="flex items-center gap-nav-gap">
+      {items.map((item) => (
+        <NavigationItem item={item} key={slugify(item.title)} />
+      ))}
+    </ul>
+  </nav>
+)

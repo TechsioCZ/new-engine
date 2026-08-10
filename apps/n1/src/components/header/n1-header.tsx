@@ -7,7 +7,9 @@ import { Header } from "@techsio/ui-kit/organisms/header"
 import dynamic from "next/dynamic"
 import Image from "next/image"
 import NextLink from "next/link"
+
 import logo from "@/assets/logo-n1.webp"
+
 import { CartPopover } from "./cart-popover"
 import { DesktopSubmenu } from "./desktop-submenu"
 import { LoginPopover } from "./login-popover"
@@ -15,92 +17,93 @@ import { LoginPopover } from "./login-popover"
 // MobileMenu uses usePathname() which is runtime data
 // Skip SSR to avoid "uncached data outside Suspense" during prerender
 const MobileMenu = dynamic(
-  () => import("./mobile-menu").then((m) => m.MobileMenu),
+  async () => {
+    const mobileMenuModule = await import("./mobile-menu")
+    return mobileMenuModule.MobileMenu
+  },
   {
     ssr: false,
-  }
+  },
 )
 
-export const N1Header = () => {
-  const topHeaderLinks = [
-    {
-      href: "/obchodni-podminky",
-      label: "Obchodní podmínky",
-    },
-    {
-      href: "/novinky",
-      label: "Novinky",
-    },
-    {
-      href: "/kontakty",
-      label: "Kontakty",
-    },
-  ]
+const topHeaderLinks = [
+  {
+    href: "/obchodni-podminky",
+    label: "Obchodní podmínky",
+  },
+  {
+    href: "/novinky",
+    label: "Novinky",
+  },
+  {
+    href: "/kontakty",
+    label: "Kontakty",
+  },
+]
 
-  return (
-    <Header
-      className="z-50 flex h-fit max-h-96 w-full flex-col"
-      direction="vertical"
-    >
-      <Header.Container className="flex items-center justify-between gap-200 bg-highlight px-400 py-150">
-        <div className="flex min-w-0 items-center gap-200 font-normal text-2xs text-fg-reverse">
-          <Link as={NextLink} href="mailto:office@n1shop.cz">
-            <Icon className="mr-200" icon="icon-[mdi--email-outline]" />
-            <span className="truncate hover:text-primary hover:underline">
-              office@n1shop.cz
-            </span>
+export const N1Header = () => (
+  <Header
+    className="z-50 flex h-fit max-h-navigation-menu w-full flex-col"
+    direction="vertical"
+  >
+    <Header.Container className="flex items-center justify-between gap-200 bg-highlight px-400 py-150">
+      <div className="flex min-w-0 items-center gap-200 font-normal text-2xs text-fg-reverse">
+        <Link as={NextLink} href="mailto:office@n1shop.cz">
+          <Icon className="mr-200" icon="icon-[mdi--email-outline]" />
+          <span className="truncate hover:text-primary hover:underline">
+            office@n1shop.cz
+          </span>
+        </Link>
+        <span className="hidden h-150 w-150 bg-secondary md:block" />
+        {topHeaderLinks.map((link) => (
+          <Link
+            as={NextLink}
+            className="hidden hover:text-primary hover:underline md:inline-flex"
+            href={link.href}
+            key={link.href}
+          >
+            {link.label}
           </Link>
-          <span className="hidden h-1.5 w-1.5 bg-secondary md:block" />
-          {topHeaderLinks.map((link) => (
-            <Link
-              as={NextLink}
-              className="hidden hover:text-primary hover:underline md:inline-flex"
-              href={link.href}
-              key={link.href}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </div>
-        <div className="hidden shrink-0 gap-200 sm:flex">
-          <Icon icon="icon-[cif--cz]" />
-          <Icon icon="icon-[cif--gb]" />
-        </div>
-      </Header.Container>
-      <Header.Container className="z-40 flex h-header-container justify-between bg-base-dark px-500 py-300">
-        <div className="flex h-full items-center gap-750">
-          <NextLink href="/">
-            <Image
-              alt="N1 Shop Logo"
-              className="h-auto w-auto"
-              height={250}
-              src={logo}
-              width={250}
-            />
-          </NextLink>
-          <SearchForm className="w-search max-header-desktop:hidden" size="sm">
-            <SearchForm.Control>
-              <SearchForm.Input className="bg-white" placeholder="Search..." />
-              <SearchForm.Button showSearchIcon />
-            </SearchForm.Control>
-          </SearchForm>
-        </div>
-
-        <Header.Actions className="relative text-2xl">
-          <Header.Hamburger className="text-2xl text-fg-reverse" />
-          <Button
-            className="text-white"
-            icon="icon-[mdi--heart-outline]"
-            size="current"
-            theme="unstyled"
+        ))}
+      </div>
+      <div className="hidden shrink-0 gap-200 sm:flex">
+        <Icon icon="icon-[cif--cz]" />
+        <Icon icon="icon-[cif--gb]" />
+      </div>
+    </Header.Container>
+    <Header.Container className="z-40 flex h-header-container justify-between bg-base-dark px-500 py-300">
+      <div className="flex h-full items-center gap-750">
+        <NextLink href="/">
+          <Image
+            alt="N1 Shop Logo"
+            className="h-auto w-auto"
+            height={250}
+            src={logo}
+            width={250}
           />
-          <LoginPopover />
-          <CartPopover />
-        </Header.Actions>
-      </Header.Container>
+        </NextLink>
+        <SearchForm className="w-search max-header-desktop:hidden" size="sm">
+          <SearchForm.Control>
+            <SearchForm.Input className="bg-white" placeholder="Search..." />
+            <SearchForm.Button showSearchIcon />
+          </SearchForm.Control>
+        </SearchForm>
+      </div>
 
-      <DesktopSubmenu />
-      <MobileMenu />
-    </Header>
-  )
-}
+      <Header.Actions className="relative text-2xl">
+        <Header.Hamburger className="text-2xl text-fg-reverse" />
+        <Button
+          className="text-white"
+          icon="icon-[mdi--heart-outline]"
+          size="current"
+          theme="unstyled"
+        />
+        <LoginPopover />
+        <CartPopover />
+      </Header.Actions>
+    </Header.Container>
+
+    <DesktopSubmenu />
+    <MobileMenu />
+  </Header>
+)

@@ -1,12 +1,9 @@
-import {
-  type CacheConfig,
-  type CacheStrategy,
-  createCacheConfig,
-} from "./cache-config"
+import { createCacheConfig } from "./cache-config"
+import type { CacheConfig, CacheStrategy } from "./cache-config"
 import type { QueryFactoryOptions, ReadQueryOptions } from "./hook-types"
 import type { QueryKey } from "./query-keys"
 
-type EnabledInput = {
+interface EnabledInput {
   enabled?: boolean
 }
 
@@ -14,47 +11,47 @@ type DetailInputBase = EnabledInput & {
   id?: string
 }
 
-type SimpleQueryKeys<TListParams, TDetailParams> = {
+interface SimpleQueryKeys<TListParams, TDetailParams> {
   list: (params: TListParams) => QueryKey
   detail: (params: TDetailParams) => QueryKey
 }
 
-type SimpleReadOptions<TData> = {
+interface SimpleReadOptions<TData> {
   queryOptions?: ReadQueryOptions<TData>
   cacheStrategy?: CacheStrategy
 }
 
-export type SimpleListDetailQueryOptionsFactory<
+export interface SimpleListDetailQueryOptionsFactory<
   TListResponse,
   TDetailResult,
   TListInput extends EnabledInput,
   TDetailInput extends DetailInputBase,
-> = {
+> {
   getListQueryOptions: (
     input: TListInput,
-    options?: SimpleReadOptions<TListResponse>
+    options?: SimpleReadOptions<TListResponse>,
   ) => QueryFactoryOptions<TListResponse>
   getDetailQueryOptions: (
     input: TDetailInput,
-    options?: SimpleReadOptions<TDetailResult>
+    options?: SimpleReadOptions<TDetailResult>,
   ) => QueryFactoryOptions<TDetailResult>
 }
 
-export type CreateSimpleListDetailQueryOptionsFactoryConfig<
+export interface CreateSimpleListDetailQueryOptionsFactoryConfig<
   TListResponse,
   TDetailResult,
   TListInput extends EnabledInput,
   TListParams,
   TDetailInput extends DetailInputBase,
   TDetailParams,
-> = {
+> {
   getList: (params: TListParams, signal?: AbortSignal) => Promise<TListResponse>
   getDetail: (
     params: TDetailParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TDetailResult>
-  buildListParams?: (input: TListInput) => TListParams
-  buildDetailParams?: (input: TDetailInput) => TDetailParams
+  buildListParams: (input: TListInput) => TListParams
+  buildDetailParams: (input: TDetailInput) => TDetailParams
   queryKeys: SimpleQueryKeys<TListParams, TDetailParams>
   cacheConfig?: CacheConfig
   defaultCacheStrategy?: CacheStrategy
@@ -62,12 +59,7 @@ export type CreateSimpleListDetailQueryOptionsFactoryConfig<
   missingDetailErrorMessage: string
 }
 
-const stripEnabled = <TInput extends EnabledInput>(input: TInput): TInput => {
-  const { enabled: _inputEnabled, ...rest } = input
-  return rest as TInput
-}
-
-export function createSimpleListDetailQueryOptionsFactory<
+export const createSimpleListDetailQueryOptionsFactory = <
   TListResponse,
   TDetailResult,
   TListInput extends EnabledInput,
@@ -96,48 +88,43 @@ export function createSimpleListDetailQueryOptionsFactory<
   TDetailResult,
   TListInput,
   TDetailInput
-> {
+> => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
-  const buildList =
-    buildListParams ?? ((input: TListInput) => input as unknown as TListParams)
-  const buildDetail =
-    buildDetailParams ??
-    ((input: TDetailInput) => input as unknown as TDetailParams)
 
   return {
-    getListQueryOptions: (
-      input,
-      options
-    ): QueryFactoryOptions<TListResponse> => {
-      const listParams = buildList(stripEnabled(input))
-      const cacheStrategy = options?.cacheStrategy ?? defaultCacheStrategy
-
-      return {
-        queryKey: queryKeys.list(listParams),
-        queryFn: ({ signal }: { signal?: AbortSignal }) =>
-          getList(listParams, signal),
-        ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
-      }
-    },
     getDetailQueryOptions: (
       input,
-      options
+      options,
     ): QueryFactoryOptions<TDetailResult> => {
-      const detailParams = buildDetail(stripEnabled(input))
+      const detailParams = buildDetailParams(input)
       const cacheStrategy = options?.cacheStrategy ?? defaultCacheStrategy
 
       return {
-        queryKey: queryKeys.detail(detailParams),
-        queryFn: ({ signal }: { signal?: AbortSignal }) => {
+        queryFn: async ({ signal }: { signal?: AbortSignal }) => {
           if (!isDetailInputReady(input)) {
             throw new Error(missingDetailErrorMessage)
           }
 
-          return getDetail(detailParams, signal)
+          return await getDetail(detailParams, signal)
         },
+        queryKey: queryKeys.detail(detailParams),
         ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
+        ...options?.queryOptions,
+      }
+    },
+    getListQueryOptions: (
+      input,
+      options,
+    ): QueryFactoryOptions<TListResponse> => {
+      const listParams = buildListParams(input)
+      const cacheStrategy = options?.cacheStrategy ?? defaultCacheStrategy
+
+      return {
+        queryFn: async ({ signal }: { signal?: AbortSignal }) =>
+          await getList(listParams, signal),
+        queryKey: queryKeys.list(listParams),
+        ...resolvedCacheConfig[cacheStrategy],
+        ...options?.queryOptions,
       }
     },
   }

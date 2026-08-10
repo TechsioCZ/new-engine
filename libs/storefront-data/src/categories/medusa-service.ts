@@ -1,12 +1,19 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { FindParams, HttpTypes, SelectParams } from "@medusajs/types"
+import {
+  getRecordValue,
+  omitKeys,
+  omitUndefined,
+  toPlainRecord,
+} from "@techsio/std/object"
+
+import type { IsExactly } from "../shared/type-utils"
 import type { CategoryListResponse, CategoryService } from "./types"
 
 type MedusaCategoryListQuery = FindParams &
-  HttpTypes.StoreProductCategoryListParams &
-  Record<string, unknown>
+  HttpTypes.StoreProductCategoryListParams
 
-type MedusaCategoryDetailQuery = SelectParams & Record<string, unknown>
+type MedusaCategoryDetailQuery = SelectParams
 
 export type MedusaCategoryListInput = FindParams &
   HttpTypes.StoreProductCategoryListParams & {
@@ -18,51 +25,69 @@ export type MedusaCategoryDetailInput = SelectParams & {
   enabled?: boolean
 }
 
-export type MedusaCategoryTransformListContext<
+export interface MedusaCategoryTransformListContext<
   TListParams extends MedusaCategoryListInput,
-> = {
+> {
   params: TListParams
   query: MedusaCategoryListQuery
   response: HttpTypes.StoreProductCategoryListResponse
 }
 
-export type MedusaCategoryTransformDetailContext<
+export interface MedusaCategoryTransformDetailContext<
   TDetailParams extends MedusaCategoryDetailInput,
-> = {
+> {
   params: TDetailParams
   query: MedusaCategoryDetailQuery
   response: HttpTypes.StoreProductCategoryResponse
 }
 
-export type MedusaCategoryServiceConfig<
-  TCategory,
+interface MedusaCategoryServiceConfigBase<
   TListParams extends MedusaCategoryListInput,
   TDetailParams extends MedusaCategoryDetailInput,
-> = {
+> {
   listPath?: string
   defaultListFields?: string
   defaultDetailFields?: string
   normalizeListQuery?: (params: TListParams) => MedusaCategoryListQuery
   normalizeDetailQuery?: (params: TDetailParams) => MedusaCategoryDetailQuery
-  transformCategory?: (category: HttpTypes.StoreProductCategory) => TCategory
-  transformListCategory?: (
-    category: HttpTypes.StoreProductCategory,
-    context: MedusaCategoryTransformListContext<TListParams>
-  ) => TCategory
-  transformDetailCategory?: (
-    category: HttpTypes.StoreProductCategory,
-    context: MedusaCategoryTransformDetailContext<TDetailParams>
-  ) => TCategory
 }
 
-const stripEnabled = <TQuery extends Record<string, unknown>>(
-  query: TQuery
-): Omit<TQuery, "enabled"> => {
-  const { enabled: _enabled, ...rest } = query as TQuery & {
-    enabled?: unknown
-  }
-  return rest
-}
+type MedusaCategoryTransforms<
+  TCategory,
+  TListParams extends MedusaCategoryListInput,
+  TDetailParams extends MedusaCategoryDetailInput,
+> =
+  | {
+      transformCategory: (category: HttpTypes.StoreProductCategory) => TCategory
+      transformListCategory?: (
+        category: HttpTypes.StoreProductCategory,
+        context: MedusaCategoryTransformListContext<TListParams>,
+      ) => TCategory
+      transformDetailCategory?: (
+        category: HttpTypes.StoreProductCategory,
+        context: MedusaCategoryTransformDetailContext<TDetailParams>,
+      ) => TCategory
+    }
+  | {
+      transformCategory?: never
+      transformListCategory: (
+        category: HttpTypes.StoreProductCategory,
+        context: MedusaCategoryTransformListContext<TListParams>,
+      ) => TCategory
+      transformDetailCategory: (
+        category: HttpTypes.StoreProductCategory,
+        context: MedusaCategoryTransformDetailContext<TDetailParams>,
+      ) => TCategory
+    }
+
+export type MedusaCategoryServiceConfig<
+  TCategory,
+  TListParams extends MedusaCategoryListInput,
+  TDetailParams extends MedusaCategoryDetailInput,
+> = MedusaCategoryServiceConfigBase<TListParams, TDetailParams> &
+  (IsExactly<TCategory, HttpTypes.StoreProductCategory> extends true
+    ? Partial<MedusaCategoryTransforms<TCategory, TListParams, TDetailParams>>
+    : MedusaCategoryTransforms<TCategory, TListParams, TDetailParams>)
 
 /**
  * Creates a CategoryService for Medusa Store API.
@@ -70,14 +95,41 @@ const stripEnabled = <TQuery extends Record<string, unknown>>(
  * Uses `/store/product-categories` through `sdk.client.fetch` so query cancellation
  * works with `AbortSignal` passed by TanStack Query.
  */
+type MedusaCategoryServiceArgs<
+  TCategory,
+  TListParams extends MedusaCategoryListInput,
+  TDetailParams extends MedusaCategoryDetailInput,
+> =
+  IsExactly<TCategory, HttpTypes.StoreProductCategory> extends true
+    ? [
+        config?:
+          | MedusaCategoryServiceConfig<TCategory, TListParams, TDetailParams>
+          | undefined,
+      ]
+    : [
+        config: MedusaCategoryServiceConfig<
+          TCategory,
+          TListParams,
+          TDetailParams
+        >,
+      ]
+
 export function createMedusaCategoryService<
   TCategory = HttpTypes.StoreProductCategory,
   TListParams extends MedusaCategoryListInput = MedusaCategoryListInput,
   TDetailParams extends MedusaCategoryDetailInput = MedusaCategoryDetailInput,
 >(
   sdk: Medusa,
-  config?: MedusaCategoryServiceConfig<TCategory, TListParams, TDetailParams>
-): CategoryService<TCategory, TListParams, TDetailParams> {
+  ...[config]: MedusaCategoryServiceArgs<TCategory, TListParams, TDetailParams>
+): CategoryService<TCategory, TListParams, TDetailParams>
+export function createMedusaCategoryService<
+  TListParams extends MedusaCategoryListInput,
+  TDetailParams extends MedusaCategoryDetailInput,
+>(
+  sdk: Medusa,
+  config?: MedusaCategoryServiceConfigBase<TListParams, TDetailParams> &
+    Partial<MedusaCategoryTransforms<unknown, TListParams, TDetailParams>>,
+): CategoryService<unknown, TListParams, TDetailParams> {
   const {
     listPath = "/store/product-categories",
     defaultListFields,
@@ -90,72 +142,66 @@ export function createMedusaCategoryService<
   } = config ?? {}
 
   const baseTransform =
-    transformCategory ?? ((category) => category as unknown as TCategory)
+    transformCategory ??
+    ((category: HttpTypes.StoreProductCategory) => category)
 
-  const mapListCategory: (
-    category: HttpTypes.StoreProductCategory,
-    context: MedusaCategoryTransformListContext<TListParams>
-  ) => TCategory =
+  const mapListCategory =
     transformListCategory ??
-    ((category: HttpTypes.StoreProductCategory, _context) =>
-      baseTransform(category))
+    ((category: HttpTypes.StoreProductCategory) => baseTransform(category))
 
-  const mapDetailCategory: (
-    category: HttpTypes.StoreProductCategory,
-    context: MedusaCategoryTransformDetailContext<TDetailParams>
-  ) => TCategory =
+  const mapDetailCategory =
     transformDetailCategory ??
-    ((category: HttpTypes.StoreProductCategory, _context) =>
-      baseTransform(category))
+    ((category: HttpTypes.StoreProductCategory) => baseTransform(category))
 
   const buildListQuery = (params: TListParams): MedusaCategoryListQuery => {
-    const query = normalizeListQuery
-      ? normalizeListQuery(params)
-      : ({
-          ...params,
-          ...(defaultListFields && !params.fields
-            ? { fields: defaultListFields }
-            : {}),
-        } as MedusaCategoryListQuery)
+    const hasDefaultFields =
+      defaultListFields !== undefined && defaultListFields.length > 0
+    const hasParamFields =
+      params.fields !== undefined && params.fields.length > 0
+    if (normalizeListQuery !== undefined) {
+      return normalizeListQuery(params)
+    }
 
-    return stripEnabled(query) as MedusaCategoryListQuery
+    const query = omitUndefined(omitKeys(params, ["enabled"]))
+    return hasDefaultFields && !hasParamFields
+      ? { ...query, fields: defaultListFields }
+      : query
   }
 
   const buildDetailQuery = (
-    params: TDetailParams
+    params: TDetailParams,
   ): MedusaCategoryDetailQuery => {
-    const query = normalizeDetailQuery
-      ? normalizeDetailQuery(params)
-      : ({
-          ...params,
-          ...(defaultDetailFields && !params.fields
-            ? { fields: defaultDetailFields }
-            : {}),
-        } as MedusaCategoryDetailQuery)
-
-    const { id: _id, ...withoutId } = query as MedusaCategoryDetailQuery & {
-      id?: string
+    const hasDefaultFields =
+      defaultDetailFields !== undefined && defaultDetailFields.length > 0
+    const hasParamFields =
+      params.fields !== undefined && params.fields.length > 0
+    if (normalizeDetailQuery !== undefined) {
+      return normalizeDetailQuery(params)
     }
-    return stripEnabled(withoutId) as MedusaCategoryDetailQuery
+
+    const query = omitUndefined(omitKeys(params, ["enabled", "id"]))
+    return hasDefaultFields && !hasParamFields
+      ? { ...query, fields: defaultDetailFields }
+      : query
   }
 
   return {
     async getCategories(
       params: TListParams,
-      signal?: AbortSignal
-    ): Promise<CategoryListResponse<TCategory>> {
+      signal?: AbortSignal,
+    ): Promise<CategoryListResponse<unknown>> {
       const query = buildListQuery(params)
       const response =
         await sdk.client.fetch<HttpTypes.StoreProductCategoryListResponse>(
           listPath,
           {
             query,
-            signal,
-          }
+            signal: signal ?? null,
+          },
         )
 
       const categories = (response.product_categories ?? []).map((category) =>
-        mapListCategory(category, { params, query, response })
+        mapListCategory(category, { params, query, response }),
       )
 
       return {
@@ -166,9 +212,9 @@ export function createMedusaCategoryService<
 
     async getCategory(
       params: TDetailParams,
-      signal?: AbortSignal
-    ): Promise<TCategory | null> {
-      if (!params.id) {
+      signal?: AbortSignal,
+    ): Promise<unknown> {
+      if (params.id === undefined || params.id.length === 0) {
         return null
       }
 
@@ -178,15 +224,20 @@ export function createMedusaCategoryService<
           `${listPath}/${params.id}`,
           {
             query,
-            signal,
-          }
+            signal: signal ?? null,
+          },
         )
 
-      const category = response.product_category
-      if (!category) {
+      const responseRecord = toPlainRecord(response)
+      const rawCategory =
+        responseRecord === undefined
+          ? undefined
+          : getRecordValue(responseRecord, "product_category")
+      if (toPlainRecord(rawCategory) === undefined) {
         return null
       }
 
+      const category = response.product_category
       return mapDetailCategory(category, { params, query, response })
     },
   }

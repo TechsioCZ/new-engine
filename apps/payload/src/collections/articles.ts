@@ -1,5 +1,11 @@
 import { lexicalHTMLField } from "@payloadcms/richtext-lexical"
-import type { CollectionConfig } from "payload"
+import type {
+  CollectionAfterReadHook,
+  CollectionBeforeChangeHook,
+  CollectionConfig,
+  Condition,
+} from "payload"
+
 import { requireAuth } from "../lib/access/require-auth"
 import { fieldDescriptions } from "../lib/constants/descriptions"
 import {
@@ -19,26 +25,80 @@ import { createMedusaCacheHook } from "../lib/hooks/medusa-cache"
 import { generateSlugFromTitle } from "../lib/hooks/slug"
 import { estimateReadingTime } from "../lib/utils/reading-time"
 import { shouldReturnHtmlForRequest } from "../lib/utils/request"
+import type { Article } from "../payload-types"
 
 /** Collection slug for articles. */
 const COLLECTION_SLUG = "articles"
 /** Hook to invalidate Medusa cache when articles change. */
 const invalidateArticlesCache = createMedusaCacheHook(COLLECTION_SLUG)
 
+/** Show the analytics group only once the article has been published. */
+const isArticlePublished: Condition<Article> = (data) =>
+  data?.status === "published"
+
+/** Return HTML content in place of the Lexical AST when the request asks for it. */
+const returnHtmlForRequest: CollectionAfterReadHook<Article> = ({
+  doc,
+  req,
+}) => {
+  if (!shouldReturnHtmlForRequest(req)) {
+    return doc
+  }
+
+  if (doc.contentHTML !== undefined) {
+    const { contentHTML, ...rest } = doc
+    return {
+      ...rest,
+      content: contentHTML,
+    }
+  }
+
+  return doc
+}
+
+/** Auto-generate the slug and estimated reading time before saving. */
+const applyArticleDefaults: CollectionBeforeChangeHook<Article> = ({
+  data,
+  req,
+}) => {
+  // Auto-generate slug from title if not provided
+  if (
+    data.title !== undefined &&
+    data.title !== "" &&
+    (data.slug === undefined || data.slug === "")
+  ) {
+    const slug = generateSlugFromTitle(
+      data.title,
+      req?.locale ? { locale: req.locale } : {},
+    )
+    if (slug) {
+      data.slug = slug
+    }
+  }
+
+  // Estimate reading time (average 200 words per minute)
+  if (
+    data.content &&
+    (data.readingTime === undefined || data.readingTime === null)
+  ) {
+    data.readingTime = estimateReadingTime(data.content)
+  }
+
+  return data
+}
+
 /** Payload collection config for articles. */
 export const Articles: CollectionConfig = {
-  slug: COLLECTION_SLUG,
-  labels: collectionLabels.articles,
+  access: {
+    create: requireAuth,
+    delete: requireAuth,
+    read: requireAuth,
+    update: requireAuth,
+  },
   admin: {
-    useAsTitle: "title",
     defaultColumns: ["title", "category", "publishedDate", "status"],
     group: adminGroups.content,
-  },
-  access: {
-    read: requireAuth,
-    create: requireAuth,
-    update: requireAuth,
-    delete: requireAuth,
+    useAsTitle: "title",
   },
   fields: [
     createTitleField({
@@ -46,160 +106,124 @@ export const Articles: CollectionConfig = {
       maxLength: 100,
     }),
     createSlugField({
-      label: fieldLabels.urlSlug,
       description: fieldDescriptions.slugArticle,
+      label: fieldLabels.urlSlug,
     }),
     {
-      name: "excerpt",
-      label: fieldLabels.excerpt,
-      type: "textarea",
-      required: true,
-      maxLength: 300,
-      localized: true,
       admin: {
         description: fieldDescriptions.excerptArticle,
       },
+      label: fieldLabels.excerpt,
+      localized: true,
+      maxLength: 300,
+      name: "excerpt",
+      required: true,
+      type: "textarea",
     },
     createContentField({
-      editor: createLexicalEditor(),
-      label: fieldLabels.articleContent,
-      required: true,
       admin: {
         description: fieldDescriptions.contentArticle,
       },
+      editor: createLexicalEditor(),
+      label: fieldLabels.articleContent,
+      required: true,
     }),
     lexicalHTMLField({
       htmlFieldName: "contentHTML",
       lexicalFieldName: "content",
     }),
     {
-      name: "featuredImage",
-      label: fieldLabels.featuredImage,
-      type: "upload",
-      relationTo: "media",
-      required: true,
       admin: {
         description: fieldDescriptions.featuredImageArticle,
       },
+      label: fieldLabels.featuredImage,
+      name: "featuredImage",
+      relationTo: "media",
+      required: true,
+      type: "upload",
     },
     {
-      name: "category",
       label: fieldLabels.category,
-      type: "relationship",
+      name: "category",
       relationTo: "article-categories",
       required: true,
+      type: "relationship",
     },
     {
-      name: "tags",
-      label: fieldLabels.tags,
-      type: "text",
-      hasMany: true,
-      localized: true,
       admin: {
         description: fieldDescriptions.tagsArticle,
       },
+      hasMany: true,
+      label: fieldLabels.tags,
+      localized: true,
+      name: "tags",
+      type: "text",
     },
     {
-      name: "author",
-      label: fieldLabels.author,
-      type: "relationship",
-      relationTo: "users",
       defaultValue: ({ user }) => user?.id,
+      label: fieldLabels.author,
+      name: "author",
+      relationTo: "users",
+      type: "relationship",
     },
     createPublishedDateField(),
     createStatusField(),
     {
-      name: "readingTime",
-      label: fieldLabels.readingTime,
-      type: "number",
       admin: {
         description: fieldDescriptions.readingTime,
       },
+      label: fieldLabels.readingTime,
+      name: "readingTime",
+      type: "number",
     },
     // Analytics and Performance
     {
-      name: "analytics",
-      label: fieldLabels.analytics,
-      type: "group",
       admin: {
-        condition: (data: any) => data?.status === "published",
+        condition: isArticlePublished,
       },
       fields: [
         {
-          name: "views",
+          admin: {
+            readOnly: true,
+          },
+          defaultValue: 0,
           label: fieldLabels.views,
+          name: "views",
           type: "number",
-          defaultValue: 0,
+        },
+        {
           admin: {
             readOnly: true,
           },
-        },
-        {
-          name: "shares",
+          defaultValue: 0,
           label: fieldLabels.shares,
+          name: "shares",
           type: "number",
-          defaultValue: 0,
-          admin: {
-            readOnly: true,
-          },
         },
         {
-          name: "lastViewed",
-          label: fieldLabels.lastViewed,
-          type: "date",
           admin: {
-            readOnly: true,
             date: {
               pickerAppearance: "dayAndTime",
             },
+            readOnly: true,
           },
+          label: fieldLabels.lastViewed,
+          name: "lastViewed",
+          type: "date",
         },
       ],
+      label: fieldLabels.analytics,
+      name: "analytics",
+      type: "group",
     },
   ],
   hooks: {
-    beforeChange: [
-      ({ data, req }: any) => {
-        // Auto-generate slug from title if not provided
-        if (data.title && !data.slug) {
-          const slug = generateSlugFromTitle(data.title, {
-            locale: req?.locale,
-          })
-          if (slug) {
-            data.slug = slug
-          }
-        }
-
-        // Estimate reading time (average 200 words per minute)
-        if (
-          data.content &&
-          (data.readingTime === undefined || data.readingTime === null)
-        ) {
-          data.readingTime = estimateReadingTime(data.content)
-        }
-
-        return data
-      },
-    ],
     afterChange: [invalidateArticlesCache],
     afterDelete: [invalidateArticlesCache],
-    afterRead: [
-      ({ doc, req }) => {
-        if (!shouldReturnHtmlForRequest(req)) {
-          return doc
-        }
-
-        if (doc.contentHTML !== undefined) {
-          const { contentHTML, ...rest } = doc
-          return {
-            ...rest,
-            content: contentHTML,
-          }
-        }
-
-        return doc
-      },
-    ],
+    afterRead: [returnHtmlForRequest],
+    beforeChange: [applyArticleDefaults],
   },
+  labels: collectionLabels.articles,
+  slug: COLLECTION_SLUG,
   timestamps: true,
 }

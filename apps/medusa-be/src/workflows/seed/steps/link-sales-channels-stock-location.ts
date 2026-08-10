@@ -7,7 +7,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { linkSalesChannelsToStockLocationWorkflow } from "@medusajs/medusa/core-flows"
 
-export type LinkSalesChannelsStockLocationStepInput = {
+export interface LinkSalesChannelsStockLocationStepInput {
   salesChannels: SalesChannelDTO[]
   stockLocations: StockLocationDTO[]
 }
@@ -21,25 +21,23 @@ export const linkSalesChannelsStockLocationStep = createStep(
 
     logger.info("Linking sales channels to stock location...")
 
-    const result: unknown[] = []
-
-    for (const stockLocation of input.stockLocations) {
-      const linkResult = await linkSalesChannelsToStockLocationWorkflow(
-        container
-      ).run({
-        input: {
-          id: stockLocation.id,
-          add: input.salesChannels.map((i) => i.id),
-        },
-      })
-
-      result.push(linkResult.result)
-    }
+    const linkResults = await Promise.all(
+      input.stockLocations.map(
+        async (stockLocation) =>
+          await linkSalesChannelsToStockLocationWorkflow(container).run({
+            input: {
+              add: input.salesChannels.map((i) => i.id),
+              id: stockLocation.id,
+            },
+          }),
+      ),
+    )
+    const result: unknown[] = linkResults.map((linkResult) => linkResult.result)
 
     // the workflow result contains nothing ... medusa wtf?
 
     return new StepResponse({
       result,
     })
-  }
+  },
 )

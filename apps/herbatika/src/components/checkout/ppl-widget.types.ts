@@ -1,4 +1,4 @@
-export type PplWidgetConfig = {
+export interface PplWidgetConfig {
   accessPointCode?: string
   allowedCountries?: string[]
   centeredToAddress?: string
@@ -17,7 +17,7 @@ export type PplWidgetConfig = {
   viewMode?: "inline" | "modal"
 }
 
-export type PplAccessPoint = {
+export interface PplAccessPoint {
   acceptedSizes?: string[] | null
   address?: {
     city?: string | null
@@ -38,12 +38,12 @@ export type PplAccessPoint = {
   type?: string | null
 }
 
-export type PplWidgetError = {
+export interface PplWidgetError {
   code: string
   message: string
 }
 
-export type PplWidgetHandle = {
+export interface PplWidgetHandle {
   close: () => void
   getSelectedAccessPoint: () => PplAccessPoint | null
   open: () => void

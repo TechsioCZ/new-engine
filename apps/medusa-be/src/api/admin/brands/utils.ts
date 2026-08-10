@@ -10,20 +10,24 @@ import {
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
+import { getRecordValue } from "@techsio/std/object"
+
 import { ProductBrandLink } from "../../../links/product-brand"
 import { BRAND_MODULE } from "../../../modules/brand"
 import type BrandModuleService from "../../../modules/brand/service"
 
-export type BrandAttributeResponse = {
+type NullableTimestamp = string | Date | null
+
+export interface BrandAttributeResponse {
   attribute_type_id?: string
-  attribute_type_deleted_at?: string | Date | null
-  id?: string
+  attribute_type_deleted_at?: NullableTimestamp
+  id?: string | undefined
   name: string
   value: string
 }
 
-export type BrandAttributeTypeResponse = {
-  deleted_at?: string | Date | null
+export interface BrandAttributeTypeResponse {
+  deleted_at?: NullableTimestamp
   id: string
   name: string
   usage_count: number
@@ -33,14 +37,14 @@ export type BrandAttributeTypeBrandResponse = BrandResponse & {
   attribute_value: string
 }
 
-export type BrandResponse = {
+export interface BrandResponse {
   active_product_count: number
   id: string
   title: string
   handle: string
   attributes: BrandAttributeResponse[]
-  created_at?: string | Date
-  deleted_at?: string | Date | null
+  created_at?: string | Date | undefined
+  deleted_at?: NullableTimestamp
   gpsr_contact_email?: string | null
   gpsr_european_reseller_contact_email?: string | null
   gpsr_european_reseller_manufacturing_company_name?: string | null
@@ -48,15 +52,15 @@ export type BrandResponse = {
   gpsr_manufactured_outside_eu?: boolean
   gpsr_manufacturing_company_name?: string | null
   gpsr_postal_address?: string | null
-  updated_at?: string | Date
+  updated_at?: string | Date | undefined
 }
 
-export type BrandAttributeRecord = {
-  deleted_at?: string | Date | null
+export interface BrandAttributeRecord {
+  deleted_at?: NullableTimestamp
   id?: string
   value: string
   attributeType?: {
-    deleted_at?: string | Date | null
+    deleted_at?: NullableTimestamp
     id?: string
     name?: string
   }
@@ -66,7 +70,7 @@ export type BrandAttributeRecord = {
     active_product_count?: number
     attributes?: BrandAttributeRecord[]
     created_at?: string | Date
-    deleted_at?: string | Date | null
+    deleted_at?: NullableTimestamp
     handle: string
     id?: string
     title: string
@@ -75,19 +79,19 @@ export type BrandAttributeRecord = {
   brand_id?: string
 }
 
-type BrandAttributeTypeRecord = {
-  deleted_at?: string | Date | null
+interface BrandAttributeTypeRecord {
+  deleted_at?: NullableTimestamp
   id: string
   name: string
 }
 
-type BrandRecord = {
+interface BrandRecord {
   id: string
   title: string
   handle: string
   attributes?: BrandAttributeRecord[]
   created_at?: string | Date
-  deleted_at?: string | Date | null
+  deleted_at?: NullableTimestamp
   gpsr_contact_email?: string | null
   gpsr_european_reseller_contact_email?: string | null
   gpsr_european_reseller_manufacturing_company_name?: string | null
@@ -106,8 +110,8 @@ type ProductRecord = Pick<ProductTypes.ProductDTO, "id"> &
     >
   >
 
-type LinkRecord = {
-  deleted_at?: string | Date | null
+interface LinkRecord {
+  deleted_at?: NullableTimestamp
   product_id?: string
   brand_id?: string
 }
@@ -120,46 +124,50 @@ type BrandService = BrandModuleService & {
       | { name: string }
       | {
           name: string
-        }[]
+        }[],
   ) => Promise<BrandAttributeTypeRecord[]>
   listAndCountBrandAttributeTypes: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    filters?: Parameters<
+      BrandModuleService["listAndCountBrandAttributeTypes"]
+    >[0],
+    config?: Parameters<
+      BrandModuleService["listAndCountBrandAttributeTypes"]
+    >[1],
   ) => Promise<[BrandAttributeTypeRecord[], number]>
   listBrandAttributes: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    filters?: Parameters<BrandModuleService["listBrandAttributes"]>[0],
+    config?: Parameters<BrandModuleService["listBrandAttributes"]>[1],
   ) => Promise<BrandAttributeRecord[]>
   listAndCountBrandAttributes: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    filters?: Parameters<BrandModuleService["listAndCountBrandAttributes"]>[0],
+    config?: Parameters<BrandModuleService["listAndCountBrandAttributes"]>[1],
   ) => Promise<[BrandAttributeRecord[], number]>
   listBrands: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    filters?: Parameters<BrandModuleService["listBrands"]>[0],
+    config?: Parameters<BrandModuleService["listBrands"]>[1],
   ) => Promise<BrandRecord[]>
   listAndCountBrands: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
+    filters?: Parameters<BrandModuleService["listAndCountBrands"]>[0],
+    config?: Parameters<BrandModuleService["listAndCountBrands"]>[1],
   ) => Promise<[BrandRecord[], number]>
   retrieveBrand: (
     id: string,
-    config?: Record<string, unknown>
+    config?: Parameters<BrandModuleService["retrieveBrand"]>[1],
   ) => Promise<BrandRecord>
 }
 
-type ListProductsOptions = {
-  order?: Record<string, "ASC" | "DESC">
-  q?: string
-  skip?: number
-  take?: number
+interface ListProductsOptions {
+  order?: Record<string, "ASC" | "DESC"> | undefined
+  q?: string | undefined
+  skip?: number | undefined
+  take?: number | undefined
 }
 
-type RetrieveBrandOptions = {
+interface RetrieveBrandOptions {
   withDeleted?: boolean
 }
 
-const LIKE_WILDCARD_REGEX = /[\\%_]/g
+const LIKE_WILDCARD_REGEX = /[\\%_]/gu
 const QUERY_CHUNK_SIZE = 500
 
 const chunkArray = <T>(items: T[], size = QUERY_CHUNK_SIZE) => {
@@ -172,6 +180,92 @@ const chunkArray = <T>(items: T[], size = QUERY_CHUNK_SIZE) => {
   return chunks
 }
 
+export const uniqueIds = (ids: string[]) => [...new Set(ids)]
+
+const isPresentString = (value: string | undefined): value is string =>
+  value !== undefined && value !== ""
+
+const isPresentTimestamp = (
+  value: NullableTimestamp | undefined,
+): value is string | Date =>
+  value !== null && value !== undefined && value !== ""
+
+const isBrandQueryObjectLike = (value: unknown): value is object =>
+  typeof value === "object" && value !== null
+
+const PRODUCT_STATUS_VALUES = new Set<string>(Object.values(ProductStatus))
+
+const isProductStatus = (
+  value: unknown,
+): value is ProductTypes.ProductDTO["status"] =>
+  typeof value === "string" && PRODUCT_STATUS_VALUES.has(value)
+
+const toLinkRecord = (value: unknown): LinkRecord => {
+  if (!isBrandQueryObjectLike(value)) {
+    return {}
+  }
+
+  const deletedAt = getRecordValue(value, "deleted_at")
+  const productId = getRecordValue(value, "product_id")
+  const brandId = getRecordValue(value, "brand_id")
+
+  return {
+    ...(deletedAt === null ||
+    typeof deletedAt === "string" ||
+    deletedAt instanceof Date
+      ? { deleted_at: deletedAt }
+      : {}),
+    ...(typeof productId === "string" ? { product_id: productId } : {}),
+    ...(typeof brandId === "string" ? { brand_id: brandId } : {}),
+  }
+}
+
+const toLinkRecords = (value: unknown): LinkRecord[] =>
+  Array.isArray(value) ? value.map((item) => toLinkRecord(item)) : []
+
+const toProductRecord = (value: unknown): ProductRecord | null => {
+  if (!isBrandQueryObjectLike(value)) {
+    return null
+  }
+
+  const createdAt = getRecordValue(value, "created_at")
+  const handle = getRecordValue(value, "handle")
+  const id = getRecordValue(value, "id")
+  const status = getRecordValue(value, "status")
+  const thumbnail = getRecordValue(value, "thumbnail")
+  const title = getRecordValue(value, "title")
+  const updatedAt = getRecordValue(value, "updated_at")
+
+  if (typeof id !== "string") {
+    return null
+  }
+
+  return {
+    id,
+    ...(typeof createdAt === "string" || createdAt instanceof Date
+      ? { created_at: createdAt }
+      : {}),
+    ...(typeof handle === "string" ? { handle } : {}),
+    ...(isProductStatus(status) ? { status } : {}),
+    ...(thumbnail === null || typeof thumbnail === "string"
+      ? { thumbnail }
+      : {}),
+    ...(typeof title === "string" ? { title } : {}),
+    ...(typeof updatedAt === "string" || updatedAt instanceof Date
+      ? { updated_at: updatedAt }
+      : {}),
+  }
+}
+
+const toProductRecords = (value: unknown): ProductRecord[] =>
+  Array.isArray(value)
+    ? value.flatMap((item) => {
+        const record = toProductRecord(item)
+
+        return record ? [record] : []
+      })
+    : []
+
 export const getBrandService = (scope: MedusaContainer) =>
   scope.resolve<BrandService>(BRAND_MODULE)
 
@@ -180,18 +274,18 @@ const getProductService = (scope: MedusaContainer) =>
 
 export const toBrandResponse = (
   brand: BrandRecord,
-  activeProductCount = 0
+  activeProductCount = 0,
 ): BrandResponse => ({
   active_product_count: activeProductCount,
   attributes: (brand.attributes ?? []).flatMap((attribute) => {
-    if (attribute.deleted_at) {
+    if (isPresentTimestamp(attribute.deleted_at)) {
       return []
     }
 
     const name = attribute.attributeType?.name
     const attributeTypeId = attribute.attributeType?.id
 
-    if (!(name && attributeTypeId)) {
+    if (!isPresentString(name) || !isPresentString(attributeTypeId)) {
       return []
     }
 
@@ -226,7 +320,7 @@ export const toBrandResponse = (
 
 export const toBrandAttributeTypeResponse = (
   attributeType: BrandAttributeTypeRecord,
-  usageCount: number
+  usageCount: number,
 ): BrandAttributeTypeResponse => ({
   deleted_at: attributeType.deleted_at ?? null,
   id: attributeType.id,
@@ -236,9 +330,9 @@ export const toBrandAttributeTypeResponse = (
 
 export const toBrandAttributeTypeBrandResponse = (
   attribute: BrandAttributeRecord,
-  activeProductCount = 0
+  activeProductCount = 0,
 ): BrandAttributeTypeBrandResponse | null => {
-  if (!attribute.brand?.id) {
+  if (attribute.brand === undefined || !isPresentString(attribute.brand.id)) {
     return null
   }
 
@@ -255,7 +349,7 @@ export const toBrandAttributeTypeBrandResponse = (
 
 export const getBrandAttributeTypeUsageCounts = async (
   scope: MedusaContainer,
-  attributeTypeIds: string[]
+  attributeTypeIds: string[],
 ) => {
   if (!attributeTypeIds.length) {
     return new Map<string, number>()
@@ -267,7 +361,7 @@ export const getBrandAttributeTypeUsageCounts = async (
     },
     {
       relations: ["brand"],
-    }
+    },
   )
 
   const brandIdsByAttributeTypeId = new Map<string, Set<string>>()
@@ -277,7 +371,11 @@ export const getBrandAttributeTypeUsageCounts = async (
       attribute.attribute_type_id ?? attribute.attributeType_id
     const brandId = attribute.brand?.id ?? attribute.brand_id
 
-    if (!(attributeTypeId && brandId) || attribute.brand?.deleted_at) {
+    if (
+      !isPresentString(attributeTypeId) ||
+      !isPresentString(brandId) ||
+      isPresentTimestamp(attribute.brand?.deleted_at)
+    ) {
       continue
     }
 
@@ -289,66 +387,70 @@ export const getBrandAttributeTypeUsageCounts = async (
 
   return new Map(
     [...brandIdsByAttributeTypeId.entries()].map(
-      ([attributeTypeId, brandIds]) => [attributeTypeId, brandIds.size]
-    )
+      ([attributeTypeId, brandIds]) => [attributeTypeId, brandIds.size],
+    ),
   )
 }
 
 export const getBrandActiveProductCounts = async (
   scope: MedusaContainer,
-  brandIds: string[]
+  brandIds: string[],
 ) => {
   if (!brandIds.length) {
     return new Map<string, number>()
   }
 
   const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const links: LinkRecord[] = []
+  const linkChunks = await Promise.all(
+    chunkArray(uniqueIds(brandIds)).map(async (brandIdChunk) => {
+      const { data } = await query.graph({
+        entity: ProductBrandLink.entryPoint,
+        fields: ["brand_id", "product_id"],
+        filters: {
+          brand_id: { $in: brandIdChunk },
+        },
+      })
 
-  for (const brandIdChunk of chunkArray(uniqueIds(brandIds))) {
-    const { data } = await query.graph({
-      entity: ProductBrandLink.entryPoint,
-      fields: ["brand_id", "product_id"],
-      filters: {
-        brand_id: { $in: brandIdChunk },
-      },
-    })
-    links.push(...(data as LinkRecord[]))
-  }
+      return toLinkRecords(data)
+    }),
+  )
+  const links = linkChunks.flat()
 
   const productIds = uniqueIds(
     links
       .map((link) => link.product_id)
-      .filter((productId): productId is string => !!productId)
+      .filter((productId): productId is string => isPresentString(productId)),
   )
 
   if (!productIds.length) {
     return new Map<string, number>()
   }
 
-  const products: ProductRecord[] = []
+  const productChunks = await Promise.all(
+    chunkArray(productIds).map(async (productIdChunk) => {
+      const { data } = await query.graph({
+        entity: "product",
+        fields: ["id"],
+        filters: {
+          id: { $in: productIdChunk },
+          status: ProductStatus.PUBLISHED,
+        },
+      })
 
-  for (const productIdChunk of chunkArray(productIds)) {
-    const { data } = await query.graph({
-      entity: "product",
-      fields: ["id"],
-      filters: {
-        id: { $in: productIdChunk },
-        status: ProductStatus.PUBLISHED,
-      },
-    })
-    products.push(...(data as ProductRecord[]))
-  }
+      return toProductRecords(data)
+    }),
+  )
+  const products = productChunks.flat()
 
   const activeProductIds = new Set(products.map((product) => product.id))
   const activeProductIdsByBrandId = new Map<string, Set<string>>()
 
   for (const link of links) {
-    if (!(link.brand_id && link.product_id)) {
-      continue
-    }
-
-    if (!activeProductIds.has(link.product_id)) {
+    if (
+      !isPresentString(link.brand_id) ||
+      !isPresentString(link.product_id) ||
+      !activeProductIds.has(link.product_id)
+    ) {
       continue
     }
 
@@ -362,7 +464,7 @@ export const getBrandActiveProductCounts = async (
     [...activeProductIdsByBrandId.entries()].map(([brandId, activeIds]) => [
       brandId,
       activeIds.size,
-    ])
+    ]),
   )
 }
 
@@ -379,12 +481,10 @@ export const toProductResponse = (product: ProductRecord) => ({
 export const escapeLikePattern = (value: string) =>
   value.replace(LIKE_WILDCARD_REGEX, (match) => `\\${match}`)
 
-export const uniqueIds = (ids: string[]) => [...new Set(ids)]
-
 export const retrieveBrandOrThrow = async (
   scope: MedusaContainer,
   brandId: string,
-  options: RetrieveBrandOptions = {}
+  options: RetrieveBrandOptions = {},
 ) => {
   const [brand] = await getBrandService(scope).listBrands(
     {
@@ -394,13 +494,13 @@ export const retrieveBrandOrThrow = async (
       relations: ["attributes", "attributes.attributeType"],
       take: 1,
       withDeleted: options.withDeleted ?? false,
-    }
+    },
   )
 
   if (!brand) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Brand with id "${brandId}" was not found`
+      `Brand with id "${brandId}" was not found`,
     )
   }
 
@@ -409,7 +509,7 @@ export const retrieveBrandOrThrow = async (
 
 export const ensureProductIdsExist = async (
   scope: MedusaContainer,
-  productIds: string[]
+  productIds: string[],
 ) => {
   const ids = uniqueIds(productIds)
 
@@ -425,13 +525,13 @@ export const ensureProductIdsExist = async (
       id: { $in: ids },
     },
   })
-  const found = new Set((data as ProductRecord[]).map((product) => product.id))
+  const found = new Set(toProductRecords(data).map((product) => product.id))
   const missing = ids.filter((id) => !found.has(id))
 
   if (missing.length) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Product ids were not found: ${missing.join(", ")}`
+      `Product ids were not found: ${missing.join(", ")}`,
     )
   }
 
@@ -441,7 +541,7 @@ export const ensureProductIdsExist = async (
 export const listProductBrandLinksByProductIds = async (
   scope: MedusaContainer,
   productIds: string[],
-  options: { withDeleted?: boolean } = {}
+  options: { withDeleted?: boolean } = {},
 ): Promise<ProductBrandLinkRecord[]> => {
   const ids = uniqueIds(productIds)
 
@@ -456,35 +556,39 @@ export const listProductBrandLinksByProductIds = async (
     filters: {
       product_id: { $in: ids },
     },
-    withDeleted: options.withDeleted,
+    ...(options.withDeleted === undefined
+      ? {}
+      : { withDeleted: options.withDeleted }),
   })
 
-  return (data as LinkRecord[]).filter(
+  return toLinkRecords(data).filter(
     (link): link is ProductBrandLinkRecord =>
-      !!(link.product_id && link.brand_id)
+      isPresentString(link.product_id) && isPresentString(link.brand_id),
   )
 }
 
 export const listProductBrandLinks = async (
   scope: MedusaContainer,
-  options: { withDeleted?: boolean } = {}
+  options: { withDeleted?: boolean } = {},
 ): Promise<ProductBrandLinkRecord[]> => {
   const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: ProductBrandLink.entryPoint,
     fields: ["deleted_at", "product_id", "brand_id"],
-    withDeleted: options.withDeleted,
+    ...(options.withDeleted === undefined
+      ? {}
+      : { withDeleted: options.withDeleted }),
   })
 
-  return (data as LinkRecord[]).filter(
+  return toLinkRecords(data).filter(
     (link): link is ProductBrandLinkRecord =>
-      !!(link.product_id && link.brand_id)
+      isPresentString(link.product_id) && isPresentString(link.brand_id),
   )
 }
 
 export const retrieveProductOrThrow = async (
   scope: MedusaContainer,
-  productId: string
+  productId: string,
 ) => {
   const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -495,12 +599,12 @@ export const retrieveProductOrThrow = async (
     },
   })
 
-  const product = (data as ProductRecord[])[0]
+  const [product] = toProductRecords(data)
 
   if (!product) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product with id "${productId}" was not found`
+      `Product with id "${productId}" was not found`,
     )
   }
 
@@ -509,7 +613,7 @@ export const retrieveProductOrThrow = async (
 
 export const listBrandIdsForProduct = async (
   scope: MedusaContainer,
-  productId: string
+  productId: string,
 ) => {
   const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -520,14 +624,14 @@ export const listBrandIdsForProduct = async (
     },
   })
 
-  return (data as LinkRecord[])
+  return toLinkRecords(data)
     .map((link) => link.brand_id)
-    .filter((brandId): brandId is string => !!brandId)
+    .filter((brandId): brandId is string => isPresentString(brandId))
 }
 
 export const listProductIdsForBrand = async (
   scope: MedusaContainer,
-  brandId: string
+  brandId: string,
 ) => {
   const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
@@ -538,20 +642,20 @@ export const listProductIdsForBrand = async (
     },
   })
 
-  return (data as LinkRecord[])
+  return toLinkRecords(data)
     .map((link) => link.product_id)
-    .filter((productId): productId is string => !!productId)
+    .filter((productId): productId is string => isPresentString(productId))
 }
 
 export const listBrandsByIds = async (
   scope: MedusaContainer,
-  brandIds: string[]
+  brandIds: string[],
 ) => {
   if (!brandIds.length) {
     return []
   }
 
-  return getBrandService(scope).listBrands(
+  return await getBrandService(scope).listBrands(
     {
       id: { $in: brandIds },
     },
@@ -561,13 +665,13 @@ export const listBrandsByIds = async (
       },
       relations: ["attributes", "attributes.attributeType"],
       withDeleted: true,
-    }
+    },
   )
 }
 
 export const listProductsByIds = async (
   scope: MedusaContainer,
-  productIds: string[]
+  productIds: string[],
 ) => {
   if (!productIds.length) {
     return []
@@ -582,34 +686,34 @@ export const listProductsByIds = async (
     },
   })
 
-  return data as ProductRecord[]
+  return toProductRecords(data)
 }
 
 export const listAndCountProducts = async (
   scope: MedusaContainer,
-  filters: Record<string, unknown> = {},
-  options: ListProductsOptions = {}
+  filters: Parameters<IProductModuleService["listAndCountProducts"]>[0] = {},
+  options: ListProductsOptions = {},
 ): Promise<[ProductRecord[], number]> => {
   const { order, q, skip, take } = options
 
-  return getProductService(scope).listAndCountProducts(
+  return await getProductService(scope).listAndCountProducts(
     {
       ...filters,
-      ...(q ? { q } : {}),
+      ...(isPresentString(q) ? { q } : {}),
     },
     {
-      order,
       select: ["id", "title", "handle", "thumbnail", "status", "created_at"],
-      skip,
-      take,
-    }
+      ...(order === undefined ? {} : { order }),
+      ...(skip === undefined ? {} : { skip }),
+      ...(take === undefined ? {} : { take }),
+    },
   )
 }
 
 export const listAndCountProductsByIds = async (
   scope: MedusaContainer,
   productIds: string[],
-  options: ListProductsOptions = {}
+  options: ListProductsOptions = {},
 ) => {
   const ids = uniqueIds(productIds)
 
@@ -617,11 +721,11 @@ export const listAndCountProductsByIds = async (
     return [[], 0] as [ProductRecord[], number]
   }
 
-  return listAndCountProducts(
+  return await listAndCountProducts(
     scope,
     {
       id: { $in: ids },
     },
-    options
+    options,
   )
 }

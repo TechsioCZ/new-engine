@@ -1,6 +1,7 @@
 import type {
   CreateInventoryLevelInput,
   IInventoryService,
+  UpdateInventoryLevelInput,
   InventoryLevelDTO,
   Logger,
   Query,
@@ -16,8 +17,9 @@ import {
   createInventoryLevelsWorkflow,
   updateInventoryLevelsWorkflow,
 } from "@medusajs/medusa/core-flows"
+import { chunk } from "@techsio/std/array"
 
-export type CreateInventoryLevelsStepInput = {
+export interface CreateInventoryLevelsStepInput {
   stockLocations: StockLocationDTO[]
   inventoryItems: {
     sku: string
@@ -31,37 +33,40 @@ export type CreateInventoryLevelsStepInput = {
 
 type ResolvedInventoryItemInput =
   CreateInventoryLevelsStepInput["inventoryItems"][number] & {
-    id?: string
+    id?: string | undefined
   }
 
-function buildInventoryLevelsForItem(
+const buildInventoryLevelsForItem = (
   inventoryItem: ResolvedInventoryItemInput,
-  stockLocations: StockLocationDTO[]
-): CreateInventoryLevelInput[] {
+  stockLocations: StockLocationDTO[],
+): CreateInventoryLevelInput[] => {
   if (inventoryItem.id === undefined) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Inventory item with sku ${inventoryItem.sku} not found.`
+      `Inventory item with sku ${inventoryItem.sku} not found.`,
     )
   }
   const inventoryItemId = inventoryItem.id
 
-  if (inventoryItem.locations?.length) {
+  if (
+    inventoryItem.locations !== undefined &&
+    inventoryItem.locations.length > 0
+  ) {
     return inventoryItem.locations.map((locationQuantity) => {
       const stockLocation = stockLocations.find(
-        (location) => location.name === locationQuantity.stockLocationName
+        (location) => location.name === locationQuantity.stockLocationName,
       )
-      if (!stockLocation) {
+      if (stockLocation === undefined) {
         throw new MedusaError(
           MedusaError.Types.NOT_FOUND,
-          `Stock location "${locationQuantity.stockLocationName}" not found for SKU ${inventoryItem.sku}.`
+          `Stock location "${locationQuantity.stockLocationName}" not found for SKU ${inventoryItem.sku}.`,
         )
       }
 
       return {
+        inventory_item_id: inventoryItemId,
         location_id: stockLocation.id,
         stocked_quantity: locationQuantity.quantity,
-        inventory_item_id: inventoryItemId,
       }
     })
   }
@@ -69,12 +74,12 @@ function buildInventoryLevelsForItem(
   if (inventoryItem.quantity === undefined) {
     return []
   }
-  const quantity = inventoryItem.quantity
+  const { quantity } = inventoryItem
 
   return stockLocations.map((stockLocation) => ({
+    inventory_item_id: inventoryItemId,
     location_id: stockLocation.id,
     stocked_quantity: quantity,
-    inventory_item_id: inventoryItemId,
   }))
 }
 
@@ -86,7 +91,7 @@ export const createInventoryLevelsStep = createStep(
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const inventoryLevelService = container.resolve<IInventoryService>(
-      Modules.INVENTORY
+      Modules.INVENTORY,
     )
 
     logger.info("Creating inventory levels...")
@@ -97,19 +102,19 @@ export const createInventoryLevelsStep = createStep(
     })
 
     const inventoryItemsMap = input.inventoryItems.map((ii) => {
-      const inventoryItem = inventoryItems.find((i) => i.sku === ii.sku)
+      const inventoryItem = inventoryItems.find((item) => item.sku === ii.sku)
       return {
         id: inventoryItem?.id,
         sku: ii.sku,
-        quantity: ii.quantity,
-        locations: ii.locations,
+        ...(ii.quantity === undefined ? {} : { quantity: ii.quantity }),
+        ...(ii.locations === undefined ? {} : { locations: ii.locations }),
       }
     })
 
     const inventoryLevels: CreateInventoryLevelInput[] = []
     for (const inventoryItem of inventoryItemsMap) {
       inventoryLevels.push(
-        ...buildInventoryLevelsForItem(inventoryItem, input.stockLocations)
+        ...buildInventoryLevelsForItem(inventoryItem, input.stockLocations),
       )
     }
 
@@ -117,80 +122,98 @@ export const createInventoryLevelsStep = createStep(
 
     const existingInventoryLevels =
       await inventoryLevelService.listInventoryLevels({
-        location_id: input.stockLocations.map((l) => l.id),
         inventory_item_id: inventoryItems.map((i) => i.id),
+        location_id: input.stockLocations.map((l) => l.id),
       })
 
     const missingInventoryLevels = inventoryLevels.filter(
       (il) =>
-        !existingInventoryLevels.find(
+        !existingInventoryLevels.some(
           (eil) =>
             eil.inventory_item_id === il.inventory_item_id &&
-            eil.location_id === il.location_id
-        )
+            eil.location_id === il.location_id,
+        ),
     )
-    const updateInventoryLevels = existingInventoryLevels.flatMap((eil) => {
-      const inputInventoryLevel = inventoryLevels.find(
-        (il) =>
-          eil.inventory_item_id === il.inventory_item_id &&
-          eil.location_id === il.location_id
-      )
-      if (inputInventoryLevel !== undefined) {
-        return [
-          {
-            location_id: eil.location_id,
-            inventory_item_id: eil.inventory_item_id,
-            stocked_quantity: inputInventoryLevel.stocked_quantity,
-          },
-        ]
-      }
+    const updateInventoryLevels: UpdateInventoryLevelInput[] =
+      existingInventoryLevels.flatMap((eil) => {
+        const inputInventoryLevel = inventoryLevels.find(
+          (il) =>
+            eil.inventory_item_id === il.inventory_item_id &&
+            eil.location_id === il.location_id,
+        )
+        if (inputInventoryLevel?.stocked_quantity !== undefined) {
+          return [
+            {
+              inventory_item_id: eil.inventory_item_id,
+              location_id: eil.location_id,
+              stocked_quantity: inputInventoryLevel.stocked_quantity,
+            },
+          ]
+        }
 
-      return []
-    })
+        return []
+      })
 
     const CHUNK_SIZE = 1000
 
     if (missingInventoryLevels.length !== 0) {
       logger.info(
-        `Creating ${missingInventoryLevels.length} missing inventory levels...`
+        `Creating ${missingInventoryLevels.length} missing inventory levels...`,
       )
 
-      for (let i = 0; i < missingInventoryLevels.length; i += CHUNK_SIZE) {
+      const createChunks = chunk(missingInventoryLevels, CHUNK_SIZE)
+      const createChunk = async (
+        chunkIndex: number,
+        accumulated: InventoryLevelDTO[],
+      ): Promise<InventoryLevelDTO[]> => {
+        const inventoryLevelsChunk = createChunks[chunkIndex]
+        if (inventoryLevelsChunk === undefined) {
+          return accumulated
+        }
         const createResult = await createInventoryLevelsWorkflow(container).run(
           {
-            input: {
-              inventory_levels: missingInventoryLevels.slice(i, i + CHUNK_SIZE),
-            },
-          }
+            input: { inventory_levels: inventoryLevelsChunk },
+          },
         )
-        for (const resultElement of createResult.result) {
-          result.push(resultElement)
-        }
+        return await createChunk(chunkIndex + 1, [
+          ...accumulated,
+          ...createResult.result,
+        ])
       }
+      const created = await createChunk(0, [])
+      result.push(...created)
     }
 
     if (updateInventoryLevels.length !== 0) {
       logger.info(
-        `Updating ${updateInventoryLevels.length} existing inventory levels...`
+        `Updating ${updateInventoryLevels.length} existing inventory levels...`,
       )
 
-      for (let i = 0; i < updateInventoryLevels.length; i += CHUNK_SIZE) {
+      const updateChunks = chunk(updateInventoryLevels, CHUNK_SIZE)
+      const updateChunk = async (
+        chunkIndex: number,
+        accumulated: InventoryLevelDTO[],
+      ): Promise<InventoryLevelDTO[]> => {
+        const inventoryLevelsChunk = updateChunks[chunkIndex]
+        if (inventoryLevelsChunk === undefined) {
+          return accumulated
+        }
         const updateResult = await updateInventoryLevelsWorkflow(container).run(
           {
-            input: {
-              updates: updateInventoryLevels.slice(i, i + CHUNK_SIZE),
-            },
-          }
+            input: { updates: inventoryLevelsChunk },
+          },
         )
-
-        for (const resultElement of updateResult.result) {
-          result.push(resultElement)
-        }
+        return await updateChunk(chunkIndex + 1, [
+          ...accumulated,
+          ...updateResult.result,
+        ])
       }
+      const updated = await updateChunk(0, [])
+      result.push(...updated)
     }
 
     return new StepResponse({
       result,
     })
-  }
+  },
 )

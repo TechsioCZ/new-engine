@@ -1,3 +1,5 @@
+import { omitUndefined } from "@techsio/std/object"
+
 import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import type {
   QueryFactoryOptions,
@@ -14,13 +16,13 @@ import type {
   OrderService,
 } from "./types"
 
-export type CreateOrderQueryOptionsFactoryConfig<
+export interface CreateOrderQueryOptionsFactoryConfig<
   TOrder,
-  TListInput extends OrderListInputBase,
+  TListInput extends OrderListInputBase & TListParams,
   TListParams,
-  TDetailInput extends OrderDetailInputBase,
+  TDetailInput extends OrderDetailInputBase & TDetailParams,
   TDetailParams,
-> = {
+> {
   service: OrderService<TOrder, TListParams, TDetailParams>
   buildListParams?: (input: TListInput) => TListParams
   buildDetailParams?: (input: TDetailInput) => TDetailParams
@@ -29,32 +31,32 @@ export type CreateOrderQueryOptionsFactoryConfig<
   cacheConfig?: CacheConfig
 }
 
-export type OrderQueryOptionsFactory<
+export interface OrderQueryOptionsFactory<
   TOrder,
   TListInput extends OrderListInputBase,
   TDetailInput extends OrderDetailInputBase,
-> = {
+> {
   getListQueryOptions: (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<OrderListResponse<TOrder>>
   getDetailQueryOptions: (
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TOrder | null>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<TOrder | null>
 }
 
-export function createOrderQueryOptionsFactory<
+export const createOrderQueryOptionsFactory = <
   TOrder,
-  TListInput extends OrderListInputBase,
+  TListInput extends OrderListInputBase & TListParams,
   TListParams,
-  TDetailInput extends OrderDetailInputBase,
+  TDetailInput extends OrderDetailInputBase & TDetailParams,
   TDetailParams,
 >({
   service,
@@ -69,19 +71,23 @@ export function createOrderQueryOptionsFactory<
   TListParams,
   TDetailInput,
   TDetailParams
->): OrderQueryOptionsFactory<TOrder, TListInput, TDetailInput> {
+>): OrderQueryOptionsFactory<TOrder, TListInput, TDetailInput> => {
+  const buildList = buildListParams ?? ((input: TListInput) => input)
+  const buildDetail = buildDetailParams ?? ((input: TDetailInput) => input)
   const resolvedQueryKeys =
     queryKeys ??
     createOrderQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
 
-  return createSimpleListDetailQueryOptionsFactory({
-    getList: service.getOrders,
-    getDetail: service.getOrder,
-    buildListParams,
-    buildDetailParams,
-    queryKeys: resolvedQueryKeys,
-    cacheConfig,
-    defaultCacheStrategy: "userData",
-    missingDetailErrorMessage: "Order id is required for order queries",
-  })
+  return createSimpleListDetailQueryOptionsFactory(
+    omitUndefined({
+      buildDetailParams: buildDetail,
+      buildListParams: buildList,
+      cacheConfig,
+      defaultCacheStrategy: "userData" as const,
+      getDetail: service.getOrder,
+      getList: service.getOrders,
+      missingDetailErrorMessage: "Order id is required for order queries",
+      queryKeys: resolvedQueryKeys,
+    }),
+  )
 }

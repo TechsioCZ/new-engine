@@ -1,8 +1,29 @@
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { RadioCard } from "@techsio/ui-kit/molecules/radio-card"
 import type { ReactNode } from "react"
 
-type CheckoutOptionRadioCardItem = {
+const CheckoutOptionPrice = ({
+  priceLabel,
+  priceTone = "default",
+}: {
+  priceLabel: string
+  priceTone?: CheckoutOptionRadioCardItem["priceTone"]
+}) => (
+  <div className="flex shrink-0 flex-col items-end text-right">
+    <span
+      className={
+        priceTone === "success"
+          ? "font-medium text-sm text-success leading-tight"
+          : "font-medium text-fg-primary text-sm leading-tight"
+      }
+    >
+      {priceLabel}
+    </span>
+  </div>
+)
+
+interface CheckoutOptionRadioCardItem {
   actionLabel?: string
   addon?: ReactNode
   bodyText?: string
@@ -15,7 +36,7 @@ type CheckoutOptionRadioCardItem = {
   value: string
 }
 
-type CheckoutOptionRadioCardProps = {
+interface CheckoutOptionRadioCardProps {
   expandedValue?: string | null
   label: string
   onValueChange: (value: string) => void
@@ -23,113 +44,93 @@ type CheckoutOptionRadioCardProps = {
   value?: string | null
 }
 
-export function CheckoutOptionRadioCard({
+export const CheckoutOptionRadioCard = ({
   expandedValue,
   label,
   onValueChange,
   options,
   value,
-}: CheckoutOptionRadioCardProps) {
-  return (
-    <RadioCard
-      onValueChange={(nextValue) => {
-        if (!nextValue) {
-          return
-        }
+}: CheckoutOptionRadioCardProps) => (
+  <RadioCard
+    onValueChange={(nextValue) => {
+      if (typeof nextValue !== "string" || nextValue.length === 0) {
+        return
+      }
 
-        onValueChange(nextValue)
-      }}
-      orientation="vertical"
-      size="sm"
-      value={value ?? null}
-      variant="outline"
-    >
-      <RadioCard.Label className="sr-only">{label}</RadioCard.Label>
+      onValueChange(nextValue)
+    }}
+    orientation="vertical"
+    size="sm"
+    value={value ?? null}
+    variant="outline"
+  >
+    <RadioCard.Label className="sr-only">{label}</RadioCard.Label>
 
-      {options.map((option) => {
-        const isSelected = value === option.value
-        const isExpanded = isSelected || expandedValue === option.value
+    {options.map((option) => {
+      const isSelected = value === option.value
+      const isExpanded = isSelected || expandedValue === option.value
+      const hasExpandedContent =
+        option.bodyText !== undefined ||
+        option.actionLabel !== undefined ||
+        option.addon !== undefined
 
-        return (
-          <RadioCard.Item
-            className="data-[state=checked]:border-2"
-            disabled={option.disabled}
-            key={option.value}
-            value={option.value}
-          >
-            <RadioCard.ItemHiddenInput />
-            <RadioCard.ItemControl className="items-center">
-              <RadioCard.ItemIndicator />
+      return (
+        <RadioCard.Item
+          className="data-[state=checked]:border-2"
+          disabled={option.disabled}
+          key={option.value}
+          value={option.value}
+        >
+          <RadioCard.ItemHiddenInput />
+          <RadioCard.ItemControl className="items-center">
+            <RadioCard.ItemIndicator />
 
-              <div className="flex min-w-0 flex-1 items-center gap-200">
-                <span className="flex shrink-0 items-center justify-center text-fg-primary">
-                  <Icon icon={option.icon} size="lg" />
+            <div className="flex min-w-0 flex-1 items-center gap-200">
+              <span className="flex shrink-0 items-center justify-center text-fg-primary">
+                <Icon icon={option.icon} size="lg" />
+              </span>
+
+              <RadioCard.ItemContent className="flex-1">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-150 gap-y-50">
+                  <RadioCard.ItemText className="data-[state=checked]:font-semibold">
+                    {option.title}
+                  </RadioCard.ItemText>
+
+                  {option.hint !== undefined && option.hint.length > 0 ? (
+                    <span className="text-fg-secondary text-xs leading-tight">
+                      {option.hint}
+                    </span>
+                  ) : null}
+                </div>
+              </RadioCard.ItemContent>
+            </div>
+
+            <CheckoutOptionPrice
+              priceLabel={option.priceLabel}
+              priceTone={option.priceTone}
+            />
+          </RadioCard.ItemControl>
+
+          {isExpanded && hasExpandedContent ? (
+            <RadioCard.ItemAddon className="space-y-100">
+              {option.bodyText !== undefined && option.bodyText.length > 0 ? (
+                <p className="text-fg-secondary text-xs leading-relaxed">
+                  {option.bodyText}
+                </p>
+              ) : null}
+
+              {option.actionLabel !== undefined &&
+              option.actionLabel.length > 0 ? (
+                <span className="inline-flex font-semibold text-primary text-xs underline">
+                  {option.actionLabel}
                 </span>
+              ) : null}
 
-                <RadioCard.ItemContent className="flex-1">
-                  <div className="flex min-w-0 flex-wrap items-center gap-x-150 gap-y-50">
-                    <RadioCard.ItemText className="data-[state=checked]:font-semibold">
-                      {option.title}
-                    </RadioCard.ItemText>
-
-                    {option.hint ? (
-                      <span className="text-fg-secondary text-xs leading-tight">
-                        {option.hint}
-                      </span>
-                    ) : null}
-                  </div>
-                </RadioCard.ItemContent>
-              </div>
-
-              <CheckoutOptionPrice
-                priceLabel={option.priceLabel}
-                priceTone={option.priceTone}
-              />
-            </RadioCard.ItemControl>
-
-            {isExpanded &&
-            (option.bodyText || option.actionLabel || option.addon) ? (
-              <RadioCard.ItemAddon className="space-y-100">
-                {option.bodyText ? (
-                  <p className="text-fg-secondary text-xs leading-relaxed">
-                    {option.bodyText}
-                  </p>
-                ) : null}
-
-                {option.actionLabel ? (
-                  <span className="inline-flex font-semibold text-primary text-xs underline">
-                    {option.actionLabel}
-                  </span>
-                ) : null}
-
-                {option.addon}
-              </RadioCard.ItemAddon>
-            ) : null}
-          </RadioCard.Item>
-        )
-      })}
-    </RadioCard>
-  )
-}
-
-function CheckoutOptionPrice({
-  priceLabel,
-  priceTone = "default",
-}: {
-  priceLabel: string
-  priceTone?: CheckoutOptionRadioCardItem["priceTone"]
-}) {
-  return (
-    <div className="flex shrink-0 flex-col items-end text-right">
-      <span
-        className={
-          priceTone === "success"
-            ? "font-medium text-sm text-success leading-tight"
-            : "font-medium text-fg-primary text-sm leading-tight"
-        }
-      >
-        {priceLabel}
-      </span>
-    </div>
-  )
-}
+              {option.addon}
+            </RadioCard.ItemAddon>
+          ) : null}
+        </RadioCard.Item>
+      )
+    })}
+  </RadioCard>
+)

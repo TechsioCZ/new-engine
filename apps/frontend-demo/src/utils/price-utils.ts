@@ -3,13 +3,13 @@
  */
 const currencySymbols: Record<string, string> = {
   CZK: "Kč",
-  EUR: "€",
-  USD: "$",
-  GBP: "£",
-  SEK: "kr",
   DKK: "kr",
+  EUR: "€",
+  GBP: "£",
   NOK: "kr",
   PLN: "zł",
+  SEK: "kr",
+  USD: "$",
 }
 
 /**
@@ -18,13 +18,16 @@ const currencySymbols: Record<string, string> = {
  * @param currencyCode - ISO currency code (e.g., 'EUR', 'USD')
  * @returns Formatted price string
  */
-export function formatPrice(amount: number, currencyCode = "CZK"): string {
-  const symbol = currencySymbols[currencyCode.toUpperCase()] || currencyCode
+export const formatPrice = (amount: number, currencyCode = "CZK"): string => {
+  const normalizedCurrencyCode = currencyCode.toUpperCase()
+  const mappedSymbol = currencySymbols[normalizedCurrencyCode]
+  const symbol =
+    mappedSymbol === undefined || mappedSymbol.length === 0
+      ? currencyCode
+      : mappedSymbol
 
   // For currencies that typically place symbol after (Nordic, Czech, Polish)
-  if (
-    ["SEK", "DKK", "NOK", "PLN", "CZK"].includes(currencyCode.toUpperCase())
-  ) {
+  if (["SEK", "DKK", "NOK", "PLN", "CZK"].includes(normalizedCurrencyCode)) {
     return `${amount.toFixed(0)} ${symbol}`
   }
 

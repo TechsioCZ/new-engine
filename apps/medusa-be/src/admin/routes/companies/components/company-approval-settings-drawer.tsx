@@ -1,41 +1,33 @@
 import { Button, Drawer, toast } from "@medusajs/ui"
-import { useEffect, useState } from "react"
+import { getErrorMessage } from "@techsio/std/object"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import type { QueryCompany } from "../../../../types"
-import { CoolSwitch } from "../../../components"
-import { useUpdateApprovalSettings } from "../../../hooks/api"
+import { CoolSwitch } from "../../../components/common/cool-switch"
+import { useUpdateApprovalSettings } from "../../../hooks/api/approvals"
 
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error)
-
-export function CompanyApprovalSettingsDrawer({
-  company,
-  open,
-  setOpen,
-}: {
+interface CompanyApprovalSettingsDrawerProps {
   company: QueryCompany
   open: boolean
   setOpen: (open: boolean) => void
-}) {
+}
+
+const CompanyApprovalSettingsDrawerContent = ({
+  company,
+  open,
+  setOpen,
+}: CompanyApprovalSettingsDrawerProps) => {
   const { t } = useTranslation("companies")
   const [requiresAdminApproval, setRequiresAdminApproval] = useState(
-    company.approval_settings?.requires_admin_approval ?? false
+    company.approval_settings?.requires_admin_approval ?? false,
   )
   const [requiresSalesManagerApproval, setRequiresSalesManagerApproval] =
     useState(
-      company.approval_settings?.requires_sales_manager_approval ?? false
+      company.approval_settings?.requires_sales_manager_approval ?? false,
     )
 
   const { mutateAsync, isPending } = useUpdateApprovalSettings(company.id)
-
-  useEffect(() => {
-    setRequiresAdminApproval(
-      company.approval_settings?.requires_admin_approval ?? false
-    )
-    setRequiresSalesManagerApproval(
-      company.approval_settings?.requires_sales_manager_approval ?? false
-    )
-  }, [company.approval_settings])
 
   const handleSubmit = async () => {
     try {
@@ -47,7 +39,7 @@ export function CompanyApprovalSettingsDrawer({
       toast.success(t("toasts.approvalSettingsUpdated"))
     } catch (error) {
       toast.error(
-        `${t("errors.updateApprovalSettingsFailed")}: ${getErrorMessage(error)}`
+        `${t("errors.updateApprovalSettingsFailed")}: ${getErrorMessage(error)}`,
       )
     }
   }
@@ -65,7 +57,9 @@ export function CompanyApprovalSettingsDrawer({
               description={t("approvalSettings.adminApprovalDescription")}
               fieldName="requires_admin_approval"
               label={t("approvalSettings.adminApprovalLabel")}
-              onChange={() => setRequiresAdminApproval(!requiresAdminApproval)}
+              onChange={() => {
+                setRequiresAdminApproval(!requiresAdminApproval)
+              }}
             />
           </div>
 
@@ -73,25 +67,33 @@ export function CompanyApprovalSettingsDrawer({
             <CoolSwitch
               checked={requiresSalesManagerApproval}
               description={t(
-                "approvalSettings.salesManagerApprovalDescription"
+                "approvalSettings.salesManagerApprovalDescription",
               )}
               fieldName="requires_sales_manager_approval"
               label={t("approvalSettings.salesManagerApprovalLabel")}
-              onChange={() =>
+              onChange={() => {
                 setRequiresSalesManagerApproval(!requiresSalesManagerApproval)
-              }
+              }}
             />
           </div>
         </Drawer.Body>
         <Drawer.Footer>
           <Button
-            onClick={() => setOpen(false)}
+            onClick={() => {
+              setOpen(false)
+            }}
             size="small"
             variant="secondary"
           >
             {t("actions.cancel")}
           </Button>
-          <Button isLoading={isPending} onClick={handleSubmit} size="small">
+          <Button
+            isLoading={isPending}
+            onClick={() => {
+              void handleSubmit()
+            }}
+            size="small"
+          >
             {t("actions.save")}
           </Button>
         </Drawer.Footer>
@@ -99,3 +101,12 @@ export function CompanyApprovalSettingsDrawer({
     </Drawer>
   )
 }
+
+export const CompanyApprovalSettingsDrawer = (
+  props: CompanyApprovalSettingsDrawerProps,
+) => (
+  <CompanyApprovalSettingsDrawerContent
+    key={`${props.company.id}:${String(props.open)}`}
+    {...props}
+  />
+)

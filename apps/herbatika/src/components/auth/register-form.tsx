@@ -1,25 +1,24 @@
 "use client"
 
-import { useStore } from "@tanstack/react-form"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import { useTranslations } from "next-intl"
-import { useMemo } from "react"
+
 import { PasswordRequirements } from "@/components/auth/password-requirements"
 import { RegisterAccountTypeField } from "@/components/auth/register-account-type-field"
+import { RegisterPersonalFields } from "@/components/auth/register-personal-fields"
 import { RegisterWholesaleFields } from "@/components/auth/register-wholesale-fields"
 import { useAppToast } from "@/hooks/use-app-toast"
-import {
-  createRegisterValidators,
-  type RegisterFormValues,
-} from "@/lib/auth/auth-form-validators"
+import { createRegisterValidators } from "@/lib/auth/auth-form-validators"
+import type { RegisterFormValues } from "@/lib/auth/auth-form-validators"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { translateAddressValidationMessages } from "@/lib/forms/validators/address-validation-messages"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
+
 import { AuthFooter } from "./auth-footer"
 
-type RegisterFormProps = {
+interface RegisterFormProps {
   isBusy: boolean
   countryItems: SelectItem[]
   defaultValues: RegisterFormValues
@@ -38,31 +37,25 @@ export const RegisterForm = ({
   const tForm = useTranslations("form")
   const toast = useAppToast()
   const { countryCode } = useMarketContext()
-  const registerValidators = useMemo(
-    () =>
-      createRegisterValidators(
-        {
-          ...translateAddressValidationMessages(tForm),
-          accountTypeRequired: tAuth("validation.account_type_required"),
-          confirmPasswordRequired: tAuth(
-            "validation.confirm_password_required"
-          ),
-          passwordMinLength: tAuth("validation.password_min_length"),
-          passwordMismatch: tAuth("validation.password_mismatch"),
-          passwordNumber: tAuth("validation.password_number"),
-          passwordRequired: tAuth("validation.password_required"),
-          termsRequired: tAuth("validation.terms_required"),
-        },
-        countryCode
-      ),
-    [countryCode, tAuth, tForm]
+  const registerValidators = createRegisterValidators(
+    {
+      ...translateAddressValidationMessages(tForm),
+      accountTypeRequired: tAuth("validation.account_type_required"),
+      confirmPasswordRequired: tAuth("validation.confirm_password_required"),
+      passwordMinLength: tAuth("validation.password_min_length"),
+      passwordMismatch: tAuth("validation.password_mismatch"),
+      passwordNumber: tAuth("validation.password_number"),
+      passwordRequired: tAuth("validation.password_required"),
+      termsRequired: tAuth("validation.terms_required"),
+    },
+    countryCode,
   )
 
   const form = useHerbatikaForm({
     defaultValues,
     onSubmit: async ({ value, formApi }) => {
       const error = await onSubmit(value)
-      if (error) {
+      if (error !== null) {
         toast.error({ title: error })
         return
       }
@@ -70,8 +63,6 @@ export const RegisterForm = ({
       formApi.reset(defaultValues)
     },
   })
-  const accountType = useStore(form.store, (state) => state.values.account_type)
-  const isWholesaleAccount = accountType === "wholesale"
 
   return (
     <form
@@ -90,55 +81,19 @@ export const RegisterForm = ({
         />
       </div>
 
-      <form.AppField
-        name="first_name"
-        validators={registerValidators.first_name}
-      >
-        {(field) => (
-          <field.TextField
-            autoComplete="off"
-            id="auth-register-first-name"
-            label={tForm("first_name")}
-            required
-            validationMode="blur"
-          />
-        )}
-      </form.AppField>
+      <RegisterPersonalFields form={form} validators={registerValidators} />
 
-      <form.AppField name="last_name" validators={registerValidators.last_name}>
-        {(field) => (
-          <field.TextField
-            autoComplete="off"
-            id="auth-register-last-name"
-            label={tForm("last_name")}
-            required
-            validationMode="blur"
-          />
-        )}
-      </form.AppField>
-
-      <div className="col-span-2">
-        <form.AppField name="email" validators={registerValidators.email}>
-          {(field) => (
-            <field.TextField
-              autoComplete="off"
-              id="auth-register-email"
-              label={tForm("email")}
-              required
-              type="email"
-              validationMode="blur"
+      <form.Subscribe selector={(state) => state.values.account_type}>
+        {(accountType) =>
+          accountType === "wholesale" ? (
+            <RegisterWholesaleFields
+              countryItems={countryItems}
+              form={form}
+              validators={registerValidators}
             />
-          )}
-        </form.AppField>
-      </div>
-
-      {isWholesaleAccount ? (
-        <RegisterWholesaleFields
-          countryItems={countryItems}
-          form={form}
-          validators={registerValidators}
-        />
-      ) : null}
+          ) : null
+        }
+      </form.Subscribe>
 
       <form.AppField name="password" validators={registerValidators.password}>
         {(field) => (
@@ -151,7 +106,7 @@ export const RegisterForm = ({
               type="password"
               validationMode="blur"
             />
-            <PasswordRequirements password={String(field.state.value ?? "")} />
+            <PasswordRequirements password={field.state.value ?? ""} />
           </div>
         )}
       </form.AppField>

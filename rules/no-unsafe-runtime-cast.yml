@@ -1,0 +1,16 @@
+id: no-unsafe-runtime-cast
+language: TypeScript
+severity: error
+message: Do not cast runtime data through unknown; validate or narrow it at the boundary.
+note: This intentionally targets production source. Test fixtures may construct partial framework values.
+files:
+  - "apps/**/src/**/*.{ts,tsx,js,jsx}"
+  - "libs/**/src/**/*.{ts,tsx,js,jsx}"
+ignores:
+  - "**/*.figma.{ts,tsx}"
+rule:
+  pattern: $VALUE as unknown as $TYPE
+constraints:
+  VALUE:
+    not:
+      regex: ^(window|globalThis)$

@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import { STOREFRONT_TEXT_MODULE } from "../../../modules/storefront-text"
 import { getPublishedStorefrontTextValue } from "../../../modules/storefront-text/catalog"
 import type {
@@ -12,13 +13,13 @@ import type { StorefrontTextRecord } from "../../../modules/storefront-text/mode
 import {
   findStorefrontTextDefault,
   STOREFRONT_TEXT_DEFINITIONS,
-  type StorefrontTextKey,
 } from "../../../modules/storefront-text/registry"
+import type { StorefrontTextKey } from "../../../modules/storefront-text/registry"
 import type StorefrontTextModuleService from "../../../modules/storefront-text/service"
 import { escapeLikePattern } from "../../../utils/sql"
 import type { AdminGetStorefrontTextsSchemaType } from "./validators"
 
-type StorefrontTextFilters = {
+interface StorefrontTextFilters {
   $or?: StorefrontTextFilters[]
   default_value?: { $ilike: string }
   description?: { $ilike: string }
@@ -41,11 +42,11 @@ const SEARCH_FIELDS = [
 ] as const
 
 const CURRENT_STOREFRONT_TEXT_KEYS = STOREFRONT_TEXT_DEFINITIONS.map(
-  (definition) => definition.key
+  (definition) => definition.key,
 )
 
 const buildEffectiveValueSearchFilters = (
-  searchValue: string
+  searchValue: string,
 ): StorefrontTextFilters[] => [
   {
     override_value: { $ilike: searchValue },
@@ -59,12 +60,12 @@ const buildEffectiveValueSearchFilters = (
 
 const buildSearchFilters = (
   query: string | undefined,
-  searchScope: AdminGetStorefrontTextsSchemaType["search_scope"]
-): StorefrontTextFilters["$or"] => {
+  searchScope: AdminGetStorefrontTextsSchemaType["search_scope"],
+): NonNullable<StorefrontTextFilters["$or"]> => {
   const normalizedQuery = query?.trim()
 
-  if (!normalizedQuery) {
-    return
+  if (!(typeof normalizedQuery === "string" && normalizedQuery.length > 0)) {
+    return []
   }
 
   const searchValue = `%${escapeLikePattern(normalizedQuery)}%`
@@ -109,7 +110,7 @@ const buildStorefrontTextFilters = ({
     filters.status = status
   }
 
-  if (searchFilters) {
+  if (searchFilters.length > 0) {
     filters.$or = searchFilters
   }
 
@@ -122,7 +123,7 @@ const serializeStorefrontText = (storefrontText: StorefrontTextRecord) => {
   if (!currentDefault) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `Storefront text "${storefrontText.key}" has no current default for market "${storefrontText.market}" and locale "${storefrontText.locale}"`
+      `Storefront text "${storefrontText.key}" has no current default for market "${storefrontText.market}" and locale "${storefrontText.locale}"`,
     )
   }
 
@@ -138,27 +139,27 @@ const serializeStorefrontText = (storefrontText: StorefrontTextRecord) => {
   }
 }
 
-export async function GET(
+const get = async (
   req: MedusaRequest<unknown, AdminGetStorefrontTextsSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { limit, offset } = req.validatedQuery
   const filters = buildStorefrontTextFilters(req.validatedQuery)
   const service = req.scope.resolve<StorefrontTextModuleService>(
-    STOREFRONT_TEXT_MODULE
+    STOREFRONT_TEXT_MODULE,
   )
   const [storefrontTexts, count] = await service.listAndCountStorefrontTexts(
     filters,
     {
       order: {
-        namespace: "ASC",
         key: "ASC",
-        market: "ASC",
         locale: "ASC",
+        market: "ASC",
+        namespace: "ASC",
       },
       skip: offset,
       take: limit,
-    }
+    },
   )
 
   res.json({
@@ -166,10 +167,12 @@ export async function GET(
     limit,
     offset,
     storefront_texts: storefrontTexts.map(
-      serializeStorefrontText
+      serializeStorefrontText,
     ) satisfies (StorefrontTextRecord & {
       effective_value: string
       has_override: boolean
     })[],
   })
 }
+
+export { get as GET }

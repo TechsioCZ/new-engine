@@ -1,8 +1,5 @@
-import {
-  type CacheConfig,
-  type CacheStrategy,
-  createCacheConfig,
-} from "../shared/cache-config"
+import { createCacheConfig } from "../shared/cache-config"
+import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
@@ -24,13 +21,13 @@ import type {
   UseSuspenseCollectionsResult,
 } from "./types"
 
-export type CreateCollectionHooksConfig<
+export interface CreateCollectionHooksConfig<
   TCollection,
   TListInput extends CollectionListInputBase,
   TListParams,
   TDetailInput extends CollectionDetailInputBase,
   TDetailParams,
-> = {
+> {
   service: CollectionService<TCollection, TListParams, TDetailParams>
   buildListParams?: (input: TListInput) => TListParams
   buildDetailParams?: (input: TDetailInput) => TDetailParams
@@ -40,11 +37,11 @@ export type CreateCollectionHooksConfig<
   defaultPageSize?: number
 }
 
-export function createCollectionHooks<
+export const createCollectionHooks = <
   TCollection,
-  TListInput extends CollectionListInputBase,
+  TListInput extends CollectionListInputBase & TListParams,
   TListParams,
-  TDetailInput extends CollectionDetailInputBase,
+  TDetailInput extends CollectionDetailInputBase & TDetailParams,
   TDetailParams,
 >({
   service,
@@ -60,45 +57,42 @@ export function createCollectionHooks<
   TListParams,
   TDetailInput,
   TDetailParams
->) {
+>) => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ??
     createCollectionQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
-  const buildList =
-    buildListParams ?? ((input: TListInput) => input as unknown as TListParams)
-  const buildDetail =
-    buildDetailParams ??
-    ((input: TDetailInput) => input as unknown as TDetailParams)
+  const buildList = buildListParams ?? ((input: TListInput) => input)
+  const buildDetail = buildDetailParams ?? ((input: TDetailInput) => input)
   const { getListQueryOptions, getDetailQueryOptions } =
     createCollectionQueryOptionsFactory({
-      service,
-      buildListParams: buildList,
       buildDetailParams: buildDetail,
-      queryKeys: resolvedQueryKeys,
+      buildListParams: buildList,
       cacheConfig: resolvedCacheConfig,
+      queryKeys: resolvedQueryKeys,
+      service,
     })
   const simpleHooks = createSimpleListDetailHooks({
-    buildList,
     buildDetail,
+    buildList,
+    defaultCacheStrategy: "static",
+    defaultPageSize,
+    getDetail: service.getCollection,
+    getDetailQueryOptions,
+    getList: service.getCollections,
     getListItems: (data: CollectionListResponse<TCollection> | undefined) =>
       data?.collections ?? [],
-    getList: service.getCollections,
-    getDetail: service.getCollection,
     getListQueryOptions,
-    getDetailQueryOptions,
     resolvedCacheConfig,
     resolvedQueryKeys,
-    defaultPageSize,
-    defaultCacheStrategy: "static",
   })
 
-  function useCollections(
+  const useCollections = (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<CollectionListResponse<TCollection>>
-    }
-  ): UseCollectionsResult<TCollection> {
+    },
+  ): UseCollectionsResult<TCollection> => {
     const { items, ...result } = simpleHooks.useList(input, options)
     return {
       ...result,
@@ -106,12 +100,12 @@ export function createCollectionHooks<
     }
   }
 
-  function useSuspenseCollections(
+  const useSuspenseCollections = (
     input: TListInput,
     options?: {
       queryOptions?: SuspenseQueryOptions<CollectionListResponse<TCollection>>
-    }
-  ): UseSuspenseCollectionsResult<TCollection> {
+    },
+  ): UseSuspenseCollectionsResult<TCollection> => {
     const { items, ...result } = simpleHooks.useSuspenseList(input, options)
     return {
       ...result,
@@ -119,10 +113,10 @@ export function createCollectionHooks<
     }
   }
 
-  function useCollection(
+  const useCollection = (
     input: TDetailInput,
-    options?: { queryOptions?: ReadQueryOptions<TCollection | null> }
-  ): UseCollectionResult<TCollection> {
+    options?: { queryOptions?: ReadQueryOptions<TCollection | null> },
+  ): UseCollectionResult<TCollection> => {
     const { item, ...result } = simpleHooks.useDetail(input, options)
     return {
       ...result,
@@ -130,10 +124,10 @@ export function createCollectionHooks<
     }
   }
 
-  function useSuspenseCollection(
+  const useSuspenseCollection = (
     input: TDetailInput,
-    options?: { queryOptions?: SuspenseQueryOptions<TCollection | null> }
-  ): UseSuspenseCollectionResult<TCollection> {
+    options?: { queryOptions?: SuspenseQueryOptions<TCollection | null> },
+  ): UseSuspenseCollectionResult<TCollection> => {
     const { item, ...result } = simpleHooks.useSuspenseDetail(input, options)
     return {
       ...result,
@@ -141,12 +135,12 @@ export function createCollectionHooks<
     }
   }
 
-  function usePrefetchCollections(options?: {
+  const usePrefetchCollections = (options?: {
     cacheStrategy?: CacheStrategy
     defaultDelay?: number
     skipIfCached?: boolean
     skipMode?: PrefetchSkipMode
-  }) {
+  }) => {
     const { prefetchList, ...result } = simpleHooks.usePrefetchList(options)
 
     return {
@@ -155,12 +149,12 @@ export function createCollectionHooks<
     }
   }
 
-  function usePrefetchCollection(options?: {
+  const usePrefetchCollection = (options?: {
     cacheStrategy?: CacheStrategy
     defaultDelay?: number
     skipIfCached?: boolean
     skipMode?: PrefetchSkipMode
-  }) {
+  }) => {
     const { prefetchDetail, ...result } = simpleHooks.usePrefetchDetail(options)
 
     return {
@@ -170,22 +164,22 @@ export function createCollectionHooks<
   }
 
   return {
-    getListQueryOptions,
     getDetailQueryOptions,
-    useCollections,
-    useSuspenseCollections,
+    getListQueryOptions,
     useCollection,
-    useSuspenseCollection,
-    usePrefetchCollections,
+    useCollections,
     usePrefetchCollection,
+    usePrefetchCollections,
+    useSuspenseCollection,
+    useSuspenseCollections,
   }
 }
 
 export type CollectionHooks<
   TCollection,
-  TListInput extends CollectionListInputBase,
+  TListInput extends CollectionListInputBase & TListParams,
   TListParams,
-  TDetailInput extends CollectionDetailInputBase,
+  TDetailInput extends CollectionDetailInputBase & TDetailParams,
   TDetailParams,
 > = ReturnType<
   typeof createCollectionHooks<

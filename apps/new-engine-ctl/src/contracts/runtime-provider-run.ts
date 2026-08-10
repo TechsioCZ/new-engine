@@ -5,35 +5,35 @@ const runtimeProviderPolicySchema = z.looseObject({
 })
 
 const runtimeProviderOutputPayloadSchema = z.looseObject({
-  output_id: z.string().min(1),
   env_var: z.string().min(1),
+  output_id: z.string().min(1),
   policy: runtimeProviderPolicySchema,
 })
 
-export const runtimeProviderRunPayloadSchema = z.object({
-  project_slug: z.string().min(1),
+const runtimeProviderRunPayloadSchema = z.object({
   environment_name: z.string().min(1),
-  provider_id: z.string().min(1),
-  service_slug: z.string().min(1),
-  readiness_path: z.string().min(1),
   outputs: z.array(runtimeProviderOutputPayloadSchema).min(1),
+  project_slug: z.string().min(1),
+  provider_id: z.string().min(1),
+  readiness_path: z.string().min(1),
+  service_slug: z.string().min(1),
 })
 
 const runtimeProviderOutputResultSchema = z.object({
-  output_id: z.string().min(1),
-  env_var: z.string().min(1),
-  value: z.string().min(1),
   created: z.boolean(),
+  env_var: z.string().min(1),
+  output_id: z.string().min(1),
   updated: z.boolean(),
+  value: z.string().min(1),
 })
 
 export const runtimeProviderRunResponseSchema = z.object({
-  project_slug: z.string().min(1),
   environment_name: z.string().min(1),
+  outputs: z.array(runtimeProviderOutputResultSchema).min(1),
+  project_slug: z.string().min(1),
   provider_id: z.string().min(1),
   service_slug: z.string().min(1),
   source_url: z.string().min(1),
-  outputs: z.array(runtimeProviderOutputResultSchema).min(1),
 })
 
 export type RuntimeProviderRunPayload = z.infer<

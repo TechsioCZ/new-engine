@@ -1,0 +1,8 @@
+{
+  "extends": "../../../../../tooling/ast-grep/tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false,
+    "noEmit": true
+  }
+}

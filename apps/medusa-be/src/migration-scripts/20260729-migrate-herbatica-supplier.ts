@@ -12,18 +12,24 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
+import { chunk } from "@techsio/std/array"
+import { isRecord } from "@techsio/std/object"
+
 import { ProductBrandLink } from "../links/product-brand"
 import { BRAND_MODULE } from "../modules/brand"
 import type BrandModuleService from "../modules/brand/service"
 import {
   getProductAttributeService,
   normalizeRequiredProductAttributeKey,
-  type ProductAttributeAssignmentRecord,
-  type ProductAttributeDefinitionRecord,
-  type ProductAttributeOptionRecord,
   withProductAttributeTransaction,
 } from "../utils/product-attributes"
-import { getCurrentProductBrandLinks } from "../workflows/brand"
+import type {
+  ProductAttributeAssignmentRecord,
+  ProductAttributeDefinitionRecord,
+  ProductAttributeOptionRecord,
+} from "../utils/product-attributes"
+import { getCurrentProductBrandLinks } from "../workflows/brand/steps/helpers"
 import { setProductAttributesWorkflow } from "../workflows/product-attribute/workflows/set-product-attributes"
 
 const BATCH_SIZE = 100
@@ -39,39 +45,39 @@ type BrandAttributeRecord = Awaited<
 type BrandAttributeTypeRecord = Awaited<
   ReturnType<BrandModuleService["listBrandAttributeTypes"]>
 >[number]
-type ProductBrandLinkRecord = {
-  brand_id?: string
-  product_id?: string
+interface ProductBrandLinkRecord {
+  brand_id: string
+  product_id: string
 }
 
-export type LegacyBrandSupplier = {
+const productBrandLinkSchema = z.object({
+  brand_id: z.string().min(1),
+  product_id: z.string().min(1),
+})
+
+export interface LegacyBrandSupplier {
   brand_id: string
   deleted_at?: Date | null | string
   id: string
   value: string
 }
 
-export type LegacySupplierAssignmentPlan = {
-  assignments: Array<{ product_id: string; supplier: string }>
-  unresolved: Array<{ product_id: string; reason: string; values: string[] }>
+export interface LegacySupplierAssignmentPlan {
+  assignments: { product_id: string; supplier: string }[]
+  unresolved: { product_id: string; reason: string; values: string[] }[]
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value) && typeof value === "object" && !Array.isArray(value)
 
 const isHerbaticaProduct = (product: ProductDTO) =>
   isRecord(product.metadata) &&
-  product.metadata.source === HERBATICA_PRODUCT_SOURCE
+  product.metadata["source"] === HERBATICA_PRODUCT_SOURCE
 
 const normalizeLegacyName = (value: string) => value.trim().toLowerCase()
 
-const chunk = <T>(items: T[], size = BATCH_SIZE) =>
-  Array.from({ length: Math.ceil(items.length / size) }, (_, index) =>
-    items.slice(index * size, (index + 1) * size)
-  )
+const isDeletedLegacyBrandSupplier = (value?: Date | null | string): boolean =>
+  value !== undefined && value !== null && value !== ""
 
 export const resolveLegacySupplierValuesByBrand = (
-  attributes: LegacyBrandSupplier[]
+  attributes: LegacyBrandSupplier[],
 ) => {
   const attributesByBrand = new Map<string, LegacyBrandSupplier[]>()
 
@@ -85,19 +91,25 @@ export const resolveLegacySupplierValuesByBrand = (
   const supplierByBrandId = new Map<string, string>()
 
   for (const [brandId, records] of attributesByBrand) {
-    const values = [
-      ...new Set(
-        records
-          .filter((record) => !record.deleted_at)
-          .map(({ value }) => value.trim())
-          .filter(Boolean)
-      ),
-    ]
+    const trimmedValues: string[] = []
+    for (const record of records) {
+      if (isDeletedLegacyBrandSupplier(record.deleted_at)) {
+        continue
+      }
+      const trimmed = record.value.trim()
+      if (trimmed !== "") {
+        trimmedValues.push(trimmed)
+      }
+    }
+    const values = [...new Set(trimmedValues)]
 
     if (values.length > 1) {
       ambiguousBrandIds.add(brandId)
-    } else if (values[0]) {
-      supplierByBrandId.set(brandId, values[0])
+    } else {
+      const [value] = values
+      if (value !== undefined && value !== "") {
+        supplierByBrandId.set(brandId, value)
+      }
     }
   }
 
@@ -132,7 +144,7 @@ export const planLegacySupplierAssignments = ({
       ...new Set(
         brandIds
           .map((brandId) => supplierByBrandId.get(brandId))
-          .filter((value): value is string => Boolean(value))
+          .filter((value): value is string => Boolean(value)),
       ),
     ]
 
@@ -146,7 +158,7 @@ export const planLegacySupplierAssignments = ({
       brandIds.some(
         (brandId) =>
           supplierByBrandId.has(brandId) &&
-          (productIdsByBrandId.get(brandId)?.length ?? 0) !== 1
+          (productIdsByBrandId.get(brandId)?.length ?? 0) !== 1,
       )
     ) {
       unresolved.push({
@@ -161,8 +173,11 @@ export const planLegacySupplierAssignments = ({
         reason: "the Product resolves to multiple legacy Supplier values",
         values,
       })
-    } else if (values[0]) {
-      assignments.push({ product_id: productId, supplier: values[0] })
+    } else {
+      const [value] = values
+      if (value !== undefined && value !== "") {
+        assignments.push({ product_id: productId, supplier: value })
+      }
     }
   }
 
@@ -183,209 +198,328 @@ export const selectRemovableLegacySupplierBrandIds = ({
       productIds.length &&
       productIds.every(
         (productId) =>
-          herbaticaProductIds.has(productId) && coveredProductIds.has(productId)
+          herbaticaProductIds.has(productId) &&
+          coveredProductIds.has(productId),
       )
         ? [brandId]
-        : []
-    )
+        : [],
+    ),
   )
 
-async function listHerbaticaProducts(productService: IProductModuleService) {
-  const products: ProductDTO[] = []
-  let offset = 0
-  let count = Number.POSITIVE_INFINITY
+// Product pages are fetched in id order and each page's stop condition
+// depends on the running offset and total from the previous page, so pages
+// are walked sequentially through recursion instead of a loop.
+const listHerbaticaProducts = async (
+  productService: IProductModuleService,
+  offset = 0,
+): Promise<ProductDTO[]> => {
+  const [page, pageCount] = await productService.listAndCountProducts(
+    {},
+    {
+      order: { id: "ASC" },
+      select: ["id", "metadata"],
+      skip: offset,
+      take: BATCH_SIZE,
+    },
+  )
+  const matching = page.filter(isHerbaticaProduct)
+  const nextOffset = offset + page.length
 
-  while (offset < count) {
-    const [page, pageCount] = await productService.listAndCountProducts(
-      {},
-      {
-        order: { id: "ASC" },
-        select: ["id", "metadata"],
-        skip: offset,
-        take: BATCH_SIZE,
-      }
-    )
-    products.push(...page.filter(isHerbaticaProduct))
-    count = pageCount
-    if (!page.length) {
-      break
-    }
-    offset += page.length
+  if (page.length === 0 || nextOffset >= pageCount) {
+    return matching
   }
 
-  return products
+  return [
+    ...matching,
+    ...(await listHerbaticaProducts(productService, nextOffset)),
+  ]
 }
 
-async function listSupplierAttributeTypes(service: BrandModuleService) {
-  const matching: BrandAttributeTypeRecord[] = []
-  let offset = 0
-  let count = Number.POSITIVE_INFINITY
+// Brand attribute type pages are walked sequentially through recursion for
+// the same reason as listHerbaticaProducts above.
+const listSupplierAttributeTypes = async (
+  service: BrandModuleService,
+  offset = 0,
+): Promise<BrandAttributeTypeRecord[]> => {
+  const [page, pageCount] = await service.listAndCountBrandAttributeTypes(
+    {},
+    {
+      order: { id: "ASC" },
+      skip: offset,
+      take: BATCH_SIZE,
+      withDeleted: true,
+    },
+  )
+  const matching = page.filter(
+    (attributeType) =>
+      normalizeLegacyName(attributeType.name) === SUPPLIER_DEFINITION_KEY,
+  )
+  const nextOffset = offset + page.length
 
-  while (offset < count) {
-    const [page, pageCount] = (await service.listAndCountBrandAttributeTypes(
-      {},
-      {
-        order: { id: "ASC" },
-        skip: offset,
-        take: BATCH_SIZE,
-        withDeleted: true,
-      }
-    )) as [BrandAttributeTypeRecord[], number]
-    matching.push(
-      ...page.filter(
-        (attributeType) =>
-          normalizeLegacyName(attributeType.name) === SUPPLIER_DEFINITION_KEY
-      )
-    )
-    count = pageCount
-    if (!page.length) {
-      break
-    }
-    offset += page.length
+  if (page.length === 0 || nextOffset >= pageCount) {
+    return matching
   }
 
-  return matching
+  return [
+    ...matching,
+    ...(await listSupplierAttributeTypes(service, nextOffset)),
+  ]
 }
 
-async function listLegacySupplierAttributes(
+const collectLegacySupplierAttributePage = async (
+  service: BrandModuleService,
+  attributeTypeIds: string[],
+  brandIdBatch: string[],
+  offset: number,
+): Promise<BrandAttributeRecord[]> => {
+  const [page, pageCount] = await service.listAndCountBrandAttributes(
+    {
+      attribute_type_id: { $in: attributeTypeIds },
+      brand_id: { $in: brandIdBatch },
+    },
+    {
+      order: { id: "ASC" },
+      relations: ["attributeType"],
+      skip: offset,
+      take: BATCH_SIZE,
+      withDeleted: true,
+    },
+  )
+  const nextOffset = offset + page.length
+
+  if (page.length === 0 || nextOffset >= pageCount) {
+    return page
+  }
+
+  return [
+    ...page,
+    ...(await collectLegacySupplierAttributePage(
+      service,
+      attributeTypeIds,
+      brandIdBatch,
+      nextOffset,
+    )),
+  ]
+}
+
+// Brand id batches are queried sequentially, each fully paginated before the
+// next batch starts, through recursion instead of a nested loop.
+const collectLegacySupplierAttributeBatches = async (
+  service: BrandModuleService,
+  brandIdBatches: string[][],
+  attributeTypeIds: string[],
+): Promise<BrandAttributeRecord[]> => {
+  const [brandIdBatch, ...remainingBatches] = brandIdBatches
+  if (brandIdBatch === undefined) {
+    return []
+  }
+
+  const batchAttributes = await collectLegacySupplierAttributePage(
+    service,
+    attributeTypeIds,
+    brandIdBatch,
+    0,
+  )
+
+  return [
+    ...batchAttributes,
+    ...(await collectLegacySupplierAttributeBatches(
+      service,
+      remainingBatches,
+      attributeTypeIds,
+    )),
+  ]
+}
+
+const listLegacySupplierAttributes = async (
   service: BrandModuleService,
   brandIds: string[],
-  attributeTypeIds: string[]
-) {
-  const attributes: BrandAttributeRecord[] = []
+  attributeTypeIds: string[],
+): Promise<BrandAttributeRecord[]> =>
+  await collectLegacySupplierAttributeBatches(
+    service,
+    chunk(brandIds, BATCH_SIZE),
+    attributeTypeIds,
+  )
 
-  for (const brandIdBatch of chunk(brandIds)) {
-    let offset = 0
-    let count = Number.POSITIVE_INFINITY
-
-    while (offset < count) {
-      const [page, pageCount] = (await service.listAndCountBrandAttributes(
-        {
-          attribute_type_id: { $in: attributeTypeIds },
-          brand_id: { $in: brandIdBatch },
-        },
-        {
-          order: { id: "ASC" },
-          relations: ["attributeType"],
-          skip: offset,
-          take: BATCH_SIZE,
-          withDeleted: true,
-        }
-      )) as [BrandAttributeRecord[], number]
-      attributes.push(...page)
-      count = pageCount
-      if (!page.length) {
-        break
-      }
-      offset += page.length
-    }
-  }
-
-  return attributes
-}
-
-async function findSupplierDefinition(service: ProductAttributeService) {
-  const definitions = (await service.listProductAttributeDefinitions(
+const findSupplierDefinition = async (
+  service: ProductAttributeService,
+): Promise<ProductAttributeDefinitionRecord | undefined> => {
+  const definitions = await service.listProductAttributeDefinitions(
     { key: SUPPLIER_DEFINITION_KEY },
-    { order: { id: "ASC" }, withDeleted: true }
-  )) as ProductAttributeDefinitionRecord[]
+    { order: { id: "ASC" }, withDeleted: true },
+  )
   const definition =
     definitions.find((candidate) => !candidate.deleted_at) ?? definitions[0]
 
   if (definition && definition.input_type !== "select") {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Reserved Product Attribute "${SUPPLIER_DEFINITION_KEY}" must use input type "select", but persisted type is "${definition.input_type}"`
+      `Reserved Product Attribute "${SUPPLIER_DEFINITION_KEY}" must use input type "select", but persisted type is "${definition.input_type}"`,
     )
   }
   return definition
 }
 
-async function listValidActiveSupplierAssignmentProductIds({
+const collectProductAttributeAssignmentPage = async (
+  service: ProductAttributeService,
+  definitionId: string,
+  productIdBatch: string[],
+  offset: number,
+): Promise<ProductAttributeAssignmentRecord[]> => {
+  const [page, pageCount] = await service.listAndCountProductAttributes(
+    {
+      definition_id: definitionId,
+      product_id: { $in: productIdBatch },
+    },
+    {
+      order: { id: "ASC" },
+      skip: offset,
+      take: BATCH_SIZE,
+      withDeleted: true,
+    },
+  )
+  const nextOffset = offset + page.length
+
+  if (page.length === 0 || nextOffset >= pageCount) {
+    return page
+  }
+
+  return [
+    ...page,
+    ...(await collectProductAttributeAssignmentPage(
+      service,
+      definitionId,
+      productIdBatch,
+      nextOffset,
+    )),
+  ]
+}
+
+const collectProductAttributeAssignmentBatches = async (
+  service: ProductAttributeService,
+  definitionId: string,
+  productIdBatches: string[][],
+): Promise<ProductAttributeAssignmentRecord[]> => {
+  const [productIdBatch, ...remainingBatches] = productIdBatches
+  if (productIdBatch === undefined) {
+    return []
+  }
+
+  const batchAssignments = await collectProductAttributeAssignmentPage(
+    service,
+    definitionId,
+    productIdBatch,
+    0,
+  )
+
+  return [
+    ...batchAssignments,
+    ...(await collectProductAttributeAssignmentBatches(
+      service,
+      definitionId,
+      remainingBatches,
+    )),
+  ]
+}
+
+const collectActiveProductAttributeOptionIds = async (
+  service: ProductAttributeService,
+  optionIdBatches: string[][],
+): Promise<string[]> => {
+  const [optionIdBatch, ...remainingBatches] = optionIdBatches
+  if (optionIdBatch === undefined) {
+    return []
+  }
+
+  const options = await service.listProductAttributeOptions(
+    { id: { $in: optionIdBatch } },
+    { select: ["id"], take: optionIdBatch.length },
+  )
+
+  return [
+    ...options.map(({ id }) => id),
+    ...(await collectActiveProductAttributeOptionIds(
+      service,
+      remainingBatches,
+    )),
+  ]
+}
+
+const isActiveSupplierOptionAssignment = (
+  assignment: ProductAttributeAssignmentRecord,
+  activeOptionIds: Set<string>,
+): boolean => {
+  if (assignment.deleted_at) {
+    return false
+  }
+  if (assignment.option_id === null || assignment.option_id === "") {
+    return false
+  }
+  return activeOptionIds.has(assignment.option_id)
+}
+
+const listValidActiveSupplierAssignmentProductIds = async ({
   definition,
   productIds,
   service,
 }: {
-  definition?: ProductAttributeDefinitionRecord
+  definition?: ProductAttributeDefinitionRecord | undefined
   productIds: string[]
   service: ProductAttributeService
-}) {
+}): Promise<Set<string>> => {
   if (!definition) {
     return new Set<string>()
   }
 
-  const assignments: ProductAttributeAssignmentRecord[] = []
-  for (const productIdBatch of chunk(productIds)) {
-    let offset = 0
-    let count = Number.POSITIVE_INFINITY
-
-    while (offset < count) {
-      const [page, pageCount] = (await service.listAndCountProductAttributes(
-        {
-          definition_id: definition.id,
-          product_id: { $in: productIdBatch },
-        },
-        {
-          order: { id: "ASC" },
-          skip: offset,
-          take: BATCH_SIZE,
-          withDeleted: true,
-        }
-      )) as [ProductAttributeAssignmentRecord[], number]
-      assignments.push(...page)
-      count = pageCount
-      if (!page.length) {
-        break
-      }
-      offset += page.length
-    }
-  }
+  const assignments = await collectProductAttributeAssignmentBatches(
+    service,
+    definition.id,
+    chunk(productIds, BATCH_SIZE),
+  )
 
   const optionIds = [
     ...new Set(
       assignments.flatMap((assignment) =>
-        !assignment.deleted_at && assignment.option_id
+        !assignment.deleted_at &&
+        assignment.option_id !== null &&
+        assignment.option_id !== ""
           ? [assignment.option_id]
-          : []
-      )
+          : [],
+      ),
     ),
   ]
-  const activeOptionIds = new Set<string>()
-
-  for (const optionIdBatch of chunk(optionIds)) {
-    const options = (await service.listProductAttributeOptions(
-      { id: { $in: optionIdBatch } },
-      { select: ["id"], take: optionIdBatch.length }
-    )) as ProductAttributeOptionRecord[]
-    for (const option of options) {
-      activeOptionIds.add(option.id)
-    }
-  }
+  const activeOptionIds = new Set(
+    await collectActiveProductAttributeOptionIds(
+      service,
+      chunk(optionIds, BATCH_SIZE),
+    ),
+  )
 
   return new Set(
     assignments.flatMap((assignment) =>
-      !assignment.deleted_at &&
-      assignment.option_id &&
-      activeOptionIds.has(assignment.option_id)
+      isActiveSupplierOptionAssignment(assignment, activeOptionIds)
         ? [assignment.product_id]
-        : []
-    )
+        : [],
+    ),
   )
 }
 
-export function collectSupplierLabelsByKey(suppliers: string[]) {
+export const collectSupplierLabelsByKey = (
+  suppliers: string[],
+): Map<string, string> => {
   const labelsByKey = new Map<string, string>()
 
   for (const label of suppliers) {
     const key = normalizeRequiredProductAttributeKey(
       label,
-      "Supplier option key"
+      "Supplier option key",
     )
     const collision = labelsByKey.get(key)
-    if (collision && collision !== label) {
+    if (collision !== undefined && collision !== "" && collision !== label) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Supplier option key collision from legacy labels "${collision}" and "${label}"`
+        `Supplier option key collision from legacy labels "${collision}" and "${label}"`,
       )
     }
     labelsByKey.set(key, label)
@@ -394,57 +528,102 @@ export function collectSupplierLabelsByKey(suppliers: string[]) {
   return labelsByKey
 }
 
-async function ensureSupplierDefinition(
+const ensureSupplierDefinition = async (
   existing: ProductAttributeDefinitionRecord | undefined,
   service: ProductAttributeService,
-  context: ProductAttributeContext
-) {
+  context: ProductAttributeContext,
+): Promise<ProductAttributeDefinitionRecord> => {
   let definition = existing
 
   if (!definition) {
-    definition = (await service.createProductAttributeDefinitions(
+    definition = await service.createProductAttributeDefinitions(
       {
         input_type: "select",
         is_public: false,
         key: SUPPLIER_DEFINITION_KEY,
         label: SUPPLIER_DEFINITION_LABEL,
       },
-      context
-    )) as ProductAttributeDefinitionRecord
+      context,
+    )
   } else if (definition.deleted_at) {
     await service.restoreProductAttributeDefinitions(
       [definition.id],
       {},
-      context
+      context,
     )
   }
 
-  return (await service.updateProductAttributeDefinitions(
+  return await service.updateProductAttributeDefinitions(
     {
       id: definition.id,
       is_public: false,
       label: SUPPLIER_DEFINITION_LABEL,
     },
-    context
-  )) as ProductAttributeDefinitionRecord
+    context,
+  )
 }
 
-async function ensureSupplierOptions(
+// Each label is reconciled sequentially because the create/restore/update
+// calls share the same transaction context, so entries are walked through
+// recursion instead of a for-of loop.
+const ensureSupplierOptionEntries = async (
+  definition: ProductAttributeDefinitionRecord,
+  service: ProductAttributeService,
+  context: ProductAttributeContext,
+  optionByKey: Map<string, ProductAttributeOptionRecord>,
+  entries: [string, string][],
+): Promise<void> => {
+  const [entry, ...remainingEntries] = entries
+  if (entry === undefined) {
+    return
+  }
+  const [key, label] = entry
+  const option = optionByKey.get(key)
+
+  if (option) {
+    if (option.deleted_at) {
+      await service.restoreProductAttributeOptions([option.id], {}, context)
+    }
+    optionByKey.set(
+      key,
+      await service.updateProductAttributeOptions(
+        { id: option.id, label },
+        context,
+      ),
+    )
+  } else {
+    const created = await service.createProductAttributeOptions(
+      { definition_id: definition.id, key, label },
+      context,
+    )
+    optionByKey.set(key, created)
+  }
+
+  await ensureSupplierOptionEntries(
+    definition,
+    service,
+    context,
+    optionByKey,
+    remainingEntries,
+  )
+}
+
+const ensureSupplierOptions = async (
   definition: ProductAttributeDefinitionRecord,
   labelsByKey: Map<string, string>,
   service: ProductAttributeService,
-  context: ProductAttributeContext
-) {
+  context: ProductAttributeContext,
+): Promise<Map<string, ProductAttributeOptionRecord>> => {
   const keys = [...labelsByKey.keys()]
   const existing = keys.length
-    ? ((await service.listProductAttributeOptions(
+    ? await service.listProductAttributeOptions(
         {
           definition_id: definition.id,
           key: { $in: keys },
         },
         { order: { id: "ASC" }, withDeleted: true },
-        context
-      )) as ProductAttributeOptionRecord[])
+        context,
+      )
     : []
   const optionByKey = new Map<string, ProductAttributeOptionRecord>()
   for (const option of existing) {
@@ -454,82 +633,77 @@ async function ensureSupplierOptions(
     }
   }
 
-  for (const [key, label] of labelsByKey) {
-    const option = optionByKey.get(key)
-    if (!option) {
-      const created = (await service.createProductAttributeOptions(
-        { definition_id: definition.id, key, label },
-        context
-      )) as ProductAttributeOptionRecord
-      optionByKey.set(key, created)
-      continue
-    }
-    if (option.deleted_at) {
-      await service.restoreProductAttributeOptions([option.id], {}, context)
-    }
-    optionByKey.set(
-      key,
-      (await service.updateProductAttributeOptions(
-        { id: option.id, label },
-        context
-      )) as ProductAttributeOptionRecord
-    )
-  }
+  await ensureSupplierOptionEntries(definition, service, context, optionByKey, [
+    ...labelsByKey,
+  ])
 
   return optionByKey
 }
 
-async function ensureSupplierCatalog({
+const ensureSupplierCatalog = async ({
   definition,
   labelsByKey,
   service,
 }: {
-  definition?: ProductAttributeDefinitionRecord
+  definition?: ProductAttributeDefinitionRecord | undefined
   labelsByKey: Map<string, string>
   service: ProductAttributeService
-}) {
-  return await withProductAttributeTransaction(service, async (context) => {
+}) =>
+  await withProductAttributeTransaction(service, async (context) => {
     const ensuredDefinition = await ensureSupplierDefinition(
       definition,
       service,
-      context
+      context,
     )
     const optionByKey = await ensureSupplierOptions(
       ensuredDefinition,
       labelsByKey,
       service,
-      context
+      context,
     )
     return { definition: ensuredDefinition, optionByKey }
   })
-}
 
-async function listLinksByBrand(
+// Brand id batches are queried sequentially through recursion instead of a
+// loop, matching the other batched readers in this migration.
+const collectProductBrandLinkBatches = async (
   query: Query,
-  brandIds: string[]
-): Promise<Required<ProductBrandLinkRecord>[]> {
-  const links: Required<ProductBrandLinkRecord>[] = []
-
-  for (const brandIdBatch of chunk(brandIds)) {
-    const { data } = await query.graph({
-      entity: ProductBrandLink.entryPoint,
-      fields: ["product_id", "brand_id"],
-      filters: { brand_id: { $in: brandIdBatch } },
-    })
-    links.push(
-      ...(data as ProductBrandLinkRecord[]).filter(
-        (link): link is Required<ProductBrandLinkRecord> =>
-          Boolean(link.product_id && link.brand_id)
-      )
-    )
+  brandIdBatches: string[][],
+): Promise<ProductBrandLinkRecord[]> => {
+  const [brandIdBatch, ...remainingBatches] = brandIdBatches
+  if (brandIdBatch === undefined) {
+    return []
   }
 
-  return links
+  const { data } = await query.graph({
+    entity: ProductBrandLink.entryPoint,
+    fields: ["product_id", "brand_id"],
+    filters: { brand_id: { $in: brandIdBatch } },
+  })
+  const rawLinks: unknown[] = data
+  const links: ProductBrandLinkRecord[] = []
+  for (const rawLink of rawLinks) {
+    const parsed = productBrandLinkSchema.safeParse(rawLink)
+    if (parsed.success) {
+      links.push(parsed.data)
+    }
+  }
+
+  return [
+    ...links,
+    ...(await collectProductBrandLinkBatches(query, remainingBatches)),
+  ]
 }
 
+const listLinksByBrand = async (
+  query: Query,
+  brandIds: string[],
+): Promise<ProductBrandLinkRecord[]> =>
+  await collectProductBrandLinkBatches(query, chunk(brandIds, BATCH_SIZE))
+
 const groupProductBrandLinks = (
-  links: Required<ProductBrandLinkRecord>[],
-  groupBy: "brand" | "product"
+  links: ProductBrandLinkRecord[],
+  groupBy: "brand" | "product",
 ) => {
   const grouped = new Map<string, string[]>()
 
@@ -546,16 +720,62 @@ const groupProductBrandLinks = (
 
 const logUnresolvedSupplierAssignments = (
   logger: Logger,
-  unresolved: LegacySupplierAssignmentPlan["unresolved"]
+  unresolved: LegacySupplierAssignmentPlan["unresolved"],
 ) => {
   for (const item of unresolved) {
     logger.warn(
-      `Skipped legacy Supplier for Product "${item.product_id}": ${item.reason}; values: ${item.values.join(", ") || "none"}`
+      `Skipped legacy Supplier for Product "${item.product_id}": ${item.reason}; values: ${item.values.join(", ") || "none"}`,
     )
   }
 }
 
-async function applySupplierAssignments({
+// Assignments are applied one product at a time because a failure partway
+// through must leave later assignments untouched, so they are walked
+// through recursion instead of a for-of loop.
+const applySupplierAssignmentsSequentially = async (
+  assignments: LegacySupplierAssignmentPlan["assignments"],
+  container: ExecArgs["container"],
+  definition: ProductAttributeDefinitionRecord,
+  optionByKey: Map<string, ProductAttributeOptionRecord>,
+  migratedProductIds: Set<string>,
+): Promise<void> => {
+  const [assignment, ...remainingAssignments] = assignments
+  if (assignment === undefined) {
+    return
+  }
+
+  const optionKey = normalizeRequiredProductAttributeKey(assignment.supplier)
+  const option = optionByKey.get(optionKey)
+  if (!option) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Supplier option "${optionKey}" was not reconciled for Product "${assignment.product_id}"`,
+    )
+  }
+  await setProductAttributesWorkflow(container).run({
+    input: {
+      operations: [
+        {
+          action: "set",
+          definition_id: definition.id,
+          option_id: option.id,
+        },
+      ],
+      product_id: assignment.product_id,
+    },
+  })
+  migratedProductIds.add(assignment.product_id)
+
+  await applySupplierAssignmentsSequentially(
+    remainingAssignments,
+    container,
+    definition,
+    optionByKey,
+    migratedProductIds,
+  )
+}
+
+const applySupplierAssignments = async ({
   assignments,
   container,
   definition,
@@ -565,37 +785,58 @@ async function applySupplierAssignments({
   container: ExecArgs["container"]
   definition: ProductAttributeDefinitionRecord
   optionByKey: Map<string, ProductAttributeOptionRecord>
-}) {
+}): Promise<Set<string>> => {
   const migratedProductIds = new Set<string>()
 
-  for (const assignment of assignments) {
-    const optionKey = normalizeRequiredProductAttributeKey(assignment.supplier)
-    const option = optionByKey.get(optionKey)
-    if (!option) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        `Supplier option "${optionKey}" was not reconciled for Product "${assignment.product_id}"`
-      )
-    }
-    await setProductAttributesWorkflow(container).run({
-      input: {
-        operations: [
-          {
-            action: "set",
-            definition_id: definition.id,
-            option_id: option.id,
-          },
-        ],
-        product_id: assignment.product_id,
-      },
-    })
-    migratedProductIds.add(assignment.product_id)
-  }
+  await applySupplierAssignmentsSequentially(
+    assignments,
+    container,
+    definition,
+    optionByKey,
+    migratedProductIds,
+  )
 
   return migratedProductIds
 }
 
-async function cleanupMigratedBrandSupplierAttributes({
+// Attribute types are checked one at a time inside the same transaction
+// context, so they are walked through recursion instead of a for-of loop.
+const softDeleteEmptyBrandAttributeTypesSequentially = async (
+  attributeTypes: BrandAttributeTypeRecord[],
+  service: BrandModuleService,
+  context: Context,
+  deletedTypeIds: string[],
+): Promise<void> => {
+  const [attributeType, ...remainingAttributeTypes] = attributeTypes
+  if (attributeType === undefined) {
+    return
+  }
+
+  if (!attributeType.deleted_at) {
+    const remaining = await service.listBrandAttributes(
+      { attribute_type_id: attributeType.id },
+      { select: ["id"], take: 1 },
+      context,
+    )
+    if (!remaining.length) {
+      await service.softDeleteBrandAttributeTypes(
+        [attributeType.id],
+        {},
+        context,
+      )
+      deletedTypeIds.push(attributeType.id)
+    }
+  }
+
+  await softDeleteEmptyBrandAttributeTypesSequentially(
+    remainingAttributeTypes,
+    service,
+    context,
+    deletedTypeIds,
+  )
+}
+
+const cleanupMigratedBrandSupplierAttributes = async ({
   attributes,
   attributeTypes,
   coveredProductIds,
@@ -609,7 +850,7 @@ async function cleanupMigratedBrandSupplierAttributes({
   herbaticaProductIds: Set<string>
   productIdsByBrandId: Map<string, string[]>
   service: BrandModuleService
-}) {
+}) => {
   const removableBrandIds = selectRemovableLegacySupplierBrandIds({
     coveredProductIds,
     herbaticaProductIds,
@@ -618,7 +859,7 @@ async function cleanupMigratedBrandSupplierAttributes({
   const attributeIds = attributes.flatMap((attribute) =>
     !attribute.deleted_at && removableBrandIds.has(attribute.brand_id)
       ? [attribute.id]
-      : []
+      : [],
   )
   const deletedTypeIds: string[] = []
 
@@ -627,24 +868,12 @@ async function cleanupMigratedBrandSupplierAttributes({
       await service.softDeleteBrandAttributes(attributeIds, {}, context)
     }
 
-    for (const attributeType of attributeTypes) {
-      if (attributeType.deleted_at) {
-        continue
-      }
-      const remaining = await service.listBrandAttributes(
-        { attribute_type_id: attributeType.id },
-        { select: ["id"], take: 1 },
-        context
-      )
-      if (!remaining.length) {
-        await service.softDeleteBrandAttributeTypes(
-          [attributeType.id],
-          {},
-          context
-        )
-        deletedTypeIds.push(attributeType.id)
-      }
-    }
+    await softDeleteEmptyBrandAttributeTypesSequentially(
+      attributeTypes,
+      service,
+      context,
+      deletedTypeIds,
+    )
   })
 
   return {
@@ -658,7 +887,7 @@ export default async function migrateHerbaticaSupplier({
 }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const productService = container.resolve<IProductModuleService>(
-    Modules.PRODUCT
+    Modules.PRODUCT,
   )
   const products = await listHerbaticaProducts(productService)
   if (!products.length) {
@@ -668,7 +897,14 @@ export default async function migrateHerbaticaSupplier({
 
   const productIds = products.map(({ id }) => id)
   const herbaticaProductIds = new Set(productIds)
-  const productLinks = await getCurrentProductBrandLinks(container, productIds)
+  const rawProductLinks = await getCurrentProductBrandLinks(
+    container,
+    productIds,
+  )
+  const productLinks = rawProductLinks.flatMap((link) => {
+    const parsed = productBrandLinkSchema.safeParse(link)
+    return parsed.success ? [parsed.data] : []
+  })
   const brandIds = [...new Set(productLinks.map(({ brand_id }) => brand_id))]
   if (!brandIds.length) {
     logger.info("No Herbatica Product Brand links contain legacy Suppliers")
@@ -684,7 +920,7 @@ export default async function migrateHerbaticaSupplier({
   const attributes = await listLegacySupplierAttributes(
     brandService,
     brandIds,
-    attributeTypes.map(({ id }) => id)
+    attributeTypes.map(({ id }) => id),
   )
   const legacySuppliers = attributes.map(
     ({ brand_id, deleted_at, id, value }) => ({
@@ -692,7 +928,7 @@ export default async function migrateHerbaticaSupplier({
       deleted_at,
       id,
       value,
-    })
+    }),
   )
   const { ambiguousBrandIds, supplierByBrandId } =
     resolveLegacySupplierValuesByBrand(legacySuppliers)
@@ -713,20 +949,20 @@ export default async function migrateHerbaticaSupplier({
     activeAssignmentProductIds,
     ambiguousBrandIds,
     brandIdsByProductId,
-    productIdsByBrandId,
     productIds,
+    productIdsByBrandId,
     supplierByBrandId,
   })
   logUnresolvedSupplierAssignments(logger, plan.unresolved)
   if (!(plan.assignments.length || activeAssignmentProductIds.size)) {
     logger.info(
-      `No provable legacy Supplier assignments were found; preserved ${plan.unresolved.length} unresolved Product record(s)`
+      `No provable legacy Supplier assignments were found; preserved ${plan.unresolved.length} unresolved Product record(s)`,
     )
     return
   }
 
   const labelsByKey = collectSupplierLabelsByKey(
-    plan.assignments.map(({ supplier }) => supplier)
+    plan.assignments.map(({ supplier }) => supplier),
   )
   const coveredProductIds = new Set(activeAssignmentProductIds)
 
@@ -746,8 +982,8 @@ export default async function migrateHerbaticaSupplier({
   }
 
   const cleanup = await cleanupMigratedBrandSupplierAttributes({
-    attributes,
     attributeTypes,
+    attributes,
     coveredProductIds,
     herbaticaProductIds,
     productIdsByBrandId,
@@ -755,6 +991,6 @@ export default async function migrateHerbaticaSupplier({
   })
 
   logger.info(
-    `Migrated ${plan.assignments.length} legacy Brand Supplier assignment(s); preserved ${activeAssignmentProductIds.size} existing structured assignment(s) and ${plan.unresolved.length} unresolved legacy record(s); removed ${cleanup.attributeCount} legacy Brand attribute(s) and ${cleanup.attributeTypeCount} unused type(s)`
+    `Migrated ${plan.assignments.length} legacy Brand Supplier assignment(s); preserved ${activeAssignmentProductIds.size} existing structured assignment(s) and ${plan.unresolved.length} unresolved legacy record(s); removed ${cleanup.attributeCount} legacy Brand attribute(s) and ${cleanup.attributeTypeCount} unused type(s)`,
   )
 }

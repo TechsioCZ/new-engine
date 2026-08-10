@@ -3,16 +3,16 @@ import { model } from "@medusajs/framework/utils"
 
 const StorefrontText = model
   .define("storefront_text", {
+    country: model.text(),
+    default_value: model.text(),
+    description: model.text().nullable(),
+    domain: model.text(),
     id: model.id({ prefix: "sftxt" }).primaryKey(),
     key: model.text().searchable(),
-    namespace: model.text().searchable(),
     locale: model.text().searchable(),
     market: model.text().searchable(),
-    country: model.text(),
-    domain: model.text(),
-    default_value: model.text(),
+    namespace: model.text().searchable(),
     override_value: model.text().nullable(),
-    description: model.text().nullable(),
     status: model.text().default("active"),
   })
   .indexes([
@@ -35,8 +35,8 @@ const StorefrontText = model
   ])
   .checks([
     {
-      name: "CHK_storefront_text_status",
       expression: (columns) => `${columns.status} IN ('active', 'draft')`,
+      name: "CHK_storefront_text_status",
     },
   ])
 

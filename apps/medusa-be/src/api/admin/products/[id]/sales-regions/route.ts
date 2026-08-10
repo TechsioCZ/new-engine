@@ -2,6 +2,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type {
   IRegionModuleService,
   ITaxModuleService,
+  Query,
   TaxRateDTO,
   TaxRegionDTO,
 } from "@medusajs/framework/types"
@@ -10,22 +11,24 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+import { chunk, unique } from "@techsio/std/array"
+
 import { normalizeCountryCode } from "../../../../../utils/country-code"
 import {
   getRegionCountryCodes,
   isTaxRateRule,
-  type RegionWithCountries,
   resolveEffectiveRate,
-  type TaxRateRule,
   toRegionWithCountries,
   toSalesRegionProduct,
 } from "./utils"
+import type { RegionWithCountries, TaxRateRule } from "./utils"
 
 const CHUNK_SIZE = 100
+const MAX_QUERY_PAGES = 1000
 const CONFIG_CACHE_TTL_MS = 30_000
 const PRODUCT_NOT_FOUND_MESSAGE = "Product not found"
 
-type CacheEntry<TValue> = {
+interface CacheEntry<TValue> {
   expiresAt: number
   value: Promise<TValue>
 }
@@ -35,15 +38,15 @@ const taxRegionsCache = new Map<string, CacheEntry<TaxRegionDTO[]>>()
 const taxRatesCache = new Map<string, CacheEntry<TaxRateDTO[]>>()
 const taxRateRulesCache = new Map<string, CacheEntry<TaxRateRule[]>>()
 
-function getCachedConfig<TValue>(
+const getCachedConfig = async <TValue>(
   cache: Map<string, CacheEntry<TValue>>,
   key: string,
-  load: () => Promise<TValue>
-) {
+  load: () => Promise<TValue>,
+) => {
   const cached = cache.get(key)
 
   if (cached && cached.expiresAt > Date.now()) {
-    return cached.value
+    return await cached.value
   }
 
   const value = load()
@@ -51,140 +54,109 @@ function getCachedConfig<TValue>(
     expiresAt: Date.now() + CONFIG_CACHE_TTL_MS,
     value,
   })
-  value.catch(() => {
+
+  try {
+    return await value
+  } catch (error: unknown) {
     if (cache.get(key)?.value === value) {
       cache.delete(key)
     }
-  })
-
-  return value
+    throw error
+  }
 }
 
-function getSetCacheKey(values: string[]) {
-  return [...new Set(values)].sort().join(",")
-}
+const getSetCacheKey = (values: string[]) => unique(values).toSorted().join(",")
 
-function getCountryCodeSetCacheKey(countryCodes: string[]) {
-  return getSetCacheKey(
+const getCountryCodeSetCacheKey = (countryCodes: string[]) =>
+  getSetCacheKey(
     countryCodes.flatMap(
-      (countryCode) => normalizeCountryCode(countryCode) ?? []
-    )
+      (countryCode) => normalizeCountryCode(countryCode) ?? [],
+    ),
   )
-}
 
-async function listAllRegions(regionService: IRegionModuleService) {
-  const regions: RegionWithCountries[] = []
-  let skip = 0
-
-  while (true) {
-    const chunk = await regionService.listRegions(
-      {},
-      {
-        relations: ["countries"],
-        skip,
-        take: CHUNK_SIZE,
-      }
+const listAllPages = async <T>(
+  loadPage: (skip: number) => Promise<T[]>,
+  pageCount = 0,
+): Promise<T[]> => {
+  if (pageCount >= MAX_QUERY_PAGES) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Sales region query exceeded ${MAX_QUERY_PAGES} pages`,
     )
-
-    regions.push(...chunk.map(toRegionWithCountries))
-
-    if (chunk.length < CHUNK_SIZE) {
-      return regions
-    }
-
-    skip += CHUNK_SIZE
   }
+
+  const page = await loadPage(pageCount * CHUNK_SIZE)
+  if (page.length < CHUNK_SIZE) {
+    return page
+  }
+
+  return [...page, ...(await listAllPages(loadPage, pageCount + 1))]
 }
 
-async function listAllTaxRegions(
+const listAllRegions = async (regionService: IRegionModuleService) => {
+  const regions = await listAllPages(
+    async (skip) =>
+      await regionService.listRegions(
+        {},
+        { relations: ["countries"], skip, take: CHUNK_SIZE },
+      ),
+  )
+  return regions.map(toRegionWithCountries)
+}
+
+const listAllTaxRegions = async (
   taxService: ITaxModuleService,
-  countryCodes: string[]
-) {
-  const taxRegions: TaxRegionDTO[] = []
-  let skip = 0
+  countryCodes: string[],
+) =>
+  await listAllPages(
+    async (skip) =>
+      await taxService.listTaxRegions(
+        { country_code: { $in: countryCodes } },
+        { skip, take: CHUNK_SIZE },
+      ),
+  )
 
-  while (true) {
-    const chunk = await taxService.listTaxRegions(
-      {
-        country_code: { $in: countryCodes },
-      },
-      {
-        skip,
-        take: CHUNK_SIZE,
-      }
-    )
-
-    taxRegions.push(...chunk)
-
-    if (chunk.length < CHUNK_SIZE) {
-      return taxRegions
-    }
-
-    skip += CHUNK_SIZE
-  }
-}
-
-async function listAllTaxRates(
+const listAllTaxRates = async (
   taxService: ITaxModuleService,
-  taxRegionIds: string[]
-) {
-  const taxRates: TaxRateDTO[] = []
-
-  for (let index = 0; index < taxRegionIds.length; index += CHUNK_SIZE) {
-    const taxRegionIdChunk = taxRegionIds.slice(index, index + CHUNK_SIZE)
-    let skip = 0
-
-    while (true) {
-      const chunk = await taxService.listTaxRates(
-        { tax_region_id: taxRegionIdChunk },
-        { skip, take: CHUNK_SIZE }
-      )
-
-      taxRates.push(...chunk)
-
-      if (chunk.length < CHUNK_SIZE) {
-        break
-      }
-
-      skip += CHUNK_SIZE
-    }
-  }
-
-  return taxRates
+  taxRegionIds: string[],
+) => {
+  const batches = await Promise.all(
+    chunk(taxRegionIds, CHUNK_SIZE).map(
+      async (taxRegionIdChunk) =>
+        await listAllPages(
+          async (skip) =>
+            await taxService.listTaxRates(
+              { tax_region_id: taxRegionIdChunk },
+              { skip, take: CHUNK_SIZE },
+            ),
+        ),
+    ),
+  )
+  return batches.flat()
 }
 
-async function listAllTaxRateRules(
+const listAllTaxRateRules = async (
   taxService: ITaxModuleService,
-  taxRateIds: string[]
-) {
-  const taxRateRules: TaxRateRule[] = []
-
-  for (let index = 0; index < taxRateIds.length; index += CHUNK_SIZE) {
-    const taxRateIdChunk = taxRateIds.slice(index, index + CHUNK_SIZE)
-    let skip = 0
-
-    while (true) {
-      const chunk = await taxService.listTaxRateRules(
-        { tax_rate_id: taxRateIdChunk },
-        { skip, take: CHUNK_SIZE }
-      )
-
-      taxRateRules.push(...chunk.filter(isTaxRateRule))
-
-      if (chunk.length < CHUNK_SIZE) {
-        break
-      }
-
-      skip += CHUNK_SIZE
-    }
-  }
-
-  return taxRateRules
+  taxRateIds: string[],
+) => {
+  const batches = await Promise.all(
+    chunk(taxRateIds, CHUNK_SIZE).map(
+      async (taxRateIdChunk) =>
+        await listAllPages(async (skip) => {
+          const rules = await taxService.listTaxRateRules(
+            { tax_rate_id: taxRateIdChunk },
+            { skip, take: CHUNK_SIZE },
+          )
+          return rules.filter(isTaxRateRule)
+        }),
+    ),
+  )
+  return batches.flat()
 }
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
-  const productId = req.params.id ?? ""
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+const get = async (req: MedusaRequest, res: MedusaResponse) => {
+  const productId = req.params["id"] ?? ""
+  const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const regionService = req.scope.resolve<IRegionModuleService>(Modules.REGION)
   const taxService = req.scope.resolve<ITaxModuleService>(Modules.TAX)
 
@@ -199,41 +171,50 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   if (!product) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      PRODUCT_NOT_FOUND_MESSAGE
+      PRODUCT_NOT_FOUND_MESSAGE,
     )
   }
 
   const salesChannels = product.sales_channels ?? []
   const countryCodes = salesChannels.length
     ? getRegionCountryCodes(
-        await getCachedConfig(regionsCache, "all", () =>
-          listAllRegions(regionService)
-        )
+        await getCachedConfig(
+          regionsCache,
+          "all",
+          async () => await listAllRegions(regionService),
+        ),
       )
     : []
   const taxRegions = countryCodes.length
     ? await getCachedConfig(
         taxRegionsCache,
         getCountryCodeSetCacheKey(countryCodes),
-        () => listAllTaxRegions(taxService, countryCodes)
+        async () => await listAllTaxRegions(taxService, countryCodes),
       )
     : []
-  const topLevelCountryTaxRegions = taxRegions.filter(
-    (taxRegion) =>
-      normalizeCountryCode(taxRegion.country_code) && !taxRegion.province_code
-  )
+  const topLevelCountryTaxRegions = taxRegions.filter((taxRegion) => {
+    const countryCode = normalizeCountryCode(taxRegion.country_code)
+    const hasProvince =
+      typeof taxRegion.province_code === "string" &&
+      taxRegion.province_code.length > 0
+    return countryCode !== undefined && !hasProvince
+  })
   const taxRegionIds = topLevelCountryTaxRegions.map(
-    (taxRegion) => taxRegion.id
+    (taxRegion) => taxRegion.id,
   )
   const taxRates = taxRegionIds.length
-    ? await getCachedConfig(taxRatesCache, getSetCacheKey(taxRegionIds), () =>
-        listAllTaxRates(taxService, taxRegionIds)
+    ? await getCachedConfig(
+        taxRatesCache,
+        getSetCacheKey(taxRegionIds),
+        async () => await listAllTaxRates(taxService, taxRegionIds),
       )
     : []
   const taxRateIds = taxRates.map((taxRate) => taxRate.id)
   const taxRateRules = taxRateIds.length
-    ? await getCachedConfig(taxRateRulesCache, getSetCacheKey(taxRateIds), () =>
-        listAllTaxRateRules(taxService, taxRateIds)
+    ? await getCachedConfig(
+        taxRateRulesCache,
+        getSetCacheKey(taxRateIds),
+        async () => await listAllTaxRateRules(taxService, taxRateIds),
       )
     : []
 
@@ -248,17 +229,17 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const ratesByCountry = topLevelCountryTaxRegions.flatMap((taxRegion) => {
     const countryCode = normalizeCountryCode(taxRegion.country_code)
 
-    if (!countryCode) {
+    if (!(typeof countryCode === "string" && countryCode.length > 0)) {
       return []
     }
 
     const regionRates = taxRates.filter(
-      (taxRate) => taxRate.tax_region_id === taxRegion.id
+      (taxRate) => taxRate.tax_region_id === taxRegion.id,
     )
     const effectiveRate = resolveEffectiveRate(
       regionRates,
       rulesByRateId,
-      productId
+      productId,
     )
 
     if (!effectiveRate) {
@@ -277,10 +258,12 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   })
 
   res.status(200).json({
+    country_rates: ratesByCountry,
     product: {
       id: product.id,
       sales_channels: salesChannels,
     },
-    country_rates: ratesByCountry,
   })
 }
+
+export { get as GET }

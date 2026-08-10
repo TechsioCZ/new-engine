@@ -1,4 +1,5 @@
 import { Store } from "@tanstack/react-store"
+
 import type { Cart } from "@/hooks/use-cart"
 
 interface OrderState {
@@ -12,13 +13,6 @@ const orderStore = new Store<OrderState>({
 
 // Helper functions
 export const orderHelpers = {
-  // Save current cart data before clearing
-  saveCompletedOrder: (cart: Cart) => {
-    orderStore.setState(() => ({
-      completedOrder: cart,
-    }))
-  },
-
   // Clear saved order data
   clearCompletedOrder: () => {
     orderStore.setState(() => ({
@@ -28,13 +22,20 @@ export const orderHelpers = {
 
   // Get order data - returns current cart or saved completed order
   getOrderData: (currentCart: Cart | null): Cart | null => {
-    const state = orderStore.state
+    const { state } = orderStore
 
     // If we have a completed order saved, use that
-    if (state.completedOrder) {
+    if (state.completedOrder !== null) {
       return state.completedOrder
     }
     // Otherwise use current cart
     return currentCart
+  },
+
+  // Save current cart data before clearing
+  saveCompletedOrder: (cart: Cart) => {
+    orderStore.setState(() => ({
+      completedOrder: cart,
+    }))
   },
 }

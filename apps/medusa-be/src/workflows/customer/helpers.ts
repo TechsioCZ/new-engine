@@ -1,81 +1,95 @@
-import type { CustomerUpdatableFields, Query } from "@medusajs/framework/types"
+import type {
+  MetadataType,
+  CustomerUpdatableFields,
+  Query,
+} from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
+import { getRecordValue } from "@techsio/std/object"
+
+import { withoutCustomerAccountDeactivationNonce } from "../../utils/customer-account-deactivation"
 import { normalizeEmail } from "../../utils/email"
-import { hasArrayData } from "../../utils/guards"
 import { normalizeReactivatedCustomerFirstName } from "./normalizers"
 import type {
   CustomerRecord,
   ReactivateCustomerAccountInput,
 } from "./steps/prepare-customer-account-reactivation"
 
-type ProviderIdentityRecord = {
-  auth_identity_id?: string | null
-  entity_id?: string | null
-  id: string
+const mergeCustomerMetadata = (
+  existingMetadata?: MetadataType,
+  inputMetadata?: MetadataType,
+): MetadataType => {
+  const mergedMetadata =
+    inputMetadata === undefined || inputMetadata === null
+      ? existingMetadata
+      : { ...existingMetadata, ...inputMetadata }
+
+  return mergedMetadata === undefined || mergedMetadata === null
+    ? null
+    : withoutCustomerAccountDeactivationNonce(mergedMetadata)
 }
 
-function mergeCustomerMetadata(
-  existingMetadata?: Record<string, unknown> | null,
-  inputMetadata?: Record<string, unknown> | null
-) {
-  if (!inputMetadata) {
-    return existingMetadata ?? null
-  }
-
-  return {
-    ...(existingMetadata ?? {}),
-    ...inputMetadata,
-  }
-}
-
-export async function verifyAuthIdentityEmail({
+export const verifyAuthIdentityEmail = async ({
   authIdentityId,
+  customerId,
   email,
   query,
 }: {
   authIdentityId: string
+  customerId: string
   email: string
   query: Query
-}) {
-  const providerIdentityResult: unknown = await query.graph({
+}): Promise<void> => {
+  const providerIdentityResult: {
+    data: {
+      auth_identity: { app_metadata: MetadataType } | null
+      auth_identity_id: string
+      entity_id: string
+      id: string
+    }[]
+  } = await query.graph({
     entity: "provider_identity",
-    fields: ["id", "auth_identity_id", "entity_id"],
+    fields: [
+      "id",
+      "auth_identity_id",
+      "entity_id",
+      "auth_identity.app_metadata",
+    ],
     filters: {
       auth_identity_id: authIdentityId,
       provider: "emailpass",
     },
   })
 
-  if (!hasArrayData<ProviderIdentityRecord>(providerIdentityResult)) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "Unexpected response shape while loading auth identity."
-    )
-  }
-
   const providerIdentity = providerIdentityResult.data.find(
-    (identity) => identity.auth_identity_id === authIdentityId
+    (identity) => identity.auth_identity_id === authIdentityId,
   )
 
-  if (normalizeEmail(providerIdentity?.entity_id ?? "") !== email) {
+  if (
+    normalizeEmail(providerIdentity?.entity_id ?? "") !== email ||
+    (providerIdentity?.auth_identity?.app_metadata === undefined ||
+    providerIdentity.auth_identity.app_metadata === null
+      ? undefined
+      : getRecordValue(
+          providerIdentity.auth_identity.app_metadata,
+          "customer_id",
+        )) !== customerId
+  ) {
     throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
-      "Authenticated identity does not match the customer email."
+      "Authenticated identity does not match the customer email.",
     )
   }
 }
 
-export function buildReactivatedCustomerUpdateInput(
+export const buildReactivatedCustomerUpdateInput = (
   input: ReactivateCustomerAccountInput,
-  customer: CustomerRecord
-): CustomerUpdatableFields {
-  return {
-    company_name: input.company_name ?? customer.company_name ?? null,
-    first_name: normalizeReactivatedCustomerFirstName(
-      input.first_name ?? customer.first_name
-    ),
-    last_name: input.last_name ?? customer.last_name ?? null,
-    metadata: mergeCustomerMetadata(customer.metadata, input.metadata),
-    phone: input.phone ?? customer.phone ?? null,
-  }
-}
+  customer: CustomerRecord,
+): CustomerUpdatableFields => ({
+  company_name: input.company_name ?? customer.company_name ?? null,
+  first_name: normalizeReactivatedCustomerFirstName(
+    input.first_name ?? customer.first_name,
+  ),
+  last_name: input.last_name ?? customer.last_name ?? null,
+  metadata: mergeCustomerMetadata(customer.metadata, input.metadata),
+  phone: input.phone ?? customer.phone ?? null,
+})

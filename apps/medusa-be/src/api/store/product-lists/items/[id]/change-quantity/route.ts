@@ -2,24 +2,23 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+
 import { changeProductListItemQuantityWorkflow } from "../../../../../../workflows/product-list/workflows/change-product-list-item-quantity"
 import {
   toProductListItemResponse,
   withProductListItemSelections,
 } from "../../../utils"
-import {
-  type StoreChangeProductListItemQuantitySchemaType,
-  StoreProductListItemParamsSchema,
-} from "../../../validators"
+import { StoreProductListItemParamsSchema } from "../../../validators"
+import type { StoreChangeProductListItemQuantitySchemaType } from "../../../validators"
 
-export async function POST(
+const post = async (
   req: AuthenticatedMedusaRequest<StoreChangeProductListItemQuantitySchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { id: itemId } = StoreProductListItemParamsSchema.parse(req.params)
 
   const { result: item } = await changeProductListItemQuantityWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: {
       customer_id: req.auth_context.actor_id,
@@ -36,3 +35,5 @@ export async function POST(
     item: toProductListItemResponse(itemWithSelection ?? item),
   })
 }
+
+export { post as POST }

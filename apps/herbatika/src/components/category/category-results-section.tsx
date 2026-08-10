@@ -1,66 +1,67 @@
-import type { HttpTypes } from "@medusajs/types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
-import {
-  HerbatikaProductGrid,
-  type HerbatikaProductGridLayout,
-} from "@/components/product/herbatika-product-grid"
+
+import NextLink from "@/components/app-link"
+import { HerbatikaProductGrid } from "@/components/product/herbatika-product-grid"
+import type { HerbatikaProductGridLayout } from "@/components/product/herbatika-product-grid"
 import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton"
 import type { ProductSortValue } from "@/lib/storefront/plp-query-state"
 import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-builder"
+
 import { CategorySortTabs } from "./category-sort-tabs"
 
-type CategoryResultsSectionProps = {
+interface CategoryResultsSectionProps {
   activeSort: ProductSortValue
   categoriesError: unknown
   catalogError: unknown
   isEmpty: boolean
   isLoading: boolean
+  isRefreshing?: boolean
+  showCategoryNotFound: boolean
   isProductAdding: (productId: string) => boolean
   emptyMessage?: string
-  onAddToCart: (product: HttpTypes.StoreProduct) => Promise<void>
-  onProductHoverEnd: (product: HttpTypes.StoreProduct) => void
-  onProductHoverStart: (product: HttpTypes.StoreProduct) => void
+  onAddToCart: (product: MedusaCatalogProduct) => Promise<void>
+  onProductHoverEnd: (product: MedusaCatalogProduct) => void
+  onProductHoverStart: (product: MedusaCatalogProduct) => void
   onSortChange: (value: ProductSortValue) => void
   page: number
   pageSize: number
-  products: HttpTypes.StoreProduct[]
+  products: MedusaCatalogProduct[]
   layout?: HerbatikaProductGridLayout
   loadingSkeleton?: ReactNode
-  showCategoryNotFound: boolean
   totalCount: number
   totalPages: number
   totalProducts: number
-  isRefreshing?: boolean
 }
 
-export function CategoryResultsSection({
-  activeSort,
-  categoriesError,
-  catalogError,
-  isEmpty,
-  isLoading,
-  isProductAdding,
-  emptyMessage,
-  onAddToCart,
-  onProductHoverEnd,
-  onProductHoverStart,
-  onSortChange,
-  page,
-  pageSize,
-  products,
-  layout = "catalog",
-  loadingSkeleton,
-  showCategoryNotFound,
-  totalCount,
-  totalPages,
-  totalProducts,
-  isRefreshing = false,
-}: CategoryResultsSectionProps) {
+export const CategoryResultsSection = (props: CategoryResultsSectionProps) => {
+  const {
+    activeSort,
+    categoriesError,
+    catalogError,
+    emptyMessage,
+    isEmpty,
+    isLoading,
+    isProductAdding,
+    isRefreshing = false,
+    layout = "catalog",
+    loadingSkeleton,
+    onAddToCart,
+    onProductHoverEnd,
+    onProductHoverStart,
+    onSortChange,
+    page,
+    pageSize,
+    products,
+    showCategoryNotFound,
+    totalCount,
+    totalPages,
+    totalProducts,
+  } = props
   const t = useTranslations("catalog")
   const getPageUrl = usePaginationUrlBuilder()
   const resolvedEmptyMessage = emptyMessage ?? t("results.empty_category")
@@ -82,12 +83,12 @@ export function CategoryResultsSection({
         <Skeleton.Rectangle className="h-100 rounded-full" speed="fast" />
       ) : null}
 
-      {categoriesError ? (
+      {categoriesError !== null && categoriesError !== undefined ? (
         <StatusText showIcon status="error">
           {t("errors.categories_load_failed")}
         </StatusText>
       ) : null}
-      {catalogError ? (
+      {catalogError !== null && catalogError !== undefined ? (
         <StatusText showIcon status="error">
           {t("errors.products_load_failed")}
         </StatusText>
@@ -127,7 +128,13 @@ export function CategoryResultsSection({
           pageSize={pageSize}
           size="sm"
           translations={{
-            itemLabel: ({ page: itemPage, totalPages: itemTotalPages }) =>
+            itemLabel: ({
+              page: itemPage,
+              totalPages: itemTotalPages,
+            }: {
+              page: number
+              totalPages: number
+            }) =>
               t("pagination.page_aria", {
                 page: itemPage,
                 totalPages: itemTotalPages,

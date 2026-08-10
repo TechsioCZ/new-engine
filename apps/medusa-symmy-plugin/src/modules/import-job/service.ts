@@ -1,14 +1,17 @@
-import { MedusaService } from "@medusajs/framework/utils"
+import { MedusaError, MedusaService } from "@medusajs/framework/utils"
+
+import { JsonMetadataSchema } from "../../lib/json-metadata"
+import type { JsonMetadata } from "../../lib/json-metadata"
 import SymmyImportJob from "./models/symmy-import-job"
 
 export type SymmyImportJobStatus = "queued" | "running" | "completed" | "failed"
 
-export type SymmyImportJobDTO = {
+export interface SymmyImportJobDTO {
   id: string
   type: string
   status: SymmyImportJobStatus
-  payload: Record<string, unknown>
-  result: Record<string, unknown> | null
+  payload: JsonMetadata
+  result: JsonMetadata | null
   error: string | null
   total: number
   processed: number
@@ -21,18 +24,58 @@ export type SymmyImportJobDTO = {
   updated_at?: Date | string
 }
 
-type CreateImportJobInput = {
+interface CreateImportJobInput {
   type: string
-  payload: Record<string, unknown>
+  payload: JsonMetadata
   total: number
   idempotencyKey?: string | null
 }
 
-type CompleteImportJobInput = {
-  result: Record<string, unknown>
+interface CompleteImportJobInput {
+  result: JsonMetadata
   processed: number
   failed: number
 }
+
+const parseJobStatus = (value: string): SymmyImportJobStatus => {
+  if (
+    value === "queued" ||
+    value === "running" ||
+    value === "completed" ||
+    value === "failed"
+  ) {
+    return value
+  }
+  throw new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
+    `Invalid import job status: ${value}`,
+  )
+}
+
+const parseJobJsonRecord = (
+  value: unknown,
+  field: "payload" | "result",
+): JsonMetadata => {
+  const parsed = JsonMetadataSchema.safeParse(value)
+  if (parsed.success) {
+    return parsed.data
+  }
+  throw new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
+    `Invalid import job ${field}`,
+  )
+}
+
+const normalizeJob = <
+  T extends { payload: unknown; result: unknown; status: string },
+>(
+  job: T,
+) => ({
+  ...job,
+  payload: parseJobJsonRecord(job.payload, "payload"),
+  result: job.result === null ? null : parseJobJsonRecord(job.result, "result"),
+  status: parseJobStatus(job.status),
+})
 
 const toErrorMessage = (error: unknown) =>
   error instanceof Error ? error.message : String(error)
@@ -42,21 +85,26 @@ export class SymmyImportJobModuleService extends MedusaService({
 }) {
   private async findByIdempotencyKey(
     type: string,
-    idempotencyKey: string | null | undefined
+    idempotencyKey: string | null | undefined,
   ): Promise<SymmyImportJobDTO | null> {
-    if (!idempotencyKey) {
+    if (
+      idempotencyKey === null ||
+      idempotencyKey === undefined ||
+      idempotencyKey.length === 0
+    ) {
       return null
     }
 
     const existing = await this.listSymmyImportJobs(
       {
-        type,
         idempotency_key: idempotencyKey,
+        type,
       },
-      { take: 1 }
+      { take: 1 },
     )
 
-    return (existing[0] as unknown as SymmyImportJobDTO | undefined) ?? null
+    const [job] = existing
+    return job === undefined ? null : normalizeJob(job)
   }
 
   async createQueuedJob({
@@ -66,27 +114,27 @@ export class SymmyImportJobModuleService extends MedusaService({
     idempotencyKey,
   }: CreateImportJobInput): Promise<SymmyImportJobDTO> {
     const existing = await this.findByIdempotencyKey(type, idempotencyKey)
-    if (existing) {
+    if (existing !== null) {
       return existing
     }
 
     try {
       const created = await this.createSymmyImportJobs({
-        type,
-        status: "queued",
-        payload,
-        result: null,
-        error: null,
-        total,
-        processed: 0,
-        failed: 0,
         attempts: 0,
-        idempotency_key: idempotencyKey ?? null,
-        started_at: null,
+        error: null,
+        failed: 0,
         finished_at: null,
+        idempotency_key: idempotencyKey ?? null,
+        payload,
+        processed: 0,
+        result: null,
+        started_at: null,
+        status: "queued",
+        total,
+        type,
       })
 
-      return created as unknown as SymmyImportJobDTO
+      return normalizeJob(created)
     } catch (error) {
       const racedJob = await this.findByIdempotencyKey(type, idempotencyKey)
       if (racedJob && toErrorMessage(error).includes("unique")) {
@@ -98,53 +146,53 @@ export class SymmyImportJobModuleService extends MedusaService({
 
   async retrieveJob(id: string): Promise<SymmyImportJobDTO> {
     const job = await this.retrieveSymmyImportJob(id)
-    return job as unknown as SymmyImportJobDTO
+    return normalizeJob(job)
   }
 
   async markRunning(id: string): Promise<SymmyImportJobDTO> {
     const job = await this.retrieveJob(id)
     const updated = await this.updateSymmyImportJobs({
-      id,
-      status: "running",
       attempts: (job.attempts ?? 0) + 1,
-      started_at: new Date(),
-      finished_at: null,
       error: null,
+      finished_at: null,
+      id,
+      started_at: new Date(),
+      status: "running",
     })
 
-    return updated as unknown as SymmyImportJobDTO
+    return normalizeJob(updated)
   }
 
   async markCompleted(
     id: string,
-    { result, processed, failed }: CompleteImportJobInput
+    { result, processed, failed }: CompleteImportJobInput,
   ): Promise<SymmyImportJobDTO> {
     const updated = await this.updateSymmyImportJobs({
-      id,
-      status: "completed",
-      result,
       error: null,
-      processed,
       failed,
       finished_at: new Date(),
+      id,
+      processed,
+      result,
+      status: "completed",
     })
 
-    return updated as unknown as SymmyImportJobDTO
+    return normalizeJob(updated)
   }
 
   async markFailed(
     id: string,
     error: string,
-    result?: Record<string, unknown>
+    result?: JsonMetadata,
   ): Promise<SymmyImportJobDTO> {
     const updated = await this.updateSymmyImportJobs({
-      id,
-      status: "failed",
-      result: result ?? null,
       error,
       finished_at: new Date(),
+      id,
+      result: result ?? null,
+      status: "failed",
     })
 
-    return updated as unknown as SymmyImportJobDTO
+    return normalizeJob(updated)
   }
 }

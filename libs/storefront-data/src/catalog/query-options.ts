@@ -1,8 +1,5 @@
-import {
-  type CacheConfig,
-  type CacheStrategy,
-  createCacheConfig,
-} from "../shared/cache-config"
+import { createCacheConfig } from "../shared/cache-config"
+import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import type {
   QueryFactoryOptions,
   ReadQueryOptions,
@@ -19,12 +16,12 @@ import type {
   RegionInfo,
 } from "./types"
 
-export type CreateCatalogQueryOptionsFactoryConfig<
+export interface CreateCatalogQueryOptionsFactoryConfig<
   TProduct,
   TListInput extends CatalogListInputBase,
   TListParams,
   TFacets,
-> = {
+> {
   service: CatalogService<TProduct, TListParams, TFacets>
   buildListParams?: (input: TListInput) => TListParams
   queryKeys?: CatalogQueryKeys<TListParams>
@@ -32,24 +29,24 @@ export type CreateCatalogQueryOptionsFactoryConfig<
   cacheConfig?: CacheConfig
 }
 
-export type CatalogQueryOptionsFactory<
+export interface CatalogQueryOptionsFactory<
   TProduct,
   TListInput extends CatalogListInputBase,
   TFacets,
-> = {
+> {
   getListQueryOptions: (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<CatalogListResponse<TProduct, TFacets>>
       region?: RegionInfo | null
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<CatalogListResponse<TProduct, TFacets>>
 }
 
-export function createCatalogQueryOptionsFactory<
+export const createCatalogQueryOptionsFactory = <
   TProduct,
-  TListInput extends CatalogListInputBase,
+  TListInput extends CatalogListInputBase & TListParams,
   TListParams,
   TFacets = CatalogFacets,
 >({
@@ -63,33 +60,29 @@ export function createCatalogQueryOptionsFactory<
   TListInput,
   TListParams,
   TFacets
->): CatalogQueryOptionsFactory<TProduct, TListInput, TFacets> {
+>): CatalogQueryOptionsFactory<TProduct, TListInput, TFacets> => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ?? createCatalogQueryKeys<TListParams>(queryKeyNamespace)
-  const buildList =
-    buildListParams ?? ((input: TListInput) => input as unknown as TListParams)
+  const buildList = buildListParams ?? ((input: TListInput) => input)
 
   return {
     getListQueryOptions: (
       input,
-      options
+      options,
     ): QueryFactoryOptions<CatalogListResponse<TProduct, TFacets>> => {
-      const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-        enabled?: boolean
-      }
-      const resolvedInput = applyRegion(
-        listInput as TListInput,
-        options?.region ?? undefined
-      )
+      const queryInput = { ...input }
+      delete queryInput.enabled
+      const resolvedInput = applyRegion(queryInput, options?.region)
       const listParams = buildList(resolvedInput)
       const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
 
       return {
+        queryFn: async ({ signal }) =>
+          await service.getCatalogProducts(listParams, signal),
         queryKey: resolvedQueryKeys.list(listParams),
-        queryFn: ({ signal }) => service.getCatalogProducts(listParams, signal),
         ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
+        ...options?.queryOptions,
       }
     },
   }

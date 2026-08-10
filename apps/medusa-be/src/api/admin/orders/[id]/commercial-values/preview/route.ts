@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { calculateCommercialValuesPreview } from "../../../../../../utils/order-commercial-values"
 import {
   fetchEditableCommercialValuesOrder,
@@ -9,24 +10,26 @@ import {
 } from "../utils"
 import type { PostAdminOrderCommercialValuesPreviewSchemaType } from "../validators"
 
-export async function POST(
+const post = async (
   req: MedusaRequest<PostAdminOrderCommercialValuesPreviewSchemaType>,
-  res: MedusaResponse
-) {
-  const id = requireCommercialValuesOrderId(req.params.id)
+  res: MedusaResponse,
+) => {
+  const id = requireCommercialValuesOrderId(req.params["id"])
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const order = await fetchEditableCommercialValuesOrder(
     req.scope,
     query,
     id,
-    req.validatedBody.expected_order_version
+    req.validatedBody.expected_order_version,
   )
 
   const calculationInput = toCommercialValuesCalculationInput(
     order,
-    req.validatedBody
+    req.validatedBody,
   )
   const preview = calculateCommercialValuesPreview(calculationInput)
 
   res.json({ preview })
 }
+
+export { post as POST }

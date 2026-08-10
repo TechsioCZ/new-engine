@@ -11,9 +11,9 @@ export const StoreAddLineItemsBulk = z
   .object({
     line_items: z.array(
       z.object({
-        variant_id: z.string(),
         quantity: z.number(),
-      })
+        variant_id: z.string(),
+      }),
     ),
   })
   .strict()

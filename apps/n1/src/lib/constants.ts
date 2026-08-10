@@ -5,56 +5,56 @@ import {
 } from "@/data/static/categories"
 
 const ROOT_CATEGORIES = rootCategories.map((cat) => ({
-  id: cat.id,
   handle: cat.handle,
+  id: cat.id,
 }))
 
 const CATEGORIES_LEAFS_IDS = ROOT_CATEGORIES.map((cat) => {
-  const children = leafCategories
-    .filter((leaf) => leaf.root_category_id === cat.id)
-    .map((leaf) => leaf.id)
+  const children = leafCategories.flatMap((leaf) =>
+    leaf.root_category_id === cat.id ? [leaf.id] : [],
+  )
   return {
-    handle: cat.handle,
     children,
+    handle: cat.handle,
   }
 })
 
 export const CATEGORY_MAP_BY_ID = Object.fromEntries(
-  allCategories.map((cat) => [cat.id, cat])
+  allCategories.map((cat) => [cat.id, cat]),
 )
 
 // Alternative: All category handles from allCategories
 export const VALID_CATEGORY_ROUTES = allCategories.map((cat) => cat.handle)
 
 export const CATEGORY_MAP: Record<string, string[]> = {
-  panske:
-    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "panske")?.children || [],
-  damske:
-    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "damske")?.children || [],
-  detske:
-    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "detske")?.children || [],
-  "obleceni-category-347":
-    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "obleceni-category-347")
-      ?.children || [],
   "cyklo-category-378":
     CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "cyklo-category-378")
-      ?.children || [],
+      ?.children ?? [],
+  damske:
+    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "damske")?.children ?? [],
+  detske:
+    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "detske")?.children ?? [],
   "moto-category-424":
     CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "moto-category-424")
-      ?.children || [],
-  "snb-skate-category-448":
-    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "snb-skate-category-448")
-      ?.children || [],
+      ?.children ?? [],
+  "obleceni-category-347":
+    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "obleceni-category-347")
+      ?.children ?? [],
+  panske:
+    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "panske")?.children ?? [],
   "ski-category-466":
     CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "ski-category-466")
-      ?.children || [],
+      ?.children ?? [],
+  "snb-skate-category-448":
+    CATEGORIES_LEAFS_IDS.find((cat) => cat.handle === "snb-skate-category-448")
+      ?.children ?? [],
 }
 
 // Helper: recursively find all leaf category IDs under a given category
 const findAllLeafIds = (categoryId: string): string[] => {
   // Find all direct children of this category (from ALL categories)
   const directChildren = allCategories.filter(
-    (cat) => cat.parent_category_id === categoryId
+    (cat) => cat.parent_category_id === categoryId,
   )
 
   if (directChildren.length === 0) {
@@ -69,7 +69,7 @@ const findAllLeafIds = (categoryId: string): string[] => {
 
 // Alternative implementation using allCategories (includes ALL categories)
 export const ALL_CATEGORIES_MAP: Record<string, string[]> = Object.fromEntries(
-  allCategories.map((cat) => [cat.handle, findAllLeafIds(cat.id)])
+  allCategories.map((cat) => [cat.handle, findAllLeafIds(cat.id)]),
 )
 
 export const PRODUCT_DETAILED_FIELDS =
@@ -84,7 +84,6 @@ export const PRODUCT_DETAILED_FIELDS =
 export const PRODUCT_LIST_FIELDS =
   "id,title,handle,thumbnail," +
   "variants.title," +
-  "variants.manage_inventory," +
   "variants.inventory_quantity," +
   "variants.calculated_price,"
 
@@ -94,7 +93,8 @@ export const PRODUCT_LIMIT = 24 as const
  * Tax rate for Czech Republic (DPH)
  * Used for price calculations and display
  */
-export const TAX_RATE = 0.21 // 21% VAT
+// 21% VAT
+export const TAX_RATE = 0.21
 
 /**
  * Default country code for addresses and regions
@@ -106,10 +106,10 @@ export const DEFAULT_COUNTRY_CODE = "cz"
  */
 export const COUNTRY_OPTIONS = [
   {
-    value: "cz",
-    label: "Česká republika",
     displayValue: "Česká republika",
+    label: "Česká republika",
     phonePrefix: "+420",
+    value: "cz",
   },
   // { value: 'sk', label: 'Slovensko', displayValue: 'Slovensko' },
 ]
@@ -118,12 +118,12 @@ export const COUNTRY_OPTIONS = [
  * Cache times (in milliseconds) for React Query
  */
 export const CACHE_TIMES = {
-  /** Shipping options staleTime - 5 minutes */
-  SHIPPING_OPTIONS_STALE: 5 * 60 * 1000,
-  /** Shipping options gcTime - 30 minutes */
-  SHIPPING_OPTIONS_GC: 30 * 60 * 1000,
   /** Payment providers staleTime - 5 minutes */
   PAYMENT_PROVIDERS_STALE: 5 * 60 * 1000,
+  /** Shipping options gcTime - 30 minutes */
+  SHIPPING_OPTIONS_GC: 30 * 60 * 1000,
+  /** Shipping options staleTime - 5 minutes */
+  SHIPPING_OPTIONS_STALE: 5 * 60 * 1000,
 } as const
 
 /**

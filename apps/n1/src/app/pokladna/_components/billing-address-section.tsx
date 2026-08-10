@@ -7,6 +7,7 @@ import { addressValidators, emailValidator } from "@/lib/form-validators"
 import type { AddressFormData } from "@/utils/address-validation"
 import { formatPhoneNumber } from "@/utils/format/format-phone-number"
 import { formatPostalCode } from "@/utils/format/format-postal-code"
+
 import {
   useCheckoutContext,
   useCheckoutForm,
@@ -14,12 +15,12 @@ import {
 import { AddressPicker } from "./address-picker"
 import { SaveAddressPanel } from "./save-address-panel"
 
-export function BillingAddressSection() {
+export const BillingAddressSection = () => {
   const { customer, selectedAddressId, setSelectedAddressId, isCompleting } =
     useCheckoutContext()
   const form = useCheckoutForm()
 
-  const addresses = customer?.addresses || []
+  const addresses = customer?.addresses ?? []
 
   const handleAddressSelect = (address: AddressFormData, id: string) => {
     form.setFieldValue("billingAddress", address)

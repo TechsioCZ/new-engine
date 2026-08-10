@@ -3,6 +3,7 @@ import {
   validateAndTransformQuery,
 } from "@medusajs/framework"
 import type { MiddlewareRoute } from "@medusajs/medusa"
+
 import {
   adminApprovalSettingsQueryConfig,
   adminCompanyQueryConfig,
@@ -23,131 +24,131 @@ import {
 export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
   /* Companies Middlewares */
   {
-    method: ["GET"],
     matcher: "/admin/companies",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(
         AdminGetCompanyParams,
-        adminCompanyQueryConfig.list
+        adminCompanyQueryConfig.list,
       ),
     ],
   },
   {
-    method: ["POST"],
     matcher: "/admin/companies",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminCreateCompany),
       validateAndTransformQuery(
         AdminGetCompanyParams,
-        adminCompanyQueryConfig.retrieve
+        adminCompanyQueryConfig.retrieve,
       ),
     ],
   },
   {
-    method: ["GET"],
     matcher: "/admin/companies/:id",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(
         AdminGetCompanyParams,
-        adminCompanyQueryConfig.retrieve
+        adminCompanyQueryConfig.retrieve,
       ),
     ],
   },
   {
-    method: ["POST"],
     matcher: "/admin/companies/:id",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminUpdateCompany),
       validateAndTransformQuery(
         AdminGetCompanyParams,
-        adminCompanyQueryConfig.retrieve
+        adminCompanyQueryConfig.retrieve,
       ),
     ],
   },
   {
-    method: ["POST"],
     matcher: "/admin/companies/:id/customer-group",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminAddCompanyToCustomerGroup),
       validateAndTransformQuery(
         AdminGetCompanyParams,
-        adminCompanyQueryConfig.retrieve
+        adminCompanyQueryConfig.retrieve,
       ),
     ],
   },
   {
-    method: ["POST"],
     matcher: "/admin/companies/:id/restore",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformQuery(
         AdminGetCompanyParams,
-        adminCompanyQueryConfig.retrieve
+        adminCompanyQueryConfig.retrieve,
       ),
     ],
   },
 
   /* Employees Middlewares */
   {
-    method: ["GET"],
     matcher: "/admin/companies/:id/employees",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(
         AdminGetEmployeeParams,
-        adminEmployeeQueryConfig.list
+        adminEmployeeQueryConfig.list,
       ),
     ],
   },
   {
-    method: ["POST"],
     matcher: "/admin/companies/:id/employees",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminCreateEmployee),
       validateAndTransformQuery(
         AdminGetEmployeeParams,
-        adminEmployeeQueryConfig.retrieve
+        adminEmployeeQueryConfig.retrieve,
       ),
     ],
   },
   {
-    method: ["GET"],
     matcher: "/admin/companies/:id/employees/:employee_id",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(
         AdminGetEmployeeParams,
-        adminEmployeeQueryConfig.retrieve
+        adminEmployeeQueryConfig.retrieve,
       ),
     ],
   },
   {
-    method: ["POST"],
     matcher: "/admin/companies/:id/employees/:employee_id",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminUpdateEmployee),
       validateAndTransformQuery(
         AdminGetEmployeeParams,
-        adminEmployeeQueryConfig.retrieve
+        adminEmployeeQueryConfig.retrieve,
       ),
     ],
   },
   /* Approval Settings Middlewares */
   {
-    method: ["GET"],
     matcher: "/admin/companies/:id/approval-settings",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(
         AdminGetApprovalSettingsParams,
-        adminApprovalSettingsQueryConfig.list
+        adminApprovalSettingsQueryConfig.list,
       ),
     ],
   },
   {
-    method: ["POST"],
     matcher: "/admin/companies/:id/approval-settings",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminUpdateApprovalSettings),
       validateAndTransformQuery(
         AdminGetApprovalSettingsParams,
-        adminApprovalSettingsQueryConfig.retrieve
+        adminApprovalSettingsQueryConfig.retrieve,
       ),
     ],
   },

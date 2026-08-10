@@ -1,15 +1,23 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+import { getRecordValue, isRecord, omitUndefined } from "@techsio/std/object"
+
 import { toComparableTimestamp } from "../shared/date-utils"
 import { isAuthError } from "../shared/medusa-errors"
+import { InvalidMedusaAccountDeactivationResponseError } from "./account-deactivation-errors"
+import type { MedusaAccountDeactivationOperation } from "./account-deactivation-errors"
 import type { AuthService } from "./types"
 
-export type MedusaAuthCredentials = {
+export { InvalidMedusaAccountDeactivationResponseError } from "./account-deactivation-errors"
+
+const MULTI_STEP_AUTH_UNSUPPORTED = "Multi-step authentication not supported"
+
+export interface MedusaAuthCredentials {
   email: string
   password: string
 }
 
-export type MedusaRegisterData = {
+export interface MedusaRegisterData {
   email: string
   password: string
   first_name?: string
@@ -22,19 +30,81 @@ export type MedusaUpdateCustomerData = Partial<{
   phone: string
 }>
 
-export type MedusaRequestCustomerAccountDeactivationResult = {
+export interface MedusaRequestCustomerAccountDeactivationResult {
   customer_id: string
   sent: boolean
 }
 
-export type MedusaConfirmCustomerAccountDeactivationInput = {
+export interface MedusaConfirmCustomerAccountDeactivationInput {
   token: string
 }
 
-export type MedusaDeactivateCustomerAccountResult = {
+export interface MedusaDeactivateCustomerAccountResult {
   auth_identity_deleted: boolean
   customer_id: string
   deleted: boolean
+}
+
+const readCustomerId = (
+  value: object,
+  operation: MedusaAccountDeactivationOperation,
+): string => {
+  const customerId = getRecordValue(value, "customer_id")
+  if (typeof customerId !== "string" || customerId.trim().length === 0) {
+    throw new InvalidMedusaAccountDeactivationResponseError(
+      operation,
+      "customer_id",
+    )
+  }
+  return customerId
+}
+
+const parseDeactivationRequestResponse = (
+  value: unknown,
+): MedusaRequestCustomerAccountDeactivationResult => {
+  if (!isRecord(value)) {
+    throw new InvalidMedusaAccountDeactivationResponseError(
+      "request",
+      "response body",
+    )
+  }
+  const customerId = readCustomerId(value, "request")
+  const sent = getRecordValue(value, "sent")
+  if (typeof sent !== "boolean") {
+    throw new InvalidMedusaAccountDeactivationResponseError("request", "sent")
+  }
+  return { customer_id: customerId, sent }
+}
+
+const parseDeactivationConfirmationResponse = (
+  value: unknown,
+): MedusaDeactivateCustomerAccountResult => {
+  if (!isRecord(value)) {
+    throw new InvalidMedusaAccountDeactivationResponseError(
+      "confirm",
+      "response body",
+    )
+  }
+  const customerId = readCustomerId(value, "confirm")
+  const authIdentityDeleted = getRecordValue(value, "auth_identity_deleted")
+  const deleted = getRecordValue(value, "deleted")
+  if (typeof authIdentityDeleted !== "boolean") {
+    throw new InvalidMedusaAccountDeactivationResponseError(
+      "confirm",
+      "auth_identity_deleted",
+    )
+  }
+  if (typeof deleted !== "boolean") {
+    throw new InvalidMedusaAccountDeactivationResponseError(
+      "confirm",
+      "deleted",
+    )
+  }
+  return {
+    auth_identity_deleted: authIdentityDeleted,
+    customer_id: customerId,
+    deleted,
+  }
 }
 
 export class MedusaRegistrationSignInError extends Error {
@@ -44,7 +114,7 @@ export class MedusaRegistrationSignInError extends Error {
 
   constructor(email: string, reason: unknown) {
     super(
-      "Customer account was created, but automatic sign-in failed. Please sign in again."
+      "Customer account was created, but automatic sign-in failed. Please sign in again.",
     )
     this.name = "MedusaRegistrationSignInError"
     this.email = email
@@ -57,13 +127,13 @@ export type MedusaLogoutErrorContext =
   | "register-cleanup"
   | "register-signin-recovery"
 
-export type MedusaAuthServiceConfig = {
+export interface MedusaAuthServiceConfig {
   onLogoutError?: (error: unknown, context: MedusaLogoutErrorContext) => void
 }
 
 const defaultReportLogoutError = (
   error: unknown,
-  context: MedusaLogoutErrorContext
+  context: MedusaLogoutErrorContext,
 ) => {
   let message =
     "[storefront-data/auth] Failed to cleanup auth session after register error."
@@ -101,9 +171,9 @@ const defaultReportLogoutError = (
  * })
  * ```
  */
-export function createMedusaAuthService(
+export const createMedusaAuthService = (
   sdk: Medusa,
-  config?: MedusaAuthServiceConfig
+  config?: MedusaAuthServiceConfig,
 ): AuthService<
   HttpTypes.StoreCustomer,
   MedusaAuthCredentials,
@@ -115,12 +185,12 @@ export function createMedusaAuthService(
   MedusaRequestCustomerAccountDeactivationResult,
   MedusaConfirmCustomerAccountDeactivationInput,
   MedusaDeactivateCustomerAccountResult
-> {
+> => {
   const reportLogoutError = (
     error: unknown,
-    context: MedusaLogoutErrorContext
+    context: MedusaLogoutErrorContext,
   ) => {
-    if (config?.onLogoutError) {
+    if (config?.onLogoutError !== undefined) {
       try {
         config.onLogoutError(error, context)
         return
@@ -153,31 +223,22 @@ export function createMedusaAuthService(
     })
 
     if (typeof sessionToken !== "string") {
-      throw new Error("Multi-step authentication not supported")
+      throw new TypeError(MULTI_STEP_AUTH_UNSUPPORTED)
     }
 
     return sessionToken
   }
 
   return {
-    confirmAccountDeactivation(input) {
-      return sdk.client.fetch<MedusaDeactivateCustomerAccountResult>(
+    async confirmAccountDeactivation(input) {
+      const response: unknown = await sdk.client.fetch<unknown>(
         "/store/customers/deactivate/confirm",
         {
+          body: { token: input.token },
           method: "POST",
-          body: input,
-        }
+        },
       )
-    },
-
-    requestAccountDeactivation() {
-      return sdk.client.fetch<MedusaRequestCustomerAccountDeactivationResult>(
-        "/store/customers/me/deactivate",
-        {
-          method: "POST",
-          body: { confirm: true },
-        }
-      )
+      return parseDeactivationConfirmationResponse(response)
     },
 
     async getCustomer(signal?: AbortSignal) {
@@ -185,19 +246,24 @@ export function createMedusaAuthService(
         const { customer } =
           await sdk.client.fetch<HttpTypes.StoreCustomerResponse>(
             "/store/customers/me",
-            { signal }
+            { signal: signal ?? null },
           )
-        if (!customer) {
-          return null
-        }
-
-        // Sort addresses by creation date (oldest first)
-        if (customer.addresses?.length) {
-          customer.addresses = [...customer.addresses].sort(
-            (a, b) =>
-              toComparableTimestamp(a.created_at) -
-              toComparableTimestamp(b.created_at)
-          )
+        // Sort addresses by creation date (oldest first) without mutating the SDK array.
+        if (customer.addresses !== undefined && customer.addresses.length > 0) {
+          const sortedAddresses: HttpTypes.StoreCustomerAddress[] = []
+          for (const address of customer.addresses) {
+            const insertionIndex = sortedAddresses.findIndex(
+              (candidate) =>
+                toComparableTimestamp(candidate.created_at) >
+                toComparableTimestamp(address.created_at),
+            )
+            if (insertionIndex === -1) {
+              sortedAddresses.push(address)
+            } else {
+              sortedAddresses.splice(insertionIndex, 0, address)
+            }
+          }
+          customer.addresses = sortedAddresses
         }
         return customer
       } catch (error) {
@@ -214,7 +280,7 @@ export function createMedusaAuthService(
 
       // Handle OAuth redirects
       if (typeof token !== "string") {
-        throw new Error("Multi-step authentication not supported")
+        throw new TypeError(MULTI_STEP_AUTH_UNSUPPORTED)
       }
 
       return token
@@ -240,7 +306,7 @@ export function createMedusaAuthService(
         {
           email: data.email,
           password: data.password,
-        }
+        },
       )
       let customerCreated = false
 
@@ -249,7 +315,7 @@ export function createMedusaAuthService(
         // This guard lives inside the cleanup scope so we always attempt logout
         // when register created an auth identity but we cannot continue.
         if (typeof registrationToken !== "string") {
-          throw new Error("Multi-step authentication not supported")
+          throw new TypeError(MULTI_STEP_AUTH_UNSUPPORTED)
         }
 
         // Step 2: Login to establish the standard customer auth state before
@@ -260,15 +326,17 @@ export function createMedusaAuthService(
           password: data.password,
         })
         if (typeof loginToken !== "string") {
-          throw new Error("Multi-step authentication not supported")
+          throw new TypeError(MULTI_STEP_AUTH_UNSUPPORTED)
         }
 
         // Step 3: CREATE customer profile (not update!)
-        await sdk.store.customer.create({
-          email: data.email,
-          first_name: data.first_name,
-          last_name: data.last_name,
-        })
+        await sdk.store.customer.create(
+          omitUndefined({
+            email: data.email,
+            first_name: data.first_name,
+            last_name: data.last_name,
+          }),
+        )
         customerCreated = true
 
         // Step 4: Refresh auth state after customer creation so the JWT/session
@@ -276,7 +344,7 @@ export function createMedusaAuthService(
         // does not keep a bearer token around, so we forward the login token
         // explicitly to the refresh endpoint.
         return await refreshRegisterSession(loginToken)
-      } catch (err) {
+      } catch (error) {
         const logoutContext: MedusaLogoutErrorContext = customerCreated
           ? "register-signin-recovery"
           : "register-cleanup"
@@ -284,11 +352,22 @@ export function createMedusaAuthService(
         await cleanupRegisterSession(logoutContext)
 
         if (customerCreated) {
-          throw new MedusaRegistrationSignInError(data.email, err)
+          throw new MedusaRegistrationSignInError(data.email, error)
         }
 
-        throw err
+        throw error
       }
+    },
+
+    async requestAccountDeactivation() {
+      const response: unknown = await sdk.client.fetch<unknown>(
+        "/store/customers/me/deactivate",
+        {
+          body: { confirm: true },
+          method: "POST",
+        },
+      )
+      return parseDeactivationRequestResponse(response)
     },
 
     async updateCustomer(data) {

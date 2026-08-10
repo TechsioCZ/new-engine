@@ -2,46 +2,59 @@
 
 import { createPaginationGetPageUrl } from "@techsio/ui-kit/molecules/pagination"
 import { useRouter, useSearchParams } from "next/navigation"
+
 import type { FilterState } from "@/components/organisms/product-filters"
 import type { SortOption } from "@/utils/product-filters"
 
 export type ExtendedSortOption = SortOption | "relevance"
 
-export type PageRange = {
+export interface PageRange {
   start: number
   end: number
   isRange: boolean
 }
 
-function parsePageRange(pageParam: string): PageRange {
-  const parsedSinglePage = Number.parseInt(pageParam, 10)
-  const singlePage = Number.isNaN(parsedSinglePage)
-    ? 1
-    : Math.max(parsedSinglePage, 1)
+const parsePageRange = (pageParam: string): PageRange => {
+  const parsedSinglePage = Number(pageParam)
+  const singlePage =
+    Number.isInteger(parsedSinglePage) && parsedSinglePage >= 1
+      ? parsedSinglePage
+      : 1
 
   if (!pageParam.includes("-")) {
-    return { start: singlePage, end: singlePage, isRange: false }
+    return { end: singlePage, isRange: false, start: singlePage }
   }
 
-  const [start, end] = pageParam.split("-").map((p) => Number.parseInt(p, 10))
+  const [startPart, endPart] = pageParam.split("-")
+  const start = Number(startPart)
+  const end = Number(endPart)
 
-  if (
-    !(Number.isNaN(start) || Number.isNaN(end)) &&
-    start >= 1 &&
-    end >= 1 &&
-    start <= end
-  ) {
-    return { start, end, isRange: true }
+  if (!(Number.isInteger(start) && Number.isInteger(end))) {
+    return { end: singlePage, isRange: false, start: singlePage }
   }
 
-  return { start: singlePage, end: singlePage, isRange: false }
+  if (start >= 1 && end >= 1 && start <= end) {
+    return { end, isRange: true, start }
+  }
+
+  return { end: singlePage, isRange: false, start: singlePage }
 }
 
-function parseFilterSet(value: string | null) {
-  return new Set(value ? value.split(",").filter(Boolean) : [])
+const parseFilterSet = (value: string | null): Set<string> => {
+  if (value === null || value.length === 0) {
+    return new Set()
+  }
+
+  return new Set(value.split(",").filter((part) => part.length > 0))
 }
 
-export function useUrlFilters() {
+const isExtendedSortOption = (value: string): value is ExtendedSortOption =>
+  value === "name-asc" ||
+  value === "name-desc" ||
+  value === "newest" ||
+  value === "relevance"
+
+export const useUrlFilters = () => {
   const searchParams = useSearchParams()
   const router = useRouter()
   const currentSearchParams = searchParams.toString()
@@ -49,13 +62,13 @@ export function useUrlFilters() {
   const createParams = () => new URLSearchParams(currentSearchParams)
 
   // Parse page from URL (supports both single page and range syntax)
-  const pageParam = searchParams.get("page") || "1"
+  const pageParam = searchParams.get("page") ?? "1"
   const pageRange = parsePageRange(pageParam)
 
   // Legacy single page for backward compatibility
   const page = pageRange.start
 
-  const searchQuery = searchParams.get("q") || ""
+  const searchQuery = searchParams.get("q") ?? ""
 
   const categories = searchParams.get("categories")
   const sizes = searchParams.get("sizes")
@@ -67,14 +80,14 @@ export function useUrlFilters() {
   const setFilters = (newFilters: FilterState) => {
     const params = createParams()
 
-    const categoriesArray = Array.from(newFilters.categories)
+    const categoriesArray = [...newFilters.categories]
     if (categoriesArray.length > 0) {
       params.set("categories", categoriesArray.join(","))
     } else {
       params.delete("categories")
     }
 
-    const sizesArray = Array.from(newFilters.sizes)
+    const sizesArray = [...newFilters.sizes]
     if (sizesArray.length > 0) {
       params.set("sizes", sizesArray.join(","))
     } else {
@@ -87,7 +100,9 @@ export function useUrlFilters() {
     router.push(`?${params.toString()}`, { scroll: false })
   }
 
-  const sortBy = (searchParams.get("sort") || "newest") as ExtendedSortOption
+  const sortParam = searchParams.get("sort")
+  const sortBy =
+    sortParam !== null && isExtendedSortOption(sortParam) ? sortParam : "newest"
 
   const setSortBy = (sort: ExtendedSortOption) => {
     const params = createParams()
@@ -136,7 +151,7 @@ export function useUrlFilters() {
 
   const setSearchQuery = (query: string) => {
     const params = createParams()
-    if (query) {
+    if (query.length > 0) {
       params.set("q", query)
     } else {
       params.delete("q")
@@ -147,17 +162,17 @@ export function useUrlFilters() {
   }
 
   return {
-    filters,
-    setFilters,
-    sortBy,
-    setSortBy,
-    page,
-    setPage,
-    getPageUrl,
-    pageRange,
-    setPageRange,
     extendPageRange,
+    filters,
+    getPageUrl,
+    page,
+    pageRange,
     searchQuery,
+    setFilters,
+    setPage,
+    setPageRange,
     setSearchQuery,
+    setSortBy,
+    sortBy,
   }
 }

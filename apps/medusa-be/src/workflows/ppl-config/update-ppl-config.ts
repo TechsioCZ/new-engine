@@ -4,10 +4,9 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import {
-  PPL_CLIENT_MODULE,
-  type PplClientModuleService,
-} from "../../modules/ppl-client"
+
+import { PPL_CLIENT_MODULE } from "../../modules/ppl-client"
+import type { PplClientModuleService } from "../../modules/ppl-client"
 import type { UpdatePplConfigInput } from "../../modules/ppl-client/types"
 
 const updatePplConfigStep = createStep(
@@ -16,11 +15,11 @@ const updatePplConfigStep = createStep(
     const service = container.resolve<PplClientModuleService>(PPL_CLIENT_MODULE)
 
     return new StepResponse(await service.updateConfig(input))
-  }
+  },
 )
 
 export const updatePplConfigWorkflow = createWorkflow(
   "update-ppl-config",
   (input: UpdatePplConfigInput) =>
-    new WorkflowResponse(updatePplConfigStep(input))
+    new WorkflowResponse(updatePplConfigStep(input)),
 )

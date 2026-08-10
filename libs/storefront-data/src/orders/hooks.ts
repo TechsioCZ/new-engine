@@ -1,4 +1,5 @@
-import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
+import { createCacheConfig } from "../shared/cache-config"
+import type { CacheConfig } from "../shared/cache-config"
 import type {
   QueryFactoryOptions,
   ReadQueryOptions,
@@ -20,22 +21,20 @@ import type {
   UseSuspenseOrdersResult,
 } from "./types"
 
-type SuspenseListInput<TInput extends OrderListInputBase> = Omit<
-  TInput,
-  "enabled"
->
-type SuspenseDetailInput<TInput extends OrderDetailInputBase> = Omit<
-  TInput,
-  "enabled"
->
+type SuspenseListInput<TInput extends OrderListInputBase> = TInput & {
+  enabled?: never
+}
+type SuspenseDetailInput<TInput extends OrderDetailInputBase> = TInput & {
+  enabled?: never
+}
 
-export type CreateOrderHooksConfig<
+export interface CreateOrderHooksConfig<
   TOrder,
-  TListInput extends OrderListInputBase,
+  TListInput extends OrderListInputBase & TListParams,
   TListParams,
-  TDetailInput extends OrderDetailInputBase,
+  TDetailInput extends OrderDetailInputBase & TDetailParams,
   TDetailParams,
-> = {
+> {
   service: OrderService<TOrder, TListParams, TDetailParams>
   buildListParams?: (input: TListInput) => TListParams
   buildDetailParams?: (input: TDetailInput) => TDetailParams
@@ -45,48 +44,48 @@ export type CreateOrderHooksConfig<
   defaultPageSize?: number
 }
 
-export type OrderHooks<
+export interface OrderHooks<
   TOrder,
   TListInput extends OrderListInputBase,
   TDetailInput extends OrderDetailInputBase,
-> = {
+> {
   getListQueryOptions: (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
-    }
+    },
   ) => QueryFactoryOptions<OrderListResponse<TOrder>>
   getDetailQueryOptions: (
     input: TDetailInput,
-    options?: { queryOptions?: ReadQueryOptions<TOrder | null> }
+    options?: { queryOptions?: ReadQueryOptions<TOrder | null> },
   ) => QueryFactoryOptions<TOrder | null>
   useOrders: (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
-    }
+    },
   ) => UseOrdersResult<TOrder>
   useSuspenseOrders: (
     input: SuspenseListInput<TListInput>,
     options?: {
       queryOptions?: SuspenseQueryOptions<OrderListResponse<TOrder>>
-    }
+    },
   ) => UseSuspenseOrdersResult<TOrder>
   useOrder: (
     input: TDetailInput,
-    options?: { queryOptions?: ReadQueryOptions<TOrder | null> }
+    options?: { queryOptions?: ReadQueryOptions<TOrder | null> },
   ) => UseOrderResult<TOrder>
   useSuspenseOrder: (
     input: SuspenseDetailInput<TDetailInput>,
-    options?: { queryOptions?: SuspenseQueryOptions<TOrder | null> }
+    options?: { queryOptions?: SuspenseQueryOptions<TOrder | null> },
   ) => UseSuspenseOrderResult<TOrder>
 }
 
-export function createOrderHooks<
+export const createOrderHooks = <
   TOrder,
-  TListInput extends OrderListInputBase,
+  TListInput extends OrderListInputBase & TListParams,
   TListParams,
-  TDetailInput extends OrderDetailInputBase,
+  TDetailInput extends OrderDetailInputBase & TDetailParams,
   TDetailParams,
 >({
   service,
@@ -102,45 +101,44 @@ export function createOrderHooks<
   TListParams,
   TDetailInput,
   TDetailParams
->): OrderHooks<TOrder, TListInput, TDetailInput> {
+>): OrderHooks<TOrder, TListInput, TDetailInput> => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ??
     createOrderQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
   const buildList =
-    buildListParams ?? ((input: TListInput) => input as unknown as TListParams)
+    buildListParams ?? ((input: TListInput): TListParams => input)
   const buildDetail =
-    buildDetailParams ??
-    ((input: TDetailInput) => input as unknown as TDetailParams)
+    buildDetailParams ?? ((input: TDetailInput): TDetailParams => input)
   const { getListQueryOptions, getDetailQueryOptions } =
     createOrderQueryOptionsFactory({
-      service,
-      buildListParams: buildList,
       buildDetailParams: buildDetail,
-      queryKeys: resolvedQueryKeys,
+      buildListParams: buildList,
       cacheConfig: resolvedCacheConfig,
+      queryKeys: resolvedQueryKeys,
+      service,
     })
   const simpleHooks = createSimpleListDetailHooks({
-    buildList,
     buildDetail,
+    buildList,
+    defaultCacheStrategy: "userData",
+    defaultPageSize,
+    getDetail: service.getOrder,
+    getDetailQueryOptions,
+    getList: service.getOrders,
     getListItems: (data: OrderListResponse<TOrder> | undefined) =>
       data?.orders ?? [],
-    getList: service.getOrders,
-    getDetail: service.getOrder,
     getListQueryOptions,
-    getDetailQueryOptions,
     resolvedCacheConfig,
     resolvedQueryKeys,
-    defaultPageSize,
-    defaultCacheStrategy: "userData",
   })
 
-  function useOrders(
+  const useOrders = (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<OrderListResponse<TOrder>>
-    }
-  ): UseOrdersResult<TOrder> {
+    },
+  ): UseOrdersResult<TOrder> => {
     const { items, ...result } = simpleHooks.useList(input, options)
     return {
       ...result,
@@ -148,26 +146,23 @@ export function createOrderHooks<
     }
   }
 
-  function useSuspenseOrders(
+  const useSuspenseOrders = (
     input: SuspenseListInput<TListInput>,
     options?: {
       queryOptions?: SuspenseQueryOptions<OrderListResponse<TOrder>>
-    }
-  ): UseSuspenseOrdersResult<TOrder> {
-    const { items, ...result } = simpleHooks.useSuspenseList(
-      input as TListInput,
-      options
-    )
+    },
+  ): UseSuspenseOrdersResult<TOrder> => {
+    const { items, ...result } = simpleHooks.useSuspenseList(input, options)
     return {
       ...result,
       orders: items,
     }
   }
 
-  function useOrder(
+  const useOrder = (
     input: TDetailInput,
-    options?: { queryOptions?: ReadQueryOptions<TOrder | null> }
-  ): UseOrderResult<TOrder> {
+    options?: { queryOptions?: ReadQueryOptions<TOrder | null> },
+  ): UseOrderResult<TOrder> => {
     const { item, ...result } = simpleHooks.useDetail(input, options)
     return {
       ...result,
@@ -175,14 +170,11 @@ export function createOrderHooks<
     }
   }
 
-  function useSuspenseOrder(
+  const useSuspenseOrder = (
     input: SuspenseDetailInput<TDetailInput>,
-    options?: { queryOptions?: SuspenseQueryOptions<TOrder | null> }
-  ): UseSuspenseOrderResult<TOrder> {
-    const { item, ...result } = simpleHooks.useSuspenseDetail(
-      input as TDetailInput,
-      options
-    )
+    options?: { queryOptions?: SuspenseQueryOptions<TOrder | null> },
+  ): UseSuspenseOrderResult<TOrder> => {
+    const { item, ...result } = simpleHooks.useSuspenseDetail(input, options)
     return {
       ...result,
       order: item,
@@ -190,11 +182,11 @@ export function createOrderHooks<
   }
 
   return {
-    getListQueryOptions,
     getDetailQueryOptions,
-    useOrders,
-    useSuspenseOrders,
+    getListQueryOptions,
     useOrder,
+    useOrders,
     useSuspenseOrder,
+    useSuspenseOrders,
   }
 }

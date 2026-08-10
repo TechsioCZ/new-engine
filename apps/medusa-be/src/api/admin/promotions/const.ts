@@ -2,8 +2,8 @@ import { RuleOperator } from "@medusajs/framework/utils"
 
 const operator = (id: RuleOperator, label: string) => ({
   id,
-  value: id,
   label,
+  value: id,
 })
 
 const multiselectOperators = [
@@ -21,59 +21,59 @@ const numericOperators = [
 ]
 
 export const brandRuleAttribute = {
-  id: "brand",
-  value: "items.brand_ids",
-  label: "Brand",
-  required: false,
   field_type: "multiselect",
+  id: "brand",
+  label: "Brand",
   operators: multiselectOperators,
+  required: false,
+  value: "items.brand_ids",
 }
 
 export const productVariantRuleAttribute = {
-  id: "product_variant",
-  value: "items.variant_id",
-  label: "Product Variant",
-  required: false,
   field_type: "multiselect",
+  id: "product_variant",
+  label: "Product Variant",
   operators: multiselectOperators,
+  required: false,
+  value: "items.variant_id",
 }
 
 export const itemPriceRuleAttribute = {
-  id: "item_price",
-  value: "items.unit_price",
-  label: "Item Price",
-  required: false,
   field_type: "number",
+  id: "item_price",
+  label: "Item Price",
   operators: numericOperators,
+  required: false,
+  value: "items.unit_price",
 }
 
 export const itemQuantityRuleAttribute = {
-  id: "item_quantity",
-  value: "items.quantity",
-  label: "Item Quantity",
-  required: false,
   field_type: "number",
+  id: "item_quantity",
+  label: "Item Quantity",
   operators: itemPriceRuleAttribute.operators,
+  required: false,
+  value: "items.quantity",
 }
 
 export const cartItemTotalRuleAttribute = {
-  id: "cart_item_total",
-  value: "item_total",
-  label: "Cart Item Total",
-  required: false,
   field_type: "number",
+  id: "cart_item_total",
+  label: "Cart Item Total",
   operators: itemPriceRuleAttribute.operators,
+  required: false,
+  value: "item_total",
 }
 
 export const customRuleAttributes = {
-  rules: [cartItemTotalRuleAttribute],
-  "target-rules": [
+  "buy-rules": [
     productVariantRuleAttribute,
     itemPriceRuleAttribute,
     itemQuantityRuleAttribute,
     brandRuleAttribute,
   ],
-  "buy-rules": [
+  rules: [cartItemTotalRuleAttribute],
+  "target-rules": [
     productVariantRuleAttribute,
     itemPriceRuleAttribute,
     itemQuantityRuleAttribute,

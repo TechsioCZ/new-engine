@@ -6,10 +6,10 @@ import type { Category } from "@/data/static/type"
  * @param categoryMap - Record of all categories by ID
  * @returns Array of category IDs from root to current category
  */
-export function getCategoryPath(
+export const getCategoryPath = (
   category: Category | undefined,
-  categoryMap: Record<string, Category>
-): string[] {
+  categoryMap: Record<string, Category>,
+): string[] => {
   if (!category) {
     return []
   }
@@ -19,12 +19,16 @@ export function getCategoryPath(
 
   // Walk up the tree collecting IDs
   while (current) {
-    path.unshift(current.id) // Add to beginning to maintain order from root to leaf
+    // Add to beginning to maintain order from root to leaf
+    path.unshift(current.id)
 
     // Get parent category
-    current = current.parent_category_id
-      ? categoryMap[current.parent_category_id]
-      : undefined
+    current =
+      current.parent_category_id !== null &&
+      current.parent_category_id !== undefined &&
+      current.parent_category_id !== ""
+        ? categoryMap[current.parent_category_id]
+        : undefined
   }
 
   return path

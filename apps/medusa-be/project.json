@@ -12,7 +12,7 @@
       "outputs": [],
       "options": {
         "cwd": "apps/medusa-be",
-        "command": "cross-env TEST_TYPE=unit node ./scripts/run-vitest.mjs run --config vitest.config.ts"
+        "command": "cross-env TEST_TYPE=unit node ./scripts/run-vitest.mjs run --config vitest.config.mts"
       }
     },
     "test-e2e-admin": {

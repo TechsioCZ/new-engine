@@ -1,109 +1,106 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
-import { FormTextarea } from '../../src/molecules/form-textarea'
-import { FormInput } from '../../src/molecules/form-input'
-import { Button } from '../../src/atoms/button'
+import type { Meta, StoryObj } from "@storybook/react"
+import type { ComponentProps } from "react"
+import { useState } from "react"
+
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Button } from "../../src/atoms/button"
+import { FormInput } from "../../src/molecules/form-input"
+import { FormTextarea } from "../../src/molecules/form-textarea"
 
 const meta: Meta<typeof FormTextarea> = {
-  title: 'Molecules/FormTextarea',
-  component: FormTextarea,
-  parameters: {
-    layout: 'centered',
-  },
-  tags: ['autodocs'],
   argTypes: {
-    // Text inputs
-    label: {
-      control: 'text',
-      description: 'Textarea label',
+    autoFocus: {
+      control: "boolean",
+      description: "Automatically focus on mount",
+      table: { defaultValue: { summary: "false" } },
     },
-    placeholder: {
-      control: 'text',
-      description: 'Placeholder text',
+    disabled: {
+      control: "boolean",
+      description: "Disable the textarea",
+      table: { defaultValue: { summary: "false" } },
     },
     helpText: {
-      control: 'text',
-      description: 'Helper text or validation message below textarea',
+      control: "text",
+      description: "Helper text or validation message below textarea",
     },
-
-    // Appearance
-    size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description: 'Size of the textarea and label',
-      table: { defaultValue: { summary: 'md' } },
-    },
-    validateStatus: {
-      control: 'select',
-      options: ['default', 'error', 'success', 'warning'],
-      description: 'Validation state',
-      table: { defaultValue: { summary: 'default' } },
-    },
-    showHelpTextIcon: {
-      control: 'boolean',
-      description: 'Show icon with help text',
-      table: { defaultValue: { summary: 'false' } },
-    },
-    resize: {
-      control: 'select',
-      options: ['none', 'y', 'x', 'both', 'auto'],
-      description: 'Resize behavior of the textarea',
-      table: { defaultValue: { summary: 'y' } },
-    },
-    rows: {
-      control: 'number',
-      description: 'Number of visible text rows',
+    label: {
+      control: "text",
+      description: "Textarea label",
     },
     maxLength: {
-      control: 'number',
-      description: 'Maximum number of characters allowed',
+      control: "number",
+      description: "Maximum number of characters allowed",
     },
     minLength: {
-      control: 'number',
-      description: 'Minimum number of characters required',
+      control: "number",
+      description: "Minimum number of characters required",
     },
-
-    // States
-    disabled: {
-      control: 'boolean',
-      description: 'Disable the textarea',
-      table: { defaultValue: { summary: 'false' } },
-    },
-    required: {
-      control: 'boolean',
-      description: 'Mark as required field',
-      table: { defaultValue: { summary: 'false' } },
+    placeholder: {
+      control: "text",
+      description: "Placeholder text",
     },
     readOnly: {
-      control: 'boolean',
-      description: 'Make textarea read-only',
-      table: { defaultValue: { summary: 'false' } },
+      control: "boolean",
+      description: "Make textarea read-only",
+      table: { defaultValue: { summary: "false" } },
+    },
+    required: {
+      control: "boolean",
+      description: "Mark as required field",
+      table: { defaultValue: { summary: "false" } },
+    },
+    resize: {
+      control: "select",
+      description: "Resize behavior of the textarea",
+      options: ["none", "y", "x", "both", "auto"],
+      table: { defaultValue: { summary: "y" } },
+    },
+    rows: {
+      control: "number",
+      description: "Number of visible text rows",
+    },
+    showHelpTextIcon: {
+      control: "boolean",
+      description: "Show icon with help text",
+      table: { defaultValue: { summary: "false" } },
+    },
+    size: {
+      control: "select",
+      description: "Size of the textarea and label",
+      options: ["sm", "md", "lg"],
+      table: { defaultValue: { summary: "md" } },
     },
     spellCheck: {
-      control: 'boolean',
-      description: 'Enable browser spell checking',
+      control: "boolean",
+      description: "Enable browser spell checking",
     },
-    autoFocus: {
-      control: 'boolean',
-      description: 'Automatically focus on mount',
-      table: { defaultValue: { summary: 'false' } },
+    validateStatus: {
+      control: "select",
+      description: "Validation state",
+      options: ["default", "error", "success", "warning"],
+      table: { defaultValue: { summary: "default" } },
     },
   },
   args: {
-    label: 'Description',
-    placeholder: 'Enter description...',
-    helpText: 'Provide a detailed description',
-    size: 'md',
-    validateStatus: 'default',
-    showHelpTextIcon: false,
-    resize: 'y',
-    rows: 4,
-    disabled: false,
-    required: false,
-    readOnly: false,
     autoFocus: false,
+    disabled: false,
+    helpText: "Provide a detailed description",
+    label: "Description",
+    placeholder: "Enter description...",
+    readOnly: false,
+    required: false,
+    resize: "y",
+    rows: 4,
+    showHelpTextIcon: false,
+    size: "md",
+    validateStatus: "default",
   },
+  component: FormTextarea,
+  parameters: {
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/FormTextarea",
 }
 
 export default meta
@@ -111,7 +108,7 @@ type Story = StoryObj<typeof FormTextarea>
 
 export const Playground: Story = {
   args: {
-    label: 'Playground Textarea',
+    label: "Playground Textarea",
   },
 }
 
@@ -319,7 +316,7 @@ export const AllVariants: Story = {
 // Validation States - Dedicated story showing all 4 validation states
 export const ValidationStates: Story = {
   render: () => (
-    <div className="flex flex-col gap-200 w-md">
+    <div className="flex w-md flex-col gap-200">
       <FormTextarea
         id="default-validation"
         label="Default State"
@@ -359,7 +356,7 @@ export const ValidationStates: Story = {
 // Sizes - Dedicated story showing all size variants
 export const Sizes: Story = {
   render: () => (
-    <div className="flex flex-col gap-200 w-md">
+    <div className="flex w-md flex-col gap-200">
       <FormTextarea
         id="small-size"
         label="Small Size"
@@ -388,42 +385,38 @@ export const Sizes: Story = {
   ),
 }
 
-// Interactive character count example
-export const InteractiveCharacterCount: Story = {
-  render: () => {
-    return <CharacterCountExample />
-  },
-}
-
-function CharacterCountExample() {
-  const [text, setText] = useState('')
+const CharacterCountExample = () => {
+  const [text, setText] = useState("")
   const maxLength = 280
   const remaining = maxLength - text.length
   const isOverLimit = remaining < 0
   const isNearLimit = remaining <= 20 && remaining >= 0
 
-  const validateStatus = isOverLimit
-    ? 'error'
-    : isNearLimit
-      ? 'warning'
-      : 'default'
+  let validateStatus: NonNullable<
+    ComponentProps<typeof FormTextarea>["validateStatus"]
+  > = "default"
+  let helpText = `${remaining}/${maxLength} characters`
 
-  const helpText = isOverLimit
-    ? `${Math.abs(remaining)} characters over the limit`
-    : isNearLimit
-      ? `${remaining} characters remaining`
-      : `${remaining}/${maxLength} characters`
+  if (isOverLimit) {
+    validateStatus = "error"
+    helpText = `${Math.abs(remaining)} characters over the limit`
+  } else if (isNearLimit) {
+    validateStatus = "warning"
+    helpText = `${remaining} characters remaining`
+  }
 
   return (
     <div className="w-lg">
-      <h3 className="mb-200 font-medium text-lg">Character Count Validation</h3>
+      <h3 className="mb-200 text-lg font-medium">Character Count Validation</h3>
       <FormTextarea
         id="character-count"
         label="Tweet"
         placeholder="What's happening?"
         required
         value={text}
-        onChange={(e) => setText(e.target.value)}
+        onChange={(e) => {
+          setText(e.target.value)
+        }}
         validateStatus={validateStatus}
         helpText={helpText}
         rows={4}
@@ -431,7 +424,7 @@ function CharacterCountExample() {
       <div className="mt-200 text-sm">
         <div className="flex gap-200">
           <span>Characters: {text.length}</span>
-          <span className={isOverLimit ? 'text-danger' : ''}>
+          <span className={isOverLimit ? "text-danger" : ""}>
             Remaining: {remaining}
           </span>
         </div>
@@ -440,22 +433,17 @@ function CharacterCountExample() {
   )
 }
 
-// Contact form example
-export const ContactForm: Story = {
-  render: () => <ContactFormExample />,
-}
-
-function ContactFormExample() {
+const ContactFormExample = () => {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    subject: '',
-    message: '',
+    email: "",
+    message: "",
+    name: "",
+    subject: "",
   })
 
   return (
     <div className="w-lg rounded-md border border-border-primary p-300 shadow-sm">
-      <h2 className="mb-300 font-semibold text-xl">Contact Us</h2>
+      <h2 className="mb-300 text-xl font-semibold">Contact Us</h2>
 
       <div className="space-y-200">
         <div className="grid grid-cols-2 gap-200">
@@ -464,7 +452,9 @@ function ContactFormExample() {
             label="Name"
             placeholder="John Doe"
             value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+            onChange={(e) => {
+              setFormData({ ...formData, name: e.target.value })
+            }}
           />
           <FormInput
             id="contact-email"
@@ -472,7 +462,9 @@ function ContactFormExample() {
             type="email"
             placeholder="john@example.com"
             value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            onChange={(e) => {
+              setFormData({ ...formData, email: e.target.value })
+            }}
           />
         </div>
 
@@ -481,7 +473,9 @@ function ContactFormExample() {
           label="Subject"
           placeholder="How can we help?"
           value={formData.subject}
-          onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+          onChange={(e) => {
+            setFormData({ ...formData, subject: e.target.value })
+          }}
         />
 
         <FormTextarea
@@ -490,7 +484,9 @@ function ContactFormExample() {
           placeholder="Tell us more about your inquiry..."
           required
           value={formData.message}
-          onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+          onChange={(e) => {
+            setFormData({ ...formData, message: e.target.value })
+          }}
           rows={6}
           helpText="Please provide as much detail as possible"
         />
@@ -514,4 +510,14 @@ function ContactFormExample() {
       </div>
     </div>
   )
+}
+
+// Interactive character count example
+export const InteractiveCharacterCount: Story = {
+  render: CharacterCountExample,
+}
+
+// Contact form example
+export const ContactForm: Story = {
+  render: ContactFormExample,
 }

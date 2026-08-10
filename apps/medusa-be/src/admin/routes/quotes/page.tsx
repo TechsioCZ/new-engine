@@ -2,8 +2,9 @@ import { defineRouteConfig } from "@medusajs/admin-sdk"
 import { DocumentText } from "@medusajs/icons"
 import { Container, Heading, Toaster } from "@medusajs/ui"
 import { useTranslation } from "react-i18next"
+
 import { translateBreadcrumb } from "../../lib/breadcrumb"
-import { QuotesTable } from "./components"
+import { QuotesTable } from "./components/quotes-table"
 
 export const handle = {
   breadcrumb: () => translateBreadcrumb("quotes:menuItem", "Quotes"),
@@ -27,8 +28,8 @@ const Quotes = () => {
 }
 
 export const config = defineRouteConfig({
-  label: "menuItem",
   icon: DocumentText,
+  label: "menuItem",
   translationNs: "quotes",
 })
 

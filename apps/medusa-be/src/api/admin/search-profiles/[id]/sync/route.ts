@@ -1,18 +1,37 @@
-import type { MedusaRequest, MedusaResponse } from '@medusajs/framework/http'
-import { MedusaError } from '@medusajs/framework/utils'
-import { synchronizeSearchProfiles } from '../../../../../modules/meilisearch/synchronize'
-import { getSearchProfileService, retrieveSearchProfileOrThrow } from '../../utils'
-import type { AdminSearchProfileSyncSchemaType } from '../../validators'
+import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import { MedusaError } from "@medusajs/framework/utils"
 
-export async function POST(request: MedusaRequest<AdminSearchProfileSyncSchemaType>, response: MedusaResponse) {
-	const service = getSearchProfileService(request.scope)
-	const profile = await retrieveSearchProfileOrThrow(service, request.params.id ?? '')
+import { synchronizeSearchProfiles } from "../../../../../modules/meilisearch/synchronize"
+import {
+  getSearchProfileService,
+  retrieveSearchProfileOrThrow,
+} from "../../utils"
+import type { AdminSearchProfileSyncSchemaType } from "../../validators"
 
-	if (!Array.isArray(profile.sales_channel_ids) || profile.sales_channel_ids.length === 0) {
-		throw new MedusaError(MedusaError.Types.NOT_ALLOWED, 'Assign at least one Sales Channel before synchronizing this profile.')
-	}
+const synchronizeSearchProfile = async (
+  request: MedusaRequest<AdminSearchProfileSyncSchemaType>,
+  response: MedusaResponse,
+) => {
+  const service = getSearchProfileService(request.scope)
+  const profile = await retrieveSearchProfileOrThrow(
+    service,
+    request.params["id"] ?? "",
+  )
 
-	const result = await synchronizeSearchProfiles(request.scope, request.validatedBody.mode, { profileKeys: [profile.key] })
+  if (profile.sales_channel_ids.length === 0) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_ALLOWED,
+      "Assign at least one Sales Channel before synchronizing this profile.",
+    )
+  }
 
-	response.json({ result })
+  const result = await synchronizeSearchProfiles(
+    request.scope,
+    request.validatedBody.mode,
+    { profileKeys: [profile.key] },
+  )
+
+  response.json({ result })
 }
+
+export { synchronizeSearchProfile as POST }

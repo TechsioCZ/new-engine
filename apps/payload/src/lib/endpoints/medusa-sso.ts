@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto"
+
+import { getRecordValue } from "@techsio/std/object"
 import { importSPKI, jwtVerify } from "jose"
-import type { Endpoint } from "payload"
+import type { Endpoint, PayloadRequest } from "payload"
 import {
   APIError,
   generatePayloadCookie,
@@ -8,51 +10,29 @@ import {
   jwtSign,
 } from "payload"
 
+import type { User } from "../../payload-types"
+import { getEnv } from "../utils/env"
+
 const DEFAULT_ISSUER = "medusa"
 const DEFAULT_AUDIENCE = "payload"
 const DEFAULT_ALG = "RS256"
 const MAX_SESSIONS = 100
 
-/** JWT payload shape expected from Medusa SSO tokens. */
-type MedusaSsoToken = {
-  email?: string
-  sub?: string
-  medusa_actor_id?: string
-  medusa_actor_type?: string
-  payload_sso_mode?: string
-}
-
-/** Session entry stored on Payload admin users. */
-type Session = {
-  id: string
-  createdAt?: string | Date | null
-  expiresAt: string | Date
-}
-
-/** Minimal admin user record used for session updates. */
-type AdminUser = {
-  id: string | number
-  sessions?: Session[] | null
-}
-
 /** Normalize PEM keys loaded from environment variables. */
-const normalizeKey = (value: string) => value.replace(/\\n/g, "\n").trim()
+const normalizeKey = (value: string) => value.replaceAll("\\n", "\n").trim()
 
 /** Filter out expired session entries. */
-const removeExpiredSessions = (sessions: Session[]) => {
+const removeExpiredSessions = (sessions: NonNullable<User["sessions"]>) => {
   const now = new Date()
   return sessions.filter((session) => {
-    const expiresAt =
-      session.expiresAt instanceof Date
-        ? session.expiresAt
-        : new Date(session.expiresAt)
+    const expiresAt = new Date(session.expiresAt)
     return expiresAt > now
   })
 }
 
 /** Ensure return paths remain relative to prevent open redirects. */
 const sanitizeReturnTo = (value: string | null) => {
-  if (!value) {
+  if (value === null || value === "") {
     return "/"
   }
   if (value.startsWith("/") && !value.startsWith("//")) {
@@ -63,12 +43,12 @@ const sanitizeReturnTo = (value: string | null) => {
 
 /** Normalize a URL-like value to a strict origin string. */
 const normalizeOrigin = (value: string | null) => {
-  if (!value) {
+  if (value === null || value === "") {
     return null
   }
 
   const trimmed = value.trim()
-  if (!trimmed || trimmed === "null") {
+  if (trimmed === "" || trimmed === "null") {
     return null
   }
 
@@ -82,16 +62,16 @@ const normalizeOrigin = (value: string | null) => {
 /** Read and normalize a list of allowed origins from environment. */
 const getAllowedOrigins = () =>
   new Set(
-    (process.env.PAYLOAD_SSO_ALLOWED_ORIGINS || "")
+    (getEnv("PAYLOAD_SSO_ALLOWED_ORIGINS") ?? "")
       .split(",")
       .map((origin) => normalizeOrigin(origin))
-      .filter((origin): origin is string => Boolean(origin))
+      .filter((origin): origin is string => origin !== null),
   )
 
 /** Resolve request origin from Origin header, with Referer fallback. */
 const getRequestOrigin = (headers: Headers) => {
   const originHeader = normalizeOrigin(headers.get("origin"))
-  if (originHeader) {
+  if (originHeader !== null) {
     return originHeader
   }
   return normalizeOrigin(headers.get("referer"))
@@ -100,9 +80,9 @@ const getRequestOrigin = (headers: Headers) => {
 /** Add CORS headers for a request origin that has already passed validation. */
 const setAllowedOriginCorsHeaders = (
   headers: Headers,
-  origin: string | null
+  origin: string | null,
 ) => {
-  if (!origin) {
+  if (origin === null) {
     return
   }
 
@@ -112,113 +92,138 @@ const setAllowedOriginCorsHeaders = (
   headers.append("Vary", "Origin")
 }
 
-/** Type guard for validating configured collection slugs. */
-const hasCollectionSlug = <T extends Record<string, unknown>>(
-  collections: T,
-  slug: string
-): slug is Extract<keyof T, string> => Object.hasOwn(collections, slug)
+const getFormValue = (formData: FormData, field: string): string | null => {
+  const value = formData.get(field)
+  return typeof value === "string" ? value : null
+}
+
+const readFormData = async (req: PayloadRequest): Promise<FormData> => {
+  if (typeof req.formData !== "function") {
+    throw new APIError("Form data parsing is not available.", 400)
+  }
+
+  try {
+    return await req.formData()
+  } catch {
+    throw new APIError("Invalid form data.", 400)
+  }
+}
+
+interface SsoConfiguration {
+  expectedEmail: string
+  publicKey: string
+}
+
+const requireAllowedOrigin = (headers: Headers): string => {
+  const allowedOrigins = getAllowedOrigins()
+  if (allowedOrigins.size === 0) {
+    throw new APIError("Payload SSO allowed origins are not configured.", 500)
+  }
+
+  const requestOrigin = getRequestOrigin(headers)
+  if (requestOrigin === null || !allowedOrigins.has(requestOrigin)) {
+    throw new APIError("Origin is not allowed.", 403)
+  }
+
+  return requestOrigin
+}
+
+const requireSsoConfiguration = (): SsoConfiguration => {
+  const publicKey = getEnv("PAYLOAD_SSO_PUBLIC_KEY")
+  const expectedEmail = getEnv("PAYLOAD_SSO_USER_EMAIL")
+  if (
+    publicKey === undefined ||
+    publicKey === "" ||
+    expectedEmail === undefined ||
+    expectedEmail === ""
+  ) {
+    throw new APIError("Payload SSO is not configured.", 500)
+  }
+
+  return { expectedEmail, publicKey }
+}
+
+const verifySsoEmail = async (
+  req: PayloadRequest,
+  formData: FormData,
+  configuration: SsoConfiguration,
+): Promise<string> => {
+  const token = getFormValue(formData, "token")
+  if (token === null || token === "") {
+    throw new APIError("Missing SSO token.", 400)
+  }
+
+  const alg = getEnv("PAYLOAD_SSO_ALG") ?? DEFAULT_ALG
+  const issuer = getEnv("PAYLOAD_SSO_ISSUER") ?? DEFAULT_ISSUER
+  const audience = getEnv("PAYLOAD_SSO_AUDIENCE") ?? DEFAULT_AUDIENCE
+  const key = await importSPKI(normalizeKey(configuration.publicKey), alg)
+
+  let email: string | undefined
+  try {
+    const verified = await jwtVerify(token, key, {
+      algorithms: [alg],
+      audience,
+      issuer,
+    })
+    const emailClaim = getRecordValue(verified.payload, "email")
+    const subjectClaim = verified.payload.sub
+    email =
+      typeof emailClaim === "string" && emailClaim !== ""
+        ? emailClaim
+        : subjectClaim
+  } catch (error) {
+    req.payload.logger.warn({ err: error }, "SSO token verification failed")
+    throw new APIError("Invalid SSO token.", 401)
+  }
+  if (email === undefined || email === "") {
+    throw new APIError("SSO token missing user email.", 400)
+  }
+  if (email !== configuration.expectedEmail) {
+    throw new APIError("SSO token user is not configured for Payload.", 401)
+  }
+
+  return email
+}
 
 /** Create the Payload endpoint that exchanges Medusa SSO tokens for sessions. */
 const createMedusaSsoPostEndpoint = (): Endpoint => ({
-  path: "/medusa-sso",
-  method: "post",
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Endpoint flow is intentionally linear to keep auth failure branches explicit.
+  // Endpoint flow is intentionally linear to keep auth failure branches explicit.
   handler: async (req) => {
-    const allowedOrigins = getAllowedOrigins()
-    const requestOrigin = getRequestOrigin(req.headers)
-    if (allowedOrigins.size === 0) {
-      throw new APIError("Payload SSO allowed origins are not configured.", 500)
-    }
-
-    if (!(requestOrigin && allowedOrigins.has(requestOrigin))) {
-      throw new APIError("Origin is not allowed.", 403)
-    }
-
-    const publicKey = process.env.PAYLOAD_SSO_PUBLIC_KEY
-    const expectedSsoEmail = process.env.PAYLOAD_SSO_USER_EMAIL
-    if (!(publicKey && expectedSsoEmail)) {
-      throw new APIError("Payload SSO is not configured.", 500)
-    }
-
-    if (!req.formData) {
-      throw new APIError("Form data parsing is not available.", 400)
-    }
-
-    let formData: FormData
-    try {
-      formData = await req.formData()
-    } catch {
-      throw new APIError("Invalid form data.", 400)
-    }
-
-    const getFormValue = (field: string) => {
-      const value = formData.get(field)
-      return typeof value === "string" ? value : null
-    }
-
-    const token = getFormValue("token")
-    if (!token) {
-      throw new APIError("Missing SSO token.", 400)
-    }
-
-    const alg = process.env.PAYLOAD_SSO_ALG ?? DEFAULT_ALG
-    const issuer = process.env.PAYLOAD_SSO_ISSUER ?? DEFAULT_ISSUER
-    const audience = process.env.PAYLOAD_SSO_AUDIENCE ?? DEFAULT_AUDIENCE
-    const key = await importSPKI(normalizeKey(publicKey), alg)
-
-    let verifiedPayload: MedusaSsoToken | null = null
-    try {
-      const verified = await jwtVerify<MedusaSsoToken>(token, key, {
-        issuer,
-        audience,
-        algorithms: [alg],
-      })
-      verifiedPayload = verified.payload
-    } catch (error) {
-      req?.payload?.logger?.warn?.(
-        { err: error },
-        "SSO token verification failed"
-      )
-      throw new APIError("Invalid SSO token.", 401)
-    }
-    const email = verifiedPayload.email || verifiedPayload.sub
-    if (!email) {
-      throw new APIError("SSO token missing user email.", 400)
-    }
-    if (email !== expectedSsoEmail) {
-      throw new APIError("SSO token user is not configured for Payload.", 401)
-    }
+    const requestOrigin = requireAllowedOrigin(req.headers)
+    const configuration = requireSsoConfiguration()
+    const formData = await readFormData(req)
+    const email = await verifySsoEmail(req, formData, configuration)
 
     const adminCollectionSlug = req.payload.config.admin.user
-    if (!hasCollectionSlug(req.payload.collections, adminCollectionSlug)) {
+    if (adminCollectionSlug !== "users") {
       throw new APIError("Payload admin collection is not configured.", 500)
     }
     const adminCollection = req.payload.collections[adminCollectionSlug]
-    if (!adminCollection?.config?.auth) {
+    if (adminCollection === undefined) {
       throw new APIError("Payload admin collection is not configured.", 500)
     }
 
     const userResult = await req.payload.find({
       collection: adminCollectionSlug,
+      depth: 0,
+      limit: 1,
+      overrideAccess: true,
+      pagination: false,
+      req,
+      select: {
+        email: true,
+        id: true,
+        sessions: true,
+      },
       where: {
         email: {
           equals: email,
         },
       },
-      select: {
-        id: true,
-        email: true,
-        sessions: true,
-      },
-      limit: 1,
-      pagination: false,
-      depth: 0,
-      overrideAccess: true,
-      req,
     })
 
-    const user = userResult.docs[0] as AdminUser | undefined
-    if (!user) {
+    const [user] = userResult.docs
+    if (user === undefined) {
       throw new APIError("SSO user not found.", 401)
     }
 
@@ -226,28 +231,28 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
     if (adminCollection.config.auth.useSessions) {
       sid = randomUUID()
       const now = new Date()
-      const tokenExpiration = adminCollection.config.auth.tokenExpiration
+      const { tokenExpiration } = adminCollection.config.auth
       const expiresAt = new Date(now.getTime() + tokenExpiration * 1000)
       const existingSessions = Array.isArray(user.sessions)
-        ? removeExpiredSessions(user.sessions as Session[]).slice(
-            -Math.max(MAX_SESSIONS - 1, 0)
+        ? removeExpiredSessions(user.sessions).slice(
+            -Math.max(MAX_SESSIONS - 1, 0),
           )
         : []
 
       await req.payload.db.updateOne({
-        id: user.id,
         collection: adminCollectionSlug,
         data: {
           sessions: [
             ...existingSessions,
             {
-              id: sid,
               createdAt: now,
               expiresAt,
+              id: sid,
             },
           ],
           updatedAt: null,
         },
+        id: user.id,
         req,
         returning: false,
       })
@@ -257,7 +262,7 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
       fieldsToSign: {
         collection: adminCollectionSlug,
         id: String(user.id),
-        ...(sid ? { sid } : {}),
+        ...(sid === undefined ? {} : { sid }),
       },
       secret: req.payload.secret,
       tokenExpiration: adminCollection.config.auth.tokenExpiration,
@@ -269,22 +274,24 @@ const createMedusaSsoPostEndpoint = (): Endpoint => ({
       token: payloadToken,
     })
 
-    const returnTo = getFormValue("returnTo")
+    const returnTo = getFormValue(formData, "returnTo")
     const redirectTo = sanitizeReturnTo(returnTo)
     const headers = headersWithCors({
       headers: new Headers({
-        "Set-Cookie": cookie,
         Location: redirectTo,
+        "Set-Cookie": cookie,
       }),
       req,
     })
     setAllowedOriginCorsHeaders(headers, requestOrigin)
 
     return new Response(null, {
-      status: 302,
       headers,
+      status: 302,
     })
   },
+  method: "post",
+  path: "/medusa-sso",
 })
 
 /** Shared instance of the Medusa SSO endpoint. */

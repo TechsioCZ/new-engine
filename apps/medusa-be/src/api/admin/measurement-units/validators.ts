@@ -3,22 +3,19 @@ import { z } from "@medusajs/framework/zod"
 const optionalText = z.preprocess(
   (value) =>
     typeof value === "string" && value.trim().length === 0 ? undefined : value,
-  z.string().trim().min(1).optional()
+  z.string().trim().min(1).optional(),
 )
 
 const queryBoolean = z.preprocess((value) => {
   if (value === undefined || value === "") {
-    return
+    return value === "" ? undefined : value
   }
-
   if (value === true || value === "true") {
     return true
   }
-
   if (value === false || value === "false") {
     return false
   }
-
   return value
 }, z.boolean().optional())
 
@@ -48,7 +45,7 @@ export const AdminGetMeasurementUnitProductsSchema = z
 
 export const AdminCreateMeasurementUnitSchema = z
   .object({
-    base_quantity: z.number().finite().positive(),
+    base_quantity: z.number().positive(),
     code: z.string().trim().min(1),
     description: optionalText.nullable(),
     name: z.string().trim().min(1),
@@ -58,7 +55,7 @@ export const AdminCreateMeasurementUnitSchema = z
 
 export const AdminUpdateMeasurementUnitSchema = z
   .object({
-    base_quantity: z.number().finite().positive().optional(),
+    base_quantity: z.number().positive().optional(),
     code: optionalText,
     description: optionalText.nullable(),
     name: optionalText,
@@ -67,7 +64,7 @@ export const AdminUpdateMeasurementUnitSchema = z
   .strict()
   .refine(
     (value) => Object.values(value).some((field) => field !== undefined),
-    "At least one measurement unit field must be provided."
+    "At least one measurement unit field must be provided.",
   )
 
 export const AdminSetProductMeasurementSchema = z
@@ -78,7 +75,7 @@ export const AdminSetProductMeasurementSchema = z
 
 export const AdminSetProductVariantMeasurementSchema = z
   .object({
-    product_unit_quantity: z.number().finite().positive(),
+    product_unit_quantity: z.number().positive(),
   })
   .strict()
 

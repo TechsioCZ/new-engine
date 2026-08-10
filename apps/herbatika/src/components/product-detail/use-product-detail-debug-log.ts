@@ -3,27 +3,33 @@
 import { useEffect } from "react"
 
 import type { Product } from "@/components/product-detail/product-detail.types"
-import { asRecord } from "@/components/product-detail/utils/value-utils"
+import {
+  asRecord,
+  readRecordProperty,
+} from "@/components/product-detail/utils/value-utils"
 
-export function useProductDetailDebugLog(product: Product | null) {
+export const useProductDetailDebugLog = (product: Product | null) => {
   useEffect(() => {
-    if (process.env.NODE_ENV === "production" || !product) {
+    if (process.env.NODE_ENV === "production" || product === null) {
       return
     }
 
     const metadata = asRecord(product.metadata)
+    const contentSections = readRecordProperty(metadata, "content_sections")
 
     console.info("[PDP] loaded product", {
-      id: product.id,
-      handle: product.handle,
-      imageCount: product.images?.length ?? 0,
       categoryCount: product.categories?.length ?? 0,
-      variantCount: product.variants?.length ?? 0,
-      hasShortDescription: typeof metadata?.short_description === "string",
-      contentSectionsCount: Array.isArray(metadata?.content_sections)
-        ? metadata.content_sections.length
+      contentSectionsCount: Array.isArray(contentSections)
+        ? contentSections.length
         : 0,
-      hasContentSectionsMap: asRecord(metadata?.content_sections_map) !== null,
+      handle: product.handle,
+      hasContentSectionsMap:
+        asRecord(readRecordProperty(metadata, "content_sections_map")) !== null,
+      hasShortDescription:
+        typeof readRecordProperty(metadata, "short_description") === "string",
+      id: product.id,
+      imageCount: product.images?.length ?? 0,
+      variantCount: product.variants?.length ?? 0,
     })
   }, [product])
 }

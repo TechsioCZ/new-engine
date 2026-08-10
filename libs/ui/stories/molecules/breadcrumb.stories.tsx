@@ -1,15 +1,53 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { VariantContainer, VariantGroup } from '../../.storybook/decorator'
-import {
-  Breadcrumb,
-  type BreadcrumbRootProps,
-} from '../../src/molecules/breadcrumb'
+import type { Meta, StoryObj } from "@storybook/react"
+
+import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
+import { Breadcrumb } from "../../src/molecules/breadcrumb"
+import type { BreadcrumbRootProps } from "../../src/molecules/breadcrumb"
 
 const meta: Meta<typeof Breadcrumb> = {
-  title: 'Molecules/Breadcrumb',
+  argTypes: {
+    "aria-label": {
+      control: "text",
+      description: "Accessible label for the breadcrumb navigation.",
+      table: {
+        category: "Accessibility",
+        defaultValue: { summary: "breadcrumb" },
+      },
+    },
+    size: {
+      control: "select",
+      description:
+        "Controls breadcrumb sizing across root, list, links and icons.",
+      options: ["sm", "md", "lg"],
+      table: {
+        category: "Appearance",
+        defaultValue: { summary: "md" },
+      },
+    },
+    variant: {
+      control: "select",
+      description: "Controls the visual style of breadcrumb links.",
+      options: ["plain", "underline"],
+      table: {
+        category: "Appearance",
+        defaultValue: { summary: "plain" },
+      },
+    },
+  },
+  args: {
+    "aria-label": "breadcrumb",
+    size: "md",
+    variant: "plain",
+  },
   component: Breadcrumb,
+  decorators: [
+    (Story) => (
+      <div className="max-w-md bg-surface p-400">
+        <Story />
+      </div>
+    ),
+  ],
   parameters: {
-    layout: 'centered',
     docs: {
       description: {
         component: `
@@ -19,75 +57,32 @@ Use BreadcrumbTemplate for the ready-to-use data-driven default.
         `,
       },
     },
+    layout: "centered",
   },
-  tags: ['autodocs'],
-  decorators: [
-    (Story) => (
-      <div className="max-w-container-md bg-surface p-400">
-        <Story />
-      </div>
-    ),
-  ],
-  argTypes: {
-    size: {
-      control: 'select',
-      options: ['sm', 'md', 'lg'],
-      description:
-        'Controls breadcrumb sizing across root, list, links and icons.',
-      table: {
-        category: 'Appearance',
-        defaultValue: { summary: 'md' },
-      },
-    },
-    variant: {
-      control: 'select',
-      options: ['plain', 'underline'],
-      description: 'Controls the visual style of breadcrumb links.',
-      table: {
-        category: 'Appearance',
-        defaultValue: { summary: 'plain' },
-      },
-    },
-    'aria-label': {
-      control: 'text',
-      description: 'Accessible label for the breadcrumb navigation.',
-      table: {
-        category: 'Accessibility',
-        defaultValue: { summary: 'breadcrumb' },
-      },
-    },
-  },
-  args: {
-    size: 'md',
-    variant: 'plain',
-    'aria-label': 'breadcrumb',
-  },
+  tags: ["autodocs"],
+  title: "Molecules/Breadcrumb",
 }
 
 export default meta
 type Story = StoryObj<typeof Breadcrumb>
 
-function DemoBreadcrumb(props: BreadcrumbRootProps) {
-  return (
-    <Breadcrumb {...props}>
-      <Breadcrumb.List>
-        <Breadcrumb.Item>
-          <Breadcrumb.Link href="#">Docs</Breadcrumb.Link>
-        </Breadcrumb.Item>
-        <Breadcrumb.Separator />
-        <Breadcrumb.Item>
-          <Breadcrumb.Link href="#">Components</Breadcrumb.Link>
-        </Breadcrumb.Item>
-        <Breadcrumb.Separator />
-        <Breadcrumb.Item>
-          <Breadcrumb.CurrentLink>
-            Breadcrumb
-          </Breadcrumb.CurrentLink>
-        </Breadcrumb.Item>
-      </Breadcrumb.List>
-    </Breadcrumb>
-  )
-}
+const DemoBreadcrumb = (props: BreadcrumbRootProps) => (
+  <Breadcrumb {...props}>
+    <Breadcrumb.List>
+      <Breadcrumb.Item>
+        <Breadcrumb.Link href="#">Docs</Breadcrumb.Link>
+      </Breadcrumb.Item>
+      <Breadcrumb.Separator />
+      <Breadcrumb.Item>
+        <Breadcrumb.Link href="#">Components</Breadcrumb.Link>
+      </Breadcrumb.Item>
+      <Breadcrumb.Separator />
+      <Breadcrumb.Item>
+        <Breadcrumb.CurrentLink>Breadcrumb</Breadcrumb.CurrentLink>
+      </Breadcrumb.Item>
+    </Breadcrumb.List>
+  </Breadcrumb>
+)
 
 export const Playground: Story = {
   render: (args) => <DemoBreadcrumb {...args} />,
@@ -99,7 +94,7 @@ export const Basic: Story = {
 
 export const Sizes: Story = {
   render: () => (
-    <div className='flex flex-col gap-500'>
+    <div className="flex flex-col gap-500">
       <h2>Sizes</h2>
       <div className="flex flex-col gap-400">
         <DemoBreadcrumb size="sm" />
@@ -114,7 +109,7 @@ export const Variants: Story = {
   render: () => (
     <VariantContainer>
       <VariantGroup title="Variants">
-        <div className='flex flex-col'>
+        <div className="flex flex-col">
           <DemoBreadcrumb variant="plain" />
           <DemoBreadcrumb variant="underline" />
         </div>
@@ -165,9 +160,7 @@ export const CustomSeparator: Story = {
         </Breadcrumb.Item>
         <Breadcrumb.Separator>/</Breadcrumb.Separator>
         <Breadcrumb.Item>
-          <Breadcrumb.CurrentLink>
-            Breadcrumb
-          </Breadcrumb.CurrentLink>
+          <Breadcrumb.CurrentLink>Breadcrumb</Breadcrumb.CurrentLink>
         </Breadcrumb.Item>
       </Breadcrumb.List>
     </Breadcrumb>
@@ -189,9 +182,7 @@ export const Ellipsis: Story = {
         <Breadcrumb.Ellipsis />
         <Breadcrumb.Separator />
         <Breadcrumb.Item>
-          <Breadcrumb.CurrentLink>
-            Current product
-          </Breadcrumb.CurrentLink>
+          <Breadcrumb.CurrentLink>Current product</Breadcrumb.CurrentLink>
         </Breadcrumb.Item>
       </Breadcrumb.List>
     </Breadcrumb>

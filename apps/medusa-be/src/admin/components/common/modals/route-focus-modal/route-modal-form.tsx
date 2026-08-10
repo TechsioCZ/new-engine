@@ -3,6 +3,7 @@ import type { PropsWithChildren } from "react"
 import type { FieldValues, UseFormReturn } from "react-hook-form"
 import { useTranslation } from "react-i18next"
 import { useBlocker } from "react-router-dom"
+
 import { Form } from "../../form"
 
 type RouteModalFormProps<TFieldValues extends FieldValues> = PropsWithChildren<{
@@ -23,7 +24,12 @@ export const RouteModalForm = <TFieldValues extends FieldValues = FieldValues>({
   } = form
 
   const blocker = useBlocker(({ currentLocation, nextLocation }) => {
-    const { isSubmitSuccessful } = nextLocation.state || {}
+    const nextState: unknown = nextLocation.state
+    const isSubmitSuccessful =
+      typeof nextState === "object" &&
+      nextState !== null &&
+      "isSubmitSuccessful" in nextState &&
+      nextState.isSubmitSuccessful === true
 
     if (isSubmitSuccessful) {
       onClose?.(true)

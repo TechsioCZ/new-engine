@@ -1,30 +1,34 @@
+/// <reference types="node" />
+
 import { spawnSync } from "node:child_process"
 import crypto from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
-import { fileURLToPath } from "node:url"
 
 // Runs Playwright component visual tests inside Docker for reproducible snapshots.
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const uiRoot = path.resolve(__dirname, "..")
+const scriptDir = import.meta.dirname
+const uiRoot = path.resolve(scriptDir, "..")
 const repoRoot = path.resolve(uiRoot, "../..")
+const stdRoot = path.resolve(repoRoot, "libs/std")
 
 const dockerfilePath = path.resolve(
   repoRoot,
-  "docker/development/playwright/Dockerfile"
+  "docker/development/playwright/Dockerfile",
 )
-const dockerfileContents = fs.readFileSync(dockerfilePath, "utf8")
-const playwrightVersion = dockerfileContents.match(
-  /^ARG\s+PLAYWRIGHT_VERSION\s*=\s*([^\s]+)\s*$/m
-)?.[1]
+const dockerfileContents = fs.readFileSync(dockerfilePath, "utf-8")
+const playwrightVersion =
+  /^ARG\s+PLAYWRIGHT_VERSION\s*=\s*(?<version>[^\s]+)\s*$/mu.exec(
+    dockerfileContents,
+  )?.groups?.version
 const dockerfileHash = crypto
   .createHash("sha256")
   .update(dockerfileContents)
   .digest("hex")
   .slice(0, 12)
-const defaultImageName = playwrightVersion
-  ? `new-engine-ui-playwright:${playwrightVersion}-${dockerfileHash}`
-  : `new-engine-ui-playwright:${dockerfileHash}`
+const defaultImageName =
+  typeof playwrightVersion === "string" && playwrightVersion.length > 0
+    ? `new-engine-ui-playwright:${playwrightVersion}-${dockerfileHash}`
+    : `new-engine-ui-playwright:${dockerfileHash}`
 const imageName = process.env.PLAYWRIGHT_DOCKER_IMAGE ?? defaultImageName
 const platform = process.env.DOCKER_PLATFORM ?? "linux/amd64"
 const testBaseUrl = process.env.TEST_BASE_URL
@@ -39,7 +43,7 @@ const dockerProjects = dockerProjectsEnv
   .filter(Boolean)
 const storybookDir = path.resolve(uiRoot, "storybook-static")
 const storybookIframe = path.resolve(storybookDir, "iframe.html")
-const snapshotsDir = path.resolve(uiRoot, "test/visual.spec.ts-snapshots")
+const snapshotsDir = path.resolve(uiRoot, "test/visual.test.ts-snapshots")
 const containerName = `pw-visual-${Date.now()}`
 const rebuildStorybook =
   (process.env.PLAYWRIGHT_STORYBOOK_REBUILD ?? "1") !== "0"
@@ -52,15 +56,23 @@ const optionalContainerEnv = [
 
 console.log(`Using Docker image: ${imageName}`)
 
+/**
+ * Spawns a command synchronously with inherited stdio, and throws if it
+ * fails to start or exits with a non-zero status.
+ * @param {string} command - Executable to run.
+ * @param {readonly string[]} args - Arguments passed to the command.
+ * @param {import("node:child_process").SpawnSyncOptions} [options] - Additional spawnSync options merged in.
+ * @returns {import("node:child_process").SpawnSyncReturns<Buffer>} The spawnSync result.
+ */
 const run = (command, args, options = {}) => {
   const result = spawnSync(command, args, {
-    stdio: "inherit",
     shell: process.platform === "win32",
+    stdio: "inherit",
     ...options,
   })
   if (result.error) {
     throw new Error(
-      `Failed to spawn command: ${command} ${args.join(" ")} (${result.error.message})`
+      `Failed to spawn command: ${command} ${args.join(" ")} (${result.error.message})`,
     )
   }
   if (result.status !== 0) {
@@ -69,16 +81,48 @@ const run = (command, args, options = {}) => {
   return result
 }
 
+/**
+ * Spawns a command synchronously with piped stdio, returning the raw
+ * result without throwing on failure.
+ * @param {string} command - Executable to run.
+ * @param {readonly string[]} args - Arguments passed to the command.
+ * @returns {import("node:child_process").SpawnSyncReturns<Buffer>} The spawnSync result.
+ */
 const runSilent = (command, args) =>
   spawnSync(command, args, {
-    stdio: "pipe",
     shell: process.platform === "win32",
+    stdio: "pipe",
   })
 
+/**
+ * Spawns a command synchronously with inherited stdio, returning the raw
+ * result without throwing (used for interactive child processes whose
+ * non-zero exit is a normal outcome, such as Playwright).
+ * @param {string} command - Executable to run.
+ * @param {readonly string[]} args - Arguments passed to the command.
+ * @returns {import("node:child_process").SpawnSyncReturns<Buffer>} The spawnSync result.
+ */
+const runInteractive = (command, args) =>
+  spawnSync(command, args, {
+    shell: process.platform === "win32",
+    stdio: "inherit",
+  })
+
+/**
+ * Force-removes the Docker container created for this test run, ignoring
+ * failure (e.g. when the container was never created).
+ * @returns {void}
+ */
 const cleanup = () => {
   runSilent("docker", ["rm", "-f", containerName])
 }
 
+/**
+ * Cleans up the Docker container and exits after receiving a termination
+ * signal.
+ * @param {NodeJS.Signals} signal - The signal that triggered the exit.
+ * @returns {never} Never returns; the process exits directly.
+ */
 const handleExit = (signal) => {
   console.warn(`Received ${signal}, cleaning up container...`)
   cleanup()
@@ -89,16 +133,39 @@ process.on("SIGINT", () => handleExit("SIGINT"))
 process.on("SIGTERM", () => handleExit("SIGTERM"))
 process.on("exit", cleanup)
 
+/**
+ * @typedef {object} ProcessOutcome
+ * @property {NodeJS.Signals | null} signal - Signal that terminated the
+ *   process, if any.
+ * @property {number} status - Exit status code (defaults to `1` when the
+ *   process was killed by a signal or failed to spawn).
+ */
+
+/**
+ * Normalizes a spawnSync result into a signal/status outcome, logging a
+ * spawn failure when present.
+ * @param {import("node:child_process").SpawnSyncReturns<Buffer>} result - Raw spawnSync result.
+ * @param {string} contextLabel - Label used in the spawn-failure log message.
+ * @returns {ProcessOutcome} The normalized outcome.
+ */
 const getProcessOutcome = (result, contextLabel) => {
   if (result.error) {
     console.error(`${contextLabel} failed to spawn:`, result.error.message)
   }
   return {
-    status: result.status ?? (result.signal || result.error ? 1 : 0),
     signal: result.signal,
+    status: result.status ?? (result.signal || result.error ? 1 : 0),
   }
 }
 
+/**
+ * Copies an artifact directory out of the running container and back onto
+ * the host, warning (without failing the run) if it could not be copied.
+ * @param {string} label - Human-readable label used in log output.
+ * @param {string} sourcePath - Absolute path inside the container.
+ * @param {string} destinationPath - Absolute path on the host.
+ * @returns {void}
+ */
 const copyArtifact = (label, sourcePath, destinationPath) => {
   console.log(`Copying ${label} back to host...`)
   const copyResult = runSilent("docker", [
@@ -110,6 +177,11 @@ const copyArtifact = (label, sourcePath, destinationPath) => {
     console.warn(`Warning: Could not copy ${label} (may not exist yet)`)
   }
 }
+
+// The Playwright suite imports canonical runtime guards from @techsio/std.
+// Build that workspace package before mounting its package surface read-only.
+console.log("Building @techsio/std...")
+run("pnpm", ["-C", stdRoot, "build"])
 
 // Build storybook (default) or when missing
 if (rebuildStorybook) {
@@ -141,7 +213,9 @@ console.log("Starting container...")
 
 // Start container in background (keeps running)
 const containerEnvArgs = optionalContainerEnv.flatMap(([key, value]) =>
-  value ? ["-e", `${key}=${value}`] : []
+  typeof value === "string" && value.length > 0
+    ? ["-e", `${key}=${value}`]
+    : [],
 )
 const dockerRunArgs = [
   "run",
@@ -164,11 +238,17 @@ const dockerRunArgs = [
   "-v",
   `${storybookDir}:/app/storybook-static:ro`,
   "-v",
+  `${path.resolve(uiRoot, "assets")}:/app/assets:ro`,
+  "-v",
   `${path.resolve(uiRoot, "test")}:/app/test-src:ro`,
   "-v",
-  `${path.resolve(uiRoot, "playwright.config.cts")}:/app/playwright.config.cts:ro`,
+  `${path.resolve(uiRoot, "playwright.config.mts")}:/app/playwright.config.mts:ro`,
   "-v",
   `${path.resolve(uiRoot, "package.json")}:/app/package.json:ro`,
+  "-v",
+  `${path.resolve(stdRoot, "package.json")}:/app/node_modules/@techsio/std/package.json:ro`,
+  "-v",
+  `${path.resolve(stdRoot, "dist")}:/app/node_modules/@techsio/std/dist:ro`,
   imageName,
   "infinity",
 ]
@@ -187,7 +267,10 @@ const runningCheck = runSilent("docker", [
   "--format",
   "{{.State.Running}}",
 ])
-if (runningCheck.status !== 0 || runningCheck.stdout?.toString().trim() !== "true") {
+if (
+  runningCheck.status !== 0 ||
+  runningCheck.stdout?.toString().trim() !== "true"
+) {
   console.error("Container is not running after start.")
   const logsResult = runSilent("docker", ["logs", containerName])
   if (logsResult.status === 0) {
@@ -211,34 +294,43 @@ try {
 
   // Run playwright tests (all I/O happens inside container)
   console.log("Running Playwright tests...")
+  /**
+   * Runs the Playwright test suite inside the running container for a
+   * single project (or all default projects when omitted).
+   * @param {string} [project] - Playwright project name to scope the run to.
+   * @returns {import("node:child_process").SpawnSyncReturns<Buffer>} The spawnSync result.
+   */
   const runPlaywright = (project) =>
-    spawnSync(
-      "docker",
-      [
-        "exec",
-        "-t",
-        containerName,
-        "npx",
-        "playwright",
-        "test",
-        "-c",
-        "playwright.config.cts",
-        "--reporter=list,html",
-        ...(project ? ["--project", project] : []),
-        ...extraArgs,
-      ],
-      { stdio: "inherit" }
-    )
+    runInteractive("docker", [
+      "exec",
+      "-t",
+      containerName,
+      "npx",
+      "playwright",
+      "test",
+      "-c",
+      "playwright.config.mts",
+      "--reporter=list,html",
+      ...(typeof project === "string" && project.length > 0
+        ? ["--project", project]
+        : []),
+      ...extraArgs,
+    ])
 
+  /** @type {number} */
   let testStatus = 0
+  /** @type {NodeJS.Signals | null} */
   let testSignal = null
   if (sequentialProjects) {
     const projectsToRun =
       dockerProjects.length > 0 ? dockerProjects : ["desktop", "mobile"]
     for (const project of projectsToRun) {
       const result = runPlaywright(project)
-      const outcome = getProcessOutcome(result, `Playwright project "${project}"`)
-      if (outcome.status !== 0 || outcome.signal) {
+      const outcome = getProcessOutcome(
+        result,
+        `Playwright project "${project}"`,
+      )
+      if (outcome.status !== 0 || outcome.signal !== null) {
         testStatus = outcome.status
         testSignal = outcome.signal
         break
@@ -250,7 +342,7 @@ try {
     testSignal = outcome.signal
   }
 
-  if (testStatus !== 0 || testSignal) {
+  if (testStatus !== 0 || testSignal !== null) {
     console.warn("Playwright exited with a non-zero status.")
     const inspectResult = runSilent("docker", [
       "inspect",
@@ -265,7 +357,11 @@ try {
 
   const reportDir = path.resolve(uiRoot, "playwright-report")
   const resultsDir = path.resolve(uiRoot, "test-results")
-  copyArtifact("snapshots", "/app/test/visual.spec.ts-snapshots/.", snapshotsDir)
+  copyArtifact(
+    "snapshots",
+    "/app/test/visual.test.ts-snapshots/.",
+    snapshotsDir,
+  )
   copyArtifact("HTML report", "/app/playwright-report/.", reportDir)
   copyArtifact("test results", "/app/test-results/.", resultsDir)
 

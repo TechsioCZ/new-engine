@@ -3,20 +3,21 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+
 import { AccountSurface } from "@/components/account/account-surface"
+import NextLink from "@/components/app-link"
 import { AddListDialog } from "@/components/product-lists/add-list-dialog"
 import { ProductListTabs } from "@/components/product-lists/product-list-tabs"
 import { RemoveListDialog } from "@/components/product-lists/remove-list-dialog"
 import { useAccountProductLists } from "@/components/product-lists/use-account-product-lists"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
-function ProductListsEmptyState({
+const ProductListsEmptyState = ({
   onCreateList,
 }: {
   onCreateList: () => void
-}) {
+}) => {
   const tAuth = useTranslations("auth")
 
   return (
@@ -42,9 +43,10 @@ function ProductListsEmptyState({
   )
 }
 
-export function AccountProductLists() {
+export const AccountProductLists = () => {
   const tAuth = useTranslations("auth")
   const accountLists = useAccountProductLists()
+  const handleCreateList = accountLists.openCreateListDialog
 
   if (accountLists.listsQuery.isLoading) {
     return (
@@ -56,7 +58,10 @@ export function AccountProductLists() {
     )
   }
 
-  if (accountLists.listsQuery.error) {
+  if (
+    accountLists.listsQuery.error !== null &&
+    accountLists.listsQuery.error.length > 0
+  ) {
     return (
       <AccountSurface className="space-y-400">
         <p className="text-danger text-sm">
@@ -91,9 +96,7 @@ export function AccountProductLists() {
       <RemoveListDialog accountLists={accountLists} />
 
       {accountLists.sortedLists.length === 0 ? (
-        <ProductListsEmptyState
-          onCreateList={accountLists.openCreateListDialog}
-        />
+        <ProductListsEmptyState onCreateList={handleCreateList} />
       ) : (
         <ProductListTabs accountLists={accountLists} />
       )}

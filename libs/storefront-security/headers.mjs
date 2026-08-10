@@ -24,10 +24,10 @@ export const DEFAULT_PERMISSIONS_POLICY_DIRECTIVES = [
  *   permissionsPolicyDirectives?: string[]
  *   replaceHeaders?: ResponseHeaderOverride[]
  *   extendHeaders?: Array<{ key: string, value: string }>
- * }} options
- * @returns {Array<{ key: string, value: string }>}
+ * }} options - Storefront response header settings.
+ * @returns {Array<{ key: string, value: string }>} Ordered response headers.
  */
-export function buildStorefrontResponseHeaders(options) {
+export const buildStorefrontResponseHeaders = (options) => {
   const {
     isProduction = process.env.NODE_ENV === "production",
     contentSecurityPolicy,
@@ -54,7 +54,7 @@ export function buildStorefrontResponseHeaders(options) {
             ],
           ]
         : []),
-    ].map(([key, value]) => [key, value])
+    ].map(([key, value]) => [key, value]),
   )
 
   for (const header of extendHeaders) {

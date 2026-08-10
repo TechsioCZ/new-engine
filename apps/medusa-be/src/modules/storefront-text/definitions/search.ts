@@ -22,6 +22,11 @@ export const STOREFRONT_SEARCH_TEXT_DEFINITIONS = [
     namespace: "search",
   },
   {
+    description: "Nadpis sekce souvisejících výsledků vyhledávání.",
+    key: "search.results.related",
+    namespace: "search",
+  },
+  {
     description: "Stavová hláška při načítání návrhů vyhledávání.",
     key: "search.autocomplete.loading",
     namespace: "search",
@@ -34,6 +39,11 @@ export const STOREFRONT_SEARCH_TEXT_DEFINITIONS = [
   {
     description: "Hláška pro vyhledávání bez rychlých návrhů.",
     key: "search.autocomplete.empty",
+    namespace: "search",
+  },
+  {
+    description: "Hláška při částečné nedostupnosti návrhů vyhledávání.",
+    key: "search.autocomplete.degraded",
     namespace: "search",
   },
   {

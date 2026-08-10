@@ -4,6 +4,7 @@ import {
   confirmOrderEditRequestWorkflow,
   useRemoteQueryStep,
 } from "@medusajs/medusa/core-flows"
+
 import { updateOrderWorkflow } from "../../order/workflows/update-order"
 import { validateQuoteAcceptanceStep } from "../steps/validate-quote-acceptance"
 import { updateQuotesWorkflow } from "./update-quote"
@@ -17,15 +18,15 @@ import { updateQuotesWorkflow } from "./update-quote"
 export const customerAcceptQuoteWorkflow = createWorkflow(
   "customer-accept-quote",
   (input: { quote_id: string; customer_id: string }) => {
-    const quote = useRemoteQueryStep({
+    const quoteResult: unknown = useRemoteQueryStep({
       entry_point: "quote",
       fields: ["id", "customer_id", "draft_order_id", "status"],
-      variables: { id: input.quote_id, customer_id: input.customer_id },
       list: false,
       throw_if_key_not_found: true,
+      variables: { customer_id: input.customer_id, id: input.quote_id },
     })
 
-    validateQuoteAcceptanceStep({ quote })
+    const quote = validateQuoteAcceptanceStep({ quote: quoteResult })
 
     updateQuotesWorkflow.runAsStep({
       input: [{ id: input.quote_id, status: "accepted" }],
@@ -33,8 +34,8 @@ export const customerAcceptQuoteWorkflow = createWorkflow(
 
     confirmOrderEditRequestWorkflow.runAsStep({
       input: {
-        order_id: quote.draft_order_id,
         confirmed_by: input.customer_id,
+        order_id: quote.draft_order_id,
       },
     })
 
@@ -45,5 +46,5 @@ export const customerAcceptQuoteWorkflow = createWorkflow(
         status: OrderStatus.PENDING,
       },
     })
-  }
+  },
 )

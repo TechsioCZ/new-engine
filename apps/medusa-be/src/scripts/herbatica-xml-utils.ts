@@ -1,66 +1,71 @@
 import { readFileSync } from "node:fs"
 
-export type XmlElement = {
+import { MedusaError } from "@medusajs/framework/utils"
+
+export interface XmlElement {
   attributes: Record<string, string>
   inner: string
 }
 
 const ENTITY_MAP: Record<string, string> = {
-  "&quot;": '"',
-  "&apos;": "'",
-  "&lt;": "<",
-  "&gt;": ">",
   "&amp;": "&",
+  "&apos;": "'",
+  "&gt;": ">",
+  "&lt;": "<",
   "&nbsp;": " ",
+  "&quot;": '"',
 }
 
-const HTTP_XML_SOURCE_PATTERN = /^https?:\/\//i
+// Case-insensitivity is spelled out as ASCII case pairs rather than the `i` flag.
+// Combined with the required `u` flag, `i` switches to full Unicode case folding, so `s`
+// would also match U+017F (LATIN SMALL LETTER LONG S), widening which sources this
+// matches as HTTP(S).
+const HTTP_XML_SOURCE_PATTERN = /^[hH][tT][tT][pP][sS]?:\/\//u
 
-export function decodeXml(value: string): string {
-  return value
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => {
+export const decodeXml = (value: string): string =>
+  value
+    .replaceAll(/<!\[CDATA\[(?<content>[\s\S]*?)\]\]>/gu, "$1")
+    .replaceAll(/&#x(?<hex>[0-9a-fA-F]+);/gu, (match, hex: string) => {
       const parsed = Number.parseInt(hex, 16)
       return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : match
     })
-    .replace(/&#([0-9]+);/g, (match, num) => {
-      const parsed = Number.parseInt(num, 10)
+    .replaceAll(/&#(?<dec>[0-9]+);/gu, (match, num: string) => {
+      const parsed = Math.trunc(Number(num))
       return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : match
     })
-    .replace(
-      /&quot;|&apos;|&lt;|&gt;|&amp;|&nbsp;/g,
-      (entity) => ENTITY_MAP[entity] ?? entity
+    .replaceAll(
+      /&quot;|&apos;|&lt;|&gt;|&amp;|&nbsp;/gu,
+      (entity) => ENTITY_MAP[entity] ?? entity,
     )
-}
 
-export function normalizeText(value?: string): string | undefined {
+export const normalizeText = (value?: string): string | undefined => {
   if (value === undefined) {
-    return
+    return undefined
   }
 
-  const decoded = decodeXml(value).replace(/\r\n/g, "\n").trim()
+  const decoded = decodeXml(value).replaceAll("\r\n", "\n").trim()
   return decoded === "" ? undefined : decoded
 }
 
-export function normalizeInlineText(value?: string): string | undefined {
+export const normalizeInlineText = (value?: string): string | undefined => {
   const normalized = normalizeText(value)
   if (normalized === undefined) {
-    return
+    return undefined
   }
 
-  return normalized.replace(/\s+/g, " ").trim()
+  return normalized.replaceAll(/\s+/gu, " ").trim()
 }
 
-export function parseAttributes(raw?: string): Record<string, string> {
-  if (!raw) {
+export const parseAttributes = (raw?: string): Record<string, string> => {
+  if (raw === undefined || raw === "") {
     return {}
   }
 
   const attributes: Record<string, string> = {}
-  const regex = /([:\w-]+)\s*=\s*"([^"]*)"/g
+  const regex = /(?<name>[:\w-]+)\s*=\s*"(?<value>[^"]*)"/gu
   for (const match of raw.matchAll(regex)) {
     const key = normalizeInlineText(match[1])
-    if (!key) {
+    if (key === undefined || key === "") {
       continue
     }
     attributes[key] = normalizeText(match[2]) ?? ""
@@ -69,15 +74,14 @@ export function parseAttributes(raw?: string): Record<string, string> {
   return attributes
 }
 
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-}
+const escapeRegExp = (value: string): string =>
+  value.replaceAll(/[.*+?^${}()|[\]\\]/gu, "\\$&")
 
-export function extractElements(source: string, tag: string): XmlElement[] {
+export const extractElements = (source: string, tag: string): XmlElement[] => {
   const escapedTag = escapeRegExp(tag)
   const regex = new RegExp(
     `<${escapedTag}(\\s[^>]*)?>([\\s\\S]*?)<\\/${escapedTag}>`,
-    "g"
+    "gu",
   )
   const result: XmlElement[] = []
 
@@ -91,39 +95,38 @@ export function extractElements(source: string, tag: string): XmlElement[] {
   return result
 }
 
-export function extractFirstElementContent(
+export const extractFirstElementContent = (
   source: string,
-  tag: string
-): string | undefined {
+  tag: string,
+): string | undefined => {
   const escapedTag = escapeRegExp(tag)
   const regex = new RegExp(
-    `<${escapedTag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${escapedTag}>`
+    `<${escapedTag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${escapedTag}>`,
+    "u",
   )
   return source.match(regex)?.[1]
 }
 
-export function extractFirstText(
+export const extractFirstText = (
   source: string,
-  tag: string
-): string | undefined {
-  return normalizeText(extractFirstElementContent(source, tag))
-}
+  tag: string,
+): string | undefined => normalizeText(extractFirstElementContent(source, tag))
 
-export function isHttpXmlSource(source: string): boolean {
-  return HTTP_XML_SOURCE_PATTERN.test(source)
-}
+export const isHttpXmlSource = (source: string): boolean =>
+  HTTP_XML_SOURCE_PATTERN.test(source)
 
-export async function readXmlSource(source: string): Promise<string> {
+export const readXmlSource = async (source: string): Promise<string> => {
   if (!isHttpXmlSource(source)) {
-    return readFileSync(source, "utf8")
+    return readFileSync(source, "utf-8")
   }
 
   const response = await fetch(source)
   if (!response.ok) {
-    throw new Error(
-      `Failed to fetch XML source ${source}: ${response.status} ${response.statusText}`
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Failed to fetch XML source ${source}: ${response.status} ${response.statusText}`,
     )
   }
 
-  return response.text()
+  return await response.text()
 }

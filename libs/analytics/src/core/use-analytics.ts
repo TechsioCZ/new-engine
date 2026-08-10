@@ -1,6 +1,5 @@
 "use client"
 
-import { useRef } from "react"
 import type {
   AnalyticsAdapter,
   CoreAddToCartParams,
@@ -34,10 +33,7 @@ export interface Analytics {
   trackAddToCart: (params: CoreAddToCartParams) => TrackingResult
   trackInitiateCheckout: (params: CoreInitiateCheckoutParams) => TrackingResult
   trackPurchase: (params: CorePurchaseParams) => TrackingResult
-  trackCustom: (
-    eventName: string,
-    params?: Record<string, unknown>
-  ) => TrackingResult
+  trackCustom: (eventName: string, params?: object) => TrackingResult
 }
 
 /**
@@ -79,97 +75,109 @@ export interface Analytics {
  * }
  * ```
  */
-export function useAnalytics({
-  adapters,
-  debug,
-}: UseAnalyticsConfig): Analytics {
-  // Stable ref for adapters to prevent callback recreation on every render
-  // when consumers pass a new array reference (e.g., inline array literals)
-  const adaptersRef = useRef(adapters)
-  adaptersRef.current = adapters
+const createAnalytics = (
+  adapters: AnalyticsAdapter[],
+  debug: boolean,
+): Analytics => {
+  const executeAcrossAdapters = (
+    label: string,
+    run: (adapter: AnalyticsAdapter) => boolean | undefined,
+  ): TrackingResult => {
+    const resultEntries = new Map<string, boolean>()
+    const keyCounts = new Map<string, number>()
+    let allSuccess = true
 
-  // Stable ref for debug flag, so we can keep stable methods without
-  // useCallback/useMemo churn.
-  const debugRef = useRef(debug)
-  debugRef.current = debug
+    for (const adapter of adapters) {
+      const count = (keyCounts.get(adapter.key) ?? 0) + 1
+      keyCounts.set(adapter.key, count)
+      const resultKey = count === 1 ? adapter.key : `${adapter.key}#${count}`
 
-  const analyticsRef = useRef<Analytics | null>(null)
+      if (count > 1 && debug) {
+        console.warn(
+          `[Analytics] Duplicate adapter key detected: "${adapter.key}". Results will be keyed as "${resultKey}".`,
+        )
+      }
 
-  if (!analyticsRef.current) {
-    const executeAcrossAdapters = (
-      label: string,
-      run: (adapter: AnalyticsAdapter) => boolean | undefined
-    ): TrackingResult => {
-      const results: Record<string, boolean> = Object.create(null)
-      const keyCounts: Record<string, number> = Object.create(null)
-      let allSuccess = true
+      try {
+        const success = run(adapter)
+        resultEntries.set(resultKey, success ?? true)
 
-      for (const adapter of adaptersRef.current) {
-        const count = (keyCounts[adapter.key] ?? 0) + 1
-        keyCounts[adapter.key] = count
-        const resultKey = count === 1 ? adapter.key : `${adapter.key}#${count}`
-
-        if (count > 1 && debugRef.current) {
-          console.warn(
-            `[Analytics] Duplicate adapter key detected: "${adapter.key}". Results will be keyed as "${resultKey}".`
-          )
-        }
-
-        try {
-          const success = run(adapter)
-          results[resultKey] = success ?? true
-
-          if (success === false) {
-            allSuccess = false
-          }
-        } catch (error) {
-          results[resultKey] = false
+        if (success === false) {
           allSuccess = false
-          if (debugRef.current) {
-            console.error(`[Analytics:${resultKey}] Error in ${label}:`, error)
-          }
+        }
+      } catch (error) {
+        resultEntries.set(resultKey, false)
+        allSuccess = false
+        if (debug) {
+          console.error(`[Analytics:${resultKey}] Error in ${label}:`, error)
         }
       }
-
-      if (debugRef.current) {
-        console.log(`[Analytics] ${label} results:`, results)
-      }
-
-      return { success: allSuccess, results }
     }
 
-    analyticsRef.current = {
-      trackViewContent: (params) =>
-        executeAcrossAdapters("trackViewContent", (adapter) =>
-          adapter.trackViewContent?.(params)
-        ),
-
-      trackAddToCart: (params) =>
-        executeAcrossAdapters("trackAddToCart", (adapter) =>
-          adapter.trackAddToCart?.(params)
-        ),
-
-      trackInitiateCheckout: (params) =>
-        executeAcrossAdapters("trackInitiateCheckout", (adapter) =>
-          adapter.trackInitiateCheckout?.(params)
-        ),
-
-      trackPurchase: (params) =>
-        executeAcrossAdapters("trackPurchase", (adapter) =>
-          adapter.trackPurchase?.(params)
-        ),
-
-      trackCustom: (eventName, params) =>
-        executeAcrossAdapters(`trackCustom(${eventName})`, (adapter) =>
-          adapter.trackCustom?.(eventName, params)
-        ),
+    const results = Object.fromEntries(resultEntries)
+    if (debug) {
+      console.log(`[Analytics] ${label} results:`, results)
     }
+
+    return { results, success: allSuccess }
   }
 
-  const analytics = analyticsRef.current
-  if (!analytics) {
-    throw new Error("Analytics not initialized")
+  return {
+    trackAddToCart: (params) =>
+      executeAcrossAdapters("trackAddToCart", (adapter) =>
+        adapter.trackAddToCart?.(params),
+      ),
+
+    trackCustom: (eventName, params) =>
+      executeAcrossAdapters(`trackCustom(${eventName})`, (adapter) =>
+        adapter.trackCustom?.(eventName, params),
+      ),
+
+    trackInitiateCheckout: (params) =>
+      executeAcrossAdapters("trackInitiateCheckout", (adapter) =>
+        adapter.trackInitiateCheckout?.(params),
+      ),
+
+    trackPurchase: (params) =>
+      executeAcrossAdapters("trackPurchase", (adapter) =>
+        adapter.trackPurchase?.(params),
+      ),
+
+    trackViewContent: (params) =>
+      executeAcrossAdapters("trackViewContent", (adapter) =>
+        adapter.trackViewContent?.(params),
+      ),
+  }
+}
+
+const analyticsCache = new WeakMap<
+  AnalyticsAdapter[],
+  Map<boolean, Analytics>
+>()
+
+const getCachedAnalytics = (
+  adapters: AnalyticsAdapter[],
+  debug: boolean,
+): Analytics => {
+  const cachedByDebug = analyticsCache.get(adapters)
+  if (cachedByDebug !== undefined) {
+    const cached = cachedByDebug.get(debug)
+    if (cached !== undefined) {
+      return cached
+    }
+
+    const analytics = createAnalytics(adapters, debug)
+    cachedByDebug.set(debug, analytics)
+    return analytics
   }
 
+  const analytics = createAnalytics(adapters, debug)
+  analyticsCache.set(adapters, new Map([[debug, analytics]]))
   return analytics
 }
+
+export const useAnalytics = ({
+  adapters,
+  debug,
+}: UseAnalyticsConfig): Analytics =>
+  getCachedAnalytics(adapters, debug === true)

@@ -1,9 +1,10 @@
-import { isPlainRecord } from "./object-utils"
+import { getRecordValue, isRecord as isPlainRecord } from "@techsio/std/object"
+
 import type { QueryKey } from "./query-keys"
 
 export const areQueryKeySegmentsEqual = (
   left: unknown,
-  right: unknown
+  right: unknown,
 ): boolean => {
   if (Object.is(left, right)) {
     return true
@@ -13,7 +14,7 @@ export const areQueryKeySegmentsEqual = (
     return (
       left.length === right.length &&
       left.every((entry, index) =>
-        areQueryKeySegmentsEqual(entry, right[index])
+        areQueryKeySegmentsEqual(entry, right[index]),
       )
     )
   }
@@ -24,7 +25,12 @@ export const areQueryKeySegmentsEqual = (
 
     return (
       leftKeys.length === rightKeys.length &&
-      leftKeys.every((key) => areQueryKeySegmentsEqual(left[key], right[key]))
+      leftKeys.every((key) =>
+        areQueryKeySegmentsEqual(
+          getRecordValue(left, key),
+          getRecordValue(right, key),
+        ),
+      )
     )
   }
 
@@ -32,11 +38,30 @@ export const areQueryKeySegmentsEqual = (
 }
 
 export const getSortedRecordKeys = (
-  ...records: readonly Record<string, unknown>[]
-): string[] =>
-  Array.from(new Set(records.flatMap((record) => Object.keys(record)))).sort()
+  ...records: readonly object[]
+): string[] => {
+  const sortedKeys: string[] = []
+  const seenKeys = new Set<string>()
+  for (const record of records) {
+    for (const key of Object.keys(record)) {
+      if (seenKeys.has(key)) {
+        continue
+      }
+      seenKeys.add(key)
+      const insertionIndex = sortedKeys.findIndex(
+        (sortedKey) => sortedKey.localeCompare(key) > 0,
+      )
+      if (insertionIndex === -1) {
+        sortedKeys.push(key)
+      } else {
+        sortedKeys.splice(insertionIndex, 0, key)
+      }
+    }
+  }
+  return sortedKeys
+}
 
 export const hasQueryKeyPrefix = (
   queryKey: QueryKey,
-  prefix: QueryKey
+  prefix: QueryKey,
 ): boolean => prefix.every((segment, index) => queryKey[index] === segment)

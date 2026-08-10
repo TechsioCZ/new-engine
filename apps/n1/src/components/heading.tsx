@@ -12,18 +12,18 @@ const sizes = {
   h3: "text-lg",
 } as const
 
-export function Heading({
+export const Heading = ({
   as,
   children,
   variant = "h1",
   ...props
-}: HeadingProps) {
-  const Component = as || "h1"
+}: HeadingProps) => {
+  const Component = as ?? "h1"
   const size = sizes[variant]
 
   return (
     <Component
-      className={`${size} relative font-bold after:absolute after:bottom-0 after:left-0 after:h-1 after:w-24 after:bg-primary`}
+      className={`${size} relative font-bold after:absolute after:bottom-0 after:left-0 after:h-100 after:w-heading-accent after:bg-primary`}
       {...props}
     >
       {children}

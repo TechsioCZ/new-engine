@@ -1,54 +1,38 @@
-export type OrderStatus =
-  | "pending"
-  | "completed"
-  | "canceled"
-  | "archived"
-  | "requires_action"
-
-export type PaymentStatus =
-  | "not_paid"
-  | "awaiting"
-  | "authorized"
-  | "captured"
-  | "partially_captured"
-  | "refunded"
-  | "partially_refunded"
-  | "partially_returned"
-  | "canceled"
-
-export type FulfillmentStatus =
-  | "not_fulfilled"
-  | "partially_fulfilled"
-  | "fulfilled"
-  | "partially_shipped"
-  | "shipped"
-  | "partially_delivered"
-  | "delivered"
-  | "partially_returned"
-  | "returned"
-  | "canceled"
-
-const orderStatusMap: Record<OrderStatus, string> = {
-  pending: "Čeká na zpracování",
-  completed: "Dokončena",
-  canceled: "Zrušena",
-  archived: "Archivována",
-  requires_action: "Vyžaduje akci",
-}
-
-export function getOrderStatusColor(
-  status: string
-): "success" | "danger" | "info" {
+export const getOrderStatusColor = (
+  status: string,
+): "success" | "danger" | "info" => {
   switch (status) {
-    case "completed":
+    case "completed": {
       return "success"
-    case "canceled":
+    }
+    case "canceled": {
       return "danger"
-    default:
+    }
+    default: {
       return "info"
+    }
   }
 }
 
-export function getOrderStatusLabel(status: string): string {
-  return orderStatusMap[status as OrderStatus] || status
+export const getOrderStatusLabel = (status: string): string => {
+  switch (status) {
+    case "archived": {
+      return "Archivována"
+    }
+    case "canceled": {
+      return "Zrušena"
+    }
+    case "completed": {
+      return "Dokončena"
+    }
+    case "pending": {
+      return "Čeká na zpracování"
+    }
+    case "requires_action": {
+      return "Vyžaduje akci"
+    }
+    default: {
+      return status
+    }
+  }
 }

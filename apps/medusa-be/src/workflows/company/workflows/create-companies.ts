@@ -4,11 +4,12 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { createRemoteLinkStep } from "@medusajs/medusa/core-flows"
+
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import { COMPANY_MODULE } from "../../../modules/company"
 import type { ModuleCreateCompany } from "../../../types"
 import { createApprovalSettingsStep } from "../../../workflows/approval/steps/create-approval-settings"
-import { createCompaniesStep } from "../steps"
+import { createCompaniesStep } from "../steps/create-companies"
 
 export const createCompaniesWorkflow = createWorkflow(
   "create-companies",
@@ -25,11 +26,11 @@ export const createCompaniesWorkflow = createWorkflow(
         [APPROVAL_MODULE]: {
           approval_settings_id: setting.id,
         },
-      }))
+      })),
     )
 
     createRemoteLinkStep(linkData)
 
     return new WorkflowResponse(companies)
-  }
+  },
 )

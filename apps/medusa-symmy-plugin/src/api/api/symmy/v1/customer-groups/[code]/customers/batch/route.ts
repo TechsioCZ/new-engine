@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import { enqueueImportJob } from "../../../../../../../../lib/queued-job-handler"
 import {
   SYMMY_CUSTOMER_GROUP_CUSTOMERS_ASSIGN_JOB_TYPE,
@@ -6,7 +7,7 @@ import {
 } from "../../../../../../../../workflows/customer-group-customers-batch/async"
 import type { AssignCustomersToGroupBatchSchemaType } from "./validators"
 
-/**
+/*
  * @api [post] /api/symmy/v1/customer-groups/{code}/customers/batch
  * operationId: PostSymmyCustomerGroupCustomersBatch
  * summary: Queue customer assignment to a customer group
@@ -72,17 +73,20 @@ import type { AssignCustomersToGroupBatchSchemaType } from "./validators"
  *       }
  *       ```
  */
-export const POST = async (
+const post = async (
   req: MedusaRequest<AssignCustomersToGroupBatchSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
+  const { code } = req.params
   await enqueueImportJob(req, res, {
-    type: SYMMY_CUSTOMER_GROUP_CUSTOMERS_ASSIGN_JOB_TYPE,
     payload: {
-      code: req.params.code,
+      code,
       customer_identifiers: req.validatedBody.customer_identifiers,
     },
-    total: req.validatedBody.customer_identifiers.length,
     requestedEvent: SYMMY_CUSTOMER_GROUP_CUSTOMERS_ASSIGN_REQUESTED_EVENT,
+    total: req.validatedBody.customer_identifiers.length,
+    type: SYMMY_CUSTOMER_GROUP_CUSTOMERS_ASSIGN_JOB_TYPE,
   })
 }
+
+export { post as POST }

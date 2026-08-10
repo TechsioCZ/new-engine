@@ -1,4 +1,5 @@
 import type { AdminProduct } from "@medusajs/framework/types"
+import { z } from "@medusajs/framework/zod"
 
 export type ProductContentSectionKey =
   | "description"
@@ -9,7 +10,7 @@ export type ProductContentSectionKey =
 
 export type ProductContentSectionHtml = Record<ProductContentSectionKey, string>
 
-export type ProductContentSection = {
+export interface ProductContentSection {
   key: ProductContentSectionKey
 }
 
@@ -34,56 +35,51 @@ export const PRODUCT_CONTENT_SECTIONS: ProductContentSection[] = [
 export const CONTENT_SECTIONS_METADATA_KEY = "content_sections"
 export const CONTENT_SECTIONS_MAP_METADATA_KEY = "content_sections_map"
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
+const contentSectionSchema = z.object({
+  html: z.string(),
+  key: z.enum(["description", "usage", "composition", "warning", "other"]),
+})
+const contentSectionsMapSchema = z.record(z.string(), z.string())
 
 const getMetadataValue = (
   metadata: AdminProduct["metadata"] | undefined,
-  key: string
-) => (isRecord(metadata) ? metadata[key] : undefined)
+  key: string,
+): unknown => metadata?.[key]
 
-const getMetadataRecord = (
+const getContentSectionsMap = (
   metadata: AdminProduct["metadata"] | undefined,
-  key: string
 ) => {
-  const value = getMetadataValue(metadata, key)
-
-  return isRecord(value) ? value : null
+  const result = contentSectionsMapSchema.safeParse(
+    getMetadataValue(metadata, CONTENT_SECTIONS_MAP_METADATA_KEY),
+  )
+  return result.success ? result.data : null
 }
 
 const getContentSectionsListHtml = (
   metadata: AdminProduct["metadata"] | undefined,
-  key: ProductContentSectionKey
-) => {
+  key: ProductContentSectionKey,
+): string => {
   const value = getMetadataValue(metadata, CONTENT_SECTIONS_METADATA_KEY)
 
   if (!Array.isArray(value)) {
     return ""
   }
 
-  const section = value.find((item) => {
-    const sectionRecord = isRecord(item) ? item : null
-
-    return sectionRecord?.key === key
-  })
-
-  if (!isRecord(section)) {
-    return ""
+  for (const item of value) {
+    const section = contentSectionSchema.safeParse(item)
+    if (section.success && section.data.key === key) {
+      return section.data.html
+    }
   }
 
-  const html = section.html
-
-  return typeof html === "string" ? html : ""
+  return ""
 }
 
 const getMetadataSectionHtml = (
   metadata: AdminProduct["metadata"] | undefined,
-  key: ProductContentSectionKey
-) => {
-  const contentSectionsMap = getMetadataRecord(
-    metadata,
-    CONTENT_SECTIONS_MAP_METADATA_KEY
-  )
+  key: ProductContentSectionKey,
+): string => {
+  const contentSectionsMap = getContentSectionsMap(metadata)
   const value = contentSectionsMap?.[key]
 
   if (typeof value === "string") {
@@ -95,11 +91,11 @@ const getMetadataSectionHtml = (
 
 const createEmptySectionHtml = () => {
   const sectionsHtml: ProductContentSectionHtml = {
-    description: "",
-    usage: "",
     composition: "",
-    warning: "",
+    description: "",
     other: "",
+    usage: "",
+    warning: "",
   }
 
   return sectionsHtml
@@ -126,13 +122,10 @@ export const buildContentSections = (sectionsHtml: ProductContentSectionHtml) =>
 
 export const buildContentSectionsMap = (
   metadata: AdminProduct["metadata"] | undefined,
-  sectionsHtml: ProductContentSectionHtml
+  sectionsHtml: ProductContentSectionHtml,
 ) => {
   const contentSectionsMap: Record<string, string> = {}
-  const existingContentSectionsMap = getMetadataRecord(
-    metadata,
-    CONTENT_SECTIONS_MAP_METADATA_KEY
-  )
+  const existingContentSectionsMap = getContentSectionsMap(metadata)
 
   if (existingContentSectionsMap) {
     for (const [key, value] of Object.entries(existingContentSectionsMap)) {
@@ -151,15 +144,12 @@ export const buildContentSectionsMap = (
 
 export const getSavedSectionHtml = (
   responseProduct: AdminProduct,
-  submittedSectionsHtml: ProductContentSectionHtml
+  submittedSectionsHtml: ProductContentSectionHtml,
 ) => {
   const responseHasContentMetadata =
-    getMetadataRecord(
-      responseProduct.metadata,
-      CONTENT_SECTIONS_MAP_METADATA_KEY
-    ) !== null ||
+    getContentSectionsMap(responseProduct.metadata) !== null ||
     Array.isArray(
-      getMetadataValue(responseProduct.metadata, CONTENT_SECTIONS_METADATA_KEY)
+      getMetadataValue(responseProduct.metadata, CONTENT_SECTIONS_METADATA_KEY),
     )
 
   if (responseHasContentMetadata) {

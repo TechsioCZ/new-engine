@@ -1,0 +1,22 @@
+{
+  "extends": "../../../../../apps/medusa-be/tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false,
+    "noEmit": true
+  },
+  "exclude": [
+    "../../../../../apps/medusa-be/node_modules",
+    "../../../../../apps/medusa-be/.medusa/*",
+    "../../../../../apps/medusa-be/.cache",
+    "../../../../../apps/medusa-be/src/admin",
+    "../../../../../apps/medusa-be/**/__tests__/**",
+    "../../../../../apps/medusa-be/**/*.spec.ts",
+    "../../../../../apps/medusa-be/**/*.test.ts",
+    "../../../../../apps/medusa-be/eslint.config.*",
+    "../../../../../apps/medusa-be/playwright.*.config.ts",
+    "../../../../../apps/medusa-be/tests/**",
+    "../../../../../apps/medusa-be/integration-tests/**",
+    "../../../../../apps/medusa-be/src/modules/*/migrations/**"
+  ]
+}

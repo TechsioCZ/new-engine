@@ -7,5 +7,14 @@
  */
 
 @theme static {
+  --footer-brand-column-width: calc(var(--spacing) * 75);
   --footer-cols: repeat(auto-fit, minmax(22%, 1fr));
+}
+
+@utility grid-cols-footer-brand {
+  grid-template-columns: var(--footer-brand-column-width) 1fr 1fr 1fr 1fr;
+}
+
+@utility grid-cols-footer-newsletter {
+  grid-template-columns: 1fr 1fr 1fr 1fr auto;
 }

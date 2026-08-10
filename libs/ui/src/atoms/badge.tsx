@@ -1,8 +1,8 @@
-/**
+/*
  * Badge — @techsio/ui-kit atom.
  *
  * @component Badge
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill badge-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,6 +11,7 @@
  */
 import type { HTMLAttributes } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
 
 const badgeVariants = tv({
@@ -19,45 +20,45 @@ const badgeVariants = tv({
     "rounded-badge border-badge-border",
     "border-(length:--border-width-badge)",
   ],
+  defaultVariants: {
+    size: "md",
+    variant: "info",
+  },
   variants: {
+    size: {
+      lg: ["text-badge-lg font-badge-lg", "p-badge-lg"],
+      md: ["text-badge-md font-badge-md", "p-badge-md"],
+      sm: ["text-badge-sm font-badge-sm", "p-badge-sm"],
+      xl: ["text-badge-xl font-badge-xl", "p-badge-xl"],
+    },
     variant: {
+      danger: [
+        "border-badge-border-danger bg-badge-bg-danger text-badge-fg-danger",
+      ],
+      discount: [
+        "border-badge-border-discount bg-badge-bg-discount text-badge-fg-discount",
+      ],
+      dynamic: [],
+      info: ["border-badge-border-info bg-badge-bg-info text-badge-fg-info"],
+      outline: [
+        "border-badge-border-outline bg-badge-bg-outline text-badge-fg-outline",
+      ],
       primary: [
         "border-badge-border-primary bg-badge-bg-primary text-badge-fg-primary",
       ],
       secondary: [
         "border-badge-border-secondary bg-badge-bg-secondary text-badge-fg-secondary",
       ],
-      tertiary: [
-        "border-badge-border-tertiary bg-badge-bg-tertiary text-badge-fg-tertiary",
-      ],
-      discount: [
-        "border-badge-border-discount bg-badge-bg-discount text-badge-fg-discount",
-      ],
-      info: ["border-badge-border-info bg-badge-bg-info text-badge-fg-info"],
       success: [
         "border-badge-border-success bg-badge-bg-success text-badge-fg-success",
+      ],
+      tertiary: [
+        "border-badge-border-tertiary bg-badge-bg-tertiary text-badge-fg-tertiary",
       ],
       warning: [
         "border-badge-border-warning bg-badge-bg-warning text-badge-fg-warning",
       ],
-      danger: [
-        "border-badge-border-danger bg-badge-bg-danger text-badge-fg-danger",
-      ],
-      outline: [
-        "border-badge-border-outline bg-badge-bg-outline text-badge-fg-outline",
-      ],
-      dynamic: [],
     },
-    size: {
-      sm: ["font-badge-sm text-badge-sm", "p-badge-sm"],
-      md: ["font-badge-md text-badge-md", "p-badge-md"],
-      lg: ["font-badge-lg text-badge-lg", "p-badge-lg"],
-      xl: ["font-badge-xl text-badge-xl", "p-badge-xl"],
-    },
-  },
-  defaultVariants: {
-    variant: "info",
-    size: "md",
   },
 })
 
@@ -69,11 +70,11 @@ type BaseBadgeProps = Omit<
   "color" | "children"
 > & {
   children: string
-  size?: BadgeSize
+  size?: BadgeSize | undefined
 }
 
 type DefaultBadgeProps = BaseBadgeProps & {
-  variant?: Exclude<BadgeVariant, "dynamic">
+  variant?: Exclude<BadgeVariant, "dynamic"> | undefined
 }
 
 type DynamicBadgeProps = BaseBadgeProps & {
@@ -85,33 +86,43 @@ type DynamicBadgeProps = BaseBadgeProps & {
 
 export type BadgeProps = DefaultBadgeProps | DynamicBadgeProps
 
-export function Badge({
-  variant,
-  size,
-  className,
-  children,
-  style,
-  ...props
-}: BadgeProps) {
-  const isDynamic = variant === "dynamic"
+export const Badge = (badgeProps: BadgeProps) => {
+  if (badgeProps.variant === "dynamic") {
+    const {
+      bgColor,
+      borderColor,
+      children,
+      className,
+      fgColor,
+      size,
+      style,
+      variant,
+      ...props
+    } = badgeProps
 
-  const { bgColor, fgColor, borderColor, ...restProps } =
-    props as Partial<DynamicBadgeProps>
+    return (
+      <span
+        {...props}
+        className={badgeVariants({ className, size, variant })}
+        style={{
+          ...style,
+          backgroundColor: bgColor,
+          borderColor,
+          color: fgColor,
+        }}
+      >
+        {children}
+      </span>
+    )
+  }
 
-  const dynamicStyles = isDynamic
-    ? {
-        ...style,
-        backgroundColor: bgColor,
-        color: fgColor,
-        borderColor,
-      }
-    : style
+  const { children, className, size, style, variant, ...props } = badgeProps
 
   return (
     <span
-      className={badgeVariants({ variant, size, className })}
-      style={dynamicStyles}
-      {...restProps}
+      {...props}
+      className={badgeVariants({ className, size, variant })}
+      style={style}
     >
       {children}
     </span>

@@ -12,7 +12,7 @@ import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
 
-type CategoryListingProps = {
+interface CategoryListingProps {
   slug: string
 }
 
@@ -29,7 +29,7 @@ const humanizeCategorySlug = (value: string) =>
     })
     .join(" ")
 
-export function CategoryListing({ slug }: CategoryListingProps) {
+export const CategoryListing = ({ slug }: CategoryListingProps) => {
   const controller = useCategoryListingController({ slug })
   const hasResultProducts = controller.products.length > 0
   const isResultsLoading =
@@ -42,8 +42,21 @@ export function CategoryListing({ slug }: CategoryListingProps) {
     PRIMARY_NAV_ITEMS.find((item) => item.href === `/c/${slug}`)?.label ??
     humanizeCategorySlug(slug)
   const categoryTitle = normalizeCategoryName(
-    controller.activeCategory?.name ?? fallbackNavTitle
+    controller.activeCategory?.name ?? fallbackNavTitle,
   )
+
+  const {
+    onAddToCart: handleAddToCart,
+    onBrandToggle: handleBrandToggle,
+    onFormToggle: handleFormToggle,
+    onIngredientToggle: handleIngredientToggle,
+    onPriceRangeCommit: handlePriceRangeCommit,
+    onProductHoverEnd: handleProductHoverEnd,
+    onProductHoverStart: handleProductHoverStart,
+    onResetFilters: handleResetFilters,
+    onSortChange: handleSortChange,
+    onStatusToggle: handleStatusToggle,
+  } = controller
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-category-page-gap p-category-page font-rubik 2xl:p-category-page-lg">
@@ -70,12 +83,12 @@ export function CategoryListing({ slug }: CategoryListingProps) {
             formItems={controller.asideFormItems}
             ingredientItems={controller.asideIngredientItems}
             isLoading={controller.isFiltersLoading}
-            onBrandToggle={controller.onBrandToggle}
-            onFormToggle={controller.onFormToggle}
-            onIngredientToggle={controller.onIngredientToggle}
-            onPriceRangeCommit={controller.onPriceRangeCommit}
-            onReset={controller.onResetFilters}
-            onStatusToggle={controller.onStatusToggle}
+            onBrandToggle={handleBrandToggle}
+            onFormToggle={handleFormToggle}
+            onIngredientToggle={handleIngredientToggle}
+            onPriceRangeCommit={handlePriceRangeCommit}
+            onReset={handleResetFilters}
+            onStatusToggle={handleStatusToggle}
             priceBounds={controller.priceBounds}
             selectedPriceRange={controller.selectedPriceRange}
             statusItems={controller.asideStatusItems}
@@ -88,12 +101,12 @@ export function CategoryListing({ slug }: CategoryListingProps) {
             categoriesError={controller.categoriesQuery.error}
             isEmpty={controller.products.length === 0}
             isLoading={isResultsLoading}
-            isProductAdding={controller.isProductAdding}
             isRefreshing={isResultsRefreshing}
-            onAddToCart={controller.onAddToCart}
-            onProductHoverEnd={controller.onProductHoverEnd}
-            onProductHoverStart={controller.onProductHoverStart}
-            onSortChange={controller.onSortChange}
+            isProductAdding={controller.isProductAdding}
+            onAddToCart={handleAddToCart}
+            onProductHoverEnd={handleProductHoverEnd}
+            onProductHoverStart={handleProductHoverStart}
+            onSortChange={handleSortChange}
             page={controller.page}
             pageSize={PLP_PAGE_SIZE}
             products={controller.products}

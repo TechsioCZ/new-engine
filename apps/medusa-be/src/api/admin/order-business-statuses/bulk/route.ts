@@ -1,35 +1,116 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import type { IOrderModuleService, Query } from "@medusajs/framework/types"
+import type {
+  IOrderModuleService,
+  MetadataType,
+  Query,
+} from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+
 import { getOrderBusinessManualStatusUpdateBlockReason } from "../../../../utils/order-business-status"
 import { clearOrderExpeditionSummaryCache } from "../../../../utils/order-expedition-summary-cache"
 import {
   buildOrderBusinessStatusMetadata,
   ORDER_BUSINESS_STATUS_ORDER_FIELDS,
-  type OrderBusinessStatusOrder,
   parseOrderBusinessStatusOrders,
   toOrderBusinessStatusSummary,
 } from "../utils"
+import type { OrderBusinessStatusOrder } from "../utils"
 import type { PostAdminOrderBusinessStatusesBulkSchemaType } from "../validators"
 
-type SkippedOrder = {
+interface SkippedOrder {
   id: string
   order_display_id: string
   reason: string
 }
 
-type UpdateCandidate = {
+interface UpdateCandidate {
   id: string
   order_display_id: string
-  metadata: Record<string, unknown>
+  metadata: MetadataType
 }
 
 const UPDATE_CHUNK_SIZE = 25
 
-export async function POST(
+const getOrderDisplayId = (order: OrderBusinessStatusOrder) => {
+  const customDisplayId = order.custom_display_id
+  if (
+    customDisplayId !== null &&
+    customDisplayId !== undefined &&
+    customDisplayId !== ""
+  ) {
+    return customDisplayId
+  }
+
+  return `#${order.display_id ?? order.id}`
+}
+
+const getUpdateFailureReason = (reason: unknown) =>
+  reason instanceof Error ? `Update failed: ${reason.message}` : "Update failed"
+
+const fetchOrderBusinessStatusOrdersByIds = async (
+  query: Query,
+  ids: string[],
+) => {
+  const { data } = await query.graph({
+    entity: "order",
+    fields: ORDER_BUSINESS_STATUS_ORDER_FIELDS,
+    filters: {
+      id: ids,
+    },
+  })
+
+  return parseOrderBusinessStatusOrders(data)
+}
+
+const updateOrdersInChunks = async (
+  orderService: IOrderModuleService,
+  candidates: UpdateCandidate[],
+  skipped: SkippedOrder[],
+) => {
+  const updatedOrderIds: string[] = []
+
+  const updateChunk = async (index: number): Promise<void> => {
+    if (index >= candidates.length) {
+      return
+    }
+
+    const chunk = candidates.slice(index, index + UPDATE_CHUNK_SIZE)
+    const results = await Promise.allSettled(
+      chunk.map(
+        async (order) =>
+          await orderService.updateOrders(order.id, {
+            metadata: order.metadata,
+          }),
+      ),
+    )
+
+    for (const [resultIndex, result] of results.entries()) {
+      const order = chunk[resultIndex]
+
+      if (order !== undefined) {
+        if (result.status === "fulfilled") {
+          updatedOrderIds.push(order.id)
+        } else {
+          skipped.push({
+            id: order.id,
+            order_display_id: order.order_display_id,
+            reason: getUpdateFailureReason(result.reason),
+          })
+        }
+      }
+    }
+
+    await updateChunk(index + UPDATE_CHUNK_SIZE)
+  }
+
+  await updateChunk(0)
+  return updatedOrderIds
+}
+
+const post = async (
   req: MedusaRequest<PostAdminOrderBusinessStatusesBulkSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { order_ids: requestedOrderIds, status } = req.validatedBody
   const orderIds = [...new Set(requestedOrderIds)]
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -42,118 +123,60 @@ export async function POST(
   for (const orderId of orderIds) {
     const order = ordersById.get(orderId)
 
-    if (!order) {
+    if (order === undefined) {
       skipped.push({
         id: orderId,
         order_display_id: orderId,
         reason: "Order was not found",
       })
-      continue
+    } else {
+      const blockReason = getOrderBusinessManualStatusUpdateBlockReason(
+        order,
+        status,
+      )
+
+      if (
+        blockReason !== null &&
+        blockReason !== undefined &&
+        blockReason !== ""
+      ) {
+        skipped.push({
+          id: order.id,
+          order_display_id: getOrderDisplayId(order),
+          reason: blockReason,
+        })
+      } else {
+        updateCandidates.push({
+          id: order.id,
+          metadata: buildOrderBusinessStatusMetadata(order.metadata, status),
+          order_display_id: getOrderDisplayId(order),
+        })
+      }
     }
-
-    const blockReason = getOrderBusinessManualStatusUpdateBlockReason(
-      order,
-      status
-    )
-
-    if (blockReason) {
-      skipped.push({
-        id: order.id,
-        order_display_id: getOrderDisplayId(order),
-        reason: blockReason,
-      })
-      continue
-    }
-
-    updateCandidates.push({
-      id: order.id,
-      metadata: buildOrderBusinessStatusMetadata(order.metadata, status),
-      order_display_id: getOrderDisplayId(order),
-    })
   }
 
   const updatedOrderIds = await updateOrdersInChunks(
     orderService,
     updateCandidates,
-    skipped
+    skipped,
   )
 
-  const updatedOrders = updatedOrderIds.length
-    ? await fetchOrderBusinessStatusOrdersByIds(query, updatedOrderIds)
-    : []
+  const updatedOrders =
+    updatedOrderIds.length > 0
+      ? await fetchOrderBusinessStatusOrdersByIds(query, updatedOrderIds)
+      : []
 
-  if (updatedOrderIds.length) {
+  if (updatedOrderIds.length > 0) {
     await clearOrderExpeditionSummaryCache(req.scope)
   }
 
   res.json({
     count: updatedOrders.length,
-    skipped_count: skipped.length,
-    status,
     orders: updatedOrders.map(toOrderBusinessStatusSummary),
     skipped,
+    skipped_count: skipped.length,
+    status,
   })
 }
 
-async function updateOrdersInChunks(
-  orderService: IOrderModuleService,
-  candidates: UpdateCandidate[],
-  skipped: SkippedOrder[]
-) {
-  const updatedOrderIds: string[] = []
-
-  for (let index = 0; index < candidates.length; index += UPDATE_CHUNK_SIZE) {
-    const chunk = candidates.slice(index, index + UPDATE_CHUNK_SIZE)
-    const results = await Promise.allSettled(
-      chunk.map((order) =>
-        orderService.updateOrders(order.id, { metadata: order.metadata })
-      )
-    )
-
-    for (const [resultIndex, result] of results.entries()) {
-      const order = chunk[resultIndex]
-
-      if (!order) {
-        continue
-      }
-
-      if (result.status === "fulfilled") {
-        updatedOrderIds.push(order.id)
-        continue
-      }
-
-      skipped.push({
-        id: order.id,
-        order_display_id: order.order_display_id,
-        reason: getUpdateFailureReason(result.reason),
-      })
-    }
-  }
-
-  return updatedOrderIds
-}
-
-async function fetchOrderBusinessStatusOrdersByIds(
-  query: Query,
-  ids: string[]
-) {
-  const { data } = await query.graph({
-    entity: "order",
-    fields: ORDER_BUSINESS_STATUS_ORDER_FIELDS,
-    filters: {
-      id: ids,
-    },
-  })
-
-  return parseOrderBusinessStatusOrders(data)
-}
-
-function getOrderDisplayId(order: OrderBusinessStatusOrder) {
-  return order.custom_display_id || `#${order.display_id ?? order.id}`
-}
-
-function getUpdateFailureReason(reason: unknown) {
-  return reason instanceof Error
-    ? `Update failed: ${reason.message}`
-    : "Update failed"
-}
+export { post as POST }

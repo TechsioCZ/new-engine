@@ -1,6 +1,6 @@
 import "server-only"
-
 import { dehydrate } from "@tanstack/react-query"
+
 import { resolveRelatedCategoryIds } from "../category-tree"
 import {
   buildProductListParams,
@@ -19,41 +19,54 @@ import {
 import type { ProductDetailParams } from "./types"
 
 export const prefetchProductDetailPageStorefrontData = async (
-  handle: string
+  handle: string,
 ) => {
   const { queryClient, region } = await getRegionServerContext()
 
   if (region) {
     const detailParams: ProductDetailParams = {
-      handle,
       fields: PRODUCT_DETAIL_FIELDS,
-      region_id: region.region_id,
-      country_code: region.country_code,
+      handle,
+      ...(region.region_id === undefined
+        ? {}
+        : { region_id: region.region_id }),
+      ...(region.country_code === undefined
+        ? {}
+        : { country_code: region.country_code }),
     }
 
     const product = await prefetchProductDetail(queryClient, detailParams)
     const relatedCategoryIds = resolveRelatedCategoryIds(product)
+    const productId = product?.id
 
-    if (product?.id) {
+    if (typeof productId === "string" && productId.length > 0) {
       await Promise.all([
-        prefetchProductAttributes(queryClient, product.id),
+        prefetchProductAttributes(queryClient, productId),
         prefetchProductReviews(queryClient, {
-          productId: product.id,
           limit: PRODUCT_REVIEWS_PAGE_SIZE,
           offset: 0,
+          productId,
         }),
       ])
     }
 
-    if (relatedCategoryIds.length > 0 && product?.id) {
+    if (
+      relatedCategoryIds.length > 0 &&
+      typeof productId === "string" &&
+      productId.length > 0
+    ) {
       const relatedProductsListParams = buildProductListParams({
-        page: 1,
-        limit: RELATED_PRODUCTS_LIMIT,
         category_id: relatedCategoryIds,
-        order: "-created_at",
         fields: PRODUCT_CARD_FIELDS,
-        region_id: region.region_id,
-        country_code: region.country_code,
+        limit: RELATED_PRODUCTS_LIMIT,
+        order: "-created_at",
+        page: 1,
+        ...(region.region_id === undefined
+          ? {}
+          : { region_id: region.region_id }),
+        ...(region.country_code === undefined
+          ? {}
+          : { country_code: region.country_code }),
       })
 
       await prefetchProductList(queryClient, relatedProductsListParams)
@@ -61,7 +74,7 @@ export const prefetchProductDetailPageStorefrontData = async (
   }
 
   return {
-    region,
     dehydratedState: dehydrate(queryClient),
+    region,
   }
 }

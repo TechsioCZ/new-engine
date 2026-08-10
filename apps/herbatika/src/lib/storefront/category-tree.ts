@@ -2,12 +2,12 @@ import type { HttpTypes } from "@medusajs/types"
 
 export const collectDescendantCategoryIds = (
   categories: HttpTypes.StoreProductCategory[],
-  rootCategoryId: string
+  rootCategoryId: string,
 ): string[] => {
   const childrenByParentId = new Map<string, string[]>()
 
   for (const category of categories) {
-    if (!category.parent_category_id) {
+    if (category.parent_category_id === null) {
       continue
     }
 
@@ -22,7 +22,7 @@ export const collectDescendantCategoryIds = (
 
   while (stack.length > 0) {
     const currentId = stack.pop()
-    if (!currentId) {
+    if (currentId === undefined) {
       continue
     }
 
@@ -42,7 +42,7 @@ export const collectDescendantCategoryIds = (
 }
 
 export const resolveRelatedCategoryIds = (
-  product: HttpTypes.StoreProduct | null
+  product: HttpTypes.StoreProduct | null,
 ): string[] => {
   const productCategories = product?.categories ?? []
   if (productCategories.length === 0) {
@@ -53,20 +53,20 @@ export const resolveRelatedCategoryIds = (
   const allCategoryIds = new Set<string>()
 
   for (const category of productCategories) {
-    if (category.id) {
+    if (category.id !== null) {
       allCategoryIds.add(category.id)
     }
 
-    if (category.parent_category_id) {
+    if (category.parent_category_id !== null) {
       parentCategoryIds.add(category.parent_category_id)
     }
   }
 
-  const leafCategoryIds = Array.from(allCategoryIds).filter(
-    (categoryId) => !parentCategoryIds.has(categoryId)
+  const leafCategoryIds = [...allCategoryIds].filter(
+    (categoryId) => !parentCategoryIds.has(categoryId),
   )
 
   return (
-    leafCategoryIds.length > 0 ? leafCategoryIds : Array.from(allCategoryIds)
+    leafCategoryIds.length > 0 ? leafCategoryIds : [...allCategoryIds]
   ).slice(0, 3)
 }

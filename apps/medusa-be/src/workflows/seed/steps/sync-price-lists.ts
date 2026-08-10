@@ -15,6 +15,7 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { z } from "@medusajs/framework/zod"
 import {
   batchPriceListPricesWorkflow,
   createCustomerGroupsWorkflow,
@@ -23,49 +24,49 @@ import {
   updatePriceListsWorkflow,
 } from "@medusajs/medusa/core-flows"
 
-type PriceListPriceInput = {
+interface PriceListPriceInput {
   productHandle: string
   variantSku: string
   amount: number
   currencyCode: string
 }
 
-type OverridePriceListInput = {
+interface OverridePriceListInput {
   title: string
   customerGroupName: string
   prices: PriceListPriceInput[]
 }
 
-type SalePriceListInput = {
+interface SalePriceListInput {
   title: string
   sourceTitle: string
-  customerGroupName?: string
-  startsAt?: string
-  endsAt?: string
+  customerGroupName?: string | undefined
+  startsAt?: string | undefined
+  endsAt?: string | undefined
   prices: PriceListPriceInput[]
 }
 
-export type SyncPriceListsStepConfig = {
-  metadataSource?: string
-  logLabel?: string
-  customerGroupRuleAttribute?: string
+export interface SyncPriceListsStepConfig {
+  metadataSource?: string | undefined
+  logLabel?: string | undefined
+  customerGroupRuleAttribute?: string | undefined
   descriptions?: {
-    override?: string
-    sale?: string
+    override?: string | undefined
+    sale?: string | undefined
   }
   sourceTypes?: {
-    override?: string
-    sale?: string
-    customerGroup?: string
+    override?: string | undefined
+    sale?: string | undefined
+    customerGroup?: string | undefined
   }
   metadataKeys?: {
-    priceListTitle?: string
-    startsAt?: string
-    endsAt?: string
+    priceListTitle?: string | undefined
+    startsAt?: string | undefined
+    endsAt?: string | undefined
   }
 }
 
-type ResolvedSyncPriceListsStepConfig = {
+interface ResolvedSyncPriceListsStepConfig {
   metadataSource: string
   logLabel: string
   customerGroupRuleAttribute: string
@@ -85,310 +86,417 @@ type ResolvedSyncPriceListsStepConfig = {
   }
 }
 
-export type SyncPriceListsStepInput = {
+export interface SyncPriceListsStepInput {
   productIds: string[]
   priceLists?: {
     overrides: OverridePriceListInput[]
     sales: SalePriceListInput[]
   }
-  config?: SyncPriceListsStepConfig
+  config?: SyncPriceListsStepConfig | undefined
 }
 
-type PriceListSyncEntry = {
+interface PriceListSyncEntry {
   title: string
   description: string
   type: "override" | "sale"
-  startsAt?: string
-  endsAt?: string
-  customerGroupName?: string
+  startsAt?: string | undefined
+  endsAt?: string | undefined
+  customerGroupName?: string | undefined
   prices: PriceListPriceInput[]
-  metadata: Record<string, unknown>
+  metadata: z.output<typeof priceListMetadataSchema>
 }
 
-type VariantLookup = {
+interface VariantLookup {
   id: string
   sku: string
 }
 
-type VariantPriceSetLink = {
+interface VariantPriceSetLink {
   variant_id: string
   price_set_id: string
 }
 
-type PriceListWithPrices = PriceListDTO & {
-  prices?: PriceDTO[]
+interface AmountValueHolder {
+  value: number | string
 }
+
+interface PriceListPriceCreatePayload {
+  amount: number
+  currency_code: string
+  variant_id: string
+}
+
+interface PriceListPriceUpdatePayload {
+  id: string
+  amount: number
+  currency_code: string
+  variant_id: string
+}
+
+interface PriceListPriceChanges {
+  create: PriceListPriceCreatePayload[]
+  update: PriceListPriceUpdatePayload[]
+  skipped: number
+}
+
+interface PriceSyncTotals {
+  created: number
+  updated: number
+  skipped: number
+}
+
+type PriceListWithPrices = PriceListDTO & {
+  prices?: PriceDTO[] | undefined
+}
+
+type CustomerGroupWorkflowContainer = Parameters<
+  typeof createCustomerGroupsWorkflow
+>[0]
+type PriceListWorkflowContainer = Parameters<typeof createPriceListsWorkflow>[0]
+type PriceListPricesWorkflowContainer = Parameters<
+  typeof batchPriceListPricesWorkflow
+>[0]
 
 const SyncPriceListsStepId = "sync-price-lists-seed-step"
 const DEFAULT_SYNC_PRICE_LISTS_CONFIG = {
-  metadataSource: "seed-price-lists",
-  logLabel: "price lists",
   customerGroupRuleAttribute: "customer.groups.id",
   descriptions: {
     override: "Seed price list: {title}",
     sale: "Seed sale prices for {sourceTitle}",
   },
-  sourceTypes: {
-    override: "price_list",
-    sale: "sale",
-    customerGroup: "price_list_customer_group",
-  },
+  logLabel: "price lists",
   metadataKeys: {
+    endsAt: "ends_at",
     priceListTitle: "source_price_list_title",
     startsAt: "starts_at",
-    endsAt: "ends_at",
+  },
+  metadataSource: "seed-price-lists",
+  sourceTypes: {
+    customerGroup: "price_list_customer_group",
+    override: "price_list",
+    sale: "sale",
   },
 } satisfies ResolvedSyncPriceListsStepConfig
 
-function resolveSyncPriceListsConfig(
-  config?: SyncPriceListsStepConfig
-): ResolvedSyncPriceListsStepConfig {
-  return {
-    ...DEFAULT_SYNC_PRICE_LISTS_CONFIG,
-    ...config,
-    descriptions: {
-      ...DEFAULT_SYNC_PRICE_LISTS_CONFIG.descriptions,
-      ...config?.descriptions,
-    },
-    sourceTypes: {
-      ...DEFAULT_SYNC_PRICE_LISTS_CONFIG.sourceTypes,
-      ...config?.sourceTypes,
-    },
-    metadataKeys: {
-      ...DEFAULT_SYNC_PRICE_LISTS_CONFIG.metadataKeys,
-      ...config?.metadataKeys,
-    },
-  }
-}
+const priceListMetadataSchema = z.record(z.string(), z.json())
 
-function formatTemplate(
+const hasText = (value: string | null | undefined): value is string =>
+  value !== null && value !== undefined && value !== ""
+
+const isNumberOrString = (value: unknown): value is number | string =>
+  typeof value === "number" || typeof value === "string"
+
+const resolveDescriptions = (
+  config: SyncPriceListsStepConfig | undefined,
+): ResolvedSyncPriceListsStepConfig["descriptions"] => ({
+  override:
+    config?.descriptions?.override ??
+    DEFAULT_SYNC_PRICE_LISTS_CONFIG.descriptions.override,
+  sale:
+    config?.descriptions?.sale ??
+    DEFAULT_SYNC_PRICE_LISTS_CONFIG.descriptions.sale,
+})
+
+const resolveMetadataKeys = (
+  config: SyncPriceListsStepConfig | undefined,
+): ResolvedSyncPriceListsStepConfig["metadataKeys"] => ({
+  endsAt:
+    config?.metadataKeys?.endsAt ??
+    DEFAULT_SYNC_PRICE_LISTS_CONFIG.metadataKeys.endsAt,
+  priceListTitle:
+    config?.metadataKeys?.priceListTitle ??
+    DEFAULT_SYNC_PRICE_LISTS_CONFIG.metadataKeys.priceListTitle,
+  startsAt:
+    config?.metadataKeys?.startsAt ??
+    DEFAULT_SYNC_PRICE_LISTS_CONFIG.metadataKeys.startsAt,
+})
+
+const resolveSourceTypes = (
+  config: SyncPriceListsStepConfig | undefined,
+): ResolvedSyncPriceListsStepConfig["sourceTypes"] => ({
+  customerGroup:
+    config?.sourceTypes?.customerGroup ??
+    DEFAULT_SYNC_PRICE_LISTS_CONFIG.sourceTypes.customerGroup,
+  override:
+    config?.sourceTypes?.override ??
+    DEFAULT_SYNC_PRICE_LISTS_CONFIG.sourceTypes.override,
+  sale:
+    config?.sourceTypes?.sale ??
+    DEFAULT_SYNC_PRICE_LISTS_CONFIG.sourceTypes.sale,
+})
+
+const resolveSyncPriceListsConfig = (
+  config?: SyncPriceListsStepConfig,
+): ResolvedSyncPriceListsStepConfig => ({
+  customerGroupRuleAttribute:
+    config?.customerGroupRuleAttribute ??
+    DEFAULT_SYNC_PRICE_LISTS_CONFIG.customerGroupRuleAttribute,
+  descriptions: resolveDescriptions(config),
+  logLabel: config?.logLabel ?? DEFAULT_SYNC_PRICE_LISTS_CONFIG.logLabel,
+  metadataKeys: resolveMetadataKeys(config),
+  metadataSource:
+    config?.metadataSource ?? DEFAULT_SYNC_PRICE_LISTS_CONFIG.metadataSource,
+  sourceTypes: resolveSourceTypes(config),
+})
+
+const formatTemplate = (
   template: string,
-  values: Record<string, string | undefined>
-): string {
-  return template.replace(
-    /\{([a-zA-Z0-9_]+)\}/g,
-    (_match, key: string) => values[key] ?? ""
+  values: Record<string, string | undefined>,
+): string =>
+  template.replaceAll(
+    /\{(?<placeholder>[a-zA-Z0-9_]+)\}/gu,
+    (_match, key: string) => values[key] ?? "",
   )
-}
 
-function buildPriceListMetadata(
+const buildPriceListMetadata = (
   config: ResolvedSyncPriceListsStepConfig,
   sourceType: string,
   priceListTitle: string,
-  dates?: { startsAt?: string; endsAt?: string }
-): Record<string, unknown> {
-  return {
-    source: config.metadataSource,
-    source_type: sourceType,
-    [config.metadataKeys.priceListTitle]: priceListTitle,
-    ...(dates
-      ? {
-          [config.metadataKeys.startsAt]: dates.startsAt,
-          [config.metadataKeys.endsAt]: dates.endsAt,
-        }
-      : {}),
-  }
-}
+  dates?: { startsAt?: string; endsAt?: string },
+): z.output<typeof priceListMetadataSchema> => ({
+  source: config.metadataSource,
+  source_type: sourceType,
+  [config.metadataKeys.priceListTitle]: priceListTitle,
+  ...(hasText(dates?.startsAt)
+    ? { [config.metadataKeys.startsAt]: dates.startsAt }
+    : {}),
+  ...(hasText(dates?.endsAt)
+    ? { [config.metadataKeys.endsAt]: dates.endsAt }
+    : {}),
+})
 
-function normalizeCurrencyCode(value: string): string {
-  return value.toLowerCase()
-}
+const normalizeCurrencyCode = (value: string): string => value.toLowerCase()
 
-function amountsEqual(left: unknown, right: number): boolean {
+const hasAmountValue = (value: unknown): value is AmountValueHolder =>
+  typeof value === "object" &&
+  value !== null &&
+  "value" in value &&
+  isNumberOrString(value.value)
+
+const amountsEqual = (left: unknown, right: number): boolean => {
   let parsed = Number.NaN
 
   if (typeof left === "number") {
     parsed = left
   } else if (typeof left === "string") {
     parsed = Number(left)
-  } else if (
-    left &&
-    typeof left === "object" &&
-    "value" in left &&
-    (typeof left.value === "number" || typeof left.value === "string")
-  ) {
+  } else if (hasAmountValue(left)) {
     parsed = Number(left.value)
   }
 
-  return Number.isFinite(parsed) && Math.abs(parsed - right) < 0.000_001
+  return Number.isFinite(parsed) && Math.abs(parsed - right) < 0.000001
 }
 
-function buildPriceListEntries(
+const buildPriceListEntries = (
   priceLists?: SyncPriceListsStepInput["priceLists"],
-  config: ResolvedSyncPriceListsStepConfig = resolveSyncPriceListsConfig()
-): PriceListSyncEntry[] {
+  config: ResolvedSyncPriceListsStepConfig = resolveSyncPriceListsConfig(),
+): PriceListSyncEntry[] => {
   if (!priceLists) {
     return []
   }
 
   return [
     ...priceLists.overrides.map((priceList) => ({
-      title: priceList.title,
-      description: formatTemplate(config.descriptions.override, {
-        title: priceList.title,
-        sourceTitle: priceList.title,
-      }),
-      type: "override" as const,
       customerGroupName: priceList.customerGroupName,
-      prices: priceList.prices,
+      description: formatTemplate(config.descriptions.override, {
+        sourceTitle: priceList.title,
+        title: priceList.title,
+      }),
       metadata: buildPriceListMetadata(
         config,
         config.sourceTypes.override,
-        priceList.title
+        priceList.title,
       ),
+      prices: priceList.prices,
+      title: priceList.title,
+      type: "override" as const,
     })),
     ...priceLists.sales.map((priceList) => ({
-      title: priceList.title,
-      description: formatTemplate(config.descriptions.sale, {
-        title: priceList.title,
-        sourceTitle: priceList.sourceTitle,
-      }),
-      type: "sale" as const,
-      startsAt: priceList.startsAt,
-      endsAt: priceList.endsAt,
       customerGroupName: priceList.customerGroupName,
-      prices: priceList.prices,
+      description: formatTemplate(config.descriptions.sale, {
+        sourceTitle: priceList.sourceTitle,
+        title: priceList.title,
+      }),
+      endsAt: priceList.endsAt,
       metadata: buildPriceListMetadata(
         config,
         config.sourceTypes.sale,
         priceList.sourceTitle,
         {
-          startsAt: priceList.startsAt,
-          endsAt: priceList.endsAt,
-        }
+          ...(hasText(priceList.startsAt)
+            ? { startsAt: priceList.startsAt }
+            : {}),
+          ...(hasText(priceList.endsAt) ? { endsAt: priceList.endsAt } : {}),
+        },
       ),
+      prices: priceList.prices,
+      startsAt: priceList.startsAt,
+      title: priceList.title,
+      type: "sale" as const,
     })),
   ]
 }
 
-function buildVariantLookup(
-  products: ProductDTO[]
-): Map<string, VariantLookup> {
+const buildVariantLookup = (
+  products: ProductDTO[],
+): Map<string, VariantLookup> => {
   const variants = new Map<string, VariantLookup>()
 
   for (const product of products) {
     for (const variant of product.variants ?? []) {
-      if (!variant.sku) {
-        continue
+      if (hasText(variant.sku)) {
+        variants.set(`${product.handle}:${variant.sku}`, {
+          id: variant.id,
+          sku: variant.sku,
+        })
       }
-
-      variants.set(`${product.handle}:${variant.sku}`, {
-        id: variant.id,
-        sku: variant.sku,
-      })
     }
   }
 
   return variants
 }
 
-function isVariantPriceSetLink(value: unknown): value is VariantPriceSetLink {
-  return (
-    !!value &&
-    typeof value === "object" &&
-    !Array.isArray(value) &&
-    typeof (value as Partial<VariantPriceSetLink>).variant_id === "string" &&
-    typeof (value as Partial<VariantPriceSetLink>).price_set_id === "string"
-  )
-}
+const variantPriceSetLinksSchema = z.array(
+  z.object({
+    price_set_id: z.string(),
+    variant_id: z.string(),
+  }),
+)
 
-function toVariantPriceSetLinks(value: unknown): VariantPriceSetLink[] {
-  if (!(Array.isArray(value) && value.every(isVariantPriceSetLink))) {
+const toVariantPriceSetLinks = (value: unknown): VariantPriceSetLink[] => {
+  const parsed = variantPriceSetLinksSchema.safeParse(value)
+  if (!parsed.success) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "Unexpected product variant price-set link response shape."
+      "Unexpected product variant price-set link response shape.",
     )
   }
 
-  return value
+  return parsed.data
 }
 
-async function ensureCustomerGroups(
-  entries: PriceListSyncEntry[],
-  customerService: ICustomerModuleService,
-  container: Parameters<typeof createCustomerGroupsWorkflow>[0],
+const ensureCustomerGroup = async (params: {
   config: ResolvedSyncPriceListsStepConfig
-): Promise<Map<string, CustomerGroupDTO>> {
-  const names = [
-    ...new Set(
-      entries
-        .map((entry) => entry.customerGroupName)
-        .filter((name): name is string => !!name)
-    ),
-  ]
-  const result = new Map<string, CustomerGroupDTO>()
+  container: CustomerGroupWorkflowContainer
+  customerService: ICustomerModuleService
+  name: string
+  result: Map<string, CustomerGroupDTO>
+}): Promise<void> => {
+  const { config, container, customerService, name, result } = params
+  const existing = await customerService.listCustomerGroups(
+    { name },
+    { take: 1 },
+  )
+  const metadata = {
+    source: config.metadataSource,
+    source_type: config.sourceTypes.customerGroup,
+    [config.metadataKeys.priceListTitle]: name,
+  }
+  const [existingGroup] = existing
 
-  for (const name of names) {
-    const existing = await customerService.listCustomerGroups(
-      { name },
-      { take: 1 }
-    )
-    const metadata = {
-      source: config.metadataSource,
-      source_type: config.sourceTypes.customerGroup,
-      [config.metadataKeys.priceListTitle]: name,
-    }
-
-    if (existing[0]) {
-      const { result: updated } = await updateCustomerGroupsWorkflow(
-        container
-      ).run({
-        input: {
-          selector: { id: existing[0].id },
-          update: { metadata },
-        },
-      })
-      result.set(name, updated[0] ?? existing[0])
-      continue
-    }
-
-    const { result: created } = await createCustomerGroupsWorkflow(
-      container
+  if (existingGroup) {
+    const { result: updated } = await updateCustomerGroupsWorkflow(
+      container,
     ).run({
+      input: {
+        selector: { id: existingGroup.id },
+        update: { metadata },
+      },
+    })
+    result.set(name, updated[0] ?? existingGroup)
+    return
+  }
+
+  const { result: created } = await createCustomerGroupsWorkflow(container).run(
+    {
       input: {
         customersData: [
           {
-            name,
             metadata,
+            name,
           },
         ],
       },
-    })
-    if (created[0]) {
-      result.set(name, created[0])
-    }
+    },
+  )
+  if (created[0]) {
+    result.set(name, created[0])
   }
+}
+
+const runEnsureCustomerGroups = async (params: {
+  config: ResolvedSyncPriceListsStepConfig
+  container: CustomerGroupWorkflowContainer
+  customerService: ICustomerModuleService
+  names: string[]
+  offset?: number
+  result: Map<string, CustomerGroupDTO>
+}): Promise<void> => {
+  const offset = params.offset ?? 0
+  const name = params.names[offset]
+  if (name === undefined) {
+    return
+  }
+
+  await ensureCustomerGroup({
+    config: params.config,
+    container: params.container,
+    customerService: params.customerService,
+    name,
+    result: params.result,
+  })
+  await runEnsureCustomerGroups({ ...params, offset: offset + 1 })
+}
+
+const ensureCustomerGroups = async (
+  entries: PriceListSyncEntry[],
+  customerService: ICustomerModuleService,
+  container: CustomerGroupWorkflowContainer,
+  config: ResolvedSyncPriceListsStepConfig,
+): Promise<Map<string, CustomerGroupDTO>> => {
+  const names = [
+    ...new Set(entries.map((entry) => entry.customerGroupName).filter(hasText)),
+  ]
+  const result = new Map<string, CustomerGroupDTO>()
+
+  await runEnsureCustomerGroups({
+    config,
+    container,
+    customerService,
+    names,
+    result,
+  })
 
   return result
 }
 
-async function findPriceListByTitle(
+const findPriceListByTitle = async (
   pricingService: IPricingModuleService,
-  title: string
-): Promise<PriceListWithPrices | undefined> {
+  title: string,
+): Promise<PriceListWithPrices | undefined> => {
   const priceLists = (await pricingService.listPriceLists(
     { q: title },
     {
       relations: ["prices", "price_list_rules"],
       take: 100,
-    }
+    },
   )) as PriceListWithPrices[]
 
   return priceLists.find((priceList) => priceList.title === title)
 }
 
-function buildRules(
+const buildRules = (
   entry: PriceListSyncEntry,
   customerGroups: Map<string, CustomerGroupDTO>,
-  config: ResolvedSyncPriceListsStepConfig
-): Record<string, string[]> | undefined {
-  if (!entry.customerGroupName) {
-    return
+  config: ResolvedSyncPriceListsStepConfig,
+): Record<string, string[]> | undefined => {
+  if (!hasText(entry.customerGroupName)) {
+    return undefined
   }
 
   const customerGroup = customerGroups.get(entry.customerGroupName)
   if (!customerGroup) {
-    return
+    return undefined
   }
 
   return {
@@ -396,142 +504,133 @@ function buildRules(
   }
 }
 
-async function ensurePriceLists({
-  entries,
-  pricingService,
-  customerGroups,
-  container,
-  config,
-}: {
-  entries: PriceListSyncEntry[]
-  pricingService: IPricingModuleService
-  customerGroups: Map<string, CustomerGroupDTO>
-  container: Parameters<typeof createPriceListsWorkflow>[0]
+const ensurePriceList = async (params: {
   config: ResolvedSyncPriceListsStepConfig
-}): Promise<Map<string, PriceListWithPrices>> {
-  const result = new Map<string, PriceListWithPrices>()
+  container: PriceListWorkflowContainer
+  customerGroups: Map<string, CustomerGroupDTO>
+  entry: PriceListSyncEntry
+  pricingService: IPricingModuleService
+  result: Map<string, PriceListWithPrices>
+}): Promise<void> => {
+  const { config, container, customerGroups, entry, pricingService, result } =
+    params
+  const rules = buildRules(entry, customerGroups, config)
+  const existing = await findPriceListByTitle(pricingService, entry.title)
+  const data = {
+    description: entry.description,
+    ends_at: entry.endsAt ?? null,
+    metadata: entry.metadata,
+    starts_at: entry.startsAt ?? null,
+    status: "active" as const,
+    title: entry.title,
+    type: entry.type,
+    ...(rules ? { rules } : {}),
+  }
 
-  for (const entry of entries) {
-    const rules = buildRules(entry, customerGroups, config)
-    const existing = await findPriceListByTitle(pricingService, entry.title)
-    const data = {
-      title: entry.title,
-      description: entry.description,
-      type: entry.type,
-      status: "active" as const,
-      starts_at: entry.startsAt ?? null,
-      ends_at: entry.endsAt ?? null,
-      rules,
-      metadata: entry.metadata,
-    }
-
-    if (existing) {
-      await updatePriceListsWorkflow(container).run({
-        input: {
-          price_lists_data: [
-            {
-              id: existing.id,
-              ...data,
-            },
-          ],
-        },
-      })
-      result.set(entry.title, existing)
-      continue
-    }
-
-    const { result: created } = await createPriceListsWorkflow(container).run({
+  if (existing) {
+    await updatePriceListsWorkflow(container).run({
       input: {
         price_lists_data: [
           {
+            id: existing.id,
             ...data,
-            prices: [],
           },
         ],
       },
     })
-    if (created[0]) {
-      result.set(entry.title, created[0] as PriceListWithPrices)
-    }
+    result.set(entry.title, existing)
+    return
   }
+
+  const { result: created } = await createPriceListsWorkflow(container).run({
+    input: {
+      price_lists_data: [
+        {
+          ...data,
+          prices: [],
+        },
+      ],
+    },
+  })
+  if (created[0]) {
+    result.set(entry.title, created[0])
+  }
+}
+
+const runEnsurePriceLists = async (params: {
+  config: ResolvedSyncPriceListsStepConfig
+  container: PriceListWorkflowContainer
+  customerGroups: Map<string, CustomerGroupDTO>
+  entries: PriceListSyncEntry[]
+  offset?: number
+  pricingService: IPricingModuleService
+  result: Map<string, PriceListWithPrices>
+}): Promise<void> => {
+  const offset = params.offset ?? 0
+  const entry = params.entries[offset]
+  if (entry === undefined) {
+    return
+  }
+
+  await ensurePriceList({
+    config: params.config,
+    container: params.container,
+    customerGroups: params.customerGroups,
+    entry,
+    pricingService: params.pricingService,
+    result: params.result,
+  })
+  await runEnsurePriceLists({ ...params, offset: offset + 1 })
+}
+
+const ensurePriceLists = async ({
+  config,
+  container,
+  customerGroups,
+  entries,
+  pricingService,
+}: {
+  entries: PriceListSyncEntry[]
+  pricingService: IPricingModuleService
+  customerGroups: Map<string, CustomerGroupDTO>
+  container: PriceListWorkflowContainer
+  config: ResolvedSyncPriceListsStepConfig
+}): Promise<Map<string, PriceListWithPrices>> => {
+  const result = new Map<string, PriceListWithPrices>()
+
+  await runEnsurePriceLists({
+    config,
+    container,
+    customerGroups,
+    entries,
+    pricingService,
+    result,
+  })
 
   return result
 }
 
-function existingPriceForVariant(
+const hasNoQuantityBounds = (price: PriceDTO): boolean =>
+  (price.min_quantity === null || price.min_quantity === undefined) &&
+  (price.max_quantity === null || price.max_quantity === undefined)
+
+const existingPriceForVariant = (
   priceList: PriceListWithPrices,
   variantId: string,
   currencyCode: string,
-  variantPriceSetMap: Map<string, string>
-): PriceDTO | undefined {
+  variantPriceSetMap: Map<string, string>,
+): PriceDTO | undefined => {
   const priceSetId = variantPriceSetMap.get(variantId)
 
   return priceList.prices?.find(
     (price) =>
       price.price_set_id === priceSetId &&
       price.currency_code?.toLowerCase() === currencyCode &&
-      (price.min_quantity === null || price.min_quantity === undefined) &&
-      (price.max_quantity === null || price.max_quantity === undefined)
+      hasNoQuantityBounds(price),
   )
 }
 
-async function syncPriceListPrices({
-  entries,
-  priceListsByTitle,
-  variantLookup,
-  variantPriceSetMap,
-  container,
-  logger,
-}: {
-  entries: PriceListSyncEntry[]
-  priceListsByTitle: Map<string, PriceListWithPrices>
-  variantLookup: Map<string, VariantLookup>
-  variantPriceSetMap: Map<string, string>
-  container: Parameters<typeof batchPriceListPricesWorkflow>[0]
-  logger: Logger
-}): Promise<{ created: number; updated: number; skipped: number }> {
-  let created = 0
-  let updated = 0
-  let skipped = 0
-
-  for (const entry of entries) {
-    const priceList = priceListsByTitle.get(entry.title)
-    if (!priceList) {
-      logger.warn(`Skipping prices for missing price list "${entry.title}"`)
-      continue
-    }
-
-    const changes = buildPriceListPriceChanges({
-      entry,
-      logger,
-      priceList,
-      variantLookup,
-      variantPriceSetMap,
-    })
-    skipped += changes.skipped
-
-    if (changes.create.length === 0 && changes.update.length === 0) {
-      continue
-    }
-
-    const { result } = await batchPriceListPricesWorkflow(container).run({
-      input: {
-        data: {
-          id: priceList.id,
-          create: changes.create,
-          update: changes.update,
-          delete: [],
-        },
-      },
-    })
-    created += result.created.length
-    updated += result.updated.length
-  }
-
-  return { created, updated, skipped }
-}
-
-function buildPriceListPriceChanges({
+const buildPriceListPriceChanges = ({
   entry,
   logger,
   priceList,
@@ -543,37 +642,19 @@ function buildPriceListPriceChanges({
   priceList: PriceListWithPrices
   variantLookup: Map<string, VariantLookup>
   variantPriceSetMap: Map<string, string>
-}): {
-  create: Array<{ amount: number; currency_code: string; variant_id: string }>
-  update: Array<{
-    id: string
-    amount: number
-    currency_code: string
-    variant_id: string
-  }>
-  skipped: number
-} {
-  const create: Array<{
-    amount: number
-    currency_code: string
-    variant_id: string
-  }> = []
-  const update: Array<{
-    id: string
-    amount: number
-    currency_code: string
-    variant_id: string
-  }> = []
+}): PriceListPriceChanges => {
+  const create: PriceListPriceCreatePayload[] = []
+  const update: PriceListPriceUpdatePayload[] = []
   let skipped = 0
 
   for (const price of entry.prices) {
     const variant = variantLookup.get(
-      `${price.productHandle}:${price.variantSku}`
+      `${price.productHandle}:${price.variantSku}`,
     )
     if (!variant) {
       skipped += 1
       logger.warn(
-        `Skipping price-list price for missing variant SKU "${price.variantSku}" on product "${price.productHandle}"`
+        `Skipping price-list price for missing variant SKU "${price.variantSku}" on product "${price.productHandle}"`,
       )
       continue
     }
@@ -583,24 +664,23 @@ function buildPriceListPriceChanges({
       priceList,
       variant.id,
       currencyCode,
-      variantPriceSetMap
+      variantPriceSetMap,
     )
 
-    if (!existingPrice) {
+    if (existingPrice) {
+      if (
+        !amountsEqual(existingPrice.amount, price.amount) ||
+        existingPrice.currency_code?.toLowerCase() !== currencyCode
+      ) {
+        update.push({
+          amount: price.amount,
+          currency_code: currencyCode,
+          id: existingPrice.id,
+          variant_id: variant.id,
+        })
+      }
+    } else {
       create.push({
-        amount: price.amount,
-        currency_code: currencyCode,
-        variant_id: variant.id,
-      })
-      continue
-    }
-
-    if (
-      !amountsEqual(existingPrice.amount, price.amount) ||
-      existingPrice.currency_code?.toLowerCase() !== currencyCode
-    ) {
-      update.push({
-        id: existingPrice.id,
         amount: price.amount,
         currency_code: currencyCode,
         variant_id: variant.id,
@@ -608,8 +688,121 @@ function buildPriceListPriceChanges({
     }
   }
 
-  return { create, update, skipped }
+  return { create, skipped, update }
 }
+
+const syncEntryPrices = async (params: {
+  container: PriceListPricesWorkflowContainer
+  entry: PriceListSyncEntry
+  logger: Logger
+  priceListsByTitle: Map<string, PriceListWithPrices>
+  variantLookup: Map<string, VariantLookup>
+  variantPriceSetMap: Map<string, string>
+}): Promise<PriceSyncTotals> => {
+  const {
+    container,
+    entry,
+    logger,
+    priceListsByTitle,
+    variantLookup,
+    variantPriceSetMap,
+  } = params
+  const priceList = priceListsByTitle.get(entry.title)
+  if (!priceList) {
+    logger.warn(`Skipping prices for missing price list "${entry.title}"`)
+    return { created: 0, skipped: 0, updated: 0 }
+  }
+
+  const changes = buildPriceListPriceChanges({
+    entry,
+    logger,
+    priceList,
+    variantLookup,
+    variantPriceSetMap,
+  })
+
+  if (changes.create.length === 0 && changes.update.length === 0) {
+    return { created: 0, skipped: changes.skipped, updated: 0 }
+  }
+
+  const { result } = await batchPriceListPricesWorkflow(container).run({
+    input: {
+      data: {
+        create: changes.create,
+        delete: [],
+        id: priceList.id,
+        update: changes.update,
+      },
+    },
+  })
+
+  return {
+    created: result.created.length,
+    skipped: changes.skipped,
+    updated: result.updated.length,
+  }
+}
+
+const runSyncPriceListPrices = async (params: {
+  container: PriceListPricesWorkflowContainer
+  entries: PriceListSyncEntry[]
+  logger: Logger
+  offset?: number
+  priceListsByTitle: Map<string, PriceListWithPrices>
+  totals: PriceSyncTotals
+  variantLookup: Map<string, VariantLookup>
+  variantPriceSetMap: Map<string, string>
+}): Promise<PriceSyncTotals> => {
+  const offset = params.offset ?? 0
+  const entry = params.entries[offset]
+  if (entry === undefined) {
+    return params.totals
+  }
+
+  const entryTotals = await syncEntryPrices({
+    container: params.container,
+    entry,
+    logger: params.logger,
+    priceListsByTitle: params.priceListsByTitle,
+    variantLookup: params.variantLookup,
+    variantPriceSetMap: params.variantPriceSetMap,
+  })
+
+  return await runSyncPriceListPrices({
+    ...params,
+    offset: offset + 1,
+    totals: {
+      created: params.totals.created + entryTotals.created,
+      skipped: params.totals.skipped + entryTotals.skipped,
+      updated: params.totals.updated + entryTotals.updated,
+    },
+  })
+}
+
+const syncPriceListPrices = async ({
+  container,
+  entries,
+  logger,
+  priceListsByTitle,
+  variantLookup,
+  variantPriceSetMap,
+}: {
+  entries: PriceListSyncEntry[]
+  priceListsByTitle: Map<string, PriceListWithPrices>
+  variantLookup: Map<string, VariantLookup>
+  variantPriceSetMap: Map<string, string>
+  container: PriceListPricesWorkflowContainer
+  logger: Logger
+}): Promise<PriceSyncTotals> =>
+  await runSyncPriceListPrices({
+    container,
+    entries,
+    logger,
+    priceListsByTitle,
+    totals: { created: 0, skipped: 0, updated: 0 },
+    variantLookup,
+    variantPriceSetMap,
+  })
 
 export const syncPriceListsStep = createStep(
   SyncPriceListsStepId,
@@ -627,49 +820,49 @@ export const syncPriceListsStep = createStep(
     }
 
     const productService = container.resolve<IProductModuleService>(
-      Modules.PRODUCT
+      Modules.PRODUCT,
     )
     const pricingService = container.resolve<IPricingModuleService>(
-      Modules.PRICING
+      Modules.PRICING,
     )
     const customerService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
     const remoteQuery = container.resolve<RemoteQueryFunction>(
-      ContainerRegistrationKeys.REMOTE_QUERY
+      ContainerRegistrationKeys.REMOTE_QUERY,
     )
 
     const products = await productService.listProducts(
       { id: { $in: input.productIds } },
       {
-        select: ["id", "handle", "variants.id", "variants.sku"],
         relations: ["variants"],
-      }
+        select: ["id", "handle", "variants.id", "variants.sku"],
+      },
     )
     const variantLookup = buildVariantLookup(products)
     const customerGroups = await ensureCustomerGroups(
       entries,
       customerService,
       container,
-      config
+      config,
     )
     const priceListsByTitle = await ensurePriceLists({
+      config,
+      container,
+      customerGroups,
       entries,
       pricingService,
-      customerGroups,
-      container,
-      config,
     })
     const variantIds = [
       ...new Set(
         entries.flatMap((entry) =>
           entry.prices
             .map((price) =>
-              variantLookup.get(`${price.productHandle}:${price.variantSku}`)
+              variantLookup.get(`${price.productHandle}:${price.variantSku}`),
             )
             .filter((variant): variant is VariantLookup => !!variant)
-            .map((variant) => variant.id)
-        )
+            .map((variant) => variant.id),
+        ),
       ),
     ]
     const variantPriceSetLinks = variantIds.length
@@ -678,30 +871,30 @@ export const syncPriceListsStep = createStep(
             entryPoint: "product_variant_price_set",
             fields: ["variant_id", "price_set_id"],
             variables: { variant_id: variantIds },
-          })
+          }),
         )
       : []
     const variantPriceSetMap = new Map(
-      variantPriceSetLinks.map((link) => [link.variant_id, link.price_set_id])
+      variantPriceSetLinks.map((link) => [link.variant_id, link.price_set_id]),
     )
     const priceSyncResult = await syncPriceListPrices({
+      container,
       entries,
+      logger,
       priceListsByTitle,
       variantLookup,
       variantPriceSetMap,
-      container,
-      logger,
     })
 
     logger.info(
-      `Synced ${priceListsByTitle.size} ${config.logLabel}, created ${priceSyncResult.created} prices, updated ${priceSyncResult.updated} prices`
+      `Synced ${priceListsByTitle.size} ${config.logLabel}, created ${priceSyncResult.created} prices, updated ${priceSyncResult.updated} prices`,
     )
 
     return new StepResponse({
       priceLists: priceListsByTitle.size,
       pricesCreated: priceSyncResult.created,
-      pricesUpdated: priceSyncResult.updated,
       pricesSkipped: priceSyncResult.skipped,
+      pricesUpdated: priceSyncResult.updated,
     })
-  }
+  },
 )

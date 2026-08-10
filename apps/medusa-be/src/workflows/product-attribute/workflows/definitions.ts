@@ -4,6 +4,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
+
 import { normalizeRequiredProductAttributeKey } from "../../../utils/product-attributes"
 import {
   createProductAttributeDefinitionStep,
@@ -28,7 +29,7 @@ export const createProductAttributeDefinitionWorkflow = createWorkflow(
     const result = createProductAttributeDefinitionStep(input)
     releaseLockStep({ key: lockKey })
     return new WorkflowResponse(result)
-  }
+  },
 )
 
 export const updateProductAttributeDefinitionWorkflow = createWorkflow(
@@ -41,33 +42,33 @@ export const updateProductAttributeDefinitionWorkflow = createWorkflow(
     const result = updateProductAttributeDefinitionStep(input)
     releaseLockStep({ key: lockKey })
     return new WorkflowResponse(result)
-  }
+  },
 )
 
 export const deleteProductAttributeDefinitionsWorkflow = createWorkflow(
   "delete-product-attribute-definitions",
   (input: ProductAttributeDefinitionIdsInput) => {
     const lockKey = transform({ input }, ({ input: current }) =>
-      current.ids.map((id) => `product-attribute-definition:${id}`).sort()
+      current.ids.map((id) => `product-attribute-definition:${id}`).toSorted(),
     )
     acquireLockStep({ key: lockKey, timeout: 5, ttl: 30 })
     const result = deleteProductAttributeDefinitionsStep(input)
     releaseLockStep({ key: lockKey })
     return new WorkflowResponse(result)
-  }
+  },
 )
 
 export const restoreProductAttributeDefinitionsWorkflow = createWorkflow(
   "restore-product-attribute-definitions",
   (input: ProductAttributeDefinitionIdsInput) => {
     const lockKey = transform({ input }, ({ input: current }) =>
-      current.ids.map((id) => `product-attribute-definition:${id}`).sort()
+      current.ids.map((id) => `product-attribute-definition:${id}`).toSorted(),
     )
     acquireLockStep({ key: lockKey, timeout: 5, ttl: 30 })
     const result = restoreProductAttributeDefinitionsStep(input)
     releaseLockStep({ key: lockKey })
     return new WorkflowResponse(result)
-  }
+  },
 )
 
 export const permanentlyDeleteProductAttributeDefinitionsWorkflow =
@@ -75,11 +76,13 @@ export const permanentlyDeleteProductAttributeDefinitionsWorkflow =
     "permanently-delete-product-attribute-definitions",
     (input: ProductAttributeDefinitionIdsInput) => {
       const lockKey = transform({ input }, ({ input: current }) =>
-        current.ids.map((id) => `product-attribute-definition:${id}`).sort()
+        current.ids
+          .map((id) => `product-attribute-definition:${id}`)
+          .toSorted(),
       )
       acquireLockStep({ key: lockKey, timeout: 5, ttl: 30 })
       const result = permanentlyDeleteProductAttributeDefinitionsStep(input)
       releaseLockStep({ key: lockKey })
       return new WorkflowResponse(result)
-    }
+    },
   )

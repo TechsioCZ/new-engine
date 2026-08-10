@@ -1,78 +1,55 @@
 #!/usr/bin/env node
+/// <reference types="node" />
 
 import fs from "node:fs"
 import path from "node:path"
 
 const DEFAULT_CONFIG_PATH = "scripts/file-size-guardrail.config.json"
 
-function parseArgs(argv) {
-  const args = {
-    configPath: DEFAULT_CONFIG_PATH,
-    json: false,
-  }
+/** @typedef {{ error: number, warning: number }} Thresholds */
+/** @typedef {{ exclude: string[], fileExtensions: string[], scanDirectories: string[], thresholds: Thresholds }} GuardrailConfig */
+/** @typedef {"error" | "warning"} Severity */
+/** @typedef {{ file: string, lineCount: number, severity: Severity, threshold: number }} Finding */
+/** @typedef {{ errors: number, warnings: number }} FindingCounts */
+/** @typedef {{ counts: FindingCounts, findings: Finding[], scannedFiles: number, thresholds: Thresholds }} Report */
 
-  for (let index = 0; index < argv.length; index += 1) {
-    const arg = argv[index]
+/** @type {(value: string) => string} */
+const normalizePath = (value) => value.replaceAll(path.sep, "/")
 
-    if (arg === "--json") {
-      args.json = true
-      continue
-    }
-
-    if (arg === "--config") {
-      const nextValue = argv[index + 1]
-      if (nextValue) {
-        args.configPath = nextValue
-        index += 1
-      }
-      continue
-    }
-
-    if (arg.startsWith("--config=")) {
-      args.configPath = arg.slice("--config=".length)
-    }
-  }
-
-  return args
-}
-
-function normalizePath(value) {
-  return value.replaceAll(path.sep, "/")
-}
-
-function globToRegExp(globPattern) {
+/** @type {(globPattern: string) => RegExp} */
+const globToRegExp = (globPattern) => {
   const normalized = normalizePath(globPattern)
   const withMarkers = normalized
     .replaceAll("**", "__DOUBLE_STAR__")
     .replaceAll("*", "__SINGLE_STAR__")
-
   const escaped = withMarkers
-    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+    .replaceAll(/[.+^${}()|[\]\\]/gu, "\\$&")
     .replaceAll("__DOUBLE_STAR__", ".*")
     .replaceAll("__SINGLE_STAR__", "[^/]*")
 
-  return new RegExp(`^${escaped}$`)
+  return new RegExp(`^${escaped}$`, "u")
 }
 
-function buildMatchers(patterns) {
-  return patterns.map((pattern) => globToRegExp(pattern))
-}
+/** @type {(patterns: string[]) => RegExp[]} */
+const buildMatchers = (patterns) => patterns.map(globToRegExp)
 
-function matchesAny(value, matchers) {
-  return matchers.some((matcher) => matcher.test(value))
-}
+/** @type {(value: string, matchers: RegExp[]) => boolean} */
+const matchesAny = (value, matchers) =>
+  matchers.some((matcher) => matcher.test(value))
 
-function isNonEmptyString(value) {
-  return typeof value === "string" && value.length > 0
-}
+/** @type {(value: unknown) => value is string} */
+const isNonEmptyString = (value) =>
+  typeof value === "string" && value.length > 0
 
-function assertArrayOfStrings(value, label) {
+/** @type {(value: unknown, label: string) => asserts value is string[]} */
+const assertArrayOfStrings = (value, label) => {
   if (!Array.isArray(value) || value.some((item) => !isNonEmptyString(item))) {
     throw new Error(`${label} must be an array of non-empty strings.`)
   }
 }
 
-function parseThreshold(value, label) {
+/** @type {(value: unknown, label: string) => number} */
+const parseThreshold = (value, label) => {
   if (typeof value !== "number" || Number.isNaN(value) || value < 1) {
     throw new Error(`${label} must be a positive number.`)
   }
@@ -80,64 +57,68 @@ function parseThreshold(value, label) {
   return Math.trunc(value)
 }
 
-function loadConfig(configPath) {
-  const configContent = fs.readFileSync(configPath, "utf8")
+/** @type {(value: unknown) => value is object} */
+const isObject = (value) =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+
+/** @type {(value: object, key: string) => unknown} */
+const readProperty = (value, key) => Reflect.get(value, key)
+
+/** @type {(configPath: string) => GuardrailConfig} */
+const loadConfig = (configPath) => {
+  const configContent = fs.readFileSync(configPath, "utf-8")
+  /** @type {unknown} */
   const config = JSON.parse(configContent)
 
-  if (!config || typeof config !== "object" || Array.isArray(config)) {
+  if (!isObject(config)) {
     throw new Error("Invalid config format.")
   }
 
-  const {
-    scanDirectories,
-    fileExtensions,
-    exclude = [],
-    allowlist = [],
-    thresholds,
-  } = config
+  const exclude = readProperty(config, "exclude") ?? []
+  const fileExtensions = readProperty(config, "fileExtensions")
+  const scanDirectories = readProperty(config, "scanDirectories")
+  const thresholds = readProperty(config, "thresholds")
 
   assertArrayOfStrings(scanDirectories, "scanDirectories")
   assertArrayOfStrings(fileExtensions, "fileExtensions")
   assertArrayOfStrings(exclude, "exclude")
-  assertArrayOfStrings(allowlist, "allowlist")
 
-  if (
-    !thresholds ||
-    typeof thresholds !== "object" ||
-    Array.isArray(thresholds)
-  ) {
+  if (!isObject(thresholds)) {
     throw new Error("thresholds must be an object.")
   }
 
   const warningThreshold = parseThreshold(
-    thresholds.warning,
-    "thresholds.warning"
+    readProperty(thresholds, "warning"),
+    "thresholds.warning",
   )
-  const errorThreshold = parseThreshold(thresholds.error, "thresholds.error")
+  const errorThreshold = parseThreshold(
+    readProperty(thresholds, "error"),
+    "thresholds.error",
+  )
 
   if (warningThreshold >= errorThreshold) {
     throw new Error("thresholds.warning must be lower than thresholds.error")
   }
 
   return {
-    scanDirectories,
-    fileExtensions,
     exclude,
-    allowlist,
+    fileExtensions,
+    scanDirectories,
     thresholds: {
-      warning: warningThreshold,
       error: errorThreshold,
+      warning: warningThreshold,
     },
   }
 }
 
-function collectFiles({
+/** @type {(options: { cwd: string, directory: string, fileExtensions: string[], excludeMatchers: RegExp[], output: string[] }) => void} */
+const collectFiles = ({
   cwd,
   directory,
   fileExtensions,
   excludeMatchers,
   output,
-}) {
+}) => {
   if (!(fs.existsSync(directory) && fs.statSync(directory).isDirectory())) {
     return
   }
@@ -149,31 +130,24 @@ function collectFiles({
       collectFiles({
         cwd,
         directory: absolutePath,
-        fileExtensions,
         excludeMatchers,
+        fileExtensions,
         output,
       })
-      continue
+    } else if (
+      entry.isFile() &&
+      fileExtensions.some((extension) => entry.name.endsWith(extension))
+    ) {
+      const relativePath = normalizePath(path.relative(cwd, absolutePath))
+      if (!matchesAny(relativePath, excludeMatchers)) {
+        output.push(relativePath)
+      }
     }
-
-    if (!entry.isFile()) {
-      continue
-    }
-
-    if (!fileExtensions.some((extension) => entry.name.endsWith(extension))) {
-      continue
-    }
-
-    const relativePath = normalizePath(path.relative(cwd, absolutePath))
-    if (matchesAny(relativePath, excludeMatchers)) {
-      continue
-    }
-
-    output.push(relativePath)
   }
 }
 
-function resolveLineCount(content) {
+/** @type {(content: string) => number} */
+const resolveLineCount = (content) => {
   if (content.length === 0) {
     return 0
   }
@@ -185,14 +159,11 @@ function resolveLineCount(content) {
     }
   }
 
-  if (content.endsWith("\n")) {
-    return newlineCount
-  }
-
-  return newlineCount + 1
+  return content.endsWith("\n") ? newlineCount : newlineCount + 1
 }
 
-function resolveSeverity(lineCount, thresholds) {
+/** @type {(lineCount: number, thresholds: Thresholds) => Severity | null} */
+const resolveSeverity = (lineCount, thresholds) => {
   if (lineCount >= thresholds.error) {
     return "error"
   }
@@ -204,30 +175,25 @@ function resolveSeverity(lineCount, thresholds) {
   return null
 }
 
-function buildReport({ cwd, files, allowlistMatchers, thresholds }) {
+/** @type {(options: { cwd: string, files: string[], thresholds: Thresholds }) => Report} */
+const buildReport = ({ cwd, files, thresholds }) => {
+  /** @type {Finding[]} */
   const findings = []
 
   for (const file of files) {
     const absolutePath = path.resolve(cwd, file)
-    const content = fs.readFileSync(absolutePath, "utf8")
+    const content = fs.readFileSync(absolutePath, "utf-8")
     const lineCount = resolveLineCount(content)
-    const sourceSeverity = resolveSeverity(lineCount, thresholds)
+    const severity = resolveSeverity(lineCount, thresholds)
 
-    if (!sourceSeverity) {
-      continue
+    if (severity) {
+      findings.push({
+        file,
+        lineCount,
+        severity,
+        threshold: severity === "error" ? thresholds.error : thresholds.warning,
+      })
     }
-
-    const isAllowlisted = matchesAny(file, allowlistMatchers)
-    const severity = isAllowlisted ? "allowlisted" : sourceSeverity
-
-    findings.push({
-      file,
-      lineCount,
-      severity,
-      sourceSeverity,
-      threshold:
-        sourceSeverity === "error" ? thresholds.error : thresholds.warning,
-    })
   }
 
   findings.sort((left, right) => {
@@ -238,23 +204,15 @@ function buildReport({ cwd, files, allowlistMatchers, thresholds }) {
     return left.file.localeCompare(right.file)
   })
 
+  const counts = {
+    errors: findings.filter((item) => item.severity === "error").length,
+    warnings: findings.filter((item) => item.severity === "warning").length,
+  }
+
   const summary = {
+    counts,
     scannedFiles: files.length,
     thresholds,
-    counts: {
-      errors: findings.filter((item) => item.severity === "error").length,
-      warnings: findings.filter((item) => item.severity === "warning").length,
-      allowlisted: findings.filter((item) => item.severity === "allowlisted")
-        .length,
-      allowlistedErrors: findings.filter(
-        (item) =>
-          item.severity === "allowlisted" && item.sourceSeverity === "error"
-      ).length,
-      allowlistedWarnings: findings.filter(
-        (item) =>
-          item.severity === "allowlisted" && item.sourceSeverity === "warning"
-      ).length,
-    },
   }
 
   return {
@@ -263,7 +221,8 @@ function buildReport({ cwd, files, allowlistMatchers, thresholds }) {
   }
 }
 
-function printSection(title, findings) {
+/** @type {(title: string, findings: Finding[]) => void} */
+const printSection = (title, findings) => {
   if (findings.length === 0) {
     return
   }
@@ -271,19 +230,20 @@ function printSection(title, findings) {
   console.log(`\n${title}`)
   for (const finding of findings) {
     console.log(
-      `  - ${finding.file} (${finding.lineCount} lines, threshold >= ${finding.threshold})`
+      `  - ${finding.file} (${finding.lineCount} lines, threshold >= ${finding.threshold})`,
     )
   }
 }
 
-function printHumanReadable(report) {
+/** @type {(report: Report) => void} */
+const printHumanReadable = (report) => {
   console.log("File size guardrail report")
   console.log(`Scanned files: ${report.scannedFiles}`)
   console.log(
-    `Thresholds: warning >= ${report.thresholds.warning}, error >= ${report.thresholds.error}`
+    `Thresholds: warning >= ${report.thresholds.warning}, error >= ${report.thresholds.error}`,
   )
   console.log(
-    `Counts: errors=${report.counts.errors}, warnings=${report.counts.warnings}, allowlisted=${report.counts.allowlisted}`
+    `Counts: errors=${report.counts.errors}, warnings=${report.counts.warnings}`,
   )
 
   if (report.findings.length === 0) {
@@ -293,32 +253,45 @@ function printHumanReadable(report) {
 
   printSection(
     "Errors",
-    report.findings.filter((item) => item.severity === "error")
+    report.findings.filter((item) => item.severity === "error"),
   )
   printSection(
     "Warnings",
-    report.findings.filter((item) => item.severity === "warning")
+    report.findings.filter((item) => item.severity === "warning"),
   )
-  printSection(
-    "Allowlisted",
-    report.findings.filter((item) => item.severity === "allowlisted")
-  )
-
-  if (report.counts.allowlistedErrors > 0) {
-    console.log(
-      `\nAllowlisted errors: ${report.counts.allowlistedErrors} (baseline debt, does not fail guardrail).`
-    )
-  }
 }
 
-function main() {
+/** @type {(argv: string[]) => { configPath: string, json: boolean }} */
+const parseArgs = (argv) => {
+  const args = { configPath: DEFAULT_CONFIG_PATH, json: false }
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index]
+
+    if (arg === "--json") {
+      args.json = true
+    } else if (arg === "--config") {
+      const nextValue = argv[index + 1]
+      if (nextValue) {
+        args.configPath = nextValue
+        index += 1
+      }
+    } else if (arg?.startsWith("--config=")) {
+      args.configPath = arg.slice("--config=".length)
+    }
+  }
+
+  return args
+}
+
+const main = () => {
   const args = parseArgs(process.argv.slice(2))
   const cwd = process.cwd()
   const configPath = path.resolve(cwd, args.configPath)
 
   if (!fs.existsSync(configPath)) {
     console.error(
-      `Config file not found: ${normalizePath(path.relative(cwd, configPath))}`
+      `Config file not found: ${normalizePath(path.relative(cwd, configPath))}`,
     )
     process.exit(1)
   }
@@ -330,21 +303,21 @@ function main() {
     console.error(
       `Failed to parse config (${normalizePath(path.relative(cwd, configPath))}): ${
         error instanceof Error ? error.message : String(error)
-      }`
+      }`,
     )
     process.exit(1)
   }
 
   const excludeMatchers = buildMatchers(config.exclude)
-  const allowlistMatchers = buildMatchers(config.allowlist)
+  /** @type {string[]} */
   const files = []
 
   for (const scanDirectory of config.scanDirectories) {
     collectFiles({
       cwd,
       directory: path.resolve(cwd, scanDirectory),
-      fileExtensions: config.fileExtensions,
       excludeMatchers,
+      fileExtensions: config.fileExtensions,
       output: files,
     })
   }
@@ -354,7 +327,6 @@ function main() {
   const report = buildReport({
     cwd,
     files,
-    allowlistMatchers,
     thresholds: config.thresholds,
   })
 

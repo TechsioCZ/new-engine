@@ -1,5 +1,6 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import type { SetProductBrandsWorkflowInput } from "../types"
 import {
   brandProductLink,
@@ -17,7 +18,7 @@ export const prepareSetProductBrandsStep = createStep(
     if (input.brand_ids.length > 1) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "A product can be linked to at most one brand"
+        "A product can be linked to at most one brand",
       )
     }
 
@@ -28,36 +29,36 @@ export const prepareSetProductBrandsStep = createStep(
     if (!existingProductIds.has(input.product_id)) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Product "${input.product_id}" was not found`
+        `Product "${input.product_id}" was not found`,
       )
     }
 
     const currentIds = await getCurrentProductBrandIds(
       container,
-      input.product_id
+      input.product_id,
     )
     const activeCurrentIds = await getActiveBrandIds(container, currentIds)
 
     if (
-      input.fail_on_conflict &&
+      input.fail_on_conflict === true &&
       hasActiveBrandConflict(currentIds, activeCurrentIds, input.brand_ids)
     ) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Product "${input.product_id}" is already linked to another brand`
+        `Product "${input.product_id}" is already linked to another brand`,
       )
     }
 
-    if (input.brand_ids.length) {
+    if (input.brand_ids.length > 0) {
       const activeBrandIds = await getActiveBrandIds(container, input.brand_ids)
       const inactiveBrandIds = input.brand_ids.filter(
-        (brandId) => !activeBrandIds.has(brandId)
+        (brandId) => !activeBrandIds.has(brandId),
       )
 
-      if (inactiveBrandIds.length) {
+      if (inactiveBrandIds.length > 0) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          `Brands are inactive or deleted: ${inactiveBrandIds.join(", ")}`
+          `Brands are inactive or deleted: ${inactiveBrandIds.join(", ")}`,
         )
       }
     }
@@ -66,21 +67,21 @@ export const prepareSetProductBrandsStep = createStep(
       currentIds,
       activeCurrentIds,
       input.brand_ids,
-      input.dismiss_inactive
+      input.dismiss_inactive,
     )
     const { add, remove } = diffIds(replaceableCurrentIds, input.brand_ids)
 
     return new StepResponse({
       links_to_create: add.map((brandId) =>
-        brandProductLink(input.product_id, brandId)
+        brandProductLink(input.product_id, brandId),
       ),
       links_to_dismiss: remove.map((brandId) =>
-        brandProductLink(input.product_id, brandId)
+        brandProductLink(input.product_id, brandId),
       ),
       result: {
         added: add,
         removed: remove,
       },
     })
-  }
+  },
 )

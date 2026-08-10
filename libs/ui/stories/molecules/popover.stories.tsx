@@ -1,30 +1,47 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+
 import { Button } from "../../src/atoms/button"
 import { Icon } from "../../src/atoms/icon"
 import { Input } from "../../src/atoms/input"
 import { Label } from "../../src/atoms/label"
-import {
-  PopoverTemplate,
-  type PopoverTemplateProps,
-} from "../../src/templates/popover"
+import { PopoverTemplate } from "../../src/templates/popover"
+import type { PopoverTemplateProps } from "../../src/templates/popover"
 
 type PopoverStoryArgs = PopoverTemplateProps
 
-function PopoverStory(args: PopoverStoryArgs) {
-  return <PopoverTemplate {...args} />
-}
+const PopoverStory = (args: PopoverStoryArgs) => <PopoverTemplate {...args} />
 
 const meta = {
-  title: "Molecules/Popover",
-  component: PopoverStory,
-  parameters: {
-    layout: "centered",
-  },
-  tags: ["autodocs"],
   argTypes: {
+    border: {
+      control: "boolean",
+      description: "Whether to show border on the popover",
+      table: { defaultValue: { summary: "true" } },
+    },
+    children: {
+      table: { disable: true },
+    },
+    description: {
+      control: "text",
+      description: "Optional description text",
+    },
+    disabled: {
+      control: "boolean",
+      description: "Whether the trigger is disabled",
+      table: { defaultValue: { summary: "false" } },
+    },
+    id: {
+      table: { disable: true },
+    },
+    modal: {
+      control: "boolean",
+      description: "Whether the popover behaves as a modal (traps focus)",
+      table: { defaultValue: { summary: "false" } },
+    },
     placement: {
       control: "select",
+      description: "Position of the popover relative to the trigger",
       options: [
         "top",
         "bottom",
@@ -39,23 +56,11 @@ const meta = {
         "right-start",
         "right-end",
       ],
-      description: "Position of the popover relative to the trigger",
       table: { defaultValue: { summary: "bottom" } },
-    },
-    size: {
-      control: "select",
-      options: ["sm", "md", "lg"],
-      description: "Size of the popover content area",
-      table: { defaultValue: { summary: "md" } },
     },
     shadow: {
       control: "boolean",
       description: "Whether to show shadow on the popover",
-      table: { defaultValue: { summary: "true" } },
-    },
-    border: {
-      control: "boolean",
-      description: "Whether to show border on the popover",
       table: { defaultValue: { summary: "true" } },
     },
     showArrow: {
@@ -68,52 +73,44 @@ const meta = {
       description: "Whether to show the close button in the popover",
       table: { defaultValue: { summary: "false" } },
     },
-    modal: {
-      control: "boolean",
-      description: "Whether the popover behaves as a modal (traps focus)",
-      table: { defaultValue: { summary: "false" } },
-    },
-    disabled: {
-      control: "boolean",
-      description: "Whether the trigger is disabled",
-      table: { defaultValue: { summary: "false" } },
+    size: {
+      control: "select",
+      description: "Size of the popover content area",
+      options: ["sm", "md", "lg"],
+      table: { defaultValue: { summary: "md" } },
     },
     title: {
       control: "text",
       description: "Optional title for the popover",
     },
-    description: {
-      control: "text",
-      description: "Optional description text",
-    },
     trigger: {
       control: "text",
       description: "Content of the trigger button",
     },
-    id: {
-      table: { disable: true },
-    },
-    children: {
-      table: { disable: true },
-    },
   },
   args: {
-    placement: "bottom",
-    size: "md",
-    shadow: true,
     border: true,
-    showArrow: true,
-    modal: false,
-    disabled: false,
-    trigger: "Open Popover",
-    title: "Popover Title",
-    description: "This is a popover description.",
     children: (
       <div className="mt-200">
         <p>This is the popover content area.</p>
       </div>
     ),
+    description: "This is a popover description.",
+    disabled: false,
+    modal: false,
+    placement: "bottom",
+    shadow: true,
+    showArrow: true,
+    size: "md",
+    title: "Popover Title",
+    trigger: "Open Popover",
   },
+  component: PopoverStory,
+  parameters: {
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/Popover",
 } satisfies Meta<typeof PopoverStory>
 
 export default meta
@@ -127,30 +124,30 @@ export const Playground: Story = {
 
 export const WithTitleAndDescription: Story = {
   args: {
-    id: "title-description-popover",
-    trigger: "Open popover",
-    title: "Popover Title",
-    description: "This is a helpful description that provides more context.",
     children: (
       <div className="mt-200">
         <p>Additional content can go here.</p>
       </div>
     ),
+    description: "This is a helpful description that provides more context.",
+    id: "title-description-popover",
+    title: "Popover Title",
+    trigger: "Open popover",
   },
 }
 
 export const Disabled: Story = {
   args: {
-    id: "disabled-popover",
-    trigger: "Disabled Popover",
-    disabled: true,
-    title: "Disabled State",
-    description: "This popover trigger is disabled and cannot be opened.",
     children: (
       <div className="mt-200">
         <p>This content should not be accessible.</p>
       </div>
     ),
+    description: "This popover trigger is disabled and cannot be opened.",
+    disabled: true,
+    id: "disabled-popover",
+    title: "Disabled State",
+    trigger: "Disabled Popover",
   },
 }
 
@@ -254,52 +251,67 @@ export const Variants: Story = {
   ),
 }
 
-export const Controlled: Story = {
-  args: {},
-  render: () => {
-    const [open, setOpen] = useState(false)
+const ControlledStory = () => {
+  const [open, setOpen] = useState(false)
 
-    return (
-      <div className="flex flex-col items-center gap-200">
-        <div className="flex gap-100">
-          <Button onClick={() => setOpen(true)} size="sm" variant="secondary">
-            Open Popover
-          </Button>
-          <Button onClick={() => setOpen(false)} size="sm" variant="secondary">
-            Close Popover
+  return (
+    <div className="flex flex-col items-center gap-200">
+      <div className="flex gap-100">
+        <Button
+          onClick={() => {
+            setOpen(true)
+          }}
+          size="sm"
+          variant="secondary"
+        >
+          Open Popover
+        </Button>
+        <Button
+          onClick={() => {
+            setOpen(false)
+          }}
+          size="sm"
+          variant="secondary"
+        >
+          Close Popover
+        </Button>
+      </div>
+
+      <PopoverTemplate
+        description="This popover is controlled by external state"
+        id="controlled-popover"
+        onOpenChange={(details) => {
+          setOpen(details.open)
+        }}
+        open={open}
+        title="Controlled Popover"
+        trigger="Controlled Popover"
+      >
+        <div className="mt-200">
+          <p>The popover is {open ? "open" : "closed"}.</p>
+          <Button
+            className="mt-100"
+            onClick={() => {
+              setOpen(false)
+            }}
+            size="sm"
+            variant="secondary"
+          >
+            Close from inside
           </Button>
         </div>
+      </PopoverTemplate>
+    </div>
+  )
+}
 
-        <PopoverTemplate
-          description="This popover is controlled by external state"
-          id="controlled-popover"
-          onOpenChange={(details) => setOpen(details.open)}
-          open={open}
-          title="Controlled Popover"
-          trigger="Controlled Popover"
-        >
-          <div className="mt-200">
-            <p>The popover is {open ? "open" : "closed"}.</p>
-            <Button
-              className="mt-100"
-              onClick={() => setOpen(false)}
-              size="sm"
-              variant="secondary"
-            >
-              Close from inside
-            </Button>
-          </div>
-        </PopoverTemplate>
-      </div>
-    )
-  },
+export const Controlled: Story = {
+  args: {},
+  render: ControlledStory,
 }
 
 export const WithForm: Story = {
   args: {
-    id: "form-popover",
-    trigger: "Edit Profile",
-    title: "Edit Profile",
     children: (
       <form className="mt-200 space-y-200">
         <div>
@@ -322,6 +334,9 @@ export const WithForm: Story = {
         </div>
       </form>
     ),
+    id: "form-popover",
+    title: "Edit Profile",
+    trigger: "Edit Profile",
   },
 }
 
@@ -347,7 +362,7 @@ export const CustomTrigger: Story = {
       <PopoverTemplate
         id="custom-area-trigger-popover"
         trigger={
-          <div className="rounded-lg border-2 border-border border-dashed p-100">
+          <div className="rounded-lg border-2 border-dashed border-border-primary p-100">
             <p className="text-sm">Click this custom area</p>
           </div>
         }
@@ -363,78 +378,93 @@ export const CustomTrigger: Story = {
 
 export const Modal: Story = {
   args: {
-    id: "modal-popover",
-    trigger: "Open Modal Popover",
-    modal: true,
-    showCloseButton: true,
-    title: "Modal Popover",
-    description:
-      "This popover acts as a modal - it traps focus and blocks interactions outside.",
-    closeOnInteractOutside: false,
     children: (
       <div className="mt-200">
-        <p>Try clicking outside - it won't close!</p>
+        <p>Try clicking outside - it won&apos;t close!</p>
         <p className="mt-100 text-sm">
           Press Escape or use the close button to dismiss.
         </p>
       </div>
     ),
+    closeOnInteractOutside: false,
+    description:
+      "This popover acts as a modal - it traps focus and blocks interactions outside.",
+    id: "modal-popover",
+    modal: true,
+    showCloseButton: true,
+    title: "Modal Popover",
+    trigger: "Open Modal Popover",
   },
+}
+
+const AsyncContentStory = () => {
+  const [loading, setLoading] = useState(false)
+  const [data, setData] = useState<string | null>(null)
+
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+    if (loading) {
+      timeoutId = setTimeout(() => {
+        setData("Data loaded successfully!")
+        setLoading(false)
+      }, 1500)
+    }
+
+    return () => {
+      if (timeoutId !== undefined) {
+        clearTimeout(timeoutId)
+      }
+    }
+  }, [loading])
+
+  const loadData = () => {
+    setLoading(true)
+    setData(null)
+  }
+
+  let content = <p>Waiting to load...</p>
+  if (loading) {
+    content = (
+      <div className="flex items-center gap-100">
+        <Icon className="animate-spin" icon="token-icon-spinner" size="sm" />
+        <span>Loading...</span>
+      </div>
+    )
+  } else if (data !== null) {
+    content = (
+      <div className="text-center">
+        <Icon
+          className="mx-auto mb-100"
+          color="success"
+          icon="token-icon-check"
+          size="lg"
+        />
+        <p>{data}</p>
+      </div>
+    )
+  }
+
+  return (
+    <PopoverTemplate
+      id="async-popover"
+      onOpenChange={(details) => {
+        if (details.open) {
+          loadData()
+        }
+      }}
+      trigger="Load Async Content"
+    >
+      <div className="flex min-h-24 w-3xs items-center justify-center">
+        {content}
+      </div>
+    </PopoverTemplate>
+  )
 }
 
 export const AsyncContent: Story = {
   args: {},
-  render: () => {
-    const [loading, setLoading] = useState(false)
-    const [data, setData] = useState<string | null>(null)
-
-    const loadData = async () => {
-      setLoading(true)
-      setData(null)
-
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      setData("Data loaded successfully!")
-      setLoading(false)
-    }
-
-    return (
-      <PopoverTemplate
-        id="async-popover"
-        onOpenChange={(details) => {
-          if (details.open) {
-            void loadData()
-          }
-        }}
-        trigger="Load Async Content"
-      >
-        <div className="flex min-h-24 w-3xs items-center justify-center">
-          {loading ? (
-            <div className="flex items-center gap-100">
-              <Icon
-                className="animate-spin"
-                icon="token-icon-spinner"
-                size="sm"
-              />
-              <span>Loading...</span>
-            </div>
-          ) : data ? (
-            <div className="text-center">
-              <Icon
-                className="mx-auto mb-100"
-                color="success"
-                icon="token-icon-check"
-                size="lg"
-              />
-              <p>{data}</p>
-            </div>
-          ) : (
-            <p>Waiting to load...</p>
-          )}
-        </div>
-      </PopoverTemplate>
-    )
-  },
+  render: AsyncContentStory,
 }
 
 export const PositioningBehaviors: Story = {
@@ -450,8 +480,8 @@ export const PositioningBehaviors: Story = {
         trigger="Flip Demo"
       >
         <p>
-          This popover opens on the left but will flip to right if there's no
-          space.
+          This popover opens on the left but will flip to right if there&apos;s
+          no space.
         </p>
       </PopoverTemplate>
       <div className="space-y-100">
@@ -459,7 +489,7 @@ export const PositioningBehaviors: Story = {
           Bounded containers simulate narrow viewport. Compare slide behavior:
         </p>
         <div className="flex gap-200">
-          <div className="relative h-48 w-sm overflow-hidden border border-border border-dashed">
+          <div className="relative h-48 w-sm overflow-hidden border border-dashed border-border-primary">
             <div>
               <PopoverTemplate
                 id="slide-true-popover"
@@ -474,7 +504,7 @@ export const PositioningBehaviors: Story = {
             </div>
           </div>
 
-          <div className="relative h-48 w-sm overflow-hidden border border-border border-dashed">
+          <div className="relative h-48 w-sm overflow-hidden border border-dashed border-border-primary">
             <div>
               <PopoverTemplate
                 id="slide-false-popover"
@@ -524,7 +554,7 @@ export const SameWidthDemo: Story = {
 export const EdgePositioning: Story = {
   args: {},
   render: () => (
-    <div className="relative h-96 w-full border border-border border-dashed">
+    <div className="relative h-96 w-full border border-dashed border-border-primary">
       <div className="absolute top-2 left-2">
         <PopoverTemplate
           id="smart-popover"
@@ -576,8 +606,12 @@ export const EdgePositioning: Story = {
         </PopoverTemplate>
       </div>
 
-      <div className="-translate-x-1/2 -translate-y-1/2 absolute top-1/2 left-1/2">
-        <PopoverTemplate id="center-popover" placement="bottom" trigger="Center">
+      <div className="absolute top-1/2 left-1/2 -translate-1/2">
+        <PopoverTemplate
+          id="center-popover"
+          placement="bottom"
+          trigger="Center"
+        >
           <div className="w-3xs">
             <p>Center positioned with default behavior.</p>
           </div>

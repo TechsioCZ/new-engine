@@ -3,18 +3,21 @@ import type {
   MedusaContainer,
 } from "@medusajs/framework/types"
 import { MedusaError, Modules } from "@medusajs/framework/utils"
+
 import {
   getProductAttributeService,
-  type ProductAttributeAssignmentRecord,
-  type ProductAttributeDefinitionRecord,
-  type ProductAttributeOptionRecord,
   toUsageCountMap,
+} from "../../../utils/product-attributes"
+import type {
+  ProductAttributeAssignmentRecord,
+  ProductAttributeDefinitionRecord,
+  ProductAttributeOptionRecord,
 } from "../../../utils/product-attributes"
 
 export type ProductAttributeListStatus = "active" | "all" | "deleted"
 
-const LIKE_WILDCARD_REGEX = /[\\%_]/g
-const LEADING_DASH_REGEX = /^-/
+const LIKE_WILDCARD_REGEX = /[\\%_]/gu
+const LEADING_DASH_REGEX = /^-/u
 const ORDER_FIELDS = new Set(["key", "label", "created_at", "updated_at"])
 const ASSIGNED_PRODUCT_ORDER_FIELDS = new Set([
   "handle",
@@ -24,69 +27,67 @@ const ASSIGNED_PRODUCT_ORDER_FIELDS = new Set([
 ])
 const ASSIGNMENT_QUERY_BATCH_SIZE = 100
 const PRODUCT_ATTRIBUTE_DETAIL_BATCH_SIZE = 100
+const MAX_PRODUCT_ATTRIBUTE_QUERY_PAGES = 1000
 
 export const listAllProductAttributeRecords = async <T>(
-  listPage: (skip: number, take: number) => Promise<[T[], number]>
+  listPage: (skip: number, take: number) => Promise<[T[], number]>,
 ) => {
-  const records: T[] = []
-  let count = Number.POSITIVE_INFINITY
+  const loadPage = async (records: T[], pageCount: number): Promise<T[]> => {
+    if (pageCount >= MAX_PRODUCT_ATTRIBUTE_QUERY_PAGES) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Product attribute query exceeded ${MAX_PRODUCT_ATTRIBUTE_QUERY_PAGES} pages`,
+      )
+    }
 
-  while (records.length < count) {
     const [page, total] = await listPage(
       records.length,
-      PRODUCT_ATTRIBUTE_DETAIL_BATCH_SIZE
+      PRODUCT_ATTRIBUTE_DETAIL_BATCH_SIZE,
     )
-    records.push(...page)
-    count = total
-
-    if (page.length === 0) {
-      break
+    const nextRecords = [...records, ...page]
+    if (page.length === 0 || nextRecords.length >= total) {
+      return nextRecords
     }
+
+    return await loadPage(nextRecords, pageCount + 1)
   }
 
-  return records
+  return await loadPage([], 0)
 }
 
 export const escapeProductAttributeLikePattern = (value: string) =>
   value.replace(LIKE_WILDCARD_REGEX, (match) => `\\${match}`)
 
-export const parseProductAttributeOrder = (input?: string) => {
-  const value = input ?? "label"
-  const direction: "ASC" | "DESC" = value.startsWith("-") ? "DESC" : "ASC"
+export const parseProductAttributeOrder = (value = "label") => {
+  const direction = value.startsWith("-") ? "DESC" : "ASC"
   const requestedField = value.replace(LEADING_DASH_REGEX, "")
   const field = ORDER_FIELDS.has(requestedField) ? requestedField : "label"
   return { [field]: direction, id: "ASC" as const }
 }
 
-export const applyProductAttributeStatusFilter = (
-  filters: Record<string, unknown>,
-  status: ProductAttributeListStatus
-) => {
-  if (status === "active") {
-    filters.deleted_at = null
-  } else if (status === "deleted") {
-    filters.deleted_at = { $ne: null }
-  }
-  return filters
-}
+export const applyProductAttributeStatusFilter = <T extends object>(
+  filters: T,
+  status: ProductAttributeListStatus,
+) => ({
+  ...filters,
+  ...(status === "active" ? { deleted_at: null } : {}),
+  ...(status === "deleted" ? { deleted_at: { $ne: null } } : {}),
+})
 
 export const retrieveProductAttributeDefinitionOrThrow = async (
   scope: MedusaContainer,
   id: string,
-  withDeleted = false
+  withDeleted = false,
 ) => {
-  const definitions = (await getProductAttributeService(
-    scope
-  ).listProductAttributeDefinitions(
-    { id },
-    { take: 1, withDeleted }
-  )) as ProductAttributeDefinitionRecord[]
-  const definition = definitions[0]
+  const definitions = await getProductAttributeService(
+    scope,
+  ).listProductAttributeDefinitions({ id }, { take: 1, withDeleted })
+  const [definition] = definitions
 
   if (!definition) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product Attribute definition "${id}" was not found.`
+      `Product Attribute definition "${id}" was not found.`,
     )
   }
   return definition
@@ -95,20 +96,17 @@ export const retrieveProductAttributeDefinitionOrThrow = async (
 export const retrieveProductAttributeOptionOrThrow = async (
   scope: MedusaContainer,
   id: string,
-  withDeleted = false
+  withDeleted = false,
 ) => {
-  const options = (await getProductAttributeService(
-    scope
-  ).listProductAttributeOptions(
-    { id },
-    { take: 1, withDeleted }
-  )) as ProductAttributeOptionRecord[]
-  const option = options[0]
+  const options = await getProductAttributeService(
+    scope,
+  ).listProductAttributeOptions({ id }, { take: 1, withDeleted })
+  const [option] = options
 
   if (!option) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product Attribute option "${id}" was not found.`
+      `Product Attribute option "${id}" was not found.`,
     )
   }
   return option
@@ -116,22 +114,22 @@ export const retrieveProductAttributeOptionOrThrow = async (
 
 export const getDefinitionUsageCountMap = async (
   scope: MedusaContainer,
-  ids: string[]
+  ids: string[],
 ) =>
   toUsageCountMap(
-    await getProductAttributeService(scope).getActiveDefinitionUsageCounts(ids)
+    await getProductAttributeService(scope).getActiveDefinitionUsageCounts(ids),
   )
 
 export const getOptionUsageCountMap = async (
   scope: MedusaContainer,
-  ids: string[]
+  ids: string[],
 ) =>
   toUsageCountMap(
-    await getProductAttributeService(scope).getActiveOptionUsageCounts(ids)
+    await getProductAttributeService(scope).getActiveOptionUsageCounts(ids),
   )
 
 const getAssignedProductOrder = (input = "title") => {
-  const direction: "ASC" | "DESC" = input.startsWith("-") ? "DESC" : "ASC"
+  const direction = input.startsWith("-") ? "DESC" : "ASC"
   const requestedField = input.replace(LEADING_DASH_REGEX, "")
   const field = ASSIGNED_PRODUCT_ORDER_FIELDS.has(requestedField)
     ? requestedField
@@ -142,31 +140,41 @@ const getAssignedProductOrder = (input = "title") => {
 
 const listOptionAssignmentProductIds = async (
   scope: MedusaContainer,
-  optionId: string
+  optionId: string,
 ) => {
   const service = getProductAttributeService(scope)
-  const productIds = new Set<string>()
-  let skip = 0
+  const loadPage = async (
+    productIds: Set<string>,
+    skip: number,
+    pageCount: number,
+  ): Promise<string[]> => {
+    if (pageCount >= MAX_PRODUCT_ATTRIBUTE_QUERY_PAGES) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Product attribute assignment query exceeded ${MAX_PRODUCT_ATTRIBUTE_QUERY_PAGES} pages`,
+      )
+    }
 
-  while (true) {
-    const assignments = (await service.listProductAttributes(
+    const assignments = await service.listProductAttributes(
       { option_id: optionId },
       {
         order: { id: "ASC" },
         select: ["id", "product_id"],
         skip,
         take: ASSIGNMENT_QUERY_BATCH_SIZE,
-      }
-    )) as ProductAttributeAssignmentRecord[]
-
+      },
+    )
     for (const assignment of assignments) {
       productIds.add(assignment.product_id)
     }
     if (assignments.length < ASSIGNMENT_QUERY_BATCH_SIZE) {
       return [...productIds]
     }
-    skip += assignments.length
+
+    return await loadPage(productIds, skip + assignments.length, pageCount + 1)
   }
+
+  return await loadPage(new Set(), 0, 0)
 }
 
 export const listProductAttributeOptionAssignedProducts = async ({
@@ -189,12 +197,15 @@ export const listProductAttributeOptionAssignedProducts = async ({
     return { count: 0, products: [] }
   }
 
-  const escapedQuery = q ? escapeProductAttributeLikePattern(q) : undefined
+  const escapedQuery =
+    typeof q === "string" && q.length > 0
+      ? escapeProductAttributeLikePattern(q)
+      : undefined
   const productService = scope.resolve<IProductModuleService>(Modules.PRODUCT)
   const [products, count] = await productService.listAndCountProducts(
     {
       id: { $in: productIds },
-      ...(escapedQuery
+      ...(typeof escapedQuery === "string" && escapedQuery.length > 0
         ? {
             $or: [
               { title: { $ilike: `%${escapedQuery}%` } },
@@ -208,7 +219,7 @@ export const listProductAttributeOptionAssignedProducts = async ({
       select: ["id", "title", "handle", "status", "updated_at"],
       skip: offset,
       take: limit,
-    }
+    },
   )
 
   return {
@@ -225,7 +236,7 @@ export const listProductAttributeOptionAssignedProducts = async ({
 
 export const toProductAttributeDefinitionResponse = (
   definition: ProductAttributeDefinitionRecord,
-  usageCount: number
+  usageCount: number,
 ) => ({
   created_at: definition.created_at,
   deleted_at: definition.deleted_at ?? null,
@@ -240,7 +251,7 @@ export const toProductAttributeDefinitionResponse = (
 
 export const toProductAttributeOptionResponse = (
   option: ProductAttributeOptionRecord,
-  usageCount: number
+  usageCount: number,
 ) => ({
   created_at: option.created_at,
   definition_id: option.definition_id,
@@ -255,7 +266,7 @@ export const toProductAttributeOptionResponse = (
 const toProductAttributeAssignmentResponse = (
   definition: ProductAttributeDefinitionRecord,
   assignment: ProductAttributeAssignmentRecord | undefined,
-  selectedOption: ProductAttributeOptionRecord | null
+  selectedOption: ProductAttributeOptionRecord | null,
 ) => {
   if (
     !assignment ||
@@ -274,86 +285,96 @@ const toProductAttributeAssignmentResponse = (
 
 export const getProductAttributeDetail = async (
   scope: MedusaContainer,
-  productId: string
+  productId: string,
 ) => {
   const service = getProductAttributeService(scope)
   const [definitions, assignments] = await Promise.all([
     listAllProductAttributeRecords(
       async (skip, take) =>
-        (await service.listAndCountProductAttributeDefinitions(
+        await service.listAndCountProductAttributeDefinitions(
           {},
           {
-            order: { label: "ASC", id: "ASC" },
+            order: { id: "ASC", label: "ASC" },
             skip,
             take,
             withDeleted: true,
-          }
-        )) as [ProductAttributeDefinitionRecord[], number]
+          },
+        ),
     ),
     listAllProductAttributeRecords(
       async (skip, take) =>
-        (await service.listAndCountProductAttributes(
+        await service.listAndCountProductAttributes(
           { product_id: productId },
-          { order: { id: "ASC" }, skip, take }
-        )) as [ProductAttributeAssignmentRecord[], number]
+          { order: { id: "ASC" }, skip, take },
+        ),
     ),
   ])
   const selectedOptionIds = [
     ...new Set(
       assignments.flatMap((assignment) =>
-        assignment.option_id ? [assignment.option_id] : []
-      )
+        typeof assignment.option_id === "string" &&
+        assignment.option_id.length > 0
+          ? [assignment.option_id]
+          : [],
+      ),
     ),
   ]
   const options = selectedOptionIds.length
-    ? ((await service.listProductAttributeOptions(
+    ? await service.listProductAttributeOptions(
         { id: { $in: selectedOptionIds } },
         {
-          order: { label: "ASC", id: "ASC" },
+          order: { id: "ASC", label: "ASC" },
           take: selectedOptionIds.length,
           withDeleted: true,
-        }
-      )) as ProductAttributeOptionRecord[])
+        },
+      )
     : []
   const [definitionUsageCounts, optionUsageCounts] = await Promise.all([
     getDefinitionUsageCountMap(
       scope,
-      definitions.map((definition) => definition.id)
+      definitions.map((definition) => definition.id),
     ),
     getOptionUsageCountMap(scope, selectedOptionIds),
   ])
   const assignmentByDefinitionId = new Map(
-    assignments.map((assignment) => [assignment.definition_id, assignment])
+    assignments.map((assignment) => [assignment.definition_id, assignment]),
   )
   const optionById = new Map(options.map((option) => [option.id, option]))
 
-  return definitions
-    .filter(
-      (definition) =>
-        !definition.deleted_at || assignmentByDefinitionId.has(definition.id)
-    )
-    .map((definition) => {
-      const assignment = assignmentByDefinitionId.get(definition.id)
-      const selectedOption = assignment?.option_id
-        ? (optionById.get(assignment.option_id) ?? null)
+  return definitions.flatMap((definition) => {
+    if (
+      definition.deleted_at !== null &&
+      definition.deleted_at !== undefined &&
+      !assignmentByDefinitionId.has(definition.id)
+    ) {
+      return []
+    }
+    const assignment = assignmentByDefinitionId.get(definition.id)
+    const selectedOptionId = assignment?.option_id
+    const selectedOption =
+      typeof selectedOptionId === "string" && selectedOptionId.length > 0
+        ? (optionById.get(selectedOptionId) ?? null)
         : null
 
-      return {
+    return [
+      {
         assignment: toProductAttributeAssignmentResponse(
           definition,
           assignment,
-          selectedOption
+          selectedOption,
         ),
         definition: toProductAttributeDefinitionResponse(
           definition,
-          definitionUsageCounts.get(definition.id) ?? 0
+          definitionUsageCounts.get(definition.id) ?? 0,
         ),
-        selected_option: selectedOption
-          ? toProductAttributeOptionResponse(
-              selectedOption,
-              optionUsageCounts.get(selectedOption.id) ?? 0
-            )
-          : null,
-      }
-    })
+        selected_option:
+          selectedOption === null
+            ? null
+            : toProductAttributeOptionResponse(
+                selectedOption,
+                optionUsageCounts.get(selectedOption.id) ?? 0,
+              ),
+      },
+    ]
+  })
 }

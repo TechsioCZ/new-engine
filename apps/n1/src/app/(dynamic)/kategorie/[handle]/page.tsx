@@ -1,13 +1,12 @@
 "use client"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { createPaginationGetPageUrl } from "@techsio/ui-kit/molecules/pagination"
-import {
-  BreadcrumbTemplate,
-  type BreadcrumbTemplateItem,
-} from "@ui/templates/breadcrumb"
+import { BreadcrumbTemplate } from "@techsio/ui-kit/templates/breadcrumb"
+import type { BreadcrumbTemplateItem } from "@techsio/ui-kit/templates/breadcrumb"
 import NextLink from "next/link"
 import { notFound, useParams, useSearchParams } from "next/navigation"
 import { useEffect, useRef } from "react"
+
 import { Banner } from "@/components/atoms/banner"
 import { Heading } from "@/components/heading"
 import { ProductGrid } from "@/components/molecules/product-grid"
@@ -32,22 +31,35 @@ import { transformProduct } from "@/utils/transform/transform-product"
 
 type Category = (typeof allCategories)[number]
 
-function getCategoryPath(category: Category) {
+const categoryById = new Map(
+  allCategories.map((category) => [category.id, category]),
+)
+
+const getCategoryPath = (category: Category) => {
   const path: string[] = []
   let current: Category | undefined = category
 
-  while (current) {
+  while (current !== undefined) {
     path.unshift(current.name)
-    current = allCategories.find((c) => c.id === current?.parent_category_id)
+    const parentCategoryId: string | null | undefined =
+      current.parent_category_id
+    current =
+      typeof parentCategoryId === "string" && parentCategoryId.length > 0
+        ? categoryById.get(parentCategoryId)
+        : undefined
   }
 
   return path.join(" > ")
 }
 
-export default function CategoryPage() {
+const CategoryPage = () => {
   const params = useParams()
   const searchParams = useSearchParams()
-  const handle = params.handle as string
+  const { handle: handleParam } = params
+  if (typeof handleParam !== "string" || handleParam.length === 0) {
+    throw new Error("Handle kategorie je povinný")
+  }
+  const handle = handleParam
   const { regionId, countryCode } = useSuspenseRegion()
   const analytics = useAnalytics()
 
@@ -56,7 +68,7 @@ export default function CategoryPage() {
 
   const currentCategory = allCategories.find((cat) => cat.handle === handle)
   const currentCategoryChildren = allCategories.filter(
-    (cat) => cat.parent_category_id === currentCategory?.id
+    (cat) => cat.parent_category_id === currentCategory?.id,
   )
   const rootCategory =
     allCategories.find((cat) => cat.id === currentCategory?.root_category_id) ??
@@ -89,33 +101,35 @@ export default function CategoryPage() {
     hasPrevPage,
   } = useSuspenseProducts({
     category_id: categoryIds,
-    page: currentPage,
     limit: PRODUCT_LIMIT,
+    page: currentPage,
   })
 
   const isCurrentPageReady = !isFetching
 
   usePrefetchRootCategories({
-    enabled: isCurrentPageReady,
     currentHandle: handle,
     delay: 200,
+    enabled: isCurrentPageReady,
   })
 
   usePrefetchPages({
-    enabled: isCurrentPageReady,
+    category_id: categoryIds,
+    countryCode,
     currentPage: responsePage,
+    enabled: isCurrentPageReady,
     hasNextPage,
     hasPrevPage,
-    totalPages,
     pageSize: PRODUCT_LIMIT,
-    category_id: categoryIds,
-    regionId,
-    countryCode,
+    ...(typeof regionId === "string" && regionId.length > 0
+      ? { regionId }
+      : {}),
+    totalPages,
   })
 
   usePrefetchCategoryChildren({
-    enabled: isCurrentPageReady,
     categoryHandle: handle,
+    enabled: isCurrentPageReady,
   })
 
   const products = rawProducts.map(transformProduct)
@@ -130,12 +144,12 @@ export default function CategoryPage() {
   }
 
   const rootCategoryTree = categoryTree.find(
-    (cat) => cat.id === rootCategory?.id
+    (cat) => cat.id === rootCategory?.id,
   )
 
   const breadcrumbItems: BreadcrumbTemplateItem[] = [
-    { label: "Home", href: "/", icon: "icon-[mdi--home]" },
-    { label: rootCategory?.handle || handle, href: `/kategorie/${handle}` },
+    { href: "/", icon: "icon-[mdi--home]", label: "Home" },
+    { href: `/kategorie/${handle}`, label: rootCategory?.handle ?? handle },
   ]
 
   return (
@@ -148,7 +162,7 @@ export default function CategoryPage() {
         />
       </header>
       <N1Aside
-        categories={rootCategoryTree?.children || []}
+        categories={rootCategoryTree?.children ?? []}
         categoryMap={categoryMap}
         currentCategory={currentCategory}
         label={rootCategory?.handle}
@@ -189,3 +203,5 @@ export default function CategoryPage() {
     </div>
   )
 }
+
+export default CategoryPage

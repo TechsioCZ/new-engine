@@ -1,0 +1,164 @@
+id: no-unknown-property-bag
+valid:
+  - |
+    type Payload = object
+  - |
+    interface Payload { id: string; metadata: unknown }
+  - |
+    type KnownFields = Record<"id" | "slug", unknown>
+  - |
+    type StringDictionary = Record<string, string>
+  - |
+    type FiniteDictionary<T> = Record<"value", T>
+  - |
+    type SourceIdIndex<T> = Map<string, T[]>
+  - |
+    type DeferredIndex<T> = Record<string, Promise<T>>
+  - |
+    type Projected<T> = { [K in keyof T]: T[K] }
+  - |
+    interface StringSequence { [index: number]: string }
+  - |
+    type UnknownRecordState = { status: "pending" | "ready" }
+  - |
+    type KnownFields = Record<"id" | "slug", unknown | string>
+  - |
+    type DeferredDictionary = Record<string, Promise<unknown>>
+  - |
+    type DeferredOrTextDictionary = Record<string, Promise<unknown> | string>
+  - |
+    type NestedMapValue = Map<string, Set<unknown>>
+  - |
+    interface DeferredIndex { [key: string]: Promise<unknown> }
+  - |
+    type FiniteMappedFields = { [Key in "id" | "slug"]: unknown | undefined }
+  - |
+    interface DomainObject { value: unknown | undefined }
+invalid:
+  - |
+    type Dictionary<T> = Record<string, T>
+    type Payload = Dictionary<unknown>
+  - |
+    type Dictionary<T> = Map<PropertyKey, T>
+    type Payload = Dictionary<unknown>
+  - |
+    interface Dictionary<T> { [key: string]: T }
+    type Payload = Dictionary<unknown>
+  - |
+    type Dictionary<T> = { [Key in keyof any]: T }
+    type Payload = Dictionary<unknown>
+  - |
+    type Dictionary<T extends unknown> = Record<string, T>
+    type Payload = Dictionary<unknown>
+  - |
+    type Dictionary<T = unknown> = Record<string, T>
+    type Payload = Dictionary
+  - |
+    type Dictionary<T> = globalThis.Record<string, T>
+    type Payload = Dictionary<unknown>
+  - |
+    type Dictionary<Key, Value> = Record<string, Value | Key>
+    type Payload = Dictionary<string, unknown>
+  - |
+    type Dictionary<T extends unknown> = Record<string, T | never>
+    type Payload = Dictionary<unknown>
+  - |
+    type Dictionary<T = unknown> = Record<string, T | never>
+    type Payload = Dictionary
+  - |
+    type Dictionary<T> = globalThis.Record<string, T | never>
+    type Payload = Dictionary<unknown>
+  - |
+    type Dictionary<T> = (Record<string, T>)
+    type Payload = Dictionary<unknown>
+  - |
+    type Dictionary<T> = Record<string, (T)>
+    type Payload = Dictionary<unknown>
+  - |
+    type Dictionary<T> = { [key: string]: T | never }
+    type Payload = Dictionary<unknown>
+  - |
+    type Dictionary<T> = { [Key in string]: T | never }
+    type Payload = Dictionary<unknown>
+  - |
+    type Dictionary<T> = Record<string, T & unknown>
+    type Payload = Dictionary<unknown>
+  - |
+    type Dictionary<T> = globalThis.Record<string, unknown & T>
+    type Payload = Dictionary<unknown>
+  - |
+    type Dictionary<T> = { [key: string]: T & unknown }
+    type Payload = Dictionary<unknown>
+  - |
+    type Dictionary<T> = Record<string, T extends unknown ? T : never>
+    type Payload = Dictionary<unknown>
+  - |
+    type Dictionary<T> = Record<string, Extract<T, unknown>>
+    type Payload = Dictionary<unknown>
+  - |
+    type Dictionary<T> = Record<string, { [nested: string]: T }>
+    type Payload = Dictionary<unknown>
+  - |
+    type Payload = Record<string, unknown>
+  - |
+    type Payload = Record<PropertyKey, unknown>
+  - |
+    type Payload = Record<number, unknown>
+  - |
+    type Payload = Record<symbol, unknown>
+  - |
+    type Payload = Map<string, unknown>
+  - |
+    type Payload = ReadonlyMap<PropertyKey, unknown>
+  - |
+    type Payload = Record<string, unknown | string>
+  - |
+    type Payload = Record<string, string | unknown>
+  - |
+    type Payload = Record<string, ((unknown | string))>
+  - |
+    type Payload = Map<string, unknown | never>
+  - |
+    type Payload = ReadonlyMap<PropertyKey, ((undefined | unknown))>
+  - |
+    type Payload = Record<keyof any, unknown>
+  - |
+    type Payload = Record<string | number | symbol, unknown>
+  - |
+    type Payload = globalThis.Record<string, unknown>
+  - |
+    type Payload = global.Record<PropertyKey, unknown>
+  - |
+    type Payload = TypeScript.Record<string, unknown>
+  - |
+    interface Payload { [key: string]: unknown }
+  - |
+    interface Payload { id: string; [key: string]: unknown }
+  - |
+    interface Payload { [key: string]: unknown | undefined }
+  - |
+    type Payload = { [key: string]: ((undefined | unknown)) }
+  - |
+    type Payload = { readonly [key: PropertyKey]: unknown }
+  - |
+    type Payload = { readonly [Key in keyof any]?: unknown }
+  - |
+    type Payload = { -readonly [Key in string]-?: unknown }
+  - |
+    type Payload = UnknownRecord
+  - |
+    type Payload = Types.UnknownRecord
+  - |
+    type UnknownRecord = object
+  - |
+    type JsonRecord = object
+  - |
+    type Payload = UnknownObject
+  - |
+    import type { UnknownRecord as Payload } from "./types"
+  - |
+    import type { JsonRecord as Payload } from "./types"
+  - |
+    import { type UnknownRecord as Payload } from "./types"
+  - |
+    export type { UnknownRecord as Payload } from "./types"

@@ -3,30 +3,26 @@ import type {
   CreateProductsStepInput,
 } from "../steps"
 
-export function buildInventoryItemsInput(
-  products: CreateProductsStepInput
-): CreateInventoryLevelsStepInput["inventoryItems"] {
+export const buildInventoryItemsInput = (
+  products: CreateProductsStepInput,
+): CreateInventoryLevelsStepInput["inventoryItems"] => {
   const inventoryItems: CreateInventoryLevelsStepInput["inventoryItems"] = []
 
   for (const product of products) {
     for (const variant of product.variants ?? []) {
-      if (!variant.sku) {
-        continue
-      }
-
-      if (variant.quantities?.locations?.length) {
-        inventoryItems.push({
-          sku: variant.sku,
-          locations: variant.quantities.locations,
-        })
-        continue
-      }
-
-      if (variant.quantities?.quantity !== undefined) {
-        inventoryItems.push({
-          sku: variant.sku,
-          quantity: variant.quantities.quantity,
-        })
+      if (variant.sku !== undefined && variant.sku.length > 0) {
+        const locations = variant.quantities?.locations
+        if (locations !== undefined && locations.length > 0) {
+          inventoryItems.push({
+            locations,
+            sku: variant.sku,
+          })
+        } else if (variant.quantities?.quantity !== undefined) {
+          inventoryItems.push({
+            quantity: variant.quantities.quantity,
+            sku: variant.sku,
+          })
+        }
       }
     }
   }

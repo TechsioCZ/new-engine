@@ -1,35 +1,36 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import {
-  getMeasurementUnitService,
-  type ProductMeasurementRecord,
-  type ProductVariantMeasurementRecord,
+
+import { getMeasurementUnitService } from "../../../utils/measurement-units"
+import type {
+  ProductMeasurementRecord,
+  ProductVariantMeasurementRecord,
 } from "../../../utils/measurement-units"
 
-type ActivateProductMeasurementInput = {
-  existing?: ProductMeasurementRecord
+interface ActivateProductMeasurementInput {
+  existing?: ProductMeasurementRecord | undefined
   measurement_unit_id: string
   product_id: string
 }
 
-type ActivateProductMeasurementCompensation = {
+interface ActivateProductMeasurementCompensation {
   action: "created" | "none" | "restored"
   id: string
 }
 
-type CreateVariantMeasurementInput = {
+interface CreateVariantMeasurementInput {
   product_measurement_id: string
   product_unit_quantity: number
   product_variant_id: string
 }
 
-type UpdateVariantMeasurementsInput = {
+interface UpdateVariantMeasurementsInput {
   previous: ProductVariantMeasurementRecord[]
-  updates: Array<{
+  updates: {
     id: string
     product_measurement_id: string
     product_unit_quantity: number
     product_variant_id: string
-  }>
+  }[]
 }
 
 export const activateProductMeasurementStep = createStep(
@@ -37,7 +38,7 @@ export const activateProductMeasurementStep = createStep(
   async (input: ActivateProductMeasurementInput, { container }) => {
     const service = getMeasurementUnitService(container)
 
-    if (input.existing?.id) {
+    if (input.existing?.id !== undefined && input.existing.id.length > 0) {
       if (!input.existing.deleted_at) {
         return new StepResponse(input.existing, {
           action: "none",
@@ -55,7 +56,7 @@ export const activateProductMeasurementStep = createStep(
         {
           action: "restored",
           id: input.existing.id,
-        } satisfies ActivateProductMeasurementCompensation
+        } satisfies ActivateProductMeasurementCompensation,
       )
     }
 
@@ -71,7 +72,7 @@ export const activateProductMeasurementStep = createStep(
   },
   async (
     compensation: ActivateProductMeasurementCompensation | undefined,
-    { container }
+    { container },
   ) => {
     if (!compensation || compensation.action === "none") {
       return
@@ -85,35 +86,36 @@ export const activateProductMeasurementStep = createStep(
     }
 
     await service.softDeleteProductMeasurements([compensation.id])
-  }
+  },
 )
 
 export const softDeleteProductMeasurementsStep = createStep(
   "soft-delete-product-measurements",
   async (records: ProductMeasurementRecord[], { container }) => {
-    if (records.length) {
+    if (records.length > 0) {
       await getMeasurementUnitService(container).softDeleteProductMeasurements(
-        records.map((record) => record.id)
+        records.map((record) => record.id),
       )
     }
 
     return new StepResponse(records, records)
   },
   async (records: ProductMeasurementRecord[] | undefined, { container }) => {
-    if (records?.length) {
-      await getMeasurementUnitService(container).restoreProductMeasurements(
-        records.map((record) => record.id)
-      )
+    if (records === undefined || records.length === 0) {
+      return
     }
-  }
+    await getMeasurementUnitService(container).restoreProductMeasurements(
+      records.map((record) => record.id),
+    )
+  },
 )
 
 export const softDeleteProductVariantMeasurementsStep = createStep(
   "soft-delete-product-variant-measurements",
   async (records: ProductVariantMeasurementRecord[], { container }) => {
-    if (records.length) {
+    if (records.length > 0) {
       await getMeasurementUnitService(
-        container
+        container,
       ).softDeleteProductVariantMeasurements(records.map((record) => record.id))
     }
 
@@ -121,60 +123,62 @@ export const softDeleteProductVariantMeasurementsStep = createStep(
   },
   async (
     records: ProductVariantMeasurementRecord[] | undefined,
-    { container }
+    { container },
   ) => {
-    if (records?.length) {
-      await getMeasurementUnitService(
-        container
-      ).restoreProductVariantMeasurements(records.map((record) => record.id))
+    if (records === undefined || records.length === 0) {
+      return
     }
-  }
+    await getMeasurementUnitService(
+      container,
+    ).restoreProductVariantMeasurements(records.map((record) => record.id))
+  },
 )
 
 export const restoreProductVariantMeasurementsStep = createStep(
   "restore-product-variant-measurements",
   async (records: ProductVariantMeasurementRecord[], { container }) => {
-    if (records.length) {
+    if (records.length > 0) {
       await getMeasurementUnitService(
-        container
+        container,
       ).restoreProductVariantMeasurements(records.map((record) => record.id))
     }
 
     return new StepResponse(
       records.map((record) => ({ ...record, deleted_at: null })),
-      records
+      records,
     )
   },
   async (
     records: ProductVariantMeasurementRecord[] | undefined,
-    { container }
+    { container },
   ) => {
-    if (records?.length) {
-      await getMeasurementUnitService(
-        container
-      ).softDeleteProductVariantMeasurements(records.map((record) => record.id))
+    if (records === undefined || records.length === 0) {
+      return
     }
-  }
+    await getMeasurementUnitService(
+      container,
+    ).softDeleteProductVariantMeasurements(records.map((record) => record.id))
+  },
 )
 
 export const updateProductVariantMeasurementsStep = createStep(
   "update-product-variant-measurements",
   async (input: UpdateVariantMeasurementsInput, { container }) => {
-    if (!input.updates.length) {
+    if (input.updates.length === 0) {
       return new StepResponse([], input.previous)
     }
 
     const updated = await getMeasurementUnitService(
-      container
+      container,
     ).updateProductVariantMeasurements(input.updates)
 
     return new StepResponse(updated, input.previous)
   },
   async (
     previous: ProductVariantMeasurementRecord[] | undefined,
-    { container }
+    { container },
   ) => {
-    if (!previous?.length) {
+    if (previous === undefined || previous.length === 0) {
       return
     }
 
@@ -184,33 +188,34 @@ export const updateProductVariantMeasurementsStep = createStep(
         product_measurement_id: record.product_measurement_id,
         product_unit_quantity: record.product_unit_quantity,
         product_variant_id: record.product_variant_id,
-      }))
+      })),
     )
-  }
+  },
 )
 
 export const createProductVariantMeasurementsStep = createStep(
   "create-product-variant-measurements",
   async (input: CreateVariantMeasurementInput[], { container }) => {
-    if (!input.length) {
+    if (input.length === 0) {
       return new StepResponse([], [])
     }
 
     const created =
       await getMeasurementUnitService(
-        container
+        container,
       ).createProductVariantMeasurements(input)
 
     return new StepResponse(
       created,
-      created.map((record) => record.id)
+      created.map((record) => record.id),
     )
   },
   async (createdIds: string[] | undefined, { container }) => {
-    if (createdIds?.length) {
-      await getMeasurementUnitService(
-        container
-      ).softDeleteProductVariantMeasurements(createdIds)
+    if (createdIds === undefined || createdIds.length === 0) {
+      return
     }
-  }
+    await getMeasurementUnitService(
+      container,
+    ).softDeleteProductVariantMeasurements(createdIds)
+  },
 )

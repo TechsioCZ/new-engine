@@ -3,7 +3,7 @@ import { PRODUCT_LIMIT, PRODUCT_LIST_FIELDS } from "./constants"
 /**
  * Product query parameters (no `page` - only `offset` for cache consistency)
  */
-export type ProductQueryParams = {
+export interface ProductQueryParams {
   category_id?: string[]
   region_id?: string
   country_code?: string
@@ -19,14 +19,15 @@ interface BuilderParams extends Partial<ProductQueryParams> {
   page?: number
 }
 
-export function buildProductQueryParams(
-  params: BuilderParams
-): ProductQueryParams {
+export const buildProductQueryParams = (
+  params: BuilderParams,
+): ProductQueryParams => {
   const { page = 1, limit = PRODUCT_LIMIT, ...rest } = params
 
   return {
+    // Default country code; callers can override it.
+    country_code: "cz",
     fields: PRODUCT_LIST_FIELDS,
-    country_code: "cz", // default, can be overridden
     ...rest,
     limit,
     offset: (page - 1) * limit,
@@ -36,14 +37,13 @@ export function buildProductQueryParams(
 /**
  * Always prefetches page 1
  */
-export function buildPrefetchParams(
-  params: Pick<BuilderParams, "category_id" | "region_id" | "country_code">
-): ProductQueryParams {
-  return buildProductQueryParams({
+export const buildPrefetchParams = (
+  params: Pick<BuilderParams, "category_id" | "region_id" | "country_code">,
+): ProductQueryParams =>
+  buildProductQueryParams({
     ...params,
     page: 1,
   })
-}
 
 /**
  * Converts query params to URL query string
@@ -53,13 +53,13 @@ type QueryParamValue =
   | string
   | number
   | boolean
-  | Array<string | number | boolean>
+  | (string | number | boolean)[]
   | null
   | undefined
 
-export function buildQueryString(
-  params: Record<string, QueryParamValue>
-): string {
+export const buildQueryString = (
+  params: Record<string, QueryParamValue>,
+): string => {
   const searchParams = new URLSearchParams()
 
   for (const [key, value] of Object.entries(params)) {
@@ -69,9 +69,9 @@ export function buildQueryString(
 
     if (Array.isArray(value)) {
       // category_id[0]=xxx&category_id[1]=yyy
-      value.forEach((v, i) => {
-        searchParams.append(`${key}[${i}]`, String(v))
-      })
+      for (const [index, item] of value.entries()) {
+        searchParams.append(`${key}[${index}]`, String(item))
+      }
     } else {
       searchParams.append(key, String(value))
     }

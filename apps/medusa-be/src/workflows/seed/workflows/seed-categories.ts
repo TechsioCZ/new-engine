@@ -3,21 +3,20 @@ import {
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import {
-  type CreateProductCategoriesStepInput,
-  createProductCategoriesStep,
-} from "../steps/create-product-categories"
 
-export type CategoryRaw = {
+import { createProductCategoriesStep } from "../steps/create-product-categories"
+import type { CreateProductCategoriesStepInput } from "../steps/create-product-categories"
+
+export interface CategoryRaw {
   title: string
-  description?: string
+  description?: string | undefined
   handle: string
   isActive: boolean
-  parentHandle?: string
+  parentHandle?: string | undefined
 }
 
 const seedCategoriesWorkflowId = "seed-categories-workflow"
-function seedCategoriesWorkflowComposer(input: CategoryRaw[]) {
+const seedCategoriesWorkflowComposer = (input: CategoryRaw[]) => {
   const productCategories: CreateProductCategoriesStepInput = transform(
     {
       input,
@@ -25,11 +24,15 @@ function seedCategoriesWorkflowComposer(input: CategoryRaw[]) {
     (data) =>
       data.input.map((i) => ({
         name: i.title,
-        description: i.description,
+        ...(i.description !== undefined && i.description.length > 0
+          ? { description: i.description }
+          : {}),
         handle: i.handle,
         isActive: Boolean(Number(i.isActive)),
-        parentHandle: i.parentHandle,
-      }))
+        ...(i.parentHandle !== undefined && i.parentHandle.length > 0
+          ? { parentHandle: i.parentHandle }
+          : {}),
+      })),
   )
 
   createProductCategoriesStep(productCategories)
@@ -43,7 +46,7 @@ function seedCategoriesWorkflowComposer(input: CategoryRaw[]) {
 
 const seedCategoriesWorkflow = createWorkflow(
   seedCategoriesWorkflowId,
-  seedCategoriesWorkflowComposer
+  seedCategoriesWorkflowComposer,
 )
 
 export default seedCategoriesWorkflow

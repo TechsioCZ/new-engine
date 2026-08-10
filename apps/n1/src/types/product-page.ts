@@ -1,14 +1,14 @@
-export type BrandEntity = {
+export interface BrandEntity {
   name: string
   address: string
-  taxId?: string
-  email?: string
-  phone?: string
+  taxId?: string | undefined
+  email?: string | undefined
+  phone?: string | undefined
 }
 
-export type ParsedBrandInfo = {
-  sizingGuideUrl?: string
-  manufacturer?: BrandEntity
-  responsiblePerson?: BrandEntity
-  distributor?: string
+export interface ParsedBrandInfo {
+  sizingGuideUrl?: string | undefined
+  manufacturer?: BrandEntity | undefined
+  responsiblePerson?: BrandEntity | undefined
+  distributor?: string | undefined
 }

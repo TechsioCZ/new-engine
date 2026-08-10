@@ -2,6 +2,7 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import { symmyProcessCustomersBatchStep } from "./steps/process-batch"
 import type {
   UpsertCustomersBatchInput,
@@ -13,7 +14,7 @@ const symmyUpsertCustomersBatchWorkflow = createWorkflow(
   (input: UpsertCustomersBatchInput) => {
     const result = symmyProcessCustomersBatchStep(input)
     return new WorkflowResponse<UpsertCustomersBatchOutput>(result)
-  }
+  },
 )
 
 export { symmyUpsertCustomersBatchWorkflow as upsertCustomersBatchWorkflow }

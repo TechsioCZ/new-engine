@@ -1,36 +1,39 @@
 "use client"
 
-import { Button } from "@techsio/ui-kit/atoms/button"
-import { Rating } from "@techsio/ui-kit/atoms/rating"
-import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
-import NextLink from "next/link"
-import { usePathname, useSearchParams } from "next/navigation"
+import type { PaginationGetPageUrl } from "@techsio/ui-kit/molecules/pagination"
 import { useFormatter, useTranslations } from "next-intl"
+import { usePathname, useSearchParams } from "next/navigation"
 import { createParser, createSerializer, useQueryState } from "nuqs"
 import { useEffect } from "react"
-import { ProductReviewCreateDialog } from "@/components/product-detail/sections/product-detail-review-dialog"
+
+import NextLink from "@/components/app-link"
+import {
+  ProductDetailReviewList,
+  ProductDetailReviewsHeader,
+} from "@/components/product-detail/sections/product-detail-review-list"
+import {
+  ProductDetailReviewsEmpty,
+  ProductDetailReviewsLoadError,
+  ProductDetailReviewsSkeleton,
+  ProductDetailReviewsUnavailable,
+} from "@/components/product-detail/sections/product-detail-review-states"
 import {
   PRODUCT_DETAIL_REVIEWS_SECTION_ID,
   toReviewItem,
 } from "@/components/product-detail/sections/product-detail-review-utils"
-import { FractionalRating } from "@/components/reviews/fractional-rating"
-import type { ReviewItem } from "@/components/reviews/reviews.types"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import {
   PRODUCT_REVIEWS_PAGE_SIZE,
   useProductReviews,
 } from "@/lib/storefront/reviews"
 
-type ProductDetailReviewsProps = {
+interface ProductDetailReviewsProps {
   productId?: string | null
 }
 
 const REVIEW_PAGE_PARAM = "reviews_page"
-
-const resolveReviewInitial = (author: string) =>
-  author.trim().charAt(0).toUpperCase() || "A"
-
 const reviewPageParser = createParser({
   parse: (value) => {
     const page = Number(value)
@@ -38,164 +41,36 @@ const reviewPageParser = createParser({
   },
   serialize: String,
 }).withDefault(1)
-
 const serializeReviewPage = createSerializer({
   [REVIEW_PAGE_PARAM]: reviewPageParser,
 })
 
-function ProductDetailReviewsSkeleton() {
-  const tCatalog = useTranslations("catalog")
-
-  return (
-    // biome-ignore lint/a11y/useAriaPropsSupportedByRole: existing loading skeleton announces itself via aria-busy + aria-label; markup kept unchanged.
-    <div
-      aria-busy="true"
-      aria-label={tCatalog("reviews.loading_aria")}
-      className="space-y-500"
-    >
-      <section className="space-y-350">
-        <div className="flex flex-col gap-250 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-150">
-            <Skeleton.Text noOfLines={1} size="lg" />
-            <Skeleton.Text noOfLines={1} size="sm" />
-          </div>
-          <Skeleton.Rectangle className="h-900 w-full max-w-950" />
-        </div>
-      </section>
-
-      <div className="space-y-300">
-        {Array.from({ length: 3 }, (_, index) => (
-          <article
-            className="rounded-md border border-border-secondary bg-highlight p-400"
-            key={`product-review-list-skeleton-${index + 1}`}
-          >
-            <div className="flex gap-300">
-              <Skeleton.Circle className="size-14 shrink-0" />
-              <div className="min-w-0 flex-1 space-y-250">
-                <Skeleton.Text noOfLines={2} size="sm" />
-                <Skeleton.Text noOfLines={3} size="sm" />
-              </div>
-            </div>
-          </article>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function ProductDetailReviewsHeader({
-  averageRating,
+export const ProductDetailReviews = ({
   productId,
-  totalCount,
-}: {
-  averageRating: number
-  productId: string
-  totalCount: number
-}) {
-  const format = useFormatter()
-  const tCatalog = useTranslations("catalog")
-  const formattedAverageRating = format.number(averageRating, {
-    maximumFractionDigits: 1,
-    minimumFractionDigits: 1,
-  })
-
-  return (
-    <header className="flex flex-col gap-350 lg:items-start lg:justify-between">
-      <div className="space-y-100">
-        <div className="flex flex-wrap items-center gap-300">
-          <h2 className="font-semibold text-3xl text-fg-primary leading-tight">
-            {tCatalog("reviews.product_title")}{" "}
-            <span className="whitespace-nowrap">
-              - <span className="text-primary">{formattedAverageRating}</span>
-            </span>
-          </h2>
-          <FractionalRating
-            label={tCatalog("reviews.rating_aria", {
-              max: 5,
-              rating: formattedAverageRating,
-            })}
-            value={averageRating}
-          />
-        </div>
-        <p className="text-fg-secondary text-sm leading-relaxed">
-          {tCatalog("reviews.based_on_count", { count: totalCount })}
-        </p>
-      </div>
-
-      <ProductReviewCreateDialog productId={productId} />
-    </header>
-  )
-}
-
-function ProductReviewListItem({ review }: { review: ReviewItem }) {
-  return (
-    <article className="border-border-secondary not-last:border-b p-400">
-      <div className="flex gap-300">
-        <div className="flex size-36 shrink-0 items-center justify-center rounded-full bg-base">
-          <span className="font-normal text-2xl text-fg-secondary leading-none">
-            {resolveReviewInitial(review.author)}
-          </span>
-        </div>
-
-        <div className="min-w-0 flex-1 space-y-250">
-          <header className="flex flex-col gap-150 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0 space-y-100">
-              <p className="truncate font-semibold text-fg-primary text-md leading-tight">
-                {review.author}
-              </p>
-              <Rating
-                className="pointer-events-none"
-                readOnly
-                size="sm"
-                value={review.rating}
-              />
-            </div>
-
-            {review.dateLabel ? (
-              <p className="shrink-0 text-fg-placeholder text-sm leading-tight">
-                {review.dateLabel}
-              </p>
-            ) : null}
-          </header>
-
-          <div className="space-y-150">
-            <p className="text-fg-secondary text-md leading-relaxed">
-              {review.message}
-            </p>
-          </div>
-        </div>
-      </div>
-    </article>
-  )
-}
-
-export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
+}: ProductDetailReviewsProps) => {
   const format = useFormatter()
   const tCatalog = useTranslations("catalog")
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const [currentPage, setCurrentPage] = useQueryState(
     REVIEW_PAGE_PARAM,
-    reviewPageParser
+    reviewPageParser,
   )
-  const getReviewPageUrl = ({ page }: { page: number }) => {
+  const getReviewPageUrl: PaginationGetPageUrl = ({ page }) => {
     const query = searchParams.toString()
-    const baseHref = query ? `${pathname}?${query}` : pathname
+    const baseHref = query === "" ? pathname : `${pathname}?${query}`
     const href = serializeReviewPage(baseHref, {
       reviews_page: page <= 1 ? null : page,
     })
     return `${href}#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`
   }
-
   const reviewsQuery = useProductReviews({
-    productId: productId ?? undefined,
+    ...(productId === null || productId === undefined ? {} : { productId }),
+    enabled: Boolean(productId),
     limit: PRODUCT_REVIEWS_PAGE_SIZE,
     page: currentPage,
-    enabled: Boolean(productId),
   })
-  const reviews = reviewsQuery.reviews
-  const totalCount = reviewsQuery.totalCount
-  const averageRating = reviewsQuery.summary.average_rating
+  const { reviews, totalCount } = reviewsQuery
   const reviewItems = reviews.map((review) =>
     toReviewItem(review, {
       anonymousLabel: tCatalog("reviews.anonymous"),
@@ -205,99 +80,56 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
           month: "numeric",
           year: "numeric",
         }),
-    })
+    }),
   )
   const isInitialLoading = reviewsQuery.isLoading && reviews.length === 0
-  const isEmpty = reviewsQuery.isSuccess && totalCount === 0
   const isPageOutOfRange =
     reviewsQuery.isSuccess &&
     reviewsQuery.totalPages > 0 &&
     currentPage > reviewsQuery.totalPages
-  const shouldShowPagination = reviewsQuery.totalPages > 1
 
   useEffect(() => {
     if (!isPageOutOfRange) {
       return
     }
-
-    setCurrentPage(reviewsQuery.totalPages, { history: "replace" })
+    runDetachedPromise(
+      setCurrentPage(reviewsQuery.totalPages, { history: "replace" }),
+    )
   }, [isPageOutOfRange, reviewsQuery.totalPages, setCurrentPage])
 
-  if (!productId) {
-    return (
-      <StatusText showIcon status="warning">
-        {tCatalog("reviews.unavailable")}
-      </StatusText>
-    )
+  if (productId === null || productId === undefined || productId === "") {
+    return <ProductDetailReviewsUnavailable />
   }
-
-  if (isInitialLoading) {
+  if (isInitialLoading || isPageOutOfRange) {
     return <ProductDetailReviewsSkeleton />
   }
-
-  if (isPageOutOfRange) {
-    return <ProductDetailReviewsSkeleton />
-  }
-
-  if (reviewsQuery.error && reviews.length === 0) {
+  if (reviewsQuery.error !== null && reviews.length === 0) {
     return (
-      <div className="space-y-300">
-        <StatusText showIcon status="error">
-          {tCatalog("reviews.load_failed")}
-        </StatusText>
-        <Button
-          onClick={() => {
-            reviewsQuery.query.refetch()
-          }}
-          size="sm"
-          variant="secondary"
-        >
-          {tCatalog("reviews.retry")}
-        </Button>
-      </div>
+      <ProductDetailReviewsLoadError
+        onRetry={() => {
+          runDetachedPromise(reviewsQuery.query.refetch())
+        }}
+      />
     )
   }
-
-  if (isEmpty) {
-    return (
-      <div className="rounded-xs border border-border-secondary bg-highlight p-500">
-        <p className="font-semibold text-fg-primary text-lg">
-          {tCatalog("reviews.empty_title")}
-        </p>
-        <p className="mt-150 text-fg-secondary text-md leading-relaxed">
-          {tCatalog("reviews.empty_description")}
-        </p>
-        <div className="mt-300">
-          <ProductReviewCreateDialog
-            productId={productId}
-            triggerLabel={tCatalog("reviews.first_action")}
-          />
-        </div>
-      </div>
-    )
+  if (reviewsQuery.isSuccess && totalCount === 0) {
+    return <ProductDetailReviewsEmpty productId={productId} />
   }
 
   return (
     <div className="space-y-500">
       <ProductDetailReviewsHeader
-        averageRating={averageRating}
+        averageRating={reviewsQuery.summary.average_rating}
         productId={productId}
         totalCount={totalCount}
       />
-
       {reviewsQuery.isFetching && reviews.length > 0 ? (
         <StatusText showIcon status="default">
           {tCatalog("reviews.refreshing")}
         </StatusText>
       ) : null}
-
-      <div className="space-y-300">
-        {reviewItems.map((review) => (
-          <ProductReviewListItem key={review.id} review={review} />
-        ))}
-      </div>
-
-      {shouldShowPagination ? (
+      <ProductDetailReviewList reviews={reviewItems} />
+      {reviewsQuery.totalPages > 1 ? (
         <div className="flex justify-end">
           <Pagination
             count={totalCount}

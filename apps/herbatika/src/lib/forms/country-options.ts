@@ -1,11 +1,11 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 
-const COUNTRY_CODE_PATTERN = /^[A-Z]{2}$/
+const COUNTRY_CODE_PATTERN = /^[A-Z]{2}$/u
 
 const countryDisplayNamesByLocale = new Map<string, Intl.DisplayNames>()
 
-export type CountryRegionInput = {
+export interface CountryRegionInput {
   activeCountryCode?: string | null
   countryCode?: string | null
   regionId?: string | null
@@ -13,10 +13,13 @@ export type CountryRegionInput = {
 }
 
 export const normalizeCountryCode = (
-  countryCode: string | null | undefined
+  countryCode: string | null | undefined,
 ) => {
   const normalized = countryCode?.trim().toUpperCase()
-  return normalized && COUNTRY_CODE_PATTERN.test(normalized) ? normalized : null
+  if (normalized === undefined || !COUNTRY_CODE_PATTERN.test(normalized)) {
+    return null
+  }
+  return normalized
 }
 
 const getCountryDisplayNames = (locale: string) => {
@@ -33,11 +36,11 @@ const getCountryDisplayNames = (locale: string) => {
 
 export const resolveCountryDisplayName = (
   countryCode: string,
-  locale: string
+  locale: string,
 ) => {
   const normalizedCountryCode = normalizeCountryCode(countryCode)
 
-  if (!normalizedCountryCode) {
+  if (normalizedCountryCode === null) {
     return countryCode
   }
 
@@ -51,7 +54,7 @@ const findRegion = ({
   regionId,
   regions,
 }: Pick<CountryRegionInput, "regionId" | "regions">) => {
-  if (!regionId) {
+  if (regionId === null || regionId === undefined || regionId.length === 0) {
     return null
   }
 
@@ -62,8 +65,7 @@ const resolveRegionCountryCodes = (region: HttpTypes.StoreRegion | null) =>
   new Set(
     region?.countries
       ?.map((country) => normalizeCountryCode(country.iso_2))
-      .filter((countryCode): countryCode is string => Boolean(countryCode)) ??
-      []
+      .filter((countryCode): countryCode is string => countryCode !== null),
   )
 
 const resolveCountryCodes = ({
@@ -72,11 +74,11 @@ const resolveCountryCodes = ({
   regions,
 }: Pick<CountryRegionInput, "activeCountryCode" | "regionId" | "regions">) => {
   const regionCountryCodes = resolveRegionCountryCodes(
-    findRegion({ regionId, regions })
+    findRegion({ ...(regionId === undefined ? {} : { regionId }), regions }),
   )
   const normalizedActiveCountryCode = normalizeCountryCode(activeCountryCode)
 
-  if (normalizedActiveCountryCode) {
+  if (normalizedActiveCountryCode !== null) {
     return new Set([normalizedActiveCountryCode])
   }
 
@@ -92,8 +94,8 @@ export const resolveCountryItemsForRegion = ({
   locale: string
 }): SelectItem[] => {
   const countryCodes = resolveCountryCodes({
-    activeCountryCode,
-    regionId,
+    ...(activeCountryCode === undefined ? {} : { activeCountryCode }),
+    ...(regionId === undefined ? {} : { regionId }),
     regions,
   })
 
@@ -111,12 +113,12 @@ export const isCountryAvailableForRegion = ({
 }: CountryRegionInput) => {
   const normalizedCountryCode = normalizeCountryCode(countryCode)
   const countryCodes = resolveCountryCodes({
-    activeCountryCode,
-    regionId,
+    ...(activeCountryCode === undefined ? {} : { activeCountryCode }),
+    ...(regionId === undefined ? {} : { regionId }),
     regions,
   })
 
-  if (!normalizedCountryCode || countryCodes.size === 0) {
+  if (normalizedCountryCode === null || countryCodes.size === 0) {
     return false
   }
 

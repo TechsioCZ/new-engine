@@ -1,11 +1,8 @@
 ---
-component_version: "1.0.0"
+component_version: "2.0.0"
 name: gallery-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Gallery for
-  product or media image galleries with Carousel integration, thumbnails,
-  controlled page, orientation, thumbnail image adapters, thumbnail aria labels,
-  empty state, and NextImage support.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Gallery for product or media image galleries with Carousel integration, thumbnails, controlled page, orientation, thumbnail image adapters, thumbnail aria labels, empty state, and NextImage support.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -22,8 +19,7 @@ sources:
 
 # @techsio/ui-kit Gallery Usage
 
-Use Gallery for product or media galleries with thumbnails. Use Carousel
-directly when thumbnails are not part of the UX.
+Use Gallery for product or media galleries with thumbnails. Use Carousel directly when thumbnails are not part of the UX.
 
 ## Setup
 
@@ -31,12 +27,14 @@ directly when thumbnails are not part of the UX.
 import NextImage from "next/image"
 import { Gallery } from "@techsio/ui-kit/organisms/gallery"
 
-<Gallery
+;<Gallery
   items={items}
   thumbnailImageAs={NextImage}
   carouselProps={{ imageAs: NextImage, aspectRatio: "square", size: "full" }}
 >
-  <Gallery.Main><Gallery.Carousel /></Gallery.Main>
+  <Gallery.Main>
+    <Gallery.Carousel />
+  </Gallery.Main>
   <Gallery.Thumbnails />
 </Gallery>
 ```
@@ -79,7 +77,12 @@ Wrong:
 Correct:
 
 ```tsx
-<Gallery items={items}><Gallery.Main><Gallery.Carousel /></Gallery.Main><Gallery.Thumbnails /></Gallery>
+<Gallery items={items}>
+  <Gallery.Main>
+    <Gallery.Carousel />
+  </Gallery.Main>
+  <Gallery.Thumbnails />
+</Gallery>
 ```
 
 Source: libs/ui/src/organisms/gallery.tsx
@@ -89,13 +92,18 @@ Source: libs/ui/src/organisms/gallery.tsx
 Wrong:
 
 ```tsx
-<Carousel slideCount={items.length}><Carousel.Slides slides={items} /></Carousel>
+<Carousel slideCount={items.length}>
+  <Carousel.Slides slides={items} />
+</Carousel>
 ```
 
 Correct:
 
 ```tsx
-<Gallery items={items}><Gallery.Carousel /><Gallery.Thumbnails /></Gallery>
+<Gallery items={items}>
+  <Gallery.Carousel />
+  <Gallery.Thumbnails />
+</Gallery>
 ```
 
 Source: libs/ui/src/organisms/gallery.tsx
@@ -111,7 +119,9 @@ Wrong:
 Correct:
 
 ```tsx
-<Gallery thumbnailSize={64}><Gallery.Thumbnails /></Gallery>
+<Gallery thumbnailSize={64}>
+  <Gallery.Thumbnails />
+</Gallery>
 ```
 
 Source: libs/ui/src/tokens/components/organisms/_gallery.css

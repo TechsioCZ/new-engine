@@ -4,6 +4,7 @@ import type {
 } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import {
   filterReviewRecords,
   getUniqueReviewProductIds,
@@ -12,10 +13,10 @@ import {
 import { getProductsById } from "../../../../review-products"
 import type { StoreGetCustomerReviewsSchemaType } from "./validators"
 
-export async function GET(
+const get = async (
   req: AuthenticatedMedusaRequest<unknown, StoreGetCustomerReviewsSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { limit, offset } = req.validatedQuery
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data: reviewResults, metadata } = await query.graph({
@@ -46,7 +47,7 @@ export async function GET(
   const reviews = filterReviewRecords(reviewResults)
   const productsById = await getProductsById(
     req,
-    getUniqueReviewProductIds(reviews)
+    getUniqueReviewProductIds(reviews),
   )
 
   res.json({
@@ -54,7 +55,9 @@ export async function GET(
     limit,
     offset,
     reviews: reviews.map((review) =>
-      normalizeCustomerReview(review, productsById)
+      normalizeCustomerReview(review, productsById),
     ),
   })
 }
+
+export { get as GET }

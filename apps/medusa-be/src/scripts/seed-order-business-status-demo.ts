@@ -1,53 +1,80 @@
 import type { ExecArgs, Logger } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { createOrderWorkflow } from "@medusajs/medusa/core-flows"
 import {
-  type ManualOrderBusinessStatusId,
-  ORDER_BUSINESS_STATUS_METADATA_KEY,
-  type OrderBusinessStatusId,
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
+import { createOrderWorkflow } from "@medusajs/medusa/core-flows"
+import { omitKeys } from "@techsio/std/object"
+
+import { ORDER_BUSINESS_STATUS_METADATA_KEY } from "../utils/order-business-status"
+import type {
+  ManualOrderBusinessStatusId,
+  OrderBusinessStatusId,
 } from "../utils/order-business-status"
 import seedOrderExpeditionDemo from "./seed-order-expedition-demo"
 
-type DemoVariant = {
-  id: string
-  sku?: string | null
-  title?: string | null
-  product?: {
-    id?: string | null
-    title?: string | null
-    handle?: string | null
-  } | null
-}
+const optionalNullableStringSchema = z.string().nullable().optional()
+const demoVariantSchema = z.object({
+  id: z.string(),
+  product: z
+    .object({
+      handle: optionalNullableStringSchema,
+      id: optionalNullableStringSchema,
+      title: optionalNullableStringSchema,
+    })
+    .nullable()
+    .optional(),
+  sku: optionalNullableStringSchema,
+  title: optionalNullableStringSchema,
+})
+type DemoVariant = z.infer<typeof demoVariantSchema>
 
-type DemoRegion = {
-  id: string
-  currency_code?: string | null
-}
+const demoRegionSchema = z.object({
+  currency_code: optionalNullableStringSchema,
+  id: z.string(),
+  name: z.string().optional(),
+})
+type DemoRegion = z.infer<typeof demoRegionSchema>
 
-type DemoSalesChannel = {
-  id: string
-}
+const demoSalesChannelSchema = z.object({
+  id: z.string(),
+  name: z.string().optional(),
+})
+type DemoSalesChannel = z.infer<typeof demoSalesChannelSchema>
 
-type DemoOrder = {
-  id: string
-  email?: string | null
-  metadata?: Record<string, unknown> | null
-}
+const demoOrderMetadataSchema = z
+  .object({
+    order_business_status_demo: z.boolean().optional(),
+    order_business_status_demo_expected_label: z.json().optional(),
+    order_business_status_demo_expected_status: z.string().optional(),
+    order_business_status_demo_key: z.string().optional(),
+    order_business_status_manual: z.string().optional(),
+  })
+  .catchall(z.json())
+type DemoOrderMetadata = z.infer<typeof demoOrderMetadataSchema>
 
-type QueryService = {
+const demoOrderSchema = z.object({
+  email: optionalNullableStringSchema,
+  id: z.string(),
+  metadata: demoOrderMetadataSchema.nullable().optional(),
+})
+type DemoOrder = z.infer<typeof demoOrderSchema>
+
+interface QueryService {
   graph: (input: {
     entity: string
     fields: string[]
   }) => Promise<{ data?: unknown }>
 }
 
-type DatabaseConnection = {
+interface DatabaseConnection {
   raw: <T = unknown>(sql: string, bindings?: unknown[]) => Promise<T>
 }
 
 type RawRows<T> = T[] | { rows?: T[] }
 
-type BusinessStatusDemo = {
+interface BusinessStatusDemo {
   key: string
   email: string
   expectedStatus: OrderBusinessStatusId
@@ -57,7 +84,7 @@ type BusinessStatusDemo = {
   fulfillment?: "shipped" | "delivered"
 }
 
-type UpsertCompletedPaymentCollectionInput = {
+interface UpsertCompletedPaymentCollectionInput {
   demo: BusinessStatusDemo
   index: number
   order: DemoOrder
@@ -65,7 +92,7 @@ type UpsertCompletedPaymentCollectionInput = {
   region: DemoRegion
 }
 
-type UpsertDemoFulfillmentInput = {
+interface UpsertDemoFulfillmentInput {
   demo: BusinessStatusDemo
   order: DemoOrder
   pgConnection: DatabaseConnection
@@ -79,148 +106,193 @@ const DEMO_ITEM_AMOUNT_STEP = 25
 const DEMO_SHIPPING_AMOUNT = 99
 const BUSINESS_STATUS_DEMOS: BusinessStatusDemo[] = [
   {
-    key: "awaiting-payment",
     email: "business-status.demo.awaiting-payment@example.test",
     expectedStatus: "awaiting_payment",
+    key: "awaiting-payment",
     orderStatus: "pending",
     paid: false,
   },
   {
-    key: "paid",
     email: "business-status.demo.paid@example.test",
     expectedStatus: "paid",
+    key: "paid",
     orderStatus: "pending",
     paid: true,
   },
   {
-    key: "processing",
     email: "business-status.demo.processing@example.test",
     expectedStatus: "processing",
+    key: "processing",
     manualStatus: "processing",
     orderStatus: "pending",
     paid: true,
   },
   {
-    key: "waiting-for-supplier",
     email: "business-status.demo.waiting-for-supplier@example.test",
     expectedStatus: "waiting_for_supplier",
+    key: "waiting-for-supplier",
     manualStatus: "waiting_for_supplier",
     orderStatus: "pending",
     paid: true,
   },
   {
-    key: "shipped-over-processing",
     email: "business-status.demo.shipped@example.test",
     expectedStatus: "shipped",
     fulfillment: "shipped",
+    key: "shipped-over-processing",
     manualStatus: "processing",
     orderStatus: "pending",
     paid: true,
   },
   {
-    key: "delivered-over-supplier",
     email: "business-status.demo.delivered@example.test",
     expectedStatus: "delivered",
     fulfillment: "delivered",
+    key: "delivered-over-supplier",
     manualStatus: "waiting_for_supplier",
     orderStatus: "pending",
     paid: true,
   },
   {
-    key: "canceled-over-paid-shipped",
     email: "business-status.demo.canceled@example.test",
     expectedStatus: "canceled",
     fulfillment: "shipped",
+    key: "canceled-over-paid-shipped",
     manualStatus: "canceled",
     orderStatus: "canceled",
     paid: true,
   },
 ]
 
-export default async function seedOrderBusinessStatusDemo({
-  container,
-}: ExecArgs) {
-  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-  const query = container.resolve<QueryService>(ContainerRegistrationKeys.QUERY)
-  const pgConnection = container.resolve<DatabaseConnection>(
-    ContainerRegistrationKeys.PG_CONNECTION
-  )
+const buildDemoMetadata = (
+  metadata: DemoOrderMetadata | null | undefined,
+  demo: BusinessStatusDemo,
+) => ({
+  ...omitKeys(metadata ?? {}, [
+    "order_business_status_demo_expected_label",
+    "order_business_status_manual",
+  ]),
+  order_business_status_demo: true,
+  order_business_status_demo_expected_status: demo.expectedStatus,
+  order_business_status_demo_key: demo.key,
+  ...(demo.manualStatus === undefined
+    ? {}
+    : { [ORDER_BUSINESS_STATUS_METADATA_KEY]: demo.manualStatus }),
+})
 
-  logger.info("Starting order business status demo seed...")
+const getRows = <T>(result: RawRows<T>) =>
+  Array.isArray(result) ? result : (result.rows ?? [])
 
-  await seedOrderExpeditionDemo({ args: [], container })
-  const stockLocationId =
-    await fetchBusinessStatusDemoStockLocationId(pgConnection)
-
-  const [region, salesChannel, variants] = await Promise.all([
-    fetchCzechRegion(query),
-    fetchDefaultSalesChannel(query),
-    fetchDemoVariants(query),
-  ])
-
-  if (!region) {
-    throw new Error("Czechia region is required for business status demo seed")
-  }
-
-  if (!salesChannel) {
-    throw new Error(
-      "Default Sales Channel is required for business status demo seed"
-    )
-  }
-
-  if (!variants.length) {
-    throw new Error("At least one demo product variant is required")
-  }
-
-  let existingOrders = await fetchBusinessStatusDemoOrders(query)
-
-  for (const [index, demo] of BUSINESS_STATUS_DEMOS.entries()) {
-    if (existingOrders.some((order) => getDemoKey(order) === demo.key)) {
-      continue
-    }
-
-    const variant = variants[index % variants.length]
-    if (!variant) {
-      throw new Error(`Missing variant for business status demo ${demo.key}`)
-    }
-
-    await createDemoOrder({
-      container,
-      demo,
-      index,
-      region,
-      salesChannel,
-      variant,
-    })
-  }
-
-  existingOrders = await fetchBusinessStatusDemoOrders(query)
-
-  for (const [index, demo] of BUSINESS_STATUS_DEMOS.entries()) {
-    const order = existingOrders.find(
-      (candidate) => getDemoKey(candidate) === demo.key
-    )
-
-    if (!order) {
-      throw new Error(`Business status demo order ${demo.key} was not created`)
-    }
-
-    await normalizeDemoOrder({
-      demo,
-      index,
-      order,
-      pgConnection,
-      region,
-      stockLocationId,
-    })
-  }
-
-  logger.info(
-    `Order business status demo seed ready with ${BUSINESS_STATUS_DEMOS.length} orders.`
-  )
+const getDemoKey = (order: DemoOrder) => {
+  const key = order.metadata?.order_business_status_demo_key
+  return typeof key === "string" ? key : undefined
 }
 
-async function createDemoOrder({
+const getDemoItemAmount = (index: number) =>
+  DEMO_ITEM_BASE_AMOUNT + index * DEMO_ITEM_AMOUNT_STEP
+
+const getDemoOrderTotal = (index: number) =>
+  getDemoItemAmount(index) + DEMO_SHIPPING_AMOUNT
+
+const getDemoIdSlug = (demo: BusinessStatusDemo) =>
+  demo.key.replaceAll("-", "_")
+
+const getPaymentCollectionId = (demo: BusinessStatusDemo) =>
+  `paycol_obs_demo_${getDemoIdSlug(demo)}`
+
+const getFulfillmentId = (demo: BusinessStatusDemo) =>
+  `ful_obs_demo_${getDemoIdSlug(demo)}`
+
+const fetchBusinessStatusDemoStockLocationId = async (
+  pgConnection: DatabaseConnection,
+) => {
+  const result = await pgConnection.raw<RawRows<{ id: string }>>(
+    `select "id" from "stock_location" where "deleted_at" is null order by "created_at" asc limit 1`,
+  )
+  const stockLocationId = getRows(result)[0]?.id
+
+  if (stockLocationId === undefined || stockLocationId.length === 0) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      "At least one stock location is required for business status demo seed",
+    )
+  }
+
+  return stockLocationId
+}
+
+const fetchCzechRegion = async (query: QueryService) => {
+  const { data } = await query.graph({
+    entity: "region",
+    fields: ["id", "name", "currency_code"],
+  })
+
+  const parsed = z.array(demoRegionSchema).safeParse(data)
+  return parsed.success
+    ? parsed.data.find((region) => region.name === "Czechia")
+    : undefined
+}
+
+const fetchDefaultSalesChannel = async (query: QueryService) => {
+  const { data } = await query.graph({
+    entity: "sales_channel",
+    fields: ["id", "name"],
+  })
+
+  const parsed = z.array(demoSalesChannelSchema).safeParse(data)
+  return parsed.success
+    ? parsed.data.find(
+        (salesChannel) => salesChannel.name === "Default Sales Channel",
+      )
+    : undefined
+}
+
+const fetchDemoVariants = async (query: QueryService) => {
+  const { data } = await query.graph({
+    entity: "variant",
+    fields: [
+      "id",
+      "sku",
+      "title",
+      "product.id",
+      "product.title",
+      "product.handle",
+    ],
+  })
+
+  const parsed = z.array(demoVariantSchema).safeParse(data)
+  return parsed.success
+    ? parsed.data.filter(
+        (variant) =>
+          variant.product?.handle?.startsWith(DEMO_PRODUCT_HANDLE_PREFIX) ===
+          true,
+      )
+    : []
+}
+
+const fetchBusinessStatusDemoOrders = async (query: QueryService) => {
+  const { data } = await query.graph({
+    entity: "order",
+    fields: ["id", "email", "metadata"],
+  })
+
+  const parsed = z.array(demoOrderSchema).safeParse(data)
+  return parsed.success
+    ? parsed.data.filter(
+        (order) => order.metadata?.order_business_status_demo === true,
+      )
+    : []
+}
+
+const nonEmptyStringProperty = (
+  key: string,
+  value: string | null | undefined,
+): Record<string, string> =>
+  value === undefined || value === null || value.length === 0
+    ? {}
+    : { [key]: value }
+
+const createDemoOrder = async ({
   container,
   demo,
   index,
@@ -234,22 +306,22 @@ async function createDemoOrder({
   region: DemoRegion
   salesChannel: DemoSalesChannel
   variant: DemoVariant
-}) {
+}) => {
   await createOrderWorkflow(container).run({
     input: {
       currency_code: region.currency_code ?? "czk",
       email: demo.email,
       items: [
         {
-          product_handle: variant.product?.handle ?? undefined,
-          product_id: variant.product?.id ?? undefined,
+          ...nonEmptyStringProperty("product_handle", variant.product?.handle),
+          ...nonEmptyStringProperty("product_id", variant.product?.id),
           product_title: variant.product?.title ?? "Business status demo",
           quantity: 1,
           title: variant.product?.title ?? variant.title ?? "Demo item",
           unit_price: getDemoItemAmount(index),
           variant_id: variant.id,
-          variant_sku: variant.sku ?? undefined,
-          variant_title: variant.title ?? undefined,
+          ...nonEmptyStringProperty("variant_sku", variant.sku),
+          ...nonEmptyStringProperty("variant_title", variant.title),
         },
       ],
       metadata: buildDemoMetadata({}, demo),
@@ -278,79 +350,16 @@ async function createDemoOrder({
   })
 }
 
-async function normalizeDemoOrder({
+const upsertCompletedPaymentCollection = async ({
   demo,
   index,
   order,
   pgConnection,
   region,
-  stockLocationId,
-}: {
-  demo: BusinessStatusDemo
-  index: number
-  order: DemoOrder
-  pgConnection: DatabaseConnection
-  region: DemoRegion
-  stockLocationId: string
-}) {
-  const createdAt = new Date(Date.now() - index * 60_000)
-  const metadata = buildDemoMetadata(order.metadata, demo)
-
-  // Direct SQL keeps demo chronology deterministic and intentionally bypasses order workflows/subscribers.
-  await pgConnection.raw(
-    `update "order"
-      set "email" = ?,
-          "status" = ?,
-          "canceled_at" = ?,
-          "metadata" = ?::jsonb,
-          "created_at" = ?,
-          "updated_at" = now()
-      where "id" = ?`,
-    [
-      demo.email,
-      demo.orderStatus,
-      demo.orderStatus === "canceled" ? createdAt : null,
-      JSON.stringify(metadata),
-      createdAt,
-      order.id,
-    ]
-  )
-
-  if (demo.paid) {
-    await upsertCompletedPaymentCollection({
-      demo,
-      index,
-      order,
-      pgConnection,
-      region,
-    })
-  } else {
-    await removeDemoPaymentCollection(pgConnection, demo)
-  }
-
-  await removeDemoFulfillment(pgConnection, demo)
-
-  if (demo.fulfillment) {
-    await upsertDemoFulfillment({
-      demo,
-      pgConnection,
-      order,
-      stockLocationId,
-      timestamp: createdAt,
-    })
-  }
-}
-
-async function upsertCompletedPaymentCollection({
-  demo,
-  index,
-  order,
-  pgConnection,
-  region,
-}: UpsertCompletedPaymentCollectionInput) {
+}: UpsertCompletedPaymentCollectionInput) => {
   const paymentCollectionId = getPaymentCollectionId(demo)
   const amount = getDemoOrderTotal(index)
-  const rawAmount = { value: amount, precision: 20 }
+  const rawAmount = { precision: 20, value: amount }
   const metadata = {
     order_business_status_demo: true,
     order_business_status_demo_key: demo.key,
@@ -390,7 +399,7 @@ async function upsertCompletedPaymentCollection({
       amount,
       JSON.stringify(rawAmount),
       JSON.stringify(metadata),
-    ]
+    ],
   )
 
   await pgConnection.raw(
@@ -405,32 +414,32 @@ async function upsertCompletedPaymentCollection({
       on conflict ("order_id", "payment_collection_id") do update
       set "deleted_at" = null,
           "updated_at" = now()`,
-    [order.id, paymentCollectionId, `ordpaycol_${demo.key}`]
+    [order.id, paymentCollectionId, `ordpaycol_${demo.key}`],
   )
 }
 
-async function removeDemoPaymentCollection(
+const removeDemoPaymentCollection = async (
   pgConnection: DatabaseConnection,
-  demo: BusinessStatusDemo
-) {
+  demo: BusinessStatusDemo,
+) => {
   const paymentCollectionId = getPaymentCollectionId(demo)
 
   await pgConnection.raw(
     `delete from "order_payment_collection" where "payment_collection_id" = ?`,
-    [paymentCollectionId]
+    [paymentCollectionId],
   )
   await pgConnection.raw(`delete from "payment_collection" where "id" = ?`, [
     paymentCollectionId,
   ])
 }
 
-async function upsertDemoFulfillment({
+const upsertDemoFulfillment = async ({
   demo,
   order,
   pgConnection,
   stockLocationId,
   timestamp,
-}: UpsertDemoFulfillmentInput) {
+}: UpsertDemoFulfillmentInput) => {
   const fulfillmentId = getFulfillmentId(demo)
   const shippedAt = timestamp
   const deliveredAt = demo.fulfillment === "delivered" ? timestamp : null
@@ -473,7 +482,7 @@ async function upsertDemoFulfillment({
         seed: "order-business-status-demo",
       }),
       JSON.stringify(metadata),
-    ]
+    ],
   )
 
   await pgConnection.raw(
@@ -488,147 +497,188 @@ async function upsertDemoFulfillment({
       on conflict ("order_id", "fulfillment_id") do update
       set "deleted_at" = null,
           "updated_at" = now()`,
-    [order.id, fulfillmentId, `ordful_${demo.key}`]
+    [order.id, fulfillmentId, `ordful_${demo.key}`],
   )
 }
 
-async function removeDemoFulfillment(
+const removeDemoFulfillment = async (
   pgConnection: DatabaseConnection,
-  demo: BusinessStatusDemo
-) {
+  demo: BusinessStatusDemo,
+) => {
   const fulfillmentId = getFulfillmentId(demo)
 
   await pgConnection.raw(
     `delete from "order_fulfillment" where "fulfillment_id" = ?`,
-    [fulfillmentId]
+    [fulfillmentId],
   )
   await pgConnection.raw(`delete from "fulfillment" where "id" = ?`, [
     fulfillmentId,
   ])
 }
 
-async function fetchBusinessStatusDemoStockLocationId(
+const normalizeDemoOrder = async ({
+  demo,
+  index,
+  order,
+  pgConnection,
+  region,
+  stockLocationId,
+}: {
+  demo: BusinessStatusDemo
+  index: number
+  order: DemoOrder
   pgConnection: DatabaseConnection
-) {
-  const result = await pgConnection.raw<RawRows<{ id: string }>>(
-    `select "id" from "stock_location" where "deleted_at" is null order by "created_at" asc limit 1`
-  )
-  const stockLocationId = getRows(result)[0]?.id
+  region: DemoRegion
+  stockLocationId: string
+}) => {
+  const createdAt = new Date(Date.now() - index * 60_000)
+  const metadata = buildDemoMetadata(order.metadata, demo)
 
-  if (!stockLocationId) {
-    throw new Error(
-      "At least one stock location is required for business status demo seed"
+  // Direct SQL keeps demo chronology deterministic and intentionally bypasses order workflows/subscribers.
+  await pgConnection.raw(
+    `update "order"
+      set "email" = ?,
+          "status" = ?,
+          "canceled_at" = ?,
+          "metadata" = ?::jsonb,
+          "created_at" = ?,
+          "updated_at" = now()
+      where "id" = ?`,
+    [
+      demo.email,
+      demo.orderStatus,
+      demo.orderStatus === "canceled" ? createdAt : null,
+      JSON.stringify(metadata),
+      createdAt,
+      order.id,
+    ],
+  )
+
+  await (demo.paid
+    ? upsertCompletedPaymentCollection({
+        demo,
+        index,
+        order,
+        pgConnection,
+        region,
+      })
+    : removeDemoPaymentCollection(pgConnection, demo))
+
+  await removeDemoFulfillment(pgConnection, demo)
+
+  if (demo.fulfillment) {
+    await upsertDemoFulfillment({
+      demo,
+      order,
+      pgConnection,
+      stockLocationId,
+      timestamp: createdAt,
+    })
+  }
+}
+
+export default async function seedOrderBusinessStatusDemo({
+  container,
+}: ExecArgs) {
+  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+  const query = container.resolve<QueryService>(ContainerRegistrationKeys.QUERY)
+  const pgConnection = container.resolve<DatabaseConnection>(
+    ContainerRegistrationKeys.PG_CONNECTION,
+  )
+
+  logger.info("Starting order business status demo seed...")
+
+  await seedOrderExpeditionDemo({ args: [], container })
+  const stockLocationId =
+    await fetchBusinessStatusDemoStockLocationId(pgConnection)
+
+  const [region, salesChannel, variants] = await Promise.all([
+    fetchCzechRegion(query),
+    fetchDefaultSalesChannel(query),
+    fetchDemoVariants(query),
+  ])
+
+  if (!region) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      "Czechia region is required for business status demo seed",
     )
   }
 
-  return stockLocationId
-}
-
-async function fetchCzechRegion(query: QueryService) {
-  const { data } = await query.graph({
-    entity: "region",
-    fields: ["id", "name", "currency_code"],
-  })
-
-  return (
-    Array.isArray(data) ? (data as (DemoRegion & { name?: string })[]) : []
-  ).find((region) => region.name === "Czechia")
-}
-
-async function fetchDefaultSalesChannel(query: QueryService) {
-  const { data } = await query.graph({
-    entity: "sales_channel",
-    fields: ["id", "name"],
-  })
-
-  return (
-    Array.isArray(data)
-      ? (data as (DemoSalesChannel & { name?: string })[])
-      : []
-  ).find((salesChannel) => salesChannel.name === "Default Sales Channel")
-}
-
-async function fetchDemoVariants(query: QueryService) {
-  const { data } = await query.graph({
-    entity: "variant",
-    fields: [
-      "id",
-      "sku",
-      "title",
-      "product.id",
-      "product.title",
-      "product.handle",
-    ],
-  })
-
-  return Array.isArray(data)
-    ? (data as DemoVariant[]).filter((variant) =>
-        variant.product?.handle?.startsWith(DEMO_PRODUCT_HANDLE_PREFIX)
-      )
-    : []
-}
-
-async function fetchBusinessStatusDemoOrders(query: QueryService) {
-  const { data } = await query.graph({
-    entity: "order",
-    fields: ["id", "email", "metadata"],
-  })
-
-  return Array.isArray(data)
-    ? (data as DemoOrder[]).filter(
-        (order) => order.metadata?.order_business_status_demo === true
-      )
-    : []
-}
-
-function buildDemoMetadata(
-  metadata: Record<string, unknown> | null | undefined,
-  demo: BusinessStatusDemo
-) {
-  const nextMetadata: Record<string, unknown> = {
-    ...(metadata ?? {}),
-    order_business_status_demo: true,
-    order_business_status_demo_expected_status: demo.expectedStatus,
-    order_business_status_demo_key: demo.key,
+  if (!salesChannel) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      "Default Sales Channel is required for business status demo seed",
+    )
   }
 
-  // biome-ignore lint/performance/noDelete: remove a legacy seed marker from serialized demo metadata.
-  delete nextMetadata.order_business_status_demo_expected_label
-
-  if (demo.manualStatus) {
-    nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = demo.manualStatus
-  } else {
-    delete nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY]
+  if (!variants.length) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      "At least one demo product variant is required",
+    )
   }
 
-  return nextMetadata
-}
+  const existingOrders = await fetchBusinessStatusDemoOrders(query)
+  const demosToCreate = BUSINESS_STATUS_DEMOS.flatMap((demo, index) => {
+    if (existingOrders.some((order) => getDemoKey(order) === demo.key)) {
+      return []
+    }
 
-function getRows<T>(result: RawRows<T>) {
-  return Array.isArray(result) ? result : (result.rows ?? [])
-}
+    const variant = variants[index % variants.length]
+    if (variant === undefined) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Missing variant for business status demo ${demo.key}`,
+      )
+    }
 
-function getDemoKey(order: DemoOrder) {
-  const key = order.metadata?.order_business_status_demo_key
-  return typeof key === "string" ? key : undefined
-}
+    return [{ demo, index, variant }]
+  })
 
-function getDemoItemAmount(index: number) {
-  return DEMO_ITEM_BASE_AMOUNT + index * DEMO_ITEM_AMOUNT_STEP
-}
+  await Promise.all(
+    demosToCreate.map(async ({ demo, index, variant }) => {
+      await createDemoOrder({
+        container,
+        demo,
+        index,
+        region,
+        salesChannel,
+        variant,
+      })
+    }),
+  )
 
-function getDemoOrderTotal(index: number) {
-  return getDemoItemAmount(index) + DEMO_SHIPPING_AMOUNT
-}
+  const createdOrders = await fetchBusinessStatusDemoOrders(query)
+  const ordersToNormalize = BUSINESS_STATUS_DEMOS.map((demo, index) => {
+    const order = createdOrders.find(
+      (candidate) => getDemoKey(candidate) === demo.key,
+    )
 
-function getDemoIdSlug(demo: BusinessStatusDemo) {
-  return demo.key.replace(/-/g, "_")
-}
+    if (order === undefined) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Business status demo order ${demo.key} was not created`,
+      )
+    }
 
-function getPaymentCollectionId(demo: BusinessStatusDemo) {
-  return `paycol_obs_demo_${getDemoIdSlug(demo)}`
-}
+    return { demo, index, order }
+  })
 
-function getFulfillmentId(demo: BusinessStatusDemo) {
-  return `ful_obs_demo_${getDemoIdSlug(demo)}`
+  await Promise.all(
+    ordersToNormalize.map(async ({ demo, index, order }) => {
+      await normalizeDemoOrder({
+        demo,
+        index,
+        order,
+        pgConnection,
+        region,
+        stockLocationId,
+      })
+    }),
+  )
+
+  logger.info(
+    `Order business status demo seed ready with ${BUSINESS_STATUS_DEMOS.length} orders.`,
+  )
 }

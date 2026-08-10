@@ -1,210 +1,216 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { Menu, type MenuItem } from '../../src/molecules/menu'
+import type { Meta, StoryObj } from "@storybook/react"
+import { fn } from "storybook/test"
+
+import { Menu } from "../../src/molecules/menu"
+import type { MenuItem } from "../../src/molecules/menu"
 
 const meta: Meta<typeof Menu> = {
-  title: 'Molecules/Menu',
-  component: Menu,
-  parameters: {
-    layout: 'centered',
-  },
   argTypes: {
+    customTrigger: {
+      control: { type: "boolean" },
+    },
     size: {
-      control: { type: 'select' },
-      options: ['sm', 'md', 'lg'],
+      control: { type: "select" },
+      options: ["sm", "md", "lg"],
     },
     triggerText: {
-      control: { type: 'text' },
-    },
-    customTrigger: {
-      control: { type: 'boolean' },
+      control: { type: "text" },
     },
   },
+  component: Menu,
+  parameters: {
+    layout: "centered",
+  },
+  title: "Molecules/Menu",
 }
 
 export default meta
 type Story = StoryObj<typeof meta>
 
+const separatorId = "separator-1"
+
 const basicItems: MenuItem[] = [
   {
-    type: 'action',
-    value: 'new-file',
-    label: 'New File',
-    icon: 'token-icon-plus',
+    icon: "token-icon-plus",
+    label: "New File",
+    type: "action",
+    value: "new-file",
   },
   {
-    type: 'action',
-    value: 'open',
-    label: 'Open...',
-    icon: 'token-icon-folder',
+    icon: "token-icon-folder",
+    label: "Open...",
+    type: "action",
+    value: "open",
   },
-  { type: 'separator', id: 'separator-1' },
-  { type: 'action', value: 'save', label: 'Save', icon: 'token-icon-save' },
+  { id: separatorId, type: "separator" },
+  { icon: "token-icon-save", label: "Save", type: "action", value: "save" },
   {
-    type: 'action',
-    value: 'save-as',
-    label: 'Save As...',
-    icon: 'token-icon-save',
+    icon: "token-icon-save",
+    label: "Save As...",
+    type: "action",
+    value: "save-as",
   },
-  { type: 'separator', id: 'separator-2' },
-  { type: 'action', value: 'exit', label: 'Exit', icon: 'token-icon-close' },
+  { id: "separator-2", type: "separator" },
+  { icon: "token-icon-close", label: "Exit", type: "action", value: "exit" },
 ]
 
 export const Default: Story = {
   args: {
     items: basicItems,
-    triggerText: 'File',
+    triggerText: "File",
   },
 }
 
 export const Small: Story = {
   args: {
     items: basicItems,
-    triggerText: 'File',
-    size: 'sm',
+    size: "sm",
+    triggerText: "File",
   },
 }
 
 export const Large: Story = {
   args: {
     items: basicItems,
-    triggerText: 'File',
-    size: 'lg',
+    size: "lg",
+    triggerText: "File",
   },
 }
 
 export const WithCustomPositioning: Story = {
   args: {
     items: basicItems,
-    triggerText: 'File',
     positioning: {
-      placement: 'top',
+      placement: "top",
     },
+    triggerText: "File",
   },
 }
 
 const itemsWithDisabled: MenuItem[] = [
   {
-    type: 'action',
-    value: 'cut',
-    label: 'Cut',
-    icon: 'icon-[mdi--content-cut]',
+    icon: "icon-[mdi--content-cut]",
+    label: "Cut",
+    type: "action",
+    value: "cut",
   },
-  { type: 'action', value: 'copy', label: 'Copy', icon: 'token-icon-copy' },
+  { icon: "token-icon-copy", label: "Copy", type: "action", value: "copy" },
   {
-    type: 'action',
-    value: 'paste',
-    label: 'Paste',
-    icon: 'token-icon-clipboard',
     disabled: true,
+    icon: "token-icon-clipboard",
+    label: "Paste",
+    type: "action",
+    value: "paste",
   },
-  { type: 'separator', id: 'separator' },
+  { id: "separator", type: "separator" },
   {
-    type: 'action',
-    value: 'delete',
-    label: 'Delete',
-    icon: 'token-icon-trash',
+    icon: "token-icon-trash",
+    label: "Delete",
+    type: "action",
+    value: "delete",
   },
 ]
 
 export const WithDisabledItems: Story = {
   args: {
     items: itemsWithDisabled,
-    triggerText: 'Edit',
+    triggerText: "Edit",
   },
 }
 
 const contextMenuItems: MenuItem[] = [
-  { type: 'action', value: 'undo', label: 'Undo', icon: 'token-icon-undo' },
-  { type: 'action', value: 'redo', label: 'Redo', icon: 'token-icon-redo' },
-  { type: 'separator', id: 'separator-1' },
-  { type: 'action', value: 'cut', label: 'Cut', icon: 'token-icon-scissors' },
-  { type: 'action', value: 'copy', label: 'Copy', icon: 'token-icon-copy' },
+  { icon: "token-icon-undo", label: "Undo", type: "action", value: "undo" },
+  { icon: "token-icon-redo", label: "Redo", type: "action", value: "redo" },
+  { id: separatorId, type: "separator" },
+  { icon: "token-icon-scissors", label: "Cut", type: "action", value: "cut" },
+  { icon: "token-icon-copy", label: "Copy", type: "action", value: "copy" },
   {
-    type: 'action',
-    value: 'paste',
-    label: 'Paste',
-    icon: 'token-icon-clipboard',
+    icon: "token-icon-clipboard",
+    label: "Paste",
+    type: "action",
+    value: "paste",
   },
-  { type: 'separator', id: 'separator-2' },
-  { type: 'action', value: 'select-all', label: 'Select All' },
+  { id: "separator-2", type: "separator" },
+  { label: "Select All", type: "action", value: "select-all" },
 ]
 
 export const ContextMenu: Story = {
   args: {
     items: contextMenuItems,
-    triggerText: 'Right Click',
+    triggerText: "Right Click",
   },
 }
 
 export const CustomTrigger: Story = {
   args: {
-    items: basicItems,
     customTrigger: (
-      <button className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600">
+      <button
+        className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
+        type="button"
+      >
         Custom Trigger
       </button>
     ),
+    items: basicItems,
   },
 }
 
 export const WithSelectHandler: Story = {
   args: {
     items: basicItems,
-    triggerText: 'Actions',
-    onSelect: (details: { value: string }) => {
-      alert(`You selected: ${details.value}`)
-    },
+    onSelect: fn<(details: { value: string }) => void>(),
+    triggerText: "Actions",
   },
 }
 
 const viewMenuItems: MenuItem[] = [
   {
-    type: 'checkbox',
-    value: 'show-sidebar',
-    label: 'Show Sidebar',
     checked: true,
+    label: "Show Sidebar",
+    type: "checkbox",
+    value: "show-sidebar",
   },
   {
-    type: 'checkbox',
-    value: 'show-toolbar',
-    label: 'Show Toolbar',
     checked: true,
+    label: "Show Toolbar",
+    type: "checkbox",
+    value: "show-toolbar",
   },
   {
-    type: 'checkbox',
-    value: 'show-statusbar',
-    label: 'Show Status Bar',
     checked: false,
+    label: "Show Status Bar",
+    type: "checkbox",
+    value: "show-statusbar",
   },
-  { type: 'separator', id: 'separator-1' },
+  { id: separatorId, type: "separator" },
   {
-    type: 'radio',
-    value: 'list-view',
-    label: 'List View',
-    name: 'view-mode',
     checked: true,
+    label: "List View",
+    name: "view-mode",
+    type: "radio",
+    value: "list-view",
   },
   {
-    type: 'radio',
-    value: 'grid-view',
-    label: 'Grid View',
-    name: 'view-mode',
     checked: false,
+    label: "Grid View",
+    name: "view-mode",
+    type: "radio",
+    value: "grid-view",
   },
   {
-    type: 'radio',
-    value: 'detail-view',
-    label: 'Detail View',
-    name: 'view-mode',
     checked: false,
+    label: "Detail View",
+    name: "view-mode",
+    type: "radio",
+    value: "detail-view",
   },
 ]
 
 export const WithOptionsMenu: Story = {
   args: {
     items: viewMenuItems,
-    triggerText: 'View',
-    onCheckedChange: (_item: MenuItem, _checked: boolean) => {},
+    onCheckedChange: fn<(item: MenuItem, checked: boolean) => void>(),
+    triggerText: "View",
   },
 }
 
@@ -212,14 +218,14 @@ export const WithOptionsMenu: Story = {
 export const KeyboardNavigation: Story = {
   args: {
     items: basicItems,
-    triggerText: 'Press Arrow Keys',
+    triggerText: "Press Arrow Keys",
     typeahead: true,
   },
   parameters: {
     docs: {
       description: {
         story:
-          'Use arrow keys to navigate, Enter to select, and type to search',
+          "Use arrow keys to navigate, Enter to select, and type to search",
       },
     },
   },
@@ -227,10 +233,10 @@ export const KeyboardNavigation: Story = {
 
 // Story pro positioning
 const positioningItems: MenuItem[] = [
-  { type: 'action', value: 'top', label: 'Top placement' },
-  { type: 'action', value: 'right', label: 'Right placement' },
-  { type: 'action', value: 'bottom', label: 'Bottom placement' },
-  { type: 'action', value: 'left', label: 'Left placement' },
+  { label: "Top placement", type: "action", value: "top" },
+  { label: "Right placement", type: "action", value: "right" },
+  { label: "Bottom placement", type: "action", value: "bottom" },
+  { label: "Left placement", type: "action", value: "left" },
 ]
 
 export const DifferentPlacements: Story = {
@@ -239,105 +245,107 @@ export const DifferentPlacements: Story = {
       <Menu
         items={positioningItems}
         triggerText="Top"
-        positioning={{ placement: 'top' }}
+        positioning={{ placement: "top" }}
       />
       <Menu
         items={positioningItems}
         triggerText="Right"
-        positioning={{ placement: 'right' }}
+        positioning={{ placement: "right" }}
       />
       <Menu
         items={positioningItems}
         triggerText="Bottom"
-        positioning={{ placement: 'bottom' }}
+        positioning={{ placement: "bottom" }}
       />
       <Menu
         items={positioningItems}
         triggerText="Left"
-        positioning={{ placement: 'left' }}
+        positioning={{ placement: "left" }}
       />
     </div>
   ),
 }
 
 // Story pro mixed content
+const settingsIcon = "token-icon-settings"
+
 const mixedContentItems: MenuItem[] = [
   {
-    type: 'action',
-    value: 'profile',
-    label: 'My Profile',
-    icon: 'token-icon-user',
+    icon: "token-icon-user",
+    label: "My Profile",
+    type: "action",
+    value: "profile",
   },
   {
-    type: 'action',
-    value: 'settings',
-    label: 'Settings',
-    icon: 'token-icon-settings',
+    icon: settingsIcon,
+    label: "Settings",
+    type: "action",
+    value: "settings",
   },
-  { type: 'separator', id: 'sep-1' },
+  { id: "sep-1", type: "separator" },
   {
-    type: 'checkbox',
-    value: 'notifications',
-    label: 'Enable Notifications',
     checked: true,
+    label: "Enable Notifications",
+    type: "checkbox",
+    value: "notifications",
   },
-  { type: 'checkbox', value: 'sounds', label: 'Enable Sounds', checked: false },
-  { type: 'separator', id: 'sep-2' },
+  { checked: false, label: "Enable Sounds", type: "checkbox", value: "sounds" },
+  { id: "sep-2", type: "separator" },
   {
-    type: 'radio',
-    value: 'light',
-    label: 'Light Theme',
-    name: 'theme',
     checked: true,
+    label: "Light Theme",
+    name: "theme",
+    type: "radio",
+    value: "light",
   },
   {
-    type: 'radio',
-    value: 'dark',
-    label: 'Dark Theme',
-    name: 'theme',
     checked: false,
+    label: "Dark Theme",
+    name: "theme",
+    type: "radio",
+    value: "dark",
   },
   {
-    type: 'radio',
-    value: 'system',
-    label: 'System Theme',
-    name: 'theme',
     checked: false,
+    label: "System Theme",
+    name: "theme",
+    type: "radio",
+    value: "system",
   },
-  { type: 'separator', id: 'sep-3' },
+  { id: "sep-3", type: "separator" },
   {
-    type: 'action',
-    value: 'logout',
-    label: 'Logout',
-    icon: 'token-icon-logout',
+    icon: "token-icon-logout",
+    label: "Logout",
+    type: "action",
+    value: "logout",
   },
 ]
 
 export const ComplexMenu: Story = {
   args: {
     items: mixedContentItems,
-    triggerText: 'Account',
-    triggerIcon: 'token-icon-user',
+    triggerIcon: "token-icon-user",
+    triggerText: "Account",
   },
 }
 
 // Story pro long menu with scroll
 const longMenuItems: MenuItem[] = Array.from({ length: 20 }, (_, i) => ({
-  type: 'action' as const,
-  value: `item-${i}`,
   label: `Menu Item ${i + 1}`,
-  icon: i % 3 === 0 ? 'token-icon-star' : undefined,
+  type: "action" as const,
+  value: `item-${i}`,
+  ...(i % 3 === 0 ? { icon: "token-icon-star" as const } : {}),
 }))
 
 export const ScrollableMenu: Story = {
   args: {
     items: longMenuItems,
-    triggerText: 'Long Menu',
+    triggerText: "Long Menu",
   },
   parameters: {
     docs: {
       description: {
-        story: 'Menu with many items shows scrollbar when exceeding max height',
+        story: "Menu with many items shows scrollbar when exceeding max height",
       },
     },
   },
@@ -346,85 +354,85 @@ export const ScrollableMenu: Story = {
 // Story pro nested menu
 const nestedMenuItems: MenuItem[] = [
   {
-    type: 'action',
-    value: 'new-file',
-    label: 'New File',
-    icon: 'token-icon-plus',
+    icon: "token-icon-plus",
+    label: "New File",
+    type: "action",
+    value: "new-file",
   },
   {
-    type: 'action',
-    value: 'open',
-    label: 'Open...',
-    icon: 'token-icon-folder',
+    icon: "token-icon-folder",
+    label: "Open...",
+    type: "action",
+    value: "open",
   },
-  { type: 'separator', id: 'sep-1' },
+  { id: "sep-1", type: "separator" },
   {
-    type: 'submenu',
-    value: 'recent',
-    label: 'Recent Files',
-    icon: 'token-icon-clock',
+    icon: "token-icon-clock",
     items: [
-      { type: 'action', value: 'recent-1', label: 'project-config.json' },
-      { type: 'action', value: 'recent-2', label: 'README.md' },
-      { type: 'action', value: 'recent-3', label: 'package.json' },
-      { type: 'separator', id: 'sep-recent' },
-      { type: 'action', value: 'clear-recent', label: 'Clear Recent Files' },
+      { label: "project-config.json", type: "action", value: "recent-1" },
+      { label: "README.md", type: "action", value: "recent-2" },
+      { label: "package.json", type: "action", value: "recent-3" },
+      { id: "sep-recent", type: "separator" },
+      { label: "Clear Recent Files", type: "action", value: "clear-recent" },
     ],
+    label: "Recent Files",
+    type: "submenu",
+    value: "recent",
   },
-  { type: 'separator', id: 'sep-2' },
+  { id: "sep-2", type: "separator" },
   {
-    type: 'submenu',
-    value: 'share',
-    label: 'Share',
-    icon: 'token-icon-share',
+    icon: "token-icon-share",
     items: [
       {
-        type: 'action',
-        value: 'email',
-        label: 'Email',
-        icon: 'token-icon-email',
+        icon: "token-icon-email",
+        label: "Email",
+        type: "action",
+        value: "email",
       },
       {
-        type: 'action',
-        value: 'link',
-        label: 'Copy Link',
-        icon: 'token-icon-link',
+        icon: "token-icon-link",
+        label: "Copy Link",
+        type: "action",
+        value: "link",
       },
-      { type: 'separator', id: 'sep-share' },
+      { id: "sep-share", type: "separator" },
       {
-        type: 'submenu',
-        value: 'social',
-        label: 'Social Media',
-        icon: 'token-icon-share',
+        icon: "token-icon-share",
         items: [
-          { type: 'action', value: 'twitter', label: 'Twitter' },
-          { type: 'action', value: 'facebook', label: 'Facebook' },
-          { type: 'action', value: 'linkedin', label: 'LinkedIn' },
+          { label: "Twitter", type: "action", value: "twitter" },
+          { label: "Facebook", type: "action", value: "facebook" },
+          { label: "LinkedIn", type: "action", value: "linkedin" },
         ],
+        label: "Social Media",
+        type: "submenu",
+        value: "social",
       },
     ],
+    label: "Share",
+    type: "submenu",
+    value: "share",
   },
   {
-    type: 'action',
-    value: 'print',
-    label: 'Print...',
-    icon: 'token-icon-print',
+    icon: "token-icon-print",
+    label: "Print...",
+    type: "action",
+    value: "print",
   },
-  { type: 'separator', id: 'sep-3' },
-  { type: 'action', value: 'exit', label: 'Exit', icon: 'token-icon-close' },
+  { id: "sep-3", type: "separator" },
+  { icon: "token-icon-close", label: "Exit", type: "action", value: "exit" },
 ]
 
 export const NestedMenu: Story = {
   args: {
     items: nestedMenuItems,
-    triggerText: 'File',
-    onSelect: (_details: { value: string }) => {},
+    onSelect: fn<(details: { value: string }) => void>(),
+    triggerText: "File",
   },
   parameters: {
     docs: {
       description: {
         story:
-          'Menu with nested submenus. Supports multiple levels of nesting.',
+          "Menu with nested submenus. Supports multiple levels of nesting.",
       },
     },
   },
@@ -432,108 +440,106 @@ export const NestedMenu: Story = {
 
 // Story pro complex nested menu (like categories)
 const categoryMenuItems: MenuItem[] = [
-  { type: 'action', value: 'all', label: 'All Products' },
-  { type: 'separator', id: 'sep-categories' },
+  { label: "All Products", type: "action", value: "all" },
+  { id: "sep-categories", type: "separator" },
   {
-    type: 'submenu',
-    value: 'electronics',
-    label: 'Electronics',
     items: [
       {
-        type: 'submenu',
-        value: 'computers',
-        label: 'Computers & Tablets',
         items: [
-          { type: 'action', value: 'laptops', label: 'Laptops' },
-          { type: 'action', value: 'desktops', label: 'Desktop Computers' },
-          { type: 'action', value: 'tablets', label: 'Tablets' },
+          { label: "Laptops", type: "action", value: "laptops" },
+          { label: "Desktop Computers", type: "action", value: "desktops" },
+          { label: "Tablets", type: "action", value: "tablets" },
           {
-            type: 'submenu',
-            value: 'accessories',
-            label: 'Computer Accessories',
             items: [
-              { type: 'action', value: 'keyboards', label: 'Keyboards' },
-              { type: 'action', value: 'mice', label: 'Mice & Trackpads' },
-              { type: 'action', value: 'monitors', label: 'Monitors' },
-              { type: 'action', value: 'webcams', label: 'Webcams' },
+              { label: "Keyboards", type: "action", value: "keyboards" },
+              { label: "Mice & Trackpads", type: "action", value: "mice" },
+              { label: "Monitors", type: "action", value: "monitors" },
+              { label: "Webcams", type: "action", value: "webcams" },
             ],
+            label: "Computer Accessories",
+            type: "submenu",
+            value: "accessories",
           },
         ],
+        label: "Computers & Tablets",
+        type: "submenu",
+        value: "computers",
       },
       {
-        type: 'submenu',
-        value: 'phones',
-        label: 'Phones & Accessories',
         items: [
-          { type: 'action', value: 'smartphones', label: 'Smartphones' },
-          { type: 'action', value: 'cases', label: 'Phone Cases' },
-          { type: 'action', value: 'chargers', label: 'Chargers & Cables' },
-          { type: 'action', value: 'headphones', label: 'Headphones' },
+          { label: "Smartphones", type: "action", value: "smartphones" },
+          { label: "Phone Cases", type: "action", value: "cases" },
+          { label: "Chargers & Cables", type: "action", value: "chargers" },
+          { label: "Headphones", type: "action", value: "headphones" },
         ],
+        label: "Phones & Accessories",
+        type: "submenu",
+        value: "phones",
       },
-      { type: 'action', value: 'cameras', label: 'Cameras & Photo' },
-      { type: 'action', value: 'tv', label: 'TV & Home Theater' },
+      { label: "Cameras & Photo", type: "action", value: "cameras" },
+      { label: "TV & Home Theater", type: "action", value: "tv" },
     ],
+    label: "Electronics",
+    type: "submenu",
+    value: "electronics",
   },
   {
-    type: 'submenu',
-    value: 'clothing',
-    label: 'Clothing & Fashion',
     items: [
       {
-        type: 'submenu',
-        value: 'mens',
+        items: [
+          { label: "Shirts", type: "action", value: "mens-shirts" },
+          { label: "Pants", type: "action", value: "mens-pants" },
+          { label: "Shoes", type: "action", value: "mens-shoes" },
+          { label: "Accessories", type: "action", value: "mens-accessories" },
+        ],
         label: "Men's Clothing",
-        items: [
-          { type: 'action', value: 'mens-shirts', label: 'Shirts' },
-          { type: 'action', value: 'mens-pants', label: 'Pants' },
-          { type: 'action', value: 'mens-shoes', label: 'Shoes' },
-          { type: 'action', value: 'mens-accessories', label: 'Accessories' },
-        ],
+        type: "submenu",
+        value: "mens",
       },
       {
-        type: 'submenu',
-        value: 'womens',
-        label: "Women's Clothing",
         items: [
-          { type: 'action', value: 'womens-dresses', label: 'Dresses' },
-          { type: 'action', value: 'womens-tops', label: 'Tops' },
-          { type: 'action', value: 'womens-shoes', label: 'Shoes' },
-          { type: 'action', value: 'womens-bags', label: 'Bags & Purses' },
+          { label: "Dresses", type: "action", value: "womens-dresses" },
+          { label: "Tops", type: "action", value: "womens-tops" },
+          { label: "Shoes", type: "action", value: "womens-shoes" },
+          { label: "Bags & Purses", type: "action", value: "womens-bags" },
         ],
+        label: "Women's Clothing",
+        type: "submenu",
+        value: "womens",
       },
-      { type: 'action', value: 'kids', label: "Kids' Clothing" },
-      { type: 'action', value: 'sports', label: 'Sportswear' },
+      { label: "Kids' Clothing", type: "action", value: "kids" },
+      { label: "Sportswear", type: "action", value: "sports" },
     ],
+    label: "Clothing & Fashion",
+    type: "submenu",
+    value: "clothing",
   },
   {
-    type: 'submenu',
-    value: 'home',
-    label: 'Home & Garden',
     items: [
-      { type: 'action', value: 'furniture', label: 'Furniture' },
-      { type: 'action', value: 'kitchen', label: 'Kitchen & Dining' },
-      { type: 'action', value: 'bedding', label: 'Bedding & Bath' },
-      { type: 'action', value: 'decor', label: 'Home Decor' },
-      { type: 'action', value: 'garden', label: 'Garden & Outdoor' },
+      { label: "Furniture", type: "action", value: "furniture" },
+      { label: "Kitchen & Dining", type: "action", value: "kitchen" },
+      { label: "Bedding & Bath", type: "action", value: "bedding" },
+      { label: "Home Decor", type: "action", value: "decor" },
+      { label: "Garden & Outdoor", type: "action", value: "garden" },
     ],
+    label: "Home & Garden",
+    type: "submenu",
+    value: "home",
   },
 ]
 
 export const CategoryMenu: Story = {
   args: {
     items: categoryMenuItems,
-    triggerText: 'Shop by Category',
-    triggerIcon: 'token-icon-grid',
-    onSelect: (details: { value: string }) => {
-      alert(`Navigate to category: ${details.value}`)
-    },
+    onSelect: fn<(details: { value: string }) => void>(),
+    triggerIcon: "token-icon-grid",
+    triggerText: "Shop by Category",
   },
   parameters: {
     docs: {
       description: {
         story:
-          'Complex nested menu structure suitable for e-commerce categories with multiple levels of hierarchy.',
+          "Complex nested menu structure suitable for e-commerce categories with multiple levels of hierarchy.",
       },
     },
   },
@@ -542,132 +548,132 @@ export const CategoryMenu: Story = {
 // Story pro mixed nested menu with options
 const mixedNestedItems: MenuItem[] = [
   {
-    type: 'action',
-    value: 'dashboard',
-    label: 'Dashboard',
-    icon: 'token-icon-home',
+    icon: "token-icon-home",
+    label: "Dashboard",
+    type: "action",
+    value: "dashboard",
   },
-  { type: 'separator', id: 'sep-1' },
+  { id: "sep-1", type: "separator" },
   {
-    type: 'submenu',
-    value: 'view',
-    label: 'View',
-    icon: 'token-icon-eye',
+    icon: "token-icon-eye",
     items: [
       {
-        type: 'checkbox',
-        value: 'show-sidebar',
-        label: 'Show Sidebar',
         checked: true,
+        label: "Show Sidebar",
+        type: "checkbox",
+        value: "show-sidebar",
       },
       {
-        type: 'checkbox',
-        value: 'show-toolbar',
-        label: 'Show Toolbar',
         checked: true,
+        label: "Show Toolbar",
+        type: "checkbox",
+        value: "show-toolbar",
       },
-      { type: 'separator', id: 'sep-view' },
+      { id: "sep-view", type: "separator" },
       {
-        type: 'submenu',
-        value: 'theme',
-        label: 'Theme',
         items: [
           {
-            type: 'radio',
-            value: 'light',
-            label: 'Light',
-            name: 'theme',
             checked: true,
+            label: "Light",
+            name: "theme",
+            type: "radio",
+            value: "light",
           },
           {
-            type: 'radio',
-            value: 'dark',
-            label: 'Dark',
-            name: 'theme',
             checked: false,
+            label: "Dark",
+            name: "theme",
+            type: "radio",
+            value: "dark",
           },
           {
-            type: 'radio',
-            value: 'system',
-            label: 'System',
-            name: 'theme',
             checked: false,
+            label: "System",
+            name: "theme",
+            type: "radio",
+            value: "system",
           },
         ],
+        label: "Theme",
+        type: "submenu",
+        value: "theme",
       },
       {
-        type: 'submenu',
-        value: 'layout',
-        label: 'Layout',
         items: [
           {
-            type: 'radio',
-            value: 'comfortable',
-            label: 'Comfortable',
-            name: 'layout',
             checked: true,
+            label: "Comfortable",
+            name: "layout",
+            type: "radio",
+            value: "comfortable",
           },
           {
-            type: 'radio',
-            value: 'compact',
-            label: 'Compact',
-            name: 'layout',
             checked: false,
+            label: "Compact",
+            name: "layout",
+            type: "radio",
+            value: "compact",
           },
           {
-            type: 'radio',
-            value: 'spacious',
-            label: 'Spacious',
-            name: 'layout',
             checked: false,
+            label: "Spacious",
+            name: "layout",
+            type: "radio",
+            value: "spacious",
           },
         ],
+        label: "Layout",
+        type: "submenu",
+        value: "layout",
       },
     ],
+    label: "View",
+    type: "submenu",
+    value: "view",
   },
   {
-    type: 'submenu',
-    value: 'tools',
-    label: 'Tools',
-    icon: 'token-icon-settings',
+    icon: settingsIcon,
     items: [
       {
-        type: 'action',
-        value: 'import',
-        label: 'Import Data...',
-        icon: 'token-icon-download',
+        icon: "token-icon-download",
+        label: "Import Data...",
+        type: "action",
+        value: "import",
       },
       {
-        type: 'action',
-        value: 'export',
-        label: 'Export Data...',
-        icon: 'token-icon-upload',
+        icon: "token-icon-upload",
+        label: "Export Data...",
+        type: "action",
+        value: "export",
       },
-      { type: 'separator', id: 'sep-tools' },
+      { id: "sep-tools", type: "separator" },
       {
-        type: 'action',
-        value: 'preferences',
-        label: 'Preferences...',
-        icon: 'token-icon-settings',
+        icon: settingsIcon,
+        label: "Preferences...",
+        type: "action",
+        value: "preferences",
       },
     ],
+    label: "Tools",
+    type: "submenu",
+    value: "tools",
   },
-  { type: 'separator', id: 'sep-2' },
-  { type: 'action', value: 'help', label: 'Help', icon: 'token-icon-help' },
+  { id: "sep-2", type: "separator" },
+  { icon: "token-icon-help", label: "Help", type: "action", value: "help" },
 ]
 
 export const MixedNestedMenu: Story = {
   args: {
     items: mixedNestedItems,
-    triggerText: 'Application',
-    onSelect: (_details: { value: string }) => {},
-    onCheckedChange: (_item: MenuItem, _checked: boolean) => {},
+    onCheckedChange: fn<(item: MenuItem, checked: boolean) => void>(),
+    onSelect: fn<(details: { value: string }) => void>(),
+    triggerText: "Application",
   },
   parameters: {
     docs: {
       description: {
         story:
-          'Nested menu with mixed content types including checkboxes and radio buttons in submenus.',
+          "Nested menu with mixed content types including checkboxes and radio buttons in submenus.",
       },
     },
   },

@@ -1,9 +1,12 @@
 import type {
+  ApiKeyDTO,
+  Context,
+  CreateApiKeyDTO,
   IApiKeyModuleService,
   ILockingModule,
 } from "@medusajs/framework/types"
 
-export const DEFAULT_PUBLISHABLE_KEY_TITLE = "Storefront Publishable Key"
+const DEFAULT_PUBLISHABLE_KEY_TITLE = "Storefront Publishable Key"
 
 const PUBLISHABLE_KEY_LOCK_TIMEOUT_SECONDS = 5
 const PUBLISHABLE_KEY_LOCK_PREFIX = "publishable-key:provision"
@@ -11,54 +14,63 @@ const PUBLISHABLE_KEY_LOCK_PREFIX = "publishable-key:provision"
 type ListedApiKey = Awaited<
   ReturnType<IApiKeyModuleService["listApiKeys"]>
 >[number]
-type CreatedApiKey = Awaited<ReturnType<IApiKeyModuleService["createApiKeys"]>>
 
-type PublishableApiKey = ListedApiKey | CreatedApiKey
-
-export type PublishableKeyResult = {
-  apiKey: PublishableApiKey
+export interface PublishableKeyResult {
+  apiKey: ListedApiKey
   created: boolean
   title: string
 }
 
-type PublishableKeyLookupInput = {
-  apiKeyService: IApiKeyModuleService
+interface ApiKeyServiceDependency {
+  createApiKeys: (
+    data: CreateApiKeyDTO,
+    sharedContext?: Context,
+  ) => Promise<ApiKeyDTO>
+  listApiKeys: IApiKeyModuleService["listApiKeys"]
+}
+type LockingModuleDependency = Pick<ILockingModule, "execute">
+
+interface PublishableKeyLookupInput {
+  apiKeyService: ApiKeyServiceDependency
   title?: string | null
 }
 
 type ProvisionPublishableKeyInput = PublishableKeyLookupInput & {
   createdBy?: string | null
-  lockingModule?: ILockingModule | null
+  lockingModule?: LockingModuleDependency | null
 }
 
-export function resolvePublishableKeyTitle(title?: string | null): string {
-  return (
-    title?.trim() ||
-    process.env.INITIAL_PUBLISHABLE_KEY_NAME?.trim() ||
-    DEFAULT_PUBLISHABLE_KEY_TITLE
-  )
+export const resolvePublishableKeyTitle = (title?: string | null): string => {
+  const explicitTitle = title?.trim()
+  if (explicitTitle !== undefined && explicitTitle !== "") {
+    return explicitTitle
+  }
+
+  const environmentTitle = process.env["INITIAL_PUBLISHABLE_KEY_NAME"]?.trim()
+  return environmentTitle === undefined || environmentTitle === ""
+    ? DEFAULT_PUBLISHABLE_KEY_TITLE
+    : environmentTitle
 }
 
-async function findActivePublishableKey(
-  apiKeyService: IApiKeyModuleService,
-  title: string
-): Promise<ListedApiKey | null> {
+const findActivePublishableKey = async (
+  apiKeyService: ApiKeyServiceDependency,
+  title: string,
+): Promise<ListedApiKey | null> => {
   const existingKeys = await apiKeyService.listApiKeys({
     title,
     type: "publishable",
   })
 
-  return existingKeys.find((key) => !key.revoked_at) ?? null
+  return existingKeys.find((key) => key.revoked_at === null) ?? null
 }
 
-function buildProvisionLockKey(title: string): string {
-  return `${PUBLISHABLE_KEY_LOCK_PREFIX}:${encodeURIComponent(title)}`
-}
+const buildProvisionLockKey = (title: string): string =>
+  `${PUBLISHABLE_KEY_LOCK_PREFIX}:${encodeURIComponent(title)}`
 
-export async function getActivePublishableKey({
+export const getActivePublishableKey = async ({
   apiKeyService,
   title,
-}: PublishableKeyLookupInput): Promise<PublishableKeyResult | null> {
+}: PublishableKeyLookupInput): Promise<PublishableKeyResult | null> => {
   const resolvedTitle = resolvePublishableKeyTitle(title)
   const apiKey = await findActivePublishableKey(apiKeyService, resolvedTitle)
 
@@ -73,18 +85,18 @@ export async function getActivePublishableKey({
   }
 }
 
-export async function provisionPublishableKey({
+export const provisionPublishableKey = async ({
   apiKeyService,
   title,
   createdBy,
   lockingModule,
-}: ProvisionPublishableKeyInput): Promise<PublishableKeyResult> {
+}: ProvisionPublishableKeyInput): Promise<PublishableKeyResult> => {
   const resolvedTitle = resolvePublishableKeyTitle(title)
 
   const getOrCreatePublishableKey = async (): Promise<PublishableKeyResult> => {
     const existingApiKey = await findActivePublishableKey(
       apiKeyService,
-      resolvedTitle
+      resolvedTitle,
     )
 
     if (existingApiKey) {
@@ -96,9 +108,9 @@ export async function provisionPublishableKey({
     }
 
     const createdApiKey = await apiKeyService.createApiKeys({
+      created_by: createdBy?.trim() ?? "",
       title: resolvedTitle,
       type: "publishable",
-      created_by: createdBy?.trim() || "",
     })
 
     return {
@@ -108,13 +120,13 @@ export async function provisionPublishableKey({
     }
   }
 
-  if (!lockingModule) {
-    return getOrCreatePublishableKey()
+  if (lockingModule === undefined || lockingModule === null) {
+    return await getOrCreatePublishableKey()
   }
 
-  return lockingModule.execute(
+  return await lockingModule.execute(
     buildProvisionLockKey(resolvedTitle),
     getOrCreatePublishableKey,
-    { timeout: PUBLISHABLE_KEY_LOCK_TIMEOUT_SECONDS }
+    { timeout: PUBLISHABLE_KEY_LOCK_TIMEOUT_SECONDS },
   )
 }

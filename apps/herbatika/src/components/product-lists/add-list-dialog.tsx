@@ -4,13 +4,16 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Input } from "@techsio/ui-kit/atoms/input"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import { useTranslations } from "next-intl"
+
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+
 import type { AccountProductListsController } from "./use-account-product-lists"
 
-type AddListDialogProps = {
+interface AddListDialogProps {
   accountLists: AccountProductListsController
 }
 
-export function AddListDialog({ accountLists }: AddListDialogProps) {
+export const AddListDialog = ({ accountLists }: AddListDialogProps) => {
   const tAuth = useTranslations("auth")
 
   return (
@@ -19,7 +22,9 @@ export function AddListDialog({ accountLists }: AddListDialogProps) {
         <>
           <Button
             disabled={accountLists.createListMutation.isPending}
-            onClick={accountLists.closeCreateListDialog}
+            onClick={() => {
+              accountLists.closeCreateListDialog()
+            }}
             size="sm"
             theme="outlined"
             variant="secondary"
@@ -38,7 +43,7 @@ export function AddListDialog({ accountLists }: AddListDialogProps) {
           </Button>
         </>
       }
-      className="w-sm max-w-full shadow-md"
+      className="w-product-list-dialog max-w-full shadow-md"
       customTrigger
       hideCloseButton
       onOpenChange={({ open }) => {
@@ -56,7 +61,9 @@ export function AddListDialog({ accountLists }: AddListDialogProps) {
       <form
         className="space-y-300"
         id="account-product-lists-create-list-form"
-        onSubmit={accountLists.handleCreateList}
+        onSubmit={(event) => {
+          runDetachedPromise(accountLists.handleCreateList(event))
+        }}
       >
         <div>
           <label

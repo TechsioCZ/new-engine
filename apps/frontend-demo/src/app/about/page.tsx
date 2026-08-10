@@ -2,18 +2,27 @@
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { slugify } from "@techsio/ui-kit/utils"
 import Image from "next/image"
+
 import { StatsSection } from "@/components/stats-section"
 import { aboutContent } from "@/data/about-content"
+
 import aboutImage from "../../../assets/hero/about.webp"
 
-export default function AboutPage() {
+const AboutPage = () => {
   const { hero, story, values, team } = aboutContent
 
   return (
     <>
       {/* Hero Section with Background Image */}
       <section className="relative flex h-about-hero-height items-center bg-center bg-cover md:h-about-hero-height-md">
-        <Image alt="some" fill placeholder="blur" priority src={aboutImage} />
+        <Image
+          alt="some"
+          fill
+          placeholder="blur"
+          priority
+          sizes="100vw"
+          src={aboutImage}
+        />
 
         <div className="absolute inset-0 bg-about-hero-overlay" />
         <div className="relative mx-auto max-w-container-max px-about-container-x text-center text-white md:px-about-container-x-md lg:px-about-container-x-lg">
@@ -119,3 +128,5 @@ export default function AboutPage() {
     </>
   )
 }
+
+export default AboutPage

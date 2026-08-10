@@ -1,5 +1,5 @@
 const resolveObjectErrorMessage = (error: unknown) => {
-  if (!(error && typeof error === "object")) {
+  if (!(error !== null && error !== undefined && typeof error === "object")) {
     return null
   }
 
@@ -7,7 +7,7 @@ const resolveObjectErrorMessage = (error: unknown) => {
     return null
   }
 
-  const message = (error as { message?: unknown }).message
+  const { message } = error
   if (typeof message !== "string" || message.trim().length === 0) {
     return null
   }
@@ -17,7 +17,7 @@ const resolveObjectErrorMessage = (error: unknown) => {
 
 export const resolveErrorMessage = (
   error: unknown,
-  fallbackMessage = "Nastala neznáma chyba."
+  fallbackMessage = "Nastala neznáma chyba.",
 ) => {
   if (error instanceof Error && error.message.trim().length > 0) {
     return error.message
@@ -28,7 +28,7 @@ export const resolveErrorMessage = (
   }
 
   const objectMessage = resolveObjectErrorMessage(error)
-  if (objectMessage) {
+  if (objectMessage !== null) {
     return objectMessage
   }
 

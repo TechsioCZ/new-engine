@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import { addTrackingBatchWorkflow } from "../../../../../../workflows/add-tracking-batch/workflow"
 import type { AddTrackingBatchSchemaType } from "./validators"
 
@@ -8,7 +9,7 @@ type AuthenticatedRequest = MedusaRequest<AddTrackingBatchSchemaType> & {
   }
 }
 
-/**
+/*
  * @api [post] /api/symmy/v1/tracking/batch
  * operationId: PostSymmyTrackingBatch
  * summary: Add tracking to orders in batch
@@ -54,9 +55,9 @@ type AuthenticatedRequest = MedusaRequest<AddTrackingBatchSchemaType> & {
  * x-workflow: addTrackingBatchWorkflow
  * x-events: []
  */
-export const POST = async (
+const post = async (
   req: MedusaRequest<AddTrackingBatchSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const authReq = req as AuthenticatedRequest
   const { result } = await addTrackingBatchWorkflow(req.scope).run({
@@ -67,3 +68,5 @@ export const POST = async (
   })
   res.status(200).json(result)
 }
+
+export { post as POST }

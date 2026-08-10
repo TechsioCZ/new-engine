@@ -29,23 +29,14 @@ export interface UseHeurekaAdapterConfig {
  * })
  * ```
  */
-export function useHeurekaAdapter(
-  config: UseHeurekaAdapterConfig
-): AnalyticsAdapter {
+export const useHeurekaAdapter = (
+  config: UseHeurekaAdapterConfig,
+): AnalyticsAdapter => {
   const { apiKey, debug } = config
   const adapterKey = "heureka" as const
 
   return {
     key: adapterKey,
-
-    // Heureka doesn't support view tracking
-    trackViewContent: undefined,
-
-    // Heureka doesn't support cart tracking
-    trackAddToCart: undefined,
-
-    // Heureka doesn't support checkout tracking
-    trackInitiateCheckout: undefined,
 
     // Heureka only supports purchase/conversion tracking
     trackPurchase: createTracker(
@@ -64,7 +55,7 @@ export function useHeurekaAdapter(
             product.id,
             product.name,
             String(product.price),
-            String(product.quantity ?? 1)
+            String(product.quantity ?? 1),
           )
         }
 
@@ -76,10 +67,7 @@ export function useHeurekaAdapter(
         heureka("send", "Order")
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
-
-    // Heureka doesn't support custom events
-    trackCustom: undefined,
   }
 }

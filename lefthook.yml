@@ -2,8 +2,19 @@
 # checkout. See scripts/check-skill-sync.mjs for the ui-kit version gate.
 pre-commit:
   parallel: true
-  jobs:
-    - name: ui-kit-skill-sync
+  commands:
+    format-and-lint:
+      glob: "*.{js,jsx,mjs,cjs,ts,tsx,mts,cts,json,jsonc,css,scss,md,mdx,yml,yaml}"
+      run: mise exec node@24 -- node scripts/hooks/pre-commit.mjs {staged_files}
+      fail_text: "Staged files failed fast formatting or lint checks."
+    ui-kit-skill-sync:
       # Only worth running when ui-kit sources, skills, or the changelog are touched.
       glob: "libs/ui/**/*"
-      run: node scripts/check-skill-sync.mjs
+      run: mise exec node@24 -- node scripts/check-skill-sync.mjs
+
+pre-push:
+  commands:
+    quality:
+      run: mise exec node@24 -- node scripts/hooks/pre-push.mjs {0} {1}
+      use_stdin: true
+      fail_text: "Changed files or chained pre-push checks failed."

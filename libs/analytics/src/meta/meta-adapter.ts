@@ -24,60 +24,47 @@ export interface UseMetaAdapterConfig {
  * })
  * ```
  */
-export function useMetaAdapter(
-  config?: UseMetaAdapterConfig
-): AnalyticsAdapter {
+export const useMetaAdapter = (
+  config?: UseMetaAdapterConfig,
+): AnalyticsAdapter => {
   const debug = config?.debug
-  const adapterKey = "meta" as const
+  const adapterKey = "meta"
 
   const trackCustom = createTracker(
     getFbq,
-    (fbq, args: { eventName: string; params?: Record<string, unknown> }) => {
+    (fbq, args: { eventName: string; params?: object }) => {
       fbq("trackCustom", args.eventName, args.params)
     },
     debug,
-    adapterKey
+    adapterKey,
   )
 
   return {
     key: adapterKey,
-
-    trackViewContent: createTracker(
-      getFbq,
-      (fbq, params) => {
-        fbq("track", "ViewContent", {
-          content_ids: [params.productId],
-          content_type: "product",
-          content_name: params.productName,
-          currency: params.currency,
-          value: params.value,
-          content_category: params.category,
-        })
-      },
-      debug,
-      adapterKey
-    ),
 
     trackAddToCart: createTracker(
       getFbq,
       (fbq, params) => {
         fbq("track", "AddToCart", {
           content_ids: [params.productId],
-          content_type: "product",
           content_name: params.productName,
-          currency: params.currency,
-          value: params.value,
+          content_type: "product",
           contents: [
             {
               id: params.productId,
               quantity: params.quantity,
             },
           ],
+          currency: params.currency,
+          value: params.value,
         })
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
+
+    trackCustom: (eventName, params) =>
+      trackCustom(params === undefined ? { eventName } : { eventName, params }),
 
     trackInitiateCheckout: createTracker(
       getFbq,
@@ -91,14 +78,14 @@ export function useMetaAdapter(
 
         fbq("track", "InitiateCheckout", {
           content_ids: contentIds,
+          ...(contents === undefined ? {} : { contents }),
           currency: params.currency,
-          value: params.value,
           num_items: params.numItems,
-          ...(contents ? { contents } : {}),
+          value: params.value,
         })
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
     trackPurchase: createTracker(
@@ -107,19 +94,33 @@ export function useMetaAdapter(
         fbq("track", "Purchase", {
           content_ids: params.products.map((p) => p.id),
           content_type: "product",
-          currency: params.currency,
-          value: params.value,
-          num_items: params.numItems,
           contents: params.products.map((p) => ({
             id: p.id,
             quantity: p.quantity ?? 1,
           })),
+          currency: params.currency,
+          num_items: params.numItems,
+          value: params.value,
         })
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
-    trackCustom: (eventName, params) => trackCustom({ eventName, params }),
+    trackViewContent: createTracker(
+      getFbq,
+      (fbq, params) => {
+        fbq("track", "ViewContent", {
+          content_category: params.category,
+          content_ids: [params.productId],
+          content_name: params.productName,
+          content_type: "product",
+          currency: params.currency,
+          value: params.value,
+        })
+      },
+      debug,
+      adapterKey,
+    ),
   }
 }

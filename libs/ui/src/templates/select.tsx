@@ -1,8 +1,8 @@
-/**
+/*
  * Select — @techsio/ui-kit template.
  *
  * @component Select
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,40 +10,37 @@
  * the select-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react"
-import {
-  Select,
-  type SelectItem,
-  type SelectProps,
-  type SelectSize,
-} from "../molecules/select"
+
+import { Select } from "../molecules/select"
+import type { SelectItem, SelectProps, SelectSize } from "../molecules/select"
 
 type SelectTemplateLabelProps = Omit<
   ComponentPropsWithoutRef<"label">,
   "children"
 > & {
-  ref?: Ref<HTMLLabelElement>
+  ref?: Ref<HTMLLabelElement> | undefined
 }
 
 type SelectTemplateValueTextProps = Omit<
   ComponentPropsWithoutRef<"span">,
   "children"
 > & {
-  size?: SelectSize
-  ref?: Ref<HTMLSpanElement>
+  size?: SelectSize | undefined
+  ref?: Ref<HTMLSpanElement> | undefined
 }
 
 export type SelectTemplateProps = Omit<SelectProps, "children"> & {
-  label?: ReactNode
-  labelProps?: SelectTemplateLabelProps
-  placeholder?: string
-  valueText?: ReactNode | ((items: SelectItem[]) => ReactNode)
-  valueTextProps?: SelectTemplateValueTextProps
-  showIndicator?: boolean
-  renderItem?: (item: SelectItem) => ReactNode
-  ref?: Ref<HTMLDivElement>
+  label?: ReactNode | undefined
+  labelProps?: SelectTemplateLabelProps | undefined
+  placeholder?: string | undefined
+  valueText?: (ReactNode | ((items: SelectItem[]) => ReactNode)) | undefined
+  valueTextProps?: SelectTemplateValueTextProps | undefined
+  showIndicator?: boolean | undefined
+  renderItem?: ((item: SelectItem) => ReactNode) | undefined
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
-export function SelectTemplate({
+export const SelectTemplate = ({
   items,
   label,
   labelProps,
@@ -54,10 +51,12 @@ export function SelectTemplate({
   renderItem,
   ref,
   ...selectProps
-}: SelectTemplateProps) {
+}: SelectTemplateProps) => {
+  const hasLabel = Boolean(label)
+
   return (
     <Select items={items} ref={ref} {...selectProps}>
-      {label ? <Select.Label {...labelProps}>{label}</Select.Label> : null}
+      {hasLabel ? <Select.Label {...labelProps}>{label}</Select.Label> : null}
       <Select.Control>
         <Select.Trigger>
           <Select.ValueText placeholder={placeholder} {...valueTextProps}>
@@ -69,13 +68,13 @@ export function SelectTemplate({
         <Select.Content>
           {items.map((item) => (
             <Select.Item item={item} key={item.value}>
-              {renderItem ? (
+              {renderItem === undefined ? (
+                <Select.ItemText />
+              ) : (
                 <>
                   {renderItem(item)}
                   <Select.ItemText className="sr-only" />
                 </>
-              ) : (
-                <Select.ItemText />
               )}
               {showIndicator && <Select.ItemIndicator />}
             </Select.Item>

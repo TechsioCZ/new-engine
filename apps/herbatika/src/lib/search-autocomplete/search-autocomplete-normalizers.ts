@@ -1,22 +1,19 @@
 import { createBrandSlug } from "@/lib/storefront/brands"
 
-const BRAND_PATH_PATTERN = /\/brands\/([^/]+)/
+const BRAND_PATH_PATTERN = /\/brands\/[^/]+/u
 
 export const normalizeString = (value: unknown) =>
   typeof value === "string" ? value.trim() : ""
 
-export const normalizeComparable = (value: string) =>
-  value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("sk")
-
 export const createHandleLabel = (handle: string) => {
-  const label = handle.replaceAll(/[-_]+/g, " ").trim()
+  const label = handle.replaceAll(/[-_]+/gu, " ").trim()
   return label ? label.charAt(0).toUpperCase() + label.slice(1) : ""
 }
 
 export const resolveBrandSlug = (handle: string, title: string) => {
-  const brandPathMatch = handle.match(BRAND_PATH_PATTERN)
-  return createBrandSlug(brandPathMatch?.[1] || handle || title)
+  const brandPath = BRAND_PATH_PATTERN.exec(handle)?.[0]
+  const brandSlug = brandPath?.slice("/brands/".length)
+  const slugSource =
+    brandSlug !== undefined && brandSlug.length > 0 ? brandSlug : handle
+  return createBrandSlug(slugSource.length > 0 ? slugSource : title)
 }

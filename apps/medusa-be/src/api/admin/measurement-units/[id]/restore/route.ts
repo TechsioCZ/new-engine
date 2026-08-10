@@ -1,12 +1,16 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import { restoreMeasurementUnitsWorkflow } from "../../../../../workflows/measurement-unit/workflows/restore-measurement-units"
 import {
   retrieveMeasurementUnitOrThrow,
   toMeasurementUnitDetailResponse,
 } from "../../utils"
 
-export async function POST(req: MedusaRequest, res: MedusaResponse) {
-  const id = req.params.id ?? ""
+const restoreMeasurementUnit = async (
+  req: MedusaRequest,
+  res: MedusaResponse,
+) => {
+  const id = req.params["id"] ?? ""
 
   await retrieveMeasurementUnitOrThrow(req.scope, id, { withDeleted: true })
   await restoreMeasurementUnitsWorkflow(req.scope).run({
@@ -21,3 +25,5 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     measurement_unit: await toMeasurementUnitDetailResponse(req.scope, unit),
   })
 }
+
+export { restoreMeasurementUnit as POST }

@@ -3,10 +3,11 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
+
 import { AsideFilterButton } from "@/components/aside-filter-button"
 import { SupportingText } from "@/components/text/supporting-text"
 
-export type AsideFilterChipItem = {
+export interface AsideFilterChipItem {
   id: string
   label: string
   count: number
@@ -14,7 +15,7 @@ export type AsideFilterChipItem = {
   disabled?: boolean
 }
 
-type AsideFilterChipSectionProps = {
+interface AsideFilterChipSectionProps {
   title?: string
   items: AsideFilterChipItem[]
   onToggle: (itemId: string) => void
@@ -24,7 +25,7 @@ type AsideFilterChipSectionProps = {
   isLoading?: boolean
 }
 
-export function AsideFilterChipSection({
+export const AsideFilterChipSection = ({
   title,
   items,
   onToggle,
@@ -32,55 +33,62 @@ export function AsideFilterChipSection({
   loadingMessage,
   collapseAfter,
   isLoading = false,
-}: AsideFilterChipSectionProps) {
+}: AsideFilterChipSectionProps) => {
   const t = useTranslations("catalog")
   const [isExpanded, setIsExpanded] = useState(false)
 
+  const hasCollapseLimit = collapseAfter !== undefined && collapseAfter > 0
   const visibleItems =
-    !collapseAfter || collapseAfter <= 0 || isExpanded
-      ? items
-      : items.slice(0, collapseAfter)
+    hasCollapseLimit && !isExpanded ? items.slice(0, collapseAfter) : items
   const statusMessage = isLoading ? loadingMessage : emptyMessage
+  const hasStatusMessage =
+    typeof statusMessage === "string" && statusMessage !== ""
+  const hasItems = items.length > 0
+  const canToggleCollapse = hasCollapseLimit && items.length > collapseAfter
 
   return (
     <section className="space-y-250">
-      {title && <h3 className="font-semibold text-xl leading-none">{title}</h3>}
+      {title !== null && title !== undefined && title !== "" && (
+        <h3 className="font-semibold text-xl leading-none">{title}</h3>
+      )}
 
-      {items.length === 0 && statusMessage && (
+      {items.length === 0 && hasStatusMessage && (
         <SupportingText className="text-fg-secondary text-sm">
           {statusMessage}
         </SupportingText>
       )}
 
-      {items.length > 0 && (
+      {hasItems && (
         <>
           <div className="flex flex-wrap gap-250">
             {visibleItems.map((item) => (
               <AsideFilterButton
                 checked={item.checked}
                 count={item.count}
-                disabled={isLoading || item.disabled}
+                disabled={isLoading || item.disabled === true}
                 key={item.id}
                 label={item.label}
-                onClick={() => onToggle(item.id)}
+                onClick={() => {
+                  onToggle(item.id)
+                }}
               />
             ))}
           </div>
 
-          {typeof collapseAfter === "number" &&
-            collapseAfter > 0 &&
-            items.length > collapseAfter && (
-              <Button
-                className="min-h-750 font-semibold text-fg-secondary text-sm underline hover:text-primary"
-                onClick={() => setIsExpanded((currentState) => !currentState)}
-                size="current"
-                theme="unstyled"
-                type="button"
-                variant="secondary"
-              >
-                {isExpanded ? t("filters.show_less") : t("filters.show_more")}
-              </Button>
-            )}
+          {canToggleCollapse && (
+            <Button
+              className="min-h-750 font-semibold text-fg-secondary text-sm underline hover:text-primary"
+              onClick={() => {
+                setIsExpanded((currentState) => !currentState)
+              }}
+              size="current"
+              theme="unstyled"
+              type="button"
+              variant="secondary"
+            >
+              {isExpanded ? t("filters.show_less") : t("filters.show_more")}
+            </Button>
+          )}
         </>
       )}
     </section>

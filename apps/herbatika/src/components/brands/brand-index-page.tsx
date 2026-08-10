@@ -1,17 +1,15 @@
-import NextLink from "next/link"
 import { getTranslations } from "next-intl/server"
-import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
-import {
-  createBrandHref,
-  groupStorefrontBrands,
-  type StorefrontBrand,
-} from "@/lib/storefront/brands"
 
-type BrandIndexPageProps = {
+import NextLink from "@/components/app-link"
+import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
+import { createBrandHref, groupStorefrontBrands } from "@/lib/storefront/brands"
+import type { StorefrontBrand } from "@/lib/storefront/brands"
+
+interface BrandIndexPageProps {
   brands: StorefrontBrand[]
 }
 
-export async function BrandIndexPage({ brands }: BrandIndexPageProps) {
+export const BrandIndexPage = async ({ brands }: BrandIndexPageProps) => {
   const [t, tNavigation] = await Promise.all([
     getTranslations("catalog"),
     getTranslations("navigation"),
@@ -23,9 +21,9 @@ export async function BrandIndexPage({ brands }: BrandIndexPageProps) {
       <HerbatikaBreadcrumb
         items={[
           {
-            label: tNavigation("breadcrumbs.home"),
             href: "/",
             icon: "token-icon-home",
+            label: tNavigation("breadcrumbs.home"),
           },
           { label: t("brands.label") },
         ]}

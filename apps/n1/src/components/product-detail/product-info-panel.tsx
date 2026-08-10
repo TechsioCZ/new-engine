@@ -1,6 +1,8 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import NextLink from "next/link"
+
 import type { ProductDetail, ProductVariantDetail } from "@/types/product"
+
 import { ProductPrice } from "../product-price"
 import { AddToCartSection } from "./product-info-panel/add-to-cart-section"
 import { DeliveryDate } from "./product-info-panel/delivery-date"
@@ -10,7 +12,7 @@ import { ProductVariantSelect } from "./product-info-panel/product-variant-selec
 import { SectionBasicInfo } from "./product-info-panel/section-basic-info"
 import { StoreStatus } from "./product-info-panel/store-status"
 
-type ProductInfoPanelProps = {
+interface ProductInfoPanelProps {
   detail: ProductDetail
   selectedVariant: ProductVariantDetail | null
   handle: string
@@ -37,13 +39,11 @@ export const ProductInfoPanel = ({
       <div className="flex flex-col gap-500 pb-400">
         <div className="flex flex-col gap-200">
           <span className="font-bold">Zvolte variantu:</span>
-          {detail.variants && (
-            <ProductVariantSelect
-              detail={detail}
-              handle={handle}
-              selectedVariant={selectedVariant}
-            />
-          )}
+          <ProductVariantSelect
+            detail={detail}
+            handle={handle}
+            selectedVariant={selectedVariant}
+          />
         </div>
         <div>
           <StoreStatus quantity={quantity} />
@@ -62,7 +62,7 @@ export const ProductInfoPanel = ({
         </NextLink>
       </div>
 
-      {detail.price && (
+      {typeof detail.price === "string" && detail.price.length > 0 && (
         <ProductPrice
           priceWithoutTax={detail.withoutTax}
           priceWithTax={detail.price}

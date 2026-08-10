@@ -6,32 +6,32 @@ import {
   MedusaError,
   MedusaService,
 } from "@medusajs/framework/utils"
+
 import { normalizeTrimmedText } from "../../utils/string"
 import {
   DEFAULT_FAVORITE_LIST_HANDLE,
   DEFAULT_FAVORITE_LIST_TITLE,
-  type ProductListAccessType,
-  type ProductListType,
 } from "./constants"
-import ProductList from "./models/product-list"
-import ProductListItem from "./models/product-list-item"
+import type { ProductListAccessType, ProductListType } from "./constants"
+import { ProductList, ProductListItem } from "./models/product-list"
 import {
   normalizeNonNegativeInteger,
   normalizePositiveInteger,
   normalizeProductListAccessType,
   normalizeProductListType,
 } from "./normalizers"
+import type { ProductListMetadata } from "./schemas"
 
-export type ProductListMetadata = Record<string, unknown>
+export type { ProductListMetadata } from "./schemas"
 
-export type CreateFavoriteProductListDTO = {
+export interface CreateFavoriteProductListDTO {
   title?: string
   handle?: string
   description?: string | null
   metadata?: ProductListMetadata | null
 }
 
-export type CreateCustomProductListDTO = {
+export interface CreateCustomProductListDTO {
   title: string
   handle?: string
   access_type?: ProductListAccessType
@@ -39,7 +39,7 @@ export type CreateCustomProductListDTO = {
   metadata?: ProductListMetadata | null
 }
 
-export type UpdateCustomProductListDTO = {
+export interface UpdateCustomProductListDTO {
   title?: string
   handle?: string
   access_type?: ProductListAccessType
@@ -47,7 +47,7 @@ export type UpdateCustomProductListDTO = {
   metadata?: ProductListMetadata | null
 }
 
-export type CreateProductListItemDTO = {
+export interface CreateProductListItemDTO {
   list_id: string
   list_type: ProductListType
   quantity?: number
@@ -56,7 +56,7 @@ export type CreateProductListItemDTO = {
   metadata?: ProductListMetadata | null
 }
 
-export type UpdateProductListItemDTO = {
+export interface UpdateProductListItemDTO {
   quantity?: number
   note?: string | null
   sort_order?: number
@@ -72,52 +72,52 @@ class ProductListModuleService extends MedusaService({
   @InjectManager()
   async createFavoriteProductList(
     input: CreateFavoriteProductListDTO = {},
-    @MedusaContext() sharedContext?: Context
+    @MedusaContext() sharedContext?: Context,
   ) {
     return await this.createProductLists(
       {
-        title: normalizeTrimmedText(input.title, DEFAULT_FAVORITE_LIST_TITLE),
+        description: input.description ?? null,
         handle: normalizeTrimmedText(
           input.handle,
-          DEFAULT_FAVORITE_LIST_HANDLE
+          DEFAULT_FAVORITE_LIST_HANDLE,
         ),
-        type: "favorite",
-        description: input.description ?? null,
         metadata: input.metadata ?? null,
+        title: normalizeTrimmedText(input.title, DEFAULT_FAVORITE_LIST_TITLE),
+        type: "favorite",
       },
-      sharedContext
+      sharedContext,
     )
   }
 
   @InjectManager()
   async createCustomProductList(
     input: CreateCustomProductListDTO,
-    @MedusaContext() sharedContext?: Context
+    @MedusaContext() sharedContext?: Context,
   ) {
     const title = input.title.trim()
 
     if (!title) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Product list title is required"
+        "Product list title is required",
       )
     }
     const trimmedHandle = input.handle?.trim()
     const handle =
-      trimmedHandle == null || trimmedHandle === ""
+      trimmedHandle === undefined || trimmedHandle === ""
         ? kebabCase(title)
         : kebabCase(trimmedHandle)
 
     return await this.createProductLists(
       {
-        title,
-        handle,
-        type: "custom",
         access_type: normalizeProductListAccessType(input.access_type),
         description: input.description ?? null,
+        handle,
         metadata: input.metadata ?? null,
+        title,
+        type: "custom",
       },
-      sharedContext
+      sharedContext,
     )
   }
 
@@ -125,19 +125,19 @@ class ProductListModuleService extends MedusaService({
   async updateCustomProductList(
     listId: string,
     input: UpdateCustomProductListDTO,
-    @MedusaContext() sharedContext?: Context
+    @MedusaContext() sharedContext?: Context,
   ) {
     const productList = await this.retrieveProductList(
       listId,
       {},
-      sharedContext
+      sharedContext,
     )
     const productListType = normalizeProductListType(productList.type)
 
     if (productListType !== "custom") {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Only custom product lists can be updated"
+        "Only custom product lists can be updated",
       )
     }
 
@@ -149,7 +149,7 @@ class ProductListModuleService extends MedusaService({
       if (!title) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          "Product list title is required"
+          "Product list title is required",
         )
       }
 
@@ -182,7 +182,7 @@ class ProductListModuleService extends MedusaService({
   @InjectManager()
   async createProductListItemForList(
     input: CreateProductListItemDTO,
-    @MedusaContext() sharedContext?: Context
+    @MedusaContext() sharedContext?: Context,
   ) {
     normalizeProductListType(input.list_type)
     const quantity = normalizePositiveInteger("quantity", input.quantity)
@@ -190,12 +190,12 @@ class ProductListModuleService extends MedusaService({
     return await this.createProductListItems(
       {
         list_id: input.list_id,
-        quantity,
-        note: input.note ?? null,
-        sort_order: normalizeNonNegativeInteger("sort_order", input.sort_order),
         metadata: input.metadata ?? null,
+        note: input.note ?? null,
+        quantity,
+        sort_order: normalizeNonNegativeInteger("sort_order", input.sort_order),
       },
-      sharedContext
+      sharedContext,
     )
   }
 
@@ -203,13 +203,13 @@ class ProductListModuleService extends MedusaService({
   async incrementProductListItemQuantity(
     itemId: string,
     quantityToAdd = 1,
-    @MedusaContext() sharedContext?: Context
+    @MedusaContext() sharedContext?: Context,
   ) {
     const incrementBy = normalizePositiveInteger("quantityToAdd", quantityToAdd)
     const item: ProductListItemRecord = await this.retrieveProductListItem(
       itemId,
       {},
-      sharedContext
+      sharedContext,
     )
 
     return await this.updateProductListItems(
@@ -217,7 +217,7 @@ class ProductListModuleService extends MedusaService({
         id: itemId,
         quantity: item.quantity + incrementBy,
       },
-      sharedContext
+      sharedContext,
     )
   }
 
@@ -225,23 +225,23 @@ class ProductListModuleService extends MedusaService({
   async decrementProductListItemQuantity(
     itemId: string,
     quantityToSubtract = 1,
-    @MedusaContext() sharedContext?: Context
+    @MedusaContext() sharedContext?: Context,
   ) {
     const decrementBy = normalizePositiveInteger(
       "quantityToSubtract",
-      quantityToSubtract
+      quantityToSubtract,
     )
     const item: ProductListItemRecord = await this.retrieveProductListItem(
       itemId,
       {},
-      sharedContext
+      sharedContext,
     )
     const quantity = item.quantity - decrementBy
 
     if (quantity < 1) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Quantity cannot be decremented below 1"
+        "Quantity cannot be decremented below 1",
       )
     }
 
@@ -250,7 +250,7 @@ class ProductListModuleService extends MedusaService({
         id: itemId,
         quantity,
       },
-      sharedContext
+      sharedContext,
     )
   }
 
@@ -258,7 +258,7 @@ class ProductListModuleService extends MedusaService({
   async updateProductListItemForList(
     itemId: string,
     input: UpdateProductListItemDTO,
-    @MedusaContext() sharedContext?: Context
+    @MedusaContext() sharedContext?: Context,
   ) {
     const data: UpdateProductListItemDTO & { id: string } = { id: itemId }
 
@@ -273,7 +273,7 @@ class ProductListModuleService extends MedusaService({
     if (input.sort_order !== undefined) {
       data.sort_order = normalizeNonNegativeInteger(
         "sort_order",
-        input.sort_order
+        input.sort_order,
       )
     }
 

@@ -1,34 +1,53 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
+import { z } from "@medusajs/framework/zod"
 import { DocumentText } from "@medusajs/icons"
 import { Button, Container, Heading, Input, Select, Text } from "@medusajs/ui"
-import { type FormEvent, useState } from "react"
+import { getErrorMessage } from "@techsio/std/object"
+import { useRef, useState } from "react"
+import type { SubmitEvent } from "react"
 
 export const handle = {
   breadcrumb: () => "Payload import",
 }
 
-type ImportResult = {
-  ok: boolean
-  result: {
-    total: number
-    imported: number
-    skipped: number
+const importResultSchema = z.object({
+  ok: z.literal(true),
+  result: z.object({
+    imported: z.number().int().nonnegative(),
+    skipped: z.number().int().nonnegative(),
+    total: z.number().int().nonnegative(),
+  }),
+})
+
+const importErrorSchema = z.object({ message: z.string() })
+
+const LOCALE_PATTERN = /^[a-z]{2}(?:-[A-Z]{2})?$/u
+const FALLBACK_LOCALES = ["cs", "sk", "en"]
+
+const parseConfiguredLocales = (value: unknown): string[] => {
+  if (typeof value !== "string") {
+    return FALLBACK_LOCALES
   }
+
+  const configuredLocales = value
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => LOCALE_PATTERN.test(item))
+  return configuredLocales.length > 0 ? configuredLocales : FALLBACK_LOCALES
 }
 
-const configuredLocales = (import.meta.env.VITE_PAYLOAD_LOCALES ?? "cs,sk,en")
-  .split(",")
-  .map((item: string) => item.trim())
-  .filter(Boolean)
-const locales = configuredLocales.length
-  ? configuredLocales
-  : ["cs", "sk", "en"]
-const defaultLocale = locales.includes("sk") ? "sk" : locales[0]
+const locales = parseConfiguredLocales(import.meta.env.VITE_PAYLOAD_LOCALES)
+const defaultLocale = locales.includes("sk") ? "sk" : (locales[0] ?? "cs")
 
 const parseErrorMessage = async (response: Response) => {
-  const payload = await response.json().catch(() => null)
-  if (payload && typeof payload === "object" && "message" in payload) {
-    return String(payload.message)
+  try {
+    const payload: unknown = await response.json()
+    const parsed = importErrorSchema.safeParse(payload)
+    if (parsed.success) {
+      return parsed.data.message
+    }
+  } catch {
+    return "Import failed"
   }
 
   return "Import failed"
@@ -40,16 +59,11 @@ const appendOptional = (formData: FormData, key: string, value: string) => {
   }
 }
 
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  return "Import se nepovedl."
-}
+const getImportFailureMessage = (error: unknown) =>
+  error instanceof Error ? getErrorMessage(error) : "Import se nepovedl."
 
 const PayloadImportPage = () => {
-  const [file, setFile] = useState<File | null>(null)
+  const fileRef = useRef<File | null>(null)
   const [locale, setLocale] = useState(defaultLocale)
   const [sheetName, setSheetName] = useState("")
   const [status, setStatus] = useState("")
@@ -58,12 +72,13 @@ const PayloadImportPage = () => {
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     setMessage("")
     setError("")
 
-    if (!file) {
+    const file = fileRef.current
+    if (file === null) {
       setError("Vyber XLSX soubor.")
       return
     }
@@ -80,8 +95,8 @@ const PayloadImportPage = () => {
     setIsSubmitting(true)
     try {
       const response = await fetch("/admin/payload/article-import", {
-        method: "POST",
         body: formData,
+        method: "POST",
       })
 
       if (!response.ok) {
@@ -89,12 +104,17 @@ const PayloadImportPage = () => {
         return
       }
 
-      const data = (await response.json()) as ImportResult
+      const data: unknown = await response.json()
+      const parsed = importResultSchema.safeParse(data)
+      if (!parsed.success) {
+        setError(getImportFailureMessage(data))
+        return
+      }
       setMessage(
-        `Import dokončený: ${data.result.imported} importovaných, ${data.result.skipped} přeskočených z ${data.result.total}.`
+        `Import dokončený: ${parsed.data.result.imported} importovaných, ${parsed.data.result.skipped} přeskočených z ${parsed.data.result.total}.`,
       )
-    } catch (error_) {
-      setError(getErrorMessage(error_))
+    } catch (caughtError) {
+      setError(getImportFailureMessage(caughtError))
     } finally {
       setIsSubmitting(false)
     }
@@ -109,14 +129,21 @@ const PayloadImportPage = () => {
         </Text>
       </div>
 
-      <form className="grid max-w-xl gap-4 px-6 py-4" onSubmit={onSubmit}>
+      <form
+        className="grid max-w-xl gap-4 px-6 py-4"
+        onSubmit={(event) => {
+          void onSubmit(event)
+        }}
+      >
         <div className="grid gap-1">
           <Text size="small" weight="plus">
             XLSX soubor
           </Text>
           <Input
             accept=".xlsx"
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            onChange={(event) => {
+              fileRef.current = event.target.files?.[0] ?? null
+            }}
             type="file"
           />
         </div>
@@ -144,7 +171,9 @@ const PayloadImportPage = () => {
             Název listu (volitelné)
           </Text>
           <Input
-            onChange={(event) => setSheetName(event.target.value)}
+            onChange={(event) => {
+              setSheetName(event.target.value)
+            }}
             placeholder="napr. Sheet1"
             value={sheetName}
           />
@@ -169,7 +198,9 @@ const PayloadImportPage = () => {
         <label className="flex items-center gap-2">
           <input
             checked={overwrite}
-            onChange={(event) => setOverwrite(event.target.checked)}
+            onChange={(event) => {
+              setOverwrite(event.target.checked)
+            }}
             type="checkbox"
           />
           <Text size="small">Overwrite</Text>

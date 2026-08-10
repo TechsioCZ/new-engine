@@ -1,0 +1,72 @@
+import { act, renderHook } from "@testing-library/react"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+
+import { useDelayedPrefetchController } from "../src/shared/use-delayed-prefetch-controller"
+
+describe(useDelayedPrefetchController, () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.runOnlyPendingTimers()
+    vi.useRealTimers()
+  })
+
+  it("debounces scheduled callbacks with the same prefetch id", async () => {
+    const first = vi.fn<() => void>()
+    const second = vi.fn<() => void>()
+
+    const { result } = renderHook(() => useDelayedPrefetchController())
+
+    act(() => {
+      result.current.schedulePrefetch(first, "prefetch-id", 100)
+      result.current.schedulePrefetch(second, "prefetch-id", 100)
+    })
+
+    expect(first).not.toHaveBeenCalled()
+    expect(second).not.toHaveBeenCalled()
+
+    // `execute` is dispatched on a microtask (Promise.resolve().then), so the
+    // async act flushes it before asserting the call happened.
+    await act(async () => {
+      vi.advanceTimersByTime(100)
+      await Promise.resolve()
+    })
+
+    expect(first).not.toHaveBeenCalled()
+    expect(second).toHaveBeenCalledOnce()
+  })
+
+  it("cancels pending callback when cancelPrefetch is called", () => {
+    const callback = vi.fn<() => void>()
+
+    const { result } = renderHook(() => useDelayedPrefetchController())
+
+    act(() => {
+      result.current.schedulePrefetch(callback, "prefetch-id", 100)
+      result.current.cancelPrefetch("prefetch-id")
+      vi.advanceTimersByTime(100)
+    })
+
+    expect(callback).not.toHaveBeenCalled()
+  })
+
+  it("cleans up pending callbacks on unmount", () => {
+    const callback = vi.fn<() => void>()
+
+    const { result, unmount } = renderHook(() => useDelayedPrefetchController())
+
+    act(() => {
+      result.current.schedulePrefetch(callback, "prefetch-id", 100)
+    })
+
+    unmount()
+
+    act(() => {
+      vi.advanceTimersByTime(100)
+    })
+
+    expect(callback).not.toHaveBeenCalled()
+  })
+})

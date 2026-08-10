@@ -1,17 +1,19 @@
 "use client"
 
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
-import { type ReactNode, useState } from "react"
+import { useState } from "react"
+import type { ChangeEvent, HTMLInputTypeAttribute, ReactNode } from "react"
+
 import {
   resolveVisibleFieldFeedback,
   shouldTrackLiveFieldFeedback,
 } from "@/lib/forms/core/field-errors"
 import { useFieldContext } from "@/lib/forms/core/herbatika-form-context"
 
-type FormTextFieldProps = {
+interface FormTextFieldProps {
   id: string
   label?: ReactNode
-  type?: "text" | "email" | "password" | "tel"
+  type?: Extract<HTMLInputTypeAttribute, "email" | "password" | "tel" | "text">
   autoComplete?: string
   required?: boolean
   validationMode?: "none" | "blur"
@@ -19,7 +21,7 @@ type FormTextFieldProps = {
   onValueChange?: (value: string) => void
 }
 
-export function FormTextField({
+export const FormTextField = ({
   id,
   label,
   type = "text",
@@ -28,7 +30,7 @@ export function FormTextField({
   validationMode = "blur",
   externalError,
   onValueChange,
-}: FormTextFieldProps) {
+}: FormTextFieldProps) => {
   const field = useFieldContext<string>()
   const [hasChangedSinceBlur, setHasChangedSinceBlur] = useState(false)
   const value = typeof field.state.value === "string" ? field.state.value : ""
@@ -39,7 +41,10 @@ export function FormTextField({
     validationMode,
   })
   const errorText = externalError ?? fieldFeedback.errorText
-  const validateStatus = externalError ? "error" : fieldFeedback.validateStatus
+  const validateStatus =
+    externalError !== undefined && externalError !== ""
+      ? "error"
+      : fieldFeedback.validateStatus
 
   return (
     <FormInput
@@ -52,7 +57,7 @@ export function FormTextField({
         field.handleBlur()
         setHasChangedSinceBlur(false)
       }}
-      onChange={(event) => {
+      onChange={(event: ChangeEvent<HTMLInputElement>) => {
         const nextValue = event.target.value
         if (
           shouldTrackLiveFieldFeedback({

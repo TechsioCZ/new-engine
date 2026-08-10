@@ -1,10 +1,8 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: textarea-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Textarea for
-  multi-line text entry with valid variant, size, resize, readonly styling, and
-  token-first validation.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Textarea for multi-line text entry with valid variant, size, resize, readonly styling, and token-first validation.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -20,15 +18,14 @@ sources:
 
 # @techsio/ui-kit Textarea Usage
 
-Use Textarea for multi-line text entry. Use form molecules when a complete
-label/help/error field abstraction exists for the current app context.
+Use Textarea for multi-line text entry. Use form molecules when a complete label/help/error field abstraction exists for the current app context.
 
 ## Setup
 
 ```tsx
 import { Textarea } from "@techsio/ui-kit/atoms/textarea"
 
-<Textarea name="note" variant="default" size="md" resize="y" />
+;<Textarea name="note" variant="default" size="md" resize="y" />
 ```
 
 Supported component props:
@@ -67,8 +64,7 @@ both/x -> rare, only when the product explicitly needs it
 <Textarea readonly value={note} />
 ```
 
-The component-specific `readonly` prop drives both the visual variant and the
-`readOnly` attribute.
+The component-specific `readonly` prop drives both the visual variant and the `readOnly` attribute.
 
 ## Common Mistakes
 
@@ -144,4 +140,3 @@ rg -n "<Textarea[^>]*className=.*(border-|bg-|text-|placeholder:|p-|px-|py-)" ap
 rg -n "<Textarea[^>]*readOnly" apps
 rg -n "resize=\"(none|y|x|both|auto)\"" apps
 ```
-

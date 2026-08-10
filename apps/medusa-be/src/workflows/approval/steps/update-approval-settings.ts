@@ -1,4 +1,5 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import type {
   IApprovalModuleService,
@@ -13,16 +14,17 @@ export const updateApprovalSettingsStep = createStep(
 
     const previousData = await approvalModule.retrieveApprovalSettings(input.id)
 
-    const updatedApprovalSettings =
-      await approvalModule.updateApprovalSettings(input)
+    const updatedApprovalSettings = await approvalModule.updateApprovalSettings(
+      { ...input, id: previousData.id },
+    )
 
     return new StepResponse(updatedApprovalSettings, previousData)
   },
   async (
     previousData: ModuleUpdateApprovalSettings | undefined,
-    { container }
+    { container },
   ) => {
-    if (!previousData) {
+    if (previousData === undefined) {
       return
     }
 
@@ -30,5 +32,5 @@ export const updateApprovalSettingsStep = createStep(
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
     await approvalModule.updateApprovalSettings(previousData)
-  }
+  },
 )

@@ -2,13 +2,15 @@
 
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
-import { type ComponentPropsWithoutRef, Fragment } from "react"
+import { Fragment } from "react"
+import type { ComponentPropsWithoutRef } from "react"
+
+import NextLink from "@/components/app-link"
 
 type NextLinkProps = ComponentPropsWithoutRef<typeof NextLink>
 
-export type HerbatikaBreadcrumbItem = {
+export interface HerbatikaBreadcrumbItem {
   label: string
   href?: NextLinkProps["href"]
   icon?: IconType
@@ -24,32 +26,35 @@ export type HerbatikaBreadcrumbProps = Omit<
   items: HerbatikaBreadcrumbItem[]
 }
 
-function getBreadcrumbItemKey(item: HerbatikaBreadcrumbItem, index: number) {
-  return `${item.href?.toString() ?? "current"}-${item.label}-${index}`
+const getBreadcrumbItemKey = (item: HerbatikaBreadcrumbItem, index: number) => {
+  const hrefKey =
+    typeof item.href === "string"
+      ? item.href
+      : (JSON.stringify(item.href) ?? "current")
+
+  return `${hrefKey}-${item.label}-${index}`
 }
 
-function BreadcrumbItemContent({ item }: { item: HerbatikaBreadcrumbItem }) {
-  return (
-    <>
-      {item.icon ? (
-        <Breadcrumb.Icon className="mr-50 mb-50 font-bold" icon={item.icon} />
-      ) : null}
-      {item.label && <span>{item.label}</span>}
-    </>
-  )
-}
+const BreadcrumbItemContent = ({ item }: { item: HerbatikaBreadcrumbItem }) => (
+  <>
+    {item.icon === undefined ? null : (
+      <Breadcrumb.Icon className="mr-50 mb-50 font-bold" icon={item.icon} />
+    )}
+    {item.label !== "" && <span>{item.label}</span>}
+  </>
+)
 
-export function HerbatikaBreadcrumb({
+export const HerbatikaBreadcrumb = ({
   items,
   ...breadcrumbProps
-}: HerbatikaBreadcrumbProps) {
+}: HerbatikaBreadcrumbProps) => {
   const t = useTranslations("navigation")
 
   if (items.length === 0) {
     return null
   }
 
-  const hasExplicitCurrent = items.some((item) => item.isCurrent)
+  const hasExplicitCurrent = items.some((item) => item.isCurrent === true)
 
   return (
     <Breadcrumb

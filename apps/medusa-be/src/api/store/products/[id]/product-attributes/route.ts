@@ -1,45 +1,40 @@
+import type { Query } from "@medusajs/framework"
 import type {
   MedusaResponse,
   MedusaStoreRequest,
 } from "@medusajs/framework/http"
-import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+
 import { normalizeProductSalesChannelFilter } from "../../../../utils/product-filters"
 import type { StoreProductAttributesQuery } from "./middlewares"
-import {
-  listPublicStoreProductAttributes,
-  type StoreProductAttributeResponse,
-} from "./utils"
+import { listPublicStoreProductAttributes } from "./utils"
+import type { StoreProductAttributeResponse } from "./utils"
 
-export async function GET(
+const get = async (
   req: MedusaStoreRequest<unknown, StoreProductAttributesQuery>,
   res: MedusaResponse<{
     count: number
     limit: number
     offset: number
     product_attributes: StoreProductAttributeResponse[]
-  }>
-) {
-  const productId = req.params.id
-  if (!productId) {
+  }>,
+) => {
+  const productId = req.params["id"]
+  if (productId === undefined || productId === "") {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "A Product id is required."
+      "A Product id is required.",
     )
   }
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
-  const productFilters = await normalizeProductSalesChannelFilter(
-    query,
-    remoteQuery,
-    {
-      ...(req.filterableFields ?? {}),
-      id: productId,
-    }
-  )
+  const productFilters = await normalizeProductSalesChannelFilter(remoteQuery, {
+    ...req.filterableFields,
+    id: productId,
+  })
   const { data: products } = await query.graph({
     entity: "product",
     fields: ["id"],
@@ -47,17 +42,17 @@ export async function GET(
     pagination: { take: 1 },
   })
 
-  if (!products[0]) {
+  if (products.length === 0) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product with id "${productId}" was not found`
+      `Product with id "${productId}" was not found`,
     )
   }
 
   const { skip: offset, take = 20 } = req.queryConfig.pagination
   const page = await listPublicStoreProductAttributes({
     limit: take,
-    locale: req.locale,
+    ...(req.locale === undefined ? {} : { locale: req.locale }),
     offset,
     productId,
     query,
@@ -70,3 +65,5 @@ export async function GET(
     product_attributes: page.product_attributes,
   })
 }
+
+export { get as GET }

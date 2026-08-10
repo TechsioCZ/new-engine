@@ -1,27 +1,28 @@
 import crypto from "node:crypto"
+
 import { MedusaError } from "@medusajs/framework/utils"
 
 const ALGORITHM = "aes-256-gcm"
 const IV_LENGTH = 12
 const AUTH_TAG_LENGTH = 16
-const HEX_KEY_REGEX = /^[0-9a-fA-F]{64}$/
+const HEX_KEY_REGEX = /^[0-9a-fA-F]{64}$/u
 
 /**
  * Gets the encryption key from environment variable.
  * The key must be a 64-character hex string (32 bytes).
  */
-function getEncryptionKey(): Buffer {
-  const keyHex = process.env.SETTINGS_ENCRYPTION_KEY
-  if (!keyHex) {
+const getEncryptionKey = (): Buffer => {
+  const keyHex = process.env["SETTINGS_ENCRYPTION_KEY"]
+  if (keyHex === undefined || keyHex.length === 0) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "SETTINGS_ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32"
+      "SETTINGS_ENCRYPTION_KEY is required. Generate with: openssl rand -hex 32",
     )
   }
   if (!HEX_KEY_REGEX.test(keyHex)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `SETTINGS_ENCRYPTION_KEY must be a 64-character hex string (got length: ${keyHex.length}). Generate with: openssl rand -hex 32`
+      `SETTINGS_ENCRYPTION_KEY must be a 64-character hex string (got length: ${keyHex.length}). Generate with: openssl rand -hex 32`,
     )
   }
   return Buffer.from(keyHex, "hex")
@@ -31,7 +32,7 @@ function getEncryptionKey(): Buffer {
  * Encrypts a plaintext string using AES-256-GCM.
  * Returns a base64-encoded string containing IV + ciphertext + auth tag.
  */
-function encrypt(plaintext: string): string {
+const encrypt = (plaintext: string): string => {
   const key = getEncryptionKey()
   const iv = crypto.randomBytes(IV_LENGTH)
 
@@ -40,7 +41,7 @@ function encrypt(plaintext: string): string {
   })
 
   const ciphertext = Buffer.concat([
-    cipher.update(plaintext, "utf8"),
+    cipher.update(plaintext, "utf-8"),
     cipher.final(),
   ])
 
@@ -56,7 +57,7 @@ function encrypt(plaintext: string): string {
  * Decrypts a base64-encoded ciphertext string.
  * Expects format: IV (12 bytes) + ciphertext + auth tag (16 bytes).
  */
-function decrypt(ciphertext: string): string {
+const decrypt = (ciphertext: string): string => {
   const key = getEncryptionKey()
   const combined = Buffer.from(ciphertext, "base64")
 
@@ -65,7 +66,7 @@ function decrypt(ciphertext: string): string {
   const authTag = combined.subarray(combined.length - AUTH_TAG_LENGTH)
   const encryptedData = combined.subarray(
     IV_LENGTH,
-    combined.length - AUTH_TAG_LENGTH
+    combined.length - AUTH_TAG_LENGTH,
   )
 
   const decipher = crypto.createDecipheriv(ALGORITHM, key, iv, {
@@ -76,50 +77,49 @@ function decrypt(ciphertext: string): string {
   return Buffer.concat([
     decipher.update(encryptedData),
     decipher.final(),
-  ]).toString("utf8")
+  ]).toString("utf-8")
 }
 
-/**
- * Encrypts specified fields in an object.
- * Only encrypts non-null string values.
- */
-export function encryptFields<T extends Record<string, unknown>>(
+const transformStringField = <T extends object>(
   data: T,
-  fields: (keyof T)[]
-): T {
-  const result = { ...data }
+  field: keyof T,
+  transform: (value: string) => string,
+): T => {
+  const value: unknown = data[field]
+  return typeof value === "string" && value.length > 0
+    ? { ...data, [field]: transform(value) }
+    : data
+}
 
-  for (const field of fields) {
-    const value: unknown = result[field]
-    if (typeof value === "string" && value.length > 0) {
-      result[field] = encrypt(value) as T[keyof T]
-    }
+const decryptLegacyCompatible = (value: string): string => {
+  try {
+    return decrypt(value)
+  } catch {
+    // Legacy rows may contain plaintext; preserve those bytes unchanged.
+    return value
   }
+}
 
+/** Encrypt specified non-empty string fields without mutating the input. */
+export const encryptFields = <T extends object>(
+  data: T,
+  fields: readonly (keyof T)[],
+): T => {
+  let result = data
+  for (const field of fields) {
+    result = transformStringField(result, field, encrypt)
+  }
   return result
 }
 
-/**
- * Decrypts specified fields in an object.
- * Only decrypts non-null string values.
- */
-export function decryptFields<T extends Record<string, unknown>>(
+/** Decrypt specified fields while retaining legacy plaintext values. */
+export const decryptFields = <T extends object>(
   data: T,
-  fields: (keyof T)[]
-): T {
-  const result = { ...data }
-
+  fields: readonly (keyof T)[],
+): T => {
+  let result = data
   for (const field of fields) {
-    const value: unknown = result[field]
-    if (typeof value === "string" && value.length > 0) {
-      try {
-        result[field] = decrypt(value) as T[keyof T]
-      } catch {
-        // If decryption fails, the value might not be encrypted (legacy data)
-        // Keep the original value
-      }
-    }
+    result = transformStringField(result, field, decryptLegacyCompatible)
   }
-
   return result
 }

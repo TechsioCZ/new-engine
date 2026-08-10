@@ -1,11 +1,15 @@
 import type { LoaderOptions } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
-type PplConfigServiceType = {
+interface PplConfigEnvironmentInput {
+  environment: string
+}
+
+interface PplConfigServiceType {
   listAndCount: (
-    filter: Record<string, unknown>
+    filter: PplConfigEnvironmentInput,
   ) => Promise<[unknown[], number]>
-  create: (data: Record<string, unknown>) => Promise<unknown>
+  create: (data: PplConfigEnvironmentInput) => Promise<unknown>
 }
 
 /**
@@ -21,7 +25,7 @@ export default async function createDefaultConfigLoader({
   options,
 }: LoaderOptions<{ environment: string }>) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
-  const environment = options?.environment || "testing"
+  const environment = options?.environment ?? "testing"
 
   // Resolve the auto-generated internal service for PplConfig model
   // (MedusaService generates `{modelName}Service` for each model)

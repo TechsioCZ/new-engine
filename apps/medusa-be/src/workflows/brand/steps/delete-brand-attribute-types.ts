@@ -1,5 +1,6 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import type { DeleteBrandAttributeTypesWorkflowInput } from "../types"
 import { getBrandService } from "./helpers"
 
@@ -12,26 +13,26 @@ export const deleteBrandAttributeTypesStep = createStep(
       {
         take: Math.max(input.ids.length, 1),
         withDeleted: true,
-      }
+      },
     )
     const foundIds = new Set(
-      attributeTypes.map((attributeType) => attributeType.id)
+      attributeTypes.map((attributeType) => attributeType.id),
     )
     const missingIds = input.ids.filter((id) => !foundIds.has(id))
 
-    if (missingIds.length) {
+    if (missingIds.length > 0) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Brand attribute type ids were not found: ${missingIds.join(", ")}`
+        `Brand attribute type ids were not found: ${missingIds.join(", ")}`,
       )
     }
 
     const active = attributeTypes.filter(
-      (attributeType) => !attributeType.deleted_at
+      (attributeType) => !attributeType.deleted_at,
     )
     const activeIds = active.map((attributeType) => attributeType.id)
 
-    if (activeIds.length) {
+    if (activeIds.length > 0) {
       await service.softDeleteBrandAttributeTypes(activeIds)
     }
 
@@ -40,12 +41,12 @@ export const deleteBrandAttributeTypesStep = createStep(
         ...attributeType,
         deleted_at: attributeType.deleted_at ?? new Date(),
       })),
-      activeIds
+      activeIds,
     )
   },
   async (deletedIds, { container }) => {
-    if (deletedIds?.length) {
+    if (deletedIds !== undefined && deletedIds.length > 0) {
       await getBrandService(container).restoreBrandAttributeTypes(deletedIds)
     }
-  }
+  },
 )

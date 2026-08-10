@@ -1,26 +1,26 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises"
-import { dirname } from "node:path"
+import nodePath from "node:path"
 
 import { parse as parseYaml } from "yaml"
+
+import { planResponseSchema } from "../contracts/plan.js"
+import type { PlanCommandInput, PlanResponse } from "../contracts/plan.js"
 import {
-  type PlanCommandInput,
-  type PlanResponse,
-  planResponseSchema,
-} from "../contracts/plan.js"
-import {
-  type DeployableService,
   getDeployableService,
   listDeployableServices,
-  type StackManifest,
   stackManifestSchema,
 } from "../contracts/stack-manifest.js"
+import type {
+  DeployableService,
+  StackManifest,
+} from "../contracts/stack-manifest.js"
 
-type PreviewServiceSets = {
+interface PreviewServiceSets {
   clonedServices: DeployableService[]
   excludedServices: DeployableService[]
 }
 
-function normalizeCsvToArray(csv: string): string[] {
+const normalizeCsvToArray = (csv: string): string[] => {
   const values = csv
     .split(",")
     .map((value) => value.trim())
@@ -39,57 +39,57 @@ function normalizeCsvToArray(csv: string): string[] {
   return normalized
 }
 
-async function loadManifest(path: string): Promise<StackManifest> {
-  const raw = await readFile(path, "utf8")
+const loadManifest = async (path: string): Promise<StackManifest> => {
+  const raw = await readFile(path, "utf-8")
   let parsed: unknown
 
   try {
     parsed = parseYaml(raw)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`Failed to parse YAML at ${path}: ${message}`)
+    throw new Error(`Failed to parse YAML at ${path}: ${message}`, {
+      cause: error,
+    })
   }
 
   return stackManifestSchema.parse(parsed)
 }
 
-function assertServiceAllowedInLane(
+const assertServiceAllowedInLane = (
   service: DeployableService,
   lane: PlanCommandInput["lane"],
-  label: string
-): void {
+  label: string,
+): void => {
   if (!service.deployLanes.includes(lane)) {
     throw new Error(`${label} ${service.id} is not eligible for lane ${lane}.`)
   }
 
   if (lane === "preview" && !service.cloneToPreview) {
     throw new Error(
-      `${label} ${service.id} is not eligible for lane preview because clone_to_preview is false.`
+      `${label} ${service.id} is not eligible for lane preview because clone_to_preview is false.`,
     )
   }
 }
 
-function buildPlanService(
-  service: DeployableService
-): PlanResponse["deploy_services"][number] {
-  return {
-    id: service.id,
-    service_slug: service.serviceSlug,
-    clone_to_preview: service.cloneToPreview,
-    deploy_lanes: service.deployLanes,
-    deploy_stage: service.deployStage,
-    downtime_risk: service.downtimeRisk,
-    service_dependencies: service.serviceDependencies,
-  }
-}
+const buildPlanService = (
+  service: DeployableService,
+): PlanResponse["deploy_services"][number] => ({
+  clone_to_preview: service.cloneToPreview,
+  deploy_lanes: service.deployLanes,
+  deploy_stage: service.deployStage,
+  downtime_risk: service.downtimeRisk,
+  id: service.id,
+  service_dependencies: service.serviceDependencies,
+  service_slug: service.serviceSlug,
+})
 
-function buildPreviewServiceSets(
+const buildPreviewServiceSets = (
   manifest: StackManifest,
-  explicitlyRequestedServiceIds: Set<string>
-): PreviewServiceSets {
+  explicitlyRequestedServiceIds: Set<string>,
+): PreviewServiceSets => {
   const services = listDeployableServices(manifest).filter(
     (service) =>
-      service.enabledByDefault || explicitlyRequestedServiceIds.has(service.id)
+      service.enabledByDefault || explicitlyRequestedServiceIds.has(service.id),
   )
 
   return {
@@ -98,14 +98,14 @@ function buildPreviewServiceSets(
   }
 }
 
-function buildRequestedAndDeploySets(
+const buildRequestedAndDeploySets = (
   manifest: StackManifest,
   lane: PlanCommandInput["lane"],
-  sourceServiceIds: string[]
+  sourceServiceIds: string[],
 ): {
   requestedServiceIds: Set<string>
   deployServiceIds: Set<string>
-} {
+} => {
   const requestedServiceIds = new Set<string>()
   const deployServiceIds = new Set<string>()
 
@@ -117,36 +117,36 @@ function buildRequestedAndDeploySets(
   }
 
   return {
-    requestedServiceIds,
     deployServiceIds,
+    requestedServiceIds,
   }
 }
 
-async function writeJsonFile(path: string, value: unknown): Promise<void> {
-  await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
+const writeJsonFile = async (path: string, value: unknown): Promise<void> => {
+  await mkdir(nodePath.dirname(path), { recursive: true })
+  await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
-export async function executePlan(
-  input: PlanCommandInput
-): Promise<PlanResponse> {
+export const executePlan = async (
+  input: PlanCommandInput,
+): Promise<PlanResponse> => {
   const manifest = await loadManifest(input.stackManifestPath)
   const sourceServiceIds = normalizeCsvToArray(input.servicesCsv)
   const laneServices = listDeployableServices(manifest).filter(
     (service) =>
       service.deployLanes.includes(input.lane) &&
-      (input.lane !== "preview" || service.cloneToPreview)
+      (input.lane !== "preview" || service.cloneToPreview),
   )
   const { requestedServiceIds, deployServiceIds } = buildRequestedAndDeploySets(
     manifest,
     input.lane,
-    sourceServiceIds
+    sourceServiceIds,
   )
   const requestedServices = laneServices.filter((service) =>
-    requestedServiceIds.has(service.id)
+    requestedServiceIds.has(service.id),
   )
   const deployServices = laneServices.filter((service) =>
-    deployServiceIds.has(service.id)
+    deployServiceIds.has(service.id),
   )
   const previewServiceSets =
     input.lane === "preview"
@@ -154,32 +154,34 @@ export async function executePlan(
       : { clonedServices: [], excludedServices: [] }
 
   const response = planResponseSchema.parse({
-    lane: input.lane,
-    source_services_csv: sourceServiceIds.join(","),
-    requested_services_csv: requestedServices
-      .map((service) => service.id)
-      .join(","),
+    deploy_services: deployServices.map(buildPlanService),
     deploy_services_csv: deployServices.map((service) => service.id).join(","),
-    preview_environment_name:
-      input.lane === "preview" && input.prNumber
-        ? `${input.previewEnvPrefix}${input.prNumber}`
-        : "",
+    lane: input.lane,
+    pr_number: input.prNumber ?? null,
     preview_cloned_service_ids_csv: previewServiceSets.clonedServices
       .map((service) => service.id)
       .join(","),
+    preview_cloned_services:
+      previewServiceSets.clonedServices.map(buildPlanService),
+    preview_environment_name:
+      input.lane === "preview" &&
+      input.prNumber !== undefined &&
+      input.prNumber !== 0
+        ? `${input.previewEnvPrefix}${input.prNumber}`
+        : "",
     preview_excluded_service_ids_csv: previewServiceSets.excludedServices
       .map((service) => service.id)
       .join(","),
-    pr_number: input.prNumber ?? null,
-    requested_services: requestedServices.map(buildPlanService),
-    deploy_services: deployServices.map(buildPlanService),
-    preview_cloned_services:
-      previewServiceSets.clonedServices.map(buildPlanService),
     preview_excluded_services:
       previewServiceSets.excludedServices.map(buildPlanService),
+    requested_services: requestedServices.map(buildPlanService),
+    requested_services_csv: requestedServices
+      .map((service) => service.id)
+      .join(","),
+    source_services_csv: sourceServiceIds.join(","),
   })
 
-  if (input.outputJson) {
+  if (input.outputJson !== undefined && input.outputJson !== "") {
     await writeJsonFile(input.outputJson, response)
   }
 

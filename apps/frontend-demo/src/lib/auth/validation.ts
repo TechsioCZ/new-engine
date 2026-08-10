@@ -2,21 +2,21 @@
  * Email validation
  */
 export const validateEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u
   return emailRegex.test(email)
 }
 
 /**
  * Password validation rules
  */
-export interface PasswordRequirements {
+interface PasswordRequirements {
   length: boolean
   uppercase: boolean
   lowercase: boolean
   number: boolean
 }
 
-export interface PasswordValidationResult {
+interface PasswordValidationResult {
   isValid: boolean
   errors: string[]
   requirements: PasswordRequirements
@@ -24,13 +24,13 @@ export interface PasswordValidationResult {
 }
 
 export const validatePassword = (
-  password: string
+  password: string,
 ): PasswordValidationResult => {
   const requirements: PasswordRequirements = {
     length: password.length >= 8,
-    uppercase: /[A-Z]/.test(password),
-    lowercase: /[a-z]/.test(password),
-    number: /[0-9]/.test(password),
+    lowercase: /[a-z]/u.test(password),
+    number: /[0-9]/u.test(password),
+    uppercase: /[A-Z]/u.test(password),
   }
 
   const errors: string[] = []
@@ -51,8 +51,8 @@ export const validatePassword = (
   const isValid = strength === 4
 
   return {
-    isValid,
     errors,
+    isValid,
     requirements,
     strength,
   }

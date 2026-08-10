@@ -1,27 +1,26 @@
 import { useTranslations } from "next-intl"
+
 import { CategoryRichText } from "@/components/category/category-rich-text"
-import {
-  HerbatikaBreadcrumb,
-  type HerbatikaBreadcrumbItem,
-} from "@/components/herbatika-breadcrumb"
+import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
+import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb"
 import type { CmsPage } from "@/lib/storefront/cms"
 
-type CmsPageSurfaceProps = {
+interface CmsPageSurfaceProps {
   page: CmsPage
 }
 
-export function CmsPageSurface({ page }: CmsPageSurfaceProps) {
+export const CmsPageSurface = ({ page }: CmsPageSurfaceProps) => {
   const tNavigation = useTranslations("navigation")
 
-  if (!page.title) {
+  if (page.title === null || page.title === undefined || page.title === "") {
     return null
   }
 
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
-      label: tNavigation("breadcrumbs.home"),
       href: "/",
       icon: "token-icon-home",
+      label: tNavigation("breadcrumbs.home"),
     },
     {
       label: page.title,
@@ -35,7 +34,9 @@ export function CmsPageSurface({ page }: CmsPageSurfaceProps) {
 
         <article className="space-y-500 rounded-2xl border border-border-secondary bg-surface p-400 md:p-600">
           <header className="space-y-200">
-            {page.category?.title ? (
+            {page.category?.title !== null &&
+            page.category?.title !== undefined &&
+            page.category.title !== "" ? (
               <p className="font-semibold text-primary text-sm leading-normal">
                 {page.category.title}
               </p>
@@ -46,7 +47,7 @@ export function CmsPageSurface({ page }: CmsPageSurfaceProps) {
           </header>
 
           <CategoryRichText
-            className="max-w-4xl text-md [&_p+p]:mt-300"
+            className="max-w-cms-copy text-md [&_p+p]:mt-300"
             html={page.content}
           />
         </article>

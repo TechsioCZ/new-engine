@@ -1,22 +1,36 @@
-/**
+/*
  * Tooltip — @techsio/ui-kit atom.
  *
  * @component Tooltip
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill tooltip-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the tooltip-usage skill's component_version and a changelog entry. Bump all three together.
  */
+import { omitKeys } from "@techsio/std/object"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import * as tooltip from "@zag-js/tooltip"
-import { type ReactNode, type Ref, useId } from "react"
-import { tv, type VariantProps } from "tailwind-variants"
+import {
+  connect as connectTooltip,
+  machine as tooltipMachine,
+} from "@zag-js/tooltip"
+import type {
+  PositioningOptions as TooltipPositioningOptions,
+  Props as TooltipMachineProps,
+} from "@zag-js/tooltip"
+import { useId } from "react"
+import type { ReactNode, Ref } from "react"
+import { tv } from "tailwind-variants"
+import type { VariantProps } from "tailwind-variants"
 
 const tooltipVariants = tv({
+  defaultVariants: {
+    size: "md",
+    variant: "default",
+  },
   slots: {
-    trigger: ["inline-flex"],
+    arrow: "",
     content: [
       "[--arrow-size:var(--tooltip-arrow-size)]",
       "[--arrow-background:var(--tooltip-arrow-background)]",
@@ -24,45 +38,47 @@ const tooltipVariants = tv({
       "rounded-tooltip",
     ],
     positioner: ["relative"],
-    arrow: "",
+    trigger: ["inline-flex"],
   },
   variants: {
-    variant: {
-      default: {},
-      outline: {
-        content: "border border-tooltip-border-outline",
-        arrow: "border-tooltip-border-outline border-s border-t",
-      },
-    },
     size: {
-      sm: {
-        content: "p-tooltip-sm text-tooltip-sm",
+      lg: {
+        content: "p-tooltip-lg text-tooltip-lg",
       },
       md: {
         content: "p-tooltip-md text-tooltip-md",
       },
-      lg: {
-        content: "p-tooltip-lg text-tooltip-lg",
+      sm: {
+        content: "p-tooltip-sm text-tooltip-sm",
+      },
+    },
+    variant: {
+      default: {},
+      outline: {
+        arrow: "border-s border-t border-tooltip-border-outline",
+        content: "border border-tooltip-border-outline",
       },
     },
   },
-  defaultVariants: {
-    size: "md",
-    variant: "default",
-  },
 })
 
-export interface TooltipProps
-  extends VariantProps<typeof tooltipVariants>,
-    Partial<tooltip.Props>,
-    Partial<tooltip.PositioningOptions> {
-  ref?: Ref<HTMLSpanElement>
-  content: ReactNode
-  children: ReactNode
-  className?: string
+const defaultTooltipOffset: NonNullable<TooltipPositioningOptions["offset"]> = {
+  crossAxis: 0,
+  mainAxis: 16,
 }
 
-export function Tooltip({
+export interface TooltipProps
+  extends
+    VariantProps<typeof tooltipVariants>,
+    Partial<TooltipMachineProps>,
+    Partial<TooltipPositioningOptions> {
+  ref?: Ref<HTMLSpanElement> | undefined
+  content: ReactNode
+  children: ReactNode
+  className?: string | undefined
+}
+
+export const Tooltip = ({
   content,
   children,
   className,
@@ -85,60 +101,57 @@ export function Tooltip({
   closeOnClick,
 
   placement,
-  offset = { mainAxis: 16, crossAxis: 0 },
+  offset = defaultTooltipOffset,
   gutter,
   flip,
   sameWidth,
   boundary,
   listeners,
   strategy,
-}: TooltipProps) {
+}: TooltipProps) => {
   const generatedId = useId()
-  const id = MRAId || generatedId
+  const id = MRAId === undefined || MRAId === "" ? generatedId : MRAId
 
-  const service = useMachine(tooltip.machine, {
-    id,
-    dir,
-    open,
-    defaultOpen,
-    disabled,
-
-    openDelay,
+  const service = useMachine(tooltipMachine, {
     closeDelay,
-    interactive,
-    closeOnPointerDown,
     closeOnEscape,
-    closeOnScroll,
-    closeOnClick,
-
-    onOpenChange,
+    dir,
+    id,
+    interactive,
+    openDelay,
+    ...(closeOnClick !== undefined && { closeOnClick }),
+    ...(closeOnPointerDown !== undefined && { closeOnPointerDown }),
+    ...(closeOnScroll !== undefined && { closeOnScroll }),
+    ...(defaultOpen !== undefined && { defaultOpen }),
+    ...(disabled !== undefined && { disabled }),
+    ...(onOpenChange !== undefined && { onOpenChange }),
+    ...(open !== undefined && { open }),
 
     positioning: {
-      placement,
-      offset,
-      gutter,
-      flip,
-      sameWidth,
       boundary,
+      flip,
+      gutter,
       listeners,
+      offset,
+      placement,
+      sameWidth,
       strategy,
     },
   })
 
-  const api = tooltip.connect(service as tooltip.Service, normalizeProps)
+  const api = connectTooltip(service, normalizeProps)
   const {
     trigger,
     positioner,
     content: contentSlot,
     arrow,
   } = tooltipVariants({
-    variant,
     size,
+    variant,
   })
 
-  const triggerProps = api.getTriggerProps()
   // Exclude onBeforeInput: incompatible with span elements in React 19.2+
-  const { onBeforeInput, ...spanCompatibleProps } = triggerProps
+  const spanCompatibleProps = omitKeys(api.getTriggerProps(), ["onBeforeInput"])
 
   return (
     <>

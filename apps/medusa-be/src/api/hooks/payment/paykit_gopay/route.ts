@@ -1,21 +1,22 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import { PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID } from "../../../../modules/payment-paykit/constants"
 import { emitPaykitPaymentWebhookEvent } from "../../../../modules/payment-paykit/webhooks"
 
 type RequestWithUrlParts = MedusaRequest & {
   originalUrl?: string
   protocol?: string
-  get?: (name: string) => string | undefined
+  get?: (name: string) => string
 }
 
 const isRequestWithUrlParts = (
-  req: MedusaRequest
+  req: MedusaRequest,
 ): req is RequestWithUrlParts =>
   "originalUrl" in req && typeof req.originalUrl === "string"
 
 const getHeaderValue = (
   req: MedusaRequest,
-  header: string
+  header: string,
 ): string | undefined => {
   const value = req.headers[header]
 
@@ -28,7 +29,7 @@ const getHeaderValue = (
 
 const getForwardedHeaderValue = (
   req: MedusaRequest,
-  header: string
+  header: string,
 ): string | undefined => getHeaderValue(req, header)?.split(",")[0]?.trim()
 
 const getRequestUrl = (req: MedusaRequest): string => {
@@ -43,7 +44,7 @@ const getRequestUrl = (req: MedusaRequest): string => {
     getHeaderValue(req, "host") ??
     req.get?.("host")
 
-  if (!host) {
+  if (!(typeof host === "string" && host.length > 0)) {
     return url
   }
 
@@ -61,10 +62,7 @@ const hasGopayPaymentId = (url: string): boolean => {
   }
 }
 
-export async function GET(
-  req: MedusaRequest,
-  res: MedusaResponse
-): Promise<void> {
+const get = async (req: MedusaRequest, res: MedusaResponse): Promise<void> => {
   const fullUrl = getRequestUrl(req)
 
   if (!hasGopayPaymentId(fullUrl)) {
@@ -73,13 +71,15 @@ export async function GET(
   }
 
   await emitPaykitPaymentWebhookEvent({
-    req,
-    provider: PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
     data: {
       fullUrl,
       url: req.url,
     },
+    provider: PAYKIT_GOPAY_WEBHOOK_PROVIDER_ID,
+    req,
   })
 
   res.sendStatus(200)
 }
+
+export { get as GET }

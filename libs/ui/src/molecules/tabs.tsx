@@ -1,8 +1,8 @@
-/**
+/*
  * Tabs — @techsio/ui-kit molecule.
  *
  * @component Tabs
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.2
  * @skill tabs-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,26 +10,35 @@
  * the tabs-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
-import * as tabs from "@zag-js/tabs"
-import {
-  type ComponentPropsWithoutRef,
-  createContext,
-  type Ref,
-  useContext,
-  useId,
-} from "react"
+import { connect as connectTabs, machine as tabsMachine } from "@zag-js/tabs"
+import type { Api as TabsApi } from "@zag-js/tabs"
+import { createContext, useContext, useId } from "react"
+import type { ComponentPropsWithoutRef, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
-import { Button, type ButtonProps } from "../atoms/button"
+
+import { Button } from "../atoms/button"
+import type { ButtonProps } from "../atoms/button"
 import { tv } from "../utils"
 
 const tabsVariants = tv({
+  defaultVariants: {
+    fitted: false,
+    justify: "start",
+    size: "md",
+    variant: "default",
+  },
   slots: {
-    root: [
-      "flex w-full",
-      "data-[orientation=horizontal]:flex-col",
-      "data-[orientation=vertical]:flex-row",
-      "bg-tabs-bg",
-      "rounded-tabs",
+    content: [
+      "text-tabs-content-fg",
+      "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
+      "focus-visible:outline-tabs-ring",
+      "focus-visible:outline-offset-(length:--default-ring-offset)",
+    ],
+    indicator: [
+      "absolute rounded-tabs-indicator bg-tabs-indicator-bg",
+      "data-[orientation=horizontal]:w-(--width) data-[orientation=vertical]:h-(--height)",
+      "data-[orientation=horizontal]:h-tabs-indicator-height data-[orientation=vertical]:w-tabs-indicator",
+      "data-[orientation=horizontal]:bottom-0 data-[orientation=vertical]:start-0",
     ],
     list: [
       "relative flex",
@@ -37,71 +46,28 @@ const tabsVariants = tv({
       "data-[orientation=horizontal]:flex-row",
       "data-[orientation=vertical]:flex-col",
     ],
+    root: [
+      "flex w-full",
+      "data-[orientation=horizontal]:flex-col",
+      "data-[orientation=vertical]:flex-row",
+      "bg-tabs-bg",
+      "rounded-tabs",
+    ],
     trigger: [
       "relative flex items-center justify-center",
       "text-tabs-trigger-fg-base",
       "rounded-tabs-trigger",
       "cursor-pointer",
       "hover:bg-tabs-trigger-bg-hover",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
       "focus-visible:outline-tabs-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
       "data-[selected]:text-tabs-trigger-fg-selected",
       "data-[disabled]:cursor-not-allowed data-[disabled]:text-tabs-trigger-fg-disabled",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    indicator: [
-      "absolute rounded-tabs-indicator bg-tabs-indicator-bg",
-      "data-[orientation=vertical]:h-(--height) data-[orientation=horizontal]:w-(--width)",
-      "data-[orientation=horizontal]:h-tabs-indicator-height data-[orientation=vertical]:w-tabs-indicator",
-      "data-[orientation=vertical]:start-0 data-[orientation=horizontal]:bottom-0",
-    ],
-    content: [
-      "text-tabs-content-fg",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-      "focus-visible:outline-tabs-ring",
-      "focus-visible:outline-offset-(length:--default-ring-offset)",
-    ],
   },
   variants: {
-    variant: {
-      default: {
-        list: "",
-        indicator: "hidden",
-      },
-      line: {
-        list: "border-b-(length:--border-width-tabs) border-tabs-border-base",
-        indicator:
-          "data-[orientation=horizontal]:-bottom-(--border-width-tabs)",
-      },
-      solid: {
-        trigger:
-          "data-[selected]:bg-tabs-trigger-bg-selected data-[selected]:text-tabs-trigger-fg-solid-selected",
-        indicator: "hidden",
-      },
-      outline: {
-        trigger: [
-          "border-(length:--border-width-tabs) border-transparent",
-          "data-[selected]:border-tabs-border-selected",
-          "data-[selected]:bg-tabs-trigger-bg-outline-selected",
-        ],
-        indicator: "hidden",
-      },
-    },
-    size: {
-      sm: {
-        trigger: "p-tabs-trigger-sm text-tabs-trigger-sm",
-        content: "p-tabs-content-padding-sm text-tabs-content-sm",
-      },
-      md: {
-        trigger: "p-tabs-trigger-md text-tabs-trigger-md",
-        content: "p-tabs-content-padding-md text-tabs-content-md",
-      },
-      lg: {
-        trigger: "p-tabs-trigger-lg text-tabs-trigger-lg",
-        content: "p-tabs-content-padding-lg text-tabs-content-lg",
-      },
-    },
     fitted: {
       true: {
         list: "w-full",
@@ -109,61 +75,91 @@ const tabsVariants = tv({
       },
     },
     justify: {
-      start: {
-        list: "justify-start",
-      },
       center: {
         list: "justify-center",
       },
       end: {
         list: "justify-end",
       },
+      start: {
+        list: "justify-start",
+      },
     },
-  },
-  defaultVariants: {
-    variant: "default",
-    size: "md",
-    fitted: false,
-    justify: "start",
+    size: {
+      lg: {
+        content: "p-tabs-content-padding-lg text-tabs-content-lg",
+        trigger: "p-tabs-trigger-lg text-tabs-trigger-lg",
+      },
+      md: {
+        content: "p-tabs-content-padding-md text-tabs-content-md",
+        trigger: "p-tabs-trigger-md text-tabs-trigger-md",
+      },
+      sm: {
+        content: "p-tabs-content-padding-sm text-tabs-content-sm",
+        trigger: "p-tabs-trigger-sm text-tabs-trigger-sm",
+      },
+    },
+    variant: {
+      default: {
+        indicator: "hidden",
+        list: "",
+      },
+      line: {
+        indicator:
+          "data-[orientation=horizontal]:-bottom-(--border-width-tabs)",
+        list: "border-b-(length:--border-width-tabs) border-tabs-border-base",
+      },
+      outline: {
+        indicator: "hidden",
+        trigger: [
+          "border-(length:--border-width-tabs) border-transparent",
+          "data-[selected]:border-tabs-border-selected",
+          "data-[selected]:bg-tabs-trigger-bg-outline-selected",
+        ],
+      },
+      solid: {
+        indicator: "hidden",
+        trigger:
+          "data-[selected]:bg-tabs-trigger-bg-selected data-[selected]:text-tabs-trigger-fg-solid-selected",
+      },
+    },
   },
 })
 
 // Context for sharing state between sub-components
-interface TabsContextValue {
-  api: ReturnType<typeof tabs.connect>
-  variant?: "default" | "line" | "solid" | "outline"
-  size?: "sm" | "md" | "lg"
-  fitted?: boolean
-  justify?: "start" | "center" | "end"
-  styles: ReturnType<typeof tabsVariants>
-}
+const TabsApiContext = createContext<TabsApi | null>(null)
+const TabsStylesContext = createContext<ReturnType<typeof tabsVariants> | null>(
+  null,
+)
 
-const TabsContext = createContext<TabsContextValue | null>(null)
+const useTabsContext = () => {
+  const api = useContext(TabsApiContext)
+  const styles = useContext(TabsStylesContext)
 
-function useTabsContext() {
-  const context = useContext(TabsContext)
-  if (!context) {
+  if (api === null || styles === null) {
     throw new Error("Tabs components must be used within Tabs")
   }
-  return context
+
+  return { api, styles }
 }
 
 // Root component
 export interface TabsProps
-  extends VariantProps<typeof tabsVariants>,
+  extends
+    VariantProps<typeof tabsVariants>,
     Omit<ComponentPropsWithoutRef<"div">, "onChange"> {
-  id?: string
-  defaultValue?: string
-  value?: string
-  orientation?: "horizontal" | "vertical"
-  dir?: "ltr" | "rtl"
-  activationMode?: "automatic" | "manual"
-  loopFocus?: boolean
-  onValueChange?: (value: string) => void
-  ref?: Ref<HTMLDivElement>
+  id?: string | undefined
+  defaultValue?: string | undefined
+  value?: string | undefined
+  orientation?: "horizontal" | "vertical" | undefined
+  dir?: "ltr" | "rtl" | undefined
+  activationMode?: "automatic" | "manual" | undefined
+  loopFocus?: boolean | undefined
+  onValueChange?: ((value: string) => void) | undefined
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
-export function Tabs({
+const TabsRoot = ({
   id,
   defaultValue,
   value,
@@ -180,62 +176,49 @@ export function Tabs({
   ref,
   className,
   ...props
-}: TabsProps) {
+}: TabsProps) => {
   const generatedId = useId()
-  const uniqueId = id || generatedId
+  const uniqueId = id ?? generatedId
 
-  const service = useMachine(tabs.machine, {
-    id: uniqueId,
-    value,
-    defaultValue,
-    orientation,
-    dir,
+  const service = useMachine(tabsMachine, {
     activationMode,
+    defaultValue,
+    dir,
+    id: uniqueId,
     loopFocus,
-    onValueChange: ({ value }) => {
-      onValueChange?.(value)
+    onValueChange: ({ value: nextValue }) => {
+      onValueChange?.(nextValue)
     },
+    orientation,
+    value,
   })
 
-  const api = tabs.connect(service, normalizeProps)
-  const styles = tabsVariants({ variant, size, fitted, justify })
+  const api = connectTabs(service, normalizeProps)
+  const styles = tabsVariants({ fitted, justify, size, variant })
+  const rootProps = mergeProps(api.getRootProps(), props)
 
   return (
-    <TabsContext.Provider
-      value={{ api, variant, size, fitted, justify, styles }}
-    >
-      <div
-        className={styles.root({ className })}
-        ref={ref}
-        {...api.getRootProps()}
-        {...props}
-      >
-        {children}
-      </div>
-    </TabsContext.Provider>
+    <TabsApiContext.Provider value={api}>
+      <TabsStylesContext.Provider value={styles}>
+        <div {...rootProps} className={styles.root({ className })} ref={ref}>
+          {children}
+        </div>
+      </TabsStylesContext.Provider>
+    </TabsApiContext.Provider>
   )
 }
 
 // List component
 interface TabsListProps extends ComponentPropsWithoutRef<"div"> {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
-Tabs.List = function TabsList({
-  children,
-  ref,
-  className,
-  ...props
-}: TabsListProps) {
+const TabsList = ({ children, ref, className, ...props }: TabsListProps) => {
   const { api, styles } = useTabsContext()
+  const listProps = mergeProps(api.getListProps(), props)
 
   return (
-    <div
-      className={styles.list({ className })}
-      ref={ref}
-      {...api.getListProps()}
-      {...props}
-    >
+    <div {...listProps} className={styles.list({ className })} ref={ref}>
       {children}
     </div>
   )
@@ -244,10 +227,10 @@ Tabs.List = function TabsList({
 // Trigger component
 type TabsTriggerProps = Omit<ButtonProps, "value"> & {
   value: string
-  ref?: Ref<HTMLButtonElement>
+  ref?: Ref<HTMLButtonElement> | undefined
 }
 
-Tabs.Trigger = function TabsTrigger({
+const TabsTrigger = ({
   value,
   disabled,
   children,
@@ -257,18 +240,18 @@ Tabs.Trigger = function TabsTrigger({
   theme = "unstyled",
   type = "button",
   ...props
-}: TabsTriggerProps) {
+}: TabsTriggerProps) => {
   const { api, styles } = useTabsContext()
   const triggerProps = mergeProps(
+    api.getTriggerProps({ disabled, value }),
     props,
-    api.getTriggerProps({ value, disabled })
   )
 
   return (
     <Button
       {...triggerProps}
       className={styles.trigger({ className })}
-      data-disabled={disabled || undefined}
+      data-disabled={disabled === true ? true : undefined}
       ref={ref}
       size={size}
       theme={theme}
@@ -282,25 +265,21 @@ Tabs.Trigger = function TabsTrigger({
 // Content component
 interface TabsContentProps extends ComponentPropsWithoutRef<"div"> {
   value: string
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
-Tabs.Content = function TabsContent({
+const TabsContent = ({
   value,
   children,
   ref,
   className,
   ...props
-}: TabsContentProps) {
+}: TabsContentProps) => {
   const { api, styles } = useTabsContext()
+  const contentProps = mergeProps(api.getContentProps({ value }), props)
 
   return (
-    <div
-      className={styles.content({ className })}
-      ref={ref}
-      {...api.getContentProps({ value })}
-      {...props}
-    >
+    <div {...contentProps} className={styles.content({ className })} ref={ref}>
       {children}
     </div>
   )
@@ -308,25 +287,30 @@ Tabs.Content = function TabsContent({
 
 // Indicator component
 interface TabsIndicatorProps extends ComponentPropsWithoutRef<"div"> {
-  ref?: Ref<HTMLDivElement>
+  ref?: Ref<HTMLDivElement> | undefined
 }
 
-Tabs.Indicator = function TabsIndicator({
-  ref,
-  className,
-  ...props
-}: TabsIndicatorProps) {
+const TabsIndicator = ({ ref, className, ...props }: TabsIndicatorProps) => {
   const { api, styles } = useTabsContext()
+  const indicatorProps = mergeProps(api.getIndicatorProps(), props)
 
   return (
     <div
+      {...indicatorProps}
       className={styles.indicator({ className })}
       ref={ref}
-      {...api.getIndicatorProps()}
-      {...props}
     />
   )
 }
 
 // Display name
-Tabs.displayName = "Tabs"
+TabsRoot.displayName = "Tabs"
+
+const TabsCompound = Object.assign(TabsRoot, {
+  Content: TabsContent,
+  Indicator: TabsIndicator,
+  List: TabsList,
+  Trigger: TabsTrigger,
+})
+
+export const Tabs = TabsCompound

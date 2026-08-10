@@ -1,13 +1,14 @@
 import { clx } from "@medusajs/ui"
+
 import { PlaceholderCell } from "./placeholder-cell"
 
-type CellProps = {
+interface CellProps {
   text?: string | number
   align?: "left" | "center" | "right"
   maxWidth?: number
 }
 
-type HeaderProps = {
+interface HeaderProps {
   text: string
   align?: "left" | "center" | "right"
 }
@@ -17,7 +18,7 @@ export const TextCell = ({
   align = "left",
   maxWidth = 220,
 }: CellProps) => {
-  if (!text) {
+  if (text === null || text === undefined || text === "") {
     return <PlaceholderCell />
   }
 
@@ -26,10 +27,10 @@ export const TextCell = ({
       className={clx(
         "flex h-full w-full items-center gap-x-3 overflow-hidden",
         {
-          "justify-start text-start": align === "left",
           "justify-center text-center": align === "center",
           "justify-end text-end": align === "right",
-        }
+          "justify-start text-start": align === "left",
+        },
       )}
       style={{
         maxWidth,
@@ -43,9 +44,9 @@ export const TextCell = ({
 export const TextHeader = ({ text, align = "left" }: HeaderProps) => (
   <div
     className={clx("flex h-full w-full items-center", {
-      "justify-start text-start": align === "left",
       "justify-center text-center": align === "center",
       "justify-end text-end": align === "right",
+      "justify-start text-start": align === "left",
     })}
   >
     <span className="truncate">{text}</span>

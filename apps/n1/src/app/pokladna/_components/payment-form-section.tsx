@@ -2,17 +2,18 @@
 
 import { Checkbox } from "@techsio/ui-kit/atoms/checkbox"
 import { useState } from "react"
+
 import { useCheckoutPayment } from "@/hooks/use-checkout-payment"
 import { useSuspenseRegion } from "@/hooks/use-region"
 import type { Cart } from "@/services/cart-service"
 
-type PaymentFormSectionProps = {
+interface PaymentFormSectionProps {
   cart: Cart
 }
 
 const CASH_ON_DELIVERY_PROVIDER = "pp_system_default"
 
-export function PaymentFormSection({ cart }: PaymentFormSectionProps) {
+export const PaymentFormSection = ({ cart }: PaymentFormSectionProps) => {
   const { regionId } = useSuspenseRegion()
   const [selectedProvider, setSelectedProvider] = useState<string>("")
 
@@ -24,7 +25,7 @@ export function PaymentFormSection({ cart }: PaymentFormSectionProps) {
     initiatePayment,
   } = useCheckoutPayment(cart.id, regionId, cart)
 
-  function handleProviderSelect(providerId: string) {
+  const handleProviderSelect = (providerId: string) => {
     if (selectedProvider !== providerId) {
       setSelectedProvider(providerId)
       initiatePayment(providerId)
@@ -56,7 +57,9 @@ export function PaymentFormSection({ cart }: PaymentFormSectionProps) {
                       disabled={isInitiatingPayment}
                       id={providerInputId}
                       name="payment-provider"
-                      onChange={() => handleProviderSelect(provider.id)}
+                      onChange={() => {
+                        handleProviderSelect(provider.id)
+                      }}
                     />
                     <span className="flex flex-1 flex-col">
                       <span className="font-medium text-fg-primary text-sm">

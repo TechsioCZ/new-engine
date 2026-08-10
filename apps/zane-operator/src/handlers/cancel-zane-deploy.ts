@@ -1,29 +1,32 @@
 import type { AppConfig } from "../config"
 import { BadRequestError } from "../db"
 import { jsonResponse, mapHandlerError } from "../http"
-import { parseCancelDeployInput } from "../zane-inputs"
 import { ZaneClient } from "../zane"
+import { parseCancelDeployInput } from "../zane-inputs"
 
 interface CancelZaneDeployDeps {
   config: AppConfig
 }
 
-export async function handleCancelZaneDeploy(
+export const handleCancelZaneDeploy = async (
   request: Request,
-  deps: CancelZaneDeployDeps
-): Promise<Response> {
+  deps: CancelZaneDeployDeps,
+): Promise<Response> => {
   try {
-    const rawBody = await request.json().catch(() => {
+    let rawBody: unknown
+    try {
+      rawBody = await request.json()
+    } catch {
       throw new BadRequestError("request body must be valid JSON")
-    })
+    }
 
     const client = new ZaneClient(deps.config)
     const payload = parseCancelDeployInput(rawBody)
     const result = await client.cancelDeployment({
-      projectSlug: payload.projectSlug,
-      environmentName: payload.environmentName,
-      serviceSlug: payload.serviceSlug,
       deploymentHash: payload.deploymentHash,
+      environmentName: payload.environmentName,
+      projectSlug: payload.projectSlug,
+      serviceSlug: payload.serviceSlug,
     })
 
     return jsonResponse(200, result)

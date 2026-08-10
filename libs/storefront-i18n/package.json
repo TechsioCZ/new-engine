@@ -1,12 +1,15 @@
 {
   "name": "@techsio/storefront-i18n",
   "version": "0.1.0",
-  "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/TechsioCZ/new-engine.git",
     "directory": "libs/storefront-i18n"
   },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
   "exports": {
     ".": null,
     "./package.json": "./package.json",
@@ -27,27 +30,20 @@
       "import": "./dist/next-intl/request.js"
     }
   },
-  "files": [
-    "dist"
-  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "rslib build --tsconfig tsconfig.build.json",
     "dev": "rslib build --watch --tsconfig tsconfig.build.json",
-    "lint": "pnpm -w exec biome lint libs/storefront-i18n/src libs/storefront-i18n/tests --diagnostic-level=error",
+    "lint": "pnpm -w exec oxlint libs/storefront-i18n/src libs/storefront-i18n/tests --type-aware",
     "test": "vitest run --config vitest.config.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
-  "nx": {
-    "tags": [
-      "type:lib",
-      "platform:web",
-      "framework:next"
-    ]
-  },
   "devDependencies": {
-    "@medusajs/js-sdk": "2.15.2",
+    "@medusajs/js-sdk": "^2.18.0",
     "@rslib/core": "^0.18.0",
-    "next-intl": "^4.0.0",
+    "next-intl": "^4.13.4",
     "typescript": "^5.9.3",
     "vitest": "^4.0.17"
   },
@@ -55,7 +51,11 @@
     "@medusajs/js-sdk": ">=2.12.5",
     "next-intl": ">=4.0.0"
   },
-  "publishConfig": {
-    "access": "public"
+  "nx": {
+    "tags": [
+      "type:lib",
+      "platform:web",
+      "framework:next"
+    ]
   }
 }

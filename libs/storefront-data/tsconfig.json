@@ -5,6 +5,7 @@
     "composite": false,
     "noEmit": true,
     "moduleResolution": "bundler",
+    "rootDir": ".",
     "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "lib": ["dom", "dom.iterable", "es2022"]

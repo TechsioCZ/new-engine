@@ -1,7 +1,18 @@
-import type { SearchAutocompleteResponse } from "@/lib/search-autocomplete/search-autocomplete-types"
-import type { SearchAutocompletePanelSection } from "./search-autocomplete-panel"
+import type { ComboboxItem } from "@techsio/ui-kit/molecules/combobox"
 
-type SearchAutocompleteSectionTitles = {
+import type {
+  SearchAutocompleteResponse,
+  SearchAutocompleteSuggestion,
+  SearchAutocompleteSuggestionType,
+} from "@/lib/search-autocomplete/search-autocomplete-types"
+
+export interface SearchAutocompletePanelSection {
+  key: SearchAutocompleteSuggestionType
+  title: string
+  items: SearchAutocompleteSuggestion[]
+}
+
+interface SearchAutocompleteSectionTitles {
   brands: string
   categories: string
   content: string
@@ -10,29 +21,18 @@ type SearchAutocompleteSectionTitles = {
 
 export const createSearchAutocompleteSections = (
   data: SearchAutocompleteResponse,
-  titles: SearchAutocompleteSectionTitles
+  titles: SearchAutocompleteSectionTitles,
 ): SearchAutocompletePanelSection[] => [
-  { key: "product", title: titles.products, items: data.products },
-  { key: "category", title: titles.categories, items: data.categories },
-  { key: "brand", title: titles.brands, items: data.brands },
-  { key: "content", title: titles.content, items: data.content },
+  { items: data.products, key: "product", title: titles.products },
+  { items: data.categories, key: "category", title: titles.categories },
+  { items: data.brands, key: "brand", title: titles.brands },
+  { items: data.content, key: "content", title: titles.content },
 ]
 
-export const clampSearchAutocompleteIndex = (
-  index: number,
-  itemCount: number
-) => {
-  if (itemCount === 0) {
-    return -1
-  }
-
-  if (index < 0) {
-    return itemCount - 1
-  }
-
-  if (index >= itemCount) {
-    return 0
-  }
-
-  return index
-}
+export const toSearchComboboxItem = (
+  item: SearchAutocompleteSuggestion,
+): ComboboxItem<SearchAutocompleteSuggestion> => ({
+  data: item,
+  label: item.title,
+  value: `${item.type}:${item.id}`,
+})

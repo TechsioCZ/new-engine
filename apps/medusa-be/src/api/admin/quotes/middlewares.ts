@@ -3,6 +3,7 @@ import {
   validateAndTransformQuery,
 } from "@medusajs/framework"
 import type { MiddlewareRoute } from "@medusajs/medusa"
+
 import {
   listQuotesTransformQueryConfig,
   retrieveQuoteTransformQueryConfig,
@@ -16,55 +17,55 @@ import {
 
 export const adminQuotesMiddlewares: MiddlewareRoute[] = [
   {
-    method: ["GET"],
     matcher: "/admin/quotes",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(
         AdminGetQuoteParams,
-        listQuotesTransformQueryConfig
+        listQuotesTransformQueryConfig,
       ),
     ],
   },
   {
-    method: ["GET"],
     matcher: "/admin/quotes/:id",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(
         AdminGetQuoteParams,
-        retrieveQuoteTransformQueryConfig
+        retrieveQuoteTransformQueryConfig,
       ),
     ],
   },
   {
-    method: ["POST"],
     matcher: "/admin/quotes/:id/send",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminSendQuote),
       validateAndTransformQuery(
         AdminGetQuoteParams,
-        retrieveQuoteTransformQueryConfig
+        retrieveQuoteTransformQueryConfig,
       ),
     ],
   },
   {
-    method: ["POST"],
     matcher: "/admin/quotes/:id/reject",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminRejectQuote),
       validateAndTransformQuery(
         AdminGetQuoteParams,
-        retrieveQuoteTransformQueryConfig
+        retrieveQuoteTransformQueryConfig,
       ),
     ],
   },
   {
-    method: ["POST"],
     matcher: "/admin/quotes/:id/messages",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(AdminCreateQuoteMessage),
       validateAndTransformQuery(
         AdminGetQuoteParams,
-        retrieveQuoteTransformQueryConfig
+        retrieveQuoteTransformQueryConfig,
       ),
     ],
   },

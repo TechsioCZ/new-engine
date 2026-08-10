@@ -7,15 +7,17 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { isRecord, getRecordValue } from "@techsio/std/object"
+
 import { createRequestForQuoteWorkflow } from "../../../workflows/quote/workflows/create-request-for-quote"
 import type { CreateQuoteType, GetQuoteParamsType } from "./validators"
 
-export const GET = async (
+const getRoute = async (
   req: AuthenticatedMedusaRequest<GetQuoteParamsType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve<RemoteQueryFunction>(
-    ContainerRegistrationKeys.QUERY
+    ContainerRegistrationKeys.QUERY,
   )
 
   const { fields, pagination } = req.queryConfig
@@ -33,19 +35,19 @@ export const GET = async (
   })
 
   res.json({
-    quotes,
     count: metadata?.count ?? 0,
-    offset: metadata?.skip ?? skip,
     limit: metadata?.take ?? pagination.take,
+    offset: metadata?.skip ?? skip,
+    quotes,
   })
 }
 
-export const POST = async (
+const postRoute = async (
   req: AuthenticatedMedusaRequest<CreateQuoteType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve<RemoteQueryFunction>(
-    ContainerRegistrationKeys.QUERY
+    ContainerRegistrationKeys.QUERY,
   )
 
   const {
@@ -60,20 +62,32 @@ export const POST = async (
   if (!createdQuote) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "Failed to create quote"
+      "Failed to create quote",
     )
   }
 
-  const {
-    data: [quote],
-  } = await query.graph(
+  const quoteGraphResult: unknown = await query.graph(
     {
       entity: "quote",
       fields: req.queryConfig.fields,
       filters: { id: createdQuote.id },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
+  const quoteData: unknown = isRecord(quoteGraphResult)
+    ? getRecordValue(quoteGraphResult, "data")
+    : undefined
+  if (!Array.isArray(quoteData)) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Quote query returned an invalid result",
+    )
+  }
+
+  const records: unknown[] = quoteData
+  const [quote] = records
   return res.json({ quote })
 }
+
+export { getRoute as GET, postRoute as POST }

@@ -2,15 +2,17 @@ import {
   ORDER_DASHBOARD_BUSINESS_STATUS_IDS,
   ORDER_DASHBOARD_CARRIER_KEYS,
   ORDER_DASHBOARD_TARGET_STATUSES,
-  type OrderDashboardBusinessStatusId,
-  type OrderDashboardCarrierKey,
-  type OrderDashboardOrder,
-  type OrderDashboardTargetStatus,
+} from "./types"
+import type {
+  OrderDashboardBusinessStatusId,
+  OrderDashboardCarrierKey,
+  OrderDashboardOrder,
+  OrderDashboardTargetStatus,
 } from "./types"
 
 type TranslationFunction = (
   key: string,
-  options?: Record<string, unknown>
+  values?: Record<string, string>,
 ) => string
 
 // Local copy for dashboard pre-checks; the backend mutation remains final.
@@ -27,16 +29,101 @@ const ORDER_DASHBOARD_ALLOWED_STATUS_TRANSITIONS = {
 >
 const PAYMENT_PROVIDER_PREFIX_PATTERN = /^pp_/u
 const PAYMENT_PROVIDER_TOKEN_SEPARATOR_PATTERN = /[_-]+/u
+const ORDER_DASHBOARD_CARRIER_KEY_SET = new Set<string>(
+  ORDER_DASHBOARD_CARRIER_KEYS,
+)
+const ORDER_DASHBOARD_BUSINESS_STATUS_ID_SET = new Set<string>(
+  ORDER_DASHBOARD_BUSINESS_STATUS_IDS,
+)
+const ORDER_DASHBOARD_TARGET_STATUS_SET = new Set<string>(
+  ORDER_DASHBOARD_TARGET_STATUSES,
+)
 
-export function formatLocaleCode(language?: string) {
-  return language ? language.replace("_", "-") : undefined
+export const isOrderDashboardCarrierKey = (
+  value: unknown,
+): value is OrderDashboardCarrierKey =>
+  typeof value === "string" && ORDER_DASHBOARD_CARRIER_KEY_SET.has(value)
+
+export const isOrderDashboardBusinessStatusId = (
+  value: unknown,
+): value is OrderDashboardBusinessStatusId =>
+  typeof value === "string" && ORDER_DASHBOARD_BUSINESS_STATUS_ID_SET.has(value)
+
+export const isOrderDashboardTargetStatus = (
+  value: unknown,
+): value is OrderDashboardTargetStatus =>
+  typeof value === "string" && ORDER_DASHBOARD_TARGET_STATUS_SET.has(value)
+
+const formatPaymentProviderToken = (token: string) => {
+  switch (token.toLowerCase()) {
+    case "qr": {
+      return "QR"
+    }
+    case "gopay": {
+      return "GoPay"
+    }
+    case "paypal": {
+      return "PayPal"
+    }
+    case "skippay": {
+      return "SkipPay"
+    }
+    default: {
+      return `${token.charAt(0).toUpperCase()}${token.slice(1)}`
+    }
+  }
 }
 
-export function formatOrderDate(
+const formatPaymentProviderId = (providerId: string): string | undefined => {
+  const tokens = providerId
+    .replace(PAYMENT_PROVIDER_PREFIX_PATTERN, "")
+    .split(PAYMENT_PROVIDER_TOKEN_SEPARATOR_PATTERN)
+    .filter((token) => token.length > 0)
+
+  if (tokens.length === 0) {
+    return undefined
+  }
+
+  const meaningfulTokens = tokens[0] === "paykit" ? tokens.slice(1) : tokens
+  const lastToken = meaningfulTokens.at(-1)
+  const labelTokens =
+    meaningfulTokens[0] !== "system" &&
+    meaningfulTokens.length > 1 &&
+    lastToken === "default"
+      ? meaningfulTokens.slice(0, -1)
+      : meaningfulTokens
+
+  return labelTokens.map(formatPaymentProviderToken).join(" ")
+}
+
+const isOrderDashboardTransitionSourceStatus = (
+  value: string,
+): value is keyof typeof ORDER_DASHBOARD_ALLOWED_STATUS_TRANSITIONS =>
+  value in ORDER_DASHBOARD_ALLOWED_STATUS_TRANSITIONS
+
+const formatTransitionStatusLabel = (status: string, t: TranslationFunction) =>
+  isOrderDashboardTargetStatus(status)
+    ? t(`targetStatus.${status}`)
+    : status.replaceAll("_", " ")
+
+const formatTransitionStatusSubject = (
+  status: string,
+  t: TranslationFunction,
+) => {
+  const formatted = formatTransitionStatusLabel(status, t)
+  return `${formatted.charAt(0).toUpperCase()}${formatted.slice(1)}`
+}
+
+export const formatLocaleCode = (language?: string) =>
+  language === undefined || language.length === 0
+    ? undefined
+    : language.replace("_", "-")
+
+export const formatOrderDate = (
   date: string | null | undefined,
-  locale?: string
-) {
-  if (!date) {
+  locale?: string,
+) => {
+  if (date === null || date === undefined || date.length === 0) {
     return "-"
   }
 
@@ -57,7 +144,10 @@ export function formatOrderDate(
   }
 }
 
-export function formatOrderTotal(order: OrderDashboardOrder, locale?: string) {
+export const formatOrderTotal = (
+  order: OrderDashboardOrder,
+  locale?: string,
+) => {
   if (order.total === null || order.total === undefined) {
     return "-"
   }
@@ -65,7 +155,12 @@ export function formatOrderTotal(order: OrderDashboardOrder, locale?: string) {
   const total =
     typeof order.total === "string" ? Number(order.total) : order.total
 
-  if (!(order.currency_code && Number.isFinite(total))) {
+  if (
+    order.currency_code === null ||
+    order.currency_code === undefined ||
+    order.currency_code.length === 0 ||
+    !Number.isFinite(total)
+  ) {
     return String(order.total)
   }
 
@@ -79,26 +174,29 @@ export function formatOrderTotal(order: OrderDashboardOrder, locale?: string) {
   }
 }
 
-export function getCarrierLabel(order: OrderDashboardOrder) {
-  return order.carrier.shipping_method_name ?? order.carrier.label
-}
+export const getCarrierLabel = (order: OrderDashboardOrder) =>
+  order.carrier.shipping_method_name ?? order.carrier.label
 
-export function formatPaymentMethodLabel(value: string | null | undefined) {
-  if (!value) {
+export const formatPaymentMethodLabel = (value: string | null | undefined) => {
+  if (value === null || value === undefined || value.length === 0) {
     return "-"
   }
 
   return formatPaymentProviderId(value) ?? value
 }
 
-export function getOrderDashboardTransitionBlockReason(
+export const getOrderDashboardTransitionBlockReason = (
   order: Pick<OrderDashboardOrder, "has_active_fulfillment" | "status">,
   targetStatus: OrderDashboardTargetStatus,
-  t: TranslationFunction
-) {
+  t: TranslationFunction,
+): string | undefined => {
   const currentStatus = order.status
 
-  if (!currentStatus) {
+  if (
+    currentStatus === null ||
+    currentStatus === undefined ||
+    currentStatus.length === 0
+  ) {
     return t("targetStatusBlocker.unknownStatus")
   }
 
@@ -144,90 +242,5 @@ export function getOrderDashboardTransitionBlockReason(
     })
   }
 
-  return
-}
-
-export function isOrderDashboardCarrierKey(
-  value: unknown
-): value is OrderDashboardCarrierKey {
-  return (
-    typeof value === "string" &&
-    ORDER_DASHBOARD_CARRIER_KEYS.includes(value as OrderDashboardCarrierKey)
-  )
-}
-
-export function isOrderDashboardBusinessStatusId(
-  value: unknown
-): value is OrderDashboardBusinessStatusId {
-  return (
-    typeof value === "string" &&
-    ORDER_DASHBOARD_BUSINESS_STATUS_IDS.includes(
-      value as OrderDashboardBusinessStatusId
-    )
-  )
-}
-
-export function isOrderDashboardTargetStatus(
-  value: unknown
-): value is OrderDashboardTargetStatus {
-  return (
-    typeof value === "string" &&
-    ORDER_DASHBOARD_TARGET_STATUSES.includes(
-      value as OrderDashboardTargetStatus
-    )
-  )
-}
-
-function formatPaymentProviderId(providerId: string) {
-  const tokens = providerId
-    .replace(PAYMENT_PROVIDER_PREFIX_PATTERN, "")
-    .split(PAYMENT_PROVIDER_TOKEN_SEPARATOR_PATTERN)
-    .filter(Boolean)
-
-  if (!tokens.length) {
-    return
-  }
-
-  const meaningfulTokens = tokens[0] === "paykit" ? tokens.slice(1) : tokens
-  const lastToken = meaningfulTokens.at(-1)
-  const labelTokens =
-    meaningfulTokens[0] !== "system" &&
-    meaningfulTokens.length > 1 &&
-    lastToken === "default"
-      ? meaningfulTokens.slice(0, -1)
-      : meaningfulTokens
-
-  return labelTokens.map(formatPaymentProviderToken).join(" ")
-}
-
-function formatPaymentProviderToken(token: string) {
-  switch (token.toLowerCase()) {
-    case "qr":
-      return "QR"
-    case "gopay":
-      return "GoPay"
-    case "paypal":
-      return "PayPal"
-    case "skippay":
-      return "SkipPay"
-    default:
-      return `${token.charAt(0).toUpperCase()}${token.slice(1)}`
-  }
-}
-
-function isOrderDashboardTransitionSourceStatus(
-  value: string
-): value is keyof typeof ORDER_DASHBOARD_ALLOWED_STATUS_TRANSITIONS {
-  return value in ORDER_DASHBOARD_ALLOWED_STATUS_TRANSITIONS
-}
-
-function formatTransitionStatusLabel(status: string, t: TranslationFunction) {
-  return isOrderDashboardTargetStatus(status)
-    ? t(`targetStatus.${status}`)
-    : status.replace(/_/g, " ")
-}
-
-function formatTransitionStatusSubject(status: string, t: TranslationFunction) {
-  const formatted = formatTransitionStatusLabel(status, t)
-  return `${formatted.charAt(0).toUpperCase()}${formatted.slice(1)}`
+  return undefined
 }

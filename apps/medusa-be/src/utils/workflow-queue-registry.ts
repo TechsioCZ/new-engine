@@ -1,9 +1,9 @@
 import type { MedusaContainer } from "@medusajs/framework"
 import { MedusaError } from "@medusajs/framework/utils"
-import {
-  type SendProductReviewRequestWorkflowInput,
-  sendProductReviewRequestWorkflow,
-} from "../workflows/send-product-review-request"
+import { z } from "@medusajs/framework/zod"
+
+import { sendProductReviewRequestWorkflow } from "../workflows/send-product-review-request"
+import type { SendProductReviewRequestWorkflowInput } from "../workflows/send-product-review-request"
 
 export const workflowQueueNames = {
   SEND_PRODUCT_REVIEW_REQUEST: "send-product-review-request",
@@ -11,33 +11,32 @@ export const workflowQueueNames = {
 
 type WorkflowQueueRunner = (
   container: MedusaContainer,
-  input: Record<string, unknown>
+  input: unknown,
 ) => Promise<unknown>
 
-function isSendProductReviewRequestWorkflowInput(
-  input: Record<string, unknown>
-): input is SendProductReviewRequestWorkflowInput {
-  return typeof input.order_id === "string"
-}
+const SendProductReviewRequestWorkflowInputSchema = z.object({
+  order_id: z.string(),
+})
 
 const workflowQueueRegistry: Record<string, WorkflowQueueRunner> = {
   [workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST]: async (
     container,
-    input
+    input,
   ) => {
-    if (!isSendProductReviewRequestWorkflowInput(input)) {
+    const parsed = SendProductReviewRequestWorkflowInputSchema.safeParse(input)
+    if (!parsed.success) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Invalid arguments for ${workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST}`
+        `Invalid arguments for ${workflowQueueNames.SEND_PRODUCT_REVIEW_REQUEST}`,
       )
     }
 
-    return sendProductReviewRequestWorkflow(container).run({
-      input,
+    const workflowInput: SendProductReviewRequestWorkflowInput = parsed.data
+    return await sendProductReviewRequestWorkflow(container).run({
+      input: workflowInput,
     })
   },
 }
 
-export function getQueuedWorkflowRunner(workflow: string) {
-  return workflowQueueRegistry[workflow]
-}
+export const getQueuedWorkflowRunner = (workflow: string) =>
+  workflowQueueRegistry[workflow]

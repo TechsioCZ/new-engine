@@ -1,0 +1,226 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "includeEntryExports": true,
+  "workspaces": {
+    ".": {
+      "entry": [
+        "*.config.{js,mjs,ts,mts,cts}!",
+        "scripts/**/*.{js,cjs,mjs,ts,mts,cts}",
+        "libs/storefront-security/index.mjs",
+        "libs/storefront-security/**/*.test.mjs"
+      ],
+      "project": [
+        "*.config.{js,mjs,ts,mts,cts}!",
+        "scripts/**/*.{js,cjs,mjs,ts,mts,cts}",
+        "libs/storefront-security/**/*.mjs"
+      ],
+      "nx": true,
+      "oxfmt": true,
+      "oxlint": true,
+      "pnpm": true,
+      "typescript": true,
+      "ignoreBinaries": ["^build$", "^semantic-release$", "^test-storybook$"],
+      "ignoreDependencies": [
+        "^@medusajs/deps$",
+        "^@medusajs/(framework|js-sdk|medusa)$",
+        "^@nx/playwright$",
+        "^@opentelemetry/core$",
+        "^@rslib/core$",
+        "^@typescript-eslint/(parser|typescript-estree)$",
+        "^client-only$",
+        "^eslint-plugin-github$",
+        "^eslint-plugin-react-hooks$",
+        "^eslint-plugin-sonarjs$",
+        "^oxlint-plugin-react-doctor$",
+        "^server-only$",
+        "^yaml$"
+      ]
+    },
+    "apps/frontend-demo": {
+      "entry": ["scripts/**/*.{js,mjs,ts}"],
+      "next": true,
+      "ignoreDependencies": [
+        "^@iconify/(json|tailwind4)$",
+        "^tailwindcss-animate$"
+      ],
+      "includeEntryExports": false
+    },
+    "apps/herbatika": {
+      "entry": ["scripts/**/*.{js,mjs,ts}"],
+      "next": true,
+      "ignoreDependencies": ["^@iconify/tailwind4$"],
+      "includeEntryExports": false
+    },
+    "apps/n1": {
+      "entry": ["scripts/**/*.{js,mjs,ts}"],
+      "next": true,
+      "ignoreDependencies": ["^@iconify/tailwind4$"],
+      "includeEntryExports": false
+    },
+    "apps/payload": {
+      "entry": [
+        "src/payload.config.ts!",
+        "src/scripts/**/*.{js,mjs,ts}!",
+        "src/seed.ts"
+      ],
+      "project": ["src/**/*.{js,jsx,ts,tsx}!", "*.config.{js,mjs,ts,mts}"],
+      "next": true,
+      "payload": false,
+      "playwright": true,
+      "vitest": true,
+      "ignoreDependencies": ["^@payloadcms/ui$"],
+      "includeEntryExports": false
+    },
+    "apps/medusa-be": {
+      "entry": [
+        "src/api/**/*.{ts,tsx}!",
+        "src/modules/**/*.{ts,tsx}!",
+        "src/workflows/**/*.{ts,tsx}!",
+        "src/jobs/**/*.{ts,tsx}!",
+        "src/subscribers/**/*.{ts,tsx}!",
+        "src/links/**/*.{ts,tsx}!",
+        "src/admin/**/*.{ts,tsx}!",
+        "src/scripts/**/*.{ts,tsx}!",
+        "src/migration-scripts/**/*.{ts,tsx}!",
+        "tests/**/*.{ts,tsx}",
+        "integration-tests/**/*.{js,ts}",
+        "scripts/**/*.{js,mjs,ts}",
+        "instrumentation.ts!",
+        "medusa-config.ts!",
+        "src/config/project.ts!",
+        "playwright-admin.config.ts!"
+      ],
+      "project": [
+        "src/**/*.{ts,tsx}",
+        "tests/**/*.{ts,tsx}",
+        "integration-tests/**/*.{js,ts}",
+        "scripts/**/*.{js,mjs,ts}",
+        "*.config.{js,mjs,ts}"
+      ],
+      "playwright": true,
+      "vitest": true,
+      "ignoreDependencies": [
+        "^@hookform/resolvers$",
+        "^@medusajs/(admin-shared|caching-redis|dashboard|draft-order|event-bus-redis|index|modules-sdk)$",
+        "^@opentelemetry/(context-async-hooks|semantic-conventions)$",
+        "^lodash$",
+        "^medusa-(order-dashboard-plugin|symmy-plugin)$",
+        "^medusa-plugin-content$",
+        "^tslib$"
+      ],
+      "includeEntryExports": false,
+      "ignoreUnresolved": ["^/usr/bin/mount$", "^/usr/bin/umount$"]
+    },
+    "apps/medusa-order-dashboard-plugin": {
+      "entry": ["src/admin/**/*.{ts,tsx}!"],
+      "project": ["src/**/*.{ts,tsx}", "*.config.{js,mjs,ts}"],
+      "ignoreDependencies": [
+        "^@medusajs/(admin-shared|framework|medusa|test-utils)$",
+        "^express$",
+        "^mysql2$",
+        "^ts-node$"
+      ],
+      "includeEntryExports": false
+    },
+    "apps/medusa-symmy-plugin": {
+      "entry": [
+        "src/admin/**/*.{ts,tsx}!",
+        "src/api/**/*.{ts,tsx}!",
+        "src/modules/**/*.{ts,tsx}!",
+        "src/workflows/**/*.{ts,tsx}!"
+      ],
+      "project": ["src/**/*.{ts,tsx}", "*.config.{js,mjs,ts}"],
+      "ignoreDependencies": [
+        "^@medusajs/(admin-shared|framework|medusa|test-utils)$",
+        "^express$",
+        "^mysql2$",
+        "^ts-node$"
+      ],
+      "includeEntryExports": false
+    },
+    "apps/new-engine-ctl": {
+      "entry": ["scripts/**/*.{js,mjs,ts}", "src/**/*.test.ts"],
+      "project": ["src/**/*.ts!", "scripts/**/*.{js,mjs,ts}"],
+      "vitest": true
+    },
+    "apps/zane-operator": {
+      "entry": ["src/**/*.test.ts"],
+      "project": ["src/**/*.ts!"],
+      "vitest": true
+    },
+    "libs/analytics": {
+      "entry": [],
+      "project": ["src/**/*.{ts,tsx}"],
+      "rslib": true,
+      "includeEntryExports": false
+    },
+    "libs/std": {
+      "entry": [],
+      "project": ["src/**/*.ts"],
+      "rslib": true,
+      "vitest": true,
+      "includeEntryExports": false
+    },
+    "libs/storefront-data": {
+      "entry": ["src/**/*.ts!", "tests/**/*.ts"],
+      "project": ["src/**/*.ts", "tests/**/*.ts", "*.config.ts"],
+      "rslib": true,
+      "vitest": true,
+      "ignoreDependencies": ["^@tanstack/intent$"],
+      "includeEntryExports": false
+    },
+    "libs/ui": {
+      "entry": [
+        "src/**/*.{ts,tsx}!",
+        "stories/**/*.stories.{ts,tsx}",
+        ".storybook/**/*.{ts,tsx}",
+        "scripts/**/*.{js,mjs,ts}",
+        "figma.config.json",
+        "release.config.mjs"
+      ],
+      "project": [
+        "src/**/*.{ts,tsx}",
+        "stories/**/*.{ts,tsx}",
+        ".storybook/**/*.{ts,tsx}",
+        "test/**/*.{ts,tsx}",
+        "scripts/**/*.{js,mjs,ts}",
+        "*.config.{js,mjs,ts}",
+        "src/**/*.css"
+      ],
+      "playwright": true,
+      "rslib": true,
+      "semantic-release": true,
+      "storybook": true,
+      "vitest": true,
+      "ignoreDependencies": [
+        "^@eslint/js$",
+        "^@iconify-json/(mdi|mdi-light|svg-spinners)$",
+        "^@zag-js/i18n-utils$",
+        "^@iconify/json$",
+        "^@semantic-release/(changelog|commit-analyzer|git|github|npm|release-notes-generator)$",
+        "^@storybook/addon-a11y$",
+        "^next$",
+        "^vitest-axe$"
+      ],
+      "includeEntryExports": false
+    }
+  },
+  "rules": {
+    "files": "error",
+    "dependencies": "error",
+    "devDependencies": "error",
+    "optionalPeerDependencies": "error",
+    "unlisted": "error",
+    "binaries": "error",
+    "unresolved": "error",
+    "exports": "error",
+    "nsExports": "error",
+    "types": "error",
+    "nsTypes": "error",
+    "duplicates": "error",
+    "enumMembers": "error",
+    "namespaceMembers": "error",
+    "catalog": "error",
+    "cycles": "error"
+  }
+}

@@ -1,17 +1,16 @@
 import type { Context } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { STOREFRONT_TEXT_MODULE } from "../../../modules/storefront-text"
 import { validateStorefrontTextOverride } from "../../../modules/storefront-text/message-validation"
 import type { StorefrontTextRecord } from "../../../modules/storefront-text/models/storefront-text"
-import {
-  getStorefrontTextSeedRows,
-  type StorefrontTextSeedRow,
-} from "../../../modules/storefront-text/registry"
+import { getStorefrontTextSeedRows } from "../../../modules/storefront-text/registry"
+import type { StorefrontTextSeedRow } from "../../../modules/storefront-text/registry"
 import type StorefrontTextModuleService from "../../../modules/storefront-text/service"
 import type { SyncStorefrontTextsWorkflowInput } from "../types"
 
-export type StorefrontTextSyncCompensation = {
+export interface StorefrontTextSyncCompensation {
   createdIds: string[]
   previousRecords: StorefrontTextRestoreRecord[]
 }
@@ -27,10 +26,18 @@ type StorefrontTextRestoreRecord = Pick<
   | "override_value"
 >
 
-type StorefrontTextSyncResult = {
+interface StorefrontTextSyncResult {
   created_count: number
   updated_count: number
 }
+
+export type SynchronizeStorefrontTextsService = Pick<
+  StorefrontTextModuleService,
+  | "createStorefrontTexts"
+  | "deleteStorefrontTexts"
+  | "listStorefrontTexts"
+  | "updateStorefrontTexts"
+>
 
 const getRecordIdentity = ({
   key,
@@ -41,7 +48,7 @@ const getRecordIdentity = ({
 
 const validateSeedRow = (
   seedRow: StorefrontTextSeedRow,
-  existing?: StorefrontTextRecord
+  existing?: StorefrontTextRecord,
 ) => {
   const defaultValidation = validateStorefrontTextOverride({
     defaultValue: seedRow.default_value,
@@ -52,7 +59,7 @@ const validateSeedRow = (
   if (!defaultValidation.success) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `${seedRow.key} (${seedRow.market}/${seedRow.locale}): ${defaultValidation.message}`
+      `${seedRow.key} (${seedRow.market}/${seedRow.locale}): ${defaultValidation.message}`,
     )
   }
 
@@ -73,7 +80,7 @@ const validateSeedRow = (
         overrideValidation.code === "invalid_default"
           ? MedusaError.Types.UNEXPECTED_STATE
           : MedusaError.Types.CONFLICT,
-        `${seedRow.key} (${seedRow.market}/${seedRow.locale}): ${overrideValidation.message}`
+        `${seedRow.key} (${seedRow.market}/${seedRow.locale}): ${overrideValidation.message}`,
       )
     }
   }
@@ -81,10 +88,24 @@ const validateSeedRow = (
   return normalizedOverrideValue
 }
 
+const needsStorefrontTextUpdate = (
+  existing: StorefrontTextRecord,
+  seedRow: StorefrontTextSeedRow,
+  normalizedOverrideValue: null | string,
+): boolean =>
+  [
+    existing.country !== seedRow.country,
+    existing.default_value !== seedRow.default_value,
+    existing.description !== seedRow.description,
+    existing.domain !== seedRow.domain,
+    existing.namespace !== seedRow.namespace,
+    existing.override_value !== normalizedOverrideValue,
+  ].some(Boolean)
+
 export const synchronizeStorefrontTexts = async (
-  service: StorefrontTextModuleService,
+  service: SynchronizeStorefrontTextsService,
   input: SyncStorefrontTextsWorkflowInput,
-  sharedContext: Context
+  sharedContext: Context,
 ): Promise<{
   compensation: StorefrontTextSyncCompensation
   result: StorefrontTextSyncResult
@@ -93,56 +114,45 @@ export const synchronizeStorefrontTexts = async (
   const existingRecords = await service.listStorefrontTexts(
     input.market ? { market: input.market } : {},
     {},
-    sharedContext
+    sharedContext,
   )
   const existingByIdentity = new Map(
-    existingRecords.map((record) => [getRecordIdentity(record), record])
+    existingRecords.map((record) => [getRecordIdentity(record), record]),
   )
   const createInputs: StorefrontTextSeedRow[] = []
-  const updateInputs: Array<
-    StorefrontTextRestoreRecord & { override_value: null | string }
-  > = []
+  const updateInputs: (StorefrontTextRestoreRecord & {
+    override_value: null | string
+  })[] = []
   const previousRecords: StorefrontTextRestoreRecord[] = []
 
   for (const seedRow of seedRows) {
     const existing = existingByIdentity.get(getRecordIdentity(seedRow))
     const normalizedOverrideValue = validateSeedRow(seedRow, existing)
 
-    if (!existing) {
+    if (existing === undefined) {
       createInputs.push(seedRow)
-      continue
+    } else if (
+      needsStorefrontTextUpdate(existing, seedRow, normalizedOverrideValue)
+    ) {
+      previousRecords.push({
+        country: existing.country,
+        default_value: existing.default_value,
+        description: existing.description,
+        domain: existing.domain,
+        id: existing.id,
+        namespace: existing.namespace,
+        override_value: existing.override_value,
+      })
+      updateInputs.push({
+        country: seedRow.country,
+        default_value: seedRow.default_value,
+        description: seedRow.description,
+        domain: seedRow.domain,
+        id: existing.id,
+        namespace: seedRow.namespace,
+        override_value: normalizedOverrideValue,
+      })
     }
-
-    const needsUpdate =
-      existing.country !== seedRow.country ||
-      existing.default_value !== seedRow.default_value ||
-      existing.description !== seedRow.description ||
-      existing.domain !== seedRow.domain ||
-      existing.namespace !== seedRow.namespace ||
-      existing.override_value !== normalizedOverrideValue
-
-    if (!needsUpdate) {
-      continue
-    }
-
-    previousRecords.push({
-      country: existing.country,
-      default_value: existing.default_value,
-      description: existing.description,
-      domain: existing.domain,
-      id: existing.id,
-      namespace: existing.namespace,
-      override_value: existing.override_value,
-    })
-    updateInputs.push({
-      country: seedRow.country,
-      default_value: seedRow.default_value,
-      description: seedRow.description,
-      domain: seedRow.domain,
-      id: existing.id,
-      namespace: seedRow.namespace,
-      override_value: normalizedOverrideValue,
-    })
   }
 
   const createdRecords = createInputs.length
@@ -165,9 +175,9 @@ export const synchronizeStorefrontTexts = async (
 }
 
 export const restoreSynchronizedStorefrontTexts = async (
-  service: StorefrontTextModuleService,
+  service: SynchronizeStorefrontTextsService,
   { createdIds, previousRecords }: StorefrontTextSyncCompensation,
-  sharedContext: Context
+  sharedContext: Context,
 ) => {
   if (previousRecords.length) {
     await service.updateStorefrontTexts(previousRecords, sharedContext)
@@ -182,11 +192,11 @@ export const syncStorefrontTextsStep = createStep(
   "sync-storefront-texts",
   async (input: SyncStorefrontTextsWorkflowInput, { container }) => {
     const service = container.resolve<StorefrontTextModuleService>(
-      STOREFRONT_TEXT_MODULE
+      STOREFRONT_TEXT_MODULE,
     )
     const { compensation, result } = await service.runInTransaction(
-      (sharedContext) =>
-        synchronizeStorefrontTexts(service, input, sharedContext)
+      async (sharedContext) =>
+        await synchronizeStorefrontTexts(service, input, sharedContext),
     )
 
     return new StepResponse(result, compensation)
@@ -197,11 +207,15 @@ export const syncStorefrontTextsStep = createStep(
     }
 
     const service = container.resolve<StorefrontTextModuleService>(
-      STOREFRONT_TEXT_MODULE
+      STOREFRONT_TEXT_MODULE,
     )
 
-    await service.runInTransaction((sharedContext) =>
-      restoreSynchronizedStorefrontTexts(service, compensation, sharedContext)
-    )
-  }
+    await service.runInTransaction(async (sharedContext) => {
+      await restoreSynchronizedStorefrontTexts(
+        service,
+        compensation,
+        sharedContext,
+      )
+    })
+  },
 )

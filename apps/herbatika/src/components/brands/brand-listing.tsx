@@ -1,34 +1,49 @@
 "use client"
 
 import { useTranslations } from "next-intl"
+
 import { CatalogListingShell } from "@/components/catalog-listing-shell"
 import { CategoryFacetsPanel } from "@/components/category/category-facets-panel"
 import { CategoryResultsSection } from "@/components/category/category-results-section"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
+
 import { useBrandListingController } from "./use-brand-listing-controller"
 
-type BrandListingProps = {
+interface BrandListingProps {
   brandFacetId: string
   brandTitle: string
 }
 
-export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
+export const BrandListing = ({
+  brandFacetId,
+  brandTitle,
+}: BrandListingProps) => {
   const t = useTranslations("catalog")
   const tNavigation = useTranslations("navigation")
   const controller = useBrandListingController({ brandFacetId })
+  const handleAddToCart = controller.onAddToCart
+  const handleBrandToggle = controller.onBrandToggle
+  const handleFormToggle = controller.onFormToggle
+  const handleIngredientToggle = controller.onIngredientToggle
+  const handlePriceRangeCommit = controller.onPriceRangeCommit
+  const handleProductHoverEnd = controller.onProductHoverEnd
+  const handleProductHoverStart = controller.onProductHoverStart
+  const handleResetFilters = controller.onResetFilters
+  const handleSortChange = controller.onSortChange
+  const handleStatusToggle = controller.onStatusToggle
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-brand-listing-page-gap p-brand-listing-page font-rubik 2xl:p-brand-listing-page-lg">
       <HerbatikaBreadcrumb
         items={[
           {
-            label: tNavigation("breadcrumbs.home"),
             href: "/",
             icon: "token-icon-home",
+            label: tNavigation("breadcrumbs.home"),
           },
-          { label: t("brands.label"), href: "/znacka" },
+          { href: "/znacka", label: t("brands.label") },
           { label: brandTitle },
         ]}
       />
@@ -48,12 +63,12 @@ export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
             formItems={controller.asideFormItems}
             ingredientItems={controller.asideIngredientItems}
             isLoading={controller.isFiltersLoading}
-            onBrandToggle={controller.onBrandToggle}
-            onFormToggle={controller.onFormToggle}
-            onIngredientToggle={controller.onIngredientToggle}
-            onPriceRangeCommit={controller.onPriceRangeCommit}
-            onReset={controller.onResetFilters}
-            onStatusToggle={controller.onStatusToggle}
+            onBrandToggle={handleBrandToggle}
+            onFormToggle={handleFormToggle}
+            onIngredientToggle={handleIngredientToggle}
+            onPriceRangeCommit={handlePriceRangeCommit}
+            onReset={handleResetFilters}
+            onStatusToggle={handleStatusToggle}
             priceBounds={controller.priceBounds}
             selectedPriceRange={controller.selectedPriceRange}
             showBrandFilter={false}
@@ -71,10 +86,10 @@ export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
             isProductAdding={controller.isProductAdding}
             isRefreshing={controller.isResultsRefreshing}
             layout="catalog"
-            onAddToCart={controller.onAddToCart}
-            onProductHoverEnd={controller.onProductHoverEnd}
-            onProductHoverStart={controller.onProductHoverStart}
-            onSortChange={controller.onSortChange}
+            onAddToCart={handleAddToCart}
+            onProductHoverEnd={handleProductHoverEnd}
+            onProductHoverStart={handleProductHoverStart}
+            onSortChange={handleSortChange}
             page={controller.page}
             pageSize={PLP_PAGE_SIZE}
             products={controller.products}

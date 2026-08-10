@@ -1,11 +1,9 @@
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import {
-  CustomerBatchClient,
-  type CustomerGroupIndex,
-  type ExistingCustomerIndex,
-} from "../client"
+
+import { CustomerBatchClient } from "../client"
+import type { CustomerGroupIndex, ExistingCustomerIndex } from "../client"
 import type {
   CustomerInput,
   UpsertCustomersBatchInput,
@@ -18,11 +16,11 @@ const toErrorMessage = (error: unknown) =>
 
 const buildFailedResult = (
   customer: CustomerInput,
-  error: string
+  error: string,
 ): UpsertCustomersBatchResult => ({
   email: customer.email,
-  status: "failed",
   error,
+  status: "failed",
 })
 
 const processCustomerForBatch = async ({
@@ -41,7 +39,7 @@ const processCustomerForBatch = async ({
   try {
     const existing = client.findExistingCustomer(
       customer,
-      existingCustomerIndex
+      existingCustomerIndex,
     )
     if (!existing) {
       const created = await client.createCustomer(customer)
@@ -50,13 +48,13 @@ const processCustomerForBatch = async ({
         created.id,
         null,
         customer.customer_group_codes,
-        customerGroupIndex
+        customerGroupIndex,
       )
       client.cacheCustomer(existingCustomerIndex, customer, created.id)
       return {
+        customer_id: created.id,
         email: customer.email,
         status: "created",
-        customer_id: created.id,
       }
     }
 
@@ -66,17 +64,17 @@ const processCustomerForBatch = async ({
       existing.id,
       existing,
       customer.customer_group_codes,
-      customerGroupIndex
+      customerGroupIndex,
     )
     return {
+      customer_id: existing.id,
       email: customer.email ?? existing.email ?? undefined,
       status: "updated",
-      customer_id: existing.id,
     }
   } catch (error) {
     const message = toErrorMessage(error)
     logger.warn(
-      `[symmy-plugin] Failed to upsert customer (${customer.identifier_type}): ${message}`
+      `[symmy-plugin] Failed to upsert customer (${customer.identifier_type}): ${message}`,
     )
     return buildFailedResult(customer, message)
   }
@@ -92,28 +90,34 @@ export const symmyProcessCustomersBatchStep = createStep(
       client.preloadGroups(input.customers),
     ])
 
-    const results: UpsertCustomersBatchResult[] = []
-    for (const customer of input.customers) {
+    const results: UpsertCustomersBatchOutput["results"] = []
+    const processAt = async (index: number): Promise<void> => {
+      const customer = input.customers[index]
+      if (customer === undefined) {
+        return
+      }
       results.push(
         await processCustomerForBatch({
           client,
           customer,
-          existingCustomerIndex,
           customerGroupIndex,
+          existingCustomerIndex,
           logger,
-        })
+        }),
       )
+      await processAt(index + 1)
     }
+    await processAt(0)
 
     const processed = results.filter((r) => r.status !== "failed").length
     const failed = results.length - processed
 
     const output: UpsertCustomersBatchOutput = {
-      success: failed === 0,
-      processed,
       failed,
+      processed,
       results,
+      success: failed === 0,
     }
     return new StepResponse(output)
-  }
+  },
 )

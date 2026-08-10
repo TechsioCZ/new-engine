@@ -1,12 +1,7 @@
-import type { HttpTypes } from "@medusajs/types"
 import { useTranslations } from "next-intl"
-import type { ReactNode } from "react"
-import type { CheckoutStepSlug } from "@/components/checkout/checkout.constants"
-import {
-  formatProviderLabel,
-  resolvePaymentDisplayTextKeys,
-} from "@/components/checkout/checkout-display.utils"
+
 import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils"
+import type { CheckoutStepSlug } from "@/components/checkout/checkout.constants"
 import { CheckoutCartSidebarSection } from "@/components/checkout/sections/checkout-cart-sidebar-section"
 import { CheckoutCartStepSection } from "@/components/checkout/sections/checkout-cart-step-section"
 import { CheckoutCompleteSection } from "@/components/checkout/sections/checkout-complete-section"
@@ -14,48 +9,34 @@ import { CheckoutDetailsStepSection } from "@/components/checkout/sections/check
 import { CheckoutOrderSummarySection } from "@/components/checkout/sections/checkout-order-summary-section"
 import { CheckoutShippingPaymentStepSection } from "@/components/checkout/sections/checkout-shipping-payment-step-section"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
-import { CheckoutInlineProductsSection } from "./sections/checkout-inline-products-section"
 
-type CheckoutStepContentProps = {
+import { resolveSelectedPaymentLabel } from "./checkout-payment-label"
+import { CheckoutStepLayout } from "./checkout-step-layout"
+
+interface CheckoutStepContentProps {
   activeStep: CheckoutStepSlug
   controller: CheckoutController
 }
 
-export function CheckoutStepContent({
+export const CheckoutStepContent = ({
   activeStep,
   controller,
-}: CheckoutStepContentProps) {
+}: CheckoutStepContentProps) => {
   const tCart = useTranslations("cart")
   const tCheckout = useTranslations("checkout")
   const cartStepHref = resolveCheckoutStepHref("kosik")
   const shippingStepHref = resolveCheckoutStepHref("doprava-platba")
   const detailsStepHref = resolveCheckoutStepHref("udaje")
   const summaryStepHref = resolveCheckoutStepHref("suhrn")
-  const selectedPaymentProviderId = controller.selectedPaymentProviderId
+  const { selectedPaymentProviderId } = controller
   const selectedShippingOption = controller.checkoutShippingQuery.selectedOption
   const selectedShippingLabel = selectedShippingOption?.name ?? undefined
   const selectedShippingOptionId =
     controller.checkoutShippingQuery.selectedShippingMethodId
-  let selectedPaymentLabel: string | undefined
-  if (
-    typeof selectedPaymentProviderId === "string" &&
-    selectedPaymentProviderId.length > 0
-  ) {
-    const displayTextKeys = resolvePaymentDisplayTextKeys(
-      selectedPaymentProviderId
-    )
-    selectedPaymentLabel =
-      displayTextKeys.providerName ??
-      formatProviderLabel(selectedPaymentProviderId)
-
-    if (displayTextKeys.summaryLabelKey) {
-      selectedPaymentLabel = displayTextKeys.providerName
-        ? tCheckout(displayTextKeys.summaryLabelKey, {
-            providerName: displayTextKeys.providerName,
-          })
-        : tCheckout(displayTextKeys.summaryLabelKey)
-    }
-  }
+  const selectedPaymentLabel = resolveSelectedPaymentLabel({
+    providerId: selectedPaymentProviderId,
+    translate: tCheckout,
+  })
   const orderSummaryDetailsFont = activeStep === "kosik" ? "rubik" : "inter"
   const orderSummaryAside = (
     <CheckoutOrderSummarySection
@@ -65,14 +46,18 @@ export function CheckoutStepContent({
       cartTotalAmount={controller.cartTotalAmount}
       currencyCode={controller.currencyCode}
       detailsFont={orderSummaryDetailsFont}
-      paymentLabel={selectedPaymentLabel}
+      {...(selectedPaymentLabel === null
+        ? {}
+        : { paymentLabel: selectedPaymentLabel })}
       shippingAmount={controller.cartShippingSubtotalAmount}
-      shippingLabel={selectedShippingLabel}
+      {...(selectedShippingLabel === undefined
+        ? {}
+        : { shippingLabel: selectedShippingLabel })}
     />
   )
 
   switch (activeStep) {
-    case "kosik":
+    case "kosik": {
       return (
         <CheckoutStepLayout
           aside={
@@ -84,7 +69,9 @@ export function CheckoutStepContent({
               hasShipping={controller.hasShipping}
               nextStepHref={shippingStepHref}
               shippingAmount={controller.cartShippingSubtotalAmount}
-              shippingLabel={selectedShippingLabel}
+              {...(selectedShippingLabel === undefined
+                ? {}
+                : { shippingLabel: selectedShippingLabel })}
             />
           }
           cartItems={controller.cartItems}
@@ -97,14 +84,17 @@ export function CheckoutStepContent({
           }
         >
           <CheckoutCartStepSection
-            cartId={controller.cartQuery.cart?.id}
+            {...(controller.cartQuery.cart?.id === undefined
+              ? {}
+              : { cartId: controller.cartQuery.cart?.id })}
             cartItems={controller.cartItems}
             cartItemsTotalAmount={controller.cartItemsTotalAmount}
             currencyCode={controller.currencyCode}
           />
         </CheckoutStepLayout>
       )
-    case "doprava-platba":
+    }
+    case "doprava-platba": {
       return (
         <CheckoutStepLayout aside={orderSummaryAside}>
           <CheckoutShippingPaymentStepSection
@@ -115,7 +105,8 @@ export function CheckoutStepContent({
           />
         </CheckoutStepLayout>
       )
-    case "udaje":
+    }
+    case "udaje": {
       return (
         <CheckoutStepLayout aside={orderSummaryAside}>
           <CheckoutDetailsStepSection
@@ -125,61 +116,56 @@ export function CheckoutStepContent({
           />
         </CheckoutStepLayout>
       )
-    default:
+    }
+    case "suhrn": {
       return (
         <CheckoutStepLayout aside={orderSummaryAside}>
           <CheckoutCompleteSection
-            canCompleteOrder={controller.canCompleteOrder}
             cartTaxAmount={controller.cartTaxAmount}
             cartTotalAmount={controller.cartTotalAmount}
             cartTotalWithoutTaxAmount={controller.cartTotalWithoutTaxAmount}
             currencyCode={controller.currencyCode}
             detailsStepHref={detailsStepHref}
-            hasPayment={controller.hasPayment}
-            hasShipping={controller.hasShipping}
-            hasStoredAddress={controller.hasStoredAddress}
             heurekaConsent={controller.heurekaConsent}
-            isCompletingOrder={
-              controller.checkoutPaymentQuery.isInitiatingPayment ||
-              controller.completeCheckoutMutation.isPending
-            }
             marketingConsent={controller.marketingConsent}
             onCompleteOrder={controller.handleCompleteOrder}
-            onHeurekaConsentChange={controller.setHeurekaConsent}
-            onMarketingConsentChange={controller.setMarketingConsent}
-            paymentLabel={selectedPaymentLabel}
-            paymentProviderId={selectedPaymentProviderId ?? undefined}
+            onHeurekaConsentChange={(value) => {
+              controller.setHeurekaConsent(value)
+            }}
+            onMarketingConsentChange={(value) => {
+              controller.setMarketingConsent(value)
+            }}
+            state={{
+              canCompleteOrder: controller.canCompleteOrder,
+              hasPayment: controller.hasPayment,
+              hasShipping: controller.hasShipping,
+              hasStoredAddress: controller.hasStoredAddress,
+              isCompletingOrder:
+                controller.checkoutPaymentQuery.isInitiatingPayment ||
+                controller.completeCheckoutMutation.isPending,
+            }}
+            {...(selectedPaymentLabel === null
+              ? {}
+              : { paymentLabel: selectedPaymentLabel })}
+            {...(selectedPaymentProviderId === undefined ||
+            selectedPaymentProviderId === null
+              ? {}
+              : { paymentProviderId: selectedPaymentProviderId })}
             shippingAddressForm={controller.shippingAddressForm}
-            shippingLabel={selectedShippingLabel}
-            shippingOptionId={selectedShippingOptionId}
+            {...(selectedShippingLabel === undefined
+              ? {}
+              : { shippingLabel: selectedShippingLabel })}
+            {...(selectedShippingOptionId === undefined
+              ? {}
+              : { shippingOptionId: selectedShippingOptionId })}
             shippingStepHref={shippingStepHref}
           />
         </CheckoutStepLayout>
       )
+    }
+    default: {
+      const unhandledStep: never = activeStep
+      throw new Error(`Unhandled checkout step: ${String(unhandledStep)}`)
+    }
   }
-}
-
-function CheckoutStepLayout({
-  header,
-  aside,
-  children,
-  cartItems,
-}: {
-  header?: ReactNode
-  aside: ReactNode
-  children: ReactNode
-  cartItems?: HttpTypes.StoreCartLineItem[]
-}) {
-  return (
-    <div className="mx-auto w-full max-w-max-w space-y-900">
-      <div className="mx-auto grid w-full max-w-checkout gap-x-700 gap-y-400 xl:grid-cols-12 xl:items-start">
-        {header}
-        <div className="space-y-350 xl:col-span-7">{children}</div>
-        <aside className="space-y-300 xl:sticky xl:top-400 xl:col-span-5 xl:self-start">
-          {aside}
-        </aside>
-      </div>
-      {cartItems && <CheckoutInlineProductsSection cartItems={cartItems} />}
-    </div>
-  )
 }

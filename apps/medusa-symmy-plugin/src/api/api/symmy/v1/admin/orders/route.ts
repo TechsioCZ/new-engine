@@ -2,7 +2,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import { getOrdersListWorkflow } from "@medusajs/medusa/core-flows"
 
-export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
+const get = async (req: MedusaRequest, res: MedusaResponse) => {
   const variables = {
     filters: {
       ...req.filterableFields,
@@ -22,16 +22,18 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   if (Array.isArray(result)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "Unexpected orders workflow result"
+      "Unexpected orders workflow result",
     )
   }
 
   const { rows: orders, metadata } = result
 
   res.json({
-    orders,
     count: metadata.count,
-    offset: metadata.skip,
     limit: metadata.take,
+    offset: metadata.skip,
+    orders,
   })
 }
+
+export { get as GET }

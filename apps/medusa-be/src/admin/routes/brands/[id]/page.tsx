@@ -16,16 +16,15 @@ import {
   toast,
   usePrompt,
 } from "@medusajs/ui"
+import type { DataTableColumnDef } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { type Dispatch, type SetStateAction, useEffect, useState } from "react"
+import type { TFunction } from "i18next"
+import { useState } from "react"
+import type { Dispatch, SetStateAction } from "react"
 import { useTranslation } from "react-i18next"
-import {
-  Link,
-  type LoaderFunctionArgs,
-  type UIMatch,
-  useNavigate,
-  useParams,
-} from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router-dom"
+import type { LoaderFunctionArgs, UIMatch } from "react-router-dom"
+
 import { BrandDataTable } from "../../../components/brands/brand-data-table"
 import { BrandEditDrawer } from "../../../components/brands/brand-form"
 import {
@@ -35,13 +34,8 @@ import {
   toRowSelection,
 } from "../../../components/brands/brand-table-state"
 import {
-  type Brand,
-  type BrandAttributeType,
-  type BrandProductOption,
-  type BrandResponse,
   brandQueryKeys,
   listBrandAttributeTypes,
-  type ProductSummary,
   productQueryKeys,
   restoreBrand,
   retrieveBrand,
@@ -49,20 +43,35 @@ import {
   retrieveBrandProducts,
   updateBrandProducts,
 } from "../../../lib/brands"
+import type {
+  Brand,
+  BrandAttributeType,
+  BrandProductOption,
+  BrandResponse,
+  ProductSummary,
+} from "../../../lib/brands"
 import { translateBreadcrumb } from "../../../lib/breadcrumb"
 import { useDebouncedValue } from "../../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
 const PRODUCT_SELECTOR_PAGE_SIZE = 20
+const PRODUCTS_MANAGE_TITLE_KEY = "products.manageTitle"
+const PRODUCTS_TITLE_KEY = "products.title"
+const ATTRIBUTE_TYPES_PARAMS = {
+  include_deleted: true,
+  limit: 100,
+  offset: 0,
+  order_by: "name",
+}
 
-export async function loader({ params }: LoaderFunctionArgs) {
-  const id = params.id
+export const loader = async ({ params }: LoaderFunctionArgs) => {
+  const { id } = params
 
-  if (!id) {
-    return { brand: undefined }
+  if (id === undefined || id.length === 0) {
+    return {}
   }
 
-  return retrieveBrand(id)
+  return await retrieveBrand(id)
 }
 
 export const handle = {
@@ -84,31 +93,128 @@ const productOptionColumnHelper =
   createDataTableColumnHelper<BrandProductOption>()
 const productColumnHelper = createDataTableColumnHelper<ProductSummary>()
 
-const ProductAssignmentDrawer = ({
+const getProductOptionColumns = (
+  brandId: string,
+  translate: TFunction<"brands">,
+): DataTableColumnDef<BrandProductOption>[] => [
+  productOptionColumnHelper.select({ header: () => null }),
+  {
+    accessorFn: (option) => option.product.title ?? option.product.id,
+    cell: ({ row }) => {
+      const assignedBrand = row.original.assigned_brand
+      const label = row.original.product.title ?? row.original.product.id
+      return !isProductOptionSelectable(row.original, brandId) &&
+        assignedBrand !== null &&
+        assignedBrand !== undefined ? (
+        <Tooltip
+          content={translate("products.alreadyLinkedTooltip", {
+            title: assignedBrand.title,
+          })}
+          side="right"
+        >
+          <span className="cursor-not-allowed opacity-60">{label}</span>
+        </Tooltip>
+      ) : (
+        label
+      )
+    },
+    header: translate("columns.product"),
+    id: "product",
+  },
+  {
+    accessorFn: (option) => option.product.handle ?? "-",
+    header: translate("columns.handle"),
+    id: "handle",
+  },
+  {
+    accessorFn: (option) => option.product.status ?? "-",
+    header: translate("columns.status"),
+    id: "status",
+  },
+]
+
+const getProductColumns = ({
+  canManage,
+  onRemove,
+  removingProductId,
+  translate,
+}: {
+  canManage: boolean
+  onRemove: (product: ProductSummary) => void
+  removingProductId: string | undefined
+  translate: TFunction<"brands">
+}): DataTableColumnDef<ProductSummary>[] => {
+  const columns: DataTableColumnDef<ProductSummary>[] = [
+    {
+      accessorFn: (product) => product.title ?? product.id,
+      cell: ({ row }) => (
+        <Link to={`/products/${row.original.id}`}>
+          {row.original.title ?? row.original.id}
+        </Link>
+      ),
+      header: translate("columns.product"),
+      id: "product",
+    },
+    {
+      accessorFn: (product) => product.handle ?? "-",
+      header: translate("columns.handle"),
+      id: "handle",
+    },
+    {
+      accessorKey: "status",
+      cell: ({ row }) =>
+        row.original.status !== null && row.original.status !== undefined ? (
+          <Badge size="2xsmall">{row.original.status}</Badge>
+        ) : (
+          "-"
+        ),
+      header: translate("columns.status"),
+    },
+  ]
+
+  if (canManage) {
+    columns.push(
+      productColumnHelper.action({
+        actions: ({ row }) =>
+          removingProductId === row.original.id
+            ? []
+            : [
+                {
+                  icon: <Trash />,
+                  label: translate("actions.remove"),
+                  onClick: () => {
+                    onRemove(row.original)
+                  },
+                },
+              ],
+      }),
+    )
+  }
+
+  return columns
+}
+
+interface ProductAssignmentDrawerProps {
+  brandId: string
+  currentProductIds: string[]
+  onOpenChange: (open: boolean) => void
+  open: boolean
+}
+
+const ProductAssignmentDrawerContent = ({
   currentProductIds,
   onOpenChange,
   open,
   brandId,
-}: {
-  currentProductIds: string[]
-  onOpenChange: (open: boolean) => void
-  open: boolean
-  brandId: string
-}) => {
+}: ProductAssignmentDrawerProps) => {
   const { t } = useTranslation("brands")
   const queryClient = useQueryClient()
   const [pageIndex, setPageIndex] = useState(0)
   const [q, setQ] = useState("")
   const debouncedQ = useDebouncedValue(q)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
-    () => new Set(currentProductIds)
+    () => new Set(currentProductIds),
   )
-
-  useEffect(() => {
-    if (open) {
-      setSelectedIds(new Set(currentProductIds))
-    }
-  }, [currentProductIds, open])
 
   const params = {
     limit: PRODUCT_SELECTOR_PAGE_SIZE,
@@ -119,19 +225,19 @@ const ProductAssignmentDrawer = ({
   const { data, isLoading } = useQuery({
     enabled: open,
     placeholderData: (previousData) => previousData,
-    queryFn: () => retrieveBrandProductOptions(brandId, params),
+    queryFn: async () => await retrieveBrandProductOptions(brandId, params),
     queryKey: brandQueryKeys.productOptions(brandId, params),
   })
 
   const mutation = useMutation({
-    mutationFn: () =>
-      updateBrandProducts(
+    mutationFn: async () =>
+      await updateBrandProducts(
         brandId,
-        buildProductSelectionDelta(currentProductIds, selectedIds)
+        buildProductSelectionDelta(currentProductIds, selectedIds),
       ),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveProductsFailed")
+        error instanceof Error ? error.message : t("errors.saveProductsFailed"),
       )
     },
     onSuccess: async () => {
@@ -173,55 +279,13 @@ const ProductAssignmentDrawer = ({
   const count = data?.count ?? 0
   const hasSearch = q.trim().length > 0
   const rowSelection = toRowSelection(selectedIds)
-  const isAssignedToAnotherBrand = (option: BrandProductOption) =>
-    !isProductOptionSelectable(option, brandId)
-  const columns = [
-    productOptionColumnHelper.select({ header: () => null }),
-    productOptionColumnHelper.accessor(
-      (option) => option.product.title ?? option.product.id,
-      {
-        header: t("columns.product"),
-        id: "product",
-        cell: ({ row }) => {
-          const assignedBrand = row.original.assigned_brand
-          const label = row.original.product.title ?? row.original.product.id
-
-          return isAssignedToAnotherBrand(row.original) && assignedBrand ? (
-            <Tooltip
-              content={t("products.alreadyLinkedTooltip", {
-                title: assignedBrand.title,
-              })}
-              side="right"
-            >
-              <span className="cursor-not-allowed opacity-60">{label}</span>
-            </Tooltip>
-          ) : (
-            label
-          )
-        },
-      }
-    ),
-    productOptionColumnHelper.accessor(
-      (option) => option.product.handle ?? "-",
-      {
-        header: t("columns.handle"),
-        id: "handle",
-      }
-    ),
-    productOptionColumnHelper.accessor(
-      (option) => option.product.status ?? "-",
-      {
-        header: t("columns.status"),
-        id: "status",
-      }
-    ),
-  ]
+  const columns = getProductOptionColumns(brandId, t)
 
   return (
     <Drawer onOpenChange={handleOpenChange} open={open}>
       <Drawer.Content>
         <Drawer.Header>
-          <Drawer.Title>{t("products.manageTitle")}</Drawer.Title>
+          <Drawer.Title>{t(PRODUCTS_MANAGE_TITLE_KEY)}</Drawer.Title>
         </Drawer.Header>
         <Drawer.Body className="flex flex-col gap-4 overflow-y-auto">
           <Input
@@ -241,11 +305,11 @@ const ProductAssignmentDrawer = ({
                 description: hasSearch
                   ? t("products.emptySearch")
                   : t("products.emptyOptions"),
-                heading: t("products.manageTitle"),
+                heading: t(PRODUCTS_MANAGE_TITLE_KEY),
               },
               filtered: {
                 description: t("products.emptySearch"),
-                heading: t("products.manageTitle"),
+                heading: t(PRODUCTS_MANAGE_TITLE_KEY),
               },
             }}
             getRowId={(option) => option.product.id}
@@ -270,7 +334,9 @@ const ProductAssignmentDrawer = ({
           <div className="flex justify-end gap-2">
             <Button
               disabled={mutation.isPending}
-              onClick={() => handleOpenChange(false)}
+              onClick={() => {
+                handleOpenChange(false)
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -280,7 +346,9 @@ const ProductAssignmentDrawer = ({
             <Button
               disabled={mutation.isPending}
               isLoading={mutation.isPending}
-              onClick={() => mutation.mutate()}
+              onClick={() => {
+                mutation.mutate()
+              }}
               size="small"
               type="button"
             >
@@ -292,6 +360,15 @@ const ProductAssignmentDrawer = ({
     </Drawer>
   )
 }
+
+const ProductAssignmentDrawer = (props: ProductAssignmentDrawerProps) => (
+  <ProductAssignmentDrawerContent
+    key={
+      props.open ? `open:${JSON.stringify(props.currentProductIds)}` : "closed"
+    }
+    {...props}
+  />
+)
 
 const BrandProductsSection = ({
   canManage,
@@ -318,60 +395,26 @@ const BrandProductsSection = ({
   productOrderBy: string
   productQ: string
   products: ProductSummary[]
-  removingProductId?: string
+  removingProductId?: string | undefined
   pageIndex: number
   setPageIndex: Dispatch<SetStateAction<number>>
   setProductOrderBy: (value: string) => void
   setProductQ: (value: string) => void
 }) => {
   const { t } = useTranslation("brands")
-  const columns = [
-    productColumnHelper.accessor((product) => product.title ?? product.id, {
-      header: t("columns.product"),
-      id: "product",
-      cell: ({ row }) => (
-        <Link to={`/products/${row.original.id}`}>
-          {row.original.title ?? row.original.id}
-        </Link>
-      ),
-    }),
-    productColumnHelper.accessor((product) => product.handle ?? "-", {
-      header: t("columns.handle"),
-      id: "handle",
-    }),
-    productColumnHelper.accessor("status", {
-      header: t("columns.status"),
-      cell: ({ row }) =>
-        row.original.status ? (
-          <Badge size="2xsmall">{row.original.status}</Badge>
-        ) : (
-          "-"
-        ),
-    }),
-    ...(canManage
-      ? [
-          productColumnHelper.action({
-            actions: ({ row }) =>
-              removingProductId === row.original.id
-                ? []
-                : [
-                    {
-                      icon: <Trash />,
-                      label: t("actions.remove"),
-                      onClick: () => onRemove(row.original),
-                    },
-                  ],
-          }),
-        ]
-      : []),
-  ]
+  const columns = getProductColumns({
+    canManage,
+    onRemove,
+    removingProductId,
+    translate: t,
+  })
 
   return (
     <Container className="divide-y p-0">
       <div className="flex flex-col gap-4 px-6 py-4">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <Heading level="h2">{t("products.title")}</Heading>
+            <Heading level="h2">{t(PRODUCTS_TITLE_KEY)}</Heading>
             <Text className="text-ui-fg-subtle" size="small">
               {t("detail.linkedProductsCount", { count })}
             </Text>
@@ -423,17 +466,19 @@ const BrandProductsSection = ({
         emptyState={{
           empty: {
             description: t("products.emptyLinked"),
-            heading: t("products.title"),
+            heading: t(PRODUCTS_TITLE_KEY),
           },
           filtered: {
             description: t("products.emptyLinked"),
-            heading: t("products.title"),
+            heading: t(PRODUCTS_TITLE_KEY),
           },
         }}
         getRowId={(product) => product.id}
         isLoading={isLoading}
         onPageIndexChange={setPageIndex}
-        onRowClick={(_event, product) => onOpenProduct(product.id)}
+        onRowClick={(_event, product) => {
+          onOpenProduct(product.id)
+        }}
         pageIndex={pageIndex}
         pageSize={PAGE_SIZE}
       />
@@ -441,14 +486,14 @@ const BrandProductsSection = ({
   )
 }
 
-type BrandDetailContentProps = {
+interface BrandDetailContentProps {
   attributeTypes: BrandAttributeType[]
   brand: Brand
   count: number
   editOpen: boolean
   isDeleted: boolean
   onEditOpenChange: Dispatch<SetStateAction<boolean>>
-  brandId?: string
+  brandId?: string | undefined
   onManageProducts: () => void
   onOpenProduct: (productId: string) => void
   onPageIndexChange: Dispatch<SetStateAction<number>>
@@ -464,7 +509,7 @@ type BrandDetailContentProps = {
   productIds: string[]
   productsLoading: boolean
   productsOpen: boolean
-  removingProductId?: string
+  removingProductId?: string | undefined
   restorePending: boolean
 }
 
@@ -506,8 +551,16 @@ const BrandDetailContent = ({
             </Link>
           </IconButton>
           <Heading level="h1">{brand.title}</Heading>
-          <StatusBadge color={brand.deleted_at ? "red" : "green"}>
-            {brand.deleted_at ? t("status.deleted") : t("status.active")}
+          <StatusBadge
+            color={
+              brand.deleted_at !== null && brand.deleted_at !== undefined
+                ? "red"
+                : "green"
+            }
+          >
+            {brand.deleted_at !== null && brand.deleted_at !== undefined
+              ? t("status.deleted")
+              : t("status.active")}
           </StatusBadge>
         </div>
 
@@ -519,7 +572,7 @@ const BrandDetailContent = ({
                 {brand.handle}
               </Text>
             </div>
-            {brand.deleted_at ? (
+            {brand.deleted_at !== null && brand.deleted_at !== undefined ? (
               <Button
                 isLoading={restorePending}
                 onClick={onRestore}
@@ -531,7 +584,9 @@ const BrandDetailContent = ({
               </Button>
             ) : (
               <Button
-                onClick={() => onEditOpenChange(true)}
+                onClick={() => {
+                  onEditOpenChange(true)
+                }}
                 size="small"
                 type="button"
                 variant="secondary"
@@ -589,7 +644,7 @@ const BrandDetailContent = ({
                   {t("fields.gpsr_manufactured_outside_eu")}
                 </Text>
                 <Text size="small">
-                  {brand.gpsr_manufactured_outside_eu
+                  {brand.gpsr_manufactured_outside_eu === true
                     ? t("status.yes")
                     : t("status.no")}
                 </Text>
@@ -597,7 +652,7 @@ const BrandDetailContent = ({
               <div>
                 <Text className="text-ui-fg-subtle" size="small">
                   {t(
-                    "fields.gpsr_european_reseller_manufacturing_company_name"
+                    "fields.gpsr_european_reseller_manufacturing_company_name",
                   )}
                 </Text>
                 <Text size="small">
@@ -626,7 +681,7 @@ const BrandDetailContent = ({
           <div className="px-6 py-4">
             <Heading level="h2">{t("attributes.title")}</Heading>
             <div className="mt-3 grid gap-2">
-              {brand.attributes.length ? (
+              {brand.attributes.length > 0 ? (
                 brand.attributes.map((attribute) => (
                   <div
                     className="grid grid-cols-[160px_1fr_auto] gap-3"
@@ -636,7 +691,8 @@ const BrandDetailContent = ({
                       {attribute.name}
                     </Text>
                     <Text size="small">{attribute.value}</Text>
-                    {attribute.attribute_type_deleted_at ? (
+                    {attribute.attribute_type_deleted_at !== null &&
+                    attribute.attribute_type_deleted_at !== undefined ? (
                       <StatusBadge color="red">
                         {t("status.deleted")}
                       </StatusBadge>
@@ -676,7 +732,7 @@ const BrandDetailContent = ({
         onOpenChange={onEditOpenChange}
         open={!isDeleted && editOpen}
       />
-      {brandId ? (
+      {brandId !== undefined && brandId.length > 0 ? (
         <ProductAssignmentDrawer
           brandId={brandId}
           currentProductIds={productIds}
@@ -702,17 +758,18 @@ const BrandDetailPage = () => {
   const debouncedProductQ = useDebouncedValue(productQ)
 
   const brandQuery = useQuery({
-    enabled: !!id,
-    queryFn: () => {
-      if (!id) {
+    enabled: id !== undefined && id.length > 0,
+    queryFn: async () => {
+      if (id === undefined || id.length === 0) {
         throw new Error(t("errors.brandIdRequired"))
       }
-      return retrieveBrand(id)
+      return await retrieveBrand(id)
     },
     queryKey: brandQueryKeys.detail(id),
   })
   const brand = brandQuery.data?.brand
-  const isDeleted = !!brand?.deleted_at
+  const isDeleted =
+    brand?.deleted_at !== null && brand?.deleted_at !== undefined
 
   const productParams = {
     limit: PAGE_SIZE,
@@ -722,13 +779,13 @@ const BrandDetailPage = () => {
   }
 
   const productsQuery = useQuery({
-    enabled: !!id && !!brand,
+    enabled: id !== undefined && id.length > 0 && brand !== undefined,
     placeholderData: (previousData) => previousData,
-    queryFn: () => {
-      if (!id) {
+    queryFn: async () => {
+      if (id === undefined || id.length === 0) {
         throw new Error(t("errors.brandIdRequired"))
       }
-      return retrieveBrandProducts(id, productParams)
+      return await retrieveBrandProducts(id, productParams)
     },
     queryKey: brandQueryKeys.products(id, productParams),
   })
@@ -736,22 +793,16 @@ const BrandDetailPage = () => {
   const products = productsQuery.data?.products ?? []
   const productIds = productsQuery.data?.product_ids ?? []
   const count = productsQuery.data?.count ?? 0
-  const attributeTypesParams = {
-    include_deleted: true,
-    limit: 100,
-    offset: 0,
-    order_by: "name",
-  }
   const attributeTypesQuery = useQuery({
-    queryFn: () => listBrandAttributeTypes(attributeTypesParams),
-    queryKey: brandQueryKeys.attributeTypes(attributeTypesParams),
+    queryFn: async () => await listBrandAttributeTypes(ATTRIBUTE_TYPES_PARAMS),
+    queryKey: brandQueryKeys.attributeTypes(ATTRIBUTE_TYPES_PARAMS),
   })
   const attributeTypes = attributeTypesQuery.data?.attribute_types ?? []
   const restoreMutation = useMutation({
     mutationFn: restoreBrand,
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.restoreBrandFailed")
+        error instanceof Error ? error.message : t("errors.restoreBrandFailed"),
       )
     },
     onSuccess: async () => {
@@ -769,14 +820,16 @@ const BrandDetailPage = () => {
   })
 
   const removeProductMutation = useMutation({
-    mutationFn: (productId: string) =>
-      updateBrandProducts(id ?? "", {
+    mutationFn: async (productId: string) =>
+      await updateBrandProducts(id ?? "", {
         add: [],
         remove: [productId],
       }),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.removeProductFailed")
+        error instanceof Error
+          ? error.message
+          : t("errors.removeProductFailed"),
       )
     },
     onSuccess: async (_response, productId) => {
@@ -823,7 +876,7 @@ const BrandDetailPage = () => {
     }
   }
 
-  if (brandQuery.error) {
+  if (brandQuery.error !== null && brandQuery.error !== undefined) {
     return (
       <Container>
         <Alert variant="error">{t("errors.loadBrandFailed")}</Alert>
@@ -831,7 +884,7 @@ const BrandDetailPage = () => {
     )
   }
 
-  if (brandQuery.isLoading || !brand) {
+  if (brandQuery.isLoading || brand === undefined) {
     return (
       <Container className="flex items-center justify-center gap-2 py-8">
         <Spinner className="animate-spin" />
@@ -849,14 +902,22 @@ const BrandDetailPage = () => {
       editOpen={editOpen}
       isDeleted={isDeleted}
       onEditOpenChange={setEditOpen}
-      onManageProducts={() => setProductsOpen(true)}
-      onOpenProduct={(productId) => navigate(`/products/${productId}`)}
+      onManageProducts={() => {
+        setProductsOpen(true)
+      }}
+      onOpenProduct={(productId) => {
+        navigate(`/products/${productId}`)
+      }}
       onPageIndexChange={setPageIndex}
       onProductOrderByChange={setProductOrderBy}
       onProductQueryChange={setProductQ}
       onProductsOpenChange={setProductsOpen}
-      onRemove={handleRemoveProduct}
-      onRestore={() => restoreMutation.mutate(brand.id)}
+      onRemove={(product) => {
+        void handleRemoveProduct(product)
+      }}
+      onRestore={() => {
+        restoreMutation.mutate(brand.id)
+      }}
       pageIndex={pageIndex}
       productIds={productIds}
       productOrderBy={productOrderBy}

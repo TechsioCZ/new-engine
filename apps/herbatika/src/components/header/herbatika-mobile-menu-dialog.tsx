@@ -3,14 +3,16 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import { HeaderContext } from "@techsio/ui-kit/organisms/header"
 import NextImage from "next/image"
-import NextLink from "next/link"
 import { useContext, useEffect } from "react"
+
+import NextLink from "@/components/app-link"
+
 import { HEADER_ACTION_ITEMS } from "./herbatika-header.navigation"
 import { HerbatikaMobileMenuNav } from "./herbatika-mobile-menu-nav"
 
 const HEADER_DESKTOP_MEDIA_QUERY = "(min-width: 896px)"
 
-export function HerbatikaMobileMenuDialog() {
+export const HerbatikaMobileMenuDialog = () => {
   const { isMobileMenuOpen, setIsMobileMenuOpen } = useContext(HeaderContext)
 
   useEffect(() => {
@@ -24,20 +26,26 @@ export function HerbatikaMobileMenuDialog() {
     handleChange(mediaQuery)
     mediaQuery.addEventListener("change", handleChange)
 
-    return () => mediaQuery.removeEventListener("change", handleChange)
+    return () => {
+      mediaQuery.removeEventListener("change", handleChange)
+    }
   }, [setIsMobileMenuOpen])
 
-  const handleClose = () => setIsMobileMenuOpen(false)
+  const handleClose = () => {
+    setIsMobileMenuOpen(false)
+  }
 
   return (
     <div data-herbatika-mobile-menu-dialog-root="">
       <Dialog
-        className="-top-1 h-auto max-h-full overflow-hidden shadow-none"
+        className="-top-100 h-auto max-h-full overflow-hidden shadow-none"
         closeOnInteractOutside
         customTrigger
         hideCloseButton
         modal
-        onOpenChange={({ open }) => setIsMobileMenuOpen(open)}
+        onOpenChange={({ open }) => {
+          setIsMobileMenuOpen(open)
+        }}
         open={isMobileMenuOpen}
         placement="top"
         portal={false}

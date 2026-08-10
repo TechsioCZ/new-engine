@@ -4,40 +4,40 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 
-type CompanyEmployee = {
-  customer?: {
-    id?: string
-  } | null
-  is_admin?: boolean
-}
-
-type CompanyWithEmployees = {
-  employees?: CompanyEmployee[]
-}
+const CompanySchema = z.object({
+  employees: z
+    .array(
+      z.object({
+        customer: z.object({ id: z.string().optional() }).nullable().optional(),
+        is_admin: z.boolean().optional(),
+      }),
+    )
+    .optional(),
+})
 
 const getCustomerId = (req: AuthenticatedMedusaRequest) => {
-  const appMetadata = req.auth_context.app_metadata as
-    | {
-        customer_id?: string
-      }
-    | undefined
-  const { customer_id } = appMetadata ?? {}
+  const metadataResult = z
+    .object({ customer_id: z.string().optional() })
+    .safeParse(req.auth_context.app_metadata)
+  const actorId = req.auth_context.actor_id
 
-  return customer_id ?? req.auth_context.actor_id
+  if (metadataResult.success && metadataResult.data.customer_id !== undefined) {
+    return metadataResult.data.customer_id
+  }
+
+  return typeof actorId === "string" ? actorId : undefined
 }
 
 const findRouteCompany = async (req: AuthenticatedMedusaRequest) => {
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const companyId = req.params.id
-
-  if (!companyId) {
-    return
+  const companyId = req.params["id"]
+  if (typeof companyId !== "string" || companyId.length === 0) {
+    return null
   }
 
-  const {
-    data: [company],
-  } = await query.graph({
+  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+  const { data } = await query.graph({
     entity: "companies",
     fields: [
       "id",
@@ -48,30 +48,35 @@ const findRouteCompany = async (req: AuthenticatedMedusaRequest) => {
     filters: { id: companyId },
   })
 
-  return company as CompanyWithEmployees | undefined
+  return z.array(CompanySchema).parse(data).at(0) ?? null
+}
+
+const respondForbidden = (res: MedusaResponse): void => {
+  res.status(403).json({ message: "Forbidden" })
 }
 
 export const ensureCompanyMember = async (
   req: AuthenticatedMedusaRequest,
   res: MedusaResponse,
-  next: MedusaNextFunction
-) => {
+  next: MedusaNextFunction,
+): Promise<void> => {
   const customerId = getCustomerId(req)
-
-  if (!customerId) {
-    return res.status(403).json({ message: "Forbidden" })
+  if (customerId === undefined) {
+    respondForbidden(res)
+    return
   }
 
   const company = await findRouteCompany(req)
   const isCompanyMember = company?.employees?.some(
-    (employee) => employee.customer?.id === customerId
+    (employee) => employee.customer?.id === customerId,
   )
 
-  if (isCompanyMember) {
-    return next()
+  if (isCompanyMember !== true) {
+    respondForbidden(res)
+    return
   }
 
-  return res.status(403).json({ message: "Forbidden" })
+  next()
 }
 
 export const ensureRole =
@@ -79,45 +84,55 @@ export const ensureRole =
   async (
     req: AuthenticatedMedusaRequest,
     res: MedusaResponse,
-    next: MedusaNextFunction
-  ) => {
+    next: MedusaNextFunction,
+  ): Promise<void> => {
     if (role !== "company_admin") {
-      return res.status(403).json({ message: "Forbidden" })
+      respondForbidden(res)
+      return
     }
 
     const customerId = getCustomerId(req)
-
-    if (!customerId) {
-      return res.status(403).json({ message: "Forbidden" })
+    if (customerId === undefined) {
+      respondForbidden(res)
+      return
     }
 
-    const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-    const companyId = req.params.id
-
-    if (!companyId) {
-      const {
-        data: [customer],
-      } = await query.graph({
+    const companyId = req.params["id"]
+    if (typeof companyId !== "string" || companyId.length === 0) {
+      const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
+      const { data } = await query.graph({
         entity: "customer",
         fields: ["employee.is_admin"],
         filters: { id: customerId },
       })
+      const customer = z
+        .array(
+          z.object({
+            employee: z.object({ is_admin: z.boolean() }).nullable().optional(),
+          }),
+        )
+        .parse(data)
+        .at(0)
 
-      if (customer?.employee?.is_admin) {
-        return next()
+      if (customer?.employee?.is_admin !== true) {
+        respondForbidden(res)
+        return
       }
 
-      return res.status(403).json({ message: "Forbidden" })
+      next()
+      return
     }
 
     const company = await findRouteCompany(req)
     const isCompanyAdmin = company?.employees?.some(
-      (employee) => employee.is_admin && employee.customer?.id === customerId
+      (employee) =>
+        employee.is_admin === true && employee.customer?.id === customerId,
     )
 
-    if (isCompanyAdmin) {
-      return next()
+    if (isCompanyAdmin !== true) {
+      respondForbidden(res)
+      return
     }
 
-    return res.status(403).json({ message: "Forbidden" })
+    next()
   }

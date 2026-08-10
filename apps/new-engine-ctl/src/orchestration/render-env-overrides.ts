@@ -1,10 +1,10 @@
 import { mkdir, writeFile } from "node:fs/promises"
-import { dirname } from "node:path"
+import nodePath from "node:path"
 
-import {
-  type RenderEnvOverridesCommandInput,
-  type RenderEnvOverridesResponse,
-  renderEnvOverridesResponseSchema,
+import { renderEnvOverridesResponseSchema } from "../contracts/render-env-overrides.js"
+import type {
+  RenderEnvOverridesCommandInput,
+  RenderEnvOverridesResponse,
 } from "../contracts/render-env-overrides.js"
 import {
   buildExpectedEnvOverrides,
@@ -12,17 +12,17 @@ import {
   normalizeCsvToArray,
 } from "./deploy-inputs.js"
 
-async function writeJsonFile(path: string, value: unknown): Promise<void> {
-  await mkdir(dirname(path), { recursive: true })
-  await writeFile(path, `${JSON.stringify(value)}\n`, "utf8")
+const writeJsonFile = async (path: string, value: unknown): Promise<void> => {
+  await mkdir(nodePath.dirname(path), { recursive: true })
+  await writeFile(path, `${JSON.stringify(value)}\n`, "utf-8")
 }
 
-export async function executeRenderEnvOverrides(
-  input: RenderEnvOverridesCommandInput
-): Promise<RenderEnvOverridesResponse> {
+export const executeRenderEnvOverrides = async (
+  input: RenderEnvOverridesCommandInput,
+): Promise<RenderEnvOverridesResponse> => {
   const contracts = await loadDeployContracts(
     input.stackManifestPath,
-    input.stackInputsPath
+    input.stackInputsPath,
   )
   const deployServiceIds = normalizeCsvToArray(input.servicesCsv)
   const response = renderEnvOverridesResponseSchema.parse({
@@ -30,14 +30,14 @@ export async function executeRenderEnvOverrides(
     services: buildExpectedEnvOverrides(deployServiceIds, contracts, {
       lane: input.lane,
       previewDbName: input.previewDbName,
-      previewDbUser: input.previewDbUser,
       previewDbPassword: input.previewDbPassword,
+      previewDbUser: input.previewDbUser,
       previewRandomOnceSecrets: input.previewRandomOnceSecrets,
       runtimeProviderOutputs: input.runtimeProviderOutputs,
     }),
   })
 
-  if (input.outputJson) {
+  if (input.outputJson !== undefined && input.outputJson !== "") {
     await writeJsonFile(input.outputJson, response)
   }
 

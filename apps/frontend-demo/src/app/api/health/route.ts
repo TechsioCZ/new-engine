@@ -1,3 +1,3 @@
-export function GET() {
-  return Response.json({ status: "ok" })
-}
+const handleHealthRequest = () => Response.json({ status: "ok" })
+
+export { handleHealthRequest as GET }

@@ -3,8 +3,8 @@ import { authenticate } from "@medusajs/framework/http"
 
 export const symmyPriceListsRoutes: MiddlewareRoute[] = [
   {
-    methods: ["GET"],
     matcher: "/api/symmy/v1/price-lists",
+    methods: ["GET"],
     middlewares: [authenticate("user", ["bearer", "session", "api-key"])],
   },
 ]

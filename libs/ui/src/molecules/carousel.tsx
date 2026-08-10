@@ -1,66 +1,132 @@
-/**
+/*
  * Carousel — @techsio/ui-kit molecule.
  *
  * @component Carousel
- * @componentVersion v1.0.0
+ * @componentVersion v2.0.0
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the carousel-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import * as carousel from "@zag-js/carousel"
+import { connect, machine } from "@zag-js/carousel"
+import type { Api, Props as ZagCarouselProps } from "@zag-js/carousel"
 import { normalizeProps, useMachine } from "@zag-js/react"
-import {
-  type CSSProperties,
-  type ComponentPropsWithoutRef,
-  createContext,
-  type ElementType,
-  type ReactNode,
-  useContext,
-  useId,
+import { createContext, useContext, useId } from "react"
+import type {
+  CSSProperties,
+  ComponentPropsWithoutRef,
+  ElementType,
+  ReactNode,
 } from "react"
-import { tv, type VariantProps } from "tailwind-variants"
+import { tv } from "tailwind-variants"
+import type { VariantProps } from "tailwind-variants"
+
 import { Button } from "../atoms/button"
 import type { IconType } from "../atoms/icon"
 import { Image } from "../atoms/image"
+import type { ImageProps } from "../atoms/image"
+import { rendererCapability } from "../internal/renderer-capability"
 
-type CarouselImageComponent<T extends ElementType = typeof Image> =
-  T extends typeof Image
-    ? typeof Image
-    : T extends ElementType
-      ? "src" extends keyof ComponentPropsWithoutRef<T>
-        ? "alt" extends keyof ComponentPropsWithoutRef<T>
-          ? T
+type IsUncheckedValue<Value> = 0 extends 1 & Value ? true : false
+
+type IsDefaultImageComponent<T extends ElementType> =
+  IsUncheckedValue<T> extends true
+    ? false
+    : [T] extends [typeof Image]
+      ? [typeof Image] extends [T]
+        ? true
+        : false
+      : false
+
+type SafeComponentProps<T extends ElementType> =
+  IsUncheckedValue<T> extends true
+    ? never
+    : IsUncheckedValue<ComponentPropsWithoutRef<T>> extends true
+      ? never
+      : ComponentPropsWithoutRef<T>
+
+type SafeProperty<Value, Key extends PropertyKey> = Key extends keyof Value
+  ? IsUncheckedValue<Value[Key]> extends true
+    ? never
+    : Value[Key]
+  : never
+
+type AcceptsInjectedProperty<Value, Key extends PropertyKey, Injected> = [
+  SafeProperty<Value, Key>,
+] extends [never]
+  ? false
+  : [Injected] extends [SafeProperty<Value, Key>]
+    ? true
+    : false
+
+type RequiredPropertyKeys<Value> = {
+  [Key in keyof Value]-?: Pick<Value, Key> extends Required<Pick<Value, Key>>
+    ? Key
+    : never
+}[keyof Value]
+
+export type CarouselImageComponent<T extends ElementType = typeof Image> =
+  IsUncheckedValue<T> extends true
+    ? never
+    : [T] extends [typeof Image]
+      ? typeof Image
+      : [SafeComponentProps<T>] extends [never]
+        ? never
+        : "src" extends keyof SafeComponentProps<T>
+          ? AcceptsInjectedProperty<
+              SafeComponentProps<T>,
+              "alt",
+              string
+            > extends true
+            ? T
+            : never
           : never
-        : never
-      : never
+
+export type CarouselImageRenderer<T extends ElementType = typeof Image> =
+  | CarouselImageComponent<T>
+  | (IsDefaultImageComponent<T> extends true ? undefined : never)
 
 const carouselVariants = tv({
+  compoundSlots: [
+    {
+      class: [
+        "p-carousel-trigger",
+        "text-carousel-trigger-fg-base",
+        "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
+        "focus-visible:outline-carousel-ring",
+        "focus-visible:outline-offset-(length:--default-ring-offset)",
+      ],
+      slots: ["autoplayTrigger", "indicator", "prevTrigger", "nextTrigger"],
+    },
+    {
+      class: [
+        "bg-carousel-trigger-bg-base text-carousel-trigger hover:bg-carousel-trigger-bg-hover",
+        "hover:text-carousel-trigger-fg-hover",
+        "transition-colors duration-200 motion-reduce:transition-none",
+      ],
+      slots: ["prevTrigger", "nextTrigger"],
+    },
+  ],
+  defaultVariants: {
+    aspectRatio: "square",
+    controlPosition: "bottom",
+    objectFit: "cover",
+    size: "md",
+  },
   slots: {
-    wrapper: ["relative w-fit"],
-    root: ["relative overflow-hidden", "rounded-carousel"],
+    autoplayIcon: [
+      "token-icon-carousel-play",
+      "data-[pressed=true]:token-icon-carousel-pause",
+    ],
+    autoplayTrigger: [
+      "absolute top-carousel-trigger-top right-carousel-trigger-right z-50",
+      "bg-carousel-trigger-bg-base",
+    ],
     control: [
       "flex gap-carousel-control p-carousel-control",
       "bg-carousel-control-bg",
       "rounded-carousel",
-    ],
-    slideGroup: [
-      "overflow-hidden",
-      "scrollbar-hide",
-      "data-dragging:cursor-grabbing",
-      "data-[orientation=vertical]:h-full",
-    ],
-    slide: [
-      "relative shrink-0",
-      "flex items-center justify-center",
-      "overflow-hidden",
-      "data-[orientation=vertical]:h-full data-[orientation=vertical]:w-full",
-    ],
-    prevTrigger: "",
-    nextTrigger: "",
-    indicatorGroup: [
-      "flex w-full items-center justify-center gap-carousel-indicator",
     ],
     indicator: [
       "aspect-carousel-indicator w-carousel-indicator bg-carousel-indicator-bg-base",
@@ -69,101 +135,81 @@ const carouselVariants = tv({
       "rounded-carousel-indicator border border-carousel-indicator-border-base",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    autoplayIcon: ["token-icon-carousel-play", "data-[pressed=true]:token-icon-carousel-pause"],
-    autoplayTrigger: [
-      "absolute top-carousel-trigger-top right-carousel-trigger-right z-50",
-      "bg-carousel-trigger-bg-base",
+    indicatorGroup: [
+      "flex w-full items-center justify-center gap-carousel-indicator",
+    ],
+    nextTrigger: "",
+    prevTrigger: "",
+    root: ["relative overflow-hidden", "rounded-carousel"],
+    slide: [
+      "relative shrink-0",
+      "flex items-center justify-center",
+      "overflow-hidden",
+      "data-[orientation=vertical]:size-full",
+    ],
+    slideGroup: [
+      "overflow-hidden",
+      "scrollbar-hide",
+      "data-dragging:cursor-grabbing",
+      "data-[orientation=vertical]:h-full",
     ],
     spacer: ["flex-1"],
+    wrapper: ["relative w-fit"],
   },
-  compoundSlots: [
-    {
-      slots: ["autoplayTrigger", "indicator", "prevTrigger", "nextTrigger"],
-      class: [
-        "p-carousel-trigger",
-        "text-carousel-trigger-fg-base",
-        "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
-        "focus-visible:outline-carousel-ring",
-        "focus-visible:outline-offset-(length:--default-ring-offset)",
-      ],
-    },
-    {
-      slots: ["prevTrigger", "nextTrigger"],
-      class: [
-        'bg-carousel-trigger-bg-base hover:bg-carousel-trigger-bg-hover text-carousel-trigger',
-        'hover:text-carousel-trigger-fg-hover',
-        'transition-colors duration-200 motion-reduce:transition-none',
-      ],
-    },
-  ],
   variants: {
-    objectFit: {
-      cover: {
-        slide: "*:h-full *:w-full *:object-cover",
-      },
-      contain: {
-        slide: "*:h-full *:w-full *:object-contain",
-      },
-      fill: {
-        slide: "*:h-full *:w-full *:object-fill",
+    aspectRatio: {
+      landscape: {
+        slide: "data-[orientation=horizontal]:aspect-video",
+        slideGroup: "data-[orientation=vertical]:aspect-video",
       },
       none: {
         slide: "",
+        slideGroup: "",
+      },
+      portrait: {
+        slide: "data-[orientation=horizontal]:aspect-portrait",
+        slideGroup: "data-[orientation=vertical]:aspect-portrait",
+      },
+      square: {
+        slide: "data-[orientation=horizontal]:aspect-square",
+        slideGroup: "data-[orientation=vertical]:aspect-square",
+      },
+      wide: {
+        slide: "data-[orientation=horizontal]:aspect-wide",
+        slideGroup: "data-[orientation=vertical]:aspect-wide",
       },
     },
     controlPosition: {
+      bottom: {
+        control: "absolute bottom-0 left-1/2 -translate-x-1/2",
+      },
       side: {
         control: "flex-col items-center justify-between",
       },
       top: {
-        control: "-translate-x-1/2 absolute top-0 left-1/2",
-      },
-      bottom: {
-        control: "-translate-x-1/2 absolute bottom-0 left-1/2",
+        control: "absolute top-0 left-1/2 -translate-x-1/2",
       },
       unset: {},
     },
-    aspectRatio: {
-      square: {
-        slideGroup: "data-[orientation=vertical]:aspect-square",
-        slide: "data-[orientation=horizontal]:aspect-square",
+    objectFit: {
+      contain: {
+        slide: "*:size-full *:object-contain",
       },
-      landscape: {
-        slideGroup: "data-[orientation=vertical]:aspect-video",
-        slide: "data-[orientation=horizontal]:aspect-video",
+      cover: {
+        slide: "*:size-full *:object-cover",
       },
-      portrait: {
-        slideGroup: "data-[orientation=vertical]:aspect-portrait",
-        slide: "data-[orientation=horizontal]:aspect-portrait",
-      },
-      wide: {
-        slideGroup: "data-[orientation=vertical]:aspect-wide",
-        slide: "data-[orientation=horizontal]:aspect-wide",
+      fill: {
+        slide: "*:size-full *:object-fill",
       },
       none: {
-        slideGroup: "",
         slide: "",
       },
     },
     size: {
-      sm: {
+      full: {
         root: [
-          "data-[orientation=horizontal]:max-w-carousel-root-sm",
-          "data-[orientation=vertical]:max-h-carousel-root-sm",
-        ],
-        slide: [
-          "data-[orientation=horizontal]:max-w-carousel-root-sm",
-          "data-[orientation=vertical]:max-h-carousel-root-sm",
-        ],
-      },
-      md: {
-        root: [
-          "data-[orientation=horizontal]:max-w-carousel-root-md",
-          "data-[orientation=vertical]:max-h-carousel-root-md",
-        ],
-        slide: [
-          "data-[orientation=horizontal]:max-w-carousel-root-md",
-          "data-[orientation=vertical]:max-h-carousel-root-md",
+          "data-[orientation=horizontal]:w-full",
+          "data-[orientation=vertical]:h-full",
         ],
       },
       lg: {
@@ -176,105 +222,222 @@ const carouselVariants = tv({
           "data-[orientation=vertical]:max-h-carousel-root-lg",
         ],
       },
-      full: {
+      md: {
         root: [
-          "data-[orientation=horizontal]:w-full",
-          "data-[orientation=vertical]:h-full",
+          "data-[orientation=horizontal]:max-w-carousel-root-md",
+          "data-[orientation=vertical]:max-h-carousel-root-md",
+        ],
+        slide: [
+          "data-[orientation=horizontal]:max-w-carousel-root-md",
+          "data-[orientation=vertical]:max-h-carousel-root-md",
+        ],
+      },
+      sm: {
+        root: [
+          "data-[orientation=horizontal]:max-w-carousel-root-sm",
+          "data-[orientation=vertical]:max-h-carousel-root-sm",
+        ],
+        slide: [
+          "data-[orientation=horizontal]:max-w-carousel-root-sm",
+          "data-[orientation=vertical]:max-h-carousel-root-sm",
         ],
       },
     },
   },
-  defaultVariants: {
-    aspectRatio: "square",
-    objectFit: "cover",
-    size: "md",
-    controlPosition: "bottom",
-  },
 })
 
-interface CarouselContextValue {
-  api: ReturnType<typeof carousel.connect>
-  size?: "sm" | "md" | "lg" | "full"
-  objectFit?: "cover" | "contain" | "fill" | "none"
-  aspectRatio?: "square" | "landscape" | "portrait" | "wide" | "none"
-}
+type CarouselVariants = VariantProps<typeof carouselVariants>
+type CarouselSize = NonNullable<CarouselVariants["size"]>
+type CarouselObjectFit = NonNullable<CarouselVariants["objectFit"]>
+type CarouselAspectRatio = NonNullable<CarouselVariants["aspectRatio"]>
+type CarouselControlPosition = NonNullable<CarouselVariants["controlPosition"]>
 
-const CarouselContext = createContext<CarouselContextValue | null>(null)
+/*
+ * The machine api and each tailwind-variants input live in their own context so
+ * the provider never has to construct a value object on every render.
+ */
+const CarouselApiContext = createContext<Api | null>(null)
+const CarouselSizeContext = createContext<CarouselSize | undefined>(undefined)
+const CarouselObjectFitContext = createContext<CarouselObjectFit | undefined>(
+  undefined,
+)
+const CarouselAspectRatioContext = createContext<
+  CarouselAspectRatio | undefined
+>(undefined)
 
-const useCarouselContext = () => {
-  const context = useContext(CarouselContext)
-  if (!context) {
+const useCarouselApi = (): Api => {
+  const api = useContext(CarouselApiContext)
+  if (!api) {
     throw new Error("Carousel components must be used within Carousel.Root")
   }
-  return context
+  return api
 }
 
-export type CarouselSlide = {
+type SafeImageSource<Value> =
+  IsUncheckedValue<Value> extends true ? never : Value
+
+type ComponentImageSource<T extends ElementType> =
+  SafeComponentProps<T> extends { src?: infer Source }
+    ? SafeImageSource<Source>
+    : never
+
+export type CarouselSlideSource<T extends ElementType> =
+  IsUncheckedValue<T> extends true
+    ? never
+    : [T] extends [typeof Image]
+      ? ImageProps["src"]
+      : ComponentImageSource<T>
+
+type CarouselSlideImageProps<T extends ElementType> = Omit<
+  [T] extends ["img"]
+    ? ImageProps
+    : [T] extends [typeof Image]
+      ? ImageProps
+      : SafeComponentProps<T>,
+  "alt" | "src"
+>
+
+type ImagePropsRequirement<Value> =
+  RequiredPropertyKeys<Value> extends never
+    ? { imageProps?: Value | undefined }
+    : { imageProps: Value }
+
+type SupportsStringSourceSizing<T extends ElementType> =
+  AcceptsInjectedProperty<CarouselSlideImageProps<T>, "fill", true> extends true
+    ? [SafeProperty<CarouselSlideImageProps<T>, "width">] extends [never]
+      ? false
+      : [SafeProperty<CarouselSlideImageProps<T>, "height">] extends [never]
+        ? false
+        : true
+    : false
+
+type CarouselSizedStringImageProps<T extends ElementType> = Omit<
+  CarouselSlideImageProps<T>,
+  "fill" | "height" | "width"
+> &
+  (
+    | { fill: true; height?: never; width?: never }
+    | {
+        fill?: false | undefined
+        height: Exclude<
+          SafeProperty<CarouselSlideImageProps<T>, "height">,
+          null | undefined
+        >
+        width: Exclude<
+          SafeProperty<CarouselSlideImageProps<T>, "width">,
+          null | undefined
+        >
+      }
+  )
+
+interface CarouselSlideBase<T extends ElementType> {
   id: string
-  content?: ReactNode
-  src?: string
-  alt?: string
-  imageProps?: Record<string, unknown>
+  alt?: string | undefined
+  src?: CarouselSlideSource<T> | undefined
 }
+
+type CarouselContentSlide<T extends ElementType> = CarouselSlideBase<T> & {
+  content: Exclude<ReactNode, undefined>
+  imageProps?: CarouselSlideImageProps<T> | undefined
+}
+
+type CarouselImageSlideForSource<
+  T extends ElementType,
+  Source,
+> = Source extends string
+  ? { src: Source } & (SupportsStringSourceSizing<T> extends true
+      ? { imageProps: CarouselSizedStringImageProps<T> }
+      : ImagePropsRequirement<CarouselSlideImageProps<T>>)
+  : { src: Source } & ImagePropsRequirement<CarouselSlideImageProps<T>>
+
+type CarouselImageSlide<T extends ElementType> = Omit<
+  CarouselSlideBase<T>,
+  "src"
+> & {
+  content?: undefined
+} & CarouselImageSlideForSource<
+    T,
+    Exclude<CarouselSlideSource<T>, null | undefined>
+  >
+
+export type CarouselSlide<T extends ElementType = typeof Image> =
+  | CarouselContentSlide<T>
+  | CarouselImageSlide<T>
 
 type CarouselDimension = CSSProperties["width"]
 
-export interface CarouselRootProps<T extends ElementType = typeof Image>
-  extends Omit<VariantProps<typeof carouselVariants>, "controlPosition">,
-    Omit<carousel.Props, "id" | "size"> {
-  id?: string
-  className?: string
+interface CarouselRootPropsBase<T extends ElementType>
+  extends
+    Omit<CarouselVariants, "controlPosition">,
+    Omit<ZagCarouselProps, "id" | "size"> {
+  id?: string | undefined
+  className?: string | undefined
   children: ReactNode
-  imageAs?: CarouselImageComponent<T>
-  width?: CarouselDimension
-  height?: CarouselDimension
+  imageAs?: CarouselImageComponent<T> | undefined
+  width?: CarouselDimension | undefined
+  height?: CarouselDimension | undefined
 }
 
-interface CarouselSlidesProps {
-  slides: CarouselSlide[]
-  size?: "sm" | "md" | "lg" | "full"
-  imageAs?: ElementType
-  className?: string
+export type CarouselRootProps<T extends ElementType = typeof Image> =
+  CarouselRootPropsBase<T>
+
+interface CarouselSlidesBaseProps<T extends ElementType> {
+  slides: NoInfer<CarouselSlide<T>>[]
+  size?: CarouselSize | undefined
+  className?: string | undefined
 }
+
+interface CarouselInheritedSlidesProps<
+  T extends ElementType,
+> extends CarouselSlidesBaseProps<T> {
+  imageAs?: CarouselImageComponent<T> | undefined
+  rendererCapability: typeof rendererCapability
+}
+
+export type CarouselSlidesProps<T extends ElementType = typeof Image> =
+  | (CarouselSlidesBaseProps<T> & { imageAs: CarouselImageRenderer<T> })
+  | (IsDefaultImageComponent<T> extends true
+      ? CarouselSlidesBaseProps<T> & { imageAs?: undefined }
+      : never)
 
 interface CarouselSlideProps {
   index: number
   children: ReactNode
-  size?: "sm" | "md" | "lg" | "full"
-  className?: string
+  size?: CarouselSize | undefined
+  className?: string | undefined
 }
 
 interface CarouselPreviousProps {
-  className?: string
-  icon?: IconType
+  className?: string | undefined
+  icon?: IconType | undefined
 }
 
 interface CarouselNextProps {
-  className?: string
-  icon?: IconType
+  className?: string | undefined
+  icon?: IconType | undefined
 }
 
 interface CarouselIndicatorsProps {
-  className?: string
+  className?: string | undefined
 }
 
 interface CarouselIndicatorProps {
   index: number
-  className?: string
-  children?: ReactNode
+  className?: string | undefined
+  children?: ReactNode | undefined
 }
 
 interface CarouselAutoplayProps {
-  className?: string
+  className?: string | undefined
 }
 
 interface CarouselControlProps {
   children: ReactNode
-  className?: string
-  controlPosition?: "top" | "bottom" | "side" | "unset"
+  className?: string | undefined
+  controlPosition?: CarouselControlPosition | undefined
 }
 
-export function Carousel<T extends ElementType = typeof Image>({
+export const Carousel = <T extends ElementType = typeof Image>({
   id,
   /* Tailwind variants */
   size,
@@ -282,7 +445,7 @@ export function Carousel<T extends ElementType = typeof Image>({
   aspectRatio,
   /* Zag.js carousel config */
   orientation = "horizontal",
-  slideCount = 1,
+  slideCount,
   loop = true,
   autoplay = false,
   allowMouseDrag = true,
@@ -299,118 +462,77 @@ export function Carousel<T extends ElementType = typeof Image>({
   height,
   onPageChange,
   ...props
-}: CarouselRootProps<T>) {
+}: CarouselRootProps<T>) => {
   const fallbackId = useId()
-  const service = useMachine(carousel.machine, {
-    id: id ?? fallbackId,
-    slideCount,
-    autoplay,
-    orientation,
+  const machineProps = Object.fromEntries(
+    Object.entries(props).filter(([, option]) => option !== undefined),
+  )
+  const service = useMachine(machine, {
     allowMouseDrag,
-    loop,
-    slidesPerPage,
-    slidesPerMove,
-    spacing,
-    padding,
+    autoplay,
     dir,
+    id: id ?? fallbackId,
+    loop,
+    orientation,
+    padding,
+    slideCount,
+    slidesPerMove,
+    slidesPerPage,
     snapType,
-    onPageChange,
-    ...props,
+    spacing,
+    ...(onPageChange !== undefined && { onPageChange }),
+    ...machineProps,
   })
 
-  const api = carousel.connect(service, normalizeProps)
-  const { wrapper, root } = carouselVariants({ size, objectFit, aspectRatio })
+  const api = connect(service, normalizeProps)
+  const { wrapper, root } = carouselVariants({ aspectRatio, objectFit, size })
   const rootProps = api.getRootProps()
-  const resolvedRootStyle = {
-    ...(rootProps.style as CSSProperties),
-    ...(width !== undefined ? { width } : {}),
-    ...(height !== undefined ? { height } : {}),
+  const resolvedRootStyle: CSSProperties = {
+    ...rootProps.style,
+    ...(width === undefined ? {} : { width }),
+    ...(height === undefined ? {} : { height }),
   }
-  const resolvedWrapperStyle = {
+  const resolvedWrapperStyle: CSSProperties = {
     ...(size === "full" ? { width: "100%" } : {}),
-    ...(width !== undefined ? { width } : {}),
+    ...(width === undefined ? {} : { width }),
   }
 
   return (
-    <CarouselContext.Provider value={{ api, size, objectFit, aspectRatio }}>
-      <div className={wrapper()} style={resolvedWrapperStyle}>
-        <div
-          {...rootProps}
-          className={root({ className })}
-          style={resolvedRootStyle}
-        >
-          {children}
-        </div>
-      </div>
-    </CarouselContext.Provider>
+    <CarouselApiContext.Provider value={api}>
+      <CarouselSizeContext.Provider value={size}>
+        <CarouselObjectFitContext.Provider value={objectFit}>
+          <CarouselAspectRatioContext.Provider value={aspectRatio}>
+            <div className={wrapper()} style={resolvedWrapperStyle}>
+              <div
+                {...rootProps}
+                className={root({ className })}
+                style={resolvedRootStyle}
+              >
+                {children}
+              </div>
+            </div>
+          </CarouselAspectRatioContext.Provider>
+        </CarouselObjectFitContext.Provider>
+      </CarouselSizeContext.Provider>
+    </CarouselApiContext.Provider>
   )
 }
 
-Carousel.Slides = function CarouselSlides({
-  slides,
-  size: overrideSize,
-  imageAs,
-  className,
-}: CarouselSlidesProps) {
-  const {
-    api,
-    size: contextSize,
-    objectFit,
-    aspectRatio,
-  } = useCarouselContext()
-  const size = overrideSize ?? contextSize
-  const { slideGroup } = carouselVariants({
-    size,
-    objectFit,
-    aspectRatio,
-  })
-  const hasCustomImageComponent = imageAs && imageAs !== Image
-  const CustomImageComponent = hasCustomImageComponent
-    ? (imageAs as ElementType)
-    : Image
-
-  return (
-    <div className={slideGroup({ className })} {...api.getItemGroupProps()}>
-      {slides.map((slide, index) => (
-        <Carousel.Slide index={index} key={slide.id}>
-          {slide.content || (
-            hasCustomImageComponent ? (
-              <CustomImageComponent
-                alt={slide.alt || ""}
-                src={slide.src || ""}
-                {...slide.imageProps}
-              />
-            ) : (
-              <Image
-                alt={slide.alt || ""}
-                src={slide.src || ""}
-                {...slide.imageProps}
-              />
-            )
-          )}
-        </Carousel.Slide>
-      ))}
-    </div>
-  )
-}
-
-Carousel.Slide = function CarouselSlide({
+const CarouselSlide = ({
   index,
   children,
   size: overrideSize,
   className,
-}: CarouselSlideProps) {
-  const {
-    api,
-    size: contextSize,
-    objectFit,
-    aspectRatio,
-  } = useCarouselContext()
+}: CarouselSlideProps) => {
+  const api = useCarouselApi()
+  const contextSize = useContext(CarouselSizeContext)
+  const objectFit = useContext(CarouselObjectFitContext)
+  const aspectRatio = useContext(CarouselAspectRatioContext)
   const size = overrideSize ?? contextSize
   const { slide: slideSlot } = carouselVariants({
-    size,
-    objectFit,
     aspectRatio,
+    objectFit,
+    size,
   })
   const itemProps = api.getItemProps({ index })
 
@@ -421,11 +543,62 @@ Carousel.Slide = function CarouselSlide({
   )
 }
 
-Carousel.Previous = function CarouselPrevious({
+/** @internal */
+export const CarouselInheritedSlides = <T extends ElementType = typeof Image>({
+  slides,
+  size: overrideSize,
+  imageAs,
   className,
-  icon = "token-icon-carousel-prev" as IconType,
-}: CarouselPreviousProps) {
-  const { api } = useCarouselContext()
+  rendererCapability: providedRendererCapability,
+}: CarouselInheritedSlidesProps<T>) => {
+  if (providedRendererCapability !== rendererCapability) {
+    throw new Error("Carousel inherited renderer capability is invalid")
+  }
+  const api = useCarouselApi()
+  const contextSize = useContext(CarouselSizeContext)
+  const objectFit = useContext(CarouselObjectFitContext)
+  const aspectRatio = useContext(CarouselAspectRatioContext)
+  const size = overrideSize ?? contextSize
+  const { slideGroup } = carouselVariants({
+    aspectRatio,
+    objectFit,
+    size,
+  })
+  const SlideImage = imageAs ?? Image
+
+  return (
+    <div className={slideGroup({ className })} {...api.getItemGroupProps()}>
+      {slides.map((slide, index) => (
+        <CarouselSlide index={index} key={slide.id}>
+          {slide.content === undefined ? (
+            <SlideImage
+              {...slide.imageProps}
+              alt={slide.alt ?? ""}
+              src={slide.src}
+            />
+          ) : (
+            slide.content
+          )}
+        </CarouselSlide>
+      ))}
+    </div>
+  )
+}
+
+const CarouselSlides = <T extends ElementType = typeof Image>(
+  props: CarouselSlidesProps<T>,
+) => (
+  <CarouselInheritedSlides<T>
+    {...props}
+    rendererCapability={rendererCapability}
+  />
+)
+
+const CarouselPrevious = ({
+  className,
+  icon = "token-icon-carousel-prev",
+}: CarouselPreviousProps) => {
+  const api = useCarouselApi()
   const { prevTrigger } = carouselVariants()
 
   return (
@@ -437,11 +610,11 @@ Carousel.Previous = function CarouselPrevious({
   )
 }
 
-Carousel.Next = function CarouselNext({
+const CarouselNext = ({
   className,
-  icon = "token-icon-carousel-next" as IconType,
-}: CarouselNextProps) {
-  const { api } = useCarouselContext()
+  icon = "token-icon-carousel-next",
+}: CarouselNextProps) => {
+  const api = useCarouselApi()
   const { nextTrigger } = carouselVariants()
 
   return (
@@ -453,15 +626,16 @@ Carousel.Next = function CarouselNext({
   )
 }
 
-Carousel.Indicators = function CarouselIndicators({
+const CarouselIndicators = ({
   className,
   children,
-}: CarouselIndicatorsProps & { children?: ReactNode }) {
-  const { api } = useCarouselContext()
+}: CarouselIndicatorsProps & { children?: ReactNode }) => {
+  const api = useCarouselApi()
   const { indicatorGroup, indicator } = carouselVariants()
+  const hasChildren = Boolean(children)
 
   // If children are provided, render them (custom indicators)
-  if (children) {
+  if (hasChildren) {
     return (
       <div
         className={indicatorGroup({ className })}
@@ -477,7 +651,7 @@ Carousel.Indicators = function CarouselIndicators({
       className={indicatorGroup({ className })}
       {...api.getIndicatorGroupProps()}
     >
-      {api.pageSnapPoints.map((_, index) => (
+      {Array.from({ length: api.pageSnapPoints.length }, (_, index) => (
         <Button
           className={indicator()}
           key={`indicator-${index}`}
@@ -490,12 +664,12 @@ Carousel.Indicators = function CarouselIndicators({
   )
 }
 
-Carousel.Indicator = function CarouselIndicator({
+const CarouselIndicator = ({
   index,
   className,
   children,
-}: CarouselIndicatorProps) {
-  const { api } = useCarouselContext()
+}: CarouselIndicatorProps) => {
+  const api = useCarouselApi()
   const { indicator } = carouselVariants()
 
   return (
@@ -510,27 +684,27 @@ Carousel.Indicator = function CarouselIndicator({
   )
 }
 
-Carousel.Autoplay = function CarouselAutoplay({
-  className,
-}: CarouselAutoplayProps) {
-  const { api } = useCarouselContext()
+const CarouselAutoplay = ({ className }: CarouselAutoplayProps) => {
+  const api = useCarouselApi()
   const { autoplayTrigger: autoplayTriggerSlot } = carouselVariants()
 
   return (
     <Button
       className={autoplayTriggerSlot({ className })}
-      icon={api.isPlaying ? "token-icon-carousel-pause" : "token-icon-carousel-play"}
+      icon={
+        api.isPlaying ? "token-icon-carousel-pause" : "token-icon-carousel-play"
+      }
       {...api.getAutoplayTriggerProps()}
     />
   )
 }
 
-Carousel.Control = function CarouselControl({
+const CarouselControl = ({
   children,
   className,
   controlPosition,
-}: CarouselControlProps) {
-  const { api } = useCarouselContext()
+}: CarouselControlProps) => {
+  const api = useCarouselApi()
   const { control } = carouselVariants({ controlPosition })
 
   return (
@@ -540,4 +714,13 @@ Carousel.Control = function CarouselControl({
   )
 }
 
+Carousel.Slide = CarouselSlide
+Carousel.Slides = CarouselSlides
+Carousel.Previous = CarouselPrevious
+Carousel.Next = CarouselNext
+Carousel.Indicators = CarouselIndicators
+Carousel.Indicator = CarouselIndicator
+Carousel.Autoplay = CarouselAutoplay
+Carousel.Control = CarouselControl
 Carousel.Root = Carousel
+Carousel.displayName = "Carousel"

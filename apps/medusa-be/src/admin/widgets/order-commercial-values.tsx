@@ -11,15 +11,13 @@ import {
   Text,
   toast,
 } from "@medusajs/ui"
-import {
-  type QueryClient,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type { QueryClient } from "@tanstack/react-query"
 import type { TFunction } from "i18next"
-import { type CSSProperties, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+import type { CSSProperties } from "react"
 import { useTranslation } from "react-i18next"
+
 import type {
   CommercialDiscountIntent,
   CommercialValuesConfirmResponse as CommercialValuesConfirmPayload,
@@ -28,34 +26,34 @@ import type {
 } from "../../utils/order-commercial-values"
 import { sdk } from "../lib/sdk"
 
-type CommercialValuesSnapshotResponse = {
+interface CommercialValuesSnapshotResponse {
   commercial_values: CommercialValuesSnapshot
 }
 
-type CommercialValuesPreviewResponse = {
+interface CommercialValuesPreviewResponse {
   preview: CommercialValuesPreview
 }
 
-type CommercialValuesConfirmResponse = {
+interface CommercialValuesConfirmResponse {
   commercial_values: CommercialValuesConfirmPayload
 }
 
 type DraftDiscountType = "none" | "percentage" | "amount"
 
-type DraftItem = {
+interface DraftItem {
   discount_type: DraftDiscountType
   discount_value: string
   item_id: string
   unit_price: string
 }
 
-type DraftShippingMethod = {
+interface DraftShippingMethod {
   discount_type: DraftDiscountType
   discount_value: string
   shipping_method_id: string
 }
 
-type DraftState = {
+interface DraftState {
   internal_note: string
   items: DraftItem[]
   order_discount_type: DraftDiscountType
@@ -64,12 +62,26 @@ type DraftState = {
 }
 
 type CommercialValuesWidgetProps = Partial<DetailWidgetProps<AdminOrder>>
-type CommercialValuesPayload = NonNullable<ReturnType<typeof buildPayload>>
+interface CommercialValuesPayload {
+  confirmation_mode?: "confirm" | "request"
+  expected_order_version: CommercialValuesSnapshot["expected_order_version"]
+  internal_note?: string
+  items: {
+    discount: CommercialDiscountIntent | null
+    item_id: string
+    unit_price: number
+  }[]
+  order_discount: CommercialDiscountIntent | null
+  shipping_methods: {
+    discount: CommercialDiscountIntent | null
+    shipping_method_id: string
+  }[]
+}
 type CommercialValuesPreviewPayload = Omit<
   CommercialValuesPayload,
   "confirmation_mode" | "internal_note"
 >
-type CommercialValuesPreviewVariables = {
+interface CommercialValuesPreviewVariables {
   key: string
   payload: CommercialValuesPreviewPayload
 }
@@ -78,37 +90,41 @@ const QUERY_KEY_PREFIX = "order-commercial-values"
 const MANUAL_ITEM_DISCOUNT_CODE = "manual_item_discount"
 const MANUAL_ORDER_DISCOUNT_CODE = "manual_order_discount"
 const MANUAL_SHIPPING_DISCOUNT_CODE = "manual_shipping_discount"
-const ITEM_INITIALS_SEPARATOR = /\s+/
+const ITEM_INITIALS_SEPARATOR = /\s+/u
 const DRAWER_CONTENT_STYLE = {
   maxWidth: "min(1040px, calc(100vw - 32px))",
   width: "min(1040px, calc(100vw - 32px))",
 } satisfies CSSProperties
 
-function isDraftDiscountType(value: string): value is DraftDiscountType {
-  return value === "none" || value === "percentage" || value === "amount"
-}
+const isDraftDiscountType = (value: string): value is DraftDiscountType =>
+  value === "none" || value === "percentage" || value === "amount"
 
-function invalidateMedusaAdminOrderQueries(
+const isNonEmptyString = (value: string | null | undefined): value is string =>
+  typeof value === "string" && value !== ""
+
+const invalidateMedusaAdminOrderQueries = async (
   queryClient: QueryClient,
-  orderId: string
-) {
+  orderId: string,
+) => {
   const orderDetailQueryKey = ["orders", "detail", orderId] as const
 
-  queryClient.invalidateQueries({ queryKey: ["orders"] })
-  queryClient.invalidateQueries({ queryKey: orderDetailQueryKey })
+  await queryClient.invalidateQueries({ queryKey: ["orders"] })
+  await queryClient.invalidateQueries({ queryKey: orderDetailQueryKey })
   // Medusa dashboard derives preview/change/line-item keys from a nested detail key.
-  queryClient.invalidateQueries({ queryKey: [orderDetailQueryKey] })
+  await queryClient.invalidateQueries({ queryKey: [orderDetailQueryKey] })
 }
 
-function getIntlLocale(language?: string) {
-  return (language || "en").replace(/([a-z])([A-Z])/g, "$1-$2")
-}
+const getIntlLocale = (language?: string) =>
+  (language ?? "en").replaceAll(
+    /(?<lowercase>[a-z])(?<uppercase>[A-Z])/gu,
+    "$<lowercase>-$<uppercase>",
+  )
 
-function formatMoney(
+const formatMoney = (
   value: number | undefined,
   currencyCode: string,
-  locale: string
-) {
+  locale: string,
+) => {
   if (value === undefined || !Number.isFinite(value)) {
     return "-"
   }
@@ -119,40 +135,66 @@ function formatMoney(
   }).format(value)
 }
 
-function formatQuantity(value: number, locale: string) {
-  return new Intl.NumberFormat(locale, {
+const MAX_QUANTITY_FORMATTERS = 32
+const QUANTITY_FORMATTERS = new Map<string, Intl.NumberFormat>()
+
+const getQuantityFormatter = (locale: string) => {
+  const cachedFormatter = QUANTITY_FORMATTERS.get(locale)
+  if (cachedFormatter !== undefined) {
+    QUANTITY_FORMATTERS.delete(locale)
+    QUANTITY_FORMATTERS.set(locale, cachedFormatter)
+    return cachedFormatter
+  }
+
+  const formatter = Intl.NumberFormat(locale, {
     maximumFractionDigits: 3,
-  }).format(value)
+  })
+  if (QUANTITY_FORMATTERS.size >= MAX_QUANTITY_FORMATTERS) {
+    const oldestLocale = QUANTITY_FORMATTERS.keys().next().value
+    if (oldestLocale !== undefined) {
+      QUANTITY_FORMATTERS.delete(oldestLocale)
+    }
+  }
+  QUANTITY_FORMATTERS.set(locale, formatter)
+  return formatter
 }
 
-function getItemDisplayName(
+const formatQuantity = (value: number, locale: string) =>
+  getQuantityFormatter(locale).format(value)
+
+const getItemDisplayName = (
   item: CommercialValuesSnapshot["items"][number],
-  fallbackName: string
-) {
+  fallbackName: string,
+) => {
   const variantTitle =
-    item.variant_title && item.product_title !== item.variant_title
+    isNonEmptyString(item.variant_title) &&
+    item.product_title !== item.variant_title
       ? item.variant_title
       : undefined
+  const productAndVariant = [item.product_title, variantTitle]
+    .filter(isNonEmptyString)
+    .join(" / ")
 
-  return (
-    item.title ||
-    [item.product_title, variantTitle].filter(Boolean).join(" / ") ||
-    item.product_title ||
-    fallbackName
-  )
+  if (isNonEmptyString(item.title)) {
+    return item.title
+  }
+  if (productAndVariant !== "") {
+    return productAndVariant
+  }
+  return isNonEmptyString(item.product_title)
+    ? item.product_title
+    : fallbackName
 }
 
-function getItemMetadata(
+const getItemMetadata = (
   item: CommercialValuesSnapshot["items"][number],
-  skuLabel: string | null
-) {
-  return [item.subtitle, skuLabel].filter(Boolean).join(" · ")
-}
+  skuLabel: string | null,
+) => [item.subtitle, skuLabel].filter(isNonEmptyString).join(" · ")
 
-function getItemInitials(
+const getItemInitials = (
   item: CommercialValuesSnapshot["items"][number],
-  fallbackName: string
-) {
+  fallbackName: string,
+) => {
   const initials = getItemDisplayName(item, fallbackName)
     .split(ITEM_INITIALS_SEPARATOR)
     .filter(Boolean)
@@ -160,13 +202,13 @@ function getItemInitials(
     .map((part) => part[0]?.toUpperCase())
     .join("")
 
-  return initials || "IT"
+  return initials === "" ? "IT" : initials
 }
 
-function getEditBlockerMessage(
+const getEditBlockerMessage = (
   blocker: CommercialValuesSnapshot["edit_blockers"][number] | string,
-  t: TFunction
-) {
+  t: TFunction,
+) => {
   if (typeof blocker === "string") {
     return blocker
   }
@@ -186,87 +228,102 @@ function getEditBlockerMessage(
   return t("orderCommercialValues.blockers.unknown")
 }
 
-function getDraftLineTotal(item: DraftItem, quantity: number) {
+const parseAmount = (value: string): number | undefined => {
+  const trimmed = value.trim()
+
+  if (trimmed === "") {
+    return undefined
+  }
+
+  const parsed = Number(trimmed)
+
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return undefined
+  }
+
+  return parsed
+}
+
+const getDraftLineTotal = (item: DraftItem, quantity: number) => {
   const unitPrice = parseAmount(item.unit_price)
 
   return unitPrice === undefined ? undefined : unitPrice * quantity
 }
 
-function getManualAdjustmentAmount(
+const getManualAdjustmentAmount = (
   target: {
     existing_adjustments: CommercialValuesSnapshot["items"][number]["existing_adjustments"]
   },
-  code: string
-) {
-  return target.existing_adjustments
+  code: string,
+) =>
+  target.existing_adjustments
     .filter((adjustment) => adjustment.code === code)
     .reduce((total, adjustment) => total + adjustment.amount, 0)
-}
 
-function getManualDiscount(
+const getManualDiscount = (
   target: {
     existing_adjustments: CommercialValuesSnapshot["items"][number]["existing_adjustments"]
   },
-  code: string
-): CommercialDiscountIntent | null {
+  code: string,
+): CommercialDiscountIntent | null => {
   const adjustments = target.existing_adjustments.filter(
-    (adjustment) => adjustment.code === code
+    (adjustment) => adjustment.code === code,
   )
   const intent = adjustments.find(
-    (adjustment) => adjustment.discount_intent
+    (adjustment) => adjustment.discount_intent,
   )?.discount_intent
 
-  if (intent) {
+  if (intent !== undefined && intent !== null) {
     return intent
   }
 
   const amount = adjustments.reduce(
     (total, adjustment) => total + adjustment.amount,
-    0
+    0,
   )
 
   return amount > 0 ? { amount, type: "amount" } : null
 }
 
-function getSnapshotOrderDiscount(snapshot: CommercialValuesSnapshot) {
+const getSnapshotOrderDiscount = (snapshot: CommercialValuesSnapshot) => {
   const orderAdjustments = [
     ...snapshot.items.flatMap((item) =>
       item.existing_adjustments.filter(
-        (adjustment) => adjustment.code === MANUAL_ORDER_DISCOUNT_CODE
-      )
+        (adjustment) => adjustment.code === MANUAL_ORDER_DISCOUNT_CODE,
+      ),
     ),
     ...snapshot.shipping_methods.flatMap((shippingMethod) =>
       shippingMethod.existing_adjustments.filter(
-        (adjustment) => adjustment.code === MANUAL_ORDER_DISCOUNT_CODE
-      )
+        (adjustment) => adjustment.code === MANUAL_ORDER_DISCOUNT_CODE,
+      ),
     ),
   ]
   const intent = orderAdjustments.find(
-    (adjustment) => adjustment.discount_intent
+    (adjustment) => adjustment.discount_intent,
   )?.discount_intent
 
-  if (intent) {
+  if (intent !== undefined && intent !== null) {
     return intent
   }
 
   const itemAmount = snapshot.items.reduce(
     (total, item) =>
       total + getManualAdjustmentAmount(item, MANUAL_ORDER_DISCOUNT_CODE),
-    0
+    0,
   )
   const shippingAmount = snapshot.shipping_methods.reduce(
     (total, shippingMethod) =>
       total +
       getManualAdjustmentAmount(shippingMethod, MANUAL_ORDER_DISCOUNT_CODE),
-    0
+    0,
   )
   const amount = itemAmount + shippingAmount
 
   return amount > 0 ? { amount, type: "amount" as const } : null
 }
 
-function toDraftDiscount(discount: CommercialDiscountIntent | null) {
-  if (!discount) {
+const toDraftDiscount = (discount: CommercialDiscountIntent | null) => {
+  if (discount === null) {
     return {
       discount_type: "none" as const,
       discount_value: "",
@@ -286,7 +343,7 @@ function toDraftDiscount(discount: CommercialDiscountIntent | null) {
   }
 }
 
-function createDraft(snapshot: CommercialValuesSnapshot): DraftState {
+const createDraft = (snapshot: CommercialValuesSnapshot): DraftState => {
   const snapshotOrderDiscount = getSnapshotOrderDiscount(snapshot)
 
   return {
@@ -307,7 +364,7 @@ function createDraft(snapshot: CommercialValuesSnapshot): DraftState {
     shipping_methods: snapshot.shipping_methods.map((shippingMethod) => {
       const shippingDiscount = getManualDiscount(
         shippingMethod,
-        MANUAL_SHIPPING_DISCOUNT_CODE
+        MANUAL_SHIPPING_DISCOUNT_CODE,
       )
       const draftDiscount = toDraftDiscount(shippingDiscount)
 
@@ -320,38 +377,22 @@ function createDraft(snapshot: CommercialValuesSnapshot): DraftState {
   }
 }
 
-function parseAmount(value: string) {
-  const trimmed = value.trim()
-
-  if (!trimmed) {
-    return
-  }
-
-  const parsed = Number(trimmed)
-
-  if (!Number.isFinite(parsed) || parsed < 0) {
-    return
-  }
-
-  return parsed
-}
-
-function parseDiscount(
+const parseDiscount = (
   type: DraftDiscountType,
-  value: string
-): CommercialDiscountIntent | null | undefined {
+  value: string,
+): CommercialDiscountIntent | null | undefined => {
   if (type === "none") {
     return null
   }
 
   const parsed = parseAmount(value)
   if (parsed === undefined) {
-    return
+    return undefined
   }
 
   if (type === "percentage") {
     if (parsed > 100) {
-      return
+      return undefined
     }
 
     return {
@@ -366,11 +407,11 @@ function parseDiscount(
   }
 }
 
-function buildPayload(
+const buildPayload = (
   draft: DraftState,
   snapshot: CommercialValuesSnapshot,
-  confirmationMode?: "confirm" | "request"
-) {
+  confirmationMode?: "confirm" | "request",
+): CommercialValuesPayload | null => {
   const parsedItems = draft.items.map((item) => ({
     discount: parseDiscount(item.discount_type, item.discount_value),
     item_id: item.item_id,
@@ -383,33 +424,33 @@ function buildPayload(
         item.unit_price === undefined ||
         item.discount === undefined ||
         (draft.items[index]?.discount_type !== "none" &&
-          draft.items[index]?.discount_value.trim() === "")
+          draft.items[index]?.discount_value.trim() === ""),
     )
   ) {
-    return
+    return null
   }
 
   const validParsedItems = parsedItems.filter(
     (
-      item
+      item,
     ): item is {
       discount: CommercialDiscountIntent | null
       item_id: string
       unit_price: number
-    } => item.discount !== undefined && item.unit_price !== undefined
+    } => item.discount !== undefined && item.unit_price !== undefined,
   )
 
   if (validParsedItems.length !== parsedItems.length) {
-    return
+    return null
   }
   const parsedShippingMethods = draft.shipping_methods.map(
     (shippingMethod) => ({
       discount: parseDiscount(
         shippingMethod.discount_type,
-        shippingMethod.discount_value
+        shippingMethod.discount_value,
       ),
       shipping_method_id: shippingMethod.shipping_method_id,
-    })
+    }),
   )
 
   if (
@@ -417,23 +458,23 @@ function buildPayload(
       (shippingMethod, index) =>
         shippingMethod.discount === undefined ||
         (draft.shipping_methods[index]?.discount_type !== "none" &&
-          draft.shipping_methods[index]?.discount_value.trim() === "")
+          draft.shipping_methods[index]?.discount_value.trim() === ""),
     )
   ) {
-    return
+    return null
   }
 
   const validParsedShippingMethods = parsedShippingMethods.filter(
     (
-      shippingMethod
+      shippingMethod,
     ): shippingMethod is {
       discount: CommercialDiscountIntent | null
       shipping_method_id: string
-    } => shippingMethod.discount !== undefined
+    } => shippingMethod.discount !== undefined,
   )
 
   if (validParsedShippingMethods.length !== parsedShippingMethods.length) {
-    return
+    return null
   }
 
   const items = validParsedItems.map((item) => ({
@@ -447,83 +488,52 @@ function buildPayload(
   }))
   const orderDiscount = parseDiscount(
     draft.order_discount_type,
-    draft.order_discount_value
+    draft.order_discount_value,
   )
   if (
     orderDiscount === undefined ||
     (draft.order_discount_type !== "none" &&
       draft.order_discount_value.trim() === "")
   ) {
-    return
+    return null
   }
 
-  const payload = {
-    expected_order_version: snapshot.expected_order_version,
-    internal_note: draft.internal_note.trim() || undefined,
-    items,
-    shipping_methods: shippingMethods,
-  }
+  const internalNote = draft.internal_note.trim()
 
   return {
-    ...payload,
+    expected_order_version: snapshot.expected_order_version,
+    items,
     order_discount: orderDiscount,
+    shipping_methods: shippingMethods,
+    ...(internalNote === "" ? {} : { internal_note: internalNote }),
     ...(confirmationMode ? { confirmation_mode: confirmationMode } : {}),
   }
 }
 
-function getItemPreview(
+const getItemPreview = (
   preview: CommercialValuesPreview | undefined,
-  itemId: string
-) {
-  return preview?.items.find((item) => item.item_id === itemId)
-}
+  itemId: string,
+) => preview?.items.find((item) => item.item_id === itemId)
 
-function getShippingMethodPreview(
+const getShippingMethodPreview = (
   preview: CommercialValuesPreview | undefined,
-  shippingMethodId: string
-) {
-  return preview?.shipping_methods.find(
-    (shippingMethod) => shippingMethod.shipping_method_id === shippingMethodId
+  shippingMethodId: string,
+) =>
+  preview?.shipping_methods.find(
+    (shippingMethod) => shippingMethod.shipping_method_id === shippingMethodId,
   )
-}
 
-function getPreviewPayloadKey(payload: CommercialValuesPayload) {
-  return stableStringify(toPreviewPayload(payload))
-}
+const toPreviewPayload = (
+  payload: CommercialValuesPayload,
+): CommercialValuesPreviewPayload => ({
+  expected_order_version: payload.expected_order_version,
+  items: payload.items,
+  order_discount: payload.order_discount,
+  shipping_methods: payload.shipping_methods,
+})
 
-function toPreviewPayload(
-  payload: CommercialValuesPayload
-): CommercialValuesPreviewPayload {
-  const {
-    confirmation_mode: _confirmationMode,
-    internal_note: _internalNote,
-    ...previewPayload
-  } = payload as CommercialValuesPayload & {
-    confirmation_mode?: unknown
-  }
-
-  return previewPayload
-}
-
-function stableStringify(value: unknown) {
-  return JSON.stringify(toStableJsonValue(value))
-}
-
-function toStableJsonValue(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map(toStableJsonValue)
-  }
-
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, entry]) => [key, toStableJsonValue(entry)])
-    )
-  }
-
-  return value
-}
+const getPreviewPayloadKey = (payload: CommercialValuesPayload) =>
+  JSON.stringify(toPreviewPayload(payload))
 
 const DiscountControls = ({
   className = "",
@@ -547,7 +557,7 @@ const DiscountControls = ({
       className={`grid min-w-0 grid-cols-[116px_minmax(96px,1fr)] items-center gap-2 ${className}`}
     >
       <Select
-        disabled={disabled}
+        disabled={disabled ?? false}
         onValueChange={(next) => {
           if (isDraftDiscountType(next)) {
             onTypeChange(next)
@@ -569,14 +579,153 @@ const DiscountControls = ({
         </Select.Content>
       </Select>
       <Input
-        disabled={disabled || type === "none"}
+        disabled={disabled === true || type === "none"}
         min={0}
-        onChange={(event) => onValueChange(event.target.value)}
+        onChange={(event) => {
+          onValueChange(event.target.value)
+        }}
         placeholder={type === "percentage" ? "0-100" : "0"}
         step="any"
         type="number"
         value={type === "none" ? "" : value}
       />
+    </div>
+  )
+}
+
+const CommercialItems = ({
+  draft,
+  locale,
+  preview,
+  snapshot,
+  updateItem,
+}: {
+  draft: DraftState
+  locale: string
+  preview: CommercialValuesPreview | undefined
+  snapshot: CommercialValuesSnapshot
+  updateItem: (itemId: string, patch: Partial<DraftItem>) => void
+}) => {
+  const { t } = useTranslation()
+
+  return (
+    <div className="flex flex-col gap-3">
+      {snapshot.items.map((item) => {
+        const draftItem = draft.items.find(
+          (candidate) => candidate.item_id === item.item_id,
+        )
+        const itemPreview = getItemPreview(preview, item.item_id)
+        const fallbackName = t("orderCommercialValues.item.fallbackName")
+        const metadata = getItemMetadata(
+          item,
+          isNonEmptyString(item.variant_sku)
+            ? t("orderCommercialValues.item.sku", {
+                sku: item.variant_sku,
+              })
+            : null,
+        )
+
+        if (!draftItem) {
+          return null
+        }
+
+        return (
+          <div
+            className="rounded-lg border border-ui-border-base bg-ui-bg-base p-4 shadow-elevation-card-rest"
+            key={item.item_id}
+          >
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div className="flex min-w-0 items-start gap-3 md:max-w-[560px]">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-ui-border-base bg-ui-bg-subtle">
+                  <Text size="small" weight="plus">
+                    {getItemInitials(item, fallbackName)}
+                  </Text>
+                </div>
+                <div className="min-w-0">
+                  <Text className="truncate text-ui-fg-base" weight="plus">
+                    {getItemDisplayName(item, fallbackName)}
+                  </Text>
+                  {metadata === "" ? null : (
+                    <Text
+                      className="mt-0.5 truncate text-ui-fg-subtle"
+                      size="small"
+                    >
+                      {metadata}
+                    </Text>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid shrink-0 grid-cols-2 gap-3 sm:min-w-[260px]">
+                <div className="rounded-md border border-ui-border-base bg-ui-bg-subtle px-3 py-2">
+                  <Text className="text-ui-fg-subtle" size="small">
+                    {t("orderCommercialValues.item.quantity")}
+                  </Text>
+                  <Text className="mt-1" weight="plus">
+                    {formatQuantity(item.quantity, locale)}
+                  </Text>
+                </div>
+                <div className="rounded-md border border-ui-border-base bg-ui-bg-subtle px-3 py-2 sm:text-right">
+                  <Text className="text-ui-fg-subtle" size="small">
+                    {t("orderCommercialValues.item.line")}
+                  </Text>
+                  <Text className="mt-1" weight="plus">
+                    {formatMoney(
+                      itemPreview?.final_line_total ??
+                        getDraftLineTotal(draftItem, item.quantity),
+                      snapshot.currency_code,
+                      locale,
+                    )}
+                  </Text>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 border-ui-border-base border-t pt-4 md:grid-cols-[180px_minmax(0,1fr)]">
+              <div>
+                <Text className="mb-2 text-ui-fg-subtle" size="small">
+                  {t("orderCommercialValues.fields.unitPrice")}
+                </Text>
+                <Input
+                  disabled={!snapshot.editable}
+                  min={0}
+                  onChange={(event) => {
+                    updateItem(item.item_id, {
+                      unit_price: event.target.value,
+                    })
+                  }}
+                  step="any"
+                  type="number"
+                  value={draftItem.unit_price}
+                />
+              </div>
+
+              <div className="md:max-w-[420px]">
+                <Text className="mb-2 text-ui-fg-subtle" size="small">
+                  {t("orderCommercialValues.fields.itemDiscount")}
+                </Text>
+                <DiscountControls
+                  disabled={!snapshot.editable}
+                  onTypeChange={(discountType) => {
+                    updateItem(item.item_id, {
+                      discount_type: discountType,
+                      discount_value:
+                        discountType === "none" ? "" : draftItem.discount_value,
+                    })
+                  }}
+                  onValueChange={(discountValue) => {
+                    updateItem(item.item_id, {
+                      discount_value: discountValue,
+                    })
+                  }}
+                  type={draftItem.discount_type}
+                  value={draftItem.discount_value}
+                />
+              </div>
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -599,38 +748,45 @@ const CommercialValuesDrawer = ({
   onClose: () => void
   onConfirm: () => void
   onDraftChange: (draft: DraftState) => void
-  preview?: CommercialValuesPreview
+  preview: CommercialValuesPreview | undefined
   snapshot: CommercialValuesSnapshot
 }) => {
   const { i18n, t } = useTranslation()
   const locale = getIntlLocale(i18n.resolvedLanguage ?? i18n.language)
   const payload = buildPayload(draft, snapshot, "confirm")
-  const canSubmit = snapshot.editable && !!payload
+  const canSubmit = snapshot.editable && payload !== null
 
   const updateItem = (itemId: string, patch: Partial<DraftItem>) => {
     onDraftChange({
       ...draft,
       items: draft.items.map((item) =>
-        item.item_id === itemId ? { ...item, ...patch } : item
+        item.item_id === itemId ? { ...item, ...patch } : item,
       ),
     })
   }
   const updateShippingMethod = (
     shippingMethodId: string,
-    patch: Partial<DraftShippingMethod>
+    patch: Partial<DraftShippingMethod>,
   ) => {
     onDraftChange({
       ...draft,
       shipping_methods: draft.shipping_methods.map((shippingMethod) =>
         shippingMethod.shipping_method_id === shippingMethodId
           ? { ...shippingMethod, ...patch }
-          : shippingMethod
+          : shippingMethod,
       ),
     })
   }
 
   return (
-    <Drawer onOpenChange={(open) => !open && onClose()} open={isOpen}>
+    <Drawer
+      onOpenChange={(open) => {
+        if (!open) {
+          onClose()
+        }
+      }}
+      open={isOpen}
+    >
       <Drawer.Content style={DRAWER_CONTENT_STYLE}>
         <Drawer.Header>
           <Drawer.Title>{t("orderCommercialValues.title")}</Drawer.Title>
@@ -645,7 +801,7 @@ const CommercialValuesDrawer = ({
                 {formatMoney(
                   snapshot.totals.original_total,
                   snapshot.currency_code,
-                  locale
+                  locale,
                 )}
               </Text>
             </div>
@@ -657,7 +813,7 @@ const CommercialValuesDrawer = ({
                 {formatMoney(
                   preview?.new_total ?? snapshot.totals.current_total,
                   snapshot.currency_code,
-                  locale
+                  locale,
                 )}
               </Text>
             </div>
@@ -667,7 +823,7 @@ const CommercialValuesDrawer = ({
               </Text>
               <Text
                 className={
-                  preview?.delta && preview.delta < 0
+                  (preview?.delta ?? 0) < 0
                     ? "mt-1 text-ui-fg-interactive"
                     : "mt-1 text-ui-fg-base"
                 }
@@ -676,7 +832,7 @@ const CommercialValuesDrawer = ({
                 {formatMoney(
                   preview?.delta ?? 0,
                   snapshot.currency_code,
-                  locale
+                  locale,
                 )}
               </Text>
             </div>
@@ -700,129 +856,13 @@ const CommercialValuesDrawer = ({
             </div>
           ) : null}
 
-          <div className="flex flex-col gap-3">
-            {snapshot.items.map((item) => {
-              const draftItem = draft.items.find(
-                (candidate) => candidate.item_id === item.item_id
-              )
-              const itemPreview = getItemPreview(preview, item.item_id)
-              const fallbackName = t("orderCommercialValues.item.fallbackName")
-              const metadata = getItemMetadata(
-                item,
-                item.variant_sku
-                  ? t("orderCommercialValues.item.sku", {
-                      sku: item.variant_sku,
-                    })
-                  : null
-              )
-
-              if (!draftItem) {
-                return null
-              }
-
-              return (
-                <div
-                  className="rounded-lg border border-ui-border-base bg-ui-bg-base p-4 shadow-elevation-card-rest"
-                  key={item.item_id}
-                >
-                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div className="flex min-w-0 items-start gap-3 md:max-w-[560px]">
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-md border border-ui-border-base bg-ui-bg-subtle">
-                        <Text size="small" weight="plus">
-                          {getItemInitials(item, fallbackName)}
-                        </Text>
-                      </div>
-                      <div className="min-w-0">
-                        <Text
-                          className="truncate text-ui-fg-base"
-                          weight="plus"
-                        >
-                          {getItemDisplayName(item, fallbackName)}
-                        </Text>
-                        {metadata ? (
-                          <Text
-                            className="mt-0.5 truncate text-ui-fg-subtle"
-                            size="small"
-                          >
-                            {metadata}
-                          </Text>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="grid shrink-0 grid-cols-2 gap-3 sm:min-w-[260px]">
-                      <div className="rounded-md border border-ui-border-base bg-ui-bg-subtle px-3 py-2">
-                        <Text className="text-ui-fg-subtle" size="small">
-                          {t("orderCommercialValues.item.quantity")}
-                        </Text>
-                        <Text className="mt-1" weight="plus">
-                          {formatQuantity(item.quantity, locale)}
-                        </Text>
-                      </div>
-                      <div className="rounded-md border border-ui-border-base bg-ui-bg-subtle px-3 py-2 sm:text-right">
-                        <Text className="text-ui-fg-subtle" size="small">
-                          {t("orderCommercialValues.item.line")}
-                        </Text>
-                        <Text className="mt-1" weight="plus">
-                          {formatMoney(
-                            itemPreview?.final_line_total ??
-                              getDraftLineTotal(draftItem, item.quantity),
-                            snapshot.currency_code,
-                            locale
-                          )}
-                        </Text>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid gap-4 border-ui-border-base border-t pt-4 md:grid-cols-[180px_minmax(0,1fr)]">
-                    <div>
-                      <Text className="mb-2 text-ui-fg-subtle" size="small">
-                        {t("orderCommercialValues.fields.unitPrice")}
-                      </Text>
-                      <Input
-                        disabled={!snapshot.editable}
-                        min={0}
-                        onChange={(event) =>
-                          updateItem(item.item_id, {
-                            unit_price: event.target.value,
-                          })
-                        }
-                        step="any"
-                        type="number"
-                        value={draftItem.unit_price}
-                      />
-                    </div>
-
-                    <div className="md:max-w-[420px]">
-                      <Text className="mb-2 text-ui-fg-subtle" size="small">
-                        {t("orderCommercialValues.fields.itemDiscount")}
-                      </Text>
-                      <DiscountControls
-                        disabled={!snapshot.editable}
-                        onTypeChange={(discountType) =>
-                          updateItem(item.item_id, {
-                            discount_type: discountType,
-                            discount_value:
-                              discountType === "none"
-                                ? ""
-                                : draftItem.discount_value,
-                          })
-                        }
-                        onValueChange={(discountValue) =>
-                          updateItem(item.item_id, {
-                            discount_value: discountValue,
-                          })
-                        }
-                        type={draftItem.discount_type}
-                        value={draftItem.discount_value}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+          <CommercialItems
+            draft={draft}
+            locale={locale}
+            preview={preview}
+            snapshot={snapshot}
+            updateItem={updateItem}
+          />
 
           {snapshot.shipping_methods.length > 0 ? (
             <div className="flex flex-col gap-3">
@@ -833,11 +873,11 @@ const CommercialValuesDrawer = ({
                 const draftShippingMethod = draft.shipping_methods.find(
                   (candidate) =>
                     candidate.shipping_method_id ===
-                    shippingMethod.shipping_method_id
+                    shippingMethod.shipping_method_id,
                 )
                 const shippingMethodPreview = getShippingMethodPreview(
                   preview,
-                  shippingMethod.shipping_method_id
+                  shippingMethod.shipping_method_id,
                 )
 
                 if (!draftShippingMethod) {
@@ -855,8 +895,9 @@ const CommercialValuesDrawer = ({
                           className="truncate text-ui-fg-base"
                           weight="plus"
                         >
-                          {shippingMethod.name ||
-                            t("orderCommercialValues.fields.shipping")}
+                          {isNonEmptyString(shippingMethod.name)
+                            ? shippingMethod.name
+                            : t("orderCommercialValues.fields.shipping")}
                         </Text>
                         <Text className="mt-0.5 text-ui-fg-subtle" size="small">
                           {t("orderCommercialValues.fields.shipping")}
@@ -872,7 +913,7 @@ const CommercialValuesDrawer = ({
                               shippingMethod.current_subtotal +
                                 shippingMethod.current_tax_total,
                             snapshot.currency_code,
-                            locale
+                            locale,
                           )}
                         </Text>
                       </div>
@@ -885,7 +926,7 @@ const CommercialValuesDrawer = ({
                         </Text>
                         <DiscountControls
                           disabled={!snapshot.editable}
-                          onTypeChange={(discountType) =>
+                          onTypeChange={(discountType) => {
                             updateShippingMethod(
                               shippingMethod.shipping_method_id,
                               {
@@ -894,17 +935,17 @@ const CommercialValuesDrawer = ({
                                   discountType === "none"
                                     ? ""
                                     : draftShippingMethod.discount_value,
-                              }
+                              },
                             )
-                          }
-                          onValueChange={(discountValue) =>
+                          }}
+                          onValueChange={(discountValue) => {
                             updateShippingMethod(
                               shippingMethod.shipping_method_id,
                               {
                                 discount_value: discountValue,
-                              }
+                              },
                             )
-                          }
+                          }}
                           type={draftShippingMethod.discount_type}
                           value={draftShippingMethod.discount_value}
                         />
@@ -924,20 +965,20 @@ const CommercialValuesDrawer = ({
               <DiscountControls
                 className="max-w-[360px]"
                 disabled={!snapshot.editable}
-                onTypeChange={(discountType) =>
+                onTypeChange={(discountType) => {
                   onDraftChange({
                     ...draft,
                     order_discount_type: discountType,
                     order_discount_value:
                       discountType === "none" ? "" : draft.order_discount_value,
                   })
-                }
-                onValueChange={(discountValue) =>
+                }}
+                onValueChange={(discountValue) => {
                   onDraftChange({
                     ...draft,
                     order_discount_value: discountValue,
                   })
-                }
+                }}
                 type={draft.order_discount_type}
                 value={draft.order_discount_value}
               />
@@ -950,7 +991,7 @@ const CommercialValuesDrawer = ({
                 {formatMoney(
                   preview?.order_discount_total ?? 0,
                   snapshot.currency_code,
-                  locale
+                  locale,
                 )}
               </Text>
             </div>
@@ -962,9 +1003,9 @@ const CommercialValuesDrawer = ({
             </Text>
             <Input
               disabled={!snapshot.editable}
-              onChange={(event) =>
+              onChange={(event) => {
                 onDraftChange({ ...draft, internal_note: event.target.value })
-              }
+              }}
               value={draft.internal_note}
             />
           </div>
@@ -996,8 +1037,8 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
   const locale = getIntlLocale(i18n.resolvedLanguage ?? i18n.language)
   const [isOpen, setIsOpen] = useState(false)
   const [draft, setDraft] = useState<DraftState | null>(null)
-  const [preview, setPreview] = useState<CommercialValuesPreview>()
-  const latestPreviewKey = useRef<string | undefined>(undefined)
+  const [preview, setPreview] = useState<CommercialValuesPreview | null>(null)
+  const latestPreviewKey = useRef<string | null>(null)
 
   const queryKey = [QUERY_KEY_PREFIX, order?.id]
 
@@ -1006,32 +1047,24 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
     error,
     isLoading,
   } = useQuery({
-    enabled: !!order?.id,
-    queryFn: () =>
-      sdk.client.fetch<CommercialValuesSnapshotResponse>(
-        `/admin/orders/${order?.id}/commercial-values`
+    enabled: isNonEmptyString(order?.id),
+    queryFn: async () =>
+      await sdk.client.fetch<CommercialValuesSnapshotResponse>(
+        `/admin/orders/${order?.id}/commercial-values`,
       ),
     queryKey,
   })
 
   const snapshot = snapshotData?.commercial_values
 
-  useEffect(() => {
-    if (snapshot) {
-      setDraft(createDraft(snapshot))
-      setPreview(undefined)
-      latestPreviewKey.current = undefined
-    }
-  }, [snapshot])
-
   const previewMutation = useMutation({
-    mutationFn: ({ payload }: CommercialValuesPreviewVariables) =>
-      sdk.client.fetch<CommercialValuesPreviewResponse>(
+    mutationFn: async ({ payload }: CommercialValuesPreviewVariables) =>
+      await sdk.client.fetch<CommercialValuesPreviewResponse>(
         `/admin/orders/${order?.id}/commercial-values/preview`,
         {
           body: payload,
           method: "POST",
-        }
+        },
       ),
     onError: (err, variables) => {
       if (latestPreviewKey.current !== variables.key) {
@@ -1041,7 +1074,7 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
       toast.error(
         err instanceof Error
           ? err.message
-          : t("orderCommercialValues.errors.recalculateFailed")
+          : t("orderCommercialValues.errors.recalculateFailed"),
       )
     },
     onSuccess: (response, variables) => {
@@ -1054,82 +1087,84 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
   })
 
   const confirmMutation = useMutation({
-    mutationFn: (payload: CommercialValuesPayload) =>
-      sdk.client.fetch<CommercialValuesConfirmResponse>(
+    mutationFn: async (payload: CommercialValuesPayload) =>
+      await sdk.client.fetch<CommercialValuesConfirmResponse>(
         `/admin/orders/${order?.id}/commercial-values/confirm`,
         {
           body: payload,
           method: "POST",
-        }
+        },
       ),
     onError: (err) => {
       toast.error(
         err instanceof Error
           ? err.message
-          : t("orderCommercialValues.errors.saveFailed")
+          : t("orderCommercialValues.errors.saveFailed"),
       )
     },
-    onSuccess: (response) => {
+    onSuccess: async (response) => {
       toast.success(
         response.commercial_values.mode === "requested"
           ? t("orderCommercialValues.status.requested")
-          : t("orderCommercialValues.status.confirmed")
+          : t("orderCommercialValues.status.confirmed"),
       )
       setIsOpen(false)
-      setPreview(undefined)
-      queryClient.invalidateQueries({ queryKey })
-      if (order?.id) {
-        invalidateMedusaAdminOrderQueries(queryClient, order.id)
+      setPreview(null)
+      await queryClient.invalidateQueries({ queryKey })
+      if (isNonEmptyString(order?.id)) {
+        await invalidateMedusaAdminOrderQueries(queryClient, order.id)
       }
     },
   })
 
   useEffect(() => {
-    if (!(draft && isOpen && order?.id && snapshot?.editable)) {
-      return
+    let timeout: number | null = null
+    if (
+      draft !== null &&
+      isOpen &&
+      isNonEmptyString(order?.id) &&
+      snapshot?.editable === true
+    ) {
+      const payload = buildPayload(draft, snapshot)
+      if (payload !== null) {
+        const key = getPreviewPayloadKey(payload)
+        if (latestPreviewKey.current !== key) {
+          latestPreviewKey.current = key
+          const previewPayload = toPreviewPayload(payload)
+          timeout = window.setTimeout(() => {
+            previewMutation.mutate({ key, payload: previewPayload })
+          }, 250)
+        }
+      }
     }
 
-    const payload = buildPayload(draft, snapshot)
-    if (!payload) {
-      setPreview(undefined)
-      latestPreviewKey.current = undefined
-      return
+    return () => {
+      if (timeout !== null) {
+        window.clearTimeout(timeout)
+      }
     }
-
-    const key = getPreviewPayloadKey(payload)
-    if (latestPreviewKey.current === key) {
-      return
-    }
-
-    latestPreviewKey.current = key
-    const previewPayload = toPreviewPayload(payload)
-    const timeout = window.setTimeout(() => {
-      previewMutation.mutate({ key, payload: previewPayload })
-    }, 250)
-
-    return () => window.clearTimeout(timeout)
   }, [draft, isOpen, order?.id, previewMutation, snapshot])
 
-  if (!order?.id) {
+  if (!isNonEmptyString(order?.id)) {
     return null
   }
 
   const openForm = () => {
-    if (snapshot) {
+    if (snapshot !== undefined) {
       setDraft(createDraft(snapshot))
-      setPreview(undefined)
-      latestPreviewKey.current = undefined
+      setPreview(null)
+      latestPreviewKey.current = null
     }
     setIsOpen(true)
   }
 
   const runConfirm = () => {
-    if (!(draft && snapshot)) {
+    if (draft === null || snapshot === undefined) {
       return
     }
 
     const payload = buildPayload(draft, snapshot, "confirm")
-    if (!payload) {
+    if (payload === null) {
       toast.error(t("orderCommercialValues.errors.invalidValues"))
       return
     }
@@ -1147,19 +1182,19 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
               ? formatMoney(
                   snapshot.totals.current_total,
                   snapshot.currency_code,
-                  locale
+                  locale,
                 )
               : t("orderCommercialValues.status.loading")}
           </Text>
         </div>
         <div className="flex items-center gap-2">
-          {snapshot && !snapshot.editable ? (
+          {snapshot !== undefined && !snapshot.editable ? (
             <Badge size="2xsmall">
               {t("orderCommercialValues.status.locked")}
             </Badge>
           ) : null}
           <Button
-            disabled={isLoading || !!error || !snapshot}
+            disabled={isLoading || error !== null || snapshot === undefined}
             onClick={openForm}
             size="small"
             type="button"
@@ -1169,23 +1204,25 @@ const CommercialValuesWidget = ({ data }: CommercialValuesWidgetProps) => {
           </Button>
         </div>
       </div>
-      {error ? (
+      {error === null ? null : (
         <div className="px-6 py-4">
           <Text className="text-ui-fg-error" size="small">
             {t("orderCommercialValues.errors.loadFailed")}
           </Text>
         </div>
-      ) : null}
-      {snapshot && draft ? (
+      )}
+      {snapshot !== undefined && draft !== null ? (
         <CommercialValuesDrawer
           draft={draft}
           isOpen={isOpen}
           isPreviewing={previewMutation.isPending}
           isSaving={confirmMutation.isPending}
-          onClose={() => setIsOpen(false)}
+          onClose={() => {
+            setIsOpen(false)
+          }}
           onConfirm={runConfirm}
           onDraftChange={setDraft}
-          preview={preview}
+          preview={preview ?? undefined}
           snapshot={snapshot}
         />
       ) : null}

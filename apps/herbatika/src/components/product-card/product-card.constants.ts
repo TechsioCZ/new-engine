@@ -1,6 +1,4 @@
-import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
-
-export const PRODUCT_FALLBACK_IMAGE = FALLBACK_IMAGE_SRC
+export { FALLBACK_IMAGE_SRC as PRODUCT_FALLBACK_IMAGE } from "@/components/fallback-image.constants"
 
 export const FLAG_CONFIG = {
   action: { variant: "discount" },

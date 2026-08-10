@@ -11,6 +11,7 @@ import type {
   GetPaymentStatusOutput,
   InitiatePaymentInput,
   InitiatePaymentOutput,
+  PaymentProviderOutput,
   ProviderWebhookPayload,
   RefundPaymentInput,
   RefundPaymentOutput,
@@ -27,14 +28,16 @@ import {
   Modules,
   PaymentActions,
 } from "@medusajs/framework/utils"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import QRCode from "qrcode"
+
 import { buildPaymentQrSpayd } from "../../../utils/order-payment-qr"
 import { QR_PAYMENT_MODULE, QR_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
 import type { QrPaymentModuleService } from "../service"
 
 type QrManualPaymentProviderOptions = Record<string, never>
 
-type QrManualPaymentProviderDependencies = {
+interface QrManualPaymentProviderDependencies {
   [QR_PAYMENT_MODULE]?: QrPaymentModuleService
 }
 
@@ -42,26 +45,86 @@ const QR_PAYMENT_DATA_KEY = "qr_payment"
 const QR_PAYMENT_SPAYD_KEY = "payment_qr_spayd"
 const QR_PAYMENT_DATA_URL_KEY = "payment_qr_data_url"
 
-export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPaymentProviderOptions> {
-  static override identifier = QR_PAYMENT_PROVIDER_IDENTIFIER
+/**
+ * Mirrors the truthiness guard that used to be applied directly to the
+ * nullable SPAYD payload: `null`, `undefined` and `""` all count as missing.
+ */
+const isNonEmptyString = (value: string | null | undefined): value is string =>
+  typeof value === "string" && value.length > 0
 
-  protected readonly options_: QrManualPaymentProviderOptions
-  protected readonly container_: QrManualPaymentProviderDependencies
+const getString = (value: unknown) =>
+  typeof value === "string" && value.trim() ? value.trim() : undefined
+
+const normalizeAmount = (amount: InitiatePaymentInput["amount"]) => {
+  const normalized = Number(amount)
+
+  if (!Number.isFinite(normalized) || normalized <= 0) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "QR payment amount must be positive",
+    )
+  }
+
+  return normalized
+}
+
+const normalizeIban = (value: string | null | undefined) => {
+  const normalized = value?.replaceAll(/\s+/gu, "").toUpperCase() ?? ""
+
+  return normalized || null
+}
+
+/**
+ * Resolves the variable symbol used for the SPAYD payload. An already issued
+ * reference on the payment session wins so that regenerating the QR code after
+ * a cart change keeps the same variable symbol.
+ */
+const getPaymentReference = (
+  input: Pick<InitiatePaymentInput, "context" | "data">,
+) => {
+  const existingQrPayment = input.data?.[QR_PAYMENT_DATA_KEY]
+  const existingReference = isRecord(existingQrPayment)
+    ? getString(getRecordValue(existingQrPayment, "reference"))
+    : undefined
+  const dataReference =
+    getString(input.data?.["reference"]) ??
+    getString(input.data?.["order_id"]) ??
+    getString(input.context?.idempotency_key)
+
+  return existingReference ?? dataReference ?? `qr_${Date.now()}`
+}
+
+const hasQrPaymentData = (data: InitiatePaymentInput["data"]) =>
+  typeof data?.[QR_PAYMENT_SPAYD_KEY] === "string"
+
+/**
+ * Manual (offline) bank transfer provider that renders a Czech SPAYD QR code.
+ *
+ * `AbstractPaymentProvider` mandates the full async provider surface, so the
+ * purely synchronous members below keep their framework signatures and use
+ * `await Promise.resolve(this)` to stay honest about being instance methods
+ * that return promises.
+ */
+export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPaymentProviderOptions> {
+  static override readonly identifier = QR_PAYMENT_PROVIDER_IDENTIFIER
+
+  protected readonly providerOptions: QrManualPaymentProviderOptions
+  protected readonly dependencies: QrManualPaymentProviderDependencies
 
   constructor(
     container: QrManualPaymentProviderDependencies,
-    options: QrManualPaymentProviderOptions = {}
+    options: QrManualPaymentProviderOptions = {},
   ) {
-    super(container, options)
+    super({ ...container }, options)
 
-    this.container_ = container
-    this.options_ = options
+    this.dependencies = container
+    this.providerOptions = options
   }
 
   async initiatePayment(
-    input: InitiatePaymentInput
+    input: InitiatePaymentInput,
   ): Promise<InitiatePaymentOutput> {
-    const reference = this.getPaymentReference(input)
+    const reference = getPaymentReference(input)
     const iban = await this.getIban()
     const amount = normalizeAmount(input.amount)
     const currencyCode = input.currency_code.toUpperCase()
@@ -74,10 +137,10 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
       reference,
     })
 
-    if (!spayd) {
+    if (!isNonEmptyString(spayd)) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "QR payment requires configured IBAN and a positive payment amount"
+        "QR payment requires configured IBAN and a positive payment amount",
       )
     }
 
@@ -88,8 +151,6 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
     })
 
     return {
-      id: reference,
-      status: "pending",
       data: {
         [QR_PAYMENT_SPAYD_KEY]: spayd,
         [QR_PAYMENT_DATA_URL_KEY]: qrDataUrl,
@@ -103,125 +164,90 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
           spayd,
         },
       },
+      id: reference,
+      status: "pending",
     }
   }
 
   async authorizePayment(
-    input: AuthorizePaymentInput
+    input: AuthorizePaymentInput,
   ): Promise<AuthorizePaymentOutput> {
+    await Promise.resolve(this)
+
     return {
       status: "authorized",
-      data: input.data,
+      ...(input.data ? { data: input.data } : {}),
     }
   }
 
   async getPaymentStatus(
-    input: GetPaymentStatusInput
+    input: GetPaymentStatusInput,
   ): Promise<GetPaymentStatusOutput> {
+    await Promise.resolve(this)
+
     return {
-      status: this.hasQrPaymentData(input.data) ? "authorized" : "pending",
+      status: hasQrPaymentData(input.data) ? "authorized" : "pending",
     }
   }
 
   async retrievePayment(
-    input: RetrievePaymentInput
+    input: RetrievePaymentInput,
   ): Promise<RetrievePaymentOutput> {
-    return {
-      data: input.data,
-    }
+    return await this.echoPaymentData(input.data)
   }
 
   async updatePayment(input: UpdatePaymentInput): Promise<UpdatePaymentOutput> {
-    return this.initiatePayment(input)
+    return await this.initiatePayment(input)
   }
 
   async capturePayment(
-    input: CapturePaymentInput
+    input: CapturePaymentInput,
   ): Promise<CapturePaymentOutput> {
-    return {
-      data: input.data,
-    }
+    return await this.echoPaymentData(input.data)
   }
 
   async refundPayment(input: RefundPaymentInput): Promise<RefundPaymentOutput> {
-    return {
-      data: input.data,
-    }
+    return await this.echoPaymentData(input.data)
   }
 
   async cancelPayment(input: CancelPaymentInput): Promise<CancelPaymentOutput> {
-    return {
-      data: input.data,
-    }
+    return await this.echoPaymentData(input.data)
   }
 
   async deletePayment(input: DeletePaymentInput): Promise<DeletePaymentOutput> {
-    return {
-      data: input.data,
-    }
+    return await this.echoPaymentData(input.data)
   }
 
   async getWebhookActionAndData(
-    _payload: ProviderWebhookPayload["payload"]
+    _payload: ProviderWebhookPayload["payload"],
   ): Promise<WebhookActionResult> {
+    await Promise.resolve(this)
+
     return {
       action: PaymentActions.NOT_SUPPORTED,
     }
   }
 
+  /**
+   * Offline bank transfers have no remote state to reconcile, so retrieve,
+   * capture, refund, cancel and delete simply hand the stored session payload
+   * back unchanged. Every one of those outputs is a `PaymentProviderOutput`.
+   */
+  private async echoPaymentData(
+    data: InitiatePaymentInput["data"],
+  ): Promise<PaymentProviderOutput> {
+    await Promise.resolve(this)
+
+    return data ? { data } : {}
+  }
+
   private async getIban() {
-    const qrPaymentService = this.container_[QR_PAYMENT_MODULE]
+    const qrPaymentService = this.dependencies[QR_PAYMENT_MODULE]
 
     return normalizeIban(await qrPaymentService?.getIban())
-  }
-
-  private getPaymentReference(
-    input: Pick<InitiatePaymentInput, "context" | "data">
-  ) {
-    const existingQrPayment = getRecord(input.data?.[QR_PAYMENT_DATA_KEY])
-    const existingReference = getString(existingQrPayment?.reference)
-    const dataReference =
-      getString(input.data?.reference) ??
-      getString(input.data?.order_id) ??
-      getString(input.context?.idempotency_key)
-
-    return existingReference ?? dataReference ?? `qr_${Date.now()}`
-  }
-
-  private hasQrPaymentData(data: Record<string, unknown> | undefined) {
-    return typeof data?.[QR_PAYMENT_SPAYD_KEY] === "string"
   }
 }
 
 export default ModuleProvider(Modules.PAYMENT, {
   services: [QrManualPaymentProvider],
 })
-
-function normalizeAmount(amount: InitiatePaymentInput["amount"]) {
-  const normalized = Number(amount)
-
-  if (!Number.isFinite(normalized) || normalized <= 0) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "QR payment amount must be positive"
-    )
-  }
-
-  return normalized
-}
-
-function normalizeIban(value: string | null | undefined) {
-  const normalized = value?.replace(/\s+/g, "").toUpperCase() ?? ""
-
-  return normalized || null
-}
-
-function getString(value: unknown) {
-  return typeof value === "string" && value.trim() ? value.trim() : undefined
-}
-
-function getRecord(value: unknown) {
-  return typeof value === "object" && value !== null
-    ? (value as Record<string, unknown>)
-    : undefined
-}

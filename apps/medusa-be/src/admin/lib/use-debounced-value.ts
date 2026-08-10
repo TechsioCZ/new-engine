@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 
 export const useDebouncedValue = <TValue>(
   value: TValue,
-  delayMs = 300
+  delayMs = 300,
 ): TValue => {
   const [debouncedValue, setDebouncedValue] = useState(value)
 
@@ -11,7 +11,9 @@ export const useDebouncedValue = <TValue>(
       setDebouncedValue(value)
     }, delayMs)
 
-    return () => window.clearTimeout(timeout)
+    return () => {
+      window.clearTimeout(timeout)
+    }
   }, [delayMs, value])
 
   return debouncedValue

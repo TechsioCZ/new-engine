@@ -1,85 +1,11 @@
 import type { HttpTypes } from "@medusajs/types"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
-type OrderRecord = Record<string, unknown>
-
-export type OrderAddressSummary = {
-  fullName: string | null
-  company: string | null
-  lines: string[]
-}
-
-const isRecord = (value: unknown): value is OrderRecord =>
-  typeof value === "object" && value !== null
-
-const readString = (value: unknown) => {
-  if (typeof value !== "string") {
-    return null
-  }
-
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : null
-}
-
-const readFromRecord = (record: OrderRecord, keys: string[]) => {
-  for (const key of keys) {
-    const value = readString(record[key])
-    if (value) {
-      return value
-    }
-  }
-
-  return null
-}
-
-const formatCountry = (value: string | null) => {
-  if (!value) {
-    return null
-  }
-
-  return value.length === 2 ? value.toUpperCase() : value
-}
-
-const toAddressSummary = (value: unknown): OrderAddressSummary | null => {
-  if (!isRecord(value)) {
-    return null
-  }
-
-  const firstName = readFromRecord(value, ["first_name", "firstName"])
-  const lastName = readFromRecord(value, ["last_name", "lastName"])
-  const company = readFromRecord(value, ["company"])
-  const address1 = readFromRecord(value, ["address_1", "address1"])
-  const address2 = readFromRecord(value, ["address_2", "address2"])
-  const city = readFromRecord(value, ["city", "town"])
-  const postalCode = readFromRecord(value, ["postal_code", "postalCode", "zip"])
-  const province = readFromRecord(value, ["province", "state"])
-  const countryCode = formatCountry(
-    readFromRecord(value, ["country_code", "countryCode", "country"])
-  )
-  const phone = readFromRecord(value, ["phone"])
-
-  const fullName =
-    [firstName, lastName].filter(Boolean).join(" ").trim() || null
-  const cityLine = [postalCode, city].filter(Boolean).join(" ").trim() || null
-
-  const lines = [
-    address1,
-    address2,
-    cityLine,
-    province,
-    countryCode,
-    phone,
-  ].filter((line): line is string => Boolean(line))
-
-  if (!(fullName || company) && lines.length === 0) {
-    return null
-  }
-
-  return {
-    fullName,
-    company,
-    lines,
-  }
-}
+import {
+  readFromRecord,
+  readString,
+  toAddressSummary,
+} from "./order-address-format"
 
 const readMethodLabel = (candidate: unknown) => {
   if (!isRecord(candidate)) {
@@ -93,17 +19,17 @@ const readMethodLabel = (candidate: unknown) => {
     "providerId",
     "id",
   ])
-  if (directLabel) {
+  if ((directLabel ?? "").length > 0) {
     return directLabel
   }
 
   const nestedCandidates = [
-    candidate.option,
-    candidate.shipping_option,
-    candidate.shippingOption,
-    candidate.provider,
-    candidate.payment_provider,
-    candidate.paymentProvider,
+    getRecordValue(candidate, "option"),
+    getRecordValue(candidate, "shipping_option"),
+    getRecordValue(candidate, "shippingOption"),
+    getRecordValue(candidate, "provider"),
+    getRecordValue(candidate, "payment_provider"),
+    getRecordValue(candidate, "paymentProvider"),
   ]
 
   for (const nestedCandidate of nestedCandidates) {
@@ -119,7 +45,7 @@ const readMethodLabel = (candidate: unknown) => {
       "id",
     ])
 
-    if (nestedLabel) {
+    if ((nestedLabel ?? "").length > 0) {
       return nestedLabel
     }
   }
@@ -137,20 +63,20 @@ const readMetadataValue = (metadata: unknown, keys: string[]) => {
 
 export const resolveOrderContactEmail = (
   order: HttpTypes.StoreOrder,
-  fallbackEmail?: string | null
+  fallbackEmail?: string | null,
 ) => readString(order.email) ?? readString(fallbackEmail) ?? "-"
 
 export const resolveOrderAddresses = (order: HttpTypes.StoreOrder) => ({
-  shipping: toAddressSummary(
-    (order as { shipping_address?: unknown }).shipping_address
-  ),
   billing: toAddressSummary(
-    (order as { billing_address?: unknown }).billing_address
+    (order as { billing_address?: unknown }).billing_address,
+  ),
+  shipping: toAddressSummary(
+    (order as { shipping_address?: unknown }).shipping_address,
   ),
 })
 
 export const resolveOrderShippingMethodLabel = (
-  order: HttpTypes.StoreOrder
+  order: HttpTypes.StoreOrder,
 ) => {
   const shippingMethods = (order as { shipping_methods?: unknown })
     .shipping_methods
@@ -162,10 +88,10 @@ export const resolveOrderShippingMethodLabel = (
 }
 
 export const resolveOrderPaymentMethodLabel = (order: HttpTypes.StoreOrder) => {
-  const transactions = (order as { transactions?: unknown }).transactions
+  const { transactions } = order as { transactions?: unknown }
   if (Array.isArray(transactions) && transactions.length > 0) {
     const transactionLabel = readMethodLabel(transactions[0])
-    if (transactionLabel) {
+    if ((transactionLabel ?? "").length > 0) {
       return transactionLabel
     }
   }
@@ -174,7 +100,7 @@ export const resolveOrderPaymentMethodLabel = (order: HttpTypes.StoreOrder) => {
     .payment_collections
   if (Array.isArray(paymentCollections) && paymentCollections.length > 0) {
     const paymentCollectionLabel = readMethodLabel(paymentCollections[0])
-    if (paymentCollectionLabel) {
+    if ((paymentCollectionLabel ?? "").length > 0) {
       return paymentCollectionLabel
     }
   }

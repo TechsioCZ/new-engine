@@ -1,18 +1,13 @@
 import type { HttpTypes } from "@medusajs/types"
-import { Icon } from "@techsio/ui-kit/atoms/icon"
-import NextImage from "next/image"
 import { useTranslations } from "next-intl"
-import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
-import { SupportingText } from "@/components/text/supporting-text"
-import {
-  resolveCartItemName,
-  resolveLineItemTotalAmount,
-} from "@/lib/storefront/cart-calculations"
-import { formatCurrencyAmount } from "@/lib/storefront/price-format"
-import { CheckoutSelectBenefits } from "../checkout-select-benefits"
-import { resolveAvailabilityText } from "../utils/resolve-availability-text"
 
-type CheckoutOrderSummarySectionProps = {
+import { SupportingText } from "@/components/text/supporting-text"
+import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+
+import { CheckoutSelectBenefits } from "../checkout-select-benefits"
+import { CheckoutOrderSummaryItem } from "./checkout-order-summary-item"
+
+interface CheckoutOrderSummarySectionProps {
   cartItems: HttpTypes.StoreCartLineItem[]
   cartItemsWithoutTaxAmount: number
   cartTaxAmount: number
@@ -24,7 +19,7 @@ type CheckoutOrderSummarySectionProps = {
   shippingAmount: number
 }
 
-export function CheckoutOrderSummarySection({
+export const CheckoutOrderSummarySection = ({
   cartItems,
   cartItemsWithoutTaxAmount,
   cartTaxAmount,
@@ -34,13 +29,16 @@ export function CheckoutOrderSummarySection({
   paymentLabel,
   shippingLabel,
   shippingAmount,
-}: CheckoutOrderSummarySectionProps) {
+}: CheckoutOrderSummarySectionProps) => {
   const tCart = useTranslations("cart")
   const tCheckout = useTranslations("checkout")
   const detailsFontClass = detailsFont === "inter" ? "font-inter" : "font-rubik"
-  const shippingExclTaxLabel = shippingLabel
-    ? tCheckout("shipping_excl_tax_with_name", { shippingName: shippingLabel })
-    : tCart("shipping_excl_tax")
+  const shippingExclTaxLabel =
+    shippingLabel === undefined || shippingLabel.length === 0
+      ? tCart("shipping_excl_tax")
+      : tCheckout("shipping_excl_tax_with_name", {
+          shippingName: shippingLabel,
+        })
 
   return (
     <section className={`space-y-300 rounded-sm sm:p-550 ${detailsFontClass}`}>
@@ -54,75 +52,14 @@ export function CheckoutOrderSummarySection({
 
       <div className="space-y-250">
         {cartItems.length > 0 ? (
-          cartItems.map((item, index) => {
-            const itemName = resolveCartItemName(item)
-            const itemQuantity = item.quantity ?? 0
-            const itemPrice = formatCurrencyAmount(
-              resolveLineItemTotalAmount(item),
-              currencyCode
-            )
-            const itemThumbnail =
-              typeof item.thumbnail === "string" && item.thumbnail.length > 0
-                ? item.thumbnail
-                : FALLBACK_IMAGE_SRC
-            const hasDivider = index < cartItems.length - 1
-            const availabilityText = resolveAvailabilityText(item)
-
-            return (
-              <article
-                className={`space-y-150 pb-250 ${
-                  hasDivider ? "border-border-secondary border-b" : ""
-                }`}
-                key={item.id}
-              >
-                <div className="flex items-start gap-300">
-                  <NextImage
-                    alt={itemName}
-                    className="size-checkout-image shrink-0 rounded-sm border border-border-secondary object-cover"
-                    height={150}
-                    quality={50}
-                    src={itemThumbnail}
-                    width={150}
-                  />
-                  <div className="flex h-checkout-image min-w-0 flex-col justify-between space-y-100">
-                    <p className="line-clamp font-medium text-fg-primary text-md">
-                      {itemName}
-                    </p>
-                    <p className="2xs:inline-flex hidden h-full w-full items-end font-medium text-success-fg text-xs leading-normal">
-                      <span className="flex h-fit items-center gap-150">
-                        <Icon
-                          className="shrink-0"
-                          icon="token-icon-check"
-                          size="sm"
-                        />
-                        <span className="min-w-0">{availabilityText}</span>
-                      </span>
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-100">
-                    <p className="shrink-0 font-semibold text-fg-primary text-lg">
-                      {itemPrice}
-                    </p>
-                    <SupportingText className="text-fg-secondary">
-                      {tCheckout("item_quantity", {
-                        quantity: itemQuantity,
-                      })}
-                    </SupportingText>
-                  </div>
-                </div>
-                <p className="inline-flex 2xs:hidden w-full items-start gap-150 font-medium text-success-fg text-xs leading-normal">
-                  <Icon
-                    className="shrink-0"
-                    icon="token-icon-check"
-                    size="sm"
-                  />
-                  <span className="min-w-0 break-words">
-                    {availabilityText}
-                  </span>
-                </p>
-              </article>
-            )
-          })
+          cartItems.map((item, index) => (
+            <CheckoutOrderSummaryItem
+              currencyCode={currencyCode}
+              hasDivider={index < cartItems.length - 1}
+              item={item}
+              key={item.id}
+            />
+          ))
         ) : (
           <SupportingText className="text-fg-secondary">
             {tCheckout("empty_cart_title")}
@@ -153,7 +90,9 @@ export function CheckoutOrderSummarySection({
         </div>
         <div className="flex items-center justify-between py-200">
           <span className="text-fg-secondary">
-            {paymentLabel || tCheckout("payment")}
+            {paymentLabel !== undefined && paymentLabel.length > 0
+              ? paymentLabel
+              : tCheckout("payment")}
           </span>
           <p className="font-medium text-md text-success-fg">
             {tCheckout("free")}

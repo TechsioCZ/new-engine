@@ -1,18 +1,20 @@
-import NextImage, { type StaticImageData } from "next/image"
 import { useTranslations } from "next-intl"
-import type { HomepageBenefitTranslationKey } from "@/components/homepage/homepage.data.types"
+import NextImage from "next/image"
+import type { StaticImageData } from "next/image"
 
-type BenefitItem = {
+import type { HomepageBenefitTranslationKey } from "@/components/homepage/homepage-data-types"
+
+interface BenefitItem {
   id: number
   image: StaticImageData
   translationKey: HomepageBenefitTranslationKey
 }
 
-type BenefitsSectionProps = {
+interface BenefitsSectionProps {
   benefits: readonly BenefitItem[]
 }
 
-export function BenefitsSection({ benefits }: BenefitsSectionProps) {
+export const BenefitsSection = ({ benefits }: BenefitsSectionProps) => {
   const tContent = useTranslations("content")
 
   return (

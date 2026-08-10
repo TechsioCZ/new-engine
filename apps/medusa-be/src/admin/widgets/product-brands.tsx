@@ -13,10 +13,12 @@ import {
   Text,
   toast,
 } from "@medusajs/ui"
+import type { DataTableColumnDef } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
+
 import { BrandDataTable } from "../components/brands/brand-data-table"
 import {
   isBrandSelectable,
@@ -27,37 +29,78 @@ import {
   ProductAttributesDrawer,
 } from "../components/product-attributes/product-attributes-panel"
 import {
-  type Brand,
   brandQueryKeys,
   listBrands,
   productQueryKeys,
   retrieveProductBrands,
   setProductBrands,
 } from "../lib/brands"
+import type { Brand } from "../lib/brands"
 import {
   productAttributeQueryKeys,
   retrieveProductAttributes,
 } from "../lib/product-attributes"
+import type { ProductAttributeDetailItem } from "../lib/product-attributes"
 import { useDebouncedValue } from "../lib/use-debounced-value"
 
 type ProductBrandsWidgetProps = Partial<DetailWidgetProps<AdminProduct>>
 
+type TranslateKey = (key: string) => string
+
 const PAGE_SIZE = 20
 
 const brandColumnHelper = createDataTableColumnHelper<Brand>()
+
+const hasDeletionTimestamp = (deletedAt: string | null | undefined): boolean =>
+  deletedAt !== null && deletedAt !== undefined
+
+const orderBrandsByStatus = (brands: Brand[]): Brand[] => {
+  const active: Brand[] = []
+  const deleted: Brand[] = []
+
+  for (const brand of brands) {
+    if (hasDeletionTimestamp(brand.deleted_at)) {
+      deleted.push(brand)
+    } else {
+      active.push(brand)
+    }
+  }
+
+  return [...active, ...deleted]
+}
+
+const toEditableAttributeItems = (
+  items: ProductAttributeDetailItem[],
+): ProductAttributeDetailItem[] => {
+  const editable: ProductAttributeDetailItem[] = []
+
+  for (const item of items) {
+    if (hasDeletionTimestamp(item.definition.deleted_at)) {
+      continue
+    }
+
+    editable.push(
+      hasDeletionTimestamp(item.selected_option?.deleted_at)
+        ? { ...item, assignment: null, selected_option: null }
+        : item,
+    )
+  }
+
+  return editable
+}
 
 const BrandLinkContent = ({
   error,
   isLoading,
   brands,
 }: {
-  error: unknown
+  error: Error | null
   isLoading: boolean
   brands: Brand[]
 }) => {
   const { t } = useTranslation("brands")
 
-  if (error) {
+  if (error !== null) {
     return <Alert variant="error">{t("widget.loadFailed")}</Alert>
   }
 
@@ -70,7 +113,7 @@ const BrandLinkContent = ({
     )
   }
 
-  if (!brands.length) {
+  if (brands.length === 0) {
     return (
       <Text className="text-ui-fg-subtle" size="small">
         {t("widget.empty")}
@@ -81,7 +124,7 @@ const BrandLinkContent = ({
   return (
     <div className="flex flex-col gap-2">
       {brands.map((brand) => {
-        const isDeleted = !!brand.deleted_at
+        const isDeleted = hasDeletionTimestamp(brand.deleted_at)
 
         return (
           <div
@@ -109,9 +152,9 @@ const BrandLinkContent = ({
   )
 }
 
-const getActiveBrand = (brand: Brand | undefined) => {
-  if (brand?.deleted_at) {
-    return
+const getActiveBrand = (brand: Brand | undefined): Brand | undefined => {
+  if (brand === undefined || hasDeletionTimestamp(brand.deleted_at)) {
+    return undefined
   }
 
   return brand
@@ -120,7 +163,7 @@ const getActiveBrand = (brand: Brand | undefined) => {
 const useBrandSelection = (currentBrand: Brand | undefined, open: boolean) => {
   const activeCurrentBrand = getActiveBrand(currentBrand)
   const [selectedId, setSelectedId] = useState<string | undefined>(
-    activeCurrentBrand?.id
+    activeCurrentBrand?.id,
   )
   const [selectedBrandSnapshot, setSelectedBrandSnapshot] = useState<
     Brand | undefined
@@ -162,23 +205,25 @@ const useBrandSelection = (currentBrand: Brand | undefined, open: boolean) => {
 const findSelectedBrand = (
   brands: Brand[],
   selectedId: string | undefined,
-  selectedBrandSnapshot: Brand | undefined
-) => {
+  selectedBrandSnapshot: Brand | undefined,
+): Brand | undefined => {
   const listedBrand = brands.find((brand) => brand.id === selectedId)
-  if (listedBrand) {
+
+  if (listedBrand !== undefined) {
     return listedBrand
   }
+
   if (selectedBrandSnapshot?.id === selectedId) {
     return selectedBrandSnapshot
   }
 
-  return
+  return undefined
 }
 
 const SelectedBrandGpsrDetails = ({ brand }: { brand: Brand | undefined }) => {
   const { t } = useTranslation("brands")
 
-  if (!brand) {
+  if (brand === undefined) {
     return null
   }
 
@@ -213,7 +258,7 @@ const SelectedBrandGpsrDetails = ({ brand }: { brand: Brand | undefined }) => {
             {t("fields.gpsr_manufactured_outside_eu")}
           </Text>
           <Text size="small">
-            {brand.gpsr_manufactured_outside_eu
+            {brand.gpsr_manufactured_outside_eu === true
               ? t("status.yes")
               : t("status.no")}
           </Text>
@@ -247,13 +292,82 @@ const SelectedBrandGpsrDetails = ({ brand }: { brand: Brand | undefined }) => {
   )
 }
 
+const buildBrandColumns = ({
+  isPending,
+  onClearSelection,
+  onSelectBrand,
+  selectedId,
+  t,
+}: {
+  isPending: boolean
+  onClearSelection: () => void
+  onSelectBrand: (brand: Brand) => void
+  selectedId: string | undefined
+  t: TranslateKey
+}): DataTableColumnDef<Brand>[] => [
+  {
+    accessorFn: (brand: Brand): unknown => brand.title,
+    cell: ({ row }) => (
+      <span
+        className={
+          hasDeletionTimestamp(row.original.deleted_at)
+            ? "opacity-60"
+            : undefined
+        }
+      >
+        {row.original.title}
+      </span>
+    ),
+    header: t("columns.brand"),
+    id: "title",
+  },
+  {
+    accessorFn: (brand: Brand): unknown => brand.handle,
+    header: t("columns.handle"),
+    id: "handle",
+  },
+  brandColumnHelper.display({
+    cell: ({ row }) =>
+      row.original.id === selectedId ? (
+        <Badge size="2xsmall">{t("status.selected")}</Badge>
+      ) : (
+        "-"
+      ),
+    header: t("columns.status"),
+    id: "status",
+  }),
+  brandColumnHelper.action({
+    actions: ({ row }) => {
+      const isSelected = row.original.id === selectedId
+
+      if (hasDeletionTimestamp(row.original.deleted_at) || isPending) {
+        return []
+      }
+
+      return [
+        {
+          label: isSelected ? t("actions.clear") : t("actions.select"),
+          onClick: () => {
+            if (isSelected) {
+              onClearSelection()
+              return
+            }
+
+            onSelectBrand(row.original)
+          },
+        },
+      ]
+    },
+  }),
+]
+
 const BrandAssignmentDrawer = ({
   currentBrand,
   onOpenChange,
   open,
   productId,
 }: {
-  currentBrand?: Brand
+  currentBrand?: Brand | undefined
   onOpenChange: (open: boolean) => void
   open: boolean
   productId: string
@@ -280,24 +394,24 @@ const BrandAssignmentDrawer = ({
 
   const { data, error, isLoading } = useQuery({
     enabled: open,
-    queryFn: () => listBrands(params),
+    queryFn: async () => await listBrands(params),
     queryKey: brandQueryKeys.list(params),
   })
   const mutation = useMutation({
-    mutationFn: (submittedBrandId: string | undefined) =>
-      setProductBrands(productId, submittedBrandId),
+    mutationFn: async (submittedBrandId: string | undefined) =>
+      await setProductBrands(productId, submittedBrandId),
     onError: (mutationError) => {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : t("errors.saveBrandFailed")
+          : t("errors.saveBrandFailed"),
       )
     },
     onSuccess: async (_, submittedBrandId) => {
       const affectedBrandIds = new Set(
         [currentBrand?.id, submittedBrandId].filter(
-          (id): id is string => id !== undefined
-        )
+          (id): id is string => id !== undefined,
+        ),
       )
 
       await Promise.all([
@@ -316,11 +430,11 @@ const BrandAssignmentDrawer = ({
         queryClient.invalidateQueries({
           queryKey: brandQueryKeys.productOptionsLists(),
         }),
-        ...[...affectedBrandIds].map((brandId) =>
-          queryClient.invalidateQueries({
+        ...[...affectedBrandIds].map(async (brandId) => {
+          await queryClient.invalidateQueries({
             queryKey: brandQueryKeys.detail(brandId),
           })
-        ),
+        }),
       ])
       toast.success(t("toasts.productBrandUpdated"))
       onOpenChange(false)
@@ -332,15 +446,15 @@ const BrandAssignmentDrawer = ({
     }
   }
 
-  const brands = [...(data?.brands ?? [])].sort(
-    (first, second) => Number(!!first.deleted_at) - Number(!!second.deleted_at)
-  )
+  const manageTitle = t("widget.manageTitle")
+  const brands = orderBrandsByStatus(data?.brands ?? [])
   const selectedBrand = findSelectedBrand(
     brands,
     selectedId,
-    selectedBrandSnapshot
+    selectedBrandSnapshot,
   )
   const count = data?.count ?? 0
+  const hasSelection = selectedId !== undefined && selectedId.length > 0
   const clearSelection = () => {
     setSelectedId(undefined)
     setSelectedBrandSnapshot(undefined)
@@ -357,52 +471,19 @@ const BrandAssignmentDrawer = ({
 
     mutation.mutate(selectedId)
   }
-  const columns = [
-    brandColumnHelper.accessor("title", {
-      header: t("columns.brand"),
-      cell: ({ row }) => (
-        <span className={row.original.deleted_at ? "opacity-60" : undefined}>
-          {row.original.title}
-        </span>
-      ),
-    }),
-    brandColumnHelper.accessor("handle", {
-      header: t("columns.handle"),
-    }),
-    brandColumnHelper.display({
-      id: "status",
-      header: t("columns.status"),
-      cell: ({ row }) =>
-        row.original.id === selectedId ? (
-          <Badge size="2xsmall">{t("status.selected")}</Badge>
-        ) : (
-          "-"
-        ),
-    }),
-    brandColumnHelper.action({
-      actions: ({ row }) => {
-        const isSelected = row.original.id === selectedId
-
-        if (row.original.deleted_at || mutation.isPending) {
-          return []
-        }
-
-        return [
-          {
-            label: isSelected ? t("actions.clear") : t("actions.select"),
-            onClick: () =>
-              isSelected ? clearSelection() : selectBrand(row.original),
-          },
-        ]
-      },
-    }),
-  ]
+  const columns = buildBrandColumns({
+    isPending: mutation.isPending,
+    onClearSelection: clearSelection,
+    onSelectBrand: selectBrand,
+    selectedId,
+    t,
+  })
 
   return (
     <Drawer onOpenChange={handleOpenChange} open={open}>
       <Drawer.Content>
         <Drawer.Header>
-          <Drawer.Title>{t("widget.manageTitle")}</Drawer.Title>
+          <Drawer.Title>{manageTitle}</Drawer.Title>
         </Drawer.Header>
         <div className="flex flex-col gap-3 border-ui-border-base border-b px-6 py-4">
           <Container className="flex items-center justify-between gap-3 px-4 py-3">
@@ -415,7 +496,7 @@ const BrandAssignmentDrawer = ({
               </Text>
             </div>
             <Button
-              disabled={!selectedId || mutation.isPending}
+              disabled={!hasSelection || mutation.isPending}
               onClick={clearSelection}
               size="small"
               type="button"
@@ -424,7 +505,7 @@ const BrandAssignmentDrawer = ({
               {t("actions.clear")}
             </Button>
           </Container>
-          {currentBrand?.deleted_at ? (
+          {hasDeletionTimestamp(currentBrand?.deleted_at) ? (
             <Alert variant="warning">
               {t("widget.inactiveSelectionWarning")}
             </Alert>
@@ -452,11 +533,11 @@ const BrandAssignmentDrawer = ({
                 emptyState={{
                   empty: {
                     description: t("brands.empty"),
-                    heading: t("widget.manageTitle"),
+                    heading: manageTitle,
                   },
                   filtered: {
                     description: t("brands.empty"),
-                    heading: t("widget.manageTitle"),
+                    heading: manageTitle,
                   },
                 }}
                 getRowId={(brand) => brand.id}
@@ -485,7 +566,9 @@ const BrandAssignmentDrawer = ({
           <div className="flex justify-end gap-2">
             <Button
               disabled={mutation.isPending}
-              onClick={() => handleOpenChange(false)}
+              onClick={() => {
+                handleOpenChange(false)
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -513,51 +596,46 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
   const { t: attributeT } = useTranslation("productAttributes")
   const [brandDrawerOpen, setBrandDrawerOpen] = useState(false)
   const [attributeDrawerOpen, setAttributeDrawerOpen] = useState(false)
+  const productId = product?.id
+  const hasProductId = productId !== undefined && productId.length > 0
 
   const brandQuery = useQuery({
-    enabled: !!product?.id,
-    queryFn: () => {
-      if (!product?.id) {
+    enabled: hasProductId,
+    queryFn: async () => {
+      if (productId === undefined || productId.length === 0) {
         throw new Error(t("errors.productIdRequired"))
       }
-      return retrieveProductBrands(product.id)
+
+      return await retrieveProductBrands(productId)
     },
-    queryKey: brandQueryKeys.productLinks(product?.id),
+    queryKey: brandQueryKeys.productLinks(productId),
   })
   const attributeQuery = useQuery({
-    enabled: !!product?.id,
-    queryFn: () => retrieveProductAttributes(product?.id ?? ""),
-    queryKey: productAttributeQueryKeys.product(product?.id),
+    enabled: hasProductId,
+    queryFn: async () => await retrieveProductAttributes(productId ?? ""),
+    queryKey: productAttributeQueryKeys.product(productId),
   })
-  const editableAttributeItems = useMemo(
-    () =>
-      (attributeQuery.data?.product_attributes ?? [])
-        .filter((item) => !item.definition.deleted_at)
-        .map((item) =>
-          item.selected_option?.deleted_at
-            ? { ...item, assignment: null, selected_option: null }
-            : item
-        ),
-    [attributeQuery.data]
-  )
 
-  if (!product?.id) {
+  if (productId === undefined || productId.length === 0) {
     return null
   }
 
-  const brands = [...(brandQuery.data?.brands ?? [])].sort(
-    (first, second) => Number(!!first.deleted_at) - Number(!!second.deleted_at)
-  )
+  const brands = orderBrandsByStatus(brandQuery.data?.brands ?? [])
   const attributeItems = attributeQuery.data?.product_attributes ?? []
-  const activeBrand = brands.find((brand) => !brand.deleted_at)
-  const hasInactiveBrand = brands.some((brand) => brand.deleted_at)
+  const editableAttributeItems = toEditableAttributeItems(attributeItems)
+  const activeBrand = brands.find(
+    (brand) => !hasDeletionTimestamp(brand.deleted_at),
+  )
+  const hasInactiveBrand = brands.some((brand) =>
+    hasDeletionTimestamp(brand.deleted_at),
+  )
   let statusText = t("products.notLinked")
 
   if (hasInactiveBrand) {
     statusText = t("products.inactiveLinked")
   }
 
-  if (activeBrand) {
+  if (activeBrand !== undefined) {
     statusText = t("products.linked")
   }
 
@@ -585,7 +663,9 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
               </Text>
             </div>
             <Button
-              onClick={() => setBrandDrawerOpen(true)}
+              onClick={() => {
+                setBrandDrawerOpen(true)
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -612,7 +692,9 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
               </Text>
             </div>
             <Button
-              onClick={() => setAttributeDrawerOpen(true)}
+              onClick={() => {
+                setAttributeDrawerOpen(true)
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -633,14 +715,14 @@ const ProductBrandsWidget = ({ data: product }: ProductBrandsWidgetProps) => {
         currentBrand={activeBrand ?? brands[0]}
         onOpenChange={setBrandDrawerOpen}
         open={brandDrawerOpen}
-        productId={product.id}
+        productId={productId}
       />
       {attributeDrawerOpen ? (
         <ProductAttributesDrawer
           items={editableAttributeItems}
           onOpenChange={setAttributeDrawerOpen}
           open={attributeDrawerOpen}
-          productId={product.id}
+          productId={productId}
         />
       ) : null}
     </>

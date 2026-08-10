@@ -1,5 +1,7 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
+import { parseProductListMetadata } from "../../../modules/product-list/schemas"
 import type ProductListModuleService from "../../../modules/product-list/service"
 import type { ProductListItemRecord } from "../types"
 
@@ -13,7 +15,7 @@ export const deleteProductListItemStep = createStep(
     return new StepResponse({ id: item.id }, item)
   },
   async (item, { container }) => {
-    if (!item?.list_id) {
+    if (item?.list_id === undefined || item.list_id.length === 0) {
       return
     }
 
@@ -22,10 +24,10 @@ export const deleteProductListItemStep = createStep(
       .createProductListItems({
         id: item.id,
         list_id: item.list_id,
-        metadata: item.metadata ?? null,
+        metadata: parseProductListMetadata(item.metadata),
         note: item.note ?? null,
         quantity: item.quantity,
         sort_order: item.sort_order,
       })
-  }
+  },
 )

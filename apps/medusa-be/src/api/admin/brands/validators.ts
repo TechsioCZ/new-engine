@@ -3,23 +3,21 @@ import { z } from "@medusajs/framework/zod"
 const optionalHandle = z.preprocess(
   (value) =>
     typeof value === "string" && value.trim().length === 0 ? undefined : value,
-  z.string().trim().min(1).optional()
+  z.string().trim().min(1).optional(),
 )
 
 const queryBoolean = z.preprocess((value) => {
-  if (value === undefined || value === "") {
-    return
-  }
+  const normalizedValue = value === "" ? undefined : value
 
-  if (value === true || value === "true") {
+  if (normalizedValue === true || normalizedValue === "true") {
     return true
   }
 
-  if (value === false || value === "false") {
+  if (normalizedValue === false || normalizedValue === "false") {
     return false
   }
 
-  return value
+  return normalizedValue
 }, z.boolean().optional())
 
 const normalizeOptionalText = (value: unknown) => {
@@ -37,22 +35,25 @@ const normalizeOptionalText = (value: unknown) => {
 
 const optionalText = z.preprocess(
   normalizeOptionalText,
-  z.string().trim().nullable().optional()
+  z.string().trim().nullable().optional(),
 )
 
 const optionalEmail = z.preprocess(
   normalizeOptionalText,
-  z.string().trim().email().nullable().optional()
+  z.email().trim().nullable().optional(),
 )
 
 const addGpsrConditionalIssues = (
   value: {
-    gpsr_european_reseller_contact_email?: string | null
-    gpsr_european_reseller_manufacturing_company_name?: string | null
-    gpsr_european_reseller_postal_address?: string | null
-    gpsr_manufactured_outside_eu?: boolean
+    gpsr_european_reseller_contact_email?: string | null | undefined
+    gpsr_european_reseller_manufacturing_company_name?:
+      | string
+      | null
+      | undefined
+    gpsr_european_reseller_postal_address?: string | null | undefined
+    gpsr_manufactured_outside_eu?: boolean | undefined
   },
-  context: z.RefinementCtx
+  context: z.RefinementCtx,
 ) => {
   const requiredFields = [
     "gpsr_european_reseller_manufacturing_company_name",
@@ -60,11 +61,15 @@ const addGpsrConditionalIssues = (
     "gpsr_european_reseller_contact_email",
   ] as const
 
-  if (value.gpsr_manufactured_outside_eu) {
+  if (value.gpsr_manufactured_outside_eu === true) {
     for (const field of requiredFields) {
-      if (!value[field]) {
+      if (
+        value[field] === undefined ||
+        value[field] === null ||
+        value[field] === ""
+      ) {
         context.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           message: "Required when the brand is manufactured outside the EU",
           path: [field],
         })
@@ -72,9 +77,13 @@ const addGpsrConditionalIssues = (
     }
   } else {
     for (const field of requiredFields) {
-      if (value[field]) {
+      if (
+        value[field] !== undefined &&
+        value[field] !== null &&
+        value[field] !== ""
+      ) {
         context.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           message: "Must be empty when the brand is manufactured inside the EU",
           path: [field],
         })
@@ -179,7 +188,7 @@ export const AdminUpdateBrandProductsSchema = z
     for (const productId of new Set(value.remove)) {
       if (addProductIds.has(productId)) {
         context.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           message: "A product cannot be added and removed in the same request",
           path: ["remove"],
         })

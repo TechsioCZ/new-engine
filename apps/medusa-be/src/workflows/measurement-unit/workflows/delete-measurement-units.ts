@@ -4,6 +4,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
+
 import { deleteMeasurementUnitsStep } from "../steps/delete-measurement-units"
 import type { DeleteMeasurementUnitsWorkflowInput } from "../types"
 
@@ -13,7 +14,7 @@ export const deleteMeasurementUnitsWorkflow = createWorkflow(
     const lockInput = transform(input, (current) => ({
       key: [...new Set(current.ids)]
         .filter(Boolean)
-        .sort()
+        .toSorted()
         .map((id) => `measurement-unit:${id}`),
       timeout: 5,
       ttl: 30,
@@ -27,5 +28,5 @@ export const deleteMeasurementUnitsWorkflow = createWorkflow(
     releaseLockStep(releaseInput)
 
     return new WorkflowResponse(deleted)
-  }
+  },
 )

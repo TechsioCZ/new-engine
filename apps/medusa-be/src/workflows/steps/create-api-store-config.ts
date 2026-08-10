@@ -1,4 +1,5 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import type {
   ApiStoreCreateInput,
   ApiStoreModuleService,
@@ -16,7 +17,7 @@ export const createApiStoreConfigStep = createStep(
     return new StepResponse(config, config.id)
   },
   async (id, { container }) => {
-    if (!id) {
+    if (id === undefined || id.length === 0) {
       return
     }
 
@@ -24,5 +25,5 @@ export const createApiStoreConfigStep = createStep(
       container.resolve<ApiStoreModuleService>(API_STORE_MODULE)
 
     await apiStoreService.deleteApiStoreConfig(id)
-  }
+  },
 )

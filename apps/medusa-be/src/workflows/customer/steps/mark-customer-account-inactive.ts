@@ -1,16 +1,23 @@
-import type { ICustomerModuleService } from "@medusajs/framework/types"
+import type {
+  MetadataType,
+  ICustomerModuleService,
+} from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { normalizeInactiveCustomerFirstName } from "../normalizers"
 
-type MarkCustomerAccountInactiveInput = {
+interface MarkCustomerAccountInactiveInput {
   customer_id: string
-  first_name?: string | null
+  first_name?: string | null | undefined
+  metadata: MetadataType
+  previous_metadata: MetadataType
 }
 
-type MarkCustomerAccountInactiveCompensation = {
+interface MarkCustomerAccountInactiveCompensation {
   customer_id: string
-  first_name?: string | null
+  first_name?: string | null | undefined
+  previous_metadata: MetadataType
 }
 
 type CustomerUpdateInput = Parameters<
@@ -23,7 +30,7 @@ export const markCustomerAccountInactiveStep = createStep(
   "mark-customer-account-inactive",
   async (
     input: MarkCustomerAccountInactiveInput,
-    { container }
+    { container },
   ): Promise<
     StepResponse<
       { customer_id: string; first_name: string },
@@ -31,13 +38,14 @@ export const markCustomerAccountInactiveStep = createStep(
     >
   > => {
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
     const firstName = normalizeInactiveCustomerFirstName(input.first_name)
 
     const update: CustomerUpdateInput = {
       first_name: firstName,
       has_account: false,
+      metadata: input.metadata,
     }
 
     await customerModuleService.updateCustomers(input.customer_id, update)
@@ -50,7 +58,8 @@ export const markCustomerAccountInactiveStep = createStep(
       {
         customer_id: input.customer_id,
         first_name: input.first_name,
-      }
+        previous_metadata: input.previous_metadata,
+      },
     )
   },
   async (input, { container }) => {
@@ -59,14 +68,15 @@ export const markCustomerAccountInactiveStep = createStep(
     }
 
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
 
     const update: CustomerUpdateInput = {
       first_name: input.first_name ?? null,
       has_account: true,
+      metadata: input.previous_metadata,
     }
 
     await customerModuleService.updateCustomers(input.customer_id, update)
-  }
+  },
 )

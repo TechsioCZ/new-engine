@@ -10,15 +10,15 @@ export const useSelectedParams = ({
   multiple?: boolean
 }) => {
   const [searchParams, setSearchParams] = useSearchParams()
-  const identifier = prefix ? `${prefix}_${param}` : param
-  const offsetKey = prefix ? `${prefix}_offset` : "offset"
+  const identifier = prefix === undefined ? param : `${prefix}_${param}`
+  const offsetKey = prefix === undefined ? "offset" : `${prefix}_offset`
 
   const add = (value: string) => {
     setSearchParams((prev) => {
       const newValue = new URLSearchParams(prev)
 
       const updateMultipleValues = () => {
-        const existingValues = newValue.get(identifier)?.split(",") || []
+        const existingValues = newValue.get(identifier)?.split(",") ?? []
 
         if (!existingValues.includes(value)) {
           existingValues.push(value)
@@ -43,9 +43,9 @@ export const useSelectedParams = ({
 
   const deleteParam = (value?: string) => {
     const deleteMultipleValues = (prev: URLSearchParams) => {
-      const existingValues = prev.get(identifier)?.split(",") || []
-      const index = existingValues.indexOf(value || "")
-      if (index > -1) {
+      const existingValues = prev.get(identifier)?.split(",") ?? []
+      const index = existingValues.indexOf(value ?? "")
+      if (index !== -1) {
         existingValues.splice(index, 1)
         prev.set(identifier, existingValues.join(","))
       }
@@ -56,13 +56,13 @@ export const useSelectedParams = ({
     }
 
     setSearchParams((prev) => {
-      if (value) {
+      if (typeof value === "string" && value.length > 0) {
         if (multiple) {
           deleteMultipleValues(prev)
         } else {
           deleteSingleValue(prev)
         }
-        if (!prev.get(identifier)) {
+        if (prev.get(identifier) === null) {
           prev.delete(identifier)
         }
       } else {
@@ -74,7 +74,7 @@ export const useSelectedParams = ({
   }
 
   const get = () =>
-    searchParams.get(identifier)?.split(",").filter(Boolean) || []
+    searchParams.get(identifier)?.split(",").filter(Boolean) ?? []
 
   return { add, delete: deleteParam, get }
 }

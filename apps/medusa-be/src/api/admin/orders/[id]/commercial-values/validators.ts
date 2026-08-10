@@ -8,10 +8,10 @@ export const CommercialValuesDiscountIntentSchema = z.discriminatedUnion(
       value_bps: z.number().int().min(0).max(10_000),
     }),
     z.object({
-      amount: z.number().finite().min(0),
+      amount: z.number().min(0),
       type: z.literal("amount"),
     }),
-  ]
+  ],
 )
 
 export const PostAdminOrderCommercialValuesPreviewSchema = z.object({
@@ -22,8 +22,8 @@ export const PostAdminOrderCommercialValuesPreviewSchema = z.object({
       z.object({
         discount: CommercialValuesDiscountIntentSchema.nullish(),
         item_id: z.string().min(1),
-        unit_price: z.number().finite().min(0),
-      })
+        unit_price: z.number().min(0),
+      }),
     )
     .min(1),
   order_discount: CommercialValuesDiscountIntentSchema.nullish(),
@@ -32,7 +32,7 @@ export const PostAdminOrderCommercialValuesPreviewSchema = z.object({
       z.object({
         discount: CommercialValuesDiscountIntentSchema.nullish(),
         shipping_method_id: z.string().min(1),
-      })
+      }),
     )
     .optional(),
 })

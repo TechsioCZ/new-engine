@@ -3,32 +3,36 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { omitUndefined } from "@techsio/std/object"
+
 import { createCompaniesWorkflow } from "../../../workflows/company/workflows/create-companies"
 import type { StoreCreateCompanyType } from "./validators"
 
-export const POST = async (
+const post = async (
   req: AuthenticatedMedusaRequest<
     StoreCreateCompanyType | StoreCreateCompanyType[]
   >,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
   const { result: createdCompanies } = await createCompaniesWorkflow(
-    req.scope
+    req.scope,
   ).run({
     input: Array.isArray(req.validatedBody)
-      ? req.validatedBody.map((company) => ({
-          ...company,
-          spending_limit_reset_frequency:
-            company.spending_limit_reset_frequency ?? undefined,
-        }))
+      ? req.validatedBody.map((company) =>
+          omitUndefined({
+            ...company,
+            spending_limit_reset_frequency:
+              company.spending_limit_reset_frequency ?? undefined,
+          }),
+        )
       : [
-          {
+          omitUndefined({
             ...req.validatedBody,
             spending_limit_reset_frequency:
               req.validatedBody.spending_limit_reset_frequency ?? undefined,
-          },
+          }),
         ],
   })
 
@@ -38,8 +42,10 @@ export const POST = async (
       fields: req.queryConfig.fields,
       filters: { id: createdCompanies.map((company) => company.id) },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
 
   res.json({ companies })
 }
+
+export { post as POST }

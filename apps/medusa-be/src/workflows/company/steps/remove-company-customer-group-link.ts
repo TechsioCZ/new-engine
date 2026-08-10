@@ -6,27 +6,25 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { COMPANY_MODULE } from "../../../modules/company"
+import type { QueryCompanyProjection } from "../../../types/company/query"
 
-type EmployeeWithCustomer = {
-  customer?: { id?: string } | null
-}
-
-type RemoveCompanyCustomerGroupLinkCompensation = {
+interface RemoveCompanyCustomerGroupLinkCompensation {
   company_id: string
   customer_ids: string[]
   group_id?: string
   link_removed?: boolean
 }
 
-type RemoveCompanyCustomerGroupLinkInput = {
+interface RemoveCompanyCustomerGroupLinkInput {
   company_id: string
   expected_group_id?: string
   preserve_link?: boolean
 }
 
 const normalizeInput = (
-  input: RemoveCompanyCustomerGroupLinkInput | string
+  input: RemoveCompanyCustomerGroupLinkInput | string,
 ): RemoveCompanyCustomerGroupLinkInput =>
   typeof input === "string" ? { company_id: input } : input
 
@@ -39,27 +37,19 @@ const getCompanyCustomerGroupLink = (companyId: string, groupId: string) => ({
   },
 })
 
-const getCustomerGroupCustomers = (
-  employees: EmployeeWithCustomer[] | undefined,
-  groupId: string
-) =>
-  (employees ?? [])
-    .filter(
-      (
-        employee
-      ): employee is EmployeeWithCustomer & { customer: { id: string } } =>
-        Boolean(employee?.customer?.id)
-    )
-    .map((employee) => ({
-      customer_id: employee.customer.id,
-      customer_group_id: groupId,
-    }))
+const getCustomerGroupCustomerIds = (
+  employees: QueryCompanyProjection["employees"],
+): string[] =>
+  (employees ?? []).flatMap((employee) => {
+    const customerId = employee?.customer?.id
+    return customerId !== undefined && customerId.length > 0 ? [customerId] : []
+  })
 
 export const removeCompanyCustomerGroupLinkStep = createStep(
   "remove-company-customer-group-link",
   async (
     input: RemoveCompanyCustomerGroupLinkInput | string,
-    { container }
+    { container },
   ): Promise<
     StepResponse<undefined, RemoveCompanyCustomerGroupLinkCompensation>
   > => {
@@ -71,42 +61,45 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
 
-    const {
-      data: [company],
-    } = await query.graph(
+    const companyResult: { data: QueryCompanyProjection[] } = await query.graph(
       {
         entity: "companies",
-        filters: { id: companyId },
         fields: [
           "id",
           "customer_group.*",
           "employees.*",
           "employees.customer.*",
         ],
+        filters: { id: companyId },
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
+    const [company] = companyResult.data
 
-    if (!company) {
+    if (company === undefined) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Company ${companyId} was not found`
+        `Company ${companyId} was not found`,
       )
     }
 
     const groupId = company.customer_group?.id
 
-    if (expectedGroupId && groupId !== expectedGroupId) {
+    if (
+      expectedGroupId !== undefined &&
+      expectedGroupId.length > 0 &&
+      groupId !== expectedGroupId
+    ) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Company is not linked to the requested customer group."
+        "Company is not linked to the requested customer group.",
       )
     }
 
-    if (!groupId) {
+    if (typeof groupId !== "string" || groupId.length === 0) {
       return new StepResponse(undefined, {
         company_id: companyId,
         customer_ids: [],
@@ -114,55 +107,56 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
       })
     }
 
-    const customerGroupCustomers = getCustomerGroupCustomers(
-      company.employees as EmployeeWithCustomer[] | undefined,
-      groupId
-    )
+    const customerIds = getCustomerGroupCustomerIds(company.employees)
+    const customerGroupCustomers = customerIds.map((customerId) => ({
+      customer_group_id: groupId,
+      customer_id: customerId,
+    }))
 
-    if (customerGroupCustomers.length) {
+    if (customerGroupCustomers.length > 0) {
       await customerModuleService.removeCustomerFromGroup(
-        customerGroupCustomers
+        customerGroupCustomers,
       )
     }
 
-    if (!preserveLink) {
+    if (preserveLink !== true) {
       await link.dismiss(getCompanyCustomerGroupLink(companyId, groupId))
     }
 
     return new StepResponse(undefined, {
       company_id: companyId,
       customer_ids: customerGroupCustomers.map(
-        ({ customer_id }) => customer_id
+        ({ customer_id }) => customer_id,
       ),
       group_id: groupId,
-      link_removed: !preserveLink,
+      link_removed: preserveLink !== true,
     })
   },
   async (
     input: RemoveCompanyCustomerGroupLinkCompensation | undefined,
-    { container }
+    { container },
   ) => {
-    if (!input?.group_id) {
+    if (input?.group_id === undefined || input.group_id.length === 0) {
       return
     }
 
     const groupId = input.group_id
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
 
-    if (input.link_removed) {
+    if (input.link_removed === true) {
       await link.create(getCompanyCustomerGroupLink(input.company_id, groupId))
     }
 
-    if (input.customer_ids.length) {
+    if (input.customer_ids.length > 0) {
       await customerModuleService.addCustomerToGroup(
         input.customer_ids.map((id) => ({
-          customer_id: id,
           customer_group_id: groupId,
-        }))
+          customer_id: id,
+        })),
       )
     }
-  }
+  },
 )

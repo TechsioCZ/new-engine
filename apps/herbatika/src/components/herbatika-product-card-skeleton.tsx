@@ -2,13 +2,13 @@
 
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 
-type HerbatikaProductCardSkeletonProps = {
+interface HerbatikaProductCardSkeletonProps {
   variant?: "default" | "compact"
 }
 
-export function HerbatikaProductCardSkeleton({
+export const HerbatikaProductCardSkeleton = ({
   variant = "default",
-}: HerbatikaProductCardSkeletonProps) {
+}: HerbatikaProductCardSkeletonProps) => {
   if (variant === "compact") {
     return (
       <div className="rounded-2xl border-transparent bg-surface p-300">

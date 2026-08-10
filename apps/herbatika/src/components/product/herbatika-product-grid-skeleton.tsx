@@ -1,23 +1,22 @@
 "use client"
 
 import { HerbatikaProductCardSkeleton } from "@/components/herbatika-product-card-skeleton"
-import {
-  HERBATIKA_PRODUCT_GRID_LAYOUT_CLASSNAME,
-  type HerbatikaProductGridLayout,
-} from "./herbatika-product-grid"
+
+import { HERBATIKA_PRODUCT_GRID_LAYOUT_CLASSNAME } from "./herbatika-product-grid.constants"
+import type { HerbatikaProductGridLayout } from "./herbatika-product-grid.constants"
 
 const SKELETON_LAYOUT_COUNT: Record<HerbatikaProductGridLayout, number> = {
   catalog: 8,
   collection: 4,
 }
 
-type HerbatikaProductGridSkeletonProps = {
+interface HerbatikaProductGridSkeletonProps {
   layout: HerbatikaProductGridLayout
 }
 
-export function HerbatikaProductGridSkeleton({
+export const HerbatikaProductGridSkeleton = ({
   layout,
-}: HerbatikaProductGridSkeletonProps) {
+}: HerbatikaProductGridSkeletonProps) => {
   const skeletonCount = SKELETON_LAYOUT_COUNT[layout]
 
   return (

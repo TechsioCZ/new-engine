@@ -1,6 +1,7 @@
 "use client"
 
-import type { Product } from "@/components/product-detail/product-detail.types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
+
 import type { ProductDetailDataState } from "@/components/product-detail/use-product-detail-data"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import {
@@ -9,7 +10,7 @@ import {
 } from "@/lib/storefront/products"
 import { useAddProductToCartAction } from "@/lib/storefront/use-add-product-to-cart-action"
 
-type UseProductDetailActionsProps = {
+interface UseProductDetailActionsProps {
   product: ProductDetailDataState["product"]
   quantity: ProductDetailDataState["quantity"]
   region: ProductDetailDataState["region"]
@@ -17,16 +18,18 @@ type UseProductDetailActionsProps = {
   selectedVolumeDiscountOption: ProductDetailDataState["selectedVolumeDiscountOption"]
 }
 
-export function useProductDetailActions({
+export const useProductDetailActions = ({
   product,
   quantity,
   region,
   selectedVariant,
   selectedVolumeDiscountOption,
-}: UseProductDetailActionsProps) {
+}: UseProductDetailActionsProps) => {
   const addToCart = useAddProductToCartAction({
-    regionId: region?.region_id,
-    countryCode: region?.country_code,
+    ...(region?.region_id === undefined ? {} : { regionId: region?.region_id }),
+    ...(region?.country_code === undefined
+      ? {}
+      : { countryCode: region?.country_code }),
   })
   const prefetchProduct = usePrefetchProduct({
     defaultDelay: 220,
@@ -34,32 +37,43 @@ export function useProductDetailActions({
   })
 
   const addProductToCart = async (
-    productToAdd: Product,
+    productToAdd: MedusaCatalogProduct,
     quantityToAdd: number,
-    variantIdOverride?: string | null
+    variantIdOverride?: string | null,
   ) => {
     await addToCart.addProductToCart({
       product: productToAdd,
       quantity: quantityToAdd,
-      variantId: variantIdOverride,
+      ...(variantIdOverride === undefined
+        ? {}
+        : { variantId: variantIdOverride }),
     })
   }
 
   return {
     handleAddMainProductToCart: () => {
-      if (!(product && selectedVariant?.id)) {
+      if (
+        product === null ||
+        selectedVariant?.id === undefined ||
+        selectedVariant.id === ""
+      ) {
         return
       }
 
       runDetachedPromise(
-        addProductToCart(product, quantity, selectedVariant.id)
+        addProductToCart(product, quantity, selectedVariant.id),
       )
     },
-    handleAddRelatedProductToCart: (productToAdd: Product) => {
+    handleAddRelatedProductToCart: (productToAdd: MedusaCatalogProduct) => {
       runDetachedPromise(addProductToCart(productToAdd, 1))
     },
     handleAddVolumeDiscountToCart: () => {
-      if (!(product && selectedVariant?.id && selectedVolumeDiscountOption)) {
+      if (
+        product === null ||
+        selectedVariant?.id === undefined ||
+        selectedVariant.id === "" ||
+        selectedVolumeDiscountOption === null
+      ) {
         return
       }
 
@@ -67,38 +81,39 @@ export function useProductDetailActions({
         addProductToCart(
           product,
           selectedVolumeDiscountOption.quantity,
-          selectedVariant.id
-        )
+          selectedVariant.id,
+        ),
       )
     },
     handleRelatedProductHoverEnd: (
       sectionId: string,
-      hoveredProduct: Product
+      hoveredProduct: MedusaCatalogProduct,
     ) => {
       prefetchProduct.cancelPrefetch(
-        `${sectionId}-product-${hoveredProduct.id}`
+        `${sectionId}-product-${hoveredProduct.id}`,
       )
     },
     handleRelatedProductHoverStart: (
       sectionId: string,
-      hoveredProduct: Product
+      hoveredProduct: MedusaCatalogProduct,
     ) => {
-      if (!hoveredProduct.handle) {
+      if (hoveredProduct.handle === undefined || hoveredProduct.handle === "") {
         return
       }
 
       prefetchProduct.delayedPrefetch(
         {
-          handle: hoveredProduct.handle,
           fields: PRODUCT_DETAIL_FIELDS,
+          handle: hoveredProduct.handle,
         },
         220,
-        `${sectionId}-product-${hoveredProduct.id}`
+        `${sectionId}-product-${hoveredProduct.id}`,
       )
     },
     isMainProductAdding:
       addToCart.isAddPending &&
-      Boolean(product?.id) &&
+      product?.id !== undefined &&
+      product.id !== "" &&
       addToCart.activeProductId === product?.id,
     isProductAdding: (productId: string) =>
       addToCart.isProductAdding(productId),

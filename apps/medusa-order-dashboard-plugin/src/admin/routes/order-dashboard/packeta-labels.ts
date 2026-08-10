@@ -1,15 +1,14 @@
+import type { useTranslation } from "react-i18next"
+
 import { getCarrierLabel } from "./format"
-import {
-  ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS,
-  type OrderDashboardBlockingOrder,
-  type OrderDashboardOrder,
-  type OrderDashboardPacketaEligibilityOrder,
+import { ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS } from "./types"
+import type {
+  OrderDashboardBlockingOrder,
+  OrderDashboardOrder,
+  OrderDashboardPacketaEligibilityOrder,
 } from "./types"
 
-type TranslationFunction = (
-  key: string,
-  options?: Record<string, unknown>
-) => string
+type TranslationFunction = ReturnType<typeof useTranslation>["t"]
 
 type PacketaLabelPreparation =
   | {
@@ -27,17 +26,85 @@ type PacketaLabelPreparation =
       limit: number
     }
 
-export function getPacketaCarrierOrderIds(orders: OrderDashboardOrder[]) {
-  return orders
-    .filter((order) => order.carrier.value === "packeta")
-    .map((order) => order.id)
+const hasPrintablePacketaLabel = (
+  order: OrderDashboardPacketaEligibilityOrder,
+) =>
+  (order.fulfillments ?? []).some(
+    (fulfillment) =>
+      fulfillment.provider_id === "packeta_packeta" &&
+      (fulfillment.canceled_at ?? "") === "" &&
+      typeof fulfillment.data?.packet_id === "number",
+  )
+
+const getPacketaLabelSkipReason = (
+  order: OrderDashboardOrder,
+  eligibilityOrder: OrderDashboardPacketaEligibilityOrder | undefined,
+  t: TranslationFunction,
+) => {
+  if (order.carrier.value !== "packeta") {
+    return t("packetaSkip.notPacketa", { carrier: getCarrierLabel(order) })
+  }
+
+  if (!eligibilityOrder) {
+    return t("packetaSkip.unchecked")
+  }
+
+  if (hasPrintablePacketaLabel(eligibilityOrder)) {
+    return null
+  }
+
+  return t("packetaSkip.noActiveLabel")
 }
 
-export function preparePacketaLabelDownload(
+export const getPacketaCarrierOrderIds = (
+  orders: OrderDashboardOrder[],
+): string[] => {
+  const orderIds: string[] = []
+
+  for (const order of orders) {
+    if (order.carrier.value === "packeta") {
+      orderIds.push(order.id)
+    }
+  }
+
+  return orderIds
+}
+
+export const getPacketaLabelPreview = (
   selectedOrders: OrderDashboardOrder[],
   eligibilityOrders: OrderDashboardPacketaEligibilityOrder[] | undefined,
-  t: TranslationFunction
-): PacketaLabelPreparation {
+  t: TranslationFunction,
+) => {
+  const eligibilityOrdersById = new Map(
+    (eligibilityOrders ?? []).map((order) => [order.id, order]),
+  )
+  const printableOrders: OrderDashboardOrder[] = []
+  const skipped: OrderDashboardBlockingOrder[] = []
+
+  for (const order of selectedOrders) {
+    const eligibilityOrder = eligibilityOrdersById.get(order.id)
+    const skipReason = getPacketaLabelSkipReason(order, eligibilityOrder, t)
+
+    if (skipReason !== null) {
+      skipped.push({
+        id: order.id,
+        order_display_id: order.order_display_id,
+        reason: skipReason,
+      })
+      continue
+    }
+
+    printableOrders.push(order)
+  }
+
+  return { printableOrders, skipped }
+}
+
+export const preparePacketaLabelDownload = (
+  selectedOrders: OrderDashboardOrder[],
+  eligibilityOrders: OrderDashboardPacketaEligibilityOrder[] | undefined,
+  t: TranslationFunction,
+): PacketaLabelPreparation => {
   const preview = getPacketaLabelPreview(selectedOrders, eligibilityOrders, t)
   const blockingOrders = preview.skipped
 
@@ -58,65 +125,4 @@ export function preparePacketaLabelDownload(
     kind: "ready",
     orderIds: preview.printableOrders.map((order) => order.id),
   }
-}
-
-export function getPacketaLabelPreview(
-  selectedOrders: OrderDashboardOrder[],
-  eligibilityOrders: OrderDashboardPacketaEligibilityOrder[] | undefined,
-  t: TranslationFunction
-) {
-  const eligibilityOrdersById = new Map(
-    (eligibilityOrders ?? []).map((order) => [order.id, order])
-  )
-  const printableOrders: OrderDashboardOrder[] = []
-  const skipped: OrderDashboardBlockingOrder[] = []
-
-  for (const order of selectedOrders) {
-    const eligibilityOrder = eligibilityOrdersById.get(order.id)
-    const skipReason = getPacketaLabelSkipReason(order, eligibilityOrder, t)
-
-    if (skipReason) {
-      skipped.push({
-        id: order.id,
-        order_display_id: order.order_display_id,
-        reason: skipReason,
-      })
-      continue
-    }
-
-    printableOrders.push(order)
-  }
-
-  return { printableOrders, skipped }
-}
-
-function getPacketaLabelSkipReason(
-  order: OrderDashboardOrder,
-  eligibilityOrder: OrderDashboardPacketaEligibilityOrder | undefined,
-  t: TranslationFunction
-) {
-  if (order.carrier.value !== "packeta") {
-    return t("packetaSkip.notPacketa", { carrier: getCarrierLabel(order) })
-  }
-
-  if (!eligibilityOrder) {
-    return t("packetaSkip.unchecked")
-  }
-
-  if (!hasPrintablePacketaLabel(eligibilityOrder)) {
-    return t("packetaSkip.noActiveLabel")
-  }
-
-  return
-}
-
-function hasPrintablePacketaLabel(
-  order: OrderDashboardPacketaEligibilityOrder
-) {
-  return (order.fulfillments ?? []).some(
-    (fulfillment) =>
-      fulfillment.provider_id === "packeta_packeta" &&
-      !fulfillment.canceled_at &&
-      typeof fulfillment.data?.packet_id === "number"
-  )
 }

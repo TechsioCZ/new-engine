@@ -11,25 +11,29 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import {
-  type Dispatch,
-  type SetStateAction,
-  useEffect,
-  useRef,
-  useState,
-} from "react"
+import { useState } from "react"
+import type { Dispatch, SetStateAction } from "react"
 import { useTranslation } from "react-i18next"
-import {
-  type Brand,
-  type BrandAttribute,
-  type BrandAttributeType,
-  type BrandInput,
-  brandQueryKeys,
-  createBrand,
-  updateBrand,
+
+import { brandQueryKeys, createBrand, updateBrand } from "../../lib/brands"
+import type {
+  Brand,
+  BrandAttribute,
+  BrandAttributeType,
+  BrandInput,
 } from "../../lib/brands"
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u
+const TEXT_FIELD_NAMES = [
+  "gpsr_contact_email",
+  "gpsr_european_reseller_contact_email",
+  "gpsr_european_reseller_manufacturing_company_name",
+  "gpsr_european_reseller_postal_address",
+  "gpsr_manufacturing_company_name",
+  "gpsr_postal_address",
+  "handle",
+  "title",
+] as const
 const GPSR_EMAIL_FIELDS = [
   "gpsr_contact_email",
   "gpsr_european_reseller_contact_email",
@@ -40,8 +44,19 @@ const GPSR_REPRESENTATIVE_FIELDS = [
   "gpsr_european_reseller_contact_email",
 ] as const
 
-export type BrandFormState = {
-  attributes: BrandAttribute[]
+/**
+ * Attribute rows carry a client-side `rowKey` so React can keep a row mounted
+ * while its attribute type changes. Persisted ids are absent on freshly added
+ * rows and the attribute name changes as the user edits, so neither is usable
+ * as a stable list key. `rowKey` never leaves the form: {@link toBrandInput}
+ * projects rows down to the `name`/`value` pair the API expects.
+ */
+export interface BrandAttributeRow extends BrandAttribute {
+  rowKey: string
+}
+
+export interface BrandFormState {
+  attributes: BrandAttributeRow[]
   gpsr_contact_email: string
   gpsr_european_reseller_contact_email: string
   gpsr_european_reseller_manufacturing_company_name: string
@@ -53,62 +68,123 @@ export type BrandFormState = {
   title: string
 }
 
-type BrandFormErrors = Partial<Record<keyof BrandFormState, string>>
+type TextFieldName = (typeof TEXT_FIELD_NAMES)[number]
+
+type BrandFormErrors = Partial<Record<TextFieldName, string>>
+
+let attributeRowSeed = 0
+
+const nextAttributeRowKey = () => {
+  attributeRowSeed += 1
+
+  return `brand-attribute-${attributeRowSeed}`
+}
+
+const isLiveAttribute = (attribute: BrandAttribute) =>
+  (attribute.attribute_type_deleted_at ?? "").length === 0
+
+const isSelectableAttributeType = (
+  attributeType: BrandAttributeType,
+  selectedNames: ReadonlySet<string>,
+) =>
+  (attributeType.deleted_at ?? "").length === 0 &&
+  !selectedNames.has(attributeType.name)
+
+const toAttributeRow = (attribute: BrandAttribute): BrandAttributeRow => ({
+  ...attribute,
+  rowKey: nextAttributeRowKey(),
+})
+
+/**
+ * Collects the attribute names already taken by other rows. `excludedName` is
+ * the name owned by the row being edited, which must stay selectable for it.
+ */
+const collectSelectedNames = (
+  attributes: readonly BrandAttribute[],
+  excludedName = "",
+): ReadonlySet<string> => {
+  const names = new Set<string>()
+
+  for (const attribute of attributes) {
+    if (attribute.name.length > 0 && attribute.name !== excludedName) {
+      names.add(attribute.name)
+    }
+  }
+
+  return names
+}
 
 const emptyAttribute = (
-  attributeTypes: BrandAttributeType[] = [],
-  selectedNames = new Set<string>()
-): BrandAttribute => ({
+  attributeTypes: readonly BrandAttributeType[],
+  selectedNames: ReadonlySet<string>,
+): BrandAttributeRow => ({
   name:
-    attributeTypes.find(
-      (attributeType) =>
-        !(attributeType.deleted_at || selectedNames.has(attributeType.name))
+    attributeTypes.find((attributeType) =>
+      isSelectableAttributeType(attributeType, selectedNames),
     )?.name ?? "",
+  rowKey: nextAttributeRowKey(),
   value: "",
 })
 
-export const toBrandFormState = (brand?: Brand): BrandFormState => ({
-  attributes: brand?.attributes.length
-    ? brand.attributes.filter(
-        (attribute) => !attribute.attribute_type_deleted_at
-      )
-    : [],
-  gpsr_contact_email: brand?.gpsr_contact_email ?? "",
-  gpsr_european_reseller_contact_email:
-    brand?.gpsr_european_reseller_contact_email ?? "",
-  gpsr_european_reseller_manufacturing_company_name:
-    brand?.gpsr_european_reseller_manufacturing_company_name ?? "",
-  gpsr_european_reseller_postal_address:
-    brand?.gpsr_european_reseller_postal_address ?? "",
-  gpsr_manufactured_outside_eu: brand?.gpsr_manufactured_outside_eu ?? false,
-  gpsr_manufacturing_company_name: brand?.gpsr_manufacturing_company_name ?? "",
-  gpsr_postal_address: brand?.gpsr_postal_address ?? "",
-  handle: brand?.handle ?? "",
-  title: brand?.title ?? "",
+const emptyBrandFormState = (): BrandFormState => ({
+  attributes: [],
+  gpsr_contact_email: "",
+  gpsr_european_reseller_contact_email: "",
+  gpsr_european_reseller_manufacturing_company_name: "",
+  gpsr_european_reseller_postal_address: "",
+  gpsr_manufactured_outside_eu: false,
+  gpsr_manufacturing_company_name: "",
+  gpsr_postal_address: "",
+  handle: "",
+  title: "",
 })
+
+export const toBrandFormState = (brand?: Brand): BrandFormState => {
+  if (brand === undefined) {
+    return emptyBrandFormState()
+  }
+
+  return {
+    attributes: brand.attributes.flatMap((attribute) =>
+      isLiveAttribute(attribute) ? [toAttributeRow(attribute)] : [],
+    ),
+    gpsr_contact_email: brand.gpsr_contact_email ?? "",
+    gpsr_european_reseller_contact_email:
+      brand.gpsr_european_reseller_contact_email ?? "",
+    gpsr_european_reseller_manufacturing_company_name:
+      brand.gpsr_european_reseller_manufacturing_company_name ?? "",
+    gpsr_european_reseller_postal_address:
+      brand.gpsr_european_reseller_postal_address ?? "",
+    gpsr_manufactured_outside_eu: brand.gpsr_manufactured_outside_eu ?? false,
+    gpsr_manufacturing_company_name:
+      brand.gpsr_manufacturing_company_name ?? "",
+    gpsr_postal_address: brand.gpsr_postal_address ?? "",
+    handle: brand.handle,
+    title: brand.title,
+  }
+}
 
 const trimmedOrNull = (value: string) => value.trim() || null
 
 const toBrandInput = (form: BrandFormState): BrandInput => ({
-  attributes: form.attributes
-    .map((attribute) => ({
-      name: attribute.name.trim(),
-      value: attribute.value,
-    }))
-    .filter((attribute) => attribute.name.length > 0),
+  attributes: form.attributes.flatMap((attribute) => {
+    const name = attribute.name.trim()
+
+    return name.length === 0 ? [] : [{ name, value: attribute.value }]
+  }),
   gpsr_contact_email: trimmedOrNull(form.gpsr_contact_email),
   gpsr_european_reseller_contact_email: trimmedOrNull(
-    form.gpsr_european_reseller_contact_email
+    form.gpsr_european_reseller_contact_email,
   ),
   gpsr_european_reseller_manufacturing_company_name: trimmedOrNull(
-    form.gpsr_european_reseller_manufacturing_company_name
+    form.gpsr_european_reseller_manufacturing_company_name,
   ),
   gpsr_european_reseller_postal_address: trimmedOrNull(
-    form.gpsr_european_reseller_postal_address
+    form.gpsr_european_reseller_postal_address,
   ),
   gpsr_manufactured_outside_eu: form.gpsr_manufactured_outside_eu,
   gpsr_manufacturing_company_name: trimmedOrNull(
-    form.gpsr_manufacturing_company_name
+    form.gpsr_manufacturing_company_name,
   ),
   gpsr_postal_address: trimmedOrNull(form.gpsr_postal_address),
   handle: form.handle.trim() || undefined,
@@ -117,7 +193,7 @@ const toBrandInput = (form: BrandFormState): BrandInput => ({
 
 const validateBrandForm = (
   form: BrandFormState,
-  messages: { invalidEmail: string; mustBeEmpty: string; required: string }
+  messages: { invalidEmail: string; mustBeEmpty: string; required: string },
 ) => {
   const errors: BrandFormErrors = {}
 
@@ -145,10 +221,26 @@ const validateBrandForm = (
   return errors
 }
 
-type TextFieldName = Exclude<
-  keyof BrandFormState,
-  "attributes" | "gpsr_manufactured_outside_eu"
->
+/**
+ * Drops the listed fields from the error map by rebuilding it, so cleared
+ * fields are absent rather than present with an `undefined` message.
+ */
+const withoutErrors = (
+  errors: BrandFormErrors,
+  clearedFields: readonly TextFieldName[],
+): BrandFormErrors => {
+  const remaining: BrandFormErrors = {}
+
+  for (const field of TEXT_FIELD_NAMES) {
+    const message = errors[field]
+
+    if (message !== undefined && !clearedFields.includes(field)) {
+      remaining[field] = message
+    }
+  }
+
+  return remaining
+}
 
 const BrandTextField = ({
   errors,
@@ -173,6 +265,7 @@ const BrandTextField = ({
 }) => {
   const error = errors[name]
   const errorId = `${id}-error`
+  const hasError = error !== undefined && error.length > 0
 
   return (
     <div className="flex flex-col gap-2">
@@ -181,22 +274,24 @@ const BrandTextField = ({
         {required ? " *" : null}
       </Label>
       <Input
-        aria-describedby={error ? errorId : undefined}
-        aria-invalid={!!error}
+        aria-describedby={hasError ? errorId : undefined}
+        aria-invalid={hasError}
         aria-required={required}
         id={id}
         onChange={(event) => {
+          const { value } = event.target
+
           setForm((current) => ({
             ...current,
-            [name]: event.target.value,
+            [name]: value,
           }))
-          setErrors((current) => ({ ...current, [name]: undefined }))
+          setErrors((current) => withoutErrors(current, [name]))
         }}
         required={required}
         type={type}
         value={form[name]}
       />
-      {error ? (
+      {hasError ? (
         <Text
           className="text-ui-fg-error"
           id={errorId}
@@ -227,42 +322,50 @@ const BrandFormFields = ({
 }) => {
   const { t } = useTranslation("brands")
   const required = form.gpsr_manufactured_outside_eu
-  const selectedAttributeNames = new Set(
-    form.attributes
-      .map((attribute) => attribute.name)
-      .filter((name): name is string => !!name)
-  )
-  const canAddAttribute = attributeTypes.some(
-    (attributeType) =>
-      !(
-        attributeType.deleted_at ||
-        selectedAttributeNames.has(attributeType.name)
-      )
+  const selectedAttributeNames = collectSelectedNames(form.attributes)
+  const canAddAttribute = attributeTypes.some((attributeType) =>
+    isSelectableAttributeType(attributeType, selectedAttributeNames),
   )
 
   const updateAttribute = (
-    index: number,
+    rowKey: string,
     key: keyof BrandAttribute,
-    value: string
+    value: string,
   ) => {
     setForm((current) => ({
       ...current,
-      attributes: current.attributes.map((attribute, currentIndex) =>
-        currentIndex === index ? { ...attribute, [key]: value } : attribute
+      attributes: current.attributes.map((attribute) =>
+        attribute.rowKey === rowKey
+          ? { ...attribute, [key]: value }
+          : attribute,
       ),
     }))
   }
 
-  const getAttributeOptions = (selectedName: string) => {
-    const selectedNames = new Set(
-      form.attributes
-        .map((attribute) => attribute.name)
-        .filter((name) => name && name !== selectedName)
-    )
+  const removeAttribute = (rowKey: string) => {
+    setForm((current) => ({
+      ...current,
+      attributes: current.attributes.filter(
+        (attribute) => attribute.rowKey !== rowKey,
+      ),
+    }))
+  }
 
-    return attributeTypes.filter(
-      (attributeType) =>
-        !(attributeType.deleted_at || selectedNames.has(attributeType.name))
+  const addAttribute = () => {
+    setForm((current) => ({
+      ...current,
+      attributes: [
+        ...current.attributes,
+        emptyAttribute(attributeTypes, selectedAttributeNames),
+      ],
+    }))
+  }
+
+  const getAttributeOptions = (selectedName: string) => {
+    const selectedNames = collectSelectedNames(form.attributes, selectedName)
+
+    return attributeTypes.filter((attributeType) =>
+      isSelectableAttributeType(attributeType, selectedNames),
     )
   }
 
@@ -282,12 +385,14 @@ const BrandFormFields = ({
         <Label htmlFor={`${idPrefix}-handle`}>{t("fields.handle")}</Label>
         <Input
           id={`${idPrefix}-handle`}
-          onChange={(event) =>
+          onChange={(event) => {
+            const { value } = event.target
+
             setForm((current) => ({
               ...current,
-              handle: event.target.value,
+              handle: value,
             }))
-          }
+          }}
           placeholder={t("form.handlePlaceholder")}
           value={form.handle}
         />
@@ -345,12 +450,9 @@ const BrandFormFields = ({
                     : "",
                   gpsr_manufactured_outside_eu: isOutsideEu,
                 }))
-                setErrors((current) => ({
-                  ...current,
-                  gpsr_european_reseller_contact_email: undefined,
-                  gpsr_european_reseller_manufacturing_company_name: undefined,
-                  gpsr_european_reseller_postal_address: undefined,
-                }))
+                setErrors((current) =>
+                  withoutErrors(current, GPSR_REPRESENTATIVE_FIELDS),
+                )
               }}
             />
             <Label htmlFor={`${idPrefix}-gpsr-manufactured-outside-eu`}>
@@ -362,7 +464,7 @@ const BrandFormFields = ({
             form={form}
             id={`${idPrefix}-gpsr-eu-company-name`}
             label={t(
-              "fields.gpsr_european_reseller_manufacturing_company_name"
+              "fields.gpsr_european_reseller_manufacturing_company_name",
             )}
             name="gpsr_european_reseller_manufacturing_company_name"
             required={required}
@@ -402,15 +504,7 @@ const BrandFormFields = ({
           </Text>
           <Button
             disabled={!canAddAttribute}
-            onClick={() =>
-              setForm((current) => ({
-                ...current,
-                attributes: [
-                  ...current.attributes,
-                  emptyAttribute(attributeTypes, selectedAttributeNames),
-                ],
-              }))
-            }
+            onClick={addAttribute}
             size="small"
             type="button"
             variant="secondary"
@@ -419,13 +513,15 @@ const BrandFormFields = ({
           </Button>
         </div>
         {form.attributes.length ? (
-          form.attributes.map((attribute, index) => (
+          form.attributes.map((attribute) => (
             <div
               className="grid grid-cols-[1fr_1fr_auto] gap-2"
-              key={`${attribute.id ?? "new"}-${index}`}
+              key={attribute.rowKey}
             >
               <Select
-                onValueChange={(value) => updateAttribute(index, "name", value)}
+                onValueChange={(value) => {
+                  updateAttribute(attribute.rowKey, "name", value)
+                }}
                 value={attribute.name}
               >
                 <Select.Trigger>
@@ -443,22 +539,17 @@ const BrandFormFields = ({
                 </Select.Content>
               </Select>
               <Input
-                onChange={(event) =>
-                  updateAttribute(index, "value", event.target.value)
-                }
+                onChange={(event) => {
+                  updateAttribute(attribute.rowKey, "value", event.target.value)
+                }}
                 placeholder={t("fields.value")}
                 value={attribute.value}
               />
               <Button
                 aria-label={t("actions.remove")}
-                onClick={() =>
-                  setForm((current) => ({
-                    ...current,
-                    attributes: current.attributes.filter(
-                      (_, currentIndex) => currentIndex !== index
-                    ),
-                  }))
-                }
+                onClick={() => {
+                  removeAttribute(attribute.rowKey)
+                }}
                 size="small"
                 type="button"
                 variant="secondary"
@@ -477,23 +568,32 @@ const BrandFormFields = ({
   )
 }
 
+/**
+ * Seeds the draft from `brand` whenever the dialog opens, or while it is open
+ * and a different brand is supplied. The reset runs during render — instead of
+ * from an effect — so the reopened dialog never paints the previous draft.
+ */
 const useBrandFormState = (brand: Brand | undefined, open: boolean) => {
+  const brandId = brand?.id ?? ""
   const [form, setForm] = useState<BrandFormState>(() =>
-    toBrandFormState(brand)
+    toBrandFormState(brand),
   )
   const [errors, setErrors] = useState<BrandFormErrors>({})
-  const lastOpen = useRef(false)
-  const lastBrandId = useRef<string | undefined>(brand?.id)
+  const [lastOpen, setLastOpen] = useState(false)
+  const [lastBrandId, setLastBrandId] = useState(brandId)
 
-  useEffect(() => {
-    if (open && (!lastOpen.current || lastBrandId.current !== brand?.id)) {
-      setForm(toBrandFormState(brand))
-      setErrors({})
-    }
+  if (open && (!lastOpen || lastBrandId !== brandId)) {
+    setForm(toBrandFormState(brand))
+    setErrors({})
+  }
 
-    lastOpen.current = open
-    lastBrandId.current = brand?.id
-  }, [brand, open])
+  if (lastOpen !== open) {
+    setLastOpen(open)
+  }
+
+  if (lastBrandId !== brandId) {
+    setLastBrandId(brandId)
+  }
 
   return { errors, form, setErrors, setForm }
 }
@@ -501,7 +601,7 @@ const useBrandFormState = (brand: Brand | undefined, open: boolean) => {
 const useValidatedSubmit = (
   form: BrandFormState,
   setErrors: Dispatch<SetStateAction<BrandFormErrors>>,
-  submit: (input: BrandInput) => void
+  submit: (input: BrandInput) => void,
 ) => {
   const { t } = useTranslation("brands")
 
@@ -522,6 +622,15 @@ const useValidatedSubmit = (
   }
 }
 
+/** Blocks dialog open/close transitions while a save is in flight. */
+const createOpenChangeHandler =
+  (isPending: boolean, onOpenChange: (open: boolean) => void) =>
+  (nextOpen: boolean) => {
+    if (!isPending) {
+      onOpenChange(nextOpen)
+    }
+  }
+
 export const BrandCreateModal = ({
   attributeTypes,
   onOpenChange,
@@ -535,13 +644,13 @@ export const BrandCreateModal = ({
   const queryClient = useQueryClient()
   const { errors, form, setErrors, setForm } = useBrandFormState(
     undefined,
-    open
+    open,
   )
   const mutation = useMutation({
     mutationFn: createBrand,
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveBrandFailed")
+        error instanceof Error ? error.message : t("errors.saveBrandFailed"),
       )
     },
     onSuccess: async () => {
@@ -561,11 +670,10 @@ export const BrandCreateModal = ({
     },
   })
   const save = useValidatedSubmit(form, setErrors, mutation.mutate)
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (!mutation.isPending) {
-      onOpenChange(nextOpen)
-    }
-  }
+  const handleOpenChange = createOpenChangeHandler(
+    mutation.isPending,
+    onOpenChange,
+  )
 
   return (
     <FocusModal onOpenChange={handleOpenChange} open={open}>
@@ -595,7 +703,9 @@ export const BrandCreateModal = ({
           <div className="flex items-center justify-end gap-2">
             <Button
               disabled={mutation.isPending}
-              onClick={() => handleOpenChange(false)}
+              onClick={() => {
+                handleOpenChange(false)
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -633,10 +743,10 @@ export const BrandEditDrawer = ({
   const queryClient = useQueryClient()
   const { errors, form, setErrors, setForm } = useBrandFormState(brand, open)
   const mutation = useMutation({
-    mutationFn: (input: BrandInput) => updateBrand(brand.id, input),
+    mutationFn: async (input: BrandInput) => await updateBrand(brand.id, input),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveBrandFailed")
+        error instanceof Error ? error.message : t("errors.saveBrandFailed"),
       )
     },
     onSuccess: async () => {
@@ -659,11 +769,10 @@ export const BrandEditDrawer = ({
     },
   })
   const save = useValidatedSubmit(form, setErrors, mutation.mutate)
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (!mutation.isPending) {
-      onOpenChange(nextOpen)
-    }
-  }
+  const handleOpenChange = createOpenChangeHandler(
+    mutation.isPending,
+    onOpenChange,
+  )
 
   return (
     <Drawer onOpenChange={handleOpenChange} open={open}>
@@ -691,7 +800,9 @@ export const BrandEditDrawer = ({
           <div className="flex items-center justify-end gap-2">
             <Button
               disabled={mutation.isPending}
-              onClick={() => handleOpenChange(false)}
+              onClick={() => {
+                handleOpenChange(false)
+              }}
               size="small"
               type="button"
               variant="secondary"

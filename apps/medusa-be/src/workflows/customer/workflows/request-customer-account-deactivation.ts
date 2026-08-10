@@ -3,23 +3,24 @@ import {
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
+import { isUnknownArray } from "../../../utils/guards"
 import { sendNotificationStep } from "../../steps/send-notification"
 import { prepareCustomerAccountDeactivationRequestStep } from "../steps/prepare-customer-account-deactivation-request"
 
-type RequestCustomerAccountDeactivationWorkflowInput = {
+interface RequestCustomerAccountDeactivationWorkflowInput {
   customer_id: string
 }
 
-type NotificationResult = {
+interface NotificationResult {
   external_id?: unknown
 }
 
-function isNotificationResult(value: unknown): value is NotificationResult {
-  return typeof value === "object" && value !== null
-}
+const isNotificationResult = (value: unknown): value is NotificationResult =>
+  typeof value === "object" && value !== null
 
-function getNotificationSent(notification: unknown) {
-  const notificationResult = Array.isArray(notification)
+const getNotificationSent = (notification: unknown): boolean => {
+  const notificationResult: unknown = isUnknownArray(notification)
     ? notification[0]
     : notification
 
@@ -37,9 +38,7 @@ export const requestCustomerAccountDeactivationWorkflow = createWorkflow(
 
     const notificationInput = transform({ prepared }, (data) => [
       {
-        to: data.prepared.email,
         channel: "email",
-        template: "customer-account-deactivation",
         data: {
           confirmation_url: data.prepared.confirmation_url,
           customer_id: data.prepared.customer_id,
@@ -47,6 +46,8 @@ export const requestCustomerAccountDeactivationWorkflow = createWorkflow(
         },
         resource_id: data.prepared.customer_id,
         resource_type: "customer",
+        template: "customer-account-deactivation",
+        to: data.prepared.email,
         trigger_type: "customer.account_deactivation_requested",
       },
     ])
@@ -58,7 +59,7 @@ export const requestCustomerAccountDeactivationWorkflow = createWorkflow(
         customer_id: data.prepared.customer_id,
         email: data.prepared.email,
         sent: data.prepared.sent && getNotificationSent(data.notification),
-      }))
+      })),
     )
-  }
+  },
 )

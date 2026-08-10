@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
 
-export function GET() {
-  return NextResponse.json({ status: "ok" })
-}
+const getHealth = () => NextResponse.json({ status: "ok" })
+
+export { getHealth as GET }

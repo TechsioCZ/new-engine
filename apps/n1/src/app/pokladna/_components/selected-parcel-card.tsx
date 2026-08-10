@@ -1,14 +1,15 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
+
 import type { PplAccessPointData } from "./ppl-widget"
 
-export function SelectedParcelCard({
+export const SelectedParcelCard = ({
   accessPoint,
   onChangeClick,
 }: {
   accessPoint: PplAccessPointData
   onChangeClick: () => void
-}) {
-  const address = accessPoint.address
+}) => {
+  const { address } = accessPoint
 
   return (
     <div className="mt-300 rounded border border-border-secondary bg-overlay/30 p-300">

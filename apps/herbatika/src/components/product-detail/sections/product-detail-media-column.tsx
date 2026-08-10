@@ -3,26 +3,28 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
-import { Gallery, type GalleryItem } from "@techsio/ui-kit/organisms/gallery"
-import NextImage from "next/image"
+import { Gallery } from "@techsio/ui-kit/organisms/gallery"
+import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery"
 import { useTranslations } from "next-intl"
+import NextImage from "next/image"
+
 import type { ProductMediaFact } from "@/components/product-detail/product-detail.types"
 import { ProductDetailGalleryLightbox } from "@/components/product-detail/sections/product-detail-gallery-lightbox"
 import { useProductDetailGalleryState } from "@/components/product-detail/sections/use-product-detail-gallery-state"
 import { SupportingText } from "@/components/text/supporting-text"
 import { useMediaQuery } from "@/hooks/use-media-query"
 
-type ProductDetailMediaColumnProps = {
+interface ProductDetailMediaColumnProps {
   discountPercent: number | null
   galleryItems: GalleryItem[]
   mediaFacts: ProductMediaFact[]
 }
 
-export function ProductDetailMediaColumn({
+export const ProductDetailMediaColumn = ({
   discountPercent,
   galleryItems,
   mediaFacts,
-}: ProductDetailMediaColumnProps) {
+}: ProductDetailMediaColumnProps) => {
   const tCatalog = useTranslations("catalog")
   const isDesktopGallery = useMediaQuery("md")
   const carouselOrientation = isDesktopGallery ? "vertical" : "horizontal"
@@ -48,19 +50,21 @@ export function ProductDetailMediaColumn({
           aspectRatio: "square",
           loop: galleryItemsWithFallback.length > 1,
           objectFit: "contain",
-          orientation: carouselOrientation,
-          size: "full",
-          width: "100%",
           onDragStatusChange: (details) => {
             if (details.type === "dragging") {
               cancelPendingOpen()
             }
           },
+          orientation: carouselOrientation,
+          size: "full",
+          width: "100%",
         }}
-        className="min-w-0 md:grid-cols-[auto_minmax(0,1fr)]"
+        className="min-w-0 md:product-detail-media-layout"
         hideThumbnailsWhenSingle={false}
         items={galleryItemsWithFallback}
-        onValueChange={({ value }) => setSelectedImageIndex(value)}
+        onValueChange={({ value }) => {
+          setSelectedImageIndex(value)
+        }}
         orientation="vertical"
         thumbnailSize={88}
         value={safeSelectedImageIndex}
@@ -80,7 +84,7 @@ export function ProductDetailMediaColumn({
           ) : null}
 
           <Gallery.Carousel className="min-w-0 px-gallery-carousel">
-            <Gallery.Slides className="mx-auto h-full max-h-[408px] w-full max-w-full md:max-w-[408px]" />
+            <Gallery.Slides className="mx-auto h-full max-h-product-gallery w-full max-w-full md:max-w-product-gallery" />
           </Gallery.Carousel>
 
           {mediaFacts.length > 0 ? (

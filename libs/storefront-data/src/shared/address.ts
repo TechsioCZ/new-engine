@@ -1,10 +1,12 @@
+const ADDRESS_VALIDATION_FAILED = "Address validation failed"
+
 export type StorefrontAddressScope =
   | "shipping"
   | "billing"
   | "customer"
   | "root"
 
-export type StorefrontAddressValidationIssue = {
+export interface StorefrontAddressValidationIssue {
   scope: StorefrontAddressScope
   field: string
   code: string
@@ -17,24 +19,25 @@ export type StorefrontAddressValidationResult =
   | undefined
 
 const formatValidationIssue = (
-  issue: StorefrontAddressValidationIssue
+  issue: StorefrontAddressValidationIssue,
 ): string => {
-  if (issue.message) {
-    return issue.message
+  const { message } = issue
+  if (message !== undefined && message !== "") {
+    return message
   }
 
-  const field = issue.field ? `${issue.field}: ` : ""
+  const field = issue.field === "" ? "" : `${issue.field}: `
   return `${issue.scope} ${field}${issue.code}`.trim()
 }
 
 export const hasStorefrontAddressValidationIssues = (
-  result: StorefrontAddressValidationResult
+  result: StorefrontAddressValidationResult,
 ): result is readonly StorefrontAddressValidationIssue[] =>
   Array.isArray(result) && result.length > 0
 
 export const getStorefrontAddressValidationMessage = (
   result: StorefrontAddressValidationResult,
-  fallbackMessage = "Address validation failed"
+  fallbackMessage = ADDRESS_VALIDATION_FAILED,
 ): string => {
   if (!hasStorefrontAddressValidationIssues(result)) {
     return fallbackMessage
@@ -48,14 +51,14 @@ export class StorefrontAddressValidationError extends Error {
 
   constructor(
     issues: readonly StorefrontAddressValidationIssue[],
-    message?: string
+    message?: string,
   ) {
     super(
       message ??
         getStorefrontAddressValidationMessage(
           issues,
-          "Address validation failed"
-        )
+          ADDRESS_VALIDATION_FAILED,
+        ),
     )
     this.name = "StorefrontAddressValidationError"
     this.issues = [...issues]
@@ -64,7 +67,7 @@ export class StorefrontAddressValidationError extends Error {
 
 export const toStorefrontAddressValidationError = (
   result: StorefrontAddressValidationResult,
-  fallbackMessage?: string
+  fallbackMessage?: string,
 ): StorefrontAddressValidationError | null => {
   if (!hasStorefrontAddressValidationIssues(result)) {
     return null
@@ -73,77 +76,77 @@ export const toStorefrontAddressValidationError = (
   return new StorefrontAddressValidationError(
     result,
     fallbackMessage ??
-      getStorefrontAddressValidationMessage(result, "Address validation failed")
+      getStorefrontAddressValidationMessage(result, ADDRESS_VALIDATION_FAILED),
   )
 }
 
 export const assertStorefrontAddressValidation = (
   result: StorefrontAddressValidationResult,
-  fallbackMessage?: string
+  fallbackMessage?: string,
 ): void => {
   const error = toStorefrontAddressValidationError(result, fallbackMessage)
-  if (error) {
+  if (error !== null) {
     throw error
   }
 }
 
-export type StorefrontCartAddressContext = {
+export interface StorefrontCartAddressContext {
   scope: "shipping" | "billing"
 }
 
-export type StorefrontCartAddressAdapter<
+export interface StorefrontCartAddressAdapter<
   TInput,
   TPayload = TInput,
   TStoredAddress = unknown,
-> = {
+> {
   normalize?: (input: TInput, context: StorefrontCartAddressContext) => TInput
   validate?: (
     input: TInput,
-    context: StorefrontCartAddressContext
+    context: StorefrontCartAddressContext,
   ) => StorefrontAddressValidationResult
   toPayload?: (input: TInput, context: StorefrontCartAddressContext) => TPayload
   fromAddress?: (
     input?: TStoredAddress | null,
-    context?: StorefrontCartAddressContext
+    context?: StorefrontCartAddressContext,
   ) => TInput
 }
 
-export type StorefrontCustomerCreateAddressContext = {
+export interface StorefrontCustomerCreateAddressContext {
   mode: "create"
 }
 
-export type StorefrontCustomerUpdateAddressContext = {
+export interface StorefrontCustomerUpdateAddressContext {
   mode: "update"
 }
 
-export type StorefrontCustomerAddressAdapter<
+export interface StorefrontCustomerAddressAdapter<
   TCreateInput,
   TCreateParams = TCreateInput,
   TUpdateInput = TCreateInput & { addressId?: string },
   TUpdateParams = TCreateParams,
-> = {
+> {
   normalizeCreate?: (
     input: TCreateInput,
-    context: StorefrontCustomerCreateAddressContext
+    context: StorefrontCustomerCreateAddressContext,
   ) => TCreateInput
   validateCreate?: (
     input: TCreateInput,
-    context: StorefrontCustomerCreateAddressContext
+    context: StorefrontCustomerCreateAddressContext,
   ) => StorefrontAddressValidationResult
   toCreateParams?: (
     input: TCreateInput,
-    context: StorefrontCustomerCreateAddressContext
+    context: StorefrontCustomerCreateAddressContext,
   ) => TCreateParams
   normalizeUpdate?: (
     input: TUpdateInput,
-    context: StorefrontCustomerUpdateAddressContext
+    context: StorefrontCustomerUpdateAddressContext,
   ) => TUpdateInput
   validateUpdate?: (
     input: TUpdateInput,
-    context: StorefrontCustomerUpdateAddressContext
+    context: StorefrontCustomerUpdateAddressContext,
   ) => StorefrontAddressValidationResult
   toUpdateParams?: (
     input: TUpdateInput,
-    context: StorefrontCustomerUpdateAddressContext
+    context: StorefrontCustomerUpdateAddressContext,
   ) => TUpdateParams
 }

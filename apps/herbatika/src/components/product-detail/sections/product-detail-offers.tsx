@@ -4,9 +4,10 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { RadioCard } from "@techsio/ui-kit/molecules/radio-card"
 import { useTranslations } from "next-intl"
+
 import type { VolumeDiscountOption } from "@/components/product-detail/product-detail.types"
 
-type ProductDetailOffersProps = {
+interface ProductDetailOffersProps {
   isAdding: boolean
   onAddToCart: () => void
   onSelectOption: (optionId: string) => void
@@ -14,13 +15,47 @@ type ProductDetailOffersProps = {
   selectedOptionId: string | null
 }
 
-export function ProductDetailOffers({
+const DiscountOptionIndicator = ({ isSelected }: { isSelected: boolean }) => (
+  <span
+    aria-hidden="true"
+    className={`grid h-500 w-500 shrink-0 place-items-center rounded-selection-indicator border ${
+      isSelected
+        ? "border-primary bg-primary text-fg-reverse"
+        : "border-border-primary bg-surface text-fg-reverse"
+    }`}
+  >
+    {isSelected ? <Icon icon="token-icon-check" size="xs" /> : null}
+  </span>
+)
+
+const DiscountOptionPrice = ({
+  originalPriceLabel,
+  priceLabel,
+}: {
+  originalPriceLabel?: string | null
+  priceLabel: string
+}) => (
+  <div className="flex shrink-0 flex-col items-end gap-50 text-right">
+    <span className="font-medium text-fg-primary leading-tight">
+      {priceLabel}
+    </span>
+    {originalPriceLabel !== null &&
+    originalPriceLabel !== undefined &&
+    originalPriceLabel !== "" ? (
+      <span className="text-fg-tertiary text-sm leading-tight line-through">
+        {originalPriceLabel}
+      </span>
+    ) : null}
+  </div>
+)
+
+export const ProductDetailOffers = ({
   isAdding,
   onAddToCart,
   onSelectOption,
   options,
   selectedOptionId,
-}: ProductDetailOffersProps) {
+}: ProductDetailOffersProps) => {
   const tCart = useTranslations("cart")
   const tCatalog = useTranslations("catalog")
 
@@ -38,7 +73,7 @@ export function ProductDetailOffers({
         <RadioCard
           className="min-w-0 gap-y-350"
           onValueChange={(value) => {
-            if (!value) {
+            if (value === null || value === "") {
               return
             }
 
@@ -89,7 +124,7 @@ export function ProductDetailOffers({
         <Button
           block
           className="min-w-0"
-          disabled={!selectedOptionId}
+          disabled={selectedOptionId === null || selectedOptionId === ""}
           icon="token-icon-cart"
           isLoading={isAdding}
           loadingText={tCart("adding_to_cart")}
@@ -100,41 +135,5 @@ export function ProductDetailOffers({
         </Button>
       </div>
     </section>
-  )
-}
-
-function DiscountOptionIndicator({ isSelected }: { isSelected: boolean }) {
-  return (
-    <span
-      aria-hidden="true"
-      className={`grid h-500 w-500 shrink-0 place-items-center rounded-[3px] border ${
-        isSelected
-          ? "border-primary bg-primary text-fg-reverse"
-          : "border-border-primary bg-surface text-fg-reverse"
-      }`}
-    >
-      {isSelected ? <Icon icon="token-icon-check" size="xs" /> : null}
-    </span>
-  )
-}
-
-function DiscountOptionPrice({
-  originalPriceLabel,
-  priceLabel,
-}: {
-  originalPriceLabel?: string | null
-  priceLabel: string
-}) {
-  return (
-    <div className="flex shrink-0 flex-col items-end gap-50 text-right">
-      <span className="font-medium text-fg-primary leading-tight">
-        {priceLabel}
-      </span>
-      {originalPriceLabel ? (
-        <span className="text-fg-tertiary text-sm leading-tight line-through">
-          {originalPriceLabel}
-        </span>
-      ) : null}
-    </div>
   )
 }

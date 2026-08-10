@@ -1,11 +1,10 @@
+import { isRecord } from "@techsio/std/object"
+
 import type {
   Product,
   RelatedProductsSection,
 } from "@/components/product-detail/product-detail.types"
 import { RELATED_PRODUCTS_PER_SECTION } from "@/lib/storefront/related-products-config"
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  Boolean(value) && typeof value === "object" && !Array.isArray(value)
 
 const asStringArray = (value: unknown): string[] => {
   if (!Array.isArray(value)) {
@@ -20,37 +19,36 @@ const normalizeProductReferenceCode = (value: string) => value.trim()
 const slugifyProductReferenceCode = (value: string) =>
   normalizeProductReferenceCode(value)
     .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replaceAll(/[\u0300-\u036F]/gu, "")
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
+    .replaceAll(/[^a-z0-9]+/gu, "-")
+    .replaceAll(/-+/gu, "-")
+    .replaceAll(/^-|-$/gu, "")
 
 export const resolveProductReferenceHandle = (code: string) => {
   const slug = slugifyProductReferenceCode(code)
 
-  return slug ? `shopitem-${slug}` : null
+  return slug === "" ? null : `shopitem-${slug}`
 }
 
 export const resolveRelatedProductReferenceCodes = (
-  product: Product | null
+  product: Product | null,
 ): string[] => {
-  const metadata = isRecord(product?.metadata) ? product.metadata : null
+  const productMetadata = product?.metadata
+  const metadata = isRecord(productMetadata) ? productMetadata : null
   const codes = [
-    ...asStringArray(metadata?.related_products),
-    ...asStringArray(metadata?.alternative_products),
+    ...asStringArray(metadata?.["related_products"]),
+    ...asStringArray(metadata?.["alternative_products"]),
   ]
   const seen = new Set<string>()
   const result: string[] = []
 
   for (const code of codes) {
     const normalized = normalizeProductReferenceCode(code)
-    if (!normalized || seen.has(normalized)) {
-      continue
+    if (normalized !== "" && !seen.has(normalized)) {
+      seen.add(normalized)
+      result.push(normalized)
     }
-
-    seen.add(normalized)
-    result.push(normalized)
   }
 
   return result
@@ -58,7 +56,7 @@ export const resolveRelatedProductReferenceCodes = (
 
 export const orderProductsByReferenceCodes = (
   products: Product[],
-  referenceCodes: string[]
+  referenceCodes: string[],
 ): Product[] => {
   const productBySourceId = new Map<string, Product>()
   const productByHandle = new Map<string, Product>()
@@ -66,13 +64,13 @@ export const orderProductsByReferenceCodes = (
   const result: Product[] = []
 
   for (const product of products) {
-    if (product.handle) {
+    if (product.handle !== undefined && product.handle !== "") {
       productByHandle.set(product.handle, product)
     }
 
     const metadata = isRecord(product.metadata) ? product.metadata : null
-    const sourceShopitemId = metadata?.source_shopitem_id
-    if (typeof sourceShopitemId === "string" && sourceShopitemId) {
+    const sourceShopitemId = metadata?.["source_shopitem_id"]
+    if (typeof sourceShopitemId === "string" && sourceShopitemId !== "") {
       productBySourceId.set(sourceShopitemId, product)
     }
   }
@@ -81,14 +79,18 @@ export const orderProductsByReferenceCodes = (
     const referenceHandle = resolveProductReferenceHandle(code)
     const product =
       productBySourceId.get(code) ??
-      (referenceHandle ? productByHandle.get(referenceHandle) : undefined)
+      (referenceHandle === null
+        ? undefined
+        : productByHandle.get(referenceHandle))
 
-    if (!product?.id || usedProductIds.has(product.id)) {
-      continue
+    if (
+      product?.id !== undefined &&
+      product.id !== "" &&
+      !usedProductIds.has(product.id)
+    ) {
+      usedProductIds.add(product.id)
+      result.push(product)
     }
-
-    usedProductIds.add(product.id)
-    result.push(product)
   }
 
   return result
@@ -96,7 +98,7 @@ export const orderProductsByReferenceCodes = (
 
 const fillSectionProducts = (
   products: Product[],
-  sectionIndex: number
+  sectionIndex: number,
 ): Product[] => {
   if (products.length === 0) {
     return []
@@ -105,7 +107,7 @@ const fillSectionProducts = (
   const start = sectionIndex * RELATED_PRODUCTS_PER_SECTION
   const initialSlice = products.slice(
     start,
-    start + RELATED_PRODUCTS_PER_SECTION
+    start + RELATED_PRODUCTS_PER_SECTION,
   )
 
   if (initialSlice.length >= RELATED_PRODUCTS_PER_SECTION) {
@@ -120,12 +122,10 @@ const fillSectionProducts = (
       break
     }
 
-    if (usedIds.has(product.id)) {
-      continue
+    if (!usedIds.has(product.id)) {
+      sectionProducts.push(product)
+      usedIds.add(product.id)
     }
-
-    sectionProducts.push(product)
-    usedIds.add(product.id)
   }
 
   return sectionProducts
@@ -133,12 +133,12 @@ const fillSectionProducts = (
 
 export const resolveRelatedSections = (
   products: Product[],
-  sectionTitles: readonly string[]
+  sectionTitles: readonly string[],
 ): RelatedProductsSection[] => {
   const recommendationSections = sectionTitles.map((title, sectionIndex) => ({
     id: `related-${sectionIndex}`,
-    title,
     products: fillSectionProducts(products, sectionIndex),
+    title,
   }))
 
   return recommendationSections.filter((section) => section.products.length > 0)

@@ -1,10 +1,11 @@
 "use client"
 
 import { useTranslations } from "next-intl"
+
 import { AsideFilter } from "@/components/aside-filter"
 import type { AsideFilterChipItem } from "@/components/aside-filter-chip-section"
 
-type CategoryFacetsPanelProps = {
+interface CategoryFacetsPanelProps {
   activeFilterCount: number
   brandItems: AsideFilterChipItem[]
   currencyCode: string
@@ -23,7 +24,7 @@ type CategoryFacetsPanelProps = {
   statusItems: AsideFilterChipItem[]
 }
 
-export function CategoryFacetsPanel({
+export const CategoryFacetsPanel = ({
   activeFilterCount,
   brandItems,
   currencyCode,
@@ -40,7 +41,7 @@ export function CategoryFacetsPanel({
   selectedPriceRange,
   showBrandFilter = true,
   statusItems,
-}: CategoryFacetsPanelProps) {
+}: CategoryFacetsPanelProps) => {
   const t = useTranslations("catalog")
   const filterProps = {
     activeFilterCount,

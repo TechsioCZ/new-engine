@@ -1,9 +1,9 @@
 import type { StoreOrder } from "@medusajs/types"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Image from "next/image"
 import Link from "next/link"
+
 import { formatPrice } from "@/lib/format-price"
 import {
   formatOrderDate,
@@ -11,17 +11,17 @@ import {
   truncateProductTitle,
 } from "@/lib/order-utils"
 
-export function MobileOrderCard({ order }: { order: StoreOrder }) {
-  const statusVariant =
-    order.status === "completed"
-      ? "success"
-      : order.status === "pending"
-        ? "warning"
-        : order.status === "canceled"
-          ? "danger"
-          : "info"
+const ORDER_STATUS_VARIANTS: Readonly<
+  Record<string, "danger" | "info" | "success" | "warning">
+> = {
+  canceled: "danger",
+  completed: "success",
+  pending: "warning",
+}
+export const MobileOrderCard = ({ order }: { order: StoreOrder }) => {
+  const statusVariant = ORDER_STATUS_VARIANTS[order.status] ?? "info"
 
-  const itemCount = order.items?.length || 0
+  const itemCount = order.items?.length ?? 0
   const firstItem = order.items?.[0]
   const hasMultipleItems = itemCount > 1
 
@@ -34,7 +34,11 @@ export function MobileOrderCard({ order }: { order: StoreOrder }) {
             Objednávka #{order.display_id}
           </p>
           <p className="mt-1 text-orders-fg-secondary text-orders-md">
-            {formatOrderDate(order.created_at as string)}
+            {formatOrderDate(
+              typeof order.created_at === "string"
+                ? order.created_at
+                : order.created_at.toISOString(),
+            )}
           </p>
         </div>
         <Badge variant={statusVariant}>
@@ -53,9 +57,9 @@ export function MobileOrderCard({ order }: { order: StoreOrder }) {
                 key={item.id}
                 style={{ zIndex: 3 - index }}
               >
-                {item.thumbnail && (
+                {item.thumbnail !== null && (
                   <Image
-                    alt={item.product_title || ""}
+                    alt={item.product_title ?? ""}
                     className="h-full w-full object-cover"
                     height={48}
                     src={item.thumbnail}
@@ -75,19 +79,20 @@ export function MobileOrderCard({ order }: { order: StoreOrder }) {
 
           {/* Product info */}
           <div className="min-w-0 flex-1">
-            {hasMultipleItems ? (
+            {hasMultipleItems && (
               <p className="text-orders-fg-primary text-orders-md">
                 {itemCount} položek
               </p>
-            ) : firstItem ? (
+            )}
+            {!hasMultipleItems && firstItem !== undefined && (
               <p className="line-clamp-1 text-orders-fg-primary text-orders-md">
-                {truncateProductTitle(firstItem.product_title || "")}
+                {truncateProductTitle(firstItem.product_title ?? "")}
               </p>
-            ) : null}
+            )}
             <p className="text-orders-fg-secondary text-xs">
               {hasMultipleItems && firstItem && (
                 <span className="line-clamp-1">
-                  {truncateProductTitle(firstItem.product_title || "")}
+                  {truncateProductTitle(firstItem.product_title ?? "")}
                   {itemCount > 2 && " a další"}
                 </span>
               )}
@@ -107,19 +112,17 @@ export function MobileOrderCard({ order }: { order: StoreOrder }) {
           <span className="font-semibold text-orders-fg-primary">
             {formatPrice(
               order.summary?.current_order_total || order.total || 0,
-              order.currency_code
+              order.currency_code,
             )}
           </span>
         </div>
-        <LinkButton
-          as={Link}
-          href={`/account/orders/${order.id}`}
+        <Link
+          className="rounded-button-md bg-button-primary px-button-md-x py-button-md-y text-button-primary"
+          href={{ pathname: "/account/orders/[id]", query: { id: order.id } }}
           prefetch={true}
-          size="sm"
-          variant="primary"
         >
           Zobrazit detail
-        </LinkButton>
+        </Link>
       </div>
     </div>
   )

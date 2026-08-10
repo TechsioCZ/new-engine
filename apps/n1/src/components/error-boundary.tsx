@@ -1,14 +1,15 @@
 "use client"
 
-import { Component, type ReactNode } from "react"
+import { Component } from "react"
+import type { ReactNode } from "react"
 
-type ErrorBoundaryProps = {
+interface ErrorBoundaryProps {
   children: ReactNode
   fallback: ReactNode | ((error: Error) => ReactNode)
   onError?: (error: Error) => void
 }
 
-type ErrorBoundaryState = {
+interface ErrorBoundaryState {
   error: Error | null
 }
 
@@ -16,7 +17,10 @@ export class ErrorBoundary extends Component<
   ErrorBoundaryProps,
   ErrorBoundaryState
 > {
-  override state: ErrorBoundaryState = { error: null }
+  constructor(props: ErrorBoundaryProps) {
+    super(props)
+    this.state = { error: null }
+  }
 
   static getDerivedStateFromError(error: Error) {
     return { error }
@@ -26,11 +30,11 @@ export class ErrorBoundary extends Component<
     this.props.onError?.(error)
   }
 
-  override render() {
+  override render(): ReactNode {
     const { error } = this.state
     const { children, fallback } = this.props
 
-    if (error) {
+    if (error !== null) {
       return typeof fallback === "function" ? fallback(error) : fallback
     }
 

@@ -1,6 +1,6 @@
 export type ReviewStatus = "approved" | "pending" | "rejected"
 
-export type CreateReviewInput = {
+export interface CreateReviewInput {
   content: string
   customer_id: string
   first_name?: null | string
@@ -11,7 +11,7 @@ export type CreateReviewInput = {
   title: string
 }
 
-export type CreateReviewWorkflowInput = {
+export interface CreateReviewWorkflowInput {
   review: CreateReviewInput
   review_token_id?: string
 }
@@ -23,12 +23,12 @@ export type UpdateReviewInput = Partial<
   >
 >
 
-export type UpdateReviewWorkflowInput = {
+export interface UpdateReviewWorkflowInput {
   id: string
   review: UpdateReviewInput
 }
 
-export type UpdateReviewStatusWorkflowInput = {
+export interface UpdateReviewStatusWorkflowInput {
   ids: string[]
   status: ReviewStatus
 }

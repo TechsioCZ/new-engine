@@ -21,4 +21,6 @@
   --spacing-1000: 4rem; /* 60px */
 
   --spacing-section: var(--spacing-600);
+  --spacing-auto: auto;
+  --height-px: 1px;
 }

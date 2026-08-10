@@ -1,41 +1,86 @@
 "use client"
 
-import { type FormEvent, useState } from "react"
+import { getRecordValue, isRecord } from "@techsio/std/object"
+import { useRef, useState } from "react"
+import type { SyntheticEvent } from "react"
 
-type ImportResult = {
+interface ImportResult {
   ok: boolean
   result: {
-    total: number
     imported: number
     skipped: number
+    total: number
   }
 }
 
-const configuredLocales = (
-  process.env.NEXT_PUBLIC_PAYLOAD_LOCALES ?? "cs,sk,en"
-)
+class ImportRequestError extends Error {
+  readonly code = "PAYLOAD_IMPORT_REQUEST_FAILED"
+  readonly status: number
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = "ImportRequestError"
+    this.status = status
+  }
+}
+
+const IMPORT_FAILED_MESSAGE = "Import failed"
+const INVALID_IMPORT_RESPONSE_MESSAGE = "Invalid import response"
+
+const { NEXT_PUBLIC_PAYLOAD_LOCALES } = process.env
+const configuredLocales = (NEXT_PUBLIC_PAYLOAD_LOCALES ?? "cs,sk,en")
   .split(",")
   .map((locale) => locale.trim())
   .filter(Boolean)
-const defaultLocales = configuredLocales.length
-  ? configuredLocales
-  : ["cs", "sk", "en"]
-const defaultLocale = defaultLocales.includes("sk") ? "sk" : defaultLocales[0]
+const defaultLocales =
+  configuredLocales.length > 0 ? configuredLocales : ["cs", "sk", "en"]
+const defaultLocale = defaultLocales.includes("sk")
+  ? "sk"
+  : (defaultLocales[0] ?? "cs")
 
-const isFormMessage = (message: string) => Boolean(message)
-
-const parseErrorMessage = async (response: Response) => {
-  const payload = await response.json().catch(() => ({}))
-  return (payload as { message?: string }).message || "Import failed"
-}
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof Error) {
-    return error.message
+const parseErrorMessage = async (response: Response): Promise<string> => {
+  try {
+    const payload: unknown = await response.json()
+    if (isRecord(payload)) {
+      const message = getRecordValue(payload, "message")
+      if (typeof message === "string") {
+        return message
+      }
+    }
+  } catch {
+    return IMPORT_FAILED_MESSAGE
   }
 
-  return "Import failed"
+  return IMPORT_FAILED_MESSAGE
 }
+
+const parseImportResult = (value: unknown): ImportResult => {
+  if (!isRecord(value)) {
+    throw new ImportRequestError(INVALID_IMPORT_RESPONSE_MESSAGE, 502)
+  }
+
+  const ok = getRecordValue(value, "ok")
+  const result = getRecordValue(value, "result")
+  if (typeof ok !== "boolean" || !isRecord(result)) {
+    throw new ImportRequestError(INVALID_IMPORT_RESPONSE_MESSAGE, 502)
+  }
+
+  const imported = getRecordValue(result, "imported")
+  const skipped = getRecordValue(result, "skipped")
+  const total = getRecordValue(result, "total")
+  if (
+    typeof imported !== "number" ||
+    typeof skipped !== "number" ||
+    typeof total !== "number"
+  ) {
+    throw new ImportRequestError(INVALID_IMPORT_RESPONSE_MESSAGE, 502)
+  }
+
+  return { ok, result: { imported, skipped, total } }
+}
+
+const getImportFailureMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : IMPORT_FAILED_MESSAGE
 
 const createFormData = ({
   file,
@@ -49,39 +94,40 @@ const createFormData = ({
   sheetName: string
   status: string
   overwrite: boolean
-}) => {
+}): FormData => {
   const formData = new FormData()
   formData.append("file", file)
   formData.append("locale", locale)
-  if (sheetName) {
+  if (sheetName !== "") {
     formData.append("sheetName", sheetName)
   }
   formData.append("dryRun", "0")
   formData.append("translate", "0")
   formData.append("overwrite", overwrite ? "1" : "0")
-  if (status) {
+  if (status !== "") {
     formData.append("status", status)
   }
 
   return formData
 }
 
-const sendImportRequest = async (formData: FormData) => {
+const sendImportRequest = async (formData: FormData): Promise<ImportResult> => {
   const response = await fetch("/api/article-import", {
-    method: "POST",
     body: formData,
+    method: "POST",
   })
 
   if (!response.ok) {
     const errorMessage = await parseErrorMessage(response)
-    throw new Error(errorMessage)
+    throw new ImportRequestError(errorMessage, response.status)
   }
 
-  return (await response.json()) as ImportResult
+  const payload: unknown = await response.json()
+  return parseImportResult(payload)
 }
 
-export default function PayloadImportNav() {
-  const [file, setFile] = useState<File | null>(null)
+const PayloadImportNav = () => {
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [locale, setLocale] = useState(defaultLocale)
   const [status, setStatus] = useState("")
   const [sheetName, setSheetName] = useState("")
@@ -90,13 +136,16 @@ export default function PayloadImportNav() {
   const [message, setMessage] = useState("")
   const [error, setError] = useState("")
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (
+    event: SyntheticEvent<HTMLFormElement, SubmitEvent>,
+  ): Promise<void> => {
     event.preventDefault()
 
     setMessage("")
     setError("")
 
-    if (!file) {
+    const file = fileInputRef.current?.files?.[0]
+    if (file === undefined) {
       setError("Vyberte XLSX soubor.")
       return
     }
@@ -104,19 +153,19 @@ export default function PayloadImportNav() {
     const formData = createFormData({
       file,
       locale,
+      overwrite,
       sheetName,
       status,
-      overwrite,
     })
     setIsSubmitting(true)
 
     try {
       const data = await sendImportRequest(formData)
       setMessage(
-        `Import dokončený: ${data.result.imported} importovaných, ${data.result.skipped} přeskočených z ${data.result.total}.`
+        `Import dokončený: ${data.result.imported} importovaných, ${data.result.skipped} přeskočených z ${data.result.total}.`,
       )
-    } catch (error_) {
-      setError(getErrorMessage(error_))
+    } catch (caughtError) {
+      setError(getImportFailureMessage(caughtError))
     } finally {
       setIsSubmitting(false)
     }
@@ -135,29 +184,29 @@ export default function PayloadImportNav() {
       </summary>
 
       <form
-        onSubmit={onSubmit}
+        onSubmit={(event) => {
+          void onSubmit(event)
+        }}
         style={{
+          background: "var(--theme-elevation-100)",
+          borderRadius: "4px",
           display: "grid",
           gap: "8px",
-          width: "100%",
           padding: "8px",
-          borderRadius: "4px",
-          background: "var(--theme-elevation-100)",
+          width: "100%",
         }}
       >
         <label style={{ display: "grid", gap: "4px" }}>
           <span>XLSX soubor</span>
-          <input
-            accept=".xlsx"
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-            type="file"
-          />
+          <input accept=".xlsx" ref={fileInputRef} type="file" />
         </label>
 
         <label style={{ display: "grid", gap: "4px" }}>
           <span>Locale</span>
           <select
-            onChange={(event) => setLocale(event.target.value)}
+            onChange={(event) => {
+              setLocale(event.target.value)
+            }}
             value={locale}
           >
             {defaultLocales.map((localeOption) => (
@@ -171,8 +220,10 @@ export default function PayloadImportNav() {
         <label style={{ display: "grid", gap: "4px" }}>
           <span>Název listu (volitelné)</span>
           <input
-            onChange={(event) => setSheetName(event.target.value)}
-            placeholder="napr. Sheet1"
+            onChange={(event) => {
+              setSheetName(event.target.value)
+            }}
+            placeholder="např. Sheet1"
             type="text"
             value={sheetName}
           />
@@ -181,7 +232,9 @@ export default function PayloadImportNav() {
         <label style={{ display: "grid", gap: "4px" }}>
           <span>Výchozí status (nepovinné)</span>
           <select
-            onChange={(event) => setStatus(event.target.value)}
+            onChange={(event) => {
+              setStatus(event.target.value)
+            }}
             value={status}
           >
             <option value="">Nechat z Excelu</option>
@@ -195,7 +248,9 @@ export default function PayloadImportNav() {
           <span>Overwrite</span>
           <input
             checked={overwrite}
-            onChange={(event) => setOverwrite(event.target.checked)}
+            onChange={(event) => {
+              setOverwrite(event.target.checked)
+            }}
             type="checkbox"
           />
         </label>
@@ -204,11 +259,13 @@ export default function PayloadImportNav() {
           {isSubmitting ? "Importuji..." : "Importovat"}
         </button>
 
-        {isFormMessage(message) ? <p>{message}</p> : null}
-        {error ? (
+        {message === "" ? null : <p>{message}</p>}
+        {error === "" ? null : (
           <p style={{ color: "var(--theme-danger-500)" }}>{error}</p>
-        ) : null}
+        )}
       </form>
     </details>
   )
 }
+
+export default PayloadImportNav

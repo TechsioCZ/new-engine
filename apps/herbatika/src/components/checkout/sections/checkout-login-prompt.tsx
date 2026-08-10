@@ -1,11 +1,23 @@
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+import type { ReactNode } from "react"
+
+import NextLink from "@/components/app-link"
 import { buildAuthRouteHref } from "@/components/auth/auth-helpers"
 import { SupportingText } from "@/components/text/supporting-text"
 
-export function CheckoutLoginPrompt() {
-  const loginHref = buildAuthRouteHref("/auth/login", "/checkout/udaje")
+const CHECKOUT_LOGIN_HREF = buildAuthRouteHref("/auth/login", "/checkout/udaje")
+
+const renderSignInLink = (chunks: ReactNode) => (
+  <NextLink
+    className="text-fg-secondary underline underline-offset-2 hover:text-primary"
+    href={CHECKOUT_LOGIN_HREF}
+  >
+    {chunks}
+  </NextLink>
+)
+
+export const CheckoutLoginPrompt = () => {
   const tAuth = useTranslations("auth")
   const tCheckout = useTranslations("checkout")
 
@@ -17,21 +29,14 @@ export function CheckoutLoginPrompt() {
         </p>
         <SupportingText className="text-fg-secondary text-xs">
           {tCheckout.rich("login_prompt_description", {
-            signIn: (chunks) => (
-              <NextLink
-                className="text-fg-secondary underline underline-offset-2 hover:text-primary"
-                href={loginHref}
-              >
-                {chunks}
-              </NextLink>
-            ),
+            signIn: renderSignInLink,
           })}
         </SupportingText>
       </div>
       <LinkButton
         as={NextLink}
         className="bg-button-bg-outlined-tertiary px-450 py-250 font-normal hover:bg-button-bg-outlined-tertiary-hover"
-        href={loginHref}
+        href={CHECKOUT_LOGIN_HREF}
         size="lg"
         theme="outlined"
         variant="tertiary"

@@ -1,4 +1,6 @@
 import type { BadgeProps } from "@techsio/ui-kit/atoms/badge"
+import type { Route } from "next"
+
 import type { Product } from "@/types/product"
 
 /**
@@ -9,41 +11,42 @@ interface ProductDisplayData {
   displayBadges: BadgeProps[]
 }
 
-export function extractProductData(
-  product: Product,
-  currencyCode?: string
-): ProductDisplayData {
+export const extractProductData = (product: Product): ProductDisplayData => {
   // For API products, find the price that matches the current currency
-  const primaryVariant = product.primaryVariant
+  const { primaryVariant } = product
 
   // Generate badges based on product data
   const badges: BadgeProps[] = []
 
   // New badge - check if product was created recently (within 7 days)
-  if (product.created_at) {
+  if (
+    product.created_at !== undefined &&
+    product.created_at !== null &&
+    product.created_at !== ""
+  ) {
     const createdDate = new Date(product.created_at)
     const daysSinceCreated =
       (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24)
     if (daysSinceCreated <= 10) {
-      badges.push({ variant: "success" as const, children: "Nové" })
+      badges.push({ children: "Nové", variant: "success" as const })
     }
   }
 
   if (primaryVariant) {
-    if (!primaryVariant.manage_inventory) {
-      badges.push({ variant: "success" as const, children: "Skladem" })
+    if (primaryVariant.manage_inventory !== true) {
+      badges.push({ children: "Skladem", variant: "success" as const })
     } else if (typeof primaryVariant.inventory_quantity === "number") {
       if (primaryVariant.inventory_quantity > 0) {
-        badges.push({ variant: "success" as const, children: "Skladem" })
+        badges.push({ children: "Skladem", variant: "success" as const })
       }
-    } else if (primaryVariant.allow_backorder) {
-      badges.push({ variant: "warning" as const, children: "Na objednávku" })
+    } else if (primaryVariant.allow_backorder === true) {
+      badges.push({ children: "Na objednávku", variant: "warning" as const })
     } else {
-      badges.push({ variant: "danger" as const, children: "Vyprodáno" })
+      badges.push({ children: "Vyprodáno", variant: "danger" as const })
     }
   }
   if (!primaryVariant) {
-    badges.push({ variant: "danger" as const, children: "Vyprodáno" })
+    badges.push({ children: "Vyprodáno", variant: "danger" as const })
   }
   return {
     badges,
@@ -54,6 +57,5 @@ export function extractProductData(
 /**
  * Get product URL path
  */
-export function getProductPath(handle: string): string {
-  return `/products/${handle}`
-}
+export const getProductPath = (handle: string): Route<`/products/${string}`> =>
+  `/products/${handle}`

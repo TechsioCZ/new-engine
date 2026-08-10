@@ -4,17 +4,16 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
-import {
-  getBrandAttributeTypeLockKeys,
-  restoreBrandAttributeTypesStep,
-} from "../steps"
+
+import { getBrandAttributeTypeLockKeys } from "../steps/helpers"
+import { restoreBrandAttributeTypesStep } from "../steps/restore-brand-attribute-types"
 import type { RestoreBrandAttributeTypesWorkflowInput } from "../types"
 
 export const restoreBrandAttributeTypesWorkflow = createWorkflow(
   "restore-brand-attribute-types",
   (input: RestoreBrandAttributeTypesWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) =>
-      getBrandAttributeTypeLockKeys(workflowInput.ids)
+      getBrandAttributeTypeLockKeys(workflowInput.ids),
     )
 
     acquireLockStep({
@@ -32,5 +31,5 @@ export const restoreBrandAttributeTypesWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(result)
-  }
+  },
 )

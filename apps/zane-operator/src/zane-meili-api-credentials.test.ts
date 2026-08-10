@@ -1,66 +1,100 @@
-import { afterEach, expect, test, vi } from "vitest"
+import { sleep } from "@techsio/std/async"
+import { afterEach, describe, expect, test, vi } from "vitest"
+import { z } from "zod"
+
 import { ZaneMeiliApiCredentialsProvisioner } from "./zane-meili-api-credentials"
 
 const policy = {
-  uid: "14f4c9c4-1a80-4e2f-8e79-19511d2c5ba5",
-  description: "Backend search key",
   actions: ["search", "documents.add"],
+  description: "Backend search key",
   indexes: ["products", "categories", "brands"],
+  uid: "14f4c9c4-1a80-4e2f-8e79-19511d2c5ba5",
 }
 
+const meiliPolicySchema = z.object({
+  actions: z.array(z.string()),
+  description: z.string(),
+  indexes: z.array(z.string()),
+  uid: z.string(),
+})
+const requestBodySchema = z.union([
+  meiliPolicySchema.extend({ expiresAt: z.null() }),
+  z.object({ description: z.string() }),
+])
+
+type RequestBody = z.infer<typeof requestBodySchema>
 type StoredKey = typeof policy & {
   key: string
   expiresAt: null
 }
 
-type RecordedRequest = {
+type FetchCall = (
+  input: Parameters<typeof fetch>[0],
+  init?: Parameters<typeof fetch>[1],
+) => Promise<Response>
+
+interface RecordedRequest {
   method: string
   path: string
-  body: Record<string, unknown> | null
+  body: RequestBody | null
 }
 
-function createProvisioner() {
-  return new ZaneMeiliApiCredentialsProvisioner({
-    authenticate: () => Promise.resolve({ cookies: new Map() }),
-    getEnvironment: () =>
-      Promise.resolve({
+const createProvisioner = () =>
+  new ZaneMeiliApiCredentialsProvisioner({
+    authenticate: async () => {
+      await sleep(0)
+      return { cookies: new Map() }
+    },
+    getEnvironment: async () => {
+      await sleep(0)
+      return {
         is_preview: false,
         name: "production",
-      }),
-    getServiceDetails: () =>
-      Promise.resolve({
-        slug: "meilisearch",
-        network_alias: "meilisearch",
+      }
+    },
+    getServiceDetails: async () => {
+      await sleep(0)
+      return {
         env_variables: [
           {
             key: "MEILI_MASTER_KEY",
             value: "master-key",
           },
         ],
+        network_alias: "meilisearch",
+        slug: "meilisearch",
         urls: [],
-      }),
+      }
+    },
   })
+
+const parseRequestBody = (body: unknown): RequestBody | null => {
+  if (typeof body !== "string") {
+    return null
+  }
+
+  const parsed: unknown = JSON.parse(body)
+  return requestBodySchema.parse(parsed)
 }
 
-function createMeiliFetch(initialKey: StoredKey) {
+const createMeiliFetch = (initialKey: StoredKey) => {
   let storedKey: StoredKey | null = initialKey
   const requests: RecordedRequest[] = []
 
   const handleRequest = (
     input: Parameters<typeof fetch>[0],
-    init?: Parameters<typeof fetch>[1]
+    init?: Parameters<typeof fetch>[1],
   ): Response => {
-    const url = new URL(String(input))
+    const url = new URL(
+      typeof input === "string" || input instanceof URL ? input : input.url,
+    )
     const method = init?.method ?? "GET"
-    const body =
-      typeof init?.body === "string"
-        ? (JSON.parse(init.body) as Record<string, unknown>)
-        : null
+    const body = parseRequestBody(init?.body)
 
     requests.push({
+      body,
       method,
       path: url.pathname,
-      body,
     })
 
     if (url.pathname === "/health") {
@@ -68,19 +102,20 @@ function createMeiliFetch(initialKey: StoredKey) {
     }
 
     if (url.pathname === `/keys/${policy.uid}` && method === "GET") {
-      return storedKey
-        ? Response.json(storedKey)
-        : Response.json({ message: "Key not found" }, { status: 404 })
+      return storedKey === null
+        ? Response.json({ message: "Key not found" }, { status: 404 })
+        : Response.json(storedKey)
     }
 
     if (url.pathname === `/keys/${policy.uid}` && method === "PATCH") {
-      if (!(storedKey && body)) {
+      if (storedKey === null || body === null) {
         return Response.json({ message: "Key not found" }, { status: 404 })
       }
 
+      const { description } = body
       storedKey = {
         ...storedKey,
-        description: String(body.description),
+        description: z.string().parse(description),
       }
       return Response.json(storedKey)
     }
@@ -90,11 +125,11 @@ function createMeiliFetch(initialKey: StoredKey) {
       return new Response(null, { status: 204 })
     }
 
-    if (url.pathname === "/keys" && method === "POST" && body) {
+    if (url.pathname === "/keys" && method === "POST" && body !== null) {
       storedKey = {
-        ...(body as typeof policy),
-        key: `key-${policy.uid}`,
+        ...meiliPolicySchema.parse(body),
         expiresAt: null,
+        key: `key-${policy.uid}`,
       }
       return Response.json(storedKey)
     }
@@ -103,87 +138,86 @@ function createMeiliFetch(initialKey: StoredKey) {
   }
 
   return {
-    fetchMock: vi.fn(
-      (
-        input: Parameters<typeof fetch>[0],
-        init?: Parameters<typeof fetch>[1]
-      ) => Promise.resolve(handleRequest(input, init))
-    ),
+    fetchMock: vi.fn<FetchCall>(async (input, init) => {
+      await sleep(0)
+      return handleRequest(input, init)
+    }),
     getStoredKey: () => storedKey,
     requests,
   }
 }
 
-function provision(provisioner: ZaneMeiliApiCredentialsProvisioner) {
-  return provisioner.provisionMeiliKeys({
-    projectSlug: "new-engine",
-    environmentName: "production",
-    serviceSlug: "meilisearch",
-    readinessPath: "/health",
+const provision = async (provisioner: ZaneMeiliApiCredentialsProvisioner) =>
+  await provisioner.provisionMeiliKeys({
     backendOutput: {
       envVar: "MEILISEARCH_API_KEY",
       policy,
     },
+    environmentName: "production",
+    projectSlug: "new-engine",
+    readinessPath: "/health",
+    serviceSlug: "meilisearch",
   })
-}
 
-afterEach(() => {
-  vi.unstubAllGlobals()
-})
-
-test("updates only description when Meilisearch permissions match", async () => {
-  const meili = createMeiliFetch({
-    ...policy,
-    description: "Outdated description",
-    key: `key-${policy.uid}`,
-    expiresAt: null,
+describe("Meili API credentials provisioner", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
   })
-  vi.stubGlobal("fetch", meili.fetchMock)
 
-  const result = await provision(createProvisioner())
-  const writes = meili.requests.filter(({ method }) => method !== "GET")
+  test("updates only description when Meilisearch permissions match", async () => {
+    const meili = createMeiliFetch({
+      ...policy,
+      description: "Outdated description",
+      expiresAt: null,
+      key: `key-${policy.uid}`,
+    })
+    vi.stubGlobal("fetch", meili.fetchMock)
 
-  expect(result.backend_updated).toBe(true)
-  expect(writes).toEqual([
-    {
-      method: "PATCH",
-      path: `/keys/${policy.uid}`,
-      body: {
-        description: policy.description,
+    const result = await provision(createProvisioner())
+    const writes = meili.requests.filter(({ method }) => method !== "GET")
+
+    expect(result.backend_updated).toBeTruthy()
+    expect(writes).toStrictEqual([
+      {
+        body: {
+          description: policy.description,
+        },
+        method: "PATCH",
+        path: `/keys/${policy.uid}`,
       },
-    },
-  ])
-})
-
-test("replaces the same UID when Meilisearch permissions differ", async () => {
-  const originalKey = `key-${policy.uid}`
-  const meili = createMeiliFetch({
-    ...policy,
-    indexes: ["products", "categories", "producers"],
-    key: originalKey,
-    expiresAt: null,
+    ])
   })
-  vi.stubGlobal("fetch", meili.fetchMock)
 
-  const result = await provision(createProvisioner())
-  const writes = meili.requests.filter(({ method }) => method !== "GET")
+  test("replaces the same UID when Meilisearch permissions differ", async () => {
+    const originalKey = `key-${policy.uid}`
+    const meili = createMeiliFetch({
+      ...policy,
+      expiresAt: null,
+      indexes: ["products", "categories", "producers"],
+      key: originalKey,
+    })
+    vi.stubGlobal("fetch", meili.fetchMock)
 
-  expect(result.backend_updated).toBe(true)
-  expect(writes).toEqual([
-    {
-      method: "DELETE",
-      path: `/keys/${policy.uid}`,
-      body: null,
-    },
-    {
-      method: "POST",
-      path: "/keys",
-      body: {
-        ...policy,
-        expiresAt: null,
+    const result = await provision(createProvisioner())
+    const writes = meili.requests.filter(({ method }) => method !== "GET")
+
+    expect(result.backend_updated).toBeTruthy()
+    expect(writes).toStrictEqual([
+      {
+        body: null,
+        method: "DELETE",
+        path: `/keys/${policy.uid}`,
       },
-    },
-  ])
-  expect(meili.getStoredKey()?.key).toBe(originalKey)
-  expect(meili.getStoredKey()?.indexes).toEqual(policy.indexes)
+      {
+        body: {
+          ...policy,
+          expiresAt: null,
+        },
+        method: "POST",
+        path: "/keys",
+      },
+    ])
+    expect(meili.getStoredKey()?.key).toBe(originalKey)
+    expect(meili.getStoredKey()?.indexes).toStrictEqual(policy.indexes)
+  })
 })

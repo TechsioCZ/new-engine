@@ -1,18 +1,18 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import { useState } from 'react'
-import { Button } from '../../src/atoms/button'
-import { Icon, type IconType } from '../../src/atoms/icon'
-import { Link } from '../../src/atoms/link'
-import { Accordion } from '../../src/molecules/accordion'
-import { Dialog } from '../../src/molecules/dialog'
-import { Popover } from '../../src/molecules/popover'
-import { Header } from '../../src/organisms/header'
+import type { Meta, StoryObj } from "@storybook/react"
+import { useState } from "react"
+
+import { Button } from "../../src/atoms/button"
+import { Icon } from "../../src/atoms/icon"
+import type { IconType } from "../../src/atoms/icon"
+import { Link } from "../../src/atoms/link"
+import { Accordion } from "../../src/molecules/accordion"
+import { Dialog } from "../../src/molecules/dialog"
+import { Popover } from "../../src/molecules/popover"
+import { Header } from "../../src/organisms/header"
 
 const meta: Meta<typeof Header> = {
-  title: 'Organisms/Header',
   component: Header,
   parameters: {
-    layout: 'fullscreen',
     docs: {
       description: {
         component: `
@@ -42,8 +42,10 @@ The Desktop/Mobile wrapper approach provides flexibility for:
         `,
       },
     },
+    layout: "fullscreen",
   },
-  tags: ['autodocs'],
+  tags: ["autodocs"],
+  title: "Organisms/Header",
 }
 
 export default meta
@@ -69,9 +71,67 @@ export const SimpleHeader: Story = {
       },
     },
   },
-  render: () => {
-    return (
-      <div className="flex flex-col gap-950">
+  render: () => (
+    <div className="flex flex-col gap-950">
+      <Header>
+        <Header.Desktop>
+          <Header.Nav>
+            <Header.NavItem active>
+              <Link href="/">Home</Link>
+            </Header.NavItem>
+            <Header.NavItem>
+              <Link href="/about">About</Link>
+            </Header.NavItem>
+            <Header.NavItem>
+              <Link href="/contact">Contact</Link>
+            </Header.NavItem>
+          </Header.Nav>
+          <Header.Container position="end">
+            <Header.Actions>
+              <Header.ActionItem>
+                <Button
+                  icon="icon-[mdi--account]"
+                  theme="unstyled"
+                  size="current"
+                >
+                  Account
+                </Button>
+              </Header.ActionItem>
+              <Header.ActionItem>
+                <Button icon="icon-[mdi--cart]" theme="unstyled" size="current">
+                  Cart
+                </Button>
+              </Header.ActionItem>
+            </Header.Actions>
+          </Header.Container>
+        </Header.Desktop>
+        <Header.Mobile position="right">
+          <Accordion variant="child">
+            <Header.NavItem active>
+              <Link href="/">Home</Link>
+            </Header.NavItem>
+            <Header.NavItem>
+              <Link href="/about">About</Link>
+            </Header.NavItem>
+            <Header.NavItem>
+              <Link href="/contact">Contact</Link>
+            </Header.NavItem>
+            <Header.ActionItem>
+              <Button theme="unstyled" size="current">
+                Account
+              </Button>
+            </Header.ActionItem>
+            <Header.ActionItem>
+              <Button theme="unstyled" size="current">
+                Cart
+              </Button>
+            </Header.ActionItem>
+          </Accordion>
+        </Header.Mobile>
+        <Header.Hamburger className="relative left-11/12" />
+      </Header>
+
+      <div className="w-2xl">
         <Header>
           <Header.Desktop>
             <Header.Nav>
@@ -133,73 +193,9 @@ export const SimpleHeader: Story = {
           </Header.Mobile>
           <Header.Hamburger className="relative left-11/12" />
         </Header>
-
-        <div className="w-2xl">
-          <Header>
-            <Header.Desktop>
-              <Header.Nav>
-                <Header.NavItem active>
-                  <Link href="/">Home</Link>
-                </Header.NavItem>
-                <Header.NavItem>
-                  <Link href="/about">About</Link>
-                </Header.NavItem>
-                <Header.NavItem>
-                  <Link href="/contact">Contact</Link>
-                </Header.NavItem>
-              </Header.Nav>
-              <Header.Container position="end">
-                <Header.Actions>
-                  <Header.ActionItem>
-                    <Button
-                      icon="icon-[mdi--account]"
-                      theme="unstyled"
-                      size="current"
-                    >
-                      Account
-                    </Button>
-                  </Header.ActionItem>
-                  <Header.ActionItem>
-                    <Button
-                      icon="icon-[mdi--cart]"
-                      theme="unstyled"
-                      size="current"
-                    >
-                      Cart
-                    </Button>
-                  </Header.ActionItem>
-                </Header.Actions>
-              </Header.Container>
-            </Header.Desktop>
-            <Header.Mobile position="right">
-              <Accordion variant="child">
-                <Header.NavItem active>
-                  <Link href="/">Home</Link>
-                </Header.NavItem>
-                <Header.NavItem>
-                  <Link href="/about">About</Link>
-                </Header.NavItem>
-                <Header.NavItem>
-                  <Link href="/contact">Contact</Link>
-                </Header.NavItem>
-                <Header.ActionItem>
-                  <Button theme="unstyled" size="current">
-                    Account
-                  </Button>
-                </Header.ActionItem>
-                <Header.ActionItem>
-                  <Button theme="unstyled" size="current">
-                    Cart
-                  </Button>
-                </Header.ActionItem>
-              </Accordion>
-            </Header.Mobile>
-            <Header.Hamburger className="relative left-11/12" />
-          </Header>
-        </div>
       </div>
-    )
-  },
+    </div>
+  ),
 }
 
 export const SizeVariants: Story = {
@@ -287,7 +283,7 @@ export const MobilePositioning: Story = {
   render: () => (
     <div className="flex w-2xl flex-col gap-400">
       <div className="mb-900">
-        <p className="mb-100 ">position="left"</p>
+        <p className="mb-100 ">position=&quot;left&quot;</p>
         <Header>
           <Header.Hamburger />
           <Header.Mobile position="left">
@@ -304,7 +300,7 @@ export const MobilePositioning: Story = {
       </div>
 
       <div>
-        <p className="mb-100 ">position="right" (default)</p>
+        <p className="mb-100 ">position=&quot;right&quot; (default)</p>
         <Header className="justify-end">
           <Header.Hamburger />
           <Header.Mobile position="right">
@@ -324,9 +320,140 @@ export const MobilePositioning: Story = {
 }
 
 export const NestedSubmenu: Story = {
-  render: () => {
-    return (
-      <div className="flex flex-col gap-950">
+  render: () => (
+    <div className="flex flex-col gap-950">
+      <Header>
+        <Header.Desktop>
+          <Header.Nav>
+            <Header.NavItem>
+              <Link href="/">Home</Link>
+            </Header.NavItem>
+            <Header.NavItem>
+              <Link href="/about">About</Link>
+            </Header.NavItem>
+            <Header.NavItem>
+              <Link href="/contact">Contact</Link>
+            </Header.NavItem>
+            <Popover.Root id="shop-popover-1" placement="bottom">
+              <Popover.Trigger className="hover:bg-transparent">
+                <Header.NavItem>
+                  <span>Shop</span>
+                  <Icon icon="icon-[mdi--chevron-down]" />
+                </Header.NavItem>
+              </Popover.Trigger>
+              <Popover.Positioner>
+                <Popover.Content>
+                  <Popover.Arrow />
+                  <Header.NavItem>
+                    <Link href="/shop/new">New Arrivals</Link>
+                  </Header.NavItem>
+
+                  <Popover.Root
+                    id="categories-popover-1"
+                    placement="right-start"
+                  >
+                    <Popover.Trigger className="p-0 text-fg-primary hover:bg-transparent">
+                      <Header.NavItem>
+                        <span>Categories</span>
+                        <Icon icon="icon-[mdi--chevron-down]" />
+                      </Header.NavItem>
+                    </Popover.Trigger>
+                    <Popover.Positioner>
+                      <Popover.Content>
+                        <Popover.Arrow />
+                        <Header.NavItem>
+                          <Link href="/shop/electronics">Electronics</Link>
+                        </Header.NavItem>
+                        <Header.NavItem>
+                          <Link href="/shop/clothing">Clothing</Link>
+                        </Header.NavItem>
+                        <Header.NavItem>
+                          <Link href="/shop/home">Home & Garden</Link>
+                        </Header.NavItem>
+                      </Popover.Content>
+                    </Popover.Positioner>
+                  </Popover.Root>
+                  <Header.NavItem>
+                    <Link href="/shop/sale">Sale</Link>
+                  </Header.NavItem>
+                </Popover.Content>
+              </Popover.Positioner>
+            </Popover.Root>
+          </Header.Nav>
+        </Header.Desktop>
+        <Header.Mobile position="right">
+          <Accordion variant="child">
+            <Accordion.Item value="home">
+              <Header.NavItem>
+                <Link href="/">Home</Link>
+              </Header.NavItem>
+            </Accordion.Item>
+            <Accordion.Item value="about">
+              <Header.NavItem>
+                <Link href="/about">About</Link>
+              </Header.NavItem>
+            </Accordion.Item>
+            <Accordion.Item value="contact">
+              <Header.NavItem>
+                <Link href="/contact">Contact</Link>
+              </Header.NavItem>
+            </Accordion.Item>
+            <Accordion.Item value="shop">
+              <Accordion.Header>
+                <Header.NavItem>Shop</Header.NavItem>
+                <Accordion.Indicator />
+              </Accordion.Header>
+              <Accordion.Content className="px-0">
+                <Header.NavItem>
+                  <Link href="/shop/new">New Arrivals</Link>
+                </Header.NavItem>
+                <Accordion variant="child">
+                  <Accordion.Item value="categories">
+                    <Accordion.Header>
+                      <Header.NavItem>Categories</Header.NavItem>
+                      <Accordion.Indicator />
+                    </Accordion.Header>
+                    <Accordion.Content className="px-0 pl-200">
+                      <Header.NavItem>
+                        <Link href="/shop/electronics">Electronics</Link>
+                      </Header.NavItem>
+                      <Header.NavItem>
+                        <Link href="/shop/clothing">Clothing</Link>
+                      </Header.NavItem>
+                      <Header.NavItem>
+                        <Link href="/shop/home">Home & Garden</Link>
+                      </Header.NavItem>
+                    </Accordion.Content>
+                  </Accordion.Item>
+                </Accordion>
+                <Header.NavItem>
+                  <Link href="/shop/sale">Sale</Link>
+                </Header.NavItem>
+              </Accordion.Content>
+            </Accordion.Item>
+          </Accordion>
+        </Header.Mobile>
+        <Header.Container position="end">
+          <Header.Actions>
+            <Header.ActionItem>
+              <Button
+                icon="icon-[mdi--account]"
+                theme="unstyled"
+                size="current"
+              >
+                Account
+              </Button>
+            </Header.ActionItem>
+            <Header.ActionItem>
+              <Button icon="icon-[mdi--cart]" theme="unstyled" size="current">
+                Cart
+              </Button>
+            </Header.ActionItem>
+          </Header.Actions>
+        </Header.Container>
+        <Header.Hamburger />
+      </Header>
+      <div className="w-2xl">
         <Header>
           <Header.Desktop>
             <Header.Nav>
@@ -339,7 +466,7 @@ export const NestedSubmenu: Story = {
               <Header.NavItem>
                 <Link href="/contact">Contact</Link>
               </Header.NavItem>
-              <Popover.Root id="shop-popover-1" placement="bottom">
+              <Popover.Root id="shop-popover-2" placement="bottom">
                 <Popover.Trigger className="hover:bg-transparent">
                   <Header.NavItem>
                     <span>Shop</span>
@@ -354,10 +481,10 @@ export const NestedSubmenu: Story = {
                     </Header.NavItem>
 
                     <Popover.Root
-                      id="categories-popover-1"
+                      id="categories-popover-2"
                       placement="right-start"
                     >
-                      <Popover.Trigger className="text-fg-primary px-0 py-0 hover:bg-transparent">
+                      <Popover.Trigger className="p-0 text-fg-primary hover:bg-transparent">
                         <Header.NavItem>
                           <span>Categories</span>
                           <Icon icon="icon-[mdi--chevron-down]" />
@@ -458,146 +585,9 @@ export const NestedSubmenu: Story = {
           </Header.Container>
           <Header.Hamburger />
         </Header>
-        <div className="w-2xl">
-          <Header>
-            <Header.Desktop>
-              <Header.Nav>
-                <Header.NavItem>
-                  <Link href="/">Home</Link>
-                </Header.NavItem>
-                <Header.NavItem>
-                  <Link href="/about">About</Link>
-                </Header.NavItem>
-                <Header.NavItem>
-                  <Link href="/contact">Contact</Link>
-                </Header.NavItem>
-                <Popover.Root id="shop-popover-2" placement="bottom">
-                  <Popover.Trigger className="hover:bg-transparent">
-                    <Header.NavItem>
-                      <span>Shop</span>
-                      <Icon icon="icon-[mdi--chevron-down]" />
-                    </Header.NavItem>
-                  </Popover.Trigger>
-                  <Popover.Positioner>
-                    <Popover.Content>
-                      <Popover.Arrow />
-                      <Header.NavItem>
-                        <Link href="/shop/new">New Arrivals</Link>
-                      </Header.NavItem>
-
-                      <Popover.Root
-                        id="categories-popover-2"
-                        placement="right-start"
-                      >
-                        <Popover.Trigger className="text-fg-primary px-0 py-0 hover:bg-transparent">
-                          <Header.NavItem>
-                            <span>Categories</span>
-                            <Icon icon="icon-[mdi--chevron-down]" />
-                          </Header.NavItem>
-                        </Popover.Trigger>
-                        <Popover.Positioner>
-                          <Popover.Content>
-                            <Popover.Arrow />
-                            <Header.NavItem>
-                              <Link href="/shop/electronics">Electronics</Link>
-                            </Header.NavItem>
-                            <Header.NavItem>
-                              <Link href="/shop/clothing">Clothing</Link>
-                            </Header.NavItem>
-                            <Header.NavItem>
-                              <Link href="/shop/home">Home & Garden</Link>
-                            </Header.NavItem>
-                          </Popover.Content>
-                        </Popover.Positioner>
-                      </Popover.Root>
-                      <Header.NavItem>
-                        <Link href="/shop/sale">Sale</Link>
-                      </Header.NavItem>
-                    </Popover.Content>
-                  </Popover.Positioner>
-                </Popover.Root>
-              </Header.Nav>
-            </Header.Desktop>
-            <Header.Mobile position="right">
-              <Accordion variant="child">
-                <Accordion.Item value="home">
-                  <Header.NavItem>
-                    <Link href="/">Home</Link>
-                  </Header.NavItem>
-                </Accordion.Item>
-                <Accordion.Item value="about">
-                  <Header.NavItem>
-                    <Link href="/about">About</Link>
-                  </Header.NavItem>
-                </Accordion.Item>
-                <Accordion.Item value="contact">
-                  <Header.NavItem>
-                    <Link href="/contact">Contact</Link>
-                  </Header.NavItem>
-                </Accordion.Item>
-                <Accordion.Item value="shop">
-                  <Accordion.Header>
-                    <Header.NavItem>Shop</Header.NavItem>
-                    <Accordion.Indicator />
-                  </Accordion.Header>
-                  <Accordion.Content className="px-0">
-                    <Header.NavItem>
-                      <Link href="/shop/new">New Arrivals</Link>
-                    </Header.NavItem>
-                    <Accordion variant="child">
-                      <Accordion.Item value="categories">
-                        <Accordion.Header>
-                          <Header.NavItem>Categories</Header.NavItem>
-                          <Accordion.Indicator />
-                        </Accordion.Header>
-                        <Accordion.Content className="px-0 pl-200">
-                          <Header.NavItem>
-                            <Link href="/shop/electronics">Electronics</Link>
-                          </Header.NavItem>
-                          <Header.NavItem>
-                            <Link href="/shop/clothing">Clothing</Link>
-                          </Header.NavItem>
-                          <Header.NavItem>
-                            <Link href="/shop/home">Home & Garden</Link>
-                          </Header.NavItem>
-                        </Accordion.Content>
-                      </Accordion.Item>
-                    </Accordion>
-                    <Header.NavItem>
-                      <Link href="/shop/sale">Sale</Link>
-                    </Header.NavItem>
-                  </Accordion.Content>
-                </Accordion.Item>
-              </Accordion>
-            </Header.Mobile>
-            <Header.Container position="end">
-              <Header.Actions>
-                <Header.ActionItem>
-                  <Button
-                    icon="icon-[mdi--account]"
-                    theme="unstyled"
-                    size="current"
-                  >
-                    Account
-                  </Button>
-                </Header.ActionItem>
-                <Header.ActionItem>
-                  <Button
-                    icon="icon-[mdi--cart]"
-                    theme="unstyled"
-                    size="current"
-                  >
-                    Cart
-                  </Button>
-                </Header.ActionItem>
-              </Header.Actions>
-            </Header.Container>
-            <Header.Hamburger />
-          </Header>
-        </div>
       </div>
-    )
-  },
+    </div>
+  ),
 }
 
 export const EcommerceLayout: Story = {
@@ -617,13 +607,88 @@ export const EcommerceLayout: Story = {
       },
     },
   },
-  render: () => {
-    return (
-      <div className="flex flex-col gap-950">
+  render: () => (
+    <div className="flex flex-col gap-950">
+      <Header>
+        <Header.Container className="items-center" position="start">
+          <div className="text-lg font-bold">StoreBrand</div>
+        </Header.Container>
+        <Header.Desktop>
+          <Header.Nav>
+            <Header.NavItem>
+              <Link href="/">Home</Link>
+            </Header.NavItem>
+            <Header.NavItem>
+              <Link href="/products">Products</Link>
+            </Header.NavItem>
+            <Header.NavItem>
+              <Link href="/about">About</Link>
+            </Header.NavItem>
+            <Header.NavItem>
+              <Link href="/contact">Contact</Link>
+            </Header.NavItem>
+          </Header.Nav>
+        </Header.Desktop>
+        <Header.Mobile position="right">
+          <Accordion variant="child">
+            <Accordion.Item value="home">
+              <Header.NavItem>
+                <Link href="/">Home</Link>
+              </Header.NavItem>
+            </Accordion.Item>
+            <Accordion.Item value="products">
+              <Header.NavItem>
+                <Link href="/products">Products</Link>
+              </Header.NavItem>
+            </Accordion.Item>
+            <Accordion.Item value="about">
+              <Header.NavItem>
+                <Link href="/about">About</Link>
+              </Header.NavItem>
+            </Accordion.Item>
+            <Accordion.Item value="contact">
+              <Header.NavItem>
+                <Link href="/contact">Contact</Link>
+              </Header.NavItem>
+            </Accordion.Item>
+          </Accordion>
+        </Header.Mobile>
+        <Header.Container position="end">
+          <Header.Actions>
+            <Header.ActionItem>
+              <Button
+                icon="icon-[mdi--magnify]"
+                theme="unstyled"
+                size="current"
+              >
+                Search
+              </Button>
+            </Header.ActionItem>
+            <Header.ActionItem>
+              <Button icon="icon-[mdi--cart]" theme="unstyled" size="current">
+                Cart
+              </Button>
+            </Header.ActionItem>
+            <Header.ActionItem>
+              <Button
+                icon="icon-[mdi--account]"
+                theme="unstyled"
+                size="current"
+              >
+                Account
+              </Button>
+            </Header.ActionItem>
+          </Header.Actions>
+        </Header.Container>
+        <Header.Hamburger />
+      </Header>
+
+      <div className="w-2xl">
         <Header>
           <Header.Container className="items-center" position="start">
-            <div className="font-bold text-lg">StoreBrand</div>
+            <div className="text-lg font-bold">StoreBrand</div>
           </Header.Container>
+
           <Header.Desktop>
             <Header.Nav>
               <Header.NavItem>
@@ -640,6 +705,7 @@ export const EcommerceLayout: Story = {
               </Header.NavItem>
             </Header.Nav>
           </Header.Desktop>
+
           <Header.Mobile position="right">
             <Accordion variant="child">
               <Accordion.Item value="home">
@@ -664,6 +730,7 @@ export const EcommerceLayout: Story = {
               </Accordion.Item>
             </Accordion>
           </Header.Mobile>
+
           <Header.Container position="end">
             <Header.Actions>
               <Header.ActionItem>
@@ -693,92 +760,165 @@ export const EcommerceLayout: Story = {
           </Header.Container>
           <Header.Hamburger />
         </Header>
-
-        <div className="w-2xl">
-          <Header>
-            <Header.Container className="items-center" position="start">
-              <div className="font-bold text-lg">StoreBrand</div>
-            </Header.Container>
-
-            <Header.Desktop>
-              <Header.Nav>
-                <Header.NavItem>
-                  <Link href="/">Home</Link>
-                </Header.NavItem>
-                <Header.NavItem>
-                  <Link href="/products">Products</Link>
-                </Header.NavItem>
-                <Header.NavItem>
-                  <Link href="/about">About</Link>
-                </Header.NavItem>
-                <Header.NavItem>
-                  <Link href="/contact">Contact</Link>
-                </Header.NavItem>
-              </Header.Nav>
-            </Header.Desktop>
-
-            <Header.Mobile position="right">
-              <Accordion variant="child">
-                <Accordion.Item value="home">
-                  <Header.NavItem>
-                    <Link href="/">Home</Link>
-                  </Header.NavItem>
-                </Accordion.Item>
-                <Accordion.Item value="products">
-                  <Header.NavItem>
-                    <Link href="/products">Products</Link>
-                  </Header.NavItem>
-                </Accordion.Item>
-                <Accordion.Item value="about">
-                  <Header.NavItem>
-                    <Link href="/about">About</Link>
-                  </Header.NavItem>
-                </Accordion.Item>
-                <Accordion.Item value="contact">
-                  <Header.NavItem>
-                    <Link href="/contact">Contact</Link>
-                  </Header.NavItem>
-                </Accordion.Item>
-              </Accordion>
-            </Header.Mobile>
-
-            <Header.Container position="end">
-              <Header.Actions>
-                <Header.ActionItem>
-                  <Button
-                    icon="icon-[mdi--magnify]"
-                    theme="unstyled"
-                    size="current"
-                  >
-                    Search
-                  </Button>
-                </Header.ActionItem>
-                <Header.ActionItem>
-                  <Button
-                    icon="icon-[mdi--cart]"
-                    theme="unstyled"
-                    size="current"
-                  >
-                    Cart
-                  </Button>
-                </Header.ActionItem>
-                <Header.ActionItem>
-                  <Button
-                    icon="icon-[mdi--account]"
-                    theme="unstyled"
-                    size="current"
-                  >
-                    Account
-                  </Button>
-                </Header.ActionItem>
-              </Header.Actions>
-            </Header.Container>
-            <Header.Hamburger />
-          </Header>
-        </div>
       </div>
-    )
+    </div>
+  ),
+}
+
+interface DrawerHeaderContentProps {
+  drawerOpen: boolean
+  onClose: () => void
+  onToggle: () => void
+}
+
+const drawerCategories = [
+  { href: "/electronics", icon: "icon-[mdi--laptop]", name: "Electronics" },
+  {
+    href: "/clothing",
+    icon: "icon-[mdi--t-shirt-crew]",
+    name: "Clothing",
   },
+  { href: "/home", icon: "icon-[mdi--home]", name: "Home & Garden" },
+  { href: "/sports", icon: "icon-[mdi--basketball]", name: "Sports" },
+] satisfies readonly {
+  href: string
+  icon: IconType
+  name: string
+}[]
+
+const DrawerHeaderContent = ({
+  drawerOpen,
+  onClose,
+  onToggle,
+}: DrawerHeaderContentProps) => (
+  <>
+    <Header.Desktop>
+      <Header.Nav className="z-50">
+        <Header.NavItem>
+          <Link href="/">Home</Link>
+        </Header.NavItem>
+        <Header.NavItem>
+          <Button
+            theme="unstyled"
+            size="current"
+            onClick={onToggle}
+            icon="icon-[mdi--chevron-down]"
+            iconPosition="right"
+            block
+          >
+            Categories
+          </Button>
+        </Header.NavItem>
+        <Header.NavItem>
+          <Link href="/about">About</Link>
+        </Header.NavItem>
+      </Header.Nav>
+    </Header.Desktop>
+
+    <Header.Mobile position="right">
+      <Accordion variant="child">
+        <Accordion.Item value="home">
+          <Header.NavItem>
+            <Link href="/">Home</Link>
+          </Header.NavItem>
+        </Accordion.Item>
+        <Accordion.Item value="categories">
+          <Accordion.Header>
+            <Header.NavItem>Categories</Header.NavItem>
+            <Accordion.Indicator />
+          </Accordion.Header>
+          <Accordion.Content>
+            {drawerCategories.map((cat) => (
+              <Header.NavItem key={cat.name}>
+                <Link href={cat.href}>{cat.name}</Link>
+              </Header.NavItem>
+            ))}
+          </Accordion.Content>
+        </Accordion.Item>
+        <Accordion.Item value="about">
+          <Header.NavItem>
+            <Link href="/about">About</Link>
+          </Header.NavItem>
+        </Accordion.Item>
+      </Accordion>
+    </Header.Mobile>
+
+    <Header.Container position="end">
+      <Header.Actions>
+        <Header.ActionItem>
+          <Button icon="icon-[mdi--account]" theme="unstyled" size="current">
+            Account
+          </Button>
+        </Header.ActionItem>
+        <Header.ActionItem>
+          <Button icon="icon-[mdi--cart]" theme="unstyled" size="current">
+            Cart
+          </Button>
+        </Header.ActionItem>
+      </Header.Actions>
+    </Header.Container>
+    <Header.Hamburger />
+
+    <Dialog
+      open={drawerOpen}
+      customTrigger
+      placement="top"
+      position="absolute"
+      size="xs"
+      hideCloseButton
+      behavior="modeless"
+      className="top-full -z-1 shadow-none @max-header-desktop:hidden"
+      modal={false}
+      portal={false}
+    >
+      <div className="flex items-center justify-evenly">
+        {drawerCategories.map((cat) => (
+          <Link
+            key={cat.name}
+            href={cat.href}
+            className="flex cursor-pointer flex-col items-center gap-100 hover:opacity-75"
+            onClick={onClose}
+          >
+            <span className="text-sm">{cat.name}</span>
+            <Icon icon={cat.icon} className="text-2xl" />
+          </Link>
+        ))}
+      </div>
+    </Dialog>
+  </>
+)
+
+const DrawerSubmenuStory = () => {
+  const [drawerOpen, setDrawerOpen] = useState(false)
+
+  const handleClose = () => {
+    setDrawerOpen(false)
+  }
+  const handleToggle = () => {
+    setDrawerOpen((previousOpen) => !previousOpen)
+  }
+
+  return (
+    <div className="flex flex-col gap-950">
+      <Header>
+        <DrawerHeaderContent
+          drawerOpen={drawerOpen}
+          onClose={handleClose}
+          onToggle={handleToggle}
+        />
+      </Header>
+
+      <div className="w-2xl">
+        <Header>
+          <DrawerHeaderContent
+            drawerOpen={drawerOpen}
+            onClose={handleClose}
+            onToggle={handleToggle}
+          />
+        </Header>
+      </div>
+    </div>
+  )
 }
 
 export const DrawerSubmenu: Story = {
@@ -799,134 +939,5 @@ export const DrawerSubmenu: Story = {
       },
     },
   },
-  render: () => {
-    const [drawerOpen, setDrawerOpen] = useState(false)
-
-    const categories = [
-      { name: 'Electronics', icon: 'icon-[mdi--laptop]', href: '/electronics' },
-      {
-        name: 'Clothing',
-        icon: 'icon-[mdi--t-shirt-crew]',
-        href: '/clothing',
-      },
-      { name: 'Home & Garden', icon: 'icon-[mdi--home]', href: '/home' },
-      { name: 'Sports', icon: 'icon-[mdi--basketball]', href: '/sports' },
-    ]
-
-    const HeaderContent = () => (
-      <>
-        <Header.Desktop>
-          <Header.Nav className="z-50">
-            <Header.NavItem>
-              <Link href="/">Home</Link>
-            </Header.NavItem>
-            <Header.NavItem>
-              <Button
-                theme="unstyled"
-                size="current"
-                onClick={() => setDrawerOpen((prev) => !prev)}
-                icon="icon-[mdi--chevron-down]"
-                iconPosition="right"
-                block
-              >
-                Categories
-              </Button>
-            </Header.NavItem>
-            <Header.NavItem>
-              <Link href="/about">About</Link>
-            </Header.NavItem>
-          </Header.Nav>
-        </Header.Desktop>
-
-        <Header.Mobile position="right">
-          <Accordion variant="child">
-            <Accordion.Item value="home">
-              <Header.NavItem>
-                <Link href="/">Home</Link>
-              </Header.NavItem>
-            </Accordion.Item>
-            <Accordion.Item value="categories">
-              <Accordion.Header>
-                <Header.NavItem>Categories</Header.NavItem>
-                <Accordion.Indicator />
-              </Accordion.Header>
-              <Accordion.Content>
-                {categories.map((cat) => (
-                  <Header.NavItem key={cat.name}>
-                    <Link href={cat.href}>{cat.name}</Link>
-                  </Header.NavItem>
-                ))}
-              </Accordion.Content>
-            </Accordion.Item>
-            <Accordion.Item value="about">
-              <Header.NavItem>
-                <Link href="/about">About</Link>
-              </Header.NavItem>
-            </Accordion.Item>
-          </Accordion>
-        </Header.Mobile>
-
-        <Header.Container position="end">
-          <Header.Actions>
-            <Header.ActionItem>
-              <Button
-                icon="icon-[mdi--account]"
-                theme="unstyled"
-                size="current"
-              >
-                Account
-              </Button>
-            </Header.ActionItem>
-            <Header.ActionItem>
-              <Button icon="icon-[mdi--cart]" theme="unstyled" size="current">
-                Cart
-              </Button>
-            </Header.ActionItem>
-          </Header.Actions>
-        </Header.Container>
-        <Header.Hamburger />
-
-        <Dialog
-          open={drawerOpen}
-          customTrigger
-          placement="top"
-          position="absolute"
-          size="xs"
-          hideCloseButton
-          behavior="modeless"
-          className="-z-1 top-full @max-header-desktop:hidden shadow-none"
-          modal={false}
-          portal={false}
-        >
-          <div className="flex items-center justify-evenly">
-            {categories.map((cat) => (
-              <Link
-                key={cat.name}
-                href={cat.href}
-                className="flex cursor-pointer flex-col items-center gap-100 hover:opacity-75"
-                onClick={() => setDrawerOpen(false)}
-              >
-                <span className="text-sm">{cat.name}</span>
-                <Icon icon={cat.icon as IconType} className="text-2xl" />
-              </Link>
-            ))}
-          </div>
-        </Dialog>
-      </>
-    )
-
-    return (
-      <div className="flex flex-col gap-950">
-        <Header>
-          <HeaderContent />
-        </Header>
-
-        <div className="w-2xl">
-          <Header>
-            <HeaderContent />
-          </Header>
-        </div>
-      </div>
-    )
-  },
+  render: DrawerSubmenuStory,
 }

@@ -1,5 +1,6 @@
 import type { MiddlewareRoute } from "@medusajs/framework/http"
 import { validateAndTransformQuery } from "@medusajs/framework/http"
+
 import {
   RuleAttributeOptionsQuerySchema,
   RuleValueOptionsQuerySchema,
@@ -7,20 +8,20 @@ import {
 
 export const adminPromotionsExtensionMiddlewares: MiddlewareRoute[] = [
   {
-    method: ["GET"],
     matcher: "/admin/promotions/rule-attribute-options/:rule_type",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(RuleAttributeOptionsQuerySchema, {}),
     ],
   },
   {
-    method: ["GET"],
     matcher: "/admin/promotions/rule-value-options/:rule_type/product_variant",
+    methods: ["GET"],
     middlewares: [validateAndTransformQuery(RuleValueOptionsQuerySchema, {})],
   },
   {
-    method: ["GET"],
     matcher: "/admin/promotions/rule-value-options/:rule_type/brand",
+    methods: ["GET"],
     middlewares: [validateAndTransformQuery(RuleValueOptionsQuerySchema, {})],
   },
 ]

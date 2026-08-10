@@ -1,9 +1,9 @@
 import "server-only"
-
 import type { QueryClient } from "@tanstack/react-query"
 import { getServerQueryClient } from "@techsio/storefront-data/server/get-query-client"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import { cookies } from "next/headers"
+
 import { getMarketServerContext } from "../market-context.server"
 import {
   REGION_COUNTRY_CODE_STORAGE_KEY,
@@ -31,7 +31,7 @@ const resolveCookieRegionPreference = async (): Promise<RegionInfo | null> => {
 
   return resolveRegionInfoFromCookieValues(
     cookieStore.get(REGION_STORAGE_KEY)?.value,
-    cookieStore.get(REGION_COUNTRY_CODE_STORAGE_KEY)?.value
+    cookieStore.get(REGION_COUNTRY_CODE_STORAGE_KEY)?.value,
   )
 }
 
@@ -52,7 +52,7 @@ export const getRegionServerContext = async () => {
   const resolvedRegionRecord = resolveRegionForMarket(
     regionListResponse.regions,
     marketContext,
-    cookieRegionPreference?.region_id
+    cookieRegionPreference?.region_id,
   )
   const region = resolvedRegionRecord
     ? toRegionInfo(resolvedRegionRecord, marketContext.countryCode)
@@ -66,26 +66,26 @@ export const getRegionServerContext = async () => {
 
 export const prefetchProductList = async (
   queryClient: QueryClient,
-  listParams: ProductListParams
+  listParams: ProductListParams,
 ) => {
   await prefetchServerProducts(queryClient, listParams)
 }
 
 export const prefetchProductDetail = async (
   queryClient: QueryClient,
-  detailParams: ProductDetailParams
-) => fetchServerProduct(queryClient, detailParams)
+  detailParams: ProductDetailParams,
+) => await fetchServerProduct(queryClient, detailParams)
 
 export const prefetchProductReviews = async (
   queryClient: QueryClient,
-  listParams: ProductReviewListParams
+  listParams: ProductReviewListParams,
 ) => {
   await prefetchServerProductReviews(queryClient, listParams)
 }
 
 export const prefetchProductAttributes = async (
   queryClient: QueryClient,
-  productId: string
+  productId: string,
 ) => {
   await prefetchServerProductAttributes(queryClient, { productId })
 }

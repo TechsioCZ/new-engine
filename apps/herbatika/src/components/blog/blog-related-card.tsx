@@ -1,16 +1,18 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Link } from "@techsio/ui-kit/atoms/link"
-import NextImage from "next/image"
-import NextLink from "next/link"
 import { useLocale } from "next-intl"
+import NextImage from "next/image"
+
+import NextLink from "@/components/app-link"
 import type { BlogPost } from "@/lib/storefront/blog-content"
+
 import { formatBlogDate, formatTopicFromKey } from "./blog-formatters"
 
-type BlogRelatedCardProps = {
+interface BlogRelatedCardProps {
   post: BlogPost
 }
 
-export function BlogRelatedCard({ post }: BlogRelatedCardProps) {
+export const BlogRelatedCard = ({ post }: BlogRelatedCardProps) => {
   const locale = useLocale()
 
   return (

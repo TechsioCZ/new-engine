@@ -1,8 +1,8 @@
-/**
+/*
  * Link — @techsio/ui-kit atom.
  *
  * @component Link
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill link-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,46 +11,49 @@
  */
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
 
 const linkVariants = tv({
   base: [],
-  variants: {},
   defaultVariants: {},
+  variants: {},
 })
 
 export interface BaseLinkProps extends VariantProps<typeof linkVariants> {
   children: ReactNode
-  external?: boolean
-  className?: string
+  external?: boolean | undefined
+  className?: string | undefined
 }
 
 export interface NativeLinkProps
-  extends BaseLinkProps,
+  extends
+    BaseLinkProps,
     Omit<ComponentPropsWithoutRef<"a">, keyof BaseLinkProps> {
   as?: never
 }
 
 export type LinkProps<T extends ElementType = "a"> = BaseLinkProps &
   Omit<ComponentPropsWithoutRef<T>, keyof BaseLinkProps> & {
-    as?: T
+    as?: T | undefined
   }
 
-export function Link<T extends ElementType = "a">({
+export const Link = <T extends ElementType = "a">({
   as,
   children,
   external = false,
   className,
   ...props
-}: LinkProps<T>) {
-  const Component = (as || "a") as ElementType
-  const target = "target" in props ? props.target : undefined
-  const rel = "rel" in props ? props.rel : undefined
+}: LinkProps<T>) => {
+  const Component = as ?? "a"
+  const anchorProps: Partial<ComponentPropsWithoutRef<"a">> = props
+  const { target } = anchorProps
+  const { rel } = anchorProps
 
   const externalProps = external
     ? {
-        target: target ?? "_blank",
         rel: rel ?? "noopener noreferrer",
+        target: target ?? "_blank",
       }
     : {}
 

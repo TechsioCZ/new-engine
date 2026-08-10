@@ -1,9 +1,10 @@
 import {
-  type MiddlewareRoute,
   validateAndTransformBody,
   validateAndTransformQuery,
 } from "@medusajs/framework"
+import type { MiddlewareRoute } from "@medusajs/framework"
 import { authenticate } from "@medusajs/medusa"
+
 import { ensureCompanyMember, ensureRole } from "../../middlewares/ensure-role"
 import {
   storeCompanyQueryConfig,
@@ -19,120 +20,125 @@ import {
   StoreUpdateEmployee,
 } from "./validators"
 
+const COMPANY_MATCHER = "/store/companies/:id"
+const EMPLOYEE_MATCHER = "/store/companies/:id/employees/:employee_id"
+
+export const ensureCompanyAdmin = ensureRole("company_admin")
+
 export const storeCompaniesMiddlewares: MiddlewareRoute[] = [
   /* Company middlewares */
   {
-    method: "ALL",
     matcher: "/store/companies*",
+    methods: ["ALL"],
     middlewares: [authenticate("customer", ["session", "bearer"])],
   },
   {
-    method: ["GET"],
     matcher: "/store/companies",
+    methods: ["GET"],
     middlewares: [
       validateAndTransformQuery(
         StoreGetCompanyParams,
-        storeCompanyQueryConfig.list
+        storeCompanyQueryConfig.list,
       ),
     ],
   },
   {
-    method: ["POST"],
     matcher: "/store/companies",
+    methods: ["POST"],
     middlewares: [
       validateAndTransformBody(StoreCreateCompany),
       validateAndTransformQuery(
         StoreGetCompanyParams,
-        storeCompanyQueryConfig.retrieve
+        storeCompanyQueryConfig.retrieve,
       ),
     ],
   },
   {
-    method: ["GET"],
-    matcher: "/store/companies/:id",
+    matcher: COMPANY_MATCHER,
+    methods: ["GET"],
     middlewares: [
       ensureCompanyMember,
       validateAndTransformQuery(
         StoreGetCompanyParams,
-        storeCompanyQueryConfig.retrieve
+        storeCompanyQueryConfig.retrieve,
       ),
     ],
   },
   {
-    method: ["POST"],
-    matcher: "/store/companies/:id",
+    matcher: COMPANY_MATCHER,
+    methods: ["POST"],
     middlewares: [
-      ensureRole("company_admin"),
+      ensureCompanyAdmin,
       validateAndTransformBody(StoreUpdateCompany),
       validateAndTransformQuery(
         StoreGetCompanyParams,
-        storeCompanyQueryConfig.retrieve
+        storeCompanyQueryConfig.retrieve,
       ),
     ],
   },
   {
-    method: ["DELETE"],
-    matcher: "/store/companies/:id",
-    middlewares: [ensureRole("company_admin")],
+    matcher: COMPANY_MATCHER,
+    methods: ["DELETE"],
+    middlewares: [ensureCompanyAdmin],
   },
 
   /* Employee middlewares */
   {
-    method: ["GET"],
     matcher: "/store/companies/:id/employees",
+    methods: ["GET"],
     middlewares: [
       ensureCompanyMember,
       validateAndTransformQuery(
         StoreGetEmployeeParams,
-        storeEmployeeQueryConfig.list
+        storeEmployeeQueryConfig.list,
       ),
     ],
   },
   {
-    method: ["POST"],
     matcher: "/store/companies/:id/employees",
+    methods: ["POST"],
     middlewares: [
-      ensureRole("company_admin"),
+      ensureCompanyAdmin,
       validateAndTransformBody(StoreCreateEmployee),
       validateAndTransformQuery(
         StoreGetEmployeeParams,
-        storeEmployeeQueryConfig.list
+        storeEmployeeQueryConfig.list,
       ),
     ],
   },
   {
-    method: ["GET"],
-    matcher: "/store/companies/:id/employees/:employee_id",
+    matcher: EMPLOYEE_MATCHER,
+    methods: ["GET"],
     middlewares: [
       ensureCompanyMember,
       validateAndTransformQuery(
         StoreGetEmployeeParams,
-        storeEmployeeQueryConfig.retrieve
+        storeEmployeeQueryConfig.retrieve,
       ),
     ],
   },
   {
-    method: ["POST"],
-    matcher: "/store/companies/:id/employees/:employee_id",
+    matcher: EMPLOYEE_MATCHER,
+    methods: ["POST"],
     middlewares: [
-      ensureRole("company_admin"),
+      ensureCompanyAdmin,
       validateAndTransformBody(StoreUpdateEmployee),
       validateAndTransformQuery(
         StoreGetEmployeeParams,
-        storeEmployeeQueryConfig.retrieve
+        storeEmployeeQueryConfig.retrieve,
       ),
     ],
   },
   {
-    method: ["DELETE"],
-    matcher: "/store/companies/:id/employees/:employee_id",
-    middlewares: [ensureRole("company_admin")],
+    matcher: EMPLOYEE_MATCHER,
+    methods: ["DELETE"],
+    middlewares: [ensureCompanyAdmin],
   },
   {
-    method: ["POST"],
     matcher: "/store/companies/:id/approval-settings",
+    methods: ["POST"],
     middlewares: [
-      ensureRole("company_admin"),
+      ensureCompanyAdmin,
       validateAndTransformBody(StoreUpdateApprovalSettings),
     ],
   },

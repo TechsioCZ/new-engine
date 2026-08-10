@@ -1,10 +1,9 @@
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import {
-  CustomerGroupsBatchClient,
-  type ExistingCustomerGroupIndex,
-} from "../client"
+
+import { CustomerGroupsBatchClient } from "../client"
+import type { ExistingCustomerGroupIndex } from "../client"
 import { customerGroupsBatchClientMapperHelper } from "../client-mapper-helper"
 import type {
   CustomerGroupInput,
@@ -18,11 +17,11 @@ const toErrorMessage = (error: unknown) =>
 
 const buildFailedResult = (
   group: CustomerGroupInput,
-  error: string
+  error: string,
 ): UpsertCustomerGroupsBatchResult => ({
   ...customerGroupsBatchClientMapperHelper.buildResultEcho(group),
-  status: "failed",
   error,
+  status: "failed",
 })
 
 const processCustomerGroupForBatch = async ({
@@ -33,7 +32,7 @@ const processCustomerGroupForBatch = async ({
   logger,
 }: {
   client: CustomerGroupsBatchClient
-  createdBy?: string
+  createdBy?: string | undefined
   customerGroupIndex: ExistingCustomerGroupIndex
   group: CustomerGroupInput
   logger: Logger
@@ -46,21 +45,21 @@ const processCustomerGroupForBatch = async ({
       client.cacheCustomerGroup(customerGroupIndex, group, created.id)
       return {
         ...echo,
-        status: "created",
         customer_group_id: created.id,
+        status: "created",
       }
     }
 
     await client.updateCustomerGroup(existing.id, existing, group)
     return {
       ...echo,
-      status: "updated",
       customer_group_id: existing.id,
+      status: "updated",
     }
   } catch (error) {
     const message = toErrorMessage(error)
     logger.warn(
-      `[symmy-plugin] Failed to upsert customer group (${group.identifier_type}): ${message}`
+      `[symmy-plugin] Failed to upsert customer group (${group.identifier_type}): ${message}`,
     )
     return buildFailedResult(group, message)
   }
@@ -73,8 +72,12 @@ export const symmyProcessCustomerGroupsBatchStep = createStep(
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const customerGroupIndex = await client.preload(input.customer_groups)
 
-    const results: UpsertCustomerGroupsBatchResult[] = []
-    for (const group of input.customer_groups) {
+    const results: UpsertCustomerGroupsBatchOutput["results"] = []
+    const processAt = async (index: number): Promise<void> => {
+      const group = input.customer_groups[index]
+      if (group === undefined) {
+        return
+      }
       results.push(
         await processCustomerGroupForBatch({
           client,
@@ -82,19 +85,21 @@ export const symmyProcessCustomerGroupsBatchStep = createStep(
           customerGroupIndex,
           group,
           logger,
-        })
+        }),
       )
+      await processAt(index + 1)
     }
+    await processAt(0)
 
     const processed = results.filter((r) => r.status !== "failed").length
     const failed = results.length - processed
 
     const output: UpsertCustomerGroupsBatchOutput = {
-      success: failed === 0,
-      processed,
       failed,
+      processed,
       results,
+      success: failed === 0,
     }
     return new StepResponse(output)
-  }
+  },
 )

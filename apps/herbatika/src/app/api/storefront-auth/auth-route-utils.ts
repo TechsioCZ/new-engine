@@ -1,0 +1,143 @@
+import { isRecord, getRecordValue } from "@techsio/std/object"
+import { NextResponse } from "next/server"
+
+import { resolveMedusaBackendUrl } from "@/lib/storefront/runtime-env"
+
+const MEDUSA_BACKEND_URL = resolveMedusaBackendUrl()
+const publishableKey = getRecordValue(
+  process.env,
+  "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
+)
+const MEDUSA_PUBLISHABLE_KEY =
+  typeof publishableKey === "string" ? publishableKey : ""
+const AUTH_SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 14
+
+export interface ErrorPayload {
+  message: string
+  details?: unknown
+}
+
+const AUTH_SESSION_COOKIE_NAME = "herbatika_auth_session_token"
+
+export const buildMedusaUrl = (path: string) =>
+  new URL(path, MEDUSA_BACKEND_URL).toString()
+
+export const parseResponseJson = async (response: Response) => {
+  try {
+    const payload: unknown = await response.json()
+    return isRecord(payload) ? payload : null
+  } catch {
+    return null
+  }
+}
+
+const fallbackErrorMessage = (status: number) => {
+  if (status === 400) {
+    return "Neplatné údaje autentifikačnej požiadavky."
+  }
+
+  if (status === 401 || status === 403) {
+    return "Autentifikácia zlyhala."
+  }
+
+  return `Autentifikačná požiadavka zlyhala so stavom ${status}.`
+}
+
+export const buildErrorResponse = async (response: Response) => {
+  const payload = await parseResponseJson(response)
+  const messageValue =
+    payload === null ? undefined : getRecordValue(payload, "message")
+  const messageFromPayload =
+    typeof messageValue === "string" ? messageValue : null
+
+  return NextResponse.json<ErrorPayload>(
+    {
+      details: payload ?? undefined,
+      message: messageFromPayload ?? fallbackErrorMessage(response.status),
+    },
+    { status: response.status || 500 },
+  )
+}
+
+export const isConflictStatus = (status: number) => status === 409
+
+export const badRequest = (message: string) =>
+  NextResponse.json<ErrorPayload>({ message }, { status: 400 })
+
+export const conflict = (message: string) =>
+  NextResponse.json<ErrorPayload>({ message }, { status: 409 })
+
+export const serverError = (message: string, details?: unknown) =>
+  NextResponse.json<ErrorPayload>(
+    {
+      details,
+      message,
+    },
+    { status: 500 },
+  )
+
+export const getPublishableHeaders = (): Record<string, string> => {
+  if (MEDUSA_PUBLISHABLE_KEY.length === 0) {
+    return {}
+  }
+
+  return {
+    "x-publishable-api-key": MEDUSA_PUBLISHABLE_KEY,
+  }
+}
+
+export const setSessionTokenCookie = (
+  response: NextResponse,
+  token: string,
+) => {
+  response.cookies.set({
+    httpOnly: true,
+    maxAge: AUTH_SESSION_COOKIE_MAX_AGE_SECONDS,
+    name: AUTH_SESSION_COOKIE_NAME,
+    path: "/",
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    value: token,
+  })
+}
+
+export const clearSessionTokenCookie = (response: NextResponse) => {
+  response.cookies.set({
+    httpOnly: true,
+    maxAge: 0,
+    name: AUTH_SESSION_COOKIE_NAME,
+    path: "/",
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    value: "",
+  })
+}
+
+export const getSessionTokenFromCookieHeader = (
+  cookieHeader: string | null,
+) => {
+  if (cookieHeader === null || cookieHeader.length === 0) {
+    return null
+  }
+
+  const entries = cookieHeader.split(";")
+  for (const entry of entries) {
+    const [rawName, ...valueParts] = entry.trim().split("=")
+    if (rawName !== AUTH_SESSION_COOKIE_NAME) {
+      continue
+    }
+
+    const encodedValue = valueParts.join("=")
+    if (!encodedValue) {
+      return null
+    }
+
+    try {
+      return decodeURIComponent(encodedValue)
+    } catch {
+      return encodedValue
+    }
+  }
+
+  return null
+}

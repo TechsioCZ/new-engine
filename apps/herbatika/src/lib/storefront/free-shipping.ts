@@ -1,20 +1,17 @@
-import {
-  type HerbatikaCurrencyCode,
-  normalizeSupportedCurrencyCode,
-} from "./currency"
+import { normalizeSupportedCurrencyCode } from "./currency"
 
-const FREE_SHIPPING_THRESHOLDS: Partial<Record<HerbatikaCurrencyCode, number>> =
-  {
-    EUR: 49,
-  }
+const FREE_SHIPPING_THRESHOLDS: Partial<Record<string, number>> = {
+  EUR: 49,
+}
 
 export const resolveFreeShippingThresholdAmount = (
-  currencyCode: string
+  currencyCode: string,
 ): number | null => {
   const normalizedCurrencyCode = normalizeSupportedCurrencyCode(currencyCode)
-  if (!normalizedCurrencyCode) {
+  if (normalizedCurrencyCode === null) {
     return null
   }
 
-  return FREE_SHIPPING_THRESHOLDS[normalizedCurrencyCode] ?? null
+  const threshold: unknown = FREE_SHIPPING_THRESHOLDS[normalizedCurrencyCode]
+  return typeof threshold === "number" ? threshold : null
 }

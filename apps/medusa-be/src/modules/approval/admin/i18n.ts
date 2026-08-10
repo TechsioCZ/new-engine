@@ -1,4 +1,4 @@
-export type ApprovalAdminI18nNamespace = {
+export interface ApprovalAdminI18nNamespace {
   actions: Record<"approve" | "cancel" | "delete" | "reject", string>
   columns: Record<
     "actions" | "company" | "id" | "items" | "status" | "updatedAt",

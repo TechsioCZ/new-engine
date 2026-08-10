@@ -39,99 +39,101 @@ import { AdminGetUserParams } from "@medusajs/medusa/api/admin/users/validators"
 
 export const symmyAdminRoutes: MiddlewareRoute[] = [
   {
-    methods: ["GET"],
     matcher: "/api/symmy/v1/admin/orders",
+    methods: ["GET"],
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformQuery(
         AdminGetOrdersParams,
-        ordersListTransformQueryConfig
+        ordersListTransformQueryConfig,
       ),
     ],
     policies: [
       {
-        resource: OrdersEntities.order,
         operation: PolicyOperation.read,
+        resource: OrdersEntities.order,
       },
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/api/symmy/v1/admin/customers",
+    methods: ["GET"],
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformQuery(
         AdminCustomersParams,
-        customersListTransformQueryConfig
+        customersListTransformQueryConfig,
       ),
     ],
     policies: [
       {
-        resource: CustomersEntities.customer,
         operation: PolicyOperation.read,
+        resource: CustomersEntities.customer,
       },
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/api/symmy/v1/admin/products",
+    methods: ["GET"],
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformQuery(AdminGetProductsParams, listProductQueryConfig),
-      (req: MedusaRequest, res: MedusaResponse, next: MedusaNextFunction) => {
-        if (
-          !req.filterableFields ||
-          Object.keys(req.filterableFields).length === 0
-        ) {
-          return next()
+      async (
+        req: MedusaRequest,
+        res: MedusaResponse,
+        next: MedusaNextFunction,
+      ) => {
+        if (Object.keys(req.filterableFields).length === 0) {
+          next()
+          return
         }
 
-        return maybeApplyLinkFilter({
+        await maybeApplyLinkFilter({
           entryPoint: "product_sales_channel",
-          resourceId: "product_id",
           filterableField: "sales_channel_id",
+          resourceId: "product_id",
         })(req, res, next)
       },
       maybeApplyPriceListsFilter(),
     ],
     policies: [
       {
-        resource: ProductsEntities.product,
         operation: PolicyOperation.read,
+        resource: ProductsEntities.product,
       },
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/api/symmy/v1/admin/regions",
+    methods: ["GET"],
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformQuery(
         AdminGetRegionsParams,
-        regionsListTransformQueryConfig
+        regionsListTransformQueryConfig,
       ),
     ],
     policies: [
       {
-        resource: RegionsEntities.region,
         operation: PolicyOperation.read,
+        resource: RegionsEntities.region,
       },
     ],
   },
   {
-    methods: ["GET"],
     matcher: "/api/symmy/v1/admin/users/me",
+    methods: ["GET"],
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformQuery(
         AdminGetUserParams,
-        usersRetrieveTransformQueryConfig
+        usersRetrieveTransformQueryConfig,
       ),
     ],
     policies: [
       {
-        resource: UsersEntities.user,
         operation: PolicyOperation.read,
+        resource: UsersEntities.user,
       },
     ],
   },

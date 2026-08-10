@@ -1,5 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import type { RuleAttributeOptionsQuerySchemaType } from "../../schema"
 import type { RuleType } from "../../types"
 import { getExtendedRuleAttributesMap, validateRuleType } from "../../utils"
@@ -15,16 +16,22 @@ import { getExtendedRuleAttributesMap, validateRuleType } from "../../utils"
  * - application_method_type: "fixed" | "percentage"
  * - application_method_target_type: "order" | "items" | "shipping_methods"
  */
-export async function GET(
-  req: MedusaRequest<unknown, RuleAttributeOptionsQuerySchemaType>,
-  res: MedusaResponse
-) {
-  const ruleType = req.params.rule_type
+const assertRuleType: (ruleType: string) => asserts ruleType is RuleType = (
+  ruleType,
+) => {
+  validateRuleType(ruleType)
+}
 
-  if (!ruleType) {
+const get = (
+  req: MedusaRequest<unknown, RuleAttributeOptionsQuerySchemaType>,
+  res: MedusaResponse,
+) => {
+  const ruleType = req.params["rule_type"]
+
+  if (ruleType === undefined || ruleType.length === 0) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "rule_type parameter is required"
+      "rule_type parameter is required",
     )
   }
 
@@ -37,14 +44,18 @@ export async function GET(
   } = req.validatedQuery
   const attributes =
     getExtendedRuleAttributesMap({
-      promotionType: promotion_type,
-      applicationMethodType: application_method_type,
-      applicationMethodTargetType: application_method_target_type,
-    })[ruleType] || []
+      ...(promotion_type === undefined
+        ? {}
+        : { promotionType: promotion_type }),
+      ...(application_method_type === undefined
+        ? {}
+        : { applicationMethodType: application_method_type }),
+      ...(application_method_target_type === undefined
+        ? {}
+        : { applicationMethodTargetType: application_method_target_type }),
+    })[ruleType] ?? []
 
   res.json({ attributes })
 }
 
-function assertRuleType(ruleType: string): asserts ruleType is RuleType {
-  validateRuleType(ruleType)
-}
+export { get as GET }

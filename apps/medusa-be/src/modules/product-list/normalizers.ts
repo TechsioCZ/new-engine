@@ -1,16 +1,34 @@
 import { MedusaError } from "@medusajs/framework/utils"
-import {
-  PRODUCT_LIST_ACCESS_TYPES,
-  PRODUCT_LIST_TYPES,
-  type ProductListAccessType,
-  type ProductListType,
-} from "./constants"
+
+import { PRODUCT_LIST_ACCESS_TYPES, PRODUCT_LIST_TYPES } from "./constants"
+import type { ProductListAccessType, ProductListType } from "./constants"
+
+const formatInvalidValue = (value: unknown): string => {
+  if (value === null) {
+    return "null"
+  }
+
+  if (value === undefined) {
+    return "undefined"
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint"
+  ) {
+    return String(value)
+  }
+
+  return JSON.stringify(value) ?? "unserializable value"
+}
 
 const isProductListAccessType = (
-  value: unknown
+  value: unknown,
 ): value is ProductListAccessType =>
   typeof value === "string" &&
-  PRODUCT_LIST_ACCESS_TYPES.includes(value as ProductListAccessType)
+  PRODUCT_LIST_ACCESS_TYPES.some((accessType) => accessType === value)
 
 export const normalizeProductListAccessType = (value: unknown) => {
   if (value === undefined) {
@@ -23,7 +41,7 @@ export const normalizeProductListAccessType = (value: unknown) => {
 
   throw new MedusaError(
     MedusaError.Types.INVALID_DATA,
-    `Unsupported product list access type: ${String(value)}`
+    `Unsupported product list access type: ${formatInvalidValue(value)}`,
   )
 }
 
@@ -31,24 +49,27 @@ export const normalizeProductListType = (value: unknown): ProductListType => {
   if (typeof value !== "string") {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Unsupported product list type: ${String(value)}`
+      `Unsupported product list type: ${formatInvalidValue(value)}`,
     )
   }
 
-  if (PRODUCT_LIST_TYPES.includes(value as ProductListType)) {
-    return value as ProductListType
+  const productListType = PRODUCT_LIST_TYPES.find(
+    (candidate) => candidate === value,
+  )
+  if (productListType !== undefined) {
+    return productListType
   }
 
   throw new MedusaError(
     MedusaError.Types.INVALID_DATA,
-    `Unsupported product list type: ${value}`
+    `Unsupported product list type: ${value}`,
   )
 }
 
 export const normalizePositiveInteger = (
   field: string,
   value: unknown,
-  defaultValue = 1
+  defaultValue = 1,
 ) => {
   if (value === undefined) {
     return defaultValue
@@ -60,14 +81,14 @@ export const normalizePositiveInteger = (
 
   throw new MedusaError(
     MedusaError.Types.INVALID_DATA,
-    `${field} must be a positive integer`
+    `${field} must be a positive integer`,
   )
 }
 
 export const normalizeNonNegativeInteger = (
   field: string,
   value: unknown,
-  defaultValue = 0
+  defaultValue = 0,
 ) => {
   if (value === undefined) {
     return defaultValue
@@ -79,6 +100,6 @@ export const normalizeNonNegativeInteger = (
 
   throw new MedusaError(
     MedusaError.Types.INVALID_DATA,
-    `${field} must be a non-negative integer`
+    `${field} must be a non-negative integer`,
   )
 }

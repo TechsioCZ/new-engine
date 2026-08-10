@@ -1,23 +1,22 @@
 import type { AdminOrder, AdminOrderPreview } from "@medusajs/framework/types"
 import { Button, Heading, Input, toast } from "@medusajs/ui"
+import { getErrorMessage } from "@techsio/std/object"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { RouteFocusModal } from "../../../../components/common/modals/route-focus-modal/route-focus-modal"
 import { StackedFocusModal } from "../../../../components/common/modals/route-focus-modal/stacked-focus-modal"
 import { useStackedModal } from "../../../../components/common/modals/route-focus-modal/use-stacked-modal"
-import { useAddItemsToQuote } from "../../../../hooks/api"
+import { useAddItemsToQuote } from "../../../../hooks/api/quotes"
 import { ManageItem } from "./manage-item"
 import { ManageItemsTable } from "./manage-items-table"
 
-type ManageItemsSectionProps = {
+interface ManageItemsSectionProps {
   order: AdminOrder
   preview: AdminOrderPreview
 }
 
 let addedVariants: string[] = []
-
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error)
 
 export const ManageItemsSection = ({
   order,
@@ -42,12 +41,12 @@ export const ManageItemsSection = ({
     try {
       await addItems({
         items: addedVariants.map((i) => ({
-          variant_id: i,
           quantity: 1,
+          variant_id: i,
         })),
       })
-    } catch (e) {
-      toast.error(getErrorMessage(e))
+    } catch (error) {
+      toast.error(getErrorMessage(error))
     }
 
     setIsOpen("inbound-items", false)
@@ -58,7 +57,7 @@ export const ManageItemsSection = ({
   const filteredItems = preview.items.filter(
     (i) =>
       i.title.toLowerCase().includes(normalizedFilterTerm) ||
-      i.product_title?.toLowerCase().includes(normalizedFilterTerm)
+      i.product_title?.toLowerCase().includes(normalizedFilterTerm) === true,
   )
   const originalItemsMap = new Map(order.items.map((item) => [item.id, item]))
 
@@ -70,7 +69,9 @@ export const ManageItemsSection = ({
         <div className="flex gap-2">
           <Input
             autoComplete="off"
-            onChange={(e) => setFilterTerm(e.target.value)}
+            onChange={(e) => {
+              setFilterTerm(e.target.value)
+            }}
             placeholder={t("fields.search")}
             type="search"
             value={filterTerm}
@@ -104,8 +105,9 @@ export const ManageItemsSection = ({
                     <Button
                       disabled={isPending}
                       key="submit-button"
-                      onClick={async () => await onItemsSelected()}
-                      role="button"
+                      onClick={() => {
+                        void onItemsSelected()
+                      }}
                       size="small"
                       type="submit"
                       variant="primary"

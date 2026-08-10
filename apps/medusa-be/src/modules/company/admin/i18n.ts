@@ -1,4 +1,4 @@
-export type CompanyAdminI18nNamespace = {
+export interface CompanyAdminI18nNamespace {
   actions: Record<
     | "add"
     | "cancel"
@@ -194,8 +194,8 @@ export const companyAdminI18n = {
       name: "Název",
       phone: "Telefon",
       spendingLimit: "Limit útraty",
-      status: "Stav",
       state: "Kraj/stát",
+      status: "Stav",
     },
     customerGroup: {
       add: "Přidat",
@@ -324,9 +324,9 @@ export const companyAdminI18n = {
       approvalSettingsUpdated: "Nastavení schvalování firmy bylo uloženo",
       companyAddedToCustomerGroup: "Zákaznická skupina firmy byla nastavena",
       companyDeleted: "Firma {{name}} byla smazána",
-      companyRestored: "Firma {{name}} byla obnovena",
       companyRemovedFromCustomerGroup:
         "Firma byla odebrána ze zákaznické skupiny",
+      companyRestored: "Firma {{name}} byla obnovena",
       companyUpdated: "Firma {{name}} byla upravena",
       employeeCreated: "Zaměstnanec {{name}} byl vytvořen",
       employeeDeleted: "Zaměstnanec byl smazán",
@@ -377,8 +377,8 @@ export const companyAdminI18n = {
       name: "Name",
       phone: "Phone",
       spendingLimit: "Spending Limit",
-      status: "Status",
       state: "State",
+      status: "Status",
     },
     customerGroup: {
       add: "Add",
@@ -504,9 +504,9 @@ export const companyAdminI18n = {
       approvalSettingsUpdated: "Company approval settings updated successfully",
       companyAddedToCustomerGroup: "Company customer group set successfully",
       companyDeleted: "Company {{name}} deleted successfully",
-      companyRestored: "Company {{name}} restored successfully",
       companyRemovedFromCustomerGroup:
         "Company removed from customer group successfully",
+      companyRestored: "Company {{name}} restored successfully",
       companyUpdated: "Company {{name}} updated successfully",
       employeeCreated: "Employee {{name}} created successfully",
       employeeDeleted: "Employee deleted successfully",

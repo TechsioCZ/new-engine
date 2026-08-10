@@ -6,7 +6,7 @@ const trimOrUndefined = (value: unknown): unknown => {
     return value
   }
   const trimmed = value.trim()
-  return trimmed ? trimmed : undefined
+  return trimmed || undefined
 }
 
 /** Convert numeric string values to numbers, leaving invalid values unchanged. */
@@ -15,8 +15,8 @@ const toOptionalNumber = (value: unknown): unknown => {
     return value
   }
   const trimmed = value.trim()
-  if (!trimmed) {
-    return
+  if (trimmed.length === 0) {
+    return undefined
   }
   const numberValue = Number(trimmed)
   return Number.isNaN(numberValue) ? value : numberValue
@@ -25,11 +25,11 @@ const toOptionalNumber = (value: unknown): unknown => {
 /** Zod schema for optional string query parameters. */
 export const optionalStringParam = z.preprocess(
   trimOrUndefined,
-  z.string().optional()
+  z.string().optional(),
 )
 
 /** Zod schema for optional positive integer query parameters. */
 export const optionalPositiveIntParam = z.preprocess(
   toOptionalNumber,
-  z.number().int().positive().optional()
+  z.number().int().positive().optional(),
 )

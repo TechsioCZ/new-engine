@@ -1,24 +1,28 @@
 declare module "*.jpg" {
-  const image: import("next/image").StaticImageData
+  import type { StaticImageData } from "next/image"
+
+  const image: StaticImageData
   export default image
 }
 
 declare module "*.webp" {
-  const image: import("next/image").StaticImageData
+  import type { StaticImageData } from "next/image"
+
+  const image: StaticImageData
   export default image
 }
 
 declare module "@/lib/static-data/categories" {
   import type { Category, CategoryTreeNode } from "@/lib/server/categories"
 
-  export type LeafCategory = {
+  export interface LeafCategory {
     id: string
     name: string
     handle: string
     parent_category_id: string | null
   }
 
-  export type LeafParent = {
+  export interface LeafParent {
     id: string
     name: string
     handle: string
@@ -26,14 +30,14 @@ declare module "@/lib/static-data/categories" {
     leafs: string[]
   }
 
-  export type FilteringStats = {
+  export interface FilteringStats {
     totalCategoriesBeforeFiltering: number
     totalCategoriesAfterFiltering: number
     categoriesWithDirectProducts: number
     filteredOutCount: number
   }
 
-  export type StaticCategoryData = {
+  export interface StaticCategoryData {
     allCategories: Category[]
     categoryTree: CategoryTreeNode[]
     rootCategories: Category[]

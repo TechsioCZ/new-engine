@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/// <reference types="node" />
 /*
  * Scaffold a new *code-authored* ("vibed") brand by copying the base brand's
  * per-mode token files into a fresh brand folder pair. The theme-creator agent
@@ -28,14 +29,14 @@
  */
 
 import { copyFileSync, existsSync, mkdirSync } from "node:fs"
-import { dirname, join, resolve } from "node:path"
-import { fileURLToPath } from "node:url"
+import path from "node:path"
+import process from "node:process"
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
-const REPO_ROOT = resolve(__dirname, "..", "..", "..", "..")
-const FIGMA_DIR = join(REPO_ROOT, "libs/ui/src/tokens/figma")
+const SCRIPT_DIRECTORY = import.meta.dirname
+const REPO_ROOT = path.resolve(SCRIPT_DIRECTORY, "..", "..", "..", "..")
+const FIGMA_DIR = path.join(REPO_ROOT, "libs/ui/src/tokens/figma")
 
-const BRAND_RE = /^[a-z][a-z0-9-]*$/
+const BRAND_RE = /^[a-z][a-z0-9-]*$/u
 
 /*
  * Names that must never be scaffolded over, even with --force: the base modes
@@ -47,15 +48,24 @@ const BRAND_RE = /^[a-z][a-z0-9-]*$/
  */
 const RESERVED = new Set(["light", "dark", "base", "neo", "neo-dark"])
 
-function die(msg) {
-  console.error(`✗ ${msg}`)
+/**
+ * @param {string} message - Failure detail.
+ * @returns {never} This function always exits.
+ */
+const die = (message) => {
+  console.error(`✗ ${message}`)
   process.exit(1)
 }
 
-function copyMode(srcMode, destMode, force) {
-  const src = join(FIGMA_DIR, srcMode, "variables.css")
-  const destDir = join(FIGMA_DIR, destMode)
-  const dest = join(destDir, "variables.css")
+/**
+ * @param {string} sourceMode - Base mode to copy.
+ * @param {string} destinationMode - Brand mode to create.
+ * @param {boolean} force - Whether an existing destination may be replaced.
+ */
+const copyMode = (sourceMode, destinationMode, force) => {
+  const src = path.join(FIGMA_DIR, sourceMode, "variables.css")
+  const destDir = path.join(FIGMA_DIR, destinationMode)
+  const dest = path.join(destDir, "variables.css")
   if (!existsSync(src)) {
     die(`base file missing: ${src}`)
   }
@@ -64,15 +74,30 @@ function copyMode(srcMode, destMode, force) {
   }
   mkdirSync(destDir, { recursive: true })
   copyFileSync(src, dest)
-  console.log(`✓ ${destMode}/variables.css  (copied from ${srcMode}/)`)
+  console.log(
+    `✓ ${destinationMode}/variables.css  (copied from ${sourceMode}/)`,
+  )
 }
 
-function main() {
-  const args = process.argv.slice(2)
-  const force = args.includes("--force")
-  const brand = args.find((a) => !a.startsWith("--"))
+/** @returns {string[]} Validated command-line arguments. */
+const readArguments = () => {
+  /** @type {unknown} */
+  const rawArguments = process.argv.slice(2)
+  if (
+    !Array.isArray(rawArguments) ||
+    !rawArguments.every((argument) => typeof argument === "string")
+  ) {
+    return die("usage: scaffold-brand.mjs <brand> [--force]")
+  }
+  return rawArguments.map(String)
+}
 
-  if (!brand) {
+const main = () => {
+  const cliArguments = readArguments()
+  const force = cliArguments.includes("--force")
+  const brand = cliArguments.find((argument) => !argument.startsWith("--"))
+
+  if (brand === undefined || brand.length === 0) {
     die("usage: scaffold-brand.mjs <brand> [--force]")
   }
   if (!BRAND_RE.test(brand)) {
@@ -80,7 +105,7 @@ function main() {
   }
   if (RESERVED.has(brand)) {
     die(
-      `"${brand}" is a reserved/canonical brand and cannot be scaffolded over`
+      `"${brand}" is a reserved/canonical brand and cannot be scaffolded over`,
     )
   }
 
@@ -93,10 +118,10 @@ function main() {
   console.log(`  2. Register "${brand}" in merge-figma-themes.mjs BRANDS and`)
   console.log("     theme-config.ts THEMES.")
   console.log(
-    `  3. node .agents/skills/vibe-theme/scripts/validate-brand.mjs ${brand}`
+    `  3. node .agents/skills/vibe-theme/scripts/validate-brand.mjs ${brand}`,
   )
   console.log(
-    "  4. node .agents/skills/figma-token-binding/scripts/merge-figma-themes.mjs"
+    "  4. node .agents/skills/figma-token-binding/scripts/merge-figma-themes.mjs",
   )
 }
 

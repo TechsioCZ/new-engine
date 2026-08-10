@@ -16,7 +16,7 @@ export type ColorMode = "light" | "dark"
 /** What the user can pick for the mode axis. `system` follows the OS. */
 export type ModeSetting = ColorMode | "system"
 
-export type BrandConfig = {
+export interface BrandConfig {
   /** Human label shown in togglers. */
   label: string
   /** Concrete modes this brand ships. Light-only brands omit "dark". */
@@ -25,12 +25,12 @@ export type BrandConfig = {
    * `data-theme` attribute value for this brand. Omitted for the base brand,
    * which is the default `:root` / `@theme` and needs no attribute.
    */
-  attr?: string
+  attr?: string | undefined
 }
 
 export const THEMES = {
   base: { label: "Default", modes: ["light", "dark"] },
-  neo: { label: "Neo (Red)", modes: ["light", "dark"], attr: "neo" },
+  neo: { attr: "neo", label: "Neo (Red)", modes: ["light", "dark"] },
 } as const satisfies Record<string, BrandConfig>
 
 export type BrandKey = keyof typeof THEMES
@@ -42,29 +42,22 @@ export const DEFAULT_MODE: ModeSetting = "system"
 export const BRAND_STORAGE_KEY = "ui-brand"
 export const MODE_STORAGE_KEY = "ui-mode"
 
-export function brandKeys(): BrandKey[] {
-  return Object.keys(THEMES) as BrandKey[]
-}
+export const isBrandKey = (value: string): value is BrandKey =>
+  Object.hasOwn(THEMES, value)
 
-export function getBrand(key: BrandKey): BrandConfig {
-  return THEMES[key]
-}
+export const brandKeys = (): BrandKey[] =>
+  Object.keys(THEMES).filter(isBrandKey)
 
-export function isBrandKey(value: string): value is BrandKey {
-  return Object.hasOwn(THEMES, value)
-}
+export const getBrand = (key: BrandKey): BrandConfig => THEMES[key]
 
 /** `data-theme` value for a brand, or `undefined` for the attribute-less base. */
-export function brandAttr(key: BrandKey): string | undefined {
-  return getBrand(key).attr
-}
+export const brandAttr = (key: BrandKey): string | undefined =>
+  getBrand(key).attr
 
 /** Whether a brand ships a dark variant (and therefore allows mode switching). */
-export function brandSupportsDark(key: BrandKey): boolean {
-  return getBrand(key).modes.includes("dark")
-}
+export const brandSupportsDark = (key: BrandKey): boolean =>
+  getBrand(key).modes.includes("dark")
 
 /** Mode settings a brand allows in a toggler. Light-only brands get just light. */
-export function availableModeSettings(key: BrandKey): ModeSetting[] {
-  return brandSupportsDark(key) ? ["light", "dark", "system"] : ["light"]
-}
+export const availableModeSettings = (key: BrandKey): ModeSetting[] =>
+  brandSupportsDark(key) ? ["light", "dark", "system"] : ["light"]

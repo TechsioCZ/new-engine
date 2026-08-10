@@ -2,48 +2,53 @@ import { z } from "zod"
 
 export const previewCommitStateCommandInputSchema = z
   .object({
-    projectSlug: z.string().min(1, "Zane canonical project slug is required."),
-    prNumber: z.number().int().positive().optional(),
+    apiToken: z.string().default(""),
+    baseUrl: z.string().default(""),
+    dryRun: z.boolean().default(false),
     environmentName: z.string().default(""),
     outputJson: z.string().min(1).optional(),
-    baseUrl: z.string().default(""),
-    apiToken: z.string().default(""),
-    dryRun: z.boolean().default(false),
+    prNumber: z.number().int().positive().optional(),
     previewEnvPrefix: z.string().min(1).default("pr-"),
+    projectSlug: z.string().min(1, "Zane canonical project slug is required."),
   })
   .superRefine((value, ctx) => {
-    if (!(value.environmentName || value.prNumber)) {
+    if (
+      !(
+        (value.environmentName !== undefined && value.environmentName !== "") ||
+        (value.prNumber !== undefined && value.prNumber !== 0)
+      )
+    ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["prNumber"],
+        code: "custom",
         message: "Preview commit state requires PR number or environment name.",
+        path: ["prNumber"],
       })
     }
 
     if (!(value.dryRun || value.baseUrl)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["baseUrl"],
+        code: "custom",
         message: "Zane operator base URL is required.",
+        path: ["baseUrl"],
       })
     }
 
     if (!(value.dryRun || value.apiToken)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["apiToken"],
+        code: "custom",
         message: "Zane operator API token is required.",
+        path: ["apiToken"],
       })
     }
   })
 
 export const previewCommitStateResponseSchema = z.object({
-  project_slug: z.string().min(1),
-  environment_name: z.string().min(1),
-  environment_exists: z.boolean(),
   baseline_complete: z.boolean().default(false),
-  target_commit_sha: z.string().nullable(),
+  environment_exists: z.boolean(),
+  environment_name: z.string().min(1),
   last_deployed_commit_sha: z.string().nullable(),
+  project_slug: z.string().min(1),
+  target_commit_sha: z.string().nullable(),
 })
 
 export type PreviewCommitStateCommandInput = z.infer<

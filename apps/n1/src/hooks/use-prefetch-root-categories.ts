@@ -1,29 +1,35 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+
 import { CATEGORY_MAP } from "@/lib/constants"
 import { prefetchLogger } from "@/lib/loggers/prefetch"
+
 import { usePrefetchProducts } from "./use-prefetch-products"
 import { useRegion } from "./use-region"
 
-type UsePrefetchRootCategoriesParams = {
+interface UsePrefetchRootCategoriesParams {
   enabled?: boolean
   currentHandle: string
   delay?: number
 }
 
-export function usePrefetchRootCategories({
+export const usePrefetchRootCategories = ({
   enabled = true,
   currentHandle,
   delay = 200,
-}: UsePrefetchRootCategoriesParams) {
+}: UsePrefetchRootCategoriesParams) => {
   const { regionId } = useRegion()
   const { prefetchRootCategories } = usePrefetchProducts()
   const hasPrefetched = useRef(false)
 
   useEffect(() => {
-    if (!(enabled && regionId) || hasPrefetched.current) {
-      return
+    const hasRegion =
+      regionId !== undefined && regionId !== null && regionId !== ""
+    if (!enabled || !hasRegion || hasPrefetched.current) {
+      return () => {
+        // No resources were allocated.
+      }
     }
 
     hasPrefetched.current = true
@@ -31,16 +37,18 @@ export function usePrefetchRootCategories({
     const timer = setTimeout(() => {
       prefetchLogger.info(
         "Root",
-        `Prefetching other root from /kategorie/${currentHandle}`
+        `Prefetching other root from /kategorie/${currentHandle}`,
       )
 
       for (const [handle, categoryIds] of Object.entries(CATEGORY_MAP)) {
         if (handle !== currentHandle) {
-          prefetchRootCategories(categoryIds)
+          void prefetchRootCategories(categoryIds)
         }
       }
     }, delay)
 
-    return () => clearTimeout(timer)
+    return () => {
+      clearTimeout(timer)
+    }
   }, [enabled, regionId, currentHandle, delay, prefetchRootCategories])
 }

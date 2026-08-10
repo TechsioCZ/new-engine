@@ -3,6 +3,8 @@
  * These functions build query parameters for server-side filtering
  */
 
+import type { HttpTypes } from "@medusajs/types"
+
 import type { ProductFilters } from "@/services/product-service"
 
 export interface MedusaProductQuery {
@@ -10,52 +12,46 @@ export interface MedusaProductQuery {
   offset?: number
   fields?: string
   category_id?: string | string[]
-  tags?: string | string[]
+  country_code?: string
+  order?: string
   q?: string
   region_id?: string
   cart_id?: string
   currency_code?: string
-  // Variant filtering requires special handling
-  [key: string]: any
+  variants?: NonNullable<HttpTypes.StoreProductListParams["variants"]>
 }
 
 /**
  * Build Medusa query parameters from our filter interface
  */
-export function buildMedusaQuery(
+export const buildMedusaQuery = (
   filters: ProductFilters | undefined,
-  baseQuery: Partial<MedusaProductQuery> = {}
-): MedusaProductQuery {
+  baseQuery: Partial<MedusaProductQuery> = {},
+): MedusaProductQuery => {
   const query: MedusaProductQuery = { ...baseQuery }
 
-  if (!filters) return query
+  if (!filters) {
+    return query
+  }
 
   // Category filtering - Medusa supports this natively
-  if (filters.categories?.length) {
+  const categories = filters.categories ?? []
+  if (categories.length > 0) {
     query.category_id =
-      filters.categories.length === 1
-        ? filters.categories[0]
-        : filters.categories
+      categories.length === 1 ? categories.join("") : categories
   }
 
   // Size filtering via variant options - Medusa v2 supports this!
-  if (filters.sizes?.length) {
-    // For single size
-    if (filters.sizes.length === 1) {
-      query.variants = {
-        options: {
-          value: filters.sizes[0],
-        },
-      }
-    } else {
-      // For multiple sizes, we need to use $in operator
-      query.variants = {
-        options: {
-          value: {
-            $in: filters.sizes,
-          },
-        },
-      }
+  const sizes = filters.sizes ?? []
+  if (sizes.length === 1) {
+    query.variants = {
+      options: {
+        value: sizes.join(""),
+      },
+    }
+  } else if (sizes.length > 1) {
+    query.variants = {
+      $or: sizes.map((value) => ({ options: { value } })),
     }
   }
 

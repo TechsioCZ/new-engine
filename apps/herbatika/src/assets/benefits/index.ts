@@ -1,11 +1,13 @@
 import type { StaticImageData } from "next/image"
-import type { HomepageBenefitTranslationKey } from "@/components/homepage/homepage.data.types"
+
+import type { HomepageBenefitTranslationKey } from "@/components/homepage/homepage-data-types"
+
 import delivery from "./doprava.avif"
 import products from "./produkty.avif"
 import returns from "./vraceni.avif"
 import customers from "./zakaznici.avif"
 
-type BenefitDefinition = {
+interface BenefitDefinition {
   id: number
   image: StaticImageData
   translationKey: HomepageBenefitTranslationKey

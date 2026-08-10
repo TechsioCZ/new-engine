@@ -1,10 +1,11 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import type { AdminGetQuoteParamsType } from "./validators"
 
-export const GET = async (
+const getQuotes = async (
   req: MedusaRequest<AdminGetQuoteParamsType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
@@ -20,9 +21,11 @@ export const GET = async (
   })
 
   res.json({
-    quotes,
     count: metadata?.count ?? 0,
-    offset: metadata?.skip ?? skip,
     limit: metadata?.take ?? pagination.take,
+    offset: metadata?.skip ?? skip,
+    quotes,
   })
 }
+
+export { getQuotes as GET }

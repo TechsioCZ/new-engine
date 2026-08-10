@@ -1,7 +1,10 @@
 import type { StoreProductVariant } from "@medusajs/types"
+
 import type { ProductVariant } from "@/types/product"
 
-export type StockStatus = "in-stock" | "low-stock" | "out-of-stock"
+type StockStatus = "in-stock" | "low-stock" | "out-of-stock"
+type InventoryVariant = ProductVariant | StoreProductVariant
+type MaybeInventoryVariant = InventoryVariant | null
 
 export interface InventoryInfo {
   status: StockStatus
@@ -13,24 +16,25 @@ export interface InventoryInfo {
  * Get inventory info for a specific variant
  * This is the single source of truth for variant availability
  */
-export function getVariantInventory(
-  variant: ProductVariant | StoreProductVariant | undefined | null
-): InventoryInfo {
-  if (!variant) {
+export const getVariantInventory = (
+  variant?: MaybeInventoryVariant,
+): InventoryInfo => {
+  if (variant === undefined || variant === null) {
     return {
-      status: "out-of-stock",
-      quantity: 0,
       message: "Varianta není dostupná",
+      quantity: 0,
+      status: "out-of-stock",
     }
   }
 
   // Check manage_inventory flag
   // If inventory is not managed, always return in stock
-  if (!variant.manage_inventory) {
+  if (variant.manage_inventory !== true) {
+    // Unmanaged inventory has no finite stock limit.
     return {
-      status: "in-stock",
-      quantity: 999, // Unlimited stock
       message: "Skladem",
+      quantity: 999,
+      status: "in-stock",
     }
   }
 
@@ -43,52 +47,54 @@ export function getVariantInventory(
 
     if (quantity <= 0) {
       return {
-        status: "out-of-stock",
-        quantity: 0,
         message: "Vyprodáno",
+        quantity: 0,
+        status: "out-of-stock",
       }
     }
     if (quantity <= 5) {
       return {
-        status: "low-stock",
-        quantity,
         message: `Zbývá pouze ${quantity} kusů`,
+        quantity,
+        status: "low-stock",
       }
     }
     return {
-      status: "in-stock",
-      quantity,
       message: "Skladem",
+      quantity,
+      status: "in-stock",
     }
   }
 
   // Fallback: If manage_inventory is true but we don't have inventory_quantity
   // Check allow_backorder flag
-  if (variant.allow_backorder) {
+  if (variant.allow_backorder === true) {
+    // Backorders can be placed even with no current stock.
     return {
-      status: "in-stock",
-      quantity: 999, // Can order even if out of stock
       message: "Skladem (na objednávku)",
+      quantity: 999,
+      status: "in-stock",
     }
   }
 
   // Conservative approach: if manage_inventory is true and allow_backorder is false,
   // we assume it's in stock to avoid blocking purchases
+  // Use a bounded fallback when the API omits managed inventory quantity.
   return {
-    status: "in-stock",
-    quantity: 10, // Reasonable default
     message: "Skladem",
+    quantity: 10,
+    status: "in-stock",
   }
 }
 
 /**
  * Check if a specific quantity is available for a variant
  */
-export function isQuantityAvailable(
-  variant: ProductVariant | StoreProductVariant | undefined | null,
-  requestedQuantity: number
-): boolean {
-  if (!variant || requestedQuantity <= 0) {
+export const isQuantityAvailable = (
+  variant: MaybeInventoryVariant | undefined,
+  requestedQuantity: number,
+): boolean => {
+  if (variant === undefined || variant === null || requestedQuantity <= 0) {
     return false
   }
 

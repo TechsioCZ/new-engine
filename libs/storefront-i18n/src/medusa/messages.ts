@@ -1,14 +1,19 @@
-import type { Client } from "@medusajs/js-sdk"
+import type { FetchArgs, FetchInput } from "@medusajs/js-sdk"
+
 import type { FlatStorefrontMessages } from "../core/messages"
 
-export type LoadMedusaStorefrontMessagesInput = {
+export interface LoadMedusaStorefrontMessagesInput {
   cache?: RequestCache
   endpoint?: string
   locale: string
   market: string
 }
 
-type StorefrontMessagesResponse = {
+interface MedusaStorefrontMessagesClient {
+  fetch: (input: FetchInput, init?: FetchArgs) => Promise<unknown>
+}
+
+interface StorefrontMessagesResponse {
   locale: string
   market: string
   messages: FlatStorefrontMessages
@@ -16,34 +21,37 @@ type StorefrontMessagesResponse = {
 
 const isStorefrontMessagesResponse = (
   value: unknown,
-  input: LoadMedusaStorefrontMessagesInput
+  input: LoadMedusaStorefrontMessagesInput,
 ): value is StorefrontMessagesResponse => {
-  if (!value || typeof value !== "object") {
+  if (value === null || typeof value !== "object") {
     return false
   }
 
-  const locale = Reflect.get(value, "locale")
-  const market = Reflect.get(value, "market")
-  const messages = Reflect.get(value, "messages")
+  const locale: unknown = Reflect.get(value, "locale")
+  const market: unknown = Reflect.get(value, "market")
+  const messages: unknown = Reflect.get(value, "messages")
+
+  if (locale !== input.locale || market !== input.market) {
+    return false
+  }
 
   if (
-    locale !== input.locale ||
-    market !== input.market ||
-    !messages ||
+    messages === null ||
     typeof messages !== "object" ||
     Array.isArray(messages)
   ) {
     return false
   }
 
-  return Object.values(messages).every((message) => typeof message === "string")
+  const messageValues: readonly unknown[] = Object.values(messages)
+  return messageValues.every((message) => typeof message === "string")
 }
 
 export const loadMedusaStorefrontMessages = async (
-  client: Pick<Client, "fetch">,
-  input: LoadMedusaStorefrontMessagesInput
+  client: MedusaStorefrontMessagesClient,
+  input: LoadMedusaStorefrontMessagesInput,
 ): Promise<FlatStorefrontMessages> => {
-  const response = await client.fetch<unknown>(
+  const response = await client.fetch(
     input.endpoint ?? "/store/storefront-texts",
     {
       cache: input.cache ?? "no-store",
@@ -51,7 +59,7 @@ export const loadMedusaStorefrontMessages = async (
         locale: input.locale,
         market: input.market,
       },
-    }
+    },
   )
 
   if (!isStorefrontMessagesResponse(response, input)) {

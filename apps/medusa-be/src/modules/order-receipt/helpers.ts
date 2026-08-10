@@ -1,6 +1,7 @@
+import type { BigNumberValue } from "@medusajs/framework/types"
+
 type OrderReceiptMoney =
-  | number
-  | string
+  | BigNumberValue
   | {
       amount?: number | string | null
       precision?: number | string | null
@@ -8,7 +9,21 @@ type OrderReceiptMoney =
     }
   | null
 
-export type OrderReceiptAddress = {
+type Nullish<T> = T | null | undefined
+type TextValue = Nullish<boolean | number | string>
+type DateValue = Nullish<Date | string>
+
+const CZECH_DATE_FORMATTER = new Intl.DateTimeFormat("cs-CZ")
+
+const normalizeTextValue = (value: TextValue): string => {
+  if (value === null || value === undefined) {
+    return ""
+  }
+
+  return String(value)
+}
+
+export interface OrderReceiptAddress {
   address_1?: string | null
   address_2?: string | null
   city?: string | null
@@ -19,7 +34,7 @@ export type OrderReceiptAddress = {
   postal_code?: string | null
 }
 
-export type OrderReceiptLineItem = {
+export interface OrderReceiptLineItem {
   detail?: {
     quantity?: OrderReceiptMoney
     raw_quantity?: OrderReceiptMoney
@@ -31,9 +46,11 @@ export type OrderReceiptLineItem = {
   raw_quantity?: OrderReceiptMoney
   raw_unit_price?: OrderReceiptMoney
   subtotal?: OrderReceiptMoney
-  tax_lines?: Array<{
-    rate?: OrderReceiptMoney
-  } | null> | null
+  tax_lines?:
+    | ({
+        rate?: OrderReceiptMoney
+      } | null)[]
+    | null
   tax_total?: OrderReceiptMoney
   quantity?: OrderReceiptMoney
   title?: string | null
@@ -41,35 +58,37 @@ export type OrderReceiptLineItem = {
   total?: OrderReceiptMoney
 }
 
-export type OrderReceiptPayment = {
-  data?: Record<string, unknown> | null
+export interface OrderReceiptPayment {
+  data?: object | null
   provider_id?: string | null
 }
 
-export type OrderReceiptPaymentCollection = {
+export interface OrderReceiptPaymentCollection {
   payments?: OrderReceiptPayment[] | null
 }
 
-export type OrderReceiptSummary = {
+export interface OrderReceiptSummary {
   accounting_total?: OrderReceiptMoney
   current_order_total?: OrderReceiptMoney
   original_order_total?: OrderReceiptMoney
 }
 
-export type OrderReceiptShippingMethod = {
+export interface OrderReceiptShippingMethod {
   amount?: OrderReceiptMoney
   is_tax_inclusive?: boolean | null
   name?: string | null
   raw_amount?: OrderReceiptMoney
   subtotal?: OrderReceiptMoney
-  tax_lines?: Array<{
-    rate?: OrderReceiptMoney
-  } | null> | null
+  tax_lines?:
+    | ({
+        rate?: OrderReceiptMoney
+      } | null)[]
+    | null
   tax_total?: OrderReceiptMoney
   total?: OrderReceiptMoney
 }
 
-export type OrderReceiptOrder = {
+export interface OrderReceiptOrder {
   billing_address?: OrderReceiptAddress | null
   created_at?: Date | string | null
   currency_code?: string | null
@@ -80,7 +99,7 @@ export type OrderReceiptOrder = {
   item_subtotal?: OrderReceiptMoney
   item_tax_total?: OrderReceiptMoney
   items?: OrderReceiptLineItem[] | null
-  metadata?: Record<string, unknown> | null
+  metadata?: object | null
   payment_collections?: OrderReceiptPaymentCollection[] | null
   shipping_methods?: OrderReceiptShippingMethod[] | null
   shipping_total?: OrderReceiptMoney
@@ -92,135 +111,128 @@ export type OrderReceiptOrder = {
   total?: OrderReceiptMoney
 }
 
-export type OrderReceiptAttachment = {
+export interface OrderReceiptAttachment {
   content: Buffer
   content_type: "application/pdf"
   filename: string
 }
 
-function objectToNumberValue(
-  value: Exclude<OrderReceiptMoney, number | string | null>
-): number {
-  const explicitValue = value.value ?? value.amount
-  if (explicitValue !== null && explicitValue !== undefined) {
-    return toNumber(explicitValue)
+const hasToJSON = (value: object): value is { toJSON: () => unknown } =>
+  "toJSON" in value && typeof value.toJSON === "function"
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0
   }
 
-  if ("toJSON" in value && typeof value.toJSON === "function") {
-    return toNumber(value.toJSON() as OrderReceiptMoney)
+  if (typeof value === "string") {
+    const number = Number(value)
+    return Number.isFinite(number) ? number : 0
   }
 
-  if ("toString" in value && typeof value.toString === "function") {
-    const stringValue = value.toString()
-    if (stringValue !== "[object Object]") {
-      return toNumber(stringValue)
-    }
+  if (value === null || typeof value !== "object") {
+    return 0
+  }
+
+  if ("value" in value && value.value !== null && value.value !== undefined) {
+    return toNumberValue(value.value)
+  }
+
+  if (
+    "amount" in value &&
+    value.amount !== null &&
+    value.amount !== undefined
+  ) {
+    return toNumberValue(value.amount)
+  }
+
+  if (hasToJSON(value)) {
+    return toNumberValue(value.toJSON())
   }
 
   return 0
 }
 
-export function toNumber(value: OrderReceiptMoney | undefined): number {
-  if (value === null || value === undefined) {
-    return 0
-  }
+export const toNumber = (value: OrderReceiptMoney | undefined): number =>
+  toNumberValue(value)
 
-  if (typeof value === "object") {
-    return objectToNumberValue(value)
-  }
+const hasExplicitMoney = (value: OrderReceiptMoney | undefined) =>
+  value !== null && value !== undefined
 
-  const number = typeof value === "string" ? Number(value) : value
+const getExplicitMoneyTotal = (value: OrderReceiptMoney | undefined) =>
+  hasExplicitMoney(value) ? toNumber(value) : null
 
-  return Number.isFinite(number) ? number : 0
-}
-
-function hasExplicitMoney(value: OrderReceiptMoney | undefined) {
-  return value !== null && value !== undefined
-}
-
-function getExplicitMoneyTotal(value: OrderReceiptMoney | undefined) {
-  return hasExplicitMoney(value) ? toNumber(value) : null
-}
-
-export function ascii(value: unknown) {
-  return String(value ?? "")
-    .replace(/\u00a0/g, " ")
+export const ascii = (value: TextValue) =>
+  normalizeTextValue(value)
+    .replaceAll("\u00A0", " ")
     .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\x20-\x7E]/g, "")
-}
+    .replaceAll(/[\u0300-\u036F]/gu, "")
+    .replaceAll(/[^\u0020-\u007E]/gu, "")
 
 const PDF_DIACRITIC_CODES: Record<string, string> = {
   "A\u0301": "\\300",
-  "a\u0301": "\\301",
-  "C\u030c": "\\302",
-  "c\u030c": "\\303",
-  "D\u030c": "\\304",
-  "d\u030c": "\\305",
+  "C\u030C": "\\302",
+  "D\u030C": "\\304",
   "E\u0301": "\\306",
-  "e\u0301": "\\307",
-  "E\u030c": "\\310",
-  "e\u030c": "\\311",
+  "E\u030C": "\\310",
   "I\u0301": "\\312",
-  "i\u0301": "\\313",
-  "N\u030c": "\\314",
-  "n\u030c": "\\315",
+  "N\u030C": "\\314",
   "O\u0301": "\\316",
-  "o\u0301": "\\317",
-  "R\u030c": "\\320",
-  "r\u030c": "\\321",
-  "S\u030c": "\\322",
-  "s\u030c": "\\323",
-  "T\u030c": "\\324",
-  "t\u030c": "\\325",
+  "R\u030C": "\\320",
+  "S\u030C": "\\322",
+  "T\u030C": "\\324",
   "U\u0301": "\\326",
-  "u\u0301": "\\327",
-  "U\u030a": "\\330",
-  "u\u030a": "\\331",
+  "U\u030A": "\\330",
   "Y\u0301": "\\332",
+  "Z\u030C": "\\334",
+  "a\u0301": "\\301",
+  "c\u030C": "\\303",
+  "d\u030C": "\\305",
+  "e\u0301": "\\307",
+  "e\u030C": "\\311",
+  "i\u0301": "\\313",
+  "n\u030C": "\\315",
+  "o\u0301": "\\317",
+  "r\u030C": "\\321",
+  "s\u030C": "\\323",
+  "t\u030C": "\\325",
+  "u\u0301": "\\327",
+  "u\u030A": "\\331",
   "y\u0301": "\\333",
-  "Z\u030c": "\\334",
-  "z\u030c": "\\335",
+  "z\u030C": "\\335",
 }
 
 export const PDF_CZECH_ENCODING_DIFFERENCES =
   "[192 /Aacute /aacute /Ccaron /ccaron /Dcaron /dcaron /Eacute /eacute /Ecaron /ecaron /Iacute /iacute /Ncaron /ncaron /Oacute /oacute /Rcaron /rcaron /Scaron /scaron /Tcaron /tcaron /Uacute /uacute /Uring /uring /Yacute /yacute /Zcaron /zcaron]"
 
-const COMBINING_MARK_PATTERN = /[\u0300-\u036f]/
-const PDF_ASCII_PATTERN = /[\x20-\x7E]/
+const COMBINING_MARK_PATTERN = /[\u0300-\u036F]/u
+const PDF_ASCII_PATTERN = /[\u0020-\u007E]/u
 
-function escapePdfAsciiChar(char: string) {
-  return char.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)")
-}
+const escapePdfAsciiChar = (char: string) =>
+  char.replaceAll("\\", "\\\\").replaceAll("(", "\\(").replaceAll(")", "\\)")
 
-export function escapePdfText(value: unknown) {
-  const normalized = String(value ?? "")
-    .replace(/\u00a0/g, " ")
+export const escapePdfText = (value: TextValue) => {
+  const normalized = normalizeTextValue(value)
+    .replaceAll("\u00A0", " ")
     .normalize("NFKD")
   let escaped = ""
 
   for (let index = 0; index < normalized.length; index += 1) {
     const char = normalized[index]
-    if (!char) {
-      continue
-    }
-
     const nextChar = normalized[index + 1]
-    const diacriticCode = nextChar
-      ? PDF_DIACRITIC_CODES[`${char}${nextChar}`]
-      : undefined
+    const diacriticCode =
+      char !== undefined && nextChar !== undefined
+        ? PDF_DIACRITIC_CODES[`${char}${nextChar}`]
+        : undefined
 
-    if (diacriticCode) {
+    if (diacriticCode !== undefined) {
       escaped += diacriticCode
       index += 1
-      continue
-    }
-
-    if (COMBINING_MARK_PATTERN.test(char)) {
-      continue
-    }
-
-    if (PDF_ASCII_PATTERN.test(char)) {
+    } else if (
+      char !== undefined &&
+      !COMBINING_MARK_PATTERN.test(char) &&
+      PDF_ASCII_PATTERN.test(char)
+    ) {
       escaped += escapePdfAsciiChar(char)
     }
   }
@@ -228,8 +240,8 @@ export function escapePdfText(value: unknown) {
   return escaped
 }
 
-export function formatDate(value: Date | string | null | undefined) {
-  if (!value) {
+export const formatDate = (value: DateValue) => {
+  if (value === null || value === undefined || value === "") {
     return new Date().toISOString().slice(0, 10)
   }
 
@@ -239,38 +251,38 @@ export function formatDate(value: Date | string | null | undefined) {
     return new Date().toISOString().slice(0, 10)
   }
 
-  return new Intl.DateTimeFormat("cs-CZ").format(date)
+  return CZECH_DATE_FORMATTER.format(date)
 }
 
-export function formatMoney(
+export const formatMoney = (
   value: OrderReceiptMoney | undefined,
-  currency?: string | null
-) {
+  currency?: string | null,
+) => {
   const amount = toNumber(value)
-  const normalizedCurrency = (currency || "CZK").toUpperCase()
+  const normalizedCurrency = (currency ?? "CZK").toUpperCase()
 
   try {
-    return new Intl.NumberFormat("cs-CZ", {
+    return amount.toLocaleString("cs-CZ", {
       currency: normalizedCurrency,
       style: "currency",
-    }).format(amount)
+    })
   } catch {
     return `${amount.toFixed(2)} ${normalizedCurrency}`
   }
 }
 
-export function getOrderNumber(order: OrderReceiptOrder) {
-  return order.display_id ? String(order.display_id) : order.id
-}
+export const getOrderNumber = (order: OrderReceiptOrder) =>
+  order.display_id === null || order.display_id === undefined
+    ? order.id
+    : String(order.display_id)
 
-export function getOrderReceiptFilename(order: OrderReceiptOrder) {
-  return `invoice-${ascii(getOrderNumber(order)).replace(
-    /[^a-zA-Z0-9_-]/g,
-    "-"
+export const getOrderReceiptFilename = (order: OrderReceiptOrder) =>
+  `invoice-${ascii(getOrderNumber(order)).replaceAll(
+    /[^a-zA-Z0-9_-]/gu,
+    "-",
   )}.pdf`
-}
 
-export function getAddressLines(address?: OrderReceiptAddress | null) {
+export const getAddressLines = (address?: OrderReceiptAddress | null) => {
   if (!address) {
     return []
   }
@@ -287,15 +299,14 @@ export function getAddressLines(address?: OrderReceiptAddress | null) {
   ].filter((addressLine): addressLine is string => Boolean(addressLine))
 }
 
-export function getItemTitle(item: OrderReceiptLineItem) {
-  return item.title ?? item.detail?.title
-}
+export const getItemTitle = (item: OrderReceiptLineItem) =>
+  item.title ?? item.detail?.title
 
-function getTaxRate(item: {
-  tax_lines?: Array<{ rate?: OrderReceiptMoney } | null> | null
-}) {
+const getTaxRate = (item: {
+  tax_lines?: ({ rate?: OrderReceiptMoney } | null)[] | null
+}) => {
   const rate = item.tax_lines?.find(
-    (taxLine) => taxLine?.rate !== null && taxLine?.rate !== undefined
+    (taxLine) => taxLine?.rate !== null && taxLine?.rate !== undefined,
   )?.rate
 
   if (rate === null || rate === undefined) {
@@ -305,11 +316,10 @@ function getTaxRate(item: {
   return toNumber(rate)
 }
 
-function roundMoney(value: number) {
-  return Math.round((value + Number.EPSILON) * 100) / 100
-}
+const roundMoney = (value: number) =>
+  Math.round((value + Number.EPSILON) * 100) / 100
 
-function getNetFromGross(grossValue: number, rate: number) {
+const getNetFromGross = (grossValue: number, rate: number) => {
   if (rate <= 0) {
     return grossValue
   }
@@ -317,63 +327,53 @@ function getNetFromGross(grossValue: number, rate: number) {
   return roundMoney(grossValue / (1 + rate / 100))
 }
 
-function getTaxExclusiveAmount(
+const getTaxExclusiveAmount = (
   amount: number,
   rate: number,
-  isTaxInclusive?: boolean | null
-) {
-  return isTaxInclusive === true ? getNetFromGross(amount, rate) : amount
-}
+  isTaxInclusive?: boolean | null,
+) => (isTaxInclusive === true ? getNetFromGross(amount, rate) : amount)
 
-export function getItemGrossUnitPrice(item: OrderReceiptLineItem) {
-  return toNumber(
+export const getItemGrossUnitPrice = (item: OrderReceiptLineItem) =>
+  toNumber(
     item.unit_price ??
       item.raw_unit_price ??
       item.detail?.unit_price ??
-      item.detail?.raw_unit_price
+      item.detail?.raw_unit_price,
   )
-}
 
-export function getItemUnitPrice(item: OrderReceiptLineItem) {
+export const getItemUnitPrice = (item: OrderReceiptLineItem) => {
   const unitPrice = getItemGrossUnitPrice(item)
   const rate = getTaxRate(item)
 
   return getTaxExclusiveAmount(unitPrice, rate, item.is_tax_inclusive)
 }
 
-export function getItemTaxLabel(item: OrderReceiptLineItem) {
+export const getItemTaxLabel = (item: OrderReceiptLineItem) => {
   const rate = getTaxRate(item)
 
   return `${rate} %`
 }
 
-export function getShippingTaxLabel(
-  shippingMethod: OrderReceiptShippingMethod
-) {
+export const getShippingTaxLabel = (
+  shippingMethod: OrderReceiptShippingMethod,
+) => {
   const rate = getTaxRate(shippingMethod)
 
   return `${rate} %`
 }
 
-export function getItemQuantity(item: OrderReceiptLineItem) {
+export const getItemQuantity = (item: OrderReceiptLineItem) => {
   const quantity = toNumber(
     item.quantity ??
       item.detail?.quantity ??
       item.raw_quantity ??
-      item.detail?.raw_quantity
+      item.detail?.raw_quantity,
   )
 
   return quantity > 0 ? quantity : 1
 }
 
-export function getItemSubtotal(item: OrderReceiptLineItem) {
-  const subtotal = getItemSubtotalAmount(item)
-  const rate = getTaxRate(item)
-
-  return getTaxExclusiveAmount(subtotal, rate, item.is_tax_inclusive)
-}
-
-function getItemSubtotalAmount(item: OrderReceiptLineItem) {
+const getItemSubtotalAmount = (item: OrderReceiptLineItem) => {
   if (item.subtotal !== null && item.subtotal !== undefined) {
     return toNumber(item.subtotal)
   }
@@ -388,26 +388,34 @@ function getItemSubtotalAmount(item: OrderReceiptLineItem) {
   return unitPrice * quantity
 }
 
-function getItemsSubtotal(items: OrderReceiptLineItem[]) {
-  return items.reduce((sum, item) => sum + getItemSubtotal(item), 0)
+export const getItemSubtotal = (item: OrderReceiptLineItem) => {
+  const subtotal = getItemSubtotalAmount(item)
+  const rate = getTaxRate(item)
+
+  return getTaxExclusiveAmount(subtotal, rate, item.is_tax_inclusive)
 }
 
-function getItemUndiscountedSubtotal(item: OrderReceiptLineItem) {
+const getItemsSubtotal = (items: OrderReceiptLineItem[]) =>
+  items.reduce((sum, item) => sum + getItemSubtotal(item), 0)
+
+const getItemUndiscountedSubtotal = (item: OrderReceiptLineItem) => {
   const quantity = getItemQuantity(item)
   const unitPrice = getItemGrossUnitPrice(item)
 
   return getTaxExclusiveAmount(
     unitPrice * quantity,
     getTaxRate(item),
-    item.is_tax_inclusive
+    item.is_tax_inclusive,
   )
 }
 
-function getItemsUndiscountedSubtotal(items: OrderReceiptLineItem[]) {
-  return items.reduce((sum, item) => sum + getItemUndiscountedSubtotal(item), 0)
-}
+const getItemsUndiscountedSubtotal = (items: OrderReceiptLineItem[]) =>
+  items.reduce((sum, item) => sum + getItemUndiscountedSubtotal(item), 0)
 
-export function getDiscountTotal(order: OrderReceiptOrder) {
+export const getSubtotal = (order: OrderReceiptOrder) =>
+  getItemsSubtotal(order.items ?? [])
+
+export const getDiscountTotal = (order: OrderReceiptOrder) => {
   const discountTotal = toNumber(order.discount_total)
   if (discountTotal <= 0) {
     return 0
@@ -416,14 +424,14 @@ export function getDiscountTotal(order: OrderReceiptOrder) {
   const reflectedLineDiscount = Math.max(
     0,
     roundMoney(
-      getItemsUndiscountedSubtotal(order.items ?? []) - getSubtotal(order)
-    )
+      getItemsUndiscountedSubtotal(order.items ?? []) - getSubtotal(order),
+    ),
   )
 
   return Math.max(0, roundMoney(discountTotal - reflectedLineDiscount))
 }
 
-function getItemTaxTotal(item: OrderReceiptLineItem) {
+const getItemTaxTotal = (item: OrderReceiptLineItem) => {
   const taxTotal = getExplicitMoneyTotal(item.tax_total)
   if (taxTotal !== null) {
     return taxTotal
@@ -443,9 +451,9 @@ function getItemTaxTotal(item: OrderReceiptLineItem) {
   return roundMoney((subtotal * rate) / 100)
 }
 
-export function getShippingSubtotal(
-  shippingMethod?: OrderReceiptShippingMethod | null
-) {
+export const getShippingSubtotal = (
+  shippingMethod?: OrderReceiptShippingMethod | null,
+) => {
   if (!shippingMethod) {
     return 0
   }
@@ -454,20 +462,20 @@ export function getShippingSubtotal(
     shippingMethod.subtotal ??
       shippingMethod.total ??
       shippingMethod.amount ??
-      shippingMethod.raw_amount
+      shippingMethod.raw_amount,
   )
   const rate = getTaxRate(shippingMethod)
 
   return getTaxExclusiveAmount(
     grossSubtotal,
     rate,
-    shippingMethod.is_tax_inclusive
+    shippingMethod.is_tax_inclusive,
   )
 }
 
-export function getShippingTaxTotal(
-  shippingMethod?: OrderReceiptShippingMethod | null
-) {
+export const getShippingTaxTotal = (
+  shippingMethod?: OrderReceiptShippingMethod | null,
+) => {
   if (!shippingMethod) {
     return 0
   }
@@ -481,7 +489,7 @@ export function getShippingTaxTotal(
     shippingMethod.subtotal ??
       shippingMethod.total ??
       shippingMethod.amount ??
-      shippingMethod.raw_amount
+      shippingMethod.raw_amount,
   )
   const rate = getTaxRate(shippingMethod)
 
@@ -496,27 +504,34 @@ export function getShippingTaxTotal(
   return roundMoney((grossSubtotal * rate) / 100)
 }
 
-export function getSubtotal(order: OrderReceiptOrder) {
-  return getItemsSubtotal(order.items ?? [])
-}
+const getLineItemsTaxTotal = (items: OrderReceiptLineItem[]) =>
+  items.reduce((sum, item) => sum + getItemTaxTotal(item), 0)
 
-function getLineItemsTaxTotal(items: OrderReceiptLineItem[]) {
-  return items.reduce((sum, item) => sum + getItemTaxTotal(item), 0)
-}
-
-function getShippingMethodsTaxTotal(
-  shippingMethods: OrderReceiptShippingMethod[]
-) {
-  return shippingMethods.reduce(
+const getShippingMethodsTaxTotal = (
+  shippingMethods: OrderReceiptShippingMethod[],
+) =>
+  shippingMethods.reduce(
     (sum, shippingMethod) => sum + getShippingTaxTotal(shippingMethod),
-    0
+    0,
   )
+
+export const getShippingSubtotalTotal = (order: OrderReceiptOrder) => {
+  const shippingMethods = order.shipping_methods ?? []
+
+  if (shippingMethods.length > 0) {
+    return shippingMethods.reduce(
+      (sum, shippingMethod) => sum + getShippingSubtotal(shippingMethod),
+      0,
+    )
+  }
+
+  return toNumber(order.shipping_total)
 }
 
-function hasCompleteRelationTaxSignal(
-  relation: Array<{ tax_total?: OrderReceiptMoney }> | null | undefined,
-  taxTotal: number | null
-) {
+const hasCompleteRelationTaxSignal = (
+  relation: { tax_total?: OrderReceiptMoney }[] | null | undefined,
+  taxTotal: number | null,
+) => {
   if (!Array.isArray(relation)) {
     return false
   }
@@ -531,7 +546,7 @@ function hasCompleteRelationTaxSignal(
   )
 }
 
-function getCurrentOrderTaxBalance(order: OrderReceiptOrder) {
+const getCurrentOrderTaxBalance = (order: OrderReceiptOrder) => {
   if (
     order.summary?.current_order_total === null ||
     order.summary?.current_order_total === undefined
@@ -543,11 +558,11 @@ function getCurrentOrderTaxBalance(order: OrderReceiptOrder) {
     toNumber(order.summary.current_order_total) +
       getDiscountTotal(order) -
       getSubtotal(order) -
-      getShippingSubtotalTotal(order)
+      getShippingSubtotalTotal(order),
   )
 }
 
-function getCurrentOrderTaxTotal(order: OrderReceiptOrder) {
+const getCurrentOrderTaxTotal = (order: OrderReceiptOrder) => {
   const currentOrderTaxBalance = getCurrentOrderTaxBalance(order)
 
   return currentOrderTaxBalance === null
@@ -555,7 +570,7 @@ function getCurrentOrderTaxTotal(order: OrderReceiptOrder) {
     : Math.max(0, currentOrderTaxBalance)
 }
 
-function getExplicitOrderTaxTotal(order: OrderReceiptOrder) {
+const getExplicitOrderTaxTotal = (order: OrderReceiptOrder) => {
   const hasItemsRelation = Array.isArray(order.items)
   const hasShippingMethodsRelation = Array.isArray(order.shipping_methods)
   const items = hasItemsRelation ? (order.items ?? []) : []
@@ -568,17 +583,18 @@ function getExplicitOrderTaxTotal(order: OrderReceiptOrder) {
     shippingTaxTotal === null ? null : Math.max(0, shippingTaxTotal)
   const hasItemTaxSignal = hasCompleteRelationTaxSignal(
     order.items,
-    itemTaxTotal
+    itemTaxTotal,
   )
   const hasShippingTaxSignal = hasCompleteRelationTaxSignal(
     order.shipping_methods,
-    clampedShippingTaxTotal
+    clampedShippingTaxTotal,
   )
 
   if (hasItemTaxSignal && hasShippingTaxSignal) {
     const explicitTaxTotal = roundMoney(
       (itemTaxTotal ?? getLineItemsTaxTotal(items)) +
-        (clampedShippingTaxTotal ?? getShippingMethodsTaxTotal(shippingMethods))
+        (clampedShippingTaxTotal ??
+          getShippingMethodsTaxTotal(shippingMethods)),
     )
     const currentOrderTaxBalance = getCurrentOrderTaxBalance(order)
     const currentOrderTaxTotal = getCurrentOrderTaxTotal(order)
@@ -603,7 +619,7 @@ function getExplicitOrderTaxTotal(order: OrderReceiptOrder) {
   return null
 }
 
-export function getTaxTotal(order: OrderReceiptOrder) {
+export const getTaxTotal = (order: OrderReceiptOrder) => {
   const explicitTaxTotal = getExplicitOrderTaxTotal(order)
   if (explicitTaxTotal !== null) {
     return explicitTaxTotal
@@ -616,26 +632,13 @@ export function getTaxTotal(order: OrderReceiptOrder) {
 
   const itemTaxTotal = getLineItemsTaxTotal(order.items ?? [])
   const shippingTaxTotal = getShippingMethodsTaxTotal(
-    order.shipping_methods ?? []
+    order.shipping_methods ?? [],
   )
 
   return roundMoney(itemTaxTotal + shippingTaxTotal)
 }
 
-export function getShippingSubtotalTotal(order: OrderReceiptOrder) {
-  const shippingMethods = order.shipping_methods ?? []
-
-  if (shippingMethods.length > 0) {
-    return shippingMethods.reduce(
-      (sum, shippingMethod) => sum + getShippingSubtotal(shippingMethod),
-      0
-    )
-  }
-
-  return toNumber(order.shipping_total)
-}
-
-export function getTotal(order: OrderReceiptOrder) {
+export const getTotal = (order: OrderReceiptOrder) => {
   if (
     order.summary?.current_order_total !== null &&
     order.summary?.current_order_total !== undefined
@@ -811,17 +814,15 @@ const HELVETICA_BOLD_CHARACTER_WIDTHS: Record<string, number> = {
   "}": 389,
 }
 
-function helveticaCharacterWidth(character: string, font: PdfFont) {
+const helveticaCharacterWidth = (character: string, font: PdfFont) => {
   const widths =
     font === "F2" ? HELVETICA_BOLD_CHARACTER_WIDTHS : HELVETICA_CHARACTER_WIDTHS
 
   return widths[character] ?? HELVETICA_FALLBACK_WIDTH
 }
 
-export function truncate(value: unknown, maxLength: number) {
-  const textValue = String(value ?? "")
-    .replace(/\u00a0/g, " ")
-    .trim()
+export const truncate = (value: TextValue, maxLength: number) => {
+  const textValue = normalizeTextValue(value).replaceAll("\u00A0", " ").trim()
 
   if (textValue.length <= maxLength) {
     return textValue
@@ -830,30 +831,31 @@ export function truncate(value: unknown, maxLength: number) {
   return `${textValue.slice(0, maxLength - 1)}${TRUNCATION_MARKER}`
 }
 
-export function estimateTextWidth(
+export const estimateTextWidth = (
   textValue: string,
   fontSize: number,
-  font: PdfFont = "F1"
-) {
-  return (
-    Array.from(ascii(textValue)).reduce(
-      (width, character) => width + helveticaCharacterWidth(character, font),
-      0
-    ) *
-    (fontSize / 1000)
-  )
+  font: PdfFont = "F1",
+) => {
+  const normalizedText = ascii(textValue)
+  let width = 0
+
+  for (let index = 0; index < normalizedText.length; index += 1) {
+    width += helveticaCharacterWidth(normalizedText.charAt(index), font)
+  }
+
+  return width * (fontSize / 1000)
 }
 
-function splitTokenToEstimatedWidth(
+const splitTokenToEstimatedWidth = (
   token: string,
   maxWidth: number,
   fontSize: number,
-  font: PdfFont
-) {
+  font: PdfFont,
+) => {
   const lines: string[] = []
   let currentLine = ""
 
-  for (const character of Array.from(token)) {
+  for (const character of token) {
     const candidate = `${currentLine}${character}`
 
     if (
@@ -868,29 +870,30 @@ function splitTokenToEstimatedWidth(
     currentLine = candidate
   }
 
-  if (currentLine) {
+  if (currentLine !== "") {
     lines.push(currentLine)
   }
 
   return lines
 }
 
-type TextWrapContext = {
+interface TextWrapContext {
   font: PdfFont
   fontSize: number
   maxWidth: number
 }
 
-function appendWrappedLine(
+const appendWrappedLine = (
   lines: string[],
   currentLine: string,
   tokenLine: string,
-  context: TextWrapContext
-) {
-  const candidate = currentLine ? `${currentLine} ${tokenLine}` : tokenLine
+  context: TextWrapContext,
+) => {
+  const candidate =
+    currentLine === "" ? tokenLine : `${currentLine} ${tokenLine}`
 
   if (
-    currentLine &&
+    currentLine !== "" &&
     estimateTextWidth(candidate, context.fontSize, context.font) >
       context.maxWidth
   ) {
@@ -901,30 +904,29 @@ function appendWrappedLine(
   return candidate
 }
 
-function tokenLinesToEstimatedWidth(
+const tokenLinesToEstimatedWidth = (
   token: string,
   maxWidth: number,
   fontSize: number,
-  font: PdfFont
-) {
-  return estimateTextWidth(token, fontSize, font) <= maxWidth
+  font: PdfFont,
+) =>
+  estimateTextWidth(token, fontSize, font) <= maxWidth
     ? [token]
     : splitTokenToEstimatedWidth(token, maxWidth, fontSize, font)
-}
 
-export function wrapToEstimatedWidth(
-  value: unknown,
+export const wrapToEstimatedWidth = (
+  value: TextValue,
   maxWidth: number,
   fontSize: number,
-  font: PdfFont = "F1"
-) {
+  font: PdfFont = "F1",
+) => {
   const context = { font, fontSize, maxWidth }
-  const textValue = String(value ?? "")
-    .replace(/\u00a0/g, " ")
-    .replace(/\s+/g, " ")
+  const textValue = normalizeTextValue(value)
+    .replaceAll("\u00A0", " ")
+    .replaceAll(/\s+/gu, " ")
     .trim()
 
-  if (!textValue || maxWidth <= 0) {
+  if (textValue === "" || maxWidth <= 0) {
     return []
   }
 
@@ -940,43 +942,41 @@ export function wrapToEstimatedWidth(
       token,
       maxWidth,
       fontSize,
-      font
+      font,
     )) {
       currentLine = appendWrappedLine(lines, currentLine, tokenLine, context)
     }
   }
 
-  if (currentLine) {
+  if (currentLine !== "") {
     lines.push(currentLine)
   }
 
   return lines
 }
-export type PdfCommand = string
-
-export function pdfText(
-  value: unknown,
+export const pdfText = (
+  value: TextValue,
   x: number,
   y: number,
   options: {
     align?: "left" | "right"
     font?: PdfFont
     size?: number
-  } = {}
-): PdfCommand {
+  } = {},
+): string => {
   const fontSize = options.size ?? 10
   const content = escapePdfText(value)
   const alignedX =
     options.align === "right"
-      ? x - estimateTextWidth(String(value ?? ""), fontSize, options.font)
+      ? x - estimateTextWidth(normalizeTextValue(value), fontSize, options.font)
       : x
 
   return `BT /${options.font ?? "F1"} ${fontSize} Tf ${alignedX.toFixed(
-    2
+    2,
   )} ${y.toFixed(2)} Td (${content}) Tj ET`
 }
 
-export function pdfLine({
+export const pdfLine = ({
   width = 0.8,
   x1,
   x2,
@@ -988,6 +988,4 @@ export function pdfLine({
   x2: number
   y1: number
   y2: number
-}) {
-  return `${width} w ${x1} ${y1} m ${x2} ${y2} l S`
-}
+}) => `${width} w ${x1} ${y1} m ${x2} ${y2} l S`

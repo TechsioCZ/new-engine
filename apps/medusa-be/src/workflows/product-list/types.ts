@@ -1,30 +1,30 @@
+import type { ProductListMetadata } from "../../modules/product-list/schemas"
 import type {
   CreateCustomProductListDTO,
   CreateFavoriteProductListDTO,
-  ProductListMetadata,
   UpdateCustomProductListDTO,
   UpdateProductListItemDTO,
 } from "../../modules/product-list/service"
 
-export type ProductListRecord = {
+export interface ProductListRecord {
   id: string
   title: string
   handle: string
   type: string
   access_type?: string
   description?: string | null
-  metadata?: ProductListMetadata | null
+  metadata?: unknown
   items?: ProductListItemRecord[]
   created_at?: string | Date
   updated_at?: string | Date
 }
 
-export type ProductListItemRecord = {
+export interface ProductListItemRecord {
   id: string
   quantity: number
   note?: string | null
   sort_order: number
-  metadata?: ProductListMetadata | null
+  metadata?: unknown
   list_id: string
   created_at?: string | Date
   updated_at?: string | Date
@@ -42,7 +42,7 @@ export type CreateCustomerProductListWorkflowInput =
       data: CreateCustomProductListDTO
     }
 
-export type CreateProductListItemWorkflowInput = {
+export interface CreateProductListItemWorkflowInput {
   customer_id: string
   list_id: string
   product_id: string
@@ -53,42 +53,42 @@ export type CreateProductListItemWorkflowInput = {
   metadata?: ProductListMetadata | null
 }
 
-export type ChangeProductListItemQuantityWorkflowInput = {
+export interface ChangeProductListItemQuantityWorkflowInput {
   customer_id: string
   item_id: string
   quantity: number
 }
 
-export type IncrementProductListItemWorkflowInput = {
+export interface IncrementProductListItemWorkflowInput {
   customer_id: string
   item_id: string
   quantity: number
 }
 
-export type UpdateProductListItemWorkflowInput = {
+export interface UpdateProductListItemWorkflowInput {
   customer_id: string
   item_id: string
   data: UpdateProductListItemDTO
 }
 
-export type DeleteProductListItemWorkflowInput = {
+export interface DeleteProductListItemWorkflowInput {
   customer_id: string
   expected_list_id?: string
   item_id: string
 }
 
-export type UpdateProductListWorkflowInput = {
+export interface UpdateProductListWorkflowInput {
   customer_id: string
   list_id: string
   data: UpdateCustomProductListDTO
 }
 
-export type DeleteProductListWorkflowInput = {
+export interface DeleteProductListWorkflowInput {
   customer_id: string
   list_id: string
 }
 
-export type CreateCartFromProductListWorkflowInput = {
+export interface CreateCartFromProductListWorkflowInput {
   country_code?: string
   customer_id: string
   email?: string
@@ -97,7 +97,7 @@ export type CreateCartFromProductListWorkflowInput = {
   sales_channel_id?: string
 }
 
-export type AddFavoriteProductListItemWorkflowInput = {
+export interface AddFavoriteProductListItemWorkflowInput {
   customer_id: string
   product_id: string
   variant_id?: string
@@ -107,17 +107,17 @@ export type AddFavoriteProductListItemWorkflowInput = {
   metadata?: ProductListMetadata | null
 }
 
-export type CreatedProductListResult = {
+export interface CreatedProductListResult {
   product_list: ProductListRecord
   created: boolean
 }
 
-export type CreatedProductListItemResult = {
+export interface CreatedProductListItemResult {
   item: ProductListItemRecord
   created: boolean
 }
 
-export type AddFavoriteProductListItemWorkflowResult = {
+export interface AddFavoriteProductListItemWorkflowResult {
   product_list: ProductListRecord
   item: ProductListItemRecord
 }

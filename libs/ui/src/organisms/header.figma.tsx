@@ -1,18 +1,11 @@
 import figma from "@figma/code-connect"
+
 import { Header } from "./header"
 
 figma.connect(
   Header,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1391-225",
   {
-    imports: ['import { Header } from "@libs/ui/organisms/header"'],
-    props: {
-      size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
-        lg: "lg",
-      }),
-    },
     example: ({ size }) => (
       <Header size={size}>
         <Header.Desktop>
@@ -33,5 +26,13 @@ figma.connect(
         </Header.Mobile>
       </Header>
     ),
-  }
+    imports: ['import { Header } from "@libs/ui/organisms/header"'],
+    props: {
+      size: figma.enum("size", {
+        lg: "lg",
+        md: "md",
+        sm: "sm",
+      }),
+    },
+  },
 )

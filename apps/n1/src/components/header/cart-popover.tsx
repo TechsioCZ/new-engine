@@ -3,37 +3,16 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
 import { Suspense } from "react"
+
 import { ErrorBoundary } from "@/components/error-boundary"
 import { useSuspenseCart } from "@/hooks/use-cart"
+
 import { CartContent } from "./cart-content"
 import { CartEmptyState } from "./cart-empty-state"
 import { CartSkeleton } from "./cart-skeleton"
 import { useHeaderContext } from "./store/header-context"
 
-export const CartPopover = () => {
-  const { toggleCart, setIsCartOpen } = useHeaderContext()
-
-  const handleHover = () => {
-    toggleCart()
-    setIsCartOpen(true)
-  }
-
-  return (
-    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: hover-only wrapper for popover
-    // biome-ignore lint/a11y/noStaticElementInteractions: hover-only wrapper for popover
-    <div onMouseEnter={handleHover}>
-      <ErrorBoundary
-        fallback={<CartPopoverErrorFallback onClose={toggleCart} />}
-      >
-        <Suspense fallback={<CartPopoverLoadingFallback />}>
-          <CartPopoverContent onClose={toggleCart} />
-        </Suspense>
-      </ErrorBoundary>
-    </div>
-  )
-}
-
-function CartPopoverContent({ onClose }: { onClose: () => void }) {
+const CartPopoverContent = ({ onClose }: { onClose: () => void }) => {
   const { isCartOpen, toggleCart } = useHeaderContext()
   const { cart, itemCount } = useSuspenseCart()
 
@@ -56,7 +35,7 @@ function CartPopoverContent({ onClose }: { onClose: () => void }) {
           />
           {itemCount > 0 && (
             <Badge
-              className="-right-2 -top-1 absolute flex size-5 items-center rounded-full bg-primary text-3xs text-fg-primary"
+              className="-right-200 -top-100 absolute flex size-5 items-center rounded-full bg-primary text-3xs text-fg-primary"
               variant="primary"
             >
               {itemCount > 99 ? "99+" : itemCount.toString()}
@@ -71,7 +50,7 @@ function CartPopoverContent({ onClose }: { onClose: () => void }) {
   )
 }
 
-function CartPopoverLoadingFallback() {
+const CartPopoverLoadingFallback = () => {
   const { isCartOpen, toggleCart } = useHeaderContext()
 
   return (
@@ -100,7 +79,7 @@ function CartPopoverLoadingFallback() {
   )
 }
 
-function CartPopoverErrorFallback({ onClose }: { onClose: () => void }) {
+const CartPopoverErrorFallback = ({ onClose }: { onClose: () => void }) => {
   const { isCartOpen, toggleCart } = useHeaderContext()
 
   return (
@@ -126,5 +105,27 @@ function CartPopoverErrorFallback({ onClose }: { onClose: () => void }) {
     >
       <CartEmptyState onContinueShopping={onClose} />
     </Popover>
+  )
+}
+
+export const CartPopover = () => {
+  const { toggleCart, setIsCartOpen } = useHeaderContext()
+
+  const handleHover = () => {
+    toggleCart()
+    setIsCartOpen(true)
+  }
+
+  return (
+    // hover-only wrapper for popover
+    <div onMouseEnter={handleHover}>
+      <ErrorBoundary
+        fallback={<CartPopoverErrorFallback onClose={toggleCart} />}
+      >
+        <Suspense fallback={<CartPopoverLoadingFallback />}>
+          <CartPopoverContent onClose={toggleCart} />
+        </Suspense>
+      </ErrorBoundary>
+    </div>
   )
 }

@@ -1,23 +1,31 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import type {
   IApprovalModuleService,
   ModuleApprovalSettings,
+  ModuleCreateApprovalSettings,
 } from "../../../types"
 
-export type EnsureApprovalSettingsStepResult = {
+export interface EnsureApprovalSettingsStepResult {
   approval_settings: ModuleApprovalSettings[]
   created_approval_settings: ModuleApprovalSettings[]
 }
 
-type EnsureApprovalSettingsCompensation = {
+interface BulkApprovalSettingsCreator {
+  createApprovalSettings: (
+    data: ModuleCreateApprovalSettings[],
+  ) => Promise<ModuleApprovalSettings[]>
+}
+
+interface EnsureApprovalSettingsCompensation {
   created_ids: string[]
   restored_ids: string[]
 }
 
 const getLatestSetting = (
   current: ModuleApprovalSettings | undefined,
-  candidate: ModuleApprovalSettings
+  candidate: ModuleApprovalSettings,
 ) => {
   if (!current) {
     return candidate
@@ -30,7 +38,7 @@ export const ensureApprovalSettingsStep = createStep(
   "ensure-approval-settings",
   async (
     companyIds: string[],
-    { container }
+    { container },
   ): Promise<
     StepResponse<
       EnsureApprovalSettingsStepResult,
@@ -46,7 +54,7 @@ export const ensureApprovalSettingsStep = createStep(
         {
           created_ids: [],
           restored_ids: [],
-        }
+        },
       )
     }
 
@@ -58,19 +66,23 @@ export const ensureApprovalSettingsStep = createStep(
       },
       {
         withDeleted: true,
-      }
+      },
     )
     const activeSettingsByCompanyId = new Map<string, ModuleApprovalSettings>()
     const deletedSettingsByCompanyId = new Map<string, ModuleApprovalSettings>()
 
     for (const setting of existingSettings) {
-      if (setting.deleted_at) {
+      if (
+        setting.deleted_at !== null &&
+        setting.deleted_at !== undefined &&
+        setting.deleted_at.length > 0
+      ) {
         deletedSettingsByCompanyId.set(
           setting.company_id,
           getLatestSetting(
             deletedSettingsByCompanyId.get(setting.company_id),
-            setting
-          )
+            setting,
+          ),
         )
         continue
       }
@@ -79,8 +91,8 @@ export const ensureApprovalSettingsStep = createStep(
         setting.company_id,
         getLatestSetting(
           activeSettingsByCompanyId.get(setting.company_id),
-          setting
-        )
+          setting,
+        ),
       )
     }
 
@@ -104,17 +116,22 @@ export const ensureApprovalSettingsStep = createStep(
         !(
           activeSettingsByCompanyId.has(companyId) ||
           deletedSettingsByCompanyId.has(companyId)
-        )
+        ),
     )
-    const createdSettings = missingCompanyIds.length
-      ? await approvalModuleService.createApprovalSettings(
-          missingCompanyIds.map((companyId) => ({
-            company_id: companyId,
-            requires_admin_approval: false,
-            requires_sales_manager_approval: false,
-          }))
-        )
-      : []
+    const settingsToCreate: ModuleCreateApprovalSettings[] =
+      missingCompanyIds.map((companyId) => ({
+        company_id: companyId,
+        requires_admin_approval: false,
+        requires_sales_manager_approval: false,
+      }))
+    const bulkApprovalSettingsCreator =
+      container.resolve<BulkApprovalSettingsCreator>(APPROVAL_MODULE)
+    const createdSettings: ModuleApprovalSettings[] =
+      settingsToCreate.length > 0
+        ? await bulkApprovalSettingsCreator.createApprovalSettings(
+            settingsToCreate,
+          )
+        : []
 
     return new StepResponse(
       {
@@ -124,26 +141,29 @@ export const ensureApprovalSettingsStep = createStep(
       {
         created_ids: createdSettings.map((setting) => setting.id),
         restored_ids: restoredSettingIds,
-      }
+      },
     )
   },
   async (
     input: EnsureApprovalSettingsCompensation | undefined,
-    { container }
+    { container },
   ) => {
-    if (!(input?.created_ids.length || input?.restored_ids.length)) {
+    if (
+      input === undefined ||
+      (input.created_ids.length === 0 && input.restored_ids.length === 0)
+    ) {
       return
     }
 
     const approvalModuleService =
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
-    if (input.created_ids.length) {
+    if (input.created_ids.length > 0) {
       await approvalModuleService.deleteApprovalSettings(input.created_ids)
     }
 
-    if (input.restored_ids.length) {
+    if (input.restored_ids.length > 0) {
       await approvalModuleService.softDeleteApprovalSettings(input.restored_ids)
     }
-  }
+  },
 )

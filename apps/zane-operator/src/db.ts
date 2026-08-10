@@ -1,4 +1,5 @@
 import { createHmac } from "node:crypto"
+
 import { SQL } from "bun"
 
 import type { AppConfig } from "./config"
@@ -17,30 +18,29 @@ export class BadRequestError extends Error {
   }
 }
 
-const toBadRequestError = (message: string): Error => new BadRequestError(message)
+const toBadRequestError = (message: string): Error =>
+  new BadRequestError(message)
 const DEV_ROLE_DB_GRANT_CONCURRENCY = 4
 
-function assertSafeIdentifier(value: string, label: string): void {
+const assertSafeIdentifier = (value: string, label: string): void => {
   assertSafeIdentifierBase(value, label, toBadRequestError)
 }
 
-function quoteIdentifier(identifier: string): string {
-  return quoteIdentifierBase(identifier, "identifier", toBadRequestError)
-}
+const quoteIdentifier = (identifier: string): string =>
+  quoteIdentifierBase(identifier, "identifier", toBadRequestError)
 
-function quoteCatalogIdentifier(identifier: string): string {
-  // Catalog-derived names can include characters outside IDENTIFIER_REGEX.
-  // Use this only with trusted values read from PostgreSQL catalogs (never raw user/config input).
-  return `"${identifier.replaceAll("\"", "\"\"")}"`
-}
+// Catalog-derived names can include characters outside IDENTIFIER_REGEX.
+// Use this only with trusted values read from PostgreSQL catalogs (never raw user/config input).
+const quoteCatalogIdentifier = (identifier: string): string =>
+  `"${identifier.replaceAll('"', '""')}"`
 
-export function parsePrNumber(value: unknown, label = "pr_number"): number {
-  const parsed =
-    typeof value === "number"
-      ? value
-      : typeof value === "string" && /^\d+$/.test(value)
-        ? Number.parseInt(value, 10)
-        : Number.NaN
+export const parsePrNumber = (value: unknown, label = "pr_number"): number => {
+  let parsed = Number.NaN
+  if (typeof value === "number") {
+    parsed = value
+  } else if (typeof value === "string" && /^\d+$/u.test(value)) {
+    parsed = Math.trunc(Number(value))
+  }
 
   if (!Number.isSafeInteger(parsed) || parsed <= 0) {
     throw new BadRequestError(`${label} must be a positive integer`)
@@ -49,7 +49,7 @@ export function parsePrNumber(value: unknown, label = "pr_number"): number {
   return parsed
 }
 
-function normalizeIdentifier(value: string, label: string): string {
+const normalizeIdentifier = (value: string, label: string): string => {
   const normalized = value.trim()
 
   if (!normalized) {
@@ -60,14 +60,13 @@ function normalizeIdentifier(value: string, label: string): string {
   return normalized
 }
 
-export function createDbClient(config: AppConfig): Bun.SQL {
-  return new SQL({
-    url: config.databaseUrl,
-    max: 10,
-    idleTimeout: 15,
+export const createDbClient = (config: AppConfig): Bun.SQL =>
+  new SQL({
     connectionTimeout: 10,
+    idleTimeout: 15,
+    max: 10,
+    url: config.databaseUrl,
   })
-}
 
 export interface FileCopyMethodInspection {
   method: string | null
@@ -75,17 +74,22 @@ export interface FileCopyMethodInspection {
   warning: string | null
 }
 
-export async function inspectFileCopyMethod(sql: Bun.SQL): Promise<FileCopyMethodInspection> {
+export const inspectFileCopyMethod = async (
+  sql: Bun.SQL,
+): Promise<FileCopyMethodInspection> => {
   try {
-    const rows = await sql<{ file_copy_method: string }[]>`SHOW file_copy_method`
-    const method = rows[0]?.file_copy_method?.trim().toLowerCase() || null
+    const rows = await sql<
+      { file_copy_method: string }[]
+    >`SHOW file_copy_method`
+    const configuredMethod = rows[0]?.file_copy_method
+    const method = configuredMethod?.trim().toLowerCase() ?? null
     if (method === "clone") {
-      return { method, cloneOptimized: true, warning: null }
+      return { cloneOptimized: true, method, warning: null }
     }
 
     return {
-      method,
       cloneOptimized: false,
+      method,
       warning:
         method === null
           ? "file_copy_method is unavailable; preview clone performance can be improved by starting PostgreSQL with -c file_copy_method=clone."
@@ -96,41 +100,58 @@ export async function inspectFileCopyMethod(sql: Bun.SQL): Promise<FileCopyMetho
     const normalizedMessage = message.toLowerCase()
     if (normalizedMessage.includes("unrecognized configuration parameter")) {
       return {
-        method: null,
         cloneOptimized: false,
+        method: null,
         warning:
           "file_copy_method is not recognized on this PostgreSQL server; preview clone performance can be improved by using PostgreSQL 18+ with -c file_copy_method=clone.",
       }
     }
 
     return {
-      method: null,
       cloneOptimized: false,
+      method: null,
       warning: `unable to read file_copy_method (${message}); preview clone performance can be improved by starting PostgreSQL with -c file_copy_method=clone.`,
     }
   }
 }
 
-function buildPreviewDatabaseName(previewPrefix: string, prNumber: number): string {
+const buildPreviewDatabaseName = (
+  previewPrefix: string,
+  prNumber: number,
+): string => {
   const dbName = `${previewPrefix}${prNumber}`
   assertSafeIdentifier(dbName, "derived database name")
   return dbName
 }
 
-function buildPreviewAppRoleName(previewAppUserPrefix: string, prNumber: number): string {
+const buildPreviewAppRoleName = (
+  previewAppUserPrefix: string,
+  prNumber: number,
+): string => {
   const roleName = `${previewAppUserPrefix}${prNumber}`
   assertSafeIdentifier(roleName, "derived app role name")
   return roleName
 }
 
-function derivePreviewAppPassword(secret: string, dbName: string, roleName: string): string {
-  const digest = createHmac("sha256", secret).update(`${dbName}:${roleName}`).digest("base64url")
+const derivePreviewAppPassword = (
+  secret: string,
+  dbName: string,
+  roleName: string,
+): string => {
+  const digest = createHmac("sha256", secret)
+    .update(`${dbName}:${roleName}`)
+    .digest("base64url")
   return `za_${digest.slice(0, 48)}`
 }
 
-function assertSafeTargetDatabaseName(dbName: string, config: AppConfig): void {
+const assertSafeTargetDatabaseName = (
+  dbName: string,
+  config: AppConfig,
+): void => {
   if (!dbName.startsWith(config.previewPrefix)) {
-    throw new BadRequestError("refusing operation outside preview database prefix")
+    throw new BadRequestError(
+      "refusing operation outside preview database prefix",
+    )
   }
 
   if (config.protectedDbNames.has(dbName.toLowerCase())) {
@@ -138,17 +159,17 @@ function assertSafeTargetDatabaseName(dbName: string, config: AppConfig): void {
   }
 }
 
-async function withDatabaseClientByUrl<T>(
+const withDatabaseClientByUrl = async <T>(
   databaseUrl: string,
   databaseName: string,
   operation: (databaseSql: Bun.SQL) => Promise<T>,
-): Promise<T> {
+): Promise<T> => {
   const databaseSql = new SQL({
-    url: databaseUrl,
-    database: databaseName,
-    max: 4,
-    idleTimeout: 10,
     connectionTimeout: 10,
+    database: databaseName,
+    idleTimeout: 10,
+    max: 4,
+    url: databaseUrl,
   })
 
   try {
@@ -159,19 +180,20 @@ async function withDatabaseClientByUrl<T>(
   }
 }
 
-async function withDatabaseClient<T>(
+const withDatabaseClient = async <T>(
   config: AppConfig,
   databaseName: string,
   operation: (databaseSql: Bun.SQL) => Promise<T>,
-): Promise<T> {
-  return await withDatabaseClientByUrl(config.databaseUrl, databaseName, operation)
-}
+): Promise<T> =>
+  await withDatabaseClientByUrl(config.databaseUrl, databaseName, operation)
 
 interface DatabaseSchema {
   name: string
 }
 
-async function listNonSystemSchemas(databaseSql: Bun.SQL): Promise<string[]> {
+const listNonSystemSchemas = async (
+  databaseSql: Bun.SQL,
+): Promise<string[]> => {
   const rows = await databaseSql<DatabaseSchema[]>`
     SELECT nspname AS "name"
     FROM pg_namespace
@@ -183,37 +205,38 @@ async function listNonSystemSchemas(databaseSql: Bun.SQL): Promise<string[]> {
   return rows.map((row) => row.name)
 }
 
-async function grantReadWriteOnSchema(
+const grantReadWriteOnSchema = async (
   databaseSql: Bun.SQL,
   schemaName: string,
   roleName: string,
   includeCreate = false,
-): Promise<void> {
+): Promise<void> => {
   const quotedSchemaName = quoteCatalogIdentifier(schemaName)
   const quotedRoleName = quoteIdentifier(roleName)
 
-  if (includeCreate) {
-    await databaseSql.unsafe(`GRANT USAGE, CREATE ON SCHEMA ${quotedSchemaName} TO ${quotedRoleName};`)
-  } else {
-    await databaseSql.unsafe(`GRANT USAGE ON SCHEMA ${quotedSchemaName} TO ${quotedRoleName};`)
-  }
+  const schemaPrivileges = includeCreate ? "USAGE, CREATE" : "USAGE"
+  await databaseSql.unsafe(
+    `GRANT ${schemaPrivileges} ON SCHEMA ${quotedSchemaName} TO ${quotedRoleName};`,
+  )
   await databaseSql.unsafe(
     `GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN ON ALL TABLES IN SCHEMA ${quotedSchemaName} TO ${quotedRoleName};`,
   )
   await databaseSql.unsafe(
     `GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA ${quotedSchemaName} TO ${quotedRoleName};`,
   )
-  await databaseSql.unsafe(`GRANT EXECUTE ON ALL ROUTINES IN SCHEMA ${quotedSchemaName} TO ${quotedRoleName};`)
+  await databaseSql.unsafe(
+    `GRANT EXECUTE ON ALL ROUTINES IN SCHEMA ${quotedSchemaName} TO ${quotedRoleName};`,
+  )
 }
 
 interface SchemaOwnerRole {
   owner: string
 }
 
-async function getSchemaOwnerRole(
+const getSchemaOwnerRole = async (
   databaseSql: Bun.SQL,
   schemaName: string,
-): Promise<string | null> {
+): Promise<string | null> => {
   const rows = await databaseSql<SchemaOwnerRole[]>`
     SELECT pg_get_userbyid(n.nspowner) AS owner
     FROM pg_namespace n
@@ -224,7 +247,10 @@ async function getSchemaOwnerRole(
   return rows[0]?.owner ?? null
 }
 
-async function listSchemaOwnerRoles(databaseSql: Bun.SQL, schemaName: string): Promise<string[]> {
+const listSchemaOwnerRoles = async (
+  databaseSql: Bun.SQL,
+  schemaName: string,
+): Promise<string[]> => {
   const rows = await databaseSql<SchemaOwnerRole[]>`
     SELECT DISTINCT owner
     FROM (
@@ -255,74 +281,131 @@ async function listSchemaOwnerRoles(databaseSql: Bun.SQL, schemaName: string): P
   return rows.map((row) => row.owner)
 }
 
+const mapWithConcurrency = async <T, R>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T, index: number) => Promise<R>,
+): Promise<R[]> => {
+  if (items.length === 0) {
+    return []
+  }
+
+  const safeConcurrency = Math.max(1, Math.min(concurrency, items.length))
+  const results = Array.from<R>({ length: items.length })
+  let nextIndex = 0
+
+  const runWorker = async (): Promise<void> => {
+    const index = nextIndex
+    nextIndex += 1
+    if (index >= items.length) {
+      return
+    }
+
+    const item = items[index]
+    if (item === undefined) {
+      throw new Error(`missing concurrency item at index ${index}`)
+    }
+
+    results[index] = await worker(item, index)
+    await runWorker()
+  }
+
+  await Promise.all(
+    Array.from({ length: safeConcurrency }, async () => {
+      await runWorker()
+    }),
+  )
+  return results
+}
+
 interface DefaultPrivilegeResult {
   applied: number
   skipped: number
 }
 
-async function grantReadWriteDefaultPrivilegesOnSchema(
+const grantReadWriteDefaultPrivilegesOnSchema = async (
   databaseSql: Bun.SQL,
   schemaName: string,
   roleName: string,
-): Promise<DefaultPrivilegeResult> {
+): Promise<DefaultPrivilegeResult> => {
   const quotedSchemaName = quoteCatalogIdentifier(schemaName)
   const quotedRoleName = quoteIdentifier(roleName)
   const owners = await listSchemaOwnerRoles(databaseSql, schemaName)
 
-  let applied = 0
-  let skipped = 0
-  for (const owner of owners) {
-    const quotedOwnerName = quoteCatalogIdentifier(owner)
+  const ownerResults = await mapWithConcurrency(
+    owners,
+    1,
+    async (owner): Promise<"applied" | "skipped"> => {
+      const quotedOwnerName = quoteCatalogIdentifier(owner)
 
-    try {
-      await databaseSql.unsafe(
-        `ALTER DEFAULT PRIVILEGES FOR ROLE ${quotedOwnerName} IN SCHEMA ${quotedSchemaName} GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN ON TABLES TO ${quotedRoleName};`,
-      )
-      await databaseSql.unsafe(
-        `ALTER DEFAULT PRIVILEGES FOR ROLE ${quotedOwnerName} IN SCHEMA ${quotedSchemaName} GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO ${quotedRoleName};`,
-      )
-      await databaseSql.unsafe(
-        `ALTER DEFAULT PRIVILEGES FOR ROLE ${quotedOwnerName} IN SCHEMA ${quotedSchemaName} GRANT EXECUTE ON ROUTINES TO ${quotedRoleName};`,
-      )
-      applied += 1
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error)
-      const normalizedMessage = message.toLowerCase()
-      if (normalizedMessage.includes("must be member of role") || normalizedMessage.includes("permission denied")) {
-        skipped += 1
-        continue
+      try {
+        await databaseSql.unsafe(
+          `ALTER DEFAULT PRIVILEGES FOR ROLE ${quotedOwnerName} IN SCHEMA ${quotedSchemaName} GRANT SELECT, INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER, MAINTAIN ON TABLES TO ${quotedRoleName};`,
+        )
+        await databaseSql.unsafe(
+          `ALTER DEFAULT PRIVILEGES FOR ROLE ${quotedOwnerName} IN SCHEMA ${quotedSchemaName} GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO ${quotedRoleName};`,
+        )
+        await databaseSql.unsafe(
+          `ALTER DEFAULT PRIVILEGES FOR ROLE ${quotedOwnerName} IN SCHEMA ${quotedSchemaName} GRANT EXECUTE ON ROUTINES TO ${quotedRoleName};`,
+        )
+        return "applied"
+      } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error)
+        const normalizedMessage = message.toLowerCase()
+        if (
+          normalizedMessage.includes("must be member of role") ||
+          normalizedMessage.includes("permission denied")
+        ) {
+          return "skipped"
+        }
+        throw error
       }
-      throw error
-    }
-  }
+    },
+  )
 
-  return { applied, skipped }
+  return {
+    applied: ownerResults.filter((result) => result === "applied").length,
+    skipped: ownerResults.filter((result) => result === "skipped").length,
+  }
 }
 
-async function ensureSchemaExists(databaseSql: Bun.SQL, schemaName: string, ownerRole: string): Promise<void> {
+const ensureSchemaExists = async (
+  databaseSql: Bun.SQL,
+  schemaName: string,
+  ownerRole: string,
+): Promise<void> => {
   await databaseSql.unsafe(
     `CREATE SCHEMA IF NOT EXISTS ${quoteCatalogIdentifier(schemaName)} AUTHORIZATION ${quoteIdentifier(ownerRole)};`,
   )
 }
 
-async function lockDownPublicSchema(databaseSql: Bun.SQL): Promise<void> {
+const lockDownPublicSchema = async (databaseSql: Bun.SQL): Promise<void> => {
   await databaseSql.unsafe("REVOKE ALL ON SCHEMA public FROM PUBLIC;")
 }
 
-async function setRoleSearchPath(sql: Bun.SQL, roleName: string, databaseName: string, schemaName: string): Promise<void> {
+const setRoleSearchPath = async (
+  sql: Bun.SQL,
+  roleName: string,
+  databaseName: string,
+  schemaName: string,
+): Promise<void> => {
   await sql.unsafe(
     `ALTER ROLE ${quoteIdentifier(roleName)} IN DATABASE ${quoteIdentifier(databaseName)} SET search_path = ${quoteCatalogIdentifier(schemaName)}, pg_catalog;`,
   )
 }
 
-async function transferObjectsOwnership(
+const transferObjectsOwnership = async (
   databaseSql: Bun.SQL,
   schemaName: string,
   targetRole: string,
   sourceRole?: string,
-): Promise<void> {
-  const schemaOwnerBlock = sourceRole
-    ? `
+): Promise<void> => {
+  const schemaOwnerBlock =
+    sourceRole === undefined
+      ? `
+  EXECUTE format('ALTER SCHEMA %I OWNER TO %I', ${quoteLiteral(schemaName)}, ${quoteLiteral(targetRole)});
+`
+      : `
   IF EXISTS (
     SELECT 1
     FROM pg_namespace n
@@ -332,12 +415,18 @@ async function transferObjectsOwnership(
     EXECUTE format('ALTER SCHEMA %I OWNER TO %I', ${quoteLiteral(schemaName)}, ${quoteLiteral(targetRole)});
   END IF;
 `
-    : `
-  EXECUTE format('ALTER SCHEMA %I OWNER TO %I', ${quoteLiteral(schemaName)}, ${quoteLiteral(targetRole)});
-`
-  const relationOwnerFilter = sourceRole ? `\n      AND pg_get_userbyid(c.relowner) = ${quoteLiteral(sourceRole)}` : ""
-  const routineOwnerFilter = sourceRole ? `\n      AND pg_get_userbyid(p.proowner) = ${quoteLiteral(sourceRole)}` : ""
-  const typeOwnerFilter = sourceRole ? `\n      AND pg_get_userbyid(t.typowner) = ${quoteLiteral(sourceRole)}` : ""
+  const relationOwnerFilter =
+    sourceRole === undefined
+      ? ""
+      : `\n      AND pg_get_userbyid(c.relowner) = ${quoteLiteral(sourceRole)}`
+  const routineOwnerFilter =
+    sourceRole === undefined
+      ? ""
+      : `\n      AND pg_get_userbyid(p.proowner) = ${quoteLiteral(sourceRole)}`
+  const typeOwnerFilter =
+    sourceRole === undefined
+      ? ""
+      : `\n      AND pg_get_userbyid(t.typowner) = ${quoteLiteral(sourceRole)}`
 
   await databaseSql.unsafe(
     `
@@ -407,21 +496,33 @@ $do$;
   )
 }
 
-async function grantAppRoleOnSchema(databaseSql: Bun.SQL, schemaName: string, appRoleName: string): Promise<void> {
+const grantAppRoleOnSchema = async (
+  databaseSql: Bun.SQL,
+  schemaName: string,
+  appRoleName: string,
+): Promise<void> => {
   const quotedSchemaName = quoteCatalogIdentifier(schemaName)
   const quotedAppRoleName = quoteIdentifier(appRoleName)
 
-  await databaseSql.unsafe(`GRANT USAGE, CREATE ON SCHEMA ${quotedSchemaName} TO ${quotedAppRoleName};`)
-  await databaseSql.unsafe(`GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA ${quotedSchemaName} TO ${quotedAppRoleName};`)
-  await databaseSql.unsafe(`GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA ${quotedSchemaName} TO ${quotedAppRoleName};`)
-  await databaseSql.unsafe(`GRANT EXECUTE ON ALL ROUTINES IN SCHEMA ${quotedSchemaName} TO ${quotedAppRoleName};`)
+  await databaseSql.unsafe(
+    `GRANT USAGE, CREATE ON SCHEMA ${quotedSchemaName} TO ${quotedAppRoleName};`,
+  )
+  await databaseSql.unsafe(
+    `GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA ${quotedSchemaName} TO ${quotedAppRoleName};`,
+  )
+  await databaseSql.unsafe(
+    `GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA ${quotedSchemaName} TO ${quotedAppRoleName};`,
+  )
+  await databaseSql.unsafe(
+    `GRANT EXECUTE ON ALL ROUTINES IN SCHEMA ${quotedSchemaName} TO ${quotedAppRoleName};`,
+  )
 }
 
-async function withRole<T>(
+const withRole = async <T>(
   databaseSql: Bun.SQL,
   roleName: string,
   operation: (roleSql: Bun.ReservedSQL) => Promise<T>,
-): Promise<T> {
+): Promise<T> => {
   const reservedSql = await databaseSql.reserve()
   const quotedRoleName = quoteIdentifier(roleName)
 
@@ -437,12 +538,12 @@ async function withRole<T>(
   }
 }
 
-async function grantAppRoleDefaultPrivilegesOnSchemaWithCurrentRole(
+const grantAppRoleDefaultPrivilegesOnSchemaWithCurrentRole = async (
   databaseSql: Bun.SQL,
   schemaName: string,
   appRoleName: string,
   devRoleName: string,
-): Promise<void> {
+): Promise<void> => {
   const quotedSchemaName = quoteCatalogIdentifier(schemaName)
   const quotedAppRoleName = quoteIdentifier(appRoleName)
   const quotedDevRoleName = quoteIdentifier(devRoleName)
@@ -458,16 +559,20 @@ async function grantAppRoleDefaultPrivilegesOnSchemaWithCurrentRole(
   )
 }
 
-async function syncAppSchemaGrants(
+const syncAppSchemaGrants = async (
   databaseSql: Bun.SQL,
   schemaName: string,
   appRoleName: string,
   devRoleName: string,
-): Promise<void> {
+): Promise<void> => {
   await withRole(databaseSql, appRoleName, async (roleSql) => {
     await grantAppRoleOnSchema(roleSql, schemaName, appRoleName)
     await grantReadWriteOnSchema(roleSql, schemaName, devRoleName, true)
-    await grantReadWriteDefaultPrivilegesOnSchema(roleSql, schemaName, devRoleName)
+    await grantReadWriteDefaultPrivilegesOnSchema(
+      roleSql,
+      schemaName,
+      devRoleName,
+    )
     await grantAppRoleDefaultPrivilegesOnSchemaWithCurrentRole(
       roleSql,
       schemaName,
@@ -477,25 +582,30 @@ async function syncAppSchemaGrants(
   })
 }
 
-async function transferOwnedObjectsInSchemaToRole(
+const transferOwnedObjectsInSchemaToRole = async (
   databaseSql: Bun.SQL,
   schemaName: string,
   sourceRole: string,
   targetRole: string,
-): Promise<void> {
-  await transferObjectsOwnership(databaseSql, schemaName, targetRole, sourceRole)
+): Promise<void> => {
+  await transferObjectsOwnership(
+    databaseSql,
+    schemaName,
+    targetRole,
+    sourceRole,
+  )
 }
 
-async function revokeDefaultPrivilegesOnSchema(
+const revokeDefaultPrivilegesOnSchema = async (
   databaseSql: Bun.SQL,
   schemaName: string,
   targetRole: string,
-): Promise<void> {
+): Promise<void> => {
   const quotedSchemaName = quoteCatalogIdentifier(schemaName)
   const quotedTargetRole = quoteIdentifier(targetRole)
   const owners = await listSchemaOwnerRoles(databaseSql, schemaName)
 
-  for (const owner of owners) {
+  await mapWithConcurrency(owners, 1, async (owner) => {
     const quotedOwnerName = quoteCatalogIdentifier(owner)
     try {
       await databaseSql.unsafe(
@@ -510,46 +620,59 @@ async function revokeDefaultPrivilegesOnSchema(
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error)
       const normalizedMessage = message.toLowerCase()
-      if (normalizedMessage.includes("must be member of role") || normalizedMessage.includes("permission denied")) {
-        continue
+      if (
+        normalizedMessage.includes("must be member of role") ||
+        normalizedMessage.includes("permission denied")
+      ) {
+        return
       }
       throw error
     }
-  }
+  })
 }
 
-async function revokeAppRoleOutsideSchema(
+const revokeAppRoleOutsideSchema = async (
   databaseSql: Bun.SQL,
   appRoleName: string,
   fallbackOwnerRole: string,
   allowedSchemaName: string,
-): Promise<void> {
+): Promise<void> => {
   const schemas = await listNonSystemSchemas(databaseSql)
-  for (const schemaName of schemas) {
-    if (schemaName === allowedSchemaName) {
-      continue
-    }
-
-    await transferOwnedObjectsInSchemaToRole(databaseSql, schemaName, appRoleName, fallbackOwnerRole)
+  const outsideSchemas = schemas.filter(
+    (schemaName) => schemaName !== allowedSchemaName,
+  )
+  await mapWithConcurrency(outsideSchemas, 1, async (schemaName) => {
+    await transferOwnedObjectsInSchemaToRole(
+      databaseSql,
+      schemaName,
+      appRoleName,
+      fallbackOwnerRole,
+    )
     await revokeDefaultPrivilegesOnSchema(databaseSql, schemaName, appRoleName)
 
     const quotedSchemaName = quoteCatalogIdentifier(schemaName)
     const quotedAppRoleName = quoteIdentifier(appRoleName)
 
-    await databaseSql.unsafe(`REVOKE ALL PRIVILEGES ON SCHEMA ${quotedSchemaName} FROM ${quotedAppRoleName};`)
-    await databaseSql.unsafe(`REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA ${quotedSchemaName} FROM ${quotedAppRoleName};`)
+    await databaseSql.unsafe(
+      `REVOKE ALL PRIVILEGES ON SCHEMA ${quotedSchemaName} FROM ${quotedAppRoleName};`,
+    )
+    await databaseSql.unsafe(
+      `REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA ${quotedSchemaName} FROM ${quotedAppRoleName};`,
+    )
     await databaseSql.unsafe(
       `REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA ${quotedSchemaName} FROM ${quotedAppRoleName};`,
     )
-    await databaseSql.unsafe(`REVOKE ALL PRIVILEGES ON ALL ROUTINES IN SCHEMA ${quotedSchemaName} FROM ${quotedAppRoleName};`)
-  }
+    await databaseSql.unsafe(
+      `REVOKE ALL PRIVILEGES ON ALL ROUTINES IN SCHEMA ${quotedSchemaName} FROM ${quotedAppRoleName};`,
+    )
+  })
 }
 
-async function withAdvisoryLock<T>(
+const withAdvisoryLock = async <T>(
   sql: Bun.SQL,
   lockKey: string,
   operation: (lockedSql: Bun.ReservedSQL) => Promise<T>,
-): Promise<T> {
+): Promise<T> => {
   const reservedSql = await sql.reserve()
   let lockAcquired = false
 
@@ -568,12 +691,12 @@ async function withAdvisoryLock<T>(
   }
 }
 
-async function ensurePreviewAppRole(
+const ensurePreviewAppRole = async (
   sql: Bun.SQL,
   previewOwner: string,
   appRoleName: string,
   appPassword: string,
-): Promise<void> {
+): Promise<void> => {
   const exists = await roleExists(sql, appRoleName)
   if (!exists) {
     await sql.unsafe(`CREATE ROLE ${quoteIdentifier(appRoleName)} LOGIN;`)
@@ -591,14 +714,16 @@ async function ensurePreviewAppRole(
   }
 }
 
-async function syncPreviewDatabaseGrants(
+const syncPreviewDatabaseGrants = async (
   sql: Bun.SQL,
   config: AppConfig,
   dbName: string,
   appRoleName: string,
-): Promise<void> {
+): Promise<void> => {
   if (!(await roleExists(sql, config.previewOwner))) {
-    throw new BadRequestError(`configured preview owner role "${config.previewOwner}" does not exist`)
+    throw new BadRequestError(
+      `configured preview owner role "${config.previewOwner}" does not exist`,
+    )
   }
 
   const devRole = config.previewDevRole
@@ -607,10 +732,18 @@ async function syncPreviewDatabaseGrants(
     throw new BadRequestError(`configured dev role "${devRole}" does not exist`)
   }
 
-  await sql.unsafe(`REVOKE ALL PRIVILEGES ON DATABASE ${quoteIdentifier(dbName)} FROM ${quoteIdentifier(appRoleName)};`)
-  await sql.unsafe(`REVOKE CONNECT, TEMPORARY ON DATABASE ${quoteIdentifier(dbName)} FROM PUBLIC;`)
-  await sql.unsafe(`GRANT CONNECT, CREATE ON DATABASE ${quoteIdentifier(dbName)} TO ${quoteIdentifier(appRoleName)};`)
-  await sql.unsafe(`GRANT CONNECT ON DATABASE ${quoteIdentifier(dbName)} TO ${quoteIdentifier(devRole)};`)
+  await sql.unsafe(
+    `REVOKE ALL PRIVILEGES ON DATABASE ${quoteIdentifier(dbName)} FROM ${quoteIdentifier(appRoleName)};`,
+  )
+  await sql.unsafe(
+    `REVOKE CONNECT, TEMPORARY ON DATABASE ${quoteIdentifier(dbName)} FROM PUBLIC;`,
+  )
+  await sql.unsafe(
+    `GRANT CONNECT, CREATE ON DATABASE ${quoteIdentifier(dbName)} TO ${quoteIdentifier(appRoleName)};`,
+  )
+  await sql.unsafe(
+    `GRANT CONNECT ON DATABASE ${quoteIdentifier(dbName)} TO ${quoteIdentifier(devRole)};`,
+  )
   await setRoleSearchPath(sql, appRoleName, dbName, config.appSchema)
 
   await withDatabaseClient(config, dbName, async (dbSql) => {
@@ -628,24 +761,23 @@ async function syncPreviewDatabaseGrants(
       config.previewOwner,
       appRoleName,
     )
-    await syncAppSchemaGrants(
-      dbSql,
-      config.appSchema,
-      appRoleName,
-      devRole,
-    )
+    await syncAppSchemaGrants(dbSql, config.appSchema, appRoleName, devRole)
 
     const schemas = await listNonSystemSchemas(dbSql)
-    for (const schemaName of schemas) {
-      if (schemaName === config.appSchema) {
-        continue
-      }
-
+    const additionalSchemas = schemas.filter(
+      (schemaName) => schemaName !== config.appSchema,
+    )
+    await mapWithConcurrency(additionalSchemas, 1, async (schemaName) => {
       await grantReadWriteOnSchema(dbSql, schemaName, devRole, true)
       await grantReadWriteDefaultPrivilegesOnSchema(dbSql, schemaName, devRole)
-    }
+    })
 
-    await revokeAppRoleOutsideSchema(dbSql, appRoleName, config.previewOwner, config.appSchema)
+    await revokeAppRoleOutsideSchema(
+      dbSql,
+      appRoleName,
+      config.previewOwner,
+      config.appSchema,
+    )
   })
 }
 
@@ -655,27 +787,49 @@ export interface EnsurePreviewDatabaseParams {
   owner: string
 }
 
-export async function ensurePreviewDatabase(
+export const ensurePreviewDatabase = async (
   sql: Bun.SQL,
   config: AppConfig,
   params: EnsurePreviewDatabaseParams,
-): Promise<{ dbName: string; created: boolean; appUser: string; appPassword: string }> {
+): Promise<{
+  dbName: string
+  created: boolean
+  appUser: string
+  appPassword: string
+}> => {
   const dbName = buildPreviewDatabaseName(config.previewPrefix, params.prNumber)
-  const templateDatabase = normalizeIdentifier(params.templateDatabase, "template_db")
+  const templateDatabase = normalizeIdentifier(
+    params.templateDatabase,
+    "template_db",
+  )
   const owner = normalizeIdentifier(params.owner, "owner")
-  const appUser = buildPreviewAppRoleName(config.previewAppUserPrefix, params.prNumber)
-  const appPassword = derivePreviewAppPassword(config.previewAppPasswordSecret, dbName, appUser)
+  const appUser = buildPreviewAppRoleName(
+    config.previewAppUserPrefix,
+    params.prNumber,
+  )
+  const appPassword = derivePreviewAppPassword(
+    config.previewAppPasswordSecret,
+    dbName,
+    appUser,
+  )
 
   assertSafeTargetDatabaseName(dbName, config)
 
   return await withAdvisoryLock(sql, dbName, async (lockedSql) => {
-    await ensurePreviewAppRole(lockedSql, config.previewOwner, appUser, appPassword)
+    await ensurePreviewAppRole(
+      lockedSql,
+      config.previewOwner,
+      appUser,
+      appPassword,
+    )
 
     const alreadyExists = await databaseExists(lockedSql, dbName)
     if (!alreadyExists) {
       const templateExists = await databaseExists(lockedSql, templateDatabase)
       if (!templateExists) {
-        throw new BadRequestError(`template database "${templateDatabase}" does not exist`)
+        throw new BadRequestError(
+          `template database "${templateDatabase}" does not exist`,
+        )
       }
 
       const ownerExists = await roleExists(lockedSql, owner)
@@ -690,11 +844,14 @@ export async function ensurePreviewDatabase(
 
     await syncPreviewDatabaseGrants(lockedSql, config, dbName, appUser)
 
-    return { dbName, created: !alreadyExists, appUser, appPassword }
+    return { appPassword, appUser, created: !alreadyExists, dbName }
   })
 }
 
-async function countActiveDatabaseConnections(sql: Bun.SQL, databaseName: string): Promise<number> {
+const countActiveDatabaseConnections = async (
+  sql: Bun.SQL,
+  databaseName: string,
+): Promise<number> => {
   const rows = await sql<{ active_connections: number }[]>`
     SELECT COUNT(*)::int AS "active_connections"
     FROM pg_stat_activity
@@ -710,20 +867,29 @@ interface ActiveConnectionByRole {
   activeConnections: number
 }
 
-function sanitizeRoleName(roleName: string): string {
+const sanitizeRoleName = (roleName: string): string => {
   const normalized = roleName.trim() || "unknown"
-  return normalized.replaceAll(/[^A-Za-z0-9_:@.-]/g, "?").slice(0, 63)
+  return normalized.replaceAll(/[^A-Za-z0-9_:@.-]/gu, "?").slice(0, 63)
 }
 
-function formatActiveConnectionsByRole(rows: ActiveConnectionByRole[]): string {
+const formatActiveConnectionsByRole = (
+  rows: ActiveConnectionByRole[],
+): string => {
   if (rows.length === 0) {
     return "none"
   }
 
-  return rows.map((entry) => `${sanitizeRoleName(entry.role)}(${entry.activeConnections})`).join(", ")
+  return rows
+    .map(
+      (entry) => `${sanitizeRoleName(entry.role)}(${entry.activeConnections})`,
+    )
+    .join(", ")
 }
 
-async function getActiveConnectionsByRole(sql: Bun.SQL, databaseName: string): Promise<ActiveConnectionByRole[]> {
+const getActiveConnectionsByRole = async (
+  sql: Bun.SQL,
+  databaseName: string,
+): Promise<ActiveConnectionByRole[]> => {
   const rows = await sql<{ role: string | null; active_connections: number }[]>`
     SELECT COALESCE(usename, 'unknown') AS "role",
            COUNT(*)::int AS "active_connections"
@@ -735,12 +901,15 @@ async function getActiveConnectionsByRole(sql: Bun.SQL, databaseName: string): P
   `
 
   return rows.map((row) => ({
-    role: row.role ?? "unknown",
     activeConnections: row.active_connections,
+    role: row.role ?? "unknown",
   }))
 }
 
-async function getActiveConnectionSummary(sql: Bun.SQL, databaseName: string): Promise<string> {
+const getActiveConnectionSummary = async (
+  sql: Bun.SQL,
+  databaseName: string,
+): Promise<string> => {
   try {
     const rows = await getActiveConnectionsByRole(sql, databaseName)
     return formatActiveConnectionsByRole(rows)
@@ -749,13 +918,15 @@ async function getActiveConnectionSummary(sql: Bun.SQL, databaseName: string): P
   }
 }
 
-async function dropDatabase(sql: Bun.SQL, databaseName: string): Promise<void> {
+const dropDatabase = async (
+  sql: Bun.SQL,
+  databaseName: string,
+): Promise<void> => {
   const quotedDbName = quoteIdentifier(databaseName)
 
   try {
     // Project baseline is PostgreSQL 18, so DROP DATABASE ... WITH (FORCE) is supported.
     await sql.unsafe(`DROP DATABASE IF EXISTS ${quotedDbName} WITH (FORCE);`)
-    return
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : String(error)
     const normalizedMessage = message.toLowerCase()
@@ -778,7 +949,10 @@ async function dropDatabase(sql: Bun.SQL, databaseName: string): Promise<void> {
   }
 }
 
-async function dropPreviewAppRole(sql: Bun.SQL, roleName: string): Promise<boolean> {
+const dropPreviewAppRole = async (
+  sql: Bun.SQL,
+  roleName: string,
+): Promise<boolean> => {
   if (!(await roleExists(sql, roleName))) {
     return false
   }
@@ -790,8 +964,14 @@ async function dropPreviewAppRole(sql: Bun.SQL, roleName: string): Promise<boole
     const message = error instanceof Error ? error.message : String(error)
     const normalizedMessage = message.toLowerCase()
 
-    if (normalizedMessage.includes("cannot be dropped because some objects depend on it")) {
-      throw new BadRequestError(`preview app role "${roleName}" still owns objects and cannot be dropped`)
+    if (
+      normalizedMessage.includes(
+        "cannot be dropped because some objects depend on it",
+      )
+    ) {
+      throw new BadRequestError(
+        `preview app role "${roleName}" still owns objects and cannot be dropped`,
+      )
     }
 
     throw error
@@ -802,7 +982,7 @@ interface NonTemplateDatabase {
   name: string
 }
 
-async function listNonTemplateDatabases(sql: Bun.SQL): Promise<string[]> {
+const listNonTemplateDatabases = async (sql: Bun.SQL): Promise<string[]> => {
   const rows = await sql<NonTemplateDatabase[]>`
     SELECT datname AS "name"
     FROM pg_database
@@ -813,47 +993,18 @@ async function listNonTemplateDatabases(sql: Bun.SQL): Promise<string[]> {
   return rows.map((row) => row.name)
 }
 
-async function revokeBroadDatabaseConnectGrants(sql: Bun.SQL, roleName: string): Promise<number> {
+const revokeBroadDatabaseConnectGrants = async (
+  sql: Bun.SQL,
+  roleName: string,
+): Promise<number> => {
   const databases = await listNonTemplateDatabases(sql)
-  let revoked = 0
-
-  for (const databaseName of databases) {
+  await mapWithConcurrency(databases, 1, async (databaseName) => {
     await sql.unsafe(
       `REVOKE CONNECT, TEMPORARY, CREATE ON DATABASE ${quoteCatalogIdentifier(databaseName)} FROM ${quoteIdentifier(roleName)};`,
     )
-    revoked += 1
-  }
+  })
 
-  return revoked
-}
-
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  concurrency: number,
-  worker: (item: T, index: number) => Promise<R>,
-): Promise<R[]> {
-  if (items.length === 0) {
-    return []
-  }
-
-  const safeConcurrency = Math.max(1, Math.min(concurrency, items.length))
-  const results: R[] = new Array(items.length)
-  let nextIndex = 0
-
-  const runWorker = async (): Promise<void> => {
-    while (true) {
-      const index = nextIndex
-      nextIndex += 1
-      if (index >= items.length) {
-        return
-      }
-
-      results[index] = await worker(items[index]!, index)
-    }
-  }
-
-  await Promise.all(Array.from({ length: safeConcurrency }, () => runWorker()))
-  return results
+  return databases.length
 }
 
 export interface CreateOrUpdateDevRoleParams {
@@ -873,10 +1024,10 @@ export interface CreateOrUpdateDevRoleResult {
   defaultPrivilegeOwnersSkipped: number
 }
 
-export async function createOrUpdateDevRole(
+export const createOrUpdateDevRole = async (
   sql: Bun.SQL,
   params: CreateOrUpdateDevRoleParams,
-): Promise<CreateOrUpdateDevRoleResult> {
+): Promise<CreateOrUpdateDevRoleResult> => {
   const username = normalizeIdentifier(params.username, "username")
   if (!params.password) {
     throw new BadRequestError("password cannot be empty")
@@ -900,39 +1051,64 @@ export async function createOrUpdateDevRole(
     const databases = await listNonTemplateDatabases(sql)
     console.info(
       JSON.stringify({
-        event: "cli.create-dev-user.grant-connect-scope",
-        username,
-        total_databases: databases.length,
         concurrency: DEV_ROLE_DB_GRANT_CONCURRENCY,
+        event: "cli.create-dev-user.grant-connect-scope",
+        total_databases: databases.length,
+        username,
       }),
     )
 
-    const perDatabaseResults = await mapWithConcurrency(databases, DEV_ROLE_DB_GRANT_CONCURRENCY, async (databaseName) => {
-      await sql.unsafe(`GRANT CONNECT ON DATABASE ${quoteCatalogIdentifier(databaseName)} TO ${quoteIdentifier(username)};`)
+    const perDatabaseResults = await mapWithConcurrency(
+      databases,
+      DEV_ROLE_DB_GRANT_CONCURRENCY,
+      async (databaseName) => {
+        await sql.unsafe(
+          `GRANT CONNECT ON DATABASE ${quoteCatalogIdentifier(databaseName)} TO ${quoteIdentifier(username)};`,
+        )
 
-      let schemaGrantsAppliedForDatabase = 0
-      let defaultPrivilegeOwnersAppliedForDatabase = 0
-      let defaultPrivilegeOwnersSkippedForDatabase = 0
+        const databaseResult = await withDatabaseClientByUrl(
+          params.databaseUrl,
+          databaseName,
+          async (databaseSql) => {
+            const schemas = await listNonSystemSchemas(databaseSql)
+            const schemaResults = await mapWithConcurrency(
+              schemas,
+              1,
+              async (schemaName) => {
+                await grantReadWriteOnSchema(
+                  databaseSql,
+                  schemaName,
+                  username,
+                  true,
+                )
+                return await grantReadWriteDefaultPrivilegesOnSchema(
+                  databaseSql,
+                  schemaName,
+                  username,
+                )
+              },
+            )
 
-      await withDatabaseClientByUrl(params.databaseUrl, databaseName, async (databaseSql) => {
-        const schemas = await listNonSystemSchemas(databaseSql)
-        for (const schemaName of schemas) {
-          await grantReadWriteOnSchema(databaseSql, schemaName, username, true)
-          schemaGrantsAppliedForDatabase += 1
+            return {
+              defaultPrivilegeOwnersApplied: schemaResults.reduce(
+                (total, result) => total + result.applied,
+                0,
+              ),
+              defaultPrivilegeOwnersSkipped: schemaResults.reduce(
+                (total, result) => total + result.skipped,
+                0,
+              ),
+              schemaGrantsApplied: schemas.length,
+            }
+          },
+        )
 
-          const defaultPrivilegeResult = await grantReadWriteDefaultPrivilegesOnSchema(databaseSql, schemaName, username)
-          defaultPrivilegeOwnersAppliedForDatabase += defaultPrivilegeResult.applied
-          defaultPrivilegeOwnersSkippedForDatabase += defaultPrivilegeResult.skipped
+        return {
+          connectGrantsApplied: 1,
+          ...databaseResult,
         }
-      })
-
-      return {
-        connectGrantsApplied: 1,
-        schemaGrantsApplied: schemaGrantsAppliedForDatabase,
-        defaultPrivilegeOwnersApplied: defaultPrivilegeOwnersAppliedForDatabase,
-        defaultPrivilegeOwnersSkipped: defaultPrivilegeOwnersSkippedForDatabase,
-      }
-    })
+      },
+    )
 
     for (const result of perDatabaseResults) {
       connectGrantsApplied += result.connectGrantsApplied
@@ -945,13 +1121,13 @@ export async function createOrUpdateDevRole(
   }
 
   return {
-    username,
-    created: !exists,
     connectGrantsApplied,
     connectGrantsRevoked,
-    schemaGrantsApplied,
+    created: !exists,
     defaultPrivilegeOwnersApplied,
     defaultPrivilegeOwnersSkipped,
+    schemaGrantsApplied,
+    username,
   }
 }
 
@@ -966,11 +1142,11 @@ export interface TeardownPreviewDatabaseResult {
   noopReason: "database_not_found" | null
 }
 
-export async function teardownPreviewDatabase(
+export const teardownPreviewDatabase = async (
   sql: Bun.SQL,
   config: AppConfig,
   prNumber: number,
-): Promise<TeardownPreviewDatabaseResult> {
+): Promise<TeardownPreviewDatabaseResult> => {
   const dbName = buildPreviewDatabaseName(config.previewPrefix, prNumber)
   const appUser = buildPreviewAppRoleName(config.previewAppUserPrefix, prNumber)
   assertSafeTargetDatabaseName(dbName, config)
@@ -981,7 +1157,10 @@ export async function teardownPreviewDatabase(
     let activeConnectionsAtDrop = 0
 
     if (exists) {
-      activeConnectionsAtDrop = await countActiveDatabaseConnections(lockedSql, dbName)
+      activeConnectionsAtDrop = await countActiveDatabaseConnections(
+        lockedSql,
+        dbName,
+      )
       await dropDatabase(lockedSql, dbName)
       deleted = true
     }
@@ -989,14 +1168,14 @@ export async function teardownPreviewDatabase(
     const roleDeleted = await dropPreviewAppRole(lockedSql, appUser)
 
     return {
-      dbName,
-      deleted,
       activeConnectionsAtDrop,
       appUser,
-      roleDeleted,
+      dbName,
+      deleted,
       devGrantsCleaned: deleted,
       noop: !exists,
       noopReason: exists ? null : "database_not_found",
+      roleDeleted,
     }
   })
 }

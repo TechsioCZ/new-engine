@@ -3,12 +3,13 @@ import {
   authenticate,
   validateAndTransformBody,
 } from "@medusajs/framework/http"
+
 import { UpdateStockBatchSchema } from "./validators"
 
 export const symmyInventoryStockBatchRoutes: MiddlewareRoute[] = [
   {
-    methods: ["POST"],
     matcher: "/api/symmy/v1/inventory/stock/batch",
+    methods: ["POST"],
     middlewares: [
       authenticate("user", ["bearer", "session", "api-key"]),
       validateAndTransformBody(UpdateStockBatchSchema),

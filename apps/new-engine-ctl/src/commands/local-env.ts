@@ -1,11 +1,21 @@
 import { Command } from "commander"
+import { z } from "zod"
+
 import { localEnvRuntimeProviderOutputTargetsCommandInputSchema } from "../contracts/local-env.js"
 import { executeLocalEnvRuntimeProviderOutputTargets } from "../orchestration/local-env.js"
 import { defaultStackInputsPath } from "../paths.js"
 
-export function createLocalEnvCommand(): Command {
+const commandOptionsSchema = z.object({
+  format: z.string(),
+  outputId: z.string(),
+  providerId: z.string(),
+  serviceIdsCsv: z.string(),
+  stackInputsPath: z.string(),
+})
+
+export const createLocalEnvCommand = (): Command => {
   const command = new Command("local-env").description(
-    "Resolve local-only env aliases from repo config"
+    "Resolve local-only env aliases from repo config",
   )
 
   command
@@ -18,23 +28,24 @@ export function createLocalEnvCommand(): Command {
     .option(
       "--stack-inputs-path <path>",
       "",
-      process.env.STACK_INPUTS_PATH ?? defaultStackInputsPath
+      process.env["STACK_INPUTS_PATH"] ?? defaultStackInputsPath,
     )
-    .action(async (options) => {
+    .action(async (options: unknown) => {
+      const parsedOptions = commandOptionsSchema.parse(options)
       const input =
         localEnvRuntimeProviderOutputTargetsCommandInputSchema.parse({
-          providerId: options.providerId,
-          outputId: options.outputId,
-          serviceIdsCsv: options.serviceIdsCsv,
-          format: options.format,
-          stackInputsPath: options.stackInputsPath,
+          format: parsedOptions.format,
+          outputId: parsedOptions.outputId,
+          providerId: parsedOptions.providerId,
+          serviceIdsCsv: parsedOptions.serviceIdsCsv,
+          stackInputsPath: parsedOptions.stackInputsPath,
         })
 
       const result = await executeLocalEnvRuntimeProviderOutputTargets(input)
 
       if (input.format === "local-env-vars") {
         process.stdout.write(
-          `${result.targets.map((target) => target.local_env_var).join("\n")}\n`
+          `${result.targets.map((target) => target.local_env_var).join("\n")}\n`,
         )
         return
       }

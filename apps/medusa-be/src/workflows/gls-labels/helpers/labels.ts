@@ -1,47 +1,101 @@
+import type { FulfillmentDTO } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
+
 import { GLS_PROVIDER_ID } from "../../../modules/gls-client"
 
-type GLSFulfillmentRecord = {
+interface GLSFulfillmentRecord {
   id: string
   provider_id: string
-  canceled_at: string | null
-  data: Record<string, unknown> | null
+  canceled_at: Date | string | null
+  data: FulfillmentDTO["data"]
 }
 
-export type GLSLabelOrder = {
+export interface GLSLabelOrder {
   id: string
-  display_id?: number | null
-  fulfillments?: GLSFulfillmentRecord[]
+  display_id: number | null
+  fulfillments?: (GLSFulfillmentRecord | null)[] | null
 }
 
-export type PrintableGLSLabel = {
+export interface PrintableGLSLabel {
   order_id: string
-  order_display_id?: number | null
+  order_display_id: number | null
   fulfillment_id: string
   packet_id: string | number
   barcode: string
 }
 
-type PrintableGLSFulfillmentData = {
+interface PrintableGLSFulfillmentData {
   packet_id: string | number
   barcode: string
 }
 
-export function validateGLSLabelOrders(value: unknown): GLSLabelOrder[] {
-  if (Array.isArray(value) && value.every(isGLSLabelOrder)) {
-    return value
-  }
+const PrintableGLSFulfillmentDataSchema = z.object({
+  barcode: z.string().trim().min(1),
+  packet_id: z.union([z.string(), z.number()]),
+})
 
-  throw new MedusaError(
-    MedusaError.Types.INVALID_DATA,
-    "GLS: Invalid order label query result"
-  )
+const parsePrintableGLSFulfillmentData = (
+  value: FulfillmentDTO["data"],
+): PrintableGLSFulfillmentData | undefined => {
+  const parsed = PrintableGLSFulfillmentDataSchema.safeParse(value)
+  return parsed.success ? parsed.data : undefined
 }
 
-export function collectPrintableGLSLabels(
+const toPrintableGLSLabel = (
+  order: GLSLabelOrder,
+  fulfillment: GLSFulfillmentRecord,
+  data: PrintableGLSFulfillmentData,
+): PrintableGLSLabel => ({
+  barcode: data.barcode,
+  fulfillment_id: fulfillment.id,
+  order_display_id: order.display_id,
+  order_id: order.id,
+  packet_id: data.packet_id,
+})
+
+const collectOrderLabels = (
+  order: GLSLabelOrder,
+): {
+  data: PrintableGLSFulfillmentData
+  fulfillment: GLSFulfillmentRecord
+}[] => {
+  const orderLabels: {
+    data: PrintableGLSFulfillmentData
+    fulfillment: GLSFulfillmentRecord
+  }[] = []
+
+  for (const fulfillment of order.fulfillments ?? []) {
+    if (fulfillment === null) {
+      continue
+    }
+
+    const isActiveGLSFulfillment =
+      fulfillment.provider_id === GLS_PROVIDER_ID &&
+      (fulfillment.canceled_at === null || fulfillment.canceled_at === "")
+    const data = parsePrintableGLSFulfillmentData(fulfillment.data)
+    if (isActiveGLSFulfillment && data !== undefined) {
+      orderLabels.push({ data, fulfillment })
+    }
+  }
+
+  return orderLabels
+}
+
+const sanitizeFilenameToken = (value: string): string => {
+  const sanitized = value
+    .trim()
+    .replaceAll(/[^A-Za-z0-9._-]/gu, "-")
+    .replaceAll(/-+/gu, "-")
+    .slice(0, 80)
+
+  return sanitized || "unknown"
+}
+
+export const collectPrintableGLSLabels = (
   requestedOrderIds: string[],
-  orders: GLSLabelOrder[]
-): PrintableGLSLabel[] {
+  orders: GLSLabelOrder[],
+): PrintableGLSLabel[] => {
   const ordersById = new Map(orders.map((order) => [order.id, order]))
   const missingOrderIds: string[] = []
   const ordersWithoutGLSLabels: string[] = []
@@ -49,40 +103,17 @@ export function collectPrintableGLSLabels(
 
   for (const orderId of requestedOrderIds) {
     const order = ordersById.get(orderId)
-    if (!order) {
+    if (order) {
+      const orderLabels = collectOrderLabels(order)
+      if (orderLabels.length === 0) {
+        ordersWithoutGLSLabels.push(orderId)
+      } else {
+        for (const { data, fulfillment } of orderLabels) {
+          labels.push(toPrintableGLSLabel(order, fulfillment, data))
+        }
+      }
+    } else {
       missingOrderIds.push(orderId)
-      continue
-    }
-
-    const orderLabels = (order.fulfillments ?? [])
-      .filter((fulfillment) => fulfillment.provider_id === GLS_PROVIDER_ID)
-      .filter((fulfillment) => !fulfillment.canceled_at)
-      .map((fulfillment) => ({
-        fulfillment,
-        data: fulfillment.data,
-      }))
-      .filter(
-        (
-          item
-        ): item is {
-          fulfillment: GLSFulfillmentRecord
-          data: PrintableGLSFulfillmentData
-        } => isPrintableGLSFulfillmentData(item.data)
-      )
-
-    if (orderLabels.length === 0) {
-      ordersWithoutGLSLabels.push(orderId)
-      continue
-    }
-
-    for (const { fulfillment, data } of orderLabels) {
-      labels.push({
-        order_id: order.id,
-        order_display_id: order.display_id,
-        fulfillment_id: fulfillment.id,
-        packet_id: data.packet_id,
-        barcode: data.barcode,
-      })
     }
   }
 
@@ -98,86 +129,17 @@ export function collectPrintableGLSLabels(
           : null,
       ]
         .filter(Boolean)
-        .join("; ")
+        .join("; "),
     )
   }
 
   return labels
 }
 
-export function buildGLSLabelsFilename(labels: PrintableGLSLabel[]): string {
-  const first = labels[0]
+export const buildGLSLabelsFilename = (labels: PrintableGLSLabel[]): string => {
+  const [first] = labels
   if (labels.length === 1 && first) {
     return `gls-label-${sanitizeFilenameToken(first.barcode)}.pdf`
   }
   return `gls-labels-${new Date().toISOString().slice(0, 10)}.pdf`
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
-}
-
-function isGLSLabelOrder(value: unknown): value is GLSLabelOrder {
-  if (!isRecord(value)) {
-    return false
-  }
-
-  const id: unknown = value.id
-  const displayId: unknown = value.display_id
-  const fulfillments: unknown = value.fulfillments
-
-  return (
-    typeof id === "string" &&
-    (displayId === undefined ||
-      displayId === null ||
-      typeof displayId === "number") &&
-    (fulfillments === undefined ||
-      (Array.isArray(fulfillments) &&
-        fulfillments.every(isGLSFulfillmentRecord)))
-  )
-}
-
-function isGLSFulfillmentRecord(value: unknown): value is GLSFulfillmentRecord {
-  if (!isRecord(value)) {
-    return false
-  }
-
-  const id: unknown = value.id
-  const providerId: unknown = value.provider_id
-  const canceledAt: unknown = value.canceled_at
-  const data: unknown = value.data
-
-  return (
-    typeof id === "string" &&
-    typeof providerId === "string" &&
-    (canceledAt === null || typeof canceledAt === "string") &&
-    (data === null || isRecord(data))
-  )
-}
-
-function isPrintableGLSFulfillmentData(
-  value: unknown
-): value is PrintableGLSFulfillmentData {
-  if (!isRecord(value)) {
-    return false
-  }
-
-  const packetId: unknown = value.packet_id
-  const barcode: unknown = value.barcode
-
-  return (
-    (typeof packetId === "number" || typeof packetId === "string") &&
-    typeof barcode === "string" &&
-    barcode.trim().length > 0
-  )
-}
-
-function sanitizeFilenameToken(value: string): string {
-  const sanitized = value
-    .trim()
-    .replace(/[^A-Za-z0-9._-]/g, "-")
-    .replace(/-+/g, "-")
-    .slice(0, 80)
-
-  return sanitized || "unknown"
 }

@@ -27,20 +27,22 @@
  * const success = trackPurchase({ value: 100, currency: 'CZK' })
  * ```
  */
-export function createTracker<TGlobalFn, TParams>(
+export const createTracker = <TGlobalFn, TParams>(
   getGlobalFn: () => TGlobalFn | null,
   trackFn: (globalFn: TGlobalFn, params: TParams) => void,
-  debug?: boolean,
-  adapterKey?: string
-): (params: TParams) => boolean {
+  debug = false,
+  adapterKey?: string,
+): ((params: TParams) => boolean) => {
+  const adapterSuffix =
+    adapterKey === undefined || adapterKey.length === 0 ? "" : `:${adapterKey}`
+  const logPrefix = `[Analytics${adapterSuffix}]`
+
   return (params: TParams): boolean => {
     const globalFn = getGlobalFn()
 
-    if (!globalFn) {
+    if (globalFn === null) {
       if (debug) {
-        console.warn(
-          `[Analytics${adapterKey ? `:${adapterKey}` : ""}] Global function not available`
-        )
+        console.warn(`${logPrefix} Global function not available`)
       }
       return false
     }
@@ -48,17 +50,12 @@ export function createTracker<TGlobalFn, TParams>(
     try {
       trackFn(globalFn, params)
       if (debug) {
-        console.log(
-          `[Analytics${adapterKey ? `:${adapterKey}` : ""}] Event tracked`
-        )
+        console.log(`${logPrefix} Event tracked`)
       }
       return true
     } catch (error) {
       if (debug) {
-        console.error(
-          `[Analytics${adapterKey ? `:${adapterKey}` : ""}] Tracking error:`,
-          error
-        )
+        console.error(`${logPrefix} Tracking error:`, error)
       }
       return false
     }
@@ -78,20 +75,22 @@ export function createTracker<TGlobalFn, TParams>(
  * )
  * ```
  */
-export function createSimpleTracker<TGlobalFn>(
+export const createSimpleTracker = <TGlobalFn>(
   getGlobalFn: () => TGlobalFn | null,
   trackFn: (globalFn: TGlobalFn) => void,
-  debug?: boolean,
-  adapterKey?: string
-): () => boolean {
+  debug = false,
+  adapterKey?: string,
+): (() => boolean) => {
+  const adapterSuffix =
+    adapterKey === undefined || adapterKey.length === 0 ? "" : `:${adapterKey}`
+  const logPrefix = `[Analytics${adapterSuffix}]`
+
   return (): boolean => {
     const globalFn = getGlobalFn()
 
-    if (!globalFn) {
+    if (globalFn === null) {
       if (debug) {
-        console.warn(
-          `[Analytics${adapterKey ? `:${adapterKey}` : ""}] Global function not available`
-        )
+        console.warn(`${logPrefix} Global function not available`)
       }
       return false
     }
@@ -99,17 +98,12 @@ export function createSimpleTracker<TGlobalFn>(
     try {
       trackFn(globalFn)
       if (debug) {
-        console.log(
-          `[Analytics${adapterKey ? `:${adapterKey}` : ""}] Event tracked`
-        )
+        console.log(`${logPrefix} Event tracked`)
       }
       return true
     } catch (error) {
       if (debug) {
-        console.error(
-          `[Analytics${adapterKey ? `:${adapterKey}` : ""}] Tracking error:`,
-          error
-        )
+        console.error(`${logPrefix} Tracking error:`, error)
       }
       return false
     }

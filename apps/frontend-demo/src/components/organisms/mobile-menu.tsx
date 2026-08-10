@@ -4,6 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { useEffect, useState } from "react"
+
 import type { NavItem } from "../molecules/navigation"
 import { RegionSelector } from "../region-selector"
 import { ThemeToggle } from "../theme-toggle"
@@ -14,31 +15,31 @@ interface MobileMenuProps {
   navigationItems: NavItem[]
 }
 
-export function MobileMenu({
+export const MobileMenu = ({
   isOpen,
   onClose,
   navigationItems,
-}: MobileMenuProps) {
+}: MobileMenuProps) => {
   const [expandedItems, setExpandedItems] = useState<string[]>([])
 
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden"
-    } else {
-      document.body.style.overflow = ""
-    }
+    document.body.style.overflow = isOpen ? "hidden" : ""
     return () => {
       document.body.style.overflow = ""
     }
   }, [isOpen])
 
-  if (!isOpen) return null
+  if (!isOpen) {
+    return null
+  }
+
+  const expandedItemTitles = new Set(expandedItems)
 
   const toggleExpanded = (title: string) => {
     setExpandedItems((prev) =>
       prev.includes(title)
         ? prev.filter((item) => item !== title)
-        : [...prev, title]
+        : [...prev, title],
     )
   }
 
@@ -63,24 +64,26 @@ export function MobileMenu({
         <nav className="flex flex-col p-mobile-menu-nav-padding">
           {navigationItems.map((item) => (
             <div key={item.title}>
-              {item.role === "submenu" && item.children ? (
+              {item.role === "submenu" && item.children !== undefined ? (
                 <>
                   <Button
                     className="flex w-full items-center justify-between rounded-mobile-menu-item px-mobile-menu-item-x py-mobile-menu-item-y font-mobile-menu-item-weight text-mobile-menu-item-size text-mobile-menu-text transition-colors hover:bg-mobile-menu-item-hover-bg"
-                    onClick={() => toggleExpanded(item.title)}
+                    onClick={() => {
+                      toggleExpanded(item.title)
+                    }}
                     theme="borderless"
                   >
                     {item.title}
                     <Icon
                       icon={
-                        expandedItems.includes(item.title)
+                        expandedItemTitles.has(item.title)
                           ? "token-icon-chevron-up"
                           : "token-icon-chevron-down"
                       }
                       size="sm"
                     />
                   </Button>
-                  {expandedItems.includes(item.title) && (
+                  {expandedItemTitles.has(item.title) && (
                     <ul className="mt-mobile-menu-submenu-gap ml-mobile-menu-submenu-indent flex flex-col gap-mobile-menu-submenu-gap">
                       {item.children.map((child) => (
                         <Link
@@ -90,7 +93,7 @@ export function MobileMenu({
                           onClick={onClose}
                         >
                           {child.title}
-                          {child.label && (
+                          {child.label !== undefined && (
                             <Badge className="ml-2" variant="danger">
                               {child.label}
                             </Badge>
@@ -103,7 +106,7 @@ export function MobileMenu({
               ) : (
                 <Link
                   className="block rounded-mobile-menu-item px-mobile-menu-item-x py-mobile-menu-item-y font-mobile-menu-item-weight text-mobile-menu-item-size text-mobile-menu-text transition-colors hover:bg-mobile-menu-item-hover-bg"
-                  href={item.href || "#"}
+                  href={item.href ?? "#"}
                   onClick={onClose}
                 >
                   {item.title}

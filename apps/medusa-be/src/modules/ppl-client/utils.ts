@@ -2,7 +2,7 @@
  * Pure utility functions for PPL fulfillment processing
  * Separated from job file to allow unit testing without triggering module loading
  */
-import type { PplFulfillmentData } from "./types"
+import { z } from "@medusajs/framework/zod"
 
 /**
  * Maximum number of sync attempts before marking as error
@@ -16,21 +16,57 @@ export const MAX_SYNC_ATTEMPTS = 60
  */
 export const MAX_PENDING_AGE_MS = 24 * 60 * 60 * 1000
 
-/** Fulfillment record shape from query */
-export type FulfillmentRecord = {
-  id: string
-  data: PplFulfillmentData | null
-  created_at: string
-  provider_id: string
-}
+const pplShipmentStateSchema = z.enum([
+  "Active",
+  "BackToSender",
+  "DataShipment",
+  "Delivered",
+  "DeliveredToPickupPoint",
+  "Dormant",
+  "NotDelivered",
+  "OutForDelivery",
+  "PickedUpFromSender",
+  "Rejected",
+  "Undelivered",
+])
 
-/** Narrowed type after filter - has confirmed pending status and batch_id */
-export interface PendingFulfillment extends FulfillmentRecord {
-  data: PplFulfillmentData & { batch_id: string }
+const pendingFulfillmentDataSchema = z.object({
+  access_point_id: z.string().optional(),
+  batch_id: z.string(),
+  delivery_failed: z.boolean().optional(),
+  error_message: z.string().optional(),
+  first_sync_attempt: z.string().optional(),
+  label_url: z.string().optional(),
+  last_status: pplShipmentStateSchema.optional(),
+  last_status_date: z.string().optional(),
+  last_sync_attempt: z.string().optional(),
+  ppl_label_url: z.string().optional(),
+  product_type: z.string(),
+  shipment_number: z.string().optional(),
+  status: z.literal("pending"),
+  sync_attempts: z.number().optional(),
+  tracking_url: z.string().optional(),
+})
+
+/** Exact fulfillment projection decoded from the label-sync graph query. */
+export const pendingFulfillmentSchema = z.object({
+  created_at: z.string(),
+  data: pendingFulfillmentDataSchema,
+  id: z.string(),
+  provider_id: z.string(),
+})
+
+export type PendingFulfillment = z.infer<typeof pendingFulfillmentSchema>
+
+export const parsePendingFulfillment = (
+  value: unknown,
+): PendingFulfillment | null => {
+  const result = pendingFulfillmentSchema.safeParse(value)
+  return result.success ? result.data : null
 }
 
 /** Sync attempt tracking */
-export type SyncAttemptInfo = {
+export interface SyncAttemptInfo {
   syncAttempts: number
   firstSyncAttempt: string
   now: string
@@ -39,22 +75,22 @@ export type SyncAttemptInfo = {
 /**
  * Check if fulfillment has exceeded timeout conditions
  */
-export function checkTimeoutConditions(
+export const checkTimeoutConditions = (
   fulfillment: PendingFulfillment,
-  attemptInfo: SyncAttemptInfo
-): { reason: string; message: string } | null {
+  attemptInfo: SyncAttemptInfo,
+): { reason: string; message: string } | null => {
   if (attemptInfo.syncAttempts >= MAX_SYNC_ATTEMPTS) {
     return {
-      reason: `exceeded max sync attempts (${MAX_SYNC_ATTEMPTS})`,
       message: `Batch ${fulfillment.data.batch_id} never completed after ${MAX_SYNC_ATTEMPTS} attempts`,
+      reason: `exceeded max sync attempts (${MAX_SYNC_ATTEMPTS})`,
     }
   }
 
   const createdAt = new Date(fulfillment.created_at).getTime()
   if (Date.now() - createdAt > MAX_PENDING_AGE_MS) {
     return {
-      reason: "pending for over 24 hours",
       message: `Batch ${fulfillment.data.batch_id} pending for over 24 hours`,
+      reason: "pending for over 24 hours",
     }
   }
 

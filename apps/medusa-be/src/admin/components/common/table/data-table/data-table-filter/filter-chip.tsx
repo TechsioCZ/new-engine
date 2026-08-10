@@ -7,7 +7,7 @@ import {
 import type { MouseEvent } from "react"
 import { useTranslation } from "react-i18next"
 
-export type FilterChipProps = {
+export interface FilterChipProps {
   hadPreviousValue?: boolean
   label: string
   value?: string
@@ -25,6 +25,8 @@ const FilterChip = ({
   onRemove,
 }: FilterChipProps) => {
   const { t } = useTranslation()
+  const hasValue = value !== undefined || hadPreviousValue === true
+  const isReadonly = readonly === true
 
   const handleRemove = (e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation()
@@ -33,13 +35,13 @@ const FilterChip = ({
 
   return (
     <div className="flex cursor-default select-none items-stretch overflow-hidden rounded-md bg-ui-bg-field text-ui-fg-subtle shadow-borders-base transition-fg">
-      {!hadPreviousValue && <PopoverAnchor />}
+      {hadPreviousValue !== true && <PopoverAnchor />}
       <div
         className={clx(
           "flex items-center justify-center whitespace-nowrap px-2 py-1",
           {
-            "border-r": !!(value || hadPreviousValue),
-          }
+            "border-r": hasValue,
+          },
         )}
       >
         <Text leading="compact" size="small" weight="plus">
@@ -47,7 +49,7 @@ const FilterChip = ({
         </Text>
       </div>
       <div className="flex w-full items-center overflow-hidden">
-        {hasOperator && !!(value || hadPreviousValue) && (
+        {hasOperator === true && hasValue && (
           <div className="border-r p-1 px-2">
             <Text
               className="text-ui-fg-muted"
@@ -59,15 +61,15 @@ const FilterChip = ({
             </Text>
           </div>
         )}
-        {!!(value || hadPreviousValue) && (
+        {hasValue && (
           <PopoverTrigger
             asChild
             className={clx(
               "flex-1 cursor-pointer overflow-hidden border-r p-1 px-2",
               {
-                "hover:bg-ui-bg-field-hover": !readonly,
-                "data-[state=open]:bg-ui-bg-field-hover": !readonly,
-              }
+                "data-[state=open]:bg-ui-bg-field-hover": !isReadonly,
+                "hover:bg-ui-bg-field-hover": !isReadonly,
+              },
             )}
           >
             <Text
@@ -76,17 +78,17 @@ const FilterChip = ({
               size="small"
               weight="plus"
             >
-              {value || "\u00A0"}
+              {value ?? "\u00A0"}
             </Text>
           </PopoverTrigger>
         )}
       </div>
-      {!readonly && !!(value || hadPreviousValue) && (
+      {!isReadonly && hasValue && (
         <button
           className={clx(
             "flex items-center justify-center p-1 text-ui-fg-muted transition-fg",
             "hover:bg-ui-bg-subtle-hover",
-            "active:bg-ui-bg-subtle-pressed active:text-ui-fg-base"
+            "active:bg-ui-bg-subtle-pressed active:text-ui-fg-base",
           )}
           onClick={handleRemove}
           type="button"

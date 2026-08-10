@@ -1,14 +1,16 @@
-import type { BreadcrumbTemplateItem } from "@ui/templates/breadcrumb"
+import type { BreadcrumbTemplateItem } from "@techsio/ui-kit/templates/breadcrumb"
+
 import type { Category } from "@/data/static/type"
+
 import { getCategoryPath } from "../transform/get-category-path"
 
-export function buildBreadcrumbs(
+export const buildBreadcrumbs = (
   categoryId: string | undefined,
-  categoryMap: Record<string, Category>
-): BreadcrumbTemplateItem[] {
-  const breadcrumbs: BreadcrumbTemplateItem[] = [{ label: "Domů", href: "/" }]
+  categoryMap: Record<string, Category>,
+): BreadcrumbTemplateItem[] => {
+  const breadcrumbs: BreadcrumbTemplateItem[] = [{ href: "/", label: "Domů" }]
 
-  if (!categoryId) {
+  if (categoryId === null || categoryId === undefined || categoryId === "") {
     return breadcrumbs
   }
 
@@ -26,28 +28,28 @@ export function buildBreadcrumbs(
     }
 
     breadcrumbs.push({
-      label: cat.name,
       href: `/kategorie/${cat.handle}`,
+      label: cat.name,
     })
   }
 
   return breadcrumbs
 }
 
-export function buildProductBreadcrumbs(
+export const buildProductBreadcrumbs = (
   categoryId: string | undefined,
   categoryMap: Record<string, Category>,
   productTitle: string,
-  productHandle: string
-): BreadcrumbTemplateItem[] {
+  productHandle: string,
+): BreadcrumbTemplateItem[] => {
   const categoryBreadcrumbs = buildBreadcrumbs(categoryId, categoryMap)
 
   return [
     ...categoryBreadcrumbs,
     {
-      label: productTitle,
       href: `/produkt/${productHandle}`,
       isCurrent: true,
+      label: productTitle,
     },
   ]
 }

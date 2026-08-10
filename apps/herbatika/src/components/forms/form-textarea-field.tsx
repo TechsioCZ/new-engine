@@ -1,7 +1,9 @@
 "use client"
 
 import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea"
-import { type ComponentPropsWithoutRef, type ReactNode, useState } from "react"
+import { useState } from "react"
+import type { ChangeEvent, ComponentPropsWithoutRef, ReactNode } from "react"
+
 import {
   resolveVisibleFieldFeedback,
   shouldTrackLiveFieldFeedback,
@@ -27,14 +29,14 @@ type FormTextareaFieldProps = {
   | "value"
 >
 
-export function FormTextareaField({
+export const FormTextareaField = ({
   id,
   label,
   onValueChange,
   required = false,
   validationMode = "blur",
   ...props
-}: FormTextareaFieldProps) {
+}: FormTextareaFieldProps) => {
   const field = useFieldContext<string>()
   const [hasChangedSinceBlur, setHasChangedSinceBlur] = useState(false)
   const value = typeof field.state.value === "string" ? field.state.value : ""
@@ -55,7 +57,7 @@ export function FormTextareaField({
         field.handleBlur()
         setHasChangedSinceBlur(false)
       }}
-      onChange={(event) => {
+      onChange={(event: ChangeEvent<HTMLTextAreaElement>) => {
         const nextValue = event.target.value
         if (
           shouldTrackLiveFieldFeedback({

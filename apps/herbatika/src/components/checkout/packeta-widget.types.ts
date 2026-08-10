@@ -1,4 +1,4 @@
-export type PacketaWidgetLanguage =
+type PacketaWidgetLanguage =
   | "bg"
   | "cs"
   | "da"
@@ -24,7 +24,7 @@ export type PacketaWidgetLanguage =
   | "sv"
   | "uk"
 
-export type PacketaWidgetVendor = {
+interface PacketaWidgetVendor {
   carrierId?: string
   country?: string
   currency?: string
@@ -33,7 +33,7 @@ export type PacketaWidgetVendor = {
   selected?: boolean
 }
 
-export type PacketaWidgetOptions = {
+export interface PacketaWidgetOptions {
   appIdentity?: string
   country?: string
   defaultCurrency?: string
@@ -46,7 +46,7 @@ export type PacketaWidgetOptions = {
   weight?: number
 }
 
-export type PacketaPickupPoint = {
+export interface PacketaPickupPoint {
   carrierId?: string | null
   carrierPickupPointId?: string | null
   city?: string | null
@@ -63,30 +63,30 @@ export type PacketaPickupPoint = {
   zip?: string | null
 }
 
-export type PacketaWidgetError = {
+export interface PacketaWidgetError {
   code: string
   message: string
 }
 
-export type PacketaWidgetHandle = {
+export interface PacketaWidgetHandle {
   close: () => void
   open: () => void
 }
 
-export type PacketaWidgetGlobal = {
+export interface PacketaWidgetGlobal {
   Widget: {
     close: () => void
     pick: (
       apiKey: string,
       callback: (point: PacketaPickupPoint | null) => void,
       options?: PacketaWidgetOptions,
-      inElement?: HTMLElement
+      inElement?: HTMLElement,
     ) => void
   }
 }
 
 declare global {
-  // biome-ignore lint/style/useConsistentTypeDefinitions: Window augmentation requires interface merging.
+  // Window augmentation requires interface merging.
   interface Window {
     Packeta?: PacketaWidgetGlobal
   }

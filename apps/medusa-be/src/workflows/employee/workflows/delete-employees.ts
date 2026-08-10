@@ -1,12 +1,13 @@
 import {
   createWorkflow,
-  type WorkflowData,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { validateCompanyActiveStep } from "../../company/steps"
-import { deleteEmployeesStep } from "../steps"
+import type { WorkflowData } from "@medusajs/framework/workflows-sdk"
 
-type DeleteEmployeesWorkflowInput = {
+import { validateCompanyActiveStep } from "../../company/steps/validate-company-active"
+import { deleteEmployeesStep } from "../steps/delete-employees"
+
+interface DeleteEmployeesWorkflowInput {
   company_id?: string
   id: string | string[]
 }
@@ -14,11 +15,11 @@ type DeleteEmployeesWorkflowInput = {
 export const deleteEmployeesWorkflow = createWorkflow(
   "delete-employees",
   (
-    input: WorkflowData<DeleteEmployeesWorkflowInput>
+    input: WorkflowData<DeleteEmployeesWorkflowInput>,
   ): WorkflowResponse<string> => {
     validateCompanyActiveStep(input.company_id)
     deleteEmployeesStep(input)
 
     return new WorkflowResponse("Company customers deleted")
-  }
+  },
 )

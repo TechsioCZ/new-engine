@@ -1,13 +1,14 @@
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import {
-  type CreateProductPayload,
-  type ExistingProductIndex,
-  ProductBatchClient,
-  type ProductBatchPayload,
-  type ResolvedCategoryMap,
-  type UpdateProductPayload,
+
+import { ProductBatchClient } from "../client"
+import type {
+  CreateProductPayload,
+  ExistingProductIndex,
+  ProductBatchPayload,
+  ResolvedCategoryMap,
+  UpdateProductPayload,
 } from "../client"
 import { productBatchClientMapperHelper } from "../client-mapper-helper"
 import type {
@@ -22,13 +23,13 @@ type ProductIdentifierEcho = Pick<
   "identifier_type" | "sku" | "ean" | "erp_id"
 >
 
-type CreateProductRequest = {
+interface CreateProductRequest {
   index: number
   echo: ProductIdentifierEcho
   payload: CreateProductPayload
 }
 
-type UpdateProductRequest = {
+interface UpdateProductRequest {
   index: number
   echo: ProductIdentifierEcho
   existing: { id: string; variants: { id: string }[] }
@@ -51,11 +52,11 @@ const toErrorMessage = (error: unknown) => {
 
 const buildFailedResult = (
   echo: ProductIdentifierEcho,
-  error: string
+  error: string,
 ): UpsertProductsBatchResult => ({
   ...echo,
-  status: "failed",
   error,
+  status: "failed",
 })
 
 const processProductForBatch = ({
@@ -83,15 +84,15 @@ const processProductForBatch = ({
   try {
     const existing = productBatchClientMapperHelper.findExistingProduct(
       product,
-      existingProductIndex
+      existingProductIndex,
     )
     if (!existing) {
       const payload = productBatchClientMapperHelper.buildCreatePayload(
         product,
         resolvedCategories,
-        defaultSalesChannelId
+        defaultSalesChannelId,
       )
-      toCreate.push({ index, echo, payload })
+      toCreate.push({ echo, index, payload })
       return
     }
 
@@ -99,13 +100,13 @@ const processProductForBatch = ({
       existing.id,
       product,
       existing,
-      resolvedCategories
+      resolvedCategories,
     )
-    toUpdate.push({ index, echo, existing, payload })
+    toUpdate.push({ echo, existing, index, payload })
   } catch (error) {
     const message = toErrorMessage(error)
     logger.warn(
-      `[symmy-plugin] Failed to upsert product (${echo.identifier_type}): ${message}`
+      `[symmy-plugin] Failed to upsert product (${echo.identifier_type}): ${message}`,
     )
     results[index] = buildFailedResult(echo, message)
   }
@@ -113,7 +114,7 @@ const processProductForBatch = ({
 
 const getVariantIds = (
   product: { variants?: { id: string }[] } | undefined,
-  fallback: { variants?: { id: string }[] } | undefined
+  fallback: { variants?: { id: string }[] } | undefined,
 ) =>
   (product?.variants ?? fallback?.variants ?? []).map((variant) => variant.id)
 
@@ -130,7 +131,7 @@ const processBatchRequests = async ({
   toCreate: CreateProductRequest[]
   toUpdate: UpdateProductRequest[]
 }) => {
-  if (!(toCreate.length || toUpdate.length)) {
+  if (toCreate.length === 0 && toUpdate.length === 0) {
     return
   }
 
@@ -142,38 +143,40 @@ const processBatchRequests = async ({
     const { created, updated } = await client.applyBatch(payload)
     for (const [createIndex, item] of toCreate.entries()) {
       const createdProduct = created[createIndex]
-      results[item.index] = createdProduct
-        ? {
-            ...item.echo,
-            status: "created",
-            product_id: createdProduct.id,
-            variant_ids: (createdProduct.variants ?? []).map(
-              (variant) => variant.id
-            ),
-          }
-        : buildFailedResult(
-            item.echo,
-            "batchProductsWorkflow returned fewer created products than requested"
-          )
+      results[item.index] =
+        createdProduct === undefined
+          ? buildFailedResult(
+              item.echo,
+              "batchProductsWorkflow returned fewer created products than requested",
+            )
+          : {
+              ...item.echo,
+              product_id: createdProduct.id,
+              status: "created",
+              variant_ids: (createdProduct.variants ?? []).map(
+                (variant) => variant.id,
+              ),
+            }
     }
     for (const [updateIndex, item] of toUpdate.entries()) {
       const updatedProduct = updated[updateIndex]
-      results[item.index] = updatedProduct
-        ? {
-            ...item.echo,
-            status: "updated",
-            product_id: updatedProduct.id,
-            variant_ids: getVariantIds(updatedProduct, item.existing),
-          }
-        : buildFailedResult(
-            item.echo,
-            "batchProductsWorkflow returned fewer updated products than requested"
-          )
+      results[item.index] =
+        updatedProduct === undefined
+          ? buildFailedResult(
+              item.echo,
+              "batchProductsWorkflow returned fewer updated products than requested",
+            )
+          : {
+              ...item.echo,
+              product_id: updatedProduct.id,
+              status: "updated",
+              variant_ids: getVariantIds(updatedProduct, item.existing),
+            }
     }
   } catch (error) {
     const message = toErrorMessage(error)
     logger.warn(
-      `[symmy-plugin] Failed to apply product batch (${toCreate.length} create, ${toUpdate.length} update): ${message}`
+      `[symmy-plugin] Failed to apply product batch (${toCreate.length} create, ${toUpdate.length} update): ${message}`,
     )
     for (const item of [...toCreate, ...toUpdate]) {
       results[item.index] = buildFailedResult(item.echo, message)
@@ -199,10 +202,10 @@ export const symmyProcessProductsBatchStep = createStep(
     for (const [index, product] of input.products.entries()) {
       processProductForBatch({
         defaultSalesChannelId,
+        existingProductIndex,
         index,
         logger,
         product,
-        existingProductIndex,
         resolvedCategories,
         results,
         toCreate,
@@ -221,11 +224,11 @@ export const symmyProcessProductsBatchStep = createStep(
     const failed = results.length - processed
 
     const output: UpsertProductsBatchOutput = {
-      success: failed === 0,
-      processed,
       failed,
+      processed,
       results,
+      success: failed === 0,
     }
     return new StepResponse(output)
-  }
+  },
 )

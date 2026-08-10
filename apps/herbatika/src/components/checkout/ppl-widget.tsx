@@ -2,13 +2,21 @@
 
 import {
   createElement,
-  type RefObject,
   useEffect,
+  useEffectEvent,
   useImperativeHandle,
-  useMemo,
   useRef,
   useState,
 } from "react"
+import type { RefObject } from "react"
+
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+
+import {
+  isPplWidgetError,
+  parsePplAccessPoint,
+} from "./ppl-widget-event-parsers"
+import { loadPplWidgetLoader } from "./ppl-widget-loader"
 import type {
   PplAccessPoint,
   PplWidgetConfig,
@@ -16,16 +24,10 @@ import type {
   PplWidgetError,
   PplWidgetHandle,
 } from "./ppl-widget.types"
-import { loadPplWidgetLoader } from "./ppl-widget-loader"
 
-export type {
-  PplAccessPoint,
-  PplWidgetConfig,
-  PplWidgetError,
-  PplWidgetHandle,
-} from "./ppl-widget.types"
+export type { PplWidgetHandle } from "./ppl-widget.types"
 
-type PplAccessPointWidgetProps = {
+interface PplAccessPointWidgetProps {
   apiKey: string
   config?: PplWidgetConfig
   onClose?: () => void
@@ -34,71 +36,86 @@ type PplAccessPointWidgetProps = {
   onSelect?: (accessPoint: PplAccessPoint) => void
 }
 
-export const PplAccessPointWidget = function PplAccessPointWidget({
+const EMPTY_CONFIG: PplWidgetConfig = {}
+
+export const PplAccessPointWidget = ({
   apiKey,
-  config = {},
+  config = EMPTY_CONFIG,
   onClose,
   onError,
   onReady,
   onSelect,
   ref,
-}: PplAccessPointWidgetProps & { ref?: RefObject<PplWidgetHandle | null> }) {
+}: PplAccessPointWidgetProps & { ref?: RefObject<PplWidgetHandle | null> }) => {
   const shouldOpenAfterLoadRef = useRef(false)
-  const widgetRef = useRef<PplWidgetElement | null>(null)
+  const [widget, setWidget] = useState<PplWidgetElement | null>(null)
   const [isLoaded, setIsLoaded] = useState(false)
-  const serializedConfig = useMemo(() => JSON.stringify(config), [config])
+  const serializedConfig = JSON.stringify(config)
+
+  const handleCloseEvent = useEffectEvent(() => {
+    onClose?.()
+  })
+  const handleErrorEvent = useEffectEvent((widgetError: PplWidgetError) => {
+    onError?.(widgetError)
+  })
+  const handleReadyEvent = useEffectEvent(() => {
+    onReady?.()
+  })
+  const handleSelectEvent = useEffectEvent((accessPoint: PplAccessPoint) => {
+    onSelect?.(accessPoint)
+  })
 
   useImperativeHandle(ref, () => ({
     close: () => {
-      widgetRef.current?.close?.()
+      widget?.close?.()
     },
-    getSelectedAccessPoint: () =>
-      widgetRef.current?.getSelectedAccessPoint?.() ?? null,
+    getSelectedAccessPoint: () => widget?.getSelectedAccessPoint?.() ?? null,
     open: () => {
-      if (widgetRef.current?.open) {
-        widgetRef.current.open()
+      if (typeof widget?.open === "function") {
+        widget.open()
         return
       }
 
       shouldOpenAfterLoadRef.current = true
     },
     reset: () => {
-      widgetRef.current?.reset?.()
+      widget?.reset?.()
     },
   }))
 
   useEffect(() => {
     let cancelled = false
 
-    loadPplWidgetLoader()
-      .then(() => {
+    const loadWidget = async () => {
+      try {
+        await loadPplWidgetLoader()
         if (!cancelled) {
           setIsLoaded(true)
         }
-      })
-      .catch((error) => {
+      } catch (error) {
         if (cancelled) {
           return
         }
 
-        onError?.({
+        handleErrorEvent({
           code: "loader_failed",
           message:
             error instanceof Error
               ? error.message
               : "PPL widget sa nepodarilo načítať.",
         })
-      })
+      }
+    }
+
+    runDetachedPromise(loadWidget())
 
     return () => {
       cancelled = true
     }
-  }, [onError])
+  }, [])
 
   useEffect(() => {
-    const widget = widgetRef.current
-
-    if (!(isLoaded && widget)) {
+    if (!(isLoaded && widget !== null)) {
       return
     }
 
@@ -108,48 +125,53 @@ export const PplAccessPointWidget = function PplAccessPointWidget({
       shouldOpenAfterLoadRef.current = false
       widget.open?.()
     }
-  }, [config, isLoaded])
+  }, [config, isLoaded, widget])
 
   useEffect(() => {
-    const widget = widgetRef.current
-
-    if (!(isLoaded && widget)) {
-      return
-    }
-
+    const handleClose = handleCloseEvent
+    const handleReady = handleReadyEvent
     const handleSelect = (event: Event) => {
-      onSelect?.((event as CustomEvent<PplAccessPoint>).detail)
-    }
-    const handleClose = () => {
-      onClose?.()
-    }
-    const handleReady = () => {
-      onReady?.()
+      if ("detail" in event) {
+        const accessPoint = parsePplAccessPoint(event.detail)
+        if (accessPoint !== null) {
+          handleSelectEvent(accessPoint)
+        }
+      }
     }
     const handleError = (event: Event) => {
-      onError?.((event as CustomEvent<PplWidgetError>).detail)
+      if ("detail" in event && isPplWidgetError(event.detail)) {
+        handleErrorEvent(event.detail)
+      }
     }
 
-    widget.addEventListener("ppl-accesspointwidget-select", handleSelect)
-    widget.addEventListener("ppl-accesspointwidget-close", handleClose)
-    widget.addEventListener("ppl-accesspointwidget-ready", handleReady)
-    widget.addEventListener("ppl-accesspointwidget-error", handleError)
+    if (isLoaded && widget !== null) {
+      widget.addEventListener("ppl-accesspointwidget-select", handleSelect)
+      widget.addEventListener("ppl-accesspointwidget-close", handleClose)
+      widget.addEventListener("ppl-accesspointwidget-ready", handleReady)
+      widget.addEventListener("ppl-accesspointwidget-error", handleError)
+    }
 
     return () => {
-      widget.removeEventListener("ppl-accesspointwidget-select", handleSelect)
-      widget.removeEventListener("ppl-accesspointwidget-close", handleClose)
-      widget.removeEventListener("ppl-accesspointwidget-ready", handleReady)
-      widget.removeEventListener("ppl-accesspointwidget-error", handleError)
+      if (widget !== null) {
+        widget.removeEventListener("ppl-accesspointwidget-select", handleSelect)
+        widget.removeEventListener("ppl-accesspointwidget-close", handleClose)
+        widget.removeEventListener("ppl-accesspointwidget-ready", handleReady)
+        widget.removeEventListener("ppl-accesspointwidget-error", handleError)
+      }
     }
-  }, [isLoaded, onClose, onError, onReady, onSelect])
+  }, [isLoaded, widget])
 
   if (!isLoaded) {
     return null
   }
 
-  return createElement("ppl-access-point-widget", {
-    "api-key": apiKey,
-    config: serializedConfig,
-    ref: widgetRef,
-  })
+  return (
+    <>
+      {createElement("ppl-access-point-widget", {
+        "api-key": apiKey,
+        config: serializedConfig,
+        ref: setWidget,
+      })}
+    </>
+  )
 }

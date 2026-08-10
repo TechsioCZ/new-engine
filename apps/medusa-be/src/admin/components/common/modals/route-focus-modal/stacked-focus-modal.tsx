@@ -1,10 +1,12 @@
 import { clx, FocusModal } from "@medusajs/ui"
-import {
-  type ComponentPropsWithoutRef,
-  type PropsWithChildren,
-  type Ref,
-  useEffect,
+import { useEffect } from "react"
+import type {
+  ComponentPropsWithoutRef,
+  PropsWithChildren,
+  ReactNode,
+  Ref,
 } from "react"
+
 import { useStackedModal } from "./use-stacked-modal"
 
 type StackedFocusModalProps = PropsWithChildren<{
@@ -24,12 +26,16 @@ export const Root = ({ id, children }: StackedFocusModalProps) => {
   useEffect(() => {
     register(id)
 
-    return () => unregister(id)
+    return () => {
+      unregister(id)
+    }
   }, [id, register, unregister])
 
   return (
     <FocusModal
-      onOpenChange={(open) => setIsOpen(id, open)}
+      onOpenChange={(open) => {
+        setIsOpen(id, open)
+      }}
       open={getIsOpen(id)}
     >
       <FocusModal.Title />
@@ -39,25 +45,25 @@ export const Root = ({ id, children }: StackedFocusModalProps) => {
   )
 }
 
-const Close = FocusModal.Close
+const { Close } = FocusModal
 Close.displayName = "StackedFocusModal.Close"
 
-const Header = FocusModal.Header
+const { Header } = FocusModal
 Header.displayName = "StackedFocusModal.Header"
 
-const Body = FocusModal.Body
+const { Body } = FocusModal
 Body.displayName = "StackedFocusModal.Body"
 
-const Trigger = FocusModal.Trigger
+const { Trigger } = FocusModal
 Trigger.displayName = "StackedFocusModal.Trigger"
 
-const Footer = FocusModal.Footer
+const { Footer } = FocusModal
 Footer.displayName = "StackedFocusModal.Footer"
 
-const Title = FocusModal.Title
+const { Title } = FocusModal
 Title.displayName = "StackedFocusModal.Title"
 
-const Description = FocusModal.Description
+const { Description } = FocusModal
 Description.displayName = "StackedFocusModal.Description"
 
 type ContentProps = ComponentPropsWithoutRef<typeof FocusModal.Content> & {
@@ -76,13 +82,28 @@ const Content = ({ className, ref, ...props }: ContentProps) => (
 )
 Content.displayName = "StackedFocusModal.Content"
 
-export const StackedFocusModal = Object.assign(Root, {
-  Close,
-  Header,
-  Body,
-  Content,
-  Trigger,
-  Footer,
-  Description,
-  Title,
-})
+interface StackedFocusModalComponent {
+  (props: StackedFocusModalProps): ReactNode
+  Body: typeof FocusModal.Body
+  Close: typeof FocusModal.Close
+  Content: typeof Content
+  Description: typeof FocusModal.Description
+  Footer: typeof FocusModal.Footer
+  Header: typeof FocusModal.Header
+  Title: typeof FocusModal.Title
+  Trigger: typeof FocusModal.Trigger
+}
+
+export const StackedFocusModal: StackedFocusModalComponent = Object.assign(
+  Root,
+  {
+    Body,
+    Close,
+    Content,
+    Description,
+    Footer,
+    Header,
+    Title,
+    Trigger,
+  },
+)

@@ -3,12 +3,13 @@
 import { Toaster } from "@techsio/ui-kit/molecules/toast"
 import { usePathname } from "next/navigation"
 import type { PropsWithChildren } from "react"
+
 import { CheckoutFooter } from "@/components/checkout/checkout-footer"
 import { CheckoutHeader } from "@/components/checkout/checkout-header"
 import { HerbatikaFooter } from "@/components/herbatika-footer"
 import { HerbatikaHeader } from "@/components/herbatika-header"
 
-export function AppShell({ children }: PropsWithChildren) {
+export const AppShell = ({ children }: PropsWithChildren) => {
   const pathname = usePathname()
   const isCheckoutRoute = pathname.startsWith("/checkout")
   const shell = isCheckoutRoute ? (

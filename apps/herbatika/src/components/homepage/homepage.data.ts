@@ -1,20 +1,72 @@
-import { HOMEPAGE_PRODUCTS_PER_SECTION } from "@/lib/storefront/homepage-catalog-config"
-import {
-  BLOG_POSTS as BLOG_POSTS_DATA,
-  PRODUCT_SECTIONS as PRODUCT_SECTION_DATA,
-} from "./homepage.content.data"
 import type {
-  BlogTeaserItem as BlogTeaserItemData,
-  HeroBannerItem as HeroBannerItemData,
-  ProductSectionDefinition as ProductSectionDefinitionData,
-} from "./homepage.data.types"
-import { HERO_BANNERS as HERO_BANNER_DATA } from "./homepage.hero.data"
+  BlogTeaserItem,
+  ProductSectionDefinition,
+} from "./homepage-data-types"
 
-export const BLOG_POSTS = BLOG_POSTS_DATA
-export const HERO_BANNERS = HERO_BANNER_DATA
-export const PRODUCT_SECTIONS = PRODUCT_SECTION_DATA
-export const PRODUCTS_PER_COLLECTION_SECTION = HOMEPAGE_PRODUCTS_PER_SECTION
+export { HOMEPAGE_PRODUCTS_PER_SECTION as PRODUCTS_PER_COLLECTION_SECTION } from "@/lib/storefront/homepage-catalog-config"
 
-export type BlogTeaserItem = BlogTeaserItemData
-export type HeroBannerItem = HeroBannerItemData
-export type ProductSectionDefinition = ProductSectionDefinitionData
+export { HERO_BANNERS } from "./homepage-hero-data"
+export type {
+  BlogTeaserItem,
+  HeroBannerItem,
+  ProductSectionDefinition,
+} from "./homepage-data-types"
+
+const BLOG_PUBLISHED_AT = "2025-12-06"
+
+export const PRODUCT_SECTIONS = [
+  {
+    id: "najoblubenejsie-produkty",
+    titleKey: "home.product_sections.bestsellers",
+    viewAllHref: "/c/ine-najpredavanejsie",
+  },
+  {
+    id: "novinky",
+    titleKey: "home.product_sections.new_products",
+    viewAllHref: "/c/novinky",
+  },
+  {
+    id: "aktuálne-v.zlave",
+    titleKey: "home.product_sections.sale",
+    viewAllHref: "/c/vypredaj-zlavy-a-akcie",
+  },
+] as const satisfies readonly ProductSectionDefinition[]
+
+export const BLOG_POSTS: BlogTeaserItem[] = [
+  {
+    excerpt:
+      "Praktické tipy na každodennú rutinu, ktorá pomáha udržať obranyschopnosť v kondícii.",
+    href: "/blog/elektrolyty-klucove-mineraly-pre-spravne-fungovanie-tela",
+    id: "blog-1",
+    imageSrc:
+      "https://images.unsplash.com/photo-1470549638415-0a0755be0619?auto=format&fit=crop&w=900&q=80",
+    publishedAt: BLOG_PUBLISHED_AT,
+    readingTime: "9 min",
+    title: "Ako podporiť imunitu počas náročných mesiacov",
+    topic: "fitness",
+  },
+  {
+    excerpt:
+      "Prehľad účinných látok a ich praktické využitie pri strese, únave aj výkone.",
+    href: "/blog/ashwagandha-adaptogen-pre-rovnovahu-tela-a-mysle",
+    id: "blog-2",
+    imageSrc:
+      "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?auto=format&fit=crop&w=900&q=80",
+    publishedAt: BLOG_PUBLISHED_AT,
+    readingTime: "9 min",
+    title: "Adaptogény: kedy ich zaradiť do svojho režimu",
+    topic: "fitness",
+  },
+  {
+    excerpt:
+      "Na čo sa pozerať pri výbere šetrnej kozmetiky a ktoré látky sa oplatí sledovať.",
+    href: "/blog/prirodna-kozmetika-a-citliva-pokozka",
+    id: "blog-3",
+    imageSrc:
+      "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=900&q=80",
+    publishedAt: BLOG_PUBLISHED_AT,
+    readingTime: "9 min",
+    title: "Prírodná kozmetika a citlivá pokožka",
+    topic: "fitness",
+  },
+]

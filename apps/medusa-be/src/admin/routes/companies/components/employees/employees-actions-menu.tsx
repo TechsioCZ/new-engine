@@ -1,14 +1,13 @@
 import { EllipsisHorizontal, PencilSquare, Trash } from "@medusajs/icons"
 import { DropdownMenu, IconButton, toast } from "@medusajs/ui"
+import { getErrorMessage } from "@techsio/std/object"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import type { QueryCompany, QueryEmployee } from "../../../../../types"
-import { DeletePrompt } from "../../../../components/common"
-import { useDeleteEmployee } from "../../../../hooks/api"
-import { EmployeesUpdateDrawer } from "."
 
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error)
+import type { QueryCompany, QueryEmployee } from "../../../../../types"
+import { DeletePrompt } from "../../../../components/common/delete-prompt"
+import { useDeleteEmployee } from "../../../../hooks/api/employees"
+import { EmployeesUpdateDrawer } from "./employees-update-drawer"
 
 export const EmployeesActionsMenu = ({
   company,
@@ -27,7 +26,7 @@ export const EmployeesActionsMenu = ({
     await mutateDelete(employee.id, {
       onError: (error) => {
         toast.error(
-          `${t("errors.deleteEmployeeFailed")}: ${getErrorMessage(error)}`
+          `${t("errors.deleteEmployeeFailed")}: ${getErrorMessage(error)}`,
         )
       },
       onSuccess: () => {
@@ -47,7 +46,9 @@ export const EmployeesActionsMenu = ({
         <DropdownMenu.Content>
           <DropdownMenu.Item
             className="gap-x-2"
-            onClick={() => setEditOpen(true)}
+            onClick={() => {
+              setEditOpen(true)
+            }}
           >
             <PencilSquare />
             {t("actions.edit")}
@@ -55,7 +56,9 @@ export const EmployeesActionsMenu = ({
           <DropdownMenu.Separator />
           <DropdownMenu.Item
             className="gap-x-2"
-            onClick={() => setDeleteOpen(true)}
+            onClick={() => {
+              setDeleteOpen(true)
+            }}
           >
             <Trash />
             {t("actions.delete")}

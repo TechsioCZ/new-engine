@@ -1,6 +1,9 @@
+import type { HttpTypes } from "@medusajs/types"
+
 import { sdk } from "@/lib/medusa-client"
 import type { Product } from "@/types/product"
 import { buildMedusaQuery } from "@/utils/server-filters"
+import type { MedusaProductQuery } from "@/utils/server-filters"
 
 export interface ProductFilters {
   categories?: string[]
@@ -9,15 +12,15 @@ export interface ProductFilters {
 }
 
 export interface ProductListParams {
-  limit?: number
-  offset?: number
-  fields?: string
-  filters?: ProductFilters
-  category?: string | string[]
-  sort?: string
-  q?: string
-  region_id?: string
-  country_code?: string
+  limit?: number | undefined
+  offset?: number | undefined
+  fields?: string | undefined
+  filters?: ProductFilters | undefined
+  category?: string | string[] | undefined
+  sort?: string | undefined
+  q?: string | undefined
+  region_id?: string | undefined
+  country_code?: string | undefined
 }
 
 export interface ProductListResponse {
@@ -67,12 +70,59 @@ const DETAIL_FIELDS = [
   "variants.calculated_price",
   "variants.options",
 ].join(",")
+const resolveCategoryIds = (
+  category: ProductListParams["category"],
+  filterCategories: ProductFilters["categories"],
+): string | string[] | undefined =>
+  category === undefined || category === "" ? filterCategories : category
+
+/**
+ * Transform raw product data from API
+ */
+const transformProduct = (
+  product: HttpTypes.StoreProduct,
+  withVariants = false,
+): Product => {
+  // Get primary variant (first one)
+  const primaryVariant = product.variants?.[0]
+
+  // Get price from primary variant
+  const price = primaryVariant?.calculated_price?.calculated_amount ?? undefined
+  const priceWithTax =
+    primaryVariant?.calculated_price?.calculated_amount_with_tax ?? undefined
+
+  // Since Store API doesn't provide real inventory data, we can't determine stock status
+  // We'll default to true and let the detailed product page handle variant-specific availability
+  const inStock = true
+
+  const images =
+    product.images !== undefined &&
+    product.images !== null &&
+    product.images.length > 2
+      ? product.images.slice(0, 2)
+      : product.images
+
+  // Remove variants array from list results to reduce payload size.
+  const { variants: productVariants, ...productWithoutVariants } = product
+  const variants = withVariants ? productVariants : undefined
+
+  return {
+    ...productWithoutVariants,
+    ...(variants !== undefined && { variants }),
+    images,
+    inStock,
+    price,
+    priceWithTax,
+    primaryVariant,
+    thumbnail: product.thumbnail,
+  }
+}
 
 /**
  * Fetch products with filtering, pagination and sorting
  */
 export const getProducts = async (
-  params: ProductListParams = {}
+  params: ProductListParams = {},
 ): Promise<ProductListResponse> => {
   const {
     limit = 20,
@@ -86,51 +136,59 @@ export const getProducts = async (
     country_code,
   } = params
 
-  // Use either category parameter OR filters.categories, not both
-  // Priority: explicit category param > filters.categories
-  const categoryIds = category || filters?.categories
+  // Use either category parameter or filters.categories, not both.
+  // An explicit non-empty category takes priority over filters.categories.
+  const categoryIds = resolveCategoryIds(category, filters?.categories)
 
-  // Build base query
-  const baseQuery: Record<string, any> = {
+  const sortMap: Record<string, string> = {
+    "name-asc": "title",
+    "name-desc": "-title",
+    newest: "id",
+    "price-asc": "variants.prices.amount",
+    "price-desc": "-variants.prices.amount",
+  }
+  const order =
+    sort !== undefined && sort.length > 0 ? (sortMap[sort] ?? sort) : undefined
+
+  // Build base query.
+  const baseQuery: MedusaProductQuery = {
+    country_code: country_code ?? "cz",
+    fields,
     limit,
     offset,
-    q,
-    category_id: categoryIds,
-    fields,
-    ...(region_id && { region_id }),
-    country_code: country_code ?? "cz",
+    ...(q !== undefined && { q }),
+    ...(categoryIds !== undefined && { category_id: categoryIds }),
+    ...(region_id !== undefined && { region_id }),
+    ...(order !== undefined && { order }),
   }
 
-  // Add sorting
-  if (sort) {
-    const sortMap: Record<string, string> = {
-      newest: "id",
-      "price-asc": "variants.prices.amount",
-      "price-desc": "-variants.prices.amount",
-      "name-asc": "title",
-      "name-desc": "-title",
-    }
-    baseQuery.order = sortMap[sort] || sort
-  }
-
-  // Build query with server-side filters
+  // Build query with server-side filters.
   const queryParams = buildMedusaQuery(filters, baseQuery)
 
   try {
     const response = await sdk.store.product.list(queryParams)
 
-    if (!response.products) {
+    if (!Array.isArray(response.products)) {
       console.error("[ProductService] Invalid response structure:", response)
-      return { products: [], count: 0, limit, offset }
+      return { count: 0, limit, offset, products: [] }
     }
 
-    const products = response.products.map((p) => transformProduct(p, true))
+    const products = response.products.map((product) =>
+      transformProduct(product, true),
+    )
+    const responseCount: unknown = response.count
+    const count =
+      typeof responseCount === "number" &&
+      responseCount !== 0 &&
+      !Number.isNaN(responseCount)
+        ? responseCount
+        : products.length
 
     return {
-      products,
-      count: response.count || products.length,
+      count,
       limit,
       offset,
+      products,
     }
   } catch (error) {
     console.error("[ProductService] Error fetching products:", error)
@@ -138,61 +196,25 @@ export const getProducts = async (
   }
 }
 
-/**
- * Transform raw product data from API
- */
-const transformProduct = (product: any, withVariants?: boolean): Product => {
-  if (!product) {
-    throw new Error("Cannot transform null product")
-  }
-
-  // Get primary variant (first one)
-  const primaryVariant = product.variants?.[0]
-
-  // Get price from primary variant
-  const price = primaryVariant?.calculated_price?.calculated_amount
-  const priceWithTax =
-    primaryVariant?.calculated_price?.calculated_amount_with_tax
-
-  // Since Store API doesn't provide real inventory data, we can't determine stock status
-  // We'll default to true and let the detailed product page handle variant-specific availability
-  const inStock = true
-
-  const reducedImages =
-    product.images && product.images.length > 2 && product.images.slice(0, 2)
-
-  // Remove variants array from the result to reduce payload size
-  const { variants, ...productWithoutVariants } = product
-
-  const result = withVariants ? product : productWithoutVariants
-
-  return {
-    ...result,
-    thumbnail: product.thumbnail,
-    images: reducedImages || product.images,
-    inStock,
-    price,
-    priceWithTax,
-    primaryVariant,
-  } as Product
-}
-
-export async function getProduct(
+export const getProduct = async (
   handle: string,
-  region_id?: string,
-  country_code?: string
-): Promise<Product> {
+  regionId?: string,
+  countryCode?: string,
+): Promise<Product> => {
   const response = await sdk.store.product.list({
+    country_code: countryCode ?? "cz",
+    // Use full fields for detail views.
+    fields: DETAIL_FIELDS,
     handle,
-    fields: DETAIL_FIELDS, // Use full fields for detail views
     limit: 1,
-    region_id,
-    country_code: country_code ?? "cz",
+    ...(regionId !== undefined && { region_id: regionId }),
   })
 
-  if (!response.products?.length) {
+  const products = Array.isArray(response.products) ? response.products : []
+  const [product] = products
+  if (product === undefined) {
     throw new Error("Product not found")
   }
 
-  return transformProduct(response.products[0], true)
+  return transformProduct(product, true)
 }

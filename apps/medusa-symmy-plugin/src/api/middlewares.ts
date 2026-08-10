@@ -1,11 +1,11 @@
-import {
-  defineMiddlewares,
-  errorHandler,
-  type MedusaNextFunction,
-  type MedusaRequest,
-  type MedusaResponse,
+import { defineMiddlewares, errorHandler } from "@medusajs/framework/http"
+import type {
+  MedusaNextFunction,
+  MedusaRequest,
+  MedusaResponse,
 } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
+
 import { adminSymmyWebhookRoutes } from "./admin/symmy-webhooks/middlewares"
 import { symmyAdminRoutes } from "./api/symmy/v1/admin/middlewares"
 import { symmyAuthUserEmailPassRoutes } from "./api/symmy/v1/auth/user/emailpass/middlewares"
@@ -28,64 +28,69 @@ const isSymmyRoute = (req: MedusaRequest) => req.path.startsWith("/api/symmy/")
 const getErrorStatus = (error: unknown) => {
   if (error instanceof MedusaError) {
     switch (error.type) {
-      case MedusaError.Types.INVALID_DATA:
+      case MedusaError.Types.INVALID_DATA: {
         return 400
-      case MedusaError.Types.UNAUTHORIZED:
+      }
+      case MedusaError.Types.UNAUTHORIZED: {
         return 401
-      case MedusaError.Types.NOT_FOUND:
+      }
+      case MedusaError.Types.NOT_FOUND: {
         return 404
-      default:
+      }
+      default: {
         return 500
+      }
     }
   }
 
-  if (!error || typeof error !== "object") {
+  if (typeof error !== "object" || error === null) {
     return 500
   }
 
-  const record = error as Record<string, unknown>
-  const status = record.status ?? record.statusCode
+  const status =
+    ("status" in error ? error.status : undefined) ??
+    ("statusCode" in error ? error.statusCode : undefined)
 
   return typeof status === "number" ? status : 500
 }
 
-const getErrorMessage = (error: unknown) =>
+const describeSymmyError = (error: unknown) =>
   error instanceof Error ? error.message : "An unexpected error occurred"
 
 const getSymmyError = (error: unknown) => {
   const status = getErrorStatus(error)
-  const message = getErrorMessage(error)
+  const message = describeSymmyError(error)
 
   if (status === 400) {
     return {
-      status,
       code: "VALIDATION_ERROR",
-      message: "Invalid request parameters",
       details: { message },
+      message: "Invalid request parameters",
+      status,
     }
   }
 
   if (status === 401 || status === 403) {
     return {
-      status: 401,
       code: "UNAUTHORIZED",
       message: "Missing or invalid authentication token",
+      status: 401,
     }
   }
 
   if (status === 404) {
     return {
-      status,
       code: "NOT_FOUND",
-      message: "Resource not found",
       details: { message },
+      message: "Resource not found",
+      status,
     }
   }
 
   return {
-    status: 500,
     code: "INTERNAL_ERROR",
     message: "An unexpected error occurred",
+    status: 500,
   }
 }
 
@@ -94,7 +99,7 @@ export default defineMiddlewares({
     error: unknown,
     req: MedusaRequest,
     res: MedusaResponse,
-    next: MedusaNextFunction
+    next: MedusaNextFunction,
   ) => {
     if (!isSymmyRoute(req)) {
       defaultErrorHandler(error, req, res, next)

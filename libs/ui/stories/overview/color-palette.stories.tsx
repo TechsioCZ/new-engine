@@ -1,38 +1,39 @@
-import type { Meta, StoryObj } from '@storybook/react'
-import '../../src/tokens/_colors.css'
-import '../../src/tokens/_semantic.css'
-import {ColorSelect} from '../../src/molecules/color-select'
+import type { Meta, StoryObj } from "@storybook/react"
+
+import "../../src/tokens/_colors.css"
+import "../../src/tokens/_semantic.css"
+import { ColorSelect } from "../../src/molecules/color-select"
 
 const meta: Meta = {
-  title: 'Overview/Color Palette',
   parameters: {
-    layout: 'fullscreen',
+    layout: "fullscreen",
   },
+  title: "Overview/Color Palette",
 }
 
 export default meta
 type Story = StoryObj
 
 const semanticColors = [
-  'primary',
-  'secondary',
-  'tertiary',
-  'info',
-  'success',
-  'warning',
-  'danger',
+  "primary",
+  "secondary",
+  "tertiary",
+  "info",
+  "success",
+  "warning",
+  "danger",
 ] as const
 
 const colorVariants = [
-  { suffix: '', label: 'Default' },
-  { suffix: '-light', label: 'Light' },
+  { label: "Default", suffix: "" },
+  { label: "Light", suffix: "-light" },
 ] as const
 
 const stateVariants = [
-  { state: '', label: 'Default' },
-  { state: 'hover', label: 'Hover' },
-  { state: 'active', label: 'Active' },
-  { state: 'disabled', label: 'Disabled' },
+  { label: "Default", state: "" },
+  { label: "Hover", state: "hover" },
+  { label: "Active", state: "active" },
+  { label: "Disabled", state: "disabled" },
 ] as const
 
 export const Default: Story = {
@@ -42,39 +43,36 @@ export const Default: Story = {
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {semanticColors.map((color) => (
             <div key={color} className="rounded-xl bg-surface p-6 shadow-lg">
-              <h3 className="mb-4 font-semibold text-fg-primary text-lg capitalize">
+              <h3 className="mb-4 text-lg font-semibold text-fg-primary capitalize">
                 {color}
               </h3>
 
               <div className="space-y-6">
                 {colorVariants.map(({ suffix, label }) => (
                   <div key={suffix}>
-                    <h4 className="mb-3 font-medium text-fg-secondary text-sm">
+                    <h4 className="mb-3 text-sm font-medium text-fg-secondary">
                       {label}
                     </h4>
                     <div className="grid grid-cols-4 gap-4">
-                      {stateVariants.map(({ state, label: stateLabel }) => {
+                      {stateVariants.map(({ state }) => {
                         const baseColorVar = `--color-${color}${suffix}`
-                        const computedColor =
-                          state === 'disabled'
-                            ? `var(--color-${color}${suffix}-disabled)`
-                            : state !== ''
-                              ? `oklch(from var(${baseColorVar}) calc(l + var(--state-${state})) c h)`
-                              : `var(${baseColorVar})`
+                        let computedColor = `var(${baseColorVar})`
+                        let colorTokenName = `--color-${color}${suffix}`
 
-                        const colorTokenName =
-                          state === 'disabled'
-                            ? `--color-${color}${suffix}-disabled`
-                            : state !== ''
-                              ? `--color-${color}${suffix}-${state}`
-                              : `--color-${color}${suffix}`
+                        if (state === "disabled") {
+                          computedColor = `var(--color-${color}${suffix}-disabled)`
+                          colorTokenName = `--color-${color}${suffix}-disabled`
+                        } else if (state !== "") {
+                          computedColor = `oklch(from var(${baseColorVar}) calc(l + var(--state-${state})) c h)`
+                          colorTokenName = `--color-${color}${suffix}-${state}`
+                        }
 
                         return (
                           <div
                             key={state}
                             className="flex min-w-0 flex-col items-center gap-2"
                           >
-                            <div className="h-16 w-16 flex-shrink-0">
+                            <div className="size-16 flex-shrink-0">
                               <ColorSelect
                                 colors={[{ color: computedColor }]}
                                 size="full"
@@ -83,10 +81,10 @@ export const Default: Story = {
                               />
                             </div>
                             <div className="w-full text-center">
-                              <div className="truncate font-medium text-fg-primary text-xs">
-                                {state || 'Default'}
+                              <div className="truncate text-xs font-medium text-fg-primary">
+                                {state || "Default"}
                               </div>
-                              <div className="mt-1 break-all font-mono text-fg-secondary text-xs leading-tight">
+                              <div className="mt-1 font-mono text-xs leading-tight break-all text-fg-secondary">
                                 {colorTokenName}
                               </div>
                             </div>

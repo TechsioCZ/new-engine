@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react"
 
 export const useDelayedPrefetchController = () => {
   const timeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(
-    new Map()
+    new Map(),
   )
 
   useEffect(() => {
@@ -18,20 +18,23 @@ export const useDelayedPrefetchController = () => {
   const schedulePrefetch = (
     execute: () => unknown,
     prefetchId: string,
-    delay: number
+    delay: number,
   ) => {
     const existing = timeoutsRef.current.get(prefetchId)
     if (existing) {
       clearTimeout(existing)
     }
 
+    const executePrefetch = async (): Promise<void> => {
+      try {
+        await execute()
+      } catch {
+        // Prefetch is speculative and must not affect the active user flow.
+      }
+    }
     const timeoutId = setTimeout(() => {
       timeoutsRef.current.delete(prefetchId)
-      Promise.resolve()
-        .then(execute)
-        .catch(() => {
-          // best-effort prefetch: ignore failures
-        })
+      void executePrefetch()
     }, delay)
 
     timeoutsRef.current.set(prefetchId, timeoutId)
@@ -47,7 +50,7 @@ export const useDelayedPrefetchController = () => {
   }
 
   return {
-    schedulePrefetch,
     cancelPrefetch,
+    schedulePrefetch,
   }
 }

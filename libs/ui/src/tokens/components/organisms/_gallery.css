@@ -11,3 +11,7 @@
 :root {
   --height-gallery: min(60svh, 36rem);
 }
+
+@utility grid-cols-gallery-vertical {
+  grid-template-columns: minmax(0, 1fr) auto;
+}

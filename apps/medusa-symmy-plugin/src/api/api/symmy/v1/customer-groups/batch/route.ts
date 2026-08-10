@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import { upsertCustomerGroupsBatchWorkflow } from "../../../../../../workflows/customer-groups-batch/workflow"
 import type { UpsertCustomerGroupsBatchSchemaType } from "./validators"
 
@@ -9,7 +10,7 @@ type AuthenticatedRequest =
     }
   }
 
-/**
+/*
  * @api [post] /api/symmy/v1/customer-groups/batch
  * operationId: PostSymmyCustomerGroupsBatch
  * summary: Upsert customer groups in batch
@@ -55,9 +56,9 @@ type AuthenticatedRequest =
  * x-workflow: upsertCustomerGroupsBatchWorkflow
  * x-events: []
  */
-export const POST = async (
+const post = async (
   req: MedusaRequest<UpsertCustomerGroupsBatchSchemaType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
   const authReq = req as AuthenticatedRequest
   const { result } = await upsertCustomerGroupsBatchWorkflow(req.scope).run({
@@ -68,3 +69,5 @@ export const POST = async (
   })
   res.status(200).json(result)
 }
+
+export { post as POST }

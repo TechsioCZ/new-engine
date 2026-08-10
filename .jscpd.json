@@ -1,5 +1,5 @@
 {
-  "threshold": 2,
+  "threshold": 1,
   "reporters": ["html", "json", "console"],
   "ignore": [
     "**/local/**",
@@ -13,17 +13,27 @@
     "**/*.spec.{ts,tsx,js,jsx}",
     "**/__tests__/**",
     "**/__mocks__/**",
+    "**/fixtures/**",
     "**/storybook-static/**",
     "**/.netlify/**",
-    "**/e2e/**",
     "**/playwright-report/**",
+    "**/*.generated.{ts,tsx,js,jsx}",
+    "**/.cache/**",
+    "**/payload-types.ts",
+    "**/importMap.js",
     "pnpm-lock.yaml",
     "package-lock.json",
-    "yarn.lock",
-    "**/*.generated.{ts,tsx,js,jsx}",
-    "**/.cache/**"
+    "yarn.lock"
   ],
-  "path": ["apps/", "libs/"],
+  "path": [
+    "apps/",
+    "libs/",
+    "packages/",
+    "scripts/",
+    "tooling/",
+    "rules/",
+    "rule-tests/"
+  ],
   "format": ["typescript", "javascript", "css"],
   "absolute": true,
   "gitignore": true,
@@ -32,15 +42,13 @@
   "minTokens": 100,
   "maxLines": 500,
   "maxSize": "500kb",
-  "skipComments": true,
   "blame": false,
-  "exitCode": 0,
   "silent": false,
   "verbose": false,
   "mode": "mild",
   "formatsExts": {
     "typescript": ["ts", "tsx"],
-    "javascript": ["js", "jsx", "mjs"],
+    "javascript": ["js", "jsx", "mjs", "cjs"],
     "css": ["css", "scss"]
   }
 }

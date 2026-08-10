@@ -1,4 +1,5 @@
-import { resolve } from "node:path"
+import path from "node:path"
+
 import type { TaxRateSeedConfig } from "../workflows/seed/steps/create-tax-rates"
 import type { SyncPriceListsStepConfig } from "../workflows/seed/steps/sync-price-lists"
 import type { SeedDatabaseWorkflowInput } from "../workflows/seed/workflows/seed-database"
@@ -13,11 +14,11 @@ export const HERBATICA_MANUFACTURERS_CSV_ENV =
   "HERBATICA_MANUFACTURERS_CSV_PATH"
 
 export const HERBATICA_PRODUCTS_XML_PATHS = [
-  resolve(__dirname, "seed-files/productsComplete.xml"),
+  path.resolve(process.cwd(), "src/scripts/seed-files/productsComplete.xml"),
 ] as const
 
 export const HERBATICA_CATEGORIES_XML_PATHS = [
-  resolve(__dirname, "seed-files/categories.xml"),
+  path.resolve(process.cwd(), "src/scripts/seed-files/categories.xml"),
 ] as const
 
 export const HERBATICA_COUNTRIES = [
@@ -35,21 +36,21 @@ export const HERBATICA_COUNTRIES = [
 ] as const
 
 export const HERBATICA_DEFAULT_STOCK_LOCATION = {
-  name: "European Warehouse",
   address: {
+    address_1: "",
     city: "Copenhagen",
     country_code: "DK",
-    address_1: "",
   },
+  name: "European Warehouse",
 } satisfies SeedDatabaseWorkflowInput["stockLocations"]["locations"][number]
 
 export const HERBATICA_FALLBACK_SHOPTET_WAREHOUSE = {
-  name: "Shoptet Warehouse",
   address: {
     address_1: "Shoptet Warehouse",
     city: "Unknown",
     country_code: "SK",
   },
+  name: "Shoptet Warehouse",
 } as const
 
 export const HERBATICA_DEFAULT_PRICELIST_LABEL = "Default pricelist"
@@ -62,21 +63,21 @@ export const HERBATICA_DEFAULT_SHOPTET_PRICELIST_TITLES = [
 ] as const
 
 export const HERBATICA_PRICE_LIST_SYNC_CONFIG = {
-  metadataSource: "herbatica-products-complete-xml",
-  logLabel: "Herbatica price lists",
   descriptions: {
     override: "Herbatica Shoptet price list: {title}",
     sale: "Herbatica sale prices for {sourceTitle}",
   },
-  sourceTypes: {
-    override: "shoptet_pricelist",
-    sale: "shoptet_sale",
-    customerGroup: "shoptet_pricelist_customer_group",
-  },
+  logLabel: "Herbatica price lists",
   metadataKeys: {
+    endsAt: "ends_at",
     priceListTitle: "shoptet_pricelist_title",
     startsAt: "starts_at",
-    endsAt: "ends_at",
+  },
+  metadataSource: "herbatica-products-complete-xml",
+  sourceTypes: {
+    customerGroup: "shoptet_pricelist_customer_group",
+    override: "shoptet_pricelist",
+    sale: "shoptet_sale",
   },
 } satisfies SyncPriceListsStepConfig
 
@@ -86,21 +87,21 @@ export const HERBATICA_DEFAULT_TAX_RATES = [
 ] as const
 
 export const HERBATICA_TAX_RATE_COUNTRIES = HERBATICA_DEFAULT_TAX_RATES.map(
-  ({ countryCode }) => countryCode
+  ({ countryCode }) => countryCode,
 )
 
 export const HERBATICA_TAX_RATE_CONFIG = {
-  metadataSource: "herbatica-seed-tax-rates",
+  defaultRateCodeTemplate: "vat_{country}",
+  defaultRateNameTemplate: "VAT {COUNTRY}",
   defaultRates: [...HERBATICA_DEFAULT_TAX_RATES],
+  metadataSource: "herbatica-seed-tax-rates",
   productOverrides: {
     countryCode: "sk",
-    metadataPath: ["top_offer", "vat"],
     groupByRate: true,
+    metadataPath: ["top_offer", "vat"],
   },
-  defaultRateNameTemplate: "VAT {COUNTRY}",
-  defaultRateCodeTemplate: "vat_{country}",
-  productRateNameTemplate: "VAT {COUNTRY} Product {rate}%",
   productRateCodeTemplate: "vat_{country}_product_{rate_code}",
+  productRateNameTemplate: "VAT {COUNTRY} Product {rate}%",
 } satisfies TaxRateSeedConfig
 
 export const HERBATICA_WORKFLOW_DEFAULTS = {
@@ -128,29 +129,27 @@ export const HERBATICA_POS_SALES_CHANNEL_NAME = "Default Sales Channel POS"
 
 export const HERBATICA_SALES_CHANNELS = [
   {
-    name: HERBATICA_STOREFRONT_SALES_CHANNEL_NAME,
     default: true,
+    name: HERBATICA_STOREFRONT_SALES_CHANNEL_NAME,
   },
   {
-    name: HERBATICA_POS_SALES_CHANNEL_NAME,
     default: false,
+    name: HERBATICA_POS_SALES_CHANNEL_NAME,
   },
 ] satisfies SeedDatabaseWorkflowInput["salesChannels"]
 
 export const HERBATICA_DEFAULT_REGIONS = [
   {
-    name: "Czechia",
-    currencyCode: "czk",
     countries: ["cz"],
-    paymentProviders: undefined,
+    currencyCode: "czk",
     isTaxInclusive: true,
+    name: "Czechia",
   },
   {
-    name: "Europe",
-    currencyCode: "eur",
     countries: HERBATICA_COUNTRIES.filter((country) => country !== "cz"),
-    paymentProviders: undefined,
+    currencyCode: "eur",
     isTaxInclusive: true,
+    name: "Europe",
   },
 ] satisfies SeedDatabaseWorkflowInput["regions"]
 
@@ -160,80 +159,80 @@ export const HERBATICA_DEFAULT_SHIPPING_PROFILE = {
 
 export const HERBATICA_DEFAULT_FULFILLMENT_SET = {
   name: "European Warehouse delivery",
-  type: "shipping",
   serviceZoneName: "Europe",
+  type: "shipping",
 } as const
 
 export const HERBATICA_SHIPPING_OPTIONS = [
   {
     name: "Standard Shipping",
-    providerId: HERBATICA_WORKFLOW_DEFAULTS.fulfillmentProviderId,
-    type: {
-      label: "Standard",
-      description: "Ship in 2-3 days.",
-      code: "standard",
-    },
     prices: [
       {
+        amount: 10,
         currencyCode: "usd",
-        amount: 10,
       },
       {
+        amount: 10,
         currencyCode: "eur",
-        amount: 10,
       },
       {
-        currencyCode: "czk",
         amount: 250,
+        currencyCode: "czk",
       },
     ],
+    providerId: HERBATICA_WORKFLOW_DEFAULTS.fulfillmentProviderId,
     rules: [
       {
         attribute: "enabled_in_store",
-        value: "true",
         operator: "eq",
+        value: "true",
       },
       {
         attribute: "is_return",
-        value: "false",
         operator: "eq",
+        value: "false",
       },
     ],
+    type: {
+      code: "standard",
+      description: "Ship in 2-3 days.",
+      label: "Standard",
+    },
   },
   {
     name: "Express Shipping",
-    providerId: HERBATICA_WORKFLOW_DEFAULTS.fulfillmentProviderId,
-    type: {
-      label: "Express",
-      description: "Ship in 24 hours.",
-      code: "express",
-    },
     prices: [
       {
+        amount: 10,
         currencyCode: "usd",
-        amount: 10,
       },
       {
+        amount: 10,
         currencyCode: "eur",
-        amount: 10,
       },
       {
-        currencyCode: "czk",
         amount: 250,
+        currencyCode: "czk",
       },
     ],
+    providerId: HERBATICA_WORKFLOW_DEFAULTS.fulfillmentProviderId,
     rules: [
       {
         attribute: "enabled_in_store",
-        value: "true",
         operator: "eq",
+        value: "true",
       },
       {
         attribute: "is_return",
-        value: "false",
         operator: "eq",
+        value: "false",
       },
     ],
+    type: {
+      code: "express",
+      description: "Ship in 24 hours.",
+      label: "Express",
+    },
   },
 ] satisfies SeedDatabaseWorkflowInput["shippingOptions"]
 

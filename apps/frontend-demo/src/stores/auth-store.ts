@@ -1,5 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Store } from "@tanstack/react-store"
+
+import { getAuthErrorMessage } from "@/lib/auth/error-handler"
 import type { ValidationError } from "@/lib/auth/validation"
 import { sdk } from "@/lib/medusa-client"
 
@@ -14,24 +16,59 @@ export interface AuthState {
   validationErrors: ValidationError[]
 }
 
+// Narrow an unknown caught error's `.status` without trusting its shape.
+const readErrorStatus = (value: unknown): number | undefined => {
+  if (typeof value !== "object" || value === null || !("status" in value)) {
+    return undefined
+  }
+
+  return typeof value.status === "number" ? value.status : undefined
+}
+
+// Narrow an unknown caught error's `.message` without trusting its shape.
+const readErrorMessage = (value: unknown): string | undefined => {
+  if (typeof value !== "object" || value === null || !("message" in value)) {
+    return undefined
+  }
+
+  return typeof value.message === "string" ? value.message : undefined
+}
+
 // Create the auth store
 export const authStore = new Store<AuthState>({
-  user: null,
-  isLoading: false,
   error: null,
   isInitialized: false,
+  isLoading: false,
+  user: null,
   validationErrors: [],
 })
 
 // Helper functions
 export const authHelpers = {
+  // Clear all errors
+  clearErrors: () => {
+    authStore.setState((state) => ({
+      ...state,
+      error: null,
+      validationErrors: [],
+    }))
+  },
+
+  // Clear a single field error
+  clearFieldError: (field: string) => {
+    authStore.setState((state) => ({
+      ...state,
+      validationErrors: state.validationErrors.filter((e) => e.field !== field),
+    }))
+  },
+
   // Fetch current user
   fetchUser: async () => {
     try {
       authStore.setState((state) => ({
         ...state,
-        isLoading: true,
         error: null,
+        isLoading: true,
       }))
 
       // SDK manages the token automatically
@@ -40,28 +77,28 @@ export const authHelpers = {
         const { customer } = await sdk.store.customer.retrieve()
         authStore.setState((state) => ({
           ...state,
-          user: customer,
-          isLoading: false,
           isInitialized: true,
+          isLoading: false,
+          user: customer,
         }))
         return customer
-      } catch (error: any) {
-        // If 401, user is not authenticated
+      } catch {
+        // An unavailable customer means there is no authenticated storefront user.
         authStore.setState((state) => ({
           ...state,
-          user: null,
-          isLoading: false,
           isInitialized: true,
+          isLoading: false,
+          user: null,
         }))
         return null
       }
-    } catch (err: any) {
+    } catch (error) {
       authStore.setState((state) => ({
         ...state,
-        user: null,
-        isLoading: false,
-        error: err.message,
+        error: readErrorMessage(error) ?? null,
         isInitialized: true,
+        isLoading: false,
+        user: null,
       }))
       return null
     }
@@ -72,7 +109,7 @@ export const authHelpers = {
     email: string,
     password: string,
     firstName?: string,
-    lastName?: string
+    lastName?: string,
   ) => {
     try {
       authStore.setState((state) => ({
@@ -89,7 +126,7 @@ export const authHelpers = {
 
       // Check if authentication requires more actions (e.g., third-party redirect)
       if (typeof result !== "string") {
-        throw new Error("Authentication requires additional steps")
+        throw new TypeError("Authentication requires additional steps")
       }
 
       // Step 2: Fetch customer profile
@@ -97,21 +134,21 @@ export const authHelpers = {
         const { customer } = await sdk.store.customer.retrieve()
         authStore.setState((state) => ({
           ...state,
-          user: customer,
           isLoading: false,
+          user: customer,
         }))
-      } catch (error: any) {
+      } catch (error) {
         // If customer doesn't exist, create one
-        if (error.status === 404) {
+        if (readErrorStatus(error) === 404) {
           const { customer } = await sdk.store.customer.create({
             email,
-            first_name: firstName,
-            last_name: lastName,
+            ...(firstName !== undefined && { first_name: firstName }),
+            ...(lastName !== undefined && { last_name: lastName }),
           })
           authStore.setState((state) => ({
             ...state,
-            user: customer,
             isLoading: false,
+            user: customer,
           }))
         } else {
           throw error
@@ -120,13 +157,29 @@ export const authHelpers = {
 
       // Step 3: Clear anonymous cart ID
       // Cart will be merged automatically by Medusa
-    } catch (err: any) {
-      const message = err?.message || "Login failed"
+    } catch (error) {
+      const message = getAuthErrorMessage(error)
       authStore.setState((state) => ({
         ...state,
         error: message,
       }))
-      throw new Error(message)
+      throw new Error(message, { cause: error })
+    }
+  },
+
+  // Logout
+  logout: async () => {
+    try {
+      await sdk.auth.logout()
+      authStore.setState(() => ({
+        error: null,
+        isInitialized: true,
+        isLoading: false,
+        user: null,
+        validationErrors: [],
+      }))
+    } catch {
+      // Preserve local auth state when the remote logout request fails.
     }
   },
 
@@ -135,7 +188,7 @@ export const authHelpers = {
     email: string,
     password: string,
     firstName?: string,
-    lastName?: string
+    lastName?: string,
   ) => {
     try {
       authStore.setState((state) => ({
@@ -158,20 +211,22 @@ export const authHelpers = {
 
       // Check if authentication requires more actions
       if (typeof result !== "string") {
-        throw new Error("Authentication requires additional steps")
+        throw new TypeError("Authentication requires additional steps")
       }
 
       // Step 3: Create customer profile
       const { customer } = await sdk.store.customer.create({
         email,
-        first_name: firstName,
-        last_name: lastName,
+        ...(firstName !== undefined && { first_name: firstName }),
+        ...(lastName !== undefined && { last_name: lastName }),
       })
 
       // Step 4: Refresh token to ensure proper permissions
       try {
         await sdk.auth.refresh()
-      } catch (refreshError) {}
+      } catch {
+        // Customer creation succeeded; the following retrieve is the authoritative refresh.
+      }
 
       // Step 5: Fetch the customer again to ensure we have the latest data
       try {
@@ -179,73 +234,27 @@ export const authHelpers = {
           await sdk.store.customer.retrieve()
         authStore.setState((state) => ({
           ...state,
-          user: refreshedCustomer,
-          isLoading: false,
           isInitialized: true,
+          isLoading: false,
+          user: refreshedCustomer,
         }))
         return refreshedCustomer
-      } catch (fetchError) {
+      } catch {
         authStore.setState((state) => ({
           ...state,
-          user: customer,
-          isLoading: false,
           isInitialized: true,
+          isLoading: false,
+          user: customer,
         }))
         return customer
       }
-    } catch (err: any) {
-      const message = err?.message || "Registration failed"
+    } catch (error) {
+      const message = readErrorMessage(error) ?? "Registration failed"
       authStore.setState((state) => ({
         ...state,
         error: message,
       }))
-      throw new Error(message)
-    }
-  },
-
-  // Logout
-  logout: async () => {
-    try {
-      await sdk.auth.logout()
-      authStore.setState(() => ({
-        user: null,
-        isLoading: false,
-        error: null,
-        isInitialized: true,
-        validationErrors: [],
-      }))
-    } catch (err) {
-      // Silent fail
-    }
-  },
-
-  // Update profile
-  updateProfile: async (data: Partial<HttpTypes.StoreCustomer>) => {
-    try {
-      authStore.setState((state) => ({ ...state, error: null }))
-
-      // SDK manages authentication, just make the request
-
-      // SDK's update method expects a different type, filter out null values
-      const updateData = Object.entries(data).reduce(
-        (acc, [key, value]) => {
-          if (value !== null && value !== undefined) {
-            acc[key as keyof typeof acc] = value
-          }
-          return acc
-        },
-        {} as Record<string, any>
-      )
-
-      const { customer } = await sdk.store.customer.update(updateData)
-      authStore.setState((state) => ({
-        ...state,
-        user: customer,
-      }))
-    } catch (err: any) {
-      const message = err?.message || "Profile update failed"
-      authStore.setState((state) => ({ ...state, error: message }))
-      throw new Error(message)
+      throw new Error(message, { cause: error })
     }
   },
 
@@ -267,18 +276,29 @@ export const authHelpers = {
     }))
   },
 
-  clearErrors: () => {
-    authStore.setState((state) => ({
-      ...state,
-      error: null,
-      validationErrors: [],
-    }))
-  },
+  // Update profile
+  updateProfile: async (data: Partial<HttpTypes.StoreCustomer>) => {
+    try {
+      authStore.setState((state) => ({ ...state, error: null }))
 
-  clearFieldError: (field: string) => {
-    authStore.setState((state) => ({
-      ...state,
-      validationErrors: state.validationErrors.filter((e) => e.field !== field),
-    }))
+      // SDK manages authentication, just make the request
+
+      // SDK's update method expects a different type, filter out null values
+      const updateData = Object.fromEntries(
+        Object.entries(data).filter(
+          ([, value]) => value !== null && value !== undefined,
+        ),
+      )
+
+      const { customer } = await sdk.store.customer.update(updateData)
+      authStore.setState((state) => ({
+        ...state,
+        user: customer,
+      }))
+    } catch (error) {
+      const message = readErrorMessage(error) ?? "Profile update failed"
+      authStore.setState((state) => ({ ...state, error: message }))
+      throw new Error(message, { cause: error })
+    }
   },
 }

@@ -4,17 +4,19 @@ import type { LeafParent } from "@/lib/static-data/categories"
 /**
  * Find a node by ID in the category tree
  */
-export function findNodeById(
+export const findNodeById = (
   nodes: CategoryTreeNode[],
-  targetId: string
-): CategoryTreeNode | null {
+  targetId: string,
+): CategoryTreeNode | null => {
   for (const node of nodes) {
     if (node.id === targetId) {
       return node
     }
     if (node.children) {
       const found = findNodeById(node.children, targetId)
-      if (found) return found
+      if (found) {
+        return found
+      }
     }
   }
   return null
@@ -23,19 +25,21 @@ export function findNodeById(
 export const isSelectableCategory = (
   id: string,
   leafIds: Set<string>,
-  parentIds: Set<string>
+  parentIds: Set<string>,
 ) => leafIds.has(id) || parentIds.has(id)
 
 export const getLeafIdsForCategory = (
   categoryId: string,
   leafIds: Set<string>,
   parentIds: Set<string>,
-  leafParents: LeafParent[]
+  leafParents: LeafParent[],
 ): string[] => {
-  if (leafIds.has(categoryId)) return [categoryId]
+  if (leafIds.has(categoryId)) {
+    return [categoryId]
+  }
   if (parentIds.has(categoryId)) {
     const parent = leafParents.find((p) => p.id === categoryId)
-    return parent?.leafs || []
+    return parent?.leafs ?? []
   }
   return []
 }
@@ -43,10 +47,10 @@ export const getLeafIdsForCategory = (
 /**
  * Check if a node is at the top level (depth 1) in the category tree
  */
-export function isTopLevelNode(
+export const isTopLevelNode = (
   nodeId: string,
-  categories: CategoryTreeNode[]
-): boolean {
+  categories: CategoryTreeNode[],
+): boolean => {
   const isTopLevel = categories.some((topNode) => topNode.id === nodeId)
   return isTopLevel
 }
@@ -54,17 +58,17 @@ export function isTopLevelNode(
 /**
  * Check if a node is a child (at any depth) of a parent node
  */
-export function isChildOf(
+export const isChildOf = (
   nodeId: string,
   parentNodeId: string,
-  categories: CategoryTreeNode[]
-): boolean {
+  categories: CategoryTreeNode[],
+): boolean => {
   const parentNode = findNodeById(categories, parentNodeId)
   if (!parentNode) {
     return false
   }
 
-  function searchInChildren(children: CategoryTreeNode[]): boolean {
+  const searchInChildren = (children: CategoryTreeNode[]): boolean => {
     for (const child of children) {
       if (child.id === nodeId) {
         return true

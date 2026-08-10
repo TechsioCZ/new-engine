@@ -1,5 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
+
 import { useCatalogProducts } from "@/lib/storefront/catalog-products"
 import { useCategories } from "@/lib/storefront/categories"
 import {
@@ -7,6 +9,7 @@ import {
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
 import { HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE } from "@/lib/storefront/homepage-catalog-config"
+
 import {
   PRODUCT_SECTIONS,
   PRODUCTS_PER_COLLECTION_SECTION,
@@ -14,59 +17,71 @@ import {
 import type { HomepageProductSection } from "./homepage.types"
 import { useHomepagePrefetch } from "./use-homepage-prefetch"
 
-type UseHomepageControllerResult = {
-  productsError: string | null
-  shouldShowProductSkeleton: boolean
-  leadingSections: HomepageProductSection[]
-  trailingSections: HomepageProductSection[]
-  handleProductHoverStart: (product: HttpTypes.StoreProduct) => void
-  handleProductHoverEnd: (product: HttpTypes.StoreProduct) => void
-}
-
-export function useHomepageController(): UseHomepageControllerResult {
-  const region = useRegionContext()
-  const categoriesQuery = useCategories({
-    page: 1,
-    limit: CATEGORY_TREE_LIMIT,
-    fields: CATEGORY_TREE_FIELDS,
-  })
-
-  const prefetchActions = useHomepagePrefetch(region)
-
+const indexCategoriesByHandle = (
+  categories: HttpTypes.StoreProductCategory[],
+) => {
   const categoryByHandle = new Map<string, HttpTypes.StoreProductCategory>()
 
-  for (const category of categoriesQuery.categories) {
-    if (category.handle) {
+  for (const category of categories) {
+    if (typeof category.handle === "string" && category.handle !== "") {
       categoryByHandle.set(category.handle, category)
     }
   }
 
+  return categoryByHandle
+}
+
+interface UseHomepageControllerResult {
+  productsError: string | null
+  shouldShowProductSkeleton: boolean
+  leadingSections: HomepageProductSection[]
+  trailingSections: HomepageProductSection[]
+  handleProductHoverStart: (product: MedusaCatalogProduct) => void
+  handleProductHoverEnd: (product: MedusaCatalogProduct) => void
+}
+
+export const useHomepageController = (): UseHomepageControllerResult => {
+  const region = useRegionContext()
+  const categoriesQuery = useCategories({
+    fields: CATEGORY_TREE_FIELDS,
+    limit: CATEGORY_TREE_LIMIT,
+    page: 1,
+  })
+
+  const prefetchActions = useHomepagePrefetch(region)
+
+  const categoryByHandle = indexCategoriesByHandle(categoriesQuery.categories)
+
   const bestsellersCategoryId = categoryByHandle.get(
-    HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE
+    HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE,
   )?.id
 
+  const hasRegion =
+    typeof region?.region_id === "string" && region.region_id !== ""
+  const hasBestsellersCategory =
+    typeof bestsellersCategoryId === "string" && bestsellersCategoryId !== ""
   const bestsellersProductsQuery = useCatalogProducts({
-    page: 1,
+    ...(hasBestsellersCategory ? { category_id: [bestsellersCategoryId] } : {}),
+    enabled: hasRegion && hasBestsellersCategory,
     limit: PRODUCTS_PER_COLLECTION_SECTION,
+    page: 1,
     sort: "recommended",
-    category_id: bestsellersCategoryId ? [bestsellersCategoryId] : undefined,
-    enabled: Boolean(region?.region_id && bestsellersCategoryId),
   })
 
   const newProductsQuery = useCatalogProducts({
-    page: 1,
+    enabled: hasRegion,
     limit: PRODUCTS_PER_COLLECTION_SECTION,
+    page: 1,
     sort: "newest",
     status: ["new"],
-    enabled: Boolean(region?.region_id),
   })
 
   const actionProductsQuery = useCatalogProducts({
-    page: 1,
+    enabled: hasRegion,
     limit: PRODUCTS_PER_COLLECTION_SECTION,
+    page: 1,
     sort: "recommended",
     status: ["action"],
-    enabled: Boolean(region?.region_id),
   })
 
   const sectionQueries = [
@@ -77,7 +92,7 @@ export function useHomepageController(): UseHomepageControllerResult {
 
   const shouldShowProductSkeleton =
     sectionQueries.every((query) => query.products.length === 0) &&
-    (!region?.region_id ||
+    (!hasRegion ||
       categoriesQuery.isLoading ||
       sectionQueries.some((query) => query.isLoading))
 
@@ -97,15 +112,15 @@ export function useHomepageController(): UseHomepageControllerResult {
   ]
 
   return {
+    handleProductHoverEnd: prefetchActions.handleProductHoverEnd,
+    handleProductHoverStart: prefetchActions.handleProductHoverStart,
+    leadingSections: preparedProductSections.slice(0, 2),
     productsError:
       categoriesQuery.error ??
       bestsellersProductsQuery.error ??
       newProductsQuery.error ??
       actionProductsQuery.error,
     shouldShowProductSkeleton,
-    leadingSections: preparedProductSections.slice(0, 2),
     trailingSections: preparedProductSections.slice(2),
-    handleProductHoverStart: prefetchActions.handleProductHoverStart,
-    handleProductHoverEnd: prefetchActions.handleProductHoverEnd,
   }
 }

@@ -12,11 +12,9 @@ export const StoreBrandsDetailSchema = createSelectParams().strict()
 
 export const StoreBrandsDetailProductsSchema = createFindParams()
   .omit({ with_deleted: true })
-  .merge(
-    z.object({
-      sales_channel_id: z.union([z.string(), z.array(z.string())]).optional(),
-    })
-  )
+  .extend({
+    sales_channel_id: z.union([z.string(), z.array(z.string())]).optional(),
+  })
   .strict()
 
 export type StoreBrandsSchemaType = z.infer<typeof StoreBrandsSchema>

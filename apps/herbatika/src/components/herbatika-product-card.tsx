@@ -2,13 +2,12 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
-import NextImage from "next/image"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
-import {
-  type HerbatikaProductCardBaseProps,
-  useHerbatikaProductCardState,
-} from "@/components/herbatika-product-card.shared"
+import NextImage from "next/image"
+
+import NextLink from "@/components/app-link"
+import { useHerbatikaProductCardState } from "@/components/herbatika-product-card.shared"
+import type { HerbatikaProductCardBaseProps } from "@/components/herbatika-product-card.shared"
 import { resolveDescription } from "@/components/product-card/product-card.description"
 import { resolveFlags } from "@/components/product-card/product-card.flags"
 import { resolveDiscountLabel } from "@/components/product-card/product-card.pricing"
@@ -18,12 +17,12 @@ import { resolveVariantInventoryState } from "@/lib/storefront/product-availabil
 export type HerbatikaProductCardProps = HerbatikaProductCardBaseProps & {
   isAdding: boolean
   onAddToCart: (
-    product: HerbatikaProductCardBaseProps["product"]
+    product: HerbatikaProductCardBaseProps["product"],
   ) => Promise<void> | void
   descriptionOverride?: string | null
 }
 
-export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
+export const HerbatikaProductCard = (props: HerbatikaProductCardProps) => {
   const { product, onProductHoverStart, onProductHoverEnd } = props
   const { descriptionOverride, isAdding, onAddToCart } = props
   const tCart = useTranslations("cart")
@@ -44,7 +43,8 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
     tip: tCatalog("filters.status.tip"),
   })
   const description =
-    descriptionOverride && descriptionOverride.trim().length > 0
+    typeof descriptionOverride === "string" &&
+    descriptionOverride.trim().length > 0
       ? descriptionOverride
       : resolveDescription(product)
 
@@ -85,7 +85,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
           </ProductCard.Badges>
         ) : null}
 
-        {discountLabel ? (
+        {typeof discountLabel === "string" && discountLabel.length > 0 ? (
           <Badge
             className="absolute right-0 bottom-250 rounded-sm py-200 font-bold font-verdana text-discount-size"
             size="md"
@@ -104,7 +104,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
             </NextLink>
           </ProductCard.Name>
 
-          {description ? (
+          {typeof description === "string" && description.length > 0 ? (
             <p className="line-clamp-3 whitespace-pre-line font-verdana text-fg-secondary text-xs leading-normal sm:min-h-800">
               {description}
             </p>
@@ -113,7 +113,8 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
 
         <div className="mt-auto flex min-h-product-card-label items-end justify-between gap-200 sm:gap-300">
           <div className="flex h-full flex-col justify-center font-verdana leading-none">
-            {price.originalLabel ? (
+            {typeof price.originalLabel === "string" &&
+            price.originalLabel.length > 0 ? (
               <span className="text-fg-tertiary text-xs line-through">
                 {price.originalLabel}
               </span>

@@ -1,6 +1,7 @@
 import type { Context } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { STOREFRONT_TEXT_MODULE } from "../../../modules/storefront-text"
 import { validateStorefrontTextOverride } from "../../../modules/storefront-text/message-validation"
 import type { StorefrontTextRecord } from "../../../modules/storefront-text/models/storefront-text"
@@ -14,8 +15,11 @@ import { getEffectiveStorefrontTextValue } from "../../../modules/storefront-tex
 import type { ImportStorefrontTextCatalogWorkflowInput } from "../types"
 import {
   restoreSynchronizedStorefrontTexts,
-  type StorefrontTextSyncCompensation,
   synchronizeStorefrontTexts,
+} from "./sync-storefront-texts"
+import type {
+  StorefrontTextSyncCompensation,
+  SynchronizeStorefrontTextsService,
 } from "./sync-storefront-texts"
 
 type PreviousStorefrontTextValue = Pick<
@@ -23,19 +27,19 @@ type PreviousStorefrontTextValue = Pick<
   "id" | "override_value" | "status"
 >
 
-type StorefrontTextCatalogImportCompensation = {
+interface StorefrontTextCatalogImportCompensation {
   importedPreviousValues: PreviousStorefrontTextValue[]
   sync: StorefrontTextSyncCompensation
 }
 
-type StorefrontTextUpdateInput = {
+interface StorefrontTextUpdateInput {
   id: string
   override_value: null | string
   status: "active"
 }
 
 const parseImportCatalog = (
-  input: ImportStorefrontTextCatalogWorkflowInput
+  input: ImportStorefrontTextCatalogWorkflowInput,
 ) => {
   try {
     return parseStorefrontTextCatalogEnvelope({
@@ -45,27 +49,32 @@ const parseImportCatalog = (
   } catch (error) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      error instanceof Error ? error.message : "Invalid storefront text catalog"
+      error instanceof Error
+        ? error.message
+        : "Invalid storefront text catalog",
     )
   }
 }
 
+export type ImportStorefrontTextCatalogService =
+  SynchronizeStorefrontTextsService
+
 const restoreImportedCatalog = async (
-  service: StorefrontTextModuleService,
+  service: ImportStorefrontTextCatalogService,
   compensation: StorefrontTextCatalogImportCompensation,
-  sharedContext: Context
+  sharedContext: Context,
 ) => {
-  if (compensation.importedPreviousValues.length) {
+  if (compensation.importedPreviousValues.length > 0) {
     await service.updateStorefrontTexts(
       compensation.importedPreviousValues,
-      sharedContext
+      sharedContext,
     )
   }
 
   await restoreSynchronizedStorefrontTexts(
     service,
     compensation.sync,
-    sharedContext
+    sharedContext,
   )
 }
 
@@ -85,26 +94,26 @@ const resolveImportedStorefrontTextUpdate = ({
   previousValue: PreviousStorefrontTextValue
   updateInput: StorefrontTextUpdateInput
 } | null => {
-  if (!record) {
+  if (record === undefined) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `Storefront text "${definition.key}" is missing after synchronization`
+      `Storefront text "${definition.key}" is missing after synchronization`,
     )
   }
 
   const importedValue = value.trim()
 
-  if (!importedValue) {
+  if (importedValue.length === 0) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `${definition.key}: Imported value cannot be blank`
+      `${definition.key}: Imported value cannot be blank`,
     )
   }
 
   if (defaultValue === undefined) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `${definition.key}: Default value is missing`
+      `${definition.key}: Default value is missing`,
     )
   }
 
@@ -119,7 +128,7 @@ const resolveImportedStorefrontTextUpdate = ({
       validation.code === "invalid_default"
         ? MedusaError.Types.UNEXPECTED_STATE
         : MedusaError.Types.INVALID_DATA,
-      `${definition.key}: ${validation.message}`
+      `${definition.key}: ${validation.message}`,
     )
   }
 
@@ -147,6 +156,23 @@ const resolveImportedStorefrontTextUpdate = ({
   }
 }
 
+const listStorefrontTextsAfterSynchronization = async (
+  service: ImportStorefrontTextCatalogService,
+  catalog: ReturnType<typeof parseImportCatalog>,
+  sharedContext: Context,
+  synchronization: Awaited<ReturnType<typeof synchronizeStorefrontTexts>>,
+) => ({
+  records: await service.listStorefrontTexts(
+    {
+      locale: catalog.locale,
+      market: catalog.market,
+    },
+    {},
+    sharedContext,
+  ),
+  synchronization,
+})
+
 const importStorefrontTextCatalogInTransaction = async ({
   catalog,
   input,
@@ -155,22 +181,21 @@ const importStorefrontTextCatalogInTransaction = async ({
 }: {
   catalog: ReturnType<typeof parseImportCatalog>
   input: ImportStorefrontTextCatalogWorkflowInput
-  service: StorefrontTextModuleService
+  service: ImportStorefrontTextCatalogService
   sharedContext: Context
 }) => {
-  const sync = await synchronizeStorefrontTexts(
+  const synchronization = await synchronizeStorefrontTexts(
     service,
     { market: input.market },
-    sharedContext
+    sharedContext,
   )
-  const records = await service.listStorefrontTexts(
-    {
-      locale: catalog.locale,
-      market: catalog.market,
-    },
-    {},
-    sharedContext
-  )
+  const { records, synchronization: sync } =
+    await listStorefrontTextsAfterSynchronization(
+      service,
+      catalog,
+      sharedContext,
+      synchronization,
+    )
   const recordsByKey = new Map(records.map((record) => [record.key, record]))
   const defaultMessages = getStorefrontTextDefaultMessages({
     market: input.market,
@@ -195,7 +220,7 @@ const importStorefrontTextCatalogInTransaction = async ({
     updateInputs.push(update.updateInput)
   }
 
-  if (updateInputs.length) {
+  if (updateInputs.length > 0) {
     await service.updateStorefrontTexts(updateInputs, sharedContext)
   }
 
@@ -211,36 +236,48 @@ const importStorefrontTextCatalogInTransaction = async ({
   }
 }
 
+export const importStorefrontTextCatalog = async (
+  service: ImportStorefrontTextCatalogService,
+  input: ImportStorefrontTextCatalogWorkflowInput,
+  sharedContext: Context,
+) =>
+  await importStorefrontTextCatalogInTransaction({
+    catalog: parseImportCatalog(input),
+    input,
+    service,
+    sharedContext,
+  })
+
 export const importStorefrontTextCatalogStep = createStep(
   "import-storefront-text-catalog",
   async (input: ImportStorefrontTextCatalogWorkflowInput, { container }) => {
     const catalog = parseImportCatalog(input)
     const service = container.resolve<StorefrontTextModuleService>(
-      STOREFRONT_TEXT_MODULE
+      STOREFRONT_TEXT_MODULE,
     )
     const { compensation, result } = await service.runInTransaction(
-      (sharedContext) =>
-        importStorefrontTextCatalogInTransaction({
+      async (sharedContext) =>
+        await importStorefrontTextCatalogInTransaction({
           catalog,
           input,
           service,
           sharedContext,
-        })
+        }),
     )
 
     return new StepResponse(result, compensation)
   },
   async (compensation, { container }) => {
-    if (!compensation) {
+    if (compensation === undefined) {
       return
     }
 
     const service = container.resolve<StorefrontTextModuleService>(
-      STOREFRONT_TEXT_MODULE
+      STOREFRONT_TEXT_MODULE,
     )
 
-    await service.runInTransaction((sharedContext) =>
-      restoreImportedCatalog(service, compensation, sharedContext)
-    )
-  }
+    await service.runInTransaction(async (sharedContext) => {
+      await restoreImportedCatalog(service, compensation, sharedContext)
+    })
+  },
 )

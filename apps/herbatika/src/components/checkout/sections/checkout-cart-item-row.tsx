@@ -4,9 +4,10 @@ import type { HttpTypes } from "@medusajs/types"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
-import NextImage from "next/image"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+import NextImage from "next/image"
+
+import NextLink from "@/components/app-link"
 import { CartLineItemQuantityInput } from "@/components/cart/cart-line-item-quantity-input"
 import {
   FALLBACK_MAX_QUANTITY,
@@ -20,13 +21,14 @@ import {
   resolveLineItemTotalAmount,
 } from "@/lib/storefront/cart-calculations"
 import type { HerbatikaCurrencyCode } from "@/lib/storefront/currency"
-import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+
 import {
   resolveAvailabilityText,
   resolveOriginalLineItemTotalAmount,
 } from "../utils/resolve-availability-text"
+import { CheckoutCartItemPrice } from "./checkout-cart-item-price"
 
-type CheckoutCartItemRowProps = {
+interface CheckoutCartItemRowProps {
   currencyCode: HerbatikaCurrencyCode
   isPending: boolean
   item: HttpTypes.StoreCartLineItem
@@ -35,43 +37,14 @@ type CheckoutCartItemRowProps = {
   product?: HttpTypes.StoreProduct | null
 }
 
-type CheckoutCartItemPriceProps = {
-  currencyCode: CheckoutCartItemRowProps["currencyCode"]
-  currentLineAmount: number
-  originalLineAmount: number | null
-}
-
-function CheckoutCartItemPrice({
-  currencyCode,
-  currentLineAmount,
-  originalLineAmount,
-}: CheckoutCartItemPriceProps) {
-  const shouldShowOriginalAmount =
-    typeof originalLineAmount === "number" &&
-    originalLineAmount > currentLineAmount + 0.001
-
-  return (
-    <div className="flex flex-col items-end gap-100">
-      <p className="font-bold text-fg-primary text-xl leading-tight">
-        {formatCurrencyAmount(currentLineAmount, currencyCode)}
-      </p>
-      {shouldShowOriginalAmount ? (
-        <p className="font-light text-fg-secondary text-sm leading-tight line-through">
-          {formatCurrencyAmount(originalLineAmount, currencyCode)}
-        </p>
-      ) : null}
-    </div>
-  )
-}
-
-export function CheckoutCartItemRow({
+export const CheckoutCartItemRow = ({
   currencyCode,
   isPending,
   item,
   onRemove,
   onUpdateQuantity,
   product,
-}: CheckoutCartItemRowProps) {
+}: CheckoutCartItemRowProps) => {
   const tCart = useTranslations("cart")
   const baseQuantity = resolveLineItemQuantity(item)
   const itemName = resolveCartItemName(item)
@@ -79,18 +52,18 @@ export function CheckoutCartItemRow({
   const itemInventory = resolveLineItemInventory(item)
   const itemMaxQuantity = Math.max(
     baseQuantity,
-    itemInventory ?? FALLBACK_MAX_QUANTITY
+    itemInventory ?? FALLBACK_MAX_QUANTITY,
   )
   const currentLineAmount = resolveLineItemTotalAmount(item)
   const originalLineAmount = resolveOriginalLineItemTotalAmount(item, product)
   const availabilityText = resolveAvailabilityText(item, product)
 
   return (
-    <article className="flex w-full flex-col gap-250 sm:flex-row sm:items-start md:grid md:grid-cols-[auto_1fr] md:gap-300">
+    <article className="flex w-full flex-col gap-250 sm:flex-row sm:items-start md:checkout-cart-item-layout md:grid md:gap-300">
       <div className="flex gap-100">
         <Link
           as={NextLink}
-          className="inline-flex size-[120px] shrink-0"
+          className="inline-flex size-checkout-image shrink-0"
           href={itemHref}
         >
           <NextImage
@@ -113,7 +86,7 @@ export function CheckoutCartItemRow({
           <div className="flex w-full justify-between">
             <div className="flex justify-center">
               <CartLineItemQuantityInput
-                className="w-20 shrink-0 sm:w-24"
+                className="w-cart-quantity-compact shrink-0 sm:w-cart-quantity"
                 inputClassName="text-center"
                 isPending={isPending}
                 itemName={itemName}
@@ -133,8 +106,8 @@ export function CheckoutCartItemRow({
         </div>
       </div>
 
-      <div className="grid h-full w-full grid-rows-[1fr_auto]">
-        <div className="hidden gap-200 sm:grid sm:grid-cols-[3fr_1fr_1fr]">
+      <div className="checkout-cart-item-content grid h-full w-full">
+        <div className="hidden gap-200 sm:checkout-cart-item-summary sm:grid">
           <div className="flex items-start">
             <Link
               as={NextLink}
@@ -147,7 +120,7 @@ export function CheckoutCartItemRow({
 
           <div className="flex justify-center">
             <CartLineItemQuantityInput
-              className="w-20 shrink-0 sm:w-24"
+              className="w-cart-quantity-compact shrink-0 sm:w-cart-quantity"
               inputClassName="text-center pr-0 pl-0"
               isPending={isPending}
               itemName={itemName}
@@ -179,7 +152,9 @@ export function CheckoutCartItemRow({
             className="text-2xl text-fg-secondary hover:text-fg-primary"
             disabled={isPending}
             icon="token-icon-trash"
-            onClick={() => onRemove(item.id)}
+            onClick={() => {
+              onRemove(item.id)
+            }}
             size="sm"
             theme="unstyled"
             variant="secondary"

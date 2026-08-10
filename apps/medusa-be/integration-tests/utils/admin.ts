@@ -1,88 +1,121 @@
 import type {
   IAuthModuleService,
   IUserModuleService,
+  MedusaContainer,
 } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
-import jwt from "jsonwebtoken"
-import Scrypt from "scrypt-kdf"
+import { z } from "@medusajs/framework/zod"
+import { SignJWT } from "jose"
+import { kdf } from "scrypt-kdf"
 
 export const adminHeaders: { headers: Record<string, string> } = {
   headers: {},
 }
 
-export const createAdminUser = async (targetAdminHeaders, appContainer) => {
-  const userModule: IUserModuleService = appContainer.resolve(Modules.USER)
-  const authModule: IAuthModuleService = appContainer.resolve(Modules.AUTH)
+const TEST_CUSTOMER_EMAIL = "test@email.com"
+const authResponseSchema = z.object({
+  data: z.object({ token: z.string() }),
+})
+const customerResponseSchema = z.object({
+  data: z.object({ customer: z.unknown() }),
+})
+
+interface TestHeaders {
+  headers: Record<string, string>
+}
+
+interface TestApi {
+  post: (
+    url: string,
+    body: unknown,
+    config?: { headers: Record<string, string> },
+  ) => Promise<unknown>
+}
+
+export const createAdminUser = async (
+  targetAdminHeaders: TestHeaders,
+  appContainer: MedusaContainer,
+) => {
+  const userModule = appContainer.resolve<IUserModuleService>(Modules.USER)
+  const authModule = appContainer.resolve<IAuthModuleService>(Modules.AUTH)
   const user = await userModule.createUsers({
+    email: "admin@medusa.js",
     first_name: "Admin",
     last_name: "User",
-    email: "admin@medusa.js",
   })
 
-  const hashConfig = { logN: 15, r: 8, p: 1 }
-  const passwordHash = await Scrypt.kdf("somepassword", hashConfig)
+  const hashConfig = { logN: 15, p: 1, r: 8 }
+  const passwordHash = await kdf("somepassword", hashConfig)
 
   const authIdentity = await authModule.createAuthIdentities({
-    provider_identities: [
-      {
-        provider: "emailpass",
-        entity_id: "admin@medusa.js",
-        provider_metadata: {
-          password: passwordHash.toString("base64"),
-        },
-      },
-    ],
     app_metadata: {
       user_id: user.id,
     },
+    provider_identities: [
+      {
+        entity_id: "admin@medusa.js",
+        provider: "emailpass",
+        provider_metadata: {
+          password: Buffer.from(passwordHash).toString("base64"),
+        },
+      },
+    ],
   })
 
-  const token = jwt.sign(
-    {
-      actor_id: user.id,
-      actor_type: "user",
-      auth_identity_id: authIdentity.id,
-    },
-    process.env.JWT_SECRET,
-    {
-      expiresIn: "1d",
-    }
-  )
+  const jwtSecret = process.env["JWT_SECRET"]
+  if (jwtSecret === undefined || jwtSecret.length === 0) {
+    throw new Error(
+      "JWT_SECRET is required to create an integration-test admin",
+    )
+  }
 
-  targetAdminHeaders.headers.authorization = `Bearer ${token}`
+  const token = await new SignJWT({
+    actor_id: user.id,
+    actor_type: "user",
+    auth_identity_id: authIdentity.id,
+  })
+    .setProtectedHeader({ alg: "HS256" })
+    .setExpirationTime("1d")
+    .sign(new TextEncoder().encode(jwtSecret))
 
-  return { user, authIdentity }
+  targetAdminHeaders.headers["authorization"] = `Bearer ${token}`
+
+  return { authIdentity, user }
 }
 
-export const createStoreUser = async ({ api, storeHeaders }) => {
-  const registerToken = (
-    await api.post("/auth/customer/emailpass/register", {
-      email: "test@email.com",
+export const createStoreUser = async ({
+  api,
+  storeHeaders,
+}: {
+  api: TestApi
+  storeHeaders: TestHeaders
+}) => {
+  const registerResponse: unknown = await api.post(
+    "/auth/customer/emailpass/register",
+    {
+      email: TEST_CUSTOMER_EMAIL,
       password: "password",
-    })
-  ).data.token
+    },
+  )
+  const { data: registerData } = authResponseSchema.parse(registerResponse)
 
-  const customer = (
-    await api.post(
-      "/store/customers",
-      {
-        email: "test@email.com",
+  const customerResponse: unknown = await api.post(
+    "/store/customers",
+    { email: TEST_CUSTOMER_EMAIL },
+    {
+      headers: {
+        Authorization: `Bearer ${registerData.token}`,
+        ...storeHeaders.headers,
       },
-      {
-        headers: {
-          Authorization: `Bearer ${registerToken}`,
-          ...storeHeaders.headers,
-        },
-      }
-    )
-  ).data.customer
+    },
+  )
+  const { data: customerData } = customerResponseSchema.parse(customerResponse)
 
-  const token = (
-    await api.post("/auth/customer/emailpass", {
-      email: "test@email.com",
-      password: "password",
-    })
-  ).data.token
+  const loginResponse: unknown = await api.post("/auth/customer/emailpass", {
+    email: TEST_CUSTOMER_EMAIL,
+    password: "password",
+  })
+  const { data: loginData } = authResponseSchema.parse(loginResponse)
 
-  return { customer, token }
+  return { customer: customerData.customer, token: loginData.token }
 }

@@ -2,6 +2,7 @@
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useQueryStates } from "nuqs"
+
 import { useCategoryFacetItems } from "@/components/category/use-category-facet-items"
 import { useCatalogProducts } from "@/lib/storefront/catalog-products"
 import {
@@ -19,16 +20,17 @@ import {
   useCatalogListingPageBounds,
 } from "@/lib/storefront/use-catalog-listing-interactions"
 
-export function useSearchListingController() {
+export const useSearchListingController = () => {
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const [queryState, setQueryState] = useQueryStates(plpQueryParsers)
   const query = queryState.q.trim()
-  const isSearchQueryEnabled = Boolean(region?.region_id && query.length > 0)
+  const isSearchQueryEnabled =
+    region?.region_id !== undefined && query.length > 0
 
   const catalogProductsInput = buildCatalogProductsParams({
-    queryState,
     limit: PLP_PAGE_SIZE,
+    queryState,
   })
 
   const catalogQuery = useCatalogProducts({
@@ -37,18 +39,18 @@ export function useSearchListingController() {
   })
 
   const catalogFacetSeedInput = buildCatalogProductsParams({
+    limit: 1,
     queryState: {
       ...queryState,
+      brand: [],
+      form: [],
+      ingredient: [],
       page: 1,
+      price_max: null,
+      price_min: null,
       sort: "recommended",
       status: [],
-      form: [],
-      brand: [],
-      ingredient: [],
-      price_min: null,
-      price_max: null,
     },
-    limit: 1,
   })
 
   const catalogFacetSeedQuery = useCatalogProducts({
@@ -70,8 +72,10 @@ export function useSearchListingController() {
   const listingInteractions = useCatalogListingInteractions({
     productPrefetchKeyPrefix: "search-product",
     queryState,
-    regionId: region?.region_id,
-    countryCode: region?.country_code,
+    ...(region?.region_id === undefined ? {} : { regionId: region?.region_id }),
+    ...(region?.country_code === undefined
+      ? {}
+      : { countryCode: region?.country_code }),
     setQueryState,
   })
 
@@ -94,12 +98,13 @@ export function useSearchListingController() {
     isFiltersLoading:
       isSearchQueryEnabled &&
       (catalogQuery.isLoading || catalogFacetSeedQuery.isLoading),
+    isResultsLoading:
+      query.length > 0 &&
+      (region?.region_id === undefined || catalogQuery.isLoading),
     isResultsRefreshing:
       catalogQuery.isFetching &&
       (catalogQuery.products.length > 0 ||
         catalogQuery.query.isPlaceholderData),
-    isResultsLoading:
-      query.length > 0 && (!region?.region_id || catalogQuery.isLoading),
     isSearchQueryEnabled,
     priceBounds: resolveCatalogPriceBounds(catalogQuery.facets.price),
     products: catalogQuery.products,

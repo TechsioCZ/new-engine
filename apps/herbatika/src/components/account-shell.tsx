@@ -1,75 +1,34 @@
 "use client"
 
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import NextLink from "next/link"
-import { usePathname, useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
+import { redirect, usePathname, useRouter } from "next/navigation"
 import type { ReactNode } from "react"
-import { useEffect, useState } from "react"
+
+import {
+  ACCOUNT_NAV_ITEMS,
+  isNavItemActive,
+} from "@/components/account-shell-navigation"
+import NextLink from "@/components/app-link"
 import { AccountLayoutSkeleton } from "@/components/loading/account-layout-skeleton"
 import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton"
 import { OrderSkeleton } from "@/components/loading/order-skeleton"
 import { useAuth } from "@/lib/storefront/auth"
+import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { useLogoutAction } from "@/lib/storefront/use-logout-action"
 
-type AccountNavItemType = {
-  href: string
-  labelKey:
-    | "account.navigation.lists"
-    | "account.navigation.orders"
-    | "account.navigation.overview"
-    | "account.navigation.settings"
-  icon: IconType
-}
-
-const ACCOUNT_NAV_ITEMS: AccountNavItemType[] = [
-  {
-    href: "/account",
-    labelKey: "account.navigation.overview",
-    icon: "token-icon-user",
-  },
-  {
-    href: "/account/orders",
-    labelKey: "account.navigation.orders",
-    icon: "token-icon-order",
-  },
-  {
-    href: "/account/lists",
-    labelKey: "account.navigation.lists",
-    icon: "token-icon-heart",
-  },
-  {
-    href: "/account/settings",
-    labelKey: "account.navigation.settings",
-    icon: "token-icon-settings",
-  },
-] as const
-
-const isNavItemActive = (pathname: string, href: string) => {
-  if (pathname === href) {
-    return true
-  }
-
-  if (href === "/account") {
-    return false
-  }
-
-  return pathname.startsWith(`${href}/`)
-}
-
-type AccountShellProps = {
+interface AccountShellProps {
   children: ReactNode
 }
 
-export function AccountShell({ children }: AccountShellProps) {
+export const AccountShell = ({ children }: AccountShellProps) => {
   const tAuth = useTranslations("auth")
   const router = useRouter()
   const pathname = usePathname()
   const authQuery = useAuth()
-  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const redirectTarget = pathname
   const isDeactivationConfirmationRoute =
     pathname === "/account/deactivate/confirm"
@@ -87,45 +46,17 @@ export function AccountShell({ children }: AccountShellProps) {
     },
   })
 
-  useEffect(() => {
-    if (isDeactivationConfirmationRoute) {
-      return
-    }
-
-    if (isLoggingOut) {
-      return
-    }
-
-    if (authQuery.isLoading || authQuery.isAuthenticated) {
-      return
-    }
-
-    router.replace(`/auth/login?next=${encodeURIComponent(redirectTarget)}`)
-  }, [
-    authQuery.isAuthenticated,
-    authQuery.isLoading,
-    isDeactivationConfirmationRoute,
-    isLoggingOut,
-    redirectTarget,
-    router,
-  ])
-
   const handleLogout = async () => {
     clearLogoutError()
-    setIsLoggingOut(true)
-
-    const result = await performLogout()
-    if (!result.ok) {
-      setIsLoggingOut(false)
-    }
+    await performLogout()
   }
 
   if (isDeactivationConfirmationRoute) {
-    return children
+    return <div>{children}</div>
   }
 
   if (authQuery.isLoading) {
-    let skeletonSurface: ReactNode
+    let skeletonSurface: ReactNode = null
     if (isOrderDetailRoute) {
       skeletonSurface = <OrderSkeleton />
     } else if (isOrdersListRoute) {
@@ -136,6 +67,10 @@ export function AccountShell({ children }: AccountShellProps) {
   }
 
   if (!authQuery.isAuthenticated) {
+    if (!logoutMutation.isPending) {
+      redirect(`/auth/login?next=${encodeURIComponent(redirectTarget)}`)
+    }
+
     return (
       <main className="mx-auto w-full max-w-max-w p-account-page 2xl:p-account-page-lg">
         <section className="space-y-300 rounded-lg border border-border-secondary bg-surface p-550">
@@ -160,7 +95,7 @@ export function AccountShell({ children }: AccountShellProps) {
 
   return (
     <main className="mx-auto w-full max-w-max-w p-account-page 2xl:p-account-page-lg">
-      <div className="grid gap-account-page-gap lg:grid-cols-[17rem_minmax(0,1fr)] lg:items-start">
+      <div className="grid gap-account-page-gap lg:account-shell-layout lg:items-start">
         <aside className="space-y-400 rounded-lg border border-border-secondary bg-surface p-400">
           <header className="leading-none">
             <h1 className="font-semibold text-xl">
@@ -193,7 +128,7 @@ export function AccountShell({ children }: AccountShellProps) {
             })}
           </nav>
 
-          {logoutError && (
+          {logoutError !== null && (
             <StatusText showIcon status="error">
               {logoutError}
             </StatusText>
@@ -204,10 +139,12 @@ export function AccountShell({ children }: AccountShellProps) {
           <Button
             block
             className="justify-start px-200 text-lg hover:text-danger"
-            icon={"token-icon-logout"}
+            icon="token-icon-logout"
             iconSize="2xl"
             isLoading={logoutMutation.isPending}
-            onClick={() => handleLogout()}
+            onClick={() => {
+              runDetachedPromise(handleLogout())
+            }}
             size="current"
             theme="unstyled"
           >

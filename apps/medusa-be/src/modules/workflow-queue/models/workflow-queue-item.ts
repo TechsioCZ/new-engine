@@ -2,11 +2,11 @@ import { model } from "@medusajs/framework/utils"
 
 const WorkflowQueueItem = model
   .define("workflow_queue_item", {
+    arguments: model.json(),
+    dedupe_key: model.text().nullable(),
     id: model.id().primaryKey(),
     run_at: model.dateTime(),
     workflow: model.text(),
-    dedupe_key: model.text().nullable(),
-    arguments: model.json(),
   })
   .indexes([
     {

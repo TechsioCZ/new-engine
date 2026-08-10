@@ -1,10 +1,15 @@
 import type { HttpTypes } from "@medusajs/types"
-import { CartServiceError, isNotFoundError } from "@/lib/errors"
+
+import { CartServiceError } from "@/lib/cart-service-error"
+import { isNotFoundError } from "@/lib/errors"
 import { sdk } from "@/lib/medusa-client"
 
 export type Cart = HttpTypes.StoreCart
 export type CartLineItem = HttpTypes.StoreCartLineItem
 export type OptimisticCart = Cart & { _optimistic?: boolean }
+export type CartLineItemMetadata = Readonly<{
+  inventory_quantity: number
+}>
 export type OptimisticLineItem = CartLineItem & {
   _optimistic?: boolean
 }
@@ -22,7 +27,16 @@ export type CompleteCartResult =
     }
 
 const CART_ID_KEY = "n1_cart_id"
-export const cartStorage = {
+const CART_ID_REQUIRED_MESSAGE = "Cart ID je povinné"
+
+const cartStorage = {
+  clearCartId(): void {
+    if (typeof window === "undefined") {
+      return
+    }
+    localStorage.removeItem(CART_ID_KEY)
+  },
+
   getCartId(): string | null {
     if (typeof window === "undefined") {
       return null
@@ -36,20 +50,13 @@ export const cartStorage = {
     }
     localStorage.setItem(CART_ID_KEY, cartId)
   },
-
-  clearCartId(): void {
-    if (typeof window === "undefined") {
-      return
-    }
-    localStorage.removeItem(CART_ID_KEY)
-  },
 }
 
-export async function getCart(): Promise<Cart | null> {
+export const getCart = async (): Promise<Cart | null> => {
   try {
     const cartId = cartStorage.getCartId()
 
-    if (!cartId) {
+    if (cartId === null || cartId === "") {
       if (process.env.NODE_ENV === "development") {
         console.log("[CartService] No cart ID found")
       }
@@ -58,10 +65,10 @@ export async function getCart(): Promise<Cart | null> {
 
     const { cart } = await sdk.store.cart.retrieve(cartId)
 
-    if (!cart) {
+    if (cart === undefined || cart === null) {
       throw new CartServiceError(
         "Košík byl načten, ale je prázdný",
-        "CART_NOT_FOUND"
+        "CART_NOT_FOUND",
       )
     }
 
@@ -84,31 +91,35 @@ export async function getCart(): Promise<Cart | null> {
   }
 }
 
-export async function createCart(
+export const createCart = async (
   regionId: string,
   options?: {
     email?: string
     salesChannelId?: string
-  }
-): Promise<Cart> {
+  },
+): Promise<Cart> => {
   try {
     if (!regionId) {
       throw new CartServiceError(
         "Region ID je povinné pole",
-        "CART_CREATION_FAILED"
+        "CART_CREATION_FAILED",
       )
     }
 
     const response = await sdk.store.cart.create({
       region_id: regionId,
-      email: options?.email,
-      sales_channel_id: options?.salesChannelId,
+      ...(options?.email !== undefined && options.email !== ""
+        ? { email: options.email }
+        : {}),
+      ...(options?.salesChannelId !== undefined && options.salesChannelId !== ""
+        ? { sales_channel_id: options.salesChannelId }
+        : {}),
     })
 
-    if (!response.cart) {
+    if (response.cart === undefined || response.cart === null) {
       throw new CartServiceError(
         "Nepodařilo se vytvořit košík",
-        "CART_CREATION_FAILED"
+        "CART_CREATION_FAILED",
       )
     }
 
@@ -127,45 +138,45 @@ export async function createCart(
   }
 }
 
-export async function addToCart(
+export const addToCart = async (
   cartId: string,
   variantId: string,
   quantity = 1,
-  metadata?: Record<string, unknown>
-): Promise<Cart> {
+  metadata?: CartLineItemMetadata,
+): Promise<Cart> => {
   try {
     if (!(cartId && variantId)) {
       throw new CartServiceError(
         "Cart ID a Variant ID jsou povinné",
-        "ITEM_ADD_FAILED"
+        "ITEM_ADD_FAILED",
       )
     }
 
     if (quantity < 1) {
       throw new CartServiceError(
         "Množství musí být alespoň 1",
-        "ITEM_ADD_FAILED"
+        "ITEM_ADD_FAILED",
       )
     }
 
     const response = await sdk.store.cart.createLineItem(cartId, {
-      variant_id: variantId,
       quantity,
-      metadata,
+      variant_id: variantId,
+      ...(metadata ? { metadata } : {}),
     })
 
-    if (!response.cart) {
+    if (response.cart === undefined || response.cart === null) {
       throw new CartServiceError(
         "Nepodařilo se přidat položku do košíku",
-        "ITEM_ADD_FAILED"
+        "ITEM_ADD_FAILED",
       )
     }
 
     if (process.env.NODE_ENV === "development") {
       console.log("[CartService] Item added to cart:", {
-        variantId,
-        quantity,
         metadata,
+        quantity,
+        variantId,
       })
     }
 
@@ -178,23 +189,23 @@ export async function addToCart(
   }
 }
 
-export async function updateLineItem(
+export const updateLineItem = async (
   cartId: string,
   lineItemId: string,
-  quantity: number
-): Promise<Cart> {
+  quantity: number,
+): Promise<Cart> => {
   try {
     if (!(cartId && lineItemId)) {
       throw new CartServiceError(
         "Cart ID a Line Item ID jsou povinné",
-        "ITEM_UPDATE_FAILED"
+        "ITEM_UPDATE_FAILED",
       )
     }
 
     if (quantity < 1) {
       throw new CartServiceError(
         "Množství musí být alespoň 1",
-        "ITEM_UPDATE_FAILED"
+        "ITEM_UPDATE_FAILED",
       )
     }
 
@@ -202,10 +213,10 @@ export async function updateLineItem(
       quantity,
     })
 
-    if (!response.cart) {
+    if (response.cart === undefined || response.cart === null) {
       throw new CartServiceError(
         "Nepodařilo se aktualizovat položku",
-        "ITEM_UPDATE_FAILED"
+        "ITEM_UPDATE_FAILED",
       )
     }
 
@@ -218,15 +229,15 @@ export async function updateLineItem(
   }
 }
 
-export async function removeLineItem(
+export const removeLineItem = async (
   cartId: string,
-  lineItemId: string
-): Promise<Cart> {
+  lineItemId: string,
+): Promise<Cart> => {
   try {
     if (!(cartId && lineItemId)) {
       throw new CartServiceError(
         "Cart ID a Line Item ID jsou povinné",
-        "ITEM_REMOVE_FAILED"
+        "ITEM_REMOVE_FAILED",
       )
     }
 
@@ -235,7 +246,7 @@ export async function removeLineItem(
     if (!response.parent) {
       throw new CartServiceError(
         "Nepodařilo se načíst aktualizovaný košík",
-        "ITEM_REMOVE_FAILED"
+        "ITEM_REMOVE_FAILED",
       )
     }
 
@@ -248,12 +259,15 @@ export async function removeLineItem(
   }
 }
 
-export async function getShippingOptions(
-  cartId: string
-): Promise<HttpTypes.StoreCartShippingOption[]> {
+export const getShippingOptions = async (
+  cartId: string,
+): Promise<HttpTypes.StoreCartShippingOption[]> => {
   try {
     if (!cartId) {
-      throw new CartServiceError("Cart ID je povinné", "SHIPPING_NOT_AVAILABLE")
+      throw new CartServiceError(
+        CART_ID_REQUIRED_MESSAGE,
+        "SHIPPING_NOT_AVAILABLE",
+      )
     }
 
     // Use fulfillment.listCartOptions with cart_id
@@ -265,7 +279,7 @@ export async function getShippingOptions(
       console.log("[CartService] Shipping options:", response.shipping_options)
     }
 
-    return response.shipping_options || []
+    return response.shipping_options ?? []
   } catch (error) {
     if (CartServiceError.isCartServiceError(error)) {
       throw error
@@ -274,7 +288,7 @@ export async function getShippingOptions(
   }
 }
 
-export async function getPaymentProviders(regionId: string) {
+export const getPaymentProviders = async (regionId: string) => {
   try {
     if (!regionId) {
       throw new CartServiceError("Region ID je povinné", "PAYMENT_FAILED")
@@ -287,11 +301,11 @@ export async function getPaymentProviders(regionId: string) {
     if (process.env.NODE_ENV === "development") {
       console.log(
         "[CartService] Payment providers:",
-        response.payment_providers
+        response.payment_providers,
       )
     }
 
-    return response.payment_providers || []
+    return response.payment_providers ?? []
   } catch (error) {
     if (CartServiceError.isCartServiceError(error)) {
       throw error
@@ -301,7 +315,7 @@ export async function getPaymentProviders(regionId: string) {
 }
 
 /** Data for PPL Parcel access point selection */
-export type ShippingMethodData = {
+export type ShippingMethodData = Readonly<{
   access_point_id?: string
   access_point_name?: string
   access_point_type?: string
@@ -309,41 +323,85 @@ export type ShippingMethodData = {
   access_point_city?: string
   access_point_zip?: string
   access_point_country?: string
+}>
+
+const normalizeShippingMethodDataValue = (
+  value: string | null | undefined,
+): string | undefined =>
+  value === undefined || value === null || value === "" ? undefined : value
+
+const buildShippingMethodData = (
+  data?: ShippingMethodData,
+): ShippingMethodData => {
+  const accessPointId = normalizeShippingMethodDataValue(data?.access_point_id)
+  const accessPointName = normalizeShippingMethodDataValue(
+    data?.access_point_name,
+  )
+  const accessPointType = normalizeShippingMethodDataValue(
+    data?.access_point_type,
+  )
+  const accessPointStreet = normalizeShippingMethodDataValue(
+    data?.access_point_street,
+  )
+  const accessPointCity = normalizeShippingMethodDataValue(
+    data?.access_point_city,
+  )
+  const accessPointZip = normalizeShippingMethodDataValue(
+    data?.access_point_zip,
+  )
+  const accessPointCountry = normalizeShippingMethodDataValue(
+    data?.access_point_country,
+  )
+
+  return {
+    ...(accessPointId === undefined ? {} : { access_point_id: accessPointId }),
+    ...(accessPointName === undefined
+      ? {}
+      : { access_point_name: accessPointName }),
+    ...(accessPointType === undefined
+      ? {}
+      : { access_point_type: accessPointType }),
+    ...(accessPointStreet === undefined
+      ? {}
+      : { access_point_street: accessPointStreet }),
+    ...(accessPointCity === undefined
+      ? {}
+      : { access_point_city: accessPointCity }),
+    ...(accessPointZip === undefined
+      ? {}
+      : { access_point_zip: accessPointZip }),
+    ...(accessPointCountry === undefined
+      ? {}
+      : { access_point_country: accessPointCountry }),
+  }
 }
 
-export async function setShippingMethod(
+export const setShippingMethod = async (
   cartId: string,
   optionId: string,
-  data?: ShippingMethodData
-): Promise<Cart> {
+  data?: ShippingMethodData,
+): Promise<Cart> => {
   try {
     if (!(cartId && optionId)) {
       throw new CartServiceError(
         "Cart ID a Option ID jsou povinné",
-        "SHIPPING_SET_FAILED"
+        "SHIPPING_SET_FAILED",
       )
     }
 
     // For PPL Parcel, send access point data; for regular shipping, send empty object
     // Filter out undefined/null/empty values to keep payload clean
-    const shippingData =
-      data && Object.keys(data).length > 0
-        ? Object.fromEntries(
-            Object.entries(data).filter(
-              ([, value]) => value != null && value !== ""
-            )
-          )
-        : {}
+    const shippingData = buildShippingMethodData(data)
 
     const response = await sdk.store.cart.addShippingMethod(cartId, {
-      option_id: optionId,
       data: shippingData,
+      option_id: optionId,
     })
 
-    if (!response.cart) {
+    if (response.cart === undefined || response.cart === null) {
       throw new CartServiceError(
         "Nepodařilo se nastavit způsob dopravy",
-        "SHIPPING_SET_FAILED"
+        "SHIPPING_SET_FAILED",
       )
     }
 
@@ -360,42 +418,80 @@ export async function setShippingMethod(
   }
 }
 
-export async function createPaymentCollection(
+/** Debug-only logger for payment sessions that already exist on a cart. */
+const logExistingPaymentSessions = (cart: Cart): void => {
+  if (process.env.NODE_ENV !== "development") {
+    return
+  }
+  console.log("[CartService] Payment sessions already exist:", {
+    collectionId: cart.payment_collection?.id,
+    sessionCount: cart.payment_collection?.payment_sessions?.length ?? 0,
+    sessions: cart.payment_collection?.payment_sessions?.map((s) => ({
+      id: s.id,
+      provider_id: s.provider_id,
+      status: s.status,
+    })),
+  })
+}
+
+/** Debug-only logger for a newly initialized payment session. */
+const logPaymentSessionInitialized = (
+  paymentCollection: HttpTypes.StorePaymentCollection,
+): void => {
+  if (process.env.NODE_ENV !== "development") {
+    return
+  }
+  console.log("[CartService] Payment session initialized:", {
+    collectionId: paymentCollection.id,
+    sessionCount: paymentCollection.payment_sessions?.length ?? 0,
+    sessions: paymentCollection.payment_sessions?.map((s) => ({
+      id: s.id,
+      provider_id: s.provider_id,
+      status: s.status,
+    })),
+  })
+}
+
+/** Debug-only logger for payment initialization failures. */
+const logPaymentInitError = (error: unknown): void => {
+  if (process.env.NODE_ENV !== "development") {
+    return
+  }
+  console.error("[CartService] Payment initialization error:", error)
+}
+
+export const createPaymentCollection = async (
   cartId: string,
-  providerId: string
-) {
+  providerId: string,
+) => {
   try {
     if (!cartId) {
-      throw new CartServiceError("Cart ID je povinné", "PAYMENT_INIT_FAILED")
+      throw new CartServiceError(
+        CART_ID_REQUIRED_MESSAGE,
+        "PAYMENT_INIT_FAILED",
+      )
     }
 
     if (!providerId) {
       throw new CartServiceError(
         "Provider ID je povinné",
-        "PAYMENT_INIT_FAILED"
+        "PAYMENT_INIT_FAILED",
       )
     }
 
     // Get current cart
     const { cart } = await sdk.store.cart.retrieve(cartId)
 
-    if (!cart) {
+    if (cart === undefined || cart === null) {
       throw new CartServiceError("Košík nebyl nalezen", "PAYMENT_INIT_FAILED")
     }
 
     // Check if payment sessions already exist (early return optimization)
-    if (cart.payment_collection?.payment_sessions?.length) {
-      if (process.env.NODE_ENV === "development") {
-        console.log("[CartService] Payment sessions already exist:", {
-          collectionId: cart.payment_collection?.id,
-          sessionCount: cart.payment_collection?.payment_sessions?.length || 0,
-          sessions: cart.payment_collection?.payment_sessions?.map((s) => ({
-            id: s.id,
-            status: s.status,
-            provider_id: s.provider_id,
-          })),
-        })
-      }
+    if (
+      cart.payment_collection?.payment_sessions?.length !== undefined &&
+      cart.payment_collection.payment_sessions.length > 0
+    ) {
+      logExistingPaymentSessions(cart)
       return { payment_collection: cart.payment_collection }
     }
 
@@ -404,24 +500,17 @@ export async function createPaymentCollection(
       provider_id: providerId,
     })
 
-    if (!response.payment_collection) {
+    if (
+      response.payment_collection === undefined ||
+      response.payment_collection === null
+    ) {
       throw new CartServiceError(
         "Nepodařilo se inicializovat platební session",
-        "PAYMENT_INIT_FAILED"
+        "PAYMENT_INIT_FAILED",
       )
     }
 
-    if (process.env.NODE_ENV === "development") {
-      console.log("[CartService] Payment session initialized:", {
-        collectionId: response.payment_collection.id,
-        sessionCount: response.payment_collection.payment_sessions?.length || 0,
-        sessions: response.payment_collection.payment_sessions?.map((s) => ({
-          id: s.id,
-          status: s.status,
-          provider_id: s.provider_id,
-        })),
-      })
-    }
+    logPaymentSessionInitialized(response.payment_collection)
 
     return response
   } catch (error) {
@@ -429,19 +518,20 @@ export async function createPaymentCollection(
       throw error
     }
 
-    if (process.env.NODE_ENV === "development") {
-      console.error("[CartService] Payment initialization error:", error)
-    }
+    logPaymentInitError(error)
     throw CartServiceError.fromMedusaError(error, "PAYMENT_INIT_FAILED")
   }
 }
 
-export async function completeCart(
-  cartId: string
-): Promise<CompleteCartResult> {
+export const completeCart = async (
+  cartId: string,
+): Promise<CompleteCartResult> => {
   try {
     if (!cartId) {
-      throw new CartServiceError("Cart ID je povinné", "ORDER_CREATION_FAILED")
+      throw new CartServiceError(
+        CART_ID_REQUIRED_MESSAGE,
+        "ORDER_CREATION_FAILED",
+      )
     }
 
     // Debug: Check cart state before completing
@@ -449,17 +539,17 @@ export async function completeCart(
       const { cart: currentCart } = await sdk.store.cart.retrieve(cartId)
       console.log("[CartService] Cart state before complete:", {
         hasPaymentCollection: !!currentCart.payment_collection,
+        hasShippingMethod: !!currentCart.shipping_methods?.[0],
         paymentCollectionId: currentCart.payment_collection?.id,
-        paymentSessionsCount:
-          currentCart.payment_collection?.payment_sessions?.length || 0,
         paymentSessions: currentCart.payment_collection?.payment_sessions?.map(
           (s) => ({
             id: s.id,
-            status: s.status,
             provider_id: s.provider_id,
-          })
+            status: s.status,
+          }),
         ),
-        hasShippingMethod: !!currentCart.shipping_methods?.[0],
+        paymentSessionsCount:
+          currentCart.payment_collection?.payment_sessions?.length ?? 0,
         shippingMethodId: currentCart.shipping_methods?.[0]?.id,
       })
     }
@@ -474,13 +564,13 @@ export async function completeCart(
       if (process.env.NODE_ENV === "development") {
         console.log(
           "[CartService] Cart completed, order created:",
-          response.order.id
+          response.order.id,
         )
       }
 
       return {
-        success: true,
         order: response.order,
+        success: true,
       }
     }
 
@@ -490,9 +580,9 @@ export async function completeCart(
     }
 
     return {
-      success: false,
       cart: response.cart,
       error: response.error,
+      success: false,
     }
   } catch (error) {
     // Network errors or unexpected failures

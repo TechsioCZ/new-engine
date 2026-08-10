@@ -1,6 +1,6 @@
 /* Entity: Quote */
 
-export type ModuleQuote = {
+export interface ModuleQuote {
   id: string
   status: string
   draft_order_id: string
@@ -11,21 +11,21 @@ export type ModuleQuote = {
   updated_at: string
 }
 
-export type ModuleCreateQuote = {
+export interface ModuleCreateQuote {
   draft_order_id: string
   order_change_id: string
   cart_id: string
   customer_id: string
 }
 
-export type ModuleUpdateQuote = {
+export interface ModuleUpdateQuote {
   id: string
   status?: string
 }
 
 /* Entity: Message */
 
-export type ModuleCreateQuoteMessage = {
+export interface ModuleCreateQuoteMessage {
   text: string
   quote_id: string
   admin_id?: string
@@ -33,7 +33,7 @@ export type ModuleCreateQuoteMessage = {
   item_id?: string | null
 }
 
-export type ModuleQuoteMessage = {
+export interface ModuleQuoteMessage {
   id: string
   text: string
   quote_id: string

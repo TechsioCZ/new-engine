@@ -1,6 +1,6 @@
 /* Entity: Approval Settings */
 
-export type ModuleApprovalSettings = {
+export interface ModuleApprovalSettings {
   id: string
   company_id: string
   requires_admin_approval: boolean
@@ -10,13 +10,13 @@ export type ModuleApprovalSettings = {
   deleted_at: string | null
 }
 
-export type ModuleCreateApprovalSettings = {
+export interface ModuleCreateApprovalSettings {
   company_id: string
   requires_admin_approval: boolean
   requires_sales_manager_approval: boolean
 }
 
-export type ModuleUpdateApprovalSettings = {
+export interface ModuleUpdateApprovalSettings {
   id: string
   requires_admin_approval?: boolean
   requires_sales_manager_approval?: boolean
@@ -31,15 +31,15 @@ export const ApprovalType = {
 export type ApprovalType = (typeof ApprovalType)[keyof typeof ApprovalType]
 
 export const ApprovalStatusType = {
-  PENDING: "pending",
   APPROVED: "approved",
+  PENDING: "pending",
   REJECTED: "rejected",
 } as const
 
 export type ApprovalStatusType =
   (typeof ApprovalStatusType)[keyof typeof ApprovalStatusType]
 
-export type ModuleApproval = {
+export interface ModuleApproval {
   id: string
   cart_id: string
   type: ApprovalType
@@ -48,31 +48,31 @@ export type ModuleApproval = {
   handled_by: string | null
 }
 
-export type ModuleCreateApproval = {
+export interface ModuleCreateApproval {
   cart_id: string
   type: ApprovalType
   created_by: string
 }
 
-export type ModuleUpdateApproval = {
+export interface ModuleUpdateApproval {
   id: string
   status: ApprovalStatusType
   handled_by: string | null
 }
 
 /* Entity: Approval Status */
-export type ModuleApprovalStatus = {
+export interface ModuleApprovalStatus {
   id: string
   cart_id: string
   status: ApprovalStatusType
 }
 
-export type ModuleCreateApprovalStatus = {
+export interface ModuleCreateApprovalStatus {
   cart_id: string
   status: ApprovalStatusType
 }
 
-export type ModuleUpdateApprovalStatus = {
+export interface ModuleUpdateApprovalStatus {
   id: string
   status: ApprovalStatusType
 }

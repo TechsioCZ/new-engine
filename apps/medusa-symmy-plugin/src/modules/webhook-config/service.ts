@@ -1,17 +1,20 @@
-import type { Logger } from "@medusajs/framework/types"
-import { MedusaError, MedusaService } from "@medusajs/framework/utils"
+import type { Logger, MetadataType } from "@medusajs/framework/types"
+import { MedusaService } from "@medusajs/framework/utils"
+
 import packageJson from "../../../package.json"
-import SymmyWebhookConfig, {
-  type SymmyWebhookEndpoint,
-} from "./models/symmy-webhook-config"
+import SymmyWebhookConfig from "./models/symmy-webhook-config"
+import type { SymmyWebhookEndpoint } from "./models/symmy-webhook-config"
 
 export type { SymmyWebhookEndpoint } from "./models/symmy-webhook-config"
 
+const environmentValue = (key: string): string | undefined => process.env[key]
+
 const DEFAULT_CONFIG_KEY = "default"
 const WEBHOOK_TIMEOUT_MS = 10_000
-const PLUGIN_VERSION = process.env.SYMMY_PLUGIN_VERSION ?? packageJson.version
+const PLUGIN_VERSION =
+  environmentValue("SYMMY_PLUGIN_VERSION") ?? packageJson.version
 
-export type SymmyWebhookConfigDTO = {
+export interface SymmyWebhookConfigDTO {
   id: string
   config_key: string
   is_enabled: boolean
@@ -20,12 +23,12 @@ export type SymmyWebhookConfigDTO = {
   updated_at?: Date | string
 }
 
-export type UpdateSymmyWebhookConfigInput = {
-  is_enabled?: boolean
-  endpoints?: SymmyWebhookEndpoint[]
+export interface UpdateSymmyWebhookConfigInput {
+  is_enabled?: boolean | undefined
+  endpoints?: SymmyWebhookEndpoint[] | undefined
 }
 
-export type SymmyWebhookJobPayload = {
+export interface SymmyWebhookJobPayload {
   event: "symmy.import_job.completed" | "symmy.import_job.failed"
   job: {
     id: string
@@ -35,16 +38,16 @@ export type SymmyWebhookJobPayload = {
     processed: number
     failed: number
     attempts: number
-    result: Record<string, unknown> | null
+    result: MetadataType
     error: string | null
-    created_at?: Date | string
-    updated_at?: Date | string
+    created_at?: Date | string | undefined
+    updated_at?: Date | string | undefined
     started_at: Date | string | null
     finished_at: Date | string | null
   }
 }
 
-type InjectedDependencies = {
+interface InjectedDependencies {
   logger: Logger
 }
 
@@ -52,101 +55,71 @@ type RawSymmyWebhookConfigDTO = Omit<SymmyWebhookConfigDTO, "endpoints"> & {
   endpoints: SymmyWebhookEndpoint[]
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
-const isDateOrString = (value: unknown): value is Date | string =>
-  value instanceof Date || typeof value === "string"
-
-const isSymmyWebhookEndpoint = (
-  value: unknown
-): value is SymmyWebhookEndpoint =>
-  isRecord(value) &&
-  typeof value.url === "string" &&
-  typeof value.enabled === "boolean"
-
-const isRawSymmyWebhookConfigDTO = (
-  value: unknown
-): value is RawSymmyWebhookConfigDTO =>
-  isRecord(value) &&
-  typeof value.id === "string" &&
-  typeof value.config_key === "string" &&
-  typeof value.is_enabled === "boolean" &&
-  Array.isArray(value.endpoints) &&
-  value.endpoints.every(isSymmyWebhookEndpoint) &&
-  (value.created_at === undefined || isDateOrString(value.created_at)) &&
-  (value.updated_at === undefined || isDateOrString(value.updated_at))
-
 const normalizeEndpoint = (
-  endpoint: SymmyWebhookEndpoint
+  endpoint: SymmyWebhookEndpoint,
 ): SymmyWebhookEndpoint => ({
-  url: endpoint.url.trim(),
   enabled: endpoint.enabled,
+  url: endpoint.url.trim(),
 })
 
 const normalizeEndpoints = (endpoints: SymmyWebhookEndpoint[] = []) =>
-  endpoints.map(normalizeEndpoint).filter((endpoint) => endpoint.url.length > 0)
+  endpoints.flatMap((endpoint) => {
+    const normalized = normalizeEndpoint(endpoint)
+    return normalized.url.length > 0 ? [normalized] : []
+  })
+
+const toDTO = (raw: RawSymmyWebhookConfigDTO): SymmyWebhookConfigDTO => ({
+  ...raw,
+  endpoints: normalizeEndpoints(raw.endpoints),
+})
 
 export class SymmyWebhookConfigModuleService extends MedusaService({
   SymmyWebhookConfig,
 }) {
-  private readonly logger_: Logger
+  private readonly logger: Logger
 
   constructor(container: InjectedDependencies) {
     super(container)
-    this.logger_ = container.logger
-  }
-
-  private toDTO(raw: unknown): SymmyWebhookConfigDTO {
-    if (!isRawSymmyWebhookConfigDTO(raw)) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        "[symmy-plugin] Invalid webhook config data"
-      )
-    }
-
-    return {
-      ...raw,
-      endpoints: normalizeEndpoints(raw.endpoints),
-    }
+    this.logger = container.logger
   }
 
   async getConfig(): Promise<SymmyWebhookConfigDTO> {
     const configs = await this.listSymmyWebhookConfigs(
       { config_key: DEFAULT_CONFIG_KEY },
-      { take: 1 }
+      { take: 1 },
     )
-    const existing = configs[0]
-    if (existing) {
-      return this.toDTO(existing)
+    const [existing] = configs
+    if (existing !== undefined) {
+      return toDTO(existing)
     }
 
     const created = await this.createSymmyWebhookConfigs({
       config_key: DEFAULT_CONFIG_KEY,
-      is_enabled: false,
       endpoints: [],
+      is_enabled: false,
     })
 
-    return this.toDTO(created)
+    return toDTO(created)
   }
 
   async updateConfig(
-    input: UpdateSymmyWebhookConfigInput
+    input: UpdateSymmyWebhookConfigInput,
+    currentConfig?: SymmyWebhookConfigDTO,
   ): Promise<SymmyWebhookConfigDTO> {
-    const existing = await this.getConfig()
+    const existing = currentConfig ?? (await this.getConfig())
     const updated = await this.updateSymmyWebhookConfigs({
       id: existing.id,
-      ...(input.is_enabled !== undefined
-        ? { is_enabled: input.is_enabled }
-        : {}),
-      ...(input.endpoints !== undefined
-        ? {
+      ...(input.is_enabled === undefined
+        ? {}
+        : { is_enabled: input.is_enabled }),
+      ...(input.endpoints === undefined
+        ? {}
+        : {
             endpoints: normalizeEndpoints(input.endpoints),
-          }
-        : {}),
+          }),
     })
 
-    return this.toDTO(updated)
+    return toDTO(updated)
   }
 
   async deliverJobFinished(payload: SymmyWebhookJobPayload): Promise<void> {
@@ -156,7 +129,7 @@ export class SymmyWebhookConfigModuleService extends MedusaService({
     }
 
     const endpoints = config.endpoints.filter((endpoint) => endpoint.enabled)
-    if (!endpoints.length) {
+    if (endpoints.length === 0) {
       return
     }
 
@@ -164,28 +137,28 @@ export class SymmyWebhookConfigModuleService extends MedusaService({
       endpoints.map(async (endpoint) => {
         try {
           const response = await fetch(endpoint.url, {
-            method: "POST",
+            body: JSON.stringify(payload),
             headers: {
               "content-type": "application/json",
               "user-agent": `medusa-symmy-plugin/${PLUGIN_VERSION}`,
             },
-            body: JSON.stringify(payload),
+            method: "POST",
             signal: AbortSignal.timeout(WEBHOOK_TIMEOUT_MS),
           })
 
           if (!response.ok) {
-            this.logger_.warn(
-              `[symmy-plugin] Webhook ${endpoint.url} returned ${response.status} for job ${payload.job.id}`
+            this.logger.warn(
+              `[symmy-plugin] Webhook ${endpoint.url} returned ${response.status} for job ${payload.job.id}`,
             )
           }
         } catch (error) {
           const message =
             error instanceof Error ? error.message : "Unknown webhook error"
-          this.logger_.warn(
-            `[symmy-plugin] Failed to deliver webhook ${endpoint.url} for job ${payload.job.id}: ${message}`
+          this.logger.warn(
+            `[symmy-plugin] Failed to deliver webhook ${endpoint.url} for job ${payload.job.id}: ${message}`,
           )
         }
-      })
+      }),
     )
   }
 }

@@ -3,6 +3,7 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Accordion } from "@techsio/ui-kit/molecules/accordion"
 import type { ReactNode } from "react"
+
 import { FaqItemHeader } from "@/components/faq/faq-item-header"
 
 interface FaqItem {
@@ -14,17 +15,6 @@ interface FaqItem {
 
 const faqData: FaqItem[] = [
   {
-    id: "faq-1",
-    value: "implementation-time",
-    title: (
-      <FaqItemHeader
-        icon="icon-[mdi--clock-outline]"
-        iconStyle="text-primary text-md bg-primary/10"
-        tag="Implementace"
-        tagStyle="bg-primary/10 text-primary"
-        title="Jak dlouho trvá implementace custom e-commerce řešení?"
-      />
-    ),
     content: (
       <div className="space-y-content-sections pl-faq-primary">
         <div className="rounded-lg border border-border bg-surface p-card-padding">
@@ -119,19 +109,19 @@ const faqData: FaqItem[] = [
         </div>
       </div>
     ),
-  },
-  {
-    id: "faq-2",
-    value: "migration-process",
+    id: "faq-1",
     title: (
       <FaqItemHeader
-        icon="icon-[mdi--database-arrow-right]"
-        iconStyle="text-info text-md bg-info/10"
-        tag="Migrace dat"
-        tagStyle="bg-info/10 text-info"
-        title="Jak probíhá přechod ze současného e-shopu na vaše řešení?"
+        icon="icon-[mdi--clock-outline]"
+        iconStyle="text-primary text-md bg-primary/10"
+        tag="Implementace"
+        tagStyle="bg-primary/10 text-primary"
+        title="Jak dlouho trvá implementace custom e-commerce řešení?"
       />
     ),
+    value: "implementation-time",
+  },
+  {
     content: (
       <div className="space-y-content-sections pl-faq-primary">
         <div className="rounded-lg border border-info/20 bg-info/5 p-card-padding">
@@ -258,19 +248,19 @@ const faqData: FaqItem[] = [
         </div>
       </div>
     ),
-  },
-  {
-    id: "faq-3",
-    value: "modular-development",
+    id: "faq-2",
     title: (
       <FaqItemHeader
-        icon="icon-[mdi--puzzle-outline]"
-        iconStyle="text-success text-md bg-success/10"
-        tag="Modularita"
-        tagStyle="bg-success/10 text-success"
-        title="Můžeme začít s základní verzí a postupně rozšiřovat funkcionalitu?"
+        icon="icon-[mdi--database-arrow-right]"
+        iconStyle="text-info text-md bg-info/10"
+        tag="Migrace dat"
+        tagStyle="bg-info/10 text-info"
+        title="Jak probíhá přechod ze současného e-shopu na vaše řešení?"
       />
     ),
+    value: "migration-process",
+  },
+  {
     content: (
       <div className="space-y-content-sections pl-faq-primary">
         <div className="rounded-lg border border-success/20 bg-success/5 p-card-padding">
@@ -322,19 +312,19 @@ const faqData: FaqItem[] = [
         </div>
       </div>
     ),
-  },
-  {
-    id: "faq-4",
-    value: "b2b-features",
+    id: "faq-3",
     title: (
       <FaqItemHeader
-        icon="icon-[mdi--office-building]"
-        iconStyle="text-tertiary text-md bg-tertiary/10"
-        tag="B2B řešení"
-        tagStyle="bg-tertiary/10 text-tertiary"
-        title="Jak řešíte B2B specifika jako cenové hladiny a individuální ceníky?"
+        icon="icon-[mdi--puzzle-outline]"
+        iconStyle="text-success text-md bg-success/10"
+        tag="Modularita"
+        tagStyle="bg-success/10 text-success"
+        title="Můžeme začít s základní verzí a postupně rozšiřovat funkcionalitu?"
       />
     ),
+    value: "modular-development",
+  },
+  {
     content: (
       <div className="space-y-content-sections pl-faq-primary">
         <div className="rounded-lg border border-tertiary/20 bg-tertiary/5 p-card-padding">
@@ -453,19 +443,19 @@ const faqData: FaqItem[] = [
         </div>
       </div>
     ),
-  },
-  {
-    id: "faq-5",
-    value: "integrations",
+    id: "faq-4",
     title: (
       <FaqItemHeader
-        icon="icon-[mdi--link-variant]"
-        iconStyle="text-secondary text-md bg-secondary/10"
-        tag="Integrace"
-        tagStyle="bg-secondary/10 text-secondary"
-        title="Jak řešíte napojení na externí systémy a API třetích stran?"
+        icon="icon-[mdi--office-building]"
+        iconStyle="text-tertiary text-md bg-tertiary/10"
+        tag="B2B řešení"
+        tagStyle="bg-tertiary/10 text-tertiary"
+        title="Jak řešíte B2B specifika jako cenové hladiny a individuální ceníky?"
       />
     ),
+    value: "b2b-features",
+  },
+  {
     content: (
       <div className="space-y-content-sections pl-faq-primary">
         <div className="rounded-lg border border-border bg-surface p-card-padding">
@@ -583,19 +573,19 @@ const faqData: FaqItem[] = [
         </div>
       </div>
     ),
-  },
-  {
-    id: "faq-6",
-    value: "support",
+    id: "faq-5",
     title: (
       <FaqItemHeader
-        icon="icon-[mdi--support]"
-        iconStyle="text-info text-md bg-info/10"
-        tag="Podpora"
-        tagStyle="bg-info/10 text-info"
-        title="Jak funguje technická podpora po spuštění e-shopu?"
+        icon="icon-[mdi--link-variant]"
+        iconStyle="text-secondary text-md bg-secondary/10"
+        tag="Integrace"
+        tagStyle="bg-secondary/10 text-secondary"
+        title="Jak řešíte napojení na externí systémy a API třetích stran?"
       />
     ),
+    value: "integrations",
+  },
+  {
     content: (
       <div className="space-y-content-sections pl-faq-primary">
         <div className="rounded-lg border border-info/20 bg-info/5 p-card-padding">
@@ -728,69 +718,80 @@ const faqData: FaqItem[] = [
         </div>
       </div>
     ),
+    id: "faq-6",
+    title: (
+      <FaqItemHeader
+        icon="icon-[mdi--support]"
+        iconStyle="text-info text-md bg-info/10"
+        tag="Podpora"
+        tagStyle="bg-info/10 text-info"
+        title="Jak funguje technická podpora po spuštění e-shopu?"
+      />
+    ),
+    value: "support",
   },
 ]
 
-export default function FAQ() {
-  return (
-    <div className="min-h-screen py-700">
-      <div className="mx-auto max-w-layout-max px-400">
-        <div className="mb-800 text-center">
-          <div className="mb-400 flex items-center justify-center">
-            <h1 className="font-bold text-3xl text-fg-primary">
-              Často kladené otázky
-            </h1>
-          </div>
-          <p className="mx-auto max-w-layout-lg text-fg-secondary text-lg leading-relaxed">
-            Najděte odpovědi na nejčastější otázky ohledně našich e-commerce
-            řešení. Pokud nenajdete odpověď na svou otázku, neváhejte nás
-            kontaktovat.
-          </p>
+const FAQ = () => (
+  <div className="min-h-screen py-700">
+    <div className="mx-auto max-w-layout-max px-400">
+      <div className="mb-800 text-center">
+        <div className="mb-400 flex items-center justify-center">
+          <h1 className="font-bold text-3xl text-fg-primary">
+            Často kladené otázky
+          </h1>
         </div>
-        <div className="rounded-lg">
-          <Accordion collapsible multiple shadow="sm">
-            {faqData.map((item) => (
-              <Accordion.Item key={item.id} value={item.value}>
-                <Accordion.Header>
-                  <div className="p-200">{item.title}</div>
-                  <Accordion.Indicator />
-                </Accordion.Header>
-                <Accordion.Content>{item.content}</Accordion.Content>
-              </Accordion.Item>
-            ))}
-          </Accordion>
-        </div>
+        <p className="mx-auto max-w-layout-lg text-fg-secondary text-lg leading-relaxed">
+          Najděte odpovědi na nejčastější otázky ohledně našich e-commerce
+          řešení. Pokud nenajdete odpověď na svou otázku, neváhejte nás
+          kontaktovat.
+        </p>
+      </div>
+      <div className="rounded-lg">
+        <Accordion collapsible multiple shadow="sm">
+          {faqData.map((item) => (
+            <Accordion.Item key={item.id} value={item.value}>
+              <Accordion.Header>
+                <div className="p-200">{item.title}</div>
+                <Accordion.Indicator />
+              </Accordion.Header>
+              <Accordion.Content>{item.content}</Accordion.Content>
+            </Accordion.Item>
+          ))}
+        </Accordion>
+      </div>
 
-        {/* Contact CTA */}
-        <div className="mt-800 text-center">
-          <div className="rounded-lg bg-surface p-600 shadow-primary">
-            <div className="mb-400 flex items-center justify-center">
-              <Icon
-                className="mr-250 text-2xl text-secondary"
-                icon="icon-[ic--outline-message]"
-              />
-              <h3 className="font-semibold text-fg-primary text-xl">
-                Máte další otázky?
-              </h3>
-            </div>
-            <p className="mx-auto mb-500 max-w-layout-md text-fg-secondary">
-              Máte dotaz, který zde není zodpovězený? Ozvěte se nám – budeme
-              rádi, když vám můžeme poradit a najít společně ideální řešení pro
-              vaši situaci.
-            </p>
-            <div className="flex flex-col justify-center gap-card-padding sm:flex-row">
-              <LinkButton
-                className="px-250 py-150"
-                href="/contact"
-                theme="solid"
-                variant="primary"
-              >
-                Kontaktujte nás
-              </LinkButton>
-            </div>
+      {/* Contact CTA */}
+      <div className="mt-800 text-center">
+        <div className="rounded-lg bg-surface p-600 shadow-primary">
+          <div className="mb-400 flex items-center justify-center">
+            <Icon
+              className="mr-250 text-2xl text-secondary"
+              icon="icon-[ic--outline-message]"
+            />
+            <h3 className="font-semibold text-fg-primary text-xl">
+              Máte další otázky?
+            </h3>
+          </div>
+          <p className="mx-auto mb-500 max-w-layout-md text-fg-secondary">
+            Máte dotaz, který zde není zodpovězený? Ozvěte se nám – budeme rádi,
+            když vám můžeme poradit a najít společně ideální řešení pro vaši
+            situaci.
+          </p>
+          <div className="flex flex-col justify-center gap-card-padding sm:flex-row">
+            <LinkButton
+              className="px-250 py-150"
+              href="/contact"
+              theme="solid"
+              variant="primary"
+            >
+              Kontaktujte nás
+            </LinkButton>
           </div>
         </div>
       </div>
     </div>
-  )
-}
+  </div>
+)
+
+export default FAQ

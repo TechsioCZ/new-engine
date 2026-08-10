@@ -1,4 +1,4 @@
-export type Category = {
+export interface Category {
   id: string
   name: string
   handle: string
@@ -7,7 +7,7 @@ export type Category = {
   root_category_id?: string | null
 }
 
-export type CategoryTreeNode = {
+export interface CategoryTreeNode {
   id: string
   name: string
   handle: string

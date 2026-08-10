@@ -2,6 +2,7 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import type { ModuleQuote, ModuleUpdateQuote } from "../../../types"
 import { updateQuotesStep } from "../steps/update-quotes"
 
@@ -11,5 +12,5 @@ import { updateQuotesStep } from "../steps/update-quotes"
 export const updateQuotesWorkflow = createWorkflow(
   "update-quotes",
   (input: ModuleUpdateQuote[]): WorkflowResponse<ModuleQuote[]> =>
-    new WorkflowResponse(updateQuotesStep(input))
+    new WorkflowResponse(updateQuotesStep(input)),
 )

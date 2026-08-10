@@ -1,20 +1,22 @@
-import { type BaseProperty, model } from "@medusajs/framework/utils"
+import { BaseProperty, model } from "@medusajs/framework/utils"
 
-export type SymmyWebhookEndpoint = {
+export interface SymmyWebhookEndpoint {
   url: string
   enabled: boolean
 }
 
-const endpointsProperty = model.json() as unknown as BaseProperty<
+export class WebhookEndpointsProperty extends BaseProperty<
   SymmyWebhookEndpoint[]
->
+> {
+  dataType = { name: "json" } as const
+}
 
 const SymmyWebhookConfig = model
   .define("symmy_webhook_config", {
-    id: model.id().primaryKey(),
     config_key: model.text().default("default"),
+    endpoints: new WebhookEndpointsProperty().default([]),
+    id: model.id().primaryKey(),
     is_enabled: model.boolean().default(false),
-    endpoints: endpointsProperty.default([]),
   })
   .indexes([
     {

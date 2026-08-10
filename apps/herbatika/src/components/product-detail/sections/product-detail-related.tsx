@@ -1,28 +1,30 @@
 "use client"
 
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 import { useTranslations } from "next-intl"
+
+import type { RelatedProductsSection } from "@/components/product-detail/product-detail.types"
 import { ProductCollectionSection } from "@/components/product/product-collection-section"
-import type {
-  Product,
-  RelatedProductsSection,
-} from "@/components/product-detail/product-detail.types"
 import { SupportingText } from "@/components/text/supporting-text"
 
-type ProductDetailRelatedProps = {
+interface ProductDetailRelatedProps {
   isProductAdding: (productId: string) => boolean
-  onAddToCart: (product: Product) => void
-  onProductHoverEnd: (sectionId: string, product: Product) => void
-  onProductHoverStart: (sectionId: string, product: Product) => void
+  onAddToCart: (product: MedusaCatalogProduct) => void
+  onProductHoverEnd: (sectionId: string, product: MedusaCatalogProduct) => void
+  onProductHoverStart: (
+    sectionId: string,
+    product: MedusaCatalogProduct,
+  ) => void
   sections: RelatedProductsSection[]
 }
 
-export function ProductDetailRelated({
+export const ProductDetailRelated = ({
   isProductAdding,
   onAddToCart,
   onProductHoverEnd,
   onProductHoverStart,
   sections,
-}: ProductDetailRelatedProps) {
+}: ProductDetailRelatedProps) => {
   const tCatalog = useTranslations("catalog")
 
   if (sections.length === 0) {

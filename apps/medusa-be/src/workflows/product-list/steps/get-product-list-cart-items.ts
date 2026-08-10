@@ -4,6 +4,7 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { ProductListItemVariantLink } from "../../../links/product-list-item-variant"
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
 import type ProductListModuleService from "../../../modules/product-list/service"
@@ -11,12 +12,12 @@ import { toProductListItemVariantLinks } from "../../../utils/product-list-links
 
 const PRODUCT_LIST_CART_ITEMS_LOOKUP_CHUNK_SIZE = 1000
 
-export type ProductListCartItem = {
+export interface ProductListCartItem {
   variant_id: string
   quantity: number
 }
 
-type ProductListItemRecord = {
+interface ProductListItemRecord {
   id: string
   quantity: number
 }
@@ -24,21 +25,21 @@ type ProductListItemRecord = {
 const addItemQuantitiesByVariantId = (
   items: ProductListItemRecord[],
   variantIdsByItemId: Map<string, string>,
-  quantitiesByVariantId: Map<string, number>
+  quantitiesByVariantId: Map<string, number>,
 ) => {
   for (const item of items) {
     const variantId = variantIdsByItemId.get(item.id)
 
-    if (!variantId) {
+    if (variantId === undefined || variantId.length === 0) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Product list item ${item.id} has no variant selected`
+        `Product list item ${item.id} has no variant selected`,
       )
     }
 
     quantitiesByVariantId.set(
       variantId,
-      (quantitiesByVariantId.get(variantId) ?? 0) + item.quantity
+      (quantitiesByVariantId.get(variantId) ?? 0) + item.quantity,
     )
   }
 }
@@ -50,30 +51,29 @@ export const getProductListCartItemsStep = createStep(
       container.resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const quantitiesByVariantId = new Map<string, number>()
-    let skip = 0
 
-    while (true) {
+    const collectChunk = async (skip: number): Promise<void> => {
       const items = await service.listProductListItems(
         {
           list_id: listId,
         },
         {
-          order: { sort_order: "ASC", created_at: "ASC" },
+          order: { created_at: "ASC", sort_order: "ASC" },
           skip,
           take: PRODUCT_LIST_CART_ITEMS_LOOKUP_CHUNK_SIZE,
-        }
+        },
       )
 
-      if (!items.length && skip === 0) {
+      if (items.length === 0 && skip === 0) {
         throw new MedusaError(
           MedusaError.Types.INVALID_DATA,
-          `Product list ${listId} has no items to order`
+          `Product list ${listId} has no items to order`,
         )
       }
 
       const itemIds = items.map((item) => item.id)
 
-      if (itemIds.length) {
+      if (itemIds.length > 0) {
         const { data: variantLinks } = await query.graph({
           entity: ProductListItemVariantLink.entryPoint,
           fields: ["product_list_item_id", "product_variant_id"],
@@ -85,34 +85,46 @@ export const getProductListCartItemsStep = createStep(
           },
         })
         const variantIdsByItemId = new Map(
-          toProductListItemVariantLinks(variantLinks).flatMap((link) =>
-            link.product_list_item_id && link.product_variant_id
-              ? [[link.product_list_item_id, link.product_variant_id]]
-              : []
-          )
+          toProductListItemVariantLinks(variantLinks).flatMap<[string, string]>(
+            (link) => {
+              const itemId = link.product_list_item_id
+              const variantId = link.product_variant_id
+
+              if (
+                typeof itemId !== "string" ||
+                itemId.length === 0 ||
+                typeof variantId !== "string" ||
+                variantId.length === 0
+              ) {
+                return []
+              }
+
+              return [[itemId, variantId]]
+            },
+          ),
         )
 
         addItemQuantitiesByVariantId(
           items,
           variantIdsByItemId,
-          quantitiesByVariantId
+          quantitiesByVariantId,
         )
       }
 
-      if (items.length < PRODUCT_LIST_CART_ITEMS_LOOKUP_CHUNK_SIZE) {
-        break
+      if (items.length >= PRODUCT_LIST_CART_ITEMS_LOOKUP_CHUNK_SIZE) {
+        await collectChunk(skip + PRODUCT_LIST_CART_ITEMS_LOOKUP_CHUNK_SIZE)
       }
-
-      skip += PRODUCT_LIST_CART_ITEMS_LOOKUP_CHUNK_SIZE
     }
 
-    const cartItems: ProductListCartItem[] = Array.from(
-      quantitiesByVariantId.entries()
-    ).map(([variant_id, quantity]) => ({
+    await collectChunk(0)
+
+    const cartItems: ProductListCartItem[] = [
+      ...quantitiesByVariantId.entries(),
+    ].map(([variantId, quantity]) => ({
       quantity,
-      variant_id,
+      variant_id: variantId,
     }))
 
     return new StepResponse(cartItems)
-  }
+  },
 )

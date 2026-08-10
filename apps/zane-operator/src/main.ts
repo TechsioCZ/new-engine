@@ -7,9 +7,9 @@ import { handleCancelZaneDeploy } from "./handlers/cancel-zane-deploy"
 import { handleEnsurePreviewDb } from "./handlers/ensure-preview-db"
 import { handleHealth } from "./handlers/health"
 import { handleReadPreviewCommitState } from "./handlers/read-preview-commit-state"
-import { handleRunRuntimeProvider } from "./handlers/run-runtime-provider"
 import { handleResolveZaneEnvironment } from "./handlers/resolve-zane-environment"
 import { handleResolveZaneTargets } from "./handlers/resolve-zane-targets"
+import { handleRunRuntimeProvider } from "./handlers/run-runtime-provider"
 import { handleSyncPreviewRandomOnceSecrets } from "./handlers/sync-preview-random-once-secrets"
 import { handleSyncPreviewServiceEnv } from "./handlers/sync-preview-service-env"
 import { handleSyncPreviewSharedEnv } from "./handlers/sync-preview-shared-env"
@@ -25,247 +25,155 @@ const sql = createDbClient(config)
 await sql.connect()
 const fileCopyMethod = await inspectFileCopyMethod(sql)
 
-if (fileCopyMethod.warning) {
-  console.warn(
-    JSON.stringify({
-      event: "server.startup.warning",
-      warning: fileCopyMethod.warning,
-      file_copy_method: fileCopyMethod.method,
-      clone_optimized: fileCopyMethod.cloneOptimized,
-    })
-  )
-} else {
+if (fileCopyMethod.warning === null) {
   console.info(
     JSON.stringify({
+      clone_optimized: fileCopyMethod.cloneOptimized,
       event: "server.startup.file_copy_method",
       file_copy_method: fileCopyMethod.method,
+    }),
+  )
+} else {
+  console.warn(
+    JSON.stringify({
       clone_optimized: fileCopyMethod.cloneOptimized,
-    })
+      event: "server.startup.warning",
+      file_copy_method: fileCopyMethod.method,
+      warning: fileCopyMethod.warning,
+    }),
   )
 }
 
+type RequestHandler = (request: Request) => Promise<Response>
+
+const postHandlers = new Map<string, RequestHandler>([
+  [
+    "/v1/preview-db/ensure",
+    async (request) => await handleEnsurePreviewDb(request, { config, sql }),
+  ],
+  [
+    "/v1/zane/environments/resolve",
+    async (request) => await handleResolveZaneEnvironment(request, { config }),
+  ],
+  [
+    "/v1/zane/environments/archive",
+    async (request) => await handleArchiveZaneEnvironment(request, { config }),
+  ],
+  [
+    "/v1/zane/preview-commit-state/read",
+    async (request) => await handleReadPreviewCommitState(request, { config }),
+  ],
+  [
+    "/v1/zane/preview-commit-state/write",
+    async (request) => await handleWritePreviewCommitState(request, { config }),
+  ],
+  [
+    "/v1/zane/preview-random-once-secrets/sync",
+    async (request) =>
+      await handleSyncPreviewRandomOnceSecrets(request, { config }),
+  ],
+  [
+    "/v1/zane/preview-shared-env/sync",
+    async (request) => await handleSyncPreviewSharedEnv(request, { config }),
+  ],
+  [
+    "/v1/zane/preview-service-env/sync",
+    async (request) => await handleSyncPreviewServiceEnv(request, { config }),
+  ],
+  [
+    "/v1/zane/runtime-providers/run",
+    async (request) => await handleRunRuntimeProvider(request, { config }),
+  ],
+  [
+    "/v1/zane/deploy/resolve-targets",
+    async (request) => await handleResolveZaneTargets(request, { config }),
+  ],
+  [
+    "/v1/zane/deploy/apply-env-overrides",
+    async (request) => await handleApplyZaneEnvOverrides(request, { config }),
+  ],
+  [
+    "/v1/zane/deploy/trigger",
+    async (request) => await handleTriggerZaneDeploy(request, { config }),
+  ],
+  [
+    "/v1/zane/deploy/cancel",
+    async (request) => await handleCancelZaneDeploy(request, { config }),
+  ],
+  [
+    "/v1/zane/deploy/verify",
+    async (request) => await handleVerifyZaneDeploy(request, { config }),
+  ],
+])
+
+const handleRequest = async (request: Request): Promise<Response> => {
+  const url = new URL(request.url)
+
+  if (request.method === "GET" && url.pathname === "/healthz") {
+    return handleHealth()
+  }
+
+  if (request.method === "POST") {
+    const handler = postHandlers.get(url.pathname)
+    if (handler !== undefined) {
+      const authResponse = enforceBearerToken(request, config.apiAuthToken)
+      return authResponse ?? (await handler(request))
+    }
+  }
+
+  const teardownMatch = /^\/v1\/preview-db\/(?<prNumber>[^/]+)\/?$/u.exec(
+    url.pathname,
+  )
+  const { prNumber } = teardownMatch?.groups ?? {}
+  if (request.method === "DELETE" && prNumber !== undefined) {
+    const authResponse = enforceBearerToken(request, config.apiAuthToken)
+    return (
+      authResponse ?? (await handleTeardownPreviewDb(prNumber, { config, sql }))
+    )
+  }
+
+  if (url.pathname.startsWith("/v1/preview-db/")) {
+    return jsonError(
+      405,
+      "method_not_allowed",
+      "Method not allowed for this endpoint",
+    )
+  }
+
+  if (url.pathname.startsWith("/v1/zane/")) {
+    return jsonError(
+      405,
+      "method_not_allowed",
+      "Method not allowed for this endpoint",
+    )
+  }
+
+  return jsonResponse(404, {
+    error: "not_found",
+    message: "Route not found",
+  })
+}
+
 const server = Bun.serve({
-  port: config.port,
-  idleTimeout: 30,
-  fetch: async (request) => {
-    const url = new URL(request.url)
-
-    if (request.method === "GET" && url.pathname === "/healthz") {
-      return handleHealth()
-    }
-
-    if (request.method === "POST" && url.pathname === "/v1/preview-db/ensure") {
-      const authResponse = enforceBearerToken(request, config.apiAuthToken)
-      if (authResponse) {
-        return authResponse
-      }
-
-      return await handleEnsurePreviewDb(request, { config, sql })
-    }
-
-    const teardownMatch = /^\/v1\/preview-db\/([^/]+)\/?$/.exec(url.pathname)
-    if (request.method === "DELETE" && teardownMatch?.[1]) {
-      const authResponse = enforceBearerToken(request, config.apiAuthToken)
-      if (authResponse) {
-        return authResponse
-      }
-
-      return await handleTeardownPreviewDb(teardownMatch[1], { config, sql })
-    }
-
-    if (url.pathname.startsWith("/v1/preview-db/")) {
-      return jsonError(
-        405,
-        "method_not_allowed",
-        "Method not allowed for this endpoint"
-      )
-    }
-
-    if (
-      request.method === "POST" &&
-      url.pathname === "/v1/zane/environments/resolve"
-    ) {
-      const authResponse = enforceBearerToken(request, config.apiAuthToken)
-      if (authResponse) {
-        return authResponse
-      }
-
-      return await handleResolveZaneEnvironment(request, { config })
-    }
-
-    if (
-      request.method === "POST" &&
-      url.pathname === "/v1/zane/environments/archive"
-    ) {
-      const authResponse = enforceBearerToken(request, config.apiAuthToken)
-      if (authResponse) {
-        return authResponse
-      }
-
-      return await handleArchiveZaneEnvironment(request, { config })
-    }
-
-    if (
-      request.method === "POST" &&
-      url.pathname === "/v1/zane/preview-commit-state/read"
-    ) {
-      const authResponse = enforceBearerToken(request, config.apiAuthToken)
-      if (authResponse) {
-        return authResponse
-      }
-
-      return await handleReadPreviewCommitState(request, { config })
-    }
-
-    if (
-      request.method === "POST" &&
-      url.pathname === "/v1/zane/preview-commit-state/write"
-    ) {
-      const authResponse = enforceBearerToken(request, config.apiAuthToken)
-      if (authResponse) {
-        return authResponse
-      }
-
-      return await handleWritePreviewCommitState(request, { config })
-    }
-
-    if (
-      request.method === "POST" &&
-      url.pathname === "/v1/zane/preview-random-once-secrets/sync"
-    ) {
-      const authResponse = enforceBearerToken(request, config.apiAuthToken)
-      if (authResponse) {
-        return authResponse
-      }
-
-      return await handleSyncPreviewRandomOnceSecrets(request, { config })
-    }
-
-    if (
-      request.method === "POST" &&
-      url.pathname === "/v1/zane/preview-shared-env/sync"
-    ) {
-      const authResponse = enforceBearerToken(request, config.apiAuthToken)
-      if (authResponse) {
-        return authResponse
-      }
-
-      return await handleSyncPreviewSharedEnv(request, { config })
-    }
-
-    if (
-      request.method === "POST" &&
-      url.pathname === "/v1/zane/preview-service-env/sync"
-    ) {
-      const authResponse = enforceBearerToken(request, config.apiAuthToken)
-      if (authResponse) {
-        return authResponse
-      }
-
-      return await handleSyncPreviewServiceEnv(request, { config })
-    }
-
-    if (
-      request.method === "POST" &&
-      url.pathname === "/v1/zane/runtime-providers/run"
-    ) {
-      const authResponse = enforceBearerToken(request, config.apiAuthToken)
-      if (authResponse) {
-        return authResponse
-      }
-
-      return await handleRunRuntimeProvider(request, { config })
-    }
-
-    if (
-      request.method === "POST" &&
-      url.pathname === "/v1/zane/deploy/resolve-targets"
-    ) {
-      const authResponse = enforceBearerToken(request, config.apiAuthToken)
-      if (authResponse) {
-        return authResponse
-      }
-
-      return await handleResolveZaneTargets(request, { config })
-    }
-
-    if (
-      request.method === "POST" &&
-      url.pathname === "/v1/zane/deploy/apply-env-overrides"
-    ) {
-      const authResponse = enforceBearerToken(request, config.apiAuthToken)
-      if (authResponse) {
-        return authResponse
-      }
-
-      return await handleApplyZaneEnvOverrides(request, { config })
-    }
-
-    if (
-      request.method === "POST" &&
-      url.pathname === "/v1/zane/deploy/trigger"
-    ) {
-      const authResponse = enforceBearerToken(request, config.apiAuthToken)
-      if (authResponse) {
-        return authResponse
-      }
-
-      return await handleTriggerZaneDeploy(request, { config })
-    }
-
-    if (
-      request.method === "POST" &&
-      url.pathname === "/v1/zane/deploy/cancel"
-    ) {
-      const authResponse = enforceBearerToken(request, config.apiAuthToken)
-      if (authResponse) {
-        return authResponse
-      }
-
-      return await handleCancelZaneDeploy(request, { config })
-    }
-
-    if (
-      request.method === "POST" &&
-      url.pathname === "/v1/zane/deploy/verify"
-    ) {
-      const authResponse = enforceBearerToken(request, config.apiAuthToken)
-      if (authResponse) {
-        return authResponse
-      }
-
-      return await handleVerifyZaneDeploy(request, { config })
-    }
-
-    if (url.pathname.startsWith("/v1/zane/")) {
-      return jsonError(
-        405,
-        "method_not_allowed",
-        "Method not allowed for this endpoint"
-      )
-    }
-
-    return jsonResponse(404, {
-      error: "not_found",
-      message: "Route not found",
-    })
-  },
   error: (error) => {
     console.error(
       JSON.stringify({
         event: "server.error",
         message: error.message,
-      })
+      }),
     )
     return jsonError(500, "internal_error", "Internal server error")
   },
+  fetch: handleRequest,
+  idleTimeout: 30,
+  port: config.port,
 })
 
 console.info(
   JSON.stringify({
     event: "server.started",
     port: config.port,
-  })
+  }),
 )
 
 let shuttingDown = false
@@ -281,17 +189,17 @@ const handleShutdown = async (signal: string): Promise<void> => {
   let exitCode = 0
 
   try {
-    server.stop(true)
+    await server.stop(true)
     await sql.close({ timeout: 10 })
   } catch (error: unknown) {
     exitCode = 1
     const message = error instanceof Error ? error.message : String(error)
     console.error(
       JSON.stringify({
+        error: message,
         event: "server.shutdown.error",
         signal,
-        error: message,
-      })
+      }),
     )
   } finally {
     process.exit(exitCode)

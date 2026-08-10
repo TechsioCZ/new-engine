@@ -1,9 +1,9 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
-import {
-  QR_PAYMENT_MODULE,
-  type QrPaymentModuleService,
-} from "../../../modules/payment-qr"
+import { omitUndefined } from "@techsio/std/object"
+
+import { QR_PAYMENT_MODULE } from "../../../modules/payment-qr"
+import type { QrPaymentModuleService } from "../../../modules/payment-qr"
 import type {
   QrPaymentConfigDTO,
   QrPaymentConfigResponse,
@@ -12,13 +12,13 @@ import { updateQrPaymentConfigWorkflow } from "../../../workflows/qr-payment-con
 import type { PostAdminQrPaymentConfigSchemaType } from "./validators"
 
 const toConfigResponse = (
-  config: QrPaymentConfigDTO
+  config: QrPaymentConfigDTO,
 ): QrPaymentConfigResponse => ({
-  id: config.id,
   iban: config.iban ?? null,
+  id: config.id,
 })
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+const get = async (req: MedusaRequest, res: MedusaResponse) => {
   const qrPaymentService =
     req.scope.resolve<QrPaymentModuleService>(QR_PAYMENT_MODULE)
 
@@ -26,22 +26,26 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   if (!qrPaymentConfig) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      "QR payment configuration not found. Please restart the server to initialize."
+      "QR payment configuration not found. Please restart the server to initialize.",
     )
   }
 
   res.json({ config: toConfigResponse(qrPaymentConfig) })
 }
 
-export async function POST(
+export { get as GET }
+
+const post = async (
   req: MedusaRequest<PostAdminQrPaymentConfigSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { result: updated } = await updateQrPaymentConfigWorkflow(
-    req.scope
+    req.scope,
   ).run({
-    input: req.validatedBody,
+    input: omitUndefined(req.validatedBody),
   })
 
   res.json({ config: toConfigResponse(updated) })
 }
+
+export { post as POST }

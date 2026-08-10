@@ -2,25 +2,27 @@
 
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import { useTranslations } from "next-intl"
+
 import type { RegisterFormValidators } from "@/lib/auth/auth-form-validators"
+
 import type {
   RegisterFieldChangeHandler,
   RegisterFormController,
 } from "./register-form.types"
 
-type RegisterWholesaleFieldsProps = {
+interface RegisterWholesaleFieldsProps {
   countryItems: SelectItem[]
   form: RegisterFormController
   onValueChange?: RegisterFieldChangeHandler
   validators: RegisterFormValidators
 }
 
-export function RegisterWholesaleFields({
+export const RegisterWholesaleFields = ({
   countryItems,
   form,
   onValueChange,
   validators,
-}: RegisterWholesaleFieldsProps) {
+}: RegisterWholesaleFieldsProps) => {
   const tAuth = useTranslations("auth")
   const tForm = useTranslations("form")
 
@@ -34,7 +36,7 @@ export function RegisterWholesaleFields({
               autoComplete="organization"
               id="auth-register-company-name"
               label={tForm("company_name")}
-              onValueChange={onValueChange}
+              {...(onValueChange === undefined ? {} : { onValueChange })}
               required
               validationMode="blur"
             />
@@ -51,7 +53,7 @@ export function RegisterWholesaleFields({
             autoComplete="off"
             id="auth-register-company-identifier"
             label={tForm("company_id")}
-            onValueChange={onValueChange}
+            {...(onValueChange === undefined ? {} : { onValueChange })}
             required
             validationMode="blur"
           />
@@ -67,7 +69,7 @@ export function RegisterWholesaleFields({
             id="auth-register-billing-country"
             items={countryItems}
             label={tForm("country")}
-            onValueChange={onValueChange}
+            {...(onValueChange === undefined ? {} : { onValueChange })}
             placeholder={tForm("country_placeholder")}
             readOnly
             required
@@ -86,7 +88,7 @@ export function RegisterWholesaleFields({
               autoComplete="billing street-address"
               id="auth-register-billing-address-1"
               label={tForm("address")}
-              onValueChange={onValueChange}
+              {...(onValueChange === undefined ? {} : { onValueChange })}
               required
               validationMode="blur"
             />
@@ -101,7 +103,7 @@ export function RegisterWholesaleFields({
               autoComplete="billing address-line2"
               id="auth-register-billing-address-2"
               label={tForm("address_line_2")}
-              onValueChange={onValueChange}
+              {...(onValueChange === undefined ? {} : { onValueChange })}
               validationMode="blur"
             />
           )}
@@ -114,7 +116,7 @@ export function RegisterWholesaleFields({
             autoComplete="billing address-level2"
             id="auth-register-billing-city"
             label={tForm("city")}
-            onValueChange={onValueChange}
+            {...(onValueChange === undefined ? {} : { onValueChange })}
             required
             validationMode="blur"
           />
@@ -130,7 +132,7 @@ export function RegisterWholesaleFields({
             autoComplete="billing postal-code"
             id="auth-register-billing-postal-code"
             label={tForm("postal_code")}
-            onValueChange={onValueChange}
+            {...(onValueChange === undefined ? {} : { onValueChange })}
             required
             validationMode="blur"
           />

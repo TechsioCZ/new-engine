@@ -1,4 +1,4 @@
-// biome-ignore lint/performance/noBarrelFile: Plugin public exports are intentionally centralized.
+// Plugin public exports are intentionally centralized.
 export {
   SYMMY_CUSTOMER_GROUP_CODE_MODULE,
   type SymmyCustomerGroupCodeDTO,

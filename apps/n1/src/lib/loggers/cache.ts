@@ -3,10 +3,12 @@
  * Simplified logging for React Query cache operations
  */
 
+import { formatLogValue } from "./format-log-value"
+
 type LogLevel = "info" | "success" | "warning" | "error"
 type CacheStatus = "fresh" | "stale" | "miss"
 
-type LogOptions = {
+interface LogOptions {
   level?: LogLevel
   group?: boolean
   trace?: boolean
@@ -14,15 +16,15 @@ type LogOptions = {
 
 const STATUS_INDICATORS: Record<CacheStatus, string> = {
   fresh: "🟢",
-  stale: "🟡",
   miss: "🔵",
+  stale: "🟡",
 }
 
 const LEVEL_STYLES: Record<LogLevel, string> = {
+  error: "color: #ef4444; font-weight: bold",
   info: "color: #3b82f6; font-weight: bold",
   success: "color: #10b981; font-weight: bold",
   warning: "color: #f59e0b; font-weight: bold",
-  error: "color: #ef4444; font-weight: bold",
 }
 
 class CacheLogger {
@@ -38,38 +40,38 @@ class CacheLogger {
   cache(
     status: CacheStatus,
     operation: string,
-    details?: Record<string, unknown>,
-    options: LogOptions = {}
+    details?: Record<string, string | number | boolean | null | undefined>,
+    options: LogOptions = {},
   ) {
     if (!this.enabled) {
       return
     }
 
     const indicator = STATUS_INDICATORS[status]
-    const level = options.level || "info"
+    const level = options.level ?? "info"
 
-    if (options.group) {
+    if (options.group === true) {
       console.group(`%c${indicator} [Cache] ${operation}`, LEVEL_STYLES[level])
       if (details) {
         for (const [key, value] of Object.entries(details)) {
           console.log(`   ${key}:`, value)
         }
       }
-      if (options.trace) {
+      if (options.trace === true) {
         console.trace("Call stack")
       }
       console.groupEnd()
     } else {
       const detailsStr = details
         ? Object.entries(details)
-            .map(([k, v]) => `${k}:${v}`)
+            .map(([key, value]) => `${key}:${formatLogValue(value)}`)
             .join(" | ")
         : ""
 
       console.log(
         `%c${indicator} [Cache] ${operation}%c ${detailsStr}`,
         LEVEL_STYLES[level],
-        "color: #6b7280"
+        "color: #6b7280",
       )
     }
   }
@@ -86,34 +88,37 @@ class CacheLogger {
       isSuccess?: boolean
       isError?: boolean
       dataUpdatedAt?: number
-    }
+    },
   ) {
     if (!this.enabled) {
       return
     }
 
-    const cacheAge = status.dataUpdatedAt
-      ? Date.now() - status.dataUpdatedAt
-      : 0
+    const cacheAge =
+      status.dataUpdatedAt !== null &&
+      status.dataUpdatedAt !== undefined &&
+      status.dataUpdatedAt !== 0
+        ? Date.now() - status.dataUpdatedAt
+        : 0
     const ageSeconds = Math.round(cacheAge / 1000)
 
     // Determine status and indicator
     let indicator = "🔍"
     let statusText = "unknown"
 
-    if (status.isError) {
+    if (status.isError === true) {
       indicator = "❌"
       statusText = "error"
-    } else if (status.isLoading) {
+    } else if (status.isLoading === true) {
       indicator = "⏳"
       statusText = "loading"
-    } else if (status.isFetching) {
+    } else if (status.isFetching === true) {
       indicator = "🔄"
       statusText = "fetching"
-    } else if (status.isSuccess && cacheAge < 3_600_000) {
+    } else if (status.isSuccess === true && cacheAge < 3_600_000) {
       indicator = "🟢"
       statusText = `fresh (${ageSeconds}s)`
-    } else if (status.isSuccess) {
+    } else if (status.isSuccess === true) {
       indicator = "🟡"
       statusText = `stale (${ageSeconds}s)`
     }

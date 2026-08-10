@@ -6,16 +6,28 @@ import type {
   Query,
   RegionDTO,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { PAYKIT_REGION_PAYMENT_PROVIDER_IDS } from "../workflows/seed/paykit-payment-providers"
-import seedPaykitRegionsWorkflow, {
-  type SeedPaykitRegionsWorkflowInput,
-} from "../workflows/seed/workflows/seed-paykit-regions"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 
-type RegionPaymentProviderLink = {
+import { PAYKIT_REGION_PAYMENT_PROVIDER_IDS } from "../workflows/seed/paykit-payment-providers"
+import seedPaykitRegionsWorkflow from "../workflows/seed/workflows/seed-paykit-regions"
+import type { SeedPaykitRegionsWorkflowInput } from "../workflows/seed/workflows/seed-paykit-regions"
+
+interface RegionPaymentProviderLink {
   region_id: string
   payment_provider_id: string
 }
+
+const regionPaymentProviderLinksSchema = z.array(
+  z.object({
+    payment_provider_id: z.string(),
+    region_id: z.string(),
+  }),
+)
 
 const countries = [
   "cz",
@@ -33,35 +45,35 @@ const countries = [
 
 const defaultRegions: SeedPaykitRegionsWorkflowInput["regions"] = [
   {
-    name: "Czechia",
-    currencyCode: "czk",
     countries: ["cz"],
+    currencyCode: "czk",
+    name: "Czechia",
   },
   {
-    name: "Europe",
-    currencyCode: "eur",
     countries: countries.filter((country) => country !== "cz"),
+    currencyCode: "eur",
+    name: "Europe",
   },
 ]
 
 const getEnabledPaykitPaymentProviderIds = async (
-  paymentService: IPaymentModuleService
+  paymentService: IPaymentModuleService,
 ) => {
   const paymentProviders = await paymentService.listPaymentProviders({
     id: { $in: [...PAYKIT_REGION_PAYMENT_PROVIDER_IDS] },
     is_enabled: true,
   })
 
-  const providerIds = paymentProviders.map((provider) => provider.id)
+  const providerIds = new Set(paymentProviders.map((provider) => provider.id))
 
   return PAYKIT_REGION_PAYMENT_PROVIDER_IDS.filter((providerId) =>
-    providerIds.includes(providerId)
+    providerIds.has(providerId),
   )
 }
 
 const getRegionPaymentProviderLinks = async (
   query: Query,
-  regionIds: string[]
+  regionIds: string[],
 ): Promise<RegionPaymentProviderLink[]> => {
   if (!regionIds.length) {
     return []
@@ -69,66 +81,80 @@ const getRegionPaymentProviderLinks = async (
 
   const { data } = await query.graph({
     entity: "region_payment_provider",
+    fields: ["region_id", "payment_provider_id"],
     filters: {
       region_id: regionIds,
     },
-    fields: ["region_id", "payment_provider_id"],
   })
 
-  return data.flatMap((link) => {
-    if (
-      typeof link?.region_id === "string" &&
-      typeof link.payment_provider_id === "string"
-    ) {
-      return [link]
-    }
+  const parsed = regionPaymentProviderLinksSchema.safeParse(data)
+  if (!parsed.success) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "PayKit region payment provider query returned invalid data",
+    )
+  }
 
-    throw new Error("PayKit region payment provider query returned invalid row")
-  })
+  return parsed.data
+}
+
+const REGION_PAGE_SIZE = 100
+const MAX_REGION_COUNT = 10_000
+
+const listRegionPages = async (
+  regionService: IRegionModuleService,
+  regions: RegionDTO[],
+  skip: number,
+): Promise<RegionDTO[]> => {
+  if (skip >= MAX_REGION_COUNT) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `PayKit region seed exceeded the ${MAX_REGION_COUNT} region safety limit`,
+    )
+  }
+
+  const page = await regionService.listRegions(
+    {},
+    {
+      relations: ["countries"],
+      skip,
+      take: REGION_PAGE_SIZE,
+    },
+  )
+  regions.push(...page)
+
+  if (page.length < REGION_PAGE_SIZE) {
+    return regions
+  }
+
+  return await listRegionPages(regionService, regions, skip + REGION_PAGE_SIZE)
 }
 
 const listAllRegions = async (
-  regionService: IRegionModuleService
-): Promise<RegionDTO[]> => {
-  const take = 100
-  const regions: RegionDTO[] = []
-
-  for (let skip = 0; ; skip += take) {
-    const page = await regionService.listRegions(
-      {},
-      {
-        relations: ["countries"],
-        skip,
-        take,
-      }
-    )
-
-    regions.push(...page)
-
-    if (page.length < take) {
-      return regions
-    }
-  }
-}
+  regionService: IRegionModuleService,
+): Promise<RegionDTO[]> => await listRegionPages(regionService, [], 0)
 
 const toRegionPaymentProviderMap = (
-  paymentProviderLinks: RegionPaymentProviderLink[]
-) =>
-  paymentProviderLinks.reduce((map, link) => {
+  paymentProviderLinks: RegionPaymentProviderLink[],
+) => {
+  const map = new Map<string, string[]>()
+
+  for (const link of paymentProviderLinks) {
     const regionPaymentProviders = map.get(link.region_id) ?? []
 
     regionPaymentProviders.push(link.payment_provider_id)
     map.set(link.region_id, regionPaymentProviders)
+  }
 
-    return map
-  }, new Map<string, string[]>())
+  return map
+}
 
 const toRegionSeedInput = (
   region: RegionDTO,
-  paymentProviderMap: Map<string, string[]>
+  paymentProviderMap: Map<string, string[]>,
 ): SeedPaykitRegionsWorkflowInput["regions"][number] => {
   const defaultRegion = defaultRegions.find(
-    (seedRegion) => seedRegion.name === region.name
+    (seedRegion) => seedRegion.name === region.name,
   )
   const trimmedCurrency = region.currency_code?.trim()
   const currencyCode =
@@ -136,25 +162,28 @@ const toRegionSeedInput = (
       ? defaultRegion?.currencyCode
       : trimmedCurrency
 
-  if (!currencyCode) {
-    throw new Error(
-      `PayKit seed cannot sync region "${region.name}" (${region.id}) because currency_code is missing`
+  if (currencyCode === undefined || currencyCode === "") {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `PayKit seed cannot sync region "${region.name}" (${region.id}) because currency_code is missing`,
     )
   }
 
+  const paymentProviders = paymentProviderMap.get(region.id)
+
   return {
+    countries: region.countries?.map((country) => country.iso_2),
+    currencyCode,
     id: region.id,
     name: region.name,
-    currencyCode,
-    countries: region.countries?.map((country) => country.iso_2),
-    paymentProviders: paymentProviderMap.get(region.id),
+    ...(paymentProviders === undefined ? {} : { paymentProviders }),
   }
 }
 
 export default async function seedPaykit({ container }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const paymentService = container.resolve<IPaymentModuleService>(
-    Modules.PAYMENT
+    Modules.PAYMENT,
   )
   const regionService = container.resolve<IRegionModuleService>(Modules.REGION)
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -173,26 +202,26 @@ export default async function seedPaykit({ container }: ExecArgs) {
 
   const paymentProviderLinks = await getRegionPaymentProviderLinks(
     query,
-    existingRegions.map((region) => region.id)
+    existingRegions.map((region) => region.id),
   )
   const paymentProviderMap = toRegionPaymentProviderMap(paymentProviderLinks)
 
   const regions = existingRegions.length
     ? existingRegions.map((region) =>
-        toRegionSeedInput(region, paymentProviderMap)
+        toRegionSeedInput(region, paymentProviderMap),
       )
     : defaultRegions
 
   const input: SeedPaykitRegionsWorkflowInput = {
-    regions,
     paymentProviderIds,
+    regions,
   }
 
   await seedPaykitRegionsWorkflow(container).run({ input })
 
   logger.info(
     `PayKit region seed completed with providers: ${paymentProviderIds.join(
-      ", "
-    )}`
+      ", ",
+    )}`,
   )
 }

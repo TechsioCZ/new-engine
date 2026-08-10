@@ -1,4 +1,5 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import type { IApprovalModuleService } from "../../../types"
 
@@ -21,5 +22,5 @@ export const deleteApprovalsStep = createStep(
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
     await approvalModule.restoreApprovals(approvalIds)
-  }
+  },
 )

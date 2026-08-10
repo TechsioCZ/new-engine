@@ -2,10 +2,11 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+
 import {
   deleteProductAttributeOptionsWorkflow,
   updateProductAttributeOptionWorkflow,
-} from "../../../../../workflows/product-attribute"
+} from "../../../../../workflows/product-attribute/workflows/options"
 import {
   getOptionUsageCountMap,
   retrieveProductAttributeOptionOrThrow,
@@ -13,30 +14,30 @@ import {
 } from "../../utils"
 import type { AdminUpdateProductAttributeOptionSchemaType } from "../../validators"
 
-export async function GET(
+const getProductAttributeOption = async (
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
-  const optionId = req.params.id ?? ""
+  res: MedusaResponse,
+) => {
+  const optionId = req.params["id"] ?? ""
   const option = await retrieveProductAttributeOptionOrThrow(
     req.scope,
     optionId,
-    true
+    true,
   )
   const usageCounts = await getOptionUsageCountMap(req.scope, [option.id])
   res.json({
     option: toProductAttributeOptionResponse(
       option,
-      usageCounts.get(option.id) ?? 0
+      usageCounts.get(option.id) ?? 0,
     ),
   })
 }
 
-export async function POST(
+const updateProductAttributeOption = async (
   req: AuthenticatedMedusaRequest<AdminUpdateProductAttributeOptionSchemaType>,
-  res: MedusaResponse
-) {
-  const optionId = req.params.id ?? ""
+  res: MedusaResponse,
+) => {
+  const optionId = req.params["id"] ?? ""
   const { result } = await updateProductAttributeOptionWorkflow(req.scope).run({
     input: {
       id: optionId,
@@ -47,19 +48,25 @@ export async function POST(
   res.json({
     option: toProductAttributeOptionResponse(
       result,
-      usageCounts.get(result.id) ?? 0
+      usageCounts.get(result.id) ?? 0,
     ),
   })
 }
 
-export async function DELETE(
+const deleteProductAttributeOption = async (
   req: AuthenticatedMedusaRequest,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { result } = await deleteProductAttributeOptionsWorkflow(req.scope).run(
     {
-      input: { ids: [req.params.id ?? ""] },
-    }
+      input: { ids: [req.params["id"] ?? ""] },
+    },
   )
   res.json({ option: result[0] ?? null })
+}
+
+export {
+  deleteProductAttributeOption as DELETE,
+  getProductAttributeOption as GET,
+  updateProductAttributeOption as POST,
 }

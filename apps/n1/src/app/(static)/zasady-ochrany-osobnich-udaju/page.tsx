@@ -2,7 +2,7 @@ import { CmsPageArticle } from "@/components/cms-page-article"
 import { Heading } from "@/components/heading"
 import { getCmsPage } from "@/services/cms-service"
 
-export default async function ZasadyOchranyPage() {
+const ZasadyOchranyPage = async () => {
   const cmsPage = await getCmsPage("zasady-ochrany-osobnich-udaju")
 
   if (cmsPage) {
@@ -83,3 +83,5 @@ export default async function ZasadyOchranyPage() {
     </article>
   )
 }
+
+export default ZasadyOchranyPage

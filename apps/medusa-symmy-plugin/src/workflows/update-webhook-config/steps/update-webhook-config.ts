@@ -1,18 +1,19 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import {
-  SYMMY_WEBHOOK_CONFIG_MODULE,
-  type SymmyWebhookConfigModuleService,
-  type UpdateSymmyWebhookConfigInput,
+
+import { SYMMY_WEBHOOK_CONFIG_MODULE } from "../../../modules/webhook-config"
+import type {
+  SymmyWebhookConfigModuleService,
+  UpdateSymmyWebhookConfigInput,
 } from "../../../modules/webhook-config"
 
 export const symmyUpdateWebhookConfigStep = createStep(
   "symmy-update-webhook-config",
   async (input: UpdateSymmyWebhookConfigInput, { container }) => {
     const service = container.resolve<SymmyWebhookConfigModuleService>(
-      SYMMY_WEBHOOK_CONFIG_MODULE
+      SYMMY_WEBHOOK_CONFIG_MODULE,
     )
     const previous = await service.getConfig()
-    const updated = await service.updateConfig(input)
+    const updated = await service.updateConfig(input, previous)
 
     return new StepResponse(updated, {
       endpoints: previous.endpoints,
@@ -21,15 +22,15 @@ export const symmyUpdateWebhookConfigStep = createStep(
   },
   async (
     previous: UpdateSymmyWebhookConfigInput | undefined,
-    { container }
+    { container },
   ) => {
-    if (!previous) {
+    if (previous === undefined) {
       return
     }
 
     const service = container.resolve<SymmyWebhookConfigModuleService>(
-      SYMMY_WEBHOOK_CONFIG_MODULE
+      SYMMY_WEBHOOK_CONFIG_MODULE,
     )
     await service.updateConfig(previous)
-  }
+  },
 )

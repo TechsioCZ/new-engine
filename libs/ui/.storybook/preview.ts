@@ -1,24 +1,29 @@
 import type { Decorator, Preview } from "@storybook/react"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { createElement, useEffect } from "react"
+
 import {
-  type BrandKey,
   brandAttr,
   brandKeys,
   brandSupportsDark,
+  DEFAULT_BRAND,
+  DEFAULT_MODE,
   getBrand,
-  type ModeSetting,
+  isBrandKey,
 } from "../src/theme/theme-config"
+import type { ModeSetting } from "../src/theme/theme-config"
+
 import "../src/tokens/index.css"
 
 const brandItems = brandKeys().map((key) => ({
-  value: key,
   title: getBrand(key).label,
+  value: key,
 }))
 
 const modeItems: { value: ModeSetting; title: string }[] = [
-  { value: "light", title: "Light" },
-  { value: "dark", title: "Dark" },
-  { value: "system", title: "System" },
+  { title: "Light", value: "light" },
+  { title: "Dark", value: "dark" },
+  { title: "System", value: "system" },
 ]
 
 /*
@@ -27,9 +32,22 @@ const modeItems: { value: ModeSetting; title: string }[] = [
  *   - brand → `data-theme="<attr>"` (base brand sets no attribute)
  * Light-only brands are forced to light regardless of the Mode toolbar.
  */
-const withTheme: Decorator = (Story, context) => {
-  const brand = context.globals.brand as BrandKey
-  const modeSetting = context.globals.mode as ModeSetting
+const isModeSetting = (value: unknown): value is ModeSetting =>
+  value === "light" || value === "dark" || value === "system"
+
+const useWithTheme: Decorator = (Story, context) => {
+  const globals: unknown = context.globals
+  const brandValue = isRecord(globals)
+    ? getRecordValue(globals, "brand")
+    : undefined
+  const modeValue = isRecord(globals)
+    ? getRecordValue(globals, "mode")
+    : undefined
+  const brand =
+    typeof brandValue === "string" && isBrandKey(brandValue)
+      ? brandValue
+      : DEFAULT_BRAND
+  const modeSetting = isModeSetting(modeValue) ? modeValue : DEFAULT_MODE
 
   useEffect(() => {
     const root = document.documentElement
@@ -41,10 +59,10 @@ const withTheme: Decorator = (Story, context) => {
     }
 
     const attr = brandAttr(brand)
-    if (attr) {
-      root.setAttribute("data-theme", attr)
+    if (typeof attr === "string" && attr.length > 0) {
+      Object.assign(root.dataset, { theme: attr })
     } else {
-      root.removeAttribute("data-theme")
+      Reflect.deleteProperty(root.dataset, "theme")
     }
   }, [brand, modeSetting])
 
@@ -52,12 +70,47 @@ const withTheme: Decorator = (Story, context) => {
 }
 
 const preview: Preview = {
+  decorators: [useWithTheme],
+  globalTypes: {
+    brand: {
+      description: "Brand theme",
+      toolbar: {
+        dynamicTitle: true,
+        icon: "paintbrush",
+        items: brandItems,
+        title: "Brand",
+      },
+    },
+    mode: {
+      description: "Color mode",
+      toolbar: {
+        dynamicTitle: true,
+        icon: "circlehollow",
+        items: modeItems,
+        title: "Mode",
+      },
+    },
+  },
+  initialGlobals: {
+    brand: "base",
+    mode: "light",
+  },
   parameters: {
+    a11y: {
+      apca: {
+        level: "gold",
+        useCase: "body",
+      },
+      config: {
+        rules: [{ enabled: true, id: "color-contrast-enhanced" }],
+      },
+      test: "error",
+    },
     backgrounds: { disable: true },
     controls: {
       matchers: {
-        color: /(background|color)$/i,
-        date: /Date$/i,
+        color: /(?<property>background|color)$/iu,
+        date: /Date$/u,
       },
     },
     options: {
@@ -73,42 +126,7 @@ const preview: Preview = {
         ],
       },
     },
-    a11y: {
-      config: {
-        rules: [{ id: "color-contrast-enhanced", enabled: true }],
-      },
-      apca: {
-        level: "gold",
-        useCase: "body",
-      },
-      test: "error",
-    },
   },
-  globalTypes: {
-    brand: {
-      description: "Brand theme",
-      toolbar: {
-        title: "Brand",
-        icon: "paintbrush",
-        items: brandItems,
-        dynamicTitle: true,
-      },
-    },
-    mode: {
-      description: "Color mode",
-      toolbar: {
-        title: "Mode",
-        icon: "circlehollow",
-        items: modeItems,
-        dynamicTitle: true,
-      },
-    },
-  },
-  initialGlobals: {
-    brand: "base",
-    mode: "light",
-  },
-  decorators: [withTheme],
 }
 
 export default preview

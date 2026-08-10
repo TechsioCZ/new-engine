@@ -1,27 +1,41 @@
 import { z } from "@medusajs/framework/zod"
 
+import { JsonMetadataSchema } from "../../../../../../lib/json-metadata"
+
 const CUSTOMERS_BATCH_MAX = 500
 const CUSTOMER_ADDRESSES_MAX = 50
 const CUSTOMER_GROUP_CODES_MAX = 100
 
 const CustomerAddressInputSchema = z.object({
-  address_id: z.string().min(1).optional(),
-  first_name: z.string().optional(),
-  last_name: z.string().optional(),
-  company: z.string().optional(),
   address_1: z.string().min(1),
   address_2: z.string().optional(),
+  address_id: z.string().min(1).optional(),
   city: z.string().min(1),
-  postal_code: z.string().min(1),
+  company: z.string().optional(),
   country_code: z
     .string()
     .min(1)
     .transform((value) => value.toLowerCase()),
+  first_name: z.string().optional(),
+  last_name: z.string().optional(),
   phone: z.string().optional(),
+  postal_code: z.string().min(1),
 })
 
 const CustomerInputSchema = z
   .object({
+    addresses: z
+      .array(CustomerAddressInputSchema)
+      .max(CUSTOMER_ADDRESSES_MAX)
+      .optional(),
+    company_name: z.string().optional(),
+    customer_group_codes: z
+      .array(z.string().min(1))
+      .max(CUSTOMER_GROUP_CODES_MAX)
+      .optional(),
+    customer_id: z.string().min(1).optional(),
+    email: z.email().optional(),
+    first_name: z.string().min(1),
     identifier_type: z.enum([
       "email",
       "erp_id",
@@ -29,26 +43,14 @@ const CustomerInputSchema = z
       "vat_id",
       "company_registration_number",
     ]),
-    email: z.string().email().optional(),
-    customer_id: z.string().min(1).optional(),
-    first_name: z.string().min(1),
     last_name: z.string().min(1),
+    metadata: JsonMetadataSchema.optional(),
     phone: z.string().optional(),
-    company_name: z.string().optional(),
-    addresses: z
-      .array(CustomerAddressInputSchema)
-      .max(CUSTOMER_ADDRESSES_MAX)
-      .optional(),
-    customer_group_codes: z
-      .array(z.string().min(1))
-      .max(CUSTOMER_GROUP_CODES_MAX)
-      .optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
   })
   .superRefine((value, ctx) => {
-    if (value.identifier_type === "email" && !value.email) {
+    if (value.identifier_type === "email" && value.email === undefined) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "email is required when identifier_type is 'email'",
         path: ["email"],
       })
@@ -61,10 +63,10 @@ const CustomerInputSchema = z
     ] as const) {
       if (
         value.identifier_type === identifierType &&
-        !value.metadata?.[identifierType]
+        typeof value.metadata?.[identifierType] !== "string"
       ) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           message: `metadata.${identifierType} is required when identifier_type is '${identifierType}'`,
           path: ["metadata", identifierType],
         })
@@ -76,7 +78,7 @@ const CustomerInputSchema = z
       typeof value.customer_id !== "string"
     ) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message:
           "customer_id is required when identifier_type is 'customer_id'",
         path: ["customer_id"],

@@ -4,6 +4,7 @@ import { Button, Container, Heading, Text, toast } from "@medusajs/ui"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import { RichHtmlEditor } from "../components/rich-html-editor"
 import {
   buildContentSections,
@@ -13,24 +14,24 @@ import {
   getProductSectionHtml,
   getSavedSectionHtml,
   PRODUCT_CONTENT_SECTIONS,
-  type ProductContentSectionHtml,
 } from "../lib/product-content-sections"
+import type { ProductContentSectionHtml } from "../lib/product-content-sections"
 import { sdk } from "../lib/sdk"
 
 type ProductDescriptionEditorProps = Partial<DetailWidgetProps<AdminProduct>>
 
-type UpdateProductContentInput = {
+interface UpdateProductContentInput {
   changeVersion: number
   productId: string
   sectionsHtml: ProductContentSectionHtml
 }
 
-type UpdateProductResponse = {
+interface UpdateProductResponse {
   product: AdminProduct
 }
 
-const PRODUCT_DETAIL_ROUTE_PATTERN = /\/products\/[^/]+(?:\/edit)?\/?$/
-const PRODUCT_EDIT_ROUTE_PATTERN = /\/products\/[^/]+\/edit\/?$/
+const PRODUCT_DETAIL_ROUTE_PATTERN = /\/products\/[^/]+(?:\/edit)?\/?$/u
+const PRODUCT_EDIT_ROUTE_PATTERN = /\/products\/[^/]+\/edit\/?$/u
 const PRODUCT_DETAIL_DESCRIPTION_ROW_SELECTOR = "div.grid.grid-cols-2"
 const PRODUCT_DESCRIPTION_LABEL = "Description"
 const DETAIL_DESCRIPTION_ROW_HIDDEN_ATTRIBUTE =
@@ -49,7 +50,7 @@ const PRODUCT_DESCRIPTION_EDITOR_MODAL_OPEN_CLASS =
 const setStoredDisplay = (
   element: HTMLElement,
   displayAttribute: string,
-  hiddenAttribute: string
+  hiddenAttribute: string,
 ) => {
   if (!element.hasAttribute(displayAttribute)) {
     element.setAttribute(displayAttribute, element.style.display)
@@ -63,7 +64,7 @@ const setStoredDisplay = (
 const restoreStoredDisplay = (
   selector: string,
   displayAttribute: string,
-  hiddenAttribute: string
+  hiddenAttribute: string,
 ) => {
   const elements = document.querySelectorAll<HTMLElement>(selector)
 
@@ -79,7 +80,7 @@ const restoreProductDescriptionDetailRow = () => {
   restoreStoredDisplay(
     `[${DETAIL_DESCRIPTION_ROW_HIDDEN_ATTRIBUTE}="true"]`,
     DETAIL_DESCRIPTION_ROW_DISPLAY_ATTRIBUTE,
-    DETAIL_DESCRIPTION_ROW_HIDDEN_ATTRIBUTE
+    DETAIL_DESCRIPTION_ROW_HIDDEN_ATTRIBUTE,
   )
 }
 
@@ -90,7 +91,7 @@ const hideProductDescriptionDetailRow = () => {
   }
 
   const rows = document.querySelectorAll<HTMLElement>(
-    PRODUCT_DETAIL_DESCRIPTION_ROW_SELECTOR
+    PRODUCT_DETAIL_DESCRIPTION_ROW_SELECTOR,
   )
 
   for (const row of rows) {
@@ -100,7 +101,7 @@ const hideProductDescriptionDetailRow = () => {
       setStoredDisplay(
         row,
         DETAIL_DESCRIPTION_ROW_DISPLAY_ATTRIBUTE,
-        DETAIL_DESCRIPTION_ROW_HIDDEN_ATTRIBUTE
+        DETAIL_DESCRIPTION_ROW_HIDDEN_ATTRIBUTE,
       )
     }
   }
@@ -111,7 +112,7 @@ const restoreNativeProductDescriptionField = () => {
   restoreStoredDisplay(
     `[${NATIVE_DESCRIPTION_FIELD_HIDDEN_ATTRIBUTE}="true"]`,
     NATIVE_DESCRIPTION_FIELD_DISPLAY_ATTRIBUTE,
-    NATIVE_DESCRIPTION_FIELD_HIDDEN_ATTRIBUTE
+    NATIVE_DESCRIPTION_FIELD_HIDDEN_ATTRIBUTE,
   )
 }
 
@@ -124,10 +125,10 @@ const hideNativeProductDescriptionField = () => {
   document.body.classList.add(PRODUCT_DESCRIPTION_EDITOR_MODAL_OPEN_CLASS)
 
   const textarea = document.querySelector<HTMLTextAreaElement>(
-    NATIVE_DESCRIPTION_FIELD_SELECTOR
+    NATIVE_DESCRIPTION_FIELD_SELECTOR,
   )
   const field = textarea?.closest<HTMLElement>(
-    NATIVE_DESCRIPTION_FIELD_WRAPPER_SELECTOR
+    NATIVE_DESCRIPTION_FIELD_WRAPPER_SELECTOR,
   )
 
   if (!(textarea && field)) {
@@ -140,7 +141,7 @@ const hideNativeProductDescriptionField = () => {
   setStoredDisplay(
     field,
     NATIVE_DESCRIPTION_FIELD_DISPLAY_ATTRIBUTE,
-    NATIVE_DESCRIPTION_FIELD_HIDDEN_ATTRIBUTE
+    NATIVE_DESCRIPTION_FIELD_HIDDEN_ATTRIBUTE,
   )
 }
 
@@ -155,7 +156,7 @@ const ProductDescriptionEditor = ({
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [savedSectionHtml, setSavedSectionHtml] = useState(() =>
-    getProductSectionHtml(product)
+    getProductSectionHtml(product),
   )
   const sectionHtmlRef = useRef(savedSectionHtml)
   const sectionHtmlDirtyRef = useRef(false)
@@ -216,35 +217,42 @@ const ProductDescriptionEditor = ({
   }, [])
 
   const mutation = useMutation({
-    mutationFn: ({ productId, sectionsHtml }: UpdateProductContentInput) =>
-      sdk.client.fetch<UpdateProductResponse>(`/admin/products/${productId}`, {
-        body: {
-          description:
-            sectionsHtml.description.length > 0
-              ? sectionsHtml.description
-              : null,
-          metadata: {
-            [CONTENT_SECTIONS_METADATA_KEY]: buildContentSections(sectionsHtml),
-            [CONTENT_SECTIONS_MAP_METADATA_KEY]: buildContentSectionsMap(
-              product?.metadata,
-              sectionsHtml
-            ),
+    mutationFn: async ({
+      productId,
+      sectionsHtml,
+    }: UpdateProductContentInput) =>
+      await sdk.client.fetch<UpdateProductResponse>(
+        `/admin/products/${productId}`,
+        {
+          body: {
+            description:
+              sectionsHtml.description.length > 0
+                ? sectionsHtml.description
+                : null,
+            metadata: {
+              [CONTENT_SECTIONS_METADATA_KEY]:
+                buildContentSections(sectionsHtml),
+              [CONTENT_SECTIONS_MAP_METADATA_KEY]: buildContentSectionsMap(
+                product?.metadata,
+                sectionsHtml,
+              ),
+            },
           },
+          method: "POST",
         },
-        method: "POST",
-      }),
+      ),
     onError: (error) => {
       toast.error(
         error instanceof Error
           ? error.message
-          : t("productContentSections.errors.saveFailed")
+          : t("productContentSections.errors.saveFailed"),
       )
     },
-    onSuccess: (response, variables) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (response, variables) => {
+      await queryClient.invalidateQueries({
         queryKey: ["product", variables.productId],
       })
-      queryClient.invalidateQueries({ queryKey: ["products"] })
+      await queryClient.invalidateQueries({ queryKey: ["products"] })
 
       if (productIdRef.current !== variables.productId) {
         return
@@ -256,7 +264,7 @@ const ProductDescriptionEditor = ({
 
       const nextSectionHtml = getSavedSectionHtml(
         response.product,
-        variables.sectionsHtml
+        variables.sectionsHtml,
       )
 
       sectionHtmlDirtyRef.current = false
@@ -267,18 +275,19 @@ const ProductDescriptionEditor = ({
   })
 
   const handleSave = () => {
-    if (!product?.id) {
+    const productId = product?.id
+    if (productId === undefined || productId === "") {
       return
     }
 
     mutation.mutate({
       changeVersion: sectionHtmlChangeVersionRef.current,
-      productId: product.id,
+      productId,
       sectionsHtml: sectionHtmlRef.current,
     })
   }
 
-  if (!product?.id) {
+  if (product?.id === undefined || product.id === "") {
     return null
   }
 
@@ -305,7 +314,7 @@ const ProductDescriptionEditor = ({
             </div>
             <RichHtmlEditor
               ariaLabel={t(
-                `productContentSections.sections.${section.key}.ariaLabel`
+                `productContentSections.sections.${section.key}.ariaLabel`,
               )}
               onChangeHtml={(html) => {
                 sectionHtmlDirtyRef.current = true
@@ -315,7 +324,9 @@ const ProductDescriptionEditor = ({
                   [section.key]: html,
                 }
               }}
-              onError={(message) => toast.error(message)}
+              onError={(message) => {
+                toast.error(message)
+              }}
               valueHtml={savedSectionHtml[section.key]}
             />
           </section>

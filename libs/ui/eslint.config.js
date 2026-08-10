@@ -1,45 +1,46 @@
 import path from "node:path"
-import { fileURLToPath } from "node:url"
+
 import tsParser from "@typescript-eslint/parser"
 import tailwind from "eslint-plugin-tailwindcss"
 
 const tokensCssAbsolutePath = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "src/tokens/index.css"
+  import.meta.dirname,
+  "src/tokens/index.css",
 )
 
-export default [
+/** @type {import("eslint").Linter.Config[]} */
+const config = [
   {
     files: ["**/*.{js,jsx,ts,tsx}"],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
-        ecmaVersion: "latest",
-        sourceType: "module",
         ecmaFeatures: {
           jsx: true,
         },
-      },
-    },
-    settings: {
-      tailwindcss: {
-        // For TailwindCSS v4 - point to CSS config file
-        config: tokensCssAbsolutePath,
+        ecmaVersion: "latest",
+        sourceType: "module",
       },
     },
     plugins: {
       tailwindcss: tailwind,
     },
     rules: {
-      // Only enable Tailwind CSS rules for class name validation
-      "tailwindcss/classnames-order": "off",
+      // The plugin's Tailwind 4-compatible validation rules complement the
+      // token-specific validators in scripts/validate-token-*.js.
+      "tailwindcss/classnames-order": "error",
       "tailwindcss/enforces-negative-arbitrary-values": "error",
       "tailwindcss/enforces-shorthand": "error",
-      "tailwindcss/migration-from-tailwind-2": "off",
-      "tailwindcss/no-arbitrary-value": "off",
+      "tailwindcss/no-arbitrary-value": "error",
       "tailwindcss/no-contradicting-classname": "error",
       "tailwindcss/no-custom-classname": "error",
       "tailwindcss/no-unnecessary-arbitrary-value": "error",
+    },
+    settings: {
+      tailwindcss: {
+        // For TailwindCSS v4 - point to CSS config file
+        cssConfigPath: tokensCssAbsolutePath,
+      },
     },
   },
   {
@@ -47,3 +48,5 @@ export default [
     ignores: ["dist/**/*", "storybook-static/**/*"],
   },
 ]
+
+export default config

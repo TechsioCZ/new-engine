@@ -2,7 +2,7 @@ import { CmsPageArticle } from "@/components/cms-page-article"
 import { Heading } from "@/components/heading"
 import { getCmsPage } from "@/services/cms-service"
 
-export default async function ObchodniPodminkyPage() {
+const ObchodniPodminkyPage = async () => {
   const cmsPage = await getCmsPage("obchodni-podminky")
 
   if (cmsPage) {
@@ -80,3 +80,5 @@ export default async function ObchodniPodminkyPage() {
     </article>
   )
 }
+
+export default ObchodniPodminkyPage

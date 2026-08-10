@@ -10,6 +10,7 @@ import {
   createRemoteLinkStep,
   releaseLockStep,
 } from "@medusajs/medusa/core-flows"
+
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
 import { assertCustomerOwnsProductListStep } from "../steps/assert-customer-owns-product-list"
 import { createProductListItemStep } from "../steps/create-product-list-item"
@@ -55,7 +56,10 @@ export const createProductListItemWorkflow = createWorkflow(
           },
         ]
 
-        if (workflowInput.variant_id) {
+        if (
+          workflowInput.variant_id !== undefined &&
+          workflowInput.variant_id.length > 0
+        ) {
           links.push({
             [PRODUCT_LIST_MODULE]: {
               product_list_item_id: createdItemResult.item.id,
@@ -67,14 +71,14 @@ export const createProductListItemWorkflow = createWorkflow(
         }
 
         return links
-      }
+      },
     )
 
     createRemoteLinkStep(productListItemLinks)
 
     const item = transform(
       { itemResult },
-      ({ itemResult: createdItemResult }) => createdItemResult.item
+      ({ itemResult: createdItemResult }) => createdItemResult.item,
     )
 
     releaseLockStep({
@@ -83,5 +87,5 @@ export const createProductListItemWorkflow = createWorkflow(
     })
 
     return new WorkflowResponse(item)
-  }
+  },
 )

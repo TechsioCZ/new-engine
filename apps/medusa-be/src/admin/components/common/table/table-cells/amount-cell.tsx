@@ -1,8 +1,9 @@
 import { clx } from "@medusajs/ui"
-import { formatAmount } from "../../../../utils"
+
+import { formatAmount } from "../../../../utils/format-amount"
 import { PlaceholderCell } from "./placeholder-cell"
 
-type AmountCellProps = {
+interface AmountCellProps {
   currencyCode: string
   amount?: number | null
   originalAmount?: number | null
@@ -17,7 +18,7 @@ export const AmountCell = ({
   align = "left",
   className,
 }: AmountCellProps) => {
-  if (typeof amount === "undefined" || amount === null) {
+  if (amount === undefined || amount === null) {
     return <PlaceholderCell />
   }
 
@@ -35,10 +36,10 @@ export const AmountCell = ({
         "flex h-full w-full items-center overflow-hidden",
         {
           "flex-col": shouldShowAmountDiff,
-          "justify-start text-left": align === "left",
           "justify-end text-right": align === "right",
+          "justify-start text-left": align === "left",
         },
-        className
+        className,
       )}
     >
       {shouldShowAmountDiff ? (

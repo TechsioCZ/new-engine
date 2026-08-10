@@ -1,6 +1,8 @@
 "use client"
 
-import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
+import type { IconType } from "@techsio/ui-kit/atoms/icon"
+
 import { FallbackImage } from "@/components/fallback-image"
 import type {
   SearchAutocompleteSuggestion,
@@ -16,11 +18,11 @@ const TYPE_ICON: Record<
   content: "token-icon-file-document",
 }
 
-export function SearchAutocompleteMedia({
+export const SearchAutocompleteMedia = ({
   item,
 }: {
   item: SearchAutocompleteSuggestion
-}) {
+}) => {
   if (item.type === "product") {
     return (
       <span className="flex h-800 w-800 shrink-0 items-center justify-center overflow-hidden rounded-md border border-border-secondary bg-base">

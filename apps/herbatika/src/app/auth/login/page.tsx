@@ -1,13 +1,13 @@
-import { resolveAfterAuthHref } from "@/components/auth/auth-helpers"
 import { AuthControls } from "@/components/auth-controls"
+import { resolveAfterAuthHref } from "@/components/auth/auth-helpers"
 
-type LoginPageProps = {
+interface LoginPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }
 
-export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const resolvedSearchParams = await searchParams
-  const afterAuthHref = resolveAfterAuthHref(resolvedSearchParams.next)
+const LoginPage = async ({ searchParams }: LoginPageProps) => {
+  const { next } = await searchParams
+  const afterAuthHref = resolveAfterAuthHref(next)
 
   return (
     <main className="mx-auto w-full max-w-auth-content p-auth-page 2xl:p-auth-page-lg">
@@ -15,3 +15,5 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
     </main>
   )
 }
+
+export default LoginPage

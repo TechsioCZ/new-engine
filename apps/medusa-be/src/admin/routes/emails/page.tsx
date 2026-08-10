@@ -3,9 +3,10 @@ import { EnvelopeContent } from "@medusajs/icons"
 import { Button, Container, Drawer, Heading, Table, Text } from "@medusajs/ui"
 import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
+
 import { sdk } from "../../lib/sdk"
 
-type EmailLog = {
+interface EmailLog {
   id: string
   email_id: string
   customer_id: string | null
@@ -19,14 +20,14 @@ type EmailLog = {
   updated_at: string
 }
 
-type EmailLogsResponse = {
+interface EmailLogsResponse {
   email_logs: EmailLog[]
   count: number
   limit: number
   offset: number
 }
 
-type ResendEmail = {
+interface ResendEmail {
   id?: string
   from?: string
   to?: string | string[]
@@ -35,33 +36,36 @@ type ResendEmail = {
   text?: string
   created_at?: string
   last_event?: string
-  [key: string]: unknown
 }
 
-type EmailLogDetailResponse = {
+interface EmailLogDetailResponse {
   email_log: EmailLog
   resend_email: ResendEmail | null
 }
 
 const PAGE_SIZE = 20
+const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+})
 
 export const handle = {
   breadcrumb: () => "Emails",
 }
 
 const formatDate = (date: string | null) => {
-  if (!date) {
+  if (date === null || date.length === 0) {
     return "-"
   }
 
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(date))
+  return dateTimeFormatter.format(new Date(date))
 }
 
 const formatRecipient = (recipient: string | string[] | undefined) => {
-  if (!recipient) {
+  if (
+    recipient === undefined ||
+    (typeof recipient === "string" && recipient.length === 0)
+  ) {
     return "-"
   }
 
@@ -69,11 +73,14 @@ const formatRecipient = (recipient: string | string[] | undefined) => {
 }
 
 const getTextContent = (resendEmail: ResendEmail | null | undefined) => {
-  if (!resendEmail) {
+  if (resendEmail === null || resendEmail === undefined) {
     return null
   }
 
-  if (typeof resendEmail.text === "string" && resendEmail.text.trim()) {
+  if (
+    typeof resendEmail.text === "string" &&
+    resendEmail.text.trim().length > 0
+  ) {
     return resendEmail.text
   }
 
@@ -81,11 +88,14 @@ const getTextContent = (resendEmail: ResendEmail | null | undefined) => {
 }
 
 const getHtmlContent = (resendEmail: ResendEmail | null | undefined) => {
-  if (!resendEmail) {
+  if (resendEmail === null || resendEmail === undefined) {
     return null
   }
 
-  if (typeof resendEmail.html === "string" && resendEmail.html.trim()) {
+  if (
+    typeof resendEmail.html === "string" &&
+    resendEmail.html.trim().length > 0
+  ) {
     return resendEmail.html
   }
 
@@ -132,7 +142,7 @@ const EmailRows = ({
     )
   }
 
-  if (!emailLogs.length) {
+  if (emailLogs.length === 0) {
     return (
       <Table.Row>
         <Table.Cell>No emails logged yet.</Table.Cell>
@@ -166,7 +176,9 @@ const EmailRows = ({
       </Table.Cell>
       <Table.Cell className="text-right">
         <Button
-          onClick={() => onOpen(emailLog.id)}
+          onClick={() => {
+            onOpen(emailLog.id)
+          }}
           size="small"
           type="button"
           variant="secondary"
@@ -191,13 +203,14 @@ const EmailDetailContent = ({
     return <Text>Loading...</Text>
   }
 
-  if (error) {
+  const hasError = error !== null && error !== undefined
+  if (hasError) {
     return (
       <Text className="text-ui-fg-error">Failed to load email detail.</Text>
     )
   }
 
-  if (!detail) {
+  if (detail === undefined) {
     return null
   }
 
@@ -228,7 +241,7 @@ const EmailDetailContent = ({
         <DetailField label="Last event" value={resendEmail?.last_event} />
       </div>
 
-      {htmlContent ? (
+      {htmlContent === null ? null : (
         <div className="flex flex-col gap-2">
           <Heading level="h2">HTML</Heading>
           <iframe
@@ -238,16 +251,16 @@ const EmailDetailContent = ({
             title="Email HTML content"
           />
         </div>
-      ) : null}
+      )}
 
-      {textContent ? (
+      {textContent === null ? null : (
         <div className="flex flex-col gap-2">
           <Heading level="h2">Text</Heading>
           <pre className="txt-small whitespace-pre-wrap rounded border bg-ui-bg-subtle p-4 text-ui-fg-base">
             {textContent}
           </pre>
         </div>
-      ) : null}
+      )}
 
       <div className="flex flex-col gap-2">
         <Heading level="h2">Resend Payload</Heading>
@@ -262,24 +275,24 @@ const EmailDetailContent = ({
 const EmailsPage = () => {
   const [pageIndex, setPageIndex] = useState(0)
   const [selectedEmailLogId, setSelectedEmailLogId] = useState<string | null>(
-    null
+    null,
   )
 
   const offset = pageIndex * PAGE_SIZE
 
   const { data, isLoading, error } = useQuery({
-    queryFn: () =>
-      sdk.client.fetch<EmailLogsResponse>(
-        `/admin/email-logs?limit=${PAGE_SIZE}&offset=${offset}`
+    queryFn: async () =>
+      await sdk.client.fetch<EmailLogsResponse>(
+        `/admin/email-logs?limit=${PAGE_SIZE}&offset=${offset}`,
       ),
     queryKey: ["email-logs", PAGE_SIZE, offset],
   })
 
   const detailQuery = useQuery({
-    enabled: !!selectedEmailLogId,
-    queryFn: () =>
-      sdk.client.fetch<EmailLogDetailResponse>(
-        `/admin/email-logs/${selectedEmailLogId}`
+    enabled: selectedEmailLogId !== null,
+    queryFn: async () =>
+      await sdk.client.fetch<EmailLogDetailResponse>(
+        `/admin/email-logs/${selectedEmailLogId}`,
       ),
     queryKey: ["email-log", selectedEmailLogId],
   })
@@ -287,6 +300,7 @@ const EmailsPage = () => {
   const emailLogs = data?.email_logs ?? []
   const count = data?.count ?? 0
   const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
+  const hasError = error !== null
 
   return (
     <>
@@ -300,7 +314,7 @@ const EmailsPage = () => {
           </div>
         </div>
 
-        {error ? (
+        {hasError ? (
           <div className="px-6 py-4">
             <Text className="text-ui-fg-error">Failed to load email logs.</Text>
           </div>
@@ -333,13 +347,15 @@ const EmailsPage = () => {
               canNextPage={pageIndex + 1 < pageCount}
               canPreviousPage={pageIndex > 0}
               count={count}
-              nextPage={() => setPageIndex((current) => current + 1)}
+              nextPage={() => {
+                setPageIndex((current) => current + 1)
+              }}
               pageCount={pageCount}
               pageIndex={pageIndex}
               pageSize={PAGE_SIZE}
-              previousPage={() =>
+              previousPage={() => {
                 setPageIndex((current) => Math.max(current - 1, 0))
-              }
+              }}
             />
           </>
         )}
@@ -351,7 +367,7 @@ const EmailsPage = () => {
             setSelectedEmailLogId(null)
           }
         }}
-        open={!!selectedEmailLogId}
+        open={selectedEmailLogId !== null}
       >
         <Drawer.Content>
           <Drawer.Header>

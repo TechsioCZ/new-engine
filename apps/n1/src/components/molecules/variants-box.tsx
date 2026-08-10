@@ -2,7 +2,7 @@ import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
 import { slugify } from "@techsio/ui-kit/utils"
 import { useState } from "react"
 
-type VariantsBoxProps = {
+interface VariantsBoxProps {
   variants: string[]
   limit?: number
 }
@@ -26,8 +26,7 @@ export const VariantsBox = ({ variants, limit = 3 }: VariantsBoxProps) => {
   }
 
   return (
-    // biome-ignore lint/a11y/noNoninteractiveElementInteractions: hover/focus handlers are needed for expanded variant display
-    // biome-ignore lint/a11y/noStaticElementInteractions: wrapper handles hover/focus without click semantics
+    // hover/focus wrapper for expanded variant display; no click semantics
     <div
       className="relative flex flex-col items-center justify-center"
       onBlur={hasMore ? handleCollapse : undefined}
@@ -44,7 +43,7 @@ export const VariantsBox = ({ variants, limit = 3 }: VariantsBoxProps) => {
         {visibleVariants.map((variant) => (
           <ProductCard.Button
             buttonVariant="custom"
-            className="h-7 min-w-7 items-center border border-border-secondary bg-surface px-50 py-50"
+            className="h-650 min-w-650 items-center border border-border-secondary bg-surface px-50 py-50"
             key={slugify(variant)}
           >
             <span className="font-normal text-2xs text-fg-primary">
@@ -63,7 +62,7 @@ export const VariantsBox = ({ variants, limit = 3 }: VariantsBoxProps) => {
           {variants.map((variant) => (
             <ProductCard.Button
               buttonVariant="custom"
-              className="h-7 min-w-7 items-center border border-border-secondary bg-surface px-50 py-50"
+              className="h-650 min-w-650 items-center border border-border-secondary bg-surface px-50 py-50"
               key={slugify(variant)}
             >
               <span className="font-normal text-2xs text-fg-primary">

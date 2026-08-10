@@ -9,59 +9,56 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type { FormEvent } from "react"
-import { useEffect, useState } from "react"
+import type { SubmitEvent } from "react"
+import { useState } from "react"
+
 import { sdk } from "../../../lib/sdk"
 
 export const handle = {
   breadcrumb: () => "QR platby",
 }
 
-type QrPaymentConfigResponse = {
+interface QrPaymentConfigResponse {
   id: string
   iban: string | null
 }
 
-type QrPaymentConfigInput = {
+interface QrPaymentConfigInput {
   iban?: string | null
 }
 
 const QrPaymentsSettingsPage = () => {
   const queryClient = useQueryClient()
-  const [iban, setIban] = useState("")
+  const [ibanDraft, setIbanDraft] = useState<string | null>(null)
 
   const { data, error, isLoading } = useQuery({
-    queryFn: () =>
-      sdk.client.fetch<{ config: QrPaymentConfigResponse }>(
-        "/admin/qr-payment-config"
+    queryFn: async () =>
+      await sdk.client.fetch<{ config: QrPaymentConfigResponse }>(
+        "/admin/qr-payment-config",
       ),
     queryKey: ["qr-payment-config"],
   })
 
   const { mutate, isPending } = useMutation({
-    mutationFn: (payload: QrPaymentConfigInput) =>
-      sdk.client.fetch("/admin/qr-payment-config", {
-        method: "POST",
+    mutationFn: async (payload: QrPaymentConfigInput) =>
+      await sdk.client.fetch("/admin/qr-payment-config", {
         body: payload,
+        method: "POST",
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["qr-payment-config"] })
-      toast.success("QR payment configuration saved")
-    },
     onError: (err) => {
       toast.error(`Failed to save configuration: ${err.message}`)
+    },
+    onSuccess: async () => {
+      setIbanDraft(null)
+      await queryClient.invalidateQueries({ queryKey: ["qr-payment-config"] })
+      toast.success("QR payment configuration saved")
     },
   })
 
   const qrConfig = data?.config
+  const iban = ibanDraft ?? qrConfig?.iban ?? ""
 
-  useEffect(() => {
-    if (qrConfig) {
-      setIban(qrConfig.iban ?? "")
-    }
-  }, [qrConfig])
-
-  const handleSubmit = (event: FormEvent) => {
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault()
     const normalizedIban = iban.trim()
     mutate({ iban: normalizedIban === "" ? null : normalizedIban })
@@ -107,7 +104,9 @@ const QrPaymentsSettingsPage = () => {
             <Label htmlFor="qr-payment-iban">IBAN</Label>
             <Input
               id="qr-payment-iban"
-              onChange={(event) => setIban(event.target.value)}
+              onChange={(event) => {
+                setIbanDraft(event.target.value)
+              }}
               placeholder="CZ3301000000000002970297"
               value={iban}
             />

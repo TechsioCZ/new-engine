@@ -1,14 +1,16 @@
 import { HydrationBoundary } from "@tanstack/react-query"
 import type { Metadata } from "next"
-import { notFound, redirect } from "next/navigation"
 import { getTranslations } from "next-intl/server"
+import { notFound, redirect } from "next/navigation"
+
 import { BrandListing } from "@/components/brands/brand-listing"
+import { appHref } from "@/lib/routing"
 import { createBrandHref, resolveBrandBySlug } from "@/lib/storefront/brands"
 import { fetchStorefrontBrands } from "@/lib/storefront/brands.server"
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state"
 import { prefetchBrandPageStorefrontData } from "@/lib/storefront/ssr"
 
-type BrandPageProps = {
+interface BrandPageProps {
   params: Promise<{
     slug: string
   }>
@@ -21,7 +23,7 @@ const resolveBrandPageData = async (slug: string) => {
 }
 
 const createSearchParamsSuffix = (
-  searchParams: Record<string, string | string[] | undefined>
+  searchParams: Record<string, string | string[] | undefined>,
 ) => {
   const params = new URLSearchParams()
 
@@ -42,9 +44,9 @@ const createSearchParamsSuffix = (
   return queryString ? `?${queryString}` : ""
 }
 
-export async function generateMetadata({
+export const generateMetadata = async ({
   params,
-}: Pick<BrandPageProps, "params">): Promise<Metadata> {
+}: Pick<BrandPageProps, "params">): Promise<Metadata> => {
   const { slug } = await params
   const [brand, tCatalog] = await Promise.all([
     resolveBrandPageData(slug),
@@ -56,19 +58,16 @@ export async function generateMetadata({
   }
 
   return {
-    title: tCatalog("brands.metadata.detail_title", {
+    description: tCatalog("brands.metadata.detail_description", {
       brandName: brand.title,
     }),
-    description: tCatalog("brands.metadata.detail_description", {
+    title: tCatalog("brands.metadata.detail_title", {
       brandName: brand.title,
     }),
   }
 }
 
-export default async function BrandPage({
-  params,
-  searchParams,
-}: BrandPageProps) {
+const BrandPage = async ({ params, searchParams }: BrandPageProps) => {
   const [{ slug }, resolvedSearchParams] = await Promise.all([
     params,
     searchParams,
@@ -81,14 +80,16 @@ export default async function BrandPage({
 
   if (slug !== brand.slug) {
     redirect(
-      `${createBrandHref(brand)}${createSearchParamsSuffix(resolvedSearchParams)}`
+      appHref(
+        `${createBrandHref(brand)}${createSearchParamsSuffix(resolvedSearchParams)}`,
+      ),
     )
   }
 
   const queryState = parsePlpQueryStateFromSearchParams(resolvedSearchParams)
   const { dehydratedState } = await prefetchBrandPageStorefrontData(
     brand.facetId,
-    queryState
+    queryState,
   )
 
   return (
@@ -97,3 +98,5 @@ export default async function BrandPage({
     </HydrationBoundary>
   )
 }
+
+export default BrandPage

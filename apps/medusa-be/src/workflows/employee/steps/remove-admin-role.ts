@@ -1,6 +1,7 @@
 import type { IAuthModuleService, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { getProviderIdentityIdsWithoutActiveAdminRole } from "../utils/admin-auth-metadata"
 
 export const removeAdminRoleStep = createStep(
@@ -11,10 +12,10 @@ export const removeAdminRoleStep = createStep(
       email: string
       excluded_employee_ids?: string[]
     },
-    { container }
+    { container },
   ): Promise<StepResponse<undefined, string[]>> => {
     const authModuleService = container.resolve<IAuthModuleService>(
-      Modules.AUTH
+      Modules.AUTH,
     )
 
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -22,7 +23,9 @@ export const removeAdminRoleStep = createStep(
       await getProviderIdentityIdsWithoutActiveAdminRole({
         candidates: [
           {
-            customer_id: input.customer_id,
+            ...(input.customer_id === undefined
+              ? {}
+              : { customer_id: input.customer_id }),
             email: input.email,
           },
         ],
@@ -30,7 +33,7 @@ export const removeAdminRoleStep = createStep(
         query,
       })
 
-    if (!providerIdentityIds.length) {
+    if (providerIdentityIds.length === 0) {
       return new StepResponse(undefined, [])
     }
 
@@ -40,18 +43,18 @@ export const removeAdminRoleStep = createStep(
         user_metadata: {
           role: null,
         },
-      }))
+      })),
     )
 
     return new StepResponse(undefined, providerIdentityIds)
   },
   async (providerIdentityIds: string[] | undefined, { container }) => {
-    if (!providerIdentityIds?.length) {
+    if (providerIdentityIds === undefined || providerIdentityIds.length === 0) {
       return
     }
 
     const authModuleService = container.resolve<IAuthModuleService>(
-      Modules.AUTH
+      Modules.AUTH,
     )
 
     await authModuleService.updateProviderIdentities(
@@ -60,7 +63,7 @@ export const removeAdminRoleStep = createStep(
         user_metadata: {
           role: "company_admin",
         },
-      }))
+      })),
     )
-  }
+  },
 )

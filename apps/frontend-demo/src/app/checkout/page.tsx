@@ -4,7 +4,9 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Steps } from "@techsio/ui-kit/molecules/steps"
 import Link from "next/link"
-import { type ReactNode, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
+import type { ReactNode } from "react"
+
 import { LoadingPage } from "@/components/loading-page"
 import { OrderSummary } from "@/components/order-summary"
 import { useCart } from "@/hooks/use-cart"
@@ -12,34 +14,39 @@ import { useCheckout } from "@/hooks/use-checkout"
 import { PAYMENT_METHODS } from "@/lib/checkout-data"
 import { formatPrice } from "@/lib/format-price"
 import { orderHelpers } from "@/stores/order-store"
+
 import { PaymentSelection } from "../../components/molecules/payment-selection"
 import { ShippingSelection } from "../../components/molecules/shipping-selection"
 import { AddressForm } from "../../components/organisms/address-form"
 import { OrderPreview } from "../../components/organisms/order-preview"
 
-type CheckoutStep = {
+interface CheckoutStep {
   content: ReactNode
   title: string
   value: number
 }
 
-function useMediaQuery(query: string) {
+const useMediaQuery = (query: string) => {
   const [matches, setMatches] = useState(false)
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(query)
-    const updateMatches = () => setMatches(mediaQuery.matches)
+    const updateMatches = () => {
+      setMatches(mediaQuery.matches)
+    }
 
     updateMatches()
     mediaQuery.addEventListener("change", updateMatches)
 
-    return () => mediaQuery.removeEventListener("change", updateMatches)
+    return () => {
+      mediaQuery.removeEventListener("change", updateMatches)
+    }
   }, [query])
 
   return matches
 }
 
-export default function CheckoutPage() {
+const CheckoutPage = () => {
   const { cart, isLoading } = useCart()
 
   const {
@@ -64,23 +71,6 @@ export default function CheckoutPage() {
   const [showOrderSummary, setShowOrderSummary] = useState(false)
   const isDesktopSteps = useMediaQuery("(min-width: 640px)")
 
-  // Redirect if cart is empty and no completed order
-  useEffect(() => {
-    // Wait for cart to load before checking
-    if (!isLoading) {
-      const hasCompletedOrder = orderHelpers.getOrderData(null) !== null
-
-      // Only redirect if cart is empty AND no completed order exists
-      if (
-        (!cart || cart.items?.length === 0) &&
-        !hasCompletedOrder &&
-        !isOrderComplete
-      ) {
-        //  router.push('/cart')
-      }
-    }
-  }, [cart, isLoading, isOrderComplete])
-
   // Show loading state while cart is loading
   if (isLoading) {
     return <LoadingPage />
@@ -89,78 +79,94 @@ export default function CheckoutPage() {
   // Get order data (either from cart or saved completed order)
   const orderData = orderHelpers.getOrderData(cart)
 
-  if (!orderData?.items || orderData.items.length === 0) {
+  if (
+    orderData?.items === null ||
+    orderData?.items === undefined ||
+    orderData.items.length === 0
+  ) {
     return null
   }
 
   const selectedShippingMethod = shippingMethods?.find(
-    (m) => m.id === selectedShipping
+    (m) => m.id === selectedShipping,
   )
   const selectedPaymentMethod = PAYMENT_METHODS.find(
-    (m) => m.id === selectedPayment
+    (m) => m.id === selectedPayment,
   )
   const shippingPrice =
-    selectedShippingMethod?.calculated_price.calculated_amount || 0
+    selectedShippingMethod?.calculated_price.calculated_amount ?? 0
 
-  const paymentFee = selectedPaymentMethod?.fee || 0
+  const paymentFee = selectedPaymentMethod?.fee ?? 0
 
-  const handleComplete = async () => {
-    // For other payment methods, process directly
+  const completeOrder = async () => {
     try {
       const order = await processOrder()
-      if (order) {
-        setOrderNumber(
-          String(order.display_id) || `CZ${Date.now().toString().slice(-8)}`
-        )
-        setIsOrderComplete(true)
-        setCurrentStep(3)
+      if (order === undefined) {
+        return
       }
-    } catch (_error) {
-      // Error already handled in hook
+
+      const displayId = order.display_id
+      setOrderNumber(
+        displayId === null || displayId === undefined
+          ? `CZ${Date.now().toString().slice(-8)}`
+          : String(displayId),
+      )
+      setIsOrderComplete(true)
+      setCurrentStep(3)
+    } catch (error: unknown) {
+      console.error("Checkout completion failed:", error)
     }
+  }
+
+  const handleComplete = () => {
+    void completeOrder()
+  }
+
+  const updateShippingMethod = async (method: string) => {
+    try {
+      await addShippingMethod(method)
+    } catch (error: unknown) {
+      console.error("Checkout shipping update failed:", error)
+    }
+  }
+
+  const handleShippingSelect = (method: string) => {
+    setSelectedShipping(method)
+    void updateShippingMethod(method)
   }
 
   const steps: CheckoutStep[] = [
     {
-      value: 0,
-      title: "Adresa",
       content: (
         <AddressForm
           onComplete={async (data) => {
             try {
               await updateAddresses(data)
               setCurrentStep(1)
-            } catch (_err) {
-              // Error already handled in hook
+            } catch (error: unknown) {
+              console.error("Checkout address update failed:", error)
             }
           }}
         />
       ),
+      title: "Adresa",
+      value: 0,
     },
     {
-      value: 1,
-      title: "Doprava",
       content: (
         <ShippingSelection
           currentStep={currentStep}
           isLoading={isLoadingShipping}
-          onSelect={async (method) => {
-            setSelectedShipping(method)
-            try {
-              await addShippingMethod(method)
-            } catch (_error) {
-              // Error already handled in hook
-            }
-          }}
+          onSelect={handleShippingSelect}
           selected={selectedShipping}
           setCurrentStep={setCurrentStep}
           shippingMethods={shippingMethods}
         />
       ),
+      title: "Doprava",
+      value: 1,
     },
     {
-      value: 2,
-      title: "Platba",
       content: (
         <PaymentSelection
           currentStep={currentStep}
@@ -172,22 +178,26 @@ export default function CheckoutPage() {
           setCurrentStep={setCurrentStep}
         />
       ),
+      title: "Platba",
+      value: 2,
     },
     {
-      value: 3,
-      title: "Souhrn",
       content: (
         <OrderSummary
-          addressData={addressData || undefined}
+          {...(addressData !== null && { addressData })}
           isLoading={isProcessingPayment}
           isOrderComplete={isOrderComplete}
           onCompleteClick={handleComplete}
-          onEditClick={() => setCurrentStep(currentStep - 1)}
+          onEditClick={() => {
+            setCurrentStep(currentStep - 1)
+          }}
           orderNumber={orderNumber}
           selectedPayment={selectedPaymentMethod}
           selectedShipping={selectedShippingMethod}
         />
       ),
+      title: "Souhrn",
+      value: 3,
     },
   ]
 
@@ -210,7 +220,9 @@ export default function CheckoutPage() {
     <Steps
       count={steps.length}
       linear={false}
-      onStepChange={(details) => handleStepChange(details.step)}
+      onStepChange={(details) => {
+        handleStepChange(details.step)
+      }}
       orientation={orientation}
       step={currentStep}
     >
@@ -269,7 +281,9 @@ export default function CheckoutPage() {
               : "token-icon-chevron-down"
           }
           iconPosition="left"
-          onClick={() => setShowOrderSummary(!showOrderSummary)}
+          onClick={() => {
+            setShowOrderSummary(!showOrderSummary)
+          }}
         >
           <div className="flex items-center gap-2">
             <span className="font-medium">
@@ -307,3 +321,5 @@ export default function CheckoutPage() {
     </div>
   )
 }
+
+export default CheckoutPage

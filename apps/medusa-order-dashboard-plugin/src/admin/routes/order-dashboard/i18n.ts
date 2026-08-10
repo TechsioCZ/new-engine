@@ -1,4 +1,8 @@
-export type OrderDashboardAdminI18nNamespace = {
+const ENGLISH_MANUAL_STATUS = "Manual status"
+const CZECH_MANUAL_STATUS = "Ruční stav"
+const CZECH_REQUIRES_ACTION = "Vyžaduje akci"
+
+export interface OrderDashboardAdminI18nNamespace {
   actions: Record<
     | "apply"
     | "applyManualStatus"
@@ -198,7 +202,7 @@ const englishOrderDashboardAdminI18n = {
   actions: {
     apply: "Apply",
     applyManualStatus: "Apply manual status",
-    businessStatusPlaceholder: "Manual status",
+    businessStatusPlaceholder: ENGLISH_MANUAL_STATUS,
     cancel: "Cancel",
     clearManualStatus: "Clear manual status",
     closeDetails: "Close",
@@ -220,7 +224,7 @@ const englishOrderDashboardAdminI18n = {
     customer: "Customer",
     details: "Details",
     fulfillment: "Fulfillment",
-    manualStatus: "Manual status",
+    manualStatus: ENGLISH_MANUAL_STATUS,
     order: "Order",
     payment: "Payment",
     total: "Total",
@@ -232,7 +236,7 @@ const englishOrderDashboardAdminI18n = {
     carrier: "Carrier",
     fulfillment: "Fulfillment",
     items: "Items",
-    manualStatus: "Manual status",
+    manualStatus: ENGLISH_MANUAL_STATUS,
     noActiveFulfillment: "No active fulfillment",
     noItems: "No items available.",
     orderStatus: "Medusa status",
@@ -244,19 +248,6 @@ const englishOrderDashboardAdminI18n = {
   filters: {
     businessStatus: "Status",
     carrier: "Carrier",
-  },
-  fulfillmentStatus: {
-    canceled: "Canceled",
-    delivered: "Delivered",
-    fulfilled: "Fulfilled",
-    not_fulfilled: "Not fulfilled",
-    partially_delivered: "Partially delivered",
-    partially_fulfilled: "Partially fulfilled",
-    partially_returned: "Partially returned",
-    partially_shipped: "Partially shipped",
-    requires_action: "Requires action",
-    returned: "Returned",
-    shipped: "Shipped",
   },
   fulfillmentBlocker: {
     canceled: "Canceled orders cannot be fulfilled",
@@ -294,6 +285,19 @@ const englishOrderDashboardAdminI18n = {
     stockLocationsUnavailable: "No stock locations are available.",
     title: "Fulfill items",
   },
+  fulfillmentStatus: {
+    canceled: "Canceled",
+    delivered: "Delivered",
+    fulfilled: "Fulfilled",
+    not_fulfilled: "Not fulfilled",
+    partially_delivered: "Partially delivered",
+    partially_fulfilled: "Partially fulfilled",
+    partially_returned: "Partially returned",
+    partially_shipped: "Partially shipped",
+    requires_action: "Requires action",
+    returned: "Returned",
+    shipped: "Shipped",
+  },
   labelFormats: {
     a6: "A6",
     a7: "A7",
@@ -304,6 +308,12 @@ const englishOrderDashboardAdminI18n = {
     none: "No manual status",
     processing: "Processing",
     waiting_for_supplier: "Waiting for supplier",
+  },
+  manualStatusBlocker: {
+    alreadyClear: "Manual status is already clear",
+    alreadyStatus: "Manual status is already {{status}}",
+    canceledStayCanceled: "Canceled orders stay canceled",
+    higherPriority: "{{status}} status has higher priority",
   },
   manualStatusPrompt: {
     description: "Only manually selected orders will be updated.",
@@ -317,17 +327,6 @@ const englishOrderDashboardAdminI18n = {
       "{{updatedCount}} order(s) will be updated. {{skippedCount}} order(s) will be skipped.",
   },
   menuItem: "Order dashboard",
-  manualStatusBlocker: {
-    alreadyClear: "Manual status is already clear",
-    alreadyStatus: "Manual status is already {{status}}",
-    canceledStayCanceled: "Canceled orders stay canceled",
-    higherPriority: "{{status}} status has higher priority",
-  },
-  packetaSkip: {
-    noActiveLabel: "No active Packeta packet label",
-    notPacketa: "Carrier is {{carrier}}, not Packeta",
-    unchecked: "Packeta label status could not be checked",
-  },
   packetaLabelPositionPrompt: {
     description:
       "Labels will be placed on an A4 sheet with four positions. Choose where the first label should start.",
@@ -335,6 +334,11 @@ const englishOrderDashboardAdminI18n = {
     print: "Prepare labels",
     selected: "{{count}} labels will be printed",
     title: "Packeta label start position",
+  },
+  packetaSkip: {
+    noActiveLabel: "No active Packeta packet label",
+    notPacketa: "Carrier is {{carrier}}, not Packeta",
+    unchecked: "Packeta label status could not be checked",
   },
   queues: {
     action_required: "Action required",
@@ -366,6 +370,14 @@ const englishOrderDashboardAdminI18n = {
     blockedCount: "{{count}} blocked",
     moreBlocked: "{{count}} more blocked",
   },
+  targetStatus: {
+    archived: "Archived",
+    canceled: "Canceled",
+    completed: "Completed",
+    draft: "Draft",
+    pending: "Pending",
+    requires_action: "Requires action",
+  },
   targetStatusBlocker: {
     activeFulfillmentCannotCanceled:
       "Orders with active fulfillments cannot be canceled",
@@ -383,20 +395,12 @@ const englishOrderDashboardAdminI18n = {
     unknownStatus: "Order status is unknown",
     unsupportedStatus: "Order status {{status}} cannot be changed",
   },
-  targetStatus: {
-    archived: "Archived",
-    canceled: "Canceled",
-    completed: "Completed",
-    draft: "Draft",
-    pending: "Pending",
-    requires_action: "Requires action",
-  },
   title: "Order dashboard",
   toast: {
+    blockedOrderStatus: "Selected orders do not support that status change.",
     businessStatusUpdated: "Manual status updated for {{count}} orders",
     businessStatusUpdatedWithSkipped:
       "Manual status updated for {{count}} orders. {{skippedCount}} skipped.",
-    blockedOrderStatus: "Selected orders do not support that status change.",
     fulfillmentCreated: "Fulfillment created for {{count}} orders",
     fulfillmentCreatedWithFailed:
       "Fulfillment created for {{count}} orders. {{failedCount}} failed.",
@@ -419,7 +423,7 @@ const czechOrderDashboardAdminI18n = {
   actions: {
     apply: "Použít",
     applyManualStatus: "Použít ruční stav",
-    businessStatusPlaceholder: "Ruční stav",
+    businessStatusPlaceholder: CZECH_MANUAL_STATUS,
     cancel: "Zrušit",
     clearManualStatus: "Vymazat ruční stav",
     closeDetails: "Zavřít",
@@ -441,7 +445,7 @@ const czechOrderDashboardAdminI18n = {
     customer: "Zákazník",
     details: "Detail",
     fulfillment: "Vyřízení",
-    manualStatus: "Ruční stav",
+    manualStatus: CZECH_MANUAL_STATUS,
     order: "Objednávka",
     payment: "Platba",
     total: "Celkem",
@@ -453,7 +457,7 @@ const czechOrderDashboardAdminI18n = {
     carrier: "Dopravce",
     fulfillment: "Vyřízení",
     items: "Položky",
-    manualStatus: "Ruční stav",
+    manualStatus: CZECH_MANUAL_STATUS,
     noActiveFulfillment: "Žádné aktivní vyřízení",
     noItems: "Žádné položky nejsou dostupné.",
     orderStatus: "Stav v Meduse",
@@ -465,19 +469,6 @@ const czechOrderDashboardAdminI18n = {
   filters: {
     businessStatus: "Stav",
     carrier: "Dopravce",
-  },
-  fulfillmentStatus: {
-    canceled: "Zrušeno",
-    delivered: "Doručeno",
-    fulfilled: "Vyřízeno",
-    not_fulfilled: "Nevyřízeno",
-    partially_delivered: "Částečně doručeno",
-    partially_fulfilled: "Částečně vyřízeno",
-    partially_returned: "Částečně vráceno",
-    partially_shipped: "Částečně expedováno",
-    requires_action: "Vyžaduje akci",
-    returned: "Vráceno",
-    shipped: "Expedováno",
   },
   fulfillmentBlocker: {
     canceled: "Zrušené objednávky nelze vyřídit",
@@ -515,6 +506,19 @@ const czechOrderDashboardAdminI18n = {
     stockLocationsUnavailable: "Nejsou dostupné žádné sklady.",
     title: "Vyřídit položky",
   },
+  fulfillmentStatus: {
+    canceled: "Zrušeno",
+    delivered: "Doručeno",
+    fulfilled: "Vyřízeno",
+    not_fulfilled: "Nevyřízeno",
+    partially_delivered: "Částečně doručeno",
+    partially_fulfilled: "Částečně vyřízeno",
+    partially_returned: "Částečně vráceno",
+    partially_shipped: "Částečně expedováno",
+    requires_action: CZECH_REQUIRES_ACTION,
+    returned: "Vráceno",
+    shipped: "Expedováno",
+  },
   labelFormats: {
     a6: "A6",
     a7: "A7",
@@ -525,6 +529,12 @@ const czechOrderDashboardAdminI18n = {
     none: "Žádný ruční stav",
     processing: "Zpracovává se",
     waiting_for_supplier: "Čeká na dodavatele",
+  },
+  manualStatusBlocker: {
+    alreadyClear: "Ruční stav je už vymazaný",
+    alreadyStatus: "Ruční stav je už {{status}}",
+    canceledStayCanceled: "Zrušené objednávky zůstávají zrušené",
+    higherPriority: "Stav {{status}} má vyšší prioritu",
   },
   manualStatusPrompt: {
     description: "Upraví se pouze ručně vybrané objednávky.",
@@ -538,17 +548,6 @@ const czechOrderDashboardAdminI18n = {
       "{{updatedCount}} objednávek bude upraveno. {{skippedCount}} objednávek bude přeskočeno.",
   },
   menuItem: "Přehled",
-  manualStatusBlocker: {
-    alreadyClear: "Ruční stav je už vymazaný",
-    alreadyStatus: "Ruční stav je už {{status}}",
-    canceledStayCanceled: "Zrušené objednávky zůstávají zrušené",
-    higherPriority: "Stav {{status}} má vyšší prioritu",
-  },
-  packetaSkip: {
-    noActiveLabel: "Žádný aktivní štítek zásilky Packeta",
-    notPacketa: "Dopravce je {{carrier}}, ne Packeta",
-    unchecked: "Stav štítku Packeta se nepodařilo ověřit",
-  },
   packetaLabelPositionPrompt: {
     description:
       "Štítky se připraví na A4 arch se čtyřmi pozicemi. Vyberte, od které pozice má začít první štítek.",
@@ -557,8 +556,13 @@ const czechOrderDashboardAdminI18n = {
     selected: "Bude vytištěno {{count}} štítků",
     title: "Startovní pozice štítku Packeta",
   },
+  packetaSkip: {
+    noActiveLabel: "Žádný aktivní štítek zásilky Packeta",
+    notPacketa: "Dopravce je {{carrier}}, ne Packeta",
+    unchecked: "Stav štítku Packeta se nepodařilo ověřit",
+  },
   queues: {
-    action_required: "Vyžaduje akci",
+    action_required: CZECH_REQUIRES_ACTION,
     all: "Vše",
   },
   sidebar: {
@@ -587,6 +591,14 @@ const czechOrderDashboardAdminI18n = {
     blockedCount: "{{count}} blokováno",
     moreBlocked: "{{count}} dalších blokováno",
   },
+  targetStatus: {
+    archived: "Archivováno",
+    canceled: "Zrušeno",
+    completed: "Dokončeno",
+    draft: "Koncept",
+    pending: "Čeká",
+    requires_action: CZECH_REQUIRES_ACTION,
+  },
   targetStatusBlocker: {
     activeFulfillmentCannotCanceled:
       "Objednávky s aktivním vyřízením nelze zrušit",
@@ -604,20 +616,12 @@ const czechOrderDashboardAdminI18n = {
     unknownStatus: "Stav objednávky není známý",
     unsupportedStatus: "Stav objednávky {{status}} nelze měnit",
   },
-  targetStatus: {
-    archived: "Archivováno",
-    canceled: "Zrušeno",
-    completed: "Dokončeno",
-    draft: "Koncept",
-    pending: "Čeká",
-    requires_action: "Vyžaduje akci",
-  },
   title: "Přehled objednávek",
   toast: {
+    blockedOrderStatus: "Vybrané objednávky nepodporují tuto změnu stavu.",
     businessStatusUpdated: "Ruční stav upraven pro {{count}} objednávek",
     businessStatusUpdatedWithSkipped:
       "Ruční stav upraven pro {{count}} objednávek. {{skippedCount}} přeskočeno.",
-    blockedOrderStatus: "Vybrané objednávky nepodporují tuto změnu stavu.",
     fulfillmentCreated: "Vyřízení vytvořeno pro {{count}} objednávek",
     fulfillmentCreatedWithFailed:
       "Vyřízení vytvořeno pro {{count}} objednávek. {{failedCount}} selhalo.",

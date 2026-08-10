@@ -1,13 +1,15 @@
 import type { HttpTypes } from "@medusajs/types"
-import { Button } from "@ui/atoms/button"
+import { Button } from "@techsio/ui-kit/atoms/button"
+
 import type { Cart } from "@/services/cart-service"
 import { formatAmount } from "@/utils/format/format-product"
+
 import { CartItemRow } from "./cart-item-row"
 import { PriceSummaryRow } from "./price-summary-row"
 
-type OrderSummaryProps = {
+interface OrderSummaryProps {
   cart: Cart
-  selectedShipping?: HttpTypes.StoreCartShippingOption
+  selectedShipping?: HttpTypes.StoreCartShippingOption | undefined
   errorMessage?: string
   isReady: boolean
   isCompletingCart: boolean
@@ -15,7 +17,7 @@ type OrderSummaryProps = {
   onComplete: () => void
 }
 
-export function OrderSummary({
+export const OrderSummary = ({
   cart,
   selectedShipping,
   errorMessage,
@@ -23,7 +25,7 @@ export function OrderSummary({
   isCompletingCart,
   onBack,
   onComplete,
-}: OrderSummaryProps) {
+}: OrderSummaryProps) => {
   const itemsSubtotal = formatAmount(cart.original_item_subtotal)
   const delivery = formatAmount(cart.shipping_total)
   const discount = formatAmount(cart.discount_total)
@@ -31,7 +33,7 @@ export function OrderSummary({
   const total = formatAmount(cart.total)
 
   return (
-    <div className="rounded border border-border-secondary bg-surface p-400 lg:sticky lg:top-4">
+    <div className="rounded border border-border-secondary bg-surface p-400 lg:sticky lg:top-400">
       <h2 className="mb-400 font-semibold text-fg-primary text-lg">
         Shrnutí objednávky
       </h2>
@@ -68,7 +70,7 @@ export function OrderSummary({
         <PriceSummaryRow label="Celkem" value={total} variant="bold" />
       </div>
 
-      {errorMessage && (
+      {(errorMessage?.length ?? 0) > 0 && (
         <div className="mb-400 text-danger">
           <p className="text-sm">{errorMessage}</p>
         </div>

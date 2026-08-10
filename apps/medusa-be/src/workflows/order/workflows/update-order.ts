@@ -3,10 +3,9 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { useRemoteQueryStep } from "@medusajs/medusa/core-flows"
-import {
-  type UpdateOrderStepInput,
-  updateOrderStep,
-} from "../steps/update-order"
+
+import { updateOrderStep } from "../steps/update-order"
+import type { UpdateOrderStepInput } from "../steps/update-order"
 
 /*
   A workflow to update the order. We use this in the quote workflows to convert a draft order
@@ -18,13 +17,13 @@ export const updateOrderWorkflow = createWorkflow(
     useRemoteQueryStep({
       entry_point: "order",
       fields: ["id"],
-      variables: { id: input.id },
       list: false,
       throw_if_key_not_found: true,
+      variables: { id: input.id },
     })
 
     updateOrderStep(input)
 
     return new WorkflowResponse(undefined)
-  }
+  },
 )

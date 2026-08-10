@@ -2,14 +2,17 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
-import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
-import { resolveAddressFormsMatch } from "@/components/checkout/checkout-address.utils"
+import { useRouter } from "next/navigation"
+
+import NextLink from "@/components/app-link"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
+import type { AppHref } from "@/lib/routing"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+
 import { CheckoutAddressSection } from "./checkout-address-section"
 import { CheckoutPickupPointDetailsSection } from "./checkout-pickup-point-details-section"
+import { CheckoutSameAddressField } from "./checkout-same-address-field"
 
 type CheckoutDetailsStepController = Pick<
   CheckoutController,
@@ -22,26 +25,24 @@ type CheckoutDetailsStepController = Pick<
   | "updateCartAddressMutation"
 >
 
-type CheckoutDetailsStepSectionProps = {
+interface CheckoutDetailsStepSectionProps {
   backStepHref: string
   controller: CheckoutDetailsStepController
-  nextStepHref: string
+  nextStepHref: AppHref
 }
 
-export function CheckoutDetailsStepSection({
+export const CheckoutDetailsStepSection = ({
   backStepHref,
   controller,
   nextStepHref,
-}: CheckoutDetailsStepSectionProps) {
+}: CheckoutDetailsStepSectionProps) => {
   const router = useRouter()
   const tCheckout = useTranslations("checkout")
   const addressFormId = "checkout-address-form"
   const checkoutDetailsValues = controller.checkoutDetailsForm.values
-  const hasCarrierPickupShipping =
-    controller.checkoutDetailsForm.hasCarrierPickupShipping
-  const carrierPickupAddress =
-    controller.checkoutDetailsForm.carrierPickupAddress
-  const countryItems = controller.countryItems
+  const { hasCarrierPickupShipping } = controller.checkoutDetailsForm
+  const { carrierPickupAddress } = controller.checkoutDetailsForm
+  const { countryItems } = controller
 
   return (
     <section className="space-y-300">
@@ -63,7 +64,7 @@ export function CheckoutDetailsStepSection({
               if (didSaveAddress) {
                 router.push(nextStepHref)
               }
-            })()
+            })(),
           )
         }}
       >
@@ -80,60 +81,41 @@ export function CheckoutDetailsStepSection({
               checkoutDetailsForm={controller.checkoutDetailsForm}
               countryItems={countryItems}
               fieldPrefix="checkout-shipping"
-              isAuthenticated={controller.isAuthenticated}
+              options={{
+                isAuthenticated: controller.isAuthenticated,
+                showCompanyFields:
+                  checkoutDetailsValues.useSameAddress &&
+                  checkoutDetailsValues.isCompanyPurchase,
+                showCompanyPurchaseToggle: checkoutDetailsValues.useSameAddress,
+                showContactFields: true,
+                showCustomerNote: true,
+                showLoginPrompt: true,
+                showRegistrationOptIn: !controller.isAuthenticated,
+                showRequiredNote: true,
+              }}
               scope="shipping"
-              showCompanyFields={
-                checkoutDetailsValues.useSameAddress &&
-                checkoutDetailsValues.isCompanyPurchase
-              }
-              showCompanyPurchaseToggle={checkoutDetailsValues.useSameAddress}
-              showContactFields
-              showCustomerNote
-              showLoginPrompt
-              showRegistrationOptIn={!controller.isAuthenticated}
-              showRequiredNote
             />
 
-            <div className="rounded-sm border border-border-primary bg-surface px-550 py-350">
-              <controller.checkoutDetailsForm.form.AppField name="useSameAddress">
-                {(field) => (
-                  <field.CheckboxField
-                    id="checkout-use-same-address"
-                    label={tCheckout("billing_same_as_shipping")}
-                    onValueChange={(nextUseSameAddress) => {
-                      controller.checkoutDetailsForm.trackUseSameAddressIntent(
-                        nextUseSameAddress
-                      )
-
-                      if (
-                        !(
-                          nextUseSameAddress ||
-                          controller.checkoutDetailsForm.hasStoredBillingAddress
-                        ) &&
-                        resolveAddressFormsMatch(
-                          controller.checkoutDetailsForm.values.billing,
-                          controller.checkoutDetailsForm.hydratedValues.billing
-                        )
-                      ) {
-                        controller.checkoutDetailsForm.copyShippingIntoBilling()
-                      }
-                    }}
-                    size="sm"
-                    validationMode="none"
-                  />
-                )}
-              </controller.checkoutDetailsForm.form.AppField>
-            </div>
+            <CheckoutSameAddressField
+              checkoutDetailsForm={controller.checkoutDetailsForm}
+            />
 
             {checkoutDetailsValues.useSameAddress ? null : (
               <CheckoutAddressSection
                 checkoutDetailsForm={controller.checkoutDetailsForm}
                 countryItems={countryItems}
                 fieldPrefix="checkout-billing"
+                options={{
+                  isAuthenticated: controller.isAuthenticated,
+                  showCompanyFields: checkoutDetailsValues.isCompanyPurchase,
+                  showCompanyPurchaseToggle: true,
+                  showContactFields: false,
+                  showCustomerNote: false,
+                  showLoginPrompt: false,
+                  showRegistrationOptIn: false,
+                  showRequiredNote: false,
+                }}
                 scope="billing"
-                showCompanyFields={checkoutDetailsValues.isCompanyPurchase}
-                showCompanyPurchaseToggle
-                showContactFields={false}
                 title={tCheckout("billing_details")}
               />
             )}
@@ -157,7 +139,11 @@ export function CheckoutDetailsStepSection({
         </LinkButton>
         <Button
           className="w-full sm:w-auto sm:min-w-950"
-          disabled={controller.isBusy || !controller.cartQuery.cart?.id}
+          disabled={
+            controller.isBusy ||
+            controller.cartQuery.cart?.id === undefined ||
+            controller.cartQuery.cart.id.length === 0
+          }
           form={addressFormId}
           icon="token-icon-chevron-right"
           iconPosition="right"

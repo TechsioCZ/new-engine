@@ -1,8 +1,9 @@
 import type { StaticImageData } from "next/image"
+
 import flameIcon from "@/assets/icons/flame-icon.avif"
 import giftIcon from "@/assets/icons/gift-icon.avif"
 
-type HeaderNavItem = {
+interface HeaderNavItem {
   href: string
   label: string
 }
@@ -24,12 +25,12 @@ export const PRIMARY_NAV_ITEMS: HeaderNavItem[] = [
 export const HEADER_ACTION_ITEMS: HeaderActionItem[] = [
   {
     href: "/c/darceky",
-    src: giftIcon,
     label: "Darčeky",
+    src: giftIcon,
   },
   {
     href: "/c/vypredaj-zlavy-a-akcie",
-    src: flameIcon,
     label: "Akcie",
+    src: flameIcon,
   },
 ]

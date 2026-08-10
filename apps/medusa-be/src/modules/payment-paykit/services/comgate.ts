@@ -3,11 +3,11 @@ import type {
   InitiatePaymentInput,
 } from "@medusajs/framework/types"
 import { MedusaError, ModuleProvider, Modules } from "@medusajs/framework/utils"
+import { payeeSchema } from "@paykit-sdk/core"
+
 import { PAYKIT_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
-import {
-  type PaykitInjectedDependencies,
-  PaykitPaymentProviderBase,
-} from "../core/base"
+import { PaykitPaymentProviderBase } from "../core/base"
+import type { PaykitInjectedDependencies } from "../core/base"
 import { createPaykitClient, getComgateProviderOptions } from "../runtime"
 import { resolveComgateRuntimeOptions } from "../runtime-config"
 import type {
@@ -30,14 +30,14 @@ const getStringValue = (...values: unknown[]): string | undefined => {
     }
   }
 
-  return
+  return undefined
 }
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u
 
 const getEmailValue = (value: unknown): string | undefined => {
   if (typeof value !== "string") {
-    return
+    return undefined
   }
 
   const email = value.trim()
@@ -45,20 +45,44 @@ const getEmailValue = (value: unknown): string | undefined => {
   return EMAIL_PATTERN.test(email) ? email : undefined
 }
 
-export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<PaykitComgateOptions> {
-  static override identifier = PAYKIT_PAYMENT_PROVIDER_IDENTIFIER
+const getComgateCustomerEmail = (
+  input: InitiatePaymentInput,
+  data: NonNullable<InitiatePaymentInput["data"]>,
+): string | undefined => {
+  const dataCustomer = data["customer"]
 
-  // Medusa's provider loader instantiates provider classes directly.
-  // biome-ignore lint/complexity/noUselessConstructor: the base constructor is protected; this keeps the provider constructor public.
+  const directCustomerEmail =
+    typeof dataCustomer === "string" ? getEmailValue(dataCustomer) : undefined
+  const customerResult = payeeSchema.safeParse(dataCustomer)
+  const nestedCustomerEmail =
+    customerResult.success && "email" in customerResult.data
+      ? getEmailValue(customerResult.data.email)
+      : undefined
+  const dataEmail = getEmailValue(data["email"])
+  const contextEmail = getEmailValue(input.context?.customer?.email)
+
+  return directCustomerEmail ?? nestedCustomerEmail ?? dataEmail ?? contextEmail
+}
+
+export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<PaykitComgateOptions> {
+  static override readonly identifier = PAYKIT_PAYMENT_PROVIDER_IDENTIFIER
+
+  readonly #comgateOptions: PaykitComgateOptions
+
   constructor(
     container: PaykitInjectedDependencies,
-    options: PaykitComgateOptions
+    options: PaykitComgateOptions,
   ) {
     super(container, options)
+    this.#comgateOptions = options
   }
 
   static override validateOptions(options: PaykitComgateOptions = {}): void {
-    if (options.client || options.clientFactory || options.apiStoreName) {
+    if (
+      options.client !== undefined ||
+      options.clientFactory !== undefined ||
+      (options.apiStoreName !== undefined && options.apiStoreName !== "")
+    ) {
       return
     }
 
@@ -67,20 +91,20 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
 
   protected async createDefaultClient(): Promise<PaykitPaymentClient> {
     const options = await resolveComgateRuntimeOptions(
-      this.container_,
-      this.options_
+      this.providerContainer,
+      this.#comgateOptions,
     )
 
     return await createPaykitClient(
       "@paykit-sdk/comgate",
       "createComgate",
-      getComgateProviderOptions(options)
+      getComgateProviderOptions(options),
     )
   }
 
   protected override normalizeAmount(
     amount: InitiatePaymentInput["amount"],
-    currencyCode?: string
+    currencyCode?: string,
   ): number {
     const normalized = super.normalizeAmount(amount, currencyCode)
 
@@ -89,14 +113,14 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
 
   protected override normalizePaymentDataAmount(
     amount: InitiatePaymentInput["amount"],
-    currencyCode?: string
+    currencyCode?: string,
   ): number {
     return super.normalizeAmount(amount, currencyCode)
   }
 
   protected override normalizeWebhookAmount(
     amount: BigNumberValue | undefined,
-    payment: PaykitPayment
+    payment: PaykitPayment,
   ): BigNumberValue | undefined {
     if (amount === undefined) {
       return amount
@@ -110,51 +134,33 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
 
   protected override getPaykitCustomer(
     input: InitiatePaymentInput,
-    data: Record<string, unknown>
+    data: NonNullable<InitiatePaymentInput["data"]>,
   ): { id: string } {
-    const email = this.getComgateCustomerEmail(input, data)
+    const email = this.#getComgateCustomerEmail(input, data)
 
-    if (!email) {
+    if (email === undefined || email === "") {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "PayKit Comgate requires a customer email"
+        "PayKit Comgate requires a customer email",
       )
     }
 
     return { id: email }
   }
 
-  private getComgateCustomerEmail(
-    input: InitiatePaymentInput,
-    data: Record<string, unknown>
-  ): string | undefined {
-    const dataCustomer = data.customer
-
-    return (
-      (typeof dataCustomer === "string"
-        ? getEmailValue(dataCustomer)
-        : undefined) ??
-      (dataCustomer &&
-      typeof dataCustomer === "object" &&
-      "email" in dataCustomer
-        ? getEmailValue(dataCustomer.email)
-        : undefined) ??
-      getEmailValue(data.email) ??
-      getEmailValue(input.context?.customer?.email)
-    )
-  }
+  readonly #getComgateCustomerEmail = getComgateCustomerEmail
 
   protected override getCreateProviderMetadata(
     input: InitiatePaymentInput,
-    data: Record<string, unknown>
-  ): Record<string, unknown> {
+    data: NonNullable<InitiatePaymentInput["data"]>,
+  ) {
     const providerMetadata = super.getProviderMetadata(data)
-    const email = this.getComgateCustomerEmail(input, data)
+    const email = this.#getComgateCustomerEmail(input, data)
     const paymentLabel = getStringValue(
-      providerMetadata.paymentLabel,
-      providerMetadata.label,
-      data.session_id,
-      data.cart_id
+      providerMetadata["paymentLabel"],
+      providerMetadata["label"],
+      data["session_id"],
+      data["cart_id"],
     )
 
     return {
@@ -162,9 +168,10 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
       email,
       // PayKit Comgate validates paymentLabel as required, so mirror its
       // provider default when no app-level label is configured.
-      paymentLabel: paymentLabel
-        ? `Order ${paymentLabel}`
-        : DEFAULT_PAYMENT_LABEL,
+      paymentLabel:
+        paymentLabel === undefined
+          ? DEFAULT_PAYMENT_LABEL
+          : `Order ${paymentLabel}`,
     }
   }
 }

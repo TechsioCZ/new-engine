@@ -1,13 +1,14 @@
 import type { Link } from "@medusajs/framework/modules-sdk"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { COMPANY_MODULE } from "../../../modules/company"
 
 export const linkEmployeeToCustomerStep = createStep(
   "link-employee-to-customer",
   async (
     input: { employeeId: string; customerId: string },
-    { container }
+    { container },
   ): Promise<
     StepResponse<undefined, { employeeId: string; customerId: string }>
   > => {
@@ -28,7 +29,7 @@ export const linkEmployeeToCustomerStep = createStep(
   },
   async (
     input: { employeeId: string; customerId: string } | undefined,
-    { container }
+    { container },
   ): Promise<
     StepResponse<
       undefined,
@@ -53,5 +54,5 @@ export const linkEmployeeToCustomerStep = createStep(
     await linkService.dismiss(link)
 
     return new StepResponse(undefined, input)
-  }
+  },
 )

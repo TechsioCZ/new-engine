@@ -1,18 +1,19 @@
 import type { ProductAttribute } from "@techsio/storefront-data/product-attributes/types"
 import { describe, expect, it } from "vitest"
+
 import {
   mergeWarrantyIntoProductContentSections,
   resolveProductWarranty,
 } from "./product-attributes"
 
 const warrantyAttribute = {
-  id: "pattr_1",
   definition: {
     id: "pattrdef_1",
+    input_type: "select",
     key: "warranty",
     label: "Záruka",
-    input_type: "select",
   },
+  id: "pattr_1",
   option: {
     id: "pattropt_1",
     key: "24-mesiacov",
@@ -33,7 +34,7 @@ describe("Product Attribute Warranty", () => {
             input_type: "text",
           },
         },
-      ])
+      ]),
     ).toBeNull()
     expect(
       resolveProductWarranty([
@@ -41,7 +42,7 @@ describe("Product Attribute Warranty", () => {
           ...warrantyAttribute,
           option: null,
         },
-      ])
+      ]),
     ).toBeNull()
     expect(resolveProductWarranty([])).toBeNull()
   })
@@ -51,19 +52,19 @@ describe("Product Attribute Warranty", () => {
       mergeWarrantyIntoProductContentSections(
         [
           {
+            html: "<p>Existing content</p>",
             key: "other",
             title: "Ostatné informácie",
-            html: "<p>Existing content</p>",
           },
         ],
         "24 mesiacov",
-        "Ostatné informácie"
-      )
-    ).toEqual([
+        "Ostatné informácie",
+      ),
+    ).toStrictEqual([
       {
+        html: "<p>Existing content</p>\n<p><strong>Záruka:</strong> 24 mesiacov</p>",
         key: "other",
         title: "Ostatné informácie",
-        html: "<p>Existing content</p>\n<p><strong>Záruka:</strong> 24 mesiacov</p>",
       },
     ])
   })
@@ -73,13 +74,13 @@ describe("Product Attribute Warranty", () => {
       mergeWarrantyIntoProductContentSections(
         [],
         `12 < 24 & "valid"`,
-        "Ostatné informácie"
-      )
-    ).toEqual([
+        "Ostatné informácie",
+      ),
+    ).toStrictEqual([
       {
+        html: "<p><strong>Záruka:</strong> 12 &lt; 24 &amp; &quot;valid&quot;</p>",
         key: "other",
         title: "Ostatné informácie",
-        html: "<p><strong>Záruka:</strong> 12 &lt; 24 &amp; &quot;valid&quot;</p>",
       },
     ])
   })
@@ -87,9 +88,9 @@ describe("Product Attribute Warranty", () => {
   it("does not change content when Warranty is unavailable", () => {
     const sections = [
       {
+        html: "<p>Product</p>",
         key: "description",
         title: "Popis",
-        html: "<p>Product</p>",
       },
     ]
 
@@ -97,8 +98,8 @@ describe("Product Attribute Warranty", () => {
       mergeWarrantyIntoProductContentSections(
         sections,
         null,
-        "Ostatné informácie"
-      )
+        "Ostatné informácie",
+      ),
     ).toBe(sections)
   })
 })

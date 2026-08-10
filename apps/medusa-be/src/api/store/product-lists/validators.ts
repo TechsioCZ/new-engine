@@ -1,24 +1,26 @@
 import { z } from "@medusajs/framework/zod"
 
+import { productListMetadataSchema } from "../../../modules/product-list/schemas"
+
 const optionalTrimmedString = z.preprocess(
   (value) =>
     typeof value === "string" && value.trim().length === 0 ? undefined : value,
-  z.string().trim().min(1).optional()
+  z.string().trim().min(1).optional(),
 )
 
 const nullableTrimmedString = z.preprocess(
   (value) =>
     typeof value === "string" && value.trim().length === 0 ? null : value,
-  z.string().trim().min(1).nullable().optional()
+  z.string().trim().min(1).nullable().optional(),
 )
 
 const optionalEmailString = z.preprocess(
   (value) =>
     typeof value === "string" && value.trim().length === 0 ? undefined : value,
-  z.string().trim().email().optional()
+  z.string().trim().pipe(z.email()).optional(),
 )
 
-const metadataSchema = z.record(z.string(), z.unknown()).nullable().optional()
+const metadataSchema = productListMetadataSchema.nullable().optional()
 
 export const StoreGetProductListsSchema = z
   .object({
@@ -108,10 +110,15 @@ export const StoreCreateProductListCartSchema = z
     sales_channel_id: optionalTrimmedString,
   })
   .strict()
-  .refine((data) => data.region_id || data.country_code, {
-    error: () => "region_id or country_code is required",
-    path: ["region_id"],
-  })
+  .refine(
+    (data) =>
+      (data.region_id !== undefined && data.region_id.length > 0) ||
+      (data.country_code !== undefined && data.country_code.length > 0),
+    {
+      error: () => "region_id or country_code is required",
+      path: ["region_id"],
+    },
+  )
 
 export const StoreDeleteProductListItemParamsSchema = z
   .object({

@@ -1,27 +1,28 @@
 import type { OrderStatus } from "@/types/order"
 
 const orderStatusMap: Record<OrderStatus, string> = {
-  pending: "Čeká na zpracování",
-  completed: "Dokončeno",
   archived: "Archivováno",
   canceled: "Zrušeno",
+  completed: "Dokončeno",
+  pending: "Čeká na zpracování",
   requires_action: "Vyžaduje akci",
 }
 
-export function getOrderStatusLabel(status: string): string {
-  return orderStatusMap[status as OrderStatus] || status
-}
+const isOrderStatus = (status: string): status is OrderStatus =>
+  Object.hasOwn(orderStatusMap, status)
 
+export const getOrderStatusLabel = (status: string): string =>
+  isOrderStatus(status) ? orderStatusMap[status] : status
 
-export function truncateProductTitle(title: string, maxWords = 3): string {
+export const truncateProductTitle = (title: string, maxWords = 3): string => {
   const words = title.split(" ")
   if (words.length <= maxWords) {
     return title
   }
-  return `${words.slice(0, maxWords).join(" ")}`
+  return words.slice(0, maxWords).join(" ")
 }
 
-export function formatOrderDate(dateString: string): string {
+export const formatOrderDate = (dateString: string): string => {
   try {
     const date = new Date(dateString)
     return date.toLocaleDateString("cs-CZ", {

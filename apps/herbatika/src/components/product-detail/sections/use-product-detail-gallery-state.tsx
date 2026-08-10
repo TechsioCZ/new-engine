@@ -2,21 +2,23 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery"
-import { type MouseEvent, type PointerEvent, useRef, useState } from "react"
+import { useRef, useState } from "react"
+import type { MouseEvent, PointerEvent } from "react"
+
 import { FallbackImage } from "@/components/fallback-image"
 import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 
-type UseProductDetailGalleryStateProps = {
+interface UseProductDetailGalleryStateProps {
   galleryItems: GalleryItem[]
   getFallbackImageAlt: (index: number) => string
   getOpenImageAriaLabel: (index: number) => string
 }
 
-export function useProductDetailGalleryState({
+export const useProductDetailGalleryState = ({
   galleryItems,
   getFallbackImageAlt,
   getOpenImageAriaLabel,
-}: UseProductDetailGalleryStateProps) {
+}: UseProductDetailGalleryStateProps) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const pendingOpenImageIndexRef = useRef<number | null>(null)
@@ -32,7 +34,7 @@ export function useProductDetailGalleryState({
 
   const handleMainImagePointerDown = (
     event: PointerEvent<HTMLButtonElement>,
-    index: number
+    index: number,
   ) => {
     if (event.button !== 0) {
       cancelPendingOpen()
@@ -53,7 +55,7 @@ export function useProductDetailGalleryState({
 
   const handleMainImageClick = (
     event: MouseEvent<HTMLButtonElement>,
-    index: number
+    index: number,
   ) => {
     if (event.detail === 0) {
       handleOpenLightbox(index)
@@ -61,13 +63,15 @@ export function useProductDetailGalleryState({
   }
   const safeSelectedImageIndex = Math.min(
     selectedImageIndex,
-    Math.max(galleryItems.length - 1, 0)
+    Math.max(galleryItems.length - 1, 0),
   )
 
   const galleryItemsWithFallback: GalleryItem[] = galleryItems.map(
     (item, index) => {
-      const imageSrc = item.src || FALLBACK_IMAGE_SRC
-      const imageAlt = item.alt || getFallbackImageAlt(index)
+      const { thumbnailImageProps, ...itemWithoutThumbnailImageProps } = item
+      void thumbnailImageProps
+      const imageSrc = item.src ?? FALLBACK_IMAGE_SRC
+      const imageAlt = item.alt ?? getFallbackImageAlt(index)
       const imageContent = item.content ?? (
         <FallbackImage
           alt={imageAlt}
@@ -82,16 +86,19 @@ export function useProductDetailGalleryState({
       )
 
       return {
-        ...item,
+        ...itemWithoutThumbnailImageProps,
         alt: imageAlt,
-        src: imageSrc,
         content: (
           <Button
             aria-label={getOpenImageAriaLabel(index)}
             className="flex h-full w-full cursor-zoom-in items-center justify-center p-0 active:cursor-grabbing"
-            onClick={(event) => handleMainImageClick(event, index)}
+            onClick={(event) => {
+              handleMainImageClick(event, index)
+            }}
             onPointerCancel={cancelPendingOpen}
-            onPointerDown={(event) => handleMainImagePointerDown(event, index)}
+            onPointerDown={(event) => {
+              handleMainImagePointerDown(event, index)
+            }}
             onPointerUp={handleMainImagePointerUp}
             size="current"
             theme="unstyled"
@@ -100,21 +107,30 @@ export function useProductDetailGalleryState({
             {imageContent}
           </Button>
         ),
+        src: imageSrc,
         thumbnailContent: item.thumbnailContent ?? (
           <span className="flex h-full w-full items-center justify-center">
             <FallbackImage
-              alt={item.thumbnailAlt || imageAlt}
+              alt={
+                item.thumbnailAlt === undefined || item.thumbnailAlt === ""
+                  ? imageAlt
+                  : item.thumbnailAlt
+              }
               className="h-full w-full object-contain"
               height={88}
               quality={60}
               sizes="88px"
-              src={item.thumbnailSrc || imageSrc}
+              src={
+                item.thumbnailSrc === undefined || item.thumbnailSrc === ""
+                  ? imageSrc
+                  : item.thumbnailSrc
+              }
               width={88}
             />
           </span>
         ),
       }
-    }
+    },
   )
 
   return {

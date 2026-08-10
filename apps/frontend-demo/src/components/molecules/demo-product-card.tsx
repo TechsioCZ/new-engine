@@ -1,64 +1,21 @@
-import { Badge, type BadgeProps } from "@ui/atoms/badge"
-import { Button } from "@ui/atoms/button"
-import { NumericInputTemplate } from "@ui/templates/numeric-input"
-import { Rating, type RatingProps } from "@ui/atoms/rating"
-import { slugify, tv } from "@ui/utils"
+import { Badge } from "@techsio/ui-kit/atoms/badge"
+import type { BadgeProps } from "@techsio/ui-kit/atoms/badge"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { Rating } from "@techsio/ui-kit/atoms/rating"
+import type { RatingProps } from "@techsio/ui-kit/atoms/rating"
+import { NumericInputTemplate } from "@techsio/ui-kit/templates/numeric-input"
+import { slugify, tv } from "@techsio/ui-kit/utils"
 import Image from "next/image"
-import { type HTMLAttributes, type ReactNode, useId } from "react"
+import { useId } from "react"
+import type { HTMLAttributes, ReactNode } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 //object-cover aspect-product-card-image
 const productCard = tv({
-  slots: {
-    base: [
-      "h-full rounded-pc p-pc-padding",
-      "border-(length:--border-pc-width) max-w-pc-max border-pc-border bg-pc shadow-sm",
-    ],
-    imageSlot: "aspect-pc-image h-full rounded-pc-image object-cover",
-    nameSlot: "truncate text-pc-name-fg text-pc-name-size",
-    priceSlot: "text-pc-price-fg text-pc-price-size",
-    stockStatusSlot: "text-pc-stock-fg text-pc-stock-size",
-    badgesSlot: "flex flex-wrap gap-pc-box",
-    ratingSlot: "flex items-center",
-    buttonsSlot: "flex w-fit flex-wrap",
-    cartButton:
-      "w-max items-center bg-btn-cart text-btn-cart-fg hover:bg-btn-cart-hover",
-    detailButton:
-      "w-max bg-btn-detail text-btn-detail-fg hover:bg-btn-detail-hover",
-    wishlistButton:
-      "w-max bg-btn-wishlist text-btn-wishlist-fg hover:bg-btn-wishlist-hover",
-  },
-  variants: {
-    // variant for layout of the card
-    layout: {
-      column: {
-        base: ["grid grid-cols-1 gap-pc-col-layout"],
-        imageSlot: "order-image w-full",
-        nameSlot: "order-name",
-        priceSlot: "order-price",
-        stockStatusSlot: "order-stock",
-        badgesSlot: "order-badges",
-        ratingSlot: "order-ratings",
-        buttonsSlot: "order-buttons",
-      },
-      row: {
-        base: "grid grid-cols-[auto_1fr] gap-x-pc-row-layout",
-        imageSlot: "row-span-6",
-      },
-    },
-    // variant for layout of the buttons
-    buttonLayout: {
-      horizontal: {
-        buttonsSlot: "justify-center gap-2",
-      },
-      vertical: {
-        buttonsSlot: "flex-col gap-2",
-      },
-    },
-  },
   /* Define compound styles for slots */
   compoundSlots: [
     {
+      class: ["col-start-2"],
       layout: "row",
       slots: [
         "nameSlot",
@@ -68,20 +25,65 @@ const productCard = tv({
         "ratingSlot",
         "buttonsSlot",
       ],
-      class: ["col-start-2"],
     },
   ],
   defaultVariants: {
-    layout: "column",
     buttonLayout: "horizontal",
+    layout: "column",
+  },
+  slots: {
+    badgesSlot: "flex flex-wrap gap-pc-box",
+    base: [
+      "h-full rounded-pc p-pc-padding",
+      "border-(length:--border-pc-width) max-w-pc-max border-pc-border bg-pc shadow-sm",
+    ],
+    buttonsSlot: "flex w-fit flex-wrap",
+    cartButton:
+      "w-max items-center bg-btn-cart text-btn-cart-fg hover:bg-btn-cart-hover",
+    detailButton:
+      "w-max bg-btn-detail text-btn-detail-fg hover:bg-btn-detail-hover",
+    imageSlot: "aspect-pc-image h-full rounded-pc-image object-cover",
+    nameSlot: "truncate text-pc-name-fg text-pc-name-size",
+    priceSlot: "text-pc-price-fg text-pc-price-size",
+    ratingSlot: "flex items-center",
+    stockStatusSlot: "text-pc-stock-fg text-pc-stock-size",
+    wishlistButton:
+      "w-max bg-btn-wishlist text-btn-wishlist-fg hover:bg-btn-wishlist-hover",
+  },
+  variants: {
+    // variant for layout of the buttons
+    buttonLayout: {
+      horizontal: {
+        buttonsSlot: "justify-center gap-2",
+      },
+      vertical: {
+        buttonsSlot: "flex-col gap-2",
+      },
+    },
+    // variant for layout of the card
+    layout: {
+      column: {
+        badgesSlot: "order-badges",
+        base: ["grid grid-cols-1 gap-pc-col-layout"],
+        buttonsSlot: "order-buttons",
+        imageSlot: "order-image w-full",
+        nameSlot: "order-name",
+        priceSlot: "order-price",
+        ratingSlot: "order-ratings",
+        stockStatusSlot: "order-stock",
+      },
+      row: {
+        base: "grid grid-cols-[auto_1fr] gap-x-pc-row-layout",
+        imageSlot: "row-span-6",
+      },
+    },
   },
 })
 
 type ProductCardVariants = VariantProps<typeof productCard>
 
 export interface ProductCardProps
-  extends ProductCardVariants,
-    HTMLAttributes<HTMLDivElement> {
+  extends ProductCardVariants, HTMLAttributes<HTMLDivElement> {
   imageUrl: string
   name: string
   price: string
@@ -102,12 +104,14 @@ export interface ProductCardProps
   customButtons?: ReactNode
 }
 
-export function DemoProductCard({
+const EMPTY_BADGES: BadgeProps[] = []
+
+export const DemoProductCard = ({
   imageUrl,
   name,
   price,
   stockStatus,
-  badges = [],
+  badges = EMPTY_BADGES,
   hasCartButton,
   hasDetailButton,
   hasWishlistButton,
@@ -124,7 +128,12 @@ export function DemoProductCard({
   buttonLayout,
   customButtons,
   ...props
-}: ProductCardProps) {
+}: ProductCardProps) => {
+  const hasActionButtons =
+    hasCartButton === true ||
+    hasDetailButton === true ||
+    hasWishlistButton === true
+  const shouldRenderButtons = hasActionButtons || customButtons !== undefined
   const productCardId = useId()
 
   const {
@@ -139,7 +148,7 @@ export function DemoProductCard({
     cartButton,
     detailButton,
     wishlistButton,
-  } = productCard({ layout, buttonLayout })
+  } = productCard({ buttonLayout, layout })
 
   return (
     <div className={base({ className, layout })} {...props}>
@@ -160,7 +169,7 @@ export function DemoProductCard({
       {/* Elements with grid positioning based on layout */}
       <h3 className={nameSlot({ layout })}>{name}</h3>
 
-      {rating && (
+      {rating !== undefined && (
         <div className={ratingSlot({ layout })}>
           <Rating {...rating} />
         </div>
@@ -181,20 +190,17 @@ export function DemoProductCard({
         </div>
       )}
 
-      {stockStatus && (
+      {stockStatus !== undefined && (
         <p className={stockStatusSlot({ layout })}>{stockStatus}</p>
       )}
 
       <p className={priceSlot({ layout })}>{price}</p>
 
-      {(hasCartButton ||
-        hasDetailButton ||
-        hasWishlistButton ||
-        customButtons) && (
+      {shouldRenderButtons && (
         <div className={buttonsSlot({ buttonLayout })}>
-          {hasCartButton && (
+          {hasCartButton === true && (
             <div className="flex gap-pc-box">
-              {numericInput && <NumericInputTemplate />}
+              {numericInput === true && <NumericInputTemplate />}
               <Button
                 className={cartButton()}
                 icon="token-icon-cart"
@@ -209,7 +215,7 @@ export function DemoProductCard({
               </Button>
             </div>
           )}
-          {hasDetailButton && (
+          {hasDetailButton === true && (
             <Button
               className={detailButton()}
               icon="token-icon-eye"
@@ -219,7 +225,7 @@ export function DemoProductCard({
               {detailButtonText}
             </Button>
           )}
-          {hasWishlistButton && (
+          {hasWishlistButton === true && (
             <Button
               className={wishlistButton()}
               icon="token-icon-heart"

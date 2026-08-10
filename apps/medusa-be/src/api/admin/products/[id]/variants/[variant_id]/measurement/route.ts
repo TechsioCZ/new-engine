@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+
 import { deleteProductVariantMeasurementWorkflow } from "../../../../../../../workflows/measurement-unit/workflows/delete-product-variant-measurement"
 import { setProductVariantMeasurementWorkflow } from "../../../../../../../workflows/measurement-unit/workflows/set-product-variant-measurement"
 import {
@@ -9,9 +10,12 @@ import {
 } from "../../../../../measurement-units/utils"
 import type { AdminSetProductVariantMeasurementSchemaType } from "../../../../../measurement-units/validators"
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
-  const productId = req.params.id ?? ""
-  const productVariantId = req.params.variant_id ?? ""
+const getProductVariantMeasurement = async (
+  req: MedusaRequest,
+  res: MedusaResponse,
+) => {
+  const productId = req.params["id"] ?? ""
+  const productVariantId = req.params["variant_id"] ?? ""
 
   await retrieveProductOrThrow(req.scope, productId)
   await retrieveProductVariantOrThrow(req.scope, productId, productVariantId)
@@ -22,16 +26,16 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     toProductVariantMeasurementDetailResponse({
       measurement,
       productVariantId,
-    })
+    }),
   )
 }
 
-export async function POST(
+const setProductVariantMeasurement = async (
   req: MedusaRequest<AdminSetProductVariantMeasurementSchemaType>,
-  res: MedusaResponse
-) {
-  const productId = req.params.id ?? ""
-  const productVariantId = req.params.variant_id ?? ""
+  res: MedusaResponse,
+) => {
+  const productId = req.params["id"] ?? ""
+  const productVariantId = req.params["variant_id"] ?? ""
 
   await setProductVariantMeasurementWorkflow(req.scope).run({
     input: {
@@ -47,13 +51,16 @@ export async function POST(
     toProductVariantMeasurementDetailResponse({
       measurement,
       productVariantId,
-    })
+    }),
   )
 }
 
-export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
-  const productId = req.params.id ?? ""
-  const productVariantId = req.params.variant_id ?? ""
+const deleteProductVariantMeasurement = async (
+  req: MedusaRequest,
+  res: MedusaResponse,
+) => {
+  const productId = req.params["id"] ?? ""
+  const productVariantId = req.params["variant_id"] ?? ""
 
   await deleteProductVariantMeasurementWorkflow(req.scope).run({
     input: {
@@ -68,3 +75,7 @@ export async function DELETE(req: MedusaRequest, res: MedusaResponse) {
     object: "product_variant_measurement",
   })
 }
+
+export { getProductVariantMeasurement as GET }
+export { setProductVariantMeasurement as POST }
+export { deleteProductVariantMeasurement as DELETE }

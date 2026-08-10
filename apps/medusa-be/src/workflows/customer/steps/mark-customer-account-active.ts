@@ -2,7 +2,7 @@ import type { ICustomerModuleService } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
-type MarkCustomerAccountActiveInput = {
+interface MarkCustomerAccountActiveInput {
   customer_id: string
 }
 
@@ -16,12 +16,12 @@ export const markCustomerAccountActiveStep = createStep(
   "mark-customer-account-active",
   async (
     input: MarkCustomerAccountActiveInput,
-    { container }
+    { container },
   ): Promise<
     StepResponse<MarkCustomerAccountActiveInput, MarkCustomerAccountActiveInput>
   > => {
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
     const update: CustomerAccountUpdateInput = {
       has_account: true,
@@ -37,12 +37,12 @@ export const markCustomerAccountActiveStep = createStep(
     }
 
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
     const update: CustomerAccountUpdateInput = {
       has_account: false,
     }
 
     await customerModuleService.updateCustomers(input.customer_id, update)
-  }
+  },
 )

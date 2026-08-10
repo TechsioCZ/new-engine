@@ -1,9 +1,8 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import {
   getProductAttributeService,
-  type ProductAttributeDefinitionRecord,
-  type ProductAttributeOptionRecord,
   withProductAttributeTransaction,
 } from "../../../utils/product-attributes"
 import type {
@@ -12,8 +11,9 @@ import type {
 } from "../types"
 
 const PURGE_QUERY_BATCH_SIZE = 100
+const MAX_PURGE_RECORDS = 100_000
 
-type PurgeableRecord = {
+interface PurgeableRecord {
   deleted_at?: Date | null
   id: string
 }
@@ -32,7 +32,7 @@ const assertRecordsExistAndAreDeleted = ({
   if (missing.length) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
-      `Product Attribute ${kind} ids were not found: ${missing.join(", ")}`
+      `Product Attribute ${kind} ids were not found: ${missing.join(", ")}`,
     )
   }
 
@@ -40,73 +40,99 @@ const assertRecordsExistAndAreDeleted = ({
   if (active.length) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Product Attribute ${kind} ids must be soft-deleted before permanent removal: ${active.join(", ")}`
+      `Product Attribute ${kind} ids must be soft-deleted before permanent removal: ${active.join(", ")}`,
     )
   }
 }
 
 const listAllRecordIds = async (
-  listPage: (skip: number, take: number) => Promise<Array<{ id: string }>>
+  listPage: (skip: number, take: number) => Promise<{ id: string }[]>,
 ) => {
   const ids: string[] = []
-  while (true) {
+  const appendNextPage = async (): Promise<void> => {
     const page = await listPage(ids.length, PURGE_QUERY_BATCH_SIZE)
+    if (ids.length + page.length > MAX_PURGE_RECORDS) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Product Attribute purge exceeded the ${MAX_PURGE_RECORDS} record safety limit`,
+      )
+    }
+
     ids.push(...page.map((record) => record.id))
-    if (page.length < PURGE_QUERY_BATCH_SIZE) {
-      return ids
+    if (page.length === PURGE_QUERY_BATCH_SIZE) {
+      await appendNextPage()
     }
   }
+
+  await appendNextPage()
+  return ids
 }
 
 export const permanentlyDeleteProductAttributeDefinitions = async (
   input: ProductAttributeDefinitionIdsInput,
-  container: Parameters<typeof getProductAttributeService>[0]
+  container: Parameters<typeof getProductAttributeService>[0],
 ) => {
   const service = getProductAttributeService(container)
 
   return await withProductAttributeTransaction(service, async (context) => {
-    const definitions = (await service.listProductAttributeDefinitions(
+    const definitions = await service.listProductAttributeDefinitions(
       { id: { $in: input.ids } },
       { take: Math.max(input.ids.length, 1), withDeleted: true },
-      context
-    )) as ProductAttributeDefinitionRecord[]
+      context,
+    )
     assertRecordsExistAndAreDeleted({
       ids: input.ids,
       kind: "definition",
       records: definitions,
     })
 
-    const assignmentIds = await listAllRecordIds((skip, take) =>
-      service.listProductAttributes(
-        { definition_id: { $in: input.ids } },
-        {
-          order: { id: "ASC" },
-          select: ["id"],
-          skip,
-          take,
-          withDeleted: true,
-        },
-        context
-      )
-    )
-    const optionIds = await listAllRecordIds((skip, take) =>
-      service.listProductAttributeOptions(
-        { definition_id: { $in: input.ids } },
-        {
-          order: { id: "ASC" },
-          select: ["id"],
-          skip,
-          take,
-          withDeleted: true,
-        },
-        context
-      )
-    )
+    let assignmentIds: string[] = []
+    let optionIds: string[] = []
+    const loadDependencyIdsAt = async (index: number): Promise<void> => {
+      if (index === 0) {
+        assignmentIds = await listAllRecordIds(
+          async (skip, take) =>
+            await service.listProductAttributes(
+              { definition_id: { $in: input.ids } },
+              {
+                order: { id: "ASC" },
+                select: ["id"],
+                skip,
+                take,
+                withDeleted: true,
+              },
+              context,
+            ),
+        )
+      } else if (index === 1) {
+        optionIds = await listAllRecordIds(
+          async (skip, take) =>
+            await service.listProductAttributeOptions(
+              { definition_id: { $in: input.ids } },
+              {
+                order: { id: "ASC" },
+                select: ["id"],
+                skip,
+                take,
+                withDeleted: true,
+              },
+              context,
+            ),
+        )
+      } else {
+        return
+      }
 
-    if (assignmentIds.length) {
+      await loadDependencyIdsAt(index + 1)
+    }
+
+    // Serialize both reads because they share the same transaction context.
+    await loadDependencyIdsAt(0)
+
+    if (assignmentIds.length > 0) {
       await service.deleteProductAttributes(assignmentIds, context)
     }
-    if (optionIds.length) {
+    if (optionIds.length > 0) {
       await service.deleteProductAttributeOptions(optionIds, context)
     }
     await service.deleteProductAttributeDefinitions(input.ids, context)
@@ -121,37 +147,38 @@ export const permanentlyDeleteProductAttributeDefinitions = async (
 
 export const permanentlyDeleteProductAttributeOptions = async (
   input: ProductAttributeOptionIdsInput,
-  container: Parameters<typeof getProductAttributeService>[0]
+  container: Parameters<typeof getProductAttributeService>[0],
 ) => {
   const service = getProductAttributeService(container)
 
   return await withProductAttributeTransaction(service, async (context) => {
-    const options = (await service.listProductAttributeOptions(
+    const options = await service.listProductAttributeOptions(
       { id: { $in: input.ids } },
       { take: Math.max(input.ids.length, 1), withDeleted: true },
-      context
-    )) as ProductAttributeOptionRecord[]
+      context,
+    )
     assertRecordsExistAndAreDeleted({
       ids: input.ids,
       kind: "option",
       records: options,
     })
 
-    const assignmentIds = await listAllRecordIds((skip, take) =>
-      service.listProductAttributes(
-        { option_id: { $in: input.ids } },
-        {
-          order: { id: "ASC" },
-          select: ["id"],
-          skip,
-          take,
-          withDeleted: true,
-        },
-        context
-      )
+    const assignmentIds = await listAllRecordIds(
+      async (skip, take) =>
+        await service.listProductAttributes(
+          { option_id: { $in: input.ids } },
+          {
+            order: { id: "ASC" },
+            select: ["id"],
+            skip,
+            take,
+            withDeleted: true,
+          },
+          context,
+        ),
     )
 
-    if (assignmentIds.length) {
+    if (assignmentIds.length > 0) {
       await service.deleteProductAttributes(assignmentIds, context)
     }
     await service.deleteProductAttributeOptions(input.ids, context)
@@ -167,14 +194,14 @@ export const permanentlyDeleteProductAttributeDefinitionsStep = createStep(
   "permanently-delete-product-attribute-definitions",
   async (input: ProductAttributeDefinitionIdsInput, { container }) =>
     new StepResponse(
-      await permanentlyDeleteProductAttributeDefinitions(input, container)
-    )
+      await permanentlyDeleteProductAttributeDefinitions(input, container),
+    ),
 )
 
 export const permanentlyDeleteProductAttributeOptionsStep = createStep(
   "permanently-delete-product-attribute-options",
   async (input: ProductAttributeOptionIdsInput, { container }) =>
     new StepResponse(
-      await permanentlyDeleteProductAttributeOptions(input, container)
-    )
+      await permanentlyDeleteProductAttributeOptions(input, container),
+    ),
 )

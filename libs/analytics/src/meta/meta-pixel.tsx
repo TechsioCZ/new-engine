@@ -1,10 +1,12 @@
 "use client"
 
+import Image from "next/image"
 import Script from "next/script"
+
 import type { MetaPixelConfig } from "./types"
 
 /** Valid Meta Pixel ID format (numeric string) */
-const VALID_PIXEL_ID_PATTERN = /^\d+$/
+const VALID_PIXEL_ID_PATTERN = /^\d+$/u
 
 /**
  * Meta Pixel base component
@@ -29,8 +31,12 @@ const VALID_PIXEL_ID_PATTERN = /^\d+$/
  * }
  * ```
  */
-export function MetaPixel({ pixelId, debug = false, nonce }: MetaPixelConfig) {
-  if (!pixelId) {
+export const MetaPixel = ({
+  pixelId,
+  debug = false,
+  nonce,
+}: MetaPixelConfig) => {
+  if (typeof pixelId !== "string" || pixelId.length === 0) {
     if (debug) {
       console.warn("[MetaPixel] No pixel ID provided, skipping initialization")
     }
@@ -51,33 +57,29 @@ export function MetaPixel({ pixelId, debug = false, nonce }: MetaPixelConfig) {
 
   return (
     <>
-      <Script
-        id="meta-pixel-base"
-        strategy="afterInteractive"
-        nonce={nonce}
-        dangerouslySetInnerHTML={{
-          __html: `
-            !function(f,b,e,v,n,t,s)
-            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-            n.queue=[];t=b.createElement(e);t.async=!0;
-            t.src=v;s=b.getElementsByTagName(e)[0];
-            s.parentNode.insertBefore(t,s)}(window, document,'script',
-            'https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', ${JSON.stringify(pixelId)});
-            fbq('track', 'PageView');
-          `,
-        }}
-      />
+      <Script id="meta-pixel-base" strategy="afterInteractive" nonce={nonce}>
+        {`
+          !function(f,b,e,v,n,t,s)
+          {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+          n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+          if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+          n.queue=[];t=b.createElement(e);t.async=!0;
+          t.src=v;s=b.getElementsByTagName(e)[0];
+          s.parentNode.insertBefore(t,s)}(window, document,'script',
+          'https://connect.facebook.net/en_US/fbevents.js');
+          fbq('init', ${JSON.stringify(pixelId)});
+          fbq('track', 'PageView');
+        `}
+      </Script>
       {/* noscript fallback for users with JS disabled */}
       <noscript>
-        <img
-          height="1"
-          width="1"
-          style={{ display: "none" }}
-          src={`https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1`}
+        <Image
           alt=""
+          height={1}
+          src={`https://www.facebook.com/tr?id=${pixelId}&ev=PageView&noscript=1`}
+          style={{ display: "none" }}
+          unoptimized
+          width={1}
         />
       </noscript>
     </>

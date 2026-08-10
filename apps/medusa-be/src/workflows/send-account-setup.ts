@@ -16,13 +16,11 @@ import {
   StepResponse,
   transform,
   WorkflowResponse,
-  when,
 } from "@medusajs/framework/workflows-sdk"
+
 import {
   ACCOUNT_SETUP_ORDER_FIELDS,
   ACCOUNT_SETUP_TOKEN_EXPIRES_IN,
-  type AccountSetupResult,
-  assertAccountSetupOrder,
   buildAccountSetupUrl,
   EMAIL_PASS_PROVIDER,
   ensureEmailPassAuthIdentity,
@@ -31,9 +29,10 @@ import {
   getCustomerForAccountSetup,
   isAccountSetupRequested,
 } from "../utils/account-setup"
+import type { AccountSetupResult } from "../utils/account-setup"
 import { sendNotificationStep } from "./steps/send-notification"
 
-type WorkflowInput = {
+interface WorkflowInput {
   order_id: string
 }
 
@@ -45,14 +44,17 @@ type AccountSetupCustomerUpdate = Parameters<
 
 const prepareAccountSetupStep = createStep(
   "prepare-account-setup",
-  async (input: WorkflowInput, { container }) => {
+  async (
+    input: WorkflowInput,
+    { container },
+  ): Promise<StepResponse<AccountSetupResult>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
     const authModuleService = container.resolve<IAuthModuleService>(
-      Modules.AUTH
+      Modules.AUTH,
     )
 
     const {
@@ -63,14 +65,14 @@ const prepareAccountSetupStep = createStep(
       filters: {
         id: input.order_id,
       },
+      pagination: { take: 1 },
     })
 
-    if (!order) {
+    if (order === undefined) {
       throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")
     }
 
-    const graphOrder: unknown = order
-    assertAccountSetupOrder(graphOrder, "query.graph(order)")
+    const graphOrder = order
 
     if (!isAccountSetupRequested(graphOrder.metadata)) {
       return new StepResponse<AccountSetupResult>({
@@ -80,11 +82,16 @@ const prepareAccountSetupStep = createStep(
       })
     }
 
-    const email = graphOrder.email?.trim() || graphOrder.customer?.email?.trim()
+    const orderEmail = graphOrder.email?.trim()
+    const customerEmail = graphOrder.customer?.email?.trim()
+    const email =
+      orderEmail !== undefined && orderEmail.length > 0
+        ? orderEmail
+        : customerEmail
 
-    if (!email) {
+    if (email === undefined || email.length === 0) {
       logger.warn(
-        `Order ${graphOrder.id} has no email; account setup email skipped.`
+        `Order ${graphOrder.id} has no email; account setup email skipped.`,
       )
       return new StepResponse<AccountSetupResult>({
         order_id: graphOrder.id,
@@ -99,7 +106,7 @@ const prepareAccountSetupStep = createStep(
       order: graphOrder,
     })
 
-    if (customer.has_account) {
+    if (customer.has_account === true) {
       return new StepResponse<AccountSetupResult>({
         customer_id: customer.id,
         email,
@@ -109,12 +116,12 @@ const prepareAccountSetupStep = createStep(
       })
     }
 
-    const jwtSecret = process.env.JWT_SECRET
+    const jwtSecret = process.env["JWT_SECRET"]
 
-    if (!jwtSecret) {
+    if (jwtSecret === undefined || jwtSecret.length === 0) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "JWT_SECRET env var is not set — cannot generate account setup token"
+        "JWT_SECRET env var is not set — cannot generate account setup token",
       )
     }
 
@@ -127,7 +134,7 @@ const prepareAccountSetupStep = createStep(
       {
         expiresIn: ACCOUNT_SETUP_TOKEN_EXPIRES_IN,
         secret: jwtSecret,
-      }
+      },
     )
     const resetUrl = buildAccountSetupUrl(email, token)
 
@@ -138,10 +145,10 @@ const prepareAccountSetupStep = createStep(
     })
 
     await authModuleService.updateAuthIdentities({
-      id: authIdentityId,
       app_metadata: {
         customer_id: customer.id,
       },
+      id: authIdentityId,
     })
 
     return new StepResponse<AccountSetupResult>({
@@ -153,18 +160,25 @@ const prepareAccountSetupStep = createStep(
       reset_url: resetUrl,
       sent: true,
     })
-  }
+  },
 )
 
 const markCustomerHasAccountStep = createStep(
   "mark-customer-has-account",
-  async (input: { customer_id?: string; sent: boolean }, { container }) => {
-    if (!(input.sent && input.customer_id)) {
+  async (
+    input: { customer_id?: string | undefined; sent: boolean },
+    { container },
+  ) => {
+    if (
+      !input.sent ||
+      input.customer_id === undefined ||
+      input.customer_id.length === 0
+    ) {
       return new StepResponse({ skipped: true })
     }
 
     const customerModuleService = container.resolve<ICustomerModuleService>(
-      Modules.CUSTOMER
+      Modules.CUSTOMER,
     )
     const customerUpdate: AccountSetupCustomerUpdate = {
       has_account: true,
@@ -172,11 +186,11 @@ const markCustomerHasAccountStep = createStep(
 
     await customerModuleService.updateCustomers(
       input.customer_id,
-      customerUpdate
+      customerUpdate,
     )
 
     return new StepResponse({ skipped: false })
-  }
+  },
 )
 
 export const sendAccountSetupWorkflow = createWorkflow(
@@ -184,49 +198,42 @@ export const sendAccountSetupWorkflow = createWorkflow(
   (input: WorkflowInput) => {
     const accountSetup = prepareAccountSetupStep(input)
     const notificationInput = transform({ accountSetup }, (data) => {
-      if (
-        !(
-          data.accountSetup.sent &&
-          data.accountSetup.email &&
-          data.accountSetup.reset_url
-        )
-      ) {
+      const { email, reset_url: resetUrl, sent } = data.accountSetup
+      const hasEmail = email !== undefined && email.length > 0
+      const hasResetUrl = resetUrl !== undefined && resetUrl.length > 0
+
+      if (!sent || !hasEmail || !hasResetUrl) {
         return []
       }
 
       return [
         {
-          to: data.accountSetup.email,
           channel: "email",
-          template: "account-setup",
           data: {
             customer_id: data.accountSetup.customer_id,
             customer_name: data.accountSetup.customer_name,
             order_display_id: data.accountSetup.order_display_id,
-            reset_url: data.accountSetup.reset_url,
+            reset_url: resetUrl,
           },
           resource_id: data.accountSetup.order_id,
           resource_type: "order",
+          template: "account-setup",
+          to: email,
           trigger_type: "order.account_setup_requested",
         },
       ]
     })
-    when(
-      accountSetup,
-      (result) => result.sent && Boolean(result.email && result.reset_url)
-    ).then(() => {
-      const notification = sendNotificationStep(notificationInput)
-      const markCustomerInput = transform(
-        { accountSetup, notification },
-        (data) => ({
-          customer_id: data.accountSetup.customer_id,
-          sent: data.accountSetup.sent,
-        })
-      )
+    const notification = sendNotificationStep(notificationInput)
+    const markCustomerInput = transform(
+      { accountSetup, notification },
+      (data) => ({
+        customer_id: data.accountSetup.customer_id,
+        sent: data.accountSetup.sent,
+      }),
+    )
 
-      markCustomerHasAccountStep(markCustomerInput)
-    })
+    markCustomerHasAccountStep(markCustomerInput)
 
     return new WorkflowResponse(accountSetup)
-  }
+  },
 )

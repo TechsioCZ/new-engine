@@ -1,4 +1,5 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
+
 import { synchronizeSearchProfiles } from "../modules/meilisearch/synchronize"
 import { syncMeilisearchBrandsWorkflow } from "../workflows/meilisearch/workflows/sync-brands"
 

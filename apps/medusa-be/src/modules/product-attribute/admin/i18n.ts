@@ -8,7 +8,7 @@ type ProductAttributePromptKey =
   | "option_one"
   | "option_other"
 
-export type ProductAttributeAdminI18nNamespace = {
+export interface ProductAttributeAdminI18nNamespace {
   actions: Record<
     | "add"
     | "cancel"
@@ -86,6 +86,23 @@ export type ProductAttributeAdminI18nNamespace = {
   >
 }
 
+const CZECH_DEFINITION_DELETE_PROMPT =
+  "Definice „{{label}}“ je přiřazena k {{count}} aktivním produktům. Bude označena jako smazaná; přiřazení zůstanou zachována."
+const CZECH_OPTION_DELETE_PROMPT =
+  "Možnost „{{label}}“ je přiřazena k {{count}} aktivním produktům. Bude označena jako smazaná; přiřazení zůstanou zachována."
+const CZECH_DEFINITION_PERMANENT_DELETE_PROMPT =
+  "Definice „{{label}}“, všechny její možnosti a přiřazení budou trvale odstraněny. Aktivních přiřazení: {{count}}. Tuto akci nelze vrátit zpět."
+const CZECH_OPTION_PERMANENT_DELETE_PROMPT =
+  "Možnost „{{label}}“ a všechna její přiřazení budou trvale odstraněny. Aktivních přiřazení: {{count}}. Tuto akci nelze vrátit zpět."
+const ENGLISH_DEFINITION_DELETE_PROMPT =
+  "Definition “{{label}}” is assigned to {{count}} active products. It will be soft-deleted and its assignments will be preserved."
+const ENGLISH_OPTION_DELETE_PROMPT =
+  "Option “{{label}}” is assigned to {{count}} active products. It will be soft-deleted and its assignments will be preserved."
+const ENGLISH_DEFINITION_PERMANENT_DELETE_PROMPT =
+  "Definition “{{label}}”, all its options, and all assignments will be permanently deleted. Active assignments: {{count}}. This action cannot be undone."
+const ENGLISH_OPTION_PERMANENT_DELETE_PROMPT =
+  "Option “{{label}}” and all its assignments will be permanently deleted. Active assignments: {{count}}. This action cannot be undone."
+
 export const productAttributeAdminI18n = {
   cs: {
     actions: {
@@ -114,40 +131,16 @@ export const productAttributeAdminI18n = {
       usedBy: "Přiřazené produkty",
     },
     deletePrompt: {
-      definition:
-        "Definice „{{label}}“ je přiřazena k {{count}} aktivním produktům. Bude označena jako smazaná; přiřazení zůstanou zachována.",
-      definition_few:
-        "Definice „{{label}}“ je přiřazena k {{count}} aktivním produktům. Bude označena jako smazaná; přiřazení zůstanou zachována.",
+      definition: CZECH_DEFINITION_DELETE_PROMPT,
+      definition_few: CZECH_DEFINITION_DELETE_PROMPT,
       definition_one:
         "Definice „{{label}}“ je přiřazena k {{count}} aktivnímu produktu. Bude označena jako smazaná; přiřazení zůstane zachováno.",
-      definition_other:
-        "Definice „{{label}}“ je přiřazena k {{count}} aktivním produktům. Bude označena jako smazaná; přiřazení zůstanou zachována.",
-      option:
-        "Možnost „{{label}}“ je přiřazena k {{count}} aktivním produktům. Bude označena jako smazaná; přiřazení zůstanou zachována.",
-      option_few:
-        "Možnost „{{label}}“ je přiřazena k {{count}} aktivním produktům. Bude označena jako smazaná; přiřazení zůstanou zachována.",
+      definition_other: CZECH_DEFINITION_DELETE_PROMPT,
+      option: CZECH_OPTION_DELETE_PROMPT,
+      option_few: CZECH_OPTION_DELETE_PROMPT,
       option_one:
         "Možnost „{{label}}“ je přiřazena k {{count}} aktivnímu produktu. Bude označena jako smazaná; přiřazení zůstane zachováno.",
-      option_other:
-        "Možnost „{{label}}“ je přiřazena k {{count}} aktivním produktům. Bude označena jako smazaná; přiřazení zůstanou zachována.",
-    },
-    permanentDeletePrompt: {
-      definition:
-        "Definice „{{label}}“, všechny její možnosti a přiřazení budou trvale odstraněny. Aktivních přiřazení: {{count}}. Tuto akci nelze vrátit zpět.",
-      definition_few:
-        "Definice „{{label}}“, všechny její možnosti a přiřazení budou trvale odstraněny. Aktivních přiřazení: {{count}}. Tuto akci nelze vrátit zpět.",
-      definition_one:
-        "Definice „{{label}}“, všechny její možnosti a přiřazení budou trvale odstraněny. Aktivní přiřazení: {{count}}. Tuto akci nelze vrátit zpět.",
-      definition_other:
-        "Definice „{{label}}“, všechny její možnosti a přiřazení budou trvale odstraněny. Aktivních přiřazení: {{count}}. Tuto akci nelze vrátit zpět.",
-      option:
-        "Možnost „{{label}}“ a všechna její přiřazení budou trvale odstraněny. Aktivních přiřazení: {{count}}. Tuto akci nelze vrátit zpět.",
-      option_few:
-        "Možnost „{{label}}“ a všechna její přiřazení budou trvale odstraněny. Aktivních přiřazení: {{count}}. Tuto akci nelze vrátit zpět.",
-      option_one:
-        "Možnost „{{label}}“ a všechna její přiřazení budou trvale odstraněny. Aktivní přiřazení: {{count}}. Tuto akci nelze vrátit zpět.",
-      option_other:
-        "Možnost „{{label}}“ a všechna její přiřazení budou trvale odstraněny. Aktivních přiřazení: {{count}}. Tuto akci nelze vrátit zpět.",
+      option_other: CZECH_OPTION_DELETE_PROMPT,
     },
     description:
       "Definujte doplňující informace, které lze přiřazovat k produktům.",
@@ -184,6 +177,18 @@ export const productAttributeAdminI18n = {
       pages: "stránek",
       previous: "Předchozí",
       results: "výsledků",
+    },
+    permanentDeletePrompt: {
+      definition: CZECH_DEFINITION_PERMANENT_DELETE_PROMPT,
+      definition_few: CZECH_DEFINITION_PERMANENT_DELETE_PROMPT,
+      definition_one:
+        "Definice „{{label}}“, všechny její možnosti a přiřazení budou trvale odstraněny. Aktivní přiřazení: {{count}}. Tuto akci nelze vrátit zpět.",
+      definition_other: CZECH_DEFINITION_PERMANENT_DELETE_PROMPT,
+      option: CZECH_OPTION_PERMANENT_DELETE_PROMPT,
+      option_few: CZECH_OPTION_PERMANENT_DELETE_PROMPT,
+      option_one:
+        "Možnost „{{label}}“ a všechna její přiřazení budou trvale odstraněny. Aktivní přiřazení: {{count}}. Tuto akci nelze vrátit zpět.",
+      option_other: CZECH_OPTION_PERMANENT_DELETE_PROMPT,
     },
     placeholders: {
       key: "např. supplier",
@@ -248,40 +253,16 @@ export const productAttributeAdminI18n = {
       usedBy: "Assigned products",
     },
     deletePrompt: {
-      definition:
-        "Definition “{{label}}” is assigned to {{count}} active products. It will be soft-deleted and its assignments will be preserved.",
-      definition_few:
-        "Definition “{{label}}” is assigned to {{count}} active products. It will be soft-deleted and its assignments will be preserved.",
+      definition: ENGLISH_DEFINITION_DELETE_PROMPT,
+      definition_few: ENGLISH_DEFINITION_DELETE_PROMPT,
       definition_one:
         "Definition “{{label}}” is assigned to {{count}} active product. It will be soft-deleted and its assignment will be preserved.",
-      definition_other:
-        "Definition “{{label}}” is assigned to {{count}} active products. It will be soft-deleted and its assignments will be preserved.",
-      option:
-        "Option “{{label}}” is assigned to {{count}} active products. It will be soft-deleted and its assignments will be preserved.",
-      option_few:
-        "Option “{{label}}” is assigned to {{count}} active products. It will be soft-deleted and its assignments will be preserved.",
+      definition_other: ENGLISH_DEFINITION_DELETE_PROMPT,
+      option: ENGLISH_OPTION_DELETE_PROMPT,
+      option_few: ENGLISH_OPTION_DELETE_PROMPT,
       option_one:
         "Option “{{label}}” is assigned to {{count}} active product. It will be soft-deleted and its assignment will be preserved.",
-      option_other:
-        "Option “{{label}}” is assigned to {{count}} active products. It will be soft-deleted and its assignments will be preserved.",
-    },
-    permanentDeletePrompt: {
-      definition:
-        "Definition “{{label}}”, all its options, and all assignments will be permanently deleted. Active assignments: {{count}}. This action cannot be undone.",
-      definition_few:
-        "Definition “{{label}}”, all its options, and all assignments will be permanently deleted. Active assignments: {{count}}. This action cannot be undone.",
-      definition_one:
-        "Definition “{{label}}”, all its options, and all assignments will be permanently deleted. Active assignment: {{count}}. This action cannot be undone.",
-      definition_other:
-        "Definition “{{label}}”, all its options, and all assignments will be permanently deleted. Active assignments: {{count}}. This action cannot be undone.",
-      option:
-        "Option “{{label}}” and all its assignments will be permanently deleted. Active assignments: {{count}}. This action cannot be undone.",
-      option_few:
-        "Option “{{label}}” and all its assignments will be permanently deleted. Active assignments: {{count}}. This action cannot be undone.",
-      option_one:
-        "Option “{{label}}” and all its assignments will be permanently deleted. Active assignment: {{count}}. This action cannot be undone.",
-      option_other:
-        "Option “{{label}}” and all its assignments will be permanently deleted. Active assignments: {{count}}. This action cannot be undone.",
+      option_other: ENGLISH_OPTION_DELETE_PROMPT,
     },
     description:
       "Define additional information that can be assigned to products.",
@@ -317,6 +298,18 @@ export const productAttributeAdminI18n = {
       pages: "pages",
       previous: "Previous",
       results: "results",
+    },
+    permanentDeletePrompt: {
+      definition: ENGLISH_DEFINITION_PERMANENT_DELETE_PROMPT,
+      definition_few: ENGLISH_DEFINITION_PERMANENT_DELETE_PROMPT,
+      definition_one:
+        "Definition “{{label}}”, all its options, and all assignments will be permanently deleted. Active assignment: {{count}}. This action cannot be undone.",
+      definition_other: ENGLISH_DEFINITION_PERMANENT_DELETE_PROMPT,
+      option: ENGLISH_OPTION_PERMANENT_DELETE_PROMPT,
+      option_few: ENGLISH_OPTION_PERMANENT_DELETE_PROMPT,
+      option_one:
+        "Option “{{label}}” and all its assignments will be permanently deleted. Active assignment: {{count}}. This action cannot be undone.",
+      option_other: ENGLISH_OPTION_PERMANENT_DELETE_PROMPT,
     },
     placeholders: {
       key: "for example supplier",

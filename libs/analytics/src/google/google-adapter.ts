@@ -26,67 +26,54 @@ export interface UseGoogleAdapterConfig {
  * })
  * ```
  */
-export function useGoogleAdapter(
-  config?: UseGoogleAdapterConfig
-): AnalyticsAdapter {
+export const useGoogleAdapter = (
+  config?: UseGoogleAdapterConfig,
+): AnalyticsAdapter => {
   const { conversionLabel, debug } = config ?? {}
-  const adapterKey = "google" as const
+  const adapterKey = "google"
 
   const trackCustom = createTracker(
     getGtag,
-    (gtag, args: { eventName: string; params?: Record<string, unknown> }) => {
+    (gtag, args: { eventName: string; params?: object }) => {
       gtag("event", args.eventName, args.params)
     },
     debug,
-    adapterKey
+    adapterKey,
   )
 
   return {
     key: adapterKey,
 
-    trackViewContent: createTracker(
-      getGtag,
-      (gtag, params) => {
-        gtag("event", "view_item", {
-          currency: params.currency,
-          value: params.value,
-          items: [
-            {
-              item_id: params.productId,
-              item_name: params.productName,
-              item_category: params.category,
-              price: params.value,
-              quantity: 1,
-            },
-          ],
-        })
-      },
-      debug,
-      adapterKey
-    ),
-
     trackAddToCart: createTracker(
       getGtag,
       (gtag, params) => {
-        const quantity = params.quantity || 1 // Guard against division by zero
+        // Guard against division by zero and non-numeric values.
+        const requestedQuantity = params.quantity
+        const quantity =
+          requestedQuantity === 0 || Number.isNaN(requestedQuantity)
+            ? 1
+            : requestedQuantity
         gtag("event", "add_to_cart", {
           currency: params.currency,
-          value: params.value,
           items: [
             {
+              item_category: params.category,
               item_id: params.productId,
               item_name: params.productName,
-              item_category: params.category,
               // params.value is total value (unit price × quantity), divide to get unit price
               price: params.value / quantity,
               quantity,
             },
           ],
+          value: params.value,
         })
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
+
+    trackCustom: (eventName, params) =>
+      trackCustom(params === undefined ? { eventName } : { eventName, params }),
 
     trackInitiateCheckout: createTracker(
       getGtag,
@@ -103,44 +90,63 @@ export function useGoogleAdapter(
 
         gtag("event", "begin_checkout", {
           currency: params.currency,
-          value: params.value,
           items,
+          value: params.value,
         })
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
     trackPurchase: createTracker(
       getGtag,
       (gtag, params) => {
         gtag("event", "purchase", {
-          transaction_id: params.orderId,
-          value: params.value,
           currency: params.currency,
           items: params.products.map((p) => ({
+            item_category: p.category,
             item_id: p.id,
             item_name: p.name,
-            item_category: p.category,
             price: p.price,
             quantity: p.quantity ?? 1,
           })),
+          transaction_id: params.orderId,
+          value: params.value,
         })
 
         // If conversion label provided, also track as conversion
-        if (conversionLabel) {
+        if (conversionLabel !== undefined && conversionLabel.length > 0) {
           gtag("event", "conversion", {
-            send_to: conversionLabel,
-            value: params.value,
             currency: params.currency,
+            send_to: conversionLabel,
             transaction_id: params.orderId,
+            value: params.value,
           })
         }
       },
       debug,
-      adapterKey
+      adapterKey,
     ),
 
-    trackCustom: (eventName, params) => trackCustom({ eventName, params }),
+    trackViewContent: createTracker(
+      getGtag,
+      (gtag, params) => {
+        gtag("event", "view_item", {
+          currency: params.currency,
+          items: [
+            {
+              item_category: params.category,
+              item_id: params.productId,
+              item_name: params.productName,
+              price: params.value,
+              quantity: 1,
+            },
+          ],
+          value: params.value,
+        })
+      },
+      debug,
+      adapterKey,
+    ),
   }
 }

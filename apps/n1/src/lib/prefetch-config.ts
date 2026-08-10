@@ -16,14 +16,6 @@
  */
 export const PREFETCH_DELAYS = {
   /**
-   * Root categories prefetch delay
-   * Used by: PrefetchManager, usePrefetchRootCategories
-   * Context: Homepage load, category page mount
-   * Rationale: 200ms allows hero content to render first
-   */
-  ROOT_CATEGORIES: 200,
-
-  /**
    * Category children prefetch delay
    * Used by: usePrefetchCategoryChildren
    * Context: Category page mount, immediate Phase 1 prefetch
@@ -40,14 +32,6 @@ export const PREFETCH_DELAYS = {
   CATEGORY_HOVER: 300,
 
   /**
-   * Individual product detail prefetch delay
-   * Used by: usePrefetchProduct
-   * Context: Hover/focus on product card
-   * Rationale: 400ms is typical hover dwell time before click
-   */
-  PRODUCT_DETAIL: 400,
-
-  /**
    * Pagination prefetch delays by priority
    * Used by: usePrefetchPages
    */
@@ -59,15 +43,31 @@ export const PREFETCH_DELAYS = {
     HIGH: 0,
 
     /**
-     * MEDIUM priority: Page after next (page + 2)
-     * 500ms delay - possible but less likely
-     */
-    MEDIUM: 500,
-
-    /**
      * LOW priority: Previous, first, last pages
      * 1500ms delay - escape routes, prefetch last
      */
     LOW: 1500,
+
+    /**
+     * MEDIUM priority: Page after next (page + 2)
+     * 500ms delay - possible but less likely
+     */
+    MEDIUM: 500,
   },
+
+  /**
+   * Individual product detail prefetch delay
+   * Used by: usePrefetchProduct
+   * Context: Hover/focus on product card
+   * Rationale: 400ms is typical hover dwell time before click
+   */
+  PRODUCT_DETAIL: 400,
+
+  /**
+   * Root categories prefetch delay
+   * Used by: PrefetchManager, usePrefetchRootCategories
+   * Context: Homepage load, category page mount
+   * Rationale: 200ms allows hero content to render first
+   */
+  ROOT_CATEGORIES: 200,
 } as const

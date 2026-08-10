@@ -1,5 +1,6 @@
 import { Icon } from "@techsio/ui-kit/atoms/icon"
-import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select"
+import { Select } from "@techsio/ui-kit/molecules/select"
+import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 import { useTranslations } from "next-intl"
 
 const BENEFIT_ITEMS: SelectItem[] = []
@@ -14,7 +15,7 @@ export const CheckoutSelectBenefits = () => {
       </Select.Label>
       <Select.Control>
         <Select.Trigger
-          className="min-h-12 bg-surface-secondary px-400"
+          className="min-h-form-control-lg bg-surface-secondary px-400"
           iconSize="lg"
         >
           <Icon icon="token-icon-shopping-basket-in" size="lg" />

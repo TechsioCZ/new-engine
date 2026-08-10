@@ -1,64 +1,63 @@
 import type { StoreOrder } from "@medusajs/types"
+
 import { sdk } from "@/lib/medusa-client"
 
 // Export types for reuse in components/hooks
 export type { StoreOrder } from "@medusajs/types"
 
-export type OrdersResponse = {
+export interface OrdersResponse {
   orders: StoreOrder[]
   count: number
   offset: number
   limit: number
 }
 
-export type GetOrdersParams = {
+export interface GetOrdersParams {
   limit?: number
   offset?: number
   fields?: string
 }
 
-export async function getOrders(
-  params?: GetOrdersParams
-): Promise<OrdersResponse> {
-  const limit = params?.limit || 20
-  const offset = params?.offset || 0
-  const fields = params?.fields || "*items" // Lightweight for list view
+export const getOrders = async (
+  params?: GetOrdersParams,
+): Promise<OrdersResponse> => {
+  const limit = params?.limit === 0 ? 20 : (params?.limit ?? 20)
+  const offset = params?.offset ?? 0
+  // Lightweight fields for list view
+  const fields = params?.fields === "" ? "*items" : (params?.fields ?? "*items")
 
   try {
     const response = await sdk.store.order.list({
       fields,
-      order: "-created_at", // Sort by newest first
       limit,
       offset,
+      // Sort by newest first
+      order: "-created_at",
     })
 
     return {
-      orders: response.orders || [],
-      count: response.count || 0,
-      offset,
+      count: response.count,
       limit,
+      offset,
+      orders: response.orders,
     }
-  } catch (err) {
+  } catch (error) {
     if (process.env.NODE_ENV === "development") {
-      console.error("[OrderService] Failed to fetch orders:", err)
+      console.error("[OrderService] Failed to fetch orders:", error)
     }
-    throw new Error("Nepodařilo se načíst objednávky")
+    throw new Error("Nepodařilo se načíst objednávky", { cause: error })
   }
 }
 
-export async function getOrderById(orderId: string): Promise<StoreOrder> {
+export const getOrderById = async (orderId: string): Promise<StoreOrder> => {
   try {
     const response = await sdk.store.order.retrieve(orderId)
 
-    if (!response.order) {
-      throw new Error("Objednávka nenalezena")
-    }
-
     return response.order
-  } catch (err) {
+  } catch (error) {
     if (process.env.NODE_ENV === "development") {
-      console.error("[OrderService] Failed to fetch order:", err)
+      console.error("[OrderService] Failed to fetch order:", error)
     }
-    throw new Error("Nepodařilo se načíst objednávku")
+    throw new Error("Nepodařilo se načíst objednávku", { cause: error })
   }
 }

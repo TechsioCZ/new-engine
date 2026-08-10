@@ -1,8 +1,8 @@
-/**
+/*
  * Label — @techsio/ui-kit atom.
  *
  * @component Label
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill label-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,55 +11,57 @@
  */
 import type { LabelHTMLAttributes, ReactNode } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
 
 const labelVariants = tv({
   base: ["block", "text-label-fg", "font-label"],
+  defaultVariants: {
+    disabled: false,
+    size: "current",
+  },
   variants: {
-    size: {
-      sm: "text-label-sm",
-      md: "text-label-md",
-      lg: "text-label-lg",
-      current: "",
-    },
     disabled: {
       true: "text-label-fg-disabled",
     },
-  },
-  defaultVariants: {
-    size: "current",
-    disabled: false,
+    size: {
+      current: "",
+      lg: "text-label-lg",
+      md: "text-label-md",
+      sm: "text-label-sm",
+    },
   },
 })
 
 export interface LabelProps
-  extends LabelHTMLAttributes<HTMLLabelElement>,
+  extends
+    LabelHTMLAttributes<HTMLLabelElement>,
     VariantProps<typeof labelVariants> {
-  required?: boolean
+  required?: boolean | undefined
   children: ReactNode
-  className?: string
+  className?: string | undefined
 }
 
-export function Label({
+export const Label = ({
   size,
   disabled,
   required,
   children,
   className,
   ...props
-}: LabelProps) {
-  return (
-    <label
-      className={labelVariants({
-        size,
-        disabled,
-        className,
-      })}
-      {...props}
-      htmlFor={props.htmlFor}
-    >
-      {children}
-      {required && <span className="ms-1 text-label-fg-required">*</span>}
-    </label>
-  )
-}
+}: LabelProps) => (
+  <label
+    className={labelVariants({
+      className,
+      disabled,
+      size,
+    })}
+    {...props}
+    htmlFor={props.htmlFor}
+  >
+    {children}
+    {required === true && (
+      <span className="ms-1 text-label-fg-required">*</span>
+    )}
+  </label>
+)

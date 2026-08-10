@@ -1,28 +1,28 @@
 export type TrackingOrderIdentifierType = "display_id" | "order_id" | "erp_id"
 
-export type TrackingItemInput = {
+export interface TrackingItemInput {
   sku: string
   quantity: number
 }
 
-export type TrackingShipmentInput = {
+export interface TrackingShipmentInput {
   identifier_type: TrackingOrderIdentifierType
-  display_id?: string
-  order_id?: string
-  erp_id?: string
+  display_id?: string | undefined
+  order_id?: string | undefined
+  erp_id?: string | undefined
   tracking_number: string
-  tracking_url?: string
-  carrier?: string
-  send_notification?: boolean
-  items?: TrackingItemInput[]
+  tracking_url?: string | undefined
+  carrier?: string | undefined
+  send_notification?: boolean | undefined
+  items?: TrackingItemInput[] | undefined
 }
 
-export type AddTrackingBatchInput = {
-  created_by?: string
+export interface AddTrackingBatchInput {
+  created_by?: string | undefined
   shipments: TrackingShipmentInput[]
 }
 
-export type AddTrackingBatchResult = {
+export interface AddTrackingBatchResult {
   order_identifier: string
   status: "success" | "failed" | "not_found"
   order_id?: string
@@ -32,7 +32,7 @@ export type AddTrackingBatchResult = {
   error?: string
 }
 
-export type AddTrackingBatchOutput = {
+export interface AddTrackingBatchOutput {
   success: boolean
   processed: number
   failed: number

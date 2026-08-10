@@ -6,59 +6,60 @@
  */
 
 export const cacheConfig = {
-  // categories, regions
-  static: {
-    staleTime: 24 * 60 * 60 * 1000,
-    gcTime: 7 * 24 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
-  },
-
+  // Categories.
   categories: {
-    staleTime: Number.POSITIVE_INFINITY,
     gcTime: Number.POSITIVE_INFINITY,
-    refetchOnWindowFocus: false,
     refetchOnMount: false,
     refetchOnReconnect: false,
-  },
-
-  // product catalog, shipping options
-  semiStatic: {
-    staleTime: 60 * 60 * 1000,
-    gcTime: 24 * 60 * 60 * 1000,
     refetchOnWindowFocus: false,
-    refetchOnMount: true,
+    staleTime: Number.POSITIVE_INFINITY,
   },
 
-  // product detail, search
+  // Product detail and search.
   dynamic: {
-    staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: false,
     refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,
   },
 
-  // Real-time data (cart, inventory)
-  realtime: {
-    staleTime: 30 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: "always",
-  },
-
-  // User-specific data (profile, preferences)
-  user: {
-    staleTime: 0,
-    gcTime: 10 * 60 * 1000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: "always",
-  },
-
-  // No cache (sensitive data)
+  // No cache for sensitive data.
   noCache: {
-    staleTime: 0,
     gcTime: 0,
-    refetchOnWindowFocus: true,
     refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    staleTime: 0,
+  },
+
+  // Real-time data such as cart and inventory.
+  realtime: {
+    gcTime: 5 * 60 * 1000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    staleTime: 30 * 1000,
+  },
+
+  // Product catalog and shipping options.
+  semiStatic: {
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    staleTime: 60 * 60 * 1000,
+  },
+
+  // Regions and other static data.
+  static: {
+    gcTime: 7 * 24 * 60 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    staleTime: 24 * 60 * 60 * 1000,
+  },
+
+  // User-specific data such as profile and preferences.
+  user: {
+    gcTime: 10 * 60 * 1000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   },
 } as const

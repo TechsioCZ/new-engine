@@ -1,8 +1,8 @@
-/**
+/*
  * Slider — @techsio/ui-kit molecule.
  *
  * @component Slider
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill slider-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,38 +10,44 @@
  * the slider-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import { normalizeProps, useMachine } from "@zag-js/react"
-import * as slider from "@zag-js/slider"
+import { connect, machine } from "@zag-js/slider"
 import { useId } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 import { slugify, tv } from "../utils"
 
+// Shared by the root, marker text and track slots, declared once so the utility is not repeated.
+const verticalFullHeightClass = "data-[orientation=vertical]:h-full"
+
 const sliderVariants = tv({
+  defaultVariants: {
+    size: "md",
+  },
   slots: {
-    root: [
-      "flex w-full flex-col gap-slider",
-      "data-[orientation=vertical]:h-full",
-      "data-disabled:cursor-not-allowed",
-    ],
-    header: ["flex items-center justify-between"],
-    value: ["text-slider-value-size"],
-    label: ["block font-medium"],
     control: [
       "relative grid place-items-center",
       "data-[orientation=vertical]:h-full data-[orientation=vertical]:grid-rows-1",
     ],
-    track: [
-      "flex-1 rounded-slider-track bg-slider-track-bg",
-      "data-[orientation=horizontal]:w-full",
-      "data-[orientation=vertical]:h-full",
-      "data-disabled:bg-slider-track-bg-disabled",
-      "border-(length:--border-width-slider) border-slider-border",
-      "data-disabled:border-slider-border-disabled",
-      "transition-colors duration-200 motion-reduce:transition-none",
-      "hover:bg-slider-track-bg-hover",
-      "data-[invalid=true]:border-(length:--border-width-validation)",
-      "data-[invalid=true]:border-slider-border-error",
+    header: ["flex items-center justify-between"],
+    label: ["block font-medium"],
+    marker: [
+      "relative flex h-full flex-col items-center justify-center",
+      "data-[orientation=vertical]:w-full",
+      "data-[orientation=vertical]:h-marker-vertical",
+      "data-[orientation=vertical]:flex-row",
+    ],
+    markerGroup: ["relative flex h-full items-center"],
+    markerLine: [
+      "h-full w-slider-marker bg-slider-marker-bg",
+      "data-[orientation=vertical]:h-slider-marker data-[orientation=vertical]:w-full",
+    ],
+    markerText: [
+      "absolute top-full",
+      "data-[orientation=vertical]:top-0 data-[orientation=vertical]:left-full",
+      verticalFullHeightClass,
+      "data-[orientation=vertical]:p-marker-text",
     ],
     range: [
       "h-full rounded-slider-track bg-slider-range-bg",
@@ -51,10 +57,15 @@ const sliderVariants = tv({
       "data-[invalid=true]:bg-slider-range-bg-error",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
+    root: [
+      "flex w-full flex-col gap-slider",
+      verticalFullHeightClass,
+      "data-disabled:cursor-not-allowed",
+    ],
     thumb: [
       "flex items-center justify-center",
       "rounded-slider-thumb bg-slider-thumb-bg",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
       "focus-visible:outline-slider-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
       "focus-visible:scale-110",
@@ -65,82 +76,91 @@ const sliderVariants = tv({
       "cursor-grab data-disabled:cursor-not-allowed data-dragging:cursor-grabbing",
       "shadow-slider-thumb",
     ],
-    markerGroup: ["relative flex h-full items-center"],
-    marker: [
-      "relative flex h-full flex-col items-center justify-center",
-      "data-[orientation=vertical]:w-full",
-      "data-[orientation=vertical]:h-marker-vertical",
-      "data-[orientation=vertical]:flex-row",
+    track: [
+      "flex-1 rounded-slider-track bg-slider-track-bg",
+      "data-[orientation=horizontal]:w-full",
+      verticalFullHeightClass,
+      "data-disabled:bg-slider-track-bg-disabled",
+      "border-(length:--border-width-slider) border-slider-border",
+      "data-disabled:border-slider-border-disabled",
+      "transition-colors duration-200 motion-reduce:transition-none",
+      "hover:bg-slider-track-bg-hover",
+      "data-[invalid=true]:border-(length:--border-width-validation)",
+      "data-[invalid=true]:border-slider-border-error",
     ],
-    markerLine: [
-      "h-full w-slider-marker bg-slider-marker-bg",
-      "data-[orientation=vertical]:h-slider-marker data-[orientation=vertical]:w-full",
-    ],
-    markerText: [
-      "absolute top-full",
-      "data-[orientation=vertical]:top-0 data-[orientation=vertical]:left-full",
-      "data-[orientation=vertical]:h-full",
-      "data-[orientation=vertical]:p-marker-text",
-    ],
+    value: ["text-slider-value-size"],
   },
   variants: {
     size: {
-      sm: {
-        track: [
-          "h-slider-track-sm data-[orientation=vertical]:w-slider-track-sm",
-        ],
-        thumb: ["w-slider-thumb-sm", "h-slider-thumb-sm"],
-      },
-      md: {
-        track: [
-          "h-slider-track-md data-[orientation=vertical]:w-slider-track-md",
-        ],
-        thumb: ["w-slider-thumb-md", "h-slider-thumb-md"],
-      },
       lg: {
+        thumb: ["w-slider-thumb-lg", "h-slider-thumb-lg"],
         track: [
           "h-slider-track-lg data-[orientation=vertical]:w-slider-track-lg",
         ],
-        thumb: ["w-slider-thumb-lg", "h-slider-thumb-lg"],
+      },
+      md: {
+        thumb: ["w-slider-thumb-md", "h-slider-thumb-md"],
+        track: [
+          "h-slider-track-md data-[orientation=vertical]:w-slider-track-md",
+        ],
+      },
+      sm: {
+        thumb: ["w-slider-thumb-sm", "h-slider-thumb-sm"],
+        track: [
+          "h-slider-track-sm data-[orientation=vertical]:w-slider-track-sm",
+        ],
       },
     },
   },
-  defaultVariants: {
-    size: "md",
-  },
 })
 
+type SliderOrigin = "start" | "center" | "end"
+
+type SliderValidateStatus = "default" | "error" | "success" | "warning"
+
 export interface SliderProps extends VariantProps<typeof sliderVariants> {
-  id?: string
-  name?: string
-  label?: string
-  validateStatus?: "default" | "error" | "success" | "warning"
-  helpText?: string
-  showHelpTextIcon?: boolean
-  value?: number[]
-  defaultValue?: number[]
-  min?: number
-  max?: number
-  step?: number
-  minStepsBetweenThumbs?: number
-  disabled?: boolean
-  readOnly?: boolean
-  dir?: "ltr" | "rtl"
-  orientation?: "horizontal" | "vertical"
-  origin?: "start" | "center" | "end"
-  thumbAlignment?: "center" | "contain"
-  showMarkers?: boolean
-  markerCount?: number
-  showValueText?: boolean
-  formatRangeText?: (values: number[]) => string
-  formatValue?: (value: number) => string
-  className?: string
-  onChange?: (values: number[]) => void
-  onChangeEnd?: (values: number[]) => void
+  id?: string | undefined
+  name?: string | undefined
+  label?: string | undefined
+  validateStatus?: SliderValidateStatus | undefined
+  helpText?: string | undefined
+  showHelpTextIcon?: boolean | undefined
+  value?: number[] | undefined
+  defaultValue?: number[] | undefined
+  min?: number | undefined
+  max?: number | undefined
+  step?: number | undefined
+  minStepsBetweenThumbs?: number | undefined
+  disabled?: boolean | undefined
+  readOnly?: boolean | undefined
+  dir?: "ltr" | "rtl" | undefined
+  orientation?: "horizontal" | "vertical" | undefined
+  origin?: SliderOrigin | undefined
+  thumbAlignment?: "center" | "contain" | undefined
+  showMarkers?: boolean | undefined
+  markerCount?: number | undefined
+  showValueText?: boolean | undefined
+  formatRangeText?: ((values: number[]) => string) | undefined
+  formatValue?: ((value: number) => string) | undefined
+  className?: string | undefined
+  onChange?: ((values: number[]) => void) | undefined
+  onChangeEnd?: ((values: number[]) => void) | undefined
 }
 
-const resolveFiniteNumber = (value: number | undefined, fallbackValue: number) => {
-  if (typeof value !== "number" || Number.isNaN(value) || !Number.isFinite(value)) {
+// Stable module-level defaults so the prop fallbacks keep referential equality across renders.
+const defaultSliderValues: number[] = [25, 75]
+
+const formatSliderValue = (value: number) => value.toString()
+
+const resolveFiniteNumber = (
+  value: number | undefined,
+  fallbackValue: number,
+) => {
+  if (
+    typeof value !== "number" ||
+    Number.isNaN(value) ||
+    !Number.isFinite(value)
+  ) {
     return fallbackValue
   }
 
@@ -180,7 +200,7 @@ const snapToStep = (value: number, min: number, step: number) => {
 
 const resolveThumbCount = (
   value: number[] | undefined,
-  defaultValue: number[] | undefined
+  defaultValue: number[] | undefined,
 ) => {
   if (Array.isArray(value) && value.length > 0) {
     return value.length
@@ -193,7 +213,7 @@ const resolveThumbCount = (
   return 2
 }
 
-type ResolvedSliderConfig = {
+interface ResolvedSliderConfig {
   min: number
   max: number
   step: number
@@ -205,7 +225,7 @@ const resolveSliderConfig = (
   max: number | undefined,
   step: number | undefined,
   minStepsBetweenThumbs: number | undefined,
-  thumbCount: number
+  thumbCount: number,
 ): ResolvedSliderConfig => {
   const resolvedMin = resolveFiniteNumber(min, 0)
   const resolvedStepCandidate = resolveFiniteNumber(step, 1)
@@ -216,33 +236,31 @@ const resolveSliderConfig = (
   const span = resolvedMax - resolvedMin
   const stepsInSpan = Math.max(
     0,
-    Math.floor((span + Number.EPSILON) / resolvedStep)
+    Math.floor((span + Number.EPSILON) / resolvedStep),
   )
   const maxMinStepsBetweenThumbs =
-    thumbCount > 1
-      ? Math.floor(stepsInSpan / (thumbCount - 1))
-      : 0
+    thumbCount > 1 ? Math.floor(stepsInSpan / (thumbCount - 1)) : 0
   const normalizedMinSteps = Math.trunc(
-    resolveFiniteNumber(minStepsBetweenThumbs, 0)
+    resolveFiniteNumber(minStepsBetweenThumbs, 0),
   )
   const resolvedMinStepsBetweenThumbs = clampNumber(
     normalizedMinSteps,
     0,
-    maxMinStepsBetweenThumbs
+    maxMinStepsBetweenThumbs,
   )
 
   return {
-    min: resolvedMin,
     max: resolvedMax,
-    step: resolvedStep,
+    min: resolvedMin,
     minStepsBetweenThumbs: resolvedMinStepsBetweenThumbs,
+    step: resolvedStep,
   }
 }
 
 const createFallbackValues = (
   thumbCount: number,
   min: number,
-  max: number
+  max: number,
 ): number[] => {
   if (thumbCount <= 1) {
     return [min]
@@ -263,7 +281,7 @@ const createFallbackValues = (
 const normalizeSliderValues = (
   values: number[] | undefined,
   fallbackValues: number[],
-  config: ResolvedSliderConfig
+  config: ResolvedSliderConfig,
 ): number[] => {
   const sourceValues =
     Array.isArray(values) && values.length > 0 ? values : fallbackValues
@@ -318,23 +336,117 @@ const normalizeSliderValues = (
   })
 }
 
-const apiValueFallback = (
-  value: number[] | undefined,
-  defaultValue: number[] | undefined,
-  fallbackValues: number[]
-) => {
-  if (Array.isArray(value) && value.length > 0) {
-    return value
+// Mirrors the original nested ternary: a caller-supplied range formatter wins outright, a two-thumb
+// slider renders "<start> - <end>", and every other shape renders an empty string. `api.value` is a
+// `number[]`, so the original object-truthiness guards were always satisfied and are dropped.
+const resolveValueText = (
+  values: number[],
+  formatRangeText: ((values: number[]) => string) | undefined,
+  formatValue: (value: number) => string,
+): string => {
+  if (formatRangeText !== undefined) {
+    return formatRangeText(values)
   }
 
-  if (Array.isArray(defaultValue) && defaultValue.length > 0) {
-    return defaultValue
+  const [start, end] = values
+
+  if (values.length === 2 && start !== undefined && end !== undefined) {
+    return `${formatValue(start)} - ${formatValue(end)}`
   }
 
-  return fallbackValues
+  return ""
 }
 
-export function Slider({
+interface SliderMachineOptions {
+  defaultValue: number[] | undefined
+  dir: "ltr" | "rtl" | undefined
+  disabled: boolean | undefined
+  id: string | undefined
+  max: number | undefined
+  min: number | undefined
+  minStepsBetweenThumbs: number | undefined
+  name: string | undefined
+  onChange: ((values: number[]) => void) | undefined
+  onChangeEnd: ((values: number[]) => void) | undefined
+  orientation: "horizontal" | "vertical"
+  origin: SliderOrigin | undefined
+  readOnly: boolean | undefined
+  step: number | undefined
+  thumbAlignment: "center" | "contain"
+  value: number[] | undefined
+}
+
+// Owns the bound/value normalisation and builds the Zag slider machine, returning its connected API
+// plus the resolved bounds the marker track reads. Optional machine props are spread conditionally
+// so an explicit `undefined` is never handed to the machine under `exactOptionalPropertyTypes`.
+const useSliderApi = ({
+  defaultValue = defaultSliderValues,
+  dir = "ltr",
+  disabled = false,
+  id,
+  max = 100,
+  min = 0,
+  minStepsBetweenThumbs = 0,
+  name,
+  onChange,
+  onChangeEnd,
+  orientation,
+  origin,
+  readOnly = false,
+  step = 1,
+  thumbAlignment,
+  value,
+}: SliderMachineOptions) => {
+  const generatedId = useId()
+  // A caller-supplied id wins only when it is a usable string; a missing or empty id falls back to
+  // the generated one so the machine always has a stable, non-empty id.
+  const uniqueId = id === undefined || id === "" ? generatedId : id
+  const thumbCount = resolveThumbCount(value, defaultValue)
+  const resolvedConfig = resolveSliderConfig(
+    min,
+    max,
+    step,
+    minStepsBetweenThumbs,
+    thumbCount,
+  )
+  const fallbackValues = createFallbackValues(
+    thumbCount,
+    resolvedConfig.min,
+    resolvedConfig.max,
+  )
+  const isControlled = value !== undefined
+  const resolvedValue = isControlled
+    ? normalizeSliderValues(value, fallbackValues, resolvedConfig)
+    : undefined
+  const resolvedDefaultValue = isControlled
+    ? undefined
+    : normalizeSliderValues(defaultValue, fallbackValues, resolvedConfig)
+
+  const service = useMachine(machine, {
+    id: uniqueId,
+    ...(name !== undefined && { name }),
+    ...(origin !== undefined && { origin }),
+    ...(resolvedDefaultValue !== undefined && {
+      defaultValue: resolvedDefaultValue,
+    }),
+    ...(resolvedValue !== undefined && { value: resolvedValue }),
+    dir,
+    disabled,
+    max: resolvedConfig.max,
+    min: resolvedConfig.min,
+    minStepsBetweenThumbs: resolvedConfig.minStepsBetweenThumbs,
+    onValueChange: (details) => onChange?.(details.value),
+    onValueChangeEnd: (details) => onChangeEnd?.(details.value),
+    orientation,
+    readOnly,
+    step: resolvedConfig.step,
+    thumbAlignment,
+  })
+
+  return { api: connect(service, normalizeProps), resolvedConfig }
+}
+
+export const Slider = ({
   id,
   name,
   label,
@@ -344,73 +456,43 @@ export function Slider({
   value,
   origin,
   thumbAlignment = "center",
-  defaultValue = [25, 75],
-  min = 0,
-  max = 100,
-  step = 1,
-  minStepsBetweenThumbs = 0,
-  disabled = false,
-  readOnly = false,
-  dir = "ltr",
+  defaultValue,
+  min,
+  max,
+  step,
+  minStepsBetweenThumbs,
+  disabled,
+  readOnly,
+  dir,
   orientation = "horizontal",
   size = "md",
   showMarkers = false,
   markerCount = 5,
   showValueText = false,
   formatRangeText,
-  formatValue = (val: number) => val.toString(),
+  formatValue = formatSliderValue,
   className,
   onChange,
   onChangeEnd,
-}: SliderProps) {
-  const generatedId = useId()
-  const uniqueId = id || generatedId
-  const thumbCount = resolveThumbCount(value, defaultValue)
-  const resolvedConfig = resolveSliderConfig(
-    min,
-    max,
-    step,
-    minStepsBetweenThumbs,
-    thumbCount
-  )
-  const fallbackValues = createFallbackValues(
-    thumbCount,
-    resolvedConfig.min,
-    resolvedConfig.max
-  )
-  const isControlled = value !== undefined
-  const resolvedValue = isControlled
-    ? normalizeSliderValues(value, fallbackValues, resolvedConfig)
-    : undefined
-  const resolvedDefaultValue = isControlled
-    ? undefined
-    : normalizeSliderValues(defaultValue, fallbackValues, resolvedConfig)
-  const valueTextValues = apiValueFallback(
-    resolvedValue,
-    resolvedDefaultValue,
-    fallbackValues
-  )
-
-  const service = useMachine(slider.machine, {
-    id: uniqueId,
-    name,
-    value: resolvedValue,
-    defaultValue: resolvedDefaultValue,
-    min: resolvedConfig.min,
-    max: resolvedConfig.max,
-    origin,
-    thumbAlignment,
-    step: resolvedConfig.step,
-    minStepsBetweenThumbs: resolvedConfig.minStepsBetweenThumbs,
-    disabled,
-    readOnly,
+}: SliderProps) => {
+  const { api, resolvedConfig } = useSliderApi({
+    defaultValue,
     dir,
+    disabled,
+    id,
+    max,
+    min,
+    minStepsBetweenThumbs,
+    name,
+    onChange,
+    onChangeEnd,
     orientation,
-    onValueChange: (details) => onChange?.(details.value),
-    onValueChangeEnd: (details) => onChangeEnd?.(details.value),
+    origin,
+    readOnly,
+    step,
+    thumbAlignment,
+    value,
   })
-
-  const api = slider.connect(service, normalizeProps)
 
   const {
     root,
@@ -430,35 +512,38 @@ export function Slider({
     size,
   })
 
+  // `label` and `helpText` are optional strings, so the render guards are narrowed to booleans while
+  // keeping the original truthy-only decision — an empty string still renders nothing.
+  const hasLabel = Boolean(label)
+  const hasHelpText = Boolean(helpText)
+  const hasHeader = hasLabel || showValueText
+
   return (
-    <div className={root({ className })} {...api.getRootProps()}>
-      {(label || showValueText) && (
+    <div {...api.getRootProps()} className={root({ className })}>
+      {hasHeader && (
         <div className={header()}>
-          <Label className={labelSlot()} {...api.getLabelProps()}>
+          <Label {...api.getLabelProps()} className={labelSlot()}>
             {label}
           </Label>
           {showValueText && (
-            <output className={valueSlot()} {...api.getValueTextProps()}>
+            <output {...api.getValueTextProps()} className={valueSlot()}>
               <b>
-                {formatRangeText
-                  ? formatRangeText(api.value || valueTextValues)
-                  : api.value &&
-                      api.value.length === 2 &&
-                      api.value[0] !== undefined &&
-                      api.value[1] !== undefined
-                    ? `${formatValue(api.value[0])} - ${formatValue(api.value[1])}`
-                    : ""}
+                {resolveValueText(api.value, formatRangeText, formatValue)}
               </b>{" "}
             </output>
           )}
         </div>
       )}
 
-      <div className={control()} {...api.getControlProps()}>
-        <div className={track()} {...api.getTrackProps()} data-invalid={validateStatus === "error"}>
+      <div {...api.getControlProps()} className={control()}>
+        <div
+          {...api.getTrackProps()}
+          className={track()}
+          data-invalid={validateStatus === "error"}
+        >
           <div
-            className={range()}
             {...api.getRangeProps()}
+            className={range()}
             data-invalid={validateStatus === "error"}
           />
           {showMarkers && (
@@ -473,9 +558,9 @@ export function Slider({
                         index
                 return (
                   <div
-                    className={marker()}
                     key={slugify(`marker-${markerValue}`)}
                     {...api.getMarkerProps({ value: markerValue })}
+                    className={marker()}
                   >
                     {/* hide first and last marker line, if thumb alignmetn is center */}
                     {!(
@@ -499,17 +584,17 @@ export function Slider({
             </div>
           )}
         </div>
-        {api.value.map((_, index) => (
+        {Array.from({ length: api.value.length }, (_, index) => (
           <div
-            className={thumb()}
             key={`thumb-${index}`}
             {...api.getThumbProps({ index })}
+            className={thumb()}
           >
             <input {...api.getHiddenInputProps({ index })} />
           </div>
         ))}
       </div>
-      {helpText && (
+      {hasHelpText && (
         <StatusText
           status={validateStatus}
           showIcon={showHelpTextIcon}

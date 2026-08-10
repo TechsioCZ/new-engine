@@ -1,29 +1,44 @@
-import type { ProviderIdentityDTO, Query } from "@medusajs/framework/types"
+import type { Query } from "@medusajs/framework/types"
+import { MedusaError } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 
-type AdminRoleCandidate = {
-  customer_id?: string | null
-  email?: string | null
+interface AdminRoleCandidate {
+  customer_id?: string | null | undefined
+  email?: string | null | undefined
 }
 
-type EmployeeCustomerLinkRow = {
-  customer_id?: string
-  employee_id?: string
-}
-
-type EmployeeWithCustomer = {
-  company?: {
-    deleted_at?: Date | string | null
-    id?: string | null
-  } | null
-  customer?: {
-    id?: string | null
-  } | null
-  deleted_at?: Date | string | null
-  id: string
-  is_admin?: boolean
-}
-
-type ProviderIdentity = Pick<ProviderIdentityDTO, "id">
+const graphDateSchema = z.union([z.date(), z.string(), z.null()]).optional()
+const employeeCustomerLinksResultSchema = z.object({
+  data: z.array(
+    z.object({
+      customer_id: z.string().optional(),
+      employee_id: z.string().optional(),
+    }),
+  ),
+})
+const employeesResultSchema = z.object({
+  data: z.array(
+    z.object({
+      company: z
+        .object({
+          deleted_at: graphDateSchema,
+          id: z.string().nullable().optional(),
+        })
+        .nullable()
+        .optional(),
+      customer: z
+        .object({ id: z.string().nullable().optional() })
+        .nullable()
+        .optional(),
+      deleted_at: graphDateSchema,
+      id: z.string(),
+      is_admin: z.boolean().optional(),
+    }),
+  ),
+})
+const providerIdentitiesResultSchema = z.object({
+  data: z.array(z.object({ id: z.string() })),
+})
 
 const EMPLOYEE_CUSTOMER_LINK_ENTRY_POINT = "employee_customer"
 
@@ -41,90 +56,141 @@ export const getProviderIdentityIdsWithoutActiveAdminRole = async ({
   const candidatesByCustomerId = new Map<string, AdminRoleCandidate>()
 
   for (const candidate of candidates) {
-    if (!(candidate.customer_id && candidate.email)) {
-      continue
+    const { customer_id: customerId, email } = candidate
+    if (
+      typeof customerId === "string" &&
+      customerId.length > 0 &&
+      typeof email === "string" &&
+      email.length > 0
+    ) {
+      candidatesByCustomerId.set(customerId, candidate)
     }
-
-    candidatesByCustomerId.set(candidate.customer_id, candidate)
   }
 
   const customerIds = [...candidatesByCustomerId.keys()]
 
-  if (!customerIds.length) {
+  if (customerIds.length === 0) {
     return []
   }
 
-  const { data: existingLinks } = (await query.graph({
+  const existingLinksResult: unknown = await query.graph({
     entity: EMPLOYEE_CUSTOMER_LINK_ENTRY_POINT,
     fields: ["customer_id", "employee_id"],
     filters: {
       customer_id: customerIds,
     },
-  })) as { data: EmployeeCustomerLinkRow[] }
+  })
+  const parsedExistingLinks =
+    employeeCustomerLinksResultSchema.safeParse(existingLinksResult)
+  if (!parsedExistingLinks.success) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Invalid employee-customer link graph response",
+    )
+  }
+  const { data: existingLinks } = parsedExistingLinks.data
   const employeeIds = [
     ...new Set(
-      existingLinks
-        .map((existingLink) => existingLink.employee_id)
-        .filter((employeeId): employeeId is string => Boolean(employeeId))
+      existingLinks.flatMap((existingLink) =>
+        existingLink.employee_id === undefined ||
+        existingLink.employee_id.length === 0
+          ? []
+          : [existingLink.employee_id],
+      ),
     ),
   ]
   const excludedEmployeeIdSet = new Set(excludedEmployeeIds)
   const excludedCompanyIdSet = new Set(excludedCompanyIds)
-  const { data: employees } = employeeIds.length
-    ? ((await query.graph({
-        entity: "employee",
-        fields: [
-          "id",
-          "deleted_at",
-          "is_admin",
-          "company.id",
-          "company.deleted_at",
-          "customer.id",
-        ],
-        filters: {
-          id: employeeIds,
-        },
-        withDeleted: true,
-      })) as { data: EmployeeWithCustomer[] })
-    : { data: [] }
+  const employeesResult: unknown =
+    employeeIds.length > 0
+      ? await query.graph({
+          entity: "employee",
+          fields: [
+            "id",
+            "deleted_at",
+            "is_admin",
+            "company.id",
+            "company.deleted_at",
+            "customer.id",
+          ],
+          filters: {
+            id: employeeIds,
+          },
+          withDeleted: true,
+        })
+      : { data: [] }
+  const parsedEmployees = employeesResultSchema.safeParse(employeesResult)
+  if (!parsedEmployees.success) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Invalid employee graph response",
+    )
+  }
+  const { data: employees } = parsedEmployees.data
   const activeAdminCustomerIds = new Set(
-    employees
-      .filter(
-        (employee) =>
-          employee.is_admin &&
-          !employee.deleted_at &&
-          !employee.company?.deleted_at &&
-          !excludedEmployeeIdSet.has(employee.id) &&
-          !excludedCompanyIdSet.has(employee.company?.id ?? "")
-      )
-      .map((employee) => employee.customer?.id)
-      .filter((customerId): customerId is string => Boolean(customerId))
+    employees.flatMap((employee) => {
+      if (employee.is_admin !== true) {
+        return []
+      }
+      if (employee.deleted_at !== undefined && employee.deleted_at !== null) {
+        return []
+      }
+      if (
+        employee.company?.deleted_at !== undefined &&
+        employee.company.deleted_at !== null
+      ) {
+        return []
+      }
+      if (excludedEmployeeIdSet.has(employee.id)) {
+        return []
+      }
+      if (excludedCompanyIdSet.has(employee.company?.id ?? "")) {
+        return []
+      }
+
+      const { id: customerId } = employee.customer ?? {}
+      return typeof customerId === "string" && customerId.length > 0
+        ? [customerId]
+        : []
+    }),
   )
   const emailsToClear = [
     ...new Set(
-      [...candidatesByCustomerId.entries()]
-        .filter(([customerId]) => !activeAdminCustomerIds.has(customerId))
-        .map(([, candidate]) => candidate.email)
-        .filter((email): email is string => Boolean(email))
+      [...candidatesByCustomerId.entries()].flatMap(
+        ([customerId, candidate]) => {
+          if (activeAdminCustomerIds.has(customerId)) {
+            return []
+          }
+
+          const { email } = candidate
+          return typeof email === "string" && email.length > 0 ? [email] : []
+        },
+      ),
     ),
   ]
 
-  if (!emailsToClear.length) {
+  if (emailsToClear.length === 0) {
     return []
   }
 
-  const { data: providerIdentities } = (await query.graph({
+  const providerIdentitiesResult: unknown = await query.graph({
     entity: "provider_identity",
     fields: ["id"],
     filters: {
       entity_id: emailsToClear,
       provider: "emailpass",
     },
-  })) as { data: ProviderIdentity[] }
-
-  return providerIdentities
-    .map((providerIdentity) => providerIdentity.id)
-    .filter((providerIdentityId): providerIdentityId is string =>
-      Boolean(providerIdentityId)
+  })
+  const parsedProviderIdentities = providerIdentitiesResultSchema.safeParse(
+    providerIdentitiesResult,
+  )
+  if (!parsedProviderIdentities.success) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Invalid provider identity graph response",
     )
+  }
+  const { data: providerIdentities } = parsedProviderIdentities.data
+
+  return providerIdentities.map((providerIdentity) => providerIdentity.id)
 }

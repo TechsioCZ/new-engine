@@ -1,31 +1,30 @@
-/**
+/*
  * Rating — @techsio/ui-kit atom.
  *
  * @component Rating
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill rating-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the rating-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import * as ratingGroup from "@zag-js/rating-group"
-import { normalizeProps, useMachine } from "@zag-js/react"
-import { type HTMLAttributes, useId } from "react"
+import { connect, machine } from "@zag-js/rating-group"
+import type { IntlTranslations } from "@zag-js/rating-group"
+import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
+import { useId } from "react"
+import type { HTMLAttributes } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
 import { Label } from "./label"
 
 const rating = tv({
+  defaultVariants: {
+    size: "md",
+  },
   slots: {
-    root: ["grid items-center"],
     control: ["flex"],
-    itemWrapper: [
-      "flex items-center",
-      "has-focus-visible:outline-(style:--default-ring-style) has-focus-visible:outline-(length:--default-ring-width)",
-      "has-focus-visible:outline-rating-ring",
-      "has-focus-visible:outline-offset-(length:--default-ring-offset)",
-    ],
     item: [
       "cursor-pointer transition-colors duration-200",
       "cursor-pointer transition-colors duration-200 motion-reduce:transition-none",
@@ -36,57 +35,60 @@ const rating = tv({
       "token-icon-rating",
       "data-half:token-icon-rating-half",
     ],
+    itemWrapper: [
+      "flex items-center",
+      "has-focus-visible:outline-(length:--default-ring-width) has-focus-visible:outline-(style:--default-ring-style)",
+      "has-focus-visible:outline-rating-ring",
+      "has-focus-visible:outline-offset-(length:--default-ring-offset)",
+    ],
+    root: ["grid items-center"],
   },
   variants: {
-    size: {
-      sm: {
-        root: "gap-rating-sm",
-        control: "gap-rating-sm",
-        item: "text-rating-sm",
-      },
-      md: {
-        root: "gap-rating-md",
-        control: "gap-rating-md",
-        item: "text-rating-md",
-      },
-      lg: {
-        root: "gap-rating-lg",
-        control: "gap-rating-lg",
-        item: "text-rating-lg",
-      },
-    },
     isInteractive: {
-      true: {},
       false: {
         item: "cursor-default",
       },
+      true: {},
     },
-  },
-  defaultVariants: {
-    size: "md",
+    size: {
+      lg: {
+        control: "gap-rating-lg",
+        item: "text-rating-lg",
+        root: "gap-rating-lg",
+      },
+      md: {
+        control: "gap-rating-md",
+        item: "text-rating-md",
+        root: "gap-rating-md",
+      },
+      sm: {
+        control: "gap-rating-sm",
+        item: "text-rating-sm",
+        root: "gap-rating-sm",
+      },
+    },
   },
 })
 
 type RatingVariants = Omit<VariantProps<typeof rating>, "isInteractive">
 
 export interface RatingProps
-  extends Omit<HTMLAttributes<HTMLDivElement>, "onChange">,
-    RatingVariants {
-  value?: number
-  defaultValue?: number
-  count?: number
-  labelText?: string
-  readOnly?: boolean
-  disabled?: boolean
-  allowHalf?: boolean
-  name?: string
-  dir?: "ltr" | "rtl"
-  translations?: ratingGroup.IntlTranslations
-  onChange?: (value: number) => void
-  onHoverChange?: (value: number) => void
+  extends Omit<HTMLAttributes<HTMLDivElement>, "onChange">, RatingVariants {
+  value?: number | undefined
+  defaultValue?: number | undefined
+  count?: number | undefined
+  labelText?: string | undefined
+  readOnly?: boolean | undefined
+  disabled?: boolean | undefined
+  allowHalf?: boolean | undefined
+  name?: string | undefined
+  dir?: "ltr" | "rtl" | undefined
+  translations?: IntlTranslations | undefined
+  onChange?: ((value: number) => void) | undefined
+  onHoverChange?: ((value: number) => void) | undefined
 }
 
-export function Rating({
+export const Rating = ({
   value,
   defaultValue,
   count = 5,
@@ -102,44 +104,50 @@ export function Rating({
   size = "md",
   className,
   ...props
-}: RatingProps) {
+}: RatingProps) => {
   const generatedId = useId()
-  const uniqueId = props.id || generatedId
+  const uniqueId =
+    props.id !== undefined && props.id !== "" ? props.id : generatedId
 
-  const service = useMachine(ratingGroup.machine, {
-    id: uniqueId,
-    count,
-    value,
-    defaultValue,
-    disabled,
-    readOnly,
+  const service = useMachine(machine, {
     allowHalf,
-    name,
+    count,
     dir,
-    translations,
-    onValueChange: ({ value: newValue }) => {
-      onChange?.(newValue)
-    },
+    disabled,
+    id: uniqueId,
+    readOnly,
+    ...(defaultValue !== undefined && { defaultValue }),
+    ...(name !== undefined && { name }),
+    ...(translations !== undefined && { translations }),
+    ...(value !== undefined && { value }),
     onHoverChange: ({ hoveredValue }) => {
       onHoverChange?.(hoveredValue)
     },
+    onValueChange: ({ value: newValue }) => {
+      onChange?.(newValue)
+    },
   })
 
-  const api = ratingGroup.connect(service, normalizeProps)
+  const api = connect(service, normalizeProps)
 
   const { root, control, itemWrapper, item } = rating({
-    size,
     isInteractive: !(readOnly || disabled),
+    size,
   })
 
   return (
-    <div className={root({ className })} {...api.getRootProps()} {...props}>
-      {labelText && <Label {...api.getLabelProps()}>{labelText}</Label>}
+    <div
+      {...mergeProps(api.getRootProps(), props)}
+      className={root({ className })}
+    >
+      {labelText !== undefined && labelText !== "" && (
+        <Label {...api.getLabelProps()}>{labelText}</Label>
+      )}
       <input {...api.getHiddenInputProps()} />
-      <div className={control()} {...api.getControlProps()}>
+      <div {...api.getControlProps()} className={control()}>
         {api.items.map((index) => (
           <div className={itemWrapper()} key={`star-${index}`}>
-            <span className={item()} {...api.getItemProps({ index })} />
+            <span {...api.getItemProps({ index })} className={item()} />
           </div>
         ))}
       </div>

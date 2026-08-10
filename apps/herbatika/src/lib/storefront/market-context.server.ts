@@ -1,7 +1,7 @@
 import "server-only"
-
 import { headers } from "next/headers"
 import { cache } from "react"
+
 import { resolveMarketContext } from "./market-context"
 
 export const getMarketServerContext = cache(async () => {
@@ -9,9 +9,6 @@ export const getMarketServerContext = cache(async () => {
 
   return resolveMarketContext({
     acceptLanguage: headerStore.get("accept-language"),
-    host:
-      headerStore.get("x-forwarded-host") ??
-      headerStore.get("host") ??
-      undefined,
+    host: headerStore.get("x-forwarded-host") ?? headerStore.get("host"),
   })
 })

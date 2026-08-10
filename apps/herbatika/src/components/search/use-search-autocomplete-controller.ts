@@ -1,171 +1,106 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useCombobox } from "@techsio/ui-kit/molecules/combobox"
 import { useTranslations } from "next-intl"
+import { useRouter } from "next/navigation"
+import { useId, useState } from "react"
+import type { SubmitEvent } from "react"
+
+import { appHref } from "@/lib/routing"
+import { SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH } from "@/lib/search-autocomplete/search-autocomplete-types"
+
 import {
-  type FocusEvent,
-  type FormEvent,
-  type KeyboardEvent,
-  type MouseEvent,
-  useId,
-  useState,
-} from "react"
-import {
-  SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH,
-  type SearchAutocompleteSuggestion,
-} from "@/lib/search-autocomplete/search-autocomplete-types"
-import { getSearchAutocompleteOptionId } from "./search-autocomplete-panel"
-import {
-  clampSearchAutocompleteIndex,
   createSearchAutocompleteSections,
+  toSearchComboboxItem,
 } from "./search-autocomplete-sections"
 import { useSearchAutocomplete } from "./use-search-autocomplete"
 
-type UseSearchAutocompleteControllerInput = {
+interface UseSearchAutocompleteControllerInput {
   countryCode?: string
   currencyCode: string
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void
+  onSubmit: (event: SubmitEvent<HTMLFormElement>) => void
   regionId?: string
 }
 
-export function useSearchAutocompleteController({
+export const useSearchAutocompleteController = ({
   countryCode,
   currencyCode,
   onSubmit,
   regionId,
-}: UseSearchAutocompleteControllerInput) {
+}: UseSearchAutocompleteControllerInput) => {
   const router = useRouter()
   const t = useTranslations("search")
-  const panelId = `${useId()}-search-autocomplete`
+  const generatedId = useId()
   const [value, setValue] = useState("")
-  const [isFocused, setIsFocused] = useState(false)
-  const [isDismissed, setIsDismissed] = useState(false)
-  const [activeIndex, setActiveIndex] = useState(-1)
-  const autocomplete = useSearchAutocomplete({
-    countryCode,
-    currencyCode,
-    enabled: isFocused && !isDismissed,
-    query: value,
-    regionId,
-  })
+  const [requestedOpen, setRequestedOpen] = useState(false)
+  const { data: autocompleteData, status: autocompleteStatus } =
+    useSearchAutocomplete({
+      ...(countryCode === undefined ? {} : { countryCode }),
+      currencyCode,
+      enabled: requestedOpen,
+      query: value,
+      ...(regionId === undefined ? {} : { regionId }),
+    })
   const normalizedQuery = value.trim()
-  const sections = createSearchAutocompleteSections(autocomplete.data, {
+  const hasSearchableQuery =
+    normalizedQuery.length === 0 ||
+    normalizedQuery.length >= SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH
+  const sections = createSearchAutocompleteSections(autocompleteData, {
     brands: t("autocomplete.sections.brands"),
     categories: t("autocomplete.sections.categories"),
     content: t("autocomplete.sections.content"),
     products: t("autocomplete.sections.products"),
   })
-  const flatItems = sections.flatMap((section) => section.items)
-  const activeItem = flatItems[activeIndex] ?? null
-  const hasSearchableQuery =
-    normalizedQuery.length === 0 ||
-    normalizedQuery.length >= SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH
-  const shouldShowPanel =
-    isFocused &&
-    !isDismissed &&
-    hasSearchableQuery &&
-    autocomplete.status !== "idle"
-  const activeItemId =
-    shouldShowPanel && activeItem
-      ? getSearchAutocompleteOptionId(panelId, activeItem)
-      : undefined
-  const hasItems = flatItems.length > 0
-
-  const closePanel = () => {
-    setIsDismissed(true)
-    setActiveIndex(-1)
-  }
-
-  const resetPanel = () => {
-    setIsDismissed(false)
-    setActiveIndex(-1)
-  }
-
-  const handleFocus = () => {
-    setIsFocused(true)
-    setIsDismissed(false)
-  }
-
+  const items = sections.flatMap((section) =>
+    section.items.map(toSearchComboboxItem),
+  )
+  const canOpen = hasSearchableQuery && autocompleteStatus !== "idle"
   const handleValueChange = (nextValue: string) => {
     setValue(nextValue)
-    resetPanel()
+    const { length } = nextValue.trim()
+    setRequestedOpen(
+      length === 0 || length >= SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH,
+    )
   }
+  const open = requestedOpen && canOpen
+  const { api } = useCombobox({
+    allowCustomValue: true,
+    closeOnSelect: true,
+    filterItems: false,
+    id: `${generatedId}-search-autocomplete`,
+    inputBehavior: "none",
+    inputValue: value,
+    items,
+    loopFocus: true,
+    navigate: ({ value: selectedValue }) => {
+      const selectedItem = items.find((item) => item.value === selectedValue)
+      const suggestion = selectedItem?.data
+      if (suggestion !== undefined) {
+        router.push(appHref(suggestion.href))
+      }
+    },
+    onInputValueChange: handleValueChange,
+    onOpenChange: setRequestedOpen,
+    open,
+    openOnChange: true,
+    selectionBehavior: "preserve",
+  })
 
-  const handleBlur = (event: FocusEvent<HTMLDivElement>) => {
-    const nextFocusedElement = event.relatedTarget
-    if (
-      nextFocusedElement instanceof Node &&
-      event.currentTarget.contains(nextFocusedElement)
-    ) {
-      return
-    }
-
-    setIsFocused(false)
-    resetPanel()
-  }
-
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    closePanel()
+  const handleSubmit = (event: SubmitEvent<HTMLFormElement>) => {
+    api.setOpen(false)
     onSubmit(event)
   }
 
-  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Escape") {
-      setIsDismissed(true)
-      setActiveIndex(-1)
-      return
-    }
-
-    if (!(shouldShowPanel && hasItems)) {
-      return
-    }
-
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      event.preventDefault()
-      setActiveIndex((currentIndex) =>
-        clampSearchAutocompleteIndex(
-          event.key === "ArrowDown" ? currentIndex + 1 : currentIndex - 1,
-          flatItems.length
-        )
-      )
-      return
-    }
-
-    if (event.key === "Enter" && activeItem) {
-      event.preventDefault()
-      router.push(activeItem.href)
-      closePanel()
-    }
-  }
-
-  const handleItemMouseEnter = (item: SearchAutocompleteSuggestion) => {
-    setActiveIndex(
-      flatItems.findIndex(
-        (candidate) => candidate.id === item.id && candidate.type === item.type
-      )
-    )
-  }
-
-  const handlePanelMouseDown = (event: MouseEvent<HTMLDivElement>) => {
-    event.preventDefault()
-  }
-
   return {
-    activeItemId,
-    closePanel,
-    handleFocus,
-    handleBlur,
-    handleItemMouseEnter,
-    handleKeyDown,
-    handlePanelMouseDown,
+    api,
+    degraded: autocompleteData.degraded,
     handleSubmit,
     handleValueChange,
+    hasItems: items.length > 0,
     normalizedQuery,
-    panelId,
     sections,
-    hasItems,
-    shouldShowPanel,
-    status: autocomplete.status,
+    shouldShowPanel: api.open && canOpen,
+    status: autocompleteStatus,
     value,
   }
 }

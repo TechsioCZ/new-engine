@@ -1,14 +1,15 @@
 /// <reference types="vite/client" />
 
-// biome-ignore lint/style/useConsistentTypeDefinitions: interface required for declaration merging
+// interface required for declaration merging
 interface ImportMetaEnv {
   readonly VITE_BACKEND_URL?: string
+  readonly VITE_PAYLOAD_LOCALES?: unknown
   readonly DEV: boolean
   readonly PROD: boolean
   readonly MODE: string
 }
 
-// biome-ignore lint/style/useConsistentTypeDefinitions: interface required for declaration merging
+// interface required for declaration merging
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }

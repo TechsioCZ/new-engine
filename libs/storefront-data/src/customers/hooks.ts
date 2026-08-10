@@ -4,19 +4,22 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+
 import type { AuthQueryKeys } from "../auth/types"
 import type {
   StorefrontCustomerCreateAddressContext,
   StorefrontCustomerUpdateAddressContext,
 } from "../shared/address"
 import { assertStorefrontAddressValidation } from "../shared/address"
-import { type CacheConfig, createCacheConfig } from "../shared/cache-config"
+import { createCacheConfig } from "../shared/cache-config"
+import type { CacheConfig } from "../shared/cache-config"
 import { toErrorMessage } from "../shared/error-utils"
 import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
-import { createQueryKey, type QueryNamespace } from "../shared/query-keys"
+import { createQueryKey } from "../shared/query-keys"
+import type { QueryNamespace } from "../shared/query-keys"
 import { createCustomerQueryKeys } from "./query-keys"
 import type {
   CustomerAddressAdapter,
@@ -32,7 +35,7 @@ import type {
   UseSuspenseCustomerAddressesResult,
 } from "./types"
 
-export type CreateCustomerHooksConfig<
+export interface CreateCustomerHooksConfig<
   TCustomer,
   TAddress,
   TListInput extends CustomerAddressListInputBase,
@@ -43,7 +46,7 @@ export type CreateCustomerHooksConfig<
   TUpdateParams,
   TUpdateCustomerInput extends CustomerProfileUpdateInputBase,
   TUpdateCustomerParams,
-> = {
+> {
   service: CustomerService<
     TCustomer,
     TAddress,
@@ -52,15 +55,26 @@ export type CreateCustomerHooksConfig<
     TUpdateParams,
     TUpdateCustomerParams
   >
-  buildListParams?: (input: TListInput) => TListParams
-  addressAdapter?: CustomerAddressAdapter<
+  buildListParams: (input: TListInput) => TListParams
+  addressAdapter: CustomerAddressAdapter<
     TCreateInput,
     TCreateParams,
     TUpdateInput,
     TUpdateParams
-  >
-  buildUpdateCustomerParams?: (
-    input: TUpdateCustomerInput
+  > &
+    Required<
+      Pick<
+        CustomerAddressAdapter<
+          TCreateInput,
+          TCreateParams,
+          TUpdateInput,
+          TUpdateParams
+        >,
+        "toCreateParams" | "toUpdateParams"
+      >
+    >
+  buildUpdateCustomerParams: (
+    input: TUpdateCustomerInput,
   ) => TUpdateCustomerParams
   queryKeys?: CustomerQueryKeys<TListParams>
   authQueryKeys?: Pick<AuthQueryKeys, "customer">
@@ -77,19 +91,19 @@ export type CreateCustomerHooksConfig<
  *   buildListParams: (input) => ({ ...input }),
  * })
  */
-export function createCustomerHooks<
+export const createCustomerHooks = <
   TCustomer,
   TAddress,
   TListInput extends CustomerAddressListInputBase,
   TListParams = TListInput,
-  TCreateInput extends
-    CustomerAddressCreateInputBase = CustomerAddressCreateInputBase,
+  TCreateInput extends CustomerAddressCreateInputBase =
+    CustomerAddressCreateInputBase,
   TCreateParams = TCreateInput,
-  TUpdateInput extends
-    CustomerAddressUpdateInputBase = CustomerAddressUpdateInputBase,
+  TUpdateInput extends CustomerAddressUpdateInputBase =
+    CustomerAddressUpdateInputBase,
   TUpdateParams = TUpdateInput,
-  TUpdateCustomerInput extends
-    CustomerProfileUpdateInputBase = CustomerProfileUpdateInputBase,
+  TUpdateCustomerInput extends CustomerProfileUpdateInputBase =
+    CustomerProfileUpdateInputBase,
   TUpdateCustomerParams = TUpdateCustomerInput,
 >({
   service,
@@ -111,140 +125,123 @@ export function createCustomerHooks<
   TUpdateParams,
   TUpdateCustomerInput,
   TUpdateCustomerParams
->) {
+>) => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ?? createCustomerQueryKeys<TListParams>(queryKeyNamespace)
   const resolvedAuthQueryKeys = authQueryKeys ?? {
     customer: () => createQueryKey(queryKeyNamespace, "auth", "customer"),
   }
-  const buildList =
-    buildListParams ?? ((input: TListInput) => input as unknown as TListParams)
+  const buildList = buildListParams
   const buildCreate: (
     input: TCreateInput,
-    context: StorefrontCustomerCreateAddressContext
-  ) => TCreateParams =
-    addressAdapter?.toCreateParams ??
-    ((input: TCreateInput) => input as unknown as TCreateParams)
+    context: StorefrontCustomerCreateAddressContext,
+  ) => TCreateParams = addressAdapter.toCreateParams
   const buildUpdate: (
     input: TUpdateInput,
-    context: StorefrontCustomerUpdateAddressContext
-  ) => TUpdateParams =
-    addressAdapter?.toUpdateParams ??
-    ((input: TUpdateInput) => {
-      const { addressId: _addressId, ...restUpdateInput } =
-        input as TUpdateInput & {
-          addressId?: string
-        }
-      return restUpdateInput as unknown as TUpdateParams
-    })
-  const buildUpdateCustomer =
-    buildUpdateCustomerParams ??
-    ((input: TUpdateCustomerInput) => input as unknown as TUpdateCustomerParams)
+    context: StorefrontCustomerUpdateAddressContext,
+  ) => TUpdateParams = addressAdapter.toUpdateParams
+  const buildUpdateCustomer = buildUpdateCustomerParams
 
-  function useCustomerAddresses(
+  const useCustomerAddresses = (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<CustomerAddressListResponse<TAddress>>
-    }
-  ): UseCustomerAddressesResult<TAddress> {
-    const { enabled: inputEnabled, ...listInput } = input as TListInput & {
-      enabled?: boolean
-    }
-    const listParams = buildList(listInput as TListInput)
+    },
+  ): UseCustomerAddressesResult<TAddress> => {
+    const listParams = buildList(input)
     const queryKey = resolvedQueryKeys.addresses(listParams)
-    const enabled = inputEnabled ?? true
+    const enabled = input.enabled ?? true
 
     const query = useQuery({
-      queryKey,
-      queryFn: ({ signal }) => service.getAddresses(listParams, signal),
       enabled,
+      queryFn: async ({ signal }) =>
+        await service.getAddresses(listParams, signal),
+      queryKey,
       ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
+      ...options?.queryOptions,
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
 
     return {
       addresses: data?.addresses ?? [],
-      isLoading,
-      isFetching,
-      isSuccess,
       error: toErrorMessage(error),
+      isFetching,
+      isLoading,
+      isSuccess,
       query,
     }
   }
 
-  function useSuspenseCustomerAddresses(
+  const useSuspenseCustomerAddresses = (
     input: TListInput,
     options?: {
       queryOptions?: SuspenseQueryOptions<CustomerAddressListResponse<TAddress>>
-    }
-  ): UseSuspenseCustomerAddressesResult<TAddress> {
-    const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-      enabled?: boolean
-    }
-    const listParams = buildList(listInput as TListInput)
+    },
+  ): UseSuspenseCustomerAddressesResult<TAddress> => {
+    const listParams = buildList(input)
     const query = useSuspenseQuery({
+      queryFn: async ({ signal }) =>
+        await service.getAddresses(listParams, signal),
       queryKey: resolvedQueryKeys.addresses(listParams),
-      queryFn: ({ signal }) => service.getAddresses(listParams, signal),
       ...resolvedCacheConfig.userData,
-      ...(options?.queryOptions ?? {}),
+      ...options?.queryOptions,
     })
     const { data, isFetching } = query
 
     return {
       addresses: data?.addresses ?? [],
-      isLoading: false,
-      isFetching,
-      isSuccess: true,
       error: null,
+      isFetching,
+      isLoading: false,
+      isSuccess: true,
       query,
     }
   }
 
-  function useCreateCustomerAddress<TContext = unknown>(
-    options?: CustomerMutationOptions<TAddress, TCreateInput, TContext>
-  ) {
+  const useCreateCustomerAddress = <TContext = unknown>(
+    options?: CustomerMutationOptions<TAddress, TCreateInput, TContext>,
+  ) => {
     const queryClient = useQueryClient()
     return useMutation<TAddress, unknown, TCreateInput, TContext>({
-      mutationFn: (input: TCreateInput) => {
+      mutationFn: async (input: TCreateInput) => {
         const normalized = addressAdapter?.normalizeCreate
           ? addressAdapter.normalizeCreate(input, { mode: "create" })
           : input
         assertStorefrontAddressValidation(
-          addressAdapter?.validateCreate?.(normalized, { mode: "create" })
+          addressAdapter?.validateCreate?.(normalized, { mode: "create" }),
         )
-        return service.createAddress(
-          buildCreate(normalized, { mode: "create" })
+        return await service.createAddress(
+          buildCreate(normalized, { mode: "create" }),
         )
       },
-      onMutate: options?.onMutate,
-      onSuccess: (address, variables, context) => {
-        queryClient.invalidateQueries({
-          queryKey: resolvedQueryKeys.all(),
-        })
-        queryClient.invalidateQueries({
-          queryKey: resolvedAuthQueryKeys.customer(),
-        })
-        options?.onSuccess?.(address, variables, context)
-      },
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onError: (error, variables, context) => {
         options?.onError?.(error, variables, context)
       },
       onSettled: (data, error, variables, context) => {
         options?.onSettled?.(data, error, variables, context)
       },
+      onSuccess: async (address, variables, context) => {
+        await queryClient.invalidateQueries({
+          queryKey: resolvedQueryKeys.all(),
+        })
+        await queryClient.invalidateQueries({
+          queryKey: resolvedAuthQueryKeys.customer(),
+        })
+        options?.onSuccess?.(address, variables, context)
+      },
     })
   }
 
-  function useUpdateCustomerAddress<TContext = unknown>(
-    options?: CustomerMutationOptions<TAddress, TUpdateInput, TContext>
-  ) {
+  const useUpdateCustomerAddress = <TContext = unknown>(
+    options?: CustomerMutationOptions<TAddress, TUpdateInput, TContext>,
+  ) => {
     const queryClient = useQueryClient()
     return useMutation<TAddress, unknown, TUpdateInput, TContext>({
-      mutationFn: (input: TUpdateInput) => {
-        const addressId = input.addressId
-        if (!addressId) {
+      mutationFn: async (input: TUpdateInput) => {
+        const { addressId } = input
+        if (addressId === undefined || addressId.length === 0) {
           throw new Error("Address id is required")
         }
         const normalized = addressAdapter?.normalizeUpdate
@@ -255,101 +252,106 @@ export function createCustomerHooks<
         assertStorefrontAddressValidation(
           addressAdapter?.validateUpdate?.(normalized, {
             mode: "update",
-          })
+          }),
         )
-        return service.updateAddress(
+        return await service.updateAddress(
           addressId,
           buildUpdate(normalized, {
             mode: "update",
-          })
+          }),
         )
       },
-      onMutate: options?.onMutate,
-      onSuccess: (address, variables, context) => {
-        queryClient.invalidateQueries({
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
+      onError: (error, variables, context) => {
+        options?.onError?.(error, variables, context)
+      },
+      onSettled: (data, error, variables, context) => {
+        options?.onSettled?.(data, error, variables, context)
+      },
+      onSuccess: async (address, variables, context) => {
+        await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
         })
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: resolvedAuthQueryKeys.customer(),
         })
         options?.onSuccess?.(address, variables, context)
       },
+    })
+  }
+
+  const useDeleteCustomerAddress = <TContext = unknown>(
+    options?: CustomerMutationOptions<null, { addressId: string }, TContext>,
+  ) => {
+    const queryClient = useQueryClient()
+    return useMutation<null, unknown, { addressId: string }, TContext>({
+      mutationFn: async ({ addressId }) => {
+        if (addressId === undefined || addressId.length === 0) {
+          throw new Error("Address id is required")
+        }
+        await service.deleteAddress(addressId)
+        return null
+      },
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onError: (error, variables, context) => {
         options?.onError?.(error, variables, context)
       },
       onSettled: (data, error, variables, context) => {
         options?.onSettled?.(data, error, variables, context)
       },
-    })
-  }
-
-  function useDeleteCustomerAddress<TContext = unknown>(
-    options?: CustomerMutationOptions<void, { addressId: string }, TContext>
-  ) {
-    const queryClient = useQueryClient()
-    return useMutation<void, unknown, { addressId: string }, TContext>({
-      mutationFn: ({ addressId }) => {
-        if (!addressId) {
-          throw new Error("Address id is required")
-        }
-        return service.deleteAddress(addressId)
-      },
-      onMutate: options?.onMutate,
-      onSuccess: (data, variables, context) => {
-        queryClient.invalidateQueries({
+      onSuccess: async (data, variables, context) => {
+        await queryClient.invalidateQueries({
           queryKey: resolvedQueryKeys.all(),
         })
-        queryClient.invalidateQueries({
+        await queryClient.invalidateQueries({
           queryKey: resolvedAuthQueryKeys.customer(),
         })
         options?.onSuccess?.(data, variables, context)
       },
-      onError: (error, variables, context) => {
-        options?.onError?.(error, variables, context)
-      },
-      onSettled: (data, error, variables, context) => {
-        options?.onSettled?.(data, error, variables, context)
-      },
     })
   }
 
-  function useUpdateCustomer<TContext = unknown>(
-    options?: CustomerMutationOptions<TCustomer, TUpdateCustomerInput, TContext>
-  ) {
+  const useUpdateCustomer = <TContext = unknown>(
+    options?: CustomerMutationOptions<
+      TCustomer,
+      TUpdateCustomerInput,
+      TContext
+    >,
+  ) => {
     const queryClient = useQueryClient()
     return useMutation<TCustomer, unknown, TUpdateCustomerInput, TContext>({
-      mutationFn: (input: TUpdateCustomerInput) => {
+      mutationFn: async (input: TUpdateCustomerInput) => {
         if (!service.updateCustomer) {
           throw new Error("updateCustomer service is not configured")
         }
-        return service.updateCustomer(buildUpdateCustomer(input))
+        return await service.updateCustomer(buildUpdateCustomer(input))
       },
-      onMutate: options?.onMutate,
-      onSuccess: (customer, variables, context) => {
-        queryClient.invalidateQueries({
-          queryKey: resolvedQueryKeys.profile(),
-        })
-        queryClient.invalidateQueries({
-          queryKey: resolvedAuthQueryKeys.customer(),
-        })
-        options?.onSuccess?.(customer, variables, context)
-      },
+      ...(options?.onMutate ? { onMutate: options.onMutate } : {}),
       onError: (error, variables, context) => {
         options?.onError?.(error, variables, context)
       },
       onSettled: (data, error, variables, context) => {
         options?.onSettled?.(data, error, variables, context)
+      },
+      onSuccess: async (customer, variables, context) => {
+        await queryClient.invalidateQueries({
+          queryKey: resolvedQueryKeys.profile(),
+        })
+        await queryClient.invalidateQueries({
+          queryKey: resolvedAuthQueryKeys.customer(),
+        })
+        options?.onSuccess?.(customer, variables, context)
       },
     })
   }
 
   return {
-    useCustomerAddresses,
-    useSuspenseCustomerAddresses,
     useCreateCustomerAddress,
-    useUpdateCustomerAddress,
+    useCustomerAddresses,
     useDeleteCustomerAddress,
+    useSuspenseCustomerAddresses,
     useUpdateCustomer,
+    useUpdateCustomerAddress,
   }
 }
 
@@ -358,14 +360,14 @@ export type CustomerHooks<
   TAddress,
   TListInput extends CustomerAddressListInputBase,
   TListParams = TListInput,
-  TCreateInput extends
-    CustomerAddressCreateInputBase = CustomerAddressCreateInputBase,
+  TCreateInput extends CustomerAddressCreateInputBase =
+    CustomerAddressCreateInputBase,
   TCreateParams = TCreateInput,
-  TUpdateInput extends
-    CustomerAddressUpdateInputBase = CustomerAddressUpdateInputBase,
+  TUpdateInput extends CustomerAddressUpdateInputBase =
+    CustomerAddressUpdateInputBase,
   TUpdateParams = TUpdateInput,
-  TUpdateCustomerInput extends
-    CustomerProfileUpdateInputBase = CustomerProfileUpdateInputBase,
+  TUpdateCustomerInput extends CustomerProfileUpdateInputBase =
+    CustomerProfileUpdateInputBase,
   TUpdateCustomerParams = TUpdateCustomerInput,
 > = ReturnType<
   typeof createCustomerHooks<

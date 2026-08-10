@@ -1,8 +1,8 @@
-/**
+/*
  * StatusText — @techsio/ui-kit atom.
  *
  * @component StatusText
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill status-text-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,64 +11,66 @@
  */
 import type { HTMLAttributes, ReactNode, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
-import { Icon, type IconType } from "./icon"
+import { Icon } from "./icon"
+import type { IconType } from "./icon"
 
 const statusTextVariants = tv({
+  defaultVariants: {
+    align: "center",
+    size: "md",
+    status: "default",
+  },
   slots: {
     base: "flex items-center",
     icon: "",
   },
   variants: {
-    status: {
-      error: "text-status-text-fg-error",
-      success: "text-status-text-fg-success",
-      warning: "text-status-text-fg-warning",
-      default: "text-status-text-fg",
-    },
     /* for long text */
     align: {
+      center: {},
       start: {
         icon: "mt-status-text-icon-offset-long-text self-start",
       },
-      center: {},
     },
     size: {
-      sm: {
-        base: "gap-status-text-sm text-status-text-sm",
-      },
-      md: {
-        base: "gap-status-text-md text-status-text-md",
-      },
       lg: {
         base: "items-start gap-status-text-lg text-status-text-lg",
         icon: "mt-status-text-icon-offset",
       },
+      md: {
+        base: "gap-status-text-md text-status-text-md",
+      },
+      sm: {
+        base: "gap-status-text-sm text-status-text-sm",
+      },
     },
-  },
-  defaultVariants: {
-    status: "default",
-    size: "md",
-    align: "center",
+    status: {
+      default: "text-status-text-fg",
+      error: "text-status-text-fg-error",
+      success: "text-status-text-fg-success",
+      warning: "text-status-text-fg-warning",
+    },
   },
 })
 
 const ICON_MAP = {
+  default: null,
   error: "token-icon-status-text-error",
   success: "token-icon-status-text-success",
   warning: "token-icon-status-text-warning",
-  default: undefined,
 } as const
 
 export type StatusTextProps = HTMLAttributes<HTMLDivElement> &
   VariantProps<typeof statusTextVariants> & {
-    ref?: Ref<HTMLDivElement>
-    icon?: IconType
-    showIcon?: boolean
+    ref?: Ref<HTMLDivElement> | undefined
+    icon?: IconType | undefined
+    showIcon?: boolean | undefined
     children: ReactNode
   }
 
-export function StatusText({
+export const StatusText = ({
   className,
   showIcon = false,
   status = "default",
@@ -78,27 +80,27 @@ export function StatusText({
   children,
   ref,
   ...props
-}: StatusTextProps) {
+}: StatusTextProps) => {
   const resolvedIcon = icon ?? ICON_MAP[status]
 
   const { base, icon: iconSlot } = statusTextVariants({
-    status,
-    size,
     align,
     className,
+    size,
+    status,
   })
 
   return (
     <div
       className={base({
-        status,
-        size,
         className,
+        size,
+        status,
       })}
       ref={ref}
       {...props}
     >
-      {showIcon && resolvedIcon && (
+      {showIcon && resolvedIcon !== null && (
         <Icon className={iconSlot()} icon={resolvedIcon} size={size} />
       )}
       <span>{children}</span>

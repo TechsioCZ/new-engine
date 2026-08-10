@@ -11,13 +11,13 @@ import {
 
 export const generatePublishableKey = async (appContainer: MedusaContainer) => {
   const apiKeyModule = appContainer.resolve<IApiKeyModuleService>(
-    Modules.API_KEY
+    Modules.API_KEY,
   )
 
   return await apiKeyModule.createApiKeys({
+    created_by: "test",
     title: "test publishable key",
     type: ApiKeyType.PUBLISHABLE,
-    created_by: "test",
   })
 }
 

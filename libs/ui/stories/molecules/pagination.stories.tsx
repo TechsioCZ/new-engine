@@ -1,10 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import type { ComponentPropsWithoutRef } from "react"
+
 import { VariantContainer, VariantGroup } from "../../.storybook/decorator"
-import {
-  Pagination,
-  type PaginationProps,
-} from "../../src/molecules/pagination"
+import { Pagination } from "../../src/molecules/pagination"
+import type { PaginationProps } from "../../src/molecules/pagination"
 
 const getStoryPageUrl = ({
   page,
@@ -16,55 +15,36 @@ const getStoryPageUrl = ({
 
 type StoryPaginationProps = Omit<PaginationProps, "getPageUrl">
 
-function StoryPagination(props: StoryPaginationProps) {
-  return <Pagination {...props} getPageUrl={getStoryPageUrl} />
-}
+const StoryPagination = (props: StoryPaginationProps) => (
+  <Pagination {...props} getPageUrl={getStoryPageUrl} />
+)
 
 type StoryLinkProps = ComponentPropsWithoutRef<"a"> & {
   replace?: boolean
 }
 
-function StoryLink({ replace, ...props }: StoryLinkProps) {
-  return <a data-replace={replace ? "true" : undefined} {...props} />
-}
+const StoryLink = ({ children, replace, ...props }: StoryLinkProps) => (
+  <a data-replace={replace === true ? "true" : undefined} {...props}>
+    {children}
+  </a>
+)
 
 const meta: Meta<typeof Pagination> = {
-  title: "Molecules/Pagination",
-  component: Pagination,
-  parameters: {
-    layout: "centered",
-  },
-  tags: ["autodocs"],
   argTypes: {
-    page: {
-      control: { type: "number", min: 1 },
-      description: "Current active page (controlled)",
-    },
-    defaultPage: {
-      control: { type: "number", min: 1 },
-      description: "Initial active page (uncontrolled)",
-      defaultValue: 1,
+    boundaryCount: {
+      control: { min: 0, type: "number" },
+      description: "Number of boundary pages to always show at each end",
+      table: { defaultValue: { summary: "1" } },
     },
     count: {
-      control: { type: "number", min: 1 },
+      control: { min: 1, type: "number" },
       description: "Total number of items",
-      defaultValue: 100,
+      table: { defaultValue: { summary: "100" } },
     },
-    pageSize: {
-      control: { type: "number", min: 1 },
-      description: "Number of items per page",
-      defaultValue: 10,
-    },
-    siblingCount: {
-      control: { type: "number", min: 0 },
-      description:
-        "Number of sibling pages to show on each side of current page",
-      defaultValue: 1,
-    },
-    boundaryCount: {
-      control: { type: "number", min: 0 },
-      description: "Number of boundary pages to always show at each end",
-      defaultValue: 1,
+    defaultPage: {
+      control: { min: 1, type: "number" },
+      description: "Initial active page (uncontrolled)",
+      table: { defaultValue: { summary: "1" } },
     },
     getPageUrl: {
       control: false,
@@ -79,27 +59,48 @@ const meta: Meta<typeof Pagination> = {
       description:
         "Optional props forwarded to the custom link component. `href` remains owned by Pagination.",
     },
-    variant: {
-      control: "select",
-      options: ["filled", "outlined", "minimal"],
-      description: "Visual style variant",
-      defaultValue: "filled",
+    page: {
+      control: { min: 1, type: "number" },
+      description: "Current active page (controlled)",
+    },
+    pageSize: {
+      control: { min: 1, type: "number" },
+      description: "Number of items per page",
+      table: { defaultValue: { summary: "10" } },
     },
     showPrevNext: {
       control: "boolean",
       description: "Show previous/next page buttons",
-      defaultValue: true,
+      table: { defaultValue: { summary: "true" } },
+    },
+    siblingCount: {
+      control: { min: 0, type: "number" },
+      description:
+        "Number of sibling pages to show on each side of current page",
+      table: { defaultValue: { summary: "1" } },
+    },
+    variant: {
+      control: "select",
+      description: "Visual style variant",
+      options: ["filled", "outlined", "minimal"],
+      table: { defaultValue: { summary: "filled" } },
     },
   },
   args: {
-    defaultPage: 5,
     count: 100,
+    defaultPage: 5,
+    getPageUrl: getStoryPageUrl,
     pageSize: 10,
+    showPrevNext: true,
     siblingCount: 1,
     variant: "filled",
-    showPrevNext: true,
-    getPageUrl: getStoryPageUrl,
   },
+  component: Pagination,
+  parameters: {
+    layout: "centered",
+  },
+  tags: ["autodocs"],
+  title: "Molecules/Pagination",
 }
 
 export default meta
@@ -112,7 +113,12 @@ export const Sizes: Story = {
     <VariantContainer>
       <VariantGroup title="Small (sm)">
         <div className="space-y-300">
-          <StoryPagination count={100} defaultPage={5} pageSize={10} size="sm" />
+          <StoryPagination
+            count={100}
+            defaultPage={5}
+            pageSize={10}
+            size="sm"
+          />
           <StoryPagination
             count={100}
             defaultPage={5}
@@ -132,7 +138,12 @@ export const Sizes: Story = {
 
       <VariantGroup title="Medium (md)">
         <div className="space-y-300">
-          <StoryPagination count={100} defaultPage={5} pageSize={10} size="md" />
+          <StoryPagination
+            count={100}
+            defaultPage={5}
+            pageSize={10}
+            size="md"
+          />
           <StoryPagination
             count={100}
             defaultPage={5}
@@ -152,7 +163,12 @@ export const Sizes: Story = {
 
       <VariantGroup title="Large (lg)">
         <div className="space-y-300">
-          <StoryPagination count={100} defaultPage={5} pageSize={10} size="lg" />
+          <StoryPagination
+            count={100}
+            defaultPage={5}
+            pageSize={10}
+            size="lg"
+          />
           <StoryPagination
             count={100}
             defaultPage={5}
@@ -279,7 +295,7 @@ export const CustomLinkComponent: Story = {
     <VariantContainer>
       <VariantGroup title="Custom polymorphic link">
         <div className="space-y-300">
-          <p className="text-fg-secondary text-sm">
+          <p className="text-sm text-fg-secondary">
             `Pagination` stays navigation-only, but can forward extra props to a
             custom link component.
           </p>
@@ -305,11 +321,13 @@ export const RealWorldScenarios: Story = {
       <VariantGroup title="Table navigation">
         <div className="space-y-300">
           <div className="space-y-300 rounded border bg-base p-300">
-            <div className="flex h-32 items-center justify-center rounded bg-surface text-fg-primary text-sm">
+            <div className="flex h-32 items-center justify-center rounded bg-surface text-sm text-fg-primary">
               Table content area
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-fg-secondary text-sm">20 items per page</span>
+              <span className="text-sm text-fg-secondary">
+                20 items per page
+              </span>
               <StoryPagination count={456} defaultPage={3} pageSize={20} />
             </div>
           </div>

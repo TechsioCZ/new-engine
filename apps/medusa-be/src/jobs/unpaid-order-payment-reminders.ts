@@ -1,16 +1,25 @@
 import type { MedusaContainer } from "@medusajs/framework"
 import type { ILockingModule, Logger, Query } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
+import { chunk, unique } from "@techsio/std/array"
+import { getRecordValue, isRecord } from "@techsio/std/object"
+
 import { EMAIL_LOG_MODULE } from "../modules/email-log"
 import type EmailLogModuleService from "../modules/email-log/service"
+import { executeWithLockTimeout } from "../utils/locking"
 import {
   fetchUnpaidOrders,
   formatTotal,
   getOrderDisplayId,
   getPaymentUrl,
   isPaymentReminderReadyOrder,
-  type PaymentReminderOrder,
 } from "../utils/order-payment-reminders"
+import type { PaymentReminderOrder } from "../utils/order-payment-reminders"
 import { getMedusaStoreName } from "../utils/store-name"
 import { sendOrderPaymentReminderWorkflow } from "../workflows/send-order-payment-reminder"
 
@@ -20,168 +29,207 @@ const MAX_ORDERS_PER_RUN = 500
 const EMAIL_LOG_LOOKUP_BATCH_SIZE = 500
 const PAYMENT_REMINDER_TEMPLATE = "order-payment-reminder"
 
-type EmailLogDTO = {
-  order_id: string | null
-}
-
 type EmailLogService = EmailLogModuleService & {
   listEmailLogs: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
-  ) => Promise<EmailLogDTO[]>
+    filters?: Parameters<EmailLogModuleService["listEmailLogs"]>[0],
+    config?: Parameters<EmailLogModuleService["listEmailLogs"]>[1],
+  ) => Promise<unknown>
 }
 
-async function sendReminder(
+const sendReminder = async (
   container: MedusaContainer,
-  order: PaymentReminderOrder
-) {
-  if (!order.email) {
+  order: PaymentReminderOrder,
+): Promise<void> => {
+  if (order.email === undefined || order.email === null || order.email === "") {
     return
   }
 
+  const customerId = order.customer_id ?? undefined
+  const total = formatTotal(order)
+
   await sendOrderPaymentReminderWorkflow(container).run({
     input: {
-      customer_id: order.customer_id ?? undefined,
+      ...(customerId === undefined ? {} : { customer_id: customerId }),
       email: order.email,
       order_display_id: getOrderDisplayId(order),
       order_id: order.id,
       payment_url: getPaymentUrl(order),
-      store_name: await getMedusaStoreName(
-        container as Record<string, unknown>
-      ),
-      total: formatTotal(order),
+      store_name: await getMedusaStoreName(container),
+      ...(total === undefined ? {} : { total }),
     },
   })
 }
 
-async function getAlreadyRemindedOrderIds(
-  container: MedusaContainer,
-  orders: PaymentReminderOrder[]
-) {
-  const orderIds = Array.from(new Set(orders.map((order) => order.id)))
-  if (!orderIds.length) {
-    return new Set<string>()
+const collectAlreadyRemindedOrderIds = async (
+  emailLogService: EmailLogService,
+  orderIdChunks: string[][],
+  chunkIndex: number,
+  alreadyRemindedOrderIds: Set<string>,
+): Promise<void> => {
+  const orderIdChunk = orderIdChunks[chunkIndex]
+  if (orderIdChunk === undefined) {
+    return
   }
 
-  const emailLogService = container.resolve<EmailLogService>(EMAIL_LOG_MODULE)
-  const alreadyRemindedOrderIds = new Set<string>()
-
-  for (
-    let index = 0;
-    index < orderIds.length;
-    index += EMAIL_LOG_LOOKUP_BATCH_SIZE
-  ) {
-    const orderIdChunk = orderIds.slice(
-      index,
-      index + EMAIL_LOG_LOOKUP_BATCH_SIZE
-    )
-    const alreadySentLogs = await emailLogService.listEmailLogs(
+  const alreadySentLogsResult = z.array(z.unknown()).safeParse(
+    await emailLogService.listEmailLogs(
       {
         order_id: { $in: orderIdChunk },
         type: PAYMENT_REMINDER_TEMPLATE,
       },
       {
         select: ["order_id"],
-      }
+      },
+    ),
+  )
+  if (!alreadySentLogsResult.success) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Email log lookup returned invalid data",
     )
+  }
 
-    for (const log of alreadySentLogs) {
-      if (log.order_id) {
-        alreadyRemindedOrderIds.add(log.order_id)
+  for (const log of alreadySentLogsResult.data) {
+    if (isRecord(log)) {
+      const orderId = getRecordValue(log, "order_id")
+      if (typeof orderId === "string" && orderId !== "") {
+        alreadyRemindedOrderIds.add(orderId)
       }
     }
   }
 
+  await collectAlreadyRemindedOrderIds(
+    emailLogService,
+    orderIdChunks,
+    chunkIndex + 1,
+    alreadyRemindedOrderIds,
+  )
+}
+
+const getAlreadyRemindedOrderIds = async (
+  container: MedusaContainer,
+  orders: PaymentReminderOrder[],
+): Promise<Set<string>> => {
+  const orderIds = unique(orders.map((order) => order.id))
+  if (orderIds.length === 0) {
+    return new Set<string>()
+  }
+
+  const emailLogService = container.resolve<EmailLogService>(EMAIL_LOG_MODULE)
+  const alreadyRemindedOrderIds = new Set<string>()
+
+  await collectAlreadyRemindedOrderIds(
+    emailLogService,
+    chunk(orderIds, EMAIL_LOG_LOOKUP_BATCH_SIZE),
+    0,
+    alreadyRemindedOrderIds,
+  )
+
   return alreadyRemindedOrderIds
 }
 
-async function executePaymentReminderJob(
+const sendRemindersSequentially = async (
   container: MedusaContainer,
-  logger: Logger
-) {
+  orders: PaymentReminderOrder[],
+  orderIndex: number,
+  logger: Logger,
+): Promise<number> => {
+  const order = orders[orderIndex]
+  if (order === undefined) {
+    return 0
+  }
+
+  let sentCount = 0
+  try {
+    await sendReminder(container, order)
+    sentCount = 1
+  } catch (error) {
+    logger.error(
+      `Unpaid Order Payment Reminders: Failed to send reminder for order ${order.id}`,
+      error instanceof Error ? error : new Error(String(error)),
+    )
+  }
+
+  return (
+    sentCount +
+    (await sendRemindersSequentially(container, orders, orderIndex + 1, logger))
+  )
+}
+
+const executePaymentReminderJob = async (
+  container: MedusaContainer,
+  logger: Logger,
+): Promise<void> => {
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
   logger.info("Unpaid Order Payment Reminders: Starting...")
 
   const unpaidOrders = await fetchUnpaidOrders(query, MAX_ORDERS_PER_RUN)
   const readyOrders = unpaidOrders.filter((order) =>
-    isPaymentReminderReadyOrder(order)
+    isPaymentReminderReadyOrder(order),
   )
 
-  if (!readyOrders.length) {
+  if (readyOrders.length === 0) {
     logger.info(
-      "Unpaid Order Payment Reminders: No unpaid orders older than 24 hours found"
+      "Unpaid Order Payment Reminders: No unpaid orders older than 24 hours found",
     )
     return
   }
 
   logger.info(
-    `Unpaid Order Payment Reminders: Found ${readyOrders.length} unpaid orders older than 24 hours`
+    `Unpaid Order Payment Reminders: Found ${readyOrders.length} unpaid orders older than 24 hours`,
   )
 
   const alreadyRemindedOrderIds = await getAlreadyRemindedOrderIds(
     container,
-    readyOrders
+    readyOrders,
   )
   const ordersToRemind = readyOrders.filter(
-    (order) => !alreadyRemindedOrderIds.has(order.id)
+    (order) => !alreadyRemindedOrderIds.has(order.id),
   )
 
-  if (!ordersToRemind.length) {
+  if (ordersToRemind.length === 0) {
     logger.info(
-      "Unpaid Order Payment Reminders: All matching orders already have a reminder email log"
+      "Unpaid Order Payment Reminders: All matching orders already have a reminder email log",
     )
     return
   }
 
   logger.info(
-    `Unpaid Order Payment Reminders: Sending ${ordersToRemind.length} reminders, skipping ${alreadyRemindedOrderIds.size} already sent`
+    `Unpaid Order Payment Reminders: Sending ${ordersToRemind.length} reminders, skipping ${alreadyRemindedOrderIds.size} already sent`,
   )
 
-  let sentCount = 0
-  for (const order of ordersToRemind) {
-    try {
-      await sendReminder(container, order)
-      sentCount += 1
-    } catch (error) {
-      logger.error(
-        `Unpaid Order Payment Reminders: Failed to send reminder for order ${order.id}`,
-        error instanceof Error ? error : new Error(String(error))
-      )
-    }
-  }
+  const sentCount = await sendRemindersSequentially(
+    container,
+    ordersToRemind,
+    0,
+    logger,
+  )
 
   logger.info(
-    `Unpaid Order Payment Reminders: Completed, sent ${sentCount} reminders`
+    `Unpaid Order Payment Reminders: Completed, sent ${sentCount} reminders`,
   )
 }
 
-export default async function unpaidOrderPaymentRemindersJob(
-  container: MedusaContainer
-) {
+const unpaidOrderPaymentRemindersJob = async (
+  container: MedusaContainer,
+): Promise<void> => {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const lockingModule = container.resolve<ILockingModule>(Modules.LOCKING)
 
-  try {
-    await lockingModule.execute(
-      JOB_LOCK_KEY,
-      async () => {
-        await executePaymentReminderJob(container, logger)
-      },
-      { timeout: JOB_LOCK_TIMEOUT }
-    )
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message.includes("Timed-out acquiring lock")
-    ) {
-      logger.info(
-        "Unpaid Order Payment Reminders: Skipping - another instance is already running"
-      )
-      return
-    }
+  const result = await executeWithLockTimeout(
+    lockingModule,
+    JOB_LOCK_KEY,
+    JOB_LOCK_TIMEOUT,
+    async () => {
+      await executePaymentReminderJob(container, logger)
+    },
+  )
 
-    throw error
+  if (result.status === "timed_out") {
+    logger.info(
+      "Unpaid Order Payment Reminders: Skipping - another instance is already running",
+    )
   }
 }
 
@@ -189,3 +237,5 @@ export const config = {
   name: "unpaid-order-payment-reminders",
   schedule: "0 * * * *",
 }
+
+export default unpaidOrderPaymentRemindersJob

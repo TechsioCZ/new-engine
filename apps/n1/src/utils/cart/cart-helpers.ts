@@ -1,8 +1,11 @@
 import type { Cart, CartLineItem } from "@/services/cart-service"
 
-export function getOptimisticFlag(
-  entity: Cart | CartLineItem | undefined | null
-): boolean {
+type OptimisticEntity = Cart | CartLineItem
+type OptionalOptimisticEntity = OptimisticEntity | null
+
+export const getOptimisticFlag = (
+  entity?: OptionalOptimisticEntity,
+): boolean => {
   if (!entity) {
     return false
   }

@@ -1,26 +1,28 @@
 "use client"
 
 import { useForm } from "@tanstack/react-form"
+import { Button } from "@techsio/ui-kit/atoms/button"
 import { useToast } from "@techsio/ui-kit/molecules/toast"
-import { Button } from "@ui/atoms/button"
+
 import { useCreateAddress, useUpdateAddress } from "@/hooks/use-addresses"
-import { AddressValidationError } from "@/lib/errors"
+import { AddressValidationError } from "@/lib/address-validation-error"
 import type { StoreCustomerAddress } from "@/services/customer-service"
 import { addressToFormData, DEFAULT_ADDRESS } from "@/utils/address-helpers"
 import type { AddressFormData } from "@/utils/address-validation"
+
 import { AddressFormFields } from "./address-form-fields"
 
-type AddressFormProps = {
+interface AddressFormProps {
   address?: StoreCustomerAddress
   onCancel: () => void
   onSuccess: () => void
 }
 
-export function AddressForm({
+export const AddressForm = ({
   address,
   onCancel,
   onSuccess,
-}: AddressFormProps) {
+}: AddressFormProps) => {
   const createAddress = useCreateAddress()
   const updateAddress = useUpdateAddress()
   const toaster = useToast()
@@ -74,9 +76,9 @@ export function AddressForm({
   return (
     <form
       className="space-y-400"
-      onSubmit={(e) => {
-        e.preventDefault()
-        form.handleSubmit()
+      onSubmit={(event) => {
+        event.preventDefault()
+        void form.handleSubmit()
       }}
     >
       <AddressFormFields disabled={isPending} form={form} />

@@ -1,26 +1,22 @@
-/**
+/*
  * Breadcrumb — @techsio/ui-kit template.
  *
  * @component Breadcrumb
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.2
  * @skill breadcrumb-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the breadcrumb-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import {
-  Fragment,
-  type ElementType,
-  type ReactElement,
-  type ReactNode,
-  type Ref,
-} from "react"
+import { Fragment } from "react"
+import type { ElementType, ReactElement, ReactNode, Ref } from "react"
+
 import type { IconProps, IconType } from "../atoms/icon"
-import {
-  Breadcrumb,
-  type BreadcrumbLinkProps,
-  type BreadcrumbRootProps,
+import { Breadcrumb } from "../molecules/breadcrumb"
+import type {
+  BreadcrumbLinkProps,
+  BreadcrumbRootProps,
 } from "../molecules/breadcrumb"
 
 export type BreadcrumbTemplateLinkProps<T extends ElementType> = Omit<
@@ -28,22 +24,19 @@ export type BreadcrumbTemplateLinkProps<T extends ElementType> = Omit<
   "as" | "href" | "children" | "className"
 >
 
-type BreadcrumbTemplateRenderLinkProps =
-  BreadcrumbLinkProps<ElementType>
+const BreadcrumbTemplateLink: (
+  props: BreadcrumbLinkProps<ElementType>,
+) => ReactElement = Breadcrumb.Link
 
-const BreadcrumbTemplateLink = Breadcrumb.Link as (
-  props: BreadcrumbTemplateRenderLinkProps
-) => ReactElement
-
-export type BreadcrumbTemplateItem = {
+export interface BreadcrumbTemplateItem {
   label: ReactNode
-  href?: string
-  icon?: IconType
-  iconSize?: IconProps["size"]
-  separatorIcon?: IconType
-  separatorIconSize?: IconProps["size"]
-  isCurrent?: boolean
-  value?: string
+  href?: string | undefined
+  icon?: IconType | undefined
+  iconSize?: IconProps["size"] | undefined
+  separatorIcon?: IconType | undefined
+  separatorIconSize?: IconProps["size"] | undefined
+  isCurrent?: boolean | undefined
+  value?: string | undefined
 }
 
 export type BreadcrumbTemplateProps<T extends ElementType = "a"> = Omit<
@@ -51,25 +44,23 @@ export type BreadcrumbTemplateProps<T extends ElementType = "a"> = Omit<
   "children" | "ref"
 > & {
   items: BreadcrumbTemplateItem[]
-  maxItems?: number
-  linkAs?: T
-  linkProps?: BreadcrumbTemplateLinkProps<T>
-  separator?: ReactNode
-  separatorIcon?: IconType
-  iconSize?: IconProps["size"]
-  separatorIconSize?: IconProps["size"]
-  ellipsisIconSize?: IconProps["size"]
-  ref?: Ref<HTMLElement>
+  maxItems?: number | undefined
+  linkAs?: T | undefined
+  linkProps?: BreadcrumbTemplateLinkProps<T> | undefined
+  separator?: ReactNode | undefined
+  separatorIcon?: IconType | undefined
+  iconSize?: IconProps["size"] | undefined
+  separatorIconSize?: IconProps["size"] | undefined
+  ellipsisIconSize?: IconProps["size"] | undefined
+  ref?: Ref<HTMLElement> | undefined
 }
 
-type BreadcrumbDisplayItem =
-  | BreadcrumbTemplateItem
-  | "ellipsis"
+type BreadcrumbDisplayItem = BreadcrumbTemplateItem | "ellipsis"
 
-function getDisplayItems(
+const getDisplayItems = (
   items: BreadcrumbTemplateItem[],
-  maxItems: number
-): BreadcrumbDisplayItem[] {
+  maxItems: number,
+): BreadcrumbDisplayItem[] => {
   if (maxItems <= 0 || items.length <= maxItems) {
     return items
   }
@@ -79,24 +70,21 @@ function getDisplayItems(
     return lastItem ? [lastItem] : []
   }
 
-  const firstItem = items[0]
+  const [firstItem] = items
   return firstItem
     ? [firstItem, "ellipsis", ...items.slice(-(maxItems - 1))]
     : []
 }
 
-function getItemKey(
-  item: BreadcrumbDisplayItem,
-  index: number
-) {
+const getItemKey = (item: BreadcrumbDisplayItem, index: number) => {
   if (item === "ellipsis") {
     return `ellipsis-${index}`
   }
 
-  return item.value ?? `${index}-${String(item.label)}`
+  return item.value ?? `breadcrumb-${index}`
 }
 
-export function BreadcrumbTemplate<T extends ElementType = "a">({
+export const BreadcrumbTemplate = <T extends ElementType = "a">({
   items,
   maxItems = 0,
   linkAs,
@@ -108,10 +96,10 @@ export function BreadcrumbTemplate<T extends ElementType = "a">({
   ellipsisIconSize,
   ref,
   ...breadcrumbProps
-}: BreadcrumbTemplateProps<T>) {
+}: BreadcrumbTemplateProps<T>) => {
   const displayItems = getDisplayItems(items, maxItems)
   const hasExplicitCurrent = displayItems.some(
-    (item) => item !== "ellipsis" && item.isCurrent
+    (item) => item !== "ellipsis" && item.isCurrent === true,
   )
 
   return (
@@ -136,10 +124,12 @@ export function BreadcrumbTemplate<T extends ElementType = "a">({
             )
           }
 
-          const isCurrent = hasExplicitCurrent ? item.isCurrent : isLastItem
+          const isCurrent = hasExplicitCurrent
+            ? item.isCurrent === true
+            : isLastItem
           const itemContent = (
             <>
-              {item.icon && (
+              {item.icon !== undefined && (
                 <Breadcrumb.Icon
                   icon={item.icon}
                   size={item.iconSize ?? iconSize}
@@ -153,18 +143,19 @@ export function BreadcrumbTemplate<T extends ElementType = "a">({
             <Fragment key={getItemKey(item, index)}>
               <Breadcrumb.Item>
                 {isCurrent ? (
-                  <Breadcrumb.CurrentLink>
-                    {itemContent}
-                  </Breadcrumb.CurrentLink>
+                  <Breadcrumb.CurrentLink>{itemContent}</Breadcrumb.CurrentLink>
                 ) : (
                   <BreadcrumbTemplateLink
-                    {...(linkProps as
-                      | BreadcrumbTemplateLinkProps<ElementType>
-                      | undefined)}
+                    {...linkProps}
                     as={linkAs}
-                    children={itemContent}
-                    href={item.href || "#"}
-                  />
+                    href={
+                      item.href === undefined || item.href === ""
+                        ? "#"
+                        : item.href
+                    }
+                  >
+                    {itemContent}
+                  </BreadcrumbTemplateLink>
                 )}
               </Breadcrumb.Item>
 

@@ -3,7 +3,6 @@ import {
   Alert,
   Button,
   Container,
-  createDataTableColumnHelper,
   Heading,
   IconButton,
   Input,
@@ -12,38 +11,44 @@ import {
   Text,
   toast,
 } from "@medusajs/ui"
+import type { DataTableColumnDef } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type { TFunction } from "i18next"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import {
-  Link,
-  type LoaderFunctionArgs,
-  type UIMatch,
-  useNavigate,
-  useParams,
-} from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router-dom"
+import type { LoaderFunctionArgs, UIMatch } from "react-router-dom"
+
 import { BrandDataTable } from "../../../../components/brands/brand-data-table"
 import {
-  type BrandAttributeTypeBrand,
-  type BrandAttributeTypeDetailResponse,
   brandQueryKeys,
   restoreBrandAttributeType,
   retrieveBrandAttributeType,
+} from "../../../../lib/brands"
+import type {
+  BrandAttributeTypeBrand,
+  BrandAttributeTypeDetailResponse,
 } from "../../../../lib/brands"
 import { translateBreadcrumb } from "../../../../lib/breadcrumb"
 import { formatLocaleCode } from "../../../../lib/format-locale-code"
 import { useDebouncedValue } from "../../../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
+const ACTIVE_STATUS_KEY = "status.active"
+const BRANDS_TITLE_KEY = "brands.title"
+const DELETED_STATUS_KEY = "status.deleted"
 
-export async function loader({ params }: LoaderFunctionArgs) {
-  const id = params.id
+const isDeleted = (deletedAt: string | null | undefined) =>
+  deletedAt !== undefined && deletedAt !== null && deletedAt !== ""
 
-  if (!id) {
-    return { attribute_type: undefined }
+export const loader = async ({ params }: LoaderFunctionArgs) => {
+  const { id } = params
+
+  if (id === undefined || id === "") {
+    return { attribute_type: null }
   }
 
-  return retrieveBrandAttributeType(id, {
+  return await retrieveBrandAttributeType(id, {
     include_deleted: true,
     limit: 1,
     offset: 0,
@@ -67,7 +72,7 @@ const ORDER_OPTIONS = [
 ]
 
 const formatDate = (date: string | undefined, locale?: string) => {
-  if (!date) {
+  if (date === undefined || date === "") {
     return "-"
   }
 
@@ -77,7 +82,55 @@ const formatDate = (date: string | undefined, locale?: string) => {
   }).format(new Date(date))
 }
 
-const brandColumnHelper = createDataTableColumnHelper<BrandAttributeTypeBrand>()
+const getBrandColumns = (
+  t: TFunction<"brands">,
+  locale: string,
+): DataTableColumnDef<BrandAttributeTypeBrand>[] => [
+  {
+    accessorFn: (brand: BrandAttributeTypeBrand): unknown => brand.title,
+    cell: ({ row }) => (
+      <Link to={`/brands/${row.original.id}`}>{row.original.title}</Link>
+    ),
+    header: t("columns.brand"),
+    id: "title",
+  },
+  {
+    accessorFn: (brand: BrandAttributeTypeBrand): unknown => brand.handle,
+    header: t("columns.handle"),
+    id: "handle",
+  },
+  {
+    accessorFn: (brand: BrandAttributeTypeBrand): unknown =>
+      brand.attribute_value,
+    header: t("columns.value"),
+    id: "attribute_value",
+  },
+  {
+    accessorFn: (brand: BrandAttributeTypeBrand): unknown =>
+      brand.active_product_count,
+    header: t("columns.products"),
+    id: "active_product_count",
+  },
+  {
+    accessorFn: (brand: BrandAttributeTypeBrand): unknown => brand.deleted_at,
+    cell: ({ row }) => {
+      const deleted = isDeleted(row.original.deleted_at)
+      return (
+        <StatusBadge color={deleted ? "red" : "green"}>
+          {t(deleted ? DELETED_STATUS_KEY : ACTIVE_STATUS_KEY)}
+        </StatusBadge>
+      )
+    },
+    header: t("columns.status"),
+    id: "deleted_at",
+  },
+  {
+    accessorFn: (brand: BrandAttributeTypeBrand): unknown => brand.updated_at,
+    cell: ({ row }) => formatDate(row.original.updated_at, locale),
+    header: t("columns.updated"),
+    id: "updated_at",
+  },
+]
 
 const BrandAttributeDetailPage = () => {
   const { i18n, t } = useTranslation("brands")
@@ -99,14 +152,14 @@ const BrandAttributeDetailPage = () => {
   }
 
   const { data, error, isLoading } = useQuery({
-    enabled: !!id,
+    enabled: id !== undefined && id !== "",
     placeholderData: (previousData) => previousData,
-    queryFn: () => {
-      if (!id) {
+    queryFn: async () => {
+      if (id === undefined || id === "") {
         throw new Error(t("errors.attributeIdRequired"))
       }
 
-      return retrieveBrandAttributeType(id, params)
+      return await retrieveBrandAttributeType(id, params)
     },
     queryKey: brandQueryKeys.attributeTypeDetail(id, params),
   })
@@ -117,7 +170,7 @@ const BrandAttributeDetailPage = () => {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : t("errors.restoreAttributeFailed")
+          : t("errors.restoreAttributeFailed"),
       )
     },
     onSuccess: async () => {
@@ -141,37 +194,9 @@ const BrandAttributeDetailPage = () => {
   const brands = data?.brands ?? []
   const count = data?.count ?? 0
   const locale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
-  const columns = [
-    brandColumnHelper.accessor("title", {
-      header: t("columns.brand"),
-      cell: ({ row }) => (
-        <Link to={`/brands/${row.original.id}`}>{row.original.title}</Link>
-      ),
-    }),
-    brandColumnHelper.accessor("handle", {
-      header: t("columns.handle"),
-    }),
-    brandColumnHelper.accessor("attribute_value", {
-      header: t("columns.value"),
-    }),
-    brandColumnHelper.accessor("active_product_count", {
-      header: t("columns.products"),
-    }),
-    brandColumnHelper.accessor("deleted_at", {
-      header: t("columns.status"),
-      cell: ({ row }) => (
-        <StatusBadge color={row.original.deleted_at ? "red" : "green"}>
-          {row.original.deleted_at ? t("status.deleted") : t("status.active")}
-        </StatusBadge>
-      ),
-    }),
-    brandColumnHelper.accessor("updated_at", {
-      header: t("columns.updated"),
-      cell: ({ row }) => formatDate(row.original.updated_at, locale),
-    }),
-  ]
+  const columns = getBrandColumns(t, locale)
 
-  if (error) {
+  if (error !== null) {
     return (
       <Container>
         <Alert variant="error">{t("errors.loadAttributeFailed")}</Alert>
@@ -179,7 +204,7 @@ const BrandAttributeDetailPage = () => {
     )
   }
 
-  if (isLoading || !attributeType) {
+  if (isLoading || attributeType === undefined) {
     return (
       <Container className="flex items-center justify-center gap-2 py-8">
         <Spinner className="animate-spin" />
@@ -197,8 +222,14 @@ const BrandAttributeDetailPage = () => {
           </Link>
         </IconButton>
         <Heading level="h1">{attributeType.name}</Heading>
-        <StatusBadge color={attributeType.deleted_at ? "red" : "green"}>
-          {attributeType.deleted_at ? t("status.deleted") : t("status.active")}
+        <StatusBadge
+          color={isDeleted(attributeType.deleted_at) ? "red" : "green"}
+        >
+          {t(
+            isDeleted(attributeType.deleted_at)
+              ? DELETED_STATUS_KEY
+              : ACTIVE_STATUS_KEY,
+          )}
         </StatusBadge>
       </div>
 
@@ -212,10 +243,12 @@ const BrandAttributeDetailPage = () => {
               })}
             </Text>
           </div>
-          {attributeType.deleted_at ? (
+          {isDeleted(attributeType.deleted_at) ? (
             <Button
               isLoading={restoreMutation.isPending}
-              onClick={() => restoreMutation.mutate(attributeType.id)}
+              onClick={() => {
+                restoreMutation.mutate(attributeType.id)
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -236,9 +269,11 @@ const BrandAttributeDetailPage = () => {
               {t("columns.status")}
             </Text>
             <Text size="small">
-              {attributeType.deleted_at
-                ? t("status.deleted")
-                : t("status.active")}
+              {t(
+                isDeleted(attributeType.deleted_at)
+                  ? DELETED_STATUS_KEY
+                  : ACTIVE_STATUS_KEY,
+              )}
             </Text>
           </div>
         </div>
@@ -247,7 +282,7 @@ const BrandAttributeDetailPage = () => {
       <Container className="divide-y p-0">
         <div className="flex flex-col gap-4 px-6 py-4">
           <div>
-            <Heading level="h2">{t("brands.title")}</Heading>
+            <Heading level="h2">{t(BRANDS_TITLE_KEY)}</Heading>
             <Text className="text-ui-fg-subtle" size="small">
               {t("attributes.matchingBrandCount", { count })}
             </Text>
@@ -307,17 +342,19 @@ const BrandAttributeDetailPage = () => {
           emptyState={{
             empty: {
               description: t("brands.empty"),
-              heading: t("brands.title"),
+              heading: t(BRANDS_TITLE_KEY),
             },
             filtered: {
               description: t("brands.empty"),
-              heading: t("brands.title"),
+              heading: t(BRANDS_TITLE_KEY),
             },
           }}
           getRowId={(brand) => brand.id}
           isLoading={isLoading}
           onPageIndexChange={setPageIndex}
-          onRowClick={(_event, brand) => navigate(`/brands/${brand.id}`)}
+          onRowClick={(_event, brand) => {
+            navigate(`/brands/${brand.id}`)
+          }}
           pageIndex={pageIndex}
           pageSize={PAGE_SIZE}
         />

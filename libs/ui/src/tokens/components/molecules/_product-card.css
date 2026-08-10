@@ -26,6 +26,8 @@
 
   --spacing-product-card-max: 100%;
 
+  --aspect-product-card-image: var(--aspect-card);
+
   --border-product-card-width: var(--border-width-product-card);
 }
 
@@ -47,4 +49,12 @@
 
 @utility token-icon-wishlist-button {
   @apply token-icon-heart;
+}
+
+@utility grid-rows-product-card-compact {
+  grid-template-rows: auto auto auto;
+}
+
+@utility grid-cols-product-card-feature {
+  grid-template-columns: auto 1fr;
 }

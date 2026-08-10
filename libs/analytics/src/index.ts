@@ -1,5 +1,5 @@
 /**
- * @techsio/analytics - Unified e-commerce analytics tracking
+ * Unified e-commerce analytics tracking for the Techsio analytics package
  *
  * Recommended usage - unified hook:
  * ```tsx

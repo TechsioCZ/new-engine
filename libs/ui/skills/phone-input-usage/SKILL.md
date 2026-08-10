@@ -1,11 +1,8 @@
 ---
-component_version: "1.0.0"
+component_version: "2.0.0"
 name: phone-input-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit PhoneInput for
-  international phone entry with country selection, libphonenumber details,
-  hidden E.164 form value, native validation, validation status, and compound
-  country picker slots.
+  Use after component-usage-ux when an app needs @techsio/ui-kit PhoneInput for international phone entry with country selection, libphonenumber details, hidden E.164 form value, native validation, validation status, and compound country picker slots.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -21,15 +18,14 @@ sources:
 
 # @techsio/ui-kit PhoneInput Usage
 
-Use PhoneInput for telephone fields. Do not compose country Select and Input
-manually.
+Use PhoneInput for telephone fields. Do not compose country Select and Input manually.
 
 ## Setup
 
 ```tsx
 import { PhoneInput } from "@techsio/ui-kit/molecules/phone-input"
 
-<PhoneInput name="phone" defaultCountry="CZ" onValueChange={setPhoneDetails}>
+;<PhoneInput name="phone" defaultCountry="CZ" onValueChange={setPhoneDetails}>
   <PhoneInput.Label>Phone</PhoneInput.Label>
   <PhoneInput.Control>
     <PhoneInput.CountryPicker />
@@ -53,13 +49,11 @@ size: sm | md | lg
 
 ### Use the compound parts
 
-Use `Label`, `Control`, `CountryPicker` or lower-level country slots, and
-`Input`.
+Use `Label`, `Control`, `CountryPicker` or lower-level country slots, and `Input`.
 
 ### Consume structured details
 
-`onValueChange` gives `value`, `e164`, `country`, `callingCode`,
-`nationalNumber`, `isPossible`, and `isValid`.
+`onValueChange` gives `value`, `e164`, `country`, `callingCode`, `nationalNumber`, `isPossible`, and `isValid`.
 
 ### Let PhoneInput own country selection
 
@@ -78,7 +72,12 @@ Wrong:
 Correct:
 
 ```tsx
-<PhoneInput name="phone"><PhoneInput.Control><PhoneInput.CountryPicker /><PhoneInput.Input /></PhoneInput.Control></PhoneInput>
+<PhoneInput name="phone">
+  <PhoneInput.Control>
+    <PhoneInput.CountryPicker />
+    <PhoneInput.Input />
+  </PhoneInput.Control>
+</PhoneInput>
 ```
 
 Source: libs/ui/src/molecules/phone-input.tsx

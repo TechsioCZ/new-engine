@@ -1,14 +1,13 @@
 export const resolvePositiveInteger = (
   value: number | undefined,
-  fallbackValue: number
+  fallbackValue: number,
 ): number => {
-  const normalizedFallback =
-    typeof fallbackValue === "number" &&
+  const truncatedFallback = Math.trunc(fallbackValue)
+  const isValidFallback =
     Number.isFinite(fallbackValue) &&
     !Number.isNaN(fallbackValue) &&
-    Math.trunc(fallbackValue) > 0
-      ? Math.trunc(fallbackValue)
-      : 1
+    truncatedFallback > 0
+  const normalizedFallback = isValidFallback ? truncatedFallback : 1
 
   if (
     typeof value !== "number" ||

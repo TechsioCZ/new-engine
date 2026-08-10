@@ -1,134 +1,42 @@
+import { normalizeSupportedCurrencyCode } from "./currency"
+import type { HerbatikaCurrencyCode as BaseHerbatikaCurrencyCode } from "./currency"
 import {
-  type HerbatikaCurrencyCode as BaseHerbatikaCurrencyCode,
-  normalizeSupportedCurrencyCode,
-} from "./currency"
+  matchesExpectedCurrency,
+  resolveMatchingTopOfferOriginalAmount,
+  resolvePositiveOriginalAmount,
+  resolveTopOfferCurrentAmount,
+  resolveTopOfferStockAmount,
+} from "./product-pricing-candidates"
+import {
+  asStorefrontBoolean,
+  asStorefrontNumber,
+  asStorefrontRecord,
+} from "./product-pricing-parsers"
 
-export type HerbatikaCurrencyCode = BaseHerbatikaCurrencyCode
+type HerbatikaCurrencyCode = BaseHerbatikaCurrencyCode
 
-export const asStorefrontRecord = (
-  value: unknown
-): Record<string, unknown> | null => {
-  if (value && typeof value === "object" && !Array.isArray(value)) {
-    return value as Record<string, unknown>
-  }
+export {
+  asStorefrontBoolean,
+  asStorefrontNumber,
+  asStorefrontRecord,
+  asStorefrontString,
+  resolveAmountWithoutTax,
+} from "./product-pricing-parsers"
 
-  return null
-}
-
-export const asStorefrontString = (value: unknown): string | null => {
-  if (typeof value !== "string") {
-    return null
-  }
-
-  const normalized = value.trim()
-  return normalized.length > 0 ? normalized : null
-}
-
-export const asStorefrontNumber = (value: unknown): number | null => {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value
-  }
-
-  if (typeof value !== "string") {
-    return null
-  }
-
-  const normalized = value.trim().replace(",", ".")
-  if (!normalized) {
-    return null
-  }
-
-  const parsed = Number(normalized)
-  return Number.isFinite(parsed) ? parsed : null
-}
-
-export const asStorefrontBoolean = (value: unknown): boolean | null => {
-  if (typeof value === "boolean") {
-    return value
-  }
-
-  if (typeof value === "number") {
-    if (value === 1) {
-      return true
-    }
-
-    if (value === 0) {
-      return false
-    }
-
-    return null
-  }
-
-  if (typeof value !== "string") {
-    return null
-  }
-
-  const normalized = value.trim().toLowerCase()
-  if (["1", "true", "yes"].includes(normalized)) {
-    return true
-  }
-
-  if (["0", "false", "no"].includes(normalized)) {
-    return false
-  }
-
-  return null
-}
-
-export const resolveAmountWithoutTax = (params: {
-  amountWithTax: number | null
-  amountWithoutTax: number | null
-  vatRate: number | null
-}): number | null => {
-  const { amountWithTax, amountWithoutTax, vatRate } = params
-
-  if (
-    typeof amountWithoutTax === "number" &&
-    amountWithoutTax > 0 &&
-    (typeof amountWithTax !== "number" || amountWithoutTax <= amountWithTax)
-  ) {
-    return amountWithoutTax
-  }
-
-  if (
-    typeof amountWithTax === "number" &&
-    typeof vatRate === "number" &&
-    vatRate > 0
-  ) {
-    return amountWithTax / (1 + vatRate / 100)
-  }
-
-  return null
-}
-
-type StorefrontMetadataSource = {
+interface StorefrontMetadataSource {
   metadata?: unknown
 }
 
 export const resolveProductTopOffer = (
-  product?: StorefrontMetadataSource | null
-) => {
+  product?: StorefrontMetadataSource | null,
+): object | null => {
   const metadata = asStorefrontRecord(product?.metadata)
-  return asStorefrontRecord(metadata?.top_offer)
+  return asStorefrontRecord(
+    metadata === null ? undefined : Reflect.get(metadata, "top_offer"),
+  )
 }
 
-export const resolveTopOfferCurrentAmount = (
-  topOffer: Record<string, unknown> | null
-) =>
-  asStorefrontNumber(topOffer?.current_price) ??
-  asStorefrontNumber(topOffer?.action_price) ??
-  asStorefrontNumber(topOffer?.price_vat)
-
-export const resolveTopOfferStockAmount = (
-  topOffer: Record<string, unknown> | null
-): number | null => {
-  const stock = asStorefrontRecord(topOffer?.stock)
-  return asStorefrontNumber(stock?.amount)
-}
-
-export const resolveTopOfferInStock = (
-  topOffer: Record<string, unknown> | null
-): boolean => {
+export const resolveTopOfferInStock = (topOffer: object | null): boolean => {
   const amount = resolveTopOfferStockAmount(topOffer)
   return typeof amount === "number" ? amount > 0 : true
 }
@@ -136,7 +44,7 @@ export const resolveTopOfferInStock = (
 export const resolveTopOfferOriginalAmount = (params: {
   currentAmount: number | null
   explicitOriginalAmount?: number | null
-  topOffer: Record<string, unknown> | null
+  topOffer: object | null
 }) => {
   const { currentAmount, explicitOriginalAmount = null, topOffer } = params
   const explicitCandidate =
@@ -147,17 +55,29 @@ export const resolveTopOfferOriginalAmount = (params: {
   const hasExplicitOriginalAmount = explicitCandidate !== null
   const candidate =
     explicitCandidate ??
-    asStorefrontNumber(topOffer?.compare_at_price) ??
-    asStorefrontNumber(topOffer?.standard_price) ??
-    asStorefrontNumber(topOffer?.price_vat)
+    asStorefrontNumber(
+      topOffer === null ? undefined : Reflect.get(topOffer, "compare_at_price"),
+    ) ??
+    asStorefrontNumber(
+      topOffer === null ? undefined : Reflect.get(topOffer, "standard_price"),
+    ) ??
+    asStorefrontNumber(
+      topOffer === null ? undefined : Reflect.get(topOffer, "price_vat"),
+    )
 
   if (typeof currentAmount !== "number" || typeof candidate !== "number") {
     return null
   }
 
   const hasActiveDiscount =
-    asStorefrontBoolean(topOffer?.has_active_discount) === true
-  const actionAmount = asStorefrontNumber(topOffer?.action_price)
+    asStorefrontBoolean(
+      topOffer === null
+        ? undefined
+        : Reflect.get(topOffer, "has_active_discount"),
+    ) === true
+  const actionAmount = asStorefrontNumber(
+    topOffer === null ? undefined : Reflect.get(topOffer, "action_price"),
+  )
   const hasActionPriceDiscount =
     typeof actionAmount === "number" && candidate > actionAmount
 
@@ -173,54 +93,19 @@ export const resolveTopOfferOriginalAmount = (params: {
 
 export type StorefrontPriceSource = "calculated_price" | "top_offer"
 
-type StorefrontPriceInput = {
+interface StorefrontPriceInput {
   calculatedAmount: unknown
   calculatedCurrencyCode: unknown
   calculatedOriginalAmount?: unknown
   expectedCurrencyCode?: unknown
-  topOffer: Record<string, unknown> | null
+  topOffer: object | null
 }
 
-export type ResolvedStorefrontPrice = {
+export interface ResolvedStorefrontPrice {
   currentAmount: number
   originalAmount: number | null
   currencyCode: HerbatikaCurrencyCode
   source: StorefrontPriceSource
-}
-
-const resolvePositiveOriginalAmount = (
-  currentAmount: number,
-  originalAmount: unknown
-): number | null => {
-  const normalizedOriginalAmount = asStorefrontNumber(originalAmount)
-
-  return typeof normalizedOriginalAmount === "number" &&
-    normalizedOriginalAmount > currentAmount
-    ? normalizedOriginalAmount
-    : null
-}
-
-const resolveMatchingTopOfferOriginalAmount = ({
-  currentAmount,
-  currencyCode,
-  topOffer,
-}: {
-  currentAmount: number
-  currencyCode: HerbatikaCurrencyCode
-  topOffer: Record<string, unknown> | null
-}) => {
-  const topOfferCurrencyCode = normalizeSupportedCurrencyCode(
-    topOffer?.currency
-  )
-
-  if (topOfferCurrencyCode !== currencyCode) {
-    return null
-  }
-
-  return resolveTopOfferOriginalAmount({
-    currentAmount,
-    topOffer,
-  })
 }
 
 export const resolveStorefrontPrice = ({
@@ -233,48 +118,47 @@ export const resolveStorefrontPrice = ({
   const expectedCurrency = normalizeSupportedCurrencyCode(expectedCurrencyCode)
   const resolvedCalculatedAmount = asStorefrontNumber(calculatedAmount)
   const resolvedCalculatedCurrency = normalizeSupportedCurrencyCode(
-    calculatedCurrencyCode
+    calculatedCurrencyCode,
   )
 
   if (
     typeof resolvedCalculatedAmount === "number" &&
-    resolvedCalculatedCurrency &&
-    (!expectedCurrency || resolvedCalculatedCurrency === expectedCurrency)
+    matchesExpectedCurrency(resolvedCalculatedCurrency, expectedCurrency)
   ) {
     return {
+      currencyCode: resolvedCalculatedCurrency,
       currentAmount: resolvedCalculatedAmount,
       originalAmount:
         resolvePositiveOriginalAmount(
           resolvedCalculatedAmount,
-          calculatedOriginalAmount
+          calculatedOriginalAmount,
         ) ??
         resolveMatchingTopOfferOriginalAmount({
-          currentAmount: resolvedCalculatedAmount,
           currencyCode: resolvedCalculatedCurrency,
+          currentAmount: resolvedCalculatedAmount,
+          resolveOriginalAmount: resolveTopOfferOriginalAmount,
           topOffer,
         }),
-      currencyCode: resolvedCalculatedCurrency,
       source: "calculated_price",
     }
   }
 
   const resolvedTopOfferAmount = resolveTopOfferCurrentAmount(topOffer)
   const resolvedTopOfferCurrency = normalizeSupportedCurrencyCode(
-    topOffer?.currency
+    topOffer === null ? undefined : Reflect.get(topOffer, "currency"),
   )
 
   if (
     typeof resolvedTopOfferAmount === "number" &&
-    resolvedTopOfferCurrency &&
-    (!expectedCurrency || resolvedTopOfferCurrency === expectedCurrency)
+    matchesExpectedCurrency(resolvedTopOfferCurrency, expectedCurrency)
   ) {
     return {
+      currencyCode: resolvedTopOfferCurrency,
       currentAmount: resolvedTopOfferAmount,
       originalAmount: resolveTopOfferOriginalAmount({
         currentAmount: resolvedTopOfferAmount,
         topOffer,
       }),
-      currencyCode: resolvedTopOfferCurrency,
       source: "top_offer",
     }
   }

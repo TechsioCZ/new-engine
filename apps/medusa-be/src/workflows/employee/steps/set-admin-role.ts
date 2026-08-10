@@ -5,26 +5,40 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { z } from "@medusajs/framework/zod"
+
 import { getProviderIdentityIdsWithoutActiveAdminRole } from "../utils/admin-auth-metadata"
 
-type SetAdminRoleCompensation = {
+interface SetAdminRoleCompensation {
   customerId: string
   email: string
   employeeId: string
   providerIdentityId: string
 }
 
+const employeeQuerySchema = z.object({
+  data: z.array(
+    z.object({
+      customer: z.object({ has_account: z.boolean().optional() }).optional(),
+    }),
+  ),
+})
+const customerQuerySchema = z.object({
+  data: z.array(z.object({ email: z.string().nullable().optional() })),
+})
+const providerIdentityQuerySchema = z.object({
+  data: z.array(z.object({ id: z.string().min(1) })),
+})
+
 export const setAdminRoleStep = createStep(
   "set-admin-role",
   async (
     input: { employeeId: string; customerId: string },
-    { container }
+    { container },
   ): Promise<StepResponse<undefined, SetAdminRoleCompensation>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
-    const {
-      data: [employee],
-    } = await query.graph(
+    const employeeQueryResult: unknown = await query.graph(
       {
         entity: "employee",
         fields: ["id", "is_admin", "customer.has_account"],
@@ -32,13 +46,14 @@ export const setAdminRoleStep = createStep(
           id: input.employeeId,
         },
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
+    const [employee] = employeeQuerySchema.parse(employeeQueryResult).data
 
-    if (!employee) {
+    if (employee === undefined) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Employee "${input.employeeId}" was not found`
+        `Employee "${input.employeeId}" was not found`,
       )
     }
 
@@ -46,9 +61,7 @@ export const setAdminRoleStep = createStep(
       return new StepResponse(undefined)
     }
 
-    const {
-      data: [customer],
-    } = await query.graph(
+    const customerQueryResult: unknown = await query.graph(
       {
         entity: "customer",
         fields: ["email"],
@@ -56,36 +69,42 @@ export const setAdminRoleStep = createStep(
           id: input.customerId,
         },
       },
-      { throwIfKeyNotFound: true }
+      { throwIfKeyNotFound: true },
     )
+    const [customer] = customerQuerySchema.parse(customerQueryResult).data
 
-    if (!customer) {
+    if (customer === undefined) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
-        `Customer "${input.customerId}" was not found`
+        `Customer "${input.customerId}" was not found`,
       )
     }
 
-    if (!customer.email) {
+    if (
+      customer.email === null ||
+      customer.email === undefined ||
+      customer.email.length === 0
+    ) {
       return new StepResponse(undefined)
     }
 
-    const {
-      data: [providerIdentity],
-    } = await query.graph({
+    const providerIdentityQueryResult: unknown = await query.graph({
       entity: "provider_identity",
       fields: ["*"],
       filters: {
-        provider: "emailpass",
         entity_id: customer.email,
+        provider: "emailpass",
       },
     })
+    const [providerIdentity] = providerIdentityQuerySchema.parse(
+      providerIdentityQueryResult,
+    ).data
 
     const authModuleService = container.resolve<IAuthModuleService>(
-      Modules.AUTH
+      Modules.AUTH,
     )
 
-    if (!providerIdentity) {
+    if (providerIdentity === undefined) {
       return new StepResponse(undefined)
     }
 
@@ -106,7 +125,7 @@ export const setAdminRoleStep = createStep(
     })
   },
   async (input: SetAdminRoleCompensation | undefined, { container }) => {
-    if (!input) {
+    if (input === undefined) {
       return
     }
 
@@ -128,7 +147,7 @@ export const setAdminRoleStep = createStep(
     }
 
     const authModuleService = container.resolve<IAuthModuleService>(
-      Modules.AUTH
+      Modules.AUTH,
     )
 
     await authModuleService.updateProviderIdentities([
@@ -139,5 +158,5 @@ export const setAdminRoleStep = createStep(
         },
       },
     ])
-  }
+  },
 )

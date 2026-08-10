@@ -1,13 +1,19 @@
 import type {
-  HttpTypes,
+  BigNumberValue,
   InferEntityType,
   MedusaContainer,
+  ProductDTO,
+  ProductVariantDTO,
 } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
+import { getRecordValue, isRecord } from "@techsio/std/object"
+
 import { MEASUREMENT_UNIT_MODULE } from "../modules/measurement-unit"
-import type MeasurementUnit from "../modules/measurement-unit/models/measurement-unit"
-import type ProductMeasurement from "../modules/measurement-unit/models/product-measurement"
-import type ProductVariantMeasurement from "../modules/measurement-unit/models/product-variant-measurement"
+import type {
+  MeasurementUnit,
+  ProductMeasurement,
+  ProductVariantMeasurement,
+} from "../modules/measurement-unit/models/measurement-unit"
 import type MeasurementUnitModuleService from "../modules/measurement-unit/service"
 
 export type MeasurementUnitRecord = InferEntityType<typeof MeasurementUnit>
@@ -18,20 +24,22 @@ export type ProductVariantMeasurementRecord = InferEntityType<
   typeof ProductVariantMeasurement
 >
 
-export type MeasurementUnitResponse = {
-  active_product_count?: number
+type MeasurementTimestamp = Date | string
+
+export interface MeasurementUnitResponse {
+  active_product_count?: number | undefined
   base_quantity: number
   code: string
-  created_at?: Date | string
-  deleted_at?: Date | string | null
-  description?: null | string
+  created_at?: MeasurementTimestamp | undefined
+  deleted_at?: MeasurementTimestamp | null | undefined
+  description?: null | string | undefined
   id: string
   name: string
   symbol: string
-  updated_at?: Date | string
+  updated_at?: Date | string | undefined
 }
 
-export type ProductMeasurementResponse = {
+export interface ProductMeasurementResponse {
   created_at?: Date | string
   id: string
   product_id: string
@@ -40,7 +48,7 @@ export type ProductMeasurementResponse = {
   variant_measurements: ProductVariantMeasurementResponse[]
 }
 
-export type ProductVariantMeasurementResponse = {
+export interface ProductVariantMeasurementResponse {
   created_at?: Date | string
   id: string
   product_unit_quantity: number
@@ -48,23 +56,49 @@ export type ProductVariantMeasurementResponse = {
   updated_at?: Date | string
 }
 
-type CalculatedPriceLike = NonNullable<
-  HttpTypes.StoreProductVariant["calculated_price"]
-> & {
-  price_per_unit?: Record<string, unknown>
+type PriceAmountValue = BigNumberValue | null | undefined
+
+interface PricePerUnit {
+  calculated_amount?: number
+  calculated_amount_with_tax?: number
+  calculated_amount_without_tax?: number
+  currency_code: string | null
+  original_amount?: number
+  original_amount_with_tax?: number
+  original_amount_without_tax?: number
+  product_unit_quantity: number
+  unit_base_quantity: number
+  unit_code: string
+  unit_id: string
+  unit_name: string
+  unit_symbol: string
 }
 
-type ProductLike = {
-  id?: unknown
-  measurement?: ProductMeasurementResponse | null
-  variants?: Array<{
-    calculated_price?: CalculatedPriceLike | null
-    id?: unknown
-    measurement?: ProductVariantMeasurementResponse | null
-  }> | null
+interface CalculatedPriceLike {
+  calculated_amount?: PriceAmountValue
+  calculated_amount_with_tax?: PriceAmountValue
+  calculated_amount_without_tax?: PriceAmountValue
+  currency_code?: string | null | undefined
+  original_amount?: PriceAmountValue
+  original_amount_with_tax?: PriceAmountValue
+  original_amount_without_tax?: PriceAmountValue
+  price_per_unit?: PricePerUnit
 }
 
-export type MeasurementDecorationOptions = {
+interface ProductLike {
+  id?: ProductDTO["id"] | undefined
+  measurement?: ProductMeasurementResponse | null | undefined
+  variants?:
+    | {
+        calculated_price?: CalculatedPriceLike | null | undefined
+        id?: ProductVariantDTO["id"] | undefined
+        measurement?: ProductVariantMeasurementResponse | null | undefined
+      }[]
+    | null
+    | undefined
+}
+
+export interface MeasurementDecorationOptions {
   includePricePerUnit: boolean
   includeProductMeasurement: boolean
   includeVariantMeasurement: boolean
@@ -90,7 +124,7 @@ const PRICE_PER_UNIT_QUERY_FIELDS = [
   "variants.calculated_price.is_calculated_price_tax_inclusive",
   "variants.calculated_price.is_original_price_tax_inclusive",
 ]
-const LEADING_PLUS_PATTERN = /^\+/
+const LEADING_PLUS_PATTERN = /^\+/u
 const PRODUCT_MEASUREMENT_QUERY_CHUNK_SIZE = 500
 
 const normalizeRequestedField = (field: string) =>
@@ -102,27 +136,27 @@ const hasRequestedField = (fields: string[], targets: string[]) =>
 
     return targets.some(
       (target) =>
-        normalizedField === target || normalizedField.startsWith(`${target}.`)
+        normalizedField === target || normalizedField.startsWith(`${target}.`),
     )
   })
 
 export const getMeasurementDecorationOptions = (
-  fields: string[] = []
+  fields: string[] = [],
 ): MeasurementDecorationOptions => ({
   includePricePerUnit: hasRequestedField(fields, PRICE_PER_UNIT_FIELDS),
   includeProductMeasurement: hasRequestedField(
     fields,
-    PRODUCT_MEASUREMENT_FIELDS
+    PRODUCT_MEASUREMENT_FIELDS,
   ),
   includeVariantMeasurement: hasRequestedField(
     fields,
-    VARIANT_MEASUREMENT_FIELDS
+    VARIANT_MEASUREMENT_FIELDS,
   ),
 })
 
 export const getMeasurementDecorationQueryFields = (
   fields: string[],
-  options: MeasurementDecorationOptions
+  options: MeasurementDecorationOptions,
 ) => {
   const decorationFields = [
     ...PRODUCT_MEASUREMENT_FIELDS,
@@ -130,7 +164,7 @@ export const getMeasurementDecorationQueryFields = (
     ...PRICE_PER_UNIT_FIELDS,
   ]
   const queryFields = fields.filter(
-    (field) => !hasRequestedField([field], decorationFields)
+    (field) => !hasRequestedField([field], decorationFields),
   )
 
   if (options.includeVariantMeasurement) {
@@ -141,13 +175,13 @@ export const getMeasurementDecorationQueryFields = (
     queryFields.push(...PRICE_PER_UNIT_QUERY_FIELDS)
   }
 
-  return Array.from(new Set(queryFields))
+  return [...new Set(queryFields)]
 }
 
 export const getMeasurementUnitService = (scope: MedusaContainer) =>
   scope.resolve<MeasurementUnitModuleService>(MEASUREMENT_UNIT_MODULE)
 
-export const toNumber = (value: number | string | unknown) => {
+export const toNumber = (value: unknown) => {
   if (typeof value === "number") {
     return value
   }
@@ -157,13 +191,11 @@ export const toNumber = (value: number | string | unknown) => {
     return Number.isFinite(parsed) ? parsed : Number.NaN
   }
 
-  if (
-    typeof value === "object" &&
-    value !== null &&
-    "value" in value &&
-    (typeof value.value === "string" || typeof value.value === "number")
-  ) {
-    return Number(value.value)
+  if (isRecord(value)) {
+    const nestedValue = getRecordValue(value, "value")
+    if (typeof nestedValue === "string" || typeof nestedValue === "number") {
+      return Number(nestedValue)
+    }
   }
 
   return Number.NaN
@@ -171,14 +203,14 @@ export const toNumber = (value: number | string | unknown) => {
 
 export const toMeasurementUnitResponse = (
   unit: MeasurementUnitRecord,
-  activeProductCount?: number
+  activeProductCount?: number,
 ): MeasurementUnitResponse => {
   const baseQuantity = toNumber(unit.base_quantity)
 
   if (!(Number.isFinite(baseQuantity) && baseQuantity > 0)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `Measurement unit "${unit.id}" has an invalid base quantity.`
+      `Measurement unit "${unit.id}" has an invalid base quantity.`,
     )
   }
 
@@ -197,7 +229,7 @@ export const toMeasurementUnitResponse = (
 }
 
 export const toProductVariantMeasurementResponse = (
-  measurement: ProductVariantMeasurementRecord
+  measurement: ProductVariantMeasurementRecord,
 ): ProductVariantMeasurementResponse | null => {
   if (measurement.deleted_at) {
     return null
@@ -208,7 +240,7 @@ export const toProductVariantMeasurementResponse = (
   if (!Number.isFinite(quantity) || quantity <= 0) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      `Product variant measurement "${measurement.id}" has an invalid quantity.`
+      `Product variant measurement "${measurement.id}" has an invalid quantity.`,
     )
   }
 
@@ -222,17 +254,20 @@ export const toProductVariantMeasurementResponse = (
 }
 
 export const toProductMeasurementResponse = (
-  measurement: ProductMeasurementRecord
+  measurement: ProductMeasurementRecord,
 ): ProductMeasurementResponse | null => {
-  if (!measurement.measurement_unit) {
+  if (
+    measurement.measurement_unit === null ||
+    measurement.measurement_unit === undefined
+  ) {
     return null
   }
 
   const variantMeasurements = (measurement.variant_measurements ?? []).flatMap(
     (variantMeasurement) => {
       const response = toProductVariantMeasurementResponse(variantMeasurement)
-      return response ? [response] : []
-    }
+      return response === null ? [] : [response]
+    },
   )
 
   return {
@@ -245,43 +280,59 @@ export const toProductMeasurementResponse = (
   }
 }
 
-export const listProductMeasurementsByProductIds = async (
-  scope: MedusaContainer,
-  productIds: string[]
-) => {
-  const ids = [...new Set(productIds)].filter(Boolean)
-
-  if (!ids.length) {
+const listProductMeasurementChunk = async (
+  service: MeasurementUnitModuleService,
+  ids: string[],
+  startIndex: number,
+): Promise<ProductMeasurementRecord[]> => {
+  if (startIndex >= ids.length) {
     return []
   }
 
-  const service = getMeasurementUnitService(scope)
-  const measurements: ProductMeasurementRecord[] = []
+  const chunk = ids.slice(
+    startIndex,
+    startIndex + PRODUCT_MEASUREMENT_QUERY_CHUNK_SIZE,
+  )
+  const chunkMeasurements = await service.listProductMeasurements(
+    { product_id: { $in: chunk } },
+    {
+      relations: ["measurement_unit", "variant_measurements"],
+      take: chunk.length,
+    },
+  )
+  const completedChunk = {
+    measurements: chunkMeasurements,
+    nextIndex: startIndex + PRODUCT_MEASUREMENT_QUERY_CHUNK_SIZE,
+  }
+  const remainingMeasurements = await listProductMeasurementChunk(
+    service,
+    ids,
+    completedChunk.nextIndex,
+  )
 
-  for (
-    let index = 0;
-    index < ids.length;
-    index += PRODUCT_MEASUREMENT_QUERY_CHUNK_SIZE
-  ) {
-    const chunk = ids.slice(index, index + PRODUCT_MEASUREMENT_QUERY_CHUNK_SIZE)
-    const chunkMeasurements = await service.listProductMeasurements(
-      {
-        product_id: { $in: chunk },
-      },
-      {
-        relations: ["measurement_unit", "variant_measurements"],
-        take: chunk.length,
-      }
-    )
-    measurements.push(...chunkMeasurements)
+  return [...completedChunk.measurements, ...remainingMeasurements]
+}
+
+export const listProductMeasurementsByProductIds = async (
+  scope: MedusaContainer,
+  productIds: string[],
+) => {
+  const ids = [...new Set(productIds)].filter((id) => id.length > 0)
+
+  if (ids.length === 0) {
+    return []
   }
 
-  return measurements
+  return await listProductMeasurementChunk(
+    getMeasurementUnitService(scope),
+    ids,
+    0,
+  )
 }
 
 export const getMeasurementUnitActiveProductCounts = async (
   scope: MedusaContainer,
-  unitIds: string[]
+  unitIds: string[],
 ) => {
   const ids = [...new Set(unitIds)].filter(Boolean)
 
@@ -293,14 +344,14 @@ export const getMeasurementUnitActiveProductCounts = async (
     await getMeasurementUnitService(scope).getActiveProductCounts(ids)
 
   return new Map(
-    counts.map((row) => [row.measurement_unit_id, Number(row.count)])
+    counts.map((row) => [row.measurement_unit_id, Number(row.count)]),
   )
 }
 
 const addPricePerUnit = (
   calculatedPrice: CalculatedPriceLike,
   measurement: ProductMeasurementResponse,
-  variantMeasurement: ProductVariantMeasurementResponse
+  variantMeasurement: ProductVariantMeasurementResponse,
 ) => {
   const quantity = variantMeasurement.product_unit_quantity
   const baseQuantity = measurement.unit.base_quantity
@@ -350,7 +401,7 @@ const decorateVariantWithMeasurement = (
   variant: NonNullable<ProductLike["variants"]>[number],
   measurement: ProductMeasurementResponse,
   variantMeasurement: ProductVariantMeasurementResponse | undefined,
-  options: MeasurementDecorationOptions
+  options: MeasurementDecorationOptions,
 ) => {
   if (options.includeVariantMeasurement) {
     variant.measurement = variantMeasurement ?? null
@@ -368,7 +419,7 @@ const decorateVariantWithMeasurement = (
 const decorateProductVariantsWithMeasurement = (
   product: ProductLike,
   measurement: ProductMeasurementResponse | null,
-  options: MeasurementDecorationOptions
+  options: MeasurementDecorationOptions,
 ) => {
   if (!measurement) {
     if (options.includeVariantMeasurement) {
@@ -383,7 +434,7 @@ const decorateProductVariantsWithMeasurement = (
     measurement.variant_measurements.map((variantMeasurement) => [
       variantMeasurement.product_variant_id,
       variantMeasurement,
-    ])
+    ]),
   )
 
   for (const variant of product.variants ?? []) {
@@ -396,7 +447,7 @@ const decorateProductVariantsWithMeasurement = (
       variant,
       measurement,
       variantMeasurement,
-      options
+      options,
     )
   }
 }
@@ -404,7 +455,7 @@ const decorateProductVariantsWithMeasurement = (
 export const decorateProductsWithMeasurements = async (
   scope: MedusaContainer,
   products: ProductLike[],
-  options: MeasurementDecorationOptions
+  options: MeasurementDecorationOptions,
 ) => {
   if (
     !(
@@ -417,17 +468,17 @@ export const decorateProductsWithMeasurements = async (
   }
 
   const productIds = products.flatMap((product) =>
-    typeof product.id === "string" ? [product.id] : []
+    typeof product.id === "string" ? [product.id] : [],
   )
   const measurements = await listProductMeasurementsByProductIds(
     scope,
-    productIds
+    productIds,
   )
   const measurementByProductId = new Map(
     measurements.flatMap((measurement) => {
       const response = toProductMeasurementResponse(measurement)
       return response ? [[measurement.product_id, response] as const] : []
-    })
+    }),
   )
 
   for (const product of products) {

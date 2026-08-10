@@ -1,34 +1,34 @@
-export type MeasurementUnitInput = {
+export interface MeasurementUnitInput {
   base_quantity: number
   code: string
-  description?: null | string
+  description?: null | string | undefined
   name: string
   symbol: string
 }
 
-export type CreateMeasurementUnitsWorkflowInput = {
+export interface CreateMeasurementUnitsWorkflowInput {
   units: MeasurementUnitInput[]
 }
 
-export type UpdateMeasurementUnitWorkflowInput = {
+export interface UpdateMeasurementUnitWorkflowInput {
   id: string
   update: Partial<MeasurementUnitInput>
 }
 
-export type DeleteMeasurementUnitsWorkflowInput = {
+export interface DeleteMeasurementUnitsWorkflowInput {
   ids: string[]
 }
 
-export type RestoreMeasurementUnitsWorkflowInput = {
+export interface RestoreMeasurementUnitsWorkflowInput {
   ids: string[]
 }
 
-export type SetProductMeasurementWorkflowInput = {
+export interface SetProductMeasurementWorkflowInput {
   measurement_unit_id: string
   product_id: string
 }
 
-export type ProductVariantMeasurementInput = {
+export interface ProductVariantMeasurementInput {
   product_unit_quantity: number
   product_variant_id: string
 }
@@ -38,11 +38,11 @@ export type SetProductVariantMeasurementWorkflowInput =
     product_id: string
   }
 
-export type DeleteProductVariantMeasurementWorkflowInput = {
+export interface DeleteProductVariantMeasurementWorkflowInput {
   product_id: string
   product_variant_id: string
 }
 
-export type DeleteProductMeasurementWorkflowInput = {
+export interface DeleteProductMeasurementWorkflowInput {
   product_id: string
 }

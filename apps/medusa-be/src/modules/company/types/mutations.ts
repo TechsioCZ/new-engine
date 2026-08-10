@@ -9,7 +9,7 @@ export type UpdateCompanyDTO = Partial<CompanyDTO> & {
   id: string
 }
 
-export type DeleteCompanyDTO = {
+export interface DeleteCompanyDTO {
   id: string
 }
 
@@ -24,6 +24,6 @@ export type UpdateEmployeeDTO = Partial<EmployeeDTO> & {
   id: string
 }
 
-export type DeleteEmployeeDTO = {
+export interface DeleteEmployeeDTO {
   id: string
 }

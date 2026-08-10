@@ -1,17 +1,17 @@
-import { Drawer, type toast as toastType } from "@medusajs/ui"
+import { Drawer } from "@medusajs/ui"
+import type { toast as toastType } from "@medusajs/ui"
+import { getErrorMessage } from "@techsio/std/object"
 import { useTranslation } from "react-i18next"
+
 import type {
   AdminUpdateEmployee,
   QueryCompany,
   QueryEmployee,
 } from "../../../../../types"
-import { useUpdateEmployee } from "../../../../hooks/api"
-import { EmployeesUpdateForm } from "."
+import { useUpdateEmployee } from "../../../../hooks/api/employees"
+import { EmployeesUpdateForm } from "./employees-update-form"
 
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error)
-
-export function EmployeesUpdateDrawer({
+export const EmployeesUpdateDrawer = ({
   company,
   employee,
   open,
@@ -23,11 +23,11 @@ export function EmployeesUpdateDrawer({
   open: boolean
   setOpen: (open: boolean) => void
   toast: typeof toastType
-}) {
+}) => {
   const { t } = useTranslation("companies")
   const { mutateAsync, isPending } = useUpdateEmployee(
     employee.company_id,
-    employee.id
+    employee.id,
   )
 
   const handleSubmit = async (formData: AdminUpdateEmployee) => {
@@ -35,11 +35,11 @@ export function EmployeesUpdateDrawer({
       await mutateAsync(formData)
       setOpen(false)
       toast.success(
-        t("toasts.employeeUpdated", { email: employee?.customer?.email })
+        t("toasts.employeeUpdated", { email: employee?.customer?.email }),
       )
     } catch (error) {
       toast.error(
-        `${t("errors.updateEmployeeFailed")}: ${getErrorMessage(error)}`
+        `${t("errors.updateEmployeeFailed")}: ${getErrorMessage(error)}`,
       )
     }
   }

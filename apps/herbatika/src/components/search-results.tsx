@@ -2,26 +2,42 @@
 
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { useTranslations } from "next-intl"
+
 import { CatalogListingShell } from "@/components/catalog-listing-shell"
 import { CategoryFacetsPanel } from "@/components/category/category-facets-panel"
 import { CategoryResultsSection } from "@/components/category/category-results-section"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
+
 import { SearchEntityResults } from "./search/search-entity-results"
 import { useSearchAutocomplete } from "./search/use-search-autocomplete"
 import { useSearchListingController } from "./search/use-search-listing-controller"
 
-export function SearchResults() {
+export const SearchResults = () => {
   const t = useTranslations("search")
   const controller = useSearchListingController()
   const safeTotalPages = Math.max(controller.catalogQuery.totalPages, 1)
   const autocomplete = useSearchAutocomplete({
-    countryCode: controller.searchCountryCode,
-    query: controller.query,
+    ...(controller.searchCountryCode === undefined
+      ? {}
+      : { countryCode: controller.searchCountryCode }),
     currencyCode: controller.productsCurrencyCode,
     enabled: controller.isSearchQueryEnabled,
-    regionId: controller.searchRegionId,
+    query: controller.query,
+    ...(controller.searchRegionId === undefined
+      ? {}
+      : { regionId: controller.searchRegionId }),
   })
+  const handleAddToCart = controller.onAddToCart
+  const handleBrandToggle = controller.onBrandToggle
+  const handleFormToggle = controller.onFormToggle
+  const handleIngredientToggle = controller.onIngredientToggle
+  const handlePriceRangeCommit = controller.onPriceRangeCommit
+  const handleProductHoverEnd = controller.onProductHoverEnd
+  const handleProductHoverStart = controller.onProductHoverStart
+  const handleResetFilters = controller.onResetFilters
+  const handleSortChange = controller.onSortChange
+  const handleStatusToggle = controller.onStatusToggle
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-search-page-gap p-search-page font-rubik 2xl:p-search-page-lg">
@@ -55,8 +71,12 @@ export function SearchResults() {
         <>
           <SearchEntityResults
             brands={autocomplete.data.brands}
+            brandsTitle={t("autocomplete.sections.brands")}
             categories={autocomplete.data.categories}
+            categoriesTitle={t("autocomplete.sections.categories")}
             content={autocomplete.data.content}
+            contentTitle={t("autocomplete.sections.content")}
+            heading={t("results.related")}
           />
 
           <section className="space-y-300">
@@ -72,12 +92,12 @@ export function SearchResults() {
                   formItems={controller.asideFormItems}
                   ingredientItems={controller.asideIngredientItems}
                   isLoading={controller.isFiltersLoading}
-                  onBrandToggle={controller.onBrandToggle}
-                  onFormToggle={controller.onFormToggle}
-                  onIngredientToggle={controller.onIngredientToggle}
-                  onPriceRangeCommit={controller.onPriceRangeCommit}
-                  onReset={controller.onResetFilters}
-                  onStatusToggle={controller.onStatusToggle}
+                  onBrandToggle={handleBrandToggle}
+                  onFormToggle={handleFormToggle}
+                  onIngredientToggle={handleIngredientToggle}
+                  onPriceRangeCommit={handlePriceRangeCommit}
+                  onReset={handleResetFilters}
+                  onStatusToggle={handleStatusToggle}
                   priceBounds={controller.priceBounds}
                   selectedPriceRange={controller.selectedPriceRange}
                   statusItems={controller.asideStatusItems}
@@ -94,10 +114,10 @@ export function SearchResults() {
                   isProductAdding={controller.isProductAdding}
                   isRefreshing={controller.isResultsRefreshing}
                   layout="catalog"
-                  onAddToCart={controller.onAddToCart}
-                  onProductHoverEnd={controller.onProductHoverEnd}
-                  onProductHoverStart={controller.onProductHoverStart}
-                  onSortChange={controller.onSortChange}
+                  onAddToCart={handleAddToCart}
+                  onProductHoverEnd={handleProductHoverEnd}
+                  onProductHoverStart={handleProductHoverStart}
+                  onSortChange={handleSortChange}
                   page={controller.page}
                   pageSize={PLP_PAGE_SIZE}
                   products={controller.products}

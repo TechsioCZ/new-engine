@@ -1,20 +1,21 @@
 /* Entity: Company */
 
 import type { CustomerDTO, CustomerGroupDTO } from "@medusajs/framework/types"
-import type { ModuleApprovalSettings } from "../approval"
+
+import type { ModuleApprovalSettings } from "../approval/module"
 
 export const ModuleCompanySpendingLimitResetFrequency = {
-  NEVER: "never",
   DAILY: "daily",
-  WEEKLY: "weekly",
   MONTHLY: "monthly",
+  NEVER: "never",
+  WEEKLY: "weekly",
   YEARLY: "yearly",
 } as const
 
 export type ModuleCompanySpendingLimitResetFrequency =
   (typeof ModuleCompanySpendingLimitResetFrequency)[keyof typeof ModuleCompanySpendingLimitResetFrequency]
 
-export type ModuleCompany = {
+export interface ModuleCompany {
   id: string
   name: string
   phone: string | null
@@ -34,7 +35,7 @@ export type ModuleCompany = {
   approval_settings: ModuleApprovalSettings
 }
 
-export type ModuleCreateCompany = {
+export interface ModuleCreateCompany {
   name: string
   phone?: string | null
   email: string
@@ -52,13 +53,13 @@ export interface ModuleUpdateCompany extends Partial<ModuleCompany> {
   id: string
 }
 
-export type ModuleDeleteCompany = {
+export interface ModuleDeleteCompany {
   id: string
 }
 
 /* Entity: Employee */
 
-export type ModuleEmployee = {
+export interface ModuleEmployee {
   id: string
   spending_limit: number
   is_admin: boolean
@@ -70,7 +71,7 @@ export type ModuleEmployee = {
   company: ModuleCompany
 }
 
-export type ModuleCreateEmployee = {
+export interface ModuleCreateEmployee {
   customer_id: string
   spending_limit?: number
   is_admin?: boolean
@@ -78,9 +79,5 @@ export type ModuleCreateEmployee = {
 }
 
 export interface ModuleUpdateEmployee extends Partial<ModuleEmployee> {
-  id: string
-}
-
-export type ModuleDeleteEmployee = {
   id: string
 }

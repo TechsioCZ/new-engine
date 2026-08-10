@@ -4,8 +4,9 @@ import { Accordion } from "@techsio/ui-kit/molecules/accordion"
 import { Tabs } from "@techsio/ui-kit/molecules/tabs"
 import { useTranslations } from "next-intl"
 import { Suspense } from "react"
-import type { ProductDetailContentSection } from "@/components/product-detail/product-detail.types"
+
 import { ProductDetailHtmlContent } from "@/components/product-detail/product-detail-html-content"
+import type { ProductDetailContentSection } from "@/components/product-detail/product-detail.types"
 import {
   PRODUCT_DETAIL_REVIEWS_SECTION_ID,
   PRODUCT_DETAIL_REVIEWS_TAB_VALUE,
@@ -15,7 +16,7 @@ import { ProductDetailReviews } from "@/components/product-detail/sections/produ
 const getAccordionSectionId = (value: string) =>
   `product-detail-information-${value}`
 
-type ProductDetailTabsProps = {
+interface ProductDetailTabsProps {
   activeSectionValue?: string
   defaultSectionValue: string
   onSectionValueChange: (value: string | undefined) => void
@@ -23,55 +24,63 @@ type ProductDetailTabsProps = {
   sections: ProductDetailContentSection[]
 }
 
-function ProductDetailReviewsSlot({
+const ProductDetailReviewsSlot = ({
   productId,
 }: {
   productId?: string | null
-}) {
-  return (
-    <Suspense fallback={null}>
-      <ProductDetailReviews productId={productId} />
-    </Suspense>
-  )
-}
+}) => (
+  <Suspense fallback={null}>
+    <ProductDetailReviews {...(productId === undefined ? {} : { productId })} />
+  </Suspense>
+)
 
-export function ProductDetailTabs({
+export const ProductDetailTabs = ({
   activeSectionValue,
   defaultSectionValue,
   onSectionValueChange,
   productId,
   sections,
-}: ProductDetailTabsProps) {
+}: ProductDetailTabsProps) => {
   const tCatalog = useTranslations("catalog")
   const selectedSectionValue = activeSectionValue ?? defaultSectionValue
-  const tabSections = productId
+  const hasProductId =
+    productId !== null && productId !== undefined && productId !== ""
+  const tabSections = hasProductId
     ? [
         ...sections,
         {
+          html: "",
           key: PRODUCT_DETAIL_REVIEWS_TAB_VALUE,
           title: tCatalog("reviews.tab_label"),
-          html: "",
         },
       ]
     : sections
 
   const handleAccordionChange = (value: string[]) => {
-    const sectionValue = value[0]
+    const [sectionValue] = value
     onSectionValueChange(sectionValue)
 
-    if (!sectionValue) {
+    if (sectionValue === undefined || sectionValue === "") {
       return
     }
 
     window.requestAnimationFrame(() => {
       document
-        .getElementById(getAccordionSectionId(sectionValue))
+        .querySelector<HTMLElement>(
+          `#${CSS.escape(getAccordionSectionId(sectionValue))}`,
+        )
         ?.scrollIntoView({ block: "start" })
     })
   }
 
+  const reviewsSlot = (
+    <ProductDetailReviewsSlot
+      {...(productId === undefined ? {} : { productId })}
+    />
+  )
+
   return (
-    <section id={productId ? PRODUCT_DETAIL_REVIEWS_SECTION_ID : undefined}>
+    <section id={hasProductId ? PRODUCT_DETAIL_REVIEWS_SECTION_ID : undefined}>
       <h2 className="mb-400 font-semibold text-3xl text-fg-primary">
         {tCatalog("product_detail.information_title")}
       </h2>
@@ -106,7 +115,7 @@ export function ProductDetailTabs({
               value={section.key}
             >
               {section.key === PRODUCT_DETAIL_REVIEWS_TAB_VALUE ? (
-                <ProductDetailReviewsSlot productId={productId} />
+                reviewsSlot
               ) : (
                 <ProductDetailHtmlContent html={section.html} />
               )}
@@ -120,7 +129,11 @@ export function ProductDetailTabs({
           collapsible
           onChange={handleAccordionChange}
           size="sm"
-          value={activeSectionValue ? [activeSectionValue] : []}
+          value={
+            activeSectionValue === undefined || activeSectionValue === ""
+              ? []
+              : [activeSectionValue]
+          }
           variant="default"
         >
           {tabSections.map((section) => (
@@ -134,7 +147,7 @@ export function ProductDetailTabs({
               </Accordion.Header>
               <Accordion.Content>
                 {section.key === PRODUCT_DETAIL_REVIEWS_TAB_VALUE ? (
-                  <ProductDetailReviewsSlot productId={productId} />
+                  reviewsSlot
                 ) : (
                   <ProductDetailHtmlContent html={section.html} />
                 )}

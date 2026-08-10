@@ -1,9 +1,11 @@
+import { getRecordValue } from "@techsio/std/object"
+
 import { sdk } from "./sdk"
 
 export type ProductAttributeInputType = "select" | "text"
 export type ProductAttributeStatus = "active" | "all" | "deleted"
 
-export type ProductAttributeDefinition = {
+export interface ProductAttributeDefinition {
   created_at?: string
   deleted_at?: string | null
   id: string
@@ -15,7 +17,7 @@ export type ProductAttributeDefinition = {
   usage_count: number
 }
 
-export type ProductAttributeOption = {
+export interface ProductAttributeOption {
   created_at?: string
   definition_id: string
   deleted_at?: string | null
@@ -26,7 +28,7 @@ export type ProductAttributeOption = {
   usage_count: number
 }
 
-export type ProductAttributeAssignedProduct = {
+export interface ProductAttributeAssignedProduct {
   handle?: null | string
   id: string
   status?: null | string
@@ -34,7 +36,7 @@ export type ProductAttributeAssignedProduct = {
   updated_at?: string
 }
 
-export type ProductAttributeDetailItem = {
+export interface ProductAttributeDetailItem {
   assignment: {
     id: string
     option_id: string | null
@@ -44,36 +46,36 @@ export type ProductAttributeDetailItem = {
   selected_option: ProductAttributeOption | null
 }
 
-export type ProductAttributeDefinitionsResponse = {
+export interface ProductAttributeDefinitionsResponse {
   count: number
   definitions: ProductAttributeDefinition[]
   limit: number
   offset: number
 }
 
-export type ProductAttributeDefinitionResponse = {
+export interface ProductAttributeDefinitionResponse {
   definition: ProductAttributeDefinition
 }
 
-export type ProductAttributeOptionsResponse = {
+export interface ProductAttributeOptionsResponse {
   count: number
   limit: number
   offset: number
   options: ProductAttributeOption[]
 }
 
-export type ProductAttributeOptionResponse = {
+export interface ProductAttributeOptionResponse {
   option: ProductAttributeOption
 }
 
-export type ProductAttributeAssignedProductsResponse = {
+export interface ProductAttributeAssignedProductsResponse {
   count: number
   limit: number
   offset: number
   products: ProductAttributeAssignedProduct[]
 }
 
-export type ProductAttributesResponse = {
+export interface ProductAttributesResponse {
   product_attributes: ProductAttributeDetailItem[]
 }
 
@@ -93,33 +95,24 @@ export type SetProductAttributeOperation =
       text_value: string
     }
 
-const toSearch = (
-  params: Record<string, boolean | number | string | undefined>
-) => {
+const toSearch = (params: object) => {
   const search = new URLSearchParams()
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "") {
+
+  for (const key of Object.keys(params)) {
+    const value = getRecordValue(params, key)
+    if (
+      typeof value === "boolean" ||
+      typeof value === "number" ||
+      (typeof value === "string" && value !== "")
+    ) {
       search.set(key, String(value))
     }
   }
+
   return search.toString()
 }
 
-export const productAttributeQueryKeys = {
-  definitionLists: () => ["product-attribute-definitions"] as const,
-  definitions: (params: Record<string, unknown>) =>
-    ["product-attribute-definitions", params] as const,
-  optionLists: (definitionId?: string) =>
-    ["product-attribute-options", definitionId] as const,
-  options: (definitionId: string, params: Record<string, unknown>) =>
-    ["product-attribute-options", definitionId, params] as const,
-  optionProducts: (optionId: string, params: Record<string, unknown>) =>
-    ["product-attribute-option-products", optionId, params] as const,
-  products: () => ["product-attributes"] as const,
-  product: (productId?: string) => ["product-attributes", productId] as const,
-}
-
-export const listProductAttributeDefinitions = (params: {
+interface ListProductAttributeDefinitionsParams {
   input_type?: ProductAttributeInputType
   is_public?: boolean
   limit: number
@@ -127,128 +120,155 @@ export const listProductAttributeDefinitions = (params: {
   order?: string
   q?: string
   status?: ProductAttributeStatus
-}) =>
-  sdk.client.fetch<ProductAttributeDefinitionsResponse>(
-    `/admin/product-attributes/definitions?${toSearch(params)}`
+}
+
+interface ListProductAttributeOptionsParams {
+  limit: number
+  offset: number
+  order?: string
+  q?: string
+  status?: ProductAttributeStatus
+}
+
+interface ListOptionAssignedProductsParams {
+  limit: number
+  offset: number
+  order?: string
+  q?: string
+}
+
+export const productAttributeQueryKeys = {
+  definitionLists: () => ["product-attribute-definitions"] as const,
+  definitions: (params: ListProductAttributeDefinitionsParams) =>
+    ["product-attribute-definitions", params] as const,
+  optionLists: (definitionId?: string) =>
+    ["product-attribute-options", definitionId] as const,
+  optionProducts: (
+    optionId: string,
+    params: ListOptionAssignedProductsParams,
+  ) => ["product-attribute-option-products", optionId, params] as const,
+  options: (definitionId: string, params: ListProductAttributeOptionsParams) =>
+    ["product-attribute-options", definitionId, params] as const,
+  product: (productId?: string) => ["product-attributes", productId] as const,
+  products: () => ["product-attributes"] as const,
+}
+
+export const listProductAttributeDefinitions = async (
+  params: ListProductAttributeDefinitionsParams,
+) =>
+  await sdk.client.fetch<ProductAttributeDefinitionsResponse>(
+    `/admin/product-attributes/definitions?${toSearch(params)}`,
   )
 
-export const createProductAttributeDefinition = (input: {
+export const createProductAttributeDefinition = async (input: {
   input_type: ProductAttributeInputType
   is_public: boolean
   key: string
   label: string
 }) =>
-  sdk.client.fetch<ProductAttributeDefinitionResponse>(
+  await sdk.client.fetch<ProductAttributeDefinitionResponse>(
     "/admin/product-attributes/definitions",
-    { body: input, method: "POST" }
+    { body: input, method: "POST" },
   )
 
-export const updateProductAttributeDefinition = (
+export const updateProductAttributeDefinition = async (
   id: string,
   input: {
     input_type?: ProductAttributeInputType
     is_public?: boolean
     label?: string
-  }
+  },
 ) =>
-  sdk.client.fetch<ProductAttributeDefinitionResponse>(
+  await sdk.client.fetch<ProductAttributeDefinitionResponse>(
     `/admin/product-attributes/definitions/${id}`,
-    { body: input, method: "POST" }
+    { body: input, method: "POST" },
   )
 
-export const deleteProductAttributeDefinition = (id: string) =>
-  sdk.client.fetch(`/admin/product-attributes/definitions/${id}`, {
+export const deleteProductAttributeDefinition = async (id: string) =>
+  await sdk.client.fetch(`/admin/product-attributes/definitions/${id}`, {
     method: "DELETE",
   })
 
-export const permanentlyDeleteProductAttributeDefinition = (id: string) =>
-  sdk.client.fetch(`/admin/product-attributes/definitions/${id}/permanent`, {
-    method: "DELETE",
-  })
+export const permanentlyDeleteProductAttributeDefinition = async (id: string) =>
+  await sdk.client.fetch(
+    `/admin/product-attributes/definitions/${id}/permanent`,
+    {
+      method: "DELETE",
+    },
+  )
 
-export const restoreProductAttributeDefinition = (id: string) =>
-  sdk.client.fetch<ProductAttributeDefinitionResponse>(
+export const restoreProductAttributeDefinition = async (id: string) =>
+  await sdk.client.fetch<ProductAttributeDefinitionResponse>(
     `/admin/product-attributes/definitions/${id}/restore`,
-    { method: "POST" }
+    { method: "POST" },
   )
 
-export const listProductAttributeOptions = (
+export const listProductAttributeOptions = async (
   definitionId: string,
-  params: {
-    limit: number
-    offset: number
-    order?: string
-    q?: string
-    status?: ProductAttributeStatus
-  }
+  params: ListProductAttributeOptionsParams,
 ) =>
-  sdk.client.fetch<ProductAttributeOptionsResponse>(
+  await sdk.client.fetch<ProductAttributeOptionsResponse>(
     `/admin/product-attributes/options?${toSearch({
       ...params,
       definition_id: definitionId,
-    })}`
+    })}`,
   )
 
-export const listProductAttributeOptionAssignedProducts = (
+export const listProductAttributeOptionAssignedProducts = async (
   optionId: string,
-  params: {
-    limit: number
-    offset: number
-    order?: string
-    q?: string
-  }
+  params: ListOptionAssignedProductsParams,
 ) =>
-  sdk.client.fetch<ProductAttributeAssignedProductsResponse>(
-    `/admin/product-attributes/options/${optionId}/products?${toSearch(params)}`
+  await sdk.client.fetch<ProductAttributeAssignedProductsResponse>(
+    `/admin/product-attributes/options/${optionId}/products?${toSearch(params)}`,
   )
 
-export const createProductAttributeOption = (
+export const createProductAttributeOption = async (
   definitionId: string,
-  input: { key: string; label: string }
+  input: { key: string; label: string },
 ) =>
-  sdk.client.fetch<ProductAttributeOptionResponse>(
+  await sdk.client.fetch<ProductAttributeOptionResponse>(
     `/admin/product-attributes/definitions/${definitionId}/options`,
-    { body: input, method: "POST" }
+    { body: input, method: "POST" },
   )
 
-export const updateProductAttributeOption = (
+export const updateProductAttributeOption = async (
   id: string,
-  input: { label: string }
+  input: { label: string },
 ) =>
-  sdk.client.fetch<ProductAttributeOptionResponse>(
+  await sdk.client.fetch<ProductAttributeOptionResponse>(
     `/admin/product-attributes/options/${id}`,
-    { body: input, method: "POST" }
+    { body: input, method: "POST" },
   )
 
-export const deleteProductAttributeOption = (id: string) =>
-  sdk.client.fetch(`/admin/product-attributes/options/${id}`, {
+export const deleteProductAttributeOption = async (id: string) =>
+  await sdk.client.fetch(`/admin/product-attributes/options/${id}`, {
     method: "DELETE",
   })
 
-export const permanentlyDeleteProductAttributeOption = (id: string) =>
-  sdk.client.fetch(`/admin/product-attributes/options/${id}/permanent`, {
+export const permanentlyDeleteProductAttributeOption = async (id: string) =>
+  await sdk.client.fetch(`/admin/product-attributes/options/${id}/permanent`, {
     method: "DELETE",
   })
 
-export const restoreProductAttributeOption = (id: string) =>
-  sdk.client.fetch<ProductAttributeOptionResponse>(
+export const restoreProductAttributeOption = async (id: string) =>
+  await sdk.client.fetch<ProductAttributeOptionResponse>(
     `/admin/product-attributes/options/${id}/restore`,
-    { method: "POST" }
+    { method: "POST" },
   )
 
-export const retrieveProductAttributes = (productId: string) =>
-  sdk.client.fetch<ProductAttributesResponse>(
-    `/admin/products/${productId}/product-attributes`
+export const retrieveProductAttributes = async (productId: string) =>
+  await sdk.client.fetch<ProductAttributesResponse>(
+    `/admin/products/${productId}/product-attributes`,
   )
 
-export const setProductAttributes = (
+export const setProductAttributes = async (
   productId: string,
-  operations: SetProductAttributeOperation[]
+  operations: SetProductAttributeOperation[],
 ) =>
-  sdk.client.fetch<ProductAttributesResponse>(
+  await sdk.client.fetch<ProductAttributesResponse>(
     `/admin/products/${productId}/product-attributes`,
     {
       body: { operations },
       method: "POST",
-    }
+    },
   )

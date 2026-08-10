@@ -6,20 +6,21 @@ import {
   Trash,
 } from "@medusajs/icons"
 import { toast } from "@medusajs/ui"
+import { getErrorMessage } from "@techsio/std/object"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useNavigate } from "react-router-dom"
-import type { QueryCompany } from "../../../../types"
-import { ActionMenu, DeletePrompt } from "../../../components"
-import { useDeleteCompany, useRestoreCompany } from "../../../hooks/api"
-import {
-  CompanyApprovalSettingsDrawer,
-  CompanyCustomerGroupDrawer,
-  CompanyUpdateDrawer,
-} from "./"
 
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error)
+import type { QueryCompany } from "../../../../types"
+import { ActionMenu } from "../../../components/common/action-menu"
+import { DeletePrompt } from "../../../components/common/delete-prompt"
+import {
+  useDeleteCompany,
+  useRestoreCompany,
+} from "../../../hooks/api/companies"
+import { CompanyApprovalSettingsDrawer } from "./company-approval-settings-drawer"
+import { CompanyCustomerGroupDrawer } from "./company-customer-group-drawer"
+import { CompanyUpdateDrawer } from "./company-update-drawer"
 
 export const CompanyActionsMenu = ({ company }: { company: QueryCompany }) => {
   const { t } = useTranslation("companies")
@@ -29,7 +30,7 @@ export const CompanyActionsMenu = ({ company }: { company: QueryCompany }) => {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const { mutateAsync: mutateDelete, isPending: loadingDelete } =
     useDeleteCompany(company.id)
-  const { mutateAsync: mutateRestore, isPending: loadingRestore } =
+  const { mutate: mutateRestore, isPending: loadingRestore } =
     useRestoreCompany(company.id)
 
   const navigate = useNavigate()
@@ -38,7 +39,7 @@ export const CompanyActionsMenu = ({ company }: { company: QueryCompany }) => {
     await mutateDelete(undefined, {
       onError: (error) => {
         toast.error(
-          `${t("errors.deleteCompanyFailed")}: ${getErrorMessage(error)}`
+          `${t("errors.deleteCompanyFailed")}: ${getErrorMessage(error)}`,
         )
       },
     })
@@ -49,11 +50,11 @@ export const CompanyActionsMenu = ({ company }: { company: QueryCompany }) => {
 
   const handleRestore = () => {
     mutateRestore(undefined, {
-      onSuccess: () => {
-        toast.success(t("toasts.companyRestored", { name: company.name }))
-      },
       onError: () => {
         toast.error(t("errors.restoreCompanyFailed"))
+      },
+      onSuccess: () => {
+        toast.success(t("toasts.companyRestored", { name: company.name }))
       },
     })
   }
@@ -86,17 +87,23 @@ export const CompanyActionsMenu = ({ company }: { company: QueryCompany }) => {
               {
                 icon: <PencilSquare />,
                 label: t("actions.editDetails"),
-                onClick: () => setEditOpen(true),
+                onClick: () => {
+                  setEditOpen(true)
+                },
               },
               {
                 icon: <Link />,
                 label: t("actions.manageCustomerGroup"),
-                onClick: () => setCustomerGroupOpen(true),
+                onClick: () => {
+                  setCustomerGroupOpen(true)
+                },
               },
               {
                 icon: <LockClosedSolid />,
                 label: t("approvalSettings.title"),
-                onClick: () => setApprovalSettingsOpen(true),
+                onClick: () => {
+                  setApprovalSettingsOpen(true)
+                },
               },
             ],
           },
@@ -105,7 +112,9 @@ export const CompanyActionsMenu = ({ company }: { company: QueryCompany }) => {
               {
                 icon: <Trash />,
                 label: t("actions.delete"),
-                onClick: () => setDeleteOpen(true),
+                onClick: () => {
+                  setDeleteOpen(true)
+                },
               },
             ],
           },

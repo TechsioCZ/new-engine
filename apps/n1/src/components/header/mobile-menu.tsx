@@ -6,6 +6,7 @@ import { Header, HeaderContext } from "@techsio/ui-kit/organisms/header"
 import NextLink from "next/link"
 import { usePathname } from "next/navigation"
 import { useContext, useEffect } from "react"
+
 import { links, submenuItems } from "@/data/header"
 import { useMediaQuery } from "@/hooks/use-media-query"
 
@@ -20,17 +21,21 @@ export const MobileMenu = () => {
     }
   }, [isDesktop, isMobileMenuOpen, setIsMobileMenuOpen])
 
-  const handleClose = () => setIsMobileMenuOpen(false)
+  const handleClose = () => {
+    setIsMobileMenuOpen(false)
+  }
 
   return (
     <Header.Mobile position="left">
       <Dialog
-        className="top-[7rem] max-w-xs overflow-hidden px-0 py-0"
+        className="top-mobile-menu max-w-xs overflow-hidden px-0 py-0"
         closeOnInteractOutside={true}
         customTrigger
         hideCloseButton
         modal={true}
-        onOpenChange={({ open }) => setIsMobileMenuOpen(open)}
+        onOpenChange={({ open }) => {
+          setIsMobileMenuOpen(open)
+        }}
         open={isMobileMenuOpen}
         placement="left"
         portal={true}
@@ -42,7 +47,7 @@ export const MobileMenu = () => {
             <Accordion className="w-full" variant="borderless">
               {links.map((link) => {
                 const subMenu = submenuItems.find(
-                  (item) => item.name === link.label
+                  (item) => item.name === link.label,
                 )
                 const isActive = pathname === link.href
                 if (subMenu && subMenu.items.length > 0) {

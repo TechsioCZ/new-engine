@@ -2,6 +2,7 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+
 import { symmyProcessInvoicesBatchStep } from "./steps/process-batch"
 import type {
   AttachInvoicesBatchInput,
@@ -13,7 +14,7 @@ const symmyAttachInvoicesBatchWorkflow = createWorkflow(
   (input: AttachInvoicesBatchInput) => {
     const result = symmyProcessInvoicesBatchStep(input)
     return new WorkflowResponse<AttachInvoicesBatchOutput>(result)
-  }
+  },
 )
 
 export { symmyAttachInvoicesBatchWorkflow as attachInvoicesBatchWorkflow }

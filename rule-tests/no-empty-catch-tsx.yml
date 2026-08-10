@@ -1,0 +1,16 @@
+id: no-empty-catch-tsx
+valid:
+  - |
+    try { run() } catch (error) { report(error) }
+  - |
+    try { run() } catch { reportFailure() }
+invalid:
+  - |
+    try { run() } catch {}
+  - |
+    try { run() } catch (error) {}
+  - |
+    const Panel = () => {
+      try { render() } catch {}
+      return <div />
+    }

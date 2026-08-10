@@ -2,6 +2,7 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
+
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
 import type ProductListModuleService from "../../../modules/product-list/service"
 import { listCustomerProductListIds } from "../../../utils/product-list-links"
@@ -12,10 +13,10 @@ import {
 } from "./utils"
 import type { StoreGetProductListsSchemaType } from "./validators"
 
-export async function GET(
+const getRoute = async (
   req: AuthenticatedMedusaRequest<unknown, StoreGetProductListsSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const customerId = req.auth_context.actor_id
   const productListIds = await listCustomerProductListIds(req.scope, customerId)
   const { handle, limit, offset, type } = req.validatedQuery
@@ -25,16 +26,10 @@ export async function GET(
     return
   }
 
-  const filters: Record<string, unknown> = {
+  const filters = {
     id: { $in: productListIds },
-  }
-
-  if (handle) {
-    filters.handle = handle
-  }
-
-  if (type) {
-    filters.type = type
+    ...(handle !== undefined && handle !== "" ? { handle } : {}),
+    ...(type === undefined ? {} : { type }),
   }
 
   const productListService =
@@ -48,7 +43,7 @@ export async function GET(
   const productListsWithItems = await withProductListItems(
     req.scope,
     productLists,
-    { previewLimit: INLINE_PRODUCT_LIST_ITEMS_LIMIT }
+    { previewLimit: INLINE_PRODUCT_LIST_ITEMS_LIMIT },
   )
 
   res.json({
@@ -58,3 +53,5 @@ export async function GET(
     product_lists: productListsWithItems.map(toProductListResponse),
   })
 }
+
+export { getRoute as GET }

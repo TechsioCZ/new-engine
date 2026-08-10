@@ -4,18 +4,20 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
+import { omitUndefined } from "@techsio/std/object"
+
 import {
-  type CacheConfig,
-  type CacheStrategy,
   createCacheConfig,
   getPrefetchCacheOptions,
 } from "../shared/cache-config"
+import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import { toErrorMessage } from "../shared/error-utils"
 import type {
   ReadQueryOptions,
   SuspenseQueryOptions,
 } from "../shared/hook-types"
-import { type PrefetchSkipMode, shouldSkipPrefetch } from "../shared/prefetch"
+import { shouldSkipPrefetch } from "../shared/prefetch"
+import type { PrefetchSkipMode } from "../shared/prefetch"
 import type { QueryNamespace } from "../shared/query-keys"
 import { applyRegion } from "../shared/region"
 import { useRegionContext } from "../shared/region-context"
@@ -33,12 +35,21 @@ import type {
 } from "./types"
 import { resolvePositiveInteger } from "./utils"
 
-export type CreateCatalogHooksConfig<
+const resolveCatalogInput = <TInput extends CatalogListInputBase>(
+  input: TInput,
+  region?: RegionInfo | null,
+): TInput => {
+  const queryInput = { ...input }
+  delete queryInput.enabled
+  return applyRegion(queryInput, region)
+}
+
+export interface CreateCatalogHooksConfig<
   TProduct,
   TListInput extends CatalogListInputBase,
   TListParams,
   TFacets,
-> = {
+> {
   service: CatalogService<TProduct, TListParams, TFacets>
   buildListParams?: (input: TListInput) => TListParams
   queryKeys?: CatalogQueryKeys<TListParams>
@@ -49,9 +60,9 @@ export type CreateCatalogHooksConfig<
   fallbackFacets: TFacets
 }
 
-export function createCatalogHooks<
+export const createCatalogHooks = <
   TProduct,
-  TListInput extends CatalogListInputBase,
+  TListInput extends CatalogListInputBase & TListParams,
   TListParams,
   TFacets,
 >({
@@ -63,44 +74,41 @@ export function createCatalogHooks<
   defaultPageSize = 12,
   requireRegion = true,
   fallbackFacets,
-}: CreateCatalogHooksConfig<TProduct, TListInput, TListParams, TFacets>) {
+}: CreateCatalogHooksConfig<TProduct, TListInput, TListParams, TFacets>) => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ?? createCatalogQueryKeys<TListParams>(queryKeyNamespace)
-  const buildList =
-    buildListParams ?? ((input: TListInput) => input as unknown as TListParams)
+  const buildList = buildListParams ?? ((input: TListInput) => input)
   const { getListQueryOptions } = createCatalogQueryOptionsFactory({
-    service,
     buildListParams: buildList,
-    queryKeys: resolvedQueryKeys,
     cacheConfig: resolvedCacheConfig,
+    queryKeys: resolvedQueryKeys,
+    service,
   })
 
-  function useCatalogProducts(
+  const useCatalogProducts = (
     input: TListInput,
     options?: {
       cacheStrategy?: CacheStrategy
       queryOptions?: ReadQueryOptions<CatalogListResponse<TProduct, TFacets>>
-    }
-  ): UseCatalogProductsResult<TProduct, TFacets> {
+    },
+  ): UseCatalogProductsResult<TProduct, TFacets> => {
     const contextRegion = useRegionContext()
-    const { enabled: inputEnabled, ...listInput } = input as TListInput & {
-      enabled?: boolean
-    }
-    const resolvedInput = applyRegion(
-      listInput as TListInput,
-      contextRegion ?? undefined
-    )
+    const inputEnabled = input.enabled
+    const resolvedInput = resolveCatalogInput(input, contextRegion)
     const enabled =
       inputEnabled ?? (!requireRegion || Boolean(resolvedInput.region_id))
     const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
 
     const query = useQuery({
-      ...getListQueryOptions(input, {
-        cacheStrategy,
-        queryOptions: options?.queryOptions,
-        region: contextRegion,
-      }),
+      ...getListQueryOptions(
+        input,
+        omitUndefined({
+          cacheStrategy,
+          queryOptions: options?.queryOptions,
+          region: contextRegion,
+        }),
+      ),
       enabled,
     })
     const { data, isLoading, isFetching, isSuccess, error } = query
@@ -108,7 +116,7 @@ export function createCatalogHooks<
     const inputPage = resolvePositiveInteger(resolvedInput.page, 1)
     const inputLimit = resolvePositiveInteger(
       resolvedInput.limit,
-      defaultPageSize
+      defaultPageSize,
     )
     const currentPage = resolvePositiveInteger(data?.page, inputPage)
     const responseLimit = resolvePositiveInteger(data?.limit, inputLimit)
@@ -118,56 +126,57 @@ export function createCatalogHooks<
       (responseLimit > 0 ? Math.ceil(totalCount / responseLimit) : 0)
 
     return {
-      products: data?.products ?? [],
-      facets: data?.facets ?? fallbackFacets,
-      isLoading,
-      isFetching,
-      isSuccess,
-      error: toErrorMessage(error),
-      totalCount,
       currentPage,
-      totalPages,
+      error: toErrorMessage(error),
+      facets: data?.facets ?? fallbackFacets,
       hasNextPage: currentPage < totalPages,
       hasPrevPage: currentPage > 1,
+      isFetching,
+      isLoading,
+      isSuccess,
+      products: data?.products ?? [],
       query,
+      totalCount,
+      totalPages,
     }
   }
 
-  function useSuspenseCatalogProducts(
+  const useSuspenseCatalogProducts = (
     input: TListInput,
     options?: {
       cacheStrategy?: CacheStrategy
       queryOptions?: SuspenseQueryOptions<
         CatalogListResponse<TProduct, TFacets>
       >
-    }
-  ): UseSuspenseCatalogProductsResult<TProduct, TFacets> {
+    },
+  ): UseSuspenseCatalogProductsResult<TProduct, TFacets> => {
     const contextRegion = useRegionContext()
-    const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-      enabled?: boolean
-    }
-    const resolvedInput = applyRegion(
-      listInput as TListInput,
-      contextRegion ?? undefined
-    )
-    if (requireRegion && !resolvedInput.region_id) {
+    const resolvedInput = resolveCatalogInput(input, contextRegion)
+    if (
+      requireRegion &&
+      (resolvedInput.region_id === undefined ||
+        resolvedInput.region_id.length === 0)
+    ) {
       throw new Error("Region is required for catalog queries")
     }
 
     const cacheStrategy = options?.cacheStrategy ?? "semiStatic"
     const query = useSuspenseQuery({
-      ...getListQueryOptions(input, {
-        cacheStrategy,
-        queryOptions: options?.queryOptions,
-        region: contextRegion,
-      }),
+      ...getListQueryOptions(
+        input,
+        omitUndefined({
+          cacheStrategy,
+          queryOptions: options?.queryOptions,
+          region: contextRegion,
+        }),
+      ),
     })
     const { data, isFetching } = query
 
     const inputPage = resolvePositiveInteger(resolvedInput.page, 1)
     const inputLimit = resolvePositiveInteger(
       resolvedInput.limit,
-      defaultPageSize
+      defaultPageSize,
     )
     const currentPage = resolvePositiveInteger(data?.page, inputPage)
     const responseLimit = resolvePositiveInteger(data?.limit, inputLimit)
@@ -177,27 +186,27 @@ export function createCatalogHooks<
       (responseLimit > 0 ? Math.ceil(totalCount / responseLimit) : 0)
 
     return {
-      products: data?.products ?? [],
-      facets: data?.facets ?? fallbackFacets,
-      isLoading: false,
-      isFetching,
-      isSuccess: true,
-      error: null,
-      totalCount,
       currentPage,
-      totalPages,
+      error: null,
+      facets: data?.facets ?? fallbackFacets,
       hasNextPage: currentPage < totalPages,
       hasPrevPage: currentPage > 1,
+      isFetching,
+      isLoading: false,
+      isSuccess: true,
+      products: data?.products ?? [],
       query,
+      totalCount,
+      totalPages,
     }
   }
 
-  function usePrefetchCatalogProducts(options?: {
+  const usePrefetchCatalogProducts = (options?: {
     cacheStrategy?: CacheStrategy
     defaultDelay?: number
     skipIfCached?: boolean
     skipMode?: PrefetchSkipMode
-  }) {
+  }) => {
     const queryClient = useQueryClient()
     const contextRegion = useRegionContext()
     const { schedulePrefetch, cancelPrefetch } = useDelayedPrefetchController()
@@ -208,17 +217,12 @@ export function createCatalogHooks<
     const skipMode = options?.skipMode ?? "fresh"
     const prefetchCacheOptions = getPrefetchCacheOptions(
       resolvedCacheConfig,
-      cacheStrategy
+      cacheStrategy,
     )
 
     const prefetchCatalogProducts = async (input: TListInput) => {
-      const { enabled: inputEnabled, ...listInput } = input as TListInput & {
-        enabled?: boolean
-      }
-      const resolvedInput = applyRegion(
-        listInput as TListInput,
-        contextRegion ?? undefined
-      )
+      const inputEnabled = input.enabled
+      const resolvedInput = resolveCatalogInput(input, contextRegion)
       const isEnabled =
         inputEnabled ?? (!requireRegion || Boolean(resolvedInput.region_id))
       if (!isEnabled) {
@@ -229,9 +233,9 @@ export function createCatalogHooks<
       const queryKey = resolvedQueryKeys.list(listParams)
       if (
         shouldSkipPrefetch({
+          cacheOptions: prefetchCacheOptions,
           queryClient,
           queryKey,
-          cacheOptions: prefetchCacheOptions,
           skipIfCached,
           skipMode,
         })
@@ -240,8 +244,9 @@ export function createCatalogHooks<
       }
 
       await queryClient.prefetchQuery({
+        queryFn: async ({ signal }) =>
+          await service.getCatalogProducts(listParams, signal),
         queryKey,
-        queryFn: ({ signal }) => service.getCatalogProducts(listParams, signal),
         ...prefetchCacheOptions,
       })
     }
@@ -249,71 +254,63 @@ export function createCatalogHooks<
     const delayedPrefetch = (
       input: TListInput,
       delay = defaultDelay,
-      prefetchId?: string
+      prefetchId?: string,
     ) => {
-      const { enabled: _inputEnabled, ...listInput } = input as TListInput & {
-        enabled?: boolean
-      }
-      const resolvedInput = applyRegion(
-        listInput as TListInput,
-        contextRegion ?? undefined
-      )
+      const resolvedInput = resolveCatalogInput(input, contextRegion)
       const listParams = buildList(resolvedInput)
       const queryKey = resolvedQueryKeys.list(listParams)
       const id = prefetchId ?? JSON.stringify(queryKey)
       return schedulePrefetch(
-        () => {
-          prefetchCatalogProducts(input)
+        async () => {
+          await prefetchCatalogProducts(input)
         },
         id,
-        delay
+        delay,
       )
     }
 
     return {
-      prefetchCatalogProducts,
-      delayedPrefetch,
       cancelPrefetch,
+      delayedPrefetch,
+      prefetchCatalogProducts,
     }
   }
 
   const prefetchCatalogProducts = async (
     queryClient: QueryClient,
     input: TListInput,
-    region?: RegionInfo | null
+    region?: RegionInfo | null,
   ) => {
-    const { enabled: inputEnabled, ...listInput } = input as TListInput & {
-      enabled?: boolean
-    }
-    const resolvedInput = applyRegion(
-      listInput as TListInput,
-      region ?? undefined
-    )
+    const inputEnabled = input.enabled
+    const resolvedInput = resolveCatalogInput(input, region)
     const isEnabled =
       inputEnabled ?? (!requireRegion || Boolean(resolvedInput.region_id))
     if (!isEnabled) {
       return
     }
     await queryClient.prefetchQuery(
-      getListQueryOptions(input, {
-        cacheStrategy: "semiStatic",
-        region,
-      })
+      getListQueryOptions(
+        input,
+        omitUndefined({
+          cacheStrategy: "semiStatic" as const,
+          region,
+        }),
+      ),
     )
   }
 
   return {
     getListQueryOptions,
-    useCatalogProducts,
-    useSuspenseCatalogProducts,
-    usePrefetchCatalogProducts,
     prefetchCatalogProducts,
+    useCatalogProducts,
+    usePrefetchCatalogProducts,
+    useSuspenseCatalogProducts,
   }
 }
 
 export type CatalogHooks<
   TProduct,
-  TListInput extends CatalogListInputBase,
+  TListInput extends CatalogListInputBase & TListParams,
   TListParams,
   TFacets,
 > = ReturnType<

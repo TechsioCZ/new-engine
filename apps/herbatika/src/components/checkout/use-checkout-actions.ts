@@ -1,12 +1,16 @@
 "use client"
 
-import type { HttpTypes } from "@medusajs/types"
 import { useTranslations } from "next-intl"
+
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
+
+import type { CarrierPickupData } from "./carrier-pickup.utils"
+import type { UseCheckoutActionsProps } from "./checkout-actions.utils"
 import {
-  clearStoredCarrierPickupSelection,
-  writeStoredCarrierPickupSelection,
-} from "./carrier-pickup-selection-storage"
+  persistCarrierPickupSelection,
+  resetCheckoutActionFeedback,
+  resolveOrderCompletionBlocker,
+} from "./checkout-actions.utils"
 import {
   resolveCompleteCartFailure,
   resolveOrderId,
@@ -14,68 +18,7 @@ import {
 import { resolveReusablePaymentCollection } from "./checkout-payment-collection-reuse"
 import { resolvePaymentRedirectUrl } from "./checkout-payment-redirect.utils"
 
-type UseCheckoutActionsProps = {
-  cart?: HttpTypes.StoreCart | null
-  cartId?: string
-  completedOrderId: string | null
-  onCompletedOrderIdChange: (orderId: string | null) => void
-  onOrderCompletionAbort: () => void
-  onOrderCompletionStart: () => void
-  onPaymentRedirect: (url: string) => void
-  itemCount: number
-  refreshCart?: () => Promise<HttpTypes.StoreCart | null>
-  canInitiatePayment: boolean
-  selectedPaymentProviderId?: string | null
-  selectedShippingMethodId?: string | null
-  completeCart: () => Promise<unknown>
-  initiatePayment: (providerId: string) => Promise<unknown>
-  onCheckoutErrorChange: (message: string | null) => void
-  onPaymentProviderSelect: (providerId: string) => void
-  setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void
-}
-
-type OrderCompletionBlockerMessages = {
-  cartEmpty: string
-  cartNotReady: string
-  selectPaymentBeforeCompletion: string
-  selectShippingBeforeCompletion: string
-}
-
-const resolveOrderCompletionBlocker = ({
-  cartId,
-  itemCount,
-  selectedPaymentProviderId,
-  selectedShippingMethodId,
-  messages,
-}: Pick<
-  UseCheckoutActionsProps,
-  | "cartId"
-  | "itemCount"
-  | "selectedPaymentProviderId"
-  | "selectedShippingMethodId"
-> & {
-  messages: OrderCompletionBlockerMessages
-}) => {
-  if (!cartId) {
-    return messages.cartNotReady
-  }
-
-  if (itemCount < 1) {
-    return messages.cartEmpty
-  }
-
-  if (!selectedShippingMethodId) {
-    return messages.selectShippingBeforeCompletion
-  }
-
-  if (!selectedPaymentProviderId) {
-    return messages.selectPaymentBeforeCompletion
-  }
-
-  return null
-}
-
-export function useCheckoutActions({
+export const useCheckoutActions = ({
   cart,
   cartId,
   canInitiatePayment,
@@ -93,32 +36,26 @@ export function useCheckoutActions({
   selectedPaymentProviderId,
   selectedShippingMethodId,
   setShippingMethod,
-}: UseCheckoutActionsProps) {
+}: UseCheckoutActionsProps) => {
   const tCheckout = useTranslations("checkout")
   const resetFeedback = () => {
-    onCheckoutErrorChange(null)
-    if (completedOrderId) {
-      onCompletedOrderIdChange(null)
-      onOrderCompletionAbort()
-    }
+    resetCheckoutActionFeedback({
+      completedOrderId,
+      onCheckoutErrorChange,
+      onCompletedOrderIdChange,
+      onOrderCompletionAbort,
+    })
   }
 
-  const handleSelectShipping = (
-    optionId: string,
-    data?: Record<string, unknown>
-  ) => {
+  const handleSelectShipping = (optionId: string, data?: CarrierPickupData) => {
     resetFeedback()
 
     try {
-      if (data) {
-        writeStoredCarrierPickupSelection({ cartId, data, optionId })
-      } else {
-        clearStoredCarrierPickupSelection(cartId)
-      }
+      persistCarrierPickupSelection({ cartId, data, optionId })
       setShippingMethod(optionId, data)
     } catch (error) {
       onCheckoutErrorChange(
-        resolveErrorMessage(error, tCheckout("shipping_update_failed"))
+        resolveErrorMessage(error, tCheckout("shipping_update_failed")),
       )
     }
   }
@@ -135,57 +72,65 @@ export function useCheckoutActions({
       onPaymentProviderSelect(providerId)
     } catch (error) {
       onCheckoutErrorChange(
-        resolveErrorMessage(error, tCheckout("payment_update_failed"))
+        resolveErrorMessage(error, tCheckout("payment_update_failed")),
       )
     }
   }
 
+  const blockerMessage = resolveOrderCompletionBlocker({
+    ...(cartId === undefined ? {} : { cartId }),
+    itemCount,
+    ...(selectedPaymentProviderId === undefined
+      ? {}
+      : { selectedPaymentProviderId }),
+    ...(selectedShippingMethodId === undefined
+      ? {}
+      : { selectedShippingMethodId }),
+    messages: {
+      cartEmpty: tCheckout("cart_empty"),
+      cartNotReady: tCheckout("cart_not_ready"),
+      selectPaymentBeforeCompletion: tCheckout(
+        "select_payment_before_completion",
+      ),
+      selectShippingBeforeCompletion: tCheckout(
+        "select_shipping_before_completion",
+      ),
+    },
+  })
+
   const handleCompleteOrder = async () => {
     resetFeedback()
 
-    const blockerMessage = resolveOrderCompletionBlocker({
-      cartId,
-      itemCount,
-      selectedPaymentProviderId,
-      selectedShippingMethodId,
-      messages: {
-        cartEmpty: tCheckout("cart_empty"),
-        cartNotReady: tCheckout("cart_not_ready"),
-        selectPaymentBeforeCompletion: tCheckout(
-          "select_payment_before_completion"
-        ),
-        selectShippingBeforeCompletion: tCheckout(
-          "select_shipping_before_completion"
-        ),
-      },
-    })
-    if (blockerMessage) {
+    if (
+      blockerMessage !== null &&
+      blockerMessage !== undefined &&
+      blockerMessage.length > 0
+    ) {
       onCheckoutErrorChange(blockerMessage)
       return
     }
 
-    if (!selectedPaymentProviderId) {
-      onCheckoutErrorChange(tCheckout("select_payment_before_completion"))
-      return
-    }
-
     onOrderCompletionStart()
+    const paymentProviderId = selectedPaymentProviderId ?? ""
 
     try {
       const latestCart = (await refreshCart?.()) ?? cart
       const reusablePaymentCollection = resolveReusablePaymentCollection({
-        cart: latestCart,
-        selectedPaymentProviderId,
+        ...(latestCart === undefined ? {} : { cart: latestCart }),
+        selectedPaymentProviderId: paymentProviderId,
       })
 
       const resolvedPaymentCollection =
-        reusablePaymentCollection ??
-        (await initiatePayment(selectedPaymentProviderId))
+        reusablePaymentCollection ?? (await initiatePayment(paymentProviderId))
       const paymentRedirectUrl = resolvePaymentRedirectUrl(
-        resolvedPaymentCollection
+        resolvedPaymentCollection,
       )
 
-      if (paymentRedirectUrl) {
+      if (
+        paymentRedirectUrl !== null &&
+        paymentRedirectUrl !== undefined &&
+        paymentRedirectUrl.length > 0
+      ) {
         onPaymentRedirect(paymentRedirectUrl)
         return
       }
@@ -193,7 +138,7 @@ export function useCheckoutActions({
       const completeResult = await completeCart()
       const orderId = resolveOrderId(completeResult)
 
-      if (orderId) {
+      if (orderId !== null && orderId !== undefined && orderId.length > 0) {
         onCompletedOrderIdChange(orderId)
         return
       }
@@ -201,7 +146,11 @@ export function useCheckoutActions({
       const completionFailureMessage =
         resolveCompleteCartFailure(completeResult)
 
-      if (completionFailureMessage) {
+      if (
+        completionFailureMessage !== null &&
+        completionFailureMessage !== undefined &&
+        completionFailureMessage.length > 0
+      ) {
         onOrderCompletionAbort()
         onCheckoutErrorChange(completionFailureMessage)
         return
@@ -212,7 +161,7 @@ export function useCheckoutActions({
     } catch (error) {
       onOrderCompletionAbort()
       onCheckoutErrorChange(
-        resolveErrorMessage(error, tCheckout("complete_failed"))
+        resolveErrorMessage(error, tCheckout("complete_failed")),
       )
     }
   }

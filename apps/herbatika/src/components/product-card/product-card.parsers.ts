@@ -1,9 +1,4 @@
-import {
-  asStorefrontBoolean,
-  asStorefrontNumber,
-  asStorefrontRecord,
+export {
+  asStorefrontBoolean as asBoolean,
+  asStorefrontRecord as asRecord,
 } from "@/lib/storefront/product-pricing"
-
-export const asBoolean = asStorefrontBoolean
-export const asNumber = asStorefrontNumber
-export const asRecord = asStorefrontRecord

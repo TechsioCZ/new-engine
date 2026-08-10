@@ -2,19 +2,19 @@ import { model } from "@medusajs/framework/utils"
 
 const SymmyImportJob = model
   .define("symmy_import_job", {
-    id: model.id().primaryKey(),
-    type: model.text(),
-    status: model.text(),
-    payload: model.json(),
-    result: model.json().nullable(),
-    error: model.text().nullable(),
-    total: model.number().default(0),
-    processed: model.number().default(0),
-    failed: model.number().default(0),
     attempts: model.number().default(0),
-    idempotency_key: model.text().nullable(),
-    started_at: model.dateTime().nullable(),
+    error: model.text().nullable(),
+    failed: model.number().default(0),
     finished_at: model.dateTime().nullable(),
+    id: model.id().primaryKey(),
+    idempotency_key: model.text().nullable(),
+    payload: model.json(),
+    processed: model.number().default(0),
+    result: model.json().nullable(),
+    started_at: model.dateTime().nullable(),
+    status: model.text(),
+    total: model.number().default(0),
+    type: model.text(),
   })
   .indexes([
     { on: ["type"] },

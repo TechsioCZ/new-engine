@@ -1,5 +1,8 @@
-import type { HttpTypes } from "@medusajs/types"
-import { FLAG_CONFIG, type SupportedFlagCode } from "./product-card.constants"
+import { getRecordValue } from "@techsio/std/object"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
+
+import { FLAG_CONFIG } from "./product-card.constants"
+import type { SupportedFlagCode } from "./product-card.constants"
 import { asBoolean, asRecord } from "./product-card.parsers"
 import type { ProductFlagState } from "./product-card.types"
 
@@ -10,27 +13,26 @@ const buildActionFlag = (labels: ProductFlagLabels): ProductFlagState => ({
   variant: FLAG_CONFIG.action.variant,
 })
 
-const resolveSupportedFlagCode = (value: unknown): SupportedFlagCode | null => {
-  if (typeof value !== "string") {
-    return null
-  }
+const isSupportedFlagCode = (value: string): value is SupportedFlagCode =>
+  Object.hasOwn(FLAG_CONFIG, value)
 
-  return value in FLAG_CONFIG ? (value as SupportedFlagCode) : null
-}
+const resolveSupportedFlagCode = (value: unknown): SupportedFlagCode | null =>
+  typeof value === "string" && isSupportedFlagCode(value) ? value : null
 
 const isFlagActive = (
   code: SupportedFlagCode,
   active: boolean | null | undefined,
-  hasDiscount: boolean
+  hasDiscount: boolean,
 ) => (code === "action" ? active === true || hasDiscount : active === true)
 
 export const resolveFlags = (
-  product: HttpTypes.StoreProduct,
+  product: MedusaCatalogProduct,
   hasDiscount: boolean,
-  labels: ProductFlagLabels
+  labels: ProductFlagLabels,
 ): ProductFlagState[] => {
   const metadata = asRecord(product.metadata)
-  const flags = metadata?.flags
+  const flags =
+    metadata === null ? undefined : getRecordValue(metadata, "flags")
 
   if (!Array.isArray(flags)) {
     return hasDiscount ? [buildActionFlag(labels)] : []
@@ -41,28 +43,26 @@ export const resolveFlags = (
 
   for (const flag of flags) {
     const flagRecord = asRecord(flag)
-    if (!flagRecord) {
-      continue
+    const activeValue =
+      flagRecord === null ? undefined : getRecordValue(flagRecord, "active")
+    const codeValue =
+      flagRecord === null ? undefined : getRecordValue(flagRecord, "code")
+    const code = resolveSupportedFlagCode(codeValue)
+    const active = asBoolean(activeValue)
+
+    if (
+      code !== null &&
+      isFlagActive(code, active, hasDiscount) &&
+      !usedCodes.has(code)
+    ) {
+      usedCodes.add(code)
+      const config = FLAG_CONFIG[code]
+
+      resolvedFlags.push({
+        label: labels[code],
+        variant: config.variant,
+      })
     }
-
-    const code = resolveSupportedFlagCode(flagRecord.code)
-    const active = asBoolean(flagRecord.active)
-
-    if (!(code && isFlagActive(code, active, hasDiscount))) {
-      continue
-    }
-
-    if (usedCodes.has(code)) {
-      continue
-    }
-
-    usedCodes.add(code)
-    const config = FLAG_CONFIG[code]
-
-    resolvedFlags.push({
-      label: labels[code],
-      variant: config.variant,
-    })
   }
 
   if (hasDiscount && !usedCodes.has("action")) {

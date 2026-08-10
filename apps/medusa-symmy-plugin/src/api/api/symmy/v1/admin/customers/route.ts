@@ -2,7 +2,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
-export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
+const get = async (req: MedusaRequest, res: MedusaResponse) => {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data, metadata } = await query.graph({
     entity: "customer",
@@ -17,9 +17,11 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   }
 
   res.json({
-    customers: data,
     count: paginationMetadata.count,
-    offset: paginationMetadata.skip,
+    customers: data,
     limit: paginationMetadata.take,
+    offset: paginationMetadata.skip,
   })
 }
+
+export { get as GET }

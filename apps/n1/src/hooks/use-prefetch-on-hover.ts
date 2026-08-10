@@ -1,17 +1,19 @@
 "use client"
 
 import { useEffect, useRef } from "react"
+
 import { ALL_CATEGORIES_MAP } from "@/lib/constants"
 import { PREFETCH_DELAYS } from "@/lib/prefetch-config"
+
 import { usePrefetchProducts } from "./use-prefetch-products"
 
-type UsePrefetchOnHoverReturn = {
+interface UsePrefetchOnHoverReturn {
   handleHover: (categoryHandle: string) => void
   cancelHover: () => void
 }
 
-export function usePrefetchOnHover(): UsePrefetchOnHoverReturn {
-  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
+export const usePrefetchOnHover = (): UsePrefetchOnHoverReturn => {
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   const { prefetchCategoryProducts } = usePrefetchProducts()
 
   const handleHover = (categoryHandle: string) => {
@@ -28,13 +30,17 @@ export function usePrefetchOnHover(): UsePrefetchOnHoverReturn {
         console.log(
           "[usePrefetchOnHover] Prefetch:",
           categoryHandle,
-          categoryIds
+          categoryIds,
         )
       }
 
-      if (categoryIds?.length) {
+      if (
+        categoryIds !== null &&
+        categoryIds !== undefined &&
+        categoryIds.length > 0
+      ) {
         // Use categoryHandle as scopedBy for potential cancellation
-        prefetchCategoryProducts(categoryIds, categoryHandle)
+        void prefetchCategoryProducts(categoryIds, categoryHandle)
       }
     }, PREFETCH_DELAYS.CATEGORY_HOVER)
   }
@@ -42,7 +48,7 @@ export function usePrefetchOnHover(): UsePrefetchOnHoverReturn {
   const cancelHover = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current)
-      timeoutRef.current = undefined
+      timeoutRef.current = null
     }
   }
 
@@ -53,8 +59,8 @@ export function usePrefetchOnHover(): UsePrefetchOnHoverReturn {
         clearTimeout(timeoutRef.current)
       }
     },
-    []
+    [],
   )
 
-  return { handleHover, cancelHover }
+  return { cancelHover, handleHover }
 }

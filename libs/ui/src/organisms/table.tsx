@@ -1,52 +1,54 @@
-/**
+/*
  * Table — @techsio/ui-kit organism.
  *
  * @component Table
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.2
  * @skill table-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the table-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import {
-  type ComponentPropsWithoutRef,
-  createContext,
-  type RefObject,
-  useContext,
-} from "react"
+import { createContext, useContext } from "react"
+import type { ComponentPropsWithoutRef, RefObject } from "react"
 import type { VariantProps } from "tailwind-variants"
+
 import { tv } from "../utils"
 
 const tableVariants = tv({
+  defaultVariants: {
+    captionPlacement: "top",
+    interactive: false,
+    showColumnBorder: false,
+    size: "md",
+    stickyFirstColumn: false,
+    stickyHeader: false,
+    variant: "line",
+  },
   slots: {
-    root: ["w-full border-collapse", "bg-table-bg text-table-fg"],
-    caption: ["text-table-caption-fg", "text-start font-table-caption"],
-    header: ["bg-table-header-bg", "font-table-header text-table-header-fg"],
     body: "",
+    caption: ["text-table-caption-fg", "text-start font-table-caption"],
+    cell: ["text-start data-[numeric=true]:text-end"],
+    columnHeader: [
+      "text-start data-[numeric=true]:text-end",
+      "font-table-header",
+    ],
     footer: ["bg-table-footer-bg", "font-table-footer text-table-footer-fg"],
+    header: ["bg-table-header-bg", "font-table-header text-table-header-fg"],
+    root: ["w-full border-collapse", "bg-table-bg text-table-fg"],
     row: [
       "border-b-(length:--border-table-width) border-table-border",
       "data-[selected=true]:bg-table-row-bg-selected",
       "transition-colors duration-200 motion-reduce:transition-none",
     ],
-    columnHeader: [
-      "text-start data-[numeric=true]:text-end",
-      "font-table-header",
-    ],
-    cell: ["text-start data-[numeric=true]:text-end"],
   },
   variants: {
-    variant: {
-      line: {
-        root: "",
-        row: "border-b-(length:--border-table-width) border-table-border",
+    captionPlacement: {
+      bottom: {
+        caption: "caption-bottom",
       },
-      outline: {
-        root: "border-(length:--border-table-width) rounded-table border-table-border shadow-table-outline",
-      },
-      striped: {
-        row: "odd:bg-table-row-striped-primary even:bg-table-row-striped-secondary",
+      top: {
+        caption: "caption-top",
       },
     },
     interactive: {
@@ -54,21 +56,37 @@ const tableVariants = tv({
         row: "cursor-pointer hover:bg-table-row-bg-hover",
       },
     },
+    showColumnBorder: {
+      true: {
+        cell: "border-r-(length:--border-table-width) border-table-border",
+        columnHeader:
+          "border-r-(length:--border-table-width) border-table-border",
+      },
+    },
     size: {
-      sm: {
-        cell: "p-table-cell-sm text-table-sm",
-        columnHeader: "p-table-cell-sm text-table-sm",
-        caption: "p-table-caption-sm text-table-caption-sm",
-      },
-      md: {
-        cell: "p-table-cell-md text-table-md",
-        columnHeader: "p-table-cell-md text-table-md",
-        caption: "p-table-caption-md text-table-caption-md",
-      },
       lg: {
+        caption: "p-table-caption-lg text-table-caption-lg",
         cell: "p-table-cell-lg text-table-lg",
         columnHeader: "p-table-cell-lg text-table-lg",
-        caption: "p-table-caption-lg text-table-caption-lg",
+      },
+      md: {
+        caption: "p-table-caption-md text-table-caption-md",
+        cell: "p-table-cell-md text-table-md",
+        columnHeader: "p-table-cell-md text-table-md",
+      },
+      sm: {
+        caption: "p-table-caption-sm text-table-caption-sm",
+        cell: "p-table-cell-sm text-table-sm",
+        columnHeader: "p-table-cell-sm text-table-sm",
+      },
+    },
+    stickyFirstColumn: {
+      true: {
+        cell: ["first:sticky first:start-0 first:z-10", "bg-table-bg"],
+        columnHeader: [
+          "first:sticky first:start-0 first:z-20",
+          "bg-table-header-bg",
+        ],
       },
     },
     stickyHeader: {
@@ -76,72 +94,73 @@ const tableVariants = tv({
         columnHeader: "sticky top-0 z-10 bg-table-header-bg",
       },
     },
-    stickyFirstColumn: {
-      true: {
-        columnHeader: [
-          "first:sticky first:start-0 first:z-20",
-          "bg-table-header-bg",
-        ],
-        cell: ["first:sticky first:start-0 first:z-10", "bg-table-bg"],
+    variant: {
+      line: {
+        root: "",
+        row: "border-b-(length:--border-table-width) border-table-border",
+      },
+      outline: {
+        root: "rounded-table border-(length:--border-table-width) border-table-border shadow-table-outline",
+      },
+      striped: {
+        row: "odd:bg-table-row-striped-primary even:bg-table-row-striped-secondary",
       },
     },
-    showColumnBorder: {
-      true: {
-        columnHeader:
-          "border-r-(length:--border-table-width) border-table-border",
-        cell: "border-r-(length:--border-table-width) border-table-border",
-      },
-    },
-    captionPlacement: {
-      top: {
-        caption: "caption-top",
-      },
-      bottom: {
-        caption: "caption-bottom",
-      },
-    },
-  },
-  defaultVariants: {
-    variant: "line",
-    size: "md",
-    interactive: false,
-    stickyHeader: false,
-    stickyFirstColumn: false,
-    showColumnBorder: false,
-    captionPlacement: "top",
   },
 })
 
 // Context for sharing state between sub-components
-interface TableContextValue {
-  variant?: "line" | "outline" | "striped"
-  size?: "sm" | "md" | "lg"
-  interactive?: boolean
-  stickyHeader?: boolean
-  stickyFirstColumn?: boolean
-  showColumnBorder?: boolean
-  captionPlacement?: "top" | "bottom"
+type TableVariantProps = VariantProps<typeof tableVariants>
+type TableContextValue = TableVariantProps & {
   styles: ReturnType<typeof tableVariants>
 }
 
 const TableContext = createContext<TableContextValue | null>(null)
 
-function useTableContext() {
+const useTableContext = (): TableContextValue => {
   const context = useContext(TableContext)
-  if (!context) {
+  if (context === null) {
     throw new Error("Table components must be used within Table")
   }
   return context
 }
 
+const useTableContextValue = ({
+  captionPlacement,
+  interactive,
+  showColumnBorder,
+  size,
+  stickyFirstColumn,
+  stickyHeader,
+  variant,
+}: TableVariantProps): TableContextValue => ({
+  captionPlacement,
+  interactive,
+  showColumnBorder,
+  size,
+  stickyFirstColumn,
+  stickyHeader,
+  styles: tableVariants({
+    captionPlacement,
+    interactive,
+    showColumnBorder,
+    size,
+    stickyFirstColumn,
+    stickyHeader,
+    variant,
+  }),
+  variant,
+})
+
 // Root component
-interface TableProps
-  extends VariantProps<typeof tableVariants>,
+export interface TableProps
+  extends
+    VariantProps<typeof tableVariants>,
     ComponentPropsWithoutRef<"table"> {
-  ref?: RefObject<HTMLTableElement>
+  ref?: RefObject<HTMLTableElement> | undefined
 }
 
-export function Table({
+export const Table = ({
   variant,
   size,
   interactive,
@@ -153,30 +172,20 @@ export function Table({
   ref,
   className,
   ...props
-}: TableProps) {
-  const styles = tableVariants({
-    variant,
-    size,
-    interactive,
-    stickyHeader,
-    stickyFirstColumn,
-    showColumnBorder,
+}: TableProps) => {
+  const contextValue = useTableContextValue({
     captionPlacement,
+    interactive,
+    showColumnBorder,
+    size,
+    stickyFirstColumn,
+    stickyHeader,
+    variant,
   })
+  const { styles } = contextValue
 
   return (
-    <TableContext.Provider
-      value={{
-        variant,
-        size,
-        interactive,
-        stickyHeader,
-        stickyFirstColumn,
-        showColumnBorder,
-        captionPlacement,
-        styles,
-      }}
-    >
+    <TableContext.Provider value={contextValue}>
       <table className={styles.root({ className })} ref={ref} {...props}>
         {children}
       </table>
@@ -185,16 +194,16 @@ export function Table({
 }
 
 // Caption component
-interface TableCaptionProps extends ComponentPropsWithoutRef<"caption"> {
-  ref?: RefObject<HTMLTableCaptionElement>
+export interface TableCaptionProps extends ComponentPropsWithoutRef<"caption"> {
+  ref?: RefObject<HTMLTableCaptionElement> | undefined
 }
 
-Table.Caption = function TableCaption({
+const TableCaption = ({
   children,
   ref,
   className,
   ...props
-}: TableCaptionProps) {
+}: TableCaptionProps) => {
   const { styles } = useTableContext()
 
   return (
@@ -205,16 +214,16 @@ Table.Caption = function TableCaption({
 }
 
 // Header component
-interface TableHeaderProps extends ComponentPropsWithoutRef<"thead"> {
-  ref?: RefObject<HTMLTableSectionElement>
+export interface TableHeaderProps extends ComponentPropsWithoutRef<"thead"> {
+  ref?: RefObject<HTMLTableSectionElement> | undefined
 }
 
-Table.Header = function TableHeader({
+const TableHeader = ({
   children,
   ref,
   className,
   ...props
-}: TableHeaderProps) {
+}: TableHeaderProps) => {
   const { styles } = useTableContext()
 
   return (
@@ -225,16 +234,11 @@ Table.Header = function TableHeader({
 }
 
 // Body component
-interface TableBodyProps extends ComponentPropsWithoutRef<"tbody"> {
-  ref?: RefObject<HTMLTableSectionElement>
+export interface TableBodyProps extends ComponentPropsWithoutRef<"tbody"> {
+  ref?: RefObject<HTMLTableSectionElement> | undefined
 }
 
-Table.Body = function TableBody({
-  children,
-  ref,
-  className,
-  ...props
-}: TableBodyProps) {
+const TableBody = ({ children, ref, className, ...props }: TableBodyProps) => {
   const { styles } = useTableContext()
 
   return (
@@ -245,16 +249,16 @@ Table.Body = function TableBody({
 }
 
 // Footer component
-interface TableFooterProps extends ComponentPropsWithoutRef<"tfoot"> {
-  ref?: RefObject<HTMLTableSectionElement>
+export interface TableFooterProps extends ComponentPropsWithoutRef<"tfoot"> {
+  ref?: RefObject<HTMLTableSectionElement> | undefined
 }
 
-Table.Footer = function TableFooter({
+const TableFooter = ({
   children,
   ref,
   className,
   ...props
-}: TableFooterProps) {
+}: TableFooterProps) => {
   const { styles } = useTableContext()
 
   return (
@@ -265,18 +269,18 @@ Table.Footer = function TableFooter({
 }
 
 // Row component
-interface TableRowProps extends ComponentPropsWithoutRef<"tr"> {
-  ref?: RefObject<HTMLTableRowElement>
-  selected?: boolean
+export interface TableRowProps extends ComponentPropsWithoutRef<"tr"> {
+  ref?: RefObject<HTMLTableRowElement> | undefined
+  selected?: boolean | undefined
 }
 
-Table.Row = function TableRow({
+const TableRow = ({
   children,
   ref,
   className,
   selected,
   ...props
-}: TableRowProps) {
+}: TableRowProps) => {
   const { styles } = useTableContext()
 
   return (
@@ -292,18 +296,18 @@ Table.Row = function TableRow({
 }
 
 // ColumnHeader component
-interface TableColumnHeaderProps extends ComponentPropsWithoutRef<"th"> {
-  ref?: RefObject<HTMLTableCellElement>
-  numeric?: boolean
+export interface TableColumnHeaderProps extends ComponentPropsWithoutRef<"th"> {
+  ref?: RefObject<HTMLTableCellElement> | undefined
+  numeric?: boolean | undefined
 }
 
-Table.ColumnHeader = function TableColumnHeader({
+const TableColumnHeader = ({
   children,
   ref,
   className,
   numeric,
   ...props
-}: TableColumnHeaderProps) {
+}: TableColumnHeaderProps) => {
   const { styles } = useTableContext()
 
   return (
@@ -320,18 +324,18 @@ Table.ColumnHeader = function TableColumnHeader({
 }
 
 // Cell component
-interface TableCellProps extends ComponentPropsWithoutRef<"td"> {
-  ref?: RefObject<HTMLTableCellElement>
-  numeric?: boolean
+export interface TableCellProps extends ComponentPropsWithoutRef<"td"> {
+  ref?: RefObject<HTMLTableCellElement> | undefined
+  numeric?: boolean | undefined
 }
 
-Table.Cell = function TableCell({
+const TableCell = ({
   children,
   ref,
   className,
   numeric,
   ...props
-}: TableCellProps) {
+}: TableCellProps) => {
   const { styles, stickyFirstColumn } = useTableContext()
 
   return (
@@ -345,6 +349,14 @@ Table.Cell = function TableCell({
     </td>
   )
 }
+
+Table.Caption = TableCaption
+Table.Header = TableHeader
+Table.Body = TableBody
+Table.Footer = TableFooter
+Table.Row = TableRow
+Table.ColumnHeader = TableColumnHeader
+Table.Cell = TableCell
 
 // Display name
 Table.displayName = "Table"

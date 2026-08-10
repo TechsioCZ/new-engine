@@ -1,6 +1,6 @@
 export type FlatStorefrontMessages = Readonly<Record<string, string>>
 
-export type NestedStorefrontMessages = {
+export interface NestedStorefrontMessages {
   [key: string]: NestedStorefrontMessages | string
 }
 
@@ -16,7 +16,7 @@ const getMessageKeySegments = (key: string) => {
   if (
     segments.some(
       (segment) =>
-        !segment.trim() || FORBIDDEN_MESSAGE_SEGMENTS.has(segment.trim())
+        !segment.trim() || FORBIDDEN_MESSAGE_SEGMENTS.has(segment.trim()),
     )
   ) {
     throw new Error(`Invalid storefront message key: ${key}`)
@@ -28,17 +28,17 @@ const getMessageKeySegments = (key: string) => {
 const getOrCreateMessageNamespace = (
   target: NestedStorefrontMessages,
   segment: string,
-  key: string
+  key: string,
 ): NestedStorefrontMessages => {
   const existingValue = Object.hasOwn(target, segment)
     ? target[segment]
     : undefined
 
   if (typeof existingValue === "string") {
-    throw new Error(`Conflicting storefront message key: ${key}`)
+    throw new TypeError(`Conflicting storefront message key: ${key}`)
   }
 
-  if (existingValue) {
+  if (existingValue !== undefined) {
     return existingValue
   }
 
@@ -48,7 +48,7 @@ const getOrCreateMessageNamespace = (
 }
 
 export const nestStorefrontMessages = (
-  messages: FlatStorefrontMessages
+  messages: FlatStorefrontMessages,
 ): NestedStorefrontMessages => {
   const nestedMessages: NestedStorefrontMessages = {}
 
@@ -60,7 +60,12 @@ export const nestStorefrontMessages = (
       target = getOrCreateMessageNamespace(target, segment, key)
     }
 
-    const lastSegment = segments.at(-1) as string
+    const lastSegment = segments.at(-1)
+
+    if (lastSegment === undefined) {
+      throw new Error(`Invalid storefront message key: ${key}`)
+    }
+
     if (Object.hasOwn(target, lastSegment)) {
       throw new Error(`Conflicting storefront message key: ${key}`)
     }

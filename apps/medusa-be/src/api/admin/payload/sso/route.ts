@@ -5,8 +5,10 @@ import type {
 } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 import escapeHtml from "escape-html"
 import { importPKCS8, SignJWT } from "jose"
+
 import { optionalStringParam } from "../../../../utils/query-params"
 
 const DEFAULT_ISSUER = "medusa"
@@ -30,24 +32,28 @@ export type AdminPayloadSsoSchemaType = z.infer<typeof AdminPayloadSsoSchema>
 
 type AdminUserAuthContext = Pick<AuthContext, "actor_id" | "actor_type">
 
+type SafeReturnToResult =
+  | { error?: never; value: string | undefined }
+  | { error: string; value?: never }
+
 /** Normalize multiline private keys loaded from environment variables. */
-const normalizeKey = (value: string) => value.replace(/\\n/g, "\n").trim()
+const normalizeKey = (value: string) => value.replaceAll("\\n", "\n").trim()
 
 /** Allow only same-origin relative return paths to avoid open redirects. */
-const sanitizeReturnTo = (value: string | undefined) => {
-  if (!value) {
-    return
+const sanitizeReturnTo = (value: string | undefined): string | undefined => {
+  if (value === undefined || value.length === 0) {
+    return undefined
   }
   if (value.startsWith("/") && !value.startsWith("//")) {
     return value
   }
   throw new MedusaError(
     MedusaError.Types.INVALID_DATA,
-    "returnTo must be a same-origin relative path."
+    "returnTo must be a same-origin relative path.",
   )
 }
 
-const resolveSafeReturnTo = (value: string | undefined) => {
+const resolveSafeReturnTo = (value: string | undefined): SafeReturnToResult => {
   try {
     return {
       value: sanitizeReturnTo(value),
@@ -62,7 +68,7 @@ const resolveSafeReturnTo = (value: string | undefined) => {
 /** Read a request header from Medusa's underlying Express request. */
 const getRequestHeader = (
   req: MedusaRequest<unknown, AdminPayloadSsoSchemaType>,
-  name: string
+  name: string,
 ) => {
   const header = req.headers?.[name.toLowerCase()]
   if (Array.isArray(header)) {
@@ -72,16 +78,35 @@ const getRequestHeader = (
 }
 
 /** Extract the hostname from an HTTP Host-style header. */
-const getHostname = (host: string | undefined) => {
-  if (!host) {
-    return
+const getHostname = (host: string | undefined): string | undefined => {
+  if (host === undefined || host.length === 0) {
+    return undefined
   }
 
+  let hostname: string | null = null
   try {
-    return new URL(`http://${host}`).hostname.toLowerCase()
+    hostname = new URL(`http://${host}`).hostname.toLowerCase()
   } catch {
-    return
+    hostname = null
   }
+  return hostname ?? undefined
+}
+
+const isAdminUserAuthContext = (
+  value: unknown,
+): value is AdminUserAuthContext => {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  const actorId = getRecordValue(value, "actor_id")
+  const actorType = getRecordValue(value, "actor_type")
+
+  if (typeof actorId !== "string" || actorId.length === 0) {
+    return false
+  }
+
+  return actorType === "user"
 }
 
 /**
@@ -93,13 +118,13 @@ const getHostname = (host: string | undefined) => {
  */
 const resolvePayloadSsoUrl = (
   payloadIframeUrl: string,
-  req: MedusaRequest<unknown, AdminPayloadSsoSchemaType>
+  req: MedusaRequest<unknown, AdminPayloadSsoSchemaType>,
 ) => {
   const url = new URL(payloadIframeUrl)
   if (!(url.protocol === "http:" || url.protocol === "https:")) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "PAYLOAD_IFRAME_URL must use http or https."
+      "PAYLOAD_IFRAME_URL must use http or https.",
     )
   }
 
@@ -107,11 +132,11 @@ const resolvePayloadSsoUrl = (
   const host = getRequestHeader(req, "host")
   const requestHostname = getHostname(forwardedHost ?? host)
 
-  if (LOCAL_PAYLOAD_HOSTS.has(url.hostname) && requestHostname) {
+  if (LOCAL_PAYLOAD_HOSTS.has(url.hostname) && requestHostname !== undefined) {
     if (requestHostname === "localhost" || requestHostname === "127.0.0.1") {
       url.protocol = "http:"
       url.hostname = requestHostname
-      url.port = url.port || LOCAL_PAYLOAD_PORT
+      url.port ||= LOCAL_PAYLOAD_PORT
     }
 
     if (requestHostname === "admin.medusa.localhost") {
@@ -125,7 +150,7 @@ const resolvePayloadSsoUrl = (
 }
 
 const getAdminUserAuthContext = (
-  req: MedusaRequest<unknown, AdminPayloadSsoSchemaType>
+  req: MedusaRequest<unknown, AdminPayloadSsoSchemaType>,
 ) => {
   const authContext: unknown =
     "auth_context" in req ? req.auth_context : undefined
@@ -137,49 +162,37 @@ const getAdminUserAuthContext = (
   return authContext
 }
 
-function isAdminUserAuthContext(value: unknown): value is AdminUserAuthContext {
-  if (!value || typeof value !== "object") {
-    return false
-  }
-
-  const actorId: unknown = "actor_id" in value ? value.actor_id : undefined
-  const actorType: unknown =
-    "actor_type" in value ? value.actor_type : undefined
-
-  if (typeof actorId !== "string" || actorId.length === 0) {
-    return false
-  }
-
-  return actorType === "user"
-}
+const hasEnvironmentValue = (value: string | undefined): value is string =>
+  value !== undefined && value.length > 0
 
 /** Admin API handler that issues an SSO token and auto-posts to Payload. */
-export async function GET(
+const getPayloadSso = async (
   req: MedusaRequest<unknown, AdminPayloadSsoSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const adminAuthContext = getAdminUserAuthContext(req)
-  if (!adminAuthContext) {
+  if (adminAuthContext === null) {
     return res.status(401).json({
       message: "Payload SSO requires an authenticated Medusa admin user.",
     })
   }
 
-  const privateKey = process.env.PAYLOAD_SSO_PRIVATE_KEY
-  const payloadIframeUrl = process.env.PAYLOAD_IFRAME_URL
-  const ssoEmail = process.env.PAYLOAD_SSO_USER_EMAIL
-  const issuer = process.env.PAYLOAD_SSO_ISSUER ?? DEFAULT_ISSUER
-  const audience = process.env.PAYLOAD_SSO_AUDIENCE ?? DEFAULT_AUDIENCE
-  const alg = process.env.PAYLOAD_SSO_ALG ?? DEFAULT_ALG
-  const ttl = (() => {
-    const parsedTtl = Number.parseInt(
-      process.env.PAYLOAD_SSO_TOKEN_TTL ?? "",
-      10
-    )
-    return parsedTtl > 0 ? parsedTtl : DEFAULT_TOKEN_TTL_SECONDS
-  })()
+  const privateKey = process.env["PAYLOAD_SSO_PRIVATE_KEY"]
+  const payloadIframeUrl = process.env["PAYLOAD_IFRAME_URL"]
+  const ssoEmail = process.env["PAYLOAD_SSO_USER_EMAIL"]
+  const issuer = process.env["PAYLOAD_SSO_ISSUER"] ?? DEFAULT_ISSUER
+  const audience = process.env["PAYLOAD_SSO_AUDIENCE"] ?? DEFAULT_AUDIENCE
+  const alg = process.env["PAYLOAD_SSO_ALG"] ?? DEFAULT_ALG
+  const parsedTtl = Math.trunc(
+    Number(process.env["PAYLOAD_SSO_TOKEN_TTL"] ?? ""),
+  )
+  const ttl = parsedTtl > 0 ? parsedTtl : DEFAULT_TOKEN_TTL_SECONDS
 
-  if (!(privateKey && payloadIframeUrl && ssoEmail)) {
+  if (
+    !hasEnvironmentValue(privateKey) ||
+    !hasEnvironmentValue(payloadIframeUrl) ||
+    !hasEnvironmentValue(ssoEmail)
+  ) {
     return res.status(500).json({
       message:
         "Payload SSO is not configured. Check PAYLOAD_SSO_PRIVATE_KEY, PAYLOAD_IFRAME_URL, and PAYLOAD_SSO_USER_EMAIL.",
@@ -188,14 +201,14 @@ export async function GET(
 
   const { returnTo } = req.validatedQuery
   const safeReturnToResult = resolveSafeReturnTo(returnTo)
-  if (safeReturnToResult.error) {
+  if (safeReturnToResult.error !== undefined) {
     return res.status(400).json({ message: safeReturnToResult.error })
   }
   const safeReturnTo = safeReturnToResult.value
 
   const issuedAt = Math.floor(Date.now() / 1000)
   const expiresAt = issuedAt + ttl
-  let key: CryptoKey
+  let key: Awaited<ReturnType<typeof importPKCS8>>
   try {
     key = await importPKCS8(normalizeKey(privateKey), alg)
   } catch (error) {
@@ -259,9 +272,9 @@ export async function GET(
     <form method="POST" action="${escapeHtml(redirectUrl.toString())}">
       <input type="hidden" name="token" value="${escapeHtml(token)}" />
       ${
-        safeReturnTo
-          ? `<input type="hidden" name="returnTo" value="${escapeHtml(safeReturnTo)}" />`
-          : ""
+        safeReturnTo === undefined
+          ? ""
+          : `<input type="hidden" name="returnTo" value="${escapeHtml(safeReturnTo)}" />`
       }
     </form>
   </body>
@@ -272,3 +285,5 @@ export async function GET(
   res.setHeader("Referrer-Policy", "origin")
   return res.status(200).send(html)
 }
+
+export { getPayloadSso as GET }

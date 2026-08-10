@@ -1,4 +1,4 @@
-export type HerbatikaHeaderSubmenuRootConfig = {
+export interface HerbatikaHeaderSubmenuRootConfig {
   rootHandle: string
 }
 

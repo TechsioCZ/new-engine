@@ -2,25 +2,26 @@ import type { Link } from "@medusajs/framework/modules-sdk"
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { MEASUREMENT_UNIT_MODULE } from "../../../modules/measurement-unit"
 import {
   productMeasurementLink,
   productVariantMeasurementLink,
 } from "./helpers"
 
-export type ProductMeasurementLinkIds = {
+export interface ProductMeasurementLinkIds {
   product_id: string
   product_measurement_id: string
 }
 
-export type ProductVariantMeasurementLinkIds = {
+export interface ProductVariantMeasurementLinkIds {
   product_variant_id: string
   product_variant_measurement_id: string
 }
 
 const restoreProductMeasurementLinks = async (
   container: MedusaContainer,
-  links: ProductMeasurementLinkIds[]
+  links: ProductMeasurementLinkIds[],
 ) => {
   if (!links.length) {
     return
@@ -30,7 +31,7 @@ const restoreProductMeasurementLinks = async (
   await link.restore({
     [MEASUREMENT_UNIT_MODULE]: {
       product_measurement_id: links.map(
-        (current) => current.product_measurement_id
+        (current) => current.product_measurement_id,
       ),
     },
   })
@@ -38,7 +39,7 @@ const restoreProductMeasurementLinks = async (
 
 const restoreProductVariantMeasurementLinks = async (
   container: MedusaContainer,
-  links: ProductVariantMeasurementLinkIds[]
+  links: ProductVariantMeasurementLinkIds[],
 ) => {
   if (!links.length) {
     return
@@ -48,7 +49,7 @@ const restoreProductVariantMeasurementLinks = async (
   await link.restore({
     [MEASUREMENT_UNIT_MODULE]: {
       product_variant_measurement_id: links.map(
-        (current) => current.product_variant_measurement_id
+        (current) => current.product_variant_measurement_id,
       ),
     },
   })
@@ -57,15 +58,15 @@ const restoreProductVariantMeasurementLinks = async (
 export const dismissProductMeasurementLinksStep = createStep(
   "dismiss-product-measurement-links",
   async (links: ProductMeasurementLinkIds[], { container }) => {
-    if (links.length) {
+    if (links.length > 0) {
       const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
       await link.dismiss(
         links.map((current) =>
           productMeasurementLink(
             current.product_id,
-            current.product_measurement_id
-          )
-        )
+            current.product_measurement_id,
+          ),
+        ),
       )
     }
 
@@ -73,7 +74,7 @@ export const dismissProductMeasurementLinksStep = createStep(
   },
   async (links: ProductMeasurementLinkIds[] | undefined, { container }) => {
     await restoreProductMeasurementLinks(container, links ?? [])
-  }
+  },
 )
 
 export const restoreProductMeasurementLinksStep = createStep(
@@ -83,7 +84,7 @@ export const restoreProductMeasurementLinksStep = createStep(
     return new StepResponse(links, links)
   },
   async (links: ProductMeasurementLinkIds[] | undefined, { container }) => {
-    if (!links?.length) {
+    if (links === undefined || links.length === 0) {
       return
     }
 
@@ -92,25 +93,25 @@ export const restoreProductMeasurementLinksStep = createStep(
       links.map((current) =>
         productMeasurementLink(
           current.product_id,
-          current.product_measurement_id
-        )
-      )
+          current.product_measurement_id,
+        ),
+      ),
     )
-  }
+  },
 )
 
 export const dismissProductVariantMeasurementLinksStep = createStep(
   "dismiss-product-variant-measurement-links",
   async (links: ProductVariantMeasurementLinkIds[], { container }) => {
-    if (links.length) {
+    if (links.length > 0) {
       const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
       await link.dismiss(
         links.map((current) =>
           productVariantMeasurementLink(
             current.product_variant_id,
-            current.product_variant_measurement_id
-          )
-        )
+            current.product_variant_measurement_id,
+          ),
+        ),
       )
     }
 
@@ -118,10 +119,10 @@ export const dismissProductVariantMeasurementLinksStep = createStep(
   },
   async (
     links: ProductVariantMeasurementLinkIds[] | undefined,
-    { container }
+    { container },
   ) => {
     await restoreProductVariantMeasurementLinks(container, links ?? [])
-  }
+  },
 )
 
 export const restoreProductVariantMeasurementLinksStep = createStep(
@@ -132,9 +133,9 @@ export const restoreProductVariantMeasurementLinksStep = createStep(
   },
   async (
     links: ProductVariantMeasurementLinkIds[] | undefined,
-    { container }
+    { container },
   ) => {
-    if (!links?.length) {
+    if (links === undefined || links.length === 0) {
       return
     }
 
@@ -143,9 +144,9 @@ export const restoreProductVariantMeasurementLinksStep = createStep(
       links.map((current) =>
         productVariantMeasurementLink(
           current.product_variant_id,
-          current.product_variant_measurement_id
-        )
-      )
+          current.product_variant_measurement_id,
+        ),
+      ),
     )
-  }
+  },
 )

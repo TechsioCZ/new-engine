@@ -3,6 +3,7 @@
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useQueryStates } from "nuqs"
 import { useEffect } from "react"
+
 import { useCategoryFacetItems } from "@/components/category/use-category-facet-items"
 import { useCatalogProducts } from "@/lib/storefront/catalog-products"
 import {
@@ -21,13 +22,13 @@ import {
   useCatalogListingPageBounds,
 } from "@/lib/storefront/use-catalog-listing-interactions"
 
-type UseBrandListingControllerProps = {
+interface UseBrandListingControllerProps {
   brandFacetId: string
 }
 
-export function useBrandListingController({
+export const useBrandListingController = ({
   brandFacetId,
-}: UseBrandListingControllerProps) {
+}: UseBrandListingControllerProps) => {
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const [queryState, setQueryState] = useQueryStates(plpQueryParsers)
@@ -39,11 +40,13 @@ export function useBrandListingController({
     ...queryState,
     brand: [brandFacetId],
   }
-  const isBrandQueryEnabled = Boolean(region?.region_id && brandFacetId)
+  const hasRegion =
+    typeof region?.region_id === "string" && region.region_id !== ""
+  const isBrandQueryEnabled = hasRegion && brandFacetId !== ""
   const queryBrandSignature = queryState.brand.join("\0")
 
   useEffect(() => {
-    if (!queryBrandSignature) {
+    if (queryBrandSignature === "") {
       return
     }
 
@@ -51,8 +54,8 @@ export function useBrandListingController({
   }, [queryBrandSignature, setQueryState])
 
   const catalogProductsInput = buildCatalogProductsParams({
-    queryState: brandQueryState,
     limit: PLP_PAGE_SIZE,
+    queryState: brandQueryState,
   })
 
   const catalogQuery = useCatalogProducts({
@@ -61,18 +64,18 @@ export function useBrandListingController({
   })
 
   const catalogFacetSeedInput = buildCatalogProductsParams({
+    limit: 1,
     queryState: {
       ...queryState,
+      brand: [brandFacetId],
+      form: [],
+      ingredient: [],
       page: 1,
+      price_max: null,
+      price_min: null,
       sort: "recommended",
       status: [],
-      form: [],
-      brand: [brandFacetId],
-      ingredient: [],
-      price_min: null,
-      price_max: null,
     },
-    limit: 1,
   })
 
   const catalogFacetSeedQuery = useCatalogProducts({
@@ -94,8 +97,10 @@ export function useBrandListingController({
   const listingInteractions = useCatalogListingInteractions({
     productPrefetchKeyPrefix: `brand-${brandFacetId}`,
     queryState: visibleQueryState,
-    regionId: region?.region_id,
-    countryCode: region?.country_code,
+    ...(region?.region_id === undefined ? {} : { regionId: region?.region_id }),
+    ...(region?.country_code === undefined
+      ? {}
+      : { countryCode: region?.country_code }),
     setQueryState,
   })
 
@@ -119,7 +124,7 @@ export function useBrandListingController({
       isBrandQueryEnabled &&
       (catalogQuery.isLoading || catalogFacetSeedQuery.isLoading),
     isResultsLoading:
-      !region?.region_id ||
+      !hasRegion ||
       (catalogQuery.isLoading && catalogQuery.products.length === 0),
     isResultsRefreshing:
       catalogQuery.isFetching &&

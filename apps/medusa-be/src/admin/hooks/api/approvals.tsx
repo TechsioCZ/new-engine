@@ -1,11 +1,7 @@
 import type { FetchError } from "@medusajs/js-sdk"
-import {
-  type UseMutationOptions,
-  type UseQueryOptions,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type { UseMutationOptions, UseQueryOptions } from "@tanstack/react-query"
+
 import type {
   AdminApproval,
   AdminApprovalSettings,
@@ -26,7 +22,7 @@ export const useUpdateApprovalSettings = (
     AdminApprovalSettings,
     FetchError,
     AdminUpdateApprovalSettings
-  >
+  >,
 ) => {
   const queryClient = useQueryClient()
 
@@ -37,10 +33,10 @@ export const useUpdateApprovalSettings = (
         {
           body: payload,
           method: "POST",
-        }
+        },
       )
 
-      const approvalSettings = data.approvalSettings[0]
+      const [approvalSettings] = data.approvalSettings
 
       if (!approvalSettings) {
         throw new Error("Approval settings update returned no data")
@@ -48,16 +44,16 @@ export const useUpdateApprovalSettings = (
 
       return approvalSettings
     },
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: approvalSettingsQueryKey.detail(companyId),
       })
 
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.details(),
       })
 
-      options?.onSuccess?.(data, variables, context)
+      await options?.onSuccess?.(data, variables, context)
     },
     ...options,
   })
@@ -65,41 +61,51 @@ export const useUpdateApprovalSettings = (
 
 const approvalQueryKey = queryKeysFactory("approval")
 
+interface AdminApprovalsQuery {
+  created_at?: Record<string, string>
+  limit?: number
+  offset?: number
+  order?: string
+  q?: string
+  status?: string
+  updated_at?: Record<string, string>
+}
+
 export const useApprovals = (
-  query?: Record<string, unknown>,
-  options?: UseQueryOptions<AdminApprovalsResponse, FetchError>
+  query?: AdminApprovalsQuery,
+  options?: UseQueryOptions<AdminApprovalsResponse, FetchError>,
 ) => {
   const fetchApprovals = async () =>
-    sdk.client.fetch<AdminApprovalsResponse>("/admin/approvals", {
+    await sdk.client.fetch<AdminApprovalsResponse>("/admin/approvals", {
       method: "GET",
-      query,
+      ...(query ? { query } : {}),
     })
 
   return useQuery({
-    queryKey: approvalQueryKey.list(query),
     queryFn: fetchApprovals,
+    queryKey: approvalQueryKey.list(query),
     ...options,
   })
 }
 
 export const useUpdateApproval = (
   approvalId: string,
-  options?: UseMutationOptions<AdminApproval, FetchError, AdminUpdateApproval>
+  options?: UseMutationOptions<AdminApproval, FetchError, AdminUpdateApproval>,
 ) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (payload: AdminUpdateApproval) =>
-      sdk.client.fetch<AdminApproval>(`/admin/approvals/${approvalId}`, {
+    mutationFn: async (payload: AdminUpdateApproval) =>
+      await sdk.client.fetch<AdminApproval>(`/admin/approvals/${approvalId}`, {
         body: payload,
         method: "POST",
       }),
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: approvalQueryKey.lists(),
       })
 
-      options?.onSuccess?.(data, variables, context)
+      await options?.onSuccess?.(data, variables, context)
     },
     ...options,
   })

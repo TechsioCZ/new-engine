@@ -1,6 +1,8 @@
 "use client"
-import { type TreeNode, TreeView } from "@techsio/ui-kit/molecules/tree-view"
+import { TreeView } from "@techsio/ui-kit/molecules/tree-view"
+import type { TreeNode } from "@techsio/ui-kit/molecules/tree-view"
 import { useState } from "react"
+
 import { useAccordionTree } from "@/hooks/use-accordion-tree"
 import { useCategoryPrefetch } from "@/hooks/use-category-prefetch"
 import type { CategoryTreeNode } from "@/lib/server/categories"
@@ -11,7 +13,26 @@ import {
   isSelectableCategory,
 } from "@/utils/category-tree-helpers"
 
-type CategoryFilterProps = {
+const transformTreeForSelection = (
+  nodes: CategoryTreeNode[],
+  leafCategoryIds: Set<string>,
+  leafParentIds: Set<string>,
+): TreeNode[] =>
+  nodes.map((node) => ({
+    children:
+      node.children === undefined
+        ? undefined
+        : transformTreeForSelection(
+            node.children,
+            leafCategoryIds,
+            leafParentIds,
+          ),
+    id: node.id,
+    name: node.name,
+    selectable: isSelectableCategory(node.id, leafCategoryIds, leafParentIds),
+  }))
+
+interface CategoryFilterProps {
   categories: CategoryTreeNode[]
   leafCategories: LeafCategory[]
   leafParents: LeafParent[]
@@ -19,118 +40,100 @@ type CategoryFilterProps = {
   label?: string
 }
 
-export function CategoryTreeFilter({
+export const CategoryTreeFilter = ({
   categories,
   leafCategories,
   leafParents,
   onSelectionChange,
   label,
-}: CategoryFilterProps) {
+}: CategoryFilterProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string>("")
   const { expandedNodes, handleAccordionExpansion } =
     useAccordionTree(categories)
   const { delayedPrefetch, prefetchCategoryProducts } = useCategoryPrefetch()
-  // Create Sets for quick lookup
-  const leafCategoryIds = new Set(leafCategories.map((cat) => cat.id))
-  const leafParentIds = new Set(leafParents.map((cat) => cat.id))
-
-  // Transform static category data for TreeView
-  const transformTreeForSelection = (nodes: CategoryTreeNode[]): TreeNode[] =>
-    nodes.map((node) => ({
-      id: node.id,
-      name: node.name,
-      children: node.children
-        ? transformTreeForSelection(node.children)
-        : undefined,
-      selectable: isSelectableCategory(node.id, leafCategoryIds, leafParentIds),
-    }))
-  const treeData = transformTreeForSelection(categories)
+  // Create indexed collections for repeated tree lookups.
+  const leafCategoryIds = new Set(leafCategories.map((category) => category.id))
+  const leafParentIds = new Set(leafParents.map((category) => category.id))
+  const leafParentsById = new Map(
+    leafParents.map((category) => [category.id, category]),
+  )
+  const treeData = transformTreeForSelection(
+    categories,
+    leafCategoryIds,
+    leafParentIds,
+  )
 
   const handleSelectionChange = (details: { selectedValue: string[] }) => {
-    // In single mode, selectedValue is still an array but with max 1 item
-    const selectedCategoryId = details.selectedValue?.[0]
+    const [selectedCategoryId] = details.selectedValue
 
-    if (selectedCategoryId) {
-      // Cancel all pending prefetches since user made a selection
-      // cancelAllPrefetches()
-
+    if (selectedCategoryId !== undefined) {
       setSelectedCategory(selectedCategoryId)
-
-      // Get leaf IDs and notify parent
       const leafIds = getLeafIdsForCategory(
         selectedCategoryId,
         leafCategoryIds,
         leafParentIds,
-        leafParents
+        leafParents,
       )
       onSelectionChange(leafIds)
     }
   }
 
-  // Handle expanded change events from TreeView
-  // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: existing tree expansion workflow has several category-shape branches.
+  const prefetchSelectableChildren = async (leafIds: string[]) => {
+    try {
+      await prefetchCategoryProducts(leafIds)
+    } catch (error: unknown) {
+      console.error("Failed to prefetch category products", error)
+    }
+  }
+
+  const prefetchLeafParentChildren = (parent: LeafParent) => {
+    for (const childId of parent.children) {
+      if (leafCategoryIds.has(childId)) {
+        delayedPrefetch([childId], 800, `leaf_${childId}`)
+      } else {
+        const childParentLeaf = leafParentsById.get(childId)
+        if (
+          childParentLeaf !== undefined &&
+          childParentLeaf.children.length > 0
+        ) {
+          delayedPrefetch(
+            childParentLeaf.children,
+            800,
+            `parent_leaf_${childId}`,
+          )
+        }
+      }
+    }
+  }
+
+  const prefetchStandardCategory = (nodeId: string) => {
+    const expandedNode = findNodeById(categories, nodeId)
+    const selectableLeafIds =
+      expandedNode?.children?.flatMap(
+        (child) => leafParentsById.get(child.id)?.leafs ?? [],
+      ) ?? []
+    if (selectableLeafIds.length > 0) {
+      void prefetchSelectableChildren(selectableLeafIds)
+    }
+  }
+
   const handleExpandedChange = (details: { expandedValue: string[] }) => {
     const finalExpanded = handleAccordionExpansion(details)
-
-    // Find which nodes were newly expanded
+    const expandedNodeIds = new Set(expandedNodes)
     const newlyExpanded = finalExpanded.filter(
-      (nodeId: string) => !expandedNodes.includes(nodeId)
+      (nodeId) => !expandedNodeIds.has(nodeId),
     )
 
-    // Process each newly expanded node
     for (const nodeId of newlyExpanded) {
-      // 1. LEAF CATEGORY - nothing to prefecth
       if (leafCategoryIds.has(nodeId)) {
         continue
       }
 
-      // 2. LEAF PARENT CATEGORY - prefetch direct children only
-      if (leafParentIds.has(nodeId)) {
-        const expandedParentLeaf = leafParents.find((p) => p.id === nodeId)
-        if (!expandedParentLeaf) {
-          continue
-        }
-
-        //console.log(`[Prefetch] Expanding parentLeaf: ${expandedParentLeaf.name}`)
-        for (const childId of expandedParentLeaf.children || []) {
-          if (leafCategoryIds.has(childId)) {
-            // Direct leaf child - prefetch individually with delay
-            delayedPrefetch([childId], 800, `leaf_${childId}`)
-          } else if (leafParentIds.has(childId)) {
-            // Direct parentLeaf child - prefetch limited children, not all leafs
-            const childParentLeaf = leafParents.find((p) => p.id === childId)
-            if (childParentLeaf) {
-              const children = childParentLeaf.children
-              if (children.length > 0) {
-                delayedPrefetch(children, 800, `parent_leaf_${childId}`)
-              }
-            }
-          }
-        }
-
-        continue
-      }
-
-      // 3. Standard category (non-selectable) - prefetch selectable children
-      const expandedNode = findNodeById(categories, nodeId)
-      if (expandedNode?.children) {
-        // console.log(`[Prefetch] Expanding standard category: ${expandedNode.name}`)
-
-        // Process each direct child
-        for (const child of expandedNode.children) {
-          if (leafParentIds.has(child.id)) {
-            // Child is a parentLeaf - prefetch limited children instead of all leafs
-            const childParentLeaf = leafParents.find((p) => p.id === child.id)
-            if (childParentLeaf) {
-              /*console.log(
-                  `[Prefetch] - ParentLeaf child "${childParentLeaf.name}": ${childParentLeaf.leafs.length} leafs`
-                )*/
-              prefetchCategoryProducts(childParentLeaf.leafs).catch(
-                console.error
-              )
-            }
-          }
-        }
+      const expandedParentLeaf = leafParentsById.get(nodeId)
+      if (expandedParentLeaf === undefined) {
+        prefetchStandardCategory(nodeId)
+      } else {
+        prefetchLeafParentChildren(expandedParentLeaf)
       }
     }
   }
@@ -143,11 +146,11 @@ export function CategoryTreeFilter({
       id="category-filter-v2"
       onExpandedChange={handleExpandedChange}
       onSelectionChange={handleSelectionChange}
-      selectedValue={selectedCategory ? [selectedCategory] : []}
+      selectedValue={selectedCategory === "" ? [] : [selectedCategory]}
       selectionBehavior="custom"
       selectionMode="single"
     >
-      {label && <TreeView.Label>{label}</TreeView.Label>}
+      {label !== undefined && <TreeView.Label>{label}</TreeView.Label>}
       <TreeView.Tree>
         {treeData.map((node, index) => (
           <TreeView.Node

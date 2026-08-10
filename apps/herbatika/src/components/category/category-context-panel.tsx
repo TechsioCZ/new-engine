@@ -1,25 +1,27 @@
 "use client"
 
 import { Button } from "@techsio/ui-kit/atoms/button"
+import { SafeHtml } from "@techsio/ui-kit/atoms/safe-html"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
+
 import { stripHtml } from "@/components/product-detail/utils/html-sanitizer"
-import {
-  type CategoryContextImageTile,
-  CategoryContextImageTileGrid,
-} from "./category-context-image-tile-grid"
+
+import { CategoryContextImageTileGrid } from "./category-context-image-tile-grid"
+import type { CategoryContextImageTile } from "./category-context-image-tile-grid"
 import {
   CATEGORY_RICH_TEXT_CLASS,
+  CATEGORY_RICH_TEXT_POLICY,
   sanitizeCategoryRichTextHtml,
-} from "./category-rich-text"
+} from "./category-rich-text-config"
 
-type CategoryContextPanelProps = {
+interface CategoryContextPanelProps {
   imageTiles?: CategoryContextImageTile[]
   introHtml?: string | null
   introText?: string | null
 }
 
-type CategoryIntroProps = {
+interface CategoryIntroProps {
   introText?: string | null
   isExpanded: boolean
   onExpandedChange: (isExpanded: boolean) => void
@@ -27,16 +29,20 @@ type CategoryIntroProps = {
   shouldShowIntroToggle: boolean
 }
 
-function CategoryIntro({
+const CategoryIntro = ({
   introText,
   isExpanded,
   onExpandedChange,
   sanitizedIntroHtml,
   shouldShowIntroToggle,
-}: CategoryIntroProps) {
+}: CategoryIntroProps) => {
   const tCatalog = useTranslations("catalog")
 
-  if (!(sanitizedIntroHtml || introText)) {
+  const hasSanitizedIntroHtml = sanitizedIntroHtml.length > 0
+  const hasIntroText =
+    introText !== null && introText !== undefined && introText.length > 0
+
+  if (!hasSanitizedIntroHtml && !hasIntroText) {
     return null
   }
 
@@ -44,12 +50,13 @@ function CategoryIntro({
 
   return (
     <div className="space-y-150">
-      {sanitizedIntroHtml ? (
-        <div
-          className={`${CATEGORY_RICH_TEXT_CLASS} ${introClassName}`}
-          // biome-ignore lint/security/noDangerouslySetInnerHtml: Category intro HTML is normalized through sanitizeCategoryRichTextHtml before rendering.
-          dangerouslySetInnerHTML={{ __html: sanitizedIntroHtml }}
-        />
+      {hasSanitizedIntroHtml ? (
+        <div className={`${CATEGORY_RICH_TEXT_CLASS} ${introClassName}`}>
+          <SafeHtml
+            html={sanitizedIntroHtml}
+            policy={CATEGORY_RICH_TEXT_POLICY}
+          />
+        </div>
       ) : (
         <div
           className={`max-w-none font-verdana text-fg-primary text-sm leading-relaxed sm:text-md ${introClassName}`}
@@ -76,37 +83,40 @@ function CategoryIntro({
   )
 }
 
-export function CategoryContextPanel({
+export const CategoryContextPanel = ({
   imageTiles,
   introHtml,
   introText,
-}: CategoryContextPanelProps) {
+}: CategoryContextPanelProps) => {
   const [isExpanded, setIsExpanded] = useState(false)
   const sanitizedIntroHtml = sanitizeCategoryRichTextHtml(introHtml)
-  const resolvedIntroText = sanitizedIntroHtml
+  const hasSanitizedIntroHtml = sanitizedIntroHtml.length > 0
+  const hasIntroText =
+    introText !== null && introText !== undefined && introText.length > 0
+  const hasImageTiles = imageTiles !== undefined && imageTiles.length > 0
+  const resolvedIntroText = hasSanitizedIntroHtml
     ? stripHtml(sanitizedIntroHtml)
     : (introText ?? "")
-  const shouldShowIntroToggle = Boolean(
-    resolvedIntroText && resolvedIntroText.length > 260
-  )
+  const shouldShowIntroToggle = resolvedIntroText.length > 260
+  const imageTileGrid = hasImageTiles ? (
+    <CategoryContextImageTileGrid tiles={imageTiles} />
+  ) : null
 
-  if (!(sanitizedIntroHtml || introText || imageTiles?.length)) {
+  if (!hasSanitizedIntroHtml && !hasIntroText && !hasImageTiles) {
     return null
   }
 
   return (
     <section className="space-y-350">
       <CategoryIntro
-        introText={introText}
+        {...(introText === undefined ? {} : { introText })}
         isExpanded={isExpanded}
         onExpandedChange={setIsExpanded}
         sanitizedIntroHtml={sanitizedIntroHtml}
         shouldShowIntroToggle={shouldShowIntroToggle}
       />
 
-      {imageTiles?.length ? (
-        <CategoryContextImageTileGrid tiles={imageTiles ?? []} />
-      ) : null}
+      {imageTileGrid}
     </section>
   )
 }

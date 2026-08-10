@@ -1,14 +1,16 @@
 import { useState } from "react"
+
 import { getProducts } from "@/services"
 import type { Product } from "@/types/product"
+
 import { useRegions } from "./use-region"
 
-type UseSearchProductsOptions = {
+interface UseSearchProductsOptions {
   limit?: number
   fields?: string
 }
 
-export function useSearchProducts(options?: UseSearchProductsOptions) {
+export const useSearchProducts = (options?: UseSearchProductsOptions) => {
   const { selectedRegion } = useRegions()
   const [searchResults, setSearchResults] = useState<Product[]>([])
   const [isSearching, setIsSearching] = useState(false)
@@ -16,7 +18,7 @@ export function useSearchProducts(options?: UseSearchProductsOptions) {
 
   const searchProducts = async (query: string) => {
     // Clear results if query is empty
-    if (!query.trim()) {
+    if (query.trim().length === 0) {
       setSearchResults([])
       setError(null)
       return []
@@ -27,17 +29,26 @@ export function useSearchProducts(options?: UseSearchProductsOptions) {
 
     try {
       const response = await getProducts({
+        fields:
+          options?.fields === undefined || options.fields.length === 0
+            ? "id, handle, title"
+            : options.fields,
+        limit:
+          options?.limit === undefined || options.limit === 0
+            ? 10
+            : options.limit,
         q: query,
-        fields: options?.fields || "id, handle, title",
-        limit: options?.limit || 10,
-        sort: "newest",
         region_id: selectedRegion?.id,
+        sort: "newest",
       })
 
       setSearchResults(response.products)
       return response.products
-    } catch (err) {
-      const searchError = err as Error
+    } catch (caughtError) {
+      const searchError =
+        caughtError instanceof Error
+          ? caughtError
+          : new Error("Product search failed", { cause: caughtError })
       console.error("Search error:", searchError)
       setError(searchError)
       setSearchResults([])
@@ -53,10 +64,10 @@ export function useSearchProducts(options?: UseSearchProductsOptions) {
   }
 
   return {
-    searchResults,
-    isSearching,
-    error,
-    searchProducts,
     clearResults,
+    error,
+    isSearching,
+    searchProducts,
+    searchResults,
   }
 }

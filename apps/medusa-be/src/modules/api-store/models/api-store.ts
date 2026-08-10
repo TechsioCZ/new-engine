@@ -2,14 +2,14 @@ import { model } from "@medusajs/framework/utils"
 
 const ApiStore = model
   .define("api_store", {
-    id: model.id().primaryKey(),
-    name: model.text().searchable(),
-    api_url: model.text().nullable(),
+    access_token_expires_at: model.dateTime().nullable(),
     api_key: model.text().nullable(),
+    api_url: model.text().nullable(),
     credentials: model.text().nullable(),
     enabled: model.boolean().default(true),
+    id: model.id().primaryKey(),
     is_internal: model.boolean().default(false),
-    access_token_expires_at: model.dateTime().nullable(),
+    name: model.text().searchable(),
   })
   .indexes([
     {

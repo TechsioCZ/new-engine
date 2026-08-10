@@ -2,38 +2,38 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { useEffect } from "react"
+
 import { useRegions } from "@/hooks/use-region"
 import { STORAGE_KEYS } from "@/lib/constants"
 import { sdk } from "@/lib/medusa-client"
 import { queryKeys } from "@/lib/query-keys"
 
-export function CartPrefetch() {
+const useCartPrefetch = () => {
   const queryClient = useQueryClient()
   const { selectedRegion } = useRegions()
 
   useEffect(() => {
-    if (!selectedRegion) return
+    if (selectedRegion === null) {
+      return
+    }
 
     // Prefetch cart data
-    queryClient.prefetchQuery({
-      queryKey: queryKeys.cart(
-        typeof window !== "undefined"
-          ? localStorage.getItem(STORAGE_KEYS.CART_ID) || undefined
-          : undefined
-      ),
+    void queryClient.prefetchQuery({
+      // Ten minutes
+      gcTime: 10 * 60 * 1000,
       queryFn: async () => {
         const cartId =
-          typeof window !== "undefined"
-            ? localStorage.getItem(STORAGE_KEYS.CART_ID)
-            : null
+          typeof window === "undefined"
+            ? null
+            : localStorage.getItem(STORAGE_KEYS.CART_ID)
 
-        if (cartId) {
+        if (cartId !== null) {
           try {
             const { cart } = await sdk.store.cart.retrieve(cartId)
             return cart
-          } catch (err) {
+          } catch (error) {
             // Cart not found, will create new one below
-            console.error("[Cart Prefetch] Failed to retrieve cart:", err)
+            console.error("[Cart Prefetch] Failed to retrieve cart:", error)
             localStorage.removeItem(STORAGE_KEYS.CART_ID)
           }
         }
@@ -46,10 +46,19 @@ export function CartPrefetch() {
         localStorage.setItem(STORAGE_KEYS.CART_ID, newCart.id)
         return newCart
       },
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes
+      queryKey: queryKeys.cart(
+        typeof window === "undefined" ||
+          localStorage.getItem(STORAGE_KEYS.CART_ID) === ""
+          ? undefined
+          : (localStorage.getItem(STORAGE_KEYS.CART_ID) ?? undefined),
+      ),
+      // Five minutes
+      staleTime: 5 * 60 * 1000,
     })
   }, [queryClient, selectedRegion])
+}
 
-  return null
+export const CartPrefetch = () => {
+  useCartPrefetch()
+  return <template />
 }

@@ -1,9 +1,8 @@
 import type { Endpoint } from "payload"
-import {
-  type CategoryDoc,
-  getCategoryDoc,
-  getMediaUrl,
-} from "../utils/doc-selectors"
+
+import type { Article } from "../../payload-types"
+import type { CategoryDoc } from "../utils/doc-selectors"
+import { getCategoryDoc, getMediaUrl } from "../utils/doc-selectors"
 import {
   buildJsonResponse,
   getLocaleFromRequest,
@@ -12,24 +11,8 @@ import {
 
 const MAX_ARTICLES = 500
 
-/** Minimal media record needed for article listing. */
-type MediaDoc = {
-  url?: string | null
-}
-
-/** Minimal article record used to group by category. */
-type ArticleDoc = {
-  title: unknown
-  slug?: unknown
-  excerpt?: unknown
-  featuredImage?: number | MediaDoc | null
-  category?: number | CategoryDoc | null
-}
-
 /** Endpoint returning article categories grouped with their articles. */
 export const articleCategoriesWithArticlesEndpoint: Endpoint = {
-  path: "/article-categories-with-articles",
-  method: "get",
   handler: async (req) => {
     const locale = getLocaleFromRequest(req)
     const categorySlug = getQueryParam(req, "categorySlug")
@@ -37,61 +20,58 @@ export const articleCategoriesWithArticlesEndpoint: Endpoint = {
     const articlesResult = await req.payload.find({
       collection: "articles",
       depth: 1,
-      pagination: true,
       limit: MAX_ARTICLES,
-      locale,
-      where: {
-        status: { equals: "published" },
-        ...(categorySlug
-          ? {
-              "category.slug": { equals: categorySlug },
-            }
-          : {}),
-      },
+      ...(locale === undefined ? {} : { locale }),
+      pagination: true,
+      req,
       select: {
-        title: true,
-        slug: true,
+        category: true,
         excerpt: true,
         featuredImage: true,
-        category: true,
+        slug: true,
+        title: true,
       },
-      req,
+      where: {
+        status: { equals: "published" },
+        ...(categorySlug === undefined
+          ? {}
+          : {
+              "category.slug": { equals: categorySlug },
+            }),
+      },
     })
 
     const categoriesById = new Map<
       number,
-      {
-        id: number
-        title: unknown
-        slug: unknown
-        articles: {
-          title: unknown
-          slug?: unknown
-          excerpt?: unknown
-          featuredImage?: string | null
-        }[]
+      Pick<CategoryDoc, "id" | "slug" | "title"> & {
+        articles: (Pick<Article, "slug" | "title"> & {
+          excerpt: Article["excerpt"] | null | undefined
+          featuredImage: string | null
+        })[]
       }
     >()
-    for (const article of articlesResult.docs as ArticleDoc[]) {
+
+    for (const article of articlesResult.docs) {
       const category = getCategoryDoc(article.category)
-      if (!category) {
-        continue
+      if (category !== null) {
+        const entry = categoriesById.get(category.id) ?? {
+          ...category,
+          articles: [],
+        }
+        entry.articles.push({
+          excerpt: article.excerpt,
+          featuredImage: getMediaUrl(article.featuredImage),
+          slug: article.slug,
+          title: article.title,
+        })
+        categoriesById.set(category.id, entry)
       }
-      const entry = categoriesById.get(category.id) ?? {
-        ...category,
-        articles: [],
-      }
-      entry.articles.push({
-        title: article.title,
-        slug: article.slug,
-        excerpt: article.excerpt,
-        featuredImage: getMediaUrl(article.featuredImage),
-      })
-      categoriesById.set(category.id, entry)
     }
 
     return buildJsonResponse(req, {
-      categories: Array.from(categoriesById.values()),
+      categories: [...categoriesById.values()],
     })
   },
+  method: "get",
+  path: "/article-categories-with-articles",
 }

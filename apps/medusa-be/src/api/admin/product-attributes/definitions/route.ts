@@ -2,14 +2,9 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
-import {
-  getProductAttributeService,
-  type ProductAttributeDefinitionRecord,
-} from "../../../../utils/product-attributes"
-import {
-  type CreateProductAttributeDefinitionInput,
-  createProductAttributeDefinitionWorkflow,
-} from "../../../../workflows/product-attribute"
+
+import { getProductAttributeService } from "../../../../utils/product-attributes"
+import { createProductAttributeDefinitionWorkflow } from "../../../../workflows/product-attribute/workflows/definitions"
 import {
   applyProductAttributeStatusFilter,
   escapeProductAttributeLikePattern,
@@ -22,39 +17,46 @@ import type {
   AdminGetProductAttributeDefinitionsSchemaType,
 } from "../validators"
 
-export async function GET(
+const get = async (
   req: AuthenticatedMedusaRequest<
     unknown,
     AdminGetProductAttributeDefinitionsSchemaType
   >,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { input_type, is_public, limit, offset, order, q, status } =
     req.validatedQuery
-  const filters: Record<string, unknown> = {
-    ...(input_type ? { input_type } : {}),
+  const escapedQuery =
+    q !== undefined && q.length > 0
+      ? escapeProductAttributeLikePattern(q)
+      : undefined
+  const baseFilters = {
+    ...(input_type !== undefined && input_type.length > 0
+      ? { input_type }
+      : {}),
     ...(is_public === undefined ? {} : { is_public }),
+    ...(escapedQuery !== undefined && escapedQuery.length > 0
+      ? {
+          $or: [
+            { key: { $ilike: `%${escapedQuery}%` } },
+            { label: { $ilike: `%${escapedQuery}%` } },
+          ],
+        }
+      : {}),
   }
-  const escapedQuery = q ? escapeProductAttributeLikePattern(q) : undefined
-  if (escapedQuery) {
-    filters.$or = [
-      { key: { $ilike: `%${escapedQuery}%` } },
-      { label: { $ilike: `%${escapedQuery}%` } },
-    ]
-  }
-  applyProductAttributeStatusFilter(filters, status)
+  const filters = applyProductAttributeStatusFilter(baseFilters, status)
 
-  const [definitions, count] = (await getProductAttributeService(
-    req.scope
+  const [definitions, count] = await getProductAttributeService(
+    req.scope,
   ).listAndCountProductAttributeDefinitions(filters, {
     order: parseProductAttributeOrder(order),
     skip: offset,
     take: limit,
     withDeleted: status !== "active",
-  })) as [ProductAttributeDefinitionRecord[], number]
+  })
   const usageCounts = await getDefinitionUsageCountMap(
     req.scope,
-    definitions.map((definition) => definition.id)
+    definitions.map((definition) => definition.id),
   )
 
   res.json({
@@ -62,25 +64,27 @@ export async function GET(
     definitions: definitions.map((definition) =>
       toProductAttributeDefinitionResponse(
         definition,
-        usageCounts.get(definition.id) ?? 0
-      )
+        usageCounts.get(definition.id) ?? 0,
+      ),
     ),
     limit,
     offset,
   })
 }
 
-export async function POST(
+const post = async (
   req: AuthenticatedMedusaRequest<AdminCreateProductAttributeDefinitionSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const { result } = await createProductAttributeDefinitionWorkflow(
-    req.scope
+    req.scope,
   ).run({
-    input: req.validatedBody as CreateProductAttributeDefinitionInput,
+    input: req.validatedBody,
   })
 
   res.status(201).json({
     definition: toProductAttributeDefinitionResponse(result, 0),
   })
 }
+
+export { get as GET, post as POST }

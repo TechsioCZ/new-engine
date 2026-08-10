@@ -1,5 +1,5 @@
 import { LoginForm } from "@/components/auth/login-form"
 
-export default function LoginPage() {
-  return <LoginForm />
-}
+const LoginPage = () => <LoginForm />
+
+export default LoginPage

@@ -1,9 +1,11 @@
 "use client"
 
-import type { HttpTypes } from "@medusajs/types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useTranslations } from "next-intl"
-import { type ReactNode, useState } from "react"
+import { useState } from "react"
+import type { ReactNode } from "react"
+
 import { HerbatikaProductCardCompact } from "@/components/herbatika-product-card-compact"
 import { HerbatikaProductCardSkeleton } from "@/components/herbatika-product-card-skeleton"
 import { SupportingText } from "@/components/text/supporting-text"
@@ -13,7 +15,7 @@ import {
   useRecentlyVisitedProductHandles,
 } from "@/lib/storefront/recently-visited-products"
 
-type RecentlyVisitedProductsSectionProps = {
+interface RecentlyVisitedProductsSectionProps {
   className?: string
   excludeHandle?: string | null
   emptyText?: string
@@ -32,7 +34,7 @@ const RECENT_PRODUCT_SKELETON_KEYS = [
   "recent-product-skeleton-4",
 ] as const
 
-export function RecentlyVisitedProductsSection({
+export const RecentlyVisitedProductsSection = ({
   className,
   excludeHandle,
   emptyText,
@@ -40,50 +42,51 @@ export function RecentlyVisitedProductsSection({
   hideWhenEmpty = false,
   id = "naposledy-navstivene",
   visibleCount = DEFAULT_VISIBLE_COUNT,
-}: RecentlyVisitedProductsSectionProps) {
+}: RecentlyVisitedProductsSectionProps) => {
   const tCatalog = useTranslations("catalog")
   const region = useRegionContext()
   const resolvedEmptyText =
     emptyText ?? tCatalog("product_card.recently_visited_empty")
   const resolvedHeadingText =
     headingText ?? tCatalog("product_card.recently_visited_title")
-  const recentlyVisitedHandles = useRecentlyVisitedProductHandles({
-    excludeHandle,
-  })
+  const recentlyVisitedHandles = useRecentlyVisitedProductHandles(
+    excludeHandle === undefined ? {} : { excludeHandle },
+  )
   const productHandles = recentlyVisitedHandles.slice(0, visibleCount)
   const [productsWithImageError, setProductsWithImageError] = useState<
     string[]
   >([])
 
   const recentProductsQuery = useProducts({
-    page: 1,
-    limit: productHandles.length,
-    handle: productHandles.length > 0 ? productHandles : undefined,
+    enabled: region?.region_id !== undefined && productHandles.length > 0,
     fields: PRODUCT_CARD_FIELDS,
-    enabled: Boolean(region?.region_id && productHandles.length > 0),
+    ...(productHandles.length > 0 ? { handle: productHandles } : {}),
+    limit: productHandles.length,
+    page: 1,
   })
+  const productsWithImageErrorSet = new Set(productsWithImageError)
 
   const visibleProducts = orderProductsByHandles(
     recentProductsQuery.products,
-    productHandles
+    productHandles,
   ).filter((product) => {
     if (!product.id) {
       return true
     }
 
-    return !productsWithImageError.includes(product.id)
+    return !productsWithImageErrorSet.has(product.id)
   })
 
   const shouldShowSkeleton =
     productHandles.length > 0 &&
     visibleProducts.length === 0 &&
-    (!region?.region_id || recentProductsQuery.isLoading)
+    (region?.region_id === undefined || recentProductsQuery.isLoading)
 
   if (hideWhenEmpty && !shouldShowSkeleton && visibleProducts.length === 0) {
     return null
   }
 
-  const handleCompactImageError = (product: HttpTypes.StoreProduct) => {
+  const handleCompactImageError = (product: MedusaCatalogProduct) => {
     if (!product.id) {
       return
     }
@@ -91,7 +94,7 @@ export function RecentlyVisitedProductsSection({
     setProductsWithImageError((currentProductsWithImageError) =>
       currentProductsWithImageError.includes(product.id)
         ? currentProductsWithImageError
-        : [...currentProductsWithImageError, product.id]
+        : [...currentProductsWithImageError, product.id],
     )
   }
   let content: ReactNode
@@ -106,9 +109,9 @@ export function RecentlyVisitedProductsSection({
   } else if (visibleProducts.length > 0) {
     content = (
       <div className={RECENT_PRODUCTS_GRID_CLASSNAME}>
-        {visibleProducts.map((product, index) => (
+        {visibleProducts.map((product) => (
           <HerbatikaProductCardCompact
-            key={`recent-product-${product.id}-${index}`}
+            key={`recent-product-${product.id}`}
             onCompactImageError={handleCompactImageError}
             product={product}
           />

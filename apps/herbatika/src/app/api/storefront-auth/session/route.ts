@@ -1,4 +1,7 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { getRecordValue } from "@techsio/std/object"
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
+
 import {
   buildMedusaUrl,
   clearSessionTokenCookie,
@@ -7,58 +10,54 @@ import {
   parseResponseJson,
   serverError,
   setSessionTokenCookie,
-} from "../_lib"
+} from "../auth-route-utils"
 
-type SessionResponse = {
+interface SessionResponse {
   token: string | null
   authenticated: boolean
   message?: string
 }
 
-const resolveToken = (
-  payload: Record<string, unknown> | null,
-  fallbackToken: string
-) => {
-  if (
-    payload &&
-    typeof payload.token === "string" &&
-    payload.token.length > 0
-  ) {
-    return payload.token
+const resolveToken = (payload: object | null, fallbackToken: string) => {
+  if (payload !== null) {
+    const token = getRecordValue(payload, "token")
+    if (typeof token === "string" && token.length > 0) {
+      return token
+    }
   }
 
   return fallbackToken
 }
 
-export async function GET(request: NextRequest) {
+const get = async (request: NextRequest) => {
   const token = getSessionTokenFromCookieHeader(request.headers.get("cookie"))
 
-  if (!token) {
+  if (token === null) {
     return NextResponse.json<SessionResponse>(
       {
-        token: null,
         authenticated: false,
         message: "Authentication required.",
+        token: null,
       },
-      { status: 200 }
+      { status: 200 },
     )
   }
 
   try {
     const refreshResponse = await fetch(buildMedusaUrl("/auth/token/refresh"), {
-      method: "POST",
+      cache: "no-store",
       headers: {
         authorization: `Bearer ${token}`,
       },
-      cache: "no-store",
+      method: "POST",
     })
 
     if (refreshResponse.ok) {
       const refreshPayload = await parseResponseJson(refreshResponse)
       const refreshedToken = resolveToken(refreshPayload, token)
       const response = NextResponse.json<SessionResponse>(
-        { token: refreshedToken, authenticated: true },
-        { status: 200 }
+        { authenticated: true, token: refreshedToken },
+        { status: 200 },
       )
       setSessionTokenCookie(response, refreshedToken)
       return response
@@ -67,31 +66,31 @@ export async function GET(request: NextRequest) {
     const customerResponse = await fetch(
       buildMedusaUrl("/store/customers/me"),
       {
-        method: "GET",
+        cache: "no-store",
         headers: {
           authorization: `Bearer ${token}`,
           ...getPublishableHeaders(),
         },
-        cache: "no-store",
-      }
+        method: "GET",
+      },
     )
 
     if (!customerResponse.ok) {
       const unauthorizedResponse = NextResponse.json<SessionResponse>(
         {
-          token: null,
           authenticated: false,
           message: "Authentication required.",
+          token: null,
         },
-        { status: 200 }
+        { status: 200 },
       )
       clearSessionTokenCookie(unauthorizedResponse)
       return unauthorizedResponse
     }
 
     const response = NextResponse.json<SessionResponse>(
-      { token, authenticated: true },
-      { status: 200 }
+      { authenticated: true, token },
+      { status: 200 },
     )
     setSessionTokenCookie(response, token)
     return response
@@ -101,3 +100,5 @@ export async function GET(request: NextRequest) {
     })
   }
 }
+
+export { get as GET }

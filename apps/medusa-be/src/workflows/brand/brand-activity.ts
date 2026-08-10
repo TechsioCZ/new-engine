@@ -1,8 +1,9 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
+
 import { BRAND_MODULE } from "../../modules/brand"
 import type BrandModuleService from "../../modules/brand/service"
 
-type BrandIdRecord = {
+interface BrandIdRecord {
   id: string
 }
 
@@ -10,7 +11,7 @@ const ACTIVE_BRAND_QUERY_CHUNK_SIZE = 500
 
 export const getActiveBrandIds = async (
   container: MedusaContainer,
-  brandIds: string[]
+  brandIds: string[],
 ) => {
   const ids = [...new Set(brandIds)]
 
@@ -21,11 +22,11 @@ export const getActiveBrandIds = async (
   const service = container.resolve<BrandModuleService>(BRAND_MODULE)
   const brands: BrandIdRecord[] = []
 
-  for (
-    let index = 0;
-    index < ids.length;
-    index += ACTIVE_BRAND_QUERY_CHUNK_SIZE
-  ) {
+  const collectChunk = async (index: number): Promise<void> => {
+    if (index >= ids.length) {
+      return
+    }
+
     const chunkBrands = await service.listBrands(
       {
         id: {
@@ -35,10 +36,13 @@ export const getActiveBrandIds = async (
       {
         select: ["id"],
         withDeleted: false,
-      }
+      },
     )
-    brands.push(...(chunkBrands as BrandIdRecord[]))
+    brands.push(...chunkBrands)
+    await collectChunk(index + ACTIVE_BRAND_QUERY_CHUNK_SIZE)
   }
+
+  await collectChunk(0)
 
   return new Set(brands.map((brand) => brand.id))
 }

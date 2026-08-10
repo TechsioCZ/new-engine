@@ -37,7 +37,7 @@ export type CartValidationResult =
  *   return
  * }
  */
-export function validateAddToCart({
+export const validateAddToCart = ({
   cart,
   variantId,
   quantity,
@@ -47,10 +47,10 @@ export function validateAddToCart({
   variantId: string
   quantity: number
   inventoryQuantity?: number
-}): CartValidationResult {
+}): CartValidationResult => {
   // Find current quantity in cart for this variant
   const currentQuantity =
-    cart?.items?.find((item) => item.variant_id === variantId)?.quantity || 0
+    cart?.items?.find((item) => item.variant_id === variantId)?.quantity ?? 0
 
   const requestedTotal = currentQuantity + quantity
   const availableQuantity = inventoryQuantity ?? Number.POSITIVE_INFINITY
@@ -58,17 +58,17 @@ export function validateAddToCart({
   // Check if total quantity exceeds available stock
   if (requestedTotal > availableQuantity) {
     return {
-      valid: false,
-      error: "insufficient_stock",
-      currentQuantity,
       availableQuantity,
+      currentQuantity,
+      error: "insufficient_stock",
       requestedTotal,
+      valid: false,
     }
   }
 
   return {
-    valid: true,
-    currentQuantity,
     availableQuantity,
+    currentQuantity,
+    valid: true,
   }
 }

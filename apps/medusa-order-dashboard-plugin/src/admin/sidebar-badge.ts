@@ -14,7 +14,122 @@ let lastFetchAt = 0
 let refreshInFlight = false
 let started = false
 
-export function startOrderDashboardSidebarBadge() {
+const getOrderDashboardSidebarLink = () =>
+  document.querySelector<HTMLAnchorElement>(
+    ORDER_DASHBOARD_SIDEBAR_LINK_SELECTOR,
+  ) ?? null
+
+const canRefreshOrderDashboardSidebarBadge = () =>
+  Date.now() - lastFetchAt >= ORDER_DASHBOARD_SIDEBAR_BADGE_RETRY_COOLDOWN_MS
+
+const normalizeOrderDashboardSidebarBadgeCount = (
+  count: number | null | undefined,
+) => (typeof count === "number" && Number.isFinite(count) ? count : null)
+
+const removeOrderDashboardSidebarBadge = () => {
+  document.querySelector(`#${ORDER_DASHBOARD_SIDEBAR_BADGE_ID}`)?.remove()
+}
+
+const getOrderDashboardSidebarBadgeLabel = (count: number) => {
+  const language = document.documentElement.lang
+  const dictionary = language.toLowerCase().startsWith("cs")
+    ? orderDashboardAdminI18n.cs
+    : orderDashboardAdminI18n.en
+
+  return dictionary.sidebar.actionRequiredOrders.replace(
+    "{{count}}",
+    String(count),
+  )
+}
+
+const renderOrderDashboardSidebarBadge = (count: number | null | undefined) => {
+  if (typeof document === "undefined") {
+    return
+  }
+
+  const link = getOrderDashboardSidebarLink()
+  const normalizedCount = normalizeOrderDashboardSidebarBadgeCount(count)
+
+  if (!link || normalizedCount === null || normalizedCount <= 0) {
+    removeOrderDashboardSidebarBadge()
+    return
+  }
+
+  let badge = document.querySelector<HTMLSpanElement>(
+    `#${ORDER_DASHBOARD_SIDEBAR_BADGE_ID}`,
+  )
+
+  if (!badge) {
+    badge = document.createElement("span")
+    badge.id = ORDER_DASHBOARD_SIDEBAR_BADGE_ID
+    badge.style.alignItems = "center"
+    badge.style.background = "rgb(122 40 46)"
+    badge.style.border = "1px solid rgb(180 83 91)"
+    badge.style.borderRadius = "9999px"
+    badge.style.color = "white"
+    badge.style.display = "inline-flex"
+    badge.style.fontSize = "11px"
+    badge.style.fontWeight = "600"
+    badge.style.height = "20px"
+    badge.style.justifyContent = "center"
+    badge.style.lineHeight = "20px"
+    badge.style.marginLeft = "auto"
+    badge.style.minWidth = "20px"
+    badge.style.padding = "0 6px"
+    badge.style.pointerEvents = "none"
+    badge.style.whiteSpace = "nowrap"
+    link.append(badge)
+  }
+
+  const countText = String(normalizedCount)
+  const label = getOrderDashboardSidebarBadgeLabel(normalizedCount)
+
+  if (badge.textContent !== countText) {
+    badge.textContent = countText
+  }
+
+  if (badge.getAttribute("aria-label") !== label) {
+    badge.setAttribute("aria-label", label)
+  }
+
+  if (badge.title !== label) {
+    badge.title = label
+  }
+}
+
+export const setOrderDashboardSidebarBadgeCount = (
+  count: number | null | undefined,
+) => {
+  currentCount = normalizeOrderDashboardSidebarBadgeCount(count)
+  renderOrderDashboardSidebarBadge(currentCount)
+}
+
+const refreshOrderDashboardSidebarBadge = async () => {
+  if (refreshInFlight || !canRefreshOrderDashboardSidebarBadge()) {
+    return
+  }
+
+  hasInitialRefreshRun = true
+  lastFetchAt = Date.now()
+  refreshInFlight = true
+
+  try {
+    const summary = await sdk.client.fetch<OrderDashboardSummaryResponse>(
+      "/admin/order-expedition/summary",
+    )
+    setOrderDashboardSidebarBadgeCount(summary.pending_unpaid_count)
+  } catch {
+    renderOrderDashboardSidebarBadge(currentCount)
+  } finally {
+    refreshInFlight = false
+  }
+}
+
+const queueOrderDashboardSidebarBadgeRefresh = () => {
+  void refreshOrderDashboardSidebarBadge()
+}
+
+export const startOrderDashboardSidebarBadge = () => {
   if (
     started ||
     typeof window === "undefined" ||
@@ -47,128 +162,7 @@ export function startOrderDashboardSidebarBadge() {
 
   window.setInterval(
     queueOrderDashboardSidebarBadgeRefresh,
-    ORDER_DASHBOARD_SIDEBAR_BADGE_REFRESH_MS
+    ORDER_DASHBOARD_SIDEBAR_BADGE_REFRESH_MS,
   )
   window.addEventListener("focus", queueOrderDashboardSidebarBadgeRefresh)
-}
-
-export function setOrderDashboardSidebarBadgeCount(
-  count: number | null | undefined
-) {
-  currentCount = normalizeOrderDashboardSidebarBadgeCount(count)
-  renderOrderDashboardSidebarBadge(currentCount)
-}
-
-async function refreshOrderDashboardSidebarBadge() {
-  if (refreshInFlight || !canRefreshOrderDashboardSidebarBadge()) {
-    return
-  }
-
-  hasInitialRefreshRun = true
-  lastFetchAt = Date.now()
-  refreshInFlight = true
-
-  try {
-    const summary = await sdk.client.fetch<OrderDashboardSummaryResponse>(
-      "/admin/order-expedition/summary"
-    )
-    setOrderDashboardSidebarBadgeCount(summary.pending_unpaid_count)
-  } catch {
-    renderOrderDashboardSidebarBadge(currentCount)
-  } finally {
-    refreshInFlight = false
-  }
-}
-
-function queueOrderDashboardSidebarBadgeRefresh() {
-  refreshOrderDashboardSidebarBadge()
-}
-
-function canRefreshOrderDashboardSidebarBadge() {
-  return (
-    Date.now() - lastFetchAt >= ORDER_DASHBOARD_SIDEBAR_BADGE_RETRY_COOLDOWN_MS
-  )
-}
-
-function renderOrderDashboardSidebarBadge(count: number | null | undefined) {
-  if (typeof document === "undefined") {
-    return
-  }
-
-  const link = getOrderDashboardSidebarLink()
-  const normalizedCount = normalizeOrderDashboardSidebarBadgeCount(count)
-
-  if (!link || normalizedCount === null || normalizedCount <= 0) {
-    removeOrderDashboardSidebarBadge()
-    return
-  }
-
-  let badge = document.getElementById(ORDER_DASHBOARD_SIDEBAR_BADGE_ID)
-
-  if (!badge) {
-    badge = document.createElement("span")
-    badge.id = ORDER_DASHBOARD_SIDEBAR_BADGE_ID
-    badge.style.alignItems = "center"
-    badge.style.background = "rgb(122 40 46)"
-    badge.style.border = "1px solid rgb(180 83 91)"
-    badge.style.borderRadius = "9999px"
-    badge.style.color = "white"
-    badge.style.display = "inline-flex"
-    badge.style.fontSize = "11px"
-    badge.style.fontWeight = "600"
-    badge.style.height = "20px"
-    badge.style.justifyContent = "center"
-    badge.style.lineHeight = "20px"
-    badge.style.marginLeft = "auto"
-    badge.style.minWidth = "20px"
-    badge.style.padding = "0 6px"
-    badge.style.pointerEvents = "none"
-    badge.style.whiteSpace = "nowrap"
-    link.appendChild(badge)
-  }
-
-  const countText = String(normalizedCount)
-  const label = getOrderDashboardSidebarBadgeLabel(normalizedCount)
-
-  if (badge.textContent !== countText) {
-    badge.textContent = countText
-  }
-
-  if (badge.getAttribute("aria-label") !== label) {
-    badge.setAttribute("aria-label", label)
-  }
-
-  if (badge.title !== label) {
-    badge.title = label
-  }
-}
-
-function normalizeOrderDashboardSidebarBadgeCount(
-  count: number | null | undefined
-) {
-  return typeof count === "number" && Number.isFinite(count) ? count : null
-}
-
-function removeOrderDashboardSidebarBadge() {
-  document.getElementById(ORDER_DASHBOARD_SIDEBAR_BADGE_ID)?.remove()
-}
-
-function getOrderDashboardSidebarLink() {
-  return (
-    document.querySelector<HTMLAnchorElement>(
-      ORDER_DASHBOARD_SIDEBAR_LINK_SELECTOR
-    ) ?? null
-  )
-}
-
-function getOrderDashboardSidebarBadgeLabel(count: number) {
-  const language = document.documentElement.lang
-  const dictionary = language.toLowerCase().startsWith("cs")
-    ? orderDashboardAdminI18n.cs
-    : orderDashboardAdminI18n.en
-
-  return dictionary.sidebar.actionRequiredOrders.replace(
-    "{{count}}",
-    String(count)
-  )
 }

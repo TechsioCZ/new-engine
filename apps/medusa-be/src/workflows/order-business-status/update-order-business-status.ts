@@ -1,4 +1,7 @@
-import type { IOrderModuleService } from "@medusajs/framework/types"
+import type {
+  MetadataType,
+  IOrderModuleService,
+} from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import {
   createStep,
@@ -7,9 +10,9 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 
-type UpdateOrderBusinessStatusInput = {
+interface UpdateOrderBusinessStatusInput {
   id: string
-  metadata: Record<string, unknown>
+  metadata: MetadataType
 }
 
 const updateOrderBusinessStatusStep = createStep(
@@ -21,11 +24,11 @@ const updateOrderBusinessStatusStep = createStep(
     })
 
     return new StepResponse(order)
-  }
+  },
 )
 
 export const updateOrderBusinessStatusWorkflow = createWorkflow(
   "update-order-business-status",
   (input: UpdateOrderBusinessStatusInput) =>
-    new WorkflowResponse(updateOrderBusinessStatusStep(input))
+    new WorkflowResponse(updateOrderBusinessStatusStep(input)),
 )

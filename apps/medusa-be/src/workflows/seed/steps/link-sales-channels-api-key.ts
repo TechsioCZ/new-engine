@@ -4,11 +4,14 @@ import type {
   Query,
   SalesChannelDTO,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { linkSalesChannelsToApiKeyWorkflow } from "@medusajs/medusa/core-flows"
 
-export type LinkSalesChannelsApiKeyStepInput = {
+export interface LinkSalesChannelsApiKeyStepInput {
   publishableApiKey: ApiKeyDTO
   salesChannels: SalesChannelDTO[]
   salesChannelNames?: string[]
@@ -16,13 +19,13 @@ export type LinkSalesChannelsApiKeyStepInput = {
 
 const LinkSalesChannelsApiKeyStepId = "link-sales-channels-api-key-seed-step"
 
-export function planSalesChannelApiKeyLinks({
+export const planSalesChannelApiKeyLinks = ({
   desiredIds,
   existingIds,
 }: {
   desiredIds: string[]
   existingIds: string[]
-}) {
+}) => {
   const desiredIdSet = new Set(desiredIds)
   const existingIdSet = new Set(existingIds)
   return {
@@ -45,8 +48,9 @@ export const linkSalesChannelsApiKeyStep = createStep(
       .filter((salesChannel) => desiredNames.includes(salesChannel.name))
       .map((salesChannel) => salesChannel.id)
     if (desiredIds.length !== new Set(desiredNames).size) {
-      throw new Error(
-        `Could not resolve exact publishable-key sales channels: ${desiredNames.join(", ")}`
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Could not resolve exact publishable-key sales channels: ${desiredNames.join(", ")}`,
       )
     }
     const { data: existingLinks } = await query.graph({
@@ -54,19 +58,17 @@ export const linkSalesChannelsApiKeyStep = createStep(
       fields: ["sales_channel_id"],
       filters: { publishable_key_id: input.publishableApiKey.id },
     })
-    const existingIds = existingLinks.flatMap((link) =>
-      typeof link.sales_channel_id === "string" ? [link.sales_channel_id] : []
-    )
+    const existingIds = existingLinks.map((link) => link.sales_channel_id)
     const { add, remove } = planSalesChannelApiKeyLinks({
       desiredIds,
       existingIds,
     })
 
-    if (add.length || remove.length) {
+    if (add.length > 0 || remove.length > 0) {
       await linkSalesChannelsToApiKeyWorkflow(container).run({
         input: {
-          id: input.publishableApiKey.id,
           add,
+          id: input.publishableApiKey.id,
           remove,
         },
       })
@@ -75,5 +77,5 @@ export const linkSalesChannelsApiKeyStep = createStep(
     return new StepResponse({
       result: { add, remove },
     })
-  }
+  },
 )

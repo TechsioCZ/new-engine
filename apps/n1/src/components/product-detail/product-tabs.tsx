@@ -1,14 +1,14 @@
 import { Tabs } from "@techsio/ui-kit/molecules/tabs"
 
-type TabConfig = {
+interface TabConfig {
   value: string
   label: string
   headline?: string
   content: React.ReactNode
 }
 
-type ProductTabsProps = {
-  description?: string | null
+interface ProductTabsProps {
+  description?: string | null | undefined
   tabs?: TabConfig[]
 }
 
@@ -30,7 +30,7 @@ export const ProductTabs = ({ description, tabs }: ProductTabsProps) => (
       <p className="py-250">{description}</p>
       {tabs?.map((tab) => (
         <Tabs.Content className="px-0" key={tab.value} value={tab.value}>
-          {tab.headline && (
+          {(tab.headline?.length ?? 0) > 0 && (
             <h3 className="mb-200 font-bold text-lg uppercase">
               {tab.headline}
             </h3>

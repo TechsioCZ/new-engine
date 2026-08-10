@@ -1,19 +1,20 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Link } from "@techsio/ui-kit/atoms/link"
-import NextImage from "next/image"
-import NextLink from "next/link"
 import { useLocale, useTranslations } from "next-intl"
+import NextImage from "next/image"
+
+import NextLink from "@/components/app-link"
 import {
   formatBlogDate,
   formatTopicFromKey,
 } from "@/components/blog/blog-formatters"
 import type { BlogTeaserItem } from "@/components/homepage/homepage.data"
 
-type HomepageBlogSectionProps = {
+interface HomepageBlogSectionProps {
   posts: BlogTeaserItem[]
 }
 
-export function HomepageBlogSection({ posts }: HomepageBlogSectionProps) {
+export const HomepageBlogSection = ({ posts }: HomepageBlogSectionProps) => {
   const locale = useLocale()
   const tContent = useTranslations("content")
 

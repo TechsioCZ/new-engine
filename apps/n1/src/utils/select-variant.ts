@@ -6,19 +6,23 @@ import type { ProductVariantDetail } from "@/types/product"
  * @param variantParam - Variant name from URL query param
  * @returns Selected variant or null if no variants available
  */
-export function selectVariant(
+export const selectVariant = (
   variants: ProductVariantDetail[] | undefined,
-  variantParam: string | null
-): ProductVariantDetail | null {
-  if (!variants?.length) {
+  variantParam: string | null,
+): ProductVariantDetail | null => {
+  if (variants === null || variants === undefined || variants.length === 0) {
     return null
   }
   const [firstVariant] = variants
 
   // If variant param exists, try to find matching variant
-  if (variantParam) {
+  if (
+    variantParam !== null &&
+    variantParam !== undefined &&
+    variantParam !== ""
+  ) {
     const found = variants.find(
-      (v) => v.title.toLowerCase() === variantParam.toLowerCase()
+      (v) => v.title.toLowerCase() === variantParam.toLowerCase(),
     )
     // Return found variant, or fallback to first variant
     return found ?? firstVariant ?? null

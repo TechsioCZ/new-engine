@@ -2,48 +2,48 @@ import { z } from "zod"
 
 export const meiliApiCredentialsCommandInputSchema = z
   .object({
-    meiliUrl: z.string().default(""),
-    masterKey: z.string().default(""),
-    outputJson: z.string().min(1).optional(),
     dryRun: z.boolean().default(false),
+    masterKey: z.string().default(""),
+    meiliUrl: z.string().default(""),
+    outputJson: z.string().min(1).optional(),
     providerId: z.string().min(1).default("meili_api_credentials"),
-    waitSeconds: z.number().int().positive().default(60),
-    timeoutSeconds: z.number().int().positive().default(20),
     retryCount: z.number().int().nonnegative().default(3),
     retryDelaySeconds: z.number().int().nonnegative().default(2),
-    stackManifestPath: z.string().min(1),
     stackInputsPath: z.string().min(1),
+    stackManifestPath: z.string().min(1),
+    timeoutSeconds: z.number().int().positive().default(20),
+    waitSeconds: z.number().int().positive().default(60),
   })
   .superRefine((value, ctx) => {
     if (!(value.dryRun || value.meiliUrl)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["meiliUrl"],
+        code: "custom",
         message: "Meilisearch URL is required.",
+        path: ["meiliUrl"],
       })
     }
 
     if (!(value.dryRun || value.masterKey)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["masterKey"],
+        code: "custom",
         message: "Meilisearch master key is required.",
+        path: ["masterKey"],
       })
     }
   })
 
 export const meiliApiCredentialsResponseSchema = z.object({
-  meili_url: z.string(),
-  backend_env_var: z.string().min(1),
-  frontend_env_var: z.string().min(1),
-  backend_uid: z.string().min(1),
-  frontend_uid: z.string().min(1),
   backend_created: z.boolean(),
-  frontend_created: z.boolean(),
-  backend_updated: z.boolean(),
-  frontend_updated: z.boolean(),
+  backend_env_var: z.string().min(1),
   backend_key: z.string().min(1),
+  backend_uid: z.string().min(1),
+  backend_updated: z.boolean(),
+  frontend_created: z.boolean(),
+  frontend_env_var: z.string().min(1),
   frontend_key: z.string().min(1),
+  frontend_uid: z.string().min(1),
+  frontend_updated: z.boolean(),
+  meili_url: z.string(),
   verified: z.boolean(),
 })
 

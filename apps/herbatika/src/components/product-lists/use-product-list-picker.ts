@@ -1,241 +1,126 @@
 "use client"
 
-import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
-import { type FormEvent, useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
+
 import type { Product } from "@/components/product-detail/product-detail.types"
-import { useAppToast } from "@/hooks/use-app-toast"
 import { useAuth } from "@/lib/storefront/auth"
-import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
-  getProductListItemCount,
-  getProductListTitle,
-  isFavoriteProductList,
-  isProductInProductList,
-  type StoreProductList,
-  useAddFavoriteProductListItem,
-  useAddProductListItem,
-  useCreateCustomProductList,
   useProductListDetails,
   useProductLists,
 } from "@/lib/storefront/product-lists"
 
-export type ProductListPickerRow = {
-  key: string
-  title: string
-  count: number
-  checked: boolean
-  isFavorite: boolean
-  list: StoreProductList | null
-}
+import {
+  buildProductListPickerRows,
+  hydrateProductLists,
+} from "./product-list-picker-rows"
+import { useProductListPickerActions } from "./use-product-list-picker-actions"
+import { useProductListPickerState } from "./use-product-list-picker-state"
 
-type UseProductListPickerInput = {
+interface UseProductListPickerInput {
   product: Product
   quantity: number
   selectedVariantId: string | null
 }
 
-const normalizeQuantity = (quantity: number) =>
-  Number.isFinite(quantity) && quantity >= 1 ? Math.floor(quantity) : 1
-
-const listById = (lists: Array<StoreProductList | null | undefined>) => {
-  const map = new Map<string, StoreProductList>()
-
-  for (const list of lists) {
-    if (list?.id) {
-      map.set(list.id, list)
-    }
-  }
-
-  return map
+interface ProductListPickerControllerResult {
+  activeListKey: ReturnType<typeof useProductListPickerState>["activeListKey"]
+  addProductToList: ReturnType<
+    typeof useProductListPickerActions
+  >["addProductToList"]
+  authQuery: ReturnType<typeof useAuth>
+  detailsAreLoading: boolean
+  detailsHaveError: boolean
+  handleCreateList: ReturnType<
+    typeof useProductListPickerActions
+  >["handleCreateList"]
+  isMutating: boolean
+  isOpen: boolean
+  listsQuery: ReturnType<typeof useProductLists>
+  loginHref: string
+  newListTitle: string
+  retryLists: () => Promise<void>
+  rows: ReturnType<typeof buildProductListPickerRows>
+  setIsOpen: ReturnType<typeof useProductListPickerState>["setIsOpen"]
+  setNewListTitle: ReturnType<
+    typeof useProductListPickerState
+  >["setNewListTitle"]
+  setShowNewListInput: ReturnType<
+    typeof useProductListPickerState
+  >["setShowNewListInput"]
+  showNewListInput: boolean
 }
 
-export function useProductListPicker({
+export const useProductListPicker = ({
   product,
   quantity,
   selectedVariantId,
-}: UseProductListPickerInput) {
+}: UseProductListPickerInput): ProductListPickerControllerResult => {
   const tAuth = useTranslations("auth")
   const pathname = usePathname()
   const authQuery = useAuth()
-  const toast = useAppToast()
-  const [isOpen, setIsOpen] = useState(false)
-  const [showNewListInput, setShowNewListInput] = useState(false)
-  const [newListTitle, setNewListTitle] = useState("")
-  const [activeListKey, setActiveListKey] = useState<string | null>(null)
-
+  const state = useProductListPickerState()
   const customerId = authQuery.customer?.id ?? null
-  const shouldFetchLists = isOpen && authQuery.isAuthenticated
+  const shouldFetchLists = state.isOpen && authQuery.isAuthenticated
   const listsQuery = useProductLists({
     customerId,
-    limit: 100,
     enabled: shouldFetchLists,
+    limit: 100,
   })
-  const listIds = listsQuery.productLists.map((list) => list.id).filter(Boolean)
+  const listIds = listsQuery.productLists.flatMap((list) =>
+    list.id === "" ? [] : [list.id],
+  )
   const detailQueries = useProductListDetails(listIds, {
     customerId,
     enabled: shouldFetchLists && listIds.length > 0,
   })
-  const createCustomMutation = useCreateCustomProductList()
-  const addItemMutation = useAddProductListItem()
-  const addFavoriteItemMutation = useAddFavoriteProductListItem()
-  const quantityToAdd = normalizeQuantity(quantity)
-  const isMutating =
-    createCustomMutation.isPending ||
-    addItemMutation.isPending ||
-    addFavoriteItemMutation.isPending
-  const detailListsById = listById(detailQueries.map((query) => query.data))
-  const hydratedLists = listsQuery.productLists.map(
-    (list) => detailListsById.get(list.id) ?? list
+  const hydratedLists = hydrateProductLists(
+    listsQuery.productLists,
+    detailQueries.map((query) => query.data),
   )
-  const favoriteList =
-    hydratedLists.find((list) => isFavoriteProductList(list)) ?? null
-  const customLists = hydratedLists.filter(
-    (list) => !isFavoriteProductList(list)
-  )
-  const rows: ProductListPickerRow[] = [
-    {
-      key: favoriteList?.id ?? "favorite",
-      title: tAuth("product_lists.favorite_title"),
-      count: getProductListItemCount(favoriteList),
-      checked: isProductInProductList(
-        favoriteList,
-        product.id,
-        selectedVariantId
-      ),
-      isFavorite: true,
-      list: favoriteList,
-    },
-    ...customLists.map((list) => ({
-      key: list.id,
-      title: getProductListTitle(list, {
-        favorite: tAuth("product_lists.favorite_title"),
-        untitled: tAuth("product_lists.untitled_list"),
-      }),
-      count: getProductListItemCount(list),
-      checked: isProductInProductList(list, product.id, selectedVariantId),
-      isFavorite: false,
-      list,
-    })),
-  ]
-
-  useEffect(() => {
-    if (isOpen) {
-      return
-    }
-
-    setShowNewListInput(false)
-    setNewListTitle("")
-    setActiveListKey(null)
-  }, [isOpen])
-
-  const addProductToList = async (row: ProductListPickerRow) => {
-    if (row.checked) {
-      return
-    }
-
-    if (!(row.isFavorite || row.list?.id)) {
-      return
-    }
-
-    setActiveListKey(row.key)
-
-    try {
-      if (row.isFavorite) {
-        await addFavoriteItemMutation.mutateAsync({
-          productId: product.id,
-          variantId: selectedVariantId,
-          quantity: quantityToAdd,
-        })
-      } else if (row.list?.id) {
-        await addItemMutation.mutateAsync({
-          listId: row.list.id,
-          productId: product.id,
-          variantId: selectedVariantId,
-          quantity: quantityToAdd,
-        })
-      }
-    } catch (mutationError) {
-      toast.error({
-        title: resolveErrorMessage(
-          mutationError,
-          tAuth("product_lists.errors.add_product_failed")
-        ),
-      })
-    } finally {
-      setActiveListKey(null)
-    }
-  }
-
-  const handleCreateList = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-
-    const title = newListTitle.trim()
-    if (!title) {
-      toast.warning({
-        title: tAuth("product_lists.validation.title_required"),
-      })
-      return
-    }
-
-    setActiveListKey("new-list")
-
-    try {
-      const createdList = await createCustomMutation.mutateAsync({
-        title,
-        access_type: "private",
-      })
-
-      if (!createdList?.id) {
-        throw new Error(tAuth("product_lists.errors.create_failed"))
-      }
-
-      await addItemMutation.mutateAsync({
-        listId: createdList.id,
-        productId: product.id,
-        variantId: selectedVariantId,
-        quantity: quantityToAdd,
-      })
-
-      setNewListTitle("")
-      setShowNewListInput(false)
-    } catch (mutationError) {
-      toast.error({
-        title: resolveErrorMessage(
-          mutationError,
-          tAuth("product_lists.errors.create_failed")
-        ),
-      })
-    } finally {
-      setActiveListKey(null)
-    }
-  }
+  const rows = buildProductListPickerRows({
+    favoriteTitle: tAuth("product_lists.favorite_title"),
+    lists: hydratedLists,
+    productId: product.id,
+    selectedVariantId,
+    untitledListTitle: tAuth("product_lists.untitled_list"),
+  })
+  const actions = useProductListPickerActions({
+    clearNewListForm: state.clearNewListForm,
+    newListTitle: state.newListTitle,
+    product,
+    quantity,
+    selectedVariantId,
+    setActiveListKey: state.setActiveListKey,
+  })
 
   const retryLists = async () => {
     await Promise.all([
       listsQuery.query.refetch(),
-      ...detailQueries.map((query) => query.refetch()),
+      ...detailQueries.map(async (query) => await query.refetch()),
     ])
   }
 
   return {
-    activeListKey,
-    addProductToList,
+    activeListKey: state.activeListKey,
+    addProductToList: actions.addProductToList,
     authQuery,
-    detailsHaveError: detailQueries.some((query) => Boolean(query.error)),
     detailsAreLoading:
       listIds.length > 0 && detailQueries.some((query) => query.isLoading),
-    handleCreateList,
-    isMutating,
-    isOpen,
+    detailsHaveError: detailQueries.some((query) => query.error !== null),
+    handleCreateList: actions.handleCreateList,
+    isMutating: actions.isMutating,
+    isOpen: state.isOpen,
     listsQuery,
     loginHref: `/auth/login?next=${encodeURIComponent(pathname)}`,
-    newListTitle,
+    newListTitle: state.newListTitle,
     retryLists,
     rows,
-    setIsOpen,
-    setNewListTitle,
-    setShowNewListInput,
-    showNewListInput,
+    setIsOpen: state.setIsOpen,
+    setNewListTitle: state.setNewListTitle,
+    setShowNewListInput: state.setShowNewListInput,
+    showNewListInput: state.showNewListInput,
   }
 }
+
+export type ProductListPickerController = ProductListPickerControllerResult

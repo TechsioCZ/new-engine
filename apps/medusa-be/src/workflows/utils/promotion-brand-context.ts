@@ -3,79 +3,214 @@ import type {
   Query,
   RemoteQueryFunction,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
+
 import { getActiveBrandIds } from "../brand/brand-activity"
 
-type PromotionContextSource = {
+interface PromotionContextSource {
   items?: unknown[]
 }
 
-type PromotionContextItem = Record<string, unknown> & {
-  brand_ids?: string[]
-  product_id?: string | null
-  product?: { id?: string | null } | null
-  variant_id?: string | null
-  variant?: {
-    id?: string | null
-    product_id?: string | null
-    product?: { id?: string | null } | null
-  } | null
+interface PromotionBrandContext {
+  items?: PromotionContextItem[]
 }
 
-type ProductBrandLinkRecord = {
-  product_id?: string
-  brand_id?: string
+const promotionContextItemSchema = z.looseObject({
+  brand_ids: z.unknown().optional(),
+  product: z.unknown().optional(),
+  product_id: z.unknown().optional(),
+  variant: z.unknown().optional(),
+  variant_id: z.unknown().optional(),
+})
+type PromotionContextItem = z.infer<typeof promotionContextItemSchema>
+
+const productBrandLinkSchema = z.object({
+  brand_id: z.string(),
+  product_id: z.string(),
+})
+type ProductBrandLinkRecord = z.infer<typeof productBrandLinkSchema>
+
+const productVariantSchema = z.object({
+  id: z.string(),
+  product_id: z.string(),
+})
+type ProductVariantRecord = z.infer<typeof productVariantSchema>
+
+const nestedIdSchema = z.object({ id: z.string() })
+const graphDataSchema = z.object({ data: z.array(z.unknown()) })
+
+const parsePromotionContextItems = (
+  values: unknown[],
+): PromotionContextItem[] => {
+  const items: PromotionContextItem[] = []
+  for (const value of values) {
+    const parsed = promotionContextItemSchema.safeParse(value)
+    if (parsed.success) {
+      items.push(parsed.data)
+    }
+  }
+  return items
 }
 
-type ProductVariantRecord = {
-  id?: string
-  product_id?: string
+const parseProductBrandLinks = (
+  values: unknown[],
+): ProductBrandLinkRecord[] => {
+  const links: ProductBrandLinkRecord[] = []
+  for (const value of values) {
+    const parsed = productBrandLinkSchema.safeParse(value)
+    if (parsed.success) {
+      links.push(parsed.data)
+    }
+  }
+  return links
 }
 
-export async function buildBrandPromotionContext(
+const parseProductVariantRecords = (
+  values: unknown[],
+): ProductVariantRecord[] => {
+  const variants: ProductVariantRecord[] = []
+  for (const value of values) {
+    const parsed = productVariantSchema.safeParse(value)
+    if (parsed.success) {
+      variants.push(parsed.data)
+    }
+  }
+  return variants
+}
+
+const getString = (value: unknown): string | undefined =>
+  typeof value === "string" ? value : undefined
+
+const getNestedId = (value: unknown): string | undefined => {
+  const parsed = nestedIdSchema.safeParse(value)
+  return parsed.success ? parsed.data.id : undefined
+}
+
+const getItemVariantId = (item: PromotionContextItem) =>
+  getString(item.variant_id) ?? getNestedId(item.variant)
+
+const getDirectItemProductId = (item: PromotionContextItem) => {
+  const { product, product_id: productId, variant } = item
+  const parsedVariant = promotionContextItemSchema.safeParse(variant)
+  const candidates = [
+    getString(productId),
+    getNestedId(product),
+    parsedVariant.success
+      ? getString(parsedVariant.data.product_id)
+      : undefined,
+    parsedVariant.success ? getNestedId(parsedVariant.data.product) : undefined,
+  ]
+  return candidates.find((candidate) => candidate !== undefined)
+}
+
+const getItemProductId = (
+  item: PromotionContextItem,
+  productIdsByVariantId: ReadonlyMap<string, string> = new Map(),
+) => {
+  const directProductId = getDirectItemProductId(item)
+  if (directProductId !== undefined) {
+    return directProductId
+  }
+
+  const variantId = getItemVariantId(item)
+  return variantId === undefined
+    ? undefined
+    : productIdsByVariantId.get(variantId)
+}
+
+const getGraphData = (result: unknown, context: string): unknown[] => {
+  const parsed = graphDataSchema.safeParse(result)
+  if (!parsed.success) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `${context} query returned an invalid result`,
+    )
+  }
+  return parsed.data.data
+}
+
+const resolveProductIdsByVariantId = async (
+  query: Pick<RemoteQueryFunction, "graph">,
+  items: PromotionContextItem[],
+) => {
+  const variantIds = new Set<string>()
+  for (const item of items) {
+    if (getDirectItemProductId(item) !== undefined) {
+      continue
+    }
+    const variantId = getItemVariantId(item)
+    if (variantId !== undefined && variantId.length > 0) {
+      variantIds.add(variantId)
+    }
+  }
+
+  if (variantIds.size === 0) {
+    return new Map<string, string>()
+  }
+
+  const result: unknown = await query.graph({
+    entity: "variant",
+    fields: ["id", "product_id"],
+    filters: {
+      id: { $in: [...variantIds] },
+    },
+  })
+  const variants = parseProductVariantRecords(
+    getGraphData(result, "Product variant"),
+  )
+  return new Map(
+    variants.map((variant): [string, string] => [
+      variant.id,
+      variant.product_id,
+    ]),
+  )
+}
+
+export const buildBrandPromotionContext = async (
   source: PromotionContextSource | undefined,
   container: MedusaContainer,
-  productBrandLinkEntryPoint: string
-): Promise<Record<string, unknown>> {
+  productBrandLinkEntryPoint: string,
+): Promise<PromotionBrandContext> => {
   const items = Array.isArray(source?.items)
-    ? source.items.filter(isPromotionContextItem)
+    ? parsePromotionContextItems(source.items)
     : []
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const productIdsByVariantId = await resolveProductIdsByVariantId(query, items)
-  const productIds = Array.from(
-    new Set(
-      items
-        .map((item) => getItemProductId(item, productIdsByVariantId))
-        .filter((id): id is string => !!id)
-    )
-  )
+  const productIds = new Set<string>()
+  for (const item of items) {
+    const productId = getItemProductId(item, productIdsByVariantId)
+    if (productId !== undefined && productId.length > 0) {
+      productIds.add(productId)
+    }
+  }
 
-  if (!productIds.length) {
+  if (productIds.size === 0) {
     return {}
   }
 
-  const { data } = await query.graph({
+  const result: unknown = await query.graph({
     entity: productBrandLinkEntryPoint,
     fields: ["product_id", "brand_id"],
     filters: {
-      product_id: { $in: productIds },
+      product_id: { $in: [...productIds] },
     },
   })
-
-  const brandIdsByProductId = new Map<string, string[]>()
-  const links = Array.isArray(data) ? data.filter(isProductBrandLink) : []
+  const links = parseProductBrandLinks(
+    getGraphData(result, "Product brand link"),
+  )
   const activeBrandIds = await getActiveBrandIds(
     container,
-    links.map((link) => link.brand_id)
+    links.map((link) => link.brand_id),
   )
-
+  const brandIdsByProductId = new Map<string, string[]>()
   for (const link of links) {
-    if (
-      !(link.product_id && link.brand_id && activeBrandIds.has(link.brand_id))
-    ) {
+    if (!activeBrandIds.has(link.brand_id)) {
       continue
     }
-
     const brandIds = brandIdsByProductId.get(link.product_id) ?? []
     brandIds.push(link.brand_id)
     brandIdsByProductId.set(link.product_id, brandIds)
@@ -83,90 +218,16 @@ export async function buildBrandPromotionContext(
 
   return {
     items: items.map((item) => {
-      const { brand_ids: _brandIds, ...itemContext } = item
+      const itemContext = { ...item }
+      delete itemContext.brand_ids
+      const productId = getItemProductId(item, productIdsByVariantId)
       const brandIds =
-        brandIdsByProductId.get(
-          getItemProductId(item, productIdsByVariantId) ?? ""
-        ) ?? []
-
-      return brandIds.length
+        productId === undefined
+          ? []
+          : (brandIdsByProductId.get(productId) ?? [])
+      return brandIds.length > 0
         ? { ...itemContext, brand_ids: brandIds }
         : itemContext
     }),
   }
-}
-
-async function resolveProductIdsByVariantId(
-  query: Pick<RemoteQueryFunction, "graph">,
-  items: PromotionContextItem[]
-) {
-  const variantIds = Array.from(
-    new Set(
-      items
-        .filter((item) => !getItemProductId(item))
-        .map(getItemVariantId)
-        .filter((id): id is string => !!id)
-    )
-  )
-
-  if (!variantIds.length) {
-    return new Map<string, string>()
-  }
-
-  const { data } = await query.graph({
-    entity: "variant",
-    fields: ["id", "product_id"],
-    filters: {
-      id: { $in: variantIds },
-    },
-  })
-
-  return new Map(
-    (Array.isArray(data) ? data.filter(isProductVariantRecord) : []).map(
-      (variant) => [variant.id, variant.product_id]
-    )
-  )
-}
-
-function isPromotionContextItem(item: unknown): item is PromotionContextItem {
-  return typeof item === "object" && item !== null
-}
-
-function isProductBrandLink(
-  value: unknown
-): value is Required<ProductBrandLinkRecord> {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as ProductBrandLinkRecord).product_id === "string" &&
-    typeof (value as ProductBrandLinkRecord).brand_id === "string"
-  )
-}
-
-function isProductVariantRecord<T>(
-  value: T
-): value is T & Required<ProductVariantRecord> {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as ProductVariantRecord).id === "string" &&
-    typeof (value as ProductVariantRecord).product_id === "string"
-  )
-}
-
-function getItemProductId(
-  item: PromotionContextItem,
-  productIdsByVariantId = new Map<string, string>()
-) {
-  return (
-    item.product_id ??
-    item.product?.id ??
-    item.variant?.product_id ??
-    item.variant?.product?.id ??
-    productIdsByVariantId.get(getItemVariantId(item) ?? "")
-  )
-}
-
-function getItemVariantId(item: PromotionContextItem) {
-  return item.variant_id ?? item.variant?.id
 }

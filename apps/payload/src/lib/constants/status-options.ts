@@ -4,24 +4,24 @@ import type { Option } from "payload"
 export const statusOptions: Option[] = [
   {
     label: {
-      en: "Draft",
       cs: "Koncept",
+      en: "Draft",
       sk: "Koncept",
     },
     value: "draft",
   },
   {
     label: {
-      en: "Published",
       cs: "Publikované",
+      en: "Published",
       sk: "Publikované",
     },
     value: "published",
   },
   {
     label: {
-      en: "Archived",
       cs: "Archivováno",
+      en: "Archived",
       sk: "Archivované",
     },
     value: "archived",

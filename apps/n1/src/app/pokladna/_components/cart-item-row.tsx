@@ -1,27 +1,28 @@
 import Image from "next/image"
 import Link from "next/link"
+
 import type { CartLineItem } from "@/services/cart-service"
 import { formatToTaxIncluded } from "@/utils/format/format-product"
 
-type CartItemRowProps = {
+interface CartItemRowProps {
   item: CartLineItem
   currencyCode: string
 }
 
-export function CartItemRow({ item, currencyCode }: CartItemRowProps) {
+export const CartItemRow = ({ item, currencyCode }: CartItemRowProps) => {
   const taxRate = item.tax_lines?.[0]?.rate
-  const tax = taxRate ? taxRate * 0.01 : 0
+  const tax = typeof taxRate === "number" ? taxRate * 0.01 : 0
   const price = formatToTaxIncluded({
     amount: item.unit_price,
-    tax,
     currency: currencyCode,
+    tax,
   })
   return (
     <div className="flex gap-200">
-      {item.thumbnail && (
+      {typeof item.thumbnail === "string" && item.thumbnail.length > 0 && (
         <Image
           alt={item.title}
-          className="h-16 w-16 rounded object-cover"
+          className="h-cart-thumbnail w-cart-thumbnail rounded object-cover"
           height={64}
           src={item.thumbnail}
           width={64}

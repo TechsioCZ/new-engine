@@ -4,19 +4,17 @@ type SupportingTextProps = HTMLAttributes<HTMLParagraphElement> & {
   children: ReactNode
 }
 
-export function SupportingText({
+export const SupportingText = ({
   className,
   children,
   ...props
-}: SupportingTextProps) {
-  return (
-    <p
-      className={["text-fg-secondary text-sm leading-relaxed", className]
-        .filter(Boolean)
-        .join(" ")}
-      {...props}
-    >
-      {children}
-    </p>
-  )
-}
+}: SupportingTextProps) => (
+  <p
+    className={["text-fg-secondary text-sm leading-relaxed", className]
+      .filter(Boolean)
+      .join(" ")}
+    {...props}
+  >
+    {children}
+  </p>
+)

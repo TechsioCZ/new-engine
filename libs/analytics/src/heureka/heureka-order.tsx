@@ -2,6 +2,7 @@
 
 import Script from "next/script"
 import { useEffect, useRef } from "react"
+
 import { isHeurekaCountry, normalizeHeurekaCountry } from "./country"
 import type { HeurekaCountry, HeurekaProductItem } from "./types"
 
@@ -49,7 +50,7 @@ export interface HeurekaOrderProps {
  * />
  * ```
  */
-export function HeurekaOrder({
+export const HeurekaOrder = ({
   apiKey,
   orderId,
   products,
@@ -58,39 +59,46 @@ export function HeurekaOrder({
   country = "cz",
   debug = false,
   nonce,
-}: HeurekaOrderProps) {
-  const rawCountry = country as unknown
+}: HeurekaOrderProps) => {
+  const rawCountry: unknown = country
   const safeCountry = normalizeHeurekaCountry(rawCountry)
   if (debug && !isHeurekaCountry(rawCountry)) {
     console.warn(
       '[HeurekaOrder] Invalid country provided, defaulting to "cz"',
       {
         country: rawCountry,
-      }
+      },
     )
   }
   const domain = safeCountry === "sk" ? "heureka.sk" : "heureka.cz"
   const sendKey = `${safeCountry}:${orderId}`
   const sentKey = useRef<string | null>(null)
+  const hasApiKey = typeof apiKey === "string" && apiKey.length > 0
+  const hasOrderId = typeof orderId === "string" && orderId.length > 0
 
   useEffect(() => {
+    let cancelled = false
     let timeoutId: ReturnType<typeof setTimeout> | null = null
+    const cleanup = () => {
+      cancelled = true
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId)
+      }
+    }
 
     if (sentKey.current === sendKey) {
-      return
+      return cleanup
     }
-    if (!(apiKey && orderId) || products.length === 0) {
+    if (!hasApiKey || !hasOrderId || products.length === 0) {
       if (debug) {
         console.warn("[HeurekaOrder] Missing required data:", {
-          apiKey: !!apiKey,
-          orderId: !!orderId,
+          apiKey: hasApiKey,
+          orderId: hasOrderId,
           products: products.length,
         })
       }
-      return
+      return cleanup
     }
-
-    let cancelled = false
 
     // Wait for heureka SDK to be ready
     let retries = 0
@@ -100,12 +108,13 @@ export function HeurekaOrder({
         return
       }
 
-      if (typeof window.heureka !== "function") {
+      const { heureka } = window
+      if (typeof heureka !== "function") {
         retries += 1
         if (retries > MAX_POLL_RETRIES) {
           if (debug) {
             console.warn(
-              "[HeurekaOrder] SDK failed to load after 5s, giving up"
+              "[HeurekaOrder] SDK failed to load after 5s, giving up",
             )
           }
           return
@@ -113,7 +122,7 @@ export function HeurekaOrder({
         if (debug) {
           console.log("[HeurekaOrder] Waiting for SDK...")
         }
-        if (timeoutId) {
+        if (timeoutId !== null) {
           clearTimeout(timeoutId)
         }
         timeoutId = setTimeout(sendOrder, 100)
@@ -124,36 +133,36 @@ export function HeurekaOrder({
 
       if (debug) {
         console.log("[HeurekaOrder] Sending order:", {
+          currency,
           orderId,
           products,
           totalWithVat,
-          currency,
         })
       }
 
       // Authenticate with API key
-      window.heureka("authenticate", apiKey)
+      heureka("authenticate", apiKey)
 
       // Set order ID
-      window.heureka("set_order_id", orderId)
+      heureka("set_order_id", orderId)
 
       // Add each product
       for (const product of products) {
-        window.heureka(
+        heureka(
           "add_product",
           product.id,
           product.name,
           String(product.priceWithVat),
-          String(product.quantity)
+          String(product.quantity),
         )
       }
 
       // Set total and currency
-      window.heureka("set_total_vat", String(totalWithVat))
-      window.heureka("set_currency", currency)
+      heureka("set_total_vat", String(totalWithVat))
+      heureka("set_currency", currency)
 
       // Send the order
-      window.heureka("send", "Order")
+      heureka("send", "Order")
 
       if (debug) {
         console.log("[HeurekaOrder] Order sent successfully")
@@ -163,15 +172,20 @@ export function HeurekaOrder({
     // Start checking for SDK
     sendOrder()
 
-    return () => {
-      cancelled = true
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-      }
-    }
-  }, [apiKey, orderId, products, totalWithVat, currency, debug, sendKey])
+    return cleanup
+  }, [
+    apiKey,
+    orderId,
+    products,
+    totalWithVat,
+    currency,
+    debug,
+    sendKey,
+    hasApiKey,
+    hasOrderId,
+  ])
 
-  if (!apiKey) {
+  if (!hasApiKey) {
     if (debug) {
       console.warn("[HeurekaOrder] No API key provided, skipping")
     }
@@ -183,26 +197,25 @@ export function HeurekaOrder({
       id={`heureka-order-script-${safeCountry}`}
       strategy="afterInteractive"
       nonce={nonce}
-      dangerouslySetInnerHTML={{
-        __html: `
-          (function(t, r, a, c, k, i, n, g) {
-            t['ROIDataObject'] = k;
-            t[k] = t[k] || function() {
-              (t[k].q = t[k].q || []).push(arguments)
-            };
-            t[k].c = i;
-            n = r.createElement(a);
-            g = r.getElementsByTagName(a)[0];
-            n.async = 1;
-            n.src = c;
-            g.parentNode.insertBefore(n, g);
-          })(window, document, 'script',
-             ${JSON.stringify(
-               `https://${domain}/ocm/sdk.js?version=2&page=thank_you`
-             )},
-             'heureka', ${JSON.stringify(safeCountry)});
-        `,
-      }}
-    />
+    >
+      {`
+        (function(t, r, a, c, k, i, n, g) {
+          t['ROIDataObject'] = k;
+          t[k] = t[k] || function() {
+            (t[k].q = t[k].q || []).push(arguments)
+          };
+          t[k].c = i;
+          n = r.createElement(a);
+          g = r.getElementsByTagName(a)[0];
+          n.async = 1;
+          n.src = c;
+          g.parentNode.insertBefore(n, g);
+        })(window, document, 'script',
+           ${JSON.stringify(
+             `https://${domain}/ocm/sdk.js?version=2&page=thank_you`,
+           )},
+           'heureka', ${JSON.stringify(safeCountry)});
+      `}
+    </Script>
   )
 }

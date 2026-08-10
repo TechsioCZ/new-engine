@@ -1,142 +1,29 @@
 "use client"
 import { Button } from "@techsio/ui-kit/atoms/button"
-import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Footer } from "@techsio/ui-kit/organisms/footer"
-import type { Route } from "next"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+import type { ReactNode } from "react"
+
+import NextLink from "@/components/app-link"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
+
+import {
+  FOOTER_COLUMNS,
+  FOOTER_LOCALES,
+  SOCIAL_LINKS,
+} from "./herbatika-footer-data"
 import { HerbatikaLogo } from "./herbatika-logo"
 
-type FooterNavigationLink =
-  | {
-      href: Route
-      labelKey: string
-      external?: false
-    }
-  | {
-      href: `https://${string}`
-      labelKey: string
-      external: true
-    }
-
-type FooterColumn = {
-  titleKey: string
-  links: readonly FooterNavigationLink[]
-}
-
-const giftVoucherHref = "/c/darceky" as Route
-const brandListingHref = "/znacka" as Route
 const formatMarketDomain = (domain: string) =>
   `${domain.charAt(0).toUpperCase()}${domain.slice(1)}`
 
-const FOOTER_COLUMNS: readonly FooterColumn[] = [
-  {
-    titleKey: "footer.columns.information.title",
-    links: [
-      { href: "/blog", labelKey: "footer.columns.information.blog" },
-      { href: "/o-nas", labelKey: "footer.columns.information.about" },
-      { href: "/faq", labelKey: "footer.columns.information.faq" },
-      {
-        href: giftVoucherHref,
-        labelKey: "footer.columns.information.gift_voucher",
-      },
-      {
-        href: brandListingHref,
-        labelKey: "footer.columns.information.brands",
-      },
-      {
-        href: "https://obchody.heureka.sk/herbatica-sk/recenze/",
-        labelKey: "footer.columns.information.reviews",
-        external: true,
-      },
-    ],
-  },
-  {
-    titleKey: "footer.columns.important.title",
-    links: [
-      {
-        href: "/#doprava-a-platby",
-        labelKey: "footer.columns.important.shipping_payment",
-      },
-      {
-        href: "/#reklamacia-a-vratenie",
-        labelKey: "footer.columns.important.claims_returns",
-      },
-      {
-        href: "/#obchodne-podmienky",
-        labelKey: "footer.columns.important.terms",
-      },
-      {
-        href: "/#ochrana-osobnych-udajov",
-        labelKey: "footer.columns.important.privacy",
-      },
-      {
-        href: "/#cookies",
-        labelKey: "footer.columns.important.cookies",
-      },
-    ],
-  },
-  {
-    titleKey: "footer.columns.partners.title",
-    links: [
-      {
-        href: "/#affiliate",
-        labelKey: "footer.columns.partners.affiliate",
-      },
-      {
-        href: "/#velkoobchod",
-        labelKey: "footer.columns.partners.wholesale",
-      },
-      {
-        href: "/#dropshipping",
-        labelKey: "footer.columns.partners.dropshipping",
-      },
-      {
-        href: "/#private-label",
-        labelKey: "footer.columns.partners.private_label",
-      },
-    ],
-  },
-]
+const emphasizeFooterBrand = (chunks: ReactNode) => (
+  <strong className="text-fg-primary">{chunks}</strong>
+)
 
-const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
-  {
-    href: "https://www.facebook.com/vasaherbatica",
-    icon: "token-icon-fb",
-    label: "Facebook",
-  },
-  {
-    href: "https://www.instagram.com/herbatica/",
-    icon: "token-icon-instagram",
-    label: "Instagram",
-  },
-  {
-    href: "https://www.youtube.com/@herbatica",
-    icon: "token-icon-youtube",
-    label: "YouTube",
-  },
-  {
-    href: "https://www.linkedin.com/company/herbaticask/",
-    icon: "token-icon-linkedin",
-    label: "LinkedIn",
-  },
-  {
-    href: "https://www.tiktok.com/@herbatica.sk",
-    icon: "token-icon-tiktok",
-    label: "TikTok",
-  },
-]
-
-const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [
-  { code: "SK", icon: "token-icon-sk", active: true },
-  { code: "CZ", icon: "token-icon-cz" },
-  { code: "HU", icon: "token-icon-hu" },
-  { code: "RO", icon: "token-icon-ro" },
-]
-export function HerbatikaFooter() {
+export const HerbatikaFooter = () => {
   const t = useTranslations("navigation")
   const marketContext = useMarketContext()
 
@@ -188,7 +75,7 @@ export function HerbatikaFooter() {
             <Footer.List>
               {column.links.map((link) => (
                 <li key={link.href}>
-                  {link.external ? (
+                  {link.external === true ? (
                     <Footer.Link external href={link.href}>
                       {t(link.labelKey)}
                     </Footer.Link>
@@ -214,9 +101,9 @@ export function HerbatikaFooter() {
               icon={social.icon}
               iconSize="lg"
               key={social.label}
-              onClick={() =>
+              onClick={() => {
                 window.open(social.href, "_blank", "noopener,noreferrer")
-              }
+              }}
               size="current"
               theme="unstyled"
               type="button"
@@ -232,9 +119,7 @@ export function HerbatikaFooter() {
       <Footer.Bottom className="mx-auto max-w-footer-max flex-wrap items-center gap-400">
         <Footer.Text className="leading-normal">
           {t.rich("footer.copyright", {
-            brand: (chunks) => (
-              <strong className="text-fg-primary">{chunks}</strong>
-            ),
+            brand: emphasizeFooterBrand,
             domain: formatMarketDomain(marketContext.domain),
             year: new Date().getFullYear(),
           })}{" "}
@@ -250,14 +135,14 @@ export function HerbatikaFooter() {
         <div className="flex w-full flex-wrap items-center justify-center gap-150 md:w-auto md:justify-end">
           {FOOTER_LOCALES.map((locale) => (
             <Button
-              className={`${!locale.active && "bg-base"} font-bold [&_span]:brightness-100 [&_span]:saturate-[1.7]`}
+              className={`${locale.active === true ? "" : "bg-base"} font-bold footer-locale-icon-filter`}
               icon={locale.icon}
               iconSize="md"
               key={locale.code}
               size="sm"
-              theme={locale.active ? "light" : "borderless"}
+              theme={locale.active === true ? "light" : "borderless"}
               type="button"
-              variant={locale.active ? "primary" : "primary"}
+              variant="primary"
             >
               {locale.code}
             </Button>

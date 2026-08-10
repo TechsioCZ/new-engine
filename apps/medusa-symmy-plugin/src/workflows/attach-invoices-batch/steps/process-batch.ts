@@ -1,7 +1,9 @@
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { type ExistingOrderIndex, InvoicesBatchClient } from "../client"
+
+import { InvoicesBatchClient } from "../client"
+import type { ExistingOrderIndex } from "../client"
 import { invoicesBatchClientMapperHelper } from "../client-mapper-helper"
 import type {
   AttachInvoicesBatchInput,
@@ -24,7 +26,7 @@ const processInvoiceForBatch = async ({
   invoice: InvoiceInput
   logger: Logger
   orderIndex: ExistingOrderIndex
-  userId?: string
+  userId?: string | undefined
 }): Promise<AttachInvoicesBatchResult> => {
   const orderIdentifier =
     invoicesBatchClientMapperHelper.getOrderIdentifier(invoice)
@@ -32,10 +34,10 @@ const processInvoiceForBatch = async ({
     const order = client.findExistingOrder(invoice, orderIndex)
     if (!order) {
       return {
+        error: "Order was not found",
+        invoice_number: invoice.invoice_number,
         order_identifier: orderIdentifier,
         status: "not_found",
-        invoice_number: invoice.invoice_number,
-        error: "Order was not found",
       }
     }
 
@@ -44,25 +46,25 @@ const processInvoiceForBatch = async ({
       order,
       invoice,
       uploaded,
-      userId
+      userId,
     )
     return {
-      order_identifier: orderIdentifier,
-      status: "success",
-      order_id: order.id,
       invoice_number: invoice.invoice_number,
       invoice_url: invoiceUrl,
+      order_id: order.id,
+      order_identifier: orderIdentifier,
+      status: "success",
     }
   } catch (error) {
     const message = toErrorMessage(error)
     logger.warn(
-      `[symmy-plugin] Failed to attach invoice (${invoice.identifier_type}:${orderIdentifier}): ${message}`
+      `[symmy-plugin] Failed to attach invoice (${invoice.identifier_type}:${orderIdentifier}): ${message}`,
     )
     return {
+      error: message,
+      invoice_number: invoice.invoice_number,
       order_identifier: orderIdentifier,
       status: "failed",
-      invoice_number: invoice.invoice_number,
-      error: message,
     }
   }
 }
@@ -74,8 +76,12 @@ export const symmyProcessInvoicesBatchStep = createStep(
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const orderIndex = await client.preload(input.invoices)
 
-    const results: AttachInvoicesBatchResult[] = []
-    for (const invoice of input.invoices) {
+    const results: AttachInvoicesBatchOutput["results"] = []
+    const processAt = async (index: number): Promise<void> => {
+      const invoice = input.invoices[index]
+      if (invoice === undefined) {
+        return
+      }
       results.push(
         await processInvoiceForBatch({
           client,
@@ -83,19 +89,21 @@ export const symmyProcessInvoicesBatchStep = createStep(
           logger,
           orderIndex,
           userId: input.user_id,
-        })
+        }),
       )
+      await processAt(index + 1)
     }
+    await processAt(0)
 
     const processed = results.filter((r) => r.status === "success").length
     const failed = results.length - processed
 
     const output: AttachInvoicesBatchOutput = {
-      success: failed === 0,
-      processed,
       failed,
+      processed,
       results,
+      success: failed === 0,
     }
     return new StepResponse(output)
-  }
+  },
 )

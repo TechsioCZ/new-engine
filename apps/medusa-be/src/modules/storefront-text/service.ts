@@ -4,9 +4,10 @@ import {
   MedusaContext,
   MedusaService,
 } from "@medusajs/framework/utils"
+
 import StorefrontText from "./models/storefront-text"
 
-type TransactionRepository = {
+interface TransactionRepository {
   getFreshManager: (context?: Context) => unknown
   transaction: <Result>(
     task: (transactionManager: unknown) => Promise<Result>,
@@ -14,36 +15,37 @@ type TransactionRepository = {
       enableNestedTransactions?: boolean
       isolationLevel?: string
       transaction?: unknown
-    }
+    },
   ) => Promise<Result>
 }
 
-type StorefrontTextModuleDependencies = {
+interface StorefrontTextModuleDependencies {
   baseRepository: TransactionRepository
 }
 
 class StorefrontTextModuleService extends MedusaService({
   StorefrontText,
 }) {
-  private readonly transactionRepository_: TransactionRepository
+  private readonly transactionRepository: TransactionRepository
 
-  constructor(
-    dependencies: StorefrontTextModuleDependencies & Record<string, unknown>
-  ) {
+  constructor(dependencies: StorefrontTextModuleDependencies) {
     super(dependencies)
-    this.transactionRepository_ = dependencies.baseRepository
+    this.transactionRepository = dependencies.baseRepository
   }
 
   @InjectManager()
   async runInTransaction<Result>(
     taskWithContext: (context: Context) => Promise<Result>,
-    @MedusaContext() sharedContext: Context = {}
+    @MedusaContext() sharedContext: Context = {},
   ): Promise<Result> {
-    if (sharedContext.transactionManager) {
+    if (
+      typeof sharedContext.transactionManager === "object" &&
+      sharedContext.transactionManager !== null
+    ) {
       return await taskWithContext(sharedContext)
     }
 
-    return await this.transactionRepository_.transaction(
+    return await this.transactionRepository.transaction(
       async (transactionManager) =>
         await taskWithContext({
           ...sharedContext,
@@ -52,9 +54,11 @@ class StorefrontTextModuleService extends MedusaService({
       {
         enableNestedTransactions:
           sharedContext.enableNestedTransactions ?? false,
-        isolationLevel: sharedContext.isolationLevel,
+        ...(sharedContext.isolationLevel === undefined
+          ? {}
+          : { isolationLevel: sharedContext.isolationLevel }),
         transaction: sharedContext.transactionManager,
-      }
+      },
     )
   }
 }

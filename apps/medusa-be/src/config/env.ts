@@ -1,8 +1,10 @@
+import { MedusaError } from "@medusajs/framework/utils"
+
 type MedusaCookieSameSite = "lax" | "none" | "strict"
 
 const FEATURE_FLAG_ENABLED_VALUE = "1"
 
-export type MedusaConfigEnv = {
+export interface MedusaConfigEnv {
   adminAllowedHosts: true | string[] | undefined
   adminCors: string
   authCors: string
@@ -50,22 +52,22 @@ export type MedusaConfigEnv = {
   workflowEngineProvider: "inmemory" | "redis"
 }
 
-function isDbGenerateCommand(
+const isDbGenerateCommand = (
   env: NodeJS.ProcessEnv,
-  argv: string[] = process.argv
-): boolean {
-  if (env.MEDUSA_SCHEMA_AGNOSTIC_MIGRATION_GENERATION === "1") {
+  argv: string[] = process.argv,
+): boolean => {
+  if (env["MEDUSA_SCHEMA_AGNOSTIC_MIGRATION_GENERATION"] === "1") {
     return true
   }
 
   return argv.some((arg) => arg === "db:generate")
 }
 
-function configureSchemaAgnosticMigrationGeneration(
+const configureSchemaAgnosticMigrationGeneration = (
   env: NodeJS.ProcessEnv,
   databaseSchema: string,
-  argv: string[] = process.argv
-): void {
+  argv: string[] = process.argv,
+): void => {
   if (!isDbGenerateCommand(env, argv)) {
     return
   }
@@ -73,66 +75,66 @@ function configureSchemaAgnosticMigrationGeneration(
   // MikroORM v6 emits schema-agnostic migration SQL when the ORM schema is
   // public, but the migration bookkeeping table must still live in the app
   // schema because this project does not grant writes to public.
-  // TODO: When Medusa upgrades to MikroORM >=7.1.0 and exposes/passes the
-  // native migrator config, replace this env override with runtime schema
+  // Once Medusa upgrades to MikroORM >=7.1.0 and exposes/passes the native
+  // migrator config, replace this env override with runtime schema
   // context: generate with unqualified DDL, then apply via migrations.schema
   // (and includeWildcardSchema only if entities use schema: "*").
   // Docs: https://mikro-orm.io/docs/migrations#runtime-schema-context
   // Added in: https://mikro-orm.io/changelog (v7.1.0, #7597).
-  env.MIKRO_ORM_SCHEMA ??= "public"
-  env.MIKRO_ORM_MIGRATIONS_TABLE_NAME ??=
-    env.MIKRO_ORM_MIGRATIONS_TABLE_NAME ??
+  env["MIKRO_ORM_SCHEMA"] ??= "public"
+  env["MIKRO_ORM_MIGRATIONS_TABLE_NAME"] ??=
+    env["MIKRO_ORM_MIGRATIONS_TABLE_NAME"] ??
     `${databaseSchema}.mikro_orm_migrations`
 }
 
-export function readRequiredEnv(env: NodeJS.ProcessEnv, name: string): string {
+const readRequiredEnv = (env: NodeJS.ProcessEnv, name: string): string => {
   const value = env[name]?.trim()
 
-  if (!value) {
-    throw new Error(`${name} is required`)
+  if (value === undefined || value.length === 0) {
+    throw new MedusaError(MedusaError.Types.INVALID_DATA, `${name} is required`)
   }
 
   return value
 }
 
-function readEnumEnv<const AllowedValues extends readonly string[]>(
+const readEnumEnv = <const AllowedValues extends readonly string[]>(
   env: NodeJS.ProcessEnv,
   name: string,
-  allowedValues: AllowedValues
-): AllowedValues[number] {
+  allowedValues: AllowedValues,
+): AllowedValues[number] => {
   const value = env[name]?.trim()
+  const hasValue = value !== undefined && value.length > 0
 
-  if (!(value && (allowedValues as readonly string[]).includes(value))) {
-    throw new Error(
-      `${name} must be one of: ${allowedValues.join(", ")}${
-        value ? `. Received: ${value}` : ""
-      }`
+  if (!(hasValue && allowedValues.includes(value))) {
+    const receivedValue = hasValue ? `. Received: ${value}` : ""
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `${name} must be one of: ${allowedValues.join(", ")}${receivedValue}`,
     )
   }
 
-  return value as AllowedValues[number]
+  return value
 }
 
-function readBooleanFlagEnv(env: NodeJS.ProcessEnv, name: string): boolean {
-  return readEnumEnv(env, name, ["0", "1"] as const) === "1"
-}
+const readBooleanFlagEnv = (env: NodeJS.ProcessEnv, name: string): boolean =>
+  readEnumEnv(env, name, ["0", "1"] as const) === "1"
 
-function readCookieOptions(
-  env: NodeJS.ProcessEnv
-): MedusaConfigEnv["cookieOptions"] {
-  const secure = env.MEDUSA_COOKIE_SECURE
-  const sameSite = env.MEDUSA_COOKIE_SAME_SITE
+const readCookieOptions = (
+  env: NodeJS.ProcessEnv,
+): MedusaConfigEnv["cookieOptions"] => {
+  const secure = env["MEDUSA_COOKIE_SECURE"]
+  const sameSite = env["MEDUSA_COOKIE_SAME_SITE"]
   const parsedSameSite: MedusaCookieSameSite | undefined =
     sameSite === "lax" || sameSite === "none" || sameSite === "strict"
       ? sameSite
       : undefined
 
   return {
-    ...(secure !== undefined
-      ? {
+    ...(secure === undefined
+      ? {}
+      : {
           secure: secure === "1" || secure.toLowerCase() === "true",
-        }
-      : {}),
+        }),
     ...(parsedSameSite
       ? {
           sameSite: parsedSameSite,
@@ -141,17 +143,17 @@ function readCookieOptions(
   }
 }
 
-function readAdminAllowedHosts(
-  env: NodeJS.ProcessEnv
-): MedusaConfigEnv["adminAllowedHosts"] {
-  const backendUrl = env.MEDUSA_BACKEND_URL?.trim()
+const readAdminAllowedHosts = (
+  env: NodeJS.ProcessEnv,
+): MedusaConfigEnv["adminAllowedHosts"] => {
+  const backendUrl = env["MEDUSA_BACKEND_URL"]?.trim()
 
-  if (env.NODE_ENV === "development") {
+  if (env["NODE_ENV"] === "development") {
     return true
   }
 
-  if (!backendUrl) {
-    return
+  if (backendUrl === undefined || backendUrl.length === 0) {
+    return undefined
   }
 
   const normalizedBackendUrl = backendUrl.includes("://")
@@ -161,22 +163,23 @@ function readAdminAllowedHosts(
   return [new URL(normalizedBackendUrl).hostname]
 }
 
-export function requireRedisUrl(env: MedusaConfigEnv): string {
-  if (!env.redisUrl) {
-    throw new Error(
-      "REDIS_URL is required when a Redis-backed provider is enabled"
+export const requireRedisUrl = (env: MedusaConfigEnv): string => {
+  if (env.redisUrl === undefined || env.redisUrl.length === 0) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "REDIS_URL is required when a Redis-backed provider is enabled",
     )
   }
 
   return env.redisUrl
 }
 
-export function readMedusaConfigEnv(
+export const readMedusaConfigEnv = (
   env: NodeJS.ProcessEnv = process.env,
-  argv: string[] = process.argv
-): MedusaConfigEnv {
+  argv: string[] = process.argv,
+): MedusaConfigEnv => {
   const databaseSchema =
-    env.MEDUSA_DATABASE_SCHEMA ?? env.DATABASE_SCHEMA ?? "public"
+    env["MEDUSA_DATABASE_SCHEMA"] ?? env["DATABASE_SCHEMA"] ?? "public"
 
   configureSchemaAgnosticMigrationGeneration(env, databaseSchema, argv)
 
@@ -203,69 +206,77 @@ export function readMedusaConfigEnv(
     "s3",
   ] as const)
 
+  const usesRedisProvider = [
+    cacheProvider,
+    eventBusProvider,
+    workflowEngineProvider,
+    lockingProvider,
+  ].includes("redis")
   const redisUrl =
-    redisSessionsEnabled ||
-    cacheProvider === "redis" ||
-    eventBusProvider === "redis" ||
-    workflowEngineProvider === "redis" ||
-    lockingProvider === "redis"
+    redisSessionsEnabled || usesRedisProvider
       ? readRequiredEnv(env, "REDIS_URL")
       : undefined
 
   return {
     adminAllowedHosts: readAdminAllowedHosts(env),
-    adminCors: env.ADMIN_CORS ?? "",
-    authCors: env.AUTH_CORS ?? "",
+    adminCors: env["ADMIN_CORS"] ?? "",
+    authCors: env["AUTH_CORS"] ?? "",
     cacheProvider,
     cookieOptions: readCookieOptions(env),
-    cookieSecret: env.COOKIE_SECRET,
+    cookieSecret: env["COOKIE_SECRET"],
     databaseSchema,
-    databaseUrl: env.DATABASE_URL,
+    databaseUrl: env["DATABASE_URL"],
     eventBusProvider,
-    featureGlsEnabled: env.FEATURE_GLS_ENABLED === FEATURE_FLAG_ENABLED_VALUE,
+    featureGlsEnabled:
+      env["FEATURE_GLS_ENABLED"] === FEATURE_FLAG_ENABLED_VALUE,
     featurePacketaEnabled:
-      env.FEATURE_PACKETA_ENABLED === FEATURE_FLAG_ENABLED_VALUE,
+      env["FEATURE_PACKETA_ENABLED"] === FEATURE_FLAG_ENABLED_VALUE,
     featurePayloadEnabled:
-      env.FEATURE_PAYLOAD_ENABLED === FEATURE_FLAG_ENABLED_VALUE,
+      env["FEATURE_PAYLOAD_ENABLED"] === FEATURE_FLAG_ENABLED_VALUE,
     featurePaymentQrEnabled:
-      env.FEATURE_PAYMENT_QR_ENABLED === FEATURE_FLAG_ENABLED_VALUE,
-    featurePplEnabled: env.FEATURE_PPL_ENABLED === FEATURE_FLAG_ENABLED_VALUE,
+      env["FEATURE_PAYMENT_QR_ENABLED"] === FEATURE_FLAG_ENABLED_VALUE,
+    featurePplEnabled:
+      env["FEATURE_PPL_ENABLED"] === FEATURE_FLAG_ENABLED_VALUE,
     fileLocalUploadDir:
       fileProvider === "local"
         ? readRequiredEnv(env, "FILE_LOCAL_UPLOAD_DIR")
         : undefined,
     fileProvider,
-    jwtSecret: env.JWT_SECRET,
+    glsEnvironment: env["GLS_ENVIRONMENT"] ?? "testing",
+    jwtSecret: env["JWT_SECRET"],
     lockingProvider,
     medusaAdminDisabledForBackendBuild:
-      env.MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD === "1",
-    meilisearchApiKey: env.MEILISEARCH_API_KEY,
+      env["MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD"] === "1",
+    meilisearchApiKey: env["MEILISEARCH_API_KEY"],
     meilisearchEnabled,
     meilisearchHost: meilisearchEnabled
       ? readRequiredEnv(env, "MEILISEARCH_HOST")
       : undefined,
-    minioAccessKey: env.MINIO_ACCESS_KEY,
-    minioBucket: env.MINIO_BUCKET,
-    minioEndpoint: env.MINIO_ENDPOINT,
-    minioFileUrl: env.MINIO_FILE_URL,
-    minioRegion: env.MINIO_REGION,
-    minioSecretKey: env.MINIO_SECRET_KEY,
+    minioAccessKey: env["MINIO_ACCESS_KEY"],
+    minioBucket: env["MINIO_BUCKET"],
+    minioEndpoint: env["MINIO_ENDPOINT"],
+    minioFileUrl: env["MINIO_FILE_URL"],
+    minioRegion: env["MINIO_REGION"],
+    minioSecretKey: env["MINIO_SECRET_KEY"],
     notificationProvider: readEnumEnv(env, "NOTIFICATION_PROVIDER", [
       "local",
       "resend",
     ] as const),
-    glsEnvironment: env.GLS_ENVIRONMENT ?? "testing",
-    packetaEnvironment: env.PACKETA_ENVIRONMENT ?? "testing",
-    payloadApiKey: env.PAYLOAD_API_KEY,
-    payloadBaseUrl: env.PAYLOAD_BASE_URL,
-    payloadContentCacheTtl: Number.parseInt(env.CMS_CACHE_TTL ?? "3600", 10),
-    payloadListCacheTtl: Number.parseInt(env.CMS_LIST_CACHE_TTL ?? "600", 10),
-    pplEnvironment: env.PPL_ENVIRONMENT || "testing",
+    packetaEnvironment: env["PACKETA_ENVIRONMENT"] ?? "testing",
+    payloadApiKey: env["PAYLOAD_API_KEY"],
+    payloadBaseUrl: env["PAYLOAD_BASE_URL"],
+    payloadContentCacheTtl: Math.trunc(Number(env["CMS_CACHE_TTL"] ?? "3600")),
+    payloadListCacheTtl: Math.trunc(Number(env["CMS_LIST_CACHE_TTL"] ?? "600")),
+    pplEnvironment:
+      env["PPL_ENVIRONMENT"] === undefined ||
+      env["PPL_ENVIRONMENT"]?.length === 0
+        ? "testing"
+        : env["PPL_ENVIRONMENT"],
     redisSessionsEnabled,
     redisUrl,
-    resendApiKey: env.RESEND_API_KEY,
-    resendFromEmail: env.RESEND_FROM_EMAIL,
-    storeCors: env.STORE_CORS ?? "",
+    resendApiKey: env["RESEND_API_KEY"],
+    resendFromEmail: env["RESEND_FROM_EMAIL"],
+    storeCors: env["STORE_CORS"] ?? "",
     workflowEngineProvider,
   }
 }

@@ -1,5 +1,6 @@
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
+
 import {
   formatProviderLabel,
   resolvePaymentDisplayTextKeys,
@@ -7,15 +8,28 @@ import {
 } from "@/components/checkout/checkout-display.utils"
 import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card"
 
-type PaymentProvider = {
+const PaymentSelectionMessage = ({ message }: { message: string }) => (
+  <StatusText
+    aria-live="polite"
+    className="text-xs leading-relaxed"
+    showIcon
+    size="sm"
+    status="error"
+  >
+    {message}
+  </StatusText>
+)
+
+interface PaymentProvider {
   id?: string | null
 }
 
 type CheckoutTranslator = ReturnType<typeof useTranslations<"checkout">>
 
-type CheckoutPaymentSectionProps = {
+interface CheckoutPaymentSectionProps {
   canInitiatePayment: boolean
   isBusy: boolean
   isInitiatingPayment: boolean
@@ -42,11 +56,13 @@ const translatePaymentText = ({
   providerName?: string
   translate: CheckoutTranslator
 }) => {
-  if (!key) {
-    return
+  if (key === undefined || key.length === 0) {
+    return null
   }
 
-  return providerName ? translate(key, { providerName }) : translate(key)
+  return providerName !== undefined && providerName.length > 0
+    ? translate(key, { providerName })
+    : translate(key)
 }
 
 const createPaymentProviderOption = ({
@@ -68,26 +84,36 @@ const createPaymentProviderOption = ({
   const displayTextKeys = resolvePaymentDisplayTextKeys(providerId)
   const providerLabel =
     translatePaymentText({
-      key: displayTextKeys.labelKey,
-      providerName: displayTextKeys.providerName,
+      ...(displayTextKeys.labelKey === undefined
+        ? {}
+        : { key: displayTextKeys.labelKey }),
+      ...(displayTextKeys.providerName === undefined
+        ? {}
+        : { providerName: displayTextKeys.providerName }),
       translate,
     }) ??
     displayTextKeys.providerName ??
     formatProviderLabel(providerId)
   const paymentDescription = translatePaymentText({
-    key: displayTextKeys.descriptionKey,
-    providerName: displayTextKeys.providerName,
+    ...(displayTextKeys.descriptionKey === undefined
+      ? {}
+      : { key: displayTextKeys.descriptionKey }),
+    ...(displayTextKeys.providerName === undefined
+      ? {}
+      : { providerName: displayTextKeys.providerName }),
     translate,
   })
-  const paymentHint = displayTextKeys.hintKey
-    ? translate(displayTextKeys.hintKey)
-    : displayTextKeys.hintValue
+  const paymentHint =
+    displayTextKeys.hintKey === undefined ||
+    displayTextKeys.hintKey.length === 0
+      ? displayTextKeys.hintValue
+      : translate(displayTextKeys.hintKey)
   const isProviderSelectable = Boolean(providerId && canInitiatePayment)
 
   return {
-    bodyText: paymentDescription,
+    ...(paymentDescription === null ? {} : { bodyText: paymentDescription }),
     disabled: isBusy || isInitiatingPayment || !isProviderSelectable,
-    hint: paymentHint,
+    ...(paymentHint === undefined ? {} : { hint: paymentHint }),
     icon: resolvePaymentIcon(providerId),
     priceLabel: translate("free"),
     priceTone: "success" as const,
@@ -96,7 +122,7 @@ const createPaymentProviderOption = ({
   }
 }
 
-export function CheckoutPaymentSection({
+export const CheckoutPaymentSection = ({
   canInitiatePayment,
   isBusy,
   isInitiatingPayment,
@@ -104,8 +130,14 @@ export function CheckoutPaymentSection({
   paymentProviders,
   selectedPaymentProviderId,
   selectionMessage,
-}: CheckoutPaymentSectionProps) {
+}: CheckoutPaymentSectionProps) => {
   const tCheckout = useTranslations("checkout")
+
+  const hasPaymentProviders = paymentProviders.length > 0
+  const hasSelectionMessage =
+    selectionMessage !== null &&
+    selectionMessage !== undefined &&
+    selectionMessage.length > 0
 
   return (
     <section className="space-y-250 rounded-sm p-550 font-rubik">
@@ -129,31 +161,17 @@ export function CheckoutPaymentSection({
                 isInitiatingPayment,
                 provider,
                 translate: tCheckout,
-              })
+              }),
             )}
             value={selectedPaymentProviderId ?? null}
           />
         ) : (
           <SupportingText>{tCheckout("no_payment_methods")}</SupportingText>
         )}
-        {paymentProviders.length > 0 && selectionMessage ? (
+        {hasPaymentProviders && hasSelectionMessage ? (
           <PaymentSelectionMessage message={selectionMessage} />
         ) : null}
       </div>
     </section>
-  )
-}
-
-function PaymentSelectionMessage({ message }: { message: string }) {
-  return (
-    <StatusText
-      aria-live="polite"
-      className="text-xs leading-relaxed"
-      showIcon
-      size="sm"
-      status="error"
-    >
-      {message}
-    </StatusText>
   )
 }

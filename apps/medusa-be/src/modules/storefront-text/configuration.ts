@@ -63,42 +63,39 @@ export const STOREFRONT_TEXT_LOCALES = [
 ] as const
 
 export const isStorefrontTextMarket = (
-  value: unknown
+  value: unknown,
 ): value is StorefrontTextMarket =>
   typeof value === "string" &&
   STOREFRONT_TEXT_MARKET_IDS.some((market) => market === value)
 
 export const isStorefrontTextLocale = (
-  value: unknown
+  value: unknown,
 ): value is StorefrontTextLocale =>
   typeof value === "string" &&
   STOREFRONT_TEXT_LOCALES.some((locale) => locale === value)
 
 export const isStorefrontTextNamespace = (
-  value: unknown
+  value: unknown,
 ): value is StorefrontTextNamespace =>
   typeof value === "string" &&
   STOREFRONT_TEXT_NAMESPACES.some((namespace) => namespace === value)
 
 export const isStorefrontTextStatus = (
-  value: unknown
+  value: unknown,
 ): value is StorefrontTextStatus =>
   typeof value === "string" &&
   STOREFRONT_TEXT_STATUSES.some((status) => status === value)
 
 export const getStorefrontTextMarketConfiguration = (
-  market: StorefrontTextMarket
+  market: StorefrontTextMarket,
 ) =>
   STOREFRONT_TEXT_MARKETS.find(
-    (configuration) => configuration.market === market
+    (configuration) => configuration.market === market,
   )
 
-type EqualTypes<Left, Right> =
-  (<Value>() => Value extends Left ? 1 : 2) extends <
-    Value,
-  >() => Value extends Right ? 1 : 2
-    ? true
-    : false
+type EqualTypes<Left, Right> = [Left, Right] extends [Right, Left]
+  ? true
+  : false
 
 type ExpectTrue<Value extends true> = Value
 
@@ -114,7 +111,7 @@ export type StorefrontTextRegistryAssertions = [
   >,
 ]
 
-export type StorefrontTextDefinition = {
+export interface StorefrontTextDefinition {
   description: string
   key: string
   namespace: StorefrontTextNamespace
@@ -122,8 +119,8 @@ export type StorefrontTextDefinition = {
 
 export const isStorefrontTextMarketLocalePair = (
   market: StorefrontTextMarket,
-  locale: StorefrontTextLocale
+  locale: StorefrontTextLocale,
 ) =>
   STOREFRONT_TEXT_MARKETS.some(
-    (candidate) => candidate.market === market && candidate.locale === locale
+    (candidate) => candidate.market === market && candidate.locale === locale,
   )

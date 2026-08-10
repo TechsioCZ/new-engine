@@ -1,15 +1,16 @@
 import type { Config } from "@medusajs/js-sdk"
 import Medusa from "@medusajs/js-sdk"
+import { omitKeys } from "@techsio/std/object"
+
 import {
   getLocalStorageItem,
   removeLocalStorageItem,
   setLocalStorageItem,
 } from "./local-storage"
-import { omitKeys } from "./object-utils"
 
 export type MedusaClientConfig = Config
 
-export type CreateMedusaSdkOptions = {
+export interface CreateMedusaSdkOptions {
   disableAuthOnServer?: boolean
 }
 
@@ -21,40 +22,32 @@ export type MedusaSdk = InstanceType<typeof Medusa>
 // and locale reads/writes without exposing a clean public override.
 const LOCALE_STORAGE_KEY = "medusa_locale"
 
-type MedusaClientWithMutableLocale = {
-  locale_: string
-  setLocale: (locale: string) => void
-}
-
 const patchStorageMethod = <
   TMethodName extends "getItem" | "setItem" | "removeItem",
 >(
   storage: Storage,
   methodName: TMethodName,
-  createFallback: (originalMethod: Storage[TMethodName]) => Storage[TMethodName]
+  fallbackMethod: Storage[TMethodName],
 ): (() => void) => {
-  const storagePrototype = Object.getPrototypeOf(storage) as Storage
+  const storagePrototype = Reflect.getPrototypeOf(storage) ?? storage
   const prototypeDescriptor = Object.getOwnPropertyDescriptor(
     storagePrototype,
-    methodName
+    methodName,
   )
   const ownDescriptor = Object.getOwnPropertyDescriptor(storage, methodName)
-  const originalMethod = storage[methodName] ?? storagePrototype[methodName]
-  const fallbackMethod = createFallback(originalMethod)
-
   try {
     Object.defineProperty(storage, methodName, {
       configurable: true,
       enumerable: ownDescriptor?.enumerable ?? false,
-      writable: true,
       value: fallbackMethod,
+      writable: true,
     })
   } catch {
     Object.defineProperty(storagePrototype, methodName, {
       configurable: prototypeDescriptor?.configurable ?? true,
       enumerable: prototypeDescriptor?.enumerable ?? false,
-      writable: prototypeDescriptor?.writable ?? true,
       value: fallbackMethod,
+      writable: prototypeDescriptor?.writable ?? true,
     })
   }
 
@@ -72,65 +65,71 @@ const patchStorageMethod = <
   }
 }
 
-const createSafeStorage = (storage: Storage): Storage => {
-  const safeStorage = Object.create(storage) as Storage
-
-  Object.defineProperties(safeStorage, {
-    getItem: {
-      configurable: true,
-      value: (key: string) => {
-        try {
-          return storage.getItem(key)
-        } catch {
-          return null
-        }
-      },
-    },
-    setItem: {
-      configurable: true,
-      value: (key: string, value: string) => {
-        try {
-          storage.setItem(key, value)
-        } catch {
-          return
-        }
-      },
-    },
-    removeItem: {
-      configurable: true,
-      value: (key: string) => {
-        try {
-          storage.removeItem(key)
-        } catch {
-          return
-        }
-      },
-    },
-  })
-
-  return safeStorage
-}
+const createSafeStorage = (storage: Storage): Storage => ({
+  clear: () => {
+    try {
+      storage.clear()
+    } catch {
+      // Blocked storage degrades to an empty in-memory view.
+    }
+  },
+  getItem: (key) => {
+    try {
+      return storage.getItem(key)
+    } catch {
+      return null
+    }
+  },
+  key: (index) => {
+    try {
+      return storage.key(index)
+    } catch {
+      return null
+    }
+  },
+  get length() {
+    try {
+      return storage.length
+    } catch {
+      return 0
+    }
+  },
+  removeItem: (key) => {
+    try {
+      storage.removeItem(key)
+    } catch {
+      // Blocked storage degrades to an empty in-memory view.
+    }
+  },
+  setItem: (key, value) => {
+    try {
+      storage.setItem(key, value)
+    } catch {
+      // Blocked storage degrades to an empty in-memory view.
+    }
+  },
+})
 
 // During SDK construction, Medusa may read/write locale from localStorage.
 // Some browsers expose localStorage but still throw on access, so we
 // temporarily patch those methods just for the constructor call.
-const withSafeLocalStorageMethods = <TValue>(
-  callback: () => TValue
-): TValue => {
+const createMedusaWithSafeLocalStorageMethods = (
+  config: MedusaClientConfig,
+): MedusaSdk => {
   if (typeof window === "undefined") {
-    return callback()
+    return new Medusa(config)
   }
 
   let storage: Storage
   try {
     storage = window.localStorage
   } catch {
-    return callback()
+    return new Medusa(config)
   }
 
   const localStorageDescriptor = Object.getOwnPropertyDescriptor(
     window,
-    "localStorage"
+    "localStorage",
   )
   let replacedWindowLocalStorage = false
   try {
@@ -147,7 +146,7 @@ const withSafeLocalStorageMethods = <TValue>(
 
   if (replacedWindowLocalStorage) {
     try {
-      return callback()
+      return new Medusa(config)
     } finally {
       if (localStorageDescriptor) {
         Object.defineProperty(window, "localStorage", localStorageDescriptor)
@@ -157,47 +156,39 @@ const withSafeLocalStorageMethods = <TValue>(
     }
   }
 
-  const restoreGetItem = patchStorageMethod(
-    storage,
-    "getItem",
-    (original) =>
-      function getItem(this: Storage, key: string) {
-        try {
-          return original.call(this, key)
-        } catch {
-          return null
-        }
-      }
-  )
+  const originalGetItem = storage.getItem.bind(storage)
+  const restoreGetItem = patchStorageMethod(storage, "getItem", (key) => {
+    try {
+      return originalGetItem(key)
+    } catch {
+      return null
+    }
+  })
 
+  const originalSetItem = storage.setItem.bind(storage)
   const restoreSetItem = patchStorageMethod(
     storage,
     "setItem",
-    (original) =>
-      function setItem(this: Storage, key: string, value: string) {
-        try {
-          original.call(this, key, value)
-        } catch {
-          return
-        }
+    (key, value) => {
+      try {
+        originalSetItem(key, value)
+      } catch {
+        // Blocked storage writes are intentionally ignored.
       }
+    },
   )
 
-  const restoreRemoveItem = patchStorageMethod(
-    storage,
-    "removeItem",
-    (original) =>
-      function removeItem(this: Storage, key: string) {
-        try {
-          original.call(this, key)
-        } catch {
-          return
-        }
-      }
-  )
+  const originalRemoveItem = storage.removeItem.bind(storage)
+  const restoreRemoveItem = patchStorageMethod(storage, "removeItem", (key) => {
+    try {
+      originalRemoveItem(key)
+    } catch {
+      // Blocked storage removals are intentionally ignored.
+    }
+  })
 
   try {
-    return callback()
+    return new Medusa(config)
   } finally {
     restoreRemoveItem()
     restoreSetItem()
@@ -212,38 +203,44 @@ const patchClientLocaleStorage = (sdk: MedusaSdk): MedusaSdk => {
     return sdk
   }
 
-  const client = sdk.client as unknown as MedusaClientWithMutableLocale
-
-  Object.defineProperty(client, "locale", {
+  Object.defineProperty(sdk.client, "locale", {
     configurable: true,
     enumerable: true,
     get() {
-      return getLocalStorageItem(LOCALE_STORAGE_KEY) ?? client.locale_ ?? ""
+      const locale: unknown = Reflect.get(sdk.client, "locale_")
+      return (
+        getLocalStorageItem(LOCALE_STORAGE_KEY) ??
+        (typeof locale === "string" ? locale : "")
+      )
     },
   })
 
-  client.setLocale = (locale: string) => {
-    if (locale) {
-      setLocalStorageItem(LOCALE_STORAGE_KEY, locale)
-    } else {
+  sdk.client.setLocale = (locale: string) => {
+    if (locale === "") {
       removeLocalStorageItem(LOCALE_STORAGE_KEY)
+    } else {
+      setLocalStorageItem(LOCALE_STORAGE_KEY, locale)
     }
-    client.locale_ = locale
+    Reflect.set(sdk.client, "locale_", locale)
   }
 
   return sdk
 }
 
-export function createMedusaSdk(
+export const createMedusaSdk = (
   config: MedusaClientConfig,
-  options: CreateMedusaSdkOptions = {}
-): MedusaSdk {
+  options: CreateMedusaSdkOptions = {},
+): MedusaSdk => {
   const { disableAuthOnServer = true } = options
-  if (disableAuthOnServer && typeof window === "undefined" && config.auth) {
+  if (
+    disableAuthOnServer &&
+    typeof window === "undefined" &&
+    config.auth !== undefined
+  ) {
     return new Medusa(omitKeys(config, ["auth"]))
   }
 
   return patchClientLocaleStorage(
-    withSafeLocalStorageMethods(() => new Medusa(config))
+    createMedusaWithSafeLocalStorageMethods(config),
   )
 }

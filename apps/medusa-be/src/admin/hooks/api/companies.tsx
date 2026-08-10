@@ -1,12 +1,7 @@
 import type { FetchError } from "@medusajs/js-sdk"
-import {
-  type QueryKey,
-  type UseMutationOptions,
-  type UseQueryOptions,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type { UseMutationOptions, UseQueryOptions } from "@tanstack/react-query"
+
 import type {
   AdminCompaniesResponse,
   AdminCompanyResponse,
@@ -21,27 +16,29 @@ import { customerQueryKey } from "./customers"
 export const companyQueryKey = queryKeysFactory("company")
 
 type QueryOptions<TData> = Omit<
-  UseQueryOptions<TData, FetchError, TData, QueryKey>,
+  UseQueryOptions<TData, FetchError, TData>,
   "queryFn" | "queryKey"
 >
 
 export const useCompanies = (
   query?: Record<string, string>,
-  options?: QueryOptions<AdminCompaniesResponse>
+  options?: QueryOptions<AdminCompaniesResponse>,
 ) => {
   const filterQuery = new URLSearchParams(query).toString()
 
   const fetchCompanies = async () =>
-    sdk.client.fetch<AdminCompaniesResponse>(
-      `/admin/companies${filterQuery ? `?${filterQuery}` : ""}`,
+    await sdk.client.fetch<AdminCompaniesResponse>(
+      filterQuery.length > 0
+        ? `/admin/companies?${filterQuery}`
+        : "/admin/companies",
       {
         method: "GET",
-      }
+      },
     )
 
   return useQuery({
-    queryKey: companyQueryKey.list(query),
     queryFn: fetchCompanies,
+    queryKey: companyQueryKey.list(query),
     ...options,
   })
 }
@@ -49,21 +46,23 @@ export const useCompanies = (
 export const useCompany = (
   companyId: string,
   query?: Record<string, string>,
-  options?: QueryOptions<AdminCompanyResponse>
+  options?: QueryOptions<AdminCompanyResponse>,
 ) => {
   const filterQuery = new URLSearchParams(query).toString()
 
   const fetchCompany = async () =>
-    sdk.client.fetch<AdminCompanyResponse>(
-      `/admin/companies/${companyId}${filterQuery ? `?${filterQuery}` : ""}`,
+    await sdk.client.fetch<AdminCompanyResponse>(
+      filterQuery.length > 0
+        ? `/admin/companies/${companyId}?${filterQuery}`
+        : `/admin/companies/${companyId}`,
       {
         method: "GET",
-      }
+      },
     )
 
   return useQuery({
-    queryKey: companyQueryKey.detail(companyId, query),
     queryFn: fetchCompany,
+    queryKey: companyQueryKey.detail(companyId, query),
     ...options,
   })
 }
@@ -73,29 +72,31 @@ export const useCreateCompany = (
     AdminCreateCompaniesResponse,
     FetchError,
     AdminCreateCompany
-  >
+  >,
 ) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (company: AdminCreateCompany) =>
-      sdk.client.fetch<AdminCreateCompaniesResponse>("/admin/companies", {
-        method: "POST",
+    mutationFn: async (company: AdminCreateCompany) =>
+      await sdk.client.fetch<AdminCreateCompaniesResponse>("/admin/companies", {
+        body: company,
         headers: {
           "Content-Type": "application/json",
         },
-        body: company,
+        method: "POST",
       }),
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
-      for (const company of data.companies) {
-        queryClient.invalidateQueries({
-          queryKey: companyQueryKey.detail(company.id),
-        })
-      }
-      options?.onSuccess?.(data, variables, context)
+      await Promise.all(
+        data.companies.map(async (company) => {
+          await queryClient.invalidateQueries({
+            queryKey: companyQueryKey.detail(company.id),
+          })
+        }),
+      )
+      await options?.onSuccess?.(data, variables, context)
     },
     ...options,
   })
@@ -107,30 +108,33 @@ export const useUpdateCompany = (
     AdminCompanyResponse,
     FetchError,
     AdminUpdateCompany
-  >
+  >,
 ) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (company: AdminUpdateCompany) =>
-      sdk.client.fetch<AdminCompanyResponse>(`/admin/companies/${companyId}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+    mutationFn: async (company: AdminUpdateCompany) =>
+      await sdk.client.fetch<AdminCompanyResponse>(
+        `/admin/companies/${companyId}`,
+        {
+          body: company,
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
         },
-        body: company,
-      }),
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
+      ),
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.details(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: customerQueryKey.lists(),
       })
-      options?.onSuccess?.(data, variables, context)
+      await options?.onSuccess?.(data, variables, context)
     },
     ...options,
   })
@@ -138,25 +142,26 @@ export const useUpdateCompany = (
 
 export const useDeleteCompany = (
   companyId: string,
-  options?: UseMutationOptions<void, FetchError>
+  options?: UseMutationOptions<void, FetchError>,
 ) => {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: () =>
-      sdk.client.fetch<void>(`/admin/companies/${companyId}`, {
+    mutationFn: async () => {
+      await sdk.client.fetch<unknown>(`/admin/companies/${companyId}`, {
         method: "DELETE",
-      }),
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
+      })
+    },
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.details(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: customerQueryKey.lists(),
       })
-      options?.onSuccess?.(data, variables, context)
+      await options?.onSuccess?.(data, variables, context)
     },
     ...options,
   })
@@ -164,29 +169,29 @@ export const useDeleteCompany = (
 
 export const useRestoreCompany = (
   companyId: string,
-  options?: UseMutationOptions<AdminCompanyResponse, FetchError>
+  options?: UseMutationOptions<AdminCompanyResponse, FetchError>,
 ) => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: () =>
-      sdk.client.fetch<AdminCompanyResponse>(
+    mutationFn: async () =>
+      await sdk.client.fetch<AdminCompanyResponse>(
         `/admin/companies/${companyId}/restore`,
         {
           method: "POST",
-        }
+        },
       ),
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.details(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: customerQueryKey.lists(),
       })
-      options?.onSuccess?.(data, variables, context)
+      await options?.onSuccess?.(data, variables, context)
     },
     ...options,
   })
@@ -194,31 +199,31 @@ export const useRestoreCompany = (
 
 export const useAddCompanyToCustomerGroup = (
   companyId: string,
-  options?: UseMutationOptions<void, FetchError, string>
+  options?: UseMutationOptions<void, FetchError, string>,
 ) => {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (groupId: string) => {
       await sdk.client.fetch(`/admin/companies/${companyId}/customer-group`, {
-        method: "POST",
+        body: { group_id: groupId },
         headers: {
           "Content-Type": "application/json",
         },
-        body: { group_id: groupId },
+        method: "POST",
       })
     },
-    onSuccess: (data, variables, context) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (data, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.details(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: customerQueryKey.lists(),
       })
-      options?.onSuccess?.(data, variables, context)
+      await options?.onSuccess?.(data, variables, context)
     },
     ...options,
   })
@@ -226,7 +231,7 @@ export const useAddCompanyToCustomerGroup = (
 
 export const useRemoveCompanyFromCustomerGroup = (
   companyId: string,
-  options?: UseMutationOptions<void, FetchError, string>
+  options?: UseMutationOptions<void, FetchError, string>,
 ) => {
   const queryClient = useQueryClient()
 
@@ -235,24 +240,24 @@ export const useRemoveCompanyFromCustomerGroup = (
       await sdk.client.fetch(
         `/admin/companies/${companyId}/customer-group/${groupId}`,
         {
-          method: "DELETE",
           headers: {
             Accept: "text/plain",
           },
-        }
+          method: "DELETE",
+        },
       )
     },
-    onSuccess: (_, variables, context) => {
-      queryClient.invalidateQueries({
+    onSuccess: async (_, variables, context) => {
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.lists(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: companyQueryKey.details(),
       })
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: customerQueryKey.lists(),
       })
-      options?.onSuccess?.(undefined, variables, context)
+      await options?.onSuccess?.(undefined, variables, context)
     },
     ...options,
   })

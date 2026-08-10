@@ -1,38 +1,57 @@
-import type { MedusaContainer } from "@medusajs/framework/types"
+import type { MedusaContainer, MetadataType } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import {
   updateOrderWorkflow,
   uploadFilesWorkflow,
 } from "@medusajs/medusa/core-flows"
-import {
-  type InvoiceOrderLookupKeys,
-  invoicesBatchClientMapperHelper,
-} from "./client-mapper-helper"
+
+import { invoicesBatchClientMapperHelper } from "./client-mapper-helper"
+import type { InvoiceOrderLookupKeys } from "./client-mapper-helper"
 import type { InvoiceInput } from "./types"
 
-type Metadata = Record<string, unknown>
-
-export type ExistingOrder = {
+export interface ExistingOrder {
   id: string
   display_id: number
-  metadata: Metadata | null
+  metadata: MetadataType
 }
 
-export type ExistingOrderIndex = {
+export interface ExistingOrderIndex {
   byId: Map<string, ExistingOrder>
   byDisplayId: Map<string, ExistingOrder>
   byErpId: Map<string, ExistingOrder>
 }
 
-export type UploadedInvoice = {
+export interface UploadedInvoice {
   id: string
   url: string
 }
 
 const ORDER_FIELDS = ["id", "display_id", "metadata"] as const
+const metadataSchema = z.record(z.string(), z.json()).nullable()
+
+const decodeOrder = (value: unknown): ExistingOrder | null => {
+  if (typeof value !== "object" || value === null) {
+    return null
+  }
+  if (!("id" in value) || typeof value.id !== "string") {
+    return null
+  }
+  if (!("display_id" in value) || typeof value.display_id !== "number") {
+    return null
+  }
+  if (!("metadata" in value)) {
+    return null
+  }
+  const metadata = metadataSchema.safeParse(value.metadata)
+  if (!metadata.success) {
+    return null
+  }
+  return { display_id: value.display_id, id: value.id, metadata: metadata.data }
+}
 
 const getQuery = (container: MedusaContainer) =>
   container.resolve(ContainerRegistrationKeys.QUERY)
@@ -54,12 +73,12 @@ export class InvoicesBatchClient {
       this.mapper.collectOrderLookupKeys(invoices)
     const metadataOrderIds = await this.queryOrderIdsByMetadata(
       "erp_id",
-      erpIds
+      erpIds,
     )
     const [byIdOrders, byDisplayIdOrders, metadataOrders] = await Promise.all([
-      this.queryOrders({ id: Array.from(orderIds) }),
-      this.queryOrders({ display_id: Array.from(displayIds) }),
-      this.queryOrders({ id: Array.from(metadataOrderIds) }),
+      this.queryOrders({ id: [...orderIds] }),
+      this.queryOrders({ display_id: [...displayIds] }),
+      this.queryOrders({ id: [...metadataOrderIds] }),
     ])
     return this.mapper.buildOrderIndex([
       ...byIdOrders,
@@ -70,71 +89,75 @@ export class InvoicesBatchClient {
 
   findExistingOrder(
     invoice: InvoiceInput,
-    index: ExistingOrderIndex
+    index: ExistingOrderIndex,
   ): ExistingOrder | null {
     return this.mapper.findExistingOrder(invoice, index)
   }
 
   async uploadInvoice(invoice: InvoiceInput): Promise<UploadedInvoice | null> {
-    if (!invoice.data) {
+    if (invoice.data === undefined) {
       return null
     }
     const { result } = await uploadFilesWorkflow(this.container).run({
       input: {
-        files: [this.mapper.buildUploadPayload(invoice)] as never,
+        files: [this.mapper.buildUploadPayload(invoice)],
       },
     })
-    return (result?.[0] ?? null) as UploadedInvoice | null
+    return result[0] ?? null
   }
 
   async attachInvoice(
     order: ExistingOrder,
     invoice: InvoiceInput,
     uploaded: UploadedInvoice | null,
-    userId?: string
+    userId?: string,
   ): Promise<string> {
     const invoiceUrl = this.mapper.buildInvoiceUrl(invoice, uploaded)
-    if (!invoiceUrl) {
+    if (invoiceUrl === undefined || invoiceUrl.length === 0) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Invoice URL was not provided or uploaded"
+        "Invoice URL was not provided or uploaded",
       )
     }
     await updateOrderWorkflow(this.container).run({
       input: {
         id: order.id,
-        user_id: userId ?? "symmy-plugin",
         metadata: this.mapper.buildUpdatedMetadata(
           order.metadata,
           invoice,
           invoiceUrl,
-          uploaded
+          uploaded,
         ),
+        user_id: userId ?? "symmy-plugin",
       },
     })
     return invoiceUrl
   }
 
   private async queryOrders(
-    filters: Record<string, string[] | number[]>
+    filters: Record<string, string[] | number[]>,
   ): Promise<ExistingOrder[]> {
     if (Object.values(filters).every((values) => values.length === 0)) {
       return []
     }
     const { data } = await this.query.graph({
       entity: "order",
-      fields: ORDER_FIELDS as unknown as string[],
+      fields: [...ORDER_FIELDS],
       filters,
     })
-    return (data ?? []) as ExistingOrder[]
+    const rows: unknown[] = data ?? []
+    return rows.flatMap((row) => {
+      const order = decodeOrder(row)
+      return order === null ? [] : [order]
+    })
   }
 
   private async queryOrderIdsByMetadata(
     key: string,
-    values: InvoiceOrderLookupKeys["erpIds"]
+    values: InvoiceOrderLookupKeys["erpIds"],
   ): Promise<Set<string>> {
     const ids = new Set<string>()
-    if (!values.size) {
+    if (values.size === 0) {
       return ids
     }
     const { data } = await this.query.graph({
@@ -142,12 +165,20 @@ export class InvoicesBatchClient {
       fields: ["id"],
       filters: {
         metadata: {
-          [key]: Array.from(values),
+          [key]: [...values],
         },
       },
     })
-    for (const row of (data ?? []) as { id: string }[]) {
-      ids.add(row.id)
+    const rows: unknown[] = data ?? []
+    for (const row of rows) {
+      if (
+        typeof row === "object" &&
+        row !== null &&
+        "id" in row &&
+        typeof row.id === "string"
+      ) {
+        ids.add(row.id)
+      }
     }
     return ids
   }

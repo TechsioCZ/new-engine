@@ -1,10 +1,12 @@
-import { join } from "node:path"
+import path from "node:path"
+
+import { getRecordValue } from "@techsio/std/object"
 import type { NextConfig } from "next"
 import createNextIntlPlugin from "next-intl/plugin"
 
 const withNextIntl = createNextIntlPlugin()
 
-type ImageRemotePattern = {
+interface ImageRemotePattern {
   protocol: "http" | "https"
   hostname: string
 }
@@ -12,7 +14,7 @@ type ImageRemotePattern = {
 const LOOPBACK_IMAGE_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"])
 
 const resolveImageRemotePattern = (baseUrl: string | undefined) => {
-  if (!baseUrl) {
+  if (typeof baseUrl !== "string" || baseUrl.length === 0) {
     return []
   }
 
@@ -22,8 +24,8 @@ const resolveImageRemotePattern = (baseUrl: string | undefined) => {
 
     return [
       {
-        protocol,
         hostname: parsedUrl.hostname,
+        protocol,
       },
     ] as const
   } catch {
@@ -31,27 +33,37 @@ const resolveImageRemotePattern = (baseUrl: string | undefined) => {
   }
 }
 
+const readEnvironmentString = (key: string): string | undefined => {
+  const value = getRecordValue(process.env, key)
+  return typeof value === "string" ? value : undefined
+}
+
 const resolveMedusaImageRemotePattern = () =>
-  resolveImageRemotePattern(process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL)
+  resolveImageRemotePattern(
+    readEnvironmentString("NEXT_PUBLIC_MEDUSA_BACKEND_URL"),
+  )
 
 const resolvePayloadImageRemotePattern = () =>
-  resolveImageRemotePattern(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL)
+  resolveImageRemotePattern(
+    readEnvironmentString("NEXT_PUBLIC_PAYLOAD_BASE_URL"),
+  )
 
 const imageRemotePatterns: ImageRemotePattern[] = [
   {
+    // Herbatika CDN
+    hostname: "cdn.myshoptet.com",
     protocol: "https",
-    hostname: "cdn.myshoptet.com", // Herbatika CDN
   },
   {
-    protocol: "https",
     hostname: "images.unsplash.com",
+    protocol: "https",
   },
   ...resolveMedusaImageRemotePattern(),
   ...resolvePayloadImageRemotePattern(),
 ]
 
 const shouldDisableImageOptimization = imageRemotePatterns.some(
-  ({ hostname }) => LOOPBACK_IMAGE_HOSTNAMES.has(hostname)
+  ({ hostname }) => LOOPBACK_IMAGE_HOSTNAMES.has(hostname),
 )
 
 const nextConfig: NextConfig = {
@@ -61,25 +73,25 @@ const nextConfig: NextConfig = {
     "herbatica.hu",
     "herbatica.ro",
   ],
-  reactStrictMode: true,
-  output: "standalone",
-  transpilePackages: [
-    "@techsio/ui-kit",
-    "@techsio/storefront-data",
-    "@techsio/storefront-i18n",
-  ],
-  reactCompiler: true,
   cacheComponents: true,
-  redirects() {
-    return [
-      {
-        source: "/homepage-promo",
-        destination: "/#homepage-promo",
-        permanent: false,
-      },
-    ]
+  cacheLife: {
+    product: {
+      expire: 86_400,
+      revalidate: 3600,
+      stale: 3600,
+    },
   },
-  outputFileTracingRoot: join(__dirname, "../../"),
+  experimental: {
+    typedEnv: true,
+  },
+  images: {
+    // Browser-facing loopback URLs cannot be resolved correctly by the Next
+    // image optimizer from inside Docker. Non-loopback deployments stay optimized.
+    qualities: [40, 50, 60, 75, 90],
+    remotePatterns: imageRemotePatterns,
+    unoptimized: shouldDisableImageOptimization,
+  },
+  output: "standalone",
   outputFileTracingExcludes: {
     "*": [
       "node_modules/@swc/core-linux-x64-gnu",
@@ -97,25 +109,24 @@ const nextConfig: NextConfig = {
       "node_modules/@playwright",
     ],
   },
-  images: {
-    // Browser-facing loopback URLs cannot be resolved correctly by the Next
-    // image optimizer from inside Docker. Non-loopback deployments stay optimized.
-    unoptimized: shouldDisableImageOptimization,
-    remotePatterns: imageRemotePatterns,
-    qualities: [40, 50, 60, 75, 90],
+  outputFileTracingRoot: path.join(import.meta.dirname, "../.."),
+  reactCompiler: true,
+  reactStrictMode: true,
+  redirects() {
+    return [
+      {
+        destination: "/#homepage-promo",
+        permanent: false,
+        source: "/homepage-promo",
+      },
+    ]
   },
-
-  cacheLife: {
-    product: {
-      stale: 3600,
-      revalidate: 3600,
-      expire: 86_400,
-    },
-  },
-
-  experimental: {
-    typedEnv: true,
-  },
+  transpilePackages: [
+    "@techsio/ui-kit",
+    "@techsio/storefront-data",
+    "@techsio/storefront-i18n",
+  ],
+  typedRoutes: true,
 }
 
 export default withNextIntl(nextConfig)

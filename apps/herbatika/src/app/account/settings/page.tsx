@@ -1,11 +1,11 @@
-import { AccountDeactivationSection } from "@/components/account/account-deactivation-section"
 import { AccountSettings } from "@/components/account-settings"
+import { AccountDeactivationSection } from "@/components/account/account-deactivation-section"
 
-export default function AccountSettingsPage() {
-  return (
-    <div className="space-y-400">
-      <AccountSettings />
-      <AccountDeactivationSection />
-    </div>
-  )
-}
+const AccountSettingsPage = () => (
+  <div className="space-y-400">
+    <AccountSettings />
+    <AccountDeactivationSection />
+  </div>
+)
+
+export default AccountSettingsPage

@@ -2,18 +2,19 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework/http"
-import { createProductAttributeOptionWorkflow } from "../../../../../../workflows/product-attribute"
+
+import { createProductAttributeOptionWorkflow } from "../../../../../../workflows/product-attribute/workflows/options"
 import {
   retrieveProductAttributeDefinitionOrThrow,
   toProductAttributeOptionResponse,
 } from "../../../utils"
 import type { AdminCreateProductAttributeOptionSchemaType } from "../../../validators"
 
-export async function POST(
+const createProductAttributeOption = async (
   req: AuthenticatedMedusaRequest<AdminCreateProductAttributeOptionSchemaType>,
-  res: MedusaResponse
-) {
-  const definitionId = req.params.id ?? ""
+  res: MedusaResponse,
+) => {
+  const definitionId = req.params["id"] ?? ""
   await retrieveProductAttributeDefinitionOrThrow(req.scope, definitionId)
   const { result } = await createProductAttributeOptionWorkflow(req.scope).run({
     input: {
@@ -25,3 +26,5 @@ export async function POST(
     option: toProductAttributeOptionResponse(result, 0),
   })
 }
+
+export { createProductAttributeOption as POST }

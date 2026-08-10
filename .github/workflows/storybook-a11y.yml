@@ -2,19 +2,11 @@ name: Storybook A11y (APCA)
 
 on:
   pull_request:
-    paths:
-      - "libs/ui/**"
-      - ".github/workflows/storybook-a11y.yml"
-      - ".github/workflows/storybook-a11y-baseline.yml"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "scripts/install-storybook-playwright.mjs"
   workflow_dispatch:
-    inputs:
-      failOnViolations:
-        description: "Fail workflow when a11y violations are found"
-        required: false
-        default: "true"
+
+concurrency:
+  group: storybook-a11y-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -22,7 +14,11 @@ permissions:
 jobs:
   detect-a11y-changes:
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
     outputs:
+      baseline-run-id: ${{ steps.baseline.outputs.run-id }}
       should-run: ${{ steps.changed-paths.outputs.should-run }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -46,20 +42,21 @@ jobs:
               .github/workflows/storybook-a11y-baseline.yml|\
               package.json|\
               pnpm-lock.yaml|\
+              tsconfig.base.json|\
               scripts/install-storybook-playwright.mjs|\
               libs/ui/.storybook/**|\
               libs/ui/assets/**|\
               libs/ui/package.json|\
-              libs/ui/playwright.config.cts|\
+              libs/ui/playwright.config.mts|\
               libs/ui/postcss.config.mjs|\
               libs/ui/project.json|\
               libs/ui/rslib.config.ts|\
               libs/ui/scripts/storybook-a11y*|\
               libs/ui/src/**|\
               libs/ui/stories/**|\
-              libs/ui/tsconfig.json)
+              libs/ui/tsconfig.json|\
+              libs/std/**)
                 should_run=true
-                break
                 ;;
             esac
           done < <(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")
@@ -69,14 +66,86 @@ jobs:
             echo "No Storybook a11y-relevant paths changed; skipping Storybook build and scan." >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      - name: Resolve the immutable master baseline run
+        id: baseline
+        if: steps.changed-paths.outputs.should-run == 'true'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || 'origin/master' }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin master
+          latest_relevant=$(git rev-list -1 "$BASE_SHA" -- \
+            .github/workflows/storybook-a11y.yml \
+            .github/workflows/storybook-a11y-baseline.yml \
+            package.json \
+            pnpm-lock.yaml \
+            tsconfig.base.json \
+            scripts/install-storybook-playwright.mjs \
+            libs/ui/.storybook \
+            libs/ui/assets \
+            libs/ui/package.json \
+            libs/ui/playwright.config.mts \
+            libs/ui/postcss.config.mjs \
+            libs/ui/project.json \
+            libs/ui/rslib.config.ts \
+            ':(glob)libs/ui/scripts/storybook-a11y*' \
+            libs/ui/src \
+            libs/ui/stories \
+            libs/ui/tsconfig.json \
+            libs/std)
+          if [ -z "$latest_relevant" ]; then
+            echo "::error::No accessibility-relevant commit exists at or before ${BASE_SHA}."
+            exit 1
+          fi
+          selected_run=""
+          while IFS=$'\t' read -r run_id head_sha status conclusion event; do
+            if ! git merge-base --is-ancestor "$head_sha" "$BASE_SHA"; then
+              continue
+            fi
+            if [ "$status" != "completed" ]; then
+              for attempt in {1..80}; do
+                echo "Waiting for master accessibility baseline run ${run_id} (${status}, attempt ${attempt}/80)."
+                sleep 15
+                IFS=$'\t' read -r status conclusion < <(
+                  gh api -H "Accept: application/vnd.github+json" "/repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" --jq '[.status, .conclusion] | @tsv'
+                )
+                if [ "$status" = "completed" ]; then
+                  break
+                fi
+              done
+            fi
+            if [ "$status" != "completed" ] || [ "$conclusion" != "success" ]; then
+              echo "::error::The newest master accessibility baseline at or before ${BASE_SHA} did not succeed (run ${run_id}, event ${event}, status ${status}, conclusion ${conclusion})."
+              exit 1
+            fi
+            if ! git merge-base --is-ancestor "$latest_relevant" "$head_sha"; then
+              echo "::error::Master accessibility baseline run ${run_id} predates relevant commit ${latest_relevant}."
+              exit 1
+            fi
+            selected_run="$run_id"
+            break
+          done < <(
+            gh api -H "Accept: application/vnd.github+json" "/repos/${GITHUB_REPOSITORY}/actions/workflows/storybook-a11y-baseline.yml/runs?branch=master&per_page=100" --jq '.workflow_runs[] | [.id, .head_sha, .status, .conclusion, .event] | @tsv'
+          )
+          if [ -z "$selected_run" ]; then
+            echo "::error::No successful master accessibility baseline run is an ancestor of ${BASE_SHA}."
+            exit 1
+          fi
+          echo "run-id=$selected_run" >> "$GITHUB_OUTPUT"
+          echo "Using master accessibility baseline run ${selected_run} for base ${BASE_SHA}." >> "$GITHUB_STEP_SUMMARY"
+
   storybook-a11y:
     needs: detect-a11y-changes
     if: needs.detect-a11y-changes.outputs.should-run == 'true'
+    # The pinned reusable workflow declares these permissions at job scope.
+    # Publishing inputs remain disabled below, so no write steps execute.
     permissions:
       actions: read
+      checks: write
       contents: read
       pull-requests: write
-      checks: write
     uses: TechsioCZ/storybook-addons/.github/workflows/storybook-a11y.yml@b52eaf44688051b19eb989fab7b6ab721ce1a2d1 # storybook-a11y-workflow-v0.1.9
     with:
       node-version: "24"
@@ -93,22 +162,184 @@ jobs:
       # hanging. ubuntu-latest already ships Chromium's system libs (no
       # --with-deps needed). Install through Storybook's own Playwright so the
       # downloaded browser revision always matches the test-runner runtime.
-      install-command: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...' && timeout 420 node scripts/install-storybook-playwright.mjs {{workdir}} install --only-shell chromium
+      # `--ignore-scripts` also skips the std `prepare` build, so build
+      # @techsio/std explicitly before the Storybook build resolves its
+      # dist-backed exports.
+      install-command: pnpm install --frozen-lockfile --prefer-offline --ignore-scripts --strict-peer-dependencies --filter='.' --filter='@techsio/ui-kit...' && pnpm --filter @techsio/std build && pnpm --filter @techsio/ui-kit build && node scripts/install-storybook-playwright.mjs {{workdir}} install --only-shell chromium
       build-command: pnpm -C {{workdir}} run build:storybook
+      # The reusable scan only writes per-story entry JSON. The regression gate
+      # below needs the canonical per-theme report.json (complete-coverage
+      # check against the Storybook index plus fingerprinting), so run the
+      # same index + finalize scripts the baseline workflow uses right after
+      # each themed test pass. The reusable workflow exports
+      # A11Y_REPORT_OUTPUT_DIR (a11y-report/<theme>, relative to workdir) to
+      # this command, which is how the theme name is recovered. A11Y_THEME must
+      # be exported per pass: the test-runner applies the mode global from it,
+      # and finalize rejects entries captured under the wrong mode.
+      test-command: >-
+        theme="$(basename "$A11Y_REPORT_OUTPUT_DIR")" && A11Y_THEME="$theme" pnpm -C {{workdir}} exec test-storybook --url "{{url}}" --config-dir {{configDir}} --maxWorkers {{maxWorkers}} --testTimeout {{testTimeout}} && node {{workdir}}/scripts/storybook-a11y-index.mjs --input {{workdir}}/storybook-static/index.json --output "{{workdir}}/$A11Y_REPORT_OUTPUT_DIR/index.json" && node {{workdir}}/scripts/storybook-a11y-finalize.mjs --index "{{workdir}}/$A11Y_REPORT_OUTPUT_DIR/index.json" --report-dir "{{workdir}}/$A11Y_REPORT_OUTPUT_DIR" --theme "$theme"
       storybook-static-dir: storybook-static
       storybook-config-dir: .storybook
       themes: '["light","dark"]'
-      globals-template: 'theme:{{theme}}'
+      globals-template: "theme:{{theme}}"
       a11y-output-dir: a11y-report
-      fail-on-violations: ${{ fromJSON(github.event.inputs.failOnViolations || vars.A11Y_REPORT_FAIL_ON_VIOLATIONS || 'false') }}
-      write-junit: true
+      # Findings are collected without turning reviewed deltas into failures.
+      # The health reducer below performs the node-level comparison and blocks
+      # technical scan failures.
+      fail-on-violations: false
+      write-junit: false
       wait-ms: 30000 # 30s based on observed Storybook startup time in CI
       test-workers: 2 # keep load stable on GitHub-hosted runners
       test-timeout: 60000 # 60s to avoid flakes in slower CI
       install-playwright: false # browser installed via install-command (without --with-deps) to avoid the apt hang
       upload-artifacts: true
-      post-pr-comment: true
+      post-pr-comment: false
       baseline-workflow-path: .github/workflows/storybook-a11y-baseline.yml
       baseline-branch: master
+      baseline-run-id: ${{ needs.detect-a11y-changes.outputs.baseline-run-id }}
       baseline-label: master
       baseline-artifact-prefix: storybook-a11y-baseline
+  a11y-health:
+    name: Accessibility scan integrity
+    if: always()
+    needs:
+      - detect-a11y-changes
+      - storybook-a11y
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Require successful scan orchestration
+        env:
+          BASELINE_RUN_ID: ${{ needs.detect-a11y-changes.outputs.baseline-run-id }}
+          DETECTION_RESULT: ${{ needs.detect-a11y-changes.result }}
+          SCAN_RESULT: ${{ needs.storybook-a11y.result }}
+          SHOULD_RUN: ${{ needs.detect-a11y-changes.outputs.should-run }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$DETECTION_RESULT" != "success" ]; then
+            echo "::error::Accessibility change detection or baseline resolution failed (result: ${DETECTION_RESULT})."
+            exit 1
+          fi
+          if [ "$SHOULD_RUN" = "false" ]; then
+            echo "No accessibility-relevant changes; scan integrity passed." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ "$SCAN_RESULT" != "success" ]; then
+            echo "::error::The Storybook accessibility scan did not succeed (result: ${SCAN_RESULT})."
+            exit 1
+          fi
+          if [ -z "$BASELINE_RUN_ID" ]; then
+            echo "::error::The immutable master accessibility baseline run was not resolved."
+            exit 1
+          fi
+
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        if: needs.detect-a11y-changes.outputs.should-run == 'true'
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download current accessibility report
+        if: needs.detect-a11y-changes.outputs.should-run == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: storybook-a11y-report
+          path: ${{ runner.temp }}/a11y-health/current
+
+      - name: Download master light baseline
+        if: needs.detect-a11y-changes.outputs.should-run == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: storybook-a11y-baseline-light
+          path: ${{ runner.temp }}/a11y-health/baseline/light
+          github-token: ${{ github.token }}
+          run-id: ${{ needs.detect-a11y-changes.outputs.baseline-run-id }}
+
+      - name: Download master dark baseline
+        if: needs.detect-a11y-changes.outputs.should-run == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: storybook-a11y-baseline-dark
+          path: ${{ runner.temp }}/a11y-health/baseline/dark
+          github-token: ${{ github.token }}
+          run-id: ${{ needs.detect-a11y-changes.outputs.baseline-run-id }}
+
+      - name: Validate complete light and dark reports
+        if: needs.detect-a11y-changes.outputs.should-run == 'true'
+        env:
+          REPORT_ROOT: ${{ runner.temp }}/a11y-health
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          root = Path(os.environ["REPORT_ROOT"])
+
+          def story_ids(directory: Path, label: str) -> set[str]:
+              matches = list(directory.rglob("report.json"))
+              if len(matches) != 1:
+                  raise SystemExit(f"{label}: expected one report.json, found {len(matches)}")
+              try:
+                  value = json.loads(matches[0].read_text(encoding="utf-8"))
+              except (OSError, json.JSONDecodeError) as error:
+                  raise SystemExit(f"{label}: invalid report.json: {error}") from error
+              if not isinstance(value, list) or not value:
+                  raise SystemExit(f"{label}: report must contain at least one story")
+              identifiers: set[str] = set()
+              for index, story in enumerate(value):
+                  if not isinstance(story, dict):
+                      raise SystemExit(f"{label}: story {index} is not an object")
+                  story_id = story.get("storyId")
+                  results = story.get("results")
+                  if not isinstance(story_id, str) or not story_id:
+                      raise SystemExit(f"{label}: story {index} has no stable storyId")
+                  if story_id in identifiers:
+                      raise SystemExit(f"{label}: duplicate storyId {story_id}")
+                  if not isinstance(results, dict) or not isinstance(results.get("violations"), list):
+                      raise SystemExit(f"{label}: story {story_id} has invalid results")
+                  identifiers.add(story_id)
+              return identifiers
+
+          current_light = story_ids(root / "current" / "light", "current light")
+          current_dark = story_ids(root / "current" / "dark", "current dark")
+          if current_light != current_dark:
+              raise SystemExit("current light and dark reports cover different stories")
+          baseline_light = story_ids(root / "baseline" / "light", "baseline light")
+          baseline_dark = story_ids(root / "baseline" / "dark", "baseline dark")
+          if baseline_light != baseline_dark:
+              raise SystemExit("baseline light and dark reports cover different stories")
+          print(f"Validated complete light and dark reports for {len(current_light)} stories.")
+          PY
+
+      - name: Compare node-level accessibility deltas
+        if: needs.detect-a11y-changes.outputs.should-run == 'true'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || 'origin/master' }}
+          BASELINE_PATH: ${{ runner.temp }}/a11y-health/baseline.json
+          REPORT_ROOT: ${{ runner.temp }}/a11y-health
+          REGRESSION_SCRIPT: ${{ runner.temp }}/a11y-health/storybook-a11y-regression.mjs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git cat-file -e "${BASE_SHA}:libs/ui/scripts/storybook-a11y-regression.mjs" 2>/dev/null; then
+            git show "${BASE_SHA}:libs/ui/scripts/storybook-a11y-regression.mjs" > "$REGRESSION_SCRIPT"
+          else
+            # Transition only: origin/master predates the comparator. Pin the
+            # already-reviewed script from the prior PR head; future bases use
+            # their own immutable copy above.
+            bootstrap_commit="002322f8a7897be5bd4e5b1ab30840448aa14214"
+            git fetch --no-tags origin "$bootstrap_commit"
+            git show "${bootstrap_commit}:libs/ui/scripts/storybook-a11y-regression.mjs" > "$REGRESSION_SCRIPT"
+          fi
+          node "$REGRESSION_SCRIPT" \
+            --report-root "$REPORT_ROOT/baseline" \
+            --baseline "$BASELINE_PATH" \
+            --update-baseline
+          node "$REGRESSION_SCRIPT" \
+            --report-root "$REPORT_ROOT/current" \
+            --baseline "$BASELINE_PATH"

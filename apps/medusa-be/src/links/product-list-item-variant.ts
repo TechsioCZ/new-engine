@@ -1,14 +1,25 @@
 import { defineLink } from "@medusajs/framework/utils"
 import ProductModule from "@medusajs/medusa/product"
+
 import ProductListModule from "../modules/product-list"
+import { parseLinkSource } from "./parse-link-source"
+
+const productModule = {
+  linkable: {
+    productVariant: parseLinkSource(
+      ProductModule.linkable["productVariant"],
+      "Product module product variant",
+    ),
+  },
+}
 
 export const ProductListItemVariantLink = defineLink(
   {
-    linkable: ProductListModule.linkable.productListItem,
     isList: true,
+    linkable: ProductListModule.linkable.productListItem,
   },
   {
-    linkable: ProductModule.linkable.productVariant,
     filterable: ["id", "sku", "title"],
-  }
+    linkable: productModule.linkable.productVariant,
+  },
 )

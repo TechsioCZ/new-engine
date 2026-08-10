@@ -12,11 +12,11 @@ import type {
   ProductAttributesInputBase,
 } from "./types"
 
-export type CreateProductAttributeQueryOptionsFactoryConfig<
+export interface CreateProductAttributeQueryOptionsFactoryConfig<
   TAttribute,
   TInput extends ProductAttributesInputBase,
   TParams,
-> = {
+> {
   service: ProductAttributeService<TAttribute, TParams>
   buildDetailParams?: (input: TInput) => TParams
   queryKeys?: ProductAttributeQueryKeys<TParams>
@@ -24,22 +24,22 @@ export type CreateProductAttributeQueryOptionsFactoryConfig<
   cacheConfig?: CacheConfig
 }
 
-export type ProductAttributeQueryOptionsFactory<
+export interface ProductAttributeQueryOptionsFactory<
   TAttribute,
   TInput extends ProductAttributesInputBase,
-> = {
+> {
   getDetailQueryOptions: (
     input: TInput,
     options?: {
       queryOptions?: ReadQueryOptions<TAttribute[]>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<TAttribute[]>
 }
 
-export function createProductAttributeQueryOptionsFactory<
+export const createProductAttributeQueryOptionsFactory = <
   TAttribute,
-  TInput extends ProductAttributesInputBase,
+  TInput extends ProductAttributesInputBase & TParams,
   TParams,
 >({
   service,
@@ -51,32 +51,35 @@ export function createProductAttributeQueryOptionsFactory<
   TAttribute,
   TInput,
   TParams
->): ProductAttributeQueryOptionsFactory<TAttribute, TInput> {
+>): ProductAttributeQueryOptionsFactory<TAttribute, TInput> => {
   const resolvedCacheConfig = cacheConfig ?? createCacheConfig()
   const resolvedQueryKeys =
     queryKeys ?? createProductAttributeQueryKeys<TParams>(queryKeyNamespace)
-  const buildDetail =
-    buildDetailParams ?? ((input: TInput) => input as unknown as TParams)
+  const buildDetail = buildDetailParams ?? ((input: TInput) => input)
 
   return {
     getDetailQueryOptions: (
       input,
-      options
+      options,
     ): QueryFactoryOptions<TAttribute[]> => {
       const detailParams = buildDetail(input)
       const cacheStrategy = options?.cacheStrategy ?? "realtime"
 
       return {
-        queryKey: resolvedQueryKeys.detail(detailParams),
-        queryFn: ({ signal }) => {
-          if (!input.productId) {
+        queryFn: async ({ signal }) => {
+          if (
+            input.productId === undefined ||
+            input.productId === null ||
+            input.productId.length === 0
+          ) {
             throw new Error("Product id is required for Product Attributes.")
           }
 
-          return service.getProductAttributes(detailParams, signal)
+          return await service.getProductAttributes(detailParams, signal)
         },
+        queryKey: resolvedQueryKeys.detail(detailParams),
         ...resolvedCacheConfig[cacheStrategy],
-        ...(options?.queryOptions ?? {}),
+        ...options?.queryOptions,
       }
     },
   }

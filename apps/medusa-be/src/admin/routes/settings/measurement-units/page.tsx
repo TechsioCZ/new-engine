@@ -18,26 +18,31 @@ import {
   usePrompt,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type { Dispatch, FormEvent, SetStateAction } from "react"
-import { useMemo, useState } from "react"
+import type { Dispatch, SetStateAction, SyntheticEvent } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link } from "react-router-dom"
+
 import {
   createMeasurementUnit,
   deleteMeasurementUnit,
   isMeasurementUnitStatus,
   listMeasurementUnits,
-  type MeasurementUnit,
-  type MeasurementUnitInput,
-  type MeasurementUnitStatus,
   measurementUnitQueryKeys,
   restoreMeasurementUnit,
   updateMeasurementUnit,
+} from "../../../lib/measurement-units"
+import type {
+  MeasurementUnit,
+  MeasurementUnitInput,
+  MeasurementUnitStatus,
 } from "../../../lib/measurement-units"
 import { getPaginationTranslations } from "../../../lib/table"
 import { useDebouncedValue } from "../../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
+const CANCEL_ACTION_KEY = "actions.cancel"
+const DELETE_ACTION_KEY = "actions.delete"
 
 type MeasurementUnitFormState = Omit<MeasurementUnitInput, "base_quantity"> & {
   base_quantity: number | string
@@ -52,25 +57,29 @@ const toFormState = (unit?: MeasurementUnit): MeasurementUnitFormState => ({
 })
 
 const normalizeInput = (
-  input: MeasurementUnitFormState
-): MeasurementUnitInput => ({
-  base_quantity: Number(input.base_quantity),
-  code: input.code.trim(),
-  description: input.description?.trim() || null,
-  name: input.name.trim(),
-  symbol: input.symbol.trim(),
-})
+  input: MeasurementUnitFormState,
+): MeasurementUnitInput => {
+  const description = input.description?.trim()
+  return {
+    base_quantity: Number(input.base_quantity),
+    code: input.code.trim(),
+    description:
+      description === undefined || description === "" ? null : description,
+    name: input.name.trim(),
+    symbol: input.symbol.trim(),
+  }
+}
 
 const getFormIsValid = (form: MeasurementUnitFormState) => {
   const baseQuantity = Number(form.base_quantity)
 
-  return (
-    form.name.trim().length > 0 &&
-    form.code.trim().length > 0 &&
-    form.symbol.trim().length > 0 &&
-    Number.isFinite(baseQuantity) &&
-    baseQuantity > 0
-  )
+  return [
+    form.name.trim().length > 0,
+    form.code.trim().length > 0,
+    form.symbol.trim().length > 0,
+    Number.isFinite(baseQuantity),
+    baseQuantity > 0,
+  ].every(Boolean)
 }
 
 const MeasurementUnitFormFields = ({
@@ -88,12 +97,12 @@ const MeasurementUnitFormFields = ({
         <Label htmlFor="measurement-unit-name">{t("fields.name")}</Label>
         <Input
           id="measurement-unit-name"
-          onChange={(event) =>
+          onChange={(event) => {
             setForm((current) => ({
               ...current,
               name: event.target.value,
             }))
-          }
+          }}
           placeholder={t("placeholders.name")}
           required
           value={form.name}
@@ -104,12 +113,12 @@ const MeasurementUnitFormFields = ({
           <Label htmlFor="measurement-unit-code">{t("fields.code")}</Label>
           <Input
             id="measurement-unit-code"
-            onChange={(event) =>
+            onChange={(event) => {
               setForm((current) => ({
                 ...current,
                 code: event.target.value,
               }))
-            }
+            }}
             placeholder={t("placeholders.code")}
             required
             value={form.code}
@@ -119,12 +128,12 @@ const MeasurementUnitFormFields = ({
           <Label htmlFor="measurement-unit-symbol">{t("fields.symbol")}</Label>
           <Input
             id="measurement-unit-symbol"
-            onChange={(event) =>
+            onChange={(event) => {
               setForm((current) => ({
                 ...current,
                 symbol: event.target.value,
               }))
-            }
+            }}
             placeholder={t("placeholders.symbol")}
             required
             value={form.symbol}
@@ -137,12 +146,12 @@ const MeasurementUnitFormFields = ({
         </Label>
         <Input
           id="measurement-unit-base-quantity"
-          onChange={(event) =>
+          onChange={(event) => {
             setForm((current) => ({
               ...current,
               base_quantity: event.target.value,
             }))
-          }
+          }}
           placeholder={t("placeholders.baseQuantity")}
           required
           step="any"
@@ -156,12 +165,12 @@ const MeasurementUnitFormFields = ({
         </Label>
         <Textarea
           id="measurement-unit-description"
-          onChange={(event) =>
+          onChange={(event) => {
             setForm((current) => ({
               ...current,
               description: event.target.value,
             }))
-          }
+          }}
           placeholder={t("placeholders.description")}
           value={form.description ?? ""}
         />
@@ -180,7 +189,7 @@ const MeasurementUnitCreateModal = ({
   const { t } = useTranslation("measurementUnits")
   const queryClient = useQueryClient()
   const [form, setForm] = useState<MeasurementUnitFormState>(() =>
-    toFormState()
+    toFormState(),
   )
   const formIsValid = getFormIsValid(form)
 
@@ -188,7 +197,7 @@ const MeasurementUnitCreateModal = ({
     mutationFn: createMeasurementUnit,
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveFailed")
+        error instanceof Error ? error.message : t("errors.saveFailed"),
       )
     },
     onSuccess: async () => {
@@ -203,7 +212,7 @@ const MeasurementUnitCreateModal = ({
     },
   })
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
     mutation.mutate(normalizeInput(form))
   }
@@ -226,12 +235,14 @@ const MeasurementUnitCreateModal = ({
           <FocusModal.Footer>
             <div className="flex justify-end gap-2">
               <Button
-                onClick={() => onOpenChange(false)}
+                onClick={() => {
+                  onOpenChange(false)
+                }}
                 size="small"
                 type="button"
                 variant="secondary"
               >
-                {t("actions.cancel")}
+                {t(CANCEL_ACTION_KEY)}
               </Button>
               <Button
                 disabled={!formIsValid}
@@ -261,16 +272,16 @@ const MeasurementUnitFormDrawer = ({
   const { t } = useTranslation("measurementUnits")
   const queryClient = useQueryClient()
   const [form, setForm] = useState<MeasurementUnitFormState>(() =>
-    toFormState(unit)
+    toFormState(unit),
   )
   const formIsValid = getFormIsValid(form)
 
   const mutation = useMutation({
-    mutationFn: (input: MeasurementUnitInput) =>
-      updateMeasurementUnit(unit.id, input),
+    mutationFn: async (input: MeasurementUnitInput) =>
+      await updateMeasurementUnit(unit.id, input),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveFailed")
+        error instanceof Error ? error.message : t("errors.saveFailed"),
       )
     },
     onSuccess: async () => {
@@ -285,7 +296,7 @@ const MeasurementUnitFormDrawer = ({
     },
   })
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (event: SyntheticEvent<HTMLFormElement>) => {
     event.preventDefault()
     mutation.mutate(normalizeInput(form))
   }
@@ -303,12 +314,14 @@ const MeasurementUnitFormDrawer = ({
           <Drawer.Footer>
             <div className="flex justify-end gap-2">
               <Button
-                onClick={() => onOpenChange(false)}
+                onClick={() => {
+                  onOpenChange(false)
+                }}
                 size="small"
                 type="button"
                 variant="secondary"
               >
-                {t("actions.cancel")}
+                {t(CANCEL_ACTION_KEY)}
               </Button>
               <Button
                 disabled={!formIsValid}
@@ -326,134 +339,73 @@ const MeasurementUnitFormDrawer = ({
   )
 }
 
-const MeasurementUnitsSettingsPage = () => {
+interface MeasurementUnitTableRowsProps {
+  error: Error | null
+  isDeleting: (id: string) => boolean
+  isLoading: boolean
+  onDelete: (unit: MeasurementUnit) => void
+  onEdit: (unit: MeasurementUnit) => void
+  onRestore: (id: string) => void
+  units: MeasurementUnit[]
+}
+
+const MeasurementUnitTableRows = ({
+  error,
+  isDeleting,
+  isLoading,
+  onDelete,
+  onEdit,
+  onRestore,
+  units,
+}: MeasurementUnitTableRowsProps) => {
   const { t } = useTranslation("measurementUnits")
-  const queryClient = useQueryClient()
-  const prompt = usePrompt()
-  const [createOpen, setCreateOpen] = useState(false)
-  const [editingUnit, setEditingUnit] = useState<MeasurementUnit | undefined>()
-  const [pageIndex, setPageIndex] = useState(0)
-  const [q, setQ] = useState("")
-  const [status, setStatus] = useState<MeasurementUnitStatus>("active")
-  const debouncedQ = useDebouncedValue(q)
-
-  const params = useMemo(
-    () => ({
-      limit: PAGE_SIZE,
-      offset: pageIndex * PAGE_SIZE,
-      order_by: "name",
-      q: debouncedQ,
-      status,
-    }),
-    [debouncedQ, pageIndex, status]
-  )
-
-  const { data, error, isLoading } = useQuery({
-    queryFn: () => listMeasurementUnits(params),
-    queryKey: measurementUnitQueryKeys.list(params),
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteMeasurementUnit,
-    onError: (mutationError) => {
-      toast.error(
-        mutationError instanceof Error
-          ? mutationError.message
-          : t("errors.deleteFailed")
-      )
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: measurementUnitQueryKeys.lists(),
-      })
-      toast.success(t("toasts.deleted"))
-    },
-  })
-
-  const restoreMutation = useMutation({
-    mutationFn: restoreMeasurementUnit,
-    onError: (mutationError) => {
-      toast.error(
-        mutationError instanceof Error
-          ? mutationError.message
-          : t("errors.restoreFailed")
-      )
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: measurementUnitQueryKeys.lists(),
-      })
-      toast.success(t("toasts.restored"))
-    },
-  })
-
-  const units = data?.measurement_units ?? []
-  const count = data?.count ?? 0
-  const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
-
-  const handleDelete = async (unit: MeasurementUnit) => {
-    const confirmed = await prompt({
-      cancelText: t("actions.cancel"),
-      confirmText: t("actions.delete"),
-      description: unit.active_product_count
-        ? t("deletePrompt.assignedDescription", {
-            count: unit.active_product_count,
-          })
-        : t("deletePrompt.description"),
-      title: t("actions.delete"),
-    })
-
-    if (confirmed) {
-      deleteMutation.mutate(unit.id)
-    }
+  if (isLoading) {
+    return (
+      <Table.Row>
+        <Table.Cell>{t("status.loading")}</Table.Cell>
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+      </Table.Row>
+    )
   }
 
-  const renderRows = () => {
-    if (isLoading) {
-      return (
-        <Table.Row>
-          <Table.Cell>{t("status.loading")}</Table.Cell>
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-        </Table.Row>
-      )
-    }
+  if (error) {
+    return (
+      <Table.Row>
+        <Table.Cell className="text-ui-fg-error">
+          {t("errors.loadFailed")}
+        </Table.Cell>
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+      </Table.Row>
+    )
+  }
 
-    if (error) {
-      return (
-        <Table.Row>
-          <Table.Cell className="text-ui-fg-error">
-            {t("errors.loadFailed")}
-          </Table.Cell>
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-        </Table.Row>
-      )
-    }
+  if (!units.length) {
+    return (
+      <Table.Row>
+        <Table.Cell>{t("units.empty")}</Table.Cell>
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+        <Table.Cell />
+      </Table.Row>
+    )
+  }
 
-    if (!units.length) {
-      return (
-        <Table.Row>
-          <Table.Cell>{t("units.empty")}</Table.Cell>
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-          <Table.Cell />
-        </Table.Row>
-      )
-    }
-
-    return units.map((unit) => (
+  return units.map((unit) => {
+    const isDeleted = unit.deleted_at !== undefined && unit.deleted_at !== null
+    return (
       <Table.Row key={unit.id}>
         <Table.Cell>{unit.name}</Table.Cell>
         <Table.Cell className="text-ui-fg-subtle">{unit.code}</Table.Cell>
@@ -461,13 +413,13 @@ const MeasurementUnitsSettingsPage = () => {
         <Table.Cell>{unit.base_quantity}</Table.Cell>
         <Table.Cell>{unit.active_product_count ?? 0}</Table.Cell>
         <Table.Cell>
-          <StatusBadge color={unit.deleted_at ? "red" : "green"}>
-            {unit.deleted_at ? t("status.deleted") : t("status.active")}
+          <StatusBadge color={isDeleted ? "red" : "green"}>
+            {isDeleted ? t("status.deleted") : t("status.active")}
           </StatusBadge>
         </Table.Cell>
         <Table.Cell>
           <div className="flex justify-end gap-1">
-            {unit.deleted_at ? (
+            {isDeleted ? (
               <>
                 <Button asChild size="small" variant="secondary">
                   <Link to={`/settings/measurement-units/${unit.id}`}>
@@ -475,7 +427,9 @@ const MeasurementUnitsSettingsPage = () => {
                   </Link>
                 </Button>
                 <Button
-                  onClick={() => restoreMutation.mutate(unit.id)}
+                  onClick={() => {
+                    onRestore(unit.id)
+                  }}
                   size="small"
                   type="button"
                   variant="secondary"
@@ -492,7 +446,9 @@ const MeasurementUnitsSettingsPage = () => {
                 </Button>
                 <IconButton
                   aria-label={t("actions.edit")}
-                  onClick={() => setEditingUnit(unit)}
+                  onClick={() => {
+                    onEdit(unit)
+                  }}
                   size="small"
                   type="button"
                   variant="transparent"
@@ -500,12 +456,11 @@ const MeasurementUnitsSettingsPage = () => {
                   <PencilSquare />
                 </IconButton>
                 <IconButton
-                  aria-label={t("actions.delete")}
-                  disabled={
-                    deleteMutation.isPending &&
-                    deleteMutation.variables === unit.id
-                  }
-                  onClick={() => handleDelete(unit)}
+                  aria-label={t(DELETE_ACTION_KEY)}
+                  disabled={isDeleting(unit.id)}
+                  onClick={() => {
+                    onDelete(unit)
+                  }}
                   size="small"
                   type="button"
                   variant="transparent"
@@ -517,7 +472,92 @@ const MeasurementUnitsSettingsPage = () => {
           </div>
         </Table.Cell>
       </Table.Row>
-    ))
+    )
+  })
+}
+
+const MeasurementUnitsSettingsPage = () => {
+  const { t } = useTranslation("measurementUnits")
+  const queryClient = useQueryClient()
+  const prompt = usePrompt()
+  const [createOpen, setCreateOpen] = useState(false)
+  const [editingUnit, setEditingUnit] = useState<MeasurementUnit | undefined>()
+  const [pageIndex, setPageIndex] = useState(0)
+  const [q, setQ] = useState("")
+  const [status, setStatus] = useState<MeasurementUnitStatus>("active")
+  const debouncedQ = useDebouncedValue(q)
+
+  const params = {
+    limit: PAGE_SIZE,
+    offset: pageIndex * PAGE_SIZE,
+    order_by: "name",
+    q: debouncedQ,
+    status,
+  }
+
+  const { data, error, isLoading } = useQuery({
+    queryFn: async () => await listMeasurementUnits(params),
+    queryKey: measurementUnitQueryKeys.list(params),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteMeasurementUnit,
+    onError: (mutationError) => {
+      toast.error(
+        mutationError instanceof Error
+          ? mutationError.message
+          : t("errors.deleteFailed"),
+      )
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: measurementUnitQueryKeys.lists(),
+      })
+      toast.success(t("toasts.deleted"))
+    },
+  })
+
+  const restoreMutation = useMutation({
+    mutationFn: restoreMeasurementUnit,
+    onError: (mutationError) => {
+      toast.error(
+        mutationError instanceof Error
+          ? mutationError.message
+          : t("errors.restoreFailed"),
+      )
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: measurementUnitQueryKeys.lists(),
+      })
+      toast.success(t("toasts.restored"))
+    },
+  })
+
+  const units = data?.measurement_units ?? []
+  const count = data?.count ?? 0
+  const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
+
+  const handleRestore = (id: string) => {
+    restoreMutation.mutate(id)
+  }
+
+  const handleDelete = async (unit: MeasurementUnit) => {
+    const confirmed = await prompt({
+      cancelText: t(CANCEL_ACTION_KEY),
+      confirmText: t(DELETE_ACTION_KEY),
+      description:
+        unit.active_product_count !== undefined && unit.active_product_count > 0
+          ? t("deletePrompt.assignedDescription", {
+              count: unit.active_product_count,
+            })
+          : t("deletePrompt.description"),
+      title: t(DELETE_ACTION_KEY),
+    })
+
+    if (confirmed) {
+      deleteMutation.mutate(unit.id)
+    }
   }
 
   return (
@@ -530,7 +570,12 @@ const MeasurementUnitsSettingsPage = () => {
               {t("pagination.results", { count })}
             </Text>
           </div>
-          <Button onClick={() => setCreateOpen(true)} type="button">
+          <Button
+            onClick={() => {
+              setCreateOpen(true)
+            }}
+            type="button"
+          >
             {t("actions.add")}
           </Button>
         </div>
@@ -580,19 +625,35 @@ const MeasurementUnitsSettingsPage = () => {
               </Table.HeaderCell>
             </Table.Row>
           </Table.Header>
-          <Table.Body>{renderRows()}</Table.Body>
+          <Table.Body>
+            <MeasurementUnitTableRows
+              error={error}
+              isDeleting={(id) =>
+                deleteMutation.isPending && deleteMutation.variables === id
+              }
+              isLoading={isLoading}
+              onDelete={(unit) => {
+                void handleDelete(unit)
+              }}
+              onEdit={setEditingUnit}
+              onRestore={handleRestore}
+              units={units}
+            />
+          </Table.Body>
         </Table>
         <Table.Pagination
           canNextPage={pageIndex + 1 < pageCount}
           canPreviousPage={pageIndex > 0}
           count={count}
-          nextPage={() => setPageIndex((current) => current + 1)}
+          nextPage={() => {
+            setPageIndex((current) => current + 1)
+          }}
           pageCount={pageCount}
           pageIndex={pageIndex}
           pageSize={PAGE_SIZE}
-          previousPage={() =>
+          previousPage={() => {
             setPageIndex((current) => Math.max(current - 1, 0))
-          }
+          }}
           translations={getPaginationTranslations(t)}
         />
       </Container>
@@ -602,17 +663,17 @@ const MeasurementUnitsSettingsPage = () => {
           open={createOpen}
         />
       ) : null}
-      {editingUnit ? (
+      {editingUnit === undefined ? null : (
         <MeasurementUnitFormDrawer
           onOpenChange={(open) => {
             if (!open) {
               setEditingUnit(undefined)
             }
           }}
-          open={!!editingUnit}
+          open
           unit={editingUnit}
         />
-      ) : null}
+      )}
     </>
   )
 }

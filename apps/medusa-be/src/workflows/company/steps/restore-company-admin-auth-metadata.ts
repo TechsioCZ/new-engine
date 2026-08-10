@@ -1,86 +1,94 @@
-import type { IAuthModuleService, Query } from "@medusajs/framework/types"
+import type {
+  IAuthModuleService,
+  ProviderIdentityDTO,
+  Query,
+} from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
+import type { QueryCompanyProjection } from "../../../types/company/query"
 import { getProviderIdentityIdsWithoutActiveAdminRole } from "../../employee/utils/admin-auth-metadata"
 
-type CompanyWithEmployees = {
-  employees?: Array<{
-    customer?: {
-      email?: string | null
-      id?: string | null
-    } | null
-    deleted_at?: Date | string | null
-    is_admin?: boolean
-  }>
-}
-
-type RestoreCompanyAdminAuthMetadataCompensation = {
-  admin_candidates: Array<{
-    customer_id?: string | null
-    email?: string | null
-  }>
+interface RestoreCompanyAdminAuthMetadataCompensation {
+  admin_candidates: {
+    customer_id: string | null | undefined
+    email: string | null | undefined
+  }[]
   company_ids: string[]
   provider_identity_ids: string[]
-}
-
-type ProviderIdentity = {
-  id?: string
 }
 
 export const restoreCompanyAdminAuthMetadataStep = createStep(
   "restore-company-admin-auth-metadata",
   async (
     companyIds: string[],
-    { container }
+    { container },
   ): Promise<
     StepResponse<undefined, RestoreCompanyAdminAuthMetadataCompensation>
   > => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-    const { data: companies } = (await query.graph({
-      entity: "company",
-      fields: [
-        "id",
-        "employees.deleted_at",
-        "employees.is_admin",
-        "employees.customer.email",
-        "employees.customer.id",
-      ],
-      filters: { id: companyIds },
-    })) as { data: CompanyWithEmployees[] }
-    const adminCandidates = companies
-      .flatMap((company) => company.employees ?? [])
-      .filter((employee) => employee.is_admin && !employee.deleted_at)
-      .map((employee) => ({
-        customer_id: employee.customer?.id,
-        email: employee.customer?.email,
-      }))
+    const companyResult: { data: QueryCompanyProjection[] } = await query.graph(
+      {
+        entity: "company",
+        fields: [
+          "id",
+          "employees.deleted_at",
+          "employees.is_admin",
+          "employees.customer.email",
+          "employees.customer.id",
+        ],
+        filters: { id: companyIds },
+      },
+    )
+    const companyData = companyResult.data
+
+    const adminCandidates: RestoreCompanyAdminAuthMetadataCompensation["admin_candidates"] =
+      []
+    for (const company of companyData) {
+      for (const employee of company.employees ?? []) {
+        if (
+          employee?.is_admin === true &&
+          (employee?.deleted_at === undefined || employee.deleted_at === null)
+        ) {
+          adminCandidates.push({
+            customer_id: employee.customer?.id,
+            email: employee.customer?.email,
+          })
+        }
+      }
+    }
+
     const adminEmails = [
       ...new Set(
         adminCandidates
           .map((candidate) => candidate.email)
-          .filter((email): email is string => Boolean(email))
+          .filter(
+            (email): email is string =>
+              typeof email === "string" && email.length > 0,
+          ),
       ),
     ]
-    const { data: providerIdentities }: { data: ProviderIdentity[] } =
-      adminEmails.length
-        ? await query.graph({
-            entity: "provider_identity",
-            fields: ["id"],
-            filters: {
-              entity_id: adminEmails,
-              provider: "emailpass",
-            },
-          })
-        : { data: [] }
-    const providerIdentityIds = providerIdentities
-      .map((providerIdentity) => providerIdentity.id)
-      .filter((providerIdentityId): providerIdentityId is string =>
-        Boolean(providerIdentityId)
-      )
+    let providerIdentityData: Pick<ProviderIdentityDTO, "id">[] = []
+    if (adminEmails.length > 0) {
+      const providerIdentityResult: {
+        data: Pick<ProviderIdentityDTO, "id">[]
+      } = await query.graph({
+        entity: "provider_identity",
+        fields: ["id"],
+        filters: {
+          entity_id: adminEmails,
+          provider: "emailpass",
+        },
+      })
+      providerIdentityData = providerIdentityResult.data
+    }
+    const providerIdentityIds = providerIdentityData.map(
+      (providerIdentity) => providerIdentity.id,
+    )
 
-    if (providerIdentityIds.length) {
+    if (providerIdentityIds.length > 0) {
       const authModuleService = container.resolve<IAuthModuleService>(
-        Modules.AUTH
+        Modules.AUTH,
       )
 
       await authModuleService.updateProviderIdentities(
@@ -89,7 +97,7 @@ export const restoreCompanyAdminAuthMetadataStep = createStep(
           user_metadata: {
             role: "company_admin",
           },
-        }))
+        })),
       )
     }
 
@@ -101,9 +109,9 @@ export const restoreCompanyAdminAuthMetadataStep = createStep(
   },
   async (
     input: RestoreCompanyAdminAuthMetadataCompensation | undefined,
-    { container }
+    { container },
   ) => {
-    if (!input?.provider_identity_ids.length) {
+    if (input === undefined || input.provider_identity_ids.length === 0) {
       return
     }
 
@@ -116,15 +124,15 @@ export const restoreCompanyAdminAuthMetadataStep = createStep(
       })
     const providerIdentityIdSet = new Set(providerIdentityIds)
     const providerIdentityIdsToClear = input.provider_identity_ids.filter(
-      (providerIdentityId) => providerIdentityIdSet.has(providerIdentityId)
+      (providerIdentityId) => providerIdentityIdSet.has(providerIdentityId),
     )
 
-    if (!providerIdentityIdsToClear.length) {
+    if (providerIdentityIdsToClear.length === 0) {
       return
     }
 
     const authModuleService = container.resolve<IAuthModuleService>(
-      Modules.AUTH
+      Modules.AUTH,
     )
 
     await authModuleService.updateProviderIdentities(
@@ -133,7 +141,7 @@ export const restoreCompanyAdminAuthMetadataStep = createStep(
         user_metadata: {
           role: null,
         },
-      }))
+      })),
     )
-  }
+  },
 )

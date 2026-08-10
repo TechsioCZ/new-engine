@@ -1,5 +1,5 @@
 import { AccountOverview } from "@/components/account-overview"
 
-export default function AccountPage() {
-  return <AccountOverview />
-}
+const AccountPage = () => <AccountOverview />
+
+export default AccountPage

@@ -20,13 +20,13 @@ export type CatalogSortValue = (typeof CATALOG_SORT_VALUES)[number]
 
 type MultiValueParam = string | string[] | undefined
 
-export type FacetCountItem = {
+export interface FacetCountItem {
   id: string
   label: string
   count: number
 }
 
-type CatalogFilterInput = {
+interface CatalogFilterInput {
   categoryIds: string[]
   statusIds: string[]
   formIds: string[]
@@ -37,6 +37,12 @@ type CatalogFilterInput = {
 }
 
 const MAX_FILTER_VALUES_PER_FACET = 40
+
+const getOwnPropertyValue = (value: object, key: string): unknown => {
+  const descriptor: PropertyDescriptor | undefined =
+    Object.getOwnPropertyDescriptor(value, key)
+  return descriptor?.value
+}
 
 const escapeFilterValue = (value: string): string =>
   value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
@@ -58,7 +64,7 @@ const normalizeMultiValueParam = (
   options?: {
     allowValue?: (value: string) => boolean
     maxItems?: number
-  }
+  },
 ): string[] => {
   const rawValues = toRawMultiValueArray(value)
   const seen = new Set<string>()
@@ -68,19 +74,14 @@ const normalizeMultiValueParam = (
   for (const rawValue of rawValues) {
     for (const splitValue of rawValue.split(",")) {
       const normalized = splitValue.trim()
-      if (!normalized || seen.has(normalized)) {
-        continue
-      }
+      const isAllowed = options?.allowValue?.(normalized) ?? true
+      if (normalized !== "" && !seen.has(normalized) && isAllowed) {
+        seen.add(normalized)
+        result.push(normalized)
 
-      if (options?.allowValue && !options.allowValue(normalized)) {
-        continue
-      }
-
-      seen.add(normalized)
-      result.push(normalized)
-
-      if (result.length >= maxItems) {
-        return result
+        if (result.length >= maxItems) {
+          return result
+        }
       }
     }
   }
@@ -90,16 +91,16 @@ const normalizeMultiValueParam = (
 
 const buildOrFilterExpression = (
   field: string,
-  values: string[]
+  values: string[],
 ): string | undefined => {
   if (values.length === 0) {
-    return
+    return undefined
   }
 
   if (values.length === 1) {
-    const singleValue = values[0]
-    if (!singleValue) {
-      return
+    const [singleValue] = values
+    if (singleValue === undefined) {
+      return undefined
     }
 
     return `${field} = "${escapeFilterValue(singleValue)}"`
@@ -111,10 +112,10 @@ const buildOrFilterExpression = (
 }
 
 const toFinitePositiveNumber = (
-  value: number | undefined
+  value: number | undefined,
 ): number | undefined => {
   if (value === undefined || Number.isNaN(value) || !Number.isFinite(value)) {
-    return
+    return undefined
   }
 
   return Math.max(0, value)
@@ -148,64 +149,75 @@ export const normalizeIngredientParam = (value: MultiValueParam): string[] =>
   normalizeMultiValueParam(value, { allowValue: isIngredientFacetValue })
 
 export const resolveCatalogSort = (
-  sort: CatalogSortValue
+  sort: CatalogSortValue,
 ): string[] | undefined => {
   switch (sort) {
-    case "best-selling":
+    case "recommended": {
+      return undefined
+    }
+    case "best-selling": {
       return ["facet_popularity:desc"]
-    case "newest":
+    }
+    case "newest": {
       return ["created_at:desc"]
-    case "oldest":
+    }
+    case "oldest": {
       return ["created_at:asc"]
-    case "price-asc":
+    }
+    case "price-asc": {
       return ["facet_price:asc"]
-    case "price-desc":
+    }
+    case "price-desc": {
       return ["facet_price:desc"]
-    case "title-asc":
+    }
+    case "title-asc": {
       return ["title:asc"]
-    case "title-desc":
+    }
+    case "title-desc": {
       return ["title:desc"]
-    default:
-      return
+    }
+    default: {
+      return undefined
+    }
   }
 }
 
 export const buildCatalogFilterExpressions = (
-  input: CatalogFilterInput
+  input: CatalogFilterInput,
 ): string[] => {
   const expressions: string[] = []
 
   const categoryExpression = buildOrFilterExpression(
     "facet_category_ids",
-    input.categoryIds
+    input.categoryIds,
   )
-  if (categoryExpression) {
+  if (categoryExpression !== undefined) {
     expressions.push(categoryExpression)
   }
 
   const statusExpression = buildOrFilterExpression(
     "facet_status",
-    input.statusIds
+    input.statusIds,
   )
-  if (statusExpression) {
+  if (statusExpression !== undefined) {
     expressions.push(statusExpression)
   }
 
   const formExpression = buildOrFilterExpression("facet_form", input.formIds)
-  if (formExpression) {
+  if (formExpression !== undefined) {
     expressions.push(formExpression)
   }
 
   const brandExpression = buildOrFilterExpression("facet_brand", input.brandIds)
-  if (brandExpression) {
+  if (brandExpression !== undefined) {
     expressions.push(brandExpression)
   }
 
   const ingredientExpression = buildOrFilterExpression(
     "facet_ingredient",
-    input.ingredientIds
+    input.ingredientIds,
   )
-  if (ingredientExpression) {
+  if (ingredientExpression !== undefined) {
     expressions.push(ingredientExpression)
   }
 
@@ -230,18 +242,24 @@ export const buildCatalogFilterExpressions = (
 
 export const getFacetDistribution = (
   distribution: unknown,
-  facetKey: string
+  facetKey: string,
 ): Map<string, number> => {
   if (
-    !distribution ||
+    distribution === null ||
+    distribution === undefined ||
     typeof distribution !== "object" ||
     Array.isArray(distribution)
   ) {
     return new Map()
   }
 
-  const rawFacet = (distribution as Record<string, unknown>)[facetKey]
-  if (!rawFacet || typeof rawFacet !== "object" || Array.isArray(rawFacet)) {
+  const rawFacet = getOwnPropertyValue(distribution, facetKey)
+  if (
+    rawFacet === null ||
+    rawFacet === undefined ||
+    typeof rawFacet !== "object" ||
+    Array.isArray(rawFacet)
+  ) {
     return new Map()
   }
 
@@ -258,24 +276,26 @@ export const getFacetDistribution = (
 
 export const getFacetDistributionFromHits = (
   hits: unknown,
-  facetKey: string
+  facetKey: string,
 ): Map<string, number> => {
   if (!Array.isArray(hits)) {
     return new Map()
   }
 
   const result = new Map<string, number>()
-  for (const hit of hits) {
-    if (!hit || typeof hit !== "object" || Array.isArray(hit)) {
+  const unknownHits: unknown[] = hits
+  for (const hit of unknownHits) {
+    if (hit === null || typeof hit !== "object" || Array.isArray(hit)) {
       continue
     }
 
-    const rawFacet = (hit as Record<string, unknown>)[facetKey]
+    const rawFacet = getOwnPropertyValue(hit, facetKey)
     const facetValues = Array.isArray(rawFacet) ? rawFacet : [rawFacet]
     const uniqueValues = new Set(
       facetValues.filter(
-        (value): value is string => typeof value === "string" && Boolean(value)
-      )
+        (value): value is string =>
+          typeof value === "string" && value.length > 0,
+      ),
     )
 
     for (const value of uniqueValues) {
@@ -288,62 +308,73 @@ export const getFacetDistributionFromHits = (
 
 export const getNumericFacetStats = (
   facetStats: unknown,
-  facetKey: string
+  facetKey: string,
 ): { min?: number; max?: number } => {
   if (
-    !facetStats ||
+    facetStats === null ||
+    facetStats === undefined ||
     typeof facetStats !== "object" ||
     Array.isArray(facetStats)
   ) {
     return {}
   }
 
-  const rawFacet = (facetStats as Record<string, unknown>)[facetKey]
-  if (!rawFacet || typeof rawFacet !== "object" || Array.isArray(rawFacet)) {
+  const rawFacet = getOwnPropertyValue(facetStats, facetKey)
+  if (
+    rawFacet === null ||
+    rawFacet === undefined ||
+    typeof rawFacet !== "object" ||
+    Array.isArray(rawFacet)
+  ) {
     return {}
   }
 
-  const typedFacet = rawFacet as Record<string, unknown>
-  const minValue = typedFacet.min
-  const maxValue = typedFacet.max
+  const minValue = getOwnPropertyValue(rawFacet, "min")
+  const maxValue = getOwnPropertyValue(rawFacet, "max")
 
   const min = typeof minValue === "number" ? minValue : undefined
   const max = typeof maxValue === "number" ? maxValue : undefined
 
-  return { min, max }
+  return {
+    ...(min === undefined ? {} : { min }),
+    ...(max === undefined ? {} : { max }),
+  }
 }
 
 export const getNumericFacetStatsFromHits = (
   hits: unknown,
-  facetKey: string
+  facetKey: string,
 ): { min?: number; max?: number } => {
   if (!Array.isArray(hits)) {
     return {}
   }
 
-  const values = hits
-    .map((hit) =>
-      hit && typeof hit === "object" && !Array.isArray(hit)
-        ? (hit as Record<string, unknown>)[facetKey]
-        : undefined
-    )
-    .filter(
-      (value): value is number =>
-        typeof value === "number" && Number.isFinite(value)
-    )
+  const values: number[] = []
+  const unknownHits: unknown[] = hits
+  for (const hit of unknownHits) {
+    if (hit === null || typeof hit !== "object" || Array.isArray(hit)) {
+      continue
+    }
+    const value = getOwnPropertyValue(hit, facetKey)
+    if (typeof value === "number" && Number.isFinite(value)) {
+      values.push(value)
+    }
+  }
 
-  return values.length > 0
-    ? { min: Math.min(...values), max: Math.max(...values) }
-    : {}
+  if (values.length === 0) {
+    return {}
+  }
+
+  return { max: Math.max(...values), min: Math.min(...values) }
 }
 
 export const humanizeFacetHandle = (handle: string): string =>
-  handle.replaceAll("-", " ").replaceAll(/\s+/g, " ").trim()
+  handle.replaceAll("-", " ").replaceAll(/\s+/gu, " ").trim()
 
 export const sortFacetCountItems = (
-  items: FacetCountItem[]
+  items: FacetCountItem[],
 ): FacetCountItem[] =>
-  [...items].sort((left, right) => {
+  items.toSorted((left, right) => {
     if (left.count !== right.count) {
       return right.count - left.count
     }

@@ -4,22 +4,22 @@ export type StockIdentifierType =
   | "variant_id"
   | "inventory_item_id"
 
-export type StockUpdateInput = {
+export interface StockUpdateInput {
   identifier_type: StockIdentifierType
-  sku?: string
-  ean?: string
-  variant_id?: string
-  inventory_item_id?: string
-  location_id?: string
+  sku?: string | undefined
+  ean?: string | undefined
+  variant_id?: string | undefined
+  inventory_item_id?: string | undefined
+  location_id?: string | undefined
   stocked_quantity: number
-  reserved_quantity?: number
+  reserved_quantity?: number | undefined
 }
 
-export type UpdateStockBatchInput = {
+export interface UpdateStockBatchInput {
   updates: StockUpdateInput[]
 }
 
-export type UpdateStockBatchResult = {
+export interface UpdateStockBatchResult {
   identifier_type: StockIdentifierType
   identifier: string
   status: "updated" | "failed" | "not_found"
@@ -29,7 +29,7 @@ export type UpdateStockBatchResult = {
   error?: string
 }
 
-export type UpdateStockBatchOutput = {
+export interface UpdateStockBatchOutput {
   success: boolean
   updated: number
   failed: number

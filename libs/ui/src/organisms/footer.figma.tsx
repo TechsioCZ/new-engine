@@ -1,18 +1,11 @@
 import figma from "@figma/code-connect"
+
 import { Footer } from "./footer"
 
 figma.connect(
   Footer,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=1372-161",
   {
-    imports: ['import { Footer } from "@libs/ui/organisms/footer"'],
-    props: {
-      size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
-        lg: "lg",
-      }),
-    },
     example: ({ size }) => (
       <Footer size={size}>
         <Footer.Container>
@@ -34,5 +27,13 @@ figma.connect(
         </Footer.Bottom>
       </Footer>
     ),
-  }
+    imports: ['import { Footer } from "@libs/ui/organisms/footer"'],
+    props: {
+      size: figma.enum("size", {
+        lg: "lg",
+        md: "md",
+        sm: "sm",
+      }),
+    },
+  },
 )

@@ -2,17 +2,18 @@
 
 import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group"
 import type { ReactNode } from "react"
+
 import { resolveVisibleFieldFeedback } from "@/lib/forms/core/field-errors"
 import { useFieldContext } from "@/lib/forms/core/herbatika-form-context"
 
-type RadioGroupItem = {
+interface RadioGroupItem {
   description?: ReactNode
   disabled?: boolean
   label: ReactNode
   value: string
 }
 
-type FormRadioGroupFieldProps = {
+interface FormRadioGroupFieldProps {
   id: string
   items: RadioGroupItem[]
   label: ReactNode
@@ -25,7 +26,7 @@ type FormRadioGroupFieldProps = {
   onValueChange?: (value: string) => void
 }
 
-export function FormRadioGroupField({
+export const FormRadioGroupField = ({
   className,
   id,
   items,
@@ -36,7 +37,7 @@ export function FormRadioGroupField({
   size = "md",
   validationMode = "blur",
   variant = "outline",
-}: FormRadioGroupFieldProps) {
+}: FormRadioGroupFieldProps) => {
   const field = useFieldContext<string>()
   const value = typeof field.state.value === "string" ? field.state.value : ""
   const fieldFeedback = resolveVisibleFieldFeedback({
@@ -44,13 +45,18 @@ export function FormRadioGroupField({
     submissionAttempts: field.form.state.submissionAttempts,
     validationMode,
   })
+  const hasErrorText = Boolean(fieldFeedback.errorText)
 
   return (
     <RadioGroup
       id={id}
       name={field.name}
-      onValueChange={(nextValue) => {
-        const normalizedValue = nextValue ?? ""
+      onValueChange={(normalizedValue) => {
+        if (normalizedValue === null) {
+          field.handleBlur()
+          return
+        }
+
         field.handleChange(normalizedValue)
         field.handleBlur()
         onValueChange?.(normalizedValue)
@@ -59,31 +65,35 @@ export function FormRadioGroupField({
       required={required}
       size={size}
       validateStatus={fieldFeedback.validateStatus}
-      value={value || null}
+      value={value}
       variant={variant}
     >
       <RadioGroup.Label>{label}</RadioGroup.Label>
       <RadioGroup.ItemGroup className={className}>
-        {items.map((item) => (
-          <RadioGroup.Item
-            disabled={item.disabled}
-            key={item.value}
-            value={item.value}
-          >
-            <RadioGroup.ItemHiddenInput />
-            <RadioGroup.ItemControl />
-            <RadioGroup.ItemContent>
-              <RadioGroup.ItemText>{item.label}</RadioGroup.ItemText>
-              {item.description ? (
-                <RadioGroup.ItemDescription>
-                  {item.description}
-                </RadioGroup.ItemDescription>
-              ) : null}
-            </RadioGroup.ItemContent>
-          </RadioGroup.Item>
-        ))}
+        {items.map((item) => {
+          const hasDescription = Boolean(item.description)
+
+          return (
+            <RadioGroup.Item
+              disabled={item.disabled}
+              key={item.value}
+              value={item.value}
+            >
+              <RadioGroup.ItemHiddenInput />
+              <RadioGroup.ItemControl />
+              <RadioGroup.ItemContent>
+                <RadioGroup.ItemText>{item.label}</RadioGroup.ItemText>
+                {hasDescription ? (
+                  <RadioGroup.ItemDescription>
+                    {item.description}
+                  </RadioGroup.ItemDescription>
+                ) : null}
+              </RadioGroup.ItemContent>
+            </RadioGroup.Item>
+          )
+        })}
       </RadioGroup.ItemGroup>
-      {fieldFeedback.errorText ? (
+      {hasErrorText ? (
         <RadioGroup.StatusText>{fieldFeedback.errorText}</RadioGroup.StatusText>
       ) : null}
     </RadioGroup>

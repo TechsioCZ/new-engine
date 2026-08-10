@@ -1,10 +1,9 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import {
-  type PaymentPaidEvent,
-  resolveOrderIdFromPaymentEvent,
-} from "../subscriber-helpers/product-review-request-on-payment/helper"
+
+import { resolveOrderIdFromPaymentEvent } from "../subscriber-helpers/product-review-request-on-payment/helper"
+import type { PaymentPaidEvent } from "../subscriber-helpers/product-review-request-on-payment/helper"
 import { scheduleProductReviewRequestForOrder } from "../utils/product-review-request-queue"
 
 export default async function productReviewRequestOnPaymentHandler({
@@ -14,9 +13,9 @@ export default async function productReviewRequestOnPaymentHandler({
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const orderId = await resolveOrderIdFromPaymentEvent(container, event.data)
 
-  if (!orderId) {
+  if (orderId === undefined || orderId === "") {
     logger.warn(
-      `Skipping product review request queueing: could not resolve order from ${event.name} event ${JSON.stringify(event.data)}`
+      `Skipping product review request queueing: could not resolve order from ${event.name} event ${JSON.stringify(event.data)}`,
     )
     return
   }

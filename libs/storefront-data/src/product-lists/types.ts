@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+
 import type {
   QueryResult,
   ReadResultBase,
@@ -11,14 +12,14 @@ import type { QueryKey } from "../shared/query-keys"
 export type ProductListType = "favorite" | "custom"
 export type ProductListAccessType = "private" | "public"
 
-export type ProductListItemBase = {
+export interface ProductListItemBase {
   id: string
   product_id?: string | null
   variant_id?: string | null
   quantity?: number | null
   note?: string | null
   sort_order?: number | null
-  metadata?: Record<string, unknown> | null
+  metadata?: object | null
   product?: HttpTypes.StoreProduct | null
   variant?: {
     id?: string | null
@@ -26,23 +27,23 @@ export type ProductListItemBase = {
   } | null
 }
 
-export type ProductListBase<TItem = ProductListItemBase> = {
+export interface ProductListBase<TItem = ProductListItemBase> {
   id: string
   title?: string | null
   description?: string | null
   handle?: string | null
-  type?: ProductListType | string | null
-  access_type?: ProductListAccessType | string | null
+  type?: string | null
+  access_type?: string | null
   customer_id?: string | null
   items?: TItem[] | null
   items_count?: number | null
   item_count?: number | null
-  metadata?: Record<string, unknown> | null
+  metadata?: object | null
   created_at?: string | null
   updated_at?: string | null
 }
 
-export type ProductListListResponse<TProductList> = {
+export interface ProductListListResponse<TProductList> {
   product_lists?: TProductList[]
   productLists?: TProductList[]
   lists?: TProductList[]
@@ -51,7 +52,7 @@ export type ProductListListResponse<TProductList> = {
   offset?: number
 }
 
-export type ProductListResponse<TProductList> = {
+export interface ProductListResponse<TProductList> {
   product_list?: TProductList
   productList?: TProductList
   list?: TProductList
@@ -64,25 +65,25 @@ export type ProductListItemResponse<TProductList, TProductListItem> =
     productListItem?: TProductListItem
   }
 
-export type ProductListCartResponse<TCart> = {
+export interface ProductListCartResponse<TCart> {
   cart?: TCart | null
 }
 
-export type ProductListDeleteResponse = {
+export interface ProductListDeleteResponse {
   deleted: boolean
   id: string
 }
 
-export type ProductListListResult<TProductList> = {
+export interface ProductListListResult<TProductList> {
   productLists: TProductList[]
   count: number
   limit: number
   offset: number
 }
 
-export type ProductListListInputBase = {
+export interface ProductListListInputBase {
   handle?: string
-  type?: ProductListType | string
+  type?: string
   limit?: number
   offset?: number
   page?: number
@@ -90,48 +91,48 @@ export type ProductListListInputBase = {
   enabled?: boolean
 }
 
-export type ProductListDetailInputBase = {
+export interface ProductListDetailInputBase {
   id?: string | null
   customerId?: string | null
   enabled?: boolean
 }
 
-export type CreateFavoriteProductListInput = {
+export interface CreateFavoriteProductListInput {
   title?: string
   description?: string
   handle?: string
-  metadata?: Record<string, unknown>
+  metadata?: object
 }
 
-export type CreateCustomProductListInput = {
+export interface CreateCustomProductListInput {
   title: string
   access_type?: ProductListAccessType
   description?: string
   handle?: string
-  metadata?: Record<string, unknown>
+  metadata?: object
 }
 
-export type UpdateProductListInput = {
+export interface UpdateProductListInput {
   listId: string
   title?: string
   access_type?: ProductListAccessType
   description?: string
   handle?: string
-  metadata?: Record<string, unknown>
+  metadata?: object
 }
 
-export type DeleteProductListInput = {
+export interface DeleteProductListInput {
   listId: string
 }
 
-export type AddProductListItemInput = {
+export interface AddProductListItemInput {
   listId: string
   productId: string
   variantId?: string | null
   quantity?: number | null
   note?: string
   sortOrder?: number
-  metadata?: Record<string, unknown>
+  metadata?: object
 }
 
 export type AddFavoriteProductListItemInput = Omit<
@@ -139,7 +140,7 @@ export type AddFavoriteProductListItemInput = Omit<
   "listId"
 >
 
-export type CreateProductListCartInput = {
+export interface CreateProductListCartInput {
   listId: string
   regionId?: string | null
   countryCode?: string | null
@@ -147,80 +148,80 @@ export type CreateProductListCartInput = {
   salesChannelId?: string | null
 }
 
-export type ChangeProductListItemQuantityInput = {
+export interface ChangeProductListItemQuantityInput {
   itemId: string
   quantity?: number
 }
 
 export type IncrementProductListItemInput = ChangeProductListItemQuantityInput
 
-export type UpdateProductListItemInput = {
+export interface UpdateProductListItemInput {
   itemId: string
   quantity?: number | null
   note?: string | null
   sortOrder?: number | null
-  metadata?: Record<string, unknown> | null
+  metadata?: object | null
 }
 
-export type DeleteProductListItemInput = {
+export interface DeleteProductListItemInput {
   itemId: string
   listId?: string
 }
 
-export type ProductListCartLike = {
+export interface ProductListCartLike {
   id: string
   region_id?: string | null
 }
 
-export type ProductListService<
+export interface ProductListService<
   TProductList,
   TProductListItem,
   TCart extends ProductListCartLike,
   TListParams,
   TDetailParams,
-> = {
+> {
   listProductLists: (
     params: TListParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<ProductListListResult<TProductList>>
   getProductList: (
     params: TDetailParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TProductList | null>
   createFavoriteProductList: (
-    input: CreateFavoriteProductListInput
+    input: CreateFavoriteProductListInput,
   ) => Promise<TProductList | null>
   createCustomProductList: (
-    input: CreateCustomProductListInput
+    input: CreateCustomProductListInput,
   ) => Promise<TProductList | null>
   updateProductList: (
-    input: UpdateProductListInput
+    input: UpdateProductListInput,
   ) => Promise<TProductList | null>
   deleteProductList: (
-    input: DeleteProductListInput
+    input: DeleteProductListInput,
   ) => Promise<ProductListDeleteResponse>
   addProductListItem: (
-    input: AddProductListItemInput
+    input: AddProductListItemInput,
   ) => Promise<TProductListItem | null>
   addFavoriteProductListItem: (
-    input: AddFavoriteProductListItemInput
+    input: AddFavoriteProductListItemInput,
   ) => Promise<TProductListItem | null>
   createProductListCart: (input: CreateProductListCartInput) => Promise<TCart>
   updateProductListItem: (
-    input: UpdateProductListItemInput
+    input: UpdateProductListItemInput,
   ) => Promise<TProductListItem | null>
   changeProductListItemQuantity: (
-    input: ChangeProductListItemQuantityInput
+    input: ChangeProductListItemQuantityInput,
   ) => Promise<TProductListItem | null>
   incrementProductListItem: (
-    input: IncrementProductListItemInput
+    input: IncrementProductListItemInput,
   ) => Promise<TProductListItem | null>
   deleteProductListItem: (
-    input: DeleteProductListItemInput
+    input: DeleteProductListItemInput,
   ) => Promise<ProductListDeleteResponse>
 }
 
-export type ProductListQueryKeys<TListKeyParams, TDetailKeyParams> = {
+export interface ProductListQueryKeys<TListKeyParams, TDetailKeyParams> {
   all: () => QueryKey
   list: (params: TListKeyParams) => QueryKey
   detail: (params: TDetailKeyParams) => QueryKey

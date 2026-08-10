@@ -1,4 +1,5 @@
 import figma from "@figma/code-connect"
+
 import { Button } from "./button"
 import { Tooltip } from "./tooltip"
 
@@ -6,35 +7,6 @@ figma.connect(
   Tooltip,
   "https://www.figma.com/design/12xb1pqXKwE2vbOByN3ntg/New-Design-System-vol.-2?node-id=340-436",
   {
-    imports: [
-      'import { Tooltip } from "@techsio/ui-kit/atoms/tooltip"',
-      'import { Button } from "@techsio/ui-kit/atoms/button"',
-    ],
-    props: {
-      size: figma.enum("size", {
-        sm: "sm",
-        md: "md",
-        lg: "lg",
-      }),
-      variant: figma.enum("variant", {
-        default: "default",
-        outline: "outline",
-      }),
-      placement: figma.enum("placement", {
-        top: "top",
-        "top-start": "top-start",
-        "top-end": "top-end",
-        right: "right",
-        "right-start": "right-start",
-        "right-end": "right-end",
-        bottom: "bottom",
-        "bottom-start": "bottom-start",
-        "bottom-end": "bottom-end",
-        left: "left",
-        "left-start": "left-start",
-        "left-end": "left-end",
-      }),
-    },
     example: ({ placement, size, variant }) => (
       <Tooltip
         content="Tooltip content"
@@ -48,5 +20,34 @@ figma.connect(
         </Button>
       </Tooltip>
     ),
-  }
+    imports: [
+      'import { Tooltip } from "@techsio/ui-kit/atoms/tooltip"',
+      'import { Button } from "@techsio/ui-kit/atoms/button"',
+    ],
+    props: {
+      placement: figma.enum("placement", {
+        bottom: "bottom",
+        "bottom-end": "bottom-end",
+        "bottom-start": "bottom-start",
+        left: "left",
+        "left-end": "left-end",
+        "left-start": "left-start",
+        right: "right",
+        "right-end": "right-end",
+        "right-start": "right-start",
+        top: "top",
+        "top-end": "top-end",
+        "top-start": "top-start",
+      }),
+      size: figma.enum("size", {
+        lg: "lg",
+        md: "md",
+        sm: "sm",
+      }),
+      variant: figma.enum("variant", {
+        default: "default",
+        outline: "outline",
+      }),
+    },
+  },
 )

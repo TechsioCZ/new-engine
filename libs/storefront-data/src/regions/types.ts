@@ -6,35 +6,35 @@ import type {
 } from "../shared/hook-result-types"
 import type { QueryKey } from "../shared/query-keys"
 
-export type RegionListInputBase = {
+export interface RegionListInputBase {
   page?: number
   limit?: number
   offset?: number
   enabled?: boolean
 }
 
-export type RegionDetailInputBase = {
+export interface RegionDetailInputBase {
   id?: string
   enabled?: boolean
 }
 
-export type RegionListResponse<TRegion> = {
+export interface RegionListResponse<TRegion> {
   regions: TRegion[]
   count?: number
 }
 
-export type RegionService<TRegion, TListParams, TDetailParams> = {
+export interface RegionService<TRegion, TListParams, TDetailParams> {
   getRegions: (
     params: TListParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<RegionListResponse<TRegion>>
   getRegion: (
     params: TDetailParams,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ) => Promise<TRegion | null>
 }
 
-export type RegionQueryKeys<TListParams, TDetailParams> = {
+export interface RegionQueryKeys<TListParams, TDetailParams> {
   all: () => QueryKey
   list: (params: TListParams) => QueryKey
   detail: (params: TDetailParams) => QueryKey

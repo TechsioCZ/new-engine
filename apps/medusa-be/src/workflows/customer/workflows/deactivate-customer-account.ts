@@ -3,44 +3,52 @@ import {
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { deleteAuthIdentityStep } from "../steps/delete-auth-identity"
+import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
+
 import { markCustomerAccountInactiveStep } from "../steps/mark-customer-account-inactive"
 import { prepareCustomerAccountDeactivationStep } from "../steps/prepare-customer-account-deactivation"
 
-type DeactivateCustomerAccountWorkflowInput = {
+interface DeactivateCustomerAccountWorkflowInput {
   customer_id: string
+  deactivation_nonce: string
 }
 
 export const deactivateCustomerAccountWorkflow = createWorkflow(
   "deactivate-customer-account",
   (input: DeactivateCustomerAccountWorkflowInput) => {
+    const lockKey = transform({ input }, ({ input: workflowInput }) => [
+      `customer-account-deactivation:${workflowInput.customer_id}`,
+    ])
+
+    acquireLockStep({
+      executeOnSubWorkflow: true,
+      key: lockKey,
+      timeout: 2,
+      ttl: 10,
+    })
+
     const prepared = prepareCustomerAccountDeactivationStep(input)
 
     const inactiveMarker = markCustomerAccountInactiveStep(
       transform({ prepared }, ({ prepared: payload }) => ({
         customer_id: payload.customer_id,
         first_name: payload.first_name,
-      }))
+        metadata: payload.metadata,
+        previous_metadata: payload.previous_metadata,
+      })),
     )
 
-    const authIdentityDeletion = deleteAuthIdentityStep(
-      transform({ inactiveMarker, prepared }, ({ prepared: payload }) => ({
-        auth_identity_id: payload.auth_identity_id,
-      }))
-    )
+    releaseLockStep({
+      executeOnSubWorkflow: true,
+      key: lockKey,
+    })
 
     return new WorkflowResponse(
-      transform(
-        { authIdentityDeletion, prepared },
-        ({
-          authIdentityDeletion: authIdentityDeletionResult,
-          prepared: payload,
-        }) => ({
-          auth_identity_deleted: authIdentityDeletionResult.deleted,
-          customer_id: payload.customer_id,
-          deleted: true,
-        })
-      )
+      transform({ inactiveMarker, prepared }, ({ prepared: payload }) => ({
+        auth_identity_deleted: false,
+        customer_id: payload.customer_id,
+        deleted: true,
+      })),
     )
-  }
+  },
 )

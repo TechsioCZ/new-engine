@@ -3,16 +3,19 @@
 import { useProductDetailActions } from "@/components/product-detail/use-product-detail-actions"
 import { useProductDetailData } from "@/components/product-detail/use-product-detail-data"
 
-type UseProductDetailControllerProps = {
+interface UseProductDetailControllerProps {
   handle: string
   initialVariantId?: string
 }
 
-export function useProductDetailController({
+export const useProductDetailController = ({
   handle,
   initialVariantId,
-}: UseProductDetailControllerProps) {
-  const data = useProductDetailData({ handle, initialVariantId })
+}: UseProductDetailControllerProps) => {
+  const data = useProductDetailData({
+    handle,
+    ...(initialVariantId === undefined ? {} : { initialVariantId }),
+  })
   const actions = useProductDetailActions({
     product: data.product,
     quantity: data.quantity,
@@ -29,7 +32,3 @@ export function useProductDetailController({
     handleSelectVolumeDiscount: data.setSelectedVolumeDiscountId,
   }
 }
-
-export type ProductDetailController = ReturnType<
-  typeof useProductDetailController
->

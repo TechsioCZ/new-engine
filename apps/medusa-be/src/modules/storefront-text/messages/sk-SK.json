@@ -174,6 +174,43 @@
         "company_optional": "{label} (voliteľné)",
         "update_failed": "Údaje účtu sa nepodarilo uložiť. Skúste to znova."
       },
+      "deactivation": {
+        "metadata_title": "Potvrdenie zrušenia účtu",
+        "section": {
+          "title": "Zrušenie účtu",
+          "description": "Pošleme vám e-mail s odkazom na potvrdenie. Účet zostane aktívny, kým odkaz nepoužijete. Existujúce objednávky sa nevymažú.",
+          "sent_status": "Skontrolujte si e-mail. Potvrdzovací odkaz je platný 30 minút.",
+          "request_action": "Požiadať o zrušenie účtu",
+          "resend_action": "Znovu odoslať e-mail"
+        },
+        "dialog": {
+          "title": "Odoslať potvrdenie zrušenia účtu?",
+          "intro": "Účet sa týmto krokom ešte nezruší.",
+          "link_expiry": "Na váš e-mail pošleme odkaz platný 30 minút.",
+          "confirmation_required": "Účet zrušíme až po otvorení odkazu a potvrdení.",
+          "orders_preserved": "Existujúce objednávky sa nevymažú.",
+          "keep_action": "Ponechať účet",
+          "submit_action": "Odoslať potvrdzovací e-mail",
+          "loading": "Odosiela sa e-mail"
+        },
+        "toast": {
+          "title": "Potvrdzovací e-mail bol odoslaný",
+          "description": "Účet zostáva aktívny, kým jeho zrušenie nepotvrdíte v e-maile."
+        },
+        "confirmation": {
+          "title": "Potvrdenie zrušenia účtu",
+          "description": "Po potvrdení sa už nebudete môcť prihlásiť. Vaše existujúce objednávky zostanú bezpečne uložené.",
+          "success": "Účet bol zrušený. Pri opätovnej registrácii s rovnakým e-mailom sa obnoví pôvodný účet aj história objednávok.",
+          "store_action": "Pokračovať do obchodu",
+          "confirm_action": "Potvrdiť zrušenie účtu",
+          "loading": "Ruší sa účet"
+        },
+        "errors": {
+          "request_failed": "Potvrdzovací e-mail sa nepodarilo odoslať. Skúste to znova.",
+          "invalid_token": "Potvrdzovací odkaz je neplatný.",
+          "confirmation_failed": "Účet sa nepodarilo zrušiť. Potvrdzovací odkaz môže byť neplatný alebo jeho platnosť vypršala."
+        }
+      },
       "orders": {
         "retry": "Skúsiť znova",
         "empty_description": "Zatiaľ nemáte žiadnu dokončenú objednávku.",
@@ -712,7 +749,8 @@
       "found": "nájdené: {count}",
       "page": "strana: {page}/{totalPages}",
       "empty": "Pre výraz „{query}“ sa nenašli žiadne produkty.",
-      "enter_query": "Zadajte výraz do vyhľadávania v hornom paneli."
+      "enter_query": "Zadajte výraz do vyhľadávania v hornom paneli.",
+      "related": "Súvisiace výsledky"
     },
     "input_placeholder": "Napíšte, čo hľadáte...",
     "submit_aria": "Hľadať",
@@ -722,6 +760,7 @@
       "loading": "Hľadáme návrhy...",
       "load_failed": "Návrhy sa nepodarilo načítať.",
       "empty": "Pre výraz „{query}“ nemáme rýchle návrhy.",
+      "degraded": "Niektoré návrhy sa momentálne nepodarilo načítať.",
       "sections": {
         "products": "Produkty",
         "categories": "Kategórie",

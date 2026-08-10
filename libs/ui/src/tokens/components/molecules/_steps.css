@@ -14,10 +14,10 @@
   --text-steps-title: var(--text-md);
   --text-steps-description: var(--text-sm);
   --text-steps-icon: var(--text-md);
-
-  --color-steps-fg: var(--color-steps-content-fg);
   --font-weight-steps-number: var(--font-weight-medium);
   --font-weight-steps-title: var(--font-weight-medium);
+
+  --color-steps-ring: var(--color-ring);
 
   --height-steps-progress: var(--size-steps-progress-height);
   --width-steps-progress: var(--size-steps-progress-width);
@@ -27,4 +27,9 @@
 
 @utility token-icon-steps-check {
   @apply token-icon-check;
+}
+
+@utility transition-steps-progress {
+  @apply transition;
+  transition-property: width, height;
 }

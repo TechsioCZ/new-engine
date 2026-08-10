@@ -13,18 +13,20 @@ import {
   toast,
   usePrompt,
 } from "@medusajs/ui"
+import type { DataTableColumnDef } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { hasTrimmedString } from "@techsio/std/string"
+import type { TFunction } from "i18next"
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useNavigate } from "react-router-dom"
+
 import { BrandDataTable } from "../../components/brands/brand-data-table"
 import {
   BrandCreateModal,
   BrandEditDrawer,
 } from "../../components/brands/brand-form"
 import {
-  type Brand,
-  type BrandAttributeType,
   brandQueryKeys,
   createBrandAttributeType,
   deleteBrand,
@@ -35,11 +37,19 @@ import {
   restoreBrandAttributeType,
   retrieveBrand,
 } from "../../lib/brands"
+import type { Brand, BrandAttributeType } from "../../lib/brands"
 import { translateBreadcrumb } from "../../lib/breadcrumb"
 import { formatLocaleCode } from "../../lib/format-locale-code"
 import { useDebouncedValue } from "../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
+const ATTRIBUTE_TYPE_OPTION_LIMIT = 100
+
+const ACTION_CANCEL = "actions.cancel"
+const ACTION_DELETE = "actions.delete"
+const ACTION_RESTORE = "actions.restore"
+const ATTRIBUTES_TITLE = "attributes.title"
+const BRANDS_TITLE = "brands.title"
 
 export const handle = {
   breadcrumb: () => translateBreadcrumb("brands:menuItem", "Brands"),
@@ -53,8 +63,15 @@ const ORDER_OPTIONS = [
   { labelKey: "orderOptions.recentlyUpdated", value: "-updated_at" },
 ]
 
+const ATTRIBUTE_TYPES_PARAMS = {
+  include_deleted: true,
+  limit: ATTRIBUTE_TYPE_OPTION_LIMIT,
+  offset: 0,
+  order_by: "name",
+}
+
 const formatDate = (date: string | undefined, locale?: string) => {
-  if (!date) {
+  if (!hasTrimmedString(date)) {
     return "-"
   }
 
@@ -64,9 +81,254 @@ const formatDate = (date: string | undefined, locale?: string) => {
   }).format(new Date(date))
 }
 
+interface PendingRowMutation {
+  isPending: boolean
+  variables: string | undefined
+}
+
+const createRowMutationGuard =
+  (...mutations: PendingRowMutation[]) =>
+  (rowId: string) =>
+    mutations.some(
+      (mutation) => mutation.isPending && mutation.variables === rowId,
+    )
+
 const brandColumnHelper = createDataTableColumnHelper<Brand>()
 const attributeTypeColumnHelper =
   createDataTableColumnHelper<BrandAttributeType>()
+
+interface AttributeTypeColumnsOptions {
+  isRowMutating: (rowId: string) => boolean
+  onDelete: (attributeType: BrandAttributeType) => void
+  onRestore: (attributeTypeId: string) => void
+  t: TFunction
+}
+
+const buildAttributeTypeColumns = ({
+  isRowMutating,
+  onDelete,
+  onRestore,
+  t,
+}: AttributeTypeColumnsOptions): DataTableColumnDef<BrandAttributeType>[] => [
+  {
+    accessorKey: "name",
+    cell: ({ row }) => (
+      <Link to={`/brands/attributes/${row.original.id}`}>
+        {row.original.name}
+      </Link>
+    ),
+    header: t("columns.name"),
+  },
+  {
+    accessorKey: "deleted_at",
+    cell: ({ row }) => (
+      <StatusBadge
+        color={hasTrimmedString(row.original.deleted_at) ? "red" : "green"}
+      >
+        {hasTrimmedString(row.original.deleted_at)
+          ? t("status.deleted")
+          : t("status.active")}
+      </StatusBadge>
+    ),
+    header: t("columns.status"),
+  },
+  {
+    accessorKey: "usage_count",
+    header: t("columns.usedBy"),
+  },
+  attributeTypeColumnHelper.action({
+    actions: ({ row }) => {
+      if (isRowMutating(row.original.id)) {
+        return []
+      }
+
+      return hasTrimmedString(row.original.deleted_at)
+        ? [
+            {
+              label: t(ACTION_RESTORE),
+              onClick: () => {
+                onRestore(row.original.id)
+              },
+            },
+          ]
+        : [
+            {
+              icon: <Trash />,
+              label: t(ACTION_DELETE),
+              onClick: () => {
+                onDelete(row.original)
+              },
+            },
+          ]
+    },
+  }),
+]
+
+interface BrandColumnsOptions {
+  isRowMutating: (rowId: string) => boolean
+  locale: string
+  onDelete: (brand: Brand) => void
+  onEdit: (brandId: string) => void
+  onRestore: (brand: Brand) => void
+  t: TFunction
+}
+
+const buildBrandColumns = ({
+  isRowMutating,
+  locale,
+  onDelete,
+  onEdit,
+  onRestore,
+  t,
+}: BrandColumnsOptions): DataTableColumnDef<Brand>[] => [
+  {
+    accessorKey: "title",
+    cell: ({ row }) => (
+      <Link to={`/brands/${row.original.id}`}>{row.original.title}</Link>
+    ),
+    header: t("columns.title"),
+  },
+  {
+    accessorKey: "handle",
+    header: t("columns.handle"),
+  },
+  {
+    accessorFn: (brand) => brand.attributes.length,
+    header: t("columns.attributes"),
+    id: "attributes",
+  },
+  {
+    accessorKey: "active_product_count",
+    header: t("columns.products"),
+  },
+  {
+    accessorKey: "deleted_at",
+    cell: ({ row }) => (
+      <StatusBadge
+        color={hasTrimmedString(row.original.deleted_at) ? "red" : "green"}
+      >
+        {hasTrimmedString(row.original.deleted_at)
+          ? t("status.deleted")
+          : t("status.active")}
+      </StatusBadge>
+    ),
+    header: t("columns.status"),
+  },
+  {
+    accessorKey: "updated_at",
+    cell: ({ row }) => formatDate(row.original.updated_at, locale),
+    header: t("columns.updated"),
+  },
+  brandColumnHelper.action({
+    actions: ({ row }) => {
+      if (isRowMutating(row.original.id)) {
+        return []
+      }
+
+      return hasTrimmedString(row.original.deleted_at)
+        ? [
+            {
+              label: t(ACTION_RESTORE),
+              onClick: () => {
+                onRestore(row.original)
+              },
+            },
+          ]
+        : [
+            {
+              icon: <PencilSquare />,
+              label: t("actions.edit"),
+              onClick: () => {
+                onEdit(row.original.id)
+              },
+            },
+            {
+              icon: <Trash />,
+              label: t(ACTION_DELETE),
+              onClick: () => {
+                onDelete(row.original)
+              },
+            },
+          ]
+    },
+  }),
+]
+
+interface AttributeTypesToolbarProps {
+  count: number
+  isCreating: boolean
+  name: string
+  onCreate: () => void
+  onNameChange: (value: string) => void
+  onSearchChange: (value: string) => void
+  onStatusChange: (value: string) => void
+  q: string
+  status: string
+}
+
+const AttributeTypesToolbar = ({
+  count,
+  isCreating,
+  name,
+  onCreate,
+  onNameChange,
+  onSearchChange,
+  onStatusChange,
+  q,
+  status,
+}: AttributeTypesToolbarProps) => {
+  const { t } = useTranslation("brands")
+
+  return (
+    <div className="flex flex-col gap-4 px-6 py-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <Heading level="h2">{t(ATTRIBUTES_TITLE)}</Heading>
+          <Text className="text-ui-fg-subtle" size="small">
+            {t("attributes.count", { count })}
+          </Text>
+        </div>
+        <div className="flex items-center gap-2">
+          <Input
+            onChange={(event) => {
+              onNameChange(event.target.value)
+            }}
+            placeholder={t("attributes.newPlaceholder")}
+            value={name}
+          />
+          <Button
+            disabled={!name.trim()}
+            isLoading={isCreating}
+            onClick={onCreate}
+            size="small"
+            type="button"
+            variant="secondary"
+          >
+            {t("actions.add")}
+          </Button>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
+        <Input
+          onChange={(event) => {
+            onSearchChange(event.target.value)
+          }}
+          placeholder={t("search.attributes")}
+          value={q}
+        />
+        <Select onValueChange={onStatusChange} value={status}>
+          <Select.Trigger>
+            <Select.Value />
+          </Select.Trigger>
+          <Select.Content>
+            <Select.Item value="active">{t("filters.activeOnly")}</Select.Item>
+            <Select.Item value="all">{t("filters.allStatuses")}</Select.Item>
+          </Select.Content>
+        </Select>
+      </div>
+    </div>
+  )
+}
 
 const AttributeTypesSection = () => {
   const { t } = useTranslation("brands")
@@ -89,7 +351,7 @@ const AttributeTypesSection = () => {
   }
 
   const { data, isLoading } = useQuery({
-    queryFn: () => listBrandAttributeTypes(params),
+    queryFn: async () => await listBrandAttributeTypes(params),
     queryKey: brandQueryKeys.attributeTypes(params),
   })
 
@@ -99,7 +361,7 @@ const AttributeTypesSection = () => {
       toast.error(
         error instanceof Error
           ? error.message
-          : t("errors.createAttributeFailed")
+          : t("errors.createAttributeFailed"),
       )
     },
     onSuccess: async (response) => {
@@ -126,7 +388,7 @@ const AttributeTypesSection = () => {
       toast.error(
         error instanceof Error
           ? error.message
-          : t("errors.deleteAttributeFailed")
+          : t("errors.deleteAttributeFailed"),
       )
     },
     onSuccess: async () => {
@@ -152,7 +414,7 @@ const AttributeTypesSection = () => {
       toast.error(
         error instanceof Error
           ? error.message
-          : t("errors.restoreAttributeFailed")
+          : t("errors.restoreAttributeFailed"),
       )
     },
     onSuccess: async () => {
@@ -183,8 +445,8 @@ const AttributeTypesSection = () => {
         })
       : ""
     const confirmed = await prompt({
-      cancelText: t("actions.cancel"),
-      confirmText: t("actions.delete"),
+      cancelText: t(ACTION_CANCEL),
+      confirmText: t(ACTION_DELETE),
       description: t("prompts.deleteAttributeDescription", {
         name: attributeType.name,
         usageText: usedText,
@@ -214,13 +476,13 @@ const AttributeTypesSection = () => {
         order_by: "name",
       })
       const existing = existingResponse.attribute_types.find(
-        (attributeType) => attributeType.name === attributeName
+        (attributeType) => attributeType.name === attributeName,
       )
 
-      if (existing?.deleted_at) {
+      if (existing !== undefined && hasTrimmedString(existing.deleted_at)) {
         const confirmed = await prompt({
-          cancelText: t("actions.cancel"),
-          confirmText: t("actions.restore"),
+          cancelText: t(ACTION_CANCEL),
+          confirmText: t(ACTION_RESTORE),
           description: t("prompts.restoreAttributeDescription", {
             name: attributeName,
           }),
@@ -233,7 +495,7 @@ const AttributeTypesSection = () => {
         return
       }
 
-      if (existing) {
+      if (existing !== undefined) {
         toast.error(t("toasts.attributeExistsError", { name: attributeName }))
         return
       }
@@ -243,123 +505,51 @@ const AttributeTypesSection = () => {
       toast.error(
         error instanceof Error
           ? error.message
-          : t("errors.checkAttributeFailed")
+          : t("errors.checkAttributeFailed"),
       )
     } finally {
       setIsCheckingName(false)
     }
   }
 
-  const columns = [
-    attributeTypeColumnHelper.accessor("name", {
-      header: t("columns.name"),
-      cell: ({ row }) => (
-        <Link to={`/brands/attributes/${row.original.id}`}>
-          {row.original.name}
-        </Link>
-      ),
-    }),
-    attributeTypeColumnHelper.accessor("deleted_at", {
-      header: t("columns.status"),
-      cell: ({ row }) => (
-        <StatusBadge color={row.original.deleted_at ? "red" : "green"}>
-          {row.original.deleted_at ? t("status.deleted") : t("status.active")}
-        </StatusBadge>
-      ),
-    }),
-    attributeTypeColumnHelper.accessor("usage_count", {
-      header: t("columns.usedBy"),
-    }),
-    attributeTypeColumnHelper.action({
-      actions: ({ row }) => {
-        const mutationPending =
-          (deleteMutation.isPending &&
-            deleteMutation.variables === row.original.id) ||
-          (restoreMutation.isPending &&
-            restoreMutation.variables === row.original.id)
-
-        if (mutationPending) {
-          return []
-        }
-
-        return row.original.deleted_at
-          ? [
-              {
-                label: t("actions.restore"),
-                onClick: () => restoreMutation.mutate(row.original.id),
-              },
-            ]
-          : [
-              {
-                icon: <Trash />,
-                label: t("actions.delete"),
-                onClick: () => handleDelete(row.original),
-              },
-            ]
-      },
-    }),
-  ]
+  const columns = buildAttributeTypeColumns({
+    isRowMutating: createRowMutationGuard(deleteMutation, restoreMutation),
+    onDelete: (attributeType) => {
+      void handleDelete(attributeType)
+    },
+    onRestore: (attributeTypeId) => {
+      restoreMutation.mutate(attributeTypeId)
+    },
+    t,
+  })
 
   return (
     <Container className="divide-y p-0">
-      <div className="flex flex-col gap-4 px-6 py-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <Heading level="h2">{t("attributes.title")}</Heading>
-            <Text className="text-ui-fg-subtle" size="small">
-              {t("attributes.count", { count })}
-            </Text>
-          </div>
-          <div className="flex items-center gap-2">
-            <Input
-              onChange={(event) => setName(event.target.value)}
-              placeholder={t("attributes.newPlaceholder")}
-              value={name}
-            />
-            <Button
-              disabled={!name.trim()}
-              isLoading={
-                createMutation.isPending ||
-                restoreMutation.isPending ||
-                isCheckingName
-              }
-              onClick={handleCreate}
-              size="small"
-              type="button"
-              variant="secondary"
-            >
-              {t("actions.add")}
-            </Button>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_180px]">
-          <Input
-            onChange={(event) => {
-              setPageIndex(0)
-              setQ(event.target.value)
-            }}
-            placeholder={t("search.attributes")}
-            value={q}
-          />
-          <Select
-            onValueChange={(value) => {
-              setPageIndex(0)
-              setStatus(value)
-            }}
-            value={status}
-          >
-            <Select.Trigger>
-              <Select.Value />
-            </Select.Trigger>
-            <Select.Content>
-              <Select.Item value="active">
-                {t("filters.activeOnly")}
-              </Select.Item>
-              <Select.Item value="all">{t("filters.allStatuses")}</Select.Item>
-            </Select.Content>
-          </Select>
-        </div>
-      </div>
+      <AttributeTypesToolbar
+        count={count}
+        isCreating={
+          createMutation.isPending ||
+          restoreMutation.isPending ||
+          isCheckingName
+        }
+        name={name}
+        onCreate={() => {
+          void handleCreate()
+        }}
+        onNameChange={(value) => {
+          setName(value)
+        }}
+        onSearchChange={(value) => {
+          setPageIndex(0)
+          setQ(value)
+        }}
+        onStatusChange={(value) => {
+          setPageIndex(0)
+          setStatus(value)
+        }}
+        q={q}
+        status={status}
+      />
       <BrandDataTable
         columns={columns}
         count={count}
@@ -367,23 +557,98 @@ const AttributeTypesSection = () => {
         emptyState={{
           empty: {
             description: t("attributes.empty"),
-            heading: t("attributes.title"),
+            heading: t(ATTRIBUTES_TITLE),
           },
           filtered: {
             description: t("attributes.empty"),
-            heading: t("attributes.title"),
+            heading: t(ATTRIBUTES_TITLE),
           },
         }}
         getRowId={(attributeType) => attributeType.id}
         isLoading={isLoading}
         onPageIndexChange={setPageIndex}
-        onRowClick={(_event, attributeType) =>
+        onRowClick={(_event, attributeType) => {
           navigate(`/brands/attributes/${attributeType.id}`)
-        }
+        }}
         pageIndex={pageIndex}
         pageSize={PAGE_SIZE}
       />
     </Container>
+  )
+}
+
+interface BrandsToolbarProps {
+  count: number
+  onCreate: () => void
+  onOrderByChange: (value: string) => void
+  onSearchChange: (value: string) => void
+  onStatusChange: (value: string) => void
+  orderBy: string
+  q: string
+  status: string
+}
+
+const BrandsToolbar = ({
+  count,
+  onCreate,
+  onOrderByChange,
+  onSearchChange,
+  onStatusChange,
+  orderBy,
+  q,
+  status,
+}: BrandsToolbarProps) => {
+  const { t } = useTranslation("brands")
+
+  return (
+    <div className="flex flex-col gap-4 px-6 py-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <Heading level="h1">{t(BRANDS_TITLE)}</Heading>
+          <Text className="text-ui-fg-subtle" size="small">
+            {t("brands.count", { count })}
+          </Text>
+        </div>
+        <Button
+          onClick={onCreate}
+          size="small"
+          type="button"
+          variant="secondary"
+        >
+          {t("actions.create")}
+        </Button>
+      </div>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_220px_180px]">
+        <Input
+          onChange={(event) => {
+            onSearchChange(event.target.value)
+          }}
+          placeholder={t("search.brands")}
+          value={q}
+        />
+        <Select onValueChange={onOrderByChange} value={orderBy}>
+          <Select.Trigger>
+            <Select.Value />
+          </Select.Trigger>
+          <Select.Content>
+            {ORDER_OPTIONS.map((option) => (
+              <Select.Item key={option.value} value={option.value}>
+                {t(option.labelKey)}
+              </Select.Item>
+            ))}
+          </Select.Content>
+        </Select>
+        <Select onValueChange={onStatusChange} value={status}>
+          <Select.Trigger>
+            <Select.Value />
+          </Select.Trigger>
+          <Select.Content>
+            <Select.Item value="active">{t("filters.activeOnly")}</Select.Item>
+            <Select.Item value="all">{t("filters.allStatuses")}</Select.Item>
+          </Select.Content>
+        </Select>
+      </div>
+    </div>
   )
 }
 
@@ -413,7 +678,7 @@ const BrandsPage = () => {
     error: listError,
     isLoading,
   } = useQuery({
-    queryFn: () => listBrands(params),
+    queryFn: async () => await listBrands(params),
     queryKey: brandQueryKeys.list(params),
   })
 
@@ -423,7 +688,7 @@ const BrandsPage = () => {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : t("errors.deleteBrandFailed")
+          : t("errors.deleteBrandFailed"),
       )
     },
     onSuccess: async () => {
@@ -443,7 +708,7 @@ const BrandsPage = () => {
       toast.error(
         mutationError instanceof Error
           ? mutationError.message
-          : t("errors.restoreBrandFailed")
+          : t("errors.restoreBrandFailed"),
       )
     },
     onSuccess: async () => {
@@ -463,25 +728,19 @@ const BrandsPage = () => {
   const brands = data?.brands ?? []
   const count = data?.count ?? 0
   const locale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
-  const attributeTypesParams = {
-    include_deleted: true,
-    limit: 100,
-    offset: 0,
-    order_by: "name",
-  }
   const attributeTypesQuery = useQuery({
-    queryFn: () => listBrandAttributeTypes(attributeTypesParams),
-    queryKey: brandQueryKeys.attributeTypes(attributeTypesParams),
+    queryFn: async () => await listBrandAttributeTypes(ATTRIBUTE_TYPES_PARAMS),
+    queryKey: brandQueryKeys.attributeTypes(ATTRIBUTE_TYPES_PARAMS),
   })
   const attributeTypes = attributeTypesQuery.data?.attribute_types ?? []
   const editingBrandQuery = useQuery({
-    enabled: !!editingBrandId,
-    queryFn: () => {
-      if (!editingBrandId) {
+    enabled: hasTrimmedString(editingBrandId),
+    queryFn: async () => {
+      if (!hasTrimmedString(editingBrandId)) {
         throw new Error(t("errors.brandIdRequired"))
       }
 
-      return retrieveBrand(editingBrandId)
+      return await retrieveBrand(editingBrandId)
     },
     queryKey: brandQueryKeys.detail(editingBrandId),
   })
@@ -494,8 +753,8 @@ const BrandsPage = () => {
         })
       : ""
     const confirmed = await prompt({
-      cancelText: t("actions.cancel"),
-      confirmText: t("actions.delete"),
+      cancelText: t(ACTION_CANCEL),
+      confirmText: t(ACTION_DELETE),
       description: t("prompts.deleteBrandDescription", {
         linkedText: activeProductText,
         title: brand.title,
@@ -511,139 +770,44 @@ const BrandsPage = () => {
   const handleRestore = (brand: Brand) => {
     restoreMutation.mutate(brand.id)
   }
-  const columns = [
-    brandColumnHelper.accessor("title", {
-      header: t("columns.title"),
-      cell: ({ row }) => (
-        <Link to={`/brands/${row.original.id}`}>{row.original.title}</Link>
-      ),
-    }),
-    brandColumnHelper.accessor("handle", {
-      header: t("columns.handle"),
-    }),
-    brandColumnHelper.accessor((brand) => brand.attributes.length, {
-      header: t("columns.attributes"),
-      id: "attributes",
-    }),
-    brandColumnHelper.accessor("active_product_count", {
-      header: t("columns.products"),
-    }),
-    brandColumnHelper.accessor("deleted_at", {
-      header: t("columns.status"),
-      cell: ({ row }) => (
-        <StatusBadge color={row.original.deleted_at ? "red" : "green"}>
-          {row.original.deleted_at ? t("status.deleted") : t("status.active")}
-        </StatusBadge>
-      ),
-    }),
-    brandColumnHelper.accessor("updated_at", {
-      header: t("columns.updated"),
-      cell: ({ row }) => formatDate(row.original.updated_at, locale),
-    }),
-    brandColumnHelper.action({
-      actions: ({ row }) => {
-        const mutationPending =
-          (deleteMutation.isPending &&
-            deleteMutation.variables === row.original.id) ||
-          (restoreMutation.isPending &&
-            restoreMutation.variables === row.original.id)
-
-        if (mutationPending) {
-          return []
-        }
-
-        return row.original.deleted_at
-          ? [
-              {
-                label: t("actions.restore"),
-                onClick: () => handleRestore(row.original),
-              },
-            ]
-          : [
-              {
-                icon: <PencilSquare />,
-                label: t("actions.edit"),
-                onClick: () => setEditingBrandId(row.original.id),
-              },
-              {
-                icon: <Trash />,
-                label: t("actions.delete"),
-                onClick: () => handleDelete(row.original),
-              },
-            ]
-      },
-    }),
-  ]
+  const columns = buildBrandColumns({
+    isRowMutating: createRowMutationGuard(deleteMutation, restoreMutation),
+    locale,
+    onDelete: (brand) => {
+      void handleDelete(brand)
+    },
+    onEdit: (brandId) => {
+      setEditingBrandId(brandId)
+    },
+    onRestore: handleRestore,
+    t,
+  })
 
   return (
     <>
       <div className="flex flex-col gap-6">
         <Container className="divide-y p-0">
-          <div className="flex flex-col gap-4 px-6 py-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <Heading level="h1">{t("brands.title")}</Heading>
-                <Text className="text-ui-fg-subtle" size="small">
-                  {t("brands.count", { count })}
-                </Text>
-              </div>
-              <Button
-                onClick={() => setCreateOpen(true)}
-                size="small"
-                type="button"
-                variant="secondary"
-              >
-                {t("actions.create")}
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_220px_180px]">
-              <Input
-                onChange={(event) => {
-                  setPageIndex(0)
-                  setQ(event.target.value)
-                }}
-                placeholder={t("search.brands")}
-                value={q}
-              />
-              <Select
-                onValueChange={(value) => {
-                  setPageIndex(0)
-                  setOrderBy(value)
-                }}
-                value={orderBy}
-              >
-                <Select.Trigger>
-                  <Select.Value />
-                </Select.Trigger>
-                <Select.Content>
-                  {ORDER_OPTIONS.map((option) => (
-                    <Select.Item key={option.value} value={option.value}>
-                      {t(option.labelKey)}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select>
-              <Select
-                onValueChange={(value) => {
-                  setPageIndex(0)
-                  setStatus(value)
-                }}
-                value={status}
-              >
-                <Select.Trigger>
-                  <Select.Value />
-                </Select.Trigger>
-                <Select.Content>
-                  <Select.Item value="active">
-                    {t("filters.activeOnly")}
-                  </Select.Item>
-                  <Select.Item value="all">
-                    {t("filters.allStatuses")}
-                  </Select.Item>
-                </Select.Content>
-              </Select>
-            </div>
-          </div>
+          <BrandsToolbar
+            count={count}
+            onCreate={() => {
+              setCreateOpen(true)
+            }}
+            onOrderByChange={(value) => {
+              setPageIndex(0)
+              setOrderBy(value)
+            }}
+            onSearchChange={(value) => {
+              setPageIndex(0)
+              setQ(value)
+            }}
+            onStatusChange={(value) => {
+              setPageIndex(0)
+              setStatus(value)
+            }}
+            orderBy={orderBy}
+            q={q}
+            status={status}
+          />
 
           {listError ? (
             <div className="px-6 py-4">
@@ -657,17 +821,19 @@ const BrandsPage = () => {
               emptyState={{
                 empty: {
                   description: t("brands.empty"),
-                  heading: t("brands.title"),
+                  heading: t(BRANDS_TITLE),
                 },
                 filtered: {
                   description: t("brands.empty"),
-                  heading: t("brands.title"),
+                  heading: t(BRANDS_TITLE),
                 },
               }}
               getRowId={(brand) => brand.id}
               isLoading={isLoading}
               onPageIndexChange={setPageIndex}
-              onRowClick={(_event, brand) => navigate(`/brands/${brand.id}`)}
+              onRowClick={(_event, brand) => {
+                navigate(`/brands/${brand.id}`)
+              }}
               pageIndex={pageIndex}
               pageSize={PAGE_SIZE}
             />
@@ -683,7 +849,7 @@ const BrandsPage = () => {
           open={createOpen}
         />
       ) : null}
-      {editingBrandId && editingBrand ? (
+      {hasTrimmedString(editingBrandId) && editingBrand !== undefined ? (
         <BrandEditDrawer
           attributeTypes={attributeTypes}
           brand={editingBrand}
@@ -692,7 +858,7 @@ const BrandsPage = () => {
               setEditingBrandId(undefined)
             }
           }}
-          open={!!editingBrand}
+          open={editingBrand !== undefined}
         />
       ) : null}
     </>

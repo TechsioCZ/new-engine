@@ -1,6 +1,7 @@
 "use client"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { redirect } from "next/navigation"
+import type { ReactNode } from "react"
+
 import { DesktopOrderCard } from "@/components/account/desktop-order-card"
 import { MobileOrderCard } from "@/components/account/mobile-order-card"
 import { OrdersEmpty } from "@/components/account/orders-empty"
@@ -12,15 +13,8 @@ import { useAuth } from "@/hooks/use-auth"
 import { useOrders } from "@/hooks/use-orders"
 
 const MIN_ORDERS_COUNT = 5
-export default function OrdersPage() {
+const OrdersPage = () => {
   const { user, isLoading: authLoading, isInitialized } = useAuth()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (isInitialized && !user) {
-      router.push("/auth/login")
-    }
-  }, [user, isInitialized, router])
 
   const {
     data: ordersData,
@@ -36,61 +30,70 @@ export default function OrdersPage() {
     )
   }
 
-  if (!user) {
-    return null
+  if (user === null || user === undefined) {
+    redirect("/auth/login")
   }
 
-  const orders = ordersData?.orders || []
+  const orders = ordersData?.orders ?? []
 
   const totalAmount = orders.reduce(
     (sum, order) =>
-      sum + (order.summary?.current_order_total || order.total || 0),
-    0
+      sum + (order.summary?.current_order_total ?? order.total ?? 0),
+    0,
   )
   const completedOrders = orders.filter(
-    (order) => order.status === "completed"
+    (order) => order.status === "completed",
   ).length
   const pendingOrders = orders.filter(
-    (order) => order.status === "pending"
+    (order) => order.status === "pending",
   ).length
 
+  let ordersBody: ReactNode
+
+  if (error !== null) {
+    ordersBody = <OrdersError />
+  } else if (orders.length === 0) {
+    ordersBody = <OrdersEmpty />
+  } else {
+    ordersBody = (
+      <>
+        {/* Mobile view */}
+        <div className="block space-y-3 sm:hidden">
+          {orders.map((order) => (
+            <MobileOrderCard key={order.id} order={order} />
+          ))}
+        </div>
+
+        {/* Desktop view */}
+        <div className="hidden overflow-hidden rounded-sm border border-orders-border bg-orders-card-bg sm:block">
+          <OrdersTableHeader />
+          {orders.map((order) => (
+            <DesktopOrderCard key={order.id} order={order} />
+          ))}
+        </div>
+      </>
+    )
+  }
+
+  const content = ordersLoading ? (
+    <OrdersSkeleton
+      itemsCount={orders.length === 0 ? MIN_ORDERS_COUNT : orders.length}
+    />
+  ) : (
+    <>
+      <OrdersSummary
+        completedOrders={completedOrders}
+        numberOfOrders={orders.length}
+        pendingOrders={pendingOrders}
+        totalAmount={totalAmount}
+      />
+      {ordersBody}
+    </>
+  )
+
   return (
-    <div className="mx-auto max-w-layout-max p-orders-container">
-      {ordersLoading ? (
-        <OrdersSkeleton itemsCount={orders.length || MIN_ORDERS_COUNT} />
-      ) : (
-        <>
-          <OrdersSummary
-            completedOrders={completedOrders}
-            numberOfOrders={orders.length}
-            pendingOrders={pendingOrders}
-            totalAmount={totalAmount}
-          />
-
-          {error ? (
-            <OrdersError />
-          ) : orders.length === 0 ? (
-            <OrdersEmpty />
-          ) : (
-            <>
-              {/* Mobile view */}
-              <div className="block space-y-3 sm:hidden">
-                {orders.map((order) => (
-                  <MobileOrderCard key={order.id} order={order} />
-                ))}
-              </div>
-
-              {/* Desktop view */}
-              <div className="hidden overflow-hidden rounded-sm border border-orders-border bg-orders-card-bg sm:block">
-                <OrdersTableHeader />
-                {orders.map((order) => (
-                  <DesktopOrderCard key={order.id} order={order} />
-                ))}
-              </div>
-            </>
-          )}
-        </>
-      )}
-    </div>
+    <div className="mx-auto max-w-layout-max p-orders-container">{content}</div>
   )
 }
+
+export default OrdersPage

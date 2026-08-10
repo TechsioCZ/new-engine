@@ -3,16 +3,16 @@ import { z } from "zod"
 import { localPhaseSchema } from "./stack-manifest.js"
 
 export const manifestComposeServicesCommandInputSchema = z.object({
-  phase: localPhaseSchema,
   defaultOnly: z.boolean().default(false),
+  phase: localPhaseSchema,
   stackManifestPath: z.string().min(1),
 })
 
 export const manifestComposeServicesResponseSchema = z.object({
-  phase: localPhaseSchema,
-  default_only: z.boolean(),
   compose_services: z.array(z.string().min(1)),
   compose_services_shell: z.string(),
+  default_only: z.boolean(),
+  phase: localPhaseSchema,
 })
 
 export type ManifestComposeServicesCommandInput = z.infer<
@@ -34,7 +34,7 @@ export const manifestServiceSlugsResponseSchema = z.object({
     z.object({
       service_id: z.string().min(1),
       service_slug: z.string().min(1),
-    })
+    }),
   ),
 })
 

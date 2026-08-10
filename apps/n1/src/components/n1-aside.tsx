@@ -2,25 +2,26 @@
 import { TreeView } from "@techsio/ui-kit/molecules/tree-view"
 import type { TreeView as TreeType } from "@techsio/ui-kit/types/zag"
 import { useRouter } from "next/navigation"
+
 import type { Category, CategoryTreeNode } from "@/data/static/type"
 import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover"
 import { findNodeById } from "@/utils/transform/find-node-by-id"
 import { getCategoryPath } from "@/utils/transform/get-category-path"
 import { transformToTree } from "@/utils/transform/transform-to-tree"
 
-type N1AsideProps = {
+interface N1AsideProps {
   categories: CategoryTreeNode[]
   categoryMap: Record<string, Category>
-  label?: string
-  currentCategory?: Category
+  label?: string | undefined
+  currentCategory?: Category | undefined
 }
 
-export function N1Aside({
+export const N1Aside = ({
   categories,
   categoryMap,
   label,
   currentCategory,
-}: N1AsideProps) {
+}: N1AsideProps) => {
   const router = useRouter()
   const treeData = transformToTree(categories)
 
@@ -29,8 +30,9 @@ export function N1Aside({
   const expandedPath = getCategoryPath(currentCategory, categoryMap)
 
   const handleSelect = (details: TreeType.SelectionChangeDetails) => {
-    if (details.focusedValue) {
-      const node = findNodeById(treeData, details.focusedValue)
+    const { focusedValue } = details
+    if (typeof focusedValue === "string" && focusedValue.length > 0) {
+      const node = findNodeById(treeData, focusedValue)
       if (node) {
         router.push(`/kategorie/${node.handle}`)
       }
@@ -57,10 +59,15 @@ export function N1Aside({
               indexPath={[index]}
               key={node.id}
               node={node}
-              onNodeHover={(hoveredNode) =>
-                prefetchOnHover(hoveredNode.handle as string)
-              }
-              onNodeLeave={() => cancelHover()}
+              onNodeHover={(hoveredNode) => {
+                const hoveredCategory = findNodeById(treeData, hoveredNode.id)
+                if (hoveredCategory !== undefined && hoveredCategory !== null) {
+                  prefetchOnHover(hoveredCategory.handle)
+                }
+              }}
+              onNodeLeave={() => {
+                cancelHover()
+              }}
               showNodeIcons={false}
             />
           ))}

@@ -2,32 +2,34 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Tooltip } from "@techsio/ui-kit/atoms/tooltip"
 import { Steps } from "@techsio/ui-kit/molecules/steps"
 
-export type HerbatikaCheckoutStepItem = {
+export interface HerbatikaCheckoutStepItem {
   disabled: boolean
   id: string
   title: string
 }
 
-type HerbatikaCheckoutStepsProps = {
+interface HerbatikaCheckoutStepsProps {
   completedAriaLabel: string
   onStepChange: (step: number) => void
   step: number
   steps: readonly HerbatikaCheckoutStepItem[]
 }
 
-export function HerbatikaCheckoutSteps({
+export const HerbatikaCheckoutSteps = ({
   completedAriaLabel,
   onStepChange,
   step,
   steps,
-}: HerbatikaCheckoutStepsProps) {
+}: HerbatikaCheckoutStepsProps) => {
   const completionStepIndex = steps.length
   const visualStepCount = steps.length + 1
 
   return (
     <Steps
       count={visualStepCount}
-      onStepChange={({ step: nextStep }) => onStepChange(nextStep)}
+      onStepChange={({ step: nextStep }) => {
+        onStepChange(nextStep)
+      }}
       size="sm"
       step={step}
     >

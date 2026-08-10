@@ -6,31 +6,31 @@ import { runtimeProviderOutputsSchema } from "./runtime-provider-outputs.js"
 import { laneSchema } from "./stack-manifest.js"
 
 export const envOverrideSchema = z.object({
+  env: z.record(z.string(), z.string()),
   service_id: z.string().min(1),
   service_slug: z.string().min(1),
-  env: z.record(z.string(), z.string()),
 })
 
 const requiredPersistedEnvSchema = z.object({
+  env_keys: z.array(z.string().min(1)),
   service_id: z.string().min(1),
   service_slug: z.string().min(1),
-  env_keys: z.array(z.string().min(1)),
 })
 
 const requiredSharedEnvSchema = z.object({
   key: z.string().min(1),
 })
 
-export const forbiddenEnvSchema = z.object({
+const forbiddenEnvSchema = z.object({
+  env_keys: z.array(z.string().min(1)),
   service_id: z.string().min(1),
   service_slug: z.string().min(1),
-  env_keys: z.array(z.string().min(1)),
 })
 
 const deploymentRefSchema = z.looseObject({
+  deployment_hash: z.string().min(1),
   service_id: z.string().min(1),
   service_slug: z.string().min(1),
-  deployment_hash: z.string().min(1),
   status: z.string().optional(),
 })
 
@@ -44,9 +44,9 @@ export const previewRandomOnceSecretInputSchema = z.looseObject({
   targets: z
     .array(
       z.looseObject({
-        service_id: z.string().min(1),
         env_var: z.string().min(1),
-      })
+        service_id: z.string().min(1),
+      }),
     )
     .default([]),
   value: z.string().min(1),
@@ -54,71 +54,71 @@ export const previewRandomOnceSecretInputSchema = z.looseObject({
 
 export const verifyCommandInputSchema = z
   .object({
-    lane: laneSchema,
-    projectSlug: z.string().min(1, "Zane canonical project slug is required."),
-    environmentName: z.string().min(1, "Environment name is required."),
-    requestedServicesCsv: z.string().default(""),
+    apiToken: z.string().default(""),
+    baseUrl: z.string().default(""),
     deployServicesCsv: z.string().default(""),
-    triggeredServicesCsv: z.string().default(""),
+    deployments: z.array(deploymentRefSchema).default([]),
+    dryRun: z.boolean().default(false),
+    environmentName: z.string().min(1, "Environment name is required."),
+    lane: laneSchema,
+    outputJson: z.string().min(1).optional(),
     previewClonedServiceIdsCsv: z.string().default(""),
-    previewExcludedServiceIdsCsv: z.string().default(""),
     previewDbName: z.string().default(""),
-    previewDbUser: z.string().default(""),
     previewDbPassword: z.string().default(""),
+    previewDbUser: z.string().default(""),
+    previewExcludedServiceIdsCsv: z.string().default(""),
     previewRandomOnceSecrets: z
       .array(previewRandomOnceSecretInputSchema)
       .default([]),
+    projectSlug: z.string().min(1, "Zane canonical project slug is required."),
+    requestedServicesCsv: z.string().default(""),
     runtimeProviderOutputs: runtimeProviderOutputsSchema.default({}),
-    deployments: z.array(deploymentRefSchema).default([]),
-    outputJson: z.string().min(1).optional(),
-    baseUrl: z.string().default(""),
-    apiToken: z.string().default(""),
-    dryRun: z.boolean().default(false),
-    stackManifestPath: z.string().min(1),
     stackInputsPath: z.string().min(1),
+    stackManifestPath: z.string().min(1),
+    triggeredServicesCsv: z.string().default(""),
   })
   .superRefine((value, ctx) => {
     if (!(value.dryRun || value.baseUrl)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["baseUrl"],
+        code: "custom",
         message: "Zane operator base URL is required.",
+        path: ["baseUrl"],
       })
     }
 
     if (!(value.dryRun || value.apiToken)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["apiToken"],
+        code: "custom",
         message: "Zane operator API token is required.",
+        path: ["apiToken"],
       })
     }
   })
 
 export const verifyResponseSchema = z.object({
-  lane: laneSchema,
-  project_slug: z.string().min(1),
-  environment_name: z.string().min(1),
-  verified: z.boolean(),
-  requested_service_ids: z.array(z.string()),
-  deploy_service_ids: z.array(z.string()),
-  triggered_service_ids: z.array(z.string()),
-  checked_preview_cloned_service_slugs: z.array(z.string()).default([]),
-  warning_only_preview_service_slugs: z.array(z.string()).default([]),
-  checked_env_override_service_ids: z.array(z.string()),
-  checked_persisted_env_service_ids: z.array(z.string()),
-  checked_shared_env_keys: z.array(z.string()),
-  checked_forbidden_env_service_ids: z.array(z.string()),
   checked_deployment_service_ids: z.array(z.string()),
   checked_deployments: z.array(
     z.object({
+      deployment_hash: z.string().min(1),
       service_id: z.string().min(1),
       service_slug: z.string().min(1),
-      deployment_hash: z.string().min(1),
       status: z.string().min(1),
       status_reason: z.string().nullable(),
-    })
+    }),
   ),
+  checked_env_override_service_ids: z.array(z.string()),
+  checked_forbidden_env_service_ids: z.array(z.string()),
+  checked_persisted_env_service_ids: z.array(z.string()),
+  checked_preview_cloned_service_slugs: z.array(z.string()).default([]),
+  checked_shared_env_keys: z.array(z.string()),
+  deploy_service_ids: z.array(z.string()),
+  environment_name: z.string().min(1),
+  lane: laneSchema,
+  project_slug: z.string().min(1),
+  requested_service_ids: z.array(z.string()),
+  triggered_service_ids: z.array(z.string()),
+  verified: z.boolean(),
+  warning_only_preview_service_slugs: z.array(z.string()).default([]),
 })
 
 export type VerifyCommandInput = z.infer<typeof verifyCommandInputSchema>
@@ -136,7 +136,7 @@ type DeploymentVerifyRef = Pick<
   "service_id" | "service_slug" | "deployment_hash"
 >
 
-export type VerifyDeployPayload = {
+export interface VerifyDeployPayload {
   lane: z.infer<typeof laneSchema>
   project_slug: string
   environment_name: string
@@ -152,59 +152,67 @@ export type VerifyDeployPayload = {
   deployments: DeploymentVerifyRef[]
 }
 
-function parseJson<T>(raw: string, schema: z.ZodType<T>, label: string): T {
+const parseJson = <T>(raw: string, schema: z.ZodType<T>, label: string): T => {
   let parsed: unknown
 
   try {
     parsed = JSON.parse(raw)
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`${label} must be valid JSON: ${message}`)
+    throw new Error(`${label} must be valid JSON: ${message}`, { cause: error })
   }
 
   return schema.parse(parsed)
 }
 
-export function parsePreviewRandomOnceSecrets(
-  raw: string | undefined
-): PreviewRandomOnceSecretInput[] {
+export const parsePreviewRandomOnceSecrets = (
+  raw: string | undefined,
+): PreviewRandomOnceSecretInput[] => {
   const value = raw?.trim()
-  if (!value) {
+  if (value === undefined || value === "") {
     return []
   }
 
   return parseJson(
     value,
     z.array(previewRandomOnceSecretInputSchema),
-    "--preview-random-once-secrets-json"
+    "--preview-random-once-secrets-json",
   )
 }
 
-export async function resolveDeploymentRefs(
+export const resolveDeploymentRefs = async (
   deploymentsJsonPath: string | undefined,
-  deploymentsJsonInline: string | undefined
-): Promise<DeploymentRef[]> {
-  if (deploymentsJsonPath && deploymentsJsonInline) {
+  deploymentsJsonInline: string | undefined,
+): Promise<DeploymentRef[]> => {
+  if (
+    deploymentsJsonPath !== undefined &&
+    deploymentsJsonPath !== "" &&
+    deploymentsJsonInline !== undefined &&
+    deploymentsJsonInline !== ""
+  ) {
     throw new Error(
-      "Pass only one of --deployments-json or --deployments-json-inline."
+      "Pass only one of --deployments-json or --deployments-json-inline.",
     )
   }
 
-  if (deploymentsJsonPath) {
-    const raw = await readFile(deploymentsJsonPath, "utf8")
+  if (deploymentsJsonPath !== undefined && deploymentsJsonPath !== "") {
+    const raw = await readFile(deploymentsJsonPath, "utf-8")
     const envelope = parseJson(
       raw,
       deploymentEnvelopeSchema,
-      deploymentsJsonPath
+      deploymentsJsonPath,
     )
     return envelope.services
   }
 
-  if (deploymentsJsonInline?.trim()) {
+  if (
+    deploymentsJsonInline?.trim() !== undefined &&
+    deploymentsJsonInline.trim() !== ""
+  ) {
     const envelope = parseJson(
       deploymentsJsonInline,
       deploymentEnvelopeSchema,
-      "--deployments-json-inline"
+      "--deployments-json-inline",
     )
     return envelope.services
   }

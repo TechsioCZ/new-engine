@@ -5,13 +5,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import Link from "next/link"
 import { useEffect } from "react"
 
-export default function ErrorPage({
-  error,
-  reset,
-}: {
-  error: Error
-  reset: () => void
-}) {
+const ErrorPage = ({ error, reset }: { error: Error; reset: () => void }) => {
   useEffect(() => {
     if (process.env.NODE_ENV === "development") {
       console.error("[ErrorBoundary]", error)
@@ -39,3 +33,5 @@ export default function ErrorPage({
     </main>
   )
 }
+
+export default ErrorPage

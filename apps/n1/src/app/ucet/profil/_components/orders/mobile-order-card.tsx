@@ -1,10 +1,11 @@
 import type { StoreOrder } from "@medusajs/types"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import { Icon } from "@ui/atoms/icon"
 import Image from "next/image"
 import Link from "next/link"
 import type { ReactNode } from "react"
+
 import { formatDateString } from "@/utils/format/format-date"
 import {
   getOrderStatusColor,
@@ -13,9 +14,9 @@ import {
 import { formatAmount } from "@/utils/format/format-product"
 import { truncateText } from "@/utils/truncate-text"
 
-export function MobileOrderCard({ order }: { order: StoreOrder }) {
+export const MobileOrderCard = ({ order }: { order: StoreOrder }) => {
   const statusVariant = getOrderStatusColor(order.status)
-  const itemCount = order.items?.length || 0
+  const itemCount = order.items?.length ?? 0
   const firstItem = order.items?.[0]
   const hasMultipleItems = itemCount > 1
   let primaryItemLabel: ReactNode = null
@@ -24,7 +25,7 @@ export function MobileOrderCard({ order }: { order: StoreOrder }) {
   } else if (firstItem) {
     primaryItemLabel = (
       <p className="line-clamp-1 text-fg-primary">
-        {truncateText(firstItem.product_title || "")}
+        {truncateText(firstItem.product_title ?? "")}
       </p>
     )
   }
@@ -38,7 +39,11 @@ export function MobileOrderCard({ order }: { order: StoreOrder }) {
             Objednávka #{order.display_id}
           </p>
           <p className="mt-50 text-fg-secondary text-sm">
-            {formatDateString(order.created_at as string)}
+            {formatDateString(
+              typeof order.created_at === "string"
+                ? order.created_at
+                : order.created_at.toISOString(),
+            )}
           </p>
         </div>
         <Badge variant={statusVariant}>
@@ -57,15 +62,16 @@ export function MobileOrderCard({ order }: { order: StoreOrder }) {
                 key={item.id}
                 style={{ zIndex: 3 - index }}
               >
-                {item.thumbnail && (
-                  <Image
-                    alt={item.product_title || ""}
-                    className="size-full object-cover"
-                    height={48}
-                    src={item.thumbnail}
-                    width={48}
-                  />
-                )}
+                {typeof item.thumbnail === "string" &&
+                  item.thumbnail.length > 0 && (
+                    <Image
+                      alt={item.product_title ?? ""}
+                      className="size-full object-cover"
+                      height={48}
+                      src={item.thumbnail}
+                      width={48}
+                    />
+                  )}
               </div>
             ))}
             {itemCount > 3 && (
@@ -83,7 +89,7 @@ export function MobileOrderCard({ order }: { order: StoreOrder }) {
             <p className="text-fg-secondary text-sm">
               {hasMultipleItems && firstItem && (
                 <span className="line-clamp-1">
-                  {truncateText(firstItem.product_title || "")}
+                  {truncateText(firstItem.product_title ?? "")}
                   {itemCount > 2 && " a další"}
                 </span>
               )}

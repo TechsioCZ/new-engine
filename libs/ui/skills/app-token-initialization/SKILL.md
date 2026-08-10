@@ -1,9 +1,7 @@
 ---
 name: app-token-initialization
 description: >
-  Use when adopting @techsio/ui-kit in a new or existing apps/* project and
-  setting up app semantic, typography, spacing, layout, radius, state, and
-  minimal component token override files after a focused design-token interview.
+  Use when adopting @techsio/ui-kit in a new or existing apps/* project and setting up app semantic, typography, spacing, layout, radius, state, and minimal component token override files after a focused design-token interview.
 type: lifecycle
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -153,7 +151,7 @@ Source: libs/ui/skills/_artifacts/consumer_app_usage_rules.md
 
 ```sh
 pnpm --dir libs/ui validate:tokens
-bunx biome check --write apps/<app>/src/tokens
+pnpm exec oxfmt --config oxfmt.config.ts apps/<app>/src/tokens
 ```
 
 For app work, also inspect JSX for token-first usage with `app-ui-kit-audit`.

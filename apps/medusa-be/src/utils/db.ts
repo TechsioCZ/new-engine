@@ -1,3 +1,6 @@
+import { MedusaError } from "@medusajs/framework/utils"
+import type { QueryResultRow } from "@neondatabase/serverless"
+import { isRecord } from "@techsio/std/object"
 import { drizzle } from "drizzle-orm/neon-http"
 import type { SQL } from "drizzle-orm/sql/sql"
 
@@ -25,36 +28,42 @@ const schema = {
   { schema }
 );*/
 const db = drizzle(
-  process.env.DATABASE_URL ??
+  process.env["DATABASE_URL"] ??
     "postgresql://root:root@medusa-db:5432/medusa?sslmode=disable&options=-csearch_path%3Dmedusa%2Cpg_catalog",
-  { schema }
+  { schema },
 )
-// Helper function to check if a string is a date (ISO format YYYY-MM-DD)
-// Uses strict regex to avoid false positives from new Date() coercion
-// Matches: YYYY-MM-DD, YYYY-MM-DD HH:MM:SS.sss, YYYY-MM-DDTHH:MM:SS.sssZ
-// Anchored to prevent matching strings like "2024-01-15-INVALID"
-const ISO_DATE_REGEX =
-  /^(\d{4})-(\d{2})-(\d{2})(?:[ T][\d:.]*(Z|[+-]\d{2}:\d{2})?)?$/
+export type SqlRowDecoder<T> = (
+  row: Readonly<QueryResultRow>,
+  index: number,
+) => T
 
-function isDateString(value: string): boolean {
-  return ISO_DATE_REGEX.test(value)
+export const decodeSqlRows = <T>(
+  value: unknown,
+  decodeRow: SqlRowDecoder<T>,
+): T[] => {
+  if (!Array.isArray(value)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Raw SQL result rows must be an array",
+    )
+  }
+
+  return value.map((row, index) => {
+    if (!isRecord(row)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Raw SQL row ${index} must be an object`,
+      )
+    }
+    return decodeRow(row, index)
+  })
 }
 
-/**
- * Execute a raw SQL query and return the results
- */
-export async function sqlRaw<T = object>(sql: SQL<T>): Promise<T[]> {
-  const rows = (await db.execute(sql)).rows as T[]
-
-  return (rows as object[]).map(
-    (row): T =>
-      Object.fromEntries(
-        Object.entries(row).map(([key, value]) => [
-          key,
-          value && typeof value === "string" && isDateString(value)
-            ? new Date(value)
-            : value,
-        ])
-      ) as T
-  )
+/** Execute raw SQL and decode every external database row. */
+export const sqlRaw = async <T>(
+  sql: SQL,
+  decodeRow: SqlRowDecoder<T>,
+): Promise<T[]> => {
+  const result = await db.execute(sql)
+  return decodeSqlRows(result.rows, decodeRow)
 }

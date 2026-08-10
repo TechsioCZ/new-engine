@@ -1,14 +1,20 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
+import { z } from "@medusajs/framework/zod"
+
+import { UpdatePriceListPricesBatchSchema } from "../api/api/symmy/v1/price-lists/[code]/prices/batch/validators"
 import { runImportJob } from "../lib/import-job-runner"
-import {
-  SYMMY_PRICE_LIST_PRICES_UPDATE_REQUESTED_EVENT,
-  type SymmyPriceListPricesUpdateRequestedEvent,
-} from "../workflows/price-lists-batch/async"
+import { SYMMY_PRICE_LIST_PRICES_UPDATE_REQUESTED_EVENT } from "../workflows/price-lists-batch/async"
+import type { SymmyPriceListPricesUpdateRequestedEvent } from "../workflows/price-lists-batch/async"
 import type {
   UpdatePriceListPricesBatchInput,
   UpdatePriceListPricesBatchOutput,
 } from "../workflows/price-lists-batch/types"
 import { updatePriceListPricesBatchWorkflow } from "../workflows/price-lists-batch/workflow"
+
+const UpdatePriceListPricesImportJobSchema = z.object({
+  ...UpdatePriceListPricesBatchSchema.shape,
+  code: z.string().min(1),
+})
 
 export default async function priceListPricesUpdateRequestedHandler({
   event: { data },
@@ -19,21 +25,25 @@ export default async function priceListPricesUpdateRequestedHandler({
     UpdatePriceListPricesBatchOutput
   >({
     container,
+    decodeInput: (value): value is UpdatePriceListPricesBatchInput => {
+      UpdatePriceListPricesImportJobSchema.parse(value)
+      return true
+    },
+    getCompletionStats: (output) => ({
+      failed: output.prices_failed,
+      processed: output.results.length,
+    }),
     jobId: data.job_id,
     jobLabel: "Price list prices update",
     lockKey: `symmy-price-list-prices-update:${data.job_id}`,
     run: async (input) => {
       const { result } = await updatePriceListPricesBatchWorkflow(
-        container
+        container,
       ).run({
         input,
       })
-      return result as UpdatePriceListPricesBatchOutput
+      return result
     },
-    getCompletionStats: (output) => ({
-      processed: output.results.length,
-      failed: output.prices_failed,
-    }),
   })
 }
 

@@ -1,7 +1,8 @@
 import type { OnChangeFn, RowSelectionState } from "@tanstack/react-table"
 import { useState } from "react"
-import { DataTable } from "../../../../components"
-import { useVariants } from "../../../../hooks/api"
+
+import { DataTable } from "../../../../components/common/table/data-table/data-table"
+import { useVariants } from "../../../../hooks/api/variants"
 import { useDataTable } from "../../../../hooks/use-data-table"
 import { useManageItemsTableColumns } from "./table/columns"
 import { useManageItemsTableFilters } from "./table/filters"
@@ -10,7 +11,7 @@ import { useManageItemsTableQuery } from "./table/query"
 const PAGE_SIZE = 50
 const PREFIX = "rit"
 
-type ManageItemsTableProps = {
+interface ManageItemsTableProps {
   onSelectionChange: (ids: string[]) => void
   currencyCode: string
 }
@@ -34,22 +35,23 @@ export const ManageItemsTable = ({
     prefix: PREFIX,
   })
 
-  const { variants = [], count } = useVariants({
+  const variantQuery = {
     ...searchParams,
     fields: "*inventory_items.inventory.location_levels,+inventory_quantity",
-  })
+  }
+  const { variants = [], count } = useVariants(variantQuery)
 
   const columns = useManageItemsTableColumns(currencyCode)
   const filters = useManageItemsTableFilters()
 
   const { table } = useDataTable({
-    data: variants,
     columns,
-    count,
+    count: count ?? 0,
+    data: variants,
     enablePagination: true,
+    enableRowSelection: (_row) => true,
     getRowId: (row) => row.id,
     pageSize: PAGE_SIZE,
-    enableRowSelection: (_row) => true,
     rowSelection: {
       state: rowSelection,
       updater,
@@ -60,7 +62,7 @@ export const ManageItemsTable = ({
     <div className="flex size-full flex-col overflow-hidden">
       <DataTable
         columns={columns}
-        count={count}
+        count={count ?? 0}
         filters={filters}
         layout="fill"
         orderBy={["product_id", "title", "sku"]}

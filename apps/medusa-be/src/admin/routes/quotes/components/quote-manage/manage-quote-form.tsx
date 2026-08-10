@@ -1,19 +1,19 @@
 import type { AdminOrder } from "@medusajs/framework/types"
 import { Button, Heading, toast } from "@medusajs/ui"
+import { getErrorMessage } from "@techsio/std/object"
 import { useForm } from "react-hook-form"
 import { useTranslation } from "react-i18next"
+
 import { RouteFocusModal } from "../../../../components/common/modals/route-focus-modal/route-focus-modal"
 import { useRouteModal } from "../../../../components/common/modals/route-focus-modal/use-route-modal"
-import { useConfirmQuote, useOrderPreview } from "../../../../hooks/api"
+import { useOrderPreview } from "../../../../hooks/api/order-preview"
+import { useConfirmQuote } from "../../../../hooks/api/quotes"
 import { formatAmount } from "../../../../utils/format-amount"
 import { ManageItemsSection } from "./manage-items-section"
 
-type ReturnCreateFormProps = {
+interface ReturnCreateFormProps {
   order: AdminOrder
 }
-
-const getErrorMessage = (error: unknown) =>
-  error instanceof Error ? error.message : String(error)
 
 export const ManageQuoteForm = ({ order }: ReturnCreateFormProps) => {
   const { t } = useTranslation("quotes")
@@ -29,7 +29,7 @@ export const ManageQuoteForm = ({ order }: ReturnCreateFormProps) => {
    * FORM
    */
   const form = useForm({
-    defaultValues: () => Promise.resolve({}),
+    defaultValues: {},
   })
 
   const handleSubmit = form.handleSubmit(async () => {
@@ -38,9 +38,9 @@ export const ManageQuoteForm = ({ order }: ReturnCreateFormProps) => {
 
       toast.success(t("toasts.quoteUpdated"))
       handleSuccess()
-    } catch (e) {
+    } catch (error) {
       toast.error(t("validation.genericError"), {
-        description: getErrorMessage(e),
+        description: getErrorMessage(error),
       })
     }
   })
@@ -51,7 +51,12 @@ export const ManageQuoteForm = ({ order }: ReturnCreateFormProps) => {
 
   return (
     <RouteFocusModal.Form form={form}>
-      <form className="flex h-full flex-col" onSubmit={handleSubmit}>
+      <form
+        className="flex h-full flex-col"
+        onSubmit={(event) => {
+          void handleSubmit(event)
+        }}
+      >
         <RouteFocusModal.Header />
 
         <RouteFocusModal.Body className="flex size-full justify-center overflow-y-auto">

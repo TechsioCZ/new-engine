@@ -1,12 +1,13 @@
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 
-type TextActionLinkProps = {
+import NextLink from "@/components/app-link"
+
+interface TextActionLinkProps {
   href: string
   text?: string
 }
 
-export function TextActionLink({ href, text }: TextActionLinkProps) {
+export const TextActionLink = ({ href, text }: TextActionLinkProps) => {
   const tContent = useTranslations("content")
 
   return (

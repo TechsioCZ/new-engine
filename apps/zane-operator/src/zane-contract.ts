@@ -1,3 +1,5 @@
+import { z } from "zod"
+
 export type Lane = "preview" | "main"
 export type ServiceType = "docker" | "git"
 
@@ -49,15 +51,15 @@ export interface WritePreviewCommitStateInput {
   baselineComplete?: boolean
 }
 
-export interface PreviewRandomOnceSecretValueInput {
+interface PreviewRandomOnceSecretValueInput {
   secretId: string
   value?: string
   persistTo?: string
   persistedEnvVar?: string
-  targets: Array<{
+  targets: {
     serviceSlug: string
     envVar: string
-  }>
+  }[]
 }
 
 export interface SyncPreviewRandomOnceSecretsInput {
@@ -69,20 +71,23 @@ export interface SyncPreviewRandomOnceSecretsInput {
 export interface SyncPreviewSharedEnvInput {
   projectSlug: string
   environmentName: string
-  variables: Array<{
+  variables: {
     key: string
     source: PreviewRuntimeValueSourceInput
-  }>
+  }[]
+}
+
+type PreviewRuntimeValueSourceKind = keyof {
+  literal: never
+  service_network_alias: never
+  service_global_network_alias: never
+  service_public_origin: never
+  service_internal_origin: never
+  service_internal_bucket_url: never
 }
 
 export interface PreviewRuntimeValueSourceInput {
-  kind:
-    | "literal"
-    | "service_network_alias"
-    | "service_global_network_alias"
-    | "service_public_origin"
-    | "service_internal_origin"
-    | "service_internal_bucket_url"
+  kind: PreviewRuntimeValueSourceKind
   value?: string
   serviceSlug?: string
   sourceEnvironmentName?: string
@@ -94,17 +99,17 @@ export interface PreviewRuntimeValueSourceInput {
 export interface SyncPreviewServiceEnvInput {
   projectSlug: string
   environmentName: string
-  services: Array<{
+  services: {
     service_id: string
     service_slug: string
-    env: Array<{
+    env: {
       env_var: string
       source: PreviewRuntimeValueSourceInput
-    }>
-  }>
+    }[]
+  }[]
 }
 
-export interface MeiliApiCredentialsPolicy {
+interface MeiliApiCredentialsPolicy {
   uid: string
   description: string
   actions: string[]
@@ -140,9 +145,28 @@ export interface ProvisionMedusaPublishableKeyInput {
   frontendOutput: ProvisionMedusaPublishableKeyOutputInput
 }
 
-export type RuntimeProviderOutputPolicyInput = Record<string, unknown> & {
-  kind: string
-}
+const nonEmptyTrimmedStringSchema = z.string().trim().min(1)
+
+export const runtimeProviderOutputPolicyInputSchema = z.discriminatedUnion(
+  "kind",
+  [
+    z.object({
+      actions: z.array(nonEmptyTrimmedStringSchema),
+      description: nonEmptyTrimmedStringSchema,
+      indexes: z.array(nonEmptyTrimmedStringSchema),
+      kind: z.literal("meilisearch_key"),
+      uid: nonEmptyTrimmedStringSchema,
+    }),
+    z.object({
+      kind: z.literal("medusa_publishable_key"),
+      title: nonEmptyTrimmedStringSchema.nullish(),
+    }),
+  ],
+)
+
+type RuntimeProviderOutputPolicyInput = z.infer<
+  typeof runtimeProviderOutputPolicyInputSchema
+>
 
 export interface RuntimeProviderOutputInput {
   outputId: string
@@ -159,7 +183,7 @@ export interface RuntimeProviderRunInput {
   outputs: RuntimeProviderOutputInput[]
 }
 
-export interface RuntimeProviderOutputResult {
+interface RuntimeProviderOutputResult {
   output_id: string
   env_var: string
   value: string
@@ -205,7 +229,7 @@ export interface PersistedEnvRequirement {
   env_keys: string[]
 }
 
-export interface SharedEnvRequirement {
+interface SharedEnvRequirement {
   key: string
 }
 
@@ -231,104 +255,227 @@ export interface VerifyDeployInput {
   deployments: VerifyDeploymentRef[]
 }
 
-export interface ZaneEnvironment {
-  id: string
-  is_preview: boolean
-  name: string
-}
+export const zaneServiceTypeSchema = z
+  .string()
+  .trim()
+  .transform((value, context) => {
+    switch (value.toUpperCase()) {
+      case "DOCKER":
+      case "DOCKER_REGISTRY": {
+        return "docker"
+      }
+      case "GIT":
+      case "GIT_REPOSITORY": {
+        return "git"
+      }
+      default: {
+        context.addIssue({
+          code: "custom",
+          message: "must be docker or git",
+        })
+        return z.NEVER
+      }
+    }
+  })
 
-export interface ZaneServiceCard {
-  id: string
-  slug: string
-  type: ServiceType
-  status?: string
-}
+const zaneEnvVariableSchema = z.object({
+  id: z.string(),
+  key: z.string(),
+  value: z.string(),
+})
 
-export interface ZaneEnvVariable {
-  id: string
-  key: string
-  value: string
-}
+export type ZaneEnvVariable = z.infer<typeof zaneEnvVariableSchema>
 
-export interface ZaneEnvironmentReference {
-  id: string
-  name: string
-  variables?: ZaneEnvVariable[]
-}
+const zaneEnvironmentSchema = z.object({
+  id: nonEmptyTrimmedStringSchema,
+  is_preview: z.boolean(),
+  name: nonEmptyTrimmedStringSchema,
+})
 
-export interface ZaneServiceUrl {
-  id?: string
-  domain: string
-  base_path: string
-  strip_prefix?: boolean
-  redirect_to?: string | null
-  associated_port?: number | null
-}
+export const zaneEnvironmentWithVariablesSchema = zaneEnvironmentSchema.extend({
+  variables: z.array(zaneEnvVariableSchema),
+})
 
-export interface ZaneGitAppRef {
-  id: string
-}
+export type ZaneEnvironmentWithVariables = z.infer<
+  typeof zaneEnvironmentWithVariablesSchema
+>
 
-export interface ZaneServiceVolume {
-  id?: string
-  name: string
-  container_path: string
-  host_path?: string | null
-  mode: string
-}
+export const zaneServiceCardSchema = z.object({
+  id: nonEmptyTrimmedStringSchema,
+  slug: nonEmptyTrimmedStringSchema,
+  status: z.string().optional(),
+  type: zaneServiceTypeSchema,
+})
 
-export interface ZaneServiceHealthcheck {
-  type: string
-  value: string
-  timeout_seconds: number
-  interval_seconds: number
-  associated_port?: number | null
-}
+export type ZaneServiceCard = z.infer<typeof zaneServiceCardSchema>
 
-export interface ZaneServiceResourceLimits {
-  cpus?: number | string | null
-  memory?: {
-    unit?: string
-    value?: number | string
-  } | null
-}
+const zaneServiceUrlSchema = z.object({
+  associated_port: z.number().nullable().optional(),
+  base_path: z.string(),
+  domain: z.string(),
+  id: z.string().optional(),
+  redirect_to: z.string().nullable().optional(),
+  strip_prefix: z.boolean().optional(),
+})
 
-export interface ZaneServiceDetails {
-  id: string
-  slug: string
-  type: ServiceType
-  network_alias?: string | null
-  global_network_alias?: string | null
-  commit_sha?: string | null
-  deploy_token: string
-  repository_url?: string
-  branch_name?: string
-  builder?: string
-  dockerfile_builder_options?: {
-    dockerfile_path?: string | null
-    build_context_dir?: string | null
-    build_stage_target?: string | null
-  }
-  git_app?: ZaneGitAppRef | null
-  command?: string | null
-  env_variables: ZaneEnvVariable[]
-  system_env_variables?: ZaneEnvVariable[]
-  environment?: ZaneEnvironmentReference | null
-  urls: ZaneServiceUrl[]
-  volumes?: ZaneServiceVolume[]
-  healthcheck?: ZaneServiceHealthcheck | null
-  resource_limits?: ZaneServiceResourceLimits | null
-  unapplied_changes?: Array<{
-    id: string
-    type?: "ADD" | "UPDATE" | "DELETE" | string
-    field?: string
-    item_id?: string | null
-    new_value?: Record<string, unknown> | null
-    old_value?: Record<string, unknown> | null
-  }>
-}
+export type ZaneServiceUrl = z.infer<typeof zaneServiceUrlSchema>
 
-export interface ZaneResolvedCurrentDeployment {
+const zaneServiceVolumeSchema = z.object({
+  container_path: z.string(),
+  host_path: z.string().nullable().optional(),
+  id: z.string().optional(),
+  mode: z.string(),
+  name: z.string(),
+})
+
+export type ZaneServiceVolume = z.infer<typeof zaneServiceVolumeSchema>
+
+export const zaneServiceHealthcheckSchema = z.object({
+  associated_port: z.number().nullable().optional(),
+  interval_seconds: z.number(),
+  timeout_seconds: z.number(),
+  type: z.string(),
+  value: z.string(),
+})
+
+export type ZaneServiceHealthcheck = z.infer<
+  typeof zaneServiceHealthcheckSchema
+>
+
+export const zaneServiceResourceLimitsSchema = z.object({
+  cpus: z.union([z.number(), z.string()]).nullable().optional(),
+  memory: z
+    .object({
+      unit: z.string().optional(),
+      value: z.union([z.number(), z.string()]).optional(),
+    })
+    .nullable()
+    .optional(),
+})
+
+export type ZaneServiceResourceLimits = z.infer<
+  typeof zaneServiceResourceLimitsSchema
+>
+
+const zaneUnappliedChangeValueSchema = z.object({
+  associated_port: z.number().nullable().optional(),
+  base_path: z.string().optional(),
+  branch_name: z.string().nullable().optional(),
+  build_context_dir: z.string().nullable().optional(),
+  build_stage_target: z.string().nullable().optional(),
+  builder: z.string().nullable().optional(),
+  commit_sha: z.string().nullable().optional(),
+  container_path: z.string().optional(),
+  cpus: z.union([z.number(), z.string()]).nullable().optional(),
+  dockerfile_path: z.string().nullable().optional(),
+  domain: z.string().optional(),
+  git_app_id: z.string().nullable().optional(),
+  host_path: z.string().nullable().optional(),
+  id: z.string().optional(),
+  interval_seconds: z.number().optional(),
+  key: z.string().optional(),
+  memory: zaneServiceResourceLimitsSchema.shape.memory,
+  mode: z.string().optional(),
+  name: z.string().optional(),
+  redirect_to: z.string().nullable().optional(),
+  repository_url: z.string().nullable().optional(),
+  strip_prefix: z.boolean().optional(),
+  timeout_seconds: z.number().optional(),
+  type: z.string().optional(),
+  value: z.string().optional(),
+})
+
+export type ZaneUnappliedChangeValue = z.infer<
+  typeof zaneUnappliedChangeValueSchema
+>
+
+const zaneUnappliedChangeSchema = z.object({
+  field: z.string().optional(),
+  id: z.string(),
+  item_id: z.string().nullable().optional(),
+  new_value: z.union([
+    zaneUnappliedChangeValueSchema.nullable(),
+    z.unknown().transform(() => null),
+  ]),
+  old_value: z.union([
+    zaneUnappliedChangeValueSchema.nullable(),
+    z.unknown().transform(() => null),
+  ]),
+  type: z.string().optional(),
+})
+
+export type ZaneUnappliedChange = z.infer<typeof zaneUnappliedChangeSchema>
+
+const zaneEnvironmentReferenceSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  variables: z.array(zaneEnvVariableSchema).optional(),
+})
+
+const zaneGitAppRefSchema = z.object({ id: z.string() })
+
+export const zaneServiceDetailsSchema = z.object({
+  branch_name: z.string().optional(),
+  builder: z.string().optional(),
+  command: z.string().nullable().optional(),
+  commit_sha: z.string().nullable().optional(),
+  deploy_token: nonEmptyTrimmedStringSchema,
+  dockerfile_builder_options: z
+    .object({
+      build_context_dir: z.string().nullable().optional(),
+      build_stage_target: z.string().nullable().optional(),
+      dockerfile_path: z.string().nullable().optional(),
+    })
+    .optional(),
+  env_variables: z.union([
+    z.array(zaneEnvVariableSchema),
+    z.unknown().transform(() => []),
+  ]),
+  environment: zaneEnvironmentReferenceSchema.nullable().optional(),
+  git_app: zaneGitAppRefSchema.nullable().optional(),
+  global_network_alias: z.string().nullable().optional(),
+  healthcheck: zaneServiceHealthcheckSchema.nullable().optional(),
+  id: nonEmptyTrimmedStringSchema,
+  network_alias: z.string().nullable().optional(),
+  repository_url: z.string().optional(),
+  resource_limits: zaneServiceResourceLimitsSchema.nullable().optional(),
+  slug: nonEmptyTrimmedStringSchema,
+  system_env_variables: z.array(zaneEnvVariableSchema).optional(),
+  type: zaneServiceTypeSchema,
+  unapplied_changes: z.array(zaneUnappliedChangeSchema).optional(),
+  urls: z.union([
+    z.array(zaneServiceUrlSchema),
+    z.unknown().transform(() => []),
+  ]),
+  volumes: z.array(zaneServiceVolumeSchema).optional(),
+})
+
+export type ZaneServiceDetails = z.infer<typeof zaneServiceDetailsSchema>
+
+export const zaneDeploymentSchema = z.object({
+  commit_sha: z.string().nullable().optional(),
+  hash: nonEmptyTrimmedStringSchema,
+  is_current_production: z.boolean().optional(),
+  service_snapshot: z
+    .object({
+      env_variables: z.array(zaneEnvVariableSchema).optional(),
+    })
+    .optional(),
+  status: nonEmptyTrimmedStringSchema,
+  status_reason: z.string().nullable().optional(),
+})
+
+export type ZaneDeployment = z.infer<typeof zaneDeploymentSchema>
+
+export const zaneDeploymentListResponseSchema = z.object({
+  results: z.array(zaneDeploymentSchema).optional(),
+})
+
+export type ZaneDeploymentListResponse = z.infer<
+  typeof zaneDeploymentListResponseSchema
+>
+
+interface ZaneResolvedCurrentDeployment {
   deployment_hash: string
   status: string
   commit_sha: string | null

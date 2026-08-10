@@ -3,8 +3,9 @@
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+
+import NextLink from "@/components/app-link"
 import { InlineProductsCarousel } from "@/components/blog/inline-products-carousel"
 import { SupportingText } from "@/components/text/supporting-text"
 import { useCategories } from "@/lib/storefront/categories"
@@ -20,17 +21,18 @@ const EMPTY_CART_RECOMMENDATIONS_CATEGORY_HANDLE = "novinky"
 const EMPTY_CART_RECOMMENDATIONS_LIMIT = 10
 const EMPTY_CART_RECOMMENDATIONS_CANDIDATE_LIMIT = 32
 
-export function CheckoutEmptyCartSection() {
+export const CheckoutEmptyCartSection = () => {
   const tCheckout = useTranslations("checkout")
   const region = useRegionContext()
   const categoriesQuery = useCategories({
-    page: 1,
-    limit: CATEGORY_TREE_LIMIT,
     fields: CATEGORY_TREE_FIELDS,
+    limit: CATEGORY_TREE_LIMIT,
+    page: 1,
   })
 
   const recommendationCategory = categoriesQuery.categories.find(
-    (category) => category.handle === EMPTY_CART_RECOMMENDATIONS_CATEGORY_HANDLE
+    (category) =>
+      category.handle === EMPTY_CART_RECOMMENDATIONS_CATEGORY_HANDLE,
   )
 
   const recommendationCategoryIds = recommendationCategory
@@ -38,25 +40,27 @@ export function CheckoutEmptyCartSection() {
         recommendationCategory.id,
         ...collectDescendantCategoryIds(
           categoriesQuery.categories,
-          recommendationCategory.id
+          recommendationCategory.id,
         ),
       ]
     : []
 
   const recommendationsQuery = useProducts({
-    page: 1,
+    ...(recommendationCategoryIds.length > 0
+      ? { category_id: recommendationCategoryIds }
+      : {}),
+    enabled:
+      region?.region_id !== undefined &&
+      region.region_id.length > 0 &&
+      recommendationCategoryIds.length > 0,
+    fields: RELATED_PRODUCT_FIELDS,
     limit: EMPTY_CART_RECOMMENDATIONS_CANDIDATE_LIMIT,
     order: "-created_at",
-    fields: RELATED_PRODUCT_FIELDS,
-    category_id:
-      recommendationCategoryIds.length > 0
-        ? recommendationCategoryIds
-        : undefined,
-    enabled: Boolean(region?.region_id && recommendationCategoryIds.length > 0),
+    page: 1,
   })
   const recommendedProducts = selectRecommendedProductRepresentatives(
     recommendationsQuery.products,
-    EMPTY_CART_RECOMMENDATIONS_LIMIT
+    EMPTY_CART_RECOMMENDATIONS_LIMIT,
   )
 
   return (
@@ -73,7 +77,7 @@ export function CheckoutEmptyCartSection() {
               <h2 className="font-bold text-2xl text-fg-primary leading-tight">
                 {tCheckout("empty_cart_title")}
               </h2>
-              <SupportingText className="max-w-3xl">
+              <SupportingText className="max-w-checkout-empty-copy">
                 {tCheckout("empty_cart_description")}
               </SupportingText>
             </div>

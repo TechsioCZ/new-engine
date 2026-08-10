@@ -23,40 +23,36 @@ import { resolveStorefrontSecurityPreset } from "./presets.mjs"
  *   csp?: Partial<StorefrontCspDirectives>
  *   permissionsPolicy?: string[]
  *   headers?: Array<{ key: string, value: string }>
- * }} [extend]
+ * }} [extend] - Additive storefront security overrides.
  * @returns {{
  *   csp: Partial<StorefrontCspDirectives>
  *   permissionsPolicy?: string[]
  *   headers: Array<{ key: string, value: string }>
- * }}
+ * }} Normalized additive overrides.
  */
-function normalizeExtend(extend = {}) {
-  return {
-    csp: extend.csp ?? {},
-    permissionsPolicy: extend.permissionsPolicy,
-    headers: extend.headers ?? [],
-  }
-}
+const normalizeExtend = (extend = {}) => ({
+  csp: extend.csp ?? {},
+  headers: extend.headers ?? [],
+  permissionsPolicy: extend.permissionsPolicy,
+})
 
 /**
  * @param {{
  *   csp?: Partial<StorefrontCspDirectives>
  *   permissionsPolicy?: string[]
  *   headers?: Array<{ key: string, value: string | null }>
- * }} [replace]
+ * }} [replace] - Replacement storefront security overrides.
  * @returns {{
  *   csp: Partial<StorefrontCspDirectives>
  *   permissionsPolicy?: string[]
  *   headers: Array<{ key: string, value: string | null }>
- * }}
+ * }} Normalized replacement overrides.
  */
-function normalizeReplace(replace = {}) {
-  return {
-    csp: replace.csp ?? {},
-    permissionsPolicy: replace.permissionsPolicy,
-    headers: replace.headers ?? [],
-  }
-}
+const normalizeReplace = (replace = {}) => ({
+  csp: replace.csp ?? {},
+  headers: replace.headers ?? [],
+  permissionsPolicy: replace.permissionsPolicy,
+})
 
 /**
  * Supports the pre-refactor option names so existing consumers can migrate
@@ -70,9 +66,13 @@ function normalizeReplace(replace = {}) {
  *   additionalImgSrc?: string[]
  *   additionalFontSrc?: string[]
  *   permissionsPolicyDirectives?: string[]
- * }} options
+ * }} options - Legacy storefront security options.
+ * @returns {{
+ *   csp: Partial<StorefrontCspDirectives>
+ *   permissionsPolicy?: string[]
+ * }} Normalized legacy additive overrides.
  */
-function normalizeLegacyOverrides(options) {
+const normalizeLegacyOverrides = (options) => {
   const {
     additionalScriptSrc = [],
     additionalStyleSrc = [],
@@ -85,12 +85,12 @@ function normalizeLegacyOverrides(options) {
 
   return {
     csp: {
-      scriptSrc: additionalScriptSrc,
-      styleSrc: additionalStyleSrc,
       connectSrc: additionalConnectSrc,
+      fontSrc: additionalFontSrc,
       frameSrc: additionalFrameSrc,
       imgSrc: additionalImgSrc,
-      fontSrc: additionalFontSrc,
+      scriptSrc: additionalScriptSrc,
+      styleSrc: additionalStyleSrc,
     },
     permissionsPolicy: permissionsPolicyDirectives,
   }
@@ -123,14 +123,14 @@ function normalizeLegacyOverrides(options) {
  *   additionalImgSrc?: string[]
  *   additionalFontSrc?: string[]
  *   permissionsPolicyDirectives?: string[]
- * }} [options]
+ * }} [options] - Storefront security configuration options.
  * @returns {{
  *   allowedDevOrigins: string[]
  *   poweredByHeader: false
  *   headers: () => Array<{ source: string, headers: Array<{ key: string, value: string }> }>
- * }}
+ * }} Next.js storefront security configuration.
  */
-export function createStorefrontSecurityConfig(options = {}) {
+export const createStorefrontSecurityConfig = (options = {}) => {
   const {
     source = "/:path*",
     preset = "medusaStorefront",
@@ -144,24 +144,34 @@ export function createStorefrontSecurityConfig(options = {}) {
     replace,
   } = options
 
-  const publicBackendOrigin = resolvePublicBackendOrigin({
-    isProduction,
-    publicBackendUrl,
-    envVarName,
-    defaultDevelopmentBackendUrl,
-  })
-
-  const presetConfig = resolveStorefrontSecurityPreset({
-    preset,
-    isProduction,
-    publicBackendOrigin,
-    allowedDevOrigins,
-    devPort,
-  })
-
   const legacyExtend = normalizeLegacyOverrides(options)
   const normalizedExtend = normalizeExtend(extend)
   const normalizedReplace = normalizeReplace(replace)
+
+  const isCspSuppressed = normalizedReplace.headers.some(
+    (header) =>
+      header.key === "Content-Security-Policy" && header.value === null,
+  )
+
+  // Only the CSP consumes the backend origin, and resolving it throws when the
+  // public backend env var is missing in production. A consumer that suppresses
+  // the CSP header must not be forced to configure a URL nothing emits.
+  const publicBackendOrigin = isCspSuppressed
+    ? undefined
+    : resolvePublicBackendOrigin({
+        defaultDevelopmentBackendUrl,
+        envVarName,
+        isProduction,
+        publicBackendUrl,
+      })
+
+  const presetConfig = resolveStorefrontSecurityPreset({
+    allowedDevOrigins,
+    devPort,
+    isProduction,
+    preset,
+    publicBackendOrigin,
+  })
 
   const csp = mergeStorefrontCsp({
     base: presetConfig.csp,
@@ -175,7 +185,8 @@ export function createStorefrontSecurityConfig(options = {}) {
   const permissionsPolicyDirectives =
     normalizedReplace.permissionsPolicy ??
     uniquePolicySources([
-      ...(presetConfig.permissionsPolicy ?? DEFAULT_PERMISSIONS_POLICY_DIRECTIVES),
+      ...(presetConfig.permissionsPolicy ??
+        DEFAULT_PERMISSIONS_POLICY_DIRECTIVES),
       ...(legacyExtend.permissionsPolicy ?? []),
       ...(normalizedExtend.permissionsPolicy ?? []),
     ])
@@ -184,25 +195,43 @@ export function createStorefrontSecurityConfig(options = {}) {
 
   return {
     allowedDevOrigins,
-    poweredByHeader: false,
     headers() {
       return [
         {
-          source,
           headers: buildStorefrontResponseHeaders({
-            isProduction,
             contentSecurityPolicy,
+            extendHeaders: normalizedExtend.headers,
+            isProduction,
             permissionsPolicyDirectives,
             replaceHeaders: normalizedReplace.headers,
-            extendHeaders: normalizedExtend.headers,
           }),
+          source,
         },
       ]
     },
+    poweredByHeader: false,
   }
 }
 
-export * from "./backend-url.mjs"
-export * from "./csp.mjs"
-export * from "./headers.mjs"
-export * from "./presets.mjs"
+export {
+  DEFAULT_DEVELOPMENT_BACKEND_URL,
+  DEFAULT_PUBLIC_BACKEND_ENV_NAME,
+  resolvePublicBackendOrigin,
+  resolvePublicBackendUrl,
+} from "./backend-url.mjs"
+export {
+  buildDevHmrOrigins,
+  buildStorefrontContentSecurityPolicy,
+  createBaseStorefrontCsp,
+  mergeStorefrontCsp,
+  uniquePolicySources,
+} from "./csp.mjs"
+export {
+  buildStorefrontResponseHeaders,
+  DEFAULT_PERMISSIONS_POLICY_DIRECTIVES,
+  DEFAULT_STRICT_TRANSPORT_SECURITY_VALUE,
+} from "./headers.mjs"
+export {
+  resolveStorefrontSecurityPreset,
+  storefrontSecurityPresets,
+} from "./presets.mjs"

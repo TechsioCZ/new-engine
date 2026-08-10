@@ -1,9 +1,14 @@
-import {
-  defaultShouldDehydrateQuery,
-  isServer,
-  QueryClient,
-} from "@tanstack/react-query"
+import { QueryClient, defaultShouldDehydrateQuery } from "@tanstack/react-query"
+
 import { getErrorStatus } from "./medusa-errors"
+
+const isNonProductionEnvironment = (): boolean => {
+  if (typeof process === "undefined") {
+    return false
+  }
+  const { NODE_ENV: nodeEnvironment } = process.env
+  return nodeEnvironment !== "production"
+}
 
 export type QueryClientConfig = NonNullable<
   ConstructorParameters<typeof QueryClient>[0]
@@ -11,26 +16,26 @@ export type QueryClientConfig = NonNullable<
 
 const defaultQueryClientConfig: QueryClientConfig = {
   defaultOptions: {
-    queries: {
-      staleTime: 60 * 1000,
-      gcTime: 5 * 60 * 1000,
-      retry: (failureCount, error: unknown) => {
-        const status = getErrorStatus(error)
-        if (status && status >= 400 && status < 500) {
-          return false
-        }
-        return failureCount < 3
-      },
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30_000),
+    dehydrate: {
+      shouldDehydrateQuery: (query) =>
+        defaultShouldDehydrateQuery(query) || query.state.status === "pending",
+      shouldRedactErrors: () => true,
     },
     mutations: {
       retry: 1,
       retryDelay: 1000,
     },
-    dehydrate: {
-      shouldDehydrateQuery: (query) =>
-        defaultShouldDehydrateQuery(query) || query.state.status === "pending",
-      shouldRedactErrors: () => true,
+    queries: {
+      gcTime: 5 * 60 * 1000,
+      retry: (failureCount, error: unknown) => {
+        const status = getErrorStatus(error)
+        if (status !== undefined && status >= 400 && status < 500) {
+          return false
+        }
+        return failureCount < 3
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30_000),
+      staleTime: 60 * 1000,
     },
   },
 }
@@ -42,9 +47,9 @@ const defaultQueryClientConfig: QueryClientConfig = {
  */
 const mergeQueryClientConfig = (
   baseConfig: QueryClientConfig,
-  overrides?: QueryClientConfig
+  overrides?: QueryClientConfig,
 ): QueryClientConfig => {
-  if (!overrides) {
+  if (overrides === undefined) {
     return baseConfig
   }
 
@@ -54,14 +59,6 @@ const mergeQueryClientConfig = (
     defaultOptions: {
       ...baseConfig.defaultOptions,
       ...overrides.defaultOptions,
-      queries: {
-        ...baseConfig.defaultOptions?.queries,
-        ...overrides.defaultOptions?.queries,
-      },
-      mutations: {
-        ...baseConfig.defaultOptions?.mutations,
-        ...overrides.defaultOptions?.mutations,
-      },
       dehydrate: {
         ...baseConfig.defaultOptions?.dehydrate,
         ...overrides.defaultOptions?.dehydrate,
@@ -70,39 +67,42 @@ const mergeQueryClientConfig = (
         ...baseConfig.defaultOptions?.hydrate,
         ...overrides.defaultOptions?.hydrate,
       },
+      mutations: {
+        ...baseConfig.defaultOptions?.mutations,
+        ...overrides.defaultOptions?.mutations,
+      },
+      queries: {
+        ...baseConfig.defaultOptions?.queries,
+        ...overrides.defaultOptions?.queries,
+      },
     },
   }
 }
 
-export function createQueryClientConfig(
-  overrides?: QueryClientConfig
-): QueryClientConfig {
-  return mergeQueryClientConfig(defaultQueryClientConfig, overrides)
-}
+export const createQueryClientConfig = (
+  overrides?: QueryClientConfig,
+): QueryClientConfig =>
+  mergeQueryClientConfig(defaultQueryClientConfig, overrides)
 
-export function makeQueryClient(overrides?: QueryClientConfig): QueryClient {
-  return new QueryClient(createQueryClientConfig(overrides))
-}
+export const makeQueryClient = (overrides?: QueryClientConfig): QueryClient =>
+  new QueryClient(createQueryClientConfig(overrides))
 
 let browserQueryClient: QueryClient | undefined
 
-export function getQueryClient(overrides?: QueryClientConfig): QueryClient {
-  if (isServer) {
+export const getQueryClient = (overrides?: QueryClientConfig): QueryClient => {
+  if (typeof window === "undefined") {
     return makeQueryClient(overrides)
   }
   if (
-    browserQueryClient &&
-    overrides &&
-    typeof process !== "undefined" &&
-    process.env?.NODE_ENV !== "production"
+    browserQueryClient !== undefined &&
+    overrides !== undefined &&
+    isNonProductionEnvironment()
   ) {
     console.warn(
       "[getQueryClient] Browser QueryClient already exists; overrides will be ignored. " +
-        "Pass overrides only on first initialisation or use makeQueryClient for a fresh instance."
+        "Pass overrides only on first initialisation or use makeQueryClient for a fresh instance.",
     )
   }
-  if (!browserQueryClient) {
-    browserQueryClient = makeQueryClient(overrides)
-  }
+  browserQueryClient ??= makeQueryClient(overrides)
   return browserQueryClient
 }

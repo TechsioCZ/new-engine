@@ -4,6 +4,7 @@ import {
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
+
 import { dismissProductVariantMeasurementLinksStep } from "../steps/measurement-link-mutations"
 import { softDeleteProductVariantMeasurementsStep } from "../steps/measurement-record-mutations"
 import {
@@ -28,7 +29,7 @@ export const deleteProductVariantMeasurementWorkflow = createWorkflow(
 
     const plan = prepareDeleteProductVariantMeasurementStep(input)
     const currentRecords = transform({ plan }, ({ plan: current }) =>
-      current.current ? [current.current] : []
+      current.current ? [current.current] : [],
     )
     const links = findActiveProductVariantMeasurementLinksStep(currentRecords)
 
@@ -38,5 +39,5 @@ export const deleteProductVariantMeasurementWorkflow = createWorkflow(
     releaseLockStep(releaseInput)
 
     return new WorkflowResponse(plan.current)
-  }
+  },
 )

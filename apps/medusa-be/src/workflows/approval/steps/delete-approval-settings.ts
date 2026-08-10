@@ -1,11 +1,12 @@
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import type {
   IApprovalModuleService,
   ModuleApprovalSettingsFilters,
 } from "../../../types"
 
-type DeleteApprovalSettingsStepInput = {
+interface DeleteApprovalSettingsStepInput {
   ids?: string[]
   companyIds?: string[]
 }
@@ -29,14 +30,14 @@ export const deleteApprovalSettingsStep = createStep(
     const approvalSettings = await approvalModule.listApprovalSettings(filters)
     const approvalSettingsIds = approvalSettings.map((setting) => setting.id)
 
-    if (approvalSettingsIds.length) {
+    if (approvalSettingsIds.length > 0) {
       await approvalModule.softDeleteApprovalSettings(approvalSettingsIds)
     }
 
     return new StepResponse(undefined, approvalSettingsIds)
   },
   async (approvalSettingsIds: string[] | undefined, { container }) => {
-    if (!approvalSettingsIds?.length) {
+    if (approvalSettingsIds === undefined || approvalSettingsIds.length === 0) {
       return
     }
 
@@ -44,5 +45,5 @@ export const deleteApprovalSettingsStep = createStep(
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
     await approvalModule.restoreApprovalSettings(approvalSettingsIds)
-  }
+  },
 )

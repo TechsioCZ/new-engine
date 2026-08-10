@@ -1,4 +1,4 @@
-import { basename } from "node:path"
+import nodePath from "node:path"
 
 import type { BootstrapPreviewTemplateDbPlanCommandInput } from "../../contracts/bootstrap-preview-template-db.js"
 import {
@@ -8,58 +8,56 @@ import {
 import type { BootstrapInspectServiceDetails } from "../../contracts/bootstrap-shared.js"
 import { readJsonFile, resolveOptionalPath } from "./shared.js"
 
-function serviceEnvValue(
+const serviceEnvValue = (
   serviceDetails: BootstrapInspectServiceDetails | null,
-  key: string
-): string | undefined {
-  return serviceDetails?.env_variables.find((envVar) => envVar.key === key)
-    ?.value
-}
+  key: string,
+): string | undefined =>
+  serviceDetails?.env_variables.find((envVar) => envVar.key === key)?.value
 
-function firstNonEmpty(
-  ...values: Array<string | null | undefined>
-): string | undefined {
+const firstNonEmpty = (
+  ...values: (string | null | undefined)[]
+): string | undefined => {
   for (const value of values) {
-    if (typeof value === "string" && value.trim()) {
+    if (typeof value === "string" && value.trim() !== "") {
       return value.trim()
     }
   }
 
-  return
+  return undefined
 }
 
-function buildStagingDbName(
+const buildStagingDbName = (
   explicitValue: string | undefined,
-  templateDbName: string | undefined
-): string | undefined {
-  if (explicitValue?.trim()) {
+  templateDbName: string | undefined,
+): string | undefined => {
+  if (explicitValue?.trim() !== undefined && explicitValue.trim() !== "") {
     return explicitValue.trim()
   }
 
-  if (!templateDbName) {
-    return
+  if (templateDbName === undefined || templateDbName === "") {
+    return undefined
   }
 
   const stamp = new Date()
     .toISOString()
-    .replace(/[-:TZ.]/g, "")
+    .replaceAll(/[-:TZ.]/gu, "")
     .slice(0, 14)
   return `${templateDbName}_staging_${stamp}`
 }
 
-function buildBlockingReasons(input: {
+const buildBlockingReasons = (input: {
   projectExists: boolean
   environmentExists: boolean
   dbServiceExists: boolean
   operatorServiceExists: boolean
-  dbHost?: string
-  dbPort?: string
-  dbUser?: string
-  dbPassword?: string
-  templateDbName?: string
-  templateOwner?: string
-  dbAdminName?: string
-}): string[] {
+  dbHost?: string | undefined
+  dbPort?: string | undefined
+  dbUser?: string | undefined
+  dbPassword?: string | undefined
+  templateDbName?: string | undefined
+  templateOwner?: string | undefined
+  dbAdminName?: string | undefined
+}): string[] => {
   const reasons: string[] = []
 
   if (!input.projectExists) {
@@ -70,44 +68,44 @@ function buildBlockingReasons(input: {
   }
   if (!input.dbServiceExists) {
     reasons.push(
-      "Database service is missing from the target Zane environment."
+      "Database service is missing from the target Zane environment.",
     )
   }
   if (!input.operatorServiceExists) {
     reasons.push(
-      "zane-operator service is missing from the target Zane environment."
+      "zane-operator service is missing from the target Zane environment.",
     )
   }
-  if (!input.dbHost) {
+  if (input.dbHost === undefined || input.dbHost === "") {
     reasons.push("Database host could not be resolved.")
   }
-  if (!input.dbPort) {
+  if (input.dbPort === undefined || input.dbPort === "") {
     reasons.push("Database port could not be resolved.")
   }
-  if (!input.dbUser) {
+  if (input.dbUser === undefined || input.dbUser === "") {
     reasons.push("Database admin user could not be resolved.")
   }
-  if (!input.dbPassword) {
+  if (input.dbPassword === undefined || input.dbPassword === "") {
     reasons.push("Database admin password could not be resolved.")
   }
-  if (!input.dbAdminName) {
+  if (input.dbAdminName === undefined || input.dbAdminName === "") {
     reasons.push("Database admin database name could not be resolved.")
   }
-  if (!input.templateDbName) {
+  if (input.templateDbName === undefined || input.templateDbName === "") {
     reasons.push("Template database name could not be resolved.")
   }
-  if (!input.templateOwner) {
+  if (input.templateOwner === undefined || input.templateOwner === "") {
     reasons.push("Template database owner could not be resolved.")
   }
 
   return reasons
 }
 
-export async function executeBootstrapPreviewTemplateDbPlan(
-  input: BootstrapPreviewTemplateDbPlanCommandInput
-) {
+export const executeBootstrapPreviewTemplateDbPlan = async (
+  input: BootstrapPreviewTemplateDbPlanCommandInput,
+) => {
   const inspectResponse = bootstrapPreviewTemplateDbInspectResponseSchema.parse(
-    await readJsonFile(input.inspectJsonPath)
+    await readJsonFile(input.inspectJsonPath),
   )
 
   const dbDetails = inspectResponse.db_service.details
@@ -115,77 +113,80 @@ export async function executeBootstrapPreviewTemplateDbPlan(
   const dbHost = firstNonEmpty(
     input.dbHost,
     dbDetails?.global_network_alias,
-    dbDetails?.network_alias
+    dbDetails?.network_alias,
   )
   const dbPort = firstNonEmpty(
     input.dbPort,
     serviceEnvValue(operatorDetails, "PGPORT"),
-    "5432"
+    "5432",
   )
   const dbUser = firstNonEmpty(
     input.dbUser,
-    serviceEnvValue(dbDetails, "POSTGRES_USER")
+    serviceEnvValue(dbDetails, "POSTGRES_USER"),
   )
   const dbPassword = firstNonEmpty(
     input.dbPassword,
-    serviceEnvValue(dbDetails, "POSTGRES_PASSWORD")
+    serviceEnvValue(dbDetails, "POSTGRES_PASSWORD"),
   )
   const dbAdminName = firstNonEmpty(input.dbAdminName, "postgres")
   const dbSslmode = firstNonEmpty(
     input.dbSslmode,
     serviceEnvValue(operatorDetails, "PGSSLMODE"),
-    "disable"
+    "disable",
   )
   const templateDbName = firstNonEmpty(
     input.templateDbName,
     serviceEnvValue(dbDetails, "MEDUSA_DB_ZANE_OPERATOR_DB_TEMPLATE_NAME"),
-    serviceEnvValue(operatorDetails, "DB_TEMPLATE_NAME")
+    serviceEnvValue(operatorDetails, "DB_TEMPLATE_NAME"),
   )
   const templateOwner = firstNonEmpty(
     input.templateOwner,
     serviceEnvValue(dbDetails, "MEDUSA_DB_ZANE_OPERATOR_USER"),
-    serviceEnvValue(operatorDetails, "PGUSER")
+    serviceEnvValue(operatorDetails, "PGUSER"),
   )
   const stagingDbName = buildStagingDbName(input.stagingDbName, templateDbName)
   const blockingReasons = buildBlockingReasons({
-    projectExists: inspectResponse.project_exists,
-    environmentExists: inspectResponse.environment_exists,
-    dbServiceExists: inspectResponse.db_service.exists,
-    operatorServiceExists: inspectResponse.operator_service.exists,
+    dbAdminName,
     dbHost,
-    dbPort,
-    dbUser,
     dbPassword,
+    dbPort,
+    dbServiceExists: inspectResponse.db_service.exists,
+    dbUser,
+    environmentExists: inspectResponse.environment_exists,
+    operatorServiceExists: inspectResponse.operator_service.exists,
+    projectExists: inspectResponse.project_exists,
     templateDbName,
     templateOwner,
-    dbAdminName,
   })
   const dumpFile = resolveOptionalPath(input.dumpFile)
 
   return bootstrapPreviewTemplateDbPlanResponseSchema.parse({
-    project_slug: input.projectSlug,
-    environment_name: input.environmentName,
-    status: blockingReasons.length === 0 ? "ready" : "blocked",
     blocking_reasons: blockingReasons,
-    project_exists: inspectResponse.project_exists,
-    environment_exists: inspectResponse.environment_exists,
-    db_service_slug: input.dbServiceSlug,
-    db_service_exists: inspectResponse.db_service.exists,
-    operator_service_slug: input.operatorServiceSlug,
-    operator_service_exists: inspectResponse.operator_service.exists,
-    source_db_name: input.sourceDbName,
-    template_db_name: templateDbName ?? null,
-    staging_db_name: stagingDbName ?? null,
-    template_owner: templateOwner ?? null,
+    db_admin_name: dbAdminName ?? null,
     db_host: dbHost ?? null,
-    db_port: dbPort ?? null,
-    db_user: dbUser ?? null,
     db_password: input.includeSecrets ? (dbPassword ?? null) : undefined,
     db_password_present: Boolean(dbPassword),
-    db_admin_name: dbAdminName ?? null,
+    db_port: dbPort ?? null,
+    db_service_exists: inspectResponse.db_service.exists,
+    db_service_slug: input.dbServiceSlug,
     db_sslmode: dbSslmode ?? null,
+    db_user: dbUser ?? null,
     docker_network: input.dockerNetwork,
+    dump_file:
+      dumpFile === undefined || dumpFile === ""
+        ? null
+        : nodePath.basename(dumpFile),
+    environment_exists: inspectResponse.environment_exists,
+    environment_name: input.environmentName,
+    operator_service_exists: inspectResponse.operator_service.exists,
+    operator_service_slug: input.operatorServiceSlug,
     postgres_client_image: input.postgresClientImage,
-    dump_file: dumpFile ? basename(dumpFile) : null,
+    project_exists: inspectResponse.project_exists,
+    project_slug: input.projectSlug,
+    source_db_name: input.sourceDbName,
+    staging_db_name: stagingDbName ?? null,
+    status: blockingReasons.length === 0 ? "ready" : "blocked",
+    template_db_name: templateDbName ?? null,
+    template_owner: templateOwner ?? null,
   })
 }

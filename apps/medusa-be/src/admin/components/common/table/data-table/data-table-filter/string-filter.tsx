@@ -4,12 +4,18 @@ import {
   Portal as PopoverPortal,
   Root as PopoverRoot,
 } from "@radix-ui/react-popover"
-import { useEffect, useMemo, useState } from "react"
-import { debounce } from "../../../../../utils/debounce"
+import { debounce } from "@techsio/std/function"
+import { useEffect, useRef, useState } from "react"
+
 import { useSelectedParams } from "../hooks"
 import { useDataTableFilterContext } from "./context"
 import FilterChip from "./filter-chip"
 import type { IFilter } from "./types"
+
+const isCancellable = (value: unknown): value is { cancel: () => void } =>
+  typeof value === "function" &&
+  "cancel" in value &&
+  typeof value.cancel === "function"
 
 type StringFilterProps = IFilter
 
@@ -19,50 +25,51 @@ export const StringFilter = ({
   readonly,
   openOnMount,
 }: StringFilterProps) => {
-  const [open, setOpen] = useState(openOnMount)
+  const timeoutIdRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const { key, label } = filter
 
   const { removeFilter } = useDataTableFilterContext()
-  const selectedParams = useSelectedParams({ param: key, prefix })
+  const selectedParams = useSelectedParams({
+    param: key,
+    ...(prefix === undefined || prefix === "" ? {} : { prefix }),
+  })
 
   const query = selectedParams.get()
 
   const [previousValue, setPreviousValue] = useState<string | undefined>(
-    query?.[0]
+    query?.[0],
   )
 
-  const debouncedOnChange = useMemo(
-    () =>
-      debounce((value: string) => {
-        if (value) {
-          selectedParams.add(value)
-        } else {
-          selectedParams.delete()
-        }
-      }, 500),
-    [selectedParams]
-  )
+  const debouncedOnChange = debounce((value: string) => {
+    if (value.length > 0) {
+      selectedParams.add(value)
+    } else {
+      selectedParams.delete()
+    }
+  }, 500)
 
   useEffect(
     () => () => {
-      debouncedOnChange.cancel()
+      if (isCancellable(debouncedOnChange)) {
+        debouncedOnChange.cancel()
+      }
+      if (timeoutIdRef.current !== null) {
+        clearTimeout(timeoutIdRef.current)
+      }
     },
-    [debouncedOnChange]
+    [debouncedOnChange],
   )
 
-  let timeoutId: ReturnType<typeof setTimeout> | null = null
-
   const handleOpenChange = (nextOpen: boolean) => {
-    setOpen(nextOpen)
     setPreviousValue(query?.[0])
 
-    if (timeoutId) {
-      clearTimeout(timeoutId)
+    if (timeoutIdRef.current !== null) {
+      clearTimeout(timeoutIdRef.current)
     }
 
-    if (!(nextOpen || query.length)) {
-      timeoutId = setTimeout(() => {
+    if (!nextOpen && query.length === 0) {
+      timeoutIdRef.current = setTimeout(() => {
         removeFilter(key)
       }, 200)
     }
@@ -74,21 +81,27 @@ export const StringFilter = ({
   }
 
   return (
-    <PopoverRoot modal onOpenChange={handleOpenChange} open={open}>
+    <PopoverRoot
+      defaultOpen={openOnMount === true}
+      modal
+      onOpenChange={handleOpenChange}
+    >
       <FilterChip
-        hadPreviousValue={!!previousValue}
+        hadPreviousValue={
+          previousValue !== undefined && previousValue.length > 0
+        }
         hasOperator
         label={label}
         onRemove={handleRemove}
-        readonly={readonly}
-        value={query?.[0]}
+        readonly={readonly ?? false}
+        value={query?.[0] ?? ""}
       />
-      {!readonly && (
+      {readonly !== true && (
         <PopoverPortal>
           <PopoverContent
             align="start"
             className={clx(
-              "z-[1] h-full max-h-[200px] w-[300px] overflow-hidden rounded-lg bg-ui-bg-base text-ui-fg-base shadow-elevation-flyout outline-none"
+              "z-[1] h-full max-h-[200px] w-[300px] overflow-hidden rounded-lg bg-ui-bg-base text-ui-fg-base shadow-elevation-flyout outline-none",
             )}
             collisionPadding={8}
             hideWhenDetached
@@ -112,9 +125,11 @@ export const StringFilter = ({
               </div>
               <div className="px-2 py-0.5">
                 <Input
-                  defaultValue={query?.[0] || undefined}
+                  defaultValue={query[0] ?? undefined}
                   name={key}
-                  onChange={(event) => debouncedOnChange(event.target.value)}
+                  onChange={(event) => {
+                    debouncedOnChange(event.target.value)
+                  }}
                   size="small"
                 />
               </div>

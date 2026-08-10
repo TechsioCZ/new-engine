@@ -1,13 +1,13 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { AddressValidationError } from "@/lib/errors"
+
+import { AddressValidationError } from "@/lib/address-validation-error"
 import { queryKeys } from "@/lib/query-keys"
 import {
-  type CreateAddressData,
   createAddress,
   deleteAddress,
   updateAddress,
 } from "@/services/customer-service"
-import type { AddressFormData } from "@/utils/address-validation"
+import type { CreateAddressData } from "@/services/customer-service"
 import { validateAddressForm } from "@/utils/address-validation"
 import { cleanPhoneNumber } from "@/utils/format/format-phone-number"
 import { cleanPostalCode } from "@/utils/format/format-postal-code"
@@ -16,23 +16,29 @@ import { cleanPostalCode } from "@/utils/format/format-postal-code"
  * Clean address data before sending to API
  * Removes formatting (spaces, etc.) from postal code and phone number
  */
-function cleanAddressData<T extends Partial<CreateAddressData>>(data: T): T {
-  return {
-    ...data,
-    postal_code: data.postal_code
+const cleanAddressData = <T extends Partial<CreateAddressData>>(
+  data: T,
+): T => ({
+  ...data,
+  phone:
+    data.phone !== null && data.phone !== undefined && data.phone !== ""
+      ? cleanPhoneNumber(data.phone)
+      : data.phone,
+  postal_code:
+    data.postal_code !== null &&
+    data.postal_code !== undefined &&
+    data.postal_code !== ""
       ? cleanPostalCode(data.postal_code)
       : data.postal_code,
-    phone: data.phone ? cleanPhoneNumber(data.phone) : data.phone,
-  }
-}
+})
 
-export function useCreateAddress() {
+export const useCreateAddress = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (data: CreateAddressData) => {
       // Safety net validation before API call (validates formatted data)
-      const errors = validateAddressForm(data as AddressFormData)
+      const errors = validateAddressForm(data)
       if (Object.keys(errors).length > 0) {
         throw new AddressValidationError(errors)
       }
@@ -42,9 +48,9 @@ export function useCreateAddress() {
 
       return await createAddress(cleanedData)
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate addresses cache to refetch
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: queryKeys.customer.profile(),
       })
     },
@@ -55,11 +61,28 @@ export function useCreateAddress() {
  * Check if data contains enough fields to be considered complete address data
  * (used to decide whether to validate before API call)
  */
-function isCompleteAddressData(data: Partial<CreateAddressData>): boolean {
-  return "first_name" in data && "last_name" in data && "address_1" in data
+const isCompleteAddressData = (
+  data: Partial<CreateAddressData>,
+): data is CreateAddressData => {
+  if (typeof data.first_name !== "string") {
+    return false
+  }
+  if (typeof data.last_name !== "string") {
+    return false
+  }
+  if (typeof data.address_1 !== "string") {
+    return false
+  }
+  if (typeof data.city !== "string") {
+    return false
+  }
+  if (typeof data.postal_code !== "string") {
+    return false
+  }
+  return typeof data.country_code === "string"
 }
 
-export function useUpdateAddress() {
+export const useUpdateAddress = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -72,7 +95,7 @@ export function useUpdateAddress() {
     }) => {
       // Safety net validation (only for complete address data, not partial updates)
       if (isCompleteAddressData(data)) {
-        const errors = validateAddressForm(data as AddressFormData)
+        const errors = validateAddressForm(data)
         if (Object.keys(errors).length > 0) {
           throw new AddressValidationError(errors)
         }
@@ -83,23 +106,25 @@ export function useUpdateAddress() {
 
       return await updateAddress(addressId, cleanedData)
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       // Invalidate addresses cache to refetch
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: queryKeys.customer.profile(),
       })
     },
   })
 }
 
-export function useDeleteAddress() {
+export const useDeleteAddress = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (addressId: string) => deleteAddress(addressId),
-    onSuccess: () => {
+    mutationFn: async (addressId: string) => {
+      await deleteAddress(addressId)
+    },
+    onSuccess: async () => {
       // Invalidate addresses cache to refetch
-      queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: queryKeys.customer.profile(),
       })
     },

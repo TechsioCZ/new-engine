@@ -17,8 +17,9 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import {
   isStorefrontTextMarket,
   isStorefrontTextNamespace,
@@ -26,19 +27,24 @@ import {
   STOREFRONT_TEXT_MARKETS,
   STOREFRONT_TEXT_NAMESPACES,
   STOREFRONT_TEXT_STATUSES,
-  type StorefrontTextMarket,
-  type StorefrontTextNamespace,
-  type StorefrontTextStatus,
+} from "../../../modules/storefront-text/configuration"
+import type {
+  StorefrontTextMarket,
+  StorefrontTextNamespace,
+  StorefrontTextStatus,
 } from "../../../modules/storefront-text/configuration"
 import { translateBreadcrumb } from "../../lib/breadcrumb"
 import {
   listStorefrontTexts,
-  type StorefrontText,
-  type StorefrontTextInput,
-  type StorefrontTextSearchScope,
   storefrontTextQueryKeys,
   syncStorefrontTexts,
   updateStorefrontText,
+} from "../../lib/storefront-texts"
+import type {
+  StorefrontText,
+  StorefrontTextInput,
+  StorefrontTextListParams,
+  StorefrontTextSearchScope,
 } from "../../lib/storefront-texts"
 import { useDebouncedValue } from "../../lib/use-debounced-value"
 import { StorefrontTextCatalogActions } from "./components/catalog-actions"
@@ -104,14 +110,18 @@ const StorefrontTextRows = ({
     <Table.Row
       className="cursor-pointer"
       key={storefrontText.id}
-      onClick={() => onEdit(storefrontText)}
+      onClick={() => {
+        onEdit(storefrontText)
+      }}
     >
       <Table.Cell>
         <div className="flex max-w-[360px] flex-col gap-1">
           <Text size="small" weight="plus">
             {storefrontText.key}
           </Text>
-          {storefrontText.description ? (
+          {storefrontText.description !== null &&
+          storefrontText.description !== undefined &&
+          storefrontText.description !== "" ? (
             <Text className="text-ui-fg-subtle" size="small">
               {storefrontText.description}
             </Text>
@@ -167,33 +177,23 @@ const StorefrontTextEditDrawer = ({
 }: {
   onOpenChange: (open: boolean) => void
   open: boolean
-  storefrontText: StorefrontText | null
+  storefrontText: StorefrontText
 }) => {
   const { t } = useTranslation("storefrontTexts")
   const queryClient = useQueryClient()
-  const [overrideValue, setOverrideValue] = useState("")
-  const [status, setStatus] = useState<StorefrontTextStatus>("active")
-
-  useEffect(() => {
-    if (open && storefrontText) {
-      setOverrideValue(
-        storefrontText.override_value ?? storefrontText.default_value
-      )
-      setStatus(storefrontText.status)
-    }
-  }, [open, storefrontText])
+  const [overrideValue, setOverrideValue] = useState(
+    storefrontText.override_value ?? storefrontText.default_value,
+  )
+  const [status, setStatus] = useState<StorefrontTextStatus>(
+    storefrontText.status,
+  )
 
   const mutation = useMutation({
-    mutationFn: (input: StorefrontTextInput) => {
-      if (!storefrontText) {
-        throw new Error(t("errors.missingText"))
-      }
-
-      return updateStorefrontText(storefrontText.id, input)
-    },
+    mutationFn: async (input: StorefrontTextInput) =>
+      await updateStorefrontText(storefrontText.id, input),
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveFailed")
+        error instanceof Error ? error.message : t("errors.saveFailed"),
       )
     },
     onSuccess: async (_, input) => {
@@ -201,7 +201,7 @@ const StorefrontTextEditDrawer = ({
         queryKey: storefrontTextQueryKeys.lists(),
       })
       toast.success(
-        input.override_value === null ? t("toasts.reset") : t("toasts.saved")
+        input.override_value === null ? t("toasts.reset") : t("toasts.saved"),
       )
       onOpenChange(false)
     },
@@ -217,67 +217,61 @@ const StorefrontTextEditDrawer = ({
           </Drawer.Description>
         </Drawer.Header>
         <Drawer.Body className="flex flex-col gap-4 overflow-y-auto p-4">
-          {storefrontText ? (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <Text className="text-ui-fg-subtle" size="small">
-                    {t("fields.key")}
-                  </Text>
-                  <Text size="small" weight="plus">
-                    {storefrontText.key}
-                  </Text>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Text className="text-ui-fg-subtle" size="small">
-                    {t("fields.namespace")}
-                  </Text>
-                  <Text size="small" weight="plus">
-                    {storefrontText.namespace}
-                  </Text>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <Text className="text-ui-fg-subtle" size="small">
-                    {t("fields.market")}
-                  </Text>
-                  <Text size="small" weight="plus">
-                    {t(`markets.${storefrontText.market}`, {
-                      defaultValue: getMarketFallbackLabel(
-                        storefrontText.market
-                      ),
-                    })}
-                  </Text>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Text className="text-ui-fg-subtle" size="small">
-                    {t("fields.locale")}
-                  </Text>
-                  <Text size="small" weight="plus">
-                    {storefrontText.locale}
-                  </Text>
-                </div>
-              </div>
-              {storefrontText.description ? (
-                <Text className="text-ui-fg-subtle" size="small">
-                  {storefrontText.description}
-                </Text>
-              ) : null}
-            </>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <Text className="text-ui-fg-subtle" size="small">
+                {t("fields.key")}
+              </Text>
+              <Text size="small" weight="plus">
+                {storefrontText.key}
+              </Text>
+            </div>
+            <div className="flex flex-col gap-1">
+              <Text className="text-ui-fg-subtle" size="small">
+                {t("fields.namespace")}
+              </Text>
+              <Text size="small" weight="plus">
+                {storefrontText.namespace}
+              </Text>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <Text className="text-ui-fg-subtle" size="small">
+                {t("fields.market")}
+              </Text>
+              <Text size="small" weight="plus">
+                {t(`markets.${storefrontText.market}`, {
+                  defaultValue: getMarketFallbackLabel(storefrontText.market),
+                })}
+              </Text>
+            </div>
+            <div className="flex flex-col gap-1">
+              <Text className="text-ui-fg-subtle" size="small">
+                {t("fields.locale")}
+              </Text>
+              <Text size="small" weight="plus">
+                {storefrontText.locale}
+              </Text>
+            </div>
+          </div>
+          {storefrontText.description !== null &&
+          storefrontText.description !== undefined &&
+          storefrontText.description !== "" ? (
+            <Text className="text-ui-fg-subtle" size="small">
+              {storefrontText.description}
+            </Text>
           ) : null}
           <div className="flex flex-col gap-2">
             <Label>{t("fields.defaultValue")}</Label>
-            <Textarea
-              readOnly
-              rows={5}
-              value={storefrontText?.default_value ?? ""}
-            />
+            <Textarea readOnly rows={5} value={storefrontText.default_value} />
           </div>
           <div className="flex flex-col gap-2">
             <Label>{t("fields.overrideValue")}</Label>
             <Textarea
-              onChange={(event) => setOverrideValue(event.target.value)}
+              onChange={(event) => {
+                setOverrideValue(event.target.value)
+              }}
               rows={5}
               value={overrideValue}
             />
@@ -308,12 +302,14 @@ const StorefrontTextEditDrawer = ({
         <Drawer.Footer>
           <div className="flex w-full items-center justify-between gap-2">
             <Button
-              disabled={mutation.isPending || !storefrontText?.has_override}
+              disabled={mutation.isPending || !storefrontText.has_override}
               isLoading={
                 mutation.isPending &&
                 mutation.variables?.override_value === null
               }
-              onClick={() => mutation.mutate({ override_value: null })}
+              onClick={() => {
+                mutation.mutate({ override_value: null })
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -327,17 +323,17 @@ const StorefrontTextEditDrawer = ({
                 </Button>
               </Drawer.Close>
               <Button
-                disabled={mutation.isPending || !overrideValue.trim()}
+                disabled={mutation.isPending || overrideValue.trim() === ""}
                 isLoading={
                   mutation.isPending &&
                   mutation.variables?.override_value !== null
                 }
-                onClick={() =>
+                onClick={() => {
                   mutation.mutate({
                     override_value: overrideValue,
                     status,
                   })
-                }
+                }}
                 size="small"
                 type="button"
               >
@@ -365,24 +361,24 @@ const StorefrontTextsPage = () => {
   const [status, setStatus] = useState<StorefrontTextStatus | undefined>()
   const [editedText, setEditedText] = useState<StorefrontText | null>(null)
   const debouncedQuery = useDebouncedValue(query, 250)
-  const params = {
+  const params: StorefrontTextListParams = {
     limit: PAGE_SIZE,
-    market,
-    namespace,
+    ...(market === undefined ? {} : { market }),
+    ...(namespace === undefined ? {} : { namespace }),
     offset: pageIndex * PAGE_SIZE,
-    q: debouncedQuery || undefined,
+    ...(debouncedQuery === "" ? {} : { q: debouncedQuery }),
     search_scope: searchScope,
-    status,
+    ...(status === undefined ? {} : { status }),
   }
   const { data, isLoading } = useQuery({
-    queryFn: () => listStorefrontTexts(params),
+    queryFn: async () => await listStorefrontTexts(params),
     queryKey: storefrontTextQueryKeys.list(params),
   })
   const syncMutation = useMutation({
     mutationFn: syncStorefrontTexts,
     onError: (error) => {
       toast.error(
-        error instanceof Error ? error.message : t("errors.syncFailed")
+        error instanceof Error ? error.message : t("errors.syncFailed"),
       )
     },
     onSuccess: async (response) => {
@@ -393,7 +389,7 @@ const StorefrontTextsPage = () => {
         t("toasts.synchronized", {
           created: response.result.created_count,
           updated: response.result.updated_count,
-        })
+        }),
       )
     },
   })
@@ -401,7 +397,9 @@ const StorefrontTextsPage = () => {
   const count = data?.count ?? 0
   const pageCount = Math.max(1, Math.ceil(count / PAGE_SIZE))
 
-  const resetPage = () => setPageIndex(0)
+  const resetPage = () => {
+    setPageIndex(0)
+  }
 
   return (
     <Container className="divide-y p-0">
@@ -414,10 +412,14 @@ const StorefrontTextsPage = () => {
             </Text>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <StorefrontTextCatalogActions market={market} />
+            <StorefrontTextCatalogActions
+              {...(market === undefined ? {} : { market })}
+            />
             <Button
               isLoading={syncMutation.isPending}
-              onClick={() => syncMutation.mutate()}
+              onClick={() => {
+                syncMutation.mutate()
+              }}
               size="small"
               type="button"
               variant="secondary"
@@ -458,7 +460,7 @@ const StorefrontTextsPage = () => {
               setMarket(
                 value !== ALL_VALUE && isStorefrontTextMarket(value)
                   ? value
-                  : undefined
+                  : undefined,
               )
             }}
             value={market ?? ALL_VALUE}
@@ -483,7 +485,7 @@ const StorefrontTextsPage = () => {
               setNamespace(
                 value !== ALL_VALUE && isStorefrontTextNamespace(value)
                   ? value
-                  : undefined
+                  : undefined,
               )
             }}
             value={namespace ?? ALL_VALUE}
@@ -508,7 +510,7 @@ const StorefrontTextsPage = () => {
               setStatus(
                 value !== ALL_VALUE && isStorefrontTextStatus(value)
                   ? value
-                  : undefined
+                  : undefined,
               )
             }}
             value={status ?? ALL_VALUE}
@@ -552,11 +554,15 @@ const StorefrontTextsPage = () => {
         canNextPage={pageIndex + 1 < pageCount}
         canPreviousPage={pageIndex > 0}
         count={count}
-        nextPage={() => setPageIndex((current) => current + 1)}
+        nextPage={() => {
+          setPageIndex((current) => current + 1)
+        }}
         pageCount={pageCount}
         pageIndex={pageIndex}
         pageSize={PAGE_SIZE}
-        previousPage={() => setPageIndex((current) => Math.max(current - 1, 0))}
+        previousPage={() => {
+          setPageIndex((current) => Math.max(current - 1, 0))
+        }}
         translations={{
           next: t("pagination.next"),
           of: t("pagination.of"),
@@ -565,15 +571,18 @@ const StorefrontTextsPage = () => {
           results: t("pagination.results"),
         }}
       />
-      <StorefrontTextEditDrawer
-        onOpenChange={(open) => {
-          if (!open) {
-            setEditedText(null)
-          }
-        }}
-        open={Boolean(editedText)}
-        storefrontText={editedText}
-      />
+      {editedText === null ? null : (
+        <StorefrontTextEditDrawer
+          key={editedText.id}
+          onOpenChange={(open) => {
+            if (!open) {
+              setEditedText(null)
+            }
+          }}
+          open
+          storefrontText={editedText}
+        />
+      )}
     </Container>
   )
 }

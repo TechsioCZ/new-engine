@@ -1,25 +1,35 @@
 import { StatusBadge } from "@medusajs/ui"
 import { createColumnHelper } from "@tanstack/react-table"
 import { useTranslation } from "react-i18next"
-import type { AdminCartWithApprovals } from "../../../../../types"
-import { ApprovalStatusType } from "../../../../../types"
+
+import type { AdminCartWithApprovals } from "../../../../../types/approval/http"
+import { ApprovalStatusType } from "../../../../../types/approval/module"
 import { DateCell } from "../../../../components/common/table/table-cells/date-cell"
 import { TextCell } from "../../../../components/common/table/table-cells/text-cell"
 import { ApprovalActions } from "../approval-actions"
-import ItemsPopover, { type ApprovalItem } from "../approvals-items-popover"
+import ItemsPopover from "../approvals-items-popover"
+import type { ApprovalItem } from "../approvals-items-popover"
 
 const columnHelper = createColumnHelper<AdminCartWithApprovals>()
 
 const getApprovalItems = (
-  items: AdminCartWithApprovals["items"]
+  items: AdminCartWithApprovals["items"],
 ): ApprovalItem[] =>
   items?.map((item) => ({
     id: item.id,
     product_title: item.product_title ?? item.title ?? "-",
     quantity: item.quantity,
-    thumbnail: item.thumbnail ?? undefined,
+    ...(item.thumbnail !== null &&
+    item.thumbnail !== undefined &&
+    item.thumbnail.length > 0
+      ? { thumbnail: item.thumbnail }
+      : {}),
     unit_price: item.unit_price,
-    variant_title: item.variant_title ?? undefined,
+    ...(item.variant_title !== null &&
+    item.variant_title !== undefined &&
+    item.variant_title.length > 0
+      ? { variant_title: item.variant_title }
+      : {}),
   })) ?? []
 
 const getStatusColor = (status: ApprovalStatusType) => {
@@ -39,20 +49,19 @@ export const useApprovalsTableColumns = () => {
 
   return [
     columnHelper.accessor("id", {
-      header: t("columns.id"),
       cell: ({ getValue }) => <TextCell text={`#${getValue().slice(-4)}`} />,
+      header: t("columns.id"),
     }),
     columnHelper.accessor("updated_at", {
+      cell: ({ getValue }) => <DateCell date={getValue() ?? null} />,
       header: t("columns.updatedAt"),
-      cell: ({ getValue }) => <DateCell date={getValue()} />,
     }),
     columnHelper.display({
-      id: "company",
-      header: t("columns.company"),
       cell: ({ row }) => <TextCell text={row.original.company?.name ?? "-"} />,
+      header: t("columns.company"),
+      id: "company",
     }),
     columnHelper.accessor("approval_status.status", {
-      header: t("columns.status"),
       cell: ({ getValue }) => {
         const status = getValue()
         return (
@@ -61,21 +70,22 @@ export const useApprovalsTableColumns = () => {
           </StatusBadge>
         )
       },
+      header: t("columns.status"),
     }),
     columnHelper.display({
-      id: "items",
-      header: t("columns.items"),
       cell: ({ row }) => (
         <ItemsPopover
           currencyCode={row.original.currency_code ?? ""}
           items={getApprovalItems(row.original.items)}
         />
       ),
+      header: t("columns.items"),
+      id: "items",
     }),
     columnHelper.display({
-      id: "actions",
-      header: t("columns.actions"),
       cell: ({ row }) => <ApprovalActions cart={row.original} />,
+      header: t("columns.actions"),
+      id: "actions",
     }),
   ]
 }

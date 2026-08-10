@@ -1,8 +1,8 @@
-/**
+/*
  * Checkbox — @techsio/ui-kit atom.
  *
  * @component Checkbox
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill checkbox-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,6 +10,7 @@
  * the checkbox-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import type { InputHTMLAttributes, Ref } from "react"
+
 import { tv } from "../utils"
 
 const checkboxVariants = tv({
@@ -18,7 +19,7 @@ const checkboxVariants = tv({
     "size-checkbox",
     "rounded-checkbox border border-checkbox-border-base",
     "bg-checkbox-bg-base",
-    "after:-translate-x-1/2 after:-translate-y-1/2 after:absolute after:top-1/2 after:left-1/2",
+    "after:absolute after:top-1/2 after:left-1/2 after:-translate-1/2",
     "checked:bg-checkbox-bg-checked",
     "checked:border-checkbox-border-checked",
     "checked:after:token-icon-checkbox",
@@ -36,7 +37,7 @@ const checkboxVariants = tv({
     "disabled:checked:text-checkbox-fg-disabled",
     "disabled:checked:border-checkbox-border-disabled",
     "transition-all duration-200 motion-reduce:transition-none",
-    "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+    "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
     "focus-visible:outline-checkbox-ring-focus",
     "focus-visible:outline-offset-(length:--default-ring-offset)",
     "data-invalid:border-(length:--border-width-validation)",
@@ -45,18 +46,18 @@ const checkboxVariants = tv({
 })
 
 export interface CheckboxProps extends InputHTMLAttributes<HTMLInputElement> {
-  ref?: Ref<HTMLInputElement>
-  indeterminate?: boolean
-  invalid?: boolean
+  ref?: Ref<HTMLInputElement> | undefined
+  indeterminate?: boolean | undefined
+  invalid?: boolean | undefined
 }
 
-export function Checkbox({
+export const Checkbox = ({
   className,
   indeterminate,
   invalid,
   ref,
   ...props
-}: CheckboxProps) {
+}: CheckboxProps) => {
   const setIndeterminate = (node: HTMLInputElement | null) => {
     if (node) {
       node.indeterminate = indeterminate ?? false
@@ -70,9 +71,9 @@ export function Checkbox({
 
   return (
     <input
-      aria-invalid={invalid || undefined}
+      aria-invalid={invalid === true ? true : undefined}
       className={checkboxVariants({ className })}
-      data-invalid={invalid || undefined}
+      data-invalid={invalid === true ? true : undefined}
       ref={setIndeterminate}
       type="checkbox"
       {...props}

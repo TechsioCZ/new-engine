@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises"
 import path from "node:path"
+
 import type {
   CreateProductCollectionDTO,
   ExecArgs,
@@ -29,7 +30,20 @@ import {
   updateStoresWorkflow,
   uploadFilesWorkflow,
 } from "@medusajs/medusa/core-flows"
-import mime from "mime"
+
+const IMAGE_MIME_TYPES: Readonly<Record<string, string>> = {
+  ".png": "image/png",
+}
+
+const getRequiredValue = <Value>(
+  value: Value | null | undefined,
+  message: string,
+): Value => {
+  if (value === null || value === undefined) {
+    throw new MedusaError(MedusaError.Types.NOT_FOUND, message)
+  }
+  return value
+}
 
 export default async function seedDemoData({ container }: ExecArgs) {
   const logger = container.resolve(ContainerRegistrationKeys.LOGGER)
@@ -43,17 +57,14 @@ export default async function seedDemoData({ container }: ExecArgs) {
 
   logger.info("Seeding store data...")
   const [store] = await storeModuleService.listStores()
-  let defaultSalesChannel = await salesChannelModuleService.listSalesChannels({
+  let defaultSalesChannels = await salesChannelModuleService.listSalesChannels({
     name: "Default Sales Channel",
   })
 
-  if (!store) {
-    throw new MedusaError(MedusaError.Types.NOT_FOUND, "Store not found")
-  }
-  if (!defaultSalesChannel?.length) {
-    // create the default sales channel
+  const existingStore = getRequiredValue(store, "Store not found")
+  if (defaultSalesChannels.length === 0) {
     const { result: salesChannelResult } = await createSalesChannelsWorkflow(
-      container
+      container,
     ).run({
       input: {
         salesChannelsData: [
@@ -63,13 +74,19 @@ export default async function seedDemoData({ container }: ExecArgs) {
         ],
       },
     })
-    defaultSalesChannel = salesChannelResult
+    defaultSalesChannels = salesChannelResult
   }
+  const [defaultSalesChannel] = defaultSalesChannels
+  const defaultSalesChannelId = getRequiredValue(
+    defaultSalesChannel?.id,
+    "Default sales channel not found",
+  )
 
   await updateStoresWorkflow(container).run({
     input: {
-      selector: { id: store.id },
+      selector: { id: existingStore.id },
       update: {
+        default_sales_channel_id: defaultSalesChannelId,
         supported_currencies: [
           {
             currency_code: "eur",
@@ -79,7 +96,6 @@ export default async function seedDemoData({ container }: ExecArgs) {
             currency_code: "usd",
           },
         ],
-        default_sales_channel_id: defaultSalesChannel[0]?.id,
       },
     },
   })
@@ -88,79 +104,74 @@ export default async function seedDemoData({ container }: ExecArgs) {
   const regionService = container.resolve(Modules.REGION)
   let regions = await regionService.listRegions()
 
-  if (!regions || regions.length === 0) {
+  if (regions.length === 0) {
     logger.info("No regions found, creating new ones...")
     const { result: newRegions } = await createRegionsWorkflow(container).run({
       input: {
         regions: [
           {
-            name: "Europe",
-            currency_code: "eur",
             countries,
+            currency_code: "eur",
+            name: "Europe",
             payment_providers: ["pp_system_default"],
           },
           {
-            name: "United States",
-            currency_code: "usd",
             countries: ["us"],
+            currency_code: "usd",
+            name: "United States",
             payment_providers: ["pp_system_default"],
           },
         ],
       },
     })
-    if (!newRegions || newRegions.length === 0) {
+    if (newRegions.length === 0) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        "Failed to create new regions."
+        "Failed to create new regions.",
       )
     }
     regions = newRegions
     logger.info(`Created ${regions.length} new region(s).`)
   } else {
     logger.info(
-      `Found ${regions.length} existing region(s). Using the first one.`
+      `Found ${regions.length} existing region(s). Using the first one.`,
     )
   }
-  if (!regions || regions.length === 0) {
-    throw new MedusaError(
-      MedusaError.Types.NOT_FOUND,
-      "No regions available after seeding/checking."
-    )
-  }
-  const region = regions[0]
+  const [firstRegion] = regions
+  const region = getRequiredValue(
+    firstRegion,
+    "No regions available after seeding/checking.",
+  )
   logger.info("Seeding tax regions...")
   await createTaxRegionsWorkflow(container).run({
-    input: countries.map((country_code) => ({
-      country_code,
+    input: countries.map((countryCode) => ({
+      country_code: countryCode,
     })),
   })
   logger.info("Finished seeding tax regions.")
 
   logger.info("Seeding stock location data...")
   const { result: stockLocationResult } = await createStockLocationsWorkflow(
-    container
+    container,
   ).run({
     input: {
       locations: [
         {
-          name: "European Warehouse",
           address: {
+            address_1: "",
             city: "Copenhagen",
             country_code: "DK",
-            address_1: "",
           },
+          name: "European Warehouse",
         },
       ],
     },
   })
-  const stockLocation = stockLocationResult[0]
-
-  if (!stockLocation) {
-    throw new MedusaError(
-      MedusaError.Types.NOT_FOUND,
-      "Stock location not found"
-    )
-  }
+  const [firstStockLocation] = stockLocationResult
+  const stockLocation = getRequiredValue(
+    firstStockLocation,
+    "Stock location not found",
+  )
   await remoteLink.create({
     [Modules.STOCK_LOCATION]: {
       stock_location_id: stockLocation.id,
@@ -182,20 +193,16 @@ export default async function seedDemoData({ container }: ExecArgs) {
         ],
       },
     })
-  const shippingProfile = shippingProfileResult[0]
-  if (!shippingProfile) {
-    throw new MedusaError(
-      MedusaError.Types.NOT_FOUND,
-      "Shipping profile not found"
-    )
-  }
+  const [firstShippingProfile] = shippingProfileResult
+  const shippingProfile = getRequiredValue(
+    firstShippingProfile,
+    "Shipping profile not found",
+  )
 
   const fulfillmentSet = await fulfillmentModuleService.createFulfillmentSets({
     name: "European Warehouse delivery",
-    type: "shipping",
     service_zones: [
       {
-        name: "Europe",
         geo_zones: [
           {
             country_code: "gb",
@@ -226,9 +233,16 @@ export default async function seedDemoData({ container }: ExecArgs) {
             type: "country",
           },
         ],
+        name: "Europe",
       },
     ],
+    type: "shipping",
   })
+  const [firstServiceZone] = fulfillmentSet.service_zones
+  const serviceZone = getRequiredValue(
+    firstServiceZone,
+    "Fulfillment service zone not found",
+  )
 
   await remoteLink.create({
     [Modules.STOCK_LOCATION]: {
@@ -244,78 +258,78 @@ export default async function seedDemoData({ container }: ExecArgs) {
       {
         name: "Standard Shipping",
         price_type: "flat",
-        provider_id: "manual_manual",
-        service_zone_id: fulfillmentSet.service_zones[0]?.id as string,
-        shipping_profile_id: shippingProfile.id,
-        type: {
-          label: "Standard",
-          description: "Ship in 2-3 days.",
-          code: "standard",
-        },
         prices: [
           {
+            amount: 10,
             currency_code: "usd",
-            amount: 10,
           },
           {
+            amount: 10,
             currency_code: "eur",
-            amount: 10,
           },
           {
-            region_id: region?.id as string,
             amount: 10,
+            region_id: region.id,
           },
         ],
+        provider_id: "manual_manual",
         rules: [
           {
             attribute: "enabled_in_store",
-            value: "true",
             operator: "eq",
+            value: "true",
           },
           {
             attribute: "is_return",
-            value: "false",
             operator: "eq",
+            value: "false",
           },
         ],
+        service_zone_id: serviceZone.id,
+        shipping_profile_id: shippingProfile.id,
+        type: {
+          code: "standard",
+          description: "Ship in 2-3 days.",
+          label: "Standard",
+        },
       },
       {
         name: "Express Shipping",
         price_type: "flat",
-        provider_id: "manual_manual",
-        service_zone_id: fulfillmentSet.service_zones[0]?.id as string,
-        shipping_profile_id: shippingProfile.id,
-        type: {
-          label: "Express",
-          description: "Ship in 24 hours.",
-          code: "express",
-        },
         prices: [
           {
+            amount: 10,
             currency_code: "usd",
-            amount: 10,
           },
           {
+            amount: 10,
             currency_code: "eur",
-            amount: 10,
           },
           {
-            region_id: region?.id as string,
             amount: 10,
+            region_id: region.id,
           },
         ],
+        provider_id: "manual_manual",
         rules: [
           {
             attribute: "enabled_in_store",
-            value: "true",
             operator: "eq",
+            value: "true",
           },
           {
             attribute: "is_return",
-            value: "false",
             operator: "eq",
+            value: "false",
           },
         ],
+        service_zone_id: serviceZone.id,
+        shipping_profile_id: shippingProfile.id,
+        type: {
+          code: "express",
+          description: "Ship in 24 hours.",
+          label: "Express",
+        },
       },
     ],
   })
@@ -323,38 +337,36 @@ export default async function seedDemoData({ container }: ExecArgs) {
 
   await linkSalesChannelsToStockLocationWorkflow(container).run({
     input: {
+      add: [defaultSalesChannelId],
       id: stockLocation.id,
-      add: [defaultSalesChannel[0]?.id as string],
     },
   })
   logger.info("Finished seeding stock location data.")
 
   logger.info("Seeding publishable API key data...")
   const { result: publishableApiKeyResult } = await createApiKeysWorkflow(
-    container
+    container,
   ).run({
     input: {
       api_keys: [
         {
+          created_by: "",
           title: "Webshop",
           type: "publishable",
-          created_by: "",
         },
       ],
     },
   })
-  const publishableApiKey = publishableApiKeyResult[0]
-  if (!publishableApiKey) {
-    throw new MedusaError(
-      MedusaError.Types.NOT_FOUND,
-      "Publishable API key not found"
-    )
-  }
+  const [firstPublishableApiKey] = publishableApiKeyResult
+  const publishableApiKey = getRequiredValue(
+    firstPublishableApiKey,
+    "Publishable API key not found",
+  )
 
   await linkSalesChannelsToApiKeyWorkflow(container).run({
     input: {
+      add: [defaultSalesChannelId],
       id: publishableApiKey.id,
-      add: [defaultSalesChannel[0]?.id as string],
     },
   })
   logger.info("Finished seeding publishable API key data.")
@@ -362,88 +374,97 @@ export default async function seedDemoData({ container }: ExecArgs) {
   logger.info("Seeding product data...")
 
   const { result: categoryResult } = await createProductCategoriesWorkflow(
-    container
+    container,
   ).run({
     input: {
       product_categories: [
         {
+          is_active: true,
           name: "Shirts",
-          is_active: true,
         },
         {
+          is_active: true,
           name: "Sweatshirts",
-          is_active: true,
         },
         {
+          is_active: true,
           name: "Pants",
-          is_active: true,
         },
         {
-          name: "Merch",
           is_active: true,
+          name: "Merch",
         },
       ],
     },
   })
 
   const PRODUCTS = {
-    MedusaTShirt: "Medusa T-Shirt",
-    MedusaSweatshirt: "Medusa Sweatshirt",
-    MedusaSweatpants: "Medusa Sweatpants",
     MedusaShorts: "Medusa Shorts",
+    MedusaSweatpants: "Medusa Sweatpants",
+    MedusaSweatshirt: "Medusa Sweatshirt",
+    MedusaTShirt: "Medusa T-Shirt",
   } as const
+  const getCategoryId = (name: string): string =>
+    getRequiredValue(
+      categoryResult.find((category) => category.name === name)?.id,
+      `Product category not found: ${name}`,
+    )
 
-  async function readLocalUploadFile(
+  const readLocalUploadFile = async (
     filePath: string,
-    access: "private" | "public"
-  ) {
+    access: "private" | "public",
+  ) => {
     try {
       logger.info(`Reading file: ${filePath}`)
       const buffer = await readFile(filePath)
       const filename = path.basename(filePath)
-      const mimeType = mime.getType(filePath) || "application/octet-stream"
+      const mimeType =
+        IMAGE_MIME_TYPES[path.extname(filePath).toLowerCase()] ??
+        "application/octet-stream"
 
       logger.info(`Successfully read file: ${filename} (${mimeType})`)
       return {
+        access,
+        content: buffer.toString("base64"),
         filename,
         mimeType,
-        content: buffer.toString("base64"),
-        access,
       }
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
       const errorStack = error instanceof Error ? error.stack : undefined
       logger.error(
-        `Error reading file ${filePath}: ${errorMessage}\n${errorStack || ""}`
+        `Error reading file ${filePath}: ${errorMessage}\n${errorStack ?? ""}`,
       )
       return null
     }
   }
 
-  async function uploadProductFiles(
+  const uploadProductFiles = async (
     productName: string,
     filePaths: string[],
-    access: "private" | "public"
-  ) {
+    access: "private" | "public",
+  ) => {
     logger.info(
-      `Processing product: ${productName} with ${filePaths.length} files`
+      `Processing product: ${productName} with ${filePaths.length} files`,
     )
 
     const files = await Promise.all(
-      filePaths.map((filePath) => readLocalUploadFile(filePath, access))
+      filePaths.map(
+        async (filePath) => await readLocalUploadFile(filePath, access),
+      ),
     )
     const validFiles = files.filter(
-      (f): f is NonNullable<typeof f> => f !== null
+      (f): f is NonNullable<typeof f> => f !== null,
     )
     logger.info(
-      `Valid files for ${productName}: ${validFiles.length}/${files.length}`
+      `Valid files for ${productName}: ${validFiles.length}/${files.length}`,
     )
 
     if (validFiles.length === 0) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `No valid files processed for product ${productName}`
+        `No valid files processed for product ${productName}`,
       )
     }
 
@@ -457,17 +478,17 @@ export default async function seedDemoData({ container }: ExecArgs) {
     logger.info(
       `Upload successful for ${productName}. Files uploaded: ${result
         .map((f) => f.url)
-        .join(", ")}`
+        .join(", ")}`,
     )
 
     return result
   }
 
-  async function uploadProductFilesOrThrow(
+  const uploadProductFilesOrThrow = async (
     productName: string,
     filePaths: string[],
-    access: "private" | "public"
-  ) {
+    access: "private" | "public",
+  ) => {
     try {
       return await uploadProductFiles(productName, filePaths, access)
     } catch (error) {
@@ -476,38 +497,52 @@ export default async function seedDemoData({ container }: ExecArgs) {
       const errorStack = error instanceof Error ? error.stack : undefined
       logger.error(
         `Error processing product ${productName}: ${errorMessage}\n${
-          errorStack || ""
-        }`
+          errorStack ?? ""
+        }`,
       )
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Error processing ${productName}: ${errorMessage}`
+        `Error processing ${productName}: ${errorMessage}`,
       )
     }
   }
 
-  async function uploadLocalFiles(
+  const uploadLocalFiles = async (
     productImageMap: Record<string, string[]>,
-    access: "private" | "public" = "private"
-  ): Promise<Record<string, FileDTO[]>> {
+    access: "private" | "public" = "private",
+  ): Promise<Record<string, FileDTO[]>> => {
     try {
-      const results: Record<string, FileDTO[]> = {}
-
-      for (const [productName, filePaths] of Object.entries(productImageMap)) {
-        results[productName] = await uploadProductFilesOrThrow(
+      const uploadEntries = async (
+        entries: readonly (readonly [string, string[]])[],
+      ): Promise<readonly (readonly [string, FileDTO[]])[]> => {
+        const [entry, ...remainingEntries] = entries
+        if (entry === undefined) {
+          return []
+        }
+        const [productName, filePaths] = entry
+        const files = await uploadProductFilesOrThrow(
           productName,
           filePaths,
-          access
+          access,
         )
+        return [
+          [productName, files] as const,
+          ...(await uploadEntries(remainingEntries)),
+        ]
       }
+      const uploadedEntries = await uploadEntries(
+        Object.entries(productImageMap),
+      )
+      const results: Record<string, FileDTO[]> =
+        Object.fromEntries(uploadedEntries)
 
       logger.info(
         `All products processed successfully. Products: ${Object.keys(
-          results
+          results,
         ).join(", ")}. Total files: ${Object.values(results).reduce(
           (acc, files) => acc + files.length,
-          0
-        )}`
+          0,
+        )}`,
       )
 
       return results
@@ -516,13 +551,13 @@ export default async function seedDemoData({ container }: ExecArgs) {
         error instanceof Error ? error.message : String(error)
       const errorStack = error instanceof Error ? error.stack : undefined
       logger.error(
-        `Fatal error in uploadLocalFiles: ${errorMessage}\n${errorStack || ""}`
+        `Fatal error in uploadLocalFiles: ${errorMessage}\n${errorStack ?? ""}`,
       )
       throw new MedusaError(MedusaError.Types.INVALID_DATA, errorMessage)
     }
   }
 
-  async function seedImages() {
+  const seedImages = async () => {
     const productImageMap = {
       [PRODUCTS.MedusaTShirt]: [
         "/var/www/apps/medusa-be/src/scripts/seed-files/tee-black-front.png",
@@ -550,16 +585,16 @@ export default async function seedDemoData({ container }: ExecArgs) {
           Object.keys(productImageMap).length
         }, Files: ${Object.values(productImageMap).reduce(
           (acc, files) => acc + files.length,
-          0
-        )}`
+          0,
+        )}`,
       )
 
       const result = await uploadLocalFiles(productImageMap, "public")
 
       logger.info(
         `Image upload completed successfully. Products processed: ${Object.keys(
-          result
-        ).join(", ")}`
+          result,
+        ).join(", ")}`,
       )
 
       return result
@@ -567,7 +602,7 @@ export default async function seedDemoData({ container }: ExecArgs) {
       const errorMessage =
         error instanceof Error ? error.message : String(error)
       const errorStack = error instanceof Error ? error.stack : undefined
-      logger.error(`Error in seedImages: ${errorMessage}\n${errorStack || ""}`)
+      logger.error(`Error in seedImages: ${errorMessage}\n${errorStack ?? ""}`)
       throw error
     }
   }
@@ -575,24 +610,21 @@ export default async function seedDemoData({ container }: ExecArgs) {
   const images = await seedImages()
   logger.info(
     `Seeding completed successfully. Products: ${Object.keys(images).join(
-      ", "
-    )}`
+      ", ",
+    )}`,
   )
 
   const { result: products } = await createProductsWorkflow(container).run({
     input: {
       products: [
         {
-          title: "Medusa T-Shirt",
-          category_ids: [
-            categoryResult.find((cat) => cat.name === "Shirts")?.id as string,
-          ],
+          category_ids: [getCategoryId("Shirts")],
           description:
             "Reimagine the feeling of a classic T-shirt. With our cotton T-shirts, everyday essentials no longer have to be ordinary.",
           handle: "t-shirt",
-          weight: 400,
-          status: ProductStatus.PUBLISHED,
-          images: images[PRODUCTS.MedusaTShirt],
+          ...(images[PRODUCTS.MedusaTShirt]
+            ? { images: images[PRODUCTS.MedusaTShirt] }
+            : {}),
           options: [
             {
               title: "Size",
@@ -603,180 +635,184 @@ export default async function seedDemoData({ container }: ExecArgs) {
               values: ["Black", "White"],
             },
           ],
-          variants: [
-            {
-              title: "S / Black",
-              sku: "SHIRT-S-BLACK",
-              options: {
-                Size: "S",
-                Color: "Black",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "S / White",
-              sku: "SHIRT-S-WHITE",
-              options: {
-                Size: "S",
-                Color: "White",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "M / Black",
-              sku: "SHIRT-M-BLACK",
-              options: {
-                Size: "M",
-                Color: "Black",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "M / White",
-              sku: "SHIRT-M-WHITE",
-              options: {
-                Size: "M",
-                Color: "White",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "L / Black",
-              sku: "SHIRT-L-BLACK",
-              options: {
-                Size: "L",
-                Color: "Black",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "L / White",
-              sku: "SHIRT-L-WHITE",
-              options: {
-                Size: "L",
-                Color: "White",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "XL / Black",
-              sku: "SHIRT-XL-BLACK",
-              options: {
-                Size: "XL",
-                Color: "Black",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-            {
-              title: "XL / White",
-              sku: "SHIRT-XL-WHITE",
-              options: {
-                Size: "XL",
-                Color: "White",
-              },
-              prices: [
-                {
-                  amount: 10,
-                  currency_code: "eur",
-                },
-                {
-                  amount: 15,
-                  currency_code: "usd",
-                },
-              ],
-            },
-          ],
           sales_channels: [
             {
-              id: defaultSalesChannel[0]?.id as string,
+              id: defaultSalesChannelId,
             },
           ],
+          status: ProductStatus.PUBLISHED,
+          title: "Medusa T-Shirt",
+          variants: [
+            {
+              options: {
+                Color: "Black",
+                Size: "S",
+              },
+              prices: [
+                {
+                  amount: 10,
+                  currency_code: "eur",
+                },
+                {
+                  amount: 15,
+                  currency_code: "usd",
+                },
+              ],
+              sku: "SHIRT-S-BLACK",
+              title: "S / Black",
+            },
+            {
+              options: {
+                Color: "White",
+                Size: "S",
+              },
+              prices: [
+                {
+                  amount: 10,
+                  currency_code: "eur",
+                },
+                {
+                  amount: 15,
+                  currency_code: "usd",
+                },
+              ],
+              sku: "SHIRT-S-WHITE",
+              title: "S / White",
+            },
+            {
+              options: {
+                Color: "Black",
+                Size: "M",
+              },
+              prices: [
+                {
+                  amount: 10,
+                  currency_code: "eur",
+                },
+                {
+                  amount: 15,
+                  currency_code: "usd",
+                },
+              ],
+              sku: "SHIRT-M-BLACK",
+              title: "M / Black",
+            },
+            {
+              options: {
+                Color: "White",
+                Size: "M",
+              },
+              prices: [
+                {
+                  amount: 10,
+                  currency_code: "eur",
+                },
+                {
+                  amount: 15,
+                  currency_code: "usd",
+                },
+              ],
+              sku: "SHIRT-M-WHITE",
+              title: "M / White",
+            },
+            {
+              options: {
+                Color: "Black",
+                Size: "L",
+              },
+              prices: [
+                {
+                  amount: 10,
+                  currency_code: "eur",
+                },
+                {
+                  amount: 15,
+                  currency_code: "usd",
+                },
+              ],
+              sku: "SHIRT-L-BLACK",
+              title: "L / Black",
+            },
+            {
+              options: {
+                Color: "White",
+                Size: "L",
+              },
+              prices: [
+                {
+                  amount: 10,
+                  currency_code: "eur",
+                },
+                {
+                  amount: 15,
+                  currency_code: "usd",
+                },
+              ],
+              sku: "SHIRT-L-WHITE",
+              title: "L / White",
+            },
+            {
+              options: {
+                Color: "Black",
+                Size: "XL",
+              },
+              prices: [
+                {
+                  amount: 10,
+                  currency_code: "eur",
+                },
+                {
+                  amount: 15,
+                  currency_code: "usd",
+                },
+              ],
+              sku: "SHIRT-XL-BLACK",
+              title: "XL / Black",
+            },
+            {
+              options: {
+                Color: "White",
+                Size: "XL",
+              },
+              prices: [
+                {
+                  amount: 10,
+                  currency_code: "eur",
+                },
+                {
+                  amount: 15,
+                  currency_code: "usd",
+                },
+              ],
+              sku: "SHIRT-XL-WHITE",
+              title: "XL / White",
+            },
+          ],
+          weight: 400,
         },
         {
-          title: "Medusa Sweatshirt",
-          category_ids: [
-            categoryResult.find((cat) => cat.name === "Sweatshirts")
-              ?.id as string,
-          ],
+          category_ids: [getCategoryId("Sweatshirts")],
           description:
             "Reimagine the feeling of a classic sweatshirt. With our cotton sweatshirt, everyday essentials no longer have to be ordinary.",
           handle: "sweatshirt",
-          weight: 400,
-          status: ProductStatus.PUBLISHED,
-          images: images[PRODUCTS.MedusaSweatshirt],
+          ...(images[PRODUCTS.MedusaSweatshirt]
+            ? { images: images[PRODUCTS.MedusaSweatshirt] }
+            : {}),
           options: [
             {
               title: "Size",
               values: ["S", "M", "L", "XL"],
             },
           ],
+          sales_channels: [
+            {
+              id: defaultSalesChannelId,
+            },
+          ],
+          status: ProductStatus.PUBLISHED,
+          title: "Medusa Sweatshirt",
           variants: [
             {
-              title: "S",
-              sku: "SWEATSHIRT-S",
               options: {
                 Size: "S",
               },
@@ -790,10 +826,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SWEATSHIRT-S",
+              title: "S",
             },
             {
-              title: "M",
-              sku: "SWEATSHIRT-M",
               options: {
                 Size: "M",
               },
@@ -807,10 +843,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SWEATSHIRT-M",
+              title: "M",
             },
             {
-              title: "L",
-              sku: "SWEATSHIRT-L",
               options: {
                 Size: "L",
               },
@@ -824,10 +860,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SWEATSHIRT-L",
+              title: "L",
             },
             {
-              title: "XL",
-              sku: "SWEATSHIRT-XL",
               options: {
                 Size: "XL",
               },
@@ -841,35 +877,35 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SWEATSHIRT-XL",
+              title: "XL",
             },
           ],
-          sales_channels: [
-            {
-              id: defaultSalesChannel[0]?.id as string,
-            },
-          ],
+          weight: 400,
         },
         {
-          title: "Medusa Sweatpants",
-          category_ids: [
-            categoryResult.find((cat) => cat.name === "Pants")?.id as string,
-          ],
+          category_ids: [getCategoryId("Pants")],
           description:
             "Reimagine the feeling of classic sweatpants. With our cotton sweatpants, everyday essentials no longer have to be ordinary.",
           handle: "sweatpants",
-          weight: 400,
-          status: ProductStatus.PUBLISHED,
-          images: images[PRODUCTS.MedusaSweatpants],
+          ...(images[PRODUCTS.MedusaSweatpants]
+            ? { images: images[PRODUCTS.MedusaSweatpants] }
+            : {}),
           options: [
             {
               title: "Size",
               values: ["S", "M", "L", "XL"],
             },
           ],
+          sales_channels: [
+            {
+              id: defaultSalesChannelId,
+            },
+          ],
+          status: ProductStatus.PUBLISHED,
+          title: "Medusa Sweatpants",
           variants: [
             {
-              title: "S",
-              sku: "SWEATPANTS-S",
               options: {
                 Size: "S",
               },
@@ -883,10 +919,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SWEATPANTS-S",
+              title: "S",
             },
             {
-              title: "M",
-              sku: "SWEATPANTS-M",
               options: {
                 Size: "M",
               },
@@ -900,10 +936,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SWEATPANTS-M",
+              title: "M",
             },
             {
-              title: "L",
-              sku: "SWEATPANTS-L",
               options: {
                 Size: "L",
               },
@@ -917,10 +953,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SWEATPANTS-L",
+              title: "L",
             },
             {
-              title: "XL",
-              sku: "SWEATPANTS-XL",
               options: {
                 Size: "XL",
               },
@@ -934,35 +970,35 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SWEATPANTS-XL",
+              title: "XL",
             },
           ],
-          sales_channels: [
-            {
-              id: defaultSalesChannel[0]?.id as string,
-            },
-          ],
+          weight: 400,
         },
         {
-          title: "Medusa Shorts",
-          category_ids: [
-            categoryResult.find((cat) => cat.name === "Merch")?.id as string,
-          ],
+          category_ids: [getCategoryId("Merch")],
           description:
             "Reimagine the feeling of classic shorts. With our cotton shorts, everyday essentials no longer have to be ordinary.",
           handle: "shorts",
-          weight: 400,
-          status: ProductStatus.PUBLISHED,
-          images: images[PRODUCTS.MedusaShorts],
+          ...(images[PRODUCTS.MedusaShorts]
+            ? { images: images[PRODUCTS.MedusaShorts] }
+            : {}),
           options: [
             {
               title: "Size",
               values: ["S", "M", "L", "XL"],
             },
           ],
+          sales_channels: [
+            {
+              id: defaultSalesChannelId,
+            },
+          ],
+          status: ProductStatus.PUBLISHED,
+          title: "Medusa Shorts",
           variants: [
             {
-              title: "S",
-              sku: "SHORTS-S",
               options: {
                 Size: "S",
               },
@@ -976,10 +1012,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SHORTS-S",
+              title: "S",
             },
             {
-              title: "M",
-              sku: "SHORTS-M",
               options: {
                 Size: "M",
               },
@@ -993,10 +1029,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SHORTS-M",
+              title: "M",
             },
             {
-              title: "L",
-              sku: "SHORTS-L",
               options: {
                 Size: "L",
               },
@@ -1010,10 +1046,10 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SHORTS-L",
+              title: "L",
             },
             {
-              title: "XL",
-              sku: "SHORTS-XL",
               options: {
                 Size: "XL",
               },
@@ -1027,13 +1063,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
                   currency_code: "usd",
                 },
               ],
+              sku: "SHORTS-XL",
+              title: "XL",
             },
           ],
-          sales_channels: [
-            {
-              id: defaultSalesChannel[0]?.id as string,
-            },
-          ],
+          weight: 400,
         },
       ],
     },
@@ -1051,15 +1085,11 @@ export default async function seedDemoData({ container }: ExecArgs) {
     location_id: string
     stocked_quantity: number
     inventory_item_id: string
-  }[] = []
-  for (const inventoryItem of inventoryItems) {
-    const inventoryLevel = {
-      location_id: stockLocation.id,
-      stocked_quantity: 1_000_000,
-      inventory_item_id: inventoryItem.id,
-    }
-    inventoryLevels.push(inventoryLevel)
-  }
+  }[] = inventoryItems.map(({ id }: { id: string }) => ({
+    inventory_item_id: id,
+    location_id: stockLocation.id,
+    stocked_quantity: 1_000_000,
+  }))
 
   await createInventoryLevelsWorkflow(container).run({
     input: {
@@ -1071,26 +1101,28 @@ export default async function seedDemoData({ container }: ExecArgs) {
 
   logger.info("Create collection")
   const collectionData: CreateProductCollectionDTO = {
-    title: "Latest Drops",
     handle: "latest-drops",
+    title: "Latest Drops",
   }
 
   const { result: collections } = await createCollectionsWorkflow(
-    container
+    container,
   ).run({
     input: {
       collections: [collectionData],
     },
   })
+  const [firstCollection] = collections
+  const collection = getRequiredValue(firstCollection, "Collection not found")
 
   await batchLinkProductsToCollectionWorkflow(container).run({
     input: {
-      id: collections[0]?.id as string,
-      add: products.map((p) => p.id),
+      add: products.map((product) => product.id),
+      id: collection.id,
     },
   })
 
   logger.info(
-    `Created collection: ${collections[0]?.title as string} with ${products.length} products`
+    `Created collection: ${collection.title} with ${products.length} products`,
   )
 }

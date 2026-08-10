@@ -1,29 +1,55 @@
-import type { CollectionConfig } from "payload"
+import type { CollectionBeforeValidateHook, CollectionConfig } from "payload"
+
 import { requireAuth } from "../lib/access/require-auth"
 import { fieldDescriptions } from "../lib/constants/descriptions"
 import { createSlugField, createTitleField } from "../lib/constants/fields"
 import { adminGroups, collectionLabels } from "../lib/constants/labels"
 import { createMedusaCacheHook } from "../lib/hooks/medusa-cache"
 import { generateSlugFromTitle } from "../lib/hooks/slug"
+import type { ArticleCategory } from "../payload-types"
 
 /** Collection slug for article categories. */
 const COLLECTION_SLUG = "article-categories"
 /** Hook to invalidate Medusa cache when article categories change. */
 const invalidateArticleCategoriesCache = createMedusaCacheHook(COLLECTION_SLUG)
 
+const populateSlug: CollectionBeforeValidateHook<ArticleCategory> = ({
+  data,
+  req,
+}) => {
+  if (data === undefined) {
+    return data
+  }
+
+  const { slug: existingSlug, title } = data
+  if (
+    title !== undefined &&
+    (existingSlug === undefined || existingSlug === null || existingSlug === "")
+  ) {
+    const { locale } = req
+    const slug = generateSlugFromTitle(
+      title,
+      locale === undefined || locale === "all" ? {} : { locale },
+    )
+    if (slug !== "") {
+      data.slug = slug
+    }
+  }
+
+  return data
+}
+
 /** Payload collection config for article categories. */
 export const ArticleCategories: CollectionConfig = {
-  slug: COLLECTION_SLUG,
-  labels: collectionLabels.articleCategories,
-  admin: {
-    useAsTitle: "title",
-    group: adminGroups.library,
-  },
   access: {
-    read: requireAuth,
     create: requireAuth,
-    update: requireAuth,
     delete: requireAuth,
+    read: requireAuth,
+    update: requireAuth,
+  },
+  admin: {
+    group: adminGroups.library,
+    useAsTitle: "title",
   },
   fields: [
     createTitleField(),
@@ -32,24 +58,10 @@ export const ArticleCategories: CollectionConfig = {
     }),
   ],
   hooks: {
-    beforeValidate: [
-      ({ data, req }) => {
-        if (!data) {
-          return data
-        }
-        if (data?.title && !data?.slug) {
-          const slug = generateSlugFromTitle(data.title, {
-            locale: req?.locale,
-          })
-          if (slug) {
-            data.slug = slug
-          }
-        }
-
-        return data
-      },
-    ],
     afterChange: [invalidateArticleCategoriesCache],
     afterDelete: [invalidateArticleCategoriesCache],
+    beforeValidate: [populateSlug],
   },
+  labels: collectionLabels.articleCategories,
+  slug: COLLECTION_SLUG,
 }

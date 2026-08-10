@@ -1,11 +1,8 @@
 ---
-component_version: "1.0.0"
+component_version: "2.0.0"
 name: select-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Select for
-  non-search selection with Zag.js collection behavior, hidden form select,
-  trigger, value text, clear trigger, item groups, item indicators, validation
-  status, size, and multiple mode.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Select for non-search selection with Zag.js collection behavior, hidden form select, trigger, value text, clear trigger, item groups, item indicators, validation status, size, and multiple mode.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -23,8 +20,7 @@ sources:
 
 # @techsio/ui-kit Select Usage
 
-Use Select for choosing from known options. Use Combobox when the user needs
-search/filter text input.
+Use Select for choosing from known options. Use Combobox when the user needs search/filter text input.
 
 ## Setup
 
@@ -32,10 +28,21 @@ search/filter text input.
 <Select items={items} name="country">
   <Select.Label>Country</Select.Label>
   <Select.Control>
-    <Select.Trigger><Select.ValueText placeholder="Choose country" /></Select.Trigger>
+    <Select.Trigger>
+      <Select.ValueText placeholder="Choose country" />
+    </Select.Trigger>
     <Select.ClearTrigger />
   </Select.Control>
-  <Select.Positioner><Select.Content>{items.map((item) => <Select.Item item={item} key={item.value}><Select.ItemText /><Select.ItemIndicator /></Select.Item>)}</Select.Content></Select.Positioner>
+  <Select.Positioner>
+    <Select.Content>
+      {items.map((item) => (
+        <Select.Item item={item} key={item.value}>
+          <Select.ItemText />
+          <Select.ItemIndicator />
+        </Select.Item>
+      ))}
+    </Select.Content>
+  </Select.Positioner>
 </Select>
 ```
 
@@ -54,8 +61,7 @@ name, form, onValueChange, onOpenChange, onHighlightChange
 
 ### Keep Select anatomy intact
 
-Use Label, Control, Trigger, ValueText, Positioner, Content, Item, ItemText,
-and ItemIndicator.
+Use Label, Control, Trigger, ValueText, Positioner, Content, Item, ItemText, and ItemIndicator.
 
 ### Use array values
 
@@ -72,7 +78,9 @@ Use `Select.StatusText` with `validateStatus`, not external paragraphs.
 Wrong:
 
 ```tsx
-<select><option value="CZ">Czechia</option></select>
+<select>
+  <option value="CZ">Czechia</option>
+</select>
 ```
 
 Correct:
@@ -110,7 +118,9 @@ Wrong:
 Correct:
 
 ```tsx
-<Select validateStatus="error"><Select.Trigger /></Select>
+<Select validateStatus="error">
+  <Select.Trigger />
+</Select>
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_select.css

@@ -1,11 +1,8 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.2"
 name: tabs-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Tabs for
-  switching peer content panels with Zag.js tabs behavior, compound list,
-  triggers, content, indicator, orientation, activation mode, variants, fitted,
-  and justify props.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Tabs for switching peer content panels with Zag.js tabs behavior, compound list, triggers, content, indicator, orientation, activation mode, variants, fitted, and justify props.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -23,8 +20,7 @@ sources:
 
 # @techsio/ui-kit Tabs Usage
 
-Use Tabs for peer panels in the same page context. Use Steps for ordered
-workflow progress and Breadcrumb for hierarchy.
+Use Tabs for peer panels in the same page context. Use Steps for ordered workflow progress and Breadcrumb for hierarchy.
 
 ## Setup
 
@@ -78,7 +74,10 @@ Wrong:
 Correct:
 
 ```tsx
-<Tabs defaultValue="a"><Tabs.Trigger value="a">A</Tabs.Trigger><Tabs.Content value="a" /></Tabs>
+<Tabs defaultValue="a">
+  <Tabs.Trigger value="a">A</Tabs.Trigger>
+  <Tabs.Content value="a" />
+</Tabs>
 ```
 
 Source: libs/ui/src/molecules/tabs.tsx
@@ -110,7 +109,9 @@ Wrong:
 Correct:
 
 ```tsx
-<Tabs variant="solid"><Tabs.Trigger value="a" /></Tabs>
+<Tabs variant="solid">
+  <Tabs.Trigger value="a" />
+</Tabs>
 ```
 
 Source: libs/ui/src/tokens/components/molecules/_tabs.css

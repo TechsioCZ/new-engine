@@ -4,48 +4,44 @@ import type { HttpTypes } from "@medusajs/types"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Link } from "@techsio/ui-kit/atoms/link"
-import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
-import Image from "next/image"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
-import { useCallback, useEffect, useId, useRef, useState } from "react"
-import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants"
-import { resolvePriceState } from "@/components/product-card/product-card.pricing"
-import type { StoreProductListItem } from "@/lib/storefront/product-lists"
-import {
-  resolveProductListItemAvailability,
-  resolveProductListItemQuantity,
-} from "./account-product-lists.utils"
+import Image from "next/image"
+import { useId } from "react"
 
-type AccountProductListItemRowProps = {
-  canChangeQuantity: boolean
-  isAddingToCart: boolean
-  isDeleting: boolean
-  isSettingQuantity: boolean
+import NextLink from "@/components/app-link"
+import type { StoreProductListItem } from "@/lib/storefront/product-lists"
+
+import { resolveProductListItemPresentation } from "./account-product-list-item-presentation"
+import type { ProductListItemAvailability } from "./product-list-availability"
+import { ProductListQuantityInput } from "./product-list-quantity-input"
+
+interface AccountProductListItemRowProps {
+  state: {
+    canChangeQuantity: boolean
+    isAddingToCart: boolean
+    isDeleting: boolean
+    isSettingQuantity: boolean
+  }
   item: StoreProductListItem
   onAddToCart: (
     item: StoreProductListItem,
-    product: HttpTypes.StoreProduct
+    product: HttpTypes.StoreProduct,
   ) => void
   onDelete: (item: StoreProductListItem) => void
   onQuantitySet: (item: StoreProductListItem, quantity: number) => void
   product: HttpTypes.StoreProduct | null
 }
 
-type AuthTranslator = ReturnType<typeof useTranslations<"auth">>
-
 const resolveAvailabilityLabel = (
-  availability: ReturnType<typeof resolveProductListItemAvailability>,
-  translate: AuthTranslator
+  availability: ProductListItemAvailability,
+  translate: ReturnType<typeof useTranslations<"auth">>,
 ) => {
   if (availability.status === "product_unavailable") {
     return translate("product_lists.availability.product_unavailable")
   }
-
   if (availability.status === "out_of_stock") {
     return translate("product_lists.availability.out_of_stock")
   }
-
   if (
     availability.status === "limited_stock" &&
     availability.availableQuantity !== null
@@ -54,87 +50,41 @@ const resolveAvailabilityLabel = (
       quantity: availability.availableQuantity,
     })
   }
-
   return null
 }
 
-export function AccountProductListItemRow({
-  canChangeQuantity,
-  isAddingToCart,
-  isDeleting,
-  isSettingQuantity,
+export const AccountProductListItemRow = ({
   item,
   onAddToCart,
   onDelete,
   onQuantitySet,
   product,
-}: AccountProductListItemRowProps) {
+  state,
+}: AccountProductListItemRowProps) => {
+  const { canChangeQuantity, isAddingToCart, isDeleting, isSettingQuantity } =
+    state
   const tAuth = useTranslations("auth")
   const tCart = useTranslations("cart")
   const tCatalog = useTranslations("catalog")
-  const itemProduct = product ?? item.product ?? null
-  const productTitle =
-    itemProduct?.title?.trim() || item.product_id || item.id || ""
-  const productHref = itemProduct?.handle ? `/p/${itemProduct.handle}` : "#"
-  const imageSrc = itemProduct?.thumbnail ?? PRODUCT_FALLBACK_IMAGE
-  const price = itemProduct
-    ? resolvePriceState(
-        itemProduct,
-        undefined,
-        tCatalog("product_card.price_on_request")
-      )
-    : null
-  const quantity = resolveProductListItemQuantity(item)
-  const availability = resolveProductListItemAvailability(item, itemProduct)
-  const availabilityLabel = resolveAvailabilityLabel(availability, tAuth)
-  const canAddToCart = availability.canAddToCart
+  const presentation = resolveProductListItemPresentation(
+    item,
+    product,
+    tCatalog("product_card.price_on_request"),
+  )
+  const availabilityLabel = resolveAvailabilityLabel(
+    presentation.availability,
+    tAuth,
+  )
   const availabilityBadgeId = useId()
-  const [localQuantity, setLocalQuantity] = useState(quantity)
-  const updateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const clearPendingUpdate = useCallback(() => {
-    if (updateTimeoutRef.current === null) {
-      return
-    }
-
-    clearTimeout(updateTimeoutRef.current)
-    updateTimeoutRef.current = null
-  }, [])
-
-  useEffect(() => {
-    setLocalQuantity(quantity)
-    clearPendingUpdate()
-  }, [clearPendingUpdate, quantity])
-
-  useEffect(() => clearPendingUpdate, [clearPendingUpdate])
-
-  const handleQuantityChange = (nextQuantity: number) => {
-    if (!item.id || isSettingQuantity || !Number.isFinite(nextQuantity)) {
-      return
-    }
-
-    const normalizedQuantity = Math.max(1, Math.round(nextQuantity))
-    setLocalQuantity(normalizedQuantity)
-    clearPendingUpdate()
-
-    if (normalizedQuantity === quantity) {
-      return
-    }
-
-    updateTimeoutRef.current = setTimeout(() => {
-      onQuantitySet(item, normalizedQuantity)
-      updateTimeoutRef.current = null
-    }, 250)
-  }
 
   return (
     <article className="flex flex-col gap-300 border-border-secondary border-b bg-base p-300 md:flex-row md:items-center">
-      <NextLink className="shrink-0" href={productHref}>
+      <NextLink className="shrink-0" href={presentation.productHref}>
         <Image
-          alt={productTitle}
+          alt={presentation.productTitle}
           className="h-850 w-850 rounded-md object-contain"
           height={80}
-          src={imageSrc}
+          src={presentation.imageSrc}
           width={80}
         />
       </NextLink>
@@ -143,11 +93,11 @@ export function AccountProductListItemRow({
         <Link
           as={NextLink}
           className="block truncate font-semibold text-primary text-sm underline"
-          href={productHref}
+          href={presentation.productHref}
         >
-          {productTitle}
+          {presentation.productTitle}
         </Link>
-        {item.variant?.title ? (
+        {item.variant?.title !== undefined && item.variant.title !== "" ? (
           <p className="truncate text-fg-secondary text-xs">
             {item.variant.title}
           </p>
@@ -155,58 +105,50 @@ export function AccountProductListItemRow({
         <div className="flex flex-wrap items-center gap-x-300 gap-y-100 text-sm">
           {canChangeQuantity ? null : (
             <span className="text-fg-secondary">
-              {tAuth("product_lists.item.quantity", { quantity })}
+              {tAuth("product_lists.item.quantity", {
+                quantity: presentation.quantity,
+              })}
             </span>
           )}
-          {price ? (
-            <span className="font-semibold">{price.currentLabel}</span>
-          ) : null}
-          {availabilityLabel ? (
+          {presentation.price === null ? null : (
+            <span className="font-semibold">
+              {presentation.price.currentLabel}
+            </span>
+          )}
+          {availabilityLabel === null ? null : (
             <Badge
               id={availabilityBadgeId}
               size="sm"
-              variant={availability.badgeVariant}
+              variant={presentation.availability.badgeVariant}
             >
               {availabilityLabel}
             </Badge>
-          ) : null}
+          )}
         </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-300">
         {canChangeQuantity ? (
-          <NumericInput
-            allowOverflow={false}
-            className="w-20"
-            disabled={!item.id || isSettingQuantity}
-            min={1}
-            onChange={handleQuantityChange}
-            size="sm"
-            step={1}
-            value={localQuantity}
-          >
-            <NumericInput.Control>
-              <NumericInput.DecrementTrigger
-                disabled={isSettingQuantity || localQuantity <= 1}
-              />
-              <NumericInput.Input
-                aria-label={tAuth("product_lists.item.quantity_aria", {
-                  productName: productTitle,
-                })}
-              />
-              <NumericInput.IncrementTrigger disabled={isSettingQuantity} />
-            </NumericInput.Control>
-          </NumericInput>
+          <ProductListQuantityInput
+            isSettingQuantity={isSettingQuantity}
+            item={item}
+            key={`${item.id ?? "missing-item-id"}-${presentation.quantity}`}
+            onQuantitySet={onQuantitySet}
+            productTitle={presentation.productTitle}
+            quantity={presentation.quantity}
+          />
         ) : null}
         <Button
-          aria-describedby={availabilityLabel ? availabilityBadgeId : undefined}
-          disabled={!canAddToCart}
+          aria-describedby={
+            availabilityLabel === null ? undefined : availabilityBadgeId
+          }
+          disabled={!presentation.availability.canAddToCart}
           icon="token-icon-cart"
           isLoading={isAddingToCart}
           loadingText={tCart("adding_to_cart")}
           onClick={() => {
-            if (itemProduct) {
-              onAddToCart(item, itemProduct)
+            if (presentation.itemProduct !== null) {
+              onAddToCart(item, presentation.itemProduct)
             }
           }}
           size="sm"
@@ -216,15 +158,17 @@ export function AccountProductListItemRow({
         </Button>
         <Button
           aria-label={tAuth("product_lists.item.remove_aria", {
-            productName: productTitle,
+            productName: presentation.productTitle,
           })}
           className="text-danger"
-          disabled={!item.id || isDeleting}
+          disabled={item.id === undefined || item.id === "" || isDeleting}
           icon="token-icon-trash"
           iconSize="md"
           isLoading={isDeleting}
           loadingText={tAuth("product_lists.item.removing")}
-          onClick={() => onDelete(item)}
+          onClick={() => {
+            onDelete(item)
+          }}
           size="current"
           theme="unstyled"
           variant="danger"

@@ -1,22 +1,22 @@
 export const cacheConfig = {
-  semiStatic: {
-    staleTime: 60 * 60 * 1000,
-    gcTime: 24 * 60 * 60 * 1000,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
+  realtime: {
+    gcTime: 5 * 60 * 1000,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    staleTime: 30 * 1000,
   },
 
-  realtime: {
-    staleTime: 30 * 1000,
-    gcTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: true,
-    refetchOnMount: "always",
+  semiStatic: {
+    gcTime: 24 * 60 * 60 * 1000,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
+    staleTime: 60 * 60 * 1000,
   },
 
   userData: {
-    staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
-    refetchOnWindowFocus: true,
     refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 5 * 60 * 1000,
   },
 } as const

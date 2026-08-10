@@ -1,9 +1,8 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: image-usage
 description: >
-  Use after component-usage-ux when an app needs @techsio/ui-kit Image or a
-  framework image adapter such as NextImage through the Image atom's as prop.
+  Use after component-usage-ux when an app needs @techsio/ui-kit Image or a framework image adapter such as NextImage through the Image atom's as prop.
 type: core
 library: "@techsio/ui-kit"
 library_version: "0.3.2"
@@ -20,9 +19,7 @@ sources:
 
 # @techsio/ui-kit Image Usage
 
-Use Image when the UI-kit or a molecule needs a framework-agnostic image slot.
-In Next apps, prefer NextImage through `as` when the app needs framework image
-optimization.
+Use Image when the UI-kit or a molecule needs a framework-agnostic image slot. In Next apps, prefer NextImage through `as` when the app needs framework image optimization.
 
 ## Setup
 
@@ -30,7 +27,7 @@ optimization.
 import NextImage from "next/image"
 import { Image } from "@techsio/ui-kit/atoms/image"
 
-<Image as={NextImage} src="/product.jpg" alt="Ceramic bowl" size="full" />
+;<Image as={NextImage} src="/product.jpg" alt="Ceramic bowl" size="full" />
 ```
 
 Supported props:
@@ -47,16 +44,10 @@ size: sm | md | lg | full | custom
 ### Use NextImage adapter in Next apps
 
 ```tsx
-<Image
-  as={NextImage}
-  src={product.image}
-  alt={product.title}
-  size="full"
-/>
+<Image as={NextImage} src={product.image} alt={product.title} size="full" />
 ```
 
-The UI-kit Image is intentionally framework agnostic. Let the app framework
-provide image behavior when available.
+The UI-kit Image is intentionally framework agnostic. Let the app framework provide image behavior when available.
 
 ### Use size prop before layout className
 
@@ -64,8 +55,7 @@ provide image behavior when available.
 <Image src={avatarUrl} alt={name} size="sm" />
 ```
 
-Use `size="custom"` only when layout constraints must come from the parent or
-component token overrides.
+Use `size="custom"` only when layout constraints must come from the parent or component token overrides.
 
 ### Keep alt text meaningful
 
@@ -73,8 +63,7 @@ component token overrides.
 <Image src={product.image} alt={product.title} />
 ```
 
-Empty alt is only for decorative images, and that should be a deliberate
-accessibility choice.
+Empty alt is only for decorative images, and that should be a deliberate accessibility choice.
 
 ## Common Mistakes
 
@@ -108,8 +97,7 @@ Correct:
 <Image src="/avatar.jpg" alt="Avatar" size="sm" />
 ```
 
-Use Image size/tokens first. Use layout classes only around the component when
-the image is part of a larger layout.
+Use Image size/tokens first. Use layout classes only around the component when the image is part of a larger layout.
 
 Source: libs/ui/src/tokens/components/atoms/_image.css
 

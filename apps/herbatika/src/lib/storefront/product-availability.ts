@@ -1,4 +1,6 @@
-import type { HttpTypes } from "@medusajs/types"
+import { getRecordValue } from "@techsio/std/object"
+import type { MedusaCatalogProductVariant } from "@techsio/storefront-data/catalog/medusa-service"
+
 import { resolveDefaultStockInventoryQuantity } from "./default-stock-availability"
 import {
   asStorefrontBoolean,
@@ -6,9 +8,9 @@ import {
   asStorefrontRecord,
 } from "./product-pricing"
 
-export const DEFAULT_MAX_PURCHASE_QUANTITY = 50
+const DEFAULT_MAX_PURCHASE_QUANTITY = 50
 
-export type VariantInventoryState = {
+export interface VariantInventoryState {
   allowBackorder: boolean
   availableQuantity: number | null
   hasPrice: boolean
@@ -30,8 +32,8 @@ const resolveRequestedQuantity = (quantity: number) => {
 }
 
 export const resolveVariantInventoryState = (
-  variant?: HttpTypes.StoreProductVariant | null,
-  quantity = 1
+  variant?: MedusaCatalogProductVariant | null,
+  quantity = 1,
 ): VariantInventoryState => {
   const variantRecord = asStorefrontRecord(variant)
   const requestedQuantity = resolveRequestedQuantity(quantity)
@@ -39,12 +41,24 @@ export const resolveVariantInventoryState = (
   const hasPrice =
     asStorefrontNumber(variant?.calculated_price?.calculated_amount) !== null
   const allowBackorder =
-    asStorefrontBoolean(variantRecord?.allow_backorder) === true
+    asStorefrontBoolean(
+      variantRecord === null
+        ? undefined
+        : getRecordValue(variantRecord, "allow_backorder"),
+    ) === true
   const manageInventory =
-    asStorefrontBoolean(variantRecord?.manage_inventory) !== false
+    asStorefrontBoolean(
+      variantRecord === null
+        ? undefined
+        : getRecordValue(variantRecord, "manage_inventory"),
+    ) !== false
   const inventoryQuantity =
     resolveDefaultStockInventoryQuantity(variantRecord) ??
-    asStorefrontNumber(variantRecord?.inventory_quantity)
+    asStorefrontNumber(
+      variantRecord === null
+        ? undefined
+        : getRecordValue(variantRecord, "inventory_quantity"),
+    )
   const hasInventoryQuantity = inventoryQuantity !== null
 
   if (!(hasVariant && hasPrice)) {
@@ -52,10 +66,10 @@ export const resolveVariantInventoryState = (
       allowBackorder,
       availableQuantity: 0,
       hasPrice,
-      isInventoryKnown: hasInventoryQuantity,
       hasVariant,
       inventoryQuantity,
       isInStock: false,
+      isInventoryKnown: hasInventoryQuantity,
       isPurchasable: false,
       manageInventory,
       maxPurchaseQuantity: 1,
@@ -67,10 +81,10 @@ export const resolveVariantInventoryState = (
       allowBackorder,
       availableQuantity: null,
       hasPrice,
-      isInventoryKnown: true,
       hasVariant,
       inventoryQuantity,
       isInStock: true,
+      isInventoryKnown: true,
       isPurchasable: true,
       manageInventory,
       maxPurchaseQuantity: DEFAULT_MAX_PURCHASE_QUANTITY,
@@ -82,10 +96,10 @@ export const resolveVariantInventoryState = (
       allowBackorder,
       availableQuantity: 0,
       hasPrice,
-      isInventoryKnown: false,
       hasVariant,
       inventoryQuantity,
       isInStock: false,
+      isInventoryKnown: false,
       isPurchasable: false,
       manageInventory,
       maxPurchaseQuantity: 1,
@@ -99,15 +113,15 @@ export const resolveVariantInventoryState = (
     allowBackorder,
     availableQuantity,
     hasPrice,
-    isInventoryKnown: true,
     hasVariant,
     inventoryQuantity,
     isInStock,
+    isInventoryKnown: true,
     isPurchasable: isInStock && requestedQuantity <= availableQuantity,
     manageInventory,
     maxPurchaseQuantity: Math.max(
       1,
-      Math.min(DEFAULT_MAX_PURCHASE_QUANTITY, availableQuantity)
+      Math.min(DEFAULT_MAX_PURCHASE_QUANTITY, availableQuantity),
     ),
   }
 }

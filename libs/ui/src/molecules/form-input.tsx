@@ -1,8 +1,8 @@
-/**
+/*
  * FormInput — @techsio/ui-kit molecule.
  *
  * @component FormInput
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill form-input-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -10,7 +10,9 @@
  * the form-input-usage skill's component_version and a changelog entry. Bump all three together.
  */
 import type { ReactNode } from "react"
-import { Input, type InputProps } from "../atoms/input"
+
+import { Input } from "../atoms/input"
+import type { InputProps } from "../atoms/input"
 import { Label } from "../atoms/label"
 import { StatusText } from "../atoms/status-text"
 
@@ -19,11 +21,11 @@ type ValidateStatus = "default" | "error" | "success" | "warning"
 interface FormInputRawProps extends InputProps {
   id: string
   label: ReactNode
-  validateStatus?: ValidateStatus
-  helpText?: ReactNode
+  validateStatus?: ValidateStatus | undefined
+  helpText?: ReactNode | undefined
 }
 
-export function FormInputRaw({
+export const FormInputRaw = ({
   id,
   label,
   validateStatus = "default",
@@ -32,43 +34,43 @@ export function FormInputRaw({
   required,
   disabled,
   ...props
-}: FormInputRawProps) {
-  return (
-    <div className="flex flex-col gap-form-field-gap">
-      <Label disabled={disabled} htmlFor={id} required={required} size={size}>
-        {label}
-      </Label>
-      <Input
-        disabled={disabled}
-        id={id}
-        required={required}
-        size={size}
-        variant={validateStatus}
-        {...props}
-        className="p-input-sm md:p-input-md"
-      />
+}: FormInputRawProps) => (
+  <div className="flex flex-col gap-form-field-gap">
+    <Label disabled={disabled} htmlFor={id} required={required} size={size}>
+      {label}
+    </Label>
+    <Input
+      disabled={disabled}
+      id={id}
+      required={required}
+      size={size}
+      variant={validateStatus}
+      {...props}
+      className="p-input-sm md:p-input-md"
+    />
 
-      {helpText}
-    </div>
-  )
-}
+    {helpText}
+  </div>
+)
 
 type FormInputProps = FormInputRawProps & {
-  showHelpTextIcon?: boolean
+  showHelpTextIcon?: boolean | undefined
 }
 
-export function FormInput({
+export const FormInput = ({
   helpText,
   id,
   validateStatus = "default",
   showHelpTextIcon = validateStatus !== "default",
   size = "md",
   ...props
-}: FormInputProps) {
+}: FormInputProps) => {
+  const hasHelpText = Boolean(helpText)
+
   return (
     <FormInputRaw
       helpText={
-        helpText && (
+        hasHelpText ? (
           <StatusText
             status={validateStatus}
             showIcon={showHelpTextIcon}
@@ -76,6 +78,8 @@ export function FormInput({
           >
             {helpText}
           </StatusText>
+        ) : (
+          helpText
         )
       }
       id={id}

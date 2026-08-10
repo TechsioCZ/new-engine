@@ -1,61 +1,93 @@
-export type StorefrontMarket = {
+export interface StorefrontMarket {
   code: string
   locale: string
 }
 
-export type ResolveStorefrontMarketInput = {
+export interface ResolveStorefrontMarketInput {
   acceptLanguage?: string | null
   host?: string | null
 }
 
-export const normalizeStorefrontHost = (host?: string | null) => {
+const normalizeStorefrontHost = (host?: string | null) => {
   const firstHost = host?.split(",")[0]?.trim().toLowerCase()
 
-  if (!firstHost) {
+  if (firstHost === undefined || firstHost === "") {
     return null
   }
 
   return firstHost
-    .replace(/^https?:\/\//, "")
-    .replace(/\/.*$/, "")
-    .replace(/:\d+$/, "")
-    .replace(/\.$/, "")
+    .replace(/^https?:\/\//u, "")
+    .replace(/\/.*$/u, "")
+    .replace(/:\d+$/u, "")
+    .replace(/\.$/u, "")
+}
+
+interface AcceptedLanguage {
+  language: string
+  quality: number
+}
+
+const insertAcceptedLanguage = (
+  acceptedLanguages: readonly AcceptedLanguage[],
+  candidate: AcceptedLanguage,
+): readonly AcceptedLanguage[] => {
+  const insertionIndex = acceptedLanguages.findIndex(
+    (accepted) => candidate.quality > accepted.quality,
+  )
+
+  if (insertionIndex === -1) {
+    return [...acceptedLanguages, candidate]
+  }
+
+  return [
+    ...acceptedLanguages.slice(0, insertionIndex),
+    candidate,
+    ...acceptedLanguages.slice(insertionIndex),
+  ]
 }
 
 const getAcceptedLanguages = (acceptLanguage?: string | null) => {
-  if (!acceptLanguage) {
+  if (
+    acceptLanguage === undefined ||
+    acceptLanguage === null ||
+    acceptLanguage === ""
+  ) {
     return []
   }
 
-  return acceptLanguage
+  const candidates = acceptLanguage
     .split(",")
-    .map((item, index) => {
+    .map((item) => {
       const [rawTag, ...parameters] = item.trim().split(";")
       const qualityParameter = parameters
         .map((parameter) => parameter.trim())
         .find((parameter) => parameter.toLowerCase().startsWith("q="))
-      const quality = qualityParameter
-        ? Number.parseFloat(qualityParameter.slice(2))
-        : 1
+      const quality =
+        qualityParameter === undefined ? 1 : Number(qualityParameter.slice(2))
 
       return {
-        index,
         language: rawTag?.split("-")[0]?.toLowerCase() ?? "",
         quality: Number.isFinite(quality) ? quality : 1,
       }
     })
-    .filter((item) => item.language && item.quality > 0 && item.quality <= 1)
-    .sort(
-      (left, right) => right.quality - left.quality || left.index - right.index
+    .filter(
+      (item) => item.language !== "" && item.quality > 0 && item.quality <= 1,
     )
-    .map((item) => item.language)
+
+  let acceptedLanguages: readonly AcceptedLanguage[] = []
+
+  for (const candidate of candidates) {
+    acceptedLanguages = insertAcceptedLanguage(acceptedLanguages, candidate)
+  }
+
+  return acceptedLanguages.map((item) => item.language)
 }
 
 type MarketCode<TMarkets> = Extract<keyof TMarkets, string>
 
-type DefineStorefrontMarketsOptions<
+interface DefineStorefrontMarketsOptions<
   TMarkets extends Record<string, StorefrontMarket>,
-> = {
+> {
   defaultMarketCode: MarketCode<TMarkets>
   hostMarketMap?: Readonly<Record<string, MarketCode<TMarkets>>>
   languageMarketMap?: Readonly<Record<string, MarketCode<TMarkets>>>
@@ -77,18 +109,17 @@ export const defineStorefrontMarkets = <
     host,
   }: ResolveStorefrontMarketInput = {}) => {
     const normalizedHost = normalizeStorefrontHost(host)
-    const hostMarketCode = normalizedHost
-      ? hostMarketMap[normalizedHost]
-      : undefined
+    const hostMarketCode =
+      normalizedHost === null ? undefined : hostMarketMap[normalizedHost]
 
-    if (hostMarketCode) {
+    if (hostMarketCode !== undefined) {
       return getMarket(hostMarketCode)
     }
 
     for (const language of getAcceptedLanguages(acceptLanguage)) {
       const languageMarketCode = languageMarketMap[language]
 
-      if (languageMarketCode) {
+      if (languageMarketCode !== undefined) {
         return getMarket(languageMarketCode)
       }
     }

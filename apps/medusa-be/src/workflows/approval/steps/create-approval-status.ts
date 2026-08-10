@@ -4,27 +4,45 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { APPROVAL_MODULE } from "../../../modules/approval"
-import { ApprovalStatusType, type IApprovalModuleService } from "../../../types"
 
-export const createApprovalStatusStep = createStep(
+import { APPROVAL_MODULE } from "../../../modules/approval"
+import { ApprovalStatusType } from "../../../types/approval/module"
+import type { ModuleApprovalStatus } from "../../../types/approval/module"
+import type { IApprovalModuleService } from "../../../types/approval/service"
+
+export const createApprovalStatusStep = createStep<
+  string[],
+  ModuleApprovalStatus,
+  string[]
+>(
   "create-approval-status",
-  async (cartIds: string[], { container }) => {
+  async (
+    cartIds: string[],
+    { container },
+  ): Promise<StepResponse<ModuleApprovalStatus, string[]>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const approvalModuleService =
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
-    const {
-      data: [existingApprovalStatus],
-    } = await query.graph({
+    const [firstCartId] = cartIds
+
+    if (firstCartId === undefined || firstCartId.length === 0) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "At least one cart id is required to create an approval status",
+      )
+    }
+
+    const graphResult: { data: ModuleApprovalStatus[] } = await query.graph({
       entity: "approval_status",
       fields: ["*"],
       filters: {
-        cart_id: cartIds[0],
+        cart_id: firstCartId,
       },
     })
 
-    if (existingApprovalStatus) {
+    const [existingApprovalStatus] = graphResult.data
+    if (existingApprovalStatus !== undefined) {
       const [updatedApprovalStatus] =
         await approvalModuleService.updateApprovalStatuses([
           {
@@ -33,10 +51,10 @@ export const createApprovalStatusStep = createStep(
           },
         ])
 
-      if (!updatedApprovalStatus) {
+      if (updatedApprovalStatus === undefined) {
         throw new MedusaError(
           MedusaError.Types.UNEXPECTED_STATE,
-          "Failed to update approval status"
+          "Failed to update approval status",
         )
       }
 
@@ -50,20 +68,20 @@ export const createApprovalStatusStep = createStep(
 
     const [createdApprovalStatus] =
       await approvalModuleService.createApprovalStatuses(
-        approvalStatusesToCreate
+        approvalStatusesToCreate,
       )
 
-    if (!createdApprovalStatus) {
+    if (createdApprovalStatus === undefined) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        "Failed to create approval status"
+        "Failed to create approval status",
       )
     }
 
     return new StepResponse(createdApprovalStatus, [createdApprovalStatus.id])
   },
   async (statusIds: string[] | undefined, { container }) => {
-    if (!statusIds) {
+    if (statusIds === undefined) {
       return
     }
 
@@ -71,5 +89,5 @@ export const createApprovalStatusStep = createStep(
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
     await approvalModuleService.deleteApprovalStatuses(statusIds)
-  }
+  },
 )

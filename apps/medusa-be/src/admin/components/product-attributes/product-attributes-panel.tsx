@@ -14,15 +14,18 @@ import {
   useDataTable,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useEffect, useEffectEvent, useMemo, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import {
   listProductAttributeOptions,
-  type ProductAttributeDetailItem,
-  type ProductAttributeOption,
   productAttributeQueryKeys,
-  type SetProductAttributeOperation,
   setProductAttributes,
+} from "../../lib/product-attributes"
+import type {
+  ProductAttributeDetailItem,
+  ProductAttributeOption,
+  SetProductAttributeOperation,
 } from "../../lib/product-attributes"
 import { getPaginationTranslations } from "../../lib/table"
 import { useDebouncedValue } from "../../lib/use-debounced-value"
@@ -34,21 +37,61 @@ const PAGE_SIZE = 10
 const optionColumnHelper = createDataTableColumnHelper<ProductAttributeOption>()
 
 const getInitialValues = (
-  items: ProductAttributeDetailItem[]
+  items: ProductAttributeDetailItem[],
 ): AttributeValues =>
   Object.fromEntries(
     items.map((item) => [
       item.definition.id,
       item.assignment?.option_id ?? item.assignment?.text_value ?? "",
-    ])
+    ]),
   )
 
 const getInitialOptionLabels = (
-  items: ProductAttributeDetailItem[]
+  items: ProductAttributeDetailItem[],
 ): AttributeOptionLabels =>
   Object.fromEntries(
-    items.map((item) => [item.definition.id, item.selected_option?.label ?? ""])
+    items.map((item) => [
+      item.definition.id,
+      item.selected_option?.label ?? "",
+    ]),
   )
+
+const getOptionColumns = ({
+  disabled,
+  onSelect,
+  selectedId,
+  translate,
+}: {
+  disabled: boolean
+  onSelect: (option: ProductAttributeOption) => void
+  selectedId: string
+  translate: (key: string) => string
+}) => [
+  optionColumnHelper.accessor("label", {
+    header: translate("columns.label"),
+  }),
+  optionColumnHelper.display({
+    cell: ({ row }) =>
+      row.original.id === selectedId ? (
+        <Text size="small" weight="plus">
+          {translate("status.selected")}
+        </Text>
+      ) : (
+        <Button
+          disabled={disabled}
+          onClick={() => {
+            onSelect(row.original)
+          }}
+          size="small"
+          type="button"
+          variant="secondary"
+        >
+          {translate("actions.select")}
+        </Button>
+      ),
+    id: "selection",
+  }),
+]
 
 const AttributeOptionSelector = ({
   definitionId,
@@ -75,43 +118,25 @@ const AttributeOptionSelector = ({
     status: "active" as const,
   }
   const { data, error, isLoading } = useQuery({
-    queryFn: () => listProductAttributeOptions(definitionId, params),
+    queryFn: async () =>
+      await listProductAttributeOptions(definitionId, params),
     queryKey: productAttributeQueryKeys.options(definitionId, params),
   })
-  const columns = useMemo(
-    () => [
-      optionColumnHelper.accessor("label", {
-        header: t("columns.label"),
-      }),
-      optionColumnHelper.display({
-        id: "selection",
-        cell: ({ row }) =>
-          row.original.id === selectedId ? (
-            <Text size="small" weight="plus">
-              {t("status.selected")}
-            </Text>
-          ) : (
-            <Button
-              disabled={disabled}
-              onClick={() => onSelect(row.original)}
-              size="small"
-              type="button"
-              variant="secondary"
-            >
-              {t("actions.select")}
-            </Button>
-          ),
-      }),
-    ],
-    [disabled, onSelect, selectedId, t]
-  )
+  const columns = getOptionColumns({
+    disabled,
+    onSelect,
+    selectedId,
+    translate: t,
+  })
   const table = useDataTable({
     columns,
     data: data?.options ?? [],
     getRowId: (option) => option.id,
     isLoading,
     pagination: {
-      onPaginationChange: (next) => setPageIndex(next.pageIndex),
+      onPaginationChange: (next) => {
+        setPageIndex(next.pageIndex)
+      },
       state: { pageIndex, pageSize: PAGE_SIZE },
     },
     rowCount: data?.count ?? 0,
@@ -126,7 +151,7 @@ const AttributeOptionSelector = ({
 
   return (
     <div className="min-h-[22rem]">
-      {error ? (
+      {error !== null && error !== undefined ? (
         <Text className="text-ui-fg-error" size="small">
           {t("errors.loadFailed")}
         </Text>
@@ -199,13 +224,13 @@ const AttributeEditorCard = ({
             className="truncate text-ui-fg-subtle"
             leading="compact"
             size="small"
-            title={valueLabel || undefined}
+            title={valueLabel.length > 0 ? valueLabel : undefined}
           >
-            {valueLabel || "-"}
+            {valueLabel.length > 0 ? valueLabel : "-"}
           </Text>
         </div>
         <Button
-          disabled={!value || disabled}
+          disabled={value.length === 0 || disabled}
           onClick={onClear}
           size="small"
           type="button"
@@ -225,7 +250,9 @@ const AttributeEditorCard = ({
               <Input
                 disabled={disabled}
                 id={inputId}
-                onChange={(event) => onTextChange(event.target.value)}
+                onChange={(event) => {
+                  onTextChange(event.target.value)
+                }}
                 placeholder={t("placeholders.textValue")}
                 value={value}
               />
@@ -260,32 +287,20 @@ export const ProductAttributesDrawer = ({
   const { t } = useTranslation("productAttributes")
   const queryClient = useQueryClient()
   const [values, setValues] = useState<AttributeValues>(() =>
-    getInitialValues(items)
+    getInitialValues(items),
   )
   const [optionLabels, setOptionLabels] = useState<AttributeOptionLabels>(() =>
-    getInitialOptionLabels(items)
+    getInitialOptionLabels(items),
   )
   const [openDefinitionIds, setOpenDefinitionIds] = useState<Set<string>>(
-    () => new Set()
+    () => new Set(),
   )
-  const resetEditor = useEffectEvent(() => {
-    setValues(getInitialValues(items))
-    setOptionLabels(getInitialOptionLabels(items))
-    setOpenDefinitionIds(new Set())
-  })
-
-  useEffect(() => {
-    if (open) {
-      resetEditor()
-    }
-  }, [open])
-
   const mutation = useMutation({
-    mutationFn: (operations: SetProductAttributeOperation[]) =>
-      setProductAttributes(productId, operations),
+    mutationFn: async (operations: SetProductAttributeOperation[]) =>
+      await setProductAttributes(productId, operations),
     onError: (error) =>
       toast.error(
-        error instanceof Error ? error.message : t("errors.saveFailed")
+        error instanceof Error ? error.message : t("errors.saveFailed"),
       ),
     onSuccess: async () => {
       await Promise.all([
@@ -300,11 +315,13 @@ export const ProductAttributesDrawer = ({
       onOpenChange(false)
     },
   })
-  const updateValue = (definitionId: string, value: string) =>
+  const updateValue = (definitionId: string, value: string) => {
     setValues((current) => ({ ...current, [definitionId]: value }))
-  const updateOptionLabel = (definitionId: string, value: string) =>
+  }
+  const updateOptionLabel = (definitionId: string, value: string) => {
     setOptionLabels((current) => ({ ...current, [definitionId]: value }))
-  const toggleDefinition = (definitionId: string) =>
+  }
+  const toggleDefinition = (definitionId: string) => {
     setOpenDefinitionIds((current) => {
       const next = new Set(current)
       if (next.has(definitionId)) {
@@ -314,6 +331,7 @@ export const ProductAttributesDrawer = ({
       }
       return next
     })
+  }
   const handleOpenChange = (nextOpen: boolean) => {
     if (!mutation.isPending) {
       onOpenChange(nextOpen)
@@ -322,7 +340,7 @@ export const ProductAttributesDrawer = ({
   const save = () => {
     const operations = items.map<SetProductAttributeOperation>((item) => {
       const value = values[item.definition.id]?.trim() ?? ""
-      if (!value) {
+      if (value.length === 0) {
         return {
           action: "remove",
           definition_id: item.definition.id,
@@ -350,7 +368,7 @@ export const ProductAttributesDrawer = ({
           <Drawer.Title>{t("widget.manageTitle")}</Drawer.Title>
         </Drawer.Header>
         <Drawer.Body className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto">
-          {items.length ? null : (
+          {items.length > 0 ? null : (
             <Text className="text-ui-fg-subtle" size="small">
               {t("widget.empty")}
             </Text>
@@ -376,10 +394,12 @@ export const ProductAttributesDrawer = ({
                   updateValue(item.definition.id, option.id)
                   updateOptionLabel(item.definition.id, option.label)
                 }}
-                onTextChange={(nextValue) =>
+                onTextChange={(nextValue) => {
                   updateValue(item.definition.id, nextValue)
-                }
-                onToggle={() => toggleDefinition(item.definition.id)}
+                }}
+                onToggle={() => {
+                  toggleDefinition(item.definition.id)
+                }}
                 value={value}
                 valueLabel={valueLabel ?? ""}
               />
@@ -389,7 +409,9 @@ export const ProductAttributesDrawer = ({
         <Drawer.Footer>
           <Button
             disabled={mutation.isPending}
-            onClick={() => handleOpenChange(false)}
+            onClick={() => {
+              handleOpenChange(false)
+            }}
             size="small"
             type="button"
             variant="secondary"
@@ -421,28 +443,35 @@ export const ProductAttributesContent = ({
 }) => {
   const { t } = useTranslation("productAttributes")
   const visibleItems = items.filter(
-    (item) => !item.definition.deleted_at || item.assignment
+    (item) =>
+      item.definition.deleted_at === null ||
+      item.definition.deleted_at === undefined ||
+      (item.assignment !== null && item.assignment !== undefined),
   )
+  const hasError = error !== null && error !== undefined
+  const showEmpty = !isLoading && !hasError && visibleItems.length === 0
 
   return (
     <div className="flex flex-col gap-3">
       {isLoading ? <Text size="small">{t("status.loading")}</Text> : null}
-      {error ? (
+      {hasError ? (
         <Text className="text-ui-fg-error" size="small">
           {t("widget.loadFailed")}
         </Text>
       ) : null}
-      {isLoading || error || visibleItems.length ? null : (
+      {showEmpty ? (
         <Text className="text-ui-fg-subtle" size="small">
           {t("widget.empty")}
         </Text>
-      )}
+      ) : null}
       {visibleItems.map((item) => {
         const displayValue =
           item.selected_option?.label ?? item.assignment?.text_value
-        const isDeleted = Boolean(
-          item.definition.deleted_at || item.selected_option?.deleted_at
-        )
+        const isDeleted =
+          (item.definition.deleted_at !== null &&
+            item.definition.deleted_at !== undefined) ||
+          (item.selected_option?.deleted_at !== null &&
+            item.selected_option?.deleted_at !== undefined)
         return (
           <div
             className="flex items-center justify-between gap-3"

@@ -1,4 +1,5 @@
 import { createBrandHref } from "@/lib/storefront/brands"
+
 import {
   createHandleLabel,
   normalizeString,
@@ -11,7 +12,7 @@ import type {
 } from "./search-autocomplete-types"
 
 const createCategorySuggestion = (
-  category: RawSearchAutocompleteCategoryRef
+  category: RawSearchAutocompleteCategoryRef,
 ): SearchAutocompleteSuggestion | null => {
   const id = normalizeString(category.id)
   const handle = normalizeString(category.handle)
@@ -22,10 +23,10 @@ const createCategorySuggestion = (
   }
 
   return {
-    id,
-    type: "category",
-    title,
     href: `/c/${handle}`,
+    id,
+    title,
+    type: "category",
   }
 }
 
@@ -39,7 +40,7 @@ export const createCategorySuggestions = ({
     .filter((item): item is SearchAutocompleteSuggestion => Boolean(item))
 
 const createBrandSuggestion = (
-  brand: RawSearchAutocompleteBrandRef
+  brand: RawSearchAutocompleteBrandRef,
 ): SearchAutocompleteSuggestion | null => {
   const title = normalizeString(brand.title)
   const handle = normalizeString(brand.handle)
@@ -51,10 +52,10 @@ const createBrandSuggestion = (
   }
 
   return {
-    id,
-    type: "brand",
-    title,
     href: createBrandHref({ slug }),
+    id,
+    title,
+    type: "brand",
   }
 }
 

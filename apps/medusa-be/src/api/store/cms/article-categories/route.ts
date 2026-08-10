@@ -1,13 +1,14 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { z } from "@medusajs/framework/zod"
+
 import { PAYLOAD_MODULE } from "../../../../modules/payload"
 import type PayloadModuleService from "../../../../modules/payload/service"
 import { optionalStringParam } from "../../../../utils/query-params"
 
 /** Query schema for fetching CMS article categories with articles. */
 export const StoreCmsArticleCategoriesSchema = z.object({
-  locale: optionalStringParam,
   categorySlug: optionalStringParam,
+  locale: optionalStringParam,
 })
 
 /** Parsed query type for article category listing. */
@@ -16,18 +17,20 @@ export type StoreCmsArticleCategoriesSchemaType = z.infer<
 >
 
 /** Store API handler returning article categories with articles. */
-export async function GET(
+const getArticleCategories = async (
   req: MedusaRequest<unknown, StoreCmsArticleCategoriesSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const cmsService = req.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
 
   const { categorySlug } = req.validatedQuery
 
   const articleCategories = await cmsService.listArticleCategoriesWithArticles({
-    locale: req.locale,
     categorySlug,
+    locale: req.locale,
   })
 
   return res.json({ articleCategories })
 }
+
+export { getArticleCategories as GET }

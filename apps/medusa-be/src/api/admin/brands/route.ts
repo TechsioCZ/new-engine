@@ -3,7 +3,9 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
-import { type BrandInput, createBrandsWorkflow } from "../../../workflows/brand"
+
+import type { BrandInput } from "../../../workflows/brand/types"
+import { createBrandsWorkflow } from "../../../workflows/brand/workflows/create-brands"
 import {
   escapeLikePattern,
   getBrandActiveProductCounts,
@@ -16,10 +18,9 @@ import type {
 } from "./validators"
 
 const ORDER_FIELDS = new Set(["title", "handle", "created_at", "updated_at"])
-const LEADING_DASH_REGEX = /^-/
+const LEADING_DASH_REGEX = /^-/u
 
-const parseOrder = (input?: string) => {
-  const value = input ?? "title"
+const parseOrder = (value = "title") => {
   const direction = value.startsWith("-") ? "DESC" : "ASC"
   const field = value.replace(LEADING_DASH_REGEX, "")
 
@@ -32,21 +33,22 @@ const parseOrder = (input?: string) => {
   }
 }
 
-export async function GET(
+const get = async (
   req: AuthenticatedMedusaRequest<unknown, AdminGetBrandsSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const service = getBrandService(req.scope)
   const { handle, include_deleted, limit, offset, q } = req.validatedQuery
   const order = parseOrder(
-    req.validatedQuery.order_by ?? req.validatedQuery.order
+    req.validatedQuery.order_by ?? req.validatedQuery.order,
   )
-  const escapedQuery = q ? escapeLikePattern(q) : undefined
+  const escapedQuery =
+    q === undefined || q === "" ? undefined : escapeLikePattern(q)
   let filters = {}
 
-  if (handle) {
+  if (handle !== undefined && handle !== "") {
     filters = { handle }
-  } else if (escapedQuery) {
+  } else if (escapedQuery !== undefined && escapedQuery !== "") {
     filters = {
       $or: [
         { title: { $ilike: `%${escapedQuery}%` } },
@@ -64,23 +66,23 @@ export async function GET(
   })
   const activeProductCounts = await getBrandActiveProductCounts(
     req.scope,
-    brands.map((brand) => brand.id)
+    brands.map((brand) => brand.id),
   )
 
   res.json({
+    brands: brands.map((brand) =>
+      toBrandResponse(brand, activeProductCounts.get(brand.id) ?? 0),
+    ),
     count,
     limit,
     offset,
-    brands: brands.map((brand) =>
-      toBrandResponse(brand, activeProductCounts.get(brand.id) ?? 0)
-    ),
   })
 }
 
-export async function POST(
+const post = async (
   req: AuthenticatedMedusaRequest<AdminCreateBrandSchemaType>,
-  res: MedusaResponse
-) {
+  res: MedusaResponse,
+) => {
   const input: BrandInput = {
     attributes: req.validatedBody.attributes,
     gpsr_contact_email: req.validatedBody.gpsr_contact_email,
@@ -104,12 +106,12 @@ export async function POST(
       brands: [input],
     },
   })
-  const created = result[0]
+  const [created] = result
 
-  if (!created?.id) {
+  if (created?.id === undefined || created.id === "") {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
-      "Brand creation failed: missing id"
+      "Brand creation failed: missing id",
     )
   }
 
@@ -119,3 +121,5 @@ export async function POST(
 
   res.status(200).json({ brand: toBrandResponse(brand) })
 }
+
+export { get as GET, post as POST }

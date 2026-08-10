@@ -1,204 +1,259 @@
-/**
+/*
  * Dialog — @techsio/ui-kit molecule.
  *
  * @component Dialog
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill dialog-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the dialog-usage skill's component_version and a changelog entry. Bump all three together.
  */
-import * as dialog from "@zag-js/dialog"
+import { connect, machine } from "@zag-js/dialog"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import { type ReactNode, useId } from "react"
-import { tv, type VariantProps } from "tailwind-variants"
+import { useId } from "react"
+import type { ReactNode } from "react"
+import { tv } from "tailwind-variants"
+import type { VariantProps } from "tailwind-variants"
+
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
 
 const dialogVariants = tv({
+  compoundVariants: [
+    // Width for left/right drawers
+    {
+      class: { content: "w-dialog-xs" },
+      placement: ["left", "right"],
+      size: "xs",
+    },
+    {
+      class: { content: "w-dialog-sm" },
+      placement: ["left", "right"],
+      size: "sm",
+    },
+    {
+      class: { content: "w-dialog-md" },
+      placement: ["left", "right"],
+      size: "md",
+    },
+    {
+      class: { content: "w-dialog-lg" },
+      placement: ["left", "right"],
+      size: "lg",
+    },
+    {
+      class: { content: "w-dialog-xl" },
+      placement: ["left", "right"],
+      size: "xl",
+    },
+    {
+      class: { content: "w-full" },
+      placement: ["left", "right"],
+      size: "full",
+    },
+
+    // Height for top/bottom drawers
+    {
+      class: { content: "h-dialog-xs" },
+      placement: ["top", "bottom"],
+      size: "xs",
+    },
+    {
+      class: { content: "h-dialog-sm" },
+      placement: ["top", "bottom"],
+      size: "sm",
+    },
+    {
+      class: { content: "h-dialog-md" },
+      placement: ["top", "bottom"],
+      size: "md",
+    },
+    {
+      class: { content: "h-dialog-lg" },
+      placement: ["top", "bottom"],
+      size: "lg",
+    },
+    {
+      class: { content: "h-dialog-xl" },
+      placement: ["top", "bottom"],
+      size: "xl",
+    },
+    {
+      class: { content: "h-full" },
+      placement: ["top", "bottom"],
+      size: "full",
+    },
+  ],
+  defaultVariants: {
+    behavior: "modal",
+    placement: "center",
+    position: "fixed",
+    size: "md",
+  },
   slots: {
+    actions:
+      "mt-auto flex shrink-0 justify-end gap-dialog-actions pt-dialog-actions-top",
     backdrop: ["inset-0 z-(--z-dialog-backdrop)"],
-    positioner: ["inset-0 z-(--z-dialog-positioner) flex"],
+    // Positioning only — the close button is an ActionIcon that owns its size,
+    // glyph and neutral hover pill.
+    closeTrigger: [
+      "absolute top-dialog-close-trigger-offset right-dialog-close-trigger-offset",
+    ],
     content: [
       "relative flex flex-col gap-dialog-content p-dialog-content",
       "bg-dialog-content-bg text-dialog-content-fg",
       "border-(length:--border-width-dialog) border-dialog-content-border",
       "shadow-dialog-content",
       "overflow-y-auto",
-      "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width)",
+      "focus-visible:outline-(length:--default-ring-width) focus-visible:outline-(style:--default-ring-style)",
       "focus-visible:outline-dialog-ring",
       "focus-visible:outline-offset-(length:--default-ring-offset)",
     ],
-    title: ["font-dialog-title text-dialog-title text-dialog-title-fg"],
     description: ["text-dialog-description text-dialog-description-fg"],
+    positioner: ["inset-0 z-(--z-dialog-positioner) flex"],
+    title: ["text-dialog-title font-dialog-title text-dialog-title-fg"],
     trigger: [],
-    // Positioning only — the close button is an ActionIcon that owns its size,
-    // glyph and neutral hover pill.
-    closeTrigger: [
-      "absolute top-dialog-close-trigger-offset right-dialog-close-trigger-offset",
-    ],
-    actions:
-      "mt-auto flex shrink-0 justify-end gap-dialog-actions pt-dialog-actions-top",
   },
   variants: {
-    placement: {
-      center: {
-        positioner: "items-center justify-center",
-        content:
-          "max-h-dialog-center-h-max max-w-dialog-center-w-max rounded-dialog-content-center",
-      },
-      left: {
-        positioner: "items-stretch justify-start",
-        content: "h-full rounded-dialog-content-side border-l-0",
-      },
-      right: {
-        positioner: "items-stretch justify-end",
-        content: "h-full rounded-dialog-content-side border-r-0",
-      },
-      top: {
-        positioner: "items-start justify-stretch",
-        content: "w-full rounded-dialog-content-edge border-t-0",
-      },
-      bottom: {
-        positioner: "items-end justify-stretch",
-        content: "w-full rounded-dialog-content-edge border-b-0",
-      },
-    },
-    position: {
-      fixed: {
-        backdrop: "fixed",
-        positioner: "fixed",
-      },
-      absolute: {
-        backdrop: "absolute",
-        positioner: "absolute",
-      },
-      sticky: {
-        backdrop: "sticky",
-        positioner: "sticky",
-      },
-      relative: {
-        backdrop: "relative",
-        positioner: "relative",
-      },
-    },
-    size: {
-      xs: {},
-      sm: {},
-      md: {},
-      lg: {},
-      xl: {},
-      full: {},
-    },
     behavior: {
       modal: {
         backdrop: "bg-dialog-backdrop-bg-modal",
       },
       modeless: {
         backdrop: "bg-transparent",
-        positioner: "pointer-events-none",
         content: "pointer-events-auto",
+        positioner: "pointer-events-none",
       },
     },
-  },
-  compoundVariants: [
-    // Width for left/right drawers
-    {
-      placement: ["left", "right"],
-      size: "xs",
-      class: { content: "w-dialog-xs" },
+    placement: {
+      bottom: {
+        content: "w-full rounded-dialog-content-edge border-b-0",
+        positioner: "items-end justify-stretch",
+      },
+      center: {
+        content:
+          "max-h-(--container-dialog-center-max-h) max-w-dialog-center-max-w rounded-dialog-content-center",
+        positioner: "items-center justify-center",
+      },
+      left: {
+        content: "h-full rounded-dialog-content-side border-l-0",
+        positioner: "items-stretch justify-start",
+      },
+      right: {
+        content: "h-full rounded-dialog-content-side border-r-0",
+        positioner: "items-stretch justify-end",
+      },
+      top: {
+        content: "w-full rounded-dialog-content-edge border-t-0",
+        positioner: "items-start justify-stretch",
+      },
     },
-    {
-      placement: ["left", "right"],
-      size: "sm",
-      class: { content: "w-dialog-sm" },
+    position: {
+      absolute: {
+        backdrop: "absolute",
+        positioner: "absolute",
+      },
+      fixed: {
+        backdrop: "fixed",
+        positioner: "fixed",
+      },
+      relative: {
+        backdrop: "relative",
+        positioner: "relative",
+      },
+      sticky: {
+        backdrop: "sticky",
+        positioner: "sticky",
+      },
     },
-    {
-      placement: ["left", "right"],
-      size: "md",
-      class: { content: "w-dialog-md" },
+    size: {
+      full: {},
+      lg: {},
+      md: {},
+      sm: {},
+      xl: {},
+      xs: {},
     },
-    {
-      placement: ["left", "right"],
-      size: "lg",
-      class: { content: "w-dialog-lg" },
-    },
-    {
-      placement: ["left", "right"],
-      size: "xl",
-      class: { content: "w-dialog-xl" },
-    },
-    {
-      placement: ["left", "right"],
-      size: "full",
-      class: { content: "w-full" },
-    },
-
-    // Height for top/bottom drawers
-    {
-      placement: ["top", "bottom"],
-      size: "xs",
-      class: { content: "h-dialog-xs" },
-    },
-    {
-      placement: ["top", "bottom"],
-      size: "sm",
-      class: { content: "h-dialog-sm" },
-    },
-    {
-      placement: ["top", "bottom"],
-      size: "md",
-      class: { content: "h-dialog-md" },
-    },
-    {
-      placement: ["top", "bottom"],
-      size: "lg",
-      class: { content: "h-dialog-lg" },
-    },
-    {
-      placement: ["top", "bottom"],
-      size: "xl",
-      class: { content: "h-dialog-xl" },
-    },
-    {
-      placement: ["top", "bottom"],
-      size: "full",
-      class: { content: "h-full" },
-    },
-  ],
-  defaultVariants: {
-    placement: "center",
-    behavior: "modal",
-    size: "md",
-    position: "fixed",
   },
 })
 
 export interface DialogProps extends VariantProps<typeof dialogVariants> {
-  open?: boolean
-  onOpenChange?: (details: { open: boolean }) => void
-  initialFocusEl?: () => HTMLElement | null
-  finalFocusEl?: () => HTMLElement | null
-  closeOnEscape?: boolean
-  closeOnInteractOutside?: boolean
-  preventScroll?: boolean
-  trapFocus?: boolean
-  role?: "dialog" | "alertdialog"
-  id?: string
-  customTrigger?: boolean
-  triggerText?: string
-  title?: ReactNode
-  description?: ReactNode
-  children?: ReactNode
-  actions?: ReactNode
-  hideCloseButton?: boolean
-  className?: string
-  modal?: boolean
-  portal?: boolean
+  open?: boolean | undefined
+  onOpenChange?: ((details: { open: boolean }) => void) | undefined
+  initialFocusEl?: (() => HTMLElement | null) | undefined
+  finalFocusEl?: (() => HTMLElement | null) | undefined
+  closeOnEscape?: boolean | undefined
+  closeOnInteractOutside?: boolean | undefined
+  preventScroll?: boolean | undefined
+  trapFocus?: boolean | undefined
+  role?: "dialog" | "alertdialog" | undefined
+  id?: string | undefined
+  customTrigger?: boolean | undefined
+  triggerText?: string | undefined
+  title?: ReactNode | undefined
+  description?: ReactNode | undefined
+  children?: ReactNode | undefined
+  actions?: ReactNode | undefined
+  hideCloseButton?: boolean | undefined
+  className?: string | undefined
+  modal?: boolean | undefined
+  portal?: boolean | undefined
 }
 
-export function Dialog({
+interface DialogMachineOptions {
+  closeOnEscape: boolean
+  closeOnInteractOutside: boolean
+  finalFocusEl: (() => HTMLElement | null) | undefined
+  id: string | undefined
+  initialFocusEl: (() => HTMLElement | null) | undefined
+  modal: boolean
+  onOpenChange: ((details: { open: boolean }) => void) | undefined
+  open: boolean | undefined
+  preventScroll: boolean
+  role: "dialog" | "alertdialog"
+  trapFocus: boolean
+}
+
+// Builds the Zag dialog machine and returns its connected API. Optional machine props are spread
+// conditionally so an explicit `undefined` is never handed to the machine under
+// `exactOptionalPropertyTypes`.
+const useDialogApi = ({
+  closeOnEscape,
+  closeOnInteractOutside,
+  finalFocusEl,
+  id,
+  initialFocusEl,
+  modal,
+  onOpenChange,
+  open,
+  preventScroll,
+  role,
+  trapFocus,
+}: DialogMachineOptions) => {
+  const generatedId = useId()
+  // A caller-supplied id wins only when it is a usable string; a missing or empty id falls back to
+  // the generated one so the machine always has a stable, non-empty id.
+  const uniqueId = id === undefined || id === "" ? generatedId : id
+
+  const service = useMachine(machine, {
+    id: uniqueId,
+    ...(onOpenChange !== undefined && { onOpenChange }),
+    closeOnEscape,
+    closeOnInteractOutside,
+    modal,
+    preventScroll,
+    role,
+    trapFocus,
+    ...(initialFocusEl !== undefined && { initialFocusEl }),
+    ...(finalFocusEl !== undefined && { finalFocusEl }),
+    ...(open !== undefined && { open }),
+  })
+
+  return connect(service, normalizeProps)
+}
+
+export const Dialog = ({
   id,
   open,
   onOpenChange,
@@ -223,25 +278,20 @@ export function Dialog({
   className,
   modal = true,
   portal = true,
-}: DialogProps) {
-  const generatedId = useId()
-  const uniqueId = id || generatedId
-
-  const service = useMachine(dialog.machine, {
-    id: uniqueId,
-    onOpenChange,
-    role,
+}: DialogProps) => {
+  const api = useDialogApi({
     closeOnEscape,
     closeOnInteractOutside,
-    preventScroll,
-    trapFocus,
-    initialFocusEl,
     finalFocusEl,
+    id,
+    initialFocusEl,
     modal,
-    ...(open !== undefined && { open }),
+    onOpenChange,
+    open,
+    preventScroll,
+    role,
+    trapFocus,
   })
-
-  const api = dialog.connect(service as dialog.Service, normalizeProps)
 
   const {
     backdrop,
@@ -252,7 +302,13 @@ export function Dialog({
     description: descriptionSlot,
     closeTrigger,
     actions: actionsSlot,
-  } = dialogVariants({ placement, size, behavior, position })
+  } = dialogVariants({ behavior, placement, position, size })
+
+  // `ReactNode` has mixed truthiness, so the render guards are narrowed to booleans while keeping
+  // the original truthy-only rendering decision.
+  const hasTitle = Boolean(title)
+  const hasDescription = Boolean(description)
+  const hasActions = Boolean(actions)
 
   const dialogContent = () => (
     <>
@@ -269,18 +325,18 @@ export function Dialog({
               aria-label="Close dialog"
             />
           )}
-          {title && (
+          {hasTitle && (
             <h2 className={titleSlot()} {...api.getTitleProps()}>
               {title}
             </h2>
           )}
-          {description && (
+          {hasDescription && (
             <div className={descriptionSlot()} {...api.getDescriptionProps()}>
               {description}
             </div>
           )}
           {children}
-          {actions && <div className={actionsSlot()}>{actions}</div>}
+          {hasActions && <div className={actionsSlot()}>{actions}</div>}
         </div>
       </div>
     </>

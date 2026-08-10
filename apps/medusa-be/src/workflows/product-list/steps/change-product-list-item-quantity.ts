@@ -1,17 +1,18 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
 import type ProductListModuleService from "../../../modules/product-list/service"
 import type { ProductListItemRecord } from "../types"
 
-export type ChangeProductListItemQuantityStepInput = {
+export interface ChangeProductListItemQuantityStepInput {
   item_id: string
   list_id: string
   previous_quantity: number
   quantity: number
 }
 
-type CompensationInput = {
+interface CompensationInput {
   item_id: string
   previous_quantity: number
 }
@@ -26,7 +27,7 @@ export const changeProductListItemQuantityStep = createStep(
     if (quantity < 1) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Quantity cannot be changed below 1"
+        "Quantity cannot be changed below 1",
       )
     }
 
@@ -41,7 +42,7 @@ export const changeProductListItemQuantityStep = createStep(
     })
   },
   async (input, { container }) => {
-    if (!input?.item_id) {
+    if (input?.item_id === undefined || input.item_id.length === 0) {
       return
     }
 
@@ -51,5 +52,5 @@ export const changeProductListItemQuantityStep = createStep(
         id: input.item_id,
         quantity: input.previous_quantity,
       })
-  }
+  },
 )

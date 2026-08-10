@@ -1,15 +1,15 @@
 "use client"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
-import { Combobox, type ComboboxItem } from "@techsio/ui-kit/molecules/combobox"
+import { Combobox } from "@techsio/ui-kit/molecules/combobox"
 import { PopoverTemplate as Popover } from "@techsio/ui-kit/templates/popover"
 import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import { useSearchProducts } from "@/hooks/use-search-products"
-import type { Product } from "@/types/product"
 
-export function HeaderSearch() {
+import { useSearchProducts } from "@/hooks/use-search-products"
+
+export const HeaderSearch = () => {
   const router = useRouter()
-  const [searchQuery, setSearchQuery] = useState("")
+  const searchQueryRef = useRef("")
   const [selectedValue, setSelectedValue] = useState<string[]>([])
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -20,7 +20,7 @@ export function HeaderSearch() {
         clearTimeout(debounceTimerRef.current)
       }
     },
-    []
+    [],
   )
 
   // Use search hook
@@ -30,13 +30,13 @@ export function HeaderSearch() {
 
   const comboboxItems = searchResults.map((product) => ({
     id: product.id,
-    value: product.handle || product.id,
     label: product.title || "Untitled Product",
+    value: product.handle || product.id,
   }))
 
   // Update search query and trigger debounced search
   const handleInputChange = (value: string) => {
-    setSearchQuery(value)
+    searchQueryRef.current = value
 
     // Clear existing timer
     if (debounceTimerRef.current) {
@@ -45,30 +45,14 @@ export function HeaderSearch() {
 
     // Set new timer
     debounceTimerRef.current = setTimeout(() => {
-      searchProducts(value)
+      void searchProducts(value)
     }, 300)
-  }
-
-  // Create combobox items
-  const searchItems: ComboboxItem<Product>[] = searchResults.map((product) => ({
-    value: product.handle || product.id,
-    label: product.title || "Untitled Product",
-    data: product,
-  }))
-
-  // Add "View all results" option if there's a search query
-  if (searchQuery && searchResults.length > 0) {
-    searchItems.push({
-      value: "__search__",
-      label: `Zobrazit všechny výsledky pro "${searchQuery}"`,
-      data: undefined,
-    })
   }
 
   const handleSearch = (query: string) => {
     if (query.trim()) {
       router.push(`/products?q=${encodeURIComponent(query.trim())}`)
-      setSearchQuery("")
+      searchQueryRef.current = ""
       setSelectedValue([])
     }
   }
@@ -76,14 +60,16 @@ export function HeaderSearch() {
   const handleSelect = (value: string | string[]) => {
     const selectedValues = Array.isArray(value) ? value : [value]
 
-    if (selectedValues.length > 0 && selectedValues[0]) {
-      const nextSelectedValue = selectedValues[0]
-
+    const [nextSelectedValue] = selectedValues
+    if (nextSelectedValue !== undefined && nextSelectedValue !== "") {
       if (nextSelectedValue === "__search__") {
-        handleSearch(searchQuery)
+        handleSearch(searchQueryRef.current)
       } else if (
         searchResults.some(
-          (product) => (product.handle || product.id) === nextSelectedValue
+          (product) =>
+            (product.handle === undefined || product.handle === ""
+              ? product.id
+              : product.handle) === nextSelectedValue,
         )
       ) {
         router.push(`/products/${nextSelectedValue}`)
@@ -92,7 +78,7 @@ export function HeaderSearch() {
         handleSearch(nextSelectedValue)
       }
 
-      setSearchQuery("")
+      searchQueryRef.current = ""
       setSelectedValue([])
     }
   }
@@ -112,8 +98,8 @@ export function HeaderSearch() {
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          if (searchQuery.trim()) {
-            handleSearch(searchQuery)
+          if (searchQueryRef.current.trim() !== "") {
+            handleSearch(searchQueryRef.current)
           }
         }}
       >

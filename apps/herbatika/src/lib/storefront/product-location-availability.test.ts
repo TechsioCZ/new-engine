@@ -1,31 +1,46 @@
 import { describe, expect, it } from "vitest"
+
 import {
   formatLocationAvailability,
   resolveProductLocationAvailabilityState,
-  resolveSelectedVariantLocationAvailability,
 } from "./product-location-availability"
+
+const variantOneLocations = [
+  {
+    available_quantity: 4,
+    location_id: "sloc_store",
+    location_name: "Prodejna",
+  },
+]
 
 const availability = {
   product_id: "prod_1",
   variants: [
     {
+      location_availability: variantOneLocations,
       variant_id: "variant_1",
-      location_availability: [
-        {
-          location_id: "sloc_store",
-          location_name: "Prodejna",
-          available_quantity: 4,
-        },
-      ],
     },
     {
-      variant_id: "variant_empty",
       location_availability: [],
+      variant_id: "variant_empty",
     },
   ],
 }
 
-describe("formatLocationAvailability", () => {
+const resolveItems = (
+  productLocationAvailability: typeof availability | null,
+  variantId: string | null,
+) =>
+  resolveProductLocationAvailabilityState(
+    {
+      error: null,
+      isLoading: false,
+      productLocationAvailability,
+    },
+    variantId,
+  ).items
+
+describe(formatLocationAvailability, () => {
   it.each([
     [Number.NaN, "0 ks"],
     [-2, "0 ks"],
@@ -40,56 +55,46 @@ describe("formatLocationAvailability", () => {
 
   it("formats unmanaged inventory as generally in stock", () => {
     expect(formatLocationAvailability(0, { isInventoryManaged: false })).toBe(
-      "Skladom"
+      "Skladom",
     )
   })
 })
 
-describe("resolveSelectedVariantLocationAvailability", () => {
+describe(resolveProductLocationAvailabilityState, () => {
   it("returns the selected variant locations", () => {
-    expect(
-      resolveSelectedVariantLocationAvailability(availability, "variant_1")
-    ).toEqual(availability.variants[0].location_availability)
+    expect(resolveItems(availability, "variant_1")).toStrictEqual(
+      variantOneLocations,
+    )
   })
 
   it("returns an empty array when the selected variant has no locations", () => {
-    expect(
-      resolveSelectedVariantLocationAvailability(availability, "variant_empty")
-    ).toEqual([])
+    expect(resolveItems(availability, "variant_empty")).toStrictEqual([])
   })
 
   it("returns null without availability or selected variant", () => {
-    expect(resolveSelectedVariantLocationAvailability(null, "variant_1")).toBe(
-      null
-    )
-    expect(resolveSelectedVariantLocationAvailability(availability, null)).toBe(
-      null
-    )
+    expect(resolveItems(null, "variant_1")).toBeNull()
+    expect(resolveItems(availability, null)).toBeNull()
   })
 
   it("returns null when the selected variant is missing", () => {
-    expect(
-      resolveSelectedVariantLocationAvailability(availability, "variant_2")
-    ).toBe(null)
+    expect(resolveItems(availability, "variant_2")).toBeNull()
   })
-})
 
-describe("resolveProductLocationAvailabilityState", () => {
   it("projects query state into selected variant availability state", () => {
     expect(
       resolveProductLocationAvailabilityState(
         {
-          productLocationAvailability: availability,
-          isLoading: false,
           error: null,
+          isLoading: false,
+          productLocationAvailability: availability,
         },
-        "variant_1"
-      )
-    ).toEqual({
-      items: availability.variants[0].location_availability,
-      isLoading: false,
+        "variant_1",
+      ),
+    ).toStrictEqual({
       error: null,
       isInventoryManaged: true,
+      isLoading: false,
+      items: variantOneLocations,
     })
   })
 
@@ -97,13 +102,13 @@ describe("resolveProductLocationAvailabilityState", () => {
     expect(
       resolveProductLocationAvailabilityState(
         {
-          productLocationAvailability: availability,
-          isLoading: false,
           error: null,
+          isLoading: false,
+          productLocationAvailability: availability,
         },
         "variant_1",
-        { isInventoryManaged: false }
-      )
+        { isInventoryManaged: false },
+      ),
     ).toMatchObject({
       isInventoryManaged: false,
     })

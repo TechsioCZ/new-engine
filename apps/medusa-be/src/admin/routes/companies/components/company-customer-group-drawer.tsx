@@ -10,22 +10,48 @@ import {
 } from "@medusajs/ui"
 import { useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
+
 import type { QueryCompany } from "../../../../types"
 import {
   useAddCompanyToCustomerGroup,
+  useRemoveCompanyFromCustomerGroup,
+} from "../../../hooks/api/companies"
+import {
   useAdminCustomerGroups,
   useCustomerGroupCompanyOwners,
-  useRemoveCompanyFromCustomerGroup,
-} from "../../../hooks/api"
+} from "../../../hooks/api/customers"
 import { getPaginationTranslations } from "../../../lib/table"
 import { useDebouncedValue } from "../../../lib/use-debounced-value"
 
 const PAGE_SIZE = 20
 
+interface LinkedCompany {
+  deleted_at?: string | null
+  id: string
+  name: string
+}
+
 const getActiveEmployeeCount = (company: QueryCompany) =>
   company.employees?.filter((employee) => !employee.deleted_at).length ?? 0
 
-export function CompanyCustomerGroupDrawer({
+const getLoadErrorMessage = (
+  customerGroupsError: Error | null,
+  ownersError: Error | null,
+  fallback: string,
+) => {
+  const customerGroupsMessage = customerGroupsError?.message
+  if (customerGroupsMessage !== undefined && customerGroupsMessage !== "") {
+    return customerGroupsMessage
+  }
+
+  const ownersMessage = ownersError?.message
+  if (ownersMessage !== undefined && ownersMessage !== "") {
+    return ownersMessage
+  }
+  return fallback
+}
+
+export const CompanyCustomerGroupDrawer = ({
   company,
   open,
   setOpen,
@@ -33,7 +59,7 @@ export function CompanyCustomerGroupDrawer({
   company: QueryCompany
   open: boolean
   setOpen: (open: boolean) => void
-}) {
+}) => {
   const { t } = useTranslation("companies")
   const [pageIndex, setPageIndex] = useState(0)
   const [q, setQ] = useState("")
@@ -61,28 +87,27 @@ export function CompanyCustomerGroupDrawer({
 
   const handleAdd = async (groupId: string) => {
     await addMutate(groupId, {
-      onSuccess: async () => {
-        toast.success(t("toasts.companyAddedToCustomerGroup"))
-      },
       onError: (_error) => {
         toast.error(t("errors.updateCustomerGroupFailed"))
+      },
+      onSuccess: () => {
+        toast.success(t("toasts.companyAddedToCustomerGroup"))
       },
     })
   }
 
   const handleRemove = async (groupId: string) => {
     await removeMutate(groupId, {
-      onSuccess: async () => {
-        toast.success(t("toasts.companyRemovedFromCustomerGroup"))
-      },
       onError: () => {
         toast.error(t("errors.removeCustomerGroupFailed"))
+      },
+      onSuccess: () => {
+        toast.success(t("toasts.companyRemovedFromCustomerGroup"))
       },
     })
   }
 
-  const customerGroups =
-    (data?.customer_groups as HttpTypes.AdminCustomerGroup[] | undefined) ?? []
+  const customerGroups = data?.customer_groups ?? []
   const count = data?.count ?? 0
   const pageCount = Math.max(Math.ceil(count / PAGE_SIZE), 1)
   const customerGroupIds = customerGroups.map((group) => group.id)
@@ -95,18 +120,21 @@ export function CompanyCustomerGroupDrawer({
     enabled: open && customerGroupIds.length > 0,
     placeholderData: (previousData) => previousData,
   })
-  const ownersByGroupId = new Map<string, QueryCompany[]>()
+  const ownersByGroupId = new Map<string, LinkedCompany[]>()
 
   for (const link of ownerData?.customer_group_links ?? []) {
     const owners = ownersByGroupId.get(link.customer_group_id) ?? []
-    owners.push(link.company as QueryCompany)
+    owners.push(link.company)
     ownersByGroupId.set(link.customer_group_id, owners)
   }
 
   const getActiveLinkedCompany = (group: HttpTypes.AdminCustomerGroup) =>
     (ownersByGroupId.get(group.id) ?? []).find(
       (linkedCompany) =>
-        linkedCompany.id !== company.id && !linkedCompany.deleted_at
+        linkedCompany.id !== company.id &&
+        (linkedCompany.deleted_at === undefined ||
+          linkedCompany.deleted_at === null ||
+          linkedCompany.deleted_at === ""),
     )
 
   const renderGroupName = (group: HttpTypes.AdminCustomerGroup) => {
@@ -137,7 +165,9 @@ export function CompanyCustomerGroupDrawer({
       return (
         <Button
           isLoading={removeLoading}
-          onClick={() => handleRemove(group.id)}
+          onClick={() => {
+            void handleRemove(group.id)
+          }}
           variant="danger"
         >
           {t("customerGroup.remove")}
@@ -150,7 +180,9 @@ export function CompanyCustomerGroupDrawer({
       <Button
         disabled={addDisabled}
         isLoading={addLoading}
-        onClick={() => handleAdd(group.id)}
+        onClick={() => {
+          void handleAdd(group.id)
+        }}
       >
         {t("customerGroup.set")}
       </Button>
@@ -171,9 +203,11 @@ export function CompanyCustomerGroupDrawer({
       return (
         <Table.Row>
           <Table.Cell className="text-ui-fg-error">
-            {customerGroupsError?.message ||
-              ownersError?.message ||
-              t("errors.loadCustomerGroupsFailed")}
+            {getLoadErrorMessage(
+              customerGroupsError,
+              ownersError,
+              t("errors.loadCustomerGroupsFailed"),
+            )}
           </Table.Cell>
           <Table.Cell />
         </Table.Row>
@@ -219,9 +253,9 @@ export function CompanyCustomerGroupDrawer({
       >
         <Drawer.Header>
           <Drawer.Title>
-            {company.name
-              ? t("customerGroup.title", { name: company.name })
-              : t("customerGroup.titleFallback")}
+            {company.name === undefined || company.name === ""
+              ? t("customerGroup.titleFallback")
+              : t("customerGroup.title", { name: company.name })}
           </Drawer.Title>
         </Drawer.Header>
         <Drawer.Body className="h-full space-y-4 overflow-y-hidden">
@@ -259,13 +293,15 @@ export function CompanyCustomerGroupDrawer({
               canNextPage={pageIndex + 1 < pageCount}
               canPreviousPage={pageIndex > 0}
               count={count}
-              nextPage={() => setPageIndex((current) => current + 1)}
+              nextPage={() => {
+                setPageIndex((current) => current + 1)
+              }}
               pageCount={pageCount}
               pageIndex={pageIndex}
               pageSize={PAGE_SIZE}
-              previousPage={() =>
+              previousPage={() => {
                 setPageIndex((current) => Math.max(current - 1, 0))
-              }
+              }}
               translations={getPaginationTranslations(t)}
             />
           </div>

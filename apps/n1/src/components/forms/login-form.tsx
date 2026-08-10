@@ -1,10 +1,11 @@
 "use client"
 
 import { useForm } from "@tanstack/react-form"
-import { Button } from "@ui/atoms/button"
-import { Checkbox } from "@ui/atoms/checkbox"
+import { Button } from "@techsio/ui-kit/atoms/button"
+import { Checkbox } from "@techsio/ui-kit/atoms/checkbox"
 import Link from "next/link"
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
+
 import { TextField } from "@/components/forms/fields/text-field"
 import { useLogin } from "@/hooks/use-login"
 import { useAuthToast } from "@/hooks/use-toast"
@@ -12,7 +13,7 @@ import { AUTH_MESSAGES } from "@/lib/auth-messages"
 import { loginValidators } from "@/lib/form-validators"
 import { useAnalytics } from "@/providers/analytics-provider"
 
-type LoginFormProps = {
+interface LoginFormProps {
   onSuccess?: () => void
   toggle?: () => void
   showRegisterLink?: boolean
@@ -20,36 +21,40 @@ type LoginFormProps = {
   className?: string
 }
 
-type LoginFormData = {
+interface LoginFormData {
   email: string
   password: string
 }
 
-export function LoginForm({
+const defaultValues: LoginFormData = {
+  email: "",
+  password: "",
+}
+
+export const LoginForm = ({
   onSuccess,
   toggle,
   showRegisterLink,
   showForgotPasswordLink,
-}: LoginFormProps) {
+}: LoginFormProps) => {
   const toast = useAuthToast()
   const analytics = useAnalytics()
   const formRef = useRef<typeof form | null>(null)
   const [backendError, setBackendError] = useState<string>()
   const rememberId = "login-remember"
 
-  const defaultValues: LoginFormData = {
-    email: "",
-    password: "",
-  }
-
   const login = useLogin({
+    onError: (error) => {
+      console.error("Login failed:", error.message)
+      setBackendError(AUTH_MESSAGES.INVALID_CREDENTIALS)
+    },
     onSuccess: () => {
       if (!formRef.current) {
         return
       }
 
-      const email = formRef.current.state.values.email
-      if (email) {
+      const { email } = formRef.current.state.values
+      if (email.length > 0) {
         analytics.trackIdentify({
           email,
           subscribe: [],
@@ -60,10 +65,6 @@ export function LoginForm({
       formRef.current.reset()
       setBackendError(undefined)
       onSuccess?.()
-    },
-    onError: (error) => {
-      console.error("Login failed:", error.message)
-      setBackendError(AUTH_MESSAGES.INVALID_CREDENTIALS)
     },
   })
 
@@ -77,15 +78,20 @@ export function LoginForm({
     },
   })
 
-  formRef.current = form
+  useEffect(() => {
+    formRef.current = form
+    return () => {
+      formRef.current = null
+    }
+  }, [form])
 
   return (
     <form
       className="mt-100 flex flex-col gap-100"
       noValidate
-      onSubmit={(e) => {
-        e.preventDefault()
-        form.handleSubmit()
+      onSubmit={(event) => {
+        event.preventDefault()
+        void form.handleSubmit()
       }}
     >
       <form.Field name="email" validators={loginValidators.email}>
@@ -110,7 +116,9 @@ export function LoginForm({
             externalError={backendError}
             field={field}
             label="Heslo"
-            onExternalErrorClear={() => setBackendError(undefined)}
+            onExternalErrorClear={() => {
+              setBackendError(undefined)
+            }}
             placeholder="••••••••"
             required
             type="password"
@@ -118,7 +126,7 @@ export function LoginForm({
         )}
       </form.Field>
 
-      {showForgotPasswordLink && (
+      {showForgotPasswordLink === true && (
         <label className="enter flex items-center gap-150" htmlFor={rememberId}>
           <Checkbox
             disabled={login.isPending}
@@ -140,22 +148,22 @@ export function LoginForm({
         {login.isPending ? "Přihlašování..." : "Přihlásit se"}
       </Button>
 
-      {(showRegisterLink || showForgotPasswordLink) && (
+      {(showRegisterLink === true || showForgotPasswordLink === true) && (
         <div className="flex items-center justify-between text-center text-fg-primary text-sm">
-          {showForgotPasswordLink && (
+          {showForgotPasswordLink === true && (
             <Link
               className="font-medium hover:underline"
               href="/zapomenute-heslo"
-              onClick={toggle}
+              {...(toggle ? { onClick: toggle } : {})}
             >
               Zapomenuté heslo
             </Link>
           )}
-          {showRegisterLink && (
+          {showRegisterLink === true && (
             <Link
               className="font-medium hover:underline"
               href="/registrace"
-              onClick={toggle}
+              {...(toggle ? { onClick: toggle } : {})}
             >
               Zaregistrovat se
             </Link>

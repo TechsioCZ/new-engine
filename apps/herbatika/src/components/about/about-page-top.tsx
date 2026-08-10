@@ -1,13 +1,11 @@
 import { ABOUT_PAGE } from "./about-page.data"
 import { AboutParagraphText } from "./about-page.shared"
 
-export function AboutHero() {
-  return (
-    <section className="max-w-5xl space-y-250">
-      <h1 className="font-bold text-4xl text-fg-primary leading-tight lg:text-5xl">
-        {ABOUT_PAGE.hero.title}
-      </h1>
-      <AboutParagraphText paragraph={ABOUT_PAGE.hero.lead} />
-    </section>
-  )
-}
+export const AboutHero = () => (
+  <section className="max-w-about-copy space-y-250">
+    <h1 className="font-bold text-4xl text-fg-primary leading-tight lg:text-5xl">
+      {ABOUT_PAGE.hero.title}
+    </h1>
+    <AboutParagraphText paragraph={ABOUT_PAGE.hero.lead} />
+  </section>
+)

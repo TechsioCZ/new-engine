@@ -23,16 +23,40 @@ const resolveLocaleFromCurrency = (currencyCode: string) => {
   return localeByCurrency[currencyCode] ?? "sk-SK"
 }
 
-type FormatCurrencyAmountOptions = {
+interface FormatCurrencyAmountOptions {
   minimumFractionDigits?: number
   maximumFractionDigits?: number
   fallbackPrecision?: number
 }
 
+const currencyFormatterCache = new Map<string, Intl.NumberFormat>()
+
+const getCurrencyFormatter = (
+  currencyCode: string,
+  maximumFractionDigits: number,
+  minimumFractionDigits: number,
+) => {
+  const locale = resolveLocaleFromCurrency(currencyCode)
+  const cacheKey = `${locale}:${currencyCode}:${minimumFractionDigits}:${maximumFractionDigits}`
+  const cachedFormatter = currencyFormatterCache.get(cacheKey)
+  if (cachedFormatter) {
+    return cachedFormatter
+  }
+
+  const formatter = Intl.NumberFormat(locale, {
+    currency: currencyCode,
+    maximumFractionDigits,
+    minimumFractionDigits,
+    style: "currency",
+  })
+  currencyFormatterCache.set(cacheKey, formatter)
+  return formatter
+}
+
 export const formatCurrencyAmount = (
   amount: number,
   currencyCode?: string | null,
-  options: FormatCurrencyAmountOptions = {}
+  options: FormatCurrencyAmountOptions = {},
 ): string => {
   const safeAmount = Number.isFinite(amount) ? amount : 0
   const safeCurrencyCode = normalizeFormatCurrencyCode(currencyCode)
@@ -50,12 +74,11 @@ export const formatCurrencyAmount = (
       : maximumFractionDigits
 
   try {
-    return new Intl.NumberFormat(resolveLocaleFromCurrency(safeCurrencyCode), {
-      style: "currency",
-      currency: safeCurrencyCode,
-      minimumFractionDigits,
+    return getCurrencyFormatter(
+      safeCurrencyCode,
       maximumFractionDigits,
-    }).format(safeAmount)
+      minimumFractionDigits,
+    ).format(safeAmount)
   } catch {
     return `${safeAmount.toFixed(fallbackPrecision)} ${safeCurrencyCode}`
   }
@@ -63,10 +86,10 @@ export const formatCurrencyAmount = (
 
 export const formatWholeCurrencyAmount = (
   amount: number,
-  currencyCode?: string | null
+  currencyCode?: string | null,
 ): string =>
   formatCurrencyAmount(amount, currencyCode, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
     fallbackPrecision: 0,
+    maximumFractionDigits: 0,
+    minimumFractionDigits: 0,
   })

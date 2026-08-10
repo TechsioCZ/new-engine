@@ -1,33 +1,32 @@
 "use client"
 
 import { ProductCard } from "@techsio/ui-kit/molecules/product-card"
-import NextImage from "next/image"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
-import {
-  type HerbatikaProductCardBaseProps,
-  useHerbatikaProductCardState,
-} from "@/components/herbatika-product-card.shared"
+import NextImage from "next/image"
+
+import NextLink from "@/components/app-link"
+import { useHerbatikaProductCardState } from "@/components/herbatika-product-card.shared"
+import type { HerbatikaProductCardBaseProps } from "@/components/herbatika-product-card.shared"
 
 export type HerbatikaProductCardCompactProps = HerbatikaProductCardBaseProps & {
   onCompactImageError?: (
-    product: HerbatikaProductCardBaseProps["product"]
+    product: HerbatikaProductCardBaseProps["product"],
   ) => void
 }
 
-export function HerbatikaProductCardCompact({
+export const HerbatikaProductCardCompact = ({
   product,
   onCompactImageError,
   onProductHoverEnd,
   onProductHoverStart,
-}: HerbatikaProductCardCompactProps) {
+}: HerbatikaProductCardCompactProps) => {
   const tCatalog = useTranslations("catalog")
   const { handleImageError, imageSrc, price, productHref, title } =
     useHerbatikaProductCardState(product, {
-      priceUnavailableLabel: tCatalog("product_card.price_on_request"),
       onImageError: () => {
         onCompactImageError?.(product)
       },
+      priceUnavailableLabel: tCatalog("product_card.price_on_request"),
     })
 
   return (

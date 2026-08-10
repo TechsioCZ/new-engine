@@ -2,33 +2,36 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
+import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+
 import { requirePathParam } from "../../../../../utils/path-params"
-import { addCompanyToCustomerGroupWorkflow } from "../../../../../workflows/company/workflows/"
+import { addCompanyToCustomerGroupWorkflow } from "../../../../../workflows/company/workflows/add-company-to-customer-group"
 import type { AdminAddCompanyToCustomerGroupType } from "../../validators"
 
-export const POST = async (
+const post = async (
   req: AuthenticatedMedusaRequest<AdminAddCompanyToCustomerGroupType>,
-  res: MedusaResponse
+  res: MedusaResponse,
 ) => {
-  const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const id = requirePathParam(req.params.id, "Company id")
+  const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const id = requirePathParam(req.params["id"], "Company id")
   const { group_id } = req.validatedBody
 
   await addCompanyToCustomerGroupWorkflow(req.scope).run({
     input: { company_id: id, group_id },
   })
 
-  const {
-    data: [company],
-  } = await query.graph(
+  const queryResult = await query.graph(
     {
       entity: "companies",
       fields: req.queryConfig.fields,
       filters: { id },
     },
-    { throwIfKeyNotFound: true }
+    { throwIfKeyNotFound: true },
   )
+  const [company] = queryResult.data
 
-  res.json({ company })
+  res.json({ company: company ?? null })
 }
+
+export { post as POST }

@@ -1,671 +1,1409 @@
-import type { ILockingModule, Logger, MedusaContainer, Query } from '@medusajs/framework/types'
-import { ContainerRegistrationKeys, Modules } from '@medusajs/framework/utils'
-import { PAYLOAD_MODULE } from '../payload'
-import type PayloadModuleService from '../payload/service'
-import { SEARCH_PROFILE_MODULE } from '../search-profile'
-import { MeilisearchAdminClient } from './admin-client'
-import { buildBrandSearchDocument, buildCategorySearchDocument, buildContentSearchDocument, buildProductSearchDocuments } from './documents'
-import { isMeilisearchEnabled } from './env'
-import { loadSearchProfiles, SEARCH_INDEX_TYPES, type SearchIndexType, type SearchProfile } from './profiles'
-import { SEARCH_INDEX_SETTINGS } from './settings'
+import { randomUUID } from "node:crypto"
 
-export type SearchProfileSyncMode = 'full' | 'normal'
+import type {
+  ILockingModule,
+  Logger,
+  MedusaContainer,
+  Query,
+} from "@medusajs/framework/types"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
-export type SearchProfileSyncResult = {
-	deleted: number
-	indexed: number
-	mode: SearchProfileSyncMode
-	profiles: number
+import { executeWithLockTimeout } from "../../utils/locking"
+import { PAYLOAD_MODULE } from "../payload"
+import { SEARCH_PROFILE_MODULE } from "../search-profile"
+import { MeilisearchAdminClient } from "./admin-client"
+import {
+  buildBrandSearchDocument,
+  buildCategorySearchDocument,
+  buildContentSearchDocument,
+  buildProductSearchDocuments,
+} from "./documents"
+import { isMeilisearchEnabled } from "./env"
+import { loadSearchProfiles, SEARCH_INDEX_TYPES } from "./profiles"
+import type { SearchIndexType, SearchProfile } from "./profiles"
+import { SEARCH_INDEX_SETTINGS } from "./settings"
+
+export type SearchProfileSyncMode = "full" | "normal"
+
+export type SearchProfileSyncStatus =
+  | "completed"
+  | "skipped_disabled"
+  | "skipped_lock_contended"
+
+export interface SearchProfileSyncResult {
+  deleted: number
+  indexed: number
+  mode: SearchProfileSyncMode
+  profiles: number
+  status: SearchProfileSyncStatus
 }
 
-export type SearchProfileSyncOptions = {
-	profileKeys?: string[]
+export interface SearchProfileSyncOptions {
+  profileKeys?: string[]
 }
 
 type SearchSyncTargets = Record<SearchIndexType, string>
 
-type SearchProfileSyncStateService = {
-	updateSearchProfiles: (data: Record<string, unknown>) => Promise<unknown>
+interface SearchProfileSyncState {
+  last_deleted_count?: number
+  last_indexed_count?: number
+  last_sync_error?: string | null
+  last_sync_mode?: SearchProfileSyncMode
+  last_sync_started_at?: Date
+  last_sync_status?: "failed" | "running" | "succeeded"
+  last_synced_at?: Date
 }
 
-type DatabaseConnection = {
-	raw: (query: string, bindings?: unknown[]) => Promise<unknown>
+interface SearchProfileSyncStateService {
+  updateSearchProfiles: (
+    data: SearchProfileSyncState & { id: string },
+  ) => Promise<unknown>
 }
 
-type ProfileReferenceIds = {
-	brandIds: Set<string>
-	categoryIds: Set<string>
-	categoryProductTitles: Map<string, string[]>
+interface DatabaseConnection {
+  raw: (query: string, bindings?: unknown[]) => Promise<unknown>
+}
+
+interface SearchGraphIdOperators {
+  $gt?: string
+  $in?: string[]
+}
+
+interface SearchGraphFilters {
+  id?: string | SearchGraphIdOperators
+  is_active?: boolean
+  reference_id?: string[]
+  status?: string
+}
+
+interface SearchContentService {
+  listPublishedArticles: (options: {
+    limit: number
+    locale: string
+    page: number
+  }) => Promise<unknown>
+  listPublishedPages: (options: {
+    limit: number
+    locale: string
+    page: number
+  }) => Promise<unknown>
+}
+
+type SearchEntity = object
+
+interface ContentPage {
+  docs: SearchEntity[]
+  hasNextPage: boolean
+}
+
+interface ContentUnavailable {
+  reason: string
+  status: "unavailable"
+}
+type ContentPageResult =
+  | { page: ContentPage; status: "available" }
+  | ContentUnavailable
+type ContentIndexResult =
+  | { ids: Set<string>; status: "available" }
+  | ContentUnavailable
+
+export type SearchSynchronizationErrorCode =
+  | "SEARCH_SYNC_DATA_INVALID"
+  | "SEARCH_SYNC_PAGE_LIMIT_EXCEEDED"
+  | "SEARCH_SYNC_PROFILE_NOT_FOUND"
+  | "SEARCH_SYNC_SOURCE_UNAVAILABLE"
+
+export class SearchSynchronizationError extends Error {
+  readonly code: SearchSynchronizationErrorCode
+
+  constructor(code: SearchSynchronizationErrorCode, message: string) {
+    super(message)
+    this.code = code
+    this.name = "SearchSynchronizationError"
+  }
+}
+
+interface ProfileReferenceIds {
+  brandIds: Set<string>
+  categoryIds: Set<string>
+  categoryProductTitles: Map<string, Set<string>>
 }
 
 const BATCH_SIZE = 500
-const SEARCH_SYNC_LOCK_KEY = 'meilisearch-search-profiles-sync'
+const MAX_CONTENT_PAGES_PER_COLLECTION = 10_000
+const MAX_ENTITY_PAGES = 10_000
+const MAX_TRANSLATION_PAGES_PER_BATCH = 20
+const SEARCH_SYNC_LOCK_KEY = "meilisearch-search-profiles-sync"
 
 const PRODUCT_FIELDS = [
-	'id',
-	'status',
-	'title',
-	'description',
-	'handle',
-	'thumbnail',
-	'created_at',
-	'metadata',
-	'categories.id',
-	'categories.name',
-	'categories.description',
-	'categories.handle',
-	'brand.id',
-	'brand.title',
-	'brand.description',
-	'brand.handle',
-	'sales_channels.id',
-	'variants.id',
-	'variants.sku',
-	'variants.ean',
-	'variants.upc',
-	'variants.barcode',
-	'variants.metadata',
-	'variants.prices.amount',
-	'variants.prices.currency_code'
+  "id",
+  "status",
+  "title",
+  "description",
+  "handle",
+  "thumbnail",
+  "created_at",
+  "metadata",
+  "categories.id",
+  "categories.name",
+  "categories.description",
+  "categories.handle",
+  "brand.id",
+  "brand.title",
+  "brand.description",
+  "brand.handle",
+  "sales_channels.id",
+  "variants.id",
+  "variants.title",
+  "variants.sku",
+  "variants.ean",
+  "variants.upc",
+  "variants.barcode",
+  "variants.metadata",
+  "variants.prices.amount",
+  "variants.prices.currency_code",
 ]
 
-const CATEGORY_FIELDS = ['id', 'name', 'description', 'handle', 'is_active', 'parent_category_id']
-const BRAND_FIELDS = ['id', 'title', 'description', 'handle']
+const CATEGORY_FIELDS = [
+  "id",
+  "name",
+  "description",
+  "handle",
+  "is_active",
+  "parent_category_id",
+]
+const BRAND_FIELDS = ["id", "title", "description", "handle"]
+const LOCALIZED_SEARCH_FIELDS = [
+  "description",
+  "handle",
+  "name",
+  "title",
+] as const
 
-const asRecord = (value: unknown): Record<string, unknown> | undefined => {
-	if (!value || typeof value !== 'object' || Array.isArray(value)) {
-		return
-	}
+const asRecord = (value: unknown): SearchEntity | undefined =>
+  isRecord(value) ? value : undefined
 
-	return value as Record<string, unknown>
+const asRecords = (value: unknown): SearchEntity[] => {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  const records: SearchEntity[] = []
+
+  for (const entry of value) {
+    const record = asRecord(entry)
+    if (record !== undefined) {
+      records.push(record)
+    }
+  }
+
+  return records
 }
 
-const asRecords = (value: unknown): Record<string, unknown>[] => Array.isArray(value) ? value.map((entry) => asRecord(entry)).filter((entry): entry is Record<string, unknown> => entry !== undefined) : []
+const getId = (record: SearchEntity): string | undefined => {
+  const id = getRecordValue(record, "id")
 
-const getId = (record: Record<string, unknown>): string | undefined => {
-	const id = record.id
+  if (typeof id === "string" && id.trim().length > 0) {
+    return id
+  }
 
-	if (typeof id === 'string' && id.trim()) {
-		return id
-	}
+  if (typeof id === "number" && Number.isFinite(id)) {
+    return String(id)
+  }
 
-	if (typeof id === 'number' && Number.isFinite(id)) {
-		return String(id)
-	}
-
-	return
+  return undefined
 }
 
-const getRawQueryRows = (result: unknown): Record<string, unknown>[] => {
-	if (Array.isArray(result)) {
-		return asRecords(result[0] ?? result)
-	}
+const invalidSyncData = (message: string): SearchSynchronizationError =>
+  new SearchSynchronizationError("SEARCH_SYNC_DATA_INVALID", message)
 
-	const record = asRecord(result)
+const requireId = (record: SearchEntity, context: string): string => {
+  const id = getId(record)
 
-	return asRecords(record?.rows)
+  if (id === undefined) {
+    throw invalidSyncData(`${context} must contain a non-empty id`)
+  }
+
+  return id
+}
+
+const readGraphRecords = (result: unknown, context: string): SearchEntity[] => {
+  if (!isRecord(result)) {
+    throw invalidSyncData(`${context} must return an object with a data array`)
+  }
+  const data = getRecordValue(result, "data")
+  if (!Array.isArray(data)) {
+    throw invalidSyncData(`${context} must return an object with a data array`)
+  }
+
+  const records: SearchEntity[] = []
+
+  for (const [index, value] of data.entries()) {
+    const record = asRecord(value)
+    if (record === undefined) {
+      throw invalidSyncData(`${context} data[${index}] must be an object`)
+    }
+
+    records.push(record)
+  }
+
+  return records
+}
+
+const requireRecordArray = (
+  record: SearchEntity,
+  field: string,
+  context: string,
+): SearchEntity[] => {
+  const value = getRecordValue(record, field)
+
+  if (!Array.isArray(value)) {
+    throw invalidSyncData(`${context}.${field} must be an array`)
+  }
+
+  const records: SearchEntity[] = []
+
+  for (const [index, entry] of value.entries()) {
+    const nestedRecord = asRecord(entry)
+    if (nestedRecord === undefined) {
+      throw invalidSyncData(`${context}.${field}[${index}] must be an object`)
+    }
+
+    requireId(nestedRecord, `${context}.${field}[${index}]`)
+    records.push(nestedRecord)
+  }
+
+  return records
+}
+
+const validateProductGraphRecord = (
+  record: SearchEntity,
+  context: string,
+): void => {
+  requireId(record, context)
+
+  if (getRecordValue(record, "status") !== "published") {
+    throw invalidSyncData(`${context}.status must be published`)
+  }
+
+  if (typeof getRecordValue(record, "title") !== "string") {
+    throw invalidSyncData(`${context}.title must be a string`)
+  }
+
+  requireRecordArray(record, "categories", context)
+  requireRecordArray(record, "sales_channels", context)
+  requireRecordArray(record, "variants", context)
+
+  const brand = getRecordValue(record, "brand")
+
+  if (brand !== undefined && brand !== null) {
+    const brands = Array.isArray(brand) ? brand : [brand]
+
+    for (const [index, entry] of brands.entries()) {
+      const brandRecord = asRecord(entry)
+      if (brandRecord === undefined) {
+        throw invalidSyncData(`${context}.brand[${index}] must be an object`)
+      }
+
+      requireId(brandRecord, `${context}.brand[${index}]`)
+    }
+  }
+}
+
+const readContentPage = (result: unknown, context: string): ContentPage => {
+  if (!isRecord(result)) {
+    throw invalidSyncData(
+      `${context} must return docs as an array and hasNextPage as a boolean`,
+    )
+  }
+  const rawDocs = getRecordValue(result, "docs")
+  const hasNextPage = getRecordValue(result, "hasNextPage")
+  if (!Array.isArray(rawDocs) || typeof hasNextPage !== "boolean") {
+    throw invalidSyncData(
+      `${context} must return docs as an array and hasNextPage as a boolean`,
+    )
+  }
+
+  const docs: SearchEntity[] = []
+
+  for (const [index, value] of rawDocs.entries()) {
+    const document = asRecord(value)
+    if (document === undefined) {
+      throw invalidSyncData(`${context} docs[${index}] must be an object`)
+    }
+
+    requireId(document, `${context} docs[${index}]`)
+    docs.push(document)
+  }
+
+  return { docs, hasNextPage }
+}
+
+const getRawQueryRows = (result: unknown): SearchEntity[] => {
+  if (Array.isArray(result)) {
+    return asRecords(result[0] ?? result)
+  }
+
+  return asRecords(
+    isRecord(result) ? getRecordValue(result, "rows") : undefined,
+  )
 }
 
 const toNumber = (value: unknown): number => {
-	if (typeof value === 'number') {
-		return value
-	}
+  if (typeof value === "number") {
+    return value
+  }
 
-	if (typeof value === 'string') {
-		return Number.parseFloat(value)
-	}
+  if (typeof value === "string") {
+    return Number(value)
+  }
 
-	return Number.NaN
+  return Number.NaN
 }
 
-const readProductPopularity = async (database: DatabaseConnection, profile: SearchProfile): Promise<Map<string, number>> => {
-	const salesChannelClause = profile.salesChannelIds.length > 0 ? 'and o.sales_channel_id = any(?::text[])' : ''
+const readProductPopularity = async (
+  database: DatabaseConnection,
+  profile: SearchProfile,
+): Promise<Map<string, number>> => {
+  const salesChannelClause =
+    profile.salesChannelIds.length > 0
+      ? "and o.sales_channel_id = any(?::text[])"
+      : ""
 
-	const result = await database.raw(
-		'select oli.product_id, ' +
-		'sum(oi.quantity)::float as sold_quantity ' +
-		'from order_item oi ' +
-		'join order_line_item oli ' +
-		'on oli.id = oi.item_id ' +
-		'and oli.deleted_at is null ' +
-		'join "order" o ' +
-		'on o.id = oi.order_id ' +
-		'and o.version = oi.version ' +
-		'where oi.deleted_at is null ' +
-		'and o.deleted_at is null ' +
-		'and o.canceled_at is null ' +
-		'and o.is_draft_order = false ' +
-		'and oli.product_id is not null ' +
-		salesChannelClause +
-		' group by oli.product_id',
+  const result = await database.raw(
+    `select oli.product_id,
+      sum(oi.quantity)::float as sold_quantity
+      from order_item oi
+      join order_line_item oli
+      on oli.id = oi.item_id
+      and oli.deleted_at is null
+      join "order" o
+      on o.id = oi.order_id
+      and o.version = oi.version
+      where oi.deleted_at is null
+      and o.deleted_at is null
+      and o.canceled_at is null
+      and o.is_draft_order = false
+      and oli.product_id is not null ${salesChannelClause}
+      group by oli.product_id`,
+    profile.salesChannelIds.length > 0 ? [profile.salesChannelIds] : [],
+  )
 
-		profile.salesChannelIds.length > 0 ? [profile.salesChannelIds] : [])
+  const popularity = new Map<string, number>()
 
-	const popularity = new Map<string, number>()
+  for (const row of getRawQueryRows(result)) {
+    const productId = getRecordValue(row, "product_id")
+    const soldQuantity = toNumber(getRecordValue(row, "sold_quantity"))
 
-	for (const row of getRawQueryRows(result)) {
-		const productId = row.product_id
-		const soldQuantity = toNumber(row.sold_quantity)
+    if (typeof productId === "string" && Number.isFinite(soldQuantity)) {
+      popularity.set(productId, Math.max(0, soldQuantity))
+    }
+  }
 
-		if (typeof productId === 'string' && Number.isFinite(soldQuantity)) {
-			popularity.set(productId, Math.max(0, soldQuantity))
-		}
-	}
-
-	return popularity
+  return popularity
 }
 
-const productBelongsToProfile = (document: Record<string, unknown>, profile: SearchProfile): boolean => {
-	if (profile.availability === 'in-stock' && document.facet_in_stock !== true) {
-		return false
-	}
+const productBelongsToProfile = (
+  document: SearchEntity,
+  profile: SearchProfile,
+): boolean => {
+  if (
+    profile.availability === "in-stock" &&
+    getRecordValue(document, "facet_in_stock") !== true
+  ) {
+    return false
+  }
 
-	if (profile.salesChannelIds.length === 0) {
-		return true
-	}
+  if (profile.salesChannelIds.length === 0) {
+    return true
+  }
 
-	const productSalesChannelIds = Array.isArray(document.facet_sales_channel_ids) ? document.facet_sales_channel_ids.filter((value): value is string => typeof value === 'string') : []
+  const rawSalesChannelIds = getRecordValue(document, "facet_sales_channel_ids")
+  const productSalesChannelIds = new Set(
+    Array.isArray(rawSalesChannelIds)
+      ? rawSalesChannelIds.filter(
+          (value): value is string => typeof value === "string",
+        )
+      : [],
+  )
 
-	return profile.salesChannelIds.some((id) => productSalesChannelIds.includes(id))
+  return profile.salesChannelIds.some((id) => productSalesChannelIds.has(id))
 }
 
-const collectCategoryReferences = (product: Record<string, unknown>, references: ProfileReferenceIds) => {
-	for (const category of asRecords(product.categories)) {
-		const id = getId(category)
+const collectCategoryReferences = (
+  product: SearchEntity,
+  references: ProfileReferenceIds,
+) => {
+  for (const category of asRecords(getRecordValue(product, "categories"))) {
+    const id = getId(category)
 
-		if (id) {
-			references.categoryIds.add(id)
+    if (id !== undefined) {
+      references.categoryIds.add(id)
 
-			const title = typeof product.title === 'string' ? product.title.trim() : undefined
+      const rawTitle = getRecordValue(product, "title")
+      const title = typeof rawTitle === "string" ? rawTitle.trim() : undefined
 
-			if (title) {
-				const titles = references.categoryProductTitles.get(id) ?? []
+      if (title !== undefined && title.length > 0) {
+        const titles =
+          references.categoryProductTitles.get(id) ?? new Set<string>()
 
-				if (!titles.includes(title) && titles.join(' ').length < 10000) {
-					titles.push(title)
-					references.categoryProductTitles.set(id, titles)
-				}
-			}
-		}
-	}
+        if (!titles.has(title) && [...titles].join(" ").length < 10_000) {
+          titles.add(title)
+          references.categoryProductTitles.set(id, titles)
+        }
+      }
+    }
+  }
 }
 
-const collectBrandReferences = (product: Record<string, unknown>, references: ProfileReferenceIds) => {
-	const brands = Array.isArray(product.brand) ? asRecords(product.brand) : [asRecord(product.brand)].filter((entry): entry is Record<string, unknown> => entry !== undefined)
+const collectBrandReferences = (
+  product: SearchEntity,
+  references: ProfileReferenceIds,
+) => {
+  const rawBrand = getRecordValue(product, "brand")
+  const brands = Array.isArray(rawBrand)
+    ? asRecords(rawBrand)
+    : [asRecord(rawBrand)].filter(
+        (entry): entry is SearchEntity => entry !== undefined,
+      )
 
-	for (const brand of brands) {
-		const id = getId(brand)
+  for (const brand of brands) {
+    const id = getId(brand)
 
-		if (id) {
-			references.brandIds.add(id)
-		}
-	}
+    if (id !== undefined) {
+      references.brandIds.add(id)
+    }
+  }
 }
 
-const collectProductReferences = (product: Record<string, unknown>, references: ProfileReferenceIds) => {
-	collectCategoryReferences(product, references)
-	collectBrandReferences(product, references)
+const collectProductReferences = (
+  product: SearchEntity,
+  references: ProfileReferenceIds,
+) => {
+  collectCategoryReferences(product, references)
+  collectBrandReferences(product, references)
 }
 
 const fetchGraphBatch = async (
-	query: Query,
+  query: Query,
+  options: {
+    afterId?: string
+    context: string
+    entity: string
+    fields: string[]
+    filters?: SearchGraphFilters
+  },
+): Promise<SearchEntity[]> => {
+  const filters = {
+    ...options.filters,
+    ...(options.afterId === undefined ? {} : { id: { $gt: options.afterId } }),
+  }
+  const result: unknown = await query.graph({
+    entity: options.entity,
+    fields: options.fields,
+    ...(Object.keys(filters).length === 0 ? {} : { filters }),
+    pagination: { order: { id: "ASC" }, take: BATCH_SIZE },
+  })
+  const records = readGraphRecords(result, options.context)
+  const ids = new Set<string>()
+  let previousId = options.afterId
 
-	options: {
-		entity: string
-		fields: string[]
-		filters?: Record<string, unknown>
-		offset: number
-	}
-): Promise<Record<string, unknown>[]> => {
-	const { data } = await query.graph({ entity: options.entity, fields: options.fields, filters: options.filters, pagination: { take: BATCH_SIZE, skip: options.offset } })
+  for (const [index, record] of records.entries()) {
+    const id = requireId(record, `${options.context} data[${index}]`)
 
-	return asRecords(data)
+    if (ids.has(id)) {
+      throw invalidSyncData(
+        `${options.context} returned a duplicate pagination id ${id}`,
+      )
+    }
+    if (previousId !== undefined && id <= previousId) {
+      throw invalidSyncData(
+        `${options.context} returned out-of-order pagination id ${id} after ${previousId}`,
+      )
+    }
+
+    ids.add(id)
+    previousId = id
+  }
+
+  return records
 }
 
-const normalizeLocale = (value: string): string => value.trim().toLowerCase().replaceAll('_', '-').split('-')[0] ?? ''
+const fetchGraphPages = async (
+  query: Query,
+  options: {
+    context: string
+    entity: string
+    fields: string[]
+    filters?: SearchGraphFilters
+    maximumPages: number
+  },
+): Promise<SearchEntity[]> => {
+  const seenIds = new Set<string>()
 
-const applyLocalizedTranslations = async (query: Query, records: Record<string, unknown>[], locale: string): Promise<Record<string, unknown>[]> => {
-	const ids = records.map(getId).filter((id): id is string => id !== undefined)
+  const fetchPage = async (
+    page: number,
+    afterId?: string,
+  ): Promise<SearchEntity[]> => {
+    if (page >= options.maximumPages) {
+      throw new SearchSynchronizationError(
+        "SEARCH_SYNC_PAGE_LIMIT_EXCEEDED",
+        `${options.context} exceeded ${options.maximumPages} pages`,
+      )
+    }
 
-	if (ids.length === 0 || locale === 'default') {
-		return records
-	}
+    const records = await fetchGraphBatch(query, {
+      ...(afterId === undefined ? {} : { afterId }),
+      context: `${options.context} page ${page + 1}`,
+      entity: options.entity,
+      fields: options.fields,
+      ...(options.filters === undefined ? {} : { filters: options.filters }),
+    })
 
-	let data: unknown[]
+    for (const record of records) {
+      const id = requireId(record, `${options.context} page ${page + 1}`)
 
-	try {
-		const result = await query.graph({ entity: 'translation', fields: ['reference_id', 'locale_code', 'translations'], filters: { reference_id: ids } })
+      if (seenIds.has(id)) {
+        throw invalidSyncData(
+          `${options.context} returned duplicate pagination id ${id}`,
+        )
+      }
 
-		data = result.data
-	} catch {
-		return records
-	}
+      seenIds.add(id)
+    }
 
-	const translationsById = new Map<string, Record<string, unknown>>()
+    if (records.length < BATCH_SIZE) {
+      return records
+    }
 
-	for (const row of asRecords(data)) {
-		if (typeof row.reference_id !== 'string' || typeof row.locale_code !== 'string' || normalizeLocale(row.locale_code) !== normalizeLocale(locale)) {
-			continue
-		}
+    const lastRecord = records.at(-1)
 
-		const translations = asRecord(row.translations)
+    if (lastRecord === undefined) {
+      return records
+    }
 
-		if (translations) {
-			translationsById.set(row.reference_id, translations)
-		}
-	}
+    const nextRecords = await fetchPage(
+      page + 1,
+      requireId(lastRecord, `${options.context} page ${page + 1}`),
+    )
 
-	return records.map((record) => {
-		const id = getId(record)
-		const translations = id ? translationsById.get(id) : undefined
+    return [...records, ...nextRecords]
+  }
 
-		return translations ? { ...record, ...translations } : record
-	})
+  return await fetchPage(0)
 }
 
-const deleteStaleDocuments = async (client: MeilisearchAdminClient, index: string, currentIds: Set<string>): Promise<number> => {
-	const staleIds = (await client.getDocumentIds(index)).filter((id) => !currentIds.has(id))
+const normalizeLocale = (value: string): string =>
+  value.trim().toLowerCase().replaceAll("_", "-").split("-")[0] ?? ""
 
-	for (let offset = 0; offset < staleIds.length; offset += BATCH_SIZE) {
-		await client.deleteDocuments(index, staleIds.slice(offset, offset + BATCH_SIZE))
-	}
+const applyLocalizedTranslations = async (
+  query: Query,
+  records: SearchEntity[],
+  locale: string,
+): Promise<SearchEntity[]> => {
+  const ids = records.map(getId).filter((id): id is string => id !== undefined)
 
-	return staleIds.length
+  if (ids.length === 0 || locale === "default") {
+    return records
+  }
+
+  const data = await fetchGraphPages(query, {
+    context: "translation graph query",
+    entity: "translation",
+    fields: ["id", "reference_id", "locale_code", "translations"],
+    filters: { reference_id: ids },
+    maximumPages: MAX_TRANSLATION_PAGES_PER_BATCH,
+  })
+
+  const translationsById = new Map<string, SearchEntity>()
+  const requestedIds = new Set(ids)
+
+  for (const [index, row] of data.entries()) {
+    const referenceId = getRecordValue(row, "reference_id")
+    const localeCode = getRecordValue(row, "locale_code")
+
+    if (
+      typeof referenceId !== "string" ||
+      referenceId.length === 0 ||
+      !requestedIds.has(referenceId)
+    ) {
+      throw invalidSyncData(
+        `translation graph query data[${index}].reference_id must reference a requested record`,
+      )
+    }
+
+    if (typeof localeCode !== "string" || localeCode.length === 0) {
+      throw invalidSyncData(
+        `translation graph query data[${index}].locale_code must be a non-empty string`,
+      )
+    }
+
+    if (normalizeLocale(localeCode) !== normalizeLocale(locale)) {
+      continue
+    }
+
+    const rawTranslations = getRecordValue(row, "translations")
+
+    if (!isRecord(rawTranslations)) {
+      throw invalidSyncData(
+        `translation graph query data[${index}].translations must be an object`,
+      )
+    }
+
+    const translationEntries: [string, unknown][] = []
+
+    for (const field of LOCALIZED_SEARCH_FIELDS) {
+      const value = getRecordValue(rawTranslations, field)
+
+      if (value !== undefined && value !== null && typeof value !== "string") {
+        throw invalidSyncData(
+          `translation graph query data[${index}].translations.${field} must be a string or null`,
+        )
+      }
+
+      if (value !== undefined) {
+        translationEntries.push([field, value])
+      }
+    }
+
+    translationsById.set(referenceId, Object.fromEntries(translationEntries))
+  }
+
+  return records.map((record) => {
+    const id = getId(record)
+    const translations = id === undefined ? undefined : translationsById.get(id)
+
+    return translations === undefined ? record : { ...record, ...translations }
+  })
+}
+
+const deleteStaleDocuments = async (
+  client: MeilisearchAdminClient,
+  index: string,
+  currentIds: Set<string>,
+): Promise<number> => {
+  const existingIds = await client.getDocumentIds(index)
+  const staleIds = existingIds.filter((id) => !currentIds.has(id))
+
+  const deleteBatch = async (offset: number): Promise<void> => {
+    if (offset >= staleIds.length) {
+      return
+    }
+
+    await client.deleteDocuments(
+      index,
+      staleIds.slice(offset, offset + BATCH_SIZE),
+    )
+    await deleteBatch(offset + BATCH_SIZE)
+  }
+
+  await deleteBatch(0)
+
+  return staleIds.length
 }
 
 const indexProductDocuments = async (options: {
-	client: MeilisearchAdminClient
-	index: string
-	popularityByProductId: Map<string, number>
-	profile: SearchProfile
-	query: Query
+  client: MeilisearchAdminClient
+  index: string
+  popularityByProductId: Map<string, number>
+  profile: SearchProfile
+  query: Query
 }): Promise<{
-	ids: Set<string>
-	indexed: number
-	references: ProfileReferenceIds
+  ids: Set<string>
+  indexed: number
+  references: ProfileReferenceIds
 }> => {
-	const { client, index, popularityByProductId, profile, query } = options
-	const ids = new Set<string>()
+  const {
+    client,
+    index: targetIndex,
+    popularityByProductId,
+    profile,
+    query,
+  } = options
+  const ids = new Set<string>()
+  const references: ProfileReferenceIds = {
+    brandIds: new Set<string>(),
+    categoryIds: new Set<string>(),
+    categoryProductTitles: new Map<string, Set<string>>(),
+  }
 
-	const references: ProfileReferenceIds = {
-		brandIds: new Set<string>(),
-		categoryIds: new Set<string>(),
-		categoryProductTitles: new Map<string, string[]>()
-	}
+  const buildBatchDocuments = async (
+    records: SearchEntity[],
+    page: number,
+  ): Promise<SearchEntity[]> => {
+    for (const [recordIndex, record] of records.entries()) {
+      validateProductGraphRecord(
+        record,
+        `product graph query page ${page + 1} data[${recordIndex}]`,
+      )
+    }
 
-	let offset = 0
+    const localizedRecords = await applyLocalizedTranslations(
+      query,
+      records,
+      profile.locale,
+    )
+    const documents: SearchEntity[] = []
 
-	while (true) {
-		const records = await fetchGraphBatch(query, { entity: 'product', fields: PRODUCT_FIELDS, filters: { status: 'published' }, offset: offset })
+    for (const record of localizedRecords) {
+      const productId = requireId(record, "localized product")
+      const popularity = popularityByProductId.get(productId)
+      const productDocuments = buildProductSearchDocuments(
+        record,
+        popularity === undefined ? undefined : { popularity },
+      )
 
-		if (records.length === 0) {
-			break
-		}
+      for (const document of productDocuments) {
+        if (productBelongsToProfile(document, profile)) {
+          documents.push(document)
+        }
+      }
+    }
 
-		const localizedRecords = await applyLocalizedTranslations(query, records, profile.locale)
+    return documents
+  }
 
-		const documents = localizedRecords
-			.flatMap((record) => buildProductSearchDocuments(record, { popularity: popularityByProductId.get(getId(record) ?? '') }))
-			.filter((document) => productBelongsToProfile(document, profile))
+  const recordBatchDocuments = (documents: SearchEntity[]): void => {
+    for (const document of documents) {
+      const id = requireId(document, "product search document")
 
-		for (const document of documents) {
-			const id = getId(document)
+      if (ids.has(id)) {
+        throw invalidSyncData(`Duplicate product search document id ${id}`)
+      }
 
-			if (id) {
-				ids.add(id)
-			}
+      ids.add(id)
+      collectProductReferences(document, references)
+    }
+  }
 
-			collectProductReferences(document, references)
-		}
+  const indexPage = async (page: number, afterId?: string): Promise<void> => {
+    if (page >= MAX_ENTITY_PAGES) {
+      throw new SearchSynchronizationError(
+        "SEARCH_SYNC_PAGE_LIMIT_EXCEEDED",
+        `product graph query exceeded ${MAX_ENTITY_PAGES} pages`,
+      )
+    }
 
-		await client.addDocuments(index, documents)
+    const records = await fetchGraphBatch(query, {
+      ...(afterId === undefined ? {} : { afterId }),
+      context: `product graph query page ${page + 1}`,
+      entity: "product",
+      fields: PRODUCT_FIELDS,
+      filters: { status: "published" },
+    })
+    const documents = await buildBatchDocuments(records, page)
 
-		offset += records.length
+    recordBatchDocuments(documents)
 
-		if (records.length < BATCH_SIZE) {
-			break
-		}
-	}
+    if (documents.length > 0) {
+      await client.addDocuments(targetIndex, documents)
+    }
 
-	return { ids: ids, indexed: ids.size, references: references }
+    if (records.length < BATCH_SIZE) {
+      return
+    }
+
+    const lastRecord = records.at(-1)
+
+    if (lastRecord !== undefined) {
+      await indexPage(
+        page + 1,
+        requireId(lastRecord, `product graph query page ${page + 1}`),
+      )
+    }
+  }
+
+  await indexPage(0)
+
+  return { ids, indexed: ids.size, references }
 }
 
 const indexReferencedEntities = async (
-	query: Query,
-	client: MeilisearchAdminClient,
-
-	options: {
-		entity: 'brand' | 'product_category'
-		fields: string[]
-		ids: Set<string>
-		index: string
-		locale: string
-		transform: (document: Record<string, unknown>) => Record<string, unknown>
-	}
+  query: Query,
+  client: MeilisearchAdminClient,
+  options: {
+    entity: "brand" | "product_category"
+    fields: string[]
+    ids: Set<string>
+    index: string
+    locale: string
+    transform: (document: SearchEntity) => SearchEntity
+  },
 ): Promise<Set<string>> => {
-	const currentIds = new Set<string>()
-	const ids = [...options.ids]
+  const currentIds = new Set<string>()
+  const ids = [...options.ids]
 
-	for (let offset = 0; offset < ids.length; offset += BATCH_SIZE) {
-		const batchIds = ids.slice(offset, offset + BATCH_SIZE)
-		const { data } = await query.graph({ entity: options.entity, fields: options.fields, filters: { id: { $in: batchIds }, ...(options.entity === 'product_category' ? { is_active: true } : {}) } })
-		const localizedRecords = await applyLocalizedTranslations(query, asRecords(data), options.locale)
-		const documents = localizedRecords.map(options.transform)
+  const indexBatch = async (offset: number): Promise<void> => {
+    if (offset >= ids.length) {
+      return
+    }
 
-		for (const document of documents) {
-			const id = getId(document)
+    const batchIds = ids.slice(offset, offset + BATCH_SIZE)
+    const result: unknown = await query.graph({
+      entity: options.entity,
+      fields: options.fields,
+      filters: {
+        id: { $in: batchIds },
+        ...(options.entity === "product_category" ? { is_active: true } : {}),
+      },
+      pagination: { order: { id: "ASC" }, take: BATCH_SIZE },
+    })
+    const records = readGraphRecords(
+      result,
+      `${options.entity} graph query batch ${offset / BATCH_SIZE + 1}`,
+    )
 
-			if (id) {
-				currentIds.add(id)
-			}
-		}
+    if (records.length > batchIds.length) {
+      throw invalidSyncData(
+        `${options.entity} graph query returned more records than requested`,
+      )
+    }
 
-		await client.addDocuments(options.index, documents)
-	}
+    for (const [recordIndex, record] of records.entries()) {
+      const id = requireId(record, `${options.entity} data[${recordIndex}]`)
 
-	return currentIds
+      if (!options.ids.has(id)) {
+        throw invalidSyncData(
+          `${options.entity} graph query returned unrequested id ${id}`,
+        )
+      }
+    }
+
+    const localizedRecords = await applyLocalizedTranslations(
+      query,
+      records,
+      options.locale,
+    )
+    const documents = localizedRecords.map(options.transform)
+
+    for (const document of documents) {
+      const id = requireId(document, `${options.entity} search document`)
+
+      if (currentIds.has(id)) {
+        throw invalidSyncData(
+          `Duplicate ${options.entity} search document id ${id}`,
+        )
+      }
+
+      currentIds.add(id)
+    }
+
+    if (documents.length > 0) {
+      await client.addDocuments(options.index, documents)
+    }
+
+    await indexBatch(offset + BATCH_SIZE)
+  }
+
+  await indexBatch(0)
+
+  return currentIds
 }
 
-const resolvePayloadService = (container: MedusaContainer): PayloadModuleService | null => {
-	try {
-		return container.resolve<PayloadModuleService>(PAYLOAD_MODULE)
-	} catch {
-		return null
-	}
+const resolvePayloadService = (
+  container: MedusaContainer,
+): SearchContentService | null => {
+  try {
+    return container.resolve<SearchContentService>(PAYLOAD_MODULE)
+  } catch {
+    return null
+  }
+}
+
+const errorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error)
+
+const fetchContentPage = async (options: {
+  page: number
+  payload: SearchContentService
+  profile: SearchProfile
+  type: "article" | "page"
+}): Promise<ContentPageResult> => {
+  try {
+    const requestOptions = {
+      limit: BATCH_SIZE,
+      locale: options.profile.locale,
+      page: options.page,
+    }
+    const rawResult: unknown =
+      options.type === "article"
+        ? await options.payload.listPublishedArticles(requestOptions)
+        : await options.payload.listPublishedPages(requestOptions)
+
+    return {
+      page: readContentPage(
+        rawResult,
+        `Payload ${options.type} collection page ${options.page}`,
+      ),
+      status: "available",
+    }
+  } catch (error) {
+    return {
+      reason: `Payload ${options.type} collection unavailable: ${errorMessage(error)}`,
+      status: "unavailable",
+    }
+  }
 }
 
 const indexContentDocuments = async (
-	payload: PayloadModuleService | null,
-	client: MeilisearchAdminClient,
-	profile: SearchProfile,
-	index: string
-): Promise<Set<string>> => {
-	const currentIds = new Set<string>()
+  payload: SearchContentService | null,
+  client: MeilisearchAdminClient,
+  profile: SearchProfile,
+  index: string,
+): Promise<ContentIndexResult> => {
+  const currentIds = new Set<string>()
 
-	if (!payload) {
-		return currentIds
-	}
+  if (payload === null) {
+    return {
+      reason: "Payload content service is not registered",
+      status: "unavailable",
+    }
+  }
 
-	const indexCollection = async (type: 'article' | 'page') => {
-		let page = 1
+  const indexCollectionPage = async (
+    type: "article" | "page",
+    pageNumber: number,
+  ): Promise<ContentUnavailable | undefined> => {
+    if (pageNumber > MAX_CONTENT_PAGES_PER_COLLECTION) {
+      return {
+        reason: `Payload ${type} collection exceeded ${MAX_CONTENT_PAGES_PER_COLLECTION} pages`,
+        status: "unavailable",
+      }
+    }
 
-		while (true) {
-			const result = type === 'article' ? await payload.listPublishedArticles({ limit: BATCH_SIZE, locale: profile.locale, page: page }) : await payload.listPublishedPages({ limit: BATCH_SIZE, locale: profile.locale, page: page })
-			const documents = result.docs.map((document) => buildContentSearchDocument(document as Record<string, unknown>, type, profile.locale))
+    const result = await fetchContentPage({
+      page: pageNumber,
+      payload,
+      profile,
+      type,
+    })
 
-			for (const document of documents) {
-				const id = getId(document)
+    if (result.status === "unavailable") {
+      return result
+    }
 
-				if (id) {
-					currentIds.add(id)
-				}
-			}
+    const documents = result.page.docs.map((document) =>
+      buildContentSearchDocument(document, type, profile.locale),
+    )
 
-			await client.addDocuments(index, documents)
+    for (const document of documents) {
+      const id = requireId(document, `${type} search document`)
 
-			if (!result.hasNextPage) {
-				break
-			}
+      if (currentIds.has(id)) {
+        return {
+          reason: `Payload ${type} collection returned duplicate id ${id}`,
+          status: "unavailable",
+        }
+      }
 
-			page += 1
-		}
-	}
+      currentIds.add(id)
+    }
 
-	await indexCollection('page')
-	await indexCollection('article')
+    if (documents.length > 0) {
+      await client.addDocuments(index, documents)
+    }
 
-	return currentIds
+    return result.page.hasNextPage
+      ? await indexCollectionPage(type, pageNumber + 1)
+      : undefined
+  }
+
+  const pageFailure = await indexCollectionPage("page", 1)
+
+  if (pageFailure !== undefined) {
+    return pageFailure
+  }
+
+  const articleFailure = await indexCollectionPage("article", 1)
+
+  return articleFailure ?? { ids: currentIds, status: "available" }
 }
 
-const createTargets = (profile: SearchProfile, mode: SearchProfileSyncMode): SearchSyncTargets => {
-	if (mode === 'normal') {
-		return profile.indexes
-	}
+const createTargets = (
+  profile: SearchProfile,
+  mode: SearchProfileSyncMode,
+): SearchSyncTargets => {
+  if (mode === "normal") {
+    return profile.indexes
+  }
 
-	const suffix = 'build_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8)
+  const suffix = `build_${Date.now()}_${randomUUID().slice(0, 8)}`
 
-	return Object.fromEntries(Object.entries(profile.indexes).map(([type, index]) => [type, index + '__' + suffix])) as SearchSyncTargets
+  return {
+    brand: `${profile.indexes.brand}__${suffix}`,
+    category: `${profile.indexes.category}__${suffix}`,
+    content: `${profile.indexes.content}__${suffix}`,
+    product: `${profile.indexes.product}__${suffix}`,
+  }
 }
 
-const prepareTargets = async (client: MeilisearchAdminClient, targets: SearchSyncTargets) => {
-	for (const type of Object.keys(targets) as SearchIndexType[]) {
-		const index = targets[type]
+const prepareTargets = async (
+  client: MeilisearchAdminClient,
+  targets: SearchSyncTargets,
+): Promise<void> => {
+  await Promise.all(
+    SEARCH_INDEX_TYPES.map(async (type) => {
+      const index = targets[type]
 
-		await client.ensureIndex(index)
-		await client.updateSettings(index, SEARCH_INDEX_SETTINGS[type] as Record<string, unknown>)
-	}
+      await client.ensureIndex(index)
+      await client.updateSettings(index, SEARCH_INDEX_SETTINGS[type])
+    }),
+  )
 }
 
-const finalizeFullSync = async (client: MeilisearchAdminClient, profile: SearchProfile, targets: SearchSyncTargets) => {
-	const completionMarkerId = 'search_build_marker_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8)
+const finalizeFullSync = async (
+  client: MeilisearchAdminClient,
+  profile: SearchProfile,
+  targets: SearchSyncTargets,
+): Promise<void> => {
+  const completionMarkerId = `search_build_marker_${Date.now()}_${randomUUID().slice(0, 8)}`
 
-	for (const type of SEARCH_INDEX_TYPES) {
-		await client.ensureIndex(profile.indexes[type])
-	}
-
-	await client.addDocuments(targets.content, [{ id: completionMarkerId }])
-	await client.swapIndexPairs(SEARCH_INDEX_TYPES.map((type) => ({ first: profile.indexes[type], second: targets[type] })), { index: profile.indexes.content, documentId: completionMarkerId })
-	await client.deleteDocuments(profile.indexes.content, [completionMarkerId])
-
-	for (const type of SEARCH_INDEX_TYPES) {
-		await client.deleteIndex(targets[type])
-	}
+  await Promise.all(
+    SEARCH_INDEX_TYPES.map(async (type) => {
+      await client.ensureIndex(profile.indexes[type])
+    }),
+  )
+  await client.addDocuments(targets.content, [{ id: completionMarkerId }])
+  await client.swapIndexPairs(
+    SEARCH_INDEX_TYPES.map((type) => ({
+      first: profile.indexes[type],
+      second: targets[type],
+    })),
+    { documentId: completionMarkerId, index: profile.indexes.content },
+  )
+  await client.deleteDocuments(profile.indexes.content, [completionMarkerId])
+  await Promise.all(
+    SEARCH_INDEX_TYPES.map(async (type) => {
+      await client.deleteIndex(targets[type])
+    }),
+  )
 }
 
-const cleanupBuildTargets = async (client: MeilisearchAdminClient, targets: SearchSyncTargets, logger: Logger) => {
-	for (const index of Object.values(targets)) {
-		try {
-			await client.deleteIndex(index)
-		} catch (error) {
-			logger.warn('Unable to clean temporary Meilisearch index ' + index + ': ' + (error instanceof Error ? error.message : String(error)))
-		}
-	}
+const cleanupBuildTargets = async (
+  client: MeilisearchAdminClient,
+  targets: SearchSyncTargets,
+  logger: Logger,
+): Promise<void> => {
+  await Promise.all(
+    Object.values(targets).map(async (index) => {
+      try {
+        await client.deleteIndex(index)
+      } catch (error) {
+        logger.warn(
+          `Unable to clean temporary Meilisearch index ${index}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        )
+      }
+    }),
+  )
 }
 
 const syncProfile = async (options: {
-	client: MeilisearchAdminClient
-	container: MedusaContainer
-	logger: Logger
-	mode: SearchProfileSyncMode
-	profile: SearchProfile
+  client: MeilisearchAdminClient
+  container: MedusaContainer
+  logger: Logger
+  mode: SearchProfileSyncMode
+  profile: SearchProfile
 }): Promise<{ deleted: number; indexed: number }> => {
-	const { client, container, logger, mode, profile } = options
-	const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-	const database = container.resolve<DatabaseConnection>(ContainerRegistrationKeys.PG_CONNECTION)
-	const payload = resolvePayloadService(container)
-	const targets = createTargets(profile, mode)
+  const { client, container, logger, mode, profile } = options
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const database = container.resolve<DatabaseConnection>(
+    ContainerRegistrationKeys.PG_CONNECTION,
+  )
+  const payload = resolvePayloadService(container)
+  const targets = createTargets(profile, mode)
 
-	let finalized = false
+  let finalized = false
 
-	try {
-		await prepareTargets(client, targets)
+  try {
+    await prepareTargets(client, targets)
 
-		const popularityByProductId = await readProductPopularity(database, profile)
+    const popularityByProductId = await readProductPopularity(database, profile)
 
-		const products = await indexProductDocuments({
-			query: query,
-			client: client,
-			profile: profile,
-			index: targets.product,
-			popularityByProductId: popularityByProductId
-		})
+    const products = await indexProductDocuments({
+      client,
+      index: targets.product,
+      popularityByProductId,
+      profile,
+      query,
+    })
 
-		const categoryIds = await indexReferencedEntities(query, client, {
-			entity: 'product_category',
-			fields: CATEGORY_FIELDS,
-			ids: products.references.categoryIds,
-			index: targets.category,
-			locale: profile.locale,
+    const categoryIds = await indexReferencedEntities(query, client, {
+      entity: "product_category",
+      fields: CATEGORY_FIELDS,
+      ids: products.references.categoryIds,
+      index: targets.category,
+      locale: profile.locale,
 
-			transform: (document) => {
-				const category = buildCategorySearchDocument(document)
-				const id = getId(category)
+      transform: (document) => {
+        const category = buildCategorySearchDocument(document)
+        const id = getId(category)
 
-				if (!id || profile.strict) {
-					return category
-				}
+        if (id === undefined || profile.strict) {
+          return category
+        }
 
-				const productTitles = products.references.categoryProductTitles.get(id) ?? []
+        const productTitles = products.references.categoryProductTitles.get(id)
+        const joinedTitles = [...(productTitles ?? [])].join(" ")
 
-				return { ...category, ...(productTitles.length > 0 ? { product_titles: productTitles.join(' ').slice(0, 10000) } : {}) }
-			}
-		})
+        return {
+          ...category,
+          ...(joinedTitles.length > 0
+            ? { product_titles: joinedTitles.slice(0, 10_000) }
+            : {}),
+        }
+      },
+    })
 
-		const brandIds = await indexReferencedEntities(query, client, {
-			entity: 'brand',
-			fields: BRAND_FIELDS,
-			ids: products.references.brandIds,
-			index: targets.brand,
-			locale: profile.locale,
-			transform: buildBrandSearchDocument
-		})
+    const brandIds = await indexReferencedEntities(query, client, {
+      entity: "brand",
+      fields: BRAND_FIELDS,
+      ids: products.references.brandIds,
+      index: targets.brand,
+      locale: profile.locale,
+      transform: buildBrandSearchDocument,
+    })
 
-		const contentIds = await indexContentDocuments(payload, client, profile, targets.content)
+    const content = await indexContentDocuments(
+      payload,
+      client,
+      profile,
+      targets.content,
+    )
 
-		let deleted = 0
+    if (content.status === "unavailable") {
+      logger.warn(
+        `Skipping authoritative content synchronization for ${profile.key}: ${content.reason}`,
+      )
 
-		if (mode === 'normal') {
-			deleted += await deleteStaleDocuments(client, targets.product, products.ids)
-			deleted += await deleteStaleDocuments(client, targets.category, categoryIds)
-			deleted += await deleteStaleDocuments(client, targets.brand, brandIds)
-			deleted += await deleteStaleDocuments(client, targets.content, contentIds)
-		} else {
-			await finalizeFullSync(client, profile, targets)
+      if (mode === "full") {
+        throw new SearchSynchronizationError(
+          "SEARCH_SYNC_SOURCE_UNAVAILABLE",
+          `Cannot finalize full search sync for ${profile.key}: ${content.reason}`,
+        )
+      }
+    }
 
-			finalized = true
-		}
+    let deleted = 0
 
-		const indexed = products.indexed + categoryIds.size + brandIds.size + contentIds.size
+    if (mode === "normal") {
+      const deletedCounts = await Promise.all([
+        deleteStaleDocuments(client, targets.product, products.ids),
+        deleteStaleDocuments(client, targets.category, categoryIds),
+        deleteStaleDocuments(client, targets.brand, brandIds),
+        ...(content.status === "available"
+          ? [deleteStaleDocuments(client, targets.content, content.ids)]
+          : []),
+      ])
 
-		logger.info('Meilisearch profile ' + profile.key + ' synchronized: mode=' + mode + ', indexed=' + indexed + ', deleted=' + deleted)
+      deleted = deletedCounts.reduce((total, count) => total + count, 0)
+    } else {
+      await finalizeFullSync(client, profile, targets)
 
-		return { deleted, indexed }
-	} finally {
-		if (mode === 'full' && !finalized) {
-			await cleanupBuildTargets(client, targets, logger)
-		}
-	}
+      finalized = true
+    }
+
+    const indexed =
+      products.indexed +
+      categoryIds.size +
+      brandIds.size +
+      (content.status === "available" ? content.ids.size : 0)
+
+    logger.info(
+      `Meilisearch profile ${profile.key} synchronized: mode=${mode}, indexed=${
+        indexed
+      }, deleted=${deleted}`,
+    )
+
+    return { deleted, indexed }
+  } finally {
+    if (mode === "full" && !finalized) {
+      await cleanupBuildTargets(client, targets, logger)
+    }
+  }
 }
 
-const updateProfileSyncState = async (options: { container: MedusaContainer; logger: Logger; profile: SearchProfile; state: Record<string, unknown> }) => {
-	if (!options.profile.id) {
-		return
-	}
+const updateProfileSyncState = async (options: {
+  container: MedusaContainer
+  logger: Logger
+  profile: SearchProfile
+  state: SearchProfileSyncState
+}) => {
+  if (options.profile.id === undefined || options.profile.id.length === 0) {
+    return
+  }
 
-	try {
-		const service = options.container.resolve<SearchProfileSyncStateService>(SEARCH_PROFILE_MODULE)
-		const update = { id: options.profile.id, ...options.state }
+  try {
+    const service = options.container.resolve<SearchProfileSyncStateService>(
+      SEARCH_PROFILE_MODULE,
+    )
+    const update = { id: options.profile.id, ...options.state }
 
-		await service.updateSearchProfiles(update)
-	} catch (error) {
-		options.logger.warn('Unable to record Meilisearch sync state for ' + options.profile.key + ': ' + (error instanceof Error ? error.message : String(error)))
-	}
+    await service.updateSearchProfiles(update)
+  } catch (error) {
+    options.logger.warn(
+      `Unable to record Meilisearch sync state for ${options.profile.key}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    )
+  }
 }
 
 const syncProfileWithStatus = async (options: {
-	client: MeilisearchAdminClient
-	container: MedusaContainer
-	logger: Logger
-	mode: SearchProfileSyncMode
-	profile: SearchProfile
+  client: MeilisearchAdminClient
+  container: MedusaContainer
+  logger: Logger
+  mode: SearchProfileSyncMode
+  profile: SearchProfile
 }): Promise<{ deleted: number; indexed: number }> => {
-	const runningState = { ...options, state: { last_sync_status: 'running', last_sync_mode: options.mode, last_sync_started_at: new Date(), last_sync_error: null } }
+  await updateProfileSyncState({
+    container: options.container,
+    logger: options.logger,
+    profile: options.profile,
+    state: {
+      last_sync_error: null,
+      last_sync_mode: options.mode,
+      last_sync_started_at: new Date(),
+      last_sync_status: "running",
+    },
+  })
 
-	await updateProfileSyncState(runningState)
+  try {
+    const result = await syncProfile(options)
 
-	try {
-		const result = await syncProfile(options)
+    await updateProfileSyncState({
+      container: options.container,
+      logger: options.logger,
+      profile: options.profile,
+      state: {
+        last_deleted_count: result.deleted,
+        last_indexed_count: result.indexed,
+        last_sync_error: null,
+        last_sync_mode: options.mode,
+        last_sync_status: "succeeded",
+        last_synced_at: new Date(),
+      },
+    })
 
-		const succeededState = {
-			...options,
+    return result
+  } catch (error) {
+    await updateProfileSyncState({
+      container: options.container,
+      logger: options.logger,
+      profile: options.profile,
+      state: {
+        last_sync_error: error instanceof Error ? error.message : String(error),
+        last_sync_mode: options.mode,
+        last_sync_status: "failed",
+      },
+    })
 
-			state: {
-				last_sync_status: 'succeeded',
-				last_sync_mode: options.mode,
-				last_synced_at: new Date(),
-				last_sync_error: null,
-				last_indexed_count: result.indexed,
-				last_deleted_count: result.deleted
-			}
-		}
-
-		await updateProfileSyncState(succeededState)
-
-		return result
-	} catch (error) {
-		const failedState = { ...options, state: { last_sync_status: 'failed', last_sync_mode: options.mode, last_sync_error: error instanceof Error ? error.message : String(error) } }
-
-		await updateProfileSyncState(failedState)
-
-		throw error
-	}
+    throw error
+  }
 }
 
 const synchronizeUnlocked = async (
-	container: MedusaContainer,
-	mode: SearchProfileSyncMode,
-	options?: SearchProfileSyncOptions
+  container: MedusaContainer,
+  mode: SearchProfileSyncMode,
+  options?: SearchProfileSyncOptions,
 ): Promise<SearchProfileSyncResult> => {
-	const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
-	if (!isMeilisearchEnabled()) {
-		logger.info('Skipping search profile sync because Meilisearch is disabled')
+  if (!isMeilisearchEnabled()) {
+    logger.info("Skipping search profile sync because Meilisearch is disabled")
 
-		return { deleted: 0, indexed: 0, mode: mode, profiles: 0 }
-	}
+    return {
+      deleted: 0,
+      indexed: 0,
+      mode,
+      profiles: 0,
+      status: "skipped_disabled",
+    }
+  }
 
-	const configuredProfiles = await loadSearchProfiles(container)
-	const requestedKeys = options?.profileKeys?.length ? new Set(options.profileKeys) : undefined
-	const profiles = requestedKeys ? configuredProfiles.filter((profile) => requestedKeys.has(profile.key)) : configuredProfiles
-	const client = new MeilisearchAdminClient()
+  const requestedKeys =
+    options?.profileKeys !== undefined && options.profileKeys.length > 0
+      ? new Set(options.profileKeys)
+      : undefined
+  const configuredProfiles = await loadSearchProfiles(container, {
+    fresh: requestedKeys !== undefined,
+  })
+  const profiles =
+    requestedKeys === undefined
+      ? configuredProfiles
+      : configuredProfiles.filter((profile) => requestedKeys.has(profile.key))
+  if (requestedKeys !== undefined && profiles.length !== requestedKeys.size) {
+    const foundKeys = new Set(profiles.map((profile) => profile.key))
+    const missingKeys = [...requestedKeys].filter((key) => !foundKeys.has(key))
+    throw new SearchSynchronizationError(
+      "SEARCH_SYNC_PROFILE_NOT_FOUND",
+      `Search profiles were not found for synchronization: ${missingKeys.join(", ")}`,
+    )
+  }
+  const client = new MeilisearchAdminClient()
 
-	let deleted = 0
-	let indexed = 0
+  const syncProfileAt = async (
+    profileIndex: number,
+    totals: { deleted: number; indexed: number },
+  ): Promise<{ deleted: number; indexed: number }> => {
+    const profile = profiles[profileIndex]
 
-	for (const profile of profiles) {
-		const result = await syncProfileWithStatus({
-			client: client,
-			container: container,
-			logger: logger,
-			mode: mode,
-			profile: profile
-		})
+    if (profile === undefined) {
+      return totals
+    }
 
-		deleted += result.deleted
-		indexed += result.indexed
-	}
+    const result = await syncProfileWithStatus({
+      client,
+      container,
+      logger,
+      mode,
+      profile,
+    })
 
-	return { deleted: deleted, indexed: indexed, mode: mode, profiles: profiles.length }
+    return await syncProfileAt(profileIndex + 1, {
+      deleted: totals.deleted + result.deleted,
+      indexed: totals.indexed + result.indexed,
+    })
+  }
+  const totals = await syncProfileAt(0, { deleted: 0, indexed: 0 })
+
+  return {
+    deleted: totals.deleted,
+    indexed: totals.indexed,
+    mode,
+    profiles: profiles.length,
+    status: "completed",
+  }
 }
 
 export const synchronizeSearchProfiles = async (
-	container: MedusaContainer,
-	mode: SearchProfileSyncMode,
-	options?: SearchProfileSyncOptions
+  container: MedusaContainer,
+  mode: SearchProfileSyncMode,
+  options?: SearchProfileSyncOptions,
 ): Promise<SearchProfileSyncResult> => {
-	const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-	const locking = container.resolve<ILockingModule>(Modules.LOCKING)
+  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+  const locking = container.resolve<ILockingModule>(Modules.LOCKING)
+  const execution = await executeWithLockTimeout(
+    locking,
+    SEARCH_SYNC_LOCK_KEY,
+    1,
+    async () => await synchronizeUnlocked(container, mode, options),
+  )
 
-	try {
-		let result: SearchProfileSyncResult = {
-			deleted: 0,
-			indexed: 0,
-			mode,
-			profiles: 0
-		}
+  if (execution.status === "timed_out") {
+    logger.info(
+      `Skipping ${mode} Meilisearch sync because another instance holds the lock`,
+    )
+    return {
+      deleted: 0,
+      indexed: 0,
+      mode,
+      profiles: 0,
+      status: "skipped_lock_contended",
+    }
+  }
 
-		await locking.execute(SEARCH_SYNC_LOCK_KEY, async () => {
-			result = await synchronizeUnlocked(container, mode, options)
-		}, { timeout: 1 })
-
-		return result
-	} catch (error) {
-		if (error instanceof Error && error.message.includes('Timed-out')) {
-			logger.info('Skipping ' + mode + ' Meilisearch sync because another instance holds the lock')
-
-			return { deleted: 0, indexed: 0, mode: mode, profiles: 0 }
-		}
-
-		throw error
-	}
+  return execution.value
 }

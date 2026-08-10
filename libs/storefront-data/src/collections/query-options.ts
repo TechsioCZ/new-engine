@@ -1,3 +1,5 @@
+import { omitUndefined } from "@techsio/std/object"
+
 import type { CacheConfig, CacheStrategy } from "../shared/cache-config"
 import type {
   QueryFactoryOptions,
@@ -14,13 +16,13 @@ import type {
   CollectionService,
 } from "./types"
 
-export type CreateCollectionQueryOptionsFactoryConfig<
+export interface CreateCollectionQueryOptionsFactoryConfig<
   TCollection,
-  TListInput extends CollectionListInputBase,
+  TListInput extends CollectionListInputBase & TListParams,
   TListParams,
-  TDetailInput extends CollectionDetailInputBase,
+  TDetailInput extends CollectionDetailInputBase & TDetailParams,
   TDetailParams,
-> = {
+> {
   service: CollectionService<TCollection, TListParams, TDetailParams>
   buildListParams?: (input: TListInput) => TListParams
   buildDetailParams?: (input: TDetailInput) => TDetailParams
@@ -29,32 +31,32 @@ export type CreateCollectionQueryOptionsFactoryConfig<
   cacheConfig?: CacheConfig
 }
 
-export type CollectionQueryOptionsFactory<
+export interface CollectionQueryOptionsFactory<
   TCollection,
   TListInput extends CollectionListInputBase,
   TDetailInput extends CollectionDetailInputBase,
-> = {
+> {
   getListQueryOptions: (
     input: TListInput,
     options?: {
       queryOptions?: ReadQueryOptions<CollectionListResponse<TCollection>>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<CollectionListResponse<TCollection>>
   getDetailQueryOptions: (
     input: TDetailInput,
     options?: {
       queryOptions?: ReadQueryOptions<TCollection | null>
       cacheStrategy?: CacheStrategy
-    }
+    },
   ) => QueryFactoryOptions<TCollection | null>
 }
 
-export function createCollectionQueryOptionsFactory<
+export const createCollectionQueryOptionsFactory = <
   TCollection,
-  TListInput extends CollectionListInputBase,
+  TListInput extends CollectionListInputBase & TListParams,
   TListParams,
-  TDetailInput extends CollectionDetailInputBase,
+  TDetailInput extends CollectionDetailInputBase & TDetailParams,
   TDetailParams,
 >({
   service,
@@ -69,20 +71,24 @@ export function createCollectionQueryOptionsFactory<
   TListParams,
   TDetailInput,
   TDetailParams
->): CollectionQueryOptionsFactory<TCollection, TListInput, TDetailInput> {
+>): CollectionQueryOptionsFactory<TCollection, TListInput, TDetailInput> => {
+  const buildList = buildListParams ?? ((input: TListInput) => input)
+  const buildDetail = buildDetailParams ?? ((input: TDetailInput) => input)
   const resolvedQueryKeys =
     queryKeys ??
     createCollectionQueryKeys<TListParams, TDetailParams>(queryKeyNamespace)
 
-  return createSimpleListDetailQueryOptionsFactory({
-    getList: service.getCollections,
-    getDetail: service.getCollection,
-    buildListParams,
-    buildDetailParams,
-    queryKeys: resolvedQueryKeys,
-    cacheConfig,
-    defaultCacheStrategy: "static",
-    missingDetailErrorMessage:
-      "Collection id is required for collection queries",
-  })
+  return createSimpleListDetailQueryOptionsFactory(
+    omitUndefined({
+      buildDetailParams: buildDetail,
+      buildListParams: buildList,
+      cacheConfig,
+      defaultCacheStrategy: "static" as const,
+      getDetail: service.getCollection,
+      getList: service.getCollections,
+      missingDetailErrorMessage:
+        "Collection id is required for collection queries",
+      queryKeys: resolvedQueryKeys,
+    }),
+  )
 }

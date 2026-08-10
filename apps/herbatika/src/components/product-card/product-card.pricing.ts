@@ -1,4 +1,5 @@
-import type { HttpTypes } from "@medusajs/types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
+
 import {
   DEFAULT_CURRENCY_CODE,
   resolveSupportedCurrencyCode,
@@ -8,12 +9,13 @@ import {
   resolveProductTopOffer,
   resolveStorefrontPrice,
 } from "@/lib/storefront/product-pricing"
+
 import type { ProductPriceState } from "./product-card.types"
 
 export const resolvePriceState = (
-  product: HttpTypes.StoreProduct,
+  product: MedusaCatalogProduct,
   expectedCurrencyCode: string | null | undefined,
-  priceUnavailableLabel: string
+  priceUnavailableLabel: string,
 ): ProductPriceState => {
   const calculatedPrice = product.variants?.[0]?.calculated_price
   const topOffer = resolveProductTopOffer(product)
@@ -27,20 +29,20 @@ export const resolvePriceState = (
 
   if (!price) {
     return {
-      currentLabel: priceUnavailableLabel,
-      originalLabel: null,
-      currentAmount: null,
-      originalAmount: null,
       currencyCode: resolveSupportedCurrencyCode(
         expectedCurrencyCode,
-        DEFAULT_CURRENCY_CODE
+        DEFAULT_CURRENCY_CODE,
       ),
+      currentAmount: null,
+      currentLabel: priceUnavailableLabel,
+      originalAmount: null,
+      originalLabel: null,
     }
   }
 
   const currentLabel = formatCurrencyAmount(
     price.currentAmount,
-    price.currencyCode
+    price.currencyCode,
   )
   const originalLabel =
     typeof price.originalAmount === "number" &&
@@ -49,16 +51,16 @@ export const resolvePriceState = (
       : null
 
   return {
-    currentLabel,
-    originalLabel,
-    currentAmount: price.currentAmount,
-    originalAmount: price.originalAmount,
     currencyCode: price.currencyCode,
+    currentAmount: price.currentAmount,
+    currentLabel,
+    originalAmount: price.originalAmount,
+    originalLabel,
   }
 }
 
 export const resolveDiscountLabel = (
-  price: ProductPriceState
+  price: ProductPriceState,
 ): string | null => {
   if (
     typeof price.currentAmount !== "number" ||

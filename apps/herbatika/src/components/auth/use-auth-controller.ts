@@ -1,9 +1,10 @@
 "use client"
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
-import { useEffect, useState } from "react"
+import { redirect, useRouter } from "next/navigation"
+import { useState } from "react"
+
 import {
   buildAuthRouteHref,
   buildLoginDefaults,
@@ -11,36 +12,55 @@ import {
   buildRegisterSuccessNotice,
   resolveSafeRedirectHref,
 } from "@/components/auth/auth-helpers"
+import { usePostAuthCartTransfer } from "@/components/auth/use-post-auth-cart-transfer"
 import { useRegisterCountryItems } from "@/components/auth/use-register-country-items"
 import {
   isWholesaleRegistration,
-  type LoginFormValues,
-  type RegisterFormValues,
   resolveLoginSubmitError,
   resolveRegisterSubmitError,
 } from "@/lib/auth/auth-form-validators"
+import type {
+  LoginFormValues,
+  RegisterFormValues,
+} from "@/lib/auth/auth-form-validators"
 import { buildAuthRegisterInput } from "@/lib/auth/register-payload"
 import { useAuth, useLogin, useRegister } from "@/lib/storefront/auth"
-import {
-  cartReadQueryOptions,
-  useCart,
-  useTransferCart,
-} from "@/lib/storefront/cart"
-import { cartStorage } from "@/lib/storefront/cart-storage"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 
-type AuthControlsMode = "login" | "register"
-
-type UseAuthControllerProps = {
-  mode: AuthControlsMode
+interface UseAuthControllerProps {
+  mode: "login" | "register"
   afterAuthHref?: string
+}
+
+export interface AuthController {
+  authMessage: string | null
+  authNotice: string | null
+  authQuery: ReturnType<typeof useAuth>
+  cartQuery: ReturnType<typeof usePostAuthCartTransfer>["cartQuery"]
+  description: string
+  forgotPasswordHref: "/auth/forgot-password"
+  handleLoginSubmit: (values: LoginFormValues) => Promise<string | null>
+  handleRegisterSubmit: (values: RegisterFormValues) => Promise<string | null>
+  isBusy: boolean
+  loginDefaultValues: ReturnType<typeof buildLoginDefaults>
+  loginHref: ReturnType<typeof buildAuthRouteHref>
+  registerCountryItems: ReturnType<typeof useRegisterCountryItems>
+  registerDefaultValues: ReturnType<typeof buildRegisterDefaults>
+  registerHref: ReturnType<typeof buildAuthRouteHref>
+  title: string
+  transferCartIfAvailable: ReturnType<
+    typeof usePostAuthCartTransfer
+  >["transferCartIfAvailable"]
+  transferCartMutation: ReturnType<
+    typeof usePostAuthCartTransfer
+  >["transferCartMutation"]
 }
 
 export const useAuthController = ({
   mode,
   afterAuthHref,
-}: UseAuthControllerProps) => {
+}: UseAuthControllerProps): AuthController => {
   const tAuth = useTranslations("auth")
   const router = useRouter()
   const marketContext = useMarketContext()
@@ -48,22 +68,21 @@ export const useAuthController = ({
   const authQuery = useAuth()
   const loginMutation = useLogin()
   const registerMutation = useRegister()
-  const transferCartMutation = useTransferCart()
   const registerCountryItems = useRegisterCountryItems()
   const [authMessage, setAuthMessage] = useState<string | null>(null)
   const [authNotice, setAuthNotice] = useState<string | null>(null)
-
-  const cartQuery = useCart(
-    {
-      autoCreate: false,
-      region_id: region?.region_id,
-      country_code: region?.country_code,
-      enabled: Boolean(region?.region_id),
-    },
-    {
-      queryOptions: cartReadQueryOptions,
-    }
-  )
+  const {
+    cartQuery,
+    runPostAuthCartTransfer,
+    transferCartIfAvailable,
+    transferCartMutation,
+  } = usePostAuthCartTransfer({
+    ...(region?.country_code === undefined
+      ? {}
+      : { countryCode: region.country_code }),
+    failureMessage: tAuth("cart_transfer_failed"),
+    ...(region?.region_id === undefined ? {} : { regionId: region.region_id }),
+  })
 
   const safeRedirectHref = resolveSafeRedirectHref(afterAuthHref)
   const loginDefaultValues = buildLoginDefaults()
@@ -76,47 +95,8 @@ export const useAuthController = ({
     setAuthNotice(null)
   }
 
-  const transferCartIfAvailable = async () => {
-    const activeCartId = cartQuery.cart?.id
-    if (!activeCartId) {
-      return
-    }
-
-    const transferredCart = await transferCartMutation.mutateAsync({
-      cartId: activeCartId,
-    })
-    if (transferredCart?.id) {
-      cartStorage.setCartId(transferredCart.id)
-    }
-  }
-
-  const runPostAuthCartTransfer = async () => {
-    if (!cartQuery.cart?.id) {
-      return null
-    }
-
-    try {
-      await transferCartIfAvailable()
-      return null
-    } catch {
-      return tAuth("cart_transfer_failed")
-    }
-  }
-
-  useEffect(() => {
-    if (!safeRedirectHref) {
-      return
-    }
-
-    if (authQuery.isLoading || !authQuery.isAuthenticated) {
-      return
-    }
-
-    router.replace(safeRedirectHref)
-  }, [authQuery.isAuthenticated, authQuery.isLoading, router, safeRedirectHref])
-
   const handleLoginSubmit = async (
-    values: LoginFormValues
+    values: LoginFormValues,
   ): Promise<string | null> => {
     clearFeedback()
 
@@ -124,7 +104,7 @@ export const useAuthController = ({
       await loginMutation.mutateAsync(values)
       const transferNotice = await runPostAuthCartTransfer()
 
-      if (safeRedirectHref) {
+      if (safeRedirectHref !== null) {
         router.replace(safeRedirectHref)
         return null
       }
@@ -141,7 +121,7 @@ export const useAuthController = ({
   }
 
   const handleRegisterSubmit = async (
-    values: RegisterFormValues
+    values: RegisterFormValues,
   ): Promise<string | null> => {
     clearFeedback()
 
@@ -149,11 +129,11 @@ export const useAuthController = ({
       await registerMutation.mutateAsync(
         buildAuthRegisterInput(values, {
           currencyCode: resolveRegionCurrency(region),
-        })
+        }),
       )
       const transferNotice = await runPostAuthCartTransfer()
 
-      if (safeRedirectHref) {
+      if (safeRedirectHref !== null) {
         router.replace(safeRedirectHref)
         return null
       }
@@ -164,7 +144,7 @@ export const useAuthController = ({
           isWholesale: isWholesaleRegistration(values),
           transferNotice,
           wholesaleNotice: tAuth("register.wholesale_success"),
-        })
+        }),
       )
       return null
     } catch (error) {
@@ -188,13 +168,19 @@ export const useAuthController = ({
       : tAuth("login.description")
   const loginHref = buildAuthRouteHref(
     "/auth/login",
-    safeRedirectHref ?? undefined
+    safeRedirectHref ?? undefined,
   )
   const registerHref = buildAuthRouteHref(
     "/auth/register",
-    safeRedirectHref ?? undefined
+    safeRedirectHref ?? undefined,
   )
-  const forgotPasswordHref = "/auth/forgot-password"
+  if (
+    !authQuery.isLoading &&
+    authQuery.isAuthenticated &&
+    safeRedirectHref !== null
+  ) {
+    redirect(safeRedirectHref)
+  }
 
   return {
     authMessage,
@@ -202,6 +188,7 @@ export const useAuthController = ({
     authQuery,
     cartQuery,
     description,
+    forgotPasswordHref: "/auth/forgot-password",
     handleLoginSubmit,
     handleRegisterSubmit,
     isBusy,
@@ -210,7 +197,6 @@ export const useAuthController = ({
     registerCountryItems,
     registerDefaultValues,
     registerHref,
-    forgotPasswordHref,
     title,
     transferCartIfAvailable,
     transferCartMutation,

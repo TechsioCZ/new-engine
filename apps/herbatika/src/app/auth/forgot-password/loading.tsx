@@ -1,5 +1,5 @@
 import { AuthPageSkeleton } from "@/components/loading/auth-page-skeleton"
 
-export default function Loading() {
-  return <AuthPageSkeleton />
-}
+const Loading = () => <AuthPageSkeleton />
+
+export default Loading
