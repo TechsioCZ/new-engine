@@ -3,7 +3,6 @@ import type {
   OrderDashboardBusinessStatusGroupId,
   OrderDashboardBusinessStatusId,
   OrderDashboardCarrierKey,
-  OrderDashboardFulfillmentCreateItem,
   OrderDashboardFulfillmentOrder,
   OrderDashboardLabelFormat,
   OrderDashboardManualStatusId,
@@ -221,19 +220,20 @@ export async function listOrderDashboardShippingOptions(
 }
 
 export function createOrderDashboardFulfillment(input: {
-  items: OrderDashboardFulfillmentCreateItem[]
   locationId: string
   noNotification: boolean
   orderId: string
-  shippingOptionId?: string
-}): Promise<unknown> {
-  return sdk.admin.order.createFulfillment(input.orderId, {
-    items: input.items,
-    location_id: input.locationId,
-    metadata: {},
-    no_notification: input.noNotification,
-    shipping_option_id: input.shippingOptionId,
-  })
+}) {
+  return sdk.client.fetch<{ fulfillment: { id: string } }>(
+    `/admin/order-expedition/orders/${input.orderId}/fulfillments`,
+    {
+      body: {
+        location_id: input.locationId,
+        no_notification: input.noNotification,
+      },
+      method: "POST",
+    }
+  )
 }
 
 async function downloadPdf(

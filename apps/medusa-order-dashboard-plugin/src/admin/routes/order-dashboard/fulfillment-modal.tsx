@@ -16,6 +16,7 @@ import {
   listOrderDashboardShippingOptions,
   listOrderDashboardStockLocations,
 } from "./api"
+import { getFulfillmentErrorMessage } from "./fulfillment-errors"
 import type {
   OrderDashboardFulfillmentCreateItem,
   OrderDashboardFulfillmentItem,
@@ -140,11 +141,9 @@ export function OrderFulfillmentModal({
       for (const order of orders) {
         try {
           await createOrderDashboardFulfillment({
-            items: order.items,
             locationId,
             noNotification: !sendNotification,
             orderId: order.id,
-            shippingOptionId: order.shippingOptionId,
           })
           fulfilled.push({
             id: order.id,
@@ -154,7 +153,7 @@ export function OrderFulfillmentModal({
           failed.push({
             id: order.id,
             order_display_id: order.order_display_id,
-            reason: getErrorMessage(error, t("toast.requestFailed")),
+            reason: getFulfillmentErrorMessage(error, t("toast.requestFailed")),
           })
         }
       }
@@ -373,7 +372,7 @@ function FulfillmentPreviewContent({
   if (previewError) {
     return (
       <Text className="text-ui-fg-error" leading="compact" size="small">
-        {getErrorMessage(previewError, t("toast.requestFailed"))}
+        {getFulfillmentErrorMessage(previewError, t("toast.requestFailed"))}
       </Text>
     )
   }
@@ -809,8 +808,4 @@ function formatFulfillmentOrderDisplayId(
   }
 
   return order.display_id ? `#${order.display_id}` : order.id
-}
-
-function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof Error ? error.message : fallback
 }
