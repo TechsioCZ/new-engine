@@ -5,6 +5,26 @@ const normalizeIdentifier = (value: unknown) =>
 
 type CarrierPickupType = "gls" | "packeta" | "ppl"
 
+export interface CarrierPickupData {
+  access_point_city?: string | null
+  access_point_country?: string | null
+  access_point_id?: number | string | null
+  access_point_name?: string | null
+  access_point_street?: string | null
+  access_point_type?: string | null
+  access_point_zip?: string | null
+}
+
+export interface StoredCarrierPickupData extends CarrierPickupData {
+  access_point_id: number | string
+}
+
+interface ShippingOptionPickupData {
+  code?: string | null
+  product_type?: string | null
+  requires_access_point?: boolean | null
+}
+
 export type CarrierPickupFailureReason =
   | "point_unavailable"
   | "selection_failed"
@@ -17,7 +37,7 @@ export interface CarrierPickupRequirement {
 }
 
 export interface ShippingOptionWithPickupData {
-  data?: Record<string, unknown> | null
+  data?: ShippingOptionPickupData | null
   id: string
   name?: string | null
   provider_id?: string | null
@@ -43,10 +63,8 @@ export const resolveCarrierPickupRequirement = (
   option: ShippingOptionWithPickupData,
 ): CarrierPickupRequirement | null => {
   const optionData = option.data ?? {}
-  const optionCode = normalizeIdentifier(Reflect.get(optionData, "code"))
-  const productType = normalizeIdentifier(
-    Reflect.get(optionData, "product_type"),
-  )
+  const optionCode = normalizeIdentifier(optionData.code)
+  const productType = normalizeIdentifier(optionData.product_type)
   const providerId = normalizeIdentifier(option.provider_id)
   const optionName = normalizeIdentifier(option.name)
   const pickupOptionMarkers = [
@@ -77,7 +95,7 @@ export const resolveCarrierPickupRequirement = (
   }
 
   if (
-    Reflect.get(optionData, "requires_access_point") === true ||
+    optionData.requires_access_point === true ||
     PPL_PICKUP_PRODUCTS.has(productType) ||
     (providerId.includes("ppl") && looksLikePickupOption)
   ) {

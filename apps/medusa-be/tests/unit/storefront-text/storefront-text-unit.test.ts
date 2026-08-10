@@ -62,7 +62,7 @@ const assertMockShape: <T>(
  * using them directly as a nested object-literal property value trips
  * `no-unsafe-assignment`.
  */
-const objectContaining = (value: Record<string, unknown>): unknown =>
+const objectContaining = (value: object): unknown =>
   expect.objectContaining(value)
 
 const arrayContaining = (value: unknown[]): unknown =>
@@ -75,7 +75,7 @@ const createMockRequest = <T>(
   options: {
     locale?: string
     resolve: ReturnType<typeof vi.fn<(key: string) => unknown>>
-    validatedQuery: Record<string, unknown>
+    validatedQuery: object
   },
   requiredKeys: readonly (keyof T)[],
 ): T => {
@@ -118,12 +118,12 @@ interface MockStorefrontTextRecord {
 }
 
 type ListStorefrontTextsMock = (
-  filters: Record<string, unknown>,
+  filters: object,
 ) => Promise<MockStorefrontTextRecord[]>
 
 type ListAndCountStorefrontTextsMock = (
-  filters: Record<string, unknown>,
-  config: Record<string, unknown>,
+  filters: object,
+  config: object,
 ) => Promise<[MockStorefrontTextRecord[], number]>
 
 interface AdminStorefrontTextCatalogResponseBody {
@@ -245,6 +245,20 @@ describe("storefront text registry", () => {
     catalog["unknown"] = "Neznámý text"
 
     expect(() => parseStorefrontTextCatalog(catalog)).toThrow("Unknown keys")
+  })
+
+  it("rejects arrays and invalid nested catalog leaves", () => {
+    expect(() => flattenStorefrontTextCatalog([])).toThrow(
+      "Storefront text catalog must be a JSON object",
+    )
+
+    for (const invalidLeaf of [null, 42, true, ["Do košíku"]]) {
+      expect(() =>
+        flattenStorefrontTextCatalog({ cart: { add_to_cart: invalidLeaf } }),
+      ).toThrow(
+        'Storefront text catalog value "cart.add_to_cart" must be a string or non-empty object',
+      )
+    }
   })
 
   it("rejects reserved object-path segments in catalogs", () => {

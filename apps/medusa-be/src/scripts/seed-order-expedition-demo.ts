@@ -15,23 +15,34 @@ import {
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import { createOrderWorkflow } from "@medusajs/medusa/core-flows"
-import { isRecord } from "@techsio/std/object"
 
-interface DemoVariant {
-  id: string
-  sku?: string | null
-  title?: string | null
-  product?: {
-    id?: string | null
-    title?: string | null
-    handle?: string | null
-  } | null
+const optionalNullableStringSchema = z.string().nullable().optional()
+const demoVariantSchema = z.object({
+  id: z.string(),
+  product: z
+    .object({
+      handle: optionalNullableStringSchema,
+      id: optionalNullableStringSchema,
+      title: optionalNullableStringSchema,
+    })
+    .nullable()
+    .optional(),
+  sku: optionalNullableStringSchema,
+  title: optionalNullableStringSchema,
+})
+type DemoVariant = z.infer<typeof demoVariantSchema>
+
+interface DemoCarrierData {
+  pickupPoint?: string
+  provider: string
+  service?: string
 }
 
 interface DemoOrder {
   carrierName: string
-  carrierData: Record<string, unknown>
+  carrierData: DemoCarrierData
   city: string
   company?: string
   createdAt: Date
@@ -55,12 +66,16 @@ interface DatabaseConnection {
   raw: (sql: string, bindings?: unknown[]) => Promise<unknown>
 }
 
-interface ExistingDemoOrder {
-  id: string
-  display_id?: number | null
-  email?: string | null
-  metadata: Record<string, unknown>
-}
+const existingDemoOrderSchema = z.object({
+  display_id: z.number().nullable().optional(),
+  email: optionalNullableStringSchema,
+  id: z.string(),
+  metadata: z.object({
+    order_expedition_demo: z.literal(true),
+    order_expedition_demo_index: z.union([z.number(), z.string()]).optional(),
+  }),
+})
+type ExistingDemoOrder = z.infer<typeof existingDemoOrderSchema>
 
 const PRODUCT_IMAGE_URLS = [
   "https://medusa-public-images.s3.eu-west-1.amazonaws.com/tee-black-front.png",
@@ -269,7 +284,7 @@ const getExistingDemoOrderSortIndex = (
   order: ExistingDemoOrder,
   fallbackIndex: number,
 ) => {
-  const metadataIndex = order.metadata["order_expedition_demo_index"]
+  const metadataIndex = order.metadata.order_expedition_demo_index
   if (typeof metadataIndex === "number" && Number.isFinite(metadataIndex)) {
     return metadataIndex
   }
@@ -304,64 +319,13 @@ const sortExistingDemoOrders = (orders: ExistingDemoOrder[]) =>
     })
     .map(({ order }) => order)
 
-const isOptionalNullableString = (
-  value: unknown,
-): value is string | null | undefined =>
-  value === undefined || value === null || typeof value === "string"
-
-const isOptionalNullableNumber = (
-  value: unknown,
-): value is number | null | undefined =>
-  value === undefined || value === null || typeof value === "number"
-
-const isExistingDemoOrder = (value: unknown): value is ExistingDemoOrder => {
-  if (!isRecord(value) || typeof value["id"] !== "string") {
-    return false
-  }
-
-  const { metadata } = value
-  if (!isRecord(metadata) || metadata["order_expedition_demo"] !== true) {
-    return false
-  }
-
-  return (
-    isOptionalNullableNumber(value["display_id"]) &&
-    isOptionalNullableString(value["email"])
-  )
-}
-
-const isDemoProduct = (
-  value: unknown,
-): value is NonNullable<DemoVariant["product"]> =>
-  isRecord(value) &&
-  isOptionalNullableString(value["id"]) &&
-  isOptionalNullableString(value["title"]) &&
-  isOptionalNullableString(value["handle"])
-
-const isDemoVariant = (value: unknown): value is DemoVariant => {
-  if (!isRecord(value) || typeof value["id"] !== "string") {
-    return false
-  }
-
-  const { product } = value
-  if (product !== undefined && product !== null && !isDemoProduct(product)) {
-    return false
-  }
-
-  return (
-    isOptionalNullableString(value["sku"]) &&
-    isOptionalNullableString(value["title"])
-  )
-}
-
 const fetchExistingDemoOrders = async (query: QueryService) => {
   const { data } = await query.graph({
     entity: "order",
     fields: ["id", "display_id", "email", "metadata"],
   })
-  const orders = Array.isArray(data) ? data.filter(isExistingDemoOrder) : []
-
-  return sortExistingDemoOrders(orders)
+  const parsed = z.array(existingDemoOrderSchema).safeParse(data)
+  return sortExistingDemoOrders(parsed.success ? parsed.data : [])
 }
 
 const fetchVariants = async (query: QueryService) => {
@@ -377,7 +341,8 @@ const fetchVariants = async (query: QueryService) => {
     ],
   })
   const demoHandles = new Set(buildDemoProductHandles())
-  const variants = Array.isArray(data) ? data.filter(isDemoVariant) : []
+  const parsed = z.array(demoVariantSchema).safeParse(data)
+  const variants = parsed.success ? parsed.data : []
 
   return variants.filter((variant) =>
     demoHandles.has(variant.product?.handle ?? ""),
@@ -600,7 +565,7 @@ const createDemoOrders = async ({
         shipping_methods: [
           {
             amount: 99,
-            data: order.carrierData,
+            data: { ...order.carrierData },
             name: order.carrierName,
           },
         ],

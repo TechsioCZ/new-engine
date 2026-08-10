@@ -3,7 +3,7 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 
 import type { AdminGetApprovalsType } from "./validators"
 
@@ -11,14 +11,12 @@ interface ApprovalStatusFilters {
   status?: AdminGetApprovalsType["status"]
 }
 
-const normalizeApprovalCart = (
-  cart: Record<string, unknown>,
-): Record<string, unknown> => {
-  const {
-    approvals,
-    approval_requests: approvalRequests,
-    ...normalizedCart
-  } = cart
+const normalizeApprovalCart = (cart: object): object => {
+  const approvals = getRecordValue(cart, "approvals")
+  const approvalRequests = getRecordValue(cart, "approval_requests")
+  const normalizedCart = { ...cart }
+  Reflect.deleteProperty(normalizedCart, "approvals")
+  Reflect.deleteProperty(normalizedCart, "approval_requests")
 
   let normalizedApprovals: unknown[] = []
   if (Array.isArray(approvalRequests)) {
@@ -55,24 +53,27 @@ const getRoute = async (
     filters,
   })
 
-  const carts: Record<string, unknown>[] = []
-  if (isRecord(graphResult) && Array.isArray(graphResult["data"])) {
-    for (const approvalStatus of graphResult["data"]) {
+  const carts: object[] = []
+  const data: unknown = isRecord(graphResult)
+    ? getRecordValue(graphResult, "data")
+    : undefined
+  if (Array.isArray(data)) {
+    for (const approvalStatus of data) {
       if (!isRecord(approvalStatus)) {
         continue
       }
 
-      const { cart } = approvalStatus
+      const cart = getRecordValue(approvalStatus, "cart")
       if (isRecord(cart)) {
         carts.push(normalizeApprovalCart(cart))
       }
     }
   }
 
-  const metadata =
-    isRecord(graphResult) && isRecord(graphResult["metadata"])
-      ? graphResult["metadata"]
-      : {}
+  const rawMetadata: unknown = isRecord(graphResult)
+    ? getRecordValue(graphResult, "metadata")
+    : undefined
+  const metadata = isRecord(rawMetadata) ? rawMetadata : {}
 
   res.json({
     carts_with_approvals: carts,

@@ -1,7 +1,7 @@
+import type { ProductListMetadata } from "../../modules/product-list/schemas"
 import type {
   CreateCustomProductListDTO,
   CreateFavoriteProductListDTO,
-  ProductListMetadata,
   UpdateCustomProductListDTO,
   UpdateProductListItemDTO,
 } from "../../modules/product-list/service"
@@ -13,7 +13,7 @@ export interface ProductListRecord {
   type: string
   access_type?: string
   description?: string | null
-  metadata?: ProductListMetadata | null
+  metadata?: unknown
   items?: ProductListItemRecord[]
   created_at?: string | Date
   updated_at?: string | Date
@@ -24,7 +24,7 @@ export interface ProductListItemRecord {
   quantity: number
   note?: string | null
   sort_order: number
-  metadata?: ProductListMetadata | null
+  metadata?: unknown
   list_id: string
   created_at?: string | Date
   updated_at?: string | Date

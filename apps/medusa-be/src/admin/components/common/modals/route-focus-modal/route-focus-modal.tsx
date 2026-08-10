@@ -1,6 +1,6 @@
 import { clx, FocusModal } from "@medusajs/ui"
 import { useEffect, useState } from "react"
-import type { PropsWithChildren } from "react"
+import type { PropsWithChildren, ReactNode } from "react"
 import { useNavigate } from "react-router-dom"
 
 import { RouteModalForm } from "./route-modal-form"
@@ -95,7 +95,18 @@ const Form = RouteModalForm
  * Typically used for forms creating a resource or forms that require
  * a lot of space.
  */
-export const RouteFocusModal = Object.assign(Root, {
+interface RouteFocusModalComponent {
+  (props: RouteFocusModalProps): ReactNode
+  Body: typeof FocusModal.Body
+  Close: typeof FocusModal.Close
+  Description: typeof FocusModal.Description
+  Footer: typeof FocusModal.Footer
+  Form: typeof RouteModalForm
+  Header: typeof FocusModal.Header
+  Title: typeof FocusModal.Title
+}
+
+export const RouteFocusModal: RouteFocusModalComponent = Object.assign(Root, {
   Body,
   Close,
   Description,

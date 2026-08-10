@@ -1,5 +1,9 @@
 "use client"
 
+import type {
+  FormAsyncValidateOrFn,
+  FormValidateOrFn,
+} from "@tanstack/react-form"
 import { useTranslations } from "next-intl"
 import { useEffect, useRef, useState } from "react"
 
@@ -8,11 +12,39 @@ import {
   createAccountSettingsValidators,
   toAccountSettingsValues,
 } from "@/lib/storefront/account-settings-validators"
+import type { AccountSettingsValues } from "@/lib/storefront/account-settings-validators"
 import { useAuth } from "@/lib/storefront/auth"
 import { useUpdateCustomer } from "@/lib/storefront/customers"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 
-export const useAccountSettingsForm = () => {
+type AccountSettingsForm = ReturnType<
+  typeof useHerbatikaForm<
+    AccountSettingsValues,
+    FormValidateOrFn<AccountSettingsValues> | undefined,
+    FormValidateOrFn<AccountSettingsValues> | undefined,
+    FormAsyncValidateOrFn<AccountSettingsValues> | undefined,
+    FormValidateOrFn<AccountSettingsValues> | undefined,
+    FormAsyncValidateOrFn<AccountSettingsValues> | undefined,
+    FormValidateOrFn<AccountSettingsValues> | undefined,
+    FormAsyncValidateOrFn<AccountSettingsValues> | undefined,
+    FormValidateOrFn<AccountSettingsValues> | undefined,
+    FormAsyncValidateOrFn<AccountSettingsValues> | undefined,
+    FormAsyncValidateOrFn<AccountSettingsValues> | undefined,
+    unknown
+  >
+>
+
+interface AccountSettingsFormController {
+  accountSettingsValidators: ReturnType<typeof createAccountSettingsValidators>
+  authQuery: ReturnType<typeof useAuth>
+  clearSubmitStatus: () => void
+  form: AccountSettingsForm
+  submitError: string | null
+  submitSuccess: string | null
+  updateCustomerMutation: ReturnType<typeof useUpdateCustomer>
+}
+
+export const useAccountSettingsForm = (): AccountSettingsFormController => {
   const tAuth = useTranslations("auth")
   const tForm = useTranslations("form")
   const authQuery = useAuth()

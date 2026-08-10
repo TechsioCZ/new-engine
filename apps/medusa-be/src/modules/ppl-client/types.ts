@@ -77,7 +77,7 @@ export interface PplShipmentRequest {
   /** Unique reference ID, max 128 chars (use fulfillment ID) */
   referenceId: string
   /** Product type code (SMAR, SMAD, PRIV, PRID, etc.) */
-  productType: PplProductType
+  productType: string
   /** Recipient address */
   recipient: PplAddress
   /** Sender address (optional, defaults to contract address) */
@@ -126,9 +126,9 @@ export interface PplShipmentRequest {
  * - SMAD: Parcel Smart + COD (pickup point, with COD)
  * - PRIV: Parcel Private (home delivery, no COD)
  * - PRID: Parcel Private + COD (home delivery, with COD)
- * Note: Includes `| string` for forward-compatibility with PPL API changes
+ * Open string type for forward compatibility with PPL API changes.
  */
-export type PplProductType = keyof Record<string, unknown>
+export type PplProductType = PplShipmentRequest["productType"]
 
 export interface PplExternalNumber {
   /** External number type code (usually "CUST") */
@@ -441,7 +441,7 @@ export interface PplAccessPoint {
   /** Access point name */
   name: string
   /** Type: ParcelShop, ParcelBox, AlzaBox, etc. */
-  accessPointType: PplAccessPointType
+  accessPointType: string
   address: PplAddress
   openingHours?: string
   latitude?: number
@@ -450,8 +450,8 @@ export interface PplAccessPoint {
   isActive?: boolean
 }
 
-/** Access point types - includes | string for forward-compatibility with PPL API */
-export type PplAccessPointType = keyof Record<string, unknown>
+/** Open string type for forward compatibility with PPL API changes. */
+export type PplAccessPointType = PplAccessPoint["accessPointType"]
 
 /**
  * Access points query parameters
@@ -510,10 +510,9 @@ export interface PplApiError {
 export type PplFulfillmentStatus = "pending" | "completed" | "error"
 
 /**
- * Data stored in fulfillment.data for PPL shipments
- * Extends Record<string, unknown> for compatibility with Medusa's fulfillment data type
+ * Data stored in fulfillment.data for PPL shipments.
  */
-export interface PplFulfillmentData extends Record<string, unknown> {
+export interface PplFulfillmentData {
   /** Fulfillment processing status */
   status: PplFulfillmentStatus
   /** Batch ID from PPL - always present after createFulfillment */
@@ -555,7 +554,7 @@ export interface PplFulfillmentData extends Record<string, unknown> {
 /**
  * Data passed during checkout for PPL shipping option
  */
-export interface PplShippingOptionData extends Record<string, unknown> {
+export interface PplShippingOptionData {
   /** Product type code */
   product_type: PplProductType
   /** Whether option requires access point selection */
@@ -595,9 +594,9 @@ export interface PplShipmentQuery {
 }
 
 /**
- * Order type - includes | string for forward-compatibility with PPL API
+ * Open string type for forward compatibility with PPL API changes.
  */
-export type PplOrderType = keyof Record<string, unknown>
+export type PplOrderType = PplOrder["orderType"]
 
 /**
  * Order state
@@ -652,7 +651,7 @@ export interface PplOrder {
   /** Customer reference */
   customerReference?: string
   /** Order type */
-  orderType: PplOrderType
+  orderType: string
   /** Order state */
   orderState: PplOrderState
   /** Send date (ISO DateTime) */

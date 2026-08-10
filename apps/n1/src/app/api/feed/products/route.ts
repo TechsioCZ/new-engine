@@ -1,4 +1,4 @@
-import { getRecordValue } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { NextResponse } from "next/server"
 
 import {
@@ -6,28 +6,13 @@ import {
   getMedusaPublishableKey,
 } from "@/lib/medusa-backend-url"
 
-const isNonNullObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
-const isUnknownArray = (value: unknown): value is unknown[] =>
-  Array.isArray(value)
-
-const readUnknown = (source: Record<string, unknown>, key: string): unknown =>
-  source[key]
-
-const readString = (
-  source: Record<string, unknown>,
-  key: string,
-): string | undefined => {
-  const value = readUnknown(source, key)
+const readString = (source: object, key: string): string | undefined => {
+  const value = getRecordValue(source, key)
   return typeof value === "string" ? value : undefined
 }
 
-const readNumber = (
-  source: Record<string, unknown>,
-  key: string,
-): number | undefined => {
-  const value = readUnknown(source, key)
+const readNumber = (source: object, key: string): number | undefined => {
+  const value = getRecordValue(source, key)
   return typeof value === "number" ? value : undefined
 }
 
@@ -95,7 +80,7 @@ interface MedusaProductPage {
 }
 
 const parseAttribute = (value: unknown): MedusaAttribute | undefined => {
-  if (!isNonNullObject(value)) {
+  if (!isRecord(value)) {
     return undefined
   }
 
@@ -108,7 +93,7 @@ const parseAttribute = (value: unknown): MedusaAttribute | undefined => {
 }
 
 const parseAttributes = (value: unknown): MedusaAttribute[] =>
-  isUnknownArray(value)
+  Array.isArray(value)
     ? value
         .map((entry) => parseAttribute(entry))
         .filter((attribute) => attribute !== undefined)
@@ -117,7 +102,7 @@ const parseAttributes = (value: unknown): MedusaAttribute[] =>
 const parseCalculatedPrice = (
   value: unknown,
 ): MedusaCalculatedPrice | undefined =>
-  isNonNullObject(value)
+  isRecord(value)
     ? {
         calculated_amount: readNumber(value, "calculated_amount"),
         currency_code: readString(value, "currency_code"),
@@ -125,7 +110,7 @@ const parseCalculatedPrice = (
     : undefined
 
 const parseVariant = (value: unknown): MedusaVariant => {
-  if (!isNonNullObject(value)) {
+  if (!isRecord(value)) {
     throw new Error(INVALID_PAYLOAD_MESSAGE)
   }
 
@@ -135,16 +120,14 @@ const parseVariant = (value: unknown): MedusaVariant => {
     throw new Error(INVALID_PAYLOAD_MESSAGE)
   }
 
-  const metadata = readUnknown(value, "metadata")
+  const metadata = getRecordValue(value, "metadata")
 
   return {
     attributes: parseAttributes(
-      isNonNullObject(metadata)
-        ? readUnknown(metadata, "attributes")
-        : undefined,
+      isRecord(metadata) ? getRecordValue(metadata, "attributes") : undefined,
     ),
     calculated_price: parseCalculatedPrice(
-      readUnknown(value, "calculated_price"),
+      getRecordValue(value, "calculated_price"),
     ),
     ean: readString(value, "ean"),
     id,
@@ -156,14 +139,14 @@ const parseVariant = (value: unknown): MedusaVariant => {
 // A category without a usable name joins as an empty segment, matching the
 // upstream feed contract.
 const parseCategoryNames = (value: unknown): string[] =>
-  isUnknownArray(value)
+  Array.isArray(value)
     ? value.map((entry) =>
-        isNonNullObject(entry) ? (readString(entry, "name") ?? "") : "",
+        isRecord(entry) ? (readString(entry, "name") ?? "") : "",
       )
     : []
 
 const parseProduct = (value: unknown): MedusaProduct => {
-  if (!isNonNullObject(value)) {
+  if (!isRecord(value)) {
     throw new Error(INVALID_PAYLOAD_MESSAGE)
   }
 
@@ -175,30 +158,30 @@ const parseProduct = (value: unknown): MedusaProduct => {
     throw new Error(INVALID_PAYLOAD_MESSAGE)
   }
 
-  const variants = readUnknown(value, "variants")
+  const variants = getRecordValue(value, "variants")
 
   return {
-    categoryNames: parseCategoryNames(readUnknown(value, "categories")),
+    categoryNames: parseCategoryNames(getRecordValue(value, "categories")),
     description: readString(value, "description"),
     handle,
     id,
     thumbnail: readString(value, "thumbnail"),
     title,
-    variants: isUnknownArray(variants)
+    variants: Array.isArray(variants)
       ? variants.map((variant) => parseVariant(variant))
       : [],
   }
 }
 
 const parseProductPage = (value: unknown): MedusaProductPage => {
-  if (!isNonNullObject(value)) {
+  if (!isRecord(value)) {
     throw new Error(INVALID_PAYLOAD_MESSAGE)
   }
 
-  const products = readUnknown(value, "products")
+  const products = getRecordValue(value, "products")
   const count = readNumber(value, "count")
 
-  if (!isUnknownArray(products) || count === undefined) {
+  if (!Array.isArray(products) || count === undefined) {
     throw new Error(INVALID_PAYLOAD_MESSAGE)
   }
 

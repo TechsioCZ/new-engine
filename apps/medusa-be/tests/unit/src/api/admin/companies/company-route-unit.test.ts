@@ -23,7 +23,7 @@ const workflowMocks = vi.hoisted(() => {
 const { overrideModule } = vi.hoisted(() => ({
   overrideModule: <Module extends object>(
     original: Module,
-    replacements: Record<PropertyKey, unknown>,
+    replacements: object,
   ): Module =>
     Object.defineProperties(
       { ...original },
@@ -76,7 +76,7 @@ const assertMockShape: <T>(
  * Vitest types this matcher factory as `any`, so using it directly as a
  * nested object-literal property value trips `no-unsafe-assignment`.
  */
-const objectContaining = (value: Record<string, unknown>): unknown =>
+const objectContaining = (value: object): unknown =>
   expect.objectContaining(value)
 
 const REQUEST_KEYS = [
@@ -107,25 +107,23 @@ const createMockResponse = (): MockMedusaResponse => {
 }
 
 interface GraphQueryResult {
-  data: Record<string, unknown>[]
+  data: object[]
   metadata?: { count: number; skip: number; take: number }
 }
 
 const createGraphMock = (result: GraphQueryResult) =>
-  vi
-    .fn<(args: Record<string, unknown>) => Promise<GraphQueryResult>>()
-    .mockResolvedValue(result)
+  vi.fn<(args: object) => Promise<GraphQueryResult>>().mockResolvedValue(result)
 
 const createMockRequest = <T>(
   options: {
-    body?: Record<string, unknown>
-    filterableFields?: Record<string, unknown>
+    body?: object
+    filterableFields?: object
     graph: ReturnType<typeof createGraphMock>
     logger?: { info: ReturnType<typeof vi.fn> }
     params?: Record<string, string>
     pagination?: { order?: Record<string, string>; skip: number; take?: number }
-    validatedBody?: Record<string, unknown>
-    validatedQuery?: Record<string, unknown>
+    validatedBody?: object
+    validatedQuery?: object
     withDeleted?: boolean
   },
   requiredKeys: readonly (keyof T)[],

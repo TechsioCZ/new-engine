@@ -1,9 +1,5 @@
-import type { MedusaRequest } from "@medusajs/framework/http"
-import type { Query } from "@medusajs/framework/types"
-import {
-  ContainerRegistrationKeys,
-  MedusaError,
-} from "@medusajs/framework/utils"
+import { MedusaError } from "@medusajs/framework/utils"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { toBuffer } from "bwip-js/node"
 import { PageSizes, rgb } from "pdf-lib"
 
@@ -13,11 +9,11 @@ import {
   toOrderExpeditionDto,
 } from "../../../../utils/order-expedition"
 import type {
+  OrderExpeditionGraph,
   OrderExpeditionItemDto,
   OrderExpeditionOrderDto,
   OrderExpeditionRawOrder,
 } from "../../../../utils/order-expedition"
-import type { PostAdminOrderExpeditionPdfSchemaType } from "../validators"
 import { createExpeditionPdfContext } from "./pdf-context"
 import type { DrawState } from "./types"
 
@@ -135,7 +131,7 @@ const isInventoryLevel = (value: unknown): value is InventoryLevel =>
   "inventory_item_id" in value &&
   typeof value.inventory_item_id === "string"
 
-const getFulfillmentDataBarcode = (data?: Record<string, unknown> | null) => {
+const getFulfillmentDataBarcode = (data?: object | null) => {
   if (data === null || data === undefined) {
     return null
   }
@@ -146,7 +142,7 @@ const getFulfillmentDataBarcode = (data?: Record<string, unknown> | null) => {
     "tracking_number",
     "packet_id",
   ]) {
-    const value = data[key]
+    const value = getRecordValue(data, key)
     if (typeof value === "string" && value.trim() !== "") {
       return value.trim()
     }
@@ -401,8 +397,16 @@ const toPdfSafeText = (value: string) => {
   return safeText
 }
 
+const getGraphData = (graphResult: unknown): unknown[] => {
+  if (!isRecord(graphResult)) {
+    return []
+  }
+  const data = getRecordValue(graphResult, "data")
+  return Array.isArray(data) ? data : []
+}
+
 const fetchStockQuantitiesByVariantId = async (
-  query: Query,
+  query: OrderExpeditionGraph,
   orders: OrderExpeditionRawOrder[],
 ) => {
   const variantIds = [
@@ -421,13 +425,14 @@ const fetchStockQuantitiesByVariantId = async (
     return new Map<string, number>()
   }
 
-  const { data: rawLinks } = await query.graph({
+  const rawLinksResult = await query.graph({
     entity: "product_variant_inventory_item",
     fields: ["variant_id", "inventory_item_id", "required_quantity"],
     filters: { variant_id: variantIds },
   })
+  const rawLinks = getGraphData(rawLinksResult)
 
-  const links = (rawLinks ?? []).filter(isInventoryItemLink)
+  const links = rawLinks.filter(isInventoryItemLink)
   const inventoryItemIds = [
     ...new Set(links.map((link) => link.inventory_item_id)),
   ]
@@ -436,13 +441,14 @@ const fetchStockQuantitiesByVariantId = async (
     return new Map<string, number>()
   }
 
-  const { data: rawLevels } = await query.graph({
+  const rawLevelsResult = await query.graph({
     entity: "inventory_level",
     fields: ["inventory_item_id", "stocked_quantity", "reserved_quantity"],
     filters: { inventory_item_id: inventoryItemIds },
   })
+  const rawLevels = getGraphData(rawLevelsResult)
 
-  const levels = (rawLevels ?? []).filter(isInventoryLevel)
+  const levels = rawLevels.filter(isInventoryLevel)
   const availableByInventoryItemId = new Map<string, number>()
   for (const level of levels) {
     const current = availableByInventoryItemId.get(level.inventory_item_id) ?? 0
@@ -470,7 +476,7 @@ const fetchStockQuantitiesByVariantId = async (
 }
 
 const fetchPacketaBarcodesByOrderId = async (
-  query: Query,
+  query: OrderExpeditionGraph,
   orders: OrderExpeditionRawOrder[],
 ) => {
   const packetaFulfillments = orders.flatMap((order) =>
@@ -513,12 +519,13 @@ const fetchPacketaBarcodesByOrderId = async (
     return barcodeByOrderId
   }
 
-  const { data: rawLabels } = await query.graph({
+  const rawLabelsResult = await query.graph({
     entity: "fulfillment_label",
     fields: ["fulfillment_id", "tracking_number"],
     filters: { fulfillment_id: fulfillmentIdsMissingBarcode },
   })
-  const labels = (rawLabels ?? []).filter(isFulfillmentLabel)
+  const rawLabels = getGraphData(rawLabelsResult)
+  const labels = rawLabels.filter(isFulfillmentLabel)
   const trackingByFulfillmentId = new Map(
     labels.flatMap((label) =>
       label.tracking_number === null ||
@@ -1300,9 +1307,9 @@ const drawOrdersByCarrier = async (
 
 const generateExpeditionPdf = async (
   orders: OrderExpeditionOrderDto[],
-  req: MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>,
+  url: string,
 ) => {
-  const { document, state } = await createExpeditionPdfContext(req)
+  const { document, state } = await createExpeditionPdfContext(url)
 
   drawHeader(state)
   await drawOrdersByCarrier(state, orders)
@@ -1313,10 +1320,10 @@ const generateExpeditionPdf = async (
 }
 
 export const createOrderExpeditionPdfResponse = async (
-  req: MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>,
+  query: OrderExpeditionGraph,
   orderIds: string[],
+  url: string,
 ) => {
-  const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { missingOrderIds, orders } =
     await fetchOrderedOrderExpeditionOrdersByIds(query, orderIds)
 
@@ -1342,7 +1349,7 @@ export const createOrderExpeditionPdfResponse = async (
       packetaBarcodesByOrderId.get(order.id),
     ),
   )
-  const pdfBytes = await generateExpeditionPdf(orderedDtos, req)
+  const pdfBytes = await generateExpeditionPdf(orderedDtos, url)
 
   return {
     buffer: Buffer.from(pdfBytes),

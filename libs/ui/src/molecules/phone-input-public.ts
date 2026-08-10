@@ -17,7 +17,6 @@ export interface PhoneInputCountry {
   name?: string | undefined
   flag?: ReactNode | undefined
   callingCode?: string | undefined
-  [key: string]: unknown
 }
 
 export interface PhoneInputValueChangeDetails {

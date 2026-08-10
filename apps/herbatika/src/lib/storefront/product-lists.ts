@@ -17,7 +17,8 @@ import { useTranslations } from "next-intl"
 import { resolveErrorMessage } from "./error-utils"
 import { storefront } from "./storefront"
 
-const productListHooks = storefront.hooks.productLists
+const productListHooks: typeof storefront.hooks.productLists =
+  storefront.hooks.productLists
 
 export type StoreProductListItem = ProductListItemBase
 export type StoreProductList = ProductListBase
@@ -124,7 +125,8 @@ export const useProductListDetails = (
   )
 
 export const { useCreateCustomProductList } = productListHooks
-export const { useCreateProductListCart } = productListHooks
+export const useCreateProductListCart: typeof productListHooks.useCreateProductListCart =
+  productListHooks.useCreateProductListCart
 export const { useDeleteProductList } = productListHooks
 export const { useAddProductListItem } = productListHooks
 export const { useAddFavoriteProductListItem } = productListHooks

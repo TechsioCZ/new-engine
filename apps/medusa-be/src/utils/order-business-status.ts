@@ -1,3 +1,5 @@
+import type { MetadataType } from "@medusajs/framework/types"
+
 export const ORDER_BUSINESS_STATUS_METADATA_KEY =
   "order_business_status_manual" as const
 
@@ -66,7 +68,7 @@ interface OrderBusinessStatusFulfillment {
 export interface OrderBusinessStatusInput {
   fulfillment_status?: string | null
   fulfillments?: OrderBusinessStatusFulfillment[] | null
-  metadata?: Record<string, unknown> | null
+  metadata?: MetadataType
   payment_collections?: OrderBusinessStatusPaymentCollection[] | null
   payment_status?: string | null
   status?: string | null

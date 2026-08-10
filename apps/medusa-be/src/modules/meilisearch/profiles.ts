@@ -1,5 +1,5 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 import type SearchProfileModuleService from "../search-profile/service"
 import { MAX_SEARCH_PROFILES } from "../search-profile/types"
@@ -290,16 +290,15 @@ const readLimits = (
   profileIndex: number,
 ): SearchProfileLimits => {
   const raw = isRecord(value) ? value : {}
-  const rawAutocomplete = isRecord(raw["autocomplete"])
-    ? raw["autocomplete"]
-    : {}
+  const autocomplete = getRecordValue(raw, "autocomplete")
+  const rawAutocomplete = isRecord(autocomplete) ? autocomplete : {}
   const readAutocomplete = (type: SearchIndexType): number =>
     readLimitedInteger({
       fallback: DEFAULT_AUTOCOMPLETE_LIMITS[type],
       field: `limits.autocomplete.${type}`,
       maximum: 24,
       profileIndex,
-      value: rawAutocomplete[type],
+      value: getRecordValue(rawAutocomplete, type),
     })
 
   return {
@@ -314,21 +313,21 @@ const readLimits = (
       field: "limits.fullSearch",
       maximum: MEILISEARCH_MAX_TOTAL_HITS,
       profileIndex,
-      value: raw["fullSearch"],
+      value: getRecordValue(raw, "fullSearch"),
     }),
     page: readLimitedInteger({
       fallback: 100,
       field: "limits.page",
       maximum: 100,
       profileIndex,
-      value: raw["page"],
+      value: getRecordValue(raw, "page"),
     }),
     popular: readLimitedInteger({
       fallback: 12,
       field: "limits.popular",
       maximum: 48,
       profileIndex,
-      value: raw["popular"],
+      value: getRecordValue(raw, "popular"),
     }),
   }
 }

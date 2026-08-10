@@ -1,4 +1,5 @@
 import type {
+  CreateShippingOptionDTO,
   IFulfillmentModuleService,
   Logger,
   RuleOperatorType,
@@ -34,7 +35,7 @@ export type CreateShippingOptionsStepInput = {
     value: string
     operator: RuleOperatorType
   }[]
-  data?: Record<string, unknown>
+  data?: Exclude<CreateShippingOptionDTO["data"], null>
 }[]
 
 export type CreateShippingOptionsStepSeedInput = (Omit<

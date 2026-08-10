@@ -1,6 +1,7 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 
 import { HerbatikaProductCard } from "@/components/herbatika-product-card"
@@ -21,7 +22,7 @@ export const BlogFeaturedProductCard = ({
       : { countryCode: region?.country_code }),
   })
 
-  const handleAddToCart = async (selectedProduct: HttpTypes.StoreProduct) => {
+  const handleAddToCart = async (selectedProduct: MedusaCatalogProduct) => {
     await addToCart.addProductToCart({
       product: selectedProduct,
       quantity: 1,

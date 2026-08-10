@@ -144,7 +144,7 @@ const getArgs = () => {
 
   for (let i = 0; i < args.length; i += 1) {
     const arg = args[i]
-    if (!arg) {
+    if (arg === undefined || arg === "") {
       continue
     }
 
@@ -721,7 +721,7 @@ const readRows = async (filePath: string, sheetName?: string) => {
   await workbook.xlsx.readFile(filePath)
 
   const selectedSheetName = sheetName ?? workbook.worksheets[0]?.name
-  if (!selectedSheetName) {
+  if (selectedSheetName === undefined || selectedSheetName === "") {
     throw new ArticleImportError(
       "NO_SHEETS",
       "XLSX file does not contain any sheets",
@@ -1040,7 +1040,7 @@ const runImportFromCli = async () => {
     translate,
     overwrite,
   } = getArgs()
-  if (!filePath) {
+  if (filePath === undefined || filePath === "") {
     console.log(usage)
     throw new Error("Missing XLSX file path")
   }

@@ -5,9 +5,10 @@ import { tmpdir } from "node:os"
 import path from "node:path"
 import { promisify } from "node:util"
 
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { describe, expect, test } from "vitest"
 import { parse as parseYaml } from "yaml"
+import { z } from "zod"
 
 const repoRoot = path.resolve(import.meta.dirname, "../../../..")
 const execFileAsync = promisify(
@@ -38,6 +39,56 @@ const execFileWithEnvAsync = promisify(
   },
 )
 
+const workflowScalarSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+])
+const workflowPropertyMapSchema = z.record(z.string(), workflowScalarSchema)
+const workflowStepSchema = z.object({
+  "continue-on-error": z.boolean().optional(),
+  env: workflowPropertyMapSchema.optional(),
+  if: z.string().optional(),
+  name: z.string().optional(),
+  run: z.string().optional(),
+  uses: z.string().optional(),
+  with: workflowPropertyMapSchema.optional(),
+})
+const workflowJobSchema = z.object({
+  "continue-on-error": z.boolean().optional(),
+  if: z.string().optional(),
+  needs: z.union([z.string(), z.array(z.string())]).optional(),
+  steps: z.array(workflowStepSchema),
+})
+const workflowSchema = z.object({
+  concurrency: z.object({
+    "cancel-in-progress": workflowScalarSchema,
+    group: z.string(),
+  }),
+  jobs: z.record(z.string(), workflowJobSchema),
+  on: z.object({
+    pull_request: z.union([z.null(), z.object({})]),
+    push: z.object({ branches: z.array(z.string()) }),
+  }),
+  permissions: workflowPropertyMapSchema,
+})
+
+type Workflow = z.infer<typeof workflowSchema>
+type WorkflowJob = z.infer<typeof workflowJobSchema>
+type WorkflowStep = z.infer<typeof workflowStepSchema>
+
+const parseWorkflow = (raw: string): Workflow =>
+  workflowSchema.parse(parseYaml(raw))
+
+const requireJob = (workflow: Workflow, jobId: string): WorkflowJob => {
+  const job = workflow.jobs[jobId]
+  if (job === undefined) {
+    throw new TypeError(`CI workflow must define the ${jobId} job`)
+  }
+  return job
+}
+
 const runQualityGate = async (
   script: string,
   resultEnvironment: Record<string, string>,
@@ -49,11 +100,11 @@ const runQualityGate = async (
   })
 }
 
-const findNamedStep = (steps: readonly unknown[], name: string) =>
-  steps.find((step) => isRecord(step) && step["name"] === name)
+const findNamedStep = (steps: readonly WorkflowStep[], name: string) =>
+  steps.find((step) => step.name === name)
 
-const findActionStep = (steps: readonly unknown[], action: string) =>
-  steps.find((step) => isRecord(step) && step["uses"] === action)
+const findActionStep = (steps: readonly WorkflowStep[], action: string) =>
+  steps.find((step) => step.uses === action)
 
 const githubExpression = (expression: string) => `\${{ ${expression} }}`
 const shellVariable = (name: string) => `\${${name}}`
@@ -122,16 +173,21 @@ const mainVerifyEnvironmentFallbackPattern =
 const mainVerifySummaryEnvironmentFallbackPattern =
   /echo "- Environment:\s*\$\{\{\s*needs\.deploy\.outputs\.environment_name\s*\|\|\s*secrets\.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME\s*\|\|\s*'n\/a'\s*\}\}"/u
 
+type WorkflowPropertyMap = z.infer<typeof workflowPropertyMapSchema>
+
 const collectEnvMaps = (
   value: unknown,
-  envMaps: Record<string, unknown>[] = [],
+  envMaps: WorkflowPropertyMap[] = [],
 ) => {
   if (!isRecord(value)) {
     return envMaps
   }
 
-  if (isRecord(value["env"])) {
-    envMaps.push(value["env"])
+  const environment = workflowPropertyMapSchema.safeParse(
+    getRecordValue(value, "env"),
+  )
+  if (environment.success) {
+    envMaps.push(environment.data)
   }
 
   for (const child of Object.values(value)) {
@@ -172,8 +228,8 @@ describe("CI workflow contracts", () => {
           ).toBeFalsy()
           expect(
             !Object.hasOwn(envMap, "ZANEOPS_ZANE_PROJECT_SLUG") ||
-              envMap["ZANE_PROJECT_SLUG"] ===
-                envMap["ZANEOPS_ZANE_PROJECT_SLUG"],
+              getRecordValue(envMap, "ZANE_PROJECT_SLUG") ===
+                getRecordValue(envMap, "ZANEOPS_ZANE_PROJECT_SLUG"),
           ).toBeTruthy()
         }
       }
@@ -229,19 +285,11 @@ describe("CI workflow contracts", () => {
       path.join(repoRoot, ".github/workflows/ci.yml"),
       "utf-8",
     )
-    const workflow: unknown = parseYaml(raw)
+    const workflow = parseWorkflow(raw)
 
-    if (!isRecord(workflow) || !isRecord(workflow["on"])) {
-      throw new TypeError("CI workflow must define workflow triggers")
-    }
-
-    const triggers = workflow["on"]
+    const triggers = workflow.on
     expect(Object.hasOwn(triggers, "pull_request")).toBeTruthy()
-    const pushTrigger = triggers["push"]
-    if (!isRecord(pushTrigger) || !Array.isArray(pushTrigger["branches"])) {
-      throw new TypeError("CI workflow must define push branches")
-    }
-    expect(pushTrigger["branches"]).toContain("master")
+    expect(triggers.push.branches).toContain("master")
   })
 
   test("main CI runs new-engine-ctl tests on the supported Node version", async () => {
@@ -259,13 +307,9 @@ describe("CI workflow contracts", () => {
       path.join(repoRoot, ".github/workflows/ci.yml"),
       "utf-8",
     )
-    const workflow: unknown = parseYaml(raw)
+    const workflow = parseWorkflow(raw)
 
-    if (!isRecord(workflow) || !isRecord(workflow["concurrency"])) {
-      throw new TypeError("CI workflow must define concurrency controls")
-    }
-
-    expect(workflow["concurrency"]).toStrictEqual({
+    expect(workflow.concurrency).toStrictEqual({
       "cancel-in-progress": githubExpression(
         "github.event_name == 'pull_request'",
       ),
@@ -280,56 +324,45 @@ describe("CI workflow contracts", () => {
       path.join(repoRoot, ".github/workflows/ci.yml"),
       "utf-8",
     )
-    const workflow: unknown = parseYaml(raw)
+    const workflow = parseWorkflow(raw)
 
-    if (!isRecord(workflow) || !isRecord(workflow["jobs"])) {
-      throw new TypeError("CI workflow must define a jobs mapping")
-    }
-
-    expect(workflow["permissions"]).toStrictEqual({
+    expect(workflow.permissions).toStrictEqual({
       actions: "read",
       contents: "read",
     })
-
     for (const jobId of ["react-doctor", "konsistent"]) {
-      const job = workflow["jobs"][jobId]
-      if (!isRecord(job) || !Array.isArray(job["steps"])) {
-        throw new TypeError(`${jobId} must define its steps`)
-      }
+      const job = requireJob(workflow, jobId)
 
       expect(
-        job["steps"].filter(
-          (step) =>
-            isRecord(step) &&
-            typeof step["uses"] === "string" &&
-            step["uses"].startsWith("actions/checkout@"),
+        job.steps.filter(
+          (step) => step.uses?.startsWith("actions/checkout@") === true,
         ),
       ).toHaveLength(1)
 
-      const checkoutStep = findActionStep(job["steps"], checkoutAction)
-      const setupNodeStep = findActionStep(job["steps"], setupNodeAction)
+      const checkoutStep = findActionStep(job.steps, checkoutAction)
+      const setupNodeStep = findActionStep(job.steps, setupNodeAction)
       const installStep = findNamedStep(
-        job["steps"],
+        job.steps,
         "Install dependencies without lifecycle scripts",
       )
       if (
-        !isRecord(checkoutStep) ||
-        !isRecord(setupNodeStep) ||
-        !isRecord(installStep)
+        checkoutStep === undefined ||
+        setupNodeStep === undefined ||
+        installStep === undefined
       ) {
         throw new TypeError(`${jobId} must define its secure bootstrap steps`)
       }
 
-      expect(checkoutStep["uses"]).toBe(checkoutAction)
-      expect(checkoutStep["with"]).toStrictEqual({
+      expect(checkoutStep.uses).toBe(checkoutAction)
+      expect(checkoutStep.with).toStrictEqual({
         "fetch-depth": 0,
         "persist-credentials": false,
       })
-      expect(setupNodeStep["with"]).toStrictEqual({
+      expect(setupNodeStep.with).toStrictEqual({
         cache: "pnpm",
         "node-version": 24,
       })
-      expect(installStep["run"]).toBe(installDependenciesCommand)
+      expect(installStep.run).toBe(installDependenciesCommand)
     }
   })
 
@@ -338,48 +371,26 @@ describe("CI workflow contracts", () => {
       path.join(repoRoot, ".github/workflows/ci.yml"),
       "utf-8",
     )
-    const workflow: unknown = parseYaml(raw)
-
-    if (!isRecord(workflow) || !isRecord(workflow["jobs"])) {
-      throw new TypeError("CI workflow must define a jobs mapping")
-    }
+    const workflow = parseWorkflow(raw)
 
     for (const jobId of blockingJobIds) {
-      const job = workflow["jobs"][jobId]
-      if (!isRecord(job)) {
-        throw new TypeError(`CI workflow must define the ${jobId} job`)
-      }
+      const job = requireJob(workflow, jobId)
 
       // Blocking lanes must run whenever the workflow runs. quality-gate is
       // the one intentional exception because it reduces skipped dependencies.
-      expect(job["if"]).toBeUndefined()
+      expect(job.if).toBeUndefined()
       expect(job["continue-on-error"]).toBeUndefined()
 
-      const { steps } = job
-      if (!Array.isArray(steps)) {
-        throw new TypeError(`${jobId} must define its steps`)
-      }
-      for (const step of steps) {
-        const continueOnError = isRecord(step)
-          ? step["continue-on-error"]
-          : undefined
+      for (const step of job.steps) {
+        const continueOnError = step["continue-on-error"]
         expect(continueOnError).toBeUndefined()
       }
     }
-
-    const qualityGate = workflow["jobs"]["quality-gate"]
-    if (!isRecord(qualityGate)) {
-      throw new TypeError("CI workflow must define the quality-gate job")
-    }
+    const qualityGate = requireJob(workflow, "quality-gate")
     expect(qualityGate["continue-on-error"]).toBeUndefined()
-    const qualityGateSteps = qualityGate["steps"]
-    if (!Array.isArray(qualityGateSteps)) {
-      throw new TypeError("quality-gate must define its steps")
-    }
+    const qualityGateSteps = qualityGate.steps
     for (const step of qualityGateSteps) {
-      const continueOnError = isRecord(step)
-        ? step["continue-on-error"]
-        : undefined
+      const continueOnError = step["continue-on-error"]
       expect(continueOnError).toBeUndefined()
     }
   })
@@ -422,36 +433,26 @@ describe("CI workflow contracts", () => {
       path.join(repoRoot, ".github/workflows/ci.yml"),
       "utf-8",
     )
-    const workflow: unknown = parseYaml(raw)
+    const workflow = parseWorkflow(raw)
 
-    if (!isRecord(workflow) || !isRecord(workflow["jobs"])) {
-      throw new TypeError("CI workflow must define a jobs mapping")
-    }
+    const qualityGate = requireJob(workflow, "quality-gate")
+    const qualityGateSteps = qualityGate.steps
 
-    const qualityGate = workflow["jobs"]["quality-gate"]
-    if (!isRecord(qualityGate)) {
-      throw new TypeError("CI workflow must define the quality-gate job")
-    }
-    const qualityGateSteps: unknown = qualityGate["steps"]
-    if (!Array.isArray(qualityGateSteps)) {
-      throw new TypeError("quality-gate must define its steps")
-    }
-
-    expect(qualityGate["if"]).toBe("always()")
-    expect(qualityGate["needs"]).toStrictEqual(blockingJobIds)
+    expect(qualityGate.if).toBe("always()")
+    expect(qualityGate.needs).toStrictEqual(blockingJobIds)
 
     const reductionStep = findNamedStep(
       qualityGateSteps,
       "Require every blocking lane to pass",
     )
-    if (!isRecord(reductionStep)) {
+    if (reductionStep === undefined) {
       throw new TypeError(
         "quality-gate must define its blocking reduction step",
       )
     }
 
-    expect(reductionStep["env"]).toStrictEqual(blockingResultEnvironment)
-    const qualityGateScript = reductionStep["run"]
+    expect(reductionStep.env).toStrictEqual(blockingResultEnvironment)
+    const qualityGateScript = reductionStep.run
     if (typeof qualityGateScript !== "string") {
       throw new TypeError("quality-gate reduction step must define a script")
     }
@@ -484,39 +485,29 @@ describe("CI workflow contracts", () => {
       path.join(repoRoot, ".github/workflows/ci.yml"),
       "utf-8",
     )
-    const workflow: unknown = parseYaml(raw)
+    const workflow = parseWorkflow(raw)
 
-    if (!isRecord(workflow) || !isRecord(workflow["jobs"])) {
-      throw new TypeError("CI workflow must define a jobs mapping")
-    }
+    const reactDoctorJob = requireJob(workflow, "react-doctor")
 
-    const reactDoctorJob = workflow["jobs"]["react-doctor"]
-    if (!isRecord(reactDoctorJob)) {
-      throw new TypeError("CI workflow must define the React Doctor job")
-    }
+    expect(reactDoctorJob.needs).toBeUndefined()
 
-    expect(reactDoctorJob["needs"]).toBeUndefined()
-
-    const reactDoctorSteps = reactDoctorJob["steps"]
-    if (!Array.isArray(reactDoctorSteps)) {
-      throw new TypeError("React Doctor must define its steps")
-    }
+    const reactDoctorSteps = reactDoctorJob.steps
 
     const reactDoctorStep = findNamedStep(
       reactDoctorSteps,
       "Reject React Doctor errors introduced by this change",
     )
-    if (!isRecord(reactDoctorStep)) {
+    if (reactDoctorStep === undefined) {
       throw new TypeError("React Doctor must define its blocking scan step")
     }
 
     expect(reactDoctorStep["continue-on-error"]).toBeUndefined()
-    expect(reactDoctorStep["env"]).toStrictEqual({
+    expect(reactDoctorStep.env).toStrictEqual({
       BASE_SHA: githubExpression(
         "github.event.pull_request.base.sha || github.event.before",
       ),
     })
-    expect(reactDoctorStep["run"]).toBe(
+    expect(reactDoctorStep.run).toBe(
       'pnpm exec react-doctor . --scope changed --base "$BASE_SHA" --blocking error --no-score --no-supply-chain -y',
     )
   })
@@ -526,39 +517,27 @@ describe("CI workflow contracts", () => {
       path.join(repoRoot, ".github/workflows/ci.yml"),
       "utf-8",
     )
-    const workflow: unknown = parseYaml(raw)
+    const workflow = parseWorkflow(raw)
 
-    if (!isRecord(workflow) || !isRecord(workflow["jobs"])) {
-      throw new TypeError("CI workflow must define a jobs mapping")
-    }
+    const konsistentJob = requireJob(workflow, "konsistent")
+    const advisoryJob = requireJob(workflow, "advisory-trials")
 
-    const konsistentJob = workflow["jobs"]["konsistent"]
-    const advisoryJob = workflow["jobs"]["advisory-trials"]
-    if (!isRecord(konsistentJob) || !isRecord(advisoryJob)) {
-      throw new TypeError(
-        "CI workflow must define konsistent and advisory jobs",
-      )
-    }
+    expect(konsistentJob.needs).toBeUndefined()
 
-    expect(konsistentJob["needs"]).toBeUndefined()
-
-    const konsistentSteps = konsistentJob["steps"]
-    const advisorySteps = advisoryJob["steps"]
-    if (!Array.isArray(konsistentSteps) || !Array.isArray(advisorySteps)) {
-      throw new TypeError("CI quality-tool jobs must define their steps")
-    }
+    const konsistentSteps = konsistentJob.steps
+    const advisorySteps = advisoryJob.steps
 
     const konsistentStep = findNamedStep(
       konsistentSteps,
       "Validate konsistent configuration and tool execution",
     )
-    if (!isRecord(konsistentStep)) {
+    if (konsistentStep === undefined) {
       throw new TypeError("konsistent must define its execution step")
     }
 
     expect(konsistentStep["continue-on-error"]).toBeUndefined()
-    expect(konsistentStep["if"]).toBeUndefined()
-    expect(konsistentStep["run"]).toBe(
+    expect(konsistentStep.if).toBeUndefined()
+    expect(konsistentStep.run).toBe(
       "pnpm exec konsistent check --format=github --error-on-warnings",
     )
 
@@ -566,7 +545,7 @@ describe("CI workflow contracts", () => {
       advisorySteps,
       "Trial Danger review automation",
     )
-    if (!isRecord(dangerStep)) {
+    if (dangerStep === undefined) {
       throw new TypeError("Advisory job must define its Danger step")
     }
     expect(dangerStep["continue-on-error"]).toBeTruthy()
@@ -577,32 +556,20 @@ describe("CI workflow contracts", () => {
       path.join(repoRoot, ".github/workflows/ci.yml"),
       "utf-8",
     )
-    const workflow: unknown = parseYaml(raw)
+    const workflow = parseWorkflow(raw)
 
-    if (!isRecord(workflow) || !isRecord(workflow["jobs"])) {
-      throw new TypeError("CI workflow must define a jobs mapping")
-    }
-
-    const architectureJob = workflow["jobs"]["architecture-and-hygiene"]
-    if (!isRecord(architectureJob)) {
-      throw new TypeError(
-        "CI workflow must define the architecture-and-hygiene job",
-      )
-    }
-    const architectureSteps: unknown = architectureJob["steps"]
-    if (!Array.isArray(architectureSteps)) {
-      throw new TypeError("architecture-and-hygiene must define its steps")
-    }
+    const architectureJob = requireJob(workflow, "architecture-and-hygiene")
+    const architectureSteps = architectureJob.steps
 
     const knipStep = findNamedStep(
       architectureSteps,
       "Find unused files, exports, and dependencies",
     )
-    if (!isRecord(knipStep)) {
+    if (knipStep === undefined) {
       throw new TypeError("architecture-and-hygiene must define the Knip step")
     }
 
-    expect(knipStep["run"]).toBe("pnpm knip:prod")
+    expect(knipStep.run).toBe("pnpm knip:prod")
   })
 
   test("Storybook accessibility PR scans report deltas against master", async () => {

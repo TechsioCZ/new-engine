@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit template.
  *
  * @component Carousel
- * @componentVersion v1.0.1
+ * @componentVersion v2.0.0
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -12,14 +12,31 @@
 import type { ElementType } from "react"
 
 import type { IconType } from "../atoms/icon"
-import { Carousel } from "../molecules/carousel"
-import type { CarouselRootProps, CarouselSlide } from "../molecules/carousel"
+import type { Image } from "../atoms/image"
+import { rendererCapability } from "../internal/renderer-capability"
+import { Carousel, CarouselInheritedSlides } from "../molecules/carousel"
+import type {
+  CarouselImageRenderer,
+  CarouselRootProps,
+  CarouselSlide,
+} from "../molecules/carousel"
 
-export interface CarouselTemplateProps<T extends ElementType> extends Omit<
+type IsUncheckedValue<Value> = 0 extends 1 & Value ? true : false
+
+type IsDefaultImageComponent<T extends ElementType> =
+  IsUncheckedValue<T> extends true
+    ? false
+    : [T] extends [typeof Image]
+      ? [typeof Image] extends [T]
+        ? true
+        : false
+      : false
+
+type CarouselTemplateBaseProps<T extends ElementType> = Omit<
   CarouselRootProps<T>,
-  "children" | "slideCount"
-> {
-  slides: CarouselSlide[]
+  "children" | "imageAs" | "slideCount"
+> & {
+  slides: CarouselSlide<T>[]
   showControls?: boolean | undefined
   showIndicators?: boolean | undefined
   showAutoplay?: boolean | undefined
@@ -27,69 +44,85 @@ export interface CarouselTemplateProps<T extends ElementType> extends Omit<
   nextIcon?: IconType | undefined
 }
 
-export const CarouselTemplate = <T extends ElementType>({
-  slides,
-  showControls = true,
-  showIndicators = true,
-  showAutoplay = false,
-  prevIcon = "token-icon-carousel-prev",
-  nextIcon = "token-icon-carousel-next",
-  size,
-  objectFit,
-  aspectRatio,
-  orientation,
-  loop,
-  autoplay,
-  allowMouseDrag,
-  slidesPerPage,
-  slidesPerMove,
-  spacing,
-  padding,
-  imageAs,
-  width,
-  height,
-  className,
-  onPageChange,
-  ...carouselProps
-}: CarouselTemplateProps<T>) => (
-  <Carousel
-    allowMouseDrag={allowMouseDrag}
-    aspectRatio={aspectRatio}
-    autoplay={autoplay}
-    className={className}
-    height={height}
-    imageAs={imageAs}
-    loop={loop}
-    objectFit={objectFit}
-    onPageChange={onPageChange}
-    orientation={orientation}
-    padding={padding}
-    size={size}
-    slideCount={slides.length}
-    slidesPerMove={slidesPerMove}
-    slidesPerPage={slidesPerPage}
-    spacing={spacing}
-    width={width}
-    {...carouselProps}
-  >
-    <Carousel.Slides imageAs={imageAs} slides={slides} />
+export type CarouselTemplateProps<T extends ElementType = typeof Image> =
+  | (CarouselTemplateBaseProps<T> & { imageAs: CarouselImageRenderer<T> })
+  | (IsDefaultImageComponent<T> extends true
+      ? CarouselTemplateBaseProps<T> & { imageAs?: undefined }
+      : never)
 
-    {(showControls || showIndicators) && (
-      <Carousel.Control>
-        {showControls && <Carousel.Previous icon={prevIcon} />}
-        {showControls && showIndicators && <div className="flex-1" />}
-        {showIndicators && (
-          <Carousel.Indicators>
-            {slides.map((slide, index) => (
-              <Carousel.Indicator index={index} key={slide.id} />
-            ))}
-          </Carousel.Indicators>
-        )}
-        {showControls && showIndicators && <div className="flex-1" />}
-        {showControls && <Carousel.Next icon={nextIcon} />}
-      </Carousel.Control>
-    )}
+export const CarouselTemplate = <T extends ElementType = typeof Image>(
+  templateProps: CarouselTemplateProps<T>,
+) => {
+  const {
+    slides,
+    showControls = true,
+    showIndicators = true,
+    showAutoplay = false,
+    prevIcon = "token-icon-carousel-prev",
+    nextIcon = "token-icon-carousel-next",
+    size,
+    objectFit,
+    aspectRatio,
+    orientation,
+    loop,
+    autoplay,
+    allowMouseDrag,
+    slidesPerPage,
+    slidesPerMove,
+    spacing,
+    padding,
+    imageAs,
+    width,
+    height,
+    className,
+    onPageChange,
+    ...carouselProps
+  } = templateProps
 
-    {showAutoplay && <Carousel.Autoplay />}
-  </Carousel>
-)
+  return (
+    <Carousel<T>
+      allowMouseDrag={allowMouseDrag}
+      aspectRatio={aspectRatio}
+      autoplay={autoplay}
+      className={className}
+      height={height}
+      imageAs={imageAs}
+      loop={loop}
+      objectFit={objectFit}
+      onPageChange={onPageChange}
+      orientation={orientation}
+      padding={padding}
+      size={size}
+      slideCount={slides.length}
+      slidesPerMove={slidesPerMove}
+      slidesPerPage={slidesPerPage}
+      spacing={spacing}
+      width={width}
+      {...carouselProps}
+    >
+      <CarouselInheritedSlides<T>
+        imageAs={imageAs}
+        rendererCapability={rendererCapability}
+        slides={slides}
+      />
+
+      {(showControls || showIndicators) && (
+        <Carousel.Control>
+          {showControls && <Carousel.Previous icon={prevIcon} />}
+          {showControls && showIndicators && <div className="flex-1" />}
+          {showIndicators && (
+            <Carousel.Indicators>
+              {slides.map((slide, index) => (
+                <Carousel.Indicator index={index} key={slide.id} />
+              ))}
+            </Carousel.Indicators>
+          )}
+          {showControls && showIndicators && <div className="flex-1" />}
+          {showControls && <Carousel.Next icon={nextIcon} />}
+        </Carousel.Control>
+      )}
+
+      {showAutoplay && <Carousel.Autoplay />}
+    </Carousel>
+  )
+}

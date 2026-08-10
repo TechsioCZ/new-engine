@@ -1,5 +1,7 @@
 import { MedusaError, MedusaService } from "@medusajs/framework/utils"
 
+import { JsonMetadataSchema } from "../../lib/json-metadata"
+import type { JsonMetadata } from "../../lib/json-metadata"
 import SymmyImportJob from "./models/symmy-import-job"
 
 export type SymmyImportJobStatus = "queued" | "running" | "completed" | "failed"
@@ -8,8 +10,8 @@ export interface SymmyImportJobDTO {
   id: string
   type: string
   status: SymmyImportJobStatus
-  payload: Record<string, unknown>
-  result: Record<string, unknown> | null
+  payload: JsonMetadata
+  result: JsonMetadata | null
   error: string | null
   total: number
   processed: number
@@ -24,13 +26,13 @@ export interface SymmyImportJobDTO {
 
 interface CreateImportJobInput {
   type: string
-  payload: Record<string, unknown>
+  payload: JsonMetadata
   total: number
   idempotencyKey?: string | null
 }
 
 interface CompleteImportJobInput {
-  result: Record<string, unknown>
+  result: JsonMetadata
   processed: number
   failed: number
 }
@@ -50,8 +52,28 @@ const parseJobStatus = (value: string): SymmyImportJobStatus => {
   )
 }
 
-const normalizeJob = <T extends { status: string }>(job: T) => ({
+const parseJobJsonRecord = (
+  value: unknown,
+  field: "payload" | "result",
+): JsonMetadata => {
+  const parsed = JsonMetadataSchema.safeParse(value)
+  if (parsed.success) {
+    return parsed.data
+  }
+  throw new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
+    `Invalid import job ${field}`,
+  )
+}
+
+const normalizeJob = <
+  T extends { payload: unknown; result: unknown; status: string },
+>(
+  job: T,
+) => ({
   ...job,
+  payload: parseJobJsonRecord(job.payload, "payload"),
+  result: job.result === null ? null : parseJobJsonRecord(job.result, "result"),
   status: parseJobStatus(job.status),
 })
 
@@ -161,7 +183,7 @@ export class SymmyImportJobModuleService extends MedusaService({
   async markFailed(
     id: string,
     error: string,
-    result?: Record<string, unknown>,
+    result?: JsonMetadata,
   ): Promise<SymmyImportJobDTO> {
     const updated = await this.updateSymmyImportJobs({
       error,

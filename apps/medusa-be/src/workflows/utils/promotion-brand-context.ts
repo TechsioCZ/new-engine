@@ -7,6 +7,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 
 import { getActiveBrandIds } from "../brand/brand-activity"
 
@@ -14,66 +15,94 @@ interface PromotionContextSource {
   items?: unknown[]
 }
 
-type PromotionContextItem = Record<string, unknown>
-
-interface ProductBrandLinkRecord {
-  brand_id: string
-  product_id: string
+interface PromotionBrandContext {
+  items?: PromotionContextItem[]
 }
 
-interface ProductVariantRecord {
-  id: string
-  product_id: string
-}
+const promotionContextItemSchema = z.looseObject({
+  brand_ids: z.unknown().optional(),
+  product: z.unknown().optional(),
+  product_id: z.unknown().optional(),
+  variant: z.unknown().optional(),
+  variant_id: z.unknown().optional(),
+})
+type PromotionContextItem = z.infer<typeof promotionContextItemSchema>
 
-const isPromotionContextObjectLike = (
-  value: unknown,
-): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
+const productBrandLinkSchema = z.object({
+  brand_id: z.string(),
+  product_id: z.string(),
+})
+type ProductBrandLinkRecord = z.infer<typeof productBrandLinkSchema>
 
-const isPromotionContextItem = (item: unknown): item is PromotionContextItem =>
-  isPromotionContextObjectLike(item)
+const productVariantSchema = z.object({
+  id: z.string(),
+  product_id: z.string(),
+})
+type ProductVariantRecord = z.infer<typeof productVariantSchema>
 
-const isProductBrandLink = (
-  value: unknown,
-): value is ProductBrandLinkRecord => {
-  if (!isPromotionContextObjectLike(value)) {
-    return false
+const nestedIdSchema = z.object({ id: z.string() })
+const graphDataSchema = z.object({ data: z.array(z.unknown()) })
+
+const parsePromotionContextItems = (
+  values: unknown[],
+): PromotionContextItem[] => {
+  const items: PromotionContextItem[] = []
+  for (const value of values) {
+    const parsed = promotionContextItemSchema.safeParse(value)
+    if (parsed.success) {
+      items.push(parsed.data)
+    }
   }
-  const { brand_id: brandId, product_id: productId } = value
-  return typeof brandId === "string" && typeof productId === "string"
+  return items
 }
 
-const isProductVariantRecord = (
-  value: unknown,
-): value is ProductVariantRecord => {
-  if (!isPromotionContextObjectLike(value)) {
-    return false
+const parseProductBrandLinks = (
+  values: unknown[],
+): ProductBrandLinkRecord[] => {
+  const links: ProductBrandLinkRecord[] = []
+  for (const value of values) {
+    const parsed = productBrandLinkSchema.safeParse(value)
+    if (parsed.success) {
+      links.push(parsed.data)
+    }
   }
-  const { id, product_id: productId } = value
-  return typeof id === "string" && typeof productId === "string"
+  return links
+}
+
+const parseProductVariantRecords = (
+  values: unknown[],
+): ProductVariantRecord[] => {
+  const variants: ProductVariantRecord[] = []
+  for (const value of values) {
+    const parsed = productVariantSchema.safeParse(value)
+    if (parsed.success) {
+      variants.push(parsed.data)
+    }
+  }
+  return variants
 }
 
 const getString = (value: unknown): string | undefined =>
   typeof value === "string" ? value : undefined
 
-const getNestedId = (value: unknown): string | undefined =>
-  isPromotionContextObjectLike(value) ? getString(value["id"]) : undefined
+const getNestedId = (value: unknown): string | undefined => {
+  const parsed = nestedIdSchema.safeParse(value)
+  return parsed.success ? parsed.data.id : undefined
+}
 
 const getItemVariantId = (item: PromotionContextItem) =>
-  getString(item["variant_id"]) ?? getNestedId(item["variant"])
+  getString(item.variant_id) ?? getNestedId(item.variant)
 
 const getDirectItemProductId = (item: PromotionContextItem) => {
   const { product, product_id: productId, variant } = item
+  const parsedVariant = promotionContextItemSchema.safeParse(variant)
   const candidates = [
     getString(productId),
     getNestedId(product),
-    isPromotionContextObjectLike(variant)
-      ? getString(variant["product_id"])
+    parsedVariant.success
+      ? getString(parsedVariant.data.product_id)
       : undefined,
-    isPromotionContextObjectLike(variant)
-      ? getNestedId(variant["product"])
-      : undefined,
+    parsedVariant.success ? getNestedId(parsedVariant.data.product) : undefined,
   ]
   return candidates.find((candidate) => candidate !== undefined)
 }
@@ -94,16 +123,14 @@ const getItemProductId = (
 }
 
 const getGraphData = (result: unknown, context: string): unknown[] => {
-  const data: unknown = isPromotionContextObjectLike(result)
-    ? result["data"]
-    : undefined
-  if (!Array.isArray(data)) {
+  const parsed = graphDataSchema.safeParse(result)
+  if (!parsed.success) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       `${context} query returned an invalid result`,
     )
   }
-  return data
+  return parsed.data.data
 }
 
 const resolveProductIdsByVariantId = async (
@@ -132,11 +159,14 @@ const resolveProductIdsByVariantId = async (
       id: { $in: [...variantIds] },
     },
   })
-  const variants = getGraphData(result, "Product variant").filter(
-    isProductVariantRecord,
+  const variants = parseProductVariantRecords(
+    getGraphData(result, "Product variant"),
   )
   return new Map(
-    variants.map((variant) => [variant.id, variant.product_id] as const),
+    variants.map((variant): [string, string] => [
+      variant.id,
+      variant.product_id,
+    ]),
   )
 }
 
@@ -144,9 +174,9 @@ export const buildBrandPromotionContext = async (
   source: PromotionContextSource | undefined,
   container: MedusaContainer,
   productBrandLinkEntryPoint: string,
-): Promise<Record<string, unknown>> => {
+): Promise<PromotionBrandContext> => {
   const items = Array.isArray(source?.items)
-    ? source.items.filter(isPromotionContextItem)
+    ? parsePromotionContextItems(source.items)
     : []
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const productIdsByVariantId = await resolveProductIdsByVariantId(query, items)
@@ -169,8 +199,8 @@ export const buildBrandPromotionContext = async (
       product_id: { $in: [...productIds] },
     },
   })
-  const links = getGraphData(result, "Product brand link").filter(
-    isProductBrandLink,
+  const links = parseProductBrandLinks(
+    getGraphData(result, "Product brand link"),
   )
   const activeBrandIds = await getActiveBrandIds(
     container,
@@ -189,7 +219,7 @@ export const buildBrandPromotionContext = async (
   return {
     items: items.map((item) => {
       const itemContext = { ...item }
-      delete itemContext["brand_ids"]
+      delete itemContext.brand_ids
       const productId = getItemProductId(item, productIdsByVariantId)
       const brandIds =
         productId === undefined

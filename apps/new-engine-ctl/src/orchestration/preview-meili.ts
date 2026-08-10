@@ -1,6 +1,9 @@
 import type { ProvisionMeiliKeysResponse } from "../contracts/provision-meili-keys.js"
 import type { ResolveTargetsResponse } from "../contracts/resolve-targets.js"
-import type { RuntimeProviderRunResponse } from "../contracts/runtime-provider-run.js"
+import type {
+  RuntimeProviderRunPayload,
+  RuntimeProviderRunResponse,
+} from "../contracts/runtime-provider-run.js"
 import {
   getRuntimeProviderMeiliKeyPolicy,
   getRuntimeProviderReadinessPath,
@@ -138,16 +141,8 @@ const buildMeiliProviderOutputs = (input: {
   frontendPolicy: ReturnType<typeof getRuntimeProviderMeiliKeyPolicy>
   needBackendKey: boolean
   needFrontendKey: boolean
-}): {
-  output_id: string
-  env_var: string
-  policy: Record<string, unknown> & { kind: string }
-}[] => {
-  const outputs: {
-    output_id: string
-    env_var: string
-    policy: Record<string, unknown> & { kind: string }
-  }[] = []
+}): RuntimeProviderRunPayload["outputs"] => {
+  const outputs: RuntimeProviderRunPayload["outputs"] = []
   if (input.needBackendKey) {
     outputs.push({
       env_var: input.backendEnvVar,

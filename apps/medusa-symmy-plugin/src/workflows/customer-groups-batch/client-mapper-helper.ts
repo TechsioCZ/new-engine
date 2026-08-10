@@ -1,10 +1,10 @@
+import type { MetadataType } from "@medusajs/framework/types"
+
 import type {
   ExistingCustomerGroup,
   ExistingCustomerGroupIndex,
 } from "./client"
 import type { CustomerGroupInput } from "./types"
-
-type Metadata = Record<string, unknown>
 
 export interface CustomerGroupLookupKeys {
   ids: Set<string>
@@ -90,7 +90,7 @@ export const customerGroupsBatchClientMapperHelper = {
   },
 
   buildMetadata(
-    existingMetadata: Metadata | null | undefined,
+    existingMetadata: MetadataType | undefined,
     group: CustomerGroupInput,
   ) {
     const metadata = {

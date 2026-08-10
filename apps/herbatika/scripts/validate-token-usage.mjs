@@ -64,9 +64,12 @@ const normalizeFilePath = normalizePath
 /** @type {(argv: string[], defaultConfigPath: string) => GuardrailArgs} */
 const parseArgs = parseGuardrailArgs
 
-/** @param {unknown} value @returns {value is Record<string, unknown>} */
-const isRecord = (value) =>
+/** @param {unknown} value @returns {value is object} */
+const isObject = (value) =>
   typeof value === "object" && value !== null && !Array.isArray(value)
+
+/** @param {object} value @param {string} key @returns {unknown} */
+const readProperty = (value, key) => Reflect.get(value, key)
 
 /** @param {unknown} value @param {string} label @returns {string[]} */
 const parseStringArray = (value, label) => {
@@ -87,94 +90,98 @@ const parseRegExpArray = (value, label) => {
   return value
 }
 
-/** @param {unknown} value @param {string} label @returns {Record<string, unknown>} */
-const parseRecord = (value, label) => {
-  if (!isRecord(value)) {
+/** @param {unknown} value @param {string} label @returns {object} */
+const parseObject = (value, label) => {
+  if (!isObject(value)) {
     throw new TypeError(`${label} must be an object.`)
   }
   return value
 }
 
-/** @param {Record<string, unknown>} rule @param {string} label @returns {boolean} */
+/** @param {object} rule @param {string} label @returns {boolean} */
 const parseEnabled = (rule, label) => {
-  if (typeof rule.enabled !== "boolean") {
+  const enabled = readProperty(rule, "enabled")
+  if (typeof enabled !== "boolean") {
     throw new TypeError(`${label}.enabled must be a boolean.`)
   }
-  return rule.enabled
+  return enabled
 }
 
 /** @param {unknown} value @returns {TokenUsageConfig} */
 const parseConfig = (value) => {
-  const config = parseRecord(value, "config")
-  const rules = parseRecord(config.rules, "rules")
-  const arbitraryRule = parseRecord(
-    rules.noArbitraryValues,
+  const config = parseObject(value, "config")
+  const rules = parseObject(readProperty(config, "rules"), "rules")
+  const arbitraryRule = parseObject(
+    readProperty(rules, "noArbitraryValues"),
     "rules.noArbitraryValues",
   )
-  const containerRule = parseRecord(
-    rules.noTailwindContainerScale,
+  const containerRule = parseObject(
+    readProperty(rules, "noTailwindContainerScale"),
     "rules.noTailwindContainerScale",
   )
-  const paletteRule = parseRecord(
-    rules.noTailwindPalette,
+  const paletteRule = parseObject(
+    readProperty(rules, "noTailwindPalette"),
     "rules.noTailwindPalette",
   )
-  const spacingRule = parseRecord(
-    rules.noTailwindSpacingScale,
+  const spacingRule = parseObject(
+    readProperty(rules, "noTailwindSpacingScale"),
     "rules.noTailwindSpacingScale",
   )
 
   return {
-    exclude: parseStringArray(config.exclude, "exclude"),
-    fileExtensions: parseStringArray(config.fileExtensions, "fileExtensions"),
+    exclude: parseStringArray(readProperty(config, "exclude"), "exclude"),
+    fileExtensions: parseStringArray(
+      readProperty(config, "fileExtensions"),
+      "fileExtensions",
+    ),
     rules: {
       noArbitraryValues: {
         enabled: parseEnabled(arbitraryRule, "rules.noArbitraryValues"),
         validClassPatterns: parseRegExpArray(
-          arbitraryRule.validClassPatterns,
+          readProperty(arbitraryRule, "validClassPatterns"),
           "rules.noArbitraryValues.validClassPatterns",
         ),
       },
       noTailwindContainerScale: {
         disallowedValues: parseStringArray(
-          containerRule.disallowedValues,
+          readProperty(containerRule, "disallowedValues"),
           "rules.noTailwindContainerScale.disallowedValues",
         ),
         enabled: parseEnabled(containerRule, "rules.noTailwindContainerScale"),
         prefixes: parseStringArray(
-          containerRule.prefixes,
+          readProperty(containerRule, "prefixes"),
           "rules.noTailwindContainerScale.prefixes",
         ),
       },
       noTailwindPalette: {
         colorUtilityPrefixes: parseStringArray(
-          paletteRule.colorUtilityPrefixes,
+          readProperty(paletteRule, "colorUtilityPrefixes"),
           "rules.noTailwindPalette.colorUtilityPrefixes",
         ),
         enabled: parseEnabled(paletteRule, "rules.noTailwindPalette"),
         paletteNames: parseStringArray(
-          paletteRule.paletteNames,
+          readProperty(paletteRule, "paletteNames"),
           "rules.noTailwindPalette.paletteNames",
         ),
       },
       noTailwindSpacingScale: {
         allowedKeywords: parseStringArray(
-          spacingRule.allowedKeywords,
+          readProperty(spacingRule, "allowedKeywords"),
           "rules.noTailwindSpacingScale.allowedKeywords",
         ),
         allowedNumericValues: parseStringArray(
-          spacingRule.allowedNumericValues,
+          readProperty(spacingRule, "allowedNumericValues"),
           "rules.noTailwindSpacingScale.allowedNumericValues",
         ),
         enabled: parseEnabled(spacingRule, "rules.noTailwindSpacingScale"),
         prefixes: parseStringArray(
-          spacingRule.prefixes,
+          readProperty(spacingRule, "prefixes"),
           "rules.noTailwindSpacingScale.prefixes",
         ),
       },
     },
     scanDirectories: parseStringArray(
-      config.scanDirectories,
+      readProperty(config, "scanDirectories"),
       "scanDirectories",
     ),
   }
@@ -536,8 +543,8 @@ const loadConfig = async (configPath) => {
   /** @type {unknown} */
   const configModule = await import(pathToFileURL(configPath).href)
   const configValue =
-    isRecord(configModule) && "default" in configModule
-      ? configModule.default
+    isObject(configModule) && "default" in configModule
+      ? readProperty(configModule, "default")
       : configModule
   return parseConfig(configValue)
 }

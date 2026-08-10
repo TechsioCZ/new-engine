@@ -515,8 +515,9 @@ describe(PaykitStripePaymentProvider, () => {
       },
     }
 
+    const capturePayment = provider.capturePayment.bind(provider)
     await expect(
-      provider.capturePayment(input as CapturePaymentInput),
+      Reflect.apply(capturePayment, undefined, [input]),
     ).rejects.toMatchObject({
       message: "PayKit capture amount must be numeric",
       type: MedusaError.Types.INVALID_DATA,

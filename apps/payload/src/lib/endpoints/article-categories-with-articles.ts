@@ -1,6 +1,7 @@
-import { isRecord } from "@techsio/std/object"
 import type { Endpoint } from "payload"
 
+import type { Article } from "../../payload-types"
+import type { CategoryDoc } from "../utils/doc-selectors"
 import { getCategoryDoc, getMediaUrl } from "../utils/doc-selectors"
 import {
   buildJsonResponse,
@@ -9,24 +10,6 @@ import {
 } from "../utils/endpoint"
 
 const MAX_ARTICLES = 500
-
-/** Minimal article record used to group by category. */
-interface ArticleDoc {
-  category?: unknown
-  excerpt?: unknown
-  featuredImage?: unknown
-  slug?: unknown
-  title: unknown
-}
-
-const parseArticleDoc = (value: unknown): ArticleDoc | null => {
-  if (!isRecord(value) || !("title" in value)) {
-    return null
-  }
-
-  const { category, excerpt, featuredImage, slug, title } = value
-  return { category, excerpt, featuredImage, slug, title }
-}
 
 /** Endpoint returning article categories grouped with their articles. */
 export const articleCategoriesWithArticlesEndpoint: Endpoint = {
@@ -60,42 +43,28 @@ export const articleCategoriesWithArticlesEndpoint: Endpoint = {
 
     const categoriesById = new Map<
       number,
-      {
-        id: number
-        title: unknown
-        slug: unknown
-        articles: {
-          title: unknown
-          slug?: unknown
-          excerpt?: unknown
-          featuredImage?: string | null
-        }[]
+      Pick<CategoryDoc, "id" | "slug" | "title"> & {
+        articles: (Pick<Article, "slug" | "title"> & {
+          excerpt: Article["excerpt"] | null | undefined
+          featuredImage: string | null
+        })[]
       }
     >()
-    const articleDocs: unknown = articlesResult.docs
-    if (!Array.isArray(articleDocs)) {
-      throw new TypeError(
-        "Payload articles response did not contain a document list",
-      )
-    }
 
-    for (const value of articleDocs) {
-      const article = parseArticleDoc(value)
-      if (article !== null) {
-        const category = getCategoryDoc(article.category)
-        if (category !== null) {
-          const entry = categoriesById.get(category.id) ?? {
-            ...category,
-            articles: [],
-          }
-          entry.articles.push({
-            excerpt: article.excerpt,
-            featuredImage: getMediaUrl(article.featuredImage),
-            slug: article.slug,
-            title: article.title,
-          })
-          categoriesById.set(category.id, entry)
+    for (const article of articlesResult.docs) {
+      const category = getCategoryDoc(article.category)
+      if (category !== null) {
+        const entry = categoriesById.get(category.id) ?? {
+          ...category,
+          articles: [],
         }
+        entry.articles.push({
+          excerpt: article.excerpt,
+          featuredImage: getMediaUrl(article.featuredImage),
+          slug: article.slug,
+          title: article.title,
+        })
+        categoriesById.set(category.id, entry)
       }
     }
 

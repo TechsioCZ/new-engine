@@ -15,7 +15,7 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { isRecord } from "@techsio/std/object"
+import { z } from "@medusajs/framework/zod"
 
 import { EMAIL_LOG_MODULE } from "../modules/email-log"
 import type EmailLogModuleService from "../modules/email-log/service"
@@ -29,7 +29,6 @@ import {
   buildProductReviewRequestUrl,
   getReviewRequestMessage,
 } from "../utils/order-review-requests"
-import type { ReviewRequestOrder } from "../utils/order-review-requests"
 import { sendNotificationStep } from "./steps/send-notification"
 import { deleteWorkflowQueueItemStep } from "./workflow-queue/steps/delete-workflow-queue-item"
 
@@ -39,53 +38,51 @@ export interface SendProductReviewRequestWorkflowInput {
   store_name?: string
 }
 
-interface ReviewRequestOrderItem {
-  product_handle?: string | null
-  product_id?: string | null
-  product_title?: string | null
-  thumbnail?: string | null
-  title?: string | null
+const optionalNullableStringSchema = z.string().nullable().optional()
+
+const reviewRequestOrderItemSchema = z.object({
+  product_handle: optionalNullableStringSchema,
+  product_id: optionalNullableStringSchema,
+  product_title: optionalNullableStringSchema,
+  thumbnail: optionalNullableStringSchema,
+  title: optionalNullableStringSchema,
+})
+
+const reviewRequestOrderProjectionSchema = z.object({
+  custom_display_id: optionalNullableStringSchema,
+  customer_id: optionalNullableStringSchema,
+  display_id: z.number(),
+  email: optionalNullableStringSchema,
+  id: z.string().min(1),
+  items: z.array(reviewRequestOrderItemSchema).nullable().optional(),
+})
+
+const reviewRequestOrderGraphResultSchema = z.object({
+  data: z.array(reviewRequestOrderProjectionSchema),
+})
+
+type ReviewRequestOrderItem = z.infer<typeof reviewRequestOrderItemSchema>
+type ReviewRequestOrderProjection = z.infer<
+  typeof reviewRequestOrderProjectionSchema
+>
+
+const parseReviewRequestOrderGraphResult = (value: unknown) => {
+  const result = reviewRequestOrderGraphResultSchema.safeParse(value)
+  if (!result.success) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Order query returned invalid product review request data",
+    )
+  }
+
+  return result.data.data
 }
 
-type ReviewRequestOrderWithItems = ReviewRequestOrder & {
-  items?: ReviewRequestOrderItem[] | null
-}
-
-interface EmailLogDTO {
-  order_id: string | null
-}
-
-type EmailLogService = EmailLogModuleService & {
-  listEmailLogs: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>,
-  ) => Promise<EmailLogDTO[]>
-}
-
-interface ReviewTokenDTO {
-  email: string
-  id: string
-  order_id: string
-  product_id: string
-  token: string
-}
-
-type ProductReviewModuleServiceWithTokens = ProductReviewModuleService & {
-  createReviewTokens: (
-    data: {
-      customer_id: string | null
-      email: string
-      expires_at: Date
-      order_id: string
-      product_id: string
-      token: string
-    }[],
-  ) => Promise<ReviewTokenDTO[]>
-  listReviewTokens: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>,
-  ) => Promise<ReviewTokenDTO[]>
-}
+const getReviewRequestOrderDisplayId = (order: ReviewRequestOrderProjection) =>
+  getOrderDisplayId({
+    custom_display_id: order.custom_display_id ?? null,
+    display_id: order.display_id,
+  })
 
 interface ReviewRequestProduct {
   image_url?: string | null
@@ -154,62 +151,7 @@ const getReviewTokenExpiryDate = () => {
 const getProductTitle = (item: ReviewRequestOrderItem) =>
   item.product_title ?? item.title ?? "Produkt"
 
-const isOptionalNullableString = (value: unknown): boolean => {
-  if (value === undefined || value === null) {
-    return true
-  }
-
-  return typeof value === "string"
-}
-
-const isReviewRequestOrderItem = (
-  value: unknown,
-): value is ReviewRequestOrderItem => {
-  if (!isRecord(value)) {
-    return false
-  }
-
-  const fields = [
-    value["product_handle"],
-    value["product_id"],
-    value["product_title"],
-    value["thumbnail"],
-    value["title"],
-  ]
-  return fields.every(isOptionalNullableString)
-}
-
-const isReviewRequestOrderWithItems = (
-  value: unknown,
-): value is ReviewRequestOrderWithItems => {
-  if (!isRecord(value)) {
-    return false
-  }
-  if (
-    typeof value["id"] !== "string" ||
-    typeof value["display_id"] !== "number"
-  ) {
-    return false
-  }
-
-  const optionalStrings = [
-    value["customer_id"],
-    value["custom_display_id"],
-    value["email"],
-  ]
-  if (!optionalStrings.every(isOptionalNullableString)) {
-    return false
-  }
-
-  const { items } = value
-  if (items === undefined || items === null) {
-    return true
-  }
-
-  return Array.isArray(items) && items.every(isReviewRequestOrderItem)
-}
-
-const getUniqueProductItems = (order: ReviewRequestOrderWithItems) => {
+const getUniqueProductItems = (order: ReviewRequestOrderProjection) => {
   const items: ReviewRequestOrderItem[] = []
   const seenProductIds = new Set<string>()
 
@@ -234,7 +176,7 @@ const hasReviewRequestEmailLog = async ({
   emailLogService,
   orderId,
 }: {
-  emailLogService: EmailLogService
+  emailLogService: EmailLogModuleService
   orderId: string
 }) => {
   const logs = await emailLogService.listEmailLogs(
@@ -259,8 +201,8 @@ const getOrCreateReviewTokens = async ({
 }: {
   email: string
   items: ReviewRequestOrderItem[]
-  order: ReviewRequestOrderWithItems
-  reviewService: ProductReviewModuleServiceWithTokens
+  order: ReviewRequestOrderProjection
+  reviewService: ProductReviewModuleService
 }) => {
   const productIds = items
     .map((item) => item.product_id)
@@ -279,9 +221,10 @@ const getOrCreateReviewTokens = async ({
       select: ["id", "email", "order_id", "product_id", "token"],
     },
   )
-  const tokensByProductId = new Map<string, ReviewTokenDTO>(
-    existingTokens.map((token) => [token.product_id, token]),
-  )
+  const tokensByProductId = new Map<string, (typeof existingTokens)[number]>()
+  for (const token of existingTokens) {
+    tokensByProductId.set(token.product_id, token)
+  }
   const missingProductIds = productIds.filter(
     (productId) => !tokensByProductId.has(productId),
   )
@@ -315,11 +258,11 @@ const buildProductReviewRequestNotificationStep = createStep(
   ): Promise<StepResponse<CreateNotificationDTO[]>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-    const emailLogService = container.resolve<EmailLogService>(EMAIL_LOG_MODULE)
-    const reviewService =
-      container.resolve<ProductReviewModuleServiceWithTokens>(
-        PRODUCT_REVIEW_MODULE,
-      )
+    const emailLogService =
+      container.resolve<EmailLogModuleService>(EMAIL_LOG_MODULE)
+    const reviewService = container.resolve<ProductReviewModuleService>(
+      PRODUCT_REVIEW_MODULE,
+    )
 
     const graphResult: unknown = await query.graph({
       entity: "order",
@@ -328,12 +271,8 @@ const buildProductReviewRequestNotificationStep = createStep(
         id: input.order_id,
       },
     })
-    const graphData: unknown = isRecord(graphResult)
-      ? graphResult["data"]
-      : undefined
-    const orders: unknown[] = Array.isArray(graphData) ? graphData : []
-    const [order] = orders
-    if (!isReviewRequestOrderWithItems(order)) {
+    const [order] = parseReviewRequestOrderGraphResult(graphResult)
+    if (order === undefined) {
       throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")
     }
 
@@ -355,7 +294,7 @@ const buildProductReviewRequestNotificationStep = createStep(
       })
     ) {
       logger.info(
-        `Order ${getOrderDisplayId(order)} already has a product review request email log; skipping notification.`,
+        `Order ${getReviewRequestOrderDisplayId(order)} already has a product review request email log; skipping notification.`,
       )
       return new StepResponse([])
     }
@@ -402,10 +341,7 @@ const buildProductReviewRequestNotificationStep = createStep(
         },
       ]
     })
-    const reviewMessageContainer: Record<string, unknown> = {
-      resolve: container.resolve.bind(container),
-    }
-    const message = await getReviewRequestMessage(reviewMessageContainer)
+    const message = await getReviewRequestMessage(container)
 
     return new StepResponse([
       {
@@ -413,7 +349,7 @@ const buildProductReviewRequestNotificationStep = createStep(
         data: {
           items: formatReviewItems(products),
           message,
-          order_display_id: getOrderDisplayId(order),
+          order_display_id: getReviewRequestOrderDisplayId(order),
           order_id: order.id,
           product_reviews: products,
           products: formatReviewProducts(products),

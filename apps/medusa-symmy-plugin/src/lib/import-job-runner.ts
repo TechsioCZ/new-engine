@@ -8,6 +8,7 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 
 import { SYMMY_IMPORT_JOB_MODULE } from "../modules/import-job"
 import type {
@@ -22,6 +23,7 @@ import type {
 
 // Medusa's locking module expects timeout values in seconds.
 const LOCK_ACQUIRE_TIMEOUT_SECONDS = 60 * 60
+const importJobResultSchema = z.record(z.string(), z.json())
 
 interface CompletionStats {
   processed: number
@@ -182,19 +184,18 @@ export const runImportJob = async <TInput, TOutput extends object>({
           }
           const output = await run(input)
           const stats = getCompletionStats(output)
-          const persistedOutput: unknown = output
-          const { isRecord } = await import("@techsio/std/object")
-          if (!isRecord(persistedOutput)) {
+          const persistedOutput = importJobResultSchema.safeParse(output)
+          if (!persistedOutput.success) {
             throw new MedusaError(
               MedusaError.Types.UNEXPECTED_STATE,
-              "Import job output is not a record",
+              "Import job output is not a JSON record",
             )
           }
 
           const completedJob = await importJobService.markCompleted(job.id, {
             failed: stats.failed,
             processed: stats.processed,
-            result: persistedOutput,
+            result: persistedOutput.data,
           })
           await deliverJobFinishedWebhook(
             webhookConfigService,

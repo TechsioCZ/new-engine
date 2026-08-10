@@ -11,72 +11,8 @@ import {
   ApprovalType,
 } from "../../../types/approval/module"
 import type { ModuleCreateApproval } from "../../../types/approval/module"
+import type { QueryCartApproval } from "../../../types/approval/query"
 import type { IApprovalModuleService } from "../../../types/approval/service"
-
-interface CartApprovalProjection {
-  approval_status?: { status?: unknown } | null
-  company?: {
-    approval_settings?: {
-      requires_admin_approval?: boolean
-      requires_sales_manager_approval?: boolean
-    } | null
-  } | null
-  id: string
-}
-
-const isApprovalProjectionObjectLike = (
-  value: unknown,
-): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
-const isOptionalBoolean = (value: unknown) =>
-  value === undefined || typeof value === "boolean"
-
-const isCartApprovalProjection = (
-  value: unknown,
-): value is CartApprovalProjection => {
-  if (
-    !isApprovalProjectionObjectLike(value) ||
-    typeof value["id"] !== "string"
-  ) {
-    return false
-  }
-
-  const { approval_status: approvalStatus, company } = value
-  if (
-    approvalStatus !== undefined &&
-    approvalStatus !== null &&
-    !isApprovalProjectionObjectLike(approvalStatus)
-  ) {
-    return false
-  }
-
-  if (company === undefined || company === null) {
-    return true
-  }
-  if (!isApprovalProjectionObjectLike(company)) {
-    return false
-  }
-
-  const settings = company["approval_settings"]
-  if (settings === undefined || settings === null) {
-    return true
-  }
-  if (!isApprovalProjectionObjectLike(settings)) {
-    return false
-  }
-  return [
-    settings["requires_admin_approval"],
-    settings["requires_sales_manager_approval"],
-  ].every(isOptionalBoolean)
-}
-
-const parseApprovalStatus = (value: unknown): ApprovalStatusType | undefined =>
-  [
-    ApprovalStatusType.PENDING,
-    ApprovalStatusType.APPROVED,
-    ApprovalStatusType.REJECTED,
-  ].find((status) => status === value)
 
 export const createApprovalStep = createStep(
   "create-approval",
@@ -96,7 +32,7 @@ export const createApprovalStep = createStep(
       )
     }
 
-    const graphResult: unknown = await query.graph(
+    const graphResult: { data: QueryCartApproval[] } = await query.graph(
       {
         entity: "cart",
         fields: [
@@ -114,31 +50,14 @@ export const createApprovalStep = createStep(
         throwIfKeyNotFound: true,
       },
     )
-    const data: unknown = isApprovalProjectionObjectLike(graphResult)
-      ? graphResult["data"]
-      : undefined
-    const cart: unknown = Array.isArray(data) ? data[0] : undefined
+    const [cart] = graphResult.data
     if (cart === undefined) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Cart ${firstApproval.cart_id} was not found`,
       )
     }
-    if (!isCartApprovalProjection(cart)) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        `Cart ${firstApproval.cart_id} returned invalid approval data`,
-      )
-    }
-
-    const rawApprovalStatus = cart.approval_status?.status
-    const cartApprovalStatus = parseApprovalStatus(rawApprovalStatus)
-    if (rawApprovalStatus !== undefined && cartApprovalStatus === undefined) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        `Cart ${cart.id} has an invalid approval status`,
-      )
-    }
+    const cartApprovalStatus = cart.approval_status?.status
 
     if (cartApprovalStatus === ApprovalStatusType.PENDING) {
       throw new MedusaError(

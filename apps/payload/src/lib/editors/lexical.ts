@@ -24,7 +24,7 @@ import {
 } from "@payloadcms/richtext-lexical"
 
 /** Create a shared Lexical editor configuration for CMS rich text fields. */
-export const createLexicalEditor = () =>
+export const createLexicalEditor = (): ReturnType<typeof lexicalEditor> =>
   lexicalEditor({
     features: [
       // Essential formatting features

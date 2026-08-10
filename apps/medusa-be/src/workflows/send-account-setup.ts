@@ -21,7 +21,6 @@ import {
 import {
   ACCOUNT_SETUP_ORDER_FIELDS,
   ACCOUNT_SETUP_TOKEN_EXPIRES_IN,
-  assertAccountSetupOrder,
   buildAccountSetupUrl,
   EMAIL_PASS_PROVIDER,
   ensureEmailPassAuthIdentity,
@@ -32,15 +31,6 @@ import {
 } from "../utils/account-setup"
 import type { AccountSetupResult } from "../utils/account-setup"
 import { sendNotificationStep } from "./steps/send-notification"
-
-interface BoundedGraphQuery {
-  graph: (config: {
-    entity: "order"
-    fields: readonly string[]
-    filters: Record<string, unknown>
-    pagination: { take: number }
-  }) => Promise<{ data: Record<string, unknown>[] }>
-}
 
 interface WorkflowInput {
   order_id: string
@@ -59,9 +49,6 @@ const prepareAccountSetupStep = createStep(
     { container },
   ): Promise<StepResponse<AccountSetupResult>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-    const boundedQuery = container.resolve<BoundedGraphQuery>(
-      ContainerRegistrationKeys.QUERY,
-    )
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const customerModuleService = container.resolve<ICustomerModuleService>(
       Modules.CUSTOMER,
@@ -72,7 +59,7 @@ const prepareAccountSetupStep = createStep(
 
     const {
       data: [order],
-    } = await boundedQuery.graph({
+    } = await query.graph({
       entity: "order",
       fields: ACCOUNT_SETUP_ORDER_FIELDS,
       filters: {
@@ -85,8 +72,7 @@ const prepareAccountSetupStep = createStep(
       throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")
     }
 
-    const graphOrder: unknown = order
-    assertAccountSetupOrder(graphOrder, "query.graph(order)")
+    const graphOrder = order
 
     if (!isAccountSetupRequested(graphOrder.metadata)) {
       return new StepResponse<AccountSetupResult>({

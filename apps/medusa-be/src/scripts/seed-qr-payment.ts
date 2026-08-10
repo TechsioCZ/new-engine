@@ -14,39 +14,24 @@ import {
   createWorkflow,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+import { z } from "@medusajs/framework/zod"
 import { setRegionsPaymentProvidersStep } from "@medusajs/medusa/core-flows"
 import type { SetRegionsPaymentProvidersStepInput } from "@medusajs/medusa/core-flows"
 
 import { QR_PAYMENT_MEDUSA_PROVIDER_ID } from "../modules/payment-qr/constants"
 import { SYSTEM_DEFAULT_PAYMENT_PROVIDER_ID } from "../workflows/seed/constants"
 
-interface RegionPaymentProviderLink {
-  payment_provider_id: string
-  region_id: string
-}
+const regionPaymentProviderLinkSchema = z.object({
+  payment_provider_id: z.string(),
+  region_id: z.string(),
+})
+type RegionPaymentProviderLink = z.infer<typeof regionPaymentProviderLinkSchema>
+
+const regionPaymentProviderLinksQuerySchema = z.object({
+  data: z.array(regionPaymentProviderLinkSchema),
+})
 
 const REGION_PAGE_SIZE = 100
-
-const isQrPaymentSeedObjectLike = (
-  value: unknown,
-): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
-const isRegionPaymentProviderLink = (
-  link: unknown,
-): link is RegionPaymentProviderLink => {
-  if (!isQrPaymentSeedObjectLike(link)) {
-    return false
-  }
-
-  const { payment_provider_id: paymentProviderId, region_id: regionId } = link
-  return typeof regionId === "string" && typeof paymentProviderId === "string"
-}
-
-const isRegionPaymentProviderLinks = (
-  data: unknown,
-): data is RegionPaymentProviderLink[] =>
-  Array.isArray(data) && data.every(isRegionPaymentProviderLink)
 
 const toRegionPaymentProviderMap = (links: RegionPaymentProviderLink[]) => {
   const providersByRegion = new Map<string, string[]>()
@@ -69,17 +54,15 @@ const getRegionPaymentProviderLinks = async (
       region_id: regionIds,
     },
   })
-  const data: unknown = isQrPaymentSeedObjectLike(result)
-    ? result["data"]
-    : undefined
-  if (!isRegionPaymentProviderLinks(data)) {
+  const parsed = regionPaymentProviderLinksQuerySchema.safeParse(result)
+  if (!parsed.success) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "QR payment seed region provider query returned invalid row",
     )
   }
 
-  return data
+  return parsed.data.data
 }
 
 const listAllRegions = async (regionService: IRegionModuleService) => {

@@ -1,6 +1,6 @@
 "use client"
 
-import type { HttpTypes } from "@medusajs/types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { Carousel } from "@techsio/ui-kit/molecules/carousel"
 import type { CarouselSlide } from "@techsio/ui-kit/molecules/carousel"
@@ -9,10 +9,10 @@ import { HerbatikaProductCard } from "@/components/herbatika-product-card"
 import { useAddProductToCartAction } from "@/lib/storefront/use-add-product-to-cart-action"
 
 interface InlineProductsCarouselProps {
-  products: HttpTypes.StoreProduct[]
+  products: MedusaCatalogProduct[]
   keyPrefix?: string
-  onProductHoverStart?: (product: HttpTypes.StoreProduct) => void
-  onProductHoverEnd?: (product: HttpTypes.StoreProduct) => void
+  onProductHoverStart?: (product: MedusaCatalogProduct) => void
+  onProductHoverEnd?: (product: MedusaCatalogProduct) => void
   slidesSm?: number
   slidesMd?: number
   slidesLg?: number
@@ -68,7 +68,7 @@ export const InlineProductsCarousel = ({
       : { countryCode: region?.country_code }),
   })
 
-  const handleAddToCart = async (product: HttpTypes.StoreProduct) => {
+  const handleAddToCart = async (product: MedusaCatalogProduct) => {
     await addToCart.addProductToCart({
       product,
       quantity: 1,

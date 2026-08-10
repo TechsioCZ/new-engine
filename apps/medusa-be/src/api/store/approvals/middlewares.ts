@@ -11,20 +11,18 @@ import type {
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type { MiddlewareRoute } from "@medusajs/medusa"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 
 import { ApprovalType } from "../../../types/approval/module"
 import { ensureRole } from "../../middlewares/ensure-role"
 import { approvalTransformQueryConfig } from "./query-config"
 import { StoreGetApprovals, StoreUpdateApproval } from "./validators"
 
-const getFirstDataRecord = (
-  response: unknown,
-): Record<string, unknown> | null => {
+const getFirstDataRecord = (response: unknown): object | null => {
   if (!isRecord(response)) {
     return null
   }
-  const { data } = response
+  const data = getRecordValue(response, "data")
   if (!Array.isArray(data)) {
     return null
   }
@@ -32,8 +30,8 @@ const getFirstDataRecord = (
   return isRecord(first) ? first : null
 }
 
-const getNestedRecord = (record: Record<string, unknown>, key: string) => {
-  const { [key]: value } = record
+const getNestedRecord = (record: object, key: string) => {
+  const value = getRecordValue(record, key)
   return isRecord(value) ? value : undefined
 }
 
@@ -44,7 +42,9 @@ const ensureApprovalType = async (
 ) => {
   const { id } = req.params
   const metadata: unknown = req.auth_context.app_metadata
-  const { customer_id: rawCustomerId } = isRecord(metadata) ? metadata : {}
+  const rawCustomerId = isRecord(metadata)
+    ? getRecordValue(metadata, "customer_id")
+    : undefined
   const customerId =
     typeof rawCustomerId === "string" ? rawCustomerId : undefined
 
@@ -71,7 +71,7 @@ const ensureApprovalType = async (
     return
   }
 
-  if (approval["type"] !== ApprovalType.ADMIN) {
+  if (getRecordValue(approval, "type") !== ApprovalType.ADMIN) {
     res.status(403).json({ message: "Forbidden" })
     return
   }
@@ -82,15 +82,29 @@ const ensureApprovalType = async (
     filters: { id: customerId },
   })
   const customer = getFirstDataRecord(customerResponse)
-  const employee = customer && getNestedRecord(customer, "employee")
-  const customerCompany = employee && getNestedRecord(employee, "company")
+  const employee =
+    customer === null ? undefined : getNestedRecord(customer, "employee")
+  const customerCompany =
+    employee === undefined ? undefined : getNestedRecord(employee, "company")
   const cart = getNestedRecord(approval, "cart")
-  const approvalCompany = cart && getNestedRecord(cart, "company")
+  const approvalCompany =
+    cart === undefined ? undefined : getNestedRecord(cart, "company")
+
+  const isAdmin =
+    employee === undefined ? undefined : getRecordValue(employee, "is_admin")
+  const customerCompanyId =
+    customerCompany === undefined
+      ? undefined
+      : getRecordValue(customerCompany, "id")
+  const approvalCompanyId =
+    approvalCompany === undefined
+      ? undefined
+      : getRecordValue(approvalCompany, "id")
 
   if (
-    employee?.["is_admin"] !== true ||
-    typeof customerCompany?.["id"] !== "string" ||
-    customerCompany["id"] !== approvalCompany?.["id"]
+    isAdmin !== true ||
+    typeof customerCompanyId !== "string" ||
+    customerCompanyId !== approvalCompanyId
   ) {
     res.status(403).json({ message: "Forbidden" })
     return

@@ -60,9 +60,9 @@ export const N1Aside = ({
               key={node.id}
               node={node}
               onNodeHover={(hoveredNode) => {
-                const { handle: hoveredHandle } = hoveredNode
-                if (typeof hoveredHandle === "string") {
-                  prefetchOnHover(hoveredHandle)
+                const hoveredCategory = findNodeById(treeData, hoveredNode.id)
+                if (hoveredCategory !== undefined && hoveredCategory !== null) {
+                  prefetchOnHover(hoveredCategory.handle)
                 }
               }}
               onNodeLeave={() => {

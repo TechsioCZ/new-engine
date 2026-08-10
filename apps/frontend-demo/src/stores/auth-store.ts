@@ -284,12 +284,11 @@ export const authHelpers = {
       // SDK manages authentication, just make the request
 
       // SDK's update method expects a different type, filter out null values
-      const updateData: Record<string, unknown> = {}
-      for (const [key, value] of Object.entries(data)) {
-        if (value !== null && value !== undefined) {
-          updateData[key] = value
-        }
-      }
+      const updateData = Object.fromEntries(
+        Object.entries(data).filter(
+          ([, value]) => value !== null && value !== undefined,
+        ),
+      )
 
       const { customer } = await sdk.store.customer.update(updateData)
       authStore.setState((state) => ({

@@ -1,10 +1,10 @@
+import type { Query } from "@medusajs/framework"
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 
 import { ProductBrandLink } from "../../../../../links/product-brand"
 import { normalizeProductSalesChannelFilter } from "../../../../utils/product-filters"
@@ -42,11 +42,11 @@ const get = async (
   const productLinks: unknown = productLinkResult.data
   const linkedProductIds = Array.isArray(productLinks)
     ? productLinks.flatMap((link: unknown) => {
-        if (!(isRecord(link) && typeof link["product_id"] === "string")) {
+        if (!isRecord(link)) {
           return []
         }
-
-        return [link["product_id"]]
+        const productId: unknown = getRecordValue(link, "product_id")
+        return typeof productId === "string" ? [productId] : []
       })
     : []
 
@@ -60,7 +60,7 @@ const get = async (
     return
   }
 
-  const filters = await normalizeProductSalesChannelFilter(query, remoteQuery, {
+  const filters = await normalizeProductSalesChannelFilter(remoteQuery, {
     ...req.filterableFields,
     id: linkedProductIds,
   })

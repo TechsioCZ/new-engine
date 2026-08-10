@@ -1,8 +1,10 @@
 import { MedusaError } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import { sleep } from "@techsio/std/async"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord, omitUndefined } from "@techsio/std/object"
 import { XMLParser } from "fast-xml-parser"
 
+import { packetaBranchSchema, packetaCreatePacketResultSchema } from "./schemas"
 import type {
   PacketaBranch,
   PacketaCreatePacketResult,
@@ -29,7 +31,7 @@ const BRANCH_FEED_URL =
 
 interface RequestOptions {
   /** Body fields placed inside the method element alongside apiPassword */
-  params?: Record<string, unknown>
+  params?: object
 }
 
 const escapeXml = (value: string): string =>
@@ -52,66 +54,35 @@ const serializeXmlElement = (name: string, value: unknown): string => {
   return `<${name}>${escapeXml(String(value))}</${name}>`
 }
 
-const isCreatePacketResult = (
-  value: unknown,
-): value is PacketaCreatePacketResult =>
-  isRecord(value) &&
-  typeof value["id"] === "number" &&
-  typeof value["barcode"] === "string"
+const trackingRecordSchema = z.object({
+  dateTime: z.string(),
+  statusCode: z.union([z.string(), z.number()]),
+  statusName: z.string().optional(),
+})
 
-const hasStringProperties = (
-  value: Record<string, unknown>,
-  properties: readonly string[],
-): boolean =>
-  properties.every((property) => typeof value[property] === "string")
+const trackingResultSchema = z
+  .object({
+    record: z.array(trackingRecordSchema).optional(),
+  })
+  .transform(omitUndefined)
 
-interface TrackingRecord {
-  dateTime: string
-  statusCode: string | number
-  statusName?: string
+type TrackingResult = z.infer<typeof trackingResultSchema>
+
+const decodeTrackingResult = (value: unknown): TrackingResult | undefined => {
+  const parsed = trackingResultSchema.safeParse(value)
+  return parsed.success ? parsed.data : undefined
 }
 
-const isTrackingRecord = (value: unknown): value is TrackingRecord => {
-  if (!isRecord(value) || !hasStringProperties(value, ["dateTime"])) {
-    return false
+const getBranchArray = (value: unknown): PacketaBranch[] => {
+  if (!Array.isArray(value)) {
+    return []
   }
-  const { statusCode, statusName } = value
-  const hasStatusCode =
-    typeof statusCode === "string" || typeof statusCode === "number"
-  const hasStatusName =
-    statusName === undefined || typeof statusName === "string"
-  return hasStatusCode && hasStatusName
-}
 
-const isTrackingResult = (
-  value: unknown,
-): value is { record?: TrackingRecord[] } => {
-  if (!isRecord(value)) {
-    return false
-  }
-  const { record } = value
-  return (
-    record === undefined ||
-    (Array.isArray(record) && record.every(isTrackingRecord))
-  )
+  return value.flatMap((branch: unknown) => {
+    const parsed = packetaBranchSchema.safeParse(branch)
+    return parsed.success ? [parsed.data] : []
+  })
 }
-
-const isPacketaBranch = (value: unknown): value is PacketaBranch => {
-  if (!isRecord(value) || typeof value["id"] !== "number") {
-    return false
-  }
-  return hasStringProperties(value, [
-    "city",
-    "country",
-    "name",
-    "nameStreet",
-    "street",
-    "zip",
-  ])
-}
-
-const getBranchArray = (value: unknown): PacketaBranch[] =>
-  Array.isArray(value) ? value.filter(isPacketaBranch) : []
 
 type RetryAttemptResult<T> =
   | { retry: true; error: Error }
@@ -163,14 +134,15 @@ export class PacketaClient {
     }
 
     const result = await this.request("createPacket", { params })
+    const parsed = packetaCreatePacketResultSchema.safeParse(result)
 
-    if (!isCreatePacketResult(result)) {
+    if (!parsed.success) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "Packeta: createPacket returned no id/barcode",
       )
     }
-    return result
+    return parsed.data
   }
 
   /**
@@ -194,14 +166,15 @@ export class PacketaClient {
    */
   async packetStatus(packetId: number): Promise<PacketaPacketStatusRecord[]> {
     const raw = await this.request("packetTracking", { params: { packetId } })
-    if (!isTrackingResult(raw)) {
+    const decoded = decodeTrackingResult(raw)
+    if (decoded === undefined) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "Packeta: packetTracking returned an invalid response",
       )
     }
 
-    const records = raw.record ?? []
+    const records = decoded.record ?? []
     return records.map((r) => ({
       dateTime: r.dateTime,
       state: mapPacketaStatusCode(r.statusCode),
@@ -273,9 +246,10 @@ export class PacketaClient {
     if (!isRecord(payload)) {
       return []
     }
-    const { data, branches } = payload
+    const data = getRecordValue(payload, "data")
+    const branches = getRecordValue(payload, "branches")
     if (isRecord(data)) {
-      return getBranchArray(data["branches"])
+      return getBranchArray(getRecordValue(data, "branches"))
     }
     return getBranchArray(branches)
   }
@@ -331,7 +305,9 @@ export class PacketaClient {
         }
 
         const parsed: unknown = this.xmlParser.parse(text)
-        const envelope = isRecord(parsed) ? parsed["response"] : undefined
+        const envelope = isRecord(parsed)
+          ? getRecordValue(parsed, "response")
+          : undefined
 
         if (!isRecord(envelope)) {
           throw new MedusaError(
@@ -340,28 +316,30 @@ export class PacketaClient {
           )
         }
 
-        if (envelope["status"] === "fault") {
+        if (getRecordValue(envelope, "status") === "fault") {
           throw PacketaClient.faultToError(envelope, methodName)
         }
 
-        if (envelope["status"] !== "ok") {
+        if (getRecordValue(envelope, "status") !== "ok") {
           throw new MedusaError(
             MedusaError.Types.INVALID_DATA,
-            `Packeta ${methodName}: unexpected status ${JSON.stringify(envelope["status"])}`,
+            `Packeta ${methodName}: unexpected status ${JSON.stringify(getRecordValue(envelope, "status"))}`,
           )
         }
 
-        return envelope["result"]
+        return getRecordValue(envelope, "result")
       },
       `Packeta ${methodName}`,
     )
   }
 
   private static faultToError(
-    envelope: Record<string, unknown>,
+    envelope: object,
     methodName: string,
   ): MedusaError {
-    const { detail, fault, string: responseMessage } = envelope
+    const detail = "detail" in envelope ? envelope.detail : undefined
+    const fault = "fault" in envelope ? envelope.fault : undefined
+    const responseMessage = "string" in envelope ? envelope.string : undefined
     let message = "unknown fault"
     if (typeof responseMessage === "string") {
       message = responseMessage

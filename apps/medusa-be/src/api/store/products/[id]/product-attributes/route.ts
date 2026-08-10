@@ -1,8 +1,8 @@
+import type { Query } from "@medusajs/framework"
 import type {
   MedusaResponse,
   MedusaStoreRequest,
 } from "@medusajs/framework/http"
-import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -31,14 +31,10 @@ const get = async (
   }
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
-  const productFilters = await normalizeProductSalesChannelFilter(
-    query,
-    remoteQuery,
-    {
-      ...req.filterableFields,
-      id: productId,
-    },
-  )
+  const productFilters = await normalizeProductSalesChannelFilter(remoteQuery, {
+    ...req.filterableFields,
+    id: productId,
+  })
   const { data: products } = await query.graph({
     entity: "product",
     fields: ["id"],

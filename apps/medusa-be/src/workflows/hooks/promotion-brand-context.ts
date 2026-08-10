@@ -1,22 +1,26 @@
 import { StepResponse } from "@medusajs/framework/workflows-sdk"
+import { z } from "@medusajs/framework/zod"
 import {
   computeAdjustmentsForPreviewWorkflow,
   computeDraftOrderAdjustmentsWorkflow,
   updateCartPromotionsWorkflow,
 } from "@medusajs/medusa/core-flows"
-import { isRecord } from "@techsio/std/object"
 
 import { ProductBrandLink } from "../../links/product-brand"
 import { buildBrandPromotionContext } from "../utils/promotion-brand-context"
+
+const promotionContextSourceSchema = z.object({
+  items: z.array(z.unknown()),
+})
 
 // Register refreshDraftOrderAdjustmentsWorkflow.hooks.setPromotionContext
 // if Medusa confirms/exports it from @medusajs/medusa/core-flows. The workflow
 // defines the hook and consumes its result for promotion computation, but it is
 // not currently available through the documented public import path.
-const getPromotionContextSource = (value: unknown) =>
-  isRecord(value) && Array.isArray(value["items"])
-    ? { items: value["items"] }
-    : undefined
+const getPromotionContextSource = (value: unknown) => {
+  const parsed = promotionContextSourceSchema.safeParse(value)
+  return parsed.success ? parsed.data : undefined
+}
 
 updateCartPromotionsWorkflow.hooks.setPromotionContext(
   async ({ cart }, { container }) =>

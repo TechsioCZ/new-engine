@@ -1,43 +1,32 @@
-interface ZaneEnvVariable {
-  id: string
-  key: string
-  value: string
-}
-
-interface ZaneEnvVariableChange {
-  type?: string
-  field?: string
-  item_id?: string | null
-  new_value?: Record<string, unknown> | null
-}
-
-interface ZaneEnvVariableServiceState {
-  env_variables: ZaneEnvVariable[]
-  unapplied_changes?: ZaneEnvVariableChange[]
-}
+import type {
+  ZaneEnvVariable,
+  ZaneServiceDetails,
+  ZaneUnappliedChange,
+  ZaneUnappliedChangeValue,
+} from "./zane-contract"
 
 const coercePendingEnvVariable = (
-  value: Record<string, unknown> | null | undefined,
+  value: ZaneUnappliedChangeValue | null | undefined,
 ): ZaneEnvVariable | null => {
   if (
     value === null ||
     value === undefined ||
-    typeof value["key"] !== "string" ||
-    typeof value["value"] !== "string"
+    typeof value.key !== "string" ||
+    typeof value.value !== "string"
   ) {
     return null
   }
 
   return {
-    id: typeof value["id"] === "string" ? value["id"] : "",
-    key: value["key"],
-    value: value["value"],
+    id: value.id ?? "",
+    key: value.key,
+    value: value.value,
   }
 }
 
 const applyPendingEnvVariableChange = (
   envVariables: ZaneEnvVariable[],
-  change: ZaneEnvVariableChange,
+  change: ZaneUnappliedChange,
 ): void => {
   if (change.field !== "env_variables" || typeof change.type !== "string") {
     return
@@ -101,7 +90,10 @@ const applyPendingEnvVariableChange = (
 }
 
 export const computeEffectiveEnvVariables = (
-  serviceDetails: ZaneEnvVariableServiceState,
+  serviceDetails: Pick<
+    ZaneServiceDetails,
+    "env_variables" | "unapplied_changes"
+  >,
 ): ZaneEnvVariable[] => {
   const envVariables = [...serviceDetails.env_variables]
 

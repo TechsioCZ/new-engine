@@ -3,6 +3,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 
 import { PRODUCT_REVIEW_MODULE } from "../modules/product-review"
 import type ProductReviewModuleService from "../modules/product-review/service"
@@ -35,37 +36,36 @@ interface ParsedReview {
   products: ParsedReviewProduct[]
 }
 
-interface ProductVariantRecord {
-  ean?: null | string
-  id: string
-  metadata?: null | Record<string, unknown>
-  product?: null | {
-    id?: string
-  }
-  sku?: null | string
-}
+const productVariantRecordSchema = z.object({
+  ean: z.string().nullish(),
+  id: z.string(),
+  metadata: z
+    .object({
+      code: z.string().optional(),
+      ean: z.string().optional(),
+      source_sku: z.string().optional(),
+      source_variant_id: z.string().optional(),
+      variant_id: z.string().optional(),
+    })
+    .nullish(),
+  product: z.object({ id: z.string().optional() }).nullish(),
+  sku: z.string().nullish(),
+})
 
-interface ReviewRecord {
+type ProductVariantRecord = z.infer<typeof productVariantRecordSchema>
+
+interface PendingReview {
+  content: string
+  created_at: Date | undefined
   customer_id: string
-  id: string
+  first_name: null | string
+  last_name: null
   product_id: string
+  rating: number
+  status: "approved"
+  title: string
+  updated_at: Date | undefined
 }
-
-const isReviewImportRecord = (
-  value: unknown,
-): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
-const isProductVariantRecord = (
-  value: unknown,
-): value is ProductVariantRecord =>
-  isReviewImportRecord(value) && typeof value["id"] === "string"
-
-const isReviewRecord = (value: unknown): value is ReviewRecord =>
-  isReviewImportRecord(value) &&
-  typeof value["customer_id"] === "string" &&
-  typeof value["id"] === "string" &&
-  typeof value["product_id"] === "string"
 
 const toValidDate = (value?: string): Date | undefined => {
   if (value === undefined || value.length === 0) {
@@ -170,7 +170,7 @@ const parseHerbaticaReviewsXml = (xml: string): ParsedReview[] => {
 
 const getMetadataString = (
   metadata: ProductVariantRecord["metadata"],
-  key: string,
+  key: keyof NonNullable<ProductVariantRecord["metadata"]>,
 ) => {
   const value = metadata?.[key]
   return typeof value === "string" ? normalizeInlineText(value) : undefined
@@ -206,9 +206,15 @@ const buildVariantProductIndexes = async (container: ExecArgs["container"]) => {
   const byGtin = new Map<string, Set<string>>()
   const byVariantId = new Map<string, Set<string>>()
 
-  for (const variant of Array.isArray(data)
-    ? data.filter(isProductVariantRecord)
-    : []) {
+  const variants = z.array(productVariantRecordSchema).safeParse(data)
+  if (!variants.success) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Product variant query returned invalid review import data",
+    )
+  }
+
+  for (const variant of variants.data) {
     const productId = variant.product?.id
     addMapValue(bySku, variant.sku, productId)
     addMapValue(bySku, getMetadataString(variant.metadata, "code"), productId)
@@ -334,13 +340,10 @@ export const importHerbaticaReviews = async ({
       select: ["id", "customer_id", "product_id"],
     },
   )
-  const existingReviews = listedReviews.filter(isReviewRecord)
   const existingKeys = new Set(
-    existingReviews.map(
-      (review) => `${review.customer_id}:${review.product_id}`,
-    ),
+    listedReviews.map((review) => `${review.customer_id}:${review.product_id}`),
   )
-  const pendingReviews: Record<string, unknown>[] = []
+  const pendingReviews: PendingReview[] = []
   let matchedReviews = 0
   let skippedExisting = 0
   let unmatchedReviews = 0

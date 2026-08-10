@@ -11,12 +11,7 @@
     "composite": false,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "incremental": true,
-    "tsBuildInfoFile": "./.medusa/tsconfig.tsbuildinfo",
-    "strictNullChecks": true,
-    "exactOptionalPropertyTypes": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "noUncheckedIndexedAccess": true
+    "tsBuildInfoFile": "./.medusa/tsconfig.tsbuildinfo"
   },
   "ts-node": {
     "swc": true

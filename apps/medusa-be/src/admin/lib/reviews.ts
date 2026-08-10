@@ -1,3 +1,5 @@
+import { getRecordValue } from "@techsio/std/object"
+
 import { sdk } from "./sdk"
 
 export type ReviewStatus = "approved" | "pending" | "rejected"
@@ -50,11 +52,15 @@ export interface UpdateReviewStatusResponse {
   reviews: Review[]
 }
 
-const toSearch = (params: Record<string, number | string | undefined>) => {
+const toSearch = (params: object) => {
   const search = new URLSearchParams()
 
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "") {
+  for (const key of Object.keys(params)) {
+    const value = getRecordValue(params, key)
+    if (
+      typeof value === "number" ||
+      (typeof value === "string" && value !== "")
+    ) {
       search.set(key, String(value))
     }
   }
@@ -62,19 +68,21 @@ const toSearch = (params: Record<string, number | string | undefined>) => {
   return search.toString()
 }
 
-export const reviewQueryKeys = {
-  detail: (id: string) => ["reviews", id] as const,
-  list: (params: Record<string, unknown>) => ["reviews", params] as const,
-  lists: () => ["reviews"] as const,
-}
-
-export const listReviews = async (params: {
+interface ListReviewsParams {
   limit: number
   offset: number
   order_by?: string
   q?: string
   status?: ReviewStatus
-}) =>
+}
+
+export const reviewQueryKeys = {
+  detail: (id: string) => ["reviews", id] as const,
+  list: (params: ListReviewsParams) => ["reviews", params] as const,
+  lists: () => ["reviews"] as const,
+}
+
+export const listReviews = async (params: ListReviewsParams) =>
   await sdk.client.fetch<ReviewsResponse>(`/admin/reviews?${toSearch(params)}`)
 
 export const retrieveReview = async (id: string) =>

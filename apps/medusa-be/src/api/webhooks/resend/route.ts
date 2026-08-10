@@ -41,8 +41,8 @@ type EmailLogService = EmailLogModuleService & {
     }[],
   ) => Promise<unknown[]>
   listEmailLogs: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>,
+    filters?: Parameters<EmailLogModuleService["listEmailLogs"]>[0],
+    config?: Parameters<EmailLogModuleService["listEmailLogs"]>[1],
   ) => Promise<EmailLogDTO[]>
   updateEmailLogs: (
     data: { id: string; checked_at: Date }[],
@@ -134,7 +134,7 @@ const parsePayload = (payload: string, body: unknown): ResendWebhookEvent => {
 const hasRequiredResendWebhookFields = (
   event: ResendWebhookEvent,
 ): event is ResendWebhookEvent & {
-  data: { email_id: string; [key: string]: unknown }
+  data: NonNullable<ResendWebhookEvent["data"]> & { email_id: string }
   type: string
 } =>
   typeof event.type === "string" &&

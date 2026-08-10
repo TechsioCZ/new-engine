@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs"
 import path from "node:path"
 
 import { ProductStatus } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import { beforeEach, describe, expect, it } from "vitest"
 
 import { parseHerbaticaCategoriesXmlFile } from "../../../src/scripts/herbatica-category-export"
@@ -21,70 +22,29 @@ import {
 const DIRTY_FEED_MARKUP_PATTERN =
   /data-turn-id|data-message-author-role|data-testid|ChatGPT|markdown prose|webpage-citation-pill|_ngcontent-ng|markdown-main-panel/iu
 
-interface HerbaticaContentSections {
-  composition: string
-  description: string
-  other: string
-  usage: string
-  warning: string
-}
+const HerbaticaContentSectionsSchema = z.object({
+  composition: z.string(),
+  description: z.string(),
+  other: z.string(),
+  usage: z.string(),
+  warning: z.string(),
+})
 
-const isNonNullObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
+type HerbaticaContentSections = z.infer<typeof HerbaticaContentSectionsSchema>
 
-const hasStringProperty = (
-  value: Record<string, unknown>,
-  key: string,
-): boolean => key in value && typeof value[key] === "string"
+type SeedProduct = ReturnType<typeof buildSeedInputFromXml>["products"][number]
 
-const isHerbaticaContentSections = (
-  value: Record<string, unknown>,
-): value is Record<string, unknown> & HerbaticaContentSections => {
-  if (
-    !hasStringProperty(value, "composition") ||
-    !hasStringProperty(value, "description")
-  ) {
-    return false
+const getContentSections = (product: SeedProduct): HerbaticaContentSections =>
+  HerbaticaContentSectionsSchema.parse(
+    product.metadata?.["content_sections_map"],
+  )
+
+const getFirstProduct = (products: SeedProduct[]): SeedProduct => {
+  const [product] = products
+  if (product === undefined) {
+    throw new Error("Expected the seed input to contain a product")
   }
-
-  if (
-    !hasStringProperty(value, "other") ||
-    !hasStringProperty(value, "usage")
-  ) {
-    return false
-  }
-
-  return hasStringProperty(value, "warning")
-}
-
-const getContentSections = (product: unknown): HerbaticaContentSections => {
-  if (!isNonNullObject(product)) {
-    throw new Error("Expected product content sections metadata")
-  }
-
-  if (!("metadata" in product)) {
-    throw new Error("Expected product content sections metadata")
-  }
-
-  const { metadata } = product
-  if (!isNonNullObject(metadata)) {
-    throw new Error("Expected product content sections metadata")
-  }
-
-  if (!("content_sections_map" in metadata)) {
-    throw new Error("Expected product content sections metadata")
-  }
-
-  const sections = metadata["content_sections_map"]
-  if (!isNonNullObject(sections)) {
-    throw new Error("Expected string product content sections")
-  }
-
-  if (!isHerbaticaContentSections(sections)) {
-    throw new Error("Expected string product content sections")
-  }
-
-  return sections
+  return product
 }
 
 describe("Herbatica manufacturer normalization", () => {
@@ -835,7 +795,7 @@ describe("Herbatica seed product content sections", () => {
       `
 
       const result = buildSeedInputFromXml(xml)
-      contentSections = getContentSections(result.products[0])
+      contentSections = getContentSections(getFirstProduct(result.products))
     })
 
     it("keeps the marketing claim and short description merged into description", () => {
@@ -894,7 +854,7 @@ describe("Herbatica seed product content sections", () => {
       `
 
       const result = buildSeedInputFromXml(xml)
-      contentSections = getContentSections(result.products[0])
+      contentSections = getContentSections(getFirstProduct(result.products))
     })
 
     it("keeps the marketing heading and its paragraph in description", () => {
@@ -942,7 +902,7 @@ describe("Herbatica seed product content sections", () => {
     `
 
     const result = buildSeedInputFromXml(xml)
-    const contentSections = getContentSections(result.products[0])
+    const contentSections = getContentSections(getFirstProduct(result.products))
 
     expect(contentSections.description).toContain("Úvodný popis")
     expect(contentSections.description).not.toContain("amarantový olej")

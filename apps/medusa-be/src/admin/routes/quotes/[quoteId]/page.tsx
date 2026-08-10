@@ -8,7 +8,7 @@ import {
   toast,
   usePrompt,
 } from "@medusajs/ui"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { useTranslation } from "react-i18next"
 import { Link, useParams } from "react-router-dom"
 import type { LoaderFunctionArgs, UIMatch } from "react-router-dom"
@@ -62,12 +62,10 @@ const readCompanyView = (value: unknown): QuoteCompanyView | null => {
     return null
   }
 
-  const { currency_code: currencyCode, id, name } = value
-
   return {
-    currencyCode: readString(currencyCode),
-    id: readString(id),
-    name: readString(name),
+    currencyCode: readString(getRecordValue(value, "currency_code")),
+    id: readString(getRecordValue(value, "id")),
+    name: readString(getRecordValue(value, "name")),
   }
 }
 
@@ -81,16 +79,16 @@ const readEmployeeView = (customer: unknown): QuoteEmployeeView | null => {
     return null
   }
 
-  const { employee } = customer
+  const employee = getRecordValue(customer, "employee")
 
   if (!isRecord(employee)) {
     return null
   }
 
-  const { company, spending_limit: spendingLimit } = employee
+  const spendingLimit = getRecordValue(employee, "spending_limit")
 
   return {
-    company: readCompanyView(company),
+    company: readCompanyView(getRecordValue(employee, "company")),
     spendingLimit: typeof spendingLimit === "number" ? spendingLimit : null,
   }
 }

@@ -3,7 +3,7 @@ import type {
   InitiatePaymentInput,
 } from "@medusajs/framework/types"
 import { MedusaError, ModuleProvider, Modules } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { payeeSchema } from "@paykit-sdk/core"
 
 import { PAYKIT_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
 import { PaykitPaymentProviderBase } from "../core/base"
@@ -47,15 +47,17 @@ const getEmailValue = (value: unknown): string | undefined => {
 
 const getComgateCustomerEmail = (
   input: InitiatePaymentInput,
-  data: Record<string, unknown>,
+  data: NonNullable<InitiatePaymentInput["data"]>,
 ): string | undefined => {
   const dataCustomer = data["customer"]
 
   const directCustomerEmail =
     typeof dataCustomer === "string" ? getEmailValue(dataCustomer) : undefined
-  const nestedCustomerEmail = isRecord(dataCustomer)
-    ? getEmailValue(dataCustomer["email"])
-    : undefined
+  const customerResult = payeeSchema.safeParse(dataCustomer)
+  const nestedCustomerEmail =
+    customerResult.success && "email" in customerResult.data
+      ? getEmailValue(customerResult.data.email)
+      : undefined
   const dataEmail = getEmailValue(data["email"])
   const contextEmail = getEmailValue(input.context?.customer?.email)
 
@@ -84,10 +86,7 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
       return
     }
 
-    requirePaykitOptions("PayKit Comgate", { ...options }, [
-      "merchant",
-      "secret",
-    ])
+    requirePaykitOptions("PayKit Comgate", options, ["merchant", "secret"])
   }
 
   protected async createDefaultClient(): Promise<PaykitPaymentClient> {
@@ -135,7 +134,7 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
 
   protected override getPaykitCustomer(
     input: InitiatePaymentInput,
-    data: Record<string, unknown>,
+    data: NonNullable<InitiatePaymentInput["data"]>,
   ): { id: string } {
     const email = this.#getComgateCustomerEmail(input, data)
 
@@ -153,8 +152,8 @@ export class PaykitComgatePaymentProvider extends PaykitPaymentProviderBase<Payk
 
   protected override getCreateProviderMetadata(
     input: InitiatePaymentInput,
-    data: Record<string, unknown>,
-  ): Record<string, unknown> {
+    data: NonNullable<InitiatePaymentInput["data"]>,
+  ) {
     const providerMetadata = super.getProviderMetadata(data)
     const email = this.#getComgateCustomerEmail(input, data)
     const paymentLabel = getStringValue(

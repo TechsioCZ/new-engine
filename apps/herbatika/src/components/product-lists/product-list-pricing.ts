@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import { getRecordValue } from "@techsio/std/object"
 
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
@@ -32,9 +33,18 @@ const resolveProductListItemPrice = (params: {
   const calculatedPrice = asStorefrontRecord(variant?.calculated_price)
   const topOffer = resolveProductTopOffer(product)
   const price = resolveStorefrontPrice({
-    calculatedAmount: calculatedPrice?.["calculated_amount"],
-    calculatedCurrencyCode: calculatedPrice?.["currency_code"],
-    calculatedOriginalAmount: calculatedPrice?.["original_amount"],
+    calculatedAmount:
+      calculatedPrice === null
+        ? undefined
+        : getRecordValue(calculatedPrice, "calculated_amount"),
+    calculatedCurrencyCode:
+      calculatedPrice === null
+        ? undefined
+        : getRecordValue(calculatedPrice, "currency_code"),
+    calculatedOriginalAmount:
+      calculatedPrice === null
+        ? undefined
+        : getRecordValue(calculatedPrice, "original_amount"),
     expectedCurrencyCode: currencyCode,
     topOffer,
   })
@@ -44,16 +54,26 @@ const resolveProductListItemPrice = (params: {
   }
 
   const variantMetadata = asStorefrontRecord(variant?.metadata)
+  const calculatedAmountWithoutTaxValue =
+    calculatedPrice === null
+      ? undefined
+      : getRecordValue(calculatedPrice, "calculated_amount_without_tax")
   const calculatedAmountWithoutTax =
     price.source === "calculated_price"
-      ? asStorefrontNumber(calculatedPrice?.["calculated_amount_without_tax"])
+      ? asStorefrontNumber(calculatedAmountWithoutTaxValue)
       : null
   const amountWithoutTax = resolveAmountWithoutTax({
     amountWithTax: price.currentAmount,
     amountWithoutTax: calculatedAmountWithoutTax,
     vatRate:
-      asStorefrontNumber(variantMetadata?.["vat"]) ??
-      asStorefrontNumber(topOffer?.["vat"]),
+      asStorefrontNumber(
+        variantMetadata === null
+          ? undefined
+          : getRecordValue(variantMetadata, "vat"),
+      ) ??
+      asStorefrontNumber(
+        topOffer === null ? undefined : getRecordValue(topOffer, "vat"),
+      ),
   })
 
   return {

@@ -1,10 +1,10 @@
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 /** Minimal category document shape used in collection aggregation. */
 export interface CategoryDoc {
   id: number
-  title: string | null
   slug: string | null
+  title: string | null
 }
 
 /** Extract a category document from an unknown relationship value. */
@@ -13,11 +13,13 @@ export const getCategoryDoc = (category: unknown): CategoryDoc | null => {
     return null
   }
 
-  const { id, slug, title } = category
+  const id = getRecordValue(category, "id")
   if (typeof id !== "number") {
     return null
   }
 
+  const slug = getRecordValue(category, "slug")
+  const title = getRecordValue(category, "title")
   return {
     id,
     slug: typeof slug === "string" ? slug : null,
@@ -31,6 +33,6 @@ export const getMediaUrl = (featuredImage: unknown): string | null => {
     return null
   }
 
-  const { url } = featuredImage
+  const url = getRecordValue(featuredImage, "url")
   return typeof url === "string" ? url : null
 }

@@ -1,0 +1,105 @@
+id: no-unknown-property-bag-tsx
+language: Tsx
+severity: error
+message: Unknown property bags erase domain shape; define a schema-owned type or keep opaque data as object until validation.
+note: The rule structurally matches broad-key bags whose value is unknown or an unknown-producing expression, plus generic aliases unless their value is a closed, known nested container. Finite-key records and nested unknown values remain valid.
+files:
+  - "apps/**/*.{ts,tsx,js,jsx}"
+  - "libs/**/*.{ts,tsx,js,jsx}"
+  - "scripts/**/*.{ts,tsx,js,jsx}"
+rule:
+  any:
+    - any:
+        - pattern: "type $ALIAS<$$$PARAMS> = Record<$KEY, $GENERIC_VALUE>"
+        - pattern: "type $ALIAS<$$$PARAMS> = $OWNER.Record<$KEY, $GENERIC_VALUE>"
+        - pattern: "type $ALIAS<$$$PARAMS> = Map<$KEY, $GENERIC_VALUE>"
+        - pattern: "type $ALIAS<$$$PARAMS> = ReadonlyMap<$KEY, $GENERIC_VALUE>"
+        - pattern: "type $ALIAS<$$$PARAMS> = Readonly<Record<$KEY, $GENERIC_VALUE>>"
+        - pattern: "type $ALIAS<$$$PARAMS> = { [$K: $KEY]: $GENERIC_VALUE }"
+        - pattern: "interface $ALIAS<$$$PARAMS> { [$K: $KEY]: $GENERIC_VALUE }"
+        - pattern: "type $ALIAS<$$$PARAMS> = { [$K in $KEY]: $GENERIC_VALUE }"
+        - pattern: "type $ALIAS<$$$PARAMS> = (Record<$KEY, $GENERIC_VALUE>)"
+        - pattern: "type $ALIAS<$$$PARAMS> = ($OWNER.Record<$KEY, $GENERIC_VALUE>)"
+        - pattern: "type $ALIAS<$$$PARAMS> = (Map<$KEY, $GENERIC_VALUE>)"
+        - pattern: "type $ALIAS<$$$PARAMS> = (ReadonlyMap<$KEY, $GENERIC_VALUE>)"
+        - pattern: "type $ALIAS<$$$PARAMS> = ({ [$K: $KEY]: $GENERIC_VALUE })"
+        - pattern: "type $ALIAS<$$$PARAMS> = ({ [$K in $KEY]: $GENERIC_VALUE })"
+    - all:
+        - kind: generic_type
+        - has:
+            field: name
+            regex: '(?:^|\.)(?:Record|Map|ReadonlyMap)$'
+        - has:
+            field: type_arguments
+            pattern:
+              context: type X = Record<$KEY, $VALUE>
+              selector: type_arguments
+    - all:
+        - kind: index_signature
+        - any:
+            - has:
+                field: index_type
+                regex: '[\s\S]+'
+            - has:
+                kind: mapped_type_clause
+                regex: '^[A-Za-z_$][A-Za-z0-9_$]*\s+in\s+(?:keyof\s+any|(?:[A-Za-z_$][A-Za-z0-9_$]*\.)*PropertyKey|string|number|symbol|(?:string|number|symbol)(?:\s*\|\s*(?:string|number|symbol))*)$'
+        - has:
+            field: type
+            has:
+              matches: unknown-property-value
+    - kind: type_identifier
+      regex: "^(?:JsonRecord|UnknownObject|UnknownRecord)$"
+    - kind: import_specifier
+      has:
+        field: name
+        regex: "^(?:JsonRecord|UnknownObject|UnknownRecord)$"
+    - kind: export_specifier
+      has:
+        field: name
+        regex: "^(?:JsonRecord|UnknownObject|UnknownRecord)$"
+constraints:
+  KEY:
+    regex: '^(?:string|number|symbol|(?:[A-Za-z_$][A-Za-z0-9_$]*\.)*PropertyKey|keyof\s+any|(?:string|number|symbol)(?:\s*\|\s*(?:string|number|symbol))*)$'
+  GENERIC_VALUE:
+    not:
+      matches: safe-generic-property-value
+  VALUE:
+    matches: unknown-property-value
+utils:
+  safe-generic-property-value:
+    any:
+      - kind: array_type
+      - kind: tuple_type
+      - kind: function_type
+      - all:
+          - kind: object_type
+          - not:
+              has:
+                kind: index_signature
+          - not:
+              has:
+                kind: mapped_type_clause
+      - kind: literal_type
+      - kind: predefined_type
+        regex: "^(?:bigint|boolean|never|number|string|symbol|undefined|void)$"
+      - all:
+          - kind: generic_type
+          - has:
+              field: name
+              regex: '(?:^|\.)(?:Array|Promise|ReadonlyArray|ReadonlySet|Set|WeakSet)$'
+  parenthesized-unknown:
+    any:
+      - kind: predefined_type
+        regex: "^unknown$"
+      - kind: parenthesized_type
+        has:
+          matches: parenthesized-unknown
+  unknown-property-value:
+    any:
+      - matches: parenthesized-unknown
+      - kind: union_type
+        has:
+          matches: parenthesized-unknown
+      - kind: parenthesized_type
+        has:
+          matches: unknown-property-value

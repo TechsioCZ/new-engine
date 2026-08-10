@@ -25,7 +25,7 @@ const CategoryPage = async ({ params, searchParams }: CategoryPageProps) => {
   const normalizedSlug = slug.trim().toLowerCase()
   const canonicalSlug = CATEGORY_SLUG_ALIASES[normalizedSlug]
 
-  if (canonicalSlug) {
+  if (canonicalSlug !== undefined && canonicalSlug.length > 0) {
     redirect(`/c/${canonicalSlug}`)
   }
 

@@ -93,7 +93,7 @@ export const Disclaimer = ({
 
   return (
     <div className={root({ className })} {...props}>
-      {!hideIcon && displayIcon && (
+      {!hideIcon && displayIcon !== undefined && displayIcon.length > 0 && (
         <Icon className={iconClass()} icon={displayIcon} size={size} />
       )}
       <div className={content()}>{children}</div>

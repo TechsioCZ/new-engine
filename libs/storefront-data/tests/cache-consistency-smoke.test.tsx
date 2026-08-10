@@ -1,12 +1,15 @@
 import { QueryClient } from "@tanstack/react-query"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { vi, describe, expect, it } from "vitest"
 
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createCustomerHooks } from "../src/customers/hooks"
-import type { CustomerService } from "../src/customers/types"
+import type {
+  CustomerProfileUpdateInputBase,
+  CustomerService,
+} from "../src/customers/types"
 import { createOrderQueryKeys } from "../src/orders/query-keys"
 import { createProductHooks } from "../src/products/hooks"
 import { createProductQueryKeys } from "../src/products/query-keys"
@@ -157,9 +160,7 @@ describe("storefront-data cache/query consistency", () => {
     interface UpdateParams {
       address_1?: string
     }
-    interface UpdateCustomerParams {
-      metadata?: Record<string, unknown>
-    }
+    type UpdateCustomerParams = CustomerProfileUpdateInputBase
 
     const service: CustomerService<
       Customer,
@@ -258,9 +259,7 @@ describe("storefront-data cache/query consistency", () => {
     interface UpdateParams {
       address_1?: string
     }
-    interface UpdateCustomerParams {
-      metadata?: Record<string, unknown>
-    }
+    type UpdateCustomerParams = CustomerProfileUpdateInputBase
 
     const service: CustomerService<
       Customer,
@@ -344,7 +343,7 @@ describe("storefront-data cache/query consistency", () => {
     const authInvalidationCalls = invalidateSpy.mock.calls.filter(
       ([arg]) =>
         isRecord(arg) &&
-        JSON.stringify(arg["queryKey"]) ===
+        JSON.stringify(getRecordValue(arg, "queryKey")) ===
           JSON.stringify(authCustomerQueryKey),
     )
 

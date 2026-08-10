@@ -51,7 +51,10 @@ export const useCategoryFacetItems = ({
 
     return {
       ...item,
-      label: labelKey ? t(labelKey) : item.label,
+      label:
+        labelKey === undefined || labelKey.length === 0
+          ? item.label
+          : t(labelKey),
     }
   })
 
@@ -64,7 +67,10 @@ export const useCategoryFacetItems = ({
 
     return {
       ...item,
-      label: labelKey ? t(labelKey) : item.label,
+      label:
+        labelKey === undefined || labelKey.length === 0
+          ? item.label
+          : t(labelKey),
     }
   })
 

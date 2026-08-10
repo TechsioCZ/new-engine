@@ -21,7 +21,7 @@ import type { MedusaModuleConfig, MedusaModulesConfig } from "./types"
 
 interface PaymentProviderConfig {
   id: string
-  options?: Record<string, unknown>
+  options?: object
   resolve: string
 }
 

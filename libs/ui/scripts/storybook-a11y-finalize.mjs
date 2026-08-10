@@ -4,13 +4,13 @@ import { createHash } from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
 
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 /** @typedef {{ id: string }} Violation */
 /**
  * @typedef {object} ReportEntry
  * @property {string} name - Story name.
- * @property {Record<string, unknown>} source - Original report entry.
+ * @property {unknown} source - Original report entry.
  * @property {string} storyId - Story identifier.
  * @property {string} title - Story title.
  * @property {string} url - Captured story URL.
@@ -99,20 +99,27 @@ if (
 
 try {
   const index = loadJson(indexPath, "Storybook index")
-  if (!isRecord(index) || !isRecord(index.entries)) {
+  if (!isRecord(index)) {
+    throw new Error("Storybook index has no entries object.")
+  }
+  const indexEntries = getRecordValue(index, "entries")
+  if (!isRecord(indexEntries)) {
     throw new Error("Storybook index has no entries object.")
   }
 
   /** @type {{ id: string }[]} */
   const expectedEntries = []
-  for (const entry of Object.values(index.entries)) {
+  for (const entry of Object.values(indexEntries)) {
+    if (!isRecord(entry)) {
+      continue
+    }
+    const tags = getRecordValue(entry, "tags")
     if (
-      isRecord(entry) &&
-      entry.type === "story" &&
-      Array.isArray(entry.tags) &&
-      entry.tags.includes("test")
+      getRecordValue(entry, "type") === "story" &&
+      Array.isArray(tags) &&
+      tags.includes("test")
     ) {
-      expectedEntries.push({ id: stringifyScalar(entry.id) })
+      expectedEntries.push({ id: stringifyScalar(getRecordValue(entry, "id")) })
     }
   }
   /** @type {{ id: string }[]} */
@@ -155,24 +162,31 @@ try {
       path.join(entriesDir, entryFile),
       `${theme} accessibility entry`,
     )
-    const storyId = isRecord(rawEntry) ? stringifyScalar(rawEntry.storyId) : ""
+    const storyId = isRecord(rawEntry)
+      ? stringifyScalar(getRecordValue(rawEntry, "storyId"))
+      : ""
     if (!expectedIds.has(storyId)) {
       throw new Error(`${theme} report contains unexpected story: ${storyId}`)
     }
     if (byId.has(storyId)) {
       throw new Error(`${theme} report contains duplicate story: ${storyId}`)
     }
-    if (
-      !isRecord(rawEntry) ||
-      !isRecord(rawEntry.results) ||
-      !Array.isArray(rawEntry.results.violations)
-    ) {
+    if (!isRecord(rawEntry)) {
       throw new Error(
         `${theme} report has no completed results for: ${storyId}`,
       )
     }
+    const results = getRecordValue(rawEntry, "results")
+    const rawViolations = isRecord(results)
+      ? getRecordValue(results, "violations")
+      : undefined
+    if (!Array.isArray(rawViolations)) {
+      throw new TypeError(
+        `${theme} report has no completed results for: ${storyId}`,
+      )
+    }
 
-    const entryUrl = new URL(stringifyScalar(rawEntry.url))
+    const entryUrl = new URL(stringifyScalar(getRecordValue(rawEntry, "url")))
     const globals = entryUrl.searchParams.get("globals") ?? ""
     const selectedMode = globals
       .split(/[;,]/u)
@@ -186,19 +200,19 @@ try {
 
     /** @type {Violation[]} */
     const violations = []
-    for (const violation of rawEntry.results.violations) {
+    for (const violation of rawViolations) {
       violations.push({
         id: isRecord(violation)
-          ? stringifyScalar(violation.id, "unknown")
+          ? stringifyScalar(getRecordValue(violation, "id"), "unknown")
           : "unknown",
       })
     }
     byId.set(storyId, {
-      name: stringifyScalar(rawEntry.name),
+      name: stringifyScalar(getRecordValue(rawEntry, "name")),
       source: rawEntry,
       storyId,
-      title: stringifyScalar(rawEntry.title),
-      url: stringifyScalar(rawEntry.url),
+      title: stringifyScalar(getRecordValue(rawEntry, "title")),
+      url: stringifyScalar(getRecordValue(rawEntry, "url")),
       violations,
     })
   }
@@ -253,7 +267,7 @@ try {
     version: 1,
     violations: fingerprints.length,
   }
-  /** @type {Record<string, unknown>[]} */
+  /** @type {unknown[]} */
   const reportSources = sortedReport.map((entry) => entry.source)
 
   writeAtomic(

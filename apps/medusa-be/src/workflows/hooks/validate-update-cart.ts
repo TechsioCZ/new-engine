@@ -5,48 +5,54 @@ import {
 } from "@medusajs/framework/utils"
 import { StepResponse } from "@medusajs/framework/workflows-sdk"
 import { updateCartWorkflow } from "@medusajs/medusa/core-flows"
-import { isRecord } from "@techsio/std/object"
+import type { UpdateCartWorkflowInput } from "@medusajs/medusa/core-flows"
 
 import { getCartApprovalStatus } from "../../utils/get-cart-approval-status"
 
-interface CartWithApprovals {
+interface CartApprovalProjection {
   approvals?: ({ status?: string | null } | null)[] | null
 }
 
-updateCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
-  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const cartId: unknown = isRecord(cart) ? cart["id"] : undefined
-  if (typeof cartId !== "string" || cartId === "") {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "Cart id is required for update validation",
-    )
-  }
+interface CartApprovalGraphResult {
+  data: CartApprovalProjection[]
+}
 
-  const queryResult: { data: CartWithApprovals[] } = await query.graph({
-    entity: "cart",
-    fields: ["approvals.*"],
-    filters: {
-      id: cartId,
-    },
-  })
-  const [queryCart] = queryResult.data
+updateCartWorkflow.hooks.validate(
+  async ({ cart }: { cart: UpdateCartWorkflowInput }, { container }) => {
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+    const cartId = cart.id
+    if (cartId === "") {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Cart id is required for update validation",
+      )
+    }
 
-  if (queryCart === undefined) {
-    throw new MedusaError(
-      MedusaError.Types.NOT_FOUND,
-      `Cart "${cartId}" was not found`,
-    )
-  }
+    const queryResult: CartApprovalGraphResult = await query.graph({
+      entity: "cart",
+      fields: ["approvals.*"],
+      filters: {
+        id: cartId,
+      },
+    })
+    const [queryCart] = queryResult.data
 
-  const { isPendingApproval } = getCartApprovalStatus(queryCart)
+    if (queryCart === undefined) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Cart "${cartId}" was not found`,
+      )
+    }
 
-  if (isPendingApproval) {
-    throw new MedusaError(
-      MedusaError.Types.NOT_ALLOWED,
-      "Cart is pending approval",
-    )
-  }
+    const { isPendingApproval } = getCartApprovalStatus(queryCart)
 
-  return new StepResponse(undefined, null)
-})
+    if (isPendingApproval) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_ALLOWED,
+        "Cart is pending approval",
+      )
+    }
+
+    return new StepResponse(undefined, null)
+  },
+)

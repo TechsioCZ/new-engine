@@ -63,9 +63,6 @@ const GIT_GLOBAL_WITH_VALUE = new Set([
 // substitution, tilde, globs.
 const SHELL_EXPANSION = /[$`~*?[\]{}()]/u
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
 /** Drop one layer of matched surrounding quotes so a plain quoted literal path stays resolvable. */
 const stripQuotes = (value: string) => {
   if (value.length < 2) {
@@ -395,16 +392,22 @@ const parseHookInput = (raw: string): HookInput | null => {
     return null
   }
 
-  if (!isRecord(parsed)) {
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     return null
   }
 
-  const toolInput = parsed.tool_input
-  if (!isRecord(toolInput)) {
+  const toolInput = "tool_input" in parsed ? parsed.tool_input : undefined
+  if (
+    typeof toolInput !== "object" ||
+    toolInput === null ||
+    Array.isArray(toolInput)
+  ) {
     return null
   }
 
-  const rawCommand = toolInput.command ?? toolInput.cmd
+  const rawCommand =
+    ("command" in toolInput ? toolInput.command : undefined) ??
+    ("cmd" in toolInput ? toolInput.cmd : undefined)
   let command = ""
   if (typeof rawCommand === "string") {
     command = rawCommand
@@ -415,7 +418,8 @@ const parseHookInput = (raw: string): HookInput | null => {
     command = rawCommand.join(" ")
   }
 
-  const cwd = typeof parsed.cwd === "string" ? parsed.cwd : process.cwd()
+  const parsedCwd = "cwd" in parsed ? parsed.cwd : undefined
+  const cwd = typeof parsedCwd === "string" ? parsedCwd : process.cwd()
   return { command, cwd }
 }
 

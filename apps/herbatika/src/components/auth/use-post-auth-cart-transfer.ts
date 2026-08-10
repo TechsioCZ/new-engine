@@ -13,11 +13,18 @@ interface UsePostAuthCartTransferInput {
   regionId?: string
 }
 
+export interface PostAuthCartTransfer {
+  cartQuery: ReturnType<typeof useCart>
+  runPostAuthCartTransfer: () => Promise<string | null>
+  transferCartIfAvailable: () => Promise<void>
+  transferCartMutation: ReturnType<typeof useTransferCart>
+}
+
 export const usePostAuthCartTransfer = ({
   countryCode,
   failureMessage,
   regionId,
-}: UsePostAuthCartTransferInput) => {
+}: UsePostAuthCartTransferInput): PostAuthCartTransfer => {
   const transferCartMutation = useTransferCart()
   const cartQuery = useCart(
     {

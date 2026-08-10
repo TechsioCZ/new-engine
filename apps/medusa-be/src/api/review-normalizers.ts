@@ -1,28 +1,49 @@
+import type { InferTypeOf } from "@medusajs/framework/types"
+import { z } from "@medusajs/framework/zod"
+
+import type Review from "../modules/product-review/models/review"
 import { escapeLikePattern } from "../utils/sql"
 import type { AdminGetReviewsSchemaType } from "./admin/reviews/validators"
 
-export interface ProductRecord {
-  handle?: string
-  id: string
-  thumbnail?: null | string
-  title?: string
+const productRecordSchema = z.object({
+  handle: z.string(),
+  id: z.string(),
+  thumbnail: z.union([z.null(), z.string()]),
+  title: z.string(),
+})
+
+const reviewTimestampSchema = z.union([z.date(), z.string()])
+
+const reviewRecordSchema = z.object({
+  content: z.string(),
+  created_at: reviewTimestampSchema,
+  customer_id: z.string(),
+  deleted_at: z.union([reviewTimestampSchema, z.null()]).optional(),
+  first_name: z.union([z.null(), z.string()]),
+  id: z.string(),
+  last_name: z.union([z.null(), z.string()]),
+  product_id: z.string(),
+  rating: z.number().min(1).max(5),
+  status: z.enum(["approved", "pending", "rejected"]),
+  title: z.string(),
+  updated_at: reviewTimestampSchema.optional(),
+})
+
+export type ProductRecord = z.infer<typeof productRecordSchema>
+
+type ReviewEntityRecord = InferTypeOf<typeof Review>
+type ReviewTimestamp = Date | string
+
+export type ReviewRecord = Omit<
+  ReviewEntityRecord,
+  "created_at" | "deleted_at" | "updated_at"
+> & {
+  created_at: ReviewTimestamp
+  deleted_at?: null | ReviewTimestamp
+  updated_at?: ReviewTimestamp
 }
 
-export interface ReviewRecord {
-  content: string
-  created_at?: Date | string
-  customer_id: string
-  first_name?: null | string
-  id: string
-  last_name?: null | string
-  product_id: string
-  rating: number
-  status: string
-  title: string
-  updated_at?: Date | string
-}
-
-type PublicReviewRecord = Pick<
+export type PublicReviewRecord = Pick<
   ReviewRecord,
   | "content"
   | "created_at"
@@ -33,16 +54,16 @@ type PublicReviewRecord = Pick<
   | "title"
 >
 
-const isReviewEntity = (
-  value: unknown,
-): value is Record<string, unknown> & object =>
-  typeof value === "object" && value !== null
-
 const ORDER_FIELDS = new Set(["created_at", "rating", "status", "updated_at"])
 const LEADING_DASH_REGEX = /^-/u
 
-const serializeDate = (date: Date | string | undefined) =>
+type OptionalReviewTimestamp = ReviewTimestamp | undefined
+
+const serializeDate = (date: OptionalReviewTimestamp) =>
   date instanceof Date ? date.toISOString() : date
+
+const serializeNullableDate = (date: OptionalReviewTimestamp | null) =>
+  date === null ? null : serializeDate(date)
 
 const hasText = (value: string | undefined): value is string =>
   value !== undefined && value.length > 0
@@ -65,7 +86,7 @@ export const normalizeAdminReviewFilters = ({
   product_id,
   q,
   status,
-}: AdminGetReviewsSchemaType): Record<string, unknown> => {
+}: AdminGetReviewsSchemaType) => {
   const escapedQuery = hasText(q) ? escapeLikePattern(q) : undefined
 
   return {
@@ -86,27 +107,10 @@ export const normalizeAdminReviewFilters = ({
 }
 
 export const isProductRecord = (value: unknown): value is ProductRecord =>
-  isReviewEntity(value) && typeof value["id"] === "string"
+  productRecordSchema.safeParse(value).success
 
-export const isReviewRecord = (value: unknown): value is ReviewRecord => {
-  if (!isReviewEntity(value)) {
-    return false
-  }
-
-  const stringFields = [
-    "content",
-    "customer_id",
-    "id",
-    "product_id",
-    "status",
-    "title",
-  ] as const
-  if (stringFields.some((field) => typeof value[field] !== "string")) {
-    return false
-  }
-
-  return typeof value["rating"] === "number"
-}
+export const isReviewRecord = (value: unknown): value is ReviewRecord =>
+  reviewRecordSchema.safeParse(value).success
 
 export const filterProductRecords = (products: unknown): ProductRecord[] =>
   Array.isArray(products) ? products.filter(isProductRecord) : []
@@ -114,7 +118,7 @@ export const filterProductRecords = (products: unknown): ProductRecord[] =>
 export const filterReviewRecords = (reviews: unknown): ReviewRecord[] =>
   Array.isArray(reviews) ? reviews.filter(isReviewRecord) : []
 
-export const getUniqueReviewProductIds = (reviews: ReviewRecord[]) => [
+export const getUniqueReviewProductIds = (reviews: readonly ReviewRecord[]) => [
   ...new Set(reviews.map((review) => review.product_id)),
 ]
 
@@ -130,15 +134,10 @@ export const normalizeCustomerReview = (
   review: ReviewRecord,
   productsById: Map<string, ProductRecord>,
 ) => ({
-  content: review.content,
+  ...review,
   created_at: serializeDate(review.created_at),
-  customer_id: review.customer_id,
-  id: review.id,
+  deleted_at: serializeNullableDate(review.deleted_at),
   product: productsById.get(review.product_id) ?? null,
-  product_id: review.product_id,
-  rating: review.rating,
-  status: review.status,
-  title: review.title,
   updated_at: serializeDate(review.updated_at),
 })
 

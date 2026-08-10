@@ -4,8 +4,8 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import { chunk } from "@techsio/std/array"
-import { isRecord } from "@techsio/std/object"
 
 import { ProductBrandLink } from "../../../links/product-brand"
 import { BRAND_MODULE } from "../../../modules/brand"
@@ -17,18 +17,12 @@ import type { BrandScalarWriteInput } from "./validation"
 export { getActiveBrandIds } from "../brand-activity"
 export { getProductBrandIdsToReplace } from "./brand-link-state"
 
-interface BrandAttributeRecord {
-  id: string
-  value: string
-  attributeType?: {
-    name: string
-  }
+interface ProductBrandLinkFilters {
+  brand_id?: string | { $in: string[] }
+  product_id?: string | { $in: string[] }
 }
 
 interface BrandSnapshot {
-  id: string
-  title: string
-  handle: string
   attributes: BrandAttributeInput[]
   gpsr_contact_email?: string | null
   gpsr_european_reseller_contact_email?: string | null
@@ -37,30 +31,9 @@ interface BrandSnapshot {
   gpsr_manufactured_outside_eu?: boolean
   gpsr_manufacturing_company_name?: string | null
   gpsr_postal_address?: string | null
-}
-
-interface BrandSnapshotRecord {
+  handle: string
   id: string
   title: string
-  handle: string
-  attributes: (BrandAttributeRecord & {
-    attributeType: {
-      id?: string
-      name: string
-    }
-  })[]
-  gpsr_contact_email?: string | null
-  gpsr_european_reseller_contact_email?: string | null
-  gpsr_european_reseller_manufacturing_company_name?: string | null
-  gpsr_european_reseller_postal_address?: string | null
-  gpsr_manufactured_outside_eu?: boolean | null
-  gpsr_manufacturing_company_name?: string | null
-  gpsr_postal_address?: string | null
-}
-
-interface ProductBrandLinkRecord {
-  product_id?: string
-  brand_id?: string
 }
 
 const CHUNK_SIZE = 500
@@ -94,54 +67,54 @@ export const withBrandTransaction = async <T>(
   task: (sharedContext: Context) => Promise<T>,
 ) => await service.runInTransaction(task)
 
-const isBrandSnapshotRecord = (
-  brand: unknown,
-): brand is BrandSnapshotRecord => {
-  if (!isRecord(brand)) {
-    return false
-  }
-
-  const manufacturedOutsideEu = brand["gpsr_manufactured_outside_eu"]
-  const hasRequiredFields = [
-    typeof brand["id"] === "string",
-    typeof brand["title"] === "string",
-    typeof brand["handle"] === "string",
-    Array.isArray(brand["attributes"]),
-    manufacturedOutsideEu === undefined ||
-      manufacturedOutsideEu === null ||
-      typeof manufacturedOutsideEu === "boolean",
-  ].every(Boolean)
-  if (!hasRequiredFields || !Array.isArray(brand["attributes"])) {
-    return false
-  }
-
-  return brand["attributes"].every((attribute) => {
-    if (!isRecord(attribute) || typeof attribute["value"] !== "string") {
-      return false
-    }
-
-    return (
-      isRecord(attribute["attributeType"]) &&
-      typeof attribute["attributeType"]["name"] === "string"
-    )
-  })
+const optionalNullableString = z.string().nullable().optional()
+const brandSnapshotRecordSchema = z.object({
+  attributes: z.array(
+    z.object({
+      attributeType: z.object({
+        id: z.string().optional(),
+        name: z.string(),
+      }),
+      id: z.string(),
+      value: z.string(),
+    }),
+  ),
+  gpsr_contact_email: optionalNullableString,
+  gpsr_european_reseller_contact_email: optionalNullableString,
+  gpsr_european_reseller_manufacturing_company_name: optionalNullableString,
+  gpsr_european_reseller_postal_address: optionalNullableString,
+  gpsr_manufactured_outside_eu: z.boolean().nullable().optional(),
+  gpsr_manufacturing_company_name: optionalNullableString,
+  gpsr_postal_address: optionalNullableString,
+  handle: z.string(),
+  id: z.string(),
+  title: z.string(),
+})
+type BrandSnapshotRecord = z.infer<typeof brandSnapshotRecordSchema>
+const graphDataSchema = z.object({ data: z.array(z.unknown()) })
+const productBrandLinkSchema = z.object({
+  brand_id: z.string().optional(),
+  product_id: z.string().optional(),
+})
+type ProductBrandLinkRecord = z.infer<typeof productBrandLinkSchema>
+interface CompleteProductBrandLinkRecord {
+  brand_id: string
+  product_id: string
 }
+const productIdSchema = z.object({ id: z.string() })
 
-const assertBrandSnapshotRecord: (
+const parseBrandSnapshotRecord = (
   brand: unknown,
   brandId: string,
-) => asserts brand is BrandSnapshotRecord = (
-  brand: unknown,
-  brandId: string,
-) => {
-  if (isBrandSnapshotRecord(brand)) {
-    return
+): BrandSnapshotRecord => {
+  const parsed = brandSnapshotRecordSchema.safeParse(brand)
+  if (!parsed.success) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Brand "${brandId}" was retrieved without the fields required for a workflow snapshot`,
+    )
   }
-
-  throw new MedusaError(
-    MedusaError.Types.UNEXPECTED_STATE,
-    `Brand "${brandId}" was retrieved without the fields required for a workflow snapshot`,
-  )
+  return parsed.data
 }
 
 export const snapshotBrand = async (
@@ -149,15 +122,16 @@ export const snapshotBrand = async (
   brandId: string,
   sharedContext: Context = {},
 ): Promise<BrandSnapshot> => {
-  const brand = await service.retrieveBrand(
+  const brand = parseBrandSnapshotRecord(
+    await service.retrieveBrand(
+      brandId,
+      {
+        relations: ["attributes", "attributes.attributeType"],
+      },
+      sharedContext,
+    ),
     brandId,
-    {
-      relations: ["attributes", "attributes.attributeType"],
-    },
-    sharedContext,
   )
-
-  assertBrandSnapshotRecord(brand, brandId)
 
   return {
     attributes: brand.attributes.map((attribute) => ({
@@ -328,48 +302,33 @@ export const partitionProductBrandConflicts = (
 }
 
 const getGraphData = (result: unknown, context: string): unknown[] => {
-  if (!isRecord(result) || !Array.isArray(result["data"])) {
+  const parsed = graphDataSchema.safeParse(result)
+  if (!parsed.success) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       `${context} query returned invalid data`,
     )
   }
-
-  return result["data"]
+  return parsed.data.data
 }
 
 const parseProductBrandLink = (
   value: unknown,
   context: string,
 ): ProductBrandLinkRecord => {
-  if (!isRecord(value)) {
+  const parsed = productBrandLinkSchema.safeParse(value)
+  if (!parsed.success) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       `${context} query returned an invalid link record`,
     )
   }
-
-  const productId = value["product_id"]
-  const brandId = value["brand_id"]
-  if (
-    (productId !== undefined && typeof productId !== "string") ||
-    (brandId !== undefined && typeof brandId !== "string")
-  ) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      `${context} query returned invalid link identifiers`,
-    )
-  }
-
-  return {
-    ...(typeof brandId === "string" ? { brand_id: brandId } : {}),
-    ...(typeof productId === "string" ? { product_id: productId } : {}),
-  }
+  return parsed.data
 }
 
 const queryProductBrandLinks = async (
   query: Query,
-  filters: Record<string, unknown>,
+  filters: ProductBrandLinkFilters,
   context: string,
 ): Promise<ProductBrandLinkRecord[]> => {
   const result: unknown = await query.graph({
@@ -434,7 +393,7 @@ export const getCurrentProductBrandLinks = async (
   const data = await queryProductBrandLinkChunks(query, "product_id", ids)
 
   return data.filter(
-    (link): link is Required<ProductBrandLinkRecord> =>
+    (link): link is CompleteProductBrandLinkRecord =>
       link.product_id !== undefined &&
       link.product_id.length > 0 &&
       link.brand_id !== undefined &&
@@ -456,7 +415,7 @@ export const getCurrentBrandProductLinks = async (
   const data = await queryProductBrandLinkChunks(query, "brand_id", ids)
 
   return data.filter(
-    (link): link is Required<ProductBrandLinkRecord> =>
+    (link): link is CompleteProductBrandLinkRecord =>
       link.product_id !== undefined &&
       link.product_id.length > 0 &&
       link.brand_id !== undefined &&
@@ -488,13 +447,14 @@ export const getExistingProductIds = async (
   )
   const productIdsFromQuery = responses.flatMap((response) =>
     getGraphData(response, "Products").map((product) => {
-      if (!isRecord(product) || typeof product["id"] !== "string") {
+      const parsed = productIdSchema.safeParse(product)
+      if (!parsed.success) {
         throw new MedusaError(
           MedusaError.Types.UNEXPECTED_STATE,
           "Products query returned an invalid record",
         )
       }
-      return product["id"]
+      return parsed.data.id
     }),
   )
 

@@ -1,5 +1,6 @@
 "use client"
 
+import type { HttpTypes } from "@medusajs/types"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import { useEffect, useState } from "react"
 
@@ -16,15 +17,28 @@ import {
 } from "./region-selection"
 import { storefront } from "./storefront"
 
-const regionHooks = storefront.hooks.regions
+const regionHooks: typeof storefront.hooks.regions = storefront.hooks.regions
 
-export const { useRegions } = regionHooks
+export const useRegions: typeof regionHooks.useRegions = regionHooks.useRegions
 
 interface UseRegionBootstrapOptions {
   initialRegion?: RegionInfo | null
 }
 
-export const useRegionBootstrap = (options: UseRegionBootstrapOptions = {}) => {
+interface UseRegionBootstrapResult {
+  error: string | null
+  isFetching: boolean
+  isLoading: boolean
+  region: RegionInfo | null
+  regions: HttpTypes.StoreRegion[]
+  selectedRegion: HttpTypes.StoreRegion | null
+  selectedRegionId: string | null
+  setRegionById: (regionId: string) => void
+}
+
+export const useRegionBootstrap = (
+  options: UseRegionBootstrapOptions = {},
+): UseRegionBootstrapResult => {
   const initialRegion = options.initialRegion ?? null
   const marketContext = useMarketContext()
 

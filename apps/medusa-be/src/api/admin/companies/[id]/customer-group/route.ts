@@ -21,7 +21,7 @@ const post = async (
     input: { company_id: id, group_id },
   })
 
-  const queryResult: { data: Record<string, unknown>[] } = await query.graph(
+  const queryResult = await query.graph(
     {
       entity: "companies",
       fields: req.queryConfig.fields,

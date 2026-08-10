@@ -1,8 +1,9 @@
 "use client"
 
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import type { BadgeProps } from "@techsio/ui-kit/atoms/badge"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery"
 import { BreadcrumbTemplate } from "@techsio/ui-kit/templates/breadcrumb"
 import { GalleryTemplate } from "@techsio/ui-kit/templates/gallery"
 import Image from "next/image"
@@ -30,7 +31,8 @@ const getProductBadges = (metadata: unknown): BadgeProps[] => {
     return badges
   }
 
-  const { discount, isNew } = metadata
+  const discount = getRecordValue(metadata, "discount")
+  const isNew = getRecordValue(metadata, "isNew")
   if (isNew === true) {
     badges.push({ children: "New", variant: "info" })
   }
@@ -149,12 +151,15 @@ const ProductDetail = ({ handle }: ProductDetailProps) => {
   const badges = getProductBadges(product.metadata)
 
   const galleryImages =
-    product.images?.map((img, idx) => ({
-      alt: img.alt ?? product.title,
-      id: `image-${idx}`,
-      imageProps: { fill: true, sizes: "400px" },
-      src: img.url,
-    })) ?? []
+    product.images?.map(
+      (img, idx) =>
+        ({
+          alt: img.alt ?? product.title,
+          id: `image-${idx}`,
+          imageProps: { fill: true, sizes: "400px" },
+          src: img.url,
+        }) satisfies GalleryItem<typeof Image>,
+    ) ?? []
 
   const handleVariantChange = (variant: ProductVariant) => {
     setSelectedVariantId(variant.id)

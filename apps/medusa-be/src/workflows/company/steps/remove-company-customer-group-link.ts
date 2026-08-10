@@ -6,9 +6,9 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { isRecord } from "@techsio/std/object"
 
 import { COMPANY_MODULE } from "../../../modules/company"
+import type { QueryCompanyProjection } from "../../../types/company/query"
 
 interface RemoveCompanyCustomerGroupLinkCompensation {
   company_id: string
@@ -37,41 +37,13 @@ const getCompanyCustomerGroupLink = (companyId: string, groupId: string) => ({
   },
 })
 
-const getCustomerGroupCustomerIds = (employees: unknown): string[] => {
-  if (!Array.isArray(employees)) {
-    return []
-  }
-
-  return employees.flatMap((employee) => {
-    if (!isRecord(employee)) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        "Company query returned an invalid employee record",
-      )
-    }
-    const { customer } = employee
-    if (customer === undefined || customer === null) {
-      return []
-    }
-    if (!isRecord(customer) || typeof customer["id"] !== "string") {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        "Company query returned an invalid employee customer",
-      )
-    }
-    return customer["id"].length > 0 ? [customer["id"]] : []
+const getCustomerGroupCustomerIds = (
+  employees: QueryCompanyProjection["employees"],
+): string[] =>
+  (employees ?? []).flatMap((employee) => {
+    const customerId = employee?.customer?.id
+    return customerId !== undefined && customerId.length > 0 ? [customerId] : []
   })
-}
-
-const getGraphData = (result: unknown): unknown[] => {
-  if (!isRecord(result) || !Array.isArray(result["data"])) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "Company query returned invalid data",
-    )
-  }
-  return result["data"]
-}
 
 export const removeCompanyCustomerGroupLinkStep = createStep(
   "remove-company-customer-group-link",
@@ -92,7 +64,7 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
       Modules.CUSTOMER,
     )
 
-    const companyResult: unknown = await query.graph(
+    const companyResult: { data: QueryCompanyProjection[] } = await query.graph(
       {
         entity: "companies",
         fields: [
@@ -105,7 +77,7 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
       },
       { throwIfKeyNotFound: true },
     )
-    const [company] = getGraphData(companyResult)
+    const [company] = companyResult.data
 
     if (company === undefined) {
       throw new MedusaError(
@@ -114,20 +86,7 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
       )
     }
 
-    if (!isRecord(company)) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        "Company query returned an invalid company record",
-      )
-    }
-    const customerGroup = company["customer_group"]
-    const groupId = isRecord(customerGroup) ? customerGroup["id"] : undefined
-    if (groupId !== undefined && typeof groupId !== "string") {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        "Company query returned an invalid customer group identifier",
-      )
-    }
+    const groupId = company.customer_group?.id
 
     if (
       expectedGroupId !== undefined &&
@@ -148,7 +107,7 @@ export const removeCompanyCustomerGroupLinkStep = createStep(
       })
     }
 
-    const customerIds = getCustomerGroupCustomerIds(company["employees"])
+    const customerIds = getCustomerGroupCustomerIds(company.employees)
     const customerGroupCustomers = customerIds.map((customerId) => ({
       customer_group_id: groupId,
       customer_id: customerId,

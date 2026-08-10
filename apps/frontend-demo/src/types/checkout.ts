@@ -39,7 +39,6 @@ export interface PaymentMethod {
 export interface Country {
   label: string
   value: string
-  [key: string]: unknown
 }
 
 export interface AddressFormProps {

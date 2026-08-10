@@ -5,6 +5,7 @@ import type { CreateCatalogHooksConfig } from "../catalog/hooks"
 import { createMedusaCatalogService } from "../catalog/medusa-service"
 import type {
   MedusaCatalogListInput,
+  MedusaCatalogProduct,
   MedusaCatalogServiceConfig,
 } from "../catalog/medusa-service"
 import { createCatalogQueryOptionsFactory } from "../catalog/query-options"
@@ -429,7 +430,7 @@ interface RequiredMedusaCatalogServerReadPresetOption<
 }
 
 type MedusaCatalogServerReadPresetOption<TCatalogProduct, TCatalogFacets> =
-  IsExactly<TCatalogProduct, HttpTypes.StoreProduct> extends true
+  IsExactly<TCatalogProduct, MedusaCatalogProduct> extends true
     ? IsExactly<TCatalogFacets, CatalogFacets> extends true
       ? {
           catalog?: MedusaCatalogServerReadPresetConfig<
@@ -498,7 +499,7 @@ export type CreateMedusaStorefrontServerReadPresetConfig<
   TProduct = HttpTypes.StoreProduct,
   TCategory = HttpTypes.StoreProductCategory,
   TCollection = HttpTypes.StoreCollection,
-  TCatalogProduct = HttpTypes.StoreProduct,
+  TCatalogProduct = MedusaCatalogProduct,
   TCatalogFacets = CatalogFacets,
 > = CreateMedusaStorefrontServerReadPresetConfigBase &
   MedusaProductServerReadPresetOption<TProduct> &
@@ -983,7 +984,7 @@ export const createMedusaStorefrontServerReadPreset = <
   TProduct = HttpTypes.StoreProduct,
   TCategory = HttpTypes.StoreProductCategory,
   TCollection = HttpTypes.StoreCollection,
-  TCatalogProduct = HttpTypes.StoreProduct,
+  TCatalogProduct = MedusaCatalogProduct,
   TCatalogFacets = CatalogFacets,
 >(
   config: CreateMedusaStorefrontServerReadPresetConfig<

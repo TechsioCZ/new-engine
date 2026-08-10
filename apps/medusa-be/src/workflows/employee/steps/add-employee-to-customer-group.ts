@@ -5,47 +5,29 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { isRecord } from "@techsio/std/object"
+import { z } from "@medusajs/framework/zod"
 
-import { isUnknownArray } from "../../../utils/guards"
+const employeeQuerySchema = z.object({
+  data: z.array(z.object({ company: z.unknown() })),
+})
+const companyQuerySchema = z.object({
+  data: z.array(z.object({ customer_group: z.unknown().optional() })),
+})
+const relatedIdSchema = z.object({ id: z.string() })
 
-const getGraphRecord = (
-  result: unknown,
-  entity: string,
-): Record<string, unknown> | undefined => {
-  const data: unknown = isRecord(result) ? result["data"] : undefined
-  if (!isUnknownArray(data)) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      `${entity} query returned invalid data`,
-    )
-  }
-  const [record] = data
-  if (record === undefined) {
-    return undefined
-  }
-  if (!isRecord(record)) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      `${entity} query returned an invalid record`,
-    )
-  }
-  return record
-}
-
-const getNestedId = (
-  record: Record<string, unknown>,
+const getRelatedId = (
+  value: unknown,
   relation: string,
   context: string,
 ): string => {
-  const related = record[relation]
-  if (!isRecord(related) || typeof related["id"] !== "string") {
+  const parsed = relatedIdSchema.safeParse(value)
+  if (!parsed.success) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       `${context} query returned an invalid ${relation} relation`,
     )
   }
-  return related["id"]
+  return parsed.data.id
 }
 
 export const addEmployeeToCustomerGroupStep = createStep(
@@ -64,7 +46,14 @@ export const addEmployeeToCustomerGroupStep = createStep(
       },
       { throwIfKeyNotFound: true },
     )
-    const employee = getGraphRecord(employeeResult, "Employee")
+    const parsedEmployeeResult = employeeQuerySchema.safeParse(employeeResult)
+    if (!parsedEmployeeResult.success) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Employee query returned invalid data",
+      )
+    }
+    const [employee] = parsedEmployeeResult.data.data
 
     if (employee === undefined) {
       throw new MedusaError(
@@ -73,7 +62,7 @@ export const addEmployeeToCustomerGroupStep = createStep(
       )
     }
 
-    const companyId = getNestedId(employee, "company", "Employee")
+    const companyId = getRelatedId(employee.company, "company", "Employee")
     const companyResult: unknown = await query.graph(
       {
         entity: "company",
@@ -82,7 +71,14 @@ export const addEmployeeToCustomerGroupStep = createStep(
       },
       { throwIfKeyNotFound: true },
     )
-    const company = getGraphRecord(companyResult, "Company")
+    const parsedCompanyResult = companyQuerySchema.safeParse(companyResult)
+    if (!parsedCompanyResult.success) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Company query returned invalid data",
+      )
+    }
+    const [company] = parsedCompanyResult.data.data
 
     if (company === undefined) {
       throw new MedusaError(
@@ -95,11 +91,16 @@ export const addEmployeeToCustomerGroupStep = createStep(
       Modules.CUSTOMER,
     )
 
-    const customerGroupValue = company["customer_group"]
-    const customerGroupId = isRecord(customerGroupValue)
-      ? customerGroupValue["id"]
+    const customerGroupRelation = relatedIdSchema.safeParse(
+      company.customer_group,
+    )
+    const customerGroupId = customerGroupRelation.success
+      ? customerGroupRelation.data.id
       : undefined
-    if (customerGroupId !== undefined && typeof customerGroupId !== "string") {
+    if (
+      company.customer_group !== undefined &&
+      !customerGroupRelation.success
+    ) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
         "Company query returned an invalid customer group identifier",

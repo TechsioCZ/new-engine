@@ -3,7 +3,7 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { MedusaError } from "@medusajs/framework/utils"
-import { getErrorMessage, isRecord } from "@techsio/std/object"
+import { getErrorMessage, isRecord, getRecordValue } from "@techsio/std/object"
 
 import type { AdminUpdateApproval } from "../../../../types/approval/http"
 import { requirePathParam } from "../../../../utils/path-params"
@@ -14,18 +14,15 @@ const updateApproval = async (
   res: MedusaResponse,
 ) => {
   const appMetadata: unknown = req.auth_context.app_metadata
-  if (
-    !isRecord(appMetadata) ||
-    typeof appMetadata["user_id"] !== "string" ||
-    appMetadata["user_id"].length === 0
-  ) {
+  const userId: unknown = isRecord(appMetadata)
+    ? getRecordValue(appMetadata, "user_id")
+    : undefined
+  if (typeof userId !== "string" || userId.length === 0) {
     throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
       "Approval updates require an authenticated admin user.",
     )
   }
-  const userId = appMetadata["user_id"]
-
   const approvalId = requirePathParam(req.params["id"], "Approval id")
   const { status } = req.validatedBody
 

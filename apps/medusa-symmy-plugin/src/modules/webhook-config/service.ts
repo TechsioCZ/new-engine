@@ -1,5 +1,5 @@
-import type { Logger } from "@medusajs/framework/types"
-import { MedusaError, MedusaService } from "@medusajs/framework/utils"
+import type { Logger, MetadataType } from "@medusajs/framework/types"
+import { MedusaService } from "@medusajs/framework/utils"
 
 import packageJson from "../../../package.json"
 import SymmyWebhookConfig from "./models/symmy-webhook-config"
@@ -38,7 +38,7 @@ export interface SymmyWebhookJobPayload {
     processed: number
     failed: number
     attempts: number
-    result: Record<string, unknown> | null
+    result: MetadataType
     error: string | null
     created_at?: Date | string | undefined
     updated_at?: Date | string | undefined
@@ -55,49 +55,6 @@ type RawSymmyWebhookConfigDTO = Omit<SymmyWebhookConfigDTO, "endpoints"> & {
   endpoints: SymmyWebhookEndpoint[]
 }
 
-const isObjectMap = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
-const getObjectValue = (value: Record<string, unknown>, key: string): unknown =>
-  value[key]
-
-const isDateOrString = (value: unknown): value is Date | string =>
-  value instanceof Date || typeof value === "string"
-
-const isSymmyWebhookEndpoint = (
-  value: unknown,
-): value is SymmyWebhookEndpoint =>
-  isObjectMap(value) &&
-  typeof getObjectValue(value, "url") === "string" &&
-  typeof getObjectValue(value, "enabled") === "boolean"
-
-const isRawSymmyWebhookConfigDTO = (
-  value: unknown,
-): value is RawSymmyWebhookConfigDTO => {
-  if (!isObjectMap(value)) {
-    return false
-  }
-  const id = getObjectValue(value, "id")
-  const configKey = getObjectValue(value, "config_key")
-  const isEnabled = getObjectValue(value, "is_enabled")
-  const endpoints = getObjectValue(value, "endpoints")
-  const createdAt = getObjectValue(value, "created_at")
-  const updatedAt = getObjectValue(value, "updated_at")
-  if (typeof id !== "string" || typeof configKey !== "string") {
-    return false
-  }
-  if (typeof isEnabled !== "boolean") {
-    return false
-  }
-  if (!Array.isArray(endpoints) || !endpoints.every(isSymmyWebhookEndpoint)) {
-    return false
-  }
-  if (createdAt !== undefined && !isDateOrString(createdAt)) {
-    return false
-  }
-  return updatedAt === undefined || isDateOrString(updatedAt)
-}
-
 const normalizeEndpoint = (
   endpoint: SymmyWebhookEndpoint,
 ): SymmyWebhookEndpoint => ({
@@ -111,19 +68,10 @@ const normalizeEndpoints = (endpoints: SymmyWebhookEndpoint[] = []) =>
     return normalized.url.length > 0 ? [normalized] : []
   })
 
-const toDTO = (raw: unknown): SymmyWebhookConfigDTO => {
-  if (!isRawSymmyWebhookConfigDTO(raw)) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "[symmy-plugin] Invalid webhook config data",
-    )
-  }
-
-  return {
-    ...raw,
-    endpoints: normalizeEndpoints(raw.endpoints),
-  }
-}
+const toDTO = (raw: RawSymmyWebhookConfigDTO): SymmyWebhookConfigDTO => ({
+  ...raw,
+  endpoints: normalizeEndpoints(raw.endpoints),
+})
 
 export class SymmyWebhookConfigModuleService extends MedusaService({
   SymmyWebhookConfig,

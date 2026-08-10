@@ -35,6 +35,48 @@ const storeProductCategoryProjectionSchema = z
   .partial()
   .loose()
 
+const graphMetadataSchema = z.record(z.string(), z.json())
+
+const storeProductImageProjectionSchema = z
+  .object({
+    created_at: graphDateSchema,
+    deleted_at: graphDateSchema,
+    id: z.string(),
+    metadata: graphMetadataSchema.nullable(),
+    rank: z.number(),
+    updated_at: graphDateSchema,
+    url: z.string(),
+  })
+  .partial()
+  .loose()
+
+const storeProductOptionValueProjectionSchema = z
+  .object({
+    created_at: graphDateSchema,
+    deleted_at: graphDateSchema,
+    id: z.string(),
+    metadata: graphMetadataSchema.nullable(),
+    option_id: z.string().nullable(),
+    updated_at: graphDateSchema,
+    value: z.string(),
+  })
+  .partial()
+  .loose()
+
+const storeProductOptionProjectionSchema = z
+  .object({
+    created_at: graphDateSchema,
+    deleted_at: graphDateSchema,
+    id: z.string(),
+    is_exclusive: z.boolean(),
+    metadata: graphMetadataSchema.nullable(),
+    title: z.string(),
+    updated_at: graphDateSchema,
+    values: z.array(storeProductOptionValueProjectionSchema).nullable(),
+  })
+  .partial()
+  .loose()
+
 const storeProductProjectionSchema = z
   .object({
     categories: z.array(storeProductCategoryProjectionSchema).nullable(),
@@ -47,12 +89,12 @@ const storeProductProjectionSchema = z
     height: z.number().nullable(),
     hs_code: z.string().nullable(),
     id: z.string(),
-    images: z.array(z.record(z.string(), z.unknown())).nullable(),
+    images: z.array(storeProductImageProjectionSchema).nullable(),
     is_giftcard: z.boolean(),
     length: z.number().nullable(),
     material: z.string().nullable(),
     mid_code: z.string().nullable(),
-    options: z.array(z.record(z.string(), z.unknown())).nullable(),
+    options: z.array(storeProductOptionProjectionSchema).nullable(),
     origin_country: z.string().nullable(),
     status: z.enum(["draft", "proposed", "published", "rejected"]),
     subtitle: z.string().nullable(),

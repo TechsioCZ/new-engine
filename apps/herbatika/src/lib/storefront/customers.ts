@@ -2,4 +2,5 @@
 
 import { storefront } from "./storefront"
 
-export const { useUpdateCustomer } = storefront.hooks.customers
+export const useUpdateCustomer: typeof storefront.hooks.customers.useUpdateCustomer =
+  storefront.hooks.customers.useUpdateCustomer

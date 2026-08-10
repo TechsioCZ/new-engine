@@ -19,8 +19,8 @@ interface EmailLogDTO {
 
 type EmailLogService = EmailLogModuleService & {
   listAndCountEmailLogs: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>,
+    filters?: Parameters<EmailLogModuleService["listAndCountEmailLogs"]>[0],
+    config?: Parameters<EmailLogModuleService["listAndCountEmailLogs"]>[1],
   ) => Promise<[EmailLogDTO[], number]>
 }
 

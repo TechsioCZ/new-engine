@@ -57,10 +57,6 @@ interface StockIdentifierSets {
   inventoryItemIds: Set<string>
 }
 
-export type VariantInventoryItemRow = Record<string, unknown> & {
-  inventory_items?: { inventory?: { id?: string } }[]
-}
-
 const levelKey = (inventoryItemId: string, locationId: string) =>
   `${inventoryItemId}:${locationId}`
 

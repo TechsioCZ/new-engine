@@ -1,6 +1,10 @@
 import { z } from "zod"
 
 import { BadRequestError } from "./db"
+import {
+  runtimeProviderOutputPolicyInputSchema,
+  zaneServiceTypeSchema,
+} from "./zane-contract"
 import type {
   ArchiveEnvironmentInput,
   EnvOverrideInput,
@@ -13,7 +17,6 @@ import type {
   ResolveTargetInput,
   RuntimeProviderOutputInput,
   RuntimeProviderRunInput,
-  ServiceType,
   SyncPreviewRandomOnceSecretsInput,
   SyncPreviewServiceEnvInput,
   SyncPreviewSharedEnvInput,
@@ -24,22 +27,54 @@ import type {
   ZaneServiceReconciliationSpec,
 } from "./zane-contract"
 
-type JsonRecord = Record<string, unknown>
-
-const nonEmptyTrimmedStringSchema = z.string().trim().min(1, "cannot be empty")
-
-const strictTrueBooleanSchema = z.literal(true)
 const requestBodyLabel = "request body"
-
+const nonEmptyTrimmedStringSchema = z.string().trim().min(1, "cannot be empty")
 const optionalTrimmedStringSchema = z.preprocess(
   (value) => value ?? undefined,
   nonEmptyTrimmedStringSchema.optional(),
 )
-
 const optionalNullableTrimmedStringSchema = z.preprocess(
   (value) => (value === undefined ? undefined : value),
   nonEmptyTrimmedStringSchema.nullable().optional(),
 )
+const laneSchema = z.enum(["preview", "main"])
+const stringArraySchema = z.array(nonEmptyTrimmedStringSchema)
+const optionalArraySchema = <T>(schema: z.ZodType<T>) =>
+  z.preprocess((value) => value ?? [], z.array(schema))
+const stringMapSchema = z.record(
+  nonEmptyTrimmedStringSchema,
+  nonEmptyTrimmedStringSchema,
+)
+const environmentReferenceSchema = z.object({
+  environment_name: nonEmptyTrimmedStringSchema,
+  project_slug: nonEmptyTrimmedStringSchema,
+})
+
+const formatZodPath = (label: string, path: PropertyKey[]): string => {
+  let current = label
+  for (const part of path) {
+    current =
+      typeof part === "number"
+        ? `${current}[${String(part)}]`
+        : `${current}.${String(part)}`
+  }
+  return current
+}
+
+const parseZodInput = <T>(
+  schema: z.ZodType<T>,
+  value: unknown,
+  label: string,
+): T => {
+  const result = schema.safeParse(value)
+  if (result.success) {
+    return result.data
+  }
+
+  const [issue] = result.error.issues
+  const path = issue ? formatZodPath(label, issue.path) : label
+  throw new BadRequestError(`${path} ${issue?.message ?? "is invalid"}`)
+}
 
 const serviceReconciliationGitSourceSchema = z.object({
   branch_name: optionalTrimmedStringSchema,
@@ -47,18 +82,15 @@ const serviceReconciliationGitSourceSchema = z.object({
     (value) => value ?? "HEAD",
     nonEmptyTrimmedStringSchema,
   ),
-  sync_from_source: strictTrueBooleanSchema,
+  sync_from_source: z.literal(true),
 })
-
 const serviceReconciliationBuilderSchema = z.object({
   build_stage_target: optionalNullableTrimmedStringSchema,
-  sync_from_source: strictTrueBooleanSchema,
+  sync_from_source: z.literal(true),
 })
-
 const serviceReconciliationSyncFlagSchema = z.object({
-  sync_from_source: strictTrueBooleanSchema,
+  sync_from_source: z.literal(true),
 })
-
 const serviceReconciliationSpecSchema = z.object({
   builder: z.preprocess(
     (value) => value ?? undefined,
@@ -80,400 +112,18 @@ const serviceReconciliationSpecSchema = z.object({
   service_slug: nonEmptyTrimmedStringSchema,
 })
 
-const serviceReconciliationSpecsSchema = z.array(
-  serviceReconciliationSpecSchema,
-)
-
-const formatZodPath = (label: string, path: PropertyKey[]): string => {
-  let current = label
-
-  for (const part of path) {
-    if (typeof part === "number") {
-      current = `${current}[${String(part)}]`
-      continue
-    }
-
-    current = `${current}.${String(part)}`
-  }
-
-  return current
-}
-
-const parseZodInput = <T>(
-  schema: z.ZodType<T>,
-  value: unknown,
-  label: string,
-): T => {
-  const result = schema.safeParse(value)
-  if (result.success) {
-    return result.data
-  }
-
-  const [issue] = result.error.issues
-  const path = issue ? formatZodPath(label, issue.path) : label
-  const message = issue?.message ?? "is invalid"
-  throw new BadRequestError(`${path} ${message}`)
-}
-
-const assertObject = (value: unknown, label: string): JsonRecord => {
-  const result = z.record(z.string(), z.unknown()).safeParse(value)
-  if (!result.success || Array.isArray(value)) {
-    throw new BadRequestError(`${label} must be a JSON object`)
-  }
-
-  return result.data
-}
-
-const assertString = (value: unknown, label: string): string => {
-  if (typeof value !== "string") {
-    throw new BadRequestError(`${label} must be a string`)
-  }
-
-  const trimmed = value.trim()
-  if (!trimmed) {
-    throw new BadRequestError(`${label} cannot be empty`)
-  }
-
-  return trimmed
-}
-
-const assertOptionalString = (
-  value: unknown,
-  label: string,
-): string | undefined => {
-  if (value === null || value === undefined) {
-    return undefined
-  }
-
-  return assertString(value, label)
-}
-
-const assertLane = (value: unknown, label: string): Lane => {
-  const lane = assertString(value, label)
-  if (lane !== "preview" && lane !== "main") {
-    throw new BadRequestError(`${label} must be preview or main`)
-  }
-
-  return lane
-}
-
-const assertServiceType = (value: unknown, label: string): ServiceType => {
-  const rawServiceType = assertString(value, label)
-
-  switch (rawServiceType.toUpperCase()) {
-    case "DOCKER":
-    case "DOCKER_REGISTRY": {
-      return "docker"
-    }
-    case "GIT":
-    case "GIT_REPOSITORY": {
-      return "git"
-    }
-    default: {
-      throw new BadRequestError(`${label} must be docker or git`)
-    }
-  }
-}
-
-const assertStringArray = (value: unknown, label: string): string[] => {
-  if (!Array.isArray(value)) {
-    throw new BadRequestError(`${label} must be an array`)
-  }
-
-  return value.map((item, index) => assertString(item, `${label}[${index}]`))
-}
-
-const normalizeRuntimeProviderOutput = (
-  value: unknown,
-  label: string,
-): RuntimeProviderOutputInput => {
-  const object = assertObject(value, label)
-  const policy = assertObject(object["policy"], `${label}.policy`)
-  const kind = assertString(policy["kind"], `${label}.policy.kind`)
-
-  return {
-    envVar: assertString(object["env_var"], `${label}.env_var`),
-    outputId: assertString(object["output_id"], `${label}.output_id`),
-    policy: {
-      ...policy,
-      kind,
-    },
-  }
-}
-
-const assertStringMap = (
-  value: unknown,
-  label: string,
-): Record<string, string> => {
-  const record = assertObject(value, label)
-  const result: Record<string, string> = {}
-
-  for (const [key, rawValue] of Object.entries(record)) {
-    result[assertString(key, `${label} key`)] = assertString(
-      rawValue,
-      `${label}.${key}`,
-    )
-  }
-
-  return result
-}
-
-const normalizeProjectSlugFromPayload = (payload: JsonRecord): string =>
-  assertString(payload["project_slug"], "project_slug")
-
-const normalizeResolveTargets = (
-  value: unknown,
-  label: string,
-): ResolveTargetInput[] => {
-  if (!Array.isArray(value)) {
-    throw new BadRequestError(`${label} must be an array`)
-  }
-
-  return value.map((item, index) => {
-    const object = assertObject(item, `${label}[${index}]`)
-    return {
-      service_id: assertString(
-        object["service_id"],
-        `${label}[${index}].service_id`,
-      ),
-      service_slug: assertString(
-        object["service_slug"],
-        `${label}[${index}].service_slug`,
-      ),
-    }
-  })
-}
-
-const normalizeEnvOverrides = (
-  value: unknown,
-  label: string,
-): EnvOverrideInput[] => {
-  if (!Array.isArray(value)) {
-    throw new BadRequestError(`${label} must be an array`)
-  }
-
-  return value.map((item, index) => {
-    const object = assertObject(item, `${label}[${index}]`)
-    return {
-      env: assertStringMap(object["env"], `${label}[${index}].env`),
-      service_id: assertString(
-        object["service_id"],
-        `${label}[${index}].service_id`,
-      ),
-      service_slug: assertString(
-        object["service_slug"],
-        `${label}[${index}].service_slug`,
-      ),
-    }
-  })
-}
-
-const normalizeDeployments = (
-  value: unknown,
-  label: string,
-): VerifyDeploymentRef[] => {
-  if (value === null || value === undefined) {
-    return []
-  }
-
-  if (!Array.isArray(value)) {
-    throw new BadRequestError(`${label} must be an array`)
-  }
-
-  return value.map((item, index) => {
-    const object = assertObject(item, `${label}[${index}]`)
-    return {
-      deployment_hash: assertString(
-        object["deployment_hash"],
-        `${label}[${index}].deployment_hash`,
-      ),
-      service_id: assertString(
-        object["service_id"],
-        `${label}[${index}].service_id`,
-      ),
-      service_slug: assertString(
-        object["service_slug"],
-        `${label}[${index}].service_slug`,
-      ),
-    }
-  })
-}
-
-const normalizePersistedEnvRequirements = (
-  value: unknown,
-  label: string,
-): PersistedEnvRequirement[] => {
-  if (value === null || value === undefined) {
-    return []
-  }
-
-  if (!Array.isArray(value)) {
-    throw new BadRequestError(`${label} must be an array`)
-  }
-
-  return value.map((item, index) => {
-    const object = assertObject(item, `${label}[${index}]`)
-    return {
-      env_keys: assertStringArray(
-        object["env_keys"],
-        `${label}[${index}].env_keys`,
-      ),
-      service_id: assertString(
-        object["service_id"],
-        `${label}[${index}].service_id`,
-      ),
-      service_slug: assertString(
-        object["service_slug"],
-        `${label}[${index}].service_slug`,
-      ),
-    }
-  })
-}
-
-const normalizeSharedEnvRequirements = (
-  value: unknown,
-  label: string,
-): { key: string }[] => {
-  if (value === null || value === undefined) {
-    return []
-  }
-
-  if (!Array.isArray(value)) {
-    throw new BadRequestError(`${label} must be an array`)
-  }
-
-  return value.map((item, index) => {
-    const object = assertObject(item, `${label}[${index}]`)
-    return {
-      key: assertString(object["key"], `${label}[${index}].key`),
-    }
-  })
-}
-
-const previewRuntimeValueSourceKindSchema = z.enum([
-  "literal",
-  "service_network_alias",
-  "service_global_network_alias",
-  "service_public_origin",
-  "service_internal_origin",
-  "service_internal_bucket_url",
-])
-
-const assertPreviewRuntimeValueSourceKind = (
-  value: unknown,
-  label: string,
-): PreviewRuntimeValueSourceInput["kind"] => {
-  const result = previewRuntimeValueSourceKindSchema.safeParse(
-    assertString(value, label),
-  )
-  if (!result.success) {
-    throw new BadRequestError(
-      `${label} has unsupported preview runtime source kind`,
-    )
-  }
-
-  return result.data
-}
-
-const parsePreviewRuntimeValueSource = (rawValue: unknown, label: string) => {
-  const object = assertObject(rawValue, label)
-
-  const value = assertOptionalString(object["value"], `${label}.value`)
-  const serviceSlug = assertOptionalString(
-    object["service_slug"],
-    `${label}.service_slug`,
-  )
-  const sourceEnvironmentName = assertOptionalString(
-    object["source_environment_name"],
-    `${label}.source_environment_name`,
-  )
-  const port =
-    typeof object["port"] === "number" && Number.isInteger(object["port"])
-      ? object["port"]
-      : undefined
-  const trailingSlash =
-    typeof object["trailing_slash"] === "boolean"
-      ? object["trailing_slash"]
-      : undefined
-  const bucketSharedEnvKey = assertOptionalString(
-    object["bucket_shared_env_key"],
-    `${label}.bucket_shared_env_key`,
-  )
-
-  return {
-    kind: assertPreviewRuntimeValueSourceKind(object["kind"], `${label}.kind`),
-    ...(value === undefined ? {} : { value }),
-    ...(serviceSlug === undefined ? {} : { serviceSlug }),
-    ...(sourceEnvironmentName === undefined ? {} : { sourceEnvironmentName }),
-    ...(port === undefined ? {} : { port }),
-    ...(trailingSlash === undefined ? {} : { trailingSlash }),
-    ...(bucketSharedEnvKey === undefined ? {} : { bucketSharedEnvKey }),
-  }
-}
-
-const normalizeForbiddenEnvRequirements = (
-  value: unknown,
-  label: string,
-): ForbiddenEnvRequirement[] => [
-  ...normalizePersistedEnvRequirements(value, label),
-]
-
-const parseResolvedTargets = (value: unknown): ZaneResolvedTarget[] => {
-  if (!Array.isArray(value)) {
-    throw new BadRequestError("targets must be an array")
-  }
-
-  return value.map((item, index) => {
-    const object = assertObject(item, `targets[${index}]`)
-    const configuredCommitSha = assertOptionalString(
-      object["configured_commit_sha"],
-      `targets[${index}].configured_commit_sha`,
-    )
-    return {
-      ...(configuredCommitSha === undefined
-        ? {}
-        : { configured_commit_sha: configuredCommitSha }),
-      deploy_token: assertString(
-        object["deploy_token"],
-        `targets[${index}].deploy_token`,
-      ),
-      deploy_url: assertString(
-        object["deploy_url"],
-        `targets[${index}].deploy_url`,
-      ),
-      details_url: assertString(
-        object["details_url"],
-        `targets[${index}].details_url`,
-      ),
-      env_change_url: assertString(
-        object["env_change_url"],
-        `targets[${index}].env_change_url`,
-      ),
-      service_id: assertString(
-        object["service_id"],
-        `targets[${index}].service_id`,
-      ),
-      service_slug: assertString(
-        object["service_slug"],
-        `targets[${index}].service_slug`,
-      ),
-      service_type: assertServiceType(
-        object["service_type"],
-        `targets[${index}].service_type`,
-      ),
-    }
-  })
-}
-
 const parseServiceReconciliationSpecs = (
   value: unknown,
   label: string,
 ): ZaneServiceReconciliationSpec[] => {
-  if (value === null || value === undefined) {
-    return []
-  }
-
-  const specs = parseZodInput(serviceReconciliationSpecsSchema, value, label)
+  const specs = parseZodInput(
+    z.preprocess(
+      (input) => input ?? [],
+      z.array(serviceReconciliationSpecSchema),
+    ),
+    value,
+    label,
+  )
   return specs.map((spec) => ({
     service_id: spec.service_id,
     service_slug: spec.service_slug,
@@ -507,46 +157,163 @@ const parseServiceReconciliationSpecs = (
   }))
 }
 
+const resolveTargetSchema = z.object({
+  service_id: nonEmptyTrimmedStringSchema,
+  service_slug: nonEmptyTrimmedStringSchema,
+})
+const envOverrideSchema = resolveTargetSchema.extend({ env: stringMapSchema })
+const deploymentRefSchema = resolveTargetSchema.extend({
+  deployment_hash: nonEmptyTrimmedStringSchema,
+})
+const persistedEnvRequirementSchema = resolveTargetSchema.extend({
+  env_keys: stringArraySchema,
+})
+const sharedEnvRequirementSchema = z.object({
+  key: nonEmptyTrimmedStringSchema,
+})
+
+const previewRuntimeValueSourceSchema = z.object({
+  bucket_shared_env_key: optionalTrimmedStringSchema,
+  kind: z.enum([
+    "literal",
+    "service_network_alias",
+    "service_global_network_alias",
+    "service_public_origin",
+    "service_internal_origin",
+    "service_internal_bucket_url",
+  ]),
+  port: z.preprocess(
+    (value) =>
+      typeof value === "number" && Number.isInteger(value) ? value : undefined,
+    z.number().int().optional(),
+  ),
+  service_slug: optionalTrimmedStringSchema,
+  source_environment_name: optionalTrimmedStringSchema,
+  trailing_slash: z.preprocess(
+    (value) => (typeof value === "boolean" ? value : undefined),
+    z.boolean().optional(),
+  ),
+  value: optionalTrimmedStringSchema,
+})
+
+const parsePreviewRuntimeValueSource = (
+  value: unknown,
+  label: string,
+): PreviewRuntimeValueSourceInput => {
+  const source = parseZodInput(previewRuntimeValueSourceSchema, value, label)
+  return {
+    kind: source.kind,
+    ...(source.value === undefined ? {} : { value: source.value }),
+    ...(source.service_slug === undefined
+      ? {}
+      : { serviceSlug: source.service_slug }),
+    ...(source.source_environment_name === undefined
+      ? {}
+      : { sourceEnvironmentName: source.source_environment_name }),
+    ...(source.port === undefined ? {} : { port: source.port }),
+    ...(source.trailing_slash === undefined
+      ? {}
+      : { trailingSlash: source.trailing_slash }),
+    ...(source.bucket_shared_env_key === undefined
+      ? {}
+      : { bucketSharedEnvKey: source.bucket_shared_env_key }),
+  }
+}
+
+const resolvedTargetSchema = z.object({
+  configured_commit_sha: optionalTrimmedStringSchema,
+  deploy_token: nonEmptyTrimmedStringSchema,
+  deploy_url: nonEmptyTrimmedStringSchema,
+  details_url: nonEmptyTrimmedStringSchema,
+  env_change_url: nonEmptyTrimmedStringSchema,
+  service_id: nonEmptyTrimmedStringSchema,
+  service_slug: nonEmptyTrimmedStringSchema,
+  service_type: zaneServiceTypeSchema,
+})
+
+const parseResolvedTargets = (value: unknown): ZaneResolvedTarget[] => {
+  const targets = parseZodInput(z.array(resolvedTargetSchema), value, "targets")
+  return targets.map((target) => ({
+    deploy_token: target.deploy_token,
+    deploy_url: target.deploy_url,
+    details_url: target.details_url,
+    env_change_url: target.env_change_url,
+    service_id: target.service_id,
+    service_slug: target.service_slug,
+    service_type: target.service_type,
+    ...(target.configured_commit_sha === undefined
+      ? {}
+      : { configured_commit_sha: target.configured_commit_sha }),
+  }))
+}
+
+const runtimeProviderOutputPolicySchema = z.object({
+  policy: runtimeProviderOutputPolicyInputSchema,
+})
+const runtimeProviderOutputFieldsSchema = z.object({
+  env_var: nonEmptyTrimmedStringSchema,
+  output_id: nonEmptyTrimmedStringSchema,
+})
+const parseRuntimeProviderOutput = (
+  value: unknown,
+  label: string,
+): RuntimeProviderOutputInput => {
+  const { policy } = parseZodInput(
+    runtimeProviderOutputPolicySchema,
+    value,
+    label,
+  )
+  const output = parseZodInput(runtimeProviderOutputFieldsSchema, value, label)
+  return {
+    envVar: output.env_var,
+    outputId: output.output_id,
+    policy,
+  }
+}
+
 export const parseResolveEnvironmentInput = (
   rawPayload: unknown,
 ): ResolveEnvironmentInput => {
-  const payload = assertObject(rawPayload, requestBodyLabel)
+  const payload = parseZodInput(
+    environmentReferenceSchema.extend({
+      excluded_preview_service_slugs: optionalArraySchema(
+        nonEmptyTrimmedStringSchema,
+      ),
+      expected_preview_service_slugs: optionalArraySchema(
+        nonEmptyTrimmedStringSchema,
+      ),
+      lane: laneSchema,
+      service_specs: z.unknown().optional(),
+      source_environment_name: nonEmptyTrimmedStringSchema,
+    }),
+    rawPayload,
+    requestBodyLabel,
+  )
   return {
-    environmentName: assertString(
-      payload["environment_name"],
-      "environment_name",
-    ),
-    excludedPreviewServiceSlugs: assertStringArray(
-      payload["excluded_preview_service_slugs"] ?? [],
-      "excluded_preview_service_slugs",
-    ),
-    expectedPreviewServiceSlugs: assertStringArray(
-      payload["expected_preview_service_slugs"] ?? [],
-      "expected_preview_service_slugs",
-    ),
-    lane: assertLane(payload["lane"], "lane"),
-    projectSlug: normalizeProjectSlugFromPayload(payload),
+    environmentName: payload.environment_name,
+    excludedPreviewServiceSlugs: payload.excluded_preview_service_slugs,
+    expectedPreviewServiceSlugs: payload.expected_preview_service_slugs,
+    lane: payload.lane,
+    projectSlug: payload.project_slug,
     serviceSpecs: parseServiceReconciliationSpecs(
-      payload["service_specs"],
+      payload.service_specs,
       "service_specs",
     ),
-    sourceEnvironmentName: assertString(
-      payload["source_environment_name"],
-      "source_environment_name",
-    ),
+    sourceEnvironmentName: payload.source_environment_name,
   }
 }
 
 const parseEnvironmentReferenceInput = (
   rawPayload: unknown,
 ): ArchiveEnvironmentInput => {
-  const payload = assertObject(rawPayload, requestBodyLabel)
+  const payload = parseZodInput(
+    environmentReferenceSchema,
+    rawPayload,
+    requestBodyLabel,
+  )
   return {
-    environmentName: assertString(
-      payload["environment_name"],
-      "environment_name",
-    ),
-    projectSlug: normalizeProjectSlugFromPayload(payload),
+    environmentName: payload.environment_name,
+    projectSlug: payload.project_slug,
   }
 }
 
@@ -558,216 +325,186 @@ export const parseReadPreviewCommitStateInput = (
   rawPayload: unknown,
 ): ReadPreviewCommitStateInput => parseEnvironmentReferenceInput(rawPayload)
 
+const previewCommitStateUpdateSchema = z
+  .object({
+    baseline_complete: z.boolean().optional(),
+    last_deployed_commit_sha: optionalTrimmedStringSchema,
+    target_commit_sha: optionalTrimmedStringSchema,
+  })
+  .refine(
+    (input) =>
+      input.target_commit_sha !== undefined ||
+      input.last_deployed_commit_sha !== undefined ||
+      input.baseline_complete !== undefined,
+    {
+      message:
+        "target_commit_sha, last_deployed_commit_sha, or baseline_complete is required",
+    },
+  )
+
 export const parseWritePreviewCommitStateInput = (
   rawPayload: unknown,
 ): WritePreviewCommitStateInput => {
-  const payload = assertObject(rawPayload, requestBodyLabel)
-  const targetCommitSha = assertOptionalString(
-    payload["target_commit_sha"],
-    "target_commit_sha",
+  const update = parseZodInput(
+    previewCommitStateUpdateSchema,
+    rawPayload,
+    requestBodyLabel,
   )
-  const lastDeployedCommitSha = assertOptionalString(
-    payload["last_deployed_commit_sha"],
-    "last_deployed_commit_sha",
+  const environment = parseZodInput(
+    environmentReferenceSchema,
+    rawPayload,
+    requestBodyLabel,
   )
-  const baselineComplete =
-    typeof payload["baseline_complete"] === "boolean"
-      ? payload["baseline_complete"]
-      : undefined
-
-  if (
-    !(
-      targetCommitSha !== undefined ||
-      lastDeployedCommitSha !== undefined ||
-      typeof baselineComplete === "boolean"
-    )
-  ) {
-    throw new BadRequestError(
-      "target_commit_sha, last_deployed_commit_sha, or baseline_complete is required",
-    )
-  }
-
   return {
-    environmentName: assertString(
-      payload["environment_name"],
-      "environment_name",
-    ),
-    projectSlug: normalizeProjectSlugFromPayload(payload),
-    ...(targetCommitSha === undefined ? {} : { targetCommitSha }),
-    ...(lastDeployedCommitSha === undefined ? {} : { lastDeployedCommitSha }),
-    ...(baselineComplete === undefined ? {} : { baselineComplete }),
+    environmentName: environment.environment_name,
+    projectSlug: environment.project_slug,
+    ...(update.target_commit_sha === undefined
+      ? {}
+      : { targetCommitSha: update.target_commit_sha }),
+    ...(update.last_deployed_commit_sha === undefined
+      ? {}
+      : { lastDeployedCommitSha: update.last_deployed_commit_sha }),
+    ...(update.baseline_complete === undefined
+      ? {}
+      : { baselineComplete: update.baseline_complete }),
   }
 }
+
+const randomOnceSecretSchema = z.object({
+  persist_to: optionalTrimmedStringSchema,
+  persisted_env_var: optionalTrimmedStringSchema,
+  secret_id: nonEmptyTrimmedStringSchema,
+  targets: z.array(
+    z.object({
+      env_var: nonEmptyTrimmedStringSchema,
+      service_slug: nonEmptyTrimmedStringSchema,
+    }),
+  ),
+  value: optionalTrimmedStringSchema,
+})
 
 export const parseSyncPreviewRandomOnceSecretsInput = (
   rawPayload: unknown,
 ): SyncPreviewRandomOnceSecretsInput => {
-  const payload = assertObject(rawPayload, requestBodyLabel)
-  const { secrets } = payload
-  if (!Array.isArray(secrets) || secrets.length === 0) {
-    throw new BadRequestError("secrets must be a non-empty array")
-  }
-
-  return {
-    environmentName: assertString(
-      payload["environment_name"],
-      "environment_name",
-    ),
-    projectSlug: normalizeProjectSlugFromPayload(payload),
-    secrets: secrets.map((item, index) => {
-      const object = assertObject(item, `secrets[${index}]`)
-      const { targets } = object
-      if (!Array.isArray(targets)) {
-        throw new BadRequestError(`secrets[${index}].targets must be an array`)
-      }
-
-      const value = assertOptionalString(
-        object["value"],
-        `secrets[${index}].value`,
-      )
-      const persistTo = assertOptionalString(
-        object["persist_to"],
-        `secrets[${index}].persist_to`,
-      )
-      const persistedEnvVar = assertOptionalString(
-        object["persisted_env_var"],
-        `secrets[${index}].persisted_env_var`,
-      )
-
-      return {
-        secretId: assertString(
-          object["secret_id"],
-          `secrets[${index}].secret_id`,
-        ),
-        ...(value === undefined ? {} : { value }),
-        ...(persistTo === undefined ? {} : { persistTo }),
-        ...(persistedEnvVar === undefined ? {} : { persistedEnvVar }),
-        targets: targets.map((target, targetIndex) => {
-          const targetObject = assertObject(
-            target,
-            `secrets[${index}].targets[${targetIndex}]`,
-          )
-
-          return {
-            envVar: assertString(
-              targetObject["env_var"],
-              `secrets[${index}].targets[${targetIndex}].env_var`,
-            ),
-            serviceSlug: assertString(
-              targetObject["service_slug"],
-              `secrets[${index}].targets[${targetIndex}].service_slug`,
-            ),
-          }
-        }),
-      }
+  const payload = parseZodInput(
+    environmentReferenceSchema.extend({
+      secrets: z.array(randomOnceSecretSchema).min(1),
     }),
+    rawPayload,
+    requestBodyLabel,
+  )
+  return {
+    environmentName: payload.environment_name,
+    projectSlug: payload.project_slug,
+    secrets: payload.secrets.map((secret) => ({
+      secretId: secret.secret_id,
+      targets: secret.targets.map((target) => ({
+        envVar: target.env_var,
+        serviceSlug: target.service_slug,
+      })),
+      ...(secret.value === undefined ? {} : { value: secret.value }),
+      ...(secret.persist_to === undefined
+        ? {}
+        : { persistTo: secret.persist_to }),
+      ...(secret.persisted_env_var === undefined
+        ? {}
+        : { persistedEnvVar: secret.persisted_env_var }),
+    })),
   }
 }
 
 export const parseSyncPreviewSharedEnvInput = (
   rawPayload: unknown,
 ): SyncPreviewSharedEnvInput => {
-  const payload = assertObject(rawPayload, requestBodyLabel)
-  const { variables } = payload
-  if (!Array.isArray(variables) || variables.length === 0) {
-    throw new BadRequestError("variables must be a non-empty array")
-  }
-
-  return {
-    environmentName: assertString(
-      payload["environment_name"],
-      "environment_name",
-    ),
-    projectSlug: normalizeProjectSlugFromPayload(payload),
-    variables: variables.map((item, index) => {
-      const object = assertObject(item, `variables[${index}]`)
-      return {
-        key: assertString(object["key"], `variables[${index}].key`),
-        source: parsePreviewRuntimeValueSource(
-          object["source"],
-          `variables[${index}].source`,
-        ),
-      }
+  const payload = parseZodInput(
+    environmentReferenceSchema.extend({
+      variables: z
+        .array(
+          z.object({
+            key: nonEmptyTrimmedStringSchema,
+            source: z.unknown(),
+          }),
+        )
+        .min(1),
     }),
+    rawPayload,
+    requestBodyLabel,
+  )
+  return {
+    environmentName: payload.environment_name,
+    projectSlug: payload.project_slug,
+    variables: payload.variables.map((variable, index) => ({
+      key: variable.key,
+      source: parsePreviewRuntimeValueSource(
+        variable.source,
+        `variables[${index}].source`,
+      ),
+    })),
   }
 }
 
 export const parseSyncPreviewServiceEnvInput = (
   rawPayload: unknown,
 ): SyncPreviewServiceEnvInput => {
-  const payload = assertObject(rawPayload, requestBodyLabel)
-  const { services } = payload
-  if (!Array.isArray(services) || services.length === 0) {
-    throw new BadRequestError("services must be a non-empty array")
-  }
-
-  return {
-    environmentName: assertString(
-      payload["environment_name"],
-      "environment_name",
-    ),
-    projectSlug: normalizeProjectSlugFromPayload(payload),
-    services: services.map((item, index) => {
-      const object = assertObject(item, `services[${index}]`)
-      const { env } = object
-      if (!Array.isArray(env) || env.length === 0) {
-        throw new BadRequestError(
-          `services[${index}].env must be a non-empty array`,
+  const payload = parseZodInput(
+    environmentReferenceSchema.extend({
+      services: z
+        .array(
+          resolveTargetSchema.extend({
+            env: z
+              .array(
+                z.object({
+                  env_var: nonEmptyTrimmedStringSchema,
+                  source: z.unknown(),
+                }),
+              )
+              .min(1),
+          }),
         )
-      }
-
-      return {
-        env: env.map((envItem, envIndex) => {
-          const envObject = assertObject(
-            envItem,
-            `services[${index}].env[${envIndex}]`,
-          )
-
-          return {
-            env_var: assertString(
-              envObject["env_var"],
-              `services[${index}].env[${envIndex}].env_var`,
-            ),
-            source: parsePreviewRuntimeValueSource(
-              envObject["source"],
-              `services[${index}].env[${envIndex}].source`,
-            ),
-          }
-        }),
-        service_id: assertString(
-          object["service_id"],
-          `services[${index}].service_id`,
-        ),
-        service_slug: assertString(
-          object["service_slug"],
-          `services[${index}].service_slug`,
-        ),
-      }
+        .min(1),
     }),
+    rawPayload,
+    requestBodyLabel,
+  )
+  return {
+    environmentName: payload.environment_name,
+    projectSlug: payload.project_slug,
+    services: payload.services.map((service, serviceIndex) => ({
+      env: service.env.map((entry, envIndex) => ({
+        env_var: entry.env_var,
+        source: parsePreviewRuntimeValueSource(
+          entry.source,
+          `services[${serviceIndex}].env[${envIndex}].source`,
+        ),
+      })),
+      service_id: service.service_id,
+      service_slug: service.service_slug,
+    })),
   }
 }
 
 export const parseRuntimeProviderRunInput = (
   rawPayload: unknown,
 ): RuntimeProviderRunInput => {
-  const payload = assertObject(rawPayload, requestBodyLabel)
-  const rawOutputs = payload["outputs"]
-  if (!Array.isArray(rawOutputs) || rawOutputs.length === 0) {
-    throw new BadRequestError("outputs must be a non-empty array")
-  }
-
+  const payload = parseZodInput(
+    environmentReferenceSchema.extend({
+      outputs: z.array(z.unknown()).min(1),
+      provider_id: nonEmptyTrimmedStringSchema,
+      readiness_path: nonEmptyTrimmedStringSchema,
+      service_slug: nonEmptyTrimmedStringSchema,
+    }),
+    rawPayload,
+    requestBodyLabel,
+  )
   return {
-    environmentName: assertString(
-      payload["environment_name"],
-      "environment_name",
+    environmentName: payload.environment_name,
+    outputs: payload.outputs.map((output, index) =>
+      parseRuntimeProviderOutput(output, `outputs[${index}]`),
     ),
-    outputs: rawOutputs.map((output, index) =>
-      normalizeRuntimeProviderOutput(output, `outputs[${index}]`),
-    ),
-    projectSlug: normalizeProjectSlugFromPayload(payload),
-    providerId: assertString(payload["provider_id"], "provider_id"),
-    readinessPath: assertString(payload["readiness_path"], "readiness_path"),
-    serviceSlug: assertString(payload["service_slug"], "service_slug"),
+    projectSlug: payload.project_slug,
+    providerId: payload.provider_id,
+    readinessPath: payload.readiness_path,
+    serviceSlug: payload.service_slug,
   }
 }
 
@@ -779,15 +516,19 @@ export const parseResolveTargetsInput = (
   environmentName: string
   services: ResolveTargetInput[]
 } => {
-  const payload = assertObject(rawPayload, requestBodyLabel)
+  const payload = parseZodInput(
+    environmentReferenceSchema.extend({
+      lane: laneSchema,
+      services: z.array(resolveTargetSchema),
+    }),
+    rawPayload,
+    requestBodyLabel,
+  )
   return {
-    environmentName: assertString(
-      payload["environment_name"],
-      "environment_name",
-    ),
-    lane: assertLane(payload["lane"], "lane"),
-    projectSlug: normalizeProjectSlugFromPayload(payload),
-    services: normalizeResolveTargets(payload["services"], "services"),
+    environmentName: payload.environment_name,
+    lane: payload.lane,
+    projectSlug: payload.project_slug,
+    services: payload.services,
   }
 }
 
@@ -799,18 +540,19 @@ export const parseApplyEnvOverridesInput = (
   targets: ZaneResolvedTarget[]
   envOverrides: EnvOverrideInput[]
 } => {
-  const payload = assertObject(rawPayload, requestBodyLabel)
+  const payload = parseZodInput(
+    environmentReferenceSchema.extend({
+      env_overrides: z.array(envOverrideSchema),
+      targets: z.unknown(),
+    }),
+    rawPayload,
+    requestBodyLabel,
+  )
   return {
-    envOverrides: normalizeEnvOverrides(
-      payload["env_overrides"],
-      "env_overrides",
-    ),
-    environmentName: assertString(
-      payload["environment_name"],
-      "environment_name",
-    ),
-    projectSlug: normalizeProjectSlugFromPayload(payload),
-    targets: parseResolvedTargets(payload["targets"]),
+    envOverrides: payload.env_overrides,
+    environmentName: payload.environment_name,
+    projectSlug: payload.project_slug,
+    targets: parseResolvedTargets(payload.targets),
   }
 }
 
@@ -822,19 +564,21 @@ export const parseTriggerInput = (
   targets: ZaneResolvedTarget[]
   gitCommitSha?: string
 } => {
-  const payload = assertObject(rawPayload, requestBodyLabel)
-  const gitCommitSha = assertOptionalString(
-    payload["git_commit_sha"],
-    "git_commit_sha",
+  const payload = parseZodInput(
+    environmentReferenceSchema.extend({
+      git_commit_sha: optionalTrimmedStringSchema,
+      targets: z.unknown(),
+    }),
+    rawPayload,
+    requestBodyLabel,
   )
   return {
-    environmentName: assertString(
-      payload["environment_name"],
-      "environment_name",
-    ),
-    projectSlug: normalizeProjectSlugFromPayload(payload),
-    targets: parseResolvedTargets(payload["targets"]),
-    ...(gitCommitSha === undefined ? {} : { gitCommitSha }),
+    environmentName: payload.environment_name,
+    projectSlug: payload.project_slug,
+    targets: parseResolvedTargets(payload.targets),
+    ...(payload.git_commit_sha === undefined
+      ? {}
+      : { gitCommitSha: payload.git_commit_sha }),
   }
 }
 
@@ -846,63 +590,60 @@ export const parseCancelDeployInput = (
   serviceSlug: string
   deploymentHash: string
 } => {
-  const payload = assertObject(rawPayload, requestBodyLabel)
+  const payload = parseZodInput(
+    environmentReferenceSchema.extend({
+      deployment_hash: nonEmptyTrimmedStringSchema,
+      service_slug: nonEmptyTrimmedStringSchema,
+    }),
+    rawPayload,
+    requestBodyLabel,
+  )
   return {
-    deploymentHash: assertString(payload["deployment_hash"], "deployment_hash"),
-    environmentName: assertString(
-      payload["environment_name"],
-      "environment_name",
-    ),
-    projectSlug: normalizeProjectSlugFromPayload(payload),
-    serviceSlug: assertString(payload["service_slug"], "service_slug"),
+    deploymentHash: payload.deployment_hash,
+    environmentName: payload.environment_name,
+    projectSlug: payload.project_slug,
+    serviceSlug: payload.service_slug,
   }
 }
 
 export const parseVerifyInput = (rawPayload: unknown): VerifyDeployInput => {
-  const payload = assertObject(rawPayload, requestBodyLabel)
+  const payload = parseZodInput(
+    environmentReferenceSchema.extend({
+      deploy_service_ids: stringArraySchema,
+      deployments: optionalArraySchema(deploymentRefSchema),
+      excluded_preview_service_slugs: optionalArraySchema(
+        nonEmptyTrimmedStringSchema,
+      ),
+      expected_env_overrides: optionalArraySchema(envOverrideSchema),
+      expected_preview_service_slugs: optionalArraySchema(
+        nonEmptyTrimmedStringSchema,
+      ),
+      forbidden_env: optionalArraySchema(persistedEnvRequirementSchema),
+      lane: laneSchema,
+      requested_service_ids: stringArraySchema,
+      required_persisted_env: optionalArraySchema(
+        persistedEnvRequirementSchema,
+      ),
+      required_shared_env: optionalArraySchema(sharedEnvRequirementSchema),
+      triggered_service_ids: stringArraySchema,
+    }),
+    rawPayload,
+    requestBodyLabel,
+  )
   return {
-    deployServiceIds: assertStringArray(
-      payload["deploy_service_ids"],
-      "deploy_service_ids",
-    ),
-    deployments: normalizeDeployments(payload["deployments"], "deployments"),
-    environmentName: assertString(
-      payload["environment_name"],
-      "environment_name",
-    ),
-    excludedPreviewServiceSlugs: assertStringArray(
-      payload["excluded_preview_service_slugs"] ?? [],
-      "excluded_preview_service_slugs",
-    ),
-    expectedEnvOverrides: normalizeEnvOverrides(
-      payload["expected_env_overrides"] ?? [],
-      "expected_env_overrides",
-    ),
-    expectedPreviewServiceSlugs: assertStringArray(
-      payload["expected_preview_service_slugs"] ?? [],
-      "expected_preview_service_slugs",
-    ),
-    forbiddenEnv: normalizeForbiddenEnvRequirements(
-      payload["forbidden_env"] ?? [],
-      "forbidden_env",
-    ),
-    lane: assertLane(payload["lane"], "lane"),
-    projectSlug: normalizeProjectSlugFromPayload(payload),
-    requestedServiceIds: assertStringArray(
-      payload["requested_service_ids"],
-      "requested_service_ids",
-    ),
-    requiredPersistedEnv: normalizePersistedEnvRequirements(
-      payload["required_persisted_env"] ?? [],
-      "required_persisted_env",
-    ),
-    requiredSharedEnv: normalizeSharedEnvRequirements(
-      payload["required_shared_env"] ?? [],
-      "required_shared_env",
-    ),
-    triggeredServiceIds: assertStringArray(
-      payload["triggered_service_ids"],
-      "triggered_service_ids",
-    ),
+    deployServiceIds: payload.deploy_service_ids,
+    deployments: payload.deployments satisfies VerifyDeploymentRef[],
+    environmentName: payload.environment_name,
+    excludedPreviewServiceSlugs: payload.excluded_preview_service_slugs,
+    expectedEnvOverrides: payload.expected_env_overrides,
+    expectedPreviewServiceSlugs: payload.expected_preview_service_slugs,
+    forbiddenEnv: payload.forbidden_env satisfies ForbiddenEnvRequirement[],
+    lane: payload.lane,
+    projectSlug: payload.project_slug,
+    requestedServiceIds: payload.requested_service_ids,
+    requiredPersistedEnv:
+      payload.required_persisted_env satisfies PersistedEnvRequirement[],
+    requiredSharedEnv: payload.required_shared_env,
+    triggeredServiceIds: payload.triggered_service_ids,
   }
 }

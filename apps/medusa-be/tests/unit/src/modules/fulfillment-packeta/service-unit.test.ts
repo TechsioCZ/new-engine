@@ -1,24 +1,25 @@
 import { logger } from "@medusajs/framework"
 import type {
-  Context,
-  CreateFileDTO,
-  FileDTO,
   FulfillmentOrderDTO,
+  IFileModuleService,
+  Query,
   ValidateFulfillmentDataContext,
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
-import type { Mocked } from "vitest"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import PacketaFulfillmentProviderService from "../../../../../src/modules/fulfillment-packeta/service"
 import type { PacketaClientModuleService } from "../../../../../src/modules/packeta-client"
-import type { PacketaOptions } from "../../../../../src/modules/packeta-client/types"
+import type {
+  PacketaOptions,
+  PacketaShippingOptionData,
+} from "../../../../../src/modules/packeta-client/types"
 
 const { overrideModule } = vi.hoisted(() => ({
   overrideModule: <Module extends object>(
     original: Module,
-    replacements: Record<PropertyKey, unknown>,
+    replacements: object,
   ): Module =>
     Object.defineProperties(
       { ...original },
@@ -36,46 +37,45 @@ vi.mock(
 
 type PacketaClientStub = Pick<
   PacketaClientModuleService,
-  | "cancelPacket"
-  | "createPacket"
-  | "downloadLabelPdf"
-  | "getBranches"
-  | "getEffectiveConfig"
-  | "getPacketStatus"
+  "cancelPacket" | "createPacket" | "downloadLabelPdf" | "getEffectiveConfig"
 >
-interface FileServiceStub {
-  createFiles: (
-    data: CreateFileDTO[],
-    sharedContext?: Context,
-  ) => Promise<FileDTO[]>
-}
-interface QueryStub {
-  graph: (input: {
-    entity: string
-    fields: string[]
-    filters?: Record<string, unknown>
-  }) => Promise<{ data: unknown[] }>
-}
+type FileServiceStub = Pick<IFileModuleService, "createFiles">
+type QueryStub = Pick<Query, "graph">
 
-const mockPacketaClient: Mocked<PacketaClientStub> = {
+const mockPacketaClient = {
   cancelPacket: vi.fn<PacketaClientStub["cancelPacket"]>(),
   createPacket: vi.fn<PacketaClientStub["createPacket"]>(),
   downloadLabelPdf: vi.fn<PacketaClientStub["downloadLabelPdf"]>(),
-  getBranches: vi.fn<PacketaClientStub["getBranches"]>(),
   getEffectiveConfig: vi.fn<PacketaClientStub["getEffectiveConfig"]>(),
-  getPacketStatus: vi.fn<PacketaClientStub["getPacketStatus"]>(),
+} satisfies PacketaClientStub
+
+const createFilesMock = vi.fn<(data: unknown) => Promise<unknown>>()
+const graphMock = vi.fn<(options: unknown) => Promise<unknown>>()
+
+const isFileServiceStub = (candidate: unknown): candidate is FileServiceStub =>
+  isRecord(candidate) &&
+  typeof getRecordValue(candidate, "createFiles") === "function"
+
+const requireFileService = (candidate: unknown): FileServiceStub => {
+  if (!isFileServiceStub(candidate)) {
+    throw new TypeError("Expected a file service mock")
+  }
+  return candidate
 }
 
-const mockFileService: Mocked<FileServiceStub> = {
-  createFiles:
-    vi.fn<
-      (data: CreateFileDTO[], sharedContext?: Context) => Promise<FileDTO[]>
-    >(),
+const isQueryStub = (candidate: unknown): candidate is QueryStub =>
+  isRecord(candidate) &&
+  typeof getRecordValue(candidate, "graph") === "function"
+
+const requireQuery = (candidate: unknown): QueryStub => {
+  if (!isQueryStub(candidate)) {
+    throw new TypeError("Expected a query mock")
+  }
+  return candidate
 }
 
-const mockQuery: Mocked<QueryStub> = {
-  graph: vi.fn<QueryStub["graph"]>(),
-}
+const mockFileService = requireFileService({ createFiles: createFilesMock })
+const mockQuery = requireQuery({ graph: graphMock })
 
 const validationContext: ValidateFulfillmentDataContext = {
   from_location: {
@@ -157,7 +157,11 @@ const createOrder = (
   ...overrides,
 })
 
-const createShippingData = (overrides = {}) => ({
+type TestShippingData = PacketaShippingOptionData & { weight?: number }
+
+const createShippingData = (
+  overrides: Partial<TestShippingData> = {},
+): TestShippingData => ({
   access_point_id: 4242,
   code: "z_point",
   requires_access_point: true,
@@ -181,13 +185,13 @@ describe(PacketaFulfillmentProviderService, () => {
       id: 987_654_321,
     })
     mockPacketaClient.downloadLabelPdf.mockResolvedValue(Buffer.from("PDF"))
-    mockFileService.createFiles.mockResolvedValue([
+    createFilesMock.mockResolvedValue([
       {
         id: "file_1",
         url: "https://files.example/packeta-label-Z987654321.pdf",
       },
     ])
-    mockQuery.graph.mockResolvedValue({ data: [] })
+    graphMock.mockResolvedValue({ data: [] })
   })
 
   describe("getFulfillmentOptions", () => {
@@ -200,11 +204,10 @@ describe(PacketaFulfillmentProviderService, () => {
     it("returns both z_point options when enabled", async () => {
       const options = await createService().getFulfillmentOptions()
       expect(options).toHaveLength(2)
-      expect(
-        options.map((option: unknown) =>
-          isRecord(option) ? option["code"] : undefined,
-        ),
-      ).toStrictEqual(["z_point", "z_point_cod"])
+      expect(options.map((option) => option["code"])).toStrictEqual([
+        "z_point",
+        "z_point_cod",
+      ])
     })
   })
 
@@ -299,7 +302,7 @@ describe(PacketaFulfillmentProviderService, () => {
       expect(mockPacketaClient.downloadLabelPdf).toHaveBeenCalledWith(
         987_654_321,
       )
-      expect(mockFileService.createFiles).toHaveBeenCalledWith([
+      expect(createFilesMock).toHaveBeenCalledWith([
         {
           content: "UERG",
           filename: "packeta-label-Z987654321.pdf",
@@ -389,7 +392,7 @@ describe(PacketaFulfillmentProviderService, () => {
     })
 
     it("calculates weight from product weight in grams", async () => {
-      mockQuery.graph.mockResolvedValueOnce({
+      graphMock.mockResolvedValueOnce({
         data: [{ id: "prod_1", weight: 1000 }],
       })
       const order = createOrder()

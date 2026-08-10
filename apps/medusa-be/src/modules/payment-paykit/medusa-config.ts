@@ -4,6 +4,11 @@ import {
   PAYKIT_GOPAY_PROVIDER_ID,
   PAYKIT_STRIPE_PROVIDER_ID,
 } from "./constants"
+import type {
+  PaykitComgateOptions,
+  PaykitGopayOptions,
+  PaykitStripeOptions,
+} from "./types"
 
 type PaykitConfigEnv = NodeJS.ProcessEnv
 
@@ -11,15 +16,29 @@ const PAYKIT_PROVIDER_FEATURE_FLAGS = {
   COMGATE: "FEATURE_PAYKIT_COMGATE_ENABLED",
   GOPAY: "FEATURE_PAYKIT_GOPAY_ENABLED",
   STRIPE: "FEATURE_PAYKIT_STRIPE_ENABLED",
-} as const
+}
 
 type PaykitProviderFeature = keyof typeof PAYKIT_PROVIDER_FEATURE_FLAGS
 
-export interface PaykitPaymentProviderConfig {
-  id: string
-  options: Record<string, unknown>
-  resolve: string
-}
+export type PaykitPaymentProviderConfig =
+  | {
+      id: typeof PAYKIT_GOPAY_PROVIDER_ID
+      options: Pick<PaykitGopayOptions, "apiStoreName" | "debug" | "isSandbox">
+      resolve: string
+    }
+  | {
+      id: typeof PAYKIT_STRIPE_PROVIDER_ID
+      options: Pick<PaykitStripeOptions, "apiStoreName" | "debug">
+      resolve: string
+    }
+  | {
+      id: typeof PAYKIT_COMGATE_PROVIDER_ID
+      options: Pick<
+        PaykitComgateOptions,
+        "apiStoreName" | "debug" | "isSandbox"
+      >
+      resolve: string
+    }
 
 const parseBooleanEnv = (
   value: string | undefined,

@@ -1,12 +1,12 @@
-import { isRecord } from "@techsio/std/object"
+import { z } from "@medusajs/framework/zod"
 
 import { useQueryParams } from "../../../../hooks/use-query-params"
 
-const parseDateFilter = (
-  value: string,
-): Record<string, unknown> | undefined => {
+const dateFilterSchema = z.record(z.string(), z.string())
+
+const parseDateFilter = (value: string) => {
   const parsed: unknown = JSON.parse(value)
-  return isRecord(parsed) ? parsed : undefined
+  return dateFilterSchema.parse(parsed)
 }
 
 export const useQuotesTableQuery = ({

@@ -22,7 +22,6 @@ on:
       - "package.json"
       - "pnpm-lock.yaml"
       - "tsconfig.base.json"
-      - "tsconfig.strict.json"
       - "scripts/install-storybook-playwright.mjs"
   schedule:
     # Keep the comparison artifacts alive even during long periods without UI merges.

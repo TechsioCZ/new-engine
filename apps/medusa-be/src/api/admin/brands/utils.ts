@@ -10,6 +10,7 @@ import {
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
+import { getRecordValue } from "@techsio/std/object"
 
 import { ProductBrandLink } from "../../../links/product-brand"
 import { BRAND_MODULE } from "../../../modules/brand"
@@ -126,28 +127,32 @@ type BrandService = BrandModuleService & {
         }[],
   ) => Promise<BrandAttributeTypeRecord[]>
   listAndCountBrandAttributeTypes: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>,
+    filters?: Parameters<
+      BrandModuleService["listAndCountBrandAttributeTypes"]
+    >[0],
+    config?: Parameters<
+      BrandModuleService["listAndCountBrandAttributeTypes"]
+    >[1],
   ) => Promise<[BrandAttributeTypeRecord[], number]>
   listBrandAttributes: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>,
+    filters?: Parameters<BrandModuleService["listBrandAttributes"]>[0],
+    config?: Parameters<BrandModuleService["listBrandAttributes"]>[1],
   ) => Promise<BrandAttributeRecord[]>
   listAndCountBrandAttributes: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>,
+    filters?: Parameters<BrandModuleService["listAndCountBrandAttributes"]>[0],
+    config?: Parameters<BrandModuleService["listAndCountBrandAttributes"]>[1],
   ) => Promise<[BrandAttributeRecord[], number]>
   listBrands: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>,
+    filters?: Parameters<BrandModuleService["listBrands"]>[0],
+    config?: Parameters<BrandModuleService["listBrands"]>[1],
   ) => Promise<BrandRecord[]>
   listAndCountBrands: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>,
+    filters?: Parameters<BrandModuleService["listAndCountBrands"]>[0],
+    config?: Parameters<BrandModuleService["listAndCountBrands"]>[1],
   ) => Promise<[BrandRecord[], number]>
   retrieveBrand: (
     id: string,
-    config?: Record<string, unknown>,
+    config?: Parameters<BrandModuleService["retrieveBrand"]>[1],
   ) => Promise<BrandRecord>
 }
 
@@ -185,9 +190,7 @@ const isPresentTimestamp = (
 ): value is string | Date =>
   value !== null && value !== undefined && value !== ""
 
-const isBrandQueryObjectLike = (
-  value: unknown,
-): value is Record<string, unknown> =>
+const isBrandQueryObjectLike = (value: unknown): value is object =>
   typeof value === "object" && value !== null
 
 const PRODUCT_STATUS_VALUES = new Set<string>(Object.values(ProductStatus))
@@ -202,9 +205,9 @@ const toLinkRecord = (value: unknown): LinkRecord => {
     return {}
   }
 
-  const deletedAt = value["deleted_at"]
-  const productId = value["product_id"]
-  const brandId = value["brand_id"]
+  const deletedAt = getRecordValue(value, "deleted_at")
+  const productId = getRecordValue(value, "product_id")
+  const brandId = getRecordValue(value, "brand_id")
 
   return {
     ...(deletedAt === null ||
@@ -225,15 +228,13 @@ const toProductRecord = (value: unknown): ProductRecord | null => {
     return null
   }
 
-  const {
-    created_at: createdAt,
-    handle,
-    id,
-    status,
-    thumbnail,
-    title,
-    updated_at: updatedAt,
-  } = value
+  const createdAt = getRecordValue(value, "created_at")
+  const handle = getRecordValue(value, "handle")
+  const id = getRecordValue(value, "id")
+  const status = getRecordValue(value, "status")
+  const thumbnail = getRecordValue(value, "thumbnail")
+  const title = getRecordValue(value, "title")
+  const updatedAt = getRecordValue(value, "updated_at")
 
   if (typeof id !== "string") {
     return null
@@ -690,7 +691,7 @@ export const listProductsByIds = async (
 
 export const listAndCountProducts = async (
   scope: MedusaContainer,
-  filters: Record<string, unknown> = {},
+  filters: Parameters<IProductModuleService["listAndCountProducts"]>[0] = {},
   options: ListProductsOptions = {},
 ): Promise<[ProductRecord[], number]> => {
   const { order, q, skip, take } = options

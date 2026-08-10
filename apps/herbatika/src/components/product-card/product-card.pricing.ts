@@ -1,4 +1,4 @@
-import type { HttpTypes } from "@medusajs/types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 
 import {
   DEFAULT_CURRENCY_CODE,
@@ -13,7 +13,7 @@ import {
 import type { ProductPriceState } from "./product-card.types"
 
 export const resolvePriceState = (
-  product: HttpTypes.StoreProduct,
+  product: MedusaCatalogProduct,
   expectedCurrencyCode: string | null | undefined,
   priceUnavailableLabel: string,
 ): ProductPriceState => {

@@ -44,9 +44,7 @@ const post = async (req: MedusaRequest, res: MedusaResponse) => {
       order_display_id: getOrderDisplayId(order),
       order_id: order.id,
       payment_url: getPaymentUrl(order),
-      store_name: await getMedusaStoreName(
-        req.scope as Record<string, unknown>,
-      ),
+      store_name: await getMedusaStoreName(req.scope),
       total: formatTotal(order),
     }),
   })

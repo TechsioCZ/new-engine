@@ -4,6 +4,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { getRecordValue } from "@techsio/std/object"
 
 import type { RuleValueOptionsQuerySchemaType } from "../../../schema"
 import { escapeLikePattern, validateRuleType } from "../../../utils"
@@ -18,8 +19,8 @@ const isBrandRuleValue = (value: unknown): value is BrandRuleValue => {
     return false
   }
 
-  const id: unknown = Reflect.get(value, "id")
-  const title: unknown = Reflect.get(value, "title")
+  const id: unknown = getRecordValue(value, "id")
+  const title: unknown = getRecordValue(value, "title")
 
   return typeof id === "string" && typeof title === "string"
 }
@@ -40,16 +41,16 @@ const get = async (
   validateRuleType(ruleType)
 
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const filters: Record<string, unknown> = { deleted_at: null }
   const searchQuery = req.validatedQuery.q
-
-  if (searchQuery !== undefined && searchQuery !== "") {
-    filters["title"] = { $ilike: `%${escapeLikePattern(searchQuery)}%` }
-  }
-
   const valueFilter = req.validatedQuery.value ?? req.validatedQuery.id
-  if (valueFilter !== undefined) {
-    filters["id"] = Array.isArray(valueFilter) ? valueFilter : [valueFilter]
+  const filters = {
+    deleted_at: null,
+    ...(searchQuery !== undefined && searchQuery !== ""
+      ? { title: { $ilike: `%${escapeLikePattern(searchQuery)}%` } }
+      : {}),
+    ...(valueFilter === undefined
+      ? {}
+      : { id: Array.isArray(valueFilter) ? valueFilter : [valueFilter] }),
   }
 
   const { limit } = req.validatedQuery

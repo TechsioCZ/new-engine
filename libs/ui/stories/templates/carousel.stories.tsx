@@ -1,8 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react"
 
+import type { Image } from "../../src/atoms/image"
 import { CarouselTemplate } from "../../src/templates/carousel"
 
-const meta: Meta<typeof CarouselTemplate> = {
+const StoryCarouselTemplate = CarouselTemplate<typeof Image>
+
+const meta: Meta<typeof StoryCarouselTemplate> = {
   argTypes: {
     allowMouseDrag: {
       control: "boolean",
@@ -100,7 +103,7 @@ const meta: Meta<typeof CarouselTemplate> = {
       },
     },
   },
-  component: CarouselTemplate,
+  component: StoryCarouselTemplate,
   parameters: {
     docs: {
       description: {
@@ -120,7 +123,7 @@ const meta: Meta<typeof CarouselTemplate> = {
 }
 
 export default meta
-type Story = StoryObj<typeof CarouselTemplate>
+type Story = StoryObj<typeof meta>
 
 const defaultSlides = [
   {

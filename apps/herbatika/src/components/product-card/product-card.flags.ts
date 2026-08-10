@@ -1,4 +1,5 @@
-import type { HttpTypes } from "@medusajs/types"
+import { getRecordValue } from "@techsio/std/object"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 
 import { FLAG_CONFIG } from "./product-card.constants"
 import type { SupportedFlagCode } from "./product-card.constants"
@@ -25,12 +26,13 @@ const isFlagActive = (
 ) => (code === "action" ? active === true || hasDiscount : active === true)
 
 export const resolveFlags = (
-  product: HttpTypes.StoreProduct,
+  product: MedusaCatalogProduct,
   hasDiscount: boolean,
   labels: ProductFlagLabels,
 ): ProductFlagState[] => {
   const metadata = asRecord(product.metadata)
-  const { flags } = metadata ?? {}
+  const flags =
+    metadata === null ? undefined : getRecordValue(metadata, "flags")
 
   if (!Array.isArray(flags)) {
     return hasDiscount ? [buildActionFlag(labels)] : []
@@ -41,7 +43,10 @@ export const resolveFlags = (
 
   for (const flag of flags) {
     const flagRecord = asRecord(flag)
-    const { active: activeValue, code: codeValue } = flagRecord ?? {}
+    const activeValue =
+      flagRecord === null ? undefined : getRecordValue(flagRecord, "active")
+    const codeValue =
+      flagRecord === null ? undefined : getRecordValue(flagRecord, "code")
     const code = resolveSupportedFlagCode(codeValue)
     const active = asBoolean(activeValue)
 

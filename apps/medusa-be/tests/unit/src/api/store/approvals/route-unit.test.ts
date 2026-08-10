@@ -1,5 +1,5 @@
 import { ContainerRegistrationKeys } from "@medusajs/utils"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { GET } from "../../../../../../src/api/store/approvals/route"
@@ -12,15 +12,22 @@ const isGetRequest = (candidate: unknown): candidate is GetRequest => {
   if (!isRecord(candidate)) {
     return false
   }
-  const { auth_context: authContext, scope } = candidate
-  if (!isRecord(authContext) || !isRecord(authContext["app_metadata"])) {
+  const authContext = getRecordValue(candidate, "auth_context")
+  const scope = getRecordValue(candidate, "scope")
+  if (!isRecord(authContext)) {
     return false
   }
-  if (authContext["app_metadata"]["customer_id"] !== "cus_1") {
+  const appMetadata = getRecordValue(authContext, "app_metadata")
+  if (
+    !isRecord(appMetadata) ||
+    getRecordValue(appMetadata, "customer_id") !== "cus_1"
+  ) {
     return false
   }
 
-  return isRecord(scope) && typeof scope["resolve"] === "function"
+  return (
+    isRecord(scope) && typeof getRecordValue(scope, "resolve") === "function"
+  )
 }
 
 const createMockRequest = ({
@@ -28,7 +35,7 @@ const createMockRequest = ({
   validatedQuery = {},
 }: {
   graph: ReturnType<typeof vi.fn<Graph>>
-  validatedQuery?: Record<string, unknown>
+  validatedQuery?: GetRequest["validatedQuery"]
 }): GetRequest => {
   const candidate: unknown = {
     auth_context: {
@@ -56,7 +63,7 @@ const createMockRequest = ({
 }
 
 const isGetResponse = (candidate: unknown): candidate is GetResponse =>
-  isRecord(candidate) && typeof candidate["json"] === "function"
+  isRecord(candidate) && typeof getRecordValue(candidate, "json") === "function"
 
 const createMockResponse = (): GetResponse => {
   const candidate: unknown = {

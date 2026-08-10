@@ -4,7 +4,7 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { isRecord } from "@techsio/std/object"
+import { z } from "@medusajs/framework/zod"
 
 import { ProductBrandLink } from "../../../links/product-brand"
 import { isMeilisearchEnabled } from "../../../modules/meilisearch/env"
@@ -13,6 +13,11 @@ import {
   buildBrandSearchProjectionEventData,
 } from "../events"
 import type { BrandSearchProjectionChangedEventData } from "../events"
+
+const productBrandLinksResultSchema = z.object({
+  data: z.array(z.unknown()),
+})
+const productBrandLinkSchema = z.object({ product_id: z.unknown().optional() })
 
 export type BrandSearchProjectionTargets =
   BrandSearchProjectionChangedEventData & {
@@ -54,22 +59,23 @@ export const resolveBrandSearchProjectionTargets = async (
         brand_id: { $in: normalized.brand_ids },
       },
     })
-    const data = isRecord(result) ? result["data"] : undefined
-    if (!Array.isArray(data)) {
+    const parsedResult = productBrandLinksResultSchema.safeParse(result)
+    if (!parsedResult.success) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
         "Product-brand link query returned invalid data",
       )
     }
 
-    for (const link of data) {
-      if (!isRecord(link)) {
+    for (const link of parsedResult.data.data) {
+      const parsedLink = productBrandLinkSchema.safeParse(link)
+      if (!parsedLink.success) {
         throw new MedusaError(
           MedusaError.Types.UNEXPECTED_STATE,
           "Product-brand link query returned an invalid record",
         )
       }
-      const productId = link["product_id"]
+      const productId = parsedLink.data.product_id
       if (typeof productId === "string" && productId.length > 0) {
         productIds.add(productId)
       }

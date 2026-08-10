@@ -1,8 +1,9 @@
-import type { MedusaContainer } from "@medusajs/framework/types"
+import type { MedusaContainer, MetadataType } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import {
   createCustomerAddressesWorkflow,
   createCustomersWorkflow,
@@ -17,8 +18,6 @@ import { customerBatchClientMapperHelper } from "./client-mapper-helper"
 import type { CustomerLookupKeys } from "./client-mapper-helper"
 import type { CustomerAddressInput, CustomerInput } from "./types"
 
-type Metadata = Record<string, unknown>
-
 export interface ExistingAddress {
   id: string
   customer_id: string
@@ -29,13 +28,13 @@ export interface ExistingGroup {
   name: string
   code?: string | null
   erp_code?: string | null
-  metadata: Metadata | null
+  metadata: MetadataType
 }
 
 export interface ExistingCustomer {
   id: string
   email: string | null
-  metadata: Metadata | null
+  metadata: MetadataType
   groups: ExistingGroup[]
   addresses: ExistingAddress[]
 }
@@ -62,64 +61,87 @@ const CUSTOMER_FIELDS = [
   "addresses.id",
   "addresses.customer_id",
 ] as const
-
-const isObjectMap = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
-const getObjectValue = (value: unknown, key: string): unknown =>
-  isObjectMap(value) ? value[key] : undefined
+const metadataSchema = z.record(z.string(), z.json()).nullable()
 
 const decodeGroup = (value: unknown): ExistingGroup | null => {
-  const id = getObjectValue(value, "id")
-  const name = getObjectValue(value, "name")
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null
+  }
+  const id: unknown = Reflect.get(value, "id")
+  const name: unknown = Reflect.get(value, "name")
   if (typeof id !== "string" || typeof name !== "string") {
     return null
   }
-  const metadata = getObjectValue(value, "metadata") ?? null
-  if (metadata !== null && !isObjectMap(metadata)) {
+  const metadata = metadataSchema.safeParse(
+    Reflect.get(value, "metadata") ?? null,
+  )
+  if (!metadata.success) {
     return null
   }
-  return { id, metadata, name }
+  return { id, metadata: metadata.data, name }
 }
 
-const decodeCustomer = (value: unknown): ExistingCustomer | null => {
-  const id = getObjectValue(value, "id")
-  if (typeof id !== "string") {
-    return null
-  }
-  const email = getObjectValue(value, "email") ?? null
-  const metadata = getObjectValue(value, "metadata") ?? null
-  if (email !== null && typeof email !== "string") {
-    return null
-  }
-  if (metadata !== null && !isObjectMap(metadata)) {
-    return null
-  }
-  const rawGroups = getObjectValue(value, "groups")
-  const rawAddresses = getObjectValue(value, "addresses")
-  if (!Array.isArray(rawGroups) || !Array.isArray(rawAddresses)) {
-    return null
-  }
-  const groupCandidates: unknown[] = rawGroups
+const decodeGroups = (candidates: unknown[]): ExistingGroup[] | null => {
   const groups: ExistingGroup[] = []
-  for (const raw of groupCandidates) {
+  for (const raw of candidates) {
     const group = decodeGroup(raw)
     if (group === null) {
       return null
     }
     groups.push(group)
   }
-  const addressCandidates: unknown[] = rawAddresses
+  return groups
+}
+
+const decodeAddresses = (candidates: unknown[]): ExistingAddress[] | null => {
   const addresses: ExistingAddress[] = []
-  for (const address of addressCandidates) {
-    const addressId = getObjectValue(address, "id")
-    const customerId = getObjectValue(address, "customer_id")
+  for (const address of candidates) {
+    if (
+      typeof address !== "object" ||
+      address === null ||
+      Array.isArray(address)
+    ) {
+      return null
+    }
+    const addressId: unknown = Reflect.get(address, "id")
+    const customerId: unknown = Reflect.get(address, "customer_id")
     if (typeof addressId !== "string" || typeof customerId !== "string") {
       return null
     }
     addresses.push({ customer_id: customerId, id: addressId })
   }
-  return { addresses, email, groups, id, metadata }
+  return addresses
+}
+
+const decodeCustomer = (value: unknown): ExistingCustomer | null => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null
+  }
+  const id: unknown = Reflect.get(value, "id")
+  if (typeof id !== "string") {
+    return null
+  }
+  const email: unknown = Reflect.get(value, "email") ?? null
+  const metadata = metadataSchema.safeParse(
+    Reflect.get(value, "metadata") ?? null,
+  )
+  if (email !== null && typeof email !== "string") {
+    return null
+  }
+  if (!metadata.success) {
+    return null
+  }
+  const rawGroups: unknown = Reflect.get(value, "groups")
+  const rawAddresses: unknown = Reflect.get(value, "addresses")
+  if (!Array.isArray(rawGroups) || !Array.isArray(rawAddresses)) {
+    return null
+  }
+  const groups = decodeGroups(rawGroups)
+  const addresses = decodeAddresses(rawAddresses)
+  if (groups === null || addresses === null) {
+    return null
+  }
+  return { addresses, email, groups, id, metadata: metadata.data }
 }
 
 const getQuery = (container: MedusaContainer) =>
@@ -227,7 +249,17 @@ export class CustomerBatchClient {
     const created: unknown = Array.isArray(workflowResult)
       ? workflowResult[0]
       : undefined
-    const createdId = getObjectValue(created, "id")
+    if (
+      typeof created !== "object" ||
+      created === null ||
+      Array.isArray(created)
+    ) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "createCustomersWorkflow returned empty result",
+      )
+    }
+    const createdId: unknown = Reflect.get(created, "id")
     if (typeof createdId !== "string") {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
@@ -388,7 +420,10 @@ export class CustomerBatchClient {
     for (const { data } of queryResults) {
       const rows: unknown[] = data ?? []
       for (const row of rows) {
-        const id = getObjectValue(row, "id")
+        if (typeof row !== "object" || row === null || Array.isArray(row)) {
+          continue
+        }
+        const id: unknown = Reflect.get(row, "id")
         if (typeof id === "string") {
           ids.add(id)
         }

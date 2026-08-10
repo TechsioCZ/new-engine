@@ -18,10 +18,7 @@ interface SessionResponse {
   message?: string
 }
 
-const resolveToken = (
-  payload: Record<string, unknown> | null,
-  fallbackToken: string,
-) => {
+const resolveToken = (payload: object | null, fallbackToken: string) => {
   if (payload !== null) {
     const token = getRecordValue(payload, "token")
     if (typeof token === "string" && token.length > 0) {

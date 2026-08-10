@@ -1,11 +1,10 @@
-import { describe, expect, it, vi } from "vitest"
+import { describe, expect, expectTypeOf, it, vi } from "vitest"
 
 import { chunk, unique } from "../src/array.js"
 import { sleep } from "../src/async.js"
 import { assertNever, debounce, noop } from "../src/function.js"
 import { clamp } from "../src/number.js"
 import {
-  compactRecord,
   getErrorMessage,
   getRecordValue,
   isRecord,
@@ -74,11 +73,22 @@ describe("object utilities", () => {
 
   it("compacts undefined values without mutating the input", () => {
     const input = { a: 1, b: undefinedValue, c: null }
+    const optionalValue =
+      typeof undefinedValue === "string" ? undefinedValue : undefined
+    const typedInput: { optional: string | undefined; required: number } = {
+      optional: optionalValue,
+      required: 1,
+    }
+    const compacted = omitUndefined(typedInput)
 
-    expect(compactRecord(input)).toStrictEqual({ a: 1, c: null })
+    expect(compacted).toStrictEqual({ required: 1 })
+    expectTypeOf(compacted).toExtend<{
+      required: number
+      optional?: string
+    }>()
     expect(omitUndefined(input)).toStrictEqual({ a: 1, c: null })
     expect(input).toHaveProperty("b", undefinedValue)
-    expect(compactRecord({ a: undefinedValue })).toStrictEqual({})
+    expect(omitUndefined({ a: undefinedValue })).toStrictEqual({})
   })
 
   it("omits selected keys", () => {

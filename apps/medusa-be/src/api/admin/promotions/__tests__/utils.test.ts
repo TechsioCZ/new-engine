@@ -440,7 +440,7 @@ describe(buildBrandPromotionContext, () => {
         (query: {
           entity: string
           fields: string[]
-          filters: Record<string, unknown>
+          filters: object
         }) => Promise<{ data: { brand_id: string; product_id: string }[] }>
       >()
       .mockResolvedValue({
@@ -508,7 +508,7 @@ describe(buildBrandPromotionContext, () => {
         (query: {
           entity: string
           fields: string[]
-          filters: Record<string, unknown>
+          filters: object
         }) =>
           | { data: { id: string; product_id: string }[] }
           | { data: { brand_id: string; product_id: string }[] }
@@ -582,7 +582,7 @@ describe(buildBrandPromotionContext, () => {
         (query: {
           entity: string
           fields: string[]
-          filters: Record<string, unknown>
+          filters: object
         }) => Promise<{ data: { brand_id: string; product_id: string }[] }>
       >()
       .mockResolvedValue({

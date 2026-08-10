@@ -4,8 +4,14 @@ import type {
   Logger,
 } from "@medusajs/framework/types"
 import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import { sleep } from "@techsio/std/async"
-import { getErrorMessage, isRecord } from "@techsio/std/object"
+import {
+  getErrorMessage,
+  getRecordValue,
+  isRecord,
+  omitUndefined,
+} from "@techsio/std/object"
 
 import { decryptFields, encryptFields } from "../../utils/encryption"
 import { safeResolve } from "../../utils/safe-resolve"
@@ -73,8 +79,15 @@ const TOKEN_BUFFER_MS = 60_000
 const TOKEN_TTL_SAFETY_SECONDS = 60
 const MILLISECONDS_PER_SECOND = 1000
 
-type CachingDependency = Pick<ICachingModuleService, "clear" | "get" | "set">
-type LockingDependency = Pick<ILockingModule, "execute">
+interface CachingDependency {
+  clear: ICachingModuleService["clear"]
+  get: ICachingModuleService["get"]
+  set: ICachingModuleService["set"]
+}
+
+interface LockingDependency {
+  execute: ILockingModule["execute"]
+}
 
 interface InjectedDependencies {
   logger: Logger
@@ -84,20 +97,16 @@ interface InjectedDependencies {
 
 const isCachingDependency = (value: unknown): value is CachingDependency =>
   isRecord(value) &&
-  typeof value["clear"] === "function" &&
-  typeof value["get"] === "function" &&
-  typeof value["set"] === "function"
+  typeof getRecordValue(value, "clear") === "function" &&
+  typeof getRecordValue(value, "get") === "function" &&
+  typeof getRecordValue(value, "set") === "function"
 
 const isLockingDependency = (value: unknown): value is LockingDependency =>
-  isRecord(value) && typeof value["execute"] === "function"
+  isRecord(value) && typeof getRecordValue(value, "execute") === "function"
 
 interface CachedToken {
   accessToken: string
   expiresAt: number
-}
-
-interface RateLimitSlot {
-  timestamp: number
 }
 
 /** A rate-limited client paired with the OAuth token to call it with. */
@@ -106,139 +115,96 @@ interface AuthorizedClient {
   token: string
 }
 
-type UsablePplConfig = PplConfigDTO & {
+interface UsablePplConfig extends PplConfigDTO {
   client_id: string
   client_secret: string
+  is_enabled: true
 }
 
 // ============================================
 // Runtime validation of externally stored data
 // ============================================
 
-const isPplEnvironment = (value: unknown): value is PplEnvironment =>
-  value === "testing" || value === "production"
-
-const LABEL_FORMATS: ReadonlySet<string> = new Set<PplLabelFormat>([
-  "Jpeg",
-  "Pdf",
-  "Png",
-  "Svg",
-  "Zpl",
-])
+const pplEnvironmentSchema = z.enum(["testing", "production"])
+const pplLabelFormatSchema = z.enum(["Jpeg", "Pdf", "Png", "Svg", "Zpl"])
 
 const DEFAULT_LABEL_FORMAT: PplLabelFormat = "Pdf"
 
-const isPplLabelFormat = (value: string): value is PplLabelFormat =>
-  LABEL_FORMATS.has(value)
+const storedPplConfigSchema = z.object({
+  client_id: z.string().nullable(),
+  client_secret: z.string().nullable(),
+  cod_bank_account: z.string().nullable(),
+  cod_bank_code: z.string().nullable(),
+  cod_iban: z.string().nullable(),
+  cod_swift: z.string().nullable(),
+  created_at: z.date(),
+  default_label_format: z.string(),
+  environment: pplEnvironmentSchema,
+  id: z.string(),
+  is_enabled: z.boolean(),
+  sender_city: z.string().nullable(),
+  sender_country: z.string().nullable(),
+  sender_email: z.string().nullable(),
+  sender_name: z.string().nullable(),
+  sender_phone: z.string().nullable(),
+  sender_street: z.string().nullable(),
+  sender_zip_code: z.string().nullable(),
+  updated_at: z.date(),
+})
 
-const isNullableString = (value: unknown): value is string | null =>
-  value === null || typeof value === "string"
+const usablePplConfigSchema = storedPplConfigSchema.extend({
+  client_id: z.string().min(1),
+  client_secret: z.string().min(1),
+  is_enabled: z.literal(true),
+})
 
-const isNonEmptyString = (value: string | null): value is string =>
-  value !== null && value.length > 0
+const cachedTokenSchema = z.object({
+  accessToken: z.string(),
+  expiresAt: z.number(),
+})
 
-const NULLABLE_STRING_CONFIG_FIELDS = [
-  "client_id",
-  "client_secret",
-  "cod_bank_account",
-  "cod_bank_code",
-  "cod_iban",
-  "cod_swift",
-  "sender_city",
-  "sender_country",
-  "sender_email",
-  "sender_name",
-  "sender_phone",
-  "sender_street",
-  "sender_zip_code",
-] as const
+const rateLimitSlotSchema = z.object({
+  timestamp: z.number(),
+})
 
-const hasConfigIdentity = (record: Record<string, unknown>): boolean =>
-  typeof record["id"] === "string" &&
-  isPplEnvironment(record["environment"]) &&
-  typeof record["is_enabled"] === "boolean" &&
-  typeof record["default_label_format"] === "string"
-
-const hasConfigTimestamps = (record: Record<string, unknown>): boolean =>
-  record["created_at"] instanceof Date && record["updated_at"] instanceof Date
-
-const hasConfigNullableStrings = (record: Record<string, unknown>): boolean =>
-  NULLABLE_STRING_CONFIG_FIELDS.every((field) =>
-    isNullableString(record[field]),
-  )
-
-const isStoredPplConfig = (value: unknown): value is PplConfigDTO =>
-  isRecord(value) &&
-  hasConfigIdentity(value) &&
-  hasConfigTimestamps(value) &&
-  hasConfigNullableStrings(value)
+const pplOptionsSchema = z.object({
+  client_id: z.string().min(1),
+  client_secret: z.string().min(1),
+  cod_bank_account: z.string().optional(),
+  cod_bank_code: z.string().optional(),
+  cod_iban: z.string().optional(),
+  cod_swift: z.string().optional(),
+  default_label_format: pplLabelFormatSchema,
+  environment: pplEnvironmentSchema,
+  sender_city: z.string().optional(),
+  sender_country: z.string().optional(),
+  sender_email: z.string().optional(),
+  sender_name: z.string().optional(),
+  sender_phone: z.string().optional(),
+  sender_street: z.string().optional(),
+  sender_zip_code: z.string().optional(),
+})
 
 const toPplConfigDTO = (value: unknown): PplConfigDTO => {
-  if (!isStoredPplConfig(value)) {
+  const parsed = storedPplConfigSchema.safeParse(value)
+  if (!parsed.success) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       "PPL: Stored configuration has an invalid shape",
     )
   }
-
-  return {
-    client_id: value.client_id,
-    client_secret: value.client_secret,
-    cod_bank_account: value.cod_bank_account,
-    cod_bank_code: value.cod_bank_code,
-    cod_iban: value.cod_iban,
-    cod_swift: value.cod_swift,
-    created_at: value.created_at,
-    default_label_format: value.default_label_format,
-    environment: value.environment,
-    id: value.id,
-    is_enabled: value.is_enabled,
-    sender_city: value.sender_city,
-    sender_country: value.sender_country,
-    sender_email: value.sender_email,
-    sender_name: value.sender_name,
-    sender_phone: value.sender_phone,
-    sender_street: value.sender_street,
-    sender_zip_code: value.sender_zip_code,
-    updated_at: value.updated_at,
-  }
+  return parsed.data
 }
 
-const isCachedToken = (value: unknown): value is CachedToken =>
-  isRecord(value) &&
-  typeof value["accessToken"] === "string" &&
-  typeof value["expiresAt"] === "number"
-
-const isRateLimitSlot = (value: unknown): value is RateLimitSlot =>
-  isRecord(value) && typeof value["timestamp"] === "number"
-
-const isPplOptions = (value: unknown): value is PplOptions =>
-  isRecord(value) &&
-  typeof value["client_id"] === "string" &&
-  typeof value["client_secret"] === "string" &&
-  isPplEnvironment(value["environment"])
-
-const hasCodelistCode = (value: unknown): boolean =>
-  isRecord(value) && typeof value["code"] === "string"
-
-const isCodelistArray = <TItem>(value: unknown): value is TItem[] =>
-  Array.isArray(value) && value.every(hasCodelistCode)
-
-const isConfigUsable = (
+const parseUsablePplConfig = (
   config: PplConfigDTO | null,
-): config is UsablePplConfig =>
-  config !== null &&
-  config.is_enabled &&
-  isNonEmptyString(config.client_id) &&
-  isNonEmptyString(config.client_secret)
+): UsablePplConfig | null => {
+  if (config === null) {
+    return null
+  }
 
-/**
- * Structural view of the update payload. `encryptFields` accepts a
- * `Record<string, unknown>`, which an `interface` type does not satisfy, so the
- * payload is carried as an anonymous object type.
- */
-type UpdatePplConfigPayload = {
-  [TKey in keyof UpdatePplConfigInput]: UpdatePplConfigInput[TKey]
+  const parsed = usablePplConfigSchema.safeParse(config)
+  return parsed.success ? parsed.data : null
 }
 
 /**
@@ -249,8 +215,8 @@ type UpdatePplConfigPayload = {
  */
 const dropBlankSensitiveFields = (
   data: UpdatePplConfigInput,
-): UpdatePplConfigPayload => {
-  const filtered: UpdatePplConfigPayload = { ...data }
+): UpdatePplConfigInput => {
+  const filtered: UpdatePplConfigInput = { ...data }
 
   if (filtered.client_secret === "") {
     delete filtered.client_secret
@@ -313,8 +279,9 @@ const reserveRateLimitSlot = async (
         const stored: unknown = await cacheService.get({
           key: CACHE_KEYS.RATE_LIMIT,
         })
-        const elapsed = isRateLimitSlot(stored)
-          ? now - stored.timestamp
+        const rateLimitSlot = rateLimitSlotSchema.safeParse(stored)
+        const elapsed = rateLimitSlot.success
+          ? now - rateLimitSlot.data.timestamp
           : Number.POSITIVE_INFINITY
         const wait =
           elapsed < MIN_REQUEST_INTERVAL_MS
@@ -485,8 +452,8 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       return cached
     }
 
-    const config = await this.getConfig()
-    if (!isConfigUsable(config)) {
+    const config = parseUsablePplConfig(await this.getConfig())
+    if (config === null) {
       return null
     }
 
@@ -505,12 +472,14 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       key: CACHE_KEYS.CONFIG,
     })
 
-    return isPplOptions(cached) ? cached : null
+    const parsed = pplOptionsSchema.safeParse(cached)
+    return parsed.success ? omitUndefined(parsed.data) : null
   }
 
   private resolveLabelFormat(value: string): PplLabelFormat {
-    if (isPplLabelFormat(value)) {
-      return value
+    const parsed = pplLabelFormatSchema.safeParse(value)
+    if (parsed.success) {
+      return parsed.data
     }
 
     this._logger.warn(
@@ -628,13 +597,14 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
 
     // Redis available - use distributed token
     const stored: unknown = await cacheService.get({ key: CACHE_KEYS.TOKEN })
+    const cachedToken = cachedTokenSchema.safeParse(stored)
 
     if (
-      isCachedToken(stored) &&
-      stored.expiresAt > Date.now() + TOKEN_BUFFER_MS
+      cachedToken.success &&
+      cachedToken.data.expiresAt > Date.now() + TOKEN_BUFFER_MS
     ) {
       this._logger.debug("PPL: Using shared OAuth token from Redis")
-      return stored.accessToken
+      return cachedToken.data.accessToken
     }
 
     // Need new token - acquire rate limit slot first
@@ -748,13 +718,14 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     fetcher: () => Promise<T>,
     ttl: number,
     tags: string[],
-    isCached: (value: unknown) => value is T,
+    cachedSchema: z.ZodType<T>,
   ): Promise<T> {
     if (this._cacheService) {
       const cached: unknown = await this._cacheService.get({ key })
-      if (isCached(cached)) {
+      const parsed = cachedSchema.safeParse(cached)
+      if (parsed.success) {
         this._logger.debug(`PPL: Cache hit for ${key}`)
-        return cached
+        return parsed.data
       }
     }
 
@@ -866,7 +837,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       },
       CACHE_TTL.CODELISTS,
       [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS],
-      isCodelistArray,
+      PplClient.codelistCountryArraySchema,
     )
   }
 
@@ -879,7 +850,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       },
       CACHE_TTL.CODELISTS,
       [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS],
-      isCodelistArray,
+      PplClient.codelistCurrencyArraySchema,
     )
   }
 
@@ -892,7 +863,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       },
       CACHE_TTL.CODELISTS,
       [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS],
-      isCodelistArray,
+      PplClient.codelistProductArraySchema,
     )
   }
 
@@ -905,7 +876,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       },
       CACHE_TTL.CODELISTS,
       [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS],
-      isCodelistArray,
+      PplClient.codelistServiceArraySchema,
     )
   }
 
@@ -918,7 +889,7 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       },
       CACHE_TTL.CODELISTS,
       [CACHE_TAGS.ALL, CACHE_TAGS.CODELISTS],
-      isCodelistArray,
+      PplClient.codelistStatusArraySchema,
     )
   }
 

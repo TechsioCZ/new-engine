@@ -11,7 +11,7 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { z } from "@medusajs/framework/zod"
 
 import { PAYKIT_REGION_PAYMENT_PROVIDER_IDS } from "../workflows/seed/paykit-payment-providers"
 import seedPaykitRegionsWorkflow from "../workflows/seed/workflows/seed-paykit-regions"
@@ -21,6 +21,13 @@ interface RegionPaymentProviderLink {
   region_id: string
   payment_provider_id: string
 }
+
+const regionPaymentProviderLinksSchema = z.array(
+  z.object({
+    payment_provider_id: z.string(),
+    region_id: z.string(),
+  }),
+)
 
 const countries = [
   "cz",
@@ -80,36 +87,15 @@ const getRegionPaymentProviderLinks = async (
     },
   })
 
-  const rows: unknown = data
-  if (!Array.isArray(rows)) {
+  const parsed = regionPaymentProviderLinksSchema.safeParse(data)
+  if (!parsed.success) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "PayKit region payment provider query returned invalid data",
     )
   }
 
-  return rows.map((row) => {
-    if (!isRecord(row)) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "PayKit region payment provider query returned invalid row",
-      )
-    }
-
-    const regionId = row["region_id"]
-    const paymentProviderId = row["payment_provider_id"]
-    if (typeof regionId !== "string" || typeof paymentProviderId !== "string") {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "PayKit region payment provider query returned invalid row",
-      )
-    }
-
-    return {
-      payment_provider_id: paymentProviderId,
-      region_id: regionId,
-    }
-  })
+  return parsed.data
 }
 
 const REGION_PAGE_SIZE = 100

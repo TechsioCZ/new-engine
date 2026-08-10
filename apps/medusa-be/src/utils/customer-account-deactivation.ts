@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto"
 
 import { generateJwtToken, MedusaError } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import { omitKeys } from "@techsio/std/object"
 import { jwtVerify } from "jose"
 
@@ -35,10 +36,23 @@ export const buildCustomerAccountDeactivationUrl = (token: string): string => {
 
 export const createCustomerAccountDeactivationNonce = (): string => randomUUID()
 
+const customerMetadataSchema = z.record(z.string(), z.json())
+
 export const withoutCustomerAccountDeactivationNonce = (
-  metadata?: Record<string, unknown> | null,
-): Record<string, unknown> =>
-  omitKeys(metadata ?? {}, [CUSTOMER_ACCOUNT_DEACTIVATION_NONCE_METADATA_KEY])
+  metadata?: unknown,
+): z.output<typeof customerMetadataSchema> => {
+  const metadataResult = customerMetadataSchema.safeParse(metadata ?? {})
+  if (!metadataResult.success) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Customer metadata contains an invalid JSON value.",
+    )
+  }
+
+  return omitKeys(metadataResult.data, [
+    CUSTOMER_ACCOUNT_DEACTIVATION_NONCE_METADATA_KEY,
+  ])
+}
 
 export const createCustomerAccountDeactivationToken = (input: {
   customer_id: string

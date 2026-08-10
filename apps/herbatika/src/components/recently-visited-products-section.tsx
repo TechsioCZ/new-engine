@@ -1,6 +1,6 @@
 "use client"
 
-import type { HttpTypes } from "@medusajs/types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
@@ -86,7 +86,7 @@ export const RecentlyVisitedProductsSection = ({
     return null
   }
 
-  const handleCompactImageError = (product: HttpTypes.StoreProduct) => {
+  const handleCompactImageError = (product: MedusaCatalogProduct) => {
     if (!product.id) {
       return
     }

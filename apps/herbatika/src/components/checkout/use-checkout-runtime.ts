@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
+import type { Dispatch, SetStateAction } from "react"
 
 import { useAuth } from "@/lib/storefront/auth"
 import {
@@ -48,10 +49,35 @@ const resolveCartOptions = (
   enabled: region?.region_id !== undefined && region.region_id.length > 0,
 })
 
+export interface CheckoutRuntime {
+  activeRegionId: string | null | undefined
+  authQuery: ReturnType<typeof useAuth>
+  cartQuery: ReturnType<typeof useCart>
+  checkoutError: string | null
+  checkoutPaymentQuery: ReturnType<
+    typeof storefront.flows.checkout.useCheckoutPayment
+  >
+  checkoutShippingQuery: ReturnType<
+    typeof storefront.flows.checkout.useCheckoutShipping
+  >
+  completeCheckoutMutation: ReturnType<
+    typeof storefront.flows.cart.useCompleteCart
+  >
+  countryItems: ReturnType<typeof resolveCheckoutCountryItemsForRegion>
+  effectiveSelectedPaymentProviderId: string | null | undefined
+  region: ReturnType<typeof useRegionContext>
+  regionCurrencyCode: ReturnType<typeof resolveRegionCurrency>
+  regionsQuery: ReturnType<typeof useRegions>
+  setCheckoutError: Dispatch<SetStateAction<string | null>>
+  tCheckout: ReturnType<typeof useTranslations<"checkout">>
+  updateCartAddressMutation: ReturnType<typeof useUpdateCartAddress>
+  updateCartMutation: ReturnType<typeof useUpdateCart>
+}
+
 export const useCheckoutRuntime = ({
   allowCartAutoCreate,
   completedOrderId,
-}: CheckoutRuntimeOptions) => {
+}: CheckoutRuntimeOptions): CheckoutRuntime => {
   const queryClient = useQueryClient()
   const tCheckout = useTranslations("checkout")
   const marketContext = useMarketContext()

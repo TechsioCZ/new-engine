@@ -41,11 +41,7 @@ interface CompanyServiceMock {
 }
 
 type GraphMock = ReturnType<
-  typeof vi.fn<
-    (
-      input: Record<string, unknown>,
-    ) => Promise<{ data: Record<string, unknown>[] }>
-  >
+  typeof vi.fn<(input: object) => Promise<{ data: object[] }>>
 >
 
 const createMockRequest = ({
@@ -55,7 +51,7 @@ const createMockRequest = ({
 }: {
   companyService: CompanyServiceMock
   graph: GraphMock
-  requestQuery?: Record<string, unknown>
+  requestQuery?: object
 }): {
   request: AuthenticatedMedusaRequest
   resolve: ReturnType<typeof vi.fn<(key: string) => unknown>>
@@ -86,11 +82,7 @@ describe("GET /admin/company-customer-group-links", () => {
     const { GET } =
       await import("../../../../../../src/api/admin/company-customer-group-links/route")
     const graph: GraphMock = vi
-      .fn<
-        (
-          input: Record<string, unknown>,
-        ) => Promise<{ data: Record<string, unknown>[] }>
-      >()
+      .fn<(input: object) => Promise<{ data: object[] }>>()
       .mockResolvedValue({
         data: [
           { company_id: "comp_1", customer_group_id: "cgrp_1" },
@@ -139,11 +131,7 @@ describe("GET /admin/company-customer-group-links", () => {
     const { GET } =
       await import("../../../../../../src/api/admin/company-customer-group-links/route")
     const graph: GraphMock =
-      vi.fn<
-        (
-          input: Record<string, unknown>,
-        ) => Promise<{ data: Record<string, unknown>[] }>
-      >()
+      vi.fn<(input: object) => Promise<{ data: object[] }>>()
     const companyService: CompanyServiceMock = {
       listCompanies: vi.fn<() => Promise<unknown[]>>(),
     }

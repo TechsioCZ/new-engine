@@ -25,8 +25,7 @@ export const buildMeilisearchPlugin = (
         fields: ["id", "title", "description", "handle"],
         indexSettings: BRAND_INDEX_SETTINGS,
         primaryKey: "id",
-        transformer: (document: Record<string, unknown>) =>
-          buildBrandSearchDocument(document),
+        transformer: (document: object) => buildBrandSearchDocument(document),
         type: "brands",
       },
       categories: {
@@ -35,10 +34,8 @@ export const buildMeilisearchPlugin = (
         indexSettings: CATEGORY_INDEX_SETTINGS,
         primaryKey: "id",
         transformer: (
-          document: Record<string, unknown>,
-          defaultTransformer: (
-            input: Record<string, unknown>,
-          ) => Record<string, unknown>,
+          document: object,
+          defaultTransformer: (source: object) => object,
         ) => buildCategorySearchDocument(defaultTransformer(document)),
         type: "categories",
       },
@@ -72,10 +69,8 @@ export const buildMeilisearchPlugin = (
         indexSettings: PRODUCT_INDEX_SETTINGS,
         primaryKey: "id",
         transformer: (
-          document: Record<string, unknown>,
-          defaultTransformer: (
-            input: Record<string, unknown>,
-          ) => Record<string, unknown>,
+          document: object,
+          defaultTransformer: (source: object) => object,
         ) => {
           const transformedDocument = defaultTransformer(document)
 

@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import type { ReactNode } from "react"
@@ -94,15 +94,15 @@ const isCartAddressPayload = (value: unknown): value is AddressPayload => {
   if (!isRecord(value)) {
     return false
   }
-  const { company } = value
+  const company = getRecordValue(value, "company")
   const hasRequiredStrings =
-    typeof value["first_name"] === "string" &&
-    typeof value["last_name"] === "string" &&
-    typeof value["address_1"] === "string"
+    typeof getRecordValue(value, "first_name") === "string" &&
+    typeof getRecordValue(value, "last_name") === "string" &&
+    typeof getRecordValue(value, "address_1") === "string"
   const hasLocationStrings =
-    typeof value["city"] === "string" &&
-    typeof value["postal_code"] === "string" &&
-    typeof value["country_code"] === "string"
+    typeof getRecordValue(value, "city") === "string" &&
+    typeof getRecordValue(value, "postal_code") === "string" &&
+    typeof getRecordValue(value, "country_code") === "string"
   const hasValidCompany = company === undefined || typeof company === "string"
   return hasRequiredStrings && hasLocationStrings && hasValidCompany
 }
@@ -111,10 +111,10 @@ const isCart = (value: unknown): value is Cart => {
   if (!isRecord(value)) {
     return false
   }
-  const regionId = value["region_id"]
-  const shippingAddress = value["shipping_address"]
-  const billingAddress = value["billing_address"]
-  const hasValidId = typeof value["id"] === "string"
+  const regionId = getRecordValue(value, "region_id")
+  const shippingAddress = getRecordValue(value, "shipping_address")
+  const billingAddress = getRecordValue(value, "billing_address")
+  const hasValidId = typeof getRecordValue(value, "id") === "string"
   const hasValidRegionId =
     regionId === undefined || regionId === null || typeof regionId === "string"
   const hasValidShippingAddress =
@@ -129,10 +129,10 @@ const isCartUpdateParams = (value: unknown): value is CartUpdateParams => {
   if (!isRecord(value)) {
     return false
   }
-  const { email } = value
-  const regionId = value["region_id"]
-  const shippingAddress = value["shipping_address"]
-  const billingAddress = value["billing_address"]
+  const email = getRecordValue(value, "email")
+  const regionId = getRecordValue(value, "region_id")
+  const shippingAddress = getRecordValue(value, "shipping_address")
+  const billingAddress = getRecordValue(value, "billing_address")
   const hasValidEmail = email === undefined || typeof email === "string"
   const hasValidRegionId =
     regionId === undefined || typeof regionId === "string"
@@ -189,8 +189,8 @@ interface ProductDetailParams {
 
 const isProduct = (value: unknown): value is Product =>
   isRecord(value) &&
-  typeof value["id"] === "string" &&
-  typeof value["title"] === "string"
+  typeof getRecordValue(value, "id") === "string" &&
+  typeof getRecordValue(value, "title") === "string"
 
 const isProductListResponse = (
   value: unknown,
@@ -203,12 +203,12 @@ const isProductListResponse = (
   if (!isRecord(value)) {
     return false
   }
-  const { products } = value
+  const products = getRecordValue(value, "products")
   const hasValidProducts = Array.isArray(products) && products.every(isProduct)
   const hasValidNumbers =
-    typeof value["count"] === "number" &&
-    typeof value["limit"] === "number" &&
-    typeof value["offset"] === "number"
+    typeof getRecordValue(value, "count") === "number" &&
+    typeof getRecordValue(value, "limit") === "number" &&
+    typeof getRecordValue(value, "offset") === "number"
   return hasValidProducts && hasValidNumbers
 }
 
@@ -242,7 +242,7 @@ interface OrderDetailParams {
 }
 
 const isOrder = (value: unknown): value is Order =>
-  isRecord(value) && typeof value["id"] === "string"
+  isRecord(value) && typeof getRecordValue(value, "id") === "string"
 
 const isOrderListResponse = (
   value: unknown,
@@ -250,11 +250,11 @@ const isOrderListResponse = (
   if (!isRecord(value)) {
     return false
   }
-  const { orders } = value
+  const orders = getRecordValue(value, "orders")
   return (
     Array.isArray(orders) &&
     orders.every(isOrder) &&
-    typeof value["count"] === "number"
+    typeof getRecordValue(value, "count") === "number"
   )
 }
 
@@ -302,21 +302,21 @@ const isAddress = (value: unknown): value is Address => {
   if (!isRecord(value)) {
     return false
   }
-  const address1 = value["address_1"]
+  const address1 = getRecordValue(value, "address_1")
   return (
-    typeof value["id"] === "string" &&
+    typeof getRecordValue(value, "id") === "string" &&
     (address1 === undefined || typeof address1 === "string")
   )
 }
 
 const isCustomer = (value: unknown): value is Customer =>
-  isRecord(value) && typeof value["id"] === "string"
+  isRecord(value) && typeof getRecordValue(value, "id") === "string"
 
 const isCreateParams = (value: unknown): value is CreateParams => {
   if (!isRecord(value)) {
     return false
   }
-  const address1 = value["address_1"]
+  const address1 = getRecordValue(value, "address_1")
   return address1 === undefined || typeof address1 === "string"
 }
 
@@ -326,7 +326,7 @@ const isCustomerAddressListResponse = (
   if (!isRecord(value)) {
     return false
   }
-  const { addresses } = value
+  const addresses = getRecordValue(value, "addresses")
   return Array.isArray(addresses) && addresses.every(isAddress)
 }
 
@@ -391,7 +391,7 @@ describe("storefront-data hook smoke tests", () => {
           if (!isRecord(data)) {
             throw new TypeError("Invalid cart response")
           }
-          const { cart } = data
+          const cart = getRecordValue(data, "cart")
           if (!isCart(cart)) {
             throw new TypeError("Invalid cart response")
           }
@@ -718,7 +718,7 @@ describe("storefront-data hook smoke tests", () => {
           if (!isRecord(data)) {
             throw new TypeError("Invalid order response")
           }
-          const { order } = data
+          const order = getRecordValue(data, "order")
           if (!isOrder(order)) {
             throw new TypeError("Invalid order response")
           }
@@ -776,16 +776,15 @@ describe("storefront-data hook smoke tests", () => {
 
   describe("customers", () => {
     type ListParams = Record<string, never>
-    interface UpdateCustomerParams {
-      metadata?: Record<string, unknown>
-    }
 
     let lastCreateBody: CreateParams | null = null
-    let lastUpdateBody: Record<string, unknown> | null = null
+    let lastUpdateAddressBody: UpdateParams | null = null
+    let lastUpdateCustomerBody: object | null = null
 
     beforeEach(() => {
       lastCreateBody = null
-      lastUpdateBody = null
+      lastUpdateAddressBody = null
+      lastUpdateCustomerBody = null
       server.use(
         http.get(`${baseUrl}/customers/me/addresses`, () =>
           HttpResponse.json({
@@ -806,10 +805,10 @@ describe("storefront-data hook smoke tests", () => {
           `${baseUrl}/customers/me/addresses/:id`,
           async ({ request, params }) => {
             const rawBody: unknown = await request.json()
-            if (!isRecord(rawBody)) {
+            if (!isCreateParams(rawBody)) {
               throw new TypeError("Invalid update address payload")
             }
-            lastUpdateBody = rawBody
+            lastUpdateAddressBody = rawBody
             return HttpResponse.json({
               address: { address_1: "Updated", id: String(params["id"]) },
             })
@@ -823,7 +822,7 @@ describe("storefront-data hook smoke tests", () => {
           if (!isRecord(rawBody)) {
             throw new TypeError("Invalid update customer payload")
           }
-          lastUpdateBody = rawBody
+          lastUpdateCustomerBody = rawBody
           return HttpResponse.json({ customer: { id: "cust_1" } })
         }),
       )
@@ -836,7 +835,7 @@ describe("storefront-data hook smoke tests", () => {
         ListParams,
         CreateParams,
         UpdateParams,
-        UpdateCustomerParams
+        object
       > = {
         createAddress: async (params) => {
           const response = await fetch(`${baseUrl}/customers/me/addresses`, {
@@ -848,7 +847,7 @@ describe("storefront-data hook smoke tests", () => {
           if (!isRecord(data)) {
             throw new TypeError("Invalid address response")
           }
-          const { address } = data
+          const address = getRecordValue(data, "address")
           if (!isAddress(address)) {
             throw new TypeError("Invalid address response")
           }
@@ -880,7 +879,7 @@ describe("storefront-data hook smoke tests", () => {
           if (!isRecord(data)) {
             throw new TypeError("Invalid address response")
           }
-          const { address } = data
+          const address = getRecordValue(data, "address")
           if (!isAddress(address)) {
             throw new TypeError("Invalid address response")
           }
@@ -896,7 +895,7 @@ describe("storefront-data hook smoke tests", () => {
           if (!isRecord(data)) {
             throw new TypeError("Invalid customer response")
           }
-          const { customer } = data
+          const customer = getRecordValue(data, "customer")
           if (!isCustomer(customer)) {
             throw new TypeError("Invalid customer response")
           }
@@ -960,7 +959,7 @@ describe("storefront-data hook smoke tests", () => {
         })
       })
 
-      expect(lastUpdateBody?.["addressId"]).toBeUndefined()
+      expect(lastUpdateAddressBody).toStrictEqual({ address_1: "Updated" })
 
       const deleteHook = renderHook(() => useDeleteCustomerAddress(), {
         wrapper,
@@ -983,7 +982,9 @@ describe("storefront-data hook smoke tests", () => {
         })
       })
 
-      expect(lastUpdateBody?.["metadata"]).toStrictEqual({ company: "QA" })
+      expect(lastUpdateCustomerBody).toStrictEqual({
+        metadata: { company: "QA" },
+      })
     })
   })
 })

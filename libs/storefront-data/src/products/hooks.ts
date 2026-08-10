@@ -5,7 +5,12 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import { isRecord, omitKeys, omitUndefined } from "@techsio/std/object"
+import {
+  getRecordValue,
+  isRecord,
+  omitKeys,
+  omitUndefined,
+} from "@techsio/std/object"
 import { useEffect } from "react"
 
 import {
@@ -66,7 +71,7 @@ const getNumberProperty = (
     return undefined
   }
 
-  const propertyValue = value[property]
+  const propertyValue = getRecordValue(value, property)
   return typeof propertyValue === "number" ? propertyValue : undefined
 }
 

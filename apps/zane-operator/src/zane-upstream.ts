@@ -1,4 +1,5 @@
-import { getErrorMessage, isRecord } from "@techsio/std/object"
+import { getErrorMessage } from "@techsio/std/object"
+import { z } from "zod"
 
 import type { AppConfig } from "./config"
 import { BadRequestError } from "./db"
@@ -67,41 +68,35 @@ export const updateCookiesFromHeaders = (
   }
 }
 
+const upstreamErrorDetailSchema = z.object({
+  detail: z.string().optional(),
+  message: z.string().optional(),
+})
+
+const upstreamErrorSchema = upstreamErrorDetailSchema.extend({
+  errors: z.array(upstreamErrorDetailSchema).optional(),
+})
+
 export const parseErrorMessage = (
   payload: unknown,
   fallback: string,
 ): string => {
-  if (!isRecord(payload)) {
+  const result = upstreamErrorSchema.safeParse(payload)
+  if (!result.success) {
     return fallback
   }
 
-  const { detail } = payload
-  if (typeof detail === "string" && detail.trim() !== "") {
-    return detail
-  }
-
-  const { message } = payload
-  if (typeof message === "string" && message.trim() !== "") {
-    return message
-  }
-
-  const { errors } = payload
-  if (Array.isArray(errors)) {
-    const firstError: unknown = errors.at(0)
-    if (isRecord(firstError)) {
-      const firstDetail = firstError["detail"]
-      if (typeof firstDetail === "string" && firstDetail.trim() !== "") {
-        return firstDetail
-      }
-
-      const firstMessage = firstError["message"]
-      if (typeof firstMessage === "string" && firstMessage.trim() !== "") {
-        return firstMessage
-      }
-    }
-  }
-
-  return fallback
+  const messages = [
+    result.data.detail,
+    result.data.message,
+    result.data.errors?.at(0)?.detail,
+    result.data.errors?.at(0)?.message,
+  ]
+  return (
+    messages.find(
+      (message) => message !== undefined && message.trim() !== "",
+    ) ?? fallback
+  )
 }
 
 const requireZaneDeployConfig = (

@@ -1,3 +1,4 @@
+import type { MetadataType } from "@medusajs/framework/types"
 import {
   createWorkflow,
   transform,
@@ -21,7 +22,7 @@ interface ReactivateCustomerAccountWorkflowInput {
   email: string
   first_name?: string | null
   last_name?: string | null
-  metadata?: Record<string, unknown> | null
+  metadata?: MetadataType
   phone?: string | null
 }
 

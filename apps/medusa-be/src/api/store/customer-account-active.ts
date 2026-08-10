@@ -10,8 +10,6 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 
-import { hasArrayData } from "../../utils/guards"
-import { isCustomerRecord } from "../../workflows/customer/steps/prepare-customer-account-reactivation"
 import type { CustomerRecord } from "../../workflows/customer/steps/prepare-customer-account-reactivation"
 
 interface OptionallyAuthenticatedMedusaRequest extends MedusaRequest {
@@ -61,19 +59,12 @@ export const ensureAuthenticatedCustomerIsActive = async (
   }
 
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const customerResult: unknown = await query.graph({
+  const customerResult: { data: CustomerRecord[] } = await query.graph({
     entity: "customer",
     fields: ["id", "has_account", "deleted_at"],
     filters: { id: customerId },
     withDeleted: true,
   })
-
-  if (!hasArrayData(customerResult, isCustomerRecord)) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "Unexpected response shape while checking customer account status.",
-    )
-  }
 
   assertCustomerAccountIsActive(customerResult.data[0])
 

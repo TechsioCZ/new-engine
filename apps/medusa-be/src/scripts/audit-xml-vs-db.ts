@@ -6,6 +6,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import { sql } from "drizzle-orm"
 
 import { sqlRaw } from "../utils/db"
@@ -14,8 +15,6 @@ import { isHttpXmlSource, readXmlSource } from "./herbatica-xml-utils"
 const CATEGORY_DUPLICATE_ROW = "category duplicate"
 const DUPLICATE_IMAGE_ROW = "duplicate image"
 const PRODUCT_AUDIT_ROW = "product audit"
-const DUPLICATE_COUNT_FIELD = "duplicate_count"
-const SOURCE_SHOPITEM_ID_FIELD = "source_shopitem_id"
 const CANONICAL_URL_QUERY_REGEX = /\?.*$/u
 const MEDUSA_ROOT = existsSync(path.resolve(process.cwd(), "src/scripts"))
   ? process.cwd()
@@ -35,21 +34,57 @@ interface XmlShopItem {
   images: string[]
 }
 
-interface DbProductRaw {
-  product_id: string
-  handle: string
-  title: string
-  status: string
-  thumbnail: string | null
-  source_shopitem_id: string | null
-  source_guid: string | null
-  metadata_category_paths: unknown
-  image_urls: unknown
-  category_handles: unknown
-  variant_thumbnails: unknown
-  variant_image_refs: unknown
-  variant_count: number | string | null
-}
+const countSchema = z.union([z.number(), z.string()])
+
+const dbProductRawSchema = z.object({
+  category_handles: z.unknown(),
+  handle: z.string(),
+  image_urls: z.unknown(),
+  metadata_category_paths: z.unknown(),
+  product_id: z.string(),
+  source_guid: z.string().nullable(),
+  source_shopitem_id: z.string().nullable(),
+  status: z.string(),
+  thumbnail: z.string().nullable(),
+  title: z.string(),
+  variant_count: countSchema.nullable(),
+  variant_image_refs: z.unknown(),
+  variant_thumbnails: z.unknown(),
+})
+
+const categoryDuplicateRawSchema = z.object({
+  duplicate_count: countSchema,
+  handles: z.unknown(),
+  normalized_name: z.string(),
+  parent_category_id: z.string(),
+})
+
+const categoryHandleDuplicateRawSchema = z.object({
+  base_handle: z.string(),
+  duplicate_count: countSchema,
+  handles: z.unknown(),
+})
+
+const productSourceDuplicateRawSchema = z.object({
+  duplicate_count: countSchema,
+  handles: z.unknown(),
+  source_id: z.string(),
+})
+
+const duplicateImageRawSchema = z.object({
+  canonical_url: z.string(),
+  duplicate_count: countSchema,
+  handle: z.string(),
+  source_shopitem_id: z.string().nullable(),
+})
+
+type DbProductRaw = z.infer<typeof dbProductRawSchema>
+type CategoryDuplicateRaw = z.infer<typeof categoryDuplicateRawSchema>
+type CategoryHandleDuplicateRaw = z.infer<
+  typeof categoryHandleDuplicateRawSchema
+>
+type ProductSourceDuplicateRaw = z.infer<typeof productSourceDuplicateRawSchema>
+type DuplicateImageRaw = z.infer<typeof duplicateImageRawSchema>
 
 interface DbProductRecord {
   productId: string
@@ -67,193 +102,66 @@ interface DbProductRecord {
   variantCount: number
 }
 
-interface CategoryDuplicateRaw {
-  parent_category_id: string
-  normalized_name: string
-  duplicate_count: number | string
-  handles: unknown
-}
-
-interface CategoryHandleDuplicateRaw {
-  base_handle: string
-  duplicate_count: number | string
-  handles: unknown
-}
-
-interface ProductSourceDuplicateRaw {
-  source_id: string
-  duplicate_count: number | string
-  handles: unknown
-}
-
-interface DuplicateImageRaw {
-  source_shopitem_id: string | null
-  handle: string
-  canonical_url: string
-  duplicate_count: number | string
-}
-
-const invalidDatabaseRow = (
+const decodeDatabaseRow = <Schema extends z.ZodType>(
+  row: unknown,
+  index: number,
   rowName: string,
-  index: number,
-  key: string,
-): never => {
-  throw new MedusaError(
-    MedusaError.Types.INVALID_DATA,
-    `${rowName} row ${index} has invalid ${key}`,
-  )
+  schema: Schema,
+): z.infer<Schema> => {
+  const parsed = schema.safeParse(row)
+  if (!parsed.success) {
+    const issuePath = parsed.error.issues[0]?.path.join(".")
+    const invalidPath =
+      issuePath === undefined || issuePath === "" ? "data" : issuePath
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `${rowName} row ${index} has invalid ${invalidPath}`,
+    )
+  }
+  return parsed.data
 }
 
-const getRequiredString = (
-  row: Readonly<Record<string, unknown>>,
-  key: string,
-  rowName: string,
-  index: number,
-): string => {
-  const value = row[key]
-  return typeof value === "string"
-    ? value
-    : invalidDatabaseRow(rowName, index, key)
-}
-
-const getNullableString = (
-  row: Readonly<Record<string, unknown>>,
-  key: string,
-  rowName: string,
-  index: number,
-): string | null => {
-  const value = row[key]
-  return value === null || typeof value === "string"
-    ? value
-    : invalidDatabaseRow(rowName, index, key)
-}
-
-const getCount = (
-  row: Readonly<Record<string, unknown>>,
-  key: string,
-  rowName: string,
-  index: number,
-): number | string => {
-  const value = row[key]
-  return typeof value === "number" || typeof value === "string"
-    ? value
-    : invalidDatabaseRow(rowName, index, key)
-}
-
-const decodeDbProductRaw = (
-  row: Readonly<Record<string, unknown>>,
-  index: number,
-): DbProductRaw => ({
-  category_handles: row["category_handles"],
-  handle: getRequiredString(row, "handle", PRODUCT_AUDIT_ROW, index),
-  image_urls: row["image_urls"],
-  metadata_category_paths: row["metadata_category_paths"],
-  product_id: getRequiredString(row, "product_id", PRODUCT_AUDIT_ROW, index),
-  source_guid: getNullableString(row, "source_guid", PRODUCT_AUDIT_ROW, index),
-  source_shopitem_id: getNullableString(
-    row,
-    SOURCE_SHOPITEM_ID_FIELD,
-    PRODUCT_AUDIT_ROW,
-    index,
-  ),
-  status: getRequiredString(row, "status", PRODUCT_AUDIT_ROW, index),
-  thumbnail: getNullableString(row, "thumbnail", PRODUCT_AUDIT_ROW, index),
-  title: getRequiredString(row, "title", PRODUCT_AUDIT_ROW, index),
-  variant_count:
-    row["variant_count"] === null
-      ? null
-      : getCount(row, "variant_count", PRODUCT_AUDIT_ROW, index),
-  variant_image_refs: row["variant_image_refs"],
-  variant_thumbnails: row["variant_thumbnails"],
-})
+const decodeDbProductRaw = (row: unknown, index: number): DbProductRaw =>
+  decodeDatabaseRow(row, index, PRODUCT_AUDIT_ROW, dbProductRawSchema)
 
 const decodeCategoryDuplicateRaw = (
-  row: Readonly<Record<string, unknown>>,
+  row: unknown,
   index: number,
-): CategoryDuplicateRaw => ({
-  duplicate_count: getCount(
+): CategoryDuplicateRaw =>
+  decodeDatabaseRow(
     row,
-    DUPLICATE_COUNT_FIELD,
-    CATEGORY_DUPLICATE_ROW,
     index,
-  ),
-  handles: row["handles"],
-  normalized_name: getRequiredString(
-    row,
-    "normalized_name",
     CATEGORY_DUPLICATE_ROW,
-    index,
-  ),
-  parent_category_id: getRequiredString(
-    row,
-    "parent_category_id",
-    CATEGORY_DUPLICATE_ROW,
-    index,
-  ),
-})
+    categoryDuplicateRawSchema,
+  )
 
 const decodeCategoryHandleDuplicateRaw = (
-  row: Readonly<Record<string, unknown>>,
+  row: unknown,
   index: number,
-): CategoryHandleDuplicateRaw => ({
-  base_handle: getRequiredString(
+): CategoryHandleDuplicateRaw =>
+  decodeDatabaseRow(
     row,
-    "base_handle",
-    "category handle duplicate",
     index,
-  ),
-  duplicate_count: getCount(
-    row,
-    DUPLICATE_COUNT_FIELD,
     "category handle duplicate",
-    index,
-  ),
-  handles: row["handles"],
-})
+    categoryHandleDuplicateRawSchema,
+  )
 
 const decodeProductSourceDuplicateRaw = (
-  row: Readonly<Record<string, unknown>>,
+  row: unknown,
   index: number,
-): ProductSourceDuplicateRaw => ({
-  duplicate_count: getCount(
+): ProductSourceDuplicateRaw =>
+  decodeDatabaseRow(
     row,
-    DUPLICATE_COUNT_FIELD,
-    "product source duplicate",
     index,
-  ),
-  handles: row["handles"],
-  source_id: getRequiredString(
-    row,
-    "source_id",
     "product source duplicate",
-    index,
-  ),
-})
+    productSourceDuplicateRawSchema,
+  )
 
 const decodeDuplicateImageRaw = (
-  row: Readonly<Record<string, unknown>>,
+  row: unknown,
   index: number,
-): DuplicateImageRaw => ({
-  canonical_url: getRequiredString(
-    row,
-    "canonical_url",
-    DUPLICATE_IMAGE_ROW,
-    index,
-  ),
-  duplicate_count: getCount(
-    row,
-    DUPLICATE_COUNT_FIELD,
-    DUPLICATE_IMAGE_ROW,
-    index,
-  ),
-  handle: getRequiredString(row, "handle", DUPLICATE_IMAGE_ROW, index),
-  source_shopitem_id: getNullableString(
-    row,
-    SOURCE_SHOPITEM_ID_FIELD,
-    DUPLICATE_IMAGE_ROW,
-    index,
-  ),
-})
+): DuplicateImageRaw =>
+  decodeDatabaseRow(row, index, DUPLICATE_IMAGE_ROW, duplicateImageRawSchema)
 
 interface ScriptOptions {
   xmlPath: string

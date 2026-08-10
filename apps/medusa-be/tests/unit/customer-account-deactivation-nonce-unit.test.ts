@@ -5,12 +5,15 @@ import {
 import { describe, expect, it, vi } from "vitest"
 import type { Mock } from "vitest"
 
-import { CUSTOMER_ACCOUNT_DEACTIVATION_NONCE_METADATA_KEY } from "../../src/utils/customer-account-deactivation"
+import {
+  CUSTOMER_ACCOUNT_DEACTIVATION_NONCE_METADATA_KEY,
+  withoutCustomerAccountDeactivationNonce,
+} from "../../src/utils/customer-account-deactivation"
 
 const { overrideModule } = vi.hoisted(() => ({
   overrideModule: <Module extends object>(
     original: Module,
-    replacements: Record<PropertyKey, unknown>,
+    replacements: object,
   ): Module =>
     Object.defineProperties(
       { ...original },
@@ -61,6 +64,31 @@ const createContainer = (graph: Mock<Graph>): MockContainer => ({
 })
 
 describe("customer deactivation nonce consumption", () => {
+  it("preserves recursive JSON metadata while removing the nonce", () => {
+    expect(
+      withoutCustomerAccountDeactivationNonce({
+        [CUSTOMER_ACCOUNT_DEACTIVATION_NONCE_METADATA_KEY]: "current-nonce",
+        preferences: {
+          categories: ["tea", "herbs"],
+          marketing: false,
+        },
+      }),
+    ).toStrictEqual({
+      preferences: {
+        categories: ["tea", "herbs"],
+        marketing: false,
+      },
+    })
+  })
+
+  it("rejects metadata values that cannot be stored as JSON", () => {
+    expect(() =>
+      withoutCustomerAccountDeactivationNonce({
+        last_seen_at: new Date("2026-08-07T12:00:00.000Z"),
+      }),
+    ).toThrow("Customer metadata contains an invalid JSON value.")
+  })
+
   it("rejects a signed token nonce that is no longer current", async () => {
     const { prepareCustomerAccountDeactivationStep } =
       await import("../../src/workflows/customer/steps/prepare-customer-account-deactivation")

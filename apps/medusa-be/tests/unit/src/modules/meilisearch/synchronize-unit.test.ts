@@ -4,6 +4,7 @@ import {
   createMedusaContainer,
   Modules,
 } from "@medusajs/framework/utils"
+import { getRecordValue } from "@techsio/std/object"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { isMeilisearchEnabled } from "../../../../../src/modules/meilisearch/env"
@@ -16,10 +17,7 @@ import {
 import { PAYLOAD_MODULE } from "../../../../../src/modules/payload"
 
 const admin = vi.hoisted(() => ({
-  addDocuments:
-    vi.fn<
-      (index: string, documents: Record<string, unknown>[]) => Promise<void>
-    >(),
+  addDocuments: vi.fn<(index: string, documents: object[]) => Promise<void>>(),
   deleteDocuments: vi.fn<(index: string, ids: string[]) => Promise<void>>(),
   deleteIndex: vi.fn<(index: string) => Promise<void>>(),
   ensureIndex: vi.fn<(index: string) => Promise<void>>(),
@@ -107,7 +105,7 @@ const profile = {
   strict: false,
 } satisfies SearchProfile
 
-type Graph = (options: Record<string, unknown>) => Promise<unknown>
+type Graph = (options: object) => Promise<unknown>
 type ContentList = (options: {
   limit: number
   locale: string
@@ -168,8 +166,10 @@ const availablePayload = () => ({
   listPublishedPages: vi.fn<ContentList>().mockResolvedValue(emptyContentPage),
 })
 
-const getEntity = (options: Record<string, unknown>): string | undefined =>
-  typeof options["entity"] === "string" ? options["entity"] : undefined
+const getEntity = (options: object): string | undefined => {
+  const entity = getRecordValue(options, "entity")
+  return typeof entity === "string" ? entity : undefined
+}
 
 describe(synchronizeSearchProfiles, () => {
   beforeEach(() => {
@@ -203,7 +203,7 @@ describe(synchronizeSearchProfiles, () => {
         throw new Error(`Unexpected graph entity ${getEntity(options)}`)
       }
 
-      const { filters } = options
+      const filters = getRecordValue(options, "filters")
       const isNextPage =
         typeof filters === "object" && filters !== null && "id" in filters
 
@@ -235,12 +235,22 @@ describe(synchronizeSearchProfiles, () => {
     const firstCall = graph.mock.calls[0]?.[0]
     const secondCall = graph.mock.calls[1]?.[0]
 
-    expect(firstCall?.["fields"]).toContain("variants.title")
-    expect(firstCall?.["pagination"]).toStrictEqual({
+    expect(
+      firstCall === undefined ? undefined : getRecordValue(firstCall, "fields"),
+    ).toContain("variants.title")
+    expect(
+      firstCall === undefined
+        ? undefined
+        : getRecordValue(firstCall, "pagination"),
+    ).toStrictEqual({
       order: { id: "ASC" },
       take: 500,
     })
-    expect(secondCall?.["filters"]).toStrictEqual({
+    expect(
+      secondCall === undefined
+        ? undefined
+        : getRecordValue(secondCall, "filters"),
+    ).toStrictEqual({
       id: { $gt: "product_0499" },
       status: "published",
     })

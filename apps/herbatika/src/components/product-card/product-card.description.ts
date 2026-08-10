@@ -1,4 +1,5 @@
-import type { HttpTypes } from "@medusajs/types"
+import { getRecordValue } from "@techsio/std/object"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 
 import { asRecord } from "./product-card.parsers"
 
@@ -55,22 +56,31 @@ const extractListItems = (value: string): string[] => {
 }
 
 export const resolveDescription = (
-  product: HttpTypes.StoreProduct,
+  product: MedusaCatalogProduct,
 ): string | null => {
   const metadata = asRecord(product.metadata)
-  const contentSectionsMap = asRecord(metadata?.["content_sections_map"])
+  const contentSectionsMap = asRecord(
+    metadata === null
+      ? undefined
+      : getRecordValue(metadata, "content_sections_map"),
+  )
+  const descriptionValue =
+    contentSectionsMap === null
+      ? undefined
+      : getRecordValue(contentSectionsMap, "description")
   const descriptionSection =
-    typeof contentSectionsMap?.["description"] === "string"
-      ? contentSectionsMap["description"]
-      : null
-  const usageSection =
-    typeof contentSectionsMap?.["usage"] === "string"
-      ? contentSectionsMap["usage"]
-      : null
+    typeof descriptionValue === "string" ? descriptionValue : null
+  const usageValue =
+    contentSectionsMap === null
+      ? undefined
+      : getRecordValue(contentSectionsMap, "usage")
+  const usageSection = typeof usageValue === "string" ? usageValue : null
+  const shortDescriptionValue =
+    metadata === null
+      ? undefined
+      : getRecordValue(metadata, "short_description")
   const shortDescription =
-    typeof metadata?.["short_description"] === "string"
-      ? metadata["short_description"]
-      : null
+    typeof shortDescriptionValue === "string" ? shortDescriptionValue : null
 
   const htmlCandidates = [
     descriptionSection,

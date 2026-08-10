@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.2"
+component_version: "2.0.0"
 name: tree-view-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit TreeView for hierarchical data with Zag.js tree-view behavior, node collection, branch and item parts, selection behavior, icons, indentation, expansion, selection, and keyboard/typeahead support.

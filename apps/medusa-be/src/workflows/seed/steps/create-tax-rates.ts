@@ -2,48 +2,36 @@ import type {
   IProductModuleService,
   ITaxModuleService,
   Logger,
+  MetadataType,
   TaxRateDTO,
   TaxRegionDTO,
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import type {
+  CreateTaxRatesWorkflowInput,
+  UpdateTaxRatesWorkflowInput,
+} from "@medusajs/medusa/core-flows"
 import {
   createTaxRatesWorkflow,
   updateTaxRatesWorkflow,
 } from "@medusajs/medusa/core-flows"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
-type TaxRateMetadata = Record<string, unknown>
+type TaxRateSeedMetadataKey =
+  | "seed_country_code"
+  | "seed_rate"
+  | "seed_scope"
+  | "seed_source"
 
-interface CreateTaxRatePayload {
-  tax_region_id: string
-  rate: number
-  code: string
-  name: string
-  is_default?: boolean
-  metadata?: TaxRateMetadata
-  rules?: { reference: string; reference_id: string }[]
-}
-
-interface UpdateTaxRatePayload {
-  selector: { id: string }
-  update: {
-    rate: number
-    code: string
-    name: string
-    is_default?: boolean
-    metadata?: TaxRateMetadata
-    rules?: { reference: string; reference_id: string }[]
-  }
-}
-
-interface CreateTaxRatesStepOutput {
+export interface CreateTaxRatesStepOutput {
   created: TaxRateDTO[]
   updated: TaxRateDTO[]
 }
 
 interface ProductTaxSource {
   id: string
-  metadata?: Record<string, unknown> | null
+  metadata?: MetadataType
 }
 
 interface TaxRateRule {
@@ -58,8 +46,8 @@ interface ExistingTaxRateIndexes {
 }
 
 interface TaxRateSeedPlan {
-  createPayloads: CreateTaxRatePayload[]
-  updatePayloads: UpdateTaxRatePayload[]
+  createPayloads: CreateTaxRatesWorkflowInput
+  updatePayloads: UpdateTaxRatesWorkflowInput[]
 }
 
 type WorkflowContainer = Parameters<typeof createTaxRatesWorkflow>[0]
@@ -106,11 +94,8 @@ const DEFAULT_TAX_RATE_SEED_CONFIG: TaxRateSeedConfig = {
   productRateNameTemplate: DEFAULT_PRODUCT_TAX_RATE_NAME_TEMPLATE,
 }
 
-const isObjectRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value)
-
-const asObject = (value: unknown): Record<string, unknown> | undefined =>
-  isObjectRecord(value) ? value : undefined
+const asObject = (value: unknown): object | undefined =>
+  isRecord(value) ? value : undefined
 
 const normalizeCountryCode = (value: unknown): string | undefined => {
   if (typeof value !== "string") {
@@ -163,10 +148,14 @@ const isSameRate = (
 }
 
 const getMetadataString = (
-  metadata: TaxRateMetadata | null,
-  key: string,
+  metadata: object | null,
+  key: TaxRateSeedMetadataKey,
 ): string | undefined => {
-  const value = metadata?.[key]
+  if (metadata === null) {
+    return undefined
+  }
+
+  const value = getRecordValue(metadata, key)
   if (typeof value !== "string") {
     return undefined
   }
@@ -181,7 +170,7 @@ const formatRateValue = (rate: number): string =>
 const buildDefaultRateMetadata = (
   countryCode: string,
   config: TaxRateSeedConfig,
-): TaxRateMetadata => ({
+) => ({
   seed_country_code: countryCode,
   seed_scope: "default",
   seed_source: config.metadataSource,
@@ -191,7 +180,7 @@ const buildProductRateMetadata = (
   countryCode: string,
   rate: number,
   config: TaxRateSeedConfig,
-): TaxRateMetadata => ({
+) => ({
   seed_country_code: countryCode,
   seed_rate: formatRateValue(rate),
   seed_scope: "product_rate",
@@ -199,7 +188,7 @@ const buildProductRateMetadata = (
 })
 
 const extractProductVat = (
-  metadata: Record<string, unknown> | undefined,
+  metadata: MetadataType | undefined,
   metadataPath: string[] = ["top_offer", "vat"],
 ): number | undefined => {
   let current: unknown = metadata
@@ -208,7 +197,7 @@ const extractProductVat = (
     if (currentObject === undefined) {
       return undefined
     }
-    current = currentObject[segment]
+    current = getRecordValue(currentObject, segment)
   }
 
   return parseRate(current)
@@ -268,7 +257,7 @@ export const buildTaxRateSeedTargets = (
   const overrideProductRateGroups = new Map<number, string[]>()
   for (const product of products) {
     const vat = extractProductVat(
-      asObject(product.metadata),
+      product.metadata,
       config.productOverrides?.metadataPath,
     )
     if (vat === undefined || isSameRate(vat, defaultOverrideRate)) {
@@ -753,7 +742,7 @@ const TAX_RATE_CREATE_CHUNK_SIZE = 250
 
 const runCreateTaxRates = async (params: {
   container: WorkflowContainer
-  createPayloads: CreateTaxRatePayload[]
+  createPayloads: CreateTaxRatesWorkflowInput
   created: TaxRateDTO[]
   offset?: number
 }): Promise<void> => {
@@ -780,7 +769,7 @@ const runCreateTaxRates = async (params: {
 
 const runUpdateTaxRates = async (params: {
   container: WorkflowContainer
-  updatePayloads: UpdateTaxRatePayload[]
+  updatePayloads: UpdateTaxRatesWorkflowInput[]
   updated: TaxRateDTO[]
   offset?: number
 }): Promise<void> => {

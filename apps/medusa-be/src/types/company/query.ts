@@ -28,11 +28,28 @@ export interface QueryGraphEmployee {
   company_id: string
   created_at: QueryGraphDate
   updated_at: QueryGraphDate
-  deleted_at?: QueryGraphDate | null
+  deleted_at?: QueryGraphDate | null | undefined
+  customer?:
+    | {
+        id: string
+        email: string | null
+        first_name?: string | null | undefined
+        last_name?: string | null | undefined
+      }
+    | null
+    | undefined
+}
+
+interface QueryCompanyEmployeeProjection {
   customer?: {
+    email?: string | null
     id: string
-    email: string | null
-    first_name?: string | null | undefined
-    last_name?: string | null | undefined
   } | null
+  deleted_at?: Date | string | null
+  is_admin?: boolean
+}
+
+export interface QueryCompanyProjection {
+  customer_group?: { id: string } | null
+  employees?: (QueryCompanyEmployeeProjection | null)[] | null
 }

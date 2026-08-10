@@ -3,7 +3,7 @@ import path from "node:path"
 
 import { getStoryContext } from "@storybook/test-runner"
 import type { TestRunnerConfig } from "@storybook/test-runner"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 const readBoolEnv = (name: string, defaultValue: boolean): boolean => {
   const raw = process.env[name]
@@ -32,7 +32,6 @@ const readNumberEnv = (name: string, defaultValue: number): number => {
 interface JestConfig {
   modulePathIgnorePatterns?: string[]
   testTimeout?: number
-  [key: string]: unknown
 }
 
 type TestRunnerConfigWithJest = TestRunnerConfig & {
@@ -58,7 +57,7 @@ declare global {
     __STORYBOOK_PREVIEW__?: {
       storyStore: {
         loadStory: (input: { storyId: string }) => Promise<{
-          parameters: Record<string, unknown>
+          parameters: object
         }>
       }
     }
@@ -84,17 +83,15 @@ const outputDir = path.resolve(
 )
 const failOnViolations = readBoolEnv("A11Y_REPORT_FAIL_ON_VIOLATIONS", true)
 
-const readA11yParameters = (
-  storyContext: unknown,
-): Record<string, unknown> | undefined => {
+const readA11yParameters = (storyContext: unknown): object | undefined => {
   if (!isRecord(storyContext)) {
     return undefined
   }
-  const { parameters } = storyContext
+  const parameters = getRecordValue(storyContext, "parameters")
   if (!isRecord(parameters)) {
     return undefined
   }
-  const { a11y } = parameters
+  const a11y = getRecordValue(parameters, "a11y")
   return isRecord(a11y) ? a11y : undefined
 }
 
@@ -120,7 +117,12 @@ const testRunnerConfig: TestRunnerConfigWithJest = {
       storyContext = null
     }
     const a11yParams = readA11yParameters(storyContext)
-    const { disable: a11yDisabled, test: a11yTest } = a11yParams ?? {}
+    const a11yDisabled =
+      a11yParams === undefined
+        ? undefined
+        : getRecordValue(a11yParams, "disable")
+    const a11yTest =
+      a11yParams === undefined ? undefined : getRecordValue(a11yParams, "test")
     const shouldWaitForResults = a11yDisabled !== true && a11yTest !== "off"
 
     if (shouldWaitForResults) {
@@ -169,7 +171,7 @@ const testRunnerConfig: TestRunnerConfigWithJest = {
         }
 
         const story = await preview.storyStore.loadStory({ storyId })
-        const { a11y } = story.parameters
+        const a11y: unknown = Reflect.get(story.parameters, "a11y")
         if (a11y !== null && typeof a11y === "object") {
           Object.assign(story.parameters, { a11y: { ...a11y, test: "todo" } })
         }

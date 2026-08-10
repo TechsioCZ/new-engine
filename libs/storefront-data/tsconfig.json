@@ -8,9 +8,7 @@
     "rootDir": ".",
     "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
-    "lib": ["dom", "dom.iterable", "es2022"],
-    "strictNullChecks": true,
-    "exactOptionalPropertyTypes": true
+    "lib": ["dom", "dom.iterable", "es2022"]
   },
   "include": ["src"]
 }

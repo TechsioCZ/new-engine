@@ -1,5 +1,10 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import type { IAuthModuleService, Query } from "@medusajs/framework/types"
+import type {
+  AuthIdentityDTO,
+  IAuthModuleService,
+  ProviderIdentityDTO,
+  Query,
+} from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -11,7 +16,7 @@ import type { PostSymmyAuthUserEmailPassSchemaType } from "./validators"
 const JWT_TTL_SECONDS = 24 * 60 * 60
 
 const metadataValue = (
-  metadata: Record<string, unknown> | null | undefined,
+  metadata: AuthIdentityDTO["app_metadata"],
   key: string,
 ): unknown => metadata?.[key]
 
@@ -19,9 +24,8 @@ const environmentValue = (key: string): string | undefined => process.env[key]
 
 const resolveUserId = async (
   query: Query,
-  authIdentity: {
-    app_metadata?: Record<string, unknown> | null
-    user_metadata?: Record<string, unknown> | null
+  authIdentity: Pick<AuthIdentityDTO, "app_metadata"> & {
+    user_metadata?: ProviderIdentityDTO["user_metadata"]
   },
 ): Promise<string | undefined> => {
   const linkedUserId = metadataValue(authIdentity.app_metadata, "user_id")

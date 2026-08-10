@@ -2,6 +2,8 @@
 import fs from "node:fs"
 import path from "node:path"
 
+import { getRecordValue, isRecord } from "@techsio/std/object"
+
 interface Violation {
   apca: boolean
   id: string
@@ -82,12 +84,6 @@ if (inputPath === null || outputPath === null) {
   process.exit(1)
 }
 
-const isRecord = (value: unknown): value is object =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
-const readProperty = (value: object, property: string): unknown =>
-  Reflect.get(value, property)
-
 const displayString = (value: unknown, fallback: string): string => {
   if (value === null || value === undefined) {
     return fallback
@@ -114,27 +110,27 @@ const isApcaViolation = (id: string, tags: string[]): boolean =>
 
 const normalizeViolation = (value: unknown): Violation => {
   const violation = isRecord(value) ? value : {}
-  const id = displayString(readProperty(violation, "id"), "unknown")
-  const tagsValue = readProperty(violation, "tags")
+  const id = displayString(getRecordValue(violation, "id"), "unknown")
+  const tagsValue = getRecordValue(violation, "tags")
   const tags = Array.isArray(tagsValue) ? displayStrings(tagsValue) : []
 
   return {
     apca: isApcaViolation(id, tags),
     id,
-    impact: displayString(readProperty(violation, "impact"), "unknown"),
+    impact: displayString(getRecordValue(violation, "impact"), "unknown"),
   }
 }
 
 const normalizeStory = (value: unknown): ReportStory => {
   const story = isRecord(value) ? value : {}
-  const title = displayString(readProperty(story, "title"), UNKNOWN_LABEL)
+  const title = displayString(getRecordValue(story, "title"), UNKNOWN_LABEL)
   const name = displayString(
-    readProperty(story, "name") ?? readProperty(story, "storyId"),
+    getRecordValue(story, "name") ?? getRecordValue(story, "storyId"),
     UNKNOWN_LABEL,
   )
-  const resultsValue = readProperty(story, "results")
+  const resultsValue = getRecordValue(story, "results")
   const results = isRecord(resultsValue) ? resultsValue : {}
-  const violationValues = readProperty(results, "violations") ?? []
+  const violationValues = getRecordValue(results, "violations") ?? []
 
   if (!Array.isArray(violationValues)) {
     throw new TypeError(

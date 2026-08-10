@@ -1,6 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
-import { isRecord, omitUndefined } from "@techsio/std/object"
+import { getRecordValue, isRecord, omitUndefined } from "@techsio/std/object"
 
 import { toComparableTimestamp } from "../shared/date-utils"
 import { isAuthError } from "../shared/medusa-errors"
@@ -46,10 +46,10 @@ export interface MedusaDeactivateCustomerAccountResult {
 }
 
 const readCustomerId = (
-  value: Record<string, unknown>,
+  value: object,
   operation: MedusaAccountDeactivationOperation,
 ): string => {
-  const customerId = value["customer_id"]
+  const customerId = getRecordValue(value, "customer_id")
   if (typeof customerId !== "string" || customerId.trim().length === 0) {
     throw new InvalidMedusaAccountDeactivationResponseError(
       operation,
@@ -69,7 +69,7 @@ const parseDeactivationRequestResponse = (
     )
   }
   const customerId = readCustomerId(value, "request")
-  const { sent } = value
+  const sent = getRecordValue(value, "sent")
   if (typeof sent !== "boolean") {
     throw new InvalidMedusaAccountDeactivationResponseError("request", "sent")
   }
@@ -86,8 +86,8 @@ const parseDeactivationConfirmationResponse = (
     )
   }
   const customerId = readCustomerId(value, "confirm")
-  const authIdentityDeleted = value["auth_identity_deleted"]
-  const { deleted } = value
+  const authIdentityDeleted = getRecordValue(value, "auth_identity_deleted")
+  const deleted = getRecordValue(value, "deleted")
   if (typeof authIdentityDeleted !== "boolean") {
     throw new InvalidMedusaAccountDeactivationResponseError(
       "confirm",

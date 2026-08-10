@@ -71,8 +71,17 @@ export interface SalesChannelOption {
   name: string
 }
 
+export interface SearchTestHit {
+  _rankingScore?: number
+  handle?: string
+  href?: string
+  id?: number | string
+  name?: string
+  title?: string
+}
+
 export interface SearchTestResult {
-  hits: Record<string, unknown>[]
+  hits: SearchTestHit[]
   minimum_ranking_score: number | null
   processing_time_ms: number | null
   profile: string

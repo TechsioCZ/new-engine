@@ -1,4 +1,4 @@
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 export type SearchAutocompleteSuggestionType =
   | "product"
@@ -36,8 +36,14 @@ const isSearchAutocompleteSuggestion = (
   if (!isRecord(value)) {
     return false
   }
-  const { href, id, imageUrl, inStock, priceLabel, subtitle, title, type } =
-    value
+  const href = getRecordValue(value, "href")
+  const id = getRecordValue(value, "id")
+  const imageUrl = getRecordValue(value, "imageUrl")
+  const inStock = getRecordValue(value, "inStock")
+  const priceLabel = getRecordValue(value, "priceLabel")
+  const subtitle = getRecordValue(value, "subtitle")
+  const title = getRecordValue(value, "title")
+  const type = getRecordValue(value, "type")
   if (type !== expectedType) {
     return false
   }
@@ -49,14 +55,14 @@ const isSearchAutocompleteSuggestion = (
     return false
   }
   if (
-    !isOptionalString(subtitle) ||
+    (Object.hasOwn(value, "subtitle") && typeof subtitle !== "string") ||
     !isOptionalString(imageUrl) ||
     !isOptionalString(priceLabel)
   ) {
     return false
   }
 
-  return inStock === undefined || typeof inStock === "boolean"
+  return !Object.hasOwn(value, "inStock") || typeof inStock === "boolean"
 }
 
 const isSuggestionArray = (
@@ -74,7 +80,12 @@ const isSearchAutocompleteResponse = (
   if (!isRecord(value)) {
     return false
   }
-  const { brands, categories, content, degraded, products, query } = value
+  const brands = getRecordValue(value, "brands")
+  const categories = getRecordValue(value, "categories")
+  const content = getRecordValue(value, "content")
+  const degraded = getRecordValue(value, "degraded")
+  const products = getRecordValue(value, "products")
+  const query = getRecordValue(value, "query")
   if (typeof query !== "string" || typeof degraded !== "boolean") {
     return false
   }
@@ -112,53 +123,55 @@ export const parseSearchAutocompleteResponse = (
 export type SearchAutocompleteStatus = "idle" | "loading" | "success" | "error"
 
 export interface RawSearchAutocompleteCategoryRef {
-  id?: unknown
-  name?: unknown
-  handle?: unknown
+  handle: string
+  id: string
+  name: string
 }
 
 export interface RawSearchAutocompleteBrandRef {
-  id?: unknown
-  title?: unknown
-  handle?: unknown
+  handle: string
+  id: string
+  title: string
 }
 
 export interface RawSearchAutocompleteContentHit {
-  excerpt?: unknown
-  href?: unknown
-  id?: unknown
-  title?: unknown
-  type?: unknown
+  excerpt?: string | null
+  href: string
+  id: string
+  title: string
+  type?: string | null
 }
 
 interface RawSearchAutocompleteCalculatedPrice {
-  calculated_amount?: unknown
-  currency_code?: unknown
+  calculated_amount?: number | null
+  currency_code?: string | null
+}
+
+interface RawSearchAutocompleteResult {
+  variant_id?: string | null
+  variant_title?: string | null
+}
+
+interface RawSearchAutocompleteVariant {
+  barcode?: string | null
+  calculated_price?: RawSearchAutocompleteCalculatedPrice | null
+  ean?: string | null
+  id: string
+  sku?: string | null
+  title?: string | null
+  upc?: string | null
 }
 
 export interface RawSearchAutocompleteProductHit {
   brand?: RawSearchAutocompleteBrandRef | null
   categories?: RawSearchAutocompleteCategoryRef[] | null
-  handle?: unknown
-  id?: unknown
-  metadata?: unknown
-  search_result?: {
-    variant_id?: unknown
-    variant_title?: unknown
-  }
-  thumbnail?: unknown
-  title?: unknown
-  variants?:
-    | {
-        barcode?: unknown
-        calculated_price?: RawSearchAutocompleteCalculatedPrice | null
-        ean?: unknown
-        id?: unknown
-        sku?: unknown
-        title?: unknown
-        upc?: unknown
-      }[]
-    | null
+  handle: string
+  id: string
+  metadata?: object | null
+  search_result?: RawSearchAutocompleteResult
+  thumbnail?: string | null
+  title: string
+  variants?: RawSearchAutocompleteVariant[] | null
 }
 
 export const SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH = 2

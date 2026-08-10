@@ -4,7 +4,7 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { isRecord } from "@techsio/std/object"
+import { z } from "@medusajs/framework/zod"
 
 import { ProductMeasurementLink } from "../../../links/product-measurement"
 import { ProductVariantMeasurementLink } from "../../../links/product-variant-measurement"
@@ -37,76 +37,46 @@ import type {
   ProductVariantMeasurementLinkIds,
 } from "./measurement-link-mutations"
 
-type ProductMeasurementLinkRecord = ProductMeasurementLinkIds & {
-  deleted_at?: Date | string | null
-}
-
-type ProductVariantMeasurementLinkRecord = ProductVariantMeasurementLinkIds & {
-  deleted_at?: Date | string | null
-}
-
-const hasValidDeletedAt = (record: Record<string, unknown>) =>
-  record["deleted_at"] === undefined ||
-  record["deleted_at"] === null ||
-  typeof record["deleted_at"] === "string" ||
-  record["deleted_at"] instanceof Date
-
-const isProductMeasurementLinkRecord = (
-  value: unknown,
-): value is ProductMeasurementLinkRecord => {
-  if (!isRecord(value)) {
-    return false
-  }
-
-  const record = value
-
-  return (
-    typeof record["product_id"] === "string" &&
-    typeof record["product_measurement_id"] === "string" &&
-    hasValidDeletedAt(record)
-  )
-}
-
-const isProductVariantMeasurementLinkRecord = (
-  value: unknown,
-): value is ProductVariantMeasurementLinkRecord => {
-  if (!isRecord(value)) {
-    return false
-  }
-
-  const record = value
-
-  return (
-    typeof record["product_variant_id"] === "string" &&
-    typeof record["product_variant_measurement_id"] === "string" &&
-    hasValidDeletedAt(record)
-  )
-}
+const deletedAtSchema = z.union([z.date(), z.string(), z.null()]).optional()
+const productMeasurementLinkSchema = z.object({
+  deleted_at: deletedAtSchema,
+  product_id: z.string(),
+  product_measurement_id: z.string(),
+})
+const productVariantMeasurementLinkSchema = z.object({
+  deleted_at: deletedAtSchema,
+  product_variant_id: z.string(),
+  product_variant_measurement_id: z.string(),
+})
+type ProductVariantMeasurementLinkRecord = z.infer<
+  typeof productVariantMeasurementLinkSchema
+>
+const graphDataSchema = z.object({ data: z.unknown() })
+const productMeasurementLinksSchema = z.array(productMeasurementLinkSchema)
+const productVariantMeasurementLinksSchema = z.array(
+  productVariantMeasurementLinkSchema,
+)
 
 const parseProductMeasurementLinks = (value: unknown) => {
-  if (!(Array.isArray(value) && value.every(isProductMeasurementLinkRecord))) {
+  const parsed = productMeasurementLinksSchema.safeParse(value)
+  if (!parsed.success) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       "Product measurement link query returned invalid data.",
     )
   }
-
-  return value
+  return parsed.data
 }
 
 const parseProductVariantMeasurementLinks = (value: unknown) => {
-  if (
-    !(
-      Array.isArray(value) && value.every(isProductVariantMeasurementLinkRecord)
-    )
-  ) {
+  const parsed = productVariantMeasurementLinksSchema.safeParse(value)
+  if (!parsed.success) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       "Product variant measurement link query returned invalid data.",
     )
   }
-
-  return value
+  return parsed.data
 }
 
 export interface ProductMeasurementTransitionPlan {
@@ -369,13 +339,14 @@ export const prepareProductMeasurementLinkPlanStep = createStep(
       },
       withDeleted: true,
     })
-    if (!isRecord(queryResult)) {
+    const parsedQueryResult = graphDataSchema.safeParse(queryResult)
+    if (!parsedQueryResult.success) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
         "Product measurement link query returned invalid data.",
       )
     }
-    const links = parseProductMeasurementLinks(queryResult["data"])
+    const links = parseProductMeasurementLinks(parsedQueryResult.data.data)
     const target = links.find(
       (link) =>
         link.product_measurement_id === input.product_measurement_id &&
@@ -445,13 +416,16 @@ export const prepareProductVariantMeasurementLinkPlanStep = createStep(
       },
       withDeleted: true,
     })
-    if (!isRecord(queryResult)) {
+    const parsedQueryResult = graphDataSchema.safeParse(queryResult)
+    if (!parsedQueryResult.success) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
         "Product variant measurement link query returned invalid data.",
       )
     }
-    const links = parseProductVariantMeasurementLinks(queryResult["data"])
+    const links = parseProductVariantMeasurementLinks(
+      parsedQueryResult.data.data,
+    )
     const targetLinkByRecordId = new Map<
       string,
       ProductVariantMeasurementLinkRecord

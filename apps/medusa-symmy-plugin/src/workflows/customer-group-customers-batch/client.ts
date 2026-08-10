@@ -12,7 +12,7 @@ import type {
 interface ExistingCustomer {
   id: string
   email: string | null
-  metadata: Record<string, unknown> | null
+  metadata: object | null
   groups: { id: string }[]
 }
 
@@ -25,10 +25,13 @@ interface CustomerIndex {
 const CUSTOMER_FIELDS = ["id", "email", "metadata", "groups.id"] as const
 
 const stringMetadataValue = (
-  metadata: Record<string, unknown> | null | undefined,
+  metadata: object | null | undefined,
   key: string,
 ) => {
-  const value = metadata?.[key]
+  const value: unknown =
+    metadata === null || metadata === undefined
+      ? undefined
+      : Reflect.get(metadata, key)
   return typeof value === "string" && value.length > 0 ? value : null
 }
 
@@ -57,9 +60,6 @@ const findCustomerInIndex = (
   return index.byErpId.get(value) ?? null
 }
 
-const isObjectMap = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
 const decodeCustomer = (value: unknown): ExistingCustomer | null => {
   if (typeof value !== "object" || value === null) {
     return null
@@ -72,7 +72,10 @@ const decodeCustomer = (value: unknown): ExistingCustomer | null => {
     return null
   }
   const metadata = "metadata" in value ? value.metadata : null
-  if (metadata !== null && !isObjectMap(metadata)) {
+  if (
+    metadata !== null &&
+    (typeof metadata !== "object" || Array.isArray(metadata))
+  ) {
     return null
   }
   if (!("groups" in value) || !Array.isArray(value.groups)) {

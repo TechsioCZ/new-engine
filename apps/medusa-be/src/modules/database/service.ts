@@ -37,9 +37,7 @@ class DatabaseModuleService {
   /**
    * Execute a raw SQL query and return the results
    */
-  async sqlRaw<T extends Record<string, unknown> = Record<string, unknown>>(
-    sql: SQL<T>,
-  ): Promise<T[]>
+  async sqlRaw<T = unknown>(sql: SQL<T>): Promise<T[]>
   async sqlRaw(sql: SQL): Promise<unknown[]> {
     const db = await this.initDatabase()
     const [rows] = await db.execute(sql)

@@ -18,6 +18,7 @@ import {
 } from "@/services/cart-service"
 import type {
   Cart,
+  CartLineItemMetadata,
   CompleteCartResult,
   OptimisticCart,
   OptimisticLineItem,
@@ -139,7 +140,7 @@ export const useAddToCart = (options?: UseAddToCartOptions) => {
       variantId: string
       quantity?: number
       autoCreateCart?: boolean
-      metadata?: Record<string, unknown>
+      metadata?: CartLineItemMetadata
     },
     CartMutationContext
   >({

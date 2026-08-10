@@ -14,6 +14,7 @@ import type {
 } from "../src/auth/medusa-service"
 import type { AuthService } from "../src/auth/types"
 import type { CartQueryKeys } from "../src/cart/types"
+import type { MedusaCatalogProduct } from "../src/catalog/medusa-service"
 import type { CatalogFacets } from "../src/catalog/types"
 import {
   createCheckoutCartAddressAdapter,
@@ -61,10 +62,37 @@ interface StoreCartLike {
   payment_collection?: { payment_sessions?: unknown[] } | null
 }
 
+interface ClientFetchInit {
+  body?: { region_id: string }
+  method?: "POST"
+  query?: {
+    cart_id?: string
+    fields?: string
+    limit?: number
+    offset?: number
+    region_id?: string
+  }
+  signal?: AbortSignal | null
+}
+
+interface ClientFetchResponse {
+  cart?: StoreCartLike
+  count?: number
+  limit?: number
+  offset?: number
+  payment_providers?: { id: string }[]
+  products?: { handle: string; id: string; title: string }[]
+  shipping_options?: {
+    amount: number
+    id: string
+    price_type: string
+  }[]
+}
+
 type ClientFetchFn = (
   path: string,
-  init?: { query?: Record<string, unknown> },
-) => Promise<Record<string, unknown>>
+  init?: ClientFetchInit,
+) => Promise<ClientFetchResponse>
 type AddShippingMethodFn = () => Promise<{ cart: StoreCartLike }>
 type RetrieveCartFn = () => Promise<{ cart: StoreCartLike | null }>
 type InitiatePaymentSessionFn = () => Promise<{
@@ -193,7 +221,7 @@ describe(createMedusaStorefrontPreset, () => {
       HttpTypes.StoreProduct,
       HttpTypes.StoreProductCategory,
       HttpTypes.StoreCollection,
-      HttpTypes.StoreProduct,
+      MedusaCatalogProduct,
       ExtendedCatalogFacets,
       CheckoutAddressInput,
       MedusaCartAddressPayload,

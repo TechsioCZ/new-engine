@@ -13,6 +13,7 @@ import {
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 
 import { normalizeUnitCode } from "../workflows/measurement-unit/steps/helpers"
 import type { SeedDatabaseWorkflowInput } from "../workflows/seed/workflows/seed-database"
@@ -2128,7 +2129,7 @@ const buildCategoryExportPathIndex = (
 const buildCategoryMetadata = (
   category: HerbaticaCategoryExport,
   path: string,
-): Record<string, unknown> => ({
+): NonNullable<CategorySeedInput["metadata"]> => ({
   access: category.access,
   bottom_description_html: category.bottomDescriptionHtml,
   expand_in_menu: category.expandInMenu,
@@ -2429,7 +2430,7 @@ const buildVariantMetadata = (
   offer: ParsedOfferData,
   fallbackOffer?: ParsedOfferData,
   referenceDate = new Date(),
-): Record<string, unknown> => {
+): NonNullable<VariantSeedInput["metadata"]> => {
   const basePrice = resolveOfferBasePrice(offer, fallbackOffer)
   const hasActiveDiscount = resolveOfferHasActiveDiscount(
     offer,
@@ -2510,7 +2511,7 @@ const buildProductMetadata = ({
   categoryRefs,
   resolvedProductReferences,
   referenceDate = new Date(),
-}: BuildProductMetadataOptions): Record<string, unknown> => {
+}: BuildProductMetadataOptions): NonNullable<ProductSeedInput["metadata"]> => {
   const normalizedFlags = normalizeFlags(item.flags, topOffer, referenceDate)
   const sourceCategoryIds = dedupeStrings(
     categoryRefs.map((categoryRef) => categoryRef.id),
@@ -3090,57 +3091,39 @@ const addSalePriceListPrice = (
 
 const getVariantMetadata = (
   variant: VariantSeedInput,
-): Record<string, unknown> | undefined => {
-  const { metadata } = variant
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
-    return undefined
-  }
-  return metadata
-}
+): VariantSeedInput["metadata"] => variant.metadata
 
 const getMetadataString = (
-  metadata: Record<string, unknown> | undefined,
+  metadata: VariantSeedInput["metadata"],
   key: string,
 ): string | undefined =>
   typeof metadata?.[key] === "string" ? metadata[key] : undefined
 
 const getMetadataNumber = (
-  metadata: Record<string, unknown> | undefined,
+  metadata: VariantSeedInput["metadata"],
   key: string,
 ): number | undefined =>
   typeof metadata?.[key] === "number" ? metadata[key] : undefined
 
-const hasOptionalPropertyType = (
-  record: Record<string, unknown>,
-  key: string,
-  type: "number" | "string",
-): boolean => record[key] === undefined || typeof record[key] === type
-
-const isParsedPricelist = (value: unknown): value is ParsedPricelist => {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return false
-  }
-  const record = Object.fromEntries(Object.entries(value))
-  const stringKeys = ["title", "actionPriceFrom", "actionPriceUntil"]
-  const numberKeys = [
-    "priceVat",
-    "vat",
-    "standardPrice",
-    "actionPrice",
-    "purchasePrice",
-  ]
-  return (
-    stringKeys.every((key) => hasOptionalPropertyType(record, key, "string")) &&
-    numberKeys.every((key) => hasOptionalPropertyType(record, key, "number"))
-  )
-}
+const parsedPricelistSchema = z.object({
+  actionPrice: z.number().optional(),
+  actionPriceFrom: z.string().optional(),
+  actionPriceUntil: z.string().optional(),
+  priceVat: z.number().optional(),
+  purchasePrice: z.number().optional(),
+  standardPrice: z.number().optional(),
+  title: z.string().optional(),
+  vat: z.number().optional(),
+})
 
 const getMetadataPricelists = (
-  metadata: Record<string, unknown> | undefined,
-): ParsedPricelist[] =>
-  Array.isArray(metadata?.["pricelists"])
-    ? metadata["pricelists"].filter(isParsedPricelist)
-    : []
+  metadata: VariantSeedInput["metadata"],
+): ParsedPricelist[] => {
+  const parsed = z
+    .array(parsedPricelistSchema)
+    .safeParse(metadata?.["pricelists"])
+  return parsed.success ? parsed.data : []
+}
 
 const addDefaultSalePriceFromMetadata = ({
   basePrice,
@@ -3149,7 +3132,7 @@ const addDefaultSalePriceFromMetadata = ({
   salePriceListsByKey,
 }: {
   basePrice: PriceListPriceSeedInput
-  metadata: Record<string, unknown> | undefined
+  metadata: VariantSeedInput["metadata"]
   referenceDate: Date
   salePriceListsByKey: Map<string, PriceListsSeedInput["sales"][number]>
 }) => {
@@ -3259,7 +3242,7 @@ const addVariantPriceListEntries = ({
   salePriceListsByKey,
 }: {
   basePrice: PriceListPriceSeedInput
-  metadata: Record<string, unknown> | undefined
+  metadata: VariantSeedInput["metadata"]
   overridePriceListsByTitle: Map<
     string,
     PriceListsSeedInput["overrides"][number]

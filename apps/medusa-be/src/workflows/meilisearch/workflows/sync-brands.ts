@@ -5,11 +5,10 @@ import {
 import { acquireLockStep, releaseLockStep } from "@medusajs/medusa/core-flows"
 
 import { BRAND_SEARCH_PROJECTION_LOCK_KEY } from "../events"
+import type { SyncMeilisearchBrandsStepInput } from "../steps/sync-brands"
 import { syncMeilisearchBrandsStep } from "../steps/sync-brands"
 
-export interface SyncMeilisearchBrandsWorkflowInput {
-  filters?: Record<string, unknown>
-}
+export type SyncMeilisearchBrandsWorkflowInput = SyncMeilisearchBrandsStepInput
 
 export const syncMeilisearchBrandsWorkflow = createWorkflow(
   "sync-meilisearch-brands",

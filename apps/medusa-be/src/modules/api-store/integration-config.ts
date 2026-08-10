@@ -1,9 +1,8 @@
 import { MedusaError } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
 
 import { API_STORE_MODULE } from "."
 import ApiStoreModuleService from "./service"
-import type { ApiStoreSecretDTO } from "./types"
+import type { ApiStoreCredentials, ApiStoreSecretDTO } from "./types"
 
 export const INTEGRATION_CONFIG_NAMES = {
   COMGATE: "Comgate",
@@ -17,10 +16,13 @@ export const INTEGRATION_CONFIG_NAMES = {
 export type IntegrationConfigName =
   (typeof INTEGRATION_CONFIG_NAMES)[keyof typeof INTEGRATION_CONFIG_NAMES]
 
-export type IntegrationConfigContainer = Record<string, unknown>
+export interface IntegrationConfigContainer {
+  [API_STORE_MODULE]?: ApiStoreModuleService
+  resolve?: (registrationName: string) => unknown
+}
 
 export const getCredentialString = (
-  credentials: Record<string, unknown> | null | undefined,
+  credentials: ApiStoreCredentials | null | undefined,
   ...keys: string[]
 ): string | undefined => {
   if (credentials === null || credentials === undefined) {
@@ -38,7 +40,7 @@ export const getCredentialString = (
 }
 
 export const getCredentialBoolean = (
-  credentials: Record<string, unknown> | null | undefined,
+  credentials: ApiStoreCredentials | null | undefined,
   key: string,
   defaultValue: boolean,
 ): boolean => {
@@ -68,7 +70,7 @@ export const resolveApiStoreService = (
     return service
   }
 
-  const resolver = container["resolve"]
+  const resolver = container.resolve
   if (typeof resolver !== "function") {
     return undefined
   }
@@ -117,5 +119,4 @@ export const requireEnabledIntegrationConfig = async (
 
 export const requireCredentialObject = (
   config: ApiStoreSecretDTO,
-): Record<string, unknown> =>
-  isRecord(config.credentials) ? config.credentials : {}
+): ApiStoreCredentials => config.credentials ?? {}

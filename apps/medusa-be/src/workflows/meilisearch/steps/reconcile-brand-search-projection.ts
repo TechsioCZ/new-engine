@@ -4,16 +4,19 @@ import {
   SearchUtils,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { z } from "@medusajs/framework/zod"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
-import { isRecord } from "@techsio/std/object"
 
 import { BRANDS, MEILISEARCH } from "../"
 import { isMeilisearchEnabled } from "../../../modules/meilisearch/env"
 import type { BrandSearchProjectionTargets } from "./resolve-brand-search-projection-targets"
 
-type SearchDocument = Record<string, unknown> & {
-  id: string
-}
+const searchDocumentSchema = z.looseObject({
+  handle: z.unknown().optional(),
+  id: z.string(),
+  status: z.unknown().optional(),
+})
+type SearchDocument = z.infer<typeof searchDocumentSchema>
 
 export interface BrandSearchProjectionResult {
   brands_deleted: number
@@ -34,10 +37,10 @@ const asSearchDocuments = (records: unknown): SearchDocument[] => {
     return []
   }
 
-  return records.filter(
-    (record): record is SearchDocument =>
-      isRecord(record) && typeof record["id"] === "string",
-  )
+  return records.flatMap((record) => {
+    const parsed = searchDocumentSchema.safeParse(record)
+    return parsed.success ? [parsed.data] : []
+  })
 }
 
 export const reconcileBrandSearchProjection = async (
@@ -74,8 +77,8 @@ export const reconcileBrandSearchProjection = async (
     )
     const transformedBrands = brands.map((brand) => ({
       ...brand,
-      ...(typeof brand["handle"] === "string"
-        ? { handle: `/store/brands/${brand["handle"]}/products` }
+      ...(typeof brand.handle === "string"
+        ? { handle: `/store/brands/${brand.handle}/products` }
         : {}),
     }))
 

@@ -29,7 +29,7 @@ interface UseDataTableProps<TData> {
   enableExpandableRows?: boolean
   getRowId?: (original: TData, index: number) => string
   getSubRows?: (original: TData) => TData[]
-  meta?: Record<string, unknown>
+  meta?: TableOptions<TData>["meta"]
   prefix?: string
 }
 

@@ -2,15 +2,16 @@ import type {
   AuthenticatedMedusaRequest,
   MedusaResponse,
 } from "@medusajs/framework"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import { AdminGetApprovals } from "../../../../../../src/api/admin/approvals/validators"
 import type { AdminGetApprovalsType } from "../../../../../../src/api/admin/approvals/validators"
 
 const { overrideModule } = vi.hoisted(() => ({
   overrideModule: <Module extends object>(
     original: Module,
-    replacements: Record<PropertyKey, unknown>,
+    replacements: object,
   ): Module =>
     Object.defineProperties(
       { ...original },
@@ -33,7 +34,10 @@ type MockJsonResponse = MedusaResponse & { json: JsonMock }
 const assertMockJsonResponse: (
   candidate: unknown,
 ) => asserts candidate is MockJsonResponse = (candidate) => {
-  if (!isRecord(candidate) || typeof candidate["json"] !== "function") {
+  if (
+    !isRecord(candidate) ||
+    typeof getRecordValue(candidate, "json") !== "function"
+  ) {
     throw new TypeError("Expected a mock response with a json method")
   }
 }
@@ -45,14 +49,16 @@ const assertMockRequest: (
 ) => {
   if (
     !isRecord(candidate) ||
-    !isRecord(candidate["queryConfig"]) ||
-    !isRecord(candidate["scope"])
+    !isRecord(getRecordValue(candidate, "queryConfig")) ||
+    !isRecord(getRecordValue(candidate, "scope"))
   ) {
     throw new TypeError("Expected a route request mock")
   }
+  const scope = getRecordValue(candidate, "scope")
   if (
-    typeof candidate["scope"]["resolve"] !== "function" ||
-    !isRecord(candidate["validatedQuery"])
+    !isRecord(scope) ||
+    typeof getRecordValue(scope, "resolve") !== "function" ||
+    !isRecord(getRecordValue(candidate, "validatedQuery"))
   ) {
     throw new TypeError("Expected a route request mock")
   }
@@ -68,8 +74,9 @@ const createMockResponse = (): MockJsonResponse => {
 
 const createMockRequest = (
   graph: GraphMock,
-  validatedQuery: Record<string, unknown> = {},
+  query: unknown = {},
 ): AuthenticatedMedusaRequest<AdminGetApprovalsType> => {
+  const validatedQuery = AdminGetApprovals.parse(query)
   const candidate: unknown = {
     queryConfig: {},
     scope: {
@@ -131,11 +138,13 @@ describe("GET /admin/approvals", () => {
     if (!isRecord(graphInput)) {
       throw new TypeError("Expected graph input")
     }
-    expect(graphInput["entity"]).toBe("approval_status")
-    expect(graphInput["fields"]).toStrictEqual(
+    expect(getRecordValue(graphInput, "entity")).toBe("approval_status")
+    expect(getRecordValue(graphInput, "fields")).toStrictEqual(
       expect.arrayContaining(["cart.approvals.*"]),
     )
-    expect(graphInput["filters"]).toStrictEqual({ status: "pending" })
+    expect(getRecordValue(graphInput, "filters")).toStrictEqual({
+      status: "pending",
+    })
     expect(res.json).toHaveBeenCalledWith({
       carts_with_approvals: [
         {

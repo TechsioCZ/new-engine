@@ -9,6 +9,7 @@
  * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
  * the steps-usage skill's component_version and a changelog entry. Bump all three together.
  */
+import { getRecordValue } from "@techsio/std/object"
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import type { PropTypes } from "@zag-js/react"
 import { connect as connectSteps, machine as stepsMachine } from "@zag-js/steps"
@@ -183,7 +184,7 @@ const stepsVariants = tv({
 })
 
 type StepsApi = ZagStepsApi<PropTypes>
-type StepsOrientation = "horizontal" | "vertical"
+type StepsOrientation = NonNullable<StepsMachineProps["orientation"]>
 type StepsSize = NonNullable<VariantProps<typeof stepsVariants>["size"]>
 type StepsItemState = ZagStepsItemState
 type StepsStyles = ReturnType<typeof stepsVariants>
@@ -249,9 +250,9 @@ const getStepStatusDataProps = (state: StepsItemState) => ({
 })
 
 const getOrientationFromApi = (api: StepsApi): StepsOrientation => {
-  const rootProps: Record<string, unknown> = api.getRootProps()
+  const rootProps = api.getRootProps()
 
-  return rootProps["data-orientation"] === "vertical"
+  return getRecordValue(rootProps, "data-orientation") === "vertical"
     ? "vertical"
     : "horizontal"
 }

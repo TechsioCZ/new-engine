@@ -5,6 +5,26 @@ export interface StoreProductExtended extends StoreProduct {
   brand?: Brand
 }
 
+export interface ProductListCalculatedPrice {
+  calculated_amount_with_tax?: number | null
+  calculated_amount_without_tax?: number | null
+  currency_code: string | null
+}
+
+export interface ProductListVariant {
+  calculated_price?: ProductListCalculatedPrice | null
+  inventory_quantity?: number | null
+  title: string | null
+}
+
+export interface ProductListProduct {
+  handle: string
+  id: string
+  thumbnail: string | null
+  title: string
+  variants: ProductListVariant[] | null
+}
+
 // Lightweight type for product listing
 type StockStatus = keyof {
   "in-stock": true

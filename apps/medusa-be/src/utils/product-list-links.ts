@@ -3,50 +3,55 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
+import { isRecord } from "@techsio/std/object"
 
 import { CustomerProductListLink } from "../links/customer-product-list"
-import { isObjectRecord } from "./guards"
 
 export interface CustomerProductListLinkRecord {
-  customer_id?: string
-  product_list_id?: string
+  customer_id?: string | undefined
+  product_list_id?: string | undefined
 }
 
 export interface ProductListItemProductLinkRecord {
-  product_id?: string
-  product_list_item_id?: string
+  product_id?: string | undefined
+  product_list_item_id?: string | undefined
 }
 
 export interface ProductListItemVariantLinkRecord {
-  product_variant_id?: string
-  product_list_item_id?: string
+  product_variant_id?: string | undefined
+  product_list_item_id?: string | undefined
 }
 
 const CUSTOMER_PRODUCT_LIST_LINK_LOOKUP_CHUNK_SIZE = 1000
 
-const isOptionalString = (value: unknown): boolean =>
-  value === undefined || typeof value === "string"
+const customerProductListLinkSchema = z.object({
+  customer_id: z.string().optional(),
+  product_list_id: z.string().optional(),
+})
+const productListItemProductLinkSchema = z.object({
+  product_id: z.string().optional(),
+  product_list_item_id: z.string().optional(),
+})
+const productListItemVariantLinkSchema = z.object({
+  product_list_item_id: z.string().optional(),
+  product_variant_id: z.string().optional(),
+})
 
 const isCustomerProductListLinkRecord = (
   value: unknown,
 ): value is CustomerProductListLinkRecord =>
-  isObjectRecord(value) &&
-  isOptionalString(value["customer_id"]) &&
-  isOptionalString(value["product_list_id"])
+  customerProductListLinkSchema.safeParse(value).success && isRecord(value)
 
 const isProductListItemProductLinkRecord = (
   value: unknown,
 ): value is ProductListItemProductLinkRecord =>
-  isObjectRecord(value) &&
-  isOptionalString(value["product_id"]) &&
-  isOptionalString(value["product_list_item_id"])
+  productListItemProductLinkSchema.safeParse(value).success && isRecord(value)
 
 const isProductListItemVariantLinkRecord = (
   value: unknown,
 ): value is ProductListItemVariantLinkRecord =>
-  isObjectRecord(value) &&
-  isOptionalString(value["product_variant_id"]) &&
-  isOptionalString(value["product_list_item_id"])
+  productListItemVariantLinkSchema.safeParse(value).success && isRecord(value)
 
 const toCustomerProductListLinks = (value: unknown) =>
   Array.isArray(value) ? value.filter(isCustomerProductListLinkRecord) : []

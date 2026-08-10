@@ -1,5 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query"
-import { isRecord as isPlainRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord as isPlainRecord } from "@techsio/std/object"
 
 import type { CartQueryKeys } from "../cart/types"
 import {
@@ -93,11 +93,11 @@ const matchesActiveKeySegment = ({
   ) {
     return getSortedRecordKeys(base, cartVariant, regionVariant).every((key) =>
       matchesActiveKeySegment({
-        base: base[key],
-        candidate: candidate[key],
+        base: getRecordValue(base, key),
+        candidate: getRecordValue(candidate, key),
         cartId,
-        cartVariant: cartVariant[key],
-        regionVariant: regionVariant[key],
+        cartVariant: getRecordValue(cartVariant, key),
+        regionVariant: getRecordValue(regionVariant, key),
       }),
     )
   }
@@ -116,7 +116,7 @@ const hasCartId = (value: unknown, cartId?: string): value is CartLike => {
     return false
   }
 
-  const { id: valueId } = value
+  const valueId = getRecordValue(value, "id")
   if (typeof valueId !== "string") {
     return false
   }

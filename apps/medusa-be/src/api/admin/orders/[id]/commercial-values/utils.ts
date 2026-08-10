@@ -1,11 +1,16 @@
 import type { MedusaContainer } from "@medusajs/framework"
-import type { Query } from "@medusajs/framework/types"
+import type {
+  BigNumberInput,
+  IOrderModuleService,
+  OrderPreviewDTO,
+  Query,
+} from "@medusajs/framework/types"
+import type { BigNumber as MedusaBigNumber } from "@medusajs/framework/utils"
 import {
   MedusaError,
   Modules,
   OrderChangeStatus,
 } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
 
 import type {
   CommercialAdjustmentInput,
@@ -25,94 +30,103 @@ import {
 import type { ApplyCommercialValuesOrder } from "../../../../../workflows/order-commercial-values/apply-commercial-values"
 import type { PostAdminOrderCommercialValuesPreviewSchemaType } from "./validators"
 
-interface RawAmountValue {
-  value?: number | string | null
-}
-
-interface BigNumberAmountValue {
-  numeric_?: number | string | null
-  toString?: () => string
+interface GraphAmountValue {
+  numeric?: unknown
+  value?: unknown
 }
 
 type AmountValue =
-  | number
-  | string
-  | RawAmountValue
-  | BigNumberAmountValue
+  | BigNumberInput
+  | GraphAmountValue
+  | MedusaBigNumber
   | null
   | undefined
 
+interface CommercialValuesOrderAdjustment {
+  amount: AmountValue
+  code?: string | null | undefined
+  description?: string | null | undefined
+  is_tax_inclusive?: boolean | null | undefined
+  item_id?: string | null | undefined
+  promotion_id?: string | null | undefined
+  provider_id?: string | null | undefined
+  shipping_method_id?: string | null | undefined
+  total?: AmountValue
+}
+
 interface CommercialValuesOrderItem {
-  id: string
-  adjustments?: CommercialAdjustmentInput[] | null
-  detail?: {
-    quantity?: AmountValue
-    raw_quantity?: RawAmountValue | null
-    raw_unit_price?: RawAmountValue | null
-    unit_price?: AmountValue
-  } | null
+  adjustments?: (CommercialValuesOrderAdjustment | null)[] | null | undefined
+  detail?:
+    | {
+        quantity?: AmountValue
+        raw_quantity?: AmountValue
+        raw_unit_price?: AmountValue
+        unit_price?: AmountValue
+      }
+    | null
+    | undefined
   discount_total?: AmountValue
+  id: string
+  is_discountable?: boolean | null | undefined
+  is_tax_inclusive?: boolean | null | undefined
   original_subtotal?: AmountValue
   original_total?: AmountValue
-  raw_original_subtotal?: RawAmountValue | null
-  raw_original_total?: RawAmountValue | null
-  raw_quantity?: RawAmountValue | null
-  raw_subtotal?: RawAmountValue | null
-  raw_total?: RawAmountValue | null
-  raw_unit_price?: RawAmountValue | null
-  subtotal?: AmountValue
-  is_discountable?: boolean | null
-  is_tax_inclusive?: boolean | null
-  product_title?: string | null
+  product_title?: string | null | undefined
   quantity?: AmountValue
-  subtitle?: string | null
+  raw_original_subtotal?: AmountValue
+  raw_original_total?: AmountValue
+  raw_quantity?: AmountValue
+  raw_subtotal?: AmountValue
+  raw_total?: AmountValue
+  raw_unit_price?: AmountValue
+  subtitle?: string | null | undefined
+  subtotal?: AmountValue
   tax_total?: AmountValue
-  thumbnail?: string | null
-  title?: string | null
+  thumbnail?: string | null | undefined
+  title?: string | null | undefined
   total?: AmountValue
   unit_price?: AmountValue
-  variant_sku?: string | null
-  variant_title?: string | null
+  variant_sku?: string | null | undefined
+  variant_title?: string | null | undefined
 }
 
 interface CommercialValuesOrderShippingMethod {
-  id: string
-  adjustments?: CommercialAdjustmentInput[] | null
+  adjustments?: (CommercialValuesOrderAdjustment | null)[] | null | undefined
   amount?: AmountValue
-  name?: string | null
+  id: string
+  name?: string | null | undefined
   original_subtotal?: AmountValue
   original_total?: AmountValue
-  raw_amount?: RawAmountValue | null
-  raw_original_subtotal?: RawAmountValue | null
-  raw_original_total?: RawAmountValue | null
-  raw_subtotal?: RawAmountValue | null
-  raw_tax_total?: RawAmountValue | null
-  raw_total?: RawAmountValue | null
-  shipping_option_id?: string | null
+  raw_amount?: AmountValue
+  raw_original_subtotal?: AmountValue
+  raw_original_total?: AmountValue
+  raw_subtotal?: AmountValue
+  raw_tax_total?: AmountValue
+  raw_total?: AmountValue
+  shipping_option_id?: string | null | undefined
   subtotal?: AmountValue
   tax_total?: AmountValue
   total?: AmountValue
 }
 
 export interface CommercialValuesOrder {
+  currency_code?: string | null | undefined
   id: string
-  currency_code?: string | null
-  items?: CommercialValuesOrderItem[] | null
-  shipping_methods?: CommercialValuesOrderShippingMethod[] | null | undefined
-  status?: string | null
+  items?: (CommercialValuesOrderItem | null)[] | null | undefined
+  shipping_methods?:
+    | (CommercialValuesOrderShippingMethod | null)[]
+    | null
+    | undefined
+  status?: string | null | undefined
   total?: AmountValue
   version?: AmountValue
 }
 
 export interface ActiveOrderChange {
-  change_type?: string | null
+  change_type?: string | null | undefined
   id: string
   status: "pending" | "requested"
   version: number
-}
-
-type ActiveOrderChangeRecord = Omit<ActiveOrderChange, "version"> & {
-  version?: number | string | null
 }
 
 const ORDER_FIELDS = [
@@ -122,8 +136,6 @@ const ORDER_FIELDS = [
   "total",
   "currency_code",
   "items.id",
-  "items.*",
-  "items.detail.*",
   "items.title",
   "items.subtitle",
   "items.thumbnail",
@@ -157,12 +169,8 @@ const ORDER_FIELDS = [
   "items.adjustments.item_id",
   "items.adjustments.promotion_id",
   "items.adjustments.provider_id",
-  "items.adjustments.subtotal",
   "items.adjustments.total",
-  "items.adjustments.raw_subtotal",
-  "items.adjustments.raw_total",
   "shipping_methods.id",
-  "shipping_methods.*",
   "shipping_methods.name",
   "shipping_methods.amount",
   "shipping_methods.original_subtotal",
@@ -184,13 +192,24 @@ const ORDER_FIELDS = [
   "shipping_methods.adjustments.promotion_id",
   "shipping_methods.adjustments.provider_id",
   "shipping_methods.adjustments.shipping_method_id",
-  "shipping_methods.adjustments.subtotal",
   "shipping_methods.adjustments.total",
-  "shipping_methods.adjustments.raw_subtotal",
-  "shipping_methods.adjustments.raw_total",
 ]
 
 const ACTIVE_ORDER_CHANGE_FIELDS = ["id", "status", "version", "change_type"]
+
+const getCommercialValuesOrderItems = (order: CommercialValuesOrder) =>
+  (order.items ?? []).filter((item) => item !== null)
+
+const getCommercialValuesOrderShippingMethods = (
+  order: CommercialValuesOrder,
+) =>
+  (order.shipping_methods ?? []).filter(
+    (shippingMethod) => shippingMethod !== null,
+  )
+
+const getCommercialValuesAdjustments = (
+  adjustments: (CommercialValuesOrderAdjustment | null)[] | null | undefined,
+) => (adjustments ?? []).filter((adjustment) => adjustment !== null)
 
 const NON_EDITABLE_STATUSES = new Set(["canceled", "archived", "draft"])
 const ORDER_TOTAL_FIELD = "order total"
@@ -202,24 +221,21 @@ const normalizeAmountValue = (value: AmountValue) => {
   }
 
   if ("value" in value) {
-    return value.value
+    return typeof value.value === "number" || typeof value.value === "string"
+      ? value.value
+      : null
   }
 
-  if ("numeric_" in value) {
-    return value.numeric_
+  if ("numeric" in value) {
+    return typeof value.numeric === "number" ||
+      typeof value.numeric === "string"
+      ? value.numeric
+      : null
   }
 
-  // BigNumberAmountValue may expose only toString(); the string still goes
-  // through toFiniteAmount's finiteness validation.
-  const stringify = value.toString
-  if (
-    typeof stringify === "function" &&
-    stringify !== Object.prototype.toString
-  ) {
-    return stringify.call(value)
-  }
-
-  return null
+  return "toNumber" in value && typeof value.toNumber === "function"
+    ? value.toNumber()
+    : null
 }
 
 const toFiniteAmount = (value: AmountValue, fieldName: string) => {
@@ -265,68 +281,6 @@ const toSafeInteger = (value: AmountValue, fieldName: string) => {
 const toOrderVersion = (version: AmountValue) =>
   toSafeInteger(version ?? 0, "order version")
 
-const isCommercialValuesEntity = (value: unknown) => {
-  if (!isRecord(value) || typeof value["id"] !== "string") {
-    return false
-  }
-
-  const { adjustments } = value
-  return (
-    adjustments === null ||
-    adjustments === undefined ||
-    Array.isArray(adjustments)
-  )
-}
-
-const isCommercialValuesOrderItem = (
-  value: unknown,
-): value is CommercialValuesOrderItem => isCommercialValuesEntity(value)
-
-const isCommercialValuesOrderShippingMethod = (
-  value: unknown,
-): value is CommercialValuesOrderShippingMethod =>
-  isCommercialValuesEntity(value)
-
-const isCommercialValuesOrder = (
-  value: unknown,
-): value is CommercialValuesOrder => {
-  if (!isRecord(value) || typeof value["id"] !== "string") {
-    return false
-  }
-
-  const hasValidItems =
-    value["items"] === undefined ||
-    value["items"] === null ||
-    (Array.isArray(value["items"]) &&
-      value["items"].every(isCommercialValuesOrderItem))
-  const hasValidShippingMethods =
-    value["shipping_methods"] === undefined ||
-    value["shipping_methods"] === null ||
-    (Array.isArray(value["shipping_methods"]) &&
-      value["shipping_methods"].every(isCommercialValuesOrderShippingMethod))
-
-  return hasValidItems && hasValidShippingMethods
-}
-
-const isActiveOrderChangeRecord = (
-  value: unknown,
-): value is ActiveOrderChangeRecord =>
-  isRecord(value) &&
-  typeof value["id"] === "string" &&
-  (value["status"] === OrderChangeStatus.PENDING ||
-    value["status"] === OrderChangeStatus.REQUESTED)
-
-const toQueryRows = (data: unknown, entityName: string): unknown[] => {
-  if (!Array.isArray(data)) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      `${entityName} query returned invalid data`,
-    )
-  }
-
-  return data
-}
-
 const requireCurrencyCode = (order: CommercialValuesOrder) => {
   if (
     order.currency_code === null ||
@@ -349,16 +303,12 @@ export const isReusableCommercialValuesOrderEdit = (
   activeOrderChange.status === "pending"
 
 const mapAdjustment = (
-  adjustment: CommercialAdjustmentInput,
+  adjustment: CommercialValuesOrderAdjustment,
 ): CommercialAdjustmentInput => ({
   amount: toFiniteAmount(adjustment.amount, "adjustment amount"),
   code: adjustment.code ?? undefined,
   description: adjustment.description ?? undefined,
-  discount_intent:
-    adjustment.discount_intent ??
-    decodeCommercialDiscountIntent(adjustment.description),
-  is_preserved_manual_discount:
-    adjustment.is_preserved_manual_discount ?? undefined,
+  discount_intent: decodeCommercialDiscountIntent(adjustment.description),
   is_tax_inclusive: adjustment.is_tax_inclusive ?? undefined,
   item_id: adjustment.item_id ?? undefined,
   promotion_id: adjustment.promotion_id ?? undefined,
@@ -403,7 +353,7 @@ const getShippingMethodSubtotal = (
 
 const toDisplayShippingAdjustmentAmount = (
   amount: number,
-  adjustment: CommercialAdjustmentInput,
+  adjustment: CommercialValuesOrderAdjustment,
   shippingMethod: CommercialValuesOrderShippingMethod,
 ) => {
   const adjustmentTotal = adjustment.total
@@ -428,7 +378,7 @@ const toDisplayShippingAdjustmentAmount = (
 }
 
 const mapShippingAdjustment = (
-  adjustment: CommercialAdjustmentInput,
+  adjustment: CommercialValuesOrderAdjustment,
   shippingMethod: CommercialValuesOrderShippingMethod,
 ): CommercialAdjustmentInput => {
   const mapped = mapAdjustment(adjustment)
@@ -507,7 +457,7 @@ const mapItem = (
   const quantity = getItemQuantity(item)
   const unitPrice = getItemUnitPrice(item, quantity)
   const manualAdjustmentTotal = getManualAdjustmentTotal(
-    (item.adjustments ?? []).map(mapAdjustment),
+    getCommercialValuesAdjustments(item.adjustments).map(mapAdjustment),
   )
   const nonManualDiscountTotal = Math.max(
     toFiniteAmount(item.discount_total ?? 0, "item discount total") -
@@ -539,7 +489,9 @@ const mapItem = (
   return {
     current_subtotal: currentSubtotal,
     current_tax_total: currentTaxTotal,
-    existing_adjustments: (item.adjustments ?? []).map(mapAdjustment),
+    existing_adjustments: getCommercialValuesAdjustments(item.adjustments).map(
+      mapAdjustment,
+    ),
     is_discountable: item.is_discountable ?? true,
     is_tax_inclusive: item.is_tax_inclusive ?? false,
     item_id: item.id,
@@ -565,9 +517,9 @@ const mapShippingMethod = (
       taxTotal === null || taxTotal === undefined
         ? undefined
         : toFiniteAmount(taxTotal, SHIPPING_TAX_TOTAL_FIELD),
-    existing_adjustments: (shippingMethod.adjustments ?? []).map((adjustment) =>
-      mapShippingAdjustment(adjustment, shippingMethod),
-    ),
+    existing_adjustments: getCommercialValuesAdjustments(
+      shippingMethod.adjustments,
+    ).map((adjustment) => mapShippingAdjustment(adjustment, shippingMethod)),
     name: shippingMethod.name ?? undefined,
     shipping_method_id: shippingMethod.id,
   }
@@ -577,13 +529,13 @@ const getManualDiscountBaselineTotal = (order: CommercialValuesOrder) => {
   let manualItemDiscountTotal = 0
   let manualShippingDiscountTotal = 0
 
-  for (const item of order.items ?? []) {
+  for (const item of getCommercialValuesOrderItems(order)) {
     manualItemDiscountTotal += getManualAdjustmentTotal(
-      (item.adjustments ?? []).map(mapAdjustment),
+      getCommercialValuesAdjustments(item.adjustments).map(mapAdjustment),
     )
   }
 
-  for (const shippingMethod of order.shipping_methods ?? []) {
+  for (const shippingMethod of getCommercialValuesOrderShippingMethods(order)) {
     const mapped = mapShippingMethod(shippingMethod)
     manualShippingDiscountTotal += getManualAdjustmentTotal(
       mapped.existing_adjustments,
@@ -678,26 +630,20 @@ const toCalculationAdjustments = ({
 export const fetchCommercialValuesOrder = async (
   query: Query,
   orderId: string,
-) => {
+): Promise<CommercialValuesOrder | undefined> => {
   const result = await query.graph({
     entity: "order",
     fields: ORDER_FIELDS,
     filters: { id: orderId },
   })
-  const rows = toQueryRows(result.data, "order")
-  const [order] = rows
 
-  if (order !== undefined && !isCommercialValuesOrder(order)) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "Order query returned invalid order data",
-    )
-  }
-
-  return order
+  return result.data[0]
 }
 
-export const fetchActiveOrderChange = async (query: Query, orderId: string) => {
+export const fetchActiveOrderChange = async (
+  query: Query,
+  orderId: string,
+): Promise<ActiveOrderChange | undefined> => {
   const result = await query.graph({
     entity: "order_change",
     fields: ACTIVE_ORDER_CHANGE_FIELDS,
@@ -707,12 +653,15 @@ export const fetchActiveOrderChange = async (query: Query, orderId: string) => {
     },
     pagination: { take: 1 },
   })
-  const rows = toQueryRows(result.data, "order_change")
-  const [activeOrderChange] = rows
+
+  const [activeOrderChange] = result.data
+  if (activeOrderChange === undefined) {
+    return undefined
+  }
 
   if (
-    activeOrderChange !== undefined &&
-    !isActiveOrderChangeRecord(activeOrderChange)
+    activeOrderChange.status !== "pending" &&
+    activeOrderChange.status !== "requested"
   ) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
@@ -720,16 +669,15 @@ export const fetchActiveOrderChange = async (query: Query, orderId: string) => {
     )
   }
 
-  return activeOrderChange === undefined
-    ? undefined
-    : {
-        ...activeOrderChange,
-        change_type: activeOrderChange.change_type ?? null,
-        version: toSafeInteger(
-          activeOrderChange.version ?? 0,
-          "order change version",
-        ),
-      }
+  return {
+    change_type: activeOrderChange.change_type,
+    id: activeOrderChange.id,
+    status: activeOrderChange.status,
+    version: toSafeInteger(
+      activeOrderChange.version ?? 0,
+      "order change version",
+    ),
+  }
 }
 
 export const getCommercialValuesEditBlockers = (
@@ -892,11 +840,13 @@ const mergePreviewShippingMethod = (
 
 const mergeOrderChangePreview = (
   order: CommercialValuesOrder,
-  preview: CommercialValuesOrder,
+  preview: OrderPreviewDTO,
 ): CommercialValuesOrder => {
-  const itemsById = new Map((order.items ?? []).map((item) => [item.id, item]))
+  const itemsById = new Map(
+    getCommercialValuesOrderItems(order).map((item) => [item.id, item]),
+  )
   const shippingMethodsById = new Map(
-    (order.shipping_methods ?? []).map((shippingMethod) => [
+    getCommercialValuesOrderShippingMethods(order).map((shippingMethod) => [
       shippingMethod.id,
       shippingMethod,
     ]),
@@ -932,17 +882,10 @@ const fetchOrderChangePreview = async (
   orderId: string,
   order: CommercialValuesOrder,
 ) => {
-  const orderModuleService = container.resolve(Modules.ORDER) as {
-    previewOrderChange: (orderId: string) => Promise<unknown>
-  }
+  const orderModuleService = container.resolve<IOrderModuleService>(
+    Modules.ORDER,
+  )
   const preview = await orderModuleService.previewOrderChange(orderId)
-
-  if (!isCommercialValuesOrder(preview)) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "Order preview returned invalid order data",
-    )
-  }
 
   return mergeOrderChangePreview(order, preview)
 }
@@ -1000,7 +943,7 @@ export const toCommercialValuesSnapshot = (
     edit_blockers: blockers,
     editable: blockers.length === 0,
     expected_order_version: toOrderVersion(order.version),
-    items: (order.items ?? []).map((item) => {
+    items: getCommercialValuesOrderItems(order).map((item) => {
       const mapped = mapItem(item)
 
       return {
@@ -1019,17 +962,19 @@ export const toCommercialValuesSnapshot = (
       }
     }),
     order_id: order.id,
-    shipping_methods: (order.shipping_methods ?? []).map((shippingMethod) => {
-      const mapped = mapShippingMethod(shippingMethod)
+    shipping_methods: getCommercialValuesOrderShippingMethods(order).map(
+      (shippingMethod) => {
+        const mapped = mapShippingMethod(shippingMethod)
 
-      return {
-        current_subtotal: mapped.current_subtotal,
-        current_tax_total: mapped.current_tax_total ?? 0,
-        existing_adjustments: mapped.existing_adjustments ?? [],
-        name: mapped.name,
-        shipping_method_id: mapped.shipping_method_id,
-      }
-    }),
+        return {
+          current_subtotal: mapped.current_subtotal,
+          current_tax_total: mapped.current_tax_total ?? 0,
+          existing_adjustments: mapped.existing_adjustments ?? [],
+          name: mapped.name,
+          shipping_method_id: mapped.shipping_method_id,
+        }
+      },
+    ),
     totals: {
       current_total: toFiniteAmount(order.total, ORDER_TOTAL_FIELD),
       original_total: getManualDiscountBaselineTotal(order),
@@ -1042,9 +987,11 @@ export const toCommercialValuesCalculationInput = (
   body: PostAdminOrderCommercialValuesPreviewSchemaType,
 ): CommercialValuesCalculationInput => {
   const currencyCode = requireCurrencyCode(order)
-  const itemsById = new Map((order.items ?? []).map((item) => [item.id, item]))
+  const itemsById = new Map(
+    getCommercialValuesOrderItems(order).map((item) => [item.id, item]),
+  )
   const shippingMethodsById = new Map(
-    (order.shipping_methods ?? []).map((shippingMethod) => [
+    getCommercialValuesOrderShippingMethods(order).map((shippingMethod) => [
       shippingMethod.id,
       shippingMethod,
     ]),
@@ -1092,7 +1039,7 @@ export const toCommercialValuesCalculationInput = (
     }
   }
 
-  const items = (order.items ?? []).map((item) => {
+  const items = getCommercialValuesOrderItems(order).map((item) => {
     const mapped = mapItem(item)
     const requested = requestedItemsById.get(item.id)
     const itemDiscountRequested = hasRequestedItemDiscount(requested)
@@ -1109,7 +1056,7 @@ export const toCommercialValuesCalculationInput = (
       unit_price: requested?.unit_price ?? mapped.unit_price,
     }
   })
-  const shippingMethods = (order.shipping_methods ?? []).map(
+  const shippingMethods = getCommercialValuesOrderShippingMethods(order).map(
     (shippingMethod) => {
       const mapped = mapShippingMethod(shippingMethod)
       const requested = requestedShippingMethodsById.get(shippingMethod.id)
@@ -1145,18 +1092,24 @@ export const toApplyCommercialValuesOrder = (
   order: CommercialValuesOrder,
 ): ApplyCommercialValuesOrder => ({
   id: order.id,
-  items: (order.items ?? []).map((item) => {
+  items: getCommercialValuesOrderItems(order).map((item) => {
     const quantity = getItemQuantity(item)
 
     return {
-      adjustments: (item.adjustments ?? []).map(mapAdjustment),
+      adjustments: getCommercialValuesAdjustments(item.adjustments).map(
+        mapAdjustment,
+      ),
       id: item.id,
       quantity,
       unit_price: getItemUnitPrice(item, quantity),
     }
   }),
-  shipping_methods: (order.shipping_methods ?? []).map((shippingMethod) => ({
-    adjustments: (shippingMethod.adjustments ?? []).map(mapAdjustment),
-    id: shippingMethod.id,
-  })),
+  shipping_methods: getCommercialValuesOrderShippingMethods(order).map(
+    (shippingMethod) => ({
+      adjustments: getCommercialValuesAdjustments(
+        shippingMethod.adjustments,
+      ).map(mapAdjustment),
+      id: shippingMethod.id,
+    }),
+  ),
 })

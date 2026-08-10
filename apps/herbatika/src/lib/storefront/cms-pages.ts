@@ -3,10 +3,7 @@ import { isRecord, getRecordValue } from "@techsio/std/object"
 import { fetchCmsJson, rewriteCmsHtmlMediaUrls } from "./cms-client"
 import type { CmsMediaValue, CmsPage } from "./cms-types"
 
-const readString = (
-  record: Readonly<Record<string, unknown>>,
-  key: string,
-): string | null => {
+const readString = (record: object, key: string): string | null => {
   const value = getRecordValue(record, key)
   return typeof value === "string" ? value : null
 }

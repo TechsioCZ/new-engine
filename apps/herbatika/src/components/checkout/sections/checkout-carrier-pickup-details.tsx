@@ -1,6 +1,9 @@
 "use client"
 
-import type { CarrierPickupRequirement } from "../carrier-pickup.utils"
+import type {
+  CarrierPickupData,
+  CarrierPickupRequirement,
+} from "../carrier-pickup.utils"
 import { CheckoutGlsPickupSelector } from "./checkout-gls-pickup-selector"
 import { CheckoutPacketaPickupSelector } from "./checkout-packeta-pickup-selector"
 import { CheckoutPplPickupSelector } from "./checkout-ppl-pickup-selector"
@@ -8,7 +11,7 @@ import { CheckoutPplPickupSelector } from "./checkout-ppl-pickup-selector"
 interface CheckoutCarrierPickupDetailsProps {
   disabled: boolean
   requirement: CarrierPickupRequirement
-  onConfirm: (data: Record<string, unknown>) => void
+  onConfirm: (data: CarrierPickupData) => void
 }
 
 export const CheckoutCarrierPickupDetails = ({

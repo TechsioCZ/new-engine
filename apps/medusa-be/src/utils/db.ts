@@ -1,4 +1,5 @@
 import { MedusaError } from "@medusajs/framework/utils"
+import type { QueryResultRow } from "@neondatabase/serverless"
 import { isRecord } from "@techsio/std/object"
 import { drizzle } from "drizzle-orm/neon-http"
 import type { SQL } from "drizzle-orm/sql/sql"
@@ -32,7 +33,7 @@ const db = drizzle(
   { schema },
 )
 export type SqlRowDecoder<T> = (
-  row: Readonly<Record<string, unknown>>,
+  row: Readonly<QueryResultRow>,
   index: number,
 ) => T
 
@@ -63,12 +64,6 @@ export const sqlRaw = async <T>(
   sql: SQL,
   decodeRow: SqlRowDecoder<T>,
 ): Promise<T[]> => {
-  const result: unknown = await db.execute(sql)
-  if (!isRecord(result)) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "Raw SQL query returned an invalid result",
-    )
-  }
-  return decodeSqlRows(result["rows"], decodeRow)
+  const result = await db.execute(sql)
+  return decodeSqlRows(result.rows, decodeRow)
 }

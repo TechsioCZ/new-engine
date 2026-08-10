@@ -1,7 +1,7 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
-import type { Logger, Query } from "@medusajs/framework/types"
+import type { Logger, MetadataType, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 import { getMedusaStoreName } from "../utils/store-name"
 import { syncOrderNoteWorkflow } from "../workflows/order-note/upsert-order-note"
@@ -14,15 +14,15 @@ interface OrderPlacedEvent {
 
 interface OrderWithMetadata {
   id: string
-  metadata?: Record<string, unknown> | null
+  metadata?: MetadataType
 }
 
 const isOrderWithMetadata = (value: unknown): value is OrderWithMetadata => {
-  if (!isRecord(value) || typeof value["id"] !== "string") {
+  if (!isRecord(value) || typeof getRecordValue(value, "id") !== "string") {
     return false
   }
 
-  const { metadata } = value
+  const metadata = getRecordValue(value, "metadata")
   return metadata === undefined || metadata === null || isRecord(metadata)
 }
 
@@ -58,10 +58,12 @@ export default async function orderPlacedHandler({
     fields: ["id", "metadata"],
     filters: { id: data.id },
   })
-  const order =
-    isRecord(orderGraphResult) && Array.isArray(orderGraphResult["data"])
-      ? orderGraphResult["data"].find(isOrderWithMetadata)
-      : undefined
+  const orderGraphData = isRecord(orderGraphResult)
+    ? getRecordValue(orderGraphResult, "data")
+    : undefined
+  const order = Array.isArray(orderGraphData)
+    ? orderGraphData.find(isOrderWithMetadata)
+    : undefined
   const note = order === undefined ? undefined : getOrderNote(order)
 
   if (note !== undefined && note !== "") {

@@ -40,7 +40,7 @@ export type CmsCategoryListOptions = z.infer<
 export interface PayloadQueryOptions {
   limit?: number
   page?: number
-  where?: Record<string, unknown>
+  where?: Record<string, { equals: string }>
   sort?: string
   select?: Record<string, boolean>
   populate?: Record<string, boolean>

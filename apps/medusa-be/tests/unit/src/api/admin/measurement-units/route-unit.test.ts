@@ -16,7 +16,7 @@ const assertMockShape: <T>(
   }
 }
 
-const objectContaining = (value: Record<string, unknown>): unknown =>
+const objectContaining = (value: object): unknown =>
   expect.objectContaining(value)
 
 const { createWorkflow, measurementService } = vi.hoisted(() => ({
@@ -29,7 +29,7 @@ const { createWorkflow, measurementService } = vi.hoisted(() => ({
 const { overrideModule } = vi.hoisted(() => ({
   overrideModule: <Module extends object>(
     original: Module,
-    replacements: Record<PropertyKey, unknown>,
+    replacements: object,
   ): Module =>
     Object.defineProperties(
       { ...original },

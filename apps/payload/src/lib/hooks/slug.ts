@@ -1,4 +1,4 @@
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 /** Convert a string into a URL-friendly slug. */
 const generateSlug = (value: string): string =>
@@ -15,17 +15,17 @@ const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0
 
 const resolveTitleFromMap = (
-  titleMap: Record<string, unknown>,
+  titleMap: object,
   locale?: string | null,
 ): string | undefined => {
   if (locale !== undefined && locale !== null) {
-    const localizedTitle = titleMap[locale]
+    const localizedTitle = getRecordValue(titleMap, locale)
     if (isNonEmptyString(localizedTitle)) {
       return localizedTitle
     }
   }
 
-  const { en: englishTitle } = titleMap
+  const englishTitle = getRecordValue(titleMap, "en")
   return isNonEmptyString(englishTitle)
     ? englishTitle
     : Object.values(titleMap).find(isNonEmptyString)

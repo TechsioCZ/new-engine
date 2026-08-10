@@ -34,7 +34,7 @@ const createReq = ({
   body = {},
   secret = "1x0000000000000000000000000000000AA",
 }: {
-  body?: Record<string, unknown>
+  body?: object
   secret?: string | null
 } = {}) => {
   const request: unknown = {

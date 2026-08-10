@@ -6,7 +6,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { omitUndefined } from "@techsio/std/object"
+import { omitUndefined, getRecordValue } from "@techsio/std/object"
 
 import { requirePathParam } from "../../../../utils/path-params"
 import { deleteCompaniesWorkflow } from "../../../../workflows/company/workflows/delete-companies"
@@ -21,10 +21,10 @@ const COMPANY_ID_LABEL = "Company id"
 const isUnknownArray = (value: unknown): value is unknown[] =>
   Array.isArray(value)
 
-const isCompanyRecord = (value: unknown): value is Record<string, unknown> =>
+const isCompanyRecord = (value: unknown): value is object =>
   typeof value === "object" &&
   value !== null &&
-  typeof Reflect.get(value, "id") === "string"
+  typeof getRecordValue(value, "id") === "string"
 
 const getCompany = async (
   req: AuthenticatedMedusaRequest<StoreGetCompanyParamsType>,
@@ -43,7 +43,7 @@ const getCompany = async (
   )
   const data: unknown =
     typeof graphResult === "object" && graphResult !== null
-      ? Reflect.get(graphResult, "data")
+      ? getRecordValue(graphResult, "data")
       : undefined
   if (!isUnknownArray(data)) {
     throw new MedusaError(
@@ -90,7 +90,7 @@ const updateCompany = async (
   )
   const data: unknown =
     typeof graphResult === "object" && graphResult !== null
-      ? Reflect.get(graphResult, "data")
+      ? getRecordValue(graphResult, "data")
       : undefined
   if (!isUnknownArray(data)) {
     throw new MedusaError(

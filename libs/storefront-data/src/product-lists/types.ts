@@ -19,7 +19,7 @@ export interface ProductListItemBase {
   quantity?: number | null
   note?: string | null
   sort_order?: number | null
-  metadata?: Record<string, unknown> | null
+  metadata?: object | null
   product?: HttpTypes.StoreProduct | null
   variant?: {
     id?: string | null
@@ -38,7 +38,7 @@ export interface ProductListBase<TItem = ProductListItemBase> {
   items?: TItem[] | null
   items_count?: number | null
   item_count?: number | null
-  metadata?: Record<string, unknown> | null
+  metadata?: object | null
   created_at?: string | null
   updated_at?: string | null
 }
@@ -101,7 +101,7 @@ export interface CreateFavoriteProductListInput {
   title?: string
   description?: string
   handle?: string
-  metadata?: Record<string, unknown>
+  metadata?: object
 }
 
 export interface CreateCustomProductListInput {
@@ -109,7 +109,7 @@ export interface CreateCustomProductListInput {
   access_type?: ProductListAccessType
   description?: string
   handle?: string
-  metadata?: Record<string, unknown>
+  metadata?: object
 }
 
 export interface UpdateProductListInput {
@@ -118,7 +118,7 @@ export interface UpdateProductListInput {
   access_type?: ProductListAccessType
   description?: string
   handle?: string
-  metadata?: Record<string, unknown>
+  metadata?: object
 }
 
 export interface DeleteProductListInput {
@@ -132,7 +132,7 @@ export interface AddProductListItemInput {
   quantity?: number | null
   note?: string
   sortOrder?: number
-  metadata?: Record<string, unknown>
+  metadata?: object
 }
 
 export type AddFavoriteProductListItemInput = Omit<
@@ -160,7 +160,7 @@ export interface UpdateProductListItemInput {
   quantity?: number | null
   note?: string | null
   sortOrder?: number | null
-  metadata?: Record<string, unknown> | null
+  metadata?: object | null
 }
 
 export interface DeleteProductListItemInput {

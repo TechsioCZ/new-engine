@@ -1,4 +1,4 @@
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 import { cleanSearchText, normalizeSearchIdentifier } from "./documents"
 
@@ -17,6 +17,20 @@ export interface RankedProductHit {
 export interface RankedProductMatch {
   productId: string
   variantId?: string
+}
+
+interface SearchResultProduct {
+  id?: unknown
+  variants?: unknown
+}
+
+interface SearchResultVariant {
+  barcode?: unknown
+  ean?: unknown
+  id?: unknown
+  sku?: unknown
+  title?: unknown
+  upc?: unknown
 }
 
 const isUnknownArray = (value: unknown): value is unknown[] =>
@@ -105,7 +119,7 @@ const getBrandTitles = (value: unknown): unknown[] => {
   }
 
   if (isRecord(value)) {
-    return [value["title"]]
+    return [getRecordValue(value, "title")]
   }
 
   return []
@@ -230,16 +244,15 @@ export const buildProductResultFilter = (
     ? '(search_result_kind = "variant" OR (search_result_kind = "product" AND search_has_variants = false))'
     : 'search_result_kind = "product"'
 
-const getProductRecordId = (
-  product: Record<string, unknown>,
-): string | undefined => getStringId(product["id"])
+const getProductRecordId = (product: SearchResultProduct): string | undefined =>
+  getStringId(product.id)
 
 const getVariantTitle = (
-  variant: Record<string, unknown>,
+  variant: SearchResultVariant,
   variantId: string,
 ): string => {
   for (const field of ["title", "sku", "ean", "upc", "barcode"]) {
-    const value = variant[field]
+    const value = getRecordValue(variant, field)
 
     if (typeof value === "string" && value.trim().length > 0) {
       return value.trim()
@@ -249,10 +262,12 @@ const getVariantTitle = (
   return variantId
 }
 
-export const expandProductsBySearchMatches = (
-  products: Record<string, unknown>[],
+export const expandProductsBySearchMatches = <
+  Product extends SearchResultProduct,
+>(
+  products: Product[],
   matches: RankedProductMatch[],
-): Record<string, unknown>[] => {
+) => {
   const productsById = new Map(
     products.map((product) => [getProductRecordId(product), product]),
   )
@@ -267,14 +282,15 @@ export const expandProductsBySearchMatches = (
     if (
       match.variantId === undefined ||
       match.variantId.length === 0 ||
-      !isUnknownArray(product["variants"])
+      !isUnknownArray(product.variants)
     ) {
       return [product]
     }
 
-    const variants = product["variants"].filter(isRecord)
+    const variants = product.variants.filter(isRecord)
     const matchedVariant = variants.find(
-      (variant) => getStringId(variant["id"]) === match.variantId,
+      (variant) =>
+        getStringId(getRecordValue(variant, "id")) === match.variantId,
     )
 
     if (matchedVariant === undefined) {
@@ -293,7 +309,8 @@ export const expandProductsBySearchMatches = (
         variants: [
           matchedVariant,
           ...variants.filter(
-            (variant) => getStringId(variant["id"]) !== match.variantId,
+            (variant) =>
+              getStringId(getRecordValue(variant, "id")) !== match.variantId,
           ),
         ],
       },
@@ -311,7 +328,7 @@ export const getSalesChannelIds = (value: unknown): string[] => {
   }
 
   if (isRecord(value)) {
-    const inValue = value["$in"]
+    const inValue = getRecordValue(value, "$in")
 
     if (Array.isArray(inValue)) {
       return inValue.filter((item): item is string => typeof item === "string")

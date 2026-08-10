@@ -13,7 +13,56 @@ import { useAccountProductListData } from "./use-account-product-list-data"
 import { useAccountProductListDialogs } from "./use-account-product-list-dialogs"
 import { useAccountProductListItems } from "./use-account-product-list-items"
 
-export const useAccountProductLists = () => {
+type AccountProductListDataController = ReturnType<
+  typeof useAccountProductListData
+>
+type AccountProductListDialogsController = ReturnType<
+  typeof useAccountProductListDialogs
+>
+type AccountProductListItemsController = ReturnType<
+  typeof useAccountProductListItems
+>
+
+export type AccountProductListsController = Pick<
+  AccountProductListDataController,
+  | "activeItems"
+  | "activeList"
+  | "activeListAvailabilitySummary"
+  | "activeListId"
+  | "activeListPriceSummary"
+  | "activeListQuery"
+  | "activeListSupportsQuantity"
+  | "activeProductsAreLoading"
+  | "listsQuery"
+  | "productsById"
+  | "sortedLists"
+> &
+  Pick<
+    AccountProductListDialogsController,
+    | "closeCreateListDialog"
+    | "closeDeleteListDialog"
+    | "createListMutation"
+    | "deleteList"
+    | "deleteListMutation"
+    | "handleCreateList"
+    | "handleDeleteList"
+    | "newListTitle"
+    | "openCreateListDialog"
+    | "openDeleteListDialog"
+    | "selectList"
+    | "setNewListTitle"
+    | "showCreateListDialog"
+  > &
+  ReturnType<typeof useAccountProductListCart> &
+  Pick<
+    AccountProductListItemsController,
+    | "activeDeleteItemId"
+    | "activeQuantitySetItemId"
+    | "handleDeleteItem"
+    | "handleQuantitySet"
+  >
+
+export const useAccountProductLists = (): AccountProductListsController => {
   const tAuth = useTranslations("auth")
   const authQuery = useAuth()
   const region = useRegionContext()
@@ -89,7 +138,3 @@ export const useAccountProductLists = () => {
     sortedLists: data.sortedLists,
   }
 }
-
-export type AccountProductListsController = ReturnType<
-  typeof useAccountProductLists
->

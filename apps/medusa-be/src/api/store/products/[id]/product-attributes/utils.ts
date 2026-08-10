@@ -1,5 +1,6 @@
-import type { Query } from "@medusajs/framework/types"
+import type { Query } from "@medusajs/framework"
 import { MedusaError } from "@medusajs/framework/utils"
+import { getRecordValue } from "@techsio/std/object"
 
 import type {
   ProductAttributeAssignmentRecord,
@@ -56,9 +57,7 @@ type StoreProductAttributeProjection = Pick<
   option?: Pick<ProductAttributeOptionRecord, "id" | "key" | "label"> | null
 }
 
-const isProductAttributeObjectLike = (
-  value: unknown,
-): value is Record<string, unknown> =>
+const isProductAttributeObjectLike = (value: unknown): value is object =>
   typeof value === "object" && value !== null
 
 const isUnknownArray = (value: unknown): value is unknown[] =>
@@ -71,7 +70,11 @@ const isDefinitionProjection = (
     return false
   }
 
-  const { id, input_type: inputType, is_public: isPublic, key, label } = value
+  const id = getRecordValue(value, "id")
+  const inputType = getRecordValue(value, "input_type")
+  const isPublic = getRecordValue(value, "is_public")
+  const key = getRecordValue(value, "key")
+  const label = getRecordValue(value, "label")
   const hasValidInputType = inputType === "select" || inputType === "text"
   const stringFieldsAreValid = [id, key, label].every(
     (field) => typeof field === "string",
@@ -88,7 +91,9 @@ const isOptionProjection = (
     return false
   }
 
-  const { id, key, label } = value
+  const id = getRecordValue(value, "id")
+  const key = getRecordValue(value, "key")
+  const label = getRecordValue(value, "label")
   return (
     typeof id === "string" &&
     typeof key === "string" &&
@@ -99,11 +104,16 @@ const isOptionProjection = (
 const isStoreProductAttributeProjection = (
   value: unknown,
 ): value is StoreProductAttributeProjection => {
-  if (!isProductAttributeObjectLike(value) || typeof value["id"] !== "string") {
+  if (
+    !isProductAttributeObjectLike(value) ||
+    typeof getRecordValue(value, "id") !== "string"
+  ) {
     return false
   }
 
-  const { definition, option, text_value: textValue } = value
+  const definition = getRecordValue(value, "definition")
+  const option = getRecordValue(value, "option")
+  const textValue = getRecordValue(value, "text_value")
   if (definition !== undefined && !isDefinitionProjection(definition)) {
     return false
   }
@@ -216,7 +226,8 @@ export const listPublicStoreProductAttributes = async ({
       )
     }
 
-    const { data: page, metadata } = result
+    const page = getRecordValue(result, "data")
+    const metadata = getRecordValue(result, "metadata")
     if (!isUnknownArray(page)) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
@@ -231,11 +242,11 @@ export const listPublicStoreProductAttributes = async ({
     }
 
     assignments.push(...page)
+    const metadataCount: unknown = isProductAttributeObjectLike(metadata)
+      ? getRecordValue(metadata, "count")
+      : undefined
     sourceCount =
-      isProductAttributeObjectLike(metadata) &&
-      typeof metadata["count"] === "number"
-        ? metadata["count"]
-        : assignments.length
+      typeof metadataCount === "number" ? metadataCount : assignments.length
     if (page.length === 0) {
       return
     }

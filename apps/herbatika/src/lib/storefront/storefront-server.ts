@@ -3,6 +3,7 @@ import type { HttpTypes } from "@medusajs/types"
 import type { QueryClient } from "@tanstack/react-query"
 import { createMedusaStorefrontServerReadPreset } from "@techsio/storefront-data/medusa/server-read"
 import type { MedusaProductAttributesInput } from "@techsio/storefront-data/product-attributes/medusa-service"
+import type { RegionListResponse } from "@techsio/storefront-data/regions/types"
 import type { MedusaProductReviewListInput } from "@techsio/storefront-data/reviews/medusa-service"
 
 import { storefrontSdk } from "./sdk"
@@ -15,12 +16,7 @@ import type {
 } from "./ssr/types"
 import { storefrontCoreDefinition } from "./storefront-core-definition"
 
-const storefrontServerRead = createMedusaStorefrontServerReadPreset<
-  HttpTypes.StoreProduct,
-  HttpTypes.StoreProductCategory,
-  HttpTypes.StoreCollection,
-  HttpTypes.StoreProduct
->({
+const storefrontServerRead = createMedusaStorefrontServerReadPreset({
   cacheConfig: storefrontCoreDefinition.cacheConfig,
   catalog: {
     queryKeys: storefrontCoreDefinition.queryKeys.catalog,
@@ -69,7 +65,7 @@ const storefrontServerRead = createMedusaStorefrontServerReadPreset<
 export const fetchServerRegions = async (
   queryClient: QueryClient,
   listParams: RegionListParams,
-) =>
+): Promise<RegionListResponse<HttpTypes.StoreRegion>> =>
   await queryClient.fetchQuery(
     storefrontServerRead.queries.regions.getListQueryOptions(listParams),
   )

@@ -1,4 +1,7 @@
-import type { IOrderModuleService } from "@medusajs/framework/types"
+import type {
+  MetadataType,
+  IOrderModuleService,
+} from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import {
   createStep,
@@ -9,7 +12,7 @@ import {
 
 interface UpdateOrderBusinessStatusInput {
   id: string
-  metadata: Record<string, unknown>
+  metadata: MetadataType
 }
 
 const updateOrderBusinessStatusStep = createStep(

@@ -2,15 +2,10 @@
 import fs from "node:fs"
 import path from "node:path"
 
+import { getRecordValue, isRecord } from "@techsio/std/object"
+
 const MAX_INDEX_BYTES = 50 * 1024 * 1024
 const MAX_STORY_ENTRIES = 100_000
-
-/**
- * @param {unknown} value - Candidate JSON value.
- * @returns {value is Record<string, unknown>} Whether the value is a record.
- */
-const isRecord = (value) =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
 
 /** @param {string} name - CLI option name. */
 const readArg = (name) => {
@@ -23,8 +18,22 @@ const readArg = (name) => {
  * @param {string} fallback - Entry map key used when no id is present.
  * @returns {string} Stable story id.
  */
-const storyId = (entry, fallback) =>
-  isRecord(entry) && typeof entry.id === "string" ? entry.id : fallback
+const storyId = (entry, fallback) => {
+  if (!isRecord(entry)) {
+    return fallback
+  }
+  const id = getRecordValue(entry, "id")
+  return typeof id === "string" ? id : fallback
+}
+
+/** @param {unknown} entry - Candidate Storybook entry. */
+const isTestStory = (entry) => {
+  if (!isRecord(entry) || getRecordValue(entry, "type") !== "story") {
+    return false
+  }
+  const tags = getRecordValue(entry, "tags")
+  return Array.isArray(tags) && tags.includes("test")
+}
 
 /** @param {string | null} value - Candidate filesystem CLI argument. */
 const isInvalidPathArgument = (value) =>
@@ -51,11 +60,15 @@ try {
     throw new Error(`Storybook index exceeds ${MAX_INDEX_BYTES} bytes.`)
   }
   const parsed = toUnknown(JSON.parse(fs.readFileSync(inputPath, "utf-8")))
-  if (!isRecord(parsed) || !isRecord(parsed.entries)) {
+  if (!isRecord(parsed)) {
+    throw new Error("Storybook index has no entries object.")
+  }
+  const parsedEntries = getRecordValue(parsed, "entries")
+  if (!isRecord(parsedEntries)) {
     throw new Error("Storybook index has no entries object.")
   }
 
-  const entryPairs = Object.entries(parsed.entries)
+  const entryPairs = Object.entries(parsedEntries)
   if (entryPairs.length > MAX_STORY_ENTRIES) {
     throw new Error(`Storybook index exceeds ${MAX_STORY_ENTRIES} entries.`)
   }
@@ -85,13 +98,7 @@ try {
   fs.writeFileSync(temporaryPath, serializedIndex, "utf-8")
   fs.renameSync(temporaryPath, outputPath)
 
-  const storyCount = Object.values(entries).filter(
-    (entry) =>
-      isRecord(entry) &&
-      entry.type === "story" &&
-      Array.isArray(entry.tags) &&
-      entry.tags.includes("test"),
-  ).length
+  const storyCount = Object.values(entries).filter(isTestStory).length
   console.log(`Canonical Storybook index: ${storyCount} test stories.`)
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error))

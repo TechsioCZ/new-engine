@@ -1,7 +1,6 @@
 {
-  "extends": "../../../tsconfig.strict.json",
+  "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
-    "allowJs": true,
     "checkJs": true,
     "module": "NodeNext",
     "moduleResolution": "NodeNext",

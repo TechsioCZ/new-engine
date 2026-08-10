@@ -1,4 +1,5 @@
 import { BadRequestError } from "./db"
+import type { ZaneDeployment } from "./zane-contract"
 import { UpstreamHttpError } from "./zane-errors"
 import { assertEnvironmentMatchesLane } from "./zane-lane-environment"
 import type { ZaneSession } from "./zane-upstream"
@@ -60,20 +61,14 @@ interface VerifyServiceCard {
   slug: string
 }
 
-interface VerifyEnvVariable {
-  key: string
-  value: string
-}
-
-interface VerifyDeployment {
-  hash: string
-  status: string
-  status_reason?: string | null
-  is_current_production?: boolean
-  service_snapshot?: {
-    env_variables?: VerifyEnvVariable[]
-  }
-}
+type VerifyDeployment = Pick<
+  ZaneDeployment,
+  | "hash"
+  | "is_current_production"
+  | "service_snapshot"
+  | "status"
+  | "status_reason"
+>
 
 interface VerifyDeps {
   authenticate: () => Promise<ZaneSession>

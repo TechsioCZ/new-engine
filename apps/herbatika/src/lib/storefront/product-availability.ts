@@ -1,4 +1,5 @@
-import type { HttpTypes } from "@medusajs/types"
+import { getRecordValue } from "@techsio/std/object"
+import type { MedusaCatalogProductVariant } from "@techsio/storefront-data/catalog/medusa-service"
 
 import { resolveDefaultStockInventoryQuantity } from "./default-stock-availability"
 import {
@@ -31,7 +32,7 @@ const resolveRequestedQuantity = (quantity: number) => {
 }
 
 export const resolveVariantInventoryState = (
-  variant?: HttpTypes.StoreProductVariant | null,
+  variant?: MedusaCatalogProductVariant | null,
   quantity = 1,
 ): VariantInventoryState => {
   const variantRecord = asStorefrontRecord(variant)
@@ -40,12 +41,24 @@ export const resolveVariantInventoryState = (
   const hasPrice =
     asStorefrontNumber(variant?.calculated_price?.calculated_amount) !== null
   const allowBackorder =
-    asStorefrontBoolean(variantRecord?.["allow_backorder"]) === true
+    asStorefrontBoolean(
+      variantRecord === null
+        ? undefined
+        : getRecordValue(variantRecord, "allow_backorder"),
+    ) === true
   const manageInventory =
-    asStorefrontBoolean(variantRecord?.["manage_inventory"]) !== false
+    asStorefrontBoolean(
+      variantRecord === null
+        ? undefined
+        : getRecordValue(variantRecord, "manage_inventory"),
+    ) !== false
   const inventoryQuantity =
     resolveDefaultStockInventoryQuantity(variantRecord) ??
-    asStorefrontNumber(variantRecord?.["inventory_quantity"])
+    asStorefrontNumber(
+      variantRecord === null
+        ? undefined
+        : getRecordValue(variantRecord, "inventory_quantity"),
+    )
   const hasInventoryQuantity = inventoryQuantity !== null
 
   if (!(hasVariant && hasPrice)) {

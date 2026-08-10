@@ -1,28 +1,25 @@
 import { MedusaError } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { z } from "@medusajs/framework/zod"
+import { getRecordValue, isRecord, omitUndefined } from "@techsio/std/object"
 
 const INVALID_LINK_SOURCE_CODE = "INVALID_LINK_SOURCE"
 const INVALID_LINK_SOURCE_REASON = "linkable definition is invalid"
-const REQUIRED_STRING_FIELDS = [
-  "field",
-  "linkable",
-  "primaryKey",
-  "serviceName",
-] as const
-const OPTIONAL_STRING_FIELDS = ["alias", "entity"] as const
-const OPTIONAL_BOOLEAN_FIELDS = ["isList", "readOnly"] as const
 
-interface SerializedLinkSource {
-  alias?: string
-  entity?: string
-  field: string
-  filterable?: string[]
-  isList?: boolean
-  linkable: string
-  primaryKey: string
-  readOnly?: boolean
-  serviceName: string
-}
+const SerializedLinkSourceSchema = z
+  .object({
+    alias: z.string().min(1).optional(),
+    entity: z.string().min(1).optional(),
+    field: z.string().min(1),
+    filterable: z.array(z.string().min(1)).optional(),
+    isList: z.boolean().optional(),
+    linkable: z.string().min(1),
+    primaryKey: z.string().min(1),
+    readOnly: z.boolean().optional(),
+    serviceName: z.string().min(1),
+  })
+  .transform(omitUndefined)
+
+type SerializedLinkSource = z.infer<typeof SerializedLinkSourceSchema>
 
 const invalidLinkSource = (context: string, reason: string): MedusaError =>
   new MedusaError(
@@ -31,47 +28,13 @@ const invalidLinkSource = (context: string, reason: string): MedusaError =>
     INVALID_LINK_SOURCE_CODE,
   )
 
-const hasValidSerializedFields = (value: Record<string, unknown>): boolean => {
-  const hasRequiredFields = REQUIRED_STRING_FIELDS.every((field) => {
-    const { [field]: entry } = value
-    return typeof entry === "string" && entry.length > 0
-  })
-  if (!hasRequiredFields) {
-    return false
-  }
-  const hasValidOptionalStrings = OPTIONAL_STRING_FIELDS.every((field) => {
-    const entry = value[field]
-    return (
-      entry === undefined || (typeof entry === "string" && entry.length > 0)
-    )
-  })
-  const hasValidOptionalBooleans = OPTIONAL_BOOLEAN_FIELDS.every((field) => {
-    const { [field]: entry } = value
-    return entry === undefined || typeof entry === "boolean"
-  })
-  const { filterable } = value
-  const hasValidFilterable =
-    filterable === undefined ||
-    (Array.isArray(filterable) &&
-      filterable.every(
-        (field) => typeof field === "string" && field.length > 0,
-      ))
-  return (
-    hasValidOptionalStrings && hasValidOptionalBooleans && hasValidFilterable
-  )
-}
-
-const isSerializedLinkSource = (
-  value: unknown,
-): value is SerializedLinkSource =>
-  isRecord(value) && hasValidSerializedFields(value)
-
 export const parseSerializedLinkSource = (
   value: unknown,
   context: string,
 ): SerializedLinkSource => {
-  if (isSerializedLinkSource(value)) {
-    return value
+  const parsed = SerializedLinkSourceSchema.safeParse(value)
+  if (parsed.success) {
+    return parsed.data
   }
   throw invalidLinkSource(context, INVALID_LINK_SOURCE_REASON)
 }
@@ -83,7 +46,7 @@ export const parseLinkSource = (
   if (!isRecord(value)) {
     throw invalidLinkSource(context, INVALID_LINK_SOURCE_REASON)
   }
-  const { toJSON } = value
+  const toJSON = getRecordValue(value, "toJSON")
   if (typeof toJSON !== "function") {
     throw invalidLinkSource(context, INVALID_LINK_SOURCE_REASON)
   }
@@ -110,5 +73,5 @@ export const parseNestedSerializedLinkSource = (
   if (!isRecord(value)) {
     throw invalidLinkSource(context, INVALID_LINK_SOURCE_REASON)
   }
-  return parseSerializedLinkSource(value[key], context)
+  return parseSerializedLinkSource(getRecordValue(value, key), context)
 }

@@ -18,14 +18,14 @@ interface SdkSpies {
   addShippingMethod: Mock<
     (
       cartId: string,
-      body: Record<string, unknown>,
+      body: HttpTypes.StoreAddCartShippingMethods,
       query?: HttpTypes.SelectParams,
     ) => CartResponse
   >
   initiatePaymentSession: Mock<
     (
       cart: HttpTypes.StoreCart,
-      body: Record<string, unknown>,
+      body: HttpTypes.StoreInitializePaymentSession,
       query?: HttpTypes.SelectParams,
     ) => PaymentCollectionResponse
   >
@@ -44,7 +44,7 @@ const createSdkMock = (overrides?: {
       vi.fn<
         (
           cartId: string,
-          body: Record<string, unknown>,
+          body: HttpTypes.StoreAddCartShippingMethods,
           query?: HttpTypes.SelectParams,
         ) => CartResponse
       >(),
@@ -52,7 +52,7 @@ const createSdkMock = (overrides?: {
       vi.fn<
         (
           cart: HttpTypes.StoreCart,
-          body: Record<string, unknown>,
+          body: HttpTypes.StoreInitializePaymentSession,
           query?: HttpTypes.SelectParams,
         ) => PaymentCollectionResponse
       >(),
@@ -153,6 +153,31 @@ describe(createMedusaCheckoutService, () => {
       query,
     )
     expect(spies.retrieve).toHaveBeenCalledWith("cart_1", query)
+  })
+
+  it("rejects non-JSON shipping data before calling Medusa", async () => {
+    const { sdk, spies } = createSdkMock()
+    const service = createMedusaCheckoutService(sdk)
+
+    await expect(
+      service.addShippingMethod("cart_1", "so_1", {
+        invalid: () => "not serializable",
+      }),
+    ).rejects.toThrow("Shipping method data must be a JSON object")
+    expect(spies.addShippingMethod).not.toHaveBeenCalled()
+  })
+
+  it("rejects non-JSON payment data before calling Medusa", async () => {
+    const { sdk, spies } = createSdkMock()
+    const cart = createStoreCart("cart_invalid")
+    const service = createMedusaCheckoutService(sdk, {
+      buildPaymentSessionData: () => ({ invalid: Number.NaN }),
+    })
+
+    await expect(
+      service.initiatePaymentSession("cart_invalid", "pp_stripe", cart),
+    ).rejects.toThrow("Payment session data must be a JSON object")
+    expect(spies.initiatePaymentSession).not.toHaveBeenCalled()
   })
 
   it("throws when cart cannot be resolved for payment initiation", async () => {

@@ -1,6 +1,5 @@
 interface JWTPayload {
   exp?: number
-  [key: string]: unknown
 }
 
 const parseJWT = (token: string): JWTPayload | null => {

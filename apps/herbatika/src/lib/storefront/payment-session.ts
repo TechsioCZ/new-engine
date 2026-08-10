@@ -45,7 +45,7 @@ export const buildHerbatikaPaymentSessionData = ({
   cart,
   cartId,
   providerId,
-}: MedusaPaymentSessionDataInput): Record<string, unknown> => {
+}: MedusaPaymentSessionDataInput) => {
   const email = resolveCartEmail(cart)
   const returnUrl = buildHerbatikaPaymentReturnUrl({ cartId, providerId })
   const cancelUrl = buildHerbatikaPaymentReturnUrl({

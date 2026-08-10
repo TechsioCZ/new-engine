@@ -4,7 +4,7 @@ import type {
 } from "@medusajs/framework/http"
 import type { MedusaContainer, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 
 import { ProductBrandLink } from "../../../../../links/product-brand"
 import {
@@ -158,17 +158,18 @@ const getBrandProductOptions = async (
               deleted_at: null,
             },
           })
-          const activeBrands =
-            isRecord(activeBrandsResult) &&
-            Array.isArray(activeBrandsResult["data"])
-              ? activeBrandsResult["data"]
-              : []
+          const rawActiveBrands: unknown = isRecord(activeBrandsResult)
+            ? getRecordValue(activeBrandsResult, "data")
+            : undefined
+          const activeBrands: unknown[] = Array.isArray(rawActiveBrands)
+            ? rawActiveBrands
+            : []
           const activeBrandIds = activeBrands.flatMap((brand) => {
             if (!isRecord(brand)) {
               return []
             }
 
-            const activeBrandId = brand["id"]
+            const activeBrandId = getRecordValue(brand, "id")
             return typeof activeBrandId === "string" ? [activeBrandId] : []
           })
 
@@ -180,18 +181,19 @@ const getBrandProductOptions = async (
               product_id: { $nin: currentProductIds },
             },
           })
-          const linkedProducts =
-            isRecord(linkedProductsResult) &&
-            Array.isArray(linkedProductsResult["data"])
-              ? linkedProductsResult["data"]
-              : []
+          const rawLinkedProducts: unknown = isRecord(linkedProductsResult)
+            ? getRecordValue(linkedProductsResult, "data")
+            : undefined
+          const linkedProducts: unknown[] = Array.isArray(rawLinkedProducts)
+            ? rawLinkedProducts
+            : []
           const linkedProductIds = uniqueIds(
             linkedProducts.flatMap((link) => {
               if (!isRecord(link)) {
                 return []
               }
 
-              const productId = link["product_id"]
+              const productId = getRecordValue(link, "product_id")
               return typeof productId === "string" ? [productId] : []
             }),
           )

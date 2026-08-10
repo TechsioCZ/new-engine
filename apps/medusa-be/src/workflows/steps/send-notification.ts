@@ -7,6 +7,7 @@ import type {
 import { Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { chunk } from "@techsio/std/array"
+import { getRecordValue } from "@techsio/std/object"
 
 import { EMAIL_LOG_MODULE } from "../../modules/email-log"
 import type EmailLogModuleService from "../../modules/email-log/service"
@@ -40,8 +41,8 @@ type EmailLogService = EmailLogModuleService & {
     }[],
   ) => Promise<EmailLogDTO[]>
   listEmailWebhookEvents: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>,
+    filters?: Parameters<EmailLogModuleService["listEmailWebhookEvents"]>[0],
+    config?: Parameters<EmailLogModuleService["listEmailWebhookEvents"]>[1],
   ) => Promise<EmailWebhookEventDTO[]>
   updateEmailLogs: (
     data: { id: string; checked_at: Date }[],
@@ -60,11 +61,11 @@ const isPresentString = (value: unknown): value is string =>
 const firstPresentString = (values: readonly unknown[]) =>
   values.find(isPresentString)
 
-const getStringField = (
-  data: Record<string, unknown> | null | undefined,
-  field: string,
-) => {
-  const raw: unknown = data?.[field]
+const getStringField = (data: CreateNotificationDTO["data"], field: string) => {
+  const raw =
+    data === null || data === undefined
+      ? undefined
+      : getRecordValue(data, field)
 
   return typeof raw === "string" && raw.trim() ? raw : undefined
 }

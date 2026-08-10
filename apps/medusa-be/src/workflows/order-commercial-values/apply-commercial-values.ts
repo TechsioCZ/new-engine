@@ -14,6 +14,7 @@ import {
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+import { z } from "@medusajs/framework/zod"
 import {
   beginOrderEditOrderWorkflow,
   cancelBeginOrderEditWorkflow,
@@ -22,7 +23,6 @@ import {
   orderEditUpdateItemQuantityWorkflow,
   requestOrderEditRequestWorkflow,
 } from "@medusajs/medusa/core-flows"
-import { isRecord } from "@techsio/std/object"
 
 import {
   calculateCommercialValuesPreview,
@@ -121,6 +121,14 @@ type CommercialValuesOrderEditCompletion = Pick<
 
 const COMMERCIAL_VALUES_LOCK_PREFIX = "order-commercial-values:apply"
 const COMMERCIAL_VALUES_LOCK_TIMEOUT_SECONDS = 5
+const activeOrderChangeRecordSchema = z.object({
+  change_type: z.unknown().optional(),
+  id: z.unknown().optional(),
+  status: z.unknown().optional(),
+  version: z.unknown().optional(),
+})
+const orderVersionSchema = z.object({ version: z.unknown().optional() })
+
 const MISSING_ORDER_CHANGE_ID_MESSAGE = "Order change id is missing"
 
 const isUnknownArray = (value: unknown): value is unknown[] =>
@@ -196,15 +204,16 @@ const toActiveOrderChange = (
 const toActiveOrderChangeRecord = (
   value: unknown,
 ): ActiveOrderChangeRecord | undefined => {
-  if (!isRecord(value)) {
+  const parsed = activeOrderChangeRecordSchema.safeParse(value)
+  if (!parsed.success) {
     return undefined
   }
 
   return {
-    change_type: toOptionalString(value["change_type"]),
-    id: toOptionalString(value["id"]) ?? "",
-    status: toOptionalString(value["status"]),
-    version: value["version"],
+    change_type: toOptionalString(parsed.data.change_type),
+    id: toOptionalString(parsed.data.id) ?? "",
+    status: toOptionalString(parsed.data.status),
+    version: parsed.data.version,
   }
 }
 
@@ -674,14 +683,15 @@ const fetchOrderVersion = async (query: Query, orderId: string) => {
 
   const order = getFirstQueryRow(data)
 
-  if (!isRecord(order)) {
+  const parsedOrder = orderVersionSchema.safeParse(order)
+  if (!parsedOrder.success) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,
       `Order ${orderId} was not found`,
     )
   }
 
-  return toInteger(order["version"] ?? 0)
+  return toInteger(parsedOrder.data.version ?? 0)
 }
 
 const assertOrderCanBeginCommercialEdit = async (

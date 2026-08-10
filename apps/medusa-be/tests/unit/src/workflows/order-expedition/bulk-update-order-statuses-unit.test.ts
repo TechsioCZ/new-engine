@@ -5,7 +5,7 @@ import type { OrderExpeditionDirectUpdateStatus } from "../../../../../src/workf
 const { overrideModule } = vi.hoisted(() => ({
   overrideModule: <Module extends object>(
     original: Module,
-    replacements: Record<PropertyKey, unknown>,
+    replacements: object,
   ): Module =>
     Object.defineProperties(
       { ...original },

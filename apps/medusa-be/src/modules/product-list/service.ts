@@ -20,8 +20,9 @@ import {
   normalizeProductListAccessType,
   normalizeProductListType,
 } from "./normalizers"
+import type { ProductListMetadata } from "./schemas"
 
-export type ProductListMetadata = Record<string, unknown>
+export type { ProductListMetadata } from "./schemas"
 
 export interface CreateFavoriteProductListDTO {
   title?: string

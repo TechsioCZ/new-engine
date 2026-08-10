@@ -1,37 +1,14 @@
+import { asValue } from "@medusajs/framework/awilix"
+import { createMedusaContainer } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 
+import { PRODUCT_ATTRIBUTE_MODULE } from "../../../modules/product-attribute"
 import {
   permanentlyDeleteProductAttributeDefinitions,
   permanentlyDeleteProductAttributeOptions,
 } from "../steps/permanent-deletion"
 
-const assertMockShape: <T>(
-  candidate: unknown,
-  requiredKeys: readonly (keyof T)[],
-) => asserts candidate is T = (candidate, requiredKeys) => {
-  if (typeof candidate !== "object" || candidate === null) {
-    throw new TypeError("Expected a mock object")
-  }
-  for (const key of requiredKeys) {
-    if (!(key in candidate)) {
-      throw new TypeError(`Mock object missing required key: ${String(key)}`)
-    }
-  }
-}
-
 const ACTIVE_RECORD_ERROR = /must be soft-deleted before permanent removal/u
-
-type DeletionScope = Parameters<
-  typeof permanentlyDeleteProductAttributeDefinitions
->[1]
-
-const createScope = (service: Record<string, unknown>): DeletionScope => {
-  const candidate: unknown = {
-    resolve: vi.fn<(key: string) => unknown>().mockReturnValue(service),
-  }
-  assertMockShape<DeletionScope>(candidate, ["resolve"])
-  return candidate
-}
 
 const createTransactionalService = () => {
   const transactionContext = { manager: {} }
@@ -49,6 +26,16 @@ const createTransactionalService = () => {
       ) => Promise<unknown>
     >(async (task) => await task(transactionContext)),
   }
+}
+
+const createScope = (
+  service: ReturnType<typeof createTransactionalService>,
+) => {
+  const container = createMedusaContainer()
+  container.register({
+    [PRODUCT_ATTRIBUTE_MODULE]: asValue(service),
+  })
+  return container
 }
 
 describe("Product Attribute permanent definition removal", () => {

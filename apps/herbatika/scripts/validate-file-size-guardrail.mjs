@@ -57,9 +57,12 @@ const parseThreshold = (value, label) => {
   return Math.trunc(value)
 }
 
-/** @type {(value: unknown) => value is Record<string, unknown>} */
-const isRecord = (value) =>
+/** @type {(value: unknown) => value is object} */
+const isObject = (value) =>
   typeof value === "object" && value !== null && !Array.isArray(value)
+
+/** @type {(value: object, key: string) => unknown} */
+const readProperty = (value, key) => Reflect.get(value, key)
 
 /** @type {(configPath: string) => GuardrailConfig} */
 const loadConfig = (configPath) => {
@@ -67,25 +70,31 @@ const loadConfig = (configPath) => {
   /** @type {unknown} */
   const config = JSON.parse(configContent)
 
-  if (!isRecord(config)) {
+  if (!isObject(config)) {
     throw new Error("Invalid config format.")
   }
 
-  const { exclude = [], fileExtensions, scanDirectories, thresholds } = config
+  const exclude = readProperty(config, "exclude") ?? []
+  const fileExtensions = readProperty(config, "fileExtensions")
+  const scanDirectories = readProperty(config, "scanDirectories")
+  const thresholds = readProperty(config, "thresholds")
 
   assertArrayOfStrings(scanDirectories, "scanDirectories")
   assertArrayOfStrings(fileExtensions, "fileExtensions")
   assertArrayOfStrings(exclude, "exclude")
 
-  if (!isRecord(thresholds)) {
+  if (!isObject(thresholds)) {
     throw new Error("thresholds must be an object.")
   }
 
   const warningThreshold = parseThreshold(
-    thresholds.warning,
+    readProperty(thresholds, "warning"),
     "thresholds.warning",
   )
-  const errorThreshold = parseThreshold(thresholds.error, "thresholds.error")
+  const errorThreshold = parseThreshold(
+    readProperty(thresholds, "error"),
+    "thresholds.error",
+  )
 
   if (warningThreshold >= errorThreshold) {
     throw new Error("thresholds.warning must be lower than thresholds.error")

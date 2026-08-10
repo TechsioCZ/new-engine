@@ -6,7 +6,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 
 import { COMPANY_MODULE } from "../../../modules/company"
 import type { ICompanyModuleService } from "../../../types"
@@ -25,14 +25,14 @@ const isCompanyCustomerGroupLinkRow = (
     return false
   }
   if (
-    value["company_id"] !== undefined &&
-    typeof value["company_id"] !== "string"
+    getRecordValue(value, "company_id") !== undefined &&
+    typeof getRecordValue(value, "company_id") !== "string"
   ) {
     return false
   }
   return (
-    value["customer_group_id"] === undefined ||
-    typeof value["customer_group_id"] === "string"
+    getRecordValue(value, "customer_group_id") === undefined ||
+    typeof getRecordValue(value, "customer_group_id") === "string"
   )
 }
 
@@ -74,17 +74,19 @@ const getCompanyCustomerGroupLinks = async (
       },
     },
   })
+  const rawLinkedRows: unknown = isRecord(graphResult)
+    ? getRecordValue(graphResult, "data")
+    : undefined
   if (
-    !isRecord(graphResult) ||
-    !Array.isArray(graphResult["data"]) ||
-    !graphResult["data"].every(isCompanyCustomerGroupLinkRow)
+    !Array.isArray(rawLinkedRows) ||
+    !rawLinkedRows.every(isCompanyCustomerGroupLinkRow)
   ) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       "Company customer-group query returned invalid link data.",
     )
   }
-  const linkedRows = graphResult["data"]
+  const linkedRows = rawLinkedRows
 
   const companyIds = [
     ...new Set(

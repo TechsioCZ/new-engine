@@ -1,6 +1,11 @@
 import type { HttpTypes } from "@medusajs/types"
 import { createMedusaAuthService } from "@techsio/storefront-data/auth/medusa-service"
-import type { MedusaConfirmCustomerAccountDeactivationInput } from "@techsio/storefront-data/auth/medusa-service"
+import type {
+  MedusaConfirmCustomerAccountDeactivationInput,
+  MedusaDeactivateCustomerAccountResult,
+  MedusaRequestCustomerAccountDeactivationResult,
+} from "@techsio/storefront-data/auth/medusa-service"
+import type { AuthService } from "@techsio/storefront-data/auth/types"
 
 import {
   authTokenStorage,
@@ -70,7 +75,18 @@ const ensureSessionProxyToken = async (): Promise<string | null> => {
   }
 }
 
-export const authService = {
+export const authService: AuthService<
+  HttpTypes.StoreCustomer,
+  AuthLoginInput,
+  AuthRegisterInput,
+  AuthUpdateInput,
+  unknown,
+  string,
+  string,
+  MedusaRequestCustomerAccountDeactivationResult,
+  MedusaConfirmCustomerAccountDeactivationInput,
+  MedusaDeactivateCustomerAccountResult
+> = {
   async confirmAccountDeactivation(
     input: MedusaConfirmCustomerAccountDeactivationInput,
   ) {

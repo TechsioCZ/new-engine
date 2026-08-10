@@ -1,4 +1,10 @@
-import type { Query } from "@medusajs/framework/types"
+import type {
+  FulfillmentDTO,
+  MetadataType,
+  OrderShippingMethodDTO,
+  Query,
+} from "@medusajs/framework/types"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 import {
   getManualOrderBusinessStatusId,
@@ -8,6 +14,10 @@ import type {
   ManualOrderBusinessStatusId,
   OrderBusinessStatus,
 } from "./order-business-status"
+
+export interface OrderExpeditionGraph {
+  graph: (input: Parameters<Query["graph"]>[0]) => Promise<unknown>
+}
 
 export const ORDER_EXPEDITION_MAX_ORDER_IDS = 1000
 export const ORDER_EXPEDITION_DEFAULT_LIMIT = 50
@@ -68,7 +78,7 @@ interface OrderExpeditionShippingMethod {
   id?: string | null
   name?: string | null
   shipping_option_id?: string | null
-  data?: Record<string, unknown> | null
+  data?: OrderShippingMethodDTO["data"] | null
 }
 
 type OrderExpeditionNumericValue = number | string
@@ -155,7 +165,7 @@ interface OrderExpeditionSummary {
 interface OrderExpeditionFulfillment {
   id?: string | null
   canceled_at?: string | null
-  data?: Record<string, unknown> | null
+  data?: FulfillmentDTO["data"]
   delivered_at?: OrderExpeditionDateValue | null
   provider_id?: string | null
   shipped_at?: OrderExpeditionDateValue | null
@@ -179,7 +189,7 @@ export interface OrderExpeditionRawOrder {
   status?: string | null
   is_draft_order?: boolean | null
   fulfillment_status?: string | null
-  metadata?: Record<string, unknown> | null
+  metadata?: MetadataType
   payment_status?: string | null
   summary?: OrderExpeditionSummaryCollection | null
   total?: OrderExpeditionNullable<OrderExpeditionAmountValue>
@@ -421,22 +431,25 @@ export const orderOrdersByRequestedIds = <T extends { id: string }>(
 }
 
 const fetchOrderExpeditionOrdersByIds = async (
-  query: Query,
+  query: OrderExpeditionGraph,
   orderIds: string[],
 ) => {
-  const { data } = await query.graph({
+  const graphResult = await query.graph({
     entity: "order",
     fields: ORDER_EXPEDITION_ORDER_FIELDS,
     filters: {
       id: orderIds,
     },
   })
+  const data = isRecord(graphResult)
+    ? getRecordValue(graphResult, "data")
+    : undefined
 
   return Array.isArray(data) ? data.filter(isOrderExpeditionRawOrder) : []
 }
 
 export const fetchOrderedOrderExpeditionOrdersByIds = async (
-  query: Query,
+  query: OrderExpeditionGraph,
   orderIds: string[],
 ) => {
   const orders = await fetchOrderExpeditionOrdersByIds(query, orderIds)
@@ -596,9 +609,7 @@ const getOrderExpeditionTotal = (order: OrderExpeditionRawOrder) => {
   return summaryTotal
 }
 
-export const getOrderExpeditionNote = (
-  metadata?: Record<string, unknown> | null,
-) => {
+export const getOrderExpeditionNote = (metadata?: MetadataType) => {
   if (!metadata) {
     return null
   }

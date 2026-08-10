@@ -1,4 +1,4 @@
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { describe, expect, it, vi } from "vitest"
 
 import { QR_PAYMENT_MODULE } from "../constants"
@@ -93,7 +93,7 @@ describe(QrManualPaymentProvider, () => {
       [QR_PAYMENT_MODULE]: createMockQrPaymentModule(getIban),
     })
 
-    const result: unknown = await provider.updatePayment({
+    const result = await provider.updatePayment({
       amount: 250,
       context: {
         idempotency_key: "new-idempotency-key",
@@ -106,14 +106,50 @@ describe(QrManualPaymentProvider, () => {
       },
     })
 
-    expect(isRecord(result) ? result["id"] : undefined).toBe("1234567890")
-    const data =
-      isRecord(result) && isRecord(result["data"]) ? result["data"] : {}
-    expect(data["payment_qr_spayd"]).toContain("AM:250.00")
-    expect(data["payment_qr_spayd"]).toContain("X-VS:1234567890")
-    expect(data["qr_payment"]).toMatchObject({
+    expect(getRecordValue(result, "id")).toBe("1234567890")
+    const data = getRecordValue(result, "data")
+    expect(
+      isRecord(data) ? getRecordValue(data, "payment_qr_spayd") : undefined,
+    ).toContain("AM:250.00")
+    expect(
+      isRecord(data) ? getRecordValue(data, "payment_qr_spayd") : undefined,
+    ).toContain("X-VS:1234567890")
+    expect(
+      isRecord(data) ? getRecordValue(data, "qr_payment") : undefined,
+    ).toMatchObject({
       reference: "1234567890",
     })
+  })
+
+  it("ignores malformed stored QR payment references", async () => {
+    const getIban = vi
+      .fn<() => Promise<string | null>>()
+      .mockResolvedValue("CZ6508000000192000145399")
+    const provider = new QrManualPaymentProvider({
+      [QR_PAYMENT_MODULE]: createMockQrPaymentModule(getIban),
+    })
+
+    const results = await Promise.all(
+      [
+        null,
+        { reference: 123 },
+        Object.assign([], { reference: "array-reference" }),
+      ].map(
+        async (qrPayment) =>
+          await provider.updatePayment({
+            amount: 250,
+            currency_code: "CZK",
+            data: {
+              order_id: "order-reference",
+              qr_payment: qrPayment,
+            },
+          }),
+      ),
+    )
+
+    expect(results.map((result) => getRecordValue(result, "id"))).toStrictEqual(
+      ["order-reference", "order-reference", "order-reference"],
+    )
   })
 
   it("authorizes the manual QR payment so checkout can create an order", async () => {

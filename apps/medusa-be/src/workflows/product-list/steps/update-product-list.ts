@@ -2,18 +2,14 @@ import { MedusaError } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
+import { parseProductListMetadata } from "../../../modules/product-list/schemas"
 import type ProductListModuleService from "../../../modules/product-list/service"
+import type { UpdateCustomProductListDTO } from "../../../modules/product-list/service"
 import type { ProductListRecord } from "../types"
 
 export interface UpdateProductListStepInput {
   list_id: string
-  data: {
-    title?: string
-    handle?: string
-    access_type?: "private" | "public"
-    description?: string | null
-    metadata?: Record<string, unknown> | null
-  }
+  data: UpdateCustomProductListDTO
 }
 
 export const updateProductListStep = createStep(
@@ -52,7 +48,7 @@ export const updateProductListStep = createStep(
         description: list.description ?? null,
         handle: list.handle,
         id: list.id,
-        metadata: list.metadata ?? null,
+        metadata: parseProductListMetadata(list.metadata),
         title: list.title,
       })
   },

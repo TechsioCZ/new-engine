@@ -1,4 +1,8 @@
-import type { IOrderModuleService, Query } from "@medusajs/framework/types"
+import type {
+  MetadataType,
+  IOrderModuleService,
+  Query,
+} from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -10,11 +14,10 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { isRecord, omitKeys } from "@techsio/std/object"
+import { omitKeys } from "@techsio/std/object"
 
 import { ORDER_NOTE_MODULE } from "../../modules/order-note"
 import type OrderNoteModuleService from "../../modules/order-note/service"
-import { isUnknownArray } from "../../utils/guards"
 
 interface UpsertOrderNoteWorkflowInput {
   note: string
@@ -33,7 +36,7 @@ interface RestoreOrderNoteCompensation {
 
 interface RestoreOrderMetadataCompensation {
   order_id: string
-  previousMetadata: Record<string, unknown>
+  previousMetadata: MetadataType
 }
 
 const upsertOrderNoteStep = createStep(
@@ -108,22 +111,13 @@ const clearOrderNoteMetadataStep = createStep(
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const orderService = container.resolve<IOrderModuleService>(Modules.ORDER)
 
-    const orderResult: unknown = await query.graph({
+    const { data } = await query.graph({
       entity: "order",
       fields: ["id", "metadata"],
       filters: { id: input.order_id },
       pagination: { skip: 0, take: 1 },
     })
-    const orderData: unknown = isRecord(orderResult)
-      ? orderResult["data"]
-      : undefined
-    if (!isUnknownArray(orderData)) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        "Order query returned invalid data",
-      )
-    }
-    const [order] = orderData
+    const [order] = data
 
     if (order === undefined) {
       throw new MedusaError(
@@ -132,20 +126,7 @@ const clearOrderNoteMetadataStep = createStep(
       )
     }
 
-    if (!isRecord(order)) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        "Order query returned an invalid record",
-      )
-    }
-    const { metadata } = order
-    if (metadata !== undefined && metadata !== null && !isRecord(metadata)) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        "Order query returned invalid metadata",
-      )
-    }
-    const previousMetadata = metadata ?? {}
+    const previousMetadata = order.metadata ?? {}
     const nextMetadata = omitKeys(previousMetadata, ["order_note"])
 
     await orderService.updateOrders(input.order_id, {

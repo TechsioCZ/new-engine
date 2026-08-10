@@ -1,10 +1,9 @@
 import { createHash } from "node:crypto"
 
-import { zodValidator } from "@medusajs/framework"
 import type { ICachingModuleService, Logger } from "@medusajs/framework/types"
 import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
-import { isRecord, omitKeys } from "@techsio/std/object"
+import { getRecordValue, isRecord, omitKeys } from "@techsio/std/object"
 import qs from "qs"
 
 import { safeResolve } from "../../utils/safe-resolve"
@@ -61,18 +60,25 @@ const PRIVATE_PAYLOAD_FIELD_NAMES = new Set([
   "sessions",
 ])
 
-type CachingDependency = Pick<ICachingModuleService, "clear" | "get" | "set">
+interface CachingDependency {
+  clear: ICachingModuleService["clear"]
+  get: ICachingModuleService["get"]
+  set: ICachingModuleService["set"]
+}
+
+const payloadErrorSchema = z.object({
+  message: z.string(),
+})
 
 const isCachingDependency = (value: unknown): value is CachingDependency =>
   isRecord(value) &&
-  typeof value["clear"] === "function" &&
-  typeof value["get"] === "function" &&
-  typeof value["set"] === "function"
+  typeof getRecordValue(value, "clear") === "function" &&
+  typeof getRecordValue(value, "get") === "function" &&
+  typeof getRecordValue(value, "set") === "function"
 
 interface InjectedDependencies {
   logger: Logger
   [Modules.CACHING]?: CachingDependency
-  [key: string]: unknown
 }
 
 const CACHE_TAGS = {
@@ -103,7 +109,7 @@ const buildQuery = (options?: PayloadQueryOptions): string => {
 /**
  * Build a query string from raw params while skipping null/undefined values.
  */
-const buildParamsQuery = (params?: Record<string, unknown>): string => {
+const buildParamsQuery = (params?: CmsCategoryListOptions): string => {
   if (!params) {
     return ""
   }
@@ -176,10 +182,8 @@ const normalizeLocale = (locale?: string): string | undefined => {
  * Extract a human-readable error message from a Payload API error response.
  */
 const getPayloadErrorMessage = (result: unknown, status: number): string => {
-  if (isRecord(result) && typeof result["message"] === "string") {
-    return result["message"]
-  }
-  return `Payload API error: ${status}`
+  const parsed = payloadErrorSchema.safeParse(result)
+  return parsed.success ? parsed.data.message : `Payload API error: ${status}`
 }
 
 /**
@@ -213,39 +217,23 @@ const redactValue = (value: unknown): unknown => {
   return Object.fromEntries(entries)
 }
 
-/**
- * Build a type predicate from a zod schema for safely narrowing `unknown`
- * values (e.g. validated API responses) without a type cast.
- */
-const isValidatedBy =
+const decodeWith =
   <T>(schema: z.ZodType<T>) =>
-  (value: unknown): value is T =>
-    schema.safeParse(value).success
+  (value: unknown): T =>
+    schema.parse(value)
 
-/**
- * Cache storage is an external boundary. Re-validate every cached value after
- * redaction before exposing it as a CMS DTO.
- */
-const isCachedPage = (value: unknown): value is CmsPageDTO | null =>
-  value === null || CmsPageSchema.safeParse(value).success
+const decodeNullableWith = <T>(schema: z.ZodType<T>) =>
+  function decodeNullable(value: unknown): T | null {
+    return value === null ? null : schema.parse(value)
+  }
 
-const isCachedArticle = (value: unknown): value is CmsArticleDTO | null =>
-  value === null || CmsArticleSchema.safeParse(value).success
-
-const isCachedPageCategoryList = (
-  value: unknown,
-): value is CmsPageCategoryDTO[] =>
-  z.array(CmsPageCategorySchema).safeParse(value).success
-
-const isCachedArticleCategoryList = (
-  value: unknown,
-): value is CmsArticleCategoryDTO[] =>
-  z.array(CmsArticleCategorySchema).safeParse(value).success
-
-const isCachedHeroCarouselList = (
-  value: unknown,
-): value is CmsHeroCarouselDTO[] =>
-  z.array(CmsHeroCarouselSchema).safeParse(value).success
+const decodeCachedPage = decodeNullableWith(CmsPageSchema)
+const decodeCachedArticle = decodeNullableWith(CmsArticleSchema)
+const decodeCachedPageCategoryList = decodeWith(z.array(CmsPageCategorySchema))
+const decodeCachedArticleCategoryList = decodeWith(
+  z.array(CmsArticleCategorySchema),
+)
+const decodeCachedHeroCarouselList = decodeWith(z.array(CmsHeroCarouselSchema))
 
 /**
  * Medusa module service for reading Payload CMS content with caching support.
@@ -353,72 +341,59 @@ export default class PayloadModuleService extends MedusaService({}) {
       )
     }
 
-    let validated: unknown
     try {
-      validated = await zodValidator(options.schema, result)
+      return await options.schema.parseAsync(result)
     } catch (error) {
-      if (error instanceof MedusaError) {
-        throw new MedusaError(
-          MedusaError.Types.INVALID_DATA,
-          `Payload response validation failed for ${method} ${endpoint}: ${error.message}`,
-        )
-      }
-      throw error
-    }
-
-    const isValidResult = isValidatedBy(options.schema)
-    if (!isValidResult(validated)) {
+      const message = error instanceof Error ? error.message : String(error)
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Payload response validation failed for ${method} ${endpoint}: unexpected shape after validation`,
+        `Payload response validation failed for ${method} ${endpoint}: ${message}`,
       )
     }
-
-    return validated
   }
 
-  /**
-   * Fetch data with optional caching keyed by TTL and tags. `isCached` is a
-   * type predicate used to safely narrow both cache reads and post-redaction
-   * data without an unsafe type assertion.
-   */
+  /** Fetch and decode data with optional caching keyed by TTL and tags. */
   private async getCached<T extends object | null>(
     key: string,
     fetcher: () => Promise<T>,
     ttl: number,
     tags: string[],
-    isCached: (value: unknown) => value is T,
+    decodeCached: (value: unknown) => T,
   ): Promise<T> {
     if (this._cacheService) {
       const cached: unknown = await this._cacheService.get({ key })
       if (cached !== null) {
-        const redactedCached = redactValue(cached)
-        if (isCached(redactedCached)) {
-          return redactedCached
+        try {
+          return decodeCached(redactValue(cached))
+        } catch {
+          // Invalid external cache entries are misses and are replaced below.
         }
       }
     }
 
-    const data = await fetcher()
-    const redactedData = redactValue(data)
-
-    if (!isCached(redactedData)) {
+    const redactedData = redactValue(await fetcher())
+    let decodedData: T
+    try {
+      decodedData = decodeCached(redactedData)
+    } catch (error) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
         `Payload: redacted value for cache key "${key}" no longer matches the expected shape`,
+        undefined,
+        { cause: error },
       )
     }
 
-    if (this._cacheService && redactedData !== null) {
+    if (this._cacheService && decodedData !== null) {
       await this._cacheService.set({
-        data: redactedData,
+        data: decodedData,
         key,
         tags,
         ttl,
       })
     }
 
-    return redactedData
+    return decodedData
   }
 
   /**
@@ -461,7 +436,7 @@ export default class PayloadModuleService extends MedusaService({}) {
       },
       this._contentCacheTtl,
       [CACHE_TAGS.ALL, CACHE_TAGS.PAGES],
-      isCachedPage,
+      decodeCachedPage,
     )
   }
 
@@ -505,7 +480,7 @@ export default class PayloadModuleService extends MedusaService({}) {
     id: string,
     locale: string,
   ): Promise<CmsArticleDTO | CmsPageDTO | null> {
-    const where: Record<string, unknown> = {
+    const where: Record<string, { equals: string }> = {
       id: { equals: id },
       status: { equals: STATUS_PUBLISHED },
       ...(collection === PAGES ? { visibility: { equals: "public" } } : {}),
@@ -567,7 +542,7 @@ export default class PayloadModuleService extends MedusaService({}) {
       },
       this._listCacheTtl,
       [CACHE_TAGS.ALL, CACHE_TAGS.PAGE_CATEGORIES, localeTag],
-      isCachedPageCategoryList,
+      decodeCachedPageCategoryList,
     )
   }
 
@@ -610,7 +585,7 @@ export default class PayloadModuleService extends MedusaService({}) {
       },
       this._contentCacheTtl,
       [CACHE_TAGS.ALL, CACHE_TAGS.ARTICLES],
-      isCachedArticle,
+      decodeCachedArticle,
     )
   }
 
@@ -676,7 +651,7 @@ export default class PayloadModuleService extends MedusaService({}) {
       },
       this._listCacheTtl,
       [CACHE_TAGS.ALL, CACHE_TAGS.ARTICLE_CATEGORIES, localeTag],
-      isCachedArticleCategoryList,
+      decodeCachedArticleCategoryList,
     )
   }
 
@@ -706,7 +681,7 @@ export default class PayloadModuleService extends MedusaService({}) {
       },
       this._listCacheTtl,
       [CACHE_TAGS.ALL, CACHE_TAGS.HERO_CAROUSELS, localeTag],
-      isCachedHeroCarouselList,
+      decodeCachedHeroCarouselList,
     )
   }
 

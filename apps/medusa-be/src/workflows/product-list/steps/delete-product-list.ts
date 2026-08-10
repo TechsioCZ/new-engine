@@ -3,6 +3,7 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
 import { normalizeProductListType } from "../../../modules/product-list/normalizers"
+import { parseProductListMetadata } from "../../../modules/product-list/schemas"
 import type ProductListModuleService from "../../../modules/product-list/service"
 import type { ProductListRecord } from "../types"
 
@@ -36,7 +37,7 @@ export const deleteProductListStep = createStep(
         description: list.description ?? null,
         handle: list.handle,
         id: list.id,
-        metadata: list.metadata ?? null,
+        metadata: parseProductListMetadata(list.metadata),
         title: list.title,
         type: list.type,
       })

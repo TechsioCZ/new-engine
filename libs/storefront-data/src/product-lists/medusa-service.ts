@@ -1,6 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
-import { compactRecord, isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord, omitUndefined } from "@techsio/std/object"
 
 import type { IsExactly } from "../shared/type-utils"
 import type {
@@ -29,8 +29,14 @@ import type {
 
 const DEFAULT_PRODUCT_LISTS_PATH = "/store/product-lists"
 
-type PlainQuery = Record<string, unknown>
+type PlainQuery = MedusaProductListListInput
+type ListQueryNormalizer = (
+  value: MedusaProductListListInput,
+) => MedusaProductListListInput
 type UnknownTransform = (value: unknown) => unknown
+
+const isListQueryNormalizer = (value: unknown): value is ListQueryNormalizer =>
+  typeof value === "function"
 
 const isUnknownTransform = (value: unknown): value is UnknownTransform =>
   typeof value === "function"
@@ -255,15 +261,22 @@ class MedusaProductListServiceFactory {
     MedusaProductListDetailInput
   > {
     const configRecord = isRecord(config) ? config : {}
-    const {
-      basePath: basePathValue,
-      defaultLimit: defaultLimitValue,
-      defaultOffset: defaultOffsetValue,
-      normalizeListQuery,
-      transformCart,
-      transformProductList,
-      transformProductListItem,
-    } = configRecord
+    const basePathValue = getRecordValue(configRecord, "basePath")
+    const defaultLimitValue = getRecordValue(configRecord, "defaultLimit")
+    const defaultOffsetValue = getRecordValue(configRecord, "defaultOffset")
+    const normalizeListQuery = getRecordValue(
+      configRecord,
+      "normalizeListQuery",
+    )
+    const transformCart = getRecordValue(configRecord, "transformCart")
+    const transformProductList = getRecordValue(
+      configRecord,
+      "transformProductList",
+    )
+    const transformProductListItem = getRecordValue(
+      configRecord,
+      "transformProductListItem",
+    )
     const basePath =
       typeof basePathValue === "string" ? basePathValue : this.defaultBasePath
     const defaultLimit =
@@ -287,7 +300,7 @@ class MedusaProductListServiceFactory {
       if (!isRecord(transformedCart)) {
         throw new TypeError("Product list cart transform must return a cart")
       }
-      const { id } = transformedCart
+      const id = getRecordValue(transformedCart, "id")
       if (typeof id !== "string") {
         throw new TypeError("Product list cart transform must return a cart")
       }
@@ -297,17 +310,16 @@ class MedusaProductListServiceFactory {
     const resolveListQuery = (
       params: MedusaProductListListInput,
     ): PlainQuery => {
-      const normalizedResult = isUnknownTransform(normalizeListQuery)
+      const normalized = isListQueryNormalizer(normalizeListQuery)
         ? normalizeListQuery(params)
         : params
-      const normalized = isRecord(normalizedResult) ? normalizedResult : params
       const {
         limit = defaultLimit,
         offset = defaultOffset,
         ...query
       } = normalized
 
-      return compactRecord({
+      return omitUndefined({
         ...query,
         limit,
         offset,
@@ -331,7 +343,7 @@ class MedusaProductListServiceFactory {
         const response = await sdk.client.fetch<
           ProductListItemResponse<ProductListBase<unknown>, ProductListItemBase>
         >(`${basePath}/favorites/items`, {
-          body: compactRecord({
+          body: omitUndefined({
             metadata: input.metadata,
             note: input.note,
             product_id: input.productId,
@@ -351,7 +363,7 @@ class MedusaProductListServiceFactory {
         const response = await sdk.client.fetch<
           ProductListItemResponse<ProductListBase<unknown>, ProductListItemBase>
         >(`${basePath}/${input.listId}/items`, {
-          body: compactRecord({
+          body: omitUndefined({
             metadata: input.metadata,
             note: input.note,
             product_id: input.productId,
@@ -371,7 +383,7 @@ class MedusaProductListServiceFactory {
         const response = await sdk.client.fetch<
           ProductListItemResponse<ProductListBase<unknown>, ProductListItemBase>
         >(`${basePath}/items/${input.itemId}/change-quantity`, {
-          body: compactRecord({
+          body: omitUndefined({
             quantity: normalizeQuantityDelta(input.quantity),
           }),
           method: "POST",
@@ -386,7 +398,7 @@ class MedusaProductListServiceFactory {
         const response = await sdk.client.fetch<
           ProductListResponse<ProductListBase<unknown>>
         >(`${basePath}/custom`, {
-          body: compactRecord({
+          body: omitUndefined({
             ...input,
             access_type: input.access_type ?? "private",
           }),
@@ -402,7 +414,7 @@ class MedusaProductListServiceFactory {
         const response = await sdk.client.fetch<
           ProductListResponse<ProductListBase<unknown>>
         >(`${basePath}/favorites`, {
-          body: compactRecord({ ...input }),
+          body: omitUndefined({ ...input }),
           method: "POST",
         })
         const productList = resolveProductListFromResponse(response)
@@ -415,7 +427,7 @@ class MedusaProductListServiceFactory {
         const response = await sdk.client.fetch<
           ProductListCartResponse<HttpTypes.StoreCart>
         >(`${basePath}/${input.listId}/cart`, {
-          body: compactRecord({
+          body: omitUndefined({
             country_code: input.countryCode ?? undefined,
             email: input.email ?? undefined,
             region_id: input.regionId ?? undefined,
@@ -478,7 +490,7 @@ class MedusaProductListServiceFactory {
         const response = await sdk.client.fetch<
           ProductListItemResponse<ProductListBase<unknown>, ProductListItemBase>
         >(`${basePath}/items/${input.itemId}/increment`, {
-          body: compactRecord({
+          body: omitUndefined({
             quantity: normalizeQuantity(input.quantity) ?? 1,
           }),
           method: "POST",
@@ -501,8 +513,8 @@ class MedusaProductListServiceFactory {
         const { limit: queryLimit, offset: queryOffset } = query
         const normalized = normalizeProductListsResponse(
           response,
-          Number(queryLimit ?? defaultLimit),
-          Number(queryOffset ?? defaultOffset),
+          queryLimit ?? defaultLimit,
+          queryOffset ?? defaultOffset,
         )
 
         return {
@@ -515,7 +527,7 @@ class MedusaProductListServiceFactory {
         const response = await sdk.client.fetch<
           ProductListResponse<ProductListBase<unknown>>
         >(`${basePath}/${input.listId}`, {
-          body: compactRecord({
+          body: omitUndefined({
             access_type: input.access_type,
             description: input.description,
             handle: input.handle,
@@ -534,7 +546,7 @@ class MedusaProductListServiceFactory {
         const response = await sdk.client.fetch<
           ProductListItemResponse<ProductListBase<unknown>, ProductListItemBase>
         >(`${basePath}/items/${input.itemId}`, {
-          body: compactRecord({
+          body: omitUndefined({
             metadata: input.metadata,
             note: input.note,
             quantity: normalizeQuantity(input.quantity),

@@ -1,5 +1,4 @@
-import { isRecord } from "@techsio/std/object"
-
+import { ApiStoreCredentialsSchema } from "./types"
 import type { ApiStoreCredentials } from "./types"
 
 export const SENSITIVE_FIELDS = ["api_key", "credentials"] as const
@@ -50,5 +49,6 @@ export const parseCredentials = (
   }
 
   const parsed: unknown = JSON.parse(credentials)
-  return isRecord(parsed) ? parsed : null
+  const result = ApiStoreCredentialsSchema.safeParse(parsed)
+  return result.success ? result.data : null
 }

@@ -73,7 +73,7 @@ const get = async (req: MedusaRequest, res: MedusaResponse) => {
   )
 
   const { id: jobId } = req.params
-  if (!jobId) {
+  if (jobId === undefined || jobId.length === 0) {
     res.status(400).json({ error: { message: "Job ID is required" } })
     return
   }

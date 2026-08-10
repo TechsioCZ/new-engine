@@ -48,10 +48,33 @@ const isProfileReaderModule = (value: unknown): value is ProfileReaderModule =>
   "readSearchProfiles" in value &&
   typeof value.readSearchProfiles === "function"
 
+interface BootstrapSearchProfileRecord {
+  autocomplete_brand_limit: number
+  autocomplete_category_limit: number
+  autocomplete_content_limit: number
+  autocomplete_product_limit: number
+  availability: "all" | "in-stock"
+  domain: string
+  full_search_limit: number
+  key: string
+  locale: string
+  max_results_per_page: number
+  minimum_ranking_score: number | null
+  popular_limit: number
+  sales_channel_ids: { values: string[] }
+  separate_variant_results: boolean
+  shop: string
+  strict: boolean
+}
+
+interface SearchProfileLookup {
+  key?: string
+}
+
 export interface InternalSearchProfileService {
-  create: (data: Record<string, unknown>) => Promise<unknown>
+  create: (data: BootstrapSearchProfileRecord) => Promise<unknown>
   listAndCount: (
-    filter: Record<string, unknown>,
+    filter: SearchProfileLookup,
     options?: { take?: number },
   ) => Promise<[unknown[], number]>
 }
@@ -60,7 +83,9 @@ export type BootstrapSearchProfile = zod.infer<
   typeof bootstrapSearchProfileSchema
 >
 
-const toBootstrapRecord = (profile: BootstrapSearchProfile) => {
+const toBootstrapRecord = (
+  profile: BootstrapSearchProfile,
+): BootstrapSearchProfileRecord => {
   const automaticRankingScore = profile.strict ? 0.98 : 0.55
 
   return {

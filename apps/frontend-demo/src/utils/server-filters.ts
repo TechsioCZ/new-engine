@@ -3,22 +3,22 @@
  * These functions build query parameters for server-side filtering
  */
 
-import type { ProductFilters } from "@/services/product-service"
+import type { HttpTypes } from "@medusajs/types"
 
-const VARIANTS_QUERY_KEY = "variants"
+import type { ProductFilters } from "@/services/product-service"
 
 export interface MedusaProductQuery {
   limit?: number
   offset?: number
   fields?: string
   category_id?: string | string[]
-  tags?: string | string[]
+  country_code?: string
+  order?: string
   q?: string
   region_id?: string
   cart_id?: string
   currency_code?: string
-  // Variant filtering requires special handling
-  [key: string]: unknown
+  variants?: NonNullable<HttpTypes.StoreProductListParams["variants"]>
 }
 
 /**
@@ -43,23 +43,16 @@ export const buildMedusaQuery = (
 
   // Size filtering via variant options - Medusa v2 supports this!
   const sizes = filters.sizes ?? []
-  if (sizes.length > 0) {
-    query[VARIANTS_QUERY_KEY] =
-      sizes.length === 1
-        ? {
-            // For a single size, use an exact option value.
-            options: {
-              value: sizes.join(""),
-            },
-          }
-        : {
-            // For multiple sizes, use the $in operator.
-            options: {
-              value: {
-                $in: sizes,
-              },
-            },
-          }
+  if (sizes.length === 1) {
+    query.variants = {
+      options: {
+        value: sizes.join(""),
+      },
+    }
+  } else if (sizes.length > 1) {
+    query.variants = {
+      $or: sizes.map((value) => ({ options: { value } })),
+    }
   }
 
   // Color filtering - if needed in the future

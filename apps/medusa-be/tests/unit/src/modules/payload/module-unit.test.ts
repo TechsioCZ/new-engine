@@ -9,7 +9,7 @@ import PayloadModuleService from "../../../../../src/modules/payload/service"
 const { overrideModule } = vi.hoisted(() => ({
   overrideModule: <ModuleShape extends object>(
     original: ModuleShape,
-    replacements: Record<PropertyKey, unknown>,
+    replacements: object,
   ): ModuleShape =>
     Object.defineProperties(
       { ...original },

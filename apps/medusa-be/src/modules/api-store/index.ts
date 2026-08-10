@@ -9,6 +9,7 @@ export default Module(API_STORE_MODULE, {
 })
 
 export type { default as ApiStoreModuleService } from "./service"
+export { ApiStoreCredentialsSchema } from "./types"
 export type {
   ApiStoreAdminDTO,
   ApiStoreCreateInput,

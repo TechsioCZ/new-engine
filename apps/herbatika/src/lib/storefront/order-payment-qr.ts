@@ -30,7 +30,7 @@ interface FetchOrderPaymentQrOptions {
   orderId: string
 }
 
-interface ReadyQrPayment extends Record<string, unknown> {
+interface ReadyQrPayment {
   iban: string
   order_id: string
   provider_id: typeof ORDER_QR_PAYMENT_PROVIDER_ID

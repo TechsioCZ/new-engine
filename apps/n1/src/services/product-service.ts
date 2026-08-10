@@ -1,17 +1,19 @@
-import type { StoreProduct } from "@medusajs/types"
+import type { HttpTypes } from "@medusajs/types"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 import { PRODUCT_DETAILED_FIELDS } from "@/lib/constants"
 import { fetchLogger } from "@/lib/loggers/fetch"
-import {
-  getMedusaBackendUrl,
-  getMedusaPublishableKey,
-} from "@/lib/medusa-backend-url"
 import { sdk } from "@/lib/medusa-client"
 import { buildQueryString } from "@/lib/product-query-params"
 import type { ProductQueryParams } from "@/lib/product-query-params"
+import type {
+  ProductListCalculatedPrice,
+  ProductListProduct,
+  ProductListVariant,
+} from "@/types/product"
 
 export interface ProductListResponse {
-  products: StoreProduct[]
+  products: ProductListProduct[]
   count: number
   limit: number
   offset: number
@@ -31,27 +33,178 @@ interface GetProductsErrorContext {
   signal?: AbortSignal | undefined
 }
 
-const isProductListPayloadObject = (
+const decodeProductListCalculatedPrice = (
   value: unknown,
-): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
+): ProductListCalculatedPrice | undefined => {
+  if (!isRecord(value)) {
+    return undefined
+  }
 
-const isStoreProductArray = (value: unknown): value is StoreProduct[] =>
-  Array.isArray(value)
+  const amountWithTax = getRecordValue(value, "calculated_amount_with_tax")
+  const amountWithoutTax = getRecordValue(
+    value,
+    "calculated_amount_without_tax",
+  )
+  const currencyCode = getRecordValue(value, "currency_code")
 
-const readProductListPayload = (
+  if (
+    amountWithTax !== undefined &&
+    amountWithTax !== null &&
+    typeof amountWithTax !== "number"
+  ) {
+    return undefined
+  }
+  if (
+    amountWithoutTax !== undefined &&
+    amountWithoutTax !== null &&
+    typeof amountWithoutTax !== "number"
+  ) {
+    return undefined
+  }
+  if (currencyCode !== null && typeof currencyCode !== "string") {
+    return undefined
+  }
+
+  return {
+    ...(amountWithTax === undefined
+      ? {}
+      : { calculated_amount_with_tax: amountWithTax }),
+    ...(amountWithoutTax === undefined
+      ? {}
+      : { calculated_amount_without_tax: amountWithoutTax }),
+    currency_code: currencyCode,
+  }
+}
+
+const decodeProductListVariant = (
   value: unknown,
-): { count: number; products: StoreProduct[] } => {
-  if (!isProductListPayloadObject(value)) {
+): ProductListVariant | undefined => {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  const calculatedPriceValue = getRecordValue(value, "calculated_price")
+  const inventoryQuantity = getRecordValue(value, "inventory_quantity")
+  const title = getRecordValue(value, "title")
+
+  if (title !== null && typeof title !== "string") {
+    return undefined
+  }
+  if (
+    inventoryQuantity !== undefined &&
+    inventoryQuantity !== null &&
+    typeof inventoryQuantity !== "number"
+  ) {
+    return undefined
+  }
+
+  let calculatedPrice: ProductListCalculatedPrice | null | undefined
+  if (calculatedPriceValue === null) {
+    calculatedPrice = null
+  } else if (calculatedPriceValue !== undefined) {
+    calculatedPrice = decodeProductListCalculatedPrice(calculatedPriceValue)
+    if (calculatedPrice === undefined) {
+      return undefined
+    }
+  }
+
+  return {
+    ...(calculatedPrice === undefined
+      ? {}
+      : { calculated_price: calculatedPrice }),
+    ...(inventoryQuantity === undefined
+      ? {}
+      : { inventory_quantity: inventoryQuantity }),
+    title,
+  }
+}
+
+const decodeProductListProduct = (
+  value: unknown,
+): ProductListProduct | undefined => {
+  if (!isRecord(value)) {
+    return undefined
+  }
+
+  const handle = getRecordValue(value, "handle")
+  const id = getRecordValue(value, "id")
+  const thumbnail = getRecordValue(value, "thumbnail")
+  const title = getRecordValue(value, "title")
+  const variantsValue = getRecordValue(value, "variants")
+
+  if (typeof handle !== "string" || typeof id !== "string") {
+    return undefined
+  }
+  if (thumbnail !== null && typeof thumbnail !== "string") {
+    return undefined
+  }
+  if (typeof title !== "string") {
+    return undefined
+  }
+  if (variantsValue !== null && !Array.isArray(variantsValue)) {
+    return undefined
+  }
+
+  if (variantsValue === null) {
+    return { handle, id, thumbnail, title, variants: null }
+  }
+
+  const variantValues: unknown[] = variantsValue
+  const variants: ProductListVariant[] = []
+  for (const variantValue of variantValues) {
+    const variant = decodeProductListVariant(variantValue)
+    if (variant === undefined) {
+      return undefined
+    }
+    variants.push(variant)
+  }
+
+  return { handle, id, thumbnail, title, variants }
+}
+
+interface DecodedProductListPayload {
+  count: number
+  products: ProductListProduct[]
+}
+
+const logMalformedProduct = (index: number): void => {
+  if (process.env.NODE_ENV === "development") {
+    console.error(
+      `[ProductService] Skipping malformed product at response index ${index}`,
+    )
+  }
+}
+
+const decodeProductListResponse = (
+  value: unknown,
+): DecodedProductListPayload => {
+  if (!isRecord(value)) {
     return { count: 0, products: [] }
   }
 
-  const { count, products } = value
-
-  return {
-    count: typeof count === "number" ? count : 0,
-    products: isStoreProductArray(products) ? products : [],
+  const count = getRecordValue(value, "count")
+  const productsValue = getRecordValue(value, "products")
+  if (
+    typeof count !== "number" ||
+    !Number.isSafeInteger(count) ||
+    count < 0 ||
+    !Array.isArray(productsValue)
+  ) {
+    return { count: 0, products: [] }
   }
+
+  const productValues: unknown[] = productsValue
+  const products: ProductListProduct[] = []
+  for (const [index, productValue] of productValues.entries()) {
+    const product = decodeProductListProduct(productValue)
+    if (product === undefined) {
+      logMalformedProduct(index)
+      continue
+    }
+    products.push(product)
+  }
+
+  return { count, products }
 }
 
 const buildProductsQueryString = (params: ProductQueryParams): string => {
@@ -127,24 +280,11 @@ export const getProducts = async (
   try {
     const queryString = buildProductsQueryString(params)
 
-    // Use native fetch with Medusa headers for AbortSignal support
-    const baseUrl = getMedusaBackendUrl()
-    const publishableKey = getMedusaPublishableKey()
-
-    const response = await fetch(`${baseUrl}/store/products?${queryString}`, {
-      ...(signal ? { signal } : {}),
-      headers: {
-        "Content-Type": "application/json",
-        "x-publishable-api-key": publishableKey,
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-    }
-
-    const data: unknown = await response.json()
-    const payload = readProductListPayload(data)
+    const response = await sdk.client.fetch<unknown>(
+      `/store/products?${queryString}`,
+      signal === undefined ? undefined : { signal },
+    )
+    const payload = decodeProductListResponse(response)
 
     return {
       count: payload.count,
@@ -167,7 +307,7 @@ export const getProductsGlobal = async (
 
 export const getProductByHandle = async (
   params: ProductDetailParams,
-): Promise<StoreProduct | null> => {
+): Promise<HttpTypes.StoreProduct | null> => {
   const { handle, region_id, country_code } = params
 
   try {

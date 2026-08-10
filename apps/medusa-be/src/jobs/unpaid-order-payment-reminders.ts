@@ -7,7 +7,7 @@ import {
 } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
 import { chunk, unique } from "@techsio/std/array"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 import { EMAIL_LOG_MODULE } from "../modules/email-log"
 import type EmailLogModuleService from "../modules/email-log/service"
@@ -31,8 +31,8 @@ const PAYMENT_REMINDER_TEMPLATE = "order-payment-reminder"
 
 type EmailLogService = EmailLogModuleService & {
   listEmailLogs: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>,
+    filters?: Parameters<EmailLogModuleService["listEmailLogs"]>[0],
+    config?: Parameters<EmailLogModuleService["listEmailLogs"]>[1],
   ) => Promise<unknown>
 }
 
@@ -91,7 +91,7 @@ const collectAlreadyRemindedOrderIds = async (
 
   for (const log of alreadySentLogsResult.data) {
     if (isRecord(log)) {
-      const { order_id: orderId } = log
+      const orderId = getRecordValue(log, "order_id")
       if (typeof orderId === "string" && orderId !== "") {
         alreadyRemindedOrderIds.add(orderId)
       }

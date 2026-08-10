@@ -78,18 +78,15 @@ export const readBoundedTextFile = (file, maxBytes) => {
 }
 
 /**
- * @param {unknown} value - Candidate JSON value.
- * @returns {value is Record<string, unknown>} Whether the value is a record.
- */
-const isRecord = (value) =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
-/**
  * @param {unknown} value - Parsed package metadata.
  * @returns {boolean} Whether metadata belongs to the UI kit.
  */
-const hasUiKitPackageName = (value) =>
-  isRecord(value) && value.name === UI_KIT_PACKAGE
+const hasUiKitPackageName = (value) => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false
+  }
+  return "name" in value && value.name === UI_KIT_PACKAGE
+}
 
 /** @param {unknown} cwd - Candidate path inside a worktree. */
 export const isUiKitSourceRepo = (cwd) => {

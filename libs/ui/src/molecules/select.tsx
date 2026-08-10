@@ -2,7 +2,7 @@
  * Select — @techsio/ui-kit molecule.
  *
  * @component Select
- * @componentVersion v1.0.2
+ * @componentVersion v2.0.0
  * @skill select-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,7 +11,7 @@
  */
 import { mergeProps, normalizeProps, Portal, useMachine } from "@zag-js/react"
 import { collection, connect, machine } from "@zag-js/select"
-import type { Props as ZagSelectProps, Service } from "@zag-js/select"
+import type { Props as ZagSelectProps } from "@zag-js/select"
 import { createContext, useContext, useId } from "react"
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react"
 import { tv } from "tailwind-variants"
@@ -42,7 +42,6 @@ export interface SelectItem {
   value: string
   disabled?: boolean | undefined
   displayValue?: string | undefined
-  [key: string]: unknown
 }
 
 const selectVariants = tv({
@@ -199,7 +198,7 @@ const useSelectItemContext = (): SelectItemContextValue => {
 export interface SelectProps
   extends
     VariantProps<typeof selectVariants>,
-    Omit<ZagSelectProps, "collection" | "id" | "invalid"> {
+    Omit<ZagSelectProps<SelectItem>, "collection" | "id" | "invalid"> {
   items: SelectItem[]
   id?: string | undefined
   className?: string | undefined
@@ -269,7 +268,7 @@ const SelectRoot = ({
     value,
   })
 
-  const api = connect(service as Service, normalizeProps)
+  const api = connect(service, normalizeProps)
   const styles = selectVariants({ size })
 
   const contextValue = createSelectContextValue({

@@ -14,17 +14,15 @@ const mockCmsService = {
   getPublishedPage:
     vi.fn<(slug: string, locale?: string) => Promise<unknown>>(),
   listArticleCategoriesWithArticles:
-    vi.fn<(options?: Record<string, unknown>) => Promise<unknown>>(),
-  listHeroCarousels:
-    vi.fn<(options?: Record<string, unknown>) => Promise<unknown>>(),
-  listPageCategoriesWithPages:
-    vi.fn<(options?: Record<string, unknown>) => Promise<unknown>>(),
+    vi.fn<(options?: object) => Promise<unknown>>(),
+  listHeroCarousels: vi.fn<(options?: object) => Promise<unknown>>(),
+  listPageCategoriesWithPages: vi.fn<(options?: object) => Promise<unknown>>(),
 }
 
 const { overrideModule } = vi.hoisted(() => ({
   overrideModule: <Module extends object>(
     original: Module,
-    replacements: Record<PropertyKey, unknown>,
+    replacements: object,
   ): Module =>
     Object.defineProperties(
       { ...original },
@@ -77,7 +75,7 @@ const createMockRequest = <T>(
   }: {
     locale?: string
     params?: Record<string, string | undefined>
-    validatedQuery?: Record<string, unknown>
+    validatedQuery?: object
   },
   requiredKeys: readonly (keyof T)[],
 ): T => {

@@ -84,14 +84,25 @@ interface ProductFixture {
   updated_at: Date
 }
 
-type FilterConfig = Record<string, unknown>
+interface ProductAttributeFilterFixture {
+  id?: { $in: string[] }
+  product_id?: string
+}
+
+interface ProductAttributeListConfigFixture {
+  order: { id: "ASC"; label?: "ASC" }
+  skip?: number
+  take: number
+  withDeleted?: boolean
+}
+
 type ListRecords<T> = (
-  filters: FilterConfig,
-  config: FilterConfig,
+  filters: ProductAttributeFilterFixture,
+  config: ProductAttributeListConfigFixture,
 ) => Promise<T[]>
 type ListAndCountRecords<T> = (
-  filters: FilterConfig,
-  config: FilterConfig,
+  filters: ProductAttributeFilterFixture,
+  config: ProductAttributeListConfigFixture,
 ) => Promise<[T[], number]>
 type LoadUsageCounts = (ids: string[]) => Promise<UsageCountFixture[]>
 

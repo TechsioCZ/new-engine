@@ -9,7 +9,10 @@ import {
   CARRIER_PICKUP_FAILURE_KEYS,
   resolveCarrierPickupWidgetLanguage,
 } from "@/components/checkout/carrier-pickup.utils"
-import type { CarrierPickupFailureReason } from "@/components/checkout/carrier-pickup.utils"
+import type {
+  CarrierPickupData,
+  CarrierPickupFailureReason,
+} from "@/components/checkout/carrier-pickup.utils"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 
 import { PacketaPickupWidget } from "../packeta-widget"
@@ -29,7 +32,7 @@ import {
 
 interface CheckoutPacketaPickupSelectorProps {
   disabled: boolean
-  onConfirm: (data: Record<string, unknown>) => void
+  onConfirm: (data: CarrierPickupData) => void
 }
 
 export const CheckoutPacketaPickupSelector = ({

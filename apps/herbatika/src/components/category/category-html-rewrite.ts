@@ -46,7 +46,11 @@ const resolveLegacyCategoryHref = (
   }
 
   const [handle] = normalizedPath.split("/")
-  if (!(handle && categoryByHandle.has(handle))) {
+  if (
+    handle === undefined ||
+    handle.length === 0 ||
+    !categoryByHandle.has(handle)
+  ) {
     return href
   }
 

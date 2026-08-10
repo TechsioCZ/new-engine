@@ -4,6 +4,8 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { ProductListItemProductLink } from "../../../links/product-list-item-product"
 import { ProductListItemVariantLink } from "../../../links/product-list-item-variant"
 import { PRODUCT_LIST_MODULE } from "../../../modules/product-list/constants"
+import { parseProductListMetadata } from "../../../modules/product-list/schemas"
+import type { ProductListMetadata } from "../../../modules/product-list/schemas"
 import type ProductListModuleService from "../../../modules/product-list/service"
 import {
   toProductListItemProductLinks,
@@ -19,7 +21,7 @@ export interface ProductListRecord {
   type: string
   access_type?: string
   description?: string | null
-  metadata?: Record<string, unknown> | null
+  metadata?: unknown
   items?: ProductListItemRecord[]
   created_at?: string | Date
   updated_at?: string | Date
@@ -32,17 +34,47 @@ export interface ProductListItemRecord {
   quantity: number
   note?: string | null
   sort_order: number
-  metadata?: Record<string, unknown> | null
+  metadata?: unknown
   list_id: string
   created_at?: string | Date
   updated_at?: string | Date
 }
 
-export const toProductListItemResponse = (item: ProductListItemRecord) => ({
+type ProductListTimestamp = string | Date | undefined
+
+export interface ProductListItemResponse {
+  created_at: ProductListTimestamp
+  id: string
+  list_id: string
+  metadata: ProductListMetadata | null
+  note: string | null
+  product_id: string | null
+  quantity: number
+  sort_order: number
+  updated_at: ProductListTimestamp
+  variant_id: string | null
+}
+
+export interface ProductListResponse {
+  access_type: string
+  created_at: ProductListTimestamp
+  description: string | null
+  handle: string
+  id: string
+  items: ProductListItemResponse[]
+  metadata: ProductListMetadata | null
+  title: string
+  type: string
+  updated_at: ProductListTimestamp
+}
+
+export const toProductListItemResponse = (
+  item: ProductListItemRecord,
+): ProductListItemResponse => ({
   created_at: item.created_at,
   id: item.id,
   list_id: item.list_id,
-  metadata: item.metadata ?? null,
+  metadata: parseProductListMetadata(item.metadata),
   note: item.note ?? null,
   product_id: item.product_id ?? null,
   quantity: item.quantity,
@@ -51,14 +83,16 @@ export const toProductListItemResponse = (item: ProductListItemRecord) => ({
   variant_id: item.variant_id ?? null,
 })
 
-export const toProductListResponse = (list: ProductListRecord) => ({
+export const toProductListResponse = (
+  list: ProductListRecord,
+): ProductListResponse => ({
   access_type: list.access_type ?? "private",
   created_at: list.created_at,
   description: list.description ?? null,
   handle: list.handle,
   id: list.id,
   items: list.items?.map(toProductListItemResponse) ?? [],
-  metadata: list.metadata ?? null,
+  metadata: parseProductListMetadata(list.metadata),
   title: list.title,
   type: list.type,
   updated_at: list.updated_at,
@@ -146,7 +180,7 @@ export const withProductListItems = async (
 
   const service =
     container.resolve<ProductListModuleService>(PRODUCT_LIST_MODULE)
-  const config: Record<string, unknown> = {
+  const config = {
     order: { created_at: "ASC", list_id: "ASC", sort_order: "ASC" },
   }
 

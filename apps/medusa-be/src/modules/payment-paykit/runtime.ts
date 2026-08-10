@@ -1,7 +1,8 @@
 import type { ProviderWebhookPayload } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import type { PayKit, PayKitProvider } from "@paykit-sdk/core"
-import { getErrorMessage, isRecord } from "@techsio/std/object"
+import { getErrorMessage } from "@techsio/std/object"
 
 import type {
   PaykitAdapterOptions,
@@ -11,6 +12,7 @@ import type {
   PaykitGopayProviderOptions,
   PaykitPaymentClient,
   PaykitStripeOptions,
+  PaykitStripeProvider,
   PaykitStripeProviderOptions,
   PaykitWebhookEvent,
 } from "./types"
@@ -22,63 +24,56 @@ type PaykitRuntime = Pick<
 
 export type PaykitProviderRuntime = Pick<PayKitProvider, "handleWebhook">
 
-type PaykitConstructor = new (provider: PayKitProvider) => PaykitRuntime
-type PaykitProviderFactory = (
-  options: Record<string, unknown>,
-) => PayKitProvider
-
-interface CreatedPaykitClient {
-  client: PaykitPaymentClient
-  provider: PayKitProvider
+interface PaykitWebhookOptions {
+  webhookSecret?: string
 }
+
+interface CreatedPaykitClient<
+  TProvider extends PayKitProvider = PayKitProvider,
+> {
+  client: PaykitPaymentClient
+  provider: TProvider
+}
+
+type CreateComgateProviderArgs = readonly [
+  providerPackage: "@paykit-sdk/comgate",
+  providerExport: "createComgate",
+  providerOptions: PaykitComgateProviderOptions,
+  webhookOptions?: PaykitWebhookOptions,
+]
+
+type CreateGopayProviderArgs = readonly [
+  providerPackage: "@paykit-sdk/gopay",
+  providerExport: "createGopay",
+  providerOptions: PaykitGopayProviderOptions,
+  webhookOptions?: PaykitWebhookOptions,
+]
+
+type CreateStripeProviderArgs = readonly [
+  providerPackage: "@paykit-sdk/stripe",
+  providerExport: "createStripe",
+  providerOptions: PaykitStripeProviderOptions,
+  webhookOptions?: PaykitWebhookOptions,
+]
+
+type CreatePaykitProviderArgs =
+  | CreateComgateProviderArgs
+  | CreateGopayProviderArgs
+  | CreateStripeProviderArgs
 
 // stripe-node advances its default REST API version with major releases.
 // Keep this explicit so dependency updates cannot silently change payment behavior.
-const PAYKIT_STRIPE_API_VERSION = "2026-06-24.dahlia" as const
-
-const isPaykitProviderRuntime = (
-  provider: unknown,
-): provider is PaykitProviderRuntime =>
-  isRecord(provider) && typeof provider["handleWebhook"] === "function"
-
-const isPaykitConstructor = (value: unknown): value is PaykitConstructor =>
-  typeof value === "function"
-
-const isPaykitProviderFactory = (
-  value: unknown,
-): value is PaykitProviderFactory => typeof value === "function"
-
-const isUnknownArray = (value: unknown): value is unknown[] =>
-  Array.isArray(value)
-
-const dynamicImport = async (specifier: string): Promise<unknown> => {
-  switch (specifier) {
-    case "@paykit-sdk/comgate": {
-      return await import("@paykit-sdk/comgate")
-    }
-    case "@paykit-sdk/core": {
-      return await import("@paykit-sdk/core")
-    }
-    case "@paykit-sdk/gopay": {
-      return await import("@paykit-sdk/gopay")
-    }
-    case "@paykit-sdk/stripe": {
-      return await import("@paykit-sdk/stripe")
-    }
-    default: {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        `Unsupported PayKit package "${specifier}".`,
-      )
-    }
-  }
-}
+const PAYKIT_STRIPE_API_VERSION = "2026-06-24.dahlia"
 
 const isMissingPackageImportError = (
   packageName: string,
   error: unknown,
 ): boolean => {
-  if (!isRecord(error) || error["code"] !== "ERR_MODULE_NOT_FOUND") {
+  if (
+    typeof error !== "object" ||
+    error === null ||
+    Reflect.get(error, "code") !== "ERR_MODULE_NOT_FOUND"
+  ) {
     return false
   }
 
@@ -105,15 +100,12 @@ export const getPaykitPackageLoadErrorMessage = (
   return `PayKit package "${packageName}" failed to load. The package is installed, but Node could not import it. This usually means the PayKit SDK packages are version-incompatible or the package build is invalid. Original error: ${originalMessage}`
 }
 
-const loadExport = async <T>(
+const loadPaykitPackage = async <TModule>(
   packageName: string,
-  exportName: string,
-  isExpectedExport: (value: unknown) => value is T,
-): Promise<T> => {
-  let moduleValue: unknown
-
+  load: () => Promise<TModule>,
+): Promise<TModule> => {
   try {
-    moduleValue = await dynamicImport(packageName)
+    return await load()
   } catch (error) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
@@ -122,30 +114,48 @@ const loadExport = async <T>(
       { cause: error },
     )
   }
-
-  if (!isRecord(moduleValue)) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      `PayKit package "${packageName}" did not load as a module.`,
-    )
-  }
-
-  const loaded = moduleValue[exportName]
-
-  if (!isExpectedExport(loaded)) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      `PayKit package "${packageName}" does not export a valid "${exportName}".`,
-    )
-  }
-
-  return loaded
 }
 
+const createPaykitProvider = async (
+  args: CreatePaykitProviderArgs,
+): Promise<PayKitProvider> => {
+  switch (args[0]) {
+    case "@paykit-sdk/comgate": {
+      const { createComgate } = await loadPaykitPackage(
+        args[0],
+        async () => await import("@paykit-sdk/comgate"),
+      )
+      return createComgate(args[2])
+    }
+    case "@paykit-sdk/gopay": {
+      const { createGopay } = await loadPaykitPackage(
+        args[0],
+        async () => await import("@paykit-sdk/gopay"),
+      )
+      return createGopay(args[2])
+    }
+    case "@paykit-sdk/stripe": {
+      const { createStripe } = await loadPaykitPackage(
+        args[0],
+        async () => await import("@paykit-sdk/stripe"),
+      )
+      return createStripe(args[2])
+    }
+    default: {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Unsupported PayKit package.",
+      )
+    }
+  }
+}
+
+const unknownArraySchema = z.array(z.unknown())
+
 const getFirstHeaderValue = (value: unknown): string | undefined => {
-  if (isUnknownArray(value)) {
-    const [firstValue] = value
-    return getFirstHeaderValue(firstValue)
+  const result = unknownArraySchema.safeParse(value)
+  if (result.success) {
+    return getFirstHeaderValue(result.data[0])
   }
 
   return typeof value === "string" && value.length > 0 ? value : undefined
@@ -190,16 +200,26 @@ const getWebhookFullUrl = (
   payload: ProviderWebhookPayload["payload"],
 ): string => {
   const rawData = payload.data
-  const data = isRecord(rawData) ? rawData : undefined
+  const fullUrl =
+    typeof rawData === "object" && rawData !== null
+      ? Reflect.get(rawData, "fullUrl")
+      : undefined
+  const legacyFullUrl =
+    typeof rawData === "object" && rawData !== null
+      ? Reflect.get(rawData, "full_url")
+      : undefined
 
-  for (const value of [data?.["fullUrl"], data?.["full_url"]]) {
+  for (const value of [fullUrl, legacyFullUrl]) {
     if (typeof value === "string" && value.length > 0) {
       return value
     }
   }
 
   const host = getFirstHeaderValue(payload.headers?.["host"])
-  const path = data?.["url"]
+  const path =
+    typeof rawData === "object" && rawData !== null
+      ? Reflect.get(rawData, "url")
+      : undefined
 
   if (
     typeof path === "string" &&
@@ -241,7 +261,7 @@ const toHeadersAsObject = (
   const result: Record<string, string> = {}
 
   for (const [key, value] of Object.entries(headers ?? {})) {
-    if (isUnknownArray(value)) {
+    if (Array.isArray(value)) {
       result[key] = value.map(String).join(",")
       continue
     }
@@ -256,12 +276,8 @@ const toHeadersAsObject = (
   return result
 }
 
-const getWebhookSecret = (
-  providerOptions: Record<string, unknown>,
-): string | null =>
-  typeof providerOptions["webhookSecret"] === "string"
-    ? providerOptions["webhookSecret"]
-    : null
+const getWebhookSecret = (options: PaykitWebhookOptions): string | null =>
+  options.webhookSecret ?? null
 
 const toPaykitWebhookPayload = (
   payload: ProviderWebhookPayload["payload"],
@@ -274,34 +290,31 @@ const toPaykitWebhookPayload = (
 export const callPaykitProviderWebhook = async (
   provider: PaykitProviderRuntime,
   payload: ProviderWebhookPayload["payload"],
-  webhookOptions: Record<string, unknown> = {},
+  webhookOptions: PaykitWebhookOptions = {},
 ): Promise<PaykitWebhookEvent[]> =>
   await provider.handleWebhook(
     toPaykitWebhookPayload(payload),
     getWebhookSecret(webhookOptions),
   )
 
-export const createPaykitClientWithProvider = async (
-  providerPackage: string,
-  providerExport: string,
-  providerOptions: Record<string, unknown>,
-  webhookOptions: Record<string, unknown> = providerOptions,
-): Promise<CreatedPaykitClient> => {
-  const [PayKitClass, createProvider] = await Promise.all([
-    loadExport("@paykit-sdk/core", "PayKit", isPaykitConstructor),
-    loadExport(providerPackage, providerExport, isPaykitProviderFactory),
+export function createPaykitClientWithProvider(
+  ...args: CreateStripeProviderArgs
+): Promise<CreatedPaykitClient<PaykitStripeProvider>>
+export function createPaykitClientWithProvider(
+  ...args: CreatePaykitProviderArgs
+): Promise<CreatedPaykitClient>
+export async function createPaykitClientWithProvider(
+  ...args: CreatePaykitProviderArgs
+): Promise<CreatedPaykitClient> {
+  const [{ PayKit: PayKitClass }, provider] = await Promise.all([
+    loadPaykitPackage(
+      "@paykit-sdk/core",
+      async () => await import("@paykit-sdk/core"),
+    ),
+    createPaykitProvider(args),
   ])
-
-  const provider = createProvider(providerOptions)
-
-  if (!isPaykitProviderRuntime(provider)) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      `PayKit provider "${providerPackage}" does not implement handleWebhook`,
-    )
-  }
-
-  const paykit = new PayKitClass(provider)
+  const paykit: PaykitRuntime = new PayKitClass(provider)
+  const webhookOptions = args[3] ?? {}
 
   return {
     client: {
@@ -316,17 +329,9 @@ export const createPaykitClientWithProvider = async (
 }
 
 export const createPaykitClient = async (
-  providerPackage: string,
-  providerExport: string,
-  providerOptions: Record<string, unknown>,
-  webhookOptions: Record<string, unknown> = providerOptions,
+  ...args: CreatePaykitProviderArgs
 ): Promise<PaykitPaymentClient> => {
-  const created = await createPaykitClientWithProvider(
-    providerPackage,
-    providerExport,
-    providerOptions,
-    webhookOptions,
-  )
+  const created = await createPaykitClientWithProvider(...args)
   return created.client
 }
 
@@ -341,49 +346,35 @@ export const resolveConfiguredClient = async (
 }
 
 export const getGopayProviderOptions = (
-  options: PaykitGopayOptions,
+  options: PaykitGopayOptions & PaykitGopayProviderOptions,
 ): PaykitGopayProviderOptions => ({
-  ...(options.clientId === undefined || options.clientId === ""
-    ? {}
-    : { clientId: options.clientId }),
-  ...(options.clientSecret === undefined || options.clientSecret === ""
-    ? {}
-    : { clientSecret: options.clientSecret }),
-  ...(options.goId === undefined || options.goId === ""
-    ? {}
-    : { goId: options.goId }),
-  isSandbox: options.isSandbox ?? true,
-  ...(options.webhookUrl === undefined || options.webhookUrl === ""
-    ? {}
-    : { webhookUrl: options.webhookUrl }),
+  clientId: options.clientId,
+  clientSecret: options.clientSecret,
   debug: options.debug ?? false,
+  goId: options.goId,
+  isSandbox: options.isSandbox ?? true,
+  webhookUrl: options.webhookUrl,
 })
 
 export const getStripeProviderOptions = (
-  options: PaykitStripeOptions,
+  options: PaykitStripeOptions & PaykitStripeProviderOptions,
 ): PaykitStripeProviderOptions => ({
-  ...(options.apiKey === undefined || options.apiKey === ""
-    ? {}
-    : { apiKey: options.apiKey }),
+  apiKey: options.apiKey,
   apiVersion: PAYKIT_STRIPE_API_VERSION,
   debug: options.debug ?? false,
 })
 
 export const getStripeWebhookOptions = (
   options: PaykitStripeOptions,
-): Record<string, unknown> => ({
+): PaykitWebhookOptions => ({
   webhookSecret: options.webhookSecret ?? "",
 })
 
 export const getComgateProviderOptions = (
-  options: PaykitComgateOptions,
+  options: PaykitComgateOptions & PaykitComgateProviderOptions,
 ): PaykitComgateProviderOptions => ({
-  ...(options.merchant === undefined || options.merchant === ""
-    ? {}
-    : { merchant: options.merchant }),
-  ...(options.secret === undefined || options.secret === ""
-    ? {}
-    : { secret: options.secret }),
   debug: options.debug ?? false,
   isSandbox: options.isSandbox ?? true,
+  merchant: options.merchant,
+  secret: options.secret,
 })

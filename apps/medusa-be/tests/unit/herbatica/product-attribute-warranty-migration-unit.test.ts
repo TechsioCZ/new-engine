@@ -1,4 +1,4 @@
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -34,7 +34,7 @@ describe("legacy Warranty migration preparation", () => {
   it("removes only the exact generated fragment and preserves fixed shape", () => {
     const fragment = buildLegacyWarrantyFragment("2 roky")
     const other = `<p>Keep before</p>\n${fragment}\n<p>Keep after</p>`
-    const result = prepareLegacyWarrantyMigration({
+    const metadata = {
       content_sections: sections(other),
       content_sections_map: {
         composition: "",
@@ -43,9 +43,11 @@ describe("legacy Warranty migration preparation", () => {
         usage: "",
         warning: "",
       },
+      source: "herbatica-products-complete-xml",
       unrelated: { keep: true },
       warranty: "2 roky",
-    })
+    }
+    const result = prepareLegacyWarrantyMigration(metadata)
 
     expect(result).toMatchObject({
       safe: true,
@@ -55,19 +57,27 @@ describe("legacy Warranty migration preparation", () => {
       throw new Error(result.reason)
     }
     expect(result.metadata).not.toHaveProperty("warranty")
-    expect(result.metadata["unrelated"]).toStrictEqual({ keep: true })
-    const contentSections: unknown = result.metadata["content_sections"]
+    expect(getRecordValue(result.metadata, "unrelated")).toStrictEqual({
+      keep: true,
+    })
+    const contentSections: unknown = getRecordValue(
+      result.metadata,
+      "content_sections",
+    )
     if (!Array.isArray(contentSections) || contentSections.length !== 5) {
       throw new TypeError("Expected five migrated content sections")
     }
     const finalSection: unknown = contentSections[4]
-    expect(isRecord(finalSection) ? finalSection["html"] : undefined).toBe(
-      "<p>Keep before</p>\n<p>Keep after</p>",
+    expect(
+      isRecord(finalSection) ? getRecordValue(finalSection, "html") : undefined,
+    ).toBe("<p>Keep before</p>\n<p>Keep after</p>")
+    const sectionMap: unknown = getRecordValue(
+      result.metadata,
+      "content_sections_map",
     )
-    const sectionMap: unknown = result.metadata["content_sections_map"]
-    expect(isRecord(sectionMap) ? sectionMap["other"] : undefined).toBe(
-      "<p>Keep before</p>\n<p>Keep after</p>",
-    )
+    expect(
+      isRecord(sectionMap) ? getRecordValue(sectionMap, "other") : undefined,
+    ).toBe("<p>Keep before</p>\n<p>Keep after</p>")
   })
 
   it("leaves ambiguous metadata untouched", () => {
@@ -82,6 +92,7 @@ describe("legacy Warranty migration preparation", () => {
         usage: "",
         warning: "",
       },
+      source: "herbatica-products-complete-xml",
       warranty: "2 roky",
     }
 

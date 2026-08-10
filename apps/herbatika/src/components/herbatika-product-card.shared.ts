@@ -1,6 +1,7 @@
 "use client"
 
-import type { HttpTypes } from "@medusajs/types"
+import { getRecordValue } from "@techsio/std/object"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useState } from "react"
 
@@ -14,9 +15,9 @@ import {
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 
 export interface HerbatikaProductCardBaseProps {
-  product: HttpTypes.StoreProduct
-  onProductHoverStart?: (product: HttpTypes.StoreProduct) => void
-  onProductHoverEnd?: (product: HttpTypes.StoreProduct) => void
+  product: MedusaCatalogProduct
+  onProductHoverStart?: (product: MedusaCatalogProduct) => void
+  onProductHoverEnd?: (product: MedusaCatalogProduct) => void
 }
 
 interface HerbatikaProductCardStateOptions {
@@ -39,16 +40,26 @@ const createProductHref = (
 }
 
 export const useHerbatikaProductCardState = (
-  product: HttpTypes.StoreProduct,
+  product: MedusaCatalogProduct,
   { priceUnavailableLabel, onImageError }: HerbatikaProductCardStateOptions,
 ) => {
   const region = useRegionContext()
   const currencyCode = resolveRegionCurrency(region)
   const productRecord = asStorefrontRecord(product)
-  const searchResult = asStorefrontRecord(productRecord?.["search_result"])
-  const searchResultVariantId = asStorefrontString(searchResult?.["variant_id"])
+  const searchResult = asStorefrontRecord(
+    productRecord === null
+      ? undefined
+      : getRecordValue(productRecord, "search_result"),
+  )
+  const searchResultVariantId = asStorefrontString(
+    searchResult === null
+      ? undefined
+      : getRecordValue(searchResult, "variant_id"),
+  )
   const searchResultVariantTitle = asStorefrontString(
-    searchResult?.["variant_title"],
+    searchResult === null
+      ? undefined
+      : getRecordValue(searchResult, "variant_title"),
   )
   const productHref = createProductHref(product.handle, searchResultVariantId)
   const price = resolvePriceState(product, currencyCode, priceUnavailableLabel)

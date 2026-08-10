@@ -1,8 +1,6 @@
 import { isRecord } from "@techsio/std/object"
 
-type OrderRecord = Record<string, unknown>
-
-interface OrderAddressSummary {
+export interface OrderAddressSummary {
   fullName: string | null
   company: string | null
   lines: string[]
@@ -17,9 +15,9 @@ export const readString = (value: unknown) => {
   return trimmed.length > 0 ? trimmed : null
 }
 
-export const readFromRecord = (record: OrderRecord, keys: string[]) => {
+export const readFromRecord = (record: object, keys: string[]) => {
   for (const key of keys) {
-    const value = readString(record[key])
+    const value = readString(Reflect.get(record, key))
     if (value !== null) {
       return value
     }

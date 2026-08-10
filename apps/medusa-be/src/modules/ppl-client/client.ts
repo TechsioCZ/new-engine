@@ -164,30 +164,36 @@ const addressWhisperItemSchema = responseObject({
   street: optionalString,
   zipCode: optionalString,
 }) satisfies z.ZodType<PplAddressWhisperItem>
-const codelistProductSchema = responseObject({
+export const codelistProductSchema = responseObject({
   code: z.string(),
   description: optionalString,
   name: z.string(),
 }) satisfies z.ZodType<PplCodelistProduct>
-const codelistCountrySchema = responseObject({
+export const codelistCountrySchema = responseObject({
   codAllowed: z.optional(z.boolean()),
   code: z.string(),
   name: z.string(),
 }) satisfies z.ZodType<PplCodelistCountry>
-const codelistCurrencySchema = responseObject({
+export const codelistCurrencySchema = responseObject({
   code: z.string(),
   name: z.string(),
 }) satisfies z.ZodType<PplCodelistCurrency>
-const codelistServiceSchema = responseObject({
+export const codelistServiceSchema = responseObject({
   code: z.string(),
   description: optionalString,
   name: z.string(),
 }) satisfies z.ZodType<PplCodelistServiceItem>
-const codelistStatusSchema = responseObject({
+export const codelistStatusSchema = responseObject({
   code: z.string(),
   description: optionalString,
   name: z.string(),
 }) satisfies z.ZodType<PplCodelistStatus>
+
+export const codelistProductArraySchema = z.array(codelistProductSchema)
+export const codelistCountryArraySchema = z.array(codelistCountrySchema)
+export const codelistCurrencyArraySchema = z.array(codelistCurrencySchema)
+export const codelistServiceArraySchema = z.array(codelistServiceSchema)
+export const codelistStatusArraySchema = z.array(codelistStatusSchema)
 const servicePriceLimitSchema = responseObject({
   country: optionalString,
   currency: optionalString,
@@ -329,6 +335,12 @@ const loadOAuthClientConstructor =
  * - Response parsing
  */
 export class PplClient {
+  static readonly codelistCountryArraySchema = codelistCountryArraySchema
+  static readonly codelistCurrencyArraySchema = codelistCurrencyArraySchema
+  static readonly codelistProductArraySchema = codelistProductArraySchema
+  static readonly codelistServiceArraySchema = codelistServiceArraySchema
+  static readonly codelistStatusArraySchema = codelistStatusArraySchema
+
   private oauth2Client: OAuthClient | null = null
 
   private readonly MAX_RETRIES = 3

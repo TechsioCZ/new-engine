@@ -2,10 +2,14 @@ import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
 
 import { createMedusaCatalogService } from "../src/catalog/medusa-service"
-import type { MedusaCatalogListInput } from "../src/catalog/medusa-service"
+import type {
+  MedusaCatalogListInput,
+  MedusaCatalogProduct,
+} from "../src/catalog/medusa-service"
 import type { CatalogFacets } from "../src/catalog/types"
 import { createMedusaCategoryService } from "../src/categories/medusa-service"
 import { createMedusaCollectionService } from "../src/collections/medusa-service"
+import type { MedusaShippingMethodData } from "../src/medusa/checkout-flow"
 import { createMedusaStorefrontPreset } from "../src/medusa/preset"
 import type { CreateMedusaStorefrontPresetConfig } from "../src/medusa/preset"
 import { createMedusaStorefrontServerReadPreset } from "../src/medusa/server-read"
@@ -22,6 +26,15 @@ import type { ExpectFalse, Extends } from "./type-assertions"
 declare const sdk: Medusa
 declare const explicitUndefined: undefined
 declare const productWithPricePerUnit: StoreProductWithPricePerUnit
+
+interface PickupShippingData {
+  pickupPointId: string
+}
+
+const pickupShippingData: MedusaShippingMethodData<PickupShippingData> = {
+  pickupPointId: "pickup_1",
+}
+export const typedPickupPointId: string = pickupShippingData.pickupPointId
 
 const pricePerUnit =
   productWithPricePerUnit.variants?.[0]?.calculated_price?.price_per_unit
@@ -149,7 +162,7 @@ type ExtendedCatalogFacets = CatalogFacets & {
 
 type CustomCatalogFacetsServiceParameters = Parameters<
   typeof createMedusaCatalogService<
-    HttpTypes.StoreProduct,
+    MedusaCatalogProduct,
     MedusaCatalogListInput,
     ExtendedCatalogFacets
   >
@@ -166,7 +179,7 @@ export type CustomCatalogFacetsServiceRejectsUndefinedTransform = ExpectFalse<
 >
 
 export const transformedCatalogFacetsService = createMedusaCatalogService<
-  HttpTypes.StoreProduct,
+  MedusaCatalogProduct,
   MedusaCatalogListInput,
   ExtendedCatalogFacets
 >(sdk, {
@@ -176,7 +189,7 @@ type CustomFacetConfig = CreateMedusaStorefrontPresetConfig<
   HttpTypes.StoreProduct,
   HttpTypes.StoreProductCategory,
   HttpTypes.StoreCollection,
-  HttpTypes.StoreProduct,
+  MedusaCatalogProduct,
   ExtendedCatalogFacets
 >
 
@@ -299,7 +312,7 @@ type CustomCatalogFacetsServerReadConfig =
     HttpTypes.StoreProduct,
     HttpTypes.StoreProductCategory,
     HttpTypes.StoreCollection,
-    HttpTypes.StoreProduct,
+    MedusaCatalogProduct,
     ExtendedCatalogFacets
   >
 

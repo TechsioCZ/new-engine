@@ -1,5 +1,6 @@
 "use client"
 
+import { omitUndefined } from "@techsio/std/object"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
@@ -9,7 +10,10 @@ import {
   CARRIER_PICKUP_FAILURE_KEYS,
   resolveCarrierPickupWidgetLanguage,
 } from "@/components/checkout/carrier-pickup.utils"
-import type { CarrierPickupFailureReason } from "@/components/checkout/carrier-pickup.utils"
+import type {
+  CarrierPickupData,
+  CarrierPickupFailureReason,
+} from "@/components/checkout/carrier-pickup.utils"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 
 import { PplAccessPointWidget } from "../ppl-widget"
@@ -20,27 +24,28 @@ import type {
   PplWidgetConfig,
 } from "../ppl-widget.types"
 
+const excludeEmptyPickupText = (value: string | null | undefined) =>
+  value === null || value === "" ? undefined : value
+
 const buildPplShippingData = (
   accessPoint: PplAccessPoint,
   fallbackPointLabel: string,
-) => {
+): CarrierPickupData => {
   const { address } = accessPoint
-  const payload: Record<string, unknown> = {
-    access_point_city: address?.city,
-    access_point_country: address?.countryCode ?? address?.country,
-    access_point_id: accessPoint.code,
-    access_point_name:
-      accessPoint.name ?? accessPoint.code ?? fallbackPointLabel,
-    access_point_street: address?.street,
-    access_point_type: accessPoint.type,
-    access_point_zip: address?.zipCode,
-  }
 
-  return Object.fromEntries(
-    Object.entries(payload).filter(
-      ([, value]) => value !== null && value !== "",
+  return omitUndefined({
+    access_point_city: excludeEmptyPickupText(address?.city),
+    access_point_country: excludeEmptyPickupText(
+      address?.countryCode ?? address?.country,
     ),
-  )
+    access_point_id: excludeEmptyPickupText(accessPoint.code),
+    access_point_name: excludeEmptyPickupText(
+      accessPoint.name ?? accessPoint.code ?? fallbackPointLabel,
+    ),
+    access_point_street: excludeEmptyPickupText(address?.street),
+    access_point_type: excludeEmptyPickupText(accessPoint.type),
+    access_point_zip: excludeEmptyPickupText(address?.zipCode),
+  })
 }
 
 const formatPplAddress = (accessPoint: PplAccessPoint) => {
@@ -56,7 +61,7 @@ const formatPplAddress = (accessPoint: PplAccessPoint) => {
 
 interface CheckoutPplPickupSelectorProps {
   disabled: boolean
-  onConfirm: (data: Record<string, unknown>) => void
+  onConfirm: (data: CarrierPickupData) => void
 }
 
 const { NEXT_PUBLIC_PPL_WIDGET_API_KEY } = process.env

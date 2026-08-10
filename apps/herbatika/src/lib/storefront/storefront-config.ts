@@ -4,6 +4,7 @@ import type { MedusaCartServiceConfig } from "@techsio/storefront-data/cart/medu
 import { createCartQueryKeys } from "@techsio/storefront-data/cart/query-keys"
 import type {
   MedusaCatalogListInput,
+  MedusaCatalogProduct,
   MedusaCatalogServiceConfig,
 } from "@techsio/storefront-data/catalog/medusa-service"
 import { createCatalogQueryKeys } from "@techsio/storefront-data/catalog/query-keys"
@@ -18,6 +19,7 @@ import type { MedusaCheckoutServiceConfig } from "@techsio/storefront-data/check
 import { createCheckoutQueryKeys } from "@techsio/storefront-data/checkout/query-keys"
 import type { MedusaCustomerListInput } from "@techsio/storefront-data/customers/medusa-service"
 import { createCustomerQueryKeys } from "@techsio/storefront-data/customers/query-keys"
+import type { MedusaStorefrontQueryKeys } from "@techsio/storefront-data/medusa/preset"
 import type {
   MedusaOrderDetailInput,
   MedusaOrderListInput,
@@ -63,7 +65,10 @@ import {
 
 export { CATALOG_DEFAULT_LIMIT } from "./storefront-service-fields"
 
-export const storefrontQueryKeys = {
+export const storefrontQueryKeys: Omit<
+  MedusaStorefrontQueryKeys,
+  "collections" | "productLocationAvailability"
+> = {
   auth: createAuthQueryKeys(STOREFRONT_QUERY_KEY_NAMESPACE),
   cart: createCartQueryKeys(STOREFRONT_QUERY_KEY_NAMESPACE),
   catalog: createCatalogQueryKeys<MedusaCatalogListInput>(
@@ -120,7 +125,7 @@ export const storefrontCategoryServiceConfig: MedusaCategoryServiceConfig<
 }
 
 export const storefrontCatalogServiceConfig: MedusaCatalogServiceConfig<
-  HttpTypes.StoreProduct,
+  MedusaCatalogProduct,
   MedusaCatalogListInput,
   CatalogFacets
 > = {

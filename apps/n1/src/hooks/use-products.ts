@@ -1,4 +1,3 @@
-import type { StoreProduct } from "@medusajs/types"
 import { useQuery, useSuspenseQuery } from "@tanstack/react-query"
 
 import { cacheConfig } from "@/lib/cache-config"
@@ -8,6 +7,7 @@ import { fetchLogger } from "@/lib/loggers/fetch"
 import { buildProductQueryParams } from "@/lib/product-query-params"
 import { queryKeys } from "@/lib/query-keys"
 import { getProducts } from "@/services/product-service"
+import type { ProductListProduct } from "@/types/product"
 
 import { useRegion, useSuspenseRegion } from "./use-region"
 
@@ -18,7 +18,7 @@ interface UseProductsProps {
 }
 
 interface UseProductsReturn {
-  products: StoreProduct[]
+  products: ProductListProduct[]
   isLoading: boolean
   isFetching: boolean
   isSuccess: boolean
@@ -31,7 +31,7 @@ interface UseProductsReturn {
 }
 
 interface UseSuspenseProductsReturn {
-  products: StoreProduct[]
+  products: ProductListProduct[]
   isFetching: boolean
   totalCount: number
   currentPage: number

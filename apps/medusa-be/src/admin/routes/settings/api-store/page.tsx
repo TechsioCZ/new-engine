@@ -14,10 +14,12 @@ import {
   toast,
 } from "@medusajs/ui"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { isRecord, omitKeys } from "@techsio/std/object"
+import { omitKeys } from "@techsio/std/object"
 import type { SubmitEvent } from "react"
 import { useState } from "react"
 
+import { ApiStoreCredentialsSchema } from "../../../../modules/api-store/types"
+import type { ApiStoreCredentials } from "../../../../modules/api-store/types"
 import { sdk } from "../../../lib/sdk"
 
 const PAGE_SIZE = 20
@@ -48,7 +50,7 @@ interface ApiStoreCreatePayload {
   name: string
   api_url?: string | null
   api_key?: string | null
-  credentials?: Record<string, unknown> | null
+  credentials?: ApiStoreCredentials | null
   enabled?: boolean
 }
 
@@ -85,18 +87,19 @@ const EMPTY_FORM: ApiStoreFormState = {
   name: "",
 }
 
-const parseCredentials = (value: string): Record<string, unknown> | null => {
+const parseCredentials = (value: string): ApiStoreCredentials | null => {
   const trimmed = value.trim()
   if (trimmed === "") {
     return null
   }
 
   const parsed: unknown = JSON.parse(trimmed)
-  if (!isRecord(parsed)) {
+  const result = ApiStoreCredentialsSchema.safeParse(parsed)
+  if (!result.success) {
     throw new Error("Credentials must be a JSON object")
   }
 
-  return parsed
+  return result.data
 }
 
 const toOptionalString = (value: string): string | null => {
@@ -110,7 +113,7 @@ const getApiStoreDisplayErrorMessage = (error: unknown, fallback: string) =>
 const parseOptionalCredentials = (
   value: string,
   errors: FormErrors,
-): Record<string, unknown> | null => {
+): ApiStoreCredentials | null => {
   if (value.trim() === "") {
     return null
   }
@@ -395,7 +398,7 @@ const CreateApiStoreModal = () => {
     const nextErrors: FormErrors = {}
     const name = form.name.trim()
     const apiKey = toOptionalString(form.api_key)
-    let credentials: Record<string, unknown> | null = null
+    let credentials: ApiStoreCredentials | null = null
 
     if (name === "") {
       nextErrors.name = "Name is required"

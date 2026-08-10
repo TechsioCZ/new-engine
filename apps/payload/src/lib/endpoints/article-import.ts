@@ -3,7 +3,6 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import path from "node:path"
 
-import { isRecord } from "@techsio/std/object"
 import { APIError } from "payload"
 import type { Endpoint } from "payload"
 
@@ -134,12 +133,8 @@ const resolveLocale = (
   return result
 }
 
-const hasRoles = (value: unknown): value is { roles?: unknown } =>
-  isRecord(value)
-
 const isAuthorized = (req: ArticleImportRequest) => {
-  const roles = hasRoles(req.user) ? req.user.roles : undefined
-  if (Array.isArray(roles) && roles.includes("admin")) {
+  if (req.user !== null) {
     return true
   }
 

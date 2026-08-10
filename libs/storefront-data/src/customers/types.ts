@@ -12,7 +12,7 @@ export interface CustomerAddressListInputBase {
   enabled?: boolean
 }
 
-export interface CustomerAddressInputBase {
+export interface CustomerAddressInputBase<TMetadata extends object = object> {
   first_name?: string | null
   last_name?: string | null
   company?: string | null
@@ -25,17 +25,21 @@ export interface CustomerAddressInputBase {
   phone?: string | null
   is_default_shipping?: boolean
   is_default_billing?: boolean
-  metadata?: Record<string, unknown>
+  metadata?: TMetadata | null
 }
 
-export type CustomerAddressCreateInputBase = CustomerAddressInputBase
+export type CustomerAddressCreateInputBase<TMetadata extends object = object> =
+  CustomerAddressInputBase<TMetadata>
 
-export type CustomerAddressUpdateInputBase = CustomerAddressInputBase & {
-  addressId?: string
-}
+export type CustomerAddressUpdateInputBase<TMetadata extends object = object> =
+  CustomerAddressInputBase<TMetadata> & {
+    addressId?: string
+  }
 
-export interface CustomerProfileUpdateInputBase {
-  metadata?: Record<string, unknown>
+export interface CustomerProfileUpdateInputBase<
+  TMetadata extends object = object,
+> {
+  metadata?: TMetadata | null
 }
 
 export interface CustomerAddressListResponse<TAddress> {

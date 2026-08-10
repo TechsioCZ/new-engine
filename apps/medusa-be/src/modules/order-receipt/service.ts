@@ -1,3 +1,5 @@
+import { getRecordValue } from "@techsio/std/object"
+
 import { orderPaymentQr } from "../../utils/order-payment-qr"
 import { QR_PAYMENT_MEDUSA_PROVIDER_ID } from "../payment-qr/constants"
 import {
@@ -544,7 +546,9 @@ const getQrPaymentSpayd = (order: OrderReceiptOrder) => {
         continue
       }
 
-      const spayd = payment.data?.["payment_qr_spayd"]
+      const spayd = payment.data
+        ? getRecordValue(payment.data, "payment_qr_spayd")
+        : undefined
 
       if (typeof spayd === "string" && spayd.trim().length > 0) {
         return spayd

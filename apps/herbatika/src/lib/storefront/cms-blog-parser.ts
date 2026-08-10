@@ -7,10 +7,7 @@ import type {
   CmsMediaValue,
 } from "./cms-types"
 
-const readString = (
-  record: Readonly<Record<string, unknown>>,
-  key: string,
-): string | null => {
+const readString = (record: object, key: string): string | null => {
   const value = getRecordValue(record, key)
   return typeof value === "string" ? value : null
 }

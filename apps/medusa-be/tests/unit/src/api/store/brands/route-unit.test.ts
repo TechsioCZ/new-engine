@@ -1,5 +1,5 @@
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Mock } from "vitest"
 
@@ -16,7 +16,10 @@ type Graph = (input: unknown) => Promise<{
   metadata?: { count: number; skip: number; take: number }
 }>
 type Json = (body: unknown) => unknown
-type RemoteQuery = (input: unknown) => Promise<unknown>
+interface RemoteQuery {
+  (input: unknown): Promise<unknown>
+  graph: Graph
+}
 type MockedGetResponse = Parameters<typeof GET>[1] & { json: Mock<Json> }
 
 vi.mock(import("../../../../../../src/links/product-brand"), async () => {
@@ -33,7 +36,7 @@ vi.mock(import("../../../../../../src/links/product-brand"), async () => {
 const isMockedGetResponse = (
   candidate: unknown,
 ): candidate is MockedGetResponse =>
-  isRecord(candidate) && typeof candidate["json"] === "function"
+  isRecord(candidate) && typeof getRecordValue(candidate, "json") === "function"
 
 const createMockResponse = (): MockedGetResponse => {
   const candidate: unknown = { json: vi.fn<Json>().mockReturnThis() }
@@ -43,20 +46,28 @@ const createMockResponse = (): MockedGetResponse => {
   return candidate
 }
 
+const createRemoteQuery = (graph: Graph): RemoteQuery =>
+  Object.assign(vi.fn<(input: unknown) => Promise<unknown>>(), { graph })
+
 const isMockRequest = (
   candidate: unknown,
 ): candidate is Parameters<typeof GET>[0] => {
   if (!isRecord(candidate)) {
     return false
   }
-  const { filterableFields, params, queryConfig, scope } = candidate
-  if (!(isRecord(filterableFields) && isRecord(params))) {
+  const filterableFields = getRecordValue(candidate, "filterableFields")
+  const params = getRecordValue(candidate, "params")
+  const queryConfig = getRecordValue(candidate, "queryConfig")
+  const scope = getRecordValue(candidate, "scope")
+  if (
+    !isRecord(filterableFields) ||
+    !isRecord(params) ||
+    !isRecord(queryConfig) ||
+    !isRecord(scope)
+  ) {
     return false
   }
-  if (!(isRecord(queryConfig) && isRecord(scope))) {
-    return false
-  }
-  return typeof scope["resolve"] === "function"
+  return typeof getRecordValue(scope, "resolve") === "function"
 }
 
 const createRequest = ({
@@ -67,7 +78,7 @@ const createRequest = ({
 }: {
   brandId: string
   graph: Graph
-  remoteQuery: Mock<RemoteQuery>
+  remoteQuery: RemoteQuery
   skip?: number
 }): Parameters<typeof GET>[0] => {
   const candidate: unknown = {
@@ -131,7 +142,7 @@ describe("Store Brand visibility", () => {
 
   it("does not query links or products when the active Brand is absent", async () => {
     const graph = vi.fn<Graph>().mockResolvedValueOnce({ data: [] })
-    const remoteQuery = vi.fn<RemoteQuery>()
+    const remoteQuery = createRemoteQuery(graph)
     const req = createRequest({ brandId: "brand_deleted", graph, remoteQuery })
     const response = createMockResponse()
 
@@ -147,7 +158,7 @@ describe("Store Brand visibility", () => {
       .fn<Graph>()
       .mockResolvedValueOnce({ data: [{ id: "brand_1" }] })
       .mockResolvedValueOnce({ data: [] })
-    const remoteQuery = vi.fn<RemoteQuery>()
+    const remoteQuery = createRemoteQuery(graph)
     const req = createRequest({
       brandId: "brand_1",
       graph,
@@ -185,7 +196,7 @@ describe("Store Brand visibility", () => {
         data: [{ id: "prod_visible", title: "Visible" }],
         metadata: { count: 1, skip: 0, take: 20 },
       })
-    const remoteQuery = vi.fn<RemoteQuery>()
+    const remoteQuery = createRemoteQuery(graph)
     const req = createRequest({ brandId: "brand_1", graph, remoteQuery })
     const response = createMockResponse()
 

@@ -1,5 +1,6 @@
-import type { MedusaContainer } from "@medusajs/framework/types"
+import type { MedusaContainer, MetadataType } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import {
   createOrderFulfillmentWorkflow,
   createOrderShipmentWorkflow,
@@ -8,8 +9,6 @@ import {
 import { trackingBatchClientMapperHelper } from "./client-mapper-helper"
 import type { TrackingOrderLookupKeys } from "./client-mapper-helper"
 import type { TrackingItemInput, TrackingShipmentInput } from "./types"
-
-type Metadata = Record<string, unknown>
 
 export interface OrderLineItem {
   id: string
@@ -20,7 +19,7 @@ export interface OrderLineItem {
 export interface ExistingOrder {
   id: string
   display_id: number
-  metadata: Metadata | null
+  metadata: MetadataType
   items: OrderLineItem[]
 }
 
@@ -49,9 +48,7 @@ const ORDER_FIELDS = [
   "items.quantity",
   "items.variant_sku",
 ] as const
-
-const isObjectMap = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
+const metadataSchema = z.record(z.string(), z.json()).nullable()
 
 const decodeOrderLineItem = (value: unknown): OrderLineItem | null => {
   if (typeof value !== "object" || value === null) {
@@ -91,8 +88,8 @@ const decodeOrder = (value: unknown): ExistingOrder | null => {
   if (!("metadata" in value)) {
     return null
   }
-  const { metadata } = value
-  if (metadata !== null && !isObjectMap(metadata)) {
+  const metadata = metadataSchema.safeParse(value.metadata)
+  if (!metadata.success) {
     return null
   }
   if (!("items" in value) || !Array.isArray(value.items)) {
@@ -107,7 +104,12 @@ const decodeOrder = (value: unknown): ExistingOrder | null => {
     }
     items.push(decoded)
   }
-  return { display_id: value.display_id, id: value.id, items, metadata }
+  return {
+    display_id: value.display_id,
+    id: value.id,
+    items,
+    metadata: metadata.data,
+  }
 }
 
 const getQuery = (container: MedusaContainer) =>

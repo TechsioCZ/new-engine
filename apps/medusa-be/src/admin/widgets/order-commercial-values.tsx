@@ -532,36 +532,8 @@ const toPreviewPayload = (
   shipping_methods: payload.shipping_methods,
 })
 
-const isUnknownRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === "object" && !Array.isArray(value)
-
-const toStableJsonValue = (value: unknown): unknown => {
-  if (Array.isArray(value)) {
-    return value.map(toStableJsonValue)
-  }
-
-  if (isUnknownRecord(value)) {
-    const entries: [string, unknown][] = []
-    for (const key of Object.keys(value)) {
-      entries.push([key, value[key]])
-    }
-    entries.sort(([left], [right]) => left.localeCompare(right))
-
-    const stableRecord: Record<string, unknown> = {}
-    for (const [key, entry] of entries) {
-      stableRecord[key] = toStableJsonValue(entry)
-    }
-    return stableRecord
-  }
-
-  return value
-}
-
-const stableStringify = (value: unknown) =>
-  JSON.stringify(toStableJsonValue(value))
-
 const getPreviewPayloadKey = (payload: CommercialValuesPayload) =>
-  stableStringify(toPreviewPayload(payload))
+  JSON.stringify(toPreviewPayload(payload))
 
 const DiscountControls = ({
   className = "",

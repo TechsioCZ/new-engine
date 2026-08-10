@@ -1,4 +1,15 @@
 {
-  "extends": "./tsconfig.test.json",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "composite": false,
+    "noEmit": true,
+    "rootDir": ".",
+    "allowImportingTsExtensions": true,
+    "jsx": "react-jsx",
+    "lib": ["dom", "dom.iterable", "es2022"],
+    "types": ["node"]
+  },
   "include": ["tests/type-contracts.typecheck.tsx"]
 }

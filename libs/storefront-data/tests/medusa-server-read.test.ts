@@ -1,6 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
-import { isRecord } from "@techsio/std/object"
 import { describe, expect, it, vi } from "vitest"
 
 import { createMedusaStorefrontServerReadPreset } from "../src/medusa/server-read"
@@ -14,10 +13,33 @@ import { createProductQueryKeys } from "../src/products/query-keys"
 import { createRegionQueryKeys } from "../src/regions/query-keys"
 import { createTestMedusaSdk } from "./medusa-fixtures"
 
+interface ClientFetchOptions {
+  query?: {
+    customer_id?: string
+    fields?: string
+    limit?: number
+    offset?: number
+  }
+  signal?: AbortSignal | null
+}
+
+interface ClientFetchResponse {
+  count?: number
+  limit?: number
+  offset?: number
+  product_list?: { id: string; title: string }
+  product_lists?: { id: string; title: string }[]
+  products?: { handle: string; id: string; title: string }[]
+  regions?: { id: string; name: string }[]
+}
+
+type ClientFetch = (
+  path: string,
+  options?: ClientFetchOptions,
+) => ClientFetchResponse
+
 const createSdkMock = () => {
-  const clientFetch = vi.fn<
-    (path: string, options?: unknown) => Record<string, unknown>
-  >((path) => {
+  const clientFetch = vi.fn<ClientFetch>((path) => {
     if (path === "/store/products") {
       return {
         count: 1,
@@ -150,28 +172,14 @@ describe(createMedusaStorefrontServerReadPreset, () => {
     const regionOptions = fetchCalls[1]?.[1]
     const productListOptions = fetchCalls[2]?.[1]
     const productListDetailOptions = fetchCalls[3]?.[1]
-    const productQueryInput =
-      isRecord(productOptions) && isRecord(productOptions["query"])
-        ? productOptions["query"]
-        : null
-    const regionQueryInput =
-      isRecord(regionOptions) && isRecord(regionOptions["query"])
-        ? regionOptions["query"]
-        : null
-    const productListQueryInput =
-      isRecord(productListOptions) && isRecord(productListOptions["query"])
-        ? productListOptions["query"]
-        : null
-
     expect({
       paths: fetchCalls.map(([path]) => path),
-      productLimit: productQueryInput?.["limit"],
-      productListLimit: productListQueryInput?.["limit"],
-      productListOffset: productListQueryInput?.["offset"],
+      productLimit: productOptions?.query?.limit,
+      productListLimit: productListOptions?.query?.limit,
+      productListOffset: productListOptions?.query?.offset,
       productListSignal:
-        isRecord(productListDetailOptions) &&
-        productListDetailOptions["signal"] instanceof AbortSignal,
-      regionQueryInput,
+        productListDetailOptions?.signal instanceof AbortSignal,
+      regionQueryInput: regionOptions?.query,
     }).toStrictEqual({
       paths: [
         "/store/products",

@@ -12,6 +12,7 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import { chunk } from "@techsio/std/array"
 import { isRecord } from "@techsio/std/object"
 
@@ -45,9 +46,14 @@ type BrandAttributeTypeRecord = Awaited<
   ReturnType<BrandModuleService["listBrandAttributeTypes"]>
 >[number]
 interface ProductBrandLinkRecord {
-  brand_id?: string
-  product_id?: string
+  brand_id: string
+  product_id: string
 }
+
+const productBrandLinkSchema = z.object({
+  brand_id: z.string().min(1),
+  product_id: z.string().min(1),
+})
 
 export interface LegacyBrandSupplier {
   brand_id: string
@@ -658,27 +664,12 @@ const ensureSupplierCatalog = async ({
     return { definition: ensuredDefinition, optionByKey }
   })
 
-const isProductBrandLink = (
-  value: unknown,
-): value is Required<ProductBrandLinkRecord> => {
-  if (!isRecord(value)) {
-    return false
-  }
-  const { brand_id, product_id } = value
-  return (
-    typeof brand_id === "string" &&
-    brand_id !== "" &&
-    typeof product_id === "string" &&
-    product_id !== ""
-  )
-}
-
 // Brand id batches are queried sequentially through recursion instead of a
 // loop, matching the other batched readers in this migration.
 const collectProductBrandLinkBatches = async (
   query: Query,
   brandIdBatches: string[][],
-): Promise<Required<ProductBrandLinkRecord>[]> => {
+): Promise<ProductBrandLinkRecord[]> => {
   const [brandIdBatch, ...remainingBatches] = brandIdBatches
   if (brandIdBatch === undefined) {
     return []
@@ -690,7 +681,13 @@ const collectProductBrandLinkBatches = async (
     filters: { brand_id: { $in: brandIdBatch } },
   })
   const rawLinks: unknown[] = data
-  const links = rawLinks.filter(isProductBrandLink)
+  const links: ProductBrandLinkRecord[] = []
+  for (const rawLink of rawLinks) {
+    const parsed = productBrandLinkSchema.safeParse(rawLink)
+    if (parsed.success) {
+      links.push(parsed.data)
+    }
+  }
 
   return [
     ...links,
@@ -701,11 +698,11 @@ const collectProductBrandLinkBatches = async (
 const listLinksByBrand = async (
   query: Query,
   brandIds: string[],
-): Promise<Required<ProductBrandLinkRecord>[]> =>
+): Promise<ProductBrandLinkRecord[]> =>
   await collectProductBrandLinkBatches(query, chunk(brandIds, BATCH_SIZE))
 
 const groupProductBrandLinks = (
-  links: Required<ProductBrandLinkRecord>[],
+  links: ProductBrandLinkRecord[],
   groupBy: "brand" | "product",
 ) => {
   const grouped = new Map<string, string[]>()
@@ -900,7 +897,14 @@ export default async function migrateHerbaticaSupplier({
 
   const productIds = products.map(({ id }) => id)
   const herbaticaProductIds = new Set(productIds)
-  const productLinks = await getCurrentProductBrandLinks(container, productIds)
+  const rawProductLinks = await getCurrentProductBrandLinks(
+    container,
+    productIds,
+  )
+  const productLinks = rawProductLinks.flatMap((link) => {
+    const parsed = productBrandLinkSchema.safeParse(link)
+    return parsed.success ? [parsed.data] : []
+  })
   const brandIds = [...new Set(productLinks.map(({ brand_id }) => brand_id))]
   if (!brandIds.length) {
     logger.info("No Herbatica Product Brand links contain legacy Suppliers")

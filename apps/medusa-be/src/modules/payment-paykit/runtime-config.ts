@@ -10,8 +10,11 @@ import {
 import type { PaykitInjectedDependencies } from "./core/base"
 import type {
   PaykitComgateOptions,
+  PaykitComgateProviderOptions,
   PaykitGopayOptions,
+  PaykitGopayProviderOptions,
   PaykitStripeOptions,
+  PaykitStripeProviderOptions,
 } from "./types"
 
 const requireValue = (
@@ -39,7 +42,7 @@ const configuredName = (value: string | undefined, fallback: string) => {
 export const resolveGopayRuntimeOptions = async (
   container: PaykitInjectedDependencies,
   options: PaykitGopayOptions,
-): Promise<PaykitGopayOptions> => {
+): Promise<PaykitGopayOptions & PaykitGopayProviderOptions> => {
   const name = configuredName(
     options.apiStoreName,
     INTEGRATION_CONFIG_NAMES.GOPAY,
@@ -80,7 +83,7 @@ export const resolveGopayRuntimeOptions = async (
 export const resolveStripeRuntimeOptions = async (
   container: PaykitInjectedDependencies,
   options: PaykitStripeOptions,
-): Promise<PaykitStripeOptions> => {
+): Promise<PaykitStripeOptions & PaykitStripeProviderOptions> => {
   const name = configuredName(
     options.apiStoreName,
     INTEGRATION_CONFIG_NAMES.STRIPE,
@@ -106,7 +109,7 @@ export const resolveStripeRuntimeOptions = async (
 export const resolveComgateRuntimeOptions = async (
   container: PaykitInjectedDependencies,
   options: PaykitComgateOptions,
-): Promise<PaykitComgateOptions> => {
+): Promise<PaykitComgateOptions & PaykitComgateProviderOptions> => {
   const name = configuredName(
     options.apiStoreName,
     INTEGRATION_CONFIG_NAMES.COMGATE,

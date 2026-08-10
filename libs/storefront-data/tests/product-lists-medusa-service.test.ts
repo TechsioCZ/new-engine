@@ -1,5 +1,6 @@
 import { vi, describe, expect, it } from "vitest"
 
+import type { MedusaProductListListInput } from "../src/product-lists/medusa-service"
 import { createMedusaProductListService } from "../src/product-lists/medusa-service"
 import { createTestMedusaSdk } from "./medusa-fixtures"
 
@@ -42,6 +43,42 @@ describe(createMedusaProductListService, () => {
       { id: "list_1", title: "Favorites" },
     ])
     expect(result.count).toBe(1)
+  })
+
+  it("normalizes typed list queries with stable defaults and key order", async () => {
+    const { fetch, sdk } = createSdkMock({ product_lists: [] })
+    const normalizeListQuery = vi.fn<
+      (input: MedusaProductListListInput) => MedusaProductListListInput
+    >((input) => ({
+      ...(input.handle === undefined ? {} : { handle: input.handle }),
+      ...(input.limit === undefined ? {} : { limit: input.limit }),
+      ...(input.offset === undefined ? {} : { offset: input.offset }),
+      ...(input.type === undefined ? {} : { type: input.type }),
+    }))
+    const service = createMedusaProductListService(sdk, {
+      defaultLimit: 7,
+      defaultOffset: 3,
+      normalizeListQuery,
+    })
+
+    await service.listProductLists({ type: "custom" })
+
+    expect(normalizeListQuery).toHaveBeenCalledExactlyOnceWith({
+      type: "custom",
+    })
+    expect(fetch).toHaveBeenCalledWith("/store/product-lists", {
+      query: {
+        limit: 7,
+        offset: 3,
+        type: "custom",
+      },
+      signal: null,
+    })
+    expect(Object.keys(fetch.mock.lastCall?.[1]?.query ?? {})).toStrictEqual([
+      "type",
+      "limit",
+      "offset",
+    ])
   })
 
   it("adds favorite items with backend field names and normalized quantity", async () => {

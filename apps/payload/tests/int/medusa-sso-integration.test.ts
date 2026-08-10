@@ -1,7 +1,6 @@
 import type { randomUUID } from "node:crypto"
 
 import { importSPKI, jwtVerify } from "jose"
-import type { PayloadRequest } from "payload"
 import { generatePayloadCookie, headersWithCors, jwtSign } from "payload"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -45,66 +44,32 @@ const jwtVerifyMock = vi.mocked(jwtVerify)
 
 const ORIGINAL_ENV = { ...process.env }
 
-interface TestAdminUser {
+interface TestSession {
+  createdAt?: string | Date | null
+  expiresAt: string | Date
   id: string
-  sessions: unknown[]
+}
+
+interface TestAdminUser {
+  id: number | string
+  sessions: TestSession[] | null
 }
 
 interface UpdateOneInput {
   collection: string
   data: {
-    sessions?: {
-      createdAt?: Date
-      expiresAt: Date
-      id: string
-    }[]
+    sessions?: TestSession[]
   }
   id: string | number
-  req: PayloadRequest
+  req: object
   returning: boolean
-}
-
-type TestRequest = PayloadRequest & {
-  formData: ReturnType<typeof createFormDataMock>
-  payload: PayloadRequest["payload"] & {
-    db: PayloadRequest["payload"]["db"] & {
-      updateOne: ReturnType<typeof createUpdateOneMock>
-    }
-    find: ReturnType<typeof createFindMock>
-  }
 }
 
 const createFormDataMock = () => vi.fn<() => Promise<FormData>>()
 const createFindMock = () =>
-  vi.fn<(options: unknown) => Promise<{ docs: TestAdminUser[] }>>()
+  vi.fn<(options: object) => Promise<{ docs: TestAdminUser[] }>>()
 const createUpdateOneMock = () =>
   vi.fn<(options: UpdateOneInput) => Promise<null>>()
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
-const isTestRequest = (value: unknown): value is TestRequest => {
-  if (!isRecord(value)) {
-    return false
-  }
-
-  const { formData, headers, payload } = value
-  if (
-    !(headers instanceof Headers) ||
-    !vi.isMockFunction(formData) ||
-    !isRecord(payload)
-  ) {
-    return false
-  }
-
-  const { db, find } = payload
-  if (!isRecord(db)) {
-    return false
-  }
-
-  const { updateOne } = db
-  return vi.isMockFunction(updateOne) && vi.isMockFunction(find)
-}
 
 const resetEnv = () => {
   process.env = { ...ORIGINAL_ENV }
@@ -128,10 +93,10 @@ const createFormData = (values: Record<string, string>) => {
   return form
 }
 
-const createRequest = (
-  overrides: Record<string, unknown> = {},
-): TestRequest => {
-  const payload = {
+const createRequest = (overrides: { headers?: Headers } = {}) => ({
+  formData: createFormDataMock(),
+  headers: overrides.headers ?? new Headers({ origin: "https://allowed.com" }),
+  payload: {
     collections: {
       users: {
         config: {
@@ -151,21 +116,23 @@ const createRequest = (
     },
     find: createFindMock(),
     secret: "secret",
-  }
+  },
+  url: "http://localhost/medusa-sso",
+})
 
-  const request: unknown = {
-    formData: createFormDataMock(),
-    headers: new Headers({ origin: "https://allowed.com" }),
-    payload,
-    url: "http://localhost/medusa-sso",
-    ...overrides,
+const invokeEndpoint = async (
+  req: ReturnType<typeof createRequest>,
+): Promise<Response> => {
+  const result: unknown = Reflect.apply(
+    medusaSsoPostEndpoint.handler,
+    undefined,
+    [req],
+  )
+  const response = await Promise.resolve(result)
+  if (!(response instanceof Response)) {
+    throw new TypeError("Expected endpoint handler to return a response")
   }
-
-  if (!isTestRequest(request)) {
-    throw new TypeError("Failed to create a valid Payload test request.")
-  }
-
-  return request
+  return response
 }
 
 const createPublicKey = async () => {
@@ -208,7 +175,7 @@ describe("medusa SSO endpoint", () => {
 
     const req = createRequest()
 
-    await expect(medusaSsoPostEndpoint.handler(req)).rejects.toMatchObject({
+    await expect(invokeEndpoint(req)).rejects.toMatchObject({
       message: "Payload SSO allowed origins are not configured.",
       status: 500,
     })
@@ -222,7 +189,7 @@ describe("medusa SSO endpoint", () => {
       headers: new Headers({ origin: "https://evil.com" }),
     })
 
-    await expect(medusaSsoPostEndpoint.handler(req)).rejects.toMatchObject({
+    await expect(invokeEndpoint(req)).rejects.toMatchObject({
       message: "Origin is not allowed.",
       status: 403,
     })
@@ -236,7 +203,7 @@ describe("medusa SSO endpoint", () => {
     const req = createRequest()
     req.formData.mockResolvedValue(createFormData({ returnTo: "/admin" }))
 
-    await expect(medusaSsoPostEndpoint.handler(req)).rejects.toMatchObject({
+    await expect(invokeEndpoint(req)).rejects.toMatchObject({
       message: "Missing SSO token.",
       status: 400,
     })
@@ -254,7 +221,7 @@ describe("medusa SSO endpoint", () => {
     })
     req.formData.mockResolvedValue(createFormData({ returnTo: "/admin" }))
 
-    await expect(medusaSsoPostEndpoint.handler(req)).rejects.toMatchObject({
+    await expect(invokeEndpoint(req)).rejects.toMatchObject({
       message: "Missing SSO token.",
       status: 400,
     })
@@ -268,7 +235,7 @@ describe("medusa SSO endpoint", () => {
     const req = createRequest()
     req.formData.mockResolvedValue(createFormData({ returnTo: "/admin" }))
 
-    await expect(medusaSsoPostEndpoint.handler(req)).rejects.toMatchObject({
+    await expect(invokeEndpoint(req)).rejects.toMatchObject({
       message: "Missing SSO token.",
       status: 400,
     })
@@ -295,7 +262,7 @@ describe("medusa SSO endpoint", () => {
       docs: [{ id: "user_1", sessions: [] }],
     })
 
-    const response = await medusaSsoPostEndpoint.handler(req)
+    const response = await invokeEndpoint(req)
 
     const updateInput = req.payload.db.updateOne.mock.calls[0]?.[0]
     const session = updateInput?.data.sessions?.[0]
@@ -375,7 +342,7 @@ describe("medusa SSO endpoint", () => {
 
     const req = createRequest()
 
-    await expect(medusaSsoPostEndpoint.handler(req)).rejects.toMatchObject({
+    await expect(invokeEndpoint(req)).rejects.toMatchObject({
       message: "Payload SSO is not configured.",
       status: 500,
     })
@@ -397,7 +364,7 @@ describe("medusa SSO endpoint", () => {
     const req = createRequest()
     req.formData.mockResolvedValue(createFormData({ token: "token-value" }))
 
-    await expect(medusaSsoPostEndpoint.handler(req)).rejects.toMatchObject({
+    await expect(invokeEndpoint(req)).rejects.toMatchObject({
       message: "SSO token user is not configured for Payload.",
       status: 401,
     })

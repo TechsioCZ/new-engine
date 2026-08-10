@@ -21,10 +21,38 @@ import {
   createErrorWithStage,
   toErrorMessageWithFallback,
 } from "../shared/error-utils"
+import { isStorefrontMetadata } from "../shared/metadata"
+import type { StorefrontMetadata } from "../shared/metadata"
 import { getSortedRecordKeys } from "../shared/query-key-match-utils"
 import type { StorageValueStore } from "../shared/storage-value-store"
 import { createMedusaCartFlow } from "./cart-flow"
 import type { MedusaCartFlowStorefront } from "./cart-flow"
+
+interface PaymentSessionFields {
+  amount: number
+  currencyCode: string
+  data: StorefrontMetadata
+  id: string
+  isSelected?: boolean
+  providerId: string
+}
+
+const buildPaymentSession = ({
+  amount,
+  currencyCode,
+  data,
+  id,
+  isSelected,
+  providerId,
+}: PaymentSessionFields): HttpTypes.StorePaymentSession => ({
+  amount,
+  currency_code: currencyCode,
+  data,
+  id,
+  provider_id: providerId,
+  status: "pending",
+  ...(isSelected === undefined ? {} : { is_selected: isSelected }),
+})
 
 const decodePaymentSession = (
   value: unknown,
@@ -41,15 +69,17 @@ const decodePaymentSession = (
   const data = getRecordValue(value, "data")
   const id = getRecordValue(value, "id")
   const isSelected = getRecordValue(value, "is_selected")
-  return {
-    amount: typeof amount === "number" ? amount : 0,
-    currency_code: typeof currencyCode === "string" ? currencyCode : "",
-    data: isRecord(data) ? data : {},
-    id: typeof id === "string" ? id : providerId,
-    provider_id: providerId,
-    status: "pending",
-    ...(typeof isSelected === "boolean" ? { is_selected: isSelected } : {}),
+  if (data !== undefined && !isStorefrontMetadata(data)) {
+    return null
   }
+  return buildPaymentSession({
+    amount: typeof amount === "number" ? amount : 0,
+    currencyCode: typeof currencyCode === "string" ? currencyCode : "",
+    data: data ?? {},
+    id: typeof id === "string" ? id : providerId,
+    ...(typeof isSelected === "boolean" ? { isSelected } : {}),
+    providerId,
+  })
 }
 
 const decodePaymentCollection = (
@@ -183,10 +213,10 @@ type MedusaCheckoutShippingHook = (
   isLoading: boolean
   isFetching: boolean
   isCalculating: boolean
-  setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void
+  setShippingMethod: (optionId: string, data?: MedusaShippingMethodData) => void
   isSettingShipping: boolean
   selectedShippingMethodId?: string
-  selectedShippingMethodData?: Record<string, unknown>
+  selectedShippingMethodData?: MedusaShippingMethodData
   selectedOption?: HttpTypes.StoreCartShippingOption
 }
 
@@ -228,7 +258,7 @@ export type MedusaCheckoutFlowStorefront = MedusaCartFlowStorefront & {
   }
 }
 
-export type MedusaShippingMethodData = Record<string, unknown>
+export type MedusaShippingMethodData<TData extends object = object> = TData
 
 export interface UseMedusaCheckoutShippingOptions {
   enabled?: boolean
@@ -237,7 +267,7 @@ export interface UseMedusaCheckoutShippingOptions {
   onError?: (error: unknown) => void
   normalizeShippingData?: (
     data?: MedusaShippingMethodData,
-  ) => Record<string, unknown> | undefined
+  ) => MedusaShippingMethodData | undefined
 }
 
 export interface UseMedusaCheckoutShippingReturn {
@@ -324,29 +354,37 @@ export interface UseMedusaCompleteCheckoutOptions {
   onError?: (error: MedusaCompleteCheckoutError) => void
 }
 
-const defaultNormalizeShippingData = (
-  data?: MedusaShippingMethodData,
-): Record<string, unknown> | undefined => {
-  if (data === undefined) {
-    return undefined
+const buildNormalizedShippingData = (
+  data: MedusaShippingMethodData,
+): MedusaShippingMethodData | undefined => {
+  const normalizedData = {}
+  let hasData = false
+  for (const key of Object.keys(data)) {
+    const value = getRecordValue(data, key)
+    if (value === null || value === "") {
+      continue
+    }
+    Object.defineProperty(normalizedData, key, {
+      configurable: true,
+      enumerable: true,
+      value,
+      writable: true,
+    })
+    hasData = true
   }
-
-  const entries = Object.entries(data).filter(
-    ([, value]) => value !== null && value !== "",
-  )
-
-  if (entries.length === 0) {
-    return undefined
-  }
-
-  return Object.fromEntries(entries)
+  return hasData ? normalizedData : undefined
 }
 
-const toComparableShippingData = (data?: Record<string, unknown>): string => {
+const defaultNormalizeShippingData = (
+  data?: MedusaShippingMethodData,
+): MedusaShippingMethodData | undefined =>
+  data === undefined ? undefined : buildNormalizedShippingData(data)
+
+const toComparableShippingData = (data?: object): string => {
   const normalizedEntries: [string, unknown][] = []
   const record = data ?? {}
   for (const key of getSortedRecordKeys(record)) {
-    const value = record[key]
+    const value = getRecordValue(record, key)
     if (value !== null && value !== "") {
       normalizedEntries.push([key, value])
     }
@@ -362,7 +400,7 @@ const isSameShippingSelection = ({
 }: {
   selectedOptionId?: string
   nextOptionId: string
-  nextData?: Record<string, unknown>
+  nextData?: MedusaShippingMethodData
   currentData?: unknown
 }): boolean => {
   if (selectedOptionId !== nextOptionId) {

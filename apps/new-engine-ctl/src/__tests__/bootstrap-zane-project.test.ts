@@ -8,17 +8,49 @@ import { z } from "zod"
 
 import { executeBootstrapZaneProjectPlan } from "../orchestration/bootstrap/zane-project.js"
 
+const composeEnvironmentValueSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+])
 const composeServiceSchema = z.object({
-  environment: z.record(z.string(), z.unknown()),
+  environment: z.record(z.string(), composeEnvironmentValueSchema),
 })
 const composeSchema = z.object({
-  services: z.looseObject({
+  services: z.object({
     herbatika: composeServiceSchema,
     "medusa-be": composeServiceSchema,
   }),
 })
-const inspectServicesSchema = z.looseObject({
-  services: z.array(z.record(z.string(), z.unknown())),
+
+const inspectServiceSchema = z.object({
+  details: z.object({
+    global_network_alias: z.string().nullable(),
+    id: z.string(),
+    network_alias: z.string().nullable(),
+    slug: z.string(),
+    type: z.string(),
+  }),
+  exists: z.boolean(),
+  service_slug: z.string(),
+})
+const inspectServicesSchema = z.object({
+  environment_exists: z.boolean(),
+  environment_name: z.string(),
+  project_exists: z.boolean(),
+  project_slug: z.string(),
+  services: z.array(inspectServiceSchema),
+  settings: z.object({
+    app_domain: z.string().nullable(),
+    root_domain: z.string().nullable(),
+  }),
+  shared_variables: z.array(
+    z.object({
+      key: z.string(),
+      value: z.string(),
+    }),
+  ),
 })
 
 describe("bootstrap-zane-project", () => {

@@ -40,7 +40,7 @@ class CacheLogger {
   cache(
     status: CacheStatus,
     operation: string,
-    details?: Record<string, unknown>,
+    details?: Record<string, string | number | boolean | null | undefined>,
     options: LogOptions = {},
   ) {
     if (!this.enabled) {

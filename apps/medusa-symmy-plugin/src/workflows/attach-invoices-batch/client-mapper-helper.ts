@@ -1,3 +1,5 @@
+import type { MetadataType } from "@medusajs/framework/types"
+
 import type {
   ExistingOrder,
   ExistingOrderIndex,
@@ -5,9 +7,8 @@ import type {
 } from "./client"
 import type { InvoiceInput } from "./types"
 
-type Metadata = Record<string, unknown>
 const metadataValue = (
-  metadata: Metadata | null | undefined,
+  metadata: MetadataType | undefined,
   key: string,
 ): unknown => metadata?.[key]
 
@@ -51,7 +52,7 @@ export const invoicesBatchClientMapperHelper = {
   },
 
   buildUpdatedMetadata(
-    existingMetadata: Metadata | null | undefined,
+    existingMetadata: MetadataType | undefined,
     invoice: InvoiceInput,
     invoiceUrl: string,
     uploaded?: UploadedInvoice | null,
@@ -139,7 +140,7 @@ export const invoicesBatchClientMapperHelper = {
     return null
   },
 
-  getExistingInvoices(metadata: Metadata | null | undefined) {
+  getExistingInvoices(metadata: MetadataType | undefined) {
     const invoices = metadataValue(metadata, "invoices")
     if (!Array.isArray(invoices)) {
       return []
@@ -168,7 +169,7 @@ export const invoicesBatchClientMapperHelper = {
     return value.replace(UNSAFE_FILENAME_CHARS, "_")
   },
 
-  stringMetadataValue(metadata: Metadata | null | undefined, key: string) {
+  stringMetadataValue(metadata: MetadataType | undefined, key: string) {
     const value = metadata?.[key]
     return typeof value === "string" && value.length > 0 ? value : null
   },

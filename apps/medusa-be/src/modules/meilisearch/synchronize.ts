@@ -4,9 +4,10 @@ import type {
   ILockingModule,
   Logger,
   MedusaContainer,
+  Query,
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 import { executeWithLockTimeout } from "../../utils/locking"
 import { PAYLOAD_MODULE } from "../payload"
@@ -44,25 +45,36 @@ export interface SearchProfileSyncOptions {
 
 type SearchSyncTargets = Record<SearchIndexType, string>
 
+interface SearchProfileSyncState {
+  last_deleted_count?: number
+  last_indexed_count?: number
+  last_sync_error?: string | null
+  last_sync_mode?: SearchProfileSyncMode
+  last_sync_started_at?: Date
+  last_sync_status?: "failed" | "running" | "succeeded"
+  last_synced_at?: Date
+}
+
 interface SearchProfileSyncStateService {
-  updateSearchProfiles: (data: Record<string, unknown>) => Promise<unknown>
+  updateSearchProfiles: (
+    data: SearchProfileSyncState & { id: string },
+  ) => Promise<unknown>
 }
 
 interface DatabaseConnection {
   raw: (query: string, bindings?: unknown[]) => Promise<unknown>
 }
 
-interface SearchGraphQuery {
-  graph: (options: {
-    entity: string
-    fields: string[]
-    filters?: Record<string, unknown>
-    pagination?: {
-      order?: Record<string, "ASC" | "DESC">
-      skip?: number
-      take?: number
-    }
-  }) => Promise<unknown>
+interface SearchGraphIdOperators {
+  $gt?: string
+  $in?: string[]
+}
+
+interface SearchGraphFilters {
+  id?: string | SearchGraphIdOperators
+  is_active?: boolean
+  reference_id?: string[]
+  status?: string
 }
 
 interface SearchContentService {
@@ -78,8 +90,10 @@ interface SearchContentService {
   }) => Promise<unknown>
 }
 
+type SearchEntity = object
+
 interface ContentPage {
-  docs: Record<string, unknown>[]
+  docs: SearchEntity[]
   hasNextPage: boolean
 }
 
@@ -167,27 +181,28 @@ const LOCALIZED_SEARCH_FIELDS = [
   "title",
 ] as const
 
-const asRecord = (value: unknown): Record<string, unknown> | undefined =>
+const asRecord = (value: unknown): SearchEntity | undefined =>
   isRecord(value) ? value : undefined
 
-const asRecords = (value: unknown): Record<string, unknown>[] => {
+const asRecords = (value: unknown): SearchEntity[] => {
   if (!Array.isArray(value)) {
     return []
   }
 
-  const records: Record<string, unknown>[] = []
+  const records: SearchEntity[] = []
 
   for (const entry of value) {
-    if (isRecord(entry)) {
-      records.push(entry)
+    const record = asRecord(entry)
+    if (record !== undefined) {
+      records.push(record)
     }
   }
 
   return records
 }
 
-const getId = (record: Record<string, unknown>): string | undefined => {
-  const { id } = record
+const getId = (record: SearchEntity): string | undefined => {
+  const id = getRecordValue(record, "id")
 
   if (typeof id === "string" && id.trim().length > 0) {
     return id
@@ -203,10 +218,7 @@ const getId = (record: Record<string, unknown>): string | undefined => {
 const invalidSyncData = (message: string): SearchSynchronizationError =>
   new SearchSynchronizationError("SEARCH_SYNC_DATA_INVALID", message)
 
-const requireId = (
-  record: Record<string, unknown>,
-  context: string,
-): string => {
+const requireId = (record: SearchEntity, context: string): string => {
   const id = getId(record)
 
   if (id === undefined) {
@@ -216,63 +228,66 @@ const requireId = (
   return id
 }
 
-const readGraphRecords = (
-  result: unknown,
-  context: string,
-): Record<string, unknown>[] => {
-  if (!isRecord(result) || !Array.isArray(result["data"])) {
+const readGraphRecords = (result: unknown, context: string): SearchEntity[] => {
+  if (!isRecord(result)) {
+    throw invalidSyncData(`${context} must return an object with a data array`)
+  }
+  const data = getRecordValue(result, "data")
+  if (!Array.isArray(data)) {
     throw invalidSyncData(`${context} must return an object with a data array`)
   }
 
-  const records: Record<string, unknown>[] = []
+  const records: SearchEntity[] = []
 
-  for (const [index, value] of result["data"].entries()) {
-    if (!isRecord(value)) {
+  for (const [index, value] of data.entries()) {
+    const record = asRecord(value)
+    if (record === undefined) {
       throw invalidSyncData(`${context} data[${index}] must be an object`)
     }
 
-    records.push(value)
+    records.push(record)
   }
 
   return records
 }
 
 const requireRecordArray = (
-  record: Record<string, unknown>,
+  record: SearchEntity,
   field: string,
   context: string,
-): Record<string, unknown>[] => {
-  const value = record[field]
+): SearchEntity[] => {
+  const value = getRecordValue(record, field)
 
   if (!Array.isArray(value)) {
     throw invalidSyncData(`${context}.${field} must be an array`)
   }
 
-  const records: Record<string, unknown>[] = []
+  const records: SearchEntity[] = []
 
   for (const [index, entry] of value.entries()) {
-    if (!isRecord(entry)) {
+    const nestedRecord = asRecord(entry)
+    if (nestedRecord === undefined) {
       throw invalidSyncData(`${context}.${field}[${index}] must be an object`)
     }
 
-    requireId(entry, `${context}.${field}[${index}]`)
-    records.push(entry)
+    requireId(nestedRecord, `${context}.${field}[${index}]`)
+    records.push(nestedRecord)
   }
 
   return records
 }
 
 const validateProductGraphRecord = (
-  record: Record<string, unknown>,
+  record: SearchEntity,
   context: string,
 ): void => {
   requireId(record, context)
 
-  if (record["status"] !== "published") {
+  if (getRecordValue(record, "status") !== "published") {
     throw invalidSyncData(`${context}.status must be published`)
   }
 
-  if (typeof record["title"] !== "string") {
+  if (typeof getRecordValue(record, "title") !== "string") {
     throw invalidSyncData(`${context}.title must be a string`)
   }
 
@@ -280,54 +295,59 @@ const validateProductGraphRecord = (
   requireRecordArray(record, "sales_channels", context)
   requireRecordArray(record, "variants", context)
 
-  const { brand } = record
+  const brand = getRecordValue(record, "brand")
 
   if (brand !== undefined && brand !== null) {
     const brands = Array.isArray(brand) ? brand : [brand]
 
     for (const [index, entry] of brands.entries()) {
-      if (!isRecord(entry)) {
+      const brandRecord = asRecord(entry)
+      if (brandRecord === undefined) {
         throw invalidSyncData(`${context}.brand[${index}] must be an object`)
       }
 
-      requireId(entry, `${context}.brand[${index}]`)
+      requireId(brandRecord, `${context}.brand[${index}]`)
     }
   }
 }
 
 const readContentPage = (result: unknown, context: string): ContentPage => {
-  if (
-    !isRecord(result) ||
-    !Array.isArray(result["docs"]) ||
-    typeof result["hasNextPage"] !== "boolean"
-  ) {
+  if (!isRecord(result)) {
+    throw invalidSyncData(
+      `${context} must return docs as an array and hasNextPage as a boolean`,
+    )
+  }
+  const rawDocs = getRecordValue(result, "docs")
+  const hasNextPage = getRecordValue(result, "hasNextPage")
+  if (!Array.isArray(rawDocs) || typeof hasNextPage !== "boolean") {
     throw invalidSyncData(
       `${context} must return docs as an array and hasNextPage as a boolean`,
     )
   }
 
-  const docs: Record<string, unknown>[] = []
+  const docs: SearchEntity[] = []
 
-  for (const [index, value] of result["docs"].entries()) {
-    if (!isRecord(value)) {
+  for (const [index, value] of rawDocs.entries()) {
+    const document = asRecord(value)
+    if (document === undefined) {
       throw invalidSyncData(`${context} docs[${index}] must be an object`)
     }
 
-    requireId(value, `${context} docs[${index}]`)
-    docs.push(value)
+    requireId(document, `${context} docs[${index}]`)
+    docs.push(document)
   }
 
-  return { docs, hasNextPage: result["hasNextPage"] }
+  return { docs, hasNextPage }
 }
 
-const getRawQueryRows = (result: unknown): Record<string, unknown>[] => {
+const getRawQueryRows = (result: unknown): SearchEntity[] => {
   if (Array.isArray(result)) {
     return asRecords(result[0] ?? result)
   }
 
-  const record = asRecord(result)
-
-  return asRecords(record?.["rows"])
+  return asRecords(
+    isRecord(result) ? getRecordValue(result, "rows") : undefined,
+  )
 }
 
 const toNumber = (value: unknown): number => {
@@ -373,8 +393,8 @@ const readProductPopularity = async (
   const popularity = new Map<string, number>()
 
   for (const row of getRawQueryRows(result)) {
-    const productId = row["product_id"]
-    const soldQuantity = toNumber(row["sold_quantity"])
+    const productId = getRecordValue(row, "product_id")
+    const soldQuantity = toNumber(getRecordValue(row, "sold_quantity"))
 
     if (typeof productId === "string" && Number.isFinite(soldQuantity)) {
       popularity.set(productId, Math.max(0, soldQuantity))
@@ -385,12 +405,12 @@ const readProductPopularity = async (
 }
 
 const productBelongsToProfile = (
-  document: Record<string, unknown>,
+  document: SearchEntity,
   profile: SearchProfile,
 ): boolean => {
   if (
     profile.availability === "in-stock" &&
-    document["facet_in_stock"] !== true
+    getRecordValue(document, "facet_in_stock") !== true
   ) {
     return false
   }
@@ -399,9 +419,10 @@ const productBelongsToProfile = (
     return true
   }
 
+  const rawSalesChannelIds = getRecordValue(document, "facet_sales_channel_ids")
   const productSalesChannelIds = new Set(
-    Array.isArray(document["facet_sales_channel_ids"])
-      ? document["facet_sales_channel_ids"].filter(
+    Array.isArray(rawSalesChannelIds)
+      ? rawSalesChannelIds.filter(
           (value): value is string => typeof value === "string",
         )
       : [],
@@ -411,19 +432,17 @@ const productBelongsToProfile = (
 }
 
 const collectCategoryReferences = (
-  product: Record<string, unknown>,
+  product: SearchEntity,
   references: ProfileReferenceIds,
 ) => {
-  for (const category of asRecords(product["categories"])) {
+  for (const category of asRecords(getRecordValue(product, "categories"))) {
     const id = getId(category)
 
     if (id !== undefined) {
       references.categoryIds.add(id)
 
-      const title =
-        typeof product["title"] === "string"
-          ? product["title"].trim()
-          : undefined
+      const rawTitle = getRecordValue(product, "title")
+      const title = typeof rawTitle === "string" ? rawTitle.trim() : undefined
 
       if (title !== undefined && title.length > 0) {
         const titles =
@@ -439,13 +458,14 @@ const collectCategoryReferences = (
 }
 
 const collectBrandReferences = (
-  product: Record<string, unknown>,
+  product: SearchEntity,
   references: ProfileReferenceIds,
 ) => {
-  const brands = Array.isArray(product["brand"])
-    ? asRecords(product["brand"])
-    : [asRecord(product["brand"])].filter(
-        (entry): entry is Record<string, unknown> => entry !== undefined,
+  const rawBrand = getRecordValue(product, "brand")
+  const brands = Array.isArray(rawBrand)
+    ? asRecords(rawBrand)
+    : [asRecord(rawBrand)].filter(
+        (entry): entry is SearchEntity => entry !== undefined,
       )
 
   for (const brand of brands) {
@@ -458,7 +478,7 @@ const collectBrandReferences = (
 }
 
 const collectProductReferences = (
-  product: Record<string, unknown>,
+  product: SearchEntity,
   references: ProfileReferenceIds,
 ) => {
   collectCategoryReferences(product, references)
@@ -466,15 +486,15 @@ const collectProductReferences = (
 }
 
 const fetchGraphBatch = async (
-  query: SearchGraphQuery,
+  query: Query,
   options: {
     afterId?: string
     context: string
     entity: string
     fields: string[]
-    filters?: Record<string, unknown>
+    filters?: SearchGraphFilters
   },
-): Promise<Record<string, unknown>[]> => {
+): Promise<SearchEntity[]> => {
   const filters = {
     ...options.filters,
     ...(options.afterId === undefined ? {} : { id: { $gt: options.afterId } }),
@@ -511,21 +531,21 @@ const fetchGraphBatch = async (
 }
 
 const fetchGraphPages = async (
-  query: SearchGraphQuery,
+  query: Query,
   options: {
     context: string
     entity: string
     fields: string[]
-    filters?: Record<string, unknown>
+    filters?: SearchGraphFilters
     maximumPages: number
   },
-): Promise<Record<string, unknown>[]> => {
+): Promise<SearchEntity[]> => {
   const seenIds = new Set<string>()
 
   const fetchPage = async (
     page: number,
     afterId?: string,
-  ): Promise<Record<string, unknown>[]> => {
+  ): Promise<SearchEntity[]> => {
     if (page >= options.maximumPages) {
       throw new SearchSynchronizationError(
         "SEARCH_SYNC_PAGE_LIMIT_EXCEEDED",
@@ -578,10 +598,10 @@ const normalizeLocale = (value: string): string =>
   value.trim().toLowerCase().replaceAll("_", "-").split("-")[0] ?? ""
 
 const applyLocalizedTranslations = async (
-  query: SearchGraphQuery,
-  records: Record<string, unknown>[],
+  query: Query,
+  records: SearchEntity[],
   locale: string,
-): Promise<Record<string, unknown>[]> => {
+): Promise<SearchEntity[]> => {
   const ids = records.map(getId).filter((id): id is string => id !== undefined)
 
   if (ids.length === 0 || locale === "default") {
@@ -596,12 +616,12 @@ const applyLocalizedTranslations = async (
     maximumPages: MAX_TRANSLATION_PAGES_PER_BATCH,
   })
 
-  const translationsById = new Map<string, Record<string, unknown>>()
+  const translationsById = new Map<string, SearchEntity>()
   const requestedIds = new Set(ids)
 
   for (const [index, row] of data.entries()) {
-    const referenceId = row["reference_id"]
-    const localeCode = row["locale_code"]
+    const referenceId = getRecordValue(row, "reference_id")
+    const localeCode = getRecordValue(row, "locale_code")
 
     if (
       typeof referenceId !== "string" ||
@@ -623,7 +643,7 @@ const applyLocalizedTranslations = async (
       continue
     }
 
-    const rawTranslations = row["translations"]
+    const rawTranslations = getRecordValue(row, "translations")
 
     if (!isRecord(rawTranslations)) {
       throw invalidSyncData(
@@ -631,10 +651,10 @@ const applyLocalizedTranslations = async (
       )
     }
 
-    const translations: Record<string, unknown> = {}
+    const translationEntries: [string, unknown][] = []
 
     for (const field of LOCALIZED_SEARCH_FIELDS) {
-      const value = rawTranslations[field]
+      const value = getRecordValue(rawTranslations, field)
 
       if (value !== undefined && value !== null && typeof value !== "string") {
         throw invalidSyncData(
@@ -643,11 +663,11 @@ const applyLocalizedTranslations = async (
       }
 
       if (value !== undefined) {
-        translations[field] = value
+        translationEntries.push([field, value])
       }
     }
 
-    translationsById.set(referenceId, translations)
+    translationsById.set(referenceId, Object.fromEntries(translationEntries))
   }
 
   return records.map((record) => {
@@ -688,7 +708,7 @@ const indexProductDocuments = async (options: {
   index: string
   popularityByProductId: Map<string, number>
   profile: SearchProfile
-  query: SearchGraphQuery
+  query: Query
 }): Promise<{
   ids: Set<string>
   indexed: number
@@ -709,9 +729,9 @@ const indexProductDocuments = async (options: {
   }
 
   const buildBatchDocuments = async (
-    records: Record<string, unknown>[],
+    records: SearchEntity[],
     page: number,
-  ): Promise<Record<string, unknown>[]> => {
+  ): Promise<SearchEntity[]> => {
     for (const [recordIndex, record] of records.entries()) {
       validateProductGraphRecord(
         record,
@@ -724,7 +744,7 @@ const indexProductDocuments = async (options: {
       records,
       profile.locale,
     )
-    const documents: Record<string, unknown>[] = []
+    const documents: SearchEntity[] = []
 
     for (const record of localizedRecords) {
       const productId = requireId(record, "localized product")
@@ -744,7 +764,7 @@ const indexProductDocuments = async (options: {
     return documents
   }
 
-  const recordBatchDocuments = (documents: Record<string, unknown>[]): void => {
+  const recordBatchDocuments = (documents: SearchEntity[]): void => {
     for (const document of documents) {
       const id = requireId(document, "product search document")
 
@@ -800,7 +820,7 @@ const indexProductDocuments = async (options: {
 }
 
 const indexReferencedEntities = async (
-  query: SearchGraphQuery,
+  query: Query,
   client: MeilisearchAdminClient,
   options: {
     entity: "brand" | "product_category"
@@ -808,7 +828,7 @@ const indexReferencedEntities = async (
     ids: Set<string>
     index: string
     locale: string
-    transform: (document: Record<string, unknown>) => Record<string, unknown>
+    transform: (document: SearchEntity) => SearchEntity
   },
 ): Promise<Set<string>> => {
   const currentIds = new Set<string>()
@@ -1088,9 +1108,7 @@ const syncProfile = async (options: {
   profile: SearchProfile
 }): Promise<{ deleted: number; indexed: number }> => {
   const { client, container, logger, mode, profile } = options
-  const query = container.resolve<SearchGraphQuery>(
-    ContainerRegistrationKeys.QUERY,
-  )
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const database = container.resolve<DatabaseConnection>(
     ContainerRegistrationKeys.PG_CONNECTION,
   )
@@ -1211,7 +1229,7 @@ const updateProfileSyncState = async (options: {
   container: MedusaContainer
   logger: Logger
   profile: SearchProfile
-  state: Record<string, unknown>
+  state: SearchProfileSyncState
 }) => {
   if (options.profile.id === undefined || options.profile.id.length === 0) {
     return
@@ -1240,24 +1258,25 @@ const syncProfileWithStatus = async (options: {
   mode: SearchProfileSyncMode
   profile: SearchProfile
 }): Promise<{ deleted: number; indexed: number }> => {
-  const runningState = {
-    ...options,
+  await updateProfileSyncState({
+    container: options.container,
+    logger: options.logger,
+    profile: options.profile,
     state: {
       last_sync_error: null,
       last_sync_mode: options.mode,
       last_sync_started_at: new Date(),
       last_sync_status: "running",
     },
-  }
-
-  await updateProfileSyncState(runningState)
+  })
 
   try {
     const result = await syncProfile(options)
 
-    const succeededState = {
-      ...options,
-
+    await updateProfileSyncState({
+      container: options.container,
+      logger: options.logger,
+      profile: options.profile,
       state: {
         last_deleted_count: result.deleted,
         last_indexed_count: result.indexed,
@@ -1266,22 +1285,20 @@ const syncProfileWithStatus = async (options: {
         last_sync_status: "succeeded",
         last_synced_at: new Date(),
       },
-    }
-
-    await updateProfileSyncState(succeededState)
+    })
 
     return result
   } catch (error) {
-    const failedState = {
-      ...options,
+    await updateProfileSyncState({
+      container: options.container,
+      logger: options.logger,
+      profile: options.profile,
       state: {
         last_sync_error: error instanceof Error ? error.message : String(error),
         last_sync_mode: options.mode,
         last_sync_status: "failed",
       },
-    }
-
-    await updateProfileSyncState(failedState)
+    })
 
     throw error
   }

@@ -36,10 +36,7 @@ export const useCheckoutAccountSetupDebugEnabled = () =>
     () => false,
   )
 
-export const logCheckoutAccountSetupDebug = (
-  message: string,
-  data: Record<string, unknown>,
-) => {
+export const logCheckoutAccountSetupDebug = (message: string, data: object) => {
   if (!isCheckoutAccountSetupDebugEnabled()) {
     return
   }

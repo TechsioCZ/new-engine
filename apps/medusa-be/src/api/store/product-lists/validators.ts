@@ -1,5 +1,7 @@
 import { z } from "@medusajs/framework/zod"
 
+import { productListMetadataSchema } from "../../../modules/product-list/schemas"
+
 const optionalTrimmedString = z.preprocess(
   (value) =>
     typeof value === "string" && value.trim().length === 0 ? undefined : value,
@@ -18,7 +20,7 @@ const optionalEmailString = z.preprocess(
   z.string().trim().pipe(z.email()).optional(),
 )
 
-const metadataSchema = z.record(z.string(), z.unknown()).nullable().optional()
+const metadataSchema = productListMetadataSchema.nullable().optional()
 
 export const StoreGetProductListsSchema = z
   .object({

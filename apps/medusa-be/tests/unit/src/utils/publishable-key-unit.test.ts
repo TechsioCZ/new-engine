@@ -56,7 +56,7 @@ const createLockingModule = (): LockingModuleStub => {
   return { execute, executeMock }
 }
 
-const objectContaining = (value: Record<string, unknown>): unknown =>
+const objectContaining = (value: object): unknown =>
   expect.objectContaining(value)
 
 const createApiKey = (

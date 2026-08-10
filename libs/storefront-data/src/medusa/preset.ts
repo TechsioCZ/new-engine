@@ -1,5 +1,6 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
+import { omitUndefined } from "@techsio/std/object"
 
 import { createAuthHooks } from "../auth/hooks"
 import type { AuthHooks, CreateAuthHooksConfig } from "../auth/hooks"
@@ -37,6 +38,7 @@ import type { CatalogHooks, CreateCatalogHooksConfig } from "../catalog/hooks"
 import type {
   createMedusaCatalogService,
   MedusaCatalogListInput,
+  MedusaCatalogProduct,
   MedusaCatalogServiceConfig,
 } from "../catalog/medusa-service"
 import type { CatalogFacets, CatalogQueryKeys } from "../catalog/types"
@@ -251,12 +253,14 @@ type MedusaCartHooksConfig<TAddressInput, TAddressPayload> = Omit<
       TAddressPayload
     >
   >,
-  "buildAddParams"
+  "buildAddParams" | "buildCreateParams" | "buildUpdateParams"
 > & {
   /**
-   * Optional in preset config: Medusa default mapper is provided internally.
+   * Optional in preset config: Medusa default mappers are provided internally.
    */
   buildAddParams?: (input: AddLineItemInputBase) => MedusaCartAddItemParams
+  buildCreateParams?: (input: CartCreateInputBase) => MedusaCartCreateParams
+  buildUpdateParams?: (input: UpdateCartInputBase) => MedusaCartUpdateParams
 }
 
 interface MedusaCartFlowConfig {
@@ -580,7 +584,7 @@ interface RequiredMedusaCatalogPresetOption<TProduct, TFacets> {
 }
 
 type MedusaCatalogPresetOption<TProduct, TFacets> =
-  IsExactly<TProduct, HttpTypes.StoreProduct> extends true
+  IsExactly<TProduct, MedusaCatalogProduct> extends true
     ? IsExactly<TFacets, CatalogFacets> extends true
       ? {
           catalog?: MedusaCatalogPresetConfig<TProduct, TFacets> &
@@ -590,8 +594,8 @@ type MedusaCatalogPresetOption<TProduct, TFacets> =
     : RequiredMedusaCatalogPresetOption<TProduct, TFacets>
 
 interface CreateMedusaStorefrontPresetConfigBase<
-  TCartAddressInput = Record<string, unknown>,
-  TCartAddressPayload = Record<string, unknown>,
+  TCartAddressInput = object,
+  TCartAddressPayload = object,
   TCustomerAddressCreateInput extends CustomerAddressCreateInputBase =
     MedusaCustomerAddressCreateInput,
   TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase =
@@ -672,10 +676,10 @@ export type CreateMedusaStorefrontPresetConfig<
   TProduct = HttpTypes.StoreProduct,
   TCategory = HttpTypes.StoreProductCategory,
   TCollection = HttpTypes.StoreCollection,
-  TCatalogProduct = HttpTypes.StoreProduct,
+  TCatalogProduct = MedusaCatalogProduct,
   TCatalogFacets = CatalogFacets,
-  TCartAddressInput = Record<string, unknown>,
-  TCartAddressPayload = Record<string, unknown>,
+  TCartAddressInput = object,
+  TCartAddressPayload = object,
   TCustomerAddressCreateInput extends CustomerAddressCreateInputBase =
     MedusaCustomerAddressCreateInput,
   TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase =
@@ -902,6 +906,15 @@ const createDefaultCatalogFacets = (): CatalogFacets => ({
   status: [],
 })
 
+const buildMedusaCartParams = (input: CartCreateInputBase) =>
+  omitUndefined({
+    country_code: input.country_code,
+    email: input.email,
+    metadata: input.metadata,
+    region_id: input.region_id,
+    sales_channel_id: input.salesChannelId,
+  })
+
 const buildMedusaAddLineItemParams = (
   input: AddLineItemInputBase,
 ): MedusaCartAddItemParams => ({
@@ -924,10 +937,10 @@ export function createMedusaStorefrontPreset<
   TProduct = HttpTypes.StoreProduct,
   TCategory = HttpTypes.StoreProductCategory,
   TCollection = HttpTypes.StoreCollection,
-  TCatalogProduct = HttpTypes.StoreProduct,
+  TCatalogProduct = MedusaCatalogProduct,
   TCatalogFacets = CatalogFacets,
-  TCartAddressInput = Record<string, unknown>,
-  TCartAddressPayload = Record<string, unknown>,
+  TCartAddressInput = object,
+  TCartAddressPayload = object,
   TCustomerAddressCreateInput extends CustomerAddressCreateInputBase =
     MedusaCustomerAddressCreateInput,
   TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase =
@@ -961,10 +974,10 @@ export function createMedusaStorefrontPreset<
   TProduct = HttpTypes.StoreProduct,
   TCategory = HttpTypes.StoreProductCategory,
   TCollection = HttpTypes.StoreCollection,
-  TCatalogProduct = HttpTypes.StoreProduct,
+  TCatalogProduct = MedusaCatalogProduct,
   TCatalogFacets = CatalogFacets,
-  TCartAddressInput = Record<string, unknown>,
-  TCartAddressPayload = Record<string, unknown>,
+  TCartAddressInput = object,
+  TCartAddressPayload = object,
   TCustomerAddressCreateInput extends CustomerAddressCreateInputBase =
     MedusaCustomerAddressCreateInput,
   TCustomerAddressUpdateInput extends CustomerAddressUpdateInputBase =
@@ -1122,6 +1135,10 @@ export function createMedusaStorefrontPreset<
       ...cartHookOverrides,
       buildAddParams:
         cartHookOverrides?.buildAddParams ?? buildMedusaAddLineItemParams,
+      buildCreateParams:
+        cartHookOverrides?.buildCreateParams ?? buildMedusaCartParams,
+      buildUpdateParams:
+        cartHookOverrides?.buildUpdateParams ?? buildMedusaCartParams,
       cacheConfig: resolvedCacheConfig,
       queryKeyNamespace: namespace,
       queryKeys: queryKeys.cart,

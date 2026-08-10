@@ -1,5 +1,5 @@
 import { MedusaError } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { z } from "@medusajs/framework/zod"
 
 export const MANUAL_ITEM_DISCOUNT_CODE = "manual_item_discount"
 export const MANUAL_ORDER_DISCOUNT_CODE = "manual_order_discount"
@@ -37,30 +37,16 @@ export interface CommercialAdjustmentInput {
   total?: number | null | undefined
 }
 
+const CommercialDiscountIntentSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("percentage"), value_bps: z.number().int() }),
+  z.object({ amount: z.number(), type: z.literal("amount") }),
+])
+
 const parseCommercialDiscountIntent = (
   value: unknown,
 ): CommercialDiscountIntent | null => {
-  if (!isRecord(value) || typeof value["type"] !== "string") {
-    return null
-  }
-
-  if (value["type"] === "percentage") {
-    const valueBps = value["value_bps"]
-
-    return typeof valueBps === "number" && Number.isSafeInteger(valueBps)
-      ? { type: "percentage", value_bps: valueBps }
-      : null
-  }
-
-  if (value["type"] === "amount") {
-    const { amount } = value
-
-    return typeof amount === "number" && Number.isFinite(amount)
-      ? { amount, type: "amount" }
-      : null
-  }
-
-  return null
+  const parsed = CommercialDiscountIntentSchema.safeParse(value)
+  return parsed.success ? parsed.data : null
 }
 
 export const encodeCommercialDiscountDescription = (

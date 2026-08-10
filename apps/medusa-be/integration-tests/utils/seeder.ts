@@ -1,4 +1,4 @@
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 interface TestHeaders {
   headers: Record<string, string>
@@ -8,18 +8,16 @@ interface TestApi {
   post: (url: string, body?: unknown, config?: TestHeaders) => Promise<unknown>
 }
 
-type SeederData = Record<string, unknown>
-
 interface AdminSeederInput {
   api: TestApi
   adminHeaders: TestHeaders
-  data: SeederData
+  data: object
 }
 
 interface StoreSeederInput {
   api: TestApi
   storeHeaders: TestHeaders
-  data: SeederData
+  data: object
 }
 
 const extractSeededEntity = (
@@ -30,11 +28,11 @@ const extractSeededEntity = (
   if (!isRecord(response)) {
     throw new TypeError(`Expected ${context} to return an HTTP response`)
   }
-  const { data } = response
+  const data = getRecordValue(response, "data")
   if (!isRecord(data)) {
     throw new TypeError(`Expected ${context} response data to be a record`)
   }
-  return data[entityKey]
+  return getRecordValue(data, entityKey)
 }
 
 export const regionSeeder = async ({

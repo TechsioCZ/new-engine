@@ -1,7 +1,7 @@
 import type { PUBLISHABLE_KEY_HEADER } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
-import { isRecord } from "@techsio/std/object"
-import { hasTrimmedString } from "@techsio/std/string"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { vi, beforeEach, describe, expect, it } from "vitest"
 
 import {
@@ -18,10 +18,12 @@ import {
 } from "../../utils/seeder"
 import { generatePublishableKey, generateStoreHeaders } from "../../utils/store"
 
-interface HttpResponse {
-  data: unknown
-  status: number
-}
+const httpResponseSchema = z.object({
+  data: z.unknown(),
+  status: z.number(),
+})
+
+type HttpResponse = z.infer<typeof httpResponseSchema>
 
 interface HttpClient {
   post: (path: string, body?: unknown, headers?: unknown) => Promise<unknown>
@@ -38,9 +40,9 @@ interface StoreHeaders {
 
 const isHttpClient = (value: unknown): value is HttpClient =>
   isRecord(value) &&
-  typeof value["post"] === "function" &&
-  typeof value["get"] === "function" &&
-  typeof value["delete"] === "function"
+  typeof getRecordValue(value, "post") === "function" &&
+  typeof getRecordValue(value, "get") === "function" &&
+  typeof getRecordValue(value, "delete") === "function"
 
 const requireHttpClient = (value: unknown): HttpClient => {
   if (!isHttpClient(value)) {
@@ -61,72 +63,25 @@ const createLazyHttpClient = (value: unknown): HttpClient => ({
     await requireHttpClient(value).post(path, body, headers),
 })
 
-const isHttpResponse = (value: unknown): value is HttpResponse =>
-  isRecord(value) && "data" in value && typeof value["status"] === "number"
+const toHttpResponse = (value: unknown): HttpResponse =>
+  httpResponseSchema.parse(value)
 
-const toHttpResponse = (value: unknown): HttpResponse => {
-  if (!isHttpResponse(value)) {
-    throw new TypeError("Expected an HTTP response with data and status")
-  }
+const idSchema = z.string().trim().min(1)
+const entitySchema = z.looseObject({ id: idSchema })
+const productSchema = z.looseObject({
+  variants: z.tuple([entitySchema]).rest(entitySchema),
+})
+const registeredUserSchema = z.looseObject({ token: idSchema })
+const companyResponseSchema = z.object({ company: entitySchema })
+const companiesResponseSchema = z.object({
+  companies: z.tuple([entitySchema]).rest(entitySchema),
+})
 
-  return value
-}
+const firstCompanyFromResponse = (response: HttpResponse) =>
+  companiesResponseSchema.parse(response.data).companies[0]
 
-const toRecord = (value: unknown, message: string): Record<string, unknown> => {
-  if (!isRecord(value)) {
-    throw new TypeError(message)
-  }
-
-  return value
-}
-
-const toArray = (value: unknown, message: string): unknown[] => {
-  if (!Array.isArray(value)) {
-    throw new TypeError(message)
-  }
-
-  return value
-}
-
-const toFirstRecord = (
-  value: unknown,
-  message: string,
-): Record<string, unknown> => {
-  const [first] = toArray(value, message)
-
-  return toRecord(first, message)
-}
-
-const readStringField = (
-  record: Record<string, unknown>,
-  key: string,
-): string => {
-  const field = record[key]
-
-  if (!hasTrimmedString(field)) {
-    throw new TypeError(`Expected field "${key}" to be a non-empty string`)
-  }
-
-  return field
-}
-
-const firstCompanyFromResponse = (
-  response: HttpResponse,
-): Record<string, unknown> =>
-  toFirstRecord(
-    toRecord(response.data, "Expected response data to be an object")[
-      "companies"
-    ],
-    "Expected companies to be an array",
-  )
-
-const companyFromResponse = (response: HttpResponse): Record<string, unknown> =>
-  toRecord(
-    toRecord(response.data, "Expected response data to be an object")[
-      "company"
-    ],
-    "Expected company to be an object",
-  )
+const companyFromResponse = (response: HttpResponse) =>
+  companyResponseSchema.parse(response.data).company
 
 const requestExpectingFailure = async (
   promise: Promise<unknown>,
@@ -140,7 +95,7 @@ const requestExpectingFailure = async (
   throw new Error("Expected the request to fail")
 }
 
-type SeedRecord = Record<string, unknown>
+const anyStringMatcher = (): unknown => expect.any(String)
 
 vi.setConfig({ testTimeout: 60 * 1000 })
 
@@ -153,9 +108,9 @@ medusaIntegrationTestRunner({
     const httpClient = createLazyHttpClient(api)
 
     let storeHeaders: StoreHeaders
-    let product: SeedRecord
-    let salesChannel: SeedRecord
-    let region: SeedRecord
+    let product: z.infer<typeof productSchema>
+    let salesChannel: z.infer<typeof entitySchema>
+    let region: z.infer<typeof entitySchema>
     let customerToken: string
 
     beforeEach(async () => {
@@ -163,29 +118,26 @@ medusaIntegrationTestRunner({
       await createAdminUser(adminHeaders, container)
       const publishableKey = await generatePublishableKey(container)
       storeHeaders = generateStoreHeaders({ publishableKey })
-      const registeredUser = toRecord(
+      const registeredUser = registeredUserSchema.parse(
         await createStoreUser({ api: httpClient, storeHeaders }),
-        "Expected store user response to be an object",
       )
-      customerToken = readStringField(registeredUser, "token")
+      customerToken = registeredUser.token
       storeHeaders.headers.Authorization = `Bearer ${customerToken}`
-      region = toRecord(
+      region = entitySchema.parse(
         await regionSeeder({ adminHeaders, api: httpClient, data: {} }),
-        "Expected region to be an object",
       )
 
-      salesChannel = toRecord(
+      salesChannel = entitySchema.parse(
         await salesChannelSeeder({
           adminHeaders,
           api: httpClient,
           data: {},
         }),
-        "Expected sales channel to be an object",
       )
 
-      const salesChannelId = readStringField(salesChannel, "id")
+      const salesChannelId = salesChannel.id
 
-      product = toRecord(
+      product = productSchema.parse(
         await productSeeder({
           adminHeaders,
           api: httpClient,
@@ -193,7 +145,6 @@ medusaIntegrationTestRunner({
             sales_channels: [{ id: salesChannelId }],
           },
         }),
-        "Expected product to be an object",
       )
 
       await httpClient.post(
@@ -202,10 +153,7 @@ medusaIntegrationTestRunner({
         adminHeaders,
       )
 
-      const firstVariant = toFirstRecord(
-        product["variants"],
-        "Expected product variants to be an array",
-      )
+      const [firstVariant] = product.variants
 
       await cartSeeder({
         api: httpClient,
@@ -213,10 +161,10 @@ medusaIntegrationTestRunner({
           items: [
             {
               quantity: 1,
-              variant_id: readStringField(firstVariant, "id"),
+              variant_id: firstVariant.id,
             },
           ],
-          region_id: readStringField(region, "id"),
+          region_id: region.id,
           sales_channel_id: salesChannelId,
         },
         storeHeaders,
@@ -246,13 +194,13 @@ medusaIntegrationTestRunner({
         )
 
         expect(response.status).toBe(200)
-        const expectedCompany: Record<string, unknown> = {
+        const expectedCompany = {
           address: "123 Test St",
           city: "Test City",
           country: "Test Country",
           currency_code: "USD",
           email: "test@company.com",
-          id: expect.any(String),
+          id: anyStringMatcher(),
           logo_url: "https://test.com/logo.png",
           name: "Test Company",
           phone: "1234567890",
@@ -287,22 +235,19 @@ medusaIntegrationTestRunner({
           ),
         )
 
-        const companyId = readStringField(
-          firstCompanyFromResponse(response1),
-          "id",
-        )
+        const companyId = firstCompanyFromResponse(response1).id
 
         const response2 = toHttpResponse(
           await httpClient.get(`/store/companies/${companyId}`, storeHeaders),
         )
 
-        const expectedCompany: Record<string, unknown> = {
+        const expectedCompany = {
           address: "123 Test St",
           city: "Test City",
           country: "Test Country",
           currency_code: "USD",
           email: "test@company.com",
-          id: expect.any(String),
+          id: anyStringMatcher(),
           logo_url: "https://test.com/logo.png",
           name: "Test Company",
           phone: "1234567890",
@@ -324,7 +269,7 @@ medusaIntegrationTestRunner({
     })
 
     describe("POST /store/companies/:id", () => {
-      let company1: SeedRecord
+      let company1: z.infer<typeof entitySchema>
 
       beforeEach(async () => {
         const response = toHttpResponse(
@@ -351,7 +296,7 @@ medusaIntegrationTestRunner({
       })
 
       it("successfully updates a company", async () => {
-        const companyId = readStringField(company1, "id")
+        const companyId = company1.id
         const response = toHttpResponse(
           await httpClient.post(
             `/store/companies/${companyId}`,
@@ -403,7 +348,7 @@ medusaIntegrationTestRunner({
     })
 
     describe("DELETE /store/companies/:id", () => {
-      let company1: SeedRecord
+      let company1: z.infer<typeof entitySchema>
 
       beforeEach(async () => {
         const response = toHttpResponse(
@@ -430,7 +375,7 @@ medusaIntegrationTestRunner({
       })
 
       it("successfully deletes a company", async () => {
-        const companyId = readStringField(company1, "id")
+        const companyId = company1.id
         const response = toHttpResponse(
           await httpClient.delete(
             `/store/companies/${companyId}`,

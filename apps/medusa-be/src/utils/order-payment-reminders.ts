@@ -91,8 +91,9 @@ export const ORDER_FIELDS = [
 export const getStorefrontUrl = () =>
   process.env["STOREFRONT_URL"] ?? "http://localhost:8000"
 
-export const getOrderDisplayId = (order: PaymentReminderOrder) =>
-  order.custom_display_id ?? `#${order.display_id}`
+export const getOrderDisplayId = (
+  order: Pick<PaymentReminderOrder, "custom_display_id" | "display_id">,
+) => order.custom_display_id ?? `#${order.display_id}`
 
 export const getPaymentUrl = (order: PaymentReminderOrder) =>
   `${getStorefrontUrl().replace(TRAILING_SLASH_REGEX, "")}/orders/${order.id}`

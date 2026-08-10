@@ -7,7 +7,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { isRecord, omitUndefined } from "@techsio/std/object"
+import { isRecord, omitUndefined, getRecordValue } from "@techsio/std/object"
 
 import { requirePathParam } from "../../../../../../utils/path-params"
 import { deleteEmployeesWorkflow } from "../../../../../../workflows/employee/workflows/delete-employees"
@@ -20,17 +20,18 @@ import type {
 const COMPANY_ID_LABEL = "Company id"
 const EMPLOYEE_ID_LABEL = "Employee id"
 
-const getEmployeeFromGraphResult = (
-  result: unknown,
-): Record<string, unknown> | undefined => {
-  if (!isRecord(result) || !Array.isArray(result["data"])) {
+const getEmployeeFromGraphResult = (result: unknown): object | undefined => {
+  const data: unknown = isRecord(result)
+    ? getRecordValue(result, "data")
+    : undefined
+  if (!Array.isArray(data)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "Employee query returned an invalid data payload",
     )
   }
 
-  const records: unknown[] = result["data"]
+  const records: unknown[] = data
   const [employee] = records
   if (employee === undefined) {
     return undefined

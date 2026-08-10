@@ -61,8 +61,18 @@ export const useUpdateApprovalSettings = (
 
 const approvalQueryKey = queryKeysFactory("approval")
 
+interface AdminApprovalsQuery {
+  created_at?: Record<string, string>
+  limit?: number
+  offset?: number
+  order?: string
+  q?: string
+  status?: string
+  updated_at?: Record<string, string>
+}
+
 export const useApprovals = (
-  query?: Record<string, unknown>,
+  query?: AdminApprovalsQuery,
   options?: UseQueryOptions<AdminApprovalsResponse, FetchError>,
 ) => {
   const fetchApprovals = async () =>

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 const { overrideModule } = vi.hoisted(() => ({
   overrideModule: <Module extends object>(
     original: Module,
-    replacements: Record<PropertyKey, unknown>,
+    replacements: object,
   ): Module =>
     Object.defineProperties(
       { ...original },
@@ -62,15 +62,27 @@ type AsyncMockFn<TArgs extends unknown[] = unknown[], TReturn = unknown> = (
   ...args: TArgs
 ) => Promise<TReturn>
 
+interface EmployeeRecord {
+  company?: { id: string }
+  customer?: { id: string }
+  id: string
+  is_admin?: boolean
+  spending_limit?: number
+}
+
+interface EmployeeUpdate {
+  id: string
+  is_admin?: boolean
+  spending_limit?: number
+}
+
 type Graph = (
   query: unknown,
   options?: unknown,
-) => Promise<{ data: Record<string, unknown>[] }>
+) => Promise<{ data: EmployeeRecord[] }>
 
 interface CompanyService {
-  updateEmployees: Mock<
-    AsyncMockFn<[Record<string, unknown>], Record<string, unknown>>
-  >
+  updateEmployees: Mock<AsyncMockFn<[EmployeeUpdate], EmployeeRecord>>
 }
 
 type MockContainer = ReturnType<typeof makeContainer>
@@ -123,7 +135,7 @@ const makeContainer = ({
 
 const makeCompanyService = (): CompanyService => ({
   updateEmployees: vi
-    .fn<AsyncMockFn<[Record<string, unknown>], Record<string, unknown>>>()
+    .fn<AsyncMockFn<[EmployeeUpdate], EmployeeRecord>>()
     .mockResolvedValue({ id: "emp_1" }),
 })
 

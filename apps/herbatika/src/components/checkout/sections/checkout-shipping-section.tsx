@@ -2,6 +2,10 @@ import { useTranslations } from "next-intl"
 import { useEffect } from "react"
 
 import { resolveCarrierPickupRequirement } from "@/components/checkout/carrier-pickup.utils"
+import type {
+  CarrierPickupData,
+  ShippingOptionWithPickupData,
+} from "@/components/checkout/carrier-pickup.utils"
 import { resolveShippingIcon } from "@/components/checkout/checkout-display.utils"
 import { SupportingText } from "@/components/text/supporting-text"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
@@ -9,17 +13,12 @@ import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { CheckoutCarrierPickupDetails } from "./checkout-carrier-pickup-details"
 import { CheckoutOptionRadioCard } from "./checkout-option-radio-card"
 
-interface ShippingOption {
-  data?: Record<string, unknown> | null
-  id: string
-  name?: string | null
-  provider_id?: string | null
-}
+type ShippingOption = ShippingOptionWithPickupData
 
 interface CheckoutShippingSectionProps {
   currencyCode: string
   isBusy: boolean
-  onSelectShipping: (optionId: string, data?: Record<string, unknown>) => void
+  onSelectShipping: (optionId: string, data?: CarrierPickupData) => void
   onPendingPickupOptionIdChange: (optionId: string | null) => void
   pendingPickupOptionId: string | null
   selectedShippingMethodId?: string | null

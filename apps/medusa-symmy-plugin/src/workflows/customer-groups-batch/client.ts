@@ -1,8 +1,9 @@
-import type { MedusaContainer } from "@medusajs/framework/types"
+import type { MedusaContainer, MetadataType } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import {
   createCustomerGroupsWorkflow,
   updateCustomerGroupsWorkflow,
@@ -17,14 +18,12 @@ import { customerGroupsBatchClientMapperHelper } from "./client-mapper-helper"
 import type { CustomerGroupLookupKeys } from "./client-mapper-helper"
 import type { CustomerGroupInput } from "./types"
 
-type Metadata = Record<string, unknown>
-
 export interface ExistingCustomerGroup {
   id: string
   name: string
   code?: string | null
   erp_code?: string | null
-  metadata: Metadata | null
+  metadata: MetadataType
 }
 
 export interface ExistingCustomerGroupIndex {
@@ -35,9 +34,7 @@ export interface ExistingCustomerGroupIndex {
 }
 
 const CUSTOMER_GROUP_FIELDS = ["id", "name", "metadata"] as const
-
-const isObjectMap = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
+const metadataSchema = z.record(z.string(), z.json()).nullable()
 
 const decodeCustomerGroup = (value: unknown): ExistingCustomerGroup | null => {
   if (typeof value !== "object" || value === null) {
@@ -49,11 +46,13 @@ const decodeCustomerGroup = (value: unknown): ExistingCustomerGroup | null => {
   if (!("name" in value) || typeof value.name !== "string") {
     return null
   }
-  const metadata = "metadata" in value ? value.metadata : null
-  if (metadata !== null && !isObjectMap(metadata)) {
+  const metadata = metadataSchema.safeParse(
+    "metadata" in value ? value.metadata : null,
+  )
+  if (!metadata.success) {
     return null
   }
-  return { id: value.id, metadata, name: value.name }
+  return { id: value.id, metadata: metadata.data, name: value.name }
 }
 
 const getQuery = (container: MedusaContainer) =>

@@ -1,3 +1,4 @@
+import { z } from "@medusajs/framework/zod"
 import { EllipseMiniSolid } from "@medusajs/icons"
 import { clx, Input, Label } from "@medusajs/ui"
 import {
@@ -30,16 +31,15 @@ type NumberFilterProps = IFilter
 type Comparison = "exact" | "range"
 type Operator = "lt" | "gt" | "eq"
 
-/**
- * `JSON.parse` is declared as returning an unchecked value; this binding pins
- * the result to `unknown` so every consumer validates the shape it needs.
- */
-const parseJson: (text: string) => unknown = JSON.parse
+const numberFilterRangeSchema = z
+  .object({
+    gt: z.union([z.string(), z.number()]).optional(),
+    lt: z.union([z.string(), z.number()]).optional(),
+  })
+  .strict()
 
-const isNumberFilterObjectLike = (
-  value: unknown,
-): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
+type NumberFilterRange = z.infer<typeof numberFilterRangeSchema>
+type ParsedNumberFilter = NumberFilterRange | number | undefined
 
 const isComparison = (value: string): value is Comparison =>
   value === "exact" || value === "range"
@@ -47,46 +47,41 @@ const isComparison = (value: string): value is Comparison =>
 const joinParams = (value: string[] | null | undefined): string =>
   value?.join(",") ?? ""
 
-/** Query params hold either a bare number (`eq`) or a `{ gt, lt }` object. */
-const parseParamsOrEmpty = (value: string[] | null | undefined): unknown => {
+const parseParams = (
+  value: string[] | null | undefined,
+): ParsedNumberFilter => {
   const raw = joinParams(value)
 
-  return raw === "" ? {} : parseJson(raw)
-}
-
-const parseParams = (value: string[] | null | undefined): unknown => {
-  const raw = joinParams(value)
-
-  return raw === "" ? undefined : parseJson(raw)
-}
-
-/** Bounds are persisted as the raw input strings, so keep both primitives. */
-type Bound = string | number | undefined
-
-const asBound = (value: unknown): Bound =>
-  typeof value === "string" || typeof value === "number" ? value : undefined
-
-/** Only non-empty bounds contribute to the chip label. */
-const asDisplayBound = (value: unknown): Bound => {
-  const bound = asBound(value)
-
-  return bound === undefined || bound === "" || bound === 0 ? undefined : bound
-}
-
-const withoutOperator = (
-  record: Record<string, unknown>,
-  operator: Operator,
-): Record<string, unknown> => {
-  const next: Record<string, unknown> = {}
-
-  for (const [entryKey, entryValue] of Object.entries(record)) {
-    if (entryKey !== operator) {
-      next[entryKey] = entryValue
-    }
+  if (raw === "") {
+    return undefined
   }
 
-  return next
+  const parsed: unknown = JSON.parse(raw)
+  if (typeof parsed === "number") {
+    return parsed
+  }
+
+  const range = numberFilterRangeSchema.safeParse(parsed)
+  return range.success ? range.data : undefined
 }
+
+const parseParamsOrEmpty = (
+  value: string[] | null | undefined,
+): Exclude<ParsedNumberFilter, undefined> => parseParams(value) ?? {}
+
+type Bound = NumberFilterRange["gt"]
+
+/** Only non-empty bounds contribute to the chip label. */
+const asDisplayBound = (bound: Bound): Bound =>
+  bound === undefined || bound === "" || bound === 0 ? undefined : bound
+
+const withoutOperator = (
+  range: NumberFilterRange,
+  operator: Operator,
+): NumberFilterRange => ({
+  ...(operator === "gt" || range.gt === undefined ? {} : { gt: range.gt }),
+  ...(operator === "lt" || range.lt === undefined ? {} : { lt: range.lt }),
+})
 
 const parseDisplayValue = (
   value: string[] | null | undefined,
@@ -95,10 +90,10 @@ const parseDisplayValue = (
   const parsed = parseParamsOrEmpty(value)
   let displayValue = ""
 
-  if (isNumberFilterObjectLike(parsed)) {
+  if (typeof parsed === "object") {
     const parts: string[] = []
-    const greaterThan = asDisplayBound(parsed["gt"])
-    const lessThan = asDisplayBound(parsed["lt"])
+    const greaterThan = asDisplayBound(parsed.gt)
+    const lessThan = asDisplayBound(parsed.lt)
 
     if (greaterThan !== undefined) {
       parts.push(t("filters.compare.greaterThanLabel", { value: greaterThan }))
@@ -125,15 +120,15 @@ const parseDisplayValue = (
 const getValue = (value: string[] | null | undefined, key: Operator): Bound => {
   const parsed = parseParams(value)
 
-  if (isNumberFilterObjectLike(parsed)) {
-    return asBound(parsed[key])
+  if (typeof parsed === "object") {
+    return key === "eq" ? undefined : parsed[key]
   }
 
   return typeof parsed === "number" && key === "eq" ? parsed : undefined
 }
 
 const getOperator = (value?: string[] | null): Comparison | undefined =>
-  isNumberFilterObjectLike(parseParams(value)) ? "range" : "exact"
+  typeof parseParams(value) === "object" ? "range" : "exact"
 
 export const NumberFilter = ({
   filter,
@@ -173,7 +168,7 @@ export const NumberFilter = ({
           return
         }
 
-        if (value === "" && isNumberFilterObjectLike(curr)) {
+        if (value === "" && typeof curr === "object") {
           selectedParams.add(
             JSON.stringify(withoutOperator(curr, valueOperator)),
           )
@@ -182,7 +177,7 @@ export const NumberFilter = ({
 
         selectedParams.add(
           JSON.stringify({
-            ...(isNumberFilterObjectLike(curr) ? curr : {}),
+            ...(typeof curr === "object" ? curr : {}),
             [valueOperator]: value,
           }),
         )

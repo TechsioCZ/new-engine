@@ -25,7 +25,7 @@ export interface ExistingPriceList {
   title: string
   description: string | null
   erp_code?: string
-  metadata: Record<string, unknown> | null
+  metadata: object | null
   starts_at: string | null
   ends_at: string | null
   status?: string
@@ -91,26 +91,23 @@ interface VariantQueryResult {
   priceSetByVariantId: Map<string, string>
 }
 
-const isObjectMap = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
-const getObjectValue = (value: unknown, key: string): unknown =>
-  isObjectMap(value) ? value[key] : undefined
-
-const decodePriceList = (value: unknown): ExistingPriceList | null => {
-  const id = getObjectValue(value, "id")
-  const title = getObjectValue(value, "title")
-  if (typeof id !== "string" || typeof title !== "string") {
-    return null
-  }
-  const description = getObjectValue(value, "description") ?? null
-  const metadata = getObjectValue(value, "metadata") ?? null
-  const startsAt = getObjectValue(value, "starts_at") ?? null
-  const endsAt = getObjectValue(value, "ends_at") ?? null
+const decodePriceListFields = (
+  value: object,
+): Pick<
+  ExistingPriceList,
+  "description" | "ends_at" | "metadata" | "starts_at" | "status" | "type"
+> | null => {
+  const description: unknown = Reflect.get(value, "description") ?? null
+  const metadata: unknown = Reflect.get(value, "metadata") ?? null
+  const startsAt: unknown = Reflect.get(value, "starts_at") ?? null
+  const endsAt: unknown = Reflect.get(value, "ends_at") ?? null
   if (description !== null && typeof description !== "string") {
     return null
   }
-  if (metadata !== null && !isObjectMap(metadata)) {
+  if (
+    metadata !== null &&
+    (typeof metadata !== "object" || Array.isArray(metadata))
+  ) {
     return null
   }
   if (startsAt !== null && typeof startsAt !== "string") {
@@ -119,33 +116,63 @@ const decodePriceList = (value: unknown): ExistingPriceList | null => {
   if (endsAt !== null && typeof endsAt !== "string") {
     return null
   }
-  const status = getObjectValue(value, "status")
-  const type = getObjectValue(value, "type")
+  const status: unknown = Reflect.get(value, "status")
+  const type: unknown = Reflect.get(value, "type")
   return {
     description,
     ends_at: endsAt,
-    id,
     metadata,
     starts_at: startsAt,
-    title,
     ...(typeof status === "string" ? { status } : {}),
     ...(typeof type === "string" ? { type } : {}),
   }
 }
 
+const decodePriceList = (value: unknown): ExistingPriceList | null => {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null
+  }
+  const id: unknown = Reflect.get(value, "id")
+  const title: unknown = Reflect.get(value, "title")
+  if (typeof id !== "string" || typeof title !== "string") {
+    return null
+  }
+  const fields = decodePriceListFields(value)
+  if (fields === null) {
+    return null
+  }
+  return { id, title, ...fields }
+}
+
 const decodeExistingPrice = (value: unknown): ExistingPrice | null => {
-  const id = getObjectValue(value, "id")
-  const currencyCode = getObjectValue(value, "currency_code")
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null
+  }
+  const id: unknown = Reflect.get(value, "id")
+  const currencyCode: unknown = Reflect.get(value, "currency_code")
   if (typeof id !== "string" || typeof currencyCode !== "string") {
     return null
   }
-  const minQuantity = getObjectValue(value, "min_quantity") ?? null
+  const minQuantity: unknown = Reflect.get(value, "min_quantity") ?? null
   if (minQuantity !== null && typeof minQuantity !== "number") {
     return null
   }
-  const priceSet = getObjectValue(value, "price_set")
-  const variant = getObjectValue(priceSet, "variant")
-  const variantId = getObjectValue(variant, "id")
+  const priceSet: unknown = Reflect.get(value, "price_set")
+  let variantId: unknown
+  if (
+    typeof priceSet === "object" &&
+    priceSet !== null &&
+    !Array.isArray(priceSet)
+  ) {
+    const variant: unknown = Reflect.get(priceSet, "variant")
+    if (
+      typeof variant === "object" &&
+      variant !== null &&
+      !Array.isArray(variant)
+    ) {
+      variantId = Reflect.get(variant, "id")
+    }
+  }
   return {
     currency_code: currencyCode,
     id,
@@ -156,16 +183,19 @@ const decodeExistingPrice = (value: unknown): ExistingPrice | null => {
   }
 }
 
-const buildVariantPriceSetMap = (
-  variants: Record<string, unknown>[],
-): Map<string, string> => {
+const buildVariantPriceSetMap = (variants: object[]): Map<string, string> => {
   const map = new Map<string, string>()
   for (const variant of variants) {
-    const id = getObjectValue(variant, "id")
-    const priceSetId = getObjectValue(
-      getObjectValue(variant, "price_set"),
-      "id",
-    )
+    const id: unknown = Reflect.get(variant, "id")
+    const priceSet: unknown = Reflect.get(variant, "price_set")
+    if (
+      typeof priceSet !== "object" ||
+      priceSet === null ||
+      Array.isArray(priceSet)
+    ) {
+      continue
+    }
+    const priceSetId: unknown = Reflect.get(priceSet, "id")
     if (typeof id === "string" && typeof priceSetId === "string") {
       map.set(id, priceSetId)
     }
@@ -192,55 +222,15 @@ const resolvePriceVariantId = (
   return undefined
 }
 
-interface CreatePricePayload {
+export interface CreatePricePayload {
   amount: number
   currency_code: string
   min_quantity: number
   variant_id: string
 }
 
-interface UpdatePricePayload extends CreatePricePayload {
+export interface UpdatePricePayload extends CreatePricePayload {
   id: string
-}
-
-const decodeCreatePricePayload = (
-  value: Record<string, unknown>,
-): CreatePricePayload => {
-  const amount = getObjectValue(value, "amount")
-  const currencyCode = getObjectValue(value, "currency_code")
-  const minQuantity = getObjectValue(value, "min_quantity")
-  const variantId = getObjectValue(value, "variant_id")
-  if (
-    typeof amount !== "number" ||
-    typeof currencyCode !== "string" ||
-    typeof minQuantity !== "number" ||
-    typeof variantId !== "string"
-  ) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "Invalid price create payload",
-    )
-  }
-  return {
-    amount,
-    currency_code: currencyCode,
-    min_quantity: minQuantity,
-    variant_id: variantId,
-  }
-}
-
-const decodeUpdatePricePayload = (
-  value: Record<string, unknown>,
-): UpdatePricePayload => {
-  const create = decodeCreatePricePayload(value)
-  const id = getObjectValue(value, "id")
-  if (typeof id !== "string") {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "Invalid price update payload",
-    )
-  }
-  return { ...create, id }
 }
 
 const getQuery = (container: MedusaContainer) =>
@@ -471,8 +461,8 @@ export class PriceListsClient {
 
   async applyPrices(
     priceListId: string,
-    create: Record<string, unknown>[],
-    update: Record<string, unknown>[],
+    create: CreatePricePayload[],
+    update: UpdatePricePayload[],
   ): Promise<PriceBatchApplyResult> {
     if (create.length === 0 && update.length === 0) {
       return { created: [], updated: [] }
@@ -480,22 +470,26 @@ export class PriceListsClient {
     const { result } = await batchPriceListPricesWorkflow(this.container).run({
       input: {
         data: {
-          create: create.map(decodeCreatePricePayload),
+          create,
           delete: [],
           id: priceListId,
-          update: update.map(decodeUpdatePricePayload),
+          update,
         },
       },
     })
     const workflowResult: unknown = result
-    if (!isObjectMap(workflowResult)) {
+    if (
+      typeof workflowResult !== "object" ||
+      workflowResult === null ||
+      Array.isArray(workflowResult)
+    ) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
         "Price batch workflow returned an invalid result",
       )
     }
-    const rawCreated = getObjectValue(workflowResult, "created")
-    const rawUpdated = getObjectValue(workflowResult, "updated")
+    const rawCreated: unknown = Reflect.get(workflowResult, "created")
+    const rawUpdated: unknown = Reflect.get(workflowResult, "updated")
     const created: unknown[] = Array.isArray(rawCreated) ? rawCreated : []
     const updated: unknown[] = Array.isArray(rawUpdated) ? rawUpdated : []
     return { created, updated }
@@ -558,7 +552,10 @@ export class PriceListsClient {
       filters: { [field]: [...values] },
     })
     const rows: unknown[] = data ?? []
-    const variants = rows.filter(isObjectMap)
+    const variants = rows.filter(
+      (row): row is object =>
+        typeof row === "object" && row !== null && !Array.isArray(row),
+    )
     return {
       byField: this.mapper.buildVariantMap(field, variants),
       priceSetByVariantId: buildVariantPriceSetMap(variants),
@@ -576,13 +573,19 @@ export class PriceListsClient {
     })
     const rows: unknown[] = data ?? []
     return rows.flatMap((row) => {
-      const id = getObjectValue(row, "id")
-      const name = getObjectValue(row, "name")
+      if (typeof row !== "object" || row === null || Array.isArray(row)) {
+        return []
+      }
+      const id: unknown = Reflect.get(row, "id")
+      const name: unknown = Reflect.get(row, "name")
       if (typeof id !== "string" || typeof name !== "string") {
         return []
       }
-      const metadata = getObjectValue(row, "metadata") ?? null
-      if (metadata !== null && !isObjectMap(metadata)) {
+      const metadata: unknown = Reflect.get(row, "metadata") ?? null
+      if (
+        metadata !== null &&
+        (typeof metadata !== "object" || Array.isArray(metadata))
+      ) {
         return []
       }
       return [{ id, metadata, name }]

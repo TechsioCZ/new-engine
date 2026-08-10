@@ -1,11 +1,15 @@
 import type { LoaderOptions } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
+interface PplConfigEnvironmentInput {
+  environment: string
+}
+
 interface PplConfigServiceType {
   listAndCount: (
-    filter: Record<string, unknown>,
+    filter: PplConfigEnvironmentInput,
   ) => Promise<[unknown[], number]>
-  create: (data: Record<string, unknown>) => Promise<unknown>
+  create: (data: PplConfigEnvironmentInput) => Promise<unknown>
 }
 
 /**

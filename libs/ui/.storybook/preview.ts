@@ -1,5 +1,5 @@
 import type { Decorator, Preview } from "@storybook/react"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { createElement, useEffect } from "react"
 
 import {
@@ -37,9 +37,12 @@ const isModeSetting = (value: unknown): value is ModeSetting =>
 
 const useWithTheme: Decorator = (Story, context) => {
   const globals: unknown = context.globals
-  const { brand: brandValue, mode: modeValue } = isRecord(globals)
-    ? globals
-    : {}
+  const brandValue = isRecord(globals)
+    ? getRecordValue(globals, "brand")
+    : undefined
+  const modeValue = isRecord(globals)
+    ? getRecordValue(globals, "mode")
+    : undefined
   const brand =
     typeof brandValue === "string" && isBrandKey(brandValue)
       ? brandValue

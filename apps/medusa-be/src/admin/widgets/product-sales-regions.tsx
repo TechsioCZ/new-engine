@@ -2,7 +2,6 @@ import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import type { AdminProduct, DetailWidgetProps } from "@medusajs/framework/types"
 import { Badge, Container, Text } from "@medusajs/ui"
 import { useQuery } from "@tanstack/react-query"
-import { isRecord } from "@techsio/std/object"
 import { useTranslation } from "react-i18next"
 
 import { sdk } from "../lib/sdk"
@@ -17,12 +16,6 @@ type ProductSalesRegionsWidgetProps = Partial<DetailWidgetProps<AdminProduct>>
 type SalesRegionRow = ProductSalesRegionsResponse["country_rates"][number] & {
   countryName: string
 }
-
-const isSalesRegionRow = (value: unknown): value is SalesRegionRow =>
-  isRecord(value) &&
-  typeof value["country_code"] === "string" &&
-  typeof value["countryName"] === "string" &&
-  typeof value["rate"] === "number"
 
 const SalesRegionsContent = ({
   error,
@@ -100,13 +93,11 @@ const ProductSalesRegionsWidget = ({
   }
 
   const countriesByCode = getCountriesByCode(regionsData?.regions)
-  const rowsResult: unknown = getSalesRegionRows(
+  const rows = getSalesRegionRows(
     data,
     countriesByCode,
     i18n.resolvedLanguage ?? i18n.language,
   )
-  const rowValues: unknown[] = Array.isArray(rowsResult) ? rowsResult : []
-  const rows = rowValues.filter(isSalesRegionRow)
   const salesChannelCount = data?.product.sales_channels.length ?? 0
 
   return (

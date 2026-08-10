@@ -3,9 +3,11 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import { batchProductsWorkflow } from "@medusajs/medusa/core-flows"
 
 import { productBatchClientMapperHelper } from "./client-mapper-helper"
+import type { ExistingProduct } from "./schemas"
 import type { ProductInput } from "./types"
 
 export interface ResolvedCategoryMap {
@@ -13,12 +15,7 @@ export interface ResolvedCategoryMap {
   byName: Map<string, string>
 }
 
-export interface ExistingProduct {
-  id: string
-  external_id: string | null
-  metadata: Record<string, unknown> | null
-  variants: { id: string; sku: string | null; ean: string | null }[]
-}
+export type { ExistingProduct } from "./schemas"
 
 export interface ExistingProductIndex {
   byErpId: Map<string, ExistingProduct>
@@ -56,19 +53,21 @@ const PRODUCT_PREFETCH_FIELDS = [
   "variants.sku",
   "variants.ean",
 ] as const
-
-const isObjectMap = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
-const getObjectValue = (value: unknown, key: string): unknown =>
-  isObjectMap(value) ? value[key] : undefined
+const categoryLookupSchema = z.object({
+  handle: z.string().optional(),
+  id: z.string(),
+  name: z.string().optional(),
+})
 
 const decodeCreatedProduct = (value: unknown): CreatedProduct | null => {
-  const id = getObjectValue(value, "id")
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return null
+  }
+  const id: unknown = Reflect.get(value, "id")
   if (typeof id !== "string") {
     return null
   }
-  const rawVariants = getObjectValue(value, "variants")
+  const rawVariants: unknown = Reflect.get(value, "variants")
   if (rawVariants === undefined) {
     return { id }
   }
@@ -78,7 +77,14 @@ const decodeCreatedProduct = (value: unknown): CreatedProduct | null => {
   const candidates: unknown[] = rawVariants
   const variants: { id: string }[] = []
   for (const variant of candidates) {
-    const variantId = getObjectValue(variant, "id")
+    if (
+      typeof variant !== "object" ||
+      variant === null ||
+      Array.isArray(variant)
+    ) {
+      return null
+    }
+    const variantId: unknown = Reflect.get(variant, "id")
     if (typeof variantId !== "string") {
       return null
     }
@@ -180,10 +186,10 @@ export class ProductBatchClient {
       pagination: { take: 1 },
     })
     const store: unknown = stores[0]
-    const defaultSalesChannelId = getObjectValue(
-      store,
-      "default_sales_channel_id",
-    )
+    let defaultSalesChannelId: unknown
+    if (typeof store === "object" && store !== null && !Array.isArray(store)) {
+      defaultSalesChannelId = Reflect.get(store, "default_sales_channel_id")
+    }
     if (
       typeof defaultSalesChannelId === "string" &&
       defaultSalesChannelId.length > 0
@@ -195,7 +201,15 @@ export class ProductBatchClient {
       fields: ["id"],
       pagination: { take: 1 },
     })
-    const salesChannelId = getObjectValue(salesChannels[0], "id")
+    const salesChannel: unknown = salesChannels[0]
+    let salesChannelId: unknown
+    if (
+      typeof salesChannel === "object" &&
+      salesChannel !== null &&
+      !Array.isArray(salesChannel)
+    ) {
+      salesChannelId = Reflect.get(salesChannel, "id")
+    }
     return typeof salesChannelId === "string" ? salesChannelId : null
   }
 
@@ -210,18 +224,20 @@ export class ProductBatchClient {
     })
 
     const workflowResult: unknown = result
-    if (!isObjectMap(workflowResult)) {
+    if (
+      typeof workflowResult !== "object" ||
+      workflowResult === null ||
+      Array.isArray(workflowResult)
+    ) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
         "Product batch workflow returned an invalid result",
       )
     }
-    const created = decodeCreatedProducts(
-      getObjectValue(workflowResult, "created"),
-    )
-    const updated = decodeCreatedProducts(
-      getObjectValue(workflowResult, "updated"),
-    )
+    const rawCreated: unknown = Reflect.get(workflowResult, "created")
+    const rawUpdated: unknown = Reflect.get(workflowResult, "updated")
+    const created = decodeCreatedProducts(rawCreated)
+    const updated = decodeCreatedProducts(rawUpdated)
     if (created === null || updated === null) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
@@ -234,7 +250,7 @@ export class ProductBatchClient {
   private async queryProductsByExternalIds(
     erpIds: Set<string>,
     fields: string[],
-  ): Promise<Record<string, unknown>[]> {
+  ): Promise<object[]> {
     if (erpIds.size === 0) {
       return []
     }
@@ -245,13 +261,16 @@ export class ProductBatchClient {
       filters: { external_id: [...erpIds] },
     })
     const rows: unknown[] = data
-    return rows.filter(isObjectMap)
+    return rows.filter(
+      (row): row is object =>
+        typeof row === "object" && row !== null && !Array.isArray(row),
+    )
   }
 
   private async queryVariantProductRefs(
     field: "sku" | "ean",
     values: Set<string>,
-  ): Promise<Record<string, unknown>[]> {
+  ): Promise<object[]> {
     if (values.size === 0) {
       return []
     }
@@ -262,7 +281,10 @@ export class ProductBatchClient {
       filters: { [field]: [...values] },
     })
     const rows: unknown[] = data
-    return rows.filter(isObjectMap)
+    return rows.filter(
+      (row): row is object =>
+        typeof row === "object" && row !== null && !Array.isArray(row),
+    )
   }
 
   private async hydrateMissingProducts(
@@ -281,10 +303,11 @@ export class ProductBatchClient {
     })
     const rows: unknown[] = data
     for (const raw of rows) {
-      if (isObjectMap(raw)) {
-        const existingProduct = this.helper.toExistingProduct(raw)
-        existingProductsById.set(existingProduct.id, existingProduct)
+      if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+        continue
       }
+      const existingProduct = this.helper.toExistingProduct(raw)
+      existingProductsById.set(existingProduct.id, existingProduct)
     }
   }
 
@@ -305,18 +328,16 @@ export class ProductBatchClient {
 
     const categories: unknown[] = data
     for (const category of categories) {
-      if (
-        !isObjectMap(category) ||
-        typeof getObjectValue(category, "id") !== "string"
-      ) {
+      const parsedCategory = categoryLookupSchema.safeParse(category)
+      if (!parsedCategory.success) {
         continue
       }
-      const value = category[field]
-      if (typeof value === "string" && !map.has(value)) {
-        const categoryId = getObjectValue(category, "id")
-        if (typeof categoryId === "string") {
-          map.set(value, categoryId)
-        }
+      const value =
+        field === "handle"
+          ? parsedCategory.data.handle
+          : parsedCategory.data.name
+      if (value !== undefined && !map.has(value)) {
+        map.set(value, parsedCategory.data.id)
       }
     }
 

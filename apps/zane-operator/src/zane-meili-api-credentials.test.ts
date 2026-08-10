@@ -11,14 +11,18 @@ const policy = {
   uid: "14f4c9c4-1a80-4e2f-8e79-19511d2c5ba5",
 }
 
-const requestBodySchema = z.record(z.string(), z.unknown())
 const meiliPolicySchema = z.object({
   actions: z.array(z.string()),
   description: z.string(),
   indexes: z.array(z.string()),
   uid: z.string(),
 })
+const requestBodySchema = z.union([
+  meiliPolicySchema.extend({ expiresAt: z.null() }),
+  z.object({ description: z.string() }),
+])
 
+type RequestBody = z.infer<typeof requestBodySchema>
 type StoredKey = typeof policy & {
   key: string
   expiresAt: null
@@ -32,7 +36,7 @@ type FetchCall = (
 interface RecordedRequest {
   method: string
   path: string
-  body: Record<string, unknown> | null
+  body: RequestBody | null
 }
 
 const createProvisioner = () =>
@@ -64,7 +68,7 @@ const createProvisioner = () =>
     },
   })
 
-const parseRequestBody = (body: unknown): Record<string, unknown> | null => {
+const parseRequestBody = (body: unknown): RequestBody | null => {
   if (typeof body !== "string") {
     return null
   }

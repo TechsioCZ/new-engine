@@ -1,6 +1,6 @@
 "use client"
 
-import type { HttpTypes } from "@medusajs/types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 
@@ -12,7 +12,7 @@ import { SupportingText } from "@/components/text/supporting-text"
 
 interface ProductCollectionSectionCommonProps {
   title: string
-  products: HttpTypes.StoreProduct[]
+  products: MedusaCatalogProduct[]
   id?: string
   subtitle?: string
   shouldShowSkeleton?: boolean
@@ -23,15 +23,15 @@ interface ProductCollectionSectionCommonProps {
   subtitleClassName?: string
   headerAction?: ReactNode
   keyPrefix?: string
-  onProductHoverStart?: (product: HttpTypes.StoreProduct) => void
-  onProductHoverEnd?: (product: HttpTypes.StoreProduct) => void
+  onProductHoverStart?: (product: MedusaCatalogProduct) => void
+  onProductHoverEnd?: (product: MedusaCatalogProduct) => void
 }
 
 type ProductCollectionSectionGridProps = ProductCollectionSectionCommonProps & {
   display?: "grid"
   layout: HerbatikaProductGridLayout
-  onAddToCart: (product: HttpTypes.StoreProduct) => Promise<void> | void
-  isProductAdding?: (product: HttpTypes.StoreProduct) => boolean
+  onAddToCart: (product: MedusaCatalogProduct) => Promise<void> | void
+  isProductAdding?: (product: MedusaCatalogProduct) => boolean
 }
 
 type ProductCollectionSectionCarouselProps =

@@ -5,7 +5,7 @@ import type {
 } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 import escapeHtml from "escape-html"
 import { importPKCS8, SignJWT } from "jose"
 
@@ -99,8 +99,8 @@ const isAdminUserAuthContext = (
     return false
   }
 
-  const actorId = value["actor_id"]
-  const actorType = value["actor_type"]
+  const actorId = getRecordValue(value, "actor_id")
+  const actorType = getRecordValue(value, "actor_type")
 
   if (typeof actorId !== "string" || actorId.length === 0) {
     return false

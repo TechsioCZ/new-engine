@@ -3,7 +3,7 @@ import type {
   MedusaResponse,
   MiddlewareVerb,
 } from "@medusajs/framework"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Mock } from "vitest"
 
@@ -23,20 +23,22 @@ const isAuthenticatedRequest = (
   if (!isRecord(candidate)) {
     return false
   }
-  const { auth_context: authContext, params, scope } = candidate
-  if (!(isRecord(authContext) && typeof authContext["actor_id"] === "string")) {
+  const authContext = getRecordValue(candidate, "auth_context")
+  const params = getRecordValue(candidate, "params")
+  const scope = getRecordValue(candidate, "scope")
+  if (!isRecord(authContext) || !isRecord(params) || !isRecord(scope)) {
     return false
   }
-  if (!(isRecord(params) && isRecord(scope))) {
-    return false
-  }
-  return typeof scope["resolve"] === "function"
+  return (
+    typeof getRecordValue(authContext, "actor_id") === "string" &&
+    typeof getRecordValue(scope, "resolve") === "function"
+  )
 }
 
 const isMockResponse = (candidate: unknown): candidate is MockResponse =>
   isRecord(candidate) &&
-  typeof candidate["json"] === "function" &&
-  typeof candidate["status"] === "function"
+  typeof getRecordValue(candidate, "json") === "function" &&
+  typeof getRecordValue(candidate, "status") === "function"
 
 const createResponse = (): MockResponse => {
   const candidate: unknown = {
@@ -101,11 +103,11 @@ describe("store quote middlewares", () => {
         if (!isRecord(candidate)) {
           return false
         }
-        const routeMethods = candidate["methods"]
+        const routeMethods = getRecordValue(candidate, "methods")
         return (
           Array.isArray(routeMethods) &&
           routeMethods.includes(method) &&
-          candidate["matcher"] === matcher
+          getRecordValue(candidate, "matcher") === matcher
         )
       })
 

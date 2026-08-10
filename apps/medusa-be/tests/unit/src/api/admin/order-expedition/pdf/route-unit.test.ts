@@ -1,5 +1,3 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { isRecord } from "@techsio/std/object"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import type { PostAdminOrderExpeditionPdfSchemaType } from "../../../../../../../src/api/admin/order-expedition/validators"
@@ -7,7 +5,7 @@ import type { PostAdminOrderExpeditionPdfSchemaType } from "../../../../../../..
 const { overrideModule } = vi.hoisted(() => ({
   overrideModule: <Module extends object>(
     original: Module,
-    replacements: Record<PropertyKey, unknown>,
+    replacements: object,
   ): Module =>
     Object.defineProperties(
       { ...original },
@@ -84,56 +82,19 @@ vi.mock(import("pdf-lib"), async (importOriginal) =>
 const PRINTABLE_ASCII_REGEX = /^[\u0020-\u007E]*$/u
 
 type Graph = () => Promise<unknown>
-type MockPdfRequest = MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>
-type MockPdfResponse = MedusaResponse & {
+interface MockPdfResponse {
   send: ReturnType<typeof vi.fn<(body: Buffer) => void>>
-  set: ReturnType<typeof vi.fn<(headers: Record<string, string>) => void>>
+  set: ReturnType<
+    typeof vi.fn<(headers: Record<string, string | number>) => void>
+  >
 }
 
-const isMockPdfResponse = (candidate: unknown): candidate is MockPdfResponse =>
-  isRecord(candidate) &&
-  typeof candidate["send"] === "function" &&
-  typeof candidate["set"] === "function"
+const createMockResponse = (): MockPdfResponse => ({
+  send: vi.fn<(body: Buffer) => void>(),
+  set: vi.fn<(headers: Record<string, string | number>) => void>(),
+})
 
-const createMockResponse = (): MockPdfResponse => {
-  const candidate: unknown = {
-    send: vi.fn<(body: Buffer) => void>(),
-    set: vi.fn<(headers: Record<string, string>) => void>(),
-  }
-  if (!isMockPdfResponse(candidate)) {
-    throw new TypeError("Invalid mocked PDF response")
-  }
-
-  return candidate
-}
-
-const isMockPdfRequest = (candidate: unknown): candidate is MockPdfRequest => {
-  if (!isRecord(candidate) || !isRecord(candidate["scope"])) {
-    return false
-  }
-  if (typeof candidate["scope"]["resolve"] !== "function") {
-    return false
-  }
-  const { validatedBody } = candidate
-  return isRecord(validatedBody) && Array.isArray(validatedBody["order_ids"])
-}
-
-const createMockRequest = (
-  validatedBody: PostAdminOrderExpeditionPdfSchemaType,
-  graph: ReturnType<typeof vi.fn<Graph>>,
-): MockPdfRequest => {
-  const candidate: unknown = {
-    scope: {
-      resolve: vi.fn<(key: string) => unknown>(() => ({ graph })),
-    },
-    validatedBody,
-  }
-  if (!isMockPdfRequest(candidate)) {
-    throw new TypeError("Invalid mocked PDF request")
-  }
-
-  return candidate
-}
+const createQuery = (graph: ReturnType<typeof vi.fn<Graph>>) => ({ graph })
 
 describe("POST /admin/order-expedition/pdf", () => {
   beforeEach(() => {
@@ -142,28 +103,30 @@ describe("POST /admin/order-expedition/pdf", () => {
   })
 
   it("fails before generating a PDF when any selected order is missing", async () => {
-    const { POST } =
+    const { postOrderExpeditionPdf } =
       await import("../../../../../../../src/api/admin/order-expedition/pdf/route")
     const graph = vi.fn<Graph>().mockResolvedValue({
       data: [{ display_id: 1001, id: "order_1" }],
     })
-    const req = createMockRequest(
-      {
-        order_ids: ["order_1", "order_missing"],
-      },
-      graph,
-    )
+    const validatedBody: PostAdminOrderExpeditionPdfSchemaType = {
+      order_ids: ["order_1", "order_missing"],
+    }
     const res = createMockResponse()
 
-    await expect(POST(req, res)).rejects.toThrow(
-      "Orders not found: order_missing",
-    )
+    await expect(
+      postOrderExpeditionPdf(
+        createQuery(graph),
+        validatedBody,
+        "http://localhost/admin/order-expedition/pdf",
+        res,
+      ),
+    ).rejects.toThrow("Orders not found: order_missing")
     expect(mockSave).not.toHaveBeenCalled()
     expect(res.send).not.toHaveBeenCalled()
   })
 
   it("generates one PDF for exactly the selected orders", async () => {
-    const { POST } =
+    const { postOrderExpeditionPdf } =
       await import("../../../../../../../src/api/admin/order-expedition/pdf/route")
     const graph = vi.fn<Graph>().mockResolvedValue({
       data: [
@@ -177,10 +140,17 @@ describe("POST /admin/order-expedition/pdf", () => {
         },
       ],
     })
-    const req = createMockRequest({ order_ids: ["order_1"] }, graph)
+    const validatedBody: PostAdminOrderExpeditionPdfSchemaType = {
+      order_ids: ["order_1"],
+    }
     const res = createMockResponse()
 
-    await POST(req, res)
+    await postOrderExpeditionPdf(
+      createQuery(graph),
+      validatedBody,
+      "http://localhost/admin/order-expedition/pdf",
+      res,
+    )
 
     expect(res.set).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -195,7 +165,7 @@ describe("POST /admin/order-expedition/pdf", () => {
   })
 
   it("replaces unsupported Helvetica characters before drawing text", async () => {
-    const { POST } =
+    const { postOrderExpeditionPdf } =
       await import("../../../../../../../src/api/admin/order-expedition/pdf/route")
     const graph = vi.fn<Graph>().mockResolvedValue({
       data: [
@@ -216,10 +186,17 @@ describe("POST /admin/order-expedition/pdf", () => {
         },
       ],
     })
-    const req = createMockRequest({ order_ids: ["order_1"] }, graph)
+    const validatedBody: PostAdminOrderExpeditionPdfSchemaType = {
+      order_ids: ["order_1"],
+    }
     const res = createMockResponse()
 
-    await POST(req, res)
+    await postOrderExpeditionPdf(
+      createQuery(graph),
+      validatedBody,
+      "http://localhost/admin/order-expedition/pdf",
+      res,
+    )
 
     const drawnTexts = mockDrawText.mock.calls.map(([text]) => text)
 

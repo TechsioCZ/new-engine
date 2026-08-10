@@ -33,10 +33,34 @@ interface UseAuthControllerProps {
   afterAuthHref?: string
 }
 
+export interface AuthController {
+  authMessage: string | null
+  authNotice: string | null
+  authQuery: ReturnType<typeof useAuth>
+  cartQuery: ReturnType<typeof usePostAuthCartTransfer>["cartQuery"]
+  description: string
+  forgotPasswordHref: "/auth/forgot-password"
+  handleLoginSubmit: (values: LoginFormValues) => Promise<string | null>
+  handleRegisterSubmit: (values: RegisterFormValues) => Promise<string | null>
+  isBusy: boolean
+  loginDefaultValues: ReturnType<typeof buildLoginDefaults>
+  loginHref: ReturnType<typeof buildAuthRouteHref>
+  registerCountryItems: ReturnType<typeof useRegisterCountryItems>
+  registerDefaultValues: ReturnType<typeof buildRegisterDefaults>
+  registerHref: ReturnType<typeof buildAuthRouteHref>
+  title: string
+  transferCartIfAvailable: ReturnType<
+    typeof usePostAuthCartTransfer
+  >["transferCartIfAvailable"]
+  transferCartMutation: ReturnType<
+    typeof usePostAuthCartTransfer
+  >["transferCartMutation"]
+}
+
 export const useAuthController = ({
   mode,
   afterAuthHref,
-}: UseAuthControllerProps) => {
+}: UseAuthControllerProps): AuthController => {
   const tAuth = useTranslations("auth")
   const router = useRouter()
   const marketContext = useMarketContext()

@@ -1,6 +1,6 @@
 "use client"
 
-import type { HttpTypes } from "@medusajs/types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 
 import { HerbatikaProductCard } from "@/components/herbatika-product-card"
 
@@ -10,13 +10,13 @@ import type { HerbatikaProductGridLayout } from "./herbatika-product-grid.consta
 export type { HerbatikaProductGridLayout } from "./herbatika-product-grid.constants"
 
 interface HerbatikaProductGridProps {
-  products: HttpTypes.StoreProduct[]
-  onAddToCart: (product: HttpTypes.StoreProduct) => Promise<void> | void
+  products: MedusaCatalogProduct[]
+  onAddToCart: (product: MedusaCatalogProduct) => Promise<void> | void
   layout: HerbatikaProductGridLayout
-  isProductAdding?: (product: HttpTypes.StoreProduct) => boolean
-  onProductHoverStart?: (product: HttpTypes.StoreProduct) => void
-  onProductHoverEnd?: (product: HttpTypes.StoreProduct) => void
-  getDescriptionOverride?: (product: HttpTypes.StoreProduct) => string | null
+  isProductAdding?: (product: MedusaCatalogProduct) => boolean
+  onProductHoverStart?: (product: MedusaCatalogProduct) => void
+  onProductHoverEnd?: (product: MedusaCatalogProduct) => void
+  getDescriptionOverride?: (product: MedusaCatalogProduct) => string | null
   keyPrefix?: string
 }
 

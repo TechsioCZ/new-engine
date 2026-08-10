@@ -1,23 +1,25 @@
+import type { FulfillmentDTO } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 
 import { GLS_PROVIDER_ID } from "../../../modules/gls-client"
 
 interface GLSFulfillmentRecord {
   id: string
   provider_id: string
-  canceled_at: string | null
-  data: Record<string, unknown> | null
+  canceled_at: Date | string | null
+  data: FulfillmentDTO["data"]
 }
 
 export interface GLSLabelOrder {
   id: string
-  display_id?: number | null
-  fulfillments?: GLSFulfillmentRecord[]
+  display_id: number | null
+  fulfillments?: (GLSFulfillmentRecord | null)[] | null
 }
 
 export interface PrintableGLSLabel {
   order_id: string
-  order_display_id?: number | null
+  order_display_id: number | null
   fulfillment_id: string
   packet_id: string | number
   barcode: string
@@ -28,62 +30,16 @@ interface PrintableGLSFulfillmentData {
   barcode: string
 }
 
-const isGlsLabelObjectLike = (
-  value: unknown,
-): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
+const PrintableGLSFulfillmentDataSchema = z.object({
+  barcode: z.string().trim().min(1),
+  packet_id: z.union([z.string(), z.number()]),
+})
 
-const isGLSFulfillmentRecord = (
-  value: unknown,
-): value is GLSFulfillmentRecord => {
-  if (!isGlsLabelObjectLike(value)) {
-    return false
-  }
-
-  const { canceled_at: canceledAt, data, id, provider_id: providerId } = value
-  const hasValidCanceledAt =
-    canceledAt === null || typeof canceledAt === "string"
-  const hasValidData = data === null || isGlsLabelObjectLike(data)
-
-  return (
-    typeof id === "string" &&
-    typeof providerId === "string" &&
-    hasValidCanceledAt &&
-    hasValidData
-  )
-}
-
-const isGLSLabelOrder = (value: unknown): value is GLSLabelOrder => {
-  if (!isGlsLabelObjectLike(value)) {
-    return false
-  }
-
-  const { display_id: displayId, fulfillments, id } = value
-  const hasValidDisplayId =
-    displayId === undefined ||
-    displayId === null ||
-    typeof displayId === "number"
-  const hasValidFulfillments =
-    fulfillments === undefined ||
-    (Array.isArray(fulfillments) && fulfillments.every(isGLSFulfillmentRecord))
-
-  return typeof id === "string" && hasValidDisplayId && hasValidFulfillments
-}
-
-const isPrintableGLSFulfillmentData = (
-  value: unknown,
-): value is PrintableGLSFulfillmentData => {
-  if (!isGlsLabelObjectLike(value)) {
-    return false
-  }
-
-  const { barcode, packet_id: packetId } = value
-  const hasValidPacketId =
-    typeof packetId === "number" || typeof packetId === "string"
-
-  return (
-    hasValidPacketId && typeof barcode === "string" && barcode.trim().length > 0
-  )
+const parsePrintableGLSFulfillmentData = (
+  value: FulfillmentDTO["data"],
+): PrintableGLSFulfillmentData | undefined => {
+  const parsed = PrintableGLSFulfillmentDataSchema.safeParse(value)
+  return parsed.success ? parsed.data : undefined
 }
 
 const toPrintableGLSLabel = (
@@ -93,9 +49,7 @@ const toPrintableGLSLabel = (
 ): PrintableGLSLabel => ({
   barcode: data.barcode,
   fulfillment_id: fulfillment.id,
-  ...(order.display_id === undefined
-    ? {}
-    : { order_display_id: order.display_id }),
+  order_display_id: order.display_id,
   order_id: order.id,
   packet_id: data.packet_id,
 })
@@ -112,14 +66,16 @@ const collectOrderLabels = (
   }[] = []
 
   for (const fulfillment of order.fulfillments ?? []) {
+    if (fulfillment === null) {
+      continue
+    }
+
     const isActiveGLSFulfillment =
       fulfillment.provider_id === GLS_PROVIDER_ID &&
-      (fulfillment.canceled_at === null || fulfillment.canceled_at.length === 0)
-    if (
-      isActiveGLSFulfillment &&
-      isPrintableGLSFulfillmentData(fulfillment.data)
-    ) {
-      orderLabels.push({ data: fulfillment.data, fulfillment })
+      (fulfillment.canceled_at === null || fulfillment.canceled_at === "")
+    const data = parsePrintableGLSFulfillmentData(fulfillment.data)
+    if (isActiveGLSFulfillment && data !== undefined) {
+      orderLabels.push({ data, fulfillment })
     }
   }
 
@@ -134,17 +90,6 @@ const sanitizeFilenameToken = (value: string): string => {
     .slice(0, 80)
 
   return sanitized || "unknown"
-}
-
-export const validateGLSLabelOrders = (value: unknown): GLSLabelOrder[] => {
-  if (Array.isArray(value) && value.every(isGLSLabelOrder)) {
-    return value
-  }
-
-  throw new MedusaError(
-    MedusaError.Types.INVALID_DATA,
-    "GLS: Invalid order label query result",
-  )
 }
 
 export const collectPrintableGLSLabels = (

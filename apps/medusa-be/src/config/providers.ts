@@ -9,7 +9,7 @@ import type { MedusaModuleConfig } from "./types"
 interface ModuleProviderConfig {
   id: string
   is_default?: boolean
-  options?: Record<string, unknown>
+  options?: object
   resolve: string
 }
 

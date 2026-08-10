@@ -6,7 +6,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 import { reconcileContentSearchChange } from "../../../../modules/meilisearch/content-events"
 import type { CmsSearchChange } from "../../../../modules/meilisearch/content-events"
@@ -20,35 +20,32 @@ import {
 
 /** Expected webhook payload from Payload CMS invalidation hook. */
 const parseWebhookBody = (value: unknown): CmsSearchChange | undefined => {
-  if (!isRecord(value) || typeof value["collection"] !== "string") {
+  if (!isRecord(value)) {
     return undefined
   }
+  const collection = getRecordValue(value, "collection")
+  const doc = getRecordValue(value, "doc")
+  const operation = getRecordValue(value, "operation")
 
-  const rawDoc = value["doc"]
-  if (rawDoc !== undefined && !isRecord(rawDoc)) {
+  if (typeof collection !== "string") {
     return undefined
   }
-  const rawOperation = value["operation"]
-  if (rawOperation !== undefined && typeof rawOperation !== "string") {
+  if (doc !== undefined && !isRecord(doc)) {
+    return undefined
+  }
+  if (operation !== undefined && typeof operation !== "string") {
     return undefined
   }
 
   return {
-    collection: value["collection"],
-    ...(rawDoc === undefined ? {} : { doc: rawDoc }),
-    ...(rawOperation === undefined ? {} : { operation: rawOperation }),
+    collection,
+    ...(doc === undefined ? {} : { doc }),
+    ...(operation === undefined ? {} : { operation }),
   }
 }
 
-const getOptionalString = (
-  value: Record<string, unknown> | undefined,
-  field: string,
-): string | undefined => {
-  const fieldValue = value?.[field]
-  return typeof fieldValue === "string" && fieldValue.length > 0
-    ? fieldValue
-    : undefined
-}
+const getOptionalString = (value: unknown): string | undefined =>
+  typeof value === "string" && value.length > 0 ? value : undefined
 
 const reconcileSearchChange = async (
   change: CmsSearchChange,
@@ -59,14 +56,16 @@ const reconcileSearchChange = async (
   if (change.doc === undefined) {
     return
   }
-  const isGlobalVisibilityChange = change.doc["globalVisibilityChange"] === true
-  const hasLocalizedPayload = typeof change.doc?.["locale"] === "string"
+  const isGlobalVisibilityChange =
+    getRecordValue(change.doc, "globalVisibilityChange") === true
+  const hasLocalizedPayload =
+    typeof getRecordValue(change.doc, "locale") === "string"
   if (!isGlobalVisibilityChange && hasLocalizedPayload) {
     await reconcileContentSearchChange(change, logger, req.scope)
     return
   }
 
-  const rawId = change.doc?.["id"]
+  const rawId = getRecordValue(change.doc, "id")
   if (
     (typeof rawId !== "string" || rawId.length === 0) &&
     (typeof rawId !== "number" || !Number.isFinite(rawId))
@@ -125,7 +124,7 @@ const post = async (req: MedusaRequest, res: MedusaResponse) => {
   const signature = getHeaderValue(req, "x-payload-signature")
   // Prefer raw body for signature verification to avoid JSON.stringify inconsistencies.
   // Falls back to re-stringified body if raw body isn't preserved by middleware.
-  const requestRawBody: unknown = Reflect.get(req, "rawBody")
+  const requestRawBody: unknown = getRecordValue(req, "rawBody")
   const rawBody =
     typeof requestRawBody === "string" || Buffer.isBuffer(requestRawBody)
       ? requestRawBody
@@ -150,9 +149,13 @@ const post = async (req: MedusaRequest, res: MedusaResponse) => {
     return res.status(400).json({ error: "Missing or invalid collection" })
   }
 
-  const slug = getOptionalString(body.doc, "slug")
-  const previousSlug = getOptionalString(body.doc, "previousSlug")
-  const locale = getOptionalString(body.doc, "locale")
+  const slug = getOptionalString(body.doc && getRecordValue(body.doc, "slug"))
+  const previousSlug = getOptionalString(
+    body.doc && getRecordValue(body.doc, "previousSlug"),
+  )
+  const locale = getOptionalString(
+    body.doc && getRecordValue(body.doc, "locale"),
+  )
 
   try {
     await cmsService.invalidateCache(body.collection, slug, locale)

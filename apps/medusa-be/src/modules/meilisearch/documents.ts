@@ -1,11 +1,9 @@
 import { createHash } from "node:crypto"
 
 import { MedusaError } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 import { buildProductFacetDocument } from "./facets/product-facets"
-
-type UnknownRecord = Record<string, unknown>
 
 const PRODUCT_IDENTIFIER_METADATA_FIELDS = [
   "user_code",
@@ -33,15 +31,15 @@ const HTML_TAG_REGEX = /<[^>]*>/gu
 const MEILISEARCH_DOCUMENT_ID_REGEX = /^[a-zA-Z0-9_-]+$/u
 const MEILISEARCH_DOCUMENT_ID_MAX_BYTES = 511
 
-const asRecord = (value: unknown): UnknownRecord | undefined =>
+const asRecord = (value: unknown): object | undefined =>
   isRecord(value) ? value : undefined
 
-const asRecords = (value: unknown): UnknownRecord[] => {
+const asRecords = (value: unknown): object[] => {
   if (!Array.isArray(value)) {
     return []
   }
 
-  const records: UnknownRecord[] = []
+  const records: object[] = []
 
   for (const entry of value) {
     if (isRecord(entry)) {
@@ -83,32 +81,33 @@ export const normalizeSearchIdentifier = (value: string): string =>
   cleanSearchText(value).normalize("NFKC").toLocaleLowerCase()
 
 const collectMetadataIdentifiers = (
-  metadata: UnknownRecord | undefined,
+  metadata: object | undefined,
   identifiers: string[],
 ) => {
   for (const field of PRODUCT_IDENTIFIER_METADATA_FIELDS) {
-    addString(identifiers, metadata?.[field])
+    addString(identifiers, metadata && getRecordValue(metadata, field))
   }
 }
 
-const collectRecordSearchIdentifiers = (document: UnknownRecord): string[] => {
+const collectRecordSearchIdentifiers = (document: object): string[] => {
   const identifiers: string[] = []
 
   for (const field of PRODUCT_IDENTIFIER_FIELDS) {
-    addString(identifiers, document[field])
+    addString(identifiers, getRecordValue(document, field))
   }
 
-  collectMetadataIdentifiers(asRecord(document["metadata"]), identifiers)
+  collectMetadataIdentifiers(
+    asRecord(getRecordValue(document, "metadata")),
+    identifiers,
+  )
 
   return identifiers
 }
 
-export const collectProductSearchIdentifiers = (
-  document: UnknownRecord,
-): string[] => {
+export const collectProductSearchIdentifiers = (document: object): string[] => {
   const identifiers = collectRecordSearchIdentifiers(document)
 
-  for (const variant of asRecords(document["variants"])) {
+  for (const variant of asRecords(getRecordValue(document, "variants"))) {
     identifiers.push(...collectRecordSearchIdentifiers(variant))
   }
 
@@ -116,8 +115,8 @@ export const collectProductSearchIdentifiers = (
 }
 
 const collectVariantSearchIdentifiers = (
-  document: UnknownRecord,
-  variant: UnknownRecord,
+  document: object,
+  variant: object,
 ): string[] =>
   dedupeStrings([
     ...collectRecordSearchIdentifiers(document),
@@ -132,11 +131,13 @@ const getSearchDocumentId = (value: unknown): string => {
   return ""
 }
 
-const readPopularity = (document: UnknownRecord): number => {
-  const metadata = asRecord(document["metadata"])
+const readPopularity = (document: object): number => {
+  const metadata = asRecord(getRecordValue(document, "metadata"))
 
   for (const field of POPULARITY_FIELDS) {
-    const value = metadata?.[field] ?? document[field]
+    const value =
+      (metadata && getRecordValue(metadata, field)) ??
+      getRecordValue(document, field)
     const parsed = toNumber(value)
 
     if (Number.isFinite(parsed)) {
@@ -191,20 +192,19 @@ const cleanValue = (value: unknown): unknown => {
   return value ?? undefined
 }
 
-export const cleanSearchDocument = (document: UnknownRecord): UnknownRecord => {
+export const cleanSearchDocument = (document: object): object => {
   const cleaned = cleanValue(document)
 
   return isRecord(cleaned) ? cleaned : {}
 }
 
 export const buildProductSearchDocument = (
-  document: UnknownRecord,
-
+  document: object,
   options?: {
     popularity?: number
   },
-): UnknownRecord => {
-  const variants = asRecords(document["variants"])
+) => {
+  const variants = asRecords(getRecordValue(document, "variants"))
   const identifiers = collectProductSearchIdentifiers(document)
 
   const searchDocument = {
@@ -217,10 +217,10 @@ export const buildProductSearchDocument = (
     search_has_variants: variants.length > 0,
     search_identifiers: identifiers,
     search_identifiers_normalized: identifiers.map(normalizeSearchIdentifier),
-    search_product_id: document["id"],
+    search_product_id: getRecordValue(document, "id"),
     search_result_kind: "product",
     search_variant_titles: variants
-      .map((variant) => variant["title"])
+      .map((variant) => getRecordValue(variant, "title"))
       .filter(
         (title): title is string =>
           typeof title === "string" && Boolean(title.trim()),
@@ -251,11 +251,14 @@ const buildVariantDocumentId = (
 }
 
 const buildProductVariantSearchDocument = (
-  document: UnknownRecord,
-  variant: UnknownRecord,
+  document: object,
+  variant: object,
   popularity: number | undefined,
-): UnknownRecord => {
+) => {
   const identifiers = collectVariantSearchIdentifiers(document, variant)
+  const productId = getRecordValue(document, "id")
+  const variantId = getRecordValue(variant, "id")
+  const variantTitle = getRecordValue(variant, "title")
 
   return cleanSearchDocument({
     ...document,
@@ -264,30 +267,30 @@ const buildProductVariantSearchDocument = (
       popularity === undefined
         ? readPopularity(document)
         : Math.max(0, popularity),
-    id: buildVariantDocumentId(document["id"], variant["id"]),
+    id: buildVariantDocumentId(productId, variantId),
     search_has_variants: true,
     search_identifiers: identifiers,
     search_identifiers_normalized: identifiers.map(normalizeSearchIdentifier),
-    search_product_id: document["id"],
+    search_product_id: productId,
     search_result_kind: "variant",
-    search_variant_id: variant["id"],
-    search_variant_title: variant["title"],
+    search_variant_id: variantId,
+    search_variant_title: variantTitle,
     search_variant_titles:
-      typeof variant["title"] === "string" ? [variant["title"]] : [],
+      typeof variantTitle === "string" ? [variantTitle] : [],
     variants: [variant],
   })
 }
 
 export const buildProductSearchDocuments = (
-  document: UnknownRecord,
+  document: object,
   options?: { popularity?: number },
-): UnknownRecord[] => {
-  const variants = asRecords(document["variants"])
+) => {
+  const variants = asRecords(getRecordValue(document, "variants"))
 
   const searchDocuments = [buildProductSearchDocument(document, options)]
 
   for (const variant of variants) {
-    if (getSearchDocumentId(variant["id"]).length > 0) {
+    if (getSearchDocumentId(getRecordValue(variant, "id")).length > 0) {
       searchDocuments.push(
         buildProductVariantSearchDocument(
           document,
@@ -301,27 +304,26 @@ export const buildProductSearchDocuments = (
   return searchDocuments
 }
 
-export const buildCategorySearchDocument = (
-  document: UnknownRecord,
-): UnknownRecord =>
-  cleanSearchDocument({
-    description: document["description"],
-    handle: document["handle"],
-    id: document["id"],
-    name: document["name"],
-    parent_category_id:
-      document["parent_category_id"] ??
-      asRecord(document["parent_category"])?.["id"],
-  })
+export const buildCategorySearchDocument = (document: object) => {
+  const parentCategory = asRecord(getRecordValue(document, "parent_category"))
 
-export const buildBrandSearchDocument = (
-  document: UnknownRecord,
-): UnknownRecord =>
+  return cleanSearchDocument({
+    description: getRecordValue(document, "description"),
+    handle: getRecordValue(document, "handle"),
+    id: getRecordValue(document, "id"),
+    name: getRecordValue(document, "name"),
+    parent_category_id:
+      getRecordValue(document, "parent_category_id") ??
+      (parentCategory && getRecordValue(parentCategory, "id")),
+  })
+}
+
+export const buildBrandSearchDocument = (document: object) =>
   cleanSearchDocument({
-    description: document["description"],
-    handle: document["handle"],
-    id: document["id"],
-    title: document["title"],
+    description: getRecordValue(document, "description"),
+    handle: getRecordValue(document, "handle"),
+    id: getRecordValue(document, "id"),
+    title: getRecordValue(document, "title"),
   })
 
 const extractContentText = (value: unknown): string => {
@@ -370,31 +372,35 @@ export const buildContentDocumentId = (
 }
 
 export const buildContentSearchDocument = (
-  document: UnknownRecord,
+  document: object,
   type: "article" | "page",
   locale: string,
-): UnknownRecord => {
-  const rawSlug = document["slug"]
+) => {
+  const sourceId = getRecordValue(document, "id")
+  const rawSlug = getRecordValue(document, "slug")
   const slug = typeof rawSlug === "string" ? rawSlug.trim() : ""
   if (!/^[\p{L}\p{N}_-]+(?:\/[\p{L}\p{N}_-]+)*$/u.test(slug)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `CMS ${type} ${String(document["id"])} has an invalid search slug`,
+      `CMS ${type} ${String(sourceId)} has an invalid search slug`,
     )
   }
   const href = type === "article" ? `/blog/${slug}` : `/${slug}`
+  const excerpt = getRecordValue(document, "excerpt")
 
   return cleanSearchDocument({
     content: extractContentText(
-      document["contentHTML"] ?? document["content"] ?? document["excerpt"],
+      getRecordValue(document, "contentHTML") ??
+        getRecordValue(document, "content") ??
+        excerpt,
     ),
-    excerpt: document["excerpt"],
+    excerpt,
     href,
-    id: buildContentDocumentId(type, document["id"]),
+    id: buildContentDocumentId(type, sourceId),
     locale,
     slug,
-    source_id: String(document["id"]),
-    title: document["title"],
+    source_id: String(sourceId),
+    title: getRecordValue(document, "title"),
     type,
   })
 }

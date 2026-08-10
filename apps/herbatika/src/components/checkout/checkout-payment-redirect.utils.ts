@@ -1,3 +1,5 @@
+import { getRecordValue, isRecord } from "@techsio/std/object"
+
 const isRedirectUrl = (value: string) => {
   try {
     const url = new URL(value)
@@ -18,21 +20,16 @@ const PAYMENT_URL_KEYS = [
   "url",
 ] as const
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
-const resolvePaymentUrlFromRecord = (
-  record: Record<string, unknown>,
-): string | null => {
+const resolvePaymentUrlFromRecord = (record: object): string | null => {
   for (const key of PAYMENT_URL_KEYS) {
-    const value = record[key]
+    const value = getRecordValue(record, key)
     if (typeof value === "string" && isRedirectUrl(value)) {
       return value
     }
   }
 
-  const { data } = record
-  if (isObject(data)) {
+  const data = getRecordValue(record, "data")
+  if (isRecord(data)) {
     return resolvePaymentUrlFromRecord(data)
   }
 
@@ -42,9 +39,9 @@ const resolvePaymentUrlFromRecord = (
 const resolveSelectedSession = (sessions: unknown[]) =>
   sessions.find(
     (session) =>
-      isObject(session) &&
-      (Reflect.get(session, "is_selected") === true ||
-        Reflect.get(session, "selected") === true),
+      isRecord(session) &&
+      (getRecordValue(session, "is_selected") === true ||
+        getRecordValue(session, "selected") === true),
   ) ?? sessions[0]
 
 const resolvePaymentUrlFromSessions = (
@@ -55,7 +52,7 @@ const resolvePaymentUrlFromSessions = (
   }
 
   const selectedSession = resolveSelectedSession(paymentSessions)
-  return isObject(selectedSession)
+  return isRecord(selectedSession)
     ? resolvePaymentUrlFromRecord(selectedSession)
     : null
 }
@@ -66,7 +63,7 @@ const resolvePaymentUrlFromPayments = (payments: unknown): string | null => {
   }
 
   for (const payment of payments) {
-    if (!isObject(payment)) {
+    if (!isRecord(payment)) {
       continue
     }
 
@@ -80,7 +77,7 @@ const resolvePaymentUrlFromPayments = (payments: unknown): string | null => {
 }
 
 export const resolvePaymentRedirectUrl = (value: unknown): string | null => {
-  if (!isObject(value)) {
+  if (!isRecord(value)) {
     return null
   }
 
@@ -90,11 +87,11 @@ export const resolvePaymentRedirectUrl = (value: unknown): string | null => {
   }
 
   const sessionPaymentUrl = resolvePaymentUrlFromSessions(
-    Reflect.get(value, "payment_sessions"),
+    getRecordValue(value, "payment_sessions"),
   )
   if (sessionPaymentUrl !== null) {
     return sessionPaymentUrl
   }
 
-  return resolvePaymentUrlFromPayments(Reflect.get(value, "payments"))
+  return resolvePaymentUrlFromPayments(getRecordValue(value, "payments"))
 }

@@ -1,4 +1,4 @@
-import { isRecord } from "@techsio/std/object"
+import { z } from "zod"
 
 import type { AppConfig } from "../config"
 import { BadRequestError, ensurePreviewDatabase, parsePrNumber } from "../db"
@@ -9,31 +9,39 @@ interface EnsurePreviewDbDeps {
   sql: Bun.SQL
 }
 
-interface EnsurePreviewDbPayload {
-  pr_number: unknown
-}
+const prNumberSchema = z
+  .union([z.number(), z.string().regex(/^\d+$/u)])
+  .transform((value) => parsePrNumber(value))
 
-const parsePayload = (rawPayload: unknown): EnsurePreviewDbPayload => {
-  if (!isRecord(rawPayload)) {
+const ensurePreviewDbPayloadSchema = z.object({
+  owner: z.never().optional(),
+  pr_number: prNumberSchema,
+  template_db: z.never().optional(),
+})
+
+const parsePayload = (rawPayload: unknown): number => {
+  if (
+    typeof rawPayload !== "object" ||
+    rawPayload === null ||
+    Array.isArray(rawPayload)
+  ) {
     throw new BadRequestError("request body must be a JSON object")
   }
-
-  const payload = rawPayload
-  if (!("pr_number" in payload)) {
+  if (!("pr_number" in rawPayload)) {
     throw new BadRequestError("request body is missing pr_number")
   }
-
-  if ("template_db" in payload) {
+  if ("template_db" in rawPayload) {
     throw new BadRequestError("template_db override is disabled")
   }
-
-  if ("owner" in payload) {
+  if ("owner" in rawPayload) {
     throw new BadRequestError("owner override is disabled")
   }
 
-  return {
-    pr_number: payload["pr_number"],
+  const result = ensurePreviewDbPayloadSchema.safeParse(rawPayload)
+  if (!result.success) {
+    throw new BadRequestError("pr_number must be a positive integer")
   }
+  return result.data.pr_number
 }
 
 export const handleEnsurePreviewDb = async (
@@ -48,8 +56,7 @@ export const handleEnsurePreviewDb = async (
       throw new BadRequestError("request body must be valid JSON")
     }
 
-    const payload = parsePayload(rawBody)
-    const prNumber = parsePrNumber(payload.pr_number)
+    const prNumber = parsePayload(rawBody)
     const templateDatabase = deps.config.defaultTemplateName
     const owner = deps.config.previewOwner
 

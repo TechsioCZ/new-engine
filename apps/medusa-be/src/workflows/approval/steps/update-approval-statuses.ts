@@ -4,7 +4,6 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { isRecord } from "@techsio/std/object"
 
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import { ApprovalStatusType } from "../../../types/approval/module"
@@ -13,43 +12,6 @@ import type {
   ModuleApprovalStatus,
 } from "../../../types/approval/module"
 import type { IApprovalModuleService } from "../../../types/approval/service"
-
-const APPROVAL_STATUSES = new Set<unknown>([
-  ApprovalStatusType.PENDING,
-  ApprovalStatusType.APPROVED,
-  ApprovalStatusType.REJECTED,
-])
-
-const toApprovalStatusSnapshot = (value: unknown): ModuleApprovalStatus => {
-  if (!isRecord(value)) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "Approval status snapshot is invalid",
-    )
-  }
-
-  const { cart_id: cartId, id, status } = value
-  if (
-    typeof id !== "string" ||
-    typeof cartId !== "string" ||
-    !APPROVAL_STATUSES.has(status)
-  ) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "Approval status snapshot is missing required fields",
-    )
-  }
-
-  let validatedStatus: ModuleApprovalStatus["status"] =
-    ApprovalStatusType.PENDING
-  if (status === ApprovalStatusType.APPROVED) {
-    validatedStatus = ApprovalStatusType.APPROVED
-  } else if (status === ApprovalStatusType.REJECTED) {
-    validatedStatus = ApprovalStatusType.REJECTED
-  }
-
-  return { cart_id: cartId, id, status: validatedStatus }
-}
 
 export const updateApprovalStatusStep = createStep(
   "update-approval-status",
@@ -61,7 +23,7 @@ export const updateApprovalStatusStep = createStep(
     const approvalModule =
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
-    const graphResult: unknown = await query.graph({
+    const graphResult: { data: ModuleApprovalStatus[] } = await query.graph({
       entity: "approval_status",
       fields: ["*"],
       filters: {
@@ -72,13 +34,7 @@ export const updateApprovalStatusStep = createStep(
         take: 1,
       },
     })
-    const graphData: unknown = isRecord(graphResult)
-      ? graphResult["data"]
-      : undefined
-    const approvalStatuses: unknown[] = Array.isArray(graphData)
-      ? graphData
-      : []
-    const [approvalStatus] = approvalStatuses
+    const [approvalStatus] = graphResult.data
 
     if (approvalStatus === undefined) {
       throw new MedusaError(
@@ -87,7 +43,7 @@ export const updateApprovalStatusStep = createStep(
       )
     }
 
-    const previousData = toApprovalStatusSnapshot(approvalStatus)
+    const previousData = approvalStatus
 
     const hasPendingApprovals = await approvalModule.hasPendingApprovals(
       input.cart_id,

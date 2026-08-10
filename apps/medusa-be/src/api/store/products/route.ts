@@ -1,9 +1,6 @@
+import type { Query } from "@medusajs/framework"
 import type { MedusaResponse } from "@medusajs/framework/http"
-import type {
-  HttpTypes,
-  Query,
-  QueryContextType,
-} from "@medusajs/framework/types"
+import type { HttpTypes, QueryContextType } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   QueryContext,
@@ -63,7 +60,6 @@ const getHandler = async (
       entity: "product",
       fields: productFields,
       filters: await normalizeProductSalesChannelFilter(
-        query,
         remoteQuery,
         req.filterableFields,
       ),

@@ -1,4 +1,8 @@
-import type { CustomerUpdatableFields, Query } from "@medusajs/framework/types"
+import type {
+  MetadataType,
+  CustomerUpdatableFields,
+  Query,
+} from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -6,7 +10,6 @@ import {
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 import { normalizeEmail } from "../../../utils/email"
-import { isObjectRecord } from "../../../utils/guards"
 import {
   buildReactivatedCustomerUpdateInput,
   verifyAuthIdentityEmail,
@@ -19,7 +22,7 @@ export interface ReactivateCustomerAccountInput {
   email: string
   first_name?: string | null
   last_name?: string | null
-  metadata?: Record<string, unknown> | null
+  metadata?: MetadataType
   phone?: string | null
 }
 
@@ -31,66 +34,11 @@ export interface CustomerRecord {
   has_account?: boolean | null
   id: string
   last_name?: string | null
-  metadata?: Record<string, unknown> | null
+  metadata?: MetadataType
   phone?: string | null
 }
 
 export type ReactivateCustomerAccountUpdateInput = CustomerUpdatableFields
-
-const isOptionalNullableString = (value: unknown): boolean =>
-  value === undefined || value === null || typeof value === "string"
-
-const isOptionalNullableBoolean = (value: unknown): boolean =>
-  value === undefined || value === null || typeof value === "boolean"
-
-const isOptionalNullableDate = (value: unknown): boolean =>
-  value === undefined ||
-  value === null ||
-  typeof value === "string" ||
-  value instanceof Date
-
-export const isCustomerRecord = (value: unknown): value is CustomerRecord => {
-  if (!isObjectRecord(value)) {
-    return false
-  }
-
-  const {
-    company_name: companyName,
-    deleted_at: deletedAt,
-    email,
-    first_name: firstName,
-    has_account: hasAccount,
-    id,
-    last_name: lastName,
-    metadata,
-    phone,
-  } = value
-  if (typeof id !== "string") {
-    return false
-  }
-
-  const nullableStringsAreValid = [
-    companyName,
-    email,
-    firstName,
-    lastName,
-    phone,
-  ].every(isOptionalNullableString)
-
-  if (
-    !nullableStringsAreValid ||
-    !isOptionalNullableDate(deletedAt) ||
-    !isOptionalNullableBoolean(hasAccount)
-  ) {
-    return false
-  }
-
-  if (metadata === undefined || metadata === null) {
-    return true
-  }
-
-  return isObjectRecord(metadata) && !Array.isArray(metadata)
-}
 
 interface PrepareCustomerAccountReactivationOutput {
   auth_identity_id: string

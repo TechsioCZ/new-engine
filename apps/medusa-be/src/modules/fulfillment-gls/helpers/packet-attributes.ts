@@ -2,45 +2,16 @@ import type {
   FulfillmentItemDTO,
   FulfillmentOrderDTO,
   Logger,
+  Query,
 } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 
 import type {
   GLSOptions,
   GLSPacketAttributes,
   GLSShippingOptionData,
 } from "../../gls-client/types"
-
-export interface QueryService {
-  graph: (input: {
-    entity: string
-    fields: string[]
-    filters?: Record<string, unknown>
-  }) => Promise<{ data: unknown[] }>
-}
-
-interface ProductWeightRecord {
-  id: string
-  weight?: unknown
-}
-
-interface OrderLineItemWithWeight {
-  id?: string
-  quantity?: unknown
-  product_id?: string | null
-  variant?: {
-    weight?: unknown
-    product?: {
-      id?: string | null
-      weight?: unknown
-    } | null
-  } | null
-}
-
-interface FulfillmentItemWithQuantity {
-  line_item_id?: string | null
-  quantity?: unknown
-}
 
 interface PacketOrderTotal {
   total: number
@@ -71,10 +42,11 @@ const HOUSE_NUMBER_REGEX = /^(?<houseNumber>\d+)(?<houseNumberInfo>.*)$/u
 const FLOAT_PREFIX_REGEX =
   /^[+-]?(?:Infinity|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)/u
 
-const isGlsPacketObjectLike = (
-  value: unknown,
-): value is Record<string, unknown> =>
+const isGlsPacketObjectLike = (value: unknown): value is object =>
   typeof value === "object" && value !== null
+
+const getObjectValue = (value: object, key: string): unknown =>
+  Reflect.get(value, key)
 
 const getOptionalString = (value: unknown): string | undefined => {
   if (typeof value === "string" && value.trim().length > 0) {
@@ -107,8 +79,7 @@ export const toFiniteNumber = (value: unknown): number | undefined => {
     return Number.isFinite(parsed) ? parsed : undefined
   }
   if (isGlsPacketObjectLike(value)) {
-    const nestedValue: unknown = value["value"]
-    return toFiniteNumber(nestedValue)
+    return toFiniteNumber(getObjectValue(value, "value"))
   }
 
   return undefined
@@ -186,57 +157,57 @@ const normalizeShippingAddress = (
   zipCode: string
   country: string
 } => {
-  const address: unknown = shippingAddress
-  const addressRecord = isGlsPacketObjectLike(address) ? address : {}
   const addressLine1 = getRequiredString(
-    addressRecord["address_1"],
+    shippingAddress.address_1,
     "GLS: Shipping address address_1 is required",
   )
-  const addressLine2 =
-    typeof addressRecord["address_2"] === "string"
-      ? addressRecord["address_2"].trim()
-      : ""
+  const addressLine2 = shippingAddress.address_2?.trim() ?? ""
   const parsedAddress = splitStreetAndHouseNumber(addressLine1, addressLine2)
 
   return {
     ...parsedAddress,
     city: getRequiredString(
-      addressRecord["city"],
+      shippingAddress.city,
       "GLS: Shipping address city is required",
     ),
     country: getRequiredString(
-      addressRecord["country_code"],
+      shippingAddress.country_code,
       "GLS: Shipping address country_code is required",
     ).toUpperCase(),
     zipCode: getRequiredString(
-      addressRecord["postal_code"],
+      shippingAddress.postal_code,
       "GLS: Shipping address postal_code is required",
     ),
   }
 }
 
-const getOrderEmail = (value: unknown): string | undefined => {
-  if (!isGlsPacketObjectLike(value)) {
+const queriedOrderEmailSchema = z.object({
+  customer: z
+    .object({
+      email: z.string().optional(),
+    })
+    .nullish(),
+  email: z.string().optional(),
+})
+
+const getQueriedOrderEmail = (value: unknown): string | undefined => {
+  const parsed = queriedOrderEmailSchema.safeParse(value)
+  if (!parsed.success) {
     return undefined
   }
 
-  const directEmail = getOptionalString(value["email"])
-  if (directEmail !== undefined) {
-    return directEmail
-  }
-
-  const customer: unknown = value["customer"]
-  return getOptionalString(
-    isGlsPacketObjectLike(customer) ? customer["email"] : undefined,
+  return (
+    getOptionalString(parsed.data.email) ??
+    getOptionalString(parsed.data.customer?.email)
   )
 }
 
 const getRequiredOrderEmail = async (
   order: Partial<FulfillmentOrderDTO>,
   shippingData: GLSShippingOptionData,
-  query?: QueryService,
+  query?: Query,
 ): Promise<string> => {
-  const orderEmail = getOrderEmail(order)
+  const orderEmail = getOptionalString(order.email)
   if (orderEmail !== undefined) {
     return orderEmail
   }
@@ -254,7 +225,7 @@ const getRequiredOrderEmail = async (
         id: order.id,
       },
     })
-    const queriedEmail = getOrderEmail(data[0])
+    const queriedEmail = getQueriedOrderEmail(data[0])
 
     if (queriedEmail !== undefined) {
       return queriedEmail
@@ -290,11 +261,8 @@ const getPacketOrderTotal = (
   order: Partial<FulfillmentOrderDTO>,
   shippingData: GLSShippingOptionData,
 ): PacketOrderTotal => {
-  const orderRecord: unknown = order
-  const itemTotal: unknown = isGlsPacketObjectLike(orderRecord)
-    ? orderRecord["item_total"]
-    : undefined
-  const orderTotal = toFiniteNumber(order.total) ?? toFiniteNumber(itemTotal)
+  const orderTotal =
+    toFiniteNumber(order.total) ?? toFiniteNumber(order.item_total)
 
   if (orderTotal !== undefined) {
     return { total: orderTotal, usedFallback: false }
@@ -314,12 +282,7 @@ const getPacketCurrency = (
   order: Partial<FulfillmentOrderDTO>,
   shippingData: GLSShippingOptionData,
 ): PacketCurrency => {
-  const orderRecord: unknown = order
-  const currency = getOptionalString(
-    isGlsPacketObjectLike(orderRecord)
-      ? orderRecord["currency_code"]
-      : undefined,
-  )?.toUpperCase()
+  const currency = getOptionalString(order.currency_code)?.toUpperCase()
 
   if (currency !== undefined && currency.length > 0) {
     return { currency, usedFallback: false }
@@ -337,75 +300,44 @@ const getPacketCurrency = (
 
 const medusaWeightGramsToKg = (weight: number): number => weight / GRAMS_PER_KG
 
-const getOrderItemRawWeight = (
-  orderItem: OrderLineItemWithWeight,
-  productWeights: Map<string, unknown>,
-): number | undefined => {
-  const variantWeight = toFiniteNumber(orderItem.variant?.weight)
-  if (variantWeight !== undefined) {
-    return variantWeight
-  }
+const productWeightSchema = z.object({
+  id: z.string(),
+  weight: z.unknown().optional(),
+})
 
-  const variantProductWeight = toFiniteNumber(
-    orderItem.variant?.product?.weight,
+const embeddedVariantSchema = z
+  .object({
+    product: z
+      .object({
+        id: z.string().nullish(),
+        weight: z.unknown().optional(),
+      })
+      .nullish(),
+    weight: z.unknown().optional(),
+  })
+  .nullish()
+
+const getEmbeddedVariant = (
+  orderItem: NonNullable<FulfillmentOrderDTO["items"]>[number],
+): z.infer<typeof embeddedVariantSchema> => {
+  const parsed = embeddedVariantSchema.safeParse(
+    getObjectValue(orderItem, "variant"),
   )
-  if (variantProductWeight !== undefined) {
-    return variantProductWeight
-  }
-
-  const productId = orderItem.product_id
-  return productId === undefined || productId === null
-    ? undefined
-    : toFiniteNumber(productWeights.get(productId))
+  return parsed.success ? parsed.data : undefined
 }
-
-const isOptionalString = (value: unknown): boolean =>
-  value === undefined || typeof value === "string"
-
-const isOptionalNullableString = (value: unknown): boolean =>
-  value === undefined || value === null || typeof value === "string"
-
-const isOptionalNullableRecord = (value: unknown): boolean =>
-  value === undefined || value === null || isGlsPacketObjectLike(value)
-
-const isOrderLineItemWithWeight = (
-  value: unknown,
-): value is OrderLineItemWithWeight => {
-  if (!isGlsPacketObjectLike(value)) {
-    return false
-  }
-
-  const { id, product_id: productId, variant } = value
-  return (
-    isOptionalString(id) &&
-    isOptionalNullableString(productId) &&
-    isOptionalNullableRecord(variant)
-  )
-}
-
-const isFulfillmentItemWithQuantity = (
-  value: unknown,
-): value is FulfillmentItemWithQuantity => {
-  if (!isGlsPacketObjectLike(value)) {
-    return false
-  }
-
-  const lineItemId: unknown = value["line_item_id"]
-  return isOptionalNullableString(lineItemId)
-}
-
-const isProductWeightRecord = (value: unknown): value is ProductWeightRecord =>
-  isGlsPacketObjectLike(value) && typeof value["id"] === "string"
 
 const getProductWeights = async (
-  orderItems: OrderLineItemWithWeight[],
-  query?: QueryService,
-): Promise<Map<string, unknown>> => {
+  orderItems: NonNullable<FulfillmentOrderDTO["items"]>,
+  query?: Query,
+): Promise<Map<string, number>> => {
   const productIds = [
     ...new Set(
       orderItems
         .map(
-          (item) => item.product_id ?? item.variant?.product?.id ?? undefined,
+          (item) =>
+            item.product_id ??
+            getEmbeddedVariant(item)?.product?.id ??
+            undefined,
         )
         .filter(
           (id): id is string =>
@@ -418,54 +350,61 @@ const getProductWeights = async (
     return new Map()
   }
 
-  const { data } = await query.graph({
+  const result = await query.graph({
     entity: "product",
     fields: ["id", "weight"],
     filters: {
       id: productIds,
     },
   })
-  const productWeights = new Map<string, unknown>()
-
-  for (const product of data) {
-    if (isProductWeightRecord(product)) {
-      productWeights.set(product.id, product.weight)
-    }
+  const parsed = z.array(productWeightSchema).safeParse(result.data)
+  if (!parsed.success) {
+    return new Map()
   }
 
-  return productWeights
+  const weights = new Map<string, number>()
+  for (const product of parsed.data) {
+    const weight = toFiniteNumber(product.weight)
+    if (weight !== undefined) {
+      weights.set(product.id, weight)
+    }
+  }
+  return weights
+}
+
+const getOrderItemRawWeight = (
+  orderItem: NonNullable<FulfillmentOrderDTO["items"]>[number],
+  productWeights: ReadonlyMap<string, number>,
+): number | undefined => {
+  const embeddedVariant = getEmbeddedVariant(orderItem)
+  const embeddedWeight =
+    toFiniteNumber(embeddedVariant?.weight) ??
+    toFiniteNumber(embeddedVariant?.product?.weight)
+  if (embeddedWeight !== undefined) {
+    return embeddedWeight
+  }
+
+  const productId = orderItem.product_id ?? embeddedVariant?.product?.id
+  return productId === undefined || productId === null
+    ? undefined
+    : productWeights.get(productId)
 }
 
 const calculateOrderItemsWeightKg = async (
   order: Partial<FulfillmentOrderDTO>,
   fulfillmentItems: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[],
-  query?: QueryService,
+  query?: Query,
 ): Promise<number | undefined> => {
-  const rawOrderItems: unknown = order.items
-  const orderItems = Array.isArray(rawOrderItems)
-    ? rawOrderItems.filter(isOrderLineItemWithWeight)
-    : []
+  const orderItems = order.items ?? []
   if (orderItems.length === 0) {
     return undefined
   }
 
   const productWeights = await getProductWeights(orderItems, query)
-  const orderItemsById = new Map(
-    orderItems
-      .filter(
-        (item): item is OrderLineItemWithWeight & { id: string } =>
-          item.id !== undefined && item.id.length > 0,
-      )
-      .map((item) => [item.id, item]),
-  )
-
-  const rawFulfillmentItems: unknown = fulfillmentItems
-  const fulfillmentItemsWithQuantity = Array.isArray(rawFulfillmentItems)
-    ? rawFulfillmentItems.filter(isFulfillmentItemWithQuantity)
-    : []
+  const orderItemsById = new Map(orderItems.map((item) => [item.id, item]))
   const itemsToWeigh =
-    fulfillmentItemsWithQuantity.length > 0
-      ? fulfillmentItemsWithQuantity
+    fulfillmentItems.length > 0
+      ? fulfillmentItems
       : orderItems.map((item) => ({
           line_item_id: item.id,
           quantity: item.quantity,
@@ -474,22 +413,15 @@ const calculateOrderItemsWeightKg = async (
   let totalWeightKg = 0
   for (const item of itemsToWeigh) {
     const lineItemId = item.line_item_id
-    if (
-      lineItemId === undefined ||
-      lineItemId === null ||
-      lineItemId.length === 0
-    ) {
-      continue
-    }
+    const orderItem =
+      lineItemId === undefined || lineItemId === null || lineItemId.length === 0
+        ? undefined
+        : orderItemsById.get(lineItemId)
 
-    const orderItem = orderItemsById.get(lineItemId)
     if (orderItem !== undefined) {
       const rawWeight = getOrderItemRawWeight(orderItem, productWeights)
       if (rawWeight !== undefined && rawWeight > 0) {
-        const quantity =
-          toFiniteNumber(item.quantity) ??
-          toFiniteNumber(orderItem.quantity) ??
-          1
+        const quantity = item.quantity ?? orderItem.quantity
         totalWeightKg += medusaWeightGramsToKg(rawWeight) * quantity
       }
     }
@@ -502,7 +434,7 @@ const getPacketWeight = async (
   order: Partial<FulfillmentOrderDTO>,
   items: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[],
   shippingData: GLSShippingOptionData,
-  query?: QueryService,
+  query?: Query,
 ): Promise<PacketWeight> => {
   const explicitWeight = toFiniteNumber(shippingData.weight)
   if (explicitWeight !== undefined) {
@@ -539,11 +471,8 @@ const buildBasePacketAttributes = (params: {
     totalNumber,
   } = params
   const address = normalizeShippingAddress(shippingAddress)
-  const shippingAddressRecord: unknown = shippingAddress
   const phone = getRequiredString(
-    isGlsPacketObjectLike(shippingAddressRecord)
-      ? shippingAddressRecord["phone"]
-      : undefined,
+    shippingAddress.phone,
     "GLS: Shipping address phone is required for ParcelShop delivery",
   )
 
@@ -579,7 +508,7 @@ export const buildGLSPacketAttributes = async (params: {
   shippingData: GLSShippingOptionData
   items: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[]
   config: GLSOptions
-  query?: QueryService
+  query?: Query
   logger: Logger
 }): Promise<GLSPacketAttributes> => {
   const {

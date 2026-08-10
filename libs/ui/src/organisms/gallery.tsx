@@ -2,7 +2,7 @@
  * Gallery — @techsio/ui-kit organism.
  *
  * @component Gallery
- * @componentVersion v1.0.1
+ * @componentVersion v2.0.0
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -15,26 +15,95 @@ import type {
   CSSProperties,
   ElementType,
   MouseEvent,
+  ReactElement,
   ReactNode,
 } from "react"
 import type { VariantProps } from "tailwind-variants"
 
 import { Button } from "../atoms/button"
 import { Image } from "../atoms/image"
-import { Carousel } from "../molecules/carousel"
-import type { CarouselRootProps, CarouselSlide } from "../molecules/carousel"
+import type { ImageProps } from "../atoms/image"
+import { rendererCapability } from "../internal/renderer-capability"
+import { Carousel, CarouselInheritedSlides } from "../molecules/carousel"
+import type {
+  CarouselImageComponent,
+  CarouselImageRenderer,
+  CarouselRootProps,
+  CarouselSlide,
+  CarouselSlideSource,
+} from "../molecules/carousel"
 import { tv } from "../utils"
 
+type IsUncheckedValue<Value> = 0 extends 1 & Value ? true : false
+
+type IsDefaultImageComponent<T extends ElementType> =
+  IsUncheckedValue<T> extends true
+    ? false
+    : [T] extends [typeof Image]
+      ? [typeof Image] extends [T]
+        ? true
+        : false
+      : false
+
+type SafeComponentProps<T extends ElementType> =
+  IsUncheckedValue<T> extends true
+    ? never
+    : IsUncheckedValue<ComponentPropsWithoutRef<T>> extends true
+      ? never
+      : ComponentPropsWithoutRef<T>
+
+type SafeProperty<Value, Key extends PropertyKey> = Key extends keyof Value
+  ? IsUncheckedValue<Value[Key]> extends true
+    ? never
+    : Value[Key]
+  : never
+
+type AcceptsInjectedProperty<Value, Key extends PropertyKey, Injected> = [
+  SafeProperty<Value, Key>,
+] extends [never]
+  ? false
+  : [Injected] extends [SafeProperty<Value, Key>]
+    ? true
+    : false
+
+type RequiredPropertyKeys<Value> = {
+  [Key in keyof Value]-?: Pick<Value, Key> extends Required<Pick<Value, Key>>
+    ? Key
+    : never
+}[keyof Value]
+
 type GalleryImageComponent<T extends ElementType = typeof Image> =
-  T extends typeof Image
-    ? typeof Image
-    : T extends ElementType
-      ? "src" extends keyof ComponentPropsWithoutRef<T>
-        ? "alt" extends keyof ComponentPropsWithoutRef<T>
-          ? T
+  IsUncheckedValue<T> extends true
+    ? never
+    : [T] extends [typeof Image]
+      ? typeof Image
+      : [SafeComponentProps<T>] extends [never]
+        ? never
+        : "src" extends keyof SafeComponentProps<T>
+          ? AcceptsInjectedProperty<
+              SafeComponentProps<T>,
+              "alt",
+              string
+            > extends true
+            ? AcceptsInjectedProperty<
+                SafeComponentProps<T>,
+                "width",
+                number
+              > extends true
+              ? AcceptsInjectedProperty<
+                  SafeComponentProps<T>,
+                  "height",
+                  number
+                > extends true
+                ? T
+                : never
+              : never
+            : never
           : never
-        : never
-      : never
+
+type GalleryImageRenderer<T extends ElementType = typeof Image> =
+  | GalleryImageComponent<T>
+  | (IsDefaultImageComponent<T> extends true ? undefined : never)
 
 const galleryVariants = tv({
   defaultVariants: {
@@ -86,24 +155,50 @@ const galleryVariants = tv({
   },
 })
 
-export type GalleryItem = CarouselSlide & {
-  thumbnailSrc?: string | undefined
+type GalleryThumbnailImageProps<T extends ElementType> = Omit<
+  [T] extends ["img"]
+    ? ImageProps
+    : [T] extends [typeof Image]
+      ? ImageProps
+      : SafeComponentProps<T>,
+  "alt" | "fill" | "height" | "src" | "width"
+>
+
+type GalleryItemBase<T extends ElementType> = CarouselSlide<T> & {
+  src?: CarouselSlideSource<T> | undefined
+  thumbnailSrc?: CarouselSlideSource<T> | undefined
   thumbnailAlt?: string | undefined
-  thumbnailContent?: ReactNode | undefined
-  thumbnailImageProps?: Record<string, unknown> | undefined
 }
+
+interface GalleryThumbnailContent {
+  thumbnailContent: Exclude<ReactNode, null | undefined>
+  thumbnailImageProps?: never
+}
+
+type GalleryThumbnailImage<T extends ElementType> = {
+  thumbnailContent?: null | undefined
+} & (RequiredPropertyKeys<GalleryThumbnailImageProps<T>> extends never
+  ? { thumbnailImageProps?: GalleryThumbnailImageProps<T> | undefined }
+  : { thumbnailImageProps: GalleryThumbnailImageProps<T> })
+
+export type GalleryItem<T extends ElementType = typeof Image> =
+  GalleryItemBase<T> & (GalleryThumbnailContent | GalleryThumbnailImage<T>)
 
 export interface GalleryValueChangeDetails {
   value: number
 }
 
-export interface GalleryThumbnailAriaLabelParams {
+export interface GalleryThumbnailAriaLabelParams<
+  T extends ElementType = typeof Image,
+> {
   index: number
-  item: GalleryItem
+  item: GalleryItem<T>
 }
 
-export interface GalleryRenderThumbnailParams {
-  item: GalleryItem
+export interface GalleryRenderThumbnailParams<
+  T extends ElementType = typeof Image,
+> {
+  item: GalleryItem<T>
   index: number
   isActive: boolean
   setActive: (index: number) => void
@@ -115,11 +210,11 @@ type GalleryCarouselProps<T extends ElementType = typeof Image> = Omit<
   "children" | "slideCount" | "page"
 >
 
-export type GalleryProps<T extends ElementType = typeof Image> = VariantProps<
+type GalleryBaseProps<T extends ElementType> = VariantProps<
   typeof galleryVariants
 > &
   Omit<ComponentPropsWithoutRef<"div">, "children"> & {
-    items: GalleryItem[]
+    items: GalleryItem<T>[]
     children?: ReactNode | undefined
     value?: number | undefined
     defaultValue?: number | undefined
@@ -127,21 +222,46 @@ export type GalleryProps<T extends ElementType = typeof Image> = VariantProps<
     showThumbnails?: boolean | undefined
     hideThumbnailsWhenSingle?: boolean | undefined
     thumbnailSize?: number | undefined
-    thumbnailImageAs?: GalleryImageComponent<T> | undefined
     getThumbnailAriaLabel?:
-      | ((params: GalleryThumbnailAriaLabelParams) => string)
+      | ((params: GalleryThumbnailAriaLabelParams<T>) => string)
       | undefined
-    carouselProps?: GalleryCarouselProps<T> | undefined
     emptyState?: ReactNode | undefined
   }
 
+/** @internal */
+export type GalleryInheritedRootProps<T extends ElementType> =
+  GalleryBaseProps<T> & {
+    carouselProps?: GalleryCarouselProps<T> | undefined
+    thumbnailImageAs?: GalleryImageComponent<T> | undefined
+    rendererCapability: typeof rendererCapability
+  }
+
+type GalleryRendererProps<T extends ElementType> =
+  | {
+      carouselProps: GalleryCarouselProps<T> & {
+        imageAs: CarouselImageRenderer<T>
+      }
+      thumbnailImageAs: GalleryImageRenderer<T>
+    }
+  | (IsDefaultImageComponent<T> extends true
+      ? {
+          carouselProps?: GalleryCarouselProps<T> | undefined
+          thumbnailImageAs?: GalleryImageComponent<T> | undefined
+        }
+      : never)
+
+export type GalleryProps<T extends ElementType = typeof Image> =
+  GalleryBaseProps<T> & GalleryRendererProps<T>
+
 type GalleryStyles = ReturnType<typeof galleryVariants>
 type GalleryPageSetter = (index: number) => void
-type GalleryThumbnailAriaLabel = (
-  params: GalleryThumbnailAriaLabelParams,
-) => string
+type GalleryThumbnailAriaLabelRenderer = (index: number) => string
 type GalleryValueChangeHandler = (details: GalleryValueChangeDetails) => void
-type GalleryInheritedCarouselProps = GalleryCarouselProps<ElementType>
+type GalleryInheritedCarouselProps = Omit<GalleryCarouselProps, "imageAs">
+
+interface GalleryItemIdentity {
+  id: string
+}
 
 const galleryContextError = "Gallery components must be used within Gallery"
 
@@ -151,7 +271,7 @@ const galleryContextError = "Gallery components must be used within Gallery"
  * setter is not stored either: the contexts below carry its raw inputs and
  * `useGallerySetPage` rebuilds the same closure the root used to hand down.
  */
-const GalleryItemsContext = createContext<GalleryItem[] | null>(null)
+const GalleryItemsContext = createContext<GalleryItemIdentity[] | null>(null)
 const GalleryPageContext = createContext<number | null>(null)
 const GalleryIsControlledContext = createContext<boolean | null>(null)
 const GallerySetInternalPageContext = createContext<GalleryPageSetter | null>(
@@ -164,13 +284,34 @@ const GalleryShowThumbnailsContext = createContext<boolean | null>(null)
 const GalleryThumbnailSizeContext = createContext<number | null>(null)
 const GalleryStylesContext = createContext<GalleryStyles | null>(null)
 const GalleryThumbnailAriaLabelContext =
-  createContext<GalleryThumbnailAriaLabel | null>(null)
-const GalleryThumbnailImageAsContext = createContext<ElementType | undefined>(
-  undefined,
-)
+  createContext<GalleryThumbnailAriaLabelRenderer | null>(null)
 const GalleryCarouselPropsContext = createContext<
   GalleryInheritedCarouselProps | undefined
 >(undefined)
+
+interface GalleryInheritedThumbnailOptions {
+  className?: string | undefined
+  index: number
+}
+
+type GalleryInheritedThumbnailRenderer = (
+  options: GalleryInheritedThumbnailOptions,
+) => ReactNode
+
+const GalleryInheritedThumbnailRendererContext =
+  createContext<GalleryInheritedThumbnailRenderer | null>(null)
+
+interface GalleryInheritedSlidesOptions {
+  className?: string | undefined
+  size?: CarouselRootProps["size"] | undefined
+}
+
+type GalleryInheritedSlidesRenderer = (
+  options: GalleryInheritedSlidesOptions,
+) => ReactElement | null
+
+const GalleryInheritedSlidesRendererContext =
+  createContext<GalleryInheritedSlidesRenderer | null>(null)
 
 const clampPage = (page: number, maxPage: number) => {
   if (Number.isNaN(page)) {
@@ -185,9 +326,10 @@ const clampPage = (page: number, maxPage: number) => {
   return page
 }
 
-const getMaxPage = (items: GalleryItem[]) => Math.max(items.length - 1, 0)
+const getMaxPage = (items: GalleryItemIdentity[]) =>
+  Math.max(items.length - 1, 0)
 
-const useGalleryItems = (): GalleryItem[] => {
+const useGalleryItems = (): GalleryItemIdentity[] => {
   const items = useContext(GalleryItemsContext)
   if (items === null) {
     throw new Error(galleryContextError)
@@ -227,7 +369,7 @@ const useGalleryStyles = (): GalleryStyles => {
   return styles
 }
 
-const useGalleryThumbnailAriaLabel = (): GalleryThumbnailAriaLabel => {
+const useGalleryThumbnailAriaLabel = (): GalleryThumbnailAriaLabelRenderer => {
   const getThumbnailAriaLabel = useContext(GalleryThumbnailAriaLabelContext)
   if (getThumbnailAriaLabel === null) {
     throw new Error(galleryContextError)
@@ -256,29 +398,40 @@ const useGallerySetPage = (): GalleryPageSetter => {
   }
 }
 
-const getDefaultThumbnailAriaLabel = ({
+const getDefaultThumbnailAriaLabel = <T extends ElementType>({
   index,
-}: GalleryThumbnailAriaLabelParams) => `Show slide ${index + 1}`
+}: GalleryThumbnailAriaLabelParams<T>) => `Show slide ${index + 1}`
 
 // Mirrors the previous `item.thumbnailSrc || item.src || ""` chain, where an
 // empty string keeps falling through to the next candidate.
-const resolveThumbnailSource = (item: GalleryItem): string => {
-  if (item.thumbnailSrc !== undefined && item.thumbnailSrc !== "") {
-    return item.thumbnailSrc
-  }
-  if (item.src !== undefined && item.src !== "") {
-    return item.src
-  }
-  return ""
+interface GalleryThumbnailSourceItem<Source> {
+  thumbnailSrc?: Source | undefined
+  src?: Source | undefined
 }
 
-interface GalleryThumbnailImageParams {
-  as: ElementType
+const resolveThumbnailSource = <Source,>(
+  item: GalleryThumbnailSourceItem<Source>,
+): Source | undefined => {
+  if (
+    item.thumbnailSrc !== undefined &&
+    item.thumbnailSrc !== null &&
+    item.thumbnailSrc !== ""
+  ) {
+    return item.thumbnailSrc
+  }
+  if (item.src !== undefined && item.src !== null && item.src !== "") {
+    return item.src
+  }
+  return undefined
+}
+
+interface GalleryThumbnailImageParams<T extends ElementType> {
+  as?: GalleryImageComponent<T> | undefined
   alt: string
   className?: string | undefined
-  imageProps?: Record<string, unknown> | undefined
+  imageProps?: GalleryThumbnailImageProps<T> | undefined
   size: number
-  src: string
+  src: CarouselSlideSource<T>
 }
 
 /*
@@ -286,25 +439,110 @@ interface GalleryThumbnailImageParams {
  * reaches JSX through a parameter, and calling it inline keeps the rendered tree
  * exactly as it was before.
  */
-const renderGalleryThumbnailImage = ({
-  as: ThumbnailImage,
+const renderGalleryThumbnailImage = <T extends ElementType>({
+  as,
   alt,
   className,
   imageProps,
   size,
   src,
-}: GalleryThumbnailImageParams): ReactNode => (
-  <ThumbnailImage
-    alt={alt}
-    className={className}
-    height={size}
-    src={src}
-    width={size}
-    {...imageProps}
-  />
-)
+}: GalleryThumbnailImageParams<T>): ReactElement => {
+  const ThumbnailImage = as ?? Image
 
-export const Gallery = <T extends ElementType = typeof Image>({
+  return (
+    <ThumbnailImage
+      className={className}
+      {...imageProps}
+      alt={alt}
+      height={size}
+      src={src}
+      width={size}
+    />
+  )
+}
+
+interface GalleryInheritedRenderers<T extends ElementType> {
+  carouselProps?: GalleryCarouselProps<T> | undefined
+  inheritedCarouselProps?: GalleryInheritedCarouselProps | undefined
+  items: GalleryItem<T>[]
+  getThumbnailAriaLabel: (params: GalleryThumbnailAriaLabelParams<T>) => string
+  renderSlides: GalleryInheritedSlidesRenderer
+  renderThumbnail: GalleryInheritedThumbnailRenderer
+  renderThumbnailAriaLabel: GalleryThumbnailAriaLabelRenderer
+  thumbnailImageAs?: GalleryImageComponent<T> | undefined
+  thumbnailSize: number
+}
+
+const createGalleryInheritedRenderers = <T extends ElementType>({
+  carouselProps,
+  getThumbnailAriaLabel,
+  items,
+  thumbnailImageAs,
+  thumbnailSize,
+}: {
+  carouselProps?: GalleryCarouselProps<T> | undefined
+  getThumbnailAriaLabel: (params: GalleryThumbnailAriaLabelParams<T>) => string
+  items: GalleryItem<T>[]
+  thumbnailImageAs?: GalleryImageComponent<T> | undefined
+  thumbnailSize: number
+}): GalleryInheritedRenderers<T> => {
+  const carouselImageAs = carouselProps?.imageAs
+  let inheritedCarouselProps: GalleryInheritedCarouselProps | undefined
+  if (carouselProps !== undefined) {
+    const { imageAs, ...nonImageCarouselProps } = carouselProps
+    inheritedCarouselProps = nonImageCarouselProps
+    void imageAs
+  }
+
+  return {
+    carouselProps,
+    getThumbnailAriaLabel,
+    inheritedCarouselProps,
+    items,
+    renderSlides: ({ className, size }) => (
+      <CarouselInheritedSlides<T>
+        className={className}
+        rendererCapability={rendererCapability}
+        imageAs={carouselImageAs}
+        size={size}
+        slides={items}
+      />
+    ),
+    renderThumbnail: ({ className, index }): ReactNode => {
+      const item = items[index]
+      if (!item) {
+        return null
+      }
+      const src = resolveThumbnailSource(item)
+      const thumbnailImage =
+        src === undefined
+          ? null
+          : renderGalleryThumbnailImage<T>({
+              alt:
+                item.thumbnailAlt ?? item.alt ?? `Product image ${index + 1}`,
+              as: thumbnailImageAs,
+              className,
+              imageProps: item.thumbnailImageProps,
+              size: thumbnailSize,
+              src,
+            })
+
+      return item.thumbnailContent ?? thumbnailImage
+    },
+    renderThumbnailAriaLabel: (index) => {
+      const item = items[index]
+      if (!item) {
+        return ""
+      }
+      return getThumbnailAriaLabel({ index, item })
+    },
+    thumbnailImageAs,
+    thumbnailSize,
+  }
+}
+
+/** @internal */
+export const GalleryInheritedRoot = <T extends ElementType = typeof Image>({
   items,
   children,
   orientation,
@@ -319,8 +557,12 @@ export const Gallery = <T extends ElementType = typeof Image>({
   carouselProps,
   emptyState,
   className,
+  rendererCapability: providedRendererCapability,
   ...props
-}: GalleryProps<T>) => {
+}: GalleryInheritedRootProps<T>) => {
+  if (providedRendererCapability !== rendererCapability) {
+    throw new Error("Gallery inherited renderer capability is invalid")
+  }
   const maxPage = getMaxPage(items)
   const [internalPage, setInternalPage] = useState(defaultValue)
   const isControlled = value !== undefined
@@ -335,45 +577,83 @@ export const Gallery = <T extends ElementType = typeof Image>({
     setInternalPage(page)
   }
 
+  const [inheritedRenderers, setInheritedRenderers] = useState(() =>
+    createGalleryInheritedRenderers<T>({
+      carouselProps,
+      getThumbnailAriaLabel,
+      items,
+      thumbnailImageAs,
+      thumbnailSize,
+    }),
+  )
+  const inheritedDataChanged =
+    inheritedRenderers.items !== items ||
+    inheritedRenderers.carouselProps !== carouselProps ||
+    inheritedRenderers.getThumbnailAriaLabel !== getThumbnailAriaLabel
+  const inheritedPresentationChanged =
+    inheritedRenderers.thumbnailImageAs !== thumbnailImageAs ||
+    inheritedRenderers.thumbnailSize !== thumbnailSize
+  if (inheritedDataChanged || inheritedPresentationChanged) {
+    setInheritedRenderers(
+      createGalleryInheritedRenderers<T>({
+        carouselProps,
+        getThumbnailAriaLabel,
+        items,
+        thumbnailImageAs,
+        thumbnailSize,
+      }),
+    )
+  }
+
   return (
-    <GalleryItemsContext.Provider value={items}>
-      <GalleryPageContext.Provider value={page}>
-        <GalleryIsControlledContext.Provider value={isControlled}>
-          <GallerySetInternalPageContext.Provider value={setInternalPage}>
-            <GalleryValueChangeContext.Provider value={onValueChange}>
-              <GalleryShowThumbnailsContext.Provider
-                value={shouldShowThumbnails}
-              >
-                <GalleryThumbnailSizeContext.Provider value={thumbnailSize}>
-                  <GalleryStylesContext.Provider value={styles}>
-                    <GalleryThumbnailAriaLabelContext.Provider
-                      value={getThumbnailAriaLabel}
-                    >
-                      <GalleryThumbnailImageAsContext.Provider
-                        value={thumbnailImageAs}
+    <GalleryInheritedSlidesRendererContext.Provider
+      value={inheritedRenderers.renderSlides}
+    >
+      <GalleryItemsContext.Provider value={inheritedRenderers.items}>
+        <GalleryPageContext.Provider value={page}>
+          <GalleryIsControlledContext.Provider value={isControlled}>
+            <GallerySetInternalPageContext.Provider value={setInternalPage}>
+              <GalleryValueChangeContext.Provider value={onValueChange}>
+                <GalleryShowThumbnailsContext.Provider
+                  value={shouldShowThumbnails}
+                >
+                  <GalleryThumbnailSizeContext.Provider value={thumbnailSize}>
+                    <GalleryStylesContext.Provider value={styles}>
+                      <GalleryThumbnailAriaLabelContext.Provider
+                        value={inheritedRenderers.renderThumbnailAriaLabel}
                       >
-                        <GalleryCarouselPropsContext.Provider
-                          value={carouselProps}
+                        <GalleryInheritedThumbnailRendererContext.Provider
+                          value={inheritedRenderers.renderThumbnail}
                         >
-                          <div
-                            className={styles.root({ className })}
-                            {...props}
+                          <GalleryCarouselPropsContext.Provider
+                            value={inheritedRenderers.inheritedCarouselProps}
                           >
-                            {items.length === 0 ? emptyState : children}
-                          </div>
-                        </GalleryCarouselPropsContext.Provider>
-                      </GalleryThumbnailImageAsContext.Provider>
-                    </GalleryThumbnailAriaLabelContext.Provider>
-                  </GalleryStylesContext.Provider>
-                </GalleryThumbnailSizeContext.Provider>
-              </GalleryShowThumbnailsContext.Provider>
-            </GalleryValueChangeContext.Provider>
-          </GallerySetInternalPageContext.Provider>
-        </GalleryIsControlledContext.Provider>
-      </GalleryPageContext.Provider>
-    </GalleryItemsContext.Provider>
+                            <div
+                              className={styles.root({ className })}
+                              {...props}
+                            >
+                              {items.length === 0 ? emptyState : children}
+                            </div>
+                          </GalleryCarouselPropsContext.Provider>
+                        </GalleryInheritedThumbnailRendererContext.Provider>
+                      </GalleryThumbnailAriaLabelContext.Provider>
+                    </GalleryStylesContext.Provider>
+                  </GalleryThumbnailSizeContext.Provider>
+                </GalleryShowThumbnailsContext.Provider>
+              </GalleryValueChangeContext.Provider>
+            </GallerySetInternalPageContext.Provider>
+          </GalleryIsControlledContext.Provider>
+        </GalleryPageContext.Provider>
+      </GalleryItemsContext.Provider>
+    </GalleryInheritedSlidesRendererContext.Provider>
   )
 }
+
+export const Gallery = <T extends ElementType = typeof Image>(
+  props: GalleryProps<T>,
+) => (
+  <GalleryInheritedRoot<T> {...props} rendererCapability={rendererCapability} />
+)
 
 type GalleryMainProps = ComponentPropsWithoutRef<"div">
 
@@ -387,20 +667,27 @@ const GalleryMain = ({ children, className, ...props }: GalleryMainProps) => {
   )
 }
 
-type GalleryThumbnailProps<T extends ElementType = typeof Image> = Omit<
+type GalleryThumbnailBaseProps = Omit<
   ComponentPropsWithoutRef<"button">,
   "children"
 > & {
   index: number
   children?: ReactNode | undefined
-  imageAs?: GalleryImageComponent<T> | undefined
   imageClassName?: string | undefined
 }
+
+type GalleryThumbnailProps<T extends ElementType = typeof Image> =
+  GalleryThumbnailBaseProps &
+    (
+      | { imageAs?: undefined; item?: undefined }
+      | { imageAs: GalleryImageComponent<T>; item: GalleryItem<T> }
+    )
 
 const GalleryThumbnail = <T extends ElementType = typeof Image>({
   index,
   children,
   imageAs,
+  item: overrideItem,
   imageClassName,
   className,
   style,
@@ -412,22 +699,17 @@ const GalleryThumbnail = <T extends ElementType = typeof Image>({
   const setPage = useGallerySetPage()
   const styles = useGalleryStyles()
   const thumbnailSize = useGalleryThumbnailSize()
-  const thumbnailImageAs = useContext(GalleryThumbnailImageAsContext)
-  const getThumbnailAriaLabel = useGalleryThumbnailAriaLabel()
-  const item = items[index]
+  const renderInheritedThumbnail = useContext(
+    GalleryInheritedThumbnailRendererContext,
+  )
+  const renderThumbnailAriaLabel = useGalleryThumbnailAriaLabel()
+  const itemIdentity = items[index]
 
-  if (!item) {
+  if (!itemIdentity) {
     return null
   }
 
   const isActive = page === index
-  const thumbnailSource = resolveThumbnailSource(item)
-  const thumbnailAlt =
-    item.thumbnailAlt ?? item.alt ?? `Product image ${index + 1}`
-  // The previous custom/default split rendered the same element type on both
-  // sides once `imageAs` and `thumbnailImageAs` fall back to `Image`.
-  const resolvedImageAs: ElementType = imageAs ?? thumbnailImageAs ?? Image
-
   const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
     onClick?.(event)
     if (event.defaultPrevented) {
@@ -436,27 +718,49 @@ const GalleryThumbnail = <T extends ElementType = typeof Image>({
     setPage(index)
   }
 
-  const resolvedStyle = {
+  const resolvedStyle: CSSProperties & {
+    "--gallery-thumbnail-size": string
+  } = {
     "--gallery-thumbnail-size": `${thumbnailSize}px`,
     ...style,
-  } as CSSProperties
+  }
 
-  const thumbnailImage =
-    thumbnailSource === ""
-      ? null
-      : renderGalleryThumbnailImage({
-          alt: thumbnailAlt,
-          as: resolvedImageAs,
-          className: imageClassName,
-          imageProps: item.thumbnailImageProps,
-          size: thumbnailSize,
-          src: thumbnailSource,
-        })
+  if (renderInheritedThumbnail === null) {
+    throw new Error(galleryContextError)
+  }
+
+  let defaultThumbnail: ReactNode
+  if (imageAs === undefined) {
+    defaultThumbnail = renderInheritedThumbnail({
+      className: imageClassName,
+      index,
+    })
+  } else {
+    if (overrideItem === undefined) {
+      throw new Error("Gallery.Thumbnail imageAs requires a matching item")
+    }
+    const thumbnailSource = resolveThumbnailSource(overrideItem)
+    const thumbnailImage =
+      thumbnailSource === undefined
+        ? null
+        : renderGalleryThumbnailImage<T>({
+            alt:
+              overrideItem.thumbnailAlt ??
+              overrideItem.alt ??
+              `Product image ${index + 1}`,
+            as: imageAs,
+            className: imageClassName,
+            imageProps: overrideItem.thumbnailImageProps,
+            size: thumbnailSize,
+            src: thumbnailSource,
+          })
+    defaultThumbnail = overrideItem.thumbnailContent ?? thumbnailImage
+  }
 
   return (
     <Button
       aria-current={isActive ? "true" : undefined}
-      aria-label={getThumbnailAriaLabel({ index, item })}
+      aria-label={renderThumbnailAriaLabel(index)}
       className={styles.thumbnailTrigger({ className })}
       data-active={isActive || undefined}
       onClick={handleClick}
@@ -466,12 +770,12 @@ const GalleryThumbnail = <T extends ElementType = typeof Image>({
       type="button"
       {...props}
     >
-      {children ?? item.thumbnailContent ?? thumbnailImage}
+      {children ?? defaultThumbnail}
     </Button>
   )
 }
 
-type GalleryThumbnailsProps = Omit<
+type GalleryThumbnailsBaseProps = Omit<
   ComponentPropsWithoutRef<"div">,
   "children"
 > & {
@@ -479,20 +783,42 @@ type GalleryThumbnailsProps = Omit<
   scrollAreaClassName?: string | undefined
   listClassName?: string | undefined
   thumbnailClassName?: string | undefined
-  renderThumbnail?:
-    | ((params: GalleryRenderThumbnailParams) => ReactNode)
-    | undefined
 }
 
-const GalleryThumbnails = ({
+type GalleryRenderThumbnailIdentityParams = Omit<
+  GalleryRenderThumbnailParams,
+  "item"
+> & {
+  item: GalleryItemIdentity
+}
+
+type GalleryThumbnailsProps<T extends ElementType = typeof Image> =
+  GalleryThumbnailsBaseProps &
+    (
+      | {
+          items?: undefined
+          renderThumbnail?:
+            | ((params: GalleryRenderThumbnailIdentityParams) => ReactNode)
+            | undefined
+        }
+      | {
+          items: GalleryItem<T>[]
+          renderThumbnail: (
+            params: GalleryRenderThumbnailParams<T>,
+          ) => ReactNode
+        }
+    )
+
+const GalleryThumbnails = <T extends ElementType = typeof Image>({
   children,
   className,
+  items: renderItems,
   listClassName,
   scrollAreaClassName,
   thumbnailClassName,
   renderThumbnail,
   ...props
-}: GalleryThumbnailsProps) => {
+}: GalleryThumbnailsProps<T>) => {
   const items = useGalleryItems()
   const page = useGalleryPage()
   const setPage = useGallerySetPage()
@@ -504,33 +830,58 @@ const GalleryThumbnails = ({
   }
 
   const hasCustomThumbnails = Boolean(children)
-  const thumbnails = hasCustomThumbnails
-    ? children
-    : items.map((item, index) => {
-        const defaultThumbnail = (
-          <GalleryThumbnail
-            className={thumbnailClassName}
-            index={index}
-            key={item.id}
-          />
-        )
+  let thumbnails: ReactNode
+  if (hasCustomThumbnails) {
+    thumbnails = children
+  } else if (renderItems === undefined) {
+    thumbnails = items.map((item, index) => {
+      const defaultThumbnail = (
+        <GalleryThumbnail
+          className={thumbnailClassName}
+          index={index}
+          key={item.id}
+        />
+      )
 
-        if (!renderThumbnail) {
-          return defaultThumbnail
-        }
+      if (renderThumbnail === undefined) {
+        return defaultThumbnail
+      }
 
-        return (
-          <Fragment key={item.id}>
-            {renderThumbnail({
-              defaultThumbnail,
-              index,
-              isActive: page === index,
-              item,
-              setActive: setPage,
-            })}
-          </Fragment>
-        )
-      })
+      return (
+        <Fragment key={item.id}>
+          {renderThumbnail({
+            defaultThumbnail,
+            index,
+            isActive: page === index,
+            item,
+            setActive: setPage,
+          })}
+        </Fragment>
+      )
+    })
+  } else {
+    thumbnails = renderItems.map((item, index) => {
+      const defaultThumbnail = (
+        <GalleryThumbnail
+          className={thumbnailClassName}
+          index={index}
+          key={item.id}
+        />
+      )
+
+      return (
+        <Fragment key={item.id}>
+          {renderThumbnail({
+            defaultThumbnail,
+            index,
+            isActive: page === index,
+            item,
+            setActive: setPage,
+          })}
+        </Fragment>
+      )
+    })
+  }
 
   return (
     <div className={styles.thumbnails({ className })} {...props}>
@@ -547,58 +898,65 @@ const GalleryThumbnails = ({
   )
 }
 
-type GallerySlideSize = ComponentPropsWithoutRef<typeof Carousel.Slides>["size"]
+type GallerySlideSize = CarouselRootProps["size"]
 
-interface GallerySlidesProps {
-  slides?: GalleryItem[] | undefined
+interface GallerySlidesSharedProps {
   size?: GallerySlideSize
-  imageAs?: ElementType | undefined
   className?: string | undefined
 }
 
-const GallerySlides = ({
-  slides,
-  size,
-  imageAs,
-  className,
-}: GallerySlidesProps) => {
-  const items = useGalleryItems()
-  const carouselProps = useContext(GalleryCarouselPropsContext)
+type GallerySlidesProps<T extends ElementType = typeof Image> =
+  | (GallerySlidesSharedProps & { slides?: undefined })
+  | (GallerySlidesSharedProps & {
+      imageAs: CarouselImageComponent<T>
+      slides: GalleryItem<T>[]
+    })
 
-  return (
-    <Carousel.Slides
-      className={className}
-      imageAs={imageAs ?? carouselProps?.imageAs}
-      size={size}
-      slides={slides ?? items}
-    />
+const GallerySlides = <T extends ElementType = typeof Image>(
+  props: GallerySlidesProps<T>,
+): ReactElement | null => {
+  const renderInheritedSlides = useContext(
+    GalleryInheritedSlidesRendererContext,
   )
+  if (renderInheritedSlides === null) {
+    throw new Error(galleryContextError)
+  }
+
+  if ("imageAs" in props) {
+    return (
+      <Carousel.Slides<T>
+        className={props.className}
+        imageAs={props.imageAs}
+        size={props.size}
+        slides={props.slides}
+      />
+    )
+  }
+
+  return renderInheritedSlides({
+    className: props.className,
+    size: props.size,
+  })
 }
 
-type GalleryCarouselComponentProps<T extends ElementType = typeof Image> = Omit<
-  CarouselRootProps<T>,
-  "children" | "slideCount" | "page"
+type GalleryCarouselComponentProps = Omit<
+  CarouselRootProps,
+  "children" | "imageAs" | "page" | "slideCount"
 > & {
   children?: ReactNode | undefined
 }
 
-const GalleryCarousel = <T extends ElementType = typeof Image>({
+const GalleryCarousel = ({
   children,
   onPageChange,
   ...props
-}: GalleryCarouselComponentProps<T>) => {
+}: GalleryCarouselComponentProps) => {
   const items = useGalleryItems()
   const page = useGalleryPage()
   const setPage = useGallerySetPage()
   const carouselProps = useContext(GalleryCarouselPropsContext)
   const inheritedProps: GalleryInheritedCarouselProps = carouselProps ?? {}
-  /*
-   * `imageAs` is the one inherited entry typed against the Gallery root's own
-   * element parameter rather than this component's, so only the locally typed
-   * prop is forwarded to Carousel — which never reads `imageAs` anyway. The
-   * inherited value still reaches Gallery.Slides through its own context.
-   */
-  const mergedProps = { ...inheritedProps, ...props, imageAs: props.imageAs }
+  const mergedProps = { ...inheritedProps, ...props }
   const inheritedOnPageChange = inheritedProps.onPageChange
 
   const handlePageChange = (details: {

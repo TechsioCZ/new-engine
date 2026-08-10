@@ -11,7 +11,7 @@ const { mockImportPKCS8, mockSignJWTConstructor } = vi.hoisted(() => ({
 const { overrideModule } = vi.hoisted(() => ({
   overrideModule: <Module extends object>(
     original: Module,
-    replacements: Record<PropertyKey, unknown>,
+    replacements: object,
   ): Module =>
     Object.defineProperties(
       { ...original },
@@ -26,9 +26,7 @@ vi.mock(import("jose"), async (importOriginal) =>
         mockSignJWTConstructor(payload)
       }
 
-      setProtectedHeader = vi
-        .fn<(header: Record<string, unknown>) => unknown>()
-        .mockReturnThis()
+      setProtectedHeader = vi.fn<(header: object) => unknown>().mockReturnThis()
       setIssuedAt = vi.fn<(iat: number) => unknown>().mockReturnThis()
       setExpirationTime = vi.fn<(exp: number) => unknown>().mockReturnThis()
       setIssuer = vi.fn<(issuer: string) => unknown>().mockReturnThis()
@@ -80,7 +78,7 @@ const assertMockShape: <T>(
 }
 
 type MockResponse = MedusaResponse & {
-  json: ReturnType<typeof vi.fn<(body: Record<string, unknown>) => unknown>>
+  json: ReturnType<typeof vi.fn<(body: object) => unknown>>
   send: ReturnType<typeof vi.fn<(body: string) => unknown>>
   setHeader: ReturnType<typeof vi.fn<(name: string, value: string) => void>>
   status: ReturnType<typeof vi.fn<(code: number) => MockResponse>>
@@ -96,7 +94,7 @@ type MockRequest = MedusaRequest<unknown, AdminPayloadSsoSchemaType> & {
 
 const createMockResponse = (): MockResponse => {
   const candidate: unknown = {
-    json: vi.fn<(body: Record<string, unknown>) => unknown>().mockReturnThis(),
+    json: vi.fn<(body: object) => unknown>().mockReturnThis(),
     send: vi.fn<(body: string) => unknown>().mockReturnThis(),
     setHeader: vi.fn<(name: string, value: string) => void>(),
     status: vi.fn<(code: number) => MockResponse>().mockReturnThis(),
@@ -111,7 +109,7 @@ const createMockResponse = (): MockResponse => {
 }
 
 const createMockRequest = (
-  overrides: Record<string, unknown> = {},
+  overrides: object = {},
   headers: Record<string, string> = {},
 ): MockRequest => {
   const candidate: unknown = {

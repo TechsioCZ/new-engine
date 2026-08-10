@@ -34,13 +34,19 @@ import {
   MedusaError,
   PaymentActions,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import type {
   BillingInfo,
   CreatePaymentSchema,
   UpdatePaymentSchema,
 } from "@paykit-sdk/core"
-import { isRecord } from "@techsio/std/object"
+import {
+  billingSchema,
+  createPaymentSchema,
+  payeeSchema,
+} from "@paykit-sdk/core"
 
+import type { IntegrationConfigContainer } from "../../api-store/integration-config"
 import { resolveConfiguredClient } from "../runtime"
 import type {
   PaykitAdapterOptions,
@@ -49,6 +55,7 @@ import type {
   PaykitPaymentClient,
   PaykitWebhookEvent,
 } from "../types"
+import { toNumericPaymentAmount } from "../utils/amounts"
 import {
   getPaymentStatusValue,
   mapPaykitStatusToMedusa,
@@ -57,31 +64,40 @@ import {
   toPaykitRefundData,
 } from "../utils/mappers"
 
-export type PaykitInjectedDependencies = Record<string, unknown>
+export type PaykitInjectedDependencies = {
+  [TKey in keyof IntegrationConfigContainer]: IntegrationConfigContainer[TKey]
+}
 
 type BillingInfoInput =
   | InitiatePaymentInput
   | CreateAccountHolderInput
   | UpdateAccountHolderInput
 
-interface PaykitAddressFields {
-  city: string
-  country: string
-  line1: string
-  name: string
-  postalCode: string
-}
-
-interface MedusaAddressFields {
-  addressLine1: string
-  city: string
-  countryCode: string
-  postalCode: string
-}
-
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u
 
 const isEmailValue = (value: string): boolean => EMAIL_PATTERN.test(value)
+
+const optionalStringSchema = z
+  .unknown()
+  .transform((value) => (typeof value === "string" ? value : undefined))
+
+const paykitBillingInputSchema = billingSchema.partial({ currency: true })
+
+const medusaBillingAddressSchema = z.object({
+  address_1: z.string(),
+  address_2: optionalStringSchema,
+  city: z.string(),
+  country_code: z.string(),
+  first_name: optionalStringSchema,
+  last_name: optionalStringSchema,
+  phone: optionalStringSchema,
+  postal_code: z.string(),
+  province: optionalStringSchema,
+})
+
+const createPaymentMetadataSchema = createPaymentSchema.shape.metadata.unwrap()
+const providerMetadataSchema =
+  createPaymentSchema.shape.provider_metadata.unwrap()
 
 const firstNonEmptyString = (
   ...values: readonly unknown[]
@@ -92,54 +108,30 @@ const firstNonEmptyString = (
 
 // Mirrors the historical truthiness check on provider data, so non-string ids
 // still reach the typed provider id validation instead of silently skipping it.
-const hasProviderPaymentId = (data: Record<string, unknown>): boolean =>
-  Boolean(data["id"])
+const hasProviderPaymentId = (
+  data: NonNullable<DeletePaymentInput["data"]>,
+): boolean => Boolean(data["id"])
 
-const isBigNumberLike = (value: Record<string, unknown>): boolean => {
-  const numericValue = value["value"]
-
-  if (typeof numericValue === "number" || typeof numericValue === "string") {
-    return true
-  }
-
-  return "toJSON" in value && "valueOf" in value
-}
-
-const isPaymentAmount = (
-  value: unknown,
-): value is InitiatePaymentInput["amount"] => {
-  if (typeof value === "number" || typeof value === "string") {
-    return true
-  }
-
-  return isRecord(value) && isBigNumberLike(value)
-}
-
-const getCurrencyCode = (data?: Record<string, unknown>): string | undefined =>
-  firstNonEmptyString(data?.["currency"])
+const getCurrencyCode = (
+  data?: RefundPaymentInput["data"],
+): string | undefined => firstNonEmptyString(data?.["currency"])
 
 const getMetadataRecord = (
   metadata: unknown,
-): Record<string, unknown> | undefined =>
-  isRecord(metadata) ? metadata : undefined
+): CreatePaymentSchema["metadata"] | undefined => {
+  const result = createPaymentMetadataSchema.safeParse(metadata)
+  return result.success ? result.data : undefined
+}
 
-const getCaptureAmount = (
-  input: CapturePaymentInput,
-): RefundPaymentInput["amount"] | undefined => {
+const getCaptureAmount = (input: CapturePaymentInput): number | undefined => {
   if (!("amount" in input)) {
     return undefined
   }
 
   const amount = Reflect.get(input, "amount")
-
-  if (amount !== undefined && !isPaymentAmount(amount)) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "PayKit capture amount must be numeric",
-    )
-  }
-
-  return amount
+  return amount === undefined
+    ? undefined
+    : toNumericPaymentAmount(amount, "PayKit capture amount must be numeric")
 }
 
 const isProviderNotSupportedError = (error: unknown): boolean =>
@@ -161,8 +153,8 @@ const joinName = (...values: unknown[]): string | undefined => {
 }
 
 const toStringMetadata = (
-  metadata?: Record<string, unknown> | null,
-): Record<string, string> | undefined => {
+  metadata?: CreatePaymentSchema["metadata"] | null,
+): UpdatePaymentSchema["metadata"] | undefined => {
   if (!metadata) {
     return undefined
   }
@@ -180,7 +172,7 @@ const toStringMetadata = (
 const normalizePaymentOutput = (
   payment: PaykitPayment,
 ): {
-  data: Record<string, unknown>
+  data: NonNullable<GetPaymentStatusOutput["data"]>
   status: ReturnType<typeof mapPaykitStatusToMedusa>
 } => ({
   data: toPaykitPaymentData(payment),
@@ -201,7 +193,9 @@ const requirePayment = (
   return payment
 }
 
-const getSessionId = (data: Record<string, unknown>): string => {
+const getSessionId = (
+  data: NonNullable<InitiatePaymentInput["data"]>,
+): string => {
   const sessionId = firstNonEmptyString(data["session_id"])
 
   if (sessionId === undefined) {
@@ -214,126 +208,75 @@ const getSessionId = (data: Record<string, unknown>): string => {
   return sessionId
 }
 
-const readPaykitAddressFields = (
-  address: Record<string, unknown>,
-): PaykitAddressFields | undefined => {
-  const { city, country, line1, name } = address
-  const postalCode = address["postal_code"]
-
-  if (
-    typeof city !== "string" ||
-    typeof country !== "string" ||
-    typeof line1 !== "string"
-  ) {
-    return undefined
-  }
-
-  if (typeof name !== "string" || typeof postalCode !== "string") {
-    return undefined
-  }
-
-  return { city, country, line1, name, postalCode }
-}
-
 const mapPaykitBillingInfo = (
   billing: unknown,
   currencyCode?: string,
 ): BillingInfo | undefined => {
-  if (!(isRecord(billing) && isRecord(billing["address"]))) {
+  const result = paykitBillingInputSchema.safeParse(billing)
+
+  if (!result.success) {
     return undefined
   }
 
-  const { address } = billing
-  const fields = readPaykitAddressFields(address)
-  const currency = firstNonEmptyString(billing["currency"], currencyCode)
-
-  if (fields === undefined || currency === undefined) {
+  const currency = firstNonEmptyString(result.data.currency, currencyCode)
+  if (currency === undefined) {
     return undefined
   }
 
-  const addressLine2 = address["line2"]
-  const { phone, state } = address
-  const { carrier } = billing
+  const { address, carrier } = result.data
 
   return {
     address: {
-      city: fields.city,
-      country: fields.country,
-      line1: fields.line1,
-      line2: typeof addressLine2 === "string" ? addressLine2 : "",
-      name: fields.name,
-      postal_code: fields.postalCode,
-      ...(typeof state === "string" ? { state } : {}),
-      ...(typeof phone === "string" ? { phone } : {}),
+      city: address.city,
+      country: address.country,
+      line1: address.line1,
+      line2: address.line2 ?? "",
+      name: address.name,
+      postal_code: address.postal_code,
+      ...(address.state === undefined ? {} : { state: address.state }),
+      ...(address.phone === undefined ? {} : { phone: address.phone }),
     },
     currency,
-    ...(typeof carrier === "string" ? { carrier } : {}),
+    ...(carrier === undefined ? {} : { carrier }),
   }
-}
-
-const readMedusaAddressFields = (
-  billing: Record<string, unknown>,
-): MedusaAddressFields | undefined => {
-  const addressLine1 = billing["address_1"]
-  const { city } = billing
-  const countryCode = billing["country_code"]
-  const postalCode = billing["postal_code"]
-
-  if (typeof addressLine1 !== "string" || typeof city !== "string") {
-    return undefined
-  }
-
-  if (typeof countryCode !== "string" || typeof postalCode !== "string") {
-    return undefined
-  }
-
-  return { addressLine1, city, countryCode, postalCode }
 }
 
 const resolveBillingPhone = (
-  billingPhone: unknown,
+  billingPhone: string | undefined,
   customerPhone?: string | null,
-): string | undefined =>
-  typeof billingPhone === "string"
-    ? billingPhone
-    : firstNonEmptyString(customerPhone)
+): string | undefined => billingPhone ?? firstNonEmptyString(customerPhone)
 
 const mapMedusaBillingAddress = (
   billing: unknown,
   currencyCode: string | undefined,
   input: BillingInfoInput,
 ): BillingInfo | undefined => {
-  if (!isRecord(billing)) {
-    return undefined
-  }
-
-  const fields = readMedusaAddressFields(billing)
+  const result = medusaBillingAddressSchema.safeParse(billing)
   const currency = firstNonEmptyString(currencyCode)
 
-  if (fields === undefined || currency === undefined) {
+  if (!result.success || currency === undefined) {
     return undefined
   }
 
   const customer = input.context?.customer
-  const addressLine2 = billing["address_2"]
-  const { province } = billing
-  const phone = resolveBillingPhone(billing["phone"], customer?.phone)
+  const address = result.data
+  const phone = resolveBillingPhone(address.phone, customer?.phone)
 
   return {
     address: {
-      city: fields.city,
-      country: fields.countryCode,
-      line1: fields.addressLine1,
-      line2: typeof addressLine2 === "string" ? addressLine2 : "",
+      city: address.city,
+      country: address.country_code,
+      line1: address.address_1,
+      line2: address.address_2 ?? "",
       name:
         firstNonEmptyString(
-          joinName(billing["first_name"], billing["last_name"]),
+          joinName(address.first_name, address.last_name),
           joinName(customer?.first_name, customer?.last_name),
           customer?.email,
           customer?.id,
         ) ?? "Customer",
-      postal_code: fields.postalCode,
-      ...(typeof province === "string" ? { state: province } : {}),
+      postal_code: address.postal_code,
+      ...(address.province === undefined ? {} : { state: address.province }),
       ...(phone === undefined ? {} : { phone }),
     },
     currency,
@@ -345,14 +288,15 @@ const mapBillingInfo = (input: BillingInfoInput): BillingInfo | undefined => {
     "currency_code" in input && typeof input.currency_code === "string"
       ? input.currency_code
       : undefined
+  const explicitBilling = "data" in input ? input.data?.["billing"] : undefined
 
-  if ("data" in input && isRecord(input.data)) {
-    const explicitBilling =
-      mapPaykitBillingInfo(input.data["billing"], currencyCode) ??
-      mapMedusaBillingAddress(input.data["billing"], currencyCode, input)
+  if (explicitBilling !== undefined) {
+    const billing =
+      mapPaykitBillingInfo(explicitBilling, currencyCode) ??
+      mapMedusaBillingAddress(explicitBilling, currencyCode, input)
 
-    if (explicitBilling !== undefined) {
-      return explicitBilling
+    if (billing !== undefined) {
+      return billing
     }
   }
 
@@ -405,7 +349,7 @@ export abstract class PaykitPaymentProviderBase<
     return await this.createDefaultClient()
   }
 
-  protected getProviderPaymentId(data?: Record<string, unknown>): string {
+  protected getProviderPaymentId(data?: InitiatePaymentInput["data"]): string {
     const id = data?.[this.providerPaymentIdKey]
 
     if (typeof id !== "string" || id.length === 0) {
@@ -422,9 +366,10 @@ export abstract class PaykitPaymentProviderBase<
     amount: InitiatePaymentInput["amount"],
     _currencyCode?: string,
   ): number {
-    return this.normalizeNumericAmount(
+    return toNumericPaymentAmount(
       amount,
       "PayKit payment amount must be numeric",
+      this.invalidDataType,
     )
   }
 
@@ -443,57 +388,44 @@ export abstract class PaykitPaymentProviderBase<
     return this.normalizeDefaultWebhookAmount(amount)
   }
 
-  protected normalizeNumericAmount(
-    amount: BigNumberValue | InitiatePaymentInput["amount"],
-    message: string,
-  ): number {
-    const normalized =
-      isRecord(amount) && "value" in amount
-        ? Number(amount.value)
-        : Number(amount)
-
-    if (!Number.isFinite(normalized)) {
-      throw new MedusaError(this.invalidDataType, message)
-    }
-
-    return normalized
-  }
-
   protected normalizeWebhookNumericAmount(
     amount: BigNumberValue,
     _currencyCode?: string,
   ): number {
     // Keep webhook payload parsing in the base class; provider overrides should
     // only convert from provider units, such as Stripe cents, to Medusa units.
-    return this.normalizeNumericAmount(
+    return toNumericPaymentAmount(
       amount,
       "PayKit webhook amount must be numeric",
+      this.invalidDataType,
     )
   }
 
   protected getProviderMetadata(
-    data: Record<string, unknown>,
-  ): Record<string, unknown> {
-    const providerMetadata = data[this.providerMetadataKey]
-    return isRecord(providerMetadata) ? providerMetadata : {}
+    data: NonNullable<InitiatePaymentInput["data"]>,
+  ): NonNullable<CreatePaymentSchema["provider_metadata"]> {
+    const result = providerMetadataSchema.safeParse(
+      data[this.providerMetadataKey],
+    )
+    return result.success ? result.data : {}
   }
 
   protected getCreateProviderMetadata(
     _input: InitiatePaymentInput,
-    data: Record<string, unknown>,
-  ): Record<string, unknown> {
+    data: NonNullable<InitiatePaymentInput["data"]>,
+  ): NonNullable<CreatePaymentSchema["provider_metadata"]> {
     return this.getProviderMetadata(data)
   }
 
   protected getUpdateProviderMetadata(
-    data: Record<string, unknown>,
-  ): Record<string, unknown> {
+    data: NonNullable<UpdatePaymentInput["data"]>,
+  ): NonNullable<UpdatePaymentSchema["provider_metadata"]> {
     return this.getProviderMetadata(data)
   }
 
   protected getPaykitCustomer(
     input: InitiatePaymentInput,
-    data: Record<string, unknown>,
+    data: NonNullable<InitiatePaymentInput["data"]>,
   ): CreatePaymentSchema["customer"] {
     const dataCustomer = data[this.customerDataKey]
 
@@ -503,20 +435,9 @@ export abstract class PaykitPaymentProviderBase<
         : { id: dataCustomer }
     }
 
-    if (isRecord(dataCustomer)) {
-      if (
-        typeof dataCustomer["email"] === "string" &&
-        isEmailValue(dataCustomer["email"])
-      ) {
-        return { email: dataCustomer["email"] }
-      }
-
-      if (
-        typeof dataCustomer["id"] === "string" ||
-        typeof dataCustomer["id"] === "number"
-      ) {
-        return { id: dataCustomer["id"] }
-      }
+    const customerResult = payeeSchema.safeParse(dataCustomer)
+    if (customerResult.success) {
+      return customerResult.data
     }
 
     if (typeof data["customer_email"] === "string") {
@@ -543,7 +464,7 @@ export abstract class PaykitPaymentProviderBase<
     )
   }
 
-  protected getItemId(data: Record<string, unknown>): string {
+  protected getItemId(data: NonNullable<InitiatePaymentInput["data"]>): string {
     const providerMetadata = this.getProviderMetadata(data)
     const itemId =
       data["item_id"] ??
@@ -562,7 +483,7 @@ export abstract class PaykitPaymentProviderBase<
   }
 
   protected getCaptureMethod(
-    data: Record<string, unknown>,
+    data: NonNullable<InitiatePaymentInput["data"]>,
   ): "automatic" | "manual" {
     const providerMetadata = this.getProviderMetadata(data)
     const captureMethod =
@@ -682,18 +603,14 @@ export abstract class PaykitPaymentProviderBase<
     }
 
     const explicitAmount = getCaptureAmount(input)
-    let paymentDataAmount: RefundPaymentInput["amount"] | undefined
-
-    if (input.data?.["amount"] !== undefined) {
-      if (!isPaymentAmount(input.data["amount"])) {
-        throw new MedusaError(
-          MedusaError.Types.INVALID_DATA,
-          "PayKit stored payment amount must be numeric",
-        )
-      }
-
-      paymentDataAmount = input.data["amount"]
-    }
+    const storedAmount = input.data?.["amount"]
+    const paymentDataAmount =
+      storedAmount === undefined
+        ? undefined
+        : toNumericPaymentAmount(
+            storedAmount,
+            "PayKit stored payment amount must be numeric",
+          )
 
     const amount = explicitAmount ?? paymentDataAmount
 

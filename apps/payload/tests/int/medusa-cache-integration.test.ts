@@ -1,6 +1,8 @@
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import type { MockedFunction, MockInstance } from "vitest"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+import type { createMedusaCacheHook as CreateMedusaCacheHook } from "@/lib/hooks/medusa-cache"
 import type { getEnvString as GetEnvString } from "@/lib/utils/env"
 import type { createRequestTimeout as CreateRequestTimeout } from "@/lib/utils/request"
 
@@ -56,13 +58,12 @@ const invokeHook = async (
   return await Promise.resolve(result)
 }
 
-const createHook = async (collection: string) => {
+const createHook = async (
+  collection: Parameters<typeof CreateMedusaCacheHook>[0],
+) => {
   const { createMedusaCacheHook } = await import("@/lib/hooks/medusa-cache")
   return createMedusaCacheHook(collection)
 }
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
 
 const parseInvalidationBody = (
   fetchSpy: MockInstance<typeof fetch>,
@@ -82,12 +83,22 @@ const parseInvalidationBody = (
     throw new Error("Expected a valid cache invalidation body")
   }
 
-  const { collection, doc } = parsed
-  if (!isRecord(doc)) {
+  const collection = getRecordValue(parsed, "collection")
+  const rawDoc = getRecordValue(parsed, "doc")
+  if (!isRecord(rawDoc)) {
     throw new Error("Expected invalidation body to contain a document")
   }
 
-  return { collection, doc }
+  return {
+    collection,
+    doc: {
+      globalVisibilityChange: getRecordValue(rawDoc, "globalVisibilityChange"),
+      id: getRecordValue(rawDoc, "id"),
+      locale: getRecordValue(rawDoc, "locale"),
+      previousSlug: getRecordValue(rawDoc, "previousSlug"),
+      slug: getRecordValue(rawDoc, "slug"),
+    },
+  }
 }
 
 const getLastFetchUrl = (fetchSpy: MockInstance<typeof fetch>): unknown => {

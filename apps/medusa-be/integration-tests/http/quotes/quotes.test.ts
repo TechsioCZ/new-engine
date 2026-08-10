@@ -1,6 +1,6 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { hasTrimmedString } from "@techsio/std/string"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -66,7 +66,7 @@ interface TestProduct {
   firstVariantId: string
 }
 
-const asRecord = (value: unknown, context: string): Record<string, unknown> => {
+const asRecord = (value: unknown, context: string) => {
   if (!isRecord(value)) {
     throw new TypeError(`Expected an object for ${context}`)
   }
@@ -103,27 +103,30 @@ const firstOf = (values: unknown[], context: string): unknown => {
 }
 
 const asEntity = (value: unknown, context: string): TestEntity => ({
-  id: asString(asRecord(value, context)["id"], `${context}.id`),
+  id: asString(getRecordValue(asRecord(value, context), "id"), `${context}.id`),
 })
 
 const asTestCart = (value: unknown, context: string): TestCart => {
   const record = asRecord(value, context)
   const itemRecord = asRecord(
-    firstOf(asArray(record["items"], `${context}.items`), `${context}.items`),
+    firstOf(
+      asArray(getRecordValue(record, "items"), `${context}.items`),
+      `${context}.items`,
+    ),
     `${context}.items entry`,
   )
   return {
     firstItem: {
       quantity: asNumber(
-        itemRecord["quantity"],
+        getRecordValue(itemRecord, "quantity"),
         `${context}.items entry.quantity`,
       ),
       unit_price: asNumber(
-        itemRecord["unit_price"],
+        getRecordValue(itemRecord, "unit_price"),
         `${context}.items entry.unit_price`,
       ),
     },
-    id: asString(record["id"], `${context}.id`),
+    id: asString(getRecordValue(record, "id"), `${context}.id`),
   }
 }
 
@@ -131,41 +134,38 @@ const asTestProduct = (value: unknown, context: string): TestProduct => {
   const record = asRecord(value, context)
   const variantRecord = asRecord(
     firstOf(
-      asArray(record["variants"], `${context}.variants`),
+      asArray(getRecordValue(record, "variants"), `${context}.variants`),
       `${context}.variants`,
     ),
     `${context}.variants entry`,
   )
   return {
     firstVariantId: asString(
-      variantRecord["id"],
+      getRecordValue(variantRecord, "id"),
       `${context}.variants entry.id`,
     ),
   }
 }
 
-const getQuoteRecord = (
-  data: unknown,
-  context: string,
-): Record<string, unknown> =>
-  asRecord(asRecord(data, context)["quote"], `${context}.quote`)
+const getQuoteRecord = (data: unknown, context: string) =>
+  asRecord(getRecordValue(asRecord(data, context), "quote"), `${context}.quote`)
 
 const getQuoteRef = (data: unknown, context: string): TestQuoteRef => {
   const quote = getQuoteRecord(data, context)
   return {
     draft_order_id: asString(
-      quote["draft_order_id"],
+      getRecordValue(quote, "draft_order_id"),
       `${context}.quote.draft_order_id`,
     ),
-    id: asString(quote["id"], `${context}.quote.id`),
+    id: asString(getRecordValue(quote, "id"), `${context}.quote.id`),
   }
 }
 
-const getQuotesRecordArray = (
-  data: unknown,
-  context: string,
-): Record<string, unknown>[] => {
-  const quotes = asArray(asRecord(data, context)["quotes"], `${context}.quotes`)
+const getQuotesRecordArray = (data: unknown, context: string) => {
+  const quotes = asArray(
+    getRecordValue(asRecord(data, context), "quotes"),
+    `${context}.quotes`,
+  )
   return quotes.map((quote) => asRecord(quote, `${context}.quotes entry`))
 }
 
@@ -180,6 +180,9 @@ const requestError = async (
   }
   throw new Error(`Expected ${context} to reject with an HTTP error`)
 }
+
+const objectMatcher = (value: object): unknown => expect.objectContaining(value)
+const anyStringMatcher = (): unknown => expect.any(String)
 
 vi.setConfig({ testTimeout: 60 * 1000 })
 
@@ -261,15 +264,15 @@ medusaIntegrationTestRunner({
           "POST /store/quotes response",
         )
 
-        const draftOrderMatcher: Record<string, unknown> = {
+        const draftOrderMatcher = {
           items: [
-            expect.objectContaining({
+            objectMatcher({
               quantity: cart.firstItem.quantity,
               unit_price: cart.firstItem.unit_price,
             }),
           ],
           status: "draft",
-          summary: expect.objectContaining({
+          summary: objectMatcher({
             current_order_total: 100,
             original_order_total: 100,
             paid_total: 0,
@@ -279,18 +282,18 @@ medusaIntegrationTestRunner({
           }),
           version: 1,
         }
-        const expected: Record<string, unknown> = {
+        const expected = {
           cart_id: cart.id,
-          draft_order: expect.objectContaining(draftOrderMatcher),
-          draft_order_id: expect.any(String),
-          id: expect.any(String),
-          order_change: expect.objectContaining({
+          draft_order: objectMatcher(draftOrderMatcher),
+          draft_order_id: anyStringMatcher(),
+          id: anyStringMatcher(),
+          order_change: objectMatcher({
             actions: [],
           }),
         }
 
         expect(response.status).toBe(200)
-        expect(quoteRecord).toStrictEqual(expect.objectContaining(expected))
+        expect(quoteRecord).toStrictEqual(objectMatcher(expected))
       })
     })
 
@@ -315,17 +318,17 @@ medusaIntegrationTestRunner({
           "GET /store/quotes/:id response",
         )
 
-        const expected: Record<string, unknown> = {
-          cart: expect.objectContaining({
+        const expected = {
+          cart: objectMatcher({
             id: cart.id,
           }),
-          draft_order: expect.objectContaining({
+          draft_order: objectMatcher({
             id: newQuote.draft_order_id,
           }),
-          id: expect.any(String),
+          id: anyStringMatcher(),
         }
 
-        expect(quoteRecord).toStrictEqual(expect.objectContaining(expected))
+        expect(quoteRecord).toStrictEqual(objectMatcher(expected))
       })
 
       it("should throw error when quote does not exist", async () => {
@@ -386,20 +389,20 @@ medusaIntegrationTestRunner({
           "GET /store/quotes response",
         )
 
-        const quote1Matcher: Record<string, unknown> = {
-          cart: expect.objectContaining({
+        const quote1Matcher = {
+          cart: objectMatcher({
             id: cart.id,
           }),
-          draft_order: expect.objectContaining({
+          draft_order: objectMatcher({
             id: quote1.draft_order_id,
           }),
           id: quote1.id,
         }
-        const quote2Matcher: Record<string, unknown> = {
-          cart: expect.objectContaining({
+        const quote2Matcher = {
+          cart: objectMatcher({
             id: cart2.id,
           }),
-          draft_order: expect.objectContaining({
+          draft_order: objectMatcher({
             id: quote2.draft_order_id,
           }),
           id: quote2.id,
@@ -407,8 +410,8 @@ medusaIntegrationTestRunner({
 
         expect(quotes).toStrictEqual(
           expect.arrayContaining([
-            expect.objectContaining(quote1Matcher),
-            expect.objectContaining(quote2Matcher),
+            objectMatcher(quote1Matcher),
+            objectMatcher(quote2Matcher),
           ]),
         )
       })
@@ -439,25 +442,25 @@ medusaIntegrationTestRunner({
           "POST /store/quotes/:id/accept response",
         )
 
-        const draftOrderMatcher: Record<string, unknown> = {
+        const draftOrderMatcher = {
           id: quote1.draft_order_id,
           is_draft_order: false,
           payment_collections: [
-            expect.objectContaining({
+            objectMatcher({
               amount: 100,
             }),
           ],
           status: "pending",
-          summary: expect.objectContaining({
+          summary: objectMatcher({
             pending_difference: 100,
           }),
         }
-        const expected: Record<string, unknown> = {
-          draft_order: expect.objectContaining(draftOrderMatcher),
+        const expected = {
+          draft_order: objectMatcher(draftOrderMatcher),
           id: quote1.id,
         }
 
-        expect(quoteRecord).toStrictEqual(expect.objectContaining(expected))
+        expect(quoteRecord).toStrictEqual(objectMatcher(expected))
       })
 
       it("should throw an error when quote is already accepted", async () => {
@@ -502,7 +505,7 @@ medusaIntegrationTestRunner({
         )
 
         expect(quoteRecord).toStrictEqual(
-          expect.objectContaining({
+          objectMatcher({
             id: quote1.id,
             status: "customer_rejected",
           }),

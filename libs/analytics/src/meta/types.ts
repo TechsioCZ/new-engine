@@ -71,12 +71,8 @@ export interface MetaPurchaseParams {
 // fbq function signature
 export interface MetaPixelFbq {
   (action: "init", pixelId: string): void
-  (
-    action: "track",
-    event: MetaPixelStandardEvent,
-    params?: Record<string, unknown>,
-  ): void
-  (action: "trackCustom", event: string, params?: Record<string, unknown>): void
+  (action: "track", event: MetaPixelStandardEvent, params?: object): void
+  (action: "trackCustom", event: string, params?: object): void
   callMethod?: (...args: unknown[]) => void
   queue?: unknown[][]
   loaded?: boolean

@@ -11,8 +11,9 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import { updateProductsWorkflow } from "@medusajs/medusa/core-flows"
-import { isRecord, omitKeys } from "@techsio/std/object"
+import { getRecordValue, isRecord, omitKeys } from "@techsio/std/object"
 
 import {
   getProductAttributeService,
@@ -38,17 +39,33 @@ const CONTENT_SECTION_KEYS = [
 ] as const
 const HTML_TAG_REGEX = /<[a-z][\s\S]*?>/iu
 
-type ProductMetadata = Record<string, unknown>
-interface ContentSection {
-  html: string
-  key: string
-  title: string
+interface LegacyWarrantyMetadata {
+  content_sections?: unknown
+  content_sections_map?: unknown
+  source: string
+  warranty: string
+}
+
+const contentSectionSchema = z.object({
+  html: z.string(),
+  key: z.string(),
+  title: z.string(),
+})
+
+type ContentSection = z.infer<typeof contentSectionSchema>
+
+type MigratedWarrantyMetadata = Omit<
+  LegacyWarrantyMetadata,
+  "content_sections" | "content_sections_map" | "warranty"
+> & {
+  content_sections: ContentSection[]
+  content_sections_map: { other: string }
 }
 
 export type LegacyWarrantyMigrationPreparation =
   | { reason: string; safe: false }
   | {
-      metadata: ProductMetadata
+      metadata: MigratedWarrantyMetadata
       safe: true
       warranty: string
     }
@@ -60,7 +77,7 @@ interface UnsafeProduct {
 
 interface SafeWarrantyProduct {
   id: string
-  metadata: ProductMetadata
+  metadata: MigratedWarrantyMetadata
   warranty: string
 }
 
@@ -69,10 +86,10 @@ type ProductAttributeContext = Context<SqlEntityManager>
 
 export const isLegacyHerbaticaWarrantyMetadata = (
   metadata: unknown,
-): metadata is ProductMetadata =>
+): metadata is LegacyWarrantyMetadata =>
   isRecord(metadata) &&
-  metadata["source"] === HERBATICA_PRODUCT_SOURCE &&
-  typeof metadata["warranty"] === "string"
+  getRecordValue(metadata, "source") === HERBATICA_PRODUCT_SOURCE &&
+  typeof getRecordValue(metadata, "warranty") === "string"
 
 const escapeHtml = (value: string) =>
   value
@@ -112,40 +129,29 @@ const removeExactFragment = (
 }
 
 const parseContentSections = (value: unknown): ContentSection[] | undefined => {
-  if (!Array.isArray(value) || value.length !== CONTENT_SECTION_KEYS.length) {
-    return undefined
-  }
-  const sections = value.filter(
-    (section): section is ContentSection =>
-      isRecord(section) &&
-      typeof section["key"] === "string" &&
-      typeof section["title"] === "string" &&
-      typeof section["html"] === "string",
-  )
+  const parsed = z.array(contentSectionSchema).safeParse(value)
   if (
-    sections.length !== CONTENT_SECTION_KEYS.length ||
-    sections.some(
+    !parsed.success ||
+    parsed.data.length !== CONTENT_SECTION_KEYS.length ||
+    parsed.data.some(
       (section, index) => section.key !== CONTENT_SECTION_KEYS[index],
     )
   ) {
     return undefined
   }
-  return sections
+  return parsed.data
 }
 
 export const prepareLegacyWarrantyMigration = (
-  metadata: ProductMetadata,
+  metadata: LegacyWarrantyMetadata,
 ): LegacyWarrantyMigrationPreparation => {
-  const warranty =
-    typeof metadata["warranty"] === "string"
-      ? metadata["warranty"].replaceAll("\r\n", "\n").trim()
-      : ""
+  const warranty = metadata.warranty.replaceAll("\r\n", "\n").trim()
   if (!warranty) {
     return { reason: "metadata.warranty is absent or empty", safe: false }
   }
 
-  const sections = parseContentSections(metadata["content_sections"])
-  const sectionsMap = metadata["content_sections_map"]
+  const sections = parseContentSections(metadata.content_sections)
+  const sectionsMap = metadata.content_sections_map
   if (!(sections && isRecord(sectionsMap))) {
     return {
       reason: "legacy content_sections shape is not the expected fixed shape",
@@ -154,7 +160,7 @@ export const prepareLegacyWarrantyMigration = (
   }
   const otherIndex = sections.findIndex(({ key }) => key === "other")
   const otherHtml = sections[otherIndex]?.html
-  const mappedOtherHtml = sectionsMap["other"]
+  const mappedOtherHtml = getRecordValue(sectionsMap, "other")
   if (
     otherIndex === -1 ||
     typeof otherHtml !== "string" ||

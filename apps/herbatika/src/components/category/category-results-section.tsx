@@ -1,4 +1,4 @@
-import type { HttpTypes } from "@medusajs/types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
@@ -24,13 +24,13 @@ interface CategoryResultsSectionProps {
   showCategoryNotFound: boolean
   isProductAdding: (productId: string) => boolean
   emptyMessage?: string
-  onAddToCart: (product: HttpTypes.StoreProduct) => Promise<void>
-  onProductHoverEnd: (product: HttpTypes.StoreProduct) => void
-  onProductHoverStart: (product: HttpTypes.StoreProduct) => void
+  onAddToCart: (product: MedusaCatalogProduct) => Promise<void>
+  onProductHoverEnd: (product: MedusaCatalogProduct) => void
+  onProductHoverStart: (product: MedusaCatalogProduct) => void
   onSortChange: (value: ProductSortValue) => void
   page: number
   pageSize: number
-  products: HttpTypes.StoreProduct[]
+  products: MedusaCatalogProduct[]
   layout?: HerbatikaProductGridLayout
   loadingSkeleton?: ReactNode
   totalCount: number

@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 
 import { useCatalogProducts } from "@/lib/storefront/catalog-products"
@@ -35,8 +36,8 @@ interface UseHomepageControllerResult {
   shouldShowProductSkeleton: boolean
   leadingSections: HomepageProductSection[]
   trailingSections: HomepageProductSection[]
-  handleProductHoverStart: (product: HttpTypes.StoreProduct) => void
-  handleProductHoverEnd: (product: HttpTypes.StoreProduct) => void
+  handleProductHoverStart: (product: MedusaCatalogProduct) => void
+  handleProductHoverEnd: (product: MedusaCatalogProduct) => void
 }
 
 export const useHomepageController = (): UseHomepageControllerResult => {

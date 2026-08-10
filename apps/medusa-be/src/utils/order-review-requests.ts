@@ -1,3 +1,5 @@
+import type { MedusaContainer } from "@medusajs/framework/types"
+
 import {
   getCredentialString,
   INTEGRATION_CONFIG_NAMES,
@@ -9,7 +11,7 @@ type ReviewRequestDate = Date | string | null
 
 interface ReviewRequestPaymentCollection {
   completed_at?: ReviewRequestDate
-  payments?: { captured_at?: ReviewRequestDate }[] | null
+  payments?: ({ captured_at?: ReviewRequestDate } | null)[] | null
   status?: string | null
   updated_at?: ReviewRequestDate
 }
@@ -18,9 +20,9 @@ export interface ReviewRequestOrder {
   id: string
   customer_id?: string | null
   custom_display_id?: string | null
-  display_id: number
+  display_id: number | null
   email?: string | null
-  payment_collections?: ReviewRequestPaymentCollection[] | null
+  payment_collections?: (ReviewRequestPaymentCollection | null)[] | null
   payment_status?: string | null
   status?: string | null
 }
@@ -83,7 +85,10 @@ export const getOrderPaidAt = (order: ReviewRequestOrder) => {
   const paidDates: Date[] = []
 
   for (const collection of order.payment_collections ?? []) {
-    if (!PAID_PAYMENT_STATUSES.has(collection.status ?? "")) {
+    if (
+      collection === null ||
+      !PAID_PAYMENT_STATUSES.has(collection.status ?? "")
+    ) {
       continue
     }
 
@@ -93,6 +98,9 @@ export const getOrderPaidAt = (order: ReviewRequestOrder) => {
     }
 
     for (const payment of collection.payments ?? []) {
+      if (payment === null) {
+        continue
+      }
       const capturedAt = toDate(payment.captured_at)
       if (capturedAt) {
         paidDates.push(capturedAt)
@@ -124,8 +132,9 @@ export const isPaidOrder = (order: ReviewRequestOrder) => {
     return true
   }
 
-  return (order.payment_collections ?? []).some((collection) =>
-    PAID_PAYMENT_STATUSES.has(collection.status ?? ""),
+  return (order.payment_collections ?? []).some(
+    (collection) =>
+      collection !== null && PAID_PAYMENT_STATUSES.has(collection.status ?? ""),
   )
 }
 
@@ -140,9 +149,7 @@ export const getReviewRequestRunAt = (
   return new Date(paidAt.getTime() + getReviewRequestDelayMs())
 }
 
-export const getReviewRequestMessage = async (
-  container?: Record<string, unknown>,
-) => {
+export const getReviewRequestMessage = async (container?: MedusaContainer) => {
   if (container) {
     const config = await retrieveIntegrationConfig(
       container,

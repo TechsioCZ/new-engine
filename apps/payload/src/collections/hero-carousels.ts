@@ -1,5 +1,5 @@
-import { isRecord } from "@techsio/std/object"
-import type { CollectionConfig } from "payload"
+import { getRecordValue, isRecord } from "@techsio/std/object"
+import type { CollectionBeforeValidateHook, CollectionConfig } from "payload"
 
 import { requireAuth } from "../lib/access/require-auth"
 import {
@@ -8,6 +8,7 @@ import {
   fieldLabels,
 } from "../lib/constants/labels"
 import { createMedusaCacheHook } from "../lib/hooks/medusa-cache"
+import type { HeroCarousel } from "../payload-types"
 
 /** Collection slug for hero carousels. */
 const COLLECTION_SLUG = "hero-carousels"
@@ -30,28 +31,55 @@ const resolveLocalizedString = (value: unknown, locale: string | undefined) => {
     return ""
   }
 
-  const { cs, en, sk } = value
+  const cs = getRecordValue(value, "cs")
+  const en = getRecordValue(value, "en")
+  const sk = getRecordValue(value, "sk")
   return firstNonEmptyString([
-    locale === undefined ? undefined : value[locale],
+    locale === undefined ? undefined : getRecordValue(value, locale),
     en,
     sk,
     cs,
-    ...Object.values(value),
+    ...Object.keys(value).map((key) => getRecordValue(value, key)),
   ])
 }
 
 const resolveInternalTitle = (
-  data: Record<string, unknown>,
+  data: Partial<HeroCarousel>,
   locale: string | undefined,
-): string => {
-  const { button, buttonHref, heading, internalTitle } = data
-  return firstNonEmptyString([
-    internalTitle,
-    resolveLocalizedString(heading, locale),
-    resolveLocalizedString(button, locale),
-    buttonHref,
+): string =>
+  firstNonEmptyString([
+    data.internalTitle,
+    resolveLocalizedString(data.heading, locale),
+    resolveLocalizedString(data.button, locale),
+    data.buttonHref,
     DEFAULT_INTERNAL_TITLE,
   ])
+
+const populateInternalTitle: CollectionBeforeValidateHook<HeroCarousel> = ({
+  data,
+  operation,
+  originalDoc,
+  req,
+}) => {
+  if (data === undefined) {
+    return data
+  }
+
+  if (operation === "update" && data.internalTitle === undefined) {
+    return data
+  }
+
+  const source =
+    operation === "update" && originalDoc !== undefined
+      ? { ...originalDoc, ...data }
+      : data
+  const { locale } = req
+  data.internalTitle = resolveInternalTitle(
+    source,
+    locale === "all" ? undefined : locale,
+  )
+
+  return data
 }
 
 /** Payload collection config for hero carousels. */
@@ -112,31 +140,7 @@ export const HeroCarousels: CollectionConfig = {
   hooks: {
     afterChange: [invalidateHeroCarouselsCache],
     afterDelete: [invalidateHeroCarouselsCache],
-    beforeValidate: [
-      ({ data, operation, originalDoc, req }) => {
-        if (!isRecord(data)) {
-          return data
-        }
-
-        const { internalTitle } = data
-        if (operation === "update" && internalTitle === undefined) {
-          return data
-        }
-
-        const source =
-          operation === "update" && isRecord(originalDoc)
-            ? { ...originalDoc, ...data }
-            : data
-        const { locale } = req
-        Reflect.set(
-          data,
-          "internalTitle",
-          resolveInternalTitle(source, locale === "all" ? undefined : locale),
-        )
-
-        return data
-      },
-    ],
+    beforeValidate: [populateInternalTitle],
   },
   labels: collectionLabels.heroCarousels,
   slug: COLLECTION_SLUG,

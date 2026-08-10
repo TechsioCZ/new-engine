@@ -2,7 +2,7 @@
  * Gallery — @techsio/ui-kit template.
  *
  * @component Gallery
- * @componentVersion v1.0.1
+ * @componentVersion v2.0.0
  * @skill gallery-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -12,34 +12,59 @@
 import type { ComponentPropsWithoutRef, ElementType, ReactNode } from "react"
 
 import type { IconType } from "../atoms/icon"
+import type { Image } from "../atoms/image"
+import { rendererCapability } from "../internal/renderer-capability"
 import { Carousel } from "../molecules/carousel"
 import type { CarouselRootProps } from "../molecules/carousel"
-import { Gallery } from "../organisms/gallery"
+import { Gallery, GalleryInheritedRoot } from "../organisms/gallery"
 import type {
+  GalleryInheritedRootProps,
   GalleryItem,
   GalleryProps,
   GalleryRenderThumbnailParams,
 } from "../organisms/gallery"
 
-const resolveSlides = (
-  items: GalleryItem[],
-  renderSlide?: (params: { item: GalleryItem; index: number }) => ReactNode,
+const resolveSlides = <T extends ElementType>(
+  items: GalleryItem<T>[],
+  renderSlide?: (params: { item: GalleryItem<T>; index: number }) => ReactNode,
 ) => {
   if (renderSlide === undefined) {
     return items
   }
 
-  return items.map((item, index) => ({
-    ...item,
-    content: renderSlide({ index, item }),
-  }))
+  return items.map((item, index): GalleryItem<T> => {
+    const content = renderSlide({ index, item })
+    if (content === undefined) {
+      return item
+    }
+    return { ...item, content }
+  })
 }
 
-export type GalleryTemplateProps<T extends ElementType = "img"> = Omit<
-  GalleryProps<T>,
-  "children" | "items" | "carouselProps"
+type IsUncheckedValue<Value> = 0 extends 1 & Value ? true : false
+
+type IsDefaultImageComponent<T extends ElementType> =
+  IsUncheckedValue<T> extends true
+    ? false
+    : [T] extends [typeof Image]
+      ? [typeof Image] extends [T]
+        ? true
+        : false
+      : false
+
+type GalleryTemplateImageComponent<T extends ElementType> = NonNullable<
+  GalleryProps<T>["thumbnailImageAs"]
+>
+
+type GalleryTemplateBaseProps<T extends ElementType> = Omit<
+  GalleryInheritedRootProps<T>,
+  | "carouselProps"
+  | "children"
+  | "items"
+  | "rendererCapability"
+  | "thumbnailImageAs"
 > & {
-  items: GalleryItem[]
+  items: GalleryItem<T>[]
   carouselWidth?: CarouselRootProps<T>["width"] | undefined
   carouselHeight?: CarouselRootProps<T>["height"] | undefined
   fitParent?: boolean | undefined
@@ -51,10 +76,10 @@ export type GalleryTemplateProps<T extends ElementType = "img"> = Omit<
   thumbnailsListClassName?: string | undefined
   thumbnailClassName?: string | undefined
   renderThumbnail?:
-    | ((params: GalleryRenderThumbnailParams) => ReactNode)
+    | ((params: GalleryRenderThumbnailParams<T>) => ReactNode)
     | undefined
   renderSlide?:
-    | ((params: { item: GalleryItem; index: number }) => ReactNode)
+    | ((params: { item: GalleryItem<T>; index: number }) => ReactNode)
     | undefined
   showControls?: boolean | undefined
   showIndicators?: boolean | undefined
@@ -75,9 +100,26 @@ export type GalleryTemplateProps<T extends ElementType = "img"> = Omit<
   loop?: CarouselRootProps<T>["loop"] | undefined
   autoplay?: CarouselRootProps<T>["autoplay"] | undefined
   allowMouseDrag?: CarouselRootProps<T>["allowMouseDrag"] | undefined
-  imageAs?: CarouselRootProps<T>["imageAs"] | undefined
   onPageChange?: CarouselRootProps<T>["onPageChange"] | undefined
 }
+
+type GalleryTemplateInheritedProps<T extends ElementType> =
+  GalleryTemplateBaseProps<T> & {
+    imageAs?: GalleryTemplateImageComponent<T> | undefined
+    thumbnailImageAs?: GalleryTemplateImageComponent<T> | undefined
+  }
+
+export type GalleryTemplateProps<T extends ElementType = typeof Image> =
+  | (GalleryTemplateBaseProps<T> & {
+      imageAs: GalleryTemplateImageComponent<T>
+      thumbnailImageAs?: GalleryTemplateImageComponent<T> | undefined
+    })
+  | (IsDefaultImageComponent<T> extends true
+      ? GalleryTemplateBaseProps<T> & {
+          imageAs?: GalleryTemplateImageComponent<T> | undefined
+          thumbnailImageAs?: GalleryTemplateImageComponent<T> | undefined
+        }
+      : never)
 
 interface GalleryControlsProps {
   className?: string | undefined
@@ -85,7 +127,7 @@ interface GalleryControlsProps {
     | ComponentPropsWithoutRef<typeof Carousel.Control>["controlPosition"]
     | undefined
   indicatorsClassName?: string | undefined
-  items: GalleryItem[]
+  items: { id: string }[]
   nextIcon: IconType
   nextTriggerClassName?: string | undefined
   previousIcon: IconType
@@ -139,7 +181,7 @@ const GalleryControls = ({
   )
 }
 
-export const GalleryTemplate = <T extends ElementType = "img">({
+const GalleryTemplateInherited = <T extends ElementType = typeof Image>({
   items,
   orientation,
   carouselWidth,
@@ -175,7 +217,7 @@ export const GalleryTemplate = <T extends ElementType = "img">({
   onPageChange,
   thumbnailImageAs,
   ...galleryProps
-}: GalleryTemplateProps<T>) => {
+}: GalleryTemplateInheritedProps<T>) => {
   const resolvedItems = resolveSlides(items, renderSlide)
   const resolvedOrientation = orientation ?? "vertical"
   const resolvedCarouselWidth =
@@ -197,20 +239,31 @@ export const GalleryTemplate = <T extends ElementType = "img">({
   } satisfies Omit<CarouselRootProps<T>, "children" | "slideCount" | "page">
 
   return (
-    <Gallery
+    <GalleryInheritedRoot<T>
       {...galleryProps}
       carouselProps={resolvedCarouselProps}
+      rendererCapability={rendererCapability}
       items={resolvedItems}
       orientation={resolvedOrientation}
       thumbnailImageAs={thumbnailImageAs ?? imageAs}
     >
-      <Gallery.Thumbnails
-        className={thumbnailsClassName}
-        listClassName={thumbnailsListClassName}
-        renderThumbnail={renderThumbnail}
-        scrollAreaClassName={thumbnailsScrollAreaClassName}
-        thumbnailClassName={thumbnailClassName}
-      />
+      {renderThumbnail === undefined ? (
+        <Gallery.Thumbnails
+          className={thumbnailsClassName}
+          listClassName={thumbnailsListClassName}
+          scrollAreaClassName={thumbnailsScrollAreaClassName}
+          thumbnailClassName={thumbnailClassName}
+        />
+      ) : (
+        <Gallery.Thumbnails<T>
+          className={thumbnailsClassName}
+          items={resolvedItems}
+          listClassName={thumbnailsListClassName}
+          renderThumbnail={renderThumbnail}
+          scrollAreaClassName={thumbnailsScrollAreaClassName}
+          thumbnailClassName={thumbnailClassName}
+        />
+      )}
       <Gallery.Main className={mainClassName}>
         <Gallery.Carousel>
           <Gallery.Slides className={slidesClassName} />
@@ -231,6 +284,10 @@ export const GalleryTemplate = <T extends ElementType = "img">({
           )}
         </Gallery.Carousel>
       </Gallery.Main>
-    </Gallery>
+    </GalleryInheritedRoot>
   )
 }
+
+export const GalleryTemplate = <T extends ElementType = typeof Image>(
+  props: GalleryTemplateProps<T>,
+) => <GalleryTemplateInherited<T> {...props} />

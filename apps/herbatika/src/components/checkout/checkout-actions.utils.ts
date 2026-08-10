@@ -4,6 +4,7 @@ import {
   clearStoredCarrierPickupSelection,
   writeStoredCarrierPickupSelection,
 } from "./carrier-pickup-selection-storage"
+import type { CarrierPickupData } from "./carrier-pickup.utils"
 
 export interface UseCheckoutActionsProps {
   cart?: HttpTypes.StoreCart | null
@@ -22,7 +23,7 @@ export interface UseCheckoutActionsProps {
   initiatePayment: (providerId: string) => Promise<unknown>
   onCheckoutErrorChange: (message: string | null) => void
   onPaymentProviderSelect: (providerId: string) => void
-  setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void
+  setShippingMethod: (optionId: string, data?: CarrierPickupData) => void
 }
 
 interface OrderCompletionBlockerMessages {
@@ -99,7 +100,7 @@ export const persistCarrierPickupSelection = ({
   optionId,
 }: {
   cartId: string | undefined
-  data: Record<string, unknown> | undefined
+  data: CarrierPickupData | undefined
   optionId: string
 }) => {
   if (data) {

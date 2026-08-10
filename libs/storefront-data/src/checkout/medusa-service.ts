@@ -1,7 +1,8 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
-import { omitUndefined } from "@techsio/std/object"
 
+import { decodeStorefrontMetadata } from "../shared/metadata"
+import type { StorefrontMetadata } from "../shared/metadata"
 import type { CheckoutService } from "./types"
 
 export interface MedusaPaymentSessionDataInput {
@@ -12,12 +13,36 @@ export interface MedusaPaymentSessionDataInput {
 
 type MaybePromise<T> = T | Promise<T>
 
-export interface MedusaCheckoutServiceConfig {
+export interface MedusaCheckoutServiceConfig<
+  TPaymentSessionData extends object = StorefrontMetadata,
+> {
   cartFields?: string
   buildPaymentSessionData?: (
     input: MedusaPaymentSessionDataInput,
-  ) => MaybePromise<Record<string, unknown> | undefined>
+  ) => MaybePromise<TPaymentSessionData | undefined>
 }
+
+const buildAddShippingMethodBody = (
+  optionId: string,
+  data?: unknown,
+): HttpTypes.StoreAddCartShippingMethods =>
+  data === undefined
+    ? { option_id: optionId }
+    : {
+        data: decodeStorefrontMetadata(data, "Shipping method data"),
+        option_id: optionId,
+      }
+
+const buildInitializePaymentSessionBody = (
+  providerId: string,
+  data?: unknown,
+): HttpTypes.StoreInitializePaymentSession =>
+  data === undefined
+    ? { provider_id: providerId }
+    : {
+        data: decodeStorefrontMetadata(data, "Payment session data"),
+        provider_id: providerId,
+      }
 
 const buildCartSelectParams = (
   fields?: string,
@@ -54,9 +79,11 @@ export type MedusaCheckoutService = Required<
   >
 >
 
-export const createMedusaCheckoutService = (
+export const createMedusaCheckoutService = <
+  TPaymentSessionData extends object = StorefrontMetadata,
+>(
   sdk: Medusa,
-  config?: MedusaCheckoutServiceConfig,
+  config?: MedusaCheckoutServiceConfig<TPaymentSessionData>,
 ): MedusaCheckoutService => {
   const cartQuery = buildCartSelectParams(config?.cartFields)
 
@@ -64,17 +91,17 @@ export const createMedusaCheckoutService = (
     async addShippingMethod(
       cartId: string,
       optionId: string,
-      data?: Record<string, unknown>,
+      data?: object,
     ): Promise<HttpTypes.StoreCart> {
       const response = cartQuery
         ? await sdk.store.cart.addShippingMethod(
             cartId,
-            omitUndefined({ data, option_id: optionId }),
+            buildAddShippingMethodBody(optionId, data),
             cartQuery,
           )
         : await sdk.store.cart.addShippingMethod(
             cartId,
-            omitUndefined({ data, option_id: optionId }),
+            buildAddShippingMethodBody(optionId, data),
           )
       if (typeof response.cart !== "object" || response.cart === null) {
         throw new Error("Failed to add shipping method")
@@ -84,7 +111,7 @@ export const createMedusaCheckoutService = (
 
     async calculateShippingOption(
       optionId: string,
-      input: { cart_id: string; data?: Record<string, unknown> },
+      input: { cart_id: string; data?: object },
       signal?: AbortSignal,
     ): Promise<HttpTypes.StoreCartShippingOption> {
       const response =
@@ -132,12 +159,7 @@ export const createMedusaCheckoutService = (
 
       const response = await sdk.store.payment.initiatePaymentSession(
         resolvedCart,
-        {
-          provider_id: providerId,
-          ...(paymentSessionData === undefined
-            ? {}
-            : { data: paymentSessionData }),
-        },
+        buildInitializePaymentSessionBody(providerId, paymentSessionData),
       )
       if (
         typeof response.payment_collection !== "object" ||

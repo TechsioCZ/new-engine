@@ -1,8 +1,7 @@
 import type { Query } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
 
-import { hasArrayData } from "../../../utils/guards"
-import { isCustomerRecord } from "../../../workflows/customer/steps/prepare-customer-account-reactivation"
+import type { CustomerRecord } from "../../../workflows/customer/steps/prepare-customer-account-reactivation"
 
 export const assertInactiveCustomerReactivationIdentity = ({
   actorId,
@@ -26,7 +25,7 @@ export const findInactiveCustomerWithEmail = async ({
   email: string
   query: Query
 }) => {
-  const customerResult: unknown = await query.graph({
+  const customerResult: { data: CustomerRecord[] } = await query.graph({
     entity: "customer",
     fields: [
       "id",
@@ -42,13 +41,6 @@ export const findInactiveCustomerWithEmail = async ({
     filters: { email },
     withDeleted: true,
   })
-
-  if (!hasArrayData(customerResult, isCustomerRecord)) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "Unexpected response shape while loading customer account.",
-    )
-  }
 
   return (
     customerResult.data.find(
@@ -66,18 +58,11 @@ export const refetchCustomer = async (
   query: Query,
   fields: string[],
 ) => {
-  const customerResult: unknown = await query.graph({
+  const customerResult: { data: CustomerRecord[] } = await query.graph({
     entity: "customer",
     fields,
     filters: { id: customerId },
   })
-
-  if (!hasArrayData(customerResult, isCustomerRecord)) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "Unexpected response shape while refetching customer account.",
-    )
-  }
 
   return customerResult.data[0]
 }

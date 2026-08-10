@@ -1,15 +1,19 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { FindParams, HttpTypes, SelectParams } from "@medusajs/types"
-import { omitKeys, toPlainRecord } from "@techsio/std/object"
+import {
+  getRecordValue,
+  omitKeys,
+  omitUndefined,
+  toPlainRecord,
+} from "@techsio/std/object"
 
 import type { IsExactly } from "../shared/type-utils"
 import type { CollectionListResponse, CollectionService } from "./types"
 
 type MedusaCollectionListQuery = FindParams &
-  HttpTypes.StoreCollectionListParams &
-  Record<string, unknown>
+  HttpTypes.StoreCollectionListParams
 
-type MedusaCollectionDetailQuery = SelectParams & Record<string, unknown>
+type MedusaCollectionDetailQuery = SelectParams
 
 export type MedusaCollectionListInput = FindParams &
   HttpTypes.StoreCollectionListParams & {
@@ -167,16 +171,14 @@ export function createMedusaCollectionService<
       defaultListFields !== undefined && defaultListFields.length > 0
     const hasParamFields =
       params.fields !== undefined && params.fields.length > 0
-    const query: MedusaCollectionListQuery = normalizeListQuery
-      ? normalizeListQuery(params)
-      : {
-          ...toPlainRecord(params),
-          ...(hasDefaultFields && !hasParamFields
-            ? { fields: defaultListFields }
-            : {}),
-        }
+    if (normalizeListQuery !== undefined) {
+      return normalizeListQuery(params)
+    }
 
-    return omitKeys(query, ["enabled"])
+    const query = omitUndefined(omitKeys(params, ["enabled"]))
+    return hasDefaultFields && !hasParamFields
+      ? { ...query, fields: defaultListFields }
+      : query
   }
 
   const buildDetailQuery = (
@@ -186,16 +188,14 @@ export function createMedusaCollectionService<
       defaultDetailFields !== undefined && defaultDetailFields.length > 0
     const hasParamFields =
       params.fields !== undefined && params.fields.length > 0
-    const query: MedusaCollectionDetailQuery = normalizeDetailQuery
-      ? normalizeDetailQuery(params)
-      : {
-          ...toPlainRecord(params),
-          ...(hasDefaultFields && !hasParamFields
-            ? { fields: defaultDetailFields }
-            : {}),
-        }
+    if (normalizeDetailQuery !== undefined) {
+      return normalizeDetailQuery(params)
+    }
 
-    return omitKeys(query, ["enabled", "id"])
+    const query = omitUndefined(omitKeys(params, ["enabled", "id"]))
+    return hasDefaultFields && !hasParamFields
+      ? { ...query, fields: defaultDetailFields }
+      : query
   }
 
   return {
@@ -218,7 +218,10 @@ export function createMedusaCollectionService<
         )
 
       const responseRecord = toPlainRecord(response)
-      const { collection: rawCollection } = responseRecord ?? {}
+      const rawCollection =
+        responseRecord === undefined
+          ? undefined
+          : getRecordValue(responseRecord, "collection")
       if (toPlainRecord(rawCollection) === undefined) {
         return null
       }

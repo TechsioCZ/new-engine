@@ -9,6 +9,7 @@ import { vi, describe, expect, it } from "vitest"
 
 import type { CartQueryKeys } from "../src/cart/types"
 import { StorefrontDataProvider } from "../src/client/provider"
+import { decodeMedusaStoreCart } from "../src/medusa/checkout-flow"
 import { createMedusaStorefrontPreset } from "../src/medusa/preset"
 import { createQueryKey } from "../src/shared/query-keys"
 import {
@@ -40,7 +41,27 @@ const createWrapper = (client: QueryClient) => {
 }
 
 type CartResultFn = () => Promise<{ cart: HttpTypes.StoreCart }>
-type ClientFetchFn = (path: string) => Promise<Record<string, unknown>>
+type AddShippingMethodFn = (
+  cartId: string,
+  body: HttpTypes.StoreAddCartShippingMethods,
+  query?: HttpTypes.SelectParams,
+) => Promise<{ cart: HttpTypes.StoreCart }>
+
+interface ClientFetchInit {
+  query?: { cart_id?: string; region_id?: string }
+  signal?: AbortSignal | null
+}
+
+interface ClientFetchResponse {
+  cart?: HttpTypes.StoreCart
+  payment_providers?: HttpTypes.StorePaymentProvider[]
+  shipping_options?: HttpTypes.StoreCartShippingOption[]
+}
+
+type ClientFetchFn = (
+  path: string,
+  init?: ClientFetchInit,
+) => Promise<ClientFetchResponse>
 type CompleteFn = () => Promise<HttpTypes.StoreCompleteCartResponse>
 type InitiatePaymentSessionFn = (
   cart: HttpTypes.StoreCart,
@@ -114,7 +135,7 @@ const createSdkMock = (overrides: SdkMockOverrides = {}) => {
       shipping_option_id: "ship_1",
     }),
   ]
-  const addShippingMethod = vi.fn<CartResultFn>(
+  const addShippingMethod = vi.fn<AddShippingMethodFn>(
     async () => await Promise.resolve({ cart: shippingCart }),
   )
 
@@ -178,6 +199,27 @@ const createCheckoutCart = (
 }
 
 describe("Medusa flow helpers", () => {
+  it("preserves validated payment-session data while decoding cached carts", () => {
+    const paymentSessionData = { clientSecret: "secret_1" }
+
+    const cart = decodeMedusaStoreCart({
+      id: "cart_1",
+      payment_collection: {
+        id: "payment_collection_1",
+        payment_sessions: [
+          {
+            data: paymentSessionData,
+            provider_id: "pp_system_default",
+          },
+        ],
+      },
+    })
+
+    expect(cart?.payment_collection?.payment_sessions?.[0]?.data).toBe(
+      paymentSessionData,
+    )
+  })
+
   it("refreshes cart caches with canonical cart payload after add-to-cart", async () => {
     const { sdk, spies } = createSdkMock()
     const cartStorage = {
@@ -690,6 +732,58 @@ describe("Medusa flow helpers", () => {
       queryClient.getQueryData(storefront.queryKeys.cart.detail("cart_2")),
     ).toStrictEqual({
       id: "cart_2",
+    })
+  })
+
+  it("builds normalized shipping data without mutating its typed input", async () => {
+    const { sdk, spies } = createSdkMock()
+    const storefront = createMedusaStorefrontPreset({ sdk })
+    const checkoutFlow = storefront.flows.checkout
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        mutations: { retry: false },
+        queries: { retry: false },
+      },
+    })
+    const wrapper = createWrapper(queryClient)
+    const cart = createCheckoutCart()
+    const shippingData = {
+      empty: "",
+      nullable: null,
+      pickup_point_id: "pickup-2",
+    }
+
+    const { result } = renderHook(
+      () => checkoutFlow.useCheckoutShipping("cart_1", cart),
+      { wrapper },
+    )
+
+    await waitFor(() => {
+      expect(result.current.shippingOptions).toHaveLength(1)
+    })
+
+    act(() => {
+      result.current.setShipping("ship_1", shippingData)
+    })
+
+    await waitFor(() => {
+      expect(spies.addShippingMethod).toHaveBeenCalledWith("cart_1", {
+        data: { pickup_point_id: "pickup-2" },
+        option_id: "ship_1",
+      })
+    })
+    const addShippingMethodBody = spies.addShippingMethod.mock.calls[0]?.[1]
+    if (
+      addShippingMethodBody === undefined ||
+      Array.isArray(addShippingMethodBody)
+    ) {
+      throw new TypeError("Expected a single shipping method payload")
+    }
+    expect(addShippingMethodBody.data).not.toBe(shippingData)
+    expect(shippingData).toStrictEqual({
+      empty: "",
+      nullable: null,
+      pickup_point_id: "pickup-2",
     })
   })
 

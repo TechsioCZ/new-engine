@@ -7,7 +7,7 @@ import { PRODUCT_LIST_MODULE } from "../../../../../src/modules/product-list/con
 const { overrideModule } = vi.hoisted(() => ({
   overrideModule: <Module extends object>(
     original: Module,
-    replacements: Record<PropertyKey, unknown>,
+    replacements: object,
   ): Module =>
     Object.defineProperties(
       { ...original },
@@ -134,10 +134,7 @@ const makeContainer = (service: MockService) => ({
   }),
 })
 
-const expectPropertiesToBeAbsent = (
-  record: Record<string, unknown>,
-  properties: string[],
-) => {
+const expectPropertiesToBeAbsent = (record: object, properties: string[]) => {
   for (const property of properties) {
     expect(record).not.toHaveProperty(property)
   }

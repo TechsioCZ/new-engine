@@ -30,7 +30,7 @@ const RESERVED_CATALOG_SEGMENTS = new Set([
 ])
 const INVALID_DATA_TYPE = MedusaError.Types.INVALID_DATA
 
-const isCatalogGroup = (value: unknown): value is Record<string, unknown> =>
+const isCatalogGroup = (value: unknown): value is object =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
 const isValidCatalogSegment = (segment: string) =>

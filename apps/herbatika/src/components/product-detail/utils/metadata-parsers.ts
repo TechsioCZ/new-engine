@@ -3,6 +3,7 @@ import type { Product } from "@/components/product-detail/product-detail.types"
 import {
   asRecord,
   asString,
+  readRecordProperty,
 } from "@/components/product-detail/utils/value-utils"
 
 export { resolveProductContentSections } from "@/components/product-detail/utils/metadata-content-parser"
@@ -57,12 +58,12 @@ export const resolveVariantLabel = (
   const optionLabels = options
     .map((option) => {
       const optionRecord = asRecord(option)
-      const optionValue = asString(optionRecord?.["value"])
+      const optionValue = asString(readRecordProperty(optionRecord, "value"))
       if (optionValue === null) {
         return null
       }
 
-      const optionId = asString(optionRecord?.["option_id"])
+      const optionId = asString(readRecordProperty(optionRecord, "option_id"))
       const optionTitle =
         optionId === null || optionId === ""
           ? undefined

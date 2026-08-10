@@ -1,4 +1,7 @@
-import type { IProductModuleService } from "@medusajs/framework/types"
+import type {
+  MetadataType,
+  IProductModuleService,
+} from "@medusajs/framework/types"
 import { MedusaError, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
@@ -25,7 +28,7 @@ interface IncomingVariant {
 export interface PersistedEanOwner {
   ean: null | string
   id: string
-  metadata?: null | Record<string, unknown>
+  metadata?: MetadataType
   product?: null | { handle: string; id: string }
   product_id: null | string
   sku: null | string
@@ -88,7 +91,7 @@ const chunkArray = <T>(values: T[], size = EAN_QUERY_CHUNK_SIZE): T[][] => {
 }
 
 const metadataString = (
-  metadata: Record<string, unknown> | null | undefined,
+  metadata: MetadataType | undefined,
   key: string,
 ): string | undefined => {
   const value = metadata?.[key]

@@ -1,21 +1,11 @@
-export const isRecord = (value: unknown): value is Record<string, unknown> =>
+export const isRecord = (value: unknown): value is object =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
-export const toPlainRecord = (
-  value: unknown,
-): Record<string, unknown> | undefined => (isRecord(value) ? value : undefined)
+export const toPlainRecord = (value: unknown): object | undefined =>
+  isRecord(value) ? value : undefined
 
-export const getRecordValue = (
-  record: Readonly<Record<string, unknown>>,
-  key: string,
-): unknown => record[key]
-
-export const compactRecord = (
-  record: Readonly<Record<string, unknown>>,
-): Record<string, unknown> =>
-  Object.fromEntries(
-    Object.entries(record).filter(([, value]) => value !== undefined),
-  )
+export const getRecordValue = (record: object, key: string): unknown =>
+  Reflect.get(record, key)
 
 type OmitUndefined<T extends object> = {
   [K in keyof T as undefined extends T[K] ? never : K]: T[K]

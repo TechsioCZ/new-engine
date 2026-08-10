@@ -1,28 +1,27 @@
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 export const resolveOrderId = (result: unknown) => {
-  if (!isObject(result)) {
+  if (!isRecord(result)) {
     return null
   }
 
-  const { order } = result
-  if (!isObject(order) || typeof order["id"] !== "string") {
+  const order = getRecordValue(result, "order")
+  if (!isRecord(order)) {
     return null
   }
-
-  return order["id"]
+  const orderId = getRecordValue(order, "id")
+  return typeof orderId === "string" ? orderId : null
 }
 
 export const resolveCompleteCartFailure = (result: unknown) => {
-  if (!isObject(result) || result["type"] !== "cart") {
+  if (!isRecord(result) || getRecordValue(result, "type") !== "cart") {
     return null
   }
 
-  const { error } = result
-  if (!isObject(error) || typeof error["message"] !== "string") {
+  const error = getRecordValue(result, "error")
+  if (!isRecord(error)) {
     return null
   }
-
-  return error["message"]
+  const message = getRecordValue(error, "message")
+  return typeof message === "string" ? message : null
 }

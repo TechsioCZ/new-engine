@@ -1,4 +1,5 @@
 import type {
+  MetadataType,
   IFulfillmentModuleService,
   IProductModuleService,
   ISalesChannelModuleService,
@@ -77,7 +78,7 @@ export interface ProductInput {
   handle: string
   weight?: number | undefined
   status?: ProductStatus | undefined
-  metadata?: Record<string, unknown> | undefined
+  metadata?: MetadataType | undefined
   shippingProfileName: string
   thumbnail?: string | undefined
   images: {
@@ -125,7 +126,7 @@ export interface ProductInput {
           | undefined
         thumbnail?: string | undefined
         metadata?:
-          | {
+          | ({
               attributes?:
                 | {
                     name: string
@@ -133,8 +134,7 @@ export interface ProductInput {
                   }[]
                 | undefined
               user_code?: string | undefined
-              [key: string]: unknown
-            }
+            } & MetadataType)
           | undefined
         quantities?:
           | {
@@ -518,7 +518,7 @@ const toMetadataId = (value: unknown): string | undefined => {
 }
 
 export const getSourceVariantId = (variant: {
-  metadata?: Record<string, unknown> | null | undefined
+  metadata?: MetadataType | undefined
 }): string | undefined => {
   const metadata = variant.metadata ?? undefined
   if (metadata === undefined) {
@@ -536,7 +536,7 @@ const findExistingVariant = (
   if (sourceVariantId !== undefined) {
     const bySourceId = (existingProduct.variants ?? []).find((variant) => {
       const { metadata } = variant as {
-        metadata?: Record<string, unknown> | null
+        metadata?: MetadataType
       }
       return getSourceVariantId({ metadata }) === sourceVariantId
     })

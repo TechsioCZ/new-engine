@@ -1,5 +1,6 @@
 "use client"
 
+import { getRecordValue } from "@techsio/std/object"
 import { sanitize } from "isomorphic-dompurify"
 import { createElement, Fragment } from "react"
 import type { ReactNode } from "react"
@@ -54,11 +55,6 @@ const VOID_TAGS = new Set([
   "track",
   "wbr",
 ])
-interface SafeElementProperties extends Record<string, unknown> {
-  rel?: unknown
-  target?: unknown
-}
-
 const REACT_ATTRIBUTE_NAMES: Readonly<Record<string, string>> = {
   "accept-charset": "acceptCharset",
   charset: "charSet",
@@ -164,8 +160,8 @@ const createElementProperties = (
   element: Element,
   key: string,
   allowedAttributes: ReadonlySet<string>,
-): SafeElementProperties => {
-  const properties: SafeElementProperties = { key }
+): object => {
+  const properties = { key }
 
   for (const attribute of element.attributes) {
     const name = normalizeName(attribute.name)
@@ -177,16 +173,21 @@ const createElementProperties = (
       continue
     }
 
-    properties[REACT_ATTRIBUTE_NAMES[name] ?? name] = attribute.value
+    Reflect.set(
+      properties,
+      REACT_ATTRIBUTE_NAMES[name] ?? name,
+      attribute.value,
+    )
   }
 
-  if (properties.target === "_blank") {
+  if (getRecordValue(properties, "target") === "_blank") {
+    const existingRel = getRecordValue(properties, "rel")
     const existingRelTokens =
-      typeof properties.rel === "string"
-        ? properties.rel.split(/\s+/u).filter((token) => token !== "")
+      typeof existingRel === "string"
+        ? existingRel.split(/\s+/u).filter((token) => token !== "")
         : []
     const relTokens = new Set([...existingRelTokens, "noopener", "noreferrer"])
-    properties.rel = [...relTokens].join(" ")
+    Reflect.set(properties, "rel", [...relTokens].join(" "))
   }
 
   return properties

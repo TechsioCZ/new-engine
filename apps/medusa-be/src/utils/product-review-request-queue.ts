@@ -1,7 +1,6 @@
 import type { MedusaContainer } from "@medusajs/framework"
 import type { Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
 
 import { EMAIL_LOG_MODULE } from "../modules/email-log"
 import type EmailLogModuleService from "../modules/email-log/service"
@@ -13,7 +12,6 @@ import {
   getReviewRequestRunAt,
   isPaidOrder,
 } from "./order-review-requests"
-import type { ReviewRequestOrder } from "./order-review-requests"
 import { workflowQueueNames } from "./workflow-queue-registry"
 
 const PRODUCT_REVIEW_REQUEST_TEMPLATE = "product-review-request"
@@ -33,59 +31,19 @@ const ORDER_FIELDS = [
   "status",
 ]
 
-interface EmailLogDTO {
-  order_id: string | null
-}
-
-type EmailLogService = EmailLogModuleService & {
-  listEmailLogs: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>,
-  ) => Promise<EmailLogDTO[]>
-}
-
-interface WorkflowQueueItemDTO {
-  arguments: Record<string, unknown> | null
-  dedupe_key: string | null
-  id: string
-  workflow: string
-}
-
-type WorkflowQueueService = WorkflowQueueModuleService & {
-  createWorkflowQueueItems: (data: {
-    arguments: Record<string, unknown>
-    dedupe_key?: string
-    run_at: Date
-    workflow: string
-  }) => Promise<WorkflowQueueItemDTO>
-  listWorkflowQueueItems: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>,
-  ) => Promise<WorkflowQueueItemDTO[]>
-}
-
 const getProductReviewRequestDedupeKey = (orderId: string) =>
   `${PRODUCT_REVIEW_REQUEST_DEDUPE_KEY_PREFIX}-${orderId}`
-
-const isReviewRequestOrder = (value: unknown): value is ReviewRequestOrder =>
-  isRecord(value) &&
-  typeof value["id"] === "string" &&
-  typeof value["display_id"] === "number"
 
 const retrieveOrderForReviewRequest = async (
   container: MedusaContainer,
   orderId: string,
-): Promise<ReviewRequestOrder | undefined> => {
+) => {
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "order",
     fields: ORDER_FIELDS,
     filters: { id: orderId },
   })
-
-  if (!(Array.isArray(data) && isReviewRequestOrder(data[0]))) {
-    return undefined
-  }
 
   return data[0]
 }
@@ -94,7 +52,8 @@ const hasReviewRequestEmailLog = async (
   container: MedusaContainer,
   orderId: string,
 ) => {
-  const emailLogService = container.resolve<EmailLogService>(EMAIL_LOG_MODULE)
+  const emailLogService =
+    container.resolve<EmailLogModuleService>(EMAIL_LOG_MODULE)
   const logs = await emailLogService.listEmailLogs(
     {
       order_id: orderId,
@@ -113,7 +72,7 @@ const hasQueuedReviewRequest = async (
   container: MedusaContainer,
   dedupeKey: string,
 ) => {
-  const workflowQueueService = container.resolve<WorkflowQueueService>(
+  const workflowQueueService = container.resolve<WorkflowQueueModuleService>(
     WORKFLOW_QUEUE_MODULE,
   )
   const items = await workflowQueueService.listWorkflowQueueItems(
@@ -178,7 +137,7 @@ export const scheduleProductReviewRequestForOrder = async ({
     return null
   }
 
-  const workflowQueueService = container.resolve<WorkflowQueueService>(
+  const workflowQueueService = container.resolve<WorkflowQueueModuleService>(
     WORKFLOW_QUEUE_MODULE,
   )
 

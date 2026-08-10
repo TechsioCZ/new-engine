@@ -62,7 +62,7 @@ export const resolveProductContentSections = (
   return PRODUCT_DETAIL_SECTION_ORDER.flatMap((sectionKey) => {
     const metadataSectionHtml =
       sectionHtmlByKey.get(sectionKey) ??
-      asString(sectionMap?.[sectionKey]) ??
+      asString(readRecordProperty(sectionMap, sectionKey)) ??
       ""
     const html =
       sectionKey === "description" && productDescriptionHtml !== ""

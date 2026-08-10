@@ -266,6 +266,13 @@ const SubmenuItem = ({
   )
 }
 
+const isReactElementWithObjectProps = (
+  value: ReactNode,
+): value is ReactElement<object> =>
+  isValidElement(value) &&
+  typeof value.props === "object" &&
+  value.props !== null
+
 // === COMPONENT PROPS ===
 export interface MenuProps extends VariantProps<typeof menuVariants> {
   items: MenuItem[]
@@ -439,7 +446,7 @@ export const Menu = ({
   }
 
   const renderTrigger = () => {
-    if (isValidElement<Record<string, unknown>>(customTrigger)) {
+    if (isReactElementWithObjectProps(customTrigger)) {
       return createElement(
         customTrigger.type,
         mergeProps(api.getTriggerProps(), customTrigger.props),

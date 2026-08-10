@@ -4,7 +4,7 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
 type PricePreferenceAttribute = "region_id" | "currency_code"
 
-interface EnsurePricePreferencesStepOutput {
+export interface EnsurePricePreferencesStepOutput {
   createdCount: number
   updatedCount: number
   targetCount: number

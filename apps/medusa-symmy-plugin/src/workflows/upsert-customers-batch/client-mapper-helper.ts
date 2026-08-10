@@ -1,3 +1,5 @@
+import type { MetadataType } from "@medusajs/framework/types"
+
 import type {
   CustomerGroupIndex,
   ExistingCustomer,
@@ -5,8 +7,6 @@ import type {
   ExistingGroup,
 } from "./client"
 import type { CustomerAddressInput, CustomerInput } from "./types"
-
-type Metadata = Record<string, unknown>
 
 type CustomerMetadataIdentifier =
   | "company_registration_number"
@@ -148,7 +148,7 @@ export const customerBatchClientMapperHelper = {
   },
 
   buildMetadata(
-    existingMetadata: Metadata | null | undefined,
+    existingMetadata: MetadataType | undefined,
     customer: CustomerInput,
   ) {
     return {
@@ -261,7 +261,7 @@ export const customerBatchClientMapperHelper = {
     return email?.toLowerCase()
   },
 
-  stringMetadataValue(metadata: Metadata | null | undefined, key: string) {
+  stringMetadataValue(metadata: MetadataType | undefined, key: string) {
     const value = metadata?.[key]
     return typeof value === "string" && value.length > 0 ? value : null
   },

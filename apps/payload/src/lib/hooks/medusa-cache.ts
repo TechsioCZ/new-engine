@@ -1,27 +1,76 @@
 import { createHmac } from "node:crypto"
 import { setTimeout as waitForRetry } from "node:timers/promises"
 
-import { compactRecord, getErrorMessage, isRecord } from "@techsio/std/object"
+import {
+  getErrorMessage,
+  getRecordValue,
+  isRecord,
+  omitUndefined,
+} from "@techsio/std/object"
 import type {
   CollectionAfterChangeHook,
   CollectionAfterDeleteHook,
+  DataFromCollectionSlug,
   PayloadRequest,
 } from "payload"
 
+import type { Article, Page } from "../../payload-types"
 import { getEnvString } from "../utils/env"
 import { createRequestTimeout } from "../utils/request"
 
+type CacheCollectionSlug =
+  | "article-categories"
+  | "articles"
+  | "hero-carousels"
+  | "media"
+  | "page-categories"
+  | "pages"
+
+type CacheOperation = "create" | "delete" | "update"
+type CacheStatus = Article["status"]
+type CacheContent = Article["content"] | Page["content"]
+
+interface LocalizedSlug {
+  cs?: string
+  en?: string
+  sk?: string
+}
+
+interface CacheInvalidationSource {
+  content?: CacheContent
+  contentHTML?: string | null
+  excerpt?: string | null
+  id?: number | string
+  slug?: LocalizedSlug | string | null
+  status?: CacheStatus
+  title?: string | null
+  visibility?: Page["visibility"]
+}
+
+interface MedusaInvalidationDocument {
+  content?: CacheContent
+  contentHTML?: string | null
+  excerpt?: string | null
+  globalVisibilityChange?: boolean
+  id?: string
+  locale?: string
+  previousSlug?: string
+  slug?: string
+  status?: CacheStatus
+  title?: string | null
+  visibility?: Page["visibility"]
+}
+
 /** Payload invalidation payload sent to Medusa. */
 interface MedusaInvalidatePayload {
-  collection: string
-  doc: Record<string, unknown>
-  operation?: string
+  collection: CacheCollectionSlug
+  doc: MedusaInvalidationDocument
+  operation: CacheOperation
 }
 
 /** Track whether the missing base URL warning has already been logged. */
 let loggedMissingBaseUrl = false
 const TRAILING_SLASH_REGEX = /\/$/u
-const SUPPORTED_OPERATIONS = new Set(["create", "update", "delete"])
 const DELIVERY_ATTEMPTS = 3
 const RETRY_DELAYS_MS = [100, 250] as const
 
@@ -40,30 +89,22 @@ const getMedusaBaseUrl = (): string | null => {
   return baseUrl === null ? null : baseUrl.replace(TRAILING_SLASH_REGEX, "")
 }
 
-const readDocumentId = (doc: unknown): string | undefined => {
-  if (!isRecord(doc)) {
-    return undefined
-  }
-
-  const { id } = doc
-  return typeof id === "string" || typeof id === "number"
-    ? String(id)
-    : undefined
-}
+const readDocumentId = (
+  doc: CacheInvalidationSource | undefined,
+): string | undefined => (doc?.id === undefined ? undefined : String(doc.id))
 
 /** Resolve a localized slug from a CMS document. */
-const resolveSlug = (doc: unknown, locale?: string): string | undefined => {
-  if (!isRecord(doc)) {
-    return undefined
-  }
-
-  const { slug } = doc
+const resolveSlug = (
+  doc: CacheInvalidationSource | undefined,
+  locale?: string,
+): string | undefined => {
+  const slug = doc?.slug
   if (typeof slug === "string") {
     return slug
   }
 
   if (isRecord(slug) && locale !== undefined) {
-    const localized = slug[locale]
+    const localized = getRecordValue(slug, locale)
     return typeof localized === "string" ? localized : undefined
   }
 
@@ -170,69 +211,92 @@ const resolveInvalidationLocale = (options: {
     : undefined
 }
 
+const didGlobalVisibilityChange = (
+  operation: CacheOperation,
+  doc: CacheInvalidationSource | undefined,
+  previousDoc: CacheInvalidationSource | undefined,
+): boolean =>
+  operation === "update" &&
+  (doc?.status !== previousDoc?.status ||
+    doc?.visibility !== previousDoc?.visibility)
+
+const buildInvalidationDocument = (
+  doc: CacheInvalidationSource | undefined,
+  previousDoc: CacheInvalidationSource | undefined,
+  locale: string | undefined,
+  globalVisibilityChange: boolean,
+): MedusaInvalidationDocument => {
+  const slug = resolveSlug(doc, locale)
+  const previousSlug = resolveSlug(previousDoc, locale)
+  const id = readDocumentId(doc)
+
+  return omitUndefined({
+    content: doc?.content,
+    contentHTML: doc?.contentHTML,
+    excerpt: doc?.excerpt,
+    globalVisibilityChange: globalVisibilityChange ? true : undefined,
+    id: id === "" ? undefined : id,
+    locale,
+    previousSlug:
+      previousSlug === "" || previousSlug === slug ? undefined : previousSlug,
+    slug: slug === "" ? undefined : slug,
+    status: doc?.status,
+    title: doc?.title,
+    visibility: doc?.visibility,
+  })
+}
+
 /** Create a hook that invalidates Medusa CMS cache for a collection. */
-export const createMedusaCacheHook = (
-  collection: string,
-): CollectionAfterChangeHook & CollectionAfterDeleteHook => {
+export const createMedusaCacheHook = <TSlug extends CacheCollectionSlug>(
+  collection: TSlug,
+): CollectionAfterChangeHook<DataFromCollectionSlug<TSlug>> &
+  CollectionAfterDeleteHook<DataFromCollectionSlug<TSlug>> => {
   const invalidateCache = async ({
     doc,
     req,
     operation,
     previousDoc,
   }: {
-    doc?: unknown
+    doc?: CacheInvalidationSource
     operation?: string
-    previousDoc?: unknown
+    previousDoc?: CacheInvalidationSource
     req?: PayloadRequest | null
   }) => {
     const op = operation ?? "delete"
-    if (!SUPPORTED_OPERATIONS.has(op)) {
+    if (op !== "create" && op !== "update" && op !== "delete") {
       return doc
     }
 
-    const cmsDoc = isRecord(doc) ? doc : {}
-    const previousCmsDoc = isRecord(previousDoc) ? previousDoc : {}
-    const globalVisibilityChange =
-      op === "update" &&
-      (cmsDoc["status"] !== previousCmsDoc["status"] ||
-        cmsDoc["visibility"] !== previousCmsDoc["visibility"])
+    const globalVisibilityChange = didGlobalVisibilityChange(
+      op,
+      doc,
+      previousDoc,
+    )
     const locale = resolveInvalidationLocale({
       globalVisibilityChange,
       operation: op,
       requestLocale: req?.locale,
     })
-    const slug = resolveSlug(doc, locale)
-    const previousSlug = resolveSlug(previousDoc, locale)
-    const id = readDocumentId(doc)
+    const invalidationDocument = buildInvalidationDocument(
+      doc,
+      previousDoc,
+      locale,
+      globalVisibilityChange,
+    )
     const payload: MedusaInvalidatePayload = {
       collection,
-      doc: compactRecord({
-        content: cmsDoc["content"],
-        contentHTML: cmsDoc["contentHTML"],
-        excerpt: cmsDoc["excerpt"],
-        globalVisibilityChange: globalVisibilityChange || undefined,
-        id: id === "" ? undefined : id,
-        locale,
-        previousSlug:
-          previousSlug === "" || previousSlug === slug
-            ? undefined
-            : previousSlug,
-        slug: slug === "" ? undefined : slug,
-        status: cmsDoc["status"],
-        title: cmsDoc["title"],
-        visibility: cmsDoc["visibility"],
-      }),
+      doc: invalidationDocument,
       operation: op,
     }
 
     req?.payload.logger.info(
       `CMS invalidate hook: ${JSON.stringify(
-        compactRecord({
+        omitUndefined({
           collection,
-          id: payload.doc["id"],
-          locale: payload.doc["locale"],
+          id: payload.doc.id,
+          locale: payload.doc.locale,
           operation: op,
-          slug: payload.doc["slug"],
+          slug: payload.doc.slug,
         }),
       )}`,
     )

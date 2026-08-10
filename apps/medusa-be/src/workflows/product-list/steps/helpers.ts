@@ -3,6 +3,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 
 import { ProductListItemProductLink } from "../../../links/product-list-item-product"
 import { ProductListItemVariantLink } from "../../../links/product-list-item-variant"
@@ -12,64 +13,95 @@ import {
 } from "../../../modules/product-list/constants"
 import type { ProductListType } from "../../../modules/product-list/constants"
 import type ProductListModuleService from "../../../modules/product-list/service"
-import { isObjectRecord } from "../../../utils/guards"
-import {
-  listCustomerProductListIds,
-  toProductListItemProductLinks,
-  toProductListItemVariantLinks,
-} from "../../../utils/product-list-links"
+import { listCustomerProductListIds } from "../../../utils/product-list-links"
 import type { ProductListItemRecord } from "../types"
 
-interface ProductRecord {
-  id: string
-  status?: string
+const productQueryResultSchema = z.object({
+  data: z.array(
+    z.object({
+      id: z.string(),
+      status: z.string().optional(),
+    }),
+  ),
+})
+const productVariantQueryResultSchema = z.object({
+  data: z.array(
+    z.object({
+      id: z.string(),
+      product: z.object({ id: z.string().optional() }).optional(),
+    }),
+  ),
+})
+const queryDataSchema = z.object({ data: z.array(z.unknown()) })
+const productLinkSchema = z.object({
+  product_list_item_id: z.string().optional(),
+})
+const variantLinkSchema = z.object({
+  product_list_item_id: z.string().optional(),
+})
+
+const parseProductLinks = (value: unknown[]) => {
+  const parsed = z.array(productLinkSchema).safeParse(value)
+  if (!parsed.success) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Product-list item product link query returned invalid records",
+    )
+  }
+  return parsed.data
 }
 
-interface ProductVariantRecord {
-  id: string
-  product?: {
-    id?: string
+const parseVariantLinks = (value: unknown[]) => {
+  const parsed = z.array(variantLinkSchema).safeParse(value)
+  if (!parsed.success) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Product-list item variant link query returned invalid records",
+    )
   }
+  return parsed.data
 }
 
 const PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE = 1000
 const PRODUCT_LIST_ITEM_LOOKUP_MAX_PAGES = 1000
 
-const isProductRecord = (value: unknown): value is ProductRecord =>
-  isObjectRecord(value) &&
-  typeof value["id"] === "string" &&
-  (value["status"] === undefined || typeof value["status"] === "string")
-
-const isProductVariantRecord = (
-  value: unknown,
-): value is ProductVariantRecord => {
-  if (!isObjectRecord(value) || typeof value["id"] !== "string") {
-    return false
-  }
-
-  const { product } = value
-  if (product === undefined) {
-    return true
-  }
-
-  return (
-    isObjectRecord(product) &&
-    (product["id"] === undefined || typeof product["id"] === "string")
-  )
-}
-
 const isProductListType = (type: string): type is ProductListType =>
   PRODUCT_LIST_TYPES.some((candidate) => candidate === type)
 
 const getQueryData = (result: unknown, context: string): unknown[] => {
-  if (!isObjectRecord(result) || !Array.isArray(result["data"])) {
+  const parsed = queryDataSchema.safeParse(result)
+  if (!parsed.success) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       `${context} query returned invalid data`,
     )
   }
 
-  return result["data"]
+  return parsed.data.data
+}
+
+const getProductQueryData = (result: unknown) => {
+  const parsed = productQueryResultSchema.safeParse(result)
+  if (!parsed.success) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Product query returned invalid data",
+    )
+  }
+
+  return parsed.data.data
+}
+
+const getProductVariantQueryData = (result: unknown) => {
+  const parsed = productVariantQueryResultSchema.safeParse(result)
+  if (!parsed.success) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Product variant query returned invalid data",
+    )
+  }
+
+  return parsed.data.data
 }
 
 export const getProductListType = (type: string): ProductListType => {
@@ -152,7 +184,7 @@ export const assertProductSelectionExists = async (
       take: 1,
     },
   })
-  const product = getQueryData(productResult, "Product").find(isProductRecord)
+  const [product] = getProductQueryData(productResult)
 
   if (product === undefined) {
     throw new MedusaError(
@@ -175,9 +207,7 @@ export const assertProductSelectionExists = async (
       take: 1,
     },
   })
-  const variant = getQueryData(variantResult, "Product variant").find(
-    isProductVariantRecord,
-  )
+  const [variant] = getProductVariantQueryData(variantResult)
 
   if (variant === undefined || variant.product?.id !== productId) {
     throw new MedusaError(
@@ -237,7 +267,7 @@ const findProductListItemForSelectionPage = async ({
       take: Math.min(listItemIds.length, PRODUCT_LIST_ITEM_LOOKUP_CHUNK_SIZE),
     },
   })
-  let itemIds = toProductListItemProductLinks(
+  let itemIds = parseProductLinks(
     getQueryData(productLinksResult, "Product-list item product link"),
   ).flatMap((link) =>
     link.product_list_item_id === undefined ||
@@ -261,7 +291,7 @@ const findProductListItemForSelectionPage = async ({
       },
     })
     const variantItemIds = new Set(
-      toProductListItemVariantLinks(
+      parseVariantLinks(
         getQueryData(variantLinksResult, "Product-list item variant link"),
       ).flatMap((link) =>
         link.product_list_item_id === undefined ||

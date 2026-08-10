@@ -2,31 +2,57 @@ import { readFile } from "node:fs/promises"
 
 import { z } from "zod"
 
-const unknownArraySchema = z.array(z.unknown())
-const unknownRecordSchema = z.record(z.string(), z.unknown())
+const githubBranchSchema = z.string().transform((branch) => branch.trim())
 
-const readNestedString = (value: unknown, path: string[]): string => {
-  let current: unknown = value
+const workflowRunPullRequestEventSchema = z.object({
+  workflow_run: z.object({
+    pull_requests: z.array(
+      z.object({
+        head: z.object({
+          ref: githubBranchSchema,
+        }),
+      }),
+    ),
+  }),
+})
 
-  for (const segment of path) {
-    const arrayResult = unknownArraySchema.safeParse(current)
-    if (arrayResult.success) {
-      const index = Number(segment)
-      if (!Number.isInteger(index)) {
-        return ""
-      }
-      current = arrayResult.data.at(index)
-      continue
+const workflowRunEventSchema = z.object({
+  workflow_run: z.object({
+    head_branch: githubBranchSchema,
+  }),
+})
+
+const pullRequestEventSchema = z.object({
+  pull_request: z.object({
+    head: z.object({
+      ref: githubBranchSchema,
+    }),
+  }),
+})
+
+const resolveEventBranch = (event: unknown): string => {
+  const workflowRunPullRequestResult =
+    workflowRunPullRequestEventSchema.safeParse(event)
+  if (workflowRunPullRequestResult.success) {
+    const pullRequest =
+      workflowRunPullRequestResult.data.workflow_run.pull_requests.at(0)
+    if (pullRequest?.head.ref !== undefined && pullRequest.head.ref !== "") {
+      return pullRequest.head.ref
     }
-
-    const recordResult = unknownRecordSchema.safeParse(current)
-    if (!recordResult.success) {
-      return ""
-    }
-    current = recordResult.data[segment]
   }
 
-  return typeof current === "string" ? current.trim() : ""
+  const workflowRunResult = workflowRunEventSchema.safeParse(event)
+  if (
+    workflowRunResult.success &&
+    workflowRunResult.data.workflow_run.head_branch !== ""
+  ) {
+    return workflowRunResult.data.workflow_run.head_branch
+  }
+
+  const pullRequestResult = pullRequestEventSchema.safeParse(event)
+  return pullRequestResult.success
+    ? pullRequestResult.data.pull_request.head.ref
+    : ""
 }
 
 export const resolveGitHubPreviewHeadBranch = async (
@@ -58,15 +84,5 @@ export const resolveGitHubPreviewHeadBranch = async (
     return ""
   }
 
-  return (
-    readNestedString(event, [
-      "workflow_run",
-      "pull_requests",
-      "0",
-      "head",
-      "ref",
-    ]) ||
-    readNestedString(event, ["workflow_run", "head_branch"]) ||
-    readNestedString(event, ["pull_request", "head", "ref"])
-  )
+  return resolveEventBranch(event)
 }

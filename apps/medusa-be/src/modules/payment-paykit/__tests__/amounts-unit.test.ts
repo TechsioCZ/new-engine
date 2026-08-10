@@ -1,3 +1,4 @@
+import { BigNumber, MedusaError } from "@medusajs/framework/utils"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -5,11 +6,75 @@ import {
   fromStripeSmallestCurrencyUnit,
   getCurrencyMultiplier,
   getStripeCurrencyMultiplier,
+  toNumericPaymentAmount,
   toSmallestCurrencyUnit,
   toStripeSmallestCurrencyUnit,
 } from "../utils/amounts"
 
+const captureMedusaError = (operation: () => unknown): MedusaError => {
+  try {
+    operation()
+  } catch (error) {
+    if (error instanceof MedusaError) {
+      return error
+    }
+
+    throw error
+  }
+
+  throw new Error("Expected operation to throw a MedusaError")
+}
+
 describe("PayKit amount helpers", () => {
+  it("coerces Medusa BigNumber instances without an own value property", () => {
+    const amount = new BigNumber("125.5")
+
+    expect(Object.hasOwn(amount, "value")).toBeFalsy()
+    expect(
+      toNumericPaymentAmount(amount, "PayKit payment amount must be numeric"),
+    ).toBe(125.5)
+  })
+
+  it("coerces the whole amount object when it provides valueOf", () => {
+    const amount = { valueOf: () => 42.25 }
+
+    expect(
+      toNumericPaymentAmount(amount, "PayKit payment amount must be numeric"),
+    ).toBe(42.25)
+  })
+
+  it("prefers an own value property over whole-object coercion", () => {
+    const amount = {
+      value: "18.75",
+      valueOf: () => 99,
+    }
+
+    expect(
+      toNumericPaymentAmount(amount, "PayKit payment amount must be numeric"),
+    ).toBe(18.75)
+  })
+
+  it.each([
+    { amount: {}, label: "an object missing value and numeric coercion" },
+    {
+      amount: Object.defineProperty({}, "value", {}),
+      label: "an own value without data",
+    },
+    { amount: { value: "invalid" }, label: "a non-numeric own value" },
+    { amount: Symbol("invalid"), label: "a coercion error" },
+  ])("rejects $label with stable invalid-data errors", ({ amount }) => {
+    const normalize = () =>
+      toNumericPaymentAmount(
+        amount,
+        "PayKit stored payment amount must be numeric",
+      )
+
+    expect(captureMedusaError(normalize)).toMatchObject({
+      message: "PayKit stored payment amount must be numeric",
+      type: MedusaError.Types.INVALID_DATA,
+    })
+  })
+
   it("uses minor units for regular two-decimal currencies", () => {
     expect(getCurrencyMultiplier("czk")).toBe(100)
     expect(toSmallestCurrencyUnit(10.5, "czk")).toBe(1050)

@@ -1,4 +1,7 @@
-import type { ICustomerModuleService } from "@medusajs/framework/types"
+import type {
+  MetadataType,
+  ICustomerModuleService,
+} from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 
@@ -7,14 +10,14 @@ import { normalizeInactiveCustomerFirstName } from "../normalizers"
 interface MarkCustomerAccountInactiveInput {
   customer_id: string
   first_name?: string | null | undefined
-  metadata: Record<string, unknown>
-  previous_metadata: Record<string, unknown> | null
+  metadata: MetadataType
+  previous_metadata: MetadataType
 }
 
 interface MarkCustomerAccountInactiveCompensation {
   customer_id: string
   first_name?: string | null | undefined
-  previous_metadata: Record<string, unknown> | null
+  previous_metadata: MetadataType
 }
 
 type CustomerUpdateInput = Parameters<

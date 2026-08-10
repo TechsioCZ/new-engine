@@ -1,3 +1,5 @@
+import { z } from "zod"
+
 import type {
   ApplyEnvOverridesPayload,
   ApplyEnvOverridesResponse,
@@ -44,39 +46,34 @@ import { verifyResponseSchema } from "../contracts/verify.js"
 
 const trailingSlashesPattern = /\/+$/u
 
-const isNonNullObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
+const operatorErrorSchema = z.object({
+  error: z
+    .union([z.string(), z.object({ message: z.string().optional() })])
+    .optional(),
+  message: z.string().optional(),
+})
 
-const normalizeMessage = (value: unknown): string | undefined => {
-  if (typeof value !== "string") {
-    return undefined
-  }
-
-  const message = value.trim()
-  return message.length > 0 ? message : undefined
+const normalizeMessage = (value: string | undefined): string | undefined => {
+  const message = value?.trim()
+  return message === undefined || message.length === 0 ? undefined : message
 }
 
 const extractOperatorMessage = (body: unknown): string | undefined => {
-  if (!isNonNullObject(body)) {
+  const result = operatorErrorSchema.safeParse(body)
+  if (!result.success) {
     return undefined
   }
 
-  const directMessage = normalizeMessage(body["message"])
+  const directMessage = normalizeMessage(result.data.message)
   if (directMessage !== undefined) {
     return directMessage
   }
 
-  const errorField = body["error"]
-  const errorMessage = normalizeMessage(errorField)
-  if (errorMessage !== undefined) {
-    return errorMessage
-  }
-
-  if (isNonNullObject(errorField)) {
-    return normalizeMessage(errorField["message"])
-  }
-
-  return undefined
+  return normalizeMessage(
+    typeof result.data.error === "string"
+      ? result.data.error
+      : result.data.error?.message,
+  )
 }
 
 export class ZaneOperatorClient {

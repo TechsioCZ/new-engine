@@ -1,11 +1,9 @@
 import { readdir, readFile } from "node:fs/promises"
 import path from "node:path"
 
-import type { MedusaRequest } from "@medusajs/framework/http"
 import fontkit from "@pdf-lib/fontkit"
 import { PageSizes, PDFDocument, StandardFonts } from "pdf-lib"
 
-import type { PostAdminOrderExpeditionPdfSchemaType } from "../validators"
 import type { DrawState } from "./types"
 
 const HEADER_Y = PageSizes.A4[1] - 20
@@ -49,9 +47,7 @@ const readPdfFontBytes = async (prefixes: readonly string[]) => {
     : await readFile(path.join(fontPath.fontDir, fontPath.entry.name))
 }
 
-export const createExpeditionPdfContext = async (
-  req: MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>,
-) => {
+export const createExpeditionPdfContext = async (url: string) => {
   const document = await PDFDocument.create()
   document.registerFontkit?.(fontkit)
   document.setTitle?.("Přehled objednávek")
@@ -77,7 +73,7 @@ export const createExpeditionPdfContext = async (
       pageNumber: 1,
       regularFont,
       title: "Přehled objednávek",
-      url: `${req.protocol}://${req.get?.("host") ?? req.headers?.host ?? "localhost"}/admin/order-expedition/pdf`,
+      url,
       y: HEADER_Y - 28,
     } satisfies DrawState,
   }

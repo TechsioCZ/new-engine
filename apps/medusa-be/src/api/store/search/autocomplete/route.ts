@@ -7,7 +7,7 @@ import {
 } from "@medusajs/framework/utils"
 import type { RequestWithContext } from "@medusajs/medusa/api/store/products/helpers"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 
 import { cleanSearchText } from "../../../../modules/meilisearch/documents"
 import { isMeilisearchEnabled } from "../../../../modules/meilisearch/env"
@@ -25,6 +25,7 @@ import {
   selectRankedProductIds,
 } from "../../../../modules/meilisearch/search-results"
 import { MEILISEARCH } from "../../../../workflows/meilisearch"
+import type { ProductFilters } from "../../../utils/product-filters"
 import { normalizeProductSalesChannelFilter } from "../../../utils/product-filters"
 import {
   STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
@@ -39,7 +40,7 @@ type AutocompleteRequest = RequestWithContext<
   unknown,
   StoreSearchAutocompleteSchemaType
 >
-type RemoteQuery = Parameters<typeof normalizeProductSalesChannelFilter>[1]
+type RemoteQuery = Parameters<typeof normalizeProductSalesChannelFilter>[0]
 
 interface AutocompleteDependencies {
   queryService: Query
@@ -97,10 +98,12 @@ const safeSearch = async (
 ): Promise<SearchResponse | null> => {
   try {
     const rawResult: unknown = await service.search(index, query, options)
-    if (!isRecord(rawResult) || !Array.isArray(rawResult["hits"])) {
+    const hits: unknown = isRecord(rawResult)
+      ? getRecordValue(rawResult, "hits")
+      : undefined
+    if (!Array.isArray(hits)) {
       return null
     }
-    const hits: unknown[] = rawResult["hits"]
     return { hits }
   } catch {
     return null
@@ -112,7 +115,7 @@ const getStringId = (value: unknown): string | undefined => {
     return undefined
   }
 
-  const { id } = value
+  const id = getRecordValue(value, "id")
   if (typeof id === "string") {
     return id
   }
@@ -128,7 +131,7 @@ const deduplicateHits = (
 
   for (const hit of hits ?? []) {
     if (isRecord(hit)) {
-      const value = hit[field]
+      const value = getRecordValue(hit, field)
       const key =
         typeof value === "string"
           ? cleanSearchText(value).toLocaleLowerCase()
@@ -272,13 +275,12 @@ const getProductFields = (request: AutocompleteRequest): string[] => {
 
 const queryProducts = async (options: {
   dependencies: AutocompleteDependencies
-  filters: Record<string, unknown>
+  filters: ProductFilters
   pagination?: { skip: number; take: number }
   request: AutocompleteRequest
 }): Promise<StoreProductProjection[]> => {
   const context = getProductQueryContext(options.request)
   const filters = await normalizeProductSalesChannelFilter(
-    options.dependencies.queryService,
     options.dependencies.remoteQuery,
     options.filters,
   )

@@ -50,15 +50,10 @@ interface QuoteCustomerQueryResult {
   id: string
 }
 
-const isQuoteQueryObjectLike = (
-  value: unknown,
-): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
-const assertIsQuoteCartQueryResult: (
-  value: unknown,
-) => asserts value is WorkflowData<QuoteCartQueryResult> = (value) => {
-  if (!isQuoteQueryObjectLike(value) || typeof value["id"] !== "string") {
+const validateQuoteCartQueryResult = (
+  value: WorkflowData<QuoteCartQueryResult>,
+): void => {
+  if (typeof value.id !== "string") {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       "Unexpected cart query result shape",
@@ -67,11 +62,11 @@ const assertIsQuoteCartQueryResult: (
   }
 }
 
-const assertIsQuoteCustomerQueryResult: (
-  value: unknown,
-) => asserts value is WorkflowData<QuoteCustomerQueryResult> &
-  StepFunctionReturnConfig<QuoteCustomerQueryResult> = (value) => {
-  if (!isQuoteQueryObjectLike(value) || typeof value["id"] !== "string") {
+const validateQuoteCustomerQueryResult = (
+  value: WorkflowData<QuoteCustomerQueryResult> &
+    StepFunctionReturnConfig<QuoteCustomerQueryResult>,
+): void => {
+  if (typeof value.id !== "string") {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       "Unexpected customer query result shape",
@@ -79,6 +74,10 @@ const assertIsQuoteCustomerQueryResult: (
     )
   }
 }
+
+const queryCartStep: (
+  input: Parameters<typeof useRemoteQueryStep>[0],
+) => WorkflowData<QuoteCartQueryResult> = useRemoteQueryStep
 
 const queryCustomerStep: (
   input: Parameters<typeof useRemoteQueryStep>[0],
@@ -88,7 +87,7 @@ const queryCustomerStep: (
 export const createRequestForQuoteWorkflow = createWorkflow(
   "create-request-for-quote",
   (input: { cart_id: string; customer_id: string }) => {
-    const cart: unknown = useRemoteQueryStep({
+    const cart = queryCartStep({
       entry_point: "cart",
       fields: [
         "id",
@@ -107,17 +106,16 @@ export const createRequestForQuoteWorkflow = createWorkflow(
       throw_if_key_not_found: true,
       variables: { id: input.cart_id },
     })
-    assertIsQuoteCartQueryResult(cart)
+    validateQuoteCartQueryResult(cart)
 
-    const customerQueryResult: unknown = queryCustomerStep({
+    const customer = queryCustomerStep({
       entry_point: "customer",
       fields: ["id", "email"],
       list: false,
       throw_if_key_not_found: true,
       variables: { id: input.customer_id },
     }).config({ name: "customer-query" })
-    assertIsQuoteCustomerQueryResult(customerQueryResult)
-    const customer = customerQueryResult
+    validateQuoteCustomerQueryResult(customer)
 
     const orderInput = transform(
       { cart, customer },

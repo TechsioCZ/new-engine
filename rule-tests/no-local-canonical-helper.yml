@@ -13,6 +13,10 @@ invalid:
   - |
     const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null
   - |
+    const isObject = (value: unknown): value is object => typeof value === "object" && value !== null
+  - |
+    const isNonNullObject = (value: unknown): value is object => typeof value === "object" && value !== null
+  - |
     function assertNever(value: never): never { throw new Error(String(value)) }
   - |
     const debounce = (callback, delay) => callback

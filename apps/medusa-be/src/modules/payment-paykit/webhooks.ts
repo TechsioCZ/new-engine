@@ -2,36 +2,34 @@ import type { MedusaRequest } from "@medusajs/framework/http"
 import type { Logger, PaymentModuleOptions } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
-  MedusaError,
   Modules,
   PaymentWebhookEvents,
 } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+
+interface PaykitWebhookData {
+  fullUrl: string
+  url: string
+}
 
 interface EmitPaykitPaymentWebhookEventInput {
-  data: Record<string, unknown>
+  data: PaykitWebhookData
   provider: string
   rawData?: string | Buffer
   req: MedusaRequest
 }
 
-const getPaymentModuleOptions = (
-  paymentModule: unknown,
-): PaymentModuleOptions => {
-  if (!isRecord(paymentModule)) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "Payment module could not be resolved for PayKit webhook",
-    )
-  }
-
-  return isRecord(paymentModule["options"]) ? paymentModule["options"] : {}
+interface PaykitWebhookEmitErrorContext {
+  eventName: typeof PaymentWebhookEvents.WebhookReceived
+  headers: MedusaRequest["headers"]
+  paymentModuleOptions: PaymentModuleOptions
+  provider: string
+  rawData: string | Buffer
 }
 
 const logWebhookEmitError = (
   req: MedusaRequest,
   error: unknown,
-  context: Record<string, unknown>,
+  context: PaykitWebhookEmitErrorContext,
 ): void => {
   const logger = req.scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const errorObject = error instanceof Error ? error : new Error(String(error))
@@ -54,8 +52,10 @@ export const emitPaykitPaymentWebhookEvent = async ({
   let options: PaymentModuleOptions = {}
 
   try {
-    const paymentModule = req.scope.resolve(Modules.PAYMENT)
-    options = getPaymentModuleOptions(paymentModule)
+    const paymentModule = req.scope.resolve<{
+      options?: PaymentModuleOptions
+    }>(Modules.PAYMENT)
+    options = paymentModule.options ?? {}
     const eventBus = req.scope.resolve(Modules.EVENT_BUS)
 
     await eventBus.emit(

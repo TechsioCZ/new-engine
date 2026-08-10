@@ -1,5 +1,5 @@
 import { sleep } from "@techsio/std/async"
-import { isRecord } from "@techsio/std/object"
+import { z } from "zod"
 
 import type {
   MeiliProvisionResponse,
@@ -31,6 +31,22 @@ interface PolicyDefinition {
   actions: string[]
   indexes: string[]
 }
+
+const meiliKeySchema = z.object({
+  actions: z.array(z.string()),
+  description: z.string(),
+  indexes: z.array(z.string()),
+  key: z.string(),
+  uid: z.string(),
+})
+
+type MeiliKey = z.infer<typeof meiliKeySchema>
+
+const meiliErrorResponseSchema = z.object({
+  code: z.string().optional(),
+  detail: z.string().optional(),
+  message: z.string().optional(),
+})
 
 interface MeiliApiCredentialPolicies {
   backendPolicy: PolicyDefinition
@@ -147,22 +163,21 @@ const parseResponseBody = (text: string, status: number): unknown => {
   }
 }
 
-const isNonNullObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
 const parseErrorMessage = (payload: unknown, fallback: string): string => {
-  if (!isNonNullObject(payload)) {
+  const result = meiliErrorResponseSchema.safeParse(payload)
+  if (!result.success) {
     return fallback
   }
+  const { code, detail, message } = result.data
 
-  if (typeof payload["detail"] === "string" && payload["detail"].trim()) {
-    return payload["detail"]
+  if (detail !== undefined && detail.trim().length > 0) {
+    return detail
   }
-  if (typeof payload["message"] === "string" && payload["message"].trim()) {
-    return payload["message"]
+  if (message !== undefined && message.trim().length > 0) {
+    return message
   }
-  if (typeof payload["code"] === "string" && payload["code"].trim()) {
-    return `${fallback} (${payload["code"]})`
+  if (code !== undefined && code.trim().length > 0) {
+    return `${fallback} (${code})`
   }
 
   return fallback
@@ -237,64 +252,42 @@ const waitForHealth = async (input: RequestOptions): Promise<void> => {
   await poll()
 }
 
-const readString = (value: unknown, fallback: string): string =>
-  typeof value === "string" ? value : fallback
+const parseMeiliKey = (value: unknown, errorMessage: string): MeiliKey => {
+  const result = meiliKeySchema.safeParse(value)
+  if (!result.success) {
+    throw new Error(errorMessage, { cause: result.error })
+  }
 
-const readStringArray = (
-  object: Record<string, unknown>,
-  key: string,
-): string[] => {
-  const value = object[key]
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === "string")
-    : []
+  return result.data
 }
 
 const matchesPermissions = (
-  keyObject: unknown,
+  keyObject: MeiliKey,
   policy: PolicyDefinition,
-): boolean => {
-  if (!isNonNullObject(keyObject)) {
-    return false
-  }
-
-  const candidateActions = readStringArray(keyObject, "actions")
-  const candidateIndexes = readStringArray(keyObject, "indexes")
-
-  return (
-    candidateActions.toSorted().join(",") ===
-      policy.actions.toSorted().join(",") &&
-    candidateIndexes.toSorted().join(",") ===
-      policy.indexes.toSorted().join(",")
-  )
-}
+): boolean =>
+  keyObject.actions.toSorted().join(",") ===
+    policy.actions.toSorted().join(",") &&
+  keyObject.indexes.toSorted().join(",") === policy.indexes.toSorted().join(",")
 
 const matchesPolicy = (
-  keyObject: unknown,
+  keyObject: MeiliKey,
   policy: PolicyDefinition,
-): boolean => {
-  if (!isNonNullObject(keyObject)) {
-    return false
-  }
-
-  return (
-    keyObject["uid"] === policy.uid &&
-    matchesPermissions(keyObject, policy) &&
-    keyObject["description"] === policy.description
-  )
-}
+): boolean =>
+  keyObject.uid === policy.uid &&
+  matchesPermissions(keyObject, policy) &&
+  keyObject.description === policy.description
 
 const matchesDescription = (
-  keyObject: Record<string, unknown>,
+  keyObject: MeiliKey,
   policy: PolicyDefinition,
-): boolean => keyObject["description"] === policy.description
+): boolean => keyObject.description === policy.description
 
 const getKeyByUid = async (
   input: RequestOptions & {
     masterKey: string
     uid: string
   },
-): Promise<Record<string, unknown> | null> => {
+): Promise<MeiliKey | null> => {
   const result = await requestJson({
     init: {
       headers: {
@@ -307,11 +300,7 @@ const getKeyByUid = async (
         return null
       }
 
-      if (!isRecord(value)) {
-        throw new Error(`Failed to read key uid=${input.uid}.`)
-      }
-
-      return value
+      return parseMeiliKey(value, `Failed to read key uid=${input.uid}.`)
     },
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
@@ -334,9 +323,7 @@ interface ReconcileKeyInput {
   retryDelaySeconds: number
 }
 
-const createKey = async (
-  input: ReconcileKeyInput,
-): Promise<Record<string, unknown>> =>
+const createKey = async (input: ReconcileKeyInput): Promise<MeiliKey> =>
   await requestJson({
     init: {
       body: JSON.stringify({
@@ -352,13 +339,8 @@ const createKey = async (
       },
       method: "POST",
     },
-    parse: (value) => {
-      if (!isRecord(value)) {
-        throw new Error(`Failed to create key uid=${input.uid}.`)
-      }
-
-      return value
-    },
+    parse: (value) =>
+      parseMeiliKey(value, `Failed to create key uid=${input.uid}.`),
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
     timeoutSeconds: input.timeoutSeconds,
@@ -367,7 +349,7 @@ const createKey = async (
 
 const updateKeyDescription = async (
   input: ReconcileKeyInput,
-): Promise<Record<string, unknown>> =>
+): Promise<MeiliKey> =>
   await requestJson({
     init: {
       body: JSON.stringify({
@@ -379,13 +361,8 @@ const updateKeyDescription = async (
       },
       method: "PATCH",
     },
-    parse: (value) => {
-      if (!isRecord(value)) {
-        throw new Error(`Failed to update key uid=${input.uid}.`)
-      }
-
-      return value
-    },
+    parse: (value) =>
+      parseMeiliKey(value, `Failed to update key uid=${input.uid}.`),
     retryCount: input.retryCount,
     retryDelaySeconds: input.retryDelaySeconds,
     timeoutSeconds: input.timeoutSeconds,
@@ -411,7 +388,7 @@ const deleteKey = async (input: ReconcileKeyInput): Promise<void> => {
 const createOrUpdateKey = async (
   input: ReconcileKeyInput,
 ): Promise<{
-  keyObject: Record<string, unknown>
+  keyObject: MeiliKey
   created: boolean
   updated: boolean
 }> => {
@@ -519,13 +496,13 @@ export const provisionMeiliKeys = async (input: {
   return meiliProvisionResponseSchema.parse({
     backend_created: backend.created,
     backend_env_var: backendEnvVar,
-    backend_key: readString(backend.keyObject["key"], ""),
-    backend_uid: readString(backend.keyObject["uid"], backendPolicy.uid),
+    backend_key: backend.keyObject.key,
+    backend_uid: backend.keyObject.uid,
     backend_updated: backend.updated,
     frontend_created: frontend.created,
     frontend_env_var: frontendEnvVar,
-    frontend_key: readString(frontend.keyObject["key"], ""),
-    frontend_uid: readString(frontend.keyObject["uid"], frontendPolicy.uid),
+    frontend_key: frontend.keyObject.key,
+    frontend_uid: frontend.keyObject.uid,
     frontend_updated: frontend.updated,
     meili_url: normalizeBaseUrl(input.meiliUrl),
   })
@@ -619,13 +596,13 @@ export const verifyMeiliKeys = async (input: {
     )
   }
 
-  if (readString(backend["key"], "") !== input.backendKey) {
+  if (backend.key !== input.backendKey) {
     throw new Error(
       `Provided backend key does not match key stored under uid=${backendPolicy.uid}.`,
     )
   }
 
-  if (readString(frontend["key"], "") !== input.frontendKey) {
+  if (frontend.key !== input.frontendKey) {
     throw new Error(
       `Provided frontend key does not match key stored under uid=${frontendPolicy.uid}.`,
     )

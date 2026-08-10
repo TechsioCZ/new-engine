@@ -1,40 +1,28 @@
-import { MedusaError, Modules } from "@medusajs/framework/utils"
+import { Modules } from "@medusajs/framework/utils"
 import {
   createWorkflow,
   transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { createRemoteLinkStep } from "@medusajs/medusa/core-flows"
-import { isRecord } from "@techsio/std/object"
 
 import { APPROVAL_MODULE } from "../../../modules/approval"
-import type { ModuleCreateApproval } from "../../../types"
-import { isUnknownArray } from "../../../utils/guards"
+import type { ModuleApprovalStatus, ModuleCreateApproval } from "../../../types"
 import { createApprovalStatusStep } from "../steps/create-approval-status"
 import { createApprovalStep } from "../steps/create-approvals"
 
-const getApprovalStatusLinkData = (value: unknown) => {
-  const values = isUnknownArray(value) ? value : [value]
-  return values.map((status) => {
-    if (
-      !isRecord(status) ||
-      typeof status["cart_id"] !== "string" ||
-      typeof status["id"] !== "string"
-    ) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        "Create approval status step returned an invalid record",
-      )
-    }
-    return {
-      [Modules.CART]: {
-        cart_id: status["cart_id"],
-      },
-      [APPROVAL_MODULE]: {
-        approval_status_id: status["id"],
-      },
-    }
-  })
+const getApprovalStatusLinkData = (
+  value: ModuleApprovalStatus | ModuleApprovalStatus[],
+) => {
+  const values = Array.isArray(value) ? value : [value]
+  return values.map((status) => ({
+    [Modules.CART]: {
+      cart_id: status.cart_id,
+    },
+    [APPROVAL_MODULE]: {
+      approval_status_id: status.id,
+    },
+  }))
 }
 
 export const createApprovalsWorkflow = createWorkflow(

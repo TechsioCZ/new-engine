@@ -1,3 +1,5 @@
+import { getRecordValue } from "@techsio/std/object"
+
 import { queryKeysFactory } from "./query-key-factory"
 import { sdk } from "./sdk"
 
@@ -135,13 +137,16 @@ export interface BrandProductOptionsResponse {
   offset: number
 }
 
-const toSearch = (
-  params: Record<string, boolean | number | string | undefined>,
-) => {
+const toSearch = (params: object) => {
   const search = new URLSearchParams()
 
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "") {
+  for (const key of Object.keys(params)) {
+    const value = getRecordValue(params, key)
+    if (
+      typeof value === "boolean" ||
+      typeof value === "number" ||
+      (typeof value === "string" && value !== "")
+    ) {
       search.set(key, String(value))
     }
   }
@@ -149,16 +154,65 @@ const toSearch = (
   return search.toString()
 }
 
-const brandsQueryKeys = queryKeysFactory("brands")
-const brandAttributeTypesQueryKeys = queryKeysFactory("brand-attribute-types")
+interface ListBrandsParams {
+  handle?: string
+  include_deleted?: boolean
+  limit: number
+  offset: number
+  order_by?: string
+  q?: string
+}
+
+interface ListBrandAttributeTypesParams {
+  include_deleted?: boolean
+  limit: number
+  name?: string
+  offset: number
+  order_by?: string
+  q?: string
+}
+
+interface RetrieveBrandAttributeTypeParams {
+  include_deleted?: boolean
+  limit: number
+  offset: number
+  order_by?: string
+  q?: string
+}
+
+interface RetrieveBrandProductsParams {
+  limit: number
+  offset: number
+  order_by?: string
+  q?: string
+}
+
+interface RetrieveBrandProductOptionsParams {
+  limit: number
+  offset: number
+  q?: string
+}
+
+interface ListProductsParams {
+  fields?: string
+  limit: number
+  offset: number
+  q?: string
+}
+
+const brandsQueryKeys = queryKeysFactory<"brands", ListBrandsParams>("brands")
+const brandAttributeTypesQueryKeys = queryKeysFactory<
+  "brand-attribute-types",
+  ListBrandAttributeTypesParams
+>("brand-attribute-types")
 const brandProductsQueryKeys = queryKeysFactory<
   "brand-products",
-  Record<string, unknown>,
+  RetrieveBrandProductsParams,
   string | undefined
 >("brand-products")
 const brandProductOptionsQueryKeys = queryKeysFactory<
   "brand-product-options",
-  Record<string, unknown>,
+  RetrieveBrandProductOptionsParams,
   string | undefined
 >("brand-product-options")
 const productBrandsQueryKeys = queryKeysFactory<
@@ -170,25 +224,27 @@ const productBrandsQueryKeys = queryKeysFactory<
 export const brandQueryKeys = {
   attributeTypeDetail: (
     id: string | undefined,
-    params: Record<string, unknown>,
+    params: RetrieveBrandAttributeTypeParams,
   ) => brandAttributeTypesQueryKeys.detail(id ?? "", params),
   attributeTypeDetailPrefix: (id: string | undefined) =>
     ["brand-attribute-types", "detail", id ?? ""] as const,
   attributeTypeDetails: () => brandAttributeTypesQueryKeys.details(),
-  attributeTypes: (params: Record<string, unknown>) =>
+  attributeTypes: (params: ListBrandAttributeTypesParams) =>
     brandAttributeTypesQueryKeys.list(params),
   attributeTypesLists: () => brandAttributeTypesQueryKeys.lists(),
   detail: (id: string | undefined) => brandsQueryKeys.detail(id ?? ""),
   details: () => brandsQueryKeys.details(),
-  list: (params: Record<string, unknown>) => brandsQueryKeys.list(params),
+  list: (params: ListBrandsParams) => brandsQueryKeys.list(params),
   lists: () => brandsQueryKeys.lists(),
   productLinks: (productId: string | undefined) =>
     productBrandsQueryKeys.detail(productId),
   productLinksDetails: () => productBrandsQueryKeys.details(),
-  productOptions: (id: string | undefined, params: Record<string, unknown>) =>
-    brandProductOptionsQueryKeys.detail(id, params),
+  productOptions: (
+    id: string | undefined,
+    params: RetrieveBrandProductOptionsParams,
+  ) => brandProductOptionsQueryKeys.detail(id, params),
   productOptionsLists: () => brandProductOptionsQueryKeys.details(),
-  products: (id: string | undefined, params: Record<string, unknown>) =>
+  products: (id: string | undefined, params: RetrieveBrandProductsParams) =>
     brandProductsQueryKeys.detail(id, params),
   productsLists: (id?: string) =>
     id !== undefined && id !== ""
@@ -199,19 +255,12 @@ export const brandQueryKeys = {
 export const productQueryKeys = {
   detail: (id: string) => ["products", "detail", id] as const,
   details: () => ["products", "detail"] as const,
-  list: (params: Record<string, unknown>) =>
+  list: (params: ListProductsParams) =>
     ["products", "list", { query: params }] as const,
   lists: () => ["products", "list"] as const,
 }
 
-export const listBrands = async (params: {
-  handle?: string
-  include_deleted?: boolean
-  limit: number
-  offset: number
-  order_by?: string
-  q?: string
-}) =>
+export const listBrands = async (params: ListBrandsParams) =>
   await sdk.client.fetch<BrandsResponse>(`/admin/brands?${toSearch(params)}`)
 
 export const retrieveBrand = async (id: string) =>
@@ -239,27 +288,16 @@ export const restoreBrand = async (id: string) =>
     method: "POST",
   })
 
-export const listBrandAttributeTypes = async (params: {
-  include_deleted?: boolean
-  limit: number
-  name?: string
-  offset: number
-  order_by?: string
-  q?: string
-}) =>
+export const listBrandAttributeTypes = async (
+  params: ListBrandAttributeTypesParams,
+) =>
   await sdk.client.fetch<BrandAttributeTypesResponse>(
     `/admin/brands/attribute-types?${toSearch(params)}`,
   )
 
 export const retrieveBrandAttributeType = async (
   id: string,
-  params: {
-    include_deleted?: boolean
-    limit: number
-    offset: number
-    order_by?: string
-    q?: string
-  },
+  params: RetrieveBrandAttributeTypeParams,
 ) =>
   await sdk.client.fetch<BrandAttributeTypeDetailResponse>(
     `/admin/brands/attribute-types/${id}?${toSearch(params)}`,
@@ -315,7 +353,7 @@ export const setProductBrands = async (
 
 export const retrieveBrandProducts = async (
   brandId: string,
-  params: { limit: number; offset: number; order_by?: string; q?: string },
+  params: RetrieveBrandProductsParams,
 ) =>
   await sdk.client.fetch<BrandProductsResponse>(
     `/admin/brands/${brandId}/products?${toSearch(params)}`,
@@ -323,7 +361,7 @@ export const retrieveBrandProducts = async (
 
 export const retrieveBrandProductOptions = async (
   brandId: string,
-  params: { limit: number; offset: number; q?: string },
+  params: RetrieveBrandProductOptionsParams,
 ) =>
   await sdk.client.fetch<BrandProductOptionsResponse>(
     `/admin/brands/${brandId}/product-options?${toSearch(params)}`,
@@ -341,12 +379,7 @@ export const updateBrandProducts = async (
     },
   )
 
-export const listProducts = async (params: {
-  fields?: string
-  limit: number
-  offset: number
-  q?: string
-}) =>
+export const listProducts = async (params: ListProductsParams) =>
   await sdk.client.fetch<ProductsResponse>(
     `/admin/products?${toSearch(params)}`,
   )

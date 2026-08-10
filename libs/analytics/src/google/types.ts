@@ -75,9 +75,9 @@ export interface GtagFunction {
   (
     command: "config" | "event",
     targetOrEventName: string,
-    params?: Record<string, unknown>,
+    params?: object,
   ): void
-  (command: "set", params: Record<string, unknown>): void
+  (command: "set", params: object): void
 }
 
 // Extend Window interface

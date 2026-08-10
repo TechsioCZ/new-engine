@@ -1,7 +1,10 @@
 import type {
   ExecArgs,
+  IProductModuleService,
+  IStockLocationService,
   Logger,
   ProductDTO,
+  Query,
   StockLocationDTO,
 } from "@medusajs/framework/types"
 import {
@@ -18,20 +21,6 @@ const TARGET_STOCK_QUANTITY = 50
 
 type ProductWithVariants = ProductDTO & {
   variants: NonNullable<ProductDTO["variants"]>
-}
-
-interface ProductService {
-  listProducts: (
-    filters: Record<string, unknown>,
-    config?: Record<string, unknown>,
-  ) => Promise<ProductDTO[]>
-}
-
-interface StockLocationService {
-  listStockLocations: (
-    filters: Record<string, unknown>,
-    config?: Record<string, unknown>,
-  ) => Promise<StockLocationDTO[]>
 }
 
 interface InventoryItemLink {
@@ -54,14 +43,6 @@ interface InventoryLevelUpdate {
   stocked_quantity: number
 }
 
-interface QueryService {
-  graph: (config: {
-    entity: string
-    fields: string[]
-    filters?: Record<string, unknown>
-  }) => Promise<{ data?: unknown }>
-}
-
 const inventoryItemLinkSchema = z.object({
   inventory_item_id: z.string().min(1),
   variant_id: z.string().min(1),
@@ -76,7 +57,7 @@ const inventoryLevelSchema = z.object({
 })
 
 const findProductWithVariants = async (
-  productService: ProductService,
+  productService: IProductModuleService,
   logger: Logger,
 ): Promise<ProductWithVariants | undefined> => {
   logger.info(`Looking for product with handle: ${PRODUCT_HANDLE}`)
@@ -107,7 +88,7 @@ const findProductWithVariants = async (
 }
 
 const findStockLocation = async (
-  stockLocationService: StockLocationService,
+  stockLocationService: IStockLocationService,
   logger: Logger,
 ): Promise<StockLocationDTO | undefined> => {
   const stockLocations = await stockLocationService.listStockLocations(
@@ -131,7 +112,7 @@ const findStockLocation = async (
 }
 
 const fetchInventoryItemLinks = async (
-  query: QueryService,
+  query: Query,
   product: ProductWithVariants,
   logger: Logger,
 ): Promise<InventoryItemLink[] | undefined> => {
@@ -166,7 +147,7 @@ const fetchInventoryItemLinks = async (
 }
 
 const fetchInventoryLevels = async (
-  query: QueryService,
+  query: Query,
   inventoryItemLinks: InventoryItemLink[],
   stockLocation: StockLocationDTO,
   logger: Logger,
@@ -261,11 +242,13 @@ const buildInventoryLevelUpdates = ({
 
 const updateInventory = async ({ container }: ExecArgs): Promise<void> => {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-  const productService = container.resolve<ProductService>(Modules.PRODUCT)
-  const stockLocationService = container.resolve<StockLocationService>(
+  const productService = container.resolve<IProductModuleService>(
+    Modules.PRODUCT,
+  )
+  const stockLocationService = container.resolve<IStockLocationService>(
     Modules.STOCK_LOCATION,
   )
-  const query = container.resolve<QueryService>(ContainerRegistrationKeys.QUERY)
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
   try {
     const product = await findProductWithVariants(productService, logger)

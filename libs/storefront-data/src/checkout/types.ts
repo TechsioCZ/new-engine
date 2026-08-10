@@ -22,7 +22,7 @@ export interface CheckoutCartLike {
   region_id?: string | null
   shipping_methods?: {
     shipping_option_id?: string
-    data?: Record<string, unknown>
+    data?: object
   }[]
   payment_collection?: { payment_sessions?: unknown[] }
 }
@@ -52,13 +52,13 @@ export interface CheckoutService<
   ) => Promise<TShippingOption[]>
   calculateShippingOption?: (
     optionId: string,
-    input: { cart_id: string; data?: Record<string, unknown> },
+    input: { cart_id: string; data?: object },
     signal?: AbortSignal,
   ) => Promise<TShippingOption>
   addShippingMethod: (
     cartId: string,
     optionId: string,
-    data?: Record<string, unknown>,
+    data?: object,
   ) => Promise<TCart>
   listPaymentProviders: (
     regionId: string,
@@ -78,7 +78,7 @@ export interface CheckoutQueryKeys {
   shippingOptionPrice: (params: {
     cartId: string
     optionId: string
-    data?: Record<string, unknown>
+    data?: object
   }) => QueryKey
   paymentProviders: (regionId: string) => QueryKey
 }
@@ -89,14 +89,11 @@ export interface UseCheckoutShippingResult<TShippingOption, TCart = unknown> {
   isLoading: boolean
   isFetching: boolean
   isCalculating: boolean
-  setShippingMethod: (optionId: string, data?: Record<string, unknown>) => void
-  setShippingMethodAsync: (
-    optionId: string,
-    data?: Record<string, unknown>,
-  ) => Promise<TCart>
+  setShippingMethod: (optionId: string, data?: object) => void
+  setShippingMethodAsync: (optionId: string, data?: object) => Promise<TCart>
   isSettingShipping: boolean
   selectedShippingMethodId?: string
-  selectedShippingMethodData?: Record<string, unknown>
+  selectedShippingMethodData?: object
   selectedOption?: TShippingOption
 }
 export interface UseCheckoutPaymentResult<

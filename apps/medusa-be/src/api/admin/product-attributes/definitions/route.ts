@@ -26,23 +26,25 @@ const get = async (
 ) => {
   const { input_type, is_public, limit, offset, order, q, status } =
     req.validatedQuery
-  const filters: Record<string, unknown> = {
-    ...(input_type !== undefined && input_type.length > 0
-      ? { input_type }
-      : {}),
-    ...(is_public === undefined ? {} : { is_public }),
-  }
   const escapedQuery =
     q !== undefined && q.length > 0
       ? escapeProductAttributeLikePattern(q)
       : undefined
-  if (escapedQuery !== undefined && escapedQuery.length > 0) {
-    filters["$or"] = [
-      { key: { $ilike: `%${escapedQuery}%` } },
-      { label: { $ilike: `%${escapedQuery}%` } },
-    ]
+  const baseFilters = {
+    ...(input_type !== undefined && input_type.length > 0
+      ? { input_type }
+      : {}),
+    ...(is_public === undefined ? {} : { is_public }),
+    ...(escapedQuery !== undefined && escapedQuery.length > 0
+      ? {
+          $or: [
+            { key: { $ilike: `%${escapedQuery}%` } },
+            { label: { $ilike: `%${escapedQuery}%` } },
+          ],
+        }
+      : {}),
   }
-  applyProductAttributeStatusFilter(filters, status)
+  const filters = applyProductAttributeStatusFilter(baseFilters, status)
 
   const [definitions, count] = await getProductAttributeService(
     req.scope,

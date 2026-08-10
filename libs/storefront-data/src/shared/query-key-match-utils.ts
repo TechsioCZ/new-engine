@@ -1,4 +1,4 @@
-import { isRecord as isPlainRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord as isPlainRecord } from "@techsio/std/object"
 
 import type { QueryKey } from "./query-keys"
 
@@ -25,7 +25,12 @@ export const areQueryKeySegmentsEqual = (
 
     return (
       leftKeys.length === rightKeys.length &&
-      leftKeys.every((key) => areQueryKeySegmentsEqual(left[key], right[key]))
+      leftKeys.every((key) =>
+        areQueryKeySegmentsEqual(
+          getRecordValue(left, key),
+          getRecordValue(right, key),
+        ),
+      )
     )
   }
 
@@ -33,7 +38,7 @@ export const areQueryKeySegmentsEqual = (
 }
 
 export const getSortedRecordKeys = (
-  ...records: readonly Record<string, unknown>[]
+  ...records: readonly object[]
 ): string[] => {
   const sortedKeys: string[] = []
   const seenKeys = new Set<string>()

@@ -1,5 +1,6 @@
-import type { Query } from "@medusajs/framework/types"
+import type { MetadataType, Query } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
+import { getRecordValue } from "@techsio/std/object"
 
 import {
   getManualOrderBusinessStatusId,
@@ -20,7 +21,7 @@ export type OrderBusinessStatusOrder = OrderBusinessStatusInput & {
   display_id?: number | null
   email?: string | null
   id: string
-  metadata?: Record<string, unknown> | null
+  metadata?: MetadataType
   total?: number | string | null
 }
 
@@ -48,9 +49,7 @@ export const ORDER_BUSINESS_STATUS_ORDER_FIELDS = [
   "shipping_methods.id",
 ]
 
-const isOrderBusinessStatusObjectLike = (
-  value: unknown,
-): value is Record<string, unknown> =>
+const isOrderBusinessStatusObjectLike = (value: unknown): value is object =>
   typeof value === "object" && value !== null
 
 const isNullableString = (value: unknown) =>
@@ -63,13 +62,14 @@ const isNullableTotal = (value: unknown) =>
   isNullableString(value) || typeof value === "number"
 
 const isPaymentCollection = (value: unknown) =>
-  isOrderBusinessStatusObjectLike(value) && isNullableString(value["status"])
+  isOrderBusinessStatusObjectLike(value) &&
+  isNullableString(getRecordValue(value, "status"))
 
 const isFulfillment = (value: unknown) =>
   isOrderBusinessStatusObjectLike(value) &&
-  isNullableDate(value["canceled_at"]) &&
-  isNullableDate(value["delivered_at"]) &&
-  isNullableDate(value["shipped_at"])
+  isNullableDate(getRecordValue(value, "canceled_at")) &&
+  isNullableDate(getRecordValue(value, "delivered_at")) &&
+  isNullableDate(getRecordValue(value, "shipped_at"))
 
 const isNullableRecord = (value: unknown) =>
   value === undefined ||
@@ -91,22 +91,22 @@ const isOrderBusinessStatusOrder = (
     return false
   }
 
-  if (typeof value["id"] !== "string") {
+  if (typeof getRecordValue(value, "id") !== "string") {
     return false
   }
   const nullableStrings = [
-    value["currency_code"],
-    value["custom_display_id"],
-    value["customer_id"],
-    value["email"],
-    value["fulfillment_status"],
-    value["payment_status"],
-    value["status"],
+    getRecordValue(value, "currency_code"),
+    getRecordValue(value, "custom_display_id"),
+    getRecordValue(value, "customer_id"),
+    getRecordValue(value, "email"),
+    getRecordValue(value, "fulfillment_status"),
+    getRecordValue(value, "payment_status"),
+    getRecordValue(value, "status"),
   ]
   if (!nullableStrings.every(isNullableString)) {
     return false
   }
-  const displayId = value["display_id"]
+  const displayId = getRecordValue(value, "display_id")
   if (
     displayId !== undefined &&
     displayId !== null &&
@@ -115,18 +115,21 @@ const isOrderBusinessStatusOrder = (
     return false
   }
   if (
-    !isNullableDate(value["created_at"]) ||
-    !isNullableTotal(value["total"])
+    !isNullableDate(getRecordValue(value, "created_at")) ||
+    !isNullableTotal(getRecordValue(value, "total"))
   ) {
     return false
   }
   if (
-    !isNullableArrayOf(value["fulfillments"], isFulfillment) ||
-    !isNullableArrayOf(value["payment_collections"], isPaymentCollection)
+    !isNullableArrayOf(getRecordValue(value, "fulfillments"), isFulfillment) ||
+    !isNullableArrayOf(
+      getRecordValue(value, "payment_collections"),
+      isPaymentCollection,
+    )
   ) {
     return false
   }
-  return isNullableRecord(value["metadata"])
+  return isNullableRecord(getRecordValue(value, "metadata"))
 }
 
 export const parseOrderBusinessStatusOrders = (
@@ -163,7 +166,7 @@ export const fetchOrderBusinessStatusOrder = async (
     filters: { id },
   })
   const data: unknown = isOrderBusinessStatusObjectLike(result)
-    ? result["data"]
+    ? getRecordValue(result, "data")
     : undefined
   const [order] = parseOrderBusinessStatusOrders(data)
   return order
@@ -186,7 +189,7 @@ export const toOrderBusinessStatusSummary = (
 })
 
 export const buildOrderBusinessStatusMetadata = (
-  metadata: Record<string, unknown> | null | undefined,
+  metadata: MetadataType | undefined,
   status: ManualOrderBusinessStatusId | null,
 ) => ({
   ...metadata,

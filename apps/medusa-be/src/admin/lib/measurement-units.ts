@@ -1,3 +1,5 @@
+import { getRecordValue } from "@techsio/std/object"
+
 import { sdk } from "./sdk"
 
 export interface MeasurementUnit {
@@ -89,13 +91,16 @@ export interface ProductVariantMeasurementResponse {
   variant_measurement: ProductVariantMeasurement | null
 }
 
-const toSearch = (
-  params: Record<string, boolean | number | string | undefined>,
-) => {
+const toSearch = (params: object) => {
   const search = new URLSearchParams()
 
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "") {
+  for (const key of Object.keys(params)) {
+    const value = getRecordValue(params, key)
+    if (
+      typeof value === "boolean" ||
+      typeof value === "number" ||
+      (typeof value === "string" && value !== "")
+    ) {
       search.set(key, String(value))
     }
   }
@@ -103,10 +108,28 @@ const toSearch = (
   return search.toString()
 }
 
+interface ListMeasurementUnitsParams {
+  code?: string
+  include_deleted?: boolean
+  limit: number
+  offset: number
+  order_by?: string
+  q?: string
+  status?: MeasurementUnitStatus
+}
+
+interface ListAssignedProductsParams {
+  limit: number
+  offset: number
+  order_by?: string
+  q?: string
+  status?: MeasurementUnitStatus
+}
+
 export const measurementUnitQueryKeys = {
   detail: (id: string | undefined) => ["measurement-unit", id] as const,
   details: () => ["measurement-unit"] as const,
-  list: (params: Record<string, unknown>) =>
+  list: (params: ListMeasurementUnitsParams) =>
     ["measurement-units", params] as const,
   lists: () => ["measurement-units"] as const,
   productMeasurement: (productId: string | undefined) =>
@@ -117,21 +140,15 @@ export const measurementUnitQueryKeys = {
   ) => ["product-variant-measurement", productId, productVariantId] as const,
   productVariantMeasurements: (productId: string | undefined) =>
     ["product-variant-measurement", productId] as const,
-  products: (id: string | undefined, params: Record<string, unknown>) =>
+  products: (id: string | undefined, params: ListAssignedProductsParams) =>
     ["measurement-unit-products", id, params] as const,
   productsPrefix: (id: string | undefined) =>
     ["measurement-unit-products", id] as const,
 }
 
-export const listMeasurementUnits = async (params: {
-  code?: string
-  include_deleted?: boolean
-  limit: number
-  offset: number
-  order_by?: string
-  q?: string
-  status?: MeasurementUnitStatus
-}) =>
+export const listMeasurementUnits = async (
+  params: ListMeasurementUnitsParams,
+) =>
   await sdk.client.fetch<MeasurementUnitsResponse>(
     `/admin/measurement-units?${toSearch(params)}`,
   )
@@ -143,13 +160,7 @@ export const retrieveMeasurementUnit = async (id: string) =>
 
 export const listMeasurementUnitAssignedProducts = async (
   id: string,
-  params: {
-    limit: number
-    offset: number
-    order_by?: string
-    q?: string
-    status?: MeasurementUnitStatus
-  },
+  params: ListAssignedProductsParams,
 ) =>
   await sdk.client.fetch<MeasurementUnitAssignedProductsResponse>(
     `/admin/measurement-units/${id}/products?${toSearch(params)}`,

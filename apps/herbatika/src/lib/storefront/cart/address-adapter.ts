@@ -1,4 +1,6 @@
-import { isRecord, omitKeys } from "@techsio/std/object"
+import { omitKeys, omitUndefined } from "@techsio/std/object"
+import { isStorefrontMetadata } from "@techsio/storefront-data/cart/types"
+import type { StorefrontMetadata } from "@techsio/storefront-data/cart/types"
 import {
   createCheckoutCartAddressAdapter,
   mapMedusaAddressToCheckoutAddress,
@@ -12,23 +14,23 @@ import type { StorefrontCartAddressAdapter } from "@techsio/storefront-data/shar
 
 import type { CheckoutAddressValues } from "@/lib/forms/checkout/address.form"
 
-const HERBATIKA_ADDRESS_METADATA_FIELDS = [
-  ["companyId", "company_id"],
-  ["taxId", "tax_id"],
-  ["vatId", "vat_id"],
-  ["customerNote", "customer_note"],
-] as const
-
-export type HerbatikaCheckoutAddressInput = CheckoutAddressInput & {
-  companyId?: string | null
-  customerNote?: string | null
-  metadata?: Record<string, unknown>
-  taxId?: string | null
-  vatId?: string | null
+type HerbatikaAddressMetadata = StorefrontMetadata & {
+  company_id?: string
+  customer_note?: string
+  tax_id?: string
+  vat_id?: string
 }
 
-type HerbatikaCheckoutAddressPayload = MedusaCartAddressPayload & {
-  metadata?: Record<string, unknown>
+export type HerbatikaCheckoutAddressInput =
+  CheckoutAddressInput<HerbatikaAddressMetadata> & {
+    companyId?: string | null
+    customerNote?: string | null
+    taxId?: string | null
+    vatId?: string | null
+  }
+
+export type HerbatikaCheckoutAddressPayload = MedusaCartAddressPayload & {
+  metadata?: HerbatikaAddressMetadata
 }
 
 const baseAddressAdapter =
@@ -50,28 +52,40 @@ const buildHerbatikaAddressMetadata = (
     HerbatikaCheckoutAddressInput,
     "companyId" | "customerNote" | "metadata" | "taxId" | "vatId"
   >,
-) => {
-  let metadata = {
-    ...(isRecord(input.metadata) ? input.metadata : {}),
-  }
-
-  for (const [sourceField, metadataKey] of HERBATIKA_ADDRESS_METADATA_FIELDS) {
-    const normalizedValue = normalizeOptionalString(input[sourceField])
-
-    if ((normalizedValue ?? "").length > 0) {
-      metadata[metadataKey] = normalizedValue
-    } else {
-      metadata = omitKeys(metadata, [metadataKey])
-    }
+): HerbatikaAddressMetadata | undefined => {
+  const companyId = normalizeOptionalString(input.companyId)
+  const customerNote = normalizeOptionalString(input.customerNote)
+  const taxId = normalizeOptionalString(input.taxId)
+  const vatId = normalizeOptionalString(input.vatId)
+  const existingMetadata = omitKeys(input.metadata ?? {}, [
+    "company_id",
+    "customer_note",
+    "tax_id",
+    "vat_id",
+  ])
+  const metadata: HerbatikaAddressMetadata = {
+    ...existingMetadata,
+    ...(companyId === undefined ? {} : { company_id: companyId }),
+    ...(customerNote === undefined ? {} : { customer_note: customerNote }),
+    ...(taxId === undefined ? {} : { tax_id: taxId }),
+    ...(vatId === undefined ? {} : { vat_id: vatId }),
   }
 
   return Object.keys(metadata).length > 0 ? metadata : undefined
 }
 
+const readHerbatikaAddressMetadata = (
+  value: unknown,
+): StorefrontMetadata | undefined =>
+  isStorefrontMetadata(value) ? value : undefined
+
 const readMetadataString = (
-  metadata: Record<string, unknown> | null | undefined,
+  metadata: HerbatikaAddressMetadata | undefined,
   key: string,
-) => normalizeOptionalString(metadata?.[key])
+) =>
+  normalizeOptionalString(
+    metadata === undefined ? undefined : Reflect.get(metadata, key),
+  )
 
 export const buildHerbatikaCheckoutAddressInput = (
   addressForm: CheckoutAddressValues,
@@ -95,7 +109,7 @@ export const mapHerbatikaAddressFormStateFromMedusaAddress = (
   address?: MedusaAddressLike | null,
 ): Partial<CheckoutAddressValues> => {
   const baseAddress = mapMedusaAddressToCheckoutAddress(address)
-  const metadata = isRecord(address?.metadata) ? address.metadata : undefined
+  const metadata = readHerbatikaAddressMetadata(address?.metadata)
 
   const values = {
     address1: baseAddress.street,
@@ -113,9 +127,7 @@ export const mapHerbatikaAddressFormStateFromMedusaAddress = (
     vatId: readMetadataString(metadata, "vat_id"),
   }
 
-  return Object.fromEntries(
-    Object.entries(values).filter(([, value]) => value !== undefined),
-  )
+  return omitUndefined(values)
 }
 
 export const herbatikaCheckoutCartAddressAdapter: StorefrontCartAddressAdapter<

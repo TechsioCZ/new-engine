@@ -68,6 +68,14 @@ const patchRoute = async (
       review: omitUndefined(req.validatedBody),
     },
   })
+
+  if (!isReviewRecord(review)) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Review workflow returned invalid review data",
+    )
+  }
+
   const productsById = await getProductsById(req, [review.product_id])
 
   res.json({ review: normalizeAdminReview(review, productsById) })

@@ -3,13 +3,13 @@ import path from "node:path"
 
 import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
-import { isRecord } from "@techsio/std/object"
 import { hasTrimmedString } from "@techsio/std/string"
 import type { Mock } from "vitest"
 import { describe, expect, it, vi } from "vitest"
 
 import { createCatalogHooks } from "../src/catalog/hooks"
 import { createMedusaCatalogService } from "../src/catalog/medusa-service"
+import type { MedusaCatalogListQuery } from "../src/catalog/medusa-service"
 import { createCatalogQueryKeys } from "../src/catalog/query-keys"
 import { createMedusaCustomerService } from "../src/customers/medusa-service"
 import {
@@ -63,8 +63,33 @@ interface CatalogClientFetchResponse {
 
 type CatalogClientFetch = (
   path: string,
-  init?: { query?: Record<string, unknown>; signal?: AbortSignal | null },
+  init?: {
+    query?: MedusaCatalogListQuery
+    signal?: AbortSignal | null
+  },
 ) => Promise<CatalogClientFetchResponse>
+
+const createCatalogProductResponse = (
+  product: unknown,
+): CatalogClientFetchResponse => ({
+  count: 1,
+  facets: {
+    brand: [],
+    form: [],
+    ingredient: [],
+    price: { max: null, min: null },
+    status: [],
+  },
+  limit: 12,
+  page: 1,
+  products: [product],
+  search: {
+    degraded: false,
+    exactIdentifierMatch: false,
+    profile: "default",
+  },
+  totalPages: 1,
+})
 
 type ListAddress = (
   query?: HttpTypes.SelectParams,
@@ -116,15 +141,8 @@ const createCustomerSdkMock = () => {
   return { sdk, spies }
 }
 
-const readPackageJsonExports = (): Record<string, unknown> | undefined => {
-  const raw: unknown = JSON.parse(
-    readFileSync(path.join(process.cwd(), "package.json"), "utf-8"),
-  )
-  if (!isRecord(raw) || !isRecord(raw["exports"])) {
-    return undefined
-  }
-  return raw["exports"]
-}
+const readPackageJson = (): string =>
+  readFileSync(path.join(process.cwd(), "package.json"), "utf-8")
 
 describe("phase 1 regressions", () => {
   it("applies region input to standalone catalog prefetch keys and params", async () => {
@@ -218,7 +236,7 @@ describe("phase 1 regressions", () => {
 
     const service = createMedusaCatalogService(sdk)
 
-    const malformedInput: Record<string, unknown> = {
+    const malformedInput = {
       limit: 12,
       locale: "sk-SK",
       page: 1,
@@ -264,14 +282,11 @@ describe("phase 1 regressions", () => {
     })
     Object.defineProperty(sdk.client, "fetch", { value: clientFetch })
 
-    const result: unknown = await createMedusaCatalogService(
-      sdk,
-    ).getCatalogProducts({})
-    expect(isRecord(result) && isRecord(result["search"])).toBeTruthy()
-    if (!(isRecord(result) && isRecord(result["search"]))) {
-      throw new Error("Expected validated search metadata")
+    const result = await createMedusaCatalogService(sdk).getCatalogProducts({})
+    if (result.search === undefined) {
+      throw new TypeError("Catalog search metadata is missing")
     }
-    expect(result["search"]["degraded"]).toBeTruthy()
+    expect(result.search.degraded).toBeTruthy()
   })
 
   it("rejects malformed catalog products and scalar pagination", async () => {
@@ -295,6 +310,62 @@ describe("phase 1 regressions", () => {
       },
       totalPages: 0,
     })
+    Object.defineProperty(sdk.client, "fetch", { value: clientFetch })
+
+    await expect(
+      createMedusaCatalogService(sdk).getCatalogProducts({}),
+    ).rejects.toMatchObject({ code: "INVALID_MEDUSA_CATALOG_RESPONSE" })
+  })
+
+  it("preserves validated catalog product identity and status", async () => {
+    const sdk = createTestMedusaSdk()
+    const product = {
+      handle: "identity-product",
+      id: "prod_identity",
+      status: "rejected",
+      title: "Identity product",
+    }
+    const clientFetch = vi
+      .fn<CatalogClientFetch>()
+      .mockResolvedValue(createCatalogProductResponse(product))
+    Object.defineProperty(sdk.client, "fetch", { value: clientFetch })
+
+    const response = await createMedusaCatalogService(sdk).getCatalogProducts(
+      {},
+    )
+
+    expect(response.products[0]).toBe(product)
+    expect(response.products[0]?.status).toBe("rejected")
+  })
+
+  it("accepts catalog products without an optional status", async () => {
+    const sdk = createTestMedusaSdk()
+    const product = {
+      handle: "missing-status",
+      id: "prod_1",
+      title: "Missing status",
+    }
+    const clientFetch = vi
+      .fn<CatalogClientFetch>()
+      .mockResolvedValue(createCatalogProductResponse(product))
+    Object.defineProperty(sdk.client, "fetch", { value: clientFetch })
+
+    await expect(
+      createMedusaCatalogService(sdk).getCatalogProducts({}),
+    ).resolves.toMatchObject({ products: [product] })
+  })
+
+  it("rejects an unrecognized catalog product status", async () => {
+    const sdk = createTestMedusaSdk()
+    const product = {
+      handle: "invalid-status",
+      id: "prod_1",
+      status: "active",
+      title: "Invalid status",
+    }
+    const clientFetch = vi
+      .fn<CatalogClientFetch>()
+      .mockResolvedValue(createCatalogProductResponse(product))
     Object.defineProperty(sdk.client, "fetch", { value: clientFetch })
 
     await expect(
@@ -396,11 +467,14 @@ describe("phase 1 regressions", () => {
 
   it("selects newly created customer address by id diff instead of array order", async () => {
     const { sdk, spies } = createCustomerSdkMock()
+    const createdAddress = createStoreCustomerAddress("addr_new", {
+      address_1: "New",
+    })
     spies.createAddress.mockResolvedValue({
       customer: createStoreCustomer("cus_1", {
         addresses: [
           createStoreCustomerAddress("addr_old_1", { address_1: "Old 1" }),
-          createStoreCustomerAddress("addr_new", { address_1: "New" }),
+          createdAddress,
           createStoreCustomerAddress("addr_old_2", { address_1: "Old 2" }),
         ],
       }),
@@ -419,7 +493,7 @@ describe("phase 1 regressions", () => {
       city: "Prague",
     })
 
-    expect(created.id).toBe("addr_new")
+    expect(created).toBe(createdAddress)
   })
 
   it("loads all address pages before id diff in createAddress", async () => {
@@ -502,29 +576,37 @@ describe("phase 1 regressions", () => {
   })
 
   it("defines explicit package exports for client, server, and product-lists entry points", () => {
-    const exportsMap = readPackageJsonExports()
+    const packageJson: unknown = JSON.parse(readPackageJson())
 
-    expect(exportsMap).toBeTruthy()
-    expect(exportsMap?.["."]).toBeNull()
-    expect(exportsMap?.["./client/provider"]).toStrictEqual({
-      import: "./dist/client/provider.js",
-      types: "./dist/src/client/provider.d.ts",
-    })
-    expect(exportsMap?.["./server/get-query-client"]).toStrictEqual({
-      import: "./dist/server/get-query-client.js",
-      types: "./dist/src/server/get-query-client.d.ts",
+    expect(packageJson).toMatchObject({
+      exports: {
+        ".": null,
+        "./client/provider": {
+          import: "./dist/client/provider.js",
+          types: "./dist/src/client/provider.d.ts",
+        },
+        "./server/get-query-client": {
+          import: "./dist/server/get-query-client.js",
+          types: "./dist/src/server/get-query-client.d.ts",
+        },
+      },
     })
   })
 
   it("blocks root export aliases and undocumented product-lists wildcard", () => {
-    const exportsMap = readPackageJsonExports()
+    const packageJson = readPackageJson()
+    const parsedPackageJson: unknown = JSON.parse(packageJson)
 
-    expect(exportsMap?.["./product-lists/query-options"]).toStrictEqual({
-      import: "./dist/product-lists/query-options.js",
-      types: "./dist/src/product-lists/query-options.d.ts",
+    expect(parsedPackageJson).toMatchObject({
+      exports: {
+        "./product-lists/query-options": {
+          import: "./dist/product-lists/query-options.js",
+          types: "./dist/src/product-lists/query-options.d.ts",
+        },
+      },
     })
-    expect(exportsMap?.["./get-query-client"]).toBeUndefined()
-    expect(exportsMap?.["./medusa/cart-flow"]).toBeUndefined()
-    expect(exportsMap?.["./*"]).toBeUndefined()
+    expect(packageJson).not.toContain('"./get-query-client"')
+    expect(packageJson).not.toContain('"./medusa/cart-flow"')
+    expect(packageJson).not.toContain('"./*"')
   })
 })

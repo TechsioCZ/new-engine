@@ -8,6 +8,7 @@ import {
   MedusaError,
   Modules,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import { sql } from "drizzle-orm"
 
 import { DATABASE_MODULE } from "../modules/database"
@@ -32,105 +33,83 @@ const CACHE_TTL = {
   DATA: 86_400,
 } as const
 
-const isCategoryRaw = (value: unknown): value is CategoryRaw => {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return false
+const categoryRawArraySchema = z.array(
+  z.object({
+    description: z.string(),
+    handle: z.string(),
+    isActive: z.boolean(),
+    parentHandle: z.union([z.string(), z.undefined()]),
+    title: z.string(),
+  }),
+)
+
+const productRawArraySchema = z.array(
+  z.object({
+    brand: z.string(),
+    categories: z.string(),
+    description: z.string().optional(),
+    handle: z.string(),
+    images: z.string(),
+    options: z.string(),
+    thumbnail: z.string().optional(),
+    title: z.string(),
+    variants: z.string(),
+  }),
+)
+
+const readCategoryRawArray = (value: unknown): CategoryRaw[] | undefined => {
+  const parsed = categoryRawArraySchema.safeParse(value)
+  if (!parsed.success) {
+    return undefined
   }
-  if (
-    !("description" in value) ||
-    !("handle" in value) ||
-    !("isActive" in value)
-  ) {
-    return false
-  }
-  if (
-    typeof value.description !== "string" ||
-    typeof value.handle !== "string" ||
-    typeof value.isActive !== "boolean"
-  ) {
-    return false
-  }
-  if (!("parentHandle" in value) || !("title" in value)) {
-    return false
-  }
-  if (
-    value.parentHandle !== undefined &&
-    typeof value.parentHandle !== "string"
-  ) {
-    return false
-  }
-  return typeof value.title === "string"
+  return parsed.data.map((category) => ({
+    ...category,
+    parentHandle: category.parentHandle,
+  }))
 }
 
-const hasOptionalProductRawFields = (value: object): boolean => {
-  if (
-    "description" in value &&
-    value.description !== undefined &&
-    typeof value.description !== "string"
-  ) {
-    return false
+const readProductRawArray = (value: unknown): ProductRaw[] | undefined => {
+  const parsed = productRawArraySchema.safeParse(value)
+  if (!parsed.success) {
+    return undefined
   }
-  return (
-    !("thumbnail" in value) ||
-    value.thumbnail === undefined ||
-    typeof value.thumbnail === "string"
-  )
+  return parsed.data.map((product) => ({
+    brand: product.brand,
+    categories: product.categories,
+    handle: product.handle,
+    images: product.images,
+    options: product.options,
+    title: product.title,
+    variants: product.variants,
+    ...(product.description === undefined
+      ? {}
+      : { description: product.description }),
+    ...(product.thumbnail === undefined
+      ? {}
+      : { thumbnail: product.thumbnail }),
+  }))
 }
 
-const isProductRaw = (value: unknown): value is ProductRaw => {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return false
-  }
-  if (!("brand" in value) || !("categories" in value) || !("handle" in value)) {
-    return false
-  }
-  if (
-    typeof value.brand !== "string" ||
-    typeof value.categories !== "string" ||
-    typeof value.handle !== "string"
-  ) {
-    return false
-  }
-  if (!("images" in value) || !("options" in value) || !("title" in value)) {
-    return false
-  }
-  if (
-    typeof value.images !== "string" ||
-    typeof value.options !== "string" ||
-    typeof value.title !== "string"
-  ) {
-    return false
-  }
-  if (!("variants" in value) || typeof value.variants !== "string") {
-    return false
-  }
-  return hasOptionalProductRawFields(value)
-}
-
-const isCategoryRawArray = (value: unknown): value is CategoryRaw[] =>
-  Array.isArray(value) && value.every((item: unknown) => isCategoryRaw(item))
-
-const isProductRawArray = (value: unknown): value is ProductRaw[] =>
-  Array.isArray(value) && value.every((item: unknown) => isProductRaw(item))
-
-const assertCategoryRawArray = (value: unknown): CategoryRaw[] => {
-  if (!isCategoryRawArray(value)) {
+const requireCategoryRawArray = (value: unknown): CategoryRaw[] => {
+  const categories = readCategoryRawArray(value)
+  if (categories === undefined) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "Legacy database returned invalid category rows",
     )
   }
-  return value
+  return categories
 }
 
-const assertProductRawArray = (value: unknown): ProductRaw[] => {
-  if (!isProductRawArray(value)) {
+const requireProductRawArray = (value: unknown): ProductRaw[] => {
+  const products = readProductRawArray(value)
+  if (products === undefined) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "Legacy database returned invalid product rows",
     )
   }
-  return value
+  return products
 }
 
 export default async function seedN1({ container }: ExecArgs) {
@@ -460,15 +439,15 @@ export default async function seedN1({ container }: ExecArgs) {
   const getCachedOrFetch = async <T extends object>(
     key: string,
     fetcher: () => Promise<T>,
-    isCachedValue: (value: unknown) => value is T,
+    readCachedValue: (value: unknown) => T | undefined,
     label: string,
   ): Promise<T> => {
     // Check cache first (unless forcing fresh data)
     if (FORCE_FRESH_DATA) {
       logger.info(`FORCE_FRESH_DATA enabled, skipping cache for ${label}`)
     } else {
-      const cached: unknown = await cacheService.get({ key })
-      if (isCachedValue(cached)) {
+      const cached = readCachedValue(await cacheService.get({ key }))
+      if (cached !== undefined) {
         logger.info(`Using cached ${label}`)
         return cached
       }
@@ -490,21 +469,19 @@ export default async function seedN1({ container }: ExecArgs) {
     getCachedOrFetch<CategoryRaw[]>(
       CACHE_KEYS.CATEGORIES,
       async () =>
-        assertCategoryRawArray(
-          await dbService.sqlRaw(
-            sql<Record<string, unknown>>`${categoriesSql}`,
-          ),
+        requireCategoryRawArray(
+          await dbService.sqlRaw(sql<object>`${categoriesSql}`),
         ),
-      isCategoryRawArray,
+      readCategoryRawArray,
       "categories",
     ),
     getCachedOrFetch<ProductRaw[]>(
       CACHE_KEYS.PRODUCTS,
       async () =>
-        assertProductRawArray(
-          await dbService.sqlRaw(sql<Record<string, unknown>>`${productsSql}`),
+        requireProductRawArray(
+          await dbService.sqlRaw(sql<object>`${productsSql}`),
         ),
-      isProductRawArray,
+      readProductRawArray,
       "products",
     ),
   ])

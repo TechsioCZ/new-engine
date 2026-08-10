@@ -1,8 +1,22 @@
-import { Modules } from "@medusajs/framework/utils"
+import type {
+  IOrderModuleService,
+  OrderPreviewDTO,
+  Query,
+} from "@medusajs/framework/types"
+import {
+  BigNumber,
+  ContainerRegistrationKeys,
+  createMedusaContainer,
+  MedusaError,
+  Modules,
+  OrderChangeStatus,
+} from "@medusajs/framework/utils"
+import { asValue } from "awilix"
 import { describe, expect, it, vi } from "vitest"
 
 import {
   assertCommercialValuesEditable,
+  fetchActiveOrderChange,
   fetchCommercialValuesSnapshotOrder,
   toCommercialValuesCalculationInput,
   toCommercialValuesSnapshot,
@@ -37,7 +51,7 @@ const createMockOrder = (
         unit_price: 1000,
       },
     ],
-    status: "pending",
+    status: OrderChangeStatus.PENDING,
     total: 1000,
     version: 1,
   }
@@ -49,38 +63,214 @@ const createMockOrder = (
   }
 }
 
-class MedusaBigNumberLike {
-  readonly #numeric: string
+class FixtureReference<T> {
+  #value: T | undefined
 
-  constructor(value: string) {
-    this.#numeric = value
-    Object.defineProperty(this, "numeric_", { value })
+  get() {
+    if (this.#value === undefined) {
+      throw new Error("Fixture reference was read before initialization")
+    }
+
+    return this.#value
   }
 
-  toString() {
-    return this.#numeric
+  set(value: T) {
+    this.#value = value
   }
 }
 
-type SnapshotContainer = Parameters<
-  typeof fetchCommercialValuesSnapshotOrder
->[0]
-type SnapshotQuery = Parameters<typeof fetchCommercialValuesSnapshotOrder>[1]
-type Graph = (input: { entity: string }) => { data: unknown[] }
+const unavailableExpandedRelation = (relation: string): never => {
+  throw new Error(`The ${relation} relation is not expanded in this fixture`)
+}
 
-const isSnapshotContainer = (
-  candidate: unknown,
-): candidate is SnapshotContainer =>
-  typeof candidate === "object" &&
-  candidate !== null &&
-  "resolve" in candidate &&
-  typeof candidate.resolve === "function"
+const createOrderPreviewFixture = (): OrderPreviewDTO => {
+  const createdAt = new Date("2026-01-01T00:00:00.000Z")
+  const rawZero = { value: 0 }
+  const rawQuantity = { value: 2 }
+  const rawUnitPrice = { value: 1000 }
+  const previewReference = new FixtureReference<OrderPreviewDTO>()
+  const previewItemReference = new FixtureReference<
+    OrderPreviewDTO["items"][number]
+  >()
 
-const isSnapshotQuery = (candidate: unknown): candidate is SnapshotQuery =>
-  typeof candidate === "object" &&
-  candidate !== null &&
-  "graph" in candidate &&
-  typeof candidate.graph === "function"
+  const previewItem: OrderPreviewDTO["items"][number] = {
+    created_at: createdAt,
+    detail: {
+      created_at: createdAt,
+      delivered_quantity: 0,
+      fulfilled_quantity: 0,
+      id: "order-item_1",
+      get item() {
+        return previewItemReference.get()
+      },
+      item_id: "item_1",
+      metadata: null,
+      quantity: 2,
+      raw_delivered_quantity: rawZero,
+      raw_fulfilled_quantity: rawZero,
+      raw_quantity: rawQuantity,
+      raw_return_dismissed_quantity: rawZero,
+      raw_return_received_quantity: rawZero,
+      raw_return_requested_quantity: rawZero,
+      raw_shipped_quantity: rawZero,
+      raw_written_off_quantity: rawZero,
+      return_dismissed_quantity: 0,
+      return_received_quantity: 0,
+      return_requested_quantity: 0,
+      shipped_quantity: 0,
+      updated_at: createdAt,
+      written_off_quantity: 0,
+    },
+    discount_tax_total: 0,
+    discount_total: 0,
+    id: "item_1",
+    is_discountable: true,
+    is_giftcard: false,
+    is_tax_inclusive: false,
+    item_subtotal: 2000,
+    item_tax_total: 0,
+    item_total: 2000,
+    original_subtotal: 2000,
+    original_tax_total: 0,
+    original_total: 2000,
+    quantity: 2,
+    raw_discount_tax_total: rawZero,
+    raw_discount_total: rawZero,
+    raw_item_subtotal: { value: 2000 },
+    raw_item_tax_total: rawZero,
+    raw_item_total: { value: 2000 },
+    raw_original_subtotal: { value: 2000 },
+    raw_original_tax_total: rawZero,
+    raw_original_total: { value: 2000 },
+    raw_quantity: rawQuantity,
+    raw_refundable_total: { value: 2000 },
+    raw_refundable_total_per_unit: rawUnitPrice,
+    raw_subtotal: { value: 2000 },
+    raw_tax_total: rawZero,
+    raw_total: { value: 2000 },
+    raw_unit_price: rawUnitPrice,
+    refundable_total: 2000,
+    refundable_total_per_unit: 1000,
+    requires_shipping: true,
+    return_requested_total: 0,
+    subtotal: 2000,
+    tax_total: 0,
+    title: "Preview item",
+    total: 2000,
+    unit_price: 1000,
+    updated_at: createdAt,
+  }
+
+  previewItemReference.set(previewItem)
+
+  const orderChange: OrderPreviewDTO["order_change"] = {
+    actions: [],
+    canceled_at: null,
+    canceled_by: null,
+    change_type: "edit",
+    get claim() {
+      return unavailableExpandedRelation("order change claim")
+    },
+    claim_id: "",
+    confirmed_at: null,
+    confirmed_by: null,
+    created_at: createdAt,
+    declined_at: null,
+    declined_by: null,
+    declined_reason: null,
+    get exchange() {
+      return unavailableExpandedRelation("order change exchange")
+    },
+    exchange_id: "",
+    id: "oc_1",
+    metadata: null,
+    get order() {
+      return previewReference.get()
+    },
+    order_id: "order_1",
+    requested_at: null,
+    requested_by: null,
+    return_id: "",
+    return_order: {
+      display_id: 1,
+      id: "return_1",
+      items: [],
+      metadata: null,
+      order_id: "order_1",
+      status: "requested",
+    },
+    status: OrderChangeStatus.PENDING,
+    updated_at: createdAt,
+    version: 1,
+  }
+
+  const preview: OrderPreviewDTO = {
+    created_at: createdAt,
+    credit_line_total: 0,
+    currency_code: "czk",
+    discount_subtotal: 0,
+    discount_tax_total: 0,
+    discount_total: 0,
+    display_id: 1,
+    gift_card_tax_total: 0,
+    gift_card_total: 0,
+    id: "order_1",
+    item_discount_total: 0,
+    item_subtotal: 2000,
+    item_tax_total: 0,
+    item_total: 2000,
+    items: [previewItem],
+    order_change: orderChange,
+    original_item_subtotal: 2000,
+    original_item_tax_total: 0,
+    original_item_total: 2000,
+    original_shipping_subtotal: 0,
+    original_shipping_tax_total: 0,
+    original_shipping_total: 0,
+    original_subtotal: 2000,
+    original_tax_total: 0,
+    original_total: 2000,
+    raw_credit_line_total: rawZero,
+    raw_discount_tax_total: rawZero,
+    raw_discount_total: rawZero,
+    raw_gift_card_tax_total: rawZero,
+    raw_gift_card_total: rawZero,
+    raw_item_subtotal: { value: 2000 },
+    raw_item_tax_total: rawZero,
+    raw_item_total: { value: 2000 },
+    raw_original_item_subtotal: { value: 2000 },
+    raw_original_item_tax_total: rawZero,
+    raw_original_item_total: { value: 2000 },
+    raw_original_shipping_subtotal: rawZero,
+    raw_original_shipping_tax_total: rawZero,
+    raw_original_shipping_total: rawZero,
+    raw_original_subtotal: { value: 2000 },
+    raw_original_tax_total: rawZero,
+    raw_original_total: { value: 2000 },
+    raw_shipping_subtotal: rawZero,
+    raw_shipping_tax_total: rawZero,
+    raw_shipping_total: rawZero,
+    raw_subtotal: { value: 2000 },
+    raw_tax_total: rawZero,
+    raw_total: { value: 2000 },
+    return_requested_total: 0,
+    shipping_discount_total: 0,
+    shipping_methods: [],
+    shipping_subtotal: 0,
+    shipping_tax_total: 0,
+    shipping_total: 0,
+    status: OrderChangeStatus.PENDING,
+    subtotal: 2000,
+    tax_total: 0,
+    total: 2000,
+    updated_at: createdAt,
+    version: 1,
+  }
+
+  previewReference.set(preview)
+
+  return preview
+}
 
 describe("commercial values route utils", () => {
   it("builds snapshots for fractional Medusa amounts", () => {
@@ -146,7 +336,7 @@ describe("commercial values route utils", () => {
       createMockOrder({ status: "canceled" }),
       {
         id: "oc_1",
-        status: "pending",
+        status: OrderChangeStatus.PENDING,
         version: 1,
       },
     )
@@ -167,7 +357,7 @@ describe("commercial values route utils", () => {
     const snapshot = toCommercialValuesSnapshot(createMockOrder(), {
       change_type: "edit",
       id: "oc_1",
-      status: "pending",
+      status: OrderChangeStatus.PENDING,
       version: 1,
     })
 
@@ -175,55 +365,67 @@ describe("commercial values route utils", () => {
     expect(snapshot.edit_blockers).toStrictEqual([])
   })
 
+  it("returns no active order change only when the graph row is absent", async () => {
+    const graph = vi.fn<Query["graph"]>().mockResolvedValue({ data: [] })
+    const container = createMedusaContainer()
+    container.register({
+      [ContainerRegistrationKeys.QUERY]: asValue({ graph }),
+    })
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+
+    await expect(
+      fetchActiveOrderChange(query, "order_1"),
+    ).resolves.toBeUndefined()
+  })
+
+  it("rejects an unexpected active order change status as invalid data", async () => {
+    const graph = vi.fn<Query["graph"]>().mockResolvedValue({
+      data: [
+        {
+          change_type: "edit",
+          id: "oc_1",
+          status: "completed",
+          version: 1,
+        },
+      ],
+    })
+    const container = createMedusaContainer()
+    container.register({
+      [ContainerRegistrationKeys.QUERY]: asValue({ graph }),
+    })
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+
+    await expect(
+      fetchActiveOrderChange(query, "order_1"),
+    ).rejects.toMatchObject({
+      message: "Order change query returned invalid order change data",
+      type: MedusaError.Types.INVALID_DATA,
+    })
+  })
+
   it("uses pending edit preview items without dropping order fields", async () => {
     const order = createMockOrder()
-    const query = {
-      graph: vi.fn<Graph>(({ entity }) => {
-        if (entity === "order") {
-          return { data: [order] }
-        }
+    const graph = vi.fn<Query["graph"]>()
+    graph.mockResolvedValueOnce({ data: [order] }).mockResolvedValueOnce({
+      data: [
+        {
+          change_type: "edit",
+          id: "oc_1",
+          status: OrderChangeStatus.PENDING,
+          version: 1,
+        },
+      ],
+    })
+    const previewOrderChange = vi
+      .fn<IOrderModuleService["previewOrderChange"]>()
+      .mockResolvedValue(createOrderPreviewFixture())
+    const container = createMedusaContainer()
+    container.register({
+      [ContainerRegistrationKeys.QUERY]: asValue({ graph }),
+      [Modules.ORDER]: asValue({ previewOrderChange }),
+    })
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
-        if (entity === "order_change") {
-          return {
-            data: [
-              {
-                change_type: "edit",
-                id: "oc_1",
-                status: "pending",
-                version: 1,
-              },
-            ],
-          }
-        }
-
-        return { data: [] }
-      }),
-    }
-    const container = {
-      resolve: vi.fn<(key: string) => unknown>((key) => {
-        if (key === Modules.ORDER) {
-          return {
-            previewOrderChange: vi
-              .fn<(orderId: string) => Promise<unknown>>()
-              .mockResolvedValue({
-                id: "order_1",
-                items: [
-                  {
-                    detail: { quantity: 2 },
-                    id: "item_1",
-                  },
-                ],
-              }),
-          }
-        }
-
-        throw new Error(`Unexpected container key ${key}`)
-      }),
-    }
-
-    if (!isSnapshotContainer(container) || !isSnapshotQuery(query)) {
-      throw new TypeError("Expected commercial values query collaborators")
-    }
     const { activeOrderChange, order: snapshotOrder } =
       await fetchCommercialValuesSnapshotOrder(container, query, "order_1")
     const snapshot = toCommercialValuesSnapshot(
@@ -231,6 +433,7 @@ describe("commercial values route utils", () => {
       activeOrderChange,
     )
 
+    expect(previewOrderChange).toHaveBeenCalledWith("order_1")
     expect(snapshot.currency_code).toBe("czk")
     expect(snapshot.editable).toBeTruthy()
     expect(snapshot.expected_order_version).toBe(1)
@@ -308,8 +511,8 @@ describe("commercial values route utils", () => {
           {
             id: "item_1",
             is_discountable: true,
-            quantity: new MedusaBigNumberLike("2"),
-            unit_price: new MedusaBigNumberLike("250"),
+            quantity: new BigNumber("2"),
+            unit_price: new BigNumber("250"),
           },
         ],
         total: 500,
@@ -773,7 +976,7 @@ describe("commercial values route utils", () => {
       assertCommercialValuesEditable(createMockOrder(), {
         change_type: "edit",
         id: "oc_1",
-        status: "requested",
+        status: OrderChangeStatus.REQUESTED,
         version: 1,
       })
     }).toThrow("Order already has active order change oc_1")
@@ -782,7 +985,7 @@ describe("commercial values route utils", () => {
       assertCommercialValuesEditable(createMockOrder(), {
         change_type: "edit",
         id: "oc_2",
-        status: "pending",
+        status: OrderChangeStatus.PENDING,
         version: 1,
       })
     }).not.toThrow()

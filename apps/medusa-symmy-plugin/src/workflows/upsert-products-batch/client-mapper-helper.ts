@@ -4,11 +4,13 @@ import type {
   UpdateProductsWorkflowInputProducts,
 } from "@medusajs/medusa/core-flows"
 
+import type { JsonMetadata } from "../../lib/json-metadata"
 import type {
   ExistingProduct,
   ExistingProductIndex,
   ResolvedCategoryMap,
 } from "./client"
+import { ExistingProductSchema, ProductVariantReferenceSchema } from "./schemas"
 import type {
   CategoryRefInput,
   ImageInput,
@@ -36,60 +38,15 @@ interface CategoryRefSets {
 
 const INVALID_MAPPER_RECEIVER_MESSAGE = "Invalid mapper receiver"
 
-const getNullableString = (value: unknown): string | null =>
-  typeof value === "string" ? value : null
-
-const getRequiredString = (value: unknown, field: string): string => {
-  if (typeof value !== "string") {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      `Expected existing product ${field} to be a string`,
-    )
+const toExistingProduct = (raw: unknown): ExistingProduct => {
+  const parsed = ExistingProductSchema.safeParse(raw)
+  if (parsed.success) {
+    return parsed.data
   }
-  return value
-}
-
-const getMetadata = (value: unknown): Record<string, unknown> | null => {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return null
-  }
-  return Object.fromEntries(Object.entries(value))
-}
-
-const isUnknownArray = (value: unknown): value is unknown[] =>
-  Array.isArray(value)
-
-const getVariants = (value: unknown): ExistingProduct["variants"] => {
-  if (!isUnknownArray(value)) {
-    return []
-  }
-
-  return value.map((entry) => {
-    const variant = getMetadata(entry)
-    if (variant === null) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        "Expected existing product variant to be an object",
-      )
-    }
-
-    const { ean, id, sku } = variant
-    return {
-      ean: getNullableString(ean),
-      id: getRequiredString(id, "variant id"),
-      sku: getNullableString(sku),
-    }
-  })
-}
-
-const toExistingProduct = (raw: Record<string, unknown>): ExistingProduct => {
-  const { external_id: externalId, id, metadata, variants } = raw
-  return {
-    external_id: getNullableString(externalId),
-    id: getRequiredString(id, "id"),
-    metadata: getMetadata(metadata),
-    variants: getVariants(variants),
-  }
+  throw new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
+    "Expected existing product query result to match its schema",
+  )
 }
 
 export class ProductBatchClientMapperHelper {
@@ -195,7 +152,7 @@ export class ProductBatchClientMapperHelper {
 
   private readonly buildVariantMetadata = (
     variant: VariantInput,
-  ): Record<string, unknown> | undefined => {
+  ): JsonMetadata | undefined => {
     if (this.helperInstance !== this) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
@@ -502,7 +459,7 @@ export class ProductBatchClientMapperHelper {
     return { eans, erpIds, skus }
   }
 
-  cacheProductsByErpId(products: Record<string, unknown>[]): {
+  cacheProductsByErpId(products: readonly unknown[]): {
     existingProductsById: Map<string, ExistingProduct>
     byErpId: Map<string, ExistingProduct>
   } {
@@ -521,7 +478,7 @@ export class ProductBatchClientMapperHelper {
   }
 
   buildProductIdByVariantField = (
-    variants: Record<string, unknown>[],
+    variants: readonly unknown[],
     field: "sku" | "ean",
   ): Map<string, string> => {
     if (this.helperInstance !== this) {
@@ -533,10 +490,13 @@ export class ProductBatchClientMapperHelper {
     const result = new Map<string, string>()
 
     for (const variant of variants) {
-      const { product_id: productId } = variant
-      const value = variant[field]
-      if (typeof value === "string" && typeof productId === "string") {
-        result.set(value, productId)
+      const parsed = ProductVariantReferenceSchema.safeParse(variant)
+      if (!parsed.success) {
+        continue
+      }
+      const value = parsed.data[field]
+      if (value !== null) {
+        result.set(value, parsed.data.product_id)
       }
     }
 

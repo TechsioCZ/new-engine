@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl"
 
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 
+import type { CarrierPickupData } from "./carrier-pickup.utils"
 import type { UseCheckoutActionsProps } from "./checkout-actions.utils"
 import {
   persistCarrierPickupSelection,
@@ -46,10 +47,7 @@ export const useCheckoutActions = ({
     })
   }
 
-  const handleSelectShipping = (
-    optionId: string,
-    data?: Record<string, unknown>,
-  ) => {
+  const handleSelectShipping = (optionId: string, data?: CarrierPickupData) => {
     resetFeedback()
 
     try {

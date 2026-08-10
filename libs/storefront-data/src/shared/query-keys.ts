@@ -1,4 +1,4 @@
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, toPlainRecord } from "@techsio/std/object"
 
 import { getSortedRecordKeys } from "./query-key-match-utils"
 
@@ -14,12 +14,15 @@ interface WalkValueOptions {
   stripUndefined?: boolean
 }
 
-const isPlainObject = (value: unknown): value is Record<string, unknown> => {
-  if (!isRecord(value)) {
-    return false
+const toPlainObject = (value: unknown) => {
+  const record = toPlainRecord(value)
+  if (record === undefined) {
+    return record
   }
-  const prototype = Reflect.getPrototypeOf(value)
+  const prototype = Reflect.getPrototypeOf(record)
   return prototype === Object.prototype || prototype === null
+    ? record
+    : undefined
 }
 
 const normalizeNamespace = (namespace: QueryNamespace): readonly string[] => {
@@ -50,22 +53,27 @@ const walkValue = (
     return result
   }
 
-  if (isPlainObject(value)) {
-    if (visited.has(value)) {
+  const plainObject = toPlainObject(value)
+  if (plainObject !== undefined) {
+    if (visited.has(plainObject)) {
       throw new Error("QueryKey contains a circular reference")
     }
-    visited.add(value)
-    const result: Record<string, unknown> = {}
-    for (const key of getSortedRecordKeys(value)) {
+    visited.add(plainObject)
+    const entries: [string, unknown][] = []
+    for (const key of getSortedRecordKeys(plainObject)) {
       if (options?.omitKeys?.has(key) !== true) {
-        const normalizedEntry = walkValue(value[key], visited, options)
+        const normalizedEntry = walkValue(
+          getRecordValue(plainObject, key),
+          visited,
+          options,
+        )
         if (options?.stripUndefined !== true || normalizedEntry !== undefined) {
-          result[key] = normalizedEntry
+          entries.push([key, normalizedEntry])
         }
       }
     }
-    visited.delete(value)
-    return result
+    visited.delete(plainObject)
+    return Object.fromEntries(entries)
   }
 
   return value
@@ -79,22 +87,24 @@ const walkValue = (
  * - Sorts object keys for stable hashing
  */
 export const normalizeQueryKeyParams = (
-  params: Record<string, unknown>,
+  params: object,
   options?: NormalizeQueryKeyParamsOptions,
-): Record<string, unknown> => {
-  if (!isPlainObject(params)) {
+) => {
+  const plainObject = toPlainObject(params)
+  if (plainObject === undefined) {
     throw new Error(
       "QueryKey params must be a plain object. Use a serializer before normalizeQueryKeyParams.",
     )
   }
   const visited = new WeakSet()
   const omitKeys = new Set(options?.omitKeys)
-  const normalized = walkValue(params, visited, {
+  const normalized = walkValue(plainObject, visited, {
     omitKeys,
     stripUndefined: true,
   })
-  if (isPlainObject(normalized)) {
-    return normalized
+  const normalizedObject = toPlainObject(normalized)
+  if (normalizedObject !== undefined) {
+    return normalizedObject
   }
   return {}
 }
@@ -113,8 +123,9 @@ export const normalizeQueryKeyPart = (
   if (value === undefined) {
     return {}
   }
-  if (isPlainObject(value)) {
-    return normalizeQueryKeyParams(value, options)
+  const plainObject = toPlainObject(value)
+  if (plainObject !== undefined) {
+    return normalizeQueryKeyParams(plainObject, options)
   }
   return walkValue(value, new WeakSet())
 }

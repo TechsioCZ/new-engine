@@ -1,7 +1,7 @@
 import { createHmac, randomBytes } from "node:crypto"
 
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import {
   afterAll,
   beforeAll,
@@ -352,21 +352,25 @@ describe("POST /hooks/cms/invalidate route", () => {
           if (!isRecord(change)) {
             return []
           }
-          const { doc } = change
+          const doc = getRecordValue(change, "doc")
           if (!isRecord(doc)) {
             return []
           }
-          const { locale } = doc
+          const locale = getRecordValue(doc, "locale")
           return typeof locale === "string" ? [locale] : []
         })
         .toSorted((left, right) => left.localeCompare(right))
       expect(reconciledLocales).toStrictEqual(["en", "sk"])
       const reconciledTitles = mockReconcileContentSearchChange.mock.calls
         .flatMap(([change]) => {
-          if (!isRecord(change) || !isRecord(change["doc"])) {
+          if (!isRecord(change)) {
             return []
           }
-          const { title } = change["doc"]
+          const doc = getRecordValue(change, "doc")
+          if (!isRecord(doc)) {
+            return []
+          }
+          const title = getRecordValue(doc, "title")
           return typeof title === "string" ? [title] : []
         })
         .toSorted((left, right) => left.localeCompare(right))

@@ -6,7 +6,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 
 import type { AdminGetQuoteParamsType } from "../validators"
 
@@ -32,13 +32,16 @@ const getQuote = async (
     },
     { throwIfKeyNotFound: true },
   )
-  if (!isRecord(queryResult) || !Array.isArray(queryResult["data"])) {
+  const data: unknown = isRecord(queryResult)
+    ? getRecordValue(queryResult, "data")
+    : undefined
+  if (!Array.isArray(data)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       `Invalid quote graph response for id "${id}"`,
     )
   }
-  const quote: unknown = queryResult["data"][0]
+  const quote: unknown = data[0]
 
   res.json({ quote })
 }

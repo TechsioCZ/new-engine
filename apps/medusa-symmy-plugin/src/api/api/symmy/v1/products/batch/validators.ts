@@ -1,5 +1,7 @@
 import { z } from "@medusajs/framework/zod"
 
+import { JsonMetadataSchema } from "../../../../../../lib/json-metadata"
+
 const PRODUCTS_BATCH_MAX = 500
 const PRODUCT_CATEGORIES_MAX = 50
 const PRODUCT_IMAGES_MAX = 50
@@ -34,7 +36,7 @@ const VariantInputSchema = z
     ean: z.string().min(1).optional(),
     identifier_type: z.enum(["sku", "ean", "variant_id"]),
     manage_inventory: z.boolean().default(true),
-    metadata: z.record(z.string(), z.unknown()).optional(),
+    metadata: JsonMetadataSchema.optional(),
     options: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
     prices: z.array(PriceSchema).max(VARIANT_PRICES_MAX).optional(),
     sku: z.string().min(1).optional(),
@@ -85,7 +87,7 @@ const ProductInputSchema = z
     hs_code: z.string().optional(),
     identifier_type: z.enum(["sku", "ean", "erp_id"]),
     images: z.array(ImageSchema).max(PRODUCT_IMAGES_MAX).optional(),
-    metadata: z.record(z.string(), z.unknown()).optional(),
+    metadata: JsonMetadataSchema.optional(),
     sku: z.string().min(1).optional(),
     status: z.enum(["published", "draft"]).default("published"),
     subtitle: z.string().optional(),

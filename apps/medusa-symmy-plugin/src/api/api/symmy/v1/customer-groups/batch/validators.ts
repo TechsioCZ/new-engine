@@ -1,5 +1,7 @@
 import { z } from "@medusajs/framework/zod"
 
+import { JsonMetadataSchema } from "../../../../../../lib/json-metadata"
+
 const CUSTOMER_GROUPS_BATCH_MAX = 500
 
 const CustomerGroupInputSchema = z
@@ -8,7 +10,7 @@ const CustomerGroupInputSchema = z
     customer_group_id: z.string().min(1).optional(),
     erp_code: z.string().min(1).optional(),
     identifier_type: z.enum(["customer_group_id", "name", "code", "erp_code"]),
-    metadata: z.record(z.string(), z.unknown()).optional(),
+    metadata: JsonMetadataSchema.optional(),
     name: z.string().min(1),
   })
   .superRefine((value, ctx) => {

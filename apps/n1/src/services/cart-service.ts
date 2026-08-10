@@ -7,6 +7,9 @@ import { sdk } from "@/lib/medusa-client"
 export type Cart = HttpTypes.StoreCart
 export type CartLineItem = HttpTypes.StoreCartLineItem
 export type OptimisticCart = Cart & { _optimistic?: boolean }
+export type CartLineItemMetadata = Readonly<{
+  inventory_quantity: number
+}>
 export type OptimisticLineItem = CartLineItem & {
   _optimistic?: boolean
 }
@@ -139,7 +142,7 @@ export const addToCart = async (
   cartId: string,
   variantId: string,
   quantity = 1,
-  metadata?: Record<string, unknown>,
+  metadata?: CartLineItemMetadata,
 ): Promise<Cart> => {
   try {
     if (!(cartId && variantId)) {
@@ -312,7 +315,7 @@ export const getPaymentProviders = async (regionId: string) => {
 }
 
 /** Data for PPL Parcel access point selection */
-export interface ShippingMethodData {
+export type ShippingMethodData = Readonly<{
   access_point_id?: string
   access_point_name?: string
   access_point_type?: string
@@ -320,6 +323,57 @@ export interface ShippingMethodData {
   access_point_city?: string
   access_point_zip?: string
   access_point_country?: string
+}>
+
+const normalizeShippingMethodDataValue = (
+  value: string | null | undefined,
+): string | undefined =>
+  value === undefined || value === null || value === "" ? undefined : value
+
+const buildShippingMethodData = (
+  data?: ShippingMethodData,
+): ShippingMethodData => {
+  const accessPointId = normalizeShippingMethodDataValue(data?.access_point_id)
+  const accessPointName = normalizeShippingMethodDataValue(
+    data?.access_point_name,
+  )
+  const accessPointType = normalizeShippingMethodDataValue(
+    data?.access_point_type,
+  )
+  const accessPointStreet = normalizeShippingMethodDataValue(
+    data?.access_point_street,
+  )
+  const accessPointCity = normalizeShippingMethodDataValue(
+    data?.access_point_city,
+  )
+  const accessPointZip = normalizeShippingMethodDataValue(
+    data?.access_point_zip,
+  )
+  const accessPointCountry = normalizeShippingMethodDataValue(
+    data?.access_point_country,
+  )
+
+  return {
+    ...(accessPointId === undefined ? {} : { access_point_id: accessPointId }),
+    ...(accessPointName === undefined
+      ? {}
+      : { access_point_name: accessPointName }),
+    ...(accessPointType === undefined
+      ? {}
+      : { access_point_type: accessPointType }),
+    ...(accessPointStreet === undefined
+      ? {}
+      : { access_point_street: accessPointStreet }),
+    ...(accessPointCity === undefined
+      ? {}
+      : { access_point_city: accessPointCity }),
+    ...(accessPointZip === undefined
+      ? {}
+      : { access_point_zip: accessPointZip }),
+    ...(accessPointCountry === undefined
+      ? {}
+      : { access_point_country: accessPointCountry }),
+  }
 }
 
 export const setShippingMethod = async (
@@ -337,15 +391,7 @@ export const setShippingMethod = async (
 
     // For PPL Parcel, send access point data; for regular shipping, send empty object
     // Filter out undefined/null/empty values to keep payload clean
-    const shippingData =
-      data && Object.keys(data).length > 0
-        ? Object.fromEntries(
-            Object.entries(data).filter(
-              ([, value]) =>
-                value !== null && value !== undefined && value !== "",
-            ),
-          )
-        : {}
+    const shippingData = buildShippingMethodData(data)
 
     const response = await sdk.store.cart.addShippingMethod(cartId, {
       data: shippingData,

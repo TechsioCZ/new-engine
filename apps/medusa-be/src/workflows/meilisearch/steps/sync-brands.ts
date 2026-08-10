@@ -4,20 +4,54 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { z } from "@medusajs/framework/zod"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
-import { isRecord } from "@techsio/std/object"
 
 import { BRANDS, MEILISEARCH } from "../"
 import { isMeilisearchEnabled } from "../../../modules/meilisearch/env"
 
+interface StringFilterOperators {
+  $eq?: string
+  $ilike?: string
+  $in?: string[]
+  $like?: string
+  $ne?: string
+}
+
+type NullableStringFilter = null | string | StringFilterOperators
+
+type StringFilter = string | StringFilterOperators
+
+interface BrandQueryFilters {
+  deleted_at?: Date | null | string
+  gpsr_contact_email?: NullableStringFilter
+  gpsr_european_reseller_contact_email?: NullableStringFilter
+  gpsr_european_reseller_manufacturing_company_name?: NullableStringFilter
+  gpsr_european_reseller_postal_address?: NullableStringFilter
+  gpsr_manufactured_outside_eu?: boolean
+  gpsr_manufacturing_company_name?: NullableStringFilter
+  gpsr_postal_address?: NullableStringFilter
+  handle?: StringFilter
+  id?: StringFilter
+  title?: StringFilter
+}
+
 export interface SyncMeilisearchBrandsStepInput {
-  filters?: Record<string, unknown>
+  filters?: BrandQueryFilters
 }
 
 const BATCH_SIZE = 1000
 const MAX_PAGINATION_BATCHES = 10_000
 
-type BrandDocument = Record<string, unknown> & { id: string }
+const brandDocumentSchema = z.looseObject({ id: z.string().min(1) })
+type BrandDocument = z.infer<typeof brandDocumentSchema>
+
+const brandQueryResultSchema = z.object({
+  data: z.array(brandDocumentSchema),
+})
+const searchResultSchema = z.object({
+  hits: z.array(z.object({ id: z.string().min(1) })),
+})
 
 const invalidMeilisearchData = (message: string) =>
   new MedusaError(MedusaError.Types.INVALID_DATA, message)
@@ -41,49 +75,21 @@ const requireBrandDocuments = (
   result: unknown,
   source: string,
 ): BrandDocument[] => {
-  if (!isRecord(result) || !Array.isArray(result["data"])) {
-    throw invalidMeilisearchData(`${source} returned an invalid data payload`)
+  const parsed = brandQueryResultSchema.safeParse(result)
+  if (!parsed.success) {
+    throw invalidMeilisearchData(`${source} returned invalid brand data`)
   }
-
-  const data: unknown[] = result["data"]
-  return data.map((entry) => {
-    if (!isRecord(entry)) {
-      throw invalidMeilisearchData(`${source} returned a non-object brand`)
-    }
-
-    const { id } = entry
-    if (typeof id !== "string" || id.length === 0) {
-      throw invalidMeilisearchData(`${source} returned a brand without an id`)
-    }
-
-    return { ...entry, id }
-  })
+  return parsed.data.data
 }
 
 const requireSearchHitIds = (result: unknown, index: string): string[] => {
-  if (!isRecord(result) || !Array.isArray(result["hits"])) {
+  const parsed = searchResultSchema.safeParse(result)
+  if (!parsed.success) {
     throw invalidMeilisearchData(
-      `Meilisearch index "${index}" returned an invalid hits payload`,
+      `Meilisearch index "${index}" returned invalid hit data`,
     )
   }
-
-  const hits: unknown[] = result["hits"]
-  return hits.map((hit) => {
-    if (!isRecord(hit)) {
-      throw invalidMeilisearchData(
-        `Meilisearch index "${index}" returned a non-object hit`,
-      )
-    }
-
-    const { id } = hit
-    if (typeof id !== "string" || id.length === 0) {
-      throw invalidMeilisearchData(
-        `Meilisearch index "${index}" returned a hit without an id`,
-      )
-    }
-
-    return id
-  })
+  return parsed.data.hits.map((hit) => hit.id)
 }
 
 const fetchAllBrands = async ({
@@ -95,7 +101,7 @@ const fetchAllBrands = async ({
 }: {
   batchesRemaining?: number
   fields: string[]
-  filters: Record<string, unknown> | undefined
+  filters: BrandQueryFilters | undefined
   offset?: number
   query: Query
 }): Promise<BrandDocument[]> => {

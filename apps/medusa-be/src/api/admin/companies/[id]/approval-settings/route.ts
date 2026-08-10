@@ -7,7 +7,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 
 import { requirePathParam } from "../../../../../utils/path-params"
 import { ensureApprovalSettingsWorkflow } from "../../../../../workflows/approval/workflows/ensure-approval-settings"
@@ -15,16 +15,16 @@ import { updateApprovalSettingsWorkflow } from "../../../../../workflows/approva
 import { adminApprovalSettingsFields } from "../../query-config"
 import type { AdminUpdateApprovalSettingsType } from "../../validators"
 
-const getDataRecords = (response: unknown): Record<string, unknown>[] => {
+const getDataRecords = (response: unknown): object[] => {
   if (!isRecord(response)) {
     return []
   }
-  const { data } = response
+  const data = getRecordValue(response, "data")
   return Array.isArray(data) ? data.filter(isRecord) : []
 }
 
 const getWorkflowResult = (response: unknown): unknown =>
-  isRecord(response) ? response["result"] : undefined
+  isRecord(response) ? getRecordValue(response, "result") : undefined
 
 const get = async (req: AuthenticatedMedusaRequest, res: MedusaResponse) => {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -41,18 +41,20 @@ const get = async (req: AuthenticatedMedusaRequest, res: MedusaResponse) => {
     },
   })
   const approvalSettings = getDataRecords(response)
-  const metadata = isRecord(response) ? response["metadata"] : undefined
+  const metadata = isRecord(response)
+    ? getRecordValue(response, "metadata")
+    : undefined
   const count =
-    isRecord(metadata) && typeof metadata["count"] === "number"
-      ? metadata["count"]
+    isRecord(metadata) && typeof getRecordValue(metadata, "count") === "number"
+      ? getRecordValue(metadata, "count")
       : approvalSettings.length
   const limit =
-    isRecord(metadata) && typeof metadata["take"] === "number"
-      ? metadata["take"]
+    isRecord(metadata) && typeof getRecordValue(metadata, "take") === "number"
+      ? getRecordValue(metadata, "take")
       : approvalSettings.length
   const offset =
-    isRecord(metadata) && typeof metadata["skip"] === "number"
-      ? metadata["skip"]
+    isRecord(metadata) && typeof getRecordValue(metadata, "skip") === "number"
+      ? getRecordValue(metadata, "skip")
       : 0
 
   res.json({ approvalSettings, count, limit, offset })
@@ -71,7 +73,11 @@ const post = async (
     fields: ["id"],
     filters: { company_id: id },
   })
-  const currentId = getDataRecords(currentResponse)[0]?.["id"]
+  const [currentRecord] = getDataRecords(currentResponse)
+  const currentId =
+    currentRecord === undefined
+      ? undefined
+      : getRecordValue(currentRecord, "id")
   let currentApprovalSettingsId =
     typeof currentId === "string" && currentId !== "" ? currentId : undefined
 
@@ -82,7 +88,7 @@ const post = async (
     const createdResult = getWorkflowResult(creationResponse)
     const createdId =
       Array.isArray(createdResult) && isRecord(createdResult[0])
-        ? createdResult[0]["id"]
+        ? getRecordValue(createdResult[0], "id")
         : undefined
     currentApprovalSettingsId =
       typeof createdId === "string" && createdId !== "" ? createdId : undefined
@@ -106,7 +112,9 @@ const post = async (
     },
   })
   const updatedResult = getWorkflowResult(updateResponse)
-  const updatedId = isRecord(updatedResult) ? updatedResult["id"] : undefined
+  const updatedId = isRecord(updatedResult)
+    ? getRecordValue(updatedResult, "id")
+    : undefined
   if (typeof updatedId !== "string" || updatedId === "") {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,

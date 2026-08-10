@@ -1,7 +1,7 @@
 import type { SubscriberArgs } from "@medusajs/framework"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 export interface PaymentPaidEvent {
   entity?: string
@@ -73,14 +73,16 @@ const isOrderPaymentCollectionQueryResult = (
     return false
   }
 
+  const order = getRecordValue(value, "order")
   return (
-    typeof value["order_id"] === "string" ||
-    (isRecord(value["order"]) && typeof value["order"]["id"] === "string")
+    typeof getRecordValue(value, "order_id") === "string" ||
+    (isRecord(order) && typeof getRecordValue(order, "id") === "string")
   )
 }
 
 const isPaymentQueryResult = (value: unknown): value is PaymentQueryResult =>
-  isRecord(value) && typeof value["payment_collection_id"] === "string"
+  isRecord(value) &&
+  typeof getRecordValue(value, "payment_collection_id") === "string"
 
 const getOrderIdFromEventData = (data: PaymentPaidEvent) =>
   firstPresentString([

@@ -2,8 +2,8 @@ import { createHash } from "node:crypto"
 import { readFile } from "node:fs/promises"
 import path from "node:path"
 
-import { isRecord } from "@techsio/std/object"
 import { describe, expect, test } from "vitest"
+import { z } from "zod"
 
 const repoRoot = path.resolve(import.meta.dirname, "../../../..")
 const contentPluginVersion = "0.2.6"
@@ -15,17 +15,20 @@ const sha256 = (contents: Buffer): string =>
 
 describe("dependency distribution contracts", () => {
   test("ships the approved content plugin license in the backend image", async () => {
-    const manifest: unknown = JSON.parse(
-      await readFile(
-        path.join(repoRoot, "apps/medusa-be/package.json"),
-        "utf-8",
-      ),
-    )
-    if (!isRecord(manifest) || !isRecord(manifest["dependencies"])) {
-      throw new TypeError("Medusa backend manifest must define dependencies")
-    }
+    const manifest = z
+      .object({
+        dependencies: z.object({ "medusa-plugin-content": z.string() }),
+      })
+      .parse(
+        JSON.parse(
+          await readFile(
+            path.join(repoRoot, "apps/medusa-be/package.json"),
+            "utf-8",
+          ),
+        ),
+      )
 
-    expect(manifest["dependencies"]["medusa-plugin-content"]).toBe(
+    expect(manifest.dependencies["medusa-plugin-content"]).toBe(
       contentPluginVersion,
     )
 

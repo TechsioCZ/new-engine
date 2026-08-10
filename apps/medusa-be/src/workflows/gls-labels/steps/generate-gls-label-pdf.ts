@@ -7,7 +7,6 @@ import type { GLSClientModuleService } from "../../../modules/gls-client"
 import {
   buildGLSLabelsFilename,
   collectPrintableGLSLabels,
-  validateGLSLabelOrders,
 } from "../helpers/labels"
 
 export interface GenerateGLSLabelPdfStepInput {
@@ -44,10 +43,7 @@ export const generateGLSLabelPdfStep = createStep(
       },
     })
 
-    const labels = collectPrintableGLSLabels(
-      input.order_ids,
-      validateGLSLabelOrders(orders),
-    )
+    const labels = collectPrintableGLSLabels(input.order_ids, orders)
     const pdf = await glsClient.downloadLabelsPdf(
       labels.map((label) => label.packet_id),
     )

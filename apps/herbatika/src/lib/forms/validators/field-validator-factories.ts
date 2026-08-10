@@ -1,9 +1,9 @@
 type FieldValueValidator<TValue> = (value: TValue) => string | undefined
 type FieldValidationPredicate<TFormValues> = (values: TFormValues) => boolean
-interface ValueValidationContext<TValue> {
+export interface ValueValidationContext<TValue> {
   value: TValue
 }
-interface ScopedValueValidationContext<TValue, TFormValues> {
+export interface ScopedValueValidationContext<TValue, TFormValues> {
   fieldApi: {
     form: {
       state: {

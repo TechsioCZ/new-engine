@@ -1,3 +1,4 @@
+import type { MetadataType } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
 
 import type {
@@ -7,8 +8,6 @@ import type {
   TrackingOrderIndex,
 } from "./client"
 import type { TrackingItemInput, TrackingShipmentInput } from "./types"
-
-type Metadata = Record<string, unknown>
 
 export interface TrackingOrderLookupKeys {
   orderIds: Set<string>
@@ -168,7 +167,7 @@ export const trackingBatchClientMapperHelper = {
     })
   },
 
-  stringMetadataValue(metadata: Metadata | null | undefined, key: string) {
+  stringMetadataValue(metadata: MetadataType | undefined, key: string) {
     const value = metadata?.[key]
     return typeof value === "string" && value.length > 0 ? value : null
   },

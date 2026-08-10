@@ -36,7 +36,6 @@ interface ResendEmail {
   text?: string
   created_at?: string
   last_event?: string
-  [key: string]: unknown
 }
 
 interface EmailLogDetailResponse {

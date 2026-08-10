@@ -11,8 +11,8 @@ import type {
   RefundPaymentOutput,
 } from "@medusajs/framework/types"
 import { MedusaError, ModuleProvider, Modules } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import { omitInternalMetadata, PAYKIT_METADATA_KEY } from "@paykit-sdk/core"
-import { isRecord } from "@techsio/std/object"
 
 import { PAYKIT_PAYMENT_PROVIDER_IDENTIFIER } from "../constants"
 import { PaykitPaymentProviderBase } from "../core/base"
@@ -29,9 +29,11 @@ import type {
   PaykitStripeCheckoutSession,
   PaykitStripeOptions,
   PaykitStripePaymentIntent,
+  PaykitStripeProvider,
 } from "../types"
 import {
   fromStripeSmallestCurrencyUnit,
+  toNumericPaymentAmount,
   toStripeSmallestCurrencyUnit,
 } from "../utils/amounts"
 import { toPaykitPaymentData, toPaykitRefundData } from "../utils/mappers"
@@ -40,87 +42,30 @@ import { requirePaykitOptions } from "../utils/validation"
 const isNonEmptyString = (value: string | null | undefined): value is string =>
   typeof value === "string" && value.length > 0
 
-const isBigNumberLike = (value: Record<string, unknown>): boolean => {
-  const numericValue = value["value"]
-
-  if (typeof numericValue === "number" || typeof numericValue === "string") {
-    return true
-  }
-
-  return "toJSON" in value && "valueOf" in value
-}
-
-const isPaymentAmount = (
-  value: unknown,
-): value is InitiatePaymentInput["amount"] => {
-  if (typeof value === "number" || typeof value === "string") {
-    return true
-  }
-
-  return isRecord(value) && isBigNumberLike(value)
-}
-
 // Mirrors the historical truthiness check on provider data, so non-string ids
 // still reach the typed provider id validation instead of silently skipping it.
-const hasProviderPaymentId = (data?: Record<string, unknown>): boolean =>
+const hasProviderPaymentId = (data?: DeletePaymentInput["data"]): boolean =>
   Boolean(data?.["id"])
 
 const isStripeCheckoutSessionId = (id: string): boolean => id.startsWith("cs_")
 
 const isStripeResourceMissingError = (error: unknown): boolean =>
-  isRecord(error) && error["code"] === "resource_missing"
-
-/**
- * `provider._native.checkout.sessions` is untyped on the PayKit Stripe
- * provider, so its `retrieve` and `expire` handles are narrowed to a callable
- * Checkout Session method before they are wrapped in the typed client. Only
- * callability is checked, exactly as the previous `typeof === "function"`
- * guards did; the returned payload keeps flowing through unvalidated.
- */
-type StripeCheckoutSessionMethod = (
-  id: string,
-  options?: Record<string, unknown>,
-) => Promise<PaykitStripeCheckoutSession>
-
-const isStripeCheckoutSessionMethod = (
-  value: unknown,
-): value is StripeCheckoutSessionMethod => typeof value === "function"
+  typeof error === "object" &&
+  error !== null &&
+  Reflect.get(error, "code") === "resource_missing"
 
 const getStripeCheckoutSessionRetriever = (
-  provider: unknown,
-): PaykitPaymentClient["stripeCheckoutSessions"] | undefined => {
-  const native = isRecord(provider) ? provider["_native"] : undefined
-  const checkout = isRecord(native) ? native["checkout"] : undefined
-  const sessions = isRecord(checkout) ? checkout["sessions"] : undefined
-  const retrieve = isRecord(sessions) ? sessions["retrieve"] : undefined
-  const expire = isRecord(sessions) ? sessions["expire"] : undefined
-
-  if (!isStripeCheckoutSessionMethod(retrieve)) {
-    return undefined
-  }
-
-  return {
-    retrieve: async (id, options) => await retrieve.call(sessions, id, options),
-    ...(isStripeCheckoutSessionMethod(expire)
-      ? { expire: async (id) => await expire.call(sessions, id) }
-      : {}),
-  }
-}
+  provider: PaykitStripeProvider,
+): NonNullable<PaykitPaymentClient["stripeCheckoutSessions"]> => ({
+  expire: async (id) => await provider._native.checkout.sessions.expire(id),
+  retrieve: async (id, options) =>
+    await provider._native.checkout.sessions.retrieve(id, options),
+})
 
 const requireStripeCheckoutSessionRetriever = (
-  provider: unknown,
-): NonNullable<PaykitPaymentClient["stripeCheckoutSessions"]> => {
-  const checkoutSessions = getStripeCheckoutSessionRetriever(provider)
-
-  if (!checkoutSessions) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "PayKit Stripe Checkout Session compatibility mapping could not access provider._native.checkout.sessions. This mapping is required until PayKit preserves Checkout Session metadata when retrieving cs_ payment ids.",
-    )
-  }
-
-  return checkoutSessions
-}
+  provider: PaykitStripeProvider,
+): NonNullable<PaykitPaymentClient["stripeCheckoutSessions"]> =>
+  getStripeCheckoutSessionRetriever(provider)
 
 const getStripeCustomer = (
   value:
@@ -131,7 +76,12 @@ const getStripeCustomer = (
     return { id: value }
   }
 
-  if (isRecord(value) && typeof value.id === "string" && value.id.length > 0) {
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    typeof value.id === "string" &&
+    value.id.length > 0
+  ) {
     return { id: value.id }
   }
 
@@ -141,7 +91,9 @@ const getStripeCustomer = (
 const getStripeCheckoutPaymentIntent = (
   session: PaykitStripeCheckoutSession,
 ): PaykitStripePaymentIntent | null =>
-  isRecord(session.payment_intent) ? session.payment_intent : null
+  typeof session.payment_intent === "object" && session.payment_intent !== null
+    ? session.payment_intent
+    : null
 
 const getStripeCheckoutCustomer = (
   session: PaykitStripeCheckoutSession,
@@ -188,7 +140,7 @@ const getStripeCheckoutPaymentIntentId = (
 }
 
 const getStripeCheckoutItemId = (
-  metadata: Record<string, unknown>,
+  metadata: NonNullable<PaykitStripeCheckoutSession["metadata"]>,
 ): string | null => {
   const paykitMetadata = metadata[PAYKIT_METADATA_KEY]
 
@@ -197,11 +149,10 @@ const getStripeCheckoutItemId = (
   }
 
   try {
-    const parsed: unknown = JSON.parse(paykitMetadata)
-
-    return isRecord(parsed) && typeof parsed["itemId"] === "string"
-      ? parsed["itemId"]
-      : null
+    const result = z
+      .object({ itemId: z.string() })
+      .safeParse(JSON.parse(paykitMetadata))
+    return result.success ? result.data.itemId : null
   } catch {
     return null
   }
@@ -358,13 +309,15 @@ const withStripeCheckoutSessionRetrieve = (
   }
 }
 
-const getCurrencyCode = (data?: Record<string, unknown>): string | undefined =>
+const getCurrencyCode = (
+  data?: InitiatePaymentInput["data"],
+): string | undefined =>
   typeof data?.["currency"] === "string" && data["currency"].length > 0
     ? data["currency"]
     : undefined
 
 const getPaymentIntentIdFromData = (
-  data?: Record<string, unknown>,
+  data?: InitiatePaymentInput["data"],
 ): string | undefined =>
   typeof data?.["payment_intent_id"] === "string" &&
   data["payment_intent_id"].length > 0
@@ -373,48 +326,35 @@ const getPaymentIntentIdFromData = (
 
 const getExplicitCaptureAmount = (
   input: CapturePaymentInput,
-): RefundPaymentInput["amount"] | undefined => {
+): number | undefined => {
   if (!("amount" in input)) {
     return undefined
   }
 
   const amount = Reflect.get(input, "amount")
-
-  if (amount !== undefined && !isPaymentAmount(amount)) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "PayKit capture amount must be numeric",
-    )
-  }
-
-  return amount
+  return amount === undefined
+    ? undefined
+    : toNumericPaymentAmount(amount, "PayKit capture amount must be numeric")
 }
 
 const getStoredCaptureAmount = (
-  data?: Record<string, unknown>,
-): RefundPaymentInput["amount"] | undefined => {
+  data?: CapturePaymentInput["data"],
+): number | undefined => {
   const amount = data?.["amount"]
-
-  if (amount === undefined) {
-    return undefined
-  }
-
-  if (!isPaymentAmount(amount)) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "PayKit stored payment amount must be numeric",
-    )
-  }
-
-  return amount
+  return amount === undefined
+    ? undefined
+    : toNumericPaymentAmount(
+        amount,
+        "PayKit stored payment amount must be numeric",
+      )
 }
 
 const withPreservedStripePaymentData = (
-  data: Record<string, unknown> | undefined,
+  data: CancelPaymentInput["data"],
   providerPaymentId: string,
   operationPaymentId: string,
   payment: PaykitPayment,
-): Record<string, unknown> => ({
+): NonNullable<CancelPaymentOutput["data"]> => ({
   ...data,
   ...toPaykitPaymentData(payment),
   id: providerPaymentId,
@@ -431,7 +371,7 @@ const withPreservedStripePaymentData = (
  * fall back to PayKit's own cancel path.
  */
 const cancelOrExpireStripeCheckoutSessionPayment = async (
-  data: Record<string, unknown> | undefined,
+  data: CancelPaymentInput["data"],
   providerPaymentId: string,
   client: PaykitPaymentClient,
 ): Promise<CancelPaymentOutput | undefined> => {
@@ -521,10 +461,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
       return
     }
 
-    requirePaykitOptions("PayKit Stripe", { ...options }, [
-      "apiKey",
-      "webhookSecret",
-    ])
+    requirePaykitOptions("PayKit Stripe", options, ["apiKey", "webhookSecret"])
   }
 
   protected async createDefaultClient(): Promise<PaykitPaymentClient> {
@@ -550,7 +487,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
   }
 
   private async getStripeOperationPaymentId(
-    data: Record<string, unknown> | undefined,
+    data: CancelPaymentInput["data"],
     client: PaykitPaymentClient,
   ): Promise<string> {
     const providerPaymentId = this.getProviderPaymentId(data)
@@ -701,7 +638,7 @@ export class PaykitStripePaymentProvider extends PaykitPaymentProviderBase<Payki
   }
 
   private async cancelOrExpirePayment(
-    data: Record<string, unknown> | undefined,
+    data: CancelPaymentInput["data"],
   ): Promise<CancelPaymentOutput> {
     const providerPaymentId = this.getProviderPaymentId(data)
     const client = await this.getClient()

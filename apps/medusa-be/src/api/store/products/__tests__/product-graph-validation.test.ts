@@ -45,6 +45,81 @@ describe("store product graph response validation", () => {
     ).toStrictEqual({ variants: [{ id: "variant_1" }] })
   })
 
+  it("validates projected images and options without erasing their shape", () => {
+    const product = parseStoreProductDetailGraphResponse(
+      {
+        data: [
+          {
+            images: [
+              {
+                id: "image_1",
+                metadata: { accessibility: { decorative: false } },
+                rank: 0,
+                url: "https://example.com/product.jpg",
+              },
+            ],
+            options: [
+              {
+                id: "option_1",
+                metadata: null,
+                title: "Size",
+                values: [
+                  {
+                    id: "option_value_1",
+                    metadata: { position: 1 },
+                    value: "Large",
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      "prod_1",
+    )
+
+    expect(product).toStrictEqual({
+      images: [
+        {
+          id: "image_1",
+          metadata: { accessibility: { decorative: false } },
+          rank: 0,
+          url: "https://example.com/product.jpg",
+        },
+      ],
+      options: [
+        {
+          id: "option_1",
+          metadata: null,
+          title: "Size",
+          values: [
+            {
+              id: "option_value_1",
+              metadata: { position: 1 },
+              value: "Large",
+            },
+          ],
+        },
+      ],
+    })
+  })
+
+  it("rejects malformed projected image and option fields", () => {
+    expect(() =>
+      parseStoreProductDetailGraphResponse(
+        {
+          data: [
+            {
+              images: [{ rank: "first" }],
+              options: [{ values: [{ id: 42 }] }],
+            },
+          ],
+        },
+        "prod_malformed",
+      ),
+    ).toThrow("Product query returned invalid store product data.")
+  })
+
   it("accepts Date, string, and null graph date values", () => {
     const createdAt = new Date("2026-08-07T12:00:00.000Z")
     const product = parseStoreProductDetailGraphResponse(

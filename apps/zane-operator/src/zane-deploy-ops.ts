@@ -1,93 +1,62 @@
 import { sleep } from "@techsio/std/async"
-import { isRecord } from "@techsio/std/object"
+import { z } from "zod"
 
+import type {
+  EnvOverrideInput,
+  ResolveTargetInput,
+  ServiceType,
+  TriggeredDeployment,
+  ZaneDeployment,
+  ZaneEnvVariable,
+  ZaneResolvedTarget,
+  ZaneServiceCard,
+  ZaneServiceDetails,
+  ZaneUnappliedChange,
+  ZaneUnappliedChangeValue,
+} from "./zane-contract"
 import { computeEffectiveEnvVariables } from "./zane-effective-service-state"
 import { UpstreamHttpError } from "./zane-errors"
 import { parseErrorMessage } from "./zane-upstream"
 import type { ResponseDecoder, ZaneSession } from "./zane-upstream"
 
-interface ResolveTargetInput {
-  service_id: string
-  service_slug: string
-}
-
-interface EnvOverrideInput {
-  service_id: string
-  service_slug: string
-  env: Record<string, string>
-}
-
-type ServiceType = "docker" | "git"
-type JsonRecord = Record<string, unknown>
-
-interface ZaneEnvVariable {
-  id: string
-  key: string
-  value: string
-}
-
-interface ZanePendingChange {
-  id: string
-  type?: string
-  field?: string
-  item_id?: string | null
-  new_value?: Record<string, unknown> | null
-  old_value?: Record<string, unknown> | null
-}
-
-interface ZaneServiceCard {
-  slug: string
-}
-
-interface ZaneServiceDetails {
-  slug: string
-  type: string
-  commit_sha?: string | null
-  deploy_token: string
-  env_variables: ZaneEnvVariable[]
-  unapplied_changes?: ZanePendingChange[]
-}
-
-interface ZaneResolvedCurrentDeployment {
-  deployment_hash: string
-  status: string
-  commit_sha: string | null
-  env: Record<string, string>
-}
-
-interface ZaneResolvedTarget {
-  service_id: string
-  service_slug: string
-  service_type: ServiceType
-  configured_commit_sha?: string | null
-  deploy_token: string
-  deploy_url: string
-  env_change_url: string
-  details_url: string
-  has_unapplied_changes?: boolean
-  current_production_deployment?: ZaneResolvedCurrentDeployment | null
-  active_deployment?: ZaneResolvedCurrentDeployment | null
-}
+type DeployServiceCard = Pick<ZaneServiceCard, "slug">
+type DeployServiceDetails = Pick<
+  ZaneServiceDetails,
+  | "commit_sha"
+  | "deploy_token"
+  | "env_variables"
+  | "slug"
+  | "type"
+  | "unapplied_changes"
+>
+type DeployDeployment = Pick<
+  ZaneDeployment,
+  | "commit_sha"
+  | "hash"
+  | "is_current_production"
+  | "service_snapshot"
+  | "status"
+>
 
 type EnvChangeType = "ADD" | "UPDATE" | "SKIP"
 
-interface TriggeredDeployment {
-  service_id: string
-  service_slug: string
-  service_type: ServiceType
-  deployment_hash: string
-  status: string
+interface EnvChangeRequestBody {
+  field: "env_variables"
+  item_id?: string
+  new_value: Pick<ZaneUnappliedChangeValue, "key" | "value">
+  type: "ADD" | "UPDATE"
 }
 
-interface ZaneDeployment {
-  hash: string
-  is_current_production?: boolean
-  commit_sha?: string | null
-  status: string
-  service_snapshot?: {
-    env_variables?: ZaneEnvVariable[]
-  }
-}
+type TriggerDeploymentBody =
+  | {
+      cleanup_queue: true
+      commit_message: "CI selective deploy"
+    }
+  | {
+      cleanup_queue: true
+      commit_sha?: string
+      ignore_build_cache: false
+    }
 
 interface ZaneDeployOpsDeps {
   baseUrl: string
@@ -100,26 +69,26 @@ interface ZaneDeployOpsDeps {
     session: ZaneSession,
     projectSlug: string,
     environmentName: string,
-  ) => Promise<ZaneServiceCard[]>
+  ) => Promise<DeployServiceCard[]>
   getServiceDetails: (
     session: ZaneSession,
     projectSlug: string,
     environmentName: string,
     serviceSlug: string,
-  ) => Promise<ZaneServiceDetails>
+  ) => Promise<DeployServiceDetails>
   getDeployment: (
     session: ZaneSession,
     projectSlug: string,
     environmentName: string,
     serviceSlug: string,
     deploymentHash: string,
-  ) => Promise<ZaneDeployment>
+  ) => Promise<DeployDeployment>
   listDeployments: (
     session: ZaneSession,
     projectSlug: string,
     environmentName: string,
     serviceSlug: string,
-  ) => Promise<ZaneDeployment[]>
+  ) => Promise<DeployDeployment[]>
   request: <T>(
     session: ZaneSession,
     method: "PUT" | "DELETE",
@@ -133,33 +102,35 @@ interface ZaneDeployOpsDeps {
   ) => Promise<T | null>
 }
 
+const mutationResponseSchema = z.object({})
+
 const decodeMutationResponse = (payload: unknown): void => {
-  if (!isRecord(payload)) {
+  if (!mutationResponseSchema.safeParse(payload).success) {
     throw new TypeError("mutation response must be an object")
   }
 }
 
 const coercePendingEnvVariable = (
-  value: Record<string, unknown> | null | undefined,
+  value: ZaneUnappliedChangeValue | null | undefined,
 ): { key: string; value: string } | null => {
   if (
     !value ||
-    typeof value["key"] !== "string" ||
-    typeof value["value"] !== "string"
+    typeof value.key !== "string" ||
+    typeof value.value !== "string"
   ) {
     return null
   }
 
   return {
-    key: value["key"],
-    value: value["value"],
+    key: value.key,
+    value: value.value,
   }
 }
 
 const findPendingEnvChangeByKey = (
-  serviceDetails: ZaneServiceDetails,
+  serviceDetails: DeployServiceDetails,
   key: string,
-): ZanePendingChange | null => {
+): ZaneUnappliedChange | null => {
   const persistedEnvById = new Map(
     (serviceDetails.env_variables ?? []).map((envVar) => [envVar.id, envVar]),
   )
@@ -498,7 +469,7 @@ export class ZaneDeployOps {
     environmentName: string
     target: ZaneResolvedTarget
     override: EnvOverrideInput
-    serviceDetails: ZaneServiceDetails
+    serviceDetails: DeployServiceDetails
     effectiveEnvByKey: Map<string, ZaneEnvVariable>
     persistedEnvByKey: Map<string, ZaneEnvVariable>
     entries: [string, string][]
@@ -544,17 +515,13 @@ export class ZaneDeployOps {
 
     const persistedCurrent = input.persistedEnvByKey.get(key)
     const changeType: "ADD" | "UPDATE" = persistedCurrent ? "UPDATE" : "ADD"
-    const requestBody: JsonRecord = {
+    const requestBody: EnvChangeRequestBody = {
       field: "env_variables",
-      new_value: {
-        key,
-        value,
-      },
+      new_value: { key, value },
       type: changeType,
-    }
-
-    if (persistedCurrent?.id !== undefined && persistedCurrent.id !== "") {
-      requestBody["item_id"] = persistedCurrent.id
+      ...(persistedCurrent?.id !== undefined && persistedCurrent.id !== ""
+        ? { item_id: persistedCurrent.id }
+        : {}),
     }
 
     await this.#deps.request(
@@ -613,7 +580,7 @@ export class ZaneDeployOps {
     const session = await this.#deps.authenticate()
     const deployments = await Promise.all(
       input.targets.map(async (target) => {
-        const body =
+        const body: TriggerDeploymentBody =
           target.service_type === "docker"
             ? { cleanup_queue: true, commit_message: "CI selective deploy" }
             : {
@@ -700,7 +667,7 @@ export class ZaneDeployOps {
 
   private async triggerDeployment(
     target: ZaneResolvedTarget,
-    body: JsonRecord,
+    body: TriggerDeploymentBody,
   ): Promise<void> {
     const response = await fetch(`${this.#deps.baseUrl}${target.deploy_url}`, {
       body: JSON.stringify(body),
@@ -729,7 +696,7 @@ export class ZaneDeployOps {
     environmentName: string,
     serviceSlug: string,
     previousDeploymentHashes: Set<string>,
-  ): Promise<ZaneDeployment> {
+  ): Promise<DeployDeployment> {
     return await this.pollForTriggeredDeployment({
       attempt: 0,
       environmentName,
@@ -751,7 +718,7 @@ export class ZaneDeployOps {
     environmentName: string
     serviceSlug: string
     previousDeploymentHashes: Set<string>
-  }): Promise<ZaneDeployment> {
+  }): Promise<DeployDeployment> {
     if (input.attempt >= 10) {
       throw new UpstreamHttpError(
         502,

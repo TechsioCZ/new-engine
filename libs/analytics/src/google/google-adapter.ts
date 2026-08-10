@@ -34,7 +34,7 @@ export const useGoogleAdapter = (
 
   const trackCustom = createTracker(
     getGtag,
-    (gtag, args: { eventName: string; params?: Record<string, unknown> }) => {
+    (gtag, args: { eventName: string; params?: object }) => {
       gtag("event", args.eventName, args.params)
     },
     debug,

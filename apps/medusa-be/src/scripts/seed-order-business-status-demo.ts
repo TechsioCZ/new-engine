@@ -3,8 +3,9 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import { createOrderWorkflow } from "@medusajs/medusa/core-flows"
-import { isRecord } from "@techsio/std/object"
+import { omitKeys } from "@techsio/std/object"
 
 import { ORDER_BUSINESS_STATUS_METADATA_KEY } from "../utils/order-business-status"
 import type {
@@ -13,31 +14,52 @@ import type {
 } from "../utils/order-business-status"
 import seedOrderExpeditionDemo from "./seed-order-expedition-demo"
 
-interface DemoVariant {
-  id: string
-  sku?: string | null
-  title?: string | null
-  product?: {
-    id?: string | null
-    title?: string | null
-    handle?: string | null
-  } | null
-}
+const optionalNullableStringSchema = z.string().nullable().optional()
+const demoVariantSchema = z.object({
+  id: z.string(),
+  product: z
+    .object({
+      handle: optionalNullableStringSchema,
+      id: optionalNullableStringSchema,
+      title: optionalNullableStringSchema,
+    })
+    .nullable()
+    .optional(),
+  sku: optionalNullableStringSchema,
+  title: optionalNullableStringSchema,
+})
+type DemoVariant = z.infer<typeof demoVariantSchema>
 
-interface DemoRegion {
-  id: string
-  currency_code?: string | null
-}
+const demoRegionSchema = z.object({
+  currency_code: optionalNullableStringSchema,
+  id: z.string(),
+  name: z.string().optional(),
+})
+type DemoRegion = z.infer<typeof demoRegionSchema>
 
-interface DemoSalesChannel {
-  id: string
-}
+const demoSalesChannelSchema = z.object({
+  id: z.string(),
+  name: z.string().optional(),
+})
+type DemoSalesChannel = z.infer<typeof demoSalesChannelSchema>
 
-interface DemoOrder {
-  id: string
-  email?: string | null
-  metadata?: Record<string, unknown> | null
-}
+const demoOrderMetadataSchema = z
+  .object({
+    order_business_status_demo: z.boolean().optional(),
+    order_business_status_demo_expected_label: z.json().optional(),
+    order_business_status_demo_expected_status: z.string().optional(),
+    order_business_status_demo_key: z.string().optional(),
+    order_business_status_manual: z.string().optional(),
+  })
+  .catchall(z.json())
+type DemoOrderMetadata = z.infer<typeof demoOrderMetadataSchema>
+
+const demoOrderSchema = z.object({
+  email: optionalNullableStringSchema,
+  id: z.string(),
+  metadata: demoOrderMetadataSchema.nullable().optional(),
+})
+type DemoOrder = z.infer<typeof demoOrderSchema>
 
 interface QueryService {
   graph: (input: {
@@ -142,89 +164,27 @@ const BUSINESS_STATUS_DEMOS: BusinessStatusDemo[] = [
   },
 ]
 
-const isOptionalNullableString = (value: unknown) =>
-  value === undefined || value === null || typeof value === "string"
-
-const isDemoRegion = (
-  value: unknown,
-): value is DemoRegion & { name?: string } =>
-  isRecord(value) &&
-  typeof value["id"] === "string" &&
-  isOptionalNullableString(value["name"]) &&
-  isOptionalNullableString(value["currency_code"])
-
-const isDemoSalesChannel = (
-  value: unknown,
-): value is DemoSalesChannel & { name?: string } =>
-  isRecord(value) &&
-  typeof value["id"] === "string" &&
-  isOptionalNullableString(value["name"])
-
-const isDemoProduct = (value: unknown): value is DemoVariant["product"] => {
-  if (value === undefined || value === null) {
-    return true
-  }
-
-  return (
-    isRecord(value) &&
-    isOptionalNullableString(value["id"]) &&
-    isOptionalNullableString(value["title"]) &&
-    isOptionalNullableString(value["handle"])
-  )
-}
-
-const isDemoVariant = (value: unknown): value is DemoVariant => {
-  if (!isRecord(value) || typeof value["id"] !== "string") {
-    return false
-  }
-
-  return (
-    isOptionalNullableString(value["sku"]) &&
-    isOptionalNullableString(value["title"]) &&
-    isDemoProduct(value["product"])
-  )
-}
-
-const isDemoOrder = (value: unknown): value is DemoOrder => {
-  if (!isRecord(value) || typeof value["id"] !== "string") {
-    return false
-  }
-
-  const { metadata } = value
-  return (
-    isOptionalNullableString(value["email"]) &&
-    (metadata === undefined || metadata === null || isRecord(metadata))
-  )
-}
-
 const buildDemoMetadata = (
-  metadata: Record<string, unknown> | null | undefined,
+  metadata: DemoOrderMetadata | null | undefined,
   demo: BusinessStatusDemo,
-) => {
-  const nextMetadata: Record<string, unknown> = {
-    ...metadata,
-    order_business_status_demo: true,
-    order_business_status_demo_expected_status: demo.expectedStatus,
-    order_business_status_demo_key: demo.key,
-  }
-
-  // remove a legacy seed marker from serialized demo metadata.
-  delete nextMetadata["order_business_status_demo_expected_label"]
-
-  if (demo.manualStatus === undefined) {
-    delete nextMetadata["order_business_status_manual"]
-  } else {
-    nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = demo.manualStatus
-  }
-
-  return nextMetadata
-}
+) => ({
+  ...omitKeys(metadata ?? {}, [
+    "order_business_status_demo_expected_label",
+    "order_business_status_manual",
+  ]),
+  order_business_status_demo: true,
+  order_business_status_demo_expected_status: demo.expectedStatus,
+  order_business_status_demo_key: demo.key,
+  ...(demo.manualStatus === undefined
+    ? {}
+    : { [ORDER_BUSINESS_STATUS_METADATA_KEY]: demo.manualStatus }),
+})
 
 const getRows = <T>(result: RawRows<T>) =>
   Array.isArray(result) ? result : (result.rows ?? [])
 
 const getDemoKey = (order: DemoOrder) => {
-  const key = order.metadata?.["order_business_status_demo_key"]
+  const key = order.metadata?.order_business_status_demo_key
   return typeof key === "string" ? key : undefined
 }
 
@@ -267,8 +227,9 @@ const fetchCzechRegion = async (query: QueryService) => {
     fields: ["id", "name", "currency_code"],
   })
 
-  return Array.isArray(data)
-    ? data.filter(isDemoRegion).find((region) => region.name === "Czechia")
+  const parsed = z.array(demoRegionSchema).safeParse(data)
+  return parsed.success
+    ? parsed.data.find((region) => region.name === "Czechia")
     : undefined
 }
 
@@ -278,10 +239,11 @@ const fetchDefaultSalesChannel = async (query: QueryService) => {
     fields: ["id", "name"],
   })
 
-  return Array.isArray(data)
-    ? data
-        .filter(isDemoSalesChannel)
-        .find((salesChannel) => salesChannel.name === "Default Sales Channel")
+  const parsed = z.array(demoSalesChannelSchema).safeParse(data)
+  return parsed.success
+    ? parsed.data.find(
+        (salesChannel) => salesChannel.name === "Default Sales Channel",
+      )
     : undefined
 }
 
@@ -298,14 +260,13 @@ const fetchDemoVariants = async (query: QueryService) => {
     ],
   })
 
-  return Array.isArray(data)
-    ? data
-        .filter(isDemoVariant)
-        .filter(
-          (variant) =>
-            variant.product?.handle?.startsWith(DEMO_PRODUCT_HANDLE_PREFIX) ===
-            true,
-        )
+  const parsed = z.array(demoVariantSchema).safeParse(data)
+  return parsed.success
+    ? parsed.data.filter(
+        (variant) =>
+          variant.product?.handle?.startsWith(DEMO_PRODUCT_HANDLE_PREFIX) ===
+          true,
+      )
     : []
 }
 
@@ -315,12 +276,11 @@ const fetchBusinessStatusDemoOrders = async (query: QueryService) => {
     fields: ["id", "email", "metadata"],
   })
 
-  return Array.isArray(data)
-    ? data
-        .filter(isDemoOrder)
-        .filter(
-          (order) => order.metadata?.["order_business_status_demo"] === true,
-        )
+  const parsed = z.array(demoOrderSchema).safeParse(data)
+  return parsed.success
+    ? parsed.data.filter(
+        (order) => order.metadata?.order_business_status_demo === true,
+      )
     : []
 }
 

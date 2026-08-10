@@ -4,10 +4,8 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { QR_PAYMENT_CONFIG_SERVICE } from "../constants"
 
 interface QrPaymentConfigServiceType {
-  create: (data: Record<string, unknown>) => Promise<unknown>
-  listAndCount: (
-    filter: Record<string, unknown>,
-  ) => Promise<[unknown[], number]>
+  create: (data: Record<string, never>) => Promise<unknown>
+  listAndCount: (filter: Record<string, never>) => Promise<[unknown[], number]>
 }
 
 export default async function createDefaultConfigLoader({

@@ -1,4 +1,5 @@
 import type { Logger, MedusaContainer } from "@medusajs/framework/types"
+import { getRecordValue } from "@techsio/std/object"
 
 import { MeilisearchAdminClient } from "./admin-client"
 import {
@@ -15,7 +16,7 @@ const CMS_PROFILE_CONCURRENCY = 4
 
 export interface CmsSearchChange {
   collection: string
-  doc?: Record<string, unknown>
+  doc?: object
   operation?: string
 }
 
@@ -46,10 +47,18 @@ export const selectContentSearchProfiles = (
 const isPublished = (
   change: CmsSearchChange,
   type: "article" | "page",
-): boolean =>
-  change.operation !== "delete" &&
-  change.doc?.["status"] === "published" &&
-  (type === "article" || change.doc?.["visibility"] === "public")
+): boolean => {
+  if (change.operation === "delete" || change.doc === undefined) {
+    return false
+  }
+  if (getRecordValue(change.doc, "status") !== "published") {
+    return false
+  }
+
+  return (
+    type === "article" || getRecordValue(change.doc, "visibility") === "public"
+  )
+}
 
 export const reconcileContentSearchChange = async (
   change: CmsSearchChange,
@@ -66,7 +75,8 @@ export const reconcileContentSearchChange = async (
     return
   }
 
-  const rawId = change.doc?.["id"]
+  const rawId =
+    change.doc === undefined ? undefined : getRecordValue(change.doc, "id")
 
   if (
     (typeof rawId !== "string" || rawId.trim().length === 0) &&
@@ -81,10 +91,9 @@ export const reconcileContentSearchChange = async (
     return
   }
 
-  const locale =
-    typeof change.doc?.["locale"] === "string"
-      ? change.doc["locale"]
-      : undefined
+  const rawLocale =
+    change.doc === undefined ? undefined : getRecordValue(change.doc, "locale")
+  const locale = typeof rawLocale === "string" ? rawLocale : undefined
   const loadedProfiles = await loadSearchProfiles(container)
   const profiles = selectContentSearchProfiles(loadedProfiles, locale)
   const client = new MeilisearchAdminClient()
@@ -99,7 +108,10 @@ export const reconcileContentSearchChange = async (
     await client.updateSettings(index, CONTENT_INDEX_SETTINGS)
 
     if (isPublished(change, type)) {
-      const sourceSlug = change.doc?.["slug"]
+      const sourceSlug =
+        change.doc === undefined
+          ? undefined
+          : getRecordValue(change.doc, "slug")
       const contentSource = {
         ...change.doc,
         slug:

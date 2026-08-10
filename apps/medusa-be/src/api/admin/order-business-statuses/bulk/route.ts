@@ -1,5 +1,9 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import type { IOrderModuleService, Query } from "@medusajs/framework/types"
+import type {
+  IOrderModuleService,
+  MetadataType,
+  Query,
+} from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
 import { getOrderBusinessManualStatusUpdateBlockReason } from "../../../../utils/order-business-status"
@@ -22,7 +26,7 @@ interface SkippedOrder {
 interface UpdateCandidate {
   id: string
   order_display_id: string
-  metadata: Record<string, unknown>
+  metadata: MetadataType
 }
 
 const UPDATE_CHUNK_SIZE = 25

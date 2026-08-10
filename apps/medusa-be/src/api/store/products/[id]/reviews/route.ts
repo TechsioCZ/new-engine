@@ -4,6 +4,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { z as zod } from "@medusajs/framework/zod"
 
 import { PRODUCT_REVIEW_MODULE } from "../../../../../modules/product-review"
 import type ProductReviewModuleService from "../../../../../modules/product-review/service"
@@ -13,14 +14,14 @@ import {
 } from "../../../../review-normalizers"
 import type { StoreGetProductReviewsSchemaType } from "./validators"
 
-interface ReviewRatingRecord {
-  rating: number
-}
+const reviewRatingSchema = zod.object({
+  rating: zod.number().min(1).max(5),
+})
 
-const isReviewRatingRecord = (value: unknown): value is ReviewRatingRecord =>
-  typeof value === "object" &&
-  value !== null &&
-  typeof Reflect.get(value, "rating") === "number"
+const parseReviewRating = (value: unknown): number | null => {
+  const result = reviewRatingSchema.safeParse(value)
+  return result.success ? result.data.rating : null
+}
 
 const getReviewSummary = async (req: MedusaRequest, productId: string) => {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -54,8 +55,13 @@ const getReviewSummary = async (req: MedusaRequest, productId: string) => {
       take: count,
     },
   })
-  const ratings = Array.isArray(data) ? data.filter(isReviewRatingRecord) : []
-  const ratingSum = ratings.reduce((sum, review) => sum + review.rating, 0)
+  const ratings = Array.isArray(data)
+    ? data.flatMap((review) => {
+        const rating = parseReviewRating(review)
+        return rating === null ? [] : [rating]
+      })
+    : []
+  const ratingSum = ratings.reduce((sum, rating) => sum + rating, 0)
 
   return {
     average_rating:

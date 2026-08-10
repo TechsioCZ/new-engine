@@ -3,47 +3,52 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
+
+interface ApiKeyFilters {
+  token?: string | undefined
+  type: "publishable"
+}
+
+interface ApiKeyQuery {
+  entity: "api_key"
+  fields: string[]
+  filters: ApiKeyFilters
+  pagination: { skip: number; take: number }
+}
+
+interface ProductSalesChannelQuery {
+  entity: "product_sales_channel"
+  fields: string[]
+  filters: { sales_channel_id: string[] }
+}
+
+interface ProductGraphQuery {
+  entity: "product"
+  fields: string[]
+  filters: { id: string[]; status: "published" }
+  pagination: { skip: number; take: number }
+}
+
+interface ProductIndexQuery {
+  entity: "product"
+  fields: string[]
+  filters: {
+    sales_channels: { id: string[] }
+    status: "published"
+  }
+  pagination: { skip: number; take: number }
+}
+
+type GraphQuery = ApiKeyQuery | ProductSalesChannelQuery | ProductGraphQuery
 
 interface QueryService {
-  graph: (config: {
-    entity: string
-    fields: string[]
-    filters?: Record<string, unknown>
-    pagination?: { skip: number; take: number }
-  }) => Promise<{
-    data?: {
-      id?: string
-      token?: string
-      revoked_at?: string | Date | null
-      sales_channels_link?: { sales_channel_id?: string }[]
-      product_id?: string
-    }[]
-    metadata?: {
-      count?: number
-      skip?: number
-      take?: number
-    }
-  }>
-  index: (config: {
-    entity: string
-    fields: string[]
-    filters: Record<string, unknown>
-    pagination: { skip: number; take: number }
-  }) => Promise<{
-    data?: { id?: string }[]
-    metadata?: {
-      estimate_count?: number
-      skip?: number
-      take?: number
-    }
-  }>
+  graph: (config: GraphQuery) => Promise<unknown>
+  index: (config: ProductIndexQuery) => Promise<unknown>
 }
 
 interface PgConnection {
-  raw: (
-    sql: string,
-    bindings?: unknown[],
-  ) => Promise<{ rows?: Record<string, unknown>[] }>
+  raw: (sql: string, bindings?: unknown[]) => Promise<unknown>
 }
 
 interface SnapshotContext {
@@ -55,18 +60,86 @@ interface SnapshotContext {
   take: number
 }
 
-const toRows = (result: { rows?: Record<string, unknown>[] }) =>
-  result.rows ?? []
+const apiKeyQueryResultSchema = z.object({
+  data: z
+    .array(
+      z.object({
+        id: z.string().optional(),
+        revoked_at: z.union([z.string(), z.date()]).nullable().optional(),
+        sales_channels_link: z
+          .array(z.object({ sales_channel_id: z.string().optional() }))
+          .optional(),
+        token: z.string().optional(),
+      }),
+    )
+    .optional(),
+})
 
-const getFirstNumber = (
-  row: Record<string, unknown> | undefined,
-  key: string,
-): number => {
-  const value = row?.[key]
+const countValueSchema = z.union([z.number(), z.string()])
+const exactCountResultSchema = z.object({
+  rows: z
+    .array(
+      z.object({
+        product_sales_channel_products: countValueSchema.optional(),
+        product_sales_channel_rows: countValueSchema.optional(),
+        published_products: countValueSchema.optional(),
+      }),
+    )
+    .optional(),
+})
+
+const indexQueryResultSchema = z.object({
+  data: z.array(z.object({ id: z.string().optional() })).optional(),
+  metadata: z
+    .object({
+      estimate_count: z.number().optional(),
+      skip: z.number().optional(),
+      take: z.number().optional(),
+    })
+    .optional(),
+})
+
+const productLinkQueryResultSchema = z.object({
+  data: z.array(z.object({ product_id: z.string().optional() })).optional(),
+})
+
+const productGraphQueryResultSchema = z.object({
+  data: z.array(z.object({ id: z.string().optional() })).optional(),
+  metadata: z
+    .object({
+      count: z.number().optional(),
+      skip: z.number().optional(),
+      take: z.number().optional(),
+    })
+    .optional(),
+})
+
+type ApiKeyQueryResult = z.infer<typeof apiKeyQueryResultSchema>
+type ExactCountResult = z.infer<typeof exactCountResultSchema>
+type IndexQueryResult = z.infer<typeof indexQueryResultSchema>
+type ProductLinkQueryResult = z.infer<typeof productLinkQueryResultSchema>
+type ProductGraphQueryResult = z.infer<typeof productGraphQueryResultSchema>
+
+const parseBoundaryResult = <Schema extends z.ZodType>(
+  value: unknown,
+  schema: Schema,
+  description: string,
+): z.infer<Schema> => {
+  const parsed = schema.safeParse(value)
+  if (!parsed.success) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `${description} returned invalid data`,
+    )
+  }
+  return parsed.data
+}
+
+const getCountValue = (value: number | string | undefined): number => {
   if (typeof value === "number") {
     return value
   }
-  if (typeof value === "string") {
+  if (value !== undefined) {
     return Math.trunc(Number(value))
   }
   return 0
@@ -74,28 +147,32 @@ const getFirstNumber = (
 
 const resolvePublishableKey = async (query: QueryService) => {
   const explicitToken = process.env["PUBLISHABLE_KEY"]?.trim()
-  const filters: Record<string, unknown> = {
+  const filters: ApiKeyFilters = {
     type: "publishable",
   }
 
   if (explicitToken !== undefined && explicitToken.length > 0) {
-    filters["token"] = explicitToken
+    filters.token = explicitToken
   }
 
-  const result = await query.graph({
-    entity: "api_key",
-    fields: [
-      "id",
-      "token",
-      "revoked_at",
-      "sales_channels_link.sales_channel_id",
-    ],
-    filters,
-    pagination: {
-      skip: 0,
-      take: 50,
-    },
-  })
+  const result: ApiKeyQueryResult = parseBoundaryResult(
+    await query.graph({
+      entity: "api_key",
+      fields: [
+        "id",
+        "token",
+        "revoked_at",
+        "sales_channels_link.sales_channel_id",
+      ],
+      filters,
+      pagination: {
+        skip: 0,
+        take: 50,
+      },
+    }),
+    apiKeyQueryResultSchema,
+    "Publishable API key query",
+  )
 
   const now = new Date()
   const apiKey = (result.data ?? []).find((candidate) => {
@@ -105,10 +182,10 @@ const resolvePublishableKey = async (query: QueryService) => {
         : new Date(candidate.revoked_at)
 
     return (
-      typeof candidate.token === "string" &&
+      candidate.token !== undefined &&
       (revokedAt === undefined || revokedAt > now) &&
       (candidate.sales_channels_link ?? []).some(
-        (link) => typeof link.sales_channel_id === "string",
+        (link) => link.sales_channel_id !== undefined,
       )
     )
   })
@@ -136,30 +213,32 @@ const resolvePublishableKey = async (query: QueryService) => {
 }
 
 const getExactCounts = async (pg: PgConnection, salesChannelIds: string[]) => {
-  const result = await pg.raw(
-    `
-      select
-        count(distinct p.id)::int as published_products,
-        count(psc.product_id)::int as product_sales_channel_rows,
-        count(distinct psc.product_id)::int as product_sales_channel_products
-      from product p
-      join product_sales_channel psc on psc.product_id = p.id
-      where p.status = 'published'
-        and p.deleted_at is null
-        and psc.sales_channel_id = any(?::text[])
-    `,
-    [salesChannelIds],
+  const result: ExactCountResult = parseBoundaryResult(
+    await pg.raw(
+      `
+        select
+          count(distinct p.id)::int as published_products,
+          count(psc.product_id)::int as product_sales_channel_rows,
+          count(distinct psc.product_id)::int as product_sales_channel_products
+        from product p
+        join product_sales_channel psc on psc.product_id = p.id
+        where p.status = 'published'
+          and p.deleted_at is null
+          and psc.sales_channel_id = any(?::text[])
+      `,
+      [salesChannelIds],
+    ),
+    exactCountResultSchema,
+    "Exact product count query",
   )
-
-  const [row] = toRows(result)
+  const [row] = result.rows ?? []
 
   return {
-    productSalesChannelProducts: getFirstNumber(
-      row,
-      "product_sales_channel_products",
+    productSalesChannelProducts: getCountValue(
+      row?.product_sales_channel_products,
     ),
-    productSalesChannelRows: getFirstNumber(row, "product_sales_channel_rows"),
-    publishedProducts: getFirstNumber(row, "published_products"),
+    productSalesChannelRows: getCountValue(row?.product_sales_channel_rows),
+    publishedProducts: getCountValue(row?.published_products),
   }
 }
 
@@ -168,20 +247,24 @@ const getIndexCounts = async (
   salesChannelIds: string[],
   take: number,
 ) => {
-  const result = await query.index({
-    entity: "product",
-    fields: ["id", "handle"],
-    filters: {
-      sales_channels: {
-        id: salesChannelIds,
+  const result: IndexQueryResult = parseBoundaryResult(
+    await query.index({
+      entity: "product",
+      fields: ["id", "handle"],
+      filters: {
+        sales_channels: {
+          id: salesChannelIds,
+        },
+        status: "published",
       },
-      status: "published",
-    },
-    pagination: {
-      skip: 0,
-      take,
-    },
-  })
+      pagination: {
+        skip: 0,
+        take,
+      },
+    }),
+    indexQueryResultSchema,
+    "Product index query",
+  )
 
   const productIds = new Set(
     (result.data ?? [])
@@ -201,29 +284,37 @@ const getGraphCounts = async (
   salesChannelIds: string[],
   take: number,
 ) => {
-  const linkResult = await query.graph({
-    entity: "product_sales_channel",
-    fields: ["product_id"],
-    filters: {
-      sales_channel_id: salesChannelIds,
-    },
-  })
+  const linkResult: ProductLinkQueryResult = parseBoundaryResult(
+    await query.graph({
+      entity: "product_sales_channel",
+      fields: ["product_id"],
+      filters: {
+        sales_channel_id: salesChannelIds,
+      },
+    }),
+    productLinkQueryResultSchema,
+    "Product sales channel link query",
+  )
   const linkedProductIds = (linkResult.data ?? [])
     .map((link) => link.product_id)
     .filter((id): id is string => typeof id === "string")
 
-  const result = await query.graph({
-    entity: "product",
-    fields: ["id", "handle"],
-    filters: {
-      id: linkedProductIds,
-      status: "published",
-    },
-    pagination: {
-      skip: 0,
-      take,
-    },
-  })
+  const result: ProductGraphQueryResult = parseBoundaryResult(
+    await query.graph({
+      entity: "product",
+      fields: ["id", "handle"],
+      filters: {
+        id: linkedProductIds,
+        status: "published",
+      },
+      pagination: {
+        skip: 0,
+        take,
+      },
+    }),
+    productGraphQueryResultSchema,
+    "Product graph query",
+  )
 
   const productIds = new Set(
     (result.data ?? [])

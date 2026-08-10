@@ -12,7 +12,6 @@ import type {
   Payment,
   PaymentStatus,
   Refund,
-  WebhookEventPayload,
 } from "@paykit-sdk/core"
 import type { createGopay } from "@paykit-sdk/gopay"
 import type { createStripe } from "@paykit-sdk/stripe"
@@ -73,7 +72,7 @@ export type PaykitPayment = Partial<
   gw_url?: string | null | undefined
   url?: string | null | undefined
   payment_intent_id?: string | null | undefined
-  metadata?: Record<string, unknown> | null | undefined
+  metadata?: Payment["metadata"] | null | undefined
 }
 
 export type PaykitCustomer = Partial<Customer>
@@ -132,7 +131,7 @@ export interface PaykitPaymentClient {
   stripeCheckoutSessions?: {
     retrieve: (
       id: string,
-      options?: Record<string, unknown>,
+      options?: { expand?: string[] },
     ) => Promise<PaykitStripeCheckoutSession | null>
     expire?: (id: string) => Promise<PaykitStripeCheckoutSession | null>
   }
@@ -178,38 +177,29 @@ export interface PaykitAdapterOptions {
   clientFactory?: PaykitClientFactory
 }
 
-export type PaykitGopayProviderOptions = Partial<
-  Parameters<typeof createGopay>[0]
->
-export type PaykitStripeProviderOptions = Partial<
-  Parameters<typeof createStripe>[0]
->
-export type PaykitComgateProviderOptions = Partial<
-  Parameters<typeof createComgate>[0]
->
+export type PaykitGopayProviderOptions = Parameters<typeof createGopay>[0]
+export type PaykitStripeProviderOptions = Parameters<typeof createStripe>[0]
+export type PaykitComgateProviderOptions = Parameters<typeof createComgate>[0]
+export type PaykitStripeProvider = ReturnType<typeof createStripe>
 
 export type PaykitGopayOptions = PaykitAdapterOptions &
-  PaykitGopayProviderOptions
+  Partial<PaykitGopayProviderOptions>
 
 export type PaykitStripeOptions = PaykitAdapterOptions &
-  PaykitStripeProviderOptions & {
+  Partial<PaykitStripeProviderOptions> & {
     webhookSecret?: string
   }
 
 export type PaykitComgateOptions = PaykitAdapterOptions &
-  PaykitComgateProviderOptions & {
+  Partial<PaykitComgateProviderOptions> & {
     paymentLabel?: string
   }
 
-type PaykitSdkWebhookEvent = WebhookEventPayload<Record<string, unknown>>
-
-export type PaykitWebhookEvent = Partial<
-  Omit<PaykitSdkWebhookEvent, "data" | "type">
-> & {
-  type?: WebhookEventPayload["type"]
-  is_raw?: WebhookEventPayload["is_raw"]
-  data?: unknown
-  payment?: PaykitPayment | null
-  metadata?: Record<string, unknown> | null
+export interface PaykitWebhookEvent {
   amount?: BigNumberInput
+  data?: unknown
+  is_raw?: boolean
+  metadata?: Payment["metadata"] | null
+  payment?: PaykitPayment | null
+  type?: string
 }

@@ -14,7 +14,6 @@ import {
   StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { isRecord } from "@techsio/std/object"
 
 import { ORDER_RECEIPT_MODULE } from "../modules/order-receipt"
 import type OrderReceiptModuleService from "../modules/order-receipt/service"
@@ -36,27 +35,65 @@ interface OrderReceiptWorkflowResult {
   sent: boolean
 }
 
-type QueryOrder = OrderReceiptOrder &
-  PaymentReminderOrder & {
-    customer?: {
-      first_name?: string | null
-      last_name?: string | null
-    } | null
-  }
-
-const isQueryOrder = (value: unknown): value is QueryOrder => {
-  if (!isRecord(value)) {
-    return false
-  }
-
-  const { id } = value
-
-  return typeof id === "string" && id.length > 0
+interface OrderCustomerProjection {
+  billing_address?: OrderReceiptOrder["billing_address"]
+  customer?: {
+    first_name?: string | null
+    last_name?: string | null
+  } | null
+  shipping_address?: OrderReceiptOrder["shipping_address"]
 }
 
-const findQueryOrder = (
-  candidates: readonly unknown[],
-): QueryOrder | undefined => candidates.find(isQueryOrder)
+type PaymentReminderProjection = Pick<
+  OrderReceiptOrder,
+  "currency_code" | "display_id" | "id" | "summary" | "total"
+>
+
+type OrderReceiptItem = NonNullable<OrderReceiptOrder["items"]>[number]
+type OrderReceiptPaymentCollection = NonNullable<
+  OrderReceiptOrder["payment_collections"]
+>[number]
+type OrderReceiptPayment = NonNullable<
+  OrderReceiptPaymentCollection["payments"]
+>[number]
+type OrderReceiptPaymentCollectionProjection = Omit<
+  OrderReceiptPaymentCollection,
+  "payments"
+> & {
+  payments?: (OrderReceiptPayment | null)[] | null
+}
+type OrderReceiptShippingMethod = NonNullable<
+  OrderReceiptOrder["shipping_methods"]
+>[number]
+
+const removeNullEntries = <T>(entries: readonly (T | null)[]): T[] =>
+  entries.filter((entry) => entry !== null)
+
+const getPaymentReminderTotal = (order: PaymentReminderProjection) => {
+  const selectedTotal =
+    order.summary?.current_order_total ??
+    order.summary?.original_order_total ??
+    order.total
+
+  return typeof selectedTotal === "number" || typeof selectedTotal === "string"
+    ? selectedTotal
+    : undefined
+}
+
+const toPaymentReminderOrder = (
+  order: PaymentReminderProjection,
+): PaymentReminderOrder => {
+  const total = getPaymentReminderTotal(order)
+
+  return {
+    display_id: order.display_id ?? null,
+    id: order.id,
+    ...(order.currency_code === undefined
+      ? {}
+      : { currency_code: order.currency_code }),
+    ...(total === undefined ? {} : { total }),
+  }
+}
 
 const ORDER_RECEIPT_FIELDS = [
   "id",
@@ -105,7 +142,7 @@ const ORDER_RECEIPT_FIELDS = [
   "customer.last_name",
 ]
 
-const getCustomerName = (order: QueryOrder) => {
+const getCustomerName = (order: OrderCustomerProjection) => {
   const customerName = [order.customer?.first_name, order.customer?.last_name]
     .filter(Boolean)
     .join(" ")
@@ -150,10 +187,60 @@ const sendOrderReceiptStep = createStep(
         id: input.order_id,
       },
     })
-    const order = findQueryOrder(data)
+    const [order] = data
 
     if (!order) {
       throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")
+    }
+
+    const {
+      items,
+      payment_collections: paymentCollections,
+      shipping_methods: shippingMethods,
+      ...orderWithoutRelations
+    } = order
+    const receiptOrder: OrderReceiptOrder = {
+      ...orderWithoutRelations,
+      ...(items === undefined
+        ? {}
+        : {
+            items:
+              items === null
+                ? null
+                : removeNullEntries<OrderReceiptItem>(items),
+          }),
+      ...(paymentCollections === undefined
+        ? {}
+        : {
+            payment_collections:
+              paymentCollections === null
+                ? null
+                : removeNullEntries<OrderReceiptPaymentCollectionProjection>(
+                    paymentCollections,
+                  ).map(({ payments, ...collection }) => ({
+                    ...collection,
+                    ...(payments === undefined
+                      ? {}
+                      : {
+                          payments:
+                            payments === null
+                              ? null
+                              : removeNullEntries<OrderReceiptPayment>(
+                                  payments,
+                                ),
+                        }),
+                  })),
+          }),
+      ...(shippingMethods === undefined
+        ? {}
+        : {
+            shipping_methods:
+              shippingMethods === null
+                ? null
+                : removeNullEntries<OrderReceiptShippingMethod>(
+                    shippingMethods,
+                  ),
+          }),
     }
 
     if (
@@ -169,7 +256,10 @@ const sendOrderReceiptStep = createStep(
     }
 
     const attachment =
-      await orderReceiptModuleService.generateOrderReceiptAttachment(order)
+      await orderReceiptModuleService.generateOrderReceiptAttachment(
+        receiptOrder,
+      )
+    const paymentReminderOrder = toPaymentReminderOrder(order)
 
     await notificationModuleService.createNotifications({
       attachments: [
@@ -183,10 +273,10 @@ const sendOrderReceiptStep = createStep(
       channel: "email",
       data: {
         customer_name: getCustomerName(order),
-        order_display_id: getOrderDisplayId(order),
+        order_display_id: getOrderDisplayId(paymentReminderOrder),
         order_id: order.id,
         store_name: input.store_name,
-        total: formatTotal(order),
+        total: formatTotal(paymentReminderOrder),
       },
       resource_id: order.id,
       resource_type: "order",

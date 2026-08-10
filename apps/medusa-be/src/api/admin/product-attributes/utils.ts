@@ -65,17 +65,14 @@ export const parseProductAttributeOrder = (value = "label") => {
   return { [field]: direction, id: "ASC" as const }
 }
 
-export const applyProductAttributeStatusFilter = (
-  filters: Record<string, unknown>,
+export const applyProductAttributeStatusFilter = <T extends object>(
+  filters: T,
   status: ProductAttributeListStatus,
-) => {
-  if (status === "active") {
-    filters["deleted_at"] = null
-  } else if (status === "deleted") {
-    filters["deleted_at"] = { $ne: null }
-  }
-  return filters
-}
+) => ({
+  ...filters,
+  ...(status === "active" ? { deleted_at: null } : {}),
+  ...(status === "deleted" ? { deleted_at: { $ne: null } } : {}),
+})
 
 export const retrieveProductAttributeDefinitionOrThrow = async (
   scope: MedusaContainer,

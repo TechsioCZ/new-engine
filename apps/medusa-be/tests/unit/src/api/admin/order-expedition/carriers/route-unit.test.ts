@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { describe, expect, it, vi } from "vitest"
 
 type JsonMock = ReturnType<typeof vi.fn<(body: unknown) => unknown>>
@@ -16,7 +16,10 @@ const assertMockRequest: (
 const assertMockResponse: (
   candidate: unknown,
 ) => asserts candidate is MockResponse = (candidate) => {
-  if (!isRecord(candidate) || typeof candidate["json"] !== "function") {
+  if (
+    !isRecord(candidate) ||
+    typeof getRecordValue(candidate, "json") !== "function"
+  ) {
     throw new TypeError("Expected a response mock with a json method")
   }
 }

@@ -1,5 +1,3 @@
-import { getRecordValue } from "@techsio/std/object"
-
 import { normalizeSupportedCurrencyCode } from "./currency"
 import type { HerbatikaCurrencyCode as BaseHerbatikaCurrencyCode } from "./currency"
 import {
@@ -31,14 +29,14 @@ interface StorefrontMetadataSource {
 
 export const resolveProductTopOffer = (
   product?: StorefrontMetadataSource | null,
-) => {
+): object | null => {
   const metadata = asStorefrontRecord(product?.metadata)
-  return asStorefrontRecord(getRecordValue(metadata ?? {}, "top_offer"))
+  return asStorefrontRecord(
+    metadata === null ? undefined : Reflect.get(metadata, "top_offer"),
+  )
 }
 
-export const resolveTopOfferInStock = (
-  topOffer: Record<string, unknown> | null,
-): boolean => {
+export const resolveTopOfferInStock = (topOffer: object | null): boolean => {
   const amount = resolveTopOfferStockAmount(topOffer)
   return typeof amount === "number" ? amount > 0 : true
 }
@@ -46,7 +44,7 @@ export const resolveTopOfferInStock = (
 export const resolveTopOfferOriginalAmount = (params: {
   currentAmount: number | null
   explicitOriginalAmount?: number | null
-  topOffer: Record<string, unknown> | null
+  topOffer: object | null
 }) => {
   const { currentAmount, explicitOriginalAmount = null, topOffer } = params
   const explicitCandidate =
@@ -57,9 +55,15 @@ export const resolveTopOfferOriginalAmount = (params: {
   const hasExplicitOriginalAmount = explicitCandidate !== null
   const candidate =
     explicitCandidate ??
-    asStorefrontNumber(getRecordValue(topOffer ?? {}, "compare_at_price")) ??
-    asStorefrontNumber(getRecordValue(topOffer ?? {}, "standard_price")) ??
-    asStorefrontNumber(getRecordValue(topOffer ?? {}, "price_vat"))
+    asStorefrontNumber(
+      topOffer === null ? undefined : Reflect.get(topOffer, "compare_at_price"),
+    ) ??
+    asStorefrontNumber(
+      topOffer === null ? undefined : Reflect.get(topOffer, "standard_price"),
+    ) ??
+    asStorefrontNumber(
+      topOffer === null ? undefined : Reflect.get(topOffer, "price_vat"),
+    )
 
   if (typeof currentAmount !== "number" || typeof candidate !== "number") {
     return null
@@ -67,10 +71,12 @@ export const resolveTopOfferOriginalAmount = (params: {
 
   const hasActiveDiscount =
     asStorefrontBoolean(
-      getRecordValue(topOffer ?? {}, "has_active_discount"),
+      topOffer === null
+        ? undefined
+        : Reflect.get(topOffer, "has_active_discount"),
     ) === true
   const actionAmount = asStorefrontNumber(
-    getRecordValue(topOffer ?? {}, "action_price"),
+    topOffer === null ? undefined : Reflect.get(topOffer, "action_price"),
   )
   const hasActionPriceDiscount =
     typeof actionAmount === "number" && candidate > actionAmount
@@ -92,7 +98,7 @@ interface StorefrontPriceInput {
   calculatedCurrencyCode: unknown
   calculatedOriginalAmount?: unknown
   expectedCurrencyCode?: unknown
-  topOffer: Record<string, unknown> | null
+  topOffer: object | null
 }
 
 export interface ResolvedStorefrontPrice {
@@ -139,7 +145,7 @@ export const resolveStorefrontPrice = ({
 
   const resolvedTopOfferAmount = resolveTopOfferCurrentAmount(topOffer)
   const resolvedTopOfferCurrency = normalizeSupportedCurrencyCode(
-    getRecordValue(topOffer ?? {}, "currency"),
+    topOffer === null ? undefined : Reflect.get(topOffer, "currency"),
   )
 
   if (

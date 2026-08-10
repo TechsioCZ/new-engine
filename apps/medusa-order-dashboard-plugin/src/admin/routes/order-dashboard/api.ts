@@ -75,9 +75,17 @@ const getResponseFilename = (
   return match?.groups?.["filename"] ?? fallbackFilename
 }
 
+type OrderDashboardPdfBody =
+  | { order_ids: string[] }
+  | {
+      label_format: OrderDashboardLabelFormat
+      label_offset?: number
+      order_ids: string[]
+    }
+
 const downloadPdf = async (
   path: string,
-  body: Record<string, unknown>,
+  body: OrderDashboardPdfBody,
   fallbackFilename: string,
 ): Promise<void> => {
   const response = await sdk.client.fetch<Response>(path, {

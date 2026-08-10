@@ -1,6 +1,9 @@
 import { lexicalHTMLField } from "@payloadcms/richtext-lexical"
-import { isRecord } from "@techsio/std/object"
-import type { CollectionConfig } from "payload"
+import type {
+  CollectionAfterReadHook,
+  CollectionBeforeValidateHook,
+  CollectionConfig,
+} from "payload"
 
 import { requireAuth } from "../lib/access/require-auth"
 import { fieldDescriptions } from "../lib/constants/descriptions"
@@ -20,11 +23,47 @@ import { createLexicalEditor } from "../lib/editors/lexical"
 import { createMedusaCacheHook } from "../lib/hooks/medusa-cache"
 import { generateSlugFromTitle } from "../lib/hooks/slug"
 import { shouldReturnHtmlForRequest } from "../lib/utils/request"
+import type { Page } from "../payload-types"
 
 /** Collection slug for pages. */
 const COLLECTION_SLUG = "pages"
 /** Hook to invalidate Medusa cache when pages change. */
 const invalidatePagesCache = createMedusaCacheHook(COLLECTION_SLUG)
+
+const replaceContentWithHtml: CollectionAfterReadHook<Page> = ({
+  doc,
+  req,
+}) => {
+  if (!shouldReturnHtmlForRequest(req) || doc.contentHTML === undefined) {
+    return doc
+  }
+
+  const { contentHTML, ...rest } = doc
+  return { ...rest, content: contentHTML }
+}
+
+const populateSlug: CollectionBeforeValidateHook<Page> = ({ data, req }) => {
+  if (data === undefined) {
+    return data
+  }
+
+  const { slug: existingSlug, title } = data
+  if (
+    title !== undefined &&
+    (existingSlug === undefined || existingSlug === null || existingSlug === "")
+  ) {
+    const { locale } = req
+    const slug = generateSlugFromTitle(
+      title,
+      locale === undefined || locale === "all" ? {} : { locale },
+    )
+    if (slug !== "") {
+      data.slug = slug
+    }
+  }
+
+  return data
+}
 
 /** Payload collection config for pages. */
 export const Pages: CollectionConfig = {
@@ -78,48 +117,8 @@ export const Pages: CollectionConfig = {
   hooks: {
     afterChange: [invalidatePagesCache],
     afterDelete: [invalidatePagesCache],
-    afterRead: [
-      ({ doc, req }) => {
-        const sourceDoc: unknown = doc
-        if (!shouldReturnHtmlForRequest(req) || !isRecord(sourceDoc)) {
-          return sourceDoc
-        }
-
-        const { contentHTML, ...rest } = sourceDoc
-        return contentHTML === undefined
-          ? sourceDoc
-          : {
-              ...rest,
-              content: contentHTML,
-            }
-      },
-    ],
-    beforeValidate: [
-      ({ data, req }) => {
-        if (!isRecord(data)) {
-          return data
-        }
-
-        const { slug: existingSlug, title } = data
-        if (
-          title !== undefined &&
-          (typeof existingSlug === "string"
-            ? existingSlug === ""
-            : !isRecord(existingSlug))
-        ) {
-          const { locale } = req
-          const slug = generateSlugFromTitle(
-            title,
-            locale === undefined || locale === "all" ? {} : { locale },
-          )
-          if (slug !== "") {
-            Reflect.set(data, "slug", slug)
-          }
-        }
-
-        return data
-      },
-    ],
+    afterRead: [replaceContentWithHtml],
+    beforeValidate: [populateSlug],
   },
   labels: collectionLabels.pages,
   slug: COLLECTION_SLUG,

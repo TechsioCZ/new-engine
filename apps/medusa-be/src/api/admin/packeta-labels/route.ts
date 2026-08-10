@@ -12,18 +12,31 @@ import type { PacketaLabelFormat } from "../../../modules/packeta-client/types"
 import { composePacketaLabelsOnA4 } from "./label-pdf"
 import type { PostAdminPacketaLabelsSchemaType } from "./validators"
 
-interface PacketaFulfillmentRecord {
-  canceled_at: string | null
-  data: Record<string, unknown> | null
-  id: string
-  provider_id: string
-}
+const packetaFulfillmentDataSchema = z
+  .object({
+    barcode: z.json().optional(),
+    packet_id: z.json().optional(),
+  })
+  .catchall(z.json())
+const fulfillmentSchema = z.object({
+  canceled_at: z.string().nullable(),
+  data: packetaFulfillmentDataSchema.nullable(),
+  id: z.string(),
+  provider_id: z.string(),
+})
+const orderSchema = z.object({
+  display_id: z.number().nullable().optional(),
+  fulfillments: z.array(fulfillmentSchema).optional(),
+  id: z.string(),
+})
+const ordersSchema = z.array(orderSchema)
 
-interface OrderWithFulfillments {
-  display_id?: number | null | undefined
-  fulfillments?: PacketaFulfillmentRecord[] | undefined
-  id: string
-}
+type PacketaFulfillmentRecord = z.infer<typeof fulfillmentSchema>
+type OrderWithFulfillments = z.infer<typeof orderSchema>
+type PacketaLabelDownloader = Pick<
+  PacketaClientModuleService,
+  "downloadLabelPdf"
+>
 
 interface PrintablePacketaLabel {
   barcode?: string
@@ -34,18 +47,6 @@ interface PrintablePacketaLabel {
 }
 
 const PACKETA_LABEL_DOWNLOAD_CHUNK_SIZE = 10
-const fulfillmentSchema = z.object({
-  canceled_at: z.string().nullable(),
-  data: z.record(z.string(), z.unknown()).nullable(),
-  id: z.string(),
-  provider_id: z.string(),
-})
-const orderSchema = z.object({
-  display_id: z.number().nullable().optional(),
-  fulfillments: z.array(fulfillmentSchema).optional(),
-  id: z.string(),
-})
-const ordersSchema = z.array(orderSchema)
 
 const toPrintableLabel = (
   order: OrderWithFulfillments,
@@ -59,7 +60,7 @@ const toPrintableLabel = (
     return null
   }
 
-  const packetId = fulfillment.data["packet_id"]
+  const { packet_id: packetId } = fulfillment.data
   if (typeof packetId !== "number") {
     return null
   }
@@ -125,7 +126,7 @@ const collectPrintableLabels = (
 
 const downloadLabelPdfsInChunks = async (
   labels: PrintablePacketaLabel[],
-  packetaClient: PacketaClientModuleService,
+  packetaClient: PacketaLabelDownloader,
   labelFormat: PacketaLabelFormat | undefined,
   startIndex = 0,
 ): Promise<Buffer[]> => {
@@ -169,6 +170,37 @@ const buildFilename = (labels: PrintablePacketaLabel[]): string => {
   return `packeta-labels-${new Date().toISOString().slice(0, 10)}.pdf`
 }
 
+interface PacketaLabelsPdf {
+  buffer: Buffer
+  filename: string
+}
+
+export const createPacketaLabelsPdf = async (
+  graphData: unknown,
+  requestedOrderIds: string[],
+  packetaClient: PacketaLabelDownloader,
+  labelFormat: PacketaLabelFormat | undefined,
+  labelOffset: number,
+): Promise<PacketaLabelsPdf> => {
+  const orders = ordersSchema.parse(graphData)
+  const labels = collectPrintableLabels(requestedOrderIds, orders)
+  const labelPdfs = await downloadLabelPdfsInChunks(
+    labels,
+    packetaClient,
+    labelFormat,
+  )
+  const pdfBytes = await composePacketaLabelsOnA4(
+    labelPdfs,
+    labelOffset,
+    labelFormat,
+  )
+
+  return {
+    buffer: Buffer.from(pdfBytes),
+    filename: buildFilename(labels),
+  }
+}
+
 const postHandler = async (
   req: MedusaRequest<PostAdminPacketaLabelsSchemaType>,
   res: MedusaResponse,
@@ -198,20 +230,13 @@ const postHandler = async (
       id: orderIds,
     },
   })
-  const orders = ordersSchema.parse(graphResult.data)
-  const labels = collectPrintableLabels(orderIds, orders)
-  const labelPdfs = await downloadLabelPdfsInChunks(
-    labels,
+  const { buffer, filename } = await createPacketaLabelsPdf(
+    graphResult.data,
+    orderIds,
     packetaClient,
     labelFormat,
-  )
-  const pdfBytes = await composePacketaLabelsOnA4(
-    labelPdfs,
     label_offset ?? 0,
-    labelFormat,
   )
-  const buffer = Buffer.from(pdfBytes)
-  const filename = buildFilename(labels)
 
   res.set({
     "Content-Disposition": `attachment; filename="${filename}"`,

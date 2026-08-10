@@ -4,6 +4,11 @@ import type { ReactNode } from "react"
 import { describe, expect, it, vi } from "vitest"
 
 import { createCartHooks } from "../src/cart/hooks"
+import type {
+  AddLineItemInputBase,
+  CartCreateInputBase,
+  UpdateLineItemInputBase,
+} from "../src/cart/types"
 import { StorefrontDataProvider } from "../src/client/provider"
 
 interface Cart {
@@ -11,6 +16,20 @@ interface Cart {
   region_id?: string | null
   items?: { quantity?: number }[]
 }
+
+type CartParams = Omit<CartCreateInputBase, "salesChannelId"> & {
+  sales_channel_id?: string
+}
+
+type AddLineItemParams = Omit<
+  AddLineItemInputBase,
+  "autoCreate" | "cartId" | "country_code" | "region_id" | "salesChannelId"
+>
+
+type UpdateLineItemParams = Omit<
+  UpdateLineItemInputBase,
+  "cartId" | "lineItemId"
+>
 
 const createWrapper = (client: QueryClient) =>
   function StorefrontDataTestWrapper({ children }: { children: ReactNode }) {
@@ -24,7 +43,7 @@ const createWrapper = (client: QueryClient) =>
 describe("createCartHooks payload normalization", () => {
   it("maps create cart salesChannelId to sales_channel_id", async () => {
     const createCart = vi
-      .fn<(params: Record<string, unknown>) => Promise<Cart>>()
+      .fn<(params: CartParams) => Promise<Cart>>()
       .mockResolvedValue({ id: "cart_1", region_id: "reg_1" })
     const service = {
       createCart,
@@ -60,7 +79,7 @@ describe("createCartHooks payload normalization", () => {
 
   it("strips cartId from update cart payload", async () => {
     const updateCart = vi
-      .fn<(cartId: string, params: Record<string, unknown>) => Promise<Cart>>()
+      .fn<(cartId: string, params: CartParams) => Promise<Cart>>()
       .mockResolvedValue({ id: "cart_1", region_id: "reg_1" })
     const service = {
       createCart: vi
@@ -98,7 +117,7 @@ describe("createCartHooks payload normalization", () => {
 
   it("strips transient add line item keys from payload", async () => {
     const addLineItem = vi
-      .fn<(cartId: string, params: Record<string, unknown>) => Promise<Cart>>()
+      .fn<(cartId: string, params: AddLineItemParams) => Promise<Cart>>()
       .mockResolvedValue({ id: "cart_1", region_id: "reg_1" })
     const service = {
       addLineItem,
@@ -144,7 +163,7 @@ describe("createCartHooks payload normalization", () => {
         (
           cartId: string,
           lineItemId: string,
-          params: Record<string, unknown>,
+          params: UpdateLineItemParams,
         ) => Promise<Cart>
       >()
       .mockResolvedValue({ id: "cart_1", region_id: "reg_1" })

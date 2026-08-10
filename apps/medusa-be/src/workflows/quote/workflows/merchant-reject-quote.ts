@@ -8,7 +8,6 @@ import {
   createWorkflow,
   StepResponse,
 } from "@medusajs/framework/workflows-sdk"
-import { isRecord } from "@techsio/std/object"
 
 import { validateQuoteRejectionStep } from "../steps/validate-quote-rejection"
 import { updateQuotesWorkflow } from "./update-quote"
@@ -17,34 +16,22 @@ const getQuoteForRejectionStep = createStep(
   "get-quote-for-rejection",
   async (input: { quote_id: string }, { container }) => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-    const graphResult: unknown = await query.graph({
+    const { data } = await query.graph({
       entity: "quote",
       fields: ["id", "status"],
       filters: { id: input.quote_id },
       pagination: { take: 1 },
     })
-    const graphData: unknown = isRecord(graphResult)
-      ? graphResult["data"]
-      : undefined
-    const quotes: unknown[] = Array.isArray(graphData) ? graphData : []
-    const [quote] = quotes
+    const [quote] = data
 
-    if (
-      !isRecord(quote) ||
-      typeof quote["id"] !== "string" ||
-      typeof quote["status"] !== "string"
-    ) {
+    if (quote === undefined) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Quote ${input.quote_id} was not found`,
       )
     }
 
-    const result = {
-      id: quote["id"],
-      status: quote["status"],
-    }
-    return new StepResponse(result)
+    return new StepResponse({ id: quote.id, status: quote.status })
   },
 )
 

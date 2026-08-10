@@ -1,6 +1,6 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
 import { medusaIntegrationTestRunner } from "@medusajs/test-utils"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { hasTrimmedString } from "@techsio/std/string"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -55,7 +55,7 @@ interface TestProduct {
   firstVariantId: string
 }
 
-const asRecord = (value: unknown, context: string): Record<string, unknown> => {
+const asRecord = (value: unknown, context: string) => {
   if (!isRecord(value)) {
     throw new TypeError(`Expected an object for ${context}`)
   }
@@ -85,18 +85,24 @@ const firstOf = (values: unknown[], context: string): unknown => {
 }
 
 const asEntity = (value: unknown, context: string): TestEntity => ({
-  id: asString(asRecord(value, context)["id"], `${context}.id`),
+  id: asString(getRecordValue(asRecord(value, context), "id"), `${context}.id`),
 })
 
 const asTestCart = (value: unknown, context: string): TestCart => {
   const record = asRecord(value, context)
   const itemRecord = asRecord(
-    firstOf(asArray(record["items"], `${context}.items`), `${context}.items`),
+    firstOf(
+      asArray(getRecordValue(record, "items"), `${context}.items`),
+      `${context}.items`,
+    ),
     `${context}.items entry`,
   )
   return {
-    firstItemId: asString(itemRecord["id"], `${context}.items entry.id`),
-    id: asString(record["id"], `${context}.id`),
+    firstItemId: asString(
+      getRecordValue(itemRecord, "id"),
+      `${context}.items entry.id`,
+    ),
+    id: asString(getRecordValue(record, "id"), `${context}.id`),
   }
 }
 
@@ -104,24 +110,24 @@ const asTestProduct = (value: unknown, context: string): TestProduct => {
   const record = asRecord(value, context)
   const variantRecord = asRecord(
     firstOf(
-      asArray(record["variants"], `${context}.variants`),
+      asArray(getRecordValue(record, "variants"), `${context}.variants`),
       `${context}.variants`,
     ),
     `${context}.variants entry`,
   )
   return {
     firstVariantId: asString(
-      variantRecord["id"],
+      getRecordValue(variantRecord, "id"),
       `${context}.variants entry.id`,
     ),
   }
 }
 
-const getQuoteRecord = (
-  data: unknown,
-  context: string,
-): Record<string, unknown> =>
-  asRecord(asRecord(data, context)["quote"], `${context}.quote`)
+const getQuoteRecord = (data: unknown, context: string) =>
+  asRecord(getRecordValue(asRecord(data, context), "quote"), `${context}.quote`)
+
+const objectMatcher = (value: object): unknown => expect.objectContaining(value)
+const anyStringMatcher = (): unknown => expect.any(String)
 
 vi.setConfig({ testTimeout: 60 * 1000 })
 
@@ -222,18 +228,18 @@ medusaIntegrationTestRunner({
           "POST /admin/quotes/:id/messages response",
         )
 
-        const messageMatcher: Record<string, unknown> = {
-          admin_id: expect.any(String),
+        const messageMatcher = {
+          admin_id: anyStringMatcher(),
           customer_id: null,
           item_id: cart.firstItemId,
           text: "test message",
         }
-        const expected: Record<string, unknown> = {
+        const expected = {
           id: quote1.id,
-          messages: [expect.objectContaining(messageMatcher)],
+          messages: [objectMatcher(messageMatcher)],
         }
 
-        expect(quoteRecord).toStrictEqual(expect.objectContaining(expected))
+        expect(quoteRecord).toStrictEqual(objectMatcher(expected))
       })
     })
   },

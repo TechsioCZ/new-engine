@@ -1,7 +1,11 @@
 import { describe, expect, test } from "vitest"
 
 import { BadRequestError } from "./db"
-import { parseResolveEnvironmentInput } from "./zane-inputs"
+import {
+  parseResolveEnvironmentInput,
+  parseRuntimeProviderRunInput,
+  parseWritePreviewCommitStateInput,
+} from "./zane-inputs"
 
 const resolveEnvironmentPayload = {
   env_overrides: [],
@@ -93,5 +97,40 @@ describe(parseResolveEnvironmentInput, () => {
         ],
       }),
     ).toThrow(BadRequestError)
+  })
+})
+
+describe(parseWritePreviewCommitStateInput, () => {
+  test("reports the missing update before missing environment fields", () => {
+    expect(() => parseWritePreviewCommitStateInput({})).toThrow(
+      new BadRequestError(
+        "request body target_commit_sha, last_deployed_commit_sha, or baseline_complete is required",
+      ),
+    )
+  })
+})
+
+describe(parseRuntimeProviderRunInput, () => {
+  test("reports an invalid output policy kind before an invalid env var", () => {
+    expect(() =>
+      parseRuntimeProviderRunInput({
+        environment_name: "pr-123",
+        outputs: [
+          {
+            env_var: "",
+            output_id: "search-key",
+            policy: { kind: "invalid" },
+          },
+        ],
+        project_slug: "storefront",
+        provider_id: "meilisearch",
+        readiness_path: "/health",
+        service_slug: "search",
+      }),
+    ).toThrow(
+      new BadRequestError(
+        "outputs[0].policy.kind Invalid discriminator value. Expected 'meilisearch_key' | 'medusa_publishable_key'",
+      ),
+    )
   })
 })

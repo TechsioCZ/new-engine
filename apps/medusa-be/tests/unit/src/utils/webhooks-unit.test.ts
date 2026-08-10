@@ -1,5 +1,5 @@
 import type { MedusaRequest } from "@medusajs/framework/http"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -16,7 +16,7 @@ const absentValue: AbsentValue = {}
 const assertMockRequest: (
   candidate: unknown,
 ) => asserts candidate is MedusaRequest = (candidate) => {
-  if (!isRecord(candidate) || !isRecord(candidate["headers"])) {
+  if (!isRecord(candidate) || !isRecord(getRecordValue(candidate, "headers"))) {
     throw new TypeError("Expected a request mock with headers")
   }
 }

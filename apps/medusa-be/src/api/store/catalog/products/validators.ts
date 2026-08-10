@@ -11,6 +11,7 @@ export const STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS = [
   "handle",
   "thumbnail",
   "metadata",
+  "status",
   "variants.id",
   "variants.title",
   "variants.sku",

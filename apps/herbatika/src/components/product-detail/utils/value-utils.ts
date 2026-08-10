@@ -1,6 +1,6 @@
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
-export const asRecord = (value: unknown): Record<string, unknown> | null => {
+export const asRecord = (value: unknown) => {
   if (isRecord(value)) {
     return value
   }
@@ -9,9 +9,12 @@ export const asRecord = (value: unknown): Record<string, unknown> | null => {
 }
 
 export const readRecordProperty = (
-  record: Record<string, unknown> | null | undefined,
+  record: object | null | undefined,
   key: string,
-): unknown => record?.[key]
+): unknown =>
+  record === null || record === undefined
+    ? undefined
+    : getRecordValue(record, key)
 
 export const asString = (value: unknown): string | null =>
   typeof value === "string" && value.trim().length > 0 ? value.trim() : null

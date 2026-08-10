@@ -1,7 +1,8 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Mock } from "vitest"
+
+import type { GetAdminOrderExpeditionOrdersSchemaType } from "../../../../../../../src/api/admin/order-expedition/validators"
 
 type Graph = (input: unknown) => Promise<{
   data: unknown[]
@@ -9,50 +10,27 @@ type Graph = (input: unknown) => Promise<{
 }>
 type Json = (body: unknown) => unknown
 
-type MockJsonResponse = MedusaResponse & { json: Mock<Json> }
-
-const isMockJsonResponse = (
-  candidate: unknown,
-): candidate is MockJsonResponse =>
-  isRecord(candidate) && typeof candidate["json"] === "function"
-
-const createMockResponse = (): MockJsonResponse => {
-  const candidate: unknown = { json: vi.fn<Json>() }
-  if (!isMockJsonResponse(candidate)) {
-    throw new TypeError("Expected a mock response with a json function")
-  }
-  return candidate
+interface MockJsonResponse {
+  json: Mock<Json>
 }
 
-const isMockRequest = (candidate: unknown): candidate is MedusaRequest =>
-  isRecord(candidate) &&
-  isRecord(candidate["scope"]) &&
-  typeof candidate["scope"]["resolve"] === "function" &&
-  isRecord(candidate["validatedQuery"])
+const createMockResponse = (): MockJsonResponse => ({ json: vi.fn<Json>() })
 
-const createMockRequest = (
-  validatedQuery: Record<string, unknown>,
-  graph: Graph,
-): MedusaRequest => {
-  const orderNoteService = {
-    listOrderNotes: vi.fn<() => Promise<unknown[]>>().mockResolvedValue([]),
-  }
+const createDependencies = (graph: Graph) => ({
+  fetchNotes: vi
+    .fn<(orderIds: string[]) => Promise<Map<string, string>>>()
+    .mockResolvedValue(new Map()),
+  graph,
+  resolveSignals: vi
+    .fn<
+      () => Promise<{
+        signalsByOrderId: Map<string, undefined>
+      }>
+    >()
+    .mockResolvedValue({ signalsByOrderId: new Map() }),
+})
 
-  const candidate: unknown = {
-    scope: {
-      resolve: vi.fn<(token: string) => unknown>((token) =>
-        token === "query" ? { graph } : orderNoteService,
-      ),
-    },
-    validatedQuery,
-  }
-  if (!isMockRequest(candidate)) {
-    throw new TypeError("Expected a request with scope and validated query")
-  }
-  return candidate
-}
-
-const getJsonBody = (response: MockJsonResponse): Record<string, unknown> => {
+const getJsonBody = (response: MockJsonResponse): object => {
   const [call] = response.json.mock.calls
   const [body] = call ?? []
   if (!isRecord(body)) {
@@ -61,11 +39,8 @@ const getJsonBody = (response: MockJsonResponse): Record<string, unknown> => {
   return body
 }
 
-const getFirstRecord = (
-  container: Record<string, unknown>,
-  key: string,
-): Record<string, unknown> => {
-  const value = container[key]
+const getFirstRecord = (container: object, key: string): object => {
+  const value = getRecordValue(container, key)
   if (!Array.isArray(value)) {
     throw new TypeError(`Expected ${key} to be an array`)
   }
@@ -82,7 +57,7 @@ describe("GET /admin/order-expedition/orders", () => {
   })
 
   it("returns an unfiltered page of orders", async () => {
-    const { GET } =
+    const { getOrderExpeditionOrders } =
       await import("../../../../../../../src/api/admin/order-expedition/orders/route")
     const graph = vi.fn<Graph>().mockResolvedValue({
       data: [
@@ -97,10 +72,17 @@ describe("GET /admin/order-expedition/orders", () => {
         count: 1,
       },
     })
-    const req = createMockRequest({ limit: 50, offset: 0 }, graph)
+    const validatedQuery: GetAdminOrderExpeditionOrdersSchemaType = {
+      limit: 50,
+      offset: 0,
+    }
     const res = createMockResponse()
 
-    await GET(req, res)
+    await getOrderExpeditionOrders(
+      createDependencies(graph),
+      validatedQuery,
+      res,
+    )
 
     expect(graph).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -124,17 +106,17 @@ describe("GET /admin/order-expedition/orders", () => {
       }),
     )
     const firstOrder = getFirstRecord(getJsonBody(res), "orders")
-    expect(firstOrder["id"]).toBe("order_1")
-    expect(firstOrder["order_display_id"]).toBe("#1001")
-    const { carrier } = firstOrder
+    expect(getRecordValue(firstOrder, "id")).toBe("order_1")
+    expect(getRecordValue(firstOrder, "order_display_id")).toBe("#1001")
+    const carrier = getRecordValue(firstOrder, "carrier")
     if (!isRecord(carrier)) {
       throw new TypeError("Expected an order carrier")
     }
-    expect(carrier["value"]).toBe("ppl")
+    expect(getRecordValue(carrier, "value")).toBe("ppl")
   })
 
   it("carrier filtering only narrows visible rows", async () => {
-    const { GET } =
+    const { getOrderExpeditionOrders } =
       await import("../../../../../../../src/api/admin/order-expedition/orders/route")
     const graph = vi.fn<Graph>().mockResolvedValueOnce({
       data: [
@@ -154,13 +136,18 @@ describe("GET /admin/order-expedition/orders", () => {
         count: 2,
       },
     })
-    const req = createMockRequest(
-      { carrier: "packeta", limit: 50, offset: 0 },
-      graph,
-    )
+    const validatedQuery: GetAdminOrderExpeditionOrdersSchemaType = {
+      carrier: "packeta",
+      limit: 50,
+      offset: 0,
+    }
     const res = createMockResponse()
 
-    await GET(req, res)
+    await getOrderExpeditionOrders(
+      createDependencies(graph),
+      validatedQuery,
+      res,
+    )
 
     expect(graph).toHaveBeenNthCalledWith(
       1,
@@ -177,10 +164,13 @@ describe("GET /admin/order-expedition/orders", () => {
       throw new TypeError("Expected a graph call")
     }
     const [graphInput] = firstGraphCall
-    if (!isRecord(graphInput) || !Array.isArray(graphInput["fields"])) {
+    if (
+      !isRecord(graphInput) ||
+      !Array.isArray(getRecordValue(graphInput, "fields"))
+    ) {
       throw new TypeError("Expected graph fields")
     }
-    expect(graphInput["fields"]).toStrictEqual(
+    expect(getRecordValue(graphInput, "fields")).toStrictEqual(
       expect.arrayContaining([
         "items.quantity",
         "shipping_address.city",
@@ -208,7 +198,7 @@ describe("GET /admin/order-expedition/orders", () => {
   })
 
   it("combines carrier and business status filters with AND semantics", async () => {
-    const { GET } =
+    const { getOrderExpeditionOrders } =
       await import("../../../../../../../src/api/admin/order-expedition/orders/route")
     const graph = vi.fn<Graph>().mockResolvedValueOnce({
       data: [
@@ -235,18 +225,19 @@ describe("GET /admin/order-expedition/orders", () => {
         count: 3,
       },
     })
-    const req = createMockRequest(
-      {
-        business_status: "paid",
-        carrier: "packeta",
-        limit: 50,
-        offset: 0,
-      },
-      graph,
-    )
+    const validatedQuery: GetAdminOrderExpeditionOrdersSchemaType = {
+      business_status: "paid",
+      carrier: "packeta",
+      limit: 50,
+      offset: 0,
+    }
     const res = createMockResponse()
 
-    await GET(req, res)
+    await getOrderExpeditionOrders(
+      createDependencies(graph),
+      validatedQuery,
+      res,
+    )
 
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -256,17 +247,18 @@ describe("GET /admin/order-expedition/orders", () => {
       }),
     )
     const firstOrder = getFirstRecord(getJsonBody(res), "orders")
-    expect(firstOrder["id"]).toBe("order_1")
-    const { business_status: businessStatus, carrier } = firstOrder
+    expect(getRecordValue(firstOrder, "id")).toBe("order_1")
+    const businessStatus = getRecordValue(firstOrder, "business_status")
+    const carrier = getRecordValue(firstOrder, "carrier")
     if (!isRecord(businessStatus) || !isRecord(carrier)) {
       throw new TypeError("Expected business status and carrier records")
     }
-    expect(businessStatus["id"]).toBe("paid")
-    expect(carrier["value"]).toBe("packeta")
+    expect(getRecordValue(businessStatus, "id")).toBe("paid")
+    expect(getRecordValue(carrier, "value")).toBe("packeta")
   })
 
   it("stops carrier scans after the requested page and a next-page lookahead", async () => {
-    const { GET } =
+    const { getOrderExpeditionOrders } =
       await import("../../../../../../../src/api/admin/order-expedition/orders/route")
     const graph = vi.fn<Graph>().mockResolvedValueOnce({
       data: [
@@ -291,13 +283,18 @@ describe("GET /admin/order-expedition/orders", () => {
         count: 1000,
       },
     })
-    const req = createMockRequest(
-      { carrier: "packeta", limit: 1, offset: 0 },
-      graph,
-    )
+    const validatedQuery: GetAdminOrderExpeditionOrdersSchemaType = {
+      carrier: "packeta",
+      limit: 1,
+      offset: 0,
+    }
     const res = createMockResponse()
 
-    await GET(req, res)
+    await getOrderExpeditionOrders(
+      createDependencies(graph),
+      validatedQuery,
+      res,
+    )
 
     expect(graph).toHaveBeenCalledOnce()
     expect(res.json).toHaveBeenCalledWith(
@@ -317,7 +314,7 @@ describe("GET /admin/order-expedition/orders", () => {
   })
 
   it("caps carrier scans and exposes truncated metadata", async () => {
-    const { GET } =
+    const { getOrderExpeditionOrders } =
       await import("../../../../../../../src/api/admin/order-expedition/orders/route")
     const graph = vi.fn<Graph>()
 
@@ -333,13 +330,18 @@ describe("GET /admin/order-expedition/orders", () => {
       })
     }
 
-    const req = createMockRequest(
-      { carrier: "packeta", limit: 50, offset: 0 },
-      graph,
-    )
+    const validatedQuery: GetAdminOrderExpeditionOrdersSchemaType = {
+      carrier: "packeta",
+      limit: 50,
+      offset: 0,
+    }
     const res = createMockResponse()
 
-    await GET(req, res)
+    await getOrderExpeditionOrders(
+      createDependencies(graph),
+      validatedQuery,
+      res,
+    )
 
     expect(graph).toHaveBeenCalledTimes(10)
     expect(res.json).toHaveBeenCalledWith(

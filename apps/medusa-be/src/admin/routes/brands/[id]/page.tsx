@@ -98,39 +98,39 @@ const getProductOptionColumns = (
   translate: TFunction<"brands">,
 ): DataTableColumnDef<BrandProductOption>[] => [
   productOptionColumnHelper.select({ header: () => null }),
-  productOptionColumnHelper.accessor(
-    (option) => option.product.title ?? option.product.id,
-    {
-      cell: ({ row }) => {
-        const assignedBrand = row.original.assigned_brand
-        const label = row.original.product.title ?? row.original.product.id
-        return !isProductOptionSelectable(row.original, brandId) &&
-          assignedBrand !== null &&
-          assignedBrand !== undefined ? (
-          <Tooltip
-            content={translate("products.alreadyLinkedTooltip", {
-              title: assignedBrand.title,
-            })}
-            side="right"
-          >
-            <span className="cursor-not-allowed opacity-60">{label}</span>
-          </Tooltip>
-        ) : (
-          label
-        )
-      },
-      header: translate("columns.product"),
-      id: "product",
+  {
+    accessorFn: (option) => option.product.title ?? option.product.id,
+    cell: ({ row }) => {
+      const assignedBrand = row.original.assigned_brand
+      const label = row.original.product.title ?? row.original.product.id
+      return !isProductOptionSelectable(row.original, brandId) &&
+        assignedBrand !== null &&
+        assignedBrand !== undefined ? (
+        <Tooltip
+          content={translate("products.alreadyLinkedTooltip", {
+            title: assignedBrand.title,
+          })}
+          side="right"
+        >
+          <span className="cursor-not-allowed opacity-60">{label}</span>
+        </Tooltip>
+      ) : (
+        label
+      )
     },
-  ),
-  productOptionColumnHelper.accessor((option) => option.product.handle ?? "-", {
+    header: translate("columns.product"),
+    id: "product",
+  },
+  {
+    accessorFn: (option) => option.product.handle ?? "-",
     header: translate("columns.handle"),
     id: "handle",
-  }),
-  productOptionColumnHelper.accessor((option) => option.product.status ?? "-", {
+  },
+  {
+    accessorFn: (option) => option.product.status ?? "-",
     header: translate("columns.status"),
     id: "status",
-  }),
+  },
 ]
 
 const getProductColumns = ({
@@ -143,48 +143,56 @@ const getProductColumns = ({
   onRemove: (product: ProductSummary) => void
   removingProductId: string | undefined
   translate: TFunction<"brands">
-}): DataTableColumnDef<ProductSummary>[] => [
-  productColumnHelper.accessor((product) => product.title ?? product.id, {
-    cell: ({ row }) => (
-      <Link to={`/products/${row.original.id}`}>
-        {row.original.title ?? row.original.id}
-      </Link>
-    ),
-    header: translate("columns.product"),
-    id: "product",
-  }),
-  productColumnHelper.accessor((product) => product.handle ?? "-", {
-    header: translate("columns.handle"),
-    id: "handle",
-  }),
-  productColumnHelper.accessor("status", {
-    cell: ({ row }) =>
-      row.original.status !== null && row.original.status !== undefined ? (
-        <Badge size="2xsmall">{row.original.status}</Badge>
-      ) : (
-        "-"
+}): DataTableColumnDef<ProductSummary>[] => {
+  const columns: DataTableColumnDef<ProductSummary>[] = [
+    {
+      accessorFn: (product) => product.title ?? product.id,
+      cell: ({ row }) => (
+        <Link to={`/products/${row.original.id}`}>
+          {row.original.title ?? row.original.id}
+        </Link>
       ),
-    header: translate("columns.status"),
-  }),
-  ...(canManage
-    ? [
-        productColumnHelper.action({
-          actions: ({ row }) =>
-            removingProductId === row.original.id
-              ? []
-              : [
-                  {
-                    icon: <Trash />,
-                    label: translate("actions.remove"),
-                    onClick: () => {
-                      onRemove(row.original)
-                    },
+      header: translate("columns.product"),
+      id: "product",
+    },
+    {
+      accessorFn: (product) => product.handle ?? "-",
+      header: translate("columns.handle"),
+      id: "handle",
+    },
+    {
+      accessorKey: "status",
+      cell: ({ row }) =>
+        row.original.status !== null && row.original.status !== undefined ? (
+          <Badge size="2xsmall">{row.original.status}</Badge>
+        ) : (
+          "-"
+        ),
+      header: translate("columns.status"),
+    },
+  ]
+
+  if (canManage) {
+    columns.push(
+      productColumnHelper.action({
+        actions: ({ row }) =>
+          removingProductId === row.original.id
+            ? []
+            : [
+                {
+                  icon: <Trash />,
+                  label: translate("actions.remove"),
+                  onClick: () => {
+                    onRemove(row.original)
                   },
-                ],
-        }),
-      ]
-    : []),
-]
+                },
+              ],
+      }),
+    )
+  }
+
+  return columns
+}
 
 interface ProductAssignmentDrawerProps {
   brandId: string

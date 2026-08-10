@@ -49,7 +49,7 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
       return
     }
 
-    requirePaykitOptions("PayKit GoPay", { ...options }, [
+    requirePaykitOptions("PayKit GoPay", options, [
       "clientId",
       "clientSecret",
       "goId",
@@ -102,8 +102,8 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
 
   protected override getCreateProviderMetadata(
     input: InitiatePaymentInput,
-    data: Record<string, unknown>,
-  ): Record<string, unknown> {
+    data: NonNullable<InitiatePaymentInput["data"]>,
+  ) {
     const providerMetadata = super.getCreateProviderMetadata(input, data)
     const successUrl = getStringValue(
       providerMetadata["success_url"],

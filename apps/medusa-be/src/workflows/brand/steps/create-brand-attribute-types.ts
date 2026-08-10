@@ -8,7 +8,7 @@ import type { CreateBrandAttributeTypesWorkflowInput } from "../types"
 import { getBrandService, withBrandTransaction } from "./helpers"
 
 type BrandAttributeTypeRecord = InferTypeOf<typeof BrandAttributeType>
-interface EnsuredBrandAttributeType {
+export interface EnsuredBrandAttributeType {
   action: "created" | "existing" | "restored"
   attribute_type: BrandAttributeTypeRecord
 }

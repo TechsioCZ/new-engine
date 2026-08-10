@@ -4,6 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 // Import after mocks
 import type { PplClient } from "../../../../../src/modules/ppl-client/client"
 import { PplClientModuleService } from "../../../../../src/modules/ppl-client/service"
+import type {
+  PplCodelistCountry,
+  PplOptions,
+} from "../../../../../src/modules/ppl-client/types"
 
 type FirstOverload<T> = T extends {
   (...args: infer A1): infer R1
@@ -488,7 +492,10 @@ describe(PplClientModuleService, () => {
 
   describe("caching - codelists", () => {
     it("returns cached countries on cache hit", async () => {
-      const cachedCountries = [{ code: "CZ" }, { code: "SK" }]
+      const cachedCountries = [
+        { code: "CZ", name: "Czech Republic" },
+        { code: "SK", name: "Slovakia" },
+      ] satisfies PplCodelistCountry[]
       mockCacheService.get.mockResolvedValueOnce(cachedCountries)
       // cache hit for countries
 
@@ -661,8 +668,9 @@ describe(PplClientModuleService, () => {
         const cachedConfig = {
           client_id: "cached-id",
           client_secret: "cached-secret",
+          default_label_format: "Pdf",
           environment: "testing",
-        }
+        } satisfies PplOptions
         mockCacheService.get.mockResolvedValueOnce(cachedConfig)
 
         const service = createServiceForConfigTests()

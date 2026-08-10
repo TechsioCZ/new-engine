@@ -81,5 +81,5 @@ export interface AnalyticsAdapter {
   /** Track purchase/conversion event */
   trackPurchase?: (params: CorePurchaseParams) => boolean
   /** Track custom event */
-  trackCustom?: (eventName: string, params?: Record<string, unknown>) => boolean
+  trackCustom?: (eventName: string, params?: object) => boolean
 }

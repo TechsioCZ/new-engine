@@ -20,16 +20,16 @@
     "@medusajs/js-sdk": "2.18.0",
     "@medusajs/types": "2.18.0",
     "@react-email/render": "2.1.0",
-    "@tanstack/react-query": "^5.101.2",
+    "@tanstack/react-query": "^5.101.4",
     "@tanstack/react-store": "^0.11.0",
     "@techsio/std": "workspace:*",
     "@techsio/ui-kit": "workspace:*",
     "next": "16.3.0-preview.5",
     "react": "19.2.7",
     "react-dom": "19.2.7",
-    "resend": "^6.17.2",
+    "resend": "^6.18.1",
     "tailwind-merge": "^3.6.0",
-    "tailwind-variants": "^3.2.2"
+    "tailwind-variants": "^3.3.1"
   },
   "devDependencies": {
     "@iconify/json": "^2.2.500",

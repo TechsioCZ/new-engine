@@ -1,10 +1,7 @@
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
-const resolveRecordValue = (
-  source: Record<string, unknown>,
-  key: string,
-): string | null => {
-  const value = source[key]
+const resolveRecordValue = (source: object, key: string): string | null => {
+  const value = getRecordValue(source, key)
   if (typeof value !== "string") {
     return null
   }

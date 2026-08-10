@@ -432,7 +432,7 @@ export class GLSClient {
     return `/Date(${date.getTime()})/`
   }
 
-  private baseRequest(): Record<string, unknown> {
+  private baseRequest() {
     return {
       ClientNumberList: [this.options.client_number],
       Password: this.passwordBytes,
@@ -444,7 +444,7 @@ export class GLSClient {
   private async request<T>(
     serviceName: MyGLSServiceName,
     methodName: string,
-    body: Record<string, unknown>,
+    body: object,
     responseSchema: z.ZodType<T>,
     options: RequestOptions = {},
   ): Promise<T> {

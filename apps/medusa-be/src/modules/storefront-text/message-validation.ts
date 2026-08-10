@@ -3,6 +3,7 @@ import type {
   MessageFormatElement,
   ParserOptions,
 } from "@formatjs/icu-messageformat-parser"
+import { getRecordValue } from "@techsio/std/object"
 
 import { isObjectRecord } from "../../utils/guards"
 
@@ -21,12 +22,13 @@ const getErrorLocation = (error: Error) => {
     return null
   }
 
-  const { start } = error.location
+  const start = getRecordValue(error.location, "start")
   if (!isObjectRecord(start)) {
     return null
   }
 
-  const { column, line } = start
+  const column = getRecordValue(start, "column")
+  const line = getRecordValue(start, "line")
   return typeof column === "number" && typeof line === "number"
     ? { column, line }
     : null

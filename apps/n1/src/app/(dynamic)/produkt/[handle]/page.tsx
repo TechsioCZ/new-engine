@@ -1,6 +1,7 @@
 "use client"
 
 import { HeurekaProduct } from "@techsio/analytics/heureka"
+import type { GalleryItem } from "@techsio/ui-kit/organisms/gallery"
 import { BreadcrumbTemplate } from "@techsio/ui-kit/templates/breadcrumb"
 import { GalleryTemplate } from "@techsio/ui-kit/templates/gallery"
 import Image from "next/image"
@@ -86,10 +87,16 @@ const ProductContent = ({
   // slide through next/image, which throws without width/height or fill.
   // The carousel slide is positioned, so fill resolves against it.
   const galleryImages =
-    detail?.images?.map((image) => ({
-      ...image,
-      imageProps: { fill: true, sizes: "(max-width: 448px) 100vw, 448px" },
-    })) ?? []
+    detail?.images?.map(
+      (image) =>
+        ({
+          ...image,
+          imageProps: {
+            fill: true,
+            sizes: "(max-width: 448px) 100vw, 448px",
+          },
+        }) satisfies GalleryItem<typeof Image>,
+    ) ?? []
 
   const title = selectedVariant
     ? `${detail?.title} - ${selectedVariant.title}`

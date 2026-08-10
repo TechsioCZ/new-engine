@@ -1,30 +1,11 @@
-import type { ExecArgs, Logger } from "@medusajs/framework/types"
+import type {
+  ExecArgs,
+  IProductModuleService,
+  Logger,
+  ProductCategoryDTO,
+  ProductDTO,
+} from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
-
-interface ProductCategoryRecord {
-  handle: string
-  id: string
-}
-
-interface ProductRecord {
-  categories?: { id: string }[]
-  handle: string
-  id: string
-}
-
-interface ProductService {
-  listProductCategories: (
-    filters: Record<string, unknown>,
-  ) => Promise<ProductCategoryRecord[]>
-  listProducts: (
-    filters: Record<string, unknown>,
-    config?: { relations?: string[] },
-  ) => Promise<ProductRecord[]>
-  updateProducts: (
-    id: string,
-    data: { category_ids: string[] },
-  ) => Promise<unknown>
-}
 
 const T_SHIRTS_TOPS = "t-shirts-tops"
 const JEANS_PANTS = "jeans-pants"
@@ -71,8 +52,8 @@ const productCategoryMapping: Record<string, string[]> = {
 }
 
 const logCategoryProductCounts = async (
-  productService: ProductService,
-  categories: ProductCategoryRecord[],
+  productService: IProductModuleService,
+  categories: ProductCategoryDTO[],
   logger: Logger,
 ) => {
   const logCategoryAtIndex = async (index: number): Promise<void> => {
@@ -98,7 +79,9 @@ const logCategoryProductCounts = async (
 export default async function linkProductsToCategories({
   container,
 }: ExecArgs) {
-  const productService = container.resolve<ProductService>(Modules.PRODUCT)
+  const productService = container.resolve<IProductModuleService>(
+    Modules.PRODUCT,
+  )
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
   logger.info("Starting to link products to categories...")
@@ -118,7 +101,7 @@ export default async function linkProductsToCategories({
   )
   logger.info(`Found ${products.length} products`)
 
-  const linkProduct = async (product: ProductRecord): Promise<boolean> => {
+  const linkProduct = async (product: ProductDTO): Promise<boolean> => {
     const categoryHandles = productCategoryMapping[product.handle]
     if (categoryHandles === undefined) {
       logger.warn(`No category mapping found for product: ${product.handle}`)

@@ -1,12 +1,12 @@
+import { getRecordValue } from "@techsio/std/object"
+
 export const DEFAULT_TURNSTILE_TOKEN_FIELDS = [
   "cf-turnstile-response",
   "turnstile_token",
   "turnstileToken",
 ] as const
 
-const isTurnstileBodyObjectLike = (
-  value: unknown,
-): value is Record<string, unknown> =>
+const isTurnstileBodyObjectLike = (value: unknown): value is object =>
   typeof value === "object" && value !== null
 
 export const normalizeTurnstileToken = (
@@ -18,7 +18,7 @@ export const normalizeTurnstileToken = (
   }
 
   for (const field of tokenFields) {
-    const value = body[field]
+    const value = getRecordValue(body, field)
     if (typeof value === "string") {
       const normalized = value.trim()
       if (normalized.length > 0) {

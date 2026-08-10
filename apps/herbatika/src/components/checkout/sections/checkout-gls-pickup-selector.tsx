@@ -6,9 +6,11 @@ import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { useState } from "react"
 import type { ChangeEvent } from "react"
 
+import type { CarrierPickupData } from "@/components/checkout/carrier-pickup.utils"
+
 interface CheckoutGlsPickupSelectorProps {
   disabled: boolean
-  onConfirm: (data: Record<string, unknown>) => void
+  onConfirm: (data: CarrierPickupData) => void
 }
 
 export const CheckoutGlsPickupSelector = ({

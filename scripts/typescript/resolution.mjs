@@ -4,12 +4,37 @@ import { execFileSync } from "node:child_process"
 import { readFileSync } from "node:fs"
 import path from "node:path"
 
-/** @typedef {Record<string, unknown>} JsonObject */
-/** @typedef {{ compilerOptions: JsonObject }} EffectiveConfig */
+import { z } from "zod"
 
 const repositoryRoot = path.resolve(import.meta.dirname, "../..")
 const projectsDirectory = path.join(import.meta.dirname, "projects")
 const maximumRootProjects = 100
+const rootConfigSchema = z.object({
+  references: z
+    .array(z.object({ path: z.string() }))
+    .min(1)
+    .max(maximumRootProjects),
+})
+const wrapperConfigSchema = z.object({
+  extends: z.union([z.string(), z.array(z.string()).min(1)]),
+})
+const resolutionOptionsSchema = z.object({
+  baseUrl: z.unknown().optional(),
+  customConditions: z.unknown().optional(),
+  jsx: z.unknown().optional(),
+  lib: z.unknown().optional(),
+  module: z.unknown().optional(),
+  moduleResolution: z.unknown().optional(),
+  moduleSuffixes: z.unknown().optional(),
+  paths: z.unknown().optional(),
+  plugins: z.unknown().optional(),
+  rootDirs: z.unknown().optional(),
+  typeRoots: z.unknown().optional(),
+  types: z.unknown().optional(),
+})
+const effectiveConfigSchema = z.object({
+  compilerOptions: resolutionOptionsSchema,
+})
 
 // Committed Payload migrations are immutable generated history, but
 // payload.config.ts imports ./migrations, so the strict wrapper substitutes a
@@ -31,95 +56,36 @@ const fail = (message) => {
 }
 
 /**
- * @param {unknown} value - Value to narrow.
- * @returns {value is JsonObject} Whether the value is a JSON object.
- */
-const isJsonObject = (value) =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
-/**
- * @param {string} text - JSON text.
- * @param {string} source - Source used in diagnostics.
- * @returns {JsonObject} Validated JSON object.
- */
-const parseJsonObject = (text, source) => {
-  /** @type {unknown} */
-  const value = JSON.parse(text)
-  if (isJsonObject(value)) {
-    return value
-  }
-  return fail(`${source} must contain a JSON object`)
-}
-
-/**
- * @param {string} filePath - JSON file to read.
- * @returns {JsonObject} Validated JSON object.
- */
-const readJson = (filePath) =>
-  parseJsonObject(readFileSync(filePath, "utf-8"), filePath)
-
-/**
- * @param {JsonObject} object - Object containing an optional object.
- * @param {string} key - Property to read.
- * @returns {JsonObject} Validated object or an empty object.
- */
-const readOptionalObject = (object, key) => {
-  const value = object[key]
-  if (value === undefined) {
-    return {}
-  }
-  if (isJsonObject(value)) {
-    return value
-  }
-  return fail(`${key} must be an object`)
-}
-
-/**
- * @param {JsonObject} config - TypeScript configuration.
+ * @param {string} filePath - Root TypeScript configuration path.
  * @returns {string[]} Validated root reference paths.
  */
-const readReferencePaths = (config) => {
-  const { references } = config
-  if (!Array.isArray(references)) {
-    return fail("tsconfig.json references must be an array")
-  }
-  if (references.length === 0 || references.length > maximumRootProjects) {
+const readReferencePaths = (filePath) => {
+  const result = rootConfigSchema.safeParse(
+    JSON.parse(readFileSync(filePath, "utf-8")),
+  )
+  if (!result.success) {
     return fail(
-      `tsconfig.json must reference between 1 and ${maximumRootProjects} projects`,
+      `${filePath} must reference between 1 and ${maximumRootProjects} TypeScript projects`,
     )
   }
-  /** @type {string[]} */
-  const referencePaths = []
-  for (const value of references) {
-    /** @type {unknown} */
-    const reference = value
-    if (!isJsonObject(reference) || typeof reference.path !== "string") {
-      return fail("each TypeScript reference must have a string path")
-    }
-    referencePaths.push(reference.path)
-  }
-  return referencePaths
+  return result.data.references.map((reference) => reference.path)
 }
 
 /**
- * @param {JsonObject} wrapper - Strict wrapper configuration.
- * @param {string} wrapperPath - Wrapper path used in diagnostics.
+ * @param {string} filePath - Strict wrapper configuration path.
  * @returns {string} Source configuration reference.
  */
-const readSourceReference = (wrapper, wrapperPath) => {
-  const { extends: extendedConfigs } = wrapper
-  if (
-    !Array.isArray(extendedConfigs) ||
-    extendedConfigs.length === 0 ||
-    !extendedConfigs.every((value) => typeof value === "string")
-  ) {
-    return fail(`${relative(wrapperPath)} must extend a source config`)
+const readSourceReference = (filePath) => {
+  const result = wrapperConfigSchema.safeParse(
+    JSON.parse(readFileSync(filePath, "utf-8")),
+  )
+  if (!result.success) {
+    return fail(`${relative(filePath)} must extend a source config`)
   }
-  const sourceReference = extendedConfigs.at(-1)
-  if (sourceReference === undefined) {
-    return fail(`${relative(wrapperPath)} must extend a source config`)
-  }
-  return sourceReference
+  return typeof result.data.extends === "string"
+    ? result.data.extends
+    : (result.data.extends.at(-1) ??
+        fail(`${relative(filePath)} must extend a source config`))
 }
 
 /**
@@ -131,7 +97,6 @@ const relative = (filePath) =>
 
 /**
  * @param {string} configPath - TypeScript config to expand.
- * @returns {EffectiveConfig} Validated effective configuration.
  */
 const showConfig = (configPath) => {
   const output = execFileSync(
@@ -139,18 +104,21 @@ const showConfig = (configPath) => {
     ["--showConfig", "-p", configPath],
     { cwd: repositoryRoot, encoding: "utf-8", maxBuffer: 64 * 1024 * 1024 },
   )
-  const result = parseJsonObject(output, `tsc --showConfig for ${configPath}`)
-  return { compilerOptions: readOptionalObject(result, "compilerOptions") }
+  const result = effectiveConfigSchema.safeParse(JSON.parse(output))
+  if (!result.success) {
+    return fail(`tsc --showConfig returned an invalid config for ${configPath}`)
+  }
+  return result.data
 }
 
-const rootConfig = readJson(path.join(repositoryRoot, "tsconfig.json"))
-const referencePaths = readReferencePaths(rootConfig)
+const referencePaths = readReferencePaths(
+  path.join(repositoryRoot, "tsconfig.json"),
+)
 for (const referencePath of referencePaths) {
   const wrapperPath = path.resolve(repositoryRoot, referencePath)
-  const wrapper = readJson(wrapperPath)
   const sourcePath = path.resolve(
     path.dirname(wrapperPath),
-    readSourceReference(wrapper, wrapperPath),
+    readSourceReference(wrapperPath),
   )
   const source = showConfig(sourcePath).compilerOptions
   const effective = showConfig(wrapperPath).compilerOptions

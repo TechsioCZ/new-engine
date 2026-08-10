@@ -1,4 +1,4 @@
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { describe, expect, it } from "vitest"
 
 import { HeroCarousels } from "@/collections/hero-carousels"
@@ -64,7 +64,6 @@ describe("hero carousel internal title", () => {
     if (!isRecord(result)) {
       throw new TypeError("Hero carousel hook returned an invalid document")
     }
-    const { internalTitle } = result
-    expect(internalTitle).toBe("Updated campaign")
+    expect(getRecordValue(result, "internalTitle")).toBe("Updated campaign")
   })
 })

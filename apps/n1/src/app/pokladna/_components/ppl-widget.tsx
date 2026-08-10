@@ -1,5 +1,6 @@
 "use client"
 
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import Script from "next/script"
 import { useEffect, useEffectEvent, useState } from "react"
 
@@ -38,18 +39,10 @@ const isPplLanguage = (value: string): value is PplLanguage =>
 const isFilledString = (value: unknown): value is string =>
   typeof value === "string" && value !== ""
 
-const readFilledString = (
-  source: Record<string, unknown>,
-  key: string,
-): string | undefined => {
-  const value = source[key]
+const readFilledString = (source: object, key: string): string | undefined => {
+  const value = getRecordValue(source, key)
   return isFilledString(value) ? value : undefined
 }
-
-const isPplSelectionObject = (
-  value: unknown,
-): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
 
 /**
  * Detect language from document.documentElement.lang
@@ -123,7 +116,7 @@ const readEventDetail = (event: Event): unknown =>
  * and the flat address fields (`street`, `city`, `zipCode`, `country`).
  */
 const parsePplSelection = (detail: unknown): PplAccessPointData | undefined => {
-  if (!isPplSelectionObject(detail)) {
+  if (!isRecord(detail)) {
     return undefined
   }
 
@@ -137,7 +130,7 @@ const parsePplSelection = (detail: unknown): PplAccessPointData | undefined => {
   const city = readFilledString(detail, "city")
   const zipCode = readFilledString(detail, "zipCode")
   const country = readFilledString(detail, "country")
-  const { name } = detail
+  const name = getRecordValue(detail, "name")
 
   return {
     address: {

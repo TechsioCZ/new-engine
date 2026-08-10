@@ -1,4 +1,12 @@
-export type ApiStoreCredentials = Record<string, unknown>
+import { z } from "@medusajs/framework/zod"
+
+/**
+ * Provider-owned credential objects may use arbitrary keys, but every value
+ * must be recursively JSON-serializable before it crosses this boundary.
+ */
+export const ApiStoreCredentialsSchema = z.record(z.string(), z.json())
+
+export type ApiStoreCredentials = z.infer<typeof ApiStoreCredentialsSchema>
 export type ApiStoreAccessTokenExpiresAt = Date | string | null
 
 export interface ApiStoreCreateInput {

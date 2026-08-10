@@ -11,6 +11,7 @@ import {
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import {
   createCollectionsWorkflow,
   createInventoryLevelsWorkflow,
@@ -18,7 +19,6 @@ import {
   createProductsWorkflow,
   createStockLocationsWorkflow,
 } from "@medusajs/medusa/core-flows"
-import { isRecord } from "@techsio/std/object"
 import { sql } from "drizzle-orm"
 
 import { sqlRaw } from "../utils/db"
@@ -43,68 +43,32 @@ interface ProductRecord {
   collection_name: string
 }
 
-const getRequiredProductString = (
-  row: Readonly<Record<string, unknown>>,
-  key: string,
-  index: number,
-): string => {
-  const value = row[key]
-  if (typeof value !== "string") {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      `Product import row ${index} has invalid ${key}`,
-    )
-  }
-  return value
-}
+const productRecordSchema = z.object({
+  category_image_url: z.string(),
+  category_name: z.string(),
+  category_slug: z.string(),
+  collection_name: z.string(),
+  collection_slug: z.string(),
+  product_description: z.string(),
+  product_image_url: z.string(),
+  product_name: z.string(),
+  product_price: z.number(),
+  product_slug: z.string(),
+  subcategory_image_url: z.string(),
+  subcategory_name: z.string(),
+  subcategory_slug: z.string(),
+  subcollection_name: z.string(),
+})
 
-const decodeProductRecord = (
-  row: Readonly<Record<string, unknown>>,
-  index: number,
-): ProductRecord => {
-  const productPrice = row["product_price"]
-  if (typeof productPrice !== "number" || !Number.isFinite(productPrice)) {
+const decodeProductRecord = (row: object, index: number): ProductRecord => {
+  const parsed = productRecordSchema.safeParse(row)
+  if (!parsed.success) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      `Product import row ${index} has invalid product_price`,
+      `Product import row ${index} has invalid data`,
     )
   }
-  return {
-    category_image_url: getRequiredProductString(
-      row,
-      "category_image_url",
-      index,
-    ),
-    category_name: getRequiredProductString(row, "category_name", index),
-    category_slug: getRequiredProductString(row, "category_slug", index),
-    collection_name: getRequiredProductString(row, "collection_name", index),
-    collection_slug: getRequiredProductString(row, "collection_slug", index),
-    product_description: getRequiredProductString(
-      row,
-      "product_description",
-      index,
-    ),
-    product_image_url: getRequiredProductString(
-      row,
-      "product_image_url",
-      index,
-    ),
-    product_name: getRequiredProductString(row, "product_name", index),
-    product_price: productPrice,
-    product_slug: getRequiredProductString(row, "product_slug", index),
-    subcategory_image_url: getRequiredProductString(
-      row,
-      "subcategory_image_url",
-      index,
-    ),
-    subcategory_name: getRequiredProductString(row, "subcategory_name", index),
-    subcategory_slug: getRequiredProductString(row, "subcategory_slug", index),
-    subcollection_name: getRequiredProductString(
-      row,
-      "subcollection_name",
-      index,
-    ),
-  }
+  return parsed.data
 }
 
 interface ImportPageResult {
@@ -235,25 +199,6 @@ const convertToMedusaProducts = (
     } satisfies CreateProductWorkflowInputDTO
   })
 
-interface HandleIdentity {
-  id: string
-  handle: string
-}
-
-/**
- * Narrow an unknown value returned from a query to a record with a string id and handle
- */
-const isHandleIdentity = (value: unknown): value is HandleIdentity =>
-  isRecord(value) &&
-  typeof value["id"] === "string" &&
-  typeof value["handle"] === "string"
-
-/**
- * Narrow an unknown value returned from a query to a record with a string id
- */
-const isIdRecord = (value: unknown): value is { id: string } =>
-  isRecord(value) && typeof value["id"] === "string"
-
 /**
  * Check if categories already exist in the system by handle
  */
@@ -275,9 +220,7 @@ const checkExistingCategories = async (
   // Create a map of handle -> id for existing categories
   const existingCategoryMap: Record<string, string> = {}
   for (const category of existingCategories) {
-    if (isHandleIdentity(category)) {
-      existingCategoryMap[category.handle] = category.id
-    }
+    existingCategoryMap[category.handle] = category.id
   }
 
   return existingCategoryMap
@@ -304,9 +247,7 @@ const checkExistingCollections = async (
   // Create a map of handle -> id for existing collections
   const existingCollectionMap: Record<string, string> = {}
   for (const collection of existingCollections) {
-    if (isHandleIdentity(collection)) {
-      existingCollectionMap[collection.handle] = collection.id
-    }
+    existingCollectionMap[collection.handle] = collection.id
   }
 
   return existingCollectionMap
@@ -333,9 +274,7 @@ const checkExistingProducts = async (
   // Create a map of handle -> id for existing products
   const existingProductMap: Record<string, string> = {}
   for (const product of existingProducts) {
-    if (isHandleIdentity(product)) {
-      existingProductMap[product.handle] = product.id
-    }
+    existingProductMap[product.handle] = product.id
   }
 
   return existingProductMap
@@ -631,13 +570,11 @@ const setInventoryLevelsForLocation = async (
     location_id: string
   }[] = []
   for (const inventoryItem of inventoryItems) {
-    if (isIdRecord(inventoryItem)) {
-      inventoryLevels.push({
-        inventory_item_id: inventoryItem.id,
-        location_id: stockLocationId,
-        stocked_quantity: 100,
-      })
-    }
+    inventoryLevels.push({
+      inventory_item_id: inventoryItem.id,
+      location_id: stockLocationId,
+      stocked_quantity: 100,
+    })
   }
 
   if (inventoryLevels.length === 0) {

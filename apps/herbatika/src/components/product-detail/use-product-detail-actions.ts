@@ -1,6 +1,7 @@
 "use client"
 
-import type { Product } from "@/components/product-detail/product-detail.types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
+
 import type { ProductDetailDataState } from "@/components/product-detail/use-product-detail-data"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import {
@@ -36,7 +37,7 @@ export const useProductDetailActions = ({
   })
 
   const addProductToCart = async (
-    productToAdd: Product,
+    productToAdd: MedusaCatalogProduct,
     quantityToAdd: number,
     variantIdOverride?: string | null,
   ) => {
@@ -63,7 +64,7 @@ export const useProductDetailActions = ({
         addProductToCart(product, quantity, selectedVariant.id),
       )
     },
-    handleAddRelatedProductToCart: (productToAdd: Product) => {
+    handleAddRelatedProductToCart: (productToAdd: MedusaCatalogProduct) => {
       runDetachedPromise(addProductToCart(productToAdd, 1))
     },
     handleAddVolumeDiscountToCart: () => {
@@ -86,7 +87,7 @@ export const useProductDetailActions = ({
     },
     handleRelatedProductHoverEnd: (
       sectionId: string,
-      hoveredProduct: Product,
+      hoveredProduct: MedusaCatalogProduct,
     ) => {
       prefetchProduct.cancelPrefetch(
         `${sectionId}-product-${hoveredProduct.id}`,
@@ -94,7 +95,7 @@ export const useProductDetailActions = ({
     },
     handleRelatedProductHoverStart: (
       sectionId: string,
-      hoveredProduct: Product,
+      hoveredProduct: MedusaCatalogProduct,
     ) => {
       if (hoveredProduct.handle === undefined || hoveredProduct.handle === "") {
         return

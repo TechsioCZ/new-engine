@@ -1,7 +1,7 @@
 import type { ICachingModuleService, Logger } from "@medusajs/framework/types"
 import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
-import { isRecord, omitUndefined } from "@techsio/std/object"
+import { getRecordValue, isRecord, omitUndefined } from "@techsio/std/object"
 
 import { decryptFields, encryptFields } from "../../utils/encryption"
 import { safeResolve } from "../../utils/safe-resolve"
@@ -9,8 +9,10 @@ import {
   INTEGRATION_CONFIG_NAMES,
   retrieveIntegrationConfig,
 } from "../api-store/integration-config"
+import type { IntegrationConfigContainer } from "../api-store/integration-config"
 import { PacketaClient } from "./client"
 import PacketaConfig from "./models/packeta-config"
+import { packetaBranchSchema } from "./schemas"
 import { PACKETA_SENSITIVE_FIELDS } from "./types"
 import type {
   PacketaBranch,
@@ -39,18 +41,22 @@ const CACHE_TTL = {
   CONFIG: 60,
 } as const
 
-type CachingDependency = Pick<ICachingModuleService, "clear" | "get" | "set">
+interface CachingDependency {
+  clear: ICachingModuleService["clear"]
+  get: ICachingModuleService["get"]
+  set: ICachingModuleService["set"]
+}
 
-type InjectedDependencies = Record<string, unknown> & {
+interface InjectedDependencies extends IntegrationConfigContainer {
   logger: Logger
   [Modules.CACHING]?: CachingDependency
 }
 
 const isCachingDependency = (value: unknown): value is CachingDependency =>
   isRecord(value) &&
-  typeof value["clear"] === "function" &&
-  typeof value["get"] === "function" &&
-  typeof value["set"] === "function"
+  typeof getRecordValue(value, "clear") === "function" &&
+  typeof getRecordValue(value, "get") === "function" &&
+  typeof getRecordValue(value, "set") === "function"
 
 interface PacketaModuleOptions {
   environment: PacketaEnvironment
@@ -63,33 +69,31 @@ interface DisabledConfigCacheEntry {
 const isDisabledConfigCacheEntry = (
   value: unknown,
 ): value is DisabledConfigCacheEntry =>
-  isRecord(value) && value["disabled"] === true
+  isRecord(value) && getRecordValue(value, "disabled") === true
 
-const packetaConfigSchema = z
-  .object({
-    api_password: z.string().nullable(),
-    cod_bank_account: z.string().nullable(),
-    cod_bank_code: z.string().nullable(),
-    cod_iban: z.string().nullable(),
-    cod_swift: z.string().nullable(),
-    created_at: z.date(),
-    default_label_format: z.string(),
-    default_label_offset: z.number(),
-    environment: z.enum(["testing", "production"]),
-    eshop_id: z.string().nullable(),
-    id: z.string(),
-    is_enabled: z.boolean(),
-    sender_city: z.string().nullable(),
-    sender_country: z.string().nullable(),
-    sender_email: z.string().nullable(),
-    sender_label: z.string().nullable(),
-    sender_name: z.string().nullable(),
-    sender_phone: z.string().nullable(),
-    sender_street: z.string().nullable(),
-    sender_zip_code: z.string().nullable(),
-    updated_at: z.date(),
-  })
-  .catchall(z.unknown())
+const packetaConfigSchema = z.object({
+  api_password: z.string().nullable(),
+  cod_bank_account: z.string().nullable(),
+  cod_bank_code: z.string().nullable(),
+  cod_iban: z.string().nullable(),
+  cod_swift: z.string().nullable(),
+  created_at: z.date(),
+  default_label_format: z.string(),
+  default_label_offset: z.number(),
+  environment: z.enum(["testing", "production"]),
+  eshop_id: z.string().nullable(),
+  id: z.string(),
+  is_enabled: z.boolean(),
+  sender_city: z.string().nullable(),
+  sender_country: z.string().nullable(),
+  sender_email: z.string().nullable(),
+  sender_label: z.string().nullable(),
+  sender_name: z.string().nullable(),
+  sender_phone: z.string().nullable(),
+  sender_street: z.string().nullable(),
+  sender_zip_code: z.string().nullable(),
+  updated_at: z.date(),
+})
 
 const packetaOptionsSchema = z.object({
   api_password: z.string(),
@@ -112,24 +116,7 @@ const packetaOptionsSchema = z.object({
   sender_zip_code: z.string().optional(),
 })
 
-const packetaBranchSchema = z.object({
-  branchType: z.string().optional(),
-  city: z.string(),
-  country: z.string(),
-  currency: z.string().optional(),
-  id: z.number(),
-  latitude: z.string().optional(),
-  longitude: z.string().optional(),
-  name: z.string(),
-  nameStreet: z.string(),
-  openingHours: z.string().optional(),
-  street: z.string(),
-  zip: z.string(),
-})
-
-const toPacketaConfigDTO = (
-  value: unknown,
-): PacketaConfigDTO & Record<string, unknown> => {
+const toPacketaConfigDTO = (value: unknown): PacketaConfigDTO => {
   const parsed = packetaConfigSchema.safeParse(value)
   if (!parsed.success) {
     throw new MedusaError(
@@ -490,7 +477,7 @@ export class PacketaClientModuleService extends MedusaService({
             "Packeta: Cached branch list has an invalid shape",
           )
         }
-        return parsed.data.map(omitUndefined)
+        return parsed.data
       }
     }
 

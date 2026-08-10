@@ -6,7 +6,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 
 import { requirePathParam } from "../../../../../utils/path-params"
 import { restoreCompaniesWorkflow } from "../../../../../workflows/company/workflows/restore-companies"
@@ -33,7 +33,7 @@ const restoreCompany = async (
     { throwIfKeyNotFound: true },
   )
   const graphData: unknown = isRecord(graphResult)
-    ? graphResult["data"]
+    ? getRecordValue(graphResult, "data")
     : undefined
   const company: unknown = Array.isArray(graphData) ? graphData[0] : undefined
   if (!isRecord(company)) {

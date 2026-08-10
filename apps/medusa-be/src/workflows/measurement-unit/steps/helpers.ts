@@ -1,4 +1,4 @@
-import type { MedusaContainer } from "@medusajs/framework/types"
+import type { MedusaContainer, Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -7,24 +7,6 @@ import {
 
 import { MEASUREMENT_UNIT_MODULE } from "../../../modules/measurement-unit"
 import { getMeasurementUnitService } from "../../../utils/measurement-units"
-
-interface ProductGraphQuery {
-  graph: (config: {
-    entity: "product"
-    fields: readonly string[]
-    filters: Record<string, unknown>
-    pagination: { take: number }
-  }) => Promise<{ data: { id: string }[] }>
-}
-
-interface ProductVariantGraphQuery {
-  graph: (config: {
-    entity: "product_variant"
-    fields: readonly string[]
-    filters: Record<string, unknown>
-    pagination: { take: number }
-  }) => Promise<{ data: { id: string; product_id: string }[] }>
-}
 
 interface TimestampedRecord {
   created_at?: Date | string
@@ -113,9 +95,7 @@ export const ensureProductExists = async (
   container: MedusaContainer,
   productId: string,
 ) => {
-  const query = container.resolve<ProductGraphQuery>(
-    ContainerRegistrationKeys.QUERY,
-  )
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "product",
     fields: ["id"],
@@ -141,9 +121,7 @@ export const ensureProductVariantBelongsToProduct = async (
   productId: string,
   productVariantId: string,
 ) => {
-  const query = container.resolve<ProductVariantGraphQuery>(
-    ContainerRegistrationKeys.QUERY,
-  )
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data } = await query.graph({
     entity: "product_variant",
     fields: ["id", "product_id"],

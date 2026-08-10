@@ -2,10 +2,16 @@ import type { Meta, StoryObj } from "@storybook/react"
 import type { ReactNode } from "react"
 
 import { Badge } from "../../src/atoms/badge"
+import type { Image } from "../../src/atoms/image"
 import { StatusText } from "../../src/atoms/status-text"
 import { Gallery } from "../../src/organisms/gallery"
-import type { GalleryItem } from "../../src/organisms/gallery"
+import type {
+  GalleryItem,
+  GalleryRenderThumbnailParams,
+} from "../../src/organisms/gallery"
 import { GalleryTemplate } from "../../src/templates/gallery"
+
+const StoryGalleryTemplate = GalleryTemplate<typeof Image>
 
 const shoes1 = new URL("../../assets/gallery/shoes-1.jpg", import.meta.url).href
 const shoes2 = new URL("../../assets/gallery/shoes-2.jpg", import.meta.url).href
@@ -170,13 +176,13 @@ const meta = {
     size: "full",
     thumbnailSize: 72,
   },
-  component: GalleryTemplate,
+  component: StoryGalleryTemplate,
   parameters: {
     layout: "fullscreen",
   },
   tags: ["autodocs"],
   title: "Organisms/Gallery",
-} satisfies Meta<typeof GalleryTemplate>
+} satisfies Meta<typeof StoryGalleryTemplate>
 
 export default meta
 
@@ -375,7 +381,11 @@ export const HorizontalWithArrows: Story = {
         nextTriggerClassName={overlayArrowClassName}
         thumbnailsClassName="rounded-md border border-border-primary bg-base px-100"
         thumbnailsListClassName="gap-100 py-100"
-        renderThumbnail={({ defaultThumbnail, isActive, index }) => (
+        renderThumbnail={({
+          defaultThumbnail,
+          isActive,
+          index,
+        }: GalleryRenderThumbnailParams) => (
           <div
             className={
               isActive

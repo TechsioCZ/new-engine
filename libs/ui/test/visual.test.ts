@@ -5,8 +5,8 @@ import {
   expect as playwrightExpect,
   test as playwrightBase,
 } from "@playwright/test"
-import type { BrowserContextOptions, Locator, Page } from "@playwright/test"
-import { isRecord } from "@techsio/std/object"
+import type { Locator, Page } from "@playwright/test"
+import { getRecordValue, isRecord, omitUndefined } from "@techsio/std/object"
 
 interface StorybookEntry {
   id: string
@@ -19,7 +19,10 @@ const isStorybookEntry = (value: unknown): value is StorybookEntry => {
   if (!isRecord(value)) {
     return false
   }
-  const { id, name, title, type } = value
+  const id = getRecordValue(value, "id")
+  const name = getRecordValue(value, "name")
+  const title = getRecordValue(value, "title")
+  const type = getRecordValue(value, "type")
   return [id, name, title, type].every((field) => typeof field === "string")
 }
 
@@ -28,7 +31,7 @@ const parseStorybookEntries = (raw: string): StorybookEntry[] => {
   if (!isRecord(parsed)) {
     throw new Error("Storybook index.json has an invalid entries object.")
   }
-  const { entries: entriesValue } = parsed
+  const entriesValue = getRecordValue(parsed, "entries")
   if (!isRecord(entriesValue)) {
     throw new Error("Storybook index.json has an invalid entries object.")
   }
@@ -128,18 +131,11 @@ const shouldResetBetweenTests =
 
 let stories: StorybookEntry[]
 
-const definedContextOptions = (
-  options: Record<string, unknown>,
-): BrowserContextOptions =>
-  Object.fromEntries(
-    Object.entries(options).filter(([, value]) => value !== undefined),
-  )
-
 const test = playwrightBase.extend<Record<never, never>, { workerPage: Page }>({
   workerPage: [
     async ({ browser }, use, testInfo) => {
       const context = await browser.newContext(
-        definedContextOptions(testInfo.project.use),
+        omitUndefined(testInfo.project.use),
       )
       const page = await context.newPage()
       await installHermeticImageRoutes(page)
@@ -155,7 +151,7 @@ try {
   stories = parseStorybookEntries(raw).filter((entry) => entry.type === "story")
 } catch (error) {
   if (isRecord(error)) {
-    const { code } = error
+    const code = getRecordValue(error, "code")
     if (code === "ENOENT") {
       throw new Error(
         "Storybook index.json not found. Run 'pnpm build:storybook' first.",
@@ -342,7 +338,7 @@ test.describe.parallel("storybook visual", () => {
           await ownedContext.current.close()
         }
         ownedContext.current = await browser.newContext(
-          definedContextOptions(testInfo.project.use),
+          omitUndefined(testInfo.project.use),
         )
         page = await ownedContext.current.newPage()
         await installHermeticImageRoutes(page)

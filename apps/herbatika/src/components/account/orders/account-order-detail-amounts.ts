@@ -1,5 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue } from "@techsio/std/object"
 
 import {
   resolveOrderItemTotalAmount,
@@ -7,7 +7,7 @@ import {
 } from "@/lib/storefront/order-format"
 
 const readOrderAmount = (order: HttpTypes.StoreOrder, key: string) => {
-  const value = isRecord(order) ? order[key] : undefined
+  const value = getRecordValue(order, key)
   return typeof value === "number" && Number.isFinite(value) ? value : null
 }
 

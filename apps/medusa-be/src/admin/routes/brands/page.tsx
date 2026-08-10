@@ -110,15 +110,17 @@ const buildAttributeTypeColumns = ({
   onRestore,
   t,
 }: AttributeTypeColumnsOptions): DataTableColumnDef<BrandAttributeType>[] => [
-  attributeTypeColumnHelper.accessor("name", {
+  {
+    accessorKey: "name",
     cell: ({ row }) => (
       <Link to={`/brands/attributes/${row.original.id}`}>
         {row.original.name}
       </Link>
     ),
     header: t("columns.name"),
-  }),
-  attributeTypeColumnHelper.accessor("deleted_at", {
+  },
+  {
+    accessorKey: "deleted_at",
     cell: ({ row }) => (
       <StatusBadge
         color={hasTrimmedString(row.original.deleted_at) ? "red" : "green"}
@@ -129,10 +131,11 @@ const buildAttributeTypeColumns = ({
       </StatusBadge>
     ),
     header: t("columns.status"),
-  }),
-  attributeTypeColumnHelper.accessor("usage_count", {
+  },
+  {
+    accessorKey: "usage_count",
     header: t("columns.usedBy"),
-  }),
+  },
   attributeTypeColumnHelper.action({
     actions: ({ row }) => {
       if (isRowMutating(row.original.id)) {
@@ -178,23 +181,28 @@ const buildBrandColumns = ({
   onRestore,
   t,
 }: BrandColumnsOptions): DataTableColumnDef<Brand>[] => [
-  brandColumnHelper.accessor("title", {
+  {
+    accessorKey: "title",
     cell: ({ row }) => (
       <Link to={`/brands/${row.original.id}`}>{row.original.title}</Link>
     ),
     header: t("columns.title"),
-  }),
-  brandColumnHelper.accessor("handle", {
+  },
+  {
+    accessorKey: "handle",
     header: t("columns.handle"),
-  }),
-  brandColumnHelper.accessor((brand) => brand.attributes.length, {
+  },
+  {
+    accessorFn: (brand) => brand.attributes.length,
     header: t("columns.attributes"),
     id: "attributes",
-  }),
-  brandColumnHelper.accessor("active_product_count", {
+  },
+  {
+    accessorKey: "active_product_count",
     header: t("columns.products"),
-  }),
-  brandColumnHelper.accessor("deleted_at", {
+  },
+  {
+    accessorKey: "deleted_at",
     cell: ({ row }) => (
       <StatusBadge
         color={hasTrimmedString(row.original.deleted_at) ? "red" : "green"}
@@ -205,11 +213,12 @@ const buildBrandColumns = ({
       </StatusBadge>
     ),
     header: t("columns.status"),
-  }),
-  brandColumnHelper.accessor("updated_at", {
+  },
+  {
+    accessorKey: "updated_at",
     cell: ({ row }) => formatDate(row.original.updated_at, locale),
     header: t("columns.updated"),
-  }),
+  },
   brandColumnHelper.action({
     actions: ({ row }) => {
       if (isRowMutating(row.original.id)) {

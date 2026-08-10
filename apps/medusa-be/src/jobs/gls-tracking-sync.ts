@@ -7,6 +7,8 @@ import type {
   Query,
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
+import { getRecordValue, omitUndefined } from "@techsio/std/object"
 
 import {
   GLS_CLIENT_MODULE,
@@ -16,32 +18,24 @@ import {
 } from "../modules/gls-client"
 import type {
   GLSClientModuleService,
-  GLSFulfillmentData,
   GLSPacketStatusRecord,
   GLSShipmentState,
 } from "../modules/gls-client"
 import { executeWithLockTimeout } from "../utils/locking"
 
-interface FulfillmentRecord {
-  id: string
-  data: GLSFulfillmentData | null
-  shipped_at: string | null
-  delivered_at: string | null
-  provider_id: string
-}
-
-interface PendingFulfillment extends FulfillmentRecord {
-  data: GLSFulfillmentData & {
-    packet_id: string | number
-    barcode: string
-    parcel_number?: string | number
-  }
+interface GLSPendingEventData {
+  barcode: string
+  delivered_at?: string
+  fulfillment_id: string
+  packet_id: string | number
+  status: GLSShipmentState
+  status_date?: string
 }
 
 interface GLSPendingEvent {
   key: string
   name: "gls.delivered" | "gls.delivery_failed"
-  data: Record<string, unknown>
+  data: GLSPendingEventData
 }
 
 interface TrackingContext {
@@ -56,69 +50,80 @@ const CHUNK_SIZE = 25
 const PENDING_FETCH_MULTIPLIER = 4
 const GLS_DELIVERED_EVENT_NAME: GLSPendingEvent["name"] = "gls.delivered"
 
-const isGlsTrackingObjectLike = (
+const glsShipmentStateSchema = z.enum([
+  "received_data",
+  "arrived",
+  "prepared_for_departure",
+  "departed",
+  "ready_for_pickup",
+  "handed_to_carrier",
+  "delivered",
+  "posted_back",
+  "returned",
+  "cancelled",
+  "customs_declaration",
+  "collected",
+  "unknown",
+])
+
+const pendingFulfillmentSchema = z.object({
+  // Retain package-owned extensions such as gls_pending_event for write-back.
+  data: z
+    .object({
+      access_point_id: z.string(),
+      barcode: z.string(),
+      // Older JSON rows persisted a nullable marker before it became optional.
+      delivery_failed: z.union([z.literal(false), z.null()]).optional(),
+      label_url: z.string().optional(),
+      last_status: glsShipmentStateSchema.optional(),
+      packet_id: z.union([z.string(), z.number()]),
+      parcel_number: z.union([z.string(), z.number()]).optional(),
+      // Fulfillments created before the provider status field remain trackable.
+      status: z.enum(["completed", "error"]).optional(),
+      supports_cod: z.boolean(),
+    })
+    .loose(),
+  delivered_at: z.null(),
+  id: z.string(),
+  provider_id: z.literal(GLS_PROVIDER_ID),
+  shipped_at: z.string(),
+})
+
+type PendingFulfillment = z.infer<typeof pendingFulfillmentSchema>
+
+const pendingFulfillmentCandidateSchema = z.union([
+  pendingFulfillmentSchema,
+  z.unknown().transform(() => null),
+])
+
+const pendingFulfillmentsSchema = z
+  .array(pendingFulfillmentCandidateSchema)
+  .transform((fulfillments) =>
+    fulfillments.flatMap((fulfillment) =>
+      fulfillment === null ? [] : [fulfillment],
+    ),
+  )
+
+export const decodePendingFulfillments = (
   value: unknown,
-): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
-const hasValidIdentity = (value: Record<string, unknown>): boolean => {
-  const id: unknown = value["id"]
-  const providerId: unknown = value["provider_id"]
-  const shippedAt: unknown = value["shipped_at"]
-  const deliveredAt: unknown = value["delivered_at"]
-
-  return (
-    typeof id === "string" &&
-    providerId === GLS_PROVIDER_ID &&
-    typeof shippedAt === "string" &&
-    deliveredAt === null
-  )
+  limit: number,
+): PendingFulfillment[] => {
+  const result = pendingFulfillmentsSchema.safeParse(value)
+  return result.success ? result.data.slice(0, limit) : []
 }
 
-const hasValidPacketId = (data: Record<string, unknown>): boolean => {
-  const packetId: unknown = data["packet_id"]
-  return typeof packetId === "number" || typeof packetId === "string"
-}
-
-const hasValidParcelNumber = (data: Record<string, unknown>): boolean => {
-  const parcelNumber: unknown = data["parcel_number"]
-  return (
-    parcelNumber === undefined ||
-    typeof parcelNumber === "string" ||
-    typeof parcelNumber === "number"
-  )
-}
-
-const hasValidPacketFields = (data: Record<string, unknown>): boolean => {
-  const barcode: unknown = data["barcode"]
-  const accessPointId: unknown = data["access_point_id"]
-  const supportsCod: unknown = data["supports_cod"]
-  const deliveryFailed: unknown = data["delivery_failed"]
-
-  return (
-    typeof barcode === "string" &&
-    typeof accessPointId === "string" &&
-    typeof supportsCod === "boolean" &&
-    deliveryFailed !== true
-  )
-}
-
-const isPendingFulfillment = (value: unknown): value is PendingFulfillment => {
-  if (
-    !(isGlsTrackingObjectLike(value) && isGlsTrackingObjectLike(value["data"]))
-  ) {
-    return false
-  }
-
-  const { data } = value
-
-  return (
-    hasValidIdentity(value) &&
-    hasValidPacketId(data) &&
-    hasValidParcelNumber(data) &&
-    hasValidPacketFields(data)
-  )
-}
+const pendingEventSchema = z.object({
+  data: z.object({
+    barcode: z.string(),
+    delivered_at: z.string().optional(),
+    fulfillment_id: z.string(),
+    packet_id: z.union([z.string(), z.number()]),
+    status: glsShipmentStateSchema,
+    status_date: z.string().optional(),
+  }),
+  key: z.string(),
+  name: z.enum([GLS_DELIVERED_EVENT_NAME, "gls.delivery_failed"]),
+})
 
 const fetchPendingFulfillments = async (
   query: Query,
@@ -142,10 +147,7 @@ const fetchPendingFulfillments = async (
   })
 
   // JSON field filtering (data.delivery_failed) must be done in-memory.
-  const rawFulfillments: unknown = fulfillments
-  return Array.isArray(rawFulfillments)
-    ? rawFulfillments.filter(isPendingFulfillment).slice(0, limit)
-    : []
+  return decodePendingFulfillments(fulfillments, limit)
 }
 
 const getPendingDeliveredAt = (
@@ -155,7 +157,7 @@ const getPendingDeliveredAt = (
     return undefined
   }
 
-  const deliveredAt: unknown = pendingEvent.data["delivered_at"]
+  const deliveredAt = pendingEvent.data.delivered_at
   if (typeof deliveredAt !== "string") {
     return undefined
   }
@@ -167,43 +169,34 @@ const getPendingDeliveredAt = (
 const buildPendingEvent = (
   name: GLSPendingEvent["name"],
   fulfillment: PendingFulfillment,
-  data: Record<string, unknown>,
+  data: Pick<GLSPendingEventData, "status" | "delivered_at" | "status_date">,
 ): GLSPendingEvent => {
-  const status: unknown = data["status"]
-  const statusFragment =
-    typeof status === "string" || typeof status === "number"
-      ? String(status)
-      : ""
+  const statusFragment = data.status
 
   return {
-    data: {
+    data: omitUndefined({
       barcode: fulfillment.data.barcode,
+      delivered_at: data.delivered_at,
       fulfillment_id: fulfillment.id,
       packet_id: fulfillment.data.packet_id,
-      ...data,
-    },
+      status: data.status,
+      status_date: data.status_date,
+    }),
     key: `${name}:${fulfillment.id}:${fulfillment.data.packet_id}:${statusFragment}`,
     name,
   }
 }
 
 const getPendingEvent = (value: unknown): GLSPendingEvent | null => {
-  if (
-    !(isGlsTrackingObjectLike(value) && isGlsTrackingObjectLike(value["data"]))
-  ) {
+  const result = pendingEventSchema.safeParse(value)
+  if (!result.success) {
     return null
   }
-
-  const { key, name } = value
-
-  if (
-    typeof key !== "string" ||
-    (name !== GLS_DELIVERED_EVENT_NAME && name !== "gls.delivery_failed")
-  ) {
-    return null
+  return {
+    data: omitUndefined(result.data.data),
+    key: result.data.key,
+    name: result.data.name,
   }
-
-  return { data: value["data"], key, name }
 }
 
 const emitPendingEvent = async (
@@ -223,15 +216,16 @@ const flushPendingEvent = async (
   ctx: TrackingContext,
   fulfillment: PendingFulfillment,
 ): Promise<boolean> => {
-  const pendingEvent = getPendingEvent(fulfillment.data["gls_pending_event"])
+  const pendingEvent = getPendingEvent(
+    getRecordValue(fulfillment.data, "gls_pending_event"),
+  )
   if (!pendingEvent) {
     return false
   }
 
   await emitPendingEvent(ctx, pendingEvent)
-  const updatedData = (({ gls_pending_event: _pendingEvent, ...rest }) => rest)(
-    fulfillment.data,
-  )
+  const updatedData = { ...fulfillment.data }
+  Reflect.deleteProperty(updatedData, "gls_pending_event")
   const deliveredAt = getPendingDeliveredAt(pendingEvent)
   await ctx.fulfillmentService.updateFulfillment(fulfillment.id, {
     ...(deliveredAt ? { delivered_at: deliveredAt } : {}),
@@ -274,9 +268,8 @@ const handleDelivered = async (
 
   await emitPendingEvent(ctx, pendingEvent)
 
-  const updatedData = (({ gls_pending_event: _pendingEvent, ...rest }) => rest)(
-    data,
-  )
+  const updatedData = { ...data }
+  Reflect.deleteProperty(updatedData, "gls_pending_event")
   await fulfillmentService.updateFulfillment(fulfillment.id, {
     data: {
       ...updatedData,
@@ -315,9 +308,8 @@ const handleFailed = async (
 
   await emitPendingEvent(ctx, pendingEvent)
 
-  const updatedData = (({ gls_pending_event: _pendingEvent, ...rest }) => rest)(
-    data,
-  )
+  const updatedData = { ...data }
+  Reflect.deleteProperty(updatedData, "gls_pending_event")
   await fulfillmentService.updateFulfillment(fulfillment.id, {
     data: {
       ...updatedData,

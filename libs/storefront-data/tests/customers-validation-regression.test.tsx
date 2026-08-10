@@ -6,11 +6,18 @@ import { vi, describe, expect, it } from "vitest"
 import { createCheckoutCustomerAddressAdapter } from "../src/checkout/address"
 import { StorefrontDataProvider } from "../src/client/provider"
 import { createCustomerHooks } from "../src/customers/hooks"
+import {
+  decodeMedusaCustomerAddressInput,
+  medusaCustomerAddressAdapter,
+} from "../src/customers/medusa-service"
 import type {
   MedusaCustomerAddressCreateInput,
   MedusaCustomerAddressUpdateInput,
 } from "../src/customers/medusa-service"
-import type { CustomerAddressAdapter } from "../src/customers/types"
+import type {
+  CustomerAddressAdapter,
+  CustomerProfileUpdateInputBase,
+} from "../src/customers/types"
 import { StorefrontAddressValidationError } from "../src/shared/address"
 import type { StorefrontAddressValidationIssue } from "../src/shared/address"
 
@@ -49,9 +56,59 @@ describe("customer validation regression", () => {
     address_1?: string
     city?: string
   }
-  interface UpdateCustomerParams {
-    metadata?: Record<string, unknown>
-  }
+  type UpdateCustomerParams = CustomerProfileUpdateInputBase
+
+  it("constructs exact address payloads and preserves metadata identity", () => {
+    const metadata = { source: "checkout" }
+    const { toCreateParams, toUpdateParams } = medusaCustomerAddressAdapter
+    if (toCreateParams === undefined || toUpdateParams === undefined) {
+      throw new TypeError("Medusa customer address adapter is incomplete")
+    }
+
+    const decoded = decodeMedusaCustomerAddressInput({
+      address_1: "Main street",
+      address_name: null,
+      ignored: "not-an-address-field",
+      metadata,
+    })
+    const created = toCreateParams(
+      { address_1: null, metadata },
+      { mode: "create" },
+    )
+    const updated = toUpdateParams(
+      {
+        addressId: "addr_1",
+        address_name: "Home",
+        metadata,
+        phone: null,
+      },
+      { mode: "update" },
+    )
+
+    expect({ created, decoded, updated }).toStrictEqual({
+      created: { address_1: null, metadata },
+      decoded: {
+        address_1: "Main street",
+        address_name: null,
+        metadata,
+      },
+      updated: {
+        address_name: "Home",
+        metadata,
+        phone: null,
+      },
+    })
+    expect(decoded.metadata).toBe(metadata)
+    expect(created.metadata).toBe(metadata)
+    expect(updated.metadata).toBe(metadata)
+    expect({
+      decodedHasPhone: Object.hasOwn(decoded, "phone"),
+      updatedHasAddressId: Object.hasOwn(updated, "addressId"),
+    }).toStrictEqual({
+      decodedHasPhone: false,
+      updatedHasAddressId: false,
+    })
+  })
 
   const createService = () => ({
     createAddress: vi
@@ -270,20 +327,17 @@ describe("customer validation regression", () => {
       isDefaultShipping?: boolean
     }
     type UpdateInput = CheckoutAddress & { addressId?: string }
-    interface SharedUpdateParams {
-      first_name?: string
-      last_name?: string
-      address_1?: string
-      city?: string
-      postal_code?: string
-      country_code?: string
-      phone?: string
-      is_default_shipping?: boolean
-    }
-
     const service = createService()
+    const createAddress = vi
+      .fn<(params: MedusaCustomerAddressCreateInput) => Promise<Address>>()
+      .mockResolvedValue({ id: "addr_1" })
     const updateAddress = vi
-      .fn<(id: string, params: SharedUpdateParams) => Promise<Address>>()
+      .fn<
+        (
+          id: string,
+          params: MedusaCustomerAddressUpdateInput,
+        ) => Promise<Address>
+      >()
       .mockResolvedValue({ id: "addr_1" })
     const addressAdapter = createCheckoutCustomerAddressAdapter<
       CheckoutAddress,
@@ -317,6 +371,7 @@ describe("customer validation regression", () => {
       queryKeyNamespace: "customers-validation-partial-update",
       service: {
         ...service,
+        createAddress,
         updateAddress,
       },
     })

@@ -8,14 +8,16 @@ import type { DataTableQueryProps } from "./data-table-query"
 import { DataTableRoot } from "./data-table-root"
 import type { DataTableRootProps } from "./data-table-root"
 
-const EMPTY_QUERY_OBJECT: Record<string, unknown> = {}
+const EMPTY_QUERY_OBJECT: Readonly<
+  Record<string, string | string[] | null | undefined>
+> = {}
 const EMPTY_NO_RECORDS_PROPS: Pick<NoResultsProps, "title" | "message"> = {}
 
 interface DataTableProps<TData>
   extends Omit<DataTableRootProps<TData>, "noResults">, DataTableQueryProps {
   isLoading?: boolean
   pageSize: number
-  queryObject?: Record<string, unknown>
+  queryObject?: Readonly<Record<string, string | string[] | null | undefined>>
   noRecords?: Pick<NoResultsProps, "title" | "message">
 }
 

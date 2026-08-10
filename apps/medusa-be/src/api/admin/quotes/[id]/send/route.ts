@@ -7,7 +7,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 
 import { requirePathParam } from "../../../../../utils/path-params"
 import { merchantSendQuoteWorkflow } from "../../../../../workflows/quote/workflows/merchant-send-quote"
@@ -35,13 +35,16 @@ const postHandler = async (
     },
     { throwIfKeyNotFound: true },
   )
-  if (!isRecord(graphResult) || !Array.isArray(graphResult["data"])) {
+  const data: unknown = isRecord(graphResult)
+    ? getRecordValue(graphResult, "data")
+    : undefined
+  if (!Array.isArray(data)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       `Quote query returned an invalid response for ${id}`,
     )
   }
-  const quote: unknown = graphResult["data"][0]
+  const quote: unknown = data[0]
 
   res.json({ quote })
 }

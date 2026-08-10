@@ -7,21 +7,22 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 
 import type { GetQuoteParamsType } from "../validators"
 
-const getQuoteFromGraphResult = (
-  result: unknown,
-): Record<string, unknown> | undefined => {
-  if (!isRecord(result) || !Array.isArray(result["data"])) {
+const getQuoteFromGraphResult = (result: unknown): object | undefined => {
+  const data: unknown = isRecord(result)
+    ? getRecordValue(result, "data")
+    : undefined
+  if (!Array.isArray(data)) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
       "Quote query returned an invalid data payload",
     )
   }
 
-  const records: unknown[] = result["data"]
+  const records: unknown[] = data
   const [quote] = records
   if (quote === undefined) {
     return undefined

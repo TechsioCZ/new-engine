@@ -93,5 +93,7 @@ const BLOG_RECOMMENDED_PRODUCTS_BY_SLUG: Partial<
     limit: 10,
   },
 }
-export const getBlogRecommendedProductsConfig = (slug: string) =>
+export const getBlogRecommendedProductsConfig = (
+  slug: string,
+): { categoryHandles: string[]; limit?: number } | null =>
   BLOG_RECOMMENDED_PRODUCTS_BY_SLUG[slug] ?? null

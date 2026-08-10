@@ -1,6 +1,10 @@
 import { isRecord, getRecordValue } from "@techsio/std/object"
 
-import type { AuthProxyResponse } from "./types"
+import type {
+  AuthLoginInput,
+  AuthProxyResponse,
+  AuthRegisterInput,
+} from "./types"
 
 const parseProxyError = async (response: Response) => {
   try {
@@ -20,7 +24,7 @@ const parseProxyError = async (response: Response) => {
 
 export const requestAuthProxy = async (
   path: "login" | "register",
-  body: Record<string, unknown>,
+  body: AuthLoginInput | AuthRegisterInput,
 ): Promise<AuthProxyResponse> => {
   const response = await fetch(`/api/storefront-auth/${path}`, {
     body: JSON.stringify(body),

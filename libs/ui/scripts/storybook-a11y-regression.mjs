@@ -1,5 +1,13 @@
 #!/usr/bin/env node
 
+import fs from "node:fs"
+import process from "node:process"
+
+import { getRecordValue, isRecord } from "@techsio/std/object"
+
+/** @typedef {"light" | "dark"} Theme */
+/** @typedef {{ dark: ThemeData, light: ThemeData }} Themes */
+/** @type {Theme[]} */
 const THEMES = ["light", "dark"]
 const KEY_SEPARATOR = "\u0000"
 const FALLBACK_TARGET = "__violation__"
@@ -36,37 +44,6 @@ const FALLBACK_TARGET = "__violation__"
  */
 
 /**
- * @typedef {object} DirectoryEntry
- * @property {() => boolean} isDirectory - Reports whether the entry is a directory.
- * @property {string} name - Directory entry name.
- */
-
-/** @type {unknown} */
-const fileSystemModule = await import("node:fs")
-/** @type {unknown} */
-const processValue = Reflect.get(globalThis, "process")
-
-/**
- * @param {unknown} value - Value to inspect.
- * @returns {value is Record<string, unknown>} Whether the value is a record.
- */
-const isRecord = (value) =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
-/**
- * @param {unknown} value - Value to inspect.
- * @returns {value is (...commandArguments: unknown[]) => unknown} Whether the value is callable.
- */
-const isFunction = (value) => typeof value === "function"
-
-if (!isRecord(fileSystemModule)) {
-  throw new TypeError("The Node.js file system module is unavailable.")
-}
-if (!isRecord(processValue)) {
-  throw new TypeError("The Node.js process object is unavailable.")
-}
-
-/**
  * @param {unknown} value - External value to convert.
  * @param {string} fallback - Text used for unsupported values.
  * @returns {string} A stable string representation.
@@ -88,81 +65,40 @@ const toText = (value, fallback) => {
 /**
  * @returns {string[]} Validated command-line arguments.
  */
-const getArguments = () => {
-  const value = processValue.argv
-  if (
-    !Array.isArray(value) ||
-    !value.every((item) => typeof item === "string")
-  ) {
-    throw new TypeError("Node.js process arguments must be strings.")
-  }
-  return value
-}
+const getArguments = () => process.argv
 
 /**
  * @param {number} code - Process exit code.
  * @returns {never} This function does not return.
  */
 const exitProcess = (code) => {
-  const { exit } = processValue
-  if (!isFunction(exit)) {
-    throw new TypeError("Node.js process.exit is unavailable.")
-  }
-  exit(code)
-  throw new Error(
-    `Node.js process.exit returned unexpectedly with code ${code}.`,
-  )
+  process.exit(code)
 }
 
 /**
  * @param {string} content - Content to write.
  */
 const writeStandardOutput = (content) => {
-  const output = processValue.stdout
-  if (!isRecord(output) || !isFunction(output.write)) {
-    throw new TypeError("Node.js process.stdout.write is unavailable.")
-  }
-  output.write(content)
+  process.stdout.write(content)
 }
 
 /**
  * @returns {string | undefined} GitHub Actions step-summary path, when configured.
  */
-const getStepSummaryPath = () => {
-  const environment = processValue.env
-  if (!isRecord(environment)) {
-    throw new TypeError("Node.js process.env is unavailable.")
-  }
-  const value = environment.GITHUB_STEP_SUMMARY
-  return typeof value === "string" ? value : undefined
-}
+const getStepSummaryPath = () => process.env.GITHUB_STEP_SUMMARY
 
 /**
  * @param {string} filePath - File to read.
  * @returns {string} UTF-8 file contents.
  */
-const readTextFile = (filePath) => {
-  const { readFileSync } = fileSystemModule
-  if (!isFunction(readFileSync)) {
-    throw new TypeError("Node.js fs.readFileSync is unavailable.")
-  }
-  const value = readFileSync(filePath, "utf-8")
-  if (typeof value !== "string") {
-    throw new TypeError(`Expected UTF-8 text from ${filePath}.`)
-  }
-  return value
-}
+const readTextFile = (filePath) => fs.readFileSync(filePath, "utf-8")
 
 /**
  * @param {string} filePath - File to write.
  * @param {string} content - Complete file contents.
  */
 const writeTextFile = (filePath, content) => {
-  const { writeFileSync } = fileSystemModule
-  if (!isFunction(writeFileSync)) {
-    throw new TypeError("Node.js fs.writeFileSync is unavailable.")
-  }
-  writeFileSync(filePath, content)
+  fs.writeFileSync(filePath, content)
 }
 
 /**
@@ -170,37 +106,15 @@ const writeTextFile = (filePath, content) => {
  * @param {string} content - Content to append.
  */
 const appendTextFile = (filePath, content) => {
-  const { appendFileSync } = fileSystemModule
-  if (!isFunction(appendFileSync)) {
-    throw new TypeError("Node.js fs.appendFileSync is unavailable.")
-  }
-  appendFileSync(filePath, content)
+  fs.appendFileSync(filePath, content)
 }
-
-/**
- * @param {unknown} value - Directory entry candidate.
- * @returns {value is DirectoryEntry} Whether the value is a directory entry.
- */
-const isDirectoryEntry = (value) =>
-  isRecord(value) &&
-  typeof value.name === "string" &&
-  isFunction(value.isDirectory)
 
 /**
  * @param {string} directory - Directory to inspect.
- * @returns {DirectoryEntry[]} Validated directory entries.
+ * @returns {import("node:fs").Dirent[]} Directory entries.
  */
-const readDirectory = (directory) => {
-  const { readdirSync: readDirectorySync } = fileSystemModule
-  if (!isFunction(readDirectorySync)) {
-    throw new TypeError("Node.js fs.readdirSync is unavailable.")
-  }
-  const value = readDirectorySync(directory, { withFileTypes: true })
-  if (!Array.isArray(value) || !value.every(isDirectoryEntry)) {
-    throw new TypeError(`Expected directory entries from ${directory}.`)
-  }
-  return value
-}
+const readDirectory = (directory) =>
+  fs.readdirSync(directory, { withFileTypes: true })
 
 /**
  * @param {string} name - Command-line argument name.
@@ -295,12 +209,16 @@ const normalizeTarget = (target) =>
  */
 const parseStory = (value, theme) => {
   const story = isRecord(value) ? value : {}
-  const title = toText(story.title, "Unknown")
-  const name = toText(story.name ?? story.storyId, "Unknown")
+  const title = toText(getRecordValue(story, "title"), "Unknown")
+  const name = toText(
+    getRecordValue(story, "name") ?? getRecordValue(story, "storyId"),
+    "Unknown",
+  )
   const storyName = `${title} / ${name}`
-  const storyId = toText(story.storyId, storyName)
-  const results = isRecord(story.results) ? story.results : {}
-  const violations = results.violations ?? []
+  const storyId = toText(getRecordValue(story, "storyId"), storyName)
+  const rawResults = getRecordValue(story, "results")
+  const results = isRecord(rawResults) ? rawResults : {}
+  const violations = getRecordValue(results, "violations") ?? []
   if (!Array.isArray(violations)) {
     throw new TypeError(
       `${theme} report contains invalid violations for ${storyName}.`,
@@ -315,14 +233,15 @@ const parseStory = (value, theme) => {
  */
 const parseViolation = (value) => {
   const violation = isRecord(value) ? value : {}
-  const id = toText(violation.id, "unknown")
-  const nodes = Array.isArray(violation.nodes) ? violation.nodes : []
+  const id = toText(getRecordValue(violation, "id"), "unknown")
+  const rawNodes = getRecordValue(violation, "nodes")
+  const nodes = Array.isArray(rawNodes) ? rawNodes : []
   if (nodes.length === 0) {
     return { id, targets: [FALLBACK_TARGET] }
   }
   const targets = nodes.map((node) => {
     const nodeRecord = isRecord(node) ? node : {}
-    return normalizeTarget(nodeRecord.target)
+    return normalizeTarget(getRecordValue(nodeRecord, "target"))
   })
   return { id, targets }
 }
@@ -408,22 +327,22 @@ const collectTheme = (report, theme) => {
 
 /**
  * @param {string} reportRoot - Report search root.
- * @returns {Record<string, ThemeData>} Theme data keyed by theme.
+ * @returns {Themes} Theme data keyed by theme.
  */
-const loadReports = (reportRoot) =>
-  Object.fromEntries(
-    THEMES.map((theme) => {
-      const reportPath = findThemeReport(reportRoot, theme)
-      return [
-        theme,
-        collectTheme(loadJson(reportPath, `${theme} report`), theme),
-      ]
-    }),
-  )
+const loadReports = (reportRoot) => ({
+  dark: collectTheme(
+    loadJson(findThemeReport(reportRoot, "dark"), "dark report"),
+    "dark",
+  ),
+  light: collectTheme(
+    loadJson(findThemeReport(reportRoot, "light"), "light report"),
+    "light",
+  ),
+})
 
 /**
  * @param {string} baselinePath - Baseline output path.
- * @param {Record<string, ThemeData>} themes - Normalized theme data.
+ * @param {Themes} themes - Normalized theme data.
  */
 const writeBaseline = (baselinePath, themes) => {
   const baseline = {
@@ -467,11 +386,11 @@ const parseEntry = (value, label) => {
     throw new TypeError(`${label} must be an object.`)
   }
   return {
-    count: parseNumber(value.count, `${label} count`),
-    id: toText(value.id, "undefined"),
-    story: toText(value.story, "undefined"),
-    storyId: toText(value.storyId, "undefined"),
-    target: toText(value.target, "undefined"),
+    count: parseNumber(getRecordValue(value, "count"), `${label} count`),
+    id: toText(getRecordValue(value, "id"), "undefined"),
+    story: toText(getRecordValue(value, "story"), "undefined"),
+    storyId: toText(getRecordValue(value, "storyId"), "undefined"),
+    target: toText(getRecordValue(value, "target"), "undefined"),
   }
 }
 
@@ -484,33 +403,45 @@ const parseBaselineTheme = (value, theme) => {
   if (!isRecord(value)) {
     throw new TypeError(`Baseline is missing valid ${theme} data.`)
   }
-  if (!Array.isArray(value.entries) || !Array.isArray(value.storyIds)) {
+  const entries = getRecordValue(value, "entries")
+  const storyIds = getRecordValue(value, "storyIds")
+  if (!Array.isArray(entries) || !Array.isArray(storyIds)) {
     throw new TypeError(
       `Baseline is missing valid ${theme} entries or story IDs.`,
     )
   }
   return {
-    entries: value.entries.map((entry, index) =>
+    entries: entries.map((entry, index) =>
       parseEntry(entry, `${theme} baseline entry ${index}`),
     ),
-    stories: parseNumber(value.stories, `${theme} baseline stories`),
-    storyIds: value.storyIds.map(String),
-    violations: parseNumber(value.violations, `${theme} baseline violations`),
+    stories: parseNumber(
+      getRecordValue(value, "stories"),
+      `${theme} baseline stories`,
+    ),
+    storyIds: storyIds.map(String),
+    violations: parseNumber(
+      getRecordValue(value, "violations"),
+      `${theme} baseline violations`,
+    ),
   }
 }
 
 /**
  * @param {unknown} value - Raw baseline document.
- * @returns {Record<string, ThemeData>} Validated themes keyed by name.
+ * @returns {Themes} Validated themes keyed by name.
  */
 const parseBaseline = (value) => {
-  if (!isRecord(value) || value.version !== 2 || !isRecord(value.themes)) {
+  if (!isRecord(value) || getRecordValue(value, "version") !== 2) {
     throw new TypeError("Accessibility baseline must use version 2.")
   }
-  const { themes } = value
-  return Object.fromEntries(
-    THEMES.map((theme) => [theme, parseBaselineTheme(themes[theme], theme)]),
-  )
+  const themes = getRecordValue(value, "themes")
+  if (!isRecord(themes)) {
+    throw new TypeError("Accessibility baseline must define themes.")
+  }
+  return {
+    dark: parseBaselineTheme(getRecordValue(themes, "dark"), "dark"),
+    light: parseBaselineTheme(getRecordValue(themes, "light"), "light"),
+  }
 }
 
 /**

@@ -7,7 +7,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 
 import { createRequestForQuoteWorkflow } from "../../../workflows/quote/workflows/create-request-for-quote"
 import type { CreateQuoteType, GetQuoteParamsType } from "./validators"
@@ -75,15 +75,18 @@ const postRoute = async (
     { throwIfKeyNotFound: true },
   )
 
-  if (!isRecord(quoteGraphResult) || !Array.isArray(quoteGraphResult["data"])) {
+  const quoteData: unknown = isRecord(quoteGraphResult)
+    ? getRecordValue(quoteGraphResult, "data")
+    : undefined
+  if (!Array.isArray(quoteData)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       "Quote query returned an invalid result",
     )
   }
 
-  const quoteData: unknown[] = quoteGraphResult["data"]
-  const [quote] = quoteData
+  const records: unknown[] = quoteData
+  const [quote] = records
   return res.json({ quote })
 }
 

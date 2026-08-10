@@ -1,6 +1,6 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
+import { z } from "@medusajs/framework/zod"
 import { useQuery } from "@tanstack/react-query"
-import { isRecord } from "@techsio/std/object"
 import type { CSSProperties, ReactNode } from "react"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 
@@ -9,10 +9,12 @@ export const handle = {
 }
 
 /** Runtime config returned by the Payload admin config endpoint. */
-interface PayloadRuntimeConfig {
-  iframeUrl?: string
-  isIframeEnabled?: boolean
-}
+const payloadRuntimeConfigSchema = z.object({
+  iframeUrl: z.string().optional(),
+  isIframeEnabled: z.boolean().optional(),
+})
+
+type PayloadRuntimeConfig = z.infer<typeof payloadRuntimeConfigSchema>
 
 const payloadFrameBackground = "rgb(20, 20, 20)"
 const payloadFrameForeground = "#f9fafb"
@@ -31,25 +33,6 @@ const getAdminUrl = (backendUrl: string | undefined, path: string) =>
     ? `${backendUrl.replace(trailingSlashRegex, "")}${path}`
     : path
 
-const isPayloadRuntimeConfig = (
-  value: unknown,
-): value is PayloadRuntimeConfig => {
-  if (!isRecord(value)) {
-    return false
-  }
-  if (
-    value["iframeUrl"] !== undefined &&
-    typeof value["iframeUrl"] !== "string"
-  ) {
-    return false
-  }
-
-  return (
-    value["isIframeEnabled"] === undefined ||
-    typeof value["isIframeEnabled"] === "boolean"
-  )
-}
-
 const fetchPayloadRuntimeConfig = async (
   configUrl: string,
 ): Promise<PayloadRuntimeConfig> => {
@@ -59,11 +42,12 @@ const fetchPayloadRuntimeConfig = async (
   }
 
   const data: unknown = await response.json()
-  if (!isPayloadRuntimeConfig(data)) {
+  const parsed = payloadRuntimeConfigSchema.safeParse(data)
+  if (!parsed.success) {
     throw new Error("Payload configuration response is invalid")
   }
 
-  return data
+  return parsed.data
 }
 
 const getPayloadReturnTo = (iframeUrl: string | undefined) => {

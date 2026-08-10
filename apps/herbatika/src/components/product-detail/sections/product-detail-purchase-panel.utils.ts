@@ -23,10 +23,10 @@ export const resolveProductInfoLink = (
 ): ProductInfoLink | null => {
   const productRecord = asRecord(product)
   const brand = asRecord(readRecordProperty(productRecord, "brand"))
-  const brandTitle = asString(brand?.[BRAND_TITLE_KEY])
+  const brandTitle = asString(readRecordProperty(brand, BRAND_TITLE_KEY))
 
   if (brandTitle !== null && brandTitle !== "") {
-    const brandHandle = asString(brand?.[BRAND_HANDLE_KEY])
+    const brandHandle = asString(readRecordProperty(brand, BRAND_HANDLE_KEY))
     const brandSlug = createBrandSlug(brandHandle ?? brandTitle)
     return {
       href:

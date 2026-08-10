@@ -1,5 +1,5 @@
 import { defineWidgetConfig } from "@medusajs/admin-sdk"
-import type { DetailWidgetProps } from "@medusajs/framework/types"
+import type { DetailWidgetProps, HttpTypes } from "@medusajs/framework/types"
 import { Button, Container, Heading, Text, toast } from "@medusajs/ui"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRef, useState } from "react"
@@ -7,24 +7,21 @@ import { useRef, useState } from "react"
 import { RichHtmlEditor } from "../components/rich-html-editor"
 import { sdk } from "../lib/sdk"
 
-interface ProductCategoryWithMetadata {
-  id: string
-  metadata?: Record<string, unknown> | null
-}
+type ProductCategory = HttpTypes.AdminProductCategory
 
 type CategoryDescriptionEditorProps = Partial<
-  DetailWidgetProps<ProductCategoryWithMetadata>
+  DetailWidgetProps<ProductCategory>
 >
 
 interface UpdateCategoryResponse {
-  product_category: ProductCategoryWithMetadata
+  product_category: ProductCategory
 }
 
 const TOP_DESCRIPTION_METADATA_KEY = "top_description_html"
 const BOTTOM_DESCRIPTION_METADATA_KEY = "bottom_description_html"
 
 const getMetadataHtml = (
-  metadata: ProductCategoryWithMetadata["metadata"],
+  metadata: ProductCategory["metadata"],
   key: string,
 ) => {
   const value = metadata?.[key]
@@ -37,7 +34,7 @@ const CategoryDescriptionEditorContent = ({
   initialBottomDescriptionHtml,
   initialTopDescriptionHtml,
 }: {
-  category: ProductCategoryWithMetadata | undefined
+  category: ProductCategory | undefined
   initialBottomDescriptionHtml: string
   initialTopDescriptionHtml: string
 }) => {

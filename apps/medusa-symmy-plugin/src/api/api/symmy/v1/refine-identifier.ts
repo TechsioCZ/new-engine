@@ -1,6 +1,6 @@
 import type { z } from "@medusajs/framework/zod"
 
-type IdentifiedValue = Record<string, unknown> & {
+interface IdentifiedValue {
   identifier_type: string
 }
 
@@ -9,7 +9,7 @@ export const requireIdentifierField = (
   ctx: z.RefinementCtx,
 ): void => {
   const identifierType = value.identifier_type
-  const identifier = value[identifierType]
+  const identifier: unknown = Reflect.get(value, identifierType)
   if (typeof identifier === "string" && identifier.length > 0) {
     return
   }

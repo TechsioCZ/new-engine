@@ -28,23 +28,27 @@ const get = async (
   validateRuleType(ruleType)
 
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
-  const filters: Record<string, unknown> = {}
   const searchQuery = req.validatedQuery.q
-
-  if (typeof searchQuery === "string" && searchQuery.length > 0) {
-    const escaped = escapeLikePattern(searchQuery)
-    filters["$or"] = [
-      { title: { $ilike: `%${escaped}%` } },
-      { sku: { $ilike: `%${escaped}%` } },
-    ]
-  }
-
+  const escaped =
+    typeof searchQuery === "string" && searchQuery.length > 0
+      ? escapeLikePattern(searchQuery)
+      : undefined
   const valueFilter = req.validatedQuery.value ?? req.validatedQuery.id
-  if (
+  const hasValueFilter =
     (typeof valueFilter === "string" && valueFilter.length > 0) ||
     (Array.isArray(valueFilter) && valueFilter.length > 0)
-  ) {
-    filters["id"] = Array.isArray(valueFilter) ? valueFilter : [valueFilter]
+  const filters = {
+    ...(escaped === undefined
+      ? {}
+      : {
+          $or: [
+            { title: { $ilike: `%${escaped}%` } },
+            { sku: { $ilike: `%${escaped}%` } },
+          ],
+        }),
+    ...(hasValueFilter
+      ? { id: Array.isArray(valueFilter) ? valueFilter : [valueFilter] }
+      : {}),
   }
 
   const { limit } = req.validatedQuery

@@ -28,9 +28,7 @@ class StorefrontTextModuleService extends MedusaService({
 }) {
   private readonly transactionRepository: TransactionRepository
 
-  constructor(
-    dependencies: StorefrontTextModuleDependencies & Record<string, unknown>,
-  ) {
+  constructor(dependencies: StorefrontTextModuleDependencies) {
     super(dependencies)
     this.transactionRepository = dependencies.baseRepository
   }

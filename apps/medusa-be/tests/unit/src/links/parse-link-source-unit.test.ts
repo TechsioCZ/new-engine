@@ -40,7 +40,7 @@ describe("Medusa link source parsing", () => {
   it("returns the validated serialized link source", () => {
     const source = { toJSON: () => validSerializedSource }
 
-    expect(parseLinkSource(source, "Product module")).toBe(
+    expect(parseLinkSource(source, "Product module")).toStrictEqual(
       validSerializedSource,
     )
   })
@@ -48,7 +48,26 @@ describe("Medusa link source parsing", () => {
   it("validates serialized nested sources for field overrides", () => {
     expect(
       parseSerializedLinkSource(validSerializedSource, "Product module"),
-    ).toBe(validSerializedSource)
+    ).toStrictEqual(validSerializedSource)
+  })
+
+  it("accepts optional and unrelated fields explicitly set to undefined", () => {
+    const serializedSource = { ...validSerializedSource }
+    Reflect.set(serializedSource, "alias", undefined)
+    Reflect.set(serializedSource, "unrelated", undefined)
+
+    expect(
+      parseSerializedLinkSource(serializedSource, "Product module"),
+    ).toStrictEqual({
+      entity: "Product",
+      field: "id",
+      filterable: ["id", "handle"],
+      isList: false,
+      linkable: "product_id",
+      primaryKey: "id",
+      readOnly: false,
+      serviceName: "product",
+    })
   })
 
   it("rejects missing required serialized fields", () => {

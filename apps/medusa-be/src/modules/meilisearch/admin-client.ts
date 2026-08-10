@@ -1,7 +1,7 @@
 import { setTimeout as delay } from "node:timers/promises"
 
 import { MedusaError } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 import { MeilisearchError } from "./http-error"
 
@@ -58,12 +58,17 @@ const readTask = (value: unknown): MeilisearchTask => {
     return { errorMessage: null, status: null, uid: null }
   }
 
-  const error = isRecord(value["error"]) ? value["error"] : undefined
+  const errorValue = getRecordValue(value, "error")
+  const error = isRecord(errorValue) ? errorValue : undefined
 
   return {
-    errorMessage: readNullableString(error?.["message"]),
-    status: readNullableString(value["status"]),
-    uid: readNullableNumber(value["taskUid"] ?? value["uid"]),
+    errorMessage: readNullableString(
+      error === undefined ? undefined : getRecordValue(error, "message"),
+    ),
+    status: readNullableString(getRecordValue(value, "status")),
+    uid: readNullableNumber(
+      getRecordValue(value, "taskUid") ?? getRecordValue(value, "uid"),
+    ),
   }
 }
 
@@ -110,22 +115,21 @@ const readDocumentId = (value: unknown): string | number | undefined => {
     return undefined
   }
 
-  return typeof value["id"] === "string" || typeof value["id"] === "number"
-    ? value["id"]
-    : undefined
+  const id = getRecordValue(value, "id")
+  return typeof id === "string" || typeof id === "number" ? id : undefined
 }
 
 const resolveMeilisearchErrorMessage = (
   value: unknown,
   fallback: string,
 ): string =>
-  isRecord(value) && typeof value["message"] === "string"
-    ? value["message"]
+  isRecord(value) && typeof getRecordValue(value, "message") === "string"
+    ? String(getRecordValue(value, "message"))
     : fallback
 
 const readResponseCode = (value: unknown): string | undefined =>
-  isRecord(value) && typeof value["code"] === "string"
-    ? value["code"]
+  isRecord(value) && typeof getRecordValue(value, "code") === "string"
+    ? String(getRecordValue(value, "code"))
     : undefined
 
 export class MeilisearchAdminClient {
@@ -334,14 +338,13 @@ export class MeilisearchAdminClient {
     })
 
     return {
-      status: isRecord(body) ? readOptionalString(body["status"]) : undefined,
+      status: isRecord(body)
+        ? readOptionalString(getRecordValue(body, "status"))
+        : undefined,
     }
   }
 
-  async updateSettings(
-    index: string,
-    settings: Record<string, unknown>,
-  ): Promise<void> {
+  async updateSettings(index: string, settings: object): Promise<void> {
     await this.enqueue({
       body: settings,
       method: "PATCH",
@@ -349,10 +352,7 @@ export class MeilisearchAdminClient {
     })
   }
 
-  async addDocuments(
-    index: string,
-    documents: Record<string, unknown>[],
-  ): Promise<void> {
+  async addDocuments(index: string, documents: object[]): Promise<void> {
     if (documents.length === 0) {
       return
     }
@@ -394,13 +394,19 @@ export class MeilisearchAdminClient {
         method: "GET",
         path: `/indexes/${encodeURIComponent(index)}/documents?fields=id&limit=${batchSize}&offset=${offset}`,
       })
-      if (!isRecord(body) || !Array.isArray(body["results"])) {
+      if (!isRecord(body)) {
         throw new MedusaError(
           MedusaError.Types.UNEXPECTED_STATE,
           `Meilisearch index ${index} returned an invalid document page`,
         )
       }
-      const { results } = body
+      const results = getRecordValue(body, "results")
+      if (!Array.isArray(results)) {
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          `Meilisearch index ${index} returned an invalid document page`,
+        )
+      }
       if (results.length > batchSize) {
         throw new MedusaError(
           MedusaError.Types.UNEXPECTED_STATE,

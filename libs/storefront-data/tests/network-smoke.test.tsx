@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { renderHook, waitFor } from "@testing-library/react"
 import { http, HttpResponse } from "msw"
 import type { ReactNode } from "react"
@@ -118,12 +118,10 @@ describe("storefront-data network smoke", () => {
         if (!isRecord(payload)) {
           throw new TypeError("Invalid product list response")
         }
-        const {
-          count,
-          limit: responseLimit,
-          offset: responseOffset,
-          products: productPayloads,
-        } = payload
+        const count = getRecordValue(payload, "count")
+        const responseLimit = getRecordValue(payload, "limit")
+        const responseOffset = getRecordValue(payload, "offset")
+        const productPayloads = getRecordValue(payload, "products")
         if (!Array.isArray(productPayloads)) {
           throw new TypeError("Invalid product list products")
         }
@@ -135,14 +133,15 @@ describe("storefront-data network smoke", () => {
           throw new TypeError("Invalid product list pagination")
         }
         const products = productPayloads.map((product: unknown) => {
-          if (
-            !isRecord(product) ||
-            typeof product["id"] !== "string" ||
-            typeof product["title"] !== "string"
-          ) {
+          if (!isRecord(product)) {
             throw new TypeError("Invalid product response")
           }
-          return { id: product["id"], title: product["title"] }
+          const id = getRecordValue(product, "id")
+          const title = getRecordValue(product, "title")
+          if (typeof id !== "string" || typeof title !== "string") {
+            throw new TypeError("Invalid product response")
+          }
+          return { id, title }
         })
         return {
           count,

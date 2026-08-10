@@ -4,7 +4,11 @@ import {
   useQueryClient,
   useSuspenseQuery,
 } from "@tanstack/react-query"
-import { omitUndefined, toPlainRecord } from "@techsio/std/object"
+import {
+  getRecordValue,
+  omitUndefined,
+  toPlainRecord,
+} from "@techsio/std/object"
 
 import {
   createCacheConfig,
@@ -102,7 +106,14 @@ export const createProductReviewHooks = <
     data?: ProductReviewListResponse<TReview>,
   ) => {
     const paramsRecord = toPlainRecord(params)
-    const { limit: rawLimit, offset: rawOffset } = paramsRecord ?? {}
+    const rawLimit =
+      paramsRecord === undefined
+        ? undefined
+        : getRecordValue(paramsRecord, "limit")
+    const rawOffset =
+      paramsRecord === undefined
+        ? undefined
+        : getRecordValue(paramsRecord, "offset")
     const limitFromParams = typeof rawLimit === "number" ? rawLimit : undefined
     const offsetFromParams =
       typeof rawOffset === "number" ? rawOffset : undefined

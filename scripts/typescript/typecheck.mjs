@@ -4,11 +4,18 @@ import { spawnSync } from "node:child_process"
 import { readFileSync } from "node:fs"
 import path from "node:path"
 
-/** @typedef {Record<string, unknown>} JsonObject */
+import { z } from "zod"
+
 /** @typedef {"tsc" | "tsgo"} CompilerName */
 
 const repositoryRoot = path.resolve(import.meta.dirname, "../..")
 const maximumRootProjects = 100
+const rootConfigSchema = z.object({
+  references: z
+    .array(z.object({ path: z.string() }))
+    .min(1)
+    .max(maximumRootProjects),
+})
 const compilerArguments = process.argv.slice(2)
 const compilerOptionIndex = compilerArguments.indexOf("--compiler")
 /** @type {unknown} */
@@ -40,51 +47,18 @@ const fail = (message) => {
 }
 
 /**
- * @param {unknown} value - Value to narrow.
- * @returns {value is JsonObject} Whether the value is a JSON object.
- */
-const isJsonObject = (value) =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
-
-/**
  * @param {string} text - JSON text.
  * @param {string} source - Source used in diagnostics.
- * @returns {JsonObject} Validated JSON object.
- */
-const parseJsonObject = (text, source) => {
-  /** @type {unknown} */
-  const value = JSON.parse(text)
-  if (isJsonObject(value)) {
-    return value
-  }
-  return fail(`${source} must contain a JSON object`)
-}
-
-/**
- * @param {JsonObject} config - TypeScript configuration.
  * @returns {string[]} Validated root reference paths.
  */
-const readReferencePaths = (config) => {
-  const { references } = config
-  if (!Array.isArray(references)) {
-    return fail("tsconfig.json references must be an array")
-  }
-  if (references.length === 0 || references.length > maximumRootProjects) {
+const readReferencePaths = (text, source) => {
+  const result = rootConfigSchema.safeParse(JSON.parse(text))
+  if (!result.success) {
     return fail(
-      `tsconfig.json must reference between 1 and ${maximumRootProjects} projects`,
+      `${source} must reference between 1 and ${maximumRootProjects} TypeScript projects`,
     )
   }
-  /** @type {string[]} */
-  const referencePaths = []
-  for (const value of references) {
-    /** @type {unknown} */
-    const reference = value
-    if (!isJsonObject(reference) || typeof reference.path !== "string") {
-      return fail("each TypeScript reference must have a string path")
-    }
-    referencePaths.push(reference.path)
-  }
-  return referencePaths
+  return result.data.references.map((reference) => reference.path)
 }
 
 /**
@@ -116,11 +90,10 @@ if (!skipDistBuilds) {
 }
 
 const rootConfigPath = path.join(repositoryRoot, "tsconfig.json")
-const rootConfig = parseJsonObject(
+const referencePaths = readReferencePaths(
   readFileSync(rootConfigPath, "utf-8"),
   rootConfigPath,
 )
-const referencePaths = readReferencePaths(rootConfig)
 const compiler = path.join(repositoryRoot, "node_modules/.bin", compilerName)
 let failedProjects = 0
 for (const projectPath of referencePaths) {

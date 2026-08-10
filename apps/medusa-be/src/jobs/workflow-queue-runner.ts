@@ -1,6 +1,11 @@
 import type { MedusaContainer } from "@medusajs/framework"
 import type { ILockingModule, Logger } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
+import { isRecord } from "@techsio/std/object"
 
 import { WORKFLOW_QUEUE_MODULE } from "../modules/workflow-queue"
 import type WorkflowQueueModuleService from "../modules/workflow-queue/service"
@@ -15,15 +20,19 @@ const DEFAULT_WORKFLOW_QUEUE_RUNNER_SCHEDULE = "0 * * * *"
 
 interface WorkflowQueueItemDTO {
   id: string
-  arguments: Record<string, unknown> | null
+  arguments: unknown
   run_at: Date | string
   workflow: string
 }
 
 type WorkflowQueueService = WorkflowQueueModuleService & {
   listWorkflowQueueItems: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>,
+    filters?: Parameters<
+      WorkflowQueueModuleService["listWorkflowQueueItems"]
+    >[0],
+    config?: Parameters<
+      WorkflowQueueModuleService["listWorkflowQueueItems"]
+    >[1],
   ) => Promise<WorkflowQueueItemDTO[]>
 }
 
@@ -39,12 +48,15 @@ const getWorkflowQueueRunnerBatchSize = () => {
   return DEFAULT_WORKFLOW_QUEUE_RUNNER_BATCH_SIZE
 }
 
-const withQueueItemId = (
-  item: WorkflowQueueItemDTO,
-): Record<string, unknown> => ({
-  ...item.arguments,
-  queue_item_id: item.id,
-})
+const withQueueItemId = (item: WorkflowQueueItemDTO): object => {
+  if (!isRecord(item.arguments)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Workflow Queue Runner: Invalid arguments for queue item ${item.id}`,
+    )
+  }
+  return { ...item.arguments, queue_item_id: item.id }
+}
 
 const processDueItems = async (
   dueItems: WorkflowQueueItemDTO[],

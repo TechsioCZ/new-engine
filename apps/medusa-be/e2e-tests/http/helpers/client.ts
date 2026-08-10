@@ -1,7 +1,8 @@
-import { isRecord } from "@techsio/std/object"
-import { z } from "zod"
+import { z } from "@medusajs/framework/zod"
 
-export type JsonObject = Record<string, unknown>
+const jsonObjectSchema = z.record(z.string(), z.json())
+
+export type JsonObject = z.infer<typeof jsonObjectSchema>
 
 export interface JsonDecoder<T> {
   parse: (value: unknown) => T
@@ -13,7 +14,7 @@ export interface JsonResponse<T> {
 }
 
 interface ApiRequestOptions {
-  body?: JsonObject
+  body?: object
   method?: string
 }
 
@@ -28,10 +29,10 @@ export interface ApiClient {
     <T>(path: string, decoder: JsonDecoder<T>): Promise<T>
   }
   post: {
-    (path: string, body?: JsonObject): Promise<JsonObject>
+    (path: string, body?: object): Promise<JsonObject>
     <T>(
       path: string,
-      body: JsonObject | undefined,
+      body: object | undefined,
       decoder: JsonDecoder<T>,
     ): Promise<T>
   }
@@ -50,13 +51,7 @@ export interface ApiClient {
 const maxResponseBodyBytes = 1024 * 1024
 
 const jsonObjectDecoder: JsonDecoder<JsonObject> = {
-  parse: (value) => {
-    if (!isRecord(value)) {
-      throw new Error("Expected a JSON object")
-    }
-
-    return value
-  },
+  parse: (value) => jsonObjectSchema.parse(value),
 }
 
 const responseContext = (
@@ -219,15 +214,15 @@ export const createClient = (
       : jsonObjectDecoder.parse(data)
   }
 
-  function post(path: string, body?: JsonObject): Promise<JsonObject>
+  function post(path: string, body?: object): Promise<JsonObject>
   function post<T>(
     path: string,
-    body: JsonObject | undefined,
+    body: object | undefined,
     decoder: JsonDecoder<T>,
   ): Promise<T>
   async function post<T>(
     path: string,
-    body: JsonObject = {},
+    body: object = {},
     decoder?: JsonDecoder<T>,
   ): Promise<T | JsonObject> {
     const data = assertOk(

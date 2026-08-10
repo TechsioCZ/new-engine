@@ -12,6 +12,7 @@ import type {
   ValidateFulfillmentDataContext,
 } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 
 import { PPL_CLIENT_MODULE } from "../ppl-client"
 import type { PplClientModuleService } from "../ppl-client"
@@ -24,22 +25,54 @@ import type {
   PplShippingOptionData,
 } from "../ppl-client/types"
 
-type InjectedDependencies = {
+interface InjectedDependencies {
   logger: Logger
-} & Record<typeof PPL_CLIENT_MODULE, PplClientModuleService>
+  [PPL_CLIENT_MODULE]: PplClientModuleService
+}
 
-const PPL_PRODUCT_TYPES: ReadonlySet<PplProductType> = new Set([
-  "SMAR",
-  "SMAD",
-  "PRIV",
-  "PRID",
-])
+const pplProductTypeSchema = z.enum(["SMAR", "SMAD", "PRIV", "PRID"])
+
+const pplOptionDataSchema = z.object({
+  product_type: pplProductTypeSchema,
+  requires_access_point: z.unknown().transform((value) => value === true),
+  supports_cod: z.unknown().transform((value) => value === true),
+})
+
+type PplOptionData = z.infer<typeof pplOptionDataSchema>
+
+const optionalStringProbeSchema = z
+  .unknown()
+  .transform((value): string | undefined =>
+    typeof value === "string" ? value : undefined,
+  )
+
+const pplAccessPointDataSchema = z.object({
+  access_point_id: z.string().optional(),
+  access_point_name: optionalStringProbeSchema.optional(),
+  access_point_type: optionalStringProbeSchema.optional(),
+})
+
+type PplAccessPointData = z.infer<typeof pplAccessPointDataSchema>
+
+const pplShippingDataSchema = z.object({
+  access_point_id: z.string().optional(),
+  product_type: pplProductTypeSchema,
+  supports_cod: z.boolean(),
+})
+
+type PplShippingData = z.infer<typeof pplShippingDataSchema>
+
+const pplFulfillmentDataSchema = z.object({
+  batch_id: optionalStringProbeSchema.optional(),
+  label_url: optionalStringProbeSchema.optional(),
+  shipment_number: optionalStringProbeSchema.optional(),
+  tracking_url: optionalStringProbeSchema.optional(),
+})
+
+type StoredPplFulfillmentData = z.infer<typeof pplFulfillmentDataSchema>
 
 const isNonEmptyString = (value: string | null | undefined): value is string =>
   typeof value === "string" && value.length > 0
-
-const isPplProductType = (value: unknown): value is PplProductType =>
-  typeof value === "string" && PPL_PRODUCT_TYPES.has(value)
 
 const truncate = (value: string, maxLength: number): string =>
   value.length > maxLength ? value.slice(0, maxLength) : value
@@ -52,39 +85,23 @@ interface SenderAddressValues {
   sender_country: string | null | undefined
 }
 
+interface RequiredSenderAddressValues {
+  sender_name: string
+  sender_street: string
+  sender_city: string
+  sender_zip_code: string
+  sender_country: string
+}
+
 const hasRequiredSenderAddress = (
   values: SenderAddressValues,
-): values is { [Key in keyof SenderAddressValues]: string } =>
+): values is RequiredSenderAddressValues =>
   Object.values(values).every(isNonEmptyString)
 
-const isPplShippingOptionData = (
-  value: Record<string, unknown>,
-): value is Record<string, unknown> &
-  Pick<
-    PplShippingOptionData,
-    "product_type" | "supports_cod" | "access_point_id"
-  > =>
-  isPplProductType(value["product_type"]) &&
-  typeof value["supports_cod"] === "boolean" &&
-  (value["access_point_id"] === undefined ||
-    typeof value["access_point_id"] === "string")
-
-const getPplFulfillmentData = (
-  data: Record<string, unknown>,
-): Partial<PplFulfillmentData> => ({
-  ...(typeof data["batch_id"] === "string"
-    ? { batch_id: data["batch_id"] }
-    : {}),
-  ...(typeof data["shipment_number"] === "string"
-    ? { shipment_number: data["shipment_number"] }
-    : {}),
-  ...(typeof data["label_url"] === "string"
-    ? { label_url: data["label_url"] }
-    : {}),
-  ...(typeof data["tracking_url"] === "string"
-    ? { tracking_url: data["tracking_url"] }
-    : {}),
-})
+const getPplFulfillmentData = (data: unknown): StoredPplFulfillmentData => {
+  const result = pplFulfillmentDataSchema.safeParse(data)
+  return result.success ? result.data : {}
+}
 
 /**
  * PPL Fulfillment Provider Service
@@ -178,9 +195,10 @@ class PplFulfillmentProviderService implements IFulfillmentProvider {
   /**
    * Validates shipping option configuration
    */
-  async validateOption(data: Record<string, unknown>): Promise<boolean> {
+  async validateOption(data: unknown): Promise<boolean> {
     await Promise.resolve(this)
-    return isPplProductType(data["product_type"])
+    return pplOptionDataSchema.pick({ product_type: true }).safeParse(data)
+      .success
   }
 
   /**
@@ -188,10 +206,10 @@ class PplFulfillmentProviderService implements IFulfillmentProvider {
    * Validates and stores access point selection from PPL Widget
    */
   async validateFulfillmentData(
-    optionData: Record<string, unknown>,
-    data: Record<string, unknown>,
+    optionData: unknown,
+    data: unknown,
     _context: ValidateFulfillmentDataContext,
-  ): Promise<Record<string, unknown>> {
+  ): Promise<PplShippingOptionData> {
     // Check if PPL is enabled (blocks checkout with stale shipping options)
     const config = await this.getClient().getEffectiveConfig()
     if (!config) {
@@ -201,23 +219,31 @@ class PplFulfillmentProviderService implements IFulfillmentProvider {
       )
     }
 
-    const productType = optionData["product_type"]
-    const requiresAccessPoint = optionData["requires_access_point"] === true
-    const supportsCod = optionData["supports_cod"] === true
-    if (!isPplProductType(productType)) {
+    const optionResult = pplOptionDataSchema.safeParse(optionData)
+    if (!optionResult.success) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "PPL: Invalid shipping option data",
       )
     }
+    const {
+      product_type: productType,
+      requires_access_point: requiresAccessPoint,
+      supports_cod: supportsCod,
+    }: PplOptionData = optionResult.data
 
-    const accessPointId = data["access_point_id"]
-    if (accessPointId !== undefined && typeof accessPointId !== "string") {
+    const accessPointResult = pplAccessPointDataSchema.safeParse(data)
+    if (!accessPointResult.success) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "PPL: Access point ID must be a string",
       )
     }
+    const {
+      access_point_id: accessPointId,
+      access_point_name: accessPointName,
+      access_point_type: accessPointType,
+    }: PplAccessPointData = accessPointResult.data
 
     // If this option requires access point, validate it was selected
     if (requiresAccessPoint) {
@@ -240,31 +266,32 @@ class PplFulfillmentProviderService implements IFulfillmentProvider {
     if (accessPointId !== undefined) {
       validatedData.access_point_id = accessPointId
     }
-    if (typeof data["access_point_name"] === "string") {
-      validatedData.access_point_name = data["access_point_name"]
+    if (accessPointName !== undefined) {
+      validatedData.access_point_name = accessPointName
     }
-    if (typeof data["access_point_type"] === "string") {
-      validatedData.access_point_type = data["access_point_type"]
+    if (accessPointType !== undefined) {
+      validatedData.access_point_type = accessPointType
     }
 
     return validatedData
   }
 
   async createFulfillment(
-    data: Record<string, unknown>,
+    data: unknown,
     _items: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[],
     order: Partial<FulfillmentOrderDTO> | undefined,
     fulfillment: Partial<
       Omit<FulfillmentDTO, "provider_id" | "data" | "items">
     >,
   ): Promise<CreateFulfillmentResult> {
-    if (!isPplShippingOptionData(data)) {
+    const shippingDataResult = pplShippingDataSchema.safeParse(data)
+    if (!shippingDataResult.success) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "PPL: Invalid shipping data",
       )
     }
-    const shippingData = data
+    const shippingData: PplShippingData = shippingDataResult.data
     const {
       product_type: productType,
       access_point_id: accessPointId,
@@ -422,9 +449,7 @@ class PplFulfillmentProviderService implements IFulfillmentProvider {
    *
    * NOTE: Cancellation only works BEFORE physical pickup by PPL courier
    */
-  async cancelFulfillment(
-    data: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
+  async cancelFulfillment(data: unknown) {
     const fulfillmentData = getPplFulfillmentData(data)
     let shipmentNumber = fulfillmentData.shipment_number
     const batchId = fulfillmentData.batch_id
@@ -488,7 +513,7 @@ class PplFulfillmentProviderService implements IFulfillmentProvider {
    * NOTE: Return flow may differ - verify with PPL documentation
    */
   async createReturnFulfillment(
-    _fulfillment: Record<string, unknown>,
+    _fulfillment: unknown,
   ): Promise<CreateFulfillmentResult> {
     await Promise.resolve(this)
     throw new MedusaError(
@@ -526,7 +551,7 @@ class PplFulfillmentProviderService implements IFulfillmentProvider {
    * Called by Medusa to get fulfillment documents
    */
   async getFulfillmentDocuments(
-    data: Record<string, unknown>,
+    data: unknown,
   ): Promise<{ type: string; url: string; format?: string }[]> {
     await Promise.resolve(this)
     const fulfillmentData = getPplFulfillmentData(data)
@@ -554,7 +579,7 @@ class PplFulfillmentProviderService implements IFulfillmentProvider {
    * Retrieves a specific document type for a fulfillment
    */
   async retrieveDocuments(
-    fulfillmentData: Record<string, unknown>,
+    fulfillmentData: unknown,
     documentType: string,
   ): Promise<{ type: string; url: string; format?: string } | null> {
     await Promise.resolve(this)
@@ -581,7 +606,7 @@ class PplFulfillmentProviderService implements IFulfillmentProvider {
    * Returns documents for a return fulfillment.
    * PPL return fulfillment is currently unsupported.
    */
-  async getReturnDocuments(_data: Record<string, unknown>): Promise<never[]> {
+  async getReturnDocuments(_data: unknown): Promise<never[]> {
     await Promise.resolve(this)
     return []
   }
@@ -590,7 +615,7 @@ class PplFulfillmentProviderService implements IFulfillmentProvider {
    * Returns shipment documents (commercial invoice, packing list, etc.).
    * PPL does not currently expose additional shipment documents here.
    */
-  async getShipmentDocuments(_data: Record<string, unknown>): Promise<never[]> {
+  async getShipmentDocuments(_data: unknown): Promise<never[]> {
     await Promise.resolve(this)
     return []
   }

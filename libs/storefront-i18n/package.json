@@ -41,9 +41,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "devDependencies": {
-    "@medusajs/js-sdk": "2.15.2",
+    "@medusajs/js-sdk": "^2.18.0",
     "@rslib/core": "^0.18.0",
-    "next-intl": "^4.0.0",
+    "next-intl": "^4.13.4",
     "typescript": "^5.9.3",
     "vitest": "^4.0.17"
   },

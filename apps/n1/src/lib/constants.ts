@@ -84,7 +84,6 @@ export const PRODUCT_DETAILED_FIELDS =
 export const PRODUCT_LIST_FIELDS =
   "id,title,handle,thumbnail," +
   "variants.title," +
-  "variants.manage_inventory," +
   "variants.inventory_quantity," +
   "variants.calculated_price,"
 

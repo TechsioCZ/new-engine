@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process"
 import { mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs"
 import path from "node:path"
 
+import { getRecordValue } from "@techsio/std/object"
 import { config as loadEnvironment } from "dotenv"
 
 interface ApiCategory {
@@ -111,14 +112,11 @@ const parseGeneratorOptions = (args: string[]): GeneratorOptions => {
   return { snapshotPath }
 }
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
+const isObject = (value: unknown): value is object =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
-const readRequiredString = (
-  record: Record<string, unknown>,
-  key: string,
-): string => {
-  const value = record[key]
+const readRequiredString = (record: object, key: string): string => {
+  const value = getRecordValue(record, key)
   if (typeof value !== "string") {
     throw new TypeError(`Expected ${key} to be a string`)
   }
@@ -126,10 +124,10 @@ const readRequiredString = (
 }
 
 const readOptionalString = (
-  record: Record<string, unknown>,
+  record: object,
   key: string,
 ): string | undefined => {
-  const value = record[key]
+  const value = getRecordValue(record, key)
   if (value === undefined || value === null) {
     return undefined
   }
@@ -139,11 +137,8 @@ const readOptionalString = (
   return value
 }
 
-const readNullableString = (
-  record: Record<string, unknown>,
-  key: string,
-): string | null => {
-  const value = record[key]
+const readNullableString = (record: object, key: string): string | null => {
+  const value = getRecordValue(record, key)
   if (value === null || value === undefined) {
     return null
   }
@@ -154,7 +149,7 @@ const readNullableString = (
 }
 
 const parseCategory = (value: unknown): ApiCategory => {
-  if (!isRecord(value)) {
+  if (!isObject(value)) {
     throw new TypeError("Expected category to be an object")
   }
 
@@ -241,29 +236,42 @@ const readCategorySnapshot = (snapshotPath: string): ApiCategory[] => {
 }
 
 const parseCategoryResponse = (value: unknown): ApiCategory[] => {
-  if (!isRecord(value) || !Array.isArray(value["product_categories"])) {
+  if (!isObject(value)) {
     throw new TypeError("Invalid product category response")
   }
-  return value["product_categories"].map(parseCategory)
+  const productCategories: unknown = Reflect.get(value, "product_categories")
+  if (!Array.isArray(productCategories)) {
+    throw new TypeError("Invalid product category response")
+  }
+  return productCategories.map(parseCategory)
 }
 
 const parseProductCategoryIds = (value: unknown): string[] => {
-  if (!isRecord(value) || !Array.isArray(value["categories"])) {
+  if (!isObject(value)) {
     return []
   }
-  return value["categories"].flatMap((category) => {
-    if (!isRecord(category) || typeof category["id"] !== "string") {
+  const categories: unknown = Reflect.get(value, "categories")
+  if (!Array.isArray(categories)) {
+    return []
+  }
+  return categories.flatMap((category) => {
+    if (!isObject(category)) {
       return []
     }
-    return [category["id"]]
+    const categoryId: unknown = Reflect.get(category, "id")
+    return typeof categoryId === "string" ? [categoryId] : []
   })
 }
 
 const parseProductResponse = (value: unknown): string[][] => {
-  if (!isRecord(value) || !Array.isArray(value["products"])) {
+  if (!isObject(value)) {
     throw new TypeError("Invalid product response")
   }
-  return value["products"].map(parseProductCategoryIds)
+  const products: unknown = Reflect.get(value, "products")
+  if (!Array.isArray(products)) {
+    throw new TypeError("Invalid product response")
+  }
+  return products.map(parseProductCategoryIds)
 }
 
 const getMedusaBackendUrl = (): string =>

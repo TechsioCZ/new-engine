@@ -2,10 +2,11 @@ import {
   ContainerRegistrationKeys,
   ProductStatus,
 } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import { GET } from "../../../src/api/store/catalog/products/route"
+import type { StoreCatalogProductsSchemaType } from "../../../src/api/store/catalog/products/validators"
 import type { decorateProductProjectionsWithTaxPrices } from "../../../src/api/store/products/product-projection-decorators"
 import type { normalizeProductSalesChannelFilter } from "../../../src/api/utils/product-filters"
 import type {
@@ -55,7 +56,12 @@ vi.mock(import("../../../src/api/utils/product-filters"), async (original) => ({
   ...(await original()),
   normalizeProductSalesChannelFilter: vi.fn<
     typeof normalizeProductSalesChannelFilter
-  >(async (_query, _remote, filters) => await Promise.resolve(filters)),
+  >(async (_remote, filters) => {
+    const { id, ...filtersWithoutId } = filters
+    return await Promise.resolve(
+      id === undefined ? filtersWithoutId : { ...filtersWithoutId, id },
+    )
+  }),
 }))
 
 vi.mock(
@@ -87,7 +93,7 @@ const createResponse = () => {
 const createRequest = (options: {
   graph: (input: unknown) => Promise<unknown>
   search: (index: string, query: string, options: unknown) => Promise<unknown>
-  validatedQuery?: Record<string, unknown>
+  validatedQuery?: Partial<StoreCatalogProductsSchemaType>
 }) => {
   const logger = {
     error: vi.fn<(message: string) => void>(),
@@ -252,9 +258,10 @@ describe("catalog route correctness regressions", () => {
     if (!isRecord(responseBody)) {
       throw new Error("Expected catalog response body")
     }
-    expect(responseBody["count"]).toBe(1)
-    const { facets, products: responseProducts } = responseBody
-    expect(isRecord(facets) && facets["price"]).toStrictEqual({
+    expect(getRecordValue(responseBody, "count")).toBe(1)
+    const facets = getRecordValue(responseBody, "facets")
+    const responseProducts = getRecordValue(responseBody, "products")
+    expect(isRecord(facets) && getRecordValue(facets, "price")).toStrictEqual({
       max: 20,
       min: 10,
     })
@@ -265,10 +272,13 @@ describe("catalog route correctness regressions", () => {
     })
 
     const graphCall: unknown = request.testQueryService.graph.mock.calls[0]?.[0]
-    const graphFields = isRecord(graphCall) ? graphCall["fields"] : undefined
+    const graphFields = isRecord(graphCall)
+      ? getRecordValue(graphCall, "fields")
+      : undefined
     expect(graphFields).toStrictEqual(
       expect.arrayContaining([
         "description",
+        "status",
         "variants.calculated_price.currency_code",
       ]),
     )

@@ -9,6 +9,8 @@ import { describe, expect, it, vi } from "vitest"
 import {
   assertCustomerOwnsProductList,
   listCustomerProductListIds,
+  toProductListItemProductLinks,
+  toProductListItemVariantLinks,
 } from "../../../../src/utils/product-list-links"
 
 const { customerProductListLinkEntryPoint } = vi.hoisted(() => ({
@@ -43,13 +45,16 @@ describe(listCustomerProductListIds, () => {
     const firstPageLinks = Array.from({ length: 1000 }, (_, index) => ({
       product_list_id: `list-${index}`,
     }))
+    const finalLink = { product_list_id: "list-final" }
+    Reflect.set(finalLink, "customer_id", undefined)
+    Reflect.set(finalLink, "unrelated", undefined)
     const query = {
       graph: vi
         .fn<QueryStub["graph"]>()
         .mockResolvedValueOnce({ data: firstPageLinks })
         .mockResolvedValueOnce({
           data: [
-            { product_list_id: "list-final" },
+            finalLink,
             { product_list_id: "" },
             { customer_id: "cus_1" },
             { product_list_id: 123 },
@@ -64,6 +69,24 @@ describe(listCustomerProductListIds, () => {
     ).resolves.toStrictEqual([
       ...firstPageLinks.map((link) => link.product_list_id),
       "list-final",
+    ])
+  })
+})
+
+describe("product-list item link parsing", () => {
+  it("accepts known and unrelated optional fields set to undefined", () => {
+    const productLink = { product_id: "prod_1" }
+    Reflect.set(productLink, "product_list_item_id", undefined)
+    Reflect.set(productLink, "unrelated", undefined)
+    expect(toProductListItemProductLinks([productLink])).toStrictEqual([
+      productLink,
+    ])
+
+    const variantLink = { product_variant_id: "variant_1" }
+    Reflect.set(variantLink, "product_list_item_id", undefined)
+    Reflect.set(variantLink, "unrelated", undefined)
+    expect(toProductListItemVariantLinks([variantLink])).toStrictEqual([
+      variantLink,
     ])
   })
 })

@@ -1,5 +1,3 @@
-import { getRecordValue } from "@techsio/std/object"
-
 import { normalizeSupportedCurrencyCode } from "./currency"
 import type { HerbatikaCurrencyCode } from "./currency"
 import {
@@ -7,18 +5,26 @@ import {
   asStorefrontRecord,
 } from "./product-pricing-parsers"
 
-export const resolveTopOfferCurrentAmount = (
-  topOffer: Record<string, unknown> | null,
-) =>
-  asStorefrontNumber(getRecordValue(topOffer ?? {}, "current_price")) ??
-  asStorefrontNumber(getRecordValue(topOffer ?? {}, "action_price")) ??
-  asStorefrontNumber(getRecordValue(topOffer ?? {}, "price_vat"))
+export const resolveTopOfferCurrentAmount = (topOffer: object | null) =>
+  asStorefrontNumber(
+    topOffer === null ? undefined : Reflect.get(topOffer, "current_price"),
+  ) ??
+  asStorefrontNumber(
+    topOffer === null ? undefined : Reflect.get(topOffer, "action_price"),
+  ) ??
+  asStorefrontNumber(
+    topOffer === null ? undefined : Reflect.get(topOffer, "price_vat"),
+  )
 
 export const resolveTopOfferStockAmount = (
-  topOffer: Record<string, unknown> | null,
+  topOffer: object | null,
 ): number | null => {
-  const stock = asStorefrontRecord(getRecordValue(topOffer ?? {}, "stock"))
-  return asStorefrontNumber(getRecordValue(stock ?? {}, "amount"))
+  const stock = asStorefrontRecord(
+    topOffer === null ? undefined : Reflect.get(topOffer, "stock"),
+  )
+  return asStorefrontNumber(
+    stock === null ? undefined : Reflect.get(stock, "amount"),
+  )
 }
 
 export const resolvePositiveOriginalAmount = (
@@ -43,12 +49,12 @@ export const resolveMatchingTopOfferOriginalAmount = ({
   currencyCode: HerbatikaCurrencyCode
   resolveOriginalAmount: (params: {
     currentAmount: number
-    topOffer: Record<string, unknown> | null
+    topOffer: object | null
   }) => number | null
-  topOffer: Record<string, unknown> | null
+  topOffer: object | null
 }) => {
   const topOfferCurrencyCode = normalizeSupportedCurrencyCode(
-    getRecordValue(topOffer ?? {}, "currency"),
+    topOffer === null ? undefined : Reflect.get(topOffer, "currency"),
   )
 
   if (topOfferCurrencyCode !== currencyCode) {

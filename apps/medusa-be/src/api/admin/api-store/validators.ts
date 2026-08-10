@@ -1,6 +1,6 @@
 import { z } from "@medusajs/framework/zod"
 
-const CredentialsSchema = z.record(z.string(), z.unknown())
+import { ApiStoreCredentialsSchema } from "../../../modules/api-store"
 
 export const GetAdminApiStoreSchema = z
   .object({
@@ -14,7 +14,7 @@ export const PostAdminApiStoreSchema = z
   .object({
     api_key: z.string().min(1).nullable().optional(),
     api_url: z.string().trim().min(1).nullable().optional(),
-    credentials: CredentialsSchema.nullable().optional(),
+    credentials: ApiStoreCredentialsSchema.nullable().optional(),
     enabled: z.boolean().optional(),
     name: z.string().trim().min(1),
   })
@@ -33,7 +33,7 @@ export const PostAdminApiStoreByIdSchema = z
   .object({
     api_key: z.string().min(1).nullable().optional(),
     api_url: z.string().trim().min(1).nullable().optional(),
-    credentials: CredentialsSchema.nullable().optional(),
+    credentials: ApiStoreCredentialsSchema.nullable().optional(),
     enabled: z.boolean().optional(),
     name: z.string().trim().min(1).optional(),
   })

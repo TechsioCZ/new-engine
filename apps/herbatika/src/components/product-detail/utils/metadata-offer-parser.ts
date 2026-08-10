@@ -25,7 +25,7 @@ const resolveOfferMetadataSource = (
 }
 
 const resolveActiveDiscount = (
-  source: Record<string, unknown> | null,
+  source: object | null,
   currentAmount: number | null,
   actionAmount: number | null,
 ) => {
@@ -43,7 +43,7 @@ const resolveActiveDiscount = (
 }
 
 const resolveOfferValues = (
-  source: Record<string, unknown> | null,
+  source: object | null,
   selectedVariant: HttpTypes.StoreProductVariant | null,
   availableQuantity: number | null,
   fallbackLabels: { inStock: string; outOfStock: string },

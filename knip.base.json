@@ -192,7 +192,6 @@
       "semantic-release": true,
       "storybook": true,
       "vitest": true,
-      "ignoreBinaries": ["^mise$"],
       "ignoreDependencies": [
         "^@eslint/js$",
         "^@iconify-json/(mdi|mdi-light|svg-spinners)$",

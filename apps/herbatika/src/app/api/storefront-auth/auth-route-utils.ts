@@ -12,7 +12,7 @@ const MEDUSA_PUBLISHABLE_KEY =
   typeof publishableKey === "string" ? publishableKey : ""
 const AUTH_SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 14
 
-interface ErrorPayload {
+export interface ErrorPayload {
   message: string
   details?: unknown
 }

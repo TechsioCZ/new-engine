@@ -1,3 +1,5 @@
+import type { JsonMetadata } from "../../lib/json-metadata"
+
 export type ProductIdentifierType = "sku" | "ean" | "erp_id"
 export type VariantIdentifierType = "sku" | "ean" | "variant_id"
 
@@ -25,7 +27,7 @@ export interface VariantInput {
   vat_rate?: number
   prices?: PriceInput[]
   options?: Record<string, string | number>
-  metadata?: Record<string, unknown>
+  metadata?: JsonMetadata
 }
 
 export interface ProductInput {
@@ -45,7 +47,7 @@ export interface ProductInput {
   images?: ImageInput[]
   base_prices?: PriceInput[]
   variants?: VariantInput[]
-  metadata?: Record<string, unknown>
+  metadata?: JsonMetadata
 }
 
 export interface UpsertProductsBatchInput {

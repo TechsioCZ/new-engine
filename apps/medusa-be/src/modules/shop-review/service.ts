@@ -1,7 +1,12 @@
 import type { Logger } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
-import type { ApiStoreModuleService, ApiStoreSecretDTO } from "../api-store"
+import type {
+  ApiStoreCredentials,
+  ApiStoreModuleService,
+  ApiStoreSecretDTO,
+} from "../api-store"
 import { API_STORE_MODULE } from "../api-store"
 import type {
   FetchHeurekaShopReviewsInput,
@@ -34,10 +39,12 @@ interface InjectedDependencies {
 }
 
 const getCredentialValue = (
-  credentials: Record<string, unknown> | null,
+  credentials: ApiStoreCredentials | null,
   key: string,
 ): string | null => {
-  const value = credentials?.[key]
+  const value = isRecord(credentials)
+    ? getRecordValue(credentials, key)
+    : undefined
   return typeof value === "string" && value.trim() !== "" ? value.trim() : null
 }
 

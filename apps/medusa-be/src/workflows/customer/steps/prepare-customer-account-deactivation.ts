@@ -1,4 +1,4 @@
-import type { Query } from "@medusajs/framework/types"
+import type { MetadataType, Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -9,8 +9,7 @@ import {
   CUSTOMER_ACCOUNT_DEACTIVATION_NONCE_METADATA_KEY,
   withoutCustomerAccountDeactivationNonce,
 } from "../../../utils/customer-account-deactivation"
-import { hasArrayData } from "../../../utils/guards"
-import { isCustomerRecord } from "./prepare-customer-account-reactivation"
+import type { CustomerRecord } from "./prepare-customer-account-reactivation"
 
 interface PrepareCustomerAccountDeactivationInput {
   customer_id: string
@@ -20,8 +19,8 @@ interface PrepareCustomerAccountDeactivationInput {
 interface PrepareCustomerAccountDeactivationOutput {
   customer_id: string
   first_name?: string | null | undefined
-  metadata: Record<string, unknown>
-  previous_metadata: Record<string, unknown> | null
+  metadata: MetadataType
+  previous_metadata: MetadataType
 }
 
 export const prepareCustomerAccountDeactivationStep = createStep(
@@ -32,7 +31,7 @@ export const prepareCustomerAccountDeactivationStep = createStep(
   ): Promise<StepResponse<PrepareCustomerAccountDeactivationOutput>> => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
-    const customerResult: unknown = await query.graph({
+    const customerResult: { data: CustomerRecord[] } = await query.graph({
       entity: "customer",
       fields: [
         "id",
@@ -45,13 +44,6 @@ export const prepareCustomerAccountDeactivationStep = createStep(
       filters: { id: input.customer_id },
       withDeleted: true,
     })
-
-    if (!hasArrayData(customerResult, isCustomerRecord)) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        "Unexpected response shape while loading customer account.",
-      )
-    }
 
     const [customer] = customerResult.data
 

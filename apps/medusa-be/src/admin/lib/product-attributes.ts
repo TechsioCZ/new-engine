@@ -1,3 +1,5 @@
+import { getRecordValue } from "@techsio/std/object"
+
 import { sdk } from "./sdk"
 
 export type ProductAttributeInputType = "select" | "text"
@@ -93,33 +95,24 @@ export type SetProductAttributeOperation =
       text_value: string
     }
 
-const toSearch = (
-  params: Record<string, boolean | number | string | undefined>,
-) => {
+const toSearch = (params: object) => {
   const search = new URLSearchParams()
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "") {
+
+  for (const key of Object.keys(params)) {
+    const value = getRecordValue(params, key)
+    if (
+      typeof value === "boolean" ||
+      typeof value === "number" ||
+      (typeof value === "string" && value !== "")
+    ) {
       search.set(key, String(value))
     }
   }
+
   return search.toString()
 }
 
-export const productAttributeQueryKeys = {
-  definitionLists: () => ["product-attribute-definitions"] as const,
-  definitions: (params: Record<string, unknown>) =>
-    ["product-attribute-definitions", params] as const,
-  optionLists: (definitionId?: string) =>
-    ["product-attribute-options", definitionId] as const,
-  optionProducts: (optionId: string, params: Record<string, unknown>) =>
-    ["product-attribute-option-products", optionId, params] as const,
-  options: (definitionId: string, params: Record<string, unknown>) =>
-    ["product-attribute-options", definitionId, params] as const,
-  product: (productId?: string) => ["product-attributes", productId] as const,
-  products: () => ["product-attributes"] as const,
-}
-
-export const listProductAttributeDefinitions = async (params: {
+interface ListProductAttributeDefinitionsParams {
   input_type?: ProductAttributeInputType
   is_public?: boolean
   limit: number
@@ -127,7 +120,42 @@ export const listProductAttributeDefinitions = async (params: {
   order?: string
   q?: string
   status?: ProductAttributeStatus
-}) =>
+}
+
+interface ListProductAttributeOptionsParams {
+  limit: number
+  offset: number
+  order?: string
+  q?: string
+  status?: ProductAttributeStatus
+}
+
+interface ListOptionAssignedProductsParams {
+  limit: number
+  offset: number
+  order?: string
+  q?: string
+}
+
+export const productAttributeQueryKeys = {
+  definitionLists: () => ["product-attribute-definitions"] as const,
+  definitions: (params: ListProductAttributeDefinitionsParams) =>
+    ["product-attribute-definitions", params] as const,
+  optionLists: (definitionId?: string) =>
+    ["product-attribute-options", definitionId] as const,
+  optionProducts: (
+    optionId: string,
+    params: ListOptionAssignedProductsParams,
+  ) => ["product-attribute-option-products", optionId, params] as const,
+  options: (definitionId: string, params: ListProductAttributeOptionsParams) =>
+    ["product-attribute-options", definitionId, params] as const,
+  product: (productId?: string) => ["product-attributes", productId] as const,
+  products: () => ["product-attributes"] as const,
+}
+
+export const listProductAttributeDefinitions = async (
+  params: ListProductAttributeDefinitionsParams,
+) =>
   await sdk.client.fetch<ProductAttributeDefinitionsResponse>(
     `/admin/product-attributes/definitions?${toSearch(params)}`,
   )
@@ -177,13 +205,7 @@ export const restoreProductAttributeDefinition = async (id: string) =>
 
 export const listProductAttributeOptions = async (
   definitionId: string,
-  params: {
-    limit: number
-    offset: number
-    order?: string
-    q?: string
-    status?: ProductAttributeStatus
-  },
+  params: ListProductAttributeOptionsParams,
 ) =>
   await sdk.client.fetch<ProductAttributeOptionsResponse>(
     `/admin/product-attributes/options?${toSearch({
@@ -194,12 +216,7 @@ export const listProductAttributeOptions = async (
 
 export const listProductAttributeOptionAssignedProducts = async (
   optionId: string,
-  params: {
-    limit: number
-    offset: number
-    order?: string
-    q?: string
-  },
+  params: ListOptionAssignedProductsParams,
 ) =>
   await sdk.client.fetch<ProductAttributeAssignedProductsResponse>(
     `/admin/product-attributes/options/${optionId}/products?${toSearch(params)}`,

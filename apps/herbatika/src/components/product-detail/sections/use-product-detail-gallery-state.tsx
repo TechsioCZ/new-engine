@@ -68,6 +68,8 @@ export const useProductDetailGalleryState = ({
 
   const galleryItemsWithFallback: GalleryItem[] = galleryItems.map(
     (item, index) => {
+      const { thumbnailImageProps, ...itemWithoutThumbnailImageProps } = item
+      void thumbnailImageProps
       const imageSrc = item.src ?? FALLBACK_IMAGE_SRC
       const imageAlt = item.alt ?? getFallbackImageAlt(index)
       const imageContent = item.content ?? (
@@ -84,7 +86,7 @@ export const useProductDetailGalleryState = ({
       )
 
       return {
-        ...item,
+        ...itemWithoutThumbnailImageProps,
         alt: imageAlt,
         content: (
           <Button

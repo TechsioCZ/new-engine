@@ -4,7 +4,7 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { isRecord } from "@techsio/std/object"
+import { z } from "@medusajs/framework/zod"
 
 import { COMPANY_MODULE } from "../../../modules/company"
 import type {
@@ -13,56 +13,34 @@ import type {
   QueryGraphEmployee,
 } from "../../../types"
 
-const isQueryGraphDate = (value: unknown): value is Date | string =>
-  value instanceof Date || typeof value === "string"
-
-const isOptionalString = (value: unknown): boolean =>
-  value === undefined || value === null || typeof value === "string"
-
-const isQueryGraphCustomer = (
-  value: unknown,
-): value is NonNullable<QueryGraphEmployee["customer"]> => {
-  if (!isRecord(value)) {
-    return false
-  }
-  return [
-    typeof value["id"] === "string",
-    value["email"] === null || typeof value["email"] === "string",
-    isOptionalString(value["first_name"]),
-    isOptionalString(value["last_name"]),
-  ].every(Boolean)
-}
-
-const isQueryGraphEmployee = (value: unknown): value is QueryGraphEmployee => {
-  if (!isRecord(value)) {
-    return false
-  }
-  const { customer } = value
-  const deletedAt = value["deleted_at"]
-  return [
-    typeof value["id"] === "string",
-    typeof value["spending_limit"] === "number",
-    typeof value["is_admin"] === "boolean",
-    typeof value["company_id"] === "string",
-    isQueryGraphDate(value["created_at"]),
-    isQueryGraphDate(value["updated_at"]),
-    deletedAt === undefined ||
-      deletedAt === null ||
-      isQueryGraphDate(deletedAt),
-    customer === undefined ||
-      customer === null ||
-      isQueryGraphCustomer(customer),
-  ].every(Boolean)
-}
+const queryGraphDateSchema = z.union([z.date(), z.string()])
+const queryGraphCustomerSchema = z.looseObject({
+  email: z.string().nullable(),
+  first_name: z.string().nullable().optional(),
+  id: z.string(),
+  last_name: z.string().nullable().optional(),
+})
+const queryGraphEmployeeSchema = z.looseObject({
+  company_id: z.string(),
+  created_at: queryGraphDateSchema,
+  customer: queryGraphCustomerSchema.nullable().optional(),
+  deleted_at: queryGraphDateSchema.nullable().optional(),
+  id: z.string(),
+  is_admin: z.boolean(),
+  spending_limit: z.number(),
+  updated_at: queryGraphDateSchema,
+})
+const employeeGraphResultSchema = z.object({ data: z.array(z.unknown()) })
 
 const getGraphData = (result: unknown): unknown[] => {
-  if (!isRecord(result) || !Array.isArray(result["data"])) {
+  const parsed = employeeGraphResultSchema.safeParse(result)
+  if (!parsed.success) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       "Created employee query returned invalid data",
     )
   }
-  return result["data"]
+  return parsed.data.data
 }
 
 export const createEmployeesStep = createStep(
@@ -95,14 +73,15 @@ export const createEmployeesStep = createStep(
       )
     }
 
-    if (!isQueryGraphEmployee(employee)) {
+    const parsedEmployee = queryGraphEmployeeSchema.safeParse(employee)
+    if (!parsedEmployee.success) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
         `Created employee "${createdEmployee.id}" query returned an invalid record`,
       )
     }
 
-    return new StepResponse(employee, employee.id)
+    return new StepResponse(parsedEmployee.data, parsedEmployee.data.id)
   },
   async (employeeId: string | undefined, { container }) => {
     if (employeeId === undefined || employeeId.length === 0) {

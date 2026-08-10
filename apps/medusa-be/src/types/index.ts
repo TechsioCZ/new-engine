@@ -8,6 +8,7 @@ export type {
 } from "./approval/http"
 export type {
   ModuleApprovalSettings,
+  ModuleApprovalStatus,
   ModuleCreateApproval,
   ModuleCreateApprovalSettings,
   ModuleUpdateApproval,

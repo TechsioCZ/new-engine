@@ -27,6 +27,21 @@ import type {
 
 const DEFAULT_COUNTRY = "cz"
 
+const renderAddressError = (error: string | undefined) => {
+  if (error === undefined || error.length === 0) {
+    return error
+  }
+
+  return (
+    <StatusText showIcon size="sm" status="error">
+      {error}
+    </StatusText>
+  )
+}
+
+const getValidationStatus = (error: string | undefined) =>
+  error !== undefined && error.length > 0 ? "error" : "default"
+
 /**
  * Keeps the original truthiness fallback: a missing *and* an empty country both
  * fall back to the default, which `??` alone would not do.
@@ -110,13 +125,7 @@ const ShippingAddressFields = ({
 
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
       <FormInput
-        helpText={
-          errors["shippingFirstName"] && (
-            <StatusText showIcon size="sm" status="error">
-              {errors["shippingFirstName"]}
-            </StatusText>
-          )
-        }
+        helpText={renderAddressError(errors["shippingFirstName"])}
         id="shipping-first-name"
         label="Jméno"
         onChange={(e) => {
@@ -126,18 +135,12 @@ const ShippingAddressFields = ({
           })
         }}
         required
-        validateStatus={errors["shippingFirstName"] ? "error" : "default"}
+        validateStatus={getValidationStatus(errors["shippingFirstName"])}
         value={shippingAddress.firstName}
       />
 
       <FormInput
-        helpText={
-          errors["shippingLastName"] && (
-            <StatusText showIcon size="sm" status="error">
-              {errors["shippingLastName"]}
-            </StatusText>
-          )
-        }
+        helpText={renderAddressError(errors["shippingLastName"])}
         id="shipping-last-name"
         label="Příjmení"
         onChange={(e) => {
@@ -147,7 +150,7 @@ const ShippingAddressFields = ({
           })
         }}
         required
-        validateStatus={errors["shippingLastName"] ? "error" : "default"}
+        validateStatus={getValidationStatus(errors["shippingLastName"])}
         value={shippingAddress.lastName}
       />
     </div>
@@ -166,13 +169,7 @@ const ShippingAddressFields = ({
     />
     <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
       <FormInput
-        helpText={
-          errors["shippingEmail"] && (
-            <StatusText showIcon size="sm" status="error">
-              {errors["shippingEmail"]}
-            </StatusText>
-          )
-        }
+        helpText={renderAddressError(errors["shippingEmail"])}
         id="shipping-email"
         label="Email"
         onBlur={(e) => {
@@ -191,18 +188,12 @@ const ShippingAddressFields = ({
         }}
         required
         type="email"
-        validateStatus={errors["shippingEmail"] ? "error" : "default"}
+        validateStatus={getValidationStatus(errors["shippingEmail"])}
         value={shippingAddress.email}
       />
 
       <FormInput
-        helpText={
-          errors["shippingPhone"] && (
-            <StatusText showIcon size="sm" status="error">
-              {errors["shippingPhone"]}
-            </StatusText>
-          )
-        }
+        helpText={renderAddressError(errors["shippingPhone"])}
         id="shipping-phone"
         label="Telefon"
         onChange={(e) => {
@@ -212,56 +203,38 @@ const ShippingAddressFields = ({
         placeholder="123 456 789"
         required
         type="tel"
-        validateStatus={errors["shippingPhone"] ? "error" : "default"}
+        validateStatus={getValidationStatus(errors["shippingPhone"])}
         value={shippingAddress.phone}
       />
     </div>
 
     <FormInput
-      helpText={
-        errors["shippingStreet"] && (
-          <StatusText showIcon size="sm" status="error">
-            {errors["shippingStreet"]}
-          </StatusText>
-        )
-      }
+      helpText={renderAddressError(errors["shippingStreet"])}
       id="shipping-street"
       label="Ulice a číslo popisné"
       onChange={(e) => {
         setShippingAddress({ ...shippingAddress, street: e.target.value })
       }}
       required
-      validateStatus={errors["shippingStreet"] ? "error" : "default"}
+      validateStatus={getValidationStatus(errors["shippingStreet"])}
       value={shippingAddress.street}
     />
 
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
       <FormInput
-        helpText={
-          errors["shippingCity"] && (
-            <StatusText showIcon size="sm" status="error">
-              {errors["shippingCity"]}
-            </StatusText>
-          )
-        }
+        helpText={renderAddressError(errors["shippingCity"])}
         id="shipping-city"
         label="Město"
         onChange={(e) => {
           setShippingAddress({ ...shippingAddress, city: e.target.value })
         }}
         required
-        validateStatus={errors["shippingCity"] ? "error" : "default"}
+        validateStatus={getValidationStatus(errors["shippingCity"])}
         value={shippingAddress.city}
       />
 
       <FormInput
-        helpText={
-          errors["shippingPostalCode"] && (
-            <StatusText showIcon size="sm" status="error">
-              {errors["shippingPostalCode"]}
-            </StatusText>
-          )
-        }
+        helpText={renderAddressError(errors["shippingPostalCode"])}
         id="shipping-postal-code"
         label="PSČ"
         onChange={(e) => {
@@ -270,7 +243,7 @@ const ShippingAddressFields = ({
         }}
         placeholder="123 45"
         required
-        validateStatus={errors["shippingPostalCode"] ? "error" : "default"}
+        validateStatus={getValidationStatus(errors["shippingPostalCode"])}
         value={shippingAddress.postalCode}
       />
     </div>
@@ -281,7 +254,7 @@ const ShippingAddressFields = ({
         label="Země"
         onValueChange={(details) => {
           const [value] = details.value
-          if (value) {
+          if (value !== undefined && value.length > 0) {
             setShippingAddress({
               ...shippingAddress,
               country: value,
@@ -313,13 +286,7 @@ const BillingAddressFields = ({
 
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
       <FormInput
-        helpText={
-          errors["billingFirstName"] && (
-            <StatusText showIcon size="sm" status="error">
-              {errors["billingFirstName"]}
-            </StatusText>
-          )
-        }
+        helpText={renderAddressError(errors["billingFirstName"])}
         id="billing-first-name"
         label="Jméno"
         onChange={(e) => {
@@ -329,18 +296,12 @@ const BillingAddressFields = ({
           })
         }}
         required
-        validateStatus={errors["billingFirstName"] ? "error" : "default"}
+        validateStatus={getValidationStatus(errors["billingFirstName"])}
         value={billingAddress.firstName}
       />
 
       <FormInput
-        helpText={
-          errors["billingLastName"] && (
-            <StatusText showIcon size="sm" status="error">
-              {errors["billingLastName"]}
-            </StatusText>
-          )
-        }
+        helpText={renderAddressError(errors["billingLastName"])}
         id="billing-last-name"
         label="Příjmení"
         onChange={(e) => {
@@ -350,7 +311,7 @@ const BillingAddressFields = ({
           })
         }}
         required
-        validateStatus={errors["billingLastName"] ? "error" : "default"}
+        validateStatus={getValidationStatus(errors["billingLastName"])}
         value={billingAddress.lastName}
       />
     </div>
@@ -365,50 +326,32 @@ const BillingAddressFields = ({
     />
 
     <FormInput
-      helpText={
-        errors["billingStreet"] && (
-          <StatusText showIcon size="sm" status="error">
-            {errors["billingStreet"]}
-          </StatusText>
-        )
-      }
+      helpText={renderAddressError(errors["billingStreet"])}
       id="billing-street"
       label="Ulice a číslo popisné"
       onChange={(e) => {
         setBillingAddress({ ...billingAddress, street: e.target.value })
       }}
       required
-      validateStatus={errors["billingStreet"] ? "error" : "default"}
+      validateStatus={getValidationStatus(errors["billingStreet"])}
       value={billingAddress.street}
     />
 
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
       <FormInput
-        helpText={
-          errors["billingCity"] && (
-            <StatusText showIcon size="sm" status="error">
-              {errors["billingCity"]}
-            </StatusText>
-          )
-        }
+        helpText={renderAddressError(errors["billingCity"])}
         id="billing-city"
         label="Město"
         onChange={(e) => {
           setBillingAddress({ ...billingAddress, city: e.target.value })
         }}
         required
-        validateStatus={errors["billingCity"] ? "error" : "default"}
+        validateStatus={getValidationStatus(errors["billingCity"])}
         value={billingAddress.city}
       />
 
       <FormInput
-        helpText={
-          errors["billingPostalCode"] && (
-            <StatusText showIcon size="sm" status="error">
-              {errors["billingPostalCode"]}
-            </StatusText>
-          )
-        }
+        helpText={renderAddressError(errors["billingPostalCode"])}
         id="billing-postal-code"
         label="PSČ"
         onChange={(e) => {
@@ -418,7 +361,7 @@ const BillingAddressFields = ({
           })
         }}
         required
-        validateStatus={errors["billingPostalCode"] ? "error" : "default"}
+        validateStatus={getValidationStatus(errors["billingPostalCode"])}
         value={billingAddress.postalCode}
       />
     </div>
@@ -429,7 +372,7 @@ const BillingAddressFields = ({
         label="Země"
         onValueChange={(details) => {
           const [value] = details.value
-          if (value) {
+          if (value !== undefined && value.length > 0) {
             setBillingAddress({
               ...billingAddress,
               country: value,

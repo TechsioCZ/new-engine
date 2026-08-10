@@ -1,12 +1,11 @@
-import type { StoreProduct } from "@medusajs/types"
-
 import { CURRENCY_SYMBOL, DEFAULT_CURRENCY, TAX_RATE } from "@/lib/constants"
+import type { ProductListVariant } from "@/types/product"
 
 export const formatPrice = ({
   variants,
   tax = true,
 }: {
-  variants?: StoreProduct["variants"]
+  variants?: ProductListVariant[] | null
   tax?: boolean
 }): string => {
   const variant = variants?.[0]
@@ -61,7 +60,7 @@ export const formatToTaxIncluded = ({
 }
 
 export const formatVariants = (
-  variants?: StoreProduct["variants"],
+  variants?: ProductListVariant[] | null,
 ): string[] => {
   if (!variants || variants.length < 2) {
     return []

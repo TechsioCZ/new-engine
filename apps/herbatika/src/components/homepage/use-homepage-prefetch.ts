@@ -1,4 +1,4 @@
-import type { HttpTypes } from "@medusajs/types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 
 import {
   PRODUCT_DETAIL_FIELDS,
@@ -11,8 +11,8 @@ type RegionLike = {
 } | null
 
 interface UseHomepagePrefetchResult {
-  handleProductHoverStart: (product: HttpTypes.StoreProduct) => void
-  handleProductHoverEnd: (product: HttpTypes.StoreProduct) => void
+  handleProductHoverStart: (product: MedusaCatalogProduct) => void
+  handleProductHoverEnd: (product: MedusaCatalogProduct) => void
 }
 
 export const useHomepagePrefetch = (
@@ -23,7 +23,7 @@ export const useHomepagePrefetch = (
     defaultDelay: 160,
   })
 
-  const handleProductHoverStart = (product: HttpTypes.StoreProduct) => {
+  const handleProductHoverStart = (product: MedusaCatalogProduct) => {
     const hasRegion =
       typeof region?.region_id === "string" && region.region_id !== ""
     const hasHandle =
@@ -42,7 +42,7 @@ export const useHomepagePrefetch = (
     )
   }
 
-  const handleProductHoverEnd = (product: HttpTypes.StoreProduct) => {
+  const handleProductHoverEnd = (product: MedusaCatalogProduct) => {
     cancelPrefetch(`home-product-${product.id}`)
   }
 

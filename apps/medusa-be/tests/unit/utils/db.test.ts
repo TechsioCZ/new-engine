@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest"
 
 import { decodeSqlRows } from "../../../src/utils/db"
 
-const decodeNamedRow = (row: Readonly<Record<string, unknown>>) => {
-  if (typeof row["name"] !== "string") {
+const decodeNamedRow = (row: Readonly<{ name?: unknown }>) => {
+  if (typeof row.name !== "string") {
     throw new TypeError("name must be a string")
   }
-  return { name: row["name"] }
+  return { name: row.name }
 }
 
 describe("SQL row decoding", () => {

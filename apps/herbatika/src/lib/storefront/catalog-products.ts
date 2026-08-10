@@ -1,6 +1,10 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
+import type {
+  MedusaCatalogProduct,
+  MedusaCatalogProductVariant,
+} from "@techsio/storefront-data/catalog/medusa-service"
 import type { UseCatalogProductsResult } from "@techsio/storefront-data/catalog/types"
 import { useLocale } from "next-intl"
 
@@ -24,20 +28,16 @@ type UseCatalogProductsOptions = Parameters<
   typeof catalogHooks.useCatalogProducts
 >[1]
 
-const variantNeedsInventorySnapshot = (
-  variant: HttpTypes.StoreProductVariant,
-) =>
+const variantNeedsInventorySnapshot = (variant: MedusaCatalogProductVariant) =>
   Boolean(variant.id) &&
   variant.manage_inventory !== false &&
   variant.allow_backorder !== true &&
   !hasDefaultStockInventoryQuantity(variant)
 
-const productNeedsInventorySnapshot = (product: HttpTypes.StoreProduct) =>
+const productNeedsInventorySnapshot = (product: MedusaCatalogProduct) =>
   (product.variants ?? []).some(variantNeedsInventorySnapshot)
 
-const resolveInventorySnapshotHandles = (
-  products: HttpTypes.StoreProduct[],
-) => {
+const resolveInventorySnapshotHandles = (products: MedusaCatalogProduct[]) => {
   const handles = new Set<string>()
 
   for (const product of products) {
@@ -50,9 +50,9 @@ const resolveInventorySnapshotHandles = (
 }
 
 const mergeProductInventorySnapshot = (
-  product: HttpTypes.StoreProduct,
+  product: MedusaCatalogProduct,
   inventoryProduct?: HttpTypes.StoreProduct,
-): HttpTypes.StoreProduct => {
+): MedusaCatalogProduct => {
   if (
     inventoryProduct === undefined ||
     !Array.isArray(inventoryProduct.variants) ||
@@ -89,7 +89,7 @@ const mergeProductInventorySnapshot = (
 export const useCatalogProducts = (
   input: CatalogProductsInput,
   options?: UseCatalogProductsOptions,
-): UseCatalogProductsResult<HttpTypes.StoreProduct> => {
+): UseCatalogProductsResult<MedusaCatalogProduct> => {
   const locale = useLocale()
   const catalogQuery = catalogHooks.useCatalogProducts(
     { ...input, locale },

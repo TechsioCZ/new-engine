@@ -1,10 +1,12 @@
 import { sleep } from "@techsio/std/async"
-import { isRecord } from "@techsio/std/object"
+import { z } from "zod"
 
 import { BadRequestError } from "./db"
 import type {
   ProvisionMedusaPublishableKeyInput,
   ProvisionMedusaPublishableKeyOutputInput,
+  ZaneEnvVariable,
+  ZaneServiceDetails,
 } from "./zane-contract"
 import { buildServicePublicUrls } from "./zane-effective-service-urls"
 import { UpstreamHttpError } from "./zane-errors"
@@ -21,28 +23,21 @@ interface ProvisionEnvironmentLookup {
 }
 
 interface MedusaProvisionServiceDetails {
+  env_variables: Pick<ZaneEnvVariable, "key" | "value">[]
+  environment?:
+    | {
+        variables?: Pick<ZaneEnvVariable, "key" | "value">[] | undefined
+      }
+    | null
+    | undefined
+  global_network_alias?: string | null | undefined
+  network_alias?: string | null | undefined
   slug: string
-  network_alias?: string | null
-  global_network_alias?: string | null
-  env_variables: {
-    key: string
-    value: string
-  }[]
-  system_env_variables?: {
-    key: string
-    value: string
-  }[]
-  environment?: {
-    variables?: {
-      key: string
-      value: string
-    }[]
-  } | null
-  urls: {
-    domain: string
-    base_path: string
-    associated_port?: number | null
-  }[]
+  system_env_variables?: Pick<ZaneEnvVariable, "key" | "value">[] | undefined
+  urls: Pick<
+    ZaneServiceDetails["urls"][number],
+    "associated_port" | "base_path" | "domain"
+  >[]
 }
 
 interface ProvisionMedusaPublishableKeyDeps {
@@ -187,16 +182,21 @@ const resolveMedusaUrl = (baseUrl: string, path: string): string => {
   ).toString()
 }
 
-interface AuthResponse {
-  token: string
-}
+const trimmedTokenSchema = z.string().trim().min(1)
 
-interface PublishableKeyResponse {
-  api_key: {
-    token: string
-  }
-  created: boolean
-}
+const authResponseSchema = z.object({
+  token: trimmedTokenSchema,
+})
+
+const publishableKeyResponseSchema = z.object({
+  api_key: z.object({
+    token: trimmedTokenSchema,
+  }),
+  created: z.preprocess((value) => value === true, z.boolean()),
+})
+
+type AuthResponse = z.infer<typeof authResponseSchema>
+type PublishableKeyResponse = z.infer<typeof publishableKeyResponseSchema>
 
 export class ZaneMedusaPublishableKeyProvisioner {
   readonly #deps: ProvisionMedusaPublishableKeyDeps
@@ -391,18 +391,12 @@ export class ZaneMedusaPublishableKeyProvisioner {
     }
 
     const payload: unknown = await response.json()
-    if (!isRecord(payload)) {
-      throw new BadRequestError(
-        "medusa admin auth response must be a JSON object",
-      )
-    }
-
-    const { token } = payload
-    if (typeof token !== "string" || !token.trim()) {
+    const result = authResponseSchema.safeParse(payload)
+    if (!result.success) {
       throw new BadRequestError("medusa admin auth response missing token")
     }
 
-    return { token: token.trim() }
+    return result.data
   }
 
   private static async requestPublishableKey(
@@ -438,31 +432,13 @@ export class ZaneMedusaPublishableKeyProvisioner {
     }
 
     const payload: unknown = await response.json()
-    if (!isRecord(payload)) {
-      throw new BadRequestError(
-        "medusa publishable key response must be a JSON object",
-      )
-    }
-
-    const apiKey = payload["api_key"]
-    if (!isRecord(apiKey)) {
-      throw new BadRequestError(
-        "medusa publishable key response missing api_key object",
-      )
-    }
-
-    const tokenValue = apiKey["token"]
-    if (typeof tokenValue !== "string" || !tokenValue.trim()) {
+    const result = publishableKeyResponseSchema.safeParse(payload)
+    if (!result.success) {
       throw new BadRequestError(
         "medusa publishable key response missing api_key.token",
       )
     }
 
-    return {
-      api_key: {
-        token: tokenValue.trim(),
-      },
-      created: payload["created"] === true,
-    }
+    return result.data
   }
 }

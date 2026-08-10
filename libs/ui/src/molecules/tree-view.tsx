@@ -2,7 +2,7 @@
  * TreeView — @techsio/ui-kit molecule.
  *
  * @component TreeView
- * @componentVersion v1.0.2
+ * @componentVersion v2.0.0
  * @skill tree-view-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -45,7 +45,6 @@ export interface TreeNode {
   selected?: boolean | undefined
   // Controls selection when the TreeView uses custom selection behavior.
   selectable?: boolean | undefined
-  [key: string]: unknown
 }
 
 const focusOutlineClasses = [

@@ -12,10 +12,11 @@ import { updateCartWorkflow } from "@medusajs/medusa/core-flows"
 
 import type { StoreSetCartCustomerNoteType } from "../../validators"
 
+const CartMetadataSchema = z.record(z.string(), z.json())
 const CartRecordSchema = z.object({
   customer_id: z.string().nullable().optional(),
   id: z.string(),
-  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+  metadata: CartMetadataSchema.nullable().optional(),
 })
 
 const retrieveCart = async (scope: MedusaContainer, id: string) => {

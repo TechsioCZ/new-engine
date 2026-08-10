@@ -9,7 +9,7 @@ import {
   Text,
   Toaster,
 } from "@medusajs/ui"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { useTranslation } from "react-i18next"
 import { useNavigate, useParams } from "react-router-dom"
 import type { LoaderFunctionArgs, UIMatch } from "react-router-dom"
@@ -58,7 +58,7 @@ const getCustomerGroupName = (value: unknown): string | null => {
     return null
   }
 
-  const { name } = value
+  const name = getRecordValue(value, "name")
   return typeof name === "string" && name.length > 0 ? name : null
 }
 

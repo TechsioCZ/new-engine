@@ -28,6 +28,7 @@ import {
   Modules,
   PaymentActions,
 } from "@medusajs/framework/utils"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import QRCode from "qrcode"
 
 import { buildPaymentQrSpayd } from "../../../utils/order-payment-qr"
@@ -36,7 +37,7 @@ import type { QrPaymentModuleService } from "../service"
 
 type QrManualPaymentProviderOptions = Record<string, never>
 
-interface QrManualPaymentProviderDependencies extends Record<string, unknown> {
+interface QrManualPaymentProviderDependencies {
   [QR_PAYMENT_MODULE]?: QrPaymentModuleService
 }
 
@@ -50,16 +51,6 @@ const QR_PAYMENT_DATA_URL_KEY = "payment_qr_data_url"
  */
 const isNonEmptyString = (value: string | null | undefined): value is string =>
   typeof value === "string" && value.length > 0
-
-/**
- * Narrows an untrusted `data` slot to an indexable object without asserting.
- * Matches the previous `typeof value === "object" && value !== null` guard, so
- * arrays are still accepted and only `null` is rejected.
- */
-const isQrPaymentDataObjectLike = (
-  value: unknown,
-): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
 
 const getString = (value: unknown) =>
   typeof value === "string" && value.trim() ? value.trim() : undefined
@@ -92,8 +83,8 @@ const getPaymentReference = (
   input: Pick<InitiatePaymentInput, "context" | "data">,
 ) => {
   const existingQrPayment = input.data?.[QR_PAYMENT_DATA_KEY]
-  const existingReference = isQrPaymentDataObjectLike(existingQrPayment)
-    ? getString(existingQrPayment["reference"])
+  const existingReference = isRecord(existingQrPayment)
+    ? getString(getRecordValue(existingQrPayment, "reference"))
     : undefined
   const dataReference =
     getString(input.data?.["reference"]) ??
@@ -103,7 +94,7 @@ const getPaymentReference = (
   return existingReference ?? dataReference ?? `qr_${Date.now()}`
 }
 
-const hasQrPaymentData = (data: Record<string, unknown> | undefined) =>
+const hasQrPaymentData = (data: InitiatePaymentInput["data"]) =>
   typeof data?.[QR_PAYMENT_SPAYD_KEY] === "string"
 
 /**
@@ -124,7 +115,7 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
     container: QrManualPaymentProviderDependencies,
     options: QrManualPaymentProviderOptions = {},
   ) {
-    super(container, options)
+    super({ ...container }, options)
 
     this.dependencies = container
     this.providerOptions = options
@@ -243,7 +234,7 @@ export class QrManualPaymentProvider extends AbstractPaymentProvider<QrManualPay
    * back unchanged. Every one of those outputs is a `PaymentProviderOutput`.
    */
   private async echoPaymentData(
-    data: Record<string, unknown> | undefined,
+    data: InitiatePaymentInput["data"],
   ): Promise<PaymentProviderOutput> {
     await Promise.resolve(this)
 

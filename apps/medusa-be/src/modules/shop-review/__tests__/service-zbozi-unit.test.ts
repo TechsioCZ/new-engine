@@ -69,7 +69,12 @@ const assertShopReviewDependencies: (
   }
 }
 
-const createService = (apiStoreOverrides: Record<string, unknown>) => {
+const createService = (
+  apiStoreOverrides: Partial<{
+    retrieveApiStoreSecretsByName: RetrieveApiStoreSecrets
+    upsertApiStoreConfigByName: UpsertApiStoreConfig
+  }>,
+) => {
   const candidate: unknown = {
     [API_STORE_MODULE]: {
       upsertApiStoreConfigByName: vi.fn<UpsertApiStoreConfig>(

@@ -49,7 +49,8 @@ const normalizeFamilyCode = (code: string | null) => {
     return null
   }
 
-  return code.split("/")[0]?.trim() || null
+  const familyCode = code.split("/")[0]?.trim()
+  return familyCode === undefined || familyCode.length === 0 ? null : familyCode
 }
 
 const resolveTopOfferCode = (product: HttpTypes.StoreProduct) => {

@@ -3,7 +3,7 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { MedusaError } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 
 import { requirePathParam } from "../../../../../utils/path-params"
 import { createApprovalsWorkflow } from "../../../../../workflows/approval/workflows/create-approvals"
@@ -36,14 +36,17 @@ const postRoute = async (
     )
   }
 
-  const { errors } = workflowResult
+  const errors = getRecordValue(workflowResult, "errors")
   if (Array.isArray(errors) && errors.length > 0) {
     const errorItems: unknown[] = errors
     const [firstError] = errorItems
-    const errorDetail = isRecord(firstError) ? firstError["error"] : undefined
+    const errorDetail = isRecord(firstError)
+      ? getRecordValue(firstError, "error")
+      : undefined
     const message =
-      isRecord(errorDetail) && typeof errorDetail["message"] === "string"
-        ? errorDetail["message"]
+      isRecord(errorDetail) &&
+      typeof getRecordValue(errorDetail, "message") === "string"
+        ? getRecordValue(errorDetail, "message")
         : "Approval creation failed"
 
     res.status(400).json({
@@ -53,7 +56,7 @@ const postRoute = async (
     return
   }
 
-  res.json({ approvals: workflowResult["result"] })
+  res.json({ approvals: getRecordValue(workflowResult, "result") })
 }
 
 export { postRoute as POST }

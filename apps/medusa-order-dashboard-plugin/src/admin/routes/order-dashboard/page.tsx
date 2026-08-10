@@ -1105,7 +1105,7 @@ const useOrderDashboardPage = () => {
     const nextOrdersById = new Map(selectedOrdersById)
 
     for (const order of orders) {
-      if (resolvedSelection[order.id]) {
+      if (resolvedSelection[order.id] === true) {
         nextOrdersById.set(order.id, order)
       } else {
         nextOrdersById.delete(order.id)

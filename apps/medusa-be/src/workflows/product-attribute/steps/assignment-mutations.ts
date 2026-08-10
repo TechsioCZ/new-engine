@@ -1,5 +1,5 @@
 import type { SqlEntityManager } from "@medusajs/framework/mikro-orm/knex"
-import type { Context } from "@medusajs/framework/types"
+import type { Context, Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -20,15 +20,6 @@ import type {
   SetProductAttributesInput,
 } from "../types"
 
-interface BoundedGraphQuery {
-  graph: (config: {
-    entity: "product"
-    fields: readonly string[]
-    filters: Record<string, unknown>
-    pagination: { take: number }
-  }) => Promise<{ data: { id: string }[] }>
-}
-
 interface AssignmentCompensation {
   created_ids: string[]
   previous: ProductAttributeAssignmentRecord[]
@@ -36,8 +27,9 @@ interface AssignmentCompensation {
 
 const MAX_ATTRIBUTE_OPERATIONS = 100
 
-const hasDeletedAt = (value: unknown): boolean =>
-  value instanceof Date || (typeof value === "string" && value.length > 0)
+const hasDeletedAt = (
+  value: ProductAttributeAssignmentRecord["deleted_at"],
+): boolean => value !== null && value !== undefined
 
 type PreparedSetOperation = SetProductAttributeOperation & {
   definition: ProductAttributeDefinitionRecord
@@ -235,9 +227,7 @@ const ensureProductExists = async (
   productId: string,
   container: Parameters<typeof getProductAttributeService>[0],
 ) => {
-  const query = container.resolve<BoundedGraphQuery>(
-    ContainerRegistrationKeys.QUERY,
-  )
+  const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const { data: products } = await query.graph({
     entity: "product",
     fields: ["id"],

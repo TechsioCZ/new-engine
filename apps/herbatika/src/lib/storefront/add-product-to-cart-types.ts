@@ -1,10 +1,7 @@
-import type { HttpTypes } from "@medusajs/types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 
 export interface AddProductToCartInput {
-  product: Pick<
-    HttpTypes.StoreProduct,
-    "id" | "metadata" | "title" | "variants"
-  >
+  product: Pick<MedusaCatalogProduct, "id" | "metadata" | "title" | "variants">
   quantity?: number
   variantId?: string | null
 }

@@ -1,6 +1,6 @@
 import type { StaticImageData } from "next/image"
 
-interface AboutTextLink {
+export interface AboutTextLink {
   href: string
   label: string
 }

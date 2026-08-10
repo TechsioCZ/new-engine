@@ -19,6 +19,7 @@ import {
 import type {
   SearchIndexType,
   SearchProfile,
+  SearchTestHit,
   SearchTestResult,
 } from "../../../../lib/search-profiles"
 
@@ -40,28 +41,20 @@ interface SearchTestVariables {
 const isSearchIndexType = (value: string): value is SearchIndexType =>
   SEARCH_INDEX_TYPE_SET.has(value)
 
-const hitLabel = (
-  hit: Record<string, unknown>,
-  untitledLabel: string,
-): string => {
-  for (const field of ["title", "name", "handle", "href", "id"]) {
-    const value = hit[field]
+const hitLabel = (hit: SearchTestHit, untitledLabel: string): string => {
+  const label = [hit.title, hit.name, hit.handle, hit.href].find(
+    (value) => value !== undefined && value !== "",
+  )
 
-    if (typeof value === "string" && value !== "") {
-      return value
-    }
+  if (label !== undefined) {
+    return label
   }
 
-  return untitledLabel
+  return typeof hit.id === "string" && hit.id !== "" ? hit.id : untitledLabel
 }
 
-const hitId = (hit: Record<string, unknown>, index: number): string => {
-  const value = hit["id"]
-
-  return typeof value === "string" || typeof value === "number"
-    ? String(value)
-    : `result-${index}`
-}
+const hitId = (hit: SearchTestHit, index: number): string =>
+  hit.id === undefined ? `result-${index}` : String(hit.id)
 
 const SearchResultTable = ({ result }: { result: SearchTestResult }) => {
   const { t } = useTranslation("meilisearch")
@@ -116,9 +109,9 @@ const SearchResultTable = ({ result }: { result: SearchTestResult }) => {
                   {hitId(hit, index)}
                 </Table.Cell>
                 <Table.Cell>
-                  {typeof hit["_rankingScore"] === "number"
-                    ? hit["_rankingScore"].toFixed(4)
-                    : "—"}
+                  {hit._rankingScore === undefined
+                    ? "—"
+                    : hit._rankingScore.toFixed(4)}
                 </Table.Cell>
                 <Table.Cell>
                   <details>

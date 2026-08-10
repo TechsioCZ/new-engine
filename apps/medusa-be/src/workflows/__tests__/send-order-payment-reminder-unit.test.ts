@@ -1,5 +1,6 @@
+import type { RemoteQueryInput } from "@medusajs/framework/types"
 import { createStep } from "@medusajs/framework/workflows-sdk"
-import { isRecord } from "@techsio/std/object"
+import { z } from "@medusajs/framework/zod"
 import { describe, expect, it, vi } from "vitest"
 
 vi.mock(import("@medusajs/framework/workflows-sdk"), async (importOriginal) => {
@@ -16,13 +17,8 @@ vi.mock(import("../../modules/order-receipt"), () => orderReceiptMock)
 
 type StepHandler = (input: unknown, context: unknown) => unknown
 
-const assertStepHandler: (
-  candidate: unknown,
-) => asserts candidate is StepHandler = (candidate) => {
-  if (typeof candidate !== "function") {
-    throw new TypeError("Expected a workflow step handler")
-  }
-}
+const isStepHandler = (candidate: unknown): candidate is StepHandler =>
+  typeof candidate === "function"
 
 const getPaymentReminderStep = (): StepHandler => {
   const call = vi
@@ -32,23 +28,27 @@ const getPaymentReminderStep = (): StepHandler => {
         nameOrConfig === "build-order-payment-reminder-notification",
     )
   const candidate: unknown = call?.[1]
-  assertStepHandler(candidate)
+  if (!isStepHandler(candidate)) {
+    throw new TypeError("Expected a workflow step handler")
+  }
   return candidate
 }
 
-interface Notification {
-  data?: Record<string, unknown>
-}
+const workflowStepResponseSchema = z.object({
+  output: z.array(
+    z.object({
+      data: z.object({ total: z.unknown().optional() }).optional(),
+    }),
+  ),
+})
+type Notification = z.infer<typeof workflowStepResponseSchema>["output"][number]
 
 const getNotifications = (result: unknown): Notification[] => {
-  if (!isRecord(result)) {
-    throw new TypeError("Expected a workflow step response")
-  }
-  const { output } = result
-  if (!Array.isArray(output)) {
+  const parsed = workflowStepResponseSchema.safeParse(result)
+  if (!parsed.success) {
     throw new TypeError("Expected workflow notifications")
   }
-  return output.filter(isRecord)
+  return parsed.data.output
 }
 
 type OrderSummaryFixture = {
@@ -61,12 +61,23 @@ interface OrderTotalFixture {
   total: number | string | null
 }
 
+interface PaymentReminderOrderQueryResult {
+  data: {
+    currency_code: string
+    customer_id: string
+    display_id: number
+    id: string
+    summary: OrderSummaryFixture
+    total: number | string | null
+  }[]
+}
+
 const createPaymentReminderNotificationContext = (order: OrderTotalFixture) => {
   const graph = vi
     .fn<
-      (input: Record<string, unknown>) => Promise<{
-        data: Record<string, unknown>[]
-      }>
+      (
+        input: RemoteQueryInput<"order">,
+      ) => Promise<PaymentReminderOrderQueryResult>
     >()
     .mockResolvedValue({
       data: [
@@ -137,20 +148,20 @@ describe("send order payment reminder workflow", () => {
     )
     const notifications = getNotifications(result)
 
-    expect(notifications[0]?.data?.["total"]).toBe(
+    expect(notifications[0]?.data?.total).toBe(
       new Intl.NumberFormat("cs-CZ", {
         currency: "CZK",
         style: "currency",
       }).format(1234.56),
     )
-    expect(notifications[0]?.data?.["total"]).not.toBe("stale input total")
-    expect(notifications[0]?.data?.["total"]).not.toBe(1999)
+    expect(notifications[0]?.data?.total).not.toBe("stale input total")
+    expect(notifications[0]?.data?.total).not.toBe(1999)
     const graphInput = graph.mock.calls[0]?.[0]
     expect(graphInput).toMatchObject({
       entity: "order",
       filters: { id: "order_123" },
     })
-    expect(graphInput?.["fields"]).toStrictEqual(
+    expect(graphInput?.fields).toStrictEqual(
       expect.arrayContaining(["summary.*", "total", "currency_code"]),
     )
   })
@@ -214,7 +225,7 @@ describe("send order payment reminder workflow", () => {
       )
       const notifications = getNotifications(result)
 
-      expect(notifications[0]?.data?.["total"]).toBe(expectedTotal)
+      expect(notifications[0]?.data?.total).toBe(expectedTotal)
     },
   )
 })

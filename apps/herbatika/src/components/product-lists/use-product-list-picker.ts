@@ -23,11 +23,39 @@ interface UseProductListPickerInput {
   selectedVariantId: string | null
 }
 
+interface ProductListPickerControllerResult {
+  activeListKey: ReturnType<typeof useProductListPickerState>["activeListKey"]
+  addProductToList: ReturnType<
+    typeof useProductListPickerActions
+  >["addProductToList"]
+  authQuery: ReturnType<typeof useAuth>
+  detailsAreLoading: boolean
+  detailsHaveError: boolean
+  handleCreateList: ReturnType<
+    typeof useProductListPickerActions
+  >["handleCreateList"]
+  isMutating: boolean
+  isOpen: boolean
+  listsQuery: ReturnType<typeof useProductLists>
+  loginHref: string
+  newListTitle: string
+  retryLists: () => Promise<void>
+  rows: ReturnType<typeof buildProductListPickerRows>
+  setIsOpen: ReturnType<typeof useProductListPickerState>["setIsOpen"]
+  setNewListTitle: ReturnType<
+    typeof useProductListPickerState
+  >["setNewListTitle"]
+  setShowNewListInput: ReturnType<
+    typeof useProductListPickerState
+  >["setShowNewListInput"]
+  showNewListInput: boolean
+}
+
 export const useProductListPicker = ({
   product,
   quantity,
   selectedVariantId,
-}: UseProductListPickerInput) => {
+}: UseProductListPickerInput): ProductListPickerControllerResult => {
   const tAuth = useTranslations("auth")
   const pathname = usePathname()
   const authQuery = useAuth()
@@ -95,6 +123,4 @@ export const useProductListPicker = ({
   }
 }
 
-export type ProductListPickerController = ReturnType<
-  typeof useProductListPicker
->
+export type ProductListPickerController = ProductListPickerControllerResult

@@ -4,7 +4,7 @@ import type { CarouselSlide } from "@techsio/ui-kit/molecules/carousel"
 import NextImage from "next/image"
 
 interface HeroCarouselProps {
-  slides: CarouselSlide[]
+  slides: CarouselSlide<typeof NextImage>[]
 }
 export const HeroCarousel = ({ slides }: HeroCarouselProps) => (
   <Carousel.Root

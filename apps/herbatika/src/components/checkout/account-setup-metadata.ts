@@ -1,6 +1,5 @@
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
-export { isRecord } from "@techsio/std/object"
 const ACCOUNT_SETUP_REQUESTED_METADATA_KEY = "account_setup_requested"
 
 export const readAccountSetupRequested = (metadata: unknown): boolean => {
@@ -8,13 +7,13 @@ export const readAccountSetupRequested = (metadata: unknown): boolean => {
     return false
   }
 
-  return metadata[ACCOUNT_SETUP_REQUESTED_METADATA_KEY] === true
+  return getRecordValue(metadata, ACCOUNT_SETUP_REQUESTED_METADATA_KEY) === true
 }
 
 export const buildAccountSetupRequestedMetadata = (
   metadata: unknown,
   requested: boolean,
-): Record<string, unknown> => ({
+) => ({
   ...(isRecord(metadata) ? metadata : {}),
   [ACCOUNT_SETUP_REQUESTED_METADATA_KEY]: requested,
 })

@@ -19,7 +19,56 @@ import {
   storefrontQueryKeys,
 } from "./storefront-config"
 
-export const storefrontCoreDefinition = {
+export interface StorefrontCoreDefinition {
+  cacheConfig: typeof storefrontCacheConfig
+  catalog: {
+    hooks: {
+      defaultPageSize: typeof CATALOG_DEFAULT_LIMIT
+      requireRegion: true
+    }
+    serviceConfig: typeof storefrontCatalogServiceConfig
+  }
+  categories: {
+    hooks: {
+      buildDetailParams: <TInput>(input: TInput) => TInput
+      buildListParams: typeof buildCategoryListParams
+      defaultPageSize: typeof DEFAULT_CATEGORY_PAGE_SIZE
+    }
+    serviceConfig: typeof storefrontCategoryServiceConfig
+  }
+  checkout: {
+    serviceConfig: typeof storefrontCheckoutServiceConfig
+  }
+  namespace: typeof STOREFRONT_QUERY_KEY_NAMESPACE
+  orders: {
+    hooks: {
+      buildDetailParams: <TInput>(input: TInput) => TInput
+      buildListParams: typeof buildHerbatikaOrderListParams
+    }
+    serviceConfig: typeof storefrontOrderServiceConfig
+  }
+  productAttributes: {
+    queryKeys: typeof storefrontQueryKeys.productAttributes
+  }
+  productLists: {
+    queryKeys: typeof storefrontQueryKeys.productLists
+  }
+  products: {
+    hooks: {
+      buildDetailParams: <TInput>(input: TInput) => TInput
+      buildListParams: typeof buildProductListParams
+      buildPrefetchParams: typeof buildProductListParams
+      defaultPageSize: typeof DEFAULT_PRODUCT_PAGE_SIZE
+    }
+    serviceConfig: typeof storefrontProductServiceConfig
+  }
+  queryKeys: typeof storefrontQueryKeys
+  reviews: {
+    queryKeys: typeof storefrontQueryKeys.reviews
+  }
+}
+
+export const storefrontCoreDefinition: StorefrontCoreDefinition = {
   cacheConfig: storefrontCacheConfig,
   catalog: {
     hooks: {

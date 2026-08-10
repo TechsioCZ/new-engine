@@ -15,7 +15,7 @@ import { ro } from "@payloadcms/translations/languages/ro"
 import { sk } from "@payloadcms/translations/languages/sk"
 import { sl } from "@payloadcms/translations/languages/sl"
 import { autoTranslate } from "@pigment/auto-translate"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { buildConfig } from "payload"
 import sharp from "sharp"
 
@@ -83,7 +83,7 @@ const s3SecretAccessKey = getRuntimeEnv(
 )
 
 const getSeoField = (doc: unknown, field: string): string =>
-  isRecord(doc) ? getDocString(doc[field]) : ""
+  isRecord(doc) ? getDocString(getRecordValue(doc, field)) : ""
 
 /** Payload CMS configuration for the Medusa integration. */
 export default buildConfig({

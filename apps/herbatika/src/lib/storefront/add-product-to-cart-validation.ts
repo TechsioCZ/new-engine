@@ -1,5 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import { getRecordValue } from "@techsio/std/object"
+import { isStorefrontMetadata } from "@techsio/storefront-data/cart/types"
+import type { StorefrontMetadata } from "@techsio/storefront-data/cart/types"
 import type { useTranslations } from "next-intl"
 
 import type { AddProductToCartInput } from "./add-product-to-cart-types"
@@ -40,11 +42,24 @@ const resolveProductVariant = (
   )
 }
 
+export type HerbatikaLineItemMetadata = Readonly<{
+  top_offer: StorefrontMetadata
+}>
+
+const decodeTopOfferMetadata = (value: object): StorefrontMetadata => {
+  if (!isStorefrontMetadata(value)) {
+    throw new TypeError("Product top_offer metadata must contain JSON data")
+  }
+  return value
+}
+
 export const resolveLineItemMetadata = (
   product: AddProductToCartInput["product"],
-) => {
+): HerbatikaLineItemMetadata | undefined => {
   const topOffer = resolveProductTopOffer(product)
-  return topOffer ? { top_offer: topOffer } : undefined
+  return topOffer === null
+    ? undefined
+    : { top_offer: decodeTopOfferMetadata(topOffer) }
 }
 
 const resolveLineItemVariantId = (

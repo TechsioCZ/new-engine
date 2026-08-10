@@ -1,11 +1,15 @@
 import type { LoaderOptions } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 
+interface PacketaConfigEnvironmentInput {
+  environment: string
+}
+
 interface PacketaConfigServiceType {
   listAndCount: (
-    filter: Record<string, unknown>,
+    filter: PacketaConfigEnvironmentInput,
   ) => Promise<[unknown[], number]>
-  create: (data: Record<string, unknown>) => Promise<unknown>
+  create: (data: PacketaConfigEnvironmentInput) => Promise<unknown>
 }
 
 /**

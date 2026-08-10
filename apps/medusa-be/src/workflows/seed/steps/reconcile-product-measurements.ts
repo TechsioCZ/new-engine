@@ -2,11 +2,14 @@ import type { SqlEntityManager } from "@medusajs/framework/mikro-orm/knex"
 import type { Link } from "@medusajs/framework/modules-sdk"
 import type {
   Context,
+  MetadataType,
   ILockingModule,
   IProductModuleService,
+  IndexOrderBy,
   Logger,
   ProductDTO,
   Query,
+  RemoteQueryFilters,
 } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
@@ -109,7 +112,7 @@ interface VariantRecordMutationPlan {
   variantTargetById: Map<string, ProductVariantMeasurementRecord | null>
 }
 
-interface ReconciliationSummary {
+export interface ReconciliationSummary {
   products_cleared: number
   products_set: number
   units_created: number
@@ -451,10 +454,7 @@ const ensureMeasurementUnits = async (
   return result
 }
 
-const getMetadataText = (
-  record: { metadata?: Record<string, unknown> | null },
-  key: string,
-) => {
+const getMetadataText = (record: { metadata?: MetadataType }, key: string) => {
   const value = record.metadata?.[key]
   return typeof value === "string" && value.trim().length > 0
     ? value.trim()
@@ -1150,67 +1150,32 @@ const reconcileBatchRecords = async (
     }
   })
 
-const isProductMeasurementLinkRecord = (
-  value: unknown,
-): value is ProductMeasurementLinkRecord => {
-  if (typeof value !== "object" || value === null) {
-    return false
-  }
-  return (
-    "product_id" in value &&
-    typeof value.product_id === "string" &&
-    "product_measurement_id" in value &&
-    typeof value.product_measurement_id === "string"
-  )
-}
-
-const isVariantMeasurementLinkRecord = (
-  value: unknown,
-): value is ProductVariantMeasurementLinkRecord => {
-  if (typeof value !== "object" || value === null) {
-    return false
-  }
-  return (
-    "product_variant_id" in value &&
-    typeof value.product_variant_id === "string" &&
-    "product_variant_measurement_id" in value &&
-    typeof value.product_variant_measurement_id === "string"
-  )
-}
-
-const listLinkRecords = async <T>({
+const listLinkRecords = async <T extends object>({
   entity,
   fields,
   filters,
-  isRecord,
   order,
   query,
 }: {
   entity: string
   fields: string[]
-  filters: Record<string, unknown>
-  isRecord: (value: unknown) => value is T
-  order: Record<string, "ASC">
+  filters: RemoteQueryFilters<string>
+  order: IndexOrderBy<string>
   query: Query
 }) => {
   const loadPage = async (skip = 0, records: T[] = []): Promise<T[]> => {
-    const { data, metadata } = await query.graph({
-      entity,
-      fields,
-      filters,
-      pagination: {
-        order,
-        skip,
-        take: RECONCILIATION_BATCH_SIZE,
-      },
-      withDeleted: true,
-    })
-    if (!(Array.isArray(data) && data.every(isRecord))) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        `Measurement link query for "${entity}" returned invalid data`,
-      )
-    }
+    const { data, metadata }: { data: T[]; metadata?: { count: number } } =
+      await query.graph({
+        entity,
+        fields,
+        filters,
+        pagination: {
+          order,
+          skip,
+          take: RECONCILIATION_BATCH_SIZE,
+        },
+        withDeleted: true,
+      })
     records.push(...data)
     const exhausted =
       metadata?.count === undefined
@@ -1325,16 +1290,15 @@ const reconcileBatchLinks = async (
   const variantIds = resolved.flatMap(({ product }) =>
     (product.variants ?? []).map((variant) => variant.id),
   )
-  const productLinks = await listLinkRecords({
+  const productLinks = await listLinkRecords<ProductMeasurementLinkRecord>({
     entity: ProductMeasurementLink.entryPoint,
     fields: ["deleted_at", "product_id", "product_measurement_id"],
     filters: { product_id: { $in: productIds } },
-    isRecord: isProductMeasurementLinkRecord,
     order: { product_id: "ASC", product_measurement_id: "ASC" },
     query,
   })
   const variantLinks = variantIds.length
-    ? await listLinkRecords({
+    ? await listLinkRecords<ProductVariantMeasurementLinkRecord>({
         entity: ProductVariantMeasurementLink.entryPoint,
         fields: [
           "deleted_at",
@@ -1342,7 +1306,6 @@ const reconcileBatchLinks = async (
           "product_variant_measurement_id",
         ],
         filters: { product_variant_id: { $in: variantIds } },
-        isRecord: isVariantMeasurementLinkRecord,
         order: {
           product_variant_id: "ASC",
           product_variant_measurement_id: "ASC",

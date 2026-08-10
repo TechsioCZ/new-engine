@@ -6,7 +6,7 @@ import type {
   ResetPasswordFormValues,
 } from "./auth-validation-types"
 
-interface PasswordConfirmFieldApi {
+export interface PasswordConfirmFieldApi {
   form: { getFieldValue: (name: "password") => unknown }
 }
 

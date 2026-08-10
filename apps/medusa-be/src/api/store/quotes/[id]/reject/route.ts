@@ -27,7 +27,7 @@ const post = async (
     },
   })
 
-  const queryResult: { data: Record<string, unknown>[] } = await query.graph(
+  const queryResult = await query.graph(
     {
       entity: "quote",
       fields: req.queryConfig.fields,

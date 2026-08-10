@@ -1,11 +1,13 @@
 import { MedusaError } from "@medusajs/framework/utils"
 
 import type {
+  CreatePricePayload,
   ExistingPrice,
   ExistingPriceList,
   ExistingPriceListIndex,
   PriceListCodeMapping,
   PriceListCustomerGroupIndex,
+  UpdatePricePayload,
   VariantLookupMaps,
 } from "./client"
 import type {
@@ -102,7 +104,7 @@ const buildCustomerGroupIndex = (
     name: string
     code?: string | null
     erp_code?: string | null
-    metadata: Record<string, unknown> | null
+    metadata: object | null
   }[],
   codes: Set<string>,
 ): PriceListCustomerGroupIndex => {
@@ -124,7 +126,7 @@ const applyCustomerGroupCodeMappings = (
   groups: {
     id: string
     name: string
-    metadata: Record<string, unknown> | null
+    metadata: object | null
   }[],
   mappings: {
     code: string | null
@@ -211,12 +213,12 @@ const collectPriceIdentifiers = (prices: PriceInput[]): PriceIdentifierSets => {
 
 const buildVariantMap = (
   field: "sku" | "ean" | "id",
-  variants: Record<string, unknown>[],
+  variants: object[],
 ): Map<string, string> => {
   const map = new Map<string, string>()
   for (const variant of variants) {
-    const value = variant[field]
-    const { id } = variant
+    const value: unknown = Reflect.get(variant, field)
+    const id: unknown = Reflect.get(variant, "id")
     if (typeof value === "string" && typeof id === "string") {
       map.set(value, id)
     }
@@ -296,8 +298,8 @@ const buildPriceBatchPayload = (
   variantMaps: VariantLookupMaps,
   existingPrices: Map<string, ExistingPrice>,
 ) => {
-  const create: Record<string, unknown>[] = []
-  const update: Record<string, unknown>[] = []
+  const create: CreatePricePayload[] = []
+  const update: UpdatePricePayload[] = []
   const owners: { index: number; input: PriceInput }[] = []
   const results = Array.from<PriceListPriceResult>({ length: prices.length })
 

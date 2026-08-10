@@ -3,7 +3,8 @@ import type {
   WebhookActionResult,
 } from "@medusajs/framework/types"
 import { PaymentActions, PaymentSessionStatus } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { z } from "@medusajs/framework/zod"
+import { paymentSchema } from "@paykit-sdk/core"
 
 import type { PaykitPayment, PaykitRefund, PaykitWebhookEvent } from "../types"
 
@@ -25,36 +26,74 @@ const PAYKIT_PAYMENT_MARKER_FIELDS = [
   "amount_paid",
   "status",
   "state",
-] as const
+]
 
-const isPaykitPayment = (value: unknown): value is PaykitPayment =>
-  isRecord(value) &&
-  (typeof value["id"] === "string" ||
-    PAYKIT_PAYMENT_MARKER_FIELDS.some((field) => field in value))
+const paykitCompatibleStatusSchema = z.enum([
+  "pending",
+  "processing",
+  "requires_action",
+  "requires_capture",
+  "succeeded",
+  "canceled",
+  "failed",
+  "requires_more",
+  "authorized",
+  "captured",
+  "paid",
+  "cancelled",
+  "error",
+])
 
-interface SerializableBigNumber {
-  toJSON: () => unknown
-  valueOf: () => unknown
+const compatibleWebhookPaymentSchema = z.object({
+  amount: z.union([z.number(), z.string()]).optional(),
+  amount_paid: z.union([z.number(), z.string()]).optional(),
+  currency: z.string().nullable().optional(),
+  currency_code: z.string().nullable().optional(),
+  id: z.string().optional(),
+  metadata: z.record(z.string(), z.string()).optional(),
+  state: paykitCompatibleStatusSchema.optional(),
+  status: paykitCompatibleStatusSchema.optional(),
+})
+
+const hasPaykitPaymentMarker = (payment: PaykitPayment): boolean =>
+  typeof payment.id === "string" ||
+  PAYKIT_PAYMENT_MARKER_FIELDS.some((field) => field in payment)
+
+const parseWebhookPayment = (value: unknown): PaykitPayment | null => {
+  const compatibilityResult = compatibleWebhookPaymentSchema.safeParse(value)
+  if (
+    compatibilityResult.success &&
+    hasPaykitPaymentMarker(compatibilityResult.data)
+  ) {
+    return compatibilityResult.data
+  }
+
+  const paymentResult = paymentSchema.partial().safeParse(value)
+  return paymentResult.success && hasPaykitPaymentMarker(paymentResult.data)
+    ? paymentResult.data
+    : null
 }
-
-const isSerializableBigNumber = (
-  value: unknown,
-): value is SerializableBigNumber =>
-  isRecord(value) &&
-  typeof value["toJSON"] === "function" &&
-  typeof value.valueOf === "function"
 
 const toBigNumberValue = (value: unknown): BigNumberValue | undefined => {
   if (typeof value === "number" || typeof value === "string") {
     return value
   }
 
-  if (!isSerializableBigNumber(value)) {
+  if (typeof value !== "object" || value === null) {
     return undefined
   }
 
-  const serialized = value.toJSON()
-  return typeof serialized === "number" ? serialized : undefined
+  try {
+    const serialized = JSON.stringify(value)
+    if (serialized === undefined) {
+      return undefined
+    }
+
+    const result = z.number().safeParse(JSON.parse(serialized))
+    return result.success ? result.data : undefined
+  } catch {
+    return undefined
+  }
 }
 
 export const mapPaykitStatusToMedusa = (
@@ -100,9 +139,7 @@ const getPaymentUrl = (payment: PaykitPayment): string | undefined =>
     payment.url,
   ].find((value): value is string => typeof value === "string")
 
-export const toPaykitPaymentData = (
-  payment: PaykitPayment,
-): Record<string, unknown> => {
+export const toPaykitPaymentData = (payment: PaykitPayment) => {
   const paymentUrl = getPaymentUrl(payment)
 
   return {
@@ -112,47 +149,37 @@ export const toPaykitPaymentData = (
   }
 }
 
-export const toPaykitRefundData = (
-  refund: PaykitRefund,
-): Record<string, unknown> => ({ ...refund })
+export const toPaykitRefundData = (refund: PaykitRefund) => ({ ...refund })
 
 const getWebhookPayment = (event: PaykitWebhookEvent): PaykitPayment | null => {
-  const { data } = event
-
-  if (isPaykitPayment(event.payment)) {
+  if (event.payment && hasPaykitPaymentMarker(event.payment)) {
     return event.payment
   }
 
-  if (isPaykitPayment(data)) {
-    return data
+  const directPayment = parseWebhookPayment(event.data)
+  if (directPayment) {
+    return directPayment
   }
 
-  if (isRecord(data) && isPaykitPayment(data["object"])) {
-    return data["object"]
+  if (typeof event.data !== "object" || event.data === null) {
+    return null
   }
 
-  if (isRecord(data) && isPaykitPayment(data["payment"])) {
-    return data["payment"]
-  }
-
-  return null
+  return (
+    parseWebhookPayment(Reflect.get(event.data, "object")) ??
+    parseWebhookPayment(Reflect.get(event.data, "payment"))
+  )
 }
 
 const getWebhookSessionId = (
   event: PaykitWebhookEvent,
   payment: PaykitPayment,
 ): string | undefined => {
-  if (
-    isRecord(payment.metadata) &&
-    typeof payment.metadata["session_id"] === "string"
-  ) {
+  if (typeof payment.metadata?.["session_id"] === "string") {
     return payment.metadata["session_id"]
   }
 
-  if (
-    isRecord(event.metadata) &&
-    typeof event.metadata["session_id"] === "string"
-  ) {
+  if (typeof event.metadata?.["session_id"] === "string") {
     return event.metadata["session_id"]
   }
 
@@ -162,14 +189,10 @@ const getWebhookSessionId = (
 const normalizeWebhookAmount = (
   amount: unknown,
 ): BigNumberValue | undefined => {
-  if (isRecord(amount)) {
-    const { value } = amount
-    if (typeof value === "number" || typeof value === "string") {
-      return value
-    }
-  }
-
-  return toBigNumberValue(amount)
+  const result = z
+    .object({ value: z.union([z.number(), z.string()]) })
+    .safeParse(amount)
+  return result.success ? result.data.value : toBigNumberValue(amount)
 }
 
 const getWebhookAmount = (

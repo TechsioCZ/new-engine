@@ -1,7 +1,14 @@
 "use client"
 
+import { getRecordValue, isRecord } from "@techsio/std/object"
+
+import type {
+  CarrierPickupData,
+  StoredCarrierPickupData,
+} from "./carrier-pickup.utils"
+
 export interface StoredCarrierPickupSelection {
-  data: Record<string, unknown>
+  data: StoredCarrierPickupData
   optionId: string
 }
 
@@ -21,36 +28,64 @@ export const clearStoredCarrierPickupSelection = (cartId?: string | null) => {
   window.sessionStorage.removeItem(createStorageKey(cartId))
 }
 
-const hasAccessPointId = (
-  data: Record<string, unknown> | null | undefined,
-): data is Record<string, unknown> => {
-  const accessPointId: unknown =
-    data === null || data === undefined
-      ? undefined
-      : Reflect.get(data, "access_point_id")
-  return typeof accessPointId === "string"
-    ? accessPointId.trim().length > 0
-    : typeof accessPointId === "number" && Number.isFinite(accessPointId)
-}
-
-const isStoredCarrierPickupSelection = (
+const isCarrierPickupText = (
   value: unknown,
-): value is StoredCarrierPickupSelection => {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    return false
+): value is string | null | undefined =>
+  value === undefined || value === null || typeof value === "string"
+
+const decodeCarrierPickupData = (
+  value: unknown,
+): StoredCarrierPickupData | null => {
+  if (!isRecord(value)) {
+    return null
   }
 
-  const hasOptionId =
-    "optionId" in value &&
-    typeof value.optionId === "string" &&
-    value.optionId.trim().length > 0
-  const hasData =
-    "data" in value &&
-    typeof value.data === "object" &&
-    value.data !== null &&
-    !Array.isArray(value.data)
+  const accessPointId = getRecordValue(value, "access_point_id")
+  if (
+    !(
+      (typeof accessPointId === "string" && accessPointId.trim().length > 0) ||
+      (typeof accessPointId === "number" && Number.isFinite(accessPointId))
+    )
+  ) {
+    return null
+  }
+  const textValues = [
+    getRecordValue(value, "access_point_city"),
+    getRecordValue(value, "access_point_country"),
+    getRecordValue(value, "access_point_name"),
+    getRecordValue(value, "access_point_street"),
+    getRecordValue(value, "access_point_type"),
+    getRecordValue(value, "access_point_zip"),
+  ]
+  if (!textValues.every(isCarrierPickupText)) {
+    return null
+  }
+  const [city, country, name, street, type, zip] = textValues
 
-  return hasOptionId && hasData
+  return {
+    access_point_id: accessPointId,
+    ...(city === undefined ? {} : { access_point_city: city }),
+    ...(country === undefined ? {} : { access_point_country: country }),
+    ...(name === undefined ? {} : { access_point_name: name }),
+    ...(street === undefined ? {} : { access_point_street: street }),
+    ...(type === undefined ? {} : { access_point_type: type }),
+    ...(zip === undefined ? {} : { access_point_zip: zip }),
+  }
+}
+
+const decodeStoredCarrierPickupSelection = (
+  value: unknown,
+): StoredCarrierPickupSelection | null => {
+  if (!isRecord(value)) {
+    return null
+  }
+  const optionId: unknown = getRecordValue(value, "optionId")
+  const data = decodeCarrierPickupData(getRecordValue(value, "data"))
+  return typeof optionId === "string" &&
+    optionId.trim().length > 0 &&
+    data !== null
+    ? { data, optionId }
+    : null
 }
 
 export const readStoredCarrierPickupSelection = ({
@@ -76,11 +111,8 @@ export const readStoredCarrierPickupSelection = ({
 
     const parsedValue: unknown = JSON.parse(rawValue)
 
-    if (!isStoredCarrierPickupSelection(parsedValue)) {
-      return null
-    }
-
-    return parsedValue.optionId === optionId ? parsedValue : null
+    const selection = decodeStoredCarrierPickupSelection(parsedValue)
+    return selection?.optionId === optionId ? selection : null
   } catch {
     return null
   }
@@ -92,7 +124,7 @@ export const writeStoredCarrierPickupSelection = ({
   optionId,
 }: {
   cartId?: string | null
-  data?: Record<string, unknown>
+  data?: CarrierPickupData
   optionId: string
 }) => {
   if (
@@ -104,13 +136,14 @@ export const writeStoredCarrierPickupSelection = ({
     return
   }
 
-  if (!hasAccessPointId(data)) {
+  const decodedData = decodeCarrierPickupData(data)
+  if (decodedData === null) {
     clearStoredCarrierPickupSelection(cartId)
     return
   }
 
   window.sessionStorage.setItem(
     createStorageKey(cartId),
-    JSON.stringify({ data, optionId }),
+    JSON.stringify({ data: decodedData, optionId }),
   )
 }

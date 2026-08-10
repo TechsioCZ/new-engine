@@ -228,14 +228,10 @@ const listMeasurementUnitAssignments = async ({
   status: MeasurementUnitProductListStatus
   unitId: string
 }) => {
-  const filters: Record<string, unknown> = {
+  const filters = {
     measurement_unit_id: unitId,
-  }
-
-  if (status === "active") {
-    filters["deleted_at"] = null
-  } else if (status === "deleted") {
-    filters["deleted_at"] = { $ne: null }
+    ...(status === "active" ? { deleted_at: null } : {}),
+    ...(status === "deleted" ? { deleted_at: { $ne: null } } : {}),
   }
 
   const service = getMeasurementUnitService(scope)

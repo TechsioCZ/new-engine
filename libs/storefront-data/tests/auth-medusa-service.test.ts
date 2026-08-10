@@ -1,10 +1,5 @@
-import type {
-  AuthLoginResponse,
-  AuthRedirectResponse,
-  AuthRegisterResponse,
-  ClientHeaders,
-  FetchArgs,
-} from "@medusajs/js-sdk"
+import type Medusa from "@medusajs/js-sdk"
+import type { ClientHeaders, FetchArgs } from "@medusajs/js-sdk"
 import type { HttpTypes } from "@medusajs/types"
 import type { Mock } from "vitest"
 import { describe, expect, it, vi } from "vitest"
@@ -21,19 +16,19 @@ import {
   createTestMedusaSdk,
 } from "./medusa-fixtures"
 
-type FetchMedusa = (path: string, init?: FetchArgs) => Promise<unknown>
+type FetchMedusa = <T>(path: string, init?: FetchArgs) => Promise<T>
 
-type RegisterAuth = (
-  actor: string,
-  method: string,
-  payload: HttpTypes.AdminSignUpWithEmailPassword | Record<string, unknown>,
-) => Promise<AuthRegisterResponse | AuthRedirectResponse>
+type RegisterAuth = Medusa["auth"]["register"]
 
-type LoginAuth = (
-  actor: string,
-  method: string,
-  payload: HttpTypes.AdminSignInWithEmailPassword | Record<string, unknown>,
-) => Promise<AuthLoginResponse>
+interface AuthRedirect {
+  location: string
+}
+
+type RegisterAuthMock = (
+  ...args: Parameters<RegisterAuth>
+) => Promise<string | AuthRedirect>
+
+type LoginAuth = Medusa["auth"]["login"]
 
 type RefreshAuth = (headers?: ClientHeaders) => Promise<string>
 
@@ -50,7 +45,7 @@ interface SdkSpies {
   login: Mock<LoginAuth>
   logout: Mock<LogoutAuth>
   refresh: Mock<RefreshAuth>
-  register: Mock<RegisterAuth>
+  register: Mock<RegisterAuthMock>
   storeCustomerCreate: Mock<CreateCustomer>
 }
 
@@ -63,7 +58,7 @@ const createSdkMock = () => {
     login: vi.fn<LoginAuth>().mockResolvedValue("token_1"),
     logout: vi.fn<LogoutAuth>().mockResolvedValue(),
     refresh: vi.fn<RefreshAuth>().mockResolvedValue("token_2"),
-    register: vi.fn<RegisterAuth>().mockResolvedValue("token_1"),
+    register: vi.fn<RegisterAuthMock>().mockResolvedValue("token_1"),
     storeCustomerCreate: vi.fn<CreateCustomer>().mockResolvedValue({
       customer: createStoreCustomer("cus_1"),
     }),

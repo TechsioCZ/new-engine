@@ -1,6 +1,6 @@
 "use client"
 
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { useRef, useState } from "react"
 import type { SyntheticEvent } from "react"
 
@@ -42,7 +42,7 @@ const parseErrorMessage = async (response: Response): Promise<string> => {
   try {
     const payload: unknown = await response.json()
     if (isRecord(payload)) {
-      const { message } = payload
+      const message = getRecordValue(payload, "message")
       if (typeof message === "string") {
         return message
       }
@@ -59,12 +59,15 @@ const parseImportResult = (value: unknown): ImportResult => {
     throw new ImportRequestError(INVALID_IMPORT_RESPONSE_MESSAGE, 502)
   }
 
-  const { ok, result } = value
+  const ok = getRecordValue(value, "ok")
+  const result = getRecordValue(value, "result")
   if (typeof ok !== "boolean" || !isRecord(result)) {
     throw new ImportRequestError(INVALID_IMPORT_RESPONSE_MESSAGE, 502)
   }
 
-  const { imported, skipped, total } = result
+  const imported = getRecordValue(result, "imported")
+  const skipped = getRecordValue(result, "skipped")
+  const total = getRecordValue(result, "total")
   if (
     typeof imported !== "number" ||
     typeof skipped !== "number" ||

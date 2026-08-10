@@ -35,13 +35,25 @@ interface UseAccountProductListCartInput {
   regionId: string | undefined
 }
 
+interface AccountProductListCartController {
+  activeListCanCreateCart: boolean
+  activeProductId: string | null
+  createListCartMutation: ReturnType<typeof useCreateProductListCart>
+  handleAddListToCart: () => Promise<void>
+  handleAddToCart: (
+    item: StoreProductListItem,
+    product: HttpTypes.StoreProduct,
+  ) => Promise<void>
+  isAddingListToCart: boolean
+}
+
 export const useAccountProductListCart = ({
   activeList,
   availabilitySummary,
   countryCode,
   customerEmail,
   regionId,
-}: UseAccountProductListCartInput) => {
+}: UseAccountProductListCartInput): AccountProductListCartController => {
   const tAuth = useTranslations("auth")
   const tCart = useTranslations("cart")
   const toast = useAppToast()

@@ -1,13 +1,16 @@
-import { isRecord } from "@techsio/std/object"
+import { z } from "zod"
 
 import type {
   ZaneServiceReconciliationSpec,
+  ZaneEnvironmentWithVariables,
   ZaneServiceDetails,
   ZaneServiceHealthcheck,
   ZaneServiceResourceLimits,
   ZaneServiceUrl,
   ZaneServiceVolume,
+  ZaneUnappliedChangeValue,
 } from "./zane-contract"
+import { zaneEnvironmentWithVariablesSchema } from "./zane-contract"
 import {
   computeEffectiveBuilder,
   computeEffectiveGitSource,
@@ -41,20 +44,6 @@ interface ResolveEnvironmentInput {
 interface ArchiveEnvironmentInput {
   projectSlug: string
   environmentName: string
-}
-
-interface ZaneEnvironment {
-  id: string
-  is_preview: boolean
-  name: string
-}
-
-interface ZaneEnvironmentWithVariables extends ZaneEnvironment {
-  variables: {
-    id: string
-    key: string
-    value: string
-  }[]
 }
 
 interface ZaneServiceCard {
@@ -97,60 +86,20 @@ interface ZaneEnvironmentDeps {
   ) => Promise<T | null>
 }
 
-const decodeRequiredString = (value: unknown, label: string): string => {
-  if (typeof value !== "string" || value === "") {
-    throw new TypeError(`${label} must be a non-empty string`)
-  }
-  return value
-}
-
 const decodeEnvironmentResponse = (
   payload: unknown,
 ): ZaneEnvironmentWithVariables => {
-  if (!isRecord(payload)) {
-    throw new TypeError("environment response must be an object")
+  const result = zaneEnvironmentWithVariablesSchema.safeParse(payload)
+  if (!result.success) {
+    throw new TypeError("environment response is invalid")
   }
-  const {
-    id,
-    is_preview: isPreview,
-    name,
-    variables: variableEntries,
-  } = payload
-  if (typeof isPreview !== "boolean") {
-    throw new TypeError("environment.is_preview must be a boolean")
-  }
-  if (!Array.isArray(variableEntries)) {
-    throw new TypeError("environment.variables must be an array")
-  }
-
-  const variables = variableEntries.map((entry, index) => {
-    if (!isRecord(entry)) {
-      throw new TypeError(`environment.variables[${index}] must be an object`)
-    }
-    const { id: variableId, key, value } = entry
-    return {
-      id: decodeRequiredString(
-        variableId,
-        `environment.variables[${index}].id`,
-      ),
-      key: decodeRequiredString(key, `environment.variables[${index}].key`),
-      value: decodeRequiredString(
-        value,
-        `environment.variables[${index}].value`,
-      ),
-    }
-  })
-
-  return {
-    id: decodeRequiredString(id, "environment.id"),
-    is_preview: isPreview,
-    name: decodeRequiredString(name, "environment.name"),
-    variables,
-  }
+  return result.data
 }
 
+const mutationResponseSchema = z.object({})
+
 const decodeMutationResponse = (payload: unknown): void => {
-  if (!isRecord(payload)) {
+  if (!mutationResponseSchema.safeParse(payload).success) {
     throw new TypeError("mutation response must be an object")
   }
 }
@@ -410,7 +359,22 @@ const normalizeUrlShape = (
   strip_prefix: url.strip_prefix ?? true,
 })
 
-const buildUrlChangeValue = (url: ZaneServiceUrl): Record<string, unknown> => ({
+type UrlChangeValue = Pick<
+  ZaneUnappliedChangeValue,
+  "associated_port" | "base_path" | "domain" | "redirect_to" | "strip_prefix"
+>
+
+type BuilderChangeValue = Pick<
+  ZaneUnappliedChangeValue,
+  "build_context_dir" | "build_stage_target" | "builder" | "dockerfile_path"
+>
+
+type HealthcheckChangeValue = Pick<
+  ZaneUnappliedChangeValue,
+  "associated_port" | "interval_seconds" | "timeout_seconds" | "type" | "value"
+>
+
+const buildUrlChangeValue = (url: ZaneServiceUrl): UrlChangeValue => ({
   base_path: url.base_path,
   domain: url.domain,
   strip_prefix: url.strip_prefix ?? true,
@@ -427,7 +391,7 @@ const buildBuilderChangeValue = (value: {
   dockerfile_path: string
   build_context_dir: string
   build_stage_target: string | null
-}): Record<string, unknown> => ({
+}): BuilderChangeValue => ({
   build_context_dir: value.build_context_dir,
   builder: value.builder,
   dockerfile_path: value.dockerfile_path,
@@ -439,7 +403,7 @@ const buildBuilderChangeValue = (value: {
 
 const buildHealthcheckChangeValue = (
   healthcheck: ZaneServiceHealthcheck,
-): Record<string, unknown> => ({
+): HealthcheckChangeValue => ({
   interval_seconds: healthcheck.interval_seconds,
   timeout_seconds: healthcheck.timeout_seconds,
   type: healthcheck.type,
@@ -519,9 +483,30 @@ const urlShapesMatch = (
   JSON.stringify(normalizeUrlShape(currentUrl)) ===
   JSON.stringify(normalizeUrlShape(desiredUrl))
 
+interface ResolveEnvironmentLogPayload {
+  base_path?: string
+  baseline_complete?: boolean
+  build_stage_target?: string | null
+  created?: boolean
+  deploy_after_clone?: boolean
+  domain?: string
+  environment_id?: string
+  environment_name: string
+  lane?: "preview" | "main"
+  missing_preview_service_slugs?: string[]
+  present_excluded_preview_service_slugs?: string[]
+  project_slug: string
+  ready?: boolean
+  service_slug?: string
+  service_slugs?: string[]
+  service_type?: "docker" | "git"
+  source_environment_name?: string
+  warning_count?: number
+}
+
 const logResolveEnvironmentEvent = (
   event: string,
-  payload: Record<string, unknown>,
+  payload: ResolveEnvironmentLogPayload,
 ): void => {
   console.info(JSON.stringify({ event, ...payload }))
 }

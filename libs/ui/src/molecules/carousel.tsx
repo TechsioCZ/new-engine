@@ -2,7 +2,7 @@
  * Carousel — @techsio/ui-kit molecule.
  *
  * @component Carousel
- * @componentVersion v1.0.1
+ * @componentVersion v2.0.0
  * @skill carousel-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -25,17 +25,67 @@ import type { VariantProps } from "tailwind-variants"
 import { Button } from "../atoms/button"
 import type { IconType } from "../atoms/icon"
 import { Image } from "../atoms/image"
+import type { ImageProps } from "../atoms/image"
+import { rendererCapability } from "../internal/renderer-capability"
 
-type CarouselImageComponent<T extends ElementType = typeof Image> =
-  T extends typeof Image
-    ? typeof Image
-    : T extends ElementType
-      ? "src" extends keyof ComponentPropsWithoutRef<T>
-        ? "alt" extends keyof ComponentPropsWithoutRef<T>
-          ? T
+type IsUncheckedValue<Value> = 0 extends 1 & Value ? true : false
+
+type IsDefaultImageComponent<T extends ElementType> =
+  IsUncheckedValue<T> extends true
+    ? false
+    : [T] extends [typeof Image]
+      ? [typeof Image] extends [T]
+        ? true
+        : false
+      : false
+
+type SafeComponentProps<T extends ElementType> =
+  IsUncheckedValue<T> extends true
+    ? never
+    : IsUncheckedValue<ComponentPropsWithoutRef<T>> extends true
+      ? never
+      : ComponentPropsWithoutRef<T>
+
+type SafeProperty<Value, Key extends PropertyKey> = Key extends keyof Value
+  ? IsUncheckedValue<Value[Key]> extends true
+    ? never
+    : Value[Key]
+  : never
+
+type AcceptsInjectedProperty<Value, Key extends PropertyKey, Injected> = [
+  SafeProperty<Value, Key>,
+] extends [never]
+  ? false
+  : [Injected] extends [SafeProperty<Value, Key>]
+    ? true
+    : false
+
+type RequiredPropertyKeys<Value> = {
+  [Key in keyof Value]-?: Pick<Value, Key> extends Required<Pick<Value, Key>>
+    ? Key
+    : never
+}[keyof Value]
+
+export type CarouselImageComponent<T extends ElementType = typeof Image> =
+  IsUncheckedValue<T> extends true
+    ? never
+    : [T] extends [typeof Image]
+      ? typeof Image
+      : [SafeComponentProps<T>] extends [never]
+        ? never
+        : "src" extends keyof SafeComponentProps<T>
+          ? AcceptsInjectedProperty<
+              SafeComponentProps<T>,
+              "alt",
+              string
+            > extends true
+            ? T
+            : never
           : never
-        : never
-      : never
+
+export type CarouselImageRenderer<T extends ElementType = typeof Image> =
+  | CarouselImageComponent<T>
+  | (IsDefaultImageComponent<T> extends true ? undefined : never)
 
 const carouselVariants = tv({
   compoundSlots: [
@@ -223,17 +273,100 @@ const useCarouselApi = (): Api => {
   return api
 }
 
-export interface CarouselSlide {
+type SafeImageSource<Value> =
+  IsUncheckedValue<Value> extends true ? never : Value
+
+type ComponentImageSource<T extends ElementType> =
+  SafeComponentProps<T> extends { src?: infer Source }
+    ? SafeImageSource<Source>
+    : never
+
+export type CarouselSlideSource<T extends ElementType> =
+  IsUncheckedValue<T> extends true
+    ? never
+    : [T] extends [typeof Image]
+      ? ImageProps["src"]
+      : ComponentImageSource<T>
+
+type CarouselSlideImageProps<T extends ElementType> = Omit<
+  [T] extends ["img"]
+    ? ImageProps
+    : [T] extends [typeof Image]
+      ? ImageProps
+      : SafeComponentProps<T>,
+  "alt" | "src"
+>
+
+type ImagePropsRequirement<Value> =
+  RequiredPropertyKeys<Value> extends never
+    ? { imageProps?: Value | undefined }
+    : { imageProps: Value }
+
+type SupportsStringSourceSizing<T extends ElementType> =
+  AcceptsInjectedProperty<CarouselSlideImageProps<T>, "fill", true> extends true
+    ? [SafeProperty<CarouselSlideImageProps<T>, "width">] extends [never]
+      ? false
+      : [SafeProperty<CarouselSlideImageProps<T>, "height">] extends [never]
+        ? false
+        : true
+    : false
+
+type CarouselSizedStringImageProps<T extends ElementType> = Omit<
+  CarouselSlideImageProps<T>,
+  "fill" | "height" | "width"
+> &
+  (
+    | { fill: true; height?: never; width?: never }
+    | {
+        fill?: false | undefined
+        height: Exclude<
+          SafeProperty<CarouselSlideImageProps<T>, "height">,
+          null | undefined
+        >
+        width: Exclude<
+          SafeProperty<CarouselSlideImageProps<T>, "width">,
+          null | undefined
+        >
+      }
+  )
+
+interface CarouselSlideBase<T extends ElementType> {
   id: string
-  content?: ReactNode | undefined
-  src?: string | undefined
   alt?: string | undefined
-  imageProps?: Record<string, unknown> | undefined
+  src?: CarouselSlideSource<T> | undefined
 }
+
+type CarouselContentSlide<T extends ElementType> = CarouselSlideBase<T> & {
+  content: Exclude<ReactNode, undefined>
+  imageProps?: CarouselSlideImageProps<T> | undefined
+}
+
+type CarouselImageSlideForSource<
+  T extends ElementType,
+  Source,
+> = Source extends string
+  ? { src: Source } & (SupportsStringSourceSizing<T> extends true
+      ? { imageProps: CarouselSizedStringImageProps<T> }
+      : ImagePropsRequirement<CarouselSlideImageProps<T>>)
+  : { src: Source } & ImagePropsRequirement<CarouselSlideImageProps<T>>
+
+type CarouselImageSlide<T extends ElementType> = Omit<
+  CarouselSlideBase<T>,
+  "src"
+> & {
+  content?: undefined
+} & CarouselImageSlideForSource<
+    T,
+    Exclude<CarouselSlideSource<T>, null | undefined>
+  >
+
+export type CarouselSlide<T extends ElementType = typeof Image> =
+  | CarouselContentSlide<T>
+  | CarouselImageSlide<T>
 
 type CarouselDimension = CSSProperties["width"]
 
-export interface CarouselRootProps<T extends ElementType = typeof Image>
+interface CarouselRootPropsBase<T extends ElementType>
   extends
     Omit<CarouselVariants, "controlPosition">,
     Omit<ZagCarouselProps, "id" | "size"> {
@@ -245,12 +378,27 @@ export interface CarouselRootProps<T extends ElementType = typeof Image>
   height?: CarouselDimension | undefined
 }
 
-interface CarouselSlidesProps {
-  slides: CarouselSlide[]
+export type CarouselRootProps<T extends ElementType = typeof Image> =
+  CarouselRootPropsBase<T>
+
+interface CarouselSlidesBaseProps<T extends ElementType> {
+  slides: NoInfer<CarouselSlide<T>>[]
   size?: CarouselSize | undefined
-  imageAs?: ElementType | undefined
   className?: string | undefined
 }
+
+interface CarouselInheritedSlidesProps<
+  T extends ElementType,
+> extends CarouselSlidesBaseProps<T> {
+  imageAs?: CarouselImageComponent<T> | undefined
+  rendererCapability: typeof rendererCapability
+}
+
+export type CarouselSlidesProps<T extends ElementType = typeof Image> =
+  | (CarouselSlidesBaseProps<T> & { imageAs: CarouselImageRenderer<T> })
+  | (IsDefaultImageComponent<T> extends true
+      ? CarouselSlidesBaseProps<T> & { imageAs?: undefined }
+      : never)
 
 interface CarouselSlideProps {
   index: number
@@ -395,12 +543,17 @@ const CarouselSlide = ({
   )
 }
 
-const CarouselSlides = ({
+/** @internal */
+export const CarouselInheritedSlides = <T extends ElementType = typeof Image>({
   slides,
   size: overrideSize,
   imageAs,
   className,
-}: CarouselSlidesProps) => {
+  rendererCapability: providedRendererCapability,
+}: CarouselInheritedSlidesProps<T>) => {
+  if (providedRendererCapability !== rendererCapability) {
+    throw new Error("Carousel inherited renderer capability is invalid")
+  }
   const api = useCarouselApi()
   const contextSize = useContext(CarouselSizeContext)
   const objectFit = useContext(CarouselObjectFitContext)
@@ -415,26 +568,31 @@ const CarouselSlides = ({
 
   return (
     <div className={slideGroup({ className })} {...api.getItemGroupProps()}>
-      {slides.map((slide, index) => {
-        const hasContent = Boolean(slide.content)
-
-        return (
-          <CarouselSlide index={index} key={slide.id}>
-            {hasContent ? (
-              slide.content
-            ) : (
-              <SlideImage
-                alt={slide.alt ?? ""}
-                src={slide.src ?? ""}
-                {...slide.imageProps}
-              />
-            )}
-          </CarouselSlide>
-        )
-      })}
+      {slides.map((slide, index) => (
+        <CarouselSlide index={index} key={slide.id}>
+          {slide.content === undefined ? (
+            <SlideImage
+              {...slide.imageProps}
+              alt={slide.alt ?? ""}
+              src={slide.src}
+            />
+          ) : (
+            slide.content
+          )}
+        </CarouselSlide>
+      ))}
     </div>
   )
 }
+
+const CarouselSlides = <T extends ElementType = typeof Image>(
+  props: CarouselSlidesProps<T>,
+) => (
+  <CarouselInheritedSlides<T>
+    {...props}
+    rendererCapability={rendererCapability}
+  />
+)
 
 const CarouselPrevious = ({
   className,

@@ -179,7 +179,7 @@ export interface PacketaBranch {
 
 export type PacketaFulfillmentStatus = "completed" | "error"
 
-export interface PacketaFulfillmentData extends Record<string, unknown> {
+export interface PacketaFulfillmentData {
   status: PacketaFulfillmentStatus
   /** Packeta internal packet ID */
   packet_id: number

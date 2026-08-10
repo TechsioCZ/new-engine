@@ -1,4 +1,5 @@
 import type {
+  MetadataType,
   IProductModuleService,
   Logger,
   MedusaContainer,
@@ -22,7 +23,7 @@ export type CreateProductCategoriesStepInput = {
   parentHandle?: string
   description?: string
   handle?: string
-  metadata?: Record<string, unknown>
+  metadata?: MetadataType
   rank?: number
   isInternal?: boolean
 }[]

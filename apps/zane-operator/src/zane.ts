@@ -1,7 +1,14 @@
-import { isRecord } from "@techsio/std/object"
+import { z } from "zod"
 
 import type { AppConfig } from "./config"
 import { BadRequestError } from "./db"
+import {
+  zaneDeploymentListResponseSchema,
+  zaneDeploymentSchema,
+  zaneEnvironmentWithVariablesSchema,
+  zaneServiceCardSchema,
+  zaneServiceDetailsSchema,
+} from "./zane-contract"
 import type {
   ArchiveEnvironmentInput,
   EnvOverrideInput,
@@ -15,20 +22,19 @@ import type {
   RuntimeProviderOutputInput,
   RuntimeProviderRunInput,
   RuntimeProviderRunResult,
-  ServiceType,
   SyncPreviewRandomOnceSecretsInput,
   SyncPreviewServiceEnvInput,
   SyncPreviewSharedEnvInput,
   TriggeredDeployment,
   VerifyDeployInput,
+  ZaneDeployment,
+  ZaneDeploymentListResponse,
+  ZaneEnvironmentWithVariables,
   WritePreviewCommitStateInput,
-  ZaneEnvironment,
   ZaneEnvVariable,
   ZaneResolvedTarget,
   ZaneServiceCard,
   ZaneServiceDetails,
-  ZaneServiceHealthcheck,
-  ZaneServiceResourceLimits,
 } from "./zane-contract"
 import { ZaneDeployOps } from "./zane-deploy-ops"
 import { ZaneDeployVerifier } from "./zane-deploy-verify"
@@ -54,35 +60,12 @@ export type {
   ZaneServiceDetails,
 } from "./zane-contract"
 
-interface ZaneDeployment {
-  hash: string
-  is_current_production?: boolean
-  commit_sha?: string | null
-  status: string
-  status_reason?: string | null
-  service_snapshot?: {
-    env_variables?: ZaneEnvVariable[]
-  }
-}
-
-interface ZaneDeploymentListResponse {
-  results?: ZaneDeployment[]
-}
-
-interface ZaneEnvironmentWithVariables extends ZaneEnvironment {
-  variables: {
-    id: string
-    key: string
-    value: string
-  }[]
-}
-
 interface PreviewRuntimeSourceContext {
   session: ZaneSession
   projectSlug: string
   environmentName: string
   environment: ZaneEnvironmentWithVariables
-  envByKey: Map<string, { id: string; key: string; value: string }>
+  envByKey: Map<string, ZaneEnvVariable>
   source: PreviewRuntimeValueSourceInput
   label: string
   serviceDetailsByRef: Map<string, ZaneServiceDetails>
@@ -92,69 +75,6 @@ const previewTargetCommitEnvKey = "ZANE_OPERATOR_PREVIEW_TARGET_COMMIT_SHA"
 const previewLastDeployedCommitEnvKey =
   "ZANE_OPERATOR_PREVIEW_LAST_DEPLOYED_COMMIT_SHA"
 const previewBaselineCompleteEnvKey = "ZANE_OPERATOR_PREVIEW_BASELINE_COMPLETE"
-
-const assertString = (value: unknown, label: string): string => {
-  if (typeof value !== "string" || !value.trim()) {
-    throw new UpstreamHttpError(
-      502,
-      "zane_payload_invalid",
-      `${label} must be a non-empty string`,
-    )
-  }
-
-  return value.trim()
-}
-
-const assertServiceType = (value: unknown, label: string): ServiceType => {
-  const rawServiceType = assertString(value, label)
-
-  switch (rawServiceType.toUpperCase()) {
-    case "DOCKER":
-    case "DOCKER_REGISTRY": {
-      return "docker"
-    }
-    case "GIT":
-    case "GIT_REPOSITORY": {
-      return "git"
-    }
-    default: {
-      throw new UpstreamHttpError(
-        502,
-        "zane_service_type_invalid",
-        `${label} must be docker or git`,
-      )
-    }
-  }
-}
-
-const assertObject = (
-  value: unknown,
-  label: string,
-): Record<string, unknown> => {
-  if (!isRecord(value)) {
-    throw new UpstreamHttpError(
-      502,
-      "zane_payload_invalid",
-      `${label} must be an object`,
-    )
-  }
-
-  return value
-}
-
-const assertStringArrayInput = (value: unknown, label: string): string[] => {
-  if (!Array.isArray(value)) {
-    throw new BadRequestError(`${label} must be an array`)
-  }
-
-  return value.map((item, index) => {
-    if (typeof item !== "string" || !item.trim()) {
-      throw new BadRequestError(`${label}[${index}] must be a non-empty string`)
-    }
-
-    return item.trim()
-  })
-}
 
 const toMeiliProvisionOutputInput = (
   output: RuntimeProviderOutputInput,
@@ -166,31 +86,9 @@ const toMeiliProvisionOutputInput = (
     )
   }
 
-  const { uid } = output.policy
-  const { description } = output.policy
-  if (typeof uid !== "string" || !uid.trim()) {
-    throw new BadRequestError(`${label}.policy.uid must be a non-empty string`)
-  }
-  if (typeof description !== "string" || !description.trim()) {
-    throw new BadRequestError(
-      `${label}.policy.description must be a non-empty string`,
-    )
-  }
-
   return {
     envVar: output.envVar,
-    policy: {
-      actions: assertStringArrayInput(
-        output.policy["actions"],
-        `${label}.policy.actions`,
-      ),
-      description: description.trim(),
-      indexes: assertStringArrayInput(
-        output.policy["indexes"],
-        `${label}.policy.indexes`,
-      ),
-      uid: uid.trim(),
-    },
+    policy: output.policy,
   }
 }
 
@@ -204,509 +102,94 @@ const toMedusaPublishableKeyProvisionOutputInput = (
     )
   }
 
-  const { title } = output.policy
-  if (
-    title !== null &&
-    title !== undefined &&
-    (typeof title !== "string" || !title.trim())
-  ) {
-    throw new BadRequestError(
-      `${label}.policy.title must be a non-empty string when provided`,
-    )
-  }
-
   return {
     envVar: output.envVar,
     policy:
-      typeof title === "string" && title.trim() ? { title: title.trim() } : {},
+      output.policy.title === undefined || output.policy.title === null
+        ? {}
+        : { title: output.policy.title },
   }
 }
 
 const normalizeServiceCards = (payload: unknown): ZaneServiceCard[] => {
-  if (!Array.isArray(payload)) {
+  const result = z.array(zaneServiceCardSchema).safeParse(payload)
+  if (!result.success) {
     throw new UpstreamHttpError(
       502,
       "zane_service_list_invalid",
-      "ZaneOps service list response was not an array",
+      "ZaneOps service list response was invalid",
     )
   }
-
-  return payload.map((item, index) => {
-    const object = assertObject(item, `service_list[${index}]`)
-    return {
-      id: assertString(object["id"], `service_list[${index}].id`),
-      slug: assertString(object["slug"], `service_list[${index}].slug`),
-      type: assertServiceType(object["type"], `service_list[${index}].type`),
-      ...(typeof object["status"] === "string"
-        ? { status: object["status"] }
-        : {}),
-    }
-  })
-}
-
-const normalizeDockerfileBuilderOptions = (
-  value: unknown,
-):
-  | NonNullable<ZaneServiceDetails["dockerfile_builder_options"]>
-  | undefined => {
-  if (!isRecord(value)) {
-    return undefined
-  }
-
-  return {
-    ...(typeof value["dockerfile_path"] === "string" ||
-    value["dockerfile_path"] === null
-      ? { dockerfile_path: value["dockerfile_path"] }
-      : {}),
-    ...(typeof value["build_context_dir"] === "string" ||
-    value["build_context_dir"] === null
-      ? { build_context_dir: value["build_context_dir"] }
-      : {}),
-    ...(typeof value["build_stage_target"] === "string" ||
-    value["build_stage_target"] === null
-      ? { build_stage_target: value["build_stage_target"] }
-      : {}),
-  }
-}
-
-const normalizeEnvVariables = (
-  value: unknown,
-): ZaneEnvVariable[] | undefined => {
-  if (!Array.isArray(value)) {
-    return undefined
-  }
-
-  const variables: ZaneEnvVariable[] = []
-  for (const entry of value) {
-    if (
-      isRecord(entry) &&
-      typeof entry["id"] === "string" &&
-      typeof entry["key"] === "string" &&
-      typeof entry["value"] === "string"
-    ) {
-      variables.push({
-        id: entry["id"],
-        key: entry["key"],
-        value: entry["value"],
-      })
-    }
-  }
-  return variables
-}
-
-const normalizeServiceUrls = (value: unknown): ZaneServiceDetails["urls"] => {
-  if (!Array.isArray(value)) {
-    return []
-  }
-
-  return value.flatMap((entry) => {
-    if (
-      !isRecord(entry) ||
-      typeof entry["domain"] !== "string" ||
-      typeof entry["base_path"] !== "string"
-    ) {
-      return []
-    }
-
-    return [
-      {
-        base_path: entry["base_path"],
-        domain: entry["domain"],
-        ...(typeof entry["id"] === "string" ? { id: entry["id"] } : {}),
-        ...(typeof entry["strip_prefix"] === "boolean"
-          ? { strip_prefix: entry["strip_prefix"] }
-          : {}),
-        ...(typeof entry["redirect_to"] === "string" ||
-        entry["redirect_to"] === null
-          ? { redirect_to: entry["redirect_to"] }
-          : {}),
-        ...(typeof entry["associated_port"] === "number" ||
-        entry["associated_port"] === null
-          ? { associated_port: entry["associated_port"] }
-          : {}),
-      },
-    ]
-  })
-}
-
-const normalizeServiceVolumes = (
-  value: unknown,
-): NonNullable<ZaneServiceDetails["volumes"]> | undefined => {
-  if (!Array.isArray(value)) {
-    return undefined
-  }
-
-  return value.flatMap((entry) => {
-    if (
-      !isRecord(entry) ||
-      typeof entry["name"] !== "string" ||
-      typeof entry["container_path"] !== "string" ||
-      typeof entry["mode"] !== "string"
-    ) {
-      return []
-    }
-
-    return [
-      {
-        container_path: entry["container_path"],
-        mode: entry["mode"],
-        name: entry["name"],
-        ...(typeof entry["id"] === "string" ? { id: entry["id"] } : {}),
-        ...(typeof entry["host_path"] === "string" ||
-        entry["host_path"] === null
-          ? { host_path: entry["host_path"] }
-          : {}),
-      },
-    ]
-  })
-}
-
-const normalizeUnappliedChanges = (
-  value: unknown,
-): NonNullable<ZaneServiceDetails["unapplied_changes"]> | undefined => {
-  if (!Array.isArray(value)) {
-    return undefined
-  }
-
-  return value.flatMap((entry) => {
-    if (!isRecord(entry) || typeof entry["id"] !== "string") {
-      return []
-    }
-
-    return [
-      {
-        id: entry["id"],
-        ...(typeof entry["type"] === "string" ? { type: entry["type"] } : {}),
-        ...(typeof entry["field"] === "string"
-          ? { field: entry["field"] }
-          : {}),
-        ...(typeof entry["item_id"] === "string" || entry["item_id"] === null
-          ? { item_id: entry["item_id"] }
-          : {}),
-        ...(isRecord(entry["new_value"]) || entry["new_value"] === null
-          ? { new_value: entry["new_value"] }
-          : {}),
-        ...(isRecord(entry["old_value"]) || entry["old_value"] === null
-          ? { old_value: entry["old_value"] }
-          : {}),
-      },
-    ]
-  })
-}
-
-// The environment reference carries the variables that bootstrap-generated
-// {{env.X}} references resolve against. Dropping it makes the Meilisearch and
-// Medusa provisioners fall back to the literal placeholder as a credential.
-const normalizeEnvironmentReference = (
-  value: unknown,
-): ZaneServiceDetails["environment"] | undefined => {
-  if (value === null) {
-    return null
-  }
-
-  if (
-    !isRecord(value) ||
-    typeof value["id"] !== "string" ||
-    typeof value["name"] !== "string"
-  ) {
-    return undefined
-  }
-
-  const variables = normalizeEnvVariables(value["variables"])
-  return {
-    id: value["id"],
-    name: value["name"],
-    ...(variables === undefined ? {} : { variables }),
-  }
-}
-
-const normalizeGitAppRef = (
-  value: unknown,
-): ZaneServiceDetails["git_app"] | undefined => {
-  if (value === null) {
-    return null
-  }
-
-  return isRecord(value) && typeof value["id"] === "string"
-    ? { id: value["id"] }
-    : undefined
-}
-
-const normalizeHealthcheck = (
-  value: unknown,
-): ZaneServiceHealthcheck | null | undefined => {
-  if (value === null) {
-    return null
-  }
-  if (!isRecord(value)) {
-    return undefined
-  }
-  if (typeof value["type"] !== "string" || typeof value["value"] !== "string") {
-    return undefined
-  }
-  if (
-    typeof value["timeout_seconds"] !== "number" ||
-    typeof value["interval_seconds"] !== "number"
-  ) {
-    return undefined
-  }
-
-  return {
-    interval_seconds: value["interval_seconds"],
-    timeout_seconds: value["timeout_seconds"],
-    type: value["type"],
-    value: value["value"],
-    ...(typeof value["associated_port"] === "number" ||
-    value["associated_port"] === null
-      ? { associated_port: value["associated_port"] }
-      : {}),
-  }
-}
-
-const normalizeResourceLimits = (
-  value: unknown,
-): ZaneServiceResourceLimits | null | undefined => {
-  if (value === null) {
-    return null
-  }
-  if (!isRecord(value)) {
-    return undefined
-  }
-
-  const { memory } = value
-  let normalizedMemory: ZaneServiceResourceLimits["memory"] | undefined
-  if (memory === null) {
-    normalizedMemory = null
-  } else if (isRecord(memory)) {
-    normalizedMemory = {
-      ...(typeof memory["unit"] === "string" ? { unit: memory["unit"] } : {}),
-      ...(typeof memory["value"] === "number" ||
-      typeof memory["value"] === "string"
-        ? { value: memory["value"] }
-        : {}),
-    }
-  }
-
-  return {
-    ...(typeof value["cpus"] === "number" ||
-    typeof value["cpus"] === "string" ||
-    value["cpus"] === null
-      ? { cpus: value["cpus"] }
-      : {}),
-    ...(normalizedMemory === undefined ? {} : { memory: normalizedMemory }),
-  }
+  return result.data
 }
 
 const normalizeServiceDetails = (
   payload: unknown,
   label: string,
 ): ZaneServiceDetails => {
-  const object = assertObject(payload, label)
-  const dockerfileBuilderOptions = normalizeDockerfileBuilderOptions(
-    object["dockerfile_builder_options"],
-  )
-  const environment = normalizeEnvironmentReference(object["environment"])
-  const gitApp = normalizeGitAppRef(object["git_app"])
-  const healthcheck = normalizeHealthcheck(object["healthcheck"])
-  const resourceLimits = normalizeResourceLimits(object["resource_limits"])
-  const systemEnvVariables = normalizeEnvVariables(
-    object["system_env_variables"],
-  )
-  const unappliedChanges = normalizeUnappliedChanges(
-    object["unapplied_changes"],
-  )
-  const volumes = normalizeServiceVolumes(object["volumes"])
-
-  return {
-    deploy_token: assertString(object["deploy_token"], `${label}.deploy_token`),
-    env_variables: normalizeEnvVariables(object["env_variables"]) ?? [],
-    global_network_alias:
-      typeof object["global_network_alias"] === "string"
-        ? object["global_network_alias"]
-        : null,
-    id: assertString(object["id"], `${label}.id`),
-    slug: assertString(object["slug"], `${label}.slug`),
-    type: assertServiceType(object["type"], `${label}.type`),
-    urls: normalizeServiceUrls(object["urls"]),
-    ...(typeof object["network_alias"] === "string"
-      ? { network_alias: object["network_alias"] }
-      : {}),
-    ...(typeof object["commit_sha"] === "string"
-      ? { commit_sha: object["commit_sha"] }
-      : {}),
-    ...(typeof object["repository_url"] === "string"
-      ? { repository_url: object["repository_url"] }
-      : {}),
-    ...(typeof object["branch_name"] === "string"
-      ? { branch_name: object["branch_name"] }
-      : {}),
-    ...(typeof object["builder"] === "string"
-      ? { builder: object["builder"] }
-      : {}),
-    ...(typeof object["command"] === "string"
-      ? { command: object["command"] }
-      : {}),
-    ...(environment === undefined ? {} : { environment }),
-    ...(systemEnvVariables === undefined
-      ? {}
-      : { system_env_variables: systemEnvVariables }),
-    ...(volumes === undefined ? {} : { volumes }),
-    ...(unappliedChanges === undefined
-      ? {}
-      : { unapplied_changes: unappliedChanges }),
-    ...(dockerfileBuilderOptions === undefined
-      ? {}
-      : { dockerfile_builder_options: dockerfileBuilderOptions }),
-    ...(gitApp === undefined ? {} : { git_app: gitApp }),
-    ...(healthcheck === undefined ? {} : { healthcheck }),
-    ...(resourceLimits === undefined
-      ? {}
-      : { resource_limits: resourceLimits }),
+  const result = zaneServiceDetailsSchema.safeParse(payload)
+  if (!result.success) {
+    throw new UpstreamHttpError(
+      502,
+      "zane_payload_invalid",
+      `${label} was invalid`,
+    )
   }
+  return result.data
 }
 
-interface CreatedEnvironmentVariableResponse {
-  id?: string
-  key?: string
-  value?: string
-}
+const createdEnvironmentVariableSchema = z.object({
+  id: z.string().trim().min(1).optional(),
+  key: z.string().trim().min(1).optional(),
+  value: z.string().trim().min(1).optional(),
+})
 
-const decodeEnvironmentVariables = (
-  payload: unknown,
-  label: string,
-): ZaneEnvVariable[] => {
-  if (!Array.isArray(payload)) {
-    throw new TypeError(`${label} must be an array`)
-  }
-
-  return payload.map((entry, index) => {
-    const variable = assertObject(entry, `${label}[${index}]`)
-    const { id, key, value } = variable
-    return {
-      id: assertString(id, `${label}[${index}].id`),
-      key: assertString(key, `${label}[${index}].key`),
-      value: assertString(value, `${label}[${index}].value`),
-    }
-  })
-}
+type CreatedEnvironmentVariableResponse = z.infer<
+  typeof createdEnvironmentVariableSchema
+>
 
 const decodeEnvironmentWithVariables = (
   payload: unknown,
 ): ZaneEnvironmentWithVariables => {
-  const environment = assertObject(payload, "environment")
-  const { id, is_preview: isPreview, name, variables } = environment
-  if (typeof isPreview !== "boolean") {
-    throw new TypeError("environment.is_preview must be a boolean")
+  const result = zaneEnvironmentWithVariablesSchema.safeParse(payload)
+  if (!result.success) {
+    throw new TypeError("environment was invalid")
   }
-
-  return {
-    id: assertString(id, "environment.id"),
-    is_preview: isPreview,
-    name: assertString(name, "environment.name"),
-    variables: decodeEnvironmentVariables(variables, "environment.variables"),
-  }
+  return result.data
 }
 
 const decodeCreatedEnvironmentVariable = (
   payload: unknown,
 ): CreatedEnvironmentVariableResponse => {
-  const variable = assertObject(payload, "created_environment_variable")
-  const { id, key, value } = variable
-  return {
-    ...(id === undefined
-      ? {}
-      : { id: assertString(id, "created_environment_variable.id") }),
-    ...(key === undefined
-      ? {}
-      : { key: assertString(key, "created_environment_variable.key") }),
-    ...(value === undefined
-      ? {}
-      : {
-          value: assertString(value, "created_environment_variable.value"),
-        }),
+  const result = createdEnvironmentVariableSchema.safeParse(payload)
+  if (!result.success) {
+    throw new TypeError("created_environment_variable was invalid")
   }
+  return result.data
 }
 
+const mutationResponseSchema = z.object({})
+
 const decodeMutationResponse = (payload: unknown): void => {
-  assertObject(payload, "mutation_response")
+  if (!mutationResponseSchema.safeParse(payload).success) {
+    throw new TypeError("mutation_response must be an object")
+  }
 }
 
 const decodeDeployment = (payload: unknown): ZaneDeployment => {
-  const deployment = assertObject(payload, "deployment")
-  const {
-    commit_sha: commitSha,
-    hash,
-    is_current_production: isCurrentProduction,
-    service_snapshot: serviceSnapshotValue,
-    status,
-    status_reason: statusReason,
-  } = deployment
-  let serviceSnapshot: ZaneDeployment["service_snapshot"]
-  if (serviceSnapshotValue !== undefined && serviceSnapshotValue !== null) {
-    const serviceSnapshotRecord = assertObject(
-      serviceSnapshotValue,
-      "deployment.service_snapshot",
-    )
-    const { env_variables: envVariables } = serviceSnapshotRecord
-    serviceSnapshot = {
-      env_variables: decodeEnvironmentVariables(
-        envVariables,
-        "deployment.service_snapshot.env_variables",
-      ),
-    }
+  const result = zaneDeploymentSchema.safeParse(payload)
+  if (!result.success) {
+    throw new TypeError("deployment was invalid")
   }
-
-  if (
-    isCurrentProduction !== undefined &&
-    typeof isCurrentProduction !== "boolean"
-  ) {
-    throw new TypeError("deployment.is_current_production must be a boolean")
-  }
-  if (
-    commitSha !== undefined &&
-    commitSha !== null &&
-    typeof commitSha !== "string"
-  ) {
-    throw new TypeError("deployment.commit_sha must be a string or null")
-  }
-  if (
-    statusReason !== undefined &&
-    statusReason !== null &&
-    typeof statusReason !== "string"
-  ) {
-    throw new TypeError("deployment.status_reason must be a string or null")
-  }
-
-  return {
-    hash: assertString(hash, "deployment.hash"),
-    status: assertString(status, "deployment.status"),
-    ...(typeof isCurrentProduction === "boolean"
-      ? { is_current_production: isCurrentProduction }
-      : {}),
-    ...(typeof commitSha === "string" || commitSha === null
-      ? { commit_sha: commitSha }
-      : {}),
-    ...(typeof statusReason === "string" || statusReason === null
-      ? { status_reason: statusReason }
-      : {}),
-    ...(serviceSnapshot === undefined
-      ? {}
-      : { service_snapshot: serviceSnapshot }),
-  }
+  return result.data
 }
 
 const decodeDeploymentList = (payload: unknown): ZaneDeploymentListResponse => {
-  const list = assertObject(payload, "deployment_list")
-  const { results } = list
-  if (results === undefined) {
-    return {}
+  const result = zaneDeploymentListResponseSchema.safeParse(payload)
+  if (!result.success) {
+    throw new TypeError("deployment_list was invalid")
   }
-  if (!Array.isArray(results)) {
-    throw new TypeError("deployment_list.results must be an array")
-  }
-  return {
-    results: results.map((deployment) => decodeDeployment(deployment)),
-  }
+  return result.data
 }
 
 const previewRandomOnceSecretPersistsToZaneEnv = (secret: {
@@ -1193,8 +676,8 @@ export class ZaneClient {
       }),
     )
     const resolvedValues = new Set(
-      targetValues.filter(
-        (value): value is string => value !== undefined && value !== "",
+      targetValues.flatMap((value) =>
+        value === undefined || value === "" ? [] : [value],
       ),
     )
 

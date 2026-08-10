@@ -1,8 +1,9 @@
 "use client"
 
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import type { Dispatch, SetStateAction } from "react"
 
-import { isRecord, readAccountSetupRequested } from "./account-setup-metadata"
+import { readAccountSetupRequested } from "./account-setup-metadata"
 import { logCheckoutAccountSetupDebug } from "./checkout-account-setup-debug"
 import { resolveOrderId } from "./checkout-completion.utils"
 import {
@@ -18,8 +19,8 @@ const resolveCompleteResultOrderMetadata = (result: unknown): unknown => {
   if (!isRecord(result)) {
     return null
   }
-  const order: unknown = Reflect.get(result, "order")
-  return isRecord(order) ? Reflect.get(order, "metadata") : null
+  const order = getRecordValue(result, "order")
+  return isRecord(order) ? getRecordValue(order, "metadata") : null
 }
 
 interface UseCheckoutControllerActionsProps {
@@ -103,6 +104,11 @@ export const useCheckoutControllerActions = ({
       : { selectedPaymentProviderId: effectiveSelectedPaymentProviderId }),
     selectedShippingMethodId:
       checkoutShippingQuery.selectedShippingMethodId ?? null,
-    setShippingMethod: checkoutShippingQuery.setShipping,
+    setShippingMethod: (optionId, data) => {
+      checkoutShippingQuery.setShipping(
+        optionId,
+        data === undefined ? undefined : { ...data },
+      )
+    },
   })
 }

@@ -68,7 +68,7 @@ export const isAllowedHtmlAttribute = (
   options: SanitizeHtmlOptions,
 ) =>
   ALLOWED_GLOBAL_ATTRIBUTES.has(name) ||
-  ALLOWED_TAG_ATTRIBUTES[tag]?.has(name) ||
+  ALLOWED_TAG_ATTRIBUTES[tag]?.has(name) === true ||
   (options.additionalAllowedTagAttributes?.[tag]?.has(name) === true &&
     options.additionalAllowedAttributeValues?.[tag]?.[name]?.has(value) ===
       true)

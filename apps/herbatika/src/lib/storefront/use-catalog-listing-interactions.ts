@@ -1,6 +1,6 @@
 "use client"
 
-import type { HttpTypes } from "@medusajs/types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 import type { SetValues } from "nuqs"
 
 import { toggleSelection } from "@/components/category/category-selection-utils"
@@ -69,7 +69,7 @@ export const useCatalogListingInteractions = ({
     skipMode: "any",
   })
 
-  const handleAddToCart = async (product: HttpTypes.StoreProduct) => {
+  const handleAddToCart = async (product: MedusaCatalogProduct) => {
     await addToCart.addProductToCart({
       product,
       quantity: 1,
@@ -110,12 +110,12 @@ export const useCatalogListingInteractions = ({
         ),
       )
     },
-    onProductHoverEnd: (product: HttpTypes.StoreProduct) => {
+    onProductHoverEnd: (product: MedusaCatalogProduct) => {
       prefetchProduct.cancelPrefetch(
         `${productPrefetchKeyPrefix}-${product.id}`,
       )
     },
-    onProductHoverStart: (product: HttpTypes.StoreProduct) => {
+    onProductHoverStart: (product: MedusaCatalogProduct) => {
       if (!product.handle) {
         return
       }

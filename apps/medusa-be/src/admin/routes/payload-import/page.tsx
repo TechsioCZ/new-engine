@@ -1,7 +1,8 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
+import { z } from "@medusajs/framework/zod"
 import { DocumentText } from "@medusajs/icons"
 import { Button, Container, Heading, Input, Select, Text } from "@medusajs/ui"
-import { getErrorMessage, isRecord } from "@techsio/std/object"
+import { getErrorMessage } from "@techsio/std/object"
 import { useRef, useState } from "react"
 import type { SubmitEvent } from "react"
 
@@ -9,14 +10,16 @@ export const handle = {
   breadcrumb: () => "Payload import",
 }
 
-interface ImportResult {
-  ok: boolean
-  result: {
-    total: number
-    imported: number
-    skipped: number
-  }
-}
+const importResultSchema = z.object({
+  ok: z.literal(true),
+  result: z.object({
+    imported: z.number().int().nonnegative(),
+    skipped: z.number().int().nonnegative(),
+    total: z.number().int().nonnegative(),
+  }),
+})
+
+const importErrorSchema = z.object({ message: z.string() })
 
 const LOCALE_PATTERN = /^[a-z]{2}(?:-[A-Z]{2})?$/u
 const FALLBACK_LOCALES = ["cs", "sk", "en"]
@@ -39,26 +42,15 @@ const defaultLocale = locales.includes("sk") ? "sk" : (locales[0] ?? "cs")
 const parseErrorMessage = async (response: Response) => {
   try {
     const payload: unknown = await response.json()
-    if (isRecord(payload) && typeof payload["message"] === "string") {
-      return payload["message"]
+    const parsed = importErrorSchema.safeParse(payload)
+    if (parsed.success) {
+      return parsed.data.message
     }
   } catch {
     return "Import failed"
   }
 
   return "Import failed"
-}
-
-const isImportResult = (value: unknown): value is ImportResult => {
-  if (!isRecord(value) || value["ok"] !== true || !isRecord(value["result"])) {
-    return false
-  }
-
-  const { imported, skipped, total } = value["result"]
-  return [imported, skipped, total].every(
-    (count) =>
-      typeof count === "number" && Number.isSafeInteger(count) && count >= 0,
-  )
 }
 
 const appendOptional = (formData: FormData, key: string, value: string) => {
@@ -113,12 +105,13 @@ const PayloadImportPage = () => {
       }
 
       const data: unknown = await response.json()
-      if (!isImportResult(data)) {
+      const parsed = importResultSchema.safeParse(data)
+      if (!parsed.success) {
         setError(getImportFailureMessage(data))
         return
       }
       setMessage(
-        `Import dokončený: ${data.result.imported} importovaných, ${data.result.skipped} přeskočených z ${data.result.total}.`,
+        `Import dokončený: ${parsed.data.result.imported} importovaných, ${parsed.data.result.skipped} přeskočených z ${parsed.data.result.total}.`,
       )
     } catch (caughtError) {
       setError(getImportFailureMessage(caughtError))

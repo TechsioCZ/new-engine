@@ -15,6 +15,7 @@ import {
   Modules,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
+import { z } from "@medusajs/framework/zod"
 import {
   batchPriceListPricesWorkflow,
   createCustomerGroupsWorkflow,
@@ -22,7 +23,6 @@ import {
   updateCustomerGroupsWorkflow,
   updatePriceListsWorkflow,
 } from "@medusajs/medusa/core-flows"
-import { isRecord } from "@techsio/std/object"
 
 interface PriceListPriceInput {
   productHandle: string
@@ -103,7 +103,7 @@ interface PriceListSyncEntry {
   endsAt?: string | undefined
   customerGroupName?: string | undefined
   prices: PriceListPriceInput[]
-  metadata: Record<string, unknown>
+  metadata: z.output<typeof priceListMetadataSchema>
 }
 
 interface VariantLookup {
@@ -178,6 +178,8 @@ const DEFAULT_SYNC_PRICE_LISTS_CONFIG = {
   },
 } satisfies ResolvedSyncPriceListsStepConfig
 
+const priceListMetadataSchema = z.record(z.string(), z.json())
+
 const hasText = (value: string | null | undefined): value is string =>
   value !== null && value !== undefined && value !== ""
 
@@ -251,15 +253,15 @@ const buildPriceListMetadata = (
   sourceType: string,
   priceListTitle: string,
   dates?: { startsAt?: string; endsAt?: string },
-): Record<string, unknown> => ({
+): z.output<typeof priceListMetadataSchema> => ({
   source: config.metadataSource,
   source_type: sourceType,
   [config.metadataKeys.priceListTitle]: priceListTitle,
-  ...(dates
-    ? {
-        [config.metadataKeys.startsAt]: dates.startsAt,
-        [config.metadataKeys.endsAt]: dates.endsAt,
-      }
+  ...(hasText(dates?.startsAt)
+    ? { [config.metadataKeys.startsAt]: dates.startsAt }
+    : {}),
+  ...(hasText(dates?.endsAt)
+    ? { [config.metadataKeys.endsAt]: dates.endsAt }
     : {}),
 })
 
@@ -354,20 +356,23 @@ const buildVariantLookup = (
   return variants
 }
 
-const isVariantPriceSetLink = (value: unknown): value is VariantPriceSetLink =>
-  isRecord(value) &&
-  typeof value["variant_id"] === "string" &&
-  typeof value["price_set_id"] === "string"
+const variantPriceSetLinksSchema = z.array(
+  z.object({
+    price_set_id: z.string(),
+    variant_id: z.string(),
+  }),
+)
 
 const toVariantPriceSetLinks = (value: unknown): VariantPriceSetLink[] => {
-  if (!(Array.isArray(value) && value.every(isVariantPriceSetLink))) {
+  const parsed = variantPriceSetLinksSchema.safeParse(value)
+  if (!parsed.success) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       "Unexpected product variant price-set link response shape.",
     )
   }
 
-  return value
+  return parsed.data
 }
 
 const ensureCustomerGroup = async (params: {

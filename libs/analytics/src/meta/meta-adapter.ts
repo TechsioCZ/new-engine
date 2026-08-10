@@ -32,7 +32,7 @@ export const useMetaAdapter = (
 
   const trackCustom = createTracker(
     getFbq,
-    (fbq, args: { eventName: string; params?: Record<string, unknown> }) => {
+    (fbq, args: { eventName: string; params?: object }) => {
       fbq("trackCustom", args.eventName, args.params)
     },
     debug,

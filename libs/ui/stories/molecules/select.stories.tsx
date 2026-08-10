@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { useState } from "react"
 
 import { Badge } from "../../src/atoms/badge"
@@ -135,7 +135,12 @@ const meta: Meta<typeof Select> = {
   decorators: [
     (Story, context) => {
       const parameters: unknown = context.parameters
-      const { description, title } = isRecord(parameters) ? parameters : {}
+      const description = isRecord(parameters)
+        ? getRecordValue(parameters, "description")
+        : undefined
+      const title = isRecord(parameters)
+        ? getRecordValue(parameters, "title")
+        : undefined
 
       return (
         <div className="flex w-80 flex-col gap-6 p-4">

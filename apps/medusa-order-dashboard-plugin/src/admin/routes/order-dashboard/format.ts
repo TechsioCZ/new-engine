@@ -12,7 +12,7 @@ import type {
 
 type TranslationFunction = (
   key: string,
-  values?: Record<string, unknown>,
+  values?: Record<string, string>,
 ) => string
 
 // Local copy for dashboard pre-checks; the backend mutation remains final.

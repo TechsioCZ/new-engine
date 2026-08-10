@@ -14,9 +14,11 @@ import type {
   PplBatchItem,
   PplBatchResponse,
   PplClientModuleService,
-  PplFulfillmentData,
 } from "../modules/ppl-client"
-import { checkTimeoutConditions } from "../modules/ppl-client/utils"
+import {
+  checkTimeoutConditions,
+  parsePendingFulfillment,
+} from "../modules/ppl-client/utils"
 import type {
   PendingFulfillment,
   SyncAttemptInfo,
@@ -41,23 +43,6 @@ interface SyncContext {
 const isNonEmptyString = (value: string | undefined): value is string =>
   typeof value === "string" && value.length > 0
 
-const isPplLabelObjectLike = (
-  value: unknown,
-): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
-const isPendingFulfillment = (value: unknown): value is PendingFulfillment => {
-  if (!(isPplLabelObjectLike(value) && isPplLabelObjectLike(value["data"]))) {
-    return false
-  }
-
-  const rawData = value["data"]
-  const status: unknown = rawData["status"]
-  const batchId: unknown = rawData["batch_id"]
-
-  return status === "pending" && typeof batchId === "string"
-}
-
 /**
  * Fetch pending PPL fulfillments from database
  */
@@ -75,7 +60,10 @@ const fetchPendingFulfillments = async (
   // JSON field filtering (data.status, data.batch_id) must be done in-memory
   const rawFulfillments: unknown = fulfillments
   return Array.isArray(rawFulfillments)
-    ? rawFulfillments.filter(isPendingFulfillment)
+    ? rawFulfillments.flatMap((fulfillment) => {
+        const parsed = parsePendingFulfillment(fulfillment)
+        return parsed === null ? [] : [parsed]
+      })
     : []
 }
 
@@ -154,7 +142,7 @@ const markAsError = async (
   const { fulfillmentService, eventBus } = ctx
   const fulfillmentData = fulfillment.data
 
-  const updatedData: PplFulfillmentData = {
+  const updatedData = {
     ...fulfillmentData,
     error_message: errorMessage,
     first_sync_attempt: attemptInfo.firstSyncAttempt,
@@ -164,7 +152,7 @@ const markAsError = async (
   }
 
   await fulfillmentService.updateFulfillment(fulfillment.id, {
-    data: updatedData,
+    data: { ...updatedData },
   })
 
   await eventBus.emit({
@@ -216,7 +204,7 @@ const handleCompletedItem = async (
     `https://www.ppl.cz/vyhledat-zasilku?shipmentId=${shipmentNumber}`
 
   // Update fulfillment with completed data
-  const updatedData: PplFulfillmentData = {
+  const updatedData = {
     ...fulfillmentData,
     first_sync_attempt: attemptInfo.firstSyncAttempt,
     label_url: storedLabelUrl,
@@ -229,7 +217,7 @@ const handleCompletedItem = async (
   }
 
   await fulfillmentService.updateFulfillment(fulfillment.id, {
-    data: updatedData,
+    data: { ...updatedData },
   })
 
   logger.info(

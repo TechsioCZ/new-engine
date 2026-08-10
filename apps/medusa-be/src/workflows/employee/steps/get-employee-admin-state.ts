@@ -4,9 +4,15 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { isRecord } from "@techsio/std/object"
+import { z } from "@medusajs/framework/zod"
 
-import { isUnknownArray } from "../../../utils/guards"
+const employeeAdminStateResultSchema = z.object({
+  data: z.array(z.unknown()),
+})
+const employeeAdminStateSchema = z.object({
+  id: z.string(),
+  is_admin: z.boolean(),
+})
 
 interface EmployeeAdminState {
   id: string
@@ -17,29 +23,25 @@ const getEmployeeAdminState = (
   result: unknown,
   employeeId: string,
 ): EmployeeAdminState | undefined => {
-  const data: unknown = isRecord(result) ? result["data"] : undefined
-  if (!isUnknownArray(data)) {
+  const parsedResult = employeeAdminStateResultSchema.safeParse(result)
+  if (!parsedResult.success) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       `Employee "${employeeId}" query returned invalid data`,
     )
   }
-  const [employee] = data
-  let state: EmployeeAdminState | undefined
-  if (employee !== undefined) {
-    if (
-      !isRecord(employee) ||
-      typeof employee["id"] !== "string" ||
-      typeof employee["is_admin"] !== "boolean"
-    ) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        `Employee "${employeeId}" query returned an invalid record`,
-      )
-    }
-    state = { id: employee["id"], is_admin: employee["is_admin"] }
+  const [employee] = parsedResult.data.data
+  if (employee === undefined) {
+    return undefined
   }
-  return state
+  const parsedEmployee = employeeAdminStateSchema.safeParse(employee)
+  if (!parsedEmployee.success) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Employee "${employeeId}" query returned an invalid record`,
+    )
+  }
+  return parsedEmployee.data
 }
 
 export const getEmployeeAdminStateStep = createStep(

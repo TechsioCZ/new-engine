@@ -1,8 +1,9 @@
-import type { MedusaContainer } from "@medusajs/framework/types"
+import type { MedusaContainer, MetadataType } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { z } from "@medusajs/framework/zod"
 import {
   updateOrderWorkflow,
   uploadFilesWorkflow,
@@ -12,12 +13,10 @@ import { invoicesBatchClientMapperHelper } from "./client-mapper-helper"
 import type { InvoiceOrderLookupKeys } from "./client-mapper-helper"
 import type { InvoiceInput } from "./types"
 
-type Metadata = Record<string, unknown>
-
 export interface ExistingOrder {
   id: string
   display_id: number
-  metadata: Metadata | null
+  metadata: MetadataType
 }
 
 export interface ExistingOrderIndex {
@@ -32,9 +31,7 @@ export interface UploadedInvoice {
 }
 
 const ORDER_FIELDS = ["id", "display_id", "metadata"] as const
-
-const isObjectMap = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
+const metadataSchema = z.record(z.string(), z.json()).nullable()
 
 const decodeOrder = (value: unknown): ExistingOrder | null => {
   if (typeof value !== "object" || value === null) {
@@ -49,11 +46,11 @@ const decodeOrder = (value: unknown): ExistingOrder | null => {
   if (!("metadata" in value)) {
     return null
   }
-  const { metadata } = value
-  if (metadata !== null && !isObjectMap(metadata)) {
+  const metadata = metadataSchema.safeParse(value.metadata)
+  if (!metadata.success) {
     return null
   }
-  return { display_id: value.display_id, id: value.id, metadata }
+  return { display_id: value.display_id, id: value.id, metadata: metadata.data }
 }
 
 const getQuery = (container: MedusaContainer) =>

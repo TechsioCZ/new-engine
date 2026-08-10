@@ -1,5 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Mock } from "vitest"
 
@@ -8,7 +8,7 @@ import type { PostAdminOrderExpeditionStatusSchemaType } from "../../../../../..
 const { overrideModule } = vi.hoisted(() => ({
   overrideModule: <Module extends object>(
     original: Module,
-    replacements: Record<PropertyKey, unknown>,
+    replacements: object,
   ): Module =>
     Object.defineProperties(
       { ...original },
@@ -84,8 +84,8 @@ const isMockStatusResponse = (
   candidate: unknown,
 ): candidate is MockStatusResponse =>
   isRecord(candidate) &&
-  typeof candidate["json"] === "function" &&
-  typeof candidate["status"] === "function"
+  typeof getRecordValue(candidate, "json") === "function" &&
+  typeof getRecordValue(candidate, "status") === "function"
 
 const createMockResponse = (): MockStatusResponse => {
   const candidate: unknown = {
@@ -100,14 +100,20 @@ const createMockResponse = (): MockStatusResponse => {
 
 const isMockRequest = (
   candidate: unknown,
-): candidate is MedusaRequest<PostAdminOrderExpeditionStatusSchemaType> =>
-  isRecord(candidate) &&
-  isRecord(candidate["scope"]) &&
-  typeof candidate["scope"]["resolve"] === "function" &&
-  isRecord(candidate["validatedBody"])
+): candidate is MedusaRequest<PostAdminOrderExpeditionStatusSchemaType> => {
+  if (!isRecord(candidate)) {
+    return false
+  }
+  const scope = getRecordValue(candidate, "scope")
+  return (
+    isRecord(scope) &&
+    typeof getRecordValue(scope, "resolve") === "function" &&
+    isRecord(getRecordValue(candidate, "validatedBody"))
+  )
+}
 
 const createMockRequest = (
-  validatedBody: Record<string, unknown>,
+  validatedBody: PostAdminOrderExpeditionStatusSchemaType,
   graph: Graph,
 ): MedusaRequest<PostAdminOrderExpeditionStatusSchemaType> => {
   const candidate: unknown = {

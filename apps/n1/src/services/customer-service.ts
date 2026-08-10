@@ -1,4 +1,8 @@
-import type { StoreCustomer, StoreCustomerAddress } from "@medusajs/types"
+import type {
+  HttpTypes,
+  StoreCustomer,
+  StoreCustomerAddress,
+} from "@medusajs/types"
 
 import { logError } from "@/lib/errors"
 import { sdk } from "@/lib/medusa-client"
@@ -69,12 +73,8 @@ export const deleteAddress = async (addressId: string): Promise<void> => {
   }
 }
 
-export interface UpdateCustomerData {
-  first_name?: string
-  last_name?: string
-  phone?: string
+export type UpdateCustomerData = HttpTypes.StoreUpdateCustomer & {
   password?: string
-  metadata?: Record<string, unknown>
 }
 
 export const updateCustomer = async (

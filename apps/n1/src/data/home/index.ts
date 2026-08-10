@@ -1,4 +1,5 @@
 import type { CarouselSlide } from "@techsio/ui-kit/molecules/carousel"
+import type NextImage from "next/image"
 
 import nwImg from "@/assets/carousel/nw.webp"
 import saleImg from "@/assets/carousel/sale.webp"
@@ -35,7 +36,7 @@ export const featureBlocks = [
   },
 ]
 
-export const heroCarouselSlides: CarouselSlide[] = [
+export const heroCarouselSlides: CarouselSlide<typeof NextImage>[] = [
   {
     alt: "Sale banner",
     id: "1",
@@ -44,8 +45,8 @@ export const heroCarouselSlides: CarouselSlide[] = [
       placeholder: "blur",
       priority: true,
       quality: 50,
-      src: saleImg,
     },
+    src: saleImg,
   },
   {
     alt: "New arrivals banner",
@@ -55,8 +56,8 @@ export const heroCarouselSlides: CarouselSlide[] = [
       placeholder: "blur",
       priority: true,
       quality: 50,
-      src: nwImg,
     },
+    src: nwImg,
   },
   {
     alt: "Tallboy promotion banner",
@@ -66,8 +67,8 @@ export const heroCarouselSlides: CarouselSlide[] = [
       placeholder: "blur",
       priority: true,
       quality: 50,
-      src: tallboyImg,
     },
+    src: tallboyImg,
   },
 ]
 

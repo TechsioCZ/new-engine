@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.2"
+component_version: "2.0.0"
 name: select-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Select for non-search selection with Zag.js collection behavior, hidden form select, trigger, value text, clear trigger, item groups, item indicators, validation status, size, and multiple mode.

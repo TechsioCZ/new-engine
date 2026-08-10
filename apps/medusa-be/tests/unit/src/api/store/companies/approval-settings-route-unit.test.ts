@@ -24,7 +24,7 @@ const workflowMocks = vi.hoisted(() => {
 const { overrideModule } = vi.hoisted(() => ({
   overrideModule: <Module extends object>(
     original: Module,
-    replacements: Record<PropertyKey, unknown>,
+    replacements: object,
   ): Module =>
     Object.defineProperties(
       { ...original },
@@ -75,8 +75,8 @@ const REQUEST_KEYS = ["params", "scope", "validatedBody"] as const
 
 const createGraphMock = () =>
   vi.fn<
-    (args: Record<string, unknown>) => Promise<{
-      data: Record<string, unknown>[]
+    (args: object) => Promise<{
+      data: object[]
     }>
   >()
 
@@ -99,7 +99,7 @@ const createMockRequest = <T>(
   options: {
     graph: ReturnType<typeof createGraphMock>
     params?: Record<string, string>
-    validatedBody?: Record<string, unknown>
+    validatedBody?: object
   },
   requiredKeys: readonly (keyof T)[],
 ): T => {

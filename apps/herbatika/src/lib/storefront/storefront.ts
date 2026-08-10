@@ -1,11 +1,28 @@
 "use client"
 
+import type { HttpTypes } from "@medusajs/types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
+import type { CatalogFacets } from "@techsio/storefront-data/catalog/types"
 import { createMedusaStorefrontPreset } from "@techsio/storefront-data/medusa/preset"
 
+import type {
+  HerbatikaCheckoutAddressInput,
+  HerbatikaCheckoutAddressPayload,
+} from "./cart/address-adapter"
 import { storefrontSdk } from "./sdk"
 import { storefrontDefinition } from "./storefront-definition"
 
-export const storefront = createMedusaStorefrontPreset({
+export const storefront: ReturnType<
+  typeof createMedusaStorefrontPreset<
+    HttpTypes.StoreProduct,
+    HttpTypes.StoreProductCategory,
+    HttpTypes.StoreCollection,
+    MedusaCatalogProduct,
+    CatalogFacets,
+    HerbatikaCheckoutAddressInput,
+    HerbatikaCheckoutAddressPayload
+  >
+> = createMedusaStorefrontPreset({
   auth: {
     hooks: storefrontDefinition.auth.hooks,
     queryKeys: storefrontDefinition.queryKeys.auth,

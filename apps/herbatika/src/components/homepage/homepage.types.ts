@@ -1,7 +1,7 @@
-import type { HttpTypes } from "@medusajs/types"
+import type { MedusaCatalogProduct } from "@techsio/storefront-data/catalog/medusa-service"
 
 import type { ProductSectionDefinition } from "./homepage.data"
 
 export type HomepageProductSection = ProductSectionDefinition & {
-  products: HttpTypes.StoreProduct[]
+  products: MedusaCatalogProduct[]
 }

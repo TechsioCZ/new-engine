@@ -33,10 +33,7 @@ export interface Analytics {
   trackAddToCart: (params: CoreAddToCartParams) => TrackingResult
   trackInitiateCheckout: (params: CoreInitiateCheckoutParams) => TrackingResult
   trackPurchase: (params: CorePurchaseParams) => TrackingResult
-  trackCustom: (
-    eventName: string,
-    params?: Record<string, unknown>,
-  ) => TrackingResult
+  trackCustom: (eventName: string, params?: object) => TrackingResult
 }
 
 /**

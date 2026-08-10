@@ -2,10 +2,9 @@
 
 import { storefront } from "./storefront"
 
-const orderHooks = storefront.hooks.orders
+const orderHooks: typeof storefront.hooks.orders = storefront.hooks.orders
 
-export const {
-  useOrders,
-  useOrder,
-  getDetailQueryOptions: getOrderDetailQueryOptions,
-} = orderHooks
+export const useOrders: typeof orderHooks.useOrders = orderHooks.useOrders
+export const useOrder: typeof orderHooks.useOrder = orderHooks.useOrder
+export const getOrderDetailQueryOptions: typeof orderHooks.getDetailQueryOptions =
+  orderHooks.getDetailQueryOptions

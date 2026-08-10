@@ -1,4 +1,4 @@
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { hasTrimmedString } from "@techsio/std/string"
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
@@ -30,7 +30,12 @@ const handleContactRequest = async (
       )
     }
 
-    const { firstName, lastName, email, phone, subject, message } = body
+    const firstName = getRecordValue(body, "firstName")
+    const lastName = getRecordValue(body, "lastName")
+    const email = getRecordValue(body, "email")
+    const phone = getRecordValue(body, "phone")
+    const subject = getRecordValue(body, "subject")
+    const message = getRecordValue(body, "message")
 
     if (
       !(

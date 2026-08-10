@@ -2297,26 +2297,27 @@ export const executeBootstrapZaneProjectPlan = async (
     repositoryUrl,
     settings: inspectResponse.settings,
   })
-  const serviceSlugById = Object.fromEntries(
+  const serviceSlugById: Record<string, string> = Object.fromEntries(
     bootstrapServices.map((service) => [service.id, service.serviceSlug]),
-  ) as Record<string, string>
+  )
   const plannedServices = buildZaneProjectServices(context, serviceSlugById)
   applySharedEnvServiceTargets({ plannedServices, stackInputs })
-  const inspectedServices = Object.fromEntries(
-    bootstrapServices.map((service) => {
-      const inspected = inspectResponse.services.find(
-        (candidate) => candidate.service_slug === service.serviceSlug,
-      )
+  const inspectedServices: Record<string, InspectedServiceState> =
+    Object.fromEntries(
+      bootstrapServices.map((service) => {
+        const inspected = inspectResponse.services.find(
+          (candidate) => candidate.service_slug === service.serviceSlug,
+        )
 
-      return [
-        service.id,
-        {
-          details: inspected?.details ?? null,
-          exists: inspected?.exists ?? false,
-        },
-      ]
-    }),
-  ) as Record<string, InspectedServiceState>
+        return [
+          service.id,
+          {
+            details: inspected?.details ?? null,
+            exists: inspected?.exists ?? false,
+          },
+        ]
+      }),
+    )
   const blockingReasons = buildBlockingReasons({
     context,
     environmentExists: inspectResponse.environment_exists,

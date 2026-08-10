@@ -4,13 +4,11 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { isRecord } from "@techsio/std/object"
 
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import { ApprovalStatusType } from "../../../types/approval/module"
 import type { ModuleApprovalStatus } from "../../../types/approval/module"
 import type { IApprovalModuleService } from "../../../types/approval/service"
-import { isUnknownArray } from "../../../utils/guards"
 
 export const createApprovalStatusStep = createStep<
   string[],
@@ -35,39 +33,20 @@ export const createApprovalStatusStep = createStep<
       )
     }
 
-    const graphResult: unknown = await query.graph({
+    const graphResult: { data: ModuleApprovalStatus[] } = await query.graph({
       entity: "approval_status",
       fields: ["*"],
       filters: {
         cart_id: firstCartId,
       },
     })
-    const graphData: unknown = isRecord(graphResult)
-      ? graphResult["data"]
-      : undefined
-    if (!isUnknownArray(graphData)) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        "Approval status query returned invalid data",
-      )
-    }
 
-    const [existingApprovalStatus] = graphData
+    const [existingApprovalStatus] = graphResult.data
     if (existingApprovalStatus !== undefined) {
-      if (
-        !isRecord(existingApprovalStatus) ||
-        typeof existingApprovalStatus["id"] !== "string"
-      ) {
-        throw new MedusaError(
-          MedusaError.Types.UNEXPECTED_STATE,
-          "Approval status query returned an invalid record",
-        )
-      }
-
       const [updatedApprovalStatus] =
         await approvalModuleService.updateApprovalStatuses([
           {
-            id: existingApprovalStatus["id"],
+            id: existingApprovalStatus.id,
             status: ApprovalStatusType.PENDING,
           },
         ])

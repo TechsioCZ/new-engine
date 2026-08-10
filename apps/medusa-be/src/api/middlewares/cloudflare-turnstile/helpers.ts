@@ -1,4 +1,5 @@
 import type { MedusaRequest } from "@medusajs/framework"
+import { z } from "@medusajs/framework/zod"
 import { isRecord } from "@techsio/std/object"
 
 import type { ApiStoreModuleService } from "../../../modules/api-store"
@@ -24,44 +25,31 @@ export interface TurnstileSiteverifyResponse {
   hostname?: string
 }
 
+const TurnstileSiteverifyResponseSchema = z.object({
+  action: z.string().optional(),
+  cdata: z.string().optional(),
+  challenge_ts: z.string().optional(),
+  "error-codes": z.array(z.string()).optional(),
+  hostname: z.string().optional(),
+  success: z.boolean(),
+})
+
 const parseTurnstileResponse = (
   value: unknown,
 ): TurnstileSiteverifyResponse | undefined => {
-  if (!isRecord(value) || typeof value["success"] !== "boolean") {
+  const parsed = TurnstileSiteverifyResponseSchema.safeParse(value)
+  if (!parsed.success) {
     return undefined
   }
-
-  const errorCodes = value["error-codes"]
-  if (
-    errorCodes !== undefined &&
-    (!Array.isArray(errorCodes) ||
-      !errorCodes.every((code) => typeof code === "string"))
-  ) {
-    return undefined
-  }
-
-  for (const field of [
-    "action",
-    "cdata",
-    "challenge_ts",
-    "hostname",
-  ] as const) {
-    if (value[field] !== undefined && typeof value[field] !== "string") {
-      return undefined
-    }
-  }
-
+  const { action, cdata, challenge_ts, hostname, success } = parsed.data
+  const errorCodes = parsed.data["error-codes"]
   return {
-    success: value["success"],
+    success,
     ...(errorCodes === undefined ? {} : { "error-codes": errorCodes }),
-    ...(typeof value["action"] === "string" ? { action: value["action"] } : {}),
-    ...(typeof value["cdata"] === "string" ? { cdata: value["cdata"] } : {}),
-    ...(typeof value["challenge_ts"] === "string"
-      ? { challenge_ts: value["challenge_ts"] }
-      : {}),
-    ...(typeof value["hostname"] === "string"
-      ? { hostname: value["hostname"] }
-      : {}),
+    ...(action === undefined ? {} : { action }),
+    ...(cdata === undefined ? {} : { cdata }),
+    ...(challenge_ts === undefined ? {} : { challenge_ts }),
+    ...(hostname === undefined ? {} : { hostname }),
   }
 }
 

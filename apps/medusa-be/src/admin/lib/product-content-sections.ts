@@ -1,4 +1,5 @@
 import type { AdminProduct } from "@medusajs/framework/types"
+import { z } from "@medusajs/framework/zod"
 
 export type ProductContentSectionKey =
   | "description"
@@ -34,23 +35,24 @@ export const PRODUCT_CONTENT_SECTIONS: ProductContentSection[] = [
 export const CONTENT_SECTIONS_METADATA_KEY = "content_sections"
 export const CONTENT_SECTIONS_MAP_METADATA_KEY = "content_sections_map"
 
-const isProductMetadataRecord = (
-  value: unknown,
-): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value)
+const contentSectionSchema = z.object({
+  html: z.string(),
+  key: z.enum(["description", "usage", "composition", "warning", "other"]),
+})
+const contentSectionsMapSchema = z.record(z.string(), z.string())
 
 const getMetadataValue = (
   metadata: AdminProduct["metadata"] | undefined,
   key: string,
-): unknown => (isProductMetadataRecord(metadata) ? metadata[key] : undefined)
+): unknown => metadata?.[key]
 
-const getMetadataRecord = (
+const getContentSectionsMap = (
   metadata: AdminProduct["metadata"] | undefined,
-  key: string,
-): Record<string, unknown> | null => {
-  const value = getMetadataValue(metadata, key)
-
-  return isProductMetadataRecord(value) ? value : null
+) => {
+  const result = contentSectionsMapSchema.safeParse(
+    getMetadataValue(metadata, CONTENT_SECTIONS_MAP_METADATA_KEY),
+  )
+  return result.success ? result.data : null
 }
 
 const getContentSectionsListHtml = (
@@ -63,30 +65,21 @@ const getContentSectionsListHtml = (
     return ""
   }
 
-  const sections: unknown[] = value
-  const section = sections.find((item) => {
-    const sectionRecord = isProductMetadataRecord(item) ? item : null
-
-    return sectionRecord?.["key"] === key
-  })
-
-  if (!isProductMetadataRecord(section)) {
-    return ""
+  for (const item of value) {
+    const section = contentSectionSchema.safeParse(item)
+    if (section.success && section.data.key === key) {
+      return section.data.html
+    }
   }
 
-  const html: unknown = section["html"]
-
-  return typeof html === "string" ? html : ""
+  return ""
 }
 
 const getMetadataSectionHtml = (
   metadata: AdminProduct["metadata"] | undefined,
   key: ProductContentSectionKey,
 ): string => {
-  const contentSectionsMap = getMetadataRecord(
-    metadata,
-    CONTENT_SECTIONS_MAP_METADATA_KEY,
-  )
+  const contentSectionsMap = getContentSectionsMap(metadata)
   const value = contentSectionsMap?.[key]
 
   if (typeof value === "string") {
@@ -132,10 +125,7 @@ export const buildContentSectionsMap = (
   sectionsHtml: ProductContentSectionHtml,
 ) => {
   const contentSectionsMap: Record<string, string> = {}
-  const existingContentSectionsMap = getMetadataRecord(
-    metadata,
-    CONTENT_SECTIONS_MAP_METADATA_KEY,
-  )
+  const existingContentSectionsMap = getContentSectionsMap(metadata)
 
   if (existingContentSectionsMap) {
     for (const [key, value] of Object.entries(existingContentSectionsMap)) {
@@ -157,10 +147,7 @@ export const getSavedSectionHtml = (
   submittedSectionsHtml: ProductContentSectionHtml,
 ) => {
   const responseHasContentMetadata =
-    getMetadataRecord(
-      responseProduct.metadata,
-      CONTENT_SECTIONS_MAP_METADATA_KEY,
-    ) !== null ||
+    getContentSectionsMap(responseProduct.metadata) !== null ||
     Array.isArray(
       getMetadataValue(responseProduct.metadata, CONTENT_SECTIONS_METADATA_KEY),
     )

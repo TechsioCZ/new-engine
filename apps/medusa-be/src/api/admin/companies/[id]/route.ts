@@ -6,7 +6,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { isRecord, omitUndefined } from "@techsio/std/object"
+import { isRecord, omitUndefined, getRecordValue } from "@techsio/std/object"
 
 import { requirePathParam } from "../../../../utils/path-params"
 import { deleteCompaniesWorkflow } from "../../../../workflows/company/workflows/delete-companies"
@@ -19,13 +19,16 @@ import type {
 const COMPANY_ID_LABEL = "Company id"
 
 const getCompanyFromGraphResult = (result: unknown, id: string) => {
-  if (!isRecord(result) || !Array.isArray(result["data"])) {
+  const data: unknown = isRecord(result)
+    ? getRecordValue(result, "data")
+    : undefined
+  if (!Array.isArray(data)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
       "Company query returned an invalid response",
     )
   }
-  const company: unknown = result["data"][0]
+  const company: unknown = data[0]
   if (!isRecord(company)) {
     throw new MedusaError(
       MedusaError.Types.NOT_FOUND,

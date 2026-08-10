@@ -5,6 +5,7 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
+import { getRecordValue } from "@techsio/std/object"
 
 import { PRODUCT_REVIEW_MODULE } from "../../../modules/product-review"
 import type ProductReviewModuleService from "../../../modules/product-review/service"
@@ -83,9 +84,7 @@ export interface ReviewTokenDTO {
   used_at?: Date | string | null
 }
 
-const isReviewAuthContextObjectLike = (
-  value: unknown,
-): value is Record<string, unknown> =>
+const isReviewAuthContextObjectLike = (value: unknown): value is object =>
   typeof value === "object" && value !== null
 
 const isPaymentCaptured = (payment: PaymentRecord) =>
@@ -101,21 +100,24 @@ const isOrderPaid = (order: OrderRecord) =>
 
 type ProductReviewModuleServiceWithTokens = ProductReviewModuleService & {
   listReviewTokens: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>,
+    filters?: Parameters<ProductReviewModuleService["listReviewTokens"]>[0],
+    config?: Parameters<ProductReviewModuleService["listReviewTokens"]>[1],
   ) => Promise<ReviewTokenDTO[]>
 }
 
-export const getAuthenticatedCustomerId = (req: MedusaRequest) => {
+export const getAuthenticatedCustomerId = (
+  req: MedusaRequest,
+): string | null => {
   const authContext = "auth_context" in req ? req.auth_context : undefined
 
   if (!isReviewAuthContextObjectLike(authContext)) {
     return null
   }
 
-  return authContext["actor_type"] === "customer" &&
-    typeof authContext["actor_id"] === "string"
-    ? authContext["actor_id"]
+  const actorId = getRecordValue(authContext, "actor_id")
+  return getRecordValue(authContext, "actor_type") === "customer" &&
+    typeof actorId === "string"
+    ? actorId
     : null
 }
 

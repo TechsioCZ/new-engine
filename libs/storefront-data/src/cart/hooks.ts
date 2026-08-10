@@ -113,30 +113,33 @@ const updateLineItemPayloadOmitKeys = [
   "autoUpdateRegion",
 ] as const
 
-type NormalizedCartCreatePayload<TInput extends CartCreateInputBase> = Omit<
-  TInput & CartCreateTransientInput,
-  (typeof cartPayloadOmitKeys)[number]
-> & {
+type NormalizedCartPayload<
+  TInput extends CartCreateInputBase & CartTransientInput,
+> = Omit<TInput, (typeof cartPayloadOmitKeys)[number]> & {
   sales_channel_id?: string
 }
 
-type NormalizedCartUpdatePayload<TInput extends UpdateCartInputBase> = Omit<
-  TInput & CartUpdateTransientInput,
-  (typeof cartPayloadOmitKeys)[number]
-> & {
-  sales_channel_id?: string
-}
+type NormalizedCartCreatePayload<
+  TInput extends CartCreateInputBase & CartCreateTransientInput,
+> = NormalizedCartPayload<TInput>
 
-type NormalizedAddLineItemPayload<TInput extends AddLineItemInputBase> = Omit<
+type NormalizedCartUpdatePayload<
+  TInput extends UpdateCartInputBase & CartUpdateTransientInput,
+> = NormalizedCartPayload<TInput>
+
+type NormalizedAddLineItemPayload<
+  TInput extends AddLineItemInputBase & AddLineItemTransientInput,
+> = Omit<
   TInput & AddLineItemTransientInput,
   (typeof addLineItemPayloadOmitKeys)[number]
 >
 
-type NormalizedUpdateLineItemPayload<TInput extends UpdateLineItemInputBase> =
-  Omit<
-    TInput & UpdateLineItemTransientInput,
-    (typeof updateLineItemPayloadOmitKeys)[number]
-  >
+type NormalizedUpdateLineItemPayload<
+  TInput extends UpdateLineItemInputBase & UpdateLineItemTransientInput,
+> = Omit<
+  TInput & UpdateLineItemTransientInput,
+  (typeof updateLineItemPayloadOmitKeys)[number]
+>
 
 const noopUnsubscribe = () => {
   // Intentionally empty unsubscribe callback.
@@ -187,12 +190,13 @@ const hasObservableCartStorage = (
 ): storage is ObservableStorageValueStore =>
   Boolean(storage?.subscribe && storage.getSnapshot)
 
-const normalizeCartCreatePayload = <TInput extends CartCreateInputBase>(
+const normalizeCartPayload = <
+  TInput extends CartCreateInputBase & CartTransientInput,
+>(
   input: TInput,
-): NormalizedCartCreatePayload<TInput> => {
-  const normalizedInput = input as TInput & CartCreateTransientInput
-  const payload = omitKeys(normalizedInput, cartPayloadOmitKeys)
-  const { salesChannelId } = normalizedInput
+): NormalizedCartPayload<TInput> => {
+  const payload = omitKeys(input, cartPayloadOmitKeys)
+  const { salesChannelId } = input
 
   if (salesChannelId === undefined || salesChannelId.length === 0) {
     return payload
@@ -204,38 +208,19 @@ const normalizeCartCreatePayload = <TInput extends CartCreateInputBase>(
   }
 }
 
-const normalizeCartUpdatePayload = <TInput extends UpdateCartInputBase>(
-  input: TInput,
-): NormalizedCartUpdatePayload<TInput> => {
-  const normalizedInput = input as TInput & CartUpdateTransientInput
-  const payload = omitKeys(normalizedInput, cartPayloadOmitKeys)
-  const { salesChannelId } = normalizedInput
-
-  if (salesChannelId === undefined || salesChannelId.length === 0) {
-    return payload
-  }
-
-  return {
-    ...payload,
-    sales_channel_id: salesChannelId,
-  }
-}
-
-const normalizeAddLineItemPayload = <TInput extends AddLineItemInputBase>(
+const normalizeAddLineItemPayload = <
+  TInput extends AddLineItemInputBase & AddLineItemTransientInput,
+>(
   input: TInput,
 ): NormalizedAddLineItemPayload<TInput> =>
-  omitKeys(
-    input as TInput & AddLineItemTransientInput,
-    addLineItemPayloadOmitKeys,
-  )
+  omitKeys(input, addLineItemPayloadOmitKeys)
 
-const normalizeUpdateLineItemPayload = <TInput extends UpdateLineItemInputBase>(
+const normalizeUpdateLineItemPayload = <
+  TInput extends UpdateLineItemInputBase & UpdateLineItemTransientInput,
+>(
   input: TInput,
 ): NormalizedUpdateLineItemPayload<TInput> =>
-  omitKeys(
-    input as TInput & UpdateLineItemTransientInput,
-    updateLineItemPayloadOmitKeys,
-  )
+  omitKeys(input, updateLineItemPayloadOmitKeys)
 
 const getItemCount = (cart: CartLike | null): number => {
   const items = cart?.items
@@ -365,8 +350,8 @@ export const createCartHooks = <
   TUpdateItemInput extends UpdateLineItemInputBase = UpdateLineItemInputBase,
   TUpdateItemParams = NormalizedUpdateLineItemPayload<TUpdateItemInput>,
   TCompleteResult = unknown,
-  TAddressInput = Record<string, unknown>,
-  TAddressPayload = Record<string, unknown>,
+  TAddressInput = object,
+  TAddressPayload = object,
 >({
   service,
   buildCreateParams,
@@ -401,15 +386,9 @@ export const createCartHooks = <
   // CreateCartHooksConfig conditional types require custom builders whenever
   // default normalized payloads are incompatible with custom param types.
   const buildCreate: ParamBuilder<TCreateInput, TCreateParams> =
-    conditionalCartHookAdapter.resolve(
-      buildCreateParams,
-      normalizeCartCreatePayload,
-    )
+    conditionalCartHookAdapter.resolve(buildCreateParams, normalizeCartPayload)
   const buildUpdate: ParamBuilder<TUpdateInput, TUpdateParams> =
-    conditionalCartHookAdapter.resolve(
-      buildUpdateParams,
-      normalizeCartUpdatePayload,
-    )
+    conditionalCartHookAdapter.resolve(buildUpdateParams, normalizeCartPayload)
   const buildAdd: ParamBuilder<TAddInput, TAddParams> =
     conditionalCartHookAdapter.resolve(
       buildAddParams,
@@ -1151,8 +1130,8 @@ export type CartHooks<
   TUpdateItemInput extends UpdateLineItemInputBase = UpdateLineItemInputBase,
   TUpdateItemParams = NormalizedUpdateLineItemPayload<TUpdateItemInput>,
   TCompleteResult = unknown,
-  TAddressInput = Record<string, unknown>,
-  TAddressPayload = Record<string, unknown>,
+  TAddressInput = object,
+  TAddressPayload = object,
 > = ReturnType<
   typeof createCartHooks<
     TCart,

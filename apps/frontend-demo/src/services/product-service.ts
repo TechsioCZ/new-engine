@@ -3,6 +3,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { sdk } from "@/lib/medusa-client"
 import type { Product } from "@/types/product"
 import { buildMedusaQuery } from "@/utils/server-filters"
+import type { MedusaProductQuery } from "@/utils/server-filters"
 
 export interface ProductFilters {
   categories?: string[]
@@ -69,7 +70,11 @@ const DETAIL_FIELDS = [
   "variants.calculated_price",
   "variants.options",
 ].join(",")
-const SORT_ORDER_QUERY_KEY = "order"
+const resolveCategoryIds = (
+  category: ProductListParams["category"],
+  filterCategories: ProductFilters["categories"],
+): string | string[] | undefined =>
+  category === undefined || category === "" ? filterCategories : category
 
 /**
  * Transform raw product data from API
@@ -133,13 +138,20 @@ export const getProducts = async (
 
   // Use either category parameter or filters.categories, not both.
   // An explicit non-empty category takes priority over filters.categories.
-  let categoryIds = category
-  if (categoryIds === undefined || categoryIds === "") {
-    categoryIds = filters?.categories
+  const categoryIds = resolveCategoryIds(category, filters?.categories)
+
+  const sortMap: Record<string, string> = {
+    "name-asc": "title",
+    "name-desc": "-title",
+    newest: "id",
+    "price-asc": "variants.prices.amount",
+    "price-desc": "-variants.prices.amount",
   }
+  const order =
+    sort !== undefined && sort.length > 0 ? (sortMap[sort] ?? sort) : undefined
 
   // Build base query.
-  const baseQuery: Record<string, unknown> = {
+  const baseQuery: MedusaProductQuery = {
     country_code: country_code ?? "cz",
     fields,
     limit,
@@ -147,18 +159,7 @@ export const getProducts = async (
     ...(q !== undefined && { q }),
     ...(categoryIds !== undefined && { category_id: categoryIds }),
     ...(region_id !== undefined && { region_id }),
-  }
-
-  // Add sorting.
-  if (sort !== undefined && sort.length > 0) {
-    const sortMap: Record<string, string> = {
-      "name-asc": "title",
-      "name-desc": "-title",
-      newest: "id",
-      "price-asc": "variants.prices.amount",
-      "price-desc": "-variants.prices.amount",
-    }
-    baseQuery[SORT_ORDER_QUERY_KEY] = sortMap[sort] ?? sort
+    ...(order !== undefined && { order }),
   }
 
   // Build query with server-side filters.

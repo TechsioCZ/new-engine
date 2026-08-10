@@ -30,12 +30,13 @@ describe("PayKit runtime helpers", () => {
     })
   })
 
-  it("defaults GoPay to sandbox mode", () => {
+  it("keeps GoPay sandbox mode enabled", () => {
     expect(
       getGopayProviderOptions({
         clientId: "client",
         clientSecret: "secret",
         goId: "goid",
+        isSandbox: true,
         webhookUrl: "https://example.com/hooks/gopay",
       }),
     ).toStrictEqual({

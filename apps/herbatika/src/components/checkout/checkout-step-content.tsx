@@ -147,9 +147,10 @@ export const CheckoutStepContent = ({
             {...(selectedPaymentLabel === null
               ? {}
               : { paymentLabel: selectedPaymentLabel })}
-            {...(selectedPaymentProviderId === undefined
+            {...(selectedPaymentProviderId === undefined ||
+            selectedPaymentProviderId === null
               ? {}
-              : { paymentProviderId: selectedPaymentProviderId ?? undefined })}
+              : { paymentProviderId: selectedPaymentProviderId })}
             shippingAddressForm={controller.shippingAddressForm}
             {...(selectedShippingLabel === undefined
               ? {}

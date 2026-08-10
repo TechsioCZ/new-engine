@@ -1,6 +1,7 @@
+import type { BigNumberValue } from "@medusajs/framework/types"
+
 type OrderReceiptMoney =
-  | number
-  | string
+  | BigNumberValue
   | {
       amount?: number | string | null
       precision?: number | string | null
@@ -58,7 +59,7 @@ export interface OrderReceiptLineItem {
 }
 
 export interface OrderReceiptPayment {
-  data?: Record<string, unknown> | null
+  data?: object | null
   provider_id?: string | null
 }
 
@@ -98,7 +99,7 @@ export interface OrderReceiptOrder {
   item_subtotal?: OrderReceiptMoney
   item_tax_total?: OrderReceiptMoney
   items?: OrderReceiptLineItem[] | null
-  metadata?: Record<string, unknown> | null
+  metadata?: object | null
   payment_collections?: OrderReceiptPaymentCollection[] | null
   shipping_methods?: OrderReceiptShippingMethod[] | null
   shipping_total?: OrderReceiptMoney

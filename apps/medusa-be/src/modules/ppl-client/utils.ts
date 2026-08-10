@@ -2,7 +2,7 @@
  * Pure utility functions for PPL fulfillment processing
  * Separated from job file to allow unit testing without triggering module loading
  */
-import type { PplFulfillmentData } from "./types"
+import { z } from "@medusajs/framework/zod"
 
 /**
  * Maximum number of sync attempts before marking as error
@@ -16,17 +16,53 @@ export const MAX_SYNC_ATTEMPTS = 60
  */
 export const MAX_PENDING_AGE_MS = 24 * 60 * 60 * 1000
 
-/** Fulfillment record shape from query */
-export interface FulfillmentRecord {
-  id: string
-  data: PplFulfillmentData | null
-  created_at: string
-  provider_id: string
-}
+const pplShipmentStateSchema = z.enum([
+  "Active",
+  "BackToSender",
+  "DataShipment",
+  "Delivered",
+  "DeliveredToPickupPoint",
+  "Dormant",
+  "NotDelivered",
+  "OutForDelivery",
+  "PickedUpFromSender",
+  "Rejected",
+  "Undelivered",
+])
 
-/** Narrowed type after filter - has confirmed pending status and batch_id */
-export interface PendingFulfillment extends FulfillmentRecord {
-  data: PplFulfillmentData & { batch_id: string }
+const pendingFulfillmentDataSchema = z.object({
+  access_point_id: z.string().optional(),
+  batch_id: z.string(),
+  delivery_failed: z.boolean().optional(),
+  error_message: z.string().optional(),
+  first_sync_attempt: z.string().optional(),
+  label_url: z.string().optional(),
+  last_status: pplShipmentStateSchema.optional(),
+  last_status_date: z.string().optional(),
+  last_sync_attempt: z.string().optional(),
+  ppl_label_url: z.string().optional(),
+  product_type: z.string(),
+  shipment_number: z.string().optional(),
+  status: z.literal("pending"),
+  sync_attempts: z.number().optional(),
+  tracking_url: z.string().optional(),
+})
+
+/** Exact fulfillment projection decoded from the label-sync graph query. */
+export const pendingFulfillmentSchema = z.object({
+  created_at: z.string(),
+  data: pendingFulfillmentDataSchema,
+  id: z.string(),
+  provider_id: z.string(),
+})
+
+export type PendingFulfillment = z.infer<typeof pendingFulfillmentSchema>
+
+export const parsePendingFulfillment = (
+  value: unknown,
+): PendingFulfillment | null => {
+  const result = pendingFulfillmentSchema.safeParse(value)
+  return result.success ? result.data : null
 }
 
 /** Sync attempt tracking */

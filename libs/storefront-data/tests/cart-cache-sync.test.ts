@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { expect, describe, it } from "vitest"
 
 import { createCartQueryKeys } from "../src/cart/query-keys"
@@ -23,7 +23,9 @@ const decodeCart = (value: unknown): Cart | null => {
   if (!isRecord(value)) {
     return null
   }
-  const { id, item_count: itemCount, region_id: regionId } = value
+  const id = getRecordValue(value, "id")
+  const itemCount = getRecordValue(value, "item_count")
+  const regionId = getRecordValue(value, "region_id")
   if (typeof id !== "string") {
     return null
   }

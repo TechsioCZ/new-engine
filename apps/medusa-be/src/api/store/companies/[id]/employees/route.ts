@@ -7,7 +7,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { isRecord, omitUndefined } from "@techsio/std/object"
+import { isRecord, omitUndefined, getRecordValue } from "@techsio/std/object"
 
 import { requirePathParam } from "../../../../../utils/path-params"
 import { createEmployeesWorkflow } from "../../../../../workflows/employee/workflows/create-employees"
@@ -30,13 +30,15 @@ const isQueryMetadata = (value: unknown): value is QueryMetadata => {
     return false
   }
 
-  const { count, skip, take } = value
+  const count = getRecordValue(value, "count")
+  const skip = getRecordValue(value, "skip")
+  const take = getRecordValue(value, "take")
   return (
     isOptionalNumber(count) && isOptionalNumber(skip) && isOptionalNumber(take)
   )
 }
 
-const getCompanyEmployees = (value: unknown): Record<string, unknown>[] => {
+const getCompanyEmployees = (value: unknown): object[] => {
   if (!isRecord(value)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,
@@ -44,7 +46,7 @@ const getCompanyEmployees = (value: unknown): Record<string, unknown>[] => {
     )
   }
 
-  const { employees } = value
+  const employees = getRecordValue(value, "employees")
   if (employees === undefined || employees === null) {
     return []
   }
@@ -69,7 +71,8 @@ const parseGraphResponse = (value: unknown) => {
     )
   }
 
-  const { data: dataValue, metadata } = value
+  const dataValue = getRecordValue(value, "data")
+  const metadata = getRecordValue(value, "metadata")
   if (!Array.isArray(dataValue)) {
     throw new MedusaError(
       MedusaError.Types.UNEXPECTED_STATE,

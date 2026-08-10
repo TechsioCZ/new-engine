@@ -1,5 +1,7 @@
 import { z } from "@medusajs/framework/zod"
 
+const CustomerMetadataSchema = z.record(z.string(), z.json())
+
 export const StoreDeactivateCustomerAccountSchema = z
   .object({
     confirm: z.literal(true),
@@ -18,7 +20,7 @@ export const StoreCreateCustomerAccountSchema = z
     email: z.email(),
     first_name: z.string().nullable().optional(),
     last_name: z.string().nullable().optional(),
-    metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+    metadata: CustomerMetadataSchema.nullable().optional(),
     phone: z.string().nullable().optional(),
   })
   .strict()

@@ -8,7 +8,7 @@ import {
 } from "@medusajs/framework/utils"
 import type { RequestWithContext } from "@medusajs/medusa/api/store/products/helpers"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
-import { isRecord } from "@techsio/std/object"
+import { isRecord, getRecordValue } from "@techsio/std/object"
 
 import { cleanSearchText } from "../../../../modules/meilisearch/documents"
 import { isMeilisearchEnabled } from "../../../../modules/meilisearch/env"
@@ -38,6 +38,7 @@ import {
   getMeasurementDecorationOptions,
 } from "../../../../utils/measurement-units"
 import { MEILISEARCH } from "../../../../workflows/meilisearch"
+import type { ProductFilters } from "../../../utils/product-filters"
 import { normalizeProductSalesChannelFilter } from "../../../utils/product-filters"
 import type { StoreProductProjection } from "../../products/product-graph-validation"
 import { parseStoreProductListGraphResponse } from "../../products/product-graph-validation"
@@ -74,7 +75,7 @@ type CatalogRequest = RequestWithContext<
   StoreCatalogProductsSchemaType
 >
 type CatalogSearchResult = Awaited<ReturnType<MeiliSearchService["search"]>>
-type RemoteQuery = Parameters<typeof normalizeProductSalesChannelFilter>[1]
+type RemoteQuery = Parameters<typeof normalizeProductSalesChannelFilter>[0]
 type PriceSortDirection = -1 | 1 | undefined
 
 interface CatalogDependencies {
@@ -191,12 +192,12 @@ const buildVisibilityFilterExpressions = (
   return expressions
 }
 
-const getGraphRecords = (value: unknown): Record<string, unknown>[] => {
-  if (!isRecord(value) || !Array.isArray(value["data"])) {
+const getGraphRecords = (value: unknown): object[] => {
+  if (!isRecord(value)) {
     return []
   }
-
-  return value["data"].filter(isRecord)
+  const data = getRecordValue(value, "data")
+  return Array.isArray(data) ? data.filter(isRecord) : []
 }
 
 const getFacetHandles = (
@@ -233,8 +234,8 @@ const resolveFacetLabels = async (options: {
   })
   const labelsByHandle = new Map<string, string>()
   for (const record of getGraphRecords(rawResult)) {
-    const { handle } = record
-    const label = record[options.labelField]
+    const handle = getRecordValue(record, "handle")
+    const label = getRecordValue(record, options.labelField)
     if (typeof handle === "string" && typeof label === "string") {
       labelsByHandle.set(handle, label)
     }
@@ -293,29 +294,30 @@ const getLowestCalculatedProductPrice = (
     return undefined
   }
 
-  const searchResult = product["search_result"]
+  const searchResult = getRecordValue(product, "search_result")
   const selectedVariantId = isRecord(searchResult)
-    ? searchResult["variant_id"]
+    ? getRecordValue(searchResult, "variant_id")
     : undefined
-  const variants = Array.isArray(product["variants"])
-    ? product["variants"].filter(isRecord)
+  const rawVariants: unknown = getRecordValue(product, "variants")
+  const variants = Array.isArray(rawVariants)
+    ? rawVariants.filter(isRecord)
     : []
   const selectedVariant = variants.find(
     (variant) =>
       typeof selectedVariantId === "string" &&
-      variant["id"] === selectedVariantId,
+      getRecordValue(variant, "id") === selectedVariantId,
   )
   const candidates =
     selectedVariant === undefined ? variants : [selectedVariant]
   const prices: number[] = []
 
   for (const variant of candidates) {
-    const calculatedPrice = variant["calculated_price"]
+    const calculatedPrice = getRecordValue(variant, "calculated_price")
     if (!isRecord(calculatedPrice)) {
       continue
     }
-    const amount = calculatedPrice["calculated_amount"]
-    const currencyCode = calculatedPrice["currency_code"]
+    const amount = getRecordValue(calculatedPrice, "calculated_amount")
+    const currencyCode = getRecordValue(calculatedPrice, "currency_code")
     const hasAuthoritativeCurrency =
       authoritativeCurrencyCode === undefined ||
       (typeof currencyCode === "string" &&
@@ -462,13 +464,12 @@ const getProductFields = (req: CatalogRequest): string[] => {
 
 const queryProducts = async (options: {
   dependencies: CatalogDependencies
-  filters: Record<string, unknown>
+  filters: ProductFilters
   pagination?: { skip: number; take: number }
   req: CatalogRequest
 }): Promise<CatalogProductQueryResult> => {
   const context = getProductQueryContext(options.req)
   const normalizedFilters = await normalizeProductSalesChannelFilter(
-    options.dependencies.queryService,
     options.dependencies.remoteQuery,
     options.filters,
   )
@@ -628,7 +629,8 @@ const getProductResultKey = (value: unknown): string | undefined => {
   if (!isRecord(value)) {
     return undefined
   }
-  const { id, search_product_id: searchProductId } = value
+  const id = getRecordValue(value, "id")
+  const searchProductId = getRecordValue(value, "search_product_id")
   let productId: string | undefined
   if (typeof searchProductId === "string") {
     productId = searchProductId
@@ -638,10 +640,10 @@ const getProductResultKey = (value: unknown): string | undefined => {
   if (productId === undefined) {
     return undefined
   }
-  const searchResult = value["search_result"]
+  const searchResult = getRecordValue(value, "search_result")
   const variantId = isRecord(searchResult)
-    ? searchResult["variant_id"]
-    : value["search_variant_id"]
+    ? getRecordValue(searchResult, "variant_id")
+    : getRecordValue(value, "search_variant_id")
   return typeof variantId === "string" && variantId.length > 0
     ? `${productId}:${variantId}`
     : productId

@@ -1,16 +1,17 @@
-import { isRecord } from "@techsio/std/object"
-
+import {
+  zaneServiceHealthcheckSchema,
+  zaneServiceResourceLimitsSchema,
+} from "./zane-contract"
 import type {
   ZaneServiceDetails,
   ZaneServiceHealthcheck,
   ZaneServiceResourceLimits,
+  ZaneUnappliedChangeValue,
 } from "./zane-contract"
 
-interface PendingFieldChange {
-  field?: string
-  type?: string
-  new_value?: Record<string, unknown> | null
-}
+type PendingFieldChange = NonNullable<
+  ZaneServiceDetails["unapplied_changes"]
+>[number]
 
 export interface EffectiveGitSource {
   repository_url: string | null
@@ -37,70 +38,34 @@ const getLastPendingFieldChange = (
   return matchingChanges.at(-1) ?? null
 }
 
-const normalizeString = (value: unknown): string | null =>
+const normalizeString = (value: string | null | undefined): string | null =>
   typeof value === "string" && value.trim() !== "" ? value.trim() : null
 
 const normalizeHealthcheck = (
-  value: unknown,
+  value: ZaneUnappliedChangeValue | null | undefined,
 ): ZaneServiceHealthcheck | null => {
-  if (!isRecord(value)) {
-    return null
-  }
-
-  const type = normalizeString(value["type"])
-  const path = normalizeString(value["value"])
-  const timeoutValue = value["timeout_seconds"]
-  const intervalValue = value["interval_seconds"]
-  const associatedPortValue = value["associated_port"]
-  const timeoutSeconds = typeof timeoutValue === "number" ? timeoutValue : null
-  const intervalSeconds =
-    typeof intervalValue === "number" ? intervalValue : null
-
-  if (
-    type === null ||
-    path === null ||
-    timeoutSeconds === null ||
-    intervalSeconds === null
-  ) {
+  const result = zaneServiceHealthcheckSchema.safeParse(value)
+  if (!result.success) {
     return null
   }
 
   return {
-    associated_port:
-      typeof associatedPortValue === "number" ? associatedPortValue : null,
-    interval_seconds: intervalSeconds,
-    timeout_seconds: timeoutSeconds,
-    type,
-    value: path,
+    ...result.data,
+    associated_port: result.data.associated_port ?? null,
   }
 }
 
 const normalizeResourceLimits = (
-  value: unknown,
+  value: ZaneUnappliedChangeValue | null | undefined,
 ): ZaneServiceResourceLimits | null => {
-  if (!isRecord(value)) {
+  const result = zaneServiceResourceLimitsSchema.safeParse(value)
+  if (!result.success) {
     return null
   }
 
-  const { cpus: cpuValue, memory: memoryValue } = value
-  const memory = isRecord(memoryValue) ? memoryValue : null
-  let normalizedMemory: ZaneServiceResourceLimits["memory"] = null
-  if (memory !== null) {
-    const { unit, value: memoryAmount } = memory
-    normalizedMemory = {
-      ...(typeof unit === "string" ? { unit } : {}),
-      ...(typeof memoryAmount === "number" || typeof memoryAmount === "string"
-        ? { value: memoryAmount }
-        : {}),
-    }
-  }
-
   return {
-    cpus:
-      typeof cpuValue === "number" || typeof cpuValue === "string"
-        ? cpuValue
-        : null,
-    memory: normalizedMemory,
+    cpus: result.data.cpus ?? null,
+    memory: result.data.memory ?? null,
   }
 }
 
@@ -119,10 +84,10 @@ export const computeEffectiveGitSource = (
 
   if (pendingValue !== undefined && pendingValue !== null) {
     return {
-      branch_name: normalizeString(pendingValue["branch_name"]),
-      commit_sha: normalizeString(pendingValue["commit_sha"]),
-      git_app_id: normalizeString(pendingValue["git_app_id"]),
-      repository_url: normalizeString(pendingValue["repository_url"]),
+      branch_name: normalizeString(pendingValue.branch_name),
+      commit_sha: normalizeString(pendingValue.commit_sha),
+      git_app_id: normalizeString(pendingValue.git_app_id),
+      repository_url: normalizeString(pendingValue.repository_url),
     }
   }
 
@@ -145,10 +110,10 @@ export const computeEffectiveBuilder = (
 
   if (pendingValue !== undefined && pendingValue !== null) {
     return {
-      build_context_dir: normalizeString(pendingValue["build_context_dir"]),
-      build_stage_target: normalizeString(pendingValue["build_stage_target"]),
-      builder: normalizeString(pendingValue["builder"]),
-      dockerfile_path: normalizeString(pendingValue["dockerfile_path"]),
+      build_context_dir: normalizeString(pendingValue.build_context_dir),
+      build_stage_target: normalizeString(pendingValue.build_stage_target),
+      builder: normalizeString(pendingValue.builder),
+      dockerfile_path: normalizeString(pendingValue.dockerfile_path),
     }
   }
 

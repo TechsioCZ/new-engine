@@ -5,8 +5,7 @@ import { omitUndefined, toPlainRecord } from "@techsio/std/object"
 import type { IsExactly } from "../shared/type-utils"
 import type { ProductListResponse, ProductService } from "./types"
 
-type MedusaProductListQuery = HttpTypes.StoreProductListParams &
-  Record<string, unknown>
+type MedusaProductListQuery = HttpTypes.StoreProductListParams
 
 export type MedusaProductListInput = HttpTypes.StoreProductListParams
 

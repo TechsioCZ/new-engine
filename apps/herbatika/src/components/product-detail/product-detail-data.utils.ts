@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import { getRecordValue } from "@techsio/std/object"
 import type { SelectItem } from "@techsio/ui-kit/molecules/select"
 
 import type { HerbatikaBreadcrumbItem } from "@/components/herbatika-breadcrumb"
@@ -57,7 +58,13 @@ export const resolveVariantItems = (
 
 export const resolveShortDescriptionHtml = (product: Product | null) => {
   const metadata = asRecord(product?.metadata)
-  return asString(metadata?.[SHORT_DESCRIPTION_KEY]) ?? ""
+  return (
+    asString(
+      metadata === null
+        ? undefined
+        : getRecordValue(metadata, SHORT_DESCRIPTION_KEY),
+    ) ?? ""
+  )
 }
 
 export const resolveProductSummaryText = (

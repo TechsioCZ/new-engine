@@ -1,6 +1,5 @@
 import type { Query } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
 
 import type OrderNoteModuleService from "../modules/order-note/service"
 import { getOrderExpeditionNote } from "./order-expedition"
@@ -87,7 +86,9 @@ const fetchCustomerOrderCountersPage = async (
     )
   }
 
-  const graphResult: unknown = await query.graph({
+  const graphResult: {
+    data: Pick<OrderSignalSource, "customer_id" | "status">[]
+  } = await query.graph({
     entity: "order",
     fields: ["customer_id", "status"],
     filters: { customer_id: customerIds },
@@ -96,24 +97,21 @@ const fetchCustomerOrderCountersPage = async (
       take: CUSTOMER_ORDER_COUNTER_LOOKUP_CHUNK_SIZE,
     },
   })
-  const orders =
-    isRecord(graphResult) && Array.isArray(graphResult["data"])
-      ? graphResult["data"]
-      : []
+  const orders = graphResult.data
 
   for (const order of orders) {
-    if (!isRecord(order) || !isNonEmptyString(order["customer_id"])) {
+    if (!isNonEmptyString(order.customer_id)) {
       continue
     }
 
-    const customerId = order["customer_id"]
+    const customerId = order.customer_id
     const counter = counters.get(customerId) ?? {
       canceledCount: 0,
       totalCount: 0,
     }
 
     counter.totalCount += 1
-    counter.canceledCount += order["status"] === "canceled" ? 1 : 0
+    counter.canceledCount += order.status === "canceled" ? 1 : 0
     counters.set(customerId, counter)
   }
 

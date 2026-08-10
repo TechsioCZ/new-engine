@@ -1,3 +1,5 @@
+import type { JsonMetadata } from "../../lib/json-metadata"
+
 export type CustomerIdentifierType =
   | "email"
   | "erp_id"
@@ -28,7 +30,7 @@ export interface CustomerInput {
   company_name?: string
   addresses?: CustomerAddressInput[]
   customer_group_codes?: string[]
-  metadata?: Record<string, unknown>
+  metadata?: JsonMetadata
 }
 
 export interface UpsertCustomersBatchInput {

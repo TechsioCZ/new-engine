@@ -21,18 +21,22 @@ const get = async (
   res: MedusaResponse,
 ) => {
   const { definition_id, limit, offset, order, q, status } = req.validatedQuery
-  const filters: Record<string, unknown> = { definition_id }
   const escapedQuery =
     typeof q === "string" && q.length > 0
       ? escapeProductAttributeLikePattern(q)
       : undefined
-  if (typeof escapedQuery === "string" && escapedQuery.length > 0) {
-    filters["$or"] = [
-      { key: { $ilike: `%${escapedQuery}%` } },
-      { label: { $ilike: `%${escapedQuery}%` } },
-    ]
+  const baseFilters = {
+    definition_id,
+    ...(typeof escapedQuery === "string" && escapedQuery.length > 0
+      ? {
+          $or: [
+            { key: { $ilike: `%${escapedQuery}%` } },
+            { label: { $ilike: `%${escapedQuery}%` } },
+          ],
+        }
+      : {}),
   }
-  applyProductAttributeStatusFilter(filters, status)
+  const filters = applyProductAttributeStatusFilter(baseFilters, status)
 
   const [options, count] = await getProductAttributeService(
     req.scope,

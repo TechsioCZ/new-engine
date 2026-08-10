@@ -1,4 +1,8 @@
-import type { ICustomerModuleService, Query } from "@medusajs/framework/types"
+import type {
+  MetadataType,
+  ICustomerModuleService,
+  Query,
+} from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -12,9 +16,8 @@ import {
   createCustomerAccountDeactivationToken,
   CUSTOMER_ACCOUNT_DEACTIVATION_NONCE_METADATA_KEY,
 } from "../../../utils/customer-account-deactivation"
-import { hasArrayData } from "../../../utils/guards"
 import { normalizeCustomerName } from "../normalizers"
-import { isCustomerRecord } from "./prepare-customer-account-reactivation"
+import type { CustomerRecord } from "./prepare-customer-account-reactivation"
 
 interface PrepareCustomerAccountDeactivationRequestInput {
   customer_id: string
@@ -30,7 +33,7 @@ export interface PrepareCustomerAccountDeactivationRequestOutput {
 
 interface PrepareCustomerAccountDeactivationRequestCompensation {
   customer_id: string
-  metadata: Record<string, unknown> | null
+  metadata: MetadataType
 }
 
 export const prepareCustomerAccountDeactivationRequestStep = createStep(
@@ -46,7 +49,7 @@ export const prepareCustomerAccountDeactivationRequestStep = createStep(
   > => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
-    const customerResult: unknown = await query.graph({
+    const customerResult: { data: CustomerRecord[] } = await query.graph({
       entity: "customer",
       fields: [
         "id",
@@ -58,13 +61,6 @@ export const prepareCustomerAccountDeactivationRequestStep = createStep(
       ],
       filters: { id: input.customer_id },
     })
-
-    if (!hasArrayData(customerResult, isCustomerRecord)) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        "Unexpected response shape while loading customer account.",
-      )
-    }
 
     const [customer] = customerResult.data
 

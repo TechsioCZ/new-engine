@@ -9,10 +9,7 @@ import type { CmsHeroCarousel } from "./cms-types"
 const CMS_HERO_CAROUSEL_LIMIT = 8
 const SAFE_ABSOLUTE_HREF_PROTOCOLS = new Set(["http:", "https:"])
 
-const readString = (
-  record: Readonly<Record<string, unknown>>,
-  key: string,
-): string | null => {
+const readString = (record: object, key: string): string | null => {
   const value = getRecordValue(record, key)
   return typeof value === "string" ? value : null
 }

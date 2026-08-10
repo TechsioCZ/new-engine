@@ -1,15 +1,19 @@
 import type Medusa from "@medusajs/js-sdk"
 import type { FindParams, HttpTypes, SelectParams } from "@medusajs/types"
-import { omitKeys, toPlainRecord } from "@techsio/std/object"
+import {
+  getRecordValue,
+  omitKeys,
+  omitUndefined,
+  toPlainRecord,
+} from "@techsio/std/object"
 
 import type { IsExactly } from "../shared/type-utils"
 import type { CategoryListResponse, CategoryService } from "./types"
 
 type MedusaCategoryListQuery = FindParams &
-  HttpTypes.StoreProductCategoryListParams &
-  Record<string, unknown>
+  HttpTypes.StoreProductCategoryListParams
 
-type MedusaCategoryDetailQuery = SelectParams & Record<string, unknown>
+type MedusaCategoryDetailQuery = SelectParams
 
 export type MedusaCategoryListInput = FindParams &
   HttpTypes.StoreProductCategoryListParams & {
@@ -154,16 +158,14 @@ export function createMedusaCategoryService<
       defaultListFields !== undefined && defaultListFields.length > 0
     const hasParamFields =
       params.fields !== undefined && params.fields.length > 0
-    const query: MedusaCategoryListQuery = normalizeListQuery
-      ? normalizeListQuery(params)
-      : {
-          ...toPlainRecord(params),
-          ...(hasDefaultFields && !hasParamFields
-            ? { fields: defaultListFields }
-            : {}),
-        }
+    if (normalizeListQuery !== undefined) {
+      return normalizeListQuery(params)
+    }
 
-    return omitKeys(query, ["enabled"])
+    const query = omitUndefined(omitKeys(params, ["enabled"]))
+    return hasDefaultFields && !hasParamFields
+      ? { ...query, fields: defaultListFields }
+      : query
   }
 
   const buildDetailQuery = (
@@ -173,16 +175,14 @@ export function createMedusaCategoryService<
       defaultDetailFields !== undefined && defaultDetailFields.length > 0
     const hasParamFields =
       params.fields !== undefined && params.fields.length > 0
-    const query: MedusaCategoryDetailQuery = normalizeDetailQuery
-      ? normalizeDetailQuery(params)
-      : {
-          ...toPlainRecord(params),
-          ...(hasDefaultFields && !hasParamFields
-            ? { fields: defaultDetailFields }
-            : {}),
-        }
+    if (normalizeDetailQuery !== undefined) {
+      return normalizeDetailQuery(params)
+    }
 
-    return omitKeys(query, ["enabled", "id"])
+    const query = omitUndefined(omitKeys(params, ["enabled", "id"]))
+    return hasDefaultFields && !hasParamFields
+      ? { ...query, fields: defaultDetailFields }
+      : query
   }
 
   return {
@@ -229,7 +229,10 @@ export function createMedusaCategoryService<
         )
 
       const responseRecord = toPlainRecord(response)
-      const { product_category: rawCategory } = responseRecord ?? {}
+      const rawCategory =
+        responseRecord === undefined
+          ? undefined
+          : getRecordValue(responseRecord, "product_category")
       if (toPlainRecord(rawCategory) === undefined) {
         return null
       }

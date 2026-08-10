@@ -3,6 +3,7 @@ import crypto from "node:crypto"
 import type {
   IAuthModuleService,
   ICustomerModuleService,
+  MetadataType,
   Query,
 } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
@@ -16,7 +17,7 @@ export interface AccountSetupOrder {
   display_id?: number | null | undefined
   email?: string | null | undefined
   customer_id?: string | null | undefined
-  metadata?: Record<string, unknown> | null
+  metadata?: MetadataType
   billing_address?: {
     first_name?: string | null | undefined
     last_name?: string | null | undefined
@@ -84,19 +85,15 @@ export const ACCOUNT_SETUP_ORDER_FIELDS = [
 const hasText = (value: string | null | undefined): value is string =>
   value !== undefined && value !== null && value !== ""
 
-export const isAccountSetupRequested = (
-  metadata: Record<string, unknown> | null | undefined,
-) => metadata?.[ACCOUNT_SETUP_REQUESTED_METADATA_KEY] === true
+export const isAccountSetupRequested = (metadata: MetadataType | undefined) =>
+  metadata?.[ACCOUNT_SETUP_REQUESTED_METADATA_KEY] === true
 
 export const getAccountSetupOrderDisplayId = (order: AccountSetupOrder) => {
   const displayId = order.display_id
-  const hasDisplayId =
-    displayId !== undefined &&
-    displayId !== null &&
-    displayId !== 0 &&
-    !Number.isNaN(displayId)
 
-  return hasDisplayId ? `#${displayId}` : order.id
+  return displayId === undefined || displayId === null
+    ? order.id
+    : `#${displayId}`
 }
 
 export const getAccountSetupCustomerName = (order: AccountSetupOrder) => {
@@ -158,167 +155,6 @@ const getCustomerCreateData = (order: AccountSetupOrder, email: string) => {
   }
 }
 
-const isAccountSetupObjectLike = (
-  value: unknown,
-): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null
-
-const isUnknownArray = (value: unknown): value is unknown[] =>
-  Array.isArray(value)
-
-/**
- * Every falsy JavaScript value, matched with `SameValueZero` so `NaN` and `-0`
- * are covered. Rows read from Medusa services are `unknown`, so the original
- * truthiness guards on those rows are reproduced here instead of relying on
- * coercion, which keeps a falsy row on the "no existing record" path.
- */
-const FALSY_ROW_VALUES: ReadonlySet<unknown> = new Set([
-  undefined,
-  null,
-  false,
-  0,
-  0n,
-  "",
-  Number.NaN,
-])
-
-const isPresentRow = (value: unknown) => !FALSY_ROW_VALUES.has(value)
-
-const isOptionalNullableString = (value: unknown) =>
-  value === undefined || value === null || typeof value === "string"
-
-const isOptionalNullableBoolean = (value: unknown) =>
-  value === undefined || value === null || typeof value === "boolean"
-
-const isOptionalNullableNumber = (value: unknown) =>
-  value === undefined || value === null || typeof value === "number"
-
-const isOptionalNullableRecord = (value: unknown) =>
-  value === undefined || value === null || isAccountSetupObjectLike(value)
-
-const isOptionalNullableAddress = (value: unknown) => {
-  if (value === undefined || value === null) {
-    return true
-  }
-
-  return (
-    isAccountSetupObjectLike(value) &&
-    isOptionalNullableString(value["first_name"]) &&
-    isOptionalNullableString(value["last_name"])
-  )
-}
-
-const isOptionalNullableOrderCustomer = (value: unknown) => {
-  if (value === undefined || value === null) {
-    return true
-  }
-
-  if (!isAccountSetupObjectLike(value)) {
-    return false
-  }
-
-  if (!isOptionalNullableString(value["id"])) {
-    return false
-  }
-
-  if (!isOptionalNullableString(value["email"])) {
-    return false
-  }
-
-  if (!isOptionalNullableString(value["first_name"])) {
-    return false
-  }
-
-  if (!isOptionalNullableString(value["last_name"])) {
-    return false
-  }
-
-  return isOptionalNullableBoolean(value["has_account"])
-}
-
-const isAccountSetupOrder = (value: unknown): value is AccountSetupOrder => {
-  if (!isAccountSetupObjectLike(value)) {
-    return false
-  }
-
-  if (typeof value["id"] !== "string") {
-    return false
-  }
-
-  if (!isOptionalNullableNumber(value["display_id"])) {
-    return false
-  }
-
-  if (!isOptionalNullableString(value["email"])) {
-    return false
-  }
-
-  if (!isOptionalNullableString(value["customer_id"])) {
-    return false
-  }
-
-  if (!isOptionalNullableRecord(value["metadata"])) {
-    return false
-  }
-
-  if (!isOptionalNullableAddress(value["billing_address"])) {
-    return false
-  }
-
-  if (!isOptionalNullableAddress(value["shipping_address"])) {
-    return false
-  }
-
-  return isOptionalNullableOrderCustomer(value["customer"])
-}
-
-export const assertAccountSetupOrder: (
-  value: unknown,
-  source: string,
-) => asserts value is AccountSetupOrder = (value, source) => {
-  if (!isAccountSetupOrder(value)) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      `Invalid account setup order returned from ${source}`,
-    )
-  }
-}
-
-const isAccountSetupCustomer = (
-  value: unknown,
-): value is AccountSetupCustomer => {
-  if (!isAccountSetupObjectLike(value) || typeof value["id"] !== "string") {
-    return false
-  }
-
-  return (
-    isOptionalNullableString(value["email"]) &&
-    isOptionalNullableString(value["first_name"]) &&
-    isOptionalNullableString(value["last_name"]) &&
-    isOptionalNullableBoolean(value["has_account"])
-  )
-}
-
-const assertAccountSetupCustomer: (
-  value: unknown,
-  source: string,
-) => asserts value is AccountSetupCustomer = (value, source) => {
-  if (!isAccountSetupCustomer(value)) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      `Invalid account setup customer returned from ${source}`,
-    )
-  }
-}
-
-const isEmailPassProviderIdentity = (
-  value: unknown,
-): value is EmailPassProviderIdentity =>
-  isAccountSetupObjectLike(value) &&
-  typeof value["id"] === "string" &&
-  (value["auth_identity_id"] === undefined ||
-    typeof value["auth_identity_id"] === "string")
-
 const generateTemporaryPassword = () =>
   crypto.randomBytes(32).toString("base64url")
 
@@ -332,51 +168,28 @@ export const getCustomerForAccountSetup = async ({
   order: AccountSetupOrder
 }): Promise<AccountSetupCustomer> => {
   if (hasText(order.customer?.id)) {
-    const orderCustomer: unknown = order.customer
-    assertAccountSetupCustomer(orderCustomer, "order.customer")
-    return orderCustomer
+    return { ...order.customer, id: order.customer.id }
   }
 
-  const listedCustomers: unknown = await customerModuleService.listCustomers(
+  const [existingCustomer] = await customerModuleService.listCustomers(
     { email },
     { take: 1 },
   )
 
-  if (!isUnknownArray(listedCustomers)) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "Invalid customer list response for account setup",
-    )
-  }
-
-  const [existingCustomer] = listedCustomers
-
-  if (isPresentRow(existingCustomer)) {
-    assertAccountSetupCustomer(
-      existingCustomer,
-      "customerModuleService.listCustomers",
-    )
+  if (existingCustomer !== undefined) {
     return existingCustomer
   }
 
-  const createdCustomer: unknown = await customerModuleService.createCustomers(
+  return await customerModuleService.createCustomers(
     getCustomerCreateData(order, email),
   )
-  assertAccountSetupCustomer(
-    createdCustomer,
-    "customerModuleService.createCustomers",
-  )
-
-  return createdCustomer
 }
 
 const getExistingEmailPassIdentity = async (
   query: Query,
   email: string,
 ): Promise<EmailPassProviderIdentity | undefined> => {
-  // `data` stays iterable rather than `unknown[]` so a malformed response keeps
-  // throwing here instead of silently registering a fresh auth identity.
-  const graphResult: { data: Iterable<unknown> } = await query.graph({
+  const graphResult: { data: EmailPassProviderIdentity[] } = await query.graph({
     entity: "provider_identity",
     fields: ["id", "auth_identity_id"],
     filters: {
@@ -386,17 +199,6 @@ const getExistingEmailPassIdentity = async (
   })
 
   const [providerIdentityResult] = graphResult.data
-
-  if (!isPresentRow(providerIdentityResult)) {
-    return undefined
-  }
-
-  if (!isEmailPassProviderIdentity(providerIdentityResult)) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "Invalid emailpass provider identity returned from query.graph",
-    )
-  }
 
   return providerIdentityResult
 }

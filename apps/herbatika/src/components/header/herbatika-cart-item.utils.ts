@@ -1,5 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 import { asFiniteNumber } from "@/lib/storefront/cart-calculations"
@@ -43,17 +43,29 @@ export const resolveLineItemInventory = (item: HttpTypes.StoreCartLineItem) => {
     return defaultStockInventory
   }
 
-  const metadataInventory = asFiniteNumber(metadata?.[inventoryQuantityKey])
+  const metadataInventory = asFiniteNumber(
+    metadata === null
+      ? undefined
+      : getRecordValue(metadata, inventoryQuantityKey),
+  )
   if (metadataInventory !== null) {
     return metadataInventory
   }
 
-  const variantInventory = asFiniteNumber(variant?.[inventoryQuantityKey])
+  const variantInventory = asFiniteNumber(
+    variant === null
+      ? undefined
+      : getRecordValue(variant, inventoryQuantityKey),
+  )
   if (variantInventory !== null) {
     return variantInventory
   }
 
-  return asFiniteNumber(itemRecord?.[variantInventoryQuantityKey])
+  return asFiniteNumber(
+    itemRecord === null
+      ? undefined
+      : getRecordValue(itemRecord, variantInventoryQuantityKey),
+  )
 }
 
 export const resolveLineItemThumbnail = (item: HttpTypes.StoreCartLineItem) => {

@@ -18,6 +18,7 @@ import { Textarea } from "../../src/atoms/textarea"
 import { Tooltip } from "../../src/atoms/tooltip"
 import { Accordion } from "../../src/molecules/accordion"
 import { Carousel } from "../../src/molecules/carousel"
+import type { CarouselSlide } from "../../src/molecules/carousel"
 import { ColorSelect } from "../../src/molecules/color-select"
 import { Combobox } from "../../src/molecules/combobox"
 import type { ComboboxItem } from "../../src/molecules/combobox"
@@ -181,7 +182,7 @@ const carouselSlides = [
     imageProps: { className: carouselImageClassName, size: "custom" },
     src: "https://images.unsplash.com/photo-1747258294931-79af146bd74c?q=80&w=1470&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
   },
-]
+] satisfies CarouselSlide[]
 
 const stepsItems = [
   {

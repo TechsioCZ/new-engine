@@ -1,9 +1,12 @@
 import type {
+  BigNumberValue,
   InferEntityType,
   MedusaContainer,
+  ProductDTO,
+  ProductVariantDTO,
 } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 
 import { MEASUREMENT_UNIT_MODULE } from "../modules/measurement-unit"
 import type {
@@ -53,24 +56,42 @@ export interface ProductVariantMeasurementResponse {
   updated_at?: Date | string
 }
 
+type PriceAmountValue = BigNumberValue | null | undefined
+
+interface PricePerUnit {
+  calculated_amount?: number
+  calculated_amount_with_tax?: number
+  calculated_amount_without_tax?: number
+  currency_code: string | null
+  original_amount?: number
+  original_amount_with_tax?: number
+  original_amount_without_tax?: number
+  product_unit_quantity: number
+  unit_base_quantity: number
+  unit_code: string
+  unit_id: string
+  unit_name: string
+  unit_symbol: string
+}
+
 interface CalculatedPriceLike {
-  calculated_amount?: unknown
-  calculated_amount_with_tax?: unknown
-  calculated_amount_without_tax?: unknown
-  currency_code?: unknown
-  original_amount?: unknown
-  original_amount_with_tax?: unknown
-  original_amount_without_tax?: unknown
-  price_per_unit?: Record<string, unknown>
+  calculated_amount?: PriceAmountValue
+  calculated_amount_with_tax?: PriceAmountValue
+  calculated_amount_without_tax?: PriceAmountValue
+  currency_code?: string | null | undefined
+  original_amount?: PriceAmountValue
+  original_amount_with_tax?: PriceAmountValue
+  original_amount_without_tax?: PriceAmountValue
+  price_per_unit?: PricePerUnit
 }
 
 interface ProductLike {
-  id?: unknown
-  measurement?: ProductMeasurementResponse | null
+  id?: ProductDTO["id"] | undefined
+  measurement?: ProductMeasurementResponse | null | undefined
   variants?:
     | {
         calculated_price?: CalculatedPriceLike | null | undefined
-        id?: unknown
+        id?: ProductVariantDTO["id"] | undefined
         measurement?: ProductVariantMeasurementResponse | null | undefined
       }[]
     | null
@@ -171,7 +192,7 @@ export const toNumber = (value: unknown) => {
   }
 
   if (isRecord(value)) {
-    const nestedValue = value["value"]
+    const nestedValue = getRecordValue(value, "value")
     if (typeof nestedValue === "string" || typeof nestedValue === "number") {
       return Number(nestedValue)
     }

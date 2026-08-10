@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url"
 
 import type { HttpTypes } from "@medusajs/types"
 import { QueryClient } from "@tanstack/react-query"
-import { isRecord } from "@techsio/std/object"
+import { getRecordValue, isRecord } from "@techsio/std/object"
 import { renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { vi, describe, expect, it } from "vitest"
@@ -42,14 +42,18 @@ const decodeShippingMethods = (
     if (!isRecord(entry)) {
       return null
     }
-    const { shipping_option_id } = entry
+    const shippingOptionId = getRecordValue(entry, "shipping_option_id")
     if (
-      shipping_option_id !== undefined &&
-      typeof shipping_option_id !== "string"
+      shippingOptionId !== undefined &&
+      typeof shippingOptionId !== "string"
     ) {
       return null
     }
-    methods.push(shipping_option_id === undefined ? {} : { shipping_option_id })
+    methods.push(
+      shippingOptionId === undefined
+        ? {}
+        : { shipping_option_id: shippingOptionId },
+    )
   }
   return methods
 }
@@ -63,16 +67,19 @@ const decodePaymentCollection = (
   if (!isRecord(value)) {
     return null
   }
-  const { id, payment_sessions } = value
+  const id = getRecordValue(value, "id")
+  const paymentSessions = getRecordValue(value, "payment_sessions")
   if (id !== undefined && typeof id !== "string") {
     return null
   }
-  if (payment_sessions !== undefined && !Array.isArray(payment_sessions)) {
+  if (paymentSessions !== undefined && !Array.isArray(paymentSessions)) {
     return null
   }
   return {
     ...(id === undefined ? {} : { id }),
-    ...(payment_sessions === undefined ? {} : { payment_sessions }),
+    ...(paymentSessions === undefined
+      ? {}
+      : { payment_sessions: paymentSessions }),
   }
 }
 
@@ -80,26 +87,29 @@ const decodeCheckoutCart = (value: unknown): DecodedCheckoutCart | null => {
   if (!isRecord(value)) {
     return null
   }
-  const { id, payment_collection, region_id, shipping_methods } = value
+  const id = getRecordValue(value, "id")
+  const paymentCollection = getRecordValue(value, "payment_collection")
+  const regionId = getRecordValue(value, "region_id")
+  const shippingMethods = getRecordValue(value, "shipping_methods")
   if (typeof id !== "string") {
     return null
   }
   if (
-    region_id !== undefined &&
-    region_id !== null &&
-    typeof region_id !== "string"
+    regionId !== undefined &&
+    regionId !== null &&
+    typeof regionId !== "string"
   ) {
     return null
   }
-  const decodedShippingMethods = decodeShippingMethods(shipping_methods)
-  const decodedPaymentCollection = decodePaymentCollection(payment_collection)
+  const decodedShippingMethods = decodeShippingMethods(shippingMethods)
+  const decodedPaymentCollection = decodePaymentCollection(paymentCollection)
   if (decodedShippingMethods === null || decodedPaymentCollection === null) {
     return null
   }
 
   return {
     id,
-    ...(region_id === undefined ? {} : { region_id }),
+    ...(regionId === undefined ? {} : { region_id: regionId }),
     ...(decodedShippingMethods === undefined
       ? {}
       : { shipping_methods: decodedShippingMethods }),
@@ -130,25 +140,41 @@ const resolveTestRelativePath = (relativePath: string): string => {
   return decodedPathname.replace(/^\/(?<drive>[A-Za-z]:)/u, "$<drive>")
 }
 
+interface OrderFetchInit {
+  query?: {
+    fields?: string
+    limit?: number
+    offset?: number
+    order?: string
+  }
+  signal?: AbortSignal | null
+}
+
 type OrderFetch = (
   path: string,
-  init?: { query?: Record<string, unknown>; signal?: AbortSignal | null },
-) => Promise<unknown>
+  init?: OrderFetchInit,
+) => Promise<HttpTypes.StoreOrderListResponse | HttpTypes.StoreOrderResponse>
 
 type CustomerFetch = (
   path: string,
   init?: { signal?: AbortSignal | null },
-) => Promise<unknown>
+) => Promise<HttpTypes.StoreCustomerAddressListResponse>
+
+interface CheckoutFetchInit {
+  body?: { cart_id: string; data?: { note?: string } }
+  method?: "POST"
+  query?: { cart_id?: string; region_id?: string }
+  signal?: AbortSignal | null
+}
 
 type CheckoutFetch = (
   path: string,
-  init?: {
-    body?: Record<string, unknown>
-    method?: string
-    query?: Record<string, unknown>
-    signal?: AbortSignal | null
-  },
-) => Promise<unknown>
+  init?: CheckoutFetchInit,
+) => Promise<
+  | HttpTypes.StorePaymentProviderListResponse
+  | HttpTypes.StoreShippingOptionListResponse
+  | HttpTypes.StoreShippingOptionResponse
+>
 
 describe("phase 2 regressions", () => {
   it("forwards AbortSignal in order list and detail requests", async () => {
@@ -364,11 +390,11 @@ describe("phase 2 regressions", () => {
           id: cartId,
           region_id: "reg_1",
           shipping_methods: [{ shipping_option_id: optionId }],
-        } as Cart),
+        }),
       initiatePaymentSession: async () =>
         await Promise.resolve({ id: "pay_col_1" }),
       listPaymentProviders: async () =>
-        await Promise.resolve([{ id: "pay_1" }] as PaymentProvider[]),
+        await Promise.resolve([{ id: "pay_1" }]),
       listShippingOptions: async () =>
         await Promise.resolve([
           {
@@ -376,7 +402,7 @@ describe("phase 2 regressions", () => {
             id: "opt_fixed",
             price_type: "flat",
           },
-        ] as ShippingOption[]),
+        ]),
     }
 
     const { useCheckoutShipping } = createCheckoutHooks<

@@ -1,4 +1,5 @@
 import "server-only"
+import { getRecordValue } from "@techsio/std/object"
 import QRCode from "qrcode"
 
 import {
@@ -24,12 +25,12 @@ export interface StoreOrderResponse {
     custom_display_id?: string | null
     display_id?: number | string | null
     id?: string | null
-    metadata?: Record<string, unknown> | null
+    metadata?: object | null
     payment_collections?:
       | {
           payments?:
             | {
-                data?: Record<string, unknown> | null
+                data?: object | null
                 provider_id?: string | null
               }[]
             | null
@@ -114,6 +115,14 @@ const readAmount = (value: unknown) => {
   return Number.isFinite(amount) ? amount : null
 }
 
+const readQrMetadataString = (metadata: object | null | undefined) => {
+  if (metadata === null || metadata === undefined) {
+    return null
+  }
+
+  return readString(getRecordValue(metadata, ORDER_PAYMENT_QR_METADATA_KEY))
+}
+
 export const getNotApplicableQrPaymentResponse = () =>
   NOT_APPLICABLE_QR_PAYMENT_RESPONSE
 
@@ -130,8 +139,7 @@ export const mapStoreOrderPaymentQr = async (payload: StoreOrderResponse) => {
   }
 
   const spayd =
-    readString(qrPayment.data?.[ORDER_PAYMENT_QR_METADATA_KEY]) ??
-    readString(order.metadata?.[ORDER_PAYMENT_QR_METADATA_KEY])
+    readQrMetadataString(qrPayment.data) ?? readQrMetadataString(order.metadata)
   if (spayd === null) {
     return PENDING_QR_PAYMENT_RESPONSE
   }

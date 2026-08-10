@@ -46,7 +46,7 @@ export type CheckoutShippingHookInput<
 > = CheckoutShippingInputBase & {
   cart?: TCart | null
   calculatePrices?: boolean
-  buildShippingData?: (option: TShippingOption) => Record<string, unknown>
+  buildShippingData?: (option: TShippingOption) => object
 }
 
 export type CheckoutPaymentHookInput<TCart extends CheckoutCartLike> =
@@ -199,7 +199,7 @@ export const createCheckoutHooks = <
     cartId: string | undefined,
     options?: CheckoutMutationOptions<
       TCart,
-      { optionId: string; data?: Record<string, unknown> },
+      { optionId: string; data?: object },
       TContext
     >,
   ) => {
@@ -209,7 +209,7 @@ export const createCheckoutHooks = <
     return useMutation<
       TCart,
       unknown,
-      { optionId: string; data?: Record<string, unknown> },
+      { optionId: string; data?: object },
       TContext
     >({
       mutationFn: async ({
@@ -217,7 +217,7 @@ export const createCheckoutHooks = <
         data,
       }: {
         optionId: string
-        data?: Record<string, unknown>
+        data?: object
       }) => {
         if (cartId === undefined || cartId.length === 0) {
           throw new Error("Cart id is required")
@@ -327,7 +327,7 @@ export const createCheckoutHooks = <
     input: CheckoutShippingHookInput<TCart, TShippingOption>,
     options?: CheckoutMutationOptions<
       TCart,
-      { optionId: string; data?: Record<string, unknown> },
+      { optionId: string; data?: object },
       TContext
     >,
   ): UseCheckoutShippingResult<TShippingOption, TCart> => {
@@ -405,17 +405,12 @@ export const createCheckoutHooks = <
       isPending: isSettingShipping,
     } = useShippingMethodMutation(cartId, options)
 
-    const setShippingMethod = (
-      optionId: string,
-      data?: Record<string, unknown>,
-    ) => {
+    const setShippingMethod = (optionId: string, data?: object) => {
       mutateShippingMethod(omitUndefined({ data, optionId }))
     }
 
-    const setShippingMethodAsync = async (
-      optionId: string,
-      data?: Record<string, unknown>,
-    ) => await mutateShippingMethodAsync(omitUndefined({ data, optionId }))
+    const setShippingMethodAsync = async (optionId: string, data?: object) =>
+      await mutateShippingMethodAsync(omitUndefined({ data, optionId }))
 
     const selectedShippingMethodId =
       effectiveCart?.shipping_methods?.[0]?.shipping_option_id
@@ -444,7 +439,7 @@ export const createCheckoutHooks = <
     input: CheckoutShippingSuspenseHookInput<TCart, TShippingOption>,
     options?: CheckoutMutationOptions<
       TCart,
-      { optionId: string; data?: Record<string, unknown> },
+      { optionId: string; data?: object },
       TContext
     >,
   ): UseCheckoutShippingResult<TShippingOption, TCart> => {
@@ -503,17 +498,12 @@ export const createCheckoutHooks = <
       isPending: isSettingShipping,
     } = useShippingMethodMutation(cartId, options)
 
-    const setShippingMethod = (
-      optionId: string,
-      data?: Record<string, unknown>,
-    ) => {
+    const setShippingMethod = (optionId: string, data?: object) => {
       mutateShippingMethod(omitUndefined({ data, optionId }))
     }
 
-    const setShippingMethodAsync = async (
-      optionId: string,
-      data?: Record<string, unknown>,
-    ) => await mutateShippingMethodAsync(omitUndefined({ data, optionId }))
+    const setShippingMethodAsync = async (optionId: string, data?: object) =>
+      await mutateShippingMethodAsync(omitUndefined({ data, optionId }))
 
     const selectedShippingMethodId =
       effectiveCart?.shipping_methods?.[0]?.shipping_option_id

@@ -53,7 +53,7 @@ const workflowMocks = vi.hoisted(() => {
 const { overrideModule } = vi.hoisted(() => ({
   overrideModule: <Module extends object>(
     original: Module,
-    replacements: Record<PropertyKey, unknown>,
+    replacements: object,
   ): Module =>
     Object.defineProperties(
       { ...original },
@@ -180,7 +180,7 @@ const AUTHENTICATED_REQUEST_KEYS = [
  * Vitest types this matcher factory as `any`, so using it directly as a
  * nested object-literal property value trips `no-unsafe-assignment`.
  */
-const objectContaining = (value: Record<string, unknown>): unknown =>
+const objectContaining = (value: object): unknown =>
   expect.objectContaining(value)
 
 type MockMedusaResponse = MedusaResponse & {
@@ -190,14 +190,26 @@ type MockMedusaResponse = MedusaResponse & {
 
 interface ProductListCreationModule {
   POST: (
-    req: AuthenticatedMedusaRequest<Record<string, unknown>>,
+    req: AuthenticatedMedusaRequest<object>,
     res: MockMedusaResponse,
   ) => Promise<void>
 }
 
-const createProductList = (
-  overrides: Partial<Record<string, unknown>> = {},
-) => ({
+interface ProductListOverrides {
+  access_type?: string
+  id?: string
+  type?: string
+}
+
+interface ProductListItemOverrides {
+  id?: string
+  list_id?: string
+  product_id?: null | string
+  quantity?: number
+  variant_id?: null | string
+}
+
+const createProductList = (overrides: ProductListOverrides = {}) => ({
   access_type: "private",
   created_at: "2026-01-01T00:00:00.000Z",
   description: null,
@@ -210,9 +222,7 @@ const createProductList = (
   ...overrides,
 })
 
-const createProductListItem = (
-  overrides: Partial<Record<string, unknown>> = {},
-) => ({
+const createProductListItem = (overrides: ProductListItemOverrides = {}) => ({
   created_at: "2026-01-03T00:00:00.000Z",
   id: "pli_1",
   list_id: "plist_1",
@@ -233,14 +243,28 @@ const createProductListService = (
   ...overrides,
 })
 
+interface CustomerProductListLink {
+  product_list_id: string
+}
+
+interface ProductProductListLink {
+  product_id: string
+  product_list_item_id: string
+}
+
+interface ProductVariantProductListLink {
+  product_list_item_id: string
+  product_variant_id: string
+}
+
 const createGraphMock = ({
   customerLinks = [],
   productLinks = [],
   variantLinks = [],
 }: {
-  customerLinks?: Record<string, unknown>[]
-  productLinks?: Record<string, unknown>[]
-  variantLinks?: Record<string, unknown>[]
+  customerLinks?: CustomerProductListLink[]
+  productLinks?: ProductProductListLink[]
+  variantLinks?: ProductVariantProductListLink[]
 } = {}) =>
   vi.fn<(args: { entity: string }) => unknown>(({ entity }) => {
     if (entity === "customer_product_list") {
@@ -264,8 +288,8 @@ const createMockRequest = <T>(
     graph?: ReturnType<typeof createGraphMock>
     params?: Record<string, string | undefined>
     productListService?: ProductListServiceMock
-    validatedBody?: Record<string, unknown>
-    validatedQuery?: Record<string, unknown>
+    validatedBody?: object
+    validatedQuery?: object
   },
   requiredKeys: readonly (keyof T)[],
 ): T => {
@@ -610,9 +634,7 @@ describe("Store product-list routes", () => {
             product_list: productList,
           },
         })
-        const req = createMockRequest<
-          AuthenticatedMedusaRequest<Record<string, unknown>>
-        >(
+        const req = createMockRequest<AuthenticatedMedusaRequest<object>>(
           {
             actorId: "cus_1",
             validatedBody,

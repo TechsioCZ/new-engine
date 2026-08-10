@@ -1,4 +1,5 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type { MedusaContainer } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
 
 import {
@@ -57,7 +58,7 @@ const toEmailLogResponse = (emailLog: EmailLogDTO) => ({
 
 const retrieveResendEmail = async (
   emailId: string,
-  container: Record<string, unknown>,
+  container: MedusaContainer,
 ) => {
   const config = await requireEnabledIntegrationConfig(
     container,
@@ -134,9 +135,7 @@ const getEmailLog = async (req: MedusaRequest, res: MedusaResponse) => {
   }
 
   const emailLog = await emailLogService.retrieveEmailLog(id)
-  const resendEmail = await retrieveResendEmail(emailLog.email_id, {
-    resolve: req.scope.resolve.bind(req.scope),
-  })
+  const resendEmail = await retrieveResendEmail(emailLog.email_id, req.scope)
 
   res.json({
     email_log: toEmailLogResponse(emailLog),

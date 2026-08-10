@@ -1,3 +1,5 @@
+import type { JsonMetadata } from "../../lib/json-metadata"
+
 export type CustomerGroupIdentifierType =
   | "customer_group_id"
   | "name"
@@ -10,7 +12,7 @@ export interface CustomerGroupInput {
   name: string
   code?: string | undefined
   erp_code?: string | undefined
-  metadata?: Record<string, unknown> | undefined
+  metadata?: JsonMetadata | undefined
 }
 
 export interface UpsertCustomerGroupsBatchInput {

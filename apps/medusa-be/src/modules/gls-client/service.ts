@@ -1,6 +1,12 @@
 import type { ICachingModuleService, Logger } from "@medusajs/framework/types"
 import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
-import { getErrorMessage, isRecord } from "@techsio/std/object"
+import { z } from "@medusajs/framework/zod"
+import {
+  getErrorMessage,
+  getRecordValue,
+  isRecord,
+  omitUndefined,
+} from "@techsio/std/object"
 
 import { decryptFields, encryptFields } from "../../utils/encryption"
 import { safeResolve } from "../../utils/safe-resolve"
@@ -53,7 +59,7 @@ const isCachingDependency = (value: unknown): value is CachingDependency => {
     return false
   }
   return ["clear", "computeKey", "get", "set"].every(
-    (method) => typeof value[method] === "function",
+    (method) => typeof getRecordValue(value, method) === "function",
   )
 }
 
@@ -64,8 +70,6 @@ interface GLSModuleOptions {
 interface DisabledConfigCacheEntry {
   disabled: true
 }
-
-type CachedGLSOptions = Omit<GLSOptions, "password">
 
 /**
  * Result of a cached effective-config lookup. `miss` (nothing usable cached,
@@ -80,95 +84,81 @@ type CachedConfigLookup =
 const isDisabledConfigCacheEntry = (
   value: unknown,
 ): value is DisabledConfigCacheEntry =>
-  isRecord(value) && value["disabled"] === true
+  isRecord(value) && getRecordValue(value, "disabled") === true
+
+const GLS_COUNTRY_CODE_SET: ReadonlySet<string> = new Set(GLS_COUNTRY_CODES)
+const GLS_PRINTER_TYPE_SET: ReadonlySet<string> = new Set(GLS_PRINTER_TYPES)
 
 const isGLSEnvironment = (value: unknown): value is GLSEnvironment =>
   value === "testing" || value === "production"
 
 const isGLSCountryCode = (value: unknown): value is GLSCountryCode =>
-  typeof value === "string" &&
-  (GLS_COUNTRY_CODES as readonly string[]).includes(value)
+  typeof value === "string" && GLS_COUNTRY_CODE_SET.has(value)
 
 const isGLSPrinterType = (value: unknown): value is GLSPrinterType =>
-  typeof value === "string" &&
-  (GLS_PRINTER_TYPES as readonly string[]).includes(value)
-
-const isOptionalString = (value: unknown): value is string | undefined =>
-  value === undefined || typeof value === "string"
+  typeof value === "string" && GLS_PRINTER_TYPE_SET.has(value)
 
 const isPositiveNumber = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value > 0
 
-const isBoolean = (value: unknown): value is boolean =>
-  typeof value === "boolean"
-
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0
 
-// ============================================
-// Runtime validation of externally cached data
-// ============================================
+const cachedGLSOptionsSchema = z.object({
+  client_number: z.number().positive(),
+  country_code: z.enum(GLS_COUNTRY_CODES),
+  environment: z.enum(["testing", "production"]),
+  hide_phone_number_on_labels: z.boolean(),
+  print_position: z.number().positive(),
+  sender_city: z.string(),
+  sender_country: z.string(),
+  sender_email: z.string().optional(),
+  sender_house_number: z.string(),
+  sender_house_number_info: z.string().optional(),
+  sender_name: z.string(),
+  sender_phone: z.string().optional(),
+  sender_street: z.string(),
+  sender_zip_code: z.string(),
+  type_of_printer: z.enum(GLS_PRINTER_TYPES),
+  username: z.string(),
+  webshop_engine: z.string().optional(),
+})
 
-const hasCachedCredentials = (value: Record<string, unknown>): boolean =>
-  !("password" in value) &&
-  typeof value["username"] === "string" &&
-  isPositiveNumber(value["client_number"]) &&
-  isGLSEnvironment(value["environment"])
+type CachedGLSOptions = z.infer<typeof cachedGLSOptionsSchema>
 
-const hasCachedLabelSettings = (value: Record<string, unknown>): boolean =>
-  isGLSCountryCode(value["country_code"]) &&
-  isOptionalString(value["webshop_engine"]) &&
-  isGLSPrinterType(value["type_of_printer"]) &&
-  isPositiveNumber(value["print_position"])
-
-const hasCachedSenderIdentity = (value: Record<string, unknown>): boolean =>
-  isBoolean(value["hide_phone_number_on_labels"]) &&
-  typeof value["sender_name"] === "string" &&
-  typeof value["sender_street"] === "string" &&
-  typeof value["sender_house_number"] === "string"
-
-const hasCachedSenderLocation = (value: Record<string, unknown>): boolean =>
-  isOptionalString(value["sender_house_number_info"]) &&
-  typeof value["sender_city"] === "string" &&
-  typeof value["sender_zip_code"] === "string" &&
-  typeof value["sender_country"] === "string"
-
-const hasCachedSenderContact = (value: Record<string, unknown>): boolean =>
-  isOptionalString(value["sender_phone"]) &&
-  isOptionalString(value["sender_email"])
-
-const hasCachedSenderFields = (value: Record<string, unknown>): boolean =>
-  hasCachedSenderIdentity(value) &&
-  hasCachedSenderLocation(value) &&
-  hasCachedSenderContact(value)
-
-const isCachedGLSOptions = (value: unknown): value is CachedGLSOptions =>
-  isRecord(value) &&
-  hasCachedCredentials(value) &&
-  hasCachedLabelSettings(value) &&
-  hasCachedSenderFields(value)
+const decodeCachedGLSOptions = (
+  value: unknown,
+): CachedGLSOptions | undefined => {
+  const parsed = cachedGLSOptionsSchema.safeParse(value)
+  return parsed.success ? parsed.data : undefined
+}
 
 const toCachedOptions = ({
   password: _password,
   ...options
 }: GLSOptions): CachedGLSOptions => options
 
-const hasBranchIdentity = (value: Record<string, unknown>): boolean =>
-  typeof value["id"] === "string" &&
-  typeof value["name"] === "string" &&
-  typeof value["nameStreet"] === "string"
+const glsBranchSchema = z.object({
+  branchType: z.string().optional(),
+  city: z.string(),
+  country: z.string(),
+  currency: z.string().optional(),
+  id: z.string(),
+  latitude: z.string().optional(),
+  longitude: z.string().optional(),
+  name: z.string(),
+  nameStreet: z.string(),
+  openingHours: z.string().optional(),
+  street: z.string(),
+  zip: z.string(),
+})
 
-const hasBranchAddress = (value: Record<string, unknown>): boolean =>
-  typeof value["street"] === "string" &&
-  typeof value["city"] === "string" &&
-  typeof value["zip"] === "string" &&
-  typeof value["country"] === "string"
+const glsBranchArraySchema = z.array(glsBranchSchema)
 
-const isGLSBranch = (value: unknown): value is GLSBranch =>
-  isRecord(value) && hasBranchIdentity(value) && hasBranchAddress(value)
-
-const isGLSBranchArray = (value: unknown): value is GLSBranch[] =>
-  Array.isArray(value) && value.every(isGLSBranch)
+const decodeGLSBranches = (value: unknown): GLSBranch[] | undefined => {
+  const parsed = glsBranchArraySchema.safeParse(value)
+  return parsed.success ? parsed.data : undefined
+}
 
 const nullableString = (value: unknown): string | null =>
   typeof value === "string" ? value : null
@@ -276,7 +266,9 @@ const mapGLSConfigDTO = (config: unknown): GLSConfigDTO => {
     )
   }
 
-  const { environment, id, is_enabled: isEnabled } = config
+  const environment = getRecordValue(config, "environment")
+  const id = getRecordValue(config, "id")
+  const isEnabled = getRecordValue(config, "is_enabled")
 
   if (
     typeof id !== "string" ||
@@ -290,32 +282,34 @@ const mapGLSConfigDTO = (config: unknown): GLSConfigDTO => {
   }
 
   return {
-    client_number: nullableNumber(config["client_number"]),
-    country_code: toCountryCode(config["country_code"]),
-    created_at: toDate(config["created_at"]),
+    client_number: nullableNumber(getRecordValue(config, "client_number")),
+    country_code: toCountryCode(getRecordValue(config, "country_code")),
+    created_at: toDate(getRecordValue(config, "created_at")),
     environment,
     hide_phone_number_on_labels: booleanValue(
-      config["hide_phone_number_on_labels"],
+      getRecordValue(config, "hide_phone_number_on_labels"),
     ),
     id,
     is_enabled: isEnabled,
-    password: nullableString(config["password"]),
-    print_position: toPrintPosition(config["print_position"]),
-    sender_city: nullableString(config["sender_city"]),
-    sender_country: nullableString(config["sender_country"]),
-    sender_email: nullableString(config["sender_email"]),
-    sender_house_number: nullableString(config["sender_house_number"]),
-    sender_house_number_info: nullableString(
-      config["sender_house_number_info"],
+    password: nullableString(getRecordValue(config, "password")),
+    print_position: toPrintPosition(getRecordValue(config, "print_position")),
+    sender_city: nullableString(getRecordValue(config, "sender_city")),
+    sender_country: nullableString(getRecordValue(config, "sender_country")),
+    sender_email: nullableString(getRecordValue(config, "sender_email")),
+    sender_house_number: nullableString(
+      getRecordValue(config, "sender_house_number"),
     ),
-    sender_name: nullableString(config["sender_name"]),
-    sender_phone: nullableString(config["sender_phone"]),
-    sender_street: nullableString(config["sender_street"]),
-    sender_zip_code: nullableString(config["sender_zip_code"]),
-    type_of_printer: toPrinterType(config["type_of_printer"]),
-    updated_at: toDate(config["updated_at"]),
-    username: nullableString(config["username"]),
-    webshop_engine: nullableString(config["webshop_engine"]),
+    sender_house_number_info: nullableString(
+      getRecordValue(config, "sender_house_number_info"),
+    ),
+    sender_name: nullableString(getRecordValue(config, "sender_name")),
+    sender_phone: nullableString(getRecordValue(config, "sender_phone")),
+    sender_street: nullableString(getRecordValue(config, "sender_street")),
+    sender_zip_code: nullableString(getRecordValue(config, "sender_zip_code")),
+    type_of_printer: toPrinterType(getRecordValue(config, "type_of_printer")),
+    updated_at: toDate(getRecordValue(config, "updated_at")),
+    username: nullableString(getRecordValue(config, "username")),
+    webshop_engine: nullableString(getRecordValue(config, "webshop_engine")),
   }
 }
 
@@ -462,7 +456,8 @@ export class GLSClientModuleService extends MedusaService({
       return { status: "disabled" }
     }
 
-    if (!isCachedGLSOptions(cached)) {
+    const decodedOptions = decodeCachedGLSOptions(cached)
+    if (decodedOptions === undefined) {
       return { status: "miss" }
     }
 
@@ -478,7 +473,7 @@ export class GLSClientModuleService extends MedusaService({
     }
 
     return {
-      options: { ...cached, password: config.password },
+      options: { ...omitUndefined(decodedOptions), password: config.password },
       status: "hit",
     }
   }
@@ -575,7 +570,7 @@ export class GLSClientModuleService extends MedusaService({
 
   private async computeCacheKey(
     scope: string,
-    parts: Record<string, unknown> = {},
+    parts: Partial<{ environment: GLSEnvironment }> = {},
   ): Promise<string> {
     if (!this._cacheService) {
       throw new MedusaError(
@@ -651,8 +646,9 @@ export class GLSClientModuleService extends MedusaService({
       const cached: unknown = await this._cacheService.get({
         key: await this.getBranchesCacheKey(),
       })
-      if (isGLSBranchArray(cached)) {
-        return cached
+      const decodedBranches = decodeGLSBranches(cached)
+      if (decodedBranches !== undefined) {
+        return decodedBranches
       }
     }
 

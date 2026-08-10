@@ -842,11 +842,6 @@ export const ExpandVsSelectionTest: Story = {
   render: InteractiveTest,
 }
 
-const getTreeNodeHandle = (node: TreeNode) => {
-  const { handle } = node
-  return typeof handle === "string" ? handle : "unknown"
-}
-
 const getHoverLogClassName = (log: string) => {
   if (log.includes("HOVER")) {
     return "text-success"
@@ -871,39 +866,32 @@ const WithHoverEventsStory: NonNullable<Story["render"]> = () => {
         {
           children: [
             {
-              handle: "kratke-rukavy",
               id: "kratke",
               name: "Krátké rukávy",
             },
             {
-              handle: "dlouhe-rukavy",
               id: "dlouhe",
               name: "Dlouhé rukávy",
             },
           ],
-          handle: "trika-a-tilka",
           id: "trika",
           name: "Trika a tílka",
         },
         {
-          handle: "mikiny",
           id: "mikiny",
           name: "Mikiny",
         },
       ],
-      handle: "obleceni",
       id: "obleceni",
       name: "Oblečení",
     },
     {
       children: [
         {
-          handle: "cyklo-obleceni",
           id: "cyklo-obleceni",
           name: "Oblečení",
         },
       ],
-      handle: "cyklo",
       id: "cyklo",
       name: "Cyklo",
     },
@@ -911,12 +899,12 @@ const WithHoverEventsStory: NonNullable<Story["render"]> = () => {
 
   const handleNodeHover = (node: TreeNode, indexPath: number[]) => {
     addLog(
-      `🎯 HOVER: ${node.name} (handle: ${getTreeNodeHandle(node)}) at path [${indexPath.join(", ")}]`,
+      `🎯 HOVER: ${node.name} (id: ${node.id}) at path [${indexPath.join(", ")}]`,
     )
   }
 
   const handleNodeLeave = (node: TreeNode) => {
-    addLog(`👋 LEAVE: ${node.name} (handle: ${getTreeNodeHandle(node)})`)
+    addLog(`👋 LEAVE: ${node.name} (id: ${node.id})`)
   }
 
   return (

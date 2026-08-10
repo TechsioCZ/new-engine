@@ -1,6 +1,11 @@
 import { clx, FocusModal } from "@medusajs/ui"
 import { useEffect } from "react"
-import type { ComponentPropsWithoutRef, PropsWithChildren, Ref } from "react"
+import type {
+  ComponentPropsWithoutRef,
+  PropsWithChildren,
+  ReactNode,
+  Ref,
+} from "react"
 
 import { useStackedModal } from "./use-stacked-modal"
 
@@ -77,13 +82,28 @@ const Content = ({ className, ref, ...props }: ContentProps) => (
 )
 Content.displayName = "StackedFocusModal.Content"
 
-export const StackedFocusModal = Object.assign(Root, {
-  Body,
-  Close,
-  Content,
-  Description,
-  Footer,
-  Header,
-  Title,
-  Trigger,
-})
+interface StackedFocusModalComponent {
+  (props: StackedFocusModalProps): ReactNode
+  Body: typeof FocusModal.Body
+  Close: typeof FocusModal.Close
+  Content: typeof Content
+  Description: typeof FocusModal.Description
+  Footer: typeof FocusModal.Footer
+  Header: typeof FocusModal.Header
+  Title: typeof FocusModal.Title
+  Trigger: typeof FocusModal.Trigger
+}
+
+export const StackedFocusModal: StackedFocusModalComponent = Object.assign(
+  Root,
+  {
+    Body,
+    Close,
+    Content,
+    Description,
+    Footer,
+    Header,
+    Title,
+    Trigger,
+  },
+)

@@ -1,7 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import type { ReactNode } from "react"
 
+import type { Image } from "../../src/atoms/image"
 import { GalleryTemplate } from "../../src/templates/gallery"
+
+const StoryGalleryTemplate = GalleryTemplate<typeof Image>
 
 const shoes1 = new URL("../../assets/gallery/shoes-1.jpg", import.meta.url).href
 const shoes2 = new URL("../../assets/gallery/shoes-2.jpg", import.meta.url).href
@@ -43,7 +46,7 @@ const StoryFrame = ({ children }: StoryFrameProps) => (
   </div>
 )
 
-const meta: Meta<typeof GalleryTemplate> = {
+const meta: Meta<typeof StoryGalleryTemplate> = {
   argTypes: {
     aspectRatio: {
       control: "select",
@@ -121,7 +124,7 @@ const meta: Meta<typeof GalleryTemplate> = {
       "rounded-md border border-border-primary bg-base px-100",
     thumbnailsListClassName: "gap-100 py-100",
   },
-  component: GalleryTemplate,
+  component: StoryGalleryTemplate,
   parameters: {
     docs: {
       description: {
@@ -139,7 +142,7 @@ Supports fixed dimensions and parent-fill layout via \`fitParent\`.
 
 export default meta
 
-type Story = StoryObj<typeof GalleryTemplate>
+type Story = StoryObj<typeof meta>
 
 export const Playground: Story = {
   args: {

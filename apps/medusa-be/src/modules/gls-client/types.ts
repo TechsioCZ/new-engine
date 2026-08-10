@@ -167,11 +167,11 @@ export interface GLSBranch {
   city: string
   zip: string
   country: string
-  currency?: string
-  latitude?: string
-  longitude?: string
-  openingHours?: string
-  branchType?: string
+  currency?: string | undefined
+  latitude?: string | undefined
+  longitude?: string | undefined
+  openingHours?: string | undefined
+  branchType?: string | undefined
 }
 
 // ============================================
@@ -180,7 +180,7 @@ export interface GLSBranch {
 
 export type GLSFulfillmentStatus = "completed" | "error"
 
-export interface GLSFulfillmentData extends Record<string, unknown> {
+export interface GLSFulfillmentData {
   status: GLSFulfillmentStatus
   /** MyGLS ParcelId (label/parcel database record ID). */
   packet_id: string | number

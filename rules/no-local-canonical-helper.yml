@@ -16,9 +16,9 @@ rule:
     - pattern: const $HELPER = $VALUE
 constraints:
   HELPER:
-    regex: ^(assertNever|chunk|clamp|compactRecord|debounce|getErrorMessage|hasTrimmedString|isPlainRecord|isRecord|noop|normalizePresentTrimmedString|normalizeTrimmedString|omitKeys|sleep|slugify|toPlainRecord|unique)$
+    regex: ^(assertNever|chunk|clamp|compactRecord|debounce|getErrorMessage|hasTrimmedString|isNonNullObject|isObject|isPlainRecord|isRecord|noop|normalizePresentTrimmedString|normalizeTrimmedString|omitKeys|sleep|slugify|toPlainRecord|unique)$
   VALUE:
     any:
       - kind: arrow_function
       - kind: function_expression
-      - regex: ^(assertNever|chunk|clamp|compactRecord|debounce|getErrorMessage|hasTrimmedString|isPlainRecord|isRecord|noop|normalizePresentTrimmedString|normalizeTrimmedString|omitKeys|sleep|slugify|toPlainRecord|unique)$
+      - regex: ^(assertNever|chunk|clamp|compactRecord|debounce|getErrorMessage|hasTrimmedString|isNonNullObject|isObject|isPlainRecord|isRecord|noop|normalizePresentTrimmedString|normalizeTrimmedString|omitKeys|sleep|slugify|toPlainRecord|unique)$

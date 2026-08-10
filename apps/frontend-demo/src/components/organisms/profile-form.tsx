@@ -251,7 +251,7 @@ export const ProfileForm = ({ initialAddress, user }: ProfileFormProps) => {
               }}
               onValueChange={(details) => {
                 const [value] = details.value
-                if (value) {
+                if (value !== undefined && value.length > 0) {
                   setFormAddressData({
                     ...formAddressData,
                     country: value,

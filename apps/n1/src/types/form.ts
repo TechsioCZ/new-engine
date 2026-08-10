@@ -10,7 +10,6 @@ export interface FieldApiCompat<TValue, TDirectChange = TValue> {
   state: {
     value: TValue
     meta: {
-      errorMap: Record<string, unknown>
       errors: readonly unknown[]
       isBlurred: boolean
       isDirty: boolean

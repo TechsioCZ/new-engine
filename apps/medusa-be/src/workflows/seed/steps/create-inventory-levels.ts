@@ -18,7 +18,6 @@ import {
   updateInventoryLevelsWorkflow,
 } from "@medusajs/medusa/core-flows"
 import { chunk } from "@techsio/std/array"
-import { isRecord } from "@techsio/std/object"
 
 export interface CreateInventoryLevelsStepInput {
   stockLocations: StockLocationDTO[]
@@ -97,22 +96,10 @@ export const createInventoryLevelsStep = createStep(
 
     logger.info("Creating inventory levels...")
 
-    const inventoryResponse: unknown = await query.graph({
+    const { data: inventoryItems } = await query.graph({
       entity: "inventory_item",
       fields: ["id", "sku"],
     })
-    const inventoryData = isRecord(inventoryResponse)
-      ? inventoryResponse["data"]
-      : undefined
-    const inventoryItems = Array.isArray(inventoryData)
-      ? inventoryData.flatMap((item) =>
-          isRecord(item) &&
-          typeof item["id"] === "string" &&
-          typeof item["sku"] === "string"
-            ? [{ id: item["id"], sku: item["sku"] }]
-            : [],
-        )
-      : []
 
     const inventoryItemsMap = input.inventoryItems.map((ii) => {
       const inventoryItem = inventoryItems.find((item) => item.sku === ii.sku)

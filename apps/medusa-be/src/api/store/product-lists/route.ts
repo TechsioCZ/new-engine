@@ -26,16 +26,10 @@ const getRoute = async (
     return
   }
 
-  const filters: Record<string, unknown> = {
+  const filters = {
     id: { $in: productListIds },
-  }
-
-  if (handle !== undefined && handle !== "") {
-    filters["handle"] = handle
-  }
-
-  if (type !== undefined) {
-    filters["type"] = type
+    ...(handle !== undefined && handle !== "" ? { handle } : {}),
+    ...(type === undefined ? {} : { type }),
   }
 
   const productListService =

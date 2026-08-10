@@ -114,7 +114,14 @@ const ContactPage = () => {
                       items={subjectItems}
                       label={form.labels.subject}
                       onValueChange={(details) => {
-                        updateField("subject", details.value[0] || "general")
+                        const [selectedSubject] = details.value
+                        updateField(
+                          "subject",
+                          selectedSubject === undefined ||
+                            selectedSubject.length === 0
+                            ? "general"
+                            : selectedSubject,
+                        )
                       }}
                       placeholder="Vyberte téma"
                       size="sm"

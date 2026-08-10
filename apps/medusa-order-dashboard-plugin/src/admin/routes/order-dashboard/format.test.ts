@@ -12,7 +12,7 @@ import {
 } from "./format"
 import type { OrderDashboardOrder } from "./types"
 
-const translate = (key: string, values?: Record<string, unknown>) =>
+const translate = (key: string, values?: Record<string, string>) =>
   values ? `${key}:${JSON.stringify(values)}` : key
 
 const order = {

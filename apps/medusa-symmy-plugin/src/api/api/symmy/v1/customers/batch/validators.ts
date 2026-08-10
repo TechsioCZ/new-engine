@@ -1,5 +1,7 @@
 import { z } from "@medusajs/framework/zod"
 
+import { JsonMetadataSchema } from "../../../../../../lib/json-metadata"
+
 const CUSTOMERS_BATCH_MAX = 500
 const CUSTOMER_ADDRESSES_MAX = 50
 const CUSTOMER_GROUP_CODES_MAX = 100
@@ -42,7 +44,7 @@ const CustomerInputSchema = z
       "company_registration_number",
     ]),
     last_name: z.string().min(1),
-    metadata: z.record(z.string(), z.unknown()).optional(),
+    metadata: JsonMetadataSchema.optional(),
     phone: z.string().optional(),
   })
   .superRefine((value, ctx) => {

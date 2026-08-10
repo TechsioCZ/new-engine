@@ -1,8 +1,9 @@
-import type { StoreProduct } from "@medusajs/types"
 import { slugify } from "@techsio/ui-kit/utils"
 
 import type {
   Product,
+  ProductListProduct,
+  ProductListVariant,
   ProductDetail,
   ProductImage,
   ProductVariantDetail,
@@ -14,7 +15,7 @@ import { formatPrice, formatVariants } from "../format/format-product"
 const IMAGE_PREFIX_REGEX = /^[a-f0-9]{10}-/u
 
 const formatStockValue = (
-  variants?: StoreProduct["variants"],
+  variants?: ProductListVariant[] | null,
 ): "Skladem" | "Vyprodáno" => {
   if (!variants || variants.every((v) => v.inventory_quantity === 0)) {
     return "Vyprodáno"
@@ -26,7 +27,7 @@ const formatStockValue = (
 /**
  * Extracts base product fields that are common between Product and ProductDetail
  */
-const getBaseProductFields = (product: StoreProduct) => ({
+const getBaseProductFields = (product: ProductListProduct) => ({
   handle: product.handle,
   id: product.id,
   imageSrc:
@@ -39,7 +40,7 @@ const getBaseProductFields = (product: StoreProduct) => ({
   withoutTax: formatPrice({ tax: false, variants: product.variants }),
 })
 
-export const transformProduct = (product: StoreProduct): Product => ({
+export const transformProduct = (product: ProductListProduct): Product => ({
   ...getBaseProductFields(product),
   variants: formatVariants(product.variants),
 })

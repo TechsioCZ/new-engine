@@ -35,8 +35,12 @@ const keyPolicySchema = z.object({
   indexes: z.array(z.string()),
   uid: z.string(),
 })
-const requestBodySchema = z.record(z.string(), z.unknown())
+const requestBodySchema = z.union([
+  keyPolicySchema.extend({ expiresAt: z.null() }),
+  z.object({ description: z.string() }),
+])
 type KeyPolicy = z.infer<typeof keyPolicySchema>
+type RequestBody = z.infer<typeof requestBodySchema>
 
 type StoredKey = KeyPolicy & {
   key: string
@@ -46,7 +50,7 @@ type StoredKey = KeyPolicy & {
 interface RecordedRequest {
   method: string
   path: string
-  body: Record<string, unknown> | null
+  body: RequestBody | null
 }
 
 const createStoredKey = (
@@ -124,14 +128,15 @@ describe("meilisearch-provider", () => {
       }
 
       if (url.pathname === "/keys" && method === "POST") {
-        if (!body || typeof body["uid"] !== "string") {
+        const policy = keyPolicySchema.safeParse(body)
+        if (!policy.success) {
           return jsonResponse({ message: "Missing key UID" }, 400)
         }
 
         const created = {
-          ...keyPolicySchema.parse(body),
+          ...policy.data,
           expiresAt: null,
-          key: `key-${body["uid"]}`,
+          key: `key-${policy.data.uid}`,
         }
         keys.set(created.uid, created)
         return jsonResponse(created)
@@ -153,7 +158,7 @@ describe("meilisearch-provider", () => {
 
         const updated = {
           ...existing,
-          description: String(body["description"]),
+          description: body.description,
         }
         keys.set(uid, updated)
         return jsonResponse(updated)

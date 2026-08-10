@@ -7,7 +7,7 @@ import { COMPANY_MODULE } from "../../../../../src/modules/company"
 const { overrideModule } = vi.hoisted(() => ({
   overrideModule: <Module extends object>(
     original: Module,
-    replacements: Record<PropertyKey, unknown>,
+    replacements: object,
   ): Module =>
     Object.defineProperties(
       { ...original },
@@ -54,7 +54,7 @@ type MockContainer = ReturnType<typeof makeContainer>
 type MockStep = (
   input: {
     id: string
-    update: Record<string, unknown>
+    update: { id?: string; name?: string }
   },
   context: { container: MockContainer },
 ) => Promise<{
