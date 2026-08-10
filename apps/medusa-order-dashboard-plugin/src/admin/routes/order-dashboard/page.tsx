@@ -1272,7 +1272,10 @@ const OrderDashboardPage = () => {
               }}
               value={targetStatus}
             >
-              <Select.Trigger className="w-[180px]" disabled={!selectedCount}>
+              <Select.Trigger
+                className="w-[180px] enabled:data-[placeholder]:!text-ui-fg-base"
+                disabled={!selectedCount}
+              >
                 <Select.Value
                   placeholder={t("actions.targetStatusPlaceholder")}
                 />
@@ -1311,7 +1314,7 @@ const OrderDashboardPage = () => {
               }}
               value={manualStatus}
             >
-              <Select.Trigger className="w-[200px]">
+              <Select.Trigger className="w-[200px] data-[placeholder]:!text-ui-fg-base">
                 <Select.Value
                   placeholder={t("actions.businessStatusPlaceholder")}
                 />
