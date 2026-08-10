@@ -191,10 +191,16 @@ const Companies = () => {
               "-"
             )}
           </Table.Cell>
-          <Table.Cell onClick={(e) => e.stopPropagation()}>
+          <Table.Cell
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
             <CompanyApplicationStatusButton company={company} />
           </Table.Cell>
-          <Table.Cell onClick={(e) => e.stopPropagation()}>
+          <Table.Cell
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+          >
             <CompanyActionsMenu company={company} />
           </Table.Cell>
         </Table.Row>
