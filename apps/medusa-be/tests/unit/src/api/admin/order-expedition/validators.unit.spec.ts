@@ -89,4 +89,21 @@ describe("PostAdminOrderExpeditionPdfSchema", () => {
       })
     ).toThrow()
   })
+
+  it("bounds separate PDF archives without reducing the combined export limit", () => {
+    const orderIds = Array.from({ length: 101 }, (_, index) => `order_${index}`)
+
+    expect(() =>
+      PostAdminOrderExpeditionPdfSchema.parse({
+        mode: "separate",
+        order_ids: orderIds,
+      })
+    ).toThrow("Separate PDF export supports at most 100 orders")
+    expect(
+      PostAdminOrderExpeditionPdfSchema.parse({
+        mode: "combined",
+        order_ids: orderIds,
+      })
+    ).toEqual({ mode: "combined", order_ids: orderIds })
+  })
 })

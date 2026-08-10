@@ -8,6 +8,7 @@ import {
   ORDER_EXPEDITION_CARRIER_KEYS,
   ORDER_EXPEDITION_MAX_LIMIT,
   ORDER_EXPEDITION_MAX_ORDER_IDS,
+  ORDER_EXPEDITION_MAX_SEPARATE_PDF_ORDER_IDS,
   ORDER_EXPEDITION_SORT_QUERY_VALUES,
   ORDER_EXPEDITION_TARGET_STATUSES,
 } from "../../../utils/order-expedition"
@@ -44,7 +45,15 @@ export const PostAdminOrderExpeditionPdfSchema = z.object({
     .array(z.string().min(1))
     .min(1)
     .max(ORDER_EXPEDITION_MAX_ORDER_IDS),
-})
+}).refine(
+  ({ mode, order_ids: orderIds }) =>
+    mode !== "separate" ||
+    orderIds.length <= ORDER_EXPEDITION_MAX_SEPARATE_PDF_ORDER_IDS,
+  {
+    message: `Separate PDF export supports at most ${ORDER_EXPEDITION_MAX_SEPARATE_PDF_ORDER_IDS} orders`,
+    path: ["order_ids"],
+  }
+)
 
 export const PostAdminOrderExpeditionStatusSchema = z.object({
   order_ids: z

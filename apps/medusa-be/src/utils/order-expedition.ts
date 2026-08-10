@@ -8,6 +8,7 @@ import {
 } from "./order-business-status"
 
 export const ORDER_EXPEDITION_MAX_ORDER_IDS = 1000
+export const ORDER_EXPEDITION_MAX_SEPARATE_PDF_ORDER_IDS = 100
 export const ORDER_EXPEDITION_DEFAULT_LIMIT = 50
 export const ORDER_EXPEDITION_MAX_LIMIT = 100
 
