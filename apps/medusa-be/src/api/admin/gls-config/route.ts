@@ -47,10 +47,16 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 
   const activeProfile = profiles.find((profile) => profile.is_active)
   if (!activeProfile) {
-    throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, "GLS has no active configuration profile")
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "GLS has no active configuration profile"
+    )
   }
 
-  res.json({ active_environment: activeProfile.environment, profiles: profiles.map(toConfigResponse) })
+  res.json({
+    active_environment: activeProfile.environment,
+    profiles: profiles.map(toConfigResponse),
+  })
 }
 
 /**
@@ -63,7 +69,8 @@ export async function POST(
   req: MedusaRequest<PostAdminGLSConfigSchemaType>,
   res: MedusaResponse
 ) {
-  const glsService = req.scope.resolve<GLSClientModuleService>(GLS_CLIENT_MODULE)
+  const glsService =
+    req.scope.resolve<GLSClientModuleService>(GLS_CLIENT_MODULE)
   const { environment, ...config } = req.validatedBody
   const updated = await glsService.updateConfig(environment, config)
 

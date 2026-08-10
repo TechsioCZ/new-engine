@@ -96,7 +96,10 @@ export default async function glsTrackingSyncJob(container: MedusaContainer) {
 
 function isLockContentionError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error)
-  return message.includes("Failed to acquire lock") || message.includes("already locked")
+  return (
+    message.includes("Failed to acquire lock") ||
+    message.includes("already locked")
+  )
 }
 
 export const config = {
@@ -254,7 +257,10 @@ async function processFulfillment(
 
   let history: GLSPacketStatusRecord[]
   try {
-    history = await glsClient.getPacketStatus(parcelNumber, { config_id: fulfillment.data.config_id, environment: fulfillment.data.environment })
+    history = await glsClient.getPacketStatus(parcelNumber, {
+      config_id: fulfillment.data.config_id,
+      environment: fulfillment.data.environment,
+    })
   } catch (error) {
     logger.warn(
       `GLS Tracking Sync: Failed to fetch status for packet ${packetId} / parcel ${parcelNumber}: ${error instanceof Error ? error.message : String(error)}`

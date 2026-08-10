@@ -14,6 +14,8 @@ export const adminPacketaConfigRoutesMiddlewares: MiddlewareRoute[] = [
   {
     methods: ["POST"],
     matcher: "/admin/packeta-config/active",
-    middlewares: [validateAndTransformBody(PostAdminPacketaActiveProfileSchema)],
+    middlewares: [
+      validateAndTransformBody(PostAdminPacketaActiveProfileSchema),
+    ],
   },
 ]

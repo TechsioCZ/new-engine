@@ -1,5 +1,5 @@
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type { LoaderOptions } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type { GLSEnvironment } from "../types"
 
 type GLSConfigServiceType = {
@@ -29,7 +29,11 @@ export default async function createDefaultConfigLoader({
     }
 
     try {
-      await glsConfigService.create({ environment, is_active: false, supported_countries: [] })
+      await glsConfigService.create({
+        environment,
+        is_active: false,
+        supported_countries: [],
+      })
       logger.info(`GLS: Created ${environment} profile (disabled)`)
     } catch (error) {
       const errorMessage = String(error)
@@ -44,12 +48,16 @@ export default async function createDefaultConfigLoader({
     }
   }
 
-  const [, activeCount] = await glsConfigService.listAndCount({ is_active: true })
+  const [, activeCount] = await glsConfigService.listAndCount({
+    is_active: true,
+  })
   if (activeCount > 0) {
     return
   }
 
-  const [testingProfiles] = await glsConfigService.listAndCount({ environment: "testing" })
+  const [testingProfiles] = await glsConfigService.listAndCount({
+    environment: "testing",
+  })
   const testingProfile = testingProfiles[0] as { id?: string } | undefined
   if (!testingProfile?.id) {
     throw new Error("GLS testing profile was not initialized")
