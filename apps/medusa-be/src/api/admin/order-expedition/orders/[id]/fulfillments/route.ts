@@ -1,4 +1,3 @@
-// biome-ignore-all lint/style/useTemplate: Workspace instructions require string concatenation in new TypeScript files.
 import type { MedusaRequest, MedusaResponse } from '@medusajs/framework/http'
 import type { Query } from '@medusajs/framework/types'
 import { ContainerRegistrationKeys, MedusaError } from '@medusajs/framework/utils'
@@ -102,11 +101,11 @@ async function fetchOrder(query: Query, orderId: string): Promise<FulfillmentOrd
 	const order = data[0] as FulfillmentOrder | undefined
 
 	if (!order) {
-		throw new MedusaError(MedusaError.Types.NOT_FOUND, 'Order ' + orderId + ' was not found')
+		throw new MedusaError(MedusaError.Types.NOT_FOUND, `Order ${orderId} was not found`)
 	}
 
 	if (order.status === 'canceled') {
-		throw new MedusaError(MedusaError.Types.NOT_ALLOWED, 'Canceled order ' + orderId + ' cannot be fulfilled')
+		throw new MedusaError(MedusaError.Types.NOT_ALLOWED, `Canceled order ${orderId} cannot be fulfilled`)
 	}
 
 	return order
@@ -116,35 +115,35 @@ async function prepareFulfillment(query: Query, order: FulfillmentOrder, locatio
 	const shippingOptionIds = [...new Set((order.shipping_methods ?? []).map((shippingMethod) => shippingMethod.shipping_option_id).filter(isString))]
 
 	if (!shippingOptionIds.length) {
-		throw new MedusaError(MedusaError.Types.INVALID_DATA, 'Order ' + order.id + ' has no original shipping option')
+		throw new MedusaError(MedusaError.Types.INVALID_DATA, `Order ${order.id} has no original shipping option`)
 	}
 
 	const shippingOptions = await fetchShippingOptions(query, shippingOptionIds)
 	const availableShippingOptions = shippingOptions.filter((candidateShippingOption) => isShippingOptionAtLocation(candidateShippingOption, locationId))
 
 	if (!availableShippingOptions.length) {
-		throw new MedusaError(MedusaError.Types.INVALID_DATA, 'The order shipping option is not available at stock location ' + locationId)
+		throw new MedusaError(MedusaError.Types.INVALID_DATA, `The order shipping option is not available at stock location ${locationId}`)
 	}
 
 	const fulfillableItems = (order.items ?? []).filter((item) => item.requires_shipping === true && getFulfillableQuantity(item) > 0)
 
 	if (!fulfillableItems.length) {
-		throw new MedusaError(MedusaError.Types.INVALID_DATA, 'Order ' + order.id + ' has no remaining shippable quantity to fulfill')
+		throw new MedusaError(MedusaError.Types.INVALID_DATA, `Order ${order.id} has no remaining shippable quantity to fulfill`)
 	}
 
 	const matchingShippingOptions = getCompatibleShippingOptions(availableShippingOptions, fulfillableItems)
 	const selectedShippingOption = matchingShippingOptions[0]
 
 	if (!selectedShippingOption) {
-		throw new MedusaError(MedusaError.Types.INVALID_DATA, 'No original shipping option matches every remaining shippable item in order ' + order.id)
+		throw new MedusaError(MedusaError.Types.INVALID_DATA, `No original shipping option matches every remaining shippable item in order ${order.id}`)
 	}
 
 	if (matchingShippingOptions.length > 1) {
-		throw new MedusaError(MedusaError.Types.INVALID_DATA, 'Order ' + order.id + ' has multiple matching shipping options')
+		throw new MedusaError(MedusaError.Types.INVALID_DATA, `Order ${order.id} has multiple matching shipping options`)
 	}
 
 	if (!selectedShippingOption.provider_id) {
-		throw new MedusaError(MedusaError.Types.INVALID_DATA, 'Shipping option ' + selectedShippingOption.id + ' has no fulfillment provider')
+		throw new MedusaError(MedusaError.Types.INVALID_DATA, `Shipping option ${selectedShippingOption.id} has no fulfillment provider`)
 	}
 
 	return {
