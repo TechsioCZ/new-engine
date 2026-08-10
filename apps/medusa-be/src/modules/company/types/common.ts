@@ -13,6 +13,8 @@ export type CompanyDTO = {
   logo_url: string | null
   employees?: EmployeeDTO[]
   currency_code: string | null
+  application_status: "pending" | "approved" | "rejected"
+  application_changed_at: Date | null
   customer_group?: CustomerGroupDTO
   created_at: Date
   updated_at: Date

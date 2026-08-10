@@ -24,11 +24,23 @@ import {
   onRowKeyboardActivate,
 } from "../../lib/table"
 import { useDebouncedValue } from "../../lib/use-debounced-value"
-import { CompanyActionsMenu, CompanyCreateDrawer } from "./components"
+import {
+  CompanyActionsMenu,
+  CompanyApplicationStatusButton,
+  CompanyCreateDrawer,
+} from "./components"
 
 const PAGE_SIZE = 20
 const COMPANY_STATUS_OPTIONS = ["active", "deleted", "all"] as const
 type CompanyStatusFilter = (typeof COMPANY_STATUS_OPTIONS)[number]
+const COMPANY_APPLICATION_STATUS_OPTIONS = [
+  "all",
+  "pending",
+  "approved",
+  "rejected",
+] as const
+type CompanyApplicationStatusFilter =
+  (typeof COMPANY_APPLICATION_STATUS_OPTIONS)[number]
 const ORDER_OPTIONS = [
   { labelKey: "nameAsc", value: "name" },
   { labelKey: "nameDesc", value: "-name" },
@@ -36,6 +48,29 @@ const ORDER_OPTIONS = [
   { labelKey: "recentlyUpdated", value: "-updated_at" },
 ] as const
 type CompanyOrder = (typeof ORDER_OPTIONS)[number]["value"]
+
+type CompanyApplicationStatus = "pending" | "approved" | "rejected" | undefined
+
+const getCompanyStatusBadgeColor = (
+  company: QueryCompany
+): "green" | "orange" | "red" => {
+  if (company.deleted_at || company.application_status === "rejected") {
+    return "red"
+  }
+
+  return company.application_status === "approved" ? "green" : "orange"
+}
+
+const getCompanyStatusLabelKey = (company: QueryCompany) => {
+  if (company.deleted_at) {
+    return "deleted"
+  }
+
+  return (company.application_status ?? "pending") as Exclude<
+    CompanyApplicationStatus,
+    undefined
+  >
+}
 
 export const handle = {
   breadcrumb: () => translateBreadcrumb("companies:menuItem", "Companies"),
@@ -61,11 +96,14 @@ const Companies = () => {
   const [orderBy, setOrderBy] = useState<CompanyOrder>("name")
   const [q, setQ] = useState("")
   const [status, setStatus] = useState<CompanyStatusFilter>("active")
+  const [applicationStatus, setApplicationStatus] =
+    useState<CompanyApplicationStatusFilter>("all")
   const debouncedQ = useDebouncedValue(q)
   const companiesQuery = {
     fields: adminCompanyDisplayFieldsQuery,
     limit: String(PAGE_SIZE),
     offset: String(pageIndex * PAGE_SIZE),
+    application_status: applicationStatus,
     order_by: orderBy,
     q: debouncedQ,
     status,
@@ -88,6 +126,7 @@ const Companies = () => {
           <Table.Cell />
           <Table.Cell />
           <Table.Cell />
+          <Table.Cell />
         </Table.Row>
       )
     }
@@ -96,6 +135,7 @@ const Companies = () => {
       return (
         <Table.Row>
           <Table.Cell>{t("status.empty")}</Table.Cell>
+          <Table.Cell />
           <Table.Cell />
           <Table.Cell />
           <Table.Cell />
@@ -133,8 +173,8 @@ const Companies = () => {
           <Table.Cell>{company.phone}</Table.Cell>
           <Table.Cell>{company.email}</Table.Cell>
           <Table.Cell>
-            <StatusBadge color={company.deleted_at ? "red" : "green"}>
-              {company.deleted_at ? t("status.deleted") : t("status.active")}
+            <StatusBadge color={getCompanyStatusBadgeColor(company)}>
+              {t(`status.${getCompanyStatusLabelKey(company)}`)}
             </StatusBadge>
           </Table.Cell>
           <Table.Cell>{formatCompanyAddress(company)}</Table.Cell>
@@ -147,6 +187,9 @@ const Companies = () => {
             ) : (
               "-"
             )}
+          </Table.Cell>
+          <Table.Cell onClick={(e) => e.stopPropagation()}>
+            <CompanyApplicationStatusButton company={company} />
           </Table.Cell>
           <Table.Cell onClick={(e) => e.stopPropagation()}>
             <CompanyActionsMenu company={company} />
@@ -165,7 +208,7 @@ const Companies = () => {
           </Heading>
           <CompanyCreateDrawer />
         </div>
-        <div className="grid grid-cols-1 gap-3 border-ui-border-base border-t px-6 py-4 md:grid-cols-[minmax(0,1fr)_220px_180px]">
+        <div className="grid grid-cols-1 gap-3 border-ui-border-base border-t px-6 py-4 md:grid-cols-[minmax(0,1fr)_220px_180px_220px]">
           <Input
             onChange={(event) => {
               setPageIndex(0)
@@ -210,6 +253,24 @@ const Companies = () => {
               ))}
             </Select.Content>
           </Select>
+          <Select
+            onValueChange={(value) => {
+              setPageIndex(0)
+              setApplicationStatus(value as CompanyApplicationStatusFilter)
+            }}
+            value={applicationStatus}
+          >
+            <Select.Trigger>
+              <Select.Value />
+            </Select.Trigger>
+            <Select.Content>
+              {COMPANY_APPLICATION_STATUS_OPTIONS.map((option) => (
+                <Select.Item key={option} value={option}>
+                  {t(`filters.applicationStatus.${option}`)}
+                </Select.Item>
+              ))}
+            </Select.Content>
+          </Select>
         </div>
         {isPending && <Text>{t("status.loading")}</Text>}
         <Table>
@@ -223,6 +284,9 @@ const Companies = () => {
               <Table.HeaderCell>{t("columns.address")}</Table.HeaderCell>
               <Table.HeaderCell>{t("columns.employees")}</Table.HeaderCell>
               <Table.HeaderCell>{t("columns.customerGroup")}</Table.HeaderCell>
+              <Table.HeaderCell>
+                {t("columns.applicationState")}
+              </Table.HeaderCell>
               <Table.HeaderCell>{t("columns.actions")}</Table.HeaderCell>
             </Table.Row>
           </Table.Header>
