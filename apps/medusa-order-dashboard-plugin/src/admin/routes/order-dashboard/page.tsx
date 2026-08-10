@@ -42,10 +42,10 @@ import { Link } from "react-router-dom"
 import { setOrderDashboardSidebarBadgeCount } from "../../sidebar-badge"
 import {
   downloadOrderDashboardExpeditionPdf,
-  downloadOrderDashboardPacketaLabels,
+  downloadOrderDashboardShippingLabels,
   getOrderDashboardSummary,
+  listOrderDashboardLabelEligibility,
   listOrderDashboardOrders,
-  listOrderDashboardPacketaEligibility,
   updateOrderDashboardManualStatus,
   updateOrderDashboardStatuses,
 } from "./api"
@@ -63,12 +63,12 @@ import {
   isOrderDashboardTargetStatus,
 } from "./format"
 import { OrderFulfillmentModal } from "./fulfillment-modal"
-import {
-  getPacketaCarrierOrderIds,
-  getPacketaLabelPreview,
-  preparePacketaLabelDownload,
-} from "./packeta-labels"
 import { OrderPdfExportPrompt } from "./pdf-export-prompt"
+import {
+  getShippingLabelCarrierSelection,
+  prepareShippingLabelDownload,
+  type ShippingLabelPreparation,
+} from "./shipping-labels"
 import {
   ORDER_DASHBOARD_CARRIER_KEYS,
   ORDER_DASHBOARD_MANUAL_STATUS_IDS,
@@ -93,7 +93,7 @@ import {
 
 const ORDER_DASHBOARD_QUERY_KEY = "order-dashboard-orders"
 const ORDER_DASHBOARD_SUMMARY_QUERY_KEY = "order-dashboard-summary"
-const PACKETA_ELIGIBILITY_QUERY_KEY = "order-dashboard-packeta-eligibility"
+const LABEL_ELIGIBILITY_QUERY_KEY = "order-dashboard-label-eligibility"
 const ORDER_DASHBOARD_SEARCH_DEBOUNCE_MS = 300
 const ORDER_DASHBOARD_SORT_FIELD_BY_COLUMN_ID = {
   business_status: "business_status",
@@ -134,6 +134,7 @@ const packetaLabelStartPositions = [1, 2, 3, 4] as const
 
 type PacketaLabelStartPosition = (typeof packetaLabelStartPositions)[number]
 type PendingPacketaLabelsDownload = {
+  carrier: "packeta"
   labelFormat: OrderDashboardLabelFormat
   orderIds: string[]
 }
@@ -198,7 +199,7 @@ const OrderDashboardPage = () => {
     isPacketaLabelPositionPromptOpen,
     setIsPacketaLabelPositionPromptOpen,
   ] = useState(false)
-  const [isPreparingPacketaLabels, setIsPreparingPacketaLabels] =
+  const [isPreparingShippingLabels, setIsPreparingShippingLabels] =
     useState(false)
   const [blockingOrders, setBlockingOrders] = useState<
     OrderDashboardBlockingOrder[]
@@ -252,21 +253,9 @@ const OrderDashboardPage = () => {
   const selectedOrders = Array.from(selectedOrdersById.values())
   const selectedOrderIds = Array.from(selectedOrdersById.keys())
   const selectedOrderIdSet = new Set(selectedOrderIds)
-  const selectedPacketaCarrierOrderIds =
-    getPacketaCarrierOrderIds(selectedOrders)
-  const packetaEligibilityQuery = useQuery({
-    enabled: selectedPacketaCarrierOrderIds.length > 0,
-    queryFn: () =>
-      listOrderDashboardPacketaEligibility(selectedPacketaCarrierOrderIds),
-    queryKey: [PACKETA_ELIGIBILITY_QUERY_KEY, selectedPacketaCarrierOrderIds],
-  })
-  const packetaLabelPreview = getPacketaLabelPreview(
-    selectedOrders,
-    packetaEligibilityQuery.data,
-    t
-  )
   const selectedCount = selectedOrders.length
-  const packetaEligibleCount = packetaLabelPreview.printableOrders.length
+  const shippingLabelCarrierSelection =
+    getShippingLabelCarrierSelection(selectedOrders)
   const detailOrder = orders.find((order) => order.id === detailOrderId)
   const targetStatusOptions = getTargetStatusOptions(selectedOrders, t)
   const selectedTargetStatusOption = targetStatus
@@ -533,7 +522,7 @@ const OrderDashboardPage = () => {
           currentSelection: DataTableRowSelectionState
         ) => DataTableRowSelectionState)
   ) => {
-    if (isPreparingPacketaLabels) {
+    if (isPreparingShippingLabels) {
       return
     }
 
@@ -608,7 +597,7 @@ const OrderDashboardPage = () => {
   const refreshFulfillmentData = () => {
     refreshOrders()
     queryClient.invalidateQueries({
-      queryKey: [PACKETA_ELIGIBILITY_QUERY_KEY],
+      queryKey: [LABEL_ELIGIBILITY_QUERY_KEY],
       refetchType: "active",
     })
   }
@@ -680,13 +669,13 @@ const OrderDashboardPage = () => {
     },
   })
 
-  const packetaLabelsMutation = useMutation({
-    mutationFn: downloadOrderDashboardPacketaLabels,
+  const shippingLabelsMutation = useMutation({
+    mutationFn: downloadOrderDashboardShippingLabels,
     onError: () => {
       toast.error(t("toast.requestFailed"))
     },
     onSuccess: () => {
-      toast.success(t("toast.packetaLabelsReady"))
+      toast.success(t("toast.shippingLabelsReady"))
     },
   })
 
@@ -763,10 +752,57 @@ const OrderDashboardPage = () => {
     })
   }
 
-  const handlePacketaLabels = async () => {
+  const handlePreparedShippingLabels = (
+    labelPreparation: ShippingLabelPreparation,
+    labelFormatSnapshot: OrderDashboardLabelFormat
+  ) => {
+    if (labelPreparation.kind === "mixed-carriers") {
+      toast.error(t("toast.mixedLabelCarriers"))
+      return
+    }
+
+    if (labelPreparation.kind === "unsupported-carrier") {
+      toast.error(t("toast.unsupportedLabelCarrier"))
+      return
+    }
+
+    setBlockingOrders(labelPreparation.blockingOrders)
+
+    if (labelPreparation.kind === "no-printable") {
+      toast.error(t("toast.noPrintableLabels"))
+      return
+    }
+
+    if (labelPreparation.kind === "too-many") {
+      toast.error(
+        t("toast.shippingLabelLimit", {
+          count: labelPreparation.limit,
+        })
+      )
+      return
+    }
+
+    if (labelPreparation.carrier === "packeta") {
+      setPendingPacketaLabelsDownload({
+        carrier: labelPreparation.carrier,
+        labelFormat: labelFormatSnapshot,
+        orderIds: labelPreparation.orderIds,
+      })
+      setIsPacketaLabelPositionPromptOpen(true)
+      return
+    }
+
+    shippingLabelsMutation.mutate({
+      carrier: labelPreparation.carrier,
+      labelFormat: labelFormatSnapshot,
+      orderIds: labelPreparation.orderIds,
+    })
+  }
+
+  const handleShippingLabels = async () => {
     const selectedOrdersSnapshot = selectedOrders
-    const selectedPacketaCarrierOrderIdsSnapshot = getPacketaCarrierOrderIds(
-      selectedOrdersSnapshot
+    const selectedOrderIdsSnapshot = selectedOrdersSnapshot.map(
+      (order) => order.id
     )
     const labelFormatSnapshot = labelFormat
 
@@ -775,56 +811,49 @@ const OrderDashboardPage = () => {
       return
     }
 
-    if (!selectedPacketaCarrierOrderIdsSnapshot.length) {
-      toast.error(t("toast.noPacketaSelection"))
+    if (isPreparingShippingLabels || shippingLabelsMutation.isPending) {
       return
     }
 
-    if (isPreparingPacketaLabels || packetaLabelsMutation.isPending) {
+    const carrierSelection = getShippingLabelCarrierSelection(
+      selectedOrdersSnapshot
+    )
+
+    if (carrierSelection.kind === "mixed") {
+      toast.error(t("toast.mixedLabelCarriers"))
       return
     }
 
-    setIsPreparingPacketaLabels(true)
+    if (carrierSelection.kind === "unsupported") {
+      toast.error(t("toast.unsupportedLabelCarrier"))
+      return
+    }
+
+    if (carrierSelection.kind !== "supported") {
+      toast.error(t("toast.noPrintableLabels"))
+      return
+    }
+
+    setIsPreparingShippingLabels(true)
 
     try {
-      const eligibilityOrders = await listOrderDashboardPacketaEligibility(
-        selectedPacketaCarrierOrderIdsSnapshot
+      const eligibilityOrders = await listOrderDashboardLabelEligibility(
+        selectedOrderIdsSnapshot
       )
       queryClient.setQueryData(
-        [PACKETA_ELIGIBILITY_QUERY_KEY, selectedPacketaCarrierOrderIdsSnapshot],
+        [LABEL_ELIGIBILITY_QUERY_KEY, selectedOrderIdsSnapshot],
         eligibilityOrders
       )
-      const packetaLabelPreparation = preparePacketaLabelDownload(
+      const labelPreparation = prepareShippingLabelDownload(
         selectedOrdersSnapshot,
         eligibilityOrders,
         t
       )
-
-      setBlockingOrders(packetaLabelPreparation.blockingOrders)
-
-      if (packetaLabelPreparation.kind === "no-printable") {
-        toast.error(t("toast.noPacketaSelection"))
-        return
-      }
-
-      if (packetaLabelPreparation.kind === "too-many") {
-        toast.error(
-          t("toast.packetaLabelLimit", {
-            count: packetaLabelPreparation.limit,
-          })
-        )
-        return
-      }
-
-      setPendingPacketaLabelsDownload({
-        labelFormat: labelFormatSnapshot,
-        orderIds: packetaLabelPreparation.orderIds,
-      })
-      setIsPacketaLabelPositionPromptOpen(true)
+      handlePreparedShippingLabels(labelPreparation, labelFormatSnapshot)
     } catch {
       toast.error(t("toast.requestFailed"))
     } finally {
-      setIsPreparingPacketaLabels(false)
+      setIsPreparingShippingLabels(false)
     }
   }
 
@@ -833,7 +862,7 @@ const OrderDashboardPage = () => {
       return
     }
 
-    packetaLabelsMutation.mutate({
+    shippingLabelsMutation.mutate({
       ...pendingPacketaLabelsDownload,
       labelOffset: packetaLabelStartPosition - 1,
     })
@@ -1127,7 +1156,8 @@ const OrderDashboardPage = () => {
             <Prompt.Cancel>{t("actions.cancel")}</Prompt.Cancel>
             <Prompt.Action
               disabled={
-                !pendingPacketaLabelsDownload || packetaLabelsMutation.isPending
+                !pendingPacketaLabelsDownload ||
+                shippingLabelsMutation.isPending
               }
               onClick={handlePacketaLabelPositionConfirm}
             >
@@ -1176,15 +1206,16 @@ const OrderDashboardPage = () => {
               <Text leading="compact" size="small" weight="plus">
                 {t("actions.selected", { count: selectedCount })}
               </Text>
-              {selectedCount ? (
+              {shippingLabelCarrierSelection.kind === "supported" ? (
                 <Text
                   className="text-ui-fg-subtle"
                   leading="compact"
                   size="small"
                 >
-                  {t("actions.packetaEligible", {
-                    count: packetaEligibleCount,
-                    selectedCount,
+                  {t("actions.shippingLabelCarrier", {
+                    carrier: t(
+                      `carriers.${shippingLabelCarrierSelection.carrier}`
+                    ),
                   })}
                 </Text>
               ) : null}
@@ -1200,43 +1231,47 @@ const OrderDashboardPage = () => {
               <DocumentText />
               {t("actions.expeditionPdf")}
             </Button>
-            <Select
-              onValueChange={(value) =>
-                setLabelFormat(value as OrderDashboardLabelFormat)
-              }
-              value={labelFormat}
-            >
-              <Select.Trigger
-                className="w-[84px]"
-                disabled={
-                  isPreparingPacketaLabels || packetaLabelsMutation.isPending
+            {shippingLabelCarrierSelection.kind === "supported" &&
+            shippingLabelCarrierSelection.carrier === "packeta" ? (
+              <Select
+                onValueChange={(value) =>
+                  setLabelFormat(value as OrderDashboardLabelFormat)
                 }
+                value={labelFormat}
               >
-                <Select.Value />
-              </Select.Trigger>
-              <Select.Content>
-                {labelFormats.map((format) => (
-                  <Select.Item key={format} value={format}>
-                    {t(`labelFormats.${format.toLowerCase()}`)}
-                  </Select.Item>
-                ))}
-              </Select.Content>
-            </Select>
+                <Select.Trigger
+                  className="w-[84px]"
+                  disabled={
+                    isPreparingShippingLabels ||
+                    shippingLabelsMutation.isPending
+                  }
+                >
+                  <Select.Value />
+                </Select.Trigger>
+                <Select.Content>
+                  {labelFormats.map((format) => (
+                    <Select.Item key={format} value={format}>
+                      {t(`labelFormats.${format.toLowerCase()}`)}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select>
+            ) : null}
             <Button
               disabled={
                 !selectedCount ||
-                isPreparingPacketaLabels ||
-                packetaLabelsMutation.isPending
+                isPreparingShippingLabels ||
+                shippingLabelsMutation.isPending
               }
               isLoading={
-                isPreparingPacketaLabels || packetaLabelsMutation.isPending
+                isPreparingShippingLabels || shippingLabelsMutation.isPending
               }
-              onClick={handlePacketaLabels}
+              onClick={handleShippingLabels}
               size="small"
               type="button"
               variant="secondary"
             >
-              {t("actions.packetaLabels")}
+              {t("actions.shippingLabels")}
             </Button>
             <Button
               disabled={!selectedCount}
