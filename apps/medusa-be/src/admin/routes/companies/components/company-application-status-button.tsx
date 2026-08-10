@@ -74,19 +74,20 @@ export const CompanyApplicationStatusButton = ({
       return
     }
 
-    await mutateApplicationStatus(
-      { status },
-      {
-        onSuccess: () => {
-          toast.success(t(toastKey, { name: company.name }))
-        },
-        onError: (error) => {
-          toast.error(
-            `${t("errors.changeCompanyApplicationStatusFailed")}: ${getErrorMessage(error)}`
-          )
-        },
-      }
-    )
+    try {
+      await mutateApplicationStatus(
+        { status },
+        {
+          onSuccess: () => {
+            toast.success(t(toastKey, { name: company.name }))
+          },
+        }
+      )
+    } catch (error) {
+      toast.error(
+        `${t("errors.changeCompanyApplicationStatusFailed")}: ${getErrorMessage(error)}`
+      )
+    }
   }
 
   if (company.deleted_at) {

@@ -27,7 +27,15 @@ export const updateCompanyApplicationStatusStep = createStep(
       id: input.id,
     })
 
-    return new StepResponse(updatedCompany, previousData)
+    if (!previousData) {
+      return new StepResponse(updatedCompany)
+    }
+
+    return new StepResponse(updatedCompany, {
+      id: previousData.id,
+      application_changed_at: previousData.application_changed_at,
+      application_status: previousData.application_status,
+    })
   },
   async (previousData: ModuleUpdateCompany | undefined, { container }) => {
     if (!previousData) {

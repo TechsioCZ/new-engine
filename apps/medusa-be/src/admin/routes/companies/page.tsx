@@ -49,8 +49,6 @@ const ORDER_OPTIONS = [
 ] as const
 type CompanyOrder = (typeof ORDER_OPTIONS)[number]["value"]
 
-type CompanyApplicationStatus = "pending" | "approved" | "rejected" | undefined
-
 const getCompanyStatusBadgeColor = (
   company: QueryCompany
 ): "green" | "orange" | "red" => {
@@ -66,10 +64,7 @@ const getCompanyStatusLabelKey = (company: QueryCompany) => {
     return "deleted"
   }
 
-  return (company.application_status ?? "pending") as Exclude<
-    CompanyApplicationStatus,
-    undefined
-  >
+  return company.application_status ?? "pending"
 }
 
 export const handle = {
@@ -255,6 +250,14 @@ const Companies = () => {
           </Select>
           <Select
             onValueChange={(value) => {
+              if (
+                !COMPANY_APPLICATION_STATUS_OPTIONS.includes(
+                  value as CompanyApplicationStatusFilter
+                )
+              ) {
+                return
+              }
+
               setPageIndex(0)
               setApplicationStatus(value as CompanyApplicationStatusFilter)
             }}
