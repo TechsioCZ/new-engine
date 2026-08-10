@@ -7,7 +7,6 @@ export const INTEGRATION_CONFIG_NAMES = {
   GOPAY: "GoPay",
   STRIPE: "Stripe",
   COMGATE: "Comgate",
-  PACKETA_PICKUP_POINTS: "Packeta Pickup Points",
   PRODUCT_REVIEW_REQUEST: "Product review request",
 } as const
 
