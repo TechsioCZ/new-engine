@@ -1,10 +1,12 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import {
   Button,
+  Checkbox,
   Container,
   Heading,
   Input,
   Label,
+  Prompt,
   Select,
   Switch,
   Text,
@@ -26,12 +28,13 @@ export const handle = {
 type GLSConfigResponse = {
   id: string
   environment: GLSEnvironment
+  is_active: boolean
   is_enabled: boolean
   username: string | null
   password_set: boolean
   client_number: number | null
   country_code: GLSCountryCode
-  webshop_engine: string | null
+  supported_countries: GLSCountryCode[]
   type_of_printer: GLSPrinterType
   print_position: number
   hide_phone_number_on_labels: boolean
@@ -46,13 +49,18 @@ type GLSConfigResponse = {
   sender_email: string | null
 }
 
+type GLSProfilesResponse = {
+  active_environment: GLSEnvironment
+  profiles: GLSConfigResponse[]
+}
+
 type GLSConfigInput = {
   is_enabled?: boolean
   username?: string
   password?: string | null
   client_number?: number | null
   country_code?: string
-  webshop_engine?: string
+  supported_countries?: GLSCountryCode[]
   type_of_printer?: string
   print_position?: number
   hide_phone_number_on_labels?: boolean
@@ -76,6 +84,10 @@ const COUNTRY_CODES = [
   { value: "SI", label: "Slovenia (api.mygls.si)" },
   { value: "RS", label: "Serbia (api.mygls.rs)" },
 ]
+
+const STOREFRONT_MARKETS = COUNTRY_CODES.filter((country) =>
+  ["SK", "CZ", "HU", "RO"].includes(country.value)
+)
 
 const PRINTER_TYPES = [
   { value: "A4_2x2", label: "A4 2×2" },
@@ -219,7 +231,7 @@ const buildFormDataFromConfig = (
   username: configuration.username ?? "",
   client_number: configuration.client_number ?? null,
   country_code: configuration.country_code ?? "SK",
-  webshop_engine: configuration.webshop_engine ?? "new-engine-medusa",
+  supported_countries: configuration.supported_countries,
   type_of_printer: configuration.type_of_printer ?? "A4_2x2",
   print_position: configuration.print_position ?? 1,
   hide_phone_number_on_labels:
@@ -234,15 +246,17 @@ const GLSSettingsPage = () => {
     new Set()
   )
   const [seededConfigId, setSeededConfigId] = useState<string | null>(null)
+  const [selectedEnvironment, setSelectedEnvironment] = useState<GLSEnvironment | null>(null)
+  const [confirmProductionActivation, setConfirmProductionActivation] = useState(false)
 
   const { data, isLoading, error } = useQuery({
     queryFn: () =>
-      sdk.client.fetch<{ config: GLSConfigResponse }>("/admin/gls-config"),
+      sdk.client.fetch<GLSProfilesResponse>("/admin/gls-config"),
     queryKey: ["gls-config"],
   })
 
   const { mutate, isPending } = useMutation({
-    mutationFn: (payload: GLSConfigInput) =>
+    mutationFn: (payload: GLSConfigInput & { environment: GLSEnvironment }) =>
       sdk.client.fetch("/admin/gls-config", {
         method: "POST",
         body: payload,
@@ -259,7 +273,28 @@ const GLSSettingsPage = () => {
     },
   })
 
-  const glsConfig = data?.config
+  const { mutate: activateProfile, isPending: isActivating } = useMutation({
+    mutationFn: (environment: GLSEnvironment) =>
+      sdk.client.fetch("/admin/gls-config/active", {
+        method: "POST",
+        body: { environment, confirmed: environment === "production" },
+      }),
+    onSuccess: async () => {
+      setConfirmProductionActivation(false)
+      await queryClient.invalidateQueries({ queryKey: ["gls-config"] })
+      toast.success("GLS configuration profile activated")
+    },
+    onError: (err) => {
+      toast.error(`Failed to activate profile: ${err instanceof Error ? err.message : String(err)}`)
+    },
+  })
+
+  const displayedEnvironment = selectedEnvironment ?? data?.active_environment ?? "testing"
+  const glsConfig = data?.profiles.find((profile) => profile.environment === displayedEnvironment)
+
+  useEffect(() => {
+    setSelectedEnvironment((current) => current && data?.profiles.some((profile) => profile.environment === current) ? current : data?.active_environment ?? null)
+  }, [data])
 
   useEffect(() => {
     if (!(glsConfig && glsConfig.id !== seededConfigId)) {
@@ -277,12 +312,21 @@ const GLSSettingsPage = () => {
     for (const field of clearedFields) {
       payload[field] = null
     }
-    mutate(payload)
+    mutate({ ...payload, environment: displayedEnvironment })
+  }
+
+  const handleActivate = () => {
+    if (displayedEnvironment === "production") {
+      setConfirmProductionActivation(true)
+      return
+    }
+
+    activateProfile(displayedEnvironment)
   }
 
   const updateField = (
     field: keyof GLSConfigInput,
-    value: string | boolean | number | null
+    value: string | boolean | number | GLSCountryCode[] | null
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
     if (isClearableField(field) && clearedFields.has(field)) {
@@ -303,6 +347,12 @@ const GLSSettingsPage = () => {
 
   const isFieldCleared = (field: keyof GLSConfigInput) =>
     isClearableField(field) && clearedFields.has(field)
+
+  const updateSupportedCountry = (country: GLSCountryCode, enabled: boolean) => {
+    const currentCountries = formData.supported_countries ?? []
+    const nextCountries = enabled ? [...currentCountries, country] : currentCountries.filter((value) => value !== country)
+    updateField("supported_countries", Array.from(new Set(nextCountries)))
+  }
 
   if (isLoading) {
     return (
@@ -389,9 +439,43 @@ const GLSSettingsPage = () => {
       <div className="px-6 py-4">
         <Heading level="h1">GLS Configuration</Heading>
         <Text className="text-ui-fg-subtle">
-          Environment: {glsConfig?.environment}. MyGLS uses username, password
-          and client number — not a separate API key.
+          MyGLS uses username, password and client number — not a separate API
+          key.
         </Text>
+      </div>
+
+      <div className="px-6 py-4">
+        <div className="flex items-end justify-between gap-4">
+          <div className="flex w-full max-w-md flex-col gap-2">
+            <Label htmlFor="gls-configuration-profile">
+              Configuration profile
+            </Label>
+            <Select
+              onValueChange={(value) => {
+                setSelectedEnvironment(value as GLSEnvironment)
+                setSeededConfigId(null)
+              }}
+              value={displayedEnvironment}
+            >
+              <Select.Trigger id="gls-configuration-profile">
+                <Select.Value />
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="testing">Testing</Select.Item>
+                <Select.Item value="production">Production</Select.Item>
+              </Select.Content>
+            </Select>
+          </div>
+          <Button
+            disabled={glsConfig?.is_active || isActivating}
+            isLoading={isActivating}
+            onClick={handleActivate}
+            type="button"
+            variant="secondary"
+          >
+            {glsConfig?.is_active ? "Active profile" : "Activate profile"}
+          </Button>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -424,7 +508,7 @@ const GLSSettingsPage = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
-                <Label htmlFor="gls-country-code">Country Domain</Label>
+                <Label htmlFor="gls-country-code">Account country</Label>
                 <Select
                   onValueChange={(value) => updateField("country_code", value)}
                   value={formData.country_code ?? "SK"}
@@ -458,6 +542,33 @@ const GLSSettingsPage = () => {
                   type="number"
                   value={formData.client_number ?? ""}
                 />
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label>Supported storefront markets</Label>
+              <Text className="text-sm text-ui-fg-subtle">
+                Pickup points and GLS checkout options are limited to these
+                markets.
+              </Text>
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                {STOREFRONT_MARKETS.map((country) => {
+                  const checkboxId = `gls-supported-country-${country.value.toLowerCase()}`
+                  return (
+                    <div className="flex items-center gap-2" key={country.value}>
+                      <Checkbox
+                        checked={formData.supported_countries?.includes(country.value as GLSCountryCode) ?? false}
+                        id={checkboxId}
+                        onCheckedChange={(checked) =>
+                          updateSupportedCountry(
+                            country.value as GLSCountryCode,
+                            checked === true
+                          )
+                        }
+                      />
+                      <Label htmlFor={checkboxId}>{country.label.split(" (")[0]}</Label>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </div>
@@ -537,16 +648,6 @@ const GLSSettingsPage = () => {
                 }
               />
             </div>
-            <FormField
-              fieldConfig={{
-                field: "webshop_engine",
-                label: "Webshop Engine",
-                placeholder: "new-engine-medusa",
-                colSpan: 2,
-              }}
-              onChange={(value) => updateField("webshop_engine", value)}
-              value={getStringField(formData, "webshop_engine")}
-            />
           </div>
         </div>
 
@@ -575,6 +676,32 @@ const GLSSettingsPage = () => {
           </Button>
         </div>
       </form>
+      <Prompt
+        onOpenChange={setConfirmProductionActivation}
+        open={confirmProductionActivation}
+        variant="confirmation"
+      >
+        <Prompt.Content>
+          <Prompt.Header>
+            <Prompt.Title>Activate GLS Production?</Prompt.Title>
+            <Prompt.Description>
+              New GLS fulfillment operations will use the saved Production
+              credentials immediately. Existing shipments remain bound to the
+              profile that created them.
+            </Prompt.Description>
+          </Prompt.Header>
+          <Prompt.Footer>
+            <Prompt.Cancel type="button">Cancel</Prompt.Cancel>
+            <Prompt.Action
+              disabled={isActivating}
+              onClick={() => activateProfile("production")}
+              type="button"
+            >
+              Activate Production
+            </Prompt.Action>
+          </Prompt.Footer>
+        </Prompt.Content>
+      </Prompt>
     </Container>
   )
 }
