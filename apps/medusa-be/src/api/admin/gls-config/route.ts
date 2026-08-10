@@ -6,19 +6,19 @@ import type {
   GLSConfigDTO,
   GLSConfigResponse,
 } from "../../../modules/gls-client/types"
-import { updateGLSConfigWorkflow } from "../../../workflows/gls-config/update-gls-config"
 import type { PostAdminGLSConfigSchemaType } from "./validators"
 
 /** Maps config DTO to API response with sensitive fields masked. */
 const toConfigResponse = (config: GLSConfigDTO): GLSConfigResponse => ({
   id: config.id,
   environment: config.environment,
+  is_active: config.is_active,
   is_enabled: config.is_enabled,
   username: config.username,
   password_set: !!config.password,
   client_number: config.client_number,
   country_code: config.country_code,
-  webshop_engine: config.webshop_engine,
+  supported_countries: config.supported_countries,
   type_of_printer: config.type_of_printer,
   print_position: config.print_position,
   hide_phone_number_on_labels: config.hide_phone_number_on_labels,
@@ -37,15 +37,20 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const glsService =
     req.scope.resolve<GLSClientModuleService>(GLS_CLIENT_MODULE)
 
-  const glsConfig = await glsService.getConfig()
-  if (!glsConfig) {
+  const profiles = await glsService.listConfigProfiles()
+  if (profiles.length !== 2) {
     throw new MedusaError(
-      MedusaError.Types.NOT_FOUND,
-      "GLS configuration not found. Please restart the server to initialize."
+      MedusaError.Types.UNEXPECTED_STATE,
+      "GLS testing and production profiles must both be initialized"
     )
   }
 
-  res.json({ config: toConfigResponse(glsConfig) })
+  const activeProfile = profiles.find((profile) => profile.is_active)
+  if (!activeProfile) {
+    throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, "GLS has no active configuration profile")
+  }
+
+  res.json({ active_environment: activeProfile.environment, profiles: profiles.map(toConfigResponse) })
 }
 
 /**
@@ -58,9 +63,9 @@ export async function POST(
   req: MedusaRequest<PostAdminGLSConfigSchemaType>,
   res: MedusaResponse
 ) {
-  const { result: updated } = await updateGLSConfigWorkflow(req.scope).run({
-    input: req.validatedBody,
-  })
+  const glsService = req.scope.resolve<GLSClientModuleService>(GLS_CLIENT_MODULE)
+  const { environment, ...config } = req.validatedBody
+  const updated = await glsService.updateConfig(environment, config)
 
   res.json({ config: toConfigResponse(updated) })
 }

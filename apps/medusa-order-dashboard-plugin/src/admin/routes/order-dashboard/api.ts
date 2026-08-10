@@ -37,6 +37,7 @@ const FULFILLMENT_ORDER_FIELDS = [
   "+items.variant.product.shipping_profile.id",
   "+shipping_methods.shipping_option_id",
   "shipping_methods.name",
+  "shipping_methods.data",
 ].join(",")
 const FULFILLMENT_SHIPPING_OPTION_FIELDS = [
   "id",
@@ -225,7 +226,7 @@ export function createOrderDashboardFulfillment(input: {
   noNotification: boolean
   orderId: string
   shippingOptionId?: string
-}) {
+}): Promise<unknown> {
   return sdk.admin.order.createFulfillment(input.orderId, {
     items: input.items,
     location_id: input.locationId,
