@@ -78,12 +78,6 @@ export const getAuthenticatedCustomerId = (req: MedusaRequest) => {
 export const getReviewTokenCustomerId = (reviewToken: ReviewTokenDTO) =>
   reviewToken.customer_id ?? `review-token:${reviewToken.id}`
 
-export const hasSubmittedReviewAuthorName = ({
-  firstName,
-  name,
-}: Pick<ReviewAuthorInput, "firstName" | "name">) =>
-  Boolean(normalizeOptionalText(firstName) ?? normalizeOptionalText(name))
-
 export const getReviewAuthorName = ({
   customer,
   firstName,

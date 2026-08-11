@@ -8,7 +8,6 @@ import {
   getAuthenticatedCustomerId,
   getReviewAuthorName,
   getReviewTokenCustomerId,
-  hasSubmittedReviewAuthorName,
   retrieveCustomer,
   retrieveReviewToken,
 } from "./helpers"
@@ -38,10 +37,6 @@ export async function POST(
     ? await retrieveReviewToken(req, review_token, product_id)
     : undefined
   const authenticatedCustomerId = getAuthenticatedCustomerId(req)
-  const submittedAuthorName = hasSubmittedReviewAuthorName({
-    firstName: first_name,
-    name,
-  })
   const customer = authenticatedCustomerId
     ? await retrieveCustomer(req, authenticatedCustomerId)
     : undefined
@@ -68,7 +63,7 @@ export async function POST(
   if (tokenRecord) {
     customerId = getReviewTokenCustomerId(tokenRecord)
     shouldEnforceDuplicateReview = true
-  } else if (authenticatedCustomerId && !submittedAuthorName) {
+  } else if (authenticatedCustomerId) {
     customerId = authenticatedCustomerId
     shouldEnforceDuplicateReview = true
   } else {
