@@ -3,26 +3,25 @@ import {
 	ORDER_DASHBOARD_MAX_LABEL_IDS,
 	type OrderDashboardBlockingOrder,
 	type OrderDashboardCarrierKey,
+	type OrderDashboardLabelCarrier,
 	type OrderDashboardLabelEligibilityOrder,
 	type OrderDashboardOrder
 } from './types'
 
 type TranslationFunction = (key: string, options?: Record<string, unknown>) => string
 
-export type SupportedShippingLabelCarrier = Exclude<OrderDashboardCarrierKey, 'other'>
-
 export type ShippingLabelCarrierSelection =
 	| { kind: 'none' }
 	| { carriers: OrderDashboardCarrierKey[]; kind: 'mixed' }
 	| { carrier: 'other'; kind: 'unsupported' }
-	| { carrier: SupportedShippingLabelCarrier; kind: 'supported' }
+	| { carrier: OrderDashboardLabelCarrier; kind: 'supported' }
 
 export type ShippingLabelPreparation =
 	| { blockingOrders: OrderDashboardBlockingOrder[]; kind: 'no-printable' }
 	| { carriers: OrderDashboardCarrierKey[]; kind: 'mixed-carriers' }
 	| { carrier: 'other'; kind: 'unsupported-carrier' }
 	| { blockingOrders: OrderDashboardBlockingOrder[]; kind: 'too-many'; limit: number }
-	| { blockingOrders: OrderDashboardBlockingOrder[]; carrier: SupportedShippingLabelCarrier; kind: 'ready'; orderIds: string[] }
+	| { blockingOrders: OrderDashboardBlockingOrder[]; carrier: OrderDashboardLabelCarrier; kind: 'ready'; orderIds: string[] }
 
 export function getShippingLabelCarrierSelection(orders: OrderDashboardOrder[]): ShippingLabelCarrierSelection {
 	const carriers = Array.from(new Set(orders.map((order) => order.carrier.value)))
@@ -84,7 +83,7 @@ export function prepareShippingLabelDownload(
 export function getShippingLabelPreview(
 	selectedOrders: OrderDashboardOrder[],
 	eligibilityOrders: OrderDashboardLabelEligibilityOrder[] | undefined,
-	carrier: SupportedShippingLabelCarrier,
+	carrier: OrderDashboardLabelCarrier,
 	translate: TranslationFunction
 ) {
 	const eligibilityOrdersById = new Map((eligibilityOrders ?? []).map((order) => [order.id, order]))
@@ -109,7 +108,7 @@ export function getShippingLabelPreview(
 function getShippingLabelSkipReason(
 	order: OrderDashboardOrder,
 	eligibilityOrder: OrderDashboardLabelEligibilityOrder | undefined,
-	carrier: SupportedShippingLabelCarrier,
+	carrier: OrderDashboardLabelCarrier,
 	translate: TranslationFunction
 ) {
 	if (order.carrier.value !== carrier) {
@@ -127,7 +126,7 @@ function getShippingLabelSkipReason(
 	return
 }
 
-function hasPrintableShippingLabel(order: OrderDashboardLabelEligibilityOrder, carrier: SupportedShippingLabelCarrier) {
+function hasPrintableShippingLabel(order: OrderDashboardLabelEligibilityOrder, carrier: OrderDashboardLabelCarrier) {
 	return (order.fulfillments ?? []).some((fulfillment) => {
 		if (fulfillment.canceled_at || fulfillment.provider_id !== [carrier, carrier].join('_')) {
 			return false

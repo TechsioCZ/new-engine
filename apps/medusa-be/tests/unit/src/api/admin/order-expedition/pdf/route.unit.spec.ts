@@ -172,7 +172,12 @@ describe("POST /admin/order-expedition/pdf", () => {
     )
     expect(mockSave).toHaveBeenCalledTimes(2)
 
-    const buffer = res.send.mock.calls[0]?.[0] as Buffer
+    const buffer = res.send.mock.calls[0]?.[0]
+
+    if (!Buffer.isBuffer(buffer)) {
+      throw new TypeError("Expected the PDF route to send a ZIP buffer")
+    }
+
     const archive = await JSZip.loadAsync(buffer)
 
     expect(Object.keys(archive.files)).toEqual([

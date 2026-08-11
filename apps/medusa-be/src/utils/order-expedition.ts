@@ -26,16 +26,6 @@ export const ORDER_EXPEDITION_TARGET_STATUSES = [
   "canceled",
   "requires_action",
 ] as const
-export const ORDER_EXPEDITION_SORT_FIELDS = [
-  "created_at",
-  "display_id",
-  "customer",
-  "carrier",
-  "business_status",
-  "fulfillment",
-  "payment",
-  "total",
-] as const
 export const ORDER_EXPEDITION_SORT_QUERY_VALUES = [
   "created_at",
   "-created_at",
@@ -73,11 +63,14 @@ export type OrderExpeditionCarrierKey =
 export type OrderExpeditionTargetStatus =
   (typeof ORDER_EXPEDITION_TARGET_STATUSES)[number]
 
-export type OrderExpeditionSortField =
-  (typeof ORDER_EXPEDITION_SORT_FIELDS)[number]
-
 export type OrderExpeditionSortQuery =
   (typeof ORDER_EXPEDITION_SORT_QUERY_VALUES)[number]
+
+type StripOrderExpeditionSortDirection<T extends string> =
+  T extends `-${infer Field}` ? Field : T
+
+export type OrderExpeditionSortField =
+  StripOrderExpeditionSortDirection<OrderExpeditionSortQuery>
 
 export type OrderExpeditionCarrierOption = {
   label: string

@@ -151,6 +151,8 @@ const DEMO_ORDER_DATE_OFFSETS = [
   { daysAgo: 338, hour: 14, minute: 40 },
   { daysAgo: 360, hour: 11, minute: 10 },
 ] as const
+const DEMO_ORDER_DATE_CYCLE_DAYS =
+  Math.max(...DEMO_ORDER_DATE_OFFSETS.map(({ daysAgo }) => daysAgo)) + 5
 
 export default async function seedOrderExpeditionDemo({ container }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
@@ -762,7 +764,11 @@ function getDemoOrderCreatedAt(index: number, now: Date) {
   const createdAt = new Date(now)
 
   createdAt.setHours(offset.hour, offset.minute, 0, 0)
-  createdAt.setDate(createdAt.getDate() - offset.daysAgo - dateCycle * 365)
+  createdAt.setDate(
+    createdAt.getDate() -
+      offset.daysAgo -
+      dateCycle * DEMO_ORDER_DATE_CYCLE_DAYS
+  )
 
   return createdAt
 }

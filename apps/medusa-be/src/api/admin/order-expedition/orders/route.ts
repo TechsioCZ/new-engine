@@ -18,8 +18,6 @@ import {
   ORDER_EXPEDITION_ORDER_FIELDS,
   type OrderExpeditionCarrierKey,
   type OrderExpeditionRawOrder,
-  type OrderExpeditionSortField,
-  type OrderExpeditionSortQuery,
   orderMatchesExpeditionCarrier,
   toOrderExpeditionDto,
 } from "../../../../utils/order-expedition"
@@ -28,6 +26,13 @@ import {
   resolveOrderExpeditionCustomerSignals,
 } from "../../../../utils/order-expedition-customer-signals"
 import type { GetAdminOrderExpeditionOrdersSchemaType } from "../validators"
+import {
+  getNativeOrderExpeditionSort,
+  isNativeOrderExpeditionSort,
+  type OrderExpeditionSort,
+  parseOrderExpeditionSort,
+  sortOrderExpeditionOrders,
+} from "./sort"
 
 type OrderExpeditionOrdersPage = {
   carrierFilterLimitReached: boolean
@@ -54,11 +59,6 @@ type OrderExpeditionNativeFilters = Pick<
 > & {
   status?: "pending"
 }
-type OrderExpeditionSort = {
-  direction: "ASC" | "DESC"
-  field: OrderExpeditionSortField
-  query: OrderExpeditionSortQuery
-}
 type FetchOrderBatchOptions = {
   fields: string[]
   filters: OrderExpeditionNativeFilters
@@ -78,17 +78,9 @@ type FetchProjectedOrdersOptions = FetchOrdersOptions & {
   expeditionFilters: OrderExpeditionOrderFilters
 }
 
-const ORDER_EXPEDITION_SCAN_BATCH_SIZE = 100
-const DEFAULT_ORDER_EXPEDITION_SORT: OrderExpeditionSortQuery = "-created_at"
+const ORDER_EXPEDITION_SCAN_BATCH_SIZE = 500
+const ORDER_EXPEDITION_SCAN_MAX_ROWS = 20_000
 const ORDER_EXPEDITION_DISPLAY_ID_SEARCH_PATTERN = /^#\d+$/
-const NATIVE_ORDER_EXPEDITION_SORT_FIELDS = new Set<OrderExpeditionSortField>([
-  "created_at",
-  "display_id",
-])
-const ORDER_EXPEDITION_SORT_COLLATOR = new Intl.Collator("cs", {
-  numeric: true,
-  sensitivity: "base",
-})
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -122,7 +114,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   }
   const requiresProjectionScan =
     hasOrderExpeditionFilters(filters) ||
-    !NATIVE_ORDER_EXPEDITION_SORT_FIELDS.has(normalizedOrder.field)
+    !isNativeOrderExpeditionSort(normalizedOrder)
 
   const result = requiresProjectionScan
     ? await fetchProjectedOrders({
@@ -212,18 +204,29 @@ async function fetchProjectedOrders({
   const matchingOrders: OrderExpeditionRawOrder[] = []
   let scanOffset = 0
   let scannedCount = 0
+  let scanTruncated = false
 
   while (true) {
+    const remainingRows = ORDER_EXPEDITION_SCAN_MAX_ROWS - scanOffset
+
+    if (remainingRows <= 0) {
+      scanTruncated = true
+      break
+    }
+
+    const batchLimit = Math.min(ORDER_EXPEDITION_SCAN_BATCH_SIZE, remainingRows)
     const batch = await fetchOrderBatch({
       fields: ORDER_EXPEDITION_LIST_FIELDS,
       filters,
-      limit: ORDER_EXPEDITION_SCAN_BATCH_SIZE,
+      limit: batchLimit,
       offset: scanOffset,
       order: { created_at: "DESC", id: "DESC" },
       query,
     })
 
     if (!batch.scannedCount) {
+      scanTruncated =
+        batch.metadataCount !== null && batch.metadataCount > scanOffset
       break
     }
 
@@ -235,19 +238,23 @@ async function fetchProjectedOrders({
     )
     scanOffset += batch.scannedCount
 
-    if (
-      (batch.metadataCount !== null && batch.metadataCount <= scanOffset) ||
-      (batch.metadataCount === null &&
-        batch.scannedCount < ORDER_EXPEDITION_SCAN_BATCH_SIZE)
-    ) {
+    const scannedAllOrders =
+      batch.metadataCount !== null
+        ? batch.metadataCount <= scanOffset
+        : batch.scannedCount < batchLimit
+
+    if (scannedAllOrders) {
+      break
+    }
+
+    if (scanOffset >= ORDER_EXPEDITION_SCAN_MAX_ROWS) {
+      scanTruncated = true
       break
     }
   }
 
-  matchingOrders.sort((left, right) =>
-    compareOrderExpeditionOrders(left, right, sort)
-  )
-  const pageOrderIds = matchingOrders
+  const sortedOrders = sortOrderExpeditionOrders(matchingOrders, sort)
+  const pageOrderIds = sortedOrders
     .slice(offset, offset + limit)
     .map((candidate) => candidate.id)
   const { orders } = await fetchOrderedOrderExpeditionOrdersByIds(
@@ -256,11 +263,11 @@ async function fetchProjectedOrders({
   )
 
   return {
-    count: matchingOrders.length,
-    hasNext: offset + limit < matchingOrders.length,
+    count: sortedOrders.length,
+    hasNext: offset + limit < sortedOrders.length,
     orders,
-    countExact: true,
-    carrierFilterLimitReached: false,
+    countExact: !scanTruncated,
+    carrierFilterLimitReached: scanTruncated,
     scannedCount,
   }
 }
@@ -347,112 +354,4 @@ function hasOrderExpeditionFilters(filters: OrderExpeditionOrderFilters) {
       filters.businessStatusGroup ||
       filters.pendingUnpaid
   )
-}
-
-function parseOrderExpeditionSort(
-  order: OrderExpeditionSortQuery | undefined
-): OrderExpeditionSort {
-  const query = order ?? DEFAULT_ORDER_EXPEDITION_SORT
-  const descending = query.startsWith("-")
-
-  return {
-    direction: descending ? "DESC" : "ASC",
-    field: (descending ? query.slice(1) : query) as OrderExpeditionSortField,
-    query,
-  }
-}
-
-function getNativeOrderExpeditionSort(order: OrderExpeditionSort) {
-  return {
-    [order.field]: order.direction,
-    id: order.direction,
-  }
-}
-
-function compareOrderExpeditionOrders(
-  left: OrderExpeditionRawOrder,
-  right: OrderExpeditionRawOrder,
-  order: OrderExpeditionSort
-) {
-  const leftValue = getOrderExpeditionSortValue(left, order.field)
-  const rightValue = getOrderExpeditionSortValue(right, order.field)
-
-  if (leftValue === null || rightValue === null) {
-    if (leftValue === rightValue) {
-      return compareOrderExpeditionIds(left.id, right.id, order.direction)
-    }
-
-    return leftValue === null ? 1 : -1
-  }
-
-  const comparison = compareOrderExpeditionSortValues(leftValue, rightValue)
-
-  if (comparison !== 0) {
-    return order.direction === "DESC" ? -comparison : comparison
-  }
-
-  return compareOrderExpeditionIds(left.id, right.id, order.direction)
-}
-
-function getOrderExpeditionSortValue(
-  order: OrderExpeditionRawOrder,
-  field: OrderExpeditionSortField
-): number | string | null {
-  const dto = toOrderExpeditionDto(order)
-
-  switch (field) {
-    case "created_at": {
-      const createdAt = dto.created_at ? Date.parse(dto.created_at) : Number.NaN
-      return Number.isNaN(createdAt) ? null : createdAt
-    }
-    case "display_id":
-      return dto.display_id ?? null
-    case "customer":
-      return dto.customer
-    case "carrier":
-      return dto.carrier.label
-    case "business_status":
-      return dto.business_status.priority
-    case "fulfillment":
-      return (
-        dto.fulfillment_status ??
-        (dto.has_active_fulfillment ? "active" : "none")
-      )
-    case "payment": {
-      const payment = [dto.payment_status, dto.payment_method]
-        .filter(Boolean)
-        .join(" ")
-      return payment || null
-    }
-    case "total": {
-      if (dto.total === null || dto.total === undefined) {
-        return null
-      }
-
-      const total = Number(dto.total)
-      return Number.isNaN(total) ? null : total
-    }
-    default:
-      return null
-  }
-}
-
-function compareOrderExpeditionSortValues(
-  left: number | string,
-  right: number | string
-) {
-  if (typeof left === "number" && typeof right === "number") {
-    return left - right
-  }
-
-  return ORDER_EXPEDITION_SORT_COLLATOR.compare(String(left), String(right))
-}
-
-function compareOrderExpeditionIds(
-  left: string,
-  right: string,
-  direction: OrderExpeditionSort["direction"]
-) {
-  const comparison = ORDER_EXPEDITION_SORT_COLLATOR.compare(left, right)
-  return direction === "DESC" ? -comparison : comparison
 }

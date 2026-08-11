@@ -1434,8 +1434,8 @@ function OrderExpeditionPagination({
         <Text size="small">Page {pageIndex + 1}</Text>
         {carrierFilterLimitReached && scannedCount !== null ? (
           <Text className="text-ui-fg-muted" size="small">
-            Carrier filter scanned first {scannedCount} orders. More matches may
-            exist.
+            The dashboard scanned the first {scannedCount} orders. More matches
+            may exist.
           </Text>
         ) : null}
       </div>

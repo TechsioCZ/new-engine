@@ -68,6 +68,13 @@ import {
   isOrderDashboardTargetStatus,
 } from "./format"
 import { OrderFulfillmentModal } from "./fulfillment-modal"
+import {
+  DEFAULT_ORDER_DASHBOARD_SORTING,
+  getOrderDashboardOrdersQuery,
+  getOrderDashboardQueueId,
+  isOrderDashboardQueueId,
+  ORDER_DASHBOARD_QUERY_KEY,
+} from "./order-query"
 import { OrderPdfExportPrompt } from "./pdf-export-prompt"
 import {
   getShippingLabelCarrierSelection,
@@ -83,41 +90,21 @@ import {
   ORDER_DASHBOARD_TARGET_STATUSES,
   type OrderDashboardBlockingOrder,
   type OrderDashboardBusinessStatus,
-  type OrderDashboardBusinessStatusGroupId,
-  type OrderDashboardBusinessStatusId,
   type OrderDashboardCarrierKey,
   type OrderDashboardLabelFormat,
   type OrderDashboardManualStatusId,
   type OrderDashboardOrder,
   type OrderDashboardPdfExportMode,
   type OrderDashboardQueueId,
-  type OrderDashboardSortField,
-  type OrderDashboardSortOrder,
   type OrderDashboardSummaryResponse,
   type OrderDashboardTargetStatus,
 } from "./types"
 
-const ORDER_DASHBOARD_QUERY_KEY = "order-dashboard-orders"
 const ORDER_DASHBOARD_SUMMARY_QUERY_KEY = "order-dashboard-summary"
 const ORDER_DASHBOARD_STATUS_CATALOG_QUERY_KEY =
   "order-dashboard-status-catalog"
 const LABEL_ELIGIBILITY_QUERY_KEY = "order-dashboard-label-eligibility"
 const ORDER_DASHBOARD_SEARCH_DEBOUNCE_MS = 300
-const ORDER_DASHBOARD_SORT_FIELD_BY_COLUMN_ID = {
-  business_status: "business_status",
-  carrier: "carrier",
-  created_at: "created_at",
-  customer: "customer",
-  fulfillment_status: "fulfillment",
-  order_display_id: "display_id",
-  payment_status: "payment",
-  total: "total",
-} as const satisfies Record<string, OrderDashboardSortField>
-const DEFAULT_ORDER_DASHBOARD_SORTING = {
-  desc: true,
-  id: "created_at",
-} satisfies DataTableSortingState
-
 const columnHelper = createDataTableColumnHelper<OrderDashboardOrder>()
 
 type OrderDashboardFilteringState = DataTableFilteringState<{
@@ -215,45 +202,22 @@ const OrderDashboardPage = () => {
   >([])
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null)
 
-  const carrier = carrierFilter === "all" ? undefined : carrierFilter
-  const businessStatusGroupFilter = getBusinessStatusGroupFilter(activeQueueId)
-  const businessStatusFilter = getBusinessStatusFilter(activeQueueId)
-  const pendingUnpaidFilter =
-    activeQueueId === ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID ? true : undefined
   const createdAtFilter = filtering.created_at ?? undefined
-  const limit = pagination.pageSize
-  const offset = pagination.pageIndex * limit
-  const sortOrder = getOrderDashboardSortOrder(sorting)
+  const orderQuery = getOrderDashboardOrdersQuery({
+    carrierFilter,
+    createdAt: createdAtFilter,
+    pagination,
+    queueId: activeQueueId,
+    search,
+    sorting,
+  })
+  const limit = orderQuery.request.limit
 
   const ordersQuery = useQuery({
     placeholderData: keepPreviousData,
     queryFn: ({ signal }) =>
-      listOrderDashboardOrders(
-        {
-          businessStatusGroup: businessStatusGroupFilter,
-          businessStatus: businessStatusFilter,
-          carrier,
-          createdAt: createdAtFilter,
-          limit,
-          offset,
-          order: sortOrder,
-          pendingUnpaid: pendingUnpaidFilter,
-          q: search || undefined,
-        },
-        signal
-      ),
-    queryKey: [
-      ORDER_DASHBOARD_QUERY_KEY,
-      carrier,
-      businessStatusGroupFilter,
-      businessStatusFilter,
-      createdAtFilter,
-      limit,
-      offset,
-      sortOrder,
-      pendingUnpaidFilter,
-      search,
-    ],
+      listOrderDashboardOrders(orderQuery.request, signal),
+    queryKey: orderQuery.queryKey,
   })
   const summaryQuery = useQuery({
     queryFn: getOrderDashboardSummary,
@@ -566,6 +530,7 @@ const OrderDashboardPage = () => {
     nextFiltering: OrderDashboardFilteringState
   ) => {
     setFiltering(nextFiltering)
+    resetPagination()
     clearResultScopedState()
   }
 
@@ -2101,58 +2066,6 @@ function isSameRowSelection(
 
 function formatOrderDeliveryAddress(address: string[]) {
   return address.filter(Boolean).join(", ") || "-"
-}
-
-function getOrderDashboardSortOrder(
-  sorting: DataTableSortingState | null | undefined
-): OrderDashboardSortOrder {
-  if (!sorting) {
-    return "-created_at"
-  }
-
-  const field =
-    ORDER_DASHBOARD_SORT_FIELD_BY_COLUMN_ID[
-      sorting.id as keyof typeof ORDER_DASHBOARD_SORT_FIELD_BY_COLUMN_ID
-    ]
-
-  if (!field) {
-    return "-created_at"
-  }
-
-  return sorting.desc ? `-${field}` : field
-}
-
-function getBusinessStatusFilter(
-  queueId: OrderDashboardQueueId
-): OrderDashboardBusinessStatusId | undefined {
-  return queueId === "all" ||
-    queueId === "action_required" ||
-    queueId === ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID
-    ? undefined
-    : queueId
-}
-
-function getBusinessStatusGroupFilter(
-  queueId: OrderDashboardQueueId
-): OrderDashboardBusinessStatusGroupId | undefined {
-  return queueId === "action_required" ? queueId : undefined
-}
-
-function isOrderDashboardQueueId(
-  value: unknown
-): value is OrderDashboardQueueId {
-  return (
-    typeof value === "string" &&
-    ORDER_DASHBOARD_QUEUE_IDS.includes(value as OrderDashboardQueueId)
-  )
-}
-
-function getOrderDashboardQueueId(value: unknown): OrderDashboardQueueId {
-  if (value === null) {
-    return ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID
-  }
-
-  return isOrderDashboardQueueId(value) ? value : "all"
 }
 
 function getQueueCount(

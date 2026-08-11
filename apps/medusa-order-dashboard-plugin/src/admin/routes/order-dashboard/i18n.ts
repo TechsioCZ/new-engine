@@ -486,7 +486,7 @@ const englishOrderDashboardAdminI18n = {
   table: {
     blockedOrdersTitle: "Some orders could not be updated.",
     carrierFilterLimit:
-      "The carrier filter scanned {{count}} orders. The result may be incomplete.",
+      "The dashboard scanned {{count}} orders. The result may be incomplete.",
     empty: "No orders found.",
     loading: "Loading orders...",
   },
@@ -702,7 +702,7 @@ const czechOrderDashboardAdminI18n = {
   },
   packetaLabelPositionPrompt: {
     description:
-      "Štítky se připraví na A4 arch se čtyřmi pozicemi. Vyberte, od které pozice má začít první štítek.",
+      "Štítky se připraví na arch A4 se čtyřmi pozicemi. Vyberte, od které pozice má začít první štítek.",
     position: "Pozice {{position}}",
     print: "Stáhnout štítky",
     selected: "Štítky k tisku: {{count}}",
@@ -778,7 +778,7 @@ const czechOrderDashboardAdminI18n = {
   table: {
     blockedOrdersTitle: "Některé objednávky se nepodařilo upravit.",
     carrierFilterLimit:
-      "Při filtrování podle dopravce bylo zkontrolováno {{count}} objednávek. Výsledek nemusí být kompletní.",
+      "Dashboard zkontroloval {{count}} objednávek. Výsledek nemusí být kompletní.",
     empty: "Nebyly nalezeny žádné objednávky.",
     loading: "Načítám objednávky...",
   },

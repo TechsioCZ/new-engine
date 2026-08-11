@@ -47,9 +47,16 @@ describe("POST /admin/order-business-statuses/bulk", () => {
     }
     runWorkflow.mockResolvedValue({ result })
     const graph = vi.fn().mockResolvedValue({
-      data: result.order_ids.map((id) => ({
+      data: result.order_ids.map((id, index) => ({
+        created_at: `2026-08-0${index + 1}T10:00:00.000Z`,
+        currency_code: "eur",
+        custom_display_id: `WEB-${index + 1}`,
+        display_id: 1001 + index,
+        email: `customer-${index + 1}@example.com`,
         id,
         metadata: { order_business_status_manual: "paid" },
+        status: "pending",
+        total: 1000 + index,
       })),
     })
     const clear = vi.fn().mockResolvedValue(undefined)
@@ -82,14 +89,28 @@ describe("POST /admin/order-business-statuses/bulk", () => {
     expect(clear).toHaveBeenCalledWith({
       tags: ["order-expedition:summary"],
     })
-    expect(res.json).toHaveBeenCalledWith(
-      expect.objectContaining({
-        ...result,
-        count: 3,
-        skipped: [],
-        skipped_count: 0,
-      })
-    )
+    expect(res.json).toHaveBeenCalledWith({
+      ...result,
+      count: 3,
+      orders: result.order_ids.map((id, index) => ({
+        business_status: {
+          id: "paid",
+          priority: 6,
+          tone: "green",
+          translation_key: "statuses.paid",
+        },
+        created_at: `2026-08-0${index + 1}T10:00:00.000Z`,
+        currency_code: "eur",
+        custom_display_id: `WEB-${index + 1}`,
+        display_id: 1001 + index,
+        email: `customer-${index + 1}@example.com`,
+        id,
+        manual_status: "paid",
+        total: 1000 + index,
+      })),
+      skipped: [],
+      skipped_count: 0,
+    })
   })
 
   it("does not invalidate the summary when every selected order is unchanged", async () => {

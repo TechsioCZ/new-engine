@@ -242,7 +242,7 @@ describe("GET /admin/order-expedition/orders", () => {
             id: "DESC",
           },
           skip: 0,
-          take: 100,
+          take: 500,
         },
       })
     )
@@ -431,7 +431,7 @@ describe("GET /admin/order-expedition/orders", () => {
         },
       })
       .mockResolvedValueOnce({
-        data: [firstBatch[1], firstBatch[0]],
+        data: [firstBatch[1]],
       })
     const req = createMockRequest(
       { carrier: "packeta", limit: 1, offset: 0 },
@@ -464,9 +464,9 @@ describe("GET /admin/order-expedition/orders", () => {
     )
     const graph = vi.fn()
 
-    for (let batchIndex = 0; batchIndex < 10; batchIndex += 1) {
+    for (let batchIndex = 0; batchIndex < 2; batchIndex += 1) {
       graph.mockResolvedValueOnce({
-        data: Array.from({ length: 100 }, (_, index) => ({
+        data: Array.from({ length: 500 }, (_, index) => ({
           id: `order_${batchIndex}_${index}`,
           shipping_methods: [{ name: "PPL" }],
         })),
@@ -508,7 +508,7 @@ describe("GET /admin/order-expedition/orders", () => {
 
     await GET(req, res)
 
-    expect(graph).toHaveBeenCalledTimes(12)
+    expect(graph).toHaveBeenCalledTimes(4)
     expect(res.json).toHaveBeenCalledWith(
       expect.objectContaining({
         carrier: "packeta",
@@ -518,6 +518,45 @@ describe("GET /admin/order-expedition/orders", () => {
         has_next: false,
         orders: [expect.objectContaining({ id: "order_match_after_1000" })],
         scanned_count: 1001,
+      })
+    )
+  })
+
+  it("reports a truncated count after reaching the projection scan cap", async () => {
+    const { GET } = await import(
+      "../../../../../../../src/api/admin/order-expedition/orders/route"
+    )
+    const graph = vi.fn()
+    const nonMatchingBatch = Array.from({ length: 500 }, (_, index) => ({
+      id: `order_${index}`,
+      shipping_methods: [{ name: "PPL" }],
+      status: "pending",
+    }))
+
+    for (let batchIndex = 0; batchIndex < 40; batchIndex += 1) {
+      graph.mockResolvedValueOnce({
+        data: nonMatchingBatch,
+        metadata: { count: 20_001 },
+      })
+    }
+
+    const req = createMockRequest(
+      { carrier: "packeta", limit: 50, offset: 0 },
+      graph
+    )
+    const res = createMockResponse()
+
+    await GET(req, res)
+
+    expect(graph).toHaveBeenCalledTimes(40)
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        carrier_filter_limit_reached: true,
+        count: 0,
+        count_exact: false,
+        has_next: false,
+        orders: [],
+        scanned_count: 20_000,
       })
     )
   })

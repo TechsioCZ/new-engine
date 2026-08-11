@@ -51,7 +51,7 @@ const FULFILLMENT_SHIPPING_OPTION_FIELDS = [
   "shipping_profile_id",
 ].join(",")
 
-type ListOrderDashboardOrdersInput = {
+export type ListOrderDashboardOrdersInput = {
   businessStatusGroup?: OrderDashboardBusinessStatusGroupId
   businessStatus?: OrderDashboardBusinessStatusId
   carrier?: OrderDashboardCarrierKey

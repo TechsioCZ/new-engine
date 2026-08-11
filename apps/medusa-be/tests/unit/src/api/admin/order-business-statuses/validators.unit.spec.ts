@@ -3,6 +3,7 @@ import {
   GetAdminOrderBusinessStatusesByIdsSchema,
   PostAdminOrderBusinessStatusesBulkSchema,
 } from "../../../../../../src/api/admin/order-business-statuses/validators"
+import { ASSIGNABLE_ORDER_BUSINESS_STATUS_IDS } from "../../../../../../src/utils/order-business-status"
 
 describe("order business status validators", () => {
   describe("GetAdminOrderBusinessStatusesByIdsSchema", () => {
@@ -41,17 +42,7 @@ describe("order business status validators", () => {
 
   describe("PostAdminOrderBusinessStatusesBulkSchema", () => {
     it("accepts every existing target status and clearing the override", () => {
-      for (const status of [
-        "new",
-        "awaiting_payment",
-        "paid",
-        "processing",
-        "waiting_for_supplier",
-        "shipped",
-        "delivered",
-        "canceled",
-        null,
-      ]) {
+      for (const status of [...ASSIGNABLE_ORDER_BUSINESS_STATUS_IDS, null]) {
         expect(
           PostAdminOrderBusinessStatusesBulkSchema.parse({
             order_ids: ["order_1"],
