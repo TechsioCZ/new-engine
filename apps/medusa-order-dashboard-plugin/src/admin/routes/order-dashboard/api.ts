@@ -7,9 +7,9 @@ import type {
   OrderDashboardCarrierKey,
   OrderDashboardFulfillmentCreateItem,
   OrderDashboardFulfillmentOrder,
-  OrderDashboardLabelFormat,
-  OrderDashboardLabelEligibilityOrder,
   OrderDashboardLabelCarrier,
+  OrderDashboardLabelEligibilityOrder,
+  OrderDashboardLabelFormat,
   OrderDashboardManualStatusId,
   OrderDashboardManualStatusResponse,
   OrderDashboardOrdersResponse,
@@ -59,6 +59,7 @@ type ListOrderDashboardOrdersInput = {
   limit: number
   offset: number
   order: OrderDashboardSortOrder
+  pendingUnpaid?: boolean
   q?: string
 }
 
@@ -71,6 +72,7 @@ export function listOrderDashboardOrders(
     limit,
     offset,
     order,
+    pendingUnpaid,
     q,
   }: ListOrderDashboardOrdersInput,
   signal?: AbortSignal
@@ -86,6 +88,7 @@ export function listOrderDashboardOrders(
         limit,
         offset,
         order,
+        pending_unpaid: pendingUnpaid,
         q,
       },
       signal,

@@ -28,6 +28,20 @@ const OptionalOrderQuerySchema = z.preprocess(
   z.enum(ORDER_EXPEDITION_SORT_QUERY_VALUES).optional()
 )
 
+const OptionalBooleanQuerySchema = z.preprocess((value) => {
+  const normalizedValue = Array.isArray(value) ? value[0] : value
+
+  if (normalizedValue === "true") {
+    return true
+  }
+
+  if (normalizedValue === "false") {
+    return false
+  }
+
+  return normalizedValue
+}, z.boolean().optional())
+
 export const GetAdminOrderExpeditionOrdersSchema = z.object({
   business_status_group: z.enum(ORDER_BUSINESS_STATUS_GROUP_IDS).optional(),
   business_status: z.enum(ORDER_BUSINESS_STATUS_IDS).optional(),
@@ -36,24 +50,27 @@ export const GetAdminOrderExpeditionOrdersSchema = z.object({
   limit: OptionalLimitQuerySchema,
   offset: OptionalNonNegativeIntQuerySchema,
   order: OptionalOrderQuerySchema,
+  pending_unpaid: OptionalBooleanQuerySchema,
   q: z.string().optional(),
 })
 
-export const PostAdminOrderExpeditionPdfSchema = z.object({
-  mode: z.enum(["combined", "separate"]).default("combined"),
-  order_ids: z
-    .array(z.string().min(1))
-    .min(1)
-    .max(ORDER_EXPEDITION_MAX_ORDER_IDS),
-}).refine(
-  ({ mode, order_ids: orderIds }) =>
-    mode !== "separate" ||
-    orderIds.length <= ORDER_EXPEDITION_MAX_SEPARATE_PDF_ORDER_IDS,
-  {
-    message: `Separate PDF export supports at most ${ORDER_EXPEDITION_MAX_SEPARATE_PDF_ORDER_IDS} orders`,
-    path: ["order_ids"],
-  }
-)
+export const PostAdminOrderExpeditionPdfSchema = z
+  .object({
+    mode: z.enum(["combined", "separate"]).default("combined"),
+    order_ids: z
+      .array(z.string().min(1))
+      .min(1)
+      .max(ORDER_EXPEDITION_MAX_ORDER_IDS),
+  })
+  .refine(
+    ({ mode, order_ids: orderIds }) =>
+      mode !== "separate" ||
+      orderIds.length <= ORDER_EXPEDITION_MAX_SEPARATE_PDF_ORDER_IDS,
+    {
+      message: `Separate PDF export supports at most ${ORDER_EXPEDITION_MAX_SEPARATE_PDF_ORDER_IDS} orders`,
+      path: ["order_ids"],
+    }
+  )
 
 export const PostAdminOrderExpeditionStatusSchema = z.object({
   order_ids: z

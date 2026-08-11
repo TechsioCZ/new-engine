@@ -25,9 +25,12 @@ export const ORDER_DASHBOARD_BUSINESS_STATUS_GROUP_IDS = [
   "action_required",
 ] as const
 
+export const ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID = "pending_unpaid" as const
+
 export const ORDER_DASHBOARD_QUEUE_IDS = [
   "all",
   "action_required",
+  ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID,
   "new",
   "awaiting_payment",
   "paid",
@@ -234,6 +237,7 @@ export type OrderDashboardOrdersResponse = {
   carrier: OrderDashboardCarrierKey | null
   business_status_group: OrderDashboardBusinessStatusGroupId | null
   business_status: OrderDashboardBusinessStatusId | null
+  pending_unpaid: boolean
 }
 
 export type OrderDashboardSummaryResponse = {

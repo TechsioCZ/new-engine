@@ -188,7 +188,7 @@ export type OrderDashboardAdminI18nNamespace = {
     | "requires_action",
     string
   >
-  queues: Record<"action_required" | "all", string>
+  queues: Record<"action_required" | "all" | "pending_unpaid", string>
   sidebar: Record<"actionRequiredOrders", string>
   sorting: Record<"ascending" | "descending", string>
   statuses: Record<
@@ -463,6 +463,7 @@ const englishOrderDashboardAdminI18n = {
   queues: {
     action_required: "Action required",
     all: "All",
+    pending_unpaid: "Awaiting approval",
   },
   sidebar: {
     actionRequiredOrders:
@@ -754,6 +755,7 @@ const czechOrderDashboardAdminI18n = {
   queues: {
     action_required: "Vyžaduje akci",
     all: "Vše",
+    pending_unpaid: "Ke schválení",
   },
   sidebar: {
     actionRequiredOrders:

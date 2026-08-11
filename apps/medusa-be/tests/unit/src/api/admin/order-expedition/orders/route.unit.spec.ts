@@ -341,6 +341,64 @@ describe("GET /admin/order-expedition/orders", () => {
     )
   })
 
+  it("uses the sidebar badge predicate for the pending unpaid queue", async () => {
+    const { GET } = await import(
+      "../../../../../../../src/api/admin/order-expedition/orders/route"
+    )
+    const matchingOrder = {
+      id: "order_pending_unpaid",
+      display_id: 1001,
+      payment_status: "awaiting",
+      status: "pending",
+    }
+    const graph = vi
+      .fn()
+      .mockResolvedValueOnce({
+        data: [
+          matchingOrder,
+          {
+            id: "order_partially_paid",
+            payment_status: "partially_captured",
+            status: "pending",
+          },
+          {
+            id: "order_completed_unpaid",
+            payment_status: "awaiting",
+            status: "completed",
+          },
+        ],
+        metadata: {
+          count: 3,
+        },
+      })
+      .mockResolvedValueOnce({ data: [matchingOrder] })
+    const req = createMockRequest(
+      { limit: 50, offset: 0, pending_unpaid: true },
+      graph
+    )
+    const res = createMockResponse()
+
+    await GET(req, res)
+
+    expect(graph).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        filters: {
+          status: "pending",
+        },
+      })
+    )
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        count: 1,
+        count_exact: true,
+        orders: [expect.objectContaining({ id: "order_pending_unpaid" })],
+        pending_unpaid: true,
+        scanned_count: 3,
+      })
+    )
+  })
+
   it("finishes filtered scans so count and pagination stay exact", async () => {
     const { GET } = await import(
       "../../../../../../../src/api/admin/order-expedition/orders/route"

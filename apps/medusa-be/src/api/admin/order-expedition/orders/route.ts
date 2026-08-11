@@ -5,6 +5,7 @@ import { ORDER_NOTE_MODULE } from "../../../../modules/order-note"
 import type OrderNoteModuleService from "../../../../modules/order-note/service"
 import {
   isActionRequiredOrderBusinessStatusId,
+  isPendingUnpaidOrder,
   type OrderBusinessStatusGroupId,
   type OrderBusinessStatusId,
   resolveOrderBusinessStatus,
@@ -45,11 +46,14 @@ type OrderExpeditionOrderFilters = {
   businessStatusGroup?: OrderBusinessStatusGroupId
   businessStatus?: OrderBusinessStatusId
   carrier?: OrderExpeditionCarrierKey
+  pendingUnpaid?: boolean
 }
 type OrderExpeditionNativeFilters = Pick<
   GetAdminOrderExpeditionOrdersSchemaType,
   "created_at" | "q"
->
+> & {
+  status?: "pending"
+}
 type OrderExpeditionSort = {
   direction: "ASC" | "DESC"
   field: OrderExpeditionSortField
@@ -98,6 +102,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     limit,
     offset,
     order: sortOrderQuery,
+    pending_unpaid: pendingUnpaid,
     q,
   } = req.validatedQuery as GetAdminOrderExpeditionOrdersSchemaType
   const normalizedLimit = limit ?? ORDER_EXPEDITION_DEFAULT_LIMIT
@@ -107,10 +112,12 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     businessStatusGroup,
     businessStatus,
     carrier,
+    pendingUnpaid,
   }
   const normalizedSearchQuery = normalizeOrderExpeditionSearchQuery(q)
-  const nativeFilters = {
+  const nativeFilters: OrderExpeditionNativeFilters = {
     ...(createdAt ? { created_at: createdAt } : {}),
+    ...(pendingUnpaid ? { status: "pending" } : {}),
     ...(normalizedSearchQuery ? { q: normalizedSearchQuery } : {}),
   }
   const requiresProjectionScan =
@@ -163,6 +170,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     carrier: carrier ?? null,
     business_status_group: businessStatusGroup ?? null,
     business_status: businessStatus ?? null,
+    pending_unpaid: pendingUnpaid ?? false,
   })
 }
 
@@ -261,6 +269,10 @@ function orderMatchesFilters(
   order: OrderExpeditionRawOrder,
   filters: OrderExpeditionOrderFilters
 ) {
+  if (filters.pendingUnpaid && !isPendingUnpaidOrder(order)) {
+    return false
+  }
+
   if (
     filters.carrier &&
     !orderMatchesExpeditionCarrier(order, filters.carrier)
@@ -330,7 +342,10 @@ function normalizeOrderExpeditionSearchQuery(query: string | undefined) {
 
 function hasOrderExpeditionFilters(filters: OrderExpeditionOrderFilters) {
   return Boolean(
-    filters.carrier || filters.businessStatus || filters.businessStatusGroup
+    filters.carrier ||
+      filters.businessStatus ||
+      filters.businessStatusGroup ||
+      filters.pendingUnpaid
   )
 }
 

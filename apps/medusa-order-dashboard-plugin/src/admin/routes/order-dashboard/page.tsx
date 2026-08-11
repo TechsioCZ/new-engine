@@ -41,7 +41,7 @@ import {
 } from "@tanstack/react-query"
 import { type ReactNode, useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Link } from "react-router-dom"
+import { Link, useSearchParams } from "react-router-dom"
 import { setOrderDashboardSidebarBadgeCount } from "../../sidebar-badge"
 import {
   downloadOrderDashboardExpeditionPdf,
@@ -78,6 +78,7 @@ import {
   ORDER_DASHBOARD_CARRIER_KEYS,
   ORDER_DASHBOARD_MAX_FULFILLMENT_IDS,
   ORDER_DASHBOARD_PAGE_SIZE,
+  ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID,
   ORDER_DASHBOARD_QUEUE_IDS,
   ORDER_DASHBOARD_TARGET_STATUSES,
   type OrderDashboardBlockingOrder,
@@ -164,6 +165,7 @@ const fulfillmentStatusColors = {
 const OrderDashboardPage = () => {
   const { i18n, t } = useTranslation("orderDashboard")
   const queryClient = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
   const locale = formatLocaleCode(i18n.resolvedLanguage ?? i18n.language)
   const [pagination, setPagination] = useState<DataTablePaginationState>({
     pageIndex: 0,
@@ -174,8 +176,8 @@ const OrderDashboardPage = () => {
   >("all")
   const [filtering, setFiltering] = useState<OrderDashboardFilteringState>({})
   const [search, setSearch] = useState("")
-  const [activeQueueId, setActiveQueueId] =
-    useState<OrderDashboardQueueId>("all")
+  const activeQueueId = getOrderDashboardQueueId(searchParams.get("queue"))
+  const previousActiveQueueIdRef = useRef(activeQueueId)
   const [sorting, setSorting] = useState<DataTableSortingState>(
     DEFAULT_ORDER_DASHBOARD_SORTING
   )
@@ -216,6 +218,8 @@ const OrderDashboardPage = () => {
   const carrier = carrierFilter === "all" ? undefined : carrierFilter
   const businessStatusGroupFilter = getBusinessStatusGroupFilter(activeQueueId)
   const businessStatusFilter = getBusinessStatusFilter(activeQueueId)
+  const pendingUnpaidFilter =
+    activeQueueId === ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID ? true : undefined
   const createdAtFilter = filtering.created_at ?? undefined
   const limit = pagination.pageSize
   const offset = pagination.pageIndex * limit
@@ -233,6 +237,7 @@ const OrderDashboardPage = () => {
           limit,
           offset,
           order: sortOrder,
+          pendingUnpaid: pendingUnpaidFilter,
           q: search || undefined,
         },
         signal
@@ -246,6 +251,7 @@ const OrderDashboardPage = () => {
       limit,
       offset,
       sortOrder,
+      pendingUnpaidFilter,
       search,
     ],
   })
@@ -937,9 +943,14 @@ const OrderDashboardPage = () => {
       return
     }
 
-    setActiveQueueId(value)
+    const nextSearchParams = new URLSearchParams(searchParams)
+
+    nextSearchParams.set("queue", value)
+
+    previousActiveQueueIdRef.current = value
     resetPagination()
     clearResultScopedState()
+    setSearchParams(nextSearchParams)
   }
 
   const handleCarrierFilterChange = (value: string) => {
@@ -962,10 +973,36 @@ const OrderDashboardPage = () => {
   const pendingUnpaidCount = summaryQuery.data?.pending_unpaid_count ?? 0
 
   useEffect(() => {
+    if (searchParams.has("queue")) {
+      return
+    }
+
+    const nextSearchParams = new URLSearchParams(searchParams)
+    nextSearchParams.set("queue", ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID)
+    setSearchParams(nextSearchParams, { replace: true })
+  }, [searchParams, setSearchParams])
+
+  useEffect(() => {
     setOrderDashboardSidebarBadgeCount(
       summaryQuery.isLoading ? null : pendingUnpaidCount
     )
   }, [pendingUnpaidCount, summaryQuery.isLoading])
+
+  useEffect(() => {
+    if (previousActiveQueueIdRef.current === activeQueueId) {
+      return
+    }
+
+    previousActiveQueueIdRef.current = activeQueueId
+    setPagination((currentPagination) => ({
+      ...currentPagination,
+      pageIndex: 0,
+    }))
+    setRowSelection({})
+    setSelectedOrdersById(new Map())
+    setBlockingOrders([])
+    setDetailOrderId(null)
+  }, [activeQueueId])
 
   useEffect(() => {
     if (detailOrderId && !detailOrder) {
@@ -2088,7 +2125,9 @@ function getOrderDashboardSortOrder(
 function getBusinessStatusFilter(
   queueId: OrderDashboardQueueId
 ): OrderDashboardBusinessStatusId | undefined {
-  return queueId === "all" || queueId === "action_required"
+  return queueId === "all" ||
+    queueId === "action_required" ||
+    queueId === ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID
     ? undefined
     : queueId
 }
@@ -2108,6 +2147,14 @@ function isOrderDashboardQueueId(
   )
 }
 
+function getOrderDashboardQueueId(value: unknown): OrderDashboardQueueId {
+  if (value === null) {
+    return ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID
+  }
+
+  return isOrderDashboardQueueId(value) ? value : "all"
+}
+
 function getQueueCount(
   queueId: OrderDashboardQueueId,
   summary?: OrderDashboardSummaryResponse
@@ -2124,11 +2171,19 @@ function getQueueCount(
     return summary.action_required_count
   }
 
+  if (queueId === ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID) {
+    return summary.pending_unpaid_count
+  }
+
   return summary.status_counts[queueId]
 }
 
 function getQueueLabel(queueId: OrderDashboardQueueId, t: TranslationFunction) {
-  if (queueId === "all" || queueId === "action_required") {
+  if (
+    queueId === "all" ||
+    queueId === "action_required" ||
+    queueId === ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID
+  ) {
     return t(`queues.${queueId}`)
   }
 

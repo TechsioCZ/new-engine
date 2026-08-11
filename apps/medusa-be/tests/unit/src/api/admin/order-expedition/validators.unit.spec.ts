@@ -60,6 +60,18 @@ describe("GetAdminOrderExpeditionOrdersSchema", () => {
       })
     ).toEqual({ order: "-created_at" })
   })
+
+  it("parses the pending unpaid queue flag explicitly", () => {
+    expect(
+      GetAdminOrderExpeditionOrdersSchema.parse({ pending_unpaid: "true" })
+    ).toEqual({ pending_unpaid: true })
+    expect(
+      GetAdminOrderExpeditionOrdersSchema.parse({ pending_unpaid: "false" })
+    ).toEqual({ pending_unpaid: false })
+    expect(() =>
+      GetAdminOrderExpeditionOrdersSchema.parse({ pending_unpaid: "yes" })
+    ).toThrow()
+  })
 })
 
 describe("PostAdminOrderExpeditionPdfSchema", () => {
