@@ -15,22 +15,10 @@ import {
 } from "../../../modules/search-profile"
 import type { AdminSearchProfileInputSchemaType } from "./validators"
 
-type MutableSearchProfileService = SearchProfileModuleService & {
-  createSearchProfiles: (
-    data: Record<string, unknown>
-  ) => Promise<SearchProfileDTO>
-  deleteSearchProfiles: (ids: string | string[]) => Promise<void>
-  retrieveSearchProfile: (id: string) => Promise<SearchProfileDTO>
-  updateSearchProfiles: (
-    data: Record<string, unknown> | Record<string, unknown>[]
-  ) => Promise<SearchProfileDTO | SearchProfileDTO[]>
-  invalidateRuntimeProfileCache: () => Promise<void>
-}
-
 export const getSearchProfileService = (
   container: MedusaContainer
-): MutableSearchProfileService =>
-  container.resolve<MutableSearchProfileService>(SEARCH_PROFILE_MODULE)
+): SearchProfileModuleService =>
+  container.resolve<SearchProfileModuleService>(SEARCH_PROFILE_MODULE)
 
 export const toSearchProfileWriteInput = (
   input: AdminSearchProfileInputSchemaType
@@ -155,24 +143,4 @@ export const retrieveSearchProfileOrThrow = async (
       `Search profile ${id} was not found.`
     )
   }
-}
-
-export const updateStoredSearchProfile = async (
-  service: MutableSearchProfileService,
-  id: string,
-  input: SearchProfileWriteInput
-) => {
-  const result = await service.updateSearchProfiles({ id, ...input })
-  const updated = Array.isArray(result)
-    ? result.find((profile) => profile.id === id)
-    : result
-
-  if (!updated) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "Search profile update returned no result."
-    )
-  }
-
-  return updated
 }

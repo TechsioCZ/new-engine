@@ -1,7 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import type { SearchProfileDTO } from "../../../modules/search-profile"
+import { createSearchProfileWorkflow } from "../../../workflows/search-profile/mutate-search-profile"
 import {
   getSearchProfileService,
   toSearchProfileResponse,
@@ -29,11 +29,9 @@ export async function POST(
   await validateSalesChannelIds(query, input.sales_channel_ids)
   await validateProfileChange({ input, service })
 
-  const created = (await service.createSearchProfiles(
-    input
-  )) as unknown as SearchProfileDTO
-
-  await service.invalidateRuntimeProfileCache()
+  const { result: created } = await createSearchProfileWorkflow(
+    request.scope
+  ).run({ input })
 
   response.status(201).json({ profile: toSearchProfileResponse(created) })
 }

@@ -2,11 +2,14 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import {
+  deleteSearchProfileWorkflow,
+  updateSearchProfileWorkflow,
+} from "../../../../workflows/search-profile/mutate-search-profile"
+import {
   getSearchProfileService,
   retrieveSearchProfileOrThrow,
   toSearchProfileResponse,
   toSearchProfileWriteInput,
-  updateStoredSearchProfile,
   validateProfileChange,
   validateSalesChannelIds,
 } from "../utils"
@@ -37,9 +40,9 @@ export async function POST(
   await validateSalesChannelIds(query, input.sales_channel_ids)
   await validateProfileChange({ currentId: id, input, service })
 
-  const updated = await updateStoredSearchProfile(service, id, input)
-
-  await service.invalidateRuntimeProfileCache()
+  const { result: updated } = await updateSearchProfileWorkflow(
+    request.scope
+  ).run({ input: { id, profile: input } })
 
   response.json({ profile: toSearchProfileResponse(updated) })
 }
@@ -50,8 +53,9 @@ export async function DELETE(request: MedusaRequest, response: MedusaResponse) {
 
   await retrieveSearchProfileOrThrow(service, id)
 
-  await service.deleteSearchProfiles(id)
-  await service.invalidateRuntimeProfileCache()
+  const { result } = await deleteSearchProfileWorkflow(request.scope).run({
+    input: { id },
+  })
 
-  response.json({ deleted: true, id, object: "search_profile" })
+  response.json(result)
 }
