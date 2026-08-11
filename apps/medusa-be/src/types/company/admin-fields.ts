@@ -10,6 +10,8 @@ export const adminCompanyDisplayFields = [
   "zip",
   "country",
   "currency_code",
+  "application_status",
+  "application_changed_at",
   "deleted_at",
   "*employees",
   "*employees.customer",

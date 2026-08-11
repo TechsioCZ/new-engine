@@ -44,7 +44,10 @@ export async function GET(
   response: MedusaResponse
 ) {
   if (process.env.FEATURE_GLS_ENABLED !== "1") {
-    throw new MedusaError(MedusaError.Types.NOT_FOUND, "GLS pickup points are unavailable")
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      "GLS pickup points are unavailable"
+    )
   }
 
   const glsClient =

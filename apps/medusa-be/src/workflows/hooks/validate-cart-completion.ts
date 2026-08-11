@@ -33,7 +33,7 @@ function hasCashOnDeliveryMarker(
   const code =
     typeof data?.code === "string"
       ? data.code.trim().toLowerCase()
-      : fallbackCode?.trim().toLowerCase() ?? ""
+      : (fallbackCode?.trim().toLowerCase() ?? "")
 
   return (
     data?.supports_cod === true ||

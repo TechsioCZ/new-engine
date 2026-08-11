@@ -786,7 +786,11 @@ function getOrderShippingSummary(order: OrderDashboardFulfillmentOrder) {
   const accessPointStreet = getNonEmptyString(data?.access_point_street)
   const accessPointZip = getNonEmptyString(data?.access_point_zip)
   const accessPointCity = getNonEmptyString(data?.access_point_city)
-  const accessPointAddress = [accessPointStreet, accessPointZip, accessPointCity]
+  const accessPointAddress = [
+    accessPointStreet,
+    accessPointZip,
+    accessPointCity,
+  ]
     .filter(Boolean)
     .join(", ")
   const accessPoint = [accessPointName, accessPointAddress]

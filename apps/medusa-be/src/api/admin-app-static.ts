@@ -31,10 +31,7 @@ const isPathInsideDirectory = (baseDir: string, filePath: string) => {
 }
 
 const getRequestPath = (req: MedusaRequest) => {
-  if (
-    "originalUrl" in req &&
-    typeof req.originalUrl === "string"
-  ) {
+  if ("originalUrl" in req && typeof req.originalUrl === "string") {
     return req.originalUrl.split("?")[0] ?? "/app"
   }
 

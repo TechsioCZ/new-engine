@@ -45,7 +45,9 @@ const createProductSuggestion = (
 
   const variantId = normalizeString(hit.search_result?.variant_id)
   const variantTitle = normalizeString(hit.search_result?.variant_title)
-  const title = variantTitle ? `${productTitle} – ${variantTitle}` : productTitle
+  const title = variantTitle
+    ? `${productTitle} – ${variantTitle}`
+    : productTitle
   const brandTitle = normalizeString(hit.brand?.title)
   const firstCategory = hit.categories?.find((category) =>
     Boolean(normalizeString(category.name))

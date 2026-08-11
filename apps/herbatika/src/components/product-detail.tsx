@@ -22,7 +22,10 @@ import { useProductDetailController } from "@/components/product-detail/use-prod
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
-export function ProductDetail({ handle, initialVariantId }: ProductDetailProps) {
+export function ProductDetail({
+  handle,
+  initialVariantId,
+}: ProductDetailProps) {
   const tCatalog = useTranslations("catalog")
   const controller = useProductDetailController({ handle, initialVariantId })
   const [activeInfoSection, setActiveInfoSection] = useState<

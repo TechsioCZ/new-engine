@@ -1,8 +1,8 @@
 "use client"
 
+import { useQuery } from "@tanstack/react-query"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import { useQuery } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { useMemo, useRef, useState } from "react"
 import {

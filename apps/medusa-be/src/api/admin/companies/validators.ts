@@ -10,6 +10,9 @@ export const AdminGetCompanyParams = createFindParams().merge(
   z.object({
     order_by: z.string().optional(),
     q: z.string().optional(),
+    application_status: z
+      .enum(["pending", "approved", "rejected", "all"])
+      .optional(),
     status: z.enum(["active", "deleted", "all"]).optional(),
   })
 )
@@ -43,6 +46,15 @@ export const AdminUpdateCompany = z
     zip: z.string().optional(),
     country: z.string().optional(),
     logo_url: z.string().optional().nullable(),
+  })
+  .strict()
+
+export type AdminUpdateCompanyApplicationStatusType = z.infer<
+  typeof AdminUpdateCompanyApplicationStatus
+>
+export const AdminUpdateCompanyApplicationStatus = z
+  .object({
+    status: z.enum(["pending", "approved", "rejected"]),
   })
   .strict()
 
