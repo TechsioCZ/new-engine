@@ -43,12 +43,25 @@ export const resolveLineItemSubtotalAmount = (
 export const resolveLineItemUnitAmount = (
   item: HttpTypes.StoreCartLineItem
 ): number => {
+  const itemRecord = item as unknown as Record<string, unknown>
+  const total = asFiniteNumber(item.total)
+  const originalTotal = asFiniteNumber(itemRecord.original_total)
+  const discountTotal = asFiniteNumber(itemRecord.discount_total) ?? 0
+  const quantity = resolveLineItemQuantity(item)
+
+  if (
+    total !== null &&
+    (discountTotal > 0 ||
+      (originalTotal !== null && originalTotal > total))
+  ) {
+    return total / quantity
+  }
+
   const unitPrice = asFiniteNumber(item.unit_price)
   if (unitPrice !== null) {
     return unitPrice
   }
 
-  const quantity = resolveLineItemQuantity(item)
   if (quantity <= 0) {
     return resolveLineItemTotalAmount(item)
   }

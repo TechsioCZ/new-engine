@@ -49,6 +49,7 @@ export type ProductDetailContentSection = {
 
 export type VolumeDiscountOption = {
   id: string
+  percentage: number
   title: string
   quantity: number
   totalAmountLabel: string

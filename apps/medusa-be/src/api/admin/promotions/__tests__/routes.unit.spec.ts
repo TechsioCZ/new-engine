@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { describe, expect, it, vi } from "vitest"
 import { GET as getRuleAttributes } from "../rule-attribute-options/[rule_type]/route"
+import { GET as getPromotionRules } from "../[id]/[rule_type]/route"
 import { GET as getBrandValues } from "../rule-value-options/[rule_type]/brand/route"
 import { GET as getVariantValues } from "../rule-value-options/[rule_type]/product_variant/route"
 import type { RuleValueOptionsQuerySchemaType } from "../schema"
@@ -76,6 +77,60 @@ describe("promotion rule attribute route", () => {
         createResponse()
       )
     ).rejects.toThrow("Invalid param rule_type (bad-rule)")
+  })
+})
+
+describe("promotion rules route", () => {
+  it("returns stored item quantity rules for the standard Promotion editor", async () => {
+    const remoteQuery = vi.fn().mockResolvedValue([
+      {
+        id: "promo_1",
+        type: "standard",
+        application_method: {
+          type: "percentage",
+          target_type: "items",
+          target_rules: [
+            {
+              id: "rule_1",
+              attribute: "items.quantity",
+              operator: "gte",
+              values: [{ value: "5" }],
+            },
+          ],
+        },
+      },
+    ])
+    const response = createResponse()
+    const request = {
+      params: { id: "promo_1", rule_type: "target-rules" },
+      query: {},
+      queryConfig: {
+        fields: [
+          "id",
+          "type",
+          "application_method.type",
+          "application_method.target_type",
+          "application_method.target_rules.*",
+          "application_method.target_rules.values.value",
+        ],
+      },
+      scope: { resolve: vi.fn().mockReturnValue(remoteQuery) },
+    } as unknown as Parameters<typeof getPromotionRules>[0]
+
+    await getPromotionRules(request, response)
+
+    expect(response.json).toHaveBeenCalledWith({
+      rules: [
+        expect.objectContaining({
+          attribute: "items.quantity",
+          attribute_label: "Item Quantity",
+          field_type: "number",
+          operator: "gte",
+          operator_label: "Greater than or equal",
+          values: "5",
+        }),
+      ],
+    })
   })
 })
 

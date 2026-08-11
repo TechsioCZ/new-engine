@@ -41,6 +41,7 @@ import { PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products"
 import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visited-products"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { storefront } from "@/lib/storefront/storefront"
+import { useVolumeDiscountTiers } from "@/lib/storefront/volume-discounts"
 
 type UseProductDetailDataProps = {
   handle: string
@@ -96,6 +97,14 @@ export function useProductDetailData({
   const offerState = resolveOfferState(product, selectedVariant, {
     inStock: tCatalog("product_detail.stock.in_stock"),
     outOfStock: tCatalog("product_detail.stock.out_of_stock"),
+  })
+  const salesChannelId = (
+    region as (typeof region & { salesChannelId?: string })
+  )?.salesChannelId
+  const volumeDiscountTiersQuery = useVolumeDiscountTiers({
+    variantId: selectedVariant?.id ?? null,
+    regionId: region?.region_id,
+    salesChannelId,
   })
   const selectedVariantInventory = resolveVariantInventoryState(
     selectedVariant,
@@ -172,7 +181,7 @@ export function useProductDetailData({
           quantity: optionQuantity,
         }),
     },
-    offerState,
+    tiers: volumeDiscountTiersQuery.tiers,
   })
   const selectedVolumeDiscountOption = resolveSelectedVolumeDiscountOption(
     volumeDiscountOptions,
