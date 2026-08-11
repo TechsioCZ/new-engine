@@ -6,15 +6,10 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 
-const MEDUSA_PROJECT_DIRS = [
-  process.cwd(),
-  path.join(process.cwd(), "apps/medusa-be"),
+const ADMIN_PUBLIC_DIRS = [
+  path.join(process.cwd(), ".medusa/server/public/app"),
+  path.join(process.cwd(), ".medusa/server/public/admin"),
 ]
-const ADMIN_PUBLIC_DIRS = MEDUSA_PROJECT_DIRS.flatMap((projectDir) => [
-  path.join(projectDir, ".medusa/server/public/app"),
-  path.join(projectDir, ".medusa/server/public/admin"),
-  path.join(projectDir, ".medusa/admin"),
-])
 const APP_PATH_PREFIX_REGEX = /^\/app\/?/
 
 const getAdminPublicDir = () =>
@@ -31,13 +26,6 @@ const isPathInsideDirectory = (baseDir: string, filePath: string) => {
 }
 
 const getRequestPath = (req: MedusaRequest) => {
-  if (
-    "originalUrl" in req &&
-    typeof req.originalUrl === "string"
-  ) {
-    return req.originalUrl.split("?")[0] ?? "/app"
-  }
-
   if ("path" in req && typeof req.path === "string") {
     return req.path
   }

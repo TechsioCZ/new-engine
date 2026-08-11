@@ -386,37 +386,6 @@ export default class PayloadModuleService extends MedusaService({}) {
   }
 
   /**
-   * List published public pages for search indexing.
-   */
-  async listPublishedPages(options?: {
-    limit?: number
-    locale?: string
-    page?: number
-  }): Promise<PayloadBulkResult<CmsPageDTO>> {
-    const queryString = this.buildQuery({
-      where: {
-        status: { equals: STATUS_PUBLISHED },
-        visibility: { equals: "public" },
-      },
-      limit: options?.limit ?? 100,
-      page: options?.page ?? 1,
-      locale: options?.locale,
-    })
-
-    return this.makeRequest<PayloadBulkResult<CmsPageDTO>>(
-      "GET",
-      `/${PAGES}${queryString}`,
-      undefined,
-      {
-        schema: CmsPagesBulkResultSchema,
-        headers: {
-          [RETURN_HTML_HEADER]: "true",
-        },
-      }
-    )
-  }
-
-  /**
    * List page categories and their pages, optionally filtered by locale/slug.
    */
   async listPageCategoriesWithPages(
@@ -488,36 +457,6 @@ export default class PayloadModuleService extends MedusaService({}) {
       },
       this.contentCacheTtl_,
       [CACHE_TAGS.ALL, CACHE_TAGS.ARTICLES]
-    )
-  }
-
-  /**
-   * List published articles for search indexing.
-   */
-  async listPublishedArticles(options?: {
-    limit?: number
-    locale?: string
-    page?: number
-  }): Promise<PayloadBulkResult<CmsArticleDTO>> {
-    const queryString = this.buildQuery({
-      where: {
-        status: { equals: STATUS_PUBLISHED },
-      },
-      limit: options?.limit ?? 100,
-      page: options?.page ?? 1,
-      locale: options?.locale,
-    })
-
-    return this.makeRequest<PayloadBulkResult<CmsArticleDTO>>(
-      "GET",
-      `/${ARTICLES}${queryString}`,
-      undefined,
-      {
-        schema: CmsArticlesBulkResultSchema,
-        headers: {
-          [RETURN_HTML_HEADER]: "true",
-        },
-      }
     )
   }
 

@@ -5,14 +5,12 @@ import { useProductDetailData } from "@/components/product-detail/use-product-de
 
 type UseProductDetailControllerProps = {
   handle: string
-  initialVariantId?: string
 }
 
 export function useProductDetailController({
   handle,
-  initialVariantId,
 }: UseProductDetailControllerProps) {
-  const data = useProductDetailData({ handle, initialVariantId })
+  const data = useProductDetailData({ handle })
   const actions = useProductDetailActions({
     product: data.product,
     quantity: data.quantity,

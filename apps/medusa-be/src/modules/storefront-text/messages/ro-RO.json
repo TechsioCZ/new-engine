@@ -725,8 +725,7 @@
       "sections": {
         "products": "Produse",
         "categories": "Categorii",
-        "brands": "Mărci",
-        "content": "Conținut"
+        "brands": "Mărci"
       },
       "types": {
         "category": "Categorie",

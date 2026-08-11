@@ -133,7 +133,7 @@ run = "bash ./scripts/dev/minio-init.sh"
 
 [tasks."dev:medusa:meili:reseed"]
 description = "Rebuild Medusa search documents in the running local stack"
-run = "bash ./scripts/dev/run-compose.sh exec medusa-be pnpm --filter medusa-be run rebuildSearchDocuments"
+run = "bash ./scripts/dev/run-compose.sh exec medusa-be pnpm --filter medusa-be run addInitialSearchDocuments"
 
 [tasks."dev:medusa:seed"]
 description = "Seed initial Medusa data in the running local stack"

@@ -725,8 +725,7 @@
       "sections": {
         "products": "Produkty",
         "categories": "Kategorie",
-        "brands": "Značky",
-        "content": "Obsah"
+        "brands": "Značky"
       },
       "types": {
         "category": "Kategorie",

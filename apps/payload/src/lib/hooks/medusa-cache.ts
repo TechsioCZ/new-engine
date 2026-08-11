@@ -11,15 +11,17 @@ import { createRequestTimeout } from "../utils/request"
 /** Payload invalidation payload sent to Medusa. */
 type MedusaInvalidatePayload = {
   collection: string
-  doc?: Record<string, unknown>
-  operation?: string
+  doc?: {
+    id?: string
+    slug?: string
+    locale?: string
+  }
 }
 
 /** Minimal CMS document shape for invalidation metadata. */
 type CmsDoc = {
   id?: string | number
   slug?: string | Record<string, unknown>
-  [key: string]: unknown
 }
 
 /** Track whether the missing base URL warning has already been logged. */
@@ -137,14 +139,7 @@ export const createMedusaCacheHook = (
         id: cmsDoc?.id ? String(cmsDoc.id) : undefined,
         slug: resolveSlug(cmsDoc, locale),
         locale,
-        title: cmsDoc?.title,
-        excerpt: cmsDoc?.excerpt,
-        content: cmsDoc?.content,
-        contentHTML: cmsDoc?.contentHTML,
-        status: cmsDoc?.status,
-        visibility: cmsDoc?.visibility,
       },
-      operation: op,
     }
 
     req?.payload?.logger?.info?.(

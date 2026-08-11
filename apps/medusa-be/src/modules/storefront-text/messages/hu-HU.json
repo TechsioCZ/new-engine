@@ -725,8 +725,7 @@
       "sections": {
         "products": "Termékek",
         "categories": "Kategóriák",
-        "brands": "Márkák",
-        "content": "Tartalom"
+        "brands": "Márkák"
       },
       "types": {
         "category": "Kategória",

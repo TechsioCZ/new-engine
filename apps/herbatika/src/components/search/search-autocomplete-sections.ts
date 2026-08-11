@@ -4,7 +4,6 @@ import type { SearchAutocompletePanelSection } from "./search-autocomplete-panel
 type SearchAutocompleteSectionTitles = {
   brands: string
   categories: string
-  content: string
   products: string
 }
 
@@ -15,7 +14,6 @@ export const createSearchAutocompleteSections = (
   { key: "product", title: titles.products, items: data.products },
   { key: "category", title: titles.categories, items: data.categories },
   { key: "brand", title: titles.brands, items: data.brands },
-  { key: "content", title: titles.content, items: data.content },
 ]
 
 export const clampSearchAutocompleteIndex = (

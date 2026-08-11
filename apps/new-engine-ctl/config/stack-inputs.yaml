@@ -216,7 +216,6 @@ runtime_providers:
               - documents.add
               - documents.delete
               - indexes.create
-              - indexes.delete
               - indexes.get
               - indexes.update
               - indexes.swap
@@ -227,11 +226,6 @@ runtime_providers:
               - products
               - categories
               - brands
-              - content
-              - product_*
-              - category_*
-              - brand_*
-              - content_*
 
         - output_id: frontend_key
           target_envs:

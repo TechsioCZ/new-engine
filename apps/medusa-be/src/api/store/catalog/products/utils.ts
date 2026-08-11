@@ -152,7 +152,7 @@ export const resolveCatalogSort = (
 ): string[] | undefined => {
   switch (sort) {
     case "best-selling":
-      return ["facet_popularity:desc"]
+      return
     case "newest":
       return ["created_at:desc"]
     case "oldest":
@@ -256,36 +256,6 @@ export const getFacetDistribution = (
   return result
 }
 
-export const getFacetDistributionFromHits = (
-  hits: unknown,
-  facetKey: string
-): Map<string, number> => {
-  if (!Array.isArray(hits)) {
-    return new Map()
-  }
-
-  const result = new Map<string, number>()
-  for (const hit of hits) {
-    if (!hit || typeof hit !== "object" || Array.isArray(hit)) {
-      continue
-    }
-
-    const rawFacet = (hit as Record<string, unknown>)[facetKey]
-    const facetValues = Array.isArray(rawFacet) ? rawFacet : [rawFacet]
-    const uniqueValues = new Set(
-      facetValues.filter(
-        (value): value is string => typeof value === "string" && Boolean(value)
-      )
-    )
-
-    for (const value of uniqueValues) {
-      result.set(value, (result.get(value) ?? 0) + 1)
-    }
-  }
-
-  return result
-}
-
 export const getNumericFacetStats = (
   facetStats: unknown,
   facetKey: string
@@ -311,30 +281,6 @@ export const getNumericFacetStats = (
   const max = typeof maxValue === "number" ? maxValue : undefined
 
   return { min, max }
-}
-
-export const getNumericFacetStatsFromHits = (
-  hits: unknown,
-  facetKey: string
-): { min?: number; max?: number } => {
-  if (!Array.isArray(hits)) {
-    return {}
-  }
-
-  const values = hits
-    .map((hit) =>
-      hit && typeof hit === "object" && !Array.isArray(hit)
-        ? (hit as Record<string, unknown>)[facetKey]
-        : undefined
-    )
-    .filter(
-      (value): value is number =>
-        typeof value === "number" && Number.isFinite(value)
-    )
-
-  return values.length > 0
-    ? { min: Math.min(...values), max: Math.max(...values) }
-    : {}
 }
 
 export const humanizeFacetHandle = (handle: string): string =>

@@ -6,7 +6,6 @@ import {
   MEDUSA_PUBLISHABLE_KEY,
 } from "@/lib/storefront/ssr/constants"
 import { normalizeString } from "./search-autocomplete-normalizers"
-import { createContentSuggestions } from "./search-autocomplete-content-normalizers"
 import { createProductSuggestions } from "./search-autocomplete-product-normalizers"
 import {
   createBrandSuggestions,
@@ -14,9 +13,7 @@ import {
 } from "./search-autocomplete-taxonomy-normalizers"
 import {
   createEmptySearchAutocompleteResponse,
-  type RawSearchAutocompleteBrandRef,
-  type RawSearchAutocompleteCategoryRef,
-  type RawSearchAutocompleteContentHit,
+  type RawSearchAutocompleteFacetItem,
   type RawSearchAutocompleteProductHit,
   SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH,
   SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH,
@@ -24,9 +21,9 @@ import {
 } from "./search-autocomplete-types"
 
 type CatalogAutocompleteResponse = {
-  brands?: RawSearchAutocompleteBrandRef[]
-  categories?: RawSearchAutocompleteCategoryRef[]
-  content?: RawSearchAutocompleteContentHit[]
+  facets?: {
+    brand?: RawSearchAutocompleteFacetItem[]
+  }
   products?: RawSearchAutocompleteProductHit[]
 }
 
@@ -37,6 +34,10 @@ type FetchSearchAutocompleteInput = {
   regionId?: string | null
 }
 
+const PRODUCT_LIMIT = 5
+const CATEGORY_LIMIT = 5
+const BRAND_LIMIT = 4
+const CANDIDATE_LIMIT = 12
 const CATALOG_FETCH_TIMEOUT_MS = 3000
 
 const normalizeSearchAutocompleteQuery = (query: string) =>
@@ -53,8 +54,11 @@ const createCatalogAutocompleteUrl = ({
   query: string
   regionId?: string | null
 }) => {
-  const url = new URL("/store/search/autocomplete", MEDUSA_BACKEND_URL)
+  const url = new URL("/store/catalog/products", MEDUSA_BACKEND_URL)
   url.searchParams.set("q", query)
+  url.searchParams.set("page", "1")
+  url.searchParams.set("limit", String(CANDIDATE_LIMIT))
+  url.searchParams.set("sort", "recommended")
   url.searchParams.set("currency_code", currencyCode.toLowerCase())
 
   const normalizedRegionId = normalizeString(regionId)
@@ -134,10 +138,7 @@ export const fetchSearchAutocomplete = async ({
   regionId,
 }: FetchSearchAutocompleteInput): Promise<SearchAutocompleteResponse> => {
   const normalizedQuery = normalizeSearchAutocompleteQuery(query)
-  if (
-    normalizedQuery.length > 0 &&
-    normalizedQuery.length < SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH
-  ) {
+  if (normalizedQuery.length < SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH) {
     return createEmptySearchAutocompleteResponse(normalizedQuery)
   }
 
@@ -152,13 +153,21 @@ export const fetchSearchAutocomplete = async ({
 
   return {
     query: normalizedQuery,
-    products: createProductSuggestions(productHits, safeCurrencyCode),
+    products: createProductSuggestions(
+      productHits,
+      safeCurrencyCode,
+      PRODUCT_LIMIT
+    ),
     categories: createCategorySuggestions({
-      categoryHits: catalogResponse.categories ?? [],
+      productHits,
+      query: normalizedQuery,
+      limit: CATEGORY_LIMIT,
     }),
     brands: createBrandSuggestions({
-      brandHits: catalogResponse.brands ?? [],
+      brandFacets: catalogResponse.facets?.brand ?? [],
+      productHits,
+      query: normalizedQuery,
+      limit: BRAND_LIMIT,
     }),
-    content: createContentSuggestions(catalogResponse.content ?? []),
   }
 }

@@ -13,7 +13,6 @@ const TYPE_ICON: Record<
 > = {
   brand: "token-icon-label",
   category: "token-icon-box",
-  content: "token-icon-file-document",
 }
 
 export function SearchAutocompleteMedia({
