@@ -11,7 +11,7 @@ import {
 
 const WEBHOOK_SECRET = "test-webhook-secret"
 
-const mockInvalidateCache = vi.fn()
+const mockWorkflowRun = vi.fn()
 const mockLogger = {
   info: vi.fn(),
   warn: vi.fn(),
@@ -19,9 +19,12 @@ const mockLogger = {
   debug: vi.fn(),
 }
 
-vi.mock("../../../../../../../src/modules/payload", () => ({
-  PAYLOAD_MODULE: "payloadModuleService",
-}))
+vi.mock(
+  "../../../../../../../src/workflows/meilisearch/workflows/invalidate-cms-content",
+  () => ({
+    invalidateCmsContentWorkflow: vi.fn(() => ({ run: mockWorkflowRun })),
+  })
+)
 
 vi.mock("../../../../../../../src/utils/webhooks", () => ({
   getHeaderValue: vi.fn(
@@ -60,9 +63,6 @@ const createMockRequest = (
     headers,
     scope: {
       resolve: vi.fn((key: string) => {
-        if (key === "payloadModuleService") {
-          return { invalidateCache: mockInvalidateCache }
-        }
         if (key === "logger") {
           return mockLogger
         }
@@ -142,11 +142,11 @@ describe("POST /hooks/cms/invalidate", () => {
     const req = createMockRequest(body, { "x-payload-signature": signature })
     const res = createMockResponse()
 
-    mockInvalidateCache.mockResolvedValue(undefined)
+    mockWorkflowRun.mockResolvedValue({ result: { success: true } })
 
     await POST(req, res)
 
-    expect(mockInvalidateCache).toHaveBeenCalledWith("pages", "home", "en")
+    expect(mockWorkflowRun).toHaveBeenCalledWith({ input: body })
     expect(res.status).toHaveBeenCalledWith(200)
     expect(res.json).toHaveBeenCalledWith({ success: true })
   })
@@ -157,15 +157,11 @@ describe("POST /hooks/cms/invalidate", () => {
     const req = createMockRequest(body, { "x-payload-signature": signature })
     const res = createMockResponse()
 
-    mockInvalidateCache.mockResolvedValue(undefined)
+    mockWorkflowRun.mockResolvedValue({ result: { success: true } })
 
     await POST(req, res)
 
-    expect(mockInvalidateCache).toHaveBeenCalledWith(
-      "hero-carousels",
-      undefined,
-      undefined
-    )
+    expect(mockWorkflowRun).toHaveBeenCalledWith({ input: body })
     expect(res.status).toHaveBeenCalledWith(200)
   })
 
@@ -175,9 +171,7 @@ describe("POST /hooks/cms/invalidate", () => {
     const req = createMockRequest(body, { "x-payload-signature": signature })
     const res = createMockResponse()
 
-    mockInvalidateCache.mockRejectedValue(
-      new Error("Cache service unavailable")
-    )
+    mockWorkflowRun.mockRejectedValue(new Error("Cache service unavailable"))
 
     await POST(req, res)
 
@@ -197,7 +191,7 @@ describe("POST /hooks/cms/invalidate", () => {
     const req = createMockRequest(body, { "x-payload-signature": signature })
     const res = createMockResponse()
 
-    mockInvalidateCache.mockRejectedValue(new Error("Service error"))
+    mockWorkflowRun.mockRejectedValue(new Error("Service error"))
 
     await POST(req, res)
 
@@ -216,7 +210,7 @@ describe("POST /hooks/cms/invalidate", () => {
     const req = createMockRequest(body, { "x-payload-signature": signature })
     const res = createMockResponse()
 
-    mockInvalidateCache.mockRejectedValue("string error")
+    mockWorkflowRun.mockRejectedValue("string error")
 
     await POST(req, res)
 

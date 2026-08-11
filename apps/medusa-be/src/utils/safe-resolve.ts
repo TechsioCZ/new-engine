@@ -6,7 +6,9 @@
  */
 export const safeResolve = <T>(container: object, key: string): T | null => {
   try {
-    const resolve = (container as { resolve?: (registrationName: string) => unknown }).resolve
+    const resolve = (
+      container as { resolve?: (registrationName: string) => unknown }
+    ).resolve
     if (typeof resolve === "function") {
       const value = resolve.call(container, key)
       return value !== undefined && value !== null ? (value as T) : null

@@ -217,7 +217,9 @@ const PacketaSettingsPage = () => {
   })
 
   const { mutate, isPending } = useMutation({
-    mutationFn: (payload: PacketaConfigInput & { environment: PacketaEnvironment }) =>
+    mutationFn: (
+      payload: PacketaConfigInput & { environment: PacketaEnvironment }
+    ) =>
       sdk.client.fetch("/admin/packeta-config", {
         method: "POST",
         body: payload,
@@ -258,7 +260,8 @@ const PacketaSettingsPage = () => {
       return
     }
     setSelectedEnvironment((current) =>
-      current && data.profiles.some((profile) => profile.environment === current)
+      current &&
+      data.profiles.some((profile) => profile.environment === current)
         ? current
         : data.active_environment
     )
@@ -289,10 +292,11 @@ const PacketaSettingsPage = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const payload: PacketaConfigPayload & { environment: PacketaEnvironment } = {
-      ...formData,
-      environment: displayedEnvironment,
-    }
+    const payload: PacketaConfigPayload & { environment: PacketaEnvironment } =
+      {
+        ...formData,
+        environment: displayedEnvironment,
+      }
     if (payload.default_label_format === "") {
       payload.default_label_format = undefined
     }
@@ -474,10 +478,12 @@ const PacketaSettingsPage = () => {
               </Select.Trigger>
               <Select.Content>
                 <Select.Item value="testing">
-                  Testing{data?.active_environment === "testing" ? " (active)" : ""}
+                  Testing
+                  {data?.active_environment === "testing" ? " (active)" : ""}
                 </Select.Item>
                 <Select.Item value="production">
-                  Production{data?.active_environment === "production" ? " (active)" : ""}
+                  Production
+                  {data?.active_environment === "production" ? " (active)" : ""}
                 </Select.Item>
               </Select.Content>
             </Select>
@@ -487,7 +493,9 @@ const PacketaSettingsPage = () => {
               isLoading={isActivating}
               onClick={handleActivate}
               type="button"
-              variant={displayedEnvironment === "production" ? "danger" : "secondary"}
+              variant={
+                displayedEnvironment === "production" ? "danger" : "secondary"
+              }
             >
               Activate {displayedEnvironment}
             </Button>
@@ -540,7 +548,8 @@ const PacketaSettingsPage = () => {
                     className="text-sm text-ui-fg-subtle"
                     id="packeta-allow-live-operations-desc"
                   >
-                    Packeta has no sandbox. Enabling this permits real packet creation and cancellation from the Testing profile.
+                    Packeta has no sandbox. Enabling this permits real packet
+                    creation and cancellation from the Testing profile.
                   </Text>
                 </div>
                 <Switch
@@ -623,7 +632,8 @@ const PacketaSettingsPage = () => {
             Pickup Point Widget
           </Heading>
           <Text className="mb-4 text-sm text-ui-fg-subtle">
-            Configure the public Packeta widget used by the storefront and select the markets where pickup points are available.
+            Configure the public Packeta widget used by the storefront and
+            select the markets where pickup points are available.
           </Text>
           <div className="grid grid-cols-2 gap-4">
             <FormField
@@ -642,7 +652,9 @@ const PacketaSettingsPage = () => {
                 key={country.value}
               >
                 <Checkbox
-                  checked={(formData.widget_countries ?? []).includes(country.value)}
+                  checked={(formData.widget_countries ?? []).includes(
+                    country.value
+                  )}
                   id={`packeta-widget-country-${country.value}`}
                   onCheckedChange={(checked) =>
                     updateWidgetCountry(country.value, checked === true)
@@ -711,7 +723,9 @@ const PacketaSettingsPage = () => {
           <Prompt.Header>
             <Prompt.Title>Activate Packeta Production?</Prompt.Title>
             <Prompt.Description>
-              New Packeta fulfillment operations will use the saved Production credentials immediately. Existing shipments remain bound to the profile that created them.
+              New Packeta fulfillment operations will use the saved Production
+              credentials immediately. Existing shipments remain bound to the
+              profile that created them.
             </Prompt.Description>
           </Prompt.Header>
           <Prompt.Footer>

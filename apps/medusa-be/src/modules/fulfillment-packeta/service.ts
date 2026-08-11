@@ -283,7 +283,10 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       config_id: config.config_id,
       environment: config.environment,
     }
-    const result = await this.getClient().createPacket(attributes, configReference)
+    const result = await this.getClient().createPacket(
+      attributes,
+      configReference
+    )
     const trackingUrl = `https://tracking.packeta.com/${result.barcode}`
 
     let labelUrl: string | undefined

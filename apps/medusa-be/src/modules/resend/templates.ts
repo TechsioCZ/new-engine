@@ -15,6 +15,8 @@ const defineTemplate = <
 
 export const resendEmailTemplates = {
   ACCOUNT_SETUP: "account-setup",
+  COMPANY_APPLICATION_APPROVED: "company-application-approved",
+  COMPANY_APPLICATION_REJECTED: "company-application-rejected",
   CUSTOMER_ACCOUNT_DEACTIVATION: "customer-account-deactivation",
   FORGOT_PASSWORD: "user-forgotpwd",
   ORDER_PLACED: "order-placed",
@@ -29,6 +31,20 @@ export const resendTemplateDefinitions = {
     optionalVariables: ["customer_id", "customer_name", "order_display_id"],
     requiredVariables: ["reset_url"],
     subject: "Dokončenie registrácie",
+  }),
+  [resendEmailTemplates.COMPANY_APPLICATION_APPROVED]: defineTemplate({
+    id: "company-application-approved",
+    label: "Company application approved",
+    optionalVariables: ["company_id"],
+    requiredVariables: ["company_name"],
+    subject: "VO účet bol schválený",
+  }),
+  [resendEmailTemplates.COMPANY_APPLICATION_REJECTED]: defineTemplate({
+    id: "company-application-rejected",
+    label: "Company application rejected",
+    optionalVariables: ["company_id"],
+    requiredVariables: ["company_name"],
+    subject: "VO účet nebol schválený",
   }),
   [resendEmailTemplates.CUSTOMER_ACCOUNT_DEACTIVATION]: defineTemplate({
     id: "customer-account-deactivation",

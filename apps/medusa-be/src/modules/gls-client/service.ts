@@ -1,7 +1,18 @@
 import { randomUUID } from "node:crypto"
 import type { SqlEntityManager } from "@medusajs/framework/mikro-orm/knex"
-import type { Context, ICachingModuleService, ILockingModule, Logger } from "@medusajs/framework/types"
-import { InjectTransactionManager, MedusaContext, MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
+import type {
+  Context,
+  ICachingModuleService,
+  ILockingModule,
+  Logger,
+} from "@medusajs/framework/types"
+import {
+  InjectTransactionManager,
+  MedusaContext,
+  MedusaError,
+  MedusaService,
+  Modules,
+} from "@medusajs/framework/utils"
 import { decryptFields, encryptFields } from "../../utils/encryption"
 import { safeResolve } from "../../utils/safe-resolve"
 import { GLSClient } from "./client"
@@ -16,8 +27,8 @@ import {
   type GLSConfigDTO,
   type GLSConfigReference,
   type GLSCountryCode,
-  type GLSCreatePacketResult,
   type GLSCreateOrRecoverPacketInput,
+  type GLSCreatePacketResult,
   type GLSEnvironment,
   type GLSOptions,
   type GLSPacketAttributes,
@@ -29,7 +40,9 @@ import {
 
 const DEFAULT_COUNTRY_CODE: GLSCountryCode = "SK"
 const DEFAULT_PRINTER_TYPE: GLSPrinterType = "A4_2x2"
-const STOREFRONT_COUNTRY_CODE_SET: ReadonlySet<string> = new Set(GLS_STOREFRONT_COUNTRY_CODES)
+const STOREFRONT_COUNTRY_CODE_SET: ReadonlySet<string> = new Set(
+  GLS_STOREFRONT_COUNTRY_CODES
+)
 
 const CACHE_TAGS = {
   ALL: "gls",
@@ -68,7 +81,9 @@ const isGLSCountryCode = (value: unknown): value is GLSCountryCode =>
   typeof value === "string" &&
   (GLS_COUNTRY_CODES as readonly string[]).includes(value)
 
-const isGLSStorefrontCountryCode = (value: unknown): value is GLSStorefrontCountryCode =>
+const isGLSStorefrontCountryCode = (
+  value: unknown
+): value is GLSStorefrontCountryCode =>
   typeof value === "string" && STOREFRONT_COUNTRY_CODE_SET.has(value)
 
 const isGLSPrinterType = (value: unknown): value is GLSPrinterType =>
@@ -158,11 +173,29 @@ const toPrintPosition = (value: unknown): number => {
   return Math.min(Math.max(value, 1), 4)
 }
 
-type PickupAddressConfiguration = Pick<GLSConfigDTO, "sender_name" | "sender_street" | "sender_house_number" | "sender_city" | "sender_zip_code" | "sender_country">
+type PickupAddressConfiguration = Pick<
+  GLSConfigDTO,
+  | "sender_name"
+  | "sender_street"
+  | "sender_house_number"
+  | "sender_city"
+  | "sender_zip_code"
+  | "sender_country"
+>
 
-type EnabledConfiguration = PickupAddressConfiguration & Pick<GLSConfigDTO, "is_enabled" | "username" | "password" | "client_number" | "supported_countries">
+type EnabledConfiguration = PickupAddressConfiguration &
+  Pick<
+    GLSConfigDTO,
+    | "is_enabled"
+    | "username"
+    | "password"
+    | "client_number"
+    | "supported_countries"
+  >
 
-const hasRequiredPickupAddress = (config: PickupAddressConfiguration): boolean =>
+const hasRequiredPickupAddress = (
+  config: PickupAddressConfiguration
+): boolean =>
   Boolean(
     config.sender_name &&
       config.sender_street &&
@@ -172,16 +205,21 @@ const hasRequiredPickupAddress = (config: PickupAddressConfiguration): boolean =
       config.sender_country
   )
 
-const hasRequiredEnabledConfiguration = (config: EnabledConfiguration): boolean => Boolean(
-  config.is_enabled &&
-  config.username &&
-  config.password &&
-  config.client_number &&
-  config.supported_countries.length > 0 &&
-  hasRequiredPickupAddress(config)
-)
+const hasRequiredEnabledConfiguration = (
+  config: EnabledConfiguration
+): boolean =>
+  Boolean(
+    config.is_enabled &&
+      config.username &&
+      config.password &&
+      config.client_number &&
+      config.supported_countries.length > 0 &&
+      hasRequiredPickupAddress(config)
+  )
 
-const normalizeConfigUpdate = (data: UpdateGLSConfigInput): UpdateGLSConfigInput => {
+const normalizeConfigUpdate = (
+  data: UpdateGLSConfigInput
+): UpdateGLSConfigInput => {
   const normalized = { ...data }
   for (const field of GLS_SENSITIVE_FIELDS) {
     const key = field as keyof UpdateGLSConfigInput
@@ -192,24 +230,40 @@ const normalizeConfigUpdate = (data: UpdateGLSConfigInput): UpdateGLSConfigInput
 
   if (normalized.supported_countries) {
     if (!normalized.supported_countries.every(isGLSStorefrontCountryCode)) {
-      throw new MedusaError(MedusaError.Types.INVALID_DATA, "GLS storefront delivery is supported only for SK, CZ, HU, and RO")
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "GLS storefront delivery is supported only for SK, CZ, HU, and RO"
+      )
     }
 
-    normalized.supported_countries = Array.from(new Set(normalized.supported_countries))
+    normalized.supported_countries = Array.from(
+      new Set(normalized.supported_countries)
+    )
   }
 
   return normalized
 }
 
-const buildEnabledConfiguration = (existing: GLSConfigDTO | null, input: UpdateGLSConfigInput): EnabledConfiguration => ({
+const buildEnabledConfiguration = (
+  existing: GLSConfigDTO | null,
+  input: UpdateGLSConfigInput
+): EnabledConfiguration => ({
   is_enabled: input.is_enabled ?? existing?.is_enabled ?? false,
   username: input.username ?? existing?.username ?? null,
-  password: input.password === undefined ? existing?.password ?? null : input.password,
-  client_number: input.client_number === undefined ? existing?.client_number ?? null : input.client_number,
-  supported_countries: input.supported_countries ?? existing?.supported_countries ?? [],
+  password:
+    input.password === undefined
+      ? (existing?.password ?? null)
+      : input.password,
+  client_number:
+    input.client_number === undefined
+      ? (existing?.client_number ?? null)
+      : input.client_number,
+  supported_countries:
+    input.supported_countries ?? existing?.supported_countries ?? [],
   sender_name: input.sender_name ?? existing?.sender_name ?? null,
   sender_street: input.sender_street ?? existing?.sender_street ?? null,
-  sender_house_number: input.sender_house_number ?? existing?.sender_house_number ?? null,
+  sender_house_number:
+    input.sender_house_number ?? existing?.sender_house_number ?? null,
   sender_city: input.sender_city ?? existing?.sender_city ?? null,
   sender_zip_code: input.sender_zip_code ?? existing?.sender_zip_code ?? null,
   sender_country: input.sender_country ?? existing?.sender_country ?? null,
@@ -283,12 +337,16 @@ export class GLSClientModuleService extends MedusaService({
 }) {
   private client_: GLSClient | null = null
   private clientConfigFingerprint_: string | null = null
-  private readonly branchesRefresh_: Map<string, Promise<GLSBranch[]>> = new Map()
+  private readonly branchesRefresh_: Map<string, Promise<GLSBranch[]>> =
+    new Map()
   protected readonly logger_: Logger
   protected readonly cacheService_: ICachingModuleService | null
   protected readonly lockingService_: ILockingModule
 
-  constructor(container: InjectedDependencies, options: Record<string, never> = {}) {
+  constructor(
+    container: InjectedDependencies,
+    options: Record<string, never> = {}
+  ) {
     super(container, options)
     this.logger_ = container.logger
 
@@ -304,7 +362,9 @@ export class GLSClientModuleService extends MedusaService({
       )
     }
 
-    this.logger_.info("GLS: Module service initialized with Admin-managed profiles")
+    this.logger_.info(
+      "GLS: Module service initialized with Admin-managed profiles"
+    )
   }
 
   async getEnvironment(): Promise<GLSEnvironment> {
@@ -313,8 +373,13 @@ export class GLSClientModuleService extends MedusaService({
   }
 
   async listConfigProfiles(): Promise<GLSConfigDTO[]> {
-    const configs = await this.listGLSConfigs({}, { order: { environment: "ASC" } })
-    return configs.map((config) => decryptFields(mapGLSConfigDTO(config), [...GLS_SENSITIVE_FIELDS]))
+    const configs = await this.listGLSConfigs(
+      {},
+      { order: { environment: "ASC" } }
+    )
+    return configs.map((config) =>
+      decryptFields(mapGLSConfigDTO(config), [...GLS_SENSITIVE_FIELDS])
+    )
   }
 
   async getConfig(environment?: GLSEnvironment): Promise<GLSConfigDTO | null> {
@@ -333,7 +398,10 @@ export class GLSClientModuleService extends MedusaService({
   async getActiveConfig(): Promise<GLSConfigDTO> {
     const configs = await this.listGLSConfigs({ is_active: true }, { take: 2 })
     if (configs.length !== 1) {
-      throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, "GLS must have exactly one active configuration profile")
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "GLS must have exactly one active configuration profile"
+      )
     }
 
     return decryptFields(mapGLSConfigDTO(configs[0]), [...GLS_SENSITIVE_FIELDS])
@@ -343,22 +411,36 @@ export class GLSClientModuleService extends MedusaService({
    * Empty string on a sensitive field = keep existing value.
    * null on a sensitive field = clear it.
    */
-  async updateConfig(environment: GLSEnvironment, data: UpdateGLSConfigInput): Promise<GLSConfigDTO> {
+  async updateConfig(
+    environment: GLSEnvironment,
+    data: UpdateGLSConfigInput
+  ): Promise<GLSConfigDTO> {
     const existing = await this.getConfig(environment)
     const filteredData = normalizeConfigUpdate(data)
     const encrypted = encryptFields(filteredData, [...GLS_SENSITIVE_FIELDS])
 
     const proposedConfig = buildEnabledConfiguration(existing, filteredData)
-    if (proposedConfig.is_enabled && !hasRequiredEnabledConfiguration(proposedConfig)) {
-      throw new MedusaError(MedusaError.Types.INVALID_DATA, "GLS requires credentials, sender details, and at least one supported market before it can be enabled")
+    if (
+      proposedConfig.is_enabled &&
+      !hasRequiredEnabledConfiguration(proposedConfig)
+    ) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "GLS requires credentials, sender details, and at least one supported market before it can be enabled"
+      )
     }
 
-    const persisted = existing ? await this.updateGLSConfigs({ id: existing.id, ...encrypted }) : await this.createConfigProfile(environment, encrypted)
+    const persisted = existing
+      ? await this.updateGLSConfigs({ id: existing.id, ...encrypted })
+      : await this.createConfigProfile(environment, encrypted)
     await this.invalidateAllCaches()
     return decryptFields(mapGLSConfigDTO(persisted), [...GLS_SENSITIVE_FIELDS])
   }
 
-  private async createConfigProfile(environment: GLSEnvironment, encrypted: Record<string, unknown>) {
+  private async createConfigProfile(
+    environment: GLSEnvironment,
+    encrypted: Record<string, unknown>
+  ) {
     try {
       return await this.createGLSConfigs({ ...encrypted, environment })
     } catch (error) {
@@ -375,31 +457,55 @@ export class GLSClientModuleService extends MedusaService({
     }
   }
 
-  async activateConfig(environment: GLSEnvironment, confirmed: boolean): Promise<GLSConfigDTO> {
+  async activateConfig(
+    environment: GLSEnvironment,
+    confirmed: boolean
+  ): Promise<GLSConfigDTO> {
     return this.lockingService_.execute("gls:activate-config", async () => {
       const profiles = await this.listConfigProfiles()
-      const target = profiles.find((profile) => profile.environment === environment)
+      const target = profiles.find(
+        (profile) => profile.environment === environment
+      )
       if (!target) {
-        throw new MedusaError(MedusaError.Types.NOT_FOUND, `GLS ${environment} profile was not found`)
+        throw new MedusaError(
+          MedusaError.Types.NOT_FOUND,
+          `GLS ${environment} profile was not found`
+        )
       }
 
       if (environment === "production") {
         if (!confirmed) {
-          throw new MedusaError(MedusaError.Types.NOT_ALLOWED, "Activating the GLS production profile requires explicit confirmation")
+          throw new MedusaError(
+            MedusaError.Types.NOT_ALLOWED,
+            "Activating the GLS production profile requires explicit confirmation"
+          )
         }
         if (!hasRequiredEnabledConfiguration(target)) {
-          throw new MedusaError(MedusaError.Types.INVALID_DATA, "Enable the GLS production profile and complete its account, market, and sender settings before activating it")
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            "Enable the GLS production profile and complete its account, market, and sender settings before activating it"
+          )
         }
       }
 
-      const inactiveUpdates = profiles.filter((profile) => profile.id !== target.id && profile.is_active).map((profile) => ({ id: profile.id, is_active: false }))
-      const updatedTarget = await this.switchActiveConfig(inactiveUpdates, target.id)
+      const inactiveUpdates = profiles
+        .filter((profile) => profile.id !== target.id && profile.is_active)
+        .map((profile) => ({ id: profile.id, is_active: false }))
+      const updatedTarget = await this.switchActiveConfig(
+        inactiveUpdates,
+        target.id
+      )
       await this.invalidateAllCaches()
       if (!updatedTarget) {
-        throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, "GLS active profile was not persisted")
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          "GLS active profile was not persisted"
+        )
       }
 
-      return decryptFields(mapGLSConfigDTO(updatedTarget), [...GLS_SENSITIVE_FIELDS])
+      return decryptFields(mapGLSConfigDTO(updatedTarget), [
+        ...GLS_SENSITIVE_FIELDS,
+      ])
     })
   }
 
@@ -414,20 +520,28 @@ export class GLSClientModuleService extends MedusaService({
 
       const transactionManager = sharedContext.transactionManager
       if (!transactionManager) {
-        throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, "GLS configuration transaction manager is unavailable")
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          "GLS configuration transaction manager is unavailable"
+        )
       }
 
       await transactionManager.flush()
     }
 
-    return await this.updateGLSConfigs({ id: targetId, is_active: true }, sharedContext)
+    return await this.updateGLSConfigs(
+      { id: targetId, is_active: true },
+      sharedContext
+    )
   }
 
   /**
    * Effective config used by API calls. Returns null if disabled or missing
    * required MyGLS credentials/pickup-address fields.
    */
-  async getEffectiveConfig(reference: GLSConfigReference = {}): Promise<GLSOptions | null> {
+  async getEffectiveConfig(
+    reference: GLSConfigReference = {}
+  ): Promise<GLSOptions | null> {
     const config = await this.resolveConfig(reference)
     if (!config) {
       return null
@@ -458,7 +572,9 @@ export class GLSClientModuleService extends MedusaService({
     return options
   }
 
-  private async resolveConfig(reference: GLSConfigReference): Promise<GLSConfigDTO | null> {
+  private async resolveConfig(
+    reference: GLSConfigReference
+  ): Promise<GLSConfigDTO | null> {
     if (reference.config_id !== undefined && reference.config_id !== null) {
       const configId = reference.config_id.trim()
       if (!configId) {
@@ -471,9 +587,17 @@ export class GLSClientModuleService extends MedusaService({
         return null
       }
 
-      const decrypted = decryptFields(mapGLSConfigDTO(config), [...GLS_SENSITIVE_FIELDS])
-      if (reference.environment && reference.environment !== decrypted.environment) {
-        throw new MedusaError(MedusaError.Types.INVALID_DATA, "GLS configuration reference does not match its profile")
+      const decrypted = decryptFields(mapGLSConfigDTO(config), [
+        ...GLS_SENSITIVE_FIELDS,
+      ])
+      if (
+        reference.environment &&
+        reference.environment !== decrypted.environment
+      ) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "GLS configuration reference does not match its profile"
+        )
       }
 
       return decrypted
@@ -482,7 +606,9 @@ export class GLSClientModuleService extends MedusaService({
     return this.getConfig(reference.environment ?? undefined)
   }
 
-  private async getCachedConfig(config: GLSConfigDTO): Promise<GLSOptions | null | undefined> {
+  private async getCachedConfig(
+    config: GLSConfigDTO
+  ): Promise<GLSOptions | null | undefined> {
     if (!this.cacheService_) {
       return
     }
@@ -568,7 +694,9 @@ export class GLSClientModuleService extends MedusaService({
     this.client_ = null
     this.clientConfigFingerprint_ = null
     if (this.cacheService_) {
-      await this.cacheService_.clear({ key: await this.getConfigCacheKey(configId) })
+      await this.cacheService_.clear({
+        key: await this.getConfigCacheKey(configId),
+      })
     }
   }
 
@@ -619,7 +747,9 @@ export class GLSClientModuleService extends MedusaService({
     })
   }
 
-  private async getClient(reference: GLSConfigReference = {}): Promise<GLSClient> {
+  private async getClient(
+    reference: GLSConfigReference = {}
+  ): Promise<GLSClient> {
     const config = await this.getEffectiveConfig(reference)
     if (!config) {
       throw new MedusaError(
@@ -648,7 +778,9 @@ export class GLSClientModuleService extends MedusaService({
 
   async createOrRecoverPacket(
     input: GLSCreateOrRecoverPacketInput
-  ): Promise<GLSCreatePacketResult & { attempt_id: string; operation_key: string }> {
+  ): Promise<
+    GLSCreatePacketResult & { attempt_id: string; operation_key: string }
+  > {
     const lockKey = `gls:parcel:create:${input.operation_key}`
     const ownerId = randomUUID()
     await this.lockingService_.acquire(lockKey, { ownerId, expire: 300 })
@@ -662,7 +794,9 @@ export class GLSClientModuleService extends MedusaService({
 
   private async createOrRecoverPacketLocked(
     input: GLSCreateOrRecoverPacketInput
-  ): Promise<GLSCreatePacketResult & { attempt_id: string; operation_key: string }> {
+  ): Promise<
+    GLSCreatePacketResult & { attempt_id: string; operation_key: string }
+  > {
     const attempts = await this.listGLSFulfillmentAttempts(
       { operation_key: input.operation_key },
       { order: { generation: "DESC" }, take: 1 }
@@ -689,24 +823,49 @@ export class GLSClientModuleService extends MedusaService({
       return this.toRecoveredPacketResult(adopted, input.operation_key)
     }
 
-    const reference = { config_id: input.config_id, environment: input.environment }
+    const reference = {
+      config_id: input.config_id,
+      environment: input.environment,
+    }
     const client = await this.getClient(reference)
-    const recovered = await client.findPacketByClientReference(attempt.client_reference, attempt.created_at)
+    const recovered = await client.findPacketByClientReference(
+      attempt.client_reference,
+      attempt.created_at
+    )
 
     if (recovered) {
-      const completed = await this.completeFulfillmentAttempt(attempt.id, input.fulfillment_id, recovered)
-      return { ...recovered, attempt_id: completed.id, operation_key: input.operation_key }
+      const completed = await this.completeFulfillmentAttempt(
+        attempt.id,
+        input.fulfillment_id,
+        recovered
+      )
+      return {
+        ...recovered,
+        attempt_id: completed.id,
+        operation_key: input.operation_key,
+      }
     }
 
     try {
-      const created = await client.createPacket({ ...input.attributes, number: attempt.client_reference })
-      const completed = await this.completeFulfillmentAttempt(attempt.id, input.fulfillment_id, created)
-      return { ...created, attempt_id: completed.id, operation_key: input.operation_key }
+      const created = await client.createPacket({
+        ...input.attributes,
+        number: attempt.client_reference,
+      })
+      const completed = await this.completeFulfillmentAttempt(
+        attempt.id,
+        input.fulfillment_id,
+        created
+      )
+      return {
+        ...created,
+        attempt_id: completed.id,
+        operation_key: input.operation_key,
+      }
     } catch (error) {
       await this.updateGLSFulfillmentAttempts({
         id: attempt.id,
         fulfillment_id: input.fulfillment_id,
-        last_error: error instanceof Error ? error.message : String(error)
+        last_error: error instanceof Error ? error.message : String(error),
       })
       throw error
     }
@@ -771,7 +930,7 @@ export class GLSClientModuleService extends MedusaService({
       parcel_id: String(result.id),
       parcel_number: result.parcel_number,
       barcode: result.barcode,
-      last_error: null
+      last_error: null,
     })
   }
 
@@ -783,7 +942,9 @@ export class GLSClientModuleService extends MedusaService({
       barcode: string | null
     },
     operationKey: string
-  ): Promise<GLSCreatePacketResult & { attempt_id: string; operation_key: string }> {
+  ): Promise<
+    GLSCreatePacketResult & { attempt_id: string; operation_key: string }
+  > {
     if (!(attempt.parcel_id && attempt.parcel_number && attempt.barcode)) {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
@@ -797,21 +958,31 @@ export class GLSClientModuleService extends MedusaService({
       barcode: attempt.barcode,
       barcodeText: attempt.barcode,
       attempt_id: attempt.id,
-      operation_key: operationKey
+      operation_key: operationKey,
     }
   }
 
-  async cancelPacketForAttempt(attemptId: string, packetId: string | number, reference: GLSConfigReference = {}): Promise<boolean> {
+  async cancelPacketForAttempt(
+    attemptId: string,
+    packetId: string | number,
+    reference: GLSConfigReference = {}
+  ): Promise<boolean> {
     const cancelled = await this.cancelPacket(packetId, reference)
     if (!cancelled) {
       return false
     }
 
-    await this.updateGLSFulfillmentAttempts({ id: attemptId, status: "cancelled" })
+    await this.updateGLSFulfillmentAttempts({
+      id: attemptId,
+      status: "cancelled",
+    })
     return true
   }
 
-  async cancelPacket(packetId: string | number, reference: GLSConfigReference = {}): Promise<boolean> {
+  async cancelPacket(
+    packetId: string | number,
+    reference: GLSConfigReference = {}
+  ): Promise<boolean> {
     const client = await this.getClient(reference)
     const result = await client.cancelPacket(packetId)
     if (result) {
@@ -830,18 +1001,27 @@ export class GLSClientModuleService extends MedusaService({
     return client.packetStatus(parcelNumber)
   }
 
-  async downloadLabelPdf(packetId: string | number, reference: GLSConfigReference = {}): Promise<Buffer> {
+  async downloadLabelPdf(
+    packetId: string | number,
+    reference: GLSConfigReference = {}
+  ): Promise<Buffer> {
     const client = await this.getClient(reference)
     return client.downloadLabelPdf(packetId)
   }
 
-  async downloadLabelsPdf(packetIds: (string | number)[], reference: GLSConfigReference = {}): Promise<Buffer> {
+  async downloadLabelsPdf(
+    packetIds: (string | number)[],
+    reference: GLSConfigReference = {}
+  ): Promise<Buffer> {
     const client = await this.getClient(reference)
     return client.downloadLabelsPdf(packetIds)
   }
 
   /** Pickup-point list from MyGLS MasterDataService, cached for 24h. */
-  async getBranches(countryCode?: GLSCountryCode, reference: GLSConfigReference = {}): Promise<GLSBranch[]> {
+  async getBranches(
+    countryCode?: GLSCountryCode,
+    reference: GLSConfigReference = {}
+  ): Promise<GLSBranch[]> {
     const config = await this.getEffectiveConfig(reference)
     if (!config) {
       throw new MedusaError(
@@ -851,14 +1031,20 @@ export class GLSClientModuleService extends MedusaService({
     }
     const resolvedCountryCode = countryCode ?? config.country_code
     if (!config.supported_countries.includes(resolvedCountryCode)) {
-      throw new MedusaError(MedusaError.Types.NOT_ALLOWED, "GLS is not enabled for this storefront market")
+      throw new MedusaError(
+        MedusaError.Types.NOT_ALLOWED,
+        "GLS is not enabled for this storefront market"
+      )
     }
 
     const refreshKey = [config.config_id, resolvedCountryCode].join(":")
 
     if (this.cacheService_) {
       const cached = (await this.cacheService_.get({
-        key: await this.getBranchesCacheKey(config.config_id, resolvedCountryCode),
+        key: await this.getBranchesCacheKey(
+          config.config_id,
+          resolvedCountryCode
+        ),
       })) as unknown
       if (isGLSBranchArray(cached)) {
         return cached
@@ -897,7 +1083,10 @@ export class GLSClientModuleService extends MedusaService({
     config: GLSOptions,
     countryCode: GLSCountryCode
   ): Promise<GLSBranch[]> {
-    const client = await this.getClient({ config_id: config.config_id, environment: config.environment })
+    const client = await this.getClient({
+      config_id: config.config_id,
+      environment: config.environment,
+    })
     const branches = await client.getBranchList(countryCode)
 
     if (this.cacheService_) {

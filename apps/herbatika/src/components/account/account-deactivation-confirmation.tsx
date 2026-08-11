@@ -24,7 +24,9 @@ export function AccountDeactivationConfirmation({
 }: AccountDeactivationConfirmationProps) {
   const normalizedToken = token.trim()
   const confirmAccountDeactivationMutation = useConfirmAccountDeactivation()
-  const [confirmationError, setConfirmationError] = useState<string | null>(null)
+  const [confirmationError, setConfirmationError] = useState<string | null>(
+    null
+  )
   const [isConfirmed, setIsConfirmed] = useState(false)
   const displayedError = normalizedToken
     ? confirmationError
@@ -58,9 +60,7 @@ export function AccountDeactivationConfirmation({
     <main className="mx-auto w-full max-w-max-w p-account-page 2xl:p-account-page-lg">
       <AccountSurface className="mx-auto max-w-auth-content space-y-400">
         <header className="space-y-200">
-          <h1 className="font-semibold text-2xl">
-            Potvrdenie zrušenia účtu
-          </h1>
+          <h1 className="font-semibold text-2xl">Potvrdenie zrušenia účtu</h1>
           <p className="text-fg-secondary text-sm">
             Po potvrdení sa už nebudete môcť prihlásiť. Vaše existujúce
             objednávky zostanú bezpečne uložené.

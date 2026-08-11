@@ -1,6 +1,6 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
-import { synchronizeSearchProfiles } from "../modules/meilisearch/synchronize"
 import { syncMeilisearchBrandsWorkflow } from "../workflows/meilisearch/workflows/sync-brands"
+import { synchronizeSearchProfilesWorkflow } from "../workflows/meilisearch/workflows/synchronize-search-profiles"
 
 export default async function meilisearchSyncBrandsHandler({
   container,
@@ -8,7 +8,9 @@ export default async function meilisearchSyncBrandsHandler({
   await syncMeilisearchBrandsWorkflow(container).run({
     input: {},
   })
-  await synchronizeSearchProfiles(container, "normal")
+  await synchronizeSearchProfilesWorkflow(container).run({
+    input: { mode: "normal" },
+  })
 }
 
 export const config: SubscriberConfig = {
