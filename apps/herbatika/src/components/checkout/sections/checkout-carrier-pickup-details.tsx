@@ -6,26 +6,19 @@ import { CheckoutPacketaPickupSelector } from "./checkout-packeta-pickup-selecto
 import { CheckoutPplPickupSelector } from "./checkout-ppl-pickup-selector"
 
 type CheckoutCarrierPickupDetailsProps = {
-  cartId: string
   disabled: boolean
   requirement: CarrierPickupRequirement
   onConfirm: (data: Record<string, unknown>) => void
 }
 
 export function CheckoutCarrierPickupDetails({
-  cartId,
   disabled,
   requirement,
   onConfirm,
 }: CheckoutCarrierPickupDetailsProps) {
   if (requirement.carrier === "gls") {
     return (
-      <CheckoutGlsPickupSelector
-        cartId={cartId}
-        disabled={disabled}
-        key={cartId}
-        onConfirm={onConfirm}
-      />
+      <CheckoutGlsPickupSelector disabled={disabled} onConfirm={onConfirm} />
     )
   }
 

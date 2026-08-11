@@ -105,6 +105,9 @@ function buildFulfillmentClientModules(
     modules.push({
       resolve: "./src/modules/gls-client",
       dependencies: [Modules.LOCKING],
+      options: {
+        environment: env.glsEnvironment,
+      },
     })
   }
 

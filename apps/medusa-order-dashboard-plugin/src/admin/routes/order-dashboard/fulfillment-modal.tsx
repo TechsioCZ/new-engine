@@ -44,7 +44,6 @@ type OrderDashboardFulfillmentPreviewOrder = {
   }>
   items: OrderDashboardFulfillmentCreateItem[]
   order_display_id: string
-  shippingSummary: string
   shippingOptionId: string
 }
 
@@ -490,24 +489,15 @@ function FulfillmentPreviewSection({
                 <Text leading="compact" size="small" weight="plus">
                   {order.order_display_id}
                 </Text>
-                <div className="flex min-w-0 flex-col gap-1">
-                  <Text
-                    className="text-ui-fg-subtle"
-                    leading="compact"
-                    size="small"
-                  >
-                    {order.itemSummaries
-                      .map((item) => `${item.quantity}x ${item.title}`)
-                      .join(", ")}
-                  </Text>
-                  <Text
-                    className="text-ui-fg-muted"
-                    leading="compact"
-                    size="small"
-                  >
-                    {order.shippingSummary}
-                  </Text>
-                </div>
+                <Text
+                  className="text-ui-fg-subtle"
+                  leading="compact"
+                  size="small"
+                >
+                  {order.itemSummaries
+                    .map((item) => `${item.quantity}x ${item.title}`)
+                    .join(", ")}
+                </Text>
                 <Text
                   className="text-ui-fg-muted"
                   leading="compact"
@@ -698,7 +688,6 @@ function getBulkFulfillmentPreview(
         quantity: item.quantity,
       })),
       order_display_id: orderDisplayId,
-      shippingSummary: getOrderShippingSummary(order),
       shippingOptionId,
     })
   }
@@ -772,33 +761,6 @@ function getOrderShippingOptionId(order: OrderDashboardFulfillmentOrder) {
     order.shipping_methods?.find((method) => method.shipping_option_id)
       ?.shipping_option_id ?? null
   )
-}
-
-function getOrderShippingSummary(order: OrderDashboardFulfillmentOrder) {
-  const shippingMethod = order.shipping_methods?.find(
-    (method) => method.shipping_option_id
-  )
-  if (!shippingMethod) {
-    return "-"
-  }
-
-  const data = shippingMethod.data
-  const accessPointName = getNonEmptyString(data?.access_point_name)
-  const accessPointStreet = getNonEmptyString(data?.access_point_street)
-  const accessPointZip = getNonEmptyString(data?.access_point_zip)
-  const accessPointCity = getNonEmptyString(data?.access_point_city)
-  const accessPointAddress = [accessPointStreet, accessPointZip, accessPointCity]
-    .filter(Boolean)
-    .join(", ")
-  const accessPoint = [accessPointName, accessPointAddress]
-    .filter(Boolean)
-    .join(" · ")
-
-  return [shippingMethod.name, accessPoint].filter(Boolean).join(" · ") || "-"
-}
-
-function getNonEmptyString(value: unknown) {
-  return typeof value === "string" && value.trim() ? value.trim() : null
 }
 
 function formatFulfillmentOrderDisplayId(

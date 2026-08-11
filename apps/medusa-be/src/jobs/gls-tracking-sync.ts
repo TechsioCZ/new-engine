@@ -47,9 +47,9 @@ type TrackingContext = {
 }
 
 const LOCK_KEY = "gls-tracking-sync-job"
-const LOCK_EXPIRY_SECONDS = 1800
+const LOCK_TIMEOUT_SECONDS = 120
 const CHUNK_SIZE = 25
-const PENDING_FETCH_PAGE_SIZE = 100
+const PENDING_FETCH_MULTIPLIER = 4
 
 /**
  * GLS Tracking Sync Job
@@ -75,28 +75,20 @@ export default async function glsTrackingSyncJob(container: MedusaContainer) {
   const lockingService = container.resolve<ILockingModule>(Modules.LOCKING)
 
   try {
-    await lockingService.acquire(LOCK_KEY, {
-      expire: LOCK_EXPIRY_SECONDS,
-    })
+    await lockingService.execute(
+      LOCK_KEY,
+      async () => {
+        await run(container, logger)
+      },
+      { timeout: LOCK_TIMEOUT_SECONDS }
+    )
   } catch (error) {
-    if (isLockContentionError(error)) {
+    if (error instanceof Error && error.message.includes("Timed-out")) {
       logger.debug("GLS Tracking Sync: lock held by another instance, skipping")
       return
     }
-
     throw error
   }
-
-  try {
-    await run(container, logger)
-  } finally {
-    await lockingService.release(LOCK_KEY)
-  }
-}
-
-function isLockContentionError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error)
-  return message.includes("Failed to acquire lock") || message.includes("already locked")
 }
 
 export const config = {
@@ -154,45 +146,32 @@ async function run(container: MedusaContainer, logger: Logger) {
   }
 }
 
-export async function fetchPendingFulfillments(
+async function fetchPendingFulfillments(
   query: Query,
   limit: number
 ): Promise<PendingFulfillment[]> {
-  const pending: PendingFulfillment[] = []
-  let skip = 0
-
-  while (pending.length < limit) {
-    const { data: fulfillments } = await query.graph({
-      entity: "fulfillment",
-      fields: ["id", "data", "shipped_at", "delivered_at", "provider_id"],
-      filters: {
-        provider_id: GLS_PROVIDER_ID,
-        shipped_at: { $ne: null },
-        delivered_at: null,
+  const { data: fulfillments } = await query.graph({
+    entity: "fulfillment",
+    fields: ["id", "data", "shipped_at", "delivered_at", "provider_id"],
+    filters: {
+      provider_id: GLS_PROVIDER_ID,
+      shipped_at: { $ne: null },
+      delivered_at: null,
+    },
+    pagination: {
+      order: {
+        shipped_at: "ASC",
       },
-      pagination: {
-        order: {
-          shipped_at: "ASC",
-          id: "ASC",
-        },
-        skip,
-        take: PENDING_FETCH_PAGE_SIZE,
-      },
-    })
-    const rawFulfillments: unknown = fulfillments
-    if (!Array.isArray(rawFulfillments) || rawFulfillments.length === 0) {
-      break
-    }
+      skip: 0,
+      take: limit * PENDING_FETCH_MULTIPLIER,
+    },
+  })
 
-    pending.push(...rawFulfillments.filter(isPendingFulfillment))
-    if (rawFulfillments.length < PENDING_FETCH_PAGE_SIZE) {
-      break
-    }
-
-    skip += PENDING_FETCH_PAGE_SIZE
-  }
-
-  return pending.slice(0, limit)
+  // JSON field filtering (data.delivery_failed) must be done in-memory.
+  const rawFulfillments: unknown = fulfillments
+  return Array.isArray(rawFulfillments)
+    ? rawFulfillments.filter(isPendingFulfillment).slice(0, limit)
+    : []
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -213,8 +192,6 @@ function isPendingFulfillment(value: unknown): value is PendingFulfillment {
   const parcelNumber: unknown = value.data.parcel_number
   const accessPointId: unknown = value.data.access_point_id
   const supportsCod: unknown = value.data.supports_cod
-  const configId: unknown = value.data.config_id
-  const environment: unknown = value.data.environment
   const deliveryFailed: unknown = value.data.delivery_failed
 
   return (
@@ -228,11 +205,8 @@ function isPendingFulfillment(value: unknown): value is PendingFulfillment {
     (parcelNumber === undefined ||
       typeof parcelNumber === "string" ||
       typeof parcelNumber === "number") &&
-    (accessPointId === undefined || typeof accessPointId === "string") &&
-    typeof supportsCod === "boolean" &&
-    typeof configId === "string" &&
-    configId.trim().length > 0 &&
-    (environment === "testing" || environment === "production")
+    typeof accessPointId === "string" &&
+    typeof supportsCod === "boolean"
   )
 }
 
@@ -254,7 +228,7 @@ async function processFulfillment(
 
   let history: GLSPacketStatusRecord[]
   try {
-    history = await glsClient.getPacketStatus(parcelNumber, { config_id: fulfillment.data.config_id, environment: fulfillment.data.environment })
+    history = await glsClient.getPacketStatus(parcelNumber)
   } catch (error) {
     logger.warn(
       `GLS Tracking Sync: Failed to fetch status for packet ${packetId} / parcel ${parcelNumber}: ${error instanceof Error ? error.message : String(error)}`

@@ -34,7 +34,6 @@ import { storeBrandsRoutesMiddlewares } from "./store/brands/middlewares"
 import { storeCatalogProductsRoutesMiddlewares } from "./store/catalog/products/middlewares"
 import { storeCmsRoutesMiddlewares } from "./store/cms/middlewares"
 import { storeCustomerReviewRoutesMiddlewares } from "./store/customers/me/reviews/middlewares"
-import { storeGLSBranchesRoutesMiddlewares } from "./store/gls/branches/middlewares"
 import { storeMiddlewares } from "./store/middlewares"
 import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middlewares"
 import { storeProductLocationAvailabilityRoutesMiddlewares } from "./store/products/[id]/location-availability/middlewares"
@@ -92,7 +91,6 @@ export default defineMiddlewares({
     ...adminSearchProfileRoutesMiddlewares,
     ...adminStorefrontTextRoutesMiddlewares,
     ...storeMiddlewares,
-    ...storeGLSBranchesRoutesMiddlewares,
     ...storeCustomerReviewRoutesMiddlewares,
     ...storeCatalogProductsRoutesMiddlewares,
     ...storeSearchAutocompleteRoutesMiddlewares,

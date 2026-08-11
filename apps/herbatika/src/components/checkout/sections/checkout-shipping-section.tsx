@@ -16,7 +16,6 @@ type ShippingOption = {
 }
 
 type CheckoutShippingSectionProps = {
-  cartId: string
   currencyCode: string
   isBusy: boolean
   onSelectShipping: (optionId: string, data?: Record<string, unknown>) => void
@@ -28,7 +27,6 @@ type CheckoutShippingSectionProps = {
 }
 
 export function CheckoutShippingSection({
-  cartId,
   currencyCode,
   isBusy,
   onSelectShipping,
@@ -97,7 +95,6 @@ export function CheckoutShippingSection({
               return {
                 addon: pickupRequirement ? (
                   <CheckoutCarrierPickupDetails
-                    cartId={cartId}
                     disabled={isBusy}
                     onConfirm={(data) => {
                       onPendingPickupOptionIdChange(null)

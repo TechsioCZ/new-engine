@@ -55,11 +55,6 @@ type GetPrintDataResponse = {
   PrintDataInfoList?: PrintLabelsInfo[]
 }
 
-type GetParcelListResponse = {
-  GetParcelListErrors?: MyGLSErrorInfo[]
-  PrintDataInfoList?: PrintLabelsInfo[]
-}
-
 type DeleteLabelsResponse = {
   DeleteLabelsErrorList?: MyGLSErrorInfo[]
   SuccessfullyDeletedList?: Array<{
@@ -191,61 +186,6 @@ export class GLSClient {
     }
   }
 
-  async findPacketByClientReference(
-    clientReference: string,
-    attemptCreatedAt: Date
-  ): Promise<GLSCreatePacketResult | null> {
-    const printDateFrom = new Date(attemptCreatedAt)
-    printDateFrom.setUTCDate(printDateFrom.getUTCDate() - 1)
-    printDateFrom.setUTCHours(0, 0, 0, 0)
-
-    const printDateTo = new Date()
-    printDateTo.setUTCDate(printDateTo.getUTCDate() + 1)
-    printDateTo.setUTCHours(23, 59, 59, 999)
-
-    const response = await this.request<GetParcelListResponse>(
-      "ParcelService",
-      "GetParcelList",
-      {
-        ...this.baseRequest(),
-        PrintDateFrom: this.toDotNetDate(printDateFrom),
-        PrintDateTo: this.toDotNetDate(printDateTo),
-      }
-    )
-
-    this.throwIfErrors(response.GetParcelListErrors, "GetParcelList")
-
-    const matching = (response.PrintDataInfoList ?? []).filter(
-      (packet) => packet.ClientReference === clientReference
-    )
-    if (matching.length === 0) {
-      return null
-    }
-    if (matching.length > 1) {
-      throw new MedusaError(
-        MedusaError.Types.UNEXPECTED_STATE,
-        `GLS: Multiple parcels use ClientReference ${clientReference}; manual reconciliation is required`
-      )
-    }
-
-    const info = matching[0]
-    if (!(info?.ParcelId && info.ParcelNumber)) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "GLS GetParcelList returned a matching parcel without ParcelId/ParcelNumber"
-      )
-    }
-
-    const parcelNumber = String(info.ParcelNumber)
-    const barcode = String(info.ParcelNumberWithCheckdigit ?? info.ParcelNumber)
-    return {
-      id: info.ParcelId,
-      barcode,
-      barcodeText: barcode,
-      parcel_number: parcelNumber,
-    }
-  }
-
   async cancelPacket(packetId: string | number): Promise<boolean> {
     const parcelId = this.toPositiveInteger(packetId, "ParcelId")
 
@@ -339,13 +279,13 @@ export class GLSClient {
     return pdf
   }
 
-  async getBranchList(countryCode: GLSCountryCode): Promise<GLSBranch[]> {
+  async getBranchList(): Promise<GLSBranch[]> {
     const response = await this.request<GetDeliveryPointsResponse>(
       "MasterDataService",
       "GetDeliveryPoints",
       {
         ...this.baseRequest(),
-        CountryIsoCode: countryCode,
+        CountryIsoCode: this.options.country_code,
       }
     )
 
@@ -370,12 +310,7 @@ export class GLSClient {
 
     return points
       .filter(isDeliveryPoint)
-      .filter((point) => point.IsActive !== false)
-      .map((point) => this.mapDeliveryPoint(point, countryCode))
-      .filter(
-        (branch) =>
-          Boolean(branch.id) && branch.country.toUpperCase() === countryCode
-      )
+      .map((point) => this.mapDeliveryPoint(point))
   }
 
   private buildParcel(attributes: GLSPacketAttributes) {
@@ -421,16 +356,14 @@ export class GLSClient {
         City: this.options.sender_city,
         ZipCode: this.options.sender_zip_code,
       },
-      ...(attributes.addressId && {
-        ServiceList: [
-          {
-            Code: "PSD",
-            PSDParameter: {
-              StringValue: attributes.addressId,
-            },
+      ServiceList: [
+        {
+          Code: "PSD",
+          PSDParameter: {
+            StringValue: attributes.addressId,
           },
-        ],
-      }),
+        },
+      ],
       ...(attributes.weight && {
         ParcelPropertyList: [
           {
@@ -449,16 +382,12 @@ export class GLSClient {
     return `/Date(${date.getTime()})/`
   }
 
-  private toDotNetDate(date: Date): string {
-    return `/Date(${date.getTime()})/`
-  }
-
   private baseRequest(): Record<string, unknown> {
     return {
       ClientNumberList: [this.options.client_number],
       Username: this.options.username,
       Password: this.passwordBytes,
-      WebshopEngine: "new-engine-medusa",
+      WebshopEngine: this.options.webshop_engine ?? "new-engine-medusa",
     }
   }
 
@@ -613,10 +542,7 @@ export class GLSClient {
     return value
   }
 
-  private mapDeliveryPoint(
-    point: DeliveryPoint,
-    countryCode: GLSCountryCode
-  ): GLSBranch {
+  private mapDeliveryPoint(point: DeliveryPoint): GLSBranch {
     const address = point.Address ?? {}
     const id = String(point.Matchcode ?? point.LegacyId ?? point.Id ?? "")
     const street = [address.Street, address.HouseNumber]
@@ -631,7 +557,7 @@ export class GLSClient {
       street,
       city: address.City ?? "",
       zip: address.ZipCode ?? "",
-      country: (address.CountryIsoCode ?? countryCode).toUpperCase(),
+      country: address.CountryIsoCode ?? this.options.country_code,
       latitude:
         point.Latitude !== undefined ? String(point.Latitude) : undefined,
       longitude:

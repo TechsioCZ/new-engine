@@ -72,14 +72,12 @@ COPY apps/medusa-order-dashboard-plugin ./apps/medusa-order-dashboard-plugin
 ARG FEATURE_PPL_ENABLED=0
 ARG FEATURE_PAYLOAD_ENABLED=0
 ARG FEATURE_PACKETA_ENABLED=0
-ARG FEATURE_GLS_ENABLED=1
 RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
     pnpm_config_store_dir=/pnpm/store \
     pnpm_config_prefer_offline=true \
     FEATURE_PPL_ENABLED=${FEATURE_PPL_ENABLED} \
     FEATURE_PAYLOAD_ENABLED=${FEATURE_PAYLOAD_ENABLED} \
     FEATURE_PACKETA_ENABLED=${FEATURE_PACKETA_ENABLED} \
-    FEATURE_GLS_ENABLED=${FEATURE_GLS_ENABLED} \
     ./scripts/build-medusa.sh
 
 # ============================================

@@ -20,15 +20,11 @@ export type PrintableGLSLabel = {
   fulfillment_id: string
   packet_id: string | number
   barcode: string
-  config_id: string
-  environment: "testing" | "production"
 }
 
 type PrintableGLSFulfillmentData = {
   packet_id: string | number
   barcode: string
-  config_id: string
-  environment: "testing" | "production"
 }
 
 export function validateGLSLabelOrders(value: unknown): GLSLabelOrder[] {
@@ -86,8 +82,6 @@ export function collectPrintableGLSLabels(
         fulfillment_id: fulfillment.id,
         packet_id: data.packet_id,
         barcode: data.barcode,
-        config_id: data.config_id,
-        environment: data.environment,
       })
     }
   }
@@ -170,16 +164,11 @@ function isPrintableGLSFulfillmentData(
 
   const packetId: unknown = value.packet_id
   const barcode: unknown = value.barcode
-  const configId: unknown = value.config_id
-  const environment: unknown = value.environment
 
   return (
     (typeof packetId === "number" || typeof packetId === "string") &&
     typeof barcode === "string" &&
-    barcode.trim().length > 0 &&
-    typeof configId === "string" &&
-    configId.trim().length > 0 &&
-    (environment === "testing" || environment === "production")
+    barcode.trim().length > 0
   )
 }
 

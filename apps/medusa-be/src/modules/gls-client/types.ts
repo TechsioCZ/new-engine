@@ -33,7 +33,6 @@ export type GLSAddress = {
 }
 
 export type GLSOptions = {
-  config_id: string
   /** MyGLS login e-mail / username. */
   username: string
   /** Raw MyGLS password. Sent to MyGLS as SHA512 byte array. */
@@ -44,7 +43,8 @@ export type GLSOptions = {
   environment: GLSEnvironment
   /** Country domain for the MyGLS account, e.g. CZ => api.mygls.cz. */
   country_code: GLSCountryCode
-  supported_countries: GLSCountryCode[]
+  /** Optional WebshopEngine field sent with label requests. */
+  webshop_engine?: string
   type_of_printer: GLSPrinterType
   /** A4 quarter position. MyGLS accepts 1..4 for A4 labels. */
   print_position: number
@@ -77,10 +77,14 @@ export type GLSPacketAttributes = {
   delivery_city: string
   delivery_zip_code: string
   delivery_country: string
-  addressId?: string
+  /** Pickup point / ParcelShop matchcode from MyGLS/GLS widget. */
+  addressId: string
+  /** Order total / declared value. */
+  value: number
   /** COD amount (omit if not COD). */
   cod?: number
-  currency?: string
+  /** ISO currency code. */
+  currency: string
   weight?: number
   /** Parcel content printed on label. */
   content?: string
@@ -96,16 +100,6 @@ export type GLSCreatePacketResult = {
   parcel_number: string
   /** PDF bytes returned by PrintLabels. */
   label_pdf?: Buffer
-}
-
-export type GLSCreateOrRecoverPacketInput = {
-  config_id: string
-  environment: GLSEnvironment
-  operation_key: string
-  client_reference: string
-  fulfillment_id: string
-  active_fulfillment_ids: string[]
-  attributes: GLSPacketAttributes
 }
 
 // ============================================
@@ -194,18 +188,14 @@ export interface GLSFulfillmentData extends Record<string, unknown> {
   barcode: string
   /** Check-digit-free MyGLS ParcelNumber required by GetParcelStatuses. */
   parcel_number?: string | number
-  access_point_id?: string
+  access_point_id: string
   supports_cod: boolean
-  config_id: string
-  environment: GLSEnvironment
   label_url?: string
   tracking_url?: string
   last_status?: GLSShipmentState
   last_status_date?: string
   delivery_failed?: boolean
   error_message?: string
-  attempt_id?: string
-  operation_key?: string
   sync_attempts?: number
   first_sync_attempt?: string
   last_sync_attempt?: string
@@ -213,15 +203,13 @@ export interface GLSFulfillmentData extends Record<string, unknown> {
 
 /** Data stored on the shipping_option and shipping_method. */
 export type GLSShippingOptionData = {
-  code: "home_delivery" | "home_delivery_cod" | "parcelshop" | "parcelshop_cod"
-  requires_access_point: boolean
+  code: "parcelshop" | "parcelshop_cod"
+  requires_access_point: true
   supports_cod: boolean
   access_point_id?: string
   access_point_name?: string
-  access_point_street?: string
   access_point_zip?: string
   access_point_city?: string
-  access_point_country?: string
   email?: string
   weight?: number
 }
@@ -240,15 +228,6 @@ export const GLS_COUNTRY_CODES = [
   "RS",
 ] as const satisfies readonly GLSCountryCode[]
 
-export const GLS_STOREFRONT_COUNTRY_CODES = [
-  "CZ",
-  "HU",
-  "RO",
-  "SK",
-] as const satisfies readonly GLSCountryCode[]
-
-export type GLSStorefrontCountryCode = (typeof GLS_STOREFRONT_COUNTRY_CODES)[number]
-
 export const GLS_PRINTER_TYPES = [
   "A4_2x2",
   "A4_4x1",
@@ -265,13 +244,12 @@ export const GLS_SENSITIVE_FIELDS = ["password"] as const
 export type GLSConfigDTO = {
   id: string
   environment: GLSEnvironment
-  is_active: boolean
   is_enabled: boolean
   username: string | null
   password: string | null
   client_number: number | null
   country_code: GLSCountryCode
-  supported_countries: GLSCountryCode[]
+  webshop_engine: string | null
   type_of_printer: GLSPrinterType
   print_position: number
   hide_phone_number_on_labels: boolean
@@ -299,7 +277,7 @@ export type UpdateGLSConfigInput = {
   password?: string | null
   client_number?: number | null
   country_code?: GLSCountryCode
-  supported_countries?: GLSCountryCode[]
+  webshop_engine?: string
   type_of_printer?: GLSPrinterType
   print_position?: number
   hide_phone_number_on_labels?: boolean
@@ -318,13 +296,12 @@ export type UpdateGLSConfigInput = {
 export type GLSConfigResponse = {
   id: string
   environment: GLSEnvironment
-  is_active: boolean
   is_enabled: boolean
   username: string | null
   password_set: boolean
   client_number: number | null
   country_code: GLSCountryCode
-  supported_countries: GLSCountryCode[]
+  webshop_engine: string | null
   type_of_printer: GLSPrinterType
   print_position: number
   hide_phone_number_on_labels: boolean
@@ -337,9 +314,4 @@ export type GLSConfigResponse = {
   sender_country: string | null
   sender_phone: string | null
   sender_email: string | null
-}
-
-export type GLSConfigReference = {
-  config_id?: string | null
-  environment?: GLSEnvironment | null
 }

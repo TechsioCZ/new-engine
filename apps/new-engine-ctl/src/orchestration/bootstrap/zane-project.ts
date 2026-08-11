@@ -170,7 +170,6 @@ const sharedEnvCleanupKeys = [
   "PPL_ENVIRONMENT",
   "FEATURE_PACKETA_ENABLED",
   "PACKETA_PICKUP_POINTS_API_KEY",
-  "FEATURE_GLS_ENABLED",
   "FEATURE_PAYKIT_ENABLED",
   "FEATURE_PAYKIT_GOPAY_ENABLED",
   "FEATURE_PAYKIT_STRIPE_ENABLED",
@@ -223,7 +222,6 @@ const sharedEnvCleanupKeys = [
   "MEDUSA_BE_PPL_ENVIRONMENT",
   "MEDUSA_BE_FEATURE_PACKETA_ENABLED",
   "MEDUSA_BE_PACKETA_PICKUP_POINTS_API_KEY",
-  "MEDUSA_BE_FEATURE_GLS_ENABLED",
   "MEDUSA_BE_FEATURE_PAYKIT_ENABLED",
   "MEDUSA_BE_FEATURE_PAYKIT_GOPAY_ENABLED",
   "MEDUSA_BE_FEATURE_PAYKIT_STRIPE_ENABLED",
@@ -816,7 +814,6 @@ function buildZaneProjectServices(
         "DC_PPL_ENVIRONMENT",
         "DC_FEATURE_PACKETA_ENABLED",
         "DC_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
-        "DC_FEATURE_GLS_ENABLED",
         "DC_FEATURE_PAYMENT_QR_ENABLED",
         "DC_FEATURE_PAYKIT_ENABLED",
         "DC_FEATURE_PAYKIT_GOPAY_ENABLED",
@@ -1029,10 +1026,6 @@ function buildZaneProjectServices(
         {
           envVar: "FEATURE_PACKETA_ENABLED",
           source: literalSource(process.env.DC_FEATURE_PACKETA_ENABLED ?? "0"),
-        },
-        {
-          envVar: "FEATURE_GLS_ENABLED",
-          source: literalSource(process.env.DC_FEATURE_GLS_ENABLED ?? "0"),
         },
         {
           envVar: "FEATURE_PAYMENT_QR_ENABLED",

@@ -164,13 +164,6 @@ else
   log_warn "FEATURE_PACKETA_ENABLED not set - Packeta module will NOT be included in build"
 fi
 
-if [[ -n "${FEATURE_GLS_ENABLED:-}" ]]; then
-  log_info "FEATURE_GLS_ENABLED=${FEATURE_GLS_ENABLED}"
-  export FEATURE_GLS_ENABLED
-else
-  log_warn "FEATURE_GLS_ENABLED not set - GLS module will NOT be included in build"
-fi
-
 log_info "Running: MEDUSA_ADMIN_DISABLED_FOR_BACKEND_BUILD=1 pnpm --filter=medusa-be build"
 
 # Medusa builds backend and admin concurrently by default. On small Zane workers
