@@ -31,6 +31,7 @@ import {
   Text,
   Tooltip,
   toast,
+  type UseDataTableReturn,
   useDataTable,
 } from "@medusajs/ui"
 import {
@@ -39,7 +40,15 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query"
-import { type ReactNode, useEffect, useRef, useState } from "react"
+import {
+  memo,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import { useTranslation } from "react-i18next"
 import { Link, useSearchParams } from "react-router-dom"
 import { setOrderDashboardSidebarBadgeCount } from "../../sidebar-badge"
@@ -126,12 +135,26 @@ type BadgeColor = "green" | "red" | "blue" | "orange" | "grey" | "purple"
 
 const labelFormats: OrderDashboardLabelFormat[] = ["A6", "A7"]
 const packetaLabelStartPositions = [1, 2, 3, 4] as const
+const emptyBusinessStatusCatalog: OrderDashboardBusinessStatus[] = []
+const emptyOrders: OrderDashboardOrder[] = []
 
 type PacketaLabelStartPosition = (typeof packetaLabelStartPositions)[number]
 type PendingPacketaLabelsDownload = {
   carrier: "packeta"
   labelFormat: OrderDashboardLabelFormat
   orderIds: string[]
+}
+
+type OrderDashboardTableBodyProps = {
+  columnVisibility: Record<string, boolean>
+  columns: readonly unknown[]
+  data: OrderDashboardOrder[]
+  emptyHeading: string
+  instance: UseDataTableReturn<OrderDashboardOrder>
+  isLoading: boolean
+  pageIndex: number
+  rowSelection: DataTableRowSelectionState
+  sorting: DataTableSortingState
 }
 
 const fulfillmentStatusColors = {
@@ -228,13 +251,23 @@ const OrderDashboardPage = () => {
     queryKey: [ORDER_DASHBOARD_STATUS_CATALOG_QUERY_KEY],
   })
 
-  const orders = ordersQuery.data?.orders ?? []
-  const businessStatusCatalog = businessStatusCatalogQuery.data?.statuses ?? []
+  const orders = ordersQuery.data?.orders ?? emptyOrders
+  const businessStatusCatalog =
+    businessStatusCatalogQuery.data?.statuses ?? emptyBusinessStatusCatalog
   const orderCount = ordersQuery.data?.count ?? 0
   const orderPageCount = Math.max(Math.ceil(orderCount / limit), 1)
-  const selectedOrders = Array.from(selectedOrdersById.values())
-  const selectedOrderIds = Array.from(selectedOrdersById.keys())
-  const selectedOrderIdSet = new Set(selectedOrderIds)
+  const selectedOrders = useMemo(
+    () => Array.from(selectedOrdersById.values()),
+    [selectedOrdersById]
+  )
+  const selectedOrderIds = useMemo(
+    () => Array.from(selectedOrdersById.keys()),
+    [selectedOrdersById]
+  )
+  const selectedOrderIdSet = useMemo(
+    () => new Set(selectedOrderIds),
+    [selectedOrderIds]
+  )
   const selectedCount = selectedOrders.length
   const shippingLabelCarrierSelection =
     getShippingLabelCarrierSelection(selectedOrders)
@@ -268,249 +301,308 @@ const OrderDashboardPage = () => {
     label: getQueueLabel(queueId, t),
   }))
 
-  const sortableColumnLabels = {
-    sortAscLabel: t("sorting.ascending"),
-    sortDescLabel: t("sorting.descending"),
-  }
+  const sortableColumnLabels = useMemo(
+    () => ({
+      sortAscLabel: t("sorting.ascending"),
+      sortDescLabel: t("sorting.descending"),
+    }),
+    [t]
+  )
 
-  const columns = [
-    columnHelper.select(),
-    columnHelper.accessor("order_display_id", {
-      cell: ({ row }) => (
-        <Link
-          className="txt-compact-small-plus text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
-          onClick={(event) => event.stopPropagation()}
-          to={`/orders/${row.original.id}`}
-        >
-          {row.original.order_display_id}
-        </Link>
-      ),
-      enableSorting: true,
-      header: t("columns.order"),
-      sortLabel: t("columns.order"),
-      ...sortableColumnLabels,
-    }),
-    columnHelper.accessor("created_at", {
-      cell: ({ getValue }) => (
-        <Text leading="compact" size="small">
-          {formatOrderDate(getValue(), locale)}
-        </Text>
-      ),
-      enableSorting: true,
-      header: t("columns.created"),
-      sortLabel: t("columns.created"),
-      ...sortableColumnLabels,
-    }),
-    columnHelper.accessor("customer", {
-      cell: ({ row }) => (
-        <div className="flex min-w-0 flex-col">
-          <Text as="span" leading="compact" size="small" weight="plus">
-            {row.original.customer}
+  const rowManualStatusMutation = useMutation({
+    mutationFn: updateOrderDashboardManualStatus,
+    onError: () => {
+      toast.error(t("toast.requestFailed"))
+    },
+    onSuccess: (result) => {
+      toast.success(
+        t("toast.businessStatusProcessed", {
+          changedCount: result.changed_count,
+          processedCount: result.processed_count,
+          unchangedCount: result.unchanged_count,
+        })
+      )
+
+      queryClient.invalidateQueries({ queryKey: [ORDER_DASHBOARD_QUERY_KEY] })
+      queryClient.invalidateQueries({
+        queryKey: [ORDER_DASHBOARD_SUMMARY_QUERY_KEY],
+      })
+    },
+  })
+  const updateRowManualStatus = rowManualStatusMutation.mutate
+  const handleRowManualStatusChange = useCallback(
+    (orderId: string, value: ManualStatusValue) => {
+      updateRowManualStatus({
+        orderIds: [orderId],
+        status: value === "clear" ? null : value,
+      })
+    },
+    [updateRowManualStatus]
+  )
+  const pendingManualStatusOrderId = rowManualStatusMutation.isPending
+    ? rowManualStatusMutation.variables?.orderIds[0]
+    : undefined
+
+  const columns = useMemo(
+    () => [
+      columnHelper.select(),
+      columnHelper.accessor("order_display_id", {
+        cell: ({ row }) => (
+          <Link
+            className="txt-compact-small-plus text-ui-fg-interactive hover:text-ui-fg-interactive-hover"
+            onClick={(event) => event.stopPropagation()}
+            to={`/orders/${row.original.id}`}
+          >
+            {row.original.order_display_id}
+          </Link>
+        ),
+        enableSorting: true,
+        header: t("columns.order"),
+        sortLabel: t("columns.order"),
+        ...sortableColumnLabels,
+      }),
+      columnHelper.accessor("created_at", {
+        cell: ({ getValue }) => (
+          <Text leading="compact" size="small">
+            {formatOrderDate(getValue(), locale)}
           </Text>
-          {row.original.email ? (
+        ),
+        enableSorting: true,
+        header: t("columns.created"),
+        sortLabel: t("columns.created"),
+        ...sortableColumnLabels,
+      }),
+      columnHelper.accessor("customer", {
+        cell: ({ row }) => (
+          <div className="flex min-w-0 flex-col">
+            <Text as="span" leading="compact" size="small" weight="plus">
+              {row.original.customer}
+            </Text>
+            {row.original.email ? (
+              <Text
+                as="span"
+                className="text-ui-fg-subtle"
+                leading="compact"
+                size="small"
+              >
+                {row.original.email}
+              </Text>
+            ) : null}
+          </div>
+        ),
+        enableSorting: true,
+        header: t("columns.customer"),
+        maxSize: 240,
+        minSize: 200,
+        size: 220,
+        sortLabel: t("columns.customer"),
+        ...sortableColumnLabels,
+      }),
+      columnHelper.display({
+        cell: ({ row }) => (
+          <div className="flex items-center gap-1">
+            {row.original.note ? (
+              <OrderAlertIcon
+                color="grey"
+                content={row.original.note}
+                label={t("signals.customerNote")}
+              >
+                <DocumentText />
+              </OrderAlertIcon>
+            ) : null}
+            {row.original.signals.returning_customer ? (
+              <OrderAlertIcon
+                color="blue"
+                label={t("signals.returningCustomer")}
+              >
+                <UserGroup />
+              </OrderAlertIcon>
+            ) : null}
+            {row.original.signals.storn_orders ? (
+              <OrderAlertIcon
+                color="red"
+                label={t("signals.previousCancellation")}
+              >
+                <XCircle />
+              </OrderAlertIcon>
+            ) : null}
+            {row.original.signals.wholesale_company_name ? (
+              <OrderAlertIcon
+                color="purple"
+                content={t("signals.wholesaleCustomerCompany", {
+                  company: row.original.signals.wholesale_company_name,
+                })}
+                label={t("signals.wholesaleCustomer")}
+              >
+                <Buildings />
+              </OrderAlertIcon>
+            ) : null}
+          </div>
+        ),
+        header: t("columns.signals"),
+        id: "signals",
+        maxSize: 120,
+        minSize: 112,
+        size: 112,
+      }),
+      columnHelper.accessor("carrier.value", {
+        cell: ({ row }) => (
+          <Badge size="2xsmall">{getCarrierLabel(row.original, t)}</Badge>
+        ),
+        enableSorting: true,
+        header: t("columns.carrier"),
+        id: "carrier",
+        maxSize: 180,
+        minSize: 140,
+        size: 160,
+        sortLabel: t("columns.carrier"),
+        ...sortableColumnLabels,
+      }),
+      columnHelper.accessor("delivery_address", {
+        cell: ({ row }) => {
+          const address = formatOrderDeliveryAddress(
+            row.original.delivery_address
+          )
+
+          return (
             <Text
               as="span"
               className="text-ui-fg-subtle"
               leading="compact"
               size="small"
             >
-              {row.original.email}
+              {address}
             </Text>
-          ) : null}
-        </div>
-      ),
-      enableSorting: true,
-      header: t("columns.customer"),
-      maxSize: 240,
-      minSize: 200,
-      size: 220,
-      sortLabel: t("columns.customer"),
-      ...sortableColumnLabels,
-    }),
-    columnHelper.display({
-      cell: ({ row }) => (
-        <div className="flex items-center gap-1">
-          {row.original.note ? (
-            <OrderAlertIcon
-              color="grey"
-              content={row.original.note}
-              label={t("signals.customerNote")}
-            >
-              <DocumentText />
-            </OrderAlertIcon>
-          ) : null}
-          {row.original.signals.returning_customer ? (
-            <OrderAlertIcon color="blue" label={t("signals.returningCustomer")}>
-              <UserGroup />
-            </OrderAlertIcon>
-          ) : null}
-          {row.original.signals.storn_orders ? (
-            <OrderAlertIcon
-              color="red"
-              label={t("signals.previousCancellation")}
-            >
-              <XCircle />
-            </OrderAlertIcon>
-          ) : null}
-          {row.original.signals.wholesale_company_name ? (
-            <OrderAlertIcon
-              color="purple"
-              content={t("signals.wholesaleCustomerCompany", {
-                company: row.original.signals.wholesale_company_name,
-              })}
-              label={t("signals.wholesaleCustomer")}
-            >
-              <Buildings />
-            </OrderAlertIcon>
-          ) : null}
-        </div>
-      ),
-      header: t("columns.signals"),
-      id: "signals",
-      maxSize: 120,
-      minSize: 112,
-      size: 112,
-    }),
-    columnHelper.accessor("carrier.value", {
-      cell: ({ row }) => (
-        <Badge size="2xsmall">{getCarrierLabel(row.original, t)}</Badge>
-      ),
-      enableSorting: true,
-      header: t("columns.carrier"),
-      id: "carrier",
-      maxSize: 180,
-      minSize: 140,
-      size: 160,
-      sortLabel: t("columns.carrier"),
-      ...sortableColumnLabels,
-    }),
-    columnHelper.accessor("delivery_address", {
-      cell: ({ row }) => {
-        const address = formatOrderDeliveryAddress(
-          row.original.delivery_address
-        )
+          )
+        },
+        header: t("columns.address"),
+        maxSize: 280,
+        minSize: 200,
+        size: 240,
+      }),
+      columnHelper.accessor("business_status.id", {
+        cell: ({ row }) => (
+          <Badge color={row.original.business_status.tone} size="2xsmall">
+            {t(row.original.business_status.translation_key)}
+          </Badge>
+        ),
+        enableSorting: true,
+        header: t("columns.businessStatus"),
+        id: "business_status",
+        sortLabel: t("columns.businessStatus"),
+        ...sortableColumnLabels,
+      }),
+      columnHelper.accessor("fulfillment_status", {
+        cell: ({ row }) => {
+          const fulfillmentStatus = getFulfillmentStatusDisplay(row.original, t)
 
-        return (
+          return (
+            <StatusBadge
+              className="text-nowrap"
+              color={fulfillmentStatus.color}
+            >
+              {fulfillmentStatus.label}
+            </StatusBadge>
+          )
+        },
+        enableSorting: true,
+        header: t("columns.fulfillment"),
+        sortLabel: t("columns.fulfillment"),
+        ...sortableColumnLabels,
+      }),
+      columnHelper.display({
+        cell: ({ row }) => (
+          <ManualStatusControl
+            isPending={pendingManualStatusOrderId === row.original.id}
+            manualStatus={row.original.manual_status}
+            onChange={handleRowManualStatusChange}
+            orderId={row.original.id}
+            statuses={businessStatusCatalog}
+          />
+        ),
+        header: t("columns.manualStatus"),
+        id: "manual_status",
+      }),
+      columnHelper.accessor("payment_status", {
+        cell: ({ row }) => (
+          <>
+            <Text as="span" leading="compact" size="small">
+              {formatPaymentStatusLabel(row.original.payment_status, t)}{" "}
+            </Text>
+            <br />
+            <Text
+              as="span"
+              className="text-ui-fg-subtle"
+              leading="compact"
+              size="small"
+            >
+              {formatPaymentMethodLabel(row.original.payment_method, t)}
+            </Text>
+          </>
+        ),
+        enableSorting: true,
+        header: t("columns.payment"),
+        maxSize: 180,
+        minSize: 140,
+        size: 160,
+        sortLabel: t("columns.payment"),
+        ...sortableColumnLabels,
+      }),
+      columnHelper.accessor("total", {
+        align: "right",
+        cell: ({ row }) => (
           <Text
-            as="span"
-            className="text-ui-fg-subtle"
+            className="w-full text-end"
             leading="compact"
             size="small"
+            weight="plus"
           >
-            {address}
+            {formatOrderTotal(row.original, locale)}
           </Text>
-        )
-      },
-      header: t("columns.address"),
-      maxSize: 280,
-      minSize: 200,
-      size: 240,
-    }),
-    columnHelper.accessor("business_status.id", {
-      cell: ({ row }) => (
-        <Badge color={row.original.business_status.tone} size="2xsmall">
-          {t(row.original.business_status.translation_key)}
-        </Badge>
-      ),
-      enableSorting: true,
-      header: t("columns.businessStatus"),
-      id: "business_status",
-      sortLabel: t("columns.businessStatus"),
-      ...sortableColumnLabels,
-    }),
-    columnHelper.accessor("fulfillment_status", {
-      cell: ({ row }) => {
-        const fulfillmentStatus = getFulfillmentStatusDisplay(row.original, t)
-
-        return (
-          <StatusBadge className="text-nowrap" color={fulfillmentStatus.color}>
-            {fulfillmentStatus.label}
-          </StatusBadge>
-        )
-      },
-      enableSorting: true,
-      header: t("columns.fulfillment"),
-      sortLabel: t("columns.fulfillment"),
-      ...sortableColumnLabels,
-    }),
-    columnHelper.display({
-      cell: ({ row }) => (
-        <ManualStatusControl
-          manualStatus={row.original.manual_status}
-          orderId={row.original.id}
-          statuses={businessStatusCatalog}
-        />
-      ),
-      header: t("columns.manualStatus"),
-      id: "manual_status",
-    }),
-    columnHelper.accessor("payment_status", {
-      cell: ({ row }) => (
-        <>
-          <Text as="span" leading="compact" size="small">
-            {formatPaymentStatusLabel(row.original.payment_status, t)}{" "}
-          </Text>
-          <br />
-          <Text
-            as="span"
-            className="text-ui-fg-subtle"
-            leading="compact"
-            size="small"
-          >
-            {formatPaymentMethodLabel(row.original.payment_method, t)}
-          </Text>
-        </>
-      ),
-      enableSorting: true,
-      header: t("columns.payment"),
-      maxSize: 180,
-      minSize: 140,
-      size: 160,
-      sortLabel: t("columns.payment"),
-      ...sortableColumnLabels,
-    }),
-    columnHelper.accessor("total", {
-      align: "right",
-      cell: ({ row }) => (
-        <Text
-          className="w-full text-end"
-          leading="compact"
-          size="small"
-          weight="plus"
-        >
-          {formatOrderTotal(row.original, locale)}
-        </Text>
-      ),
-      enableSorting: true,
-      header: t("columns.total"),
-      sortLabel: t("columns.total"),
-      ...sortableColumnLabels,
-    }),
-    columnHelper.display({
-      cell: ({ row }) => (
-        <Tooltip content={t("actions.details")}>
-          <IconButton
-            aria-label={t("actions.details")}
-            onClick={(event) => {
-              event.stopPropagation()
-              setDetailOrderId(row.original.id)
-            }}
-            size="small"
-            type="button"
-            variant="transparent"
-          >
-            <Eye />
-          </IconButton>
-        </Tooltip>
-      ),
-      id: "detail",
-      size: 48,
-    }),
-  ]
+        ),
+        enableSorting: true,
+        header: t("columns.total"),
+        sortLabel: t("columns.total"),
+        ...sortableColumnLabels,
+      }),
+      columnHelper.display({
+        cell: ({ row }) => (
+          <Tooltip content={t("actions.details")}>
+            <IconButton
+              aria-label={t("actions.details")}
+              onClick={(event) => {
+                event.stopPropagation()
+                setDetailOrderId(row.original.id)
+              }}
+              size="small"
+              type="button"
+              variant="transparent"
+            >
+              <Eye />
+            </IconButton>
+          </Tooltip>
+        ),
+        id: "detail",
+        size: 48,
+      }),
+    ],
+    [
+      businessStatusCatalog,
+      handleRowManualStatusChange,
+      locale,
+      pendingManualStatusOrderId,
+      sortableColumnLabels,
+      t,
+    ]
+  )
 
   const clearSelection = () => {
-    setRowSelection({})
-    setSelectedOrdersById(new Map())
+    setRowSelection((currentSelection) =>
+      Object.keys(currentSelection).length ? {} : currentSelection
+    )
+    setSelectedOrdersById((currentSelection) =>
+      currentSelection.size ? new Map() : currentSelection
+    )
   }
 
   const resetPagination = () => {
@@ -1470,15 +1562,16 @@ const OrderDashboardPage = () => {
             </div>
           </div>
           <div className="relative flex min-h-0 flex-1 overflow-hidden">
-            <DataTable.Table
-              emptyState={{
-                empty: {
-                  heading: t("table.empty"),
-                },
-                filtered: {
-                  heading: t("table.empty"),
-                },
-              }}
+            <OrderDashboardTableBody
+              columns={columns}
+              columnVisibility={columnVisibility}
+              data={orders}
+              emptyHeading={t("table.empty")}
+              instance={table}
+              isLoading={ordersQuery.isLoading}
+              pageIndex={pagination.pageIndex}
+              rowSelection={rowSelection}
+              sorting={sorting}
             />
             {ordersQuery.isFetching && !ordersQuery.isLoading ? (
               <output
@@ -1548,48 +1641,27 @@ function OrderDashboardSearchInput({
   )
 }
 
-function ManualStatusControl({
+const ManualStatusControl = memo(function ManualStatusControlComponent({
+  isPending,
   manualStatus,
+  onChange,
   orderId,
   statuses,
 }: {
+  isPending: boolean
   manualStatus?: OrderDashboardManualStatusId | null
+  onChange: (orderId: string, value: ManualStatusValue) => void
   orderId: string
   statuses: OrderDashboardBusinessStatus[]
 }) {
   const { t } = useTranslation("orderDashboard")
-  const queryClient = useQueryClient()
-  const mutation = useMutation({
-    mutationFn: (value: ManualStatusValue) =>
-      updateOrderDashboardManualStatus({
-        orderIds: [orderId],
-        status: value === "clear" ? null : value,
-      }),
-    onError: () => {
-      toast.error(t("toast.requestFailed"))
-    },
-    onSuccess: (result) => {
-      toast.success(
-        t("toast.businessStatusProcessed", {
-          changedCount: result.changed_count,
-          processedCount: result.processed_count,
-          unchangedCount: result.unchanged_count,
-        })
-      )
-
-      queryClient.invalidateQueries({ queryKey: [ORDER_DASHBOARD_QUERY_KEY] })
-      queryClient.invalidateQueries({
-        queryKey: [ORDER_DASHBOARD_SUMMARY_QUERY_KEY],
-      })
-    },
-  })
 
   return (
     <Select
-      disabled={mutation.isPending}
+      disabled={isPending}
       onValueChange={(value) => {
         if (value === "clear" || isOrderDashboardBusinessStatusId(value)) {
-          mutation.mutate(value)
+          onChange(orderId, value)
         }
       }}
       value={manualStatus ?? "clear"}
@@ -1609,6 +1681,38 @@ function ManualStatusControl({
         ))}
       </Select.Content>
     </Select>
+  )
+})
+
+const OrderDashboardTableBody = memo(function OrderDashboardTableBodyComponent({
+  emptyHeading,
+  instance,
+}: OrderDashboardTableBodyProps) {
+  return (
+    <DataTable instance={instance}>
+      <DataTable.Table
+        emptyState={{
+          empty: { heading: emptyHeading },
+          filtered: { heading: emptyHeading },
+        }}
+      />
+    </DataTable>
+  )
+}, areOrderDashboardTableBodyPropsEqual)
+
+function areOrderDashboardTableBodyPropsEqual(
+  previous: OrderDashboardTableBodyProps,
+  next: OrderDashboardTableBodyProps
+) {
+  return (
+    previous.columnVisibility === next.columnVisibility &&
+    previous.columns === next.columns &&
+    previous.data === next.data &&
+    previous.emptyHeading === next.emptyHeading &&
+    previous.isLoading === next.isLoading &&
+    previous.pageIndex === next.pageIndex &&
+    previous.rowSelection === next.rowSelection &&
+    previous.sorting === next.sorting
   )
 }
 
