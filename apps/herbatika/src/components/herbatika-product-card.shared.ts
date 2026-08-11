@@ -6,11 +6,11 @@ import { useEffect, useState } from "react"
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants"
 import { resolvePriceState } from "@/components/product-card/product-card.pricing"
 import { resolveThumbnail } from "@/components/product-card/product-card.thumbnail"
-import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import {
   asStorefrontRecord,
   asStorefrontString,
 } from "@/lib/storefront/product-pricing"
+import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 
 export type HerbatikaProductCardBaseProps = {
   product: HttpTypes.StoreProduct

@@ -1,7 +1,9 @@
 export type CompanyAdminI18nNamespace = {
   actions: Record<
     | "add"
+    | "approveApplication"
     | "cancel"
+    | "changeApplicationState"
     | "clear"
     | "createCompany"
     | "delete"
@@ -9,6 +11,8 @@ export type CompanyAdminI18nNamespace = {
     | "editCustomerDetails"
     | "editDetails"
     | "manageCustomerGroup"
+    | "markApplicationPending"
+    | "rejectApplication"
     | "restore"
     | "save",
     string
@@ -27,6 +31,7 @@ export type CompanyAdminI18nNamespace = {
   columns: Record<
     | "actions"
     | "address"
+    | "applicationState"
     | "approvalSettings"
     | "city"
     | "company"
@@ -72,6 +77,8 @@ export type CompanyAdminI18nNamespace = {
     string
   >
   errors: Record<
+    | "approveCompanyApplicationFailed"
+    | "changeCompanyApplicationStatusFailed"
     | "companyNotFound"
     | "createCompanyFailed"
     | "createCustomerFailed"
@@ -80,6 +87,7 @@ export type CompanyAdminI18nNamespace = {
     | "deleteEmployeeFailed"
     | "loadCustomerGroupsFailed"
     | "missingEmployeeDetails"
+    | "rejectCompanyApplicationFailed"
     | "removeCustomerGroupFailed"
     | "restoreCompanyFailed"
     | "saveErrorPrefix"
@@ -105,6 +113,10 @@ export type CompanyAdminI18nNamespace = {
     string
   >
   filters: {
+    applicationStatus: Record<
+      "all" | "approved" | "pending" | "rejected",
+      string
+    >
     status: Record<"active" | "all" | "deleted", string>
   }
   form: Record<"selectCountry" | "selectCurrency", string>
@@ -130,17 +142,36 @@ export type CompanyAdminI18nNamespace = {
     string
   >
   prompts: Record<
+    | "approveApplicationDescription"
+    | "approveApplicationTitle"
+    | "changeApplicationStatusDescription"
+    | "changeApplicationStatusTitle"
     | "deleteDescription"
     | "deleteEmployeeDescription"
     | "deleteEmployeeTitle"
-    | "deleteTitle",
+    | "deleteTitle"
+    | "rejectApplicationDescription"
+    | "rejectApplicationTitle",
     string
   >
   search: Record<"companies" | "customerGroups", string>
-  status: Record<"active" | "deleted" | "empty" | "loading" | "saving", string>
+  status: Record<
+    | "active"
+    | "approved"
+    | "deleted"
+    | "empty"
+    | "loading"
+    | "pending"
+    | "rejected"
+    | "saving",
+    string
+  >
   toasts: Record<
     | "approvalSettingsUpdated"
     | "companyAddedToCustomerGroup"
+    | "companyApplicationApproved"
+    | "companyApplicationPending"
+    | "companyApplicationRejected"
     | "companyDeleted"
     | "companyRestored"
     | "companyRemovedFromCustomerGroup"
@@ -158,7 +189,9 @@ export const companyAdminI18n = {
   cs: {
     actions: {
       add: "Přidat",
+      approveApplication: "Schválit žádost",
       cancel: "Zrušit",
+      changeApplicationState: "Změnit stav žádosti",
       clear: "Vymazat",
       createCompany: "Vytvořit firmu",
       delete: "Smazat",
@@ -166,6 +199,8 @@ export const companyAdminI18n = {
       editCustomerDetails: "Upravit detaily zákazníka",
       editDetails: "Upravit detaily",
       manageCustomerGroup: "Spravovat zákaznickou skupinu",
+      markApplicationPending: "Vrátit na čekající",
+      rejectApplication: "Zamítnout žádost",
       restore: "Obnovit",
       save: "Uložit",
     },
@@ -184,6 +219,7 @@ export const companyAdminI18n = {
     columns: {
       actions: "Akce",
       address: "Adresa",
+      applicationState: "Stav žádosti",
       approvalSettings: "Nastavení schvalování",
       city: "Město",
       company: "Firma",
@@ -229,6 +265,9 @@ export const companyAdminI18n = {
       title: "Zaměstnanci",
     },
     errors: {
+      approveCompanyApplicationFailed: "Žádost firmy se nepodařilo schválit",
+      changeCompanyApplicationStatusFailed:
+        "Stav žádosti firmy se nepodařilo změnit",
       companyNotFound: "Firma nebyla nalezena",
       createCompanyFailed: "Firmu se nepodařilo vytvořit",
       createCustomerFailed: "Zákazníka se nepodařilo vytvořit",
@@ -237,6 +276,7 @@ export const companyAdminI18n = {
       deleteEmployeeFailed: "Zaměstnance se nepodařilo odebrat",
       loadCustomerGroupsFailed: "Zákaznické skupiny se nepodařilo načíst",
       missingEmployeeDetails: "Chybí povinné údaje zaměstnance",
+      rejectCompanyApplicationFailed: "Žádost firmy se nepodařilo zamítnout",
       removeCustomerGroupFailed:
         "Firmu se nepodařilo odebrat ze zákaznické skupiny",
       restoreCompanyFailed: "Firmu se nepodařilo obnovit",
@@ -263,6 +303,12 @@ export const companyAdminI18n = {
       zip: "PSČ firmy",
     },
     filters: {
+      applicationStatus: {
+        all: "Všechny stavy žádosti",
+        approved: "Schválené",
+        pending: "Čekající",
+        rejected: "Zamítnuté",
+      },
       status: {
         active: "Pouze aktivní",
         all: "Všechny stavy",
@@ -302,12 +348,19 @@ export const companyAdminI18n = {
       zip: "110 00",
     },
     prompts: {
+      approveApplicationDescription: "Schválit VO žádost firmy {{name}}?",
+      approveApplicationTitle: "Schválit VO žádost",
+      changeApplicationStatusDescription:
+        "Změnit stav VO žádosti firmy {{name}} na {{status}}?",
+      changeApplicationStatusTitle: "Změnit stav VO žádosti",
       deleteDescription:
         "Opravdu chcete tuto firmu smazat? Firmu bude možné později obnovit.",
       deleteEmployeeDescription:
         "Odebrat {{email}} z této firmy? Zákaznický účet nebude smazán.",
       deleteEmployeeTitle: "Odebrat zaměstnance",
       deleteTitle: "Potvrdit smazání",
+      rejectApplicationDescription: "Zamítnout VO žádost firmy {{name}}?",
+      rejectApplicationTitle: "Zamítnout VO žádost",
     },
     search: {
       companies: "Hledat firmy",
@@ -315,14 +368,20 @@ export const companyAdminI18n = {
     },
     status: {
       active: "Aktivní",
+      approved: "Schváleno",
       deleted: "Smazáno",
       empty: "Nebyly nalezeny žádné firmy",
       loading: "Načítám...",
+      pending: "Čeká na schválení",
+      rejected: "Zamítnuto",
       saving: "Ukládám...",
     },
     toasts: {
       approvalSettingsUpdated: "Nastavení schvalování firmy bylo uloženo",
       companyAddedToCustomerGroup: "Zákaznická skupina firmy byla nastavena",
+      companyApplicationApproved: "VO žádost firmy {{name}} byla schválena",
+      companyApplicationPending: "VO žádost firmy {{name}} čeká na schválení",
+      companyApplicationRejected: "VO žádost firmy {{name}} byla zamítnuta",
       companyDeleted: "Firma {{name}} byla smazána",
       companyRestored: "Firma {{name}} byla obnovena",
       companyRemovedFromCustomerGroup:
@@ -341,7 +400,9 @@ export const companyAdminI18n = {
   en: {
     actions: {
       add: "Add",
+      approveApplication: "Approve application",
       cancel: "Cancel",
+      changeApplicationState: "Change application state",
       clear: "Clear",
       createCompany: "Create Company",
       delete: "Delete",
@@ -349,6 +410,8 @@ export const companyAdminI18n = {
       editCustomerDetails: "Edit Customer Details",
       editDetails: "Edit details",
       manageCustomerGroup: "Manage customer group",
+      markApplicationPending: "Mark as pending",
+      rejectApplication: "Reject application",
       restore: "Restore",
       save: "Save",
     },
@@ -367,6 +430,7 @@ export const companyAdminI18n = {
     columns: {
       actions: "Actions",
       address: "Address",
+      applicationState: "Application State",
       approvalSettings: "Approval Settings",
       city: "City",
       company: "Company",
@@ -411,6 +475,9 @@ export const companyAdminI18n = {
       title: "Employees",
     },
     errors: {
+      approveCompanyApplicationFailed: "Failed to approve company application",
+      changeCompanyApplicationStatusFailed:
+        "Failed to change company application status",
       companyNotFound: "Company not found",
       createCompanyFailed: "Failed to create company",
       createCustomerFailed: "Failed to create customer",
@@ -419,6 +486,7 @@ export const companyAdminI18n = {
       deleteEmployeeFailed: "Failed to remove employee",
       loadCustomerGroupsFailed: "Failed to load customer groups",
       missingEmployeeDetails: "Missing required employee details",
+      rejectCompanyApplicationFailed: "Failed to reject company application",
       removeCustomerGroupFailed: "Failed to remove company from customer group",
       restoreCompanyFailed: "Failed to restore company",
       saveErrorPrefix: "Error:",
@@ -443,6 +511,12 @@ export const companyAdminI18n = {
       zip: "Company Zip",
     },
     filters: {
+      applicationStatus: {
+        all: "All application states",
+        approved: "Approved",
+        pending: "Pending",
+        rejected: "Rejected",
+      },
       status: {
         active: "Active only",
         all: "All statuses",
@@ -482,12 +556,21 @@ export const companyAdminI18n = {
       zip: "10001",
     },
     prompts: {
+      approveApplicationDescription:
+        "Approve the wholesale application for {{name}}?",
+      approveApplicationTitle: "Approve wholesale application",
+      changeApplicationStatusDescription:
+        "Change the wholesale application state for {{name}} to {{status}}?",
+      changeApplicationStatusTitle: "Change wholesale application state",
       deleteDescription:
         "Are you sure you want to delete this company? You can restore it later.",
       deleteEmployeeDescription:
         "Remove {{email}} from this company? This does not delete the customer account.",
       deleteEmployeeTitle: "Remove employee",
       deleteTitle: "Confirm Deletion",
+      rejectApplicationDescription:
+        "Reject the wholesale application for {{name}}?",
+      rejectApplicationTitle: "Reject wholesale application",
     },
     search: {
       companies: "Search companies",
@@ -495,14 +578,20 @@ export const companyAdminI18n = {
     },
     status: {
       active: "Active",
+      approved: "Approved",
       deleted: "Deleted",
       empty: "No companies found",
       loading: "Loading...",
+      pending: "Pending approval",
+      rejected: "Rejected",
       saving: "Saving...",
     },
     toasts: {
       approvalSettingsUpdated: "Company approval settings updated successfully",
       companyAddedToCustomerGroup: "Company customer group set successfully",
+      companyApplicationApproved: "Company {{name}} application approved",
+      companyApplicationPending: "Company {{name}} application marked pending",
+      companyApplicationRejected: "Company {{name}} application rejected",
       companyDeleted: "Company {{name}} deleted successfully",
       companyRestored: "Company {{name}} restored successfully",
       companyRemovedFromCustomerGroup:

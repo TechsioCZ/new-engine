@@ -36,6 +36,17 @@ export const resolveOriginalLineItemTotalAmount = (
   product?: HttpTypes.StoreProduct | null
 ) => {
   const itemRecord = item as unknown as Record<string, unknown>
+  const originalTotal = asStorefrontNumber(itemRecord.original_total)
+  const currentTotal = asStorefrontNumber(itemRecord.total)
+
+  if (
+    typeof originalTotal === "number" &&
+    typeof currentTotal === "number" &&
+    originalTotal > currentTotal
+  ) {
+    return originalTotal
+  }
+
   const topOffer = resolveLineItemTopOffer(item, product)
   const compareAtUnit = asStorefrontNumber(itemRecord.compare_at_unit_price)
 

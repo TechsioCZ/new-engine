@@ -246,12 +246,13 @@ const GLSSettingsPage = () => {
     new Set()
   )
   const [seededConfigId, setSeededConfigId] = useState<string | null>(null)
-  const [selectedEnvironment, setSelectedEnvironment] = useState<GLSEnvironment | null>(null)
-  const [confirmProductionActivation, setConfirmProductionActivation] = useState(false)
+  const [selectedEnvironment, setSelectedEnvironment] =
+    useState<GLSEnvironment | null>(null)
+  const [confirmProductionActivation, setConfirmProductionActivation] =
+    useState(false)
 
   const { data, isLoading, error } = useQuery({
-    queryFn: () =>
-      sdk.client.fetch<GLSProfilesResponse>("/admin/gls-config"),
+    queryFn: () => sdk.client.fetch<GLSProfilesResponse>("/admin/gls-config"),
     queryKey: ["gls-config"],
   })
 
@@ -285,15 +286,25 @@ const GLSSettingsPage = () => {
       toast.success("GLS configuration profile activated")
     },
     onError: (err) => {
-      toast.error(`Failed to activate profile: ${err instanceof Error ? err.message : String(err)}`)
+      toast.error(
+        `Failed to activate profile: ${err instanceof Error ? err.message : String(err)}`
+      )
     },
   })
 
-  const displayedEnvironment = selectedEnvironment ?? data?.active_environment ?? "testing"
-  const glsConfig = data?.profiles.find((profile) => profile.environment === displayedEnvironment)
+  const displayedEnvironment =
+    selectedEnvironment ?? data?.active_environment ?? "testing"
+  const glsConfig = data?.profiles.find(
+    (profile) => profile.environment === displayedEnvironment
+  )
 
   useEffect(() => {
-    setSelectedEnvironment((current) => current && data?.profiles.some((profile) => profile.environment === current) ? current : data?.active_environment ?? null)
+    setSelectedEnvironment((current) =>
+      current &&
+      data?.profiles.some((profile) => profile.environment === current)
+        ? current
+        : (data?.active_environment ?? null)
+    )
   }, [data])
 
   useEffect(() => {
@@ -348,9 +359,14 @@ const GLSSettingsPage = () => {
   const isFieldCleared = (field: keyof GLSConfigInput) =>
     isClearableField(field) && clearedFields.has(field)
 
-  const updateSupportedCountry = (country: GLSCountryCode, enabled: boolean) => {
+  const updateSupportedCountry = (
+    country: GLSCountryCode,
+    enabled: boolean
+  ) => {
     const currentCountries = formData.supported_countries ?? []
-    const nextCountries = enabled ? [...currentCountries, country] : currentCountries.filter((value) => value !== country)
+    const nextCountries = enabled
+      ? [...currentCountries, country]
+      : currentCountries.filter((value) => value !== country)
     updateField("supported_countries", Array.from(new Set(nextCountries)))
   }
 
@@ -554,9 +570,16 @@ const GLSSettingsPage = () => {
                 {STOREFRONT_MARKETS.map((country) => {
                   const checkboxId = `gls-supported-country-${country.value.toLowerCase()}`
                   return (
-                    <div className="flex items-center gap-2" key={country.value}>
+                    <div
+                      className="flex items-center gap-2"
+                      key={country.value}
+                    >
                       <Checkbox
-                        checked={formData.supported_countries?.includes(country.value as GLSCountryCode) ?? false}
+                        checked={
+                          formData.supported_countries?.includes(
+                            country.value as GLSCountryCode
+                          ) ?? false
+                        }
                         id={checkboxId}
                         onCheckedChange={(checked) =>
                           updateSupportedCountry(
@@ -565,7 +588,9 @@ const GLSSettingsPage = () => {
                           )
                         }
                       />
-                      <Label htmlFor={checkboxId}>{country.label.split(" (")[0]}</Label>
+                      <Label htmlFor={checkboxId}>
+                        {country.label.split(" (")[0]}
+                      </Label>
                     </div>
                   )
                 })}

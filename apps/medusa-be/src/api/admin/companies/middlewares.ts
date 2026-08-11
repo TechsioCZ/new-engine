@@ -17,6 +17,7 @@ import {
   AdminGetEmployeeParams,
   AdminUpdateApprovalSettings,
   AdminUpdateCompany,
+  AdminUpdateCompanyApplicationStatus,
   AdminUpdateEmployee,
 } from "./validators"
 
@@ -79,6 +80,17 @@ export const adminCompaniesMiddlewares: MiddlewareRoute[] = [
     method: ["POST"],
     matcher: "/admin/companies/:id/restore",
     middlewares: [
+      validateAndTransformQuery(
+        AdminGetCompanyParams,
+        adminCompanyQueryConfig.retrieve
+      ),
+    ],
+  },
+  {
+    method: ["POST"],
+    matcher: "/admin/companies/:id/application-status",
+    middlewares: [
+      validateAndTransformBody(AdminUpdateCompanyApplicationStatus),
       validateAndTransformQuery(
         AdminGetCompanyParams,
         adminCompanyQueryConfig.retrieve

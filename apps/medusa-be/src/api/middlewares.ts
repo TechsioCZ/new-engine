@@ -44,6 +44,7 @@ import { storeReviewRoutesMiddlewares } from "./store/reviews/middlewares"
 import { storeSearchAutocompleteRoutesMiddlewares } from "./store/search/autocomplete/middlewares"
 import { storeShopReviewRoutesMiddlewares } from "./store/shop-reviews/middlewares"
 import { storeStorefrontTextRoutesMiddlewares } from "./store/storefront-texts/middlewares"
+import { storeVolumeDiscountsRoutesMiddlewares } from "./store/volume-discounts/middlewares"
 
 const originalErrorHandler = errorHandler()
 
@@ -106,5 +107,6 @@ export default defineMiddlewares({
     ...storeReviewRoutesMiddlewares,
     ...storeShopReviewRoutesMiddlewares,
     ...storeStorefrontTextRoutesMiddlewares,
+    ...storeVolumeDiscountsRoutesMiddlewares,
   ],
 })

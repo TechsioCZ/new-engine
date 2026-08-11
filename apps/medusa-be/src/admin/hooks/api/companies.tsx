@@ -224,6 +224,54 @@ export const useAddCompanyToCustomerGroup = (
   })
 }
 
+type CompanyApplicationStatusUpdate = {
+  status: "approved" | "pending" | "rejected"
+}
+
+const useUpdateCompanyApplicationStatus = (
+  companyId: string,
+  options?: UseMutationOptions<
+    AdminCompanyResponse,
+    FetchError,
+    CompanyApplicationStatusUpdate
+  >
+) => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (body) =>
+      sdk.client.fetch<AdminCompanyResponse>(
+        `/admin/companies/${companyId}/application-status`,
+        {
+          method: "POST",
+          body,
+        }
+      ),
+    onSuccess: (data, variables, context) => {
+      queryClient.invalidateQueries({
+        queryKey: companyQueryKey.lists(),
+      })
+      queryClient.invalidateQueries({
+        queryKey: companyQueryKey.details(),
+      })
+      queryClient.invalidateQueries({
+        queryKey: customerQueryKey.lists(),
+      })
+      options?.onSuccess?.(data, variables, context)
+    },
+    ...options,
+  })
+}
+
+export const useUpdateCompanyApplicationStatusMutation = (
+  companyId: string,
+  options?: UseMutationOptions<
+    AdminCompanyResponse,
+    FetchError,
+    CompanyApplicationStatusUpdate
+  >
+) => useUpdateCompanyApplicationStatus(companyId, options)
+
 export const useRemoveCompanyFromCustomerGroup = (
   companyId: string,
   options?: UseMutationOptions<void, FetchError, string>

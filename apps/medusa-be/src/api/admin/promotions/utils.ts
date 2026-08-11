@@ -6,6 +6,7 @@ import { customRuleAttributes } from "./const"
 import type {
   GetRuleAttributesMapParams,
   ProductVariantInput,
+  PromotionRuleAttribute,
   RuleType,
   RuleValueOption,
 } from "./types"
@@ -43,7 +44,7 @@ export function mapVariantToRuleValueOption(
 
 export function getExtendedRuleAttributesMap(
   params: GetRuleAttributesMapParams
-) {
+): Record<RuleType, PromotionRuleAttribute[]> {
   const map = getRuleAttributesMap(params)
   const itemRuleAttributes =
     params.applicationMethodTargetType === "shipping_methods"
@@ -57,12 +58,12 @@ export function getExtendedRuleAttributesMap(
       itemRuleAttributes
     ),
     "buy-rules": appendMissingAttributes(map["buy-rules"], itemRuleAttributes),
-  } satisfies Record<RuleType, typeof map.rules>
+  }
 }
 
-function appendMissingAttributes<T extends { id: string }>(
-  baseAttributes: T[],
-  customAttributes: readonly T[]
+function appendMissingAttributes(
+  baseAttributes: PromotionRuleAttribute[],
+  customAttributes: readonly PromotionRuleAttribute[]
 ) {
   const existingIds = new Set(baseAttributes.map((attribute) => attribute.id))
   const additions = customAttributes.filter(

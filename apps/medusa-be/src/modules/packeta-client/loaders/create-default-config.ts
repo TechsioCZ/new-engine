@@ -56,6 +56,9 @@ export default async function createDefaultConfigLoader({
   })
   const testingProfile = testingProfiles[0] as { id?: string } | undefined
   if (testingProfile?.id) {
-    await packetaConfigService.update({ id: testingProfile.id, is_active: true })
+    await packetaConfigService.update({
+      id: testingProfile.id,
+      is_active: true,
+    })
   }
 }

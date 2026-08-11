@@ -72,6 +72,11 @@ export const PostAdminOrderExpeditionPdfSchema = z
     }
   )
 
+export const PostAdminOrderExpeditionFulfillmentSchema = z.object({
+  location_id: z.string().min(1),
+  no_notification: z.boolean().optional(),
+})
+
 export const PostAdminOrderExpeditionStatusSchema = z.object({
   order_ids: z
     .array(z.string().min(1))
@@ -86,6 +91,10 @@ export type GetAdminOrderExpeditionOrdersSchemaType = z.infer<
 
 export type PostAdminOrderExpeditionPdfSchemaType = z.infer<
   typeof PostAdminOrderExpeditionPdfSchema
+>
+
+export type PostAdminOrderExpeditionFulfillmentSchemaType = z.infer<
+  typeof PostAdminOrderExpeditionFulfillmentSchema
 >
 
 export type PostAdminOrderExpeditionStatusSchemaType = z.infer<

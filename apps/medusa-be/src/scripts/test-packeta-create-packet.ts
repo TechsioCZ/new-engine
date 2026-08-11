@@ -3,6 +3,7 @@ import {
   PACKETA_CLIENT_MODULE,
   type PacketaClientModuleService,
 } from "../modules/packeta-client"
+import { createPacketaPacketWorkflow } from "../workflows/packeta/create-packeta-packet"
 
 /**
  * Manual smoke test for Packeta createPacket against the real Packeta API.
@@ -63,16 +64,20 @@ export default async function testPacketaCreatePacket({ container }: ExecArgs) {
   )
 
   try {
-    const result = await packetaService.createPacket({
-      number: orderRef,
-      name: "Jan",
-      surname: "Tester",
-      email: process.env.PACKETA_TEST_EMAIL ?? "test@example.com",
-      phone: process.env.PACKETA_TEST_PHONE ?? "+420777123456",
-      addressId,
-      value,
-      currency: "CZK",
-      weight,
+    const { result } = await createPacketaPacketWorkflow(container).run({
+      input: {
+        attributes: {
+          number: orderRef,
+          name: "Jan",
+          surname: "Tester",
+          email: process.env.PACKETA_TEST_EMAIL ?? "test@example.com",
+          phone: process.env.PACKETA_TEST_PHONE ?? "+420777123456",
+          addressId,
+          value,
+          currency: "CZK",
+          weight,
+        },
+      },
     })
 
     process.stdout.write("\nSUCCESS:\n")

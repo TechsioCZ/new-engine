@@ -20,6 +20,15 @@ export interface ModuleCompanyFilters
   id?: string | string[]
 }
 
+type ModuleCompanyUpdateSelector = Partial<
+  Pick<ModuleCompany, "application_changed_at" | "id">
+>
+
+type ModuleCompanyUpdateSelectorInput = {
+  data: Omit<ModuleUpdateCompany, "id">
+  selector: ModuleCompanyUpdateSelector
+}
+
 export interface ModuleEmployeeFilters
   extends BaseFilterable<ModuleEmployeeFilters> {
   q?: string
@@ -55,7 +64,7 @@ export interface ICompanyModuleService extends IModuleService {
   ): Promise<ModuleCompany>
 
   updateCompanies(
-    data: ModuleUpdateCompany[],
+    data: ModuleCompanyUpdateSelectorInput | ModuleUpdateCompany[],
     sharedContext?: Context
   ): Promise<ModuleCompany[]>
 
