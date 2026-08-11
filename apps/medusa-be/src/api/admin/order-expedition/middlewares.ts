@@ -3,7 +3,6 @@ import type { MiddlewareRoute } from "@medusajs/framework/http"
 import { validateAndTransformBody } from "@medusajs/framework/http"
 import {
   GetAdminOrderExpeditionOrdersSchema,
-  PostAdminOrderExpeditionFulfillmentSchema,
   PostAdminOrderExpeditionPdfSchema,
   PostAdminOrderExpeditionStatusSchema,
 } from "./validators"
@@ -16,13 +15,6 @@ export const adminOrderExpeditionRoutesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformQuery(GetAdminOrderExpeditionOrdersSchema, {
         isList: true,
       }),
-    ],
-  },
-  {
-    methods: ["POST"],
-    matcher: "/admin/order-expedition/orders/:id/fulfillments",
-    middlewares: [
-      validateAndTransformBody(PostAdminOrderExpeditionFulfillmentSchema),
     ],
   },
   {
