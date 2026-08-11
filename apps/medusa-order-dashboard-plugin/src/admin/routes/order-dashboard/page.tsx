@@ -5,6 +5,8 @@ import {
   Eye,
   OpenRectArrowOut,
   Spinner,
+  UserGroup,
+  XCircle,
 } from "@medusajs/icons"
 import {
   Badge,
@@ -132,7 +134,7 @@ type TranslationFunction = (
   key: string,
   options?: Record<string, unknown>
 ) => string
-type StatusBadgeColor = "green" | "red" | "blue" | "orange" | "grey" | "purple"
+type BadgeColor = "green" | "red" | "blue" | "orange" | "grey" | "purple"
 
 const labelFormats: OrderDashboardLabelFormat[] = ["A6", "A7"]
 const packetaLabelStartPositions = [1, 2, 3, 4] as const
@@ -156,7 +158,7 @@ const fulfillmentStatusColors = {
   requires_action: "orange",
   returned: "green",
   shipped: "green",
-} as const satisfies Record<string, StatusBadgeColor>
+} as const satisfies Record<string, BadgeColor>
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: This admin route coordinates table state, batch actions, and modals.
 const OrderDashboardPage = () => {
@@ -356,23 +358,48 @@ const OrderDashboardPage = () => {
       ...sortableColumnLabels,
     }),
     columnHelper.display({
-      cell: ({ row }) =>
-        row.original.note ? (
-          <Tooltip content={row.original.note}>
-            <IconBadge
-              aria-label={t("signals.customerNote")}
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1">
+          {row.original.note ? (
+            <OrderAlertIcon
               color="grey"
-              size="base"
+              content={row.original.note}
+              label={t("signals.customerNote")}
             >
               <DocumentText />
-            </IconBadge>
-          </Tooltip>
-        ) : null,
+            </OrderAlertIcon>
+          ) : null}
+          {row.original.signals.returning_customer ? (
+            <OrderAlertIcon color="blue" label={t("signals.returningCustomer")}>
+              <UserGroup />
+            </OrderAlertIcon>
+          ) : null}
+          {row.original.signals.storn_orders ? (
+            <OrderAlertIcon
+              color="red"
+              label={t("signals.previousCancellation")}
+            >
+              <XCircle />
+            </OrderAlertIcon>
+          ) : null}
+          {row.original.signals.wholesale_company_name ? (
+            <OrderAlertIcon
+              color="purple"
+              content={t("signals.wholesaleCustomerCompany", {
+                company: row.original.signals.wholesale_company_name,
+              })}
+              label={t("signals.wholesaleCustomer")}
+            >
+              <Buildings />
+            </OrderAlertIcon>
+          ) : null}
+        </div>
+      ),
       header: t("columns.signals"),
       id: "signals",
-      maxSize: 80,
-      minSize: 72,
-      size: 72,
+      maxSize: 120,
+      minSize: 112,
+      size: 112,
     }),
     columnHelper.accessor("carrier.value", {
       cell: ({ row }) => (
@@ -1596,6 +1623,7 @@ function OrderDashboardDetailModal({
     ? t(`statuses.${order.manual_status}`)
     : t("manualStatus.none")
   const fulfillmentStatus = getFulfillmentStatusDisplay(order, t)
+  const hasCustomerAlerts = hasOrderCustomerAlerts(order)
 
   return (
     <FocusModal onOpenChange={onOpenChange} open>
@@ -1654,6 +1682,38 @@ function OrderDashboardDetailModal({
                 {fulfillmentStatus.label}
               </OrderDetailField>
             </div>
+
+            {hasCustomerAlerts ? (
+              <div className="flex flex-col gap-2">
+                <Text leading="compact" size="small" weight="plus">
+                  {t("columns.signals")}
+                </Text>
+                <div className="flex flex-wrap gap-2">
+                  {order.note ? (
+                    <Badge color="grey" size="2xsmall">
+                      {t("signals.customerNote")}
+                    </Badge>
+                  ) : null}
+                  {order.signals.returning_customer ? (
+                    <Badge color="blue" size="2xsmall">
+                      {t("signals.returningCustomer")}
+                    </Badge>
+                  ) : null}
+                  {order.signals.storn_orders ? (
+                    <Badge color="red" size="2xsmall">
+                      {t("signals.previousCancellation")}
+                    </Badge>
+                  ) : null}
+                  {order.signals.wholesale_company_name ? (
+                    <Badge color="purple" size="2xsmall">
+                      {t("signals.wholesaleCustomerCompany", {
+                        company: order.signals.wholesale_company_name,
+                      })}
+                    </Badge>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
 
             {order.note ? (
               <div className="flex flex-col gap-2">
@@ -1753,6 +1813,35 @@ function OrderDetailField({
         {children}
       </Text>
     </div>
+  )
+}
+
+function OrderAlertIcon({
+  children,
+  color,
+  content,
+  label,
+}: {
+  children: ReactNode
+  color: BadgeColor
+  content?: string
+  label: string
+}) {
+  return (
+    <Tooltip content={content ?? label}>
+      <IconBadge aria-label={label} color={color} size="base">
+        {children}
+      </IconBadge>
+    </Tooltip>
+  )
+}
+
+function hasOrderCustomerAlerts(order: OrderDashboardOrder) {
+  return Boolean(
+    order.note ||
+      order.signals.returning_customer ||
+      order.signals.storn_orders ||
+      order.signals.wholesale_company_name
   )
 }
 

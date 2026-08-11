@@ -15,7 +15,7 @@ export type OrderExpeditionCustomerSignalCounts = {
 
 type OrderSignalSource = Pick<
   OrderExpeditionRawOrder,
-  "customer_id" | "id" | "metadata" | "status"
+  "customer" | "customer_id" | "id" | "metadata" | "status"
 >
 
 type CustomerOrderCounters = {
@@ -82,13 +82,16 @@ function buildOrderExpeditionCustomerSignals(
       ? customerCounters.get(order.customer_id)
       : undefined
   const returningCustomer = (customerCounter?.totalCount ?? 0) >= 2
+  const currentOrderCancellation = order.status === "canceled" ? 1 : 0
   const stornOrders =
-    order.status === "canceled" && (customerCounter?.canceledCount ?? 0) >= 2
+    (customerCounter?.canceledCount ?? 0) - currentOrderCancellation > 0
+  const wholesaleCompanyName = resolveWholesaleCompanyName(order)
 
   return {
     note,
     returning_customer: returningCustomer,
     storn_orders: stornOrders,
+    wholesale_company_name: wholesaleCompanyName,
   }
 }
 
@@ -99,6 +102,19 @@ function accumulateOrderExpeditionCustomerSignalCounts(
   counts.note += signals.note ? 1 : 0
   counts.returning_customer += signals.returning_customer ? 1 : 0
   counts.storn_orders += signals.storn_orders ? 1 : 0
+}
+
+function resolveWholesaleCompanyName(order: OrderSignalSource) {
+  const employee = order.customer?.employee
+  const company = employee?.company
+
+  if (employee?.deleted_at || company?.deleted_at) {
+    return null
+  }
+
+  const companyName = company?.name?.trim()
+
+  return companyName || null
 }
 
 function resolveOrderExpeditionCustomerNote(

@@ -97,6 +97,7 @@ describe("order expedition helpers", () => {
         note: true,
         returning_customer: false,
         storn_orders: false,
+        wholesale_company_name: null,
       },
       "Please call before delivery."
     )
@@ -112,6 +113,7 @@ describe("order expedition helpers", () => {
         note: true,
         returning_customer: false,
         storn_orders: false,
+        wholesale_company_name: null,
       },
       status: "pending",
       total: 47.39,

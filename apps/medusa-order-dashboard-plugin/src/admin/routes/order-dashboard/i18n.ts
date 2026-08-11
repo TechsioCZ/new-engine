@@ -52,7 +52,14 @@ export type OrderDashboardAdminI18nNamespace = {
     | "total",
     string
   >
-  signals: Record<"customerNote", string>
+  signals: Record<
+    | "customerNote"
+    | "previousCancellation"
+    | "returningCustomer"
+    | "wholesaleCustomer"
+    | "wholesaleCustomerCompany",
+    string
+  >
   filters: Record<
     | "allCarriers"
     | "createdAt"
@@ -307,6 +314,10 @@ const englishOrderDashboardAdminI18n = {
   },
   signals: {
     customerNote: "Note",
+    previousCancellation: "Previous canceled order",
+    returningCustomer: "Returning customer",
+    wholesaleCustomer: "Wholesale customer",
+    wholesaleCustomerCompany: "Wholesale customer: {{company}}",
   },
   filters: {
     allCarriers: "All carriers",
@@ -593,6 +604,10 @@ const czechOrderDashboardAdminI18n = {
   },
   signals: {
     customerNote: "Poznámka",
+    previousCancellation: "Předchozí storno",
+    returningCustomer: "Vracející se zákazník",
+    wholesaleCustomer: "Velkoobchodní zákazník",
+    wholesaleCustomerCompany: "Velkoobchodní zákazník: {{company}}",
   },
   filters: {
     allCarriers: "Všichni dopravci",

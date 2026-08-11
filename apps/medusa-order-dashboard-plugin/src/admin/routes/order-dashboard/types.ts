@@ -126,6 +126,13 @@ export type OrderDashboardItem = {
   variant?: string | null
 }
 
+export type OrderDashboardCustomerSignals = {
+  note: boolean
+  returning_customer: boolean
+  storn_orders: boolean
+  wholesale_company_name: string | null
+}
+
 export type OrderDashboardOrder = {
   id: string
   business_status: OrderDashboardBusinessStatus
@@ -144,6 +151,7 @@ export type OrderDashboardOrder = {
   order_display_id: string
   payment_method: string | null
   payment_status?: string | null
+  signals: OrderDashboardCustomerSignals
   status?: string | null
   total?: number | string | null
 }

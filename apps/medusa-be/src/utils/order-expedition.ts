@@ -170,6 +170,14 @@ export type OrderExpeditionCustomer = {
   last_name?: string | null
   email?: string | null
   company_name?: string | null
+  employee?: {
+    deleted_at?: Date | string | null
+    company?: {
+      deleted_at?: Date | string | null
+      id?: string | null
+      name?: string | null
+    } | null
+  } | null
 }
 
 export type OrderExpeditionRawOrder = {
@@ -217,6 +225,7 @@ export type OrderExpeditionCustomerSignals = {
   note: boolean
   returning_customer: boolean
   storn_orders: boolean
+  wholesale_company_name: string | null
 }
 
 export type OrderExpeditionOrderDto = {
@@ -283,6 +292,10 @@ export const ORDER_EXPEDITION_ORDER_FIELDS = [
   "customer.last_name",
   "customer.email",
   "customer.company_name",
+  "customer.employee.deleted_at",
+  "customer.employee.company.id",
+  "customer.employee.company.name",
+  "customer.employee.company.deleted_at",
   "shipping_address.first_name",
   "shipping_address.last_name",
   "shipping_address.company",
@@ -514,6 +527,7 @@ export function toOrderExpeditionDto(
     note: false,
     returning_customer: false,
     storn_orders: false,
+    wholesale_company_name: null,
   },
   noteOverride?: string | null
 ): OrderExpeditionOrderDto {
