@@ -1,11 +1,13 @@
 import type { ExecArgs, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { synchronizeSearchProfiles } from "../modules/meilisearch/synchronize"
+import { synchronizeSearchProfilesWorkflow } from "../workflows/meilisearch/workflows/synchronize-search-profiles"
 
-export default async function searchIndexScript({ container }: ExecArgs) {
+export default async function searchIndexScript({ args, container }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-  const mode = process.argv.includes("--full") ? "full" : "normal"
-  const result = await synchronizeSearchProfiles(container, mode)
+  const mode = args.includes("full") ? "full" : "normal"
+  const { result } = await synchronizeSearchProfilesWorkflow(container).run({
+    input: { mode },
+  })
 
   logger.info(
     "Meilisearch search-profile sync complete: mode=" +
