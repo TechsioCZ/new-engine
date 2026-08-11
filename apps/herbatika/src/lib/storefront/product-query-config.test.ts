@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  PRODUCT_BRAND_GPSR_FIELDS,
   PRODUCT_CARD_FIELDS,
   PRODUCT_DETAIL_FIELDS,
   RELATED_PRODUCT_FIELDS,
@@ -22,6 +23,14 @@ describe("product query fields", () => {
 
   it("requests variant metadata as an atomic JSON field", () => {
     expect(PRODUCT_DETAIL_FIELDS.split(",")).toContain("+variants.metadata")
+  })
+
+  it("requests the public GPSR fields from the linked product brand", () => {
+    const selectors = PRODUCT_DETAIL_FIELDS.split(",")
+
+    expect(selectors).toEqual(
+      expect.arrayContaining([...PRODUCT_BRAND_GPSR_FIELDS])
+    )
   })
 
   it.each(
