@@ -11,5 +11,5 @@ export default async function meilisearchNormalSyncJob(
 
 export const config = {
   name: "meilisearch-normal-sync",
-  schedule: "0 */4 * * *",
+  schedule: "*/30 * * * *",
 }
