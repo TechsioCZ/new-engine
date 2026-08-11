@@ -3,6 +3,15 @@
 import type { CustomerDTO, CustomerGroupDTO } from "@medusajs/framework/types"
 import type { ModuleApprovalSettings } from "../approval"
 
+export const ModuleCompanyApplicationStatus = {
+  PENDING: "pending",
+  APPROVED: "approved",
+  REJECTED: "rejected",
+} as const
+
+export type ModuleCompanyApplicationStatus =
+  (typeof ModuleCompanyApplicationStatus)[keyof typeof ModuleCompanyApplicationStatus]
+
 export const ModuleCompanySpendingLimitResetFrequency = {
   NEVER: "never",
   DAILY: "daily",
@@ -27,6 +36,8 @@ export type ModuleCompany = {
   logo_url: string | null
   currency_code: string | null
   spending_limit_reset_frequency: ModuleCompanySpendingLimitResetFrequency
+  application_status: ModuleCompanyApplicationStatus
+  application_changed_at: Date | null
   created_at: Date
   updated_at: Date
   deleted_at?: Date | null
@@ -46,6 +57,8 @@ export type ModuleCreateCompany = {
   logo_url?: string | null
   currency_code: string
   spending_limit_reset_frequency?: ModuleCompanySpendingLimitResetFrequency
+  application_status?: ModuleCompanyApplicationStatus
+  application_changed_at?: Date | null
 }
 
 export interface ModuleUpdateCompany extends Partial<ModuleCompany> {

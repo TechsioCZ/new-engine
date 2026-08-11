@@ -38,6 +38,7 @@ const buildCompanyListFilters = (
 ) => {
   const {
     order_by: _orderBy,
+    application_status: requestedApplicationStatus,
     q,
     status: requestedStatus,
     ...filters
@@ -55,6 +56,13 @@ const buildCompanyListFilters = (
       { email: { $ilike: `%${escapedSearchTerm}%` } },
       { phone: { $ilike: `%${escapedSearchTerm}%` } },
     ]
+  }
+
+  if (
+    typeof requestedApplicationStatus === "string" &&
+    requestedApplicationStatus !== "all"
+  ) {
+    filters.application_status = requestedApplicationStatus
   }
 
   if (status === "deleted") {

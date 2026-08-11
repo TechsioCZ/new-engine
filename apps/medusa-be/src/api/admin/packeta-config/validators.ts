@@ -7,7 +7,10 @@ export const PostAdminPacketaConfigSchema = z.object({
   allow_live_operations: z.boolean().optional(),
   api_password: z.string().nullable().optional(),
   widget_api_key: z.string().nullable().optional(),
-  widget_countries: z.array(z.enum(["sk", "cz", "hu", "ro"])).max(4).optional(),
+  widget_countries: z
+    .array(z.enum(["sk", "cz", "hu", "ro"]))
+    .max(4)
+    .optional(),
   sender_label: z.string().max(50).optional(),
   eshop_id: z.string().max(50).optional(),
   default_label_format: z.enum(["A6", "A7"]).optional(),

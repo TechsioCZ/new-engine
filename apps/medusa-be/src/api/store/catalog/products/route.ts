@@ -304,8 +304,7 @@ const getLowestCalculatedProductPrice = (
   const selectedVariantId = product.search_result?.variant_id
   const selectedVariant = (product.variants ?? []).find(
     (variant) =>
-      typeof selectedVariantId === "string" &&
-      variant.id === selectedVariantId
+      typeof selectedVariantId === "string" && variant.id === selectedVariantId
   )
   const selectedVariantPrice =
     selectedVariant?.calculated_price?.calculated_amount
@@ -501,30 +500,31 @@ export async function GET(
           ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
         ]
       : STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS
-    const { data: fallbackProducts, metadata: fallbackMetadata } = await queryService.graph({
-      entity: "product",
-      fields: productFields,
-      filters: await normalizeProductSalesChannelFilter(
-        queryService,
-        remoteQuery,
-        {
-          ...(cleanedQuery ? { q: cleanedQuery } : {}),
-          sales_channel_id: req.filterableFields.sales_channel_id,
-          status: ProductStatus.PUBLISHED,
-        }
-      ),
-      pagination: {
-        take: limit,
-        skip: offset,
-      },
-      context: pricingContext
-        ? {
-            variants: {
-              calculated_price: pricingContext,
-            },
+    const { data: fallbackProducts, metadata: fallbackMetadata } =
+      await queryService.graph({
+        entity: "product",
+        fields: productFields,
+        filters: await normalizeProductSalesChannelFilter(
+          queryService,
+          remoteQuery,
+          {
+            ...(cleanedQuery ? { q: cleanedQuery } : {}),
+            sales_channel_id: req.filterableFields.sales_channel_id,
+            status: ProductStatus.PUBLISHED,
           }
-        : undefined,
-    })
+        ),
+        pagination: {
+          take: limit,
+          skip: offset,
+        },
+        context: pricingContext
+          ? {
+              variants: {
+                calculated_price: pricingContext,
+              },
+            }
+          : undefined,
+      })
 
     await wrapProductsWithTaxPrices(
       req,
@@ -542,7 +542,9 @@ export async function GET(
       count: fallbackMetadata?.count ?? fallbackProducts.length,
       page,
       limit,
-      totalPages: Math.ceil((fallbackMetadata?.count ?? fallbackProducts.length) / limit),
+      totalPages: Math.ceil(
+        (fallbackMetadata?.count ?? fallbackProducts.length) / limit
+      ),
       facets: {
         status: mapStatusFacets(new Map()),
         form: mapFormFacets(new Map()),
@@ -621,7 +623,9 @@ export async function GET(
   )
   await wrapProductsWithTaxPrices(
     req,
-    orderedProducts as unknown as Parameters<typeof wrapProductsWithTaxPrices>[1]
+    orderedProducts as unknown as Parameters<
+      typeof wrapProductsWithTaxPrices
+    >[1]
   )
 
   const finalProducts = authoritativePriceSortDirection
@@ -665,10 +669,7 @@ export async function GET(
       )
     : getFacetDistribution(searchResult.facetDistribution, "facet_ingredient")
   const priceFacetStats = cleanedQuery
-    ? getNumericFacetStatsFromHits(
-        rankedProducts.selectedHits,
-        "facet_price"
-      )
+    ? getNumericFacetStatsFromHits(rankedProducts.selectedHits, "facet_price")
     : getNumericFacetStats(searchResult.facetStats, "facet_price")
 
   const [brandLabelsById, ingredientLabelsById] = await Promise.all([

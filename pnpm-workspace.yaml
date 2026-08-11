@@ -78,13 +78,6 @@ peerDependencyRules:
     # 8 test runtime independently from Medusa Admin's Vite 5 toolchain.
     '@medusajs/types@2.18.0>vite': 8.1.3
     'fdir@6.1.1>picomatch': 4.0.5
-    # 0.2.5 is the latest content-plugin release and pins its Medusa host
-    # peers to 2.17.2. Its compiled API usage remains compatible with 2.18.0;
-    # the backend/Admin builds verify these exact exceptions.
-    'medusa-plugin-content@0.2.5>@medusajs/framework': 2.18.0
-    'medusa-plugin-content@0.2.5>@medusajs/js-sdk': 2.18.0
-    'medusa-plugin-content@0.2.5>@medusajs/medusa': 2.18.0
-
 supportedArchitectures:
   # `current` still covers Windows when it is the active host. Darwin + Linux
   # and x64 + arm64 are retained for the shared host/Docker store. Runtime
@@ -124,12 +117,6 @@ packageExtensions:
       '@medusajs/utils': 2.18.0
       '@medusajs/workflows-sdk': 2.18.0
       zod: ^4.2.0
-  'medusa-plugin-content@0.2.5':
-    dependencies:
-      # The prebuilt Admin bundle imports React Query without declaring it.
-      # Bind it to the dashboard's exact version so both use one query context.
-      '@tanstack/react-query': 5.64.2
-
 patchedDependencies:
   '@lexical/code@0.35.0': patches/@lexical__code@0.35.0.patch
   '@rokmohar/medusa-plugin-meilisearch@1.4.3': patches/@rokmohar__medusa-plugin-meilisearch@1.4.3.patch

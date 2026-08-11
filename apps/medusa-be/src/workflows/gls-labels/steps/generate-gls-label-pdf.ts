@@ -1,5 +1,8 @@
 import type { Query } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, MedusaError } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import {
   GLS_CLIENT_MODULE,
@@ -51,10 +54,22 @@ export const generateGLSLabelPdfStep = createStep(
     )
     const firstLabel = labels[0]
     if (!firstLabel) {
-      throw new MedusaError(MedusaError.Types.INVALID_DATA, "GLS: No printable labels found")
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "GLS: No printable labels found"
+      )
     }
-    if (labels.some((label) => label.config_id !== firstLabel.config_id || label.environment !== firstLabel.environment)) {
-      throw new MedusaError(MedusaError.Types.INVALID_DATA, "GLS: Labels from different configuration profiles must be printed separately")
+    if (
+      labels.some(
+        (label) =>
+          label.config_id !== firstLabel.config_id ||
+          label.environment !== firstLabel.environment
+      )
+    ) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "GLS: Labels from different configuration profiles must be printed separately"
+      )
     }
     const pdf = await glsClient.downloadLabelsPdf(
       labels.map((label) => label.packet_id),

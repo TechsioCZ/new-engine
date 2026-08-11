@@ -125,7 +125,10 @@ export async function buildGLSPacketAttributes(params: {
 
   if (shippingData.supports_cod) {
     attributes.cod = getRequiredPacketOrderTotal(order)
-    attributes.currency = getRequiredPacketCurrency(order, attributes.delivery_country)
+    attributes.currency = getRequiredPacketCurrency(
+      order,
+      attributes.delivery_country
+    )
   }
 
   return attributes
@@ -238,7 +241,11 @@ function getRequiredPacketCurrency(
   )?.toUpperCase()
 
   const expectedCurrency = GLS_COD_CURRENCIES_BY_COUNTRY[countryCode]
-  if (currency && ISO_CURRENCY_CODE_REGEX.test(currency) && expectedCurrency === currency) {
+  if (
+    currency &&
+    ISO_CURRENCY_CODE_REGEX.test(currency) &&
+    expectedCurrency === currency
+  ) {
     return currency
   }
 

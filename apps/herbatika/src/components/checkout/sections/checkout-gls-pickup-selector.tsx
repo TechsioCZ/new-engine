@@ -204,7 +204,9 @@ function getBranchName(branch: GLSBranch) {
   return branch.name || branch.nameStreet || branch.id
 }
 
-export function isGLSBranchesResponse(value: unknown): value is GLSBranchesResponse {
+export function isGLSBranchesResponse(
+  value: unknown
+): value is GLSBranchesResponse {
   if (typeof value !== "object" || value === null || !("branches" in value)) {
     return false
   }

@@ -247,7 +247,8 @@ export const GLS_STOREFRONT_COUNTRY_CODES = [
   "SK",
 ] as const satisfies readonly GLSCountryCode[]
 
-export type GLSStorefrontCountryCode = (typeof GLS_STOREFRONT_COUNTRY_CODES)[number]
+export type GLSStorefrontCountryCode =
+  (typeof GLS_STOREFRONT_COUNTRY_CODES)[number]
 
 export const GLS_PRINTER_TYPES = [
   "A4_2x2",

@@ -19,20 +19,20 @@ import {
 } from "@medusajs/framework/utils"
 import { GLS_CLIENT_MODULE, type GLSClientModuleService } from "../gls-client"
 import type {
-  GLSFulfillmentData,
   GLSCreatePacketResult,
+  GLSFulfillmentData,
   GLSOptions,
   GLSShippingOptionData,
 } from "../gls-client/types"
-import {
-  buildGLSPacketAttributes,
-  type QueryService,
-} from "./helpers/packet-attributes"
 import { resolveGLSCartContext } from "./helpers/cart-context"
 import {
   buildGLSFulfillmentOperationIdentity,
   resolveOrderFulfillmentIds,
 } from "./helpers/operation-key"
+import {
+  buildGLSPacketAttributes,
+  type QueryService,
+} from "./helpers/packet-attributes"
 
 type InjectedDependencies = {
   logger: Logger
@@ -56,7 +56,10 @@ const isGLSShippingOptionData = (
   }
 
   if (code === "home_delivery" || code === "home_delivery_cod") {
-    return requiresAccessPoint === false && supportsCod === (code === "home_delivery_cod")
+    return (
+      requiresAccessPoint === false &&
+      supportsCod === (code === "home_delivery_cod")
+    )
   }
 
   return (
@@ -102,15 +105,31 @@ const assertRequiredPickupPoint = (shippingData: GLSShippingOptionData) => {
   }
 }
 
-const resolveGLSOption = (optionCode: unknown): { code: GLSShippingOptionData["code"]; requiresAccessPoint: boolean; supportsCod: boolean } => {
-  if (optionCode !== "home_delivery" && optionCode !== "home_delivery_cod" && optionCode !== "parcelshop" && optionCode !== "parcelshop_cod") {
-    throw new MedusaError(MedusaError.Types.INVALID_DATA, "GLS: Invalid shipping option code")
+const resolveGLSOption = (
+  optionCode: unknown
+): {
+  code: GLSShippingOptionData["code"]
+  requiresAccessPoint: boolean
+  supportsCod: boolean
+} => {
+  if (
+    optionCode !== "home_delivery" &&
+    optionCode !== "home_delivery_cod" &&
+    optionCode !== "parcelshop" &&
+    optionCode !== "parcelshop_cod"
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "GLS: Invalid shipping option code"
+    )
   }
 
   return {
     code: optionCode,
-    requiresAccessPoint: optionCode === "parcelshop" || optionCode === "parcelshop_cod",
-    supportsCod: optionCode === "home_delivery_cod" || optionCode === "parcelshop_cod",
+    requiresAccessPoint:
+      optionCode === "parcelshop" || optionCode === "parcelshop_cod",
+    supportsCod:
+      optionCode === "home_delivery_cod" || optionCode === "parcelshop_cod",
   }
 }
 
@@ -190,7 +209,12 @@ export class GLSFulfillmentProviderService extends AbstractFulfillmentProviderSe
   override async validateOption(
     data: Record<string, unknown>
   ): Promise<boolean> {
-    return data.code === "home_delivery" || data.code === "home_delivery_cod" || data.code === "parcelshop" || data.code === "parcelshop_cod"
+    return (
+      data.code === "home_delivery" ||
+      data.code === "home_delivery_cod" ||
+      data.code === "parcelshop" ||
+      data.code === "parcelshop_cod"
+    )
   }
 
   override async validateFulfillmentData(
@@ -243,22 +267,39 @@ export class GLSFulfillmentProviderService extends AbstractFulfillmentProviderSe
             access_point_country: branch.country,
           }
         : {}),
-      email: typeof data.email === "string" ? data.email.trim() || undefined : undefined,
+      email:
+        typeof data.email === "string"
+          ? data.email.trim() || undefined
+          : undefined,
     } satisfies GLSShippingOptionData
   }
 
-  private async resolveCartContext(context: ValidateFulfillmentDataContext, config: GLSOptions) {
+  private async resolveCartContext(
+    context: ValidateFulfillmentDataContext,
+    config: GLSOptions
+  ) {
     if (!this.query_) {
-      throw new MedusaError(MedusaError.Types.UNEXPECTED_STATE, "GLS: Cart query service is unavailable")
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "GLS: Cart query service is unavailable"
+      )
     }
 
     const cartContext = await resolveGLSCartContext(this.query_, context.id)
-    const addressCountryCode = context.shipping_address?.country_code?.trim().toUpperCase()
+    const addressCountryCode = context.shipping_address?.country_code
+      ?.trim()
+      .toUpperCase()
     if (addressCountryCode && addressCountryCode !== cartContext.countryCode) {
-      throw new MedusaError(MedusaError.Types.INVALID_DATA, "GLS: Cart shipping country does not match its region")
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "GLS: Cart shipping country does not match its region"
+      )
     }
     if (!config.supported_countries.includes(cartContext.countryCode)) {
-      throw new MedusaError(MedusaError.Types.NOT_ALLOWED, "GLS is not enabled for this storefront market")
+      throw new MedusaError(
+        MedusaError.Types.NOT_ALLOWED,
+        "GLS is not enabled for this storefront market"
+      )
     }
 
     return cartContext
@@ -363,7 +404,10 @@ export class GLSFulfillmentProviderService extends AbstractFulfillmentProviderSe
     })
     const trackingUrl = `https://tracking.gls.com/${result.barcode}`
 
-    const labelUrl = await this.uploadLabel(result, { config_id: config.config_id, environment: config.environment })
+    const labelUrl = await this.uploadLabel(result, {
+      config_id: config.config_id,
+      environment: config.environment,
+    })
 
     const fulfillmentData: GLSFulfillmentData = {
       status: "completed",
@@ -396,7 +440,10 @@ export class GLSFulfillmentProviderService extends AbstractFulfillmentProviderSe
     }
   }
 
-  private async uploadLabel(result: GLSCreatePacketResult, reference: { config_id: string; environment: "testing" | "production" }): Promise<string | undefined> {
+  private async uploadLabel(
+    result: GLSCreatePacketResult,
+    reference: { config_id: string; environment: "testing" | "production" }
+  ): Promise<string | undefined> {
     try {
       const pdfBuffer =
         result.label_pdf && result.label_pdf.length > 0
@@ -429,7 +476,10 @@ export class GLSFulfillmentProviderService extends AbstractFulfillmentProviderSe
     }
     const fulfillmentData = data
     const packetId = fulfillmentData.packet_id
-    const configReference = { config_id: fulfillmentData.config_id, environment: fulfillmentData.environment }
+    const configReference = {
+      config_id: fulfillmentData.config_id,
+      environment: fulfillmentData.environment,
+    }
 
     if (!packetId) {
       throw new MedusaError(
