@@ -81,6 +81,20 @@ describe("promotion rule attribute route", () => {
 })
 
 describe("promotion rules route", () => {
+  it("returns not found when the promotion does not exist", async () => {
+    const remoteQuery = vi.fn().mockResolvedValue([])
+    const request = {
+      params: { id: "promo_missing", rule_type: "target-rules" },
+      query: {},
+      queryConfig: { fields: ["id"] },
+      scope: { resolve: vi.fn().mockReturnValue(remoteQuery) },
+    } as unknown as Parameters<typeof getPromotionRules>[0]
+
+    await expect(
+      getPromotionRules(request, createResponse())
+    ).rejects.toMatchObject({ type: "not_found" })
+  })
+
   it("returns stored item quantity rules for the standard Promotion editor", async () => {
     const remoteQuery = vi.fn().mockResolvedValue([
       {

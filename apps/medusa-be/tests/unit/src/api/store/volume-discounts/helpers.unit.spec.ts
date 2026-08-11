@@ -141,6 +141,54 @@ describe("toVolumeDiscountCandidate", () => {
 })
 
 describe("resolveApplicableVolumeDiscountTiers", () => {
+  it("bounds concurrent Medusa promotion evaluation", async () => {
+    let activeEvaluations = 0
+    let maximumActiveEvaluations = 0
+    const computeActions = vi.fn(
+      async (codes: string[], context: { items?: Array<{ id: string }> }) => {
+        activeEvaluations += 1
+        maximumActiveEvaluations = Math.max(
+          maximumActiveEvaluations,
+          activeEvaluations
+        )
+
+        await new Promise((resolve) => setTimeout(resolve, 5))
+        activeEvaluations -= 1
+
+        return [
+          {
+            action: "addItemAdjustment",
+            amount: 100,
+            code: codes[0] ?? "",
+            item_id: context.items?.[0]?.id ?? "",
+          },
+        ] as ComputeActions[]
+      }
+    )
+    const promotionService = { computeActions } as Pick<
+      IPromotionModuleService,
+      "computeActions"
+    >
+    const promotions = Array.from({ length: 8 }, (_, index) =>
+      createPromotion({
+        code: "VOLUME-".concat(String(index + 2)),
+        id: "promo_".concat(String(index + 2)),
+        minimumQuantity: index + 2,
+        percentage: 5,
+      })
+    )
+
+    await resolveApplicableVolumeDiscountTiers(
+      promotionService,
+      promotions,
+      createContext()
+    )
+
+    expect(maximumActiveEvaluations).toBeGreaterThan(1)
+    expect(maximumActiveEvaluations).toBeLessThanOrEqual(4)
+    expect(computeActions).toHaveBeenCalledTimes(8)
+  })
+
   it("uses Medusa to evaluate the exact market and customer context", async () => {
     const computeActions = vi.fn(
       async (_codes: string[], context: { items?: Array<{ id: string }> }) =>

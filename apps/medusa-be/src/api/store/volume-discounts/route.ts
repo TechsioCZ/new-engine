@@ -197,7 +197,7 @@ export async function GET(
   const { data } = await query.graph({
     entity: "promotion",
     fields: PROMOTION_FIELDS,
-    filters: { is_automatic: true, status: "active" },
+    filters: { is_automatic: true, status: "active", type: "standard" },
     pagination: { take: 1000 },
   })
   const countryCode = region.countries

@@ -53,6 +53,8 @@ type VolumeDiscountEvaluationContext = {
   unitAmount: number
 }
 
+const VOLUME_DISCOUNT_EVALUATION_CONCURRENCY = 4
+
 const toFiniteNumbers = (rule: PromotionRuleRecord): number[] =>
   (rule.values ?? [])
     .map((entry) => Number(entry.value))
@@ -211,6 +213,40 @@ const evaluateVolumeDiscountCandidate = async (
   }
 }
 
+const evaluateVolumeDiscountCandidates = async (
+  promotionService: Pick<IPromotionModuleService, "computeActions">,
+  candidates: VolumeDiscountCandidate[],
+  context: VolumeDiscountEvaluationContext
+): Promise<Array<VolumeDiscountTier | null>> => {
+  const evaluatedTiers = new Array<VolumeDiscountTier | null>(candidates.length)
+  let nextCandidateIndex = 0
+  const evaluateNextCandidate = async () => {
+    while (nextCandidateIndex < candidates.length) {
+      const candidateIndex = nextCandidateIndex
+      nextCandidateIndex += 1
+      const candidate = candidates[candidateIndex]
+
+      if (candidate) {
+        evaluatedTiers[candidateIndex] = await evaluateVolumeDiscountCandidate(
+          promotionService,
+          candidate,
+          context
+        )
+      }
+    }
+  }
+  const workerCount = Math.min(
+    VOLUME_DISCOUNT_EVALUATION_CONCURRENCY,
+    candidates.length
+  )
+
+  await Promise.all(
+    Array.from({ length: workerCount }, () => evaluateNextCandidate())
+  )
+
+  return evaluatedTiers
+}
+
 export const resolveApplicableVolumeDiscountTiers = async (
   promotionService: Pick<IPromotionModuleService, "computeActions">,
   promotions: VolumeDiscountPromotionRecord[],
@@ -221,23 +257,22 @@ export const resolveApplicableVolumeDiscountTiers = async (
     .filter(
       (candidate): candidate is VolumeDiscountCandidate => candidate !== null
     )
+  const evaluatedTiers = await evaluateVolumeDiscountCandidates(
+    promotionService,
+    candidates,
+    context
+  )
   const tiersByQuantity = new Map<number, VolumeDiscountTier>()
 
-  for (const candidate of candidates) {
-    const tier = await evaluateVolumeDiscountCandidate(
-      promotionService,
-      candidate,
-      context
-    )
-
+  for (const tier of evaluatedTiers) {
     if (!tier) {
       continue
     }
 
-    const currentTier = tiersByQuantity.get(candidate.minimum_quantity)
+    const currentTier = tiersByQuantity.get(tier.minimum_quantity)
 
-    if (!currentTier || candidate.percentage > currentTier.percentage) {
-      tiersByQuantity.set(candidate.minimum_quantity, tier)
+    if (!currentTier || tier.percentage > currentTier.percentage) {
+      tiersByQuantity.set(tier.minimum_quantity, tier)
     }
   }
 

@@ -105,7 +105,7 @@ function transformDisguisedRules(
     Boolean(candidate.disguised)
   )) {
     const value = applicationMethod?.[attribute.id]
-    const required = attribute.required ?? true
+    const required = attribute.required
 
     if (required || value) {
       transformedRules.push({
@@ -280,10 +280,18 @@ export async function GET(
       fields: request.queryConfig.fields,
     })
   )
+
+  if (!promotion) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      "Promotion was not found"
+    )
+  }
+
   const ruleAttributes = getExtendedRuleAttributesMap({
-    promotionType: promotion?.type,
-    applicationMethodType: promotion?.application_method?.type,
-    applicationMethodTargetType: promotion?.application_method?.target_type,
+    promotionType: promotion.type,
+    applicationMethodType: promotion.application_method?.type,
+    applicationMethodTargetType: promotion.application_method?.target_type,
   })[ruleType]
   const promotionRules = selectPromotionRules(
     promotion,

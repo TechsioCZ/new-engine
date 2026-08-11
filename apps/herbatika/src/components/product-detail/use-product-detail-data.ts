@@ -31,6 +31,7 @@ import {
   resolveProductImages,
 } from "@/components/product-detail/utils/metadata-parsers"
 import { resolvePriceState } from "@/components/product-detail/utils/pricing-utils"
+import { useAuth } from "@/lib/storefront/auth"
 import {
   mergeWarrantyIntoProductContentSections,
   resolveProductWarranty,
@@ -54,6 +55,7 @@ export function useProductDetailData({
 }: UseProductDetailDataProps) {
   const tCatalog = useTranslations("catalog")
   const tNavigation = useTranslations("navigation")
+  const authQuery = useAuth()
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const [quantity, setQuantity] = useState(1)
@@ -101,6 +103,7 @@ export function useProductDetailData({
   const salesChannelId = (region as typeof region & { salesChannelId?: string })
     ?.salesChannelId
   const volumeDiscountTiersQuery = useVolumeDiscountTiers({
+    customerId: authQuery.customer?.id ?? null,
     variantId: selectedVariant?.id ?? null,
     regionId: region?.region_id,
     salesChannelId,
