@@ -6,18 +6,15 @@ import type {
   PacketaConfigDTO,
   PacketaConfigResponse,
 } from "../../../modules/packeta-client/types"
+import { updatePacketaConfigWorkflow } from "../../../workflows/packeta-config/update-packeta-config"
 import type { PostAdminPacketaConfigSchemaType } from "./validators"
 
 /** Maps config DTO to API response with sensitive fields masked. */
 const toConfigResponse = (config: PacketaConfigDTO): PacketaConfigResponse => ({
   id: config.id,
   environment: config.environment,
-  is_active: config.is_active,
   is_enabled: config.is_enabled,
-  allow_live_operations: config.allow_live_operations,
   api_password_set: !!config.api_password,
-  widget_api_key_set: !!config.widget_api_key,
-  widget_countries: config.widget_countries,
   sender_label: config.sender_label,
   eshop_id: config.eshop_id,
   default_label_format: config.default_label_format,
@@ -43,26 +40,15 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     PACKETA_CLIENT_MODULE
   )
 
-  const profiles = await packetaService.listConfigProfiles()
-  if (profiles.length !== 2) {
+  const packetaConfig = await packetaService.getConfig()
+  if (!packetaConfig) {
     throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "Packeta testing and production profiles must both be initialized"
+      MedusaError.Types.NOT_FOUND,
+      "Packeta configuration not found. Please restart the server to initialize."
     )
   }
 
-  const activeProfile = profiles.find((profile) => profile.is_active)
-  if (!activeProfile) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "Packeta has no active configuration profile"
-    )
-  }
-
-  res.json({
-    active_environment: activeProfile.environment,
-    profiles: profiles.map(toConfigResponse),
-  })
+  res.json({ config: toConfigResponse(packetaConfig) })
 }
 
 /**
@@ -75,11 +61,9 @@ export async function POST(
   req: MedusaRequest<PostAdminPacketaConfigSchemaType>,
   res: MedusaResponse
 ) {
-  const packetaService = req.scope.resolve<PacketaClientModuleService>(
-    PACKETA_CLIENT_MODULE
-  )
-  const { environment, ...config } = req.validatedBody
-  const updated = await packetaService.updateConfig(environment, config)
+  const { result: updated } = await updatePacketaConfigWorkflow(req.scope).run({
+    input: req.validatedBody,
+  })
 
   res.json({ config: toConfigResponse(updated) })
 }

@@ -52,10 +52,6 @@ import { logCheckoutAccountSetupDebug } from "./checkout-account-setup-debug"
 import { resolveHasStoredAddress } from "./checkout-address.utils"
 import { resolveOrderId } from "./checkout-completion.utils"
 import {
-  filterPaymentProvidersForShipping,
-  isPaymentProviderCompatibleWithShipping,
-} from "./checkout-payment-compatibility"
-import {
   clearStoredPaymentProviderSelection,
   useStoredPaymentProviderSelection,
   writeStoredPaymentProviderSelection,
@@ -131,23 +127,8 @@ export function useCheckoutController() {
   const storedPaymentProviderId = useStoredPaymentProviderSelection(
     cartQuery.cart?.id
   )
-  const selectedPaymentProviderId =
-    storedPaymentProviderId ?? cartSelectedPaymentProviderId
-  const compatiblePaymentProviders = filterPaymentProvidersForShipping({
-    paymentProviders: checkoutPaymentQuery.paymentProviders,
-    shippingOption: checkoutShippingQuery.selectedOption,
-  })
   const effectiveSelectedPaymentProviderId =
-    isPaymentProviderCompatibleWithShipping({
-      paymentProviderId: selectedPaymentProviderId,
-      shippingOption: checkoutShippingQuery.selectedOption,
-    })
-      ? selectedPaymentProviderId
-      : undefined
-  const compatibleCheckoutPaymentQuery = {
-    ...checkoutPaymentQuery,
-    paymentProviders: compatiblePaymentProviders,
-  }
+    storedPaymentProviderId ?? cartSelectedPaymentProviderId
 
   useEffect(() => {
     const cartId = cartQuery.cart?.id
@@ -482,7 +463,7 @@ export function useCheckoutController() {
     checkoutDetailsForm,
     checkoutError,
     countryItems,
-    checkoutPaymentQuery: compatibleCheckoutPaymentQuery,
+    checkoutPaymentQuery,
     checkoutShippingQuery,
     completedOrderId,
     completeCheckoutMutation,

@@ -2,7 +2,6 @@ import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { API_STORE_MODULE } from "../modules/api-store"
 import { DATABASE_MODULE } from "../modules/database"
 import { GLS_CLIENT_MODULE } from "../modules/gls-client/constants"
-import { CASH_ON_DELIVERY_PAYMENT_PROVIDER_ID } from "../modules/payment-cash-on-delivery/constants"
 import { buildPaykitPaymentProviders } from "../modules/payment-paykit/medusa-config"
 import {
   QR_PAYMENT_MODULE,
@@ -26,13 +25,7 @@ type PaymentProviderConfig = {
 }
 
 function buildPaymentProviders(env: MedusaConfigEnv): PaymentProviderConfig[] {
-  const providers: PaymentProviderConfig[] = [
-    {
-      resolve: "./src/modules/payment-cash-on-delivery/services/manual",
-      id: CASH_ON_DELIVERY_PAYMENT_PROVIDER_ID,
-      options: {},
-    },
-  ]
+  const providers: PaymentProviderConfig[] = []
 
   if (env.featurePaymentQrEnabled) {
     providers.push({
@@ -98,6 +91,9 @@ function buildFulfillmentClientModules(
     modules.push({
       resolve: "./src/modules/packeta-client",
       dependencies: [Modules.LOCKING, API_STORE_MODULE],
+      options: {
+        environment: env.packetaEnvironment,
+      },
     })
   }
 

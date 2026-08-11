@@ -92,6 +92,12 @@ async function run(container: MedusaContainer, logger: Logger) {
     PACKETA_CLIENT_MODULE
   )
 
+  const runtimeConfig = await packetaClient.getConfig()
+  if (!runtimeConfig?.is_enabled) {
+    logger.debug("Packeta Tracking Sync: disabled in settings, skipping")
+    return
+  }
+
   const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const fulfillmentService = container.resolve<IFulfillmentModuleService>(
     Modules.FULFILLMENT
@@ -154,10 +160,7 @@ async function processFulfillment(
 
   let history: PacketaPacketStatusRecord[]
   try {
-    history = await packetaClient.getPacketStatus(packetId, {
-      config_id: fulfillment.data.config_id,
-      environment: fulfillment.data.environment,
-    })
+    history = await packetaClient.getPacketStatus(packetId)
   } catch (error) {
     logger.warn(
       `Packeta Tracking Sync: Failed to fetch status for packet ${packetId}: ${error instanceof Error ? error.message : String(error)}`

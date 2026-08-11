@@ -49,10 +49,8 @@ type ServiceConstructorArgs = ConstructorParameters<
 type InjectedDependencies = ServiceConstructorArgs[0]
 
 const defaultOptions: PacketaOptions = {
-  config_id: "packeta-config-testing",
   api_password: "test-pwd",
   environment: "testing",
-  allow_live_operations: true,
   default_label_format: "A6",
   default_label_offset: 0,
   sender_label: "Test Eshop",
@@ -108,10 +106,8 @@ describe("PacketaFulfillmentProviderService", () => {
   beforeEach(() => {
     vi.resetAllMocks()
     mockPacketaClient.getEffectiveConfig.mockResolvedValue({
-      config_id: "packeta-config-testing",
       api_password: "test-pwd",
       environment: "testing",
-      allow_live_operations: true,
       default_label_format: "A6",
       default_label_offset: 0,
       sender_label: "Test Eshop",
@@ -228,20 +224,10 @@ describe("PacketaFulfillmentProviderService", () => {
           currency: "CZK",
           eshop: "Test Eshop",
           weight: 0.5,
-        }),
-        {
-          config_id: "packeta-config-testing",
-          environment: "testing",
-        }
+        })
       )
       expect(mockPacketaClient.downloadLabelPdf).toHaveBeenCalledWith(
-        987_654_321,
-        undefined,
-        undefined,
-        {
-          config_id: "packeta-config-testing",
-          environment: "testing",
-        }
+        987_654_321
       )
       expect(mockFileService.createFiles).toHaveBeenCalled()
       expect(result.data).toMatchObject({
@@ -249,8 +235,6 @@ describe("PacketaFulfillmentProviderService", () => {
         packet_id: 987_654_321,
         barcode: "Z987654321",
         access_point_id: 4242,
-        config_id: "packeta-config-testing",
-        environment: "testing",
         label_url: "https://files.example/packeta-label-Z987654321.pdf",
         tracking_url: "https://tracking.packeta.com/Z987654321",
       })
@@ -271,8 +255,7 @@ describe("PacketaFulfillmentProviderService", () => {
         { id: "ful_1" }
       )
       expect(mockPacketaClient.createPacket).toHaveBeenCalledWith(
-        expect.objectContaining({ cod: 1500, currency: "CZK" }),
-        expect.any(Object)
+        expect.objectContaining({ cod: 1500, currency: "CZK" })
       )
     })
 
@@ -301,8 +284,7 @@ describe("PacketaFulfillmentProviderService", () => {
       )
 
       expect(mockPacketaClient.createPacket).toHaveBeenCalledWith(
-        expect.objectContaining({ weight: 1.2 }),
-        expect.any(Object)
+        expect.objectContaining({ weight: 1.2 })
       )
     })
 
@@ -326,8 +308,7 @@ describe("PacketaFulfillmentProviderService", () => {
       )
 
       expect(mockPacketaClient.createPacket).toHaveBeenCalledWith(
-        expect.objectContaining({ weight: 0.8 }),
-        expect.any(Object)
+        expect.objectContaining({ weight: 0.8 })
       )
     })
 
@@ -353,8 +334,7 @@ describe("PacketaFulfillmentProviderService", () => {
       )
 
       expect(mockPacketaClient.createPacket).toHaveBeenCalledWith(
-        expect.objectContaining({ weight: 3 }),
-        expect.any(Object)
+        expect.objectContaining({ weight: 3 })
       )
     })
 
@@ -386,13 +366,8 @@ describe("PacketaFulfillmentProviderService", () => {
       const result = await createService().cancelFulfillment({
         packet_id: 123,
         barcode: "Z123",
-        config_id: "packeta-config-testing",
-        environment: "testing",
       })
-      expect(mockPacketaClient.cancelPacket).toHaveBeenCalledWith(123, {
-        config_id: "packeta-config-testing",
-        environment: "testing",
-      })
+      expect(mockPacketaClient.cancelPacket).toHaveBeenCalledWith(123)
       expect(result).toMatchObject({ cancelled: true, packet_id: 123 })
     })
   })

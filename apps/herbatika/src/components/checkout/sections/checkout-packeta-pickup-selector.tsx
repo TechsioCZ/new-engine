@@ -2,7 +2,6 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import { useQuery } from "@tanstack/react-query"
 import { useTranslations } from "next-intl"
 import { useMemo, useRef, useState } from "react"
 import {
@@ -11,7 +10,6 @@ import {
   resolveCarrierPickupWidgetLanguage,
 } from "@/components/checkout/carrier-pickup.utils"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
-import { storefrontSdk } from "@/lib/storefront/sdk"
 import { PacketaPickupWidget } from "../packeta-widget"
 import type {
   PacketaPickupPoint,
@@ -25,11 +23,15 @@ type CheckoutPacketaPickupSelectorProps = {
   onConfirm: (data: Record<string, unknown>) => void
 }
 
-type PacketaWidgetConfigResponse = {
-  enabled: boolean
-  api_key: string | null
-  countries: string[]
-}
+const PACKETA_WIDGET_API_KEY =
+  process.env.NEXT_PUBLIC_PACKETA_WIDGET_API_KEY?.trim() ?? ""
+const DEFAULT_PACKETA_COUNTRY = "sk"
+const PACKETA_WIDGET_COUNTRIES =
+  process.env.NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES?.trim() ??
+  DEFAULT_PACKETA_COUNTRY
+const ENABLED_PACKETA_COUNTRIES = resolvePacketaCountries(
+  PACKETA_WIDGET_COUNTRIES
+)
 
 export function CheckoutPacketaPickupSelector({
   disabled,
@@ -43,19 +45,9 @@ export function CheckoutPacketaPickupSelector({
   const [selectedPoint, setSelectedPoint] = useState<PacketaPickupPoint | null>(
     null
   )
-  const { data: widgetConfig, isPending: isWidgetConfigPending } = useQuery({
-    queryFn: () =>
-      storefrontSdk.client.fetch<PacketaWidgetConfigResponse>(
-        "/store/packeta/widget-config"
-      ),
-    queryKey: ["packeta-widget-config"],
-    retry: false,
-    staleTime: 30 * 1000,
-  })
-  const widgetApiKey = widgetConfig?.api_key?.trim() ?? ""
-  const isMarketEnabled =
-    widgetConfig?.enabled === true &&
-    widgetConfig.countries.includes(marketContext.countryCode)
+  const isMarketEnabled = ENABLED_PACKETA_COUNTRIES.includes(
+    marketContext.countryCode
+  )
   const fallbackPointLabel = tCheckout("pickup_point_fallback")
 
   const widgetOptions = useMemo<PacketaWidgetOptions>(() => {
@@ -74,11 +66,7 @@ export function CheckoutPacketaPickupSelector({
     }
   }, [marketContext.countryCode, marketContext.locale])
 
-  if (isWidgetConfigPending) {
-    return null
-  }
-
-  if (!(widgetApiKey && isMarketEnabled)) {
+  if (!(PACKETA_WIDGET_API_KEY && isMarketEnabled)) {
     return (
       <StatusText showIcon size="sm" status="error">
         {tCheckout("pickup_selector_unavailable")}
@@ -158,7 +146,7 @@ export function CheckoutPacketaPickupSelector({
       </Button>
 
       <PacketaPickupWidget
-        apiKey={widgetApiKey}
+        apiKey={PACKETA_WIDGET_API_KEY}
         onError={handleWidgetError}
         onSelect={handleSelect}
         options={widgetOptions}
@@ -185,6 +173,15 @@ function buildPacketaShippingData(
   return Object.fromEntries(
     Object.entries(payload).filter(([, value]) => value != null && value !== "")
   )
+}
+
+function resolvePacketaCountries(value: string) {
+  const countries = value
+    .split(",")
+    .map((country) => country.trim().toLowerCase())
+    .filter(Boolean)
+
+  return countries.length > 0 ? countries : [DEFAULT_PACKETA_COUNTRY]
 }
 
 function resolvePacketaPointLabel(
