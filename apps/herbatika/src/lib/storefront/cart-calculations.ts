@@ -51,8 +51,7 @@ export const resolveLineItemUnitAmount = (
 
   if (
     total !== null &&
-    (discountTotal > 0 ||
-      (originalTotal !== null && originalTotal > total))
+    (discountTotal > 0 || (originalTotal !== null && originalTotal > total))
   ) {
     return total / quantity
   }

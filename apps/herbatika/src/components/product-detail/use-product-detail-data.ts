@@ -98,9 +98,8 @@ export function useProductDetailData({
     inStock: tCatalog("product_detail.stock.in_stock"),
     outOfStock: tCatalog("product_detail.stock.out_of_stock"),
   })
-  const salesChannelId = (
-    region as (typeof region & { salesChannelId?: string })
-  )?.salesChannelId
+  const salesChannelId = (region as typeof region & { salesChannelId?: string })
+    ?.salesChannelId
   const volumeDiscountTiersQuery = useVolumeDiscountTiers({
     variantId: selectedVariant?.id ?? null,
     regionId: region?.region_id,

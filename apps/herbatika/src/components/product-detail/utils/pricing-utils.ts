@@ -137,22 +137,21 @@ export const resolveVolumeDiscountOptions = (
 
     const originalTotalAmount = currentAmount * tier.minimum_quantity
 
-    return [{
-      id: tier.promotion_id,
-      percentage: tier.percentage,
-      title: labels.title(tier.minimum_quantity),
-      quantity: tier.minimum_quantity,
-      totalAmountLabel: formatCurrencyAmount(
-        tier.total_amount,
-        currencyCode
-      ),
-      perUnitLabel: labels.perUnit(
-        formatCurrencyAmount(tier.unit_amount, currencyCode)
-      ),
-      oldTotalAmountLabel:
-        tier.total_amount < originalTotalAmount
-          ? formatCurrencyAmount(originalTotalAmount, currencyCode)
-          : null,
-    }]
+    return [
+      {
+        id: tier.promotion_id,
+        percentage: tier.percentage,
+        title: labels.title(tier.minimum_quantity),
+        quantity: tier.minimum_quantity,
+        totalAmountLabel: formatCurrencyAmount(tier.total_amount, currencyCode),
+        perUnitLabel: labels.perUnit(
+          formatCurrencyAmount(tier.unit_amount, currencyCode)
+        ),
+        oldTotalAmountLabel:
+          tier.total_amount < originalTotalAmount
+            ? formatCurrencyAmount(originalTotalAmount, currencyCode)
+            : null,
+      },
+    ]
   })
 }
