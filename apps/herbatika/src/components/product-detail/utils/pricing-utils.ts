@@ -13,6 +13,7 @@ import {
   resolveStorefrontPrice,
 } from "@/lib/storefront/product-pricing"
 import { resolveVariantPricePerUnit } from "@/lib/storefront/unit-price"
+import type { VolumeDiscountTier } from "@/lib/storefront/volume-discounts"
 
 export const resolvePriceState = (
   product: Product,
@@ -113,41 +114,44 @@ export const resolveVipCreditLabel = (
 export const resolveVolumeDiscountOptions = (
   currentAmount: number | null,
   currencyCode: string,
-  isEligible: boolean,
+  tiers: VolumeDiscountTier[],
   labels: {
     title: (quantity: number) => string
     perUnit: (price: string) => string
   }
 ): VolumeDiscountOption[] => {
-  if (!isEligible || typeof currentAmount !== "number") {
+  if (typeof currentAmount !== "number") {
     return []
   }
 
-  const options = [
-    { quantity: 2, ratio: 0.95 },
-    { quantity: 3, ratio: 0.9 },
-  ]
-
-  return options.map((option) => {
-    const discountedUnitAmount = currentAmount * option.ratio
-    const discountedTotalAmount = discountedUnitAmount * option.quantity
-    const originalTotalAmount = currentAmount * option.quantity
-
-    return {
-      id: `quantity-tier-${option.quantity}`,
-      title: labels.title(option.quantity),
-      quantity: option.quantity,
-      totalAmountLabel: formatCurrencyAmount(
-        discountedTotalAmount,
-        currencyCode
-      ),
-      perUnitLabel: labels.perUnit(
-        formatCurrencyAmount(discountedUnitAmount, currencyCode)
-      ),
-      oldTotalAmountLabel:
-        discountedTotalAmount < originalTotalAmount
-          ? formatCurrencyAmount(originalTotalAmount, currencyCode)
-          : null,
+  return tiers.flatMap((tier) => {
+    if (
+      tier.currency_code.toUpperCase() !== currencyCode.toUpperCase() ||
+      !Number.isFinite(tier.unit_amount) ||
+      !Number.isFinite(tier.total_amount) ||
+      tier.unit_amount < 0 ||
+      tier.total_amount < 0
+    ) {
+      return []
     }
+
+    const originalTotalAmount = currentAmount * tier.minimum_quantity
+
+    return [
+      {
+        id: tier.promotion_id,
+        percentage: tier.percentage,
+        title: labels.title(tier.minimum_quantity),
+        quantity: tier.minimum_quantity,
+        totalAmountLabel: formatCurrencyAmount(tier.total_amount, currencyCode),
+        perUnitLabel: labels.perUnit(
+          formatCurrencyAmount(tier.unit_amount, currencyCode)
+        ),
+        oldTotalAmountLabel:
+          tier.total_amount < originalTotalAmount
+            ? formatCurrencyAmount(originalTotalAmount, currencyCode)
+            : null,
+      },
+    ]
   })
 }

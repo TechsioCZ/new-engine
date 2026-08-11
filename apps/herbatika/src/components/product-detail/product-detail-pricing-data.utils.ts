@@ -9,6 +9,7 @@ import {
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { formatUnitPriceLabel } from "@/lib/storefront/unit-price"
+import type { VolumeDiscountTier } from "@/lib/storefront/volume-discounts"
 
 export const resolveDisplayOriginalLabel = (
   productPrice: ReturnType<typeof resolvePriceState> | null,
@@ -24,7 +25,7 @@ export const resolveProductVolumeDiscountOptions = ({
   currentAmount,
   currentCurrencyCode,
   labels,
-  offerState,
+  tiers,
 }: {
   availableQuantity: number | null
   currentAmount: number | null
@@ -33,12 +34,12 @@ export const resolveProductVolumeDiscountOptions = ({
     title: (quantity: number) => string
     perUnit: (price: string) => string
   }
-  offerState: ReturnType<typeof resolveOfferState>
+  tiers: VolumeDiscountTier[]
 }) => {
   const discountOptions = resolveVolumeDiscountOptions(
     currentAmount,
     currentCurrencyCode,
-    offerState.applyQuantityDiscount || offerState.applyVolumeDiscount,
+    tiers,
     labels
   )
 
