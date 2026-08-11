@@ -451,14 +451,6 @@ function FulfillmentPreviewContent({
   )
 }
 
-function getErrorMessage(error: unknown, fallback: string) {
-  if (error instanceof Error && error.message.trim()) {
-    return error.message
-  }
-
-  return fallback
-}
-
 function FulfillmentMetric({ label }: { label: string }) {
   return (
     <div className="rounded-md border border-ui-border-base bg-ui-bg-subtle px-3 py-2">
