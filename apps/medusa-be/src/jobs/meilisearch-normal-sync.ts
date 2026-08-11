@@ -1,10 +1,12 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
-import { synchronizeSearchProfiles } from "../modules/meilisearch/synchronize"
+import { synchronizeSearchProfilesWorkflow } from "../workflows/meilisearch/workflows/synchronize-search-profiles"
 
 export default async function meilisearchNormalSyncJob(
   container: MedusaContainer
 ) {
-  await synchronizeSearchProfiles(container, "normal")
+  await synchronizeSearchProfilesWorkflow(container).run({
+    input: { mode: "normal" },
+  })
 }
 
 export const config = {

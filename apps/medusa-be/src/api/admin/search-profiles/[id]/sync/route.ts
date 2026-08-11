@@ -1,6 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
-import { synchronizeSearchProfiles } from "../../../../../modules/meilisearch/synchronize"
+import { synchronizeSearchProfilesWorkflow } from "../../../../../workflows/meilisearch/workflows/synchronize-search-profiles"
 import {
   getSearchProfileService,
   retrieveSearchProfileOrThrow,
@@ -27,10 +27,13 @@ export async function POST(
     )
   }
 
-  const result = await synchronizeSearchProfiles(
-    request.scope,
-    request.validatedBody.mode,
-    { profileKeys: [profile.key] }
+  const { result } = await synchronizeSearchProfilesWorkflow(request.scope).run(
+    {
+      input: {
+        mode: request.validatedBody.mode,
+        options: { profileKeys: [profile.key] },
+      },
+    }
   )
 
   response.json({ result })

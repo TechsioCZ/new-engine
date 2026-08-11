@@ -8,6 +8,12 @@ import type {
 } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import {
+  createStep,
+  createWorkflow,
+  StepResponse,
+  WorkflowResponse,
+} from "@medusajs/framework/workflows-sdk"
+import {
   GLS_CLIENT_MODULE,
   GLS_DELIVERED_STATES,
   GLS_FAILED_STATES,
@@ -51,6 +57,23 @@ const LOCK_EXPIRY_SECONDS = 1800
 const CHUNK_SIZE = 25
 const PENDING_FETCH_PAGE_SIZE = 100
 
+const synchronizeGLSTrackingStep = createStep(
+  "synchronize-gls-tracking",
+  async (_input: Record<string, never>, { container }) => {
+    const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+
+    await run(container, logger)
+
+    return new StepResponse({ completed: true })
+  }
+)
+
+const synchronizeGLSTrackingWorkflow = createWorkflow(
+  "synchronize-gls-tracking",
+  (input: Record<string, never>) =>
+    new WorkflowResponse(synchronizeGLSTrackingStep(input))
+)
+
 /**
  * GLS Tracking Sync Job
  *
@@ -88,7 +111,7 @@ export default async function glsTrackingSyncJob(container: MedusaContainer) {
   }
 
   try {
-    await run(container, logger)
+    await synchronizeGLSTrackingWorkflow(container).run({ input: {} })
   } finally {
     await lockingService.release(LOCK_KEY)
   }
