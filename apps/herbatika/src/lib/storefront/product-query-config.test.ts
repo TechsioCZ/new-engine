@@ -20,14 +20,16 @@ describe("product query fields", () => {
     )
   })
 
+  it("requests variant metadata as an atomic JSON field", () => {
+    expect(PRODUCT_DETAIL_FIELDS.split(",")).toContain("+variants.metadata")
+  })
+
   it.each(
     Object.entries(productFieldSets)
   )("%s requests metadata as an atomic JSON field", (_name, fields) => {
     const selectors = fields.split(",")
 
     expect(selectors).toContain("+metadata")
-    expect(selectors.filter((field) => field.startsWith("+metadata."))).toEqual(
-      []
-    )
+    expect(selectors.filter((field) => field.includes("metadata."))).toEqual([])
   })
 })
