@@ -406,7 +406,8 @@
       "variant_placeholder": "Válassz változatot",
       "stock": {
         "in_stock": "Raktáron",
-        "out_of_stock": "Jelenleg nincs raktáron"
+        "out_of_stock": "Jelenleg nincs raktáron",
+        "physical_store_only_notice": "Az üzletekben elérhető termékek nem rendelhetők meg a webáruházban."
       },
       "delivery_by": "várható kézbesítés: {date}",
       "free_shipping_over": "Ingyenes szállítás {threshold} felett",

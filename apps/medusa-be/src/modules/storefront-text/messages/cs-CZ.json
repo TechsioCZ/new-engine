@@ -406,7 +406,8 @@
       "variant_placeholder": "Vyberte variantu",
       "stock": {
         "in_stock": "Skladem",
-        "out_of_stock": "Momentálně není skladem"
+        "out_of_stock": "Momentálně není skladem",
+        "physical_store_only_notice": "Sortiment dostupný v kamenných prodejnách není možné objednat v e-shopu."
       },
       "delivery_by": "u vás do {date}",
       "free_shipping_over": "Doprava zdarma nad {threshold}",
