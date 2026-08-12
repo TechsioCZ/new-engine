@@ -406,7 +406,8 @@
       "variant_placeholder": "Selectează varianta",
       "stock": {
         "in_stock": "În stoc",
-        "out_of_stock": "Momentan nu este în stoc"
+        "out_of_stock": "Momentan nu este în stoc",
+        "physical_store_only_notice": "Produsele disponibile în magazinele fizice nu pot fi comandate în magazinul online."
       },
       "delivery_by": "livrare până la {date}",
       "free_shipping_over": "Livrare gratuită peste {threshold}",
