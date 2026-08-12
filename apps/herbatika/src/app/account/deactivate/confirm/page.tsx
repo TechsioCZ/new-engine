@@ -1,5 +1,4 @@
 import type { Metadata } from "next"
-import { connection } from "next/server"
 import { Suspense } from "react"
 import { AccountDeactivationConfirmation } from "@/components/account/account-deactivation-confirmation"
 
@@ -28,11 +27,6 @@ async function AccountDeactivationConfirmationContent({
   )
 }
 
-async function DynamicRouteMarker() {
-  await connection()
-  return null
-}
-
 function AccountDeactivationConfirmationFallback() {
   return (
     <main className="mx-auto w-full max-w-max-w p-account-page 2xl:p-account-page-lg">
@@ -52,13 +46,8 @@ export default function AccountDeactivationConfirmationPage({
   searchParams,
 }: AccountDeactivationConfirmationPageProps) {
   return (
-    <>
-      <Suspense>
-        <DynamicRouteMarker />
-      </Suspense>
-      <Suspense fallback={<AccountDeactivationConfirmationFallback />}>
-        <AccountDeactivationConfirmationContent searchParams={searchParams} />
-      </Suspense>
-    </>
+    <Suspense fallback={<AccountDeactivationConfirmationFallback />}>
+      <AccountDeactivationConfirmationContent searchParams={searchParams} />
+    </Suspense>
   )
 }

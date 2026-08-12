@@ -8,16 +8,22 @@ import { useState } from "react"
 import { useConfirmAccountDeactivation } from "@/lib/storefront/auth"
 import { cartStorage } from "@/lib/storefront/cart-storage"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import { AccountSurface } from "./account-surface"
 
 const MISSING_TOKEN_MESSAGE = "Potvrdzovací odkaz neobsahuje platný token."
 const INVALID_TOKEN_MESSAGE =
   "Potvrdzovací odkaz je neplatný alebo jeho platnosť vypršala."
 const DEACTIVATION_FAILED_MESSAGE = "Účet sa nepodarilo zrušiť."
+const INVALID_TOKEN_ERROR_MESSAGE =
+  "Account deactivation link is invalid or expired."
 
 type AccountDeactivationConfirmationProps = {
   token: string
 }
+
+const isInvalidTokenError = (error: unknown) =>
+  resolveErrorMessage(error, "").includes(INVALID_TOKEN_ERROR_MESSAGE)
 
 export function AccountDeactivationConfirmation({
   token,
@@ -51,8 +57,12 @@ export function AccountDeactivationConfirmation({
       cartStorage.clearCartId()
       setIsConfirmed(true)
       window.setTimeout(() => window.location.replace("/"), 1200)
-    } catch {
-      setConfirmationError(INVALID_TOKEN_MESSAGE)
+    } catch (error) {
+      setConfirmationError(
+        isInvalidTokenError(error)
+          ? INVALID_TOKEN_MESSAGE
+          : DEACTIVATION_FAILED_MESSAGE
+      )
     }
   }
 
