@@ -60,7 +60,7 @@ export function getOrderDashboardOrdersQuery({
     order: getOrderDashboardSortOrder(sorting),
     pendingUnpaid:
       queueId === ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID ? true : undefined,
-    q: search || undefined,
+    q: search.length > 0 ? search : undefined,
   } satisfies ListOrderDashboardOrdersInput
 
   return {

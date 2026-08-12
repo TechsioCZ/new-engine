@@ -209,7 +209,7 @@ describe("updateOrderBusinessStatusesStep", () => {
     })
   })
 
-  it("rolls back completed batches when a later update batch fails", async () => {
+  it("rolls back attempted batches when a later update batch fails", async () => {
     const { updateOrderBusinessStatusesStep } = await import(
       "../../../../../src/workflows/order-business-status/update-order-business-statuses"
     )
@@ -228,7 +228,7 @@ describe("updateOrderBusinessStatusesStep", () => {
         .fn()
         .mockResolvedValueOnce([])
         .mockRejectedValueOnce(updateError)
-        .mockResolvedValueOnce([]),
+        .mockResolvedValue([]),
     }
 
     await expect(
@@ -238,12 +238,18 @@ describe("updateOrderBusinessStatusesStep", () => {
       )
     ).rejects.toBe(updateError)
 
-    expect(orderService.updateOrders).toHaveBeenCalledTimes(3)
+    expect(orderService.updateOrders).toHaveBeenCalledTimes(4)
     expect(orderService.updateOrders.mock.calls[2]?.[0]).toHaveLength(100)
     expect(orderService.updateOrders.mock.calls[2]?.[0][0]).toEqual({
       id: "order_1",
       metadata: { order_business_status_manual: "" },
     })
+    expect(orderService.updateOrders.mock.calls[3]?.[0]).toEqual([
+      {
+        id: "order_101",
+        metadata: { order_business_status_manual: "" },
+      },
+    ])
   })
 
   it("preserves both errors when an update and its rollback fail", async () => {

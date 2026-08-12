@@ -135,6 +135,34 @@ describe("order expedition customer signals", () => {
       signalsByOrderId.get("order_current")?.wholesale_company_name
     ).toBeNull()
   })
+
+  it("ignores a deleted wholesale company", async () => {
+    const query = createQuery([{ customer_id: "cus_1", status: "pending" }])
+
+    const { signalsByOrderId } = await resolveOrderExpeditionCustomerSignals(
+      query,
+      [
+        {
+          customer: {
+            employee: {
+              company: {
+                deleted_at: "2026-08-11T00:00:00.000Z",
+                id: "comp_1",
+                name: "Wholesale Demo s.r.o.",
+              },
+            },
+          },
+          customer_id: "cus_1",
+          id: "order_current",
+          status: "pending",
+        },
+      ]
+    )
+
+    expect(
+      signalsByOrderId.get("order_current")?.wholesale_company_name
+    ).toBeNull()
+  })
 })
 
 function createQuery(orders: unknown[]) {

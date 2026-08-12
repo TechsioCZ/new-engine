@@ -325,7 +325,11 @@ async function seedDemoRepeatCustomer(
       last_name: "Novakova",
     }))
   const repeatCustomerOrders = DEMO_REPEAT_CUSTOMER_ORDER_INDEXES.map(
-    (index) => orders[index]
+    (targetIndex) =>
+      orders.find(
+        (order, fallbackIndex) =>
+          getExistingDemoOrderSortIndex(order, fallbackIndex) === targetIndex
+      )
   ).filter((order): order is ExistingDemoOrder => Boolean(order))
 
   await orderService.updateOrders(

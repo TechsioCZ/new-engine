@@ -53,7 +53,10 @@ describe("order dashboard query", () => {
   })
 
   it("uses one default sort for empty and unsupported table sorting", () => {
-    expect(createQuery("all", undefined).request.order).toBe("-created_at")
+    const emptyQuery = createQuery("all", undefined)
+
+    expect(emptyQuery.request.order).toBe("-created_at")
+    expect(emptyQuery.request.q).toBeUndefined()
     expect(
       createQuery("all", { desc: false, id: "unsupported" }).request.order
     ).toBe("-created_at")

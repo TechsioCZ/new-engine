@@ -114,7 +114,7 @@ function resolveWholesaleCompanyName(order: OrderSignalSource) {
 
   const companyName = company?.name?.trim()
 
-  return companyName || null
+  return companyName?.length ? companyName : null
 }
 
 function resolveOrderExpeditionCustomerNote(

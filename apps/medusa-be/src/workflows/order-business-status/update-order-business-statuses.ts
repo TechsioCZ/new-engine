@@ -63,18 +63,18 @@ async function updateOrdersWithRollback(
   updates: UpdateOrderDTO[],
   previousValues: UpdateOrderDTO[]
 ) {
-  let updatedOrderCount = 0
+  let attemptedOrderCount = 0
 
   try {
     for (const updateBatch of chunkValues(updates)) {
+      attemptedOrderCount += updateBatch.length
       await orderService.updateOrders(updateBatch)
-      updatedOrderCount += updateBatch.length
     }
   } catch (updateError) {
     try {
       await updateOrdersInBatches(
         orderService,
-        previousValues.slice(0, updatedOrderCount)
+        previousValues.slice(0, attemptedOrderCount)
       )
     } catch (rollbackError) {
       throw new AggregateError(
