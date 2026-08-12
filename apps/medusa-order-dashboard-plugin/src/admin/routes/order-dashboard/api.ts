@@ -5,6 +5,7 @@ import type {
   OrderDashboardBusinessStatusGroupId,
   OrderDashboardBusinessStatusId,
   OrderDashboardCarrierKey,
+  OrderDashboardCarriersResponse,
   OrderDashboardFulfillmentOrder,
   OrderDashboardLabelCarrier,
   OrderDashboardLabelEligibilityOrder,
@@ -101,6 +102,12 @@ export function getOrderDashboardSummary() {
   )
 }
 
+export function getOrderDashboardCarriers() {
+  return sdk.client.fetch<OrderDashboardCarriersResponse>(
+    "/admin/order-expedition/carriers"
+  )
+}
+
 export function getOrderDashboardBusinessStatusCatalog() {
   return sdk.client.fetch<OrderDashboardBusinessStatusCatalogResponse>(
     "/admin/order-business-statuses/catalog"
@@ -178,17 +185,6 @@ export function downloadOrderDashboardGLSLabels(orderIds: string[]) {
   )
 }
 
-export function downloadOrderDashboardPPLLabels(orderIds: string[]) {
-  return downloadFile(
-    "/admin/ppl-labels",
-    { order_ids: orderIds },
-    orderIds.length === 1
-      ? `ppl-label-${new Date().toISOString().slice(0, 10)}.png`
-      : `ppl-labels-${new Date().toISOString().slice(0, 10)}.zip`,
-    "application/pdf, application/zip, image/png, image/jpeg, image/svg+xml"
-  )
-}
-
 export function downloadOrderDashboardShippingLabels(input: {
   carrier: OrderDashboardLabelCarrier
   labelFormat: OrderDashboardLabelFormat
@@ -200,8 +196,6 @@ export function downloadOrderDashboardShippingLabels(input: {
       return downloadOrderDashboardGLSLabels(input.orderIds)
     case "packeta":
       return downloadOrderDashboardPacketaLabels(input)
-    case "ppl":
-      return downloadOrderDashboardPPLLabels(input.orderIds)
     default:
       throw new Error("Unsupported shipping label carrier")
   }

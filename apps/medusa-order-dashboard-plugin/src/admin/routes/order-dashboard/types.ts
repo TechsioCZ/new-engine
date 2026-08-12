@@ -66,7 +66,7 @@ export type OrderDashboardCarrierKey =
 
 export type OrderDashboardLabelCarrier = Exclude<
   OrderDashboardCarrierKey,
-  "other"
+  "other" | "ppl"
 >
 
 export type OrderDashboardBusinessStatusId =
@@ -119,6 +119,15 @@ export type OrderDashboardCarrier = {
   shipping_method_id?: string
   shipping_method_name?: string
   shipping_option_id?: string
+}
+
+export type OrderDashboardCarrierOption = {
+  label: string
+  value: OrderDashboardCarrierKey
+}
+
+export type OrderDashboardCarriersResponse = {
+  carriers: OrderDashboardCarrierOption[]
 }
 
 export type OrderDashboardItem = {

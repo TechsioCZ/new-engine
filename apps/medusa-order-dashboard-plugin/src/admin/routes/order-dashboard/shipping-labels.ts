@@ -13,17 +13,20 @@ type TranslationFunction = (key: string, options?: Record<string, unknown>) => s
 export type ShippingLabelCarrierSelection =
 	| { kind: 'none' }
 	| { carriers: OrderDashboardCarrierKey[]; kind: 'mixed' }
-	| { carrier: 'other'; kind: 'unsupported' }
+	| { carrier: OrderDashboardCarrierKey; kind: 'unsupported' }
 	| { carrier: OrderDashboardLabelCarrier; kind: 'supported' }
 
 export type ShippingLabelPreparation =
 	| { blockingOrders: OrderDashboardBlockingOrder[]; kind: 'no-printable' }
 	| { carriers: OrderDashboardCarrierKey[]; kind: 'mixed-carriers' }
-	| { carrier: 'other'; kind: 'unsupported-carrier' }
+	| { carrier: OrderDashboardCarrierKey; kind: 'unsupported-carrier' }
 	| { blockingOrders: OrderDashboardBlockingOrder[]; kind: 'too-many'; limit: number }
 	| { blockingOrders: OrderDashboardBlockingOrder[]; carrier: OrderDashboardLabelCarrier; kind: 'ready'; orderIds: string[] }
 
-export function getShippingLabelCarrierSelection(orders: OrderDashboardOrder[]): ShippingLabelCarrierSelection {
+export function getShippingLabelCarrierSelection(
+	orders: OrderDashboardOrder[],
+	enabledCarriers: readonly OrderDashboardCarrierKey[]
+): ShippingLabelCarrierSelection {
 	const carriers = Array.from(new Set(orders.map((order) => order.carrier.value)))
 
 	if (carriers.length === 0) {
@@ -36,7 +39,7 @@ export function getShippingLabelCarrierSelection(orders: OrderDashboardOrder[]):
 
 	const carrier = carriers[0]
 
-	if (carrier === 'other') {
+	if (carrier === 'other' || carrier === 'ppl' || !enabledCarriers.includes(carrier)) {
 		return { carrier, kind: 'unsupported' }
 	}
 
@@ -46,9 +49,10 @@ export function getShippingLabelCarrierSelection(orders: OrderDashboardOrder[]):
 export function prepareShippingLabelDownload(
 	selectedOrders: OrderDashboardOrder[],
 	eligibilityOrders: OrderDashboardLabelEligibilityOrder[] | undefined,
+	enabledCarriers: readonly OrderDashboardCarrierKey[],
 	translate: TranslationFunction
 ): ShippingLabelPreparation {
-	const carrierSelection = getShippingLabelCarrierSelection(selectedOrders)
+	const carrierSelection = getShippingLabelCarrierSelection(selectedOrders, enabledCarriers)
 
 	if (carrierSelection.kind === 'mixed') {
 		return { carriers: carrierSelection.carriers, kind: 'mixed-carriers' }
@@ -143,8 +147,6 @@ function hasPrintableShippingLabel(order: OrderDashboardLabelEligibilityOrder, c
 				return isPrintableGLSData(data)
 			case 'packeta':
 				return typeof data.packet_id === 'number'
-			case 'ppl':
-				return data.status === 'completed' && isNonEmptyString(data.label_url) && isNonEmptyString(data.shipment_number)
 			default:
 				return false
 		}

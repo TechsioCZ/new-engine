@@ -56,6 +56,7 @@ import {
   downloadOrderDashboardExpeditionPdf,
   downloadOrderDashboardShippingLabels,
   getOrderDashboardBusinessStatusCatalog,
+  getOrderDashboardCarriers,
   getOrderDashboardSummary,
   listOrderDashboardLabelEligibility,
   listOrderDashboardOrders,
@@ -91,7 +92,6 @@ import {
   type ShippingLabelPreparation,
 } from "./shipping-labels"
 import {
-  ORDER_DASHBOARD_CARRIER_KEYS,
   ORDER_DASHBOARD_MAX_FULFILLMENT_IDS,
   ORDER_DASHBOARD_PAGE_SIZE,
   ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID,
@@ -112,6 +112,7 @@ import {
 const ORDER_DASHBOARD_SUMMARY_QUERY_KEY = "order-dashboard-summary"
 const ORDER_DASHBOARD_STATUS_CATALOG_QUERY_KEY =
   "order-dashboard-status-catalog"
+const ORDER_DASHBOARD_CARRIERS_QUERY_KEY = "order-dashboard-carriers"
 const LABEL_ELIGIBILITY_QUERY_KEY = "order-dashboard-label-eligibility"
 const ORDER_DASHBOARD_SEARCH_DEBOUNCE_MS = 300
 const columnHelper = createDataTableColumnHelper<OrderDashboardOrder>()
@@ -246,6 +247,10 @@ const OrderDashboardPage = () => {
     queryFn: getOrderDashboardSummary,
     queryKey: [ORDER_DASHBOARD_SUMMARY_QUERY_KEY],
   })
+  const carriersQuery = useQuery({
+    queryFn: getOrderDashboardCarriers,
+    queryKey: [ORDER_DASHBOARD_CARRIERS_QUERY_KEY],
+  })
   const businessStatusCatalogQuery = useQuery({
     queryFn: getOrderDashboardBusinessStatusCatalog,
     queryKey: [ORDER_DASHBOARD_STATUS_CATALOG_QUERY_KEY],
@@ -254,6 +259,10 @@ const OrderDashboardPage = () => {
   const orders = ordersQuery.data?.orders ?? emptyOrders
   const businessStatusCatalog =
     businessStatusCatalogQuery.data?.statuses ?? emptyBusinessStatusCatalog
+  const availableCarrierKeys = useMemo(
+    () => carriersQuery.data?.carriers.map((carrier) => carrier.value) ?? [],
+    [carriersQuery.data?.carriers]
+  )
   const orderCount = ordersQuery.data?.count ?? 0
   const orderPageCount = Math.max(Math.ceil(orderCount / limit), 1)
   const selectedOrders = useMemo(
@@ -269,8 +278,10 @@ const OrderDashboardPage = () => {
     [selectedOrderIds]
   )
   const selectedCount = selectedOrders.length
-  const shippingLabelCarrierSelection =
-    getShippingLabelCarrierSelection(selectedOrders)
+  const shippingLabelCarrierSelection = getShippingLabelCarrierSelection(
+    selectedOrders,
+    availableCarrierKeys
+  )
   const detailOrder = orders.find((order) => order.id === detailOrderId)
   const targetStatusOptions = getTargetStatusOptions(selectedOrders, t)
   const selectedTargetStatusOption = targetStatus
@@ -922,7 +933,8 @@ const OrderDashboardPage = () => {
     }
 
     const carrierSelection = getShippingLabelCarrierSelection(
-      selectedOrdersSnapshot
+      selectedOrdersSnapshot,
+      availableCarrierKeys
     )
 
     if (carrierSelection.kind === "mixed") {
@@ -953,6 +965,7 @@ const OrderDashboardPage = () => {
       const labelPreparation = prepareShippingLabelDownload(
         selectedOrdersSnapshot,
         eligibilityOrders,
+        availableCarrierKeys,
         t
       )
       handlePreparedShippingLabels(labelPreparation, labelFormatSnapshot)
@@ -1345,22 +1358,24 @@ const OrderDashboardPage = () => {
                 </Select.Content>
               </Select>
             ) : null}
-            <Button
-              disabled={
-                !selectedCount ||
-                isPreparingShippingLabels ||
-                shippingLabelsMutation.isPending
-              }
-              isLoading={
-                isPreparingShippingLabels || shippingLabelsMutation.isPending
-              }
-              onClick={handleShippingLabels}
-              size="small"
-              type="button"
-              variant="secondary"
-            >
-              {t("actions.shippingLabels")}
-            </Button>
+            {shippingLabelCarrierSelection.kind !== "unsupported" ? (
+              <Button
+                disabled={
+                  !selectedCount ||
+                  isPreparingShippingLabels ||
+                  shippingLabelsMutation.isPending
+                }
+                isLoading={
+                  isPreparingShippingLabels || shippingLabelsMutation.isPending
+                }
+                onClick={handleShippingLabels}
+                size="small"
+                type="button"
+                variant="secondary"
+              >
+                {t("actions.shippingLabels")}
+              </Button>
+            ) : null}
             <Button
               disabled={!selectedCount}
               onClick={handleFulfillmentOpen}
@@ -1527,7 +1542,7 @@ const OrderDashboardPage = () => {
                   <Select.Item value="all">
                     {t("filters.allCarriers")}
                   </Select.Item>
-                  {ORDER_DASHBOARD_CARRIER_KEYS.map((carrierKey) => (
+                  {availableCarrierKeys.map((carrierKey) => (
                     <Select.Item key={carrierKey} value={carrierKey}>
                       {t(`carriers.${carrierKey}`)}
                     </Select.Item>
