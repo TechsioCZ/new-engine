@@ -1,3 +1,14 @@
+/**
+ * RadioGroup — @techsio/ui-kit molecule.
+ *
+ * @component RadioGroup
+ * @componentVersion v1.0.0
+ * @skill radio-group-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the radio-group-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import * as zagRadioGroup from "@zag-js/radio-group"
 import { normalizeProps, useMachine } from "@zag-js/react"
 import {

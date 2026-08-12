@@ -1,4 +1,3 @@
-// biome-ignore lint/performance/noBarrelFile: Company employee components expose a local route component API.
 export * from "./employees-actions-menu"
 export * from "./employees-create-drawer"
 export * from "./employees-create-form"

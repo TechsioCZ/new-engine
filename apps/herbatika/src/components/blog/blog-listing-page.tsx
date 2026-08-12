@@ -5,6 +5,7 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { useQueryStates } from "nuqs"
 import {
   HerbatikaBreadcrumb,
@@ -28,6 +29,7 @@ const getFilterLabel = (filter: BlogCategoryFilter) =>
   `${filter.label} (${filter.count})`
 
 export function BlogListingPage({ listing }: BlogListingPageProps) {
+  const tContent = useTranslations("content")
   const [, setBlogQueryState] = useQueryStates(blogQueryParsers)
   const listingQuery = useBlogListingPages(listing)
   const loadedPages = listingQuery.data?.pages ?? [listing]
@@ -41,8 +43,15 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
     })
   const paginationLabel =
     firstLoadedPage === lastLoadedPage
-      ? `Strana ${lastLoadedPage}/${listing.totalPages}`
-      : `Strany ${firstLoadedPage}–${lastLoadedPage}/${listing.totalPages}`
+      ? tContent("blog.pagination.summary", {
+          page: lastLoadedPage,
+          totalPages: listing.totalPages,
+        })
+      : tContent("blog.pagination.range", {
+          firstPage: firstLoadedPage,
+          lastPage: lastLoadedPage,
+          totalPages: listing.totalPages,
+        })
   const handleLoadMore = async () => {
     const result = await listingQuery.fetchNextPage()
 
@@ -66,7 +75,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
   }
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
-      label: "Blog",
+      label: tContent("pages.blog"),
       href: "/blog",
       icon: "token-icon-home",
     },
@@ -128,7 +137,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
                   <Button
                     className="justify-self-center sm:col-start-2"
                     isLoading={listingQuery.isFetchingNextPage}
-                    loadingText="Načítavam..."
+                    loadingText={tContent("blog.pagination.loading")}
                     onClick={() => {
                       runDetachedPromise(handleLoadMore())
                     }}
@@ -136,7 +145,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
                     theme="outlined"
                     variant="primary"
                   >
-                    Zobraziť ďalšie
+                    {tContent("blog.pagination.load_more")}
                   </Button>
                 ) : null}
 
@@ -159,7 +168,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
               {listingQuery.isFetchNextPageError ? (
                 <div className="flex justify-center">
                   <StatusText role="alert" showIcon status="error">
-                    Ďalšie články sa nepodarilo načítať. Skúste to znova.
+                    {tContent("blog.pagination.load_failed")}
                   </StatusText>
                 </div>
               ) : null}

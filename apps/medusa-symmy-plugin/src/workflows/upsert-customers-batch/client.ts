@@ -1,5 +1,8 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import {
   createCustomerAddressesWorkflow,
   createCustomersWorkflow,
@@ -162,7 +165,10 @@ export class CustomerBatchClient {
     })
     const created = result?.[0] as unknown as ExistingCustomer | undefined
     if (!created) {
-      throw new Error("createCustomersWorkflow returned empty result")
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "createCustomersWorkflow returned empty result"
+      )
     }
     return created
   }
@@ -190,7 +196,10 @@ export class CustomerBatchClient {
     }
 
     if (!existing && addresses.some((address) => address.address_id)) {
-      throw new Error("address_id can only be used when updating a customer")
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "address_id can only be used when updating a customer"
+      )
     }
 
     const existingAddressIds = new Set(
@@ -199,7 +208,8 @@ export class CustomerBatchClient {
     for (const address of addresses) {
       if (address.address_id) {
         if (existing && !existingAddressIds.has(address.address_id)) {
-          throw new Error(
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
             `Address '${address.address_id}' does not belong to customer '${customerId}'`
           )
         }
@@ -239,7 +249,10 @@ export class CustomerBatchClient {
     for (const code of groupCodes) {
       const group = groupIndex.byCode.get(code)
       if (!group) {
-        throw new Error(`Customer group code '${code}' was not found`)
+        throw new MedusaError(
+          MedusaError.Types.NOT_FOUND,
+          `Customer group code '${code}' was not found`
+        )
       }
       targetIds.add(group.id)
     }

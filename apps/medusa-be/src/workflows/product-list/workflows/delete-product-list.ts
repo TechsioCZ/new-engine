@@ -18,7 +18,7 @@ import { retrieveProductListStep } from "../steps/retrieve-product-list"
 import type { DeleteProductListWorkflowInput } from "../types"
 
 export const deleteProductListWorkflow = createWorkflow(
-  "delete-product-list-workflow",
+  "delete-product-list",
   (input: DeleteProductListWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) => [
       `product-list:${workflowInput.list_id}`,

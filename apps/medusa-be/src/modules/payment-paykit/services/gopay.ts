@@ -9,6 +9,7 @@ import {
   PaykitPaymentProviderBase,
 } from "../core/base"
 import { createPaykitClient, getGopayProviderOptions } from "../runtime"
+import { resolveGopayRuntimeOptions } from "../runtime-config"
 import type {
   PaykitGopayOptions,
   PaykitPayment,
@@ -43,7 +44,7 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
   }
 
   static override validateOptions(options: PaykitGopayOptions = {}): void {
-    if (options.client || options.clientFactory) {
+    if (options.client || options.clientFactory || options.apiStoreName) {
       return
     }
 
@@ -56,10 +57,15 @@ export class PaykitGopayPaymentProvider extends PaykitPaymentProviderBase<Paykit
   }
 
   protected async createDefaultClient(): Promise<PaykitPaymentClient> {
+    const options = await resolveGopayRuntimeOptions(
+      this.container_,
+      this.options_
+    )
+
     return await createPaykitClient(
       "@paykit-sdk/gopay",
       "createGopay",
-      getGopayProviderOptions(this.options_)
+      getGopayProviderOptions(options)
     )
   }
 

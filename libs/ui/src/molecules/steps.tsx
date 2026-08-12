@@ -1,3 +1,14 @@
+/**
+ * Steps — @techsio/ui-kit molecule.
+ *
+ * @component Steps
+ * @componentVersion v1.0.0
+ * @skill steps-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the steps-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import { mergeProps, normalizeProps, useMachine } from "@zag-js/react"
 import {
   connect as connectSteps,

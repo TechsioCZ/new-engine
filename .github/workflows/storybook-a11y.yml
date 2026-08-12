@@ -8,6 +8,7 @@ on:
       - ".github/workflows/storybook-a11y-baseline.yml"
       - "package.json"
       - "pnpm-lock.yaml"
+      - "scripts/install-storybook-playwright.mjs"
   workflow_dispatch:
     inputs:
       failOnViolations:
@@ -45,6 +46,7 @@ jobs:
               .github/workflows/storybook-a11y-baseline.yml|\
               package.json|\
               pnpm-lock.yaml|\
+              scripts/install-storybook-playwright.mjs|\
               libs/ui/.storybook/**|\
               libs/ui/assets/**|\
               libs/ui/package.json|\
@@ -89,8 +91,9 @@ jobs:
       # is all the headless a11y test run needs, and avoids the stuck extract.
       # `timeout` is a safety net so a future regression fails fast instead of
       # hanging. ubuntu-latest already ships Chromium's system libs (no
-      # --with-deps needed).
-      install-command: pnpm install --frozen-lockfile && timeout 420 pnpm -C {{workdir}} exec playwright install --only-shell chromium
+      # --with-deps needed). Install through Storybook's own Playwright so the
+      # downloaded browser revision always matches the test-runner runtime.
+      install-command: pnpm install --frozen-lockfile --prefer-offline --filter='.' --filter='@techsio/ui-kit...' && timeout 420 node scripts/install-storybook-playwright.mjs {{workdir}} install --only-shell chromium
       build-command: pnpm -C {{workdir}} run build:storybook
       storybook-static-dir: storybook-static
       storybook-config-dir: .storybook

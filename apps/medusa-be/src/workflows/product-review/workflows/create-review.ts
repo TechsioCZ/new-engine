@@ -7,7 +7,7 @@ import { markReviewTokenUsedStep } from "../steps/mark-review-token-used"
 import type { CreateReviewWorkflowInput } from "../types"
 
 export const createReviewWorkflow = createWorkflow(
-  "create-product-review-workflow",
+  "create-review",
   (input: CreateReviewWorkflowInput) => {
     const review = createReviewStep(input)
     markReviewTokenUsedStep(input)

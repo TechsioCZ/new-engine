@@ -3,18 +3,31 @@ import {
   approvalAdminI18n,
 } from "../../modules/approval/admin/i18n"
 import {
+  type BrandAdminI18nNamespace,
+  brandAdminI18n,
+} from "../../modules/brand/admin/i18n"
+import {
   type CompanyAdminI18nNamespace,
   companyAdminI18n,
 } from "../../modules/company/admin/i18n"
 import {
-  type ProducerAdminI18nNamespace,
-  producerAdminI18n,
-} from "../../modules/producer/admin/i18n"
+  type MeasurementUnitAdminI18nNamespace,
+  measurementUnitAdminI18n,
+} from "../../modules/measurement-unit/admin/i18n"
+import {
+  type ProductAttributeAdminI18nNamespace,
+  productAttributeAdminI18n,
+} from "../../modules/product-attribute/admin/i18n"
 import {
   type QuoteAdminI18nNamespace,
   quoteAdminI18n,
 } from "../../modules/quote/admin/i18n"
+import {
+  type StorefrontTextAdminI18nNamespace,
+  storefrontTextAdminI18n,
+} from "../../modules/storefront-text/admin/i18n"
 import type { OrderBusinessStatusId } from "../../utils/order-business-status"
+import type { ProductContentSectionKey } from "../lib/product-content-sections"
 
 type AdminLocale = "cs" | "en"
 
@@ -43,6 +56,17 @@ type OrderCommercialValuesNamespace = {
   status: Record<"confirmed" | "loading" | "locked" | "requested", string>
   title: string
   totals: Record<"delta" | "new" | "orderDiscount" | "original", string>
+}
+
+type ProductContentSectionsNamespace = {
+  actions: Record<"save", string>
+  errors: Record<"saveFailed", string>
+  sections: Record<
+    ProductContentSectionKey,
+    Record<"ariaLabel" | "title", string>
+  >
+  title: string
+  toasts: Record<"saved", string>
 }
 
 type AdminDefaultTranslationNamespace = {
@@ -77,6 +101,7 @@ type AdminDefaultTranslationNamespace = {
     string
   >
   orderCommercialValues: OrderCommercialValuesNamespace
+  productContentSections: ProductContentSectionsNamespace
   routeModal: Record<
     "cancel" | "continue" | "leaveDescription" | "leaveTitle",
     string
@@ -116,10 +141,13 @@ type AdminI18nResources = Record<
   {
     approvals: ApprovalAdminI18nNamespace
     companies: CompanyAdminI18nNamespace
+    measurementUnits: MeasurementUnitAdminI18nNamespace
     orderBusinessStatuses: OrderBusinessStatusesNamespace
     productSalesRegions: ProductSalesRegionsNamespace
-    producers: ProducerAdminI18nNamespace
+    productAttributes: ProductAttributeAdminI18nNamespace
+    brands: BrandAdminI18nNamespace
     quotes: QuoteAdminI18nNamespace
+    storefrontTexts: StorefrontTextAdminI18nNamespace
     translation: AdminDefaultTranslationNamespace
   }
 >
@@ -345,6 +373,77 @@ const orderCommercialValues = {
   },
 } satisfies Record<AdminLocale, OrderCommercialValuesNamespace>
 
+const productContentSections = {
+  cs: {
+    actions: {
+      save: "Uložit",
+    },
+    errors: {
+      saveFailed: "Sekce produktu se nepodařilo uložit.",
+    },
+    sections: {
+      composition: {
+        ariaLabel: "Složení produktu",
+        title: "Složení",
+      },
+      description: {
+        ariaLabel: "Popis produktu",
+        title: "Popis",
+      },
+      other: {
+        ariaLabel: "Ostatní informace o produktu",
+        title: "Ostatní informace",
+      },
+      usage: {
+        ariaLabel: "Použití produktu",
+        title: "Použití",
+      },
+      warning: {
+        ariaLabel: "Upozornění k produktu",
+        title: "Upozornění",
+      },
+    },
+    title: "Produktové sekce",
+    toasts: {
+      saved: "Produktové sekce byly uloženy.",
+    },
+  },
+  en: {
+    actions: {
+      save: "Save",
+    },
+    errors: {
+      saveFailed: "Failed to save product sections.",
+    },
+    sections: {
+      composition: {
+        ariaLabel: "Product composition",
+        title: "Composition",
+      },
+      description: {
+        ariaLabel: "Product description",
+        title: "Description",
+      },
+      other: {
+        ariaLabel: "Product other information",
+        title: "Other information",
+      },
+      usage: {
+        ariaLabel: "Product usage",
+        title: "Usage",
+      },
+      warning: {
+        ariaLabel: "Product warning",
+        title: "Warning",
+      },
+    },
+    title: "Product sections",
+    toasts: {
+      saved: "Product sections saved.",
+    },
+  },
+} satisfies Record<AdminLocale, ProductContentSectionsNamespace>
+
 const defaultTranslation = {
   cs: {
     fields: {
@@ -379,6 +478,7 @@ const defaultTranslation = {
       results: "výsledků",
     },
     orderCommercialValues: orderCommercialValues.cs,
+    productContentSections: productContentSections.cs,
     routeModal: {
       cancel: "Zrušit",
       continue: "Pokračovat",
@@ -420,6 +520,7 @@ const defaultTranslation = {
       results: "results",
     },
     orderCommercialValues: orderCommercialValues.en,
+    productContentSections: productContentSections.en,
     routeModal: {
       cancel: "Cancel",
       continue: "Continue",
@@ -434,19 +535,25 @@ const resources = {
   cs: {
     approvals: approvalAdminI18n.cs,
     companies: companyAdminI18n.cs,
+    measurementUnits: measurementUnitAdminI18n.cs,
     orderBusinessStatuses: orderBusinessStatuses.cs,
     productSalesRegions: productSalesRegions.cs,
-    producers: producerAdminI18n.cs,
+    productAttributes: productAttributeAdminI18n.cs,
+    brands: brandAdminI18n.cs,
     quotes: quoteAdminI18n.cs,
+    storefrontTexts: storefrontTextAdminI18n.cs,
     translation: defaultTranslation.cs,
   },
   en: {
     approvals: approvalAdminI18n.en,
     companies: companyAdminI18n.en,
+    measurementUnits: measurementUnitAdminI18n.en,
     orderBusinessStatuses: orderBusinessStatuses.en,
     productSalesRegions: productSalesRegions.en,
-    producers: producerAdminI18n.en,
+    productAttributes: productAttributeAdminI18n.en,
+    brands: brandAdminI18n.en,
     quotes: quoteAdminI18n.en,
+    storefrontTexts: storefrontTextAdminI18n.en,
     translation: defaultTranslation.en,
   },
 } satisfies AdminI18nResources

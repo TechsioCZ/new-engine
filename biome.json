@@ -40,13 +40,16 @@
   "javascript": {
     "formatter": {
       "semicolons": "asNeeded"
+    },
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true
     }
   },
   "overrides": [
     {
       "includes": ["**/*.spec.ts"],
       "javascript": {
-        "globals": ["jest", "describe", "it", "expect"]
+        "globals": ["jest", "describe", "it", "expect", "beforeEach"]
       }
     },
     {
@@ -94,7 +97,7 @@
             "noExcessiveCognitiveComplexity": "warn"
           },
           "performance": {
-            "noBarrelFile": "info",
+            "noBarrelFile": "off",
             "noNamespaceImport": "info"
           }
         }

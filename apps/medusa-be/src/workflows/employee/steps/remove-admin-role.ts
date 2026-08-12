@@ -1,4 +1,4 @@
-import type { IAuthModuleService } from "@medusajs/framework/types"
+import type { IAuthModuleService, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { getProviderIdentityIdsWithoutActiveAdminRole } from "../utils/admin-auth-metadata"
@@ -17,7 +17,7 @@ export const removeAdminRoleStep = createStep(
       Modules.AUTH
     )
 
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const providerIdentityIds =
       await getProviderIdentityIdsWithoutActiveAdminRole({
         candidates: [

@@ -16,7 +16,9 @@ if (process.argv[2] === "build") {
   }
 
   for (const [key, value] of Object.entries(buildDefaults)) {
-    process.env[key] ??= value
+    if (!process.env[key]?.trim()) {
+      process.env[key] = value
+    }
   }
 }
 

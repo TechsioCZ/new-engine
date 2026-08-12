@@ -1,2 +1,2 @@
-export * from "./currency-symbol-map"
-export * from "./format-amount"
+export { currencySymbolMap } from "./currency-symbol-map"
+export { formatAmount } from "./format-amount"

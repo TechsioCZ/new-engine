@@ -1,7 +1,7 @@
 import type { CmsMedia } from "./cms-types"
-import { resolveMedusaBackendUrl, resolvePayloadBaseUrl } from "./runtime-env"
+import { resolvePublicPayloadBaseUrl } from "./runtime-env"
 
-const CMS_MEDIA_BASE_URL = resolvePayloadBaseUrl(resolveMedusaBackendUrl())
+const CMS_MEDIA_BASE_URL = resolvePublicPayloadBaseUrl()
 
 const resolveCmsMediaPath = (
   media: CmsMedia | string | null | undefined
@@ -22,7 +22,9 @@ export const resolveCmsMediaUrl = (
   }
 
   try {
-    return new URL(mediaPath, CMS_MEDIA_BASE_URL).toString()
+    return CMS_MEDIA_BASE_URL
+      ? new URL(mediaPath, CMS_MEDIA_BASE_URL).toString()
+      : new URL(mediaPath).toString()
   } catch {
     return null
   }
@@ -31,6 +33,10 @@ export const resolveCmsMediaUrl = (
 export const rewriteCmsHtmlMediaUrls = (html: string) => {
   if (!html) {
     return ""
+  }
+
+  if (!CMS_MEDIA_BASE_URL) {
+    return html
   }
 
   return html.replace(

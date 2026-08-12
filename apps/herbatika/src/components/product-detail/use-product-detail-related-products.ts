@@ -1,5 +1,5 @@
 "use client"
-import { RELATED_PRODUCTS_LIMIT } from "@/components/product-detail/product-detail.constants"
+import { useTranslations } from "next-intl"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import {
   orderProductsByReferenceCodes,
@@ -13,6 +13,10 @@ import {
   RELATED_PRODUCT_FIELDS,
   useProducts,
 } from "@/lib/storefront/products"
+import {
+  RELATED_PRODUCT_SECTION_MESSAGE_KEYS,
+  RELATED_PRODUCTS_LIMIT,
+} from "@/lib/storefront/related-products-config"
 
 type UseProductDetailRelatedProductsProps = {
   product: Product | null
@@ -21,6 +25,7 @@ type UseProductDetailRelatedProductsProps = {
 export function useProductDetailRelatedProducts({
   product,
 }: UseProductDetailRelatedProductsProps) {
+  const tCatalog = useTranslations("catalog")
   const relatedCategoryIds = resolveRelatedCategoryIds(product)
   const relatedReferenceCodes = resolveRelatedProductReferenceCodes(product)
   const relatedReferenceHandles = relatedReferenceCodes
@@ -66,5 +71,9 @@ export function useProductDetailRelatedProducts({
 
   const relatedProducts = filtered.slice(0, RELATED_PRODUCTS_LIMIT)
 
-  return resolveRelatedSections(relatedProducts)
+  const sectionTitles = RELATED_PRODUCT_SECTION_MESSAGE_KEYS.map((key) =>
+    tCatalog(key)
+  )
+
+  return resolveRelatedSections(relatedProducts, sectionTitles)
 }

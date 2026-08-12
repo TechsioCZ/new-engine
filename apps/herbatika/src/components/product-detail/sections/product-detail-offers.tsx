@@ -3,6 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { RadioCard } from "@techsio/ui-kit/molecules/radio-card"
+import { useTranslations } from "next-intl"
 import type { VolumeDiscountOption } from "@/components/product-detail/product-detail.types"
 
 type ProductDetailOffersProps = {
@@ -20,6 +21,9 @@ export function ProductDetailOffers({
   options,
   selectedOptionId,
 }: ProductDetailOffersProps) {
+  const tCart = useTranslations("cart")
+  const tCatalog = useTranslations("catalog")
+
   if (options.length === 0) {
     return null
   }
@@ -27,7 +31,7 @@ export function ProductDetailOffers({
   return (
     <section className="min-w-0 space-y-350 sm:p-550">
       <h2 className="font-semibold text-fg-primary text-xl">
-        Množstevná zľava
+        {tCatalog("product_detail.bulk_discount.title")}
       </h2>
 
       <div className="flex min-w-0 flex-col gap-y-350 rounded-base bg-surface p-400 sm:p-550">
@@ -46,7 +50,7 @@ export function ProductDetailOffers({
           variant="subtle"
         >
           <RadioCard.Label className="sr-only">
-            Množstevná zľava
+            {tCatalog("product_detail.bulk_discount.title")}
           </RadioCard.Label>
 
           {options.map((option) => {
@@ -88,11 +92,11 @@ export function ProductDetailOffers({
           disabled={!selectedOptionId}
           icon="token-icon-cart"
           isLoading={isAdding}
-          loadingText="Pridávam..."
+          loadingText={tCart("adding_to_cart")}
           onClick={onAddToCart}
           variant="primary"
         >
-          Pridať do košíka
+          {tCart("add_to_cart")}
         </Button>
       </div>
     </section>

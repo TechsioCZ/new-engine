@@ -1,3 +1,14 @@
+/**
+ * Button — @techsio/ui-kit atom.
+ *
+ * @component Button
+ * @componentVersion v0.3.2
+ * @skill button-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the button-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import type { ButtonHTMLAttributes, ReactNode, Ref } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { tv } from "../utils"

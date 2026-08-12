@@ -15,6 +15,7 @@ export type MedusaConfigEnv = {
   databaseSchema: string
   databaseUrl: string | undefined
   eventBusProvider: "local" | "redis"
+  featureGlsEnabled: boolean
   featurePacketaEnabled: boolean
   featurePayloadEnabled: boolean
   featurePaymentQrEnabled: boolean
@@ -34,7 +35,6 @@ export type MedusaConfigEnv = {
   minioRegion: string | undefined
   minioSecretKey: string | undefined
   notificationProvider: "local" | "resend"
-  packetaEnvironment: string
   payloadApiKey: string | undefined
   payloadBaseUrl: string | undefined
   payloadContentCacheTtl: number
@@ -220,6 +220,7 @@ export function readMedusaConfigEnv(
     databaseSchema,
     databaseUrl: env.DATABASE_URL,
     eventBusProvider,
+    featureGlsEnabled: env.FEATURE_GLS_ENABLED === FEATURE_FLAG_ENABLED_VALUE,
     featurePacketaEnabled:
       env.FEATURE_PACKETA_ENABLED === FEATURE_FLAG_ENABLED_VALUE,
     featurePayloadEnabled:
@@ -251,7 +252,6 @@ export function readMedusaConfigEnv(
       "local",
       "resend",
     ] as const),
-    packetaEnvironment: env.PACKETA_ENVIRONMENT ?? "testing",
     payloadApiKey: env.PAYLOAD_API_KEY,
     payloadBaseUrl: env.PAYLOAD_BASE_URL,
     payloadContentCacheTtl: Number.parseInt(env.CMS_CACHE_TTL ?? "3600", 10),

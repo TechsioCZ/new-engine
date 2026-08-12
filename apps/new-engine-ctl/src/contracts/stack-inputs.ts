@@ -508,13 +508,19 @@ export function listLocalRuntimeProviderOutputAliases(
   }
 
   if (serviceIds.length > 0) {
-    const matchedServiceIds = new Set(aliases.map((alias) => alias.service_id))
-    const missingServiceIds = serviceIds.filter(
-      (serviceId) => !matchedServiceIds.has(serviceId)
+    const targetServiceIds = new Set(
+      listRuntimeProviderOutputTargets(inputs, providerId, outputId).map(
+        (target) => target.service_id
+      )
     )
-    if (missingServiceIds.length > 0) {
+    const matchedServiceIds = new Set(aliases.map((alias) => alias.service_id))
+    const missingConsumerAliases = serviceIds.filter(
+      (serviceId) =>
+        targetServiceIds.has(serviceId) && !matchedServiceIds.has(serviceId)
+    )
+    if (missingConsumerAliases.length > 0) {
       throw new Error(
-        `Missing local env alias for ${providerId}.${outputId} service(s): ${missingServiceIds.join(",")}.`
+        `Missing local env alias for ${providerId}.${outputId} consumer service(s): ${missingConsumerAliases.join(",")}.`
       )
     }
   }

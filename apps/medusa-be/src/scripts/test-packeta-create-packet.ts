@@ -3,6 +3,7 @@ import {
   PACKETA_CLIENT_MODULE,
   type PacketaClientModuleService,
 } from "../modules/packeta-client"
+import { createPacketaPacketWorkflow } from "../workflows/packeta/create-packeta-packet"
 
 /**
  * Manual smoke test for Packeta createPacket against the real Packeta API.
@@ -56,22 +57,27 @@ export default async function testPacketaCreatePacket({ container }: ExecArgs) {
   const orderRef = `TEST-${Date.now()}`
   const value = Number.parseFloat(process.env.PACKETA_TEST_VALUE ?? "100")
   const weight = Number.parseFloat(process.env.PACKETA_TEST_WEIGHT ?? "0.5")
+  const environment = await packetaService.getEnvironment()
 
   process.stdout.write(
-    `Creating Packeta test packet '${orderRef}' (env: ${packetaService.getEnvironment()})...\n`
+    `Creating Packeta test packet '${orderRef}' (env: ${environment})...\n`
   )
 
   try {
-    const result = await packetaService.createPacket({
-      number: orderRef,
-      name: "Jan",
-      surname: "Tester",
-      email: process.env.PACKETA_TEST_EMAIL ?? "test@example.com",
-      phone: process.env.PACKETA_TEST_PHONE ?? "+420777123456",
-      addressId,
-      value,
-      currency: "CZK",
-      weight,
+    const { result } = await createPacketaPacketWorkflow(container).run({
+      input: {
+        attributes: {
+          number: orderRef,
+          name: "Jan",
+          surname: "Tester",
+          email: process.env.PACKETA_TEST_EMAIL ?? "test@example.com",
+          phone: process.env.PACKETA_TEST_PHONE ?? "+420777123456",
+          addressId,
+          value,
+          currency: "CZK",
+          weight,
+        },
+      },
     })
 
     process.stdout.write("\nSUCCESS:\n")

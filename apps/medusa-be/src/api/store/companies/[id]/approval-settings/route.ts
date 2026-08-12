@@ -6,6 +6,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { requirePathParam } from "../../../../../utils/path-params"
 import {
   ensureApprovalSettingsWorkflow,
   updateApprovalSettingsWorkflow,
@@ -19,10 +20,10 @@ export const POST = async (
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
-  const { id } = req.params
+  const id = requirePathParam(req.params.id, "Company id")
 
-  let {
-    data: [approval_settings],
+  const {
+    data: [approvalSettings],
   } = await query.graph({
     entity: "approval_settings",
     fields: storeApprovalSettingsFields,
@@ -30,17 +31,17 @@ export const POST = async (
   })
 
   const { requires_admin_approval } = req.validatedBody
+  let approvalSettingsId = approvalSettings?.id
 
-  if (!approval_settings) {
+  if (!approvalSettings) {
     const { result: createdApprovalSettings } =
-      await ensureApprovalSettingsWorkflow.run({
+      await ensureApprovalSettingsWorkflow(req.scope).run({
         input: [id],
-        container: req.scope,
       })
 
-    approval_settings = createdApprovalSettings[0]
+    approvalSettingsId = createdApprovalSettings[0]?.id
 
-    if (!approval_settings) {
+    if (!approvalSettingsId) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Approval settings for company ${id} were not found`
@@ -48,13 +49,19 @@ export const POST = async (
     }
   }
 
-  await updateApprovalSettingsWorkflow.run({
+  if (!approvalSettingsId) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Approval settings for company ${id} were not found`
+    )
+  }
+
+  await updateApprovalSettingsWorkflow(req.scope).run({
     input: {
       company_id: id,
-      id: approval_settings.id,
+      id: approvalSettingsId,
       requires_admin_approval,
     },
-    container: req.scope,
   })
 
   res.status(201).send()

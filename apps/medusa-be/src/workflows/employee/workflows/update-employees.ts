@@ -1,3 +1,4 @@
+import type { RemoteQueryEntryPoints } from "@medusajs/framework/types"
 import {
   createWorkflow,
   transform,
@@ -5,7 +6,7 @@ import {
   WorkflowResponse,
   when,
 } from "@medusajs/framework/workflows-sdk"
-import type { ModuleUpdateEmployee, QueryEmployee } from "../../../types"
+import type { ModuleUpdateEmployee } from "../../../types"
 import { validateCompanyActiveStep } from "../../company/steps"
 import {
   getEmployeeAdminStateStep,
@@ -18,7 +19,7 @@ export const updateEmployeesWorkflow = createWorkflow(
   "update-employees",
   (
     input: WorkflowData<ModuleUpdateEmployee>
-  ): WorkflowResponse<QueryEmployee> => {
+  ): WorkflowResponse<RemoteQueryEntryPoints["employee"]> => {
     validateCompanyActiveStep(input.company_id)
 
     const previousEmployee = getEmployeeAdminStateStep({

@@ -6,6 +6,7 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
+import { requirePathParam } from "../../../../../utils/path-params"
 import {
   ensureApprovalSettingsWorkflow,
   updateApprovalSettingsWorkflow,
@@ -28,7 +29,7 @@ export const GET = async (
       company_id: id,
     },
     pagination: {
-      ...req.remoteQueryConfig.pagination,
+      ...req.queryConfig.pagination,
     },
   })
 
@@ -45,11 +46,11 @@ export const POST = async (
   res: MedusaResponse
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
-  const { id } = req.params
+  const id = requirePathParam(req.params.id, "Company id")
   const { requires_admin_approval, requires_sales_manager_approval } =
     req.validatedBody
 
-  let {
+  const {
     data: [currentApprovalSettings],
   } = await query.graph({
     entity: "approval_settings",
@@ -57,16 +58,17 @@ export const POST = async (
     filters: { company_id: id },
   })
 
+  let currentApprovalSettingsId = currentApprovalSettings?.id
+
   if (!currentApprovalSettings) {
     const { result: createdApprovalSettings } =
-      await ensureApprovalSettingsWorkflow.run({
+      await ensureApprovalSettingsWorkflow(req.scope).run({
         input: [id],
-        container: req.scope,
       })
 
-    currentApprovalSettings = createdApprovalSettings[0]
+    currentApprovalSettingsId = createdApprovalSettings[0]?.id
 
-    if (!currentApprovalSettings) {
+    if (!currentApprovalSettingsId) {
       throw new MedusaError(
         MedusaError.Types.NOT_FOUND,
         `Approval settings for company ${id} were not found`
@@ -74,15 +76,21 @@ export const POST = async (
     }
   }
 
+  if (!currentApprovalSettingsId) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_FOUND,
+      `Approval settings for company ${id} were not found`
+    )
+  }
+
   const { result: updatedApprovalSettings } =
-    await updateApprovalSettingsWorkflow.run({
+    await updateApprovalSettingsWorkflow(req.scope).run({
       input: {
         company_id: id,
-        id: currentApprovalSettings.id,
+        id: currentApprovalSettingsId,
         requires_admin_approval,
         requires_sales_manager_approval,
       },
-      container: req.scope,
     })
 
   const { data: approvalSettings } = await query.graph(

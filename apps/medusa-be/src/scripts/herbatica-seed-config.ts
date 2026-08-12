@@ -7,6 +7,10 @@ export const HERBATICA_PRODUCTS_XML_ENV = "HERBATICA_XML_PATH"
 export const HERBATICA_CATEGORIES_XML_ENV = "HERBATICA_CATEGORIES_XML_PATH"
 export const HERBATICA_PROMO_REBASE_DAYS_ENV = "HERBATICA_PROMO_REBASE_DAYS"
 export const HERBATICA_REVIEWS_XML_ENV = "HERBATICA_REVIEWS_XML_PATH"
+// Deliberately has no default: local files must be explicit, and HTTP(S) inputs
+// should be pinned/versioned by the caller rather than pointing at a mutable feed.
+export const HERBATICA_MANUFACTURERS_CSV_ENV =
+  "HERBATICA_MANUFACTURERS_CSV_PATH"
 
 export const HERBATICA_PRODUCTS_XML_PATHS = [
   resolve(__dirname, "seed-files/productsComplete.xml"),
@@ -119,10 +123,17 @@ export const HERBATICA_CURRENCIES = [
   },
 ] satisfies SeedDatabaseWorkflowInput["currencies"]
 
+export const HERBATICA_STOREFRONT_SALES_CHANNEL_NAME = "Default Sales Channel"
+export const HERBATICA_POS_SALES_CHANNEL_NAME = "Default Sales Channel POS"
+
 export const HERBATICA_SALES_CHANNELS = [
   {
-    name: "Default Sales Channel",
+    name: HERBATICA_STOREFRONT_SALES_CHANNEL_NAME,
     default: true,
+  },
+  {
+    name: HERBATICA_POS_SALES_CHANNEL_NAME,
+    default: false,
   },
 ] satisfies SeedDatabaseWorkflowInput["salesChannels"]
 
@@ -227,5 +238,6 @@ export const HERBATICA_SHIPPING_OPTIONS = [
 ] satisfies SeedDatabaseWorkflowInput["shippingOptions"]
 
 export const HERBATICA_PUBLISHABLE_KEY = {
+  salesChannelNames: [HERBATICA_STOREFRONT_SALES_CHANNEL_NAME],
   title: "Webshop",
 } satisfies SeedDatabaseWorkflowInput["publishableKey"]

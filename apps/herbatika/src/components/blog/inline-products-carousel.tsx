@@ -7,12 +7,7 @@ import {
   type CarouselSlide,
 } from "@techsio/ui-kit/molecules/carousel"
 import { HerbatikaProductCard } from "@/components/herbatika-product-card"
-import { useAppToast } from "@/hooks/use-app-toast"
-import {
-  ADD_PRODUCT_TO_CART_SUCCESS_MESSAGE,
-  resolveAddProductToCartErrorMessage,
-  useAddProductToCart,
-} from "@/lib/storefront/use-add-product-to-cart"
+import { useAddProductToCartAction } from "@/lib/storefront/use-add-product-to-cart-action"
 
 type InlineProductsCarouselProps = {
   products: HttpTypes.StoreProduct[]
@@ -67,22 +62,16 @@ export function InlineProductsCarousel({
   slidesLg = 4,
 }: InlineProductsCarouselProps) {
   const region = useRegionContext()
-  const addToCart = useAddProductToCart({
+  const addToCart = useAddProductToCartAction({
     regionId: region?.region_id,
     countryCode: region?.country_code,
   })
-  const toast = useAppToast()
 
   const handleAddToCart = async (product: HttpTypes.StoreProduct) => {
-    try {
-      await addToCart.addProductToCart({
-        product,
-        quantity: 1,
-      })
-      toast.success({ title: ADD_PRODUCT_TO_CART_SUCCESS_MESSAGE })
-    } catch (error) {
-      toast.error({ title: resolveAddProductToCartErrorMessage(error) })
-    }
+    await addToCart.addProductToCart({
+      product,
+      quantity: 1,
+    })
   }
 
   const slides: CarouselSlide[] = products.map((product, index) => ({

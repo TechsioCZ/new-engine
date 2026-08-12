@@ -1,5 +1,10 @@
 import type { Context } from "@medusajs/framework/types"
-import { MedusaError, MedusaService } from "@medusajs/framework/utils"
+import {
+  InjectManager,
+  MedusaContext,
+  MedusaError,
+  MedusaService,
+} from "@medusajs/framework/utils"
 import OrderNote from "./models/order-note"
 
 type UpsertOrderNoteInput = {
@@ -8,7 +13,11 @@ type UpsertOrderNoteInput = {
 }
 
 class OrderNoteModuleService extends MedusaService({ OrderNote }) {
-  async getOrderNoteByOrderId(orderId: string, sharedContext?: Context) {
+  @InjectManager()
+  async getOrderNoteByOrderId(
+    orderId: string,
+    @MedusaContext() sharedContext?: Context
+  ) {
     const [orderNote] = await this.listOrderNotes(
       { order_id: orderId },
       { take: 1 },
@@ -18,7 +27,11 @@ class OrderNoteModuleService extends MedusaService({ OrderNote }) {
     return orderNote ?? null
   }
 
-  async upsertOrderNote(input: UpsertOrderNoteInput, sharedContext?: Context) {
+  @InjectManager()
+  async upsertOrderNote(
+    input: UpsertOrderNoteInput,
+    @MedusaContext() sharedContext?: Context
+  ) {
     const note = input.note.trim()
 
     if (!note) {

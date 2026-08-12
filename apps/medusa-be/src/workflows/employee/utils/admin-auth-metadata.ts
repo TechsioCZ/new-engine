@@ -1,13 +1,4 @@
-import type { ProviderIdentityDTO } from "@medusajs/framework/types"
-
-type QueryGraph = {
-  graph: (input: {
-    entity: string
-    fields: string[]
-    filters?: Record<string, unknown>
-    withDeleted?: boolean
-  }) => Promise<{ data: unknown[] }>
-}
+import type { ProviderIdentityDTO, Query } from "@medusajs/framework/types"
 
 type AdminRoleCandidate = {
   customer_id?: string | null
@@ -45,7 +36,7 @@ export const getProviderIdentityIdsWithoutActiveAdminRole = async ({
   candidates: AdminRoleCandidate[]
   excludedCompanyIds?: string[]
   excludedEmployeeIds?: string[]
-  query: QueryGraph
+  query: Query
 }) => {
   const candidatesByCustomerId = new Map<string, AdminRoleCandidate>()
 

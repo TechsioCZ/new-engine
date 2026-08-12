@@ -50,7 +50,7 @@
 - From the repo root, prefer `pnpm -C apps/herbatika <script>` for app scripts.
 - Do not use the root frontend-demo `localhost:3000` assumption for this app.
 - `pnpm build` builds production output; `pnpm start` serves the production build.
-- Temporary rule: do not run Biome commands in this app until stability issue is resolved.
+- Run `pnpm -C apps/herbatika lint` before handoff to match the Nx/CI Biome check.
 
 ## Testing Workflow
 - For manual QA, use skill `local-web-testing`.

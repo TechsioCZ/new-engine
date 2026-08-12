@@ -11,24 +11,34 @@ export const STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS = [
   "thumbnail",
   "metadata",
   "variants.id",
+  "variants.title",
+  "variants.sku",
+  "variants.ean",
+  "variants.upc",
+  "variants.barcode",
   "categories.id",
   "categories.name",
   "categories.handle",
-  "producer.id",
-  "producer.title",
-  "producer.handle",
+  "brand.id",
+  "brand.title",
+  "brand.handle",
 ]
 
 export const STORE_CATALOG_PRODUCTS_PRICING_FIELDS = [
   "variants.calculated_price.calculated_amount",
   "variants.calculated_price.original_amount",
   "variants.calculated_price.currency_code",
+  "variants.calculated_price.is_calculated_price_tax_inclusive",
+  "variants.calculated_price.is_original_price_tax_inclusive",
 ]
 
 const additionalAllowedFields = [
   ...STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
   ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
   "categories.parent_category_id",
+  "measurement",
+  "variants.measurement",
+  "variants.calculated_price.price_per_unit",
 ]
 
 export const STORE_CATALOG_PRODUCTS_ALLOWED_FIELDS = Array.from(
@@ -37,7 +47,10 @@ export const STORE_CATALOG_PRODUCTS_ALLOWED_FIELDS = Array.from(
 
 export const StoreCatalogProductsSchema = z
   .object({
+    fields: z.string().optional(),
     q: z.string().optional().default(""),
+    profile: z.string().trim().min(1).max(120).optional(),
+    locale: z.string().trim().min(2).max(20).optional(),
     page: z.coerce.number().int().min(1).optional().default(1),
     limit: z.coerce.number().int().min(1).max(48).optional().default(12),
     sort: z.enum(CATALOG_SORT_VALUES).optional().default("recommended"),

@@ -1,4 +1,5 @@
 import type { ProviderWebhookPayload } from "@medusajs/framework/types"
+import { MedusaError } from "@medusajs/framework/utils"
 import type { PayKit, PayKitProvider } from "@paykit-sdk/core"
 import type {
   PaykitAdapterOptions,
@@ -25,6 +26,10 @@ type CreatedPaykitClient = {
   client: PaykitPaymentClient
   provider: PayKitProvider
 }
+
+// stripe-node advances its default REST API version with major releases.
+// Keep this explicit so dependency updates cannot silently change payment behavior.
+const PAYKIT_STRIPE_API_VERSION = "2026-06-24.dahlia" as const
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
@@ -81,15 +86,19 @@ const loadExport = async <T>(
   try {
     mod = await dynamicImport(packageName)
   } catch (error) {
-    throw new Error(getPaykitPackageLoadErrorMessage(packageName, error), {
-      cause: error,
-    })
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      getPaykitPackageLoadErrorMessage(packageName, error),
+      undefined,
+      { cause: error }
+    )
   }
 
   const loaded = mod[exportName]
 
   if (!loaded) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `PayKit package "${packageName}" does not export "${exportName}".`
     )
   }
@@ -129,7 +138,8 @@ export const createPaykitClientWithProvider = async (
   const provider = createProvider(providerOptions)
 
   if (!isPaykitProviderRuntime(provider)) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `PayKit provider "${providerPackage}" does not implement handleWebhook`
     )
   }
@@ -183,6 +193,7 @@ export const getStripeProviderOptions = (
   options: PaykitStripeOptions
 ): PaykitStripeProviderOptions => ({
   apiKey: options.apiKey,
+  apiVersion: PAYKIT_STRIPE_API_VERSION,
   debug: options.debug ?? false,
 })
 

@@ -4,7 +4,6 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { PDFDocument } from "pdf-lib"
 import {
   PACKETA_CLIENT_MODULE,
   type PacketaClientModuleService,
@@ -13,6 +12,7 @@ import type {
   PacketaFulfillmentData,
   PacketaLabelFormat,
 } from "../../../modules/packeta-client/types"
+import { composePacketaLabelsOnA4 } from "./label-pdf"
 import type { PostAdminPacketaLabelsSchemaType } from "./validators"
 
 type PacketaFulfillmentRecord = {
@@ -34,7 +34,11 @@ type PrintablePacketaLabel = {
   fulfillment_id: string
   packet_id: number
   barcode?: string
+  config_id?: string
+  environment?: PacketaFulfillmentData["environment"]
 }
+
+const PACKETA_LABEL_DOWNLOAD_CHUNK_SIZE = 10
 
 export async function POST(
   req: MedusaRequest<PostAdminPacketaLabelsSchemaType>,
@@ -71,30 +75,17 @@ export async function POST(
     orders as OrderWithFulfillments[]
   )
 
-  const mergedPdf = await PDFDocument.create()
-
-  const labelPdfs = await Promise.all(
-    labels.map((label) =>
-      packetaClient.downloadLabelPdf(
-        label.packet_id,
-        labelFormat as PacketaLabelFormat | undefined,
-        label_offset
-      )
-    )
+  const labelPdfs = await downloadLabelPdfsInChunks(
+    labels,
+    packetaClient,
+    labelFormat as PacketaLabelFormat | undefined
   )
 
-  for (const labelPdf of labelPdfs) {
-    const sourcePdf = await PDFDocument.load(labelPdf)
-    const copiedPages = await mergedPdf.copyPages(
-      sourcePdf,
-      sourcePdf.getPageIndices()
-    )
-    for (const page of copiedPages) {
-      mergedPdf.addPage(page)
-    }
-  }
-
-  const pdfBytes = await mergedPdf.save()
+  const pdfBytes = await composePacketaLabelsOnA4(
+    labelPdfs,
+    label_offset ?? 0,
+    labelFormat
+  )
   const buffer = Buffer.from(pdfBytes)
   const filename = buildFilename(labels)
 
@@ -150,6 +141,8 @@ function collectPrintableLabels(
         fulfillment_id: fulfillment.id,
         packet_id: data.packet_id,
         barcode: data.barcode,
+        config_id: data.config_id,
+        environment: data.environment,
       })
     }
   }
@@ -171,6 +164,34 @@ function collectPrintableLabels(
   }
 
   return labels
+}
+
+async function downloadLabelPdfsInChunks(
+  labels: PrintablePacketaLabel[],
+  packetaClient: PacketaClientModuleService,
+  labelFormat: PacketaLabelFormat | undefined
+): Promise<Buffer[]> {
+  const labelPdfs: Buffer[] = []
+
+  for (
+    let index = 0;
+    index < labels.length;
+    index += PACKETA_LABEL_DOWNLOAD_CHUNK_SIZE
+  ) {
+    const chunk = labels.slice(index, index + PACKETA_LABEL_DOWNLOAD_CHUNK_SIZE)
+    const chunkPdfs = await Promise.all(
+      chunk.map((label) =>
+        packetaClient.downloadLabelPdf(label.packet_id, labelFormat, 0, {
+          config_id: label.config_id,
+          environment: label.environment,
+        })
+      )
+    )
+
+    labelPdfs.push(...chunkPdfs)
+  }
+
+  return labelPdfs
 }
 
 function buildFilename(labels: PrintablePacketaLabel[]): string {

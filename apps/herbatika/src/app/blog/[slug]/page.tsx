@@ -2,10 +2,7 @@ import { notFound } from "next/navigation"
 import { connection } from "next/server"
 import { Suspense } from "react"
 import { BlogDetailPage } from "@/components/blog/blog-detail-page"
-import {
-  fetchCmsBlogCategoryFilters,
-  fetchCmsBlogPost,
-} from "@/lib/storefront/cms"
+import { fetchCmsBlogPost } from "@/lib/storefront/cms"
 
 type BlogDetailRouteProps = {
   params: Promise<{
@@ -26,9 +23,7 @@ async function BlogDetailPageContent({ params }: BlogDetailRouteProps) {
     notFound()
   }
 
-  const categories = await fetchCmsBlogCategoryFilters().catch(() => [])
-
-  return <BlogDetailPage categories={categories} post={post} />
+  return <BlogDetailPage post={post} />
 }
 
 export default function BlogDetailPageRoute(props: BlogDetailRouteProps) {

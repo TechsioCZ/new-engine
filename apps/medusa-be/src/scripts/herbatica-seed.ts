@@ -12,6 +12,7 @@ import {
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
+import { normalizeUnitCode } from "../workflows/measurement-unit/steps/helpers"
 import type { SeedDatabaseWorkflowInput } from "../workflows/seed/workflows/seed-database"
 import seedShoptetImportWorkflow from "../workflows/seed/workflows/seed-shoptet-import"
 import {
@@ -32,6 +33,8 @@ import {
   HERBATICA_DEFAULT_SHOPTET_PRICELIST_TITLES,
   HERBATICA_DEFAULT_STOCK_LOCATION,
   HERBATICA_FALLBACK_SHOPTET_WAREHOUSE,
+  HERBATICA_MANUFACTURERS_CSV_ENV,
+  HERBATICA_POS_SALES_CHANNEL_NAME,
   HERBATICA_PRICE_LIST_SYNC_CONFIG,
   HERBATICA_PRODUCTS_XML_ENV,
   HERBATICA_PRODUCTS_XML_PATHS,
@@ -41,11 +44,13 @@ import {
   HERBATICA_SALE_PRICE_LIST_TITLE_TEMPLATE,
   HERBATICA_SALES_CHANNELS,
   HERBATICA_SHIPPING_OPTIONS,
+  HERBATICA_STOREFRONT_SALES_CHANNEL_NAME,
   HERBATICA_TAX_RATE_CONFIG,
   HERBATICA_TAX_RATE_COUNTRIES,
   HERBATICA_WORKFLOW_DEFAULTS,
 } from "./herbatica-seed-config"
 import {
+  decodeXml,
   extractElements,
   extractFirstElementContent,
   extractFirstText,
@@ -53,8 +58,16 @@ import {
   normalizeText,
   readXmlSource,
 } from "./herbatica-xml-utils"
+import {
+  buildManufacturersLookup,
+  findManufacturerCsvRow,
+  type ManufacturerCsvLookup,
+  parseManufacturersCsv,
+  readCsvSource,
+} from "./manufacturers-csv"
 
 type ProductSeedInput = SeedDatabaseWorkflowInput["products"][number]
+type BrandSeedInput = NonNullable<ProductSeedInput["brand"]>
 type VariantSeedInput = NonNullable<ProductSeedInput["variants"]>[number]
 type ProductOptionSeedInput = NonNullable<ProductSeedInput["options"]>[number]
 type CategorySeedInput = SeedDatabaseWorkflowInput["productCategories"][number]
@@ -318,7 +331,6 @@ type BuildVariantsForProductOptions = {
   item: ParsedShopItem
   handle: string
   usedSkus: Set<string>
-  usedEans: Set<string>
   referenceDate?: Date
 }
 
@@ -329,10 +341,14 @@ type BuildVariantSeedOptions = {
   optionNames: string[]
   optionsForVariant: Map<string, string>
   referenceDate: Date
-  usedEans: Set<string>
   usedSkus: Set<string>
   variant: ParsedOfferData
 }
+
+type HerbaticaOfferMeasurementSource = Pick<
+  ParsedOfferData,
+  "measureAmount" | "measureAmountUnit" | "packageAmount" | "packageAmountUnit"
+>
 
 const DEFAULT_STOCK_LOCATION_NAME = HERBATICA_DEFAULT_STOCK_LOCATION.name
 const FALLBACK_SHOPTET_WAREHOUSE_NAME =
@@ -342,6 +358,7 @@ const FALLBACK_SHOPTET_WAREHOUSE_ADDRESS =
 const DEFAULT_COUNTRIES = HERBATICA_COUNTRIES
 const MAX_HANDLE_LENGTH = 180
 const DEFAULT_OPTION_TITLE = "Variant"
+const EAN_ISSUE_LOG_LIMIT = 50
 const DEFAULT_OPTION_VALUE = "Default"
 const DEFAULT_PRICELIST_LABEL = HERBATICA_DEFAULT_PRICELIST_LABEL
 const DEFAULT_SHOPTET_PRICELIST_TITLES: ReadonlySet<string> = new Set(
@@ -996,10 +1013,6 @@ function buildProductContentSections(
     )
   }
 
-  const warrantyHtml = buildLabeledHtmlFragment("Zaruka", item.warranty)
-  if (warrantyHtml) {
-    grouped.other.push(warrantyHtml)
-  }
   const appendixHtml = buildLabeledHtmlFragment("Appendix", item.appendix)
   if (appendixHtml) {
     grouped.other.push(appendixHtml)
@@ -2297,26 +2310,42 @@ function buildCategoriesFromExport(
   }
 }
 
-function buildProducer(item: ParsedShopItem): ProductSeedInput["producer"] {
-  const title = item.manufacturer ?? item.supplier
+function buildBrand(
+  item: ParsedShopItem,
+  manufacturersLookup: ManufacturerCsvLookup
+): BrandSeedInput | undefined {
+  const title = normalizeHerbaticaManufacturerTitle(item.manufacturer)
   if (!title) {
     return
   }
 
-  const attributes = dedupeParameters(
-    [
-      item.supplier ? { name: "supplier", value: item.supplier } : undefined,
-      item.manufacturer
-        ? { name: "manufacturer", value: item.manufacturer }
-        : undefined,
-      item.itemType ? { name: "item_type", value: item.itemType } : undefined,
-    ].filter((entry): entry is ParsedParameter => entry !== undefined)
-  )
+  const manufacturerRow = findManufacturerCsvRow(manufacturersLookup, title)
 
   return {
     title,
-    attributes,
+    attributes: [],
+    gpsr_contact_email: manufacturerRow?.gpsr_contact_email,
+    gpsr_european_reseller_contact_email:
+      manufacturerRow?.gpsr_european_reseller_contact_email,
+    gpsr_european_reseller_manufacturing_company_name:
+      manufacturerRow?.gpsr_european_reseller_manufacturing_company_name,
+    gpsr_european_reseller_postal_address:
+      manufacturerRow?.gpsr_european_reseller_postal_address,
+    gpsr_manufactured_outside_eu: manufacturerRow?.gpsr_manufactured_outside_eu,
+    gpsr_manufacturing_company_name:
+      manufacturerRow?.gpsr_manufacturing_company_name,
+    gpsr_postal_address: manufacturerRow?.gpsr_postal_address,
   }
+}
+
+export function normalizeHerbaticaManufacturerTitle(
+  value?: string | null
+): string | undefined {
+  if (!value) {
+    return
+  }
+
+  return normalizeInlineText(decodeXml(value))
 }
 
 function applyPromoOverrides(
@@ -2341,11 +2370,67 @@ function applyPromoOverrides(
   })
 }
 
-function isProductPublished(item: ParsedShopItem): boolean {
-  return (
-    (item.visibility?.toLowerCase() ?? "visible") !== "hidden" &&
-    (item.topOffer.visible ?? true)
-  )
+export function resolveHerbaticaProductVisibility(item: {
+  topOffer: { visible?: boolean }
+  visibility?: string
+}): {
+  salesChannelNames: string[]
+  status: ProductStatus
+  storefrontAccessible: boolean
+} {
+  if (item.topOffer.visible === false) {
+    return {
+      salesChannelNames: [],
+      status: ProductStatus.DRAFT,
+      storefrontAccessible: false,
+    }
+  }
+
+  switch ((item.visibility ?? "visible").trim().toLowerCase()) {
+    case "cashdeskonly":
+      return {
+        salesChannelNames: [HERBATICA_POS_SALES_CHANNEL_NAME],
+        status: ProductStatus.PUBLISHED,
+        storefrontAccessible: false,
+      }
+    case "hidden":
+      return {
+        salesChannelNames: [],
+        status: ProductStatus.DRAFT,
+        storefrontAccessible: false,
+      }
+    case "visible":
+      return {
+        salesChannelNames: [HERBATICA_STOREFRONT_SALES_CHANNEL_NAME],
+        status: ProductStatus.PUBLISHED,
+        storefrontAccessible: true,
+      }
+    default:
+      throw new Error(
+        `Unsupported Herbatica product visibility "${item.visibility}"`
+      )
+  }
+}
+
+function buildHerbaticaProductAttributes(
+  item: ParsedShopItem
+): NonNullable<ProductSeedInput["productAttributes"]> {
+  return [
+    {
+      input_type: "select",
+      is_public: false,
+      key: "supplier",
+      label: "Supplier",
+      option: item.supplier ? { label: item.supplier } : null,
+    },
+    {
+      input_type: "select",
+      is_public: true,
+      key: "warranty",
+      label: "Warranty",
+      option: item.warranty ? { label: item.warranty } : null,
+    },
+  ]
 }
 
 function resolveProductReference(
@@ -2548,7 +2633,6 @@ function buildProductMetadata({
     xml_feed_name: item.xmlFeedName,
     item_type: item.itemType,
     adult: item.adult,
-    visibility: item.visibility,
     seo_title: item.seoTitle,
     meta_description: item.metaDescription,
     internal_note: item.internalNote,
@@ -2561,7 +2645,6 @@ function buildProductMetadata({
       glami: item.glamiCategoryId,
     },
     short_description: item.shortDescription,
-    warranty: item.warranty,
     appendix: item.appendix,
     content_sections: completeContentSections,
     content_sections_map: contentSectionsMap,
@@ -2592,11 +2675,114 @@ function buildProductMetadata({
   }
 }
 
+function normalizeMeasurementSourceUnit(value?: string) {
+  return normalizeInlineText(value)
+}
+
+function getMeasurementConfigurationKey(
+  measurement: NonNullable<ProductSeedInput["measurement"]>
+) {
+  return `${measurement.unit.symbol.toLowerCase()}:${measurement.unit.base_quantity}`
+}
+
+export function resolveHerbaticaOfferMeasurement(
+  offer: HerbaticaOfferMeasurementSource,
+  sourceLabel: string
+): {
+  product: NonNullable<ProductSeedInput["measurement"]>
+  variant: NonNullable<VariantSeedInput["measurement"]>
+} | null {
+  const packageUnit = normalizeMeasurementSourceUnit(offer.packageAmountUnit)
+  const measureUnit = normalizeMeasurementSourceUnit(offer.measureAmountUnit)
+  const values = [
+    offer.packageAmount,
+    packageUnit,
+    offer.measureAmount,
+    measureUnit,
+  ]
+  const populatedCount = values.filter(
+    (value) => value !== undefined && value !== null
+  ).length
+
+  if (populatedCount === 0) {
+    return null
+  }
+  if (populatedCount !== values.length) {
+    throw new Error(
+      `Incomplete UNIT_OF_MEASURE configuration for ${sourceLabel}`
+    )
+  }
+
+  const packageAmount = offer.packageAmount as number
+  const measureAmount = offer.measureAmount as number
+  if (
+    !(
+      Number.isFinite(packageAmount) &&
+      packageAmount > 0 &&
+      Number.isFinite(measureAmount) &&
+      measureAmount > 0
+    )
+  ) {
+    throw new Error(
+      `UNIT_OF_MEASURE amounts must be positive for ${sourceLabel}`
+    )
+  }
+  if (packageUnit?.toLowerCase() !== measureUnit?.toLowerCase()) {
+    throw new Error(
+      `UNIT_OF_MEASURE package unit "${packageUnit}" does not match comparison unit "${measureUnit}" for ${sourceLabel}`
+    )
+  }
+
+  const symbol = measureUnit as string
+  return {
+    product: {
+      unit: {
+        base_quantity: measureAmount,
+        code: normalizeUnitCode(`${symbol}_${measureAmount}`),
+        name: symbol,
+        symbol,
+      },
+    },
+    variant: {
+      product_unit_quantity: packageAmount,
+    },
+  }
+}
+
+function resolveHerbaticaProductMeasurement(item: ParsedShopItem) {
+  const offers = item.variants.length ? item.variants : [item.topOffer]
+  const configured = offers.flatMap((offer, index) => {
+    const sourceLabel = item.variants.length
+      ? `Product "${item.id}" Variant "${offer.variantId ?? index + 1}"`
+      : `Product "${item.id}"`
+    const offerMeasurement = resolveHerbaticaOfferMeasurement(
+      offer,
+      sourceLabel
+    )
+    return offerMeasurement ? [offerMeasurement.product] : []
+  })
+  const [measurement] = configured
+  if (!measurement) {
+    return null
+  }
+
+  const expectedKey = getMeasurementConfigurationKey(measurement)
+  const conflicting = configured.find(
+    (current) => getMeasurementConfigurationKey(current) !== expectedKey
+  )
+  if (conflicting) {
+    throw new Error(
+      `Product "${item.id}" contains conflicting UNIT_OF_MEASURE comparison configurations`
+    )
+  }
+
+  return measurement
+}
+
 function buildDefaultVariantForProduct({
   handle,
   item,
   referenceDate,
-  usedEans,
   usedSkus,
 }: BuildVariantsForProductOptions & {
   referenceDate: Date
@@ -2610,15 +2796,15 @@ function buildDefaultVariantForProduct({
     `${handle}-DEFAULT`
   )
   const sku = ensureUnique(skuSeed, usedSkus, `${handle}-DEFAULT`)
-  const defaultEan = normalizeInlineText(topOffer.ean)
-  const ean = defaultEan && !usedEans.has(defaultEan) ? defaultEan : undefined
-  if (ean) {
-    usedEans.add(ean)
-  }
+  const ean = normalizeInlineText(topOffer.ean)
   const amount = resolveOfferDefaultPrice(topOffer)
   const currencyCode = (topOffer.currency ?? "EUR").toLowerCase()
   const quantities = buildOfferInventoryQuantities(topOffer)
   const thumbnail = topOffer.imageRef
+  const measurement = resolveHerbaticaOfferMeasurement(
+    topOffer,
+    `Product "${item.id}"`
+  )
 
   return {
     options: [
@@ -2644,6 +2830,7 @@ function buildDefaultVariantForProduct({
         images: thumbnail ? [{ url: thumbnail }] : undefined,
         thumbnail,
         metadata: buildVariantMetadata(topOffer, undefined, referenceDate),
+        measurement: measurement?.variant ?? null,
         quantities,
       },
     ],
@@ -2670,7 +2857,6 @@ function buildVariantSeed({
   optionNames,
   optionsForVariant,
   referenceDate,
-  usedEans,
   usedSkus,
   variant,
 }: BuildVariantSeedOptions): VariantSeedInput {
@@ -2692,11 +2878,11 @@ function buildVariantSeed({
   const amount = resolveOfferDefaultPrice(variant, item.topOffer)
   const quantities = buildOfferInventoryQuantities(variant)
   const thumbnail = variant.imageRef
-  const rawEan = normalizeInlineText(variant.ean)
-  const ean = rawEan && !usedEans.has(rawEan) ? rawEan : undefined
-  if (ean) {
-    usedEans.add(ean)
-  }
+  const ean = normalizeInlineText(variant.ean)
+  const measurement = resolveHerbaticaOfferMeasurement(
+    variant,
+    `Product "${item.id}" Variant "${variant.variantId ?? index + 1}"`
+  )
 
   return {
     title,
@@ -2712,6 +2898,7 @@ function buildVariantSeed({
     images: thumbnail ? [{ url: thumbnail }] : undefined,
     thumbnail,
     metadata: buildVariantMetadata(variant, item.topOffer, referenceDate),
+    measurement: measurement?.variant ?? null,
     quantities,
   }
 }
@@ -2720,7 +2907,6 @@ function buildVariantsForProduct({
   item,
   handle,
   usedSkus,
-  usedEans,
   referenceDate = new Date(),
 }: BuildVariantsForProductOptions): {
   options: ProductOptionSeedInput[]
@@ -2731,7 +2917,6 @@ function buildVariantsForProduct({
       item,
       handle,
       usedSkus,
-      usedEans,
       referenceDate,
     })
   }
@@ -2792,7 +2977,6 @@ function buildVariantsForProduct({
       optionNames,
       optionsForVariant: rawVariantOptions[index] ?? new Map<string, string>(),
       referenceDate,
-      usedEans,
       usedSkus,
       variant,
     })
@@ -2804,15 +2988,22 @@ function buildVariantsForProduct({
   }
 }
 
-function buildProducts(
-  items: ParsedShopItem[],
-  pathToHandle: Map<string, string>,
-  categoryIdToHandle: Map<string, string>,
+function buildProducts(params: {
+  items: ParsedShopItem[]
+  pathToHandle: Map<string, string>
+  categoryIdToHandle: Map<string, string>
+  manufacturersLookup: ManufacturerCsvLookup
   buildOptions: ResolvedSeedBuildOptions
-): ProductSeedInput[] {
+}): ProductSeedInput[] {
+  const {
+    items,
+    pathToHandle,
+    categoryIdToHandle,
+    manufacturersLookup,
+    buildOptions,
+  } = params
   const usedHandles = new Set<string>()
   const usedSkus = new Set<string>()
-  const usedEans = new Set<string>()
   const productEntries = items.map((item, index) => {
     const stableHandleSource = item.id
       ? `shopitem-${item.id}`
@@ -2837,7 +3028,7 @@ function buildProducts(
     }
 
     productHandleBySourceId.set(item.id, handle)
-    if (isProductPublished(item)) {
+    if (resolveHerbaticaProductVisibility(item).storefrontAccessible) {
       publishedSourceIds.add(item.id)
     }
   }
@@ -2866,7 +3057,7 @@ function buildProducts(
       primaryWeightKg !== undefined
         ? Math.max(1, Math.round(primaryWeightKg * 1000))
         : 1
-    const isVisible = isProductPublished(item)
+    const visibility = resolveHerbaticaProductVisibility(item)
     const resolvedProductReferences = buildResolvedProductReferences(
       item,
       productHandleBySourceId,
@@ -2877,7 +3068,6 @@ function buildProducts(
       item,
       handle,
       usedSkus,
-      usedEans,
       referenceDate: buildOptions.referenceDate,
     })
     const thumbnail = item.images[0] ?? item.topOffer.imageRef
@@ -2890,7 +3080,7 @@ function buildProducts(
       description: item.description ?? item.shortDescription ?? "",
       handle,
       weight,
-      status: isVisible ? ProductStatus.PUBLISHED : ProductStatus.DRAFT,
+      status: visibility.status,
       metadata: buildProductMetadata({
         item,
         topOffer: item.topOffer,
@@ -2903,9 +3093,11 @@ function buildProducts(
       thumbnail,
       images: imageUrls.map((url) => ({ url })),
       options,
-      producer: buildProducer(item),
+      brand: buildBrand(item, manufacturersLookup),
+      measurement: resolveHerbaticaProductMeasurement(item),
+      productAttributes: buildHerbaticaProductAttributes(item),
       variants,
-      salesChannelNames: ["Default Sales Channel"],
+      salesChannelNames: visibility.salesChannelNames,
     }
   })
 }
@@ -3336,19 +3528,21 @@ function enforceUniqueVariantSkus(products: ProductSeedInput[]) {
 export function buildSeedInputFromXml(
   xml: string,
   categoryExports?: HerbaticaCategoryExport[],
-  options?: SeedBuildOptions
+  options?: SeedBuildOptions,
+  manufacturersLookup?: ManufacturerCsvLookup
 ): BuildResult {
   const buildOptions = resolveSeedBuildOptions(options)
   const items = applyPromoOverrides(parseShopItems(xml), buildOptions)
   const { categories, pathToHandle, categoryIdToHandle } = categoryExports
     ? buildCategoriesFromExport(categoryExports)
     : buildCategoriesFromProductPaths(items)
-  const products = buildProducts(
+  const products = buildProducts({
     items,
     pathToHandle,
     categoryIdToHandle,
-    buildOptions
-  )
+    manufacturersLookup: manufacturersLookup ?? new Map(),
+    buildOptions,
+  })
   enforceUniqueVariantSkus(products)
   const priceLists = buildPriceListsFromProducts(
     products,
@@ -3436,6 +3630,7 @@ export function buildHerbaticaSeedWorkflowInput(
     publishableKey: HERBATICA_PUBLISHABLE_KEY,
     productCategories: parsed.categories,
     products: parsed.products,
+    legacyBrandAttributeNames: ["supplier", "manufacturer", "item_type"],
     priceLists: parsed.priceLists,
     priceListSync: HERBATICA_PRICE_LIST_SYNC_CONFIG,
   }
@@ -3490,6 +3685,24 @@ function resolveReviewsXmlPath(args?: string[]): string | undefined {
   }
 
   return
+}
+
+function resolveManufacturersCsvSource(args?: string[]): string {
+  const argPath = normalizeInlineText(args?.[3])
+  if (argPath) {
+    return argPath
+  }
+
+  const envPath = normalizeInlineText(
+    process.env[HERBATICA_MANUFACTURERS_CSV_ENV]
+  )
+  if (envPath) {
+    return envPath
+  }
+
+  throw new Error(
+    `Manufacturers CSV source is required. Pass it as the fourth seed argument or set ${HERBATICA_MANUFACTURERS_CSV_ENV} to an explicit local path or pinned/versioned URL. No mutable remote fallback is used.`
+  )
 }
 
 function resolveFeedPaths(args?: string[]): ResolvedFeedPaths {
@@ -3576,6 +3789,7 @@ async function runPayloadSeed(logger: Logger): Promise<void> {
   logger.info("Herbatica Payload seed completed successfully")
 }
 
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: This seed script is intentionally linear and only runs in dev/seed flows.
 export default async function herbaticaSeed({ container, args }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
@@ -3590,6 +3804,22 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     )
   }
   const xml = await readXmlSource(feedPaths.productsXmlPath)
+  const manufacturersCsvSource = resolveManufacturersCsvSource(args)
+  logger.info(`Using manufacturers CSV feed: ${manufacturersCsvSource}`)
+
+  let manufacturersLookup: ReturnType<typeof buildManufacturersLookup>
+  try {
+    const manufacturersCsv = parseManufacturersCsv(
+      await readCsvSource(manufacturersCsvSource)
+    )
+    manufacturersLookup = buildManufacturersLookup(manufacturersCsv)
+  } catch (error) {
+    logger.error(
+      `Failed to load manufacturers CSV from ${manufacturersCsvSource}`,
+      error instanceof Error ? error : new Error(String(error))
+    )
+    throw error
+  }
   const categoryExports = feedPaths.categoriesXmlPath
     ? await parseHerbaticaCategoriesXmlSource(feedPaths.categoriesXmlPath)
     : undefined
@@ -3603,7 +3833,12 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     )
   }
 
-  const parsed = buildSeedInputFromXml(xml, categoryExports, buildOptions)
+  const parsed = buildSeedInputFromXml(
+    xml,
+    categoryExports,
+    buildOptions,
+    manufacturersLookup
+  )
 
   logger.info(
     `Parsed feed: ${parsed.stats.shopItems} SHOPITEMs, ${parsed.stats.categories} categories, ${parsed.stats.products} products, ${parsed.stats.variants} variants`
@@ -3679,9 +3914,11 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
   })
 
   logger.info("Running Herbatica seed workflow...")
-  const { result } = await seedShoptetImportWorkflow(container).run({
-    input,
-  })
+  const { result: seedResult } = await seedShoptetImportWorkflow(container).run(
+    {
+      input,
+    }
+  )
 
   if (feedPaths.reviewsXmlPath) {
     await importHerbaticaReviews({
@@ -3691,10 +3928,31 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     })
   }
 
+  const eanReconciliation = seedResult.reconcileProductVariantEansResult
+  const eanWarnings = eanReconciliation.issues.length
+  logger.info(
+    `Summary: products=${parsed.stats.products}, variants=${parsed.stats.variants}, categories=${parsed.stats.categories}, draft_products=${parsed.stats.hiddenProducts}, stock_locations=${parsed.stats.stockLocations}, price_lists=${parsed.stats.overridePriceLists + parsed.stats.salePriceLists}, price_list_prices=${parsed.stats.priceListPrices}, warnings=${parsed.stats.warnings + eanWarnings}, ean_accepted=${eanReconciliation.summary.accepted}, ean_retained=${eanReconciliation.summary.retained}, ean_transferred=${eanReconciliation.summary.transferred}, ean_suppressed=${eanReconciliation.summary.suppressed}, ean_collisions=${eanReconciliation.summary.collisions}`
+  )
+
+  for (const issue of eanReconciliation.issues.slice(0, EAN_ISSUE_LOG_LIMIT)) {
+    const owner = `${issue.owner.product_handle}/${issue.owner.sku}`
+    const previousOwner = issue.previous_owner
+      ? ` previous_owner=${issue.previous_owner.product_handle}/${issue.previous_owner.sku}`
+      : ""
+    const suppressed = issue.suppressed
+      .map((claimant) => `${claimant.product_handle}/${claimant.sku}`)
+      .join(",")
+    logger.warn(
+      `EAN ${issue.ean}: resolution=${issue.resolution} owner=${owner}${previousOwner} suppressed=${suppressed || "none"}`
+    )
+  }
+  if (eanReconciliation.issues.length > EAN_ISSUE_LOG_LIMIT) {
+    logger.warn(
+      `${eanReconciliation.issues.length - EAN_ISSUE_LOG_LIMIT} additional EAN collision issue(s) omitted from console output`
+    )
+  }
+
   logger.info("Herbatica Medusa seed completed successfully")
-  logger.info(`Result: ${JSON.stringify(result, null, 2)}`)
-
   await runPayloadSeed(logger)
-
   logger.info("Herbatica seed completed successfully")
 }

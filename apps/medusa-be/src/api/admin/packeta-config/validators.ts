@@ -2,8 +2,15 @@ import { z } from "@medusajs/framework/zod"
 
 /** Zod schema for Packeta config updates (admin API). */
 export const PostAdminPacketaConfigSchema = z.object({
+  environment: z.enum(["testing", "production"]),
   is_enabled: z.boolean().optional(),
+  allow_live_operations: z.boolean().optional(),
   api_password: z.string().nullable().optional(),
+  widget_api_key: z.string().nullable().optional(),
+  widget_countries: z
+    .array(z.enum(["sk", "cz", "hu", "ro"]))
+    .max(4)
+    .optional(),
   sender_label: z.string().max(50).optional(),
   eshop_id: z.string().max(50).optional(),
   default_label_format: z.enum(["A6", "A7"]).optional(),
@@ -21,6 +28,15 @@ export const PostAdminPacketaConfigSchema = z.object({
   sender_email: z.string().email().max(50).optional(),
 })
 
+export const PostAdminPacketaActiveProfileSchema = z.object({
+  environment: z.enum(["testing", "production"]),
+  confirmed: z.boolean(),
+})
+
 export type PostAdminPacketaConfigSchemaType = z.infer<
   typeof PostAdminPacketaConfigSchema
+>
+
+export type PostAdminPacketaActiveProfileSchemaType = z.infer<
+  typeof PostAdminPacketaActiveProfileSchema
 >

@@ -1,16 +1,15 @@
-import type { resolveProductMediaFacts } from "@/components/product-detail/utils/media-facts"
 import type { resolveOfferState } from "@/components/product-detail/utils/metadata-parsers"
 import {
   resolveDiscountPercent,
   resolveDisplayOriginalAmount,
   type resolvePriceState,
-  resolveUnitPriceLabel,
   resolveVipCreditLabel,
   resolveVolumeDiscountOptions,
 } from "@/components/product-detail/utils/pricing-utils"
-import { asNumber } from "@/components/product-detail/utils/value-utils"
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+import { formatUnitPriceLabel } from "@/lib/storefront/unit-price"
+import type { VolumeDiscountTier } from "@/lib/storefront/volume-discounts"
 
 export const resolveDisplayOriginalLabel = (
   productPrice: ReturnType<typeof resolvePriceState> | null,
@@ -21,16 +20,27 @@ export const resolveDisplayOriginalLabel = (
     ? formatCurrencyAmount(displayOriginalAmount, currentCurrencyCode)
     : null
 
-export const resolveProductVolumeDiscountOptions = (
-  currentAmount: number | null,
-  currentCurrencyCode: string,
-  offerState: ReturnType<typeof resolveOfferState>,
+export const resolveProductVolumeDiscountOptions = ({
+  availableQuantity,
+  currentAmount,
+  currentCurrencyCode,
+  labels,
+  tiers,
+}: {
   availableQuantity: number | null
-) => {
+  currentAmount: number | null
+  currentCurrencyCode: string
+  labels: {
+    title: (quantity: number) => string
+    perUnit: (price: string) => string
+  }
+  tiers: VolumeDiscountTier[]
+}) => {
   const discountOptions = resolveVolumeDiscountOptions(
     currentAmount,
     currentCurrencyCode,
-    offerState.applyQuantityDiscount || offerState.applyVolumeDiscount
+    tiers,
+    labels
   )
 
   if (availableQuantity === null) {
@@ -46,16 +56,15 @@ export const resolveProductPricingLabels = ({
   productPrice,
   regionCurrencyCode,
   offerState,
-  mediaFacts,
+  priceUnavailableLabel,
 }: {
   productPrice: ReturnType<typeof resolvePriceState> | null
   regionCurrencyCode: string
   offerState: ReturnType<typeof resolveOfferState>
-  mediaFacts: ReturnType<typeof resolveProductMediaFacts>
+  priceUnavailableLabel: string
 }) => {
   const currentAmount = productPrice?.currentAmount ?? null
-  const currentAmountWithoutTax = productPrice?.currentAmountWithoutTax ?? null
-  const currentAmountLabel = productPrice?.currentLabel ?? "Cena na vyžiadanie"
+  const currentAmountLabel = productPrice?.currentLabel ?? priceUnavailableLabel
   const currentCurrencyCode = productPrice?.currencyCode ?? regionCurrencyCode
   const displayOriginalAmount = resolveDisplayOriginalAmount(productPrice)
   const displayOriginalLabel = resolveDisplayOriginalLabel(
@@ -72,15 +81,7 @@ export const resolveProductPricingLabels = ({
     currentCurrencyCode,
     offerState.applyLoyaltyDiscount
   )
-  const vatRate = asNumber(offerState.offerSource?.vat)
-  const unitPriceLabel = resolveUnitPriceLabel({
-    currentAmount,
-    currentAmountWithoutTax,
-    currencyCode: currentCurrencyCode,
-    mediaFacts,
-    unitLabel: offerState.unitLabel,
-    vatRate,
-  })
+  const unitPriceLabel = formatUnitPriceLabel(productPrice?.pricePerUnit)
 
   return {
     currentAmount,

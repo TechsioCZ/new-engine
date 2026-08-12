@@ -1,6 +1,11 @@
 import type { HttpTypes } from "@medusajs/types"
 import { createMedusaAuthService } from "@techsio/storefront-data/auth/medusa-service"
-import { authTokenStorage, isSessionProxyAuthMode, storefrontSdk } from "../sdk"
+import {
+  authTokenStorage,
+  broadcastAuthSessionLogout,
+  isSessionProxyAuthMode,
+  storefrontSdk,
+} from "../sdk"
 import {
   requestAuthProxy,
   requestLogoutProxy,
@@ -34,6 +39,46 @@ const clearToken = () => {
 const fetchCustomer = (signal?: AbortSignal) =>
   authServiceBase.getCustomer(signal)
 
+const DEACTIVATED_SESSION_CLEANUP_TIMEOUT_MS = 3000
+
+const waitWithTimeout = async (
+  promise: Promise<unknown>,
+  timeoutMs: number
+) => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+  try {
+    await Promise.race([
+      promise,
+      new Promise<void>((resolve) => {
+        timeoutId = setTimeout(resolve, timeoutMs)
+      }),
+    ])
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+    }
+  }
+}
+
+const cleanupDeactivatedSession = async () => {
+  const cleanupOperations = [authServiceBase.logout()]
+
+  if (isSessionProxyAuthMode) {
+    cleanupOperations.push(requestLogoutProxy())
+  }
+
+  try {
+    await waitWithTimeout(
+      Promise.allSettled(cleanupOperations),
+      DEACTIVATED_SESSION_CLEANUP_TIMEOUT_MS
+    )
+  } finally {
+    clearToken()
+    broadcastAuthSessionLogout()
+  }
+}
+
 const ensureSessionProxyToken = async (): Promise<string | null> => {
   const existingToken = getStoredToken()
   if (existingToken) {
@@ -63,6 +108,15 @@ const ensureSessionProxyToken = async (): Promise<string | null> => {
 }
 
 export const authService = {
+  async confirmAccountDeactivation(input: { token: string }) {
+    if (!authServiceBase.confirmAccountDeactivation) {
+      throw new Error("confirmAccountDeactivation service is not configured")
+    }
+
+    const result = await authServiceBase.confirmAccountDeactivation(input)
+    await cleanupDeactivatedSession()
+    return result
+  },
   async getCustomer(
     signal?: AbortSignal
   ): Promise<HttpTypes.StoreCustomer | null> {
@@ -120,6 +174,15 @@ export const authService = {
     await storeToken(token)
     return token
   },
+  requestAccountDeactivation() {
+    if (!authServiceBase.requestAccountDeactivation) {
+      return Promise.reject(
+        new Error("requestAccountDeactivation service is not configured")
+      )
+    }
+
+    return authServiceBase.requestAccountDeactivation()
+  },
   async logout() {
     if (isSessionProxyAuthMode) {
       await requestLogoutProxy()
@@ -127,6 +190,7 @@ export const authService = {
 
     await authServiceBase.logout()
     clearToken()
+    broadcastAuthSessionLogout()
   },
   updateCustomer(input: AuthUpdateInput) {
     if (!authServiceBase.updateCustomer) {

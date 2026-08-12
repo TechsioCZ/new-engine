@@ -1,5 +1,6 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { ProductCollectionSection } from "@/components/product/product-collection-section"
 import type {
   Product,
@@ -22,6 +23,8 @@ export function ProductDetailRelated({
   onProductHoverStart,
   sections,
 }: ProductDetailRelatedProps) {
+  const tCatalog = useTranslations("catalog")
+
   if (sections.length === 0) {
     return null
   }
@@ -32,7 +35,9 @@ export function ProductDetailRelated({
         <ProductCollectionSection
           headerAction={
             <SupportingText className="text-fg-tertiary">
-              {`Nájdené: ${section.products.length}`}
+              {tCatalog("product_detail.related.found", {
+                count: section.products.length,
+              })}
             </SupportingText>
           }
           headerClassName="items-center gap-200"

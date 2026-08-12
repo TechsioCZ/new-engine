@@ -1,3 +1,8 @@
+import type { Query } from "@medusajs/framework/types"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import {
@@ -15,13 +20,16 @@ export const createApprovalStep = createStep(
       | Omit<ModuleCreateApproval, "type">[],
     { container }
   ) => {
-    const query = container.resolve("query")
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
     const approvalData = Array.isArray(input) ? input : [input]
     const firstApproval = approvalData[0]
 
     if (!firstApproval) {
-      throw new Error("No approval data provided")
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "No approval data provided"
+      )
     }
 
     const {
@@ -45,18 +53,25 @@ export const createApprovalStep = createStep(
       }
     )
 
-    if (
-      (cart.approval_status?.status as unknown as ApprovalStatusType) ===
-      ApprovalStatusType.PENDING
-    ) {
-      throw new Error("Cart already has a pending approval")
+    if (!cart) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Cart ${firstApproval.cart_id} was not found`
+      )
     }
 
-    if (
-      (cart.approval_status?.status as unknown as ApprovalStatusType) ===
-      ApprovalStatusType.APPROVED
-    ) {
-      throw new Error("Cart is already approved")
+    if (cart.approval_status?.status === ApprovalStatusType.PENDING) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_ALLOWED,
+        "Cart already has a pending approval"
+      )
+    }
+
+    if (cart.approval_status?.status === ApprovalStatusType.APPROVED) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_ALLOWED,
+        "Cart is already approved"
+      )
     }
 
     const { requires_admin_approval, requires_sales_manager_approval } =
@@ -83,7 +98,10 @@ export const createApprovalStep = createStep(
     }
 
     if (approvalsToCreate.length === 0) {
-      throw new Error("No enabled approval types found")
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "No enabled approval types found"
+      )
     }
 
     const approvalModuleService =

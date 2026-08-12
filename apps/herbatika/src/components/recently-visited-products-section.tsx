@@ -2,6 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
+import { useTranslations } from "next-intl"
 import { type ReactNode, useState } from "react"
 import { HerbatikaProductCardCompact } from "@/components/herbatika-product-card-compact"
 import { HerbatikaProductCardSkeleton } from "@/components/herbatika-product-card-skeleton"
@@ -22,8 +23,6 @@ type RecentlyVisitedProductsSectionProps = {
   visibleCount?: number
 }
 
-const DEFAULT_EMPTY_TEXT = "Zatiaľ nemáte žiadne naposledy navštívené produkty."
-const DEFAULT_HEADING_TEXT = "Naposledy navštívené"
 const DEFAULT_VISIBLE_COUNT = 4
 const RECENT_PRODUCTS_GRID_CLASSNAME = "grid grid-cols-2 gap-300 md:grid-cols-4"
 const RECENT_PRODUCT_SKELETON_KEYS = [
@@ -36,13 +35,18 @@ const RECENT_PRODUCT_SKELETON_KEYS = [
 export function RecentlyVisitedProductsSection({
   className,
   excludeHandle,
-  emptyText = DEFAULT_EMPTY_TEXT,
-  headingText = DEFAULT_HEADING_TEXT,
+  emptyText,
+  headingText,
   hideWhenEmpty = false,
   id = "naposledy-navstivene",
   visibleCount = DEFAULT_VISIBLE_COUNT,
 }: RecentlyVisitedProductsSectionProps) {
+  const tCatalog = useTranslations("catalog")
   const region = useRegionContext()
+  const resolvedEmptyText =
+    emptyText ?? tCatalog("product_card.recently_visited_empty")
+  const resolvedHeadingText =
+    headingText ?? tCatalog("product_card.recently_visited_title")
   const recentlyVisitedHandles = useRecentlyVisitedProductHandles({
     excludeHandle,
   })
@@ -114,7 +118,7 @@ export function RecentlyVisitedProductsSection({
   } else {
     content = (
       <SupportingText className="text-fg-secondary text-sm">
-        {emptyText}
+        {resolvedEmptyText}
       </SupportingText>
     )
   }
@@ -125,7 +129,9 @@ export function RecentlyVisitedProductsSection({
       id={id}
     >
       <header>
-        <h2 className="font-bold text-3xl text-fg-primary">{headingText}</h2>
+        <h2 className="font-bold text-3xl text-fg-primary">
+          {resolvedHeadingText}
+        </h2>
       </header>
 
       {content}

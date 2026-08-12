@@ -1,4 +1,5 @@
 ---
+component_version: "1.0.0"
 name: image-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Image or a

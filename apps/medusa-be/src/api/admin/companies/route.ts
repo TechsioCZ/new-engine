@@ -38,6 +38,7 @@ const buildCompanyListFilters = (
 ) => {
   const {
     order_by: _orderBy,
+    application_status: requestedApplicationStatus,
     q,
     status: requestedStatus,
     ...filters
@@ -55,6 +56,13 @@ const buildCompanyListFilters = (
       { email: { $ilike: `%${escapedSearchTerm}%` } },
       { phone: { $ilike: `%${escapedSearchTerm}%` } },
     ]
+  }
+
+  if (
+    typeof requestedApplicationStatus === "string" &&
+    requestedApplicationStatus !== "all"
+  ) {
+    filters.application_status = requestedApplicationStatus
   }
 
   if (status === "deleted") {
@@ -106,11 +114,12 @@ export const POST = async (
 ) => {
   const query = req.scope.resolve(ContainerRegistrationKeys.QUERY)
 
-  const { result: createdCompanies } = await createCompaniesWorkflow.run({
+  const { result: createdCompanies } = await createCompaniesWorkflow(
+    req.scope
+  ).run({
     input: Array.isArray(req.validatedBody)
       ? req.validatedBody.map((company) => ({ ...company }))
       : [{ ...req.validatedBody }],
-    container: req.scope,
   })
 
   const { data: companies } = await query.graph(

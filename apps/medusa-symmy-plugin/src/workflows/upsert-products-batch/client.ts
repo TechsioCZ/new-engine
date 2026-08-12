@@ -148,15 +148,12 @@ export class ProductBatchClient {
       return { created: [], updated: [] }
     }
     const { result } = await batchProductsWorkflow(this.container).run({
-      input: {
-        create: payload.create as never,
-        update: payload.update as never,
-      },
+      input: payload,
     })
 
     return {
-      created: (result?.created ?? []) as CreatedProduct[],
-      updated: (result?.updated ?? []) as CreatedProduct[],
+      created: result.created,
+      updated: result.updated,
     }
   }
 

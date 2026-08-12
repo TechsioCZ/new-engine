@@ -2,7 +2,7 @@ import type {
   AdminOrderPreview,
   FindParams,
   PaginatedResponse,
-} from "@medusajs/types"
+} from "@medusajs/framework/types"
 import type { QueryQuote } from "./query"
 import type { ModuleQuoteFilters } from "./service"
 

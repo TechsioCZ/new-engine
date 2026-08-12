@@ -22,7 +22,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@techsio/storefront-data": ["../../libs/storefront-data/src/index.ts"],
-      "@techsio/storefront-data/*": ["../../libs/storefront-data/src/*"]
+      "@techsio/storefront-data/*": ["../../libs/storefront-data/src/*"],
+      "@techsio/storefront-i18n/*": ["../../libs/storefront-i18n/src/*"]
     }
   },
   "include": [

@@ -1,25 +1,37 @@
-import type { Link } from "@medusajs/framework/modules-sdk"
 import type {
   IFulfillmentModuleService,
   IProductModuleService,
   ISalesChannelModuleService,
   Logger,
+  MedusaContainer,
   ProductDTO,
 } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
+  kebabCase,
   Modules,
   ProductStatus,
+  toHandle,
 } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import {
   type BatchVariantImagesWorkflowInput,
+  batchProductsWorkflow,
   batchVariantImagesWorkflow,
   createProductsWorkflow,
-  updateProductsWorkflow,
+  type ProcessProductOptionsForImportInput,
 } from "@medusajs/medusa/core-flows"
-import { PRODUCER_MODULE } from "../../../modules/producer"
-import type ProducerModuleService from "../../../modules/producer/service"
+import { BRAND_MODULE } from "../../../modules/brand"
+import type BrandModuleService from "../../../modules/brand/service"
+import {
+  type BrandInput,
+  type BrandScalarWriteInput,
+  createBrandsWorkflow,
+  restoreBrandsWorkflow,
+  setProductBrandsWorkflow,
+  updateBrandsWorkflow,
+  validateBrandGpsrState,
+} from "../../brand"
 import {
   createProductIdentityIndex,
   matchSeedProduct,
@@ -27,7 +39,35 @@ import {
   type ProductIdentityIndex,
 } from "./product-identity"
 
-type ProductInput = {
+export type SeedProductAttributeInput = {
+  input_type: "select" | "text"
+  is_public: boolean
+  key: string
+  label: string
+  option?: {
+    key?: string
+    label: string
+  } | null
+  text_value?: string | null
+}
+
+export type SeedMeasurementUnitInput = {
+  base_quantity: number
+  code: string
+  description?: null | string
+  name: string
+  symbol: string
+}
+
+export type SeedVariantMeasurementInput = {
+  product_unit_quantity: number
+}
+
+export type SeedProductMeasurementInput = {
+  unit: SeedMeasurementUnitInput
+}
+
+export type ProductInput = {
   external_id?: string
   title: string
   categories: {
@@ -48,17 +88,24 @@ type ProductInput = {
     title: string
     values: string[]
   }[]
-  producer?: {
+  brand?: {
     title?: string
     attributes?: {
       name: string
       value: string
     }[]
+    gpsr_contact_email?: string | null
+    gpsr_european_reseller_contact_email?: string | null
+    gpsr_european_reseller_manufacturing_company_name?: string | null
+    gpsr_european_reseller_postal_address?: string | null
+    gpsr_manufactured_outside_eu?: boolean
+    gpsr_manufacturing_company_name?: string | null
+    gpsr_postal_address?: string | null
   } | null
   variants?: {
     title: string
     sku: string
-    ean?: string
+    ean?: null | string
     material?: string
     options?: {
       [key: string]: string
@@ -87,8 +134,11 @@ type ProductInput = {
       amount: number
       currency_code: string
     }[]
+    measurement?: SeedVariantMeasurementInput | null
   }[]
   salesChannelNames: string[]
+  measurement?: SeedProductMeasurementInput | null
+  productAttributes?: SeedProductAttributeInput[]
 }
 
 type ProductVariantImagesInput = {
@@ -108,12 +158,49 @@ type ExistingSalesChannel = Awaited<
 type ExistingShippingProfile = Awaited<
   ReturnType<IFulfillmentModuleService["listShippingProfiles"]>
 >[number]
-type ProducerRegistry = Map<
+type BrandRegistry = Map<
   string,
-  { attributes: Map<string, string>; products: string[] }
+  {
+    attributes: Map<string, string>
+    gpsr_contact_email?: string | null
+    gpsr_european_reseller_contact_email?: string | null
+    gpsr_european_reseller_manufacturing_company_name?: string | null
+    gpsr_european_reseller_postal_address?: string | null
+    gpsr_manufactured_outside_eu?: boolean
+    gpsr_manufacturing_company_name?: string | null
+    gpsr_postal_address?: string | null
+    handle: string
+    products: string[]
+    title: string
+  }
 >
 type VariantImagesRegistry = Map<string, Map<string, ProductVariantImagesInput>>
-type WorkflowContainer = Parameters<typeof createProductsWorkflow>[0]
+type WorkflowContainer = MedusaContainer
+type BrandRegistryEntry =
+  BrandRegistry extends Map<string, infer Entry> ? Entry : never
+type SeedBrandScalarField = Exclude<
+  keyof BrandRegistryEntry,
+  "attributes" | "handle" | "products" | "title"
+>
+type ExistingBrand = {
+  attributes?: Array<{
+    value: string
+    attributeType?: {
+      name?: string
+    }
+  }>
+  deleted_at?: string | Date | null
+  gpsr_contact_email?: string | null
+  gpsr_european_reseller_contact_email?: string | null
+  gpsr_european_reseller_manufacturing_company_name?: string | null
+  gpsr_european_reseller_postal_address?: string | null
+  gpsr_manufactured_outside_eu?: boolean | null
+  gpsr_manufacturing_company_name?: string | null
+  gpsr_postal_address?: string | null
+  handle: string
+  id: string
+  title: string
+}
 
 function mergeProductsById(...productGroups: ProductDTO[][]): ProductDTO[] {
   return [
@@ -121,6 +208,170 @@ function mergeProductsById(...productGroups: ProductDTO[][]): ProductDTO[] {
       productGroups.flat().map((product) => [product.id, product])
     ).values(),
   ]
+}
+
+const SEED_BRAND_STRING_FIELDS = [
+  "gpsr_contact_email",
+  "gpsr_european_reseller_contact_email",
+  "gpsr_european_reseller_manufacturing_company_name",
+  "gpsr_european_reseller_postal_address",
+  "gpsr_manufacturing_company_name",
+  "gpsr_postal_address",
+] as const
+const SEED_QUERY_CHUNK_SIZE = 500
+const BRAND_HANDLE_CONTENT_PATTERN = /[\p{L}\p{N}]/u
+
+function chunkArray<T>(items: T[], size = SEED_QUERY_CHUNK_SIZE): T[][] {
+  const chunks: T[][] = []
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size))
+  }
+  return chunks
+}
+
+function normalizeSeedText(value?: string | null): string | undefined {
+  const normalized = value?.trim()
+  return normalized ? normalized : undefined
+}
+
+function stripBrandHandleDiacritics(title: string) {
+  return title.normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+}
+
+export function normalizeBrandRegistryKey(title: string): string {
+  const separated = stripBrandHandleDiacritics(title).replace(
+    /[^\p{L}\p{N}]+/gu,
+    "-"
+  )
+  const kebab = kebabCase(separated).replace(/-+/g, "-").replace(/^-|-$/g, "")
+
+  if (!BRAND_HANDLE_CONTENT_PATTERN.test(kebab)) {
+    return ""
+  }
+
+  return toHandle(kebab)
+}
+
+function getLegacyBrandHandles(title: string): string[] {
+  const historicalKebabHandle = kebabCase(title.trim())
+  const previousAsciiHandle = stripBrandHandleDiacritics(title)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+
+  return [...new Set([historicalKebabHandle, previousAsciiHandle])].filter(
+    Boolean
+  )
+}
+
+export function getBrandSeedHandleCandidates(
+  title: string,
+  canonicalHandle = normalizeBrandRegistryKey(title)
+): string[] {
+  return [
+    ...new Set([canonicalHandle, ...getLegacyBrandHandles(title)]),
+  ].filter(Boolean)
+}
+
+function mergeBrandScalar(
+  brand: BrandRegistryEntry,
+  field: SeedBrandScalarField,
+  value: boolean | string | null | undefined,
+  productHandle: string
+) {
+  const normalizedValue =
+    typeof value === "string" ? normalizeSeedText(value) : value
+  if (normalizedValue === undefined) {
+    return
+  }
+
+  const currentValue = brand[field]
+  if (currentValue !== undefined && currentValue !== normalizedValue) {
+    throw new Error(
+      `Conflicting ${field} values for brand "${brand.title}" from products "${brand.products[0]}" and "${productHandle}"`
+    )
+  }
+
+  Object.assign(brand, { [field]: normalizedValue })
+}
+
+function mergeBrandAttribute(
+  brand: BrandRegistryEntry,
+  attribute: { name: string; value: string },
+  productHandle: string
+) {
+  const name = attribute.name.trim().toLowerCase()
+  if (!name) {
+    throw new Error(
+      `Brand "${brand.title}" has an attribute with an empty name on product "${productHandle}"`
+    )
+  }
+
+  const value = attribute.value.trim()
+  const currentValue = brand.attributes.get(name)
+  if (currentValue !== undefined && currentValue !== value) {
+    throw new Error(
+      `Conflicting attribute "${name}" values for brand "${brand.title}" from products "${brand.products[0]}" and "${productHandle}"`
+    )
+  }
+
+  brand.attributes.set(name, value)
+}
+
+export function buildBrandRegistry(
+  inputProducts: Pick<ProductInput, "brand" | "handle">[]
+): BrandRegistry {
+  const brands: BrandRegistry = new Map()
+
+  for (const inputProduct of inputProducts) {
+    const title = normalizeSeedText(inputProduct.brand?.title)
+    if (!title) {
+      continue
+    }
+
+    const handle = normalizeBrandRegistryKey(title)
+    if (!handle) {
+      throw new Error(
+        `Product "${inputProduct.handle}" has a brand title that cannot produce a valid handle`
+      )
+    }
+
+    const brand: BrandRegistryEntry = brands.get(handle) ?? {
+      attributes: new Map(),
+      handle,
+      products: [],
+      title,
+    }
+
+    if (!brands.has(handle)) {
+      brands.set(handle, brand)
+    }
+    if (!brand.products.includes(inputProduct.handle)) {
+      brand.products.push(inputProduct.handle)
+    }
+
+    for (const attribute of inputProduct.brand?.attributes ?? []) {
+      mergeBrandAttribute(brand, attribute, inputProduct.handle)
+    }
+
+    for (const field of SEED_BRAND_STRING_FIELDS) {
+      mergeBrandScalar(
+        brand,
+        field,
+        inputProduct.brand?.[field],
+        inputProduct.handle
+      )
+    }
+    mergeBrandScalar(
+      brand,
+      "gpsr_manufactured_outside_eu",
+      inputProduct.brand?.gpsr_manufactured_outside_eu,
+      inputProduct.handle
+    )
+  }
+
+  return brands
 }
 
 function collectUsedVariantSkus(existingProducts: ProductDTO[]): Set<string> {
@@ -241,7 +492,7 @@ function toMetadataId(value: unknown): string | undefined {
   return
 }
 
-function getSourceVariantId(variant: {
+export function getSourceVariantId(variant: {
   metadata?: Record<string, unknown> | null
 }): string | undefined {
   const metadata = variant.metadata ?? undefined
@@ -273,39 +524,6 @@ function findExistingVariant(
   return (existingProduct.variants ?? []).find(
     (variant) => variant.sku === inputVariant.sku
   )
-}
-
-function processProductProducerInput(
-  inputProduct: ProductInput,
-  producers: Map<
-    string,
-    { attributes: Map<string, string>; products: string[] }
-  >
-) {
-  if (!inputProduct.producer?.title) {
-    return
-  }
-
-  if (!producers.has(inputProduct.producer.title)) {
-    producers.set(inputProduct.producer.title, {
-      products: [],
-      attributes: new Map(),
-    })
-  }
-
-  const producer = producers.get(inputProduct.producer.title)
-
-  if (!producer) {
-    throw new Error(`Producer "${inputProduct.producer.title}" not found`)
-  }
-
-  producer.products.push(inputProduct.handle)
-
-  for (const attribute of inputProduct.producer.attributes ?? []) {
-    if (!producer.attributes.has(attribute.name)) {
-      producer.attributes.set(attribute.name, attribute.value)
-    }
-  }
 }
 
 function processProductVariantImagesInput(
@@ -455,10 +673,8 @@ function resolveSalesChannel(
 
 function registerProductSideInputs(
   inputProduct: ProductInput,
-  producers: ProducerRegistry,
   productVariantImages: VariantImagesRegistry
 ): void {
-  processProductProducerInput(inputProduct, producers)
   processProductVariantImagesInput(inputProduct, productVariantImages)
 }
 
@@ -492,7 +708,7 @@ function buildUpdateProductPayload(params: {
   existingCategories: ExistingCategory[]
   existingShippingProfiles: ExistingShippingProfile[]
   existingSalesChannels: ExistingSalesChannel[]
-}) {
+}): ProcessProductOptionsForImportInput["products"][number] {
   const {
     existingProduct,
     inputProduct,
@@ -506,8 +722,8 @@ function buildUpdateProductPayload(params: {
     external_id: inputProduct.external_id,
     handle: inputProduct.handle,
     title: inputProduct.title,
-    categories: inputProduct.categories?.map((inputCat) =>
-      resolveCategory(existingCategories, inputCat.handle)
+    category_ids: inputProduct.categories?.map(
+      (inputCat) => resolveCategory(existingCategories, inputCat.handle).id
     ),
     description: inputProduct.description,
     weight: inputProduct.weight,
@@ -591,7 +807,6 @@ function buildUpdateProductPayloads(params: {
   existingCategories: ExistingCategory[]
   existingShippingProfiles: ExistingShippingProfile[]
   existingSalesChannels: ExistingSalesChannel[]
-  producers: ProducerRegistry
   productVariantImages: VariantImagesRegistry
 }) {
   return params.input.flatMap((inputProduct) => {
@@ -599,15 +814,12 @@ function buildUpdateProductPayloads(params: {
       inputProduct,
       params.productIdentityIndex
     )
+
     if (!existingProduct) {
       return []
     }
 
-    registerProductSideInputs(
-      inputProduct,
-      params.producers,
-      params.productVariantImages
-    )
+    registerProductSideInputs(inputProduct, params.productVariantImages)
 
     return [
       buildUpdateProductPayload({
@@ -626,15 +838,10 @@ function buildCreateProductPayloads(params: {
   existingCategories: ExistingCategory[]
   existingShippingProfiles: ExistingShippingProfile[]
   existingSalesChannels: ExistingSalesChannel[]
-  producers: ProducerRegistry
   productVariantImages: VariantImagesRegistry
 }) {
   return params.missingProducts.map((inputProduct) => {
-    registerProductSideInputs(
-      inputProduct,
-      params.producers,
-      params.productVariantImages
-    )
+    registerProductSideInputs(inputProduct, params.productVariantImages)
 
     return buildCreateProductPayload({
       inputProduct,
@@ -667,50 +874,375 @@ async function applyVariantImageUpdates(params: {
   }
 }
 
-async function linkProducers(params: {
-  link: Link
-  productService: IProductModuleService
-  producerService: ProducerModuleService
-  producers: ProducerRegistry
-}): Promise<void> {
-  for (const [key, producerData] of params.producers.entries()) {
-    const attributes = [...producerData.attributes.entries()].map(
-      ([name, attrValue]) => ({
-        name,
-        value: attrValue,
-      })
-    )
+function getDesiredBrandHandleByProduct(brands: BrandRegistry) {
+  const desiredBrandHandleByProduct = new Map<string, string>()
 
-    const producer = await params.producerService.upsertProducer({
-      name: key,
-      attributes,
+  for (const brand of brands.values()) {
+    for (const productHandle of brand.products) {
+      const existing = desiredBrandHandleByProduct.get(productHandle)
+      if (existing && existing !== brand.handle) {
+        throw new Error(
+          `Product "${productHandle}" resolves to multiple brands: "${existing}" and "${brand.handle}"`
+        )
+      }
+      desiredBrandHandleByProduct.set(productHandle, brand.handle)
+    }
+  }
+
+  return desiredBrandHandleByProduct
+}
+
+function mergeExistingBrandAttributes(
+  existing: ExistingBrand,
+  incoming: BrandRegistryEntry
+) {
+  const attributes = new Map<string, { name: string; value: string }>()
+  for (const attribute of existing.attributes ?? []) {
+    const persistedName = attribute.attributeType?.name?.trim()
+    if (!persistedName) {
+      throw new Error(
+        `Existing brand "${existing.title}" has an attribute without an attribute type name`
+      )
+    }
+    const key = persistedName.toLowerCase()
+    const prior = attributes.get(key)
+    if (prior !== undefined && prior.value !== attribute.value) {
+      throw new Error(
+        `Existing brand "${existing.title}" has conflicting values for attribute "${key}"`
+      )
+    }
+    attributes.set(key, {
+      name: persistedName,
+      value: attribute.value,
     })
+  }
 
-    const products = await params.productService.listProducts(
-      { handle: { $in: producerData.products } },
+  let changed = false
+  for (const [name, value] of incoming.attributes) {
+    const existingAttribute = attributes.get(name)
+    if (existingAttribute?.value !== value) {
+      attributes.set(name, {
+        name: existingAttribute?.name ?? name,
+        value,
+      })
+      changed = true
+    }
+  }
+
+  return {
+    attributes: [...attributes.values()],
+    changed,
+  }
+}
+
+export function buildExistingBrandReconciliation(
+  existing: ExistingBrand,
+  incoming: BrandRegistryEntry
+): Partial<BrandInput> {
+  const update: Partial<BrandInput> = {}
+  if (existing.title !== incoming.title) {
+    update.title = incoming.title
+  }
+  if (existing.handle !== incoming.handle) {
+    update.handle = incoming.handle
+  }
+
+  const mergedAttributes = mergeExistingBrandAttributes(existing, incoming)
+  if (mergedAttributes.changed) {
+    update.attributes = mergedAttributes.attributes
+  }
+
+  for (const field of SEED_BRAND_STRING_FIELDS) {
+    const incomingValue = incoming[field]
+    if (incomingValue === undefined) {
+      continue
+    }
+
+    const existingValue =
+      existing[field] === null
+        ? null
+        : (normalizeSeedText(existing[field]) ?? null)
+    if (existingValue !== incomingValue) {
+      update[field] = incomingValue
+    }
+  }
+
+  if (
+    incoming.gpsr_manufactured_outside_eu !== undefined &&
+    existing.gpsr_manufactured_outside_eu !==
+      incoming.gpsr_manufactured_outside_eu
+  ) {
+    update.gpsr_manufactured_outside_eu = incoming.gpsr_manufactured_outside_eu
+  }
+
+  return update
+}
+
+function toCreateBrandInput(brand: BrandRegistryEntry) {
+  return {
+    attributes: [...brand.attributes].map(([name, value]) => ({ name, value })),
+    gpsr_contact_email: brand.gpsr_contact_email,
+    gpsr_european_reseller_contact_email:
+      brand.gpsr_european_reseller_contact_email,
+    gpsr_european_reseller_manufacturing_company_name:
+      brand.gpsr_european_reseller_manufacturing_company_name,
+    gpsr_european_reseller_postal_address:
+      brand.gpsr_european_reseller_postal_address,
+    gpsr_manufactured_outside_eu: brand.gpsr_manufactured_outside_eu ?? false,
+    gpsr_manufacturing_company_name: brand.gpsr_manufacturing_company_name,
+    gpsr_postal_address: brand.gpsr_postal_address,
+    handle: brand.handle,
+    title: brand.title,
+  }
+}
+
+async function findExistingSeedBrand(
+  brandService: BrandModuleService,
+  brandData: BrandRegistryEntry
+): Promise<ExistingBrand | undefined> {
+  const candidateHandles = getBrandSeedHandleCandidates(
+    brandData.title,
+    brandData.handle
+  )
+  const existingBrands = (await brandService.listBrands(
+    {
+      handle: { $in: candidateHandles },
+    },
+    {
+      relations: ["attributes", "attributes.attributeType"],
+      take: Math.max(candidateHandles.length * 2, 1),
+      withDeleted: true,
+    }
+  )) as ExistingBrand[]
+
+  if (existingBrands.length > 1) {
+    throw new Error(
+      `Brand "${brandData.title}" resolves to multiple persisted records for handles ${candidateHandles.map((handle) => `"${handle}"`).join(", ")}: ${existingBrands.map((brand) => `"${brand.title}" (${brand.handle})`).join(", ")}`
+    )
+  }
+
+  return existingBrands[0]
+}
+
+function validateExistingSeedBrandReconciliation(
+  existing: ExistingBrand,
+  brandData: BrandRegistryEntry
+) {
+  const update = buildExistingBrandReconciliation(existing, brandData)
+  const effectiveState: BrandScalarWriteInput = {
+    gpsr_contact_email: existing.gpsr_contact_email,
+    gpsr_european_reseller_contact_email:
+      existing.gpsr_european_reseller_contact_email,
+    gpsr_european_reseller_manufacturing_company_name:
+      existing.gpsr_european_reseller_manufacturing_company_name,
+    gpsr_european_reseller_postal_address:
+      existing.gpsr_european_reseller_postal_address,
+    gpsr_manufactured_outside_eu:
+      existing.gpsr_manufactured_outside_eu ?? false,
+    gpsr_manufacturing_company_name: existing.gpsr_manufacturing_company_name,
+    gpsr_postal_address: existing.gpsr_postal_address,
+    handle: existing.handle,
+    title: existing.title,
+    ...update,
+  }
+  validateBrandGpsrState(effectiveState, brandData.handle)
+}
+
+async function assertSeedBrandsCompatibleWithPersistence(
+  brandService: BrandModuleService,
+  brands: BrandRegistry
+) {
+  const desiredHandleByExistingBrandId = new Map<string, string>()
+
+  for (const brandData of brands.values()) {
+    const existing = await findExistingSeedBrand(brandService, brandData)
+    if (existing) {
+      const priorDesiredHandle = desiredHandleByExistingBrandId.get(existing.id)
+      if (priorDesiredHandle && priorDesiredHandle !== brandData.handle) {
+        throw new Error(
+          `Persisted brand "${existing.title}" (${existing.handle}) resolves to multiple seed handles: "${priorDesiredHandle}" and "${brandData.handle}"`
+        )
+      }
+      desiredHandleByExistingBrandId.set(existing.id, brandData.handle)
+      validateExistingSeedBrandReconciliation(existing, brandData)
+    } else {
+      validateBrandGpsrState(toCreateBrandInput(brandData), brandData.handle)
+    }
+  }
+}
+
+async function upsertSeedBrand(params: {
+  brandData: BrandRegistryEntry
+  brandService: BrandModuleService
+  container: WorkflowContainer
+}): Promise<ExistingBrand> {
+  const existing = await findExistingSeedBrand(
+    params.brandService,
+    params.brandData
+  )
+  if (!existing) {
+    const { result } = await createBrandsWorkflow(params.container).run({
+      input: {
+        brands: [toCreateBrandInput(params.brandData)],
+      },
+    })
+    const created = result[0] as ExistingBrand | undefined
+    if (!created) {
+      throw new Error(`Brand "${params.brandData.title}" was not created`)
+    }
+    return created
+  }
+
+  validateExistingSeedBrandReconciliation(existing, params.brandData)
+
+  if (existing.deleted_at) {
+    await restoreBrandsWorkflow(params.container).run({
+      input: {
+        ids: [existing.id],
+      },
+    })
+  }
+
+  const update = buildExistingBrandReconciliation(existing, params.brandData)
+  if (Object.keys(update).length) {
+    await updateBrandsWorkflow(params.container).run({
+      input: {
+        selector: {
+          id: existing.id,
+        },
+        update,
+      },
+    })
+  }
+
+  return existing
+}
+
+async function upsertSeedBrandsByHandle(params: {
+  brandService: BrandModuleService
+  brands: BrandRegistry
+  container: WorkflowContainer
+}) {
+  const brandIdsByHandle = new Map<string, string>()
+
+  for (const brandData of params.brands.values()) {
+    const brand = await upsertSeedBrand({
+      brandData,
+      brandService: params.brandService,
+      container: params.container,
+    })
+    brandIdsByHandle.set(brandData.handle, brand.id)
+  }
+
+  return brandIdsByHandle
+}
+
+async function listSeedProductsByHandle(params: {
+  productHandles: string[]
+  productService: IProductModuleService
+}) {
+  const products: ProductDTO[] = []
+  const uniqueHandles = [...new Set(params.productHandles)]
+
+  for (const handleChunk of chunkArray(uniqueHandles)) {
+    const chunkProducts = await params.productService.listProducts(
+      { handle: { $in: handleChunk } },
       {
-        select: ["id"],
+        select: ["id", "handle"],
+        take: handleChunk.length,
       }
     )
-
-    const links = products.map((product) => ({
-      [Modules.PRODUCT]: {
-        product_id: product.id,
-      },
-      [PRODUCER_MODULE]: {
-        producer_id: producer.id,
-      },
-    }))
-
-    await params.link.create(links)
+    products.push(...chunkProducts)
   }
+
+  if (products.length !== uniqueHandles.length) {
+    const foundHandles = new Set(products.map((product) => product.handle))
+    const missingHandles = uniqueHandles.filter(
+      (handle) => !foundHandles.has(handle)
+    )
+    throw new Error(
+      `Products were not found for brand linking: ${missingHandles.join(", ")}`
+    )
+  }
+
+  return products
+}
+
+export function buildDesiredProductBrandLinks(params: {
+  brandIdsByHandle: Map<string, string>
+  desiredBrandHandleByProduct: Map<string, string>
+  products: ProductDTO[]
+}) {
+  const desiredLinks: { brandIds: string[]; productId: string }[] = []
+
+  for (const product of params.products) {
+    const desiredHandle = params.desiredBrandHandleByProduct.get(product.handle)
+    const desiredBrandId = desiredHandle
+      ? params.brandIdsByHandle.get(desiredHandle)
+      : undefined
+    if (desiredHandle && !desiredBrandId) {
+      throw new Error(
+        `Resolved brand was not found for product "${product.handle}"`
+      )
+    }
+
+    desiredLinks.push({
+      brandIds: desiredBrandId ? [desiredBrandId] : [],
+      productId: product.id,
+    })
+  }
+
+  return desiredLinks
+}
+
+async function reconcileProductBrandLinks(
+  container: WorkflowContainer,
+  links: { brandIds: string[]; productId: string }[]
+) {
+  for (const link of links) {
+    await setProductBrandsWorkflow(container).run({
+      input: {
+        brand_ids: link.brandIds,
+        dismiss_inactive: true,
+        fail_on_conflict: false,
+        product_id: link.productId,
+      },
+    })
+  }
+}
+
+async function linkBrands(params: {
+  container: WorkflowContainer
+  productService: IProductModuleService
+  brandService: BrandModuleService
+  brands: BrandRegistry
+  seedProducts: ProductInput[]
+}): Promise<void> {
+  if (!params.seedProducts.length) {
+    return
+  }
+
+  const brandIdsByHandle = await upsertSeedBrandsByHandle(params)
+  const desiredBrandHandleByProduct = getDesiredBrandHandleByProduct(
+    params.brands
+  )
+  const products = await listSeedProductsByHandle({
+    productHandles: params.seedProducts.map((product) => product.handle),
+    productService: params.productService,
+  })
+  const desiredLinks = buildDesiredProductBrandLinks({
+    brandIdsByHandle,
+    desiredBrandHandleByProduct,
+    products,
+  })
+
+  await reconcileProductBrandLinks(params.container, desiredLinks)
 }
 
 export const createProductsStep = createStep(
   CreateProductsStepId,
   async (input: CreateProductsStepInput, { container }) => {
     const result: string[] = []
-    const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
     const productService = container.resolve<IProductModuleService>(
       Modules.PRODUCT
@@ -721,11 +1253,10 @@ export const createProductsStep = createStep(
     const salesChannelService = container.resolve<ISalesChannelModuleService>(
       Modules.SALES_CHANNEL
     )
-    const producerService =
-      container.resolve<ProducerModuleService>(PRODUCER_MODULE)
+    const brandService = container.resolve<BrandModuleService>(BRAND_MODULE)
 
     const productVariantImages: VariantImagesRegistry = new Map()
-    const producers: ProducerRegistry = new Map()
+    const brands = buildBrandRegistry(input)
 
     const existingCategories = await productService.listProductCategories(
       {
@@ -750,7 +1281,7 @@ export const createProductsStep = createStep(
     }
     const externalIds = input
       .map((product) => normalizeProductIdentity(product.external_id))
-      .filter((externalId): externalId is string => !!externalId)
+      .filter((externalId): externalId is string => Boolean(externalId))
     const productsByExternalId =
       externalIds.length > 0
         ? await productService.listProducts(
@@ -770,6 +1301,8 @@ export const createProductsStep = createStep(
     )
     const productIdentityIndex = createProductIdentityIndex(existingProducts)
 
+    await assertSeedBrandsCompatibleWithPersistence(brandService, brands)
+
     ensureUniqueVariantSkus(
       input,
       existingProducts,
@@ -786,7 +1319,6 @@ export const createProductsStep = createStep(
       existingCategories,
       existingShippingProfiles,
       existingSalesChannels,
-      producers,
       productVariantImages,
     })
 
@@ -798,7 +1330,6 @@ export const createProductsStep = createStep(
         existingCategories,
         existingShippingProfiles,
         existingSalesChannels,
-        producers,
         productVariantImages,
       })
 
@@ -840,17 +1371,14 @@ export const createProductsStep = createStep(
 
       const updatedIds: string[] = []
 
-      for (const updateProduct of updateProducts) {
-        const updateResult = await updateProductsWorkflow(container).run({
+      for (const updateProductsChunk of chunkArray(updateProducts)) {
+        const updateResult = await batchProductsWorkflow(container).run({
           input: {
-            selector: {
-              id: updateProduct.id,
-            },
-            update: updateProduct,
+            update: updateProductsChunk,
           },
         })
 
-        for (const updated of updateResult.result) {
+        for (const updated of updateResult.result.updated) {
           updatedIds.push(updated.id)
         }
       }
@@ -881,11 +1409,12 @@ export const createProductsStep = createStep(
       })
     }
 
-    await linkProducers({
-      link,
+    await linkBrands({
+      container,
       productService,
-      producerService,
-      producers,
+      brandService,
+      brands,
+      seedProducts: input,
     })
 
     return new StepResponse({

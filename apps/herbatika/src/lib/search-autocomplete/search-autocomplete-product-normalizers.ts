@@ -36,14 +36,19 @@ const createProductSuggestion = (
   currencyCode: HerbatikaCurrencyCode
 ): SearchAutocompleteSuggestion | null => {
   const id = normalizeString(hit.id)
-  const title = normalizeString(hit.title)
+  const productTitle = normalizeString(hit.title)
   const handle = normalizeString(hit.handle)
 
-  if (!(id && title && handle)) {
+  if (!(id && productTitle && handle)) {
     return null
   }
 
-  const producerTitle = normalizeString(hit.producer?.title)
+  const variantId = normalizeString(hit.search_result?.variant_id)
+  const variantTitle = normalizeString(hit.search_result?.variant_title)
+  const title = variantTitle
+    ? `${productTitle} – ${variantTitle}`
+    : productTitle
+  const brandTitle = normalizeString(hit.brand?.title)
   const firstCategory = hit.categories?.find((category) =>
     Boolean(normalizeString(category.name))
   )
@@ -51,11 +56,11 @@ const createProductSuggestion = (
   const price = resolveProductPrice(hit, currencyCode)
 
   return {
-    id,
+    id: variantId ? `${id}-${variantId}` : id,
     type: "product",
     title,
-    href: `/p/${handle}`,
-    subtitle: [producerTitle, categoryName].filter(Boolean).join(" | "),
+    href: `/p/${handle}${variantId ? `?variant=${encodeURIComponent(variantId)}` : ""}`,
+    subtitle: [brandTitle, categoryName].filter(Boolean).join(" | "),
     imageUrl: normalizeString(hit.thumbnail) || undefined,
     priceLabel: price
       ? formatCurrencyAmount(price.currentAmount, price.currencyCode)
@@ -67,7 +72,7 @@ const createProductSuggestion = (
 export const createProductSuggestions = (
   hits: RawSearchAutocompleteProductHit[],
   currencyCode: HerbatikaCurrencyCode,
-  limit: number
+  limit = hits.length
 ) =>
   hits
     .map((hit) => createProductSuggestion(hit, currencyCode))

@@ -3,7 +3,6 @@ import type {
   OrderDashboardBusinessStatusGroupId,
   OrderDashboardBusinessStatusId,
   OrderDashboardCarrierKey,
-  OrderDashboardFulfillmentCreateItem,
   OrderDashboardFulfillmentOrder,
   OrderDashboardLabelFormat,
   OrderDashboardManualStatusId,
@@ -37,6 +36,7 @@ const FULFILLMENT_ORDER_FIELDS = [
   "+items.variant.product.shipping_profile.id",
   "+shipping_methods.shipping_option_id",
   "shipping_methods.name",
+  "shipping_methods.data",
 ].join(",")
 const FULFILLMENT_SHIPPING_OPTION_FIELDS = [
   "id",
@@ -124,12 +124,14 @@ export function downloadOrderDashboardExpeditionPdf(orderIds: string[]) {
 
 export function downloadOrderDashboardPacketaLabels(input: {
   labelFormat: OrderDashboardLabelFormat
+  labelOffset?: number
   orderIds: string[]
 }) {
   return downloadPdf(
     "/admin/packeta-labels",
     {
       label_format: input.labelFormat,
+      label_offset: input.labelOffset,
       order_ids: input.orderIds,
     },
     `packeta-labels-${new Date().toISOString().slice(0, 10)}.pdf`
@@ -218,19 +220,20 @@ export async function listOrderDashboardShippingOptions(
 }
 
 export function createOrderDashboardFulfillment(input: {
-  items: OrderDashboardFulfillmentCreateItem[]
   locationId: string
   noNotification: boolean
   orderId: string
-  shippingOptionId?: string
 }) {
-  return sdk.admin.order.createFulfillment(input.orderId, {
-    items: input.items,
-    location_id: input.locationId,
-    metadata: {},
-    no_notification: input.noNotification,
-    shipping_option_id: input.shippingOptionId,
-  })
+  return sdk.client.fetch<{ fulfillment: { id: string } }>(
+    `/admin/order-expedition/orders/${input.orderId}/fulfillments`,
+    {
+      body: {
+        location_id: input.locationId,
+        no_notification: input.noNotification,
+      },
+      method: "POST",
+    }
+  )
 }
 
 async function downloadPdf(

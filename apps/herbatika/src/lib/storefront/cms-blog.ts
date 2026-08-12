@@ -18,7 +18,6 @@ import {
   buildCmsBlogPage,
   buildCmsCategoryFilters,
   resolveCmsBlogCategory,
-  shuffleCmsArticleIndex,
 } from "./cms-blog-index"
 import type { CmsArticle, CmsArticleCategory } from "./cms-types"
 
@@ -105,7 +104,7 @@ export const fetchCmsBlogListing = async ({
   }
 }
 
-export const fetchRandomCmsBlogPosts = async (
+export const fetchLatestCmsBlogPosts = async (
   limit: number,
   excludeSlugs: string[] = []
 ) => {
@@ -114,15 +113,12 @@ export const fetchRandomCmsBlogPosts = async (
   const candidates = buildCmsArticleIndex(categories).filter(
     ({ summary }) => !excludedSlugs.has(summary.slug?.trim() ?? "")
   )
-  const selectedEntries = shuffleCmsArticleIndex(candidates).slice(
-    0,
-    Math.max(limit, 0)
-  )
+  const selectedEntries = candidates.slice(0, Math.max(limit, 0))
 
   return mapCmsArticleIndexToCards(selectedEntries)
 }
 
-export const fetchCachedRandomCmsBlogPosts = async (
+export const fetchCachedLatestCmsBlogPosts = async (
   limit: number,
   excludeSlugs: string[] = []
 ) => {
@@ -133,5 +129,5 @@ export const fetchCachedRandomCmsBlogPosts = async (
     stale: 300,
   })
 
-  return fetchRandomCmsBlogPosts(limit, excludeSlugs)
+  return fetchLatestCmsBlogPosts(limit, excludeSlugs)
 }

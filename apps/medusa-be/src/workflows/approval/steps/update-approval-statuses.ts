@@ -1,5 +1,9 @@
+import type { Query } from "@medusajs/framework/types"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
-import { MedusaError } from "@medusajs/utils"
 import { APPROVAL_MODULE } from "../../../modules/approval"
 import {
   ApprovalStatusType,
@@ -14,7 +18,7 @@ export const updateApprovalStatusStep = createStep(
     input: ModuleApproval,
     { container }
   ): Promise<StepResponse<undefined, ModuleApprovalStatus>> => {
-    const query = container.resolve("query")
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const approvalModule =
       container.resolve<IApprovalModuleService>(APPROVAL_MODULE)
 
@@ -22,7 +26,7 @@ export const updateApprovalStatusStep = createStep(
       data: [approvalStatus],
     } = await query.graph({
       entity: "approval_status",
-      fields: ["*", "status"],
+      fields: ["*"],
       filters: {
         cart_id: input.cart_id,
       },
@@ -39,7 +43,11 @@ export const updateApprovalStatusStep = createStep(
       )
     }
 
-    const previousData = approvalStatus
+    const previousData: ModuleApprovalStatus = {
+      cart_id: approvalStatus.cart_id,
+      id: approvalStatus.id,
+      status: approvalStatus.status,
+    }
 
     const hasPendingApprovals = await approvalModule.hasPendingApprovals(
       input.cart_id
@@ -63,10 +71,7 @@ export const updateApprovalStatusStep = createStep(
       ])
     }
 
-    return new StepResponse(
-      undefined,
-      previousData as unknown as ModuleApprovalStatus
-    )
+    return new StepResponse(undefined, previousData)
   },
   async (previousData: ModuleApprovalStatus | undefined, { container }) => {
     if (!previousData) {

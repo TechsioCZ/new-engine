@@ -1,7 +1,7 @@
-import { ApprovalStatusType, type QueryApproval } from "../types/approval"
+import { ApprovalStatusType } from "../types/approval"
 
 type CartWithApprovals = {
-  approvals?: QueryApproval[] | null
+  approvals?: Array<{ status?: string | null } | null> | null
 }
 
 export const getCartApprovalStatus = (cart: CartWithApprovals | null) => {

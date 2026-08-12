@@ -96,7 +96,7 @@ export function normalizeOriginUrl(value?: string): string | undefined {
   return `https://${trimmed}`
 }
 
-export function preferPublicCsvOrUrl(input: {
+export function preferExplicitOrMergeCsv(input: {
   explicitValue?: string
   envValue?: string
   fallbackValue: string
@@ -108,7 +108,7 @@ export function preferPublicCsvOrUrl(input: {
   const envEntries = (input.envValue ?? "")
     .split(",")
     .map((entry) => stripTrailingSlash(entry.trim()))
-    .filter((entry) => entry.length > 0 && !isLoopbackUrl(entry))
+    .filter((entry) => entry.length > 0)
   const values = [
     ...envEntries,
     stripTrailingSlash(input.fallbackValue.trim()),

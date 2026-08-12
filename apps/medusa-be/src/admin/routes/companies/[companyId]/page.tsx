@@ -27,7 +27,10 @@ import { translateBreadcrumb } from "../../../lib/breadcrumb"
 import { sdk } from "../../../lib/sdk"
 import { onRowKeyboardActivate } from "../../../lib/table"
 import { formatAmount } from "../../../utils"
-import { CompanyActionsMenu } from "../components"
+import {
+  CompanyActionsMenu,
+  CompanyApplicationStatusButton,
+} from "../components"
 import {
   EmployeeCreateDrawer,
   EmployeesActionsMenu,
@@ -56,6 +59,24 @@ export const handle = {
     match.data?.company?.name ??
     match.data?.company?.id ??
     translateBreadcrumb("companies:columns.company", "Company"),
+}
+
+const getCompanyStatusBadgeColor = (
+  company: QueryCompany
+): "green" | "orange" | "red" => {
+  if (company.deleted_at || company.application_status === "rejected") {
+    return "red"
+  }
+
+  return company.application_status === "approved" ? "green" : "orange"
+}
+
+const getCompanyStatusLabelKey = (company: QueryCompany) => {
+  if (company.deleted_at) {
+    return "deleted"
+  }
+
+  return company.application_status ?? "pending"
 }
 
 const EmployeeActionCell = ({
@@ -126,11 +147,14 @@ const CompanyDetails = () => {
             <Heading className="h1-core font-medium font-sans">
               {company?.name}
             </Heading>
-            <StatusBadge color={company.deleted_at ? "red" : "green"}>
-              {company.deleted_at ? t("status.deleted") : t("status.active")}
+            <StatusBadge color={getCompanyStatusBadgeColor(company)}>
+              {t(`status.${getCompanyStatusLabelKey(company)}`)}
             </StatusBadge>
           </div>
-          <CompanyActionsMenu company={company} />
+          <div className="flex items-center gap-2">
+            <CompanyApplicationStatusButton company={company} />
+            <CompanyActionsMenu company={company} />
+          </div>
         </div>
         <Table>
           <Table.Body>
@@ -169,6 +193,16 @@ const CompanyDetails = () => {
                 {t("columns.currency")}
               </Table.Cell>
               <Table.Cell>{company?.currency_code?.toUpperCase()}</Table.Cell>
+            </Table.Row>
+            <Table.Row>
+              <Table.Cell className="txt-compact-small font-medium font-sans">
+                {t("columns.status")}
+              </Table.Cell>
+              <Table.Cell>
+                <StatusBadge color={getCompanyStatusBadgeColor(company)}>
+                  {t(`status.${getCompanyStatusLabelKey(company)}`)}
+                </StatusBadge>
+              </Table.Cell>
             </Table.Row>
             <Table.Row>
               <Table.Cell className="txt-compact-small font-medium font-sans">

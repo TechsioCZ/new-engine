@@ -126,13 +126,13 @@ export const transformProductDetail = (
         id: tag.id,
         value: tag.value,
       })) || [],
-    // Producer data
-    producer: product.producer
+    // Brand data
+    brand: product.brand
       ? {
-          id: product.producer.id,
-          title: product.producer.title,
+          id: product.brand.id,
+          title: product.brand.title,
           attributes:
-            product.producer.attributes?.map((attr) => ({
+            product.brand.attributes?.map((attr) => ({
               value: attr.value,
               attributeType: attr.attributeType
                 ? {

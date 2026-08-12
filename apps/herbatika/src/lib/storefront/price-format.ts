@@ -14,11 +14,13 @@ const normalizeFormatCurrencyCode = (currencyCode?: string | null): string => {
 }
 
 const resolveLocaleFromCurrency = (currencyCode: string) => {
-  if (currencyCode === "CZK") {
-    return "cs-CZ"
+  const localeByCurrency: Record<string, string> = {
+    CZK: "cs-CZ",
+    HUF: "hu-HU",
+    RON: "ro-RO",
   }
 
-  return "sk-SK"
+  return localeByCurrency[currencyCode] ?? "sk-SK"
 }
 
 type FormatCurrencyAmountOptions = {

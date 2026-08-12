@@ -122,6 +122,7 @@ const joinName = (...values: unknown[]): string | undefined => {
 export abstract class PaykitPaymentProviderBase<
   TOptions extends PaykitAdapterOptions = PaykitAdapterOptions,
 > extends AbstractPaymentProvider<TOptions> {
+  protected readonly container_: PaykitInjectedDependencies
   protected readonly options_: TOptions
   private client_: Promise<PaykitPaymentClient> | undefined
 
@@ -131,18 +132,22 @@ export abstract class PaykitPaymentProviderBase<
   ) {
     super(container, options)
 
+    this.container_ = container
     this.options_ = options
   }
 
   protected abstract createDefaultClient(): Promise<PaykitPaymentClient>
 
   protected async getClient(): Promise<PaykitPaymentClient> {
-    this.client_ ??= (async () => {
-      const configuredClient = await resolveConfiguredClient(this.options_)
-      return configuredClient ?? this.createDefaultClient()
-    })()
+    const configuredClient = await resolveConfiguredClient(this.options_)
+    if (configuredClient) {
+      this.client_ ??= Promise.resolve(configuredClient)
+      return await this.client_
+    }
 
-    return await this.client_
+    // Runtime API Store configs can change in Admin, so don't cache SDK clients
+    // created from provider credentials.
+    return await this.createDefaultClient()
   }
 
   protected getProviderPaymentId(data?: Record<string, unknown>): string {

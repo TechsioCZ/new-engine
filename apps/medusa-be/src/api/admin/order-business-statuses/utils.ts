@@ -1,4 +1,5 @@
 import type { Query } from "@medusajs/framework/types"
+import { MedusaError } from "@medusajs/framework/utils"
 import {
   getManualOrderBusinessStatusId,
   type ManualOrderBusinessStatusId,
@@ -53,12 +54,16 @@ export function parseOrderBusinessStatusOrders(
   value: unknown
 ): OrderBusinessStatusOrder[] {
   if (!Array.isArray(value)) {
-    throw new Error("Expected order business status query to return an array")
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Expected order business status query to return an array"
+    )
   }
 
   return value.map((order, index) => {
     if (!isOrderBusinessStatusOrder(order)) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
         `Expected order business status query result at index ${index} to include a string id`
       )
     }

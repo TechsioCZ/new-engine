@@ -1,10 +1,12 @@
 import { defineRouteConfig } from "@medusajs/admin-sdk"
 import {
   Button,
+  Checkbox,
   Container,
   Heading,
   Input,
   Label,
+  Prompt,
   Select,
   Switch,
   Text,
@@ -20,9 +22,13 @@ export const handle = {
 
 type PacketaConfigResponse = {
   id: string
-  environment: string
+  environment: PacketaEnvironment
+  is_active: boolean
   is_enabled: boolean
+  allow_live_operations: boolean
   api_password_set: boolean
+  widget_api_key_set: boolean
+  widget_countries: PacketaWidgetCountry[]
   sender_label: string | null
   eshop_id: string | null
   default_label_format: string
@@ -40,9 +46,21 @@ type PacketaConfigResponse = {
   sender_email: string | null
 }
 
+type PacketaEnvironment = "testing" | "production"
+
+type PacketaWidgetCountry = "sk" | "cz" | "hu" | "ro"
+
+type PacketaProfilesResponse = {
+  active_environment: PacketaEnvironment
+  profiles: PacketaConfigResponse[]
+}
+
 type PacketaConfigInput = {
   is_enabled?: boolean
+  allow_live_operations?: boolean
   api_password?: string | null
+  widget_api_key?: string | null
+  widget_countries?: PacketaWidgetCountry[]
   sender_label?: string
   eshop_id?: string
   default_label_format?: string
@@ -62,6 +80,7 @@ type PacketaConfigInput = {
 
 const CLEARABLE_FIELDS = [
   "api_password",
+  "widget_api_key",
   "cod_bank_account",
   "cod_bank_code",
   "cod_iban",
@@ -94,6 +113,13 @@ const LABEL_FORMATS = [
 ]
 
 const DEFAULT_LABEL_FORMAT = "A6"
+
+const WIDGET_COUNTRIES: { value: PacketaWidgetCountry; label: string }[] = [
+  { value: "sk", label: "Slovakia (SK)" },
+  { value: "cz", label: "Czechia (CZ)" },
+  { value: "hu", label: "Hungary (HU)" },
+  { value: "ro", label: "Romania (RO)" },
+]
 
 type FieldConfig = {
   field: keyof PacketaConfigInput
@@ -175,6 +201,10 @@ const FormField = ({
 
 const PacketaSettingsPage = () => {
   const queryClient = useQueryClient()
+  const [selectedEnvironment, setSelectedEnvironment] =
+    useState<PacketaEnvironment | null>(null)
+  const [confirmProductionActivation, setConfirmProductionActivation] =
+    useState(false)
   const [formData, setFormData] = useState<PacketaConfigInput>({})
   const [clearedFields, setClearedFields] = useState<Set<ClearableField>>(
     new Set()
@@ -182,14 +212,14 @@ const PacketaSettingsPage = () => {
 
   const { data, isLoading, error } = useQuery({
     queryFn: () =>
-      sdk.client.fetch<{ config: PacketaConfigResponse }>(
-        "/admin/packeta-config"
-      ),
+      sdk.client.fetch<PacketaProfilesResponse>("/admin/packeta-config"),
     queryKey: ["packeta-config"],
   })
 
   const { mutate, isPending } = useMutation({
-    mutationFn: (payload: PacketaConfigInput) =>
+    mutationFn: (
+      payload: PacketaConfigInput & { environment: PacketaEnvironment }
+    ) =>
       sdk.client.fetch("/admin/packeta-config", {
         method: "POST",
         body: payload,
@@ -203,12 +233,46 @@ const PacketaSettingsPage = () => {
     },
   })
 
-  const packetaConfig = data?.config
+  const { mutate: activateProfile, isPending: isActivating } = useMutation({
+    mutationFn: (environment: PacketaEnvironment) =>
+      sdk.client.fetch("/admin/packeta-config/active", {
+        method: "POST",
+        body: { environment, confirmed: environment === "production" },
+      }),
+    onSuccess: () => {
+      setConfirmProductionActivation(false)
+      queryClient.invalidateQueries({ queryKey: ["packeta-config"] })
+      toast.success("Active Packeta profile changed")
+    },
+    onError: (err) => {
+      toast.error(`Failed to activate profile: ${err.message}`)
+    },
+  })
+
+  const displayedEnvironment =
+    selectedEnvironment ?? data?.active_environment ?? "testing"
+  const packetaConfig = data?.profiles.find(
+    (profile) => profile.environment === displayedEnvironment
+  )
+
+  useEffect(() => {
+    if (!data) {
+      return
+    }
+    setSelectedEnvironment((current) =>
+      current &&
+      data.profiles.some((profile) => profile.environment === current)
+        ? current
+        : data.active_environment
+    )
+  }, [data])
 
   useEffect(() => {
     if (packetaConfig) {
       setFormData({
         is_enabled: packetaConfig.is_enabled,
+        allow_live_operations: packetaConfig.allow_live_operations,
+        widget_countries: packetaConfig.widget_countries,
         sender_label: packetaConfig.sender_label ?? "",
         eshop_id: packetaConfig.eshop_id ?? "",
         default_label_format:
@@ -228,7 +292,11 @@ const PacketaSettingsPage = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const payload: PacketaConfigPayload = { ...formData }
+    const payload: PacketaConfigPayload & { environment: PacketaEnvironment } =
+      {
+        ...formData,
+        environment: displayedEnvironment,
+      }
     if (payload.default_label_format === "") {
       payload.default_label_format = undefined
     }
@@ -238,9 +306,17 @@ const PacketaSettingsPage = () => {
     mutate(payload)
   }
 
+  const handleActivate = () => {
+    if (displayedEnvironment === "production") {
+      setConfirmProductionActivation(true)
+      return
+    }
+    activateProfile(displayedEnvironment)
+  }
+
   const updateField = (
     field: keyof PacketaConfigInput,
-    value: string | boolean | number
+    value: string | boolean | number | PacketaWidgetCountry[]
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
     if (isClearableField(field) && clearedFields.has(field)) {
@@ -257,6 +333,18 @@ const PacketaSettingsPage = () => {
       return
     }
     setClearedFields((prev) => new Set(prev).add(field))
+  }
+
+  const updateWidgetCountry = (
+    country: PacketaWidgetCountry,
+    checked: boolean
+  ) => {
+    const currentCountries = formData.widget_countries ?? []
+    const widgetCountries = checked
+      ? Array.from(new Set([...currentCountries, country]))
+      : currentCountries.filter((currentCountry) => currentCountry !== country)
+
+    updateField("widget_countries", widgetCountries)
   }
 
   const isFieldCleared = (field: keyof PacketaConfigInput) =>
@@ -311,6 +399,15 @@ const PacketaSettingsPage = () => {
       placeholder: "Optional, account-specific",
     },
   ]
+
+  const widgetApiKeyField: FieldConfig = {
+    field: "widget_api_key",
+    label: "Widget API Key",
+    placeholder: "Your public Packeta Widget API key",
+    type: "password",
+    isSet: packetaConfig?.widget_api_key_set,
+    colSpan: 2,
+  }
 
   const codFields: FieldConfig[] = [
     {
@@ -367,9 +464,43 @@ const PacketaSettingsPage = () => {
     <Container className="divide-y p-0">
       <div className="px-6 py-4">
         <Heading level="h1">Packeta Configuration</Heading>
-        <Text className="text-ui-fg-subtle">
-          Environment: {packetaConfig?.environment}
-        </Text>
+        <div className="mt-4 flex items-end justify-between gap-4">
+          <div className="flex w-full max-w-xs flex-col gap-2">
+            <Label htmlFor="packeta-profile">Configuration profile</Label>
+            <Select
+              onValueChange={(value) =>
+                setSelectedEnvironment(value as PacketaEnvironment)
+              }
+              value={displayedEnvironment}
+            >
+              <Select.Trigger id="packeta-profile">
+                <Select.Value />
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="testing">
+                  Testing
+                  {data?.active_environment === "testing" ? " (active)" : ""}
+                </Select.Item>
+                <Select.Item value="production">
+                  Production
+                  {data?.active_environment === "production" ? " (active)" : ""}
+                </Select.Item>
+              </Select.Content>
+            </Select>
+          </div>
+          {!packetaConfig?.is_active && (
+            <Button
+              isLoading={isActivating}
+              onClick={handleActivate}
+              type="button"
+              variant={
+                displayedEnvironment === "production" ? "danger" : "secondary"
+              }
+            >
+              Activate {displayedEnvironment}
+            </Button>
+          )}
+        </div>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -404,6 +535,34 @@ const PacketaSettingsPage = () => {
                 }
               />
             </div>
+            {displayedEnvironment === "testing" && (
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label
+                    htmlFor="packeta-allow-live-operations"
+                    id="packeta-allow-live-operations-label"
+                  >
+                    Allow live carrier operations
+                  </Label>
+                  <Text
+                    className="text-sm text-ui-fg-subtle"
+                    id="packeta-allow-live-operations-desc"
+                  >
+                    Packeta has no sandbox. Enabling this permits real packet
+                    creation and cancellation from the Testing profile.
+                  </Text>
+                </div>
+                <Switch
+                  aria-describedby="packeta-allow-live-operations-desc"
+                  aria-labelledby="packeta-allow-live-operations-label"
+                  checked={formData.allow_live_operations ?? false}
+                  id="packeta-allow-live-operations"
+                  onCheckedChange={(checked) =>
+                    updateField("allow_live_operations", checked)
+                  }
+                />
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-2">
                 <Label htmlFor="packeta-label-format">Label Format</Label>
@@ -468,6 +627,45 @@ const PacketaSettingsPage = () => {
           </div>
         </div>
 
+        <div className="border-t px-6 py-4">
+          <Heading className="mb-2" level="h2">
+            Pickup Point Widget
+          </Heading>
+          <Text className="mb-4 text-sm text-ui-fg-subtle">
+            Configure the public Packeta widget used by the storefront and
+            select the markets where pickup points are available.
+          </Text>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField
+              fieldConfig={widgetApiKeyField}
+              isCleared={isFieldCleared(widgetApiKeyField.field)}
+              onChange={(value) => updateField(widgetApiKeyField.field, value)}
+              onClear={() => clearField(widgetApiKeyField.field)}
+              value={getStringField(formData, widgetApiKeyField.field)}
+            />
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            {WIDGET_COUNTRIES.map((country) => (
+              <label
+                className="flex cursor-pointer items-center gap-3 rounded-lg border border-ui-border-base p-3"
+                htmlFor={`packeta-widget-country-${country.value}`}
+                key={country.value}
+              >
+                <Checkbox
+                  checked={(formData.widget_countries ?? []).includes(
+                    country.value
+                  )}
+                  id={`packeta-widget-country-${country.value}`}
+                  onCheckedChange={(checked) =>
+                    updateWidgetCountry(country.value, checked === true)
+                  }
+                />
+                <Text>{country.label}</Text>
+              </label>
+            ))}
+          </div>
+        </div>
+
         {/* COD Banking */}
         <div className="border-t px-6 py-4">
           <Heading className="mb-2" level="h2">
@@ -516,6 +714,32 @@ const PacketaSettingsPage = () => {
           </Button>
         </div>
       </form>
+      <Prompt
+        onOpenChange={setConfirmProductionActivation}
+        open={confirmProductionActivation}
+        variant="confirmation"
+      >
+        <Prompt.Content>
+          <Prompt.Header>
+            <Prompt.Title>Activate Packeta Production?</Prompt.Title>
+            <Prompt.Description>
+              New Packeta fulfillment operations will use the saved Production
+              credentials immediately. Existing shipments remain bound to the
+              profile that created them.
+            </Prompt.Description>
+          </Prompt.Header>
+          <Prompt.Footer>
+            <Prompt.Cancel type="button">Cancel</Prompt.Cancel>
+            <Prompt.Action
+              disabled={isActivating}
+              onClick={() => activateProfile("production")}
+              type="button"
+            >
+              Activate Production
+            </Prompt.Action>
+          </Prompt.Footer>
+        </Prompt.Content>
+      </Prompt>
     </Container>
   )
 }

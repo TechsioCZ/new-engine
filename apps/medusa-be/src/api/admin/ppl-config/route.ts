@@ -6,6 +6,7 @@ import type {
   PplConfigDTO,
   PplConfigResponse,
 } from "../../../modules/ppl-client/types"
+import { updatePplConfigWorkflow } from "../../../workflows/ppl-config/update-ppl-config"
 import type { PostAdminPplConfigSchemaType } from "./validators"
 
 /** Maps config DTO to API response with sensitive fields masked */
@@ -59,10 +60,9 @@ export async function POST(
   req: MedusaRequest<PostAdminPplConfigSchemaType>,
   res: MedusaResponse
 ) {
-  const pplService =
-    req.scope.resolve<PplClientModuleService>(PPL_CLIENT_MODULE)
-
-  const updated = await pplService.updateConfig(req.validatedBody)
+  const { result: updated } = await updatePplConfigWorkflow(req.scope).run({
+    input: req.validatedBody,
+  })
 
   res.json({ config: toConfigResponse(updated) })
 }

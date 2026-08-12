@@ -74,7 +74,7 @@ export const ALL_CATEGORIES_MAP: Record<string, string[]> = Object.fromEntries(
 
 export const PRODUCT_DETAILED_FIELDS =
   "id,title,subtitle,description,handle,thumbnail,images.id,images.url," +
-  "producer.title,producer.attributes.value,producer.attributes.attributeType.name," +
+  "brand.title,brand.attributes.value,brand.attributes.attributeType.name," +
   "variants.id,variants.title,variants.sku,variants.ean,variants.upc," +
   "variants.material,variants.allow_backorder,variants.manage_inventory," +
   "variants.inventory_quantity," +

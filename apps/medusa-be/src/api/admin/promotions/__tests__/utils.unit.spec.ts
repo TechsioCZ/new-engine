@@ -1,8 +1,9 @@
 import { ApplicationMethodTargetType } from "@medusajs/framework/utils"
 import { areRulesValidForContext } from "@medusajs/promotion/dist/utils/validations/promotion-rule"
 import { describe, expect, it, vi } from "vitest"
-import { buildProducerPromotionContext } from "../../../../workflows/utils/promotion-producer-context"
-import { producerRuleAttribute } from "../const"
+import { BRAND_MODULE } from "../../../../modules/brand"
+import { buildBrandPromotionContext } from "../../../../workflows/utils/promotion-brand-context"
+import { brandRuleAttribute } from "../const"
 import {
   escapeLikePattern,
   getExtendedRuleAttributesMap,
@@ -254,10 +255,10 @@ describe("getExtendedRuleAttributesMap", () => {
       expect(ruleIds).toContain("product_tag")
       expect(ruleIds).toContain("item_price")
       expect(ruleIds).toContain("item_quantity")
-      expect(ruleIds).toContain("producer")
+      expect(ruleIds).toContain("brand")
 
-      expect(targetRules.find((r) => r.id === "producer")).toMatchObject({
-        value: "items.producer_ids",
+      expect(targetRules.find((r) => r.id === "brand")).toMatchObject({
+        value: "items.brand_ids",
         field_type: "multiselect",
       })
     })
@@ -298,7 +299,7 @@ describe("getExtendedRuleAttributesMap", () => {
       expect(ruleIds).toContain("product")
       expect(ruleIds).toContain("product_variant")
       expect(ruleIds).toContain("item_quantity")
-      expect(ruleIds).toContain("producer")
+      expect(ruleIds).toContain("brand")
     })
 
     it("uses shipping method attributes when target type is shipping_methods", () => {
@@ -362,7 +363,7 @@ describe("getExtendedRuleAttributesMap", () => {
 
 describe("custom rule operator compatibility", () => {
   it("uses Medusa's supported not-in operator for multiselect rules", () => {
-    const operatorValues = producerRuleAttribute.operators.map(
+    const operatorValues = brandRuleAttribute.operators.map(
       (operator) => operator.value
     )
 
@@ -370,42 +371,51 @@ describe("custom rule operator compatibility", () => {
     expect(operatorValues).not.toContain("nin")
 
     const rule = {
-      attribute: "items.producer_ids",
+      attribute: "items.brand_ids",
       operator: "ne",
-      values: [{ value: "producer_blocked" }],
+      values: [{ value: "brand_blocked" }],
     }
 
     expect(
       areRulesValidForContext(
         [rule] as never,
-        { producer_ids: ["producer_allowed"] },
+        { brand_ids: ["brand_allowed"] },
         ApplicationMethodTargetType.ITEMS
       )
     ).toBe(true)
     expect(
       areRulesValidForContext(
         [rule] as never,
-        { producer_ids: ["producer_blocked"] },
+        { brand_ids: ["brand_blocked"] },
         ApplicationMethodTargetType.ITEMS
       )
     ).toBe(false)
   })
 })
 
-describe("buildProducerPromotionContext", () => {
-  it("adds producer ids to items without dropping existing item context", async () => {
+describe("buildBrandPromotionContext", () => {
+  it("adds brand ids to items without dropping existing item context", async () => {
     const graph = vi.fn().mockResolvedValue({
       data: [
-        { product_id: "prod_1", producer_id: "producer_a" },
-        { product_id: "prod_1", producer_id: "producer_b" },
-        { product_id: "prod_2", producer_id: "producer_c" },
+        { product_id: "prod_1", brand_id: "brand_a" },
+        { product_id: "prod_1", brand_id: "brand_b" },
+        { product_id: "prod_2", brand_id: "brand_c" },
       ],
     })
+    const listBrands = vi
+      .fn()
+      .mockResolvedValue([
+        { id: "brand_a" },
+        { id: "brand_b" },
+        { id: "brand_c" },
+      ])
     const container = {
-      resolve: vi.fn().mockReturnValue({ graph }),
+      resolve: vi.fn((key) =>
+        key === BRAND_MODULE ? { listBrands } : { graph }
+      ),
     }
 
-    const result = await buildProducerPromotionContext(
+    const result = await buildBrandPromotionContext(
       {
         items: [
           {
@@ -422,12 +432,12 @@ describe("buildProducerPromotionContext", () => {
         ],
       },
       container as never,
-      "product_producer"
+      "product_brand"
     )
 
     expect(graph).toHaveBeenCalledWith({
       entity: expect.any(String),
-      fields: ["product_id", "producer_id"],
+      fields: ["product_id", "brand_id"],
       filters: {
         product_id: { $in: ["prod_1", "prod_2"] },
       },
@@ -437,18 +447,18 @@ describe("buildProducerPromotionContext", () => {
         expect.objectContaining({
           id: "item_1",
           quantity: 2,
-          producer_ids: ["producer_a", "producer_b"],
+          brand_ids: ["brand_a", "brand_b"],
         }),
         expect.objectContaining({
           id: "item_2",
           quantity: 1,
-          producer_ids: ["producer_c"],
+          brand_ids: ["brand_c"],
         }),
       ],
     })
   })
 
-  it("resolves producer ids from variant ids when cart items omit product ids", async () => {
+  it("resolves brand ids from variant ids when cart items omit product ids", async () => {
     const graph = vi.fn().mockImplementation(({ entity }) => {
       if (entity === "variant") {
         return {
@@ -460,14 +470,17 @@ describe("buildProducerPromotionContext", () => {
       }
 
       return {
-        data: [{ product_id: "prod_1", producer_id: "producer_a" }],
+        data: [{ product_id: "prod_1", brand_id: "brand_a" }],
       }
     })
+    const listBrands = vi.fn().mockResolvedValue([{ id: "brand_a" }])
     const container = {
-      resolve: vi.fn().mockReturnValue({ graph }),
+      resolve: vi.fn((key) =>
+        key === BRAND_MODULE ? { listBrands } : { graph }
+      ),
     }
 
-    const result = await buildProducerPromotionContext(
+    const result = await buildBrandPromotionContext(
       {
         items: [
           { id: "item_1", quantity: 1, variant_id: "variant_1" },
@@ -475,7 +488,7 @@ describe("buildProducerPromotionContext", () => {
         ],
       },
       container as never,
-      "product_producer"
+      "product_brand"
     )
 
     expect(graph).toHaveBeenCalledWith({
@@ -486,8 +499,8 @@ describe("buildProducerPromotionContext", () => {
       },
     })
     expect(graph).toHaveBeenCalledWith({
-      entity: "product_producer",
-      fields: ["product_id", "producer_id"],
+      entity: "product_brand",
+      fields: ["product_id", "brand_id"],
       filters: {
         product_id: { $in: ["prod_1", "prod_2"] },
       },
@@ -496,7 +509,7 @@ describe("buildProducerPromotionContext", () => {
       items: [
         expect.objectContaining({
           id: "item_1",
-          producer_ids: ["producer_a"],
+          brand_ids: ["brand_a"],
         }),
         expect.objectContaining({
           id: "item_2",
@@ -504,7 +517,59 @@ describe("buildProducerPromotionContext", () => {
       ],
     })
     expect((result.items as Record<string, unknown>[])[1]).not.toHaveProperty(
-      "producer_ids"
+      "brand_ids"
     )
+  })
+
+  it("excludes links to deleted brands from promotion context", async () => {
+    const graph = vi.fn().mockResolvedValue({
+      data: [
+        { product_id: "prod_1", brand_id: "brand_active" },
+        { product_id: "prod_1", brand_id: "brand_deleted" },
+        { product_id: "prod_2", brand_id: "brand_deleted" },
+      ],
+    })
+    const listBrands = vi.fn().mockResolvedValue([{ id: "brand_active" }])
+    const container = {
+      resolve: vi.fn((key) =>
+        key === BRAND_MODULE ? { listBrands } : { graph }
+      ),
+    }
+
+    const result = await buildBrandPromotionContext(
+      {
+        items: [
+          { id: "item_1", product_id: "prod_1" },
+          { id: "item_2", product_id: "prod_2" },
+        ],
+      },
+      container as never,
+      "product_brand"
+    )
+
+    expect(listBrands).toHaveBeenCalledWith(
+      {
+        id: {
+          $in: ["brand_active", "brand_deleted"],
+        },
+      },
+      {
+        select: ["id"],
+        withDeleted: false,
+      }
+    )
+    expect(result).toEqual({
+      items: [
+        {
+          id: "item_1",
+          product_id: "prod_1",
+          brand_ids: ["brand_active"],
+        },
+        {
+          id: "item_2",
+          product_id: "prod_2",
+        },
+      ],
+    })
   })
 })

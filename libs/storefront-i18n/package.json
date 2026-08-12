@@ -1,0 +1,61 @@
+{
+  "name": "@techsio/storefront-i18n",
+  "version": "0.1.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TechsioCZ/new-engine.git",
+    "directory": "libs/storefront-i18n"
+  },
+  "exports": {
+    ".": null,
+    "./package.json": "./package.json",
+    "./core/markets": {
+      "types": "./dist/core/markets.d.ts",
+      "import": "./dist/core/markets.js"
+    },
+    "./core/messages": {
+      "types": "./dist/core/messages.d.ts",
+      "import": "./dist/core/messages.js"
+    },
+    "./medusa/messages": {
+      "types": "./dist/medusa/messages.d.ts",
+      "import": "./dist/medusa/messages.js"
+    },
+    "./next-intl/request": {
+      "types": "./dist/next-intl/request.d.ts",
+      "import": "./dist/next-intl/request.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rslib build --tsconfig tsconfig.build.json",
+    "dev": "rslib build --watch --tsconfig tsconfig.build.json",
+    "lint": "pnpm -w exec biome lint libs/storefront-i18n/src libs/storefront-i18n/tests --diagnostic-level=error",
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "nx": {
+    "tags": [
+      "type:lib",
+      "platform:web",
+      "framework:next"
+    ]
+  },
+  "devDependencies": {
+    "@medusajs/js-sdk": "2.15.2",
+    "@rslib/core": "^0.18.0",
+    "next-intl": "^4.0.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.17"
+  },
+  "peerDependencies": {
+    "@medusajs/js-sdk": ">=2.12.5",
+    "next-intl": ">=4.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

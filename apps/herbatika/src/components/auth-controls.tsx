@@ -21,7 +21,6 @@ export function AuthControls({ mode, afterAuthHref }: AuthControlsProps) {
   return (
     <AuthShell
       description={controller.description}
-      error={controller.authError}
       message={controller.authMessage}
       notice={controller.authNotice}
       title={controller.title}

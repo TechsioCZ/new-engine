@@ -1,3 +1,4 @@
+import type { Link } from "@medusajs/framework/modules-sdk"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { COMPANY_MODULE } from "../../../modules/company"
@@ -10,7 +11,7 @@ export const linkEmployeeToCustomerStep = createStep(
   ): Promise<
     StepResponse<undefined, { employeeId: string; customerId: string }>
   > => {
-    const remoteLink = container.resolve(ContainerRegistrationKeys.REMOTE_LINK)
+    const linkService = container.resolve<Link>(ContainerRegistrationKeys.LINK)
 
     const link = {
       [COMPANY_MODULE]: {
@@ -21,7 +22,7 @@ export const linkEmployeeToCustomerStep = createStep(
       },
     }
 
-    await remoteLink.create(link)
+    await linkService.create(link)
 
     return new StepResponse(undefined, input)
   },
@@ -38,7 +39,7 @@ export const linkEmployeeToCustomerStep = createStep(
       return new StepResponse(undefined, input)
     }
 
-    const remoteLink = container.resolve(ContainerRegistrationKeys.REMOTE_LINK)
+    const linkService = container.resolve<Link>(ContainerRegistrationKeys.LINK)
 
     const link = {
       [COMPANY_MODULE]: {
@@ -49,7 +50,7 @@ export const linkEmployeeToCustomerStep = createStep(
       },
     }
 
-    await remoteLink.dismiss(link)
+    await linkService.dismiss(link)
 
     return new StepResponse(undefined, input)
   }

@@ -1,3 +1,14 @@
+/**
+ * Select — @techsio/ui-kit template.
+ *
+ * @component Select
+ * @componentVersion v1.0.0
+ * @skill select-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the select-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from "react"
 import {
   Select,

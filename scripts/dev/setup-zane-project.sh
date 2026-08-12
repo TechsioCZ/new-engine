@@ -19,6 +19,7 @@ BRANCH_NAME="${ZANE_BRANCH_NAME:-}"
 GIT_APP_ID="${ZANE_GIT_APP_ID:-}"
 PUBLIC_DOMAIN="${ZANE_PUBLIC_DOMAIN:-}"
 PUBLIC_URL_AFFIX="${ZANE_PUBLIC_URL_AFFIX:--zane}"
+SERVICES_CSV=""
 
 MINIO_FILE_URL_OVERRIDE="${ZANE_PUBLIC_MINIO_FILE_URL:-}"
 STORE_CORS_OVERRIDE="${ZANE_STORE_CORS:-}"
@@ -61,6 +62,7 @@ Options:
                                  (default: auto-discovered from Zane API settings)
   --public-url-affix SUFFIX      Service URL suffix between service slug and domain
                                  (default: -zane)
+  --services-csv CSV             Override the complete service list to sync
   --minio-file-url URL           Public MinIO file URL override
   --store-cors VALUE             STORE_CORS override
   --admin-cors VALUE             ADMIN_CORS override
@@ -79,7 +81,7 @@ Options:
   --help                         Show this help
 
 Notes:
-  - The helper manages public routes for medusa-be, payload, n1, medusa-meilisearch, and zane-operator.
+  - Herbatika is in the default service list. Include n1 in --services-csv when N1 should also be synced.
   - The default branch is the current checked-out branch. Use --branch to target a different branch explicitly.
 EOF
 }
@@ -129,6 +131,10 @@ setup::parse_args() {
         ;;
       --public-url-affix)
         PUBLIC_URL_AFFIX="$2"
+        shift 2
+        ;;
+      --services-csv)
+        SERVICES_CSV="$2"
         shift 2
         ;;
       --minio-file-url)
@@ -300,7 +306,6 @@ setup::resolve_ctl_plan() {
   [[ -n "$OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER" ]] && ctl_args+=(--operator-upstream-zane-connect-host-header "$OPERATOR_UPSTREAM_ZANE_CONNECT_HOST_HEADER")
   [[ -n "$OPERATOR_UPSTREAM_ZANE_USERNAME" ]] && ctl_args+=(--operator-upstream-zane-username "$OPERATOR_UPSTREAM_ZANE_USERNAME")
   [[ -n "$OPERATOR_UPSTREAM_ZANE_PASSWORD" ]] && ctl_args+=(--operator-upstream-zane-password "$OPERATOR_UPSTREAM_ZANE_PASSWORD")
-
   dev::run_ctl "${ctl_args[@]}" >"$PLAN_JSON_FILE"
 }
 
@@ -1365,19 +1370,40 @@ setup::upsert_service_envs_from_plan() {
 }
 
 setup::main() {
-  local services=(
+  local baseline_services=(
     medusa-db
     medusa-valkey
     medusa-minio
     medusa-meilisearch
     medusa-be
     payload
-    n1
+    herbatika
     zane-operator
   )
+  local services=("${baseline_services[@]}")
+  local inspection_services=("${baseline_services[@]}")
+  local parsed_services=()
+  local requested_service
   local service_plan
 
   setup::parse_args "$@"
+  if [[ -n "$SERVICES_CSV" ]]; then
+    services=()
+    IFS=',' read -r -a parsed_services <<<"$SERVICES_CSV"
+    for requested_service in "${parsed_services[@]}"; do
+      requested_service="${requested_service//[[:space:]]/}"
+      [[ -n "$requested_service" ]] || continue
+      if [[ " ${services[*]} " != *" ${requested_service} "* ]]; then
+        services+=("$requested_service")
+      fi
+    done
+    [[ "${#services[@]}" -gt 0 ]] || common::die "--services-csv must contain at least one service id."
+  fi
+  for requested_service in "${services[@]}"; do
+    if [[ " ${inspection_services[*]} " != *" ${requested_service} "* ]]; then
+      inspection_services+=("$requested_service")
+    fi
+  done
   dev::load_env_file "$ENV_FILE" required
   setup::normalize_base_url
   setup::derive_repository_url
@@ -1395,7 +1421,7 @@ setup::main() {
   echo "Logging into Zane at ${ZANE_BASE_URL}..."
   zane::login
   setup::capture_zane_settings
-  setup::resolve_ctl_plan services "${services[@]}"
+  setup::resolve_ctl_plan services "${inspection_services[@]}"
   if [[ "$(jq -r '.warnings | length' <"$PLAN_JSON_FILE")" != "0" ]]; then
     setup::print_plan_summary
   fi
@@ -1410,15 +1436,17 @@ setup::main() {
   fi
   zane::api GET "projects/${PROJECT_SLUG}/environment-details/${ENVIRONMENT_NAME}/" >/dev/null
 
-  while IFS= read -r service_plan; do
+  for requested_service in "${services[@]}"; do
+    service_plan="$(jq -c --arg service_id "$requested_service" '.services[] | select(.service_id == $service_id)' <"$PLAN_JSON_FILE")"
+    [[ -n "$service_plan" ]] || common::die "CTL bootstrap plan omitted requested service ${requested_service}."
     setup::apply_service_from_plan "$service_plan"
-  done < <(jq -c '.services[]' <"$PLAN_JSON_FILE")
+  done
 
   rm -f "$INSPECT_JSON_FILE" "$PLAN_JSON_FILE"
   INSPECT_JSON_FILE=""
   PLAN_JSON_FILE=""
 
-  setup::resolve_ctl_plan env "${services[@]}"
+  setup::resolve_ctl_plan env "${inspection_services[@]}"
   if [[ "$(jq -r '.warnings | length' <"$PLAN_JSON_FILE")" != "0" ]]; then
     setup::print_plan_summary
   fi
@@ -1428,9 +1456,11 @@ setup::main() {
   fi
 
   setup::upsert_shared_envs_from_plan "$(cat "$PLAN_JSON_FILE")"
-  while IFS= read -r service_plan; do
+  for requested_service in "${services[@]}"; do
+    service_plan="$(jq -c --arg service_id "$requested_service" '.services[] | select(.service_id == $service_id)' <"$PLAN_JSON_FILE")"
+    [[ -n "$service_plan" ]] || common::die "CTL bootstrap plan omitted requested service ${requested_service}."
     setup::upsert_service_envs_from_plan "$service_plan"
-  done < <(jq -c '.services[]' <"$PLAN_JSON_FILE")
+  done
 
   cat <<EOF
 Bootstrap complete.
@@ -1442,17 +1472,12 @@ Configured:
 - branch: ${BRANCH_NAME}
 
 Created or updated services:
-- medusa-db
-- medusa-valkey
-- medusa-minio
-- medusa-meilisearch
-- medusa-be
-- payload
-- n1
-- zane-operator
+EOF
+  printf -- '- %s\n' "${services[@]}"
+  cat <<EOF
 
 Notes:
-- public Zane routes were aligned for medusa-be, payload, n1, medusa-meilisearch, and zane-operator
+- public Zane routes were aligned for the requested service list
 - service changes remain pending in Zane until you deploy them
 EOF
 }

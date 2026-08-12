@@ -1,3 +1,14 @@
+/**
+ * Popover — @techsio/ui-kit molecule.
+ *
+ * @component Popover
+ * @componentVersion v1.0.0
+ * @skill popover-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the popover-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import {
   connect,
   machine,

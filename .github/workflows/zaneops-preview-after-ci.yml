@@ -50,7 +50,7 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --prefer-offline
 
       - name: Build new-engine-ctl
         run: ./node_modules/.bin/nubx --node nx run new-engine-ctl:build

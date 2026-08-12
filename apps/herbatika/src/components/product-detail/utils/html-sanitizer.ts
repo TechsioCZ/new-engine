@@ -69,6 +69,16 @@ const BLOG_ALLOWED_TAG_ATTRIBUTES: Record<string, Set<string>> = {
   ol: new Set(["reversed", "start", "type"]),
 }
 
+type AllowedAttributeValues = Readonly<
+  Record<string, Readonly<Record<string, ReadonlySet<string>>>>
+>
+
+export type SanitizeHtmlOptions = {
+  additionalAllowedAttributeValues?: AllowedAttributeValues
+  additionalAllowedTagAttributes?: Readonly<Record<string, ReadonlySet<string>>>
+  additionalAllowedTags?: ReadonlySet<string>
+}
+
 type SanitizerProfile = "blog" | "default"
 
 const SAFE_ANCHOR_HREF_REGEX = /^(https?:|mailto:|tel:|\/|#)/i
@@ -76,8 +86,8 @@ const SAFE_IMAGE_SRC_REGEX = /^(https?:|\/)/i
 const HTTP_URL_REGEX = /^https?:/i
 const SELF_CLOSING_TAG_SUFFIX_REGEX = /\/\s*$/
 const RENDERABLE_IMAGE_TAG_REGEX = /<\s*img\b/i
-const DEFAULT_VOID_TAGS = new Set(["br", "img"])
-const BLOG_VOID_TAGS = new Set([...DEFAULT_VOID_TAGS, "hr", "input"])
+const DEFAULT_VOID_TAGS = new Set(["br", "hr", "img", "input"])
+const BLOG_VOID_TAGS = DEFAULT_VOID_TAGS
 
 const SANITIZER_CONFIG_BY_PROFILE = {
   blog: {
@@ -188,13 +198,35 @@ const parseTagAttributes = (rawAttributes: string) => {
   return attributes
 }
 
-const isAttributeAllowed = (
-  name: string,
-  allowedAttributesForTag: Set<string>,
+type AttributeAllowanceInput = {
+  allowedAttributesForTag: Set<string>
+  name: string
+  options: SanitizeHtmlOptions
   profile: SanitizerProfile
-) =>
-  SANITIZER_CONFIG_BY_PROFILE[profile].allowedGlobalAttributes.has(name) ||
-  allowedAttributesForTag.has(name)
+  tag: string
+  value: string
+}
+
+const isAttributeAllowed = ({
+  allowedAttributesForTag,
+  name,
+  options,
+  profile,
+  tag,
+  value,
+}: AttributeAllowanceInput) => {
+  if (
+    SANITIZER_CONFIG_BY_PROFILE[profile].allowedGlobalAttributes.has(name) ||
+    allowedAttributesForTag.has(name)
+  ) {
+    return true
+  }
+
+  return Boolean(
+    options.additionalAllowedTagAttributes?.[tag]?.has(name) &&
+      options.additionalAllowedAttributeValues?.[tag]?.[name]?.has(value)
+  )
+}
 
 type SanitizedAttributeState = {
   attributes: string[]
@@ -391,7 +423,8 @@ const appendImageAttributes = (state: SanitizedAttributeState) => {
 const sanitizeOpeningTag = (
   tag: string,
   rawAttributes: string,
-  profile: SanitizerProfile
+  profile: SanitizerProfile,
+  options: SanitizeHtmlOptions
 ) => {
   const allowedAttributesForTag =
     SANITIZER_CONFIG_BY_PROFILE[profile].allowedTagAttributes[tag] ??
@@ -413,7 +446,16 @@ const sanitizeOpeningTag = (
   for (const attribute of parsedAttributes) {
     const { name, value } = attribute
 
-    if (!isAttributeAllowed(name, allowedAttributesForTag, profile)) {
+    if (
+      !isAttributeAllowed({
+        allowedAttributesForTag,
+        name,
+        options,
+        profile,
+        tag,
+        value,
+      })
+    ) {
       continue
     }
 
@@ -448,12 +490,13 @@ const sanitizeHtmlTag = (
   closingSlash: string,
   rawTag: string,
   rawAttributes: string,
-  profile: SanitizerProfile
+  profile: SanitizerProfile,
+  options: SanitizeHtmlOptions
 ) => {
   const tag = rawTag.toLowerCase()
   const { allowedTags, voidTags } = SANITIZER_CONFIG_BY_PROFILE[profile]
 
-  if (!allowedTags.has(tag)) {
+  if (!(allowedTags.has(tag) || options.additionalAllowedTags?.has(tag))) {
     return ""
   }
 
@@ -461,12 +504,13 @@ const sanitizeHtmlTag = (
     return voidTags.has(tag) ? "" : `</${tag}>`
   }
 
-  return sanitizeOpeningTag(tag, rawAttributes, profile)
+  return sanitizeOpeningTag(tag, rawAttributes, profile, options)
 }
 
 const sanitizeHtmlWithProfile = (
   html: string,
-  profile: SanitizerProfile
+  profile: SanitizerProfile,
+  options: SanitizeHtmlOptions = {}
 ): string => {
   if (!html) {
     return ""
@@ -483,14 +527,16 @@ const sanitizeHtmlWithProfile = (
   const sanitized = cleanedHtml.replace(
     /<\s*(\/?)\s*([a-zA-Z0-9]+)([^>]*)>/g,
     (_, closingSlash: string, rawTag: string, rawAttributes: string) =>
-      sanitizeHtmlTag(closingSlash, rawTag, rawAttributes, profile)
+      sanitizeHtmlTag(closingSlash, rawTag, rawAttributes, profile, options)
   )
 
   return sanitized.trim()
 }
 
-export const sanitizeHtml = (html: string): string =>
-  sanitizeHtmlWithProfile(html, "default")
+export const sanitizeHtml = (
+  html: string,
+  options: SanitizeHtmlOptions = {}
+): string => sanitizeHtmlWithProfile(html, "default", options)
 
 export const sanitizeBlogHtml = (html: string): string =>
   sanitizeHtmlWithProfile(html, "blog")

@@ -1,3 +1,10 @@
+import {
+  getCredentialString,
+  INTEGRATION_CONFIG_NAMES,
+  requireCredentialObject,
+  retrieveIntegrationConfig,
+} from "../modules/api-store/integration-config"
+
 export type ReviewRequestOrder = {
   id: string
   customer_id?: string | null
@@ -19,7 +26,25 @@ export type ReviewRequestOrder = {
 const DEFAULT_REVIEW_REQUEST_DELAY_MINUTES = 7 * 24 * 60
 const MINUTE_IN_MS = 60 * 1000
 const PAID_PAYMENT_STATUSES = new Set(["captured", "completed"])
+const PRODUCT_REVIEW_REQUEST_PATH = "/reviews/product"
 const SKIPPED_ORDER_STATUSES = new Set(["canceled", "archived", "draft"])
+const TRAILING_SLASH_REGEX = /\/+$/
+
+export function buildProductReviewRequestUrl({
+  productId,
+  storefrontUrl,
+  token,
+}: {
+  productId: string
+  storefrontUrl: string
+  token: string
+}) {
+  const baseUrl = storefrontUrl.replace(TRAILING_SLASH_REGEX, "")
+  const encodedToken = encodeURIComponent(token)
+  const searchParams = new URLSearchParams({ product_id: productId })
+
+  return `${baseUrl}${PRODUCT_REVIEW_REQUEST_PATH}/${encodedToken}?${searchParams}`
+}
 
 function getReviewRequestDelayMs() {
   const configuredMinutes = Number(
@@ -124,6 +149,29 @@ export function getReviewRequestRunAt(order: ReviewRequestOrder) {
   return new Date(paidAt.getTime() + getReviewRequestDelayMs())
 }
 
-export function getReviewRequestMessage() {
-  return process.env.PRODUCT_REVIEW_REQUEST_MESSAGE ?? "Napiš recenzi produktu"
+export async function getReviewRequestMessage(
+  container?: Record<string, unknown>
+) {
+  if (container) {
+    const config = await retrieveIntegrationConfig(
+      container,
+      INTEGRATION_CONFIG_NAMES.PRODUCT_REVIEW_REQUEST
+    )
+
+    if (config?.enabled) {
+      const credentials = requireCredentialObject(config)
+      const message = getCredentialString(
+        credentials,
+        "message",
+        "message_cs",
+        "cs"
+      )
+
+      if (message) {
+        return message
+      }
+    }
+  }
+
+  return "Napiš recenzi produktu"
 }

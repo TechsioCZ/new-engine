@@ -1,3 +1,14 @@
+/**
+ * TreeView — @techsio/ui-kit molecule.
+ *
+ * @component TreeView
+ * @componentVersion v1.0.0
+ * @skill tree-view-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the tree-view-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import { normalizeProps, useMachine } from "@zag-js/react"
 import * as tree from "@zag-js/tree-view"
 import {

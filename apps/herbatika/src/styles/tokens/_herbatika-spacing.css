@@ -36,6 +36,11 @@
   --spacing-homepage: var(--spacing-page-default);
   --spacing-homepage-lg: var(--spacing-page);
   --spacing-homepage-gap: var(--spacing-page-gap);
+  --spacing-homepage-promo-scroll-offset: calc(
+    var(--height-header-mobile) +
+    var(--height-search-form) +
+    var(--spacing-300)
+  );
 
   --spacing-category-page: var(--spacing-page-default);
   --spacing-category-page-lg: var(--spacing-page);
@@ -56,6 +61,11 @@
   --spacing-product-detail-page: var(--spacing-page-default);
   --spacing-product-detail-page-lg: var(--spacing-page);
   --spacing-product-detail-page-gap: var(--spacing-page-gap);
+  --spacing-product-detail-information-scroll-offset: calc(
+    var(--height-header-mobile) +
+    var(--height-search-form) +
+    var(--spacing-300)
+  );
 
   --spacing-about-page: var(--spacing-page-default);
   --spacing-about-page-lg: var(--spacing-page);

@@ -14,7 +14,7 @@ import { createQuoteMessageStep } from "../steps/create-quote-message"
   actors to have a conversation around or negotiate upon.
 */
 export const createQuoteMessageWorkflow = createWorkflow(
-  "create-quote-message-workflow",
+  "create-quote-message",
   (input: ModuleCreateQuoteMessage): WorkflowResponse<ModuleQuoteMessage> =>
     new WorkflowResponse(createQuoteMessageStep(input))
 )

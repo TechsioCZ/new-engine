@@ -2,17 +2,21 @@ import { createHmac } from "node:crypto"
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import type { Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
-import { PAYLOAD_MODULE } from "../../../../modules/payload"
-import type PayloadModuleService from "../../../../modules/payload/service"
 import {
   getHeaderValue,
   isValidWebhookSignature,
 } from "../../../../utils/webhooks"
+import { invalidateCmsContentWorkflow } from "../../../../workflows/meilisearch/workflows/invalidate-cms-content"
 
 /** Expected webhook payload from Payload CMS invalidation hook. */
 type PayloadWebhookBody = {
   collection?: string
-  doc?: { id?: string; slug?: string; locale?: string }
+  doc?: Record<string, unknown> & {
+    id?: string
+    slug?: string
+    locale?: string
+  }
+  operation?: string
 }
 
 /** Hook endpoint to invalidate cached CMS content in Medusa. */
@@ -36,7 +40,6 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     return res.status(401).json({ error: "Unauthorized" })
   }
 
-  const cmsService = req.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
   const logger = req.scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
   const body = req.body as PayloadWebhookBody
 
@@ -45,11 +48,9 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
   }
 
   try {
-    await cmsService.invalidateCache(
-      body.collection,
-      body.doc?.slug,
-      body.doc?.locale
-    )
+    await invalidateCmsContentWorkflow(req.scope).run({
+      input: body as PayloadWebhookBody & { collection: string },
+    })
   } catch (error) {
     logger.error(
       `CMS cache invalidation failed (collection="${body.collection}", slug="${body.doc?.slug ?? "n/a"}", locale="${body.doc?.locale ?? "n/a"}")`,

@@ -1,5 +1,15 @@
 import { join } from "node:path"
 import type { NextConfig } from "next"
+import createNextIntlPlugin from "next-intl/plugin"
+
+const withNextIntl = createNextIntlPlugin()
+
+type ImageRemotePattern = {
+  protocol: "http" | "https"
+  hostname: string
+}
+
+const LOOPBACK_IMAGE_HOSTNAMES = new Set(["localhost", "127.0.0.1", "[::1]"])
 
 const resolveImageRemotePattern = (baseUrl: string | undefined) => {
   if (!baseUrl) {
@@ -14,8 +24,6 @@ const resolveImageRemotePattern = (baseUrl: string | undefined) => {
       {
         protocol,
         hostname: parsedUrl.hostname,
-        port: parsedUrl.port,
-        pathname: "/**",
       },
     ] as const
   } catch {
@@ -29,12 +37,48 @@ const resolveMedusaImageRemotePattern = () =>
 const resolvePayloadImageRemotePattern = () =>
   resolveImageRemotePattern(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL)
 
+const imageRemotePatterns: ImageRemotePattern[] = [
+  {
+    protocol: "https",
+    hostname: "cdn.myshoptet.com", // Herbatika CDN
+  },
+  {
+    protocol: "https",
+    hostname: "images.unsplash.com",
+  },
+  ...resolveMedusaImageRemotePattern(),
+  ...resolvePayloadImageRemotePattern(),
+]
+
+const shouldDisableImageOptimization = imageRemotePatterns.some(
+  ({ hostname }) => LOOPBACK_IMAGE_HOSTNAMES.has(hostname)
+)
+
 const nextConfig: NextConfig = {
+  allowedDevOrigins: [
+    "herbatica.sk",
+    "herbatica.cz",
+    "herbatica.hu",
+    "herbatica.ro",
+  ],
   reactStrictMode: true,
   output: "standalone",
-  transpilePackages: ["@techsio/ui-kit", "@techsio/storefront-data"],
+  transpilePackages: [
+    "@techsio/ui-kit",
+    "@techsio/storefront-data",
+    "@techsio/storefront-i18n",
+  ],
   reactCompiler: true,
   cacheComponents: true,
+  redirects() {
+    return [
+      {
+        source: "/homepage-promo",
+        destination: "/#homepage-promo",
+        permanent: false,
+      },
+    ]
+  },
   outputFileTracingRoot: join(__dirname, "../../"),
   outputFileTracingExcludes: {
     "*": [
@@ -54,19 +98,10 @@ const nextConfig: NextConfig = {
     ],
   },
   images: {
-    dangerouslyAllowLocalIP: process.env.NODE_ENV === "development",
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "cdn.myshoptet.com", // Herbatika CDN
-      },
-      {
-        protocol: "https",
-        hostname: "images.unsplash.com",
-      },
-      ...resolveMedusaImageRemotePattern(),
-      ...resolvePayloadImageRemotePattern(),
-    ],
+    // Browser-facing loopback URLs cannot be resolved correctly by the Next
+    // image optimizer from inside Docker. Non-loopback deployments stay optimized.
+    unoptimized: shouldDisableImageOptimization,
+    remotePatterns: imageRemotePatterns,
     qualities: [40, 50, 60, 75, 90],
   },
 
@@ -83,4 +118,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default nextConfig
+export default withNextIntl(nextConfig)

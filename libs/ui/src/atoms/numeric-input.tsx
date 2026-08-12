@@ -1,3 +1,14 @@
+/**
+ * NumericInput — @techsio/ui-kit atom.
+ *
+ * @component NumericInput
+ * @componentVersion v1.0.0
+ * @skill numeric-input-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the numeric-input-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import * as numberInput from "@zag-js/number-input"
 import { normalizeProps, useMachine } from "@zag-js/react"
 import {

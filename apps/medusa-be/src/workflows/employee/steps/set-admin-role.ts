@@ -1,5 +1,9 @@
-import type { IAuthModuleService } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import type { IAuthModuleService, Query } from "@medusajs/framework/types"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { getProviderIdentityIdsWithoutActiveAdminRole } from "../utils/admin-auth-metadata"
 
@@ -16,7 +20,7 @@ export const setAdminRoleStep = createStep(
     input: { employeeId: string; customerId: string },
     { container }
   ): Promise<StepResponse<undefined, SetAdminRoleCompensation>> => {
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
 
     const {
       data: [employee],
@@ -30,6 +34,13 @@ export const setAdminRoleStep = createStep(
       },
       { throwIfKeyNotFound: true }
     )
+
+    if (!employee) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Employee "${input.employeeId}" was not found`
+      )
+    }
 
     if (employee.customer?.has_account === false) {
       return new StepResponse(undefined)
@@ -47,6 +58,13 @@ export const setAdminRoleStep = createStep(
       },
       { throwIfKeyNotFound: true }
     )
+
+    if (!customer) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_FOUND,
+        `Customer "${input.customerId}" was not found`
+      )
+    }
 
     if (!customer.email) {
       return new StepResponse(undefined)
@@ -92,7 +110,7 @@ export const setAdminRoleStep = createStep(
       return
     }
 
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const providerIdentityIds =
       await getProviderIdentityIdsWithoutActiveAdminRole({
         candidates: [

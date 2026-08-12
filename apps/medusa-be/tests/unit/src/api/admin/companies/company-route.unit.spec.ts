@@ -2,6 +2,7 @@ import { ContainerRegistrationKeys } from "@medusajs/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const workflowMocks = vi.hoisted(() => ({
+  updateCompaniesWorkflow: vi.fn(),
   updateCompaniesRun: vi.fn(),
 }))
 
@@ -9,9 +10,7 @@ vi.mock("../../../../../../src/workflows/company/workflows/", () => ({
   deleteCompaniesWorkflow: {
     run: vi.fn(),
   },
-  updateCompaniesWorkflow: {
-    run: workflowMocks.updateCompaniesRun,
-  },
+  updateCompaniesWorkflow: workflowMocks.updateCompaniesWorkflow,
 }))
 
 const createMockResponse = () =>
@@ -171,7 +170,11 @@ describe("GET /admin/companies", () => {
 
 describe("POST /admin/companies/:id", () => {
   beforeEach(() => {
+    workflowMocks.updateCompaniesWorkflow.mockReset()
     workflowMocks.updateCompaniesRun.mockReset()
+    workflowMocks.updateCompaniesWorkflow.mockReturnValue({
+      run: workflowMocks.updateCompaniesRun,
+    })
   })
 
   it("updates a company with the validated body", async () => {
@@ -186,8 +189,10 @@ describe("POST /admin/companies/:id", () => {
 
     await POST(req, res)
 
+    expect(workflowMocks.updateCompaniesWorkflow).toHaveBeenCalledWith(
+      req.scope
+    )
     expect(workflowMocks.updateCompaniesRun).toHaveBeenCalledWith({
-      container: req.scope,
       input: {
         id: "comp_1",
         update: {

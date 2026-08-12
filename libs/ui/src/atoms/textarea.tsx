@@ -1,3 +1,14 @@
+/**
+ * Textarea — @techsio/ui-kit atom.
+ *
+ * @component Textarea
+ * @componentVersion v1.0.0
+ * @skill textarea-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the textarea-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import type { Ref, TextareaHTMLAttributes } from "react"
 import type { VariantProps } from "tailwind-variants"
 import { tv } from "../utils"

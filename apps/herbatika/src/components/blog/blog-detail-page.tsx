@@ -1,14 +1,12 @@
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
 import NextLink from "next/link"
+import { useLocale, useTranslations } from "next-intl"
 import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb"
-import type {
-  BlogCategoryFilter,
-  BlogPost,
-} from "@/lib/storefront/blog-content"
+import type { BlogPost } from "@/lib/storefront/blog-content"
 import { BlogArticleContent } from "./blog-article-content"
 import { BlogArticleSidebar } from "./blog-article-sidebar"
 import { BlogAuthorCard } from "./blog-author-card"
@@ -17,17 +15,14 @@ import { BlogRelatedCard } from "./blog-related-card"
 import { BlogTableOfContents } from "./blog-table-of-contents"
 
 type BlogDetailPageProps = {
-  categories: BlogCategoryFilter[]
   post: BlogPost
 }
 
-export function BlogDetailPage({
-  categories,
-  post,
-}: BlogDetailPageProps) {
+export function BlogDetailPage({ post }: BlogDetailPageProps) {
+  const tContent = useTranslations("content")
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
-      label: "Blog",
+      label: tContent("pages.blog"),
       href: "/blog",
       icon: "token-icon-home",
     },
@@ -98,7 +93,7 @@ export function BlogDetailPage({
               <section className="space-y-350">
                 <div className="flex flex-wrap items-center justify-between gap-300">
                   <h2 className="font-bold text-3xl text-fg-primary leading-tight">
-                    Ďalšie články
+                    {tContent("blog.detail.related_articles")}
                   </h2>
 
                   <Link
@@ -106,7 +101,7 @@ export function BlogDetailPage({
                     className="font-medium text-fg-primary text-md leading-tight underline underline-offset-2 hover:text-primary"
                     href="/blog"
                   >
-                    Zobraziť všetky →
+                    {tContent("actions.view_all")} →
                   </Link>
                 </div>
 
@@ -120,7 +115,7 @@ export function BlogDetailPage({
           </div>
 
           <div>
-            <BlogArticleSidebar categories={categories} />
+            <BlogArticleSidebar />
           </div>
         </div>
       </div>
@@ -129,24 +124,29 @@ export function BlogDetailPage({
 }
 
 function BlogPostIntro({ post }: { post: BlogPost }) {
+  const locale = useLocale()
+  const tContent = useTranslations("content")
+
   return (
     <>
       <div className="flex flex-wrap items-center gap-x-500 gap-y-150 text-fg-secondary text-sm leading-normal">
         {post.author ? (
           <p>
-            <strong className="font-semibold text-fg-primary">Autor:</strong>{" "}
+            <strong className="font-semibold text-fg-primary">
+              {tContent("blog.detail.author")}
+            </strong>{" "}
             {post.author.name}
           </p>
         ) : null}
         <p>
           <strong className="font-semibold text-fg-primary">
-            Publikované:
+            {tContent("blog.detail.published")}
           </strong>{" "}
-          {formatBlogDate(post.publishedAt)}
+          {formatBlogDate(post.publishedAt, locale)}
         </p>
         <p>
           <strong className="font-semibold text-fg-primary">
-            Čas čítania:
+            {tContent("blog.detail.reading_time")}
           </strong>{" "}
           {post.readingTime}
         </p>

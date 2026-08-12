@@ -34,10 +34,7 @@ ensure_ctl_built() {
 }
 
 compose() {
-  (
-    cd "$ROOT_DIR"
-    docker compose -f docker-compose.yaml -p "$PROJECT_NAME" "$@"
-  )
+  PROJECT_NAME="$PROJECT_NAME" bash "$ROOT_DIR/scripts/dev/run-compose.sh" "$@"
 }
 
 wait_for_service_healthy() {

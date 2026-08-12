@@ -2,7 +2,8 @@
 
 import { useQueryClient } from "@tanstack/react-query"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import { useEffect, useRef, useState } from "react"
+import { useTranslations } from "next-intl"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {
   type CheckoutDetailsValues,
   resolveEffectiveCheckoutAddressDetails,
@@ -30,6 +31,7 @@ import {
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import {
   REGION_LIST_FIELDS,
   REGION_LIST_LIMIT,
@@ -50,6 +52,10 @@ import { logCheckoutAccountSetupDebug } from "./checkout-account-setup-debug"
 import { resolveHasStoredAddress } from "./checkout-address.utils"
 import { resolveOrderId } from "./checkout-completion.utils"
 import {
+  filterPaymentProvidersForShipping,
+  isPaymentProviderCompatibleWithShipping,
+} from "./checkout-payment-compatibility"
+import {
   clearStoredPaymentProviderSelection,
   useStoredPaymentProviderSelection,
   writeStoredPaymentProviderSelection,
@@ -67,6 +73,8 @@ const resolveCompleteResultOrderMetadata = (result: unknown) => {
 
 export function useCheckoutController() {
   const queryClient = useQueryClient()
+  const tCheckout = useTranslations("checkout")
+  const marketContext = useMarketContext()
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const authQuery = useAuth()
@@ -103,7 +111,7 @@ export function useCheckoutController() {
       enabled: Boolean(cartQuery.cart?.id),
       onError: (error) => {
         setCheckoutError(
-          resolveErrorMessage(error, "Nastavenie dopravy zlyhalo.")
+          resolveErrorMessage(error, tCheckout("shipping_update_failed"))
         )
       },
     }
@@ -123,8 +131,23 @@ export function useCheckoutController() {
   const storedPaymentProviderId = useStoredPaymentProviderSelection(
     cartQuery.cart?.id
   )
-  const effectiveSelectedPaymentProviderId =
+  const selectedPaymentProviderId =
     storedPaymentProviderId ?? cartSelectedPaymentProviderId
+  const compatiblePaymentProviders = filterPaymentProvidersForShipping({
+    paymentProviders: checkoutPaymentQuery.paymentProviders,
+    shippingOption: checkoutShippingQuery.selectedOption,
+  })
+  const effectiveSelectedPaymentProviderId =
+    isPaymentProviderCompatibleWithShipping({
+      paymentProviderId: selectedPaymentProviderId,
+      shippingOption: checkoutShippingQuery.selectedOption,
+    })
+      ? selectedPaymentProviderId
+      : undefined
+  const compatibleCheckoutPaymentQuery = {
+    ...checkoutPaymentQuery,
+    paymentProviders: compatiblePaymentProviders,
+  }
 
   useEffect(() => {
     const cartId = cartQuery.cart?.id
@@ -166,11 +189,21 @@ export function useCheckoutController() {
     )
   }, [activeRegionId, queryClient])
 
-  const countryItems = resolveCheckoutCountryItemsForRegion({
-    activeCountryCode: region?.country_code,
-    regionId: activeRegionId,
-    regions: regionsQuery.regions,
-  })
+  const countryItems = useMemo(
+    () =>
+      resolveCheckoutCountryItemsForRegion({
+        activeCountryCode: region?.country_code,
+        locale: marketContext.locale,
+        regionId: activeRegionId,
+        regions: regionsQuery.regions,
+      }),
+    [
+      activeRegionId,
+      marketContext.locale,
+      region?.country_code,
+      regionsQuery.regions,
+    ]
+  )
 
   const actions = useCheckoutActions({
     cart: cartQuery.cart,
@@ -241,7 +274,7 @@ export function useCheckoutController() {
     isCustomerLoading: authQuery.isLoading,
     onSubmit: async (values) => {
       if (!cartQuery.cart?.id) {
-        setCheckoutError("Košík nie je pripravený.")
+        setCheckoutError(tCheckout("cart_not_ready"))
         return
       }
 
@@ -261,9 +294,7 @@ export function useCheckoutController() {
       })
 
       if (!(hasSupportedShippingCountry && hasSupportedBillingCountry)) {
-        setCheckoutError(
-          "Zvolena krajina nie je dostupna pre aktualny kosik. Zvolte krajinu z ponuky."
-        )
+        setCheckoutError(tCheckout("country_unavailable"))
         return
       }
 
@@ -306,7 +337,9 @@ export function useCheckoutController() {
 
         saveAddressSucceededRef.current = true
       } catch (error) {
-        setCheckoutError(resolveErrorMessage(error, "Uloženie adresy zlyhalo."))
+        setCheckoutError(
+          resolveErrorMessage(error, tCheckout("address_update_failed"))
+        )
       }
     },
     regionCountryCode: region?.country_code,
@@ -330,7 +363,7 @@ export function useCheckoutController() {
     const cart = cartQuery.cart
 
     if (!cart?.id) {
-      setCheckoutError("Košík nie je pripravený.")
+      setCheckoutError(tCheckout("cart_not_ready"))
       return false
     }
 
@@ -370,7 +403,7 @@ export function useCheckoutController() {
       return true
     } catch (error) {
       setCheckoutError(
-        resolveErrorMessage(error, "Uloženie registrácie zlyhalo.")
+        resolveErrorMessage(error, tCheckout("registration_update_failed"))
       )
       return false
     }
@@ -449,7 +482,7 @@ export function useCheckoutController() {
     checkoutDetailsForm,
     checkoutError,
     countryItems,
-    checkoutPaymentQuery,
+    checkoutPaymentQuery: compatibleCheckoutPaymentQuery,
     checkoutShippingQuery,
     completedOrderId,
     completeCheckoutMutation,

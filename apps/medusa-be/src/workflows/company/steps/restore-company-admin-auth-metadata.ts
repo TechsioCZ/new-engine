@@ -1,4 +1,4 @@
-import type { IAuthModuleService } from "@medusajs/framework/types"
+import type { IAuthModuleService, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { getProviderIdentityIdsWithoutActiveAdminRole } from "../../employee/utils/admin-auth-metadata"
@@ -35,7 +35,7 @@ export const restoreCompanyAdminAuthMetadataStep = createStep(
   ): Promise<
     StepResponse<undefined, RestoreCompanyAdminAuthMetadataCompensation>
   > => {
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const { data: companies } = (await query.graph({
       entity: "company",
       fields: [
@@ -107,7 +107,7 @@ export const restoreCompanyAdminAuthMetadataStep = createStep(
       return
     }
 
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const providerIdentityIds =
       await getProviderIdentityIdsWithoutActiveAdminRole({
         candidates: input.admin_candidates,

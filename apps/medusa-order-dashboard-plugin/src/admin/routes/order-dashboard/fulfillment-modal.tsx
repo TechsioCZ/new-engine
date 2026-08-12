@@ -16,6 +16,7 @@ import {
   listOrderDashboardShippingOptions,
   listOrderDashboardStockLocations,
 } from "./api"
+import { getFulfillmentErrorMessage } from "./fulfillment-errors"
 import type {
   OrderDashboardFulfillmentCreateItem,
   OrderDashboardFulfillmentItem,
@@ -44,6 +45,7 @@ type OrderDashboardFulfillmentPreviewOrder = {
   }>
   items: OrderDashboardFulfillmentCreateItem[]
   order_display_id: string
+  shippingSummary: string
   shippingOptionId: string
 }
 
@@ -139,11 +141,9 @@ export function OrderFulfillmentModal({
       for (const order of orders) {
         try {
           await createOrderDashboardFulfillment({
-            items: order.items,
             locationId,
             noNotification: !sendNotification,
             orderId: order.id,
-            shippingOptionId: order.shippingOptionId,
           })
           fulfilled.push({
             id: order.id,
@@ -153,7 +153,7 @@ export function OrderFulfillmentModal({
           failed.push({
             id: order.id,
             order_display_id: order.order_display_id,
-            reason: getErrorMessage(error, t("toast.requestFailed")),
+            reason: getFulfillmentErrorMessage(error, t("toast.requestFailed")),
           })
         }
       }
@@ -372,7 +372,7 @@ function FulfillmentPreviewContent({
   if (previewError) {
     return (
       <Text className="text-ui-fg-error" leading="compact" size="small">
-        {getErrorMessage(previewError, t("toast.requestFailed"))}
+        {getFulfillmentErrorMessage(previewError, t("toast.requestFailed"))}
       </Text>
     )
   }
@@ -489,15 +489,24 @@ function FulfillmentPreviewSection({
                 <Text leading="compact" size="small" weight="plus">
                   {order.order_display_id}
                 </Text>
-                <Text
-                  className="text-ui-fg-subtle"
-                  leading="compact"
-                  size="small"
-                >
-                  {order.itemSummaries
-                    .map((item) => `${item.quantity}x ${item.title}`)
-                    .join(", ")}
-                </Text>
+                <div className="flex min-w-0 flex-col gap-1">
+                  <Text
+                    className="text-ui-fg-subtle"
+                    leading="compact"
+                    size="small"
+                  >
+                    {order.itemSummaries
+                      .map((item) => `${item.quantity}x ${item.title}`)
+                      .join(", ")}
+                  </Text>
+                  <Text
+                    className="text-ui-fg-muted"
+                    leading="compact"
+                    size="small"
+                  >
+                    {order.shippingSummary}
+                  </Text>
+                </div>
                 <Text
                   className="text-ui-fg-muted"
                   leading="compact"
@@ -688,6 +697,7 @@ function getBulkFulfillmentPreview(
         quantity: item.quantity,
       })),
       order_display_id: orderDisplayId,
+      shippingSummary: getOrderShippingSummary(order),
       shippingOptionId,
     })
   }
@@ -763,6 +773,37 @@ function getOrderShippingOptionId(order: OrderDashboardFulfillmentOrder) {
   )
 }
 
+function getOrderShippingSummary(order: OrderDashboardFulfillmentOrder) {
+  const shippingMethod = order.shipping_methods?.find(
+    (method) => method.shipping_option_id
+  )
+  if (!shippingMethod) {
+    return "-"
+  }
+
+  const data = shippingMethod.data
+  const accessPointName = getNonEmptyString(data?.access_point_name)
+  const accessPointStreet = getNonEmptyString(data?.access_point_street)
+  const accessPointZip = getNonEmptyString(data?.access_point_zip)
+  const accessPointCity = getNonEmptyString(data?.access_point_city)
+  const accessPointAddress = [
+    accessPointStreet,
+    accessPointZip,
+    accessPointCity,
+  ]
+    .filter(Boolean)
+    .join(", ")
+  const accessPoint = [accessPointName, accessPointAddress]
+    .filter(Boolean)
+    .join(" · ")
+
+  return [shippingMethod.name, accessPoint].filter(Boolean).join(" · ") || "-"
+}
+
+function getNonEmptyString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null
+}
+
 function formatFulfillmentOrderDisplayId(
   order?: OrderDashboardFulfillmentOrder
 ) {
@@ -771,8 +812,4 @@ function formatFulfillmentOrderDisplayId(
   }
 
   return order.display_id ? `#${order.display_id}` : order.id
-}
-
-function getErrorMessage(error: unknown, fallback: string) {
-  return error instanceof Error ? error.message : fallback
 }

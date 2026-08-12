@@ -1,6 +1,7 @@
 "use client"
 
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import type { MouseEvent } from "react"
 import type {
   SearchAutocompleteStatus,
@@ -32,24 +33,59 @@ const PANEL_CLASS_NAME =
 const joinClassNames = (...classNames: Array<string | false | undefined>) =>
   classNames.filter(Boolean).join(" ")
 
+type SearchTranslator = ReturnType<typeof useTranslations<"search">>
+
 export const getSearchAutocompleteOptionId = (
   panelId: string,
   item: SearchAutocompleteSuggestion
 ) => `${panelId}-${item.type}-${item.id}`
 
-const resolveStatusMessage = (
-  status: SearchAutocompleteStatus,
-  query: string
+const resolveSearchAutocompleteSubtitle = (
+  item: SearchAutocompleteSuggestion,
+  translate: SearchTranslator
 ) => {
-  if (status === "loading") {
-    return "Hľadáme návrhy..."
+  if (item.subtitle) {
+    return item.subtitle
   }
 
-  if (status === "error") {
-    return "Návrhy sa nepodarilo načítať."
+  if (item.type === "category") {
+    return translate("autocomplete.types.category")
   }
 
-  return `Pre výraz "${query}" nemáme rýchle návrhy.`
+  if (item.type === "brand") {
+    return translate("autocomplete.types.brand")
+  }
+
+  return
+}
+
+function SearchAutocompleteMeta({
+  inStockLabel,
+  item,
+  outOfStockLabel,
+}: {
+  inStockLabel: string
+  item: SearchAutocompleteSuggestion
+  outOfStockLabel: string
+}) {
+  const hasAvailability = typeof item.inStock === "boolean"
+
+  if (!(item.priceLabel || hasAvailability)) {
+    return null
+  }
+
+  return (
+    <span className="shrink-0 text-right text-xs leading-snug">
+      {item.priceLabel ? (
+        <span className="block font-bold text-primary">{item.priceLabel}</span>
+      ) : null}
+      {hasAvailability ? (
+        <span className={item.inStock ? "text-success" : "text-fg-secondary"}>
+          {item.inStock ? inStockLabel : outOfStockLabel}
+        </span>
+      ) : null}
+    </span>
+  )
 }
 
 function SearchAutocompleteRow({
@@ -65,8 +101,10 @@ function SearchAutocompleteRow({
   item: SearchAutocompleteSuggestion
   panelId: string
 }) {
+  const t = useTranslations("search")
   const optionId = getSearchAutocompleteOptionId(panelId, item)
   const isActive = activeItemId === optionId
+  const subtitle = resolveSearchAutocompleteSubtitle(item, t)
 
   return (
     <li role="presentation">
@@ -87,28 +125,17 @@ function SearchAutocompleteRow({
           <span className="block truncate font-semibold text-sm leading-snug">
             {item.title}
           </span>
-          {item.subtitle ? (
+          {subtitle ? (
             <span className="block truncate text-fg-secondary text-xs leading-snug">
-              {item.subtitle}
+              {subtitle}
             </span>
           ) : null}
         </span>
-        {item.priceLabel || typeof item.inStock === "boolean" ? (
-          <span className="shrink-0 text-right text-xs leading-snug">
-            {item.priceLabel ? (
-              <span className="block font-bold text-primary">
-                {item.priceLabel}
-              </span>
-            ) : null}
-            {typeof item.inStock === "boolean" ? (
-              <span
-                className={item.inStock ? "text-success" : "text-fg-secondary"}
-              >
-                {item.inStock ? "Skladom" : "Vypredané"}
-              </span>
-            ) : null}
-          </span>
-        ) : null}
+        <SearchAutocompleteMeta
+          inStockLabel={t("availability.in_stock")}
+          item={item}
+          outOfStockLabel={t("availability.out_of_stock")}
+        />
       </NextLink>
     </li>
   )
@@ -124,7 +151,15 @@ export function SearchAutocompletePanel({
   sections,
   status,
 }: SearchAutocompletePanelProps) {
+  const t = useTranslations("search")
   const hasItems = sections.some((section) => section.items.length > 0)
+  let statusMessage = t("autocomplete.empty", { query })
+
+  if (status === "loading") {
+    statusMessage = t("autocomplete.loading")
+  } else if (status === "error") {
+    statusMessage = t("autocomplete.load_failed")
+  }
 
   if (!hasItems) {
     return (
@@ -135,7 +170,7 @@ export function SearchAutocompletePanel({
           className={`block px-300 py-250 text-sm ${status === "error" ? "text-danger" : "text-fg-secondary"}`}
           id={id}
         >
-          {resolveStatusMessage(status, query)}
+          {statusMessage}
         </output>
       </div>
     )

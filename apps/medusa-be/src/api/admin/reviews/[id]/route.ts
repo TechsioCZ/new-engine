@@ -1,4 +1,8 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type {
+  AuthenticatedMedusaRequest,
+  MedusaRequest,
+  MedusaResponse,
+} from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import { PRODUCT_REVIEW_MODULE } from "../../../../modules/product-review"
 import type ProductReviewModuleService from "../../../../modules/product-review/service"
@@ -27,7 +31,10 @@ async function getNormalizedReview(req: MedusaRequest, id: string) {
   return normalizeAdminReview(review, productsById)
 }
 
-export async function GET(req: MedusaRequest, res: MedusaResponse) {
+export async function GET(
+  req: AuthenticatedMedusaRequest,
+  res: MedusaResponse
+) {
   const id = getReviewRouteId(req)
 
   if (!id) {
@@ -41,7 +48,7 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
 }
 
 export async function PATCH(
-  req: MedusaRequest<AdminUpdateReviewSchemaType>,
+  req: AuthenticatedMedusaRequest<AdminUpdateReviewSchemaType>,
   res: MedusaResponse
 ) {
   const id = getReviewRouteId(req)

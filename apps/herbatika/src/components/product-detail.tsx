@@ -4,6 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import type { ProductDetailProps } from "@/components/product-detail/product-detail.types"
@@ -21,8 +22,12 @@ import { useProductDetailController } from "@/components/product-detail/use-prod
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
-export function ProductDetail({ handle }: ProductDetailProps) {
-  const controller = useProductDetailController({ handle })
+export function ProductDetail({
+  handle,
+  initialVariantId,
+}: ProductDetailProps) {
+  const tCatalog = useTranslations("catalog")
+  const controller = useProductDetailController({ handle, initialVariantId })
   const [activeInfoSection, setActiveInfoSection] = useState<
     string | undefined
   >(controller.defaultInfoSectionValue)
@@ -75,7 +80,7 @@ export function ProductDetail({ handle }: ProductDetailProps) {
       {!controller.isBootstrappingRegion && controller.productQuery.error ? (
         <section className="space-y-400 rounded-xl border border-border-secondary bg-surface p-600">
           <StatusText showIcon status="error">
-            {controller.productQuery.error}
+            {tCatalog("product_detail.errors.load_failed")}
           </StatusText>
           <Button
             onClick={() => {
@@ -83,7 +88,7 @@ export function ProductDetail({ handle }: ProductDetailProps) {
             }}
             variant="secondary"
           >
-            Skúsiť znova
+            {tCatalog("product_detail.retry")}
           </Button>
         </section>
       ) : null}
@@ -94,10 +99,10 @@ export function ProductDetail({ handle }: ProductDetailProps) {
       controller.product ? null : (
         <section className="space-y-400 rounded-base border border-border-secondary bg-surface p-600">
           <StatusText showIcon status="error">
-            Produkt sa nepodarilo nájsť.
+            {tCatalog("product_detail.errors.not_found")}
           </StatusText>
           <LinkButton as={NextLink} href="/" size="sm" variant="secondary">
-            Späť na domovskú stránku
+            {tCatalog("product_detail.back_home")}
           </LinkButton>
         </section>
       )}
@@ -116,6 +121,7 @@ export function ProductDetail({ handle }: ProductDetailProps) {
             freeShippingThresholdLabel={controller.freeShippingThresholdLabel}
             galleryItems={controller.galleryItems}
             isAdding={controller.isMainProductAdding}
+            locationAvailabilityState={controller.locationAvailabilityState}
             maxQuantity={controller.maxQuantity}
             mediaFacts={controller.mediaFacts}
             offerState={controller.offerState}

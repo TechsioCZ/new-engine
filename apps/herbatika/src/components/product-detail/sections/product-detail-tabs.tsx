@@ -2,6 +2,7 @@
 
 import { Accordion } from "@techsio/ui-kit/molecules/accordion"
 import { Tabs } from "@techsio/ui-kit/molecules/tabs"
+import { useTranslations } from "next-intl"
 import { Suspense } from "react"
 import type { ProductDetailContentSection } from "@/components/product-detail/product-detail.types"
 import { ProductDetailHtmlContent } from "@/components/product-detail/product-detail-html-content"
@@ -10,6 +11,9 @@ import {
   PRODUCT_DETAIL_REVIEWS_TAB_VALUE,
 } from "@/components/product-detail/sections/product-detail-review-utils"
 import { ProductDetailReviews } from "@/components/product-detail/sections/product-detail-reviews"
+
+const getAccordionSectionId = (value: string) =>
+  `product-detail-information-${value}`
 
 type ProductDetailTabsProps = {
   activeSectionValue?: string
@@ -38,22 +42,38 @@ export function ProductDetailTabs({
   productId,
   sections,
 }: ProductDetailTabsProps) {
+  const tCatalog = useTranslations("catalog")
   const selectedSectionValue = activeSectionValue ?? defaultSectionValue
   const tabSections = productId
     ? [
         ...sections,
         {
           key: PRODUCT_DETAIL_REVIEWS_TAB_VALUE,
-          title: "Hodnotenie",
+          title: tCatalog("reviews.tab_label"),
           html: "",
         },
       ]
     : sections
 
+  const handleAccordionChange = (value: string[]) => {
+    const sectionValue = value[0]
+    onSectionValueChange(sectionValue)
+
+    if (!sectionValue) {
+      return
+    }
+
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById(getAccordionSectionId(sectionValue))
+        ?.scrollIntoView({ block: "start" })
+    })
+  }
+
   return (
     <section id={productId ? PRODUCT_DETAIL_REVIEWS_SECTION_ID : undefined}>
       <h2 className="mb-400 font-semibold text-3xl text-fg-primary">
-        Informácie o produkte
+        {tCatalog("product_detail.information_title")}
       </h2>
 
       <div className="hidden lg:block">
@@ -88,10 +108,7 @@ export function ProductDetailTabs({
               {section.key === PRODUCT_DETAIL_REVIEWS_TAB_VALUE ? (
                 <ProductDetailReviewsSlot productId={productId} />
               ) : (
-                <ProductDetailHtmlContent
-                  fallback="Obsah sekcie bude čoskoro doplnený."
-                  html={section.html}
-                />
+                <ProductDetailHtmlContent html={section.html} />
               )}
             </Tabs.Content>
           ))}
@@ -101,16 +118,17 @@ export function ProductDetailTabs({
       <div className="lg:hidden">
         <Accordion
           collapsible
-          onChange={(value) => {
-            onSectionValueChange(value[0])
-          }}
+          onChange={handleAccordionChange}
           size="sm"
           value={activeSectionValue ? [activeSectionValue] : []}
           variant="default"
         >
           {tabSections.map((section) => (
             <Accordion.Item key={section.key} value={section.key}>
-              <Accordion.Header>
+              <Accordion.Header
+                className="scroll-mt-product-detail-information-scroll-offset"
+                id={getAccordionSectionId(section.key)}
+              >
                 <Accordion.Title>{section.title}</Accordion.Title>
                 <Accordion.Indicator />
               </Accordion.Header>
@@ -118,10 +136,7 @@ export function ProductDetailTabs({
                 {section.key === PRODUCT_DETAIL_REVIEWS_TAB_VALUE ? (
                   <ProductDetailReviewsSlot productId={productId} />
                 ) : (
-                  <ProductDetailHtmlContent
-                    fallback="Obsah sekcie bude čoskoro doplnený."
-                    html={section.html}
-                  />
+                  <ProductDetailHtmlContent html={section.html} />
                 )}
               </Accordion.Content>
             </Accordion.Item>

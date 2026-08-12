@@ -389,10 +389,12 @@ run_admin_build_smoke_stage() {
   fi
 
   common::stage "Admin build smoke"
-  common::step "Building medusa-be and testing generated admin assets locally..."
+  common::step "Ensuring the Playwright Chromium browser is installed..."
 
   (
     cd "$ROOT_DIR/apps/medusa-be"
+    pnpm test:e2e:admin:install-browsers >&2
+    common::step "Building medusa-be and testing generated admin assets locally..."
     pnpm build:admin-smoke-output >&2
     pnpm test:e2e:admin:built >&2
   ) || common::die "Local Medusa admin build smoke failed."

@@ -3,11 +3,11 @@ import type { Query } from "@medusajs/framework/types"
 export type PaymentReminderOrder = {
   id: string
   created_at?: Date | string | null
-  display_id: number
+  display_id: number | string | null
   custom_display_id?: string | null
   customer_id?: string | null
   email?: string | null
-  payment_collections?: { status?: string | null }[] | null
+  payment_collections?: Array<{ status?: string | null } | null> | null
   payment_status?: string | null
   status?: string | null
   summary?: {
@@ -134,7 +134,7 @@ export async function fetchOrderById(query: Query, id: string) {
     filters: { id },
   })
 
-  return (data as PaymentReminderOrder[])[0]
+  return data[0]
 }
 
 export async function fetchUnpaidOrders(
@@ -154,7 +154,7 @@ export async function fetchUnpaidOrders(
       },
     })
 
-    const orders = data as PaymentReminderOrder[]
+    const orders: PaymentReminderOrder[] = data
     unpaidOrders.push(...orders.filter(isUnpaidOrder))
 
     if (orders.length < BATCH_SIZE) {

@@ -16,6 +16,7 @@ type FormSelectFieldProps = {
   placeholder?: string
   required?: boolean
   disabled?: boolean
+  readOnly?: boolean
   size?: SelectSize
   validationMode?: "none" | "blur"
   onValueChange?: (value: string) => void
@@ -28,6 +29,7 @@ export function FormSelectField({
   label,
   onValueChange,
   placeholder,
+  readOnly = false,
   required = false,
   size = "md",
   validationMode = "blur",
@@ -52,6 +54,7 @@ export function FormSelectField({
         field.handleBlur()
         onValueChange?.(nextValue)
       }}
+      readOnly={readOnly}
       required={required}
       size={size}
       validateStatus={fieldFeedback.validateStatus}

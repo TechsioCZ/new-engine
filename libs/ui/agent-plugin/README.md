@@ -20,7 +20,7 @@ no spec-driven workflow.
 | Workflow skills | 8 | `$ui-*` entry points: scaffold, tokens, stories, theming, Figma sync, validation, release, usage routing |
 | Bundled deep skills | 58 | Synced 1:1 from `libs/ui/skills/`: per-component `*-usage` guides, `component-authoring`, `tailwind-token-authoring`, `storybook-authoring`, `zag-compound-components`, … |
 | Subagents (Codex TOML) | 6 | design-system expert, component-dev orchestrator, token/story/figma specialists, QA gate |
-| Hooks | 2 | Real git `pre-push` gate (auto-installed) + a `--no-verify` guard |
+| Hooks | 2 | Real git `pre-push` gate (auto-installed in the ui-kit source repo only) + a `--no-verify` guard |
 | MCP servers | 3 | context7 (docs), figma (design context + Code Connect), chrome-devtools (browser) |
 
 > **Note on slash commands:** Codex deprecated `~/.codex/prompts` custom prompts in favor of
@@ -117,6 +117,13 @@ Pushes carrying `libs/ui` changes are blocked until `$ui-validate` has passed fo
 pushed. Enforcement is a real **git `pre-push` hook** (`hooks/pre-push`), installed into the
 repo by a `SessionStart` hook (`scripts/install-git-hook.mjs`).
 
+**Scoped to the ui-kit source repo.** The plugin may be installed globally, so sessions start
+in arbitrary repos. Both hooks first check whether the repo actually contains the guarded
+paths — a `libs/ui/` directory with anything besides the plugin bundle itself. In any other
+repo the installer installs nothing and the `--no-verify` guard allows everything. If an
+earlier plugin version already installed the git hook into a consumer repo, the installer
+removes it on the next session start and restores any original hook it had chained aside.
+
 That matters: git invokes `pre-push` with the *resolved* push operation and hands it the exact
 refs and SHAs on stdin. There is nothing to infer, so no phrasing of the command gets around it
 — not `--all`, `--mirror`, glob refspecs, `push.default=matching`, `remote.<name>.push`, nor a
@@ -134,8 +141,25 @@ git rev-parse HEAD > "$(git rev-parse --absolute-git-dir)/ui-validate-passed"
 ```
 
 Any new commit invalidates it. The installer is idempotent, honours `core.hooksPath` (husky,
-lefthook), and **never overwrites a pre-push hook it did not write** — a pre-existing hook is
-left alone with a note on how to install manually.
+lefthook), and **never destroys a pre-push hook it did not write** — a pre-existing hook is
+moved aside to `pre-push.pre-ui-kit` and chained: it runs first, and its non-zero exit still
+rejects the push.
+
+**Collision resolution.** The plugin's agent-level hooks (`hooks.json`) are additive — Codex
+and Claude Code run every plugin's hooks side by side, so they cannot collide with default or
+other plugins' hooks, and ours exit silently outside the ui-kit repo. For the git `pre-push`
+slot, collisions are resolved so existing hooks keep running — never won by force:
+
+- an **untracked** foreign hook (hand-written, `.git/hooks`) is moved aside to a
+  `pre-push.pre-ui-kit[.N]` slot — the gate runs every moved-aside hook first, oldest first,
+  and any non-zero exit still rejects the push;
+- a hook **tracked in the repo** (a committed `.husky/pre-push`, lefthook output, a default
+  hooks dir committed by another tool) is never renamed or overwritten. Instead
+  `core.hooksPath` (repo-local config — nothing in the worktree changes) is pointed at a shim
+  directory inside `.git/` that forwards *every* hook type to the original hooks dir and only
+  adds the gate to `pre-push`, after the original hook has run and passed;
+- uninstalling (which the installer does itself in non-ui-kit repos) restores the original
+  `core.hooksPath` and the most recently moved-aside hook.
 
 ## Layout
 
@@ -153,3 +177,7 @@ techsio-ui-kit-ai/
 │   └── pre-push                 # the real gate (git hands it the exact refs/SHAs)
 └── scripts/                     # install-git-hook.mjs, pre-push-validate-gate.mjs, sync-skills.mjs
 ```
+
+## License
+
+[MIT](./LICENSE) — including the bundled skills.

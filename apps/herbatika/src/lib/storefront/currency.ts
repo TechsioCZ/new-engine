@@ -1,6 +1,8 @@
 export const DEFAULT_CURRENCY_CODE = "EUR"
 
-export type HerbatikaCurrencyCode = "EUR" | "CZK"
+export type HerbatikaCurrencyCode = string
+
+const CURRENCY_CODE_PATTERN = /^[A-Z]{3}$/
 
 export const normalizeSupportedCurrencyCode = (
   value: unknown
@@ -10,11 +12,9 @@ export const normalizeSupportedCurrencyCode = (
   }
 
   const normalizedCurrencyCode = value.trim().toUpperCase()
-  if (normalizedCurrencyCode === "EUR" || normalizedCurrencyCode === "CZK") {
-    return normalizedCurrencyCode
-  }
-
-  return null
+  return CURRENCY_CODE_PATTERN.test(normalizedCurrencyCode)
+    ? normalizedCurrencyCode
+    : null
 }
 
 export const resolveSupportedCurrencyCode = (

@@ -22,7 +22,7 @@ const buildFailedResult = (
   error,
 })
 
-export const processCustomerGroupCustomersBatchStep = createStep(
+export const symmyProcessCustomerGroupCustomersBatchStep = createStep(
   "symmy-process-customer-group-customers-batch",
   async (input: AssignCustomersToGroupBatchInput, { container }) => {
     const client = new CustomerGroupCustomersBatchClient(container)

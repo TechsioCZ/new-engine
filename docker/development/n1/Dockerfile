@@ -40,9 +40,7 @@ ENV CI=true
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
-RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/pnpm/store \
-    corepack install && \
-    pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
+RUN corepack install
 
 COPY tsconfig.base.json ./
 COPY apps/n1 ./apps/n1
@@ -50,9 +48,9 @@ COPY libs/ui ./libs/ui
 COPY libs/analytics ./libs/analytics
 RUN mkdir -p apps/n1/public
 
-RUN --mount=type=cache,id=pnpm-store-n1-ci-dev,target=/pnpm/store \
+RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
     pnpm_config_store_dir=/pnpm/store \
-    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1... && \
+    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --filter=n1... && \
     pnpm --filter=@techsio/ui-kit build && \
     pnpm --filter=@techsio/analytics build && \
     pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1...
@@ -67,12 +65,10 @@ CMD ["npm", "run", "start:ci-dev"]
 FROM base AS build
 ENV CI=true
 
-# Prime pnpm store from lockfile so dependency downloads are cached across source-only changes.
+# Pin pnpm before copying the narrowed service source.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
-RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
-    corepack install && \
-    pnpm fetch --store-dir=/pnpm/store --frozen-lockfile
+RUN corepack install
 
 # Reuse the same narrowed copy boundary as ci-dev so unrelated repo changes don't
 # invalidate the production dependency and build layers.
@@ -83,7 +79,7 @@ COPY libs/analytics ./libs/analytics
 RUN mkdir -p apps/n1/public
 
 RUN --mount=type=cache,id=pnpm-store-n1,target=/pnpm/store \
-    pnpm install --store-dir=/pnpm/store --offline --frozen-lockfile --filter=n1... && \
+    pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --filter=n1... && \
     pnpm --filter=@techsio/ui-kit build && \
     pnpm --filter=@techsio/analytics build
 

@@ -42,6 +42,12 @@ describe("order expedition helpers", () => {
         ],
       })
     ).toMatchObject({ label: "Packeta", value: "packeta" })
+
+    expect(
+      resolveOrderExpeditionCarrier({
+        shipping_methods: [{ name: "GLS ParcelShop" }],
+      })
+    ).toMatchObject({ label: "GLS", value: "gls" })
   })
 
   it("does not resolve carrier tokens from unrelated word substrings", () => {

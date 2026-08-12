@@ -78,6 +78,36 @@ describe("buildCmsBlogPage", () => {
     assert.equal(page.entries[0]?.summary.slug, "shared")
     assert.equal(page.entries[0]?.category.slug, "beauty")
   })
+
+  it("orders articles globally by publication date", () => {
+    const page = buildCmsBlogPage({
+      categories: [
+        {
+          id: 1,
+          slug: "health",
+          title: "Health",
+          articles: [
+            { publishedDate: "2026-08-01", slug: "older", title: "Older" },
+          ],
+        },
+        {
+          id: 2,
+          slug: "beauty",
+          title: "Beauty",
+          articles: [
+            { publishedDate: "2026-08-12", slug: "newer", title: "Newer" },
+          ],
+        },
+      ],
+      page: 1,
+      pageSize: 12,
+    })
+
+    assert.deepEqual(
+      page.entries.map(({ summary }) => summary.slug),
+      ["newer", "older"]
+    )
+  })
 })
 
 describe("resolveBlogListingHref", () => {

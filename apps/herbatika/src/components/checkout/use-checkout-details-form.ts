@@ -2,6 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useStore } from "@tanstack/react-form"
+import { useTranslations } from "next-intl"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   CHECKOUT_BILLING_ACTIVE_FIELD_NAMES,
@@ -20,6 +21,7 @@ import {
 } from "@/lib/forms/checkout/address.form"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import { mapHerbatikaAddressFormStateFromMedusaAddress } from "@/lib/storefront/cart/address-adapter"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { readAccountSetupRequested } from "./account-setup-metadata"
 import type { CarrierPickupAddress } from "./carrier-pickup-address.utils"
 import { resolveCarrierPickupAddress } from "./carrier-pickup-address.utils"
@@ -321,37 +323,43 @@ const resolveCheckoutHydratedValues = ({
     mapHerbatikaAddressFormStateFromMedusaAddress(shippingAddress)
   const resolvedBillingAddressValues =
     mapHerbatikaAddressFormStateFromMedusaAddress(billingAddress)
-  const shippingAddressValues = mergeCheckoutAddressValues(
-    {
-      email: cart?.email ?? customer?.email ?? "",
-      firstName: customer?.first_name ?? "",
-      lastName: customer?.last_name ?? "",
-      countryCode: regionCountryCode?.toUpperCase(),
-    },
-    resolvedShippingAddressValues,
-    carrierPickupAddress?.address
-  )
-  const billingAddressValues = mergeCheckoutAddressValues(
-    {
-      firstName: shippingAddressValues.firstName,
-      lastName: shippingAddressValues.lastName,
-      phone: shippingAddressValues.phone,
-      countryCode: shippingAddressValues.countryCode,
-      ...(hasCarrierPickupAddress
-        ? {}
-        : {
-            company: shippingAddressValues.company,
-            companyId: shippingAddressValues.companyId,
-            taxId: shippingAddressValues.taxId,
-            vatId: shippingAddressValues.vatId,
-            address1: shippingAddressValues.address1,
-            address2: shippingAddressValues.address2,
-            city: shippingAddressValues.city,
-            postalCode: shippingAddressValues.postalCode,
-          }),
-    },
-    resolvedBillingAddressValues
-  )
+  const marketCountryCode = regionCountryCode?.toUpperCase()
+  const shippingAddressValues = {
+    ...mergeCheckoutAddressValues(
+      {
+        email: cart?.email ?? customer?.email ?? "",
+        firstName: customer?.first_name ?? "",
+        lastName: customer?.last_name ?? "",
+      },
+      resolvedShippingAddressValues,
+      carrierPickupAddress?.address
+    ),
+    ...(marketCountryCode ? { countryCode: marketCountryCode } : {}),
+  }
+  const billingAddressValues = {
+    ...mergeCheckoutAddressValues(
+      {
+        firstName: shippingAddressValues.firstName,
+        lastName: shippingAddressValues.lastName,
+        phone: shippingAddressValues.phone,
+        countryCode: shippingAddressValues.countryCode,
+        ...(hasCarrierPickupAddress
+          ? {}
+          : {
+              company: shippingAddressValues.company,
+              companyId: shippingAddressValues.companyId,
+              taxId: shippingAddressValues.taxId,
+              vatId: shippingAddressValues.vatId,
+              address1: shippingAddressValues.address1,
+              address2: shippingAddressValues.address2,
+              city: shippingAddressValues.city,
+              postalCode: shippingAddressValues.postalCode,
+            }),
+      },
+      resolvedBillingAddressValues
+    ),
+    ...(marketCountryCode ? { countryCode: marketCountryCode } : {}),
+  }
   const hasHydratedAddress = Boolean(shippingAddress || billingAddress)
   let useSameAddress = true
   if (hasCarrierPickupAddress) {
@@ -490,6 +498,10 @@ export function useCheckoutDetailsForm({
   onSubmit,
   regionCountryCode,
 }: UseCheckoutDetailsFormProps) {
+  const tCheckout = useTranslations("checkout")
+  const marketContext = useMarketContext()
+  const fallbackCountryCode = regionCountryCode ?? marketContext.countryCode
+  const fallbackPickupLabel = tCheckout("pickup_point_fallback")
   const selectedShippingMethod = cart?.shipping_methods?.[0]
   const storedCarrierPickupSelection = useMemo(
     () =>
@@ -503,16 +515,19 @@ export function useCheckoutDetailsForm({
     () =>
       resolveCarrierPickupAddress(
         selectedShippingMethod?.data,
-        regionCountryCode
+        fallbackCountryCode,
+        fallbackPickupLabel
       ) ??
       resolveCarrierPickupAddress(
         storedCarrierPickupSelection?.data,
-        regionCountryCode
+        fallbackCountryCode,
+        fallbackPickupLabel
       ),
     [
+      fallbackCountryCode,
+      fallbackPickupLabel,
       selectedShippingMethod?.data,
       storedCarrierPickupSelection?.data,
-      regionCountryCode,
     ]
   )
   const hasCarrierPickupShipping = Boolean(carrierPickupAddress)

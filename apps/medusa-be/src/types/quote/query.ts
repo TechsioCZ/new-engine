@@ -3,7 +3,7 @@ import type {
   AdminOrder,
   AdminUser,
   StoreCart,
-} from "@medusajs/types"
+} from "@medusajs/framework/types"
 import type { QueryEmployee } from "../company/index"
 import type { ModuleQuote, ModuleQuoteMessage } from "./module"
 

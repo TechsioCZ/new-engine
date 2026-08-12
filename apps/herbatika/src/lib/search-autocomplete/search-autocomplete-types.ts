@@ -1,4 +1,8 @@
-export type SearchAutocompleteSuggestionType = "product" | "category" | "brand"
+export type SearchAutocompleteSuggestionType =
+  | "product"
+  | "category"
+  | "brand"
+  | "content"
 
 export type SearchAutocompleteSuggestion = {
   id: string
@@ -16,6 +20,7 @@ export type SearchAutocompleteResponse = {
   products: SearchAutocompleteSuggestion[]
   categories: SearchAutocompleteSuggestion[]
   brands: SearchAutocompleteSuggestion[]
+  content: SearchAutocompleteSuggestion[]
 }
 
 export type SearchAutocompleteStatus = "idle" | "loading" | "success" | "error"
@@ -32,10 +37,18 @@ export type RawSearchAutocompleteCategoryRef = {
   handle?: unknown
 }
 
-export type RawSearchAutocompleteProducerRef = {
+export type RawSearchAutocompleteBrandRef = {
   id?: unknown
   title?: unknown
   handle?: unknown
+}
+
+export type RawSearchAutocompleteContentHit = {
+  id?: unknown
+  type?: unknown
+  title?: unknown
+  excerpt?: unknown
+  href?: unknown
 }
 
 export type RawSearchAutocompleteCalculatedPrice = {
@@ -49,9 +62,19 @@ export type RawSearchAutocompleteProductHit = {
   handle?: unknown
   thumbnail?: unknown
   metadata?: unknown
-  producer?: RawSearchAutocompleteProducerRef
+  search_result?: {
+    variant_id?: unknown
+    variant_title?: unknown
+  }
+  brand?: RawSearchAutocompleteBrandRef
   categories?: RawSearchAutocompleteCategoryRef[]
   variants?: Array<{
+    id?: unknown
+    title?: unknown
+    sku?: unknown
+    ean?: unknown
+    upc?: unknown
+    barcode?: unknown
     calculated_price?: RawSearchAutocompleteCalculatedPrice
   }>
 }
@@ -67,4 +90,5 @@ export const createEmptySearchAutocompleteResponse = (
   products: [],
   categories: [],
   brands: [],
+  content: [],
 })

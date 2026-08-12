@@ -163,6 +163,7 @@ export type OrderDashboardFulfillmentShippingMethod = {
   id?: string | null
   name?: string | null
   shipping_option_id?: string | null
+  data?: Record<string, unknown> | null
 }
 
 export type OrderDashboardFulfillmentOrder = {

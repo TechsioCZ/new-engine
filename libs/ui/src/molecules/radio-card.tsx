@@ -1,3 +1,14 @@
+/**
+ * RadioCard — @techsio/ui-kit molecule.
+ *
+ * @component RadioCard
+ * @componentVersion v1.0.0
+ * @skill radio-card-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the radio-card-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import {
   connect,
   type ItemProps,

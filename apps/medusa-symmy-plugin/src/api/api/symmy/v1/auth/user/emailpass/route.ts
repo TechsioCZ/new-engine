@@ -18,7 +18,6 @@ export async function POST(
   const { email, password } = req.validatedBody
 
   const result = await authModuleService.authenticate("emailpass", {
-    actor_type: "user",
     body: { email, password },
   })
 

@@ -77,7 +77,7 @@ const processShipmentForBatch = async ({
   }
 }
 
-export const processTrackingBatchStep = createStep(
+export const symmyProcessTrackingBatchStep = createStep(
   "symmy-process-tracking-batch",
   async (input: AddTrackingBatchInput, { container }) => {
     const client = new TrackingBatchClient(container)

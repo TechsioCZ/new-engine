@@ -4,7 +4,6 @@ import { ReviewsSection } from "@/components/reviews/reviews-section"
 export function HomepageReviewsSection() {
   return (
     <ReviewsSection
-      headingText="Overené zákazníkmi"
       reviews={HEUREKA_REVIEWS}
       scoreLabel={null}
       sectionClassName="space-y-500"

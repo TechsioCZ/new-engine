@@ -12,7 +12,11 @@ import { createApprovalStatusStep } from "../steps/create-approval-status"
 
 export const createApprovalsWorkflow = createWorkflow(
   "create-approvals",
-  (input: ModuleCreateApproval | ModuleCreateApproval[]) => {
+  (
+    input:
+      | Omit<ModuleCreateApproval, "type">
+      | Omit<ModuleCreateApproval, "type">[]
+  ) => {
     const result = createApprovalStep(input)
 
     const cartIds = transform(input, (approvalInput) => {

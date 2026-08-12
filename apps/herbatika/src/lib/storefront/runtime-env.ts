@@ -15,9 +15,6 @@ export const resolveMedusaBackendUrl = () =>
   trimEnv(process.env.NEXT_PUBLIC_MEDUSA_BACKEND_URL) ??
   DEFAULT_MEDUSA_BACKEND_URL
 
-export const resolvePayloadBaseUrl = (
-  fallbackBaseUrl = resolveMedusaBackendUrl()
-) =>
-  (isServerRuntime() ? trimEnv(process.env.PAYLOAD_BASE_URL_INTERNAL) : null) ??
-  trimEnv(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL) ??
-  fallbackBaseUrl
+/** Resolve the browser-reachable origin used in rendered Payload media URLs. */
+export const resolvePublicPayloadBaseUrl = () =>
+  trimEnv(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL)

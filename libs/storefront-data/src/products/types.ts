@@ -1,3 +1,4 @@
+import type { HttpTypes } from "@medusajs/types"
 import type {
   InfiniteQueryResult,
   QueryResult,
@@ -9,6 +10,42 @@ import type { QueryKey } from "../shared/query-keys"
 import type { RegionInfo } from "../shared/region"
 
 export type { RegionInfo } from "../shared/region"
+
+export type StorePricePerUnit = {
+  calculated_amount?: number
+  calculated_amount_with_tax?: number
+  calculated_amount_without_tax?: number
+  currency_code: string | null
+  original_amount?: number
+  original_amount_with_tax?: number
+  original_amount_without_tax?: number
+  product_unit_quantity: number
+  unit_base_quantity: number
+  unit_code: string
+  unit_id: string
+  unit_name: string
+  unit_symbol: string
+}
+
+export type StoreCalculatedPriceWithPricePerUnit = NonNullable<
+  HttpTypes.StoreProductVariant["calculated_price"]
+> & {
+  price_per_unit?: StorePricePerUnit
+}
+
+export type StoreProductVariantWithPricePerUnit = Omit<
+  HttpTypes.StoreProductVariant,
+  "calculated_price"
+> & {
+  calculated_price?: StoreCalculatedPriceWithPricePerUnit | null
+}
+
+export type StoreProductWithPricePerUnit = Omit<
+  HttpTypes.StoreProduct,
+  "variants"
+> & {
+  variants: StoreProductVariantWithPricePerUnit[] | null
+}
 
 export type ProductListInputBase = RegionInfo & {
   page?: number

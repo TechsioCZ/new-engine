@@ -4,7 +4,7 @@ import type {
   FindConfig,
   IModuleService,
   RestoreReturn,
-} from "@medusajs/types"
+} from "@medusajs/framework/types"
 import type {
   ModuleCompany,
   ModuleCreateCompany,
@@ -18,6 +18,15 @@ export interface ModuleCompanyFilters
   extends BaseFilterable<ModuleCompanyFilters> {
   q?: string
   id?: string | string[]
+}
+
+type ModuleCompanyUpdateSelector = Partial<
+  Pick<ModuleCompany, "application_changed_at" | "id">
+>
+
+type ModuleCompanyUpdateSelectorInput = {
+  data: Omit<ModuleUpdateCompany, "id">
+  selector: ModuleCompanyUpdateSelector
 }
 
 export interface ModuleEmployeeFilters
@@ -55,7 +64,7 @@ export interface ICompanyModuleService extends IModuleService {
   ): Promise<ModuleCompany>
 
   updateCompanies(
-    data: ModuleUpdateCompany[],
+    data: ModuleCompanyUpdateSelectorInput | ModuleUpdateCompany[],
     sharedContext?: Context
   ): Promise<ModuleCompany[]>
 

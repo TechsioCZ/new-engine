@@ -14,7 +14,7 @@ import { createCustomerProductListStep } from "../steps/create-customer-product-
 import type { CreateCustomerProductListWorkflowInput } from "../types"
 
 export const createCustomerProductListWorkflow = createWorkflow(
-  "create-customer-product-list-workflow",
+  "create-customer-product-list",
   (input: CreateCustomerProductListWorkflowInput) => {
     const lockKey = transform({ input }, ({ input: workflowInput }) => [
       `product-list-customer:${workflowInput.customer_id}`,

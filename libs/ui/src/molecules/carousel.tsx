@@ -1,3 +1,14 @@
+/**
+ * Carousel — @techsio/ui-kit molecule.
+ *
+ * @component Carousel
+ * @componentVersion v1.0.0
+ * @skill carousel-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the carousel-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import * as carousel from "@zag-js/carousel"
 import { normalizeProps, useMachine } from "@zag-js/react"
 import {

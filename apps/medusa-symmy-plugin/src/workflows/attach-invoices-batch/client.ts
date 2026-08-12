@@ -1,5 +1,8 @@
 import type { MedusaContainer } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import {
   updateOrderWorkflow,
   uploadFilesWorkflow,
@@ -92,7 +95,10 @@ export class InvoicesBatchClient {
   ): Promise<string> {
     const invoiceUrl = this.mapper.buildInvoiceUrl(invoice, uploaded)
     if (!invoiceUrl) {
-      throw new Error("Invoice URL was not provided or uploaded")
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Invoice URL was not provided or uploaded"
+      )
     }
     await updateOrderWorkflow(this.container).run({
       input: {

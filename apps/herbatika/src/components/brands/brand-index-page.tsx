@@ -1,4 +1,5 @@
 import NextLink from "next/link"
+import { getTranslations } from "next-intl/server"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import {
   createBrandHref,
@@ -10,26 +11,34 @@ type BrandIndexPageProps = {
   brands: StorefrontBrand[]
 }
 
-export function BrandIndexPage({ brands }: BrandIndexPageProps) {
+export async function BrandIndexPage({ brands }: BrandIndexPageProps) {
+  const [t, tNavigation] = await Promise.all([
+    getTranslations("catalog"),
+    getTranslations("navigation"),
+  ])
   const brandGroups = groupStorefrontBrands(brands)
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-brand-index-page-gap p-brand-index-page font-rubik 2xl:p-brand-index-page-lg">
       <HerbatikaBreadcrumb
         items={[
-          { label: "Domů", href: "/", icon: "token-icon-home" },
-          { label: "Značky" },
+          {
+            label: tNavigation("breadcrumbs.home"),
+            href: "/",
+            icon: "token-icon-home",
+          },
+          { label: t("brands.label") },
         ]}
       />
 
       <section>
         <h1 className="font-bold text-4xl text-fg-primary leading-snug">
-          Všetky značky A-Z
+          {t("brands.all_title")}
         </h1>
       </section>
 
       <section
-        aria-label="Zoznam značiek podľa abecedy"
+        aria-label={t("brands.list_aria")}
         className="border-border-secondary border-y"
       >
         <div className="divide-y divide-border-secondary">

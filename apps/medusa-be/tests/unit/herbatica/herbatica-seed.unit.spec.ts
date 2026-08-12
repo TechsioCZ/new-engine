@@ -9,6 +9,7 @@ import {
 import {
   buildHerbaticaSeedWorkflowInput,
   buildSeedInputFromXml,
+  normalizeHerbaticaManufacturerTitle,
 } from "../../../src/scripts/herbatica-seed"
 import {
   HERBATICA_PRICE_LIST_SYNC_CONFIG,
@@ -19,6 +20,92 @@ import {
 
 const DIRTY_FEED_MARKUP_PATTERN =
   /data-turn-id|data-message-author-role|data-testid|ChatGPT|markdown prose|webpage-citation-pill|_ngcontent-ng|markdown-main-panel/i
+
+describe("Herbatica manufacturer normalization", () => {
+  it("decodes the source's verified nested XML entity without changing ordinary names", () => {
+    expect(
+      normalizeHerbaticaManufacturerTitle("SHIR Beauty &amp; Science")
+    ).toBe("SHIR Beauty & Science")
+    expect(normalizeHerbaticaManufacturerTitle("ViolaHerb")).toBe("ViolaHerb")
+  })
+})
+
+describe("Herbatica measurement-unit mapping", () => {
+  it("preserves the source unit and comparison base without correcting it", () => {
+    const result = buildSeedInputFromXml(`
+      <SHOP>
+        <SHOPITEM id="source-unit-product">
+          <NAME>Source unit product</NAME>
+          <DESCRIPTION>Source-declared unit data</DESCRIPTION>
+          <PRICE_VAT>10</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <UNIT>ks</UNIT>
+          <UNIT_OF_MEASURE>
+            <PACKAGE_AMOUNT>100</PACKAGE_AMOUNT>
+            <PACKAGE_AMOUNT_UNIT>pcs</PACKAGE_AMOUNT_UNIT>
+            <MEASURE_AMOUNT>100</MEASURE_AMOUNT>
+            <MEASURE_AMOUNT_UNIT>pcs</MEASURE_AMOUNT_UNIT>
+          </UNIT_OF_MEASURE>
+          <STOCK><AMOUNT>1</AMOUNT></STOCK>
+        </SHOPITEM>
+      </SHOP>
+    `)
+
+    expect(result.products[0]?.measurement).toEqual({
+      unit: {
+        base_quantity: 100,
+        code: "pcs_100",
+        name: "pcs",
+        symbol: "pcs",
+      },
+    })
+    expect(result.products[0]?.variants?.[0]?.measurement).toEqual({
+      product_unit_quantity: 100,
+    })
+  })
+
+  it("keeps an unconfigured Variant empty within a configured Product", () => {
+    const result = buildSeedInputFromXml(`
+      <SHOP>
+        <SHOPITEM id="mixed-variant-measurements">
+          <NAME>Mixed variant measurements</NAME>
+          <DESCRIPTION>One configured and one unconfigured variant</DESCRIPTION>
+          <VISIBLE>1</VISIBLE>
+          <VARIANTS>
+            <VARIANT id="configured-variant">
+              <CODE>CONFIGURED</CODE>
+              <PRICE_VAT>8.9</PRICE_VAT>
+              <CURRENCY>EUR</CURRENCY>
+              <UNIT_OF_MEASURE>
+                <PACKAGE_AMOUNT>500</PACKAGE_AMOUNT>
+                <PACKAGE_AMOUNT_UNIT>g</PACKAGE_AMOUNT_UNIT>
+                <MEASURE_AMOUNT>100</MEASURE_AMOUNT>
+                <MEASURE_AMOUNT_UNIT>g</MEASURE_AMOUNT_UNIT>
+              </UNIT_OF_MEASURE>
+              <STOCK><AMOUNT>1</AMOUNT></STOCK>
+            </VARIANT>
+            <VARIANT id="unconfigured-variant">
+              <CODE>UNCONFIGURED</CODE>
+              <PRICE_VAT>5.39</PRICE_VAT>
+              <CURRENCY>EUR</CURRENCY>
+              <STOCK><AMOUNT>1</AMOUNT></STOCK>
+            </VARIANT>
+          </VARIANTS>
+        </SHOPITEM>
+      </SHOP>
+    `)
+
+    expect(result.products[0]?.measurement?.unit).toMatchObject({
+      base_quantity: 100,
+      code: "g_100",
+      symbol: "g",
+    })
+    expect(
+      result.products[0]?.variants?.map((variant) => variant.measurement)
+    ).toEqual([{ product_unit_quantity: 500 }, null])
+  })
+})
 
 describe("Herbatica seed category mapping", () => {
   it("prefers canonical category export data over malformed product paths", () => {
@@ -920,7 +1007,7 @@ describe("Herbatica committed feed fixtures", () => {
     ])
     expect(mainProduct?.variants?.map((variant) => variant.ean)).toEqual([
       "1234567890123",
-      undefined,
+      "1234567890123",
     ])
     expect(hiddenProduct?.status).toBe(ProductStatus.DRAFT)
   })

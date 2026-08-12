@@ -116,7 +116,10 @@ function toFiniteNumber(value: number | string | null | undefined) {
   const numberValue = typeof value === "string" ? Number(value) : value
 
   if (typeof numberValue !== "number" || !Number.isFinite(numberValue)) {
-    throw new Error(`Expected finite numeric value, got ${String(value)}`)
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Expected finite numeric value, got ${String(value)}`
+    )
   }
 
   return numberValue
@@ -126,7 +129,10 @@ function toInteger(value: number | string | null | undefined) {
   const numberValue = toFiniteNumber(value)
 
   if (!Number.isSafeInteger(numberValue)) {
-    throw new Error(`Expected integer value, got ${String(value)}`)
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Expected integer value, got ${String(value)}`
+    )
   }
 
   return numberValue
@@ -136,7 +142,10 @@ function toPositiveNumber(value: number | string | null | undefined) {
   const numberValue = toFiniteNumber(value)
 
   if (numberValue <= 0) {
-    throw new Error(`Expected positive numeric value, got ${String(value)}`)
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Expected positive numeric value, got ${String(value)}`
+    )
   }
 
   return numberValue
@@ -146,7 +155,10 @@ function toActiveOrderChange(
   orderChange: ActiveOrderChangeRecord | null | undefined
 ): ActiveOrderChange {
   if (!orderChange?.id) {
-    throw new Error("Order change id is missing")
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Order change id is missing"
+    )
   }
 
   return {
@@ -682,7 +694,7 @@ async function cancelStartedEdit(
 }
 
 const previewCommercialValuesStep = createStep(
-  "preview-order-commercial-values",
+  "preview-commercial-values",
   async (calculationInput: CommercialValuesCalculationInput) =>
     new StepResponse(calculateCommercialValuesPreview(calculationInput))
 )
@@ -795,7 +807,8 @@ const replaceCommercialValuesAdjustmentsStep = createStep(
     { container }
   ) => {
     if (input.item_update.order_change_id !== input.active_order_change.id) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.CONFLICT,
         "Commercial values item updates used a stale order change"
       )
     }
@@ -832,7 +845,8 @@ const completeCommercialValuesOrderEditStep = createStep(
     { container }
   ): Promise<StepResponse<CommercialValuesOrderEditCompletion>> => {
     if (input.replacements.order_change_id !== input.active_order_change.id) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.CONFLICT,
         "Commercial values replacements used a stale order change"
       )
     }

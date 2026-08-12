@@ -19,6 +19,25 @@ export type CmsArticleIndexEntry = {
   summary: CmsArticleSummary
 }
 
+const resolvePublishedTime = (value: string | null | undefined) => {
+  const timestamp = value ? new Date(value).getTime() : Number.NaN
+  return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp
+}
+
+const compareCmsArticlesByPublishedDate = (
+  left: CmsArticleIndexEntry,
+  right: CmsArticleIndexEntry
+) => {
+  const dateDifference =
+    resolvePublishedTime(right.summary.publishedDate) -
+    resolvePublishedTime(left.summary.publishedDate)
+
+  return (
+    dateDifference ||
+    (left.summary.slug ?? "").localeCompare(right.summary.slug ?? "")
+  )
+}
+
 type BuildCmsBlogPageInput = {
   categories: CmsArticleCategory[]
   category?: string
@@ -60,7 +79,9 @@ export const buildCmsArticleIndex = (
     }
   }
 
-  return Array.from(articleBySlug.values())
+  return Array.from(articleBySlug.values()).sort(
+    compareCmsArticlesByPublishedDate
+  )
 }
 
 export const buildCmsCategoryFilters = (
@@ -84,19 +105,6 @@ export const buildCmsCategoryFilters = (
     }))
     .filter((category) => category.key && category.label && category.count > 0),
 ]
-
-export const shuffleCmsArticleIndex = (items: CmsArticleIndexEntry[]) => {
-  const shuffled = [...items]
-
-  for (let index = shuffled.length - 1; index > 0; index -= 1) {
-    const randomIndex = Math.floor(Math.random() * (index + 1))
-    const item = shuffled[index]
-    shuffled[index] = shuffled[randomIndex] as CmsArticleIndexEntry
-    shuffled[randomIndex] = item as CmsArticleIndexEntry
-  }
-
-  return shuffled
-}
 
 export const buildCmsBlogPage = ({
   categories,

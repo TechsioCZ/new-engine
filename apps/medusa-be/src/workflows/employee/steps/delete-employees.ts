@@ -2,6 +2,7 @@ import type { DeleteEntityInput, Link } from "@medusajs/framework/modules-sdk"
 import type {
   IAuthModuleService,
   ICustomerModuleService,
+  Query,
 } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
@@ -56,7 +57,7 @@ export const deleteEmployeesStep = createStep(
   ): Promise<StepResponse<string[], DeleteEmployeesCompensation>> => {
     const { company_id: companyId, id } = normalizeInput(input)
     const ids = Array.isArray(id) ? id : [id]
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const link = container.resolve<Link>(ContainerRegistrationKeys.LINK)
 
     const companyModuleService =

@@ -1,8 +1,16 @@
 /* Entity: Company */
 
-import type { CustomerGroupDTO } from "@medusajs/framework/types"
-import type { CustomerDTO } from "@medusajs/types"
+import type { CustomerDTO, CustomerGroupDTO } from "@medusajs/framework/types"
 import type { ModuleApprovalSettings } from "../approval"
+
+export const ModuleCompanyApplicationStatus = {
+  PENDING: "pending",
+  APPROVED: "approved",
+  REJECTED: "rejected",
+} as const
+
+export type ModuleCompanyApplicationStatus =
+  (typeof ModuleCompanyApplicationStatus)[keyof typeof ModuleCompanyApplicationStatus]
 
 export const ModuleCompanySpendingLimitResetFrequency = {
   NEVER: "never",
@@ -18,7 +26,7 @@ export type ModuleCompanySpendingLimitResetFrequency =
 export type ModuleCompany = {
   id: string
   name: string
-  phone: string
+  phone: string | null
   email: string
   address: string | null
   city: string | null
@@ -28,6 +36,8 @@ export type ModuleCompany = {
   logo_url: string | null
   currency_code: string | null
   spending_limit_reset_frequency: ModuleCompanySpendingLimitResetFrequency
+  application_status: ModuleCompanyApplicationStatus
+  application_changed_at: Date | null
   created_at: Date
   updated_at: Date
   deleted_at?: Date | null
@@ -37,16 +47,18 @@ export type ModuleCompany = {
 
 export type ModuleCreateCompany = {
   name: string
-  phone: string
+  phone?: string | null
   email: string
-  address: string | null
-  city: string | null
-  state: string | null
-  zip: string | null
-  country: string | null
-  logo_url: string | null
+  address?: string | null
+  city?: string | null
+  state?: string | null
+  zip?: string | null
+  country?: string | null
+  logo_url?: string | null
   currency_code: string
-  spending_limit_reset_frequency: ModuleCompanySpendingLimitResetFrequency | null
+  spending_limit_reset_frequency?: ModuleCompanySpendingLimitResetFrequency
+  application_status?: ModuleCompanyApplicationStatus
+  application_changed_at?: Date | null
 }
 
 export interface ModuleUpdateCompany extends Partial<ModuleCompany> {
@@ -73,8 +85,8 @@ export type ModuleEmployee = {
 
 export type ModuleCreateEmployee = {
   customer_id: string
-  spending_limit: number
-  is_admin: boolean
+  spending_limit?: number
+  is_admin?: boolean
   company_id: string
 }
 

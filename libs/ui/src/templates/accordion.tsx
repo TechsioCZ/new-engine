@@ -1,3 +1,14 @@
+/**
+ * Accordion — @techsio/ui-kit template.
+ *
+ * @component Accordion
+ * @componentVersion v1.0.0
+ * @skill accordion-usage
+ * @changelog libs/ui/stories/changelog/changelog.stories.tsx
+ *
+ * Versioning is enforced at commit by scripts/check-skill-sync.mjs: @componentVersion must match
+ * the accordion-usage skill's component_version and a changelog entry. Bump all three together.
+ */
 import type { IconType } from "../atoms/icon"
 import { Accordion, type AccordionProps } from "../molecules/accordion"
 

@@ -1,0 +1,19 @@
+# Local-development override. Keep repository writes owned by the developer on
+# native Linux; Docker Desktop uses the image's standard node UID/GID defaults.
+x-dev-user: &dev-user
+  user: "${DC_DEV_UID:-1000}:${DC_DEV_GID:-1000}"
+  environment:
+    HOME: /tmp
+    XDG_CACHE_HOME: /tmp/.cache
+
+services:
+  medusa-be:
+    <<: *dev-user
+  payload:
+    <<: *dev-user
+  n1:
+    <<: *dev-user
+  herbatika:
+    <<: *dev-user
+  zane-operator:
+    <<: *dev-user

@@ -1,12 +1,29 @@
 import { defineWidgetConfig } from "@medusajs/admin-sdk"
 import type { AdminProduct, DetailWidgetProps } from "@medusajs/framework/types"
-import { Button, Container, Heading, toast } from "@medusajs/ui"
+import { Button, Container, Heading, Text, toast } from "@medusajs/ui"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useEffect, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
 import { RichHtmlEditor } from "../components/rich-html-editor"
+import {
+  buildContentSections,
+  buildContentSectionsMap,
+  CONTENT_SECTIONS_MAP_METADATA_KEY,
+  CONTENT_SECTIONS_METADATA_KEY,
+  getProductSectionHtml,
+  getSavedSectionHtml,
+  PRODUCT_CONTENT_SECTIONS,
+  type ProductContentSectionHtml,
+} from "../lib/product-content-sections"
 import { sdk } from "../lib/sdk"
 
 type ProductDescriptionEditorProps = Partial<DetailWidgetProps<AdminProduct>>
+
+type UpdateProductContentInput = {
+  changeVersion: number
+  productId: string
+  sectionsHtml: ProductContentSectionHtml
+}
 
 type UpdateProductResponse = {
   product: AdminProduct
@@ -135,18 +152,35 @@ const syncNativeProductDescriptionUi = () => {
 const ProductDescriptionEditor = ({
   data: product,
 }: ProductDescriptionEditorProps) => {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const [savedDescriptionHtml, setSavedDescriptionHtml] = useState(
-    () => product?.description ?? ""
+  const [savedSectionHtml, setSavedSectionHtml] = useState(() =>
+    getProductSectionHtml(product)
   )
-  const descriptionHtmlRef = useRef(product?.description ?? "")
+  const sectionHtmlRef = useRef(savedSectionHtml)
+  const sectionHtmlDirtyRef = useRef(false)
+  const sectionHtmlChangeVersionRef = useRef(0)
+  const productIdRef = useRef(product?.id ?? null)
 
   useEffect(() => {
-    const nextDescriptionHtml = product?.description ?? ""
+    const nextProductId = product?.id ?? null
+    const productChanged = productIdRef.current !== nextProductId
 
-    descriptionHtmlRef.current = nextDescriptionHtml
-    setSavedDescriptionHtml(nextDescriptionHtml)
-  }, [product?.description])
+    if (productChanged) {
+      productIdRef.current = nextProductId
+      sectionHtmlDirtyRef.current = false
+      sectionHtmlChangeVersionRef.current = 0
+    }
+
+    if (sectionHtmlDirtyRef.current) {
+      return
+    }
+
+    const nextSectionHtml = getProductSectionHtml(product)
+
+    sectionHtmlRef.current = nextSectionHtml
+    setSavedSectionHtml(nextSectionHtml)
+  }, [product])
 
   useEffect(() => {
     let animationFrameId: number | null = null
@@ -182,36 +216,66 @@ const ProductDescriptionEditor = ({
   }, [])
 
   const mutation = useMutation({
-    mutationFn: (description: string) =>
-      sdk.client.fetch<UpdateProductResponse>(
-        `/admin/products/${product?.id}`,
-        {
-          body: {
-            description: description.length > 0 ? description : null,
+    mutationFn: ({ productId, sectionsHtml }: UpdateProductContentInput) =>
+      sdk.client.fetch<UpdateProductResponse>(`/admin/products/${productId}`, {
+        body: {
+          description:
+            sectionsHtml.description.length > 0
+              ? sectionsHtml.description
+              : null,
+          metadata: {
+            [CONTENT_SECTIONS_METADATA_KEY]: buildContentSections(sectionsHtml),
+            [CONTENT_SECTIONS_MAP_METADATA_KEY]: buildContentSectionsMap(
+              product?.metadata,
+              sectionsHtml
+            ),
           },
-          method: "POST",
-        }
-      ),
+        },
+        method: "POST",
+      }),
     onError: (error) => {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Failed to save product description"
+          : t("productContentSections.errors.saveFailed")
       )
     },
-    onSuccess: (response) => {
-      const nextDescriptionHtml = response.product.description ?? ""
-
-      descriptionHtmlRef.current = nextDescriptionHtml
-      setSavedDescriptionHtml(nextDescriptionHtml)
-      queryClient.invalidateQueries({ queryKey: ["product", product?.id] })
+    onSuccess: (response, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ["product", variables.productId],
+      })
       queryClient.invalidateQueries({ queryKey: ["products"] })
-      toast.success("Product description saved")
+
+      if (productIdRef.current !== variables.productId) {
+        return
+      }
+
+      if (sectionHtmlChangeVersionRef.current !== variables.changeVersion) {
+        return
+      }
+
+      const nextSectionHtml = getSavedSectionHtml(
+        response.product,
+        variables.sectionsHtml
+      )
+
+      sectionHtmlDirtyRef.current = false
+      sectionHtmlRef.current = nextSectionHtml
+      setSavedSectionHtml(nextSectionHtml)
+      toast.success(t("productContentSections.toasts.saved"))
     },
   })
 
   const handleSave = () => {
-    mutation.mutate(descriptionHtmlRef.current)
+    if (!product?.id) {
+      return
+    }
+
+    mutation.mutate({
+      changeVersion: sectionHtmlChangeVersionRef.current,
+      productId: product.id,
+      sectionsHtml: sectionHtmlRef.current,
+    })
   }
 
   if (!product?.id) {
@@ -221,24 +285,42 @@ const ProductDescriptionEditor = ({
   return (
     <Container className="divide-y p-0">
       <div className="flex items-center justify-between px-6 py-4">
-        <Heading level="h2">Product description</Heading>
+        <Heading level="h2">{t("productContentSections.title")}</Heading>
         <Button
           isLoading={mutation.isPending}
           onClick={handleSave}
           size="small"
           type="button"
         >
-          Save
+          {t("productContentSections.actions.save")}
         </Button>
       </div>
-      <RichHtmlEditor
-        ariaLabel="Product description"
-        onChangeHtml={(html) => {
-          descriptionHtmlRef.current = html
-        }}
-        onError={(message) => toast.error(message)}
-        valueHtml={savedDescriptionHtml}
-      />
+      <div className="divide-y">
+        {PRODUCT_CONTENT_SECTIONS.map((section) => (
+          <section key={section.key}>
+            <div className="px-6 py-4">
+              <Text leading="compact" size="small" weight="plus">
+                {t(`productContentSections.sections.${section.key}.title`)}
+              </Text>
+            </div>
+            <RichHtmlEditor
+              ariaLabel={t(
+                `productContentSections.sections.${section.key}.ariaLabel`
+              )}
+              onChangeHtml={(html) => {
+                sectionHtmlDirtyRef.current = true
+                sectionHtmlChangeVersionRef.current += 1
+                sectionHtmlRef.current = {
+                  ...sectionHtmlRef.current,
+                  [section.key]: html,
+                }
+              }}
+              onError={(message) => toast.error(message)}
+              valueHtml={savedSectionHtml[section.key]}
+            />
+          </section>
+        ))}
+      </div>
     </Container>
   )
 }

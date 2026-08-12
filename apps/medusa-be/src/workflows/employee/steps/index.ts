@@ -1,4 +1,3 @@
-// biome-ignore lint/performance/noBarrelFile: Workflow steps use this index as the package-local public API.
 export * from "./create-employees"
 export * from "./create-or-restore-employee"
 export * from "./delete-employees"

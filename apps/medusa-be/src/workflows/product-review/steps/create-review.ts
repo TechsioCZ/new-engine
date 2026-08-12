@@ -4,7 +4,7 @@ import type ProductReviewModuleService from "../../../modules/product-review/ser
 import type { CreateReviewWorkflowInput } from "../types"
 
 export const createReviewStep = createStep(
-  "create-product-review",
+  "create-review",
   async (input: CreateReviewWorkflowInput, { container }) => {
     const service = container.resolve<ProductReviewModuleService>(
       PRODUCT_REVIEW_MODULE
