@@ -92,6 +92,10 @@ export const STOREFRONT_CATALOG_PRODUCT_TEXT_DEFINITIONS = [
     "Zástupný stav vyprodaného produktu, když katalog neposkytne vlastní label."
   ),
   defineCatalogProductText(
+    "catalog.product_detail.stock.physical_store_only_notice",
+    "Informace, že sortiment dostupný v kamenných prodejnách nelze objednat v e-shopu."
+  ),
+  defineCatalogProductText(
     "catalog.product_detail.delivery_by",
     "Text očekávaného doručení produktu."
   ),

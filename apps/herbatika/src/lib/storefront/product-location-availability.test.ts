@@ -3,6 +3,7 @@ import {
   formatLocationAvailability,
   resolveProductLocationAvailabilityState,
   resolveSelectedVariantLocationAvailability,
+  shouldShowPhysicalStoreOnlyNotice,
 } from "./product-location-availability"
 
 const availability = {
@@ -107,5 +108,81 @@ describe("resolveProductLocationAvailabilityState", () => {
     ).toMatchObject({
       isInventoryManaged: false,
     })
+  })
+})
+
+describe("shouldShowPhysicalStoreOnlyNotice", () => {
+  it("shows the notice when online stock is unavailable but a location has stock", () => {
+    expect(
+      shouldShowPhysicalStoreOnlyNotice(
+        {
+          items: availability.variants[0].location_availability,
+          isLoading: false,
+          error: null,
+          isInventoryManaged: true,
+        },
+        false
+      )
+    ).toBe(true)
+  })
+
+  it("hides the notice when the product is available online", () => {
+    expect(
+      shouldShowPhysicalStoreOnlyNotice(
+        {
+          items: availability.variants[0].location_availability,
+          isLoading: false,
+          error: null,
+          isInventoryManaged: true,
+        },
+        true
+      )
+    ).toBe(false)
+  })
+
+  it("hides the notice when every location is out of stock", () => {
+    expect(
+      shouldShowPhysicalStoreOnlyNotice(
+        {
+          items: [
+            {
+              location_id: "sloc_store",
+              location_name: "Prodejna",
+              available_quantity: 0,
+            },
+          ],
+          isLoading: false,
+          error: null,
+          isInventoryManaged: true,
+        },
+        false
+      )
+    ).toBe(false)
+  })
+
+  it("hides the notice until location availability loads successfully", () => {
+    expect(
+      shouldShowPhysicalStoreOnlyNotice(
+        {
+          items: availability.variants[0].location_availability,
+          isLoading: true,
+          error: null,
+          isInventoryManaged: true,
+        },
+        false
+      )
+    ).toBe(false)
+
+    expect(
+      shouldShowPhysicalStoreOnlyNotice(
+        {
+          items: availability.variants[0].location_availability,
+          isLoading: false,
+          error: "Request failed",
+          isInventoryManaged: true,
+        },
+        false
+      )
+    ).toBe(false)
   })
 })

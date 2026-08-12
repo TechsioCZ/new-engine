@@ -44,6 +44,13 @@ export const resolveProductLocationAvailabilityState = (
   isInventoryManaged: options.isInventoryManaged !== false,
 })
 
+export const shouldShowPhysicalStoreOnlyNotice = (
+  state: ProductLocationAvailabilityState,
+  isOnlineInStock: boolean
+) =>
+  !(isOnlineInStock || state.isLoading || state.error) &&
+  Boolean(state.items?.some((location) => location.available_quantity > 0))
+
 export const formatLocationAvailability = (
   availableQuantity: number,
   options: { isInventoryManaged?: boolean | null } = {}

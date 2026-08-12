@@ -313,6 +313,27 @@ describe("storefront text registry", () => {
     })
   })
 
+  it("creates localized physical-store-only notices for every market", () => {
+    const physicalStoreOnlyNoticeRows = getStorefrontTextSeedRows().filter(
+      (row) =>
+        row.key === "catalog.product_detail.stock.physical_store_only_notice"
+    )
+
+    expect(
+      Object.fromEntries(
+        physicalStoreOnlyNoticeRows.map((row) => [
+          row.market,
+          row.default_value,
+        ])
+      )
+    ).toEqual({
+      cz: "Sortiment dostupný v kamenných prodejnách není možné objednat v e-shopu.",
+      hu: "Az üzletekben elérhető termékek nem rendelhetők meg a webáruházban.",
+      ro: "Produsele disponibile în magazinele fizice nu pot fi comandate în magazinul online.",
+      sk: "Sortiment dostupný v kamenných predajniach nie je možné objednať v e-shope.",
+    })
+  })
+
   it("creates localized completed-order defaults for every market", () => {
     const completedOrderTitleRows = getStorefrontTextSeedRows().filter(
       (row) => row.key === "checkout.completed_order_title"

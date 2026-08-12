@@ -9,6 +9,7 @@ import { SupportingText } from "@/components/text/supporting-text"
 import {
   formatLocationAvailability,
   type ProductLocationAvailabilityState,
+  shouldShowPhysicalStoreOnlyNotice,
 } from "@/lib/storefront/product-location-availability"
 
 type ProductDetailDeliveryInfoProps = {
@@ -27,6 +28,10 @@ export function ProductDetailDeliveryInfo({
   const showLocationAvailability =
     !(isLoading || error) && Boolean(items?.length)
   const showLocationAvailabilityError = !isLoading && Boolean(error)
+  const showPhysicalStoreOnlyNotice = shouldShowPhysicalStoreOnlyNotice(
+    locationAvailabilityState,
+    offerState.isInStock
+  )
   const format = useFormatter()
   const tCatalog = useTranslations("catalog")
   const availabilityToneClass = offerState.isInStock
@@ -89,30 +94,38 @@ export function ProductDetailDeliveryInfo({
       ) : null}
 
       {showLocationAvailability && items ? (
-        <dl className="grid gap-250 border-border-secondary border-t pt-400">
-          {items.map((location) => {
-            const isAvailable =
-              !isInventoryManaged || location.available_quantity > 0
+        <div className="space-y-250 border-border-secondary border-t pt-400">
+          {showPhysicalStoreOnlyNotice ? (
+            <SupportingText>
+              {tCatalog("product_detail.stock.physical_store_only_notice")}
+            </SupportingText>
+          ) : null}
 
-            return (
-              <div
-                className="flex min-w-0 items-center justify-between gap-250"
-                key={location.location_id}
-              >
-                <dt className="min-w-0 text-fg-secondary text-sm leading-snug">
-                  {location.location_name}
-                </dt>
-                <dd
-                  className={`shrink-0 text-right font-semibold text-sm ${isAvailable ? "text-primary" : "text-warning"}`}
+          <dl className="grid gap-250">
+            {items.map((location) => {
+              const isAvailable =
+                !isInventoryManaged || location.available_quantity > 0
+
+              return (
+                <div
+                  className="flex min-w-0 items-center justify-between gap-250"
+                  key={location.location_id}
                 >
-                  {formatLocationAvailability(location.available_quantity, {
-                    isInventoryManaged,
-                  })}
-                </dd>
-              </div>
-            )
-          })}
-        </dl>
+                  <dt className="min-w-0 text-fg-secondary text-sm leading-snug">
+                    {location.location_name}
+                  </dt>
+                  <dd
+                    className={`shrink-0 text-right font-semibold text-sm ${isAvailable ? "text-primary" : "text-warning"}`}
+                  >
+                    {formatLocationAvailability(location.available_quantity, {
+                      isInventoryManaged,
+                    })}
+                  </dd>
+                </div>
+              )
+            })}
+          </dl>
+        </div>
       ) : null}
 
       {showLocationAvailabilityError ? (
