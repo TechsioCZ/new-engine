@@ -83,11 +83,10 @@ PAYLOAD_SEED_ARTICLES_STATUS=published \
 pnpm --filter @nmit/payload run seed
 ```
 
-The seed and the authenticated Medusa Admin upload use the same import pipeline. A raw Shoptet XLSX is converted to
-Lexical rich text first and then imported with its inline media, product blocks, categories, SEO metadata, author, and
-related article references. Re-running the seed skips existing localized articles by slug; set
-`PAYLOAD_SEED_ARTICLES_OVERWRITE=1` to update already imported rows. Row-level failures are reported after the
-successfully processed rows, so a partial import is intentionally not atomic.
+The XLSX import uses the same parser as the Payload admin import (`title` and `content` required, plus optional
+`excerpt`, `slug`, `category`, `category_slug`, `tags`, `status`, `publishedDate`, `featured_image_path`, and
+`author_email`). Re-running the seed will skip existing localized articles by slug; set
+`PAYLOAD_SEED_ARTICLES_OVERWRITE=1` to update already imported rows.
 
 ### 5) Start dev server
 
@@ -115,8 +114,6 @@ All endpoints are mounted under the Payload API base (default: `/api`):
 
 - `GET /api/article-categories-with-articles?categorySlug=&locale=`
 - `GET /api/page-categories-with-pages?categorySlug=&locale=`
-- `GET /api/medusa-products?search=&limit=`
-- `POST /api/article-import` (API key; normally called through Medusa Admin)
 - `POST /api/medusa-sso` (form-data `token`, optional `returnTo`)
 
 ## Scripts

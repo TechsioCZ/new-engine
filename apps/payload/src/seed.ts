@@ -12,9 +12,9 @@ import { resolveEnvLocales } from "./lib/utils/env"
 import config from "./payload.config"
 import type { Article } from "./payload-types"
 import {
-  type ArticleImportPipelineOptions,
-  runArticleImportPipeline,
-} from "./scripts/article-import-pipeline"
+  type ArticleImportOptions,
+  runImportFromFile,
+} from "./scripts/import-articles"
 
 type SeedPayload = Awaited<ReturnType<typeof getPayload>>
 type PayloadId = number
@@ -682,14 +682,14 @@ const resolveBlogArticlesXlsxPath = () =>
 
 const parseImportStatus = (
   value: string | undefined
-): ArticleImportPipelineOptions["status"] => {
+): ArticleImportOptions["status"] => {
   const normalized = normalizeInlineText(value)?.toLowerCase()
   if (!normalized) {
     return
   }
 
   return ["draft", "published", "archived"].includes(normalized)
-    ? (normalized as ArticleImportPipelineOptions["status"])
+    ? (normalized as ArticleImportOptions["status"])
     : undefined
 }
 
@@ -718,7 +718,7 @@ const createBlogArticlesXlsxSeed = async (payload: SeedPayload) => {
   }
 
   payload.logger.info(`Seeding Payload blog articles from ${filePath}`)
-  const result = await runArticleImportPipeline({
+  const result = await runImportFromFile({
     filePath,
     sheetName: normalizeInlineText(
       process.env[PAYLOAD_SEED_ARTICLES_SHEET_ENV]
@@ -735,11 +735,8 @@ const createBlogArticlesXlsxSeed = async (payload: SeedPayload) => {
   })
 
   payload.logger.info(
-    `Payload blog article XLSX seed complete: imported ${result.imported}, failed ${result.failed}, skipped ${result.skipped} from ${result.total}`
+    `Payload blog article XLSX seed complete: imported ${result.imported}, skipped ${result.skipped} from ${result.total}`
   )
-  if (result.failed > 0) {
-    throw new Error(`Payload blog article import failed for ${result.failed} row(s)`)
-  }
 }
 
 const createHerbaticaProductArticleSeed = async (
