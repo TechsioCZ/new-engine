@@ -11,9 +11,19 @@ import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import { AccountSurface } from "./account-surface"
 
+const MISSING_TOKEN_MESSAGE = "Potvrdzovací odkaz neobsahuje platný token."
+const INVALID_TOKEN_MESSAGE =
+  "Potvrdzovací odkaz je neplatný alebo jeho platnosť vypršala."
+const DEACTIVATION_FAILED_MESSAGE = "Účet sa nepodarilo zrušiť."
+const INVALID_TOKEN_ERROR_MESSAGE =
+  "Account deactivation link is invalid or expired."
+
 type AccountDeactivationConfirmationProps = {
   token: string
 }
+
+const isInvalidTokenError = (error: unknown) =>
+  resolveErrorMessage(error, "").includes(INVALID_TOKEN_ERROR_MESSAGE)
 
 export function AccountDeactivationConfirmation({
   token,
@@ -24,10 +34,12 @@ export function AccountDeactivationConfirmation({
     null
   )
   const [isConfirmed, setIsConfirmed] = useState(false)
+  const displayedError = normalizedToken
+    ? confirmationError
+    : MISSING_TOKEN_MESSAGE
 
   const handleConfirmAccountDeactivation = async () => {
     if (!normalizedToken) {
-      setConfirmationError("Potvrdzovací odkaz je neplatný.")
       return
     }
 
@@ -38,7 +50,8 @@ export function AccountDeactivationConfirmation({
         token: normalizedToken,
       })
       if (!result.deleted) {
-        throw new Error("Účet sa nepodarilo zrušiť.")
+        setConfirmationError(DEACTIVATION_FAILED_MESSAGE)
+        return
       }
 
       cartStorage.clearCartId()
@@ -46,17 +59,16 @@ export function AccountDeactivationConfirmation({
       window.setTimeout(() => window.location.replace("/"), 1200)
     } catch (error) {
       setConfirmationError(
-        resolveErrorMessage(
-          error,
-          "Potvrdzovací odkaz je neplatný alebo jeho platnosť vypršala."
-        )
+        isInvalidTokenError(error)
+          ? INVALID_TOKEN_MESSAGE
+          : DEACTIVATION_FAILED_MESSAGE
       )
     }
   }
 
   return (
     <main className="mx-auto w-full max-w-max-w p-account-page 2xl:p-account-page-lg">
-      <AccountSurface className="mx-auto max-w-3xl space-y-400">
+      <AccountSurface className="mx-auto max-w-auth-content space-y-400">
         <header className="space-y-200">
           <h1 className="font-semibold text-2xl">Potvrdenie zrušenia účtu</h1>
           <p className="text-fg-secondary text-sm">
@@ -78,9 +90,9 @@ export function AccountDeactivationConfirmation({
           </div>
         ) : (
           <div className="space-y-300">
-            {confirmationError ? (
+            {displayedError ? (
               <StatusText align="start" showIcon status="error">
-                {confirmationError}
+                {displayedError}
               </StatusText>
             ) : null}
 

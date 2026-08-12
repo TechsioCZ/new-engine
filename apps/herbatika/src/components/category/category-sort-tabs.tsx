@@ -28,7 +28,7 @@ export function CategorySortTabs({
               className={`shrink-0 rounded-full px-350 py-150 font-open-sans font-semibold text-sm leading-tight transition-colors ${
                 isActive
                   ? "bg-primary text-fg-reverse"
-                  : "text-fg-primary hover:text-primary"
+                  : "text-fg-primary hover:text-primary max-md:border max-md:border-primary"
               }`}
               key={item.value}
               onClick={() => onSortChange(item.value)}

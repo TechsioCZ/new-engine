@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import { Suspense } from "react"
 import { AccountDeactivationConfirmation } from "@/components/account/account-deactivation-confirmation"
 
 type AccountDeactivationConfirmationPageProps = {
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
 const resolveSearchParam = (value?: string | string[]) =>
   Array.isArray(value) ? value[0] : value
 
-export default async function AccountDeactivationConfirmationPage({
+async function AccountDeactivationConfirmationContent({
   searchParams,
 }: AccountDeactivationConfirmationPageProps) {
   const resolvedSearchParams = await searchParams
@@ -23,5 +24,30 @@ export default async function AccountDeactivationConfirmationPage({
     <AccountDeactivationConfirmation
       token={resolveSearchParam(resolvedSearchParams.token) ?? ""}
     />
+  )
+}
+
+function AccountDeactivationConfirmationFallback() {
+  return (
+    <main className="mx-auto w-full max-w-max-w p-account-page 2xl:p-account-page-lg">
+      <section
+        aria-live="polite"
+        className="mx-auto max-w-auth-content rounded-lg border border-border-secondary bg-surface p-550"
+      >
+        <p className="text-fg-secondary text-sm">
+          Načítava sa potvrdenie zrušenia účtu.
+        </p>
+      </section>
+    </main>
+  )
+}
+
+export default function AccountDeactivationConfirmationPage({
+  searchParams,
+}: AccountDeactivationConfirmationPageProps) {
+  return (
+    <Suspense fallback={<AccountDeactivationConfirmationFallback />}>
+      <AccountDeactivationConfirmationContent searchParams={searchParams} />
+    </Suspense>
   )
 }

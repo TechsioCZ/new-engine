@@ -1,7 +1,7 @@
 "use client"
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import type { Product } from "@/components/product-detail/product-detail.types"
 import {
@@ -20,6 +20,7 @@ import {
 } from "@/components/product-detail/product-detail-pricing-data.utils"
 import { useProductDetailDebugLog } from "@/components/product-detail/use-product-detail-debug-log"
 import { useProductDetailRelatedProducts } from "@/components/product-detail/use-product-detail-related-products"
+import { mergeBrandGpsrIntoProductContentSections } from "@/components/product-detail/utils/brand-gpsr"
 import {
   resolveGalleryItems,
   resolveProductHighlights,
@@ -53,6 +54,7 @@ export function useProductDetailData({
   handle,
   initialVariantId,
 }: UseProductDetailDataProps) {
+  const locale = useLocale()
   const tCatalog = useTranslations("catalog")
   const tNavigation = useTranslations("navigation")
   const authQuery = useAuth()
@@ -133,17 +135,22 @@ export function useProductDetailData({
   )
   const productHighlights = resolveProductHighlights(productSummaryText)
   const otherSectionTitle = tCatalog("product_detail.sections.other")
-  const productContentSections = mergeWarrantyIntoProductContentSections(
-    resolveProductContentSections(product, {
-      composition: tCatalog("product_detail.sections.composition"),
-      content: tCatalog("product_detail.sections.content"),
-      description: tCatalog("product_detail.sections.description"),
-      other: otherSectionTitle,
-      usage: tCatalog("product_detail.sections.usage"),
-      warning: tCatalog("product_detail.sections.warning"),
-    }),
-    resolveProductWarranty(productAttributesQuery.productAttributes),
-    otherSectionTitle
+  const productContentSections = mergeBrandGpsrIntoProductContentSections(
+    mergeWarrantyIntoProductContentSections(
+      resolveProductContentSections(product, {
+        composition: tCatalog("product_detail.sections.composition"),
+        content: tCatalog("product_detail.sections.content"),
+        description: tCatalog("product_detail.sections.description"),
+        other: otherSectionTitle,
+        usage: tCatalog("product_detail.sections.usage"),
+        warning: tCatalog("product_detail.sections.warning"),
+      }),
+      resolveProductWarranty(productAttributesQuery.productAttributes),
+      otherSectionTitle
+    ),
+    product,
+    otherSectionTitle,
+    locale
   )
   const mediaFacts = resolveProductMediaFacts(product, productContentSections, {
     dailyCapsules: (count) =>
