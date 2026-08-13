@@ -50,29 +50,13 @@ const resolveProductExternalId = (product: MedusaStoreProduct) => {
 const isAbortSignal = (value: unknown): value is AbortSignal =>
   typeof AbortSignal !== "undefined" && value instanceof AbortSignal
 
-const createTimeoutSignal = (timeoutMs: number) => {
-  if (typeof AbortSignal !== "undefined" && "timeout" in AbortSignal) {
-    return AbortSignal.timeout(timeoutMs)
-  }
-
-  const controller = new AbortController()
-  setTimeout(() => controller.abort(), timeoutMs).unref?.()
-  return controller.signal
-}
-
 const resolveFetchSignal = (signal: unknown) => {
-  const timeoutSignal = createTimeoutSignal(PRODUCT_FETCH_TIMEOUT_MS)
+  const timeoutSignal = AbortSignal.timeout(PRODUCT_FETCH_TIMEOUT_MS)
   if (!isAbortSignal(signal)) {
     return timeoutSignal
   }
 
-  const abortSignal = AbortSignal as typeof AbortSignal & {
-    any?: (signals: AbortSignal[]) => AbortSignal
-  }
-
-  return typeof abortSignal.any === "function"
-    ? abortSignal.any([signal, timeoutSignal])
-    : signal
+  return AbortSignal.any([signal, timeoutSignal])
 }
 
 const fetchProducts = async ({

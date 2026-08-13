@@ -13,6 +13,15 @@ export const createMedusaProductReferenceField = (
   name: "productExternalId",
   type: "text",
   label: options.label ?? "Product",
+  validate: (value) => {
+    if (value === null || value === undefined || value === "") {
+      return true
+    }
+
+    return typeof value === "string" && value === value.trim()
+      ? true
+      : "Product reference must not be blank or contain surrounding whitespace"
+  },
   admin: {
     description: options.description,
     components: {

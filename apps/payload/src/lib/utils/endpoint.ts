@@ -76,7 +76,7 @@ export const buildJsonResponse = (
     req,
   })
 
-  return new Response(JSON.stringify(data), {
+  return Response.json(data, {
     status,
     headers,
   })

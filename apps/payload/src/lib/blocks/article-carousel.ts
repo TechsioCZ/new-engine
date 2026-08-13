@@ -8,6 +8,11 @@ const validateArticleSlug: TextFieldSingleValidation = async (
     return "Article slug is required"
   }
 
+  const slug = value.trim()
+  if (value !== slug) {
+    return "Article slug must not contain leading or trailing whitespace"
+  }
+
   if (req.context?.skipArticleSlugValidation) {
     return true
   }
@@ -16,9 +21,10 @@ const validateArticleSlug: TextFieldSingleValidation = async (
     req,
     collection: "articles",
     where: {
-      slug: {
-        equals: value.trim(),
-      },
+      and: [
+        { slug: { equals: slug } },
+        { status: { equals: "published" } },
+      ],
     },
     depth: 0,
     limit: 1,
@@ -28,7 +34,7 @@ const validateArticleSlug: TextFieldSingleValidation = async (
 
   return result.docs.length > 0
     ? true
-    : `Article with slug "${value.trim()}" does not exist`
+    : `Published article with slug "${slug}" does not exist`
 }
 
 export const ARTICLE_CAROUSEL_BLOCK_SLUG = "articleCarousel"

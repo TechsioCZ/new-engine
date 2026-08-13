@@ -27,6 +27,7 @@ import { Pages } from "./collections/pages"
 import { Users } from "./collections/users"
 import { articleCategoriesWithArticlesEndpoint } from "./lib/endpoints/article-categories-with-articles"
 import { articleImportEndpoint } from "./lib/endpoints/article-import"
+import { articleOptionsEndpoint } from "./lib/endpoints/article-options"
 import { healthEndpoint } from "./lib/endpoints/health"
 import { medusaProductsEndpoint } from "./lib/endpoints/medusa-products"
 import { medusaSsoPostEndpoint } from "./lib/endpoints/medusa-sso"
@@ -77,6 +78,7 @@ export default buildConfig({
     ...(isPagesEnabled ? [pageCategoriesWithPagesEndpoint] : []),
     ...(isArticlesEnabled ? [articleCategoriesWithArticlesEndpoint] : []),
     ...(isArticlesEnabled ? [articleImportEndpoint] : []),
+    ...(isArticlesEnabled ? [articleOptionsEndpoint] : []),
     ...(isArticlesEnabled ? [medusaProductsEndpoint] : []),
   ],
   routes: {
