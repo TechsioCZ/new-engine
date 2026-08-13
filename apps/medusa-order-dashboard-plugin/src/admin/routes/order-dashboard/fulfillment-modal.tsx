@@ -244,6 +244,12 @@ export function OrderFulfillmentModal({
   return (
     <FocusModal onOpenChange={handleOpenChange} open={open}>
       <FocusModal.Content>
+        <FocusModal.Title className="sr-only">
+          {t("fulfillmentModal.title")}
+        </FocusModal.Title>
+        <FocusModal.Description className="sr-only">
+          {t("fulfillmentModal.description")}
+        </FocusModal.Description>
         <div className="flex h-full flex-col overflow-hidden">
           <FocusModal.Header>
             <div className="flex w-full items-center justify-end gap-x-2">
@@ -496,7 +502,7 @@ function FulfillmentPreviewSection({
                     size="small"
                   >
                     {order.itemSummaries
-                      .map((item) => `${item.quantity}x ${item.title}`)
+                      .map((item) => `${item.quantity} × ${item.title}`)
                       .join(", ")}
                   </Text>
                   <Text

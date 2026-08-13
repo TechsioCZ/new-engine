@@ -50,14 +50,14 @@ class OrderNoteModuleService extends MedusaService({ OrderNote }) {
         sharedContext
       )
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
+      const message = (
+        error instanceof Error ? error.message : String(error)
+      ).toLowerCase()
+      const isUniquenessError = ["already exists", "duplicate", "unique"].some(
+        (fragment) => message.includes(fragment)
+      )
 
-      if (
-        !(
-          message.toLowerCase().includes("duplicate") ||
-          message.toLowerCase().includes("unique")
-        )
-      ) {
+      if (!isUniquenessError) {
         throw error
       }
 

@@ -6,14 +6,12 @@ export async function POST(
   req: MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>,
   res: MedusaResponse
 ): Promise<void> {
-  const { order_ids: orderIds } = req.validatedBody
-  const { buffer, filename } = await createOrderExpeditionPdfResponse(
-    req,
-    orderIds
-  )
+  const { mode = "combined", order_ids: orderIds } = req.validatedBody
+  const { buffer, contentType, filename } =
+    await createOrderExpeditionPdfResponse(req, orderIds, mode)
 
   res.set({
-    "Content-Type": "application/pdf",
+    "Content-Type": contentType,
     "Content-Disposition": `attachment; filename="${filename}"`,
     "Content-Length": buffer.length,
   })

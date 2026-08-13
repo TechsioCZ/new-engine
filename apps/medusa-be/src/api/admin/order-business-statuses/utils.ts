@@ -2,8 +2,6 @@ import type { Query } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
 import {
   getManualOrderBusinessStatusId,
-  type ManualOrderBusinessStatusId,
-  ORDER_BUSINESS_STATUS_METADATA_KEY,
   type OrderBusinessStatusInput,
   type OrderBusinessStatusSummary,
   resolveOrderBusinessStatus,
@@ -38,6 +36,8 @@ export const ORDER_BUSINESS_STATUS_ORDER_FIELDS = [
   "fulfillments.shipped_at",
   "fulfillments.delivered_at",
   "fulfillments.canceled_at",
+  // Ensures Medusa hydrates the versioned order-shipping relation correctly.
+  "shipping_methods.id",
 ]
 
 export async function fetchOrderBusinessStatusOrder(query: Query, id: string) {
@@ -97,21 +97,6 @@ export function toOrderBusinessStatusSummary(
     manual_status: getManualOrderBusinessStatusId(order) ?? null,
     total: order.total,
   }
-}
-
-export function buildOrderBusinessStatusMetadata(
-  metadata: Record<string, unknown> | null | undefined,
-  status: ManualOrderBusinessStatusId | null
-) {
-  const nextMetadata = { ...(metadata ?? {}) }
-
-  if (status === null) {
-    nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = null
-  } else {
-    nextMetadata[ORDER_BUSINESS_STATUS_METADATA_KEY] = status
-  }
-
-  return nextMetadata
 }
 
 function normalizeDate(value: Date | string | null | undefined) {

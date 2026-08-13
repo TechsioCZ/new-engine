@@ -25,8 +25,30 @@ const ORDER_DASHBOARD_ALLOWED_STATUS_TRANSITIONS = {
   OrderDashboardTargetStatus,
   readonly OrderDashboardTargetStatus[]
 >
-const PAYMENT_PROVIDER_PREFIX_PATTERN = /^pp_/u
-const PAYMENT_PROVIDER_TOKEN_SEPARATOR_PATTERN = /[_-]+/u
+
+const PAYMENT_STATUS_TRANSLATION_KEYS = {
+  authorized: "authorized",
+  awaiting: "awaiting",
+  canceled: "canceled",
+  captured: "captured",
+  not_paid: "not_paid",
+  partially_authorized: "partially_authorized",
+  partially_captured: "partially_captured",
+  partially_refunded: "partially_refunded",
+  refunded: "refunded",
+  requires_action: "requires_action",
+} as const
+
+const PAYMENT_METHOD_TRANSLATION_KEYS = {
+  comgate: "comgate",
+  gopay: "gopay",
+  pp_paykit_comgate: "comgate",
+  pp_paykit_gopay: "gopay",
+  pp_paykit_stripe: "stripe",
+  pp_qr_manual_default: "qr",
+  pp_system_default: "manual",
+  stripe: "stripe",
+} as const
 
 export function formatLocaleCode(language?: string) {
   return language ? language.replace("_", "-") : undefined
@@ -79,16 +101,70 @@ export function formatOrderTotal(order: OrderDashboardOrder, locale?: string) {
   }
 }
 
-export function getCarrierLabel(order: OrderDashboardOrder) {
-  return order.carrier.shipping_method_name ?? order.carrier.label
-}
+export function getCarrierLabel(
+  order: OrderDashboardOrder,
+  t?: TranslationFunction
+) {
+  const shippingMethodName = order.carrier.shipping_method_name?.trim()
 
-export function formatPaymentMethodLabel(value: string | null | undefined) {
-  if (!value) {
-    return "-"
+  if (
+    shippingMethodName &&
+    !(
+      order.carrier.value === "other" &&
+      shippingMethodName.toLowerCase() === "other"
+    )
+  ) {
+    return shippingMethodName
   }
 
-  return formatPaymentProviderId(value) ?? value
+  return t ? t(`carriers.${order.carrier.value}`) : order.carrier.label
+}
+
+export function formatOrderStatusLabel(
+  value: string | null | undefined,
+  t: TranslationFunction
+) {
+  if (!value) {
+    return t("fallback.notAvailable")
+  }
+
+  const status = value.toLowerCase()
+
+  return isOrderDashboardTargetStatus(status)
+    ? t(`targetStatus.${status}`)
+    : t("fallback.unknownOrderStatus", { status: value })
+}
+
+export function formatPaymentMethodLabel(
+  value: string | null | undefined,
+  t: TranslationFunction
+) {
+  const method = value?.trim()
+
+  if (!(method && method.toLowerCase() !== "unknown")) {
+    return t("fallback.notAvailable")
+  }
+
+  const translationKey = getPaymentMethodTranslationKey(method)
+
+  return translationKey
+    ? t(`paymentMethod.${translationKey}`)
+    : t("fallback.unknownPaymentMethod", { method })
+}
+
+export function formatPaymentStatusLabel(
+  value: string | null | undefined,
+  t: TranslationFunction
+) {
+  if (!value) {
+    return t("fallback.notAvailable")
+  }
+
+  const status = value.toLowerCase()
+
+  return isKnownPaymentStatus(status)
+    ? t(`paymentStatus.${PAYMENT_STATUS_TRANSLATION_KEYS[status]}`)
+    : t("fallback.unknownPaymentStatus", { status: value })
 }
 
 export function getOrderDashboardTransitionBlockReason(
@@ -178,41 +254,24 @@ export function isOrderDashboardTargetStatus(
   )
 }
 
-function formatPaymentProviderId(providerId: string) {
-  const tokens = providerId
-    .replace(PAYMENT_PROVIDER_PREFIX_PATTERN, "")
-    .split(PAYMENT_PROVIDER_TOKEN_SEPARATOR_PATTERN)
-    .filter(Boolean)
+function getPaymentMethodTranslationKey(value: string) {
+  const normalized = value.toLowerCase()
 
-  if (!tokens.length) {
-    return
-  }
-
-  const meaningfulTokens = tokens[0] === "paykit" ? tokens.slice(1) : tokens
-  const lastToken = meaningfulTokens.at(-1)
-  const labelTokens =
-    meaningfulTokens[0] !== "system" &&
-    meaningfulTokens.length > 1 &&
-    lastToken === "default"
-      ? meaningfulTokens.slice(0, -1)
-      : meaningfulTokens
-
-  return labelTokens.map(formatPaymentProviderToken).join(" ")
+  return isKnownPaymentMethod(normalized)
+    ? PAYMENT_METHOD_TRANSLATION_KEYS[normalized]
+    : undefined
 }
 
-function formatPaymentProviderToken(token: string) {
-  switch (token.toLowerCase()) {
-    case "qr":
-      return "QR"
-    case "gopay":
-      return "GoPay"
-    case "paypal":
-      return "PayPal"
-    case "skippay":
-      return "SkipPay"
-    default:
-      return `${token.charAt(0).toUpperCase()}${token.slice(1)}`
-  }
+function isKnownPaymentMethod(
+  value: string
+): value is keyof typeof PAYMENT_METHOD_TRANSLATION_KEYS {
+  return Object.hasOwn(PAYMENT_METHOD_TRANSLATION_KEYS, value)
+}
+
+function isKnownPaymentStatus(
+  value: string
+): value is keyof typeof PAYMENT_STATUS_TRANSLATION_KEYS {
+  return Object.hasOwn(PAYMENT_STATUS_TRANSLATION_KEYS, value)
 }
 
 function isOrderDashboardTransitionSourceStatus(
@@ -224,7 +283,7 @@ function isOrderDashboardTransitionSourceStatus(
 function formatTransitionStatusLabel(status: string, t: TranslationFunction) {
   return isOrderDashboardTargetStatus(status)
     ? t(`targetStatus.${status}`)
-    : status.replace(/_/g, " ")
+    : t("fallback.unknownOrderStatus", { status })
 }
 
 function formatTransitionStatusSubject(status: string, t: TranslationFunction) {
