@@ -164,6 +164,21 @@ export const fieldLabels = {
     cs: "Hlavní obrázek",
     sk: "Hlavný obrázok",
   },
+  articleSidebar: {
+    en: "Article sidebar",
+    cs: "Postranní panel článku",
+    sk: "Bočný panel článku",
+  },
+  sidebarPromoImage: {
+    en: "Promotional image",
+    cs: "Reklamní obrázek",
+    sk: "Reklamný obrázok",
+  },
+  sidebarProduct: {
+    en: "Featured product",
+    cs: "Doporučený produkt",
+    sk: "Odporúčaný produkt",
+  },
   category: {
     en: "Category",
     cs: "Kategorie",

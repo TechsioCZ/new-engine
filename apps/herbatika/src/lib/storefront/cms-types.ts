@@ -57,6 +57,10 @@ export type CmsArticle = {
   primaryCategory?: CmsCategory | null
   readingTime?: number | null
   relatedArticles?: CmsArticleSummary[] | null
+  sidebar?: {
+    promoImage?: CmsMedia | string | null
+    product?: CmsProductReference | null
+  } | null
   tableOfContents?: Array<{
     id?: string | null
     level?: number | null

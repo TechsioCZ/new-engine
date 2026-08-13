@@ -2,11 +2,14 @@ import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
 import NextLink from "next/link"
 import { useLocale, useTranslations } from "next-intl"
+import { getTranslations } from "next-intl/server"
 import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb"
 import type { BlogPost } from "@/lib/storefront/blog-content"
+import { resolveBlogProductReference } from "@/lib/storefront/blog-product-references"
+import { resolveBlogProducts } from "@/lib/storefront/blog-products.server"
 import { BlogArticleContent } from "./blog-article-content"
 import { BlogArticleSidebar } from "./blog-article-sidebar"
 import { BlogAuthorCard } from "./blog-author-card"
@@ -18,8 +21,19 @@ type BlogDetailPageProps = {
   post: BlogPost
 }
 
-export function BlogDetailPage({ post }: BlogDetailPageProps) {
-  const tContent = useTranslations("content")
+export async function BlogDetailPage({ post }: BlogDetailPageProps) {
+  const tContent = await getTranslations("content")
+  const productReferences = post.contentSegments.flatMap((segment) =>
+    segment.type === "productCarousel" ? segment.products : []
+  )
+  if (post.sidebar?.product) {
+    productReferences.push(post.sidebar.product)
+  }
+  const products = await resolveBlogProducts(productReferences)
+  const sidebarProduct = post.sidebar?.product
+    ? resolveBlogProductReference(post.sidebar.product, products)
+    : undefined
+  const hasSidebar = Boolean(post.sidebar?.promoImage || sidebarProduct)
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
       label: tContent("pages.blog"),
@@ -36,7 +50,13 @@ export function BlogDetailPage({ post }: BlogDetailPageProps) {
       <div className="mx-auto flex w-full max-w-max-w flex-col gap-blog-detail-page-gap p-blog-detail-page 2xl:p-blog-detail-page-lg">
         <HerbatikaBreadcrumb items={breadcrumbItems} />
 
-        <div className="grid gap-blog-detail-columns-gap xl:grid-cols-[minmax(0,1fr)_342px]">
+        <div
+          className={
+            hasSidebar
+              ? "grid gap-blog-detail-columns-gap xl:grid-cols-[minmax(0,1fr)_342px]"
+              : "grid"
+          }
+        >
           <div className="min-w-0 space-y-400">
             <section className="space-y-300 rounded-2xl border border-border-secondary bg-surface p-400 max-xs:pb-100">
               <div className="flex flex-wrap gap-150">
@@ -85,7 +105,7 @@ export function BlogDetailPage({ post }: BlogDetailPageProps) {
 
             <BlogTableOfContents items={post.tableOfContents} />
 
-            <BlogArticleContent post={post} />
+            <BlogArticleContent post={post} products={products} />
 
             <BlogAuthorCard post={post} />
 
@@ -114,9 +134,14 @@ export function BlogDetailPage({ post }: BlogDetailPageProps) {
             ) : null}
           </div>
 
-          <div>
-            <BlogArticleSidebar />
-          </div>
+          {hasSidebar && post.sidebar ? (
+            <div>
+              <BlogArticleSidebar
+                product={sidebarProduct}
+                sidebar={post.sidebar}
+              />
+            </div>
+          ) : null}
         </div>
       </div>
     </main>

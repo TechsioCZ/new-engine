@@ -1,4 +1,5 @@
 import type { Block } from "payload"
+import { createMedusaProductReferenceField } from "../fields/medusa-product-reference"
 
 export const PRODUCT_CAROUSEL_BLOCK_SLUG = "productCarousel"
 
@@ -34,17 +35,7 @@ export const ProductCarouselBlock: Block = {
           : "Each item must reference a Medusa product."
       },
       fields: [
-        {
-          name: "productExternalId",
-          type: "text",
-          label: "Product",
-          admin: {
-            components: {
-              Field:
-                "/components/admin/medusa-product-reference-field#MedusaProductReferenceField",
-            },
-          },
-        },
+        createMedusaProductReferenceField(),
         {
           name: "productSlug",
           type: "text",

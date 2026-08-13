@@ -223,7 +223,7 @@ describe("PayloadModuleService", () => {
       )
       expect(cacheService.set).toHaveBeenCalledWith(
         expect.objectContaining({
-          key: "cms:articles:v5:news:en",
+          key: "cms:articles:v6:news:en",
           data: expect.objectContaining(article),
           tags: ["cms", "cms:articles"],
         })
@@ -693,7 +693,7 @@ describe("PayloadModuleService", () => {
       await service.invalidateCache("articles", "hello-world", "cs")
 
       expect(cacheService.clear).toHaveBeenNthCalledWith(1, {
-        key: "cms:articles:v5:hello-world:cs",
+        key: "cms:articles:v6:hello-world:cs",
       })
       expect(cacheService.clear).toHaveBeenNthCalledWith(2, {
         tags: ["cms:article-categories:locale:cs"],

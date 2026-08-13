@@ -7,6 +7,7 @@ import type {
   CmsStoreArticleAuthorDTO,
   CmsStoreArticleCategoryDTO,
   CmsStoreArticleDTO,
+  CmsStoreArticleSidebarDTO,
   CmsStoreMediaDTO,
   CmsStoreRelatedArticleDTO,
 } from "./types"
@@ -79,6 +80,23 @@ const mapAuthor = (value: unknown): CmsStoreArticleAuthorDTO | null => {
   }
 }
 
+const mapSidebar = (value: unknown): CmsStoreArticleSidebarDTO | null => {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const promoImage = mapMedia(value.promoImage)
+  const productExternalId = stringOrNull(value.productExternalId)?.trim()
+  if (!(promoImage || productExternalId)) {
+    return null
+  }
+
+  return {
+    promoImage,
+    product: productExternalId ? { productExternalId } : null,
+  }
+}
+
 const mapRelatedArticle = (
   value: unknown
 ): CmsStoreRelatedArticleDTO | null => {
@@ -112,35 +130,45 @@ const mapRelatedArticle = (
 
 export const toCmsStoreArticle = (
   article: CmsArticleDTO
-): CmsStoreArticleDTO => ({
-  id: article.id,
-  slug: article.slug,
-  title: article.title,
-  excerpt: article.excerpt ?? null,
-  featuredImage: mapMedia(article.featuredImage),
-  category: mapCategory(article.category),
-  categories: (article.categories ?? [])
-    .map(mapCategory)
-    .filter((category): category is CmsStoreArticleCategoryDTO => !!category),
-  primaryCategory: mapCategory(article.primaryCategory),
-  author: mapAuthor(article.articleAuthor),
-  meta: article.meta
-    ? {
-        title: article.meta.title ?? null,
-        description: article.meta.description ?? null,
-        image: mapMedia(article.meta.image),
-      }
-    : null,
-  publishedDate: article.publishedDate ?? null,
-  readingTime: article.readingTime ?? null,
-  tags: article.tags ?? [],
-  contentSegments: buildCmsArticleContentSegments(
-    article.content,
-    article.contentHTML
-  ),
-  tableOfContents: buildCmsArticleTableOfContents(article.content),
-  relatedArticles: (article.relatedArticles ?? [])
-    .map(mapRelatedArticle)
-    .filter((related): related is CmsStoreRelatedArticleDTO => !!related)
-    .slice(0, MAX_RELATED_ARTICLES),
-})
+): CmsStoreArticleDTO => {
+  const lexicalContent =
+    typeof article.content === "string" ? undefined : article.content
+  const contentHTML =
+    typeof article.content === "string"
+      ? article.content
+      : article.contentHTML
+
+  return {
+    id: article.id,
+    slug: article.slug,
+    title: article.title,
+    excerpt: article.excerpt ?? null,
+    featuredImage: mapMedia(article.featuredImage),
+    sidebar: mapSidebar(article.sidebar),
+    category: mapCategory(article.category),
+    categories: (article.categories ?? [])
+      .map(mapCategory)
+      .filter((category): category is CmsStoreArticleCategoryDTO => !!category),
+    primaryCategory: mapCategory(article.primaryCategory),
+    author: mapAuthor(article.articleAuthor),
+    meta: article.meta
+      ? {
+          title: article.meta.title ?? null,
+          description: article.meta.description ?? null,
+          image: mapMedia(article.meta.image),
+        }
+      : null,
+    publishedDate: article.publishedDate ?? null,
+    readingTime: article.readingTime ?? null,
+    tags: article.tags ?? [],
+    contentSegments: buildCmsArticleContentSegments(
+      lexicalContent,
+      contentHTML
+    ),
+    tableOfContents: buildCmsArticleTableOfContents(lexicalContent),
+    relatedArticles: (article.relatedArticles ?? [])
+      .map(mapRelatedArticle)
+      .filter((related): related is CmsStoreRelatedArticleDTO => !!related)
+      .slice(0, MAX_RELATED_ARTICLES),
+  }
+}

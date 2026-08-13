@@ -43,6 +43,40 @@ const mapCmsAuthor = (article: CmsArticle) => {
   }
 }
 
+const mapCmsSidebar = (article: CmsArticle) => {
+  const promoImageSrc = resolveCmsMediaUrl(article.sidebar?.promoImage)
+  const promoImageAlt =
+    article.sidebar?.promoImage &&
+    typeof article.sidebar.promoImage === "object"
+      ? article.sidebar.promoImage.alt?.trim()
+      : undefined
+  const productExternalId = article.sidebar?.product?.productExternalId?.trim()
+  const productSlug = article.sidebar?.product?.productSlug?.trim()
+
+  if (!(promoImageSrc || productExternalId || productSlug)) {
+    return
+  }
+
+  return {
+    ...(promoImageSrc
+      ? {
+          promoImage: {
+            alt: promoImageAlt || article.title?.trim() || "",
+            src: promoImageSrc,
+          },
+        }
+      : {}),
+    ...(productExternalId || productSlug
+      ? {
+          product: {
+            productExternalId,
+            productSlug,
+          },
+        }
+      : {}),
+  }
+}
+
 const mapTableOfContents = (value: unknown): BlogTableOfContentsItem[] => {
   if (!Array.isArray(value)) {
     return []
@@ -179,6 +213,7 @@ export const mapCmsArticleToBlogPost = (
     tags: tags.length > 0 ? tags : [card.category.title],
     author: mapCmsAuthor(article),
     relatedPosts,
+    sidebar: mapCmsSidebar(article),
     lead: excerpt,
     contentSegments,
     tableOfContents: mapTableOfContents(article.tableOfContents),

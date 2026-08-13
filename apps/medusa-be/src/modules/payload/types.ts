@@ -90,6 +90,11 @@ export type CmsStoreArticleAuthorDTO = {
   portrait: CmsStoreMediaDTO | null
 }
 
+export type CmsStoreArticleSidebarDTO = {
+  promoImage: CmsStoreMediaDTO | null
+  product: CmsProductReferenceDTO | null
+}
+
 export type CmsStoreRelatedArticleDTO = {
   id: number | string
   slug: string
@@ -107,6 +112,7 @@ export type CmsStoreArticleDTO = {
   title: string
   excerpt: string | null
   featuredImage: CmsStoreMediaDTO | null
+  sidebar: CmsStoreArticleSidebarDTO | null
   category: CmsStoreArticleCategoryDTO | null
   categories: CmsStoreArticleCategoryDTO[]
   primaryCategory: CmsStoreArticleCategoryDTO | null

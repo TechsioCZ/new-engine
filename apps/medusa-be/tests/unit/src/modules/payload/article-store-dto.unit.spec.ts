@@ -47,6 +47,11 @@ describe("toCmsStoreArticle", () => {
       },
       contentHTML: "<p>Article</p>",
       featuredImage: media,
+      sidebar: {
+        promoImage: media,
+        productExternalId: "4362",
+        privateSidebarField: "removed",
+      },
       category,
       categories: [category],
       primaryCategory: category,
@@ -90,6 +95,7 @@ describe("toCmsStoreArticle", () => {
         "publishedDate",
         "readingTime",
         "relatedArticles",
+        "sidebar",
         "slug",
         "tableOfContents",
         "tags",
@@ -109,12 +115,23 @@ describe("toCmsStoreArticle", () => {
         height: 350,
       },
     })
+    expect(result.sidebar).toEqual({
+      promoImage: {
+        id: 10,
+        url: "/api/media/file/article.webp",
+        alt: "Article",
+        width: 600,
+        height: 350,
+      },
+      product: { productExternalId: "4362" },
+    })
     expect(serialized).not.toContain("private@example.com")
     expect(serialized).not.toContain("private-key")
     expect(serialized).not.toContain("arbitraryFutureField")
     expect(serialized).not.toContain("privateMediaField")
     expect(serialized).not.toContain("privateCategoryField")
     expect(serialized).not.toContain("privateMetaField")
+    expect(serialized).not.toContain("privateSidebarField")
     expect(serialized).not.toContain('"contentHTML"')
     expect(serialized).not.toContain('"content"')
   })

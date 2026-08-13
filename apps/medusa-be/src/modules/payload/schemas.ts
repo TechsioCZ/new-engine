@@ -111,6 +111,14 @@ const CmsRelatedArticleSchema = passthroughObject({
   readingTime: z.number().nullable().optional(),
 })
 
+const CmsArticleSidebarSchema = passthroughObject({
+  promoImage: z
+    .union([CmsDocumentIdSchema, CmsMediaSchema])
+    .nullable()
+    .optional(),
+  productExternalId: z.string().trim().min(1).nullable().optional(),
+})
+
 const CmsPageSchema = passthroughObject({
   id: z.number(),
   slug: z.string(),
@@ -145,6 +153,7 @@ const CmsArticleSchema = passthroughObject({
     .union([CmsDocumentIdSchema, CmsMediaSchema])
     .nullable()
     .optional(),
+  sidebar: CmsArticleSidebarSchema.nullable().optional(),
   category: z
     .union([CmsDocumentIdSchema, CmsArticleCategoryReferenceSchema])
     .nullable()

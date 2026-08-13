@@ -12,6 +12,13 @@ const article: CmsArticle = {
   primaryCategory: { id: 1, slug: "health", title: "Health" },
   publishedDate: "2026-07-24T00:00:00.000Z",
   readingTime: 5,
+  sidebar: {
+    promoImage: {
+      alt: "Summer sale",
+      url: "https://cms.example.com/sidebar.webp",
+    },
+    product: { productExternalId: "4362" },
+  },
   author: {
     displayName: "Herbatika redakcia",
     role: "Author",
@@ -60,6 +67,13 @@ describe("mapCmsArticleToBlogPost", () => {
     ])
     assert.equal(post.author?.name, "Herbatika redakcia")
     assert.equal(post.author?.imageSrc, "https://cms.example.com/author.webp")
+    assert.deepEqual(post.sidebar, {
+      promoImage: {
+        alt: "Summer sale",
+        src: "https://cms.example.com/sidebar.webp",
+      },
+      product: { productExternalId: "4362", productSlug: undefined },
+    })
     assert.deepEqual(
       post.relatedPosts.map(({ slug }) => slug),
       ["related"]

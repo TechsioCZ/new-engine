@@ -76,7 +76,7 @@ const DEFAULT_TTLS = {
   LIST: 600,
 } as const
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
-const ARTICLE_STORE_CACHE_VERSION = "v5"
+const ARTICLE_STORE_CACHE_VERSION = "v6"
 const ARTICLE_STORE_SELECT = {
   id: true,
   slug: true,
@@ -85,6 +85,7 @@ const ARTICLE_STORE_SELECT = {
   content: true,
   contentHTML: true,
   featuredImage: true,
+  sidebar: true,
   category: true,
   categories: true,
   primaryCategory: true,

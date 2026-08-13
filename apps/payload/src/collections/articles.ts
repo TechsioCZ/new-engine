@@ -20,6 +20,7 @@ import {
   fieldLabels,
 } from "../lib/constants/labels"
 import { createLexicalEditor } from "../lib/editors/lexical"
+import { createMedusaProductReferenceField } from "../lib/fields/medusa-product-reference"
 import { createMedusaCacheHook } from "../lib/hooks/medusa-cache"
 import { normalizeArticleCategories } from "../lib/hooks/article-categories"
 import { storefrontHTMLConverters } from "../lib/hooks/lexical-html"
@@ -118,6 +119,27 @@ export const Articles: CollectionConfig = {
       admin: {
         description: fieldDescriptions.featuredImageArticle,
       },
+    },
+    {
+      name: "sidebar",
+      label: fieldLabels.articleSidebar,
+      type: "group",
+      localized: true,
+      fields: [
+        {
+          name: "promoImage",
+          label: fieldLabels.sidebarPromoImage,
+          type: "upload",
+          relationTo: "media",
+          admin: {
+            description: fieldDescriptions.sidebarPromoImage,
+          },
+        },
+        createMedusaProductReferenceField({
+          label: fieldLabels.sidebarProduct,
+          description: fieldDescriptions.sidebarProduct,
+        }),
+      ],
     },
     {
       name: "category",

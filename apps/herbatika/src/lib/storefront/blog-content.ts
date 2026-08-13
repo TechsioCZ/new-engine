@@ -1,5 +1,3 @@
-import BLOG_BANNER from "@/assets/blog-banner.webp"
-
 export type BlogCategory = {
   slug: string
   title: string
@@ -26,6 +24,14 @@ export type BlogTableOfContentsItem = {
   title: string
 }
 
+export type BlogArticleSidebar = {
+  promoImage?: {
+    alt: string
+    src: string
+  }
+  product?: BlogProductReference
+}
+
 export type BlogPost = {
   id: string
   slug: string
@@ -45,6 +51,7 @@ export type BlogPost = {
   }
   readingTime: string
   relatedPosts: BlogCardItem[]
+  sidebar?: BlogArticleSidebar
   lead: string
 }
 
@@ -79,8 +86,3 @@ export type BlogListing = {
 }
 
 export const BLOG_PAGE_SIZE = 12
-
-export const BLOG_PROMO_BANNER = {
-  title: "ZĽAVA 20 %",
-  imageSrc: BLOG_BANNER,
-}

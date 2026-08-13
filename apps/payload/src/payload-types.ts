@@ -258,6 +258,16 @@ export interface Article {
    * Image shown as the article preview
    */
   featuredImage: number | Media;
+  sidebar?: {
+    /**
+     * Optional promotional image shown beside the article
+     */
+    promoImage?: (number | null) | Media;
+    /**
+     * Optional Medusa product shown below the promotional image
+     */
+    productExternalId?: string | null;
+  };
   category: number | ArticleCategory;
   categories: (number | ArticleCategory)[];
   primaryCategory: number | ArticleCategory;
@@ -593,6 +603,12 @@ export interface ArticlesSelect<T extends boolean = true> {
   content?: T;
   contentHTML?: T;
   featuredImage?: T;
+  sidebar?:
+    | T
+    | {
+        promoImage?: T;
+        productExternalId?: T;
+      };
   category?: T;
   categories?: T;
   primaryCategory?: T;
