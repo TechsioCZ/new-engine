@@ -94,6 +94,23 @@ const XML_ENTITY_MAP: Record<string, string> = {
   "&amp;": "&",
   "&nbsp;": " ",
 }
+const MAX_UNICODE_CODE_POINT = 0x10ffff
+const XML_FETCH_TIMEOUT_MS = 15_000
+
+const decodeNumericEntity = (
+  match: string,
+  value: string,
+  radix: number
+) => {
+  const codePoint = Number.parseInt(value, radix)
+  const isSurrogate = codePoint >= 0xd800 && codePoint <= 0xdfff
+  return Number.isInteger(codePoint) &&
+    codePoint >= 0 &&
+    codePoint <= MAX_UNICODE_CODE_POINT &&
+    !isSurrogate
+    ? String.fromCodePoint(codePoint)
+    : match
+}
 
 const isEnabled = (value: string | undefined): boolean =>
   value === undefined ||
@@ -115,14 +132,12 @@ const normalizeInlineText = (value: string | undefined) => {
 const decodeXml = (value: string) =>
   value
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
-    .replace(/&#x([0-9a-fA-F]+);/g, (match, hex) => {
-      const parsed = Number.parseInt(hex, 16)
-      return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : match
-    })
-    .replace(/&#([0-9]+);/g, (match, num) => {
-      const parsed = Number.parseInt(num, 10)
-      return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : match
-    })
+    .replace(/&#x([0-9a-fA-F]+);/g, (match, hex) =>
+      decodeNumericEntity(match, hex, 16)
+    )
+    .replace(/&#([0-9]+);/g, (match, num) =>
+      decodeNumericEntity(match, num, 10)
+    )
     .replace(
       /&quot;|&apos;|&lt;|&gt;|&amp;|&nbsp;/g,
       (entity) => XML_ENTITY_MAP[entity] ?? entity
@@ -563,7 +578,9 @@ const readXmlSource = async (source: string) => {
     return readFile(source, "utf8")
   }
 
-  const response = await fetch(source)
+  const response = await fetch(source, {
+    signal: AbortSignal.timeout(XML_FETCH_TIMEOUT_MS),
+  })
   if (!response.ok) {
     throw new Error(
       `Failed to fetch XML source ${source}: ${response.status} ${response.statusText}`

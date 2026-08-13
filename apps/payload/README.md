@@ -77,7 +77,7 @@ updates Payload articles by deterministic `produkt-*` slugs, and upserts article
 Optional Herbatica blog article XLSX seed:
 
 ```bash
-HERBATICA_BLOG_ARTICLES_XLSX_PATH=/home/tomas/Stažené/blog_clanky.xlsx \
+HERBATICA_BLOG_ARTICLES_XLSX_PATH=/path/to/blog_clanky.xlsx \
 PAYLOAD_SEED_ARTICLES_LOCALE=sk \
 PAYLOAD_SEED_ARTICLES_STATUS=published \
 pnpm --filter @nmit/payload run seed

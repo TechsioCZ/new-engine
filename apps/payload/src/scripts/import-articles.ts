@@ -2,12 +2,22 @@ import { createHash } from "node:crypto"
 import { lookup } from "node:dns/promises"
 import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"
-import { isIP } from "node:net"
+import {
+  type IncomingMessage,
+  request as requestHttp,
+} from "node:http"
+import { request as requestHttps } from "node:https"
+import { BlockList, isIP, type LookupFunction } from "node:net"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { gunzipSync } from "node:zlib"
 import ExcelJS from "exceljs"
-import { getPayload, type PayloadRequest } from "payload"
+import {
+  getPayload,
+  type PayloadRequest,
+  type RequiredDataFromCollectionSlug,
+} from "payload"
+import { DEFAULT_ARTICLE_AUTHOR } from "../lib/constants/article-author"
 import type { Article } from "../payload-types"
 
 type Payload = Awaited<ReturnType<typeof getPayload>>
@@ -20,6 +30,7 @@ type PayloadLocale = PayloadRequest["locale"]
 type ResolvedLocale = Exclude<PayloadLocale, undefined>
 type WriteLocale = Exclude<PayloadLocale, "all" | undefined>
 type ImportContext = {
+  articleAuthorId: PayloadId
   dryRun: boolean
   fallbackMediaId: PayloadId
   payload: Payload
@@ -50,6 +61,34 @@ const DATA_IMAGE_PATTERN =
 const MEDIA_FETCH_TIMEOUT_MS = 15_000
 const MAX_MEDIA_BYTES = 10 * 1024 * 1024
 const MAX_MEDIA_REDIRECTS = 5
+const BLOCKED_MEDIA_ADDRESSES = new BlockList()
+const BLOCKED_IPV4_SUBNETS = [
+  ["0.0.0.0", 8],
+  ["10.0.0.0", 8],
+  ["100.64.0.0", 10],
+  ["127.0.0.0", 8],
+  ["169.254.0.0", 16],
+  ["172.16.0.0", 12],
+  ["192.0.0.0", 24],
+  ["192.168.0.0", 16],
+  ["198.18.0.0", 15],
+  ["224.0.0.0", 4],
+  ["240.0.0.0", 4],
+] as const
+const BLOCKED_IPV6_SUBNETS = [
+  ["::", 128],
+  ["::1", 128],
+  ["fc00::", 7],
+  ["fe80::", 10],
+  ["ff00::", 8],
+] as const
+
+for (const [network, prefix] of BLOCKED_IPV4_SUBNETS) {
+  BLOCKED_MEDIA_ADDRESSES.addSubnet(network, prefix, "ipv4")
+}
+for (const [network, prefix] of BLOCKED_IPV6_SUBNETS) {
+  BLOCKED_MEDIA_ADDRESSES.addSubnet(network, prefix, "ipv6")
+}
 const SUPPORTED_IMAGE_TYPES = new Set([
   "image/avif",
   "image/gif",
@@ -380,33 +419,6 @@ const loadMediaManifest = async (filePath: string | undefined) => {
   )
 }
 
-const isPrivateAddress = (address: string) => {
-  const normalizedAddress = address.toLowerCase()
-  if (
-    normalizedAddress === "::1" ||
-    normalizedAddress.startsWith("fc") ||
-    normalizedAddress.startsWith("fd") ||
-    normalizedAddress.startsWith("fe80:")
-  ) {
-    return true
-  }
-
-  if (
-    address.startsWith("0.") ||
-    address.startsWith("10.") ||
-    address.startsWith("127.")
-  ) {
-    return true
-  }
-
-  const [first = 0, second = 0] = address.split(".").map(Number)
-  return (
-    (first === 169 && second === 254) ||
-    (first === 172 && second >= 16 && second <= 31) ||
-    (first === 192 && second === 168)
-  )
-}
-
 const assertSafeMediaUrl = async (url: string) => {
   const parsed = new URL(url)
   if (!["http:", "https:"].includes(parsed.protocol)) {
@@ -417,34 +429,85 @@ const assertSafeMediaUrl = async (url: string) => {
     throw new Error("Blocked cloud metadata host")
   }
 
-  const addresses = isIP(parsed.hostname)
-    ? [{ address: parsed.hostname }]
-    : await lookup(parsed.hostname, { all: true })
-  if (addresses.some(({ address }) => isPrivateAddress(address))) {
+  const literalFamily = isIP(parsed.hostname)
+  const addresses = literalFamily
+    ? [{ address: parsed.hostname, family: literalFamily }]
+    : await lookup(parsed.hostname, { all: true, verbatim: true })
+  if (addresses.length === 0) {
+    throw new Error("Media host did not resolve to an address")
+  }
+  if (
+    addresses.some(({ address, family }) =>
+      BLOCKED_MEDIA_ADDRESSES.check(
+        address,
+        family === 4 ? "ipv4" : "ipv6"
+      )
+    )
+  ) {
     throw new Error("Blocked private or link-local media host")
   }
+
+  return { parsed, address: addresses[0] }
 }
 
-const readResponseWithLimit = async (response: Response) => {
-  const reader = response.body?.getReader()
-  if (!reader) {
-    return Buffer.from(await response.arrayBuffer())
+const createPinnedLookup = (
+  address: Awaited<ReturnType<typeof assertSafeMediaUrl>>["address"]
+): LookupFunction =>
+  (_hostname, options, callback) => {
+    if (options.all) {
+      callback(null, [address])
+      return
+    }
+
+    callback(null, address.address, address.family)
+  }
+
+const requestMedia = async (url: string, signal: AbortSignal) => {
+  const { parsed, address } = await assertSafeMediaUrl(url)
+  const request = parsed.protocol === "https:" ? requestHttps : requestHttp
+
+  return new Promise<IncomingMessage>((resolve, reject) => {
+    const clientRequest = request(
+      parsed,
+      { lookup: createPinnedLookup(address), signal },
+      resolve
+    )
+    clientRequest.once("error", reject)
+    clientRequest.end()
+  })
+}
+
+const getResponseHeader = (
+  response: IncomingMessage,
+  name: string
+): string | undefined => {
+  const value = response.headers[name]
+  return Array.isArray(value) ? value[0] : value
+}
+
+const readResponseWithLimit = async (response: IncomingMessage) => {
+  const contentLength = Number.parseInt(
+    getResponseHeader(response, "content-length") ?? "",
+    10
+  )
+  if (Number.isFinite(contentLength) && contentLength > MAX_MEDIA_BYTES) {
+    response.destroy()
+    throw new Error("Media response exceeds maximum size")
   }
 
   const chunks: Buffer[] = []
   let total = 0
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) {
-      return Buffer.concat(chunks)
-    }
-
-    total += value.byteLength
+  for await (const value of response) {
+    const chunk = Buffer.isBuffer(value) ? value : Buffer.from(value)
+    total += chunk.byteLength
     if (total > MAX_MEDIA_BYTES) {
+      response.destroy()
       throw new Error("Media response exceeds maximum size")
     }
-    chunks.push(Buffer.from(value))
+    chunks.push(chunk)
   }
+
+  return Buffer.concat(chunks)
 }
 
 const fetchDataImageBuffer = (url: string) => {
@@ -480,14 +543,12 @@ const fetchMediaBuffer = async (url: string) => {
       redirectCount <= MAX_MEDIA_REDIRECTS;
       redirectCount += 1
     ) {
-      await assertSafeMediaUrl(currentUrl)
-      const response = await fetch(currentUrl, {
-        redirect: "manual",
-        signal: controller.signal,
-      })
+      const response = await requestMedia(currentUrl, controller.signal)
+      const status = response.statusCode ?? 0
 
-      if ([301, 302, 303, 307, 308].includes(response.status)) {
-        const location = response.headers.get("location")
+      if ([301, 302, 303, 307, 308].includes(status)) {
+        const location = getResponseHeader(response, "location")
+        response.resume()
         if (!location) {
           throw new Error("Media redirect is missing Location header")
         }
@@ -495,12 +556,17 @@ const fetchMediaBuffer = async (url: string) => {
         continue
       }
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
+      if (status < 200 || status >= 300) {
+        response.resume()
+        throw new Error(`HTTP ${status}`)
       }
 
-      const contentType = response.headers.get("content-type")?.split(";")[0]
+      const contentType = getResponseHeader(response, "content-type")
+        ?.split(";")[0]
+        ?.trim()
+        .toLowerCase()
       if (!(contentType && SUPPORTED_IMAGE_TYPES.has(contentType))) {
+        response.resume()
         throw new Error(
           `Unsupported media content type: ${contentType || "unknown"}`
         )
@@ -852,19 +918,7 @@ const resolvePayloadLocale = (
   )
 }
 
-type ArticlePayloadData = {
-  title: string
-  slug: string
-  excerpt: string
-  content: ArticleContent
-  featuredImage: PayloadId
-  category: PayloadId
-  tags: string[]
-  author?: PayloadId
-  publishedDate: string
-  status: ImportStatus
-  translationSync: boolean
-}
+type ArticlePayloadData = RequiredDataFromCollectionSlug<"articles">
 
 type UpsertArticleParams = {
   payload: Payload
@@ -886,6 +940,45 @@ const resolveWriteLocale = (
   value === "all" || value === undefined
     ? ((supportedLocales[0] ?? DEFAULT_LOCALES[0]) as WriteLocale)
     : (value as WriteLocale)
+
+const ensureDefaultArticleAuthor = async ({
+  dryRun,
+  locale,
+  payload,
+  supportedLocales,
+}: {
+  dryRun: boolean
+  locale: PayloadLocale
+  payload: Payload
+  supportedLocales: string[]
+}) => {
+  const existing = await payload.find({
+    collection: "article-authors",
+    where: { slug: { equals: DEFAULT_ARTICLE_AUTHOR.slug } },
+    depth: 0,
+    limit: 1,
+    pagination: false,
+    overrideAccess: true,
+  })
+  if (existing.docs[0]) {
+    return existing.docs[0].id as PayloadId
+  }
+
+  if (dryRun) {
+    return 0
+  }
+
+  const author = await payload.create({
+    collection: "article-authors",
+    locale: resolveWriteLocale(locale, supportedLocales),
+    data: {
+      ...DEFAULT_ARTICLE_AUTHOR,
+      translationSync: false,
+    },
+    overrideAccess: true,
+  })
+  return author.id as PayloadId
+}
 
 const upsertArticle = async ({
   payload,
@@ -928,7 +1021,7 @@ const upsertArticle = async ({
       await payload.create({
         collection: "articles",
         locale: writeLocale,
-        data: data as never,
+        data,
         overrideAccess: true,
         context: {
           skipArticleSlugValidation: true,
@@ -1233,6 +1326,7 @@ const processArticleRow = async (
     statusOverride,
     translate,
     overwrite,
+    articleAuthorId,
   } = context
   const title = sanitizeTitle(
     getText(row, [
@@ -1321,6 +1415,9 @@ const processArticleRow = async (
     content: toRichText(content, context.mediaUrlMap),
     featuredImage,
     category: categoryId,
+    categories: [categoryId],
+    primaryCategory: categoryId,
+    articleAuthor: articleAuthorId,
     tags,
     ...(author ? { author } : {}),
     publishedDate: parseDate(
@@ -1387,6 +1484,12 @@ export const runImportFromFile = async (
   throwIfAborted(signal)
   const fallbackMediaId = await ensureFallbackMedia(payload, dryRun)
   debugLog(`Fallback media id: ${fallbackMediaId}`)
+  const articleAuthorId = await ensureDefaultArticleAuthor({
+    dryRun,
+    locale,
+    payload,
+    supportedLocales,
+  })
   const resolvedMediaManifestPath = path.resolve(
     process.cwd(),
     mediaManifestPath ?? resolveDefaultMediaManifestPath(resolvedFilePath)
@@ -1407,18 +1510,26 @@ export const runImportFromFile = async (
 
   for (const [index, row] of rows.entries()) {
     throwIfAborted(signal)
-    const result = await processArticleRow(row, index, {
-      dryRun,
-      fallbackMediaId,
-      payload,
-      locale,
-      supportedLocales,
-      statusOverride,
-      translate,
-      overwrite,
-      categoryCache,
-      mediaUrlMap,
-    })
+    let result: ImportResult
+    try {
+      result = await processArticleRow(row, index, {
+        articleAuthorId,
+        dryRun,
+        fallbackMediaId,
+        payload,
+        locale,
+        supportedLocales,
+        statusOverride,
+        translate,
+        overwrite,
+        categoryCache,
+        mediaUrlMap,
+      })
+    } catch (error) {
+      throwIfAborted(signal)
+      console.error(`Failed to process import row ${index + 2}`, error)
+      result = "skipped"
+    }
 
     if (result === "imported") {
       imported += 1

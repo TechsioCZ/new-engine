@@ -76,6 +76,9 @@ const PRODUCT_WIDGET_SCRIPT_PATTERN =
 const PRODUCT_CAROUSEL_TOKEN_PREFIX = "__PAYLOAD_PRODUCT_CAROUSEL__"
 const ARTICLE_CAROUSEL_TOKEN_PREFIX = "__PAYLOAD_ARTICLE_CAROUSEL__"
 const MEDIA_TOKEN_PREFIX = "__PAYLOAD_MEDIA__"
+const EMBEDDED_TOKEN_PATTERN =
+  /^__PAYLOAD_(?:PRODUCT_CAROUSEL|ARTICLE_CAROUSEL|MEDIA)__:\d+/
+const EXCEL_CELL_CHARACTER_LIMIT = 32_767
 
 const normalizeHeader = (value: unknown) =>
   String(value ?? "")
@@ -518,16 +521,21 @@ const createCarouselBlockNode = (
   }
 
   const text = getLexicalText(record).trim()
-  if (text.startsWith(PRODUCT_CAROUSEL_TOKEN_PREFIX)) {
-    return createProductCarouselBlockNode(text, context.productCarousels)
+  const token = EMBEDDED_TOKEN_PATTERN.exec(text)?.[0]
+  if (!token) {
+    return
   }
 
-  if (text.startsWith(ARTICLE_CAROUSEL_TOKEN_PREFIX)) {
-    return createArticleCarouselBlockNode(text, context.articleCarousels)
+  if (token.startsWith(PRODUCT_CAROUSEL_TOKEN_PREFIX)) {
+    return createProductCarouselBlockNode(token, context.productCarousels)
   }
 
-  if (text.startsWith(MEDIA_TOKEN_PREFIX)) {
-    return createMediaUploadNode(text, context.mediaTokens)
+  if (token.startsWith(ARTICLE_CAROUSEL_TOKEN_PREFIX)) {
+    return createArticleCarouselBlockNode(token, context.articleCarousels)
+  }
+
+  if (token.startsWith(MEDIA_TOKEN_PREFIX)) {
+    return createMediaUploadNode(token, context.mediaTokens)
   }
 }
 
@@ -706,6 +714,11 @@ const convertWorkbook = async () => {
         )
         const serialized = JSON.stringify(richText)
         const encoded = `${RICH_TEXT_GZIP_PREFIX}${gzipSync(serialized).toString("base64")}`
+        if (encoded.length > EXCEL_CELL_CHARACTER_LIMIT) {
+          throw new Error(
+            `Converted rich text exceeds Excel's ${EXCEL_CELL_CHARACTER_LIMIT}-character limit at ${worksheet.name}!${cell.address}`
+          )
+        }
         maxJsonLength = Math.max(maxJsonLength, serialized.length)
         cell.value = encoded
         converted += 1
