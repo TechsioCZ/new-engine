@@ -1,7 +1,7 @@
 "use client"
 
-import { createQueryKey } from "@techsio/storefront-data/shared/query-keys"
 import { useInfiniteQuery } from "@tanstack/react-query"
+import { createQueryKey } from "@techsio/storefront-data/shared/query-keys"
 import type { BlogListing } from "@/lib/storefront/blog-content"
 import { resolveBlogListingApiHref } from "@/lib/storefront/blog-routing"
 import { storefrontCacheConfig } from "@/lib/storefront/cache"

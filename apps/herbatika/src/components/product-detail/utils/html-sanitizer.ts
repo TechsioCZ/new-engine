@@ -86,6 +86,15 @@ const SAFE_IMAGE_SRC_REGEX = /^(https?:|\/)/i
 const HTTP_URL_REGEX = /^https?:/i
 const SELF_CLOSING_TAG_SUFFIX_REGEX = /\/\s*$/
 const RENDERABLE_IMAGE_TAG_REGEX = /<\s*img\b/i
+const BLOG_TEXT_ALIGN_REGEX = /^(center|justify|left|right)$/
+const BLOG_TEXT_DECORATION_REGEX = /^(?:(?:line-through|none|underline)\s*)+$/
+const BLOG_PADDING_INLINE_START_REGEX = /^(?:0|[1-9]\d{0,2}(?:\.\d+)?px)$/
+const BLOG_LIST_STYLE_TYPE_REGEX = /^(decimal|disc|none)$/
+const BOOLEAN_ATTRIBUTE_REGEX = /^(false|true)$/
+const TAB_INDEX_REGEX = /^-?1$/
+const POSITIVE_INTEGER_REGEX = /^\d+$/
+const ORDERED_LIST_TYPE_REGEX = /^[1AaIi]$/
+const HTML_ELEMENT_ID_REGEX = /^[a-z0-9:_.-]+$/i
 const DEFAULT_VOID_TAGS = new Set(["br", "hr", "img", "input"])
 const BLOG_VOID_TAGS = DEFAULT_VOID_TAGS
 
@@ -134,11 +143,14 @@ const sanitizeBlogStyle = (value: string): string => {
     }
 
     const property = declaration.slice(0, separator).trim().toLowerCase()
-    const propertyValue = declaration.slice(separator + 1).trim().toLowerCase()
+    const propertyValue = declaration
+      .slice(separator + 1)
+      .trim()
+      .toLowerCase()
 
     if (
       property === "text-align" &&
-      /^(center|justify|left|right)$/.test(propertyValue)
+      BLOG_TEXT_ALIGN_REGEX.test(propertyValue)
     ) {
       declarations.push(`${property}: ${propertyValue}`)
       continue
@@ -146,7 +158,7 @@ const sanitizeBlogStyle = (value: string): string => {
 
     if (
       property === "text-decoration" &&
-      /^(?:(?:line-through|none|underline)\s*)+$/.test(propertyValue)
+      BLOG_TEXT_DECORATION_REGEX.test(propertyValue)
     ) {
       declarations.push(`${property}: ${propertyValue}`)
       continue
@@ -154,7 +166,7 @@ const sanitizeBlogStyle = (value: string): string => {
 
     if (
       property === "padding-inline-start" &&
-      /^(?:0|[1-9]\d{0,2}(?:\.\d+)?px)$/.test(propertyValue)
+      BLOG_PADDING_INLINE_START_REGEX.test(propertyValue)
     ) {
       declarations.push(`${property}: ${propertyValue}`)
       continue
@@ -162,7 +174,7 @@ const sanitizeBlogStyle = (value: string): string => {
 
     if (
       property === "list-style-type" &&
-      /^(decimal|disc|none)$/.test(propertyValue)
+      BLOG_LIST_STYLE_TYPE_REGEX.test(propertyValue)
     ) {
       declarations.push(`${property}: ${propertyValue}`)
     }
@@ -298,13 +310,132 @@ const applyImageAttribute = (
   return false
 }
 
-const applySanitizedAttribute = (
-  state: SanitizedAttributeState,
-  tag: string,
-  name: string,
-  value: string,
+type SanitizedAttributeInput = {
+  name: string
   profile: SanitizerProfile
-) => {
+  state: SanitizedAttributeState
+  tag: string
+  value: string
+}
+
+type BlogAttributeInput = Omit<SanitizedAttributeInput, "profile">
+
+const applyBlogGlobalAttribute = ({
+  name,
+  state,
+  value,
+}: BlogAttributeInput) => {
+  if (name === "id") {
+    if (isBlogHeadingId(value)) {
+      state.attributes.push(`id="${escapeHtmlAttribute(value)}"`)
+    }
+    return true
+  }
+
+  if (name !== "style") {
+    return false
+  }
+
+  const style = sanitizeBlogStyle(value)
+  if (style) {
+    state.attributes.push(`style="${escapeHtmlAttribute(style)}"`)
+  }
+  return true
+}
+
+const applyBlogInputAttribute = ({
+  name,
+  state,
+  tag,
+  value,
+}: BlogAttributeInput) => {
+  if (tag !== "input") {
+    return false
+  }
+
+  if (name === "type" && value.toLowerCase() === "checkbox") {
+    state.attributes.push('type="checkbox"')
+  } else if (name === "checked") {
+    state.attributes.push("checked")
+  }
+  return true
+}
+
+const applyBlogListItemAttribute = ({
+  name,
+  state,
+  tag,
+  value,
+}: BlogAttributeInput) => {
+  if (tag !== "li") {
+    return false
+  }
+
+  const isAllowed =
+    (name === "aria-checked" && BOOLEAN_ATTRIBUTE_REGEX.test(value)) ||
+    (name === "role" && value === "checkbox") ||
+    (name === "tabindex" && TAB_INDEX_REGEX.test(value)) ||
+    (name === "value" && POSITIVE_INTEGER_REGEX.test(value))
+  if (isAllowed) {
+    state.attributes.push(`${name}="${escapeHtmlAttribute(value)}"`)
+  }
+  return true
+}
+
+const applyBlogOrderedListAttribute = ({
+  name,
+  state,
+  tag,
+  value,
+}: BlogAttributeInput) => {
+  if (tag !== "ol") {
+    return false
+  }
+
+  const hasValue =
+    (name === "start" && POSITIVE_INTEGER_REGEX.test(value)) ||
+    (name === "type" && ORDERED_LIST_TYPE_REGEX.test(value))
+  if (hasValue) {
+    state.attributes.push(`${name}="${escapeHtmlAttribute(value)}"`)
+  } else if (name === "reversed") {
+    state.attributes.push("reversed")
+  }
+  return true
+}
+
+const applyBlogLabelAttribute = ({
+  name,
+  state,
+  tag,
+  value,
+}: BlogAttributeInput) => {
+  if (tag !== "label") {
+    return false
+  }
+
+  if (
+    (name === "for" || name === "htmlfor") &&
+    HTML_ELEMENT_ID_REGEX.test(value)
+  ) {
+    state.attributes.push(`for="${escapeHtmlAttribute(value)}"`)
+  }
+  return true
+}
+
+const applyBlogAttribute = (input: BlogAttributeInput) =>
+  applyBlogGlobalAttribute(input) ||
+  applyBlogInputAttribute(input) ||
+  applyBlogListItemAttribute(input) ||
+  applyBlogOrderedListAttribute(input) ||
+  applyBlogLabelAttribute(input)
+
+const applySanitizedAttribute = ({
+  name,
+  profile,
+  state,
+  tag,
+  value,
+}: SanitizedAttributeInput) => {
   if (tag === "a" && applyAnchorAttribute(state, name, value)) {
     return
   }
@@ -313,66 +444,8 @@ const applySanitizedAttribute = (
     return
   }
 
-  if (profile === "blog") {
-    if (name === "id") {
-      if (isBlogHeadingId(value)) {
-        state.attributes.push(`id="${escapeHtmlAttribute(value)}"`)
-      }
-      return
-    }
-
-    if (name === "style") {
-      const style = sanitizeBlogStyle(value)
-      if (style) {
-        state.attributes.push(`style="${escapeHtmlAttribute(style)}"`)
-      }
-      return
-    }
-
-    if (tag === "input") {
-      if (name === "type" && value.toLowerCase() === "checkbox") {
-        state.attributes.push('type="checkbox"')
-      } else if (name === "checked") {
-        state.attributes.push("checked")
-      }
-      return
-    }
-
-    if (
-      tag === "li" &&
-      ((name === "aria-checked" && /^(false|true)$/.test(value)) ||
-        (name === "role" && value === "checkbox") ||
-        (name === "tabindex" && /^-?1$/.test(value)) ||
-        (name === "value" && /^\d+$/.test(value)))
-    ) {
-      state.attributes.push(`${name}="${escapeHtmlAttribute(value)}"`)
-      return
-    }
-    if (tag === "li") {
-      return
-    }
-
-    if (tag === "ol") {
-      if (
-        (name === "start" && /^\d+$/.test(value)) ||
-        (name === "type" && /^[1AaIi]$/.test(value))
-      ) {
-        state.attributes.push(`${name}="${escapeHtmlAttribute(value)}"`)
-      } else if (name === "reversed") {
-        state.attributes.push("reversed")
-      }
-      return
-    }
-
-    if (tag === "label") {
-      if (
-        (name === "for" || name === "htmlfor") &&
-        /^[a-z0-9:_.-]+$/i.test(value)
-      ) {
-        state.attributes.push(`for="${escapeHtmlAttribute(value)}"`)
-      }
-      return
-    }
+  if (profile === "blog" && applyBlogAttribute({ name, state, tag, value })) {
+    return
   }
 
   if (value) {
@@ -420,34 +493,38 @@ const appendImageAttributes = (state: SanitizedAttributeState) => {
   return true
 }
 
-const sanitizeOpeningTag = (
-  tag: string,
-  rawAttributes: string,
-  profile: SanitizerProfile,
+type CollectSanitizedAttributesInput = {
   options: SanitizeHtmlOptions
-) => {
+  profile: SanitizerProfile
+  rawAttributes: string
+  tag: string
+}
+
+const collectSanitizedAttributes = ({
+  options,
+  profile,
+  rawAttributes,
+  tag,
+}: CollectSanitizedAttributesInput) => {
   const allowedAttributesForTag =
     SANITIZER_CONFIG_BY_PROFILE[profile].allowedTagAttributes[tag] ??
     new Set<string>()
-  const state = createAttributeState()
-  const parsedAttributes = parseTagAttributes(rawAttributes ?? "")
+  const parsedAttributes = parseTagAttributes(rawAttributes)
 
   if (
     profile === "blog" &&
     tag === "input" &&
     !parsedAttributes.some(
-      ({ name, value }) =>
-        name === "type" && value.toLowerCase() === "checkbox"
+      ({ name, value }) => name === "type" && value.toLowerCase() === "checkbox"
     )
   ) {
-    return ""
+    return null
   }
 
-  for (const attribute of parsedAttributes) {
-    const { name, value } = attribute
-
+  const state = createAttributeState()
+  for (const { name, value } of parsedAttributes) {
     if (
-      !isAttributeAllowed({
+      isAttributeAllowed({
         allowedAttributesForTag,
         name,
         options,
@@ -456,10 +533,27 @@ const sanitizeOpeningTag = (
         value,
       })
     ) {
-      continue
+      applySanitizedAttribute({ name, profile, state, tag, value })
     }
+  }
 
-    applySanitizedAttribute(state, tag, name, value, profile)
+  return state
+}
+
+const sanitizeOpeningTag = (
+  tag: string,
+  rawAttributes: string,
+  profile: SanitizerProfile,
+  options: SanitizeHtmlOptions
+) => {
+  const state = collectSanitizedAttributes({
+    options,
+    profile,
+    rawAttributes: rawAttributes ?? "",
+    tag,
+  })
+  if (!state) {
+    return ""
   }
 
   if (tag === "a") {
@@ -486,13 +580,21 @@ const sanitizeOpeningTag = (
     : `<${tag}${attributesString}>`
 }
 
-const sanitizeHtmlTag = (
-  closingSlash: string,
-  rawTag: string,
-  rawAttributes: string,
-  profile: SanitizerProfile,
+type SanitizeHtmlTagInput = {
+  closingSlash: string
   options: SanitizeHtmlOptions
-) => {
+  profile: SanitizerProfile
+  rawAttributes: string
+  rawTag: string
+}
+
+const sanitizeHtmlTag = ({
+  closingSlash,
+  options,
+  profile,
+  rawAttributes,
+  rawTag,
+}: SanitizeHtmlTagInput) => {
   const tag = rawTag.toLowerCase()
   const { allowedTags, voidTags } = SANITIZER_CONFIG_BY_PROFILE[profile]
 
@@ -527,7 +629,13 @@ const sanitizeHtmlWithProfile = (
   const sanitized = cleanedHtml.replace(
     /<\s*(\/?)\s*([a-zA-Z0-9]+)([^>]*)>/g,
     (_, closingSlash: string, rawTag: string, rawAttributes: string) =>
-      sanitizeHtmlTag(closingSlash, rawTag, rawAttributes, profile, options)
+      sanitizeHtmlTag({
+        closingSlash,
+        options,
+        profile,
+        rawAttributes,
+        rawTag,
+      })
   )
 
   return sanitized.trim()

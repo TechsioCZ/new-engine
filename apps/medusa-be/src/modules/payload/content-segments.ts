@@ -56,7 +56,10 @@ export const buildCmsArticleTableOfContents = (
     }
 
     const record = node as Record<string, unknown>
-    if (record.type !== "heading" || !["h2", "h3"].includes(String(record.tag))) {
+    if (
+      record.type !== "heading" ||
+      !["h2", "h3"].includes(String(record.tag))
+    ) {
       return []
     }
 

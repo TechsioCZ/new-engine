@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
-import { fetchCmsBlogListing } from "@/lib/storefront/cms"
 import { loadBlogQueryState } from "@/lib/storefront/blog-query-state.server"
+import { fetchCmsBlogListing } from "@/lib/storefront/cms"
 
 const CLIENT_CLOSED_REQUEST_STATUS = 499
 

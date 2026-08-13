@@ -1,7 +1,5 @@
 import { serializeBlogQueryState } from "./blog-query-state"
 
-export { ALL_BLOG_CATEGORIES_KEY } from "./blog-query-state"
-
 type BlogListingUrlInput = {
   category: string
   page?: number

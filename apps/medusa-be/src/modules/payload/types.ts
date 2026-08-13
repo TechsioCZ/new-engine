@@ -31,9 +31,7 @@ export type CmsPageDTO = z.infer<typeof CmsPageSchema>
 export type CmsPageCategoryDTO = z.infer<typeof CmsPageCategorySchema>
 export type CmsArticleDTO = z.infer<typeof CmsArticleSchema>
 export type CmsLexicalContentDTO = z.infer<typeof CmsLexicalContentSchema>
-export type CmsProductReferenceDTO = z.infer<
-  typeof CmsProductReferenceSchema
->
+export type CmsProductReferenceDTO = z.infer<typeof CmsProductReferenceSchema>
 export type CmsArticleTableOfContentsItem = {
   id: string
   level: 2 | 3

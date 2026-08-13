@@ -3,12 +3,6 @@ import "server-only"
 import { resolveMedusaBackendUrl } from "./runtime-env"
 import { storefrontConfig } from "./sdk"
 
-export {
-  resolveCmsMediaUrl,
-  rewriteCmsHtmlMediaUrls,
-  stripCmsHtml,
-} from "./cms-content"
-
 const CMS_LOCALE = "sk"
 const CMS_REVALIDATE_SECONDS = 600
 const CMS_MEDUSA_BASE_URL = resolveMedusaBackendUrl()

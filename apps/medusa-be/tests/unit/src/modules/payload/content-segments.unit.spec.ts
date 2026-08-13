@@ -66,9 +66,7 @@ describe("buildCmsArticleContentSegments", () => {
         createContent(),
         '<p>Before</p><div data-cms-block="productCarousel"></div><p>After</p>'
       )
-    ).toEqual([
-      { type: "html", html: "<p>Before</p><p>After</p>" },
-    ])
+    ).toEqual([{ type: "html", html: "<p>Before</p><p>After</p>" }])
   })
 
   it("fails closed when a product marker is missing", () => {
@@ -92,9 +90,7 @@ describe("buildCmsArticleContentSegments", () => {
           "<p>After</p>",
         ].join("")
       )
-    ).toEqual([
-      { type: "html", html: "<p>Before</p><p>After</p>" },
-    ])
+    ).toEqual([{ type: "html", html: "<p>Before</p><p>After</p>" }])
   })
 
   it("returns no segments when generated HTML is absent", () => {

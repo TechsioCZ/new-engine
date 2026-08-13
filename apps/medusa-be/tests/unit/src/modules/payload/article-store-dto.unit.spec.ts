@@ -153,8 +153,8 @@ describe("toCmsStoreArticle", () => {
       ],
     })
 
-    expect(toCmsStoreArticle(article).relatedArticles.map(({ id }) => id)).toEqual([
-      4, 5, 6, 7,
-    ])
+    expect(
+      toCmsStoreArticle(article).relatedArticles.map(({ id }) => id)
+    ).toEqual([4, 5, 6, 7])
   })
 })

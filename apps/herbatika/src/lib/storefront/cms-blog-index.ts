@@ -2,12 +2,12 @@ import type {
   BlogCategory,
   BlogCategoryFilter,
 } from "@/lib/storefront/blog-content"
+import { ALL_BLOG_CATEGORIES_KEY } from "./blog-query-state"
 import type {
   CmsArticleCategory,
   CmsArticleSummary,
   CmsCategory,
 } from "./cms-types"
-import { ALL_BLOG_CATEGORIES_KEY } from "./blog-routing"
 
 const FALLBACK_CATEGORY: BlogCategory = {
   slug: "blog",

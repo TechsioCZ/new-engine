@@ -23,12 +23,8 @@ describe("sanitizeBlogHtml", () => {
 
   it("renders imported checkboxes as disabled controls", () => {
     expect(
-      sanitizeBlogHtml(
-        '<input type="checkbox" checked onclick="alert(1)">Done'
-      )
-    ).toBe(
-      '<input type="checkbox" checked disabled>Done'
-    )
+      sanitizeBlogHtml('<input type="checkbox" checked onclick="alert(1)">Done')
+    ).toBe('<input type="checkbox" checked disabled>Done')
   })
 
   it("keeps safe heading anchors for the generated table of contents", () => {
@@ -36,8 +32,6 @@ describe("sanitizeBlogHtml", () => {
       sanitizeBlogHtml(
         '<h2 id="co-su-elektrolyty" onclick="alert(1)">Nadpis</h2><h2 id="bad id">Ďalší</h2>'
       )
-    ).toBe(
-      '<h2 id="co-su-elektrolyty">Nadpis</h2><h2>Ďalší</h2>'
-    )
+    ).toBe('<h2 id="co-su-elektrolyty">Nadpis</h2><h2>Ďalší</h2>')
   })
 })

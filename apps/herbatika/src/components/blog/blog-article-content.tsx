@@ -3,8 +3,8 @@ import {
   type BlogProductLookup,
   resolveBlogProductReference,
 } from "@/lib/storefront/blog-product-references"
-import { InlineProductsCarousel } from "./inline-products-carousel"
 import { BlogRichText } from "./blog-rich-text"
+import { InlineProductsCarousel } from "./inline-products-carousel"
 
 type BlogArticleContentProps = {
   post: BlogPost

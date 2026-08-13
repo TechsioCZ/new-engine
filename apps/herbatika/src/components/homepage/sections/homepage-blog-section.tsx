@@ -30,11 +30,7 @@ export function HomepageBlogSection({ posts }: HomepageBlogSectionProps) {
             className="flex h-full flex-col overflow-hidden rounded-2xl border border-border-secondary bg-surface"
             key={post.id}
           >
-            <Link
-              as={NextLink}
-              className="block"
-              href={`/blog/${post.slug}`}
-            >
+            <Link as={NextLink} className="block" href={`/blog/${post.slug}`}>
               <NextImage
                 alt={post.title}
                 className="aspect-video w-full object-cover"

@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest"
-import { buildCmsBlogPage } from "./cms-blog-index"
+import { ALL_BLOG_CATEGORIES_KEY, blogQueryParsers } from "./blog-query-state"
 import {
-  ALL_BLOG_CATEGORIES_KEY,
   resolveBlogListingApiHref,
   resolveBlogListingHref,
 } from "./blog-routing"
-import { blogQueryParsers } from "./blog-query-state"
+import { buildCmsBlogPage } from "./cms-blog-index"
 
 describe("buildCmsBlogPage", () => {
   const categories = [

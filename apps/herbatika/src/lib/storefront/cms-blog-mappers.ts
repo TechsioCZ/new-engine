@@ -9,18 +9,15 @@ import type {
 } from "./blog-content"
 import { isBlogHeadingId } from "./blog-heading-id"
 import {
+  type CmsArticleIndexEntry,
+  resolveCmsBlogCategory,
+} from "./cms-blog-index"
+import {
   resolveCmsMediaUrl,
   rewriteCmsHtmlMediaUrls,
   stripCmsHtml,
 } from "./cms-content"
-import {
-  type CmsArticleIndexEntry,
-  resolveCmsBlogCategory,
-} from "./cms-blog-index"
-import type {
-  CmsArticle,
-  CmsArticleSummary,
-} from "./cms-types"
+import type { CmsArticle, CmsArticleSummary } from "./cms-types"
 
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0
@@ -37,9 +34,7 @@ const mapCmsAuthor = (article: CmsArticle) => {
     ...(article.author?.role?.trim()
       ? { role: article.author.role.trim() }
       : {}),
-    ...(article.author?.bio?.trim()
-      ? { bio: article.author.bio.trim() }
-      : {}),
+    ...(article.author?.bio?.trim() ? { bio: article.author.bio.trim() } : {}),
     ...(imageSrc ? { imageSrc } : {}),
   }
 }
@@ -105,59 +100,60 @@ const mapTableOfContents = (value: unknown): BlogTableOfContentsItem[] => {
   })
 }
 
-const mapCmsContentSegments = (value: unknown): BlogArticleContentSegment[] => {
-  if (!Array.isArray(value)) {
-    return []
+const mapCmsProductReference = (
+  value: unknown
+): BlogProductReference | null => {
+  if (!(value && typeof value === "object")) {
+    return null
   }
 
-  const contentSegments: BlogArticleContentSegment[] = []
-  for (const segment of value) {
-    if (!(segment && typeof segment === "object")) {
-      continue
-    }
+  const reference = value as Record<string, unknown>
+  const productExternalId = isNonEmptyString(reference.productExternalId)
+    ? reference.productExternalId.trim()
+    : undefined
+  const productSlug = isNonEmptyString(reference.productSlug)
+    ? reference.productSlug.trim()
+    : undefined
 
-    const { html, products, type } = segment as Record<string, unknown>
-    if (type === "html" && typeof html === "string") {
-      const normalizedHtml = rewriteCmsHtmlMediaUrls(html).trim()
-      if (normalizedHtml) {
-        contentSegments.push({ type: "html", html: normalizedHtml })
-      }
-      continue
-    }
-
-    if (type !== "productCarousel" || !Array.isArray(products)) {
-      continue
-    }
-
-    const productReferences: BlogProductReference[] = []
-    for (const product of products) {
-      if (!(product && typeof product === "object")) {
-        continue
-      }
-
-      const reference = product as Record<string, unknown>
-      const productExternalId = isNonEmptyString(reference.productExternalId)
-        ? reference.productExternalId.trim()
-        : undefined
-      const productSlug = isNonEmptyString(reference.productSlug)
-        ? reference.productSlug.trim()
-        : undefined
-
-      if (productExternalId || productSlug) {
-        productReferences.push({ productExternalId, productSlug })
-      }
-    }
-
-    if (productReferences.length > 0) {
-      contentSegments.push({
-        type: "productCarousel",
-        products: productReferences,
-      })
-    }
-  }
-
-  return contentSegments
+  return productExternalId || productSlug
+    ? { productExternalId, productSlug }
+    : null
 }
+
+const mapCmsContentSegment = (
+  value: unknown
+): BlogArticleContentSegment | null => {
+  if (!(value && typeof value === "object")) {
+    return null
+  }
+
+  const { html, products, type } = value as Record<string, unknown>
+  if (type === "html" && typeof html === "string") {
+    const normalizedHtml = rewriteCmsHtmlMediaUrls(html).trim()
+    return normalizedHtml ? { type: "html", html: normalizedHtml } : null
+  }
+
+  if (type !== "productCarousel" || !Array.isArray(products)) {
+    return null
+  }
+
+  const productReferences = products.flatMap((product) => {
+    const reference = mapCmsProductReference(product)
+    return reference ? [reference] : []
+  })
+
+  return productReferences.length > 0
+    ? { type: "productCarousel", products: productReferences }
+    : null
+}
+
+const mapCmsContentSegments = (value: unknown): BlogArticleContentSegment[] =>
+  Array.isArray(value)
+    ? value.flatMap((segment) => {
+        const mappedSegment = mapCmsContentSegment(segment)
+        return mappedSegment ? [mappedSegment] : []
+      })
+    : []
 
 const mapCmsArticleSummaryToBlogCard = (
   article: CmsArticleSummary,
@@ -220,9 +216,7 @@ export const mapCmsArticleToBlogPost = (
   }
 }
 
-export const mapCmsArticleIndexToCards = (
-  entries: CmsArticleIndexEntry[]
-) =>
+export const mapCmsArticleIndexToCards = (entries: CmsArticleIndexEntry[]) =>
   entries.flatMap(({ category, summary }) => {
     const post = mapCmsArticleSummaryToBlogCard(summary, category)
     return post ? [post] : []

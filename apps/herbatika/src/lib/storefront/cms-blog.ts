@@ -1,28 +1,19 @@
 import "server-only"
 
-import type {
-  BlogCategory,
-  BlogListing,
-  BlogPost,
-} from "@/lib/storefront/blog-content"
-import { BLOG_PAGE_SIZE } from "@/lib/storefront/blog-content"
 import { cacheLife } from "next/cache"
-import {
-  fetchCmsJsonOrThrow,
-  isCmsNotFoundError,
-} from "./cms-client"
-import {
-  mapCmsArticleIndexToCards,
-  mapCmsArticleToBlogPost,
-} from "./cms-blog-mappers"
+import type { BlogCategory, BlogListing } from "@/lib/storefront/blog-content"
+import { BLOG_PAGE_SIZE } from "@/lib/storefront/blog-content"
 import {
   buildCmsArticleIndex,
   buildCmsBlogPage,
   buildCmsCategoryFilters,
 } from "./cms-blog-index"
+import {
+  mapCmsArticleIndexToCards,
+  mapCmsArticleToBlogPost,
+} from "./cms-blog-mappers"
+import { fetchCmsJsonOrThrow, isCmsNotFoundError } from "./cms-client"
 import type { CmsArticle, CmsArticleCategory } from "./cms-types"
-
-export { mapCmsArticleToBlogPost } from "./cms-blog-mappers"
 
 type CmsArticleCategoriesResponse = {
   articleCategories?: CmsArticleCategory[] | null
@@ -130,5 +121,5 @@ export const fetchCachedLatestCmsBlogPosts = async (
     stale: 300,
   })
 
-  return fetchLatestCmsBlogPosts(limit, excludeSlugs)
+  return await fetchLatestCmsBlogPosts(limit, excludeSlugs)
 }

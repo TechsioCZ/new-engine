@@ -1,7 +1,7 @@
 import "server-only"
 
 import type { HomepagePromoContent } from "@/components/homepage/homepage.data.types"
-import { resolveCmsMediaUrl } from "./cms-client"
+import { resolveCmsMediaUrl } from "./cms-content"
 import { fetchCmsPageBySlug } from "./cms-pages"
 import type { CmsMedia, CmsPage } from "./cms-types"
 

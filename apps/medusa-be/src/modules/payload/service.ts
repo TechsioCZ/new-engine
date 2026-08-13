@@ -376,10 +376,7 @@ export default class PayloadModuleService extends MedusaService({}) {
     return locale
   }
 
-  private buildArticleStorePopulate(): Record<
-    string,
-    Record<string, boolean>
-  > {
+  private buildArticleStorePopulate(): Record<string, Record<string, boolean>> {
     return {
       articles: RELATED_ARTICLE_POPULATE,
       media: {

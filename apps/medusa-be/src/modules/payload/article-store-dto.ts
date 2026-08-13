@@ -45,9 +45,7 @@ const mapMedia = (value: unknown): CmsStoreMediaDTO | null => {
   }
 }
 
-const mapCategory = (
-  value: unknown
-): CmsStoreArticleCategoryDTO | null => {
+const mapCategory = (value: unknown): CmsStoreArticleCategoryDTO | null => {
   if (!(isRecord(value) && isDocumentId(value.id))) {
     return null
   }
@@ -101,11 +99,7 @@ const mapRelatedArticle = (
   value: unknown
 ): CmsStoreRelatedArticleDTO | null => {
   if (
-    !(
-      isRecord(value) &&
-      isDocumentId(value.id) &&
-      value.status === "published"
-    )
+    !(isRecord(value) && isDocumentId(value.id) && value.status === "published")
   ) {
     return null
   }
@@ -134,9 +128,7 @@ export const toCmsStoreArticle = (
   const lexicalContent =
     typeof article.content === "string" ? undefined : article.content
   const contentHTML =
-    typeof article.content === "string"
-      ? article.content
-      : article.contentHTML
+    typeof article.content === "string" ? article.content : article.contentHTML
 
   return {
     id: article.id,

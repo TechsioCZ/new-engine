@@ -1,13 +1,13 @@
 import {
+  fetchCachedLatestCmsBlogPosts as fetchCachedLatestCmsBlogPostsValue,
   fetchCmsArticleBySlug as fetchCmsArticleBySlugValue,
   fetchCmsArticleCategories as fetchCmsArticleCategoriesValue,
   fetchCmsBlogCategoryFilters as fetchCmsBlogCategoryFiltersValue,
   fetchCmsBlogListing as fetchCmsBlogListingValue,
   fetchCmsBlogPost as fetchCmsBlogPostValue,
-  fetchCachedLatestCmsBlogPosts as fetchCachedLatestCmsBlogPostsValue,
   fetchLatestCmsBlogPosts as fetchLatestCmsBlogPostsValue,
-  mapCmsArticleToBlogPost as mapCmsArticleToBlogPostValue,
 } from "./cms-blog"
+import { mapCmsArticleToBlogPost as mapCmsArticleToBlogPostValue } from "./cms-blog-mappers"
 import {
   fetchCmsHeroBanners as fetchCmsHeroBannersValue,
   mapCmsHeroCarouselToHeroBanner as mapCmsHeroCarouselToHeroBannerValue,
@@ -29,8 +29,7 @@ export const fetchCmsArticleCategories = fetchCmsArticleCategoriesValue
 export const fetchCmsBlogCategoryFilters = fetchCmsBlogCategoryFiltersValue
 export const fetchCmsBlogListing = fetchCmsBlogListingValue
 export const fetchCmsBlogPost = fetchCmsBlogPostValue
-export const fetchCachedLatestCmsBlogPosts =
-  fetchCachedLatestCmsBlogPostsValue
+export const fetchCachedLatestCmsBlogPosts = fetchCachedLatestCmsBlogPostsValue
 export const fetchLatestCmsBlogPosts = fetchLatestCmsBlogPostsValue
 export const fetchCmsHeroBanners = fetchCmsHeroBannersValue
 export const fetchCmsHomepagePromo = fetchCmsHomepagePromoValue

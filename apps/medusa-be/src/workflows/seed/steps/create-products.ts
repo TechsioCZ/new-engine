@@ -464,10 +464,7 @@ function ensureUniqueVariantSkus(
   let renamedSkus = 0
 
   for (const inputProduct of inputProducts) {
-    const existingProduct = matchSeedProduct(
-      inputProduct,
-      productIdentityIndex
-    )
+    const existingProduct = matchSeedProduct(inputProduct, productIdentityIndex)
     const existingSkusOnProduct = getExistingVariantSkus(existingProduct)
 
     for (const [index, variant] of (inputProduct.variants ?? []).entries()) {
