@@ -17,7 +17,6 @@ import {
   buildCmsArticleIndex,
   buildCmsBlogPage,
   buildCmsCategoryFilters,
-  resolveCmsBlogCategory,
 } from "./cms-blog-index"
 import type { CmsArticle, CmsArticleCategory } from "./cms-types"
 
