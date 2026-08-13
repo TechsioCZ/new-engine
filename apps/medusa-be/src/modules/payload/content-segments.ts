@@ -93,10 +93,10 @@ const addHeadingAnchors = (
       HTML_HEADING_OPEN_PATTERN,
       (openingTag, levelValue: string, attributes = "") => {
         const heading = tableOfContents[headingIndex]
-        headingIndex += 1
         if (!heading || heading.level !== Number(levelValue)) {
           return openingTag
         }
+        headingIndex += 1
 
         const safeAttributes = String(attributes).replace(
           HTML_ID_ATTRIBUTE_PATTERN,

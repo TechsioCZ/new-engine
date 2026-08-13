@@ -606,6 +606,10 @@
       "faq": "Gyakori kérdések"
     },
     "blog": {
+      "listing": {
+        "title": "Egészség- és szépségblog",
+        "description": "Szakértőink cikkei az egészségről, szépségápolásról, táplálkozásról és wellnessről."
+      },
       "card": {
         "open_article": "Cikk megnyitása"
       },
@@ -620,7 +624,9 @@
         "related_articles": "További cikkek",
         "author": "Szerző:",
         "published": "Közzétéve:",
-        "reading_time": "Olvasási idő:"
+        "reading_time": "Olvasási idő:",
+        "table_of_contents": "Tartalomjegyzék",
+        "chapter_count": "{count, plural, other {# fejezet}}"
       }
     },
     "faq": {

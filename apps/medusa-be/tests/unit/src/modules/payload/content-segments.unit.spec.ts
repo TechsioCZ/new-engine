@@ -143,4 +143,37 @@ describe("buildCmsArticleContentSegments", () => {
       },
     ])
   })
+
+  it("keeps later heading anchors aligned after an unmatched heading", () => {
+    const content = {
+      root: {
+        type: "root",
+        version: 1,
+        children: [
+          {
+            type: "heading",
+            tag: "h2",
+            children: [{ type: "text", text: "First chapter" }],
+          },
+          {
+            type: "heading",
+            tag: "h2",
+            children: [{ type: "text", text: "Second chapter" }],
+          },
+        ],
+      },
+    }
+
+    expect(
+      buildCmsArticleContentSegments(
+        content,
+        "<h3>Nested block heading</h3><h2>First chapter</h2><h2>Second chapter</h2>"
+      )
+    ).toEqual([
+      {
+        type: "html",
+        html: '<h3>Nested block heading</h3><h2 id="first-chapter">First chapter</h2><h2 id="second-chapter">Second chapter</h2>',
+      },
+    ])
+  })
 })

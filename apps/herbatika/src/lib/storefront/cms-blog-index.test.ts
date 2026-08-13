@@ -1,5 +1,4 @@
-import assert from "node:assert/strict"
-import { describe, it } from "node:test"
+import { describe, expect, it } from "vitest"
 import { buildCmsBlogPage } from "./cms-blog-index"
 import {
   ALL_BLOG_CATEGORIES_KEY,
@@ -35,11 +34,11 @@ describe("buildCmsBlogPage", () => {
       pageSize: 1,
     })
 
-    assert.equal(page.category, "health")
-    assert.equal(page.page, 2)
-    assert.equal(page.totalItems, 2)
-    assert.equal(page.totalPages, 2)
-    assert.equal(page.entries[0]?.summary.slug, "second")
+    expect(page.category).toBe("health")
+    expect(page.page).toBe(2)
+    expect(page.totalItems).toBe(2)
+    expect(page.totalPages).toBe(2)
+    expect(page.entries[0]?.summary.slug).toBe("second")
   })
 
   it("falls back to all articles for an unknown category", () => {
@@ -50,16 +49,15 @@ describe("buildCmsBlogPage", () => {
       pageSize: 12,
     })
 
-    assert.equal(page.category, "all")
-    assert.equal(page.totalItems, 3)
-    assert.deepEqual(
-      page.categoryFilters.map(({ key, count }) => ({ key, count })),
-      [
-        { key: "all", count: 3 },
-        { key: "health", count: 2 },
-        { key: "beauty", count: 1 },
-      ]
-    )
+    expect(page.category).toBe("all")
+    expect(page.totalItems).toBe(3)
+    expect(
+      page.categoryFilters.map(({ key, count }) => ({ key, count }))
+    ).toEqual([
+      { key: "all", count: 3 },
+      { key: "health", count: 2 },
+      { key: "beauty", count: 1 },
+    ])
   })
 
   it("includes an article in every category returned by the backend", () => {
@@ -74,9 +72,9 @@ describe("buildCmsBlogPage", () => {
       pageSize: 12,
     })
 
-    assert.equal(page.totalItems, 1)
-    assert.equal(page.entries[0]?.summary.slug, "shared")
-    assert.equal(page.entries[0]?.category.slug, "beauty")
+    expect(page.totalItems).toBe(1)
+    expect(page.entries[0]?.summary.slug).toBe("shared")
+    expect(page.entries[0]?.category.slug).toBe("beauty")
   })
 
   it("orders articles globally by publication date", () => {
@@ -103,57 +101,53 @@ describe("buildCmsBlogPage", () => {
       pageSize: 12,
     })
 
-    assert.deepEqual(
-      page.entries.map(({ summary }) => summary.slug),
-      ["newer", "older"]
-    )
+    expect(page.entries.map(({ summary }) => summary.slug)).toEqual([
+      "newer",
+      "older",
+    ])
   })
 })
 
 describe("resolveBlogListingHref", () => {
   it("omits default category and first page from the query", () => {
-    assert.equal(
+    expect(
       resolveBlogListingHref({
         category: ALL_BLOG_CATEGORIES_KEY,
         page: 1,
-      }),
-      "/blog"
-    )
+      })
+    ).toBe("/blog")
   })
 
   it("serializes category and page consistently", () => {
-    assert.equal(
+    expect(
       resolveBlogListingHref({
         category: "zdravie & krása",
         page: 2,
-      }),
-      "/blog?category=zdravie+%26+krása&page=2"
-    )
+      })
+    ).toBe("/blog?category=zdravie+%26+krása&page=2")
   })
 
   it("builds the equivalent API URL for loading another page", () => {
-    assert.equal(
+    expect(
       resolveBlogListingApiHref({
         category: "zdravie & krása",
         page: 3,
-      }),
-      "/api/blog?category=zdravie+%26+krása&page=3"
-    )
+      })
+    ).toBe("/api/blog?category=zdravie+%26+krása&page=3")
   })
 })
 
 describe("blogQueryParsers", () => {
   it("normalizes category and accepts positive integer pages", () => {
-    assert.equal(blogQueryParsers.category.parseServerSide(" health "), "health")
-    assert.equal(blogQueryParsers.page.parseServerSide("4"), 4)
+    expect(blogQueryParsers.category.parseServerSide(" health ")).toBe("health")
+    expect(blogQueryParsers.page.parseServerSide("4")).toBe(4)
   })
 
   it("falls back to the default query state for invalid input", () => {
-    assert.equal(
-      blogQueryParsers.category.parseServerSide(" "),
+    expect(blogQueryParsers.category.parseServerSide(" ")).toBe(
       ALL_BLOG_CATEGORIES_KEY
     )
-    assert.equal(blogQueryParsers.page.parseServerSide("-2"), 1)
-    assert.equal(blogQueryParsers.page.parseServerSide("invalid"), 1)
+    expect(blogQueryParsers.page.parseServerSide("-2")).toBe(1)
+    expect(blogQueryParsers.page.parseServerSide("invalid")).toBe(1)
   })
 })

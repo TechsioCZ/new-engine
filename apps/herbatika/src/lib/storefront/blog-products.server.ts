@@ -2,7 +2,11 @@ import "server-only"
 
 import type { HttpTypes } from "@medusajs/types"
 import type { BlogProductReference } from "./blog-content"
-import { indexBlogProducts } from "./blog-product-references"
+import {
+  blogProductExternalKey,
+  blogProductShopitemHandle,
+  indexBlogProducts,
+} from "./blog-product-references"
 import { PRODUCT_CARD_FIELDS } from "./product-query-config"
 import { getRegionServerContext } from "./ssr/context"
 import { fetchServerProducts } from "./storefront-server"
@@ -30,7 +34,8 @@ export const resolveBlogProducts = async (
   let serverContext: Awaited<ReturnType<typeof getRegionServerContext>>
   try {
     serverContext = await getRegionServerContext()
-  } catch {
+  } catch (error) {
+    console.error("Failed to resolve the region for blog products", error)
     return new Map<string, HttpTypes.StoreProduct>()
   }
 
@@ -48,8 +53,8 @@ export const resolveBlogProducts = async (
     try {
       const response = await fetchServerProducts(queryClient, params)
       indexBlogProducts(productMap, response.products)
-    } catch {
-      // Product recommendations are optional; article content remains available.
+    } catch (error) {
+      console.error("Failed to load blog product recommendations", error)
     }
   }
 
@@ -62,8 +67,8 @@ export const resolveBlogProducts = async (
   }
 
   const fallbackHandles = externalIds
-    .filter((externalId) => !productMap.has(`external:${externalId}`))
-    .map((externalId) => `shopitem-${externalId}`)
+    .filter((externalId) => !productMap.has(blogProductExternalKey(externalId)))
+    .map(blogProductShopitemHandle)
   const handles = [...new Set([...explicitHandles, ...fallbackHandles])]
 
   if (handles.length > 0) {

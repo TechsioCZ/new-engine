@@ -606,6 +606,10 @@
       "faq": "Časté otázky"
     },
     "blog": {
+      "listing": {
+        "title": "Blog o zdraví a kráse",
+        "description": "Články o zdraví, kráse, stravovaní a wellness od našich odborníkov."
+      },
       "card": {
         "open_article": "Prejsť na článok"
       },
@@ -620,7 +624,9 @@
         "related_articles": "Ďalšie články",
         "author": "Autor:",
         "published": "Publikované:",
-        "reading_time": "Čas čítania:"
+        "reading_time": "Čas čítania:",
+        "table_of_contents": "Obsah článku",
+        "chapter_count": "{count, plural, one {# kapitola} few {# kapitoly} other {# kapitol}}"
       }
     },
     "faq": {

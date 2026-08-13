@@ -1,3 +1,4 @@
+import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 import type {
   BlogArticleContentSegment,
   BlogCardItem,
@@ -164,8 +165,7 @@ const mapCmsArticleSummaryToBlogCard = (
 ): BlogCardItem | null => {
   const slug = article.slug?.trim()
   const title = article.title?.trim()
-  const imageSrc = resolveCmsMediaUrl(article.featuredImage)
-  if (!(slug && title && imageSrc)) {
+  if (!(slug && title)) {
     return null
   }
 
@@ -174,7 +174,7 @@ const mapCmsArticleSummaryToBlogCard = (
     slug,
     title,
     excerpt: article.excerpt?.trim() ?? "",
-    imageSrc,
+    imageSrc: resolveCmsMediaUrl(article.featuredImage) ?? FALLBACK_IMAGE_SRC,
     category: resolveCmsBlogCategory(
       article.primaryCategory ?? article.category,
       fallbackCategory

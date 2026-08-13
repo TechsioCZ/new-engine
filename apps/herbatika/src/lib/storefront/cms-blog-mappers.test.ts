@@ -1,5 +1,5 @@
-import assert from "node:assert/strict"
-import { describe, it } from "node:test"
+import { describe, expect, it } from "vitest"
+import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 import { mapCmsArticleToBlogPost } from "./cms-blog-mappers"
 import type { CmsArticle } from "./cms-types"
 
@@ -57,26 +57,34 @@ describe("mapCmsArticleToBlogPost", () => {
   it("preserves structured content order and public article metadata", () => {
     const post = mapCmsArticleToBlogPost(article)
 
-    assert.ok(post)
-    assert.deepEqual(
-      post.contentSegments.map(({ type }) => type),
-      ["html", "productCarousel", "html"]
-    )
-    assert.deepEqual(post.tableOfContents, [
+    expect(post).not.toBeNull()
+    if (!post) {
+      throw new Error("Expected the CMS article to map to a blog post")
+    }
+
+    expect(post.contentSegments.map(({ type }) => type)).toEqual([
+      "html",
+      "productCarousel",
+      "html",
+    ])
+    expect(post.tableOfContents).toEqual([
       { id: "first", level: 2, title: "First" },
     ])
-    assert.equal(post.author?.name, "Herbatika redakcia")
-    assert.equal(post.author?.imageSrc, "https://cms.example.com/author.webp")
-    assert.deepEqual(post.sidebar, {
+    expect(post.author?.name).toBe("Herbatika redakcia")
+    expect(post.author?.imageSrc).toBe("https://cms.example.com/author.webp")
+    expect(post.sidebar).toEqual({
       promoImage: {
         alt: "Summer sale",
         src: "https://cms.example.com/sidebar.webp",
       },
       product: { productExternalId: "4362", productSlug: undefined },
     })
-    assert.deepEqual(
-      post.relatedPosts.map(({ slug }) => slug),
-      ["related"]
-    )
+    expect(post.relatedPosts.map(({ slug }) => slug)).toEqual(["related"])
+  })
+
+  it("keeps an article visible when its featured image is unavailable", () => {
+    const post = mapCmsArticleToBlogPost({ ...article, featuredImage: null })
+
+    expect(post?.imageSrc).toBe(FALLBACK_IMAGE_SRC)
   })
 })

@@ -53,7 +53,7 @@ export async function BlogDetailPage({ post }: BlogDetailPageProps) {
         <div
           className={
             hasSidebar
-              ? "grid gap-blog-detail-columns-gap xl:grid-cols-[minmax(0,1fr)_342px]"
+              ? "grid gap-blog-detail-columns-gap xl:grid-cols-[minmax(0,1fr)_var(--width-blog-sidebar)]"
               : "grid"
           }
         >
@@ -103,7 +103,13 @@ export async function BlogDetailPage({ post }: BlogDetailPageProps) {
               <BlogPostIntro post={post} />
             </section>
 
-            <BlogTableOfContents items={post.tableOfContents} />
+            <BlogTableOfContents
+              chapterCount={tContent("blog.detail.chapter_count", {
+                count: post.tableOfContents.length,
+              })}
+              items={post.tableOfContents}
+              title={tContent("blog.detail.table_of_contents")}
+            />
 
             <BlogArticleContent post={post} products={products} />
 

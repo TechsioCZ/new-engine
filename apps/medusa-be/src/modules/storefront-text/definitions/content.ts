@@ -85,6 +85,16 @@ export const STOREFRONT_CONTENT_TEXT_DEFINITIONS = [
     namespace: "content",
   },
   {
+    description: "Nadpis stránky se seznamem blogových článků.",
+    key: "content.blog.listing.title",
+    namespace: "content",
+  },
+  {
+    description: "Úvodní popis stránky se seznamem blogových článků.",
+    key: "content.blog.listing.description",
+    namespace: "content",
+  },
+  {
     description: "Odkaz pro načtení další stránky blogových článků.",
     key: "content.blog.pagination.load_more",
     namespace: "content",
@@ -127,6 +137,16 @@ export const STOREFRONT_CONTENT_TEXT_DEFINITIONS = [
   {
     description: "Popisek doby čtení blogového článku.",
     key: "content.blog.detail.reading_time",
+    namespace: "content",
+  },
+  {
+    description: "Nadpis obsahu blogového článku.",
+    key: "content.blog.detail.table_of_contents",
+    namespace: "content",
+  },
+  {
+    description: "Počet kapitol v obsahu blogového článku.",
+    key: "content.blog.detail.chapter_count",
     namespace: "content",
   },
   {

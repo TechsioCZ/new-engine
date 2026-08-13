@@ -1,6 +1,5 @@
-import assert from "node:assert/strict"
-import { describe, it } from "node:test"
 import type { HttpTypes } from "@medusajs/types"
+import { describe, expect, it } from "vitest"
 import {
   indexBlogProducts,
   resolveBlogProductReference,
@@ -25,13 +24,12 @@ describe("blog product references", () => {
     })
     indexBlogProducts(lookup, [byExternalId, byHandle])
 
-    assert.equal(
+    expect(
       resolveBlogProductReference(
         { productExternalId: "42", productSlug: "legacy-handle" },
         lookup
-      ),
-      byExternalId
-    )
+      )
+    ).toBe(byExternalId)
   })
 
   it("falls back to an explicit handle when the external ID is unresolved", () => {
@@ -42,13 +40,12 @@ describe("blog product references", () => {
     })
     indexBlogProducts(lookup, [byHandle])
 
-    assert.equal(
+    expect(
       resolveBlogProductReference(
         { productExternalId: "missing", productSlug: "legacy-handle" },
         lookup
-      ),
-      byHandle
-    )
+      )
+    ).toBe(byHandle)
   })
 
   it("supports the temporary shopitem handle fallback", () => {
@@ -59,21 +56,19 @@ describe("blog product references", () => {
     })
     indexBlogProducts(lookup, [byShopitemHandle])
 
-    assert.equal(
-      resolveBlogProductReference({ productExternalId: "42" }, lookup),
-      byShopitemHandle
-    )
+    expect(
+      resolveBlogProductReference({ productExternalId: "42" }, lookup)
+    ).toBe(byShopitemHandle)
   })
 
   it("serializes external IDs for the Medusa Store API", () => {
-    assert.deepEqual(
-      buildProductListParams({ external_id: ["42", "43"], limit: 2 }),
-      {
-        "external_id[]": "42,43",
-        external_id: undefined,
-        limit: 2,
-        offset: 0,
-      }
-    )
+    expect(
+      buildProductListParams({ external_id: ["42", "43"], limit: 2 })
+    ).toEqual({
+      "external_id[]": "42,43",
+      external_id: undefined,
+      limit: 2,
+      offset: 0,
+    })
   })
 })

@@ -7,6 +7,15 @@ const SHOPITEM_HANDLE_PREFIX = "shopitem-"
 
 export type BlogProductLookup = Map<string, HttpTypes.StoreProduct>
 
+export const blogProductExternalKey = (externalId: string) =>
+  `${EXTERNAL_KEY_PREFIX}${externalId}`
+
+export const blogProductHandleKey = (handle: string) =>
+  `${HANDLE_KEY_PREFIX}${handle}`
+
+export const blogProductShopitemHandle = (externalId: string) =>
+  `${SHOPITEM_HANDLE_PREFIX}${externalId}`
+
 const addLookupKey = (
   lookup: BlogProductLookup,
   key: string | undefined,
@@ -27,19 +36,19 @@ export const indexBlogProducts = (
 
     addLookupKey(
       lookup,
-      externalId ? `${EXTERNAL_KEY_PREFIX}${externalId}` : undefined,
+      externalId ? blogProductExternalKey(externalId) : undefined,
       product
     )
     addLookupKey(
       lookup,
-      handle ? `${HANDLE_KEY_PREFIX}${handle}` : undefined,
+      handle ? blogProductHandleKey(handle) : undefined,
       product
     )
 
     if (handle?.startsWith(SHOPITEM_HANDLE_PREFIX)) {
       addLookupKey(
         lookup,
-        `${EXTERNAL_KEY_PREFIX}${handle.slice(SHOPITEM_HANDLE_PREFIX.length)}`,
+        blogProductExternalKey(handle.slice(SHOPITEM_HANDLE_PREFIX.length)),
         product
       )
     }
@@ -53,10 +62,10 @@ export const resolveBlogProductReference = (
   const externalId = reference.productExternalId?.trim()
   const handle = reference.productSlug?.trim()
   const keys = [
-    externalId ? `${EXTERNAL_KEY_PREFIX}${externalId}` : undefined,
-    handle ? `${HANDLE_KEY_PREFIX}${handle}` : undefined,
+    externalId ? blogProductExternalKey(externalId) : undefined,
+    handle ? blogProductHandleKey(handle) : undefined,
     externalId
-      ? `${HANDLE_KEY_PREFIX}${SHOPITEM_HANDLE_PREFIX}${externalId}`
+      ? blogProductHandleKey(blogProductShopitemHandle(externalId))
       : undefined,
   ]
 

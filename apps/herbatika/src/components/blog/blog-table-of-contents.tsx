@@ -3,23 +3,19 @@ import { Link } from "@techsio/ui-kit/atoms/link"
 import type { BlogTableOfContentsItem } from "@/lib/storefront/blog-content"
 
 type BlogTableOfContentsProps = {
+  chapterCount: string
   items: BlogTableOfContentsItem[]
+  title: string
 }
 
 const TABLE_OF_CONTENTS_ITEM_CLASS =
   "list-inside list-disc text-fg-secondary text-sm leading-relaxed marker:text-fg-disabled marker:text-lg"
 
-const formatChapterCount = (count: number) => {
-  if (count === 1) {
-    return "1 kapitola"
-  }
-  if (count >= 2 && count <= 4) {
-    return `${count} kapitoly`
-  }
-  return `${count} kapitol`
-}
-
-export function BlogTableOfContents({ items }: BlogTableOfContentsProps) {
+export function BlogTableOfContents({
+  chapterCount,
+  items,
+  title,
+}: BlogTableOfContentsProps) {
   if (items.length === 0) {
     return null
   }
@@ -36,10 +32,10 @@ export function BlogTableOfContents({ items }: BlogTableOfContentsProps) {
           </span>
           <div>
             <h2 className="font-bold text-fg-primary text-xl leading-tight">
-              Obsah článku
+              {title}
             </h2>
             <p className="text-fg-secondary text-sm leading-normal">
-              {formatChapterCount(items.length)}
+              {chapterCount}
             </p>
           </div>
         </div>

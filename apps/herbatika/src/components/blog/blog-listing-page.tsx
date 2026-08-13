@@ -92,12 +92,11 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
         <section className="space-y-500">
           <header className="space-y-400">
             <h1 className="font-bold text-4xl text-fg-primary leading-tight">
-              Blog o zdraví a kráse
+              {tContent("blog.listing.title")}
             </h1>
 
             <p className="font-verdana text-fg-primary text-md leading-relaxed">
-              Články o zdraví, kráse, stravovaní a wellness od našich
-              odborníkov.
+              {tContent("blog.listing.description")}
             </p>
 
             <div className="flex flex-wrap items-center gap-250">
