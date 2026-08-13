@@ -1,10 +1,13 @@
 import { sdk } from "./lib/sdk"
 import { orderDashboardAdminI18n } from "./routes/order-dashboard/i18n"
-import type { OrderDashboardSummaryResponse } from "./routes/order-dashboard/types"
+import {
+  ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID,
+  type OrderDashboardSummaryResponse,
+} from "./routes/order-dashboard/types"
 
 const ORDER_DASHBOARD_SIDEBAR_BADGE_ID = "order-dashboard-sidebar-badge"
 const ORDER_DASHBOARD_SIDEBAR_LINK_SELECTOR =
-  'a[href$="/order-dashboard"], a[href$="/order-dashboard/"]'
+  'a[href$="/order-dashboard"], a[href$="/order-dashboard/"], a[href*="/order-dashboard?"]'
 const ORDER_DASHBOARD_SIDEBAR_BADGE_REFRESH_MS = 60_000
 const ORDER_DASHBOARD_SIDEBAR_BADGE_RETRY_COOLDOWN_MS = 10_000
 
@@ -98,6 +101,10 @@ function renderOrderDashboardSidebarBadge(count: number | null | undefined) {
   const link = getOrderDashboardSidebarLink()
   const normalizedCount = normalizeOrderDashboardSidebarBadgeCount(count)
 
+  if (link) {
+    setOrderDashboardSidebarLinkQueue(link)
+  }
+
   if (!link || normalizedCount === null || normalizedCount <= 0) {
     removeOrderDashboardSidebarBadge()
     return
@@ -159,6 +166,19 @@ function getOrderDashboardSidebarLink() {
       ORDER_DASHBOARD_SIDEBAR_LINK_SELECTOR
     ) ?? null
   )
+}
+
+function setOrderDashboardSidebarLinkQueue(link: HTMLAnchorElement) {
+  const url = new URL(link.href, window.location.origin)
+
+  if (
+    url.searchParams.get("queue") === ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID
+  ) {
+    return
+  }
+
+  url.searchParams.set("queue", ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID)
+  link.setAttribute("href", `${url.pathname}${url.search}${url.hash}`)
 }
 
 function getOrderDashboardSidebarBadgeLabel(count: number) {

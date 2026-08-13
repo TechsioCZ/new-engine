@@ -69,36 +69,52 @@ describe("order expedition helpers", () => {
   })
 
   it("normalizes an order into the admin expedition DTO", () => {
-    const dto = toOrderExpeditionDto({
-      id: "order_1",
-      display_id: 1001,
-      custom_display_id: "#HERB-1001",
-      email: "customer@example.com",
-      status: "pending",
-      payment_status: "captured",
-      customer: {
-        first_name: "Jana",
-        last_name: "Novakova",
+    const dto = toOrderExpeditionDto(
+      {
+        id: "order_1",
+        display_id: 1001,
+        custom_display_id: "#HERB-1001",
+        email: "customer@example.com",
+        status: "pending",
+        payment_status: "captured",
+        customer: {
+          first_name: "Jana",
+          last_name: "Novakova",
+        },
+        shipping_address: {
+          address_1: "Ulice 1",
+          city: "Praha",
+          country_code: "cz",
+          postal_code: "11000",
+        },
+        shipping_methods: [{ name: "Packeta Z-Point" }],
+        payment_collections: [{ payments: [{ provider_id: "stripe" }] }],
+        summary: [{ totals: { current_order_total: 47.39 }, version: 1 }],
+        total: 0,
+        items: [{ id: "item_1", quantity: { value: "2" }, title: "Tea" }],
       },
-      shipping_address: {
-        address_1: "Ulice 1",
-        city: "Praha",
-        country_code: "cz",
-        postal_code: "11000",
+      {
+        note: true,
+        returning_customer: false,
+        storn_orders: false,
+        wholesale_company_name: null,
       },
-      shipping_methods: [{ name: "Packeta Z-Point" }],
-      payment_collections: [{ payments: [{ provider_id: "stripe" }] }],
-      summary: [{ totals: { current_order_total: 47.39 }, version: 1 }],
-      total: 0,
-      items: [{ id: "item_1", quantity: { value: "2" }, title: "Tea" }],
-    })
+      "Please call before delivery."
+    )
 
     expect(dto).toMatchObject({
       carrier: { value: "packeta" },
       customer: "Jana Novakova",
       has_active_fulfillment: false,
       order_display_id: "#HERB-1001",
+      note: "Please call before delivery.",
       payment_method: "stripe",
+      signals: {
+        note: true,
+        returning_customer: false,
+        storn_orders: false,
+        wholesale_company_name: null,
+      },
       status: "pending",
       total: 47.39,
     })
@@ -115,6 +131,16 @@ describe("order expedition helpers", () => {
         variant_id: undefined,
       },
     ])
+  })
+
+  it("returns no payment method when the order has no payment provider", () => {
+    const dto = toOrderExpeditionDto({
+      id: "order_1",
+      display_id: 1001,
+      payment_status: "not_paid",
+    })
+
+    expect(dto.payment_method).toBeNull()
   })
 
   it("uses the latest summary total when query returns a zero order total", () => {

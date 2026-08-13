@@ -1,5 +1,5 @@
 import { z } from "@medusajs/framework/zod"
-import { MANUAL_ORDER_BUSINESS_STATUS_IDS } from "../../../utils/order-business-status"
+import { ASSIGNABLE_ORDER_BUSINESS_STATUS_IDS } from "../../../utils/order-business-status"
 
 export const GetAdminOrderBusinessStatusesSchema = z
   .object({
@@ -28,7 +28,7 @@ export const GetAdminOrderBusinessStatusesByIdsSchema = z
 export const PostAdminOrderBusinessStatusesBulkSchema = z
   .object({
     order_ids: z.array(z.string().min(1)).min(1).max(1000),
-    status: z.enum(MANUAL_ORDER_BUSINESS_STATUS_IDS).nullable(),
+    status: z.enum(ASSIGNABLE_ORDER_BUSINESS_STATUS_IDS).nullable(),
   })
   .strict()
 

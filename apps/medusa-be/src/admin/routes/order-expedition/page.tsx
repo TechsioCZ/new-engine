@@ -1368,7 +1368,7 @@ function OrdersTable({
               </Table.Cell>
               <Table.Cell className="whitespace-nowrap">
                 <div className="flex flex-col">
-                  <Text size="small">{order.payment_method}</Text>
+                  <Text size="small">{order.payment_method ?? "-"}</Text>
                   <Text className="text-ui-fg-subtle" size="small">
                     {order.payment_status ?? "-"}
                   </Text>
@@ -1434,8 +1434,8 @@ function OrderExpeditionPagination({
         <Text size="small">Page {pageIndex + 1}</Text>
         {carrierFilterLimitReached && scannedCount !== null ? (
           <Text className="text-ui-fg-muted" size="small">
-            Carrier filter scanned first {scannedCount} orders. More matches may
-            exist.
+            The dashboard scanned the first {scannedCount} orders. More matches
+            may exist.
           </Text>
         ) : null}
       </div>

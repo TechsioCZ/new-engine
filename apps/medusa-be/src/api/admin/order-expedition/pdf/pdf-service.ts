@@ -5,6 +5,7 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import bwipjs from "bwip-js"
+import JSZip from "jszip"
 import { PageSizes, rgb } from "pdf-lib"
 import {
   fetchOrderedOrderExpeditionOrdersByIds,
@@ -89,6 +90,45 @@ function isOrderExpeditionQueryOrder<T>(
 
 export async function createOrderExpeditionPdfResponse(
   req: MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>,
+  orderIds: string[],
+  mode: PostAdminOrderExpeditionPdfSchemaType["mode"] = "combined"
+) {
+  const orderedDtos = await loadOrderExpeditionPdfOrders(req, orderIds)
+
+  if (mode === "separate") {
+    const archive = new JSZip()
+    const usedFilenames = new Map<string, number>()
+
+    for (const order of orderedDtos) {
+      const pdfBytes = await generateExpeditionPdf([order], req)
+      const filename = buildUniqueOrderPdfFilename(order, usedFilenames)
+
+      archive.file(filename, Buffer.from(pdfBytes))
+    }
+
+    const buffer = await archive.generateAsync({
+      compression: "STORE",
+      type: "nodebuffer",
+    })
+
+    return {
+      buffer,
+      contentType: "application/zip",
+      filename: buildExportFilename(orderedDtos, "zip"),
+    }
+  }
+
+  const pdfBytes = await generateExpeditionPdf(orderedDtos, req)
+
+  return {
+    buffer: Buffer.from(pdfBytes),
+    contentType: "application/pdf",
+    filename: buildExportFilename(orderedDtos, "pdf"),
+  }
+}
+
+async function loadOrderExpeditionPdfOrders(
+  req: MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>,
   orderIds: string[]
 ) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -111,7 +151,7 @@ export async function createOrderExpeditionPdfResponse(
     query,
     expeditionOrders
   )
-  const orderedDtos = expeditionOrders.map((order) =>
+  return expeditionOrders.map((order) =>
     withPacketaBarcode(
       withStockQuantities(
         toOrderExpeditionDto(order),
@@ -120,13 +160,8 @@ export async function createOrderExpeditionPdfResponse(
       packetaBarcodesByOrderId.get(order.id)
     )
   )
-  const pdfBytes = await generateExpeditionPdf(orderedDtos, req)
-
-  return {
-    buffer: Buffer.from(pdfBytes),
-    filename: buildFilename(orderedDtos),
-  }
 }
+
 async function fetchStockQuantitiesByVariantId(
   query: Query,
   orders: OrderExpeditionRawOrder[]
@@ -1251,14 +1286,49 @@ function splitLongWord(
   return chunks
 }
 
-function buildFilename(orders: OrderExpeditionOrderDto[]) {
+function buildExportFilename(
+  orders: OrderExpeditionOrderDto[],
+  extension: "pdf" | "zip"
+) {
   const firstOrder = orders[0]
 
-  if (orders.length === 1 && firstOrder) {
-    return `expedition-${firstOrder.order_display_id.replace(FILENAME_SAFE_CHARS_REGEX, "")}.pdf`
+  if (!firstOrder) {
+    return `objednavky.${extension}`
   }
 
-  return `expedition-orders-${new Date().toISOString().slice(0, 10)}.pdf`
+  const firstOrderId = getFilenameOrderId(firstOrder)
+  if (orders.length === 1) {
+    return `objednavka-${firstOrderId}.${extension}`
+  }
+
+  const lastOrder = orders.at(-1)
+  const lastOrderId = lastOrder ? getFilenameOrderId(lastOrder) : firstOrderId
+
+  return `objednavky-${firstOrderId}-${lastOrderId}-${orders.length}.${extension}`
+}
+
+function buildUniqueOrderPdfFilename(
+  order: OrderExpeditionOrderDto,
+  usedFilenames: Map<string, number>
+) {
+  const stem = `objednavka-${getFilenameOrderId(order)}`
+  const occurrence = (usedFilenames.get(stem) ?? 0) + 1
+
+  usedFilenames.set(stem, occurrence)
+
+  return occurrence === 1 ? `${stem}.pdf` : `${stem}-${occurrence}.pdf`
+}
+
+function getFilenameOrderId(order: OrderExpeditionOrderDto) {
+  const displayId = order.order_display_id
+    .replace(ORDER_DISPLAY_PREFIX_REGEX, "")
+    .replace(FILENAME_SAFE_CHARS_REGEX, "")
+
+  if (displayId) {
+    return displayId
+  }
+
+  return order.id.replace(FILENAME_SAFE_CHARS_REGEX, "") || "objednavka"
 }
 
 const PDF_SAFE_CHAR_REPLACEMENTS: Record<string, string> = {

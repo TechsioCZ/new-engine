@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest"
 import {
-  getOrderBusinessManualStatusUpdateBlockReason,
   isManualOrderBusinessStatusId,
   isPendingUnpaidOrder,
   ORDER_BUSINESS_STATUS_METADATA_KEY,
@@ -40,12 +39,13 @@ describe("order business status", () => {
     ])
   })
 
-  it("accepts only the approved manual statuses", () => {
-    expect(isManualOrderBusinessStatusId("processing")).toBe(true)
-    expect(isManualOrderBusinessStatusId("waiting_for_supplier")).toBe(true)
-    expect(isManualOrderBusinessStatusId("canceled")).toBe(true)
-    expect(isManualOrderBusinessStatusId("paid")).toBe(false)
-    expect(isManualOrderBusinessStatusId("delivered")).toBe(false)
+  it("accepts every existing status as a manual override", () => {
+    expect(
+      Object.keys(ORDER_BUSINESS_STATUSES).every((status) =>
+        isManualOrderBusinessStatusId(status)
+      )
+    ).toBe(true)
+    expect(isManualOrderBusinessStatusId("unknown")).toBe(false)
   })
 
   it("falls back to Nová when there is no reliable signal", () => {
@@ -194,7 +194,7 @@ describe("order business status", () => {
     ).toBe("waiting_for_supplier")
   })
 
-  it("gives shipped and delivered signals priority over processing states", () => {
+  it("keeps the manual override authoritative over automatic signals", () => {
     expect(
       resolveOrderBusinessStatus(
         createOrder({
@@ -205,7 +205,7 @@ describe("order business status", () => {
           payment_status: "captured",
         })
       ).id
-    ).toBe("shipped")
+    ).toBe("processing")
     expect(
       resolveOrderBusinessStatus(
         createOrder({
@@ -216,7 +216,17 @@ describe("order business status", () => {
           payment_status: "captured",
         })
       ).id
-    ).toBe("delivered")
+    ).toBe("processing")
+    expect(
+      resolveOrderBusinessStatus(
+        createOrder({
+          metadata: {
+            [ORDER_BUSINESS_STATUS_METADATA_KEY]: "new",
+          },
+          status: "canceled",
+        })
+      ).id
+    ).toBe("new")
   })
 
   it("uses fulfillment timestamps when status fields are unavailable", () => {
@@ -277,55 +287,5 @@ describe("order business status", () => {
         })
       ).id
     ).toBe("canceled")
-  })
-
-  it("explains manual status bulk update blockers", () => {
-    expect(
-      getOrderBusinessManualStatusUpdateBlockReason(
-        createOrder({
-          fulfillment_status: "delivered",
-          payment_status: "captured",
-        }),
-        "processing"
-      )
-    ).toBe("delivered status has higher priority")
-    expect(
-      getOrderBusinessManualStatusUpdateBlockReason(
-        createOrder({
-          metadata: {
-            [ORDER_BUSINESS_STATUS_METADATA_KEY]: "processing",
-          },
-        }),
-        "processing"
-      )
-    ).toBe("Manual status is already processing")
-    expect(
-      getOrderBusinessManualStatusUpdateBlockReason(
-        createOrder({ payment_status: "captured" }),
-        "waiting_for_supplier"
-      )
-    ).toBeUndefined()
-    expect(
-      getOrderBusinessManualStatusUpdateBlockReason(
-        createOrder({ status: "canceled" }),
-        "processing"
-      )
-    ).toBe("canceled status has higher priority")
-    expect(
-      getOrderBusinessManualStatusUpdateBlockReason(
-        createOrder({ status: "canceled" }),
-        "canceled"
-      )
-    ).toBeUndefined()
-    expect(
-      getOrderBusinessManualStatusUpdateBlockReason(
-        createOrder({
-          metadata: {
-            [ORDER_BUSINESS_STATUS_METADATA_KEY]: "canceled",
-          },
-        }),
-        "processing"
-      )
-    ).toBeUndefined()
   })
 })
