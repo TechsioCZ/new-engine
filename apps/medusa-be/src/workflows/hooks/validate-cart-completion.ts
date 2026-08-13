@@ -9,6 +9,10 @@ import { completeCartWorkflow } from "@medusajs/medusa/core-flows"
 import { isCashOnDeliveryPaymentProviderId } from "../../modules/payment-cash-on-delivery/constants"
 import { checkSpendingLimit } from "../../utils/check-spending-limit"
 import { getCartApprovalStatus } from "../../utils/get-cart-approval-status"
+import {
+  type CheckoutShippingMethod,
+  isOnSitePaymentCompatibleWithShipping,
+} from "./checkout-payment-compatibility"
 
 type CartPaymentSession = {
   is_selected?: boolean | null
@@ -16,7 +20,7 @@ type CartPaymentSession = {
   status?: PaymentSessionStatus | null
 }
 
-type CartShippingMethod = {
+type CartShippingMethod = CheckoutShippingMethod & {
   data?: Record<string, unknown> | null
   shipping_option?: {
     data?: Record<string, unknown> | null
@@ -87,6 +91,7 @@ completeCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
       "shipping_methods.data",
       "shipping_methods.shipping_option.data",
       "shipping_methods.shipping_option.type.code",
+      "shipping_methods.shipping_option.service_zone.fulfillment_set.type",
       "payment_collection.payment_sessions.*",
     ],
     filters: {
@@ -120,6 +125,18 @@ completeCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
     throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
       "Cash-on-delivery shipping must use the cash-on-delivery payment provider"
+    )
+  }
+
+  if (
+    !isOnSitePaymentCompatibleWithShipping({
+      paymentProviderId: selectedPaymentProviderId,
+      shippingMethods,
+    })
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_ALLOWED,
+      "On-site payment requires a pickup shipping option"
     )
   }
 

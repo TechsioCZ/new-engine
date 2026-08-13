@@ -27,6 +27,11 @@ export const STOREFRONT_CHECKOUT_PAYMENT_TEXT_DEFINITIONS = [
     namespace: "checkout",
   },
   {
+    description: "Název platby hotově nebo kartou při osobním odběru.",
+    key: "checkout.payment_provider_on_site",
+    namespace: "checkout",
+  },
+  {
     description:
       "Název platby kartou přes konkrétní bránu v rekapitulaci objednávky.",
     key: "checkout.payment_summary_card_gateway",
@@ -51,6 +56,11 @@ export const STOREFRONT_CHECKOUT_PAYMENT_TEXT_DEFINITIONS = [
   {
     description: "Popis online platby kartou přes konkrétní platební bránu.",
     key: "checkout.payment_description_card_gateway",
+    namespace: "checkout",
+  },
+  {
+    description: "Popis platby hotově nebo kartou při osobním odběru.",
+    key: "checkout.payment_description_on_site",
     namespace: "checkout",
   },
 ] as const satisfies readonly StorefrontTextDefinition[]
