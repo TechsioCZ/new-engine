@@ -44,6 +44,17 @@ describe("Payload CMS schemas", () => {
     expect(parsed.contentHTML).toBe("<p>Article</p>")
   })
 
+  it("accepts rendered article HTML used by search indexing", () => {
+    const parsed = CmsArticleSchema.parse({
+      id: 1,
+      slug: "article",
+      title: "Article",
+      content: "<p>Article</p>",
+    })
+
+    expect(parsed.content).toBe("<p>Article</p>")
+  })
+
   it("rejects malformed supported blocks", () => {
     const parsed = CmsLexicalContentSchema.safeParse(
       createLexicalContent({

@@ -90,6 +90,21 @@ export const STOREFRONT_CONTENT_TEXT_DEFINITIONS = [
     namespace: "content",
   },
   {
+    description: "Chybová hláška při načítání další stránky blogových článků.",
+    key: "content.blog.pagination.load_failed",
+    namespace: "content",
+  },
+  {
+    description: "Stavový text během načítání dalších blogových článků.",
+    key: "content.blog.pagination.loading",
+    namespace: "content",
+  },
+  {
+    description: "Rozsah načtených stránek blogových článků.",
+    key: "content.blog.pagination.range",
+    namespace: "content",
+  },
+  {
     description: "Souhrn aktuální a celkové stránky blogu.",
     key: "content.blog.pagination.summary",
     namespace: "content",

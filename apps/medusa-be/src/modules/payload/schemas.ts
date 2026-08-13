@@ -139,7 +139,7 @@ const CmsArticleSchema = passthroughObject({
   slug: z.string(),
   title: z.string(),
   excerpt: z.string().nullable().optional(),
-  content: CmsLexicalContentSchema.optional(),
+  content: z.union([CmsLexicalContentSchema, z.string()]).optional(),
   contentHTML: z.string().nullable().optional(),
   featuredImage: z
     .union([CmsDocumentIdSchema, CmsMediaSchema])

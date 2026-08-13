@@ -97,7 +97,7 @@ const fetchProducts = async ({
   url.searchParams.set("limit", String(limit))
   url.searchParams.set(
     "fields",
-    "id,external_id,handle,title,thumbnail,+metadata.source_shopitem_id"
+    "id,external_id,handle,title,thumbnail,+metadata"
   )
   if (search) {
     url.searchParams.set("q", search)
