@@ -6,27 +6,38 @@ type BlogAuthorCardProps = {
 }
 
 export function BlogAuthorCard({ post }: BlogAuthorCardProps) {
+  const { author } = post
+  if (!author) {
+    return null
+  }
+
   return (
     <section className="flex flex-col gap-500 rounded-2xl border border-border-secondary bg-surface p-400 sm:flex-row sm:items-center">
-      <NextImage
-        alt={post.author}
-        className="aspect-square h-blog-detail-author-image rounded-md object-cover"
-        height={124}
-        quality={50}
-        src={post.authorImageSrc}
-        width={124}
-      />
+      {author.imageSrc ? (
+        <NextImage
+          alt={author.name}
+          className="aspect-square h-blog-detail-author-image rounded-md object-cover"
+          height={124}
+          quality={50}
+          src={author.imageSrc}
+          width={124}
+        />
+      ) : null}
 
       <div className="space-y-200">
-        <p className="text-fg-secondary text-xs leading-normal">
-          {post.authorRole}
-        </p>
+        {author.role ? (
+          <p className="text-fg-secondary text-xs leading-normal">
+            {author.role}
+          </p>
+        ) : null}
         <h3 className="font-bold text-fg-primary text-xl leading-tight">
-          {post.author}
+          {author.name}
         </h3>
-        <p className="text-fg-secondary text-md leading-relaxed">
-          {post.authorBio}
-        </p>
+        {author.bio ? (
+          <p className="text-fg-secondary text-md leading-relaxed">
+            {author.bio}
+          </p>
+        ) : null}
       </div>
     </section>
   )

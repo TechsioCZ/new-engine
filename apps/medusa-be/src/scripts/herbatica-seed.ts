@@ -3071,8 +3071,10 @@ function buildProducts(params: {
     })
     const thumbnail = item.images[0] ?? item.topOffer.imageRef
     const imageUrls = dedupeStrings([...item.images, thumbnail])
+    const externalId = item.id.trim()
 
     return {
+      external_id: externalId.length > 0 ? externalId : undefined,
       title: item.name || `Product ${item.id || index + 1}`,
       categories,
       description: item.description ?? item.shortDescription ?? "",
@@ -3850,7 +3852,6 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     })
   }
 
-  logger.info("Herbatica seed completed successfully")
   const eanReconciliation = seedResult.reconcileProductVariantEansResult
   const eanWarnings = eanReconciliation.issues.length
   logger.info(
@@ -3874,4 +3875,6 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
       `${eanReconciliation.issues.length - EAN_ISSUE_LOG_LIMIT} additional EAN collision issue(s) omitted from console output`
     )
   }
+
+  logger.info("Herbatica seed completed successfully")
 }

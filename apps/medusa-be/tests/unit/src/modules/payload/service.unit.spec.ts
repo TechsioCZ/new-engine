@@ -209,23 +209,38 @@ describe("PayloadModuleService", () => {
 
       const result = await service.getPublishedArticle("news", "en")
 
-      expect(result).toEqual(article)
+      expect(result).toMatchObject(article)
+      const [url] = fetchMock.mock.calls[0] as [string, RequestInit]
+      const parsedUrl = new URL(url)
+      expect(parsedUrl.searchParams.get("fallback-locale")).toBe("false")
+      expect(parsedUrl.searchParams.get("depth")).toBe("2")
+      expect(parsedUrl.searchParams.get("select[content]")).toBe("true")
+      expect(parsedUrl.searchParams.get("populate[articles][title]")).toBe(
+        "true"
+      )
+      expect(parsedUrl.searchParams.get("populate[media][filename]")).toBe(
+        "true"
+      )
       expect(cacheService.set).toHaveBeenCalledWith(
         expect.objectContaining({
-          key: "cms:articles:news:en",
+          key: "cms:articles:v6:news:en",
+          data: expect.objectContaining(article),
           tags: ["cms", "cms:articles"],
         })
       )
     })
 
-    it("redacts private Payload auth fields from expanded relationships", async () => {
+    it("projects only public article author fields", async () => {
       const { service, cacheService } = createServiceWithCache()
       const article = {
         id: 1,
         slug: "news",
         title: "News",
-        author: {
+        articleAuthor: {
           id: 1,
+          displayName: "Herbatika redakcia",
+          role: "Článok pre vás pripravila",
+          bio: "Odborný obsah o zdraví.",
           email: "author@example.com",
           apiKey: "secret-api-key",
           apiKeyIndex: "secret-index",
@@ -241,29 +256,37 @@ describe("PayloadModuleService", () => {
 
       const result = await service.getPublishedArticle("news", "en")
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         id: 1,
         slug: "news",
         title: "News",
         author: {
           id: 1,
+          displayName: "Herbatika redakcia",
+          role: "Článok pre vás pripravila",
+          bio: "Odborný obsah o zdraví.",
+          portrait: null,
         },
       })
       expect(cacheService.set).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: {
+          data: expect.objectContaining({
             id: 1,
             slug: "news",
             title: "News",
             author: {
               id: 1,
+              displayName: "Herbatika redakcia",
+              role: "Článok pre vás pripravila",
+              bio: "Odborný obsah o zdraví.",
+              portrait: null,
             },
-          },
+          }),
         })
       )
     })
 
-    it("redacts private Payload auth fields from cached values", async () => {
+    it("returns the versioned public article DTO from cache", async () => {
       const { service, cacheService } = createServiceWithCache()
 
       cacheService.get.mockResolvedValue({
@@ -272,20 +295,25 @@ describe("PayloadModuleService", () => {
         title: "News",
         author: {
           id: 1,
-          email: "author@example.com",
-          apiKey: "secret-api-key",
-          sessions: [{ id: "session-id" }],
+          displayName: "Herbatika redakcia",
+          role: "Článok pre vás pripravila",
+          bio: null,
+          portrait: null,
         },
       })
 
       const result = await service.getPublishedArticle("news", "en")
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         id: 1,
         slug: "news",
         title: "News",
         author: {
           id: 1,
+          displayName: "Herbatika redakcia",
+          role: "Článok pre vás pripravila",
+          bio: null,
+          portrait: null,
         },
       })
       expect(fetchMock).not.toHaveBeenCalled()
@@ -561,7 +589,7 @@ describe("PayloadModuleService", () => {
           id: 1,
           title: "News",
           slug: "news",
-          articles: [{ title: "Article 1", slug: "article-1" }],
+          articles: [{ id: 1, title: "Article 1", slug: "article-1" }],
         },
       ]
 
@@ -582,6 +610,7 @@ describe("PayloadModuleService", () => {
       const parsedUrl = new URL(url)
       expect(parsedUrl.pathname).toBe("/api/article-categories-with-articles")
       expect(parsedUrl.searchParams.get("locale")).toBe("en")
+      expect(parsedUrl.searchParams.get("fallback-locale")).toBe("false")
       expect(parsedUrl.searchParams.get("categorySlug")).toBe("news")
 
       expect(cacheService.set).toHaveBeenCalledWith(
@@ -664,7 +693,7 @@ describe("PayloadModuleService", () => {
       await service.invalidateCache("articles", "hello-world", "cs")
 
       expect(cacheService.clear).toHaveBeenNthCalledWith(1, {
-        key: "cms:articles:hello-world:cs",
+        key: "cms:articles:v6:hello-world:cs",
       })
       expect(cacheService.clear).toHaveBeenNthCalledWith(2, {
         tags: ["cms:article-categories:locale:cs"],

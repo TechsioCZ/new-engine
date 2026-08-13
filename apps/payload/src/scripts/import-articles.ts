@@ -1,7 +1,23 @@
+import { createHash } from "node:crypto"
+import { lookup } from "node:dns/promises"
+import { existsSync } from "node:fs"
+import { readFile } from "node:fs/promises"
+import {
+  type IncomingMessage,
+  request as requestHttp,
+} from "node:http"
+import { request as requestHttps } from "node:https"
+import { BlockList, isIP, type LookupFunction } from "node:net"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { gunzipSync } from "node:zlib"
 import ExcelJS from "exceljs"
-import { getPayload, type PayloadRequest } from "payload"
+import {
+  getPayload,
+  type PayloadRequest,
+  type RequiredDataFromCollectionSlug,
+} from "payload"
+import { DEFAULT_ARTICLE_AUTHOR } from "../lib/constants/article-author"
 import type { Article } from "../payload-types"
 
 type Payload = Awaited<ReturnType<typeof getPayload>>
@@ -14,6 +30,7 @@ type PayloadLocale = PayloadRequest["locale"]
 type ResolvedLocale = Exclude<PayloadLocale, undefined>
 type WriteLocale = Exclude<PayloadLocale, "all" | undefined>
 type ImportContext = {
+  articleAuthorId: PayloadId
   dryRun: boolean
   fallbackMediaId: PayloadId
   payload: Payload
@@ -23,6 +40,7 @@ type ImportContext = {
   translate: boolean
   overwrite: boolean
   categoryCache: Map<string, PayloadId>
+  mediaUrlMap: Map<string, PayloadId>
 }
 
 const REQUIRED_COLUMNS = ["title", "content"]
@@ -35,7 +53,55 @@ const IS_DEBUG_IMPORT = process.env.DEBUG_IMPORT_ARTICLES === "1"
 const TITLE_MAX_LENGTH = 100
 const EXCEL_EPOCH_DAYS = 25_569
 const MS_PER_DAY = 86_400_000
-const DEFAULT_LOCALES = ["en"]
+const DEFAULT_LOCALES = ["cs", "sk", "en"]
+const RICH_TEXT_GZIP_PREFIX = "payload-richtext+gzip-base64:"
+const MEDIA_URL_PREFIX = "payload-media-url:"
+const DATA_IMAGE_PATTERN =
+  /^data:(image\/(?:avif|gif|jpeg|png|webp));base64,(.+)$/i
+const MEDIA_FETCH_TIMEOUT_MS = 15_000
+const MAX_MEDIA_BYTES = 10 * 1024 * 1024
+const MAX_MEDIA_REDIRECTS = 5
+const BLOCKED_MEDIA_ADDRESSES = new BlockList()
+const BLOCKED_IPV4_SUBNETS = [
+  ["0.0.0.0", 8],
+  ["10.0.0.0", 8],
+  ["100.64.0.0", 10],
+  ["127.0.0.0", 8],
+  ["169.254.0.0", 16],
+  ["172.16.0.0", 12],
+  ["192.0.0.0", 24],
+  ["192.168.0.0", 16],
+  ["198.18.0.0", 15],
+  ["224.0.0.0", 4],
+  ["240.0.0.0", 4],
+] as const
+const BLOCKED_IPV6_SUBNETS = [
+  ["::", 128],
+  ["::1", 128],
+  ["fc00::", 7],
+  ["fe80::", 10],
+  ["ff00::", 8],
+] as const
+
+for (const [network, prefix] of BLOCKED_IPV4_SUBNETS) {
+  BLOCKED_MEDIA_ADDRESSES.addSubnet(network, prefix, "ipv4")
+}
+for (const [network, prefix] of BLOCKED_IPV6_SUBNETS) {
+  BLOCKED_MEDIA_ADDRESSES.addSubnet(network, prefix, "ipv6")
+}
+const SUPPORTED_IMAGE_TYPES = new Set([
+  "image/avif",
+  "image/gif",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+])
+
+type MediaManifestEntry = {
+  url: string
+  alt?: string
+  filename?: string
+}
 
 const debugLog = (...args: unknown[]) => {
   if (IS_DEBUG_IMPORT) {
@@ -48,7 +114,7 @@ const PLACEHOLDER_IMAGE = Buffer.from(
 )
 
 const usage = `Usage:
-  pnpm --filter @nmit/payload run import:articles -- <xlsx-file> [sheet-name] [--locale cs] [--status draft|published|archived] [--translate] [--overwrite] [--dry-run]
+  pnpm --filter @nmit/payload run import:articles -- <xlsx-file> [sheet-name] [--locale cs] [--status draft|published|archived] [--translate] [--overwrite] [--dry-run] [--media-manifest file.json]
 
 Expected columns:
   title, content, excerpt, slug, category, category_slug, tags, status, publishedDate, featured_image_path, author_email
@@ -57,7 +123,7 @@ Aliases:
   title: post_url, post_title
   content: body, text, article, article_text, post_content, post_content_html
   category: category_title, rubrika, kategorie
-  publishedDate: published_date, date, datum
+  publishedDate: published_date, date, datum, post_date
   featured_image_path: image, image_path, featuredImage, featured_image, post_img_src, post_img
 `
 
@@ -71,6 +137,7 @@ export type ArticleImportOptions = {
   overwrite?: boolean
   signal?: AbortSignal
   payload?: Payload
+  mediaManifestPath?: string
 }
 
 export type ArticleImportResult = {
@@ -117,6 +184,7 @@ const getArgs = () => {
   let translate = false
   let dryRun = false
   let overwrite = false
+  let mediaManifestPath: string | undefined
   const args = process.argv.slice(2)
 
   for (let i = 0; i < args.length; i++) {
@@ -139,6 +207,15 @@ const getArgs = () => {
         const value = getValueArg(args, i)
         if (value) {
           locale = value.toLowerCase()
+          i += 1
+        }
+        break
+      }
+
+      case "--media-manifest": {
+        const value = getValueArg(args, i)
+        if (value) {
+          mediaManifestPath = value
           i += 1
         }
         break
@@ -168,6 +245,7 @@ const getArgs = () => {
     status,
     translate,
     overwrite,
+    mediaManifestPath,
   }
 }
 
@@ -269,7 +347,481 @@ const getCliPayload = async () => {
   return getPayload({ config })
 }
 
-const toRichText = (value: string): ArticleContent => {
+const isRichTextJson = (value: unknown): value is ArticleContent =>
+  typeof value === "object" &&
+  value !== null &&
+  "root" in value &&
+  typeof (value as { root?: unknown }).root === "object"
+
+const decodeRichTextValue = (value: string) => {
+  if (!value.startsWith(RICH_TEXT_GZIP_PREFIX)) {
+    return value
+  }
+
+  try {
+    return gunzipSync(
+      Buffer.from(value.slice(RICH_TEXT_GZIP_PREFIX.length), "base64")
+    ).toString("utf8")
+  } catch (error) {
+    throw new Error(
+      `Malformed rich text payload: ${error instanceof Error ? error.message : String(error)}`
+    )
+  }
+}
+
+const resolveDefaultMediaManifestPath = (filePath: string) => {
+  const parsed = path.parse(filePath)
+  return path.join(parsed.dir, `${parsed.name}.media.json`)
+}
+
+const sanitizeFilename = (value: string) =>
+  value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 180) || "image"
+
+const filenameFromUrl = (url: string) => {
+  try {
+    const parsed = new URL(url)
+    const basename = path.basename(decodeURIComponent(parsed.pathname))
+    return sanitizeFilename(basename || "image")
+  } catch {
+    return sanitizeFilename(path.basename(url) || "image")
+  }
+}
+
+const filenameWithUrlHash = (entry: MediaManifestEntry) => {
+  const hash = createHash("sha1").update(entry.url).digest("hex").slice(0, 12)
+  const filename = sanitizeFilename(
+    entry.filename || filenameFromUrl(entry.url)
+  )
+  return `imported-richtext-${hash}-${filename}`
+}
+
+const loadMediaManifest = async (filePath: string | undefined) => {
+  if (!(filePath && existsSync(filePath))) {
+    return []
+  }
+
+  const parsed = JSON.parse(await readFile(filePath, "utf8")) as unknown
+  const media = (parsed as { media?: unknown }).media
+  if (!Array.isArray(media)) {
+    return []
+  }
+
+  return media.filter(
+    (entry): entry is MediaManifestEntry =>
+      typeof entry === "object" &&
+      entry !== null &&
+      typeof (entry as { url?: unknown }).url === "string"
+  )
+}
+
+const assertSafeMediaUrl = async (url: string) => {
+  const parsed = new URL(url)
+  if (!["http:", "https:"].includes(parsed.protocol)) {
+    throw new Error("Unsupported media URL protocol")
+  }
+
+  if (parsed.hostname === "metadata.google.internal") {
+    throw new Error("Blocked cloud metadata host")
+  }
+
+  const literalFamily = isIP(parsed.hostname)
+  const addresses = literalFamily
+    ? [{ address: parsed.hostname, family: literalFamily }]
+    : await lookup(parsed.hostname, { all: true, verbatim: true })
+  if (addresses.length === 0) {
+    throw new Error("Media host did not resolve to an address")
+  }
+  if (
+    addresses.some(({ address, family }) =>
+      BLOCKED_MEDIA_ADDRESSES.check(
+        address,
+        family === 4 ? "ipv4" : "ipv6"
+      )
+    )
+  ) {
+    throw new Error("Blocked private or link-local media host")
+  }
+
+  return { parsed, address: addresses[0] }
+}
+
+const createPinnedLookup = (
+  address: Awaited<ReturnType<typeof assertSafeMediaUrl>>["address"]
+): LookupFunction =>
+  (_hostname, options, callback) => {
+    if (options.all) {
+      callback(null, [address])
+      return
+    }
+
+    callback(null, address.address, address.family)
+  }
+
+const requestMedia = async (url: string, signal: AbortSignal) => {
+  const { parsed, address } = await assertSafeMediaUrl(url)
+  const request = parsed.protocol === "https:" ? requestHttps : requestHttp
+
+  return new Promise<IncomingMessage>((resolve, reject) => {
+    const clientRequest = request(
+      parsed,
+      { lookup: createPinnedLookup(address), signal },
+      resolve
+    )
+    clientRequest.once("error", reject)
+    clientRequest.end()
+  })
+}
+
+const getResponseHeader = (
+  response: IncomingMessage,
+  name: string
+): string | undefined => {
+  const value = response.headers[name]
+  return Array.isArray(value) ? value[0] : value
+}
+
+const readResponseWithLimit = async (response: IncomingMessage) => {
+  const contentLength = Number.parseInt(
+    getResponseHeader(response, "content-length") ?? "",
+    10
+  )
+  if (Number.isFinite(contentLength) && contentLength > MAX_MEDIA_BYTES) {
+    response.destroy()
+    throw new Error("Media response exceeds maximum size")
+  }
+
+  const chunks: Buffer[] = []
+  let total = 0
+  for await (const value of response) {
+    const chunk = Buffer.isBuffer(value) ? value : Buffer.from(value)
+    total += chunk.byteLength
+    if (total > MAX_MEDIA_BYTES) {
+      response.destroy()
+      throw new Error("Media response exceeds maximum size")
+    }
+    chunks.push(chunk)
+  }
+
+  return Buffer.concat(chunks)
+}
+
+const fetchDataImageBuffer = (url: string) => {
+  const match = DATA_IMAGE_PATTERN.exec(url)
+  if (!match) {
+    throw new Error("Unsupported data image")
+  }
+
+  const data = Buffer.from(match[2] ?? "", "base64")
+  if (data.length > MAX_MEDIA_BYTES) {
+    throw new Error("Data image exceeds maximum size")
+  }
+
+  return {
+    data,
+    mimetype: match[1]?.toLowerCase() ?? "image/png",
+  }
+}
+
+const fetchMediaBuffer = async (url: string) => {
+  if (url.startsWith("data:")) {
+    return fetchDataImageBuffer(url)
+  }
+
+  let currentUrl = url
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), MEDIA_FETCH_TIMEOUT_MS)
+  timeout.unref?.()
+
+  try {
+    for (
+      let redirectCount = 0;
+      redirectCount <= MAX_MEDIA_REDIRECTS;
+      redirectCount += 1
+    ) {
+      const response = await requestMedia(currentUrl, controller.signal)
+      const status = response.statusCode ?? 0
+
+      if ([301, 302, 303, 307, 308].includes(status)) {
+        const location = getResponseHeader(response, "location")
+        response.resume()
+        if (!location) {
+          throw new Error("Media redirect is missing Location header")
+        }
+        currentUrl = new URL(location, currentUrl).toString()
+        continue
+      }
+
+      if (status < 200 || status >= 300) {
+        response.resume()
+        throw new Error(`HTTP ${status}`)
+      }
+
+      const contentType = getResponseHeader(response, "content-type")
+        ?.split(";")[0]
+        ?.trim()
+        .toLowerCase()
+      if (!(contentType && SUPPORTED_IMAGE_TYPES.has(contentType))) {
+        response.resume()
+        throw new Error(
+          `Unsupported media content type: ${contentType || "unknown"}`
+        )
+      }
+
+      return {
+        data: await readResponseWithLimit(response),
+        mimetype: contentType,
+      }
+    }
+  } finally {
+    clearTimeout(timeout)
+  }
+
+  throw new Error("Too many media redirects")
+}
+
+const ensureMediaFromUrl = async (
+  payload: Payload,
+  entry: MediaManifestEntry,
+  dryRun: boolean
+): Promise<PayloadId | undefined> => {
+  const filename = filenameWithUrlHash(entry)
+  const existing = await payload.find({
+    collection: "media",
+    where: {
+      filename: {
+        equals: filename,
+      },
+    },
+    depth: 0,
+    limit: 1,
+    pagination: false,
+    overrideAccess: true,
+  })
+
+  if (existing.docs[0]) {
+    return existing.docs[0].id as PayloadId
+  }
+
+  if (dryRun) {
+    return 0
+  }
+
+  const file = await fetchMediaBuffer(entry.url)
+  const media = await payload.create({
+    collection: "media",
+    data: {
+      alt: entry.alt?.trim() || "Imported article image",
+    },
+    file: {
+      ...file,
+      name: filename,
+      size: file.data.length,
+    },
+    overrideAccess: true,
+  })
+
+  return media.id as PayloadId
+}
+
+const ensureMediaManifestUploads = async (
+  payload: Payload,
+  manifestPath: string | undefined,
+  dryRun: boolean
+) => {
+  const entries = await loadMediaManifest(manifestPath)
+  const mediaUrlMap = new Map<string, PayloadId>()
+
+  for (const entry of entries) {
+    try {
+      const mediaId = await ensureMediaFromUrl(payload, entry, dryRun)
+      if (mediaId !== undefined) {
+        mediaUrlMap.set(entry.url, mediaId)
+      }
+    } catch (error) {
+      console.warn(
+        `Failed to import rich text image ${entry.url}: ${error instanceof Error ? error.message : String(error)}`
+      )
+    }
+  }
+
+  if (entries.length > 0) {
+    console.log(
+      `Prepared ${mediaUrlMap.size}/${entries.length} rich text media uploads`
+    )
+  }
+
+  return mediaUrlMap
+}
+
+const hydrateRichTextMedia = (
+  node: unknown,
+  mediaUrlMap: Map<string, PayloadId>,
+  unresolvedMediaUrls: Set<string>
+): unknown | undefined => {
+  if (!node || typeof node !== "object" || Array.isArray(node)) {
+    return node
+  }
+
+  const record = node as Record<string, unknown>
+  if (record.type === "upload") {
+    const value = record.value
+    if (typeof value === "string" && value.startsWith(MEDIA_URL_PREFIX)) {
+      const url = value.slice(MEDIA_URL_PREFIX.length)
+      const mediaId = mediaUrlMap.get(url)
+      if (mediaId === undefined) {
+        unresolvedMediaUrls.add(url)
+        return
+      }
+
+      return {
+        ...record,
+        relationTo: "media",
+        value: mediaId,
+      }
+    }
+  }
+
+  const nextRecord = { ...record }
+  if (
+    record.root &&
+    typeof record.root === "object" &&
+    !Array.isArray(record.root)
+  ) {
+    nextRecord.root = hydrateRichTextMedia(
+      record.root,
+      mediaUrlMap,
+      unresolvedMediaUrls
+    )
+  }
+
+  if (Array.isArray(record.children)) {
+    nextRecord.children = record.children
+      .map((child) =>
+        hydrateRichTextMedia(child, mediaUrlMap, unresolvedMediaUrls)
+      )
+      .filter((child) => child !== undefined)
+  }
+
+  return nextRecord
+}
+
+const RICH_TEXT_BLOCK_TYPES = new Set([
+  "block",
+  "heading",
+  "list",
+  "listitem",
+  "paragraph",
+  "quote",
+  "upload",
+])
+
+const isRichTextBlockNode = (node: unknown) => {
+  if (!node || typeof node !== "object" || Array.isArray(node)) {
+    return false
+  }
+
+  const type = (node as Record<string, unknown>).type
+  return typeof type === "string" && RICH_TEXT_BLOCK_TYPES.has(type)
+}
+
+const joinRichTextChildText = (children: unknown[]) => {
+  let previousWasBlock = false
+
+  return children.reduce((text, child) => {
+    const childText = getRichTextPlainText(child)
+    if (!childText) {
+      return text
+    }
+
+    const childIsBlock = isRichTextBlockNode(child)
+    const separator = text && (previousWasBlock || childIsBlock) ? " " : ""
+    previousWasBlock = childIsBlock
+    return `${text}${separator}${childText}`
+  }, "")
+}
+
+const getRichTextPlainText = (node: unknown): string => {
+  if (!node || typeof node !== "object" || Array.isArray(node)) {
+    return ""
+  }
+
+  const record = node as Record<string, unknown>
+  const ownText = typeof record.text === "string" ? record.text : ""
+  const childText = Array.isArray(record.children)
+    ? joinRichTextChildText(record.children)
+    : ""
+  const rootText = record.root ? getRichTextPlainText(record.root) : ""
+  return `${ownText}${childText}${rootText}`
+}
+
+const decodeRichTextJson = (value: string) => {
+  const decoded = decodeRichTextValue(value)
+  return JSON.parse(decoded) as unknown
+}
+
+const redactMediaUrl = (url: string) => {
+  if (url.startsWith("data:")) {
+    return "[inline data image]"
+  }
+
+  try {
+    const parsed = new URL(url)
+    return `${parsed.origin}${parsed.pathname}`
+  } catch {
+    const hash = createHash("sha256").update(url).digest("hex").slice(0, 12)
+    return `[media-url:${hash}]`
+  }
+}
+
+const excerptFromContent = (content: string) => {
+  if (!content.startsWith(RICH_TEXT_GZIP_PREFIX)) {
+    return content.slice(0, 300)
+  }
+
+  const parsed = decodeRichTextJson(content)
+  if (!isRichTextJson(parsed)) {
+    return ""
+  }
+
+  return getRichTextPlainText(parsed).trim().slice(0, 300)
+}
+
+const toRichText = (
+  value: string,
+  mediaUrlMap: Map<string, PayloadId>
+): ArticleContent => {
+  if (value.startsWith(RICH_TEXT_GZIP_PREFIX)) {
+    const parsed = decodeRichTextJson(value)
+    if (!isRichTextJson(parsed)) {
+      throw new Error(
+        "Malformed rich text payload: JSON is not Lexical rich text"
+      )
+    }
+
+    const unresolvedMediaUrls = new Set<string>()
+    const hydrated = hydrateRichTextMedia(
+      parsed,
+      mediaUrlMap,
+      unresolvedMediaUrls
+    )
+    if (unresolvedMediaUrls.size > 0) {
+      const unresolvedDescriptions = Array.from(
+        unresolvedMediaUrls,
+        redactMediaUrl
+      )
+      console.warn(
+        `Dropping unresolved rich text media URLs: ${unresolvedDescriptions.join(", ")}`
+      )
+    }
+
+    return hydrated as ArticleContent
+  }
+
   const lines = value
     .split(NEWLINE_PATTERN)
     .map((line) => line.trim())
@@ -366,19 +918,7 @@ const resolvePayloadLocale = (
   )
 }
 
-type ArticlePayloadData = {
-  title: string
-  slug: string
-  excerpt: string
-  content: ArticleContent
-  featuredImage: PayloadId
-  category: PayloadId
-  tags: string[]
-  author?: PayloadId
-  publishedDate: string
-  status: ImportStatus
-  translationSync: boolean
-}
+type ArticlePayloadData = RequiredDataFromCollectionSlug<"articles">
 
 type UpsertArticleParams = {
   payload: Payload
@@ -400,6 +940,45 @@ const resolveWriteLocale = (
   value === "all" || value === undefined
     ? ((supportedLocales[0] ?? DEFAULT_LOCALES[0]) as WriteLocale)
     : (value as WriteLocale)
+
+const ensureDefaultArticleAuthor = async ({
+  dryRun,
+  locale,
+  payload,
+  supportedLocales,
+}: {
+  dryRun: boolean
+  locale: PayloadLocale
+  payload: Payload
+  supportedLocales: string[]
+}) => {
+  const existing = await payload.find({
+    collection: "article-authors",
+    where: { slug: { equals: DEFAULT_ARTICLE_AUTHOR.slug } },
+    depth: 0,
+    limit: 1,
+    pagination: false,
+    overrideAccess: true,
+  })
+  if (existing.docs[0]) {
+    return existing.docs[0].id as PayloadId
+  }
+
+  if (dryRun) {
+    return 0
+  }
+
+  const author = await payload.create({
+    collection: "article-authors",
+    locale: resolveWriteLocale(locale, supportedLocales),
+    data: {
+      ...DEFAULT_ARTICLE_AUTHOR,
+      translationSync: false,
+    },
+    overrideAccess: true,
+  })
+  return author.id as PayloadId
+}
 
 const upsertArticle = async ({
   payload,
@@ -434,6 +1013,9 @@ const upsertArticle = async ({
         locale: writeLocale,
         data,
         overrideAccess: true,
+        context: {
+          skipArticleSlugValidation: true,
+        },
       })
     } else {
       await payload.create({
@@ -441,6 +1023,9 @@ const upsertArticle = async ({
         locale: writeLocale,
         data,
         overrideAccess: true,
+        context: {
+          skipArticleSlugValidation: true,
+        },
       })
     }
   } catch (error) {
@@ -741,6 +1326,7 @@ const processArticleRow = async (
     statusOverride,
     translate,
     overwrite,
+    articleAuthorId,
   } = context
   const title = sanitizeTitle(
     getText(row, [
@@ -808,9 +1394,17 @@ const processArticleRow = async (
   )
   const status =
     statusOverride ?? parseStatus(getText(row, ["status", "state", "stav"]))
-  const excerpt =
-    getText(row, ["excerpt", "perex", "summary", "description", "popis"]) ||
-    content.slice(0, 300)
+  const extractedExcerpt = getText(row, [
+    "excerpt",
+    "perex",
+    "summary",
+    "description",
+    "meta_description",
+    "popis",
+  ])
+  const excerpt = extractedExcerpt
+    ? extractedExcerpt
+    : excerptFromContent(content)
   const rawSlug = getText(row, ["slug", "url_slug", "url", "post_url_href"])
   const slug = rawSlug ? slugify(rawSlug) : slugify(title)
 
@@ -818,13 +1412,22 @@ const processArticleRow = async (
     title,
     slug,
     excerpt,
-    content: toRichText(content),
+    content: toRichText(content, context.mediaUrlMap),
     featuredImage,
     category: categoryId,
+    categories: [categoryId],
+    primaryCategory: categoryId,
+    articleAuthor: articleAuthorId,
     tags,
     ...(author ? { author } : {}),
     publishedDate: parseDate(
-      firstValue(row, ["publishedDate", "published_date", "date", "datum"])
+      firstValue(row, [
+        "publishedDate",
+        "published_date",
+        "date",
+        "datum",
+        "post_date",
+      ])
     ),
     status,
     translationSync: translate,
@@ -857,6 +1460,7 @@ export const runImportFromFile = async (
     overwrite = false,
     signal,
     payload: providedPayload,
+    mediaManifestPath,
   } = options
 
   throwIfAborted(signal)
@@ -880,6 +1484,21 @@ export const runImportFromFile = async (
   throwIfAborted(signal)
   const fallbackMediaId = await ensureFallbackMedia(payload, dryRun)
   debugLog(`Fallback media id: ${fallbackMediaId}`)
+  const articleAuthorId = await ensureDefaultArticleAuthor({
+    dryRun,
+    locale,
+    payload,
+    supportedLocales,
+  })
+  const resolvedMediaManifestPath = path.resolve(
+    process.cwd(),
+    mediaManifestPath ?? resolveDefaultMediaManifestPath(resolvedFilePath)
+  )
+  const mediaUrlMap = await ensureMediaManifestUploads(
+    payload,
+    resolvedMediaManifestPath,
+    dryRun
+  )
 
   let imported = 0
   let skipped = 0
@@ -891,17 +1510,26 @@ export const runImportFromFile = async (
 
   for (const [index, row] of rows.entries()) {
     throwIfAborted(signal)
-    const result = await processArticleRow(row, index, {
-      dryRun,
-      fallbackMediaId,
-      payload,
-      locale,
-      supportedLocales,
-      statusOverride,
-      translate,
-      overwrite,
-      categoryCache,
-    })
+    let result: ImportResult
+    try {
+      result = await processArticleRow(row, index, {
+        articleAuthorId,
+        dryRun,
+        fallbackMediaId,
+        payload,
+        locale,
+        supportedLocales,
+        statusOverride,
+        translate,
+        overwrite,
+        categoryCache,
+        mediaUrlMap,
+      })
+    } catch (error) {
+      throwIfAborted(signal)
+      console.error(`Failed to process import row ${index + 2}`, error)
+      result = "skipped"
+    }
 
     if (result === "imported") {
       imported += 1
@@ -935,6 +1563,7 @@ const runImportFromCli = async () => {
     status: statusOverride,
     translate,
     overwrite,
+    mediaManifestPath,
   } = getArgs()
   if (!filePath) {
     console.log(usage)
@@ -949,6 +1578,7 @@ const runImportFromCli = async () => {
     status: statusOverride,
     translate,
     overwrite,
+    mediaManifestPath,
   })
 
   console.log(

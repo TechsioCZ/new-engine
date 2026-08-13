@@ -69,6 +69,7 @@ export interface Config {
   collections: {
     users: User;
     media: Media;
+    'article-authors': ArticleAuthor;
     'article-categories': ArticleCategory;
     articles: Article;
     'page-categories': PageCategory;
@@ -84,6 +85,7 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    'article-authors': ArticleAuthorsSelect<false> | ArticleAuthorsSelect<true>;
     'article-categories': ArticleCategoriesSelect<false> | ArticleCategoriesSelect<true>;
     articles: ArticlesSelect<false> | ArticlesSelect<true>;
     'page-categories': PageCategoriesSelect<false> | PageCategoriesSelect<true>;
@@ -184,6 +186,24 @@ export interface Media {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "article-authors".
+ */
+export interface ArticleAuthor {
+  id: number;
+  displayName: string;
+  slug: string;
+  role?: string | null;
+  bio?: string | null;
+  portrait?: (number | null) | Media;
+  /**
+   * When enabled, changes in the default language will automatically translate to other languages
+   */
+  translationSync?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "article-categories".
  */
 export interface ArticleCategory {
@@ -238,12 +258,26 @@ export interface Article {
    * Image shown as the article preview
    */
   featuredImage: number | Media;
+  sidebar?: {
+    /**
+     * Optional promotional image shown beside the article
+     */
+    promoImage?: (number | null) | Media;
+    /**
+     * Optional Medusa product shown below the promotional image
+     */
+    productExternalId?: string | null;
+  };
   category: number | ArticleCategory;
+  categories: (number | ArticleCategory)[];
+  primaryCategory: number | ArticleCategory;
+  relatedArticles?: (number | Article)[] | null;
   /**
    * Tags for better search and categorization
    */
   tags?: string[] | null;
   author?: (number | null) | User;
+  articleAuthor?: (number | null) | ArticleAuthor;
   publishedDate: string;
   status: 'draft' | 'published' | 'archived';
   /**
@@ -419,6 +453,10 @@ export interface PayloadLockedDocument {
         value: number | Media;
       } | null)
     | ({
+        relationTo: 'article-authors';
+        value: number | ArticleAuthor;
+      } | null)
+    | ({
         relationTo: 'article-categories';
         value: number | ArticleCategory;
       } | null)
@@ -531,6 +569,20 @@ export interface MediaSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "article-authors_select".
+ */
+export interface ArticleAuthorsSelect<T extends boolean = true> {
+  displayName?: T;
+  slug?: T;
+  role?: T;
+  bio?: T;
+  portrait?: T;
+  translationSync?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "article-categories_select".
  */
 export interface ArticleCategoriesSelect<T extends boolean = true> {
@@ -551,9 +603,19 @@ export interface ArticlesSelect<T extends boolean = true> {
   content?: T;
   contentHTML?: T;
   featuredImage?: T;
+  sidebar?:
+    | T
+    | {
+        promoImage?: T;
+        productExternalId?: T;
+      };
   category?: T;
+  categories?: T;
+  primaryCategory?: T;
+  relatedArticles?: T;
   tags?: T;
   author?: T;
+  articleAuthor?: T;
   publishedDate?: T;
   status?: T;
   readingTime?: T;
