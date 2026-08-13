@@ -1,5 +1,6 @@
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { resolveCountryDisplayName } from "@/lib/forms/country-options"
+import { ON_SITE_PAYMENT_PROVIDER_ID } from "./checkout-payment-compatibility"
 
 const normalizeProviderValue = (providerId: string) =>
   providerId.toLowerCase().replace(/[_-]+/g, " ")
@@ -23,6 +24,7 @@ type PaymentProviderKind =
   | "card"
   | "cash_on_delivery"
   | "gopay"
+  | "on_site"
   | "other"
   | "paypal"
   | "qr"
@@ -54,6 +56,11 @@ const PAYMENT_DISPLAY_TEXT_KEYS = {
     providerName: "GoPay",
     summaryLabelKey: "payment_summary_card_gateway",
   },
+  on_site: {
+    descriptionKey: "payment_description_on_site",
+    labelKey: "payment_provider_on_site",
+    summaryLabelKey: "payment_provider_on_site",
+  },
   paypal: {
     providerName: "PayPal",
   },
@@ -84,6 +91,10 @@ const resolvePaymentProviderKind = (
 ): PaymentProviderKind => {
   if (!providerId) {
     return "unknown"
+  }
+
+  if (providerId === ON_SITE_PAYMENT_PROVIDER_ID) {
+    return "on_site"
   }
 
   const normalizedValue = normalizeProviderValue(providerId)
@@ -148,7 +159,7 @@ export const resolvePaymentIcon = (providerId: string): IconType => {
     return "token-icon-credit-card"
   }
 
-  if (providerKind === "cash_on_delivery") {
+  if (providerKind === "cash_on_delivery" || providerKind === "on_site") {
     return "token-icon-cash"
   }
 
