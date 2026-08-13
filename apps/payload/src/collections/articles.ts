@@ -1,5 +1,10 @@
 import { lexicalHTMLField } from "@payloadcms/richtext-lexical"
-import type { CollectionConfig } from "payload"
+import type {
+  CollectionBeforeValidateHook,
+  CollectionConfig,
+  Where,
+} from "payload"
+import { ValidationError } from "payload"
 import { requireAuth } from "../lib/access/require-auth"
 import { fieldDescriptions } from "../lib/constants/descriptions"
 import {
@@ -15,7 +20,10 @@ import {
   fieldLabels,
 } from "../lib/constants/labels"
 import { createLexicalEditor } from "../lib/editors/lexical"
+import { createMedusaProductReferenceField } from "../lib/fields/medusa-product-reference"
 import { createMedusaCacheHook } from "../lib/hooks/medusa-cache"
+import { normalizeArticleCategories } from "../lib/hooks/article-categories"
+import { storefrontHTMLConverters } from "../lib/hooks/lexical-html"
 import { generateSlugFromTitle } from "../lib/hooks/slug"
 import { estimateReadingTime } from "../lib/utils/reading-time"
 import { shouldReturnHtmlForRequest } from "../lib/utils/request"
@@ -24,6 +32,35 @@ import { shouldReturnHtmlForRequest } from "../lib/utils/request"
 const COLLECTION_SLUG = "articles"
 /** Hook to invalidate Medusa cache when articles change. */
 const invalidateArticlesCache = createMedusaCacheHook(COLLECTION_SLUG)
+const hasOwn = (value: object | undefined, key: string) =>
+  Boolean(value && Object.hasOwn(value, key))
+
+const validatePublishedArticleAuthor: CollectionBeforeValidateHook = ({
+  data,
+  originalDoc,
+  req,
+}) => {
+  const status = hasOwn(data, "status") ? data?.status : originalDoc?.status
+  const articleAuthor = hasOwn(data, "articleAuthor")
+    ? data?.articleAuthor
+    : originalDoc?.articleAuthor
+
+  if (status === "published" && !articleAuthor) {
+    throw new ValidationError({
+      collection: COLLECTION_SLUG,
+      errors: [
+        {
+          message: "Published articles require an article author.",
+          path: "articleAuthor",
+        },
+      ],
+      id: originalDoc?.id,
+      req,
+    })
+  }
+
+  return data
+}
 
 /** Payload collection config for articles. */
 export const Articles: CollectionConfig = {
@@ -31,7 +68,7 @@ export const Articles: CollectionConfig = {
   labels: collectionLabels.articles,
   admin: {
     useAsTitle: "title",
-    defaultColumns: ["title", "category", "publishedDate", "status"],
+    defaultColumns: ["title", "primaryCategory", "publishedDate", "status"],
     group: adminGroups.content,
   },
   access: {
@@ -43,7 +80,7 @@ export const Articles: CollectionConfig = {
   fields: [
     createTitleField({
       label: fieldLabels.articleTitle,
-      maxLength: 100,
+      maxLength: 160,
     }),
     createSlugField({
       label: fieldLabels.urlSlug,
@@ -69,6 +106,7 @@ export const Articles: CollectionConfig = {
       },
     }),
     lexicalHTMLField({
+      converters: storefrontHTMLConverters,
       htmlFieldName: "contentHTML",
       lexicalFieldName: "content",
     }),
@@ -83,11 +121,71 @@ export const Articles: CollectionConfig = {
       },
     },
     {
+      name: "sidebar",
+      label: fieldLabels.articleSidebar,
+      type: "group",
+      localized: true,
+      fields: [
+        {
+          name: "promoImage",
+          label: fieldLabels.sidebarPromoImage,
+          type: "upload",
+          relationTo: "media",
+          admin: {
+            description: fieldDescriptions.sidebarPromoImage,
+          },
+        },
+        createMedusaProductReferenceField({
+          label: fieldLabels.sidebarProduct,
+          description: fieldDescriptions.sidebarProduct,
+        }),
+      ],
+    },
+    {
       name: "category",
       label: fieldLabels.category,
       type: "relationship",
       relationTo: "article-categories",
       required: true,
+      admin: {
+        hidden: true,
+      },
+    },
+    {
+      name: "categories",
+      label: "Categories",
+      type: "relationship",
+      relationTo: "article-categories",
+      hasMany: true,
+      required: true,
+      minRows: 1,
+    },
+    {
+      name: "primaryCategory",
+      label: "Primary category",
+      type: "relationship",
+      relationTo: "article-categories",
+      required: true,
+    },
+    {
+      name: "relatedArticles",
+      label: "Related articles",
+      type: "relationship",
+      relationTo: "articles",
+      hasMany: true,
+      localized: true,
+      maxRows: 4,
+      maxDepth: 2,
+      filterOptions: ({ id }): Where => {
+        const filters: Where[] = [{ status: { equals: "published" } }]
+        if (id) {
+          filters.push({ id: { not_equals: id } })
+        }
+        return { and: filters }
+      },
+      admin: {
+        isSortable: true,
+      },
     },
     {
       name: "tags",
@@ -101,10 +199,17 @@ export const Articles: CollectionConfig = {
     },
     {
       name: "author",
-      label: fieldLabels.author,
       type: "relationship",
       relationTo: "users",
-      defaultValue: ({ user }) => user?.id,
+      admin: {
+        hidden: true,
+      },
+    },
+    {
+      name: "articleAuthor",
+      label: fieldLabels.author,
+      type: "relationship",
+      relationTo: "article-authors",
     },
     createPublishedDateField(),
     createStatusField(),
@@ -158,6 +263,7 @@ export const Articles: CollectionConfig = {
     },
   ],
   hooks: {
+    beforeValidate: [normalizeArticleCategories, validatePublishedArticleAuthor],
     beforeChange: [
       ({ data, req }: any) => {
         // Auto-generate slug from title if not provided

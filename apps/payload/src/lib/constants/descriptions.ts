@@ -35,6 +35,16 @@ export const fieldDescriptions = {
     cs: "Obrázek zobrazený jako náhled článku",
     sk: "Obrázok, ktorý sa zobrazí ako náhľad článku",
   },
+  sidebarPromoImage: {
+    en: "Optional promotional image shown beside the article",
+    cs: "Volitelný reklamní obrázek zobrazený vedle článku",
+    sk: "Voliteľný reklamný obrázok zobrazený vedľa článku",
+  },
+  sidebarProduct: {
+    en: "Optional Medusa product shown below the promotional image",
+    cs: "Volitelný produkt z Medusy zobrazený pod reklamním obrázkem",
+    sk: "Voliteľný produkt z Medusy zobrazený pod reklamným obrázkom",
+  },
   tagsArticle: {
     en: "Tags for better search and categorization",
     cs: "Tagy pro lepší vyhledávání a kategorizaci",

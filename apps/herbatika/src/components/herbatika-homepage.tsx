@@ -1,7 +1,7 @@
 "use client"
 import { BENEFITS } from "@/assets/benefits"
 import type { HeroBannerItem } from "@/components/homepage/homepage.data"
-import { BLOG_POSTS, HERO_BANNERS } from "@/components/homepage/homepage.data"
+import { HERO_BANNERS } from "@/components/homepage/homepage.data"
 import type { HomepagePromoContent } from "@/components/homepage/homepage.data.types"
 import { HomepageBlogSection } from "@/components/homepage/sections/homepage-blog-section"
 import { HomepageHeroCarouselSection } from "@/components/homepage/sections/homepage-hero-carousel-section"
@@ -10,15 +10,18 @@ import { HomepagePromoSection } from "@/components/homepage/sections/homepage-pr
 import { HomepageReviewsSection } from "@/components/homepage/sections/homepage-reviews-section"
 import { useHomepageController } from "@/components/homepage/use-homepage-controller"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
+import type { BlogCardItem } from "@/lib/storefront/blog-content"
 import { BenefitsSection } from "./homepage/sections/benefits-section"
 import { PurposeCarousel } from "./homepage/sections/purpose-carousel"
 
 type HerbatikaHomepageProps = {
+  blogPosts: BlogCardItem[]
   heroBanners?: HeroBannerItem[]
   homepagePromo?: HomepagePromoContent | null
 }
 
 export function HerbatikaHomepage({
+  blogPosts,
   heroBanners,
   homepagePromo,
 }: HerbatikaHomepageProps) {
@@ -53,7 +56,7 @@ export function HerbatikaHomepage({
         />
       ))}
 
-      <HomepageBlogSection posts={BLOG_POSTS} />
+      <HomepageBlogSection posts={blogPosts} />
       <HomepagePromoSection promo={homepagePromo} />
       <RecentlyVisitedProductsSection />
     </main>

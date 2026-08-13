@@ -608,18 +608,27 @@
       "faq": "Časté dotazy"
     },
     "blog": {
+      "listing": {
+        "title": "Blog o zdraví a kráse",
+        "description": "Články o zdraví, kráse, stravování a wellness od našich odborníků."
+      },
       "card": {
         "open_article": "Přejít na článek"
       },
       "pagination": {
+        "load_failed": "Další články se nepodařilo načíst. Zkuste to znovu.",
         "load_more": "Zobrazit další",
+        "loading": "Načítám...",
+        "range": "Strany {firstPage}–{lastPage}/{totalPages}",
         "summary": "Strana {page}/{totalPages}"
       },
       "detail": {
         "related_articles": "Další články",
         "author": "Autor:",
         "published": "Publikováno:",
-        "reading_time": "Doba čtení:"
+        "reading_time": "Doba čtení:",
+        "table_of_contents": "Obsah článku",
+        "chapter_count": "{count, plural, one {# kapitola} few {# kapitoly} other {# kapitol}}"
       }
     },
     "faq": {

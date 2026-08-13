@@ -85,8 +85,33 @@ export const STOREFRONT_CONTENT_TEXT_DEFINITIONS = [
     namespace: "content",
   },
   {
+    description: "Nadpis stránky se seznamem blogových článků.",
+    key: "content.blog.listing.title",
+    namespace: "content",
+  },
+  {
+    description: "Úvodní popis stránky se seznamem blogových článků.",
+    key: "content.blog.listing.description",
+    namespace: "content",
+  },
+  {
     description: "Odkaz pro načtení další stránky blogových článků.",
     key: "content.blog.pagination.load_more",
+    namespace: "content",
+  },
+  {
+    description: "Chybová hláška při načítání další stránky blogových článků.",
+    key: "content.blog.pagination.load_failed",
+    namespace: "content",
+  },
+  {
+    description: "Stavový text během načítání dalších blogových článků.",
+    key: "content.blog.pagination.loading",
+    namespace: "content",
+  },
+  {
+    description: "Rozsah načtených stránek blogových článků.",
+    key: "content.blog.pagination.range",
     namespace: "content",
   },
   {
@@ -112,6 +137,16 @@ export const STOREFRONT_CONTENT_TEXT_DEFINITIONS = [
   {
     description: "Popisek doby čtení blogového článku.",
     key: "content.blog.detail.reading_time",
+    namespace: "content",
+  },
+  {
+    description: "Nadpis obsahu blogového článku.",
+    key: "content.blog.detail.table_of_contents",
+    namespace: "content",
+  },
+  {
+    description: "Počet kapitol v obsahu blogového článku.",
+    key: "content.blog.detail.chapter_count",
     namespace: "content",
   },
   {

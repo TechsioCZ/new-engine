@@ -8,6 +8,7 @@ import {
 } from "./order-business-status"
 
 export const ORDER_EXPEDITION_MAX_ORDER_IDS = 1000
+export const ORDER_EXPEDITION_MAX_SEPARATE_PDF_ORDER_IDS = 100
 export const ORDER_EXPEDITION_DEFAULT_LIMIT = 50
 export const ORDER_EXPEDITION_MAX_LIMIT = 100
 
@@ -24,6 +25,24 @@ export const ORDER_EXPEDITION_TARGET_STATUSES = [
   "archived",
   "canceled",
   "requires_action",
+] as const
+export const ORDER_EXPEDITION_SORT_QUERY_VALUES = [
+  "created_at",
+  "-created_at",
+  "display_id",
+  "-display_id",
+  "customer",
+  "-customer",
+  "carrier",
+  "-carrier",
+  "business_status",
+  "-business_status",
+  "fulfillment",
+  "-fulfillment",
+  "payment",
+  "-payment",
+  "total",
+  "-total",
 ] as const
 
 const ORDER_EXPEDITION_ALLOWED_STATUS_TRANSITIONS = {
@@ -43,6 +62,15 @@ export type OrderExpeditionCarrierKey =
 
 export type OrderExpeditionTargetStatus =
   (typeof ORDER_EXPEDITION_TARGET_STATUSES)[number]
+
+export type OrderExpeditionSortQuery =
+  (typeof ORDER_EXPEDITION_SORT_QUERY_VALUES)[number]
+
+type StripOrderExpeditionSortDirection<T extends string> =
+  T extends `-${infer Field}` ? Field : T
+
+export type OrderExpeditionSortField =
+  StripOrderExpeditionSortDirection<OrderExpeditionSortQuery>
 
 export type OrderExpeditionCarrierOption = {
   label: string
@@ -135,6 +163,14 @@ export type OrderExpeditionCustomer = {
   last_name?: string | null
   email?: string | null
   company_name?: string | null
+  employee?: {
+    deleted_at?: Date | string | null
+    company?: {
+      deleted_at?: Date | string | null
+      id?: string | null
+      name?: string | null
+    } | null
+  } | null
 }
 
 export type OrderExpeditionRawOrder = {
@@ -182,6 +218,7 @@ export type OrderExpeditionCustomerSignals = {
   note: boolean
   returning_customer: boolean
   storn_orders: boolean
+  wholesale_company_name: string | null
 }
 
 export type OrderExpeditionOrderDto = {
@@ -195,7 +232,7 @@ export type OrderExpeditionOrderDto = {
   email?: string | null
   delivery_address: string[]
   carrier: ResolvedOrderExpeditionCarrier
-  payment_method: string
+  payment_method: string | null
   payment_status?: string | null
   fulfillment_status?: string | null
   status?: string | null
@@ -248,6 +285,10 @@ export const ORDER_EXPEDITION_ORDER_FIELDS = [
   "customer.last_name",
   "customer.email",
   "customer.company_name",
+  "customer.employee.deleted_at",
+  "customer.employee.company.id",
+  "customer.employee.company.name",
+  "customer.employee.company.deleted_at",
   "shipping_address.first_name",
   "shipping_address.last_name",
   "shipping_address.company",
@@ -281,6 +322,36 @@ export const ORDER_EXPEDITION_ORDER_FIELDS = [
   "items.variant_id",
   "items.variant_sku",
   "items.variant_title",
+  "payment_collections.status",
+  "payment_collections.payments.provider_id",
+]
+
+export const ORDER_EXPEDITION_LIST_FIELDS = [
+  "id",
+  "created_at",
+  "display_id",
+  "custom_display_id",
+  "email",
+  "status",
+  "fulfillment_status",
+  "metadata",
+  "payment_status",
+  "summary.*",
+  "total",
+  "customer.first_name",
+  "customer.last_name",
+  "customer.email",
+  "customer.company_name",
+  "shipping_address.first_name",
+  "shipping_address.last_name",
+  "shipping_address.company",
+  "shipping_methods.id",
+  "shipping_methods.name",
+  "shipping_methods.shipping_option_id",
+  "shipping_methods.data",
+  "fulfillments.canceled_at",
+  "fulfillments.delivered_at",
+  "fulfillments.shipped_at",
   "payment_collections.status",
   "payment_collections.payments.provider_id",
 ]
@@ -325,9 +396,9 @@ export function isOrderExpeditionTargetStatus(
   return ORDER_EXPEDITION_TARGET_STATUSES.some((status) => status === value)
 }
 
-export function isOrderExpeditionRawOrder(
-  value: unknown
-): value is OrderExpeditionRawOrder {
+export function isOrderExpeditionRawOrder<T>(
+  value: T
+): value is T & OrderExpeditionRawOrder {
   return (
     typeof value === "object" &&
     value !== null &&
@@ -449,6 +520,7 @@ export function toOrderExpeditionDto(
     note: false,
     returning_customer: false,
     storn_orders: false,
+    wholesale_company_name: null,
   },
   noteOverride?: string | null
 ): OrderExpeditionOrderDto {
@@ -515,6 +587,10 @@ export async function fetchOrderExpeditionOrdersByIds(
   query: Query,
   orderIds: string[]
 ) {
+  if (!orderIds.length) {
+    return []
+  }
+
   const { data } = await query.graph({
     entity: "order",
     fields: ORDER_EXPEDITION_ORDER_FIELDS,
@@ -606,7 +682,7 @@ function getOrderExpeditionPaymentMethod(order: OrderExpeditionRawOrder) {
     ?.flatMap((collection) => collection.payments ?? [])
     .find((payment) => payment.provider_id)?.provider_id
 
-  return providerId ?? order.payment_status ?? "Unknown"
+  return providerId ?? null
 }
 
 function getOrderExpeditionTotal(order: OrderExpeditionRawOrder) {

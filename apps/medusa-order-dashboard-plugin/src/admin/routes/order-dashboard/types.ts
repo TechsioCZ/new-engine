@@ -1,8 +1,14 @@
 export const ORDER_DASHBOARD_PAGE_SIZE = 50
 export const ORDER_DASHBOARD_MAX_FULFILLMENT_IDS = 50
-export const ORDER_DASHBOARD_MAX_PACKETA_LABEL_IDS = 100
+export const ORDER_DASHBOARD_MAX_LABEL_IDS = 100
+export const ORDER_DASHBOARD_MAX_SEPARATE_PDF_IDS = 100
 
-export const ORDER_DASHBOARD_CARRIER_KEYS = ["ppl", "packeta", "other"] as const
+export const ORDER_DASHBOARD_CARRIER_KEYS = [
+  "gls",
+  "ppl",
+  "packeta",
+  "other",
+] as const
 
 export const ORDER_DASHBOARD_BUSINESS_STATUS_IDS = [
   "new",
@@ -19,9 +25,12 @@ export const ORDER_DASHBOARD_BUSINESS_STATUS_GROUP_IDS = [
   "action_required",
 ] as const
 
+export const ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID = "pending_unpaid" as const
+
 export const ORDER_DASHBOARD_QUEUE_IDS = [
   "all",
   "action_required",
+  ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID,
   "new",
   "awaiting_payment",
   "paid",
@@ -29,12 +38,6 @@ export const ORDER_DASHBOARD_QUEUE_IDS = [
   "waiting_for_supplier",
   "shipped",
   "delivered",
-  "canceled",
-] as const
-
-export const ORDER_DASHBOARD_MANUAL_STATUS_IDS = [
-  "processing",
-  "waiting_for_supplier",
   "canceled",
 ] as const
 
@@ -47,8 +50,24 @@ export const ORDER_DASHBOARD_TARGET_STATUSES = [
   "requires_action",
 ] as const
 
+export const ORDER_DASHBOARD_SORT_FIELDS = [
+  "created_at",
+  "display_id",
+  "customer",
+  "carrier",
+  "business_status",
+  "fulfillment",
+  "payment",
+  "total",
+] as const
+
 export type OrderDashboardCarrierKey =
   (typeof ORDER_DASHBOARD_CARRIER_KEYS)[number]
+
+export type OrderDashboardLabelCarrier = Exclude<
+  OrderDashboardCarrierKey,
+  "other" | "ppl"
+>
 
 export type OrderDashboardBusinessStatusId =
   (typeof ORDER_DASHBOARD_BUSINESS_STATUS_IDS)[number]
@@ -58,13 +77,20 @@ export type OrderDashboardBusinessStatusGroupId =
 
 export type OrderDashboardQueueId = (typeof ORDER_DASHBOARD_QUEUE_IDS)[number]
 
-export type OrderDashboardManualStatusId =
-  (typeof ORDER_DASHBOARD_MANUAL_STATUS_IDS)[number]
+export type OrderDashboardManualStatusId = OrderDashboardBusinessStatusId
 
 export type OrderDashboardTargetStatus =
   (typeof ORDER_DASHBOARD_TARGET_STATUSES)[number]
 
+export type OrderDashboardSortField =
+  (typeof ORDER_DASHBOARD_SORT_FIELDS)[number]
+
+export type OrderDashboardSortOrder =
+  | OrderDashboardSortField
+  | `-${OrderDashboardSortField}`
+
 export type OrderDashboardLabelFormat = "A6" | "A7"
+export type OrderDashboardPdfExportMode = "combined" | "separate"
 
 export type OrderDashboardBlockingOrder = {
   id: string
@@ -95,12 +121,28 @@ export type OrderDashboardCarrier = {
   shipping_option_id?: string
 }
 
+export type OrderDashboardCarrierOption = {
+  label: string
+  value: OrderDashboardCarrierKey
+}
+
+export type OrderDashboardCarriersResponse = {
+  carriers: OrderDashboardCarrierOption[]
+}
+
 export type OrderDashboardItem = {
   id?: string | null
   title: string
   quantity: number
   sku?: string | null
   variant?: string | null
+}
+
+export type OrderDashboardCustomerSignals = {
+  note: boolean
+  returning_customer: boolean
+  storn_orders: boolean
+  wholesale_company_name: string | null
 }
 
 export type OrderDashboardOrder = {
@@ -117,27 +159,26 @@ export type OrderDashboardOrder = {
   has_active_fulfillment: boolean
   items: OrderDashboardItem[]
   manual_status?: OrderDashboardManualStatusId | null
+  note?: string | null
   order_display_id: string
-  payment_method: string
+  payment_method: string | null
   payment_status?: string | null
+  signals: OrderDashboardCustomerSignals
   status?: string | null
   total?: number | string | null
 }
 
-export type OrderDashboardPacketaFulfillment = {
+export type OrderDashboardLabelFulfillment = {
   id: string
   canceled_at?: string | null
-  data?: {
-    barcode?: string
-    packet_id?: number
-  } | null
+  data?: Record<string, unknown> | null
   provider_id?: string | null
 }
 
-export type OrderDashboardPacketaEligibilityOrder = {
+export type OrderDashboardLabelEligibilityOrder = {
   id: string
   display_id?: number | null
-  fulfillments?: OrderDashboardPacketaFulfillment[] | null
+  fulfillments?: OrderDashboardLabelFulfillment[] | null
 }
 
 export type OrderDashboardFulfillmentItem = {
@@ -201,9 +242,11 @@ export type OrderDashboardOrdersResponse = {
   scanned_count: number | null
   limit: number
   offset: number
+  order: OrderDashboardSortOrder
   carrier: OrderDashboardCarrierKey | null
   business_status_group: OrderDashboardBusinessStatusGroupId | null
   business_status: OrderDashboardBusinessStatusId | null
+  pending_unpaid: boolean
 }
 
 export type OrderDashboardSummaryResponse = {
@@ -213,6 +256,10 @@ export type OrderDashboardSummaryResponse = {
   status_counts: Record<OrderDashboardBusinessStatusId, number>
   total_count: number
   unhandled_count: number
+}
+
+export type OrderDashboardBusinessStatusCatalogResponse = {
+  statuses: OrderDashboardBusinessStatus[]
 }
 
 export type OrderDashboardStatusResponse = {
@@ -226,17 +273,11 @@ export type OrderDashboardStatusResponse = {
 }
 
 export type OrderDashboardManualStatusResponse = {
+  changed_count: number
   count: number
-  skipped_count: number
+  order_ids: string[]
+  processed_count: number
+  requested_count: number
   status: OrderDashboardManualStatusId | null
-  orders: Array<{
-    id: string
-    business_status: OrderDashboardBusinessStatus
-    manual_status?: OrderDashboardManualStatusId | null
-  }>
-  skipped: Array<{
-    id: string
-    order_display_id: string
-    reason: string
-  }>
+  unchanged_count: number
 }

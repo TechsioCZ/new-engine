@@ -1,10 +1,13 @@
 import {
+  fetchCachedLatestCmsBlogPosts as fetchCachedLatestCmsBlogPostsValue,
   fetchCmsArticleBySlug as fetchCmsArticleBySlugValue,
   fetchCmsArticleCategories as fetchCmsArticleCategoriesValue,
-  fetchCmsBlogPosts as fetchCmsBlogPostsValue,
+  fetchCmsBlogCategoryFilters as fetchCmsBlogCategoryFiltersValue,
+  fetchCmsBlogListing as fetchCmsBlogListingValue,
   fetchCmsBlogPost as fetchCmsBlogPostValue,
-  mapCmsArticleToBlogPost as mapCmsArticleToBlogPostValue,
+  fetchLatestCmsBlogPosts as fetchLatestCmsBlogPostsValue,
 } from "./cms-blog"
+import { mapCmsArticleToBlogPost as mapCmsArticleToBlogPostValue } from "./cms-blog-mappers"
 import {
   fetchCmsHeroBanners as fetchCmsHeroBannersValue,
   mapCmsHeroCarouselToHeroBanner as mapCmsHeroCarouselToHeroBannerValue,
@@ -15,7 +18,6 @@ import type {
   CmsArticleCategory as CmsArticleCategoryValue,
   CmsArticleSummary as CmsArticleSummaryValue,
   CmsArticle as CmsArticleValue,
-  CmsBlogTopic as CmsBlogTopicValue,
   CmsCategory as CmsCategoryValue,
   CmsHeroCarousel as CmsHeroCarouselValue,
   CmsMedia as CmsMediaValue,
@@ -24,8 +26,11 @@ import type {
 
 export const fetchCmsArticleBySlug = fetchCmsArticleBySlugValue
 export const fetchCmsArticleCategories = fetchCmsArticleCategoriesValue
+export const fetchCmsBlogCategoryFilters = fetchCmsBlogCategoryFiltersValue
+export const fetchCmsBlogListing = fetchCmsBlogListingValue
 export const fetchCmsBlogPost = fetchCmsBlogPostValue
-export const fetchCmsBlogPosts = fetchCmsBlogPostsValue
+export const fetchCachedLatestCmsBlogPosts = fetchCachedLatestCmsBlogPostsValue
+export const fetchLatestCmsBlogPosts = fetchLatestCmsBlogPostsValue
 export const fetchCmsHeroBanners = fetchCmsHeroBannersValue
 export const fetchCmsHomepagePromo = fetchCmsHomepagePromoValue
 export const fetchCmsPageBySlug = fetchCmsPageBySlugValue
@@ -36,7 +41,6 @@ export const mapCmsHeroCarouselToHeroBanner =
 export type CmsArticle = CmsArticleValue
 export type CmsArticleCategory = CmsArticleCategoryValue
 export type CmsArticleSummary = CmsArticleSummaryValue
-export type CmsBlogTopic = CmsBlogTopicValue
 export type CmsCategory = CmsCategoryValue
 export type CmsHeroCarousel = CmsHeroCarouselValue
 export type CmsMedia = CmsMediaValue

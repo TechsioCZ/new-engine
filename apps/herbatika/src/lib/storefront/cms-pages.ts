@@ -1,4 +1,5 @@
-import { fetchCmsJson, rewriteCmsHtmlMediaUrls } from "./cms-client"
+import { fetchCmsJson } from "./cms-client"
+import { rewriteCmsHtmlMediaUrls } from "./cms-content"
 import type { CmsPage } from "./cms-types"
 
 type CmsPageResponse = {

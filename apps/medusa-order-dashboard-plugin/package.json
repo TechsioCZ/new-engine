@@ -40,7 +40,8 @@
     "lint:medusa": "medusa lint",
     "prepare": "pnpm build",
     "publish:local": "medusa plugin:publish",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@medusajs/admin-sdk": "2.18.0",
@@ -60,7 +61,8 @@
     "react-i18next": "13.5.0",
     "react-router-dom": "6.30.4",
     "ts-node": "10.9.2",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "catalog:vite5-testing"
   },
   "peerDependencies": {
     "@medusajs/admin-sdk": "2.18.0",

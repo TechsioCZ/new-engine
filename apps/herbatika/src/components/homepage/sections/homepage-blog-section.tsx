@@ -3,19 +3,20 @@ import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
 import NextLink from "next/link"
 import { useLocale, useTranslations } from "next-intl"
-import {
-  formatBlogDate,
-  formatTopicFromKey,
-} from "@/components/blog/blog-formatters"
-import type { BlogTeaserItem } from "@/components/homepage/homepage.data"
+import { formatBlogDate } from "@/components/blog/blog-formatters"
+import type { BlogCardItem } from "@/lib/storefront/blog-content"
 
 type HomepageBlogSectionProps = {
-  posts: BlogTeaserItem[]
+  posts: BlogCardItem[]
 }
 
 export function HomepageBlogSection({ posts }: HomepageBlogSectionProps) {
   const locale = useLocale()
   const tContent = useTranslations("content")
+
+  if (posts.length === 0) {
+    return null
+  }
 
   return (
     <section className="space-y-400" id="blog">
@@ -29,7 +30,7 @@ export function HomepageBlogSection({ posts }: HomepageBlogSectionProps) {
             className="flex h-full flex-col overflow-hidden rounded-2xl border border-border-secondary bg-surface"
             key={post.id}
           >
-            <Link as={NextLink} className="block" href={post.href}>
+            <Link as={NextLink} className="block" href={`/blog/${post.slug}`}>
               <NextImage
                 alt={post.title}
                 className="aspect-video w-full object-cover"
@@ -49,7 +50,7 @@ export function HomepageBlogSection({ posts }: HomepageBlogSectionProps) {
                   className="rounded-full px-200 py-100 font-medium text-2xs"
                   variant="secondary"
                 >
-                  {formatTopicFromKey(post.topic)}
+                  {post.category.title}
                 </Badge>
               </div>
 
@@ -57,7 +58,7 @@ export function HomepageBlogSection({ posts }: HomepageBlogSectionProps) {
                 <Link
                   as={NextLink}
                   className="hover:text-primary"
-                  href={post.href}
+                  href={`/blog/${post.slug}`}
                 >
                   {post.title}
                 </Link>
@@ -71,7 +72,7 @@ export function HomepageBlogSection({ posts }: HomepageBlogSectionProps) {
                 <Link
                   as={NextLink}
                   className="font-semibold text-fg-primary text-xs leading-normal underline underline-offset-2 hover:text-primary"
-                  href={post.href}
+                  href={`/blog/${post.slug}`}
                 >
                   {tContent("blog.card.open_article")}
                 </Link>

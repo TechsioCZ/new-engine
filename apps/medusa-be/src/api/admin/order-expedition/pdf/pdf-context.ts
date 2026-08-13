@@ -16,16 +16,21 @@ const FONT_SEARCH_PREFIXES = {
   regular: ["Inter-Regular", "Inter-Medium"],
 } as const
 
+type ExpeditionPdfFontBytes = {
+  bold: Buffer | null
+  regular: Buffer | null
+}
+
+let expeditionPdfFontBytesPromise: Promise<ExpeditionPdfFontBytes> | null = null
+
 export async function createExpeditionPdfContext(
   req: MedusaRequest<PostAdminOrderExpeditionPdfSchemaType>
 ) {
   const document = await PDFDocument.create()
   document.registerFontkit?.(fontkit)
   document.setTitle?.("Přehled objednávek")
-  const [regularFontBytes, boldFontBytes] = await Promise.all([
-    readPdfFontBytes(FONT_SEARCH_PREFIXES.regular),
-    readPdfFontBytes(FONT_SEARCH_PREFIXES.bold),
-  ])
+  const { bold: boldFontBytes, regular: regularFontBytes } =
+    await loadExpeditionPdfFontBytes()
   const regularFont = regularFontBytes
     ? await document.embedFont(regularFontBytes)
     : await document.embedFont(StandardFonts.Helvetica)
@@ -48,6 +53,15 @@ export async function createExpeditionPdfContext(
       y: HEADER_Y - 28,
     } satisfies DrawState,
   }
+}
+
+function loadExpeditionPdfFontBytes() {
+  expeditionPdfFontBytesPromise ??= Promise.all([
+    readPdfFontBytes(FONT_SEARCH_PREFIXES.regular),
+    readPdfFontBytes(FONT_SEARCH_PREFIXES.bold),
+  ]).then(([regular, bold]) => ({ bold, regular }))
+
+  return expeditionPdfFontBytesPromise
 }
 
 async function readPdfFontBytes(prefixes: readonly string[]) {

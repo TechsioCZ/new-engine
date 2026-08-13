@@ -1,5 +1,3 @@
-import type { BlogTopicKey } from "@/lib/storefront/blog-content"
-
 export type CmsMedia = {
   alt?: string | null
   url?: string | null
@@ -12,8 +10,13 @@ export type CmsCategory = {
 }
 
 export type CmsArticleSummary = {
+  category?: CmsCategory | null
   excerpt?: string | null
   featuredImage?: CmsMedia | string | null
+  id?: number | string
+  primaryCategory?: CmsCategory | null
+  publishedDate?: string | null
+  readingTime?: number | null
   slug?: string | null
   title?: string | null
 }
@@ -22,18 +25,47 @@ export type CmsArticleCategory = CmsCategory & {
   articles?: CmsArticleSummary[] | null
 }
 
+export type CmsProductReference = {
+  productExternalId?: string | null
+  productSlug?: string | null
+}
+
+export type CmsArticleContentSegment =
+  | {
+      type: "html"
+      html: string
+    }
+  | {
+      type: "productCarousel"
+      products: CmsProductReference[]
+    }
+
 export type CmsArticle = {
   author?: {
-    firstName?: string | null
-    lastName?: string | null
+    displayName?: string | null
+    role?: string | null
+    bio?: string | null
+    portrait?: CmsMedia | string | null
   } | null
   category?: CmsCategory | null
-  content?: string | null
+  categories?: CmsCategory[] | null
+  contentSegments?: CmsArticleContentSegment[] | null
   excerpt?: string | null
   featuredImage?: CmsMedia | string | null
   id: number | string
   publishedDate?: string | null
+  primaryCategory?: CmsCategory | null
   readingTime?: number | null
+  relatedArticles?: CmsArticleSummary[] | null
+  sidebar?: {
+    promoImage?: CmsMedia | string | null
+    product?: CmsProductReference | null
+  } | null
+  tableOfContents?: Array<{
+    id?: string | null
+    level?: number | null
+    title?: string | null
+  }> | null
   slug?: string | null
   tags?: string[] | null
   title?: string | null
@@ -61,5 +93,3 @@ export type CmsHeroCarousel = {
   image?: CmsMedia | string | null
   subheading?: string | null
 }
-
-export type CmsBlogTopic = Exclude<BlogTopicKey, "all">

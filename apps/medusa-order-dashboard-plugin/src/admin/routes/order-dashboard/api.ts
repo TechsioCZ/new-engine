@@ -1,15 +1,21 @@
+import type { DataTableDateComparisonOperator } from "@medusajs/ui"
 import { sdk } from "../../lib/sdk"
 import type {
+  OrderDashboardBusinessStatusCatalogResponse,
   OrderDashboardBusinessStatusGroupId,
   OrderDashboardBusinessStatusId,
   OrderDashboardCarrierKey,
+  OrderDashboardCarriersResponse,
   OrderDashboardFulfillmentOrder,
+  OrderDashboardLabelCarrier,
+  OrderDashboardLabelEligibilityOrder,
   OrderDashboardLabelFormat,
   OrderDashboardManualStatusId,
   OrderDashboardManualStatusResponse,
   OrderDashboardOrdersResponse,
-  OrderDashboardPacketaEligibilityOrder,
+  OrderDashboardPdfExportMode,
   OrderDashboardShippingOption,
+  OrderDashboardSortOrder,
   OrderDashboardStatusResponse,
   OrderDashboardStockLocation,
   OrderDashboardSummaryResponse,
@@ -17,7 +23,7 @@ import type {
 } from "./types"
 
 const CONTENT_DISPOSITION_FILENAME_REGEX = /filename="?([^";]+)"?/i
-const PACKETA_ELIGIBILITY_ORDER_FIELDS = [
+const LABEL_ELIGIBILITY_ORDER_FIELDS = [
   "id",
   "display_id",
   "fulfillments.id",
@@ -45,21 +51,32 @@ const FULFILLMENT_SHIPPING_OPTION_FIELDS = [
   "shipping_profile_id",
 ].join(",")
 
-type ListOrderDashboardOrdersInput = {
+export type ListOrderDashboardOrdersInput = {
   businessStatusGroup?: OrderDashboardBusinessStatusGroupId
   businessStatus?: OrderDashboardBusinessStatusId
   carrier?: OrderDashboardCarrierKey
+  createdAt?: DataTableDateComparisonOperator
   limit: number
   offset: number
+  order: OrderDashboardSortOrder
+  pendingUnpaid?: boolean
+  q?: string
 }
 
-export function listOrderDashboardOrders({
-  businessStatusGroup,
-  businessStatus,
-  carrier,
-  limit,
-  offset,
-}: ListOrderDashboardOrdersInput) {
+export function listOrderDashboardOrders(
+  {
+    businessStatusGroup,
+    businessStatus,
+    carrier,
+    createdAt,
+    limit,
+    offset,
+    order,
+    pendingUnpaid,
+    q,
+  }: ListOrderDashboardOrdersInput,
+  signal?: AbortSignal
+) {
   return sdk.client.fetch<OrderDashboardOrdersResponse>(
     "/admin/order-expedition/orders",
     {
@@ -67,9 +84,14 @@ export function listOrderDashboardOrders({
         business_status_group: businessStatusGroup,
         business_status: businessStatus,
         carrier,
+        created_at: createdAt,
         limit,
         offset,
+        order,
+        pending_unpaid: pendingUnpaid,
+        q,
       },
+      signal,
     }
   )
 }
@@ -77,6 +99,18 @@ export function listOrderDashboardOrders({
 export function getOrderDashboardSummary() {
   return sdk.client.fetch<OrderDashboardSummaryResponse>(
     "/admin/order-expedition/summary"
+  )
+}
+
+export function getOrderDashboardCarriers() {
+  return sdk.client.fetch<OrderDashboardCarriersResponse>(
+    "/admin/order-expedition/carriers"
+  )
+}
+
+export function getOrderDashboardBusinessStatusCatalog() {
+  return sdk.client.fetch<OrderDashboardBusinessStatusCatalogResponse>(
+    "/admin/order-business-statuses/catalog"
   )
 }
 
@@ -112,13 +146,18 @@ export function updateOrderDashboardManualStatus(input: {
   )
 }
 
-export function downloadOrderDashboardExpeditionPdf(orderIds: string[]) {
-  return downloadPdf(
+export function downloadOrderDashboardExpeditionPdf(input: {
+  mode: OrderDashboardPdfExportMode
+  orderIds: string[]
+}) {
+  return downloadFile(
     "/admin/order-expedition/pdf",
     {
-      order_ids: orderIds,
+      mode: input.mode,
+      order_ids: input.orderIds,
     },
-    `expedition-orders-${new Date().toISOString().slice(0, 10)}.pdf`
+    input.mode === "separate" ? "objednavky.zip" : "objednavky.pdf",
+    "application/pdf, application/zip"
   )
 }
 
@@ -127,7 +166,7 @@ export function downloadOrderDashboardPacketaLabels(input: {
   labelOffset?: number
   orderIds: string[]
 }) {
-  return downloadPdf(
+  return downloadFile(
     "/admin/packeta-labels",
     {
       label_format: input.labelFormat,
@@ -138,19 +177,43 @@ export function downloadOrderDashboardPacketaLabels(input: {
   )
 }
 
-export async function listOrderDashboardPacketaEligibility(orderIds: string[]) {
+export function downloadOrderDashboardGLSLabels(orderIds: string[]) {
+  return downloadFile(
+    "/admin/gls-labels",
+    { order_ids: orderIds },
+    `gls-labels-${new Date().toISOString().slice(0, 10)}.pdf`
+  )
+}
+
+export function downloadOrderDashboardShippingLabels(input: {
+  carrier: OrderDashboardLabelCarrier
+  labelFormat: OrderDashboardLabelFormat
+  labelOffset?: number
+  orderIds: string[]
+}) {
+  switch (input.carrier) {
+    case "gls":
+      return downloadOrderDashboardGLSLabels(input.orderIds)
+    case "packeta":
+      return downloadOrderDashboardPacketaLabels(input)
+    default:
+      throw new Error("Unsupported shipping label carrier")
+  }
+}
+
+export async function listOrderDashboardLabelEligibility(orderIds: string[]) {
   if (!orderIds.length) {
     return []
   }
 
   const response = await sdk.admin.order.list({
-    fields: PACKETA_ELIGIBILITY_ORDER_FIELDS,
+    fields: LABEL_ELIGIBILITY_ORDER_FIELDS,
     id: orderIds,
     limit: orderIds.length,
     offset: 0,
   })
 
-  return response.orders as OrderDashboardPacketaEligibilityOrder[]
+  return response.orders as OrderDashboardLabelEligibilityOrder[]
 }
 
 export async function listOrderDashboardFulfillmentOrders(orderIds: string[]) {
@@ -236,15 +299,16 @@ export function createOrderDashboardFulfillment(input: {
   )
 }
 
-async function downloadPdf(
+async function downloadFile(
   path: string,
   body: Record<string, unknown>,
-  fallbackFilename: string
+  fallbackFilename: string,
+  accept = "application/pdf"
 ) {
   const response = await sdk.client.fetch<Response>(path, {
     body,
     headers: {
-      accept: "application/pdf",
+      accept,
     },
     method: "POST",
   })

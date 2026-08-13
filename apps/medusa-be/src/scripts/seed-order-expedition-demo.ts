@@ -1,5 +1,6 @@
 import type {
   ExecArgs,
+  ICustomerModuleService,
   IOrderModuleService,
   IProductModuleService,
   IRegionModuleService,
@@ -13,6 +14,9 @@ import {
   ProductStatus,
 } from "@medusajs/framework/utils"
 import { createOrderWorkflow } from "@medusajs/medusa/core-flows"
+import { createCompaniesWorkflow } from "../workflows/company/workflows/create-companies"
+import { createEmployeesWorkflow } from "../workflows/employee/workflows/create-employees"
+import { syncOrderNoteWorkflow } from "../workflows/order-note/upsert-order-note"
 
 type DemoVariant = {
   id: string
@@ -63,6 +67,7 @@ type QueryService = {
   graph: (input: {
     entity: string
     fields: string[]
+    filters?: Record<string, unknown>
   }) => Promise<{ data?: unknown }>
 }
 
@@ -97,8 +102,17 @@ const PRODUCT_GROUPS = [
 
 const SIZES = ["S", "M", "L"] as const
 const COLORS = ["Black", "Olive", "Natural", "Navy"] as const
-const DEMO_ORDER_COUNT = 36
+const DEMO_ORDER_COUNT = 60
 const DEMO_ORDER_EMAIL_REGEX = /^expedition\.demo\.(\d+)@example\.test$/u
+const DEMO_ORDER_CUSTOMER_NOTES: Partial<Record<number, string>> = {
+  0: "Please call before delivery. The entrance is in the courtyard.",
+  4: "Leave the package at the reception desk on the second floor.",
+  9: "Customer requested plastic-free packaging.",
+}
+const DEMO_REPEAT_CUSTOMER_EMAIL = "expedition.returning.customer@example.test"
+const DEMO_REPEAT_CUSTOMER_ORDER_INDEXES = [0, 10, 20] as const
+const DEMO_WHOLESALE_COMPANY_EMAIL = "expedition.wholesale@example.test"
+const DEMO_WHOLESALE_COMPANY_NAME = "Expedition Wholesale s.r.o."
 const DEMO_ORDER_DATE_OFFSETS = [
   { daysAgo: 0, hour: 8, minute: 10 },
   { daysAgo: 0, hour: 10, minute: 45 },
@@ -137,6 +151,8 @@ const DEMO_ORDER_DATE_OFFSETS = [
   { daysAgo: 338, hour: 14, minute: 40 },
   { daysAgo: 360, hour: 11, minute: 10 },
 ] as const
+const DEMO_ORDER_DATE_CYCLE_DAYS =
+  Math.max(...DEMO_ORDER_DATE_OFFSETS.map(({ daysAgo }) => daysAgo)) + 5
 
 export default async function seedOrderExpeditionDemo({ container }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
@@ -163,6 +179,8 @@ export default async function seedOrderExpeditionDemo({ container }: ExecArgs) {
   )
 
   if (existingDemoOrders.length >= DEMO_ORDER_COUNT) {
+    await seedDemoOrderCustomerNotes(container, existingDemoOrders, logger)
+    await seedDemoRepeatCustomer(container, existingDemoOrders, logger)
     logger.info(
       `Order expedition demo already has ${existingDemoOrders.length} orders, skipping order creation.`
     )
@@ -254,6 +272,184 @@ export default async function seedOrderExpeditionDemo({ container }: ExecArgs) {
       existingDemoOrders.length + ordersToCreate.length
     }.`
   )
+
+  const allDemoOrders = await fetchExistingDemoOrders(query)
+  await seedDemoOrderCustomerNotes(container, allDemoOrders, logger)
+  await seedDemoRepeatCustomer(container, allDemoOrders, logger)
+}
+
+async function seedDemoOrderCustomerNotes(
+  container: ExecArgs["container"],
+  orders: ExistingDemoOrder[],
+  logger: Logger
+) {
+  let seededCount = 0
+
+  for (const [fallbackIndex, order] of orders.entries()) {
+    const orderIndex = getExistingDemoOrderSortIndex(order, fallbackIndex)
+    const note = DEMO_ORDER_CUSTOMER_NOTES[orderIndex]
+
+    if (!note) {
+      continue
+    }
+
+    await syncOrderNoteWorkflow(container).run({
+      input: {
+        note,
+        order_id: order.id,
+      },
+    })
+    seededCount += 1
+  }
+
+  logger.info(`Seeded customer notes for ${seededCount} demo orders.`)
+}
+
+async function seedDemoRepeatCustomer(
+  container: ExecArgs["container"],
+  orders: ExistingDemoOrder[],
+  logger: Logger
+) {
+  const customerService = container.resolve<ICustomerModuleService>(
+    Modules.CUSTOMER
+  )
+  const orderService = container.resolve<IOrderModuleService>(Modules.ORDER)
+  const existingCustomers = await customerService.listCustomers({
+    email: DEMO_REPEAT_CUSTOMER_EMAIL,
+  })
+  const customer =
+    existingCustomers[0] ??
+    (await customerService.createCustomers({
+      email: DEMO_REPEAT_CUSTOMER_EMAIL,
+      first_name: "Jana",
+      last_name: "Novakova",
+    }))
+  const repeatCustomerOrders = DEMO_REPEAT_CUSTOMER_ORDER_INDEXES.map(
+    (targetIndex) =>
+      orders.find(
+        (order, fallbackIndex) =>
+          getExistingDemoOrderSortIndex(order, fallbackIndex) === targetIndex
+      )
+  ).filter((order): order is ExistingDemoOrder => Boolean(order))
+
+  await orderService.updateOrders(
+    repeatCustomerOrders.map((order) => ({
+      customer_id: customer.id,
+      id: order.id,
+    }))
+  )
+
+  logger.info(
+    `Linked ${repeatCustomerOrders.length} demo orders to the returning customer.`
+  )
+
+  await seedDemoWholesaleMembership(container, customer.id, logger)
+}
+
+async function seedDemoWholesaleMembership(
+  container: ExecArgs["container"],
+  customerId: string,
+  logger: Logger
+) {
+  const query = container.resolve<QueryService>(ContainerRegistrationKeys.QUERY)
+  const { data: companyData } = await query.graph({
+    entity: "companies",
+    fields: ["id", "name"],
+    filters: { email: DEMO_WHOLESALE_COMPANY_EMAIL },
+  })
+  const existingCompany = Array.isArray(companyData)
+    ? companyData.find(isDemoWholesaleCompany)
+    : undefined
+  const company =
+    existingCompany ??
+    (
+      await createCompaniesWorkflow(container).run({
+        input: [
+          {
+            currency_code: "eur",
+            email: DEMO_WHOLESALE_COMPANY_EMAIL,
+            name: DEMO_WHOLESALE_COMPANY_NAME,
+          },
+        ],
+      })
+    ).result[0]
+
+  if (!company) {
+    throw new Error("Failed to create the demo wholesale company")
+  }
+
+  const { data: customerData } = await query.graph({
+    entity: "customer",
+    fields: ["id", "employee.company.id"],
+    filters: { id: customerId },
+  })
+  const linkedCompanyId = Array.isArray(customerData)
+    ? getCustomerCompanyId(customerData[0])
+    : undefined
+
+  if (linkedCompanyId === company.id) {
+    logger.info(`Demo wholesale customer is linked to ${company.name}`)
+    return
+  }
+
+  if (linkedCompanyId) {
+    throw new Error(
+      `Demo wholesale customer is already linked to company ${linkedCompanyId}`
+    )
+  }
+
+  await createEmployeesWorkflow(container).run({
+    input: {
+      customerId,
+      employeeData: {
+        company_id: company.id,
+        customer_id: customerId,
+        is_admin: false,
+        spending_limit: 0,
+      },
+    },
+  })
+  logger.info(`Linked the demo wholesale customer to ${company.name}`)
+}
+
+function isDemoWholesaleCompany(
+  value: unknown
+): value is { id: string; name: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "id" in value &&
+    typeof value.id === "string" &&
+    "name" in value &&
+    typeof value.name === "string"
+  )
+}
+
+function getCustomerCompanyId(value: unknown) {
+  if (!(typeof value === "object" && value !== null && "employee" in value)) {
+    return
+  }
+
+  const employee = value.employee
+
+  if (
+    !(
+      typeof employee === "object" &&
+      employee !== null &&
+      "company" in employee
+    )
+  ) {
+    return
+  }
+
+  const company = employee.company
+
+  return typeof company === "object" &&
+    company !== null &&
+    "id" in company &&
+    typeof company.id === "string"
+    ? company.id
+    : undefined
 }
 
 async function ensureRegion(container: ExecArgs["container"]) {
@@ -568,10 +764,15 @@ async function updateOrderCreatedAt(
 
 function getDemoOrderCreatedAt(index: number, now: Date) {
   const offset = pickCircular(DEMO_ORDER_DATE_OFFSETS, index)
+  const dateCycle = Math.floor(index / DEMO_ORDER_DATE_OFFSETS.length)
   const createdAt = new Date(now)
 
   createdAt.setHours(offset.hour, offset.minute, 0, 0)
-  createdAt.setDate(createdAt.getDate() - offset.daysAgo)
+  createdAt.setDate(
+    createdAt.getDate() -
+      offset.daysAgo -
+      dateCycle * DEMO_ORDER_DATE_CYCLE_DAYS
+  )
 
   return createdAt
 }

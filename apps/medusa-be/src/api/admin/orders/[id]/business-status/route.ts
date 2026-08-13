@@ -4,9 +4,8 @@ import {
   ContainerRegistrationKeys,
   MedusaError,
 } from "@medusajs/framework/utils"
-import { updateOrderBusinessStatusWorkflow } from "../../../../../workflows/order-business-status/update-order-business-status"
+import { updateOrderBusinessStatusesWorkflow } from "../../../../../workflows/order-business-status/update-order-business-statuses"
 import {
-  buildOrderBusinessStatusMetadata,
   fetchOrderBusinessStatusOrder,
   toOrderBusinessStatusSummary,
 } from "../../../order-business-statuses/utils"
@@ -30,14 +29,13 @@ export async function POST(
     throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")
   }
 
-  const metadata = buildOrderBusinessStatusMetadata(order.metadata, status)
-  await updateOrderBusinessStatusWorkflow(req.scope).run({
-    input: { id, metadata },
+  await updateOrderBusinessStatusesWorkflow(req.scope).run({
+    input: { order_ids: [id], status },
   })
 
   const updatedOrder = await fetchOrderBusinessStatusOrder(query, id)
 
   res.json({
-    order: toOrderBusinessStatusSummary(updatedOrder ?? { ...order, metadata }),
+    order: toOrderBusinessStatusSummary(updatedOrder ?? order),
   })
 }

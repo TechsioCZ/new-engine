@@ -5,13 +5,16 @@ import { ORDER_NOTE_MODULE } from "../../../../modules/order-note"
 import type OrderNoteModuleService from "../../../../modules/order-note/service"
 import {
   isActionRequiredOrderBusinessStatusId,
+  isPendingUnpaidOrder,
   type OrderBusinessStatusGroupId,
   type OrderBusinessStatusId,
   resolveOrderBusinessStatus,
 } from "../../../../utils/order-business-status"
 import {
+  fetchOrderedOrderExpeditionOrdersByIds,
   isOrderExpeditionRawOrder,
   ORDER_EXPEDITION_DEFAULT_LIMIT,
+  ORDER_EXPEDITION_LIST_FIELDS,
   ORDER_EXPEDITION_ORDER_FIELDS,
   type OrderExpeditionCarrierKey,
   type OrderExpeditionRawOrder,
@@ -23,6 +26,13 @@ import {
   resolveOrderExpeditionCustomerSignals,
 } from "../../../../utils/order-expedition-customer-signals"
 import type { GetAdminOrderExpeditionOrdersSchemaType } from "../validators"
+import {
+  getNativeOrderExpeditionSort,
+  isNativeOrderExpeditionSort,
+  type OrderExpeditionSort,
+  parseOrderExpeditionSort,
+  sortOrderExpeditionOrders,
+} from "./sort"
 
 type OrderExpeditionOrdersPage = {
   carrierFilterLimitReached: boolean
@@ -37,31 +47,40 @@ type OrderExpeditionOrderBatch = {
   orders: OrderExpeditionRawOrder[]
   scannedCount: number
 }
-type CarrierFilterAccumulator = {
-  matchingCount: number
-  matchingOrders: OrderExpeditionRawOrder[]
-}
 type OrderExpeditionOrderFilters = {
   businessStatusGroup?: OrderBusinessStatusGroupId
   businessStatus?: OrderBusinessStatusId
   carrier?: OrderExpeditionCarrierKey
+  pendingUnpaid?: boolean
 }
-type CollectMatchingOrdersInput = {
-  accumulator: CarrierFilterAccumulator
-  filters: OrderExpeditionOrderFilters
+type OrderExpeditionNativeFilters = Pick<
+  GetAdminOrderExpeditionOrdersSchemaType,
+  "created_at" | "q"
+> & {
+  status?: "pending"
+}
+type FetchOrderBatchOptions = {
+  fields: string[]
+  filters: OrderExpeditionNativeFilters
   limit: number
   offset: number
-  orders: OrderExpeditionRawOrder[]
+  order: Record<string, "ASC" | "DESC">
+  query: Query
+}
+type FetchOrdersOptions = {
+  filters: OrderExpeditionNativeFilters
+  limit: number
+  offset: number
+  query: Query
+  sort: OrderExpeditionSort
+}
+type FetchProjectedOrdersOptions = FetchOrdersOptions & {
+  expeditionFilters: OrderExpeditionOrderFilters
 }
 
-const ORDER_EXPEDITION_SCAN_BATCH_SIZE = 100
-const ORDER_EXPEDITION_CARRIER_SCAN_MAX_ROWS = 1000
-
-function isOrderExpeditionQueryOrder<T>(
-  order: T
-): order is T & OrderExpeditionRawOrder {
-  return isOrderExpeditionRawOrder(order)
-}
+const ORDER_EXPEDITION_SCAN_BATCH_SIZE = 500
+const ORDER_EXPEDITION_SCAN_MAX_ROWS = 20_000
+const ORDER_EXPEDITION_DISPLAY_ID_SEARCH_PATTERN = /^#\d+$/
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -71,25 +90,48 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     business_status_group: businessStatusGroup,
     business_status: businessStatus,
     carrier,
+    created_at: createdAt,
     limit,
     offset,
+    order: sortOrderQuery,
+    pending_unpaid: pendingUnpaid,
+    q,
   } = req.validatedQuery as GetAdminOrderExpeditionOrdersSchemaType
   const normalizedLimit = limit ?? ORDER_EXPEDITION_DEFAULT_LIMIT
   const normalizedOffset = offset ?? 0
+  const normalizedOrder = parseOrderExpeditionSort(sortOrderQuery)
+  const filters = {
+    businessStatusGroup,
+    businessStatus,
+    carrier,
+    pendingUnpaid,
+  }
+  const normalizedSearchQuery = normalizeOrderExpeditionSearchQuery(q)
+  const nativeFilters: OrderExpeditionNativeFilters = {
+    ...(createdAt ? { created_at: createdAt } : {}),
+    ...(pendingUnpaid ? { status: "pending" } : {}),
+    ...(normalizedSearchQuery ? { q: normalizedSearchQuery } : {}),
+  }
+  const requiresProjectionScan =
+    hasOrderExpeditionFilters(filters) ||
+    !isNativeOrderExpeditionSort(normalizedOrder)
 
-  const result =
-    carrier || businessStatus || businessStatusGroup
-      ? await fetchFilteredOrders(
-          query,
-          {
-            businessStatusGroup,
-            businessStatus,
-            carrier,
-          },
-          normalizedLimit,
-          normalizedOffset
-        )
-      : await fetchOrders(query, normalizedLimit, normalizedOffset)
+  const result = requiresProjectionScan
+    ? await fetchProjectedOrders({
+        expeditionFilters: filters,
+        filters: nativeFilters,
+        limit: normalizedLimit,
+        offset: normalizedOffset,
+        query,
+        sort: normalizedOrder,
+      })
+    : await fetchOrders({
+        filters: nativeFilters,
+        limit: normalizedLimit,
+        offset: normalizedOffset,
+        query,
+        sort: normalizedOrder,
+      })
 
   const notesByOrderId = await fetchOrderExpeditionOrderNotesByOrderIds(
     orderNoteService,
@@ -116,18 +158,29 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     scanned_count: result.scannedCount,
     offset: normalizedOffset,
     limit: normalizedLimit,
+    order: normalizedOrder.query,
     carrier: carrier ?? null,
     business_status_group: businessStatusGroup ?? null,
     business_status: businessStatus ?? null,
+    pending_unpaid: pendingUnpaid ?? false,
   })
 }
 
-async function fetchOrders(
-  query: Query,
-  limit: number,
-  offset: number
-): Promise<OrderExpeditionOrdersPage> {
-  const batch = await fetchOrderBatch(query, offset, limit)
+async function fetchOrders({
+  filters,
+  limit,
+  offset,
+  query,
+  sort,
+}: FetchOrdersOptions): Promise<OrderExpeditionOrdersPage> {
+  const batch = await fetchOrderBatch({
+    fields: ORDER_EXPEDITION_ORDER_FIELDS,
+    filters,
+    limit,
+    offset,
+    query,
+    order: getNativeOrderExpeditionSort(sort),
+  })
   const count = batch.metadataCount ?? batch.orders.length
 
   return {
@@ -140,97 +193,82 @@ async function fetchOrders(
   }
 }
 
-async function fetchFilteredOrders(
-  query: Query,
-  filters: OrderExpeditionOrderFilters,
-  limit: number,
-  offset: number
-): Promise<OrderExpeditionOrdersPage> {
-  const accumulator: CarrierFilterAccumulator = {
-    matchingCount: 0,
-    matchingOrders: [],
-  }
+async function fetchProjectedOrders({
+  expeditionFilters,
+  filters,
+  limit,
+  offset,
+  query,
+  sort,
+}: FetchProjectedOrdersOptions): Promise<OrderExpeditionOrdersPage> {
+  const matchingOrders: OrderExpeditionRawOrder[] = []
   let scanOffset = 0
   let scannedCount = 0
-  let scannedAllOrders = false
-  let carrierFilterLimitReached = false
+  let scanTruncated = false
 
   while (true) {
-    const remainingScanRows =
-      ORDER_EXPEDITION_CARRIER_SCAN_MAX_ROWS - scanOffset
-    if (remainingScanRows <= 0) {
-      carrierFilterLimitReached = true
+    const remainingRows = ORDER_EXPEDITION_SCAN_MAX_ROWS - scanOffset
+
+    if (remainingRows <= 0) {
+      scanTruncated = true
       break
     }
 
-    const batch = await fetchOrderBatch(
+    const batchLimit = Math.min(ORDER_EXPEDITION_SCAN_BATCH_SIZE, remainingRows)
+    const batch = await fetchOrderBatch({
+      fields: ORDER_EXPEDITION_LIST_FIELDS,
+      filters,
+      limit: batchLimit,
+      offset: scanOffset,
+      order: { created_at: "DESC", id: "DESC" },
       query,
-      scanOffset,
-      Math.min(ORDER_EXPEDITION_SCAN_BATCH_SIZE, remainingScanRows)
-    )
+    })
 
     if (!batch.scannedCount) {
-      scannedAllOrders = true
+      scanTruncated =
+        batch.metadataCount !== null && batch.metadataCount > scanOffset
       break
     }
 
     scannedCount += batch.scannedCount
-    collectMatchingOrders({
-      accumulator,
-      filters,
-      limit,
-      offset,
-      orders: batch.orders,
-    })
+    matchingOrders.push(
+      ...batch.orders.filter((candidate) =>
+        orderMatchesFilters(candidate, expeditionFilters)
+      )
+    )
     scanOffset += batch.scannedCount
 
-    const totalCount = batch.metadataCount ?? scanOffset
-    if (totalCount <= scanOffset) {
-      scannedAllOrders = true
+    const scannedAllOrders =
+      batch.metadataCount !== null
+        ? batch.metadataCount <= scanOffset
+        : batch.scannedCount < batchLimit
+
+    if (scannedAllOrders) {
       break
     }
 
-    if (accumulator.matchingOrders.length > limit) {
-      break
-    }
-
-    if (scanOffset >= ORDER_EXPEDITION_CARRIER_SCAN_MAX_ROWS) {
-      carrierFilterLimitReached = true
+    if (scanOffset >= ORDER_EXPEDITION_SCAN_MAX_ROWS) {
+      scanTruncated = true
       break
     }
   }
+
+  const sortedOrders = sortOrderExpeditionOrders(matchingOrders, sort)
+  const pageOrderIds = sortedOrders
+    .slice(offset, offset + limit)
+    .map((candidate) => candidate.id)
+  const { orders } = await fetchOrderedOrderExpeditionOrdersByIds(
+    query,
+    pageOrderIds
+  )
 
   return {
-    count: accumulator.matchingCount,
-    hasNext: accumulator.matchingOrders.length > limit,
-    orders: accumulator.matchingOrders.slice(0, limit),
-    countExact: scannedAllOrders,
-    carrierFilterLimitReached,
+    count: sortedOrders.length,
+    hasNext: offset + limit < sortedOrders.length,
+    orders,
+    countExact: !scanTruncated,
+    carrierFilterLimitReached: scanTruncated,
     scannedCount,
-  }
-}
-
-function collectMatchingOrders({
-  accumulator,
-  filters,
-  limit,
-  offset,
-  orders,
-}: CollectMatchingOrdersInput) {
-  for (const order of orders) {
-    if (!orderMatchesFilters(order, filters)) {
-      continue
-    }
-
-    if (accumulator.matchingCount >= offset) {
-      accumulator.matchingOrders.push(order)
-    }
-
-    accumulator.matchingCount += 1
-
-    if (accumulator.matchingOrders.length > limit) {
-      break
-    }
   }
 }
 
@@ -238,6 +276,10 @@ function orderMatchesFilters(
   order: OrderExpeditionRawOrder,
   filters: OrderExpeditionOrderFilters
 ) {
+  if (filters.pendingUnpaid && !isPendingUnpaidOrder(order)) {
+    return false
+  }
+
   if (
     filters.carrier &&
     !orderMatchesExpeditionCarrier(order, filters.carrier)
@@ -263,21 +305,26 @@ function orderMatchesFilters(
   return true
 }
 
-async function fetchOrderBatch(
-  query: Query,
-  offset: number,
-  limit: number
-): Promise<OrderExpeditionOrderBatch> {
+async function fetchOrderBatch({
+  fields,
+  filters,
+  limit,
+  offset,
+  order,
+  query,
+}: FetchOrderBatchOptions): Promise<OrderExpeditionOrderBatch> {
   const { data: orders, metadata } = await query.graph({
     entity: "order",
-    fields: ORDER_EXPEDITION_ORDER_FIELDS,
+    fields,
+    filters,
     pagination: {
+      order,
       skip: offset,
       take: limit,
     },
   })
   const validOrders = Array.isArray(orders)
-    ? orders.filter(isOrderExpeditionQueryOrder)
+    ? orders.filter(isOrderExpeditionRawOrder)
     : []
   const scannedCount = Array.isArray(orders) ? orders.length : 0
 
@@ -286,4 +333,25 @@ async function fetchOrderBatch(
     orders: validOrders,
     scannedCount,
   }
+}
+
+function normalizeOrderExpeditionSearchQuery(query: string | undefined) {
+  const normalized = query?.trim()
+
+  if (!normalized) {
+    return
+  }
+
+  return ORDER_EXPEDITION_DISPLAY_ID_SEARCH_PATTERN.test(normalized)
+    ? normalized.slice(1)
+    : normalized
+}
+
+function hasOrderExpeditionFilters(filters: OrderExpeditionOrderFilters) {
+  return Boolean(
+    filters.carrier ||
+      filters.businessStatus ||
+      filters.businessStatusGroup ||
+      filters.pendingUnpaid
+  )
 }

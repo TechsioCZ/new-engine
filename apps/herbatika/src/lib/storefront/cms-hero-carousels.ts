@@ -1,7 +1,8 @@
 import "server-only"
 
 import type { HeroBannerItem } from "@/components/homepage/homepage.data.types"
-import { fetchCmsJson, resolveCmsMediaUrl } from "./cms-client"
+import { fetchCmsJson } from "./cms-client"
+import { resolveCmsMediaUrl } from "./cms-content"
 import type { CmsHeroCarousel } from "./cms-types"
 
 const CMS_HERO_CAROUSEL_LIMIT = 8

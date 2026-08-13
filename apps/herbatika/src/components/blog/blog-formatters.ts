@@ -11,16 +11,3 @@ export const formatBlogDate = (value: string, locale: string) => {
     year: "numeric",
   }).format(parsed)
 }
-
-export const formatTopicFromKey = (topicKey: string) => {
-  switch (topicKey) {
-    case "fitness":
-      return "Fitness"
-    case "krasa":
-      return "Krása"
-    case "zdravie":
-      return "Zdravie"
-    default:
-      return "Všetky"
-  }
-}

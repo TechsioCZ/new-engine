@@ -608,18 +608,27 @@
       "faq": "Întrebări frecvente"
     },
     "blog": {
+      "listing": {
+        "title": "Blog despre sănătate și frumusețe",
+        "description": "Articole despre sănătate, frumusețe, nutriție și wellness de la specialiștii noștri."
+      },
       "card": {
         "open_article": "Citește articolul"
       },
       "pagination": {
+        "load_failed": "Articolele suplimentare nu au putut fi încărcate. Încercați din nou.",
         "load_more": "Afișează mai multe",
+        "loading": "Se încarcă...",
+        "range": "Paginile {firstPage}–{lastPage}/{totalPages}",
         "summary": "Pagina {page}/{totalPages}"
       },
       "detail": {
         "related_articles": "Alte articole",
         "author": "Autor:",
         "published": "Publicat:",
-        "reading_time": "Timp de citire:"
+        "reading_time": "Timp de citire:",
+        "table_of_contents": "Cuprins",
+        "chapter_count": "{count, plural, one {# capitol} few {# capitole} other {# de capitole}}"
       }
     },
     "faq": {

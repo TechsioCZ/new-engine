@@ -1,22 +1,19 @@
-import type { BlogPost, BlogTopicKey } from "@/lib/storefront/blog-content"
-import {
-  fetchCmsJson,
-  resolveCmsMediaUrl,
-  rewriteCmsHtmlMediaUrls,
-  stripCmsHtml,
-} from "./cms-client"
-import type {
-  CmsArticle,
-  CmsArticleCategory,
-  CmsBlogTopic,
-  CmsCategory,
-} from "./cms-types"
+import "server-only"
 
-const DEFAULT_CMS_TOPIC: CmsBlogTopic = "zdravie"
-const DEFAULT_AUTHOR_IMAGE =
-  "https://images.unsplash.com/photo-1568602471122-7832951cc4c5?auto=format&fit=crop&w=320&q=80"
-const DEFAULT_ARTICLE_IMAGE =
-  "https://images.unsplash.com/photo-1461354464878-ad92f492a5a0?auto=format&fit=crop&w=1200&q=80"
+import { cacheLife } from "next/cache"
+import type { BlogCategory, BlogListing } from "@/lib/storefront/blog-content"
+import { BLOG_PAGE_SIZE } from "@/lib/storefront/blog-content"
+import {
+  buildCmsArticleIndex,
+  buildCmsBlogPage,
+  buildCmsCategoryFilters,
+} from "./cms-blog-index"
+import {
+  mapCmsArticleIndexToCards,
+  mapCmsArticleToBlogPost,
+} from "./cms-blog-mappers"
+import { fetchCmsJsonOrThrow, isCmsNotFoundError } from "./cms-client"
+import type { CmsArticle, CmsArticleCategory } from "./cms-types"
 
 type CmsArticleCategoriesResponse = {
   articleCategories?: CmsArticleCategory[] | null
@@ -26,116 +23,103 @@ type CmsArticleResponse = {
   article?: CmsArticle | null
 }
 
-const isNonEmptyString = (value: unknown): value is string =>
-  typeof value === "string" && value.trim().length > 0
-
-const resolveTopicFromCategory = (
-  category: CmsCategory | null | undefined
-): Exclude<BlogTopicKey, "all"> => {
-  switch (category?.slug) {
-    case "beauty":
-    case "krasa":
-      return "krasa"
-    case "fitness":
-    case "sport":
-      return "fitness"
-    default:
-      return DEFAULT_CMS_TOPIC
-  }
+type FetchCmsBlogListingInput = {
+  category?: string
+  page?: number
+  pageSize?: number
+  signal?: AbortSignal
 }
 
-const resolveAuthorName = (article: CmsArticle) => {
-  const authorParts = [
-    article.author?.firstName?.trim(),
-    article.author?.lastName?.trim(),
-  ].filter(Boolean)
-
-  return authorParts.length > 0 ? authorParts.join(" ") : "Herbatika redakcia"
-}
-
-export const mapCmsArticleToBlogPost = (
-  article: CmsArticle
-): BlogPost | null => {
-  const slug = article.slug?.trim()
-  const title = article.title?.trim()
-
-  if (!(slug && title)) {
-    return null
-  }
-
-  const categoryLabel = article.category?.title?.trim()
-  const tags = [
-    ...(article.tags ?? []).filter(isNonEmptyString),
-    ...(categoryLabel ? [categoryLabel] : []),
-  ]
-  const contentHtml = rewriteCmsHtmlMediaUrls(article.content ?? "")
-  const excerpt =
-    article.excerpt?.trim() || stripCmsHtml(contentHtml).slice(0, 180)
-
-  return {
-    id: `cms-${article.id}`,
-    slug,
-    title,
-    excerpt,
-    imageSrc:
-      resolveCmsMediaUrl(article.featuredImage) ?? DEFAULT_ARTICLE_IMAGE,
-    topic: resolveTopicFromCategory(article.category),
-    tags: tags.length > 0 ? tags : ["Novinky"],
-    publishedAt: article.publishedDate ?? new Date(0).toISOString(),
-    author: resolveAuthorName(article),
-    authorRole: "Článok pre vás pripravila",
-    authorBio:
-      "Redakčný tím Herbatika pripravuje odborný obsah o zdraví, výžive a prírodnej starostlivosti.",
-    authorImageSrc: DEFAULT_AUTHOR_IMAGE,
-    readingTime: `${Math.max(article.readingTime ?? 1, 1)} min`,
-    lead: excerpt,
-    bulletPoints: [],
-    contentHtml,
-    sections: [],
-  }
-}
-
-export const fetchCmsArticleCategories = async () => {
-  const response =
-    await fetchCmsJson<CmsArticleCategoriesResponse>("article-categories")
+export const fetchCmsArticleCategories = async (signal?: AbortSignal) => {
+  const response = await fetchCmsJsonOrThrow<CmsArticleCategoriesResponse>(
+    "article-categories",
+    { signal }
+  )
 
   return response?.articleCategories ?? []
 }
 
-export const fetchCmsArticleBySlug = async (slug: string) => {
-  const response = await fetchCmsJson<CmsArticleResponse>(
-    `articles/${encodeURIComponent(slug)}`
-  )
+export const fetchCmsArticleBySlug = async (
+  slug: string,
+  signal?: AbortSignal
+) => {
+  try {
+    const response = await fetchCmsJsonOrThrow<CmsArticleResponse>(
+      `articles/${encodeURIComponent(slug)}`,
+      { signal }
+    )
 
-  return response?.article ?? null
+    return response.article ?? null
+  } catch (error) {
+    if (isCmsNotFoundError(error)) {
+      return null
+    }
+
+    throw error
+  }
 }
 
-export const fetchCmsBlogPost = async (slug: string) => {
-  const article = await fetchCmsArticleBySlug(slug)
+export const fetchCmsBlogPost = async (
+  slug: string,
+  fallbackCategory?: BlogCategory,
+  signal?: AbortSignal
+) => {
+  const article = await fetchCmsArticleBySlug(slug, signal)
 
-  return article ? mapCmsArticleToBlogPost(article) : null
+  return article ? mapCmsArticleToBlogPost(article, fallbackCategory) : null
 }
 
-export const fetchCmsBlogPosts = async () => {
+export const fetchCmsBlogCategoryFilters = async () => {
   const categories = await fetchCmsArticleCategories()
-  const slugs = Array.from(
-    new Set(
-      categories.flatMap((category) =>
-        (category.articles ?? [])
-          .map((article) => article.slug?.trim())
-          .filter(isNonEmptyString)
-      )
-    )
+  const articleIndex = buildCmsArticleIndex(categories)
+
+  return buildCmsCategoryFilters(categories, articleIndex.length)
+}
+
+export const fetchCmsBlogListing = async ({
+  category,
+  page,
+  pageSize = BLOG_PAGE_SIZE,
+  signal,
+}: FetchCmsBlogListingInput = {}): Promise<BlogListing> => {
+  const categories = await fetchCmsArticleCategories(signal)
+  const { entries, ...listing } = buildCmsBlogPage({
+    categories,
+    category,
+    page,
+    pageSize,
+  })
+
+  return {
+    ...listing,
+    posts: mapCmsArticleIndexToCards(entries),
+  }
+}
+
+export const fetchLatestCmsBlogPosts = async (
+  limit: number,
+  excludeSlugs: string[] = []
+) => {
+  const categories = await fetchCmsArticleCategories()
+  const excludedSlugs = new Set(excludeSlugs)
+  const candidates = buildCmsArticleIndex(categories).filter(
+    ({ summary }) => !excludedSlugs.has(summary.slug?.trim() ?? "")
   )
+  const selectedEntries = candidates.slice(0, Math.max(limit, 0))
 
-  const articles = await Promise.all(slugs.map(fetchCmsArticleBySlug))
+  return mapCmsArticleIndexToCards(selectedEntries)
+}
 
-  return articles
-    .map((article) => (article ? mapCmsArticleToBlogPost(article) : null))
-    .filter((post): post is BlogPost => Boolean(post))
-    .sort(
-      (left, right) =>
-        new Date(right.publishedAt).getTime() -
-        new Date(left.publishedAt).getTime()
-    )
+export const fetchCachedLatestCmsBlogPosts = async (
+  limit: number,
+  excludeSlugs: string[] = []
+) => {
+  "use cache"
+  cacheLife({
+    expire: 3600,
+    revalidate: 600,
+    stale: 300,
+  })
+
+  return await fetchLatestCmsBlogPosts(limit, excludeSlugs)
 }

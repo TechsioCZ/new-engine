@@ -32,6 +32,12 @@ import {
   updateBrandsWorkflow,
   validateBrandGpsrState,
 } from "../../brand"
+import {
+  createProductIdentityIndex,
+  matchSeedProduct,
+  normalizeProductIdentity,
+  type ProductIdentityIndex,
+} from "./product-identity"
 
 export type SeedProductAttributeInput = {
   input_type: "select" | "text"
@@ -62,6 +68,7 @@ export type SeedProductMeasurementInput = {
 }
 
 export type ProductInput = {
+  external_id?: string
   title: string
   categories: {
     name?: string
@@ -195,6 +202,14 @@ type ExistingBrand = {
   title: string
 }
 
+function mergeProductsById(...productGroups: ProductDTO[][]): ProductDTO[] {
+  return [
+    ...new Map(
+      productGroups.flat().map((product) => [product.id, product])
+    ).values(),
+  ]
+}
+
 const SEED_BRAND_STRING_FIELDS = [
   "gpsr_contact_email",
   "gpsr_european_reseller_contact_email",
@@ -212,6 +227,27 @@ function chunkArray<T>(items: T[], size = SEED_QUERY_CHUNK_SIZE): T[][] {
     chunks.push(items.slice(index, index + size))
   }
   return chunks
+}
+
+async function listProductsByIdentityInChunks(params: {
+  field: "external_id" | "handle"
+  productService: IProductModuleService
+  query: Parameters<IProductModuleService["listProducts"]>[1]
+  values: string[]
+}) {
+  const products: ProductDTO[] = []
+  const values = [...new Set(params.values)]
+
+  for (const valueChunk of chunkArray(values)) {
+    const filters = { [params.field]: valueChunk } as Parameters<
+      IProductModuleService["listProducts"]
+    >[0]
+    products.push(
+      ...(await params.productService.listProducts(filters, params.query))
+    )
+  }
+
+  return products
 }
 
 function normalizeSeedText(value?: string | null): string | undefined {
@@ -421,16 +457,14 @@ function renameVariantSku(
 function ensureUniqueVariantSkus(
   inputProducts: ProductInput[],
   existingProducts: ProductDTO[],
+  productIdentityIndex: ProductIdentityIndex<ProductDTO>,
   logger: Logger
 ) {
-  const existingProductsByHandle = new Map(
-    existingProducts.map((product) => [product.handle, product])
-  )
   const usedSkus = collectUsedVariantSkus(existingProducts)
   let renamedSkus = 0
 
   for (const inputProduct of inputProducts) {
-    const existingProduct = existingProductsByHandle.get(inputProduct.handle)
+    const existingProduct = matchSeedProduct(inputProduct, productIdentityIndex)
     const existingSkusOnProduct = getExistingVariantSkus(existingProduct)
 
     for (const [index, variant] of (inputProduct.variants ?? []).entries()) {
@@ -703,6 +737,8 @@ function buildUpdateProductPayload(params: {
 
   return {
     id: existingProduct.id,
+    external_id: normalizeProductIdentity(inputProduct.external_id),
+    handle: inputProduct.handle,
     title: inputProduct.title,
     category_ids: inputProduct.categories?.map(
       (inputCat) => resolveCategory(existingCategories, inputCat.handle).id
@@ -759,6 +795,7 @@ function buildCreateProductPayload(params: {
   } = params
 
   return {
+    external_id: normalizeProductIdentity(inputProduct.external_id),
     title: inputProduct.title,
     category_ids: inputProduct.categories?.map(
       (inputCat) => resolveCategory(existingCategories, inputCat.handle).id
@@ -784,18 +821,19 @@ function buildCreateProductPayload(params: {
 
 function buildUpdateProductPayloads(params: {
   input: CreateProductsStepInput
-  existingProducts: ProductDTO[]
+  productIdentityIndex: ProductIdentityIndex<ProductDTO>
   existingCategories: ExistingCategory[]
   existingShippingProfiles: ExistingShippingProfile[]
   existingSalesChannels: ExistingSalesChannel[]
   productVariantImages: VariantImagesRegistry
 }) {
-  return params.existingProducts.flatMap((existingProduct) => {
-    const inputProduct = params.input.find(
-      (product) => product.handle === existingProduct.handle
+  return params.input.flatMap((inputProduct) => {
+    const existingProduct = matchSeedProduct(
+      inputProduct,
+      params.productIdentityIndex
     )
 
-    if (!inputProduct) {
+    if (!existingProduct) {
       return []
     }
 
@@ -1255,33 +1293,54 @@ export const createProductsStep = createStep(
         name: input.map((i) => i.shippingProfileName),
       })
 
-    const existingProducts = await productService.listProducts(
-      {
-        handle: input.map((i) => i.handle),
-      },
-      {
-        relations: ["variants", "variants.options"],
-        select: ["variants.*", "variants.options.*", "*"],
-      }
+    const productQuery = {
+      relations: ["variants", "variants.options"],
+      select: ["variants.*", "variants.options.*", "*"],
+    }
+    const externalIds = input
+      .map((product) => normalizeProductIdentity(product.external_id))
+      .filter((externalId): externalId is string => Boolean(externalId))
+    const handles = input
+      .map((product) => normalizeProductIdentity(product.handle))
+      .filter((handle): handle is string => Boolean(handle))
+    const productsByExternalId = await listProductsByIdentityInChunks({
+      field: "external_id",
+      productService,
+      query: productQuery,
+      values: externalIds,
+    })
+    const productsByHandle = await listProductsByIdentityInChunks({
+      field: "handle",
+      productService,
+      query: productQuery,
+      values: handles,
+    })
+    const existingProducts = mergeProductsById(
+      productsByExternalId,
+      productsByHandle
     )
+    const productIdentityIndex = createProductIdentityIndex(existingProducts)
 
     await assertSeedBrandsCompatibleWithPersistence(brandService, brands)
 
-    ensureUniqueVariantSkus(input, existingProducts, logger)
+    ensureUniqueVariantSkus(
+      input,
+      existingProducts,
+      productIdentityIndex,
+      logger
+    )
 
     const missingProducts = input.filter(
-      (i) => !existingProducts.find((j) => j.handle === i.handle)
+      (product) => !matchSeedProduct(product, productIdentityIndex)
     )
-    const updateProducts = existingProducts.flatMap((existingProduct) =>
-      buildUpdateProductPayloads({
-        input,
-        existingProducts: [existingProduct],
-        existingCategories,
-        existingShippingProfiles,
-        existingSalesChannels,
-        productVariantImages,
-      })
-    )
+    const updateProducts = buildUpdateProductPayloads({
+      input,
+      productIdentityIndex,
+      existingCategories,
+      existingShippingProfiles,
+      existingSalesChannels,
+      productVariantImages,
+    })
 
     if (missingProducts.length !== 0) {
       logger.info("Creating missing products...")

@@ -1,4 +1,7 @@
-import { headersWithCors, type PayloadRequest } from "payload"
+import { APIError, headersWithCors, type PayloadRequest } from "payload"
+
+const DEFAULT_LIMIT = 20
+const MAX_LIMIT = 50
 
 type LocaleValue = PayloadRequest["locale"]
 
@@ -37,23 +40,44 @@ export const getLocaleFromRequest = (req: PayloadRequest): LocaleValue => {
 
   const localization = req.payload.config.localization
   const localeCodes = localization ? localization.localeCodes : []
-  return localeCodes.includes(localeParam)
-    ? (localeParam as LocaleValue)
-    : undefined
+  if (!localeCodes.includes(localeParam)) {
+    throw new APIError(`Unsupported locale: ${localeParam}`, 400)
+  }
+
+  return localeParam as LocaleValue
+}
+
+export const parseLimit = (value: string | undefined) => {
+  const parsed = Number.parseInt(value || "", 10)
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return DEFAULT_LIMIT
+  }
+
+  return Math.min(parsed, MAX_LIMIT)
+}
+
+export const isAuthorizedEndpointRequest = (req: PayloadRequest) => {
+  if (req.user) {
+    return true
+  }
+
+  const apiKey = process.env.PAYLOAD_API_KEY
+  return Boolean(apiKey && req.headers.get("x-payload-api-key") === apiKey)
 }
 
 /** Build a JSON response with Payload CORS headers applied. */
 export const buildJsonResponse = (
   req: PayloadRequest,
-  data: unknown
+  data: unknown,
+  status = 200
 ): Response => {
   const headers = headersWithCors({
     headers: new Headers({ "Content-Type": "application/json" }),
     req,
   })
 
-  return new Response(JSON.stringify(data), {
-    status: 200,
+  return Response.json(data, {
+    status,
     headers,
   })
 }

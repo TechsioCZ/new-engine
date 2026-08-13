@@ -19,6 +19,18 @@ export const adminGroups = {
 
 /** Localized collection labels for singular/plural display. */
 export const collectionLabels = {
+  articleAuthors: {
+    singular: {
+      en: "Article author",
+      cs: "Autor článku",
+      sk: "Autor článku",
+    },
+    plural: {
+      en: "Article authors",
+      cs: "Autoři článků",
+      sk: "Autori článkov",
+    },
+  },
   articles: {
     singular: {
       en: "Article",
@@ -151,6 +163,21 @@ export const fieldLabels = {
     en: "Featured image",
     cs: "Hlavní obrázek",
     sk: "Hlavný obrázok",
+  },
+  articleSidebar: {
+    en: "Article sidebar",
+    cs: "Postranní panel článku",
+    sk: "Bočný panel článku",
+  },
+  sidebarPromoImage: {
+    en: "Promotional image",
+    cs: "Reklamní obrázek",
+    sk: "Reklamný obrázok",
+  },
+  sidebarProduct: {
+    en: "Featured product",
+    cs: "Doporučený produkt",
+    sk: "Odporúčaný produkt",
   },
   category: {
     en: "Category",
