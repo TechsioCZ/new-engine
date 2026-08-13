@@ -1,94 +1,153 @@
-import { describe, expect, it } from 'vitest'
-import { getShippingLabelCarrierSelection, prepareShippingLabelDownload } from './shipping-labels'
-import type { OrderDashboardCarrierKey, OrderDashboardLabelEligibilityOrder, OrderDashboardOrder } from './types'
+import { describe, expect, it } from "vitest"
+import {
+  getShippingLabelCarrierSelection,
+  prepareShippingLabelDownload,
+} from "./shipping-labels"
+import type {
+  OrderDashboardCarrierKey,
+  OrderDashboardLabelEligibilityOrder,
+  OrderDashboardOrder,
+} from "./types"
 
 const translate = (key: string) => key
 
-describe('shipping label preparation', () => {
-	it('rejects a selection containing multiple carriers', () => {
-		const result = prepareShippingLabelDownload(
-			[createOrder('order-gls', 'gls'), createOrder('order-ppl', 'ppl')],
-			[],
-			['gls', 'packeta'],
-			translate
-		)
+describe("shipping label preparation", () => {
+  it("rejects a selection containing multiple carriers", () => {
+    const result = prepareShippingLabelDownload(
+      [createOrder("order-gls", "gls"), createOrder("order-ppl", "ppl")],
+      [],
+      ["gls", "packeta"],
+      translate
+    )
 
-		expect(result).toEqual({ carriers: ['gls', 'ppl'], kind: 'mixed-carriers' })
-	})
+    expect(result).toEqual({ carriers: ["gls", "ppl"], kind: "mixed-carriers" })
+  })
 
-	it('derives the selected carrier', () => {
-		expect(getShippingLabelCarrierSelection([createOrder('order-packeta', 'packeta')], ['packeta'])).toEqual({
-			carrier: 'packeta',
-			kind: 'supported'
-		})
-	})
+  it("derives the selected carrier", () => {
+    expect(
+      getShippingLabelCarrierSelection(
+        [createOrder("order-packeta", "packeta")],
+        ["packeta"]
+      )
+    ).toEqual({
+      carrier: "packeta",
+      kind: "supported",
+    })
+  })
 
-	it('prepares valid Packeta labels', () => {
-		const result = prepareShippingLabelDownload(
-			[createOrder('order-packeta', 'packeta')],
-			[createEligibilityOrder('order-packeta', 'packeta_packeta', { packet_id: 123 })],
-			['packeta'],
-			translate
-		)
+  it("prepares valid Packeta labels", () => {
+    const result = prepareShippingLabelDownload(
+      [createOrder("order-packeta", "packeta")],
+      [
+        createEligibilityOrder("order-packeta", "packeta_packeta", {
+          packet_id: 123,
+        }),
+      ],
+      ["packeta"],
+      translate
+    )
 
-		expect(result).toMatchObject({ carrier: 'packeta', kind: 'ready', orderIds: ['order-packeta'] })
-	})
+    expect(result).toMatchObject({
+      carrier: "packeta",
+      kind: "ready",
+      orderIds: ["order-packeta"],
+    })
+  })
 
-	it('requires complete GLS fulfillment identity', () => {
-		const selectedOrders = [createOrder('order-gls-ready', 'gls'), createOrder('order-gls-missing', 'gls')]
-		const eligibilityOrders = [
-			createEligibilityOrder('order-gls-ready', 'gls_gls', {
-				barcode: 'GLS-1',
-				config_id: 'glscfg_1',
-				environment: 'testing',
-				packet_id: 'packet-1'
-			}),
-			createEligibilityOrder('order-gls-missing', 'gls_gls', { packet_id: 'packet-2' })
-		]
-		const result = prepareShippingLabelDownload(selectedOrders, eligibilityOrders, ['gls'], translate)
+  it("requires complete GLS fulfillment identity", () => {
+    const selectedOrders = [
+      createOrder("order-gls-ready", "gls"),
+      createOrder("order-gls-missing", "gls"),
+    ]
+    const eligibilityOrders = [
+      createEligibilityOrder("order-gls-ready", "gls_gls", {
+        barcode: "GLS-1",
+        config_id: "glscfg_1",
+        environment: "testing",
+        packet_id: "packet-1",
+      }),
+      createEligibilityOrder("order-gls-missing", "gls_gls", {
+        packet_id: "packet-2",
+      }),
+    ]
+    const result = prepareShippingLabelDownload(
+      selectedOrders,
+      eligibilityOrders,
+      ["gls"],
+      translate
+    )
 
-		expect(result).toMatchObject({ carrier: 'gls', kind: 'ready', orderIds: ['order-gls-ready'] })
-		expect('blockingOrders' in result ? result.blockingOrders : []).toHaveLength(1)
-	})
+    expect(result).toMatchObject({
+      carrier: "gls",
+      kind: "ready",
+      orderIds: ["order-gls-ready"],
+    })
+    expect(
+      "blockingOrders" in result ? result.blockingOrders : []
+    ).toHaveLength(1)
+  })
 
-	it('does not offer label downloads for PPL orders', () => {
-		const selectedOrders = [createOrder('order-ppl', 'ppl')]
+  it("does not offer label downloads for PPL orders", () => {
+    const selectedOrders = [createOrder("order-ppl", "ppl")]
 
-		expect(getShippingLabelCarrierSelection(selectedOrders, [])).toEqual({
-			carrier: 'ppl',
-			kind: 'unsupported'
-		})
-		expect(prepareShippingLabelDownload(selectedOrders, [], [], translate)).toEqual({
-			carrier: 'ppl',
-			kind: 'unsupported-carrier'
-		})
-	})
+    expect(getShippingLabelCarrierSelection(selectedOrders, [])).toEqual({
+      carrier: "ppl",
+      kind: "unsupported",
+    })
+    expect(
+      prepareShippingLabelDownload(selectedOrders, [], [], translate)
+    ).toEqual({
+      carrier: "ppl",
+      kind: "unsupported-carrier",
+    })
+  })
 
-	it('does not offer labels for a disabled integration', () => {
-		expect(getShippingLabelCarrierSelection([createOrder('order-gls', 'gls')], [])).toEqual({
-			carrier: 'gls',
-			kind: 'unsupported'
-		})
-	})
+  it("does not offer labels for a disabled integration", () => {
+    expect(
+      getShippingLabelCarrierSelection([createOrder("order-gls", "gls")], [])
+    ).toEqual({
+      carrier: "gls",
+      kind: "unsupported",
+    })
+  })
 })
 
-function createOrder(id: string, carrier: OrderDashboardCarrierKey): OrderDashboardOrder {
-	return {
-		business_status: { id: 'new', priority: 1, tone: 'blue', translation_key: 'statuses.new' },
-		carrier: { label: carrier, value: carrier },
-		customer: 'Customer',
-		delivery_address: [],
-		has_active_fulfillment: true,
-		id,
-		items: [],
-		order_display_id: id,
-		payment_method: null
-	}
+function createOrder(
+  id: string,
+  carrier: OrderDashboardCarrierKey
+): OrderDashboardOrder {
+  return {
+    business_status: {
+      id: "new",
+      priority: 1,
+      tone: "blue",
+      translation_key: "statuses.new",
+    },
+    carrier: { label: carrier, value: carrier },
+    customer: "Customer",
+    delivery_address: [],
+    has_active_fulfillment: true,
+    id,
+    items: [],
+    order_display_id: id,
+    payment_method: null,
+  }
 }
 
-function createEligibilityOrder(id: string, providerId: string, data: Record<string, unknown>): OrderDashboardLabelEligibilityOrder {
-	return {
-		fulfillments: [{ canceled_at: null, data, id: ['fulfillment-', id].join(''), provider_id: providerId }],
-		id
-	}
+function createEligibilityOrder(
+  id: string,
+  providerId: string,
+  data: Record<string, unknown>
+): OrderDashboardLabelEligibilityOrder {
+  return {
+    fulfillments: [
+      {
+        canceled_at: null,
+        data,
+        id: ["fulfillment-", id].join(""),
+        provider_id: providerId,
+      },
+    ],
+    id,
+  }
 }

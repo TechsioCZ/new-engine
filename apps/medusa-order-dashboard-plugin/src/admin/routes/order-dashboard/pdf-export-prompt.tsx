@@ -27,7 +27,7 @@ export function OrderPdfExportPrompt({
     selectedCount <= ORDER_DASHBOARD_MAX_SEPARATE_PDF_IDS
 
   useEffect(() => {
-    if (!open || !canExportSeparatePdfs) {
+    if (!(open && canExportSeparatePdfs)) {
       setMode("combined")
     }
   }, [canExportSeparatePdfs, open])
