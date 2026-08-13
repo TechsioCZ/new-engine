@@ -3072,9 +3072,10 @@ function buildProducts(params: {
     })
     const thumbnail = item.images[0] ?? item.topOffer.imageRef
     const imageUrls = dedupeStrings([...item.images, thumbnail])
+    const externalId = item.id.trim()
 
     return {
-      external_id: item.id || undefined,
+      external_id: externalId.length > 0 ? externalId : undefined,
       title: item.name || `Product ${item.id || index + 1}`,
       categories,
       description: item.description ?? item.shortDescription ?? "",

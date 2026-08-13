@@ -229,6 +229,27 @@ function chunkArray<T>(items: T[], size = SEED_QUERY_CHUNK_SIZE): T[][] {
   return chunks
 }
 
+async function listProductsByIdentityInChunks(params: {
+  field: "external_id" | "handle"
+  productService: IProductModuleService
+  query: Parameters<IProductModuleService["listProducts"]>[1]
+  values: string[]
+}) {
+  const products: ProductDTO[] = []
+  const values = [...new Set(params.values)]
+
+  for (const valueChunk of chunkArray(values)) {
+    const filters = { [params.field]: valueChunk } as Parameters<
+      IProductModuleService["listProducts"]
+    >[0]
+    products.push(
+      ...(await params.productService.listProducts(filters, params.query))
+    )
+  }
+
+  return products
+}
+
 function normalizeSeedText(value?: string | null): string | undefined {
   const normalized = value?.trim()
   return normalized ? normalized : undefined
@@ -719,7 +740,7 @@ function buildUpdateProductPayload(params: {
 
   return {
     id: existingProduct.id,
-    external_id: inputProduct.external_id,
+    external_id: normalizeProductIdentity(inputProduct.external_id),
     handle: inputProduct.handle,
     title: inputProduct.title,
     category_ids: inputProduct.categories?.map(
@@ -777,7 +798,7 @@ function buildCreateProductPayload(params: {
   } = params
 
   return {
-    external_id: inputProduct.external_id,
+    external_id: normalizeProductIdentity(inputProduct.external_id),
     title: inputProduct.title,
     category_ids: inputProduct.categories?.map(
       (inputCat) => resolveCategory(existingCategories, inputCat.handle).id
@@ -1282,19 +1303,21 @@ export const createProductsStep = createStep(
     const externalIds = input
       .map((product) => normalizeProductIdentity(product.external_id))
       .filter((externalId): externalId is string => Boolean(externalId))
-    const productsByExternalId =
-      externalIds.length > 0
-        ? await productService.listProducts(
-            { external_id: externalIds },
-            productQuery
-          )
-        : []
-    const productsByHandle = await productService.listProducts(
-      {
-        handle: input.map((i) => i.handle),
-      },
-      productQuery
-    )
+    const handles = input
+      .map((product) => normalizeProductIdentity(product.handle))
+      .filter((handle): handle is string => Boolean(handle))
+    const productsByExternalId = await listProductsByIdentityInChunks({
+      field: "external_id",
+      productService,
+      query: productQuery,
+      values: externalIds,
+    })
+    const productsByHandle = await listProductsByIdentityInChunks({
+      field: "handle",
+      productService,
+      query: productQuery,
+      values: handles,
+    })
     const existingProducts = mergeProductsById(
       productsByExternalId,
       productsByHandle
