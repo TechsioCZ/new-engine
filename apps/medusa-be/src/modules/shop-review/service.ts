@@ -3,9 +3,12 @@ import { MedusaError } from "@medusajs/framework/utils"
 import type { ApiStoreModuleService, ApiStoreSecretDTO } from "../api-store"
 import { API_STORE_MODULE } from "../api-store"
 import type {
+  FetchHeurekaReviewsInput,
   FetchHeurekaShopReviewsInput,
   HeurekaLocale,
+  HeurekaReviewKind,
   ShopReviewProviderResponse,
+  ShopReviewTrustSummary,
 } from "./types"
 import {
   ACCESS_TOKEN_API_STORE_NAME,
@@ -19,13 +22,38 @@ const HEUREKA_API_STORE_NAMES: Record<HeurekaLocale, string[]> = {
   cs: ["Heureka CZ", "Heureka"],
   sk: ["Heureka SK"],
 }
-const DEFAULT_HEUREKA_EXPORT_URLS: Record<HeurekaLocale, string> = {
-  cs: "https://www.heureka.cz/direct/dotaznik/export-review.php",
-  sk: "https://www.heureka.sk/direct/dotaznik/export-review.php",
+const DEFAULT_HEUREKA_EXPORT_URLS: Record<
+  HeurekaLocale,
+  Record<HeurekaReviewKind, string>
+> = {
+  cs: {
+    product: "https://www.heureka.cz/direct/dotaznik/export-product-review.php",
+    shop: "https://www.heureka.cz/direct/dotaznik/export-review.php",
+  },
+  sk: {
+    product: "https://www.heureka.sk/direct/dotaznik/export-product-review.php",
+    shop: "https://www.heureka.sk/direct/dotaznik/export-review.php",
+  },
 }
 const DEFAULT_CONTENT_TYPE = "application/xml; charset=utf-8"
 const DEFAULT_JSON_CONTENT_TYPE = "application/json; charset=utf-8"
 const REQUEST_TIMEOUT_MS = 15_000
+const ZBOZI_REVIEW_SCORE_MONTHS = 24
+const ZBOZI_REQUEST_INTERVAL_MS = 1000
+const ZBOZI_REVIEWS_PATH_PATTERN = /\/reviews\/?$/
+
+type ZboziShopsResponse = {
+  items?: Array<{
+    premiseId?: unknown
+    rating?: unknown
+  }>
+}
+
+type ZboziReviewsResponse = {
+  meta?: {
+    count?: unknown
+  }
+}
 
 type InjectedDependencies = {
   [API_STORE_MODULE]: ApiStoreModuleService
@@ -49,10 +77,11 @@ class ShopReviewModuleService {
     this.logger_ = container.logger
   }
 
-  async fetchHeurekaShopReviews(
-    input: FetchHeurekaShopReviewsInput = {}
+  async fetchHeurekaReviews(
+    input: FetchHeurekaReviewsInput = {}
   ): Promise<ShopReviewProviderResponse> {
     const locale = input.locale ?? DEFAULT_HEUREKA_LOCALE
+    const kind = input.kind ?? "shop"
     const { apiStore, apiStoreName } =
       await this.retrieveHeurekaApiStore(locale)
 
@@ -75,7 +104,12 @@ class ShopReviewModuleService {
       )
     }
 
-    const url = this.buildHeurekaExportUrl(apiStore.api_url, apiKey, locale)
+    const url = this.buildHeurekaExportUrl(
+      apiStore.api_url,
+      apiKey,
+      locale,
+      kind
+    )
     const response = await fetch(url, {
       headers: {
         accept: "application/xml,text/xml,*/*",
@@ -101,6 +135,12 @@ class ShopReviewModuleService {
       provider: "heureka",
       source_url: this.redactUrl(url),
     }
+  }
+
+  async fetchHeurekaShopReviews(
+    input: FetchHeurekaShopReviewsInput = {}
+  ): Promise<ShopReviewProviderResponse> {
+    return this.fetchHeurekaReviews({ ...input, kind: "shop" })
   }
 
   async fetchZboziShopReviews(): Promise<ShopReviewProviderResponse> {
@@ -141,6 +181,74 @@ class ShopReviewModuleService {
         response.headers.get("content-type") ?? DEFAULT_JSON_CONTENT_TYPE,
       provider: "zbozi",
       source_url: this.redactUrl(url),
+    }
+  }
+
+  async fetchZboziShopTrustSummary(): Promise<ShopReviewTrustSummary> {
+    const { refreshApiStore, accessApiStore } =
+      await this.retrieveZboziApiStores()
+
+    if (!refreshApiStore.api_url) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `API store config "${REFRESH_TOKEN_API_STORE_NAME}" must contain api_url`
+      )
+    }
+
+    const accessToken = extractZboziAccessToken(accessApiStore)
+    const now = new Date()
+    const reviewsUrl = this.buildUrl(refreshApiStore.api_url, accessToken)
+    const premiseId = reviewsUrl.searchParams.get("premiseId")
+
+    if (!premiseId) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `API store config "${REFRESH_TOKEN_API_STORE_NAME}" api_url must contain premiseId`
+      )
+    }
+
+    const shopsUrl = this.buildZboziShopsUrl(reviewsUrl, premiseId)
+    const reviewCountUrl = this.buildZboziReviewCountUrl(reviewsUrl, now)
+    const shopsResponse = await this.fetchZboziJson<ZboziShopsResponse>(
+      shopsUrl,
+      accessToken,
+      "shop rating"
+    )
+
+    await new Promise<void>((resolve) => {
+      setTimeout(resolve, ZBOZI_REQUEST_INTERVAL_MS)
+    })
+
+    const reviewsResponse = await this.fetchZboziJson<ZboziReviewsResponse>(
+      reviewCountUrl,
+      accessToken,
+      "review count"
+    )
+    const shop = shopsResponse.items?.find(
+      (item) => String(item.premiseId) === premiseId
+    )
+    const score = typeof shop?.rating === "number" ? shop.rating : Number.NaN
+    const reviewCount = Number(reviewsResponse.meta?.count)
+
+    if (!(Number.isFinite(score) && score >= 0 && score <= 100)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Zboží shop rating response is missing a valid rating"
+      )
+    }
+
+    if (!(Number.isInteger(reviewCount) && reviewCount >= 0)) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Zboží shop reviews response is missing a valid review count"
+      )
+    }
+
+    return {
+      provider: "zbozi",
+      review_count: reviewCount,
+      score,
+      updated_at: now.toISOString(),
     }
   }
 
@@ -214,9 +322,10 @@ class ShopReviewModuleService {
   private buildHeurekaExportUrl(
     apiUrl: string | null,
     apiKey: string,
-    locale: HeurekaLocale
+    locale: HeurekaLocale,
+    kind: HeurekaReviewKind
   ): string {
-    const rawUrl = apiUrl || DEFAULT_HEUREKA_EXPORT_URLS[locale]
+    const rawUrl = apiUrl || DEFAULT_HEUREKA_EXPORT_URLS[locale][kind]
     const url = this.buildUrl(rawUrl, apiKey)
     const key = url.searchParams.get("key")
 
@@ -225,6 +334,68 @@ class ShopReviewModuleService {
     }
 
     return url.toString()
+  }
+
+  private buildZboziShopsUrl(reviewsUrl: URL, premiseId: string): URL {
+    const url = new URL(reviewsUrl)
+    const shopsPath = url.pathname.replace(
+      ZBOZI_REVIEWS_PATH_PATTERN,
+      "/shops/"
+    )
+
+    if (shopsPath === url.pathname) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `API store config "${REFRESH_TOKEN_API_STORE_NAME}" api_url must point to the Fenix reviews endpoint`
+      )
+    }
+
+    url.pathname = shopsPath
+    url.search = ""
+    url.searchParams.append("id", premiseId)
+    url.searchParams.set("premiseId", premiseId)
+
+    return url
+  }
+
+  private buildZboziReviewCountUrl(reviewsUrl: URL, now: Date): URL {
+    const url = new URL(reviewsUrl)
+    const from = new Date(now)
+    from.setUTCFullYear(from.getUTCFullYear() - ZBOZI_REVIEW_SCORE_MONTHS / 12)
+
+    url.searchParams.set("fromDatetime", from.toISOString())
+    url.searchParams.set("toDatetime", now.toISOString())
+    url.searchParams.set("limit", "1")
+    url.searchParams.set("offset", "0")
+
+    return url
+  }
+
+  private async fetchZboziJson<T>(
+    url: URL,
+    accessToken: string,
+    resourceLabel: string
+  ): Promise<T> {
+    const response = await fetch(url, {
+      headers: {
+        accept: "application/json",
+        authorization: `Bearer ${accessToken}`,
+      },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    })
+    const data = (await response.json().catch(() => null)) as T | null
+
+    if (!(response.ok && data)) {
+      this.logger_.warn(
+        `Zboží ${resourceLabel} request failed with status ${response.status}`
+      )
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Zboží ${resourceLabel} request failed with status ${response.status}`
+      )
+    }
+
+    return data
   }
 
   private buildUrl(rawUrl: string, apiKey: string): URL {

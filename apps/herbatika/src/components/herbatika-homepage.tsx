@@ -10,6 +10,7 @@ import { HomepagePromoSection } from "@/components/homepage/sections/homepage-pr
 import { HomepageReviewsSection } from "@/components/homepage/sections/homepage-reviews-section"
 import { useHomepageController } from "@/components/homepage/use-homepage-controller"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
+import type { HomepageReviewsData } from "@/components/reviews/reviews.types"
 import type { BlogCardItem } from "@/lib/storefront/blog-content"
 import { BenefitsSection } from "./homepage/sections/benefits-section"
 import { PurposeCarousel } from "./homepage/sections/purpose-carousel"
@@ -18,12 +19,14 @@ type HerbatikaHomepageProps = {
   blogPosts: BlogCardItem[]
   heroBanners?: HeroBannerItem[]
   homepagePromo?: HomepagePromoContent | null
+  homepageReviewsData?: HomepageReviewsData | null
 }
 
 export function HerbatikaHomepage({
   blogPosts,
   heroBanners,
   homepagePromo,
+  homepageReviewsData,
 }: HerbatikaHomepageProps) {
   const controller = useHomepageController()
   const banners = heroBanners?.length ? heroBanners : HERO_BANNERS
@@ -44,7 +47,7 @@ export function HerbatikaHomepage({
         />
       ))}
 
-      <HomepageReviewsSection />
+      <HomepageReviewsSection reviewsData={homepageReviewsData} />
 
       {controller.trailingSections.map((section) => (
         <HomepageProductCollectionSection

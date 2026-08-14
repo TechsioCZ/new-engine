@@ -21,8 +21,101 @@ const createService = (apiStoreService: Record<string, unknown>) =>
 
 describe("ShopReviewModuleService Zboží token handling", () => {
   afterEach(() => {
+    vi.useRealTimers()
     vi.unstubAllGlobals()
     vi.clearAllMocks()
+  })
+
+  it("loads the official shop rating and 24-month review count", async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-08-14T08:42:13.000Z"))
+
+    const requestTimes: number[] = []
+    const fetch = vi.fn(async (input: string | URL) => {
+      requestTimes.push(Date.now())
+      const url = new URL(input)
+
+      if (url.pathname === "/v1/nakupy/shops/") {
+        return {
+          json: vi.fn().mockResolvedValue({
+            items: [{ premiseId: 126_770, rating: 97 }],
+          }),
+          ok: true,
+          status: 200,
+        }
+      }
+
+      return {
+        json: vi.fn().mockResolvedValue({
+          items: [],
+          meta: {
+            count: 692,
+            fromDatetime: "2024-08-14T08:42:13.000Z",
+            toDatetime: "2026-08-14T08:42:13.000Z",
+          },
+        }),
+        ok: true,
+        status: 200,
+      }
+    })
+    vi.stubGlobal("fetch", fetch)
+
+    const service = createService({
+      retrieveApiStoreSecretsByName: vi.fn(async (name: string) => {
+        if (name === REFRESH_TOKEN_API_STORE_NAME) {
+          return {
+            api_key: "refresh-token",
+            api_url: "https://api.sklik.cz/v1/nakupy/reviews/?premiseId=126770",
+            credentials: null,
+            name,
+          }
+        }
+        if (name === ACCESS_TOKEN_API_STORE_NAME) {
+          return {
+            access_token_expires_at: "2099-01-01T00:00:00.000Z",
+            api_key: "access-token",
+            api_url: null,
+            credentials: null,
+            name,
+          }
+        }
+        return null
+      }),
+    })
+
+    const summaryPromise = service.fetchZboziShopTrustSummary()
+    await vi.runAllTimersAsync()
+
+    await expect(summaryPromise).resolves.toEqual({
+      provider: "zbozi",
+      review_count: 692,
+      score: 97,
+      updated_at: "2026-08-14T08:42:13.000Z",
+    })
+
+    expect(fetch).toHaveBeenCalledTimes(2)
+    const requestedUrls = fetch.mock.calls.map(([input]) => new URL(input))
+    const shopsUrl = requestedUrls.find(
+      (url) => url.pathname === "/v1/nakupy/shops/"
+    )
+    const reviewsUrl = requestedUrls.find(
+      (url) => url.pathname === "/v1/nakupy/reviews/"
+    )
+
+    expect(shopsUrl?.searchParams.getAll("id")).toEqual(["126770"])
+    expect(shopsUrl?.searchParams.get("premiseId")).toBe("126770")
+    expect(reviewsUrl?.searchParams.get("fromDatetime")).toBe(
+      "2024-08-14T08:42:13.000Z"
+    )
+    expect(reviewsUrl?.searchParams.get("toDatetime")).toBe(
+      "2026-08-14T08:42:13.000Z"
+    )
+    expect(reviewsUrl?.searchParams.get("limit")).toBe("1")
+    expect(reviewsUrl?.searchParams.get("offset")).toBe("0")
+    expect(requestTimes).toEqual([
+      Date.parse("2026-08-14T08:42:13.000Z"),
+      Date.parse("2026-08-14T08:42:14.000Z"),
+    ])
   })
 
   it("uses stored access token from the internal API Store when fetching reviews", async () => {

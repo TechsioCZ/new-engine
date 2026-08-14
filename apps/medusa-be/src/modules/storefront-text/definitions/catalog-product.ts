@@ -200,6 +200,30 @@ export const STOREFRONT_CATALOG_PRODUCT_TEXT_DEFINITIONS = [
     "Alternativní text odznaku ověřeného zákazníka."
   ),
   defineCatalogProductText(
+    "catalog.reviews.recommends_shop",
+    "Označení kladného doporučení obchodu."
+  ),
+  defineCatalogProductText(
+    "catalog.reviews.does_not_recommend_shop",
+    "Označení záporného doporučení obchodu."
+  ),
+  defineCatalogProductText(
+    "catalog.reviews.recommends_product",
+    "Označení kladného doporučení produktu."
+  ),
+  defineCatalogProductText(
+    "catalog.reviews.does_not_recommend_product",
+    "Označení záporného doporučení produktu."
+  ),
+  defineCatalogProductText(
+    "catalog.reviews.positive_points",
+    "Přístupný popis kladů recenze."
+  ),
+  defineCatalogProductText(
+    "catalog.reviews.negative_points",
+    "Přístupný popis záporů recenze."
+  ),
+  defineCatalogProductText(
     "catalog.reviews.rating_aria",
     "Přístupný popis číselného hodnocení."
   ),
