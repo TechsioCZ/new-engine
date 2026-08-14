@@ -1,4 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type { Logger } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import type {
   ShopReviewModuleService,
   ShopReviewTrustSummary,
@@ -10,6 +12,8 @@ const STALE_SECONDS = 24 * 60 * 60
 const CACHE_MS = CACHE_SECONDS * 1000
 const STALE_MS = STALE_SECONDS * 1000
 const SUCCESS_CACHE_CONTROL = `public, max-age=0, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=${STALE_SECONDS}`
+const ZBOZI_SUMMARY_PUBLIC_ERROR_MESSAGE =
+  "External review summary is temporarily unavailable"
 
 type CacheStatus = "hit" | "miss" | "stale"
 type CacheEntry = {
@@ -58,12 +62,16 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
     res.setHeader("X-Zbozi-Review-Cache", status)
     res.json(data)
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error"
+    const logger = req.scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+    logger.error(
+      "Failed to fetch Zboží review summary",
+      error instanceof Error ? error : new Error(String(error))
+    )
 
     res.setHeader("Cache-Control", "no-store")
     res.status(502).json({
       code: "zbozi_summary_fetch_failed",
-      message,
+      message: ZBOZI_SUMMARY_PUBLIC_ERROR_MESSAGE,
     })
   }
 }

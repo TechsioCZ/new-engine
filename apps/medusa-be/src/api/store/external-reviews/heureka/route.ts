@@ -1,4 +1,6 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type { Logger } from "@medusajs/framework/types"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { XMLParser } from "fast-xml-parser"
 import type { ShopReviewModuleService } from "../../../../modules/shop-review"
 import { SHOP_REVIEW_MODULE } from "../../../../modules/shop-review"
@@ -14,11 +16,17 @@ const HEUREKA_EXPORT_CACHE_MS = HEUREKA_EXPORT_CACHE_SECONDS * 1000
 const HEUREKA_EXPORT_STALE_MS = HEUREKA_EXPORT_STALE_SECONDS * 1000
 const HEUREKA_EXPORT_SUCCESS_CACHE_CONTROL = `public, max-age=0, s-maxage=${HEUREKA_EXPORT_CACHE_SECONDS}, stale-while-revalidate=${HEUREKA_EXPORT_STALE_SECONDS}`
 const NO_STORE_CACHE_CONTROL = "no-store"
+const HEUREKA_EXPORT_PUBLIC_ERROR_MESSAGE =
+  "External reviews are temporarily unavailable"
 
 type NormalizedHeurekaExternalReviews = ReturnType<
   typeof normalizeHeurekaExternalReviews
 >
 type HeurekaExportCacheStatus = "hit" | "miss" | "stale"
+type HeurekaExportResult = {
+  data: NormalizedHeurekaExternalReviews
+  status: HeurekaExportCacheStatus
+}
 type HeurekaExportCacheEntry = {
   data: NormalizedHeurekaExternalReviews
   freshUntil: number
@@ -28,6 +36,10 @@ type HeurekaExportCacheEntry = {
 const heurekaExportCache = new Map<
   HeurekaExternalReviewKind,
   HeurekaExportCacheEntry
+>()
+const heurekaExportRequests = new Map<
+  HeurekaExternalReviewKind,
+  Promise<HeurekaExportResult>
 >()
 
 const xmlParser = new XMLParser({
@@ -52,10 +64,7 @@ const fetchHeurekaExportXml = async (
 const fetchNormalizedHeurekaExport = async (
   kind: HeurekaExternalReviewKind,
   shopReviewService: ShopReviewModuleService
-): Promise<{
-  data: NormalizedHeurekaExternalReviews
-  status: HeurekaExportCacheStatus
-}> => {
+): Promise<HeurekaExportResult> => {
   const now = Date.now()
   const cached = heurekaExportCache.get(kind)
 
@@ -66,30 +75,47 @@ const fetchNormalizedHeurekaExport = async (
     }
   }
 
-  try {
-    const xml = await fetchHeurekaExportXml(kind, shopReviewService)
-    const parsedXml = xmlParser.parse(xml)
-    const data = normalizeHeurekaExternalReviews(parsedXml, kind)
+  const activeRequest = heurekaExportRequests.get(kind)
+  if (activeRequest) {
+    return activeRequest
+  }
 
-    heurekaExportCache.set(kind, {
-      data,
-      freshUntil: now + HEUREKA_EXPORT_CACHE_MS,
-      staleUntil: now + HEUREKA_EXPORT_CACHE_MS + HEUREKA_EXPORT_STALE_MS,
-    })
+  const request = (async (): Promise<HeurekaExportResult> => {
+    try {
+      const xml = await fetchHeurekaExportXml(kind, shopReviewService)
+      const parsedXml = xmlParser.parse(xml)
+      const data = normalizeHeurekaExternalReviews(parsedXml, kind)
 
-    return {
-      data,
-      status: "miss",
-    }
-  } catch (error) {
-    if (cached && cached.staleUntil > now) {
+      heurekaExportCache.set(kind, {
+        data,
+        freshUntil: now + HEUREKA_EXPORT_CACHE_MS,
+        staleUntil: now + HEUREKA_EXPORT_CACHE_MS + HEUREKA_EXPORT_STALE_MS,
+      })
+
       return {
-        data: cached.data,
-        status: "stale",
+        data,
+        status: "miss",
       }
-    }
+    } catch (error) {
+      if (cached && cached.staleUntil > now) {
+        return {
+          data: cached.data,
+          status: "stale",
+        }
+      }
 
-    throw error
+      throw error
+    }
+  })()
+
+  heurekaExportRequests.set(kind, request)
+
+  try {
+    return await request
+  } finally {
+    if (heurekaExportRequests.get(kind) === request) {
+      heurekaExportRequests.delete(kind)
+    }
   }
 }
 
@@ -115,12 +141,16 @@ export async function GET(
       meta: normalized.meta,
     })
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error"
+    const logger = req.scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+    logger.error(
+      "Failed to fetch Heureka external reviews",
+      error instanceof Error ? error : new Error(String(error))
+    )
 
     res.setHeader("Cache-Control", NO_STORE_CACHE_CONTROL)
     res.status(502).json({
       code: "heureka_export_fetch_failed",
-      message,
+      message: HEUREKA_EXPORT_PUBLIC_ERROR_MESSAGE,
     })
   }
 }

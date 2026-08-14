@@ -1,4 +1,6 @@
-export type HeurekaExternalReviewKind = "shop" | "product"
+import type { HeurekaReviewKind } from "../../../../modules/shop-review"
+
+export type HeurekaExternalReviewKind = HeurekaReviewKind
 
 export type NormalizedExternalReviewScores = {
   total?: number
@@ -238,6 +240,11 @@ const normalizeRating = (rating: number | undefined): number | undefined => {
   return
 }
 
+const readNormalizedRating = (
+  record: XmlRecord,
+  keys: readonly string[]
+): number | undefined => normalizeRating(readNumber(record, keys))
+
 const normalizeCreatedAt = (record: XmlRecord) => {
   const unixTimestamp = readNumber(record, ["unix_timestamp", "timestamp"])
 
@@ -289,12 +296,12 @@ const createReviewScores = (
   record: XmlRecord,
   rating: number
 ): NormalizedExternalReviewScores => ({
-  total: readNumber(record, ["total_rating", "rating"]) ?? rating,
-  communication: readNumber(record, ["communication"]),
-  deliveryTime: readNumber(record, ["delivery_time"]),
-  transportQuality: readNumber(record, ["transport_quality"]),
-  pickupTime: readNumber(record, ["pickup_time"]),
-  pickupQuality: readNumber(record, ["pickup_quality"]),
+  total: readNormalizedRating(record, ["total_rating", "rating"]) ?? rating,
+  communication: readNormalizedRating(record, ["communication"]),
+  deliveryTime: readNormalizedRating(record, ["delivery_time"]),
+  transportQuality: readNormalizedRating(record, ["transport_quality"]),
+  pickupTime: readNormalizedRating(record, ["pickup_time"]),
+  pickupQuality: readNormalizedRating(record, ["pickup_quality"]),
 })
 
 const normalizeReviewRecord = (
@@ -302,11 +309,9 @@ const normalizeReviewRecord = (
   kind: HeurekaExternalReviewKind,
   index: number
 ): NormalizedExternalReview | null => {
-  const rating = normalizeRating(
-    readNumber(
-      record,
-      kind === "shop" ? ["total_rating", "rating"] : ["rating"]
-    )
+  const rating = readNormalizedRating(
+    record,
+    kind === "shop" ? ["total_rating", "rating"] : ["rating"]
   )
   const message = resolveMessage(record)
 

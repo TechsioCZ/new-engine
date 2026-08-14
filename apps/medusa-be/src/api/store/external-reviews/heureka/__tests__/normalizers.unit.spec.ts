@@ -11,6 +11,9 @@ describe("normalizeHeurekaExternalReviews", () => {
               rating_id: "rating-new",
               unix_timestamp: "1720000000",
               total_rating: "90",
+              communication: "80",
+              delivery_time: "4",
+              transport_quality: "10",
               summary: "Rýchle doručenie",
               pros: "Rýchlosť\nOchota",
               recommends: "1",
@@ -36,6 +39,12 @@ describe("normalizeHeurekaExternalReviews", () => {
       positivePoints: ["Rýchlosť", "Ochota"],
       rating: 4.5,
       recommended: true,
+      scores: {
+        communication: 4,
+        deliveryTime: 4,
+        total: 4.5,
+        transportQuality: 5,
+      },
       source: "heureka",
       verified: true,
     })

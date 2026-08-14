@@ -118,6 +118,44 @@ describe("ShopReviewModuleService Zboží token handling", () => {
     ])
   })
 
+  it("reports invalid JSON separately from HTTP failures", async () => {
+    const fetch = vi.fn().mockResolvedValue({
+      json: vi.fn().mockRejectedValue(new SyntaxError("Invalid JSON")),
+      ok: true,
+      status: 200,
+    })
+    vi.stubGlobal("fetch", fetch)
+    const service = createService({
+      retrieveApiStoreSecretsByName: vi.fn(async (name: string) => {
+        if (name === REFRESH_TOKEN_API_STORE_NAME) {
+          return {
+            api_key: "refresh-token",
+            api_url: "https://api.sklik.cz/v1/nakupy/reviews/?premiseId=126770",
+            credentials: null,
+            name,
+          }
+        }
+        if (name === ACCESS_TOKEN_API_STORE_NAME) {
+          return {
+            access_token_expires_at: "2099-01-01T00:00:00.000Z",
+            api_key: "access-token",
+            api_url: null,
+            credentials: null,
+            name,
+          }
+        }
+        return null
+      }),
+    })
+
+    await expect(service.fetchZboziShopTrustSummary()).rejects.toThrow(
+      "Zboží shop rating response returned invalid JSON"
+    )
+    expect(logger.warn).toHaveBeenCalledWith(
+      "Zboží shop rating response returned invalid JSON"
+    )
+  })
+
   it("uses stored access token from the internal API Store when fetching reviews", async () => {
     const fetch = vi.fn().mockResolvedValue({
       headers: new Headers({ "content-type": "application/json" }),

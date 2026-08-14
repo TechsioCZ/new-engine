@@ -325,7 +325,10 @@ class ShopReviewModuleService {
     locale: HeurekaLocale,
     kind: HeurekaReviewKind
   ): string {
-    const rawUrl = apiUrl || DEFAULT_HEUREKA_EXPORT_URLS[locale][kind]
+    const configuredUrl = apiUrl?.trim()
+    const rawUrl = configuredUrl
+      ? configuredUrl
+      : DEFAULT_HEUREKA_EXPORT_URLS[locale][kind]
     const url = this.buildUrl(rawUrl, apiKey)
     const key = url.searchParams.get("key")
 
@@ -361,7 +364,7 @@ class ShopReviewModuleService {
   private buildZboziReviewCountUrl(reviewsUrl: URL, now: Date): URL {
     const url = new URL(reviewsUrl)
     const from = new Date(now)
-    from.setUTCFullYear(from.getUTCFullYear() - ZBOZI_REVIEW_SCORE_MONTHS / 12)
+    from.setUTCMonth(from.getUTCMonth() - ZBOZI_REVIEW_SCORE_MONTHS)
 
     url.searchParams.set("fromDatetime", from.toISOString())
     url.searchParams.set("toDatetime", now.toISOString())
@@ -383,15 +386,33 @@ class ShopReviewModuleService {
       },
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     })
-    const data = (await response.json().catch(() => null)) as T | null
 
-    if (!(response.ok && data)) {
+    if (!response.ok) {
       this.logger_.warn(
         `Zboží ${resourceLabel} request failed with status ${response.status}`
       )
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         `Zboží ${resourceLabel} request failed with status ${response.status}`
+      )
+    }
+
+    let data: T | null
+    try {
+      data = (await response.json()) as T | null
+    } catch {
+      this.logger_.warn(`Zboží ${resourceLabel} response returned invalid JSON`)
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Zboží ${resourceLabel} response returned invalid JSON`
+      )
+    }
+
+    if (!data) {
+      this.logger_.warn(`Zboží ${resourceLabel} response returned no data`)
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Zboží ${resourceLabel} response returned no data`
       )
     }
 
