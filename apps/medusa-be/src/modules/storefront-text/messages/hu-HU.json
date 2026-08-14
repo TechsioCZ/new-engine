@@ -481,6 +481,11 @@
       "pending_description": "Az értékelés jóváhagyás után jelenik meg.",
       "dialog_title": "Értékelés írása",
       "form": {
+        "author_name_label": "Értékelő neve",
+        "author_name_validation": "Add meg az értékelésnél megjelenő nevet.",
+        "captcha_label": "Spam elleni védelem",
+        "captcha_validation": "Végezd el a spam elleni ellenőrzést.",
+        "captcha_unavailable": "A spam elleni ellenőrzés nem tölthető be. Próbáld újra.",
         "rating_label": "Értékelés",
         "rating_validation": "Válassz 1 és 5 csillag közötti értékelést.",
         "content_min_length_validation": "Írj legalább {min} karaktert.",
@@ -488,6 +493,8 @@
         "content_label": "Értékelés"
       },
       "errors": {
+        "author_required": "Add meg az értékelő nevét.",
+        "captcha": "A spam elleni ellenőrzés sikertelen. Próbáld újra.",
         "generic": "Az értékelést nem sikerült elküldeni. Próbáld újra.",
         "purchase_required": "Csak megvásárolt termékről írhatsz értékelést.",
         "validation": "Ellenőrizd az értékelést és a recenzió szövegét.",

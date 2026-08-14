@@ -481,6 +481,11 @@
       "pending_description": "Recenzia sa zobrazí po schválení.",
       "dialog_title": "Napísať recenziu",
       "form": {
+        "author_name_label": "Meno autora",
+        "author_name_validation": "Zadajte meno, ktoré sa zobrazí pri recenzii.",
+        "captcha_label": "Ochrana proti spamu",
+        "captcha_validation": "Dokončite prosím overenie proti spamu.",
+        "captcha_unavailable": "Overenie proti spamu sa nepodarilo načítať. Skúste to prosím znova.",
         "rating_label": "Hodnotenie",
         "rating_validation": "Vyberte hodnotenie od 1 do 5 hviezdičiek.",
         "content_min_length_validation": "Napíšte aspoň {min} znakov.",
@@ -488,6 +493,8 @@
         "content_label": "Recenzia"
       },
       "errors": {
+        "author_required": "Zadajte prosím meno autora recenzie.",
+        "captcha": "Overenie proti spamu zlyhalo. Skúste to prosím znova.",
         "generic": "Recenziu sa nepodarilo odoslať. Skúste to prosím znova.",
         "purchase_required": "Na napísanie recenzie musíte mať tento produkt zakúpený.",
         "validation": "Skontrolujte prosím hodnotenie a text recenzie.",

@@ -481,6 +481,11 @@
       "pending_description": "Recenze se zobrazí po schválení.",
       "dialog_title": "Napsat recenzi",
       "form": {
+        "author_name_label": "Jméno autora",
+        "author_name_validation": "Zadejte jméno, které se zobrazí u recenze.",
+        "captcha_label": "Ochrana proti spamu",
+        "captcha_validation": "Dokončete prosím ověření proti spamu.",
+        "captcha_unavailable": "Ověření proti spamu se nepodařilo načíst. Zkuste to prosím znovu.",
         "rating_label": "Hodnocení",
         "rating_validation": "Vyberte hodnocení od 1 do 5 hvězdiček.",
         "content_min_length_validation": "Napište alespoň {min} znaky.",
@@ -488,6 +493,8 @@
         "content_label": "Recenze"
       },
       "errors": {
+        "author_required": "Zadejte prosím jméno autora recenze.",
+        "captcha": "Ověření proti spamu selhalo. Zkuste to prosím znovu.",
         "generic": "Recenzi se nepodařilo odeslat. Zkuste to prosím znovu.",
         "purchase_required": "Pro napsání recenze musíte mít tento produkt zakoupený.",
         "validation": "Zkontrolujte hodnocení a text recenze.",
