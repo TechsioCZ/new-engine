@@ -154,7 +154,9 @@ describe("product sale adapters", () => {
       const result = selectActiveSalePriceProducts(
         [
           {
+            amount: 80,
             currency_code: "eur",
+            price_set_id: "pset_sale",
             price_list: {
               type: ProductSalePriceListType.SALE,
               status: "active",
@@ -163,6 +165,7 @@ describe("product sale adapters", () => {
               price_list_rules: [],
             },
             price_set: {
+              id: "pset_sale",
               variant: {
                 id: "variant_sale",
                 product_id: "prod_sale",
@@ -170,13 +173,16 @@ describe("product sale adapters", () => {
             },
           },
           {
+            amount: 70,
             currency_code: "eur",
+            price_set_id: "pset_b2b",
             price_list: {
               type: ProductSalePriceListType.OVERRIDE,
               status: "active",
               price_list_rules: [],
             },
             price_set: {
+              id: "pset_b2b",
               variant: {
                 id: "variant_b2b",
                 product_id: "prod_b2b",
@@ -184,7 +190,9 @@ describe("product sale adapters", () => {
             },
           },
           {
+            amount: 60,
             currency_code: "eur",
+            price_set_id: "pset_expired",
             price_list: {
               type: ProductSalePriceListType.SALE,
               status: "active",
@@ -192,6 +200,7 @@ describe("product sale adapters", () => {
               price_list_rules: [],
             },
             price_set: {
+              id: "pset_expired",
               variant: {
                 id: "variant_expired",
                 product_id: "prod_expired",
@@ -199,11 +208,112 @@ describe("product sale adapters", () => {
             },
           },
         ],
-        { currencyCode: "EUR", now }
+        {
+          currencyCode: "EUR",
+          now,
+          referencePrices: [
+            {
+              amount: 100,
+              currency_code: "eur",
+              price_set_id: "pset_sale",
+            },
+            {
+              amount: 100,
+              currency_code: "eur",
+              price_set_id: "pset_b2b",
+            },
+            {
+              amount: 100,
+              currency_code: "eur",
+              price_set_id: "pset_expired",
+            },
+          ],
+        }
       )
 
       expect(result.productIds).toEqual(["prod_sale"])
       expect(result.variantIds).toEqual(["variant_sale"])
+    })
+
+    it("requires sale prices to be lower than their reference price", () => {
+      const result = selectActiveSalePriceProducts(
+        [
+          {
+            amount: 100,
+            currency_code: "eur",
+            price_set_id: "pset_equal",
+            price_list: {
+              type: ProductSalePriceListType.SALE,
+              status: "active",
+              price_list_rules: [],
+            },
+            price_set: {
+              id: "pset_equal",
+              variant: {
+                id: "variant_equal",
+                product_id: "prod_equal",
+              },
+            },
+          },
+          {
+            amount: 120,
+            currency_code: "eur",
+            price_set_id: "pset_higher",
+            price_list: {
+              type: ProductSalePriceListType.SALE,
+              status: "active",
+              price_list_rules: [],
+            },
+            price_set: {
+              id: "pset_higher",
+              variant: {
+                id: "variant_higher",
+                product_id: "prod_higher",
+              },
+            },
+          },
+          {
+            amount: 90,
+            currency_code: "eur",
+            price_set_id: "pset_lower",
+            price_list: {
+              type: ProductSalePriceListType.SALE,
+              status: "active",
+              price_list_rules: [],
+            },
+            price_set: {
+              id: "pset_lower",
+              variant: {
+                id: "variant_lower",
+                product_id: "prod_lower",
+              },
+            },
+          },
+        ],
+        {
+          now,
+          referencePrices: [
+            {
+              amount: 100,
+              currency_code: "eur",
+              price_set_id: "pset_equal",
+            },
+            {
+              amount: 100,
+              currency_code: "eur",
+              price_set_id: "pset_higher",
+            },
+            {
+              amount: 100,
+              currency_code: "eur",
+              price_set_id: "pset_lower",
+            },
+          ],
+        }
+      )
+
+      expect(result.productIds).toEqual(["prod_lower"])
+      expect(result.variantIds).toEqual(["variant_lower"])
     })
 
     it("requires matching customer groups for sale price-list rules", () => {

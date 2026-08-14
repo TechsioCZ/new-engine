@@ -48,6 +48,7 @@ export const STORE_CATALOG_PRODUCTS_PRICING_FIELDS = [
 const additionalAllowedFields = [
   ...STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
   ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
+  "sale_adapters",
   "categories.parent_category_id",
   "measurement",
   "variants.measurement",

@@ -37,6 +37,7 @@ import {
   type RankedProductMatch,
   selectRankedProductIds,
 } from "../../../../modules/meilisearch/search-results"
+import { isPlainRecord } from "../../../../utils/guards"
 import {
   decorateProductsWithMeasurements,
   getMeasurementDecorationOptions,
@@ -92,6 +93,10 @@ type ProductWithCalculatedPrices = {
       calculated_amount?: unknown
     } | null
   }> | null
+}
+
+type CatalogResponseFieldsRequest = {
+  catalogResponseFields?: string[]
 }
 
 const productSaleAdapterBuilder =
@@ -445,6 +450,154 @@ const buildProductIdFilter = (
 ): Record<string, unknown> | undefined =>
   productIds && productIds.length > 0 ? { $in: productIds } : undefined
 
+const CATALOG_INTERNAL_PRODUCT_FIELDS = ["id"]
+const CATALOG_SYNTHETIC_PRODUCT_FIELDS = new Set(["sale_adapters"])
+const CATALOG_INTERNAL_PRICING_FIELDS = [
+  "variants.id",
+  ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
+]
+const INCLUDED_FIELD_PREFIX_PATTERN = /^[+*]/
+
+const getCatalogResponseFields = (
+  req: RequestWithContext<unknown, StoreCatalogProductsSchemaType>
+): string[] => {
+  const storedFields = (req as CatalogResponseFieldsRequest)
+    .catalogResponseFields
+
+  return Array.isArray(storedFields)
+    ? storedFields
+    : (req.queryConfig.fields ?? STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS)
+}
+
+const hasExplicitCatalogFields = (
+  query: StoreCatalogProductsSchemaType
+): boolean => typeof query.fields === "string" && query.fields.trim().length > 0
+
+const uniqueFields = (fields: string[]): string[] => Array.from(new Set(fields))
+
+const buildCatalogProductQueryFields = (options: {
+  needsPricing: boolean
+  responseFields: string[]
+}): string[] => {
+  const fields = [
+    ...options.responseFields.filter(
+      (field) => !isSyntheticCatalogProductField(field)
+    ),
+    ...CATALOG_INTERNAL_PRODUCT_FIELDS,
+  ]
+
+  if (options.needsPricing) {
+    fields.push(...CATALOG_INTERNAL_PRICING_FIELDS)
+  }
+
+  return uniqueFields(fields)
+}
+
+const normalizeProjectionField = (field: string): string | undefined => {
+  const normalized = field.trim().replace(INCLUDED_FIELD_PREFIX_PATTERN, "")
+  return normalized ? normalized : undefined
+}
+
+const isSyntheticCatalogProductField = (field: string): boolean =>
+  CATALOG_SYNTHETIC_PRODUCT_FIELDS.has(normalizeProjectionField(field) ?? "")
+
+const setProjectedArrayField = (
+  target: Record<string, unknown>,
+  segment: string,
+  value: unknown[],
+  rest: string[]
+): void => {
+  const existingItems = Array.isArray(target[segment])
+    ? (target[segment] as unknown[])
+    : []
+  target[segment] = value.map((item, index) => {
+    const existingItem = isPlainRecord(existingItems[index])
+      ? { ...existingItems[index] }
+      : {}
+    copyProjectionField(item, existingItem, rest)
+    return existingItem
+  })
+}
+
+const setProjectedRecordField = (
+  target: Record<string, unknown>,
+  segment: string,
+  value: Record<string, unknown>,
+  rest: string[]
+): void => {
+  const existing = isPlainRecord(target[segment])
+    ? { ...(target[segment] as Record<string, unknown>) }
+    : {}
+  copyProjectionField(value, existing, rest)
+  if (Object.keys(existing).length > 0) {
+    target[segment] = existing
+  }
+}
+
+function copyProjectionField(
+  source: unknown,
+  target: Record<string, unknown>,
+  segments: string[]
+): void {
+  const [segment, ...rest] = segments
+  if (!(segment && source && typeof source === "object")) {
+    return
+  }
+
+  if (segment === "*") {
+    if (isPlainRecord(source)) {
+      Object.assign(target, source)
+    }
+    return
+  }
+
+  if (!(isPlainRecord(source) && segment in source)) {
+    return
+  }
+
+  const value = source[segment]
+  if (value === undefined) {
+    return
+  }
+
+  if (rest.length === 0 || rest[0] === "*") {
+    target[segment] = value
+    return
+  }
+
+  if (Array.isArray(value)) {
+    setProjectedArrayField(target, segment, value, rest)
+    return
+  }
+
+  if (isPlainRecord(value)) {
+    setProjectedRecordField(target, segment, value, rest)
+  }
+}
+
+const projectProductsForCatalogResponse = (
+  products: Record<string, unknown>[],
+  responseFields: string[]
+): Record<string, unknown>[] => {
+  const projectionFields = responseFields
+    .map(normalizeProjectionField)
+    .filter((field): field is string => Boolean(field))
+
+  if (projectionFields.length === 0) {
+    return products
+  }
+
+  return products.map((product) => {
+    const projected: Record<string, unknown> = {}
+
+    for (const field of projectionFields) {
+      copyProjectionField(product, projected, field.split("."))
+    }
+
+    return projected
+  })
+}
+
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: This route coordinates search, authoritative hydration, facets, pricing, and degraded fallback.
 export async function GET(
   req: RequestWithContext<unknown, StoreCatalogProductsSchemaType>,
@@ -458,12 +611,14 @@ export async function GET(
   }
 
   const validatedQuery = req.validatedQuery
+  const responseProductFields = getCatalogResponseFields(req)
+  const hasExplicitFields = hasExplicitCatalogFields(validatedQuery)
   const requestedLocale = req.locale ?? validatedQuery.locale
   const saleAdapterMatcher = productSaleAdapterBuilder.build(
     validatedQuery.on_sale
   )
   const measurementDecorationOptions = getMeasurementDecorationOptions(
-    req.queryConfig.fields
+    responseProductFields
   )
   const queryService = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
@@ -635,15 +790,14 @@ export async function GET(
     const pricingContext = req.pricingContext
       ? QueryContext(req.pricingContext)
       : undefined
-    const productFields =
-      pricingContext ||
-      saleAdapterMatcher.enabled ||
-      authoritativePriceSortDirection
-        ? [
-            ...STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
-            ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
-          ]
-        : STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS
+    const productFields = buildCatalogProductQueryFields({
+      needsPricing: Boolean(
+        pricingContext ||
+          saleAdapterMatcher.enabled ||
+          authoritativePriceSortDirection
+      ),
+      responseFields: responseProductFields,
+    })
     const { data: fallbackProducts, metadata: fallbackMetadata } =
       await fetchProducts({
         entity: "product",
@@ -685,8 +839,15 @@ export async function GET(
       >[1],
       measurementDecorationOptions
     )
+    const responseProducts = hasExplicitFields
+      ? projectProductsForCatalogResponse(
+          fallbackProducts as Record<string, unknown>[],
+          responseProductFields
+        )
+      : fallbackProducts
+
     res.json({
-      products: fallbackProducts,
+      products: responseProducts,
       count: fallbackCount,
       page,
       limit,
@@ -730,15 +891,14 @@ export async function GET(
   const pricingContext = req.pricingContext
     ? QueryContext(req.pricingContext)
     : undefined
-  const productFields =
-    pricingContext ||
-    saleAdapterMatcher.enabled ||
-    authoritativePriceSortDirection
-      ? [
-          ...STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
-          ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
-        ]
-      : STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS
+  const productFields = buildCatalogProductQueryFields({
+    needsPricing: Boolean(
+      pricingContext ||
+        saleAdapterMatcher.enabled ||
+        authoritativePriceSortDirection
+    ),
+    responseFields: responseProductFields,
+  })
 
   const productQuery = {
     entity: "product",
@@ -848,8 +1008,15 @@ export async function GET(
     measurementDecorationOptions
   )
 
+  const responseProducts = hasExplicitFields
+    ? projectProductsForCatalogResponse(
+        finalProducts as Record<string, unknown>[],
+        responseProductFields
+      )
+    : finalProducts
+
   res.json({
-    products: finalProducts,
+    products: responseProducts,
     count,
     page,
     limit,

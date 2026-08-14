@@ -19,6 +19,8 @@ import {
   type StoreCatalogProductsSchemaType,
 } from "./validators"
 
+export const CATALOG_RESPONSE_FIELDS_PROPERTY = "catalogResponseFields"
+
 const CATALOG_PRICING_FIELD = "variants.calculated_price.*"
 
 const shouldForceCatalogPricingContext = (
@@ -36,10 +38,15 @@ const ensureCatalogPricingContextFields = (
   next: MedusaNextFunction
 ) => {
   const request = req as MedusaRequest & {
+    [CATALOG_RESPONSE_FIELDS_PROPERTY]?: string[]
     queryConfig?: { fields?: string[] }
     validatedQuery?: Partial<StoreCatalogProductsSchemaType>
   }
   const fields = request.queryConfig?.fields
+
+  if (Array.isArray(fields)) {
+    request[CATALOG_RESPONSE_FIELDS_PROPERTY] = [...fields]
+  }
 
   if (
     Array.isArray(fields) &&

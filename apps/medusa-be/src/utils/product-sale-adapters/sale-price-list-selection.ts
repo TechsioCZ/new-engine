@@ -32,6 +32,15 @@ type ProductSaleVariantMatch = {
   variantId: string
 }
 
+type ProductSaleReferencePriceRecord = {
+  amount?: unknown
+  currency_code?: unknown
+  max_quantity?: unknown
+  min_quantity?: unknown
+  price_list_id?: unknown
+  price_set_id?: unknown
+}
+
 export type ProductSaleProductSelection = {
   productIds: string[]
   variantIds: string[]
@@ -43,6 +52,7 @@ type ActiveSalePriceRecordOptions = {
   customerGroupIds?: string[]
   now?: Date
   quantity?: number
+  referencePrices?: ProductSaleReferencePriceRecord[]
 }
 
 type ListActiveSalePriceListProductSelectionOptions =
@@ -53,9 +63,11 @@ type ListActiveSalePriceListProductSelectionOptions =
 
 const SALE_PRICE_FIELDS = [
   "id",
+  "amount",
   "currency_code",
   "min_quantity",
   "max_quantity",
+  "price_set_id",
   "price_list.id",
   "price_list.type",
   "price_list.status",
@@ -65,7 +77,18 @@ const SALE_PRICE_FIELDS = [
   "price_list.price_list_rules.value",
   "price_set.variant.id",
   "price_set.variant.product_id",
+  "price_set.id",
   "price_set.variant.product.id",
+]
+
+const REFERENCE_PRICE_FIELDS = [
+  "id",
+  "amount",
+  "currency_code",
+  "min_quantity",
+  "max_quantity",
+  "price_list_id",
+  "price_set_id",
 ]
 
 const normalizeCurrencyCode = (value: unknown): string | undefined =>
@@ -221,6 +244,18 @@ export const isActiveSalePriceRecord = (
   )
 }
 
+const getPriceSetId = (record: Record<string, unknown>): string | undefined => {
+  const priceSetId = getString(record.price_set_id)
+  if (priceSetId) {
+    return priceSetId
+  }
+
+  const priceSet = isPlainRecord(record.price_set)
+    ? record.price_set
+    : undefined
+  return getString(priceSet?.id)
+}
+
 const getVariantMatch = (
   record: Record<string, unknown>
 ): ProductSaleVariantMatch | undefined => {
@@ -237,6 +272,82 @@ const getVariantMatch = (
   return productId && variantId ? { productId, variantId } : undefined
 }
 
+const groupReferencePricesByPriceSetId = (
+  referencePrices: ProductSaleReferencePriceRecord[] = []
+): Map<string, ProductSaleReferencePriceRecord[]> => {
+  const result = new Map<string, ProductSaleReferencePriceRecord[]>()
+
+  for (const referencePrice of referencePrices) {
+    if (!isPlainRecord(referencePrice)) {
+      continue
+    }
+
+    const priceSetId = getPriceSetId(referencePrice)
+    if (!priceSetId) {
+      continue
+    }
+
+    const current = result.get(priceSetId) ?? []
+    current.push(referencePrice)
+    result.set(priceSetId, current)
+  }
+
+  return result
+}
+
+const isReferencePriceCandidate = (
+  record: ProductSaleReferencePriceRecord,
+  saleRecord: Record<string, unknown>,
+  options: ActiveSalePriceRecordOptions
+): boolean => {
+  if (getString(record.price_list_id)) {
+    return false
+  }
+
+  const currencyCode =
+    normalizeCurrencyCode(options.currencyCode) ??
+    normalizeCurrencyCode(saleRecord.currency_code)
+  if (
+    currencyCode &&
+    normalizeCurrencyCode(record.currency_code) !== currencyCode
+  ) {
+    return false
+  }
+
+  return salePriceAppliesToQuantity(
+    record as Record<string, unknown>,
+    options.quantity ?? DEFAULT_QUANTITY
+  )
+}
+
+const isDiscountedAgainstReferencePrice = (
+  record: Record<string, unknown>,
+  options: ActiveSalePriceRecordOptions,
+  referencePricesByPriceSetId: Map<string, ProductSaleReferencePriceRecord[]>
+): boolean => {
+  const saleAmount = normalizeFiniteNumber(record.amount)
+  const priceSetId = getPriceSetId(record)
+  if (saleAmount === undefined || !priceSetId) {
+    return false
+  }
+
+  const referenceAmounts = (referencePricesByPriceSetId.get(priceSetId) ?? [])
+    .filter((referencePrice) =>
+      isReferencePriceCandidate(referencePrice, record, options)
+    )
+    .map((referencePrice) => normalizeFiniteNumber(referencePrice.amount))
+    .filter(
+      (amount): amount is number =>
+        typeof amount === "number" && Number.isFinite(amount)
+    )
+
+  if (referenceAmounts.length === 0) {
+    return false
+  }
+
+  return saleAmount < Math.min(...referenceAmounts)
+}
+
 export const selectActiveSalePriceProducts = (
   records: unknown[],
   options: ActiveSalePriceRecordOptions = {}
@@ -244,9 +355,22 @@ export const selectActiveSalePriceProducts = (
   const productIds = new Set<string>()
   const variantIds = new Set<string>()
   const variantMatchesByKey = new Map<string, ProductSaleVariantMatch>()
+  const referencePricesByPriceSetId = groupReferencePricesByPriceSetId(
+    options.referencePrices
+  )
 
   for (const record of records) {
-    if (!(isActiveSalePriceRecord(record, options) && isPlainRecord(record))) {
+    if (
+      !(
+        isActiveSalePriceRecord(record, options) &&
+        isPlainRecord(record) &&
+        isDiscountedAgainstReferencePrice(
+          record,
+          options,
+          referencePricesByPriceSetId
+        )
+      )
+    ) {
       continue
     }
 
@@ -304,5 +428,46 @@ export const listActiveSalePriceListProductSelection = async (
     skip += data.length
   }
 
-  return selectActiveSalePriceProducts(records, options)
+  const priceSetIds = Array.from(
+    new Set(
+      records.map(getPriceSetId).filter((id): id is string => Boolean(id))
+    )
+  )
+  const referencePrices: ProductSaleReferencePriceRecord[] = []
+
+  for (let index = 0; index < priceSetIds.length; index += pageSize) {
+    const priceSetIdBatch = priceSetIds.slice(index, index + pageSize)
+    let referenceSkip = 0
+
+    while (priceSetIdBatch.length > 0) {
+      const { data = [] } = await options.query.graph({
+        entity: "price",
+        fields: REFERENCE_PRICE_FIELDS,
+        filters: {
+          price_list_id: null,
+          price_set_id: {
+            $in: priceSetIdBatch,
+          },
+          ...(currencyCode ? { currency_code: currencyCode } : {}),
+        },
+        pagination: {
+          skip: referenceSkip,
+          take: pageSize,
+        },
+      })
+
+      referencePrices.push(...(data as ProductSaleReferencePriceRecord[]))
+
+      if (data.length < pageSize) {
+        break
+      }
+
+      referenceSkip += data.length
+    }
+  }
+
+  return selectActiveSalePriceProducts(records, {
+    ...options,
+    referencePrices,
+  })
 }
