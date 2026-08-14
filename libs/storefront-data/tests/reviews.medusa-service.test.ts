@@ -1,4 +1,5 @@
 import type Medusa from "@medusajs/js-sdk"
+import { describe, expect, it, vi } from "vitest"
 import { createMedusaProductReviewService } from "../src/reviews/medusa-service"
 import type { ReviewBase } from "../src/reviews/types"
 
@@ -44,6 +45,33 @@ const createSdkMock = () => {
 }
 
 describe("createMedusaProductReviewService", () => {
+  it("forwards the public author and Turnstile token in the review payload", async () => {
+    const { fetch, sdk } = createSdkMock()
+    fetch.mockResolvedValueOnce({
+      review: createReview(5, 1),
+    })
+    const service = createMedusaProductReviewService(sdk)
+
+    await service.createProductReview({
+      content: "Skvělý produkt.",
+      name: "Jana",
+      product_id: "prod_1",
+      rating: 5,
+      turnstileToken: "turnstile-token",
+    })
+
+    expect(fetch).toHaveBeenCalledWith("/store/reviews", {
+      method: "POST",
+      body: {
+        content: "Skvělý produkt.",
+        name: "Jana",
+        product_id: "prod_1",
+        rating: 5,
+        turnstileToken: "turnstile-token",
+      },
+    })
+  })
+
   it("repairs inconsistent summary from a complete review response", async () => {
     const { fetch, sdk } = createSdkMock()
     fetch.mockResolvedValueOnce(

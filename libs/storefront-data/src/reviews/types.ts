@@ -45,10 +45,14 @@ export type ProductReviewListResponse<TReview> = {
 
 export type CreateProductReviewInput = {
   content: string
+  first_name?: string
+  last_name?: string
+  name?: string
   product_id: string
   rating: number
   review_token?: string
-  title: string
+  title?: string
+  turnstileToken?: string
 }
 
 export type ProductReviewService<
