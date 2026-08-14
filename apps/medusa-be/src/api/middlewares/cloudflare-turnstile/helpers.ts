@@ -9,6 +9,7 @@ import {
 export const TURNSTILE_SECRET_API_STORE_NAME = "Cloudflare Turnstile"
 export const TURNSTILE_SITEVERIFY_URL =
   "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+const TURNSTILE_SITEVERIFY_TIMEOUT_MS = 10_000
 
 export type TurnstileSiteverifyResponse = {
   success: boolean
@@ -97,10 +98,11 @@ export async function verifyTurnstileToken(
       "content-type": "application/x-www-form-urlencoded",
     },
     method: "POST",
+    signal: AbortSignal.timeout(TURNSTILE_SITEVERIFY_TIMEOUT_MS),
   })
 
   if (!response.ok) {
-    return { success: false }
+    throw new Error("Turnstile Siteverify request failed")
   }
 
   return (await response.json()) as TurnstileSiteverifyResponse
