@@ -10,6 +10,7 @@ import type { RegionInfo } from "../shared/region"
 export type { RegionInfo } from "../shared/region"
 
 export type CatalogListInputBase = RegionInfo & {
+  locale?: string
   q?: string
   page?: number
   limit?: number

@@ -12,6 +12,7 @@ export async function GET(request: Request) {
     .slice(0, SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH)
   const countryCode = searchParams.get("country")
   const currencyCode = searchParams.get("currency")
+  const locale = searchParams.get("locale")
   const regionId = searchParams.get("region")
 
   try {
@@ -19,6 +20,7 @@ export async function GET(request: Request) {
       query,
       countryCode,
       currencyCode,
+      locale,
       regionId,
     })
     return NextResponse.json(response)

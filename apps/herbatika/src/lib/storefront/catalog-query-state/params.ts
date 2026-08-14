@@ -10,6 +10,7 @@ type BuildCatalogProductsParamsInput = {
   regionId?: string
   countryCode?: string
   currencyCode?: string
+  locale?: string
 }
 
 export type CatalogProductsParams = {
@@ -27,6 +28,7 @@ export type CatalogProductsParams = {
   region_id?: string
   country_code?: string
   currency_code?: string
+  locale?: string
 }
 
 export const resolveCatalogPriceBounds = (priceFacet: {
@@ -50,6 +52,7 @@ export const buildCatalogProductsParams = ({
   regionId,
   countryCode,
   currencyCode,
+  locale,
 }: BuildCatalogProductsParamsInput): CatalogProductsParams => {
   const normalizedSearchQuery = queryState.q.trim()
   const normalizedPriceRange = normalizePriceRange(
@@ -81,6 +84,10 @@ export const buildCatalogProductsParams = ({
 
   if (currencyCode) {
     params.currency_code = currencyCode
+  }
+
+  if (locale) {
+    params.locale = locale
   }
 
   return params

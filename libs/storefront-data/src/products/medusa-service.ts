@@ -5,7 +5,9 @@ import type { ProductListResponse, ProductService } from "./types"
 type MedusaProductListQuery = HttpTypes.StoreProductListParams &
   Record<string, unknown>
 
-export type MedusaProductListInput = HttpTypes.StoreProductListParams
+export type MedusaProductListInput = HttpTypes.StoreProductListParams & {
+  locale?: string
+}
 
 export type MedusaProductDetailInput = {
   handle: string
