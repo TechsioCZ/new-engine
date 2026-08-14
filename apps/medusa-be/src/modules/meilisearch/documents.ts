@@ -209,7 +209,7 @@ export const buildProductSearchDocument = (
   return cleanSearchDocument(searchDocument)
 }
 
-const buildVariantDocumentId = (
+export const buildProductVariantSearchDocumentId = (
   productId: unknown,
   variantId: unknown
 ): string => {
@@ -237,7 +237,7 @@ const buildProductVariantSearchDocument = (
   return cleanSearchDocument({
     ...document,
     ...buildProductFacetDocument({ ...document, variants: [variant] }),
-    id: buildVariantDocumentId(document.id, variant.id),
+    id: buildProductVariantSearchDocumentId(document.id, variant.id),
     facet_popularity:
       popularity === undefined
         ? readPopularity(document)
