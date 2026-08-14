@@ -19,6 +19,36 @@ const createService = (apiStoreService: Record<string, unknown>) =>
     logger,
   } as never)
 
+const createTrustSummaryService = () =>
+  createService({
+    retrieveApiStoreSecretsByName: vi.fn(async (name: string) => {
+      if (name === REFRESH_TOKEN_API_STORE_NAME) {
+        return {
+          api_key: "refresh-token",
+          api_url: "https://api.sklik.cz/v1/nakupy/reviews/?premiseId=126770",
+          credentials: null,
+          name,
+        }
+      }
+      if (name === ACCESS_TOKEN_API_STORE_NAME) {
+        return {
+          access_token_expires_at: "2099-01-01T00:00:00.000Z",
+          api_key: "access-token",
+          api_url: null,
+          credentials: null,
+          name,
+        }
+      }
+      return null
+    }),
+  })
+
+const createJsonResponse = (data: unknown) => ({
+  json: vi.fn().mockResolvedValue(data),
+  ok: true,
+  status: 200,
+})
+
 describe("ShopReviewModuleService Zboží token handling", () => {
   afterEach(() => {
     vi.useRealTimers()
@@ -60,28 +90,7 @@ describe("ShopReviewModuleService Zboží token handling", () => {
     })
     vi.stubGlobal("fetch", fetch)
 
-    const service = createService({
-      retrieveApiStoreSecretsByName: vi.fn(async (name: string) => {
-        if (name === REFRESH_TOKEN_API_STORE_NAME) {
-          return {
-            api_key: "refresh-token",
-            api_url: "https://api.sklik.cz/v1/nakupy/reviews/?premiseId=126770",
-            credentials: null,
-            name,
-          }
-        }
-        if (name === ACCESS_TOKEN_API_STORE_NAME) {
-          return {
-            access_token_expires_at: "2099-01-01T00:00:00.000Z",
-            api_key: "access-token",
-            api_url: null,
-            credentials: null,
-            name,
-          }
-        }
-        return null
-      }),
-    })
+    const service = createTrustSummaryService()
 
     const summaryPromise = service.fetchZboziShopTrustSummary()
     await vi.runAllTimersAsync()
@@ -125,34 +134,52 @@ describe("ShopReviewModuleService Zboží token handling", () => {
       status: 200,
     })
     vi.stubGlobal("fetch", fetch)
-    const service = createService({
-      retrieveApiStoreSecretsByName: vi.fn(async (name: string) => {
-        if (name === REFRESH_TOKEN_API_STORE_NAME) {
-          return {
-            api_key: "refresh-token",
-            api_url: "https://api.sklik.cz/v1/nakupy/reviews/?premiseId=126770",
-            credentials: null,
-            name,
-          }
-        }
-        if (name === ACCESS_TOKEN_API_STORE_NAME) {
-          return {
-            access_token_expires_at: "2099-01-01T00:00:00.000Z",
-            api_key: "access-token",
-            api_url: null,
-            credentials: null,
-            name,
-          }
-        }
-        return null
-      }),
-    })
+    const service = createTrustSummaryService()
 
     await expect(service.fetchZboziShopTrustSummary()).rejects.toThrow(
       "Zboží shop rating response returned invalid JSON"
     )
     expect(logger.warn).toHaveBeenCalledWith(
       "Zboží shop rating response returned invalid JSON"
+    )
+  })
+
+  it("rejects a malformed shop rating response", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(createJsonResponse({ items: {} }))
+    )
+
+    await expect(
+      createTrustSummaryService().fetchZboziShopTrustSummary()
+    ).rejects.toThrow("Zboží shop rating response has an invalid shape")
+    expect(logger.warn).toHaveBeenCalledWith(
+      "Zboží shop rating response has an invalid shape"
+    )
+  })
+
+  it("rejects a malformed review count response", async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          createJsonResponse({
+            items: [{ premiseId: 126_770, rating: 97 }],
+          })
+        )
+        .mockResolvedValueOnce(createJsonResponse({ meta: [] }))
+    )
+
+    const assertion = expect(
+      createTrustSummaryService().fetchZboziShopTrustSummary()
+    ).rejects.toThrow("Zboží review count response has an invalid shape")
+    await vi.runAllTimersAsync()
+
+    await assertion
+    expect(logger.warn).toHaveBeenCalledWith(
+      "Zboží review count response has an invalid shape"
     )
   })
 

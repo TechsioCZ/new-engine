@@ -43,17 +43,27 @@ const ZBOZI_REQUEST_INTERVAL_MS = 1000
 const ZBOZI_REVIEWS_PATH_PATTERN = /\/reviews\/?$/
 
 type ZboziShopsResponse = {
-  items?: Array<{
+  items: Array<{
     premiseId?: unknown
     rating?: unknown
   }>
 }
 
 type ZboziReviewsResponse = {
-  meta?: {
+  meta: {
     count?: unknown
   }
 }
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value)
+
+const isZboziShopsResponse = (value: unknown): value is ZboziShopsResponse =>
+  isRecord(value) && Array.isArray(value.items) && value.items.every(isRecord)
+
+const isZboziReviewsResponse = (
+  value: unknown
+): value is ZboziReviewsResponse => isRecord(value) && isRecord(value.meta)
 
 type InjectedDependencies = {
   [API_STORE_MODULE]: ApiStoreModuleService
@@ -209,26 +219,28 @@ class ShopReviewModuleService {
 
     const shopsUrl = this.buildZboziShopsUrl(reviewsUrl, premiseId)
     const reviewCountUrl = this.buildZboziReviewCountUrl(reviewsUrl, now)
-    const shopsResponse = await this.fetchZboziJson<ZboziShopsResponse>(
+    const shopsResponse = await this.fetchZboziJson(
       shopsUrl,
       accessToken,
-      "shop rating"
+      "shop rating",
+      isZboziShopsResponse
     )
 
     await new Promise<void>((resolve) => {
       setTimeout(resolve, ZBOZI_REQUEST_INTERVAL_MS)
     })
 
-    const reviewsResponse = await this.fetchZboziJson<ZboziReviewsResponse>(
+    const reviewsResponse = await this.fetchZboziJson(
       reviewCountUrl,
       accessToken,
-      "review count"
+      "review count",
+      isZboziReviewsResponse
     )
-    const shop = shopsResponse.items?.find(
+    const shop = shopsResponse.items.find(
       (item) => String(item.premiseId) === premiseId
     )
     const score = typeof shop?.rating === "number" ? shop.rating : Number.NaN
-    const reviewCount = Number(reviewsResponse.meta?.count)
+    const reviewCount = Number(reviewsResponse.meta.count)
 
     if (!(Number.isFinite(score) && score >= 0 && score <= 100)) {
       throw new MedusaError(
@@ -377,7 +389,8 @@ class ShopReviewModuleService {
   private async fetchZboziJson<T>(
     url: URL,
     accessToken: string,
-    resourceLabel: string
+    resourceLabel: string,
+    isExpectedResponse: (value: unknown) => value is T
   ): Promise<T> {
     const response = await fetch(url, {
       headers: {
@@ -397,9 +410,9 @@ class ShopReviewModuleService {
       )
     }
 
-    let data: T | null
+    let data: unknown
     try {
-      data = (await response.json()) as T | null
+      data = await response.json()
     } catch {
       this.logger_.warn(`Zboží ${resourceLabel} response returned invalid JSON`)
       throw new MedusaError(
@@ -413,6 +426,14 @@ class ShopReviewModuleService {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         `Zboží ${resourceLabel} response returned no data`
+      )
+    }
+
+    if (!isExpectedResponse(data)) {
+      this.logger_.warn(`Zboží ${resourceLabel} response has an invalid shape`)
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Zboží ${resourceLabel} response has an invalid shape`
       )
     }
 

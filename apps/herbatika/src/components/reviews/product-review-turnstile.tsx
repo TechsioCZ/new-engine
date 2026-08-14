@@ -26,6 +26,7 @@ type TurnstileRenderOptions = {
 }
 
 type TurnstileApi = {
+  ready: (callback: () => void) => void
   remove: (widgetId: TurnstileWidgetId) => void
   render: (
     container: HTMLElement,
@@ -110,30 +111,42 @@ export function ProductReviewTurnstile({
     onTokenChangeRef.current(null)
     setWidgetError(null)
 
-    widgetIdRef.current = turnstile.render(containerRef.current, {
-      action: "product_review",
-      appearance: "always",
-      callback: (token) => {
-        setWidgetError(null)
-        onTokenChangeRef.current(token)
-      },
-      "error-callback": () => {
-        onTokenChangeRef.current(null)
-        setWidgetError(unavailableMessage)
-      },
-      "expired-callback": resetWidget,
-      language: "auto",
-      "response-field": false,
-      sitekey: productReviewTurnstileConfig.siteKey,
-      size: "flexible",
-      theme: "auto",
-      "timeout-callback": () => {
-        setWidgetError(unavailableMessage)
-        resetWidget()
-      },
+    let isDisposed = false
+
+    turnstile.ready(() => {
+      const container = containerRef.current
+      if (isDisposed || !container) {
+        return
+      }
+
+      widgetIdRef.current = turnstile.render(container, {
+        action: "product_review",
+        appearance: "always",
+        callback: (token) => {
+          setWidgetError(null)
+          onTokenChangeRef.current(token)
+        },
+        "error-callback": () => {
+          onTokenChangeRef.current(null)
+          setWidgetError(unavailableMessage)
+        },
+        "expired-callback": resetWidget,
+        language: "auto",
+        "response-field": false,
+        sitekey: productReviewTurnstileConfig.siteKey,
+        size: "flexible",
+        theme: "auto",
+        "timeout-callback": () => {
+          setWidgetError(unavailableMessage)
+          resetWidget()
+        },
+      })
     })
 
-    return removeWidget
+    return () => {
+      isDisposed = true
+      removeWidget()
+    }
   }, [isScriptReady, removeWidget, resetKey, resetWidget, unavailableMessage])
 
   if (!productReviewTurnstileConfig.enabled) {
