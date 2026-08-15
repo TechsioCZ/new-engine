@@ -1388,7 +1388,11 @@ const OrderDashboardPage = () => {
             </Button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div
+            className={
+              selectedCount ? "flex flex-wrap items-center gap-2" : "hidden"
+            }
+          >
             <Select
               onValueChange={(value) => {
                 if (!isOrderDashboardTargetStatus(value)) {
