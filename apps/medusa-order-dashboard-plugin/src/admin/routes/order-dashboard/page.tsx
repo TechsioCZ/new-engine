@@ -1704,7 +1704,7 @@ const OrderDashboardTableBody = memo(function OrderDashboardTableBodyComponent({
   instance,
 }: OrderDashboardTableBodyProps) {
   return (
-    <DataTable instance={instance}>
+    <DataTable className="w-full min-w-0" instance={instance}>
       <DataTable.Table
         emptyState={{
           empty: { heading: emptyHeading },
