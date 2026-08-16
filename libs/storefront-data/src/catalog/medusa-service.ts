@@ -232,6 +232,8 @@ const buildDefaultListQuery = (
   const normalizedBrand = normalizeStringArray(params.brand)
   const normalizedIngredient = normalizeStringArray(params.ingredient)
   const normalizedCategoryIds = normalizeStringArray(params.category_id)
+  const normalizedSaleSelection =
+    params.on_sale === true ? true : toCsv(normalizeStringArray(params.on_sale))
 
   return stripNullishValues({
     q: params.q?.trim() || undefined,
@@ -249,6 +251,7 @@ const buildDefaultListQuery = (
     country_code: params.country_code?.toLowerCase(),
     currency_code: params.currency_code?.toLowerCase(),
     locale: params.locale,
+    on_sale: normalizedSaleSelection,
   })
 }
 

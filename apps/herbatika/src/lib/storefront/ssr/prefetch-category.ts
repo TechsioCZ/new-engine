@@ -10,6 +10,7 @@ import {
 import { collectDescendantCategoryIds } from "../category-tree"
 import { PLP_PAGE_SIZE } from "../plp-config"
 import type { PlpQueryState } from "../plp-query-state"
+import { resolveCategoryCatalogScope } from "../sale-catalog-policy"
 import {
   fetchServerCategories,
   prefetchServerCatalogProducts,
@@ -48,7 +49,7 @@ export const prefetchCategoryPageStorefrontData = async (
     ]
     const catalogListParams = buildCatalogProductsParams({
       queryState,
-      categoryIds,
+      ...resolveCategoryCatalogScope(slug, categoryIds),
       limit: PLP_PAGE_SIZE,
       locale,
       regionId: region.region_id,

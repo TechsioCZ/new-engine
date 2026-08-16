@@ -29,6 +29,7 @@ type HomepageCatalogPrefetchInput = {
   region: RegionInfo
   sort: CatalogQueryState["sort"]
   status?: string[]
+  onSale?: true
 }
 
 const buildHomepageCatalogQueryState = (
@@ -53,6 +54,7 @@ const prefetchHomepageCatalogProducts = ({
   region,
   sort,
   status,
+  onSale,
 }: HomepageCatalogPrefetchInput) =>
   prefetchServerCatalogProducts(
     queryClient,
@@ -63,6 +65,7 @@ const prefetchHomepageCatalogProducts = ({
       locale,
       regionId: region.region_id,
       countryCode: region.country_code,
+      onSale,
     })
   )
 
@@ -96,7 +99,7 @@ export const prefetchHomePageStorefrontData = async () => {
         locale,
         region,
         sort: "recommended",
-        status: ["action"],
+        onSale: true,
       }),
     ]
 

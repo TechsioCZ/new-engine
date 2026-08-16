@@ -9,6 +9,8 @@ import type { RegionInfo } from "../shared/region"
 
 export type { RegionInfo } from "../shared/region"
 
+export type CatalogSaleAdapter = "discount"
+
 export type CatalogListInputBase = RegionInfo & {
   locale?: string
   q?: string
@@ -23,6 +25,7 @@ export type CatalogListInputBase = RegionInfo & {
   price_min?: number
   price_max?: number
   currency_code?: string
+  on_sale?: true | CatalogSaleAdapter[]
   enabled?: boolean
 }
 
