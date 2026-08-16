@@ -9,6 +9,7 @@ import { withRequestLocale } from "./localized-query"
 import type { StorefrontProductListInput as BaseStorefrontProductListInput } from "./product-query-config"
 import {
   buildProductListParams as buildStorefrontProductListParams,
+  ACCOUNT_PRODUCT_LIST_FIELDS as STOREFRONT_ACCOUNT_PRODUCT_LIST_FIELDS,
   PRODUCT_CARD_FIELDS as STOREFRONT_PRODUCT_CARD_FIELDS,
   PRODUCT_DETAIL_FIELDS as STOREFRONT_PRODUCT_DETAIL_FIELDS,
   RELATED_PRODUCT_FIELDS as STOREFRONT_RELATED_PRODUCT_FIELDS,
@@ -17,6 +18,8 @@ import {
 import { storefront } from "./storefront"
 
 export const buildProductListParams = buildStorefrontProductListParams
+export const ACCOUNT_PRODUCT_LIST_FIELDS =
+  STOREFRONT_ACCOUNT_PRODUCT_LIST_FIELDS
 export const PRODUCT_CARD_FIELDS = STOREFRONT_PRODUCT_CARD_FIELDS
 export const PRODUCT_DETAIL_FIELDS = STOREFRONT_PRODUCT_DETAIL_FIELDS
 export const RELATED_PRODUCT_FIELDS = STOREFRONT_RELATED_PRODUCT_FIELDS
