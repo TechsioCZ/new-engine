@@ -39,11 +39,7 @@ import {
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { useRegions } from "@/lib/storefront/regions"
 import { storefront } from "@/lib/storefront/storefront"
-import {
-  buildAccountSetupRequestedMetadata,
-  isRecord,
-  readAccountSetupRequested,
-} from "./account-setup-metadata"
+import { isRecord, readAccountSetupRequested } from "./account-setup-metadata"
 import {
   isCheckoutCountryAvailableForRegion,
   resolveCheckoutCountryItemsForRegion,
@@ -51,6 +47,11 @@ import {
 import { logCheckoutAccountSetupDebug } from "./checkout-account-setup-debug"
 import { resolveHasStoredAddress } from "./checkout-address.utils"
 import { resolveOrderId } from "./checkout-completion.utils"
+import {
+  buildCheckoutMetadata,
+  isCheckoutMetadataSynced,
+  readOrderNote,
+} from "./checkout-metadata"
 import {
   filterPaymentProvidersForShipping,
   isPaymentProviderCompatibleWithShipping,
@@ -299,10 +300,12 @@ export function useCheckoutController() {
       }
 
       try {
-        const accountSetupMetadata = buildAccountSetupRequestedMetadata(
-          cartQuery.cart.metadata,
-          !authQuery.isAuthenticated && values.accountSetupRequested
-        )
+        const checkoutMetadata = buildCheckoutMetadata({
+          accountSetupRequested:
+            !authQuery.isAuthenticated && values.accountSetupRequested,
+          metadata: cartQuery.cart.metadata,
+          orderNote: effectiveCheckoutDetails.shipping.customerNote,
+        })
 
         logCheckoutAccountSetupDebug("address submit update cart request", {
           cart_id: cartQuery.cart.id,
@@ -310,15 +313,16 @@ export function useCheckoutController() {
             cartQuery.cart.metadata
           ),
           form_requested: values.accountSetupRequested,
+          has_order_note: Boolean(readOrderNote(checkoutMetadata)),
           is_authenticated: authQuery.isAuthenticated,
           payload_metadata_requested:
-            readAccountSetupRequested(accountSetupMetadata),
+            readAccountSetupRequested(checkoutMetadata),
         })
 
         const updatedCart = await updateCartAddressMutation.mutateAsync({
           cartId: cartQuery.cart.id,
           email: values.shipping.email.trim(),
-          metadata: accountSetupMetadata,
+          metadata: checkoutMetadata,
           shippingAddress: buildHerbatikaCheckoutAddressInput(
             effectiveCheckoutDetails.shipping
           ),
@@ -359,7 +363,7 @@ export function useCheckoutController() {
     return saveAddressSucceededRef.current
   }
 
-  const syncAccountSetupPreference = async () => {
+  const syncCheckoutMetadata = async () => {
     const cart = cartQuery.cart
 
     if (!cart?.id) {
@@ -370,16 +374,24 @@ export function useCheckoutController() {
     const requested =
       !authQuery.isAuthenticated &&
       checkoutDetailsForm.values.accountSetupRequested
+    const orderNote = checkoutDetailsForm.values.shipping.customerNote
 
     logCheckoutAccountSetupDebug("complete order metadata sync entered", {
       cart_id: cart.id,
       current_metadata_requested: readAccountSetupRequested(cart.metadata),
       form_requested: checkoutDetailsForm.values.accountSetupRequested,
+      has_order_note: Boolean(readOrderNote(cart.metadata)),
       is_authenticated: authQuery.isAuthenticated,
       requested,
     })
 
-    if (readAccountSetupRequested(cart.metadata) === requested) {
+    if (
+      isCheckoutMetadataSynced({
+        accountSetupRequested: requested,
+        metadata: cart.metadata,
+        orderNote,
+      })
+    ) {
       logCheckoutAccountSetupDebug("complete order metadata already synced", {
         cart_id: cart.id,
         requested,
@@ -390,7 +402,11 @@ export function useCheckoutController() {
     try {
       const updatedCart = await updateCartMutation.mutateAsync({
         cartId: cart.id,
-        metadata: buildAccountSetupRequestedMetadata(cart.metadata, requested),
+        metadata: buildCheckoutMetadata({
+          accountSetupRequested: requested,
+          metadata: cart.metadata,
+          orderNote,
+        }),
       })
 
       logCheckoutAccountSetupDebug("complete order metadata sync response", {
@@ -398,25 +414,26 @@ export function useCheckoutController() {
         response_metadata_requested: readAccountSetupRequested(
           updatedCart.metadata
         ),
+        response_has_order_note: Boolean(readOrderNote(updatedCart.metadata)),
       })
 
       return true
     } catch (error) {
       setCheckoutError(
-        resolveErrorMessage(error, tCheckout("registration_update_failed"))
+        resolveErrorMessage(error, tCheckout("address_update_failed"))
       )
       return false
     }
   }
 
   const handleCompleteOrder = async () => {
-    const didSyncAccountSetup = await syncAccountSetupPreference()
+    const didSyncCheckoutMetadata = await syncCheckoutMetadata()
 
     logCheckoutAccountSetupDebug("handle complete order sync verdict", {
-      did_sync_account_setup: didSyncAccountSetup,
+      did_sync_checkout_metadata: didSyncCheckoutMetadata,
     })
 
-    if (!didSyncAccountSetup) {
+    if (!didSyncCheckoutMetadata) {
       return
     }
 
