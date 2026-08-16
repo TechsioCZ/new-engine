@@ -70,12 +70,17 @@ function SearchAutocompleteMeta({
 }) {
   const hasAvailability = typeof item.inStock === "boolean"
 
-  if (!(item.priceLabel || hasAvailability)) {
+  if (!(item.priceLabel || item.originalPriceLabel || hasAvailability)) {
     return null
   }
 
   return (
     <span className="shrink-0 text-right text-xs leading-snug">
+      {item.originalPriceLabel ? (
+        <span className="block text-fg-tertiary line-through">
+          {item.originalPriceLabel}
+        </span>
+      ) : null}
       {item.priceLabel ? (
         <span className="block font-bold text-primary">{item.priceLabel}</span>
       ) : null}

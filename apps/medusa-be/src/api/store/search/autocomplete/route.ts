@@ -143,7 +143,7 @@ export async function GET(
   try {
     profile = resolveSearchProfile(
       {
-        locale: request.validatedQuery.locale,
+        locale: request.locale ?? request.validatedQuery.locale,
         requestedKey: request.validatedQuery.profile,
         salesChannelIds,
       },

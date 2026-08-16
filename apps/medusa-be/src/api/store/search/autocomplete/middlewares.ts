@@ -12,6 +12,7 @@ import { setTaxContext } from "@medusajs/medusa/api/utils/middlewares/products/s
 import {
   STORE_CATALOG_PRODUCTS_ALLOWED_FIELDS,
   STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
+  STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
 } from "../../catalog/products/validators"
 import { StoreSearchAutocompleteSchema } from "./validators"
 
@@ -25,7 +26,10 @@ export const storeSearchAutocompleteRoutesMiddlewares: MiddlewareRoute[] = [
         allowUnauthenticated: true,
       }),
       validateAndTransformQuery(StoreSearchAutocompleteSchema, {
-        defaults: STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
+        defaults: [
+          ...STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
+          ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
+        ],
         allowed: STORE_CATALOG_PRODUCTS_ALLOWED_FIELDS,
         isList: true,
       }),

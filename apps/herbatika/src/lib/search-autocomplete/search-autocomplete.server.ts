@@ -28,6 +28,7 @@ type CatalogAutocompleteResponse = {
 }
 
 type FetchSearchAutocompleteInput = {
+  authToken?: string | null
   query: string
   countryCode?: string | null
   currencyCode?: string | null
@@ -77,12 +78,14 @@ const createCatalogAutocompleteQuery = ({
 }
 
 const fetchCatalogCandidates = async ({
+  authToken,
   countryCode,
   currencyCode,
   locale,
   query,
   regionId,
 }: {
+  authToken?: string | null
   countryCode?: string | null
   currencyCode: string
   locale?: string | null
@@ -98,6 +101,9 @@ const fetchCatalogCandidates = async ({
     return await storefrontSdk.client.fetch<CatalogAutocompleteResponse>(
       "/store/search/autocomplete",
       {
+        headers: authToken
+          ? { authorization: `Bearer ${authToken}` }
+          : undefined,
         query: createCatalogAutocompleteQuery({
           countryCode,
           currencyCode,
@@ -122,6 +128,7 @@ const fetchCatalogCandidates = async ({
 }
 
 export const fetchSearchAutocomplete = async ({
+  authToken,
   countryCode,
   currencyCode,
   locale,
@@ -138,6 +145,7 @@ export const fetchSearchAutocomplete = async ({
 
   const safeCurrencyCode = resolveSupportedCurrencyCode(currencyCode)
   const catalogResponse = await fetchCatalogCandidates({
+    authToken,
     countryCode,
     currencyCode: safeCurrencyCode,
     locale,
