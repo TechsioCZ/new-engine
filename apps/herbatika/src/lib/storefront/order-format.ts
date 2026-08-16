@@ -1,4 +1,9 @@
 import { formatCurrencyAmount } from "./price-format"
+import {
+  asStorefrontNumber,
+  asStorefrontRecord,
+  resolveTopOfferOriginalAmount,
+} from "./product-pricing"
 
 type OrderStatusBadgeVariant = "danger" | "info" | "success" | "warning"
 export type OrderStatusGroup = "fulfillment" | "lifecycle" | "payment"
@@ -198,6 +203,44 @@ export const resolveOrderItemTotalAmount = (item: {
   const quantity = typeof item.quantity === "number" ? item.quantity : 1
 
   return unitPrice * quantity
+}
+
+export const resolveOrderItemOriginalTotalAmount = (item: {
+  compare_at_unit_price?: number | null
+  metadata?: unknown
+  original_total?: number | null
+  product?: unknown
+  quantity?: number | null
+  total?: number | null
+  unit_price?: number | null
+}) => {
+  const total = resolveOrderItemTotalAmount(item)
+
+  if (
+    typeof item.original_total === "number" &&
+    Number.isFinite(item.original_total) &&
+    item.original_total > total
+  ) {
+    return item.original_total
+  }
+
+  const quantity = resolveOrderItemQuantity(item)
+  const metadata = asStorefrontRecord(item.metadata)
+  const product = asStorefrontRecord(item.product)
+  const productMetadata = asStorefrontRecord(product?.metadata)
+  const topOffer =
+    asStorefrontRecord(metadata?.top_offer) ??
+    asStorefrontRecord(productMetadata?.top_offer)
+  const currentUnitAmount = quantity > 0 ? total / quantity : null
+  const originalUnitAmount = resolveTopOfferOriginalAmount({
+    currentAmount: currentUnitAmount,
+    explicitOriginalAmount: asStorefrontNumber(item.compare_at_unit_price),
+    topOffer,
+  })
+
+  return typeof originalUnitAmount === "number" && quantity > 0
+    ? originalUnitAmount * quantity
+    : null
 }
 
 export const resolveOrderItemQuantity = (item: {
