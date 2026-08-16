@@ -1,14 +1,24 @@
 import { describe, expect, it } from "vitest"
 import {
   DEFAULT_ORDER_DASHBOARD_SORTING,
+  getOrderDashboardDefaultQueueHref,
   getOrderDashboardOrdersQuery,
   getOrderDashboardQueueId,
   ORDER_DASHBOARD_QUERY_KEY,
 } from "./order-query"
 
 describe("order dashboard query", () => {
-  it("uses the pending unpaid queue when the URL parameter is missing", () => {
-    expect(getOrderDashboardQueueId(null)).toBe("pending_unpaid")
+  it("uses all orders when the URL parameter is missing", () => {
+    expect(getOrderDashboardQueueId(null)).toBe("all")
+  })
+
+  it("links the sidebar dashboard item to the all-orders queue", () => {
+    expect(
+      getOrderDashboardDefaultQueueHref(
+        "http://localhost:9000/app/order-dashboard?queue=pending_unpaid",
+        "http://localhost:9000"
+      )
+    ).toBe("/app/order-dashboard?queue=all")
   })
 
   it("falls back to all for an unsupported queue", () => {

@@ -1,11 +1,11 @@
 import { sdk } from "./lib/sdk"
 import { orderDashboardAdminI18n } from "./routes/order-dashboard/i18n"
-import {
-  ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID,
-  type OrderDashboardSummaryResponse,
-} from "./routes/order-dashboard/types"
+import { getOrderDashboardDefaultQueueHref } from "./routes/order-dashboard/order-query"
+import type { OrderDashboardSummaryResponse } from "./routes/order-dashboard/types"
 
 const ORDER_DASHBOARD_SIDEBAR_BADGE_ID = "order-dashboard-sidebar-badge"
+const ORDER_DASHBOARD_SIDEBAR_LINK_CONFIGURED_ATTRIBUTE =
+  "data-order-dashboard-default-queue"
 const ORDER_DASHBOARD_SIDEBAR_LINK_SELECTOR =
   'a[href$="/order-dashboard"], a[href$="/order-dashboard/"], a[href*="/order-dashboard?"]'
 const ORDER_DASHBOARD_SIDEBAR_BADGE_REFRESH_MS = 60_000
@@ -102,7 +102,7 @@ function renderOrderDashboardSidebarBadge(count: number | null | undefined) {
   const normalizedCount = normalizeOrderDashboardSidebarBadgeCount(count)
 
   if (link) {
-    setOrderDashboardSidebarLinkQueue(link)
+    configureOrderDashboardSidebarLink(link)
   }
 
   if (!link || normalizedCount === null || normalizedCount <= 0) {
@@ -168,17 +168,34 @@ function getOrderDashboardSidebarLink() {
   )
 }
 
-function setOrderDashboardSidebarLinkQueue(link: HTMLAnchorElement) {
-  const url = new URL(link.href, window.location.origin)
+function configureOrderDashboardSidebarLink(link: HTMLAnchorElement) {
+  link.setAttribute(
+    "href",
+    getOrderDashboardDefaultQueueHref(link.href, window.location.origin)
+  )
 
+  if (link.hasAttribute(ORDER_DASHBOARD_SIDEBAR_LINK_CONFIGURED_ATTRIBUTE)) {
+    return
+  }
+
+  link.setAttribute(ORDER_DASHBOARD_SIDEBAR_LINK_CONFIGURED_ATTRIBUTE, "")
+  link.addEventListener("click", handleOrderDashboardSidebarLinkClick, true)
+}
+
+function handleOrderDashboardSidebarLinkClick(event: MouseEvent) {
   if (
-    url.searchParams.get("queue") === ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID
+    event.button !== 0 ||
+    event.altKey ||
+    event.ctrlKey ||
+    event.metaKey ||
+    event.shiftKey
   ) {
     return
   }
 
-  url.searchParams.set("queue", ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID)
-  link.setAttribute("href", `${url.pathname}${url.search}${url.hash}`)
+  // Medusa's sidebar keeps its original React Router target after href changes.
+  // Stop that handler and let the browser follow the canonical href instead.
+  event.stopPropagation()
 }
 
 function getOrderDashboardSidebarBadgeLabel(count: number) {
