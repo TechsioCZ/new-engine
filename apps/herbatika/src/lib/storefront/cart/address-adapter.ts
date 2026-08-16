@@ -12,12 +12,10 @@ const HERBATIKA_ADDRESS_METADATA_FIELDS = [
   ["companyId", "company_id"],
   ["taxId", "tax_id"],
   ["vatId", "vat_id"],
-  ["customerNote", "customer_note"],
 ] as const
 
 export type HerbatikaCheckoutAddressInput = CheckoutAddressInput & {
   companyId?: string | null
-  customerNote?: string | null
   metadata?: Record<string, unknown>
   taxId?: string | null
   vatId?: string | null
@@ -45,7 +43,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const buildHerbatikaAddressMetadata = (
   input: Pick<
     HerbatikaCheckoutAddressInput,
-    "companyId" | "customerNote" | "metadata" | "taxId" | "vatId"
+    "companyId" | "metadata" | "taxId" | "vatId"
   >
 ) => {
   const metadata = {
@@ -85,7 +83,6 @@ export const buildHerbatikaCheckoutAddressInput = (
   city: addressForm.city,
   postalCode: addressForm.postalCode,
   country: addressForm.countryCode,
-  customerNote: addressForm.customerNote,
 })
 
 export const mapHerbatikaAddressFormStateFromMedusaAddress = (

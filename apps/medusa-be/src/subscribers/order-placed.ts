@@ -1,6 +1,7 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
 import type { Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { resolveOrderNote } from "../utils/order-note"
 import { getMedusaStoreName } from "../utils/store-name"
 import { syncOrderNoteWorkflow } from "../workflows/order-note/upsert-order-note"
 import { sendAccountSetupWorkflow } from "../workflows/send-account-setup"
@@ -8,23 +9,6 @@ import { sendOrderReceiptWorkflow } from "../workflows/send-order-receipt"
 
 type OrderPlacedEvent = {
   id: string
-}
-
-type OrderWithMetadata = {
-  id: string
-  metadata?: Record<string, unknown> | null
-}
-
-function getOrderNote(order: OrderWithMetadata) {
-  const note = order.metadata?.order_note
-
-  if (typeof note !== "string") {
-    return
-  }
-
-  const trimmedNote = note.trim()
-
-  return trimmedNote.length ? trimmedNote : undefined
 }
 
 export default async function orderPlacedHandler({
@@ -46,10 +30,10 @@ export default async function orderPlacedHandler({
     data: [order],
   } = await query.graph({
     entity: "order",
-    fields: ["id", "metadata"],
+    fields: ["id", "metadata", "shipping_address.metadata"],
     filters: { id: data.id },
   })
-  const note = order ? getOrderNote(order as OrderWithMetadata) : undefined
+  const note = order ? resolveOrderNote(order) : undefined
 
   if (note) {
     try {
