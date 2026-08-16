@@ -18,6 +18,7 @@ export const resendEmailTemplates = {
   COMPANY_APPLICATION_APPROVED: "company-application-approved",
   COMPANY_APPLICATION_REJECTED: "company-application-rejected",
   CUSTOMER_ACCOUNT_DEACTIVATION: "customer-account-deactivation",
+  CUSTOMER_REGISTRATION_CONFIRMATION: "customer-registration-confirmation",
   FORGOT_PASSWORD: "user-forgotpwd",
   ORDER_PLACED: "order-placed",
   ORDER_PAYMENT_REMINDER: "order-payment-reminder",
@@ -52,6 +53,13 @@ export const resendTemplateDefinitions = {
     optionalVariables: ["customer_id", "customer_name"],
     requiredVariables: ["confirmation_url"],
     subject: "Potvrdenie zrušenia účtu",
+  }),
+  [resendEmailTemplates.CUSTOMER_REGISTRATION_CONFIRMATION]: defineTemplate({
+    id: "customer-registration-confirmation",
+    label: "Customer registration confirmation",
+    optionalVariables: ["customer_id", "customer_name"],
+    requiredVariables: [],
+    subject: "Potvrdenie registrácie",
   }),
   [resendEmailTemplates.FORGOT_PASSWORD]: defineTemplate({
     id: "user-forgotpwd",
