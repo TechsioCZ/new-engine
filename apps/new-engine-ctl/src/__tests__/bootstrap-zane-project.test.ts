@@ -22,6 +22,8 @@ const publicUrlAffix = "-deploy"
 const medusaBePublicOrigin = `https://${projectSlug}-medusa-be${publicUrlAffix}.${publicDomain}`
 const herbatikaPublicOrigin = `https://${projectSlug}-herbatika${publicUrlAffix}.${publicDomain}`
 const minioPublicOrigin = `https://${projectSlug}-medusa-minio${publicUrlAffix}.${publicDomain}`
+const herbatikaRomanianTestOrigin =
+  "https://test-engine-herbatika-ro-zane.web-revolution.cz"
 
 const serviceSlugs = [
   "medusa-db",
@@ -188,9 +190,9 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     expect(medusa?.desired_env).toMatchObject({
       STOREFRONT_URL: "https://storefront.example.test",
       STORE_NAME: "Herbatika",
-      STORE_CORS: `http://localhost:3001,https://storefront.example.test,${herbatikaPublicOrigin}`,
+      STORE_CORS: `http://localhost:3001,https://storefront.example.test,${herbatikaPublicOrigin},${herbatikaRomanianTestOrigin}`,
       ADMIN_CORS: `http://localhost:5173,${medusaBePublicOrigin}`,
-      AUTH_CORS: `http://127.0.0.1:3001,${medusaBePublicOrigin}`,
+      AUTH_CORS: `http://127.0.0.1:3001,${medusaBePublicOrigin},${herbatikaRomanianTestOrigin}`,
       FEATURE_PAYMENT_QR_ENABLED: "1",
       GOPAY_WEBHOOK_URL: `${medusaBePublicOrigin}/hooks/payment/paykit_gopay`,
       HERBATICA_REVIEWS_XML_PATH: "https://assets.example.test/reviews.xml",
@@ -218,6 +220,20 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     const herbatika = plan.services.find(
       (service) => service.service_id === "herbatika"
     )
+    expect(herbatika?.desired_urls).toEqual([
+      {
+        associated_port: 3000,
+        base_path: "/",
+        domain: `${projectSlug}-herbatika${publicUrlAffix}.${publicDomain}`,
+        strip_prefix: true,
+      },
+      {
+        associated_port: 3000,
+        base_path: "/",
+        domain: "test-engine-herbatika-ro-zane.web-revolution.cz",
+        strip_prefix: true,
+      },
+    ])
     expect(herbatika?.desired_env).not.toHaveProperty(
       "NEXT_PUBLIC_PPL_WIDGET_API_KEY"
     )

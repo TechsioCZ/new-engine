@@ -85,6 +85,7 @@ const HOST_MARKET_MAP: Record<string, HerbatikaMarketCode> = {
   "www.herbatica.ro": "ro",
   "herbatika.ro": "ro",
   "www.herbatika.ro": "ro",
+  "test-engine-herbatika-ro-zane.web-revolution.cz": "ro",
 }
 
 const LANGUAGE_MARKET_MAP: Record<string, HerbatikaMarketCode> = {
