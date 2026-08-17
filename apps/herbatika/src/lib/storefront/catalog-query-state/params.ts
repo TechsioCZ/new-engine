@@ -1,3 +1,4 @@
+import type { CatalogListInputBase } from "@techsio/storefront-data/catalog/types"
 import { PLP_PAGE_SIZE } from "../plp-config"
 import type { CatalogQueryState } from "./parsers"
 import { normalizeStatusFilterInput } from "./status-filters"
@@ -10,6 +11,8 @@ type BuildCatalogProductsParamsInput = {
   regionId?: string
   countryCode?: string
   currencyCode?: string
+  locale?: string
+  onSale?: CatalogListInputBase["on_sale"]
 }
 
 export type CatalogProductsParams = {
@@ -27,6 +30,8 @@ export type CatalogProductsParams = {
   region_id?: string
   country_code?: string
   currency_code?: string
+  locale?: string
+  on_sale?: CatalogListInputBase["on_sale"]
 }
 
 export const resolveCatalogPriceBounds = (priceFacet: {
@@ -50,6 +55,8 @@ export const buildCatalogProductsParams = ({
   regionId,
   countryCode,
   currencyCode,
+  locale,
+  onSale,
 }: BuildCatalogProductsParamsInput): CatalogProductsParams => {
   const normalizedSearchQuery = queryState.q.trim()
   const normalizedPriceRange = normalizePriceRange(
@@ -69,6 +76,7 @@ export const buildCatalogProductsParams = ({
     ingredient: toNonEmptyArray(queryState.ingredient),
     price_min: normalizedPriceRange.min,
     price_max: normalizedPriceRange.max,
+    on_sale: onSale,
   }
 
   if (regionId) {
@@ -81,6 +89,10 @@ export const buildCatalogProductsParams = ({
 
   if (currencyCode) {
     params.currency_code = currencyCode
+  }
+
+  if (locale) {
+    params.locale = locale
   }
 
   return params

@@ -10,6 +10,7 @@ import {
 import { collectDescendantCategoryIds } from "../category-tree"
 import { PLP_PAGE_SIZE } from "../plp-config"
 import type { PlpQueryState } from "../plp-query-state"
+import { resolveCategoryCatalogScope } from "../sale-catalog-policy"
 import {
   fetchServerCategories,
   prefetchServerCatalogProducts,
@@ -20,12 +21,13 @@ export const prefetchCategoryPageStorefrontData = async (
   slug: string,
   queryState: PlpQueryState
 ) => {
-  const { queryClient, region } = await getRegionServerContext()
+  const { locale, queryClient, region } = await getRegionServerContext()
 
   const categoryListParams = buildCategoryListParams({
     page: 1,
     limit: CATEGORY_TREE_LIMIT,
     fields: CATEGORY_TREE_FIELDS,
+    locale,
   })
 
   const categoryResponse = await fetchServerCategories(
@@ -47,8 +49,9 @@ export const prefetchCategoryPageStorefrontData = async (
     ]
     const catalogListParams = buildCatalogProductsParams({
       queryState,
-      categoryIds,
+      ...resolveCategoryCatalogScope(slug, categoryIds),
       limit: PLP_PAGE_SIZE,
+      locale,
       regionId: region.region_id,
       countryCode: region.country_code,
     })

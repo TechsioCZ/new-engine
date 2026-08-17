@@ -10,12 +10,13 @@ import {
 } from "@/lib/storefront/product-pricing"
 import type { ProductPriceState } from "./product-card.types"
 
-export const resolvePriceState = (
+export const resolveVariantPriceState = (
   product: HttpTypes.StoreProduct,
+  variant: HttpTypes.StoreProductVariant | null | undefined,
   expectedCurrencyCode: string | null | undefined,
   priceUnavailableLabel: string
 ): ProductPriceState => {
-  const calculatedPrice = product.variants?.[0]?.calculated_price
+  const calculatedPrice = variant?.calculated_price
   const topOffer = resolveProductTopOffer(product)
   const price = resolveStorefrontPrice({
     calculatedAmount: calculatedPrice?.calculated_amount,
@@ -56,6 +57,18 @@ export const resolvePriceState = (
     currencyCode: price.currencyCode,
   }
 }
+
+export const resolvePriceState = (
+  product: HttpTypes.StoreProduct,
+  expectedCurrencyCode: string | null | undefined,
+  priceUnavailableLabel: string
+): ProductPriceState =>
+  resolveVariantPriceState(
+    product,
+    product.variants?.[0],
+    expectedCurrencyCode,
+    priceUnavailableLabel
+  )
 
 export const resolveDiscountLabel = (
   price: ProductPriceState

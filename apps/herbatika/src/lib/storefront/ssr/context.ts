@@ -59,6 +59,7 @@ export const getRegionServerContext = async () => {
     : null
 
   return {
+    locale: marketContext.locale,
     queryClient,
     region,
   }

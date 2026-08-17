@@ -4,6 +4,7 @@ import {
   createEmptySearchAutocompleteResponse,
   SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH,
 } from "@/lib/search-autocomplete/search-autocomplete-types"
+import { getSessionTokenFromCookieHeader } from "../storefront-auth/_lib"
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -12,14 +13,20 @@ export async function GET(request: Request) {
     .slice(0, SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH)
   const countryCode = searchParams.get("country")
   const currencyCode = searchParams.get("currency")
+  const locale = searchParams.get("locale")
   const regionId = searchParams.get("region")
+  const authToken = getSessionTokenFromCookieHeader(
+    request.headers.get("cookie")
+  )
 
   try {
     const response = await fetchSearchAutocomplete({
       query,
       countryCode,
       currencyCode,
+      locale,
       regionId,
+      authToken,
     })
     return NextResponse.json(response)
   } catch (error) {

@@ -8,6 +8,7 @@ import {
   type HerbatikaProductCardBaseProps,
   useHerbatikaProductCardState,
 } from "@/components/herbatika-product-card.shared"
+import { ProductCardPriceBlock } from "@/components/product-card/product-card-price-block"
 
 export type HerbatikaProductCardCompactProps = HerbatikaProductCardBaseProps & {
   onCompactImageError?: (
@@ -31,7 +32,7 @@ export function HerbatikaProductCardCompact({
     })
 
   return (
-    <ProductCard>
+    <ProductCard className="h-full min-w-0">
       <NextLink
         className="block"
         href={productHref}
@@ -52,16 +53,14 @@ export function HerbatikaProductCardCompact({
         />
       </NextLink>
 
-      <div className="mt-250 flex flex-col gap-150">
+      <div className="mt-250 flex h-full flex-col gap-150">
         <ProductCard.Name className="font-bold text-md text-primary leading-snug">
           <NextLink className="hover:text-primary-hover" href={productHref}>
             {title}
           </NextLink>
         </ProductCard.Name>
 
-        <ProductCard.Price className="text-lg leading-tight">
-          {price.currentLabel}
-        </ProductCard.Price>
+        <ProductCardPriceBlock className="mt-auto" price={price} />
       </div>
     </ProductCard>
   )

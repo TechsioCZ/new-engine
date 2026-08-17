@@ -9,13 +9,14 @@ import { getRegionServerContext } from "./context"
 export const prefetchSearchPageStorefrontData = async (
   queryState: PlpQueryState
 ) => {
-  const { queryClient, region } = await getRegionServerContext()
+  const { locale, queryClient, region } = await getRegionServerContext()
   const query = queryState.q.trim()
 
   if (region && query.length > 0) {
     const catalogListParams = buildCatalogProductsParams({
       queryState,
       limit: PLP_PAGE_SIZE,
+      locale,
       regionId: region.region_id,
       countryCode: region.country_code,
     })
@@ -38,6 +39,7 @@ export const prefetchSearchPageStorefrontData = async (
             price_max: null,
           },
           limit: 1,
+          locale,
           regionId: region.region_id,
           countryCode: region.country_code,
         })

@@ -39,11 +39,12 @@ export const resolveBlogProducts = async (
     return new Map<string, HttpTypes.StoreProduct>()
   }
 
-  const { queryClient, region } = serverContext
+  const { locale, queryClient, region } = serverContext
   const regionParams = {
     country_code: region?.country_code,
     region_id: region?.region_id,
     fields: BLOG_PRODUCT_CARD_FIELDS,
+    locale,
   }
   const productMap = new Map<string, HttpTypes.StoreProduct>()
 

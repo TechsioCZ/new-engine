@@ -6,11 +6,13 @@ import type {
   CatalogListResponse,
   UseCatalogProductsResult,
 } from "@techsio/storefront-data/catalog/types"
+import { useLocale } from "next-intl"
 import type {
   CatalogProductsParams,
   CatalogQueryState,
 } from "./catalog-query-state"
 import { hasDefaultStockInventoryQuantity } from "./default-stock-availability"
+import { withRequestLocale } from "./localized-query"
 import { PRODUCT_CARD_FIELDS } from "./product-query-config"
 import { useProducts } from "./products"
 import { storefront } from "./storefront"
@@ -95,7 +97,9 @@ export const useCatalogProducts = (
   input: CatalogProductsInput,
   options?: UseCatalogProductsOptions
 ): UseCatalogProductsResult<HttpTypes.StoreProduct, CatalogFacets> => {
-  const catalogQuery = catalogHooks.useCatalogProducts(input, options)
+  const locale = useLocale()
+  const localizedInput = withRequestLocale(input, locale)
+  const catalogQuery = catalogHooks.useCatalogProducts(localizedInput, options)
   const inventorySnapshotHandles = resolveInventorySnapshotHandles(
     catalogQuery.products
   )
@@ -136,10 +140,53 @@ export const useCatalogProducts = (
   }
 }
 
-export const useSuspenseCatalogProducts =
-  catalogHooks.useSuspenseCatalogProducts
-export const usePrefetchCatalogProducts =
-  catalogHooks.usePrefetchCatalogProducts
+export const useSuspenseCatalogProducts = (
+  input: CatalogProductsInput,
+  options?: Parameters<typeof catalogHooks.useSuspenseCatalogProducts>[1]
+) => {
+  const locale = useLocale()
+
+  return catalogHooks.useSuspenseCatalogProducts(
+    withRequestLocale(input, locale),
+    options
+  )
+}
+
+export const usePrefetchCatalogProducts = (
+  ...args: Parameters<typeof catalogHooks.usePrefetchCatalogProducts>
+) => {
+  const locale = useLocale()
+  const prefetch = catalogHooks.usePrefetchCatalogProducts(...args)
+
+  return {
+    ...prefetch,
+    prefetchCatalogProducts: (
+      input: CatalogProductsInput,
+      ...prefetchArgs: Parameters<
+        typeof prefetch.prefetchCatalogProducts
+      > extends [unknown, ...infer TRest]
+        ? TRest
+        : never
+    ) =>
+      prefetch.prefetchCatalogProducts(
+        withRequestLocale(input, locale),
+        ...prefetchArgs
+      ),
+    delayedPrefetch: (
+      input: CatalogProductsInput,
+      ...prefetchArgs: Parameters<typeof prefetch.delayedPrefetch> extends [
+        unknown,
+        ...infer TRest,
+      ]
+        ? TRest
+        : never
+    ) =>
+      prefetch.delayedPrefetch(
+        withRequestLocale(input, locale),
+        ...prefetchArgs
+      ),
+  }
+}
 export const prefetchCatalogProducts = catalogHooks.prefetchCatalogProducts
 
 export const fetchCatalogProducts = (

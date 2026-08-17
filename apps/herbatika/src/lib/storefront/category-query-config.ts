@@ -1,18 +1,22 @@
 import type { FindParams, HttpTypes } from "@medusajs/types"
 
+type CategoryQueryParams = FindParams &
+  HttpTypes.StoreProductCategoryListParams & {
+    locale?: string
+  }
+
 export const DEFAULT_CATEGORY_PAGE_SIZE = 24
 export const CATEGORY_TREE_FIELDS =
   "id,name,handle,parent_category_id,rank,description,+metadata"
 export const CATEGORY_TREE_LIMIT = 500
 
-export type CategoryListInput = FindParams &
-  HttpTypes.StoreProductCategoryListParams & {
-    page?: number
-  }
+export type CategoryListInput = CategoryQueryParams & {
+  page?: number
+}
 
 export const buildCategoryListParams = (
   input: CategoryListInput
-): FindParams & HttpTypes.StoreProductCategoryListParams => {
+): CategoryQueryParams => {
   const { page, limit, offset, ...rest } = input
 
   const resolvedLimit =

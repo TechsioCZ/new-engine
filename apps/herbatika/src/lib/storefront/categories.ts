@@ -1,11 +1,16 @@
 "use client"
 
-import type { FindParams, HttpTypes } from "@medusajs/types"
+import type {
+  MedusaCategoryDetailInput,
+  MedusaCategoryListInput,
+} from "@techsio/storefront-data/categories/medusa-service"
+import { useLocale } from "next-intl"
 import type { CategoryListInput as StorefrontCategoryListInput } from "./category-query-config"
 import {
   buildCategoryListParams as buildStorefrontCategoryListParams,
   DEFAULT_CATEGORY_PAGE_SIZE as STOREFRONT_DEFAULT_CATEGORY_PAGE_SIZE,
 } from "./category-query-config"
+import { withRequestLocale } from "./localized-query"
 import { storefront } from "./storefront"
 
 export type CategoryListInput = StorefrontCategoryListInput
@@ -17,23 +22,63 @@ type CategoryHooks = typeof storefront.hooks.categories
 const categoryHooks = storefront.hooks.categories
 const toCategoryListParams = (
   input: CategoryListInput
-): FindParams & HttpTypes.StoreProductCategoryListParams =>
-  input as unknown as FindParams & HttpTypes.StoreProductCategoryListParams
+): MedusaCategoryListInput => input as unknown as MedusaCategoryListInput
 
 export const useCategories = (
   input: CategoryListInput,
   options?: Parameters<CategoryHooks["useCategories"]>[1]
-) =>
-  categoryHooks.useCategories(
-    toCategoryListParams(buildCategoryListParams(input)),
+) => {
+  const locale = useLocale()
+
+  return categoryHooks.useCategories(
+    toCategoryListParams(
+      buildCategoryListParams(withRequestLocale(input, locale))
+    ),
     options
   )
+}
 
-export const usePrefetchCategory = categoryHooks.usePrefetchCategory
+export const usePrefetchCategory = (
+  ...args: Parameters<CategoryHooks["usePrefetchCategory"]>
+) => {
+  const locale = useLocale()
+  const prefetch = categoryHooks.usePrefetchCategory(...args)
+
+  return {
+    ...prefetch,
+    prefetchCategory: (
+      input: MedusaCategoryDetailInput,
+      ...prefetchArgs: Parameters<typeof prefetch.prefetchCategory> extends [
+        unknown,
+        ...infer TRest,
+      ]
+        ? TRest
+        : never
+    ) =>
+      prefetch.prefetchCategory(
+        withRequestLocale(input, locale),
+        ...prefetchArgs
+      ),
+    delayedPrefetch: (
+      input: MedusaCategoryDetailInput,
+      ...prefetchArgs: Parameters<typeof prefetch.delayedPrefetch> extends [
+        unknown,
+        ...infer TRest,
+      ]
+        ? TRest
+        : never
+    ) =>
+      prefetch.delayedPrefetch(
+        withRequestLocale(input, locale),
+        ...prefetchArgs
+      ),
+  }
+}
 
 export const usePrefetchCategories = (
   ...args: Parameters<CategoryHooks["usePrefetchCategories"]>
 ) => {
+  const locale = useLocale()
   const prefetch = categoryHooks.usePrefetchCategories(...args)
 
   return {
@@ -47,7 +92,9 @@ export const usePrefetchCategories = (
         : never
     ) =>
       prefetch.prefetchCategories(
-        toCategoryListParams(buildCategoryListParams(input)),
+        toCategoryListParams(
+          buildCategoryListParams(withRequestLocale(input, locale))
+        ),
         ...prefetchArgs
       ),
     delayedPrefetch: (
@@ -60,7 +107,9 @@ export const usePrefetchCategories = (
         : never
     ) =>
       prefetch.delayedPrefetch(
-        toCategoryListParams(buildCategoryListParams(input)),
+        toCategoryListParams(
+          buildCategoryListParams(withRequestLocale(input, locale))
+        ),
         ...prefetchArgs
       ),
   }

@@ -21,6 +21,7 @@ const resolveProductPrice = (
   return resolveStorefrontPrice({
     calculatedAmount: calculatedPrice?.calculated_amount,
     calculatedCurrencyCode: calculatedPrice?.currency_code,
+    calculatedOriginalAmount: calculatedPrice?.original_amount,
     expectedCurrencyCode,
     topOffer,
   })
@@ -62,6 +63,10 @@ const createProductSuggestion = (
     href: `/p/${handle}${variantId ? `?variant=${encodeURIComponent(variantId)}` : ""}`,
     subtitle: [brandTitle, categoryName].filter(Boolean).join(" | "),
     imageUrl: normalizeString(hit.thumbnail) || undefined,
+    originalPriceLabel:
+      price && typeof price.originalAmount === "number"
+        ? formatCurrencyAmount(price.originalAmount, price.currencyCode)
+        : undefined,
     priceLabel: price
       ? formatCurrencyAmount(price.currentAmount, price.currencyCode)
       : undefined,

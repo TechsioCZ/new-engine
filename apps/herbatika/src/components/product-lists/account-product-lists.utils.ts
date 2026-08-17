@@ -102,18 +102,18 @@ const resolveProductListItemProduct = (
     : (item.product ?? null)
 }
 
-const resolveProductListItemVariant = (
+export const resolveProductListItemVariant = (
   item: StoreProductListItem,
   product: HttpTypes.StoreProduct
 ) => {
   const variants = product.variants ?? []
   const variantId = item.variant_id ?? item.variant?.id ?? null
 
-  return (
-    (variantId ? variants.find((variant) => variant.id === variantId) : null) ??
-    variants[0] ??
-    null
-  )
+  if (variantId) {
+    return variants.find((variant) => variant.id === variantId) ?? null
+  }
+
+  return variants[0] ?? null
 }
 
 export const resolveProductListItemAvailability = (

@@ -1,5 +1,6 @@
 "use client"
 
+import { useLocale } from "next-intl"
 import { useEffect, useState } from "react"
 import {
   createEmptySearchAutocompleteResponse,
@@ -30,6 +31,7 @@ export function useSearchAutocomplete({
   enabled,
   regionId,
 }: UseSearchAutocompleteInput): UseSearchAutocompleteResult {
+  const locale = useLocale()
   const normalizedQuery = query
     .trim()
     .slice(0, SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH)
@@ -62,6 +64,7 @@ export function useSearchAutocomplete({
       const params = new URLSearchParams({
         q: normalizedQuery,
         currency: currencyCode,
+        locale,
       })
 
       if (countryCode) {
@@ -101,7 +104,7 @@ export function useSearchAutocomplete({
       window.clearTimeout(timeoutId)
       abortController.abort()
     }
-  }, [countryCode, currencyCode, enabled, normalizedQuery, regionId])
+  }, [countryCode, currencyCode, enabled, locale, normalizedQuery, regionId])
 
   return { data, status }
 }

@@ -32,6 +32,10 @@ import {
   PLP_PAGE_SIZE,
 } from "@/lib/storefront/plp-query-state"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
+import {
+  isSaleCategoryHandle,
+  resolveCategoryCatalogScope,
+} from "@/lib/storefront/sale-catalog-policy"
 
 const resolveBreadcrumbItems = (
   slug: string,
@@ -88,6 +92,7 @@ export function useCategoryListingQueries({
   slug,
 }: UseCategoryListingQueriesProps) {
   const locale = useLocale()
+  const tContent = useTranslations("content")
   const tNavigation = useTranslations("navigation")
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
@@ -142,10 +147,14 @@ export function useCategoryListingQueries({
     categoryById,
     tNavigation("breadcrumbs.home")
   )
+  const categoryCatalogScope = resolveCategoryCatalogScope(
+    slug,
+    activeCategoryFilterIds
+  )
 
   const catalogProductsInput = buildCatalogProductsParams({
     queryState,
-    categoryIds: activeCategoryFilterIds,
+    ...categoryCatalogScope,
     limit: PLP_PAGE_SIZE,
   })
 
@@ -168,7 +177,7 @@ export function useCategoryListingQueries({
       price_min: null,
       price_max: null,
     },
-    categoryIds: activeCategoryFilterIds,
+    ...categoryCatalogScope,
     limit: 1,
   })
 
@@ -194,6 +203,13 @@ export function useCategoryListingQueries({
     categories: categoriesQuery.categories,
     categoryById,
   })
+  let categorySubtitle = "Zobrazené produkty danej kategórie"
+
+  if (isSaleCategoryHandle(slug)) {
+    categorySubtitle = tContent("home.product_sections.sale")
+  } else if (activeCategoryFilterIds.length > 1) {
+    categorySubtitle = `Zobrazené vrátane ${activeCategoryFilterIds.length - 1} podkategórií`
+  }
 
   return {
     activeAsideFilterCount: resolveCatalogActiveFilterCount(queryState),
@@ -216,10 +232,7 @@ export function useCategoryListingQueries({
       categoryByHandle,
     }),
     categoryIntroText: resolveCategoryIntroText({ activeCategory }),
-    categorySubtitle:
-      activeCategoryFilterIds.length > 1
-        ? `Zobrazené vrátane ${activeCategoryFilterIds.length - 1} podkategórií`
-        : "Zobrazené produkty danej kategórie",
+    categorySubtitle,
     isCatalogQueryEnabled,
     isFiltersLoading:
       categoriesQuery.isLoading ||

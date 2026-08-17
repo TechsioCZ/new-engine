@@ -61,18 +61,18 @@ export function useHomepageController(): UseHomepageControllerResult {
     enabled: Boolean(region?.region_id),
   })
 
-  const actionProductsQuery = useCatalogProducts({
+  const saleProductsQuery = useCatalogProducts({
     page: 1,
     limit: PRODUCTS_PER_COLLECTION_SECTION,
     sort: "recommended",
-    status: ["action"],
+    on_sale: true,
     enabled: Boolean(region?.region_id),
   })
 
   const sectionQueries = [
     bestsellersProductsQuery,
     newProductsQuery,
-    actionProductsQuery,
+    saleProductsQuery,
   ]
 
   const shouldShowProductSkeleton =
@@ -92,7 +92,7 @@ export function useHomepageController(): UseHomepageControllerResult {
     },
     {
       ...PRODUCT_SECTIONS[2],
-      products: actionProductsQuery.products,
+      products: saleProductsQuery.products,
     },
   ]
 
@@ -101,7 +101,7 @@ export function useHomepageController(): UseHomepageControllerResult {
       categoriesQuery.error ??
       bestsellersProductsQuery.error ??
       newProductsQuery.error ??
-      actionProductsQuery.error,
+      saleProductsQuery.error,
     shouldShowProductSkeleton,
     leadingSections: preparedProductSections.slice(0, 2),
     trailingSections: preparedProductSections.slice(2),

@@ -1,8 +1,21 @@
 import { z } from "@medusajs/framework/zod"
 import { listProductQueryConfig } from "@medusajs/medusa/api/store/products/query-config"
+import {
+  normalizeProductSaleAdapterSelectionInput,
+  PRODUCT_SALE_ADAPTER_NAMES,
+} from "../../../../utils/product-sale-adapters"
 import { CATALOG_SORT_VALUES } from "./utils"
 
 const multiValueParamSchema = z.union([z.string(), z.array(z.string())])
+const onSaleParamSchema = z.preprocess(
+  normalizeProductSaleAdapterSelectionInput,
+  z
+    .union([
+      z.literal(true),
+      z.array(z.enum(PRODUCT_SALE_ADAPTER_NAMES)).min(1),
+    ])
+    .optional()
+)
 
 export const STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS = [
   "id",
@@ -35,6 +48,7 @@ export const STORE_CATALOG_PRODUCTS_PRICING_FIELDS = [
 const additionalAllowedFields = [
   ...STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
   ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
+  "sale_adapters",
   "categories.parent_category_id",
   "measurement",
   "variants.measurement",
@@ -63,6 +77,7 @@ export const StoreCatalogProductsSchema = z
     form: multiValueParamSchema.optional(),
     brand: multiValueParamSchema.optional(),
     ingredient: multiValueParamSchema.optional(),
+    on_sale: onSaleParamSchema,
     price_min: z.coerce.number().nonnegative().optional(),
     price_max: z.coerce.number().nonnegative().optional(),
   })

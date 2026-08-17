@@ -186,6 +186,7 @@ function ProductListActiveContent({
         return (
           <AccountProductListItemRow
             canChangeQuantity={accountLists.activeListSupportsQuantity}
+            currencyCode={accountLists.currencyCode}
             isAddingToCart={accountLists.activeProductId === product?.id}
             isDeleting={accountLists.activeDeleteItemId === existingItem?.id}
             isSettingQuantity={

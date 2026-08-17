@@ -11,11 +11,13 @@ type MedusaCategoryDetailQuery = SelectParams & Record<string, unknown>
 export type MedusaCategoryListInput = FindParams &
   HttpTypes.StoreProductCategoryListParams & {
     enabled?: boolean
+    locale?: string
   }
 
 export type MedusaCategoryDetailInput = SelectParams & {
   id?: string
   enabled?: boolean
+  locale?: string
 }
 
 export type MedusaCategoryTransformListContext<

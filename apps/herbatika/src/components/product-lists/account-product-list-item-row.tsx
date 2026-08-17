@@ -10,15 +10,17 @@ import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { useCallback, useEffect, useId, useRef, useState } from "react"
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants"
-import { resolvePriceState } from "@/components/product-card/product-card.pricing"
+import { resolveVariantPriceState } from "@/components/product-card/product-card.pricing"
 import type { StoreProductListItem } from "@/lib/storefront/product-lists"
 import {
   resolveProductListItemAvailability,
   resolveProductListItemQuantity,
+  resolveProductListItemVariant,
 } from "./account-product-lists.utils"
 
 type AccountProductListItemRowProps = {
   canChangeQuantity: boolean
+  currencyCode: string
   isAddingToCart: boolean
   isDeleting: boolean
   isSettingQuantity: boolean
@@ -58,8 +60,41 @@ const resolveAvailabilityLabel = (
   return null
 }
 
+const resolveItemDisplay = ({
+  currencyCode,
+  item,
+  priceUnavailableLabel,
+  product,
+}: {
+  currencyCode: string
+  item: StoreProductListItem
+  priceUnavailableLabel: string
+  product: HttpTypes.StoreProduct | null
+}) => {
+  if (!product) {
+    return { price: null, productHref: "#", selectedVariant: null }
+  }
+
+  const selectedVariant = resolveProductListItemVariant(item, product)
+  const variantQuery = selectedVariant?.id
+    ? `?variant=${encodeURIComponent(selectedVariant.id)}`
+    : ""
+
+  return {
+    price: resolveVariantPriceState(
+      product,
+      selectedVariant,
+      currencyCode,
+      priceUnavailableLabel
+    ),
+    productHref: product.handle ? `/p/${product.handle}${variantQuery}` : "#",
+    selectedVariant,
+  }
+}
+
 export function AccountProductListItemRow({
   canChangeQuantity,
+  currencyCode,
   isAddingToCart,
   isDeleting,
   isSettingQuantity,
@@ -75,15 +110,13 @@ export function AccountProductListItemRow({
   const itemProduct = product ?? item.product ?? null
   const productTitle =
     itemProduct?.title?.trim() || item.product_id || item.id || ""
-  const productHref = itemProduct?.handle ? `/p/${itemProduct.handle}` : "#"
+  const { price, productHref, selectedVariant } = resolveItemDisplay({
+    currencyCode,
+    item,
+    priceUnavailableLabel: tCatalog("product_card.price_on_request"),
+    product: itemProduct,
+  })
   const imageSrc = itemProduct?.thumbnail ?? PRODUCT_FALLBACK_IMAGE
-  const price = itemProduct
-    ? resolvePriceState(
-        itemProduct,
-        undefined,
-        tCatalog("product_card.price_on_request")
-      )
-    : null
   const quantity = resolveProductListItemQuantity(item)
   const availability = resolveProductListItemAvailability(item, itemProduct)
   const availabilityLabel = resolveAvailabilityLabel(availability, tAuth)
@@ -147,9 +180,9 @@ export function AccountProductListItemRow({
         >
           {productTitle}
         </Link>
-        {item.variant?.title ? (
+        {selectedVariant?.title ? (
           <p className="truncate text-fg-secondary text-xs">
-            {item.variant.title}
+            {selectedVariant.title}
           </p>
         ) : null}
         <div className="flex flex-wrap items-center gap-x-300 gap-y-100 text-sm">
@@ -159,7 +192,14 @@ export function AccountProductListItemRow({
             </span>
           )}
           {price ? (
-            <span className="font-semibold">{price.currentLabel}</span>
+            <span className="flex flex-col leading-tight">
+              {price.originalLabel ? (
+                <span className="text-fg-tertiary text-xs line-through">
+                  {price.originalLabel}
+                </span>
+              ) : null}
+              <span className="font-semibold">{price.currentLabel}</span>
+            </span>
           ) : null}
           {availabilityLabel ? (
             <Badge

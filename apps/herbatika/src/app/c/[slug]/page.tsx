@@ -2,6 +2,7 @@ import { HydrationBoundary } from "@tanstack/react-query"
 import { redirect } from "next/navigation"
 import { CategoryListing } from "@/components/category-listing"
 import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-state"
+import { SALE_CATEGORY_HANDLE } from "@/lib/storefront/sale-catalog-policy"
 import { prefetchCategoryPageStorefrontData } from "@/lib/storefront/ssr"
 
 type CategoryPageProps = {
@@ -12,7 +13,7 @@ type CategoryPageProps = {
 }
 
 const CATEGORY_SLUG_ALIASES: Record<string, string> = {
-  akcie: "vypredaj-zlavy-a-akcie",
+  akcie: SALE_CATEGORY_HANDLE,
 }
 
 export default async function CategoryPage({

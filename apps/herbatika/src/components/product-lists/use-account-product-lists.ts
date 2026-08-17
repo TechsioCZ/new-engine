@@ -21,7 +21,7 @@ import {
   useUpdateProductListItem,
 } from "@/lib/storefront/product-lists"
 import {
-  PRODUCT_CARD_FIELDS,
+  ACCOUNT_PRODUCT_LIST_FIELDS,
   type ProductListInput,
   useProducts,
 } from "@/lib/storefront/products"
@@ -138,7 +138,7 @@ export function useAccountProductLists() {
     id: productIds.length > 0 ? productIds : undefined,
     page: 1,
     limit: Math.max(productIds.length, 1),
-    fields: PRODUCT_CARD_FIELDS,
+    fields: ACCOUNT_PRODUCT_LIST_FIELDS,
     enabled: Boolean(region?.region_id && activeListId && productIds.length),
   } as ProductListInput)
   const productsById = buildProductMap(activeItems, productsQuery.products)
@@ -489,6 +489,7 @@ export function useAccountProductLists() {
     closeDeleteListDialog,
     createListCartMutation,
     createListMutation,
+    currencyCode: regionCurrencyCode,
     deleteList,
     deleteListMutation,
     handleAddToCart,

@@ -143,7 +143,7 @@ export async function GET(
   try {
     profile = resolveSearchProfile(
       {
-        locale: request.validatedQuery.locale,
+        locale: request.locale ?? request.validatedQuery.locale,
         requestedKey: request.validatedQuery.profile,
         salesChannelIds,
       },
@@ -261,54 +261,60 @@ export async function GET(
   let products: Record<string, unknown>[] = []
 
   if (productIds.length > 0) {
-    const result = await queryService.graph({
-      entity: "product",
-      fields: productFields,
-      filters: await normalizeProductSalesChannelFilter(
-        queryService,
-        remoteQuery,
-        {
-          id: { $in: productIds },
-          sales_channel_id: request.filterableFields.sales_channel_id,
-          status: ProductStatus.PUBLISHED,
-        }
-      ),
-      context: pricingContext
-        ? { variants: { calculated_price: pricingContext } }
-        : undefined,
-    })
+    const result = await queryService.graph(
+      {
+        entity: "product",
+        fields: productFields,
+        filters: await normalizeProductSalesChannelFilter(
+          queryService,
+          remoteQuery,
+          {
+            id: { $in: productIds },
+            sales_channel_id: request.filterableFields.sales_channel_id,
+            status: ProductStatus.PUBLISHED,
+          }
+        ),
+        context: pricingContext
+          ? { variants: { calculated_price: pricingContext } }
+          : undefined,
+      },
+      { locale: request.locale }
+    )
 
     products = expandProductsBySearchMatches(
       result.data as Record<string, unknown>[],
       productMatches
     )
   } else if (!productSearch) {
-    const result = await queryService.graph({
-      entity: "product",
-      fields: productFields,
-      filters: await normalizeProductSalesChannelFilter(
-        queryService,
-        remoteQuery,
-        {
-          q: query,
-          sales_channel_id: request.filterableFields.sales_channel_id,
-          status: ProductStatus.PUBLISHED,
-        }
-      ),
-
-      pagination: {
-        take: productResultLimit,
-        skip: 0,
-      },
-
-      context: pricingContext
-        ? {
-            variants: {
-              calculated_price: pricingContext,
-            },
+    const result = await queryService.graph(
+      {
+        entity: "product",
+        fields: productFields,
+        filters: await normalizeProductSalesChannelFilter(
+          queryService,
+          remoteQuery,
+          {
+            q: query,
+            sales_channel_id: request.filterableFields.sales_channel_id,
+            status: ProductStatus.PUBLISHED,
           }
-        : undefined,
-    })
+        ),
+
+        pagination: {
+          take: productResultLimit,
+          skip: 0,
+        },
+
+        context: pricingContext
+          ? {
+              variants: {
+                calculated_price: pricingContext,
+              },
+            }
+          : undefined,
+      },
+      { locale: request.locale }
+    )
 
     products = result.data as Record<string, unknown>[]
   }

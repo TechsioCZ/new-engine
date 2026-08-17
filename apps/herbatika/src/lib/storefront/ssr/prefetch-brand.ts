@@ -10,7 +10,7 @@ export const prefetchBrandPageStorefrontData = async (
   brandFacetId: string,
   queryState: PlpQueryState
 ) => {
-  const { queryClient, region } = await getRegionServerContext()
+  const { locale, queryClient, region } = await getRegionServerContext()
 
   if (region) {
     await Promise.all([
@@ -22,6 +22,7 @@ export const prefetchBrandPageStorefrontData = async (
             brand: [brandFacetId],
           },
           limit: PLP_PAGE_SIZE,
+          locale,
           regionId: region.region_id,
           countryCode: region.country_code,
         })
@@ -41,6 +42,7 @@ export const prefetchBrandPageStorefrontData = async (
             price_max: null,
           },
           limit: 1,
+          locale,
           regionId: region.region_id,
           countryCode: region.country_code,
         })
