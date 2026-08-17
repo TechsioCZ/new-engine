@@ -33,6 +33,7 @@ import { adminStorefrontTextRoutesMiddlewares } from "./admin/storefront-texts/m
 import { serveAdminAppStatic } from "./admin-app-static"
 import { storeBrandsRoutesMiddlewares } from "./store/brands/middlewares"
 import { storeCatalogProductsRoutesMiddlewares } from "./store/catalog/products/middlewares"
+import { storeClaimRoutesMiddlewares } from "./store/claims/middlewares"
 import { storeCmsRoutesMiddlewares } from "./store/cms/middlewares"
 import { storeCustomerReviewRoutesMiddlewares } from "./store/customers/me/reviews/middlewares"
 import { storeGLSBranchesRoutesMiddlewares } from "./store/gls/branches/middlewares"
@@ -104,6 +105,7 @@ export default defineMiddlewares({
     ...storeProductLocationAvailabilityRoutesMiddlewares,
     ...storeProductAttributesRoutesMiddlewares,
     ...storeBrandsRoutesMiddlewares,
+    ...storeClaimRoutesMiddlewares,
     ...storeReviewRoutesMiddlewares,
     ...storeShopReviewRoutesMiddlewares,
     ...storeStorefrontTextRoutesMiddlewares,

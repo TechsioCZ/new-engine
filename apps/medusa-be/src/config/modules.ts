@@ -246,6 +246,9 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
       resolve: "./src/modules/product-review",
     },
     {
+      resolve: "./src/modules/claim-case",
+    },
+    {
       resolve: "./src/modules/search-profile",
       dependencies: [Modules.CACHING],
     },
