@@ -75,14 +75,13 @@ const resolveFallbackFieldError = (meta: FieldErrorMeta) =>
   toFieldErrorText(meta.errors[0])
 
 const LIVE_VALIDATION_SOURCES = ["onDynamic", "onChange"] as const
-const BLURRED_SUBMITTED_VALIDATION_SOURCES = [
+const SUBMITTED_VALIDATION_SOURCES = [
   "onServer",
   "onSubmit",
   "onDynamic",
   "onChange",
   "onBlur",
 ] as const
-const SUBMITTED_VALIDATION_SOURCES = ["onServer", "onSubmit", "onBlur"] as const
 const BLURRED_VALIDATION_SOURCES = ["onDynamic", "onChange", "onBlur"] as const
 
 export const shouldTrackLiveFieldFeedback = ({
@@ -120,17 +119,6 @@ const resolveSubmittedFieldError = (
     return resolveChangedFieldError(meta)
   }
 
-  if (meta.isBlurred) {
-    const blurredResult = resolveErrorFromValidationSources(
-      meta,
-      BLURRED_SUBMITTED_VALIDATION_SOURCES
-    )
-
-    return blurredResult.matchedSource
-      ? blurredResult.errorText
-      : resolveFallbackFieldError(meta)
-  }
-
   const submittedResult = resolveErrorFromValidationSources(
     meta,
     SUBMITTED_VALIDATION_SOURCES
@@ -140,9 +128,7 @@ const resolveSubmittedFieldError = (
     return submittedResult.errorText
   }
 
-  return hasValidationResultFromSources(meta, LIVE_VALIDATION_SOURCES)
-    ? undefined
-    : resolveFallbackFieldError(meta)
+  return resolveFallbackFieldError(meta)
 }
 
 const resolveBlurredFieldError = (
