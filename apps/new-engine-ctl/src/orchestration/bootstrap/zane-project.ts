@@ -579,17 +579,20 @@ function buildZaneProjectServices(
     herbatika: servicePublicOriginSource(herbatikaSlug),
     meilisearch: servicePublicOriginSource(meilisearchSlug),
   }
-  const minioFileSource = context.minioFileUrlOverride
-    ? literalSource(context.minioFileUrlOverride)
-    : minioPublicDomain
-      ? literalSource(
-          `https://${minioPublicDomain}/${placeholderSharedValue("MEDUSA_MINIO_BUCKET")}`
-        )
-      : serviceInternalBucketUrlSource({
-          serviceSlug: minioSlug,
-          port: 9004,
-          bucketSharedEnvKey: "MEDUSA_MINIO_BUCKET",
-        })
+  let minioFileSource: BootstrapValueSource
+  if (context.minioFileUrlOverride) {
+    minioFileSource = literalSource(context.minioFileUrlOverride)
+  } else if (minioPublicDomain) {
+    minioFileSource = literalSource(
+      `https://${minioPublicDomain}/${placeholderSharedValue("MEDUSA_MINIO_BUCKET")}`
+    )
+  } else {
+    minioFileSource = serviceInternalBucketUrlSource({
+      serviceSlug: minioSlug,
+      port: 9004,
+      bucketSharedEnvKey: "MEDUSA_MINIO_BUCKET",
+    })
+  }
 
   return {
     "medusa-db": {
