@@ -1,5 +1,6 @@
 "use client"
 
+import { useStore } from "@tanstack/react-form"
 import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group"
 import type { ReactNode } from "react"
 import { resolveVisibleFieldFeedback } from "@/lib/forms/core/field-errors"
@@ -38,10 +39,14 @@ export function FormRadioGroupField({
   variant = "outline",
 }: FormRadioGroupFieldProps) {
   const field = useFieldContext<string>()
+  const submissionAttempts = useStore(
+    field.form.store,
+    (state) => state.submissionAttempts
+  )
   const value = typeof field.state.value === "string" ? field.state.value : ""
   const fieldFeedback = resolveVisibleFieldFeedback({
     meta: field.state.meta,
-    submissionAttempts: field.form.state.submissionAttempts,
+    submissionAttempts,
     validationMode,
   })
 

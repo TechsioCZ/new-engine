@@ -1,5 +1,6 @@
 "use client"
 
+import { useStore } from "@tanstack/react-form"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
 import type { ReactNode } from "react"
 import { resolveVisibleFieldFeedback } from "@/lib/forms/core/field-errors"
@@ -23,9 +24,13 @@ export function FormCheckboxField({
   onValueChange,
 }: FormCheckboxFieldProps) {
   const field = useFieldContext<boolean>()
+  const submissionAttempts = useStore(
+    field.form.store,
+    (state) => state.submissionAttempts
+  )
   const fieldFeedback = resolveVisibleFieldFeedback({
     meta: field.state.meta,
-    submissionAttempts: field.form.state.submissionAttempts,
+    submissionAttempts,
     validationMode,
   })
 
