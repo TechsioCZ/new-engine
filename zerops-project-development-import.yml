@@ -56,7 +56,6 @@ services:
       FILE_LOCAL_UPLOAD_DIR: /tmp/medusa-be-files
       # Feature flags - set to "1" to enable, "0" or empty to disable
       FEATURE_PPL_ENABLED: "0"
-      PPL_ENVIRONMENT: testing
       FEATURE_PACKETA_ENABLED: "0"
     verticalAutoscaling:
       minRam: 0.5

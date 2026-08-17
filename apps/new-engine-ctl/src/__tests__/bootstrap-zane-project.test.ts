@@ -204,9 +204,9 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     const herbatika = plan.services.find(
       (service) => service.service_id === "herbatika"
     )
-    expect(herbatika?.desired_env).toMatchObject({
-      NEXT_PUBLIC_PPL_WIDGET_API_KEY: "",
-    })
+    expect(herbatika?.desired_env).not.toHaveProperty(
+      "NEXT_PUBLIC_PPL_WIDGET_API_KEY"
+    )
     expect(herbatika?.desired_env).not.toHaveProperty(
       "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"
     )

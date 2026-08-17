@@ -1,9 +1,17 @@
+import type { SqlEntityManager } from "@medusajs/framework/mikro-orm/knex"
 import type {
+  Context,
   ICachingModuleService,
   ILockingModule,
   Logger,
 } from "@medusajs/framework/types"
-import { MedusaError, MedusaService, Modules } from "@medusajs/framework/utils"
+import {
+  InjectTransactionManager,
+  MedusaContext,
+  MedusaError,
+  MedusaService,
+  Modules,
+} from "@medusajs/framework/utils"
 import { decryptFields, encryptFields } from "../../utils/encryption"
 import { safeResolve } from "../../utils/safe-resolve"
 import { PplClient } from "./client"
@@ -19,6 +27,7 @@ import {
   type PplCodelistServiceItem,
   type PplCodelistStatus,
   type PplConfigDTO,
+  type PplConfigReference,
   type PplCustomerAddressResponse,
   type PplCustomerInfo,
   type PplEnvironment,
@@ -32,19 +41,13 @@ import {
   type UpdatePplConfigInput,
 } from "./types"
 
-// ============================================
-// Cache Configuration
-// ============================================
-
 const CACHE_KEYS = {
-  TOKEN: "ppl:oauth:token",
   RATE_LIMIT: "ppl:rate:last_request",
   COUNTRIES: "ppl:codelist:countries",
   CURRENCIES: "ppl:codelist:currencies",
   PRODUCTS: "ppl:codelist:products",
   SERVICES: "ppl:codelist:services",
   STATUSES: "ppl:codelist:statuses",
-  CONFIG: "ppl:config",
 } as const
 
 const LOCK_KEYS = {
@@ -59,7 +62,6 @@ const CACHE_TAGS = {
 const CACHE_TTL = {
   CODELISTS: 3600, // 1 hour
   RATE_LIMIT: 1, // 1 second
-  CONFIG: 60, // 60 seconds for config (lazy reload)
 } as const
 
 const MIN_REQUEST_INTERVAL_MS = 40
@@ -81,45 +83,21 @@ type UsablePplConfig = PplConfigDTO & {
   client_secret: string
 }
 
-/**
- * Module options passed from medusa-config.ts
- */
-type PplModuleOptions = {
-  environment: PplEnvironment
-}
-
-/**
- * PPL Client Module Service
- *
- * Manages the PPL API client lifecycle and provides:
- * - DB-stored configuration with encryption for sensitive fields
- * - Distributed rate limiting via Redis (prioritized)
- * - Shared OAuth token across containers via Redis
- * - Cached codelists with tag-based invalidation
- * - Lazy client initialization (re-created when config changes)
- * - Local fallback only when Redis is unavailable
- *
- * This module is only registered when FEATURE_PPL_ENABLED=1.
- * Config is stored in DB - admin enables/disables via Settings → PPL.
- */
 export class PplClientModuleService extends MedusaService({ PplConfig }) {
-  private client_: PplClient | null = null
   private readonly logger_: Logger
   private readonly cacheService_: ICachingModuleService | null
   private readonly lockingService_: ILockingModule | null
-  private readonly environment_: PplEnvironment
 
-  // Local fallback state (only used when Redis unavailable)
-  private fallbackToken_: string | null = null
-  private fallbackTokenExpiresAt_ = 0
+  private readonly fallbackTokens_ = new Map<string, CachedToken>()
   private fallbackLastRequestTime_ = 0
 
-  constructor(container: InjectedDependencies, options: PplModuleOptions) {
+  constructor(
+    container: InjectedDependencies,
+    options: Record<string, unknown> = {}
+  ) {
     super(container, options)
 
     this.logger_ = container.logger
-    this.environment_ = options.environment
-
     this.cacheService_ = safeResolve<ICachingModuleService>(
       container,
       Modules.CACHING
@@ -136,50 +114,70 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     }
 
     this.logger_.info(
-      `PPL: Module service initialized (${this.environment_} environment)`
+      "PPL: Module service initialized with Admin-managed profiles"
     )
   }
 
-  // ============================================
-  // Config Management (DB-stored)
-  // ============================================
-
-  /**
-   * Get config for current environment (decrypted)
-   */
-  async getConfig(): Promise<PplConfigDTO | null> {
+  async listConfigProfiles(): Promise<PplConfigDTO[]> {
     const configs = await this.listPplConfigs(
-      { environment: this.environment_ },
-      { take: 1 }
+      {},
+      { order: { environment: "ASC" } }
     )
+    return configs.map((config) => this.decryptConfig(config))
+  }
+
+  async getConfig(environment?: PplEnvironment): Promise<PplConfigDTO | null> {
+    if (!environment) {
+      return this.getActiveConfig()
+    }
+
+    const configs = await this.listPplConfigs({ environment }, { take: 1 })
     const config = configs[0]
     if (!config) {
       return null
     }
-    return decryptFields(config as unknown as PplConfigDTO, [
-      ...PPL_SENSITIVE_FIELDS,
-    ])
+    return this.decryptConfig(config)
   }
 
-  /**
-   * Update config for current environment
-   * Empty string for sensitive fields = keep existing value
-   * null for sensitive fields = clear the value
-   */
-  async updateConfig(data: UpdatePplConfigInput): Promise<PplConfigDTO> {
-    const existing = await this.getConfig()
+  async getActiveConfig(): Promise<PplConfigDTO> {
+    const configs = await this.listPplConfigs({ is_active: true }, { take: 2 })
+    if (configs.length !== 1) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "PPL must have exactly one active configuration profile"
+      )
+    }
+    return this.decryptConfig(configs[0])
+  }
 
-    // Handle sensitive fields: empty string = keep, null = clear
+  private decryptConfig(config: unknown): PplConfigDTO {
+    return decryptFields(config as PplConfigDTO, [...PPL_SENSITIVE_FIELDS])
+  }
+
+  async updateConfig(
+    environmentOrData: PplEnvironment | UpdatePplConfigInput,
+    profileData?: UpdatePplConfigInput
+  ): Promise<PplConfigDTO> {
+    const existingActive =
+      typeof environmentOrData === "string" ? null : await this.getConfig()
+    const environment =
+      typeof environmentOrData === "string"
+        ? environmentOrData
+        : (existingActive?.environment ?? "testing")
+    const data =
+      typeof environmentOrData === "string"
+        ? (profileData ?? {})
+        : environmentOrData
+    const existing = await this.getConfig(environment)
+
     const filteredData = { ...data }
     for (const field of PPL_SENSITIVE_FIELDS) {
       const key = field as keyof UpdatePplConfigInput
       if (filteredData[key] === "") {
         delete filteredData[key]
       }
-      // null is kept as-is to clear the value
     }
 
-    // Encrypt sensitive fields
     const encrypted = encryptFields(filteredData, [...PPL_SENSITIVE_FIELDS])
 
     if (existing) {
@@ -187,52 +185,103 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
         id: existing.id,
         ...encrypted,
       })
-      await this.invalidateConfigCache()
-      return decryptFields(updated as unknown as PplConfigDTO, [
-        ...PPL_SENSITIVE_FIELDS,
-      ])
+      await this.invalidateAllCaches()
+      return this.decryptConfig(updated)
     }
 
-    // Should not happen if loader ran, but create with environment just in case
     const created = await this.createPplConfigs({
       ...encrypted,
-      environment: this.environment_,
+      environment,
     })
-    await this.invalidateConfigCache()
-    return decryptFields(created as unknown as PplConfigDTO, [
-      ...PPL_SENSITIVE_FIELDS,
-    ])
+    await this.invalidateAllCaches()
+    return this.decryptConfig(created)
   }
 
-  /**
-   * Get effective config for API calls (from DB with caching)
-   * Returns null if PPL is disabled or not configured
-   */
-  async getEffectiveConfig(): Promise<PplOptions | null> {
-    const cached = await this.getCachedEffectiveConfig()
-    if (cached) {
-      return cached
+  async activateConfig(
+    environment: PplEnvironment,
+    confirmed: boolean
+  ): Promise<PplConfigDTO> {
+    const lockingService = this.lockingService_
+    if (!lockingService) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "PPL configuration requires the locking module"
+      )
     }
 
-    const config = await this.getConfig()
+    return lockingService.execute("ppl:activate-config", async () => {
+      const profiles = await this.listConfigProfiles()
+      const target = profiles.find(
+        (profile) => profile.environment === environment
+      )
+      if (!target) {
+        throw new MedusaError(
+          MedusaError.Types.NOT_FOUND,
+          `PPL ${environment} profile was not found`
+        )
+      }
+
+      if (environment === "production") {
+        if (!confirmed) {
+          throw new MedusaError(
+            MedusaError.Types.NOT_ALLOWED,
+            "Activating the PPL production profile requires explicit confirmation"
+          )
+        }
+        if (!this.isConfigUsable(target)) {
+          throw new MedusaError(
+            MedusaError.Types.INVALID_DATA,
+            "Enable the PPL production profile and complete its API credentials before activating it"
+          )
+        }
+      }
+
+      const inactiveUpdates = profiles
+        .filter((profile) => profile.id !== target.id && profile.is_active)
+        .map((profile) => ({ id: profile.id, is_active: false }))
+      const updatedTarget = await this.switchActiveConfig(
+        inactiveUpdates,
+        target.id
+      )
+      await this.invalidateAllCaches()
+
+      return this.decryptConfig(updatedTarget)
+    })
+  }
+
+  @InjectTransactionManager()
+  protected async switchActiveConfig(
+    inactiveUpdates: Array<{ id: string; is_active: boolean }>,
+    targetId: string,
+    @MedusaContext() sharedContext: Context<SqlEntityManager> = {}
+  ): Promise<unknown> {
+    if (inactiveUpdates.length > 0) {
+      await this.updatePplConfigs(inactiveUpdates, sharedContext)
+      const transactionManager = sharedContext.transactionManager
+      if (!transactionManager) {
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
+          "PPL configuration transaction manager is unavailable"
+        )
+      }
+      await transactionManager.flush()
+    }
+
+    return this.updatePplConfigs(
+      { id: targetId, is_active: true },
+      sharedContext
+    )
+  }
+
+  async getEffectiveConfig(
+    reference: PplConfigReference = {}
+  ): Promise<PplOptions | null> {
+    const config = await this.resolveConfig(reference)
     if (!this.isConfigUsable(config)) {
       return null
     }
 
-    const options = this.buildEffectiveOptions(config)
-    await this.cacheEffectiveConfig(options)
-
-    return options
-  }
-
-  private async getCachedEffectiveConfig(): Promise<PplOptions | null> {
-    if (!this.cacheService_) {
-      return null
-    }
-
-    const cached = await this.cacheService_.get({ key: CACHE_KEYS.CONFIG })
-
-    return cached ? (cached as PplOptions) : null
+    return this.buildEffectiveOptions(config)
   }
 
   private isConfigUsable(
@@ -245,9 +294,10 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
 
   private buildEffectiveOptions(config: UsablePplConfig): PplOptions {
     return {
+      config_id: config.id,
       client_id: config.client_id,
       client_secret: config.client_secret,
-      environment: this.environment_,
+      environment: config.environment,
       default_label_format: config.default_label_format as PplLabelFormat,
       cod_bank_account: config.cod_bank_account ?? undefined,
       cod_bank_code: config.cod_bank_code ?? undefined,
@@ -263,39 +313,42 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     }
   }
 
-  private async cacheEffectiveConfig(options: PplOptions): Promise<void> {
-    if (!this.cacheService_) {
-      return
+  private async resolveConfig(
+    reference: PplConfigReference
+  ): Promise<PplConfigDTO | null> {
+    if (reference.config_id) {
+      const configs = await this.listPplConfigs(
+        { id: reference.config_id },
+        { take: 1 }
+      )
+      const config = configs[0]
+      if (!config) {
+        return null
+      }
+      const decrypted = this.decryptConfig(config)
+      if (
+        reference.environment &&
+        reference.environment !== decrypted.environment
+      ) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "PPL configuration reference does not match its profile"
+        )
+      }
+      return decrypted
     }
 
-    await this.cacheService_.set({
-      key: CACHE_KEYS.CONFIG,
-      data: options,
-      ttl: CACHE_TTL.CONFIG,
-      tags: [CACHE_TAGS.ALL],
-    })
+    return this.getConfig(reference.environment)
   }
 
-  /**
-   * Invalidate config cache (call after config update)
-   */
   async invalidateConfigCache(): Promise<void> {
-    this.client_ = null // Force client re-init
-    if (this.cacheService_) {
-      await this.cacheService_.clear({ key: CACHE_KEYS.CONFIG })
-    }
+    await this.invalidateAllCaches()
   }
 
-  // ============================================
-  // Lazy Client Initialization
-  // ============================================
-
-  private async getClient(): Promise<PplClient> {
-    if (this.client_) {
-      return this.client_
-    }
-
-    const config = await this.getEffectiveConfig()
+  private async getClient(
+    reference: PplConfigReference = {}
+  ): Promise<{ client: PplClient; config: PplOptions }> {
+    const config = await this.getEffectiveConfig(reference)
     if (!config) {
       throw new MedusaError(
         MedusaError.Types.NOT_ALLOWED,
@@ -303,19 +356,14 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       )
     }
 
-    this.client_ = new PplClient(config)
-    return this.client_
+    return { client: new PplClient(config), config }
   }
 
-  // ============================================
-  // Token Management (Redis prioritized)
-  // ============================================
-
-  private async getToken(): Promise<string> {
-    // Redis available - use distributed token
+  private async getToken(client: PplClient, configId: string): Promise<string> {
+    const tokenCacheKey = `ppl:oauth:token:${configId}`
     if (this.cacheService_) {
       const cached = (await this.cacheService_.get({
-        key: CACHE_KEYS.TOKEN,
+        key: tokenCacheKey,
       })) as CachedToken | null
 
       if (cached && cached.expiresAt > Date.now() + TOKEN_BUFFER_MS) {
@@ -323,19 +371,17 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
         return cached.accessToken
       }
 
-      // Need new token - acquire rate limit slot first
       await this.acquireRateLimitSlot()
 
       const { accessToken, expiresAt } =
-        await this.fetchTokenWithErrorHandling()
+        await this.fetchTokenWithErrorHandling(client)
 
-      // Store in Redis
       const ttlSeconds = Math.max(
         1,
         Math.floor((expiresAt - Date.now()) / 1000) - 60
       )
       await this.cacheService_.set({
-        key: CACHE_KEYS.TOKEN,
+        key: tokenCacheKey,
         data: { accessToken, expiresAt } satisfies CachedToken,
         ttl: ttlSeconds,
         tags: [CACHE_TAGS.ALL],
@@ -345,29 +391,27 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       return accessToken
     }
 
-    // Fallback: Local-only mode (Redis unavailable)
+    const fallbackToken = this.fallbackTokens_.get(configId)
     if (
-      this.fallbackToken_ &&
-      this.fallbackTokenExpiresAt_ > Date.now() + TOKEN_BUFFER_MS
+      fallbackToken &&
+      fallbackToken.expiresAt > Date.now() + TOKEN_BUFFER_MS
     ) {
-      return this.fallbackToken_
+      return fallbackToken.accessToken
     }
 
     await this.acquireRateLimitSlot()
 
-    const tokenResult = await this.fetchTokenWithErrorHandling()
-    this.fallbackToken_ = tokenResult.accessToken
-    this.fallbackTokenExpiresAt_ = tokenResult.expiresAt
+    const tokenResult = await this.fetchTokenWithErrorHandling(client)
+    this.fallbackTokens_.set(configId, tokenResult)
 
     return tokenResult.accessToken
   }
 
-  private async fetchTokenWithErrorHandling(): Promise<{
+  private async fetchTokenWithErrorHandling(client: PplClient): Promise<{
     accessToken: string
     expiresAt: number
   }> {
     try {
-      const client = await this.getClient()
       const result = await client.fetchNewToken()
       this.logger_.debug("PPL: OAuth token obtained/refreshed")
       return result
@@ -481,17 +525,10 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     return new Promise((resolve) => setTimeout(resolve, ms))
   }
 
-  // ============================================
-  // Public API: Configuration
-  // ============================================
-
   async getEnvironment(): Promise<PplEnvironment> {
-    return this.environment_
+    const config = await this.getActiveConfig()
+    return config.environment
   }
-
-  // ============================================
-  // Public API: Cache Invalidation
-  // ============================================
 
   async invalidateCodelists(): Promise<void> {
     if (!this.cacheService_) {
@@ -502,10 +539,9 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
   }
 
   async invalidateAllCaches(): Promise<void> {
+    this.fallbackTokens_.clear()
+
     if (!this.cacheService_) {
-      // Clear local fallback
-      this.fallbackToken_ = null
-      this.fallbackTokenExpiresAt_ = 0
       return
     }
 
@@ -523,39 +559,52 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       labelSettings?: PplLabelSettings
       returnChannel?: PplReturnChannel
       shipmentsOrderBy?: string
-    }
+    },
+    reference: PplConfigReference = {}
   ): Promise<string> {
     await this.acquireRateLimitSlot()
-    const token = await this.getToken()
-    const client = await this.getClient()
+    const { client, config } = await this.getClient(reference)
+    const token = await this.getToken(client, config.config_id)
     return client.createShipmentBatch(token, shipments, options)
   }
 
-  async getBatchStatus(batchId: string): Promise<PplBatchResponse> {
+  async getBatchStatus(
+    batchId: string,
+    reference: PplConfigReference = {}
+  ): Promise<PplBatchResponse> {
     await this.acquireRateLimitSlot()
-    const token = await this.getToken()
-    const client = await this.getClient()
+    const { client, config } = await this.getClient(reference)
+    const token = await this.getToken(client, config.config_id)
     return client.getBatchStatus(token, batchId)
   }
 
-  async downloadLabel(labelUrl: string): Promise<Buffer> {
+  async downloadLabel(
+    labelUrl: string,
+    reference: PplConfigReference = {}
+  ): Promise<Buffer> {
     await this.acquireRateLimitSlot()
-    const token = await this.getToken()
-    const client = await this.getClient()
+    const { client, config } = await this.getClient(reference)
+    const token = await this.getToken(client, config.config_id)
     return client.downloadLabel(token, labelUrl)
   }
 
-  async getShipmentInfo(query: PplShipmentQuery): Promise<PplShipmentInfo[]> {
+  async getShipmentInfo(
+    query: PplShipmentQuery,
+    reference: PplConfigReference = {}
+  ): Promise<PplShipmentInfo[]> {
     await this.acquireRateLimitSlot()
-    const token = await this.getToken()
-    const client = await this.getClient()
+    const { client, config } = await this.getClient(reference)
+    const token = await this.getToken(client, config.config_id)
     return client.getShipmentInfo(token, query)
   }
 
-  async cancelShipment(shipmentNumber: string): Promise<boolean> {
+  async cancelShipment(
+    shipmentNumber: string,
+    reference: PplConfigReference = {}
+  ): Promise<boolean> {
     await this.acquireRateLimitSlot()
-    const token = await this.getToken()
-    const client = await this.getClient()
+    const { client, config } = await this.getClient(reference)
+    const token = await this.getToken(client, config.config_id)
     const result = await client.cancelShipment(token, shipmentNumber)
     if (result) {
       this.logger_.info(`PPL: Shipment ${shipmentNumber} cancelled`)
@@ -573,8 +622,8 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     query: PplAccessPointsQuery = {}
   ): Promise<PplAccessPoint[]> {
     await this.acquireRateLimitSlot()
-    const token = await this.getToken()
-    const client = await this.getClient()
+    const { client, config } = await this.getClient()
+    const token = await this.getToken(client, config.config_id)
     return client.getAccessPoints(token, query)
   }
 
@@ -587,8 +636,8 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       CACHE_KEYS.COUNTRIES,
       async () => {
         await this.acquireRateLimitSlot()
-        const token = await this.getToken()
-        const client = await this.getClient()
+        const { client, config } = await this.getClient()
+        const token = await this.getToken(client, config.config_id)
         return client.getCodelistCountries(token)
       },
       CACHE_TTL.CODELISTS,
@@ -601,8 +650,8 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       CACHE_KEYS.CURRENCIES,
       async () => {
         await this.acquireRateLimitSlot()
-        const token = await this.getToken()
-        const client = await this.getClient()
+        const { client, config } = await this.getClient()
+        const token = await this.getToken(client, config.config_id)
         return client.getCodelistCurrencies(token)
       },
       CACHE_TTL.CODELISTS,
@@ -615,8 +664,8 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       CACHE_KEYS.PRODUCTS,
       async () => {
         await this.acquireRateLimitSlot()
-        const token = await this.getToken()
-        const client = await this.getClient()
+        const { client, config } = await this.getClient()
+        const token = await this.getToken(client, config.config_id)
         return client.getCodelistProducts(token)
       },
       CACHE_TTL.CODELISTS,
@@ -629,8 +678,8 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       CACHE_KEYS.SERVICES,
       async () => {
         await this.acquireRateLimitSlot()
-        const token = await this.getToken()
-        const client = await this.getClient()
+        const { client, config } = await this.getClient()
+        const token = await this.getToken(client, config.config_id)
         return client.getCodelistServices(token)
       },
       CACHE_TTL.CODELISTS,
@@ -643,8 +692,8 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
       CACHE_KEYS.STATUSES,
       async () => {
         await this.acquireRateLimitSlot()
-        const token = await this.getToken()
-        const client = await this.getClient()
+        const { client, config } = await this.getClient()
+        const token = await this.getToken(client, config.config_id)
         return client.getCodelistStatuses(token)
       },
       CACHE_TTL.CODELISTS,
@@ -656,10 +705,12 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
   // Public API: Customer Data (not cached)
   // ============================================
 
-  async getCustomerInfo(): Promise<PplCustomerInfo | null> {
+  async getCustomerInfo(
+    reference: PplConfigReference = {}
+  ): Promise<PplCustomerInfo | null> {
     await this.acquireRateLimitSlot()
-    const token = await this.getToken()
-    const client = await this.getClient()
+    const { client, config } = await this.getClient(reference)
+    const token = await this.getToken(client, config.config_id)
     const result = await client.getCustomerInfo(token)
     if (!result) {
       this.logger_.warn(
@@ -669,10 +720,12 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
     return result
   }
 
-  async getCustomerAddresses(): Promise<PplCustomerAddressResponse | null> {
+  async getCustomerAddresses(
+    reference: PplConfigReference = {}
+  ): Promise<PplCustomerAddressResponse | null> {
     await this.acquireRateLimitSlot()
-    const token = await this.getToken()
-    const client = await this.getClient()
+    const { client, config } = await this.getClient(reference)
+    const token = await this.getToken(client, config.config_id)
     const result = await client.getCustomerAddresses(token)
     if (!result) {
       this.logger_.warn("PPL: Customer has no address configured in PPL system")

@@ -5,6 +5,7 @@ import {
   Heading,
   Input,
   Label,
+  Prompt,
   Select,
   Switch,
   Text,
@@ -20,10 +21,12 @@ export const handle = {
 
 type PplConfigResponse = {
   id: string
-  environment: string
+  environment: PplEnvironment
+  is_active: boolean
   is_enabled: boolean
   client_id: string | null
   client_secret_set: boolean
+  widget_api_key_set: boolean
   default_label_format: string
   cod_bank_account_set: boolean
   cod_bank_code_set: boolean
@@ -38,10 +41,18 @@ type PplConfigResponse = {
   sender_email: string | null
 }
 
+type PplEnvironment = "testing" | "production"
+
+type PplProfilesResponse = {
+  active_environment: PplEnvironment
+  profiles: PplConfigResponse[]
+}
+
 type PplConfigInput = {
   is_enabled?: boolean
   client_id?: string
   client_secret?: string | null
+  widget_api_key?: string | null
   default_label_format?: string
   cod_bank_account?: string | null
   cod_bank_code?: string | null
@@ -56,9 +67,9 @@ type PplConfigInput = {
   sender_email?: string
 }
 
-/** Fields that can be cleared (encrypted in DB) */
 const CLEARABLE_FIELDS = new Set([
   "client_secret",
+  "widget_api_key",
   "cod_bank_account",
   "cod_bank_code",
   "cod_iban",
@@ -151,17 +162,20 @@ const FormField = ({
 
 const PplSettingsPage = () => {
   const queryClient = useQueryClient()
+  const [selectedEnvironment, setSelectedEnvironment] =
+    useState<PplEnvironment | null>(null)
+  const [confirmProductionActivation, setConfirmProductionActivation] =
+    useState(false)
   const [formData, setFormData] = useState<PplConfigInput>({})
   const [clearedFields, setClearedFields] = useState<Set<string>>(new Set())
 
   const { data, isLoading, error } = useQuery({
-    queryFn: () =>
-      sdk.client.fetch<{ config: PplConfigResponse }>("/admin/ppl-config"),
+    queryFn: () => sdk.client.fetch<PplProfilesResponse>("/admin/ppl-config"),
     queryKey: ["ppl-config"],
   })
 
   const { mutate, isPending } = useMutation({
-    mutationFn: (payload: PplConfigInput) =>
+    mutationFn: (payload: PplConfigInput & { environment: PplEnvironment }) =>
       sdk.client.fetch("/admin/ppl-config", {
         method: "POST",
         body: payload,
@@ -175,7 +189,39 @@ const PplSettingsPage = () => {
     },
   })
 
-  const pplConfig = data?.config
+  const { mutate: activateProfile, isPending: isActivating } = useMutation({
+    mutationFn: (environment: PplEnvironment) =>
+      sdk.client.fetch("/admin/ppl-config/active", {
+        method: "POST",
+        body: { environment, confirmed: environment === "production" },
+      }),
+    onSuccess: () => {
+      setConfirmProductionActivation(false)
+      queryClient.invalidateQueries({ queryKey: ["ppl-config"] })
+      toast.success("Active PPL profile changed")
+    },
+    onError: (err) => {
+      toast.error(`Failed to activate profile: ${err.message}`)
+    },
+  })
+
+  const displayedEnvironment =
+    selectedEnvironment ?? data?.active_environment ?? "testing"
+  const pplConfig = data?.profiles.find(
+    (profile) => profile.environment === displayedEnvironment
+  )
+
+  useEffect(() => {
+    if (!data) {
+      return
+    }
+    setSelectedEnvironment((current) =>
+      current &&
+      data.profiles.some((profile) => profile.environment === current)
+        ? current
+        : data.active_environment
+    )
+  }, [data])
 
   useEffect(() => {
     if (pplConfig) {
@@ -197,8 +243,10 @@ const PplSettingsPage = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Set cleared fields to null in the payload
-    const payload = { ...formData }
+    const payload: PplConfigInput & { environment: PplEnvironment } = {
+      ...formData,
+      environment: displayedEnvironment,
+    }
     for (const field of clearedFields) {
       payload[field as keyof PplConfigInput] = null as never
     }
@@ -210,7 +258,6 @@ const PplSettingsPage = () => {
     value: string | boolean
   ) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
-    // If user types in a cleared field, unmark it
     if (clearedFields.has(field)) {
       setClearedFields((prev) => {
         const next = new Set(prev)
@@ -222,6 +269,14 @@ const PplSettingsPage = () => {
 
   const clearField = (field: string) => {
     setClearedFields((prev) => new Set(prev).add(field))
+  }
+
+  const handleActivate = () => {
+    if (displayedEnvironment === "production") {
+      setConfirmProductionActivation(true)
+      return
+    }
+    activateProfile(displayedEnvironment)
   }
 
   if (isLoading) {
@@ -294,6 +349,17 @@ const PplSettingsPage = () => {
     },
   ]
 
+  const widgetFields: FieldConfig[] = [
+    {
+      field: "widget_api_key",
+      label: "Widget API Key",
+      placeholder: "Your PPL Widget API Key",
+      type: "password",
+      isSet: pplConfig?.widget_api_key_set,
+      colSpan: 2,
+    },
+  ]
+
   const senderFields: FieldConfig[] = [
     { field: "sender_name", label: "Name", placeholder: "Company name" },
     { field: "sender_street", label: "Street", placeholder: "Street address" },
@@ -318,13 +384,46 @@ const PplSettingsPage = () => {
     <Container className="divide-y p-0">
       <div className="px-6 py-4">
         <Heading level="h1">PPL Configuration</Heading>
-        <Text className="text-ui-fg-subtle">
-          Environment: {pplConfig?.environment}
-        </Text>
+      </div>
+
+      <div className="px-6 py-4">
+        <div className="flex items-end justify-between gap-4">
+          <div className="flex w-full max-w-md flex-col gap-2">
+            <Label htmlFor="ppl-configuration-profile">
+              Configuration profile
+            </Label>
+            <Select
+              onValueChange={(value) =>
+                setSelectedEnvironment(value as PplEnvironment)
+              }
+              value={displayedEnvironment}
+            >
+              <Select.Trigger id="ppl-configuration-profile">
+                <Select.Value />
+              </Select.Trigger>
+              <Select.Content>
+                <Select.Item value="testing">Testing</Select.Item>
+                <Select.Item value="production">Production</Select.Item>
+              </Select.Content>
+            </Select>
+          </div>
+          <Button
+            disabled={pplConfig?.is_active || isActivating}
+            isLoading={isActivating}
+            onClick={handleActivate}
+            type="button"
+            variant={
+              displayedEnvironment === "production" && !pplConfig?.is_active
+                ? "danger"
+                : "secondary"
+            }
+          >
+            {pplConfig?.is_active ? "Active profile" : "Activate profile"}
+          </Button>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit}>
-        {/* General */}
         <div className="px-6 py-4">
           <Heading className="mb-4" level="h2">
             General
@@ -352,30 +451,9 @@ const PplSettingsPage = () => {
                 }
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="ppl-label-format">Label Format</Label>
-              <Select
-                onValueChange={(value) =>
-                  updateField("default_label_format", value)
-                }
-                value={formData.default_label_format}
-              >
-                <Select.Trigger id="ppl-label-format">
-                  <Select.Value placeholder="Select format" />
-                </Select.Trigger>
-                <Select.Content>
-                  {LABEL_FORMATS.map((f) => (
-                    <Select.Item key={f.value} value={f.value}>
-                      {f.label}
-                    </Select.Item>
-                  ))}
-                </Select.Content>
-              </Select>
-            </div>
           </div>
         </div>
 
-        {/* API Credentials */}
         <div className="border-t px-6 py-4">
           <Heading className="mb-4" level="h2">
             API Credentials
@@ -394,7 +472,53 @@ const PplSettingsPage = () => {
           </div>
         </div>
 
-        {/* COD Banking */}
+        <div className="border-t px-6 py-4">
+          <Heading className="mb-4" level="h2">
+            Label Printing
+          </Heading>
+          <div className="flex max-w-md flex-col gap-2">
+            <Label htmlFor="ppl-label-format">Label Format</Label>
+            <Select
+              onValueChange={(value) =>
+                updateField("default_label_format", value)
+              }
+              value={formData.default_label_format}
+            >
+              <Select.Trigger id="ppl-label-format">
+                <Select.Value placeholder="Select format" />
+              </Select.Trigger>
+              <Select.Content>
+                {LABEL_FORMATS.map((format) => (
+                  <Select.Item key={format.value} value={format.value}>
+                    {format.label}
+                  </Select.Item>
+                ))}
+              </Select.Content>
+            </Select>
+          </div>
+        </div>
+
+        <div className="border-t px-6 py-4">
+          <Heading className="mb-2" level="h2">
+            Pickup Point Widget
+          </Heading>
+          <Text className="mb-4 text-sm text-ui-fg-subtle">
+            Browser key used to open the PPL pickup-point selector at checkout
+          </Text>
+          <div className="grid grid-cols-2 gap-4">
+            {widgetFields.map((field) => (
+              <FormField
+                fieldConfig={field}
+                isCleared={clearedFields.has(field.field)}
+                key={field.field}
+                onChange={(value) => updateField(field.field, value)}
+                onClear={() => clearField(field.field)}
+                value={(formData[field.field] as string) ?? ""}
+              />
+            ))}
+          </div>
+        </div>
+
         <div className="border-t px-6 py-4">
           <Heading className="mb-2" level="h2">
             COD Banking
@@ -416,10 +540,9 @@ const PplSettingsPage = () => {
           </div>
         </div>
 
-        {/* Fallback Sender Address */}
         <div className="border-t px-6 py-4">
           <Heading className="mb-2" level="h2">
-            Fallback Sender Address
+            Sender Address
           </Heading>
           <Text className="mb-4 text-sm text-ui-fg-subtle">
             Used when PPL customer has no address configured
@@ -436,13 +559,37 @@ const PplSettingsPage = () => {
           </div>
         </div>
 
-        {/* Save */}
         <div className="flex justify-end border-t px-6 py-4">
           <Button isLoading={isPending} type="submit">
             Save Changes
           </Button>
         </div>
       </form>
+      <Prompt
+        onOpenChange={setConfirmProductionActivation}
+        open={confirmProductionActivation}
+        variant="confirmation"
+      >
+        <Prompt.Content>
+          <Prompt.Header>
+            <Prompt.Title>Activate PPL Production?</Prompt.Title>
+            <Prompt.Description>
+              New PPL operations will use the saved Production credentials
+              immediately.
+            </Prompt.Description>
+          </Prompt.Header>
+          <Prompt.Footer>
+            <Prompt.Cancel type="button">Cancel</Prompt.Cancel>
+            <Prompt.Action
+              disabled={isActivating}
+              onClick={() => activateProfile("production")}
+              type="button"
+            >
+              Activate Production
+            </Prompt.Action>
+          </Prompt.Footer>
+        </Prompt.Content>
+      </Prompt>
     </Container>
   )
 }

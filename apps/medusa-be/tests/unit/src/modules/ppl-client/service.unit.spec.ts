@@ -59,6 +59,7 @@ const validOptions = {
 }
 
 const mockEffectiveConfig = {
+  config_id: "config-1",
   client_id: "test-client-id",
   client_secret: "test-client-secret",
   environment: "testing" as const,
@@ -70,9 +71,11 @@ const createMockConfig = (
   overrides: Partial<{
     id: string
     environment: "testing" | "production"
+    is_active: boolean
     is_enabled: boolean
     client_id: string | null
     client_secret: string | null
+    widget_api_key: string | null
     default_label_format: string
     cod_bank_account: string | null
     cod_bank_code: string | null
@@ -89,9 +92,11 @@ const createMockConfig = (
 ) => ({
   id: "config-1",
   environment: "testing" as const,
+  is_active: true,
   is_enabled: true,
   client_id: "id",
   client_secret: "secret",
+  widget_api_key: null,
   default_label_format: "Pdf",
   cod_bank_account: null,
   cod_bank_code: null,
@@ -206,7 +211,7 @@ describe("PplClientModuleService", () => {
 
       expect(mockPplClient.fetchNewToken).toHaveBeenCalled()
       expect(mockCacheService.set).toHaveBeenCalledWith(
-        expect.objectContaining({ key: "ppl:oauth:token" })
+        expect.objectContaining({ key: "ppl:oauth:token:config-1" })
       )
     })
 
@@ -442,18 +447,24 @@ describe("PplClientModuleService", () => {
           validOptions
         )
 
-      it("returns cached config on cache hit", async () => {
-        const cachedConfig = {
-          client_id: "cached-id",
-          client_secret: "cached-secret",
-          environment: "testing",
-        }
-        mockCacheService.get.mockResolvedValueOnce(cachedConfig)
-
+      it("resolves the active profile without caching decrypted credentials", async () => {
         const service = createServiceForConfigTests()
+        const config = createMockConfig({
+          client_id: "active-id",
+          client_secret: "active-secret",
+        })
+        vi.spyOn(service, "getConfig").mockResolvedValue(config)
         const result = await service.getEffectiveConfig()
 
-        expect(result).toEqual(cachedConfig)
+        expect(result).toEqual(
+          expect.objectContaining({
+            config_id: "config-1",
+            client_id: "active-id",
+            client_secret: "active-secret",
+            environment: "testing",
+          })
+        )
+        expect(mockCacheService.get).not.toHaveBeenCalled()
       })
 
       it("returns null when PPL is disabled", async () => {
@@ -495,9 +506,7 @@ describe("PplClientModuleService", () => {
         expect(result).toBeNull()
       })
 
-      it("caches valid config in Redis", async () => {
-        mockCacheService.get.mockResolvedValueOnce(null)
-
+      it("does not place decrypted configuration in Redis", async () => {
         const service = createServiceForConfigTests()
         vi.spyOn(service, "getConfig").mockResolvedValue(
           createMockConfig({
@@ -522,24 +531,18 @@ describe("PplClientModuleService", () => {
             sender_name: "Test Sender",
           })
         )
-        expect(mockCacheService.set).toHaveBeenCalledWith(
-          expect.objectContaining({
-            key: "ppl:config",
-            ttl: 60,
-            tags: ["ppl"],
-          })
-        )
+        expect(mockCacheService.set).not.toHaveBeenCalled()
       })
     })
 
     describe("invalidateConfigCache", () => {
-      it("clears config cache and resets client", async () => {
+      it("clears PPL caches", async () => {
         const service = createService()
 
         await service.invalidateConfigCache()
 
         expect(mockCacheService.clear).toHaveBeenCalledWith({
-          key: "ppl:config",
+          tags: ["ppl"],
         })
       })
     })

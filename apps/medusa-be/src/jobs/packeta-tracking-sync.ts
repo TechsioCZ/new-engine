@@ -22,6 +22,11 @@ import {
   type PacketaPacketStatusRecord,
   type PacketaShipmentState,
 } from "../modules/packeta-client"
+import {
+  createCarrierSyncEvent,
+  emitCarrierSyncEvent,
+  getCarrierSyncEvent,
+} from "../utils/carrier-sync-event"
 
 type FulfillmentRecord = {
   id: string
@@ -43,13 +48,39 @@ type TrackingContext = {
 
 const LOCK_KEY = "packeta-tracking-sync-job"
 const LOCK_TIMEOUT_SECONDS = 120
+const FETCH_PAGE_SIZE = 100
+const PROCESS_LIMIT = 100
+const PACKETA_TRACKING_EVENTS = [
+  "packeta.delivered",
+  "packeta.delivery_failed",
+] as const
 
 const synchronizePacketaTrackingStep = createStep(
   "synchronize-packeta-tracking",
   async (_input: Record<string, never>, { container }) => {
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
-    await run(container, logger)
+    if (process.env.FEATURE_PACKETA_ENABLED !== "1") {
+      logger.debug("Packeta Tracking Sync: module disabled, skipping")
+      return new StepResponse({ completed: false, reason: "disabled" })
+    }
+
+    const lockingService = container.resolve<ILockingModule>(Modules.LOCKING)
+    try {
+      await lockingService.execute(
+        LOCK_KEY,
+        async () => run(container, logger),
+        { timeout: LOCK_TIMEOUT_SECONDS }
+      )
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("Timed-out")) {
+        logger.debug(
+          "Packeta Tracking Sync: lock held by another instance, skipping"
+        )
+        return new StepResponse({ completed: false, reason: "locked" })
+      }
+      throw error
+    }
 
     return new StepResponse({ completed: true })
   }
@@ -61,48 +92,10 @@ const synchronizePacketaTrackingWorkflow = createWorkflow(
     new WorkflowResponse(synchronizePacketaTrackingStep(input))
 )
 
-/**
- * Packeta Tracking Sync Job
- *
- * Runs every 15 minutes to poll packet status for each shipped-but-not-delivered
- * Packeta fulfillment, and emit domain events on status changes.
- *
- * Unlike PPL (which supports batch queries), Packeta's packetStatus endpoint is
- * per-packet — so we make one request per pending fulfillment. Serial execution
- * keeps us well within the API's rate budget; batching can be added later if
- * the pending-fulfillment volume grows.
- */
 export default async function packetaTrackingSyncJob(
   container: MedusaContainer
 ) {
-  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-
-  if (process.env.FEATURE_PACKETA_ENABLED !== "1") {
-    logger.debug(
-      "Packeta Tracking Sync: module disabled (FEATURE_PACKETA_ENABLED != 1), skipping"
-    )
-    return
-  }
-
-  const lockingService = container.resolve<ILockingModule>(Modules.LOCKING)
-
-  try {
-    await lockingService.execute(
-      LOCK_KEY,
-      async () => {
-        await synchronizePacketaTrackingWorkflow(container).run({ input: {} })
-      },
-      { timeout: LOCK_TIMEOUT_SECONDS }
-    )
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("Timed-out")) {
-      logger.debug(
-        "Packeta Tracking Sync: lock held by another instance, skipping"
-      )
-      return
-    }
-    throw error
-  }
+  await synchronizePacketaTrackingWorkflow(container).run({ input: {} })
 }
 
 export const config = {
@@ -123,48 +116,74 @@ async function run(container: MedusaContainer, logger: Logger) {
 
   logger.info("Packeta Tracking Sync: Starting...")
 
-  try {
-    const pending = await fetchPendingFulfillments(query)
+  const pending = await fetchPendingFulfillments(query, PROCESS_LIMIT)
 
-    if (pending.length === 0) {
-      logger.info("Packeta Tracking Sync: No pending fulfillments to check")
-      return
-    }
-
-    logger.info(
-      `Packeta Tracking Sync: Found ${pending.length} pending fulfillments`
-    )
-
-    const ctx: TrackingContext = { logger, fulfillmentService, eventBus }
-    for (const fulfillment of pending) {
-      await processFulfillment(ctx, packetaClient, fulfillment)
-    }
-
-    logger.info("Packeta Tracking Sync: Completed")
-  } catch (error) {
-    logger.error(
-      "Packeta Tracking Sync failed",
-      error instanceof Error ? error : new Error(String(error))
-    )
+  if (pending.length === 0) {
+    logger.info("Packeta Tracking Sync: No pending fulfillments to check")
+    return
   }
+
+  logger.info(
+    `Packeta Tracking Sync: Found ${pending.length} pending fulfillments`
+  )
+
+  const ctx: TrackingContext = { logger, fulfillmentService, eventBus }
+  for (const fulfillment of pending) {
+    try {
+      await processFulfillment(ctx, packetaClient, fulfillment)
+    } catch (error) {
+      logger.error(
+        `Packeta Tracking Sync: Failed to process fulfillment ${fulfillment.id}`,
+        error instanceof Error ? error : new Error(String(error))
+      )
+    }
+  }
+
+  logger.info("Packeta Tracking Sync: Completed")
 }
 
-async function fetchPendingFulfillments(
-  query: Query
+export async function fetchPendingFulfillments(
+  query: Query,
+  limit: number
 ): Promise<PendingFulfillment[]> {
-  const { data: fulfillments } = await query.graph({
-    entity: "fulfillment",
-    fields: ["id", "data", "shipped_at", "delivered_at", "provider_id"],
-    filters: {
-      provider_id: "packeta_packeta",
-      shipped_at: { $ne: null },
-      delivered_at: null,
-    },
-  })
+  const pending: PendingFulfillment[] = []
+  let skip = 0
 
-  return (fulfillments as FulfillmentRecord[]).filter(
-    (f): f is PendingFulfillment => typeof f.data?.packet_id === "number"
-  )
+  while (pending.length < limit) {
+    const { data: fulfillments } = await query.graph({
+      entity: "fulfillment",
+      fields: ["id", "data", "shipped_at", "delivered_at", "provider_id"],
+      filters: {
+        provider_id: "packeta_packeta",
+        shipped_at: { $ne: null },
+        delivered_at: null,
+      },
+      pagination: {
+        order: { shipped_at: "ASC", id: "ASC" },
+        skip,
+        take: FETCH_PAGE_SIZE,
+      },
+    })
+    const page = fulfillments as FulfillmentRecord[]
+    if (page.length === 0) {
+      break
+    }
+
+    pending.push(
+      ...page.filter(
+        (fulfillment): fulfillment is PendingFulfillment =>
+          typeof fulfillment.data?.packet_id === "number" &&
+          fulfillment.data.delivery_failed !== true
+      )
+    )
+    if (page.length < FETCH_PAGE_SIZE) {
+      break
+    }
+
+    skip += FETCH_PAGE_SIZE
+  }
+
+  return pending.slice(0, limit)
 }
 
 async function processFulfillment(
@@ -174,6 +193,10 @@ async function processFulfillment(
 ): Promise<void> {
   const { logger } = ctx
   const { packet_id: packetId } = fulfillment.data
+
+  if (await flushPendingEvent(ctx, fulfillment)) {
+    return
+  }
 
   let history: PacketaPacketStatusRecord[]
   try {
@@ -219,7 +242,7 @@ async function handleDelivered(
   latest: PacketaPacketStatusRecord,
   newStatus: PacketaShipmentState
 ): Promise<void> {
-  const { logger, fulfillmentService, eventBus } = ctx
+  const { logger, fulfillmentService } = ctx
   const data = fulfillment.data
   const deliveredAt = new Date(latest.dateTime)
 
@@ -227,23 +250,35 @@ async function handleDelivered(
     `Packeta: Packet ${data.packet_id} delivered (${newStatus}) at ${deliveredAt.toISOString()}`
   )
 
-  await fulfillmentService.updateFulfillment(fulfillment.id, {
-    delivered_at: deliveredAt,
-    data: {
-      ...data,
-      last_status: newStatus,
-      last_status_date: latest.dateTime,
-    },
-  })
-
-  await eventBus.emit({
-    name: "packeta.delivered",
-    data: {
+  const pendingEvent = createCarrierSyncEvent(
+    "packeta.delivered",
+    `${fulfillment.id}:${data.packet_id}:${newStatus}`,
+    {
       fulfillment_id: fulfillment.id,
       packet_id: data.packet_id,
       barcode: data.barcode,
       delivered_at: deliveredAt.toISOString(),
       status: newStatus,
+    }
+  )
+
+  await fulfillmentService.updateFulfillment(fulfillment.id, {
+    data: {
+      ...data,
+      last_status: newStatus,
+      last_status_date: latest.dateTime,
+      packeta_pending_event: pendingEvent,
+    },
+  })
+
+  await emitCarrierSyncEvent(ctx.eventBus, pendingEvent)
+  const { packeta_pending_event: _pendingEvent, ...updatedData } = data
+  await fulfillmentService.updateFulfillment(fulfillment.id, {
+    delivered_at: deliveredAt,
+    data: {
+      ...updatedData,
+      last_status: newStatus,
+      last_status_date: latest.dateTime,
     },
   })
 }
@@ -254,30 +289,77 @@ async function handleFailed(
   latest: PacketaPacketStatusRecord,
   newStatus: PacketaShipmentState
 ): Promise<void> {
-  const { logger, fulfillmentService, eventBus } = ctx
+  const { logger, fulfillmentService } = ctx
   const data = fulfillment.data
 
   logger.warn(`Packeta: Packet ${data.packet_id} failed (${newStatus})`)
+
+  const pendingEvent = createCarrierSyncEvent(
+    "packeta.delivery_failed",
+    `${fulfillment.id}:${data.packet_id}:${newStatus}`,
+    {
+      fulfillment_id: fulfillment.id,
+      packet_id: data.packet_id,
+      barcode: data.barcode,
+      status: newStatus,
+      status_date: latest.dateTime,
+    }
+  )
 
   await fulfillmentService.updateFulfillment(fulfillment.id, {
     data: {
       ...data,
       last_status: newStatus,
       last_status_date: latest.dateTime,
-      delivery_failed: true,
+      packeta_pending_event: pendingEvent,
     },
   })
 
-  await eventBus.emit({
-    name: "packeta.delivery_failed",
+  await emitCarrierSyncEvent(ctx.eventBus, pendingEvent)
+  const { packeta_pending_event: _pendingEvent, ...updatedData } = data
+  await fulfillmentService.updateFulfillment(fulfillment.id, {
     data: {
-      fulfillment_id: fulfillment.id,
-      packet_id: data.packet_id,
-      barcode: data.barcode,
-      status: newStatus,
-      status_date: latest.dateTime,
+      ...updatedData,
+      last_status: newStatus,
+      last_status_date: latest.dateTime,
+      delivery_failed: true,
     },
   })
+}
+
+async function flushPendingEvent(
+  ctx: TrackingContext,
+  fulfillment: PendingFulfillment
+): Promise<boolean> {
+  const pendingEvent = getCarrierSyncEvent(
+    fulfillment.data.packeta_pending_event,
+    PACKETA_TRACKING_EVENTS
+  )
+  if (!pendingEvent) {
+    return false
+  }
+
+  await emitCarrierSyncEvent(ctx.eventBus, pendingEvent)
+  const { packeta_pending_event: _pendingEvent, ...updatedData } =
+    fulfillment.data
+  const deliveredAtValue = pendingEvent.data.delivered_at
+  const deliveredAt =
+    typeof deliveredAtValue === "string" ? new Date(deliveredAtValue) : null
+  const isDelivered =
+    pendingEvent.name === "packeta.delivered" &&
+    deliveredAt !== null &&
+    !Number.isNaN(deliveredAt.getTime())
+
+  await ctx.fulfillmentService.updateFulfillment(fulfillment.id, {
+    ...(isDelivered ? { delivered_at: deliveredAt } : {}),
+    data: {
+      ...updatedData,
+      ...(pendingEvent.name === "packeta.delivery_failed"
+        ? { delivery_failed: true }
+        : {}),
+    },
+  })
+  return true
 }
 
 async function handleInTransit(

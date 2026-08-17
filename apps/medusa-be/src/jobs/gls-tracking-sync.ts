@@ -62,7 +62,31 @@ const synchronizeGLSTrackingStep = createStep(
   async (_input: Record<string, never>, { container }) => {
     const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
 
-    await run(container, logger)
+    if (process.env.FEATURE_GLS_ENABLED !== "1") {
+      logger.debug("GLS Tracking Sync: module disabled, skipping")
+      return new StepResponse({ completed: false, reason: "disabled" })
+    }
+
+    const lockingService = container.resolve<ILockingModule>(Modules.LOCKING)
+    try {
+      await lockingService.acquire(LOCK_KEY, {
+        expire: LOCK_EXPIRY_SECONDS,
+      })
+    } catch (error) {
+      if (isLockContentionError(error)) {
+        logger.debug(
+          "GLS Tracking Sync: lock held by another instance, skipping"
+        )
+        return new StepResponse({ completed: false, reason: "locked" })
+      }
+      throw error
+    }
+
+    try {
+      await run(container, logger)
+    } finally {
+      await lockingService.release(LOCK_KEY)
+    }
 
     return new StepResponse({ completed: true })
   }
@@ -74,47 +98,8 @@ const synchronizeGLSTrackingWorkflow = createWorkflow(
     new WorkflowResponse(synchronizeGLSTrackingStep(input))
 )
 
-/**
- * GLS Tracking Sync Job
- *
- * Runs every 15 minutes to poll packet status for each shipped-but-not-delivered
- * GLS fulfillment, and emit domain events on status changes.
- *
- * Unlike PPL (which supports batch queries), GLS's packetStatus endpoint is
- * per-packet — so we make one request per pending fulfillment. Serial execution
- * keeps us well within the API's rate budget; batching can be added later if
- * the pending-fulfillment volume grows.
- */
 export default async function glsTrackingSyncJob(container: MedusaContainer) {
-  const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
-
-  if (process.env.FEATURE_GLS_ENABLED !== "1") {
-    logger.debug(
-      "GLS Tracking Sync: module disabled (FEATURE_GLS_ENABLED != 1), skipping"
-    )
-    return
-  }
-
-  const lockingService = container.resolve<ILockingModule>(Modules.LOCKING)
-
-  try {
-    await lockingService.acquire(LOCK_KEY, {
-      expire: LOCK_EXPIRY_SECONDS,
-    })
-  } catch (error) {
-    if (isLockContentionError(error)) {
-      logger.debug("GLS Tracking Sync: lock held by another instance, skipping")
-      return
-    }
-
-    throw error
-  }
-
-  try {
-    await synchronizeGLSTrackingWorkflow(container).run({ input: {} })
-  } finally {
-    await lockingService.release(LOCK_KEY)
-  }
+  await synchronizeGLSTrackingWorkflow(container).run({ input: {} })
 }
 
 function isLockContentionError(error: unknown): boolean {
@@ -147,37 +132,30 @@ async function run(container: MedusaContainer, logger: Logger) {
 
   logger.info("GLS Tracking Sync: Starting...")
 
-  try {
-    const pending = await fetchPendingFulfillments(query, CHUNK_SIZE)
+  const pending = await fetchPendingFulfillments(query, CHUNK_SIZE)
 
-    if (pending.length === 0) {
-      logger.info("GLS Tracking Sync: No pending fulfillments to check")
-      return
-    }
-
-    logger.info(
-      `GLS Tracking Sync: Processing ${pending.length} pending fulfillments (limit ${CHUNK_SIZE})`
-    )
-
-    const ctx: TrackingContext = { logger, fulfillmentService, eventBus }
-    for (const fulfillment of pending) {
-      try {
-        await processFulfillment(ctx, glsClient, fulfillment)
-      } catch (error) {
-        logger.error(
-          `GLS Tracking Sync: Failed to process fulfillment ${fulfillment.id}`,
-          error instanceof Error ? error : new Error(String(error))
-        )
-      }
-    }
-
-    logger.info("GLS Tracking Sync: Completed")
-  } catch (error) {
-    logger.error(
-      "GLS Tracking Sync failed",
-      error instanceof Error ? error : new Error(String(error))
-    )
+  if (pending.length === 0) {
+    logger.info("GLS Tracking Sync: No pending fulfillments to check")
+    return
   }
+
+  logger.info(
+    `GLS Tracking Sync: Processing ${pending.length} pending fulfillments (limit ${CHUNK_SIZE})`
+  )
+
+  const ctx: TrackingContext = { logger, fulfillmentService, eventBus }
+  for (const fulfillment of pending) {
+    try {
+      await processFulfillment(ctx, glsClient, fulfillment)
+    } catch (error) {
+      logger.error(
+        `GLS Tracking Sync: Failed to process fulfillment ${fulfillment.id}`,
+        error instanceof Error ? error : new Error(String(error))
+      )
+    }
+  }
+
+  logger.info("GLS Tracking Sync: Completed")
 }
 
 export async function fetchPendingFulfillments(
@@ -378,7 +356,6 @@ async function handleFailed(
       ...data,
       last_status: newStatus,
       last_status_date: latest.dateTime,
-      delivery_failed: true,
       gls_pending_event: pendingEvent,
     },
   })
@@ -410,7 +387,12 @@ async function flushPendingEvent(
   const deliveredAt = getPendingDeliveredAt(pendingEvent)
   await ctx.fulfillmentService.updateFulfillment(fulfillment.id, {
     ...(deliveredAt ? { delivered_at: deliveredAt } : {}),
-    data: updatedData,
+    data: {
+      ...updatedData,
+      ...(pendingEvent.name === "gls.delivery_failed"
+        ? { delivery_failed: true }
+        : {}),
+    },
   })
   return true
 }
