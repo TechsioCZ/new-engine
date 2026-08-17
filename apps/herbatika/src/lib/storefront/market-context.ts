@@ -21,6 +21,14 @@ type ResolveMarketContextInput = {
   host?: string | null
 }
 
+export const resolveMarketRequestHost = ({
+  forwardedHost,
+  host,
+}: {
+  forwardedHost?: string | null
+  host?: string | null
+}) => host ?? forwardedHost ?? undefined
+
 const MARKET_CONFIG = {
   sk: {
     code: "sk",

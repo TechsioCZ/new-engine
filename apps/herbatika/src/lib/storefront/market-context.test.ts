@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { resolveMarketContext } from "./market-context"
+import {
+  resolveMarketContext,
+  resolveMarketRequestHost,
+} from "./market-context"
 
 describe("resolveMarketContext", () => {
   it("resolves the Zane Romanian test domain as the Romanian market", () => {
@@ -12,5 +15,14 @@ describe("resolveMarketContext", () => {
       countryCode: "ro",
       locale: "ro-RO",
     })
+  })
+
+  it("prefers the public Host header over a proxy forwarded host", () => {
+    expect(
+      resolveMarketRequestHost({
+        forwardedHost: "zn-herbatika.internal",
+        host: "test-engine-herbatika-ro-zane.web-revolution.cz",
+      })
+    ).toBe("test-engine-herbatika-ro-zane.web-revolution.cz")
   })
 })
