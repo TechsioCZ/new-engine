@@ -1,9 +1,10 @@
 import type { HttpTypes } from "@medusajs/types"
-import { createChangeBlurFieldValidators } from "@/lib/forms/validators/field-validator-factories"
+import { createOptionalPhoneNumberValidator } from "@/lib/forms/phone-number"
 import {
-  createCustomerNameValidator,
-  createOptionalPhoneNumberValidator,
-} from "@/lib/forms/validators/shared"
+  createChangeBlurFieldValidators,
+  createChangeBlurSubmitFieldValidators,
+} from "@/lib/forms/validators/field-validator-factories"
+import { createCustomerNameValidator } from "@/lib/forms/validators/shared"
 
 export type AccountSettingsValues = {
   first_name: string
@@ -16,11 +17,11 @@ type AccountSettingsValidationMessages = {
   firstNameMinLength: string
   lastNameMinLength: string
   phoneInvalid: string
-  phoneMinDigits: string
 }
 
 export const createAccountSettingsValidators = (
-  messages: AccountSettingsValidationMessages
+  messages: AccountSettingsValidationMessages,
+  countryCode: string
 ) => ({
   first_name: createChangeBlurFieldValidators(
     createCustomerNameValidator(messages.firstNameMinLength)
@@ -28,11 +29,8 @@ export const createAccountSettingsValidators = (
   last_name: createChangeBlurFieldValidators(
     createCustomerNameValidator(messages.lastNameMinLength)
   ),
-  phone: createChangeBlurFieldValidators(
-    createOptionalPhoneNumberValidator({
-      invalid: messages.phoneInvalid,
-      minDigits: messages.phoneMinDigits,
-    })
+  phone: createChangeBlurSubmitFieldValidators(
+    createOptionalPhoneNumberValidator(messages.phoneInvalid, countryCode)
   ),
 })
 

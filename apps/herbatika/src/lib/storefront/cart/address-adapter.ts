@@ -7,6 +7,7 @@ import {
 } from "@techsio/storefront-data/checkout/address"
 import type { StorefrontCartAddressAdapter } from "@techsio/storefront-data/shared/address"
 import type { CheckoutAddressValues } from "@/lib/forms/checkout/address.form"
+import { normalizePhoneNumberToE164 } from "@/lib/forms/phone-number"
 
 const HERBATIKA_ADDRESS_METADATA_FIELDS = [
   ["companyId", "company_id"],
@@ -73,7 +74,9 @@ export const buildHerbatikaCheckoutAddressInput = (
 ): HerbatikaCheckoutAddressInput => ({
   firstName: addressForm.firstName,
   lastName: addressForm.lastName,
-  phone: addressForm.phone,
+  phone:
+    normalizePhoneNumberToE164(addressForm.phone, addressForm.countryCode) ??
+    addressForm.phone,
   company: addressForm.company,
   companyId: addressForm.companyId,
   taxId: addressForm.taxId,

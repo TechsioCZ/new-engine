@@ -3,6 +3,7 @@ import {
   CHECKOUT_ADDRESS_FIELDS,
   type CheckoutAddressValues,
 } from "@/lib/forms/checkout/address.form"
+import { isValidPhoneNumber } from "@/lib/forms/phone-number"
 
 export type CheckoutAddressScope = "billing" | "shipping"
 
@@ -95,13 +96,20 @@ export const resolveAddressFormsMatch = (
   })
 
 export const resolveHasStoredAddress = (
-  cart: HttpTypes.StoreCart | null | undefined
+  cart: HttpTypes.StoreCart | null | undefined,
+  fallbackPhoneCountryCode?: string | null
 ) => {
   if (!cart?.email) {
     return false
   }
 
   if (!hasRequiredAddressFields(cart.shipping_address)) {
+    return false
+  }
+
+  if (
+    !isValidPhoneNumber(cart.shipping_address?.phone, fallbackPhoneCountryCode)
+  ) {
     return false
   }
 

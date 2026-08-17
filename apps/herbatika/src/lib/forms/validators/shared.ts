@@ -1,6 +1,5 @@
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PASSWORD_NUMBER_REGEX = /\d/
-const PHONE_ALLOWED_REGEX = /^[0-9+\s()-]+$/
 
 const validateCustomerNameWithMessage = (
   value: string,
@@ -82,38 +81,6 @@ export const validateRequiredAgreement = (value: boolean, message: string) => {
 
   return
 }
-
-type PhoneValidationMessages = {
-  invalid: string
-  minDigits: string
-}
-
-export const createOptionalPhoneNumberValidator =
-  ({ invalid, minDigits }: PhoneValidationMessages) =>
-  (value: string) => {
-    const normalized = value.trim()
-
-    if (!normalized) {
-      return
-    }
-
-    if (!PHONE_ALLOWED_REGEX.test(normalized)) {
-      return invalid
-    }
-
-    const digitCount = normalized.replace(/\D/g, "").length
-
-    if (digitCount < 7) {
-      return minDigits
-    }
-
-    return
-  }
-
-export const validateOptionalPhoneNumber = createOptionalPhoneNumberValidator({
-  invalid: "Zadajte platné telefónne číslo.",
-  minDigits: "Telefónne číslo musí obsahovať aspoň 7 číslic.",
-})
 
 export const passwordHasNumber = (password: string) =>
   PASSWORD_NUMBER_REGEX.test(password)

@@ -21,6 +21,13 @@ export const createChangeBlurFieldValidators = <TValue>(
   onChange: ({ value }: ValueValidationContext<TValue>) => validator(value),
 })
 
+export const createChangeBlurSubmitFieldValidators = <TValue>(
+  validator: FieldValueValidator<TValue>
+) => ({
+  ...createChangeBlurFieldValidators(validator),
+  onSubmit: ({ value }: ValueValidationContext<TValue>) => validator(value),
+})
+
 export const createChangeBlurContextualFieldValidators = <
   TContext extends { value: unknown },
 >(
