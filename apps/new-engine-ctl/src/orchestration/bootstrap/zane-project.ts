@@ -438,6 +438,40 @@ function publicServiceDomain(input: {
   return `${input.projectSlug}-${input.serviceSlug}${input.publicUrlAffix}.${input.publicDomain}`
 }
 
+function appendCsvOrigins(value: string, origins: string[]): string {
+  return Array.from(
+    new Set([
+      ...value
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+      ...origins,
+    ])
+  ).join(",")
+}
+
+function applyAdditionalPublicUrls(input: {
+  plannedServices: Record<string, PlannedBootstrapService>
+  stackInputs: StackInputs
+}) {
+  for (const definition of input.stackInputs.bootstrap_zane_project
+    .additional_public_urls) {
+    const service = input.plannedServices[definition.service_id]
+    if (!service) {
+      throw new Error(
+        `Missing bootstrap service plan for additional public URL ${definition.service_id}.${definition.domain}.`
+      )
+    }
+
+    service.urls.push({
+      domain: definition.domain,
+      base_path: definition.base_path,
+      strip_prefix: definition.strip_prefix,
+      associated_port: definition.associated_port,
+    })
+  }
+}
+
 function summarizeSource(input: {
   key?: string
   envVar?: string
@@ -1715,6 +1749,7 @@ function resolveOperatorUpstreamBaseUrl(input: {
 
 function buildContext(input: {
   planInput: BootstrapZaneProjectPlanCommandInput
+  stackInputs: StackInputs
   settings: {
     root_domain?: string | null
     app_domain?: string | null
@@ -1752,6 +1787,29 @@ function buildContext(input: {
       ? input.settings.app_domain
       : null)
 
+  const additionalStoreOrigins =
+    input.stackInputs.bootstrap_zane_project.additional_public_urls
+      .filter((definition) => definition.store_cors)
+      .map((definition) => `https://${definition.domain}`)
+  const additionalAuthOrigins =
+    input.stackInputs.bootstrap_zane_project.additional_public_urls
+      .filter((definition) => definition.auth_cors)
+      .map((definition) => `https://${definition.domain}`)
+  const storeCors = preferExplicitOrMergeCsv({
+    explicitValue: input.planInput.storeCorsOverride,
+    envValue: process.env.DC_STORE_CORS,
+    fallbackValue: publicDomain
+      ? `https://${input.planInput.projectSlug}-${"herbatika"}${input.planInput.publicUrlAffix}.${publicDomain}`
+      : "https://pending-public-domain.invalid",
+  })
+  const authCors = preferExplicitOrMergeCsv({
+    explicitValue: input.planInput.authCorsOverride,
+    envValue: process.env.DC_AUTH_CORS,
+    fallbackValue: publicDomain
+      ? `https://${input.planInput.projectSlug}-${"medusa-be"}${input.planInput.publicUrlAffix}.${publicDomain}`
+      : "https://pending-public-domain.invalid",
+  })
+
   return {
     projectSlug: input.planInput.projectSlug,
     projectDescription: input.planInput.projectDescription,
@@ -1762,13 +1820,7 @@ function buildContext(input: {
     publicDomain,
     publicUrlAffix: input.planInput.publicUrlAffix,
     minioFileUrlOverride: input.planInput.minioFileUrlOverride?.trim() || null,
-    storeCors: preferExplicitOrMergeCsv({
-      explicitValue: input.planInput.storeCorsOverride,
-      envValue: process.env.DC_STORE_CORS,
-      fallbackValue: publicDomain
-        ? `https://${input.planInput.projectSlug}-${"herbatika"}${input.planInput.publicUrlAffix}.${publicDomain}`
-        : "https://pending-public-domain.invalid",
-    }),
+    storeCors: appendCsvOrigins(storeCors, additionalStoreOrigins),
     adminCors: preferExplicitOrMergeCsv({
       explicitValue: input.planInput.adminCorsOverride,
       envValue: process.env.DC_ADMIN_CORS,
@@ -1776,13 +1828,7 @@ function buildContext(input: {
         ? `https://${input.planInput.projectSlug}-${"medusa-be"}${input.planInput.publicUrlAffix}.${publicDomain}`
         : "https://pending-public-domain.invalid",
     }),
-    authCors: preferExplicitOrMergeCsv({
-      explicitValue: input.planInput.authCorsOverride,
-      envValue: process.env.DC_AUTH_CORS,
-      fallbackValue: publicDomain
-        ? `https://${input.planInput.projectSlug}-${"medusa-be"}${input.planInput.publicUrlAffix}.${publicDomain}`
-        : "https://pending-public-domain.invalid",
-    }),
+    authCors: appendCsvOrigins(authCors, additionalAuthOrigins),
     operatorUpstreamBaseUrl,
     operatorUpstreamConnectBaseUrl: connectBaseUrl ?? null,
     operatorUpstreamConnectHostHeader: connectHostHeader,
@@ -2203,6 +2249,7 @@ export async function executeBootstrapZaneProjectPlan(
   )
   const context = buildContext({
     planInput: input,
+    stackInputs,
     settings: inspectResponse.settings,
     repositoryUrl,
     branchName,
@@ -2211,6 +2258,7 @@ export async function executeBootstrapZaneProjectPlan(
     bootstrapServices.map((service) => [service.id, service.serviceSlug])
   ) as Record<string, string>
   const plannedServices = buildZaneProjectServices(context, serviceSlugById)
+  applyAdditionalPublicUrls({ plannedServices, stackInputs })
   applySharedEnvServiceTargets({ plannedServices, stackInputs })
   const inspectedServices = Object.fromEntries(
     bootstrapServices.map((service) => {
