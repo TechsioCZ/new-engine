@@ -288,6 +288,7 @@
       "company_fields": "Firemní údaje",
       "accept_terms": "Souhlasím s obchodními podmínkami",
       "success": "Registrace proběhla úspěšně.",
+      "confirmation_email_notice": "Potvrzení registrace vám pošleme na {email}.",
       "wholesale_success": "Žádost o velkoobchodní účet byla odeslána ke schválení. Do rozhodnutí můžete nakupovat jako běžný zákazník.",
       "email_exists": "Účet s tímto e-mailem už existuje. Přihlaste se nebo použijte obnovu hesla.",
       "failed": "Registrace se nezdařila. Zkuste to prosím znovu."

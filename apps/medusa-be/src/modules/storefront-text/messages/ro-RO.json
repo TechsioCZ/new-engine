@@ -288,6 +288,7 @@
       "company_fields": "Datele companiei",
       "accept_terms": "Sunt de acord cu termenii și condițiile",
       "success": "Înregistrarea a fost efectuată cu succes.",
+      "confirmation_email_notice": "Vă vom trimite confirmarea înregistrării la {email}.",
       "wholesale_success": "Cererea pentru contul angro a fost trimisă spre aprobare. Până la luarea deciziei, puteți cumpăra ca un client obișnuit.",
       "email_exists": "Există deja un cont cu această adresă de e-mail. Autentificați-vă sau folosiți recuperarea parolei.",
       "failed": "Înregistrarea nu a reușit. Încercați din nou."
