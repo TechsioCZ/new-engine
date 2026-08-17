@@ -7,6 +7,7 @@
  * Configuration options passed from medusa-config.ts
  */
 export type PplOptions = {
+  config_id: string
   client_id: string
   client_secret: string
   environment: PplEnvironment
@@ -503,6 +504,8 @@ export type PplFulfillmentStatus = "pending" | "completed" | "error"
  * Extends Record<string, unknown> for compatibility with Medusa's fulfillment data type
  */
 export interface PplFulfillmentData extends Record<string, unknown> {
+  config_id?: string
+  environment?: PplEnvironment
   /** Fulfillment processing status */
   status: PplFulfillmentStatus
   /** Batch ID from PPL - always present after createFulfillment */
@@ -511,6 +514,11 @@ export interface PplFulfillmentData extends Record<string, unknown> {
   product_type: PplProductType
   /** Access point code if pickup point delivery */
   access_point_id?: string
+  access_point_name?: string
+  access_point_street?: string
+  access_point_city?: string
+  access_point_zip?: string
+  access_point_country?: string
 
   // Fields populated after batch completes (by ppl-label-sync job)
   /** PPL shipment number (tracking number) - only after batch completes */
@@ -557,6 +565,10 @@ export interface PplShippingOptionData extends Record<string, unknown> {
   access_point_name?: string
   /** Selected access point type */
   access_point_type?: PplAccessPointType
+  access_point_street?: string
+  access_point_city?: string
+  access_point_zip?: string
+  access_point_country?: string
 }
 
 /**
@@ -1125,6 +1137,7 @@ export type PplApiInfo = {
  */
 export const PPL_SENSITIVE_FIELDS = [
   "client_secret",
+  "widget_api_key",
   "cod_bank_account",
   "cod_bank_code",
   "cod_iban",
@@ -1137,9 +1150,11 @@ export const PPL_SENSITIVE_FIELDS = [
 export type PplConfigDTO = {
   id: string
   environment: PplEnvironment
+  is_active: boolean
   is_enabled: boolean
   client_id: string | null
   client_secret: string | null
+  widget_api_key: string | null
   default_label_format: string
   cod_bank_account: string | null
   cod_bank_code: string | null
@@ -1165,6 +1180,7 @@ export type UpdatePplConfigInput = {
   is_enabled?: boolean
   client_id?: string
   client_secret?: string | null
+  widget_api_key?: string | null
   default_label_format?: PplLabelFormat
   cod_bank_account?: string | null
   cod_bank_code?: string | null
@@ -1179,24 +1195,32 @@ export type UpdatePplConfigInput = {
   sender_email?: string
 }
 
-/**
- * PPL Config response for admin API (masks sensitive fields)
- */
+export type UpdatePplConfigProfileInput = UpdatePplConfigInput & {
+  environment: PplEnvironment
+}
+
+export type ActivatePplProfileInput = {
+  environment: PplEnvironment
+  confirmed: boolean
+}
+
+export type PplConfigReference = {
+  config_id?: string
+  environment?: PplEnvironment
+}
+
 export type PplConfigResponse = {
   id: string
   environment: PplEnvironment
+  is_active: boolean
   is_enabled: boolean
   client_id: string | null
-  /** Masked - shows "••••••" if set, null if not */
   client_secret_set: boolean
+  widget_api_key_set: boolean
   default_label_format: string
-  /** Masked - shows "••••••" if set, null if not */
   cod_bank_account_set: boolean
-  /** Masked - shows "••••••" if set, null if not */
   cod_bank_code_set: boolean
-  /** Masked - shows "••••••" if set, null if not */
   cod_iban_set: boolean
-  /** Masked - shows "••••••" if set, null if not */
   cod_swift_set: boolean
   sender_name: string | null
   sender_street: string | null

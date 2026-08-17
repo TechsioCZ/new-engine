@@ -185,6 +185,15 @@ export function downloadOrderDashboardGLSLabels(orderIds: string[]) {
   )
 }
 
+export function downloadOrderDashboardPPLLabels(orderIds: string[]) {
+  return downloadFile(
+    "/admin/ppl-labels",
+    { order_ids: orderIds },
+    `ppl-labels-${new Date().toISOString().slice(0, 10)}.zip`,
+    "application/pdf, application/zip, application/zpl, image/jpeg, image/png, image/svg+xml, text/plain"
+  )
+}
+
 export function downloadOrderDashboardShippingLabels(input: {
   carrier: OrderDashboardLabelCarrier
   labelFormat: OrderDashboardLabelFormat
@@ -194,6 +203,8 @@ export function downloadOrderDashboardShippingLabels(input: {
   switch (input.carrier) {
     case "gls":
       return downloadOrderDashboardGLSLabels(input.orderIds)
+    case "ppl":
+      return downloadOrderDashboardPPLLabels(input.orderIds)
     case "packeta":
       return downloadOrderDashboardPacketaLabels(input)
     default:

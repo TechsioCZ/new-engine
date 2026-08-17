@@ -49,6 +49,7 @@ type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "DELETE"
   body?: unknown
   allow404?: boolean
+  retry?: boolean
 }
 
 type RetryAttemptResult<T> =
@@ -190,14 +191,11 @@ export class PplClient {
     token: string,
     shipmentNumber: string
   ): Promise<boolean> {
-    try {
-      await this.makeRequest(token, `/shipment/${shipmentNumber}/cancel`, {
-        method: "POST",
-      })
-      return true
-    } catch {
-      return false
-    }
+    await this.makeRequest(token, `/shipment/${shipmentNumber}/cancel`, {
+      method: "POST",
+      retry: false,
+    })
+    return true
   }
 
   // ============================================
@@ -784,40 +782,35 @@ export class PplClient {
     path: string,
     body: unknown
   ): Promise<string> {
-    return this.withRetry(
-      () =>
-        this.fetchWithTimeout(`${this.baseUrl}${path}`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify(body),
-        }),
-      async (response) => {
-        if (response.status !== 201) {
-          throw new MedusaError(
-            MedusaError.Types.INVALID_DATA,
-            `PPL batch creation failed: ${await response.text()}`
-          )
-        }
-
-        const batchId = response.headers
-          .get("Location")
-          ?.split("/")
-          .filter(Boolean)
-          .pop()
-        if (!batchId) {
-          throw new MedusaError(
-            MedusaError.Types.INVALID_DATA,
-            "PPL: No batchId returned in Location header"
-          )
-        }
-        return batchId
+    const response = await this.fetchWithTimeout(`${this.baseUrl}${path}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        Accept: "application/json",
       },
-      "PPL batch failed"
-    )
+      body: JSON.stringify(body),
+    })
+
+    if (response.status !== 201) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `PPL batch creation failed (${response.status}): ${await response.text()}`
+      )
+    }
+
+    const batchId = response.headers
+      .get("Location")
+      ?.split("/")
+      .filter(Boolean)
+      .pop()
+    if (!batchId) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "PPL: No batchId returned in Location header"
+      )
+    }
+    return batchId
   }
 
   private async get<T>(token: string, path: string): Promise<T> {
@@ -830,7 +823,7 @@ export class PplClient {
     path: string,
     options: RequestOptions = {}
   ): Promise<{ data: T | null; status: number }> {
-    const { method = "GET", body, allow404 = false } = options
+    const { method = "GET", body, allow404 = false, retry = true } = options
 
     const headers: Record<string, string> = {
       Authorization: `Bearer ${token}`,
@@ -840,31 +833,33 @@ export class PplClient {
       headers["Content-Type"] = "application/json"
     }
 
-    return this.withRetry(
-      () =>
-        this.fetchWithTimeout(`${this.baseUrl}${path}`, {
-          method,
-          headers,
-          body: body ? JSON.stringify(body) : undefined,
-        }),
-      async (response) => {
-        if (allow404 && response.status === 404) {
-          return { data: null, status: 404 }
-        }
+    const operation = () =>
+      this.fetchWithTimeout(`${this.baseUrl}${path}`, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+      })
+    const handleResponse = async (response: Response) => {
+      if (allow404 && response.status === 404) {
+        return { data: null, status: 404 }
+      }
 
-        // Accept any 2xx status, fail on 4xx/5xx
-        if (!response.ok) {
-          throw new MedusaError(
-            MedusaError.Types.INVALID_DATA,
-            `PPL request failed: ${response.status} - ${await response.text()}`
-          )
-        }
+      if (!response.ok) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          `PPL request failed: ${response.status} - ${await response.text()}`
+        )
+      }
 
-        const text = await response.text()
-        const data = text ? (JSON.parse(text) as T) : null
-        return { data, status: response.status }
-      },
-      "PPL request failed"
-    )
+      const text = await response.text()
+      const data = text ? (JSON.parse(text) as T) : null
+      return { data, status: response.status }
+    }
+
+    if (!retry) {
+      return handleResponse(await operation())
+    }
+
+    return this.withRetry(operation, handleResponse, "PPL request failed")
   }
 }

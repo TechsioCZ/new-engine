@@ -39,7 +39,6 @@ export type MedusaConfigEnv = {
   payloadBaseUrl: string | undefined
   payloadContentCacheTtl: number
   payloadListCacheTtl: number
-  pplEnvironment: string
   redisSessionsEnabled: boolean
   redisUrl: string | undefined
   resendApiKey: string | undefined
@@ -256,7 +255,6 @@ export function readMedusaConfigEnv(
     payloadBaseUrl: env.PAYLOAD_BASE_URL,
     payloadContentCacheTtl: Number.parseInt(env.CMS_CACHE_TTL ?? "3600", 10),
     payloadListCacheTtl: Number.parseInt(env.CMS_LIST_CACHE_TTL ?? "600", 10),
-    pplEnvironment: env.PPL_ENVIRONMENT || "testing",
     redisSessionsEnabled,
     redisUrl,
     resendApiKey: env.RESEND_API_KEY,

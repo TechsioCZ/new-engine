@@ -24,4 +24,27 @@ describe("safeResolve", () => {
 
     expect(safeResolve(container, "cache")).toBeNull()
   })
+
+  it("uses an injected dependency when generic resolution fails", () => {
+    const dependency = { get: vi.fn() }
+    const container = {
+      cache: dependency,
+      resolve: vi.fn(() => {
+        throw new Error("generic resolution failed")
+      }),
+    }
+
+    expect(safeResolve<typeof dependency>(container, "cache")).toBe(dependency)
+    expect(container.resolve).not.toHaveBeenCalled()
+  })
+
+  it("falls back to explicit container resolution", () => {
+    const dependency = { get: vi.fn() }
+    const container = {
+      resolve: vi.fn(() => dependency),
+    }
+
+    expect(safeResolve<typeof dependency>(container, "cache")).toBe(dependency)
+    expect(container.resolve).toHaveBeenCalledWith("cache")
+  })
 })

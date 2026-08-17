@@ -87,18 +87,35 @@ describe("shipping label preparation", () => {
     ).toHaveLength(1)
   })
 
-  it("does not offer label downloads for PPL orders", () => {
+  it("offers completed PPL labels only while the carrier is enabled", () => {
     const selectedOrders = [createOrder("order-ppl", "ppl")]
+    const eligibilityOrders = [
+      createEligibilityOrder("order-ppl", "ppl_ppl", {
+        label_url: "https://files.example.test/ppl-label.png",
+        shipment_number: "PPL-1",
+        status: "completed",
+      }),
+    ]
 
+    expect(getShippingLabelCarrierSelection(selectedOrders, ["ppl"])).toEqual({
+      carrier: "ppl",
+      kind: "supported",
+    })
+    expect(
+      prepareShippingLabelDownload(
+        selectedOrders,
+        eligibilityOrders,
+        ["ppl"],
+        translate
+      )
+    ).toMatchObject({
+      carrier: "ppl",
+      kind: "ready",
+      orderIds: ["order-ppl"],
+    })
     expect(getShippingLabelCarrierSelection(selectedOrders, [])).toEqual({
       carrier: "ppl",
       kind: "unsupported",
-    })
-    expect(
-      prepareShippingLabelDownload(selectedOrders, [], [], translate)
-    ).toEqual({
-      carrier: "ppl",
-      kind: "unsupported-carrier",
     })
   })
 
