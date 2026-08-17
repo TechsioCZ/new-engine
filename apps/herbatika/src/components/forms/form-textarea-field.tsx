@@ -1,5 +1,6 @@
 "use client"
 
+import { useStore } from "@tanstack/react-form"
 import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea"
 import { type ComponentPropsWithoutRef, type ReactNode, useState } from "react"
 import {
@@ -36,12 +37,16 @@ export function FormTextareaField({
   ...props
 }: FormTextareaFieldProps) {
   const field = useFieldContext<string>()
+  const submissionAttempts = useStore(
+    field.form.store,
+    (state) => state.submissionAttempts
+  )
   const [hasChangedSinceBlur, setHasChangedSinceBlur] = useState(false)
   const value = typeof field.state.value === "string" ? field.state.value : ""
   const fieldFeedback = resolveVisibleFieldFeedback({
     hasChangedSinceBlur,
     meta: field.state.meta,
-    submissionAttempts: field.form.state.submissionAttempts,
+    submissionAttempts,
     validationMode,
   })
 
@@ -60,7 +65,7 @@ export function FormTextareaField({
         if (
           shouldTrackLiveFieldFeedback({
             meta: field.state.meta,
-            submissionAttempts: field.form.state.submissionAttempts,
+            submissionAttempts,
           })
         ) {
           setHasChangedSinceBlur(true)

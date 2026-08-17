@@ -21,6 +21,7 @@ const publicDomain = "example.test"
 const publicUrlAffix = "-deploy"
 const medusaBePublicOrigin = `https://${projectSlug}-medusa-be${publicUrlAffix}.${publicDomain}`
 const herbatikaPublicOrigin = `https://${projectSlug}-herbatika${publicUrlAffix}.${publicDomain}`
+const minioPublicOrigin = `https://${projectSlug}-medusa-minio${publicUrlAffix}.${publicDomain}`
 
 const serviceSlugs = [
   "medusa-db",
@@ -194,12 +195,25 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
       GOPAY_WEBHOOK_URL: `${medusaBePublicOrigin}/hooks/payment/paykit_gopay`,
       HERBATICA_REVIEWS_XML_PATH: "https://assets.example.test/reviews.xml",
       RESEND_FROM_EMAIL: "noreply@example.test",
+      MINIO_FILE_URL: `${minioPublicOrigin}/{{env.MEDUSA_MINIO_BUCKET}}`,
     })
     expect(medusa?.desired_env).toHaveProperty(
       "WORKFLOW_QUEUE_RUNNER_BATCH_SIZE"
     )
     expect(medusa?.desired_env).toHaveProperty("SENTRY_TRACES_SAMPLE_RATE")
     expect(medusa?.desired_env).not.toHaveProperty("MEILISEARCH_API_KEY")
+
+    const minio = plan.services.find(
+      (service) => service.service_id === "medusa-minio"
+    )
+    expect(minio?.desired_urls).toEqual([
+      {
+        associated_port: 9004,
+        base_path: "/",
+        domain: `${projectSlug}-medusa-minio${publicUrlAffix}.${publicDomain}`,
+        strip_prefix: true,
+      },
+    ])
 
     const herbatika = plan.services.find(
       (service) => service.service_id === "herbatika"
@@ -210,6 +224,9 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     expect(herbatika?.desired_env).not.toHaveProperty(
       "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"
     )
+    expect(herbatika?.desired_env).toMatchObject({
+      NEXT_PUBLIC_MINIO_FILE_URL: minioPublicOrigin,
+    })
     expect(herbatika?.desired_env).not.toHaveProperty("MEILISEARCH_HOST")
     expect(herbatika?.desired_env).not.toHaveProperty(
       "MEILISEARCH_SEARCH_API_KEY"

@@ -30,6 +30,8 @@ export const PRODUCT_BRAND_GPSR_FIELDS = [
 
 export const PRODUCT_CARD_FIELDS = `id,title,handle,thumbnail,*variants.calculated_price,${PRODUCT_VARIANT_INVENTORY_FIELDS},+metadata`
 
+export const ACCOUNT_PRODUCT_LIST_FIELDS = `${PRODUCT_CARD_FIELDS},variants.id,variants.title`
+
 export const SEARCH_PRODUCT_CARD_FIELDS = PRODUCT_CARD_FIELDS
 
 export const RELATED_PRODUCT_FIELDS = PRODUCT_CARD_FIELDS

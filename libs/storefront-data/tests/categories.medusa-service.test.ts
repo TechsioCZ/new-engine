@@ -16,9 +16,11 @@ const createCategory = (
   name = "Category",
   handle = id
 ): HttpTypes.StoreProductCategory =>
-  ({ id, name, handle } as HttpTypes.StoreProductCategory)
+  ({ id, name, handle }) as HttpTypes.StoreProductCategory
 
-function createSdkMock(response?: Partial<HttpTypes.StoreProductCategoryListResponse>): SdkLike {
+function createSdkMock(
+  response?: Partial<HttpTypes.StoreProductCategoryListResponse>
+): SdkLike {
   return {
     client: {
       fetch: vi.fn().mockResolvedValue({
@@ -44,7 +46,7 @@ describe("createMedusaCategoryService", () => {
     const controller = new AbortController()
 
     await service.getCategories(
-      { limit: 12, offset: 0, enabled: true },
+      { limit: 12, offset: 0, enabled: true, locale: "sk-SK" },
       controller.signal
     )
 
@@ -53,6 +55,7 @@ describe("createMedusaCategoryService", () => {
         limit: 12,
         offset: 0,
         fields: "id,name,handle,parent_category_id",
+        locale: "sk-SK",
       },
       signal: controller.signal,
     })
@@ -123,13 +126,18 @@ describe("createMedusaCategoryService", () => {
       }),
     })
 
-    const result = await service.getCategory({ id: "pcat_3", enabled: true })
+    const result = await service.getCategory({
+      id: "pcat_3",
+      enabled: true,
+      locale: "sk-SK",
+    })
 
     expect(sdk.client.fetch).toHaveBeenCalledWith(
       "/store/product-categories/pcat_3",
       {
         query: {
           fields: "id,name,handle,parent_category_id",
+          locale: "sk-SK",
         },
         signal: undefined,
       }

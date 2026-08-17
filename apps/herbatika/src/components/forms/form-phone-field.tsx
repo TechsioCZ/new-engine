@@ -1,5 +1,6 @@
 "use client"
 
+import { useStore } from "@tanstack/react-form"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import {
@@ -73,6 +74,10 @@ export function FormPhoneField({
   validationMode = "blur",
 }: FormPhoneFieldProps) {
   const field = useFieldContext<string>()
+  const submissionAttempts = useStore(
+    field.form.store,
+    (state) => state.submissionAttempts
+  )
   const region = useRegionContext()
   const [hasChangedSinceBlur, setHasChangedSinceBlur] = useState(false)
   const value = typeof field.state.value === "string" ? field.state.value : ""
@@ -83,7 +88,7 @@ export function FormPhoneField({
   const fieldFeedback = resolveVisibleFieldFeedback({
     hasChangedSinceBlur,
     meta: field.state.meta,
-    submissionAttempts: field.form.state.submissionAttempts,
+    submissionAttempts,
     validationMode,
   })
 
@@ -97,7 +102,7 @@ export function FormPhoneField({
         if (
           shouldTrackLiveFieldFeedback({
             meta: field.state.meta,
-            submissionAttempts: field.form.state.submissionAttempts,
+            submissionAttempts,
           })
         ) {
           setHasChangedSinceBlur(true)

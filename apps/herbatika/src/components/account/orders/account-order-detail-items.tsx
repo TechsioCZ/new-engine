@@ -3,12 +3,34 @@ import { Table } from "@techsio/ui-kit/organisms/table"
 import { useTranslations } from "next-intl"
 import {
   formatOrderAmount,
+  resolveOrderItemOriginalTotalAmount,
   resolveOrderItemQuantity,
   resolveOrderItemTotalAmount,
 } from "@/lib/storefront/order-format"
 
 type AccountOrderDetailItemsProps = {
   order: HttpTypes.StoreOrder
+}
+
+function OrderItemAmount({
+  amount,
+  currencyCode,
+  originalAmount,
+}: {
+  amount: number
+  currencyCode?: string | null
+  originalAmount: number | null
+}) {
+  return (
+    <span className="inline-flex flex-col items-end leading-tight">
+      {originalAmount !== null ? (
+        <span className="text-fg-tertiary text-xs line-through">
+          {formatOrderAmount(originalAmount, currencyCode)}
+        </span>
+      ) : null}
+      <span>{formatOrderAmount(amount, currencyCode)}</span>
+    </span>
+  )
 }
 
 export function AccountOrderDetailItems({
@@ -49,8 +71,14 @@ export function AccountOrderDetailItems({
               orderItems.map((item) => {
                 const quantity = resolveOrderItemQuantity(item)
                 const lineTotal = resolveOrderItemTotalAmount(item)
+                const originalLineTotal =
+                  resolveOrderItemOriginalTotalAmount(item)
                 const unitPrice =
                   quantity > 0 ? lineTotal / quantity : lineTotal
+                const originalUnitPrice =
+                  originalLineTotal !== null && quantity > 0
+                    ? originalLineTotal / quantity
+                    : null
 
                 return (
                   <Table.Row key={item.id}>
@@ -58,10 +86,18 @@ export function AccountOrderDetailItems({
                     <Table.Cell>{item.variant_title ?? "-"}</Table.Cell>
                     <Table.Cell numeric>{String(quantity)}</Table.Cell>
                     <Table.Cell numeric>
-                      {formatOrderAmount(unitPrice, order.currency_code)}
+                      <OrderItemAmount
+                        amount={unitPrice}
+                        currencyCode={order.currency_code}
+                        originalAmount={originalUnitPrice}
+                      />
                     </Table.Cell>
                     <Table.Cell numeric>
-                      {formatOrderAmount(lineTotal, order.currency_code)}
+                      <OrderItemAmount
+                        amount={lineTotal}
+                        currencyCode={order.currency_code}
+                        originalAmount={originalLineTotal}
+                      />
                     </Table.Cell>
                   </Table.Row>
                 )
@@ -85,7 +121,12 @@ export function AccountOrderDetailItems({
           orderItems.map((item) => {
             const quantity = resolveOrderItemQuantity(item)
             const lineTotal = resolveOrderItemTotalAmount(item)
+            const originalLineTotal = resolveOrderItemOriginalTotalAmount(item)
             const unitPrice = quantity > 0 ? lineTotal / quantity : lineTotal
+            const originalUnitPrice =
+              originalLineTotal !== null && quantity > 0
+                ? originalLineTotal / quantity
+                : null
 
             return (
               <article
@@ -106,14 +147,31 @@ export function AccountOrderDetailItems({
                       count: quantity,
                     })}
                   </p>
-                  <p className="text-end text-fg-secondary">
-                    {tAuth("account.orders.unit_price_value", {
-                      amount: formatOrderAmount(unitPrice, order.currency_code),
-                    })}
+                  <p className="text-end text-fg-secondary leading-tight">
+                    {originalUnitPrice !== null ? (
+                      <span className="block text-fg-tertiary line-through">
+                        {formatOrderAmount(
+                          originalUnitPrice,
+                          order.currency_code
+                        )}
+                      </span>
+                    ) : null}
+                    <span className="block">
+                      {tAuth("account.orders.unit_price_value", {
+                        amount: formatOrderAmount(
+                          unitPrice,
+                          order.currency_code
+                        ),
+                      })}
+                    </span>
                   </p>
                 </div>
                 <p className="font-semibold text-fg-primary text-sm">
-                  {formatOrderAmount(lineTotal, order.currency_code)}
+                  <OrderItemAmount
+                    amount={lineTotal}
+                    currencyCode={order.currency_code}
+                    originalAmount={originalLineTotal}
+                  />
                 </p>
               </article>
             )

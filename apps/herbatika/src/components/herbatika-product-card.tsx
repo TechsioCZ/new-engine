@@ -12,6 +12,7 @@ import {
 import { resolveDescription } from "@/components/product-card/product-card.description"
 import { resolveFlags } from "@/components/product-card/product-card.flags"
 import { resolveDiscountLabel } from "@/components/product-card/product-card.pricing"
+import { ProductCardPriceBlock } from "@/components/product-card/product-card-price-block"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
 
@@ -112,16 +113,7 @@ export function HerbatikaProductCard(props: HerbatikaProductCardProps) {
         </div>
 
         <div className="mt-auto flex min-h-product-card-label items-end justify-between gap-200 sm:gap-300">
-          <div className="flex h-full flex-col justify-center font-verdana leading-none">
-            {price.originalLabel ? (
-              <span className="text-fg-tertiary text-xs line-through">
-                {price.originalLabel}
-              </span>
-            ) : null}
-            <ProductCard.Price className="leading-none">
-              {price.currentLabel}
-            </ProductCard.Price>
-          </div>
+          <ProductCardPriceBlock className="h-full" price={price} />
 
           <ProductCard.Actions className="shrink-0 justify-end">
             <Button

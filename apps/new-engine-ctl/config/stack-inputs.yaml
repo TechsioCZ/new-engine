@@ -435,6 +435,12 @@ preview_runtime_reconciliation:
         kind: service_public_origin
         service_id: payload
 
+    - service_id: herbatika
+      env_var: NEXT_PUBLIC_MINIO_FILE_URL
+      source:
+        kind: service_public_origin
+        service_id: medusa-minio
+
 preview_verification:
   forbidden_service_env:
     - service_id: medusa-valkey

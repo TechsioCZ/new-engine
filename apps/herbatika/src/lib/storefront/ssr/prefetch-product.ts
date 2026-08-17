@@ -21,12 +21,13 @@ import type { ProductDetailParams } from "./types"
 export const prefetchProductDetailPageStorefrontData = async (
   handle: string
 ) => {
-  const { queryClient, region } = await getRegionServerContext()
+  const { locale, queryClient, region } = await getRegionServerContext()
 
   if (region) {
     const detailParams: ProductDetailParams = {
       handle,
       fields: PRODUCT_DETAIL_FIELDS,
+      locale,
       region_id: region.region_id,
       country_code: region.country_code,
     }
@@ -52,6 +53,7 @@ export const prefetchProductDetailPageStorefrontData = async (
         category_id: relatedCategoryIds,
         order: "-created_at",
         fields: PRODUCT_CARD_FIELDS,
+        locale,
         region_id: region.region_id,
         country_code: region.country_code,
       })

@@ -24,10 +24,12 @@ import { getRegionServerContext } from "./context"
 
 type HomepageCatalogPrefetchInput = {
   categoryIds?: string[]
+  locale: string
   queryClient: QueryClient
   region: RegionInfo
   sort: CatalogQueryState["sort"]
   status?: string[]
+  onSale?: true
 }
 
 const buildHomepageCatalogQueryState = (
@@ -47,10 +49,12 @@ const buildHomepageCatalogQueryState = (
 
 const prefetchHomepageCatalogProducts = ({
   categoryIds,
+  locale,
   queryClient,
   region,
   sort,
   status,
+  onSale,
 }: HomepageCatalogPrefetchInput) =>
   prefetchServerCatalogProducts(
     queryClient,
@@ -58,17 +62,20 @@ const prefetchHomepageCatalogProducts = ({
       queryState: buildHomepageCatalogQueryState(sort, status),
       categoryIds,
       limit: HOMEPAGE_PRODUCTS_PER_SECTION,
+      locale,
       regionId: region.region_id,
       countryCode: region.country_code,
+      onSale,
     })
   )
 
 export const prefetchHomePageStorefrontData = async () => {
-  const { queryClient, region } = await getRegionServerContext()
+  const { locale, queryClient, region } = await getRegionServerContext()
   const categoryListParams = buildCategoryListParams({
     page: 1,
     limit: CATEGORY_TREE_LIMIT,
     fields: CATEGORY_TREE_FIELDS,
+    locale,
   })
   const categoryResponse = await fetchServerCategories(
     queryClient,
@@ -82,15 +89,17 @@ export const prefetchHomePageStorefrontData = async () => {
     const prefetches = [
       prefetchHomepageCatalogProducts({
         queryClient,
+        locale,
         region,
         sort: "newest",
         status: ["new"],
       }),
       prefetchHomepageCatalogProducts({
         queryClient,
+        locale,
         region,
         sort: "recommended",
-        status: ["action"],
+        onSale: true,
       }),
     ]
 
@@ -98,6 +107,7 @@ export const prefetchHomePageStorefrontData = async () => {
       prefetches.push(
         prefetchHomepageCatalogProducts({
           categoryIds: [bestsellersCategory.id],
+          locale,
           queryClient,
           region,
           sort: "recommended",

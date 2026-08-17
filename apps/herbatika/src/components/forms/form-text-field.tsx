@@ -1,5 +1,6 @@
 "use client"
 
+import { useStore } from "@tanstack/react-form"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { type ReactNode, useState } from "react"
 import {
@@ -30,12 +31,16 @@ export function FormTextField({
   onValueChange,
 }: FormTextFieldProps) {
   const field = useFieldContext<string>()
+  const submissionAttempts = useStore(
+    field.form.store,
+    (state) => state.submissionAttempts
+  )
   const [hasChangedSinceBlur, setHasChangedSinceBlur] = useState(false)
   const value = typeof field.state.value === "string" ? field.state.value : ""
   const fieldFeedback = resolveVisibleFieldFeedback({
     hasChangedSinceBlur,
     meta: field.state.meta,
-    submissionAttempts: field.form.state.submissionAttempts,
+    submissionAttempts,
     validationMode,
   })
   const errorText = externalError ?? fieldFeedback.errorText
@@ -57,7 +62,7 @@ export function FormTextField({
         if (
           shouldTrackLiveFieldFeedback({
             meta: field.state.meta,
-            submissionAttempts: field.form.state.submissionAttempts,
+            submissionAttempts,
           })
         ) {
           setHasChangedSinceBlur(true)
