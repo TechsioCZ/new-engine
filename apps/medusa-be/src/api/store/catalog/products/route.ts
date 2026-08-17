@@ -188,7 +188,8 @@ const buildVisibilityFilterExpressions = (
 }
 const resolveBrandFacetLabels = async (
   queryService: Query,
-  facetIds: string[]
+  facetIds: string[],
+  locale?: string
 ): Promise<Map<string, string>> => {
   const labelsById = new Map<string, string>()
   const handles = Array.from(
@@ -203,15 +204,18 @@ const resolveBrandFacetLabels = async (
     return labelsById
   }
 
-  const { data: brands } = await queryService.graph({
-    entity: "brand",
-    fields: ["handle", "title"],
-    filters: {
-      handle: {
-        $in: handles,
+  const { data: brands } = await queryService.graph(
+    {
+      entity: "brand",
+      fields: ["handle", "title"],
+      filters: {
+        handle: {
+          $in: handles,
+        },
       },
     },
-  })
+    { locale }
+  )
 
   const brandTitleByHandle = new Map<string, string>()
   for (const brand of brands as BrandRecord[]) {
@@ -238,7 +242,8 @@ const resolveBrandFacetLabels = async (
 
 const resolveIngredientFacetLabels = async (
   queryService: Query,
-  facetIds: string[]
+  facetIds: string[],
+  locale?: string
 ): Promise<Map<string, string>> => {
   const labelsById = new Map<string, string>()
   const handles = Array.from(
@@ -253,15 +258,18 @@ const resolveIngredientFacetLabels = async (
     return labelsById
   }
 
-  const { data: categories } = await queryService.graph({
-    entity: "product_category",
-    fields: ["handle", "name"],
-    filters: {
-      handle: {
-        $in: handles,
+  const { data: categories } = await queryService.graph(
+    {
+      entity: "product_category",
+      fields: ["handle", "name"],
+      filters: {
+        handle: {
+          $in: handles,
+        },
       },
     },
-  })
+    { locale }
+  )
 
   const categoryNameByHandle = new Map<string, string>()
   for (const category of categories as CategoryRecord[]) {
@@ -382,6 +390,7 @@ export async function GET(
   }
 
   const validatedQuery = req.validatedQuery
+  const requestedLocale = req.locale ?? validatedQuery.locale
   const measurementDecorationOptions = getMeasurementDecorationOptions(
     req.queryConfig.fields
   )
@@ -397,7 +406,7 @@ export async function GET(
   try {
     searchProfile = resolveSearchProfile(
       {
-        locale: validatedQuery.locale,
+        locale: requestedLocale,
         requestedKey: validatedQuery.profile,
         salesChannelIds,
       },
@@ -410,6 +419,9 @@ export async function GET(
     }
     throw error
   }
+  const graphLocale =
+    requestedLocale ??
+    (searchProfile.locale === "default" ? undefined : searchProfile.locale)
   const limit = Math.min(validatedQuery.limit, searchProfile.limits.page)
   const offset = (page - 1) * limit
   const cleanedQuery = cleanSearchText(validatedQuery.q)
@@ -501,30 +513,33 @@ export async function GET(
         ]
       : STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS
     const { data: fallbackProducts, metadata: fallbackMetadata } =
-      await queryService.graph({
-        entity: "product",
-        fields: productFields,
-        filters: await normalizeProductSalesChannelFilter(
-          queryService,
-          remoteQuery,
-          {
-            ...(cleanedQuery ? { q: cleanedQuery } : {}),
-            sales_channel_id: req.filterableFields.sales_channel_id,
-            status: ProductStatus.PUBLISHED,
-          }
-        ),
-        pagination: {
-          take: limit,
-          skip: offset,
-        },
-        context: pricingContext
-          ? {
-              variants: {
-                calculated_price: pricingContext,
-              },
+      await queryService.graph(
+        {
+          entity: "product",
+          fields: productFields,
+          filters: await normalizeProductSalesChannelFilter(
+            queryService,
+            remoteQuery,
+            {
+              ...(cleanedQuery ? { q: cleanedQuery } : {}),
+              sales_channel_id: req.filterableFields.sales_channel_id,
+              status: ProductStatus.PUBLISHED,
             }
-          : undefined,
-      })
+          ),
+          pagination: {
+            take: limit,
+            skip: offset,
+          },
+          context: pricingContext
+            ? {
+                variants: {
+                  calculated_price: pricingContext,
+                },
+              }
+            : undefined,
+        },
+        { locale: graphLocale }
+      )
 
     await wrapProductsWithTaxPrices(
       req,
@@ -594,28 +609,31 @@ export async function GET(
   const { data: products } =
     productIds.length === 0
       ? { data: [] as Record<string, unknown>[] }
-      : await queryService.graph({
-          entity: "product",
-          fields: productFields,
-          filters: await normalizeProductSalesChannelFilter(
-            queryService,
-            remoteQuery,
-            {
-              id: {
-                $in: productIds,
-              },
-              sales_channel_id: req.filterableFields.sales_channel_id,
-              status: ProductStatus.PUBLISHED,
-            }
-          ),
-          context: pricingContext
-            ? {
-                variants: {
-                  calculated_price: pricingContext,
+      : await queryService.graph(
+          {
+            entity: "product",
+            fields: productFields,
+            filters: await normalizeProductSalesChannelFilter(
+              queryService,
+              remoteQuery,
+              {
+                id: {
+                  $in: productIds,
                 },
+                sales_channel_id: req.filterableFields.sales_channel_id,
+                status: ProductStatus.PUBLISHED,
               }
-            : undefined,
-        })
+            ),
+            context: pricingContext
+              ? {
+                  variants: {
+                    calculated_price: pricingContext,
+                  },
+                }
+              : undefined,
+          },
+          { locale: graphLocale }
+        )
 
   const orderedProducts = expandProductsBySearchMatches(
     products as Record<string, unknown>[],
@@ -673,10 +691,15 @@ export async function GET(
     : getNumericFacetStats(searchResult.facetStats, "facet_price")
 
   const [brandLabelsById, ingredientLabelsById] = await Promise.all([
-    resolveBrandFacetLabels(queryService, Array.from(brandFacetCounts.keys())),
+    resolveBrandFacetLabels(
+      queryService,
+      Array.from(brandFacetCounts.keys()),
+      graphLocale
+    ),
     resolveIngredientFacetLabels(
       queryService,
-      Array.from(ingredientFacetCounts.keys())
+      Array.from(ingredientFacetCounts.keys()),
+      graphLocale
     ),
   ])
 
