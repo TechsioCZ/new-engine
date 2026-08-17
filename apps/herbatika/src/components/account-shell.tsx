@@ -68,7 +68,12 @@ export function AccountShell({ children }: AccountShellProps) {
   const tAuth = useTranslations("auth")
   const router = useRouter()
   const pathname = usePathname()
-  const authQuery = useAuth()
+  const authQuery = useAuth({
+    queryOptions: {
+      refetchOnMount: "always",
+      refetchOnWindowFocus: "always",
+    },
+  })
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const redirectTarget = pathname
   const isDeactivationConfirmationRoute =
