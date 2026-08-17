@@ -692,3 +692,26 @@ issue wording must not be copied into test expectations:
   generation because the baseline environment has no market publishable key and
   the CMS article-categories request returns `400`. This is pre-existing master
   configuration behavior, not a replacement-branch regression.
+
+## 13. Implementation evidence log
+
+### 2026-08-17 — S1 Docker/standalone M00
+
+- Exact `Next.js 16.3.0-preview.5` optimized build: **PASS**, including the
+  standalone artifact/config assertion.
+- Production Herbatika `prod` image behind Caddy TLS: **PASS**.
+- Wire suite: **91/91 passed**, with no skips, for HTTP/1.1 and HTTP/2, all four
+  SNI hosts, ordinary and adversarial RSC-header profiles, all five
+  `200/308/404/410/503` outcomes, and GET/HEAD parity before body delivery.
+- The same wire run proves forged market/internal headers cannot change market,
+  unsafe methods return `405`, OPTIONS returns `204`, and a cross-market direct
+  `/_next/data/{buildId}/~sf/...` request returns `404`.
+- The pinned Next adapter classifies spoofed RSC headers before application
+  Proxy code and otherwise emits a framework `307`. The supported Docker ingress
+  therefore strips those client-controlled framework headers before forwarding;
+  Proxy scrubbing and trusted `x-sf-*` replacement remain defense in depth.
+- Herbatika unit suite after S1: **33/33 files and 191/191 tests passed**;
+  TypeScript, Biome, Actionlint, Compose validation, and Caddy validation pass.
+- Docker S1 evidence is complete. The issue's contradictory Netlify row remains
+  `BLOCKED-PENDING-ISSUE-DECISION`; M00 must not be called globally release-ready
+  until that ownership decision is recorded.

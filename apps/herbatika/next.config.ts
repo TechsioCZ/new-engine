@@ -69,16 +69,10 @@ const nextConfig: NextConfig = {
     "@techsio/storefront-i18n",
   ],
   reactCompiler: true,
-  cacheComponents: true,
-  redirects() {
-    return [
-      {
-        source: "/homepage-promo",
-        destination: "/#homepage-promo",
-        permanent: false,
-      },
-    ]
-  },
+  cacheComponents: false,
+  skipProxyUrlNormalize: true,
+  skipTrailingSlashRedirect: true,
+  redirects: async () => [],
   outputFileTracingRoot: join(__dirname, "../../"),
   outputFileTracingExcludes: {
     "*": [
@@ -103,14 +97,6 @@ const nextConfig: NextConfig = {
     unoptimized: shouldDisableImageOptimization,
     remotePatterns: imageRemotePatterns,
     qualities: [40, 50, 60, 75, 90],
-  },
-
-  cacheLife: {
-    product: {
-      stale: 3600,
-      revalidate: 3600,
-      expire: 86_400,
-    },
   },
 
   experimental: {

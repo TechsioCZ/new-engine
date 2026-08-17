@@ -38,6 +38,8 @@ jobs:
           cache: 'pnpm'
 
       - run: pnpm install --frozen-lockfile --prefer-offline
+      - name: Verify Herbatika Next.js version
+        run: pnpm --filter=herbatika verify:next-version
       - uses: nrwl/nx-set-shas@3e9ad7370203c1e93d109be57f3b72eb0eb511b1 # v4
       - name: Determine affected projects
         id: determine_affected
@@ -72,3 +74,6 @@ jobs:
           ./node_modules/.bin/nubx --node nx run-many -t typecheck --projects="$projects"
       # Nx Affected runs only tasks affected by the changes in this PR/commit. Learn more: https://nx.dev/ci/features/affected
       - run: ./node_modules/.bin/nubx --node nx affected -t lint test
+      - name: Prove Herbatika Pages hard statuses through Docker ingress
+        if: contains(steps.determine_affected.outputs.projects_csv, ',herbatika,')
+        run: pnpm --filter=herbatika test:m00:wire

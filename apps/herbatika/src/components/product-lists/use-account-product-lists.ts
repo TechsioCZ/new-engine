@@ -176,6 +176,10 @@ export function useAccountProductLists() {
       return
     }
 
+    if (!searchParams) {
+      return
+    }
+
     const requestedListId = searchParams.get("list")
     const requestedListExists = sortedLists.some(
       (list) => list.id === requestedListId

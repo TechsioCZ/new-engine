@@ -23,6 +23,8 @@ import { fetchServerCategories } from "@/lib/storefront/storefront-server"
 import "./globals.css"
 import { Providers } from "./providers"
 
+export const dynamic = "force-dynamic"
+
 const verdana = localFont({
   src: [
     {
