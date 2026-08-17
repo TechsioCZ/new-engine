@@ -93,3 +93,34 @@ export type CmsHeroCarousel = {
   image?: CmsMedia | string | null
   subheading?: string | null
 }
+
+export type CmsFooterColumnSlot = "information" | "important" | "partners"
+
+export type CmsFooterItemSlot =
+  | "blog"
+  | "about"
+  | "faq"
+  | "gift_voucher"
+  | "brands"
+  | "reviews"
+  | "shipping_payment"
+  | "claims_returns"
+  | "terms"
+  | "privacy"
+  | "cookies"
+  | "affiliate"
+  | "wholesale"
+  | "dropshipping"
+  | "private_label"
+
+export type CmsFooterNavigation = {
+  columns: Array<{
+    slot: CmsFooterColumnSlot
+    items: Array<{
+      slot: CmsFooterItemSlot
+      href: string
+      type: "internal" | "external"
+      newTab?: boolean
+    }>
+  }>
+}

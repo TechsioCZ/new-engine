@@ -7,100 +7,40 @@ import type { Route } from "next"
 import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
+import type {
+  CmsFooterColumnSlot,
+  CmsFooterItemSlot,
+  CmsFooterNavigation,
+} from "@/lib/storefront/cms-types"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { HerbatikaLogo } from "./herbatika-logo"
 
-type FooterNavigationLink =
-  | {
-      href: Route
-      labelKey: string
-      external?: false
-    }
-  | {
-      href: `https://${string}`
-      labelKey: string
-      external: true
-    }
-
-type FooterColumn = {
-  titleKey: string
-  links: readonly FooterNavigationLink[]
-}
-
-const giftVoucherHref = "/c/darceky" as Route
-const brandListingHref = "/znacka" as Route
 const formatMarketDomain = (domain: string) =>
   `${domain.charAt(0).toUpperCase()}${domain.slice(1)}`
 
-const FOOTER_COLUMNS: readonly FooterColumn[] = [
-  {
-    titleKey: "footer.columns.information.title",
-    links: [
-      { href: "/blog", labelKey: "footer.columns.information.blog" },
-      { href: "/o-nas", labelKey: "footer.columns.information.about" },
-      { href: "/faq", labelKey: "footer.columns.information.faq" },
-      {
-        href: giftVoucherHref,
-        labelKey: "footer.columns.information.gift_voucher",
-      },
-      {
-        href: brandListingHref,
-        labelKey: "footer.columns.information.brands",
-      },
-      {
-        href: "https://obchody.heureka.sk/herbatica-sk/recenze/",
-        labelKey: "footer.columns.information.reviews",
-        external: true,
-      },
-    ],
-  },
-  {
-    titleKey: "footer.columns.important.title",
-    links: [
-      {
-        href: "/#doprava-a-platby",
-        labelKey: "footer.columns.important.shipping_payment",
-      },
-      {
-        href: "/#reklamacia-a-vratenie",
-        labelKey: "footer.columns.important.claims_returns",
-      },
-      {
-        href: "/#obchodne-podmienky",
-        labelKey: "footer.columns.important.terms",
-      },
-      {
-        href: "/#ochrana-osobnych-udajov",
-        labelKey: "footer.columns.important.privacy",
-      },
-      {
-        href: "/#cookies",
-        labelKey: "footer.columns.important.cookies",
-      },
-    ],
-  },
-  {
-    titleKey: "footer.columns.partners.title",
-    links: [
-      {
-        href: "/#affiliate",
-        labelKey: "footer.columns.partners.affiliate",
-      },
-      {
-        href: "/#velkoobchod",
-        labelKey: "footer.columns.partners.wholesale",
-      },
-      {
-        href: "/#dropshipping",
-        labelKey: "footer.columns.partners.dropshipping",
-      },
-      {
-        href: "/#private-label",
-        labelKey: "footer.columns.partners.private_label",
-      },
-    ],
-  },
-]
+const FOOTER_COLUMN_TITLE_KEYS = {
+  information: "footer.columns.information.title",
+  important: "footer.columns.important.title",
+  partners: "footer.columns.partners.title",
+} as const satisfies Record<CmsFooterColumnSlot, string>
+
+const FOOTER_ITEM_LABEL_KEYS = {
+  blog: "footer.columns.information.blog",
+  about: "footer.columns.information.about",
+  faq: "footer.columns.information.faq",
+  gift_voucher: "footer.columns.information.gift_voucher",
+  brands: "footer.columns.information.brands",
+  reviews: "footer.columns.information.reviews",
+  shipping_payment: "footer.columns.important.shipping_payment",
+  claims_returns: "footer.columns.important.claims_returns",
+  terms: "footer.columns.important.terms",
+  privacy: "footer.columns.important.privacy",
+  cookies: "footer.columns.important.cookies",
+  affiliate: "footer.columns.partners.affiliate",
+  wholesale: "footer.columns.partners.wholesale",
+  dropshipping: "footer.columns.partners.dropshipping",
+  private_label: "footer.columns.partners.private_label",
+} as const satisfies Record<CmsFooterItemSlot, string>
 
 const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
   {
@@ -136,7 +76,11 @@ const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [
   { code: "HU", icon: "token-icon-hu" },
   { code: "RO", icon: "token-icon-ro" },
 ]
-export function HerbatikaFooter() {
+export function HerbatikaFooter({
+  navigation,
+}: {
+  navigation: CmsFooterNavigation
+}) {
   const t = useTranslations("navigation")
   const marketContext = useMarketContext()
 
@@ -180,21 +124,24 @@ export function HerbatikaFooter() {
           </Footer.Link>
         </Footer.Section>
 
-        {FOOTER_COLUMNS.map((column) => (
-          <Footer.Section className="px-500" key={column.titleKey}>
+        {navigation.columns.map((column) => (
+          <Footer.Section className="px-500" key={column.slot}>
             <Footer.Title className="uppercase leading-relaxed">
-              {t(column.titleKey)}
+              {t(FOOTER_COLUMN_TITLE_KEYS[column.slot])}
             </Footer.Title>
             <Footer.List>
-              {column.links.map((link) => (
-                <li key={link.href}>
-                  {link.external ? (
-                    <Footer.Link external href={link.href}>
-                      {t(link.labelKey)}
+              {column.items.map((item) => (
+                <li key={item.slot}>
+                  {item.type === "external" ? (
+                    <Footer.Link
+                      external={item.newTab ?? true}
+                      href={item.href}
+                    >
+                      {t(FOOTER_ITEM_LABEL_KEYS[item.slot])}
                     </Footer.Link>
                   ) : (
-                    <Footer.Link as={NextLink} href={link.href}>
-                      {t(link.labelKey)}
+                    <Footer.Link as={NextLink} href={item.href as Route}>
+                      {t(FOOTER_ITEM_LABEL_KEYS[item.slot])}
                     </Footer.Link>
                   )}
                 </li>

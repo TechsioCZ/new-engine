@@ -2,6 +2,7 @@ import "server-only"
 
 import type { HomepagePromoContent } from "@/components/homepage/homepage.data.types"
 import { resolveCmsMediaUrl } from "./cms-content"
+import type { CmsLocale } from "./cms-locale"
 import { fetchCmsPageBySlug } from "./cms-pages"
 import type { CmsMedia, CmsPage } from "./cms-types"
 
@@ -31,5 +32,7 @@ export const mapCmsPageToHomepagePromo = (
   }
 }
 
-export const fetchCmsHomepagePromo = async () =>
-  mapCmsPageToHomepagePromo(await fetchCmsPageBySlug(HOMEPAGE_PROMO_PAGE_SLUG))
+export const fetchCmsHomepagePromo = async (locale: CmsLocale) =>
+  mapCmsPageToHomepagePromo(
+    await fetchCmsPageBySlug(HOMEPAGE_PROMO_PAGE_SLUG, locale)
+  )

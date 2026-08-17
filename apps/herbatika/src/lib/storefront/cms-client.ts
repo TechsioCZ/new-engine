@@ -1,9 +1,9 @@
 import "server-only"
 
+import type { CmsLocale } from "./cms-locale"
 import { resolveMedusaBackendUrl } from "./runtime-env"
 import { storefrontConfig } from "./sdk"
 
-const CMS_LOCALE = "sk"
 const CMS_REVALIDATE_SECONDS = 600
 const CMS_MEDUSA_BASE_URL = resolveMedusaBackendUrl()
 
@@ -11,11 +11,12 @@ const trimSlashes = (value: string) => value.replace(/^\/+|\/+$/g, "")
 
 const buildCmsUrl = (
   path: string,
+  locale: CmsLocale,
   params?: Record<string, string | number>
 ) => {
   const url = new URL(`/store/cms/${trimSlashes(path)}`, CMS_MEDUSA_BASE_URL)
 
-  url.searchParams.set("locale", CMS_LOCALE)
+  url.searchParams.set("locale", locale)
 
   for (const [key, value] of Object.entries(params ?? {})) {
     url.searchParams.set(key, String(value))
@@ -38,18 +39,19 @@ export const isCmsNotFoundError = (error: unknown) =>
   error instanceof CmsRequestError && error.status === 404
 
 type CmsRequestOptions = {
+  locale: CmsLocale
   params?: Record<string, string | number>
   signal?: AbortSignal
 }
 
 export const fetchCmsJsonOrThrow = async <TResponse>(
   path: string,
-  { params, signal }: CmsRequestOptions = {}
+  { locale, params, signal }: CmsRequestOptions
 ): Promise<TResponse> => {
   let response: Response
 
   try {
-    response = await fetch(buildCmsUrl(path, params), {
+    response = await fetch(buildCmsUrl(path, locale, params), {
       headers: {
         accept: "application/json",
         "x-publishable-api-key": storefrontConfig.publishableKey,
@@ -79,10 +81,10 @@ export const fetchCmsJsonOrThrow = async <TResponse>(
 
 export const fetchCmsJson = async <TResponse>(
   path: string,
-  params?: Record<string, string | number>
+  options: Omit<CmsRequestOptions, "signal">
 ): Promise<TResponse | null> => {
   try {
-    return await fetchCmsJsonOrThrow<TResponse>(path, { params })
+    return await fetchCmsJsonOrThrow<TResponse>(path, options)
   } catch {
     return null
   }

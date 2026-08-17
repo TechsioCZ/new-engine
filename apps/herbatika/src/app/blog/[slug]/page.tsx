@@ -3,6 +3,8 @@ import { connection } from "next/server"
 import { Suspense } from "react"
 import { BlogDetailPage } from "@/components/blog/blog-detail-page"
 import { fetchCmsBlogPost } from "@/lib/storefront/cms"
+import { getCmsLocaleForMarket } from "@/lib/storefront/cms-locale"
+import { getMarketServerContext } from "@/lib/storefront/market-context.server"
 
 type BlogDetailRouteProps = {
   params: Promise<{
@@ -17,7 +19,11 @@ function BlogDetailPageFallback() {
 async function BlogDetailPageContent({ params }: BlogDetailRouteProps) {
   await connection()
   const { slug } = await params
-  const post = await fetchCmsBlogPost(slug)
+  const marketContext = await getMarketServerContext()
+  const post = await fetchCmsBlogPost(
+    slug,
+    getCmsLocaleForMarket(marketContext.code)
+  )
 
   if (!post) {
     notFound()
