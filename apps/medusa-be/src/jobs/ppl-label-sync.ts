@@ -37,6 +37,7 @@ import {
 const JOB_LOCK_KEY = "ppl-label-sync-job"
 const JOB_LOCK_TIMEOUT = 120
 const FETCH_PAGE_SIZE = 100
+const MAX_FETCH_PAGES = 20
 const PROCESS_LIMIT = 100
 const PPL_LABEL_EVENTS = [
   "fulfillment.label_ready",
@@ -137,7 +138,14 @@ async function executeSync(
   )
 
   for (const fulfillment of pendingFulfillments) {
-    await processFulfillment(ctx, fulfillment)
+    try {
+      await processFulfillment(ctx, fulfillment)
+    } catch (error) {
+      logger.error(
+        `PPL Label Sync: Failed to process fulfillment ${fulfillment.id}`,
+        error instanceof Error ? error : new Error(String(error))
+      )
+    }
   }
 
   logger.info("PPL Label Sync: Completed")
@@ -157,8 +165,10 @@ export async function fetchPendingFulfillments(
 ): Promise<PendingFulfillment[]> {
   const pending: PendingFulfillment[] = []
   let skip = 0
+  let fetchedPages = 0
 
-  while (pending.length < limit) {
+  while (pending.length < limit && fetchedPages < MAX_FETCH_PAGES) {
+    fetchedPages += 1
     const { data: fulfillments } = await query.graph({
       entity: "fulfillment",
       fields: ["id", "data", "created_at", "provider_id"],

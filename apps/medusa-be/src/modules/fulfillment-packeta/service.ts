@@ -87,7 +87,10 @@ const PACKETA_OPTION_SETTINGS: Record<
 const getPacketaOptionSettings = (
   code: unknown
 ): { code: PacketaOptionCode; settings: PacketaOptionSettings } | undefined => {
-  if (typeof code !== "string" || !(code in PACKETA_OPTION_SETTINGS)) {
+  if (
+    typeof code !== "string" ||
+    !Object.hasOwn(PACKETA_OPTION_SETTINGS, code)
+  ) {
     return
   }
 

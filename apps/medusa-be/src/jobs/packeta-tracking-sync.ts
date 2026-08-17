@@ -49,6 +49,7 @@ type TrackingContext = {
 const LOCK_KEY = "packeta-tracking-sync-job"
 const LOCK_TIMEOUT_SECONDS = 120
 const FETCH_PAGE_SIZE = 100
+const MAX_FETCH_PAGES = 20
 const PROCESS_LIMIT = 100
 const PACKETA_TRACKING_EVENTS = [
   "packeta.delivered",
@@ -148,8 +149,10 @@ export async function fetchPendingFulfillments(
 ): Promise<PendingFulfillment[]> {
   const pending: PendingFulfillment[] = []
   let skip = 0
+  let fetchedPages = 0
 
-  while (pending.length < limit) {
+  while (pending.length < limit && fetchedPages < MAX_FETCH_PAGES) {
+    fetchedPages += 1
     const { data: fulfillments } = await query.graph({
       entity: "fulfillment",
       fields: ["id", "data", "shipped_at", "delivered_at", "provider_id"],

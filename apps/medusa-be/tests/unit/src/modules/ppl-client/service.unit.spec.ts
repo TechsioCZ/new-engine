@@ -377,6 +377,37 @@ describe("PplClientModuleService", () => {
       encryptFields.mockClear()
     })
 
+    describe("getConfig", () => {
+      it("returns null unless exactly one profile is active", async () => {
+        const service = createService()
+        const listPplConfigs = vi.spyOn(service, "listPplConfigs")
+
+        listPplConfigs.mockResolvedValueOnce([])
+        await expect(service.getConfig()).resolves.toBeNull()
+
+        listPplConfigs.mockResolvedValueOnce([
+          createMockConfig({ id: "config-1" }),
+          createMockConfig({ id: "config-2", environment: "production" }),
+        ] as any)
+        await expect(service.getConfig()).resolves.toBeNull()
+      })
+
+      it("returns the single decrypted active profile", async () => {
+        const service = createService()
+        vi.spyOn(service, "listPplConfigs").mockResolvedValueOnce([
+          createMockConfig({ client_secret: "encrypted-value" }),
+        ] as any)
+
+        await expect(service.getConfig()).resolves.toEqual(
+          expect.objectContaining({
+            id: "config-1",
+            client_secret: "encrypted-value",
+            _decrypted: true,
+          })
+        )
+      })
+    })
+
     describe("updateConfig - sensitive field handling", () => {
       it("removes empty string from sensitive fields (keep existing)", async () => {
         const service = createService()

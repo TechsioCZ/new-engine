@@ -55,7 +55,7 @@ const getPplOptionSettings = (
   | undefined => {
   if (
     typeof productType !== "string" ||
-    !(productType in PPL_OPTION_SETTINGS)
+    !Object.hasOwn(PPL_OPTION_SETTINGS, productType)
   ) {
     return
   }

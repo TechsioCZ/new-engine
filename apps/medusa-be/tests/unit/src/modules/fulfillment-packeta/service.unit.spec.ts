@@ -171,6 +171,8 @@ describe("PacketaFulfillmentProviderService", () => {
       ["z_point", true],
       ["z_point_cod", true],
       ["home_delivery", false],
+      ["constructor", false],
+      ["toString", false],
       [undefined, false],
     ])("validates code=%s -> %s", async (code, expected) => {
       expect(await createService().validateOption({ code })).toBe(expected)

@@ -128,7 +128,14 @@ export class PplClientModuleService extends MedusaService({ PplConfig }) {
 
   async getConfig(environment?: PplEnvironment): Promise<PplConfigDTO | null> {
     if (!environment) {
-      return this.getActiveConfig()
+      const activeConfigs = await this.listPplConfigs(
+        { is_active: true },
+        { take: 2 }
+      )
+      if (activeConfigs.length !== 1) {
+        return null
+      }
+      return this.decryptConfig(activeConfigs[0])
     }
 
     const configs = await this.listPplConfigs({ environment }, { take: 1 })

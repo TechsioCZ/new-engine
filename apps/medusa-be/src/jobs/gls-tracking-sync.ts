@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto"
 import type { MedusaContainer } from "@medusajs/framework"
 import type {
   IEventBusModuleService,
@@ -54,6 +55,7 @@ type TrackingContext = {
 
 const LOCK_KEY = "gls-tracking-sync-job"
 const LOCK_EXPIRY_SECONDS = 1800
+const LOCK_RENEWAL_INTERVAL_MS = 300_000
 const CHUNK_SIZE = 25
 const PENDING_FETCH_PAGE_SIZE = 100
 
@@ -68,9 +70,11 @@ const synchronizeGLSTrackingStep = createStep(
     }
 
     const lockingService = container.resolve<ILockingModule>(Modules.LOCKING)
+    const lockOwnerId = randomUUID()
     try {
       await lockingService.acquire(LOCK_KEY, {
         expire: LOCK_EXPIRY_SECONDS,
+        ownerId: lockOwnerId,
       })
     } catch (error) {
       if (isLockContentionError(error)) {
@@ -82,10 +86,26 @@ const synchronizeGLSTrackingStep = createStep(
       throw error
     }
 
+    const renewalTimer = setInterval(async () => {
+      try {
+        await lockingService.acquire(LOCK_KEY, {
+          expire: LOCK_EXPIRY_SECONDS,
+          ownerId: lockOwnerId,
+        })
+      } catch (error) {
+        logger.error(
+          "GLS Tracking Sync: failed to renew job lock",
+          error instanceof Error ? error : new Error(String(error))
+        )
+      }
+    }, LOCK_RENEWAL_INTERVAL_MS)
+    renewalTimer.unref()
+
     try {
       await run(container, logger)
     } finally {
-      await lockingService.release(LOCK_KEY)
+      clearInterval(renewalTimer)
+      await lockingService.release(LOCK_KEY, { ownerId: lockOwnerId })
     }
 
     return new StepResponse({ completed: true })

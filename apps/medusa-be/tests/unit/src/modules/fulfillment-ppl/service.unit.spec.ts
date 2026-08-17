@@ -473,6 +473,12 @@ describe("PplFulfillmentProviderService", () => {
       expect(
         await createService().validateOption({ product_type: "INVALID" })
       ).toBe(false)
+      expect(
+        await createService().validateOption({ product_type: "constructor" })
+      ).toBe(false)
+      expect(
+        await createService().validateOption({ product_type: "toString" })
+      ).toBe(false)
     })
 
     it("rejects capability flags that contradict the product type", async () => {
