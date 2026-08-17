@@ -3,11 +3,21 @@ import type { MiddlewareRoute } from "@medusajs/framework/http"
 import { StoreCmsArticleCategoriesSchema } from "./article-categories/route"
 import { StoreCmsArticleSchema } from "./articles/[slug]/route"
 import { StoreCmsHeroCarouselsSchema } from "./hero-carousels/route"
+import { StoreCmsFooterNavigationSchema } from "./navigation/footer/route"
 import { StoreCmsPageCategoriesSchema } from "./page-categories/route"
 import { StoreCmsPageSchema } from "./pages/[slug]/route"
 
 /** Middleware definitions for store CMS routes (query validation). */
 export const storeCmsRoutesMiddlewares: MiddlewareRoute[] = [
+  {
+    methods: ["GET"],
+    matcher: "/store/cms/navigation/footer",
+    middlewares: [
+      validateAndTransformQuery(StoreCmsFooterNavigationSchema, {
+        isList: false,
+      }),
+    ],
+  },
   {
     methods: ["GET"],
     matcher: "/store/cms/pages/:slug",

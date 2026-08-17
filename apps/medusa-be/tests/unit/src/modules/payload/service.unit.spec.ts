@@ -166,6 +166,7 @@ describe("PayloadModuleService", () => {
       )
       expect(parsedUrl.searchParams.get("limit")).toBe("1")
       expect(parsedUrl.searchParams.get("locale")).toBe("en")
+      expect(parsedUrl.searchParams.get("fallback-locale")).toBe("none")
 
       expect(options?.method).toBe("GET")
       expect(options?.headers).toMatchObject({
@@ -649,6 +650,75 @@ describe("PayloadModuleService", () => {
     })
   })
 
+  describe("getFooterNavigation", () => {
+    it("fetches, maps, and caches localized navigation", async () => {
+      const { service, cacheService } = createServiceWithCache({
+        listCacheTtl: 321,
+      })
+      cacheService.get.mockResolvedValue(null)
+      fetchMock.mockResolvedValue(
+        createFetchResponse({
+          columns: [
+            {
+              slot: "important",
+              items: [
+                {
+                  blockType: "cmsPageLink",
+                  slot: "shipping_payment",
+                  page: {
+                    id: 1,
+                    slug: "doprava-a-platba",
+                    title: "Doprava a platba",
+                    status: "published",
+                    visibility: "public",
+                  },
+                },
+              ],
+            },
+          ],
+        })
+      )
+
+      const result = await service.getFooterNavigation("sk")
+
+      expect(result).toEqual({
+        columns: [
+          {
+            slot: "important",
+            items: [
+              {
+                slot: "shipping_payment",
+                href: "/doprava-a-platba",
+                type: "internal",
+              },
+            ],
+          },
+        ],
+      })
+
+      const [url] = fetchMock.mock.calls[0] as [string]
+      const parsedUrl = new URL(url)
+      expect(parsedUrl.pathname).toBe("/api/globals/footer-navigation")
+      expect(parsedUrl.searchParams.get("locale")).toBe("sk")
+      expect(parsedUrl.searchParams.get("fallback-locale")).toBe("none")
+      expect(parsedUrl.searchParams.get("depth")).toBe("1")
+      expect(parsedUrl.searchParams.get("select[columns]")).toBe("true")
+      expect(parsedUrl.searchParams.get("populate[pages][slug]")).toBe("true")
+
+      expect(cacheService.set).toHaveBeenCalledWith({
+        key: "cms:footer-navigation:sk",
+        data: result,
+        ttl: 321,
+        tags: [
+          "cms",
+          "cms:footer-navigation",
+          "cms:pages",
+          "cms:footer-navigation:locale:sk",
+        ],
+      })
+    })
+  })
+
   describe("invalidateCache", () => {
     it("no-ops when caching is unavailable", async () => {
       const service = createServiceWithoutCache()
@@ -669,7 +739,7 @@ describe("PayloadModuleService", () => {
         key: "cms:pages:home:en",
       })
       expect(cacheService.clear).toHaveBeenNthCalledWith(2, {
-        tags: ["cms:page-categories:locale:en"],
+        tags: ["cms:footer-navigation", "cms:page-categories:locale:en"],
       })
     })
 
@@ -682,6 +752,18 @@ describe("PayloadModuleService", () => {
 
       expect(cacheService.clear).toHaveBeenLastCalledWith({
         tags: ["cms:hero-carousels"],
+      })
+    })
+
+    it("clears the localized footer navigation tag", async () => {
+      const { service, cacheService } = createServiceWithCache()
+
+      cacheService.clear.mockResolvedValue(undefined)
+
+      await service.invalidateCache("footer-navigation", undefined, "ro")
+
+      expect(cacheService.clear).toHaveBeenCalledWith({
+        tags: ["cms:footer-navigation:locale:ro"],
       })
     })
 
@@ -754,7 +836,7 @@ describe("PayloadModuleService", () => {
       await service.invalidateCache("pages", "home", "null")
 
       expect(cacheService.clear).toHaveBeenCalledWith({
-        tags: ["cms:pages", "cms:page-categories"],
+        tags: ["cms:footer-navigation", "cms:pages", "cms:page-categories"],
       })
     })
   })

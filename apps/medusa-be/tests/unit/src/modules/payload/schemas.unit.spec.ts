@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   CmsArticleSchema,
+  CmsFooterNavigationGlobalSchema,
   CmsLexicalContentSchema,
 } from "../../../../../src/modules/payload/schemas"
 
@@ -100,5 +101,56 @@ describe("Payload CMS schemas", () => {
     )
 
     expect(parsed.success).toBe(true)
+  })
+
+  it("validates footer navigation block targets", () => {
+    const invalidInternalPath = CmsFooterNavigationGlobalSchema.safeParse({
+      columns: [
+        {
+          slot: "information",
+          items: [
+            {
+              blockType: "appRouteLink",
+              slot: "blog",
+              path: "https://example.com/not-internal",
+            },
+          ],
+        },
+      ],
+    })
+
+    const invalidExternalUrl = CmsFooterNavigationGlobalSchema.safeParse({
+      columns: [
+        {
+          slot: "information",
+          items: [
+            {
+              blockType: "externalLink",
+              slot: "reviews",
+              url: "not-a-url",
+            },
+          ],
+        },
+      ],
+    })
+
+    const unsafeInternalPath = CmsFooterNavigationGlobalSchema.safeParse({
+      columns: [
+        {
+          slot: "information",
+          items: [
+            {
+              blockType: "appRouteLink",
+              slot: "blog",
+              path: "/\\example.com",
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(invalidInternalPath.success).toBe(false)
+    expect(invalidExternalUrl.success).toBe(false)
+    expect(unsafeInternalPath.success).toBe(false)
   })
 })

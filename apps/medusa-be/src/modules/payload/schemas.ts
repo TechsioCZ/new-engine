@@ -213,6 +213,110 @@ const CmsHeroCarouselSchema = passthroughObject({
   updatedAt: z.string().optional(),
 })
 
+const CmsFooterColumnSlotSchema = z.enum([
+  "information",
+  "important",
+  "partners",
+])
+
+const CmsFooterItemSlotSchema = z.enum([
+  "blog",
+  "about",
+  "faq",
+  "gift_voucher",
+  "brands",
+  "reviews",
+  "shipping_payment",
+  "claims_returns",
+  "terms",
+  "privacy",
+  "cookies",
+  "affiliate",
+  "wholesale",
+  "dropshipping",
+  "private_label",
+])
+
+const CmsFooterPageReferenceSchema = passthroughObject({
+  id: CmsDocumentIdSchema,
+  slug: z.string().nullable().optional(),
+  title: z.string().nullable().optional(),
+  status: CmsStatusSchema.optional(),
+  visibility: CmsVisibilitySchema.optional(),
+})
+
+const CmsFooterCmsPageLinkSchema = passthroughObject({
+  blockType: z.literal("cmsPageLink"),
+  id: z.string().nullable().optional(),
+  slot: CmsFooterItemSlotSchema,
+  page: z
+    .union([CmsDocumentIdSchema, CmsFooterPageReferenceSchema])
+    .nullable()
+    .optional(),
+})
+
+const isInternalPath = (path: string) =>
+  path.startsWith("/") && !path.startsWith("//") && !path.includes("\\")
+
+const isHttpUrl = (value: string) => {
+  try {
+    const protocol = new URL(value).protocol
+    return protocol === "http:" || protocol === "https:"
+  } catch {
+    return false
+  }
+}
+
+const CmsFooterAppRouteLinkSchema = passthroughObject({
+  blockType: z.literal("appRouteLink"),
+  id: z.string().nullable().optional(),
+  slot: CmsFooterItemSlotSchema,
+  path: z.string().trim().refine(isInternalPath),
+})
+
+const CmsFooterExternalLinkSchema = passthroughObject({
+  blockType: z.literal("externalLink"),
+  id: z.string().nullable().optional(),
+  slot: CmsFooterItemSlotSchema,
+  url: z.string().trim().url().refine(isHttpUrl),
+  newTab: z.boolean().nullable().optional(),
+})
+
+const CmsFooterNavigationItemSchema = z.discriminatedUnion("blockType", [
+  CmsFooterCmsPageLinkSchema,
+  CmsFooterAppRouteLinkSchema,
+  CmsFooterExternalLinkSchema,
+])
+
+const CmsFooterNavigationGlobalSchema = passthroughObject({
+  columns: z
+    .array(
+      passthroughObject({
+        id: z.string().nullable().optional(),
+        slot: CmsFooterColumnSlotSchema,
+        items: z.array(CmsFooterNavigationItemSchema).nullable().optional(),
+      })
+    )
+    .nullable()
+    .optional(),
+})
+
+const CmsStoreFooterNavigationItemSchema = z.object({
+  slot: CmsFooterItemSlotSchema,
+  href: z.string(),
+  type: z.enum(["internal", "external"]),
+  newTab: z.boolean().optional(),
+})
+
+const CmsStoreFooterNavigationSchema = z.object({
+  columns: z.array(
+    z.object({
+      slot: CmsFooterColumnSlotSchema,
+      items: z.array(CmsStoreFooterNavigationItemSchema),
+    })
+  ),
+})
+
 const createPayloadBulkResultSchema = <T extends z.ZodTypeAny>(docSchema: T) =>
   nonStrictSchema(
     passthroughObject({
@@ -277,6 +381,13 @@ export {
   CmsArticleSchema,
   CmsArticleCategorySchema,
   CmsHeroCarouselSchema,
+  CmsFooterColumnSlotSchema,
+  CmsFooterItemSlotSchema,
+  CmsFooterPageReferenceSchema,
+  CmsFooterNavigationItemSchema,
+  CmsFooterNavigationGlobalSchema,
+  CmsStoreFooterNavigationItemSchema,
+  CmsStoreFooterNavigationSchema,
   CmsPagesBulkResultSchema,
   CmsArticlesBulkResultSchema,
   CmsHeroCarouselsBulkResultSchema,
