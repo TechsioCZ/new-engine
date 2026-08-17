@@ -87,24 +87,21 @@ function buildFulfillmentClientModules(
   if (env.featurePplEnabled) {
     modules.push({
       resolve: "./src/modules/ppl-client",
-      dependencies: [Modules.LOCKING],
-      options: {
-        environment: env.pplEnvironment,
-      },
+      dependencies: [Modules.CACHING, Modules.LOCKING],
     })
   }
 
   if (env.featurePacketaEnabled) {
     modules.push({
       resolve: "./src/modules/packeta-client",
-      dependencies: [Modules.LOCKING, API_STORE_MODULE],
+      dependencies: [Modules.CACHING, Modules.LOCKING, API_STORE_MODULE],
     })
   }
 
   if (env.featureGlsEnabled) {
     modules.push({
       resolve: "./src/modules/gls-client",
-      dependencies: [Modules.LOCKING],
+      dependencies: [Modules.CACHING, Modules.LOCKING],
     })
   }
 

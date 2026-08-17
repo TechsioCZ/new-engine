@@ -1,5 +1,6 @@
 "use client"
 
+import { useQuery } from "@tanstack/react-query"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { useTranslations } from "next-intl"
@@ -10,6 +11,7 @@ import {
   resolveCarrierPickupWidgetLanguage,
 } from "@/components/checkout/carrier-pickup.utils"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { storefrontSdk } from "@/lib/storefront/sdk"
 import { PplAccessPointWidget } from "../ppl-widget"
 import type {
   PplAccessPoint,
@@ -22,8 +24,10 @@ type CheckoutPplPickupSelectorProps = {
   onConfirm: (data: Record<string, unknown>) => void
 }
 
-const PPL_WIDGET_API_KEY =
-  process.env.NEXT_PUBLIC_PPL_WIDGET_API_KEY?.trim() ?? ""
+type PplWidgetConfigResponse = {
+  enabled: boolean
+  api_key: string | null
+}
 
 export function CheckoutPplPickupSelector({
   disabled,
@@ -37,6 +41,17 @@ export function CheckoutPplPickupSelector({
   const [selectedPoint, setSelectedPoint] = useState<PplAccessPoint | null>(
     null
   )
+  const { data: widgetConfigResponse, isPending: isWidgetConfigPending } =
+    useQuery({
+      queryFn: () =>
+        storefrontSdk.client.fetch<PplWidgetConfigResponse>(
+          "/store/ppl/widget-config"
+        ),
+      queryKey: ["ppl-widget-config"],
+      retry: false,
+      staleTime: 30 * 1000,
+    })
+  const widgetApiKey = widgetConfigResponse?.api_key?.trim() ?? ""
   const fallbackPointLabel = tCheckout("pickup_point_fallback")
 
   const widgetConfig = useMemo(
@@ -51,7 +66,11 @@ export function CheckoutPplPickupSelector({
     [marketContext.countryCode, marketContext.locale, selectedPoint?.code]
   )
 
-  if (!PPL_WIDGET_API_KEY) {
+  if (isWidgetConfigPending) {
+    return null
+  }
+
+  if (!(widgetConfigResponse?.enabled && widgetApiKey)) {
     return (
       <StatusText showIcon size="sm" status="error">
         {tCheckout("pickup_selector_unavailable")}
@@ -121,7 +140,7 @@ export function CheckoutPplPickupSelector({
       </Button>
 
       <PplAccessPointWidget
-        apiKey={PPL_WIDGET_API_KEY}
+        apiKey={widgetApiKey}
         config={widgetConfig}
         onError={handleWidgetError}
         onSelect={handleSelect}

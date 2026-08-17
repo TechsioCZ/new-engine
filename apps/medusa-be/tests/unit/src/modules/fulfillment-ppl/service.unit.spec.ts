@@ -24,6 +24,7 @@ const mockPplClient = {
   createShipmentBatch: vi.fn(),
   cancelShipment: vi.fn(),
   getBatchStatus: vi.fn(),
+  getAccessPoints: vi.fn(),
 }
 
 const createService = () =>
@@ -64,6 +65,10 @@ const createShippingData = (overrides = {}) => ({
   ...overrides,
 })
 
+const validationContext = {
+  shipping_address: baseShippingAddress,
+}
+
 describe("PplFulfillmentProviderService", () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -84,6 +89,21 @@ describe("PplFulfillmentProviderService", () => {
       sender_country: "CZ",
     })
     mockPplClient.createShipmentBatch.mockResolvedValue("batch_123")
+    mockPplClient.getAccessPoints.mockResolvedValue([
+      {
+        code: "AP123",
+        name: "Test Shop",
+        accessPointType: "ParcelShop",
+        isActive: true,
+        address: {
+          name: "Test Shop",
+          street: "Pickup Street 1",
+          city: "Prague",
+          zipCode: "11000",
+          country: "CZ",
+        },
+      },
+    ])
   })
 
   describe("createFulfillment", () => {
@@ -148,6 +168,19 @@ describe("PplFulfillmentProviderService", () => {
       })
     })
 
+    it("requires a persisted fulfillment id before creating a shipment", async () => {
+      await expect(
+        createService().createFulfillment(
+          createShippingData(),
+          [],
+          createOrder(),
+          {}
+        )
+      ).rejects.toThrow("Fulfillment id is required")
+
+      expect(mockPplClient.createShipmentBatch).not.toHaveBeenCalled()
+    })
+
     it("builds COD settings with bank account when supports_cod is true", async () => {
       mockPplClient.getEffectiveConfig.mockResolvedValue({
         sender_name: "Test",
@@ -160,7 +193,7 @@ describe("PplFulfillmentProviderService", () => {
       })
 
       await createService().createFulfillment(
-        createShippingData({ supports_cod: true }),
+        createShippingData({ product_type: "PRID", supports_cod: false }),
         [],
         createOrder(),
         { id: "ful_1" }
@@ -183,7 +216,7 @@ describe("PplFulfillmentProviderService", () => {
       const order = createOrder({ currency_code: "USD" })
       await expect(
         createService().createFulfillment(
-          createShippingData({ supports_cod: true }),
+          createShippingData({ product_type: "PRID", supports_cod: false }),
           [],
           order,
           { id: "ful_1" }
@@ -198,7 +231,7 @@ describe("PplFulfillmentProviderService", () => {
 
       await expect(
         createService().createFulfillment(
-          createShippingData({ supports_cod: true }),
+          createShippingData({ product_type: "PRID", supports_cod: false }),
           [],
           createOrder(),
           { id: "ful_1" }
@@ -218,7 +251,7 @@ describe("PplFulfillmentProviderService", () => {
       })
 
       await createService().createFulfillment(
-        createShippingData({ supports_cod: true }),
+        createShippingData({ product_type: "PRID", supports_cod: false }),
         [],
         createOrder(),
         { id: "ful_1" }
@@ -239,7 +272,11 @@ describe("PplFulfillmentProviderService", () => {
 
     it("includes access_point_id for pickup delivery", async () => {
       await createService().createFulfillment(
-        createShippingData({ product_type: "SMAR", access_point_id: "AP123" }),
+        createShippingData({
+          product_type: "SMAR",
+          access_point_id: "AP123",
+          access_point_country: "CZ",
+        }),
         [],
         createOrder(),
         { id: "ful_1" }
@@ -261,7 +298,7 @@ describe("PplFulfillmentProviderService", () => {
         createService().validateFulfillmentData(
           { requires_access_point: false, product_type: "PRIV" },
           {},
-          {} as any
+          validationContext as any
         )
       ).rejects.toThrow("PPL shipping is currently unavailable")
     })
@@ -271,7 +308,7 @@ describe("PplFulfillmentProviderService", () => {
         createService().validateFulfillmentData(
           { requires_access_point: true, product_type: "SMAR" },
           { access_point_id: undefined },
-          {} as any
+          validationContext as any
         )
       ).rejects.toThrow("PPL: Access point (pickup location) is required")
     })
@@ -288,7 +325,7 @@ describe("PplFulfillmentProviderService", () => {
           access_point_name: "Test Shop",
           access_point_type: "ParcelShop",
         },
-        {} as any
+        validationContext as any
       )
 
       expect(result).toEqual({
@@ -298,10 +335,40 @@ describe("PplFulfillmentProviderService", () => {
         access_point_id: "AP123",
         access_point_name: "Test Shop",
         access_point_type: "ParcelShop",
+        access_point_street: "Pickup Street 1",
+        access_point_city: "Prague",
+        access_point_zip: "11000",
+        access_point_country: "CZ",
       })
     })
 
-    it("returns correct shape for home delivery", async () => {
+    it("rejects inactive and cross-country access points", async () => {
+      mockPplClient.getAccessPoints.mockResolvedValueOnce([
+        {
+          code: "AP123",
+          name: "Inactive Shop",
+          accessPointType: "ParcelShop",
+          isActive: false,
+          address: {
+            name: "Inactive Shop",
+            street: "Street 1",
+            city: "Bratislava",
+            zipCode: "81101",
+            country: "SK",
+          },
+        },
+      ])
+
+      await expect(
+        createService().validateFulfillmentData(
+          { requires_access_point: true, product_type: "SMAR" },
+          { access_point_id: "AP123" },
+          validationContext as any
+        )
+      ).rejects.toThrow("inactive or unavailable")
+    })
+
+    it("derives home-delivery capabilities from the product type", async () => {
       const result = await createService().validateFulfillmentData(
         {
           requires_access_point: false,
@@ -315,10 +382,7 @@ describe("PplFulfillmentProviderService", () => {
       expect(result).toEqual({
         product_type: "PRIV",
         requires_access_point: false,
-        supports_cod: true,
-        access_point_id: undefined,
-        access_point_name: undefined,
-        access_point_type: undefined,
+        supports_cod: false,
       })
     })
   })
@@ -343,23 +407,20 @@ describe("PplFulfillmentProviderService", () => {
       })
     })
 
-    it("returns failure when batch not yet processed", async () => {
+    it("rejects cancellation when batch is not yet processed", async () => {
       mockPplClient.getBatchStatus.mockResolvedValue({
         items: [{ referenceId: "ful_123" }], // No shipmentNumber yet
       })
 
-      const result = await createService().cancelFulfillment({
-        status: "pending",
-        batch_id: "batch_123",
-      })
+      await expect(
+        createService().cancelFulfillment({
+          status: "pending",
+          batch_id: "batch_123",
+        })
+      ).rejects.toThrow("has not produced a shipment number")
 
       expect(mockPplClient.getBatchStatus).toHaveBeenCalledWith("batch_123")
       expect(mockPplClient.cancelShipment).not.toHaveBeenCalled()
-      expect(result).toEqual({
-        cancelled: false,
-        batch_id: "batch_123",
-        note: "Batch not yet processed by PPL. Check PPL portal or retry later.",
-      })
     })
 
     it("calls PPL API directly when shipment_number already available", async () => {
@@ -379,20 +440,16 @@ describe("PplFulfillmentProviderService", () => {
       })
     })
 
-    it("returns failure when PPL cancellation fails", async () => {
+    it("rejects cancellation when PPL does not cancel the shipment", async () => {
       mockPplClient.cancelShipment.mockResolvedValue(false)
 
-      const result = await createService().cancelFulfillment({
-        status: "completed",
-        batch_id: "batch_123",
-        shipment_number: "12345678901",
-      })
-
-      expect(result).toEqual({
-        cancelled: false,
-        shipment_number: "12345678901",
-        note: "Cancellation failed. Shipment may have been picked up. Contact PPL support.",
-      })
+      await expect(
+        createService().cancelFulfillment({
+          status: "completed",
+          batch_id: "batch_123",
+          shipment_number: "12345678901",
+        })
+      ).rejects.toThrow("was not cancelled by the carrier")
     })
   })
 
@@ -415,6 +472,29 @@ describe("PplFulfillmentProviderService", () => {
     it("returns false for invalid product type", async () => {
       expect(
         await createService().validateOption({ product_type: "INVALID" })
+      ).toBe(false)
+      expect(
+        await createService().validateOption({ product_type: "constructor" })
+      ).toBe(false)
+      expect(
+        await createService().validateOption({ product_type: "toString" })
+      ).toBe(false)
+    })
+
+    it("rejects capability flags that contradict the product type", async () => {
+      expect(
+        await createService().validateOption({
+          product_type: "SMAR",
+          requires_access_point: false,
+          supports_cod: false,
+        })
+      ).toBe(false)
+      expect(
+        await createService().validateOption({
+          product_type: "PRID",
+          requires_access_point: false,
+          supports_cod: false,
+        })
       ).toBe(false)
     })
   })

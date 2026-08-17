@@ -53,11 +53,7 @@ export function getShippingLabelCarrierSelection(
 
   const carrier = carriers[0]
 
-  if (
-    carrier === "other" ||
-    carrier === "ppl" ||
-    !enabledCarriers.includes(carrier)
-  ) {
+  if (carrier === "other" || !enabledCarriers.includes(carrier)) {
     return { carrier, kind: "unsupported" }
   }
 
@@ -196,12 +192,22 @@ function hasPrintableShippingLabel(
     switch (carrier) {
       case "gls":
         return isPrintableGLSData(data)
+      case "ppl":
+        return isPrintablePPLData(data)
       case "packeta":
         return typeof data.packet_id === "number"
       default:
         return false
     }
   })
+}
+
+function isPrintablePPLData(data: Record<string, unknown>) {
+  return (
+    data.status === "completed" &&
+    isNonEmptyString(data.label_url) &&
+    isNonEmptyString(data.shipment_number)
+  )
 }
 
 function isPrintableGLSData(data: Record<string, unknown>) {

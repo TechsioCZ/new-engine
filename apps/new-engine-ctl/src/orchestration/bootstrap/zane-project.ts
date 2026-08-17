@@ -813,7 +813,6 @@ function buildZaneProjectServices(
         "DC_HERBATICA_MANUFACTURERS_CSV_PATH",
         "DC_HERBATICA_REVIEWS_XML_PATH",
         "DC_FEATURE_PPL_ENABLED",
-        "DC_PPL_ENVIRONMENT",
         "DC_FEATURE_PACKETA_ENABLED",
         "DC_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
         "DC_FEATURE_GLS_ENABLED",
@@ -1021,10 +1020,6 @@ function buildZaneProjectServices(
         {
           envVar: "FEATURE_PPL_ENABLED",
           source: literalSource(process.env.DC_FEATURE_PPL_ENABLED ?? "0"),
-        },
-        {
-          envVar: "PPL_ENVIRONMENT",
-          source: literalSource(process.env.DC_PPL_ENVIRONMENT ?? "testing"),
         },
         {
           envVar: "FEATURE_PACKETA_ENABLED",
@@ -1388,12 +1383,6 @@ function buildZaneProjectServices(
           source: literalSource(
             process.env.DC_HERBATIKA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE ??
               "session_proxy"
-          ),
-        },
-        {
-          envVar: "NEXT_PUBLIC_PPL_WIDGET_API_KEY",
-          source: literalSource(
-            process.env.DC_HERBATIKA_NEXT_PUBLIC_PPL_WIDGET_API_KEY ?? ""
           ),
         },
         {

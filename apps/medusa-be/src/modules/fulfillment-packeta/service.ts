@@ -36,6 +36,7 @@ type InjectedDependencies = {
 
 const DEFAULT_PACKET_WEIGHT_KG = 0.5
 const GRAMS_PER_KG = 1000
+const COUNTRY_CODE_PATTERN = /^[A-Z]{2}$/
 
 type QueryService = {
   graph: (input: {
@@ -66,6 +67,64 @@ type OrderLineItemWithWeight = {
 type FulfillmentItemWithQuantity = {
   line_item_id?: string | null
   quantity?: unknown
+}
+
+type PacketaOptionCode = PacketaShippingOptionData["code"]
+
+type PacketaOptionSettings = {
+  requiresAccessPoint: true
+  supportsCod: boolean
+}
+
+const PACKETA_OPTION_SETTINGS: Record<
+  PacketaOptionCode,
+  PacketaOptionSettings
+> = {
+  z_point: { requiresAccessPoint: true, supportsCod: false },
+  z_point_cod: { requiresAccessPoint: true, supportsCod: true },
+}
+
+const getPacketaOptionSettings = (
+  code: unknown
+): { code: PacketaOptionCode; settings: PacketaOptionSettings } | undefined => {
+  if (
+    typeof code !== "string" ||
+    !Object.hasOwn(PACKETA_OPTION_SETTINGS, code)
+  ) {
+    return
+  }
+
+  const optionCode = code as PacketaOptionCode
+  return { code: optionCode, settings: PACKETA_OPTION_SETTINGS[optionCode] }
+}
+
+const normalizeOptionalString = (value: unknown): string | undefined => {
+  if (typeof value !== "string") {
+    return
+  }
+
+  const normalizedValue = value.trim()
+  return normalizedValue || undefined
+}
+
+const normalizeCountryCode = (value: unknown): string | undefined => {
+  const normalizedValue = normalizeOptionalString(value)?.toUpperCase()
+  return normalizedValue && COUNTRY_CODE_PATTERN.test(normalizedValue)
+    ? normalizedValue
+    : undefined
+}
+
+const getPacketaAccessPointId = (value: unknown): number | undefined => {
+  if (typeof value === "string" && !value.trim()) {
+    return
+  }
+
+  const parsedValue = typeof value === "string" ? Number(value.trim()) : value
+  return typeof parsedValue === "number" &&
+    Number.isSafeInteger(parsedValue) &&
+    parsedValue > 0
+    ? parsedValue
+    : undefined
 }
 
 const toFiniteNumber = (value: unknown): number | undefined => {
@@ -173,7 +232,22 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
   override async validateOption(
     data: Record<string, unknown>
   ): Promise<boolean> {
-    return data.code === "z_point" || data.code === "z_point_cod"
+    const option = getPacketaOptionSettings(data.code)
+    if (!option) {
+      return false
+    }
+
+    if (
+      data.requires_access_point !== undefined &&
+      data.requires_access_point !== option.settings.requiresAccessPoint
+    ) {
+      return false
+    }
+
+    return (
+      data.supports_cod === undefined ||
+      data.supports_cod === option.settings.supportsCod
+    )
   }
 
   /**
@@ -183,7 +257,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
   override async validateFulfillmentData(
     optionData: Record<string, unknown>,
     data: Record<string, unknown>,
-    _context: ValidateFulfillmentDataContext
+    context: ValidateFulfillmentDataContext
   ): Promise<Record<string, unknown>> {
     const config = await this.getClient().getEffectiveConfig()
     if (!config) {
@@ -193,40 +267,63 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       )
     }
 
-    const accessPointId = data.access_point_id as number | string | undefined
-    if (accessPointId === undefined || accessPointId === null) {
+    if (data.access_point_id === undefined || data.access_point_id === null) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "Packeta: Pickup point (Z-Point) selection is required for this shipping method"
       )
     }
 
-    const parsedAccessPointId =
-      typeof accessPointId === "string"
-        ? Number.parseInt(accessPointId, 10)
-        : accessPointId
-    if (!Number.isFinite(parsedAccessPointId) || parsedAccessPointId <= 0) {
+    const accessPointId = getPacketaAccessPointId(data.access_point_id)
+    if (!accessPointId) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        `Packeta: Invalid pickup point ID: ${accessPointId}`
+        `Packeta: Invalid pickup point ID: ${String(data.access_point_id)}`
       )
     }
-    const optionCode = optionData.code
-    if (optionCode !== "z_point" && optionCode !== "z_point_cod") {
+
+    const option = getPacketaOptionSettings(optionData.code)
+    if (!option) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
         "Packeta: Invalid shipping option code"
       )
     }
 
+    const countryCode = normalizeCountryCode(
+      context.shipping_address?.country_code
+    )
+    if (!countryCode) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Packeta: Cart shipping country is required before selecting a pickup point"
+      )
+    }
+
+    const branches = await this.getClient().getBranches()
+    const branch = branches.find(
+      (candidate) => getPacketaAccessPointId(candidate.id) === accessPointId
+    )
+    if (!branch || normalizeCountryCode(branch.country) !== countryCode) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Packeta: Pickup point is unavailable for the cart shipping country"
+      )
+    }
+
     return {
-      code: optionCode,
-      requires_access_point: true,
-      supports_cod: optionCode === "z_point_cod",
-      access_point_id: parsedAccessPointId,
-      access_point_name: data.access_point_name as string | undefined,
-      access_point_zip: data.access_point_zip as string | undefined,
-      access_point_city: data.access_point_city as string | undefined,
+      code: option.code,
+      requires_access_point: option.settings.requiresAccessPoint,
+      supports_cod: option.settings.supportsCod,
+      access_point_id: accessPointId,
+      access_point_name: normalizeOptionalString(branch.name),
+      access_point_street:
+        normalizeOptionalString(branch.street) ??
+        normalizeOptionalString(branch.nameStreet),
+      access_point_type: normalizeOptionalString(branch.branchType),
+      access_point_zip: normalizeOptionalString(branch.zip),
+      access_point_city: normalizeOptionalString(branch.city),
+      access_point_country: countryCode,
     } satisfies PacketaShippingOptionData
   }
 
@@ -236,7 +333,33 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     order: Partial<FulfillmentOrderDTO> | undefined,
     fulfillment: Partial<Omit<FulfillmentDTO, "provider_id" | "data" | "items">>
   ): Promise<CreateFulfillmentResult> {
-    const shippingData = data as unknown as PacketaShippingOptionData
+    const rawShippingData = data as unknown as PacketaShippingOptionData
+    const option = getPacketaOptionSettings(rawShippingData.code)
+    const accessPointId = getPacketaAccessPointId(
+      rawShippingData.access_point_id
+    )
+
+    if (!option) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Packeta: Invalid shipping option code"
+      )
+    }
+
+    if (!accessPointId) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Packeta: access_point_id is required"
+      )
+    }
+
+    const shippingData: PacketaShippingOptionData = {
+      ...rawShippingData,
+      code: option.code,
+      requires_access_point: option.settings.requiresAccessPoint,
+      supports_cod: option.settings.supportsCod,
+      access_point_id: accessPointId,
+    }
 
     if (!order) {
       throw new MedusaError(
@@ -250,13 +373,26 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
         "Packeta: Shipping address is required"
       )
     }
-    if (!shippingData.access_point_id) {
+
+    const shippingCountryCode = normalizeCountryCode(
+      order.shipping_address.country_code
+    )
+    if (
+      !shippingCountryCode ||
+      normalizeCountryCode(shippingData.access_point_country) !==
+        shippingCountryCode
+    ) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Packeta: access_point_id is required"
+        "Packeta: Pickup point country does not match the order shipping country. Select the pickup point again."
       )
     }
-
+    if (!fulfillment.id) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Packeta: Fulfillment id is required before carrier packet creation"
+      )
+    }
     const config = await this.getClient().getEffectiveConfig()
     if (!config) {
       throw new MedusaError(
@@ -268,13 +404,14 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     const attributes = await this.buildPacketAttributes({
       order,
       shippingAddress: order.shipping_address,
-      accessPointId: shippingData.access_point_id,
+      fulfillmentId: fulfillment.id,
+      accessPointId,
       shippingData,
       items: _items,
       config,
     })
 
-    const fulfillmentId = fulfillment.id || `temp-${Date.now()}`
+    const fulfillmentId = fulfillment.id
     this.logger_.info(
       `Packeta: Creating packet for ${fulfillmentId}, access point ${shippingData.access_point_id}`
     )
@@ -315,7 +452,12 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       status: "completed",
       packet_id: result.id,
       barcode: result.barcode,
-      access_point_id: shippingData.access_point_id,
+      access_point_id: accessPointId,
+      access_point_name: shippingData.access_point_name,
+      access_point_street: shippingData.access_point_street,
+      access_point_city: shippingData.access_point_city,
+      access_point_zip: shippingData.access_point_zip,
+      access_point_country: shippingData.access_point_country,
       supports_cod: shippingData.supports_cod,
       config_id: config.config_id,
       environment: config.environment,
@@ -344,10 +486,10 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     const packetId = fulfillmentData.packet_id
 
     if (!packetId) {
-      this.logger_.warn(
-        "Packeta: Cannot cancel - no packet_id in fulfillment data"
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Packeta: Fulfillment has no packet identifier and cannot be cancelled"
       )
-      return { cancelled: false, note: "No packet_id on fulfillment" }
     }
 
     const cancelled = await this.getClient().cancelPacket(packetId, {
@@ -355,11 +497,10 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       environment: fulfillmentData.environment,
     })
     if (!cancelled) {
-      return {
-        cancelled: false,
-        packet_id: packetId,
-        note: "Cancellation failed. Packet may have been picked up by carrier. Contact Packeta support.",
-      }
+      throw new MedusaError(
+        MedusaError.Types.NOT_ALLOWED,
+        `Packeta: Packet ${packetId} was not cancelled by the carrier. It may already have been picked up.`
+      )
     }
     return { cancelled: true, packet_id: packetId }
   }
@@ -454,6 +595,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
   private async buildPacketAttributes(params: {
     order: Partial<FulfillmentOrderDTO>
     shippingAddress: NonNullable<FulfillmentOrderDTO["shipping_address"]>
+    fulfillmentId: string
     accessPointId: number
     shippingData: PacketaShippingOptionData
     items: Partial<Omit<FulfillmentItemDTO, "fulfillment">>[]
@@ -462,6 +604,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     const {
       order,
       shippingAddress,
+      fulfillmentId,
       accessPointId,
       shippingData,
       items,
@@ -469,13 +612,12 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     } = params
 
     const recipient = this.getRequiredRecipientName(shippingAddress)
-    const orderNumber = this.getPacketOrderNumber(order)
     const totalNumber = this.getPacketOrderTotal(order, shippingData)
     const packetWeight = await this.getPacketWeight(order, items, shippingData)
 
     if (packetWeight === DEFAULT_PACKET_WEIGHT_KG) {
       this.logger_.warn(
-        `Packeta: Falling back to default packet weight ${DEFAULT_PACKET_WEIGHT_KG}kg for order ${orderNumber}. Fill product or variant weight in Medusa to send an exact parcel weight.`
+        `Packeta: Falling back to default packet weight ${DEFAULT_PACKET_WEIGHT_KG}kg for fulfillment ${fulfillmentId}. Fill product or variant weight in Medusa to send an exact parcel weight.`
       )
     }
 
@@ -484,7 +626,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       config,
       currency: this.getPacketCurrency(order, shippingData),
       order,
-      orderNumber,
+      orderNumber: fulfillmentId,
       packetWeight,
       recipient,
       shippingAddress,
@@ -554,12 +696,6 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
     }
   }
 
-  private getPacketOrderNumber(order: Partial<FulfillmentOrderDTO>): string {
-    return (
-      order.display_id?.toString() || order.id || `fulfillment-${Date.now()}`
-    )
-  }
-
   private getPacketOrderTotal(
     order: Partial<FulfillmentOrderDTO>,
     shippingData: PacketaShippingOptionData
@@ -568,7 +704,10 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
       toFiniteNumber(order.total) ??
       toFiniteNumber((order as { item_total?: unknown }).item_total)
 
-    if (orderTotal !== undefined) {
+    if (
+      orderTotal !== undefined &&
+      (!shippingData.supports_cod || orderTotal > 0)
+    ) {
       return orderTotal
     }
 
@@ -578,7 +717,7 @@ class PacketaFulfillmentProviderService extends AbstractFulfillmentProviderServi
 
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Packeta: order total or item_total is required for COD shipments"
+      "Packeta: a positive order total or item_total is required for COD shipments"
     )
   }
 
