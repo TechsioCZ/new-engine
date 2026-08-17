@@ -101,8 +101,17 @@ const createShippingData = (overrides = {}) => ({
   requires_access_point: true,
   supports_cod: false,
   access_point_id: 4242,
+  access_point_name: "Praha 1",
+  access_point_street: "Main Street 1",
+  access_point_city: "Prague",
+  access_point_zip: "11000",
+  access_point_country: "CZ",
   ...overrides,
 })
+
+const validationContext = {
+  shipping_address: baseShippingAddress,
+}
 
 describe("PacketaFulfillmentProviderService", () => {
   beforeEach(() => {
@@ -122,6 +131,18 @@ describe("PacketaFulfillmentProviderService", () => {
       barcodeText: "Z 987 654 321",
     })
     mockPacketaClient.downloadLabelPdf.mockResolvedValue(Buffer.from("PDF"))
+    mockPacketaClient.getBranches.mockResolvedValue([
+      {
+        id: 4242,
+        name: "Praha 1",
+        nameStreet: "Main Street 1",
+        street: "Main Street 1",
+        city: "Prague",
+        zip: "11000",
+        country: "cz",
+        branchType: "pickup",
+      },
+    ])
     mockFileService.createFiles.mockResolvedValue([
       { url: "https://files.example/packeta-label-Z987654321.pdf" },
     ])
@@ -150,6 +171,8 @@ describe("PacketaFulfillmentProviderService", () => {
       ["z_point", true],
       ["z_point_cod", true],
       ["home_delivery", false],
+      ["constructor", false],
+      ["toString", false],
       [undefined, false],
     ])("validates code=%s -> %s", async (code, expected) => {
       expect(await createService().validateOption({ code })).toBe(expected)
@@ -162,7 +185,7 @@ describe("PacketaFulfillmentProviderService", () => {
         createService().validateFulfillmentData(
           { code: "z_point", supports_cod: false },
           {},
-          {} as any
+          validationContext as any
         )
       ).rejects.toThrow(PICKUP_POINT_ERROR)
     })
@@ -172,7 +195,7 @@ describe("PacketaFulfillmentProviderService", () => {
         createService().validateFulfillmentData(
           { code: "z_point", supports_cod: false },
           { access_point_id: "not-a-number" },
-          {} as any
+          validationContext as any
         )
       ).rejects.toThrow(INVALID_PICKUP_POINT_ERROR)
     })
@@ -181,14 +204,39 @@ describe("PacketaFulfillmentProviderService", () => {
       const data = await createService().validateFulfillmentData(
         { code: "z_point_cod", supports_cod: true },
         { access_point_id: "4242", access_point_name: "Praha 1" },
-        {} as any
+        validationContext as any
       )
       expect(data).toMatchObject({
         code: "z_point_cod",
         access_point_id: 4242,
         supports_cod: true,
         access_point_name: "Praha 1",
+        access_point_street: "Main Street 1",
+        access_point_city: "Prague",
+        access_point_zip: "11000",
+        access_point_country: "CZ",
       })
+    })
+
+    it("rejects a pickup point outside the cart shipping country", async () => {
+      mockPacketaClient.getBranches.mockResolvedValueOnce([
+        {
+          id: 4242,
+          name: "Bratislava",
+          street: "Street 1",
+          city: "Bratislava",
+          zip: "81101",
+          country: "sk",
+        },
+      ])
+
+      await expect(
+        createService().validateFulfillmentData(
+          { code: "z_point", supports_cod: false },
+          { access_point_id: 4242 },
+          validationContext as any
+        )
+      ).rejects.toThrow("unavailable for the cart shipping country")
     })
   })
 
@@ -221,7 +269,7 @@ describe("PacketaFulfillmentProviderService", () => {
 
       expect(mockPacketaClient.createPacket).toHaveBeenCalledWith(
         expect.objectContaining({
-          number: "1001",
+          number: "ful_1",
           name: "John",
           surname: "Doe",
           addressId: 4242,
@@ -262,10 +310,23 @@ describe("PacketaFulfillmentProviderService", () => {
       ])
     })
 
+    it("requires a persisted fulfillment id before creating a packet", async () => {
+      await expect(
+        createService().createFulfillment(
+          createShippingData(),
+          [],
+          createOrder(),
+          {}
+        )
+      ).rejects.toThrow("Fulfillment id is required")
+
+      expect(mockPacketaClient.createPacket).not.toHaveBeenCalled()
+    })
+
     it("sets COD amount when supports_cod is true", async () => {
       const order = createOrder()
       await createService().createFulfillment(
-        createShippingData({ supports_cod: true }),
+        createShippingData({ code: "z_point_cod", supports_cod: false }),
         [],
         order,
         { id: "ful_1" }
@@ -280,13 +341,28 @@ describe("PacketaFulfillmentProviderService", () => {
       const order = createOrder({ total: undefined } as any)
       await expect(
         createService().createFulfillment(
-          createShippingData({ supports_cod: true }),
+          createShippingData({ code: "z_point_cod", supports_cod: false }),
           [],
           order,
           { id: "ful_1" }
         )
       ).rejects.toThrow(
-        "Packeta: order total or item_total is required for COD shipments"
+        "Packeta: a positive order total or item_total is required for COD shipments"
+      )
+      expect(mockPacketaClient.createPacket).not.toHaveBeenCalled()
+    })
+
+    it("throws for COD when order total is zero", async () => {
+      const order = createOrder({ total: 0 } as any)
+      await expect(
+        createService().createFulfillment(
+          createShippingData({ code: "z_point_cod", supports_cod: false }),
+          [],
+          order,
+          { id: "ful_1" }
+        )
+      ).rejects.toThrow(
+        "Packeta: a positive order total or item_total is required for COD shipments"
       )
       expect(mockPacketaClient.createPacket).not.toHaveBeenCalled()
     })
@@ -376,9 +452,10 @@ describe("PacketaFulfillmentProviderService", () => {
   })
 
   describe("cancelFulfillment", () => {
-    it("returns cancelled=false when no packet_id", async () => {
-      const result = await createService().cancelFulfillment({})
-      expect(result).toMatchObject({ cancelled: false })
+    it("rejects cancellation when no packet_id is available", async () => {
+      await expect(createService().cancelFulfillment({})).rejects.toThrow(
+        "has no packet identifier"
+      )
     })
 
     it("calls packeta client cancel when packet_id present", async () => {
@@ -394,6 +471,13 @@ describe("PacketaFulfillmentProviderService", () => {
         environment: "testing",
       })
       expect(result).toMatchObject({ cancelled: true, packet_id: 123 })
+    })
+
+    it("rejects cancellation when Packeta does not cancel the packet", async () => {
+      mockPacketaClient.cancelPacket.mockResolvedValue(false)
+      await expect(
+        createService().cancelFulfillment({ packet_id: 123, barcode: "Z123" })
+      ).rejects.toThrow("was not cancelled by the carrier")
     })
   })
 })

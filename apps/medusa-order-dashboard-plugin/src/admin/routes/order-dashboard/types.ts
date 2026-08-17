@@ -66,7 +66,7 @@ export type OrderDashboardCarrierKey =
 
 export type OrderDashboardLabelCarrier = Exclude<
   OrderDashboardCarrierKey,
-  "other" | "ppl"
+  "other"
 >
 
 export type OrderDashboardBusinessStatusId =

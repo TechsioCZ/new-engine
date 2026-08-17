@@ -24,6 +24,16 @@
           "nullable": false,
           "mappedType": "text"
         },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "default": "false",
+          "mappedType": "boolean"
+        },
         "is_enabled": {
           "name": "is_enabled",
           "type": "boolean",
@@ -45,6 +55,15 @@
         },
         "client_secret": {
           "name": "client_secret",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "mappedType": "text"
+        },
+        "widget_api_key": {
+          "name": "widget_api_key",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -214,6 +233,15 @@
           "primary": false,
           "unique": false,
           "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_ppl_config_environment_unique\" ON \"ppl_config\" (\"environment\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_ppl_config_active_unique",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_ppl_config_active_unique\" ON \"ppl_config\" (\"is_active\") WHERE is_active = true AND deleted_at IS NULL"
         },
         {
           "keyName": "ppl_config_pkey",

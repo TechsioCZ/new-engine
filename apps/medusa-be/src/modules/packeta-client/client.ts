@@ -26,6 +26,7 @@ const BRANCH_FEED_URL =
 type RequestOptions = {
   /** Body fields placed inside the method element alongside apiPassword */
   params?: Record<string, unknown>
+  retry?: boolean
 }
 
 type PacketaResponseEnvelope<T> = {
@@ -93,7 +94,7 @@ export class PacketaClient {
 
     const result = await this.request<PacketaCreatePacketResult>(
       "createPacket",
-      { params }
+      { params, retry: false }
     )
 
     if (!(result?.id && result?.barcode)) {
@@ -105,17 +106,12 @@ export class PacketaClient {
     return result
   }
 
-  /**
-   * Cancel a packet (only possible before pickup by carrier).
-   * Returns true on success, false on Packeta-side refusal.
-   */
   async cancelPacket(packetId: number): Promise<boolean> {
-    try {
-      await this.request("cancelPacket", { params: { packetId } })
-      return true
-    } catch {
-      return false
-    }
+    await this.request("cancelPacket", {
+      params: { packetId },
+      retry: false,
+    })
+    return true
   }
 
   /**
@@ -227,7 +223,7 @@ export class PacketaClient {
     methodName: string,
     options: RequestOptions = {}
   ): Promise<T> {
-    const { params = {} } = options
+    const { params = {}, retry = true } = options
 
     const xmlBody = this.xmlBuilder.build({
       [methodName]: {
@@ -236,58 +232,61 @@ export class PacketaClient {
       },
     })
 
-    return this.withRetry(
-      () =>
-        this.fetchWithTimeout(REST_API_URL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "text/xml; charset=utf-8",
-            Accept: "text/xml",
-          },
-          body: xmlBody,
-        }),
-      async (response) => {
-        if (!response.ok) {
-          throw new MedusaError(
-            MedusaError.Types.INVALID_DATA,
-            `Packeta request failed: ${response.status} - ${await response.text()}`
-          )
-        }
+    const operation = () =>
+      this.fetchWithTimeout(REST_API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "text/xml; charset=utf-8",
+          Accept: "text/xml",
+        },
+        body: xmlBody,
+      })
+    const handleResponse = async (response: Response) => {
+      if (!response.ok) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          `Packeta request failed: ${response.status} - ${await response.text()}`
+        )
+      }
 
-        const text = await response.text()
-        if (!text) {
-          throw new MedusaError(
-            MedusaError.Types.INVALID_DATA,
-            `Packeta: empty response body from ${methodName}`
-          )
-        }
+      const text = await response.text()
+      if (!text) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          `Packeta: empty response body from ${methodName}`
+        )
+      }
 
-        const parsed: unknown = this.xmlParser.parse(text)
-        const envelope = (parsed as { response?: PacketaResponseEnvelope<T> })
-          ?.response
+      const parsed: unknown = this.xmlParser.parse(text)
+      const envelope = (parsed as { response?: PacketaResponseEnvelope<T> })
+        ?.response
 
-        if (!envelope) {
-          throw new MedusaError(
-            MedusaError.Types.INVALID_DATA,
-            `Packeta ${methodName}: missing <response> element`
-          )
-        }
+      if (!envelope) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          `Packeta ${methodName}: missing <response> element`
+        )
+      }
 
-        if (envelope.status === "fault") {
-          throw this.faultToError(envelope, methodName)
-        }
+      if (envelope.status === "fault") {
+        throw this.faultToError(envelope, methodName)
+      }
 
-        if (envelope.status !== "ok") {
-          throw new MedusaError(
-            MedusaError.Types.INVALID_DATA,
-            `Packeta ${methodName}: unexpected status "${envelope.status}"`
-          )
-        }
+      if (envelope.status !== "ok") {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          `Packeta ${methodName}: unexpected status "${envelope.status}"`
+        )
+      }
 
-        return envelope.result as T
-      },
-      `Packeta ${methodName}`
-    )
+      return envelope.result as T
+    }
+
+    if (!retry) {
+      return handleResponse(await operation())
+    }
+
+    return this.withRetry(operation, handleResponse, `Packeta ${methodName}`)
   }
 
   private faultToError(
