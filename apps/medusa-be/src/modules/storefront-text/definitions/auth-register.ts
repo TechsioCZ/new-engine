@@ -62,6 +62,11 @@ export const STOREFRONT_AUTH_REGISTER_TEXT_DEFINITIONS = [
     namespace: "auth",
   },
   {
+    description: "Informace o e-mailovém potvrzení registrace.",
+    key: "auth.register.confirmation_email_notice",
+    namespace: "auth",
+  },
+  {
     description: "Potvrzení odeslání žádosti o velkoobchodní účet.",
     key: "auth.register.wholesale_success",
     namespace: "auth",

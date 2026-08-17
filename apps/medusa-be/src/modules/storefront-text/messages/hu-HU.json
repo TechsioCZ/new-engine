@@ -288,6 +288,7 @@
       "company_fields": "Céges adatok",
       "accept_terms": "Elfogadom az általános szerződési feltételeket",
       "success": "A regisztráció sikeres volt.",
+      "confirmation_email_notice": "A regisztráció visszaigazolását elküldjük a(z) {email} címre.",
       "wholesale_success": "A nagykereskedelmi fiók iránti kérelmet jóváhagyásra elküldtük. A döntésig lakossági ügyfélként vásárolhat.",
       "email_exists": "Ezzel az e-mail-címmel már létezik fiók. Jelentkezzen be, vagy állítsa vissza a jelszavát.",
       "failed": "A regisztráció nem sikerült. Próbálja újra."
