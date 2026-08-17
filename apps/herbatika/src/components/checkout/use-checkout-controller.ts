@@ -447,7 +447,10 @@ export function useCheckoutController() {
 
   const cartItems = cartQuery.cart?.items ?? []
   const hasItems = cartQuery.itemCount > 0 || cartItems.length > 0
-  const hasStoredAddress = resolveHasStoredAddress(cartQuery.cart)
+  const hasStoredAddress = resolveHasStoredAddress(
+    cartQuery.cart,
+    region?.country_code ?? marketContext.countryCode
+  )
   const hasShipping = Boolean(checkoutShippingQuery.selectedShippingMethodId)
   const hasPayment = Boolean(effectiveSelectedPaymentProviderId)
 

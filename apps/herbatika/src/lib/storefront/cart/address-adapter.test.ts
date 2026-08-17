@@ -23,4 +23,24 @@ describe("Herbatika checkout address adapter", () => {
       }).customerNote
     ).toBe("Legacy checkout note")
   })
+
+  it("normalizes a national phone number to E.164", () => {
+    const input = buildHerbatikaCheckoutAddressInput({
+      ...DEFAULT_CHECKOUT_ADDRESS_VALUES,
+      countryCode: "SK",
+      phone: "0905 123 456",
+    })
+
+    expect(input.phone).toBe("+421905123456")
+  })
+
+  it("keeps the phone country selected independently from the address", () => {
+    const input = buildHerbatikaCheckoutAddressInput({
+      ...DEFAULT_CHECKOUT_ADDRESS_VALUES,
+      countryCode: "SK",
+      phone: "+420601123456",
+    })
+
+    expect(input.phone).toBe("+420601123456")
+  })
 })

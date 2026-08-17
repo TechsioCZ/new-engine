@@ -16,7 +16,6 @@ export type AddressValidationMessages = {
   firstNameMinLength: string
   lastNameMinLength: string
   phoneInvalid: string
-  phoneMinDigits: string
   phoneRequired: string
   postalCodeInvalid: string
   postalCodeMinDigits: string
@@ -45,7 +44,6 @@ export const translateAddressValidationMessages = (
   firstNameMinLength: translate("validation.first_name_min_length"),
   lastNameMinLength: translate("validation.last_name_min_length"),
   phoneInvalid: translate("validation.phone_invalid"),
-  phoneMinDigits: translate("validation.phone_min_digits"),
   phoneRequired: translate("validation.phone_required"),
   postalCodeInvalid: translate("validation.postal_code_invalid"),
   postalCodeMinDigits: translate("validation.postal_code_min_digits"),
