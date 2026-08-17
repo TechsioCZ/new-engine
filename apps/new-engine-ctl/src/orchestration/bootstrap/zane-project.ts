@@ -129,6 +129,7 @@ const sharedEnvCleanupKeys = [
   "AUTH_CORS",
   "NEXT_PUBLIC_SITE_URL",
   "NEXT_PUBLIC_MEDUSA_BACKEND_URL",
+  "NEXT_PUBLIC_MINIO_FILE_URL",
   "NEXT_PUBLIC_MEILISEARCH_URL",
   "NEXT_PUBLIC_MEILISEARCH_API_KEY",
   "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
@@ -556,6 +557,12 @@ function buildZaneProjectServices(
     publicUrlAffix: context.publicUrlAffix,
     publicDomain: context.publicDomain,
   })
+  const minioPublicDomain = publicServiceDomain({
+    projectSlug: context.projectSlug,
+    serviceSlug: minioSlug,
+    publicUrlAffix: context.publicUrlAffix,
+    publicDomain: context.publicDomain,
+  })
   const configuredGoPayWebhookUrl =
     process.env.DC_GOPAY_WEBHOOK_URL?.trim() ?? ""
   const generatedGoPayWebhookUrl = medusaBePublicDomain
@@ -574,11 +581,15 @@ function buildZaneProjectServices(
   }
   const minioFileSource = context.minioFileUrlOverride
     ? literalSource(context.minioFileUrlOverride)
-    : serviceInternalBucketUrlSource({
-        serviceSlug: minioSlug,
-        port: 9004,
-        bucketSharedEnvKey: "MEDUSA_MINIO_BUCKET",
-      })
+    : minioPublicDomain
+      ? literalSource(
+          `https://${minioPublicDomain}/${placeholderSharedValue("MEDUSA_MINIO_BUCKET")}`
+        )
+      : serviceInternalBucketUrlSource({
+          serviceSlug: minioSlug,
+          port: 9004,
+          bucketSharedEnvKey: "MEDUSA_MINIO_BUCKET",
+        })
 
   return {
     "medusa-db": {
@@ -697,7 +708,14 @@ function buildZaneProjectServices(
           mode: "READ_WRITE",
         },
       ],
-      urls: [],
+      urls: [
+        {
+          domain: minioPublicDomain ?? "",
+          base_path: "/",
+          strip_prefix: true,
+          associated_port: 9004,
+        },
+      ].filter((url) => url.domain),
       healthcheck: {
         type: "PATH",
         value: "/minio/health/live",
@@ -1388,6 +1406,10 @@ function buildZaneProjectServices(
         {
           envVar: "NEXT_PUBLIC_PAYLOAD_BASE_URL",
           source: servicePublicOrigins.payload,
+        },
+        {
+          envVar: "NEXT_PUBLIC_MINIO_FILE_URL",
+          source: servicePublicOriginSource(minioSlug),
         },
         {
           envVar: "PAYLOAD_BASE_URL_INTERNAL",
