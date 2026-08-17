@@ -1,4 +1,6 @@
 import type { Metadata } from "next"
+import { connection } from "next/server"
+import { Suspense } from "react"
 import { ClaimsPage } from "@/components/claims/claims-page"
 
 export const metadata: Metadata = {
@@ -7,6 +9,18 @@ export const metadata: Metadata = {
     "Online formulár na vrátenie alebo reklamáciu tovaru z objednávky Herbatika.",
 }
 
+async function DynamicMetadataMarker() {
+  await connection()
+  return null
+}
+
 export default function ClaimsPageRoute() {
-  return <ClaimsPage />
+  return (
+    <>
+      <ClaimsPage />
+      <Suspense>
+        <DynamicMetadataMarker />
+      </Suspense>
+    </>
+  )
 }
