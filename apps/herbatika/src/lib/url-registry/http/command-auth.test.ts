@@ -1,9 +1,21 @@
 import { describe, expect, it } from "vitest"
-import { verifyUrlRegistryCommandAuthorization } from "./command-auth"
+import {
+  verifyBearerAuthorization,
+  verifyUrlRegistryCommandAuthorization,
+} from "./command-auth"
 
 const TOKEN = "urlr-command-token-with-at-least-32-characters"
 
 describe("verifyUrlRegistryCommandAuthorization", () => {
+  it("keeps the command verifier as the shared bearer contract", () => {
+    expect(verifyBearerAuthorization(`Bearer ${TOKEN}`, TOKEN)).toBe(
+      "authorized"
+    )
+    expect(
+      verifyUrlRegistryCommandAuthorization(`Bearer ${TOKEN}`, TOKEN)
+    ).toBe(verifyBearerAuthorization(`Bearer ${TOKEN}`, TOKEN))
+  })
+
   it("accepts only the exact bearer token", () => {
     expect(
       verifyUrlRegistryCommandAuthorization(`Bearer ${TOKEN}`, TOKEN)
