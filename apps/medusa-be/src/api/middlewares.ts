@@ -28,6 +28,7 @@ import { adminProductContentRoutesMiddlewares } from "./admin/product-content/mi
 import { adminPromotionsExtensionMiddlewares } from "./admin/promotions/middlewares"
 import { adminPublishableKeyRoutesMiddlewares } from "./admin/provisioning/publishable-key/middlewares"
 import { adminQrPaymentConfigRoutesMiddlewares } from "./admin/qr-payment-config/middlewares"
+import { adminResendConfigRoutesMiddlewares } from "./admin/resend-config/middlewares"
 import { adminReviewRoutesMiddlewares } from "./admin/reviews/middlewares"
 import { adminSearchProfileRoutesMiddlewares } from "./admin/search-profiles/middlewares"
 import { adminStorefrontTextRoutesMiddlewares } from "./admin/storefront-texts/middlewares"
@@ -96,6 +97,7 @@ export default defineMiddlewares({
     ...adminProductContentRoutesMiddlewares,
     ...adminQrPaymentConfigRoutesMiddlewares,
     ...adminReviewRoutesMiddlewares,
+    ...adminResendConfigRoutesMiddlewares,
     ...adminSearchProfileRoutesMiddlewares,
     ...adminStorefrontTextRoutesMiddlewares,
     ...storeMiddlewares,

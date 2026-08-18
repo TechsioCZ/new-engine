@@ -249,7 +249,7 @@
       "title": "Parolă uitată",
       "description": "Introduceți adresa de e-mail asociată contului. Vă vom trimite un link pentru resetarea parolei.",
       "submit": "Trimite linkul",
-      "sent": "Am trimis linkul pentru resetarea parolei la {email}. Verificați-vă căsuța de e-mail.",
+      "sent": "Dacă există un cont asociat adresei {email}, am înregistrat solicitarea de resetare a parolei.",
       "delivery_help": "Nu ați primit e-mailul? Verificați dosarul spam sau încercați din nou peste câteva minute.",
       "failed": "Linkul pentru resetarea parolei nu a putut fi trimis."
     },

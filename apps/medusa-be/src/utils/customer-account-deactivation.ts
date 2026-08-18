@@ -12,18 +12,38 @@ export type VerifiedCustomerAccountDeactivationToken = {
   email?: string
 }
 
-export function buildCustomerAccountDeactivationUrl(token: string) {
-  const storefrontUrl = process.env.STOREFRONT_URL
+export function buildCustomerAccountDeactivationUrl(
+  token: string,
+  storefrontBaseUrl: string
+) {
+  let storefrontUrl: URL
 
-  if (!storefrontUrl) {
+  try {
+    storefrontUrl = new URL(storefrontBaseUrl)
+  } catch {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "STOREFRONT_URL env var is not set — cannot build account deactivation link"
+      "storefront_base_url must be a valid absolute URL"
     )
   }
 
-  const baseUrl = storefrontUrl.replace(TRAILING_SLASH_REGEX, "")
-  return `${baseUrl}/account/deactivate/confirm?token=${encodeURIComponent(token)}`
+  if (
+    storefrontUrl.protocol !== "https:" &&
+    storefrontUrl.protocol !== "http:"
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "storefront_base_url must use HTTP or HTTPS"
+    )
+  }
+
+  const confirmationUrl = new URL(
+    "/account/deactivate/confirm",
+    storefrontUrl.origin.replace(TRAILING_SLASH_REGEX, "")
+  )
+  confirmationUrl.searchParams.set("token", token)
+
+  return confirmationUrl.toString()
 }
 
 export function createCustomerAccountDeactivationToken(input: {

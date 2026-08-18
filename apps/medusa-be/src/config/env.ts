@@ -34,15 +34,12 @@ export type MedusaConfigEnv = {
   minioFileUrl: string | undefined
   minioRegion: string | undefined
   minioSecretKey: string | undefined
-  notificationProvider: "local" | "resend"
   payloadApiKey: string | undefined
   payloadBaseUrl: string | undefined
   payloadContentCacheTtl: number
   payloadListCacheTtl: number
   redisSessionsEnabled: boolean
   redisUrl: string | undefined
-  resendApiKey: string | undefined
-  resendFromEmail: string | undefined
   storeCors: string
   workflowEngineProvider: "inmemory" | "redis"
 }
@@ -247,18 +244,12 @@ export function readMedusaConfigEnv(
     minioFileUrl: env.MINIO_FILE_URL,
     minioRegion: env.MINIO_REGION,
     minioSecretKey: env.MINIO_SECRET_KEY,
-    notificationProvider: readEnumEnv(env, "NOTIFICATION_PROVIDER", [
-      "local",
-      "resend",
-    ] as const),
     payloadApiKey: env.PAYLOAD_API_KEY,
     payloadBaseUrl: env.PAYLOAD_BASE_URL,
     payloadContentCacheTtl: Number.parseInt(env.CMS_CACHE_TTL ?? "3600", 10),
     payloadListCacheTtl: Number.parseInt(env.CMS_LIST_CACHE_TTL ?? "600", 10),
     redisSessionsEnabled,
     redisUrl,
-    resendApiKey: env.RESEND_API_KEY,
-    resendFromEmail: env.RESEND_FROM_EMAIL,
     storeCors: env.STORE_CORS ?? "",
     workflowEngineProvider,
   }

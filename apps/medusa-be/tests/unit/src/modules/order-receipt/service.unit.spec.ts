@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   escapePdfText,
+  formatMoney,
   getItemQuantity,
   getItemSubtotal,
   getItemUnitPrice,
@@ -32,6 +33,11 @@ const baseOrder = {
   total: 121,
 }
 
+const receiptContext = {
+  locale: "cs-CZ" as const,
+  storeName: "Test Store",
+}
+
 const qrPaymentCollections = [
   {
     payments: [
@@ -55,6 +61,22 @@ function getPdfPageCount(pdf: string) {
 
   return match ? Number(match[1]) : 0
 }
+
+describe("escapePdfText", () => {
+  it("encodes Hungarian and Romanian receipt text", () => {
+    expect(escapePdfText("Őrült tűz")).toBe("\\344r\\353lt t\\347z")
+    expect(escapePdfText("Știință română")).toBe(
+      "\\354tiin\\357\\337 rom\\341n\\337"
+    )
+  })
+
+  it("encodes Slovak L-caron text and keeps EUR visible", () => {
+    expect(escapePdfText("Odberateľ Zľava Dodávateľ")).toBe(
+      "Odberate\\361 Z\\361ava Dod\\301vate\\361"
+    )
+    expect(escapePdfText(formatMoney(12.5, "EUR", "sk-SK"))).toContain("EUR")
+  })
+})
 
 function buildPaginationItems(count: number) {
   return Array.from({ length: count }, (_, index) => {
@@ -615,7 +637,10 @@ describe("order receipt service", () => {
     const service = new OrderReceiptModuleService()
     const order = buildPaginationOrder(itemCount)
 
-    const attachment = await service.generateOrderReceiptAttachment(order)
+    const attachment = await service.generateOrderReceiptAttachment(
+      order,
+      receiptContext
+    )
     const pdf = attachment.content.toString("utf8")
 
     expect(getPdfPageCount(pdf)).toBe(expectedPageCount)
@@ -626,38 +651,42 @@ describe("order receipt service", () => {
 
   it("wraps long customer text without overlapping the item table", async () => {
     const service = new OrderReceiptModuleService()
-    const receipt = await service.generateOrderReceiptAttachment({
-      ...baseOrder,
-      billing_address: {
-        address_1:
-          "Extremely Long Street Name With Building Complex And Several Descriptive Parts 12345/678",
-        address_2:
-          "Floor 12 Department of International Procurement and Invoice Validation",
-        city: "Praha - Nove Mesto With Additional District Name",
-        company: "WWWWMMMMWWWWMMMMWWWWMMMM SPOL S RUCENIM OMEZENYM EXTRA LONG",
-        country_code: "CZ",
-        first_name: "Verylongfirstnamewithmanycharacters",
-        last_name: "Verylonglastnamewithmanycharacters",
-        postal_code: "11000",
-      },
-      email:
-        "customer.name.with.a.very.long.email.address.for.receipts@example-commerce.test",
-      id: "order_long_customer_block",
-      items: [
-        {
-          is_tax_inclusive: false,
-          quantity: 1,
-          subtotal: 100,
-          tax_lines: [{ rate: 21 }],
-          title: "Screenshot proof item",
-          total: 121,
-          unit_price: 100,
+    const receipt = await service.generateOrderReceiptAttachment(
+      {
+        ...baseOrder,
+        billing_address: {
+          address_1:
+            "Extremely Long Street Name With Building Complex And Several Descriptive Parts 12345/678",
+          address_2:
+            "Floor 12 Department of International Procurement and Invoice Validation",
+          city: "Praha - Nove Mesto With Additional District Name",
+          company:
+            "WWWWMMMMWWWWMMMMWWWWMMMM SPOL S RUCENIM OMEZENYM EXTRA LONG",
+          country_code: "CZ",
+          first_name: "Verylongfirstnamewithmanycharacters",
+          last_name: "Verylonglastnamewithmanycharacters",
+          postal_code: "11000",
         },
-      ],
-      summary: {
-        current_order_total: 121,
+        email:
+          "customer.name.with.a.very.long.email.address.for.receipts@example-commerce.test",
+        id: "order_long_customer_block",
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 1,
+            subtotal: 100,
+            tax_lines: [{ rate: 21 }],
+            title: "Screenshot proof item",
+            total: 121,
+            unit_price: 100,
+          },
+        ],
+        summary: {
+          current_order_total: 121,
+        },
       },
-    })
+      receiptContext
+    )
     const pdf = receipt.content.toString("utf8")
     const customerRows = Array.from(
       pdf.matchAll(CUSTOMER_TEXT_ROW_REGEX),
@@ -676,21 +705,24 @@ describe("order receipt service", () => {
 
   it("renders customer fallback when customer fields are blank", async () => {
     const service = new OrderReceiptModuleService()
-    const receipt = await service.generateOrderReceiptAttachment({
-      ...baseOrder,
-      billing_address: {
-        address_1: " \u00a0 ",
-        address_2: " ",
-        city: " ",
-        company: " ",
-        country_code: " ",
-        first_name: " ",
-        last_name: " ",
-        postal_code: " ",
+    const receipt = await service.generateOrderReceiptAttachment(
+      {
+        ...baseOrder,
+        billing_address: {
+          address_1: " \u00a0 ",
+          address_2: " ",
+          city: " ",
+          company: " ",
+          country_code: " ",
+          first_name: " ",
+          last_name: " ",
+          postal_code: " ",
+        },
+        email: " \u00a0 ",
+        id: "order_blank_customer_pdf",
       },
-      email: " \u00a0 ",
-      id: "order_blank_customer_pdf",
-    })
+      receiptContext
+    )
     const pdf = receipt.content.toString("utf8")
 
     expect(pdf).toContain(`(${escapePdfText("Zákazník")})`)
@@ -698,25 +730,28 @@ describe("order receipt service", () => {
 
   it("does not render a discount row when line subtotals already include it", async () => {
     const service = new OrderReceiptModuleService()
-    const receipt = await service.generateOrderReceiptAttachment({
-      ...baseOrder,
-      discount_total: 100,
-      id: "order_discounted_line_subtotal_pdf",
-      items: [
-        {
-          is_tax_inclusive: false,
-          quantity: 2,
-          subtotal: 100,
-          tax_lines: [{ rate: 0 }],
-          title: "Discounted product",
-          unit_price: 100,
+    const receipt = await service.generateOrderReceiptAttachment(
+      {
+        ...baseOrder,
+        discount_total: 100,
+        id: "order_discounted_line_subtotal_pdf",
+        items: [
+          {
+            is_tax_inclusive: false,
+            quantity: 2,
+            subtotal: 100,
+            tax_lines: [{ rate: 0 }],
+            title: "Discounted product",
+            unit_price: 100,
+          },
+        ],
+        shipping_methods: [],
+        summary: {
+          current_order_total: 100,
         },
-      ],
-      shipping_methods: [],
-      summary: {
-        current_order_total: 100,
       },
-    })
+      receiptContext
+    )
     const pdf = receipt.content.toString("utf8")
 
     expect(pdf).not.toContain("Sleva")
@@ -726,11 +761,17 @@ describe("order receipt service", () => {
   it("renders payment QR commands when SPAYD payment data is present for a QR payment", async () => {
     const service = new OrderReceiptModuleService()
 
-    const withoutQr = await service.generateOrderReceiptAttachment(baseOrder)
-    const withQr = await service.generateOrderReceiptAttachment({
-      ...baseOrder,
-      payment_collections: qrPaymentCollections,
-    })
+    const withoutQr = await service.generateOrderReceiptAttachment(
+      baseOrder,
+      receiptContext
+    )
+    const withQr = await service.generateOrderReceiptAttachment(
+      {
+        ...baseOrder,
+        payment_collections: qrPaymentCollections,
+      },
+      receiptContext
+    )
 
     expect(withQr.content.length).toBeGreaterThan(withoutQr.content.length)
     expect(withQr.content.toString("utf8")).toContain("64.00 606.00")
@@ -740,23 +781,29 @@ describe("order receipt service", () => {
   it("does not render payment QR commands for a non-QR payment", async () => {
     const service = new OrderReceiptModuleService()
 
-    const withoutQr = await service.generateOrderReceiptAttachment(baseOrder)
-    const withNonQrPayment = await service.generateOrderReceiptAttachment({
-      ...baseOrder,
-      payment_collections: [
-        {
-          payments: [
-            {
-              data: {
-                payment_qr_spayd:
-                  "SPD*1.0*ACC:CZ3301000000000002970297*AM:121.00*CC:CZK",
+    const withoutQr = await service.generateOrderReceiptAttachment(
+      baseOrder,
+      receiptContext
+    )
+    const withNonQrPayment = await service.generateOrderReceiptAttachment(
+      {
+        ...baseOrder,
+        payment_collections: [
+          {
+            payments: [
+              {
+                data: {
+                  payment_qr_spayd:
+                    "SPD*1.0*ACC:CZ3301000000000002970297*AM:121.00*CC:CZK",
+                },
+                provider_id: "pp_paykit_comgate",
               },
-              provider_id: "pp_paykit_comgate",
-            },
-          ],
-        },
-      ],
-    })
+            ],
+          },
+        ],
+      },
+      receiptContext
+    )
 
     expect(withNonQrPayment.content.length).toBe(withoutQr.content.length)
     expect(withNonQrPayment.content.toString("utf8")).not.toContain(
@@ -767,23 +814,29 @@ describe("order receipt service", () => {
   it("does not render payment QR commands for the system default payment", async () => {
     const service = new OrderReceiptModuleService()
 
-    const withoutQr = await service.generateOrderReceiptAttachment(baseOrder)
-    const withSystemPayment = await service.generateOrderReceiptAttachment({
-      ...baseOrder,
-      payment_collections: [
-        {
-          payments: [
-            {
-              data: {
-                payment_qr_spayd:
-                  "SPD*1.0*ACC:CZ3301000000000002970297*AM:121.00*CC:CZK",
+    const withoutQr = await service.generateOrderReceiptAttachment(
+      baseOrder,
+      receiptContext
+    )
+    const withSystemPayment = await service.generateOrderReceiptAttachment(
+      {
+        ...baseOrder,
+        payment_collections: [
+          {
+            payments: [
+              {
+                data: {
+                  payment_qr_spayd:
+                    "SPD*1.0*ACC:CZ3301000000000002970297*AM:121.00*CC:CZK",
+                },
+                provider_id: "pp_system_default",
               },
-              provider_id: "pp_system_default",
-            },
-          ],
-        },
-      ],
-    })
+            ],
+          },
+        ],
+      },
+      receiptContext
+    )
 
     expect(withSystemPayment.content.length).toBe(withoutQr.content.length)
     expect(withSystemPayment.content.toString("utf8")).not.toContain(

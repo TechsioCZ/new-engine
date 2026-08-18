@@ -1,34 +1,81 @@
+import type { CreateNotificationDTO } from "@medusajs/framework/types"
+import { MedusaError } from "@medusajs/framework/utils"
 import {
+  createStep,
   createWorkflow,
-  transform,
+  StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
+import { resolveCustomerNotificationMarketContext } from "../utils/customer-notification-market-context"
+import { resolveNotificationMarketContext } from "../utils/notification-market-context"
 import { sendNotificationStep } from "./steps/send-notification"
 
 type WorkflowInput = {
   email: string
-  reset_url: string
-  store_name?: string
+  storefrontMarketCode?: string
+  token: string
 }
+
+const TRAILING_SLASH_REGEX = /\/+$/
+
+const buildForgotPasswordNotificationStep = createStep(
+  "build-forgot-password-notification",
+  async (input: WorkflowInput, { container }) => {
+    const email = input.email.trim()
+    const token = input.token.trim()
+
+    if (!email) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Password reset email is missing."
+      )
+    }
+
+    if (!token) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Password reset token is missing."
+      )
+    }
+
+    const storefrontMarketCode = input.storefrontMarketCode?.trim()
+    const marketContext = storefrontMarketCode
+      ? await resolveNotificationMarketContext(container, {
+          countryCode: storefrontMarketCode,
+        })
+      : await resolveCustomerNotificationMarketContext(container, { email })
+    const baseUrl = marketContext.storefront_base_url.replace(
+      TRAILING_SLASH_REGEX,
+      ""
+    )
+    const resetUrl = [
+      baseUrl,
+      "/auth/reset-password?token=",
+      encodeURIComponent(token),
+      "&email=",
+      encodeURIComponent(email),
+    ].join("")
+    const notification: CreateNotificationDTO = {
+      channel: "email",
+      data: {
+        ...marketContext,
+        reset_url: resetUrl,
+      },
+      template: "user-forgotpwd",
+      to: email,
+      trigger_type: "customer.password_reset_requested",
+    }
+
+    return new StepResponse([notification])
+  }
+)
 
 export const sendForgotPasswordWorkflow = createWorkflow(
   "send-forgot-password",
   (input: WorkflowInput) => {
-    const notificationInput = transform({ input }, (data) => [
-      {
-        to: data.input.email,
-        channel: "email",
-        template: "user-forgotpwd",
-        data: {
-          reset_url: data.input.reset_url,
-          store_name: data.input.store_name,
-        },
-      },
-    ])
+    const notificationInput = buildForgotPasswordNotificationStep(input)
     const notification = sendNotificationStep(notificationInput)
 
-    return new WorkflowResponse({
-      notification,
-    })
+    return new WorkflowResponse({ notification })
   }
 )

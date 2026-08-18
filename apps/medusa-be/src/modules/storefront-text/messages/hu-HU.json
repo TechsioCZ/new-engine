@@ -249,7 +249,7 @@
       "title": "Elfelejtett jelszó",
       "description": "Adja meg a fiókjához tartozó e-mail-címet. Küldünk egy hivatkozást a jelszó visszaállításához.",
       "submit": "Hivatkozás küldése",
-      "sent": "A jelszó-visszaállítási hivatkozást elküldtük a(z) {email} címre. Ellenőrizze a postafiókját.",
+      "sent": "Ha létezik fiók a(z) {email} e-mail-címhez, fogadtuk a jelszó-visszaállítási kérelmet.",
       "delivery_help": "Nem érkezett meg az e-mail? Ellenőrizze a spam mappát, vagy próbálja újra néhány perc múlva.",
       "failed": "Nem sikerült elküldeni a jelszó-visszaállítási hivatkozást."
     },

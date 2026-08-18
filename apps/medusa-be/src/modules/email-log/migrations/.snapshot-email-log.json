@@ -296,6 +296,22 @@
           "enumItems": [],
           "mappedType": "text"
         },
+        "event_id": {
+          "name": "event_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
         "type": {
           "name": "type",
           "type": "text",
@@ -429,6 +445,15 @@
           "primary": false,
           "unique": false,
           "expression": "CREATE INDEX IF NOT EXISTS \"IDX_email_webhook_event_email_id\" ON \"email_webhook_event\" (\"email_id\") WHERE deleted_at IS NULL"
+        },
+        {
+          "keyName": "IDX_email_webhook_event_event_id_unique",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": true,
+          "expression": "CREATE UNIQUE INDEX IF NOT EXISTS \"IDX_email_webhook_event_event_id_unique\" ON \"email_webhook_event\" (\"event_id\") WHERE deleted_at IS NULL AND event_id IS NOT NULL"
         },
         {
           "keyName": "IDX_email_webhook_event_processed_at",

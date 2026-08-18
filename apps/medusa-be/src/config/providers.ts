@@ -1,5 +1,4 @@
 import { Modules } from "@medusajs/framework/utils"
-import { INTEGRATION_CONFIG_NAMES } from "../modules/api-store/integration-config"
 import { type MedusaConfigEnv, requireRedisUrl } from "./env"
 import { assertNever, type MedusaModuleConfig } from "./types"
 
@@ -10,55 +9,24 @@ type ModuleProviderConfig = {
   resolve: string
 }
 
-export function buildNotificationProvider(
-  env: MedusaConfigEnv
-): ModuleProviderConfig {
-  switch (env.notificationProvider) {
-    case "local":
-      return {
-        resolve: "@medusajs/medusa/notification-local",
-        id: "local",
-        options: {
-          name: "Local Notification Provider",
-          channels: ["email", "feed"],
-        },
-      }
-    case "resend":
-      return {
-        resolve: "./src/modules/resend",
-        id: "resend",
-        options: {
-          channels: ["email"],
-          apiStoreName: INTEGRATION_CONFIG_NAMES.RESEND,
-          api_key: env.resendApiKey,
-          from: env.resendFromEmail,
-        },
-      }
-    default:
-      return assertNever(env.notificationProvider)
-  }
-}
-
-export function buildNotificationProviders(
-  env: MedusaConfigEnv
-): ModuleProviderConfig[] {
-  const provider = buildNotificationProvider(env)
-
-  if (env.notificationProvider === "resend") {
-    return [
-      provider,
-      {
-        resolve: "@medusajs/medusa/notification-local",
-        id: "local-feed",
-        options: {
-          name: "Local Feed Notification Provider",
-          channels: ["feed"],
-        },
+export function buildNotificationProviders(): ModuleProviderConfig[] {
+  return [
+    {
+      resolve: "./src/modules/resend",
+      id: "resend",
+      options: {
+        channels: ["email"],
       },
-    ]
-  }
-
-  return [provider]
+    },
+    {
+      resolve: "@medusajs/medusa/notification-local",
+      id: "local-feed",
+      options: {
+        name: "Local Feed Notification Provider",
+        channels: ["feed"],
+      },
+    },
+  ]
 }
 
 export function buildCachingModule(env: MedusaConfigEnv): MedusaModuleConfig {

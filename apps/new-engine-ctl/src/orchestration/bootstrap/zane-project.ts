@@ -923,6 +923,9 @@ function buildZaneProjectServices(
         "DC_MINIO_BUCKET",
         "DC_MINIO_ACCESS_KEY",
         "DC_MINIO_SECRET_KEY",
+        "RESEND_API_KEY",
+        "RESEND_FROM_EMAIL",
+        "RESEND_WEBHOOK_SECRET",
         "DC_MEDUSA_BE_NOTIFICATION_PROVIDER",
         "DC_MEDUSA_BE_RESEND_API_KEY",
         "DC_MEDUSA_BE_RESEND_FROM_EMAIL",
@@ -989,29 +992,6 @@ function buildZaneProjectServices(
           envVar: "SENTRY_TRACES_SAMPLE_RATE",
           source: literalSource(
             process.env.DC_SENTRY_TRACES_SAMPLE_RATE ?? "0.1"
-          ),
-        },
-        {
-          envVar: "STOREFRONT_URL",
-          source: process.env.DC_STOREFRONT_URL?.trim()
-            ? literalSource(process.env.DC_STOREFRONT_URL.trim())
-            : servicePublicOrigins.herbatika,
-        },
-        {
-          envVar: "STORE_NAME",
-          source: literalSource(process.env.DC_STORE_NAME ?? "Herbatika"),
-        },
-        {
-          envVar: "PRODUCT_REVIEW_REQUEST_MESSAGE",
-          source: literalSource(
-            process.env.DC_PRODUCT_REVIEW_REQUEST_MESSAGE ??
-              "Napiš recenzi produktu"
-          ),
-        },
-        {
-          envVar: "PRODUCT_REVIEW_REQUEST_DELAY_MINUTES",
-          source: literalSource(
-            process.env.DC_PRODUCT_REVIEW_REQUEST_DELAY_MINUTES ?? "10080"
           ),
         },
         {
@@ -1213,39 +1193,6 @@ function buildZaneProjectServices(
             port: 9004,
             trailingSlash: true,
           }),
-        },
-        {
-          envVar: "NOTIFICATION_PROVIDER",
-          source: literalSource(
-            process.env.DC_MEDUSA_BE_NOTIFICATION_PROVIDER ?? "resend"
-          ),
-        },
-        {
-          envVar: "RESEND_API_KEY",
-          source: literalSource(
-            firstNonEmpty(
-              process.env.DC_MEDUSA_BE_RESEND_API_KEY,
-              process.env.DC_RESEND_API_KEY
-            ) ?? ""
-          ),
-        },
-        {
-          envVar: "RESEND_FROM_EMAIL",
-          source: literalSource(
-            firstNonEmpty(
-              process.env.DC_MEDUSA_BE_RESEND_FROM_EMAIL,
-              process.env.DC_RESEND_FROM_EMAIL
-            ) ?? ""
-          ),
-        },
-        {
-          envVar: "RESEND_WEBHOOK_SECRET",
-          source: literalSource(
-            firstNonEmpty(
-              process.env.DC_MEDUSA_BE_RESEND_WEBHOOK_SECRET,
-              process.env.DC_RESEND_WEBHOOK_SECRET
-            ) ?? ""
-          ),
         },
       ],
     },
@@ -1513,9 +1460,6 @@ function buildZaneProjectServices(
               "NEXT_PUBLIC_GOOGLE_ADS_ID",
               "NEXT_PUBLIC_HEUREKA_API_KEY",
               "NEXT_PUBLIC_LEADHUB_TRACKING_ID",
-              "RESEND_API_KEY",
-              "CONTACT_EMAIL",
-              "RESEND_FROM_EMAIL",
               "DC_N1_MEDUSA_BACKEND_URL_INTERNAL",
               "DC_N1_NEXT_PUBLIC_MEDUSA_BACKEND_URL",
               "DC_N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
@@ -1532,6 +1476,9 @@ function buildZaneProjectServices(
               "DC_N1_MEDUSA_RESEND_API_KEY",
               "DC_N1_MEDUSA_CONTACT_EMAIL",
               "DC_N1_MEDUSA_RESEND_FROM_EMAIL",
+              "RESEND_API_KEY",
+              "CONTACT_EMAIL",
+              "RESEND_FROM_EMAIL",
             ],
             env: [
               {
@@ -1575,33 +1522,6 @@ function buildZaneProjectServices(
                 envVar: "NEXT_PUBLIC_LEADHUB_TRACKING_ID",
                 source: literalSource(
                   process.env.DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID ?? ""
-                ),
-              },
-              {
-                envVar: "RESEND_API_KEY",
-                source: literalSource(
-                  firstNonEmpty(
-                    process.env.DC_N1_RESEND_API_KEY,
-                    process.env.DC_RESEND_API_KEY
-                  ) ?? ""
-                ),
-              },
-              {
-                envVar: "CONTACT_EMAIL",
-                source: literalSource(
-                  firstNonEmpty(
-                    process.env.DC_N1_CONTACT_EMAIL,
-                    process.env.DC_CONTACT_EMAIL
-                  ) ?? ""
-                ),
-              },
-              {
-                envVar: "RESEND_FROM_EMAIL",
-                source: literalSource(
-                  firstNonEmpty(
-                    process.env.DC_N1_RESEND_FROM_EMAIL,
-                    process.env.DC_RESEND_FROM_EMAIL
-                  ) ?? ""
                 ),
               },
             ],

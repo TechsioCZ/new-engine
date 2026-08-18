@@ -2,7 +2,6 @@ import type {
   INotificationModuleService,
   Logger,
   Query,
-  RemoteQueryEntryPoints,
 } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
@@ -18,6 +17,7 @@ import {
 import { ORDER_RECEIPT_MODULE } from "../modules/order-receipt"
 import type OrderReceiptModuleService from "../modules/order-receipt/service"
 import type { OrderReceiptOrder } from "../modules/order-receipt/service"
+import { resolveNotificationMarketContext } from "../utils/notification-market-context"
 import {
   formatTotal,
   getOrderDisplayId,
@@ -26,7 +26,6 @@ import {
 
 type WorkflowInput = {
   order_id: string
-  store_name?: string
 }
 
 type OrderReceiptWorkflowResult = {
@@ -37,18 +36,20 @@ type OrderReceiptWorkflowResult = {
 
 type QueryOrder = OrderReceiptOrder &
   PaymentReminderOrder & {
+    sales_channel_id?: string | null
     customer?: {
       first_name?: string | null
       last_name?: string | null
     } | null
   }
 
-type GeneratedOrder = RemoteQueryEntryPoints["order"]
-
-function isQueryOrder(
-  order: GeneratedOrder
-): order is GeneratedOrder & QueryOrder {
-  return typeof order.id === "string" && order.id.length > 0
+function isQueryOrder(order: unknown): order is QueryOrder {
+  return (
+    typeof order === "object" &&
+    order !== null &&
+    typeof (order as { id?: unknown }).id === "string" &&
+    (order as { id: string }).id.length > 0
+  )
 }
 
 const ORDER_RECEIPT_FIELDS = [
@@ -61,6 +62,7 @@ const ORDER_RECEIPT_FIELDS = [
   "item_subtotal",
   "item_tax_total",
   "metadata",
+  "sales_channel_id",
   "payment_collections.payments.data",
   "payment_collections.payments.provider_id",
   "shipping_total",
@@ -131,11 +133,14 @@ const sendOrderReceiptStep = createStep(
         id: input.order_id,
       },
     })
-    const order = data.find(isQueryOrder)
+    const orderCandidate: unknown = data.find((candidate) =>
+      isQueryOrder(candidate)
+    )
 
-    if (!order) {
+    if (!isQueryOrder(orderCandidate)) {
       throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")
     }
+    const order = orderCandidate
 
     if (!order.email) {
       logger.warn(`Order ${order.id} has no email; receipt email skipped.`)
@@ -145,8 +150,17 @@ const sendOrderReceiptStep = createStep(
       })
     }
 
+    const marketContext = await resolveNotificationMarketContext(container, {
+      countryCode:
+        order.shipping_address?.country_code ??
+        order.billing_address?.country_code,
+      salesChannelId: order.sales_channel_id,
+    })
     const attachment =
-      await orderReceiptModuleService.generateOrderReceiptAttachment(order)
+      await orderReceiptModuleService.generateOrderReceiptAttachment(order, {
+        locale: marketContext.locale,
+        storeName: marketContext.store_name,
+      })
 
     await notificationModuleService.createNotifications({
       attachments: [
@@ -159,11 +173,11 @@ const sendOrderReceiptStep = createStep(
       ],
       channel: "email",
       data: {
+        ...marketContext,
         customer_name: getCustomerName(order),
         order_display_id: getOrderDisplayId(order),
         order_id: order.id,
-        store_name: input.store_name,
-        total: formatTotal(order),
+        total: formatTotal(order, marketContext.locale),
       },
       resource_id: order.id,
       resource_type: "order",

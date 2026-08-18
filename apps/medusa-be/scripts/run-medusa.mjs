@@ -10,7 +10,6 @@ if (process.argv[2] === "build") {
     FILE_PROVIDER: "local",
     LOCKING_PROVIDER: "postgres",
     MEILISEARCH_ENABLED: "0",
-    NOTIFICATION_PROVIDER: "local",
     REDIS_SESSIONS_ENABLED: "0",
     WORKFLOW_ENGINE_PROVIDER: "inmemory",
   }

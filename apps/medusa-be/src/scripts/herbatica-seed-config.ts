@@ -132,6 +132,38 @@ export const HERBATICA_SALES_CHANNELS = [
   {
     name: HERBATICA_STOREFRONT_SALES_CHANNEL_NAME,
     default: true,
+    metadata: {
+      storefront_notification_markets: {
+        cz: {
+          country_code: "cz",
+          locale: "cs-CZ",
+          market_code: "cz",
+          store_name: "Herbatica",
+          storefront_domain: "herbatica.cz",
+        },
+        hu: {
+          country_code: "hu",
+          locale: "hu-HU",
+          market_code: "hu",
+          store_name: "Herbatica",
+          storefront_domain: "herbatica.hu",
+        },
+        ro: {
+          country_code: "ro",
+          locale: "ro-RO",
+          market_code: "ro",
+          store_name: "Herbatica",
+          storefront_domain: "herbatica.ro",
+        },
+        sk: {
+          country_code: "sk",
+          locale: "sk-SK",
+          market_code: "sk",
+          store_name: "Herbatica",
+          storefront_domain: "herbatica.sk",
+        },
+      },
+    },
   },
   {
     name: HERBATICA_POS_SALES_CHANNEL_NAME,
