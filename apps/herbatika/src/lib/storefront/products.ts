@@ -29,6 +29,10 @@ type ProductHooks = typeof storefront.hooks.products
 type UseProductsOptions = Parameters<ProductHooks["useProducts"]>[1]
 type UseProductOptions = Parameters<ProductHooks["useProduct"]>[1]
 
+export type ProductDetailInput = MedusaProductDetailInput & {
+  enabled?: boolean
+}
+
 export type ProductListInput = BaseStorefrontProductListInput & {
   enabled?: boolean
 }
@@ -50,7 +54,7 @@ export const useProducts = (
 }
 
 export const useProduct = (
-  input: MedusaProductDetailInput,
+  input: ProductDetailInput,
   options?: UseProductOptions
 ) => {
   const locale = useLocale()
