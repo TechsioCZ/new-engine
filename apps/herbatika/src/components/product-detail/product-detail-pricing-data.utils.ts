@@ -9,7 +9,7 @@ import {
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { formatUnitPriceLabel } from "@/lib/storefront/unit-price"
-import type { VolumeDiscountTier } from "@/lib/storefront/volume-discounts"
+import type { VolumeDiscountTier } from "@/lib/storefront/volume-discounts-contract"
 
 export const resolveDisplayOriginalLabel = (
   productPrice: ReturnType<typeof resolvePriceState> | null,

@@ -13,7 +13,7 @@ import {
   resolveStorefrontPrice,
 } from "@/lib/storefront/product-pricing"
 import { resolveVariantPricePerUnit } from "@/lib/storefront/unit-price"
-import type { VolumeDiscountTier } from "@/lib/storefront/volume-discounts"
+import type { VolumeDiscountTier } from "@/lib/storefront/volume-discounts-contract"
 
 export const resolvePriceState = (
   product: Product,
