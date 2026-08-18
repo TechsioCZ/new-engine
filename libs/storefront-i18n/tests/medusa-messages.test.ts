@@ -19,6 +19,7 @@ const createClient = (response: unknown) => {
 
 describe("loadMedusaStorefrontMessages", () => {
   it("loads the exact market and locale without caching", async () => {
+    const signal = AbortSignal.timeout(1000)
     const { calls, client } = createClient({
       locale: "cs-CZ",
       market: "cz",
@@ -29,6 +30,7 @@ describe("loadMedusaStorefrontMessages", () => {
       loadMedusaStorefrontMessages(client, {
         locale: "cs-CZ",
         market: "cz",
+        signal,
       })
     ).resolves.toEqual({ "cart.title": "Košík" })
 
@@ -41,6 +43,7 @@ describe("loadMedusaStorefrontMessages", () => {
             locale: "cs-CZ",
             market: "cz",
           },
+          signal,
         },
       ],
     ])
