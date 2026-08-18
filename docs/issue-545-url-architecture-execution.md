@@ -558,47 +558,32 @@ authenticated, validate payloads as unknown, are idempotent by event ID, and use
 bounded batch, retry, and timeout. Route Handlers use `revalidateTag` with an
 explicit cache-life profile; `updateTag` is not used there.
 
-## 8. Immutable new-site migration manifest
+## 8. Greenfield cutover and empty migration manifest
 
-Shoptet history is out of scope. The already published routes in the current
-new-engine storefront are in scope:
+Shoptet history remains out of scope. On 2026-08-18 the project owner confirmed
+that no new-engine storefront version has been released publicly. The initial
+release therefore treats its old code routes as development-only and uses an
+empty new-site legacy manifest. The release gate must also confirm that no
+production-issued token link or payment-provider callback used those paths.
 
-Compatibility aliases apply only to `GET` and `HEAD`; unsafe methods receive
-the public HTML method outcome and are never redirected or normalized. Each
-concrete path is seeded only in a market where it was actually published, and
-every legacy target is the direct current canonical rather than another alias.
+Development-only paths such as `/p/{handle}`, `/c/{slug}`, `/znacka`, `/blog`,
+`/search`, `/faq`, `/o-nas`, `/account`, `/auth`, `/checkout`, and
+`/reviews/product/{token}` receive no compatibility redirect or rewrite. Once
+their canonical replacement is enabled, these old paths are expected to return
+`404`. `/api/*`, favicon, fonts, and assets remain explicit system surfaces;
+`/homepage-promo` remains development-only with no public route or alias.
 
-| Legacy route | Required decision |
-|---|---|
-| `/p/{handle}` | direct `308` to the localized current product path via imported stable mapping, never runtime handle slugification |
-| `/c/{slug}` | direct `308` to the localized current category path |
-| `/znacka`, `/znacka/{slug}` | direct `308` to localized brands root/current detail |
-| `/blog`, `/blog/{slug}` | direct `308` to localized advice root/explicit CMS-mapped detail; unknown detail `404` |
-| `/search` | direct `308` to localized search, preserving valid `q` |
-| `/faq` | direct `308` to localized root-static FAQ |
-| `/o-nas` | preserve SK/CZ; HU/RO direct `308` to localized about |
-| `/account` and known children | per-child direct `308`; opaque IDs preserve case |
-| plain `/auth/login`, `/auth/register`, `/auth/forgot-password` | per-child direct `308` when no token/secret state is exposed |
-| issued `/auth/reset-password` and `/reset-password` token flows | compatibility rewrite without redirect until token expiry window closes, then `404` |
-| `/checkout` and ordinary known steps | mapped direct `308`; unknown legacy step then follows the localized default-step `307` flow |
-| `/checkout/platba-navrat` | no generic redirect; compatibility payment handler and then validated `303` |
-| `/reviews/product/{token}` | compatibility rewrite without redirect until token expiry window closes, then `404` |
-| published root CMS `/{slug}` | direct `308` only from a frozen inventory to localized `/{information}/{slug}`; unknown root slug `404` |
-| retired published public URL | `410`, or direct `308` when a real successor exists |
-| `/api/*`, favicon, fonts/assets | preserve as explicit system surface |
-| `/homepage-promo` | no route and no alias |
+Before the first release, every internal link, email URL producer, form target,
+provider callback, sitemap entry, and canonical builder must emit only the new
+canonical route contract. A release crawl must contain no development-only path
+and no internal link to an alias. URLR aliases created later by an explicit slug
+change remain direct-current `308` records and retain the normal no-chain and
+no-reuse guarantees.
 
-The manifest is immutable and build-validated against the old filesystem/config
-route inventory. No unresolved row may reach release.
-
-The frozen root-CMS inventory, issued-token expiry cutoffs, and provider return
-cutover status are release artifacts with evidence, not runtime guesses:
-
-| Artifact | Owner and deadline |
-|---|---|
-| Published root CMS path export per market | `TBD — issue owner; required before S8` |
-| Reset/review token last-valid cutoff | `TBD — issue owner; required before S8` |
-| Payment-provider return URL cutover evidence | `TBD — issue owner; required before S8` |
+If contrary publication, indexing, issued-token, or provider-callback evidence
+is discovered before release, cutover stops. The affected concrete paths must
+then be frozen into an immutable manifest with an explicit preserve, direct
+`308`, compatibility-rewrite, `410`, or `404` decision before release.
 
 ## 9. Master behavior that must survive
 
@@ -636,14 +621,13 @@ must never overwrite `product.handle`.
    parity, versioned/idempotent command API, audit and invalidation outbox,
    concurrency tests, and the 20k load gate, behind a disabled feature flag.
 5. **S4 — product vertical slice.** Localized product Pages route, stable-ID
-   source read, variant, metadata/JSON-LD, canonical links, direct legacy alias,
-   lifecycle producer, and Docker wire tests while preserving all master product
-   behavior.
+   source read, variant, metadata/JSON-LD, canonical internal links, lifecycle
+   producer, and Docker wire tests while preserving all master product behavior.
 6. **S5 — catalog/content slices.** Category, brand, collection, optional
    campaign, advice, information, and root-static routes with their assignment,
    locale, pagination, lifecycle, and SEO contracts.
 7. **S6 — private and transactional flows.** Search, cart, checkout/payment,
-   account/auth/deactivation/orders, reset/review compatibility, and all email
+   account/auth/deactivation/orders, canonical reset/review flows, and all email
    URL producers.
 8. **S7 — system SEO.** Robots, sitemap index/shards, feed, manifest,
    alternates, bounded crawler, and invalidation integration.
@@ -669,8 +653,8 @@ issue wording must not be copied into test expectations:
 | I37 | This is an adversarial RSC-header spoofing/rewritten-path preservation test only. A request carrying RSC headers cannot spoof `x-sf-*`, bypass routing, or turn a hard status into `200`; it is not proof of supported public client navigation. |
 | E25 | On Docker/standalone, direct HTML and explicit adversarial RSC-header requests prove current `200`, alias `308`, miss `404`, tombstone `410`, and outage `503` before flush for GET/HEAD. The Netlify variant is pending the explicit release-target decision and cannot be marked passed or waived implicitly. |
 | E28 | Clicking public links performs document navigation and emits neither an RSC request nor `/_next/data` prefetch. The resulting full document retains correct market, public path, status, canonical, and metadata. |
-| I44 | Each section 8 legacy row asserts its classified outcome: direct `308`, preserve, compatibility rewrite without `Location`, `410`, or `404`, including the recorded token/provider cutoff state. |
-| E30 | Crawl only the alias subset expecting one application `308`. Separately assert preserved system/current routes, dev-only/unknown `404`, retired `410`, and token/payment compatibility behavior. The full inventory must not be asserted to be all redirects. |
+| I44 | The section 8 initial-release manifest is empty. Development-only routes return `404`, while system/current routes remain preserved. If contrary publication evidence appears, this row is replaced by exact per-path migration outcomes before release. |
+| E30 | Crawl URLR aliases created by explicit slug changes expecting one application `308`. Separately assert current routes, development-only/unknown `404`, and retired `410`; no internal document may link to an alias or removed development route. |
 | M19 | Remains unresolved. Production is single-instance; M19 is neither silently waived nor counted complete until the issue owner decides release versus post-release scope. |
 | Netlify-dependent rows | Remain blocked pending the release-target decision. Docker evidence is mandatory and is recorded independently. |
 
@@ -684,8 +668,8 @@ issue wording must not be copied into test expectations:
 - GET/HEAD parity and pre-flush hard statuses;
 - raw path/authority, spoofed-header, method, and cross-host poisoning tests;
 - every sitemap URL independently returns canonical indexable `200`;
-- legacy crawl has no chain, alias link, cross-market URL, soft-404, or
-  contradictory canonical;
+- the crawl has no development-only route, redirect chain, alias link,
+  cross-market URL, soft-404, or contradictory canonical;
 - token redaction in access logs, traces, errors, metadata, analytics, and
   redirects;
 - G1 native/editorial/legal approvals and frozen route-taxonomy hash;
