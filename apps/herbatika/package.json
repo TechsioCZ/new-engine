@@ -14,6 +14,7 @@
     "test:next-build": "node --test scripts/assert-next-build.node-test.mjs",
     "test:next-version": "node --test scripts/assert-next-version.node-test.mjs",
     "test:url-registry:migrations": "node --test scripts/url-registry/migrate.node-test.mjs scripts/url-registry/migration-files.node-test.mjs scripts/url-registry/migration-plan.node-test.mjs scripts/url-registry/migration-runner.node-test.mjs scripts/url-registry/verify-latest-migration.node-test.mjs",
+    "test:url-registry:pg18": "node tests/url-registry/run-pg18-gate.mjs",
     "lint": "biome check",
     "format": "biome format --write",
     "validate:token-usage": "node scripts/validate-token-usage.mjs",
