@@ -100,14 +100,19 @@ export interface Config {
   db: {
     defaultIDType: number;
   };
-  fallbackLocale: ('false' | 'none' | 'null') | false | null | ('cs' | 'sk' | 'en') | ('cs' | 'sk' | 'en')[];
+  fallbackLocale:
+    | ('false' | 'none' | 'null')
+    | false
+    | null
+    | ('cs' | 'en' | 'sk' | 'pl' | 'hu' | 'ro' | 'sl')
+    | ('cs' | 'en' | 'sk' | 'pl' | 'hu' | 'ro' | 'sl')[];
   globals: {
     'translation-settings': TranslationSetting;
   };
   globalsSelect: {
     'translation-settings': TranslationSettingsSelect<false> | TranslationSettingsSelect<true>;
   };
-  locale: 'cs' | 'sk' | 'en';
+  locale: 'cs' | 'en' | 'sk' | 'pl' | 'hu' | 'ro' | 'sl';
   widgets: {
     collections: CollectionsWidget;
   };

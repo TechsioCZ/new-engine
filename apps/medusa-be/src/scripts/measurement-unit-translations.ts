@@ -1,9 +1,10 @@
-import { createTranslationsWorkflow } from "@medusajs/core-flows"
+import { batchTranslationsWorkflow } from "@medusajs/core-flows"
 import type {
   CreateTranslationDTO,
   ITranslationModuleService,
   MedusaContainer,
   TranslationDTO,
+  UpdateTranslationDTO,
 } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
 import { isPieceMeasurementSourceUnit } from "../utils/measurement-unit-source"
@@ -25,47 +26,89 @@ type MeasurementUnitTranslationSource = {
 
 type BuildMeasurementUnitTranslationsInput = {
   availableLocaleCodes: string[]
-  existingTranslations: Pick<TranslationDTO, "locale_code" | "reference_id">[]
+  existingTranslations: Pick<
+    TranslationDTO,
+    "id" | "locale_code" | "reference_id" | "translations"
+  >[]
   units: MeasurementUnitTranslationSource[]
+}
+
+type MeasurementUnitTranslationPlan = {
+  create: CreateTranslationDTO[]
+  update: UpdateTranslationDTO[]
 }
 
 const isPieceUnit = (unit: MeasurementUnitTranslationSource) =>
   isPieceMeasurementSourceUnit(unit.symbol)
 
-export function buildMissingMeasurementUnitTranslations({
+const hasTranslationValue = (value: unknown) =>
+  typeof value === "string" && value.trim().length > 0
+
+const fillMissingTranslationValues = (
+  current: Record<string, unknown>,
+  defaults: { name: string; symbol: string }
+) => {
+  const translations = { ...current }
+  let changed = false
+
+  for (const field of ["name", "symbol"] as const) {
+    if (!hasTranslationValue(translations[field])) {
+      translations[field] = defaults[field]
+      changed = true
+    }
+  }
+
+  return changed ? translations : undefined
+}
+
+export function buildMeasurementUnitTranslationPlan({
   availableLocaleCodes,
   existingTranslations,
   units,
-}: BuildMeasurementUnitTranslationsInput): CreateTranslationDTO[] {
+}: BuildMeasurementUnitTranslationsInput): MeasurementUnitTranslationPlan {
   const availableLocales = new Set(availableLocaleCodes)
-  const existingKeys = new Set(
-    existingTranslations.map(
-      (translation) => `${translation.reference_id}:${translation.locale_code}`
-    )
+  const existingByKey = new Map(
+    existingTranslations.map((translation) => [
+      `${translation.reference_id}:${translation.locale_code}`,
+      translation,
+    ])
   )
+  const create: CreateTranslationDTO[] = []
+  const update: UpdateTranslationDTO[] = []
 
-  return units.filter(isPieceUnit).flatMap((unit) =>
-    Object.entries(PIECE_UNIT_TRANSLATIONS).flatMap(
-      ([localeCode, translations]) => {
-        const key = `${unit.id}:${localeCode}`
-        if (!availableLocales.has(localeCode) || existingKeys.has(key)) {
-          return []
-        }
-
-        return [
-          {
-            locale_code: localeCode,
-            reference: MEASUREMENT_UNIT_REFERENCE,
-            reference_id: unit.id,
-            translations,
-          },
-        ]
+  for (const unit of units.filter(isPieceUnit)) {
+    for (const [localeCode, defaults] of Object.entries(
+      PIECE_UNIT_TRANSLATIONS
+    )) {
+      if (!availableLocales.has(localeCode)) {
+        continue
       }
-    )
-  )
+
+      const existing = existingByKey.get(`${unit.id}:${localeCode}`)
+      if (!existing) {
+        create.push({
+          locale_code: localeCode,
+          reference: MEASUREMENT_UNIT_REFERENCE,
+          reference_id: unit.id,
+          translations: defaults,
+        })
+        continue
+      }
+
+      const translations = fillMissingTranslationValues(
+        existing.translations,
+        defaults
+      )
+      if (translations) {
+        update.push({ id: existing.id, translations })
+      }
+    }
+  }
+
+  return { create, update }
 }
 
-export async function seedDefaultMeasurementUnitTranslations(
+export async function ensureDefaultMeasurementUnitTranslations(
   container: MedusaContainer
 ) {
   const localeCodes = Object.keys(PIECE_UNIT_TRANSLATIONS)
@@ -79,7 +122,7 @@ export async function seedDefaultMeasurementUnitTranslations(
   const pieceUnits = units.filter(isPieceUnit)
 
   if (!pieceUnits.length) {
-    return { created: 0, unavailableLocaleCodes: [] }
+    return { created: 0, unavailableLocaleCodes: [], updated: 0 }
   }
 
   const translationService = container.resolve<ITranslationModuleService>(
@@ -98,28 +141,29 @@ export async function seedDefaultMeasurementUnitTranslations(
           reference_id: pieceUnits.map((unit) => unit.id),
         },
         {
-          select: ["locale_code", "reference_id"],
+          select: ["id", "locale_code", "reference_id", "translations"],
           take: pieceUnits.length * availableLocaleCodes.length,
         }
       )
     : []
-  const translations = buildMissingMeasurementUnitTranslations({
+  const plan = buildMeasurementUnitTranslationPlan({
     availableLocaleCodes,
     existingTranslations,
     units: pieceUnits,
   })
 
-  if (translations.length) {
-    await createTranslationsWorkflow(container).run({
-      input: { translations },
+  if (plan.create.length || plan.update.length) {
+    await batchTranslationsWorkflow(container).run({
+      input: { ...plan, delete: [] },
     })
   }
 
   const availableLocaleSet = new Set(availableLocaleCodes)
   return {
-    created: translations.length,
+    created: plan.create.length,
     unavailableLocaleCodes: localeCodes.filter(
       (localeCode) => !availableLocaleSet.has(localeCode)
     ),
+    updated: plan.update.length,
   }
 }
