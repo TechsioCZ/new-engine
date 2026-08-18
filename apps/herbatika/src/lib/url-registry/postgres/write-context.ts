@@ -1,5 +1,6 @@
 import type { Market } from "@/lib/url/types"
 import type {
+  EntityIdentityLookup,
   StaticUrlRoute,
   UrlRegistryCommandSource,
   UrlRoute,
@@ -16,6 +17,23 @@ import { asRecord, asString } from "./runtime"
 import { loadRoute } from "./snapshot-store"
 import type { SqlExecutor } from "./sql"
 import { ROUTE_COLUMNS } from "./sql-fragments"
+
+export const acquireEntityIdentityLock = async (
+  executor: SqlExecutor,
+  identity: EntityIdentityLookup
+) => {
+  const lockKey = JSON.stringify([
+    "urlr:entity-identity",
+    identity.sourceSystem,
+    identity.sourceType,
+    identity.sourceId,
+    identity.market,
+  ])
+  await executor.query(
+    "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+    [lockKey]
+  )
+}
 
 export const acquireStaticMarketLock = async (
   executor: SqlExecutor,

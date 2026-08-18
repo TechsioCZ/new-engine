@@ -93,6 +93,7 @@ export type PostgresTestContext = Readonly<{
   registry: ReturnType<typeof createPostgresUrlRegistry>
   reset(): Promise<void>
   runtime: Pool
+  sqlPool: SqlPool
 }>
 
 const integer = (value: unknown, label: string): number => {
@@ -111,7 +112,8 @@ export const createPostgresTestContext = (): PostgresTestContext => {
   }
   const admin = new Pool({ connectionString: migrationUrl, max: 4 })
   const runtime = new Pool({ connectionString: runtimeUrl, max: 24 })
-  const registry = createPostgresUrlRegistry(new PgPoolAdapter(runtime), {
+  const sqlPool = new PgPoolAdapter(runtime)
+  const registry = createPostgresUrlRegistry(sqlPool, {
     transaction: { maxAttempts: 3 },
   })
   let namespaceCounter = 0
@@ -166,5 +168,6 @@ export const createPostgresTestContext = (): PostgresTestContext => {
     registry,
     reset,
     runtime,
+    sqlPool,
   }
 }

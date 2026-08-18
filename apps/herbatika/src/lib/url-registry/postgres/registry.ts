@@ -65,8 +65,17 @@ export class PostgresUrlRegistry
     command: UrlRegistryCommand<CreateEntityRouteRequest>
   ): Promise<EntityRouteMutationResult> {
     return asEntityResult(
-      await this.commands.run(command, "create-entity-route", (executor) =>
-        insertEntityRoute(executor, command, this.createId)
+      await this.commands.run(
+        command,
+        "create-entity-route",
+        (executor) => insertEntityRoute(executor, command, this.createId),
+        (executor) =>
+          this.commands.lockEntityIdentity(executor, {
+            market: command.request.route.market,
+            sourceSystem: command.request.route.identity.sourceSystem,
+            sourceType: command.request.route.identity.sourceType,
+            sourceId: command.request.route.identity.sourceId,
+          })
       )
     )
   }

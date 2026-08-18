@@ -32,6 +32,41 @@ const asEntitySnapshot = (
   return snapshot
 }
 
+const assertLifecycleAllowsEntityCreation = async (
+  executor: SqlExecutor,
+  request: CreateEntityRouteRequest
+) => {
+  const blocked = await executor.query(
+    `SELECT 1
+       FROM url_registry.url_registry_source_event_cursor AS cursor
+       INNER JOIN url_registry.url_registry_source_event_receipt AS receipt
+         ON receipt.source_system = cursor.source_system
+        AND receipt.source_type = cursor.source_type
+        AND receipt.source_id = cursor.source_id
+        AND receipt.market = cursor.market
+        AND receipt.stream_sequence = cursor.last_sequence
+      WHERE cursor.source_system = $1 AND cursor.source_type = $2
+        AND cursor.source_id = $3 AND cursor.market = $4
+        AND receipt.action IN (
+          'retired', 'noop-source-missing', 'noop-route-missing',
+          'noop-route-terminal'
+        )
+      LIMIT 1`,
+    [
+      request.route.identity.sourceSystem,
+      request.route.identity.sourceType,
+      request.route.identity.sourceId,
+      request.route.market,
+    ]
+  )
+  if (blocked.rows.length > 0) {
+    throw new UrlRegistryError(
+      "INVALID_TRANSITION",
+      "An entity route cannot be created while its lifecycle source is absent"
+    )
+  }
+}
+
 export const createEntityRoute = async (
   executor: SqlExecutor,
   command: UrlRegistryCommand<CreateEntityRouteRequest>,
@@ -50,6 +85,7 @@ export const createEntityRoute = async (
       "Create expectedVersion must be 0"
     )
   }
+  await assertLifecycleAllowsEntityCreation(executor, request)
   const routeId = createId()
   const slugId = createId()
   assertUuid(routeId, "generated routeId")

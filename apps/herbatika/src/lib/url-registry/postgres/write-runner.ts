@@ -1,4 +1,5 @@
 import type {
+  EntityIdentityLookup,
   EntityRouteMutationResult,
   StaticRouteMutationResult,
   UrlRegistryCommand,
@@ -15,12 +16,23 @@ import {
   executeRetriableTransaction,
   type TransactionRetryOptions,
 } from "./transaction"
-import { acquireStaticMarketLock, discoverStaticMarket } from "./write-context"
+import {
+  acquireEntityIdentityLock,
+  acquireStaticMarketLock,
+  discoverStaticMarket,
+} from "./write-context"
 
 export type Mutation = (
   executor: SqlClient,
   command: UrlRegistryCommand
 ) => Promise<CommandDraft>
+
+type TransactionCommand = Readonly<{
+  command: UrlRegistryCommand
+  expectedType: UrlRegistryCommandRequest["commandType"]
+  mutate: Mutation
+  beforeMutation?: (client: SqlClient) => Promise<void>
+}>
 
 export const asEntityResult = (value: unknown): EntityRouteMutationResult => {
   if (
@@ -67,20 +79,16 @@ export class PostgresCommandRunner {
     mutate: Mutation,
     beforeMutation?: (executor: SqlClient) => Promise<void>
   ) {
-    assertEnvelope(command, expectedType)
-    assertCommandRequest(command, expectedType)
     try {
       return await executeRetriableTransaction(
         this.pool,
-        async (executor) => {
-          const claim = await claimCommand(executor, command)
-          if (claim.kind === "replay") {
-            return claim.result
-          }
-          await beforeMutation?.(executor)
-          const draft = await mutate(executor, command)
-          return finalizeCommand(executor, command, draft)
-        },
+        (executor) =>
+          this.runInTransaction(executor, {
+            command,
+            expectedType,
+            mutate,
+            beforeMutation,
+          }),
         this.transactionOptions
       )
     } catch (error) {
@@ -88,9 +96,26 @@ export class PostgresCommandRunner {
     }
   }
 
+  async runInTransaction(executor: SqlClient, operation: TransactionCommand) {
+    const { beforeMutation, command, expectedType, mutate } = operation
+    assertEnvelope(command, expectedType)
+    assertCommandRequest(command, expectedType)
+    const claim = await claimCommand(executor, command)
+    if (claim.kind === "replay") {
+      return claim.result
+    }
+    await beforeMutation?.(executor)
+    const draft = await mutate(executor, command)
+    return finalizeCommand(executor, command, draft)
+  }
+
   async lockStaticTargetMarket(executor: SqlClient, routeId: string) {
     const market = await discoverStaticMarket(executor, routeId)
     await acquireStaticMarketLock(executor, market)
+  }
+
+  lockEntityIdentity(executor: SqlClient, identity: EntityIdentityLookup) {
+    return acquireEntityIdentityLock(executor, identity)
   }
 
   lockStaticMarket(executor: SqlClient, market: "sk" | "cz" | "hu" | "ro") {
