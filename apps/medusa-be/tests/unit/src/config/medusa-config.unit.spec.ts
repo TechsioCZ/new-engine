@@ -236,7 +236,7 @@ describe("readMedusaConfigEnv", () => {
     })
   })
 
-  it("includes master-added dashboard plugin and product list module", () => {
+  it("includes required plugins and always-on custom modules", () => {
     const env = readMedusaConfigEnv(baseEnv)
 
     expect(buildPlugins(env)).toEqual(
@@ -251,6 +251,9 @@ describe("readMedusaConfigEnv", () => {
       expect.arrayContaining([
         {
           resolve: "./src/modules/product-list",
+        },
+        {
+          resolve: "./src/modules/url-registry-outbox",
         },
       ])
     )

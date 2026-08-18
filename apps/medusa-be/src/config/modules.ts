@@ -277,6 +277,9 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     {
       resolve: "./src/modules/workflow-queue",
     },
+    {
+      resolve: "./src/modules/url-registry-outbox",
+    },
     ...buildPaymentQrModules(env),
     buildEventBusModule(env),
     buildWorkflowEngineModule(env),
