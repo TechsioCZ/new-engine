@@ -31,7 +31,7 @@ describe("Herbatica tax-rate seed policy", () => {
           },
         },
       ],
-      ["sk", "cz", "hu"],
+      ["sk", "cz", "hu", "ro"],
       HERBATICA_TAX_RATE_CONFIG
     )
 
@@ -43,10 +43,12 @@ describe("Herbatica tax-rate seed policy", () => {
     ).toEqual([
       ["sk", 23],
       ["cz", 19],
+      ["ro", 21],
     ])
     expect(mapEntries(targets.defaultRatesByCountry)).toEqual([
       ["sk", 23],
       ["cz", 19],
+      ["ro", 21],
     ])
     expect(mapEntries(targets.productRateGroupsByCountry)).toEqual([])
   })

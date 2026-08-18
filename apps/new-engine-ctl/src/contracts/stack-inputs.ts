@@ -156,6 +156,16 @@ const bootstrapSharedEnvDefinitionSchema = z.looseObject({
   service_targets: z.array(bootstrapSharedEnvTargetSchema).default([]),
 })
 
+const bootstrapAdditionalPublicUrlSchema = z.looseObject({
+  service_id: z.string().min(1),
+  domain: z.string().min(1),
+  associated_port: z.number().int().positive(),
+  base_path: z.string().min(1).optional().default("/"),
+  strip_prefix: z.boolean().optional().default(true),
+  store_cors: z.boolean().optional().default(false),
+  auth_cors: z.boolean().optional().default(false),
+})
+
 const laneBuildStageTargetsSchema = z
   .object({
     preview: z.string().nullable().optional(),
@@ -242,8 +252,11 @@ export const stackInputsSchema = z.object({
   bootstrap_zane_project: z
     .object({
       shared_env: z.array(bootstrapSharedEnvDefinitionSchema).default([]),
+      additional_public_urls: z
+        .array(bootstrapAdditionalPublicUrlSchema)
+        .default([]),
     })
-    .default({ shared_env: [] }),
+    .default({ shared_env: [], additional_public_urls: [] }),
   service_reconciliation: z
     .object({
       services: z.array(serviceReconciliationDefinitionSchema).default([]),

@@ -7,6 +7,7 @@ import type { Route } from "next"
 import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
+import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 import type {
   CmsFooterColumnSlot,
   CmsFooterItemSlot,
@@ -78,8 +79,10 @@ const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [
 ]
 export function HerbatikaFooter({
   navigation,
+  reviewTrustSources,
 }: {
   navigation: CmsFooterNavigation
+  reviewTrustSources: readonly ReviewTrustSource[]
 }) {
   const t = useTranslations("navigation")
   const marketContext = useMarketContext()
@@ -171,7 +174,11 @@ export function HerbatikaFooter({
           ))}
         </div>
 
-        <ReviewTrustBadges className="lg:w-auto" size="md" />
+        <ReviewTrustBadges
+          className="lg:w-auto"
+          size="md"
+          sources={reviewTrustSources}
+        />
       </section>
 
       <Footer.Divider className="mx-auto max-w-footer-max" />

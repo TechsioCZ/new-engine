@@ -3,6 +3,7 @@ import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb"
+import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 import {
   AboutArticleSections,
   AboutClosingStatement,
@@ -13,7 +14,11 @@ import {
 } from "./about-page-sections"
 import { AboutHero } from "./about-page-top"
 
-export function AboutPage() {
+export function AboutPage({
+  reviewTrustSources,
+}: {
+  reviewTrustSources: readonly ReviewTrustSource[]
+}) {
   const tContent = useTranslations("content")
   const tNavigation = useTranslations("navigation")
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
@@ -35,7 +40,7 @@ export function AboutPage() {
         <AboutArticleSections group="afterMilestones" />
         <AboutClosingStatement />
         <AboutPrinciples />
-        <AboutCommunityAndReviews />
+        <AboutCommunityAndReviews reviewTrustSources={reviewTrustSources} />
         <AboutContact />
       </div>
     </main>

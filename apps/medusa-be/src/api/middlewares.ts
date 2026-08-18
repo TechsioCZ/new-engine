@@ -24,6 +24,7 @@ import { adminPayloadSsoRoutesMiddlewares } from "./admin/payload/sso/middleware
 import { adminPplConfigRoutesMiddlewares } from "./admin/ppl-config/middlewares"
 import { adminPPLLabelsRoutesMiddlewares } from "./admin/ppl-labels/middlewares"
 import { adminProductAttributeRoutesMiddlewares } from "./admin/product-attributes/middlewares"
+import { adminProductContentRoutesMiddlewares } from "./admin/product-content/middlewares"
 import { adminPromotionsExtensionMiddlewares } from "./admin/promotions/middlewares"
 import { adminPublishableKeyRoutesMiddlewares } from "./admin/provisioning/publishable-key/middlewares"
 import { adminQrPaymentConfigRoutesMiddlewares } from "./admin/qr-payment-config/middlewares"
@@ -33,8 +34,10 @@ import { adminStorefrontTextRoutesMiddlewares } from "./admin/storefront-texts/m
 import { serveAdminAppStatic } from "./admin-app-static"
 import { storeBrandsRoutesMiddlewares } from "./store/brands/middlewares"
 import { storeCatalogProductsRoutesMiddlewares } from "./store/catalog/products/middlewares"
+import { storeClaimRoutesMiddlewares } from "./store/claims/middlewares"
 import { storeCmsRoutesMiddlewares } from "./store/cms/middlewares"
 import { storeCustomerReviewRoutesMiddlewares } from "./store/customers/me/reviews/middlewares"
+import { storeExternalReviewRoutesMiddlewares } from "./store/external-reviews/middlewares"
 import { storeGLSBranchesRoutesMiddlewares } from "./store/gls/branches/middlewares"
 import { storeMiddlewares } from "./store/middlewares"
 import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middlewares"
@@ -90,6 +93,7 @@ export default defineMiddlewares({
     ...adminPromotionsExtensionMiddlewares,
     ...adminPublishableKeyRoutesMiddlewares,
     ...adminProductAttributeRoutesMiddlewares,
+    ...adminProductContentRoutesMiddlewares,
     ...adminQrPaymentConfigRoutesMiddlewares,
     ...adminReviewRoutesMiddlewares,
     ...adminSearchProfileRoutesMiddlewares,
@@ -100,10 +104,12 @@ export default defineMiddlewares({
     ...storeCatalogProductsRoutesMiddlewares,
     ...storeSearchAutocompleteRoutesMiddlewares,
     ...storeCmsRoutesMiddlewares,
+    ...storeExternalReviewRoutesMiddlewares,
     ...storeProductListsRoutesMiddlewares,
     ...storeProductLocationAvailabilityRoutesMiddlewares,
     ...storeProductAttributesRoutesMiddlewares,
     ...storeBrandsRoutesMiddlewares,
+    ...storeClaimRoutesMiddlewares,
     ...storeReviewRoutesMiddlewares,
     ...storeShopReviewRoutesMiddlewares,
     ...storeStorefrontTextRoutesMiddlewares,

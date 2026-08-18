@@ -21,6 +21,14 @@ type ResolveMarketContextInput = {
   host?: string | null
 }
 
+export const resolveMarketRequestHost = ({
+  forwardedHost,
+  host,
+}: {
+  forwardedHost?: string | null
+  host?: string | null
+}) => host ?? forwardedHost ?? undefined
+
 const MARKET_CONFIG = {
   sk: {
     code: "sk",
@@ -85,6 +93,7 @@ const HOST_MARKET_MAP: Record<string, HerbatikaMarketCode> = {
   "www.herbatica.ro": "ro",
   "herbatika.ro": "ro",
   "www.herbatika.ro": "ro",
+  "test-engine-herbatika-ro-zane.web-revolution.cz": "ro",
 }
 
 const LANGUAGE_MARKET_MAP: Record<string, HerbatikaMarketCode> = {

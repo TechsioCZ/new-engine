@@ -200,6 +200,30 @@ export const STOREFRONT_CATALOG_PRODUCT_TEXT_DEFINITIONS = [
     "Alternativní text odznaku ověřeného zákazníka."
   ),
   defineCatalogProductText(
+    "catalog.reviews.recommends_shop",
+    "Označení kladného doporučení obchodu."
+  ),
+  defineCatalogProductText(
+    "catalog.reviews.does_not_recommend_shop",
+    "Označení záporného doporučení obchodu."
+  ),
+  defineCatalogProductText(
+    "catalog.reviews.recommends_product",
+    "Označení kladného doporučení produktu."
+  ),
+  defineCatalogProductText(
+    "catalog.reviews.does_not_recommend_product",
+    "Označení záporného doporučení produktu."
+  ),
+  defineCatalogProductText(
+    "catalog.reviews.positive_points",
+    "Přístupný popis kladů recenze."
+  ),
+  defineCatalogProductText(
+    "catalog.reviews.negative_points",
+    "Přístupný popis záporů recenze."
+  ),
+  defineCatalogProductText(
     "catalog.reviews.rating_aria",
     "Přístupný popis číselného hodnocení."
   ),
@@ -288,6 +312,26 @@ export const STOREFRONT_CATALOG_PRODUCT_TEXT_DEFINITIONS = [
     "Nadpis formuláře nové recenze."
   ),
   defineCatalogProductText(
+    "catalog.reviews.form.author_name_label",
+    "Label jména autora ve formuláři recenze."
+  ),
+  defineCatalogProductText(
+    "catalog.reviews.form.author_name_validation",
+    "Validace povinného jména autora ve formuláři recenze."
+  ),
+  defineCatalogProductText(
+    "catalog.reviews.form.captcha_label",
+    "Přístupný název ochrany formuláře recenze proti spamu."
+  ),
+  defineCatalogProductText(
+    "catalog.reviews.form.captcha_validation",
+    "Validace chybějícího Turnstile tokenu ve formuláři recenze."
+  ),
+  defineCatalogProductText(
+    "catalog.reviews.form.captcha_unavailable",
+    "Chyba načtení nebo provedení Turnstile ověření."
+  ),
+  defineCatalogProductText(
     "catalog.reviews.form.rating_label",
     "Label hodnocení ve formuláři recenze."
   ),
@@ -306,6 +350,14 @@ export const STOREFRONT_CATALOG_PRODUCT_TEXT_DEFINITIONS = [
   defineCatalogProductText(
     "catalog.reviews.form.content_label",
     "Label textu recenze."
+  ),
+  defineCatalogProductText(
+    "catalog.reviews.errors.author_required",
+    "Chyba chybějícího jména autora z API recenzí."
+  ),
+  defineCatalogProductText(
+    "catalog.reviews.errors.captcha",
+    "Bezpečná chyba neúspěšného Turnstile ověření recenze."
   ),
   defineCatalogProductText(
     "catalog.reviews.errors.generic",

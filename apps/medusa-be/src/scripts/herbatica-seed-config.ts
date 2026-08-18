@@ -32,6 +32,7 @@ export const HERBATICA_COUNTRIES = [
   "pl",
   "at",
   "sk",
+  "ro",
 ] as const
 
 export const HERBATICA_DEFAULT_STOCK_LOCATION = {
@@ -83,6 +84,7 @@ export const HERBATICA_PRICE_LIST_SYNC_CONFIG = {
 export const HERBATICA_DEFAULT_TAX_RATES = [
   { countryCode: "sk", rate: 23 },
   { countryCode: "cz", rate: 19 },
+  { countryCode: "ro", rate: 21 },
 ] as const
 
 export const HERBATICA_TAX_RATE_COUNTRIES = HERBATICA_DEFAULT_TAX_RATES.map(

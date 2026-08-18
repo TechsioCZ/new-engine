@@ -2,7 +2,7 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import { createReviewWorkflow } from "../../../workflows/product-review/workflows/create-review"
 import {
-  ensureCustomerPurchasedProduct,
+  createPublicReviewCustomerId,
   ensureProductExists,
   ensureReviewDoesNotExist,
   getAuthenticatedCustomerId,
@@ -13,61 +13,71 @@ import {
 } from "./helpers"
 import type { StoreCreateReviewSchemaType } from "./validators"
 
+const REVIEW_TITLE_MAX_LENGTH = 120
+
+const buildReviewTitle = (content: string) =>
+  content.trim().slice(0, REVIEW_TITLE_MAX_LENGTH)
+
 export async function POST(
   req: MedusaRequest<StoreCreateReviewSchemaType>,
   res: MedusaResponse
 ) {
-  const { content, product_id, rating, review_token, title } = req.validatedBody
+  const {
+    content,
+    first_name,
+    last_name,
+    name,
+    product_id,
+    rating,
+    review_token,
+    title,
+  } = req.validatedBody
+
   const tokenRecord = review_token
     ? await retrieveReviewToken(req, review_token, product_id)
     : undefined
-  const authenticatedCustomerId = tokenRecord
-    ? undefined
-    : getAuthenticatedCustomerId(req)
-  if (!(tokenRecord || authenticatedCustomerId)) {
-    throw new MedusaError(
-      MedusaError.Types.NOT_ALLOWED,
-      "Review token is required for guest reviews."
-    )
-  }
-
-  const customerId = tokenRecord
-    ? getReviewTokenCustomerId(tokenRecord)
-    : authenticatedCustomerId
-
-  if (!customerId) {
-    throw new MedusaError(
-      MedusaError.Types.NOT_ALLOWED,
-      "Review customer could not be resolved."
-    )
-  }
-
-  const isGuestReview = Boolean(tokenRecord && !tokenRecord.customer_id)
-
-  await ensureProductExists(req, product_id)
-
-  if (authenticatedCustomerId) {
-    await ensureCustomerPurchasedProduct(
-      req,
-      authenticatedCustomerId,
-      product_id
-    )
-  }
-
-  await ensureReviewDoesNotExist({
-    customerId,
-    productId: product_id,
-    req,
-  })
-
+  const authenticatedCustomerId = getAuthenticatedCustomerId(req)
   const customer = authenticatedCustomerId
     ? await retrieveCustomer(req, authenticatedCustomerId)
     : undefined
   const authorName = getReviewAuthorName({
     customer,
-    isGuest: isGuestReview,
+    firstName: first_name,
+    lastName: last_name,
+    name,
     reviewToken: tokenRecord,
   })
+
+  if (!authorName.first_name) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Review author name is required."
+    )
+  }
+
+  await ensureProductExists(req, product_id)
+
+  let customerId: string
+  let shouldEnforceDuplicateReview = false
+
+  if (tokenRecord) {
+    customerId = getReviewTokenCustomerId(tokenRecord)
+    shouldEnforceDuplicateReview = true
+  } else if (authenticatedCustomerId) {
+    customerId = authenticatedCustomerId
+    shouldEnforceDuplicateReview = true
+  } else {
+    customerId = createPublicReviewCustomerId()
+  }
+
+  if (shouldEnforceDuplicateReview) {
+    await ensureReviewDoesNotExist({
+      customerId,
+      productId: product_id,
+      req,
+    })
+  }
+
   const { result: review } = await createReviewWorkflow(req.scope).run({
     input: {
       review: {
@@ -77,7 +87,7 @@ export async function POST(
         last_name: authorName.last_name,
         product_id,
         rating,
-        title,
+        title: title ?? buildReviewTitle(content),
       },
       review_token_id: tokenRecord?.id,
     },

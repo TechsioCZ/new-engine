@@ -10,11 +10,13 @@ export type OrderDashboardAdminI18nNamespace = {
     | "details"
     | "expeditionPdf"
     | "fulfillItems"
+    | "glsLabels"
     | "labelFormat"
     | "openOrder"
+    | "packetaLabels"
+    | "pplLabels"
     | "selected"
     | "shippingLabelCarrier"
-    | "shippingLabels"
     | "sorting"
     | "targetStatusPlaceholder",
     string
@@ -268,11 +270,13 @@ const englishOrderDashboardAdminI18n = {
     details: "Details",
     expeditionPdf: "PDF",
     fulfillItems: "Create fulfillments",
+    glsLabels: "GLS labels",
     labelFormat: "Format",
     openOrder: "Open order",
+    packetaLabels: "Packeta labels",
+    pplLabels: "PPL labels",
     selected: "{{count}} selected",
     shippingLabelCarrier: "Label carrier: {{carrier}}",
-    shippingLabels: "Shipping labels",
     sorting: "Sort orders",
     targetStatusPlaceholder: "Order status",
   },
@@ -559,11 +563,13 @@ const czechOrderDashboardAdminI18n = {
     details: "Detail",
     expeditionPdf: "PDF",
     fulfillItems: "Vytvořit expedice",
+    glsLabels: "GLS štítky",
     labelFormat: "Formát",
     openOrder: "Otevřít objednávku",
+    packetaLabels: "Packeta štítky",
+    pplLabels: "PPL štítky",
     selected: "{{count}} vybráno",
     shippingLabelCarrier: "Dopravce štítků: {{carrier}}",
-    shippingLabels: "Expediční štítky",
     sorting: "Seřadit objednávky",
     targetStatusPlaceholder: "Stav objednávky",
   },

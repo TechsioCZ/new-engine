@@ -39,6 +39,10 @@ import {
 } from "../../../../modules/meilisearch/search-results"
 import { isPlainRecord } from "../../../../utils/guards"
 import {
+  decorateProductsWithLocalizedContent,
+  requestsLocalizedProductContent,
+} from "../../../../utils/localized-product-content"
+import {
   decorateProductsWithMeasurements,
   getMeasurementDecorationOptions,
 } from "../../../../utils/measurement-units"
@@ -828,6 +832,16 @@ export async function GET(
       })
     const fallbackCount = fallbackMetadata?.count ?? fallbackProducts.length
 
+    if (requestsLocalizedProductContent(responseProductFields)) {
+      await decorateProductsWithLocalizedContent(
+        req.scope,
+        fallbackProducts as Parameters<
+          typeof decorateProductsWithLocalizedContent
+        >[1],
+        graphLocale
+      )
+    }
+
     await wrapProductsWithTaxPrices(
       req,
       fallbackProducts as Parameters<typeof wrapProductsWithTaxPrices>[1]
@@ -962,6 +976,16 @@ export async function GET(
         })
         .slice(offset, offset + limit)
     : orderedProducts
+
+  if (requestsLocalizedProductContent(responseProductFields)) {
+    await decorateProductsWithLocalizedContent(
+      req.scope,
+      finalProducts as Parameters<
+        typeof decorateProductsWithLocalizedContent
+      >[1],
+      graphLocale
+    )
+  }
 
   const statusFacetCounts = cleanedQuery
     ? getFacetDistributionFromHits(rankedProducts.selectedHits, "facet_status")
