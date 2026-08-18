@@ -1,122 +1,238 @@
+import type { ResendEmailLocale, ResendEmailTemplate } from "./contracts"
+import { resendEmailLocales, resendEmailTemplates } from "./contracts"
+
+export {
+  type ResendEmailLocale,
+  type ResendEmailTemplate,
+  resendEmailLocales,
+  resendEmailTemplates,
+} from "./contracts"
+
 const defineTemplate = <
   const RequiredVariables extends readonly string[],
   const OptionalVariables extends readonly string[],
 >(definition: {
-  id: string
   label: string
   optionalVariables?: OptionalVariables
   requiredVariables: RequiredVariables
-  subject: string
+  subject?: string
+  subjects?: ResendTemplateSubjects
 }) => ({
   ...definition,
   optionalVariables:
     definition.optionalVariables ?? ([] as unknown as OptionalVariables),
 })
 
-export const resendEmailTemplates = {
-  ACCOUNT_SETUP: "account-setup",
-  COMPANY_APPLICATION_APPROVED: "company-application-approved",
-  COMPANY_APPLICATION_REJECTED: "company-application-rejected",
-  CUSTOMER_ACCOUNT_DEACTIVATION: "customer-account-deactivation",
-  CUSTOMER_REGISTRATION_CONFIRMATION: "customer-registration-confirmation",
-  CLAIM_ACCESS_CODE: "claim-access-code",
-  CLAIM_CONFIRMATION: "claim-confirmation",
-  FORGOT_PASSWORD: "user-forgotpwd",
-  ORDER_PLACED: "order-placed",
-  ORDER_PAYMENT_REMINDER: "order-payment-reminder",
-  PRODUCT_REVIEW_REQUEST: "product-review-request",
-} as const
+type ResendTemplateSubjects = Record<ResendEmailLocale, string>
 
 export const resendTemplateDefinitions = {
   [resendEmailTemplates.ACCOUNT_SETUP]: defineTemplate({
-    id: "account-setup",
     label: "Account setup",
-    optionalVariables: ["customer_id", "customer_name", "order_display_id"],
-    requiredVariables: ["reset_url"],
-    subject: "Dokončenie registrácie",
+    optionalVariables: [
+      "country_code",
+      "customer_id",
+      "customer_name",
+      "market_code",
+      "order_display_id",
+      "sales_channel_id",
+      "storefront_base_url",
+      "storefront_domain",
+    ],
+    requiredVariables: ["locale", "reset_url"],
+    subjects: {
+      "sk-SK": "Dokončenie registrácie",
+      "cs-CZ": "Dokončení registrace",
+      "hu-HU": "A regisztráció befejezése",
+      "ro-RO": "Finalizarea înregistrării",
+    },
   }),
   [resendEmailTemplates.COMPANY_APPLICATION_APPROVED]: defineTemplate({
-    id: "company-application-approved",
     label: "Company application approved",
-    optionalVariables: ["company_id"],
-    requiredVariables: ["company_name"],
-    subject: "VO účet bol schválený",
+    optionalVariables: [
+      "company_id",
+      "country_code",
+      "market_code",
+      "sales_channel_id",
+      "store_name",
+      "storefront_base_url",
+      "storefront_domain",
+    ],
+    requiredVariables: ["company_name", "locale"],
+    subjects: {
+      "sk-SK": "VO účet bol schválený",
+      "cs-CZ": "VO účet byl schválen",
+      "hu-HU": "A nagykereskedelmi fiókot jóváhagytuk",
+      "ro-RO": "Contul en-gros a fost aprobat",
+    },
   }),
   [resendEmailTemplates.COMPANY_APPLICATION_REJECTED]: defineTemplate({
-    id: "company-application-rejected",
     label: "Company application rejected",
-    optionalVariables: ["company_id"],
-    requiredVariables: ["company_name"],
-    subject: "VO účet nebol schválený",
+    optionalVariables: [
+      "company_id",
+      "country_code",
+      "market_code",
+      "sales_channel_id",
+      "store_name",
+      "storefront_base_url",
+      "storefront_domain",
+    ],
+    requiredVariables: ["company_name", "locale"],
+    subjects: {
+      "sk-SK": "VO účet nebol schválený",
+      "cs-CZ": "VO účet nebyl schválen",
+      "hu-HU": "A nagykereskedelmi fiókot nem hagytuk jóvá",
+      "ro-RO": "Contul en-gros nu a fost aprobat",
+    },
   }),
   [resendEmailTemplates.CUSTOMER_ACCOUNT_DEACTIVATION]: defineTemplate({
-    id: "customer-account-deactivation",
     label: "Customer account deactivation",
-    optionalVariables: ["customer_id", "customer_name"],
-    requiredVariables: ["confirmation_url"],
-    subject: "Potvrdenie zrušenia účtu",
+    optionalVariables: [
+      "country_code",
+      "customer_id",
+      "customer_name",
+      "market_code",
+      "sales_channel_id",
+      "storefront_base_url",
+      "storefront_domain",
+    ],
+    requiredVariables: ["confirmation_url", "locale"],
+    subjects: {
+      "sk-SK": "Potvrdenie zrušenia účtu",
+      "cs-CZ": "Potvrzení zrušení účtu",
+      "hu-HU": "A fiók megszüntetésének megerősítése",
+      "ro-RO": "Confirmarea dezactivării contului",
+    },
   }),
   [resendEmailTemplates.CUSTOMER_REGISTRATION_CONFIRMATION]: defineTemplate({
-    id: "customer-registration-confirmation",
     label: "Customer registration confirmation",
     optionalVariables: ["customer_id", "customer_name"],
     requiredVariables: [],
     subject: "Potvrdenie registrácie",
   }),
   [resendEmailTemplates.CLAIM_ACCESS_CODE]: defineTemplate({
-    id: "claim-access-code",
     label: "Claim order access code",
     optionalVariables: ["order_display_id"],
     requiredVariables: ["verification_code", "expires_in_minutes"],
     subject: "Overenie objednávky",
   }),
   [resendEmailTemplates.CLAIM_CONFIRMATION]: defineTemplate({
-    id: "claim-confirmation",
     label: "Claim confirmation",
     optionalVariables: ["order_display_id", "requested_resolution"],
     requiredVariables: ["case_number", "case_type", "items"],
     subject: "Potvrdenie prijatia požiadavky",
   }),
   [resendEmailTemplates.FORGOT_PASSWORD]: defineTemplate({
-    id: "user-forgotpwd",
     label: "Forgot password",
-    optionalVariables: ["store_name"],
-    requiredVariables: ["reset_url"],
-    subject: "Obnovení hesla",
+    optionalVariables: [
+      "country_code",
+      "market_code",
+      "sales_channel_id",
+      "store_name",
+      "storefront_base_url",
+      "storefront_domain",
+    ],
+    requiredVariables: ["locale", "reset_url"],
+    subjects: {
+      "sk-SK": "Obnovenie hesla",
+      "cs-CZ": "Obnovení hesla",
+      "hu-HU": "Jelszó visszaállítása",
+      "ro-RO": "Resetarea parolei",
+    },
   }),
   [resendEmailTemplates.ORDER_PLACED]: defineTemplate({
-    id: "order-placed",
     label: "Order placed",
-    optionalVariables: ["customer_name", "store_name", "total"],
-    requiredVariables: ["order_display_id"],
-    subject: "Potvrzení objednávky",
+    optionalVariables: [
+      "country_code",
+      "customer_name",
+      "market_code",
+      "sales_channel_id",
+      "store_name",
+      "storefront_base_url",
+      "storefront_domain",
+      "total",
+    ],
+    requiredVariables: ["locale", "order_display_id"],
+    subjects: {
+      "sk-SK": "Potvrdenie objednávky",
+      "cs-CZ": "Potvrzení objednávky",
+      "hu-HU": "Rendelés visszaigazolása",
+      "ro-RO": "Confirmarea comenzii",
+    },
   }),
   [resendEmailTemplates.ORDER_PAYMENT_REMINDER]: defineTemplate({
-    id: "order-payment-reminder",
     label: "Payment reminder",
-    optionalVariables: ["store_name", "total"],
-    requiredVariables: ["order_display_id", "payment_url"],
-    subject: "Zaplaťte prosím svou objednávku",
+    optionalVariables: [
+      "country_code",
+      "market_code",
+      "sales_channel_id",
+      "store_name",
+      "storefront_base_url",
+      "storefront_domain",
+      "total",
+    ],
+    requiredVariables: ["locale", "order_display_id", "payment_url"],
+    subjects: {
+      "sk-SK": "Prosím, zaplaťte svoju objednávku",
+      "cs-CZ": "Prosím, zaplaťte svou objednávku",
+      "hu-HU": "Kérjük, fizesse ki rendelését",
+      "ro-RO": "Vă rugăm să achitați comanda",
+    },
   }),
   [resendEmailTemplates.PRODUCT_REVIEW_REQUEST]: defineTemplate({
-    id: "product-review-request",
     label: "Product review request",
-    optionalVariables: ["order_display_id", "order_id", "store_name"],
-    requiredVariables: ["items", "message", "products"],
-    subject: "Napiš recenzi produktu",
+    optionalVariables: [
+      "country_code",
+      "market_code",
+      "order_display_id",
+      "order_id",
+      "sales_channel_id",
+      "store_name",
+      "storefront_base_url",
+      "storefront_domain",
+    ],
+    requiredVariables: ["items", "locale", "message", "products"],
+    subjects: {
+      "sk-SK": "Napíšte recenziu produktu",
+      "cs-CZ": "Napište recenzi produktu",
+      "hu-HU": "Írjon véleményt a termékről",
+      "ro-RO": "Scrieți o recenzie pentru produs",
+    },
   }),
 } as const
 
-export type ResendEmailTemplate =
-  (typeof resendEmailTemplates)[keyof typeof resendEmailTemplates]
-
 export type ResendTemplateDefinition =
   (typeof resendTemplateDefinitions)[ResendEmailTemplate]
+
+export const resendTemplateContracts = Object.entries(
+  resendTemplateDefinitions
+).map(([key, definition]) => ({
+  key: key as ResendEmailTemplate,
+  label: definition.label,
+}))
 
 export function getResendTemplateDefinition(template: string) {
   return resendTemplateDefinitions[template as ResendEmailTemplate]
 }
 
-export function getResendTemplateSubject(template: string) {
-  return getResendTemplateDefinition(template)?.subject
+export function getResendTemplateSubject(
+  template: string,
+  locale?: string | null
+) {
+  const definition = getResendTemplateDefinition(template)
+
+  if (!definition) {
+    return
+  }
+
+  const normalizedLocale = locale?.trim().toLowerCase()
+
+  if (normalizedLocale && definition.subjects) {
+    const matchedLocale = resendEmailLocales.find(
+      (supportedLocale) => supportedLocale.toLowerCase() === normalizedLocale
+    )
+
+    return matchedLocale ? definition.subjects[matchedLocale] : undefined
+  }
+
+  return definition.subject
 }

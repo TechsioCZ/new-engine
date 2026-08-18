@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server"
+import {
+  resolveMarketContext,
+  resolveMarketRequestHost,
+} from "@/lib/storefront/market-context"
 import { badRequest, serverError, setSessionTokenCookie } from "../_lib"
 import { asRecordOrUndefined, asStringOrUndefined } from "./parse-utils"
 import {
@@ -97,6 +101,13 @@ export async function POST(request: Request) {
     }
 
     const { email, firstName, lastName, password, wholesale } = parsedBody.value
+    const market = resolveMarketContext({
+      acceptLanguage: request.headers.get("accept-language"),
+      host: resolveMarketRequestHost({
+        forwardedHost: request.headers.get("x-forwarded-host"),
+        host: request.headers.get("host"),
+      }),
+    })
     const registerError = await createCustomerIdentity({
       email,
       password,
@@ -117,6 +128,7 @@ export async function POST(request: Request) {
         email,
         firstName,
         lastName,
+        marketCode: market.code,
         wholesale,
       },
     })

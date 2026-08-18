@@ -1,13 +1,12 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
-import {
-  getCredentialString,
-  INTEGRATION_CONFIG_NAMES,
-  requireCredentialObject,
-  requireEnabledIntegrationConfig,
-} from "../../../../modules/api-store/integration-config"
 import { EMAIL_LOG_MODULE } from "../../../../modules/email-log"
 import type EmailLogModuleService from "../../../../modules/email-log/service"
+import {
+  RESEND_CONFIG_MODULE,
+  type ResendConfigModuleService,
+  type ResendRuntimeConfig,
+} from "../../../../modules/resend-config"
 
 type EmailLogDTO = {
   id: string
@@ -31,9 +30,6 @@ type ResendErrorResponse = {
   message?: string
 }
 
-const RESEND_EMAILS_API = "https://api.resend.com/emails"
-const RESEND_EMAILS_API_TIMEOUT_MS = 30_000
-
 const isResendErrorResponse = (obj: unknown): obj is ResendErrorResponse =>
   obj !== null &&
   typeof obj === "object" &&
@@ -56,35 +52,20 @@ const toEmailLogResponse = (emailLog: EmailLogDTO) => ({
 
 async function retrieveResendEmail(
   emailId: string,
-  container: Record<string, unknown>
+  config: ResendRuntimeConfig
 ) {
-  const config = await requireEnabledIntegrationConfig(
-    container,
-    INTEGRATION_CONFIG_NAMES.RESEND
-  )
-  const credentials = requireCredentialObject(config)
-  const apiKey =
-    config.api_key ?? getCredentialString(credentials, "apiKey", "api_key")
-
-  if (!apiKey) {
-    throw new MedusaError(
-      MedusaError.Types.UNEXPECTED_STATE,
-      "Resend API key is not configured in Settings → API Store"
-    )
-  }
-
-  const url = `${RESEND_EMAILS_API}/${emailId}`
+  const url = `${config.api_url}/emails/${emailId}`
   const controller = new AbortController()
   const timeoutId = setTimeout(
     () => controller.abort(),
-    RESEND_EMAILS_API_TIMEOUT_MS
+    config.request_timeout_ms
   )
 
   let response: Response
   try {
     response = await fetch(url, {
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${config.api_key}`,
         "Content-Type": "application/json",
       },
       signal: controller.signal,
@@ -93,7 +74,7 @@ async function retrieveResendEmail(
     if (error instanceof Error && error.name === "AbortError") {
       throw new MedusaError(
         MedusaError.Types.UNEXPECTED_STATE,
-        `Resend email retrieval timed out after ${RESEND_EMAILS_API_TIMEOUT_MS}ms: ${emailId}`
+        `Resend email retrieval timed out after ${config.request_timeout_ms}ms: ${emailId}`
       )
     }
     throw error
@@ -119,6 +100,8 @@ async function retrieveResendEmail(
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
   const emailLogService = req.scope.resolve<EmailLogService>(EMAIL_LOG_MODULE)
+  const resendConfigService =
+    req.scope.resolve<ResendConfigModuleService>(RESEND_CONFIG_MODULE)
   const { id } = req.params
 
   if (!id) {
@@ -129,10 +112,8 @@ export async function GET(req: MedusaRequest, res: MedusaResponse) {
   }
 
   const emailLog = await emailLogService.retrieveEmailLog(id)
-  const resendEmail = await retrieveResendEmail(
-    emailLog.email_id,
-    req.scope as Record<string, unknown>
-  )
+  const config = await resendConfigService.getRuntimeConfig()
+  const resendEmail = await retrieveResendEmail(emailLog.email_id, config)
 
   res.json({
     email_log: toEmailLogResponse(emailLog),

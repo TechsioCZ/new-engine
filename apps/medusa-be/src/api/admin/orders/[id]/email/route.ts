@@ -10,12 +10,8 @@ import {
 } from "../../../../../utils/order-email-templates"
 import {
   fetchOrderById,
-  formatTotal,
-  getOrderDisplayId,
-  getPaymentUrl,
   toPaymentReminderOrderResponse,
 } from "../../../../../utils/order-payment-reminders"
-import { getMedusaStoreName } from "../../../../../utils/store-name"
 import { sendOrderPaymentReminderWorkflow } from "../../../../../workflows/send-order-payment-reminder"
 import type { PostAdminOrderEmailSchemaType } from "./validators"
 
@@ -64,15 +60,7 @@ export async function POST(
     case "order-payment-reminder":
       await sendOrderPaymentReminderWorkflow(req.scope).run({
         input: {
-          customer_id: order.customer_id ?? undefined,
-          email: order.email,
-          order_display_id: getOrderDisplayId(order),
           order_id: order.id,
-          payment_url: getPaymentUrl(order),
-          store_name: await getMedusaStoreName(
-            req.scope as Record<string, unknown>
-          ),
-          total: formatTotal(order),
         },
       })
       break

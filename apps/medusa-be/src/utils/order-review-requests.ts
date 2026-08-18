@@ -11,6 +11,9 @@ export type ReviewRequestOrder = {
   custom_display_id?: string | null
   display_id: number
   email?: string | null
+  sales_channel_id?: string | null
+  billing_address?: { country_code?: string | null } | null
+  shipping_address?: { country_code?: string | null } | null
   payment_collections?:
     | {
         completed_at?: Date | string | null
@@ -23,12 +26,50 @@ export type ReviewRequestOrder = {
   status?: string | null
 }
 
-const DEFAULT_REVIEW_REQUEST_DELAY_MINUTES = 7 * 24 * 60
 const MINUTE_IN_MS = 60 * 1000
 const PAID_PAYMENT_STATUSES = new Set(["captured", "completed"])
 const PRODUCT_REVIEW_REQUEST_PATH = "/reviews/product"
 const SKIPPED_ORDER_STATUSES = new Set(["canceled", "archived", "draft"])
 const TRAILING_SLASH_REGEX = /\/+$/
+
+const REVIEW_REQUEST_COPY = {
+  "cs-CZ": {
+    action: "Napište recenzi produktu",
+    message: "Podělte se o zkušenost s produktem",
+    product: "Produkt",
+  },
+  "hu-HU": {
+    action: "Írjon véleményt a termékről",
+    message: "Ossza meg a termékkel kapcsolatos tapasztalatait",
+    product: "Termék",
+  },
+  "ro-RO": {
+    action: "Scrieți o recenzie pentru produs",
+    message: "Împărtășiți experiența dumneavoastră cu produsul",
+    product: "Produs",
+  },
+  "sk-SK": {
+    action: "Napíšte recenziu produktu",
+    message: "Podeľte sa o skúsenosť s produktom",
+    product: "Produkt",
+  },
+} as const
+
+const REVIEW_REQUEST_MESSAGE_KEYS = {
+  "cs-CZ": ["message_cs", "message_cz", "cs", "cz"],
+  "hu-HU": ["message_hu", "hu"],
+  "ro-RO": ["message_ro", "ro"],
+  "sk-SK": ["message_sk", "sk"],
+} as const
+
+export type ReviewRequestLocale = keyof typeof REVIEW_REQUEST_COPY
+
+export function getReviewRequestCopy(locale: string) {
+  return (
+    REVIEW_REQUEST_COPY[locale as ReviewRequestLocale] ??
+    REVIEW_REQUEST_COPY["sk-SK"]
+  )
+}
 
 export function buildProductReviewRequestUrl({
   productId,
@@ -46,16 +87,8 @@ export function buildProductReviewRequestUrl({
   return `${baseUrl}${PRODUCT_REVIEW_REQUEST_PATH}/${encodedToken}?${searchParams}`
 }
 
-function getReviewRequestDelayMs() {
-  const configuredMinutes = Number(
-    process.env.PRODUCT_REVIEW_REQUEST_DELAY_MINUTES
-  )
-
-  if (Number.isFinite(configuredMinutes) && configuredMinutes >= 0) {
-    return configuredMinutes * MINUTE_IN_MS
-  }
-
-  return DEFAULT_REVIEW_REQUEST_DELAY_MINUTES * MINUTE_IN_MS
+function getReviewRequestDelayMs(delayMinutes: number) {
+  return delayMinutes * MINUTE_IN_MS
 }
 
 function toDate(value?: Date | string | null) {
@@ -126,6 +159,7 @@ export function isPaidOrder(order: ReviewRequestOrder) {
 
 export function isReviewRequestReadyOrder(
   order: ReviewRequestOrder,
+  delayMinutes: number,
   now = new Date()
 ) {
   if (!isPaidOrder(order)) {
@@ -137,20 +171,26 @@ export function isReviewRequestReadyOrder(
     return false
   }
 
-  return now.getTime() - paidAt.getTime() >= getReviewRequestDelayMs()
+  return (
+    now.getTime() - paidAt.getTime() >= getReviewRequestDelayMs(delayMinutes)
+  )
 }
 
-export function getReviewRequestRunAt(order: ReviewRequestOrder) {
+export function getReviewRequestRunAt(
+  order: ReviewRequestOrder,
+  delayMinutes: number
+) {
   const paidAt = getOrderPaidAt(order)
   if (!paidAt) {
     return
   }
 
-  return new Date(paidAt.getTime() + getReviewRequestDelayMs())
+  return new Date(paidAt.getTime() + getReviewRequestDelayMs(delayMinutes))
 }
 
 export async function getReviewRequestMessage(
-  container?: Record<string, unknown>
+  container: Record<string, unknown> | undefined,
+  locale: string
 ) {
   if (container) {
     const config = await retrieveIntegrationConfig(
@@ -160,12 +200,10 @@ export async function getReviewRequestMessage(
 
     if (config?.enabled) {
       const credentials = requireCredentialObject(config)
-      const message = getCredentialString(
-        credentials,
-        "message",
-        "message_cs",
-        "cs"
-      )
+      const marketKeys =
+        REVIEW_REQUEST_MESSAGE_KEYS[locale as ReviewRequestLocale] ??
+        REVIEW_REQUEST_MESSAGE_KEYS["sk-SK"]
+      const message = getCredentialString(credentials, ...marketKeys, "message")
 
       if (message) {
         return message
@@ -173,5 +211,5 @@ export async function getReviewRequestMessage(
     }
   }
 
-  return "Napiš recenzi produktu"
+  return getReviewRequestCopy(locale).message
 }

@@ -9,6 +9,7 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { EMAIL_LOG_MODULE } from "../../modules/email-log"
 import type EmailLogModuleService from "../../modules/email-log/service"
 import { getResendTemplateSubject } from "../../modules/resend/templates"
+import { didNotificationDeliverySucceed } from "../../utils/notification-delivery-status"
 import { CHECKED_RESEND_EVENT_TYPES } from "../../utils/resend-webhook-events"
 
 type EmailLogDTO = {
@@ -61,11 +62,15 @@ function getStringField(
 }
 
 function getNotificationSubject(input: CreateNotificationDTO) {
+  const locale = getStringField(input.data, "locale")
+
   return (
     input.content?.subject ||
     getStringField(input.provider_data, "subject") ||
     getStringField(input.data, "subject") ||
-    (input.template ? getResendTemplateSubject(input.template) : undefined) ||
+    (input.template
+      ? getResendTemplateSubject(input.template, locale)
+      : undefined) ||
     input.template ||
     "Email"
   )
@@ -216,6 +221,10 @@ export const sendNotificationStep = createStep(
       const createdNotification = notificationList[index]
 
       if (!createdNotification) {
+        return []
+      }
+
+      if (!didNotificationDeliverySucceed(createdNotification)) {
         return []
       }
 

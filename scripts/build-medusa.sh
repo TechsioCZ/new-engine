@@ -130,7 +130,6 @@ export ESBUILD_WORKER_THREADS="${ESBUILD_WORKER_THREADS:-0}"
 # Build-time provider choices avoid requiring live Redis/Meilisearch/S3 during
 # config validation. Runtime provider envs are still supplied by deployment.
 export REDIS_SESSIONS_ENABLED="${REDIS_SESSIONS_ENABLED:-0}"
-export NOTIFICATION_PROVIDER="${NOTIFICATION_PROVIDER:-local}"
 export MEILISEARCH_ENABLED="${MEILISEARCH_ENABLED:-0}"
 export CACHE_PROVIDER="${CACHE_PROVIDER:-inmemory}"
 export EVENT_BUS_PROVIDER="${EVENT_BUS_PROVIDER:-local}"

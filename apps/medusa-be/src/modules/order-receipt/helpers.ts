@@ -1,3 +1,5 @@
+import type { ResendEmailLocale } from "../resend/contracts"
+
 type OrderReceiptMoney =
   | number
   | string
@@ -77,6 +79,7 @@ export type OrderReceiptOrder = {
   discount_total?: OrderReceiptMoney
   email?: string | null
   id: string
+  sales_channel_id?: string | null
   item_subtotal?: OrderReceiptMoney
   item_tax_total?: OrderReceiptMoney
   items?: OrderReceiptLineItem[] | null
@@ -96,6 +99,11 @@ export type OrderReceiptAttachment = {
   content: Buffer
   content_type: "application/pdf"
   filename: string
+}
+
+export type OrderReceiptContext = {
+  locale: ResendEmailLocale
+  storeName: string
 }
 
 function objectToNumberValue(
@@ -181,10 +189,32 @@ const PDF_DIACRITIC_CODES: Record<string, string> = {
   "y\u0301": "\\333",
   "Z\u030c": "\\334",
   "z\u030c": "\\335",
+  "A\u0306": "\\336",
+  "a\u0306": "\\337",
+  "A\u0302": "\\340",
+  "a\u0302": "\\341",
+  "I\u0302": "\\342",
+  "i\u0302": "\\343",
+  "O\u030b": "\\344",
+  "o\u030b": "\\345",
+  "U\u030b": "\\346",
+  "u\u030b": "\\347",
+  "O\u0308": "\\350",
+  "o\u0308": "\\351",
+  "U\u0308": "\\352",
+  "u\u0308": "\\353",
+  "S\u0326": "\\354",
+  "s\u0326": "\\355",
+  "S\u0327": "\\354",
+  "s\u0327": "\\355",
+  "T\u0326": "\\356",
+  "t\u0326": "\\357",
+  "T\u0327": "\\356",
+  "t\u0327": "\\357",
 }
 
-export const PDF_CZECH_ENCODING_DIFFERENCES =
-  "[192 /Aacute /aacute /Ccaron /ccaron /Dcaron /dcaron /Eacute /eacute /Ecaron /ecaron /Iacute /iacute /Ncaron /ncaron /Oacute /oacute /Rcaron /rcaron /Scaron /scaron /Tcaron /tcaron /Uacute /uacute /Uring /uring /Yacute /yacute /Zcaron /zcaron]"
+export const PDF_LATIN_ENCODING_DIFFERENCES =
+  "[192 /Aacute /aacute /Ccaron /ccaron /Dcaron /dcaron /Eacute /eacute /Ecaron /ecaron /Iacute /iacute /Ncaron /ncaron /Oacute /oacute /Rcaron /rcaron /Scaron /scaron /Tcaron /tcaron /Uacute /uacute /Uring /uring /Yacute /yacute /Zcaron /zcaron /Abreve /abreve /Acircumflex /acircumflex /Icircumflex /icircumflex /Ohungarumlaut /ohungarumlaut /Uhungarumlaut /uhungarumlaut /Odieresis /odieresis /Udieresis /udieresis /Scommaaccent /scommaaccent /Tcommaaccent /tcommaaccent]"
 
 const COMBINING_MARK_PATTERN = /[\u0300-\u036f]/
 const PDF_ASCII_PATTERN = /[\x20-\x7E]/
@@ -228,7 +258,10 @@ export function escapePdfText(value: unknown) {
   return escaped
 }
 
-export function formatDate(value: Date | string | null | undefined) {
+export function formatDate(
+  value: Date | string | null | undefined,
+  locale: ResendEmailLocale
+) {
   if (!value) {
     return new Date().toISOString().slice(0, 10)
   }
@@ -239,18 +272,26 @@ export function formatDate(value: Date | string | null | undefined) {
     return new Date().toISOString().slice(0, 10)
   }
 
-  return new Intl.DateTimeFormat("cs-CZ").format(date)
+  return new Intl.DateTimeFormat(locale).format(date)
 }
 
 export function formatMoney(
   value: OrderReceiptMoney | undefined,
-  currency?: string | null
+  currency: string | null | undefined,
+  locale: ResendEmailLocale
 ) {
   const amount = toNumber(value)
-  const normalizedCurrency = (currency || "CZK").toUpperCase()
+  const normalizedCurrency = currency?.trim().toUpperCase()
+
+  if (!normalizedCurrency) {
+    return new Intl.NumberFormat(locale, {
+      maximumFractionDigits: 2,
+      minimumFractionDigits: 2,
+    }).format(amount)
+  }
 
   try {
-    return new Intl.NumberFormat("cs-CZ", {
+    return new Intl.NumberFormat(locale, {
       currency: normalizedCurrency,
       style: "currency",
     }).format(amount)

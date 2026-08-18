@@ -37,7 +37,6 @@ values only.
 `.env.test` explicitly selects local or in-memory providers so in-app HTTP
 integration tests do not talk to dev/live infrastructure:
 
-- `NOTIFICATION_PROVIDER=local`
 - `REDIS_SESSIONS_ENABLED=0`
 - `MEILISEARCH_ENABLED=0`
 - `CACHE_PROVIDER=inmemory`

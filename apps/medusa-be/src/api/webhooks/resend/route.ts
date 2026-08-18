@@ -2,48 +2,12 @@ import crypto from "node:crypto"
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import {
-  getCredentialString,
-  INTEGRATION_CONFIG_NAMES,
-  requireCredentialObject,
-  retrieveIntegrationConfig,
-} from "../../../modules/api-store/integration-config"
-import { EMAIL_LOG_MODULE } from "../../../modules/email-log"
-import type EmailLogModuleService from "../../../modules/email-log/service"
+  RESEND_CONFIG_MODULE,
+  type ResendConfigModuleService,
+} from "../../../modules/resend-config"
 import { CHECKED_RESEND_EVENT_TYPES } from "../../../utils/resend-webhook-events"
-
-type ResendWebhookEvent = {
-  type?: string
-  created_at?: string
-  data?: {
-    email_id?: string
-    [key: string]: unknown
-  }
-}
-
-type EmailLogDTO = {
-  id: string
-  email_id: string
-  checked_at: Date | null
-}
-
-type EmailLogService = EmailLogModuleService & {
-  createEmailWebhookEvents: (
-    data: {
-      email_id: string
-      payload: ResendWebhookEvent
-      processed_at: Date | null
-      received_at: Date
-      type: string
-    }[]
-  ) => Promise<unknown[]>
-  listEmailLogs: (
-    filters?: Record<string, unknown>,
-    config?: Record<string, unknown>
-  ) => Promise<EmailLogDTO[]>
-  updateEmailLogs: (
-    data: { id: string; checked_at: Date }[]
-  ) => Promise<EmailLogDTO[]>
-}
+import { processResendWebhookEventWorkflow } from "../../../workflows/resend-webhook/process-resend-webhook-event"
+import type { ResendWebhookEvent } from "../../../workflows/resend-webhook/types"
 
 const SVIX_TOLERANCE_IN_SECONDS = 5 * 60
 
@@ -126,11 +90,7 @@ function verifySvixSignature({
   })
 }
 
-function parsePayload(payload: string, body: unknown) {
-  if (body && typeof body === "object") {
-    return body as ResendWebhookEvent
-  }
-
+function parsePayload(payload: string) {
   return JSON.parse(payload) as ResendWebhookEvent
 }
 
@@ -143,97 +103,40 @@ function hasRequiredResendWebhookFields(
   return Boolean(event.type && event.data?.email_id)
 }
 
-async function markEmailLogChecked({
-  emailId,
-  emailLogService,
-}: {
-  emailId: string
-  emailLogService: EmailLogService
-}) {
-  const emailLogs = await emailLogService.listEmailLogs(
-    { email_id: emailId },
-    { select: ["id", "email_id", "checked_at"] }
-  )
+const getResendWebhookSecret = async (req: MedusaRequest): Promise<string> => {
+  const service =
+    req.scope.resolve<ResendConfigModuleService>(RESEND_CONFIG_MODULE)
+  const webhookSecret = (await service.getRuntimeConfig()).webhook_secret
 
-  const uncheckedLogs = emailLogs.filter((emailLog) => !emailLog.checked_at)
-  if (!uncheckedLogs.length) {
-    return {
-      checkedCount: 0,
-      foundCount: emailLogs.length,
-    }
+  if (!webhookSecret) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_ALLOWED,
+      "Resend webhook secret is not configured in Settings → Resend"
+    )
   }
 
-  await emailLogService.updateEmailLogs(
-    uncheckedLogs.map((emailLog) => ({
-      id: emailLog.id,
-      checked_at: new Date(),
-    }))
-  )
-
-  return {
-    checkedCount: uncheckedLogs.length,
-    foundCount: emailLogs.length,
-  }
-}
-
-async function storePendingWebhookEvent({
-  emailId,
-  emailLogService,
-  event,
-}: {
-  emailId: string
-  emailLogService: EmailLogService
-  event: ResendWebhookEvent & { type: string }
-}) {
-  await emailLogService.createEmailWebhookEvents([
-    {
-      email_id: emailId,
-      payload: event,
-      processed_at: null,
-      received_at: new Date(),
-      type: event.type,
-    },
-  ])
-}
-
-const getResendWebhookSecret = async (
-  req: MedusaRequest
-): Promise<string | undefined> => {
-  const config = await retrieveIntegrationConfig(
-    req.scope as unknown as Record<string, unknown>,
-    INTEGRATION_CONFIG_NAMES.RESEND
-  )
-
-  if (config?.enabled) {
-    const credentials = requireCredentialObject(config)
-    return getCredentialString(credentials, "webhookSecret", "webhook_secret")
-  }
-
-  return process.env.RESEND_WEBHOOK_SECRET
+  return webhookSecret
 }
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const payload = getPayload(req)
   const webhookSecret = await getResendWebhookSecret(req)
+  const isValidSignature = verifySvixSignature({
+    id: getHeader(req, "svix-id") ?? "",
+    payload,
+    secret: webhookSecret,
+    signature: getHeader(req, "svix-signature") ?? "",
+    timestamp: getHeader(req, "svix-timestamp") ?? "",
+  })
 
-  if (webhookSecret) {
-    const isValidSignature = verifySvixSignature({
-      id: getHeader(req, "svix-id") ?? "",
-      payload,
-      secret: webhookSecret,
-      signature: getHeader(req, "svix-signature") ?? "",
-      timestamp: getHeader(req, "svix-timestamp") ?? "",
-    })
-
-    if (!isValidSignature) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "Invalid Resend webhook signature"
-      )
-    }
+  if (!isValidSignature) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Invalid Resend webhook signature"
+    )
   }
 
-  const event = parsePayload(payload, req.body)
+  const event = parsePayload(payload)
 
   if (!hasRequiredResendWebhookFields(event)) {
     throw new MedusaError(
@@ -249,23 +152,16 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     return
   }
 
-  const emailLogService = req.scope.resolve<EmailLogService>(EMAIL_LOG_MODULE)
-  const { checkedCount, foundCount } = await markEmailLogChecked({
-    emailId,
-    emailLogService,
+  const { result } = await processResendWebhookEventWorkflow(req.scope).run({
+    input: {
+      email_id: emailId,
+      event,
+    },
   })
 
-  if (!foundCount) {
-    await storePendingWebhookEvent({
-      emailId,
-      emailLogService,
-      event,
-    })
-  }
-
   res.json({
-    checked: checkedCount > 0,
-    checked_count: checkedCount,
+    checked: result.checked_count > 0,
+    checked_count: result.checked_count,
     email_id: emailId,
     received: true,
     type: event.type,

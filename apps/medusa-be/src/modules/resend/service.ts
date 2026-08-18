@@ -1,5 +1,4 @@
 import type {
-  Logger,
   ProviderSendNotificationDTO,
   ProviderSendNotificationResultsDTO,
 } from "@medusajs/framework/types"
@@ -8,27 +7,21 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import {
-  getCredentialString,
-  INTEGRATION_CONFIG_NAMES,
-  requireCredentialObject,
-  requireEnabledIntegrationConfig,
-} from "../api-store/integration-config"
+  RESEND_CONFIG_MODULE,
+  type ResendConfigModuleService,
+} from "../resend-config"
 import {
   getResendTemplateDefinition,
+  getResendTemplateSubject,
   type ResendEmailTemplate,
   type ResendTemplateDefinition,
 } from "./templates"
 
 type ResendOptions = {
-  api_key?: string
-  apiStoreName?: string
-  from?: string
-  request_timeout_ms?: number
+  channels?: string[]
 }
 
-type InjectedDependencies = Record<string, unknown> & {
-  logger: Logger
-}
+type InjectedDependencies = Record<string, unknown>
 
 type NotificationAttachment = {
   content?: Buffer | string
@@ -50,6 +43,7 @@ type TemplateVariableValue =
 
 type ResendTemplateEmailOptions = {
   apiKey: string
+  apiUrl: string
   attachments?: {
     content?: Buffer | string
     contentType?: string
@@ -57,12 +51,21 @@ type ResendTemplateEmailOptions = {
     path?: string
   }[]
   from: string
+  requestTimeoutMs: number
   subject: string
   template: {
     id: string
     variables: Record<string, TemplateVariableValue>
   }
   to: string[]
+}
+
+type ResendRuntimeOptions = {
+  apiKey: string
+  apiUrl: string
+  from: string
+  requestTimeoutMs: number
+  templateMappings: Record<string, string>
 }
 
 type ResendApiEmailResponse = {
@@ -75,14 +78,16 @@ type ResendApiErrorResponse = {
   statusCode?: number
 }
 
-const DEFAULT_RESEND_REQUEST_TIMEOUT_MS = 10_000
+const TRAILING_SLASH_REGEX = /\/+$/
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null
 }
 
 function isEmailResponse(value: unknown): value is ResendApiEmailResponse {
-  return isRecord(value) && typeof value.id === "string"
+  return (
+    isRecord(value) && typeof value.id === "string" && Boolean(value.id.trim())
+  )
 }
 
 function isTemplateVariableValue(
@@ -108,6 +113,28 @@ function isTemplateVariableValue(
   return false
 }
 
+function isRequiredTemplateVariableValue(
+  value: unknown
+): value is Exclude<TemplateVariableValue, null> {
+  if (value === null || !isTemplateVariableValue(value)) {
+    return false
+  }
+
+  if (typeof value === "string") {
+    return Boolean(value.trim())
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0
+  }
+
+  if (isRecord(value)) {
+    return Object.keys(value).length > 0
+  }
+
+  return true
+}
+
 function toErrorResponse(value: unknown): ResendApiErrorResponse {
   if (!isRecord(value)) {
     return {}
@@ -127,32 +154,88 @@ function toErrorResponse(value: unknown): ResendApiErrorResponse {
   return error
 }
 
+function normalizeApiUrl(value: string) {
+  const normalizedValue = value.trim().replace(TRAILING_SLASH_REGEX, "")
+  let url: URL
+
+  try {
+    url = new URL(normalizedValue)
+  } catch {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Resend API URL must be a valid HTTP(S) URL"
+    )
+  }
+
+  if (
+    !(url.protocol === "https:" || url.protocol === "http:") ||
+    url.username ||
+    url.password
+  ) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Resend API URL must be a valid HTTP(S) URL"
+    )
+  }
+
+  return normalizedValue
+}
+
+async function parseResendApiResponse(response: Response) {
+  try {
+    return (await response.json()) as unknown
+  } catch {
+    if (!response.ok) {
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Resend API request failed with status ${response.status}`
+      )
+    }
+
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Resend API returned a malformed JSON response"
+    )
+  }
+}
+
+function requireSuccessfulResendApiResponse(
+  response: Response,
+  payload: unknown
+): ResendApiEmailResponse {
+  if (!response.ok) {
+    const error = toErrorResponse(payload)
+    const detail = error.message?.trim()
+
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      `Resend API request failed with status ${response.status}${detail ? `: ${detail}` : ""}`
+    )
+  }
+
+  if (!isEmailResponse(payload)) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Resend API returned a success response without an email id"
+    )
+  }
+
+  return { id: payload.id.trim() }
+}
+
 class ResendNotificationProviderService extends AbstractNotificationProviderService {
   static override identifier = "notification-resend"
 
   protected readonly container: InjectedDependencies
-  protected readonly options: ResendOptions
-  protected readonly logger: Logger
 
-  constructor(container: InjectedDependencies, options: ResendOptions) {
+  constructor(container: InjectedDependencies, _options: ResendOptions) {
     super()
 
     this.container = container
-    this.options = options
-    this.logger = container.logger
   }
 
-  static override validateOptions(options: Record<string, unknown>) {
-    if (options.apiStoreName) {
-      return
-    }
-
-    if (!(options.api_key && options.from)) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "Options `api_key` and `from` are required unless `apiStoreName` is configured."
-      )
-    }
+  static override validateOptions(_options: Record<string, unknown>) {
+    return
   }
 
   protected getAttachments(notification: ProviderSendNotificationDTO) {
@@ -179,12 +262,13 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     data?: Record<string, unknown> | null
   ) {
     const variables: Record<string, TemplateVariableValue> = {}
+    const invalidVariables: string[] = []
     const missingVariables: string[] = []
 
     for (const variable of definition.requiredVariables) {
       const value = data?.[variable]
 
-      if (isTemplateVariableValue(value)) {
+      if (isRequiredTemplateVariableValue(value)) {
         variables[variable] = value
       } else {
         missingVariables.push(variable)
@@ -193,68 +277,54 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
 
     for (const variable of definition.optionalVariables) {
       const value = data?.[variable]
-      variables[variable] = isTemplateVariableValue(value) ? value : ""
+
+      if (value !== undefined && !isTemplateVariableValue(value)) {
+        invalidVariables.push(variable)
+        continue
+      }
+
+      variables[variable] = value === undefined ? "" : value
     }
 
     return {
+      invalidVariables,
       missingVariables,
       variables,
     }
   }
 
-  protected getRequestTimeoutMs() {
-    const configuredTimeoutMs = this.options.request_timeout_ms
-    const envTimeoutMs = Number(process.env.RESEND_REQUEST_TIMEOUT_MS)
-    if (
-      typeof configuredTimeoutMs === "number" &&
-      Number.isFinite(configuredTimeoutMs) &&
-      configuredTimeoutMs > 0
-    ) {
-      return configuredTimeoutMs
-    }
-    if (Number.isFinite(envTimeoutMs) && envTimeoutMs > 0) {
-      return envTimeoutMs
-    }
-    return DEFAULT_RESEND_REQUEST_TIMEOUT_MS
-  }
+  protected async getRuntimeOptions(): Promise<ResendRuntimeOptions> {
+    const service = this.container[RESEND_CONFIG_MODULE]
 
-  protected async getRuntimeOptions(): Promise<
-    Required<Pick<ResendOptions, "api_key" | "from">>
-  > {
-    if (this.options.api_key && this.options.from) {
-      return { api_key: this.options.api_key, from: this.options.from }
-    }
-
-    const name = this.options.apiStoreName || INTEGRATION_CONFIG_NAMES.RESEND
-    const config = await requireEnabledIntegrationConfig(this.container, name)
-    const credentials = requireCredentialObject(config)
-    const apiKey =
-      config.api_key ?? getCredentialString(credentials, "apiKey", "api_key")
-    const from = getCredentialString(
-      credentials,
-      "from",
-      "from_email",
-      "fromEmail"
-    )
-
-    if (!(apiKey && from)) {
+    if (!service || typeof service !== "object") {
       throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        `${name} API Store config must contain api_key and from_email`
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Resend configuration service is unavailable"
       )
     }
 
-    return { api_key: apiKey, from }
+    const runtimeConfig = await (
+      service as ResendConfigModuleService
+    ).getRuntimeConfig()
+
+    return {
+      apiKey: runtimeConfig.api_key,
+      apiUrl: normalizeApiUrl(runtimeConfig.api_url),
+      from: runtimeConfig.from_email,
+      requestTimeoutMs: runtimeConfig.request_timeout_ms,
+      templateMappings: runtimeConfig.template_mappings,
+    }
   }
 
-  protected async sendTemplateEmail(emailOptions: ResendTemplateEmailOptions) {
-    const baseUrl = process.env.RESEND_BASE_URL || "https://api.resend.com"
-    const timeoutMs = this.getRequestTimeoutMs()
+  protected async sendTemplateEmail(
+    emailOptions: ResendTemplateEmailOptions
+  ): Promise<ResendApiEmailResponse> {
+    const timeoutMs = emailOptions.requestTimeoutMs
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
 
     try {
-      const response = await fetch(`${baseUrl}/emails`, {
+      const response = await fetch(`${emailOptions.apiUrl}/emails`, {
         body: JSON.stringify({
           attachments: emailOptions.attachments,
           from: emailOptions.from,
@@ -270,27 +340,14 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
         signal: controller.signal,
       })
 
-      const payload: unknown = await response.json()
+      const payload = await parseResendApiResponse(response)
 
-      if (!response.ok) {
-        return {
-          data: null,
-          error: toErrorResponse(payload),
-        }
-      }
-
-      if (!isEmailResponse(payload)) {
-        return {
-          data: null,
-          error: toErrorResponse(payload),
-        }
-      }
-
-      return {
-        data: payload,
-        error: null,
-      }
+      return requireSuccessfulResendApiResponse(response, payload)
     } catch (error) {
+      if (error instanceof MedusaError) {
+        throw error
+      }
+
       let message = "Unknown Resend API error."
       if (error instanceof Error && error.name === "AbortError") {
         message = `Resend API request timed out after ${timeoutMs}ms.`
@@ -298,10 +355,10 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
         message = error.message
       }
 
-      return {
-        data: null,
-        error: { message },
-      }
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        `Resend API request failed: ${message}`
+      )
     } finally {
       clearTimeout(timeoutId)
     }
@@ -310,56 +367,86 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
   override async send(
     notification: ProviderSendNotificationDTO
   ): Promise<ProviderSendNotificationResultsDTO> {
+    if (notification.channel !== "email") {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Resend notification provider does not support channel ${notification.channel}`
+      )
+    }
+
+    if (typeof notification.to !== "string" || !notification.to.trim()) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Resend notification recipient is required"
+      )
+    }
+
     const templateKey = notification.template as Template
     const template = getResendTemplateDefinition(templateKey)
 
     if (!template) {
-      this.logger.error(
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
         `Couldn't find a Resend email template for ${notification.template}.`
       )
-      return {}
     }
 
-    const { missingVariables, variables } = this.getTemplateVariables(
-      template,
-      notification.data
-    )
+    const { invalidVariables, missingVariables, variables } =
+      this.getTemplateVariables(template, notification.data)
+
+    if (invalidVariables.length) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Invalid Resend email template variables for ${templateKey}: ${invalidVariables.join(", ")}`
+      )
+    }
 
     if (missingVariables.length) {
-      this.logger.error(
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
         `Missing Resend email template variables for ${templateKey}: ${missingVariables.join(", ")}`
       )
-      return {}
+    }
+
+    const locale =
+      typeof notification.data?.locale === "string"
+        ? notification.data.locale
+        : undefined
+    const subject = getResendTemplateSubject(templateKey, locale)
+
+    if (!subject) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Unsupported Resend email locale for ${templateKey}: ${String(locale)}`
+      )
     }
 
     const runtimeOptions = await this.getRuntimeOptions()
+    const templateId = runtimeOptions.templateMappings[templateKey]?.trim()
+
+    if (!templateId) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Resend email template ${templateKey} is not mapped in Settings → Resend`
+      )
+    }
     const emailOptions: ResendTemplateEmailOptions = {
-      apiKey: runtimeOptions.api_key,
+      apiKey: runtimeOptions.apiKey,
+      apiUrl: runtimeOptions.apiUrl,
       attachments: this.getAttachments(notification),
       from: runtimeOptions.from,
-      subject: template.subject,
+      requestTimeoutMs: runtimeOptions.requestTimeoutMs,
+      subject,
       template: {
-        id: template.id,
+        id: templateId,
         variables,
       },
       to: [notification.to],
     }
 
-    const { data, error } = await this.sendTemplateEmail(emailOptions)
+    const result = await this.sendTemplateEmail(emailOptions)
 
-    if (error || !data) {
-      if (error) {
-        this.logger.error(
-          `Failed to send email: ${error.message ?? "unknown Resend API error"}`
-        )
-      } else {
-        this.logger.error("Failed to send email: unknown error")
-      }
-
-      return {}
-    }
-
-    return { id: data.id }
+    return { id: result.id }
   }
 }
 

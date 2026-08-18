@@ -21,7 +21,8 @@ type PaymentReminderOrder = {
   customer_id: string | null
   payment_status: string | null
   status: string | null
-  total_formatted?: string
+  currency_code?: string | null
+  total?: number | null
 }
 
 type UnpaidOrdersResponse = {
@@ -71,6 +72,23 @@ const getOrderLabel = (order: PaymentReminderOrder | AdminOrder) => {
   }
 
   return `#${order.display_id}`
+}
+
+const formatOrderTotal = (order: PaymentReminderOrder) => {
+  const currency = order.currency_code?.trim().toUpperCase()
+
+  if (typeof order.total !== "number" || !currency) {
+    return "-"
+  }
+
+  try {
+    return new Intl.NumberFormat(undefined, {
+      currency,
+      style: "currency",
+    }).format(order.total)
+  } catch {
+    return `${order.total.toFixed(2)} ${currency}`
+  }
 }
 
 const OrderEmailSendControl = ({
@@ -240,7 +258,7 @@ const ListReminderWidget = () => {
                   {order.payment_status ?? "-"}
                 </Table.Cell>
                 <Table.Cell className="whitespace-nowrap">
-                  {order.total_formatted ?? "-"}
+                  {formatOrderTotal(order)}
                 </Table.Cell>
                 <Table.Cell className="text-right">
                   <OrderEmailSendControl

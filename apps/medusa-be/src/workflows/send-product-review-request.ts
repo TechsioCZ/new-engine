@@ -12,18 +12,18 @@ import {
   createStep,
   createWorkflow,
   StepResponse,
+  transform,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { EMAIL_LOG_MODULE } from "../modules/email-log"
 import type EmailLogModuleService from "../modules/email-log/service"
 import { PRODUCT_REVIEW_MODULE } from "../modules/product-review"
 import type ProductReviewModuleService from "../modules/product-review/service"
-import {
-  getOrderDisplayId,
-  getStorefrontUrl,
-} from "../utils/order-payment-reminders"
+import { resolveNotificationMarketContext } from "../utils/notification-market-context"
+import { getOrderDisplayId } from "../utils/order-payment-reminders"
 import {
   buildProductReviewRequestUrl,
+  getReviewRequestCopy,
   getReviewRequestMessage,
   type ReviewRequestOrder,
 } from "../utils/order-review-requests"
@@ -33,7 +33,6 @@ import { deleteWorkflowQueueItemStep } from "./workflow-queue/steps/delete-workf
 export type SendProductReviewRequestWorkflowInput = {
   order_id: string
   queue_item_id?: string
-  store_name?: string
 }
 
 type ReviewRequestOrderItem = {
@@ -107,14 +106,17 @@ function formatReviewProducts(products: ReviewRequestProduct[]) {
     .join("\n")
 }
 
-function formatReviewItems(products: ReviewRequestProduct[]) {
+function formatReviewItems(
+  products: ReviewRequestProduct[],
+  actionLabel: string
+) {
   return products
     .map((product) => {
       const image = product.image_url
         ? `<img src="${escapeHtml(product.image_url)}" alt="${escapeHtml(product.title)}" width="72" style="display:block;width:72px;height:72px;object-fit:cover;border-radius:8px;" />`
         : ""
 
-      return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;border-collapse:collapse;"><tr><td width="84" valign="top">${image}</td><td valign="top" style="font-family:Arial,sans-serif;font-size:14px;line-height:20px;color:#111827;"><div style="font-weight:600;margin-bottom:10px;">${escapeHtml(product.title)}</div><a href="${escapeHtml(product.review_url)}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;border-radius:6px;padding:10px 14px;font-weight:600;">Napiš recenzi produktu</a></td></tr></table>`
+      return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;border-collapse:collapse;"><tr><td width="84" valign="top">${image}</td><td valign="top" style="font-family:Arial,sans-serif;font-size:14px;line-height:20px;color:#111827;"><div style="font-weight:600;margin-bottom:10px;">${escapeHtml(product.title)}</div><a href="${escapeHtml(product.review_url)}" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;border-radius:6px;padding:10px 14px;font-weight:600;">${escapeHtml(actionLabel)}</a></td></tr></table>`
     })
     .join("")
 }
@@ -125,6 +127,9 @@ const ORDER_REVIEW_REQUEST_FIELDS = [
   "custom_display_id",
   "display_id",
   "email",
+  "sales_channel_id",
+  "billing_address.country_code",
+  "shipping_address.country_code",
   "items.product_handle",
   "items.product_id",
   "items.product_title",
@@ -150,8 +155,8 @@ function getReviewTokenExpiryDate() {
   return new Date(Date.now() + expiryDays * DAY_IN_MS)
 }
 
-function getProductTitle(item: ReviewRequestOrderItem) {
-  return item.product_title ?? item.title ?? "Produkt"
+function getProductTitle(item: ReviewRequestOrderItem, fallbackTitle: string) {
+  return item.product_title ?? item.title ?? fallbackTitle
 }
 
 function isReviewRequestOrderWithItems(
@@ -314,6 +319,14 @@ const buildProductReviewRequestNotificationStep = createStep(
       return new StepResponse([])
     }
 
+    const marketContext = await resolveNotificationMarketContext(container, {
+      countryCode:
+        order.shipping_address?.country_code ??
+        order.billing_address?.country_code,
+      salesChannelId: order.sales_channel_id,
+    })
+    const reviewCopy = getReviewRequestCopy(marketContext.locale)
+
     const tokensByProductId = await getOrCreateReviewTokens({
       email: order.email,
       items,
@@ -336,29 +349,30 @@ const buildProductReviewRequestNotificationStep = createStep(
           product_id: item.product_id,
           review_url: buildProductReviewRequestUrl({
             productId: item.product_id,
-            storefrontUrl: getStorefrontUrl(),
+            storefrontUrl: marketContext.storefront_base_url,
             token,
           }),
-          title: getProductTitle(item),
+          title: getProductTitle(item, reviewCopy.product),
           token,
         },
       ]
     })
     const message = await getReviewRequestMessage(
-      container as Record<string, unknown>
+      container as Record<string, unknown>,
+      marketContext.locale
     )
 
     return new StepResponse([
       {
         channel: "email",
         data: {
+          ...marketContext,
           message,
           order_display_id: getOrderDisplayId(order),
-          items: formatReviewItems(products),
+          items: formatReviewItems(products, reviewCopy.action),
           order_id: order.id,
           product_reviews: products,
           products: formatReviewProducts(products),
-          store_name: input.store_name,
         },
         receiver_id: order.customer_id ?? undefined,
         resource_id: order.id,
@@ -376,7 +390,13 @@ export const sendProductReviewRequestWorkflow = createWorkflow(
   (input: SendProductReviewRequestWorkflowInput) => {
     const notificationInput = buildProductReviewRequestNotificationStep(input)
     const notification = sendNotificationStep(notificationInput)
-    const deletedQueueItem = deleteWorkflowQueueItemStep(input)
+    const deleteQueueItemInput = transform(
+      { input, notification },
+      ({ input: workflowInput }) => ({
+        queue_item_id: workflowInput.queue_item_id,
+      })
+    )
+    const deletedQueueItem = deleteWorkflowQueueItemStep(deleteQueueItemInput)
 
     return new WorkflowResponse({
       deletedQueueItem,

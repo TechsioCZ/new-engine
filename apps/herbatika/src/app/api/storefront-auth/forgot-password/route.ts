@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server"
 import {
+  resolveMarketContext,
+  resolveMarketRequestHost,
+} from "@/lib/storefront/market-context"
+import {
   badRequest,
   buildErrorResponse,
   buildMedusaUrl,
@@ -11,7 +15,7 @@ type ForgotPasswordBody = {
 }
 
 type ForgotPasswordResponse = {
-  success: true
+  accepted: true
 }
 
 export async function POST(request: Request) {
@@ -30,6 +34,13 @@ export async function POST(request: Request) {
   }
 
   try {
+    const market = resolveMarketContext({
+      acceptLanguage: request.headers.get("accept-language"),
+      host: resolveMarketRequestHost({
+        forwardedHost: request.headers.get("x-forwarded-host"),
+        host: request.headers.get("host"),
+      }),
+    })
     const medusaResponse = await fetch(
       buildMedusaUrl("/auth/customer/emailpass/reset-password"),
       {
@@ -40,6 +51,9 @@ export async function POST(request: Request) {
         },
         body: JSON.stringify({
           identifier: email,
+          metadata: {
+            storefront_market_code: market.code,
+          },
         }),
         cache: "no-store",
       }
@@ -50,8 +64,8 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json<ForgotPasswordResponse>(
-      { success: true },
-      { status: 200 }
+      { accepted: true },
+      { status: 202 }
     )
   } catch (error) {
     return serverError("Nepodarilo sa odoslať odkaz na obnovu hesla.", {
