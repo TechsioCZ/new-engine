@@ -40,8 +40,6 @@ type ResendConfigWriteData = {
 
 const EMAIL_ADDRESS_PATTERN = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/
 const FORMATTED_EMAIL_PATTERN = /^.+\s<[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+>$/
-const TRAILING_SLASH_PATTERN = /\/+$/u
-
 function normalizeOptionalSetting(
   input: string | null | undefined,
   existing: string | null | undefined
@@ -134,7 +132,7 @@ function validateFromEmail(fromEmail: string | null) {
 }
 
 function normalizeApiUrl(value: string) {
-  const normalized = value.trim().replace(TRAILING_SLASH_PATTERN, "")
+  const normalized = value.trim()
   let url: URL
 
   try {
@@ -142,22 +140,25 @@ function normalizeApiUrl(value: string) {
   } catch {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Resend API URL must be a valid HTTP(S) URL without embedded credentials"
+      `Resend API URL must use the trusted HTTPS origin ${DEFAULT_RESEND_API_URL}`
     )
   }
 
   if (
-    !(url.protocol === "https:" || url.protocol === "http:") ||
+    url.origin !== DEFAULT_RESEND_API_URL ||
+    url.pathname !== "/" ||
+    url.search ||
+    url.hash ||
     url.username ||
     url.password
   ) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Resend API URL must be a valid HTTP(S) URL without embedded credentials"
+      `Resend API URL must use the trusted HTTPS origin ${DEFAULT_RESEND_API_URL}`
     )
   }
 
-  return normalized
+  return DEFAULT_RESEND_API_URL
 }
 
 function validateEnabledConfiguration({
@@ -195,7 +196,6 @@ function toAdminDTO(
   return {
     id: record?.id ?? null,
     api_store_id: record?.api_store_id ?? null,
-    api_url: record?.api_url ?? DEFAULT_RESEND_API_URL,
     is_enabled: record?.is_enabled ?? false,
     from_email: record?.from_email ?? null,
     has_webhook_secret: Boolean(record?.webhook_secret),
@@ -277,6 +277,16 @@ class ResendConfigModuleService extends MedusaService({ ResendConfig }) {
     }
   }
 
+  async getWebhookSecret(): Promise<string | null> {
+    const record = await this.getConfigRecord()
+    const decrypted = decryptFields(
+      { webhook_secret: record?.webhook_secret ?? null },
+      ["webhook_secret"]
+    )
+
+    return decrypted.webhook_secret?.trim() || null
+  }
+
   async updateConfig(
     input: ResendConfigUpdateInput
   ): Promise<ResendConfigAdminDTO> {
@@ -290,9 +300,7 @@ class ResendConfigModuleService extends MedusaService({ ResendConfig }) {
       existing?.from_email
     )
     const isEnabled = input.is_enabled ?? existing?.is_enabled ?? false
-    const apiUrl = normalizeApiUrl(
-      input.api_url ?? existing?.api_url ?? DEFAULT_RESEND_API_URL
-    )
+    const apiUrl = DEFAULT_RESEND_API_URL
     const requestTimeoutMs =
       input.request_timeout_ms ??
       existing?.request_timeout_ms ??

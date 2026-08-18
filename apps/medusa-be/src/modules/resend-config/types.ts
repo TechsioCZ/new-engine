@@ -3,7 +3,6 @@ import type { ResendEmailTemplate } from "../resend/contracts"
 export type ResendConfigAdminDTO = {
   id: string | null
   api_store_id: string | null
-  api_url: string
   is_enabled: boolean
   from_email: string | null
   has_webhook_secret: boolean
@@ -14,7 +13,6 @@ export type ResendConfigAdminDTO = {
 
 export type ResendConfigUpdateInput = {
   api_store_id?: string | null
-  api_url?: string
   is_enabled?: boolean
   from_email?: string | null
   webhook_secret?: string | null

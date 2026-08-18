@@ -85,7 +85,10 @@ const makeContainer = () => ({
 
 describe("send account setup steps", () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    graph.mockReset()
+    resolveNotificationMarketContext.mockReset()
+    updateAuthIdentities.mockReset()
+    updateCustomers.mockReset()
     resolveNotificationMarketContext.mockResolvedValue({
       country_code: "sk",
       locale: "sk-SK",

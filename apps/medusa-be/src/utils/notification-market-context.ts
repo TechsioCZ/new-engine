@@ -43,6 +43,8 @@ type RegionRecord = {
 
 const PAGE_SIZE = 100
 const MARKET_CONFIGURATION_KEY = "storefront_notification_markets"
+const MAXIMUM_HOSTNAME_LENGTH = 253
+const HOSTNAME_LABEL_PATTERN = /^(?!-)[a-z0-9-]{1,63}(?<!-)$/u
 
 function normalize(value: unknown) {
   return typeof value === "string" ? value.trim() : ""
@@ -58,6 +60,13 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function isSupportedLocale(value: string): value is ResendEmailLocale {
   return resendEmailLocales.some((locale) => locale === value)
+}
+
+function isValidStorefrontHostname(value: string) {
+  return (
+    value.length <= MAXIMUM_HOSTNAME_LENGTH &&
+    value.split(".").every((label) => HOSTNAME_LABEL_PATTERN.test(label))
+  )
 }
 
 function isSalesChannelRecord(value: unknown): value is SalesChannelRecord {
@@ -90,10 +99,9 @@ function parseMarketConfiguration(
       isSupportedLocale(locale) &&
       marketCode &&
       storeName &&
-      storefrontDomain
-    ) ||
-    storefrontDomain.includes(":") ||
-    storefrontDomain.includes("/")
+      storefrontDomain &&
+      isValidStorefrontHostname(storefrontDomain)
+    )
   ) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,

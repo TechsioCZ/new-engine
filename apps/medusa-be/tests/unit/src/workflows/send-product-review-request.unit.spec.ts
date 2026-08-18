@@ -1,3 +1,4 @@
+import type { CreateNotificationDTO } from "@medusajs/framework/types"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const workflowSdkMock = vi.hoisted(() => ({
@@ -73,6 +74,7 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
     }
   },
   transform: vi.fn(),
+  when: vi.fn(),
   WorkflowResponse: class WorkflowResponse<TOutput> {
     output: TOutput
 
@@ -238,5 +240,30 @@ describe("send product review request workflow", () => {
     expect(result.output).toEqual([])
     expect(resolveNotificationMarketContext).not.toHaveBeenCalled()
     expect(listReviewTokens).not.toHaveBeenCalled()
+  })
+
+  it("retains failed deliveries for retry but removes completed and skipped items", async () => {
+    const { shouldDeleteProductReviewRequestQueueItem } = await import(
+      "../../../../src/workflows/send-product-review-request"
+    )
+    const notificationInput: CreateNotificationDTO[] = [
+      {
+        channel: "email",
+        template: "product-review-request",
+        to: "customer@example.test",
+      },
+    ]
+
+    expect(
+      shouldDeleteProductReviewRequestQueueItem(notificationInput, {
+        status: "failure",
+      })
+    ).toBe(false)
+    expect(
+      shouldDeleteProductReviewRequestQueueItem(notificationInput, {
+        status: "success",
+      })
+    ).toBe(true)
+    expect(shouldDeleteProductReviewRequestQueueItem([], [])).toBe(true)
   })
 })

@@ -13,15 +13,6 @@ type EmailLogDTO = {
 }
 
 type EmailLogService = EmailLogModuleService & {
-  createEmailWebhookEvents: (
-    data: {
-      email_id: string
-      payload: ResendWebhookEvent
-      processed_at: Date | null
-      received_at: Date
-      type: string
-    }[]
-  ) => Promise<unknown[]>
   listEmailLogs: (
     filters?: Record<string, unknown>,
     config?: Record<string, unknown>
@@ -29,6 +20,13 @@ type EmailLogService = EmailLogModuleService & {
   updateEmailLogs: (
     data: { id: string; checked_at: Date }[]
   ) => Promise<EmailLogDTO[]>
+  recordEmailWebhookEventOnce: (data: {
+    email_id: string
+    event_id: string
+    payload: ResendWebhookEvent
+    received_at: Date
+    type: string
+  }) => Promise<void>
 }
 
 export const processResendWebhookEventStep = createStep(
@@ -53,15 +51,13 @@ export const processResendWebhookEventStep = createStep(
         }))
       )
     } else if (!emailLogs.length) {
-      await emailLogService.createEmailWebhookEvents([
-        {
-          email_id: input.email_id,
-          payload: input.event,
-          processed_at: null,
-          received_at: new Date(),
-          type: input.event.type,
-        },
-      ])
+      await emailLogService.recordEmailWebhookEventOnce({
+        email_id: input.email_id,
+        event_id: input.event_id,
+        payload: input.event,
+        received_at: new Date(),
+        type: input.event.type,
+      })
     }
 
     return new StepResponse({

@@ -12,7 +12,7 @@ const notification: ProviderSendNotificationDTO = {
 
 const enabledConfig = {
   api_key: "api-store-key",
-  api_url: "https://resend.example/",
+  api_url: "https://api.resend.com/",
   api_store_id: "apistore_resend",
   from_email: "store@example.test",
   request_timeout_ms: 10_000,
@@ -79,7 +79,7 @@ describe("ResendNotificationProviderService", () => {
     const body = JSON.parse(String(request?.body)) as Record<string, unknown>
 
     expect(result).toEqual({ id: "email_123" })
-    expect(url).toBe("https://resend.example/emails")
+    expect(url).toBe("https://api.resend.com/emails")
     expect(new Headers(request?.headers).get("authorization")).toBe(
       "Bearer api-store-key"
     )
@@ -168,14 +168,18 @@ describe("ResendNotificationProviderService", () => {
     )
   })
 
-  it("rejects an invalid API URL", async () => {
+  it.each([
+    "http://api.resend.com",
+    "https://resend.example",
+    "https://api.resend.com/alternate",
+  ])("rejects an untrusted API URL: %s", async (apiUrl) => {
     const { provider } = createProvider({
       ...enabledConfig,
-      api_url: "file:///tmp/resend",
+      api_url: apiUrl,
     })
 
     await expect(provider.send(notification)).rejects.toThrow(
-      "valid HTTP(S) URL"
+      "trusted HTTPS origin"
     )
   })
 

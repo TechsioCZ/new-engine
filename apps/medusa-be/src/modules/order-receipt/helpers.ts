@@ -171,6 +171,8 @@ const PDF_DIACRITIC_CODES: Record<string, string> = {
   "e\u030c": "\\311",
   "I\u0301": "\\312",
   "i\u0301": "\\313",
+  "L\u030c": "\\360",
+  "l\u030c": "\\361",
   "N\u030c": "\\314",
   "n\u030c": "\\315",
   "O\u0301": "\\316",
@@ -214,7 +216,7 @@ const PDF_DIACRITIC_CODES: Record<string, string> = {
 }
 
 export const PDF_LATIN_ENCODING_DIFFERENCES =
-  "[192 /Aacute /aacute /Ccaron /ccaron /Dcaron /dcaron /Eacute /eacute /Ecaron /ecaron /Iacute /iacute /Ncaron /ncaron /Oacute /oacute /Rcaron /rcaron /Scaron /scaron /Tcaron /tcaron /Uacute /uacute /Uring /uring /Yacute /yacute /Zcaron /zcaron /Abreve /abreve /Acircumflex /acircumflex /Icircumflex /icircumflex /Ohungarumlaut /ohungarumlaut /Uhungarumlaut /uhungarumlaut /Odieresis /odieresis /Udieresis /udieresis /Scommaaccent /scommaaccent /Tcommaaccent /tcommaaccent]"
+  "[192 /Aacute /aacute /Ccaron /ccaron /Dcaron /dcaron /Eacute /eacute /Ecaron /ecaron /Iacute /iacute /Ncaron /ncaron /Oacute /oacute /Rcaron /rcaron /Scaron /scaron /Tcaron /tcaron /Uacute /uacute /Uring /uring /Yacute /yacute /Zcaron /zcaron /Abreve /abreve /Acircumflex /acircumflex /Icircumflex /icircumflex /Ohungarumlaut /ohungarumlaut /Uhungarumlaut /uhungarumlaut /Odieresis /odieresis /Udieresis /udieresis /Scommaaccent /scommaaccent /Tcommaaccent /tcommaaccent /Lcaron /lcaron]"
 
 const COMBINING_MARK_PATTERN = /[\u0300-\u036f]/
 const PDF_ASCII_PATTERN = /[\x20-\x7E]/
@@ -293,6 +295,7 @@ export function formatMoney(
   try {
     return new Intl.NumberFormat(locale, {
       currency: normalizedCurrency,
+      currencyDisplay: "code",
       style: "currency",
     }).format(amount)
   } catch {

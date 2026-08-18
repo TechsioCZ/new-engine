@@ -26,6 +26,13 @@ export function validateSalesChannelSeedInput(
   return names
 }
 
+export function mergeSalesChannelMetadata(
+  existing: Record<string, unknown> | null | undefined,
+  configured: Record<string, unknown>
+) {
+  return { ...(existing ?? {}), ...configured }
+}
+
 const CreateSalesChannelsStepId = "create-sales-channels-seed-step"
 export const createSalesChannelsStep = createStep(
   CreateSalesChannelsStepId,
@@ -72,7 +79,10 @@ export const createSalesChannelsStep = createStep(
         }
 
         return salesChannelModuleService.updateSalesChannels(channel.id, {
-          metadata: configured.metadata,
+          metadata: mergeSalesChannelMetadata(
+            channel.metadata,
+            configured.metadata
+          ),
         })
       })
     )

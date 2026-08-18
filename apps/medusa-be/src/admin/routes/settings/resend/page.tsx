@@ -32,7 +32,6 @@ type ApiStoreListResponse = {
 
 type ResendConfig = {
   api_store_id: string | null
-  api_url: string
   from_email: string | null
   has_webhook_secret: boolean
   is_enabled: boolean
@@ -52,13 +51,11 @@ type ResendConfigResponse = {
 }
 
 const NO_API_STORE_SELECTION = "none"
-const DEFAULT_RESEND_API_URL = "https://api.resend.com"
 const MAXIMUM_PRODUCT_REVIEW_DELAY_MINUTES = 525_600
 
 const ResendSettingsPage = () => {
   const queryClient = useQueryClient()
   const [apiStoreId, setApiStoreId] = useState("")
-  const [apiUrl, setApiUrl] = useState(DEFAULT_RESEND_API_URL)
   const [fromEmail, setFromEmail] = useState("")
   const [isEnabled, setIsEnabled] = useState(false)
   const [requestTimeoutMs, setRequestTimeoutMs] = useState("10000")
@@ -90,7 +87,6 @@ const ResendSettingsPage = () => {
     }
 
     setApiStoreId(config.api_store_id ?? "")
-    setApiUrl(config.api_url)
     setFromEmail(config.from_email ?? "")
     setIsEnabled(config.is_enabled)
     setRequestTimeoutMs(String(config.request_timeout_ms))
@@ -142,7 +138,6 @@ const ResendSettingsPage = () => {
 
     const body: Record<string, unknown> = {
       api_store_id: apiStoreId || null,
-      api_url: apiUrl.trim(),
       from_email: fromEmail.trim() || null,
       is_enabled: isEnabled,
       request_timeout_ms: timeout,
@@ -298,17 +293,6 @@ const ResendSettingsPage = () => {
               onChange={(event) => setFromEmail(event.target.value)}
               placeholder="Store <orders@example.com>"
               value={fromEmail}
-            />
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="resend-api-url">API URL</Label>
-            <Input
-              id="resend-api-url"
-              onChange={(event) => setApiUrl(event.target.value)}
-              placeholder={DEFAULT_RESEND_API_URL}
-              type="url"
-              value={apiUrl}
             />
           </div>
 

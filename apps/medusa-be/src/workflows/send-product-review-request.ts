@@ -14,11 +14,13 @@ import {
   StepResponse,
   transform,
   WorkflowResponse,
+  when,
 } from "@medusajs/framework/workflows-sdk"
 import { EMAIL_LOG_MODULE } from "../modules/email-log"
 import type EmailLogModuleService from "../modules/email-log/service"
 import { PRODUCT_REVIEW_MODULE } from "../modules/product-review"
 import type ProductReviewModuleService from "../modules/product-review/service"
+import { didNotificationDeliverySucceed } from "../utils/notification-delivery-status"
 import { resolveNotificationMarketContext } from "../utils/notification-market-context"
 import { getOrderDisplayId } from "../utils/order-payment-reminders"
 import {
@@ -89,6 +91,16 @@ type ReviewRequestProduct = {
   review_url: string
   title: string
   token: string
+}
+
+export function shouldDeleteProductReviewRequestQueueItem(
+  notificationInput: CreateNotificationDTO[],
+  notification: unknown
+) {
+  return (
+    notificationInput.length === 0 ||
+    didNotificationDeliverySucceed(notification)
+  )
 }
 
 function escapeHtml(value: string) {
@@ -396,7 +408,12 @@ export const sendProductReviewRequestWorkflow = createWorkflow(
         queue_item_id: workflowInput.queue_item_id,
       })
     )
-    const deletedQueueItem = deleteWorkflowQueueItemStep(deleteQueueItemInput)
+    const deletedQueueItem = when({ notification, notificationInput }, (data) =>
+      shouldDeleteProductReviewRequestQueueItem(
+        data.notificationInput,
+        data.notification
+      )
+    ).then(() => deleteWorkflowQueueItemStep(deleteQueueItemInput))
 
     return new WorkflowResponse({
       deletedQueueItem,

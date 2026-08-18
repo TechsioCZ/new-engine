@@ -2,7 +2,6 @@ import { z } from "@medusajs/framework/zod"
 
 export const PostAdminResendConfigSchema = z.object({
   api_store_id: z.string().trim().min(1).nullable().optional(),
-  api_url: z.string().trim().url().optional(),
   is_enabled: z.boolean().optional(),
   from_email: z.string().trim().min(3).nullable().optional(),
   webhook_secret: z.string().trim().nullable().optional(),

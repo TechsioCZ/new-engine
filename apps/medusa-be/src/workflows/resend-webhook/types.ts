@@ -10,6 +10,7 @@ export type ResendWebhookEvent = {
 export type ProcessResendWebhookEventInput = {
   email_id: string
   event: ResendWebhookEvent & { type: string }
+  event_id: string
 }
 
 export type ProcessResendWebhookEventResult = {

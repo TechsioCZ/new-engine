@@ -7,6 +7,7 @@ import {
   MedusaError,
 } from "@medusajs/framework/utils"
 import {
+  DEFAULT_RESEND_API_URL,
   RESEND_CONFIG_MODULE,
   type ResendConfigModuleService,
 } from "../resend-config"
@@ -77,8 +78,6 @@ type ResendApiErrorResponse = {
   name?: string
   statusCode?: number
 }
-
-const TRAILING_SLASH_REGEX = /\/+$/
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null
@@ -155,7 +154,7 @@ function toErrorResponse(value: unknown): ResendApiErrorResponse {
 }
 
 function normalizeApiUrl(value: string) {
-  const normalizedValue = value.trim().replace(TRAILING_SLASH_REGEX, "")
+  const normalizedValue = value.trim()
   let url: URL
 
   try {
@@ -163,22 +162,25 @@ function normalizeApiUrl(value: string) {
   } catch {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Resend API URL must be a valid HTTP(S) URL"
+      `Resend API URL must use the trusted HTTPS origin ${DEFAULT_RESEND_API_URL}`
     )
   }
 
   if (
-    !(url.protocol === "https:" || url.protocol === "http:") ||
+    url.origin !== DEFAULT_RESEND_API_URL ||
+    url.pathname !== "/" ||
+    url.search ||
+    url.hash ||
     url.username ||
     url.password
   ) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
-      "Resend API URL must be a valid HTTP(S) URL"
+      `Resend API URL must use the trusted HTTPS origin ${DEFAULT_RESEND_API_URL}`
     )
   }
 
-  return normalizedValue
+  return DEFAULT_RESEND_API_URL
 }
 
 async function parseResendApiResponse(response: Response) {

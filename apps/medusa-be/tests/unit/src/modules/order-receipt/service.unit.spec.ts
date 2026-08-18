@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   escapePdfText,
+  formatMoney,
   getItemQuantity,
   getItemSubtotal,
   getItemUnitPrice,
@@ -67,6 +68,13 @@ describe("escapePdfText", () => {
     expect(escapePdfText("Știință română")).toBe(
       "\\354tiin\\357\\337 rom\\341n\\337"
     )
+  })
+
+  it("encodes Slovak L-caron text and keeps EUR visible", () => {
+    expect(escapePdfText("Odberateľ Zľava Dodávateľ")).toBe(
+      "Odberate\\361 Z\\361ava Dod\\301vate\\361"
+    )
+    expect(escapePdfText(formatMoney(12.5, "EUR", "sk-SK"))).toContain("EUR")
   })
 })
 

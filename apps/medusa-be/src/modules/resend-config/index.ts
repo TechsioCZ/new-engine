@@ -6,7 +6,7 @@ export default Module(RESEND_CONFIG_MODULE, {
   service: ResendConfigModuleService,
 })
 
-export { RESEND_CONFIG_MODULE } from "./constants"
+export { DEFAULT_RESEND_API_URL, RESEND_CONFIG_MODULE } from "./constants"
 export type { default as ResendConfigModuleService } from "./service"
 export type {
   ResendConfigAdminDTO,

@@ -57,6 +57,10 @@ function verifySvixSignature({
   signature: string
   timestamp: string
 }) {
+  if (!(id && signature && timestamp)) {
+    return false
+  }
+
   const timestampNumber = Number(timestamp)
   if (!Number.isFinite(timestampNumber)) {
     return false
@@ -106,7 +110,7 @@ function hasRequiredResendWebhookFields(
 const getResendWebhookSecret = async (req: MedusaRequest): Promise<string> => {
   const service =
     req.scope.resolve<ResendConfigModuleService>(RESEND_CONFIG_MODULE)
-  const webhookSecret = (await service.getRuntimeConfig()).webhook_secret
+  const webhookSecret = await service.getWebhookSecret()
 
   if (!webhookSecret) {
     throw new MedusaError(
@@ -121,8 +125,9 @@ const getResendWebhookSecret = async (req: MedusaRequest): Promise<string> => {
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
   const payload = getPayload(req)
   const webhookSecret = await getResendWebhookSecret(req)
+  const eventId = getHeader(req, "svix-id") ?? ""
   const isValidSignature = verifySvixSignature({
-    id: getHeader(req, "svix-id") ?? "",
+    id: eventId,
     payload,
     secret: webhookSecret,
     signature: getHeader(req, "svix-signature") ?? "",
@@ -156,6 +161,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
     input: {
       email_id: emailId,
       event,
+      event_id: eventId,
     },
   })
 

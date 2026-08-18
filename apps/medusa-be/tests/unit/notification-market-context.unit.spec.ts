@@ -207,6 +207,30 @@ describe("resolveNotificationMarketContext", () => {
     ).rejects.toThrow("Notification market configuration is incomplete.")
   })
 
+  it("rejects a storefront domain containing URL user information", async () => {
+    const salesChannel = buildSalesChannel(["sk"])
+    const marketConfiguration = salesChannel.metadata
+      ?.storefront_notification_markets as Record<
+      string,
+      Record<string, unknown>
+    >
+    const slovakMarket = marketConfiguration.sk
+    if (!slovakMarket) {
+      throw new Error("Expected the Slovak market fixture")
+    }
+    slovakMarket.storefront_domain = "herbatica.sk@attacker.example"
+    const { container } = buildQuery({
+      regions: [buildRegion("sk")],
+      salesChannels: [salesChannel],
+    })
+
+    await expect(
+      resolveNotificationMarketContext(container, {
+        salesChannelId: salesChannel.id,
+      })
+    ).rejects.toThrow("Notification market configuration is incomplete.")
+  })
+
   it("rejects a market without exactly one configured region", async () => {
     const salesChannel = buildSalesChannel(["sk"])
     const { container } = buildQuery({
