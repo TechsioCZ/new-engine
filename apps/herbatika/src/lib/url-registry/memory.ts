@@ -30,6 +30,7 @@ import { updateRouteMetadata } from "./memory-metadata"
 import {
   findActiveEntityRoute,
   findActiveEquivalents,
+  findEntityRoute,
   getRoute,
   listStaticRouteSnapshots,
 } from "./memory-reads"
@@ -42,6 +43,7 @@ import type {
   ActiveEntityRouteTarget,
   ActiveRouteTarget,
   EntityRouteIdentity,
+  EntityRouteSnapshot,
   StaticRouteIdentity,
   StaticRouteSnapshot,
   UrlRouteSnapshot,
@@ -160,6 +162,13 @@ export class InMemoryUrlRegistry implements UrlRegistry {
   ): Promise<SourceReadResult<ActiveEntityRouteTarget>> {
     await Promise.resolve()
     return findActiveEntityRoute(this.executor.readState(), input)
+  }
+
+  async findEntityRoute(
+    input: EntityIdentityLookup
+  ): Promise<SourceReadResult<EntityRouteSnapshot>> {
+    await Promise.resolve()
+    return findEntityRoute(this.executor.readState(), input)
   }
 
   async findActiveEquivalents(

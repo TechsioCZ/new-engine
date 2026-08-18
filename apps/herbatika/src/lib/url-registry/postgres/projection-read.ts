@@ -3,6 +3,7 @@ import type {
   ActiveEquivalenceLookup,
   ActiveRouteTarget,
   EntityIdentityLookup,
+  EntityRouteSnapshot,
   SourceReadResult,
   StaticRouteSnapshot,
   UrlRouteSnapshot,
@@ -20,7 +21,7 @@ import {
   parseStaticPathValue,
 } from "./row-codec"
 import { asRecord } from "./runtime"
-import { loadSnapshotById } from "./snapshot-store"
+import { loadSnapshot, loadSnapshotById } from "./snapshot-store"
 import type { SqlPool } from "./sql"
 
 const targetFromRow = (value: unknown): ActiveRouteTarget => {
@@ -83,6 +84,46 @@ export const findActiveEntity = async (
       throw new TypeError("Entity identity lookup returned a static target")
     }
     return target
+  })
+  if (read.kind !== "found") {
+    return read
+  }
+  return read.value === null
+    ? { kind: "missing" }
+    : { kind: "found", value: read.value }
+}
+
+export const findEntity = async (
+  pool: SqlPool,
+  input: EntityIdentityLookup
+): Promise<SourceReadResult<EntityRouteSnapshot>> => {
+  assertMarket(input.market)
+  assertText(input.sourceSystem, "sourceSystem", 64)
+  assertText(input.sourceType, "sourceType", 64)
+  assertText(input.sourceId, "sourceId")
+  const read = await executePrimaryRead(pool, async (executor) => {
+    const result = await executor.query(
+      `SELECT to_jsonb(route) AS route
+         FROM url_registry.url_route AS route
+        WHERE route.market = $1 AND route.target_type = 'entity'
+          AND route.source_system = $2 AND route.source_type = $3
+          AND route.source_id = $4
+        LIMIT 1`,
+      [input.market, input.sourceSystem, input.sourceType, input.sourceId]
+    )
+    if (result.rows.length === 0) {
+      return null
+    }
+    const row = asRecord(result.rows[0], "entity snapshot row")
+    const route = parseRouteValue(row.route)
+    if (route.targetType !== "entity") {
+      throw new TypeError("Entity identity lookup returned a static route")
+    }
+    const snapshot = await loadSnapshot(executor, route)
+    if (snapshot.projectionType !== "entity") {
+      throw new TypeError("Entity identity lookup returned a static snapshot")
+    }
+    return snapshot
   })
   if (read.kind !== "found") {
     return read

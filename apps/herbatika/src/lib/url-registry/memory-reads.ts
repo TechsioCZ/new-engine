@@ -19,6 +19,7 @@ import type {
   ActiveEntityRouteTarget,
   ActiveRouteTarget,
   EntityRouteIdentity,
+  EntityRouteSnapshot,
   EntityUrlRoute,
   StaticRouteSnapshot,
   StaticUrlRoute,
@@ -64,6 +65,32 @@ export const findActiveEntityRoute = (
       currentSlug: snapshot.currentSlug,
     }),
   }
+}
+
+export const findEntityRoute = (
+  state: MemoryRegistryState,
+  input: EntityIdentityLookup
+): SourceReadResult<EntityRouteSnapshot> => {
+  assertMarket(input.market)
+  assertNonEmpty(input.sourceSystem, "sourceSystem")
+  assertNonEmpty(input.sourceType, "sourceType")
+  assertNonEmpty(input.sourceId, "sourceId")
+  const identity: EntityRouteIdentity = {
+    targetType: "entity",
+    sourceSystem: input.sourceSystem,
+    sourceType: input.sourceType,
+    sourceId: input.sourceId,
+    staticRouteKey: null,
+  }
+  const key = entityIdentityKey(input.market, identity)
+  const route = [...state.routes.values()].find(
+    (candidate): candidate is EntityUrlRoute =>
+      candidate.targetType === "entity" &&
+      entityIdentityKey(candidate.market, candidate) === key
+  )
+  return route
+    ? { kind: "found", value: cloneValue(entitySnapshot(state, route)) }
+    : { kind: "missing" }
 }
 
 export const findActiveEquivalents = (

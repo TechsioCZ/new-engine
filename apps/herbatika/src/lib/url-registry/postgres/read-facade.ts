@@ -3,6 +3,7 @@ import type {
   ActiveEquivalenceLookup,
   ActiveRouteTarget,
   EntityIdentityLookup,
+  EntityRouteSnapshot,
   SourceReadResult,
   StaticRouteSnapshot,
   UrlRegistryAuditRecord,
@@ -18,6 +19,7 @@ import type {
 import { listAudits, listPendingOutbox } from "./audit-read"
 import {
   findActiveEntity,
+  findEntity,
   findEquivalents,
   getRouteSnapshot,
   listStaticSnapshots,
@@ -50,6 +52,12 @@ export class PostgresRegistryReads {
     SourceReadResult<Extract<ActiveRouteTarget, { projectionType: "entity" }>>
   > {
     return findActiveEntity(this.primary, input)
+  }
+
+  findEntityRoute(
+    input: EntityIdentityLookup
+  ): Promise<SourceReadResult<EntityRouteSnapshot>> {
+    return findEntity(this.primary, input)
   }
 
   findActiveEquivalents(

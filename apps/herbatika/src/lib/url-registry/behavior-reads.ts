@@ -8,6 +8,83 @@ import {
 } from "./behavior-helpers"
 
 export const runReadBehavior = (createHarness: HarnessFactory) => {
+  it("reads full entity snapshots by stable identity across lifecycle states", async () => {
+    const harness = await createHarness()
+    try {
+      const firstSlug = `${harness.namespace}-identity-first`
+      const secondSlug = `${harness.namespace}-identity-second`
+      const created = await createEntity(harness, "identity-snapshot", {
+        slug: firstSlug,
+      })
+      const routeId = created.result.snapshot.route.id
+      const identityLookup = {
+        market: "sk" as const,
+        sourceSystem: created.identity.sourceSystem,
+        sourceType: created.identity.sourceType,
+        sourceId: created.identity.sourceId,
+      }
+      await harness.registry.changeSlug(
+        command(`${harness.namespace}:identity-change`, {
+          commandType: "change-slug",
+          expectedVersion: 1,
+          source: entitySource(
+            created.identity,
+            `${harness.namespace}:identity-change`,
+            "2"
+          ),
+          target: { routeId, identity: created.identity },
+          slug: { normalizedSlug: secondSlug, normalizationVersion: 1 },
+        })
+      )
+
+      expect(
+        foundValue(await harness.registry.findEntityRoute(identityLookup))
+      ).toMatchObject({
+        route: { id: routeId, status: "active", version: 2 },
+        currentSlug: { normalizedSlug: secondSlug },
+        slugHistory: [
+          { normalizedSlug: firstSlug, disposition: "alias" },
+          { normalizedSlug: secondSlug, disposition: "current" },
+        ],
+      })
+
+      await harness.registry.retireRoute(
+        command(`${harness.namespace}:identity-retire`, {
+          commandType: "retire-route",
+          expectedVersion: 2,
+          source: entitySource(
+            created.identity,
+            `${harness.namespace}:identity-retire`,
+            "3"
+          ),
+          target: { routeId, identity: created.identity },
+        })
+      )
+
+      expect(
+        await harness.registry.findActiveEntityRoute(identityLookup)
+      ).toEqual({ kind: "missing" })
+      expect(
+        foundValue(await harness.registry.findEntityRoute(identityLookup))
+      ).toMatchObject({
+        route: { id: routeId, status: "retired", version: 3 },
+        currentSlug: { normalizedSlug: secondSlug },
+        slugHistory: [
+          { normalizedSlug: firstSlug, disposition: "alias" },
+          { normalizedSlug: secondSlug, disposition: "current" },
+        ],
+      })
+      expect(
+        await harness.registry.findEntityRoute({
+          ...identityLookup,
+          sourceId: `${harness.namespace}-missing`,
+        })
+      ).toEqual({ kind: "missing" })
+    } finally {
+      await harness.cleanup()
+    }
+  })
+
   it("supports bounded batch, stable-identity, and equivalence reads", async () => {
     const harness = await createHarness()
     try {

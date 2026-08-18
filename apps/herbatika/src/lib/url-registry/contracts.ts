@@ -20,6 +20,7 @@ import type {
   ActiveEntityRouteTarget,
   ActiveRouteTarget,
   EntityRouteIdentity,
+  EntityRouteSnapshot,
   StaticRouteIdentity,
   StaticRouteSnapshot,
   UrlRouteSnapshot,
@@ -87,6 +88,9 @@ export interface UrlRegistry {
   findActiveEntityRoute(
     input: EntityIdentityLookup
   ): Promise<SourceReadResult<ActiveEntityRouteTarget>>
+  findEntityRoute(
+    input: EntityIdentityLookup
+  ): Promise<SourceReadResult<EntityRouteSnapshot>>
   findActiveEquivalents(
     input: ActiveEquivalenceLookup
   ): Promise<SourceReadResult<readonly ActiveRouteTarget[]>>
