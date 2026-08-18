@@ -8,6 +8,7 @@ vi.mock("@medusajs/framework/utils", () => ({
   MedusaError: class MedusaError extends Error {
     static Types = {
       INVALID_DATA: "invalid_data",
+      NOT_FOUND: "not_found",
     }
 
     constructor(_type: string, message: string) {
@@ -192,7 +193,7 @@ describe("POST /admin/order-expedition/pdf", () => {
     ).resolves.toEqual(Buffer.from([1, 2, 3]))
   })
 
-  it("replaces unsupported Helvetica characters before drawing text", async () => {
+  it("preserves Unicode text and the order currency symbol", async () => {
     const { POST } = await import(
       "../../../../../../../src/api/admin/order-expedition/pdf/route"
     )
@@ -201,8 +202,9 @@ describe("POST /admin/order-expedition/pdf", () => {
         {
           id: "order_1",
           display_id: 1001,
+          currency_code: "eur",
           customer: { first_name: "Łukasz", last_name: "Őster 😀" },
-          items: [{ quantity: 2, title: "Káva Łódź 😀" }],
+          items: [{ quantity: 2, title: "Káva Łódź 😀", unit_price: 8.99 }],
           shipping_address: {
             address_1: "Dlouhá — ulice",
             city: "Łódź",
@@ -222,21 +224,14 @@ describe("POST /admin/order-expedition/pdf", () => {
 
     const drawnTexts = mockDrawText.mock.calls.map(([text]) => text as string)
 
-    expect(drawnTexts.some((text) => text.includes("Lukasz Oster ?"))).toBe(
+    expect(drawnTexts.some((text) => text.includes("Łukasz Őster 😀"))).toBe(
       true
     )
-    expect(drawnTexts.some((text) => text.includes("Dlouha - ulice"))).toBe(
+    expect(drawnTexts.some((text) => text.includes("Dlouhá - ulice"))).toBe(
       true
     )
-    expect(drawnTexts.some((text) => text.includes("Kava Lodz ?"))).toBe(true)
+    expect(drawnTexts.some((text) => text.includes("Káva Łódź 😀"))).toBe(true)
+    expect(drawnTexts.some((text) => text.includes("8,99 €"))).toBe(true)
     expect(drawnTexts.some((text) => text.includes("2 ks"))).toBe(true)
-    expect(
-      drawnTexts.every((text) =>
-        Array.from(text).every((char) => {
-          const code = char.charCodeAt(0)
-          return code >= 32 && code <= 126
-        })
-      )
-    ).toBe(true)
   })
 })
