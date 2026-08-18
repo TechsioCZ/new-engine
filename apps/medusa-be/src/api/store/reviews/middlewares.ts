@@ -15,7 +15,7 @@ export const storeReviewRoutesMiddlewares: MiddlewareRoute[] = [
       authenticate("customer", ["session", "bearer"], {
         allowUnauthenticated: true,
       }),
-      verifyCloudflareTurnstile(),
+      verifyCloudflareTurnstile({ expectedAction: "product_review" }),
       validateAndTransformBody(StoreCreateReviewSchema),
     ],
   },

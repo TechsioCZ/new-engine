@@ -93,7 +93,7 @@ export function ProductReviewTokenPage({
   const handleSubmit = ({
     content,
     rating,
-    title,
+    turnstileToken,
   }: ProductReviewFormSubmitValues) => {
     if (!normalizedProductId) {
       setSubmitError(tCatalog("reviews.token.missing_product"))
@@ -107,7 +107,7 @@ export function ProductReviewTokenPage({
       product_id: normalizedProductId,
       rating,
       review_token: token,
-      title,
+      ...(turnstileToken ? { turnstileToken } : {}),
     })
   }
 

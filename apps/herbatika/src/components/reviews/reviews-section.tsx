@@ -1,24 +1,19 @@
 "use client"
 
 import { Icon } from "@techsio/ui-kit/atoms/icon"
-import { Rating } from "@techsio/ui-kit/atoms/rating"
 import type { StaticImageData } from "next/image"
-import NextImage from "next/image"
 import NextLink from "next/link"
 import { useFormatter, useTranslations } from "next-intl"
 import type { MouseEvent } from "react"
 import { FractionalRating } from "@/components/reviews/fractional-rating"
+import { ReviewCard } from "@/components/reviews/review-card"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
-import {
-  PRODUCT_REVIEWS,
-  REVIEW_VERIFIED_CUSTOMER_BADGE,
-} from "@/components/reviews/reviews.data"
+import { REVIEW_VERIFIED_CUSTOMER_BADGE } from "@/components/reviews/reviews.data"
 import type {
   ReviewItem,
+  ReviewsVariant,
   ReviewTrustSource,
 } from "@/components/reviews/reviews.types"
-
-type ReviewsVariant = "product" | "homepage"
 
 type ReviewsSectionProps = {
   sectionClassName?: string
@@ -30,87 +25,26 @@ type ReviewsSectionProps = {
   scoreLabel?: string | null
   summaryText?: string | null
   ratingValue?: number
-  reviews?: readonly ReviewItem[]
+  reviews: readonly ReviewItem[]
   trustSources?: readonly ReviewTrustSource[]
   sourceBadge?: StaticImageData
 }
 
-function resolveReviewInitial(author: string): string {
-  const trimmed = author.trim()
-  return trimmed.charAt(0).toUpperCase() || "A"
-}
-
-function ReviewCard({
-  review,
-  sourceBadge,
-  sourceBadgeAlt,
-  variant,
-  verifiedPurchaseLabel,
-}: {
-  review: ReviewItem
-  sourceBadge: StaticImageData
-  sourceBadgeAlt: string
-  variant: ReviewsVariant
-  verifiedPurchaseLabel: string
-}) {
-  const isHomepage = variant === "homepage"
-  const shouldShowVerifiedPurchase = !isHomepage && review.verifiedPurchase
+const getAverageRating = (reviews: readonly ReviewItem[]): number => {
+  if (reviews.length === 0) {
+    return 0
+  }
 
   return (
-    <article className="flex h-full flex-col gap-350 rounded-md border border-border-secondary bg-highlight p-350 font-roboto shadow-md">
-      <header className="flex items-center gap-350">
-        {isHomepage ? (
-          <div className="flex h-800 w-800 flex-shrink-0 items-center justify-center">
-            <NextImage
-              alt={sourceBadgeAlt}
-              className="h-full w-full object-contain"
-              src={sourceBadge}
-            />
-          </div>
-        ) : (
-          <div className="flex h-800 w-800 flex-shrink-0 items-center justify-center rounded-full bg-surface">
-            <span className="font-normal text-3xl text-fg-secondary leading-none">
-              {resolveReviewInitial(review.author)}
-            </span>
-          </div>
-        )}
-
-        <div className="flex min-w-0 flex-1 flex-col gap-150">
-          <div className="flex items-start justify-between gap-250">
-            <Rating
-              className="pointer-events-none"
-              readOnly
-              size="md"
-              value={review.rating}
-            />
-            <p className="text-fg-placeholder text-xs leading-tight">
-              {review.dateLabel}
-            </p>
-          </div>
-
-          <p className="truncate font-semibold text-fg-primary text-md leading-tight">
-            {review.author}
-          </p>
-        </div>
-      </header>
-
-      <div className="flex flex-1 flex-col gap-250">
-        <p className="line-clamp-3 text-fg-secondary text-md leading-relaxed">
-          {review.message}
-        </p>
-      </div>
-
-      {shouldShowVerifiedPurchase ? (
-        <div className="mt-auto flex items-center gap-150 text-primary">
-          <Icon icon="token-icon-check" size="lg" />
-          <span className="font-medium text-sm leading-relaxed">
-            {verifiedPurchaseLabel}
-          </span>
-        </div>
-      ) : null}
-    </article>
+    reviews.reduce((total, review) => total + review.rating, 0) / reviews.length
   )
 }
+
+const getReviewLink = (
+  href: string | null,
+  label: string | null
+): { href: string; label: string } | null =>
+  href && label ? { href, label } : null
 
 export function ReviewsSection({
   sectionClassName = "space-y-500 pt-750",
@@ -121,14 +55,15 @@ export function ReviewsSection({
   headingText,
   scoreLabel,
   summaryText,
-  ratingValue = 5,
-  reviews = PRODUCT_REVIEWS,
+  ratingValue,
+  reviews,
   trustSources,
   sourceBadge = REVIEW_VERIFIED_CUSTOMER_BADGE,
 }: ReviewsSectionProps) {
   const format = useFormatter()
   const tCatalog = useTranslations("catalog")
   const isHomepage = variant === "homepage"
+  const resolvedRatingValue = ratingValue ?? getAverageRating(reviews)
   const resolvedHeadingText =
     headingText ??
     (isHomepage
@@ -139,8 +74,8 @@ export function ReviewsSection({
   const resolvedLinkHref = linkHref === undefined ? defaultLinkHref : linkHref
   const resolvedLinkLabel =
     linkLabel === undefined ? defaultLinkLabel : linkLabel
-  const shouldShowLink = Boolean(resolvedLinkHref && resolvedLinkLabel)
-  const formattedRatingLabel = format.number(ratingValue, {
+  const reviewLink = getReviewLink(resolvedLinkHref, resolvedLinkLabel)
+  const formattedRatingLabel = format.number(resolvedRatingValue, {
     maximumFractionDigits: 1,
     minimumFractionDigits: 1,
   })
@@ -174,22 +109,25 @@ export function ReviewsSection({
                 max: 5,
                 rating: ratingAriaLabel,
               })}
-              value={ratingValue}
+              value={resolvedRatingValue}
             />
           )}
         </div>
 
         {isHomepage ? (
-          <ReviewTrustBadges className="sm:w-auto" sources={trustSources} />
+          <ReviewTrustBadges
+            className="sm:w-auto"
+            sources={trustSources ?? []}
+          />
         ) : null}
 
-        {shouldShowLink && resolvedLinkHref && resolvedLinkLabel ? (
+        {reviewLink ? (
           <NextLink
             className="inline-flex items-center gap-50 font-verdana text-fg-strong text-sm leading-relaxed underline decoration-1 underline-offset-2 hover:text-fg-primary"
-            href={resolvedLinkHref}
+            href={reviewLink.href}
             onClick={onLinkClick}
           >
-            {resolvedLinkLabel}
+            {reviewLink.label}
             <Icon icon="token-icon-chevron-right" size="md" />
           </NextLink>
         ) : null}
@@ -201,9 +139,7 @@ export function ReviewsSection({
             key={review.id}
             review={review}
             sourceBadge={sourceBadge}
-            sourceBadgeAlt={tCatalog("reviews.verified_customer_badge_alt")}
             variant={variant}
-            verifiedPurchaseLabel={tCatalog("reviews.verified_purchase")}
           />
         ))}
       </div>

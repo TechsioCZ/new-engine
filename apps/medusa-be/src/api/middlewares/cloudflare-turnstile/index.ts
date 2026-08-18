@@ -18,6 +18,7 @@ import {
 } from "./normalizers"
 
 type CloudflareTurnstileOptions = {
+  expectedAction?: string
   secretApiStoreName?: string
   tokenFields?: readonly string[]
 }
@@ -40,6 +41,7 @@ class CaptchaError extends Error {
 export function verifyCloudflareTurnstile(
   options: CloudflareTurnstileOptions = {}
 ) {
+  const expectedAction = options.expectedAction
   const secretApiStoreName = options.secretApiStoreName
   const tokenFields = options.tokenFields ?? DEFAULT_TURNSTILE_TOKEN_FIELDS
 
@@ -81,8 +83,10 @@ export function verifyCloudflareTurnstile(
         verification,
         getAllowedTurnstileHostnames()
       )
+      const actionAllowed =
+        !expectedAction || verification.action === expectedAction
 
-      if (!(verification.success && hostnameAllowed)) {
+      if (!(verification.success && hostnameAllowed && actionAllowed)) {
         throw new CaptchaError({
           message: "Captcha verification failed",
           status: 400,
@@ -95,8 +99,8 @@ export function verifyCloudflareTurnstile(
         error instanceof CaptchaError
           ? error
           : new CaptchaError({
-              message: "Captcha verification failed",
-              status: 400,
+              message: "Captcha verification is temporarily unavailable",
+              status: 503,
             })
 
       return res.status(captchaError.status).json({

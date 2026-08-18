@@ -76,6 +76,7 @@ describe("verifyCloudflareTurnstile", () => {
     process.env.CLOUDFLARE_TURNSTILE_ALLOWED_HOSTNAMES = "localhost"
     const fetchMock = vi.fn(async () => ({
       json: async () => ({
+        action: "product_review",
         success: true,
         hostname: "localhost",
         "error-codes": [],
@@ -92,14 +93,21 @@ describe("verifyCloudflareTurnstile", () => {
     const res = createRes()
     const next = vi.fn()
 
-    await verifyCloudflareTurnstile()(req, res, next)
+    await verifyCloudflareTurnstile({ expectedAction: "product_review" })(
+      req,
+      res,
+      next
+    )
 
     expect(next).toHaveBeenCalledOnce()
     expect(res.status).not.toHaveBeenCalled()
     expect(req.body).toEqual({ content: "Review" })
     expect(fetchMock).toHaveBeenCalledWith(
       "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-      expect.objectContaining({ method: "POST" })
+      expect.objectContaining({
+        method: "POST",
+        signal: expect.any(AbortSignal),
+      })
     )
     const requestBody = fetchMock.mock.calls[0]?.[1]?.body as URLSearchParams
     expect(requestBody.get("secret")).toBe(
@@ -169,6 +177,67 @@ describe("verifyCloudflareTurnstile", () => {
     expect(res.json).toHaveBeenCalledWith({
       code: "captcha_verification_failed",
       message: "Captcha verification failed",
+      type: "invalid_data",
+    })
+  })
+
+  it.each([
+    undefined,
+    "login",
+  ])("rejects a valid Cloudflare response with action %s", async (action) => {
+    process.env.CLOUDFLARE_TURNSTILE_ENABLED = "true"
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        json: async () => ({ action, success: true }),
+        ok: true,
+      }))
+    )
+    const req = createReq({
+      body: { turnstileToken: "XXXX.DUMMY.TOKEN.XXXX" },
+    })
+    const res = createRes()
+    const next = vi.fn()
+
+    await verifyCloudflareTurnstile({ expectedAction: "product_review" })(
+      req,
+      res,
+      next
+    )
+
+    expect(next).not.toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(400)
+    expect(res.json).toHaveBeenCalledWith({
+      code: "captcha_verification_failed",
+      message: "Captcha verification failed",
+      type: "invalid_data",
+    })
+  })
+
+  it("returns service unavailable when Cloudflare verification cannot complete", async () => {
+    process.env.CLOUDFLARE_TURNSTILE_ENABLED = "true"
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => {
+      expect(init?.signal).toBeInstanceOf(AbortSignal)
+      throw new DOMException("The operation timed out", "TimeoutError")
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    const req = createReq({
+      body: { turnstileToken: "XXXX.DUMMY.TOKEN.XXXX" },
+    })
+    const res = createRes()
+    const next = vi.fn()
+
+    await verifyCloudflareTurnstile({ expectedAction: "product_review" })(
+      req,
+      res,
+      next
+    )
+
+    expect(next).not.toHaveBeenCalled()
+    expect(res.status).toHaveBeenCalledWith(503)
+    expect(res.json).toHaveBeenCalledWith({
+      code: "captcha_verification_failed",
+      message: "Captcha verification is temporarily unavailable",
       type: "invalid_data",
     })
   })
