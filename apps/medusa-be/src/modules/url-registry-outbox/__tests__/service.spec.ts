@@ -15,6 +15,19 @@ const input = (eventId: string, reason: "created" | "updated" = "updated") => ({
   reason,
 })
 
+const deliveryInput = (
+  eventId: string,
+  productId: string,
+  reason: "created" | "updated" = "updated"
+) => ({
+  ...input(eventId, reason),
+  affectedMarketCodes: ["sk"] as const,
+  productId,
+})
+
+const FIRST_CLAIM_AT = "2030-01-01T00:00:00.000Z"
+const SECOND_CLAIM_AT = "2030-01-01T00:00:02.000Z"
+
 moduleIntegrationTestRunner<UrlRegistryOutboxModuleService>({
   moduleName: URL_REGISTRY_OUTBOX_MODULE,
   moduleModels: [UrlRegistryOutboxStream, UrlRegistryOutboxEvent],
@@ -130,6 +143,342 @@ moduleIntegrationTestRunner<UrlRegistryOutboxModuleService>({
         expect(
           await service.listUrlRegistryOutboxStreams({ market_code: "cz" })
         ).toHaveLength(0)
+      })
+    })
+
+    describe("delivery state", () => {
+      it("claims only the FIFO head of each stream", async () => {
+        await service.enqueueProductLifecycleEvent(
+          deliveryInput("fifo-a-1", "prod_fifo_a")
+        )
+        await service.enqueueProductLifecycleEvent(
+          deliveryInput("fifo-a-2", "prod_fifo_a")
+        )
+        await service.enqueueProductLifecycleEvent(
+          deliveryInput("fifo-b-1", "prod_fifo_b")
+        )
+
+        const claimed = await service.claimUrlRegistryOutboxEvents({
+          claimedBy: "worker-a",
+          leaseDurationMs: 60_000,
+          limit: 10,
+          now: FIRST_CLAIM_AT,
+        })
+
+        expect(claimed).toHaveLength(2)
+        expect(claimed.map((event) => event.eventId).sort()).toEqual([
+          "fifo-a-1",
+          "fifo-b-1",
+        ])
+        expect(
+          claimed.every(
+            (event) =>
+              event.attemptCount === 1 &&
+              event.claimedBy === "worker-a" &&
+              event.status === "processing"
+          )
+        ).toBe(true)
+
+        const first = claimed.find((event) => event.eventId === "fifo-a-1")
+        expect(first).toBeDefined()
+        await service.acknowledgeUrlRegistryOutboxEvent({
+          claimToken: first?.claimToken,
+          id: first?.id,
+          now: "2030-01-01T00:00:01.000Z",
+          outcome: "applied",
+        })
+
+        const next = await service.claimUrlRegistryOutboxEvents({
+          claimedBy: "worker-b",
+          leaseDurationMs: 60_000,
+          limit: 10,
+          now: SECOND_CLAIM_AT,
+        })
+        expect(next.map((event) => event.eventId)).toEqual(["fifo-a-2"])
+      })
+
+      it("uses row locks to give concurrent workers disjoint claims", async () => {
+        for (let index = 0; index < 6; index += 1) {
+          await service.enqueueProductLifecycleEvent(
+            deliveryInput(`concurrent-claim-${index}`, `prod_claim_${index}`)
+          )
+        }
+
+        const [first, second] = await Promise.all([
+          service.claimUrlRegistryOutboxEvents({
+            claimedBy: "worker-a",
+            leaseDurationMs: 60_000,
+            limit: 3,
+            now: FIRST_CLAIM_AT,
+          }),
+          service.claimUrlRegistryOutboxEvents({
+            claimedBy: "worker-b",
+            leaseDurationMs: 60_000,
+            limit: 3,
+            now: FIRST_CLAIM_AT,
+          }),
+        ])
+
+        expect(first).toHaveLength(3)
+        expect(second).toHaveLength(3)
+        expect(
+          new Set([...first, ...second].map((event) => event.id)).size
+        ).toBe(6)
+      })
+
+      it("retries with a delay and rejects a stale claim token", async () => {
+        await service.enqueueProductLifecycleEvent(
+          deliveryInput("retry-1", "prod_retry")
+        )
+        const [firstClaim] = await service.claimUrlRegistryOutboxEvents({
+          claimedBy: "worker-a",
+          leaseDurationMs: 60_000,
+          limit: 1,
+          now: FIRST_CLAIM_AT,
+        })
+        expect(firstClaim).toBeDefined()
+
+        await service.retryUrlRegistryOutboxEvent({
+          claimToken: firstClaim?.claimToken,
+          errorCode: "urlr-unavailable",
+          id: firstClaim?.id,
+          now: "2030-01-01T00:00:01.000Z",
+          retryAfterMs: 1000,
+        })
+
+        expect(
+          await service.claimUrlRegistryOutboxEvents({
+            claimedBy: "worker-b",
+            leaseDurationMs: 60_000,
+            limit: 1,
+            now: "2030-01-01T00:00:01.999Z",
+          })
+        ).toEqual([])
+
+        const [secondClaim] = await service.claimUrlRegistryOutboxEvents({
+          claimedBy: "worker-b",
+          leaseDurationMs: 60_000,
+          limit: 1,
+          now: SECOND_CLAIM_AT,
+        })
+        expect(secondClaim?.attemptCount).toBe(2)
+        expect(secondClaim?.claimToken).not.toBe(firstClaim?.claimToken)
+
+        await expect(
+          service.acknowledgeUrlRegistryOutboxEvent({
+            claimToken: firstClaim?.claimToken,
+            id: firstClaim?.id,
+            now: "2030-01-01T00:00:03.000Z",
+            outcome: "applied",
+          })
+        ).rejects.toMatchObject({
+          name: "UrlRegistryOutboxClaimConflictError",
+        })
+
+        const [stored] = await service.listUrlRegistryOutboxEvents({
+          id: firstClaim?.id,
+        })
+        expect(stored?.claim_token).toBe(secondClaim?.claimToken)
+        expect(stored?.status).toBe("processing")
+      })
+
+      it("reclaims only expired leases and invalidates their old tokens", async () => {
+        await service.enqueueProductLifecycleEvent(
+          deliveryInput("expired-lease", "prod_expired")
+        )
+        await service.enqueueProductLifecycleEvent(
+          deliveryInput("active-lease", "prod_active")
+        )
+
+        const [expired] = await service.claimUrlRegistryOutboxEvents({
+          claimedBy: "worker-a",
+          leaseDurationMs: 1000,
+          limit: 1,
+          now: FIRST_CLAIM_AT,
+        })
+        const [active] = await service.claimUrlRegistryOutboxEvents({
+          claimedBy: "worker-a",
+          leaseDurationMs: 60_000,
+          limit: 1,
+          now: FIRST_CLAIM_AT,
+        })
+        expect(expired).toBeDefined()
+        expect(active).toBeDefined()
+
+        const reclaimed = await service.reclaimExpiredUrlRegistryOutboxEvents({
+          limit: 10,
+          now: SECOND_CLAIM_AT,
+        })
+        expect(reclaimed.map((event) => event.id)).toEqual([expired?.id])
+
+        await expect(
+          service.failUrlRegistryOutboxEvent({
+            claimToken: expired?.claimToken,
+            errorCode: "stale-worker",
+            id: expired?.id,
+            now: "2030-01-01T00:00:03.000Z",
+          })
+        ).rejects.toMatchObject({
+          name: "UrlRegistryOutboxClaimConflictError",
+        })
+
+        const stored = await service.listUrlRegistryOutboxEvents({})
+        expect(stored.find((event) => event.id === expired?.id)?.status).toBe(
+          "pending"
+        )
+        expect(stored.find((event) => event.id === active?.id)?.status).toBe(
+          "processing"
+        )
+      })
+
+      it("makes delivered and failed states terminal and lets failure block FIFO", async () => {
+        await service.enqueueProductLifecycleEvent(
+          deliveryInput("terminal-failed-1", "prod_terminal")
+        )
+        await service.enqueueProductLifecycleEvent(
+          deliveryInput("terminal-failed-2", "prod_terminal")
+        )
+        await service.enqueueProductLifecycleEvent(
+          deliveryInput("terminal-delivered", "prod_delivered")
+        )
+
+        const claimed = await service.claimUrlRegistryOutboxEvents({
+          claimedBy: "worker-a",
+          leaseDurationMs: 60_000,
+          limit: 10,
+          now: FIRST_CLAIM_AT,
+        })
+        const failed = claimed.find(
+          (event) => event.eventId === "terminal-failed-1"
+        )
+        const delivered = claimed.find(
+          (event) => event.eventId === "terminal-delivered"
+        )
+        expect(failed).toBeDefined()
+        expect(delivered).toBeDefined()
+
+        await service.failUrlRegistryOutboxEvent({
+          claimToken: failed?.claimToken,
+          errorCode: "invalid-command",
+          id: failed?.id,
+          now: "2030-01-01T00:00:01.000Z",
+        })
+        await service.acknowledgeUrlRegistryOutboxEvent({
+          claimToken: delivered?.claimToken,
+          id: delivered?.id,
+          now: "2030-01-01T00:00:01.000Z",
+          outcome: "already-applied",
+        })
+
+        await expect(
+          service.retryUrlRegistryOutboxEvent({
+            claimToken: delivered?.claimToken,
+            errorCode: "too-late",
+            id: delivered?.id,
+            now: SECOND_CLAIM_AT,
+            retryAfterMs: 0,
+          })
+        ).rejects.toMatchObject({
+          name: "UrlRegistryOutboxClaimConflictError",
+        })
+        expect(
+          await service.claimUrlRegistryOutboxEvents({
+            claimedBy: "worker-b",
+            leaseDurationMs: 60_000,
+            limit: 10,
+            now: SECOND_CLAIM_AT,
+          })
+        ).toEqual([])
+
+        const stored = await service.listUrlRegistryOutboxEvents({})
+        expect(stored.find((event) => event.id === failed?.id)).toMatchObject({
+          delivery_outcome: null,
+          status: "failed",
+        })
+        expect(
+          stored.find((event) => event.id === delivered?.id)
+        ).toMatchObject({
+          delivery_outcome: "already-applied",
+          status: "delivered",
+        })
+      })
+
+      it("rejects unbounded and ambiguous delivery-state inputs", async () => {
+        await expect(
+          service.claimUrlRegistryOutboxEvents({
+            claimedBy: "worker-a",
+            leaseDurationMs: 60_000,
+            limit: 0,
+            now: FIRST_CLAIM_AT,
+          })
+        ).rejects.toMatchObject({
+          name: "UrlRegistryOutboxDeliveryInputError",
+        })
+        await expect(
+          service.claimUrlRegistryOutboxEvents({
+            claimedBy: "w".repeat(129),
+            leaseDurationMs: 60_000,
+            limit: 101,
+            now: FIRST_CLAIM_AT,
+          })
+        ).rejects.toMatchObject({
+          name: "UrlRegistryOutboxDeliveryInputError",
+        })
+        await expect(
+          service.claimUrlRegistryOutboxEvents({
+            claimedBy: "worker-a",
+            leaseDurationMs: 0,
+            limit: 1,
+            now: FIRST_CLAIM_AT,
+          })
+        ).rejects.toMatchObject({
+          name: "UrlRegistryOutboxDeliveryInputError",
+        })
+        await Promise.all(
+          [null, 0, true].map((now) =>
+            expect(
+              service.claimUrlRegistryOutboxEvents({
+                claimedBy: "worker-a",
+                leaseDurationMs: 60_000,
+                limit: 1,
+                now,
+              })
+            ).rejects.toMatchObject({
+              name: "UrlRegistryOutboxDeliveryInputError",
+            })
+          )
+        )
+
+        await service.enqueueProductLifecycleEvent(
+          deliveryInput("bounded-retry", "prod_bounded")
+        )
+        const [claimed] = await service.claimUrlRegistryOutboxEvents({
+          claimedBy: "worker-a",
+          leaseDurationMs: 60_000,
+          limit: 1,
+          now: FIRST_CLAIM_AT,
+        })
+        await expect(
+          service.retryUrlRegistryOutboxEvent({
+            claimToken: claimed?.claimToken,
+            errorCode: "e".repeat(129),
+            id: claimed?.id,
+            now: FIRST_CLAIM_AT,
+            retryAfterMs: 86_400_001,
+          })
+        ).rejects.toMatchObject({
+          name: "UrlRegistryOutboxDeliveryInputError",
+        })
+        await expect(
+          service.acknowledgeUrlRegistryOutboxEvent({
+            claimToken: claimed?.claimToken,
+            eventId: claimed?.id,
+            now: FIRST_CLAIM_AT,
+            outcome: "applied",
+          })
+        ).rejects.toMatchObject({
+          name: "UrlRegistryOutboxDeliveryInputError",
+        })
       })
     })
   },
