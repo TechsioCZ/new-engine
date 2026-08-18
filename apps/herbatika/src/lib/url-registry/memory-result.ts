@@ -7,9 +7,10 @@ import type {
   UrlRegistryCommandCommit,
 } from "./commands"
 import { UrlRegistryError } from "./errors"
+import { invalidationTagsForSnapshots } from "./invalidation-tags"
 import type { MemoryCommandExecutor } from "./memory-command"
+import { snapshotRoute } from "./memory-snapshot"
 import { cloneValue, type MemoryRegistryState } from "./memory-state"
-import { sortedUnique } from "./memory-support"
 import type {
   EntityRouteSnapshot,
   StaticRouteSnapshot,
@@ -77,34 +78,11 @@ export const tagsForRoutes = (
   routeIds: readonly string[],
   extra: readonly string[] = []
 ): string[] => {
-  const tags = [...extra]
-  for (const routeId of new Set(routeIds)) {
-    const route = state.routes.get(routeId)
-    if (!route) {
-      continue
-    }
-    tags.push(
-      `market:${route.market}`,
-      `route:${route.market}:${route.kind}:${route.id}`,
-      `sitemap:${route.market}`
-    )
-    if (route.equivalenceKey) {
-      tags.push(`equivalence:${route.equivalenceKey}`)
-    }
-    if (route.targetType === "entity") {
-      tags.push(`${route.kind}:${route.market}:${route.sourceId}`)
-      for (const slug of state.slugs.values()) {
-        if (slug.routeId === route.id) {
-          tags.push(
-            `route-slug:${route.market}:${route.kind}:${slug.normalizedSlug}`
-          )
-        }
-      }
-    } else {
-      tags.push(`static-route:${route.market}:${route.staticRouteKey}`)
-    }
-  }
-  return sortedUnique(tags)
+  const snapshots = [...new Set(routeIds)]
+    .map((routeId) => state.routes.get(routeId))
+    .filter((route) => route !== undefined)
+    .map((route) => snapshotRoute(state, route))
+  return invalidationTagsForSnapshots(snapshots, extra)
 }
 
 export const routeMutation = (

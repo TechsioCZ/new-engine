@@ -246,6 +246,9 @@ replacement branch, not requirements quoted from issue #545:
 - Payload and Medusa lifecycle producers use transactional outboxes rather than
   synchronous cross-service HTTP inside a pre-commit hook;
 - no deferred row trigger scans the complete registry for every changed row;
+- bounded invalidation records add a coarse `route-family:{market}:{kind}` tag
+  so large history/cascade mutations remain correct without enumerating every
+  exact route tag;
 - S3 includes a 20,000-record Postgres load gate in addition to behavior,
   replay, and concurrency tests.
 
@@ -530,6 +533,7 @@ Required tags are:
 
 ```text
 market:{market}
+route-family:{market}:{kind}
 route:{market}:{kind}:{routeId}
 route-slug:{market}:{kind}:{slug}
 static-route:{market}:{routeKey}
@@ -538,6 +542,14 @@ facet:{market}:{facetKind}:{sourceId}
 {entityKind}:{market}:{entityId}
 sitemap:{market}
 ```
+
+`market` and the repo-local `route-family` hardening tag are mandatory on every
+URLR resolution cache entry, including miss, alias, superseded, and equivalence
+reads. Exact route/slug tags from the issue remain required on cache entries
+when that identity is known. A bounded invalidation record prioritizes the old
+and new exact paths, then may omit additional historical/cascade exact tags;
+correctness for that overflow relies on the coarse family tag. Cross-market
+equivalence reads carry the family tag for every queried market.
 
 Slug, assignment, publishability, lifecycle, equivalence, or static-segment
 changes invalidate the old and new path as applicable, entity/source data,

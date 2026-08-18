@@ -8,6 +8,7 @@ import type {
   UrlRegistryInvalidationOutboxRecord,
 } from "./commands"
 import { UrlRegistryError } from "./errors"
+import { assertBoundedUrlRegistryInvalidationTags } from "./invalidation-tags"
 import { assertMemoryInvariants } from "./memory-invariants"
 import {
   cloneMemoryState,
@@ -213,6 +214,7 @@ export class MemoryCommandExecutor {
     if (!input.tags) {
       return null
     }
+    assertBoundedUrlRegistryInvalidationTags(input.tags)
     const invalidation: UrlRegistryInvalidationOutboxRecord = {
       id: this.newId(next, "outbox"),
       auditId: audit.id,
