@@ -213,13 +213,13 @@ const CmsHeroCarouselSchema = passthroughObject({
   updatedAt: z.string().optional(),
 })
 
-const CmsFooterColumnSlotSchema = z.enum([
+const CMS_FOOTER_COLUMN_SLOTS = [
   "information",
   "important",
   "partners",
-])
+] as const
 
-const CmsFooterItemSlotSchema = z.enum([
+const CMS_FOOTER_ITEM_SLOTS = [
   "blog",
   "about",
   "faq",
@@ -235,7 +235,10 @@ const CmsFooterItemSlotSchema = z.enum([
   "wholesale",
   "dropshipping",
   "private_label",
-])
+] as const
+
+const CmsFooterColumnSlotSchema = z.enum(CMS_FOOTER_COLUMN_SLOTS)
+const CmsFooterItemSlotSchema = z.enum(CMS_FOOTER_ITEM_SLOTS)
 
 const CmsFooterPageReferenceSchema = passthroughObject({
   id: CmsDocumentIdSchema,
@@ -372,6 +375,8 @@ const CmsCategoryListOptionsSchema = z.object({
 })
 
 export {
+  CMS_FOOTER_COLUMN_SLOTS,
+  CMS_FOOTER_ITEM_SLOTS,
   CmsVisibilitySchema,
   CmsStatusSchema,
   CmsSeoSchema,

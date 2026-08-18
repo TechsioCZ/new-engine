@@ -94,24 +94,32 @@ export type CmsHeroCarousel = {
   subheading?: string | null
 }
 
-export type CmsFooterColumnSlot = "information" | "important" | "partners"
+export const CMS_FOOTER_COLUMN_SLOTS = [
+  "information",
+  "important",
+  "partners",
+] as const
 
-export type CmsFooterItemSlot =
-  | "blog"
-  | "about"
-  | "faq"
-  | "gift_voucher"
-  | "brands"
-  | "reviews"
-  | "shipping_payment"
-  | "claims_returns"
-  | "terms"
-  | "privacy"
-  | "cookies"
-  | "affiliate"
-  | "wholesale"
-  | "dropshipping"
-  | "private_label"
+export const CMS_FOOTER_ITEM_SLOTS = [
+  "blog",
+  "about",
+  "faq",
+  "gift_voucher",
+  "brands",
+  "reviews",
+  "shipping_payment",
+  "claims_returns",
+  "terms",
+  "privacy",
+  "cookies",
+  "affiliate",
+  "wholesale",
+  "dropshipping",
+  "private_label",
+] as const
+
+export type CmsFooterColumnSlot = (typeof CMS_FOOTER_COLUMN_SLOTS)[number]
+export type CmsFooterItemSlot = (typeof CMS_FOOTER_ITEM_SLOTS)[number]
 
 export type CmsFooterNavigation = {
   columns: Array<{

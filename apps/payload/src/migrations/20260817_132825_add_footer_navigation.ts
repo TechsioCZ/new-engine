@@ -13,7 +13,7 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
     "_locale" "payload"."_locales" NOT NULL,
     "id" varchar PRIMARY KEY NOT NULL,
     "slot" "payload"."enum_footer_navigation_blocks_cms_page_link_slot" NOT NULL,
-    "page_id" integer NOT NULL,
+    "page_id" integer,
     "block_name" varchar
   );
 

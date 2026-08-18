@@ -2,32 +2,12 @@ import type { Block, GlobalConfig, TextFieldSingleValidation } from "payload"
 import { requireAuth } from "../lib/access/require-auth"
 import { adminGroups } from "../lib/constants/labels"
 import { createMedusaGlobalCacheHook } from "../lib/hooks/medusa-cache"
+import {
+  FOOTER_COLUMN_SLOT_OPTIONS,
+  FOOTER_ITEM_SLOT_OPTIONS,
+} from "./footer-navigation-slots"
 
 export const FOOTER_NAVIGATION_GLOBAL_SLUG = "footer-navigation"
-
-const columnSlotOptions = [
-  { label: "Information", value: "information" },
-  { label: "Important information", value: "important" },
-  { label: "Partners", value: "partners" },
-]
-
-const itemSlotOptions = [
-  { label: "Blog", value: "blog" },
-  { label: "About", value: "about" },
-  { label: "FAQ", value: "faq" },
-  { label: "Gift voucher", value: "gift_voucher" },
-  { label: "Brands", value: "brands" },
-  { label: "Reviews", value: "reviews" },
-  { label: "Shipping and payment", value: "shipping_payment" },
-  { label: "Claims and returns", value: "claims_returns" },
-  { label: "Terms and conditions", value: "terms" },
-  { label: "Privacy", value: "privacy" },
-  { label: "Cookies", value: "cookies" },
-  { label: "Affiliate program", value: "affiliate" },
-  { label: "Wholesale", value: "wholesale" },
-  { label: "Dropshipping", value: "dropshipping" },
-  { label: "Private label", value: "private_label" },
-]
 
 const validateInternalPath: TextFieldSingleValidation = (value) => {
   if (typeof value !== "string" || !value.trim()) {
@@ -60,7 +40,7 @@ const createItemSlotField = () => ({
   label: "Translation slot",
   type: "select" as const,
   required: true,
-  options: itemSlotOptions,
+  options: FOOTER_ITEM_SLOT_OPTIONS,
   admin: {
     description:
       "Stable key used by the storefront-text module for the visible label.",
@@ -69,6 +49,7 @@ const createItemSlotField = () => ({
 
 const CmsPageLinkBlock: Block = {
   slug: "cmsPageLink",
+  interfaceName: "FooterCmsPageLink",
   labels: {
     singular: "CMS page",
     plural: "CMS pages",
@@ -80,7 +61,6 @@ const CmsPageLinkBlock: Block = {
       label: "Page",
       type: "relationship",
       relationTo: "pages",
-      required: true,
       filterOptions: {
         and: [
           { status: { equals: "published" } },
@@ -93,6 +73,7 @@ const CmsPageLinkBlock: Block = {
 
 const AppRouteLinkBlock: Block = {
   slug: "appRouteLink",
+  interfaceName: "FooterAppRouteLink",
   labels: {
     singular: "Application route",
     plural: "Application routes",
@@ -114,6 +95,7 @@ const AppRouteLinkBlock: Block = {
 
 const ExternalLinkBlock: Block = {
   slug: "externalLink",
+  interfaceName: "FooterExternalLink",
   labels: {
     singular: "External link",
     plural: "External links",
@@ -205,7 +187,7 @@ export const FooterNavigation: GlobalConfig = {
           label: "Column translation slot",
           type: "select",
           required: true,
-          options: columnSlotOptions,
+          options: FOOTER_COLUMN_SLOT_OPTIONS,
         },
         {
           name: "items",

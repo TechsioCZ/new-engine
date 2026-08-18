@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest"
 import {
+  CMS_FOOTER_COLUMN_SLOTS as STOREFRONT_FOOTER_COLUMN_SLOTS,
+  CMS_FOOTER_ITEM_SLOTS as STOREFRONT_FOOTER_ITEM_SLOTS,
+} from "../../../../../../herbatika/src/lib/storefront/cms-types"
+import {
+  FOOTER_COLUMN_SLOT_OPTIONS,
+  FOOTER_ITEM_SLOT_OPTIONS,
+} from "../../../../../../payload/src/globals/footer-navigation-slots"
+import {
+  CMS_FOOTER_COLUMN_SLOTS,
+  CMS_FOOTER_ITEM_SLOTS,
   CmsArticleSchema,
   CmsFooterNavigationGlobalSchema,
   CmsLexicalContentSchema,
@@ -23,6 +33,18 @@ const createLexicalContent = (fields: Record<string, unknown>) => ({
 })
 
 describe("Payload CMS schemas", () => {
+  it("keeps footer slots aligned across Payload, Medusa, and the storefront", () => {
+    const payloadColumnSlots = FOOTER_COLUMN_SLOT_OPTIONS.map(
+      ({ value }) => value
+    )
+    const payloadItemSlots = FOOTER_ITEM_SLOT_OPTIONS.map(({ value }) => value)
+
+    expect(CMS_FOOTER_COLUMN_SLOTS).toEqual(payloadColumnSlots)
+    expect(CMS_FOOTER_ITEM_SLOTS).toEqual(payloadItemSlots)
+    expect(STOREFRONT_FOOTER_COLUMN_SLOTS).toEqual(payloadColumnSlots)
+    expect(STOREFRONT_FOOTER_ITEM_SLOTS).toEqual(payloadItemSlots)
+  })
+
   it("preserves structured article content and generated HTML", () => {
     const content = createLexicalContent({
       blockType: "productCarousel",
