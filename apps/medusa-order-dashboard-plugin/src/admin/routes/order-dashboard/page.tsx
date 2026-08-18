@@ -1358,22 +1358,70 @@ const OrderDashboardPage = () => {
                 </Select.Content>
               </Select>
             ) : null}
-            {shippingLabelCarrierSelection.kind !== "unsupported" ? (
+            {availableCarrierKeys.includes("packeta") ? (
               <Button
                 disabled={
-                  !selectedCount ||
+                  shippingLabelCarrierSelection.kind !== "supported" ||
+                  shippingLabelCarrierSelection.carrier !== "packeta" ||
                   isPreparingShippingLabels ||
                   shippingLabelsMutation.isPending
                 }
                 isLoading={
-                  isPreparingShippingLabels || shippingLabelsMutation.isPending
+                  shippingLabelCarrierSelection.kind === "supported" &&
+                  shippingLabelCarrierSelection.carrier === "packeta" &&
+                  (isPreparingShippingLabels ||
+                    shippingLabelsMutation.isPending)
                 }
                 onClick={handleShippingLabels}
                 size="small"
                 type="button"
                 variant="secondary"
               >
-                {t("actions.shippingLabels")}
+                {t("actions.packetaLabels")}
+              </Button>
+            ) : null}
+            {availableCarrierKeys.includes("gls") ? (
+              <Button
+                disabled={
+                  shippingLabelCarrierSelection.kind !== "supported" ||
+                  shippingLabelCarrierSelection.carrier !== "gls" ||
+                  isPreparingShippingLabels ||
+                  shippingLabelsMutation.isPending
+                }
+                isLoading={
+                  shippingLabelCarrierSelection.kind === "supported" &&
+                  shippingLabelCarrierSelection.carrier === "gls" &&
+                  (isPreparingShippingLabels ||
+                    shippingLabelsMutation.isPending)
+                }
+                onClick={handleShippingLabels}
+                size="small"
+                type="button"
+                variant="secondary"
+              >
+                {t("actions.glsLabels")}
+              </Button>
+            ) : null}
+            {availableCarrierKeys.includes("ppl") ? (
+              <Button
+                disabled={
+                  shippingLabelCarrierSelection.kind !== "supported" ||
+                  shippingLabelCarrierSelection.carrier !== "ppl" ||
+                  isPreparingShippingLabels ||
+                  shippingLabelsMutation.isPending
+                }
+                isLoading={
+                  shippingLabelCarrierSelection.kind === "supported" &&
+                  shippingLabelCarrierSelection.carrier === "ppl" &&
+                  (isPreparingShippingLabels ||
+                    shippingLabelsMutation.isPending)
+                }
+                onClick={handleShippingLabels}
+                size="small"
+                type="button"
+                variant="secondary"
+              >
+                {t("actions.pplLabels")}
               </Button>
             ) : null}
             <Button
