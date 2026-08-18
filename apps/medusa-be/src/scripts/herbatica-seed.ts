@@ -11,6 +11,11 @@ import {
   Modules,
   ProductStatus,
 } from "@medusajs/framework/utils"
+import {
+  type NormalizedMeasurementSourceUnit,
+  normalizeMeasurementQuantity,
+  resolveMeasurementSourceUnit,
+} from "../utils/measurement-unit-source"
 import { normalizeUnitCode } from "../workflows/measurement-unit/steps/helpers"
 import type { SeedDatabaseWorkflowInput } from "../workflows/seed/workflows/seed-database"
 import seedShoptetImportWorkflow from "../workflows/seed/workflows/seed-shoptet-import"
@@ -64,6 +69,7 @@ import {
   parseManufacturersCsv,
   readCsvSource,
 } from "./manufacturers-csv"
+import { seedDefaultMeasurementUnitTranslations } from "./measurement-unit-translations"
 
 type ProductSeedInput = SeedDatabaseWorkflowInput["products"][number]
 type BrandSeedInput = NonNullable<ProductSeedInput["brand"]>
@@ -2674,10 +2680,6 @@ function buildProductMetadata({
   }
 }
 
-function normalizeMeasurementSourceUnit(value?: string) {
-  return normalizeInlineText(value)
-}
-
 function getMeasurementConfigurationKey(
   measurement: NonNullable<ProductSeedInput["measurement"]>
 ) {
@@ -2691,8 +2693,8 @@ export function resolveHerbaticaOfferMeasurement(
   product: NonNullable<ProductSeedInput["measurement"]>
   variant: NonNullable<VariantSeedInput["measurement"]>
 } | null {
-  const packageUnit = normalizeMeasurementSourceUnit(offer.packageAmountUnit)
-  const measureUnit = normalizeMeasurementSourceUnit(offer.measureAmountUnit)
+  const packageUnit = resolveMeasurementSourceUnit(offer.packageAmountUnit)
+  const measureUnit = resolveMeasurementSourceUnit(offer.measureAmountUnit)
   const values = [
     offer.packageAmount,
     packageUnit,
@@ -2726,24 +2728,30 @@ export function resolveHerbaticaOfferMeasurement(
       `UNIT_OF_MEASURE amounts must be positive for ${sourceLabel}`
     )
   }
-  if (packageUnit?.toLowerCase() !== measureUnit?.toLowerCase()) {
+  if (packageUnit?.dimension !== measureUnit?.dimension) {
     throw new Error(
-      `UNIT_OF_MEASURE package unit "${packageUnit}" does not match comparison unit "${measureUnit}" for ${sourceLabel}`
+      `UNIT_OF_MEASURE package unit "${packageUnit?.symbol}" does not match comparison unit "${measureUnit?.symbol}" for ${sourceLabel}`
     )
   }
 
-  const symbol = measureUnit as string
+  const resolvedMeasureUnit = measureUnit as NormalizedMeasurementSourceUnit
+  const resolvedPackageUnit = packageUnit as NormalizedMeasurementSourceUnit
+  const baseQuantity = normalizeMeasurementQuantity(measureAmount)
+  const productUnitQuantity = normalizeMeasurementQuantity(
+    (packageAmount * resolvedPackageUnit.factor) / resolvedMeasureUnit.factor
+  )
+  const symbol = resolvedMeasureUnit.symbol
   return {
     product: {
       unit: {
-        base_quantity: measureAmount,
-        code: normalizeUnitCode(`${symbol}_${measureAmount}`),
+        base_quantity: baseQuantity,
+        code: normalizeUnitCode(`${symbol}_${baseQuantity}`),
         name: symbol,
         symbol,
       },
     },
     variant: {
-      product_unit_quantity: packageAmount,
+      product_unit_quantity: productUnitQuantity,
     },
   }
 }
@@ -2762,7 +2770,7 @@ function resolveHerbaticaProductMeasurement(item: ParsedShopItem) {
   })
   const [measurement] = configured
   if (!measurement) {
-    return null
+    return
   }
 
   const expectedKey = getMeasurementConfigurationKey(measurement)
@@ -2829,7 +2837,7 @@ function buildDefaultVariantForProduct({
         images: thumbnail ? [{ url: thumbnail }] : undefined,
         thumbnail,
         metadata: buildVariantMetadata(topOffer, undefined, referenceDate),
-        measurement: measurement?.variant ?? null,
+        measurement: measurement?.variant,
         quantities,
       },
     ],
@@ -2897,7 +2905,7 @@ function buildVariantSeed({
     images: thumbnail ? [{ url: thumbnail }] : undefined,
     thumbnail,
     metadata: buildVariantMetadata(variant, item.topOffer, referenceDate),
-    measurement: measurement?.variant ?? null,
+    measurement: measurement?.variant,
     quantities,
   }
 }
@@ -3843,6 +3851,16 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
       input,
     }
   )
+  const measurementUnitTranslationSeed =
+    await seedDefaultMeasurementUnitTranslations(container)
+  logger.info(
+    `Created ${measurementUnitTranslationSeed.created} missing measurement-unit translations`
+  )
+  if (measurementUnitTranslationSeed.unavailableLocaleCodes.length) {
+    logger.warn(
+      `Measurement-unit translations skipped for unavailable locales: ${measurementUnitTranslationSeed.unavailableLocaleCodes.join(", ")}`
+    )
+  }
 
   if (feedPaths.reviewsXmlPath) {
     await importHerbaticaReviews({
