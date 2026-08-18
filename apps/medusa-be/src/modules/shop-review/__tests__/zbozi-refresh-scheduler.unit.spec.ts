@@ -32,6 +32,13 @@ describe("Zboží access token refresh scheduler", () => {
     const setTimer = createTimer()
     const apiStoreService = {
       retrieveApiStoreSecretsByName: vi.fn(async (name: string) => {
+        if (name === REFRESH_TOKEN_API_STORE_NAME) {
+          return {
+            api_key: "refresh-token",
+            enabled: true,
+            name,
+          }
+        }
         if (name === ACCESS_TOKEN_API_STORE_NAME) {
           return {
             access_token_expires_at: new Date(Date.now() + 60 * 60 * 1000),
@@ -78,6 +85,7 @@ describe("Zboží access token refresh scheduler", () => {
           return {
             api_key: "refresh-token",
             credentials: null,
+            enabled: true,
             name,
           }
         }
@@ -132,6 +140,7 @@ describe("Zboží access token refresh scheduler", () => {
           return {
             api_key: "refresh-token",
             credentials: null,
+            enabled: true,
             name,
           }
         }
@@ -163,5 +172,72 @@ describe("Zboží access token refresh scheduler", () => {
       expect.any(Function),
       ZBOZI_ACCESS_TOKEN_RETRY_DELAY_MS
     )
+  })
+
+  it("resumes Zboží refresh after the API Store record is re-enabled", async () => {
+    const logger = createLogger()
+    let enabled = false
+    let scheduledCallback: (() => void) | undefined
+    const setTimer = vi.fn((callback: () => void, _delay: number) => {
+      scheduledCallback = callback
+      return { unref: vi.fn() }
+    }) as unknown as typeof setTimeout
+    const apiStoreService = {
+      retrieveApiStoreSecretsByName: vi.fn(async (name: string) => {
+        if (name === REFRESH_TOKEN_API_STORE_NAME) {
+          return {
+            api_key: "refresh-token",
+            enabled,
+            name,
+          }
+        }
+        return null
+      }),
+      upsertApiStoreConfigByName: vi.fn(),
+    }
+    const fetch = vi.fn().mockResolvedValue({
+      json: vi.fn().mockResolvedValue({
+        access_token: "new-access-token",
+        expires_in: 3600,
+      }),
+      ok: true,
+      status: 200,
+    })
+    vi.stubGlobal("fetch", fetch)
+
+    await runZboziAccessTokenRefreshCycle({
+      apiStoreService: apiStoreService as never,
+      logger: logger as never,
+      setTimer,
+    })
+
+    expect(fetch).not.toHaveBeenCalled()
+    expect(apiStoreService.upsertApiStoreConfigByName).not.toHaveBeenCalled()
+    expect(logger.error).not.toHaveBeenCalled()
+    expect(logger.info).toHaveBeenCalledWith(
+      `Zboží is disabled in Settings → API Store; checking again in ${Math.round(ZBOZI_ACCESS_TOKEN_RETRY_DELAY_MS / 1000)} seconds.`
+    )
+    expect(setTimer).toHaveBeenCalledWith(
+      expect.any(Function),
+      ZBOZI_ACCESS_TOKEN_RETRY_DELAY_MS
+    )
+
+    const recheck = scheduledCallback
+    expect(recheck).toBeTypeOf("function")
+    enabled = true
+    recheck?.()
+
+    await vi.waitFor(() => {
+      expect(fetch).toHaveBeenCalledWith(
+        ZBOZI_TOKEN_URL,
+        expect.objectContaining({ method: "POST" })
+      )
+      expect(apiStoreService.upsertApiStoreConfigByName).toHaveBeenCalledWith(
+        expect.objectContaining({
+          api_key: "new-access-token",
+          name: ACCESS_TOKEN_API_STORE_NAME,
+        })
+      )
+    })
   })
 })

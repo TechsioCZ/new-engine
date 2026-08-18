@@ -101,14 +101,21 @@ export const requireEnabledIntegrationConfig = async (
     )
   }
 
+  assertIntegrationConfigEnabled(config, name)
+
+  return config
+}
+
+export const assertIntegrationConfigEnabled = (
+  config: Pick<ApiStoreSecretDTO, "enabled">,
+  name: IntegrationConfigName | string
+): void => {
   if (!config.enabled) {
     throw new MedusaError(
       MedusaError.Types.NOT_ALLOWED,
       `${name} is disabled in Settings → API Store.`
     )
   }
-
-  return config
 }
 
 export const requireCredentialObject = (
