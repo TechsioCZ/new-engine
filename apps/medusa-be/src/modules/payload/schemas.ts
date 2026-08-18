@@ -247,6 +247,7 @@ const CmsFooterPageReferenceSchema = passthroughObject({
 
 const CmsFooterCmsPageLinkSchema = passthroughObject({
   blockType: z.literal("cmsPageLink"),
+  blockName: z.string().nullable().optional(),
   id: z.string().nullable().optional(),
   slot: CmsFooterItemSlotSchema,
   page: z
@@ -269,6 +270,7 @@ const isHttpUrl = (value: string) => {
 
 const CmsFooterAppRouteLinkSchema = passthroughObject({
   blockType: z.literal("appRouteLink"),
+  blockName: z.string().nullable().optional(),
   id: z.string().nullable().optional(),
   slot: CmsFooterItemSlotSchema,
   path: z.string().trim().refine(isInternalPath),
@@ -276,6 +278,7 @@ const CmsFooterAppRouteLinkSchema = passthroughObject({
 
 const CmsFooterExternalLinkSchema = passthroughObject({
   blockType: z.literal("externalLink"),
+  blockName: z.string().nullable().optional(),
   id: z.string().nullable().optional(),
   slot: CmsFooterItemSlotSchema,
   url: z.string().trim().url().refine(isHttpUrl),
@@ -289,6 +292,7 @@ const CmsFooterNavigationItemSchema = z.discriminatedUnion("blockType", [
 ])
 
 const CmsFooterNavigationGlobalSchema = passthroughObject({
+  id: CmsDocumentIdSchema.optional(),
   columns: z
     .array(
       passthroughObject({
@@ -299,6 +303,9 @@ const CmsFooterNavigationGlobalSchema = passthroughObject({
     )
     .nullable()
     .optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+  globalType: z.literal("footer-navigation").optional(),
 })
 
 const CmsStoreFooterNavigationItemSchema = z.object({

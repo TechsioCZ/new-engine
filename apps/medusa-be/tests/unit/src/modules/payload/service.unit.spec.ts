@@ -658,12 +658,16 @@ describe("PayloadModuleService", () => {
       cacheService.get.mockResolvedValue(null)
       fetchMock.mockResolvedValue(
         createFetchResponse({
+          id: 1,
           columns: [
             {
+              id: "column-1",
               slot: "important",
               items: [
                 {
+                  id: "item-1",
                   blockType: "cmsPageLink",
+                  blockName: null,
                   slot: "shipping_payment",
                   page: {
                     id: 1,
@@ -676,6 +680,9 @@ describe("PayloadModuleService", () => {
               ],
             },
           ],
+          createdAt: "2026-08-18T07:46:09.195Z",
+          updatedAt: "2026-08-18T07:46:09.195Z",
+          globalType: "footer-navigation",
         })
       )
 
