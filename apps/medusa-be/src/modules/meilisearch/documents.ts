@@ -10,6 +10,8 @@ const PRODUCT_IDENTIFIER_METADATA_FIELDS = [
   "external_id",
   "legacy_id",
   "symmy_id",
+  "source_shopitem_id",
+  "code",
 ] as const
 const PRODUCT_IDENTIFIER_FIELDS = [
   "id",
@@ -17,6 +19,7 @@ const PRODUCT_IDENTIFIER_FIELDS = [
   "upc",
   "barcode",
   "sku",
+  "handle",
 ] as const
 const POPULARITY_FIELDS = [
   "selled",
