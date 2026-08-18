@@ -3,8 +3,13 @@ import {
   createMedusaSdk,
   type MedusaSdk,
 } from "@techsio/storefront-data/shared/medusa-client"
+import { loadMedusaStorefrontMessages } from "@techsio/storefront-i18n/medusa/messages"
 import { getMarketRuntime, type MarketCode } from "@/lib/market/market-runtime"
 import { getConfiguredMarketRuntime } from "@/lib/market/market-runtime.server"
+import {
+  type ProductPageContextRequest,
+  readProductPageContext,
+} from "./product-page-context"
 import {
   type ProductRouteSourceMarketBinding,
   type ProductRouteSourceRequest,
@@ -49,4 +54,18 @@ export const readProductRouteSourceFromMedusa = (
         }
       )
     },
+  })
+
+export const readProductPageContextFromMedusa = (
+  input: ProductPageContextRequest
+) =>
+  readProductPageContext(input, {
+    resolveMarket: (market) =>
+      getMarketRuntime(getConfiguredMarketRuntime(), market),
+    loadMessages: ({ binding, locale, market }) =>
+      loadMedusaStorefrontMessages(getMarketSdk(binding).client, {
+        locale,
+        market,
+        signal: AbortSignal.timeout(PRODUCT_SOURCE_TIMEOUT_MS),
+      }),
   })

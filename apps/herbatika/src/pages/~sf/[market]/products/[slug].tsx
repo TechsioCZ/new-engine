@@ -1,5 +1,7 @@
 import type { GetServerSideProps } from "next"
 import Head from "next/head"
+import { ProductDetail } from "@/components/product-detail"
+import { ProductPagesProvider } from "@/components/product-detail/product-pages-provider"
 import {
   type ProductPageRequest,
   rawQueryFromRequestTarget,
@@ -12,18 +14,24 @@ import {
   type SsrPageProps,
 } from "@/lib/routing/pages/ssr-outcome"
 import { buildProductSeo, serializeProductJsonLd } from "@/lib/seo/product"
+import type { ProductPageContext } from "@/lib/storefront/product-page-context"
 import type { ProductRouteMedusaProduct } from "@/lib/storefront/product-route-source"
-import { readProductRouteSourceFromMedusa } from "@/lib/storefront/product-route-source.server"
+import {
+  readProductPageContextFromMedusa,
+  readProductRouteSourceFromMedusa,
+} from "@/lib/storefront/product-route-source.server"
+import { parseMarket } from "@/lib/url/segments"
 import type { SourceReadResult } from "@/lib/url-registry/contracts"
 import { getUrlRegistryRuntime } from "@/lib/url-registry/runtime/instance.server"
 
 type ProductPageView = Readonly<{
   canonicalUrl: string
+  context: ProductPageContext
   description: string | null
   images: readonly string[]
   initialVariantId?: string
   jsonLd: string
-  productId: string
+  product: ProductRouteMedusaProduct
   publicSlug: string
   title: string
 }>
@@ -45,13 +53,35 @@ const readRegistry = async (): Promise<
 
 const singleHeader = (value: string | string[] | undefined) => value
 
-const toPageView = (
+const toPageView = async (
   outcome: Awaited<
     ReturnType<typeof resolveProductPageRequest<ProductRouteMedusaProduct>>
-  >
-): SsrOutcome<ProductPageView> => {
+  >,
+  market: ReturnType<typeof parseMarket>
+): Promise<SsrOutcome<ProductPageView>> => {
   if (outcome.kind !== "found") {
     return outcome
+  }
+  if (!market) {
+    return { kind: "unavailable" }
+  }
+
+  const context = await readProductPageContextFromMedusa({
+    ...(outcome.value.initialVariantId === undefined
+      ? {}
+      : { initialVariantId: outcome.value.initialVariantId }),
+    market,
+    product: outcome.value.product,
+  })
+  if (context.kind !== "found") {
+    return context.kind === "unavailable"
+      ? {
+          kind: "unavailable",
+          ...(context.retryAfterSeconds === undefined
+            ? {}
+            : { retryAfterSeconds: context.retryAfterSeconds }),
+        }
+      : { kind: "unavailable" }
   }
 
   const seo = buildProductSeo({
@@ -64,13 +94,14 @@ const toPageView = (
     kind: "found",
     value: {
       canonicalUrl: seo.canonicalUrl,
+      context: context.value,
       description: seo.description,
       images: seo.images,
       ...(outcome.value.initialVariantId === undefined
         ? {}
         : { initialVariantId: outcome.value.initialVariantId }),
       jsonLd: serializeProductJsonLd(seo.jsonLd),
-      productId: outcome.value.product.id,
+      product: outcome.value.product,
       publicSlug: outcome.value.publicSlug,
       title: seo.title,
     },
@@ -78,11 +109,12 @@ const toPageView = (
 }
 
 export const getServerSideProps = (async ({ params, req, res }) => {
+  const marketHeader = singleHeader(req.headers["x-sf-market"])
   const request: ProductPageRequest = {
     enabled: process.env.URL_PRODUCT_RESOLVER_ENABLED === "1",
     headers: {
       canonicalOrigin: singleHeader(req.headers["x-sf-canonical-origin"]),
-      market: singleHeader(req.headers["x-sf-market"]),
+      market: marketHeader,
       publicPath: singleHeader(req.headers["x-sf-public-path"]),
       routeKey: singleHeader(req.headers["x-sf-route-key"]),
     },
@@ -95,11 +127,15 @@ export const getServerSideProps = (async ({ params, req, res }) => {
     readRegistry,
   })
 
+  const pageOutcome = await toPageView(
+    outcome,
+    typeof marketHeader === "string" ? parseMarket(marketHeader) : null
+  ).catch((): SsrOutcome<ProductPageView> => ({ kind: "unavailable" }))
   if (res.headersSent) {
     throw new Error("Product route resolved after response headers were sent")
   }
   res.setHeader("X-SF-Resolution-Phase", "pre-flush")
-  return applySsrOutcome(res, toPageView(outcome))
+  return applySsrOutcome(res, pageOutcome)
 }) satisfies GetServerSideProps<ProductPageProps>
 
 export default function ProductPagesRoute({ page }: ProductPageProps) {
@@ -135,12 +171,19 @@ export default function ProductPagesRoute({ page }: ProductPageProps) {
           type="application/ld+json"
         />
       </Head>
-      <main data-product-id={page.value.productId}>
-        <h1>{page.value.title}</h1>
-        <p data-public-slug={page.value.publicSlug}>
-          Stable product URL resolved.
-        </p>
-      </main>
+      <ProductPagesProvider context={page.value.context}>
+        <div
+          data-product-id={page.value.product.id}
+          data-public-slug={page.value.publicSlug}
+        >
+          <ProductDetail
+            {...(page.value.initialVariantId === undefined
+              ? {}
+              : { initialVariantId: page.value.initialVariantId })}
+            initialProduct={page.value.product}
+          />
+        </div>
+      </ProductPagesProvider>
     </>
   )
 }
