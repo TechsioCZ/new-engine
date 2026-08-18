@@ -1,10 +1,11 @@
-import "server-only"
-
 import { Pool } from "pg"
 import { createPostgresUrlRegistry } from "../postgres"
 import { parseUrlRegistryRuntimeConfig } from "./config"
 import { verifyUrlRegistryMigrations } from "./migration-verifier"
 import { initializeUrlRegistryRuntime } from "./runtime-core"
+
+// Pages Router rejects the App-Router-only `server-only` marker. Consumers
+// must remain inside getServerSideProps or another server entry point.
 
 const createPool = (connectionString: string) =>
   new Pool({

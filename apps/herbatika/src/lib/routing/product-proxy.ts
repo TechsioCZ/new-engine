@@ -77,6 +77,9 @@ export const resolveProductProxyAction = ({
   if (!marketContext) {
     return { kind: "respond", status: 421 }
   }
+  if (host !== new URL(marketContext.canonicalOrigin).hostname) {
+    return { kind: "respond", status: 421 }
+  }
   const { market } = marketContext
 
   const expectedPrefix = ROUTE_SEGMENT_REGISTRY[market].typePrefixes.products

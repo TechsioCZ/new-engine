@@ -1,5 +1,11 @@
-import "server-only"
+import { createMarketRuntime, type MarketRuntime } from "./market-runtime"
 
-import { createMarketRuntime } from "./market-runtime"
+// Pages Router strips modules referenced only by getServerSideProps from the
+// browser bundle. Keep this .server module out of render-component imports.
 
-export const MARKET_RUNTIME = createMarketRuntime(process.env)
+let configuredRuntime: MarketRuntime | undefined
+
+export const getConfiguredMarketRuntime = (): MarketRuntime => {
+  configuredRuntime ??= createMarketRuntime(process.env)
+  return configuredRuntime
+}

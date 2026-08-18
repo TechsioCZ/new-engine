@@ -1,8 +1,12 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
-import { assertNextBuildValues } from "./assert-next-build.mjs"
+import {
+  assertNextBuildValues,
+  assertNoPrivateClientMarkers,
+} from "./assert-next-build.mjs"
 
 const REDIRECT_AND_ARTIFACT_ERRORS = /redirects.*standalone server/s
+const PRIVATE_CLIENT_LEAK_ERROR = /URL_REGISTRY_DATABASE_URL.*product\.js/
 
 const validInput = () => ({
   artifacts: {
@@ -46,6 +50,24 @@ describe("assertNextBuildValues", () => {
     assert.throws(
       () => assertNextBuildValues(input),
       REDIRECT_AND_ARTIFACT_ERRORS
+    )
+  })
+
+  it("rejects private server configuration markers in client artifacts", () => {
+    assert.doesNotThrow(() =>
+      assertNoPrivateClientMarkers([
+        { content: "console.log('public')", name: "app.js" },
+      ])
+    )
+    assert.throws(
+      () =>
+        assertNoPrivateClientMarkers([
+          {
+            content: "process.env.URL_REGISTRY_DATABASE_URL",
+            name: "product.js",
+          },
+        ]),
+      PRIVATE_CLIENT_LEAK_ERROR
     )
   })
 })

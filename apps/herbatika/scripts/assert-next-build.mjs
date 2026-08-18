@@ -1,6 +1,33 @@
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
+
+const PRIVATE_CLIENT_MARKERS = Object.freeze([
+  "MARKET_PUBLISHABLE_KEY_",
+  "URL_REGISTRY_DATABASE_URL",
+])
+const TEXT_CLIENT_ARTIFACT = /\.(?:css|js|json|map)$/
+
+export const assertNoPrivateClientMarkers = (artifacts) => {
+  for (const artifact of artifacts) {
+    const marker = PRIVATE_CLIENT_MARKERS.find((candidate) =>
+      artifact.content.includes(candidate)
+    )
+    if (marker) {
+      throw new Error(
+        `Private server configuration marker ${marker} leaked into ${artifact.name}`
+      )
+    }
+  }
+}
+
+const readClientArtifacts = (directory) =>
+  readdirSync(directory, { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile() && TEXT_CLIENT_ARTIFACT.test(entry.name))
+    .map((entry) => {
+      const name = resolve(entry.parentPath, entry.name)
+      return { content: readFileSync(name, "utf8"), name }
+    })
 
 export const assertNextBuildValues = ({
   artifacts,
@@ -57,6 +84,7 @@ export const assertActualNextBuild = () => {
     requiredServerFiles: readJson("required-server-files.json"),
     routesManifest: readJson("routes-manifest.json"),
   })
+  assertNoPrivateClientMarkers(readClientArtifacts(resolve(nextRoot, "static")))
 }
 
 const entrypoint = process.argv[1]

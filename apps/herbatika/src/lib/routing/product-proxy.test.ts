@@ -61,7 +61,7 @@ describe("resolveProductProxyAction", () => {
     ).toEqual({ kind: "respond", status: 421 })
   })
 
-  it("normalizes a valid canonical authority without trusting another host", () => {
+  it("fails closed for a noncanonical authority until composed redirects are enabled", () => {
     expect(
       resolveProductProxyAction({
         enabled: true,
@@ -69,14 +69,7 @@ describe("resolveProductProxyAction", () => {
         method: "HEAD",
         pathname: "/produkty/zeleny-caj",
       })
-    ).toEqual({
-      canonicalOrigin: "https://herbatica.cz",
-      kind: "rewrite",
-      market: "cz",
-      pathname: "/~sf/cz/products/zeleny-caj",
-      publicPath: "/produkty/zeleny-caj",
-      routeKey: "product.detail",
-    })
+    ).toEqual({ kind: "respond", status: 421 })
   })
 
   it("returns 404 when the localized prefix belongs to another market", () => {
