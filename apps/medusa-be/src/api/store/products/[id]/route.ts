@@ -16,6 +16,10 @@ import {
 } from "@medusajs/medusa/api/store/products/helpers"
 import { wrapVariantsWithInventoryQuantityForSalesChannel } from "@medusajs/medusa/api/utils/middlewares/products/variant-inventory-quantity"
 import {
+  decorateProductsWithLocalizedContent,
+  requestsLocalizedProductContent,
+} from "../../../../utils/localized-product-content"
+import {
   decorateProductsWithMeasurements,
   getMeasurementDecorationOptions,
   getMeasurementDecorationQueryFields,
@@ -122,6 +126,10 @@ export const GET = async (
   }
 
   const product = toStoreProduct(queriedProduct)
+
+  if (requestsLocalizedProductContent(requestedFields)) {
+    await decorateProductsWithLocalizedContent(req.scope, [product], req.locale)
+  }
 
   if (withInventoryQuantity) {
     const variants = (product.variants ?? []).filter(

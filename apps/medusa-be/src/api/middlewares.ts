@@ -24,6 +24,7 @@ import { adminPayloadSsoRoutesMiddlewares } from "./admin/payload/sso/middleware
 import { adminPplConfigRoutesMiddlewares } from "./admin/ppl-config/middlewares"
 import { adminPPLLabelsRoutesMiddlewares } from "./admin/ppl-labels/middlewares"
 import { adminProductAttributeRoutesMiddlewares } from "./admin/product-attributes/middlewares"
+import { adminProductContentRoutesMiddlewares } from "./admin/product-content/middlewares"
 import { adminPromotionsExtensionMiddlewares } from "./admin/promotions/middlewares"
 import { adminPublishableKeyRoutesMiddlewares } from "./admin/provisioning/publishable-key/middlewares"
 import { adminQrPaymentConfigRoutesMiddlewares } from "./admin/qr-payment-config/middlewares"
@@ -92,6 +93,7 @@ export default defineMiddlewares({
     ...adminPromotionsExtensionMiddlewares,
     ...adminPublishableKeyRoutesMiddlewares,
     ...adminProductAttributeRoutesMiddlewares,
+    ...adminProductContentRoutesMiddlewares,
     ...adminQrPaymentConfigRoutesMiddlewares,
     ...adminReviewRoutesMiddlewares,
     ...adminSearchProfileRoutesMiddlewares,
