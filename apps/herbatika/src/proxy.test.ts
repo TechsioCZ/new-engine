@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import { config, proxy } from "./proxy"
 
 const originalProbeGate = process.env.URL_ARCHITECTURE_M00_ENABLED
+const originalProductResolverGate = process.env.URL_PRODUCT_RESOLVER_ENABLED
 
 const request = (pathname: string, host = "herbatica.sk", method = "GET") =>
   new NextRequest(`https://${host}${pathname}`, {
@@ -17,11 +18,74 @@ afterEach(() => {
   } else {
     process.env.URL_ARCHITECTURE_M00_ENABLED = originalProbeGate
   }
+
+  if (originalProductResolverGate === undefined) {
+    Reflect.deleteProperty(process.env, "URL_PRODUCT_RESOLVER_ENABLED")
+  } else {
+    process.env.URL_PRODUCT_RESOLVER_ENABLED = originalProductResolverGate
+  }
 })
 
 describe("M00 proxy adapter", () => {
   it("is statically scoped to the public probe and internal namespace", () => {
-    expect(config.matcher).toEqual(["/__url-m00/:path*", "/~sf/:path*"])
+    expect(config.matcher).toEqual([
+      "/__url-m00/:path*",
+      "/produkty/:path*",
+      "/termekek/:path*",
+      "/produse/:path*",
+      "/~sf/:path*",
+    ])
+  })
+
+  it("rewrites a canonical product path with trusted market context", () => {
+    process.env.URL_PRODUCT_RESOLVER_ENABLED = "1"
+
+    const response = proxy(
+      request("/termekek/zold-tea?variant=variant_01", "herbatica.hu")
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      "https://herbatica.hu/~sf/hu/products/zold-tea?variant=variant_01"
+    )
+    expect(response.headers.get("x-middleware-request-x-sf-market")).toBe("hu")
+    expect(response.headers.get("x-middleware-request-x-sf-route-key")).toBe(
+      "product.detail"
+    )
+    expect(response.headers.get("x-middleware-request-x-sf-public-path")).toBe(
+      "/termekek/zold-tea"
+    )
+  })
+
+  it("scrubs spoofed storefront context from a product rewrite", () => {
+    process.env.URL_PRODUCT_RESOLVER_ENABLED = "1"
+    const spoofedRequest = new NextRequest(
+      "https://herbatica.ro/produse/ceai-verde",
+      {
+        headers: {
+          host: "herbatica.ro",
+          rsc: "1",
+          "x-sf-market": "sk",
+          "x-sf-route-key": "attacker-controlled",
+        },
+      }
+    )
+
+    const response = proxy(spoofedRequest)
+
+    expect(response.headers.has("x-middleware-request-rsc")).toBe(false)
+    expect(response.headers.get("x-middleware-request-x-sf-market")).toBe("ro")
+    expect(response.headers.get("x-middleware-request-x-sf-route-key")).toBe(
+      "product.detail"
+    )
+  })
+
+  it("does not claim product routes while the registry gate is disabled", () => {
+    Reflect.deleteProperty(process.env, "URL_PRODUCT_RESOLVER_ENABLED")
+
+    const response = proxy(request("/produkty/zeleny-caj"))
+
+    expect(response.headers.has("x-middleware-rewrite")).toBe(false)
   })
 
   it("preserves the raw query while rewriting a trusted market host", () => {

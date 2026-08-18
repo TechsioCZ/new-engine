@@ -19,26 +19,15 @@ type M00ProxyInput = {
   pathname: string
 }
 
-const MARKET_BY_HOST: Readonly<
-  Record<string, { canonicalOrigin: string; market: M00Market }>
-> = {
-  "herbatica.sk": {
-    canonicalOrigin: "https://herbatica.sk",
-    market: "sk",
-  },
-  "herbatica.cz": {
-    canonicalOrigin: "https://herbatica.cz",
-    market: "cz",
-  },
-  "herbatica.hu": {
-    canonicalOrigin: "https://herbatica.hu",
-    market: "hu",
-  },
-  "herbatica.ro": {
-    canonicalOrigin: "https://herbatica.ro",
-    market: "ro",
-  },
-}
+const MARKET_BY_HOST: ReadonlyMap<
+  string,
+  { canonicalOrigin: string; market: M00Market }
+> = new Map([
+  ["herbatica.sk", { canonicalOrigin: "https://herbatica.sk", market: "sk" }],
+  ["herbatica.cz", { canonicalOrigin: "https://herbatica.cz", market: "cz" }],
+  ["herbatica.hu", { canonicalOrigin: "https://herbatica.hu", market: "hu" }],
+  ["herbatica.ro", { canonicalOrigin: "https://herbatica.ro", market: "ro" }],
+])
 
 const INTERNAL_PREFIX = /^\/~sf(?:\/|$)/i
 const INTERNAL_DATA_PREFIX = /^\/_next\/data\/[^/]+\/~sf(?:\/|$)/i
@@ -71,7 +60,7 @@ const isDirectInternalPath = (pathname: string) => {
   return false
 }
 
-const resolveCanonicalMarket = (
+export const resolveCanonicalMarket = (
   host: string | null
 ): { canonicalOrigin: string; market: M00Market } | null => {
   if (
@@ -98,7 +87,7 @@ const resolveCanonicalMarket = (
   }
 
   const hostname = rawHostname.toLowerCase().replace(TRAILING_DOT, "")
-  return MARKET_BY_HOST[hostname] ?? null
+  return MARKET_BY_HOST.get(hostname) ?? null
 }
 
 export const resolveM00ProxyAction = ({

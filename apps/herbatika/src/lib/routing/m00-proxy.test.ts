@@ -61,6 +61,8 @@ describe("resolveM00ProxyAction", () => {
     "https://herbatica.sk",
     "herbatica.sk:bad",
     "herbatica.sk:65536",
+    "constructor",
+    "toString",
   ])("fails closed for an invalid or unknown authority %s", (host) => {
     expect(
       resolveM00ProxyAction({

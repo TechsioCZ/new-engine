@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 import { resolveM00ProxyAction } from "@/lib/routing/m00-proxy"
+import { resolveProductProxyAction } from "@/lib/routing/product-proxy"
 
 const NEXT_INTERNAL_REQUEST_HEADERS = [
   "next-router-prefetch",
@@ -19,7 +20,12 @@ const LEGACY_INTERNAL_REQUEST_HEADERS = [
 
 const trustedRewriteHeaders = (
   request: NextRequest,
-  action: Extract<ReturnType<typeof resolveM00ProxyAction>, { kind: "rewrite" }>
+  action: Readonly<{
+    canonicalOrigin: string
+    market: string
+    publicPath: string
+    routeKey: string
+  }>
 ) => {
   const headers = new Headers(request.headers)
 
@@ -55,12 +61,21 @@ const statusResponse = (status: 204 | 404 | 405 | 421, allow?: "GET, HEAD") =>
   })
 
 export const proxy = (request: NextRequest) => {
-  const action = resolveM00ProxyAction({
+  const m00Action = resolveM00ProxyAction({
     enabled: process.env.URL_ARCHITECTURE_M00_ENABLED === "1",
     host: request.headers.get("host"),
     method: request.method,
     pathname: request.nextUrl.pathname,
   })
+  const action =
+    m00Action.kind === "next"
+      ? resolveProductProxyAction({
+          enabled: process.env.URL_PRODUCT_RESOLVER_ENABLED === "1",
+          host: request.headers.get("host"),
+          method: request.method,
+          pathname: request.nextUrl.pathname,
+        })
+      : m00Action
 
   if (action.kind === "next") {
     return NextResponse.next()
@@ -81,5 +96,11 @@ export const proxy = (request: NextRequest) => {
 }
 
 export const config = {
-  matcher: ["/__url-m00/:path*", "/~sf/:path*"],
+  matcher: [
+    "/__url-m00/:path*",
+    "/produkty/:path*",
+    "/termekek/:path*",
+    "/produse/:path*",
+    "/~sf/:path*",
+  ],
 }
