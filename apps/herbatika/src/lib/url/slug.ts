@@ -1,40 +1,29 @@
-export const MAX_PUBLISHED_SLUG_LENGTH = 80
-export const PUBLISHED_SLUG_TRANSLITERATION_VERSION = 1
+import {
+  type CreatePublishedSlugOptions as CreatePublishedSlugOptionsContract,
+  MAX_PUBLISHED_SLUG_LENGTH as MAX_PUBLISHED_SLUG_LENGTH_VALUE,
+  messageForPublishedSlugError,
+  PUBLISHED_SLUG_TRANSLITERATION_VERSION as PUBLISHED_SLUG_TRANSLITERATION_VERSION_VALUE,
+  type PublishedSlugErrorReason as PublishedSlugErrorReasonContract,
+  type PublishedSlugLocale as PublishedSlugLocaleContract,
+  RESERVED_PUBLIC_PATH_SEGMENTS as RESERVED_PUBLIC_PATH_SEGMENTS_VALUE,
+  SUPPORTED_PUBLISHED_SLUG_LOCALES as SUPPORTED_PUBLISHED_SLUG_LOCALES_VALUE,
+  type ValidatePublishedSlugOptions as ValidatePublishedSlugOptionsContract,
+} from "./slug-contracts"
+import {
+  applyTransliterationTable,
+  normalizeDecomposedLatin,
+} from "./slug-transliteration-v1"
 
-export const SUPPORTED_PUBLISHED_SLUG_LOCALES = Object.freeze([
-  "sk-SK",
-  "cs-CZ",
-  "hu-HU",
-  "ro-RO",
-] as const)
-
-export type PublishedSlugLocale =
-  (typeof SUPPORTED_PUBLISHED_SLUG_LOCALES)[number]
-
-export const RESERVED_PUBLIC_PATH_SEGMENTS = Object.freeze([
-  "api",
-  "_next",
-  "~sf",
-  ".well-known",
-  "robots.txt",
-  "sitemap.xml",
-  "sitemaps",
-  "favicon.ico",
-  "manifest.webmanifest",
-  "feeds",
-  "healthz",
-  ".",
-  "..",
-] as const)
-
-export type PublishedSlugErrorReason =
-  | "empty"
-  | "invalid-characters"
-  | "too-long"
-  | "reserved"
-  | "collision"
-  | "unsupported-locale"
-  | "unmapped-latin-character"
+export const MAX_PUBLISHED_SLUG_LENGTH = MAX_PUBLISHED_SLUG_LENGTH_VALUE
+export const PUBLISHED_SLUG_TRANSLITERATION_VERSION =
+  PUBLISHED_SLUG_TRANSLITERATION_VERSION_VALUE
+export const RESERVED_PUBLIC_PATH_SEGMENTS = RESERVED_PUBLIC_PATH_SEGMENTS_VALUE
+export const SUPPORTED_PUBLISHED_SLUG_LOCALES =
+  SUPPORTED_PUBLISHED_SLUG_LOCALES_VALUE
+export type PublishedSlugLocale = PublishedSlugLocaleContract
+export type PublishedSlugErrorReason = PublishedSlugErrorReasonContract
+export type ValidatePublishedSlugOptions = ValidatePublishedSlugOptionsContract
+export type CreatePublishedSlugOptions = CreatePublishedSlugOptionsContract
 
 export class PublishedSlugError extends Error {
   override readonly name = "PublishedSlugError"
@@ -48,14 +37,6 @@ export class PublishedSlugError extends Error {
   }
 }
 
-export type ValidatePublishedSlugOptions = {
-  existingSlugs?: Iterable<string>
-}
-
-export type CreatePublishedSlugOptions = ValidatePublishedSlugOptions & {
-  locale: PublishedSlugLocale
-}
-
 const SUPPORTED_LOCALE_SET: ReadonlySet<string> = new Set(
   SUPPORTED_PUBLISHED_SLUG_LOCALES
 )
@@ -66,8 +47,6 @@ const CANONICAL_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const NON_ASCII_ALPHANUMERIC_PATTERN = /[^a-z0-9]+/g
 const REPEATED_HYPHEN_PATTERN = /-+/g
 const EDGE_HYPHEN_PATTERN = /^-+|-+$/g
-const COMBINING_MARK_PATTERN = /\p{M}+/gu
-const LATIN_CHARACTER_PATTERN = /\p{Script=Latin}/u
 
 /**
  * Frozen language-specific table for the four storefront locales. Changing it
@@ -126,30 +105,6 @@ const OTHER_LATIN_FALLBACK_V1: Readonly<Record<string, string>> = {
   ŧ: "t",
 }
 
-function messageForPublishedSlugError(
-  reason: PublishedSlugErrorReason,
-  value: string
-): string {
-  switch (reason) {
-    case "empty":
-      return "Published slug cannot be empty after transliteration"
-    case "invalid-characters":
-      return `Published slug is not canonical: ${value}`
-    case "too-long":
-      return `Published slug exceeds ${MAX_PUBLISHED_SLUG_LENGTH} characters`
-    case "reserved":
-      return `Published slug is reserved: ${value}`
-    case "collision":
-      return `Published slug collides with immutable URL history: ${value}`
-    case "unsupported-locale":
-      return `Published slug locale is unsupported: ${value}`
-    case "unmapped-latin-character":
-      return `Published slug contains an unmapped Latin character: ${value}`
-    default:
-      throw new Error(`Unknown published slug error: ${reason satisfies never}`)
-  }
-}
-
 function normalizeRomanianCedillas(value: string): string {
   return value
     .replaceAll("Ş", "Ș")
@@ -159,32 +114,20 @@ function normalizeRomanianCedillas(value: string): string {
 }
 
 function transliterateMarketCharacters(value: string): string {
-  return Array.from(
-    value,
-    (character) => MARKET_TRANSLITERATION_V1[character] ?? character
-  ).join("")
+  return applyTransliterationTable(value, MARKET_TRANSLITERATION_V1)
 }
 
 function transliterateOtherLatinV1(value: string): string {
-  const fallbackApplied = Array.from(
+  const { normalized, unmappedCharacter } = normalizeDecomposedLatin(
     value,
-    (character) => OTHER_LATIN_FALLBACK_V1[character] ?? character
-  )
-    .join("")
-    .normalize("NFKD")
-    .replace(COMBINING_MARK_PATTERN, "")
-
-  const unmappedCharacter = Array.from(fallbackApplied).find(
-    (character) =>
-      (character.codePointAt(0) ?? 0) > 127 &&
-      LATIN_CHARACTER_PATTERN.test(character)
+    OTHER_LATIN_FALLBACK_V1
   )
 
   if (unmappedCharacter) {
     throw new PublishedSlugError("unmapped-latin-character", unmappedCharacter)
   }
 
-  return fallbackApplied
+  return normalized
 }
 
 function assertSupportedLocale(
