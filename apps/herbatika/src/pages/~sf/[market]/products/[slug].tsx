@@ -11,6 +11,7 @@ import {
   type SsrOutcome,
   type SsrPageProps,
 } from "@/lib/routing/pages/ssr-outcome"
+import { buildProductSeo, serializeProductJsonLd } from "@/lib/seo/product"
 import type { ProductRouteMedusaProduct } from "@/lib/storefront/product-route-source"
 import { readProductRouteSourceFromMedusa } from "@/lib/storefront/product-route-source.server"
 import type { SourceReadResult } from "@/lib/url-registry/contracts"
@@ -18,10 +19,13 @@ import { getUrlRegistryRuntime } from "@/lib/url-registry/runtime/instance.serve
 
 type ProductPageView = Readonly<{
   canonicalUrl: string
+  description: string | null
+  images: readonly string[]
   initialVariantId?: string
+  jsonLd: string
   productId: string
-  productTitle: string
   publicSlug: string
+  title: string
 }>
 
 type ProductPageProps = SsrPageProps<ProductPageView>
@@ -45,21 +49,33 @@ const toPageView = (
   outcome: Awaited<
     ReturnType<typeof resolveProductPageRequest<ProductRouteMedusaProduct>>
   >
-): SsrOutcome<ProductPageView> =>
-  outcome.kind === "found"
-    ? {
-        kind: "found",
-        value: {
-          canonicalUrl: outcome.value.canonicalUrl,
-          ...(outcome.value.initialVariantId === undefined
-            ? {}
-            : { initialVariantId: outcome.value.initialVariantId }),
-          productId: outcome.value.product.id,
-          productTitle: outcome.value.product.title,
-          publicSlug: outcome.value.publicSlug,
-        },
-      }
-    : outcome
+): SsrOutcome<ProductPageView> => {
+  if (outcome.kind !== "found") {
+    return outcome
+  }
+
+  const seo = buildProductSeo({
+    canonicalUrl: outcome.value.canonicalUrl,
+    initialVariantId: outcome.value.initialVariantId,
+    product: outcome.value.product,
+  })
+
+  return {
+    kind: "found",
+    value: {
+      canonicalUrl: seo.canonicalUrl,
+      description: seo.description,
+      images: seo.images,
+      ...(outcome.value.initialVariantId === undefined
+        ? {}
+        : { initialVariantId: outcome.value.initialVariantId }),
+      jsonLd: serializeProductJsonLd(seo.jsonLd),
+      productId: outcome.value.product.id,
+      publicSlug: outcome.value.publicSlug,
+      title: seo.title,
+    },
+  }
+}
 
 export const getServerSideProps = (async ({ params, req, res }) => {
   const request: ProductPageRequest = {
@@ -99,11 +115,28 @@ export default function ProductPagesRoute({ page }: ProductPageProps) {
   return (
     <>
       <Head>
-        <title>{page.value.productTitle}</title>
+        <title>{page.value.title}</title>
+        {page.value.description ? (
+          <meta content={page.value.description} name="description" />
+        ) : null}
         <link href={page.value.canonicalUrl} rel="canonical" />
+        <meta content="product" property="og:type" />
+        <meta content={page.value.title} property="og:title" />
+        {page.value.description ? (
+          <meta content={page.value.description} property="og:description" />
+        ) : null}
+        <meta content={page.value.canonicalUrl} property="og:url" />
+        {page.value.images.map((image) => (
+          <meta content={image} key={image} property="og:image" />
+        ))}
+        <script
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON is serialized with script-breaking characters escaped.
+          dangerouslySetInnerHTML={{ __html: page.value.jsonLd }}
+          type="application/ld+json"
+        />
       </Head>
       <main data-product-id={page.value.productId}>
-        <h1>{page.value.productTitle}</h1>
+        <h1>{page.value.title}</h1>
         <p data-public-slug={page.value.publicSlug}>
           Stable product URL resolved.
         </p>
