@@ -2,6 +2,7 @@ import type { Logger } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
 import type { ApiStoreModuleService, ApiStoreSecretDTO } from "../api-store"
 import { API_STORE_MODULE } from "../api-store"
+import { assertIntegrationConfigEnabled } from "../api-store/integration-config"
 import type {
   FetchHeurekaReviewsInput,
   FetchHeurekaShopReviewsInput,
@@ -294,6 +295,10 @@ class ShopReviewModuleService {
         `API store config for ${REFRESH_TOKEN_API_STORE_NAME} was not found`
       )
     }
+    assertIntegrationConfigEnabled(
+      refreshApiStore,
+      REFRESH_TOKEN_API_STORE_NAME
+    )
 
     const accessApiStore =
       await this.apiStoreService_.retrieveApiStoreSecretsByName(
@@ -321,6 +326,7 @@ class ShopReviewModuleService {
         await this.apiStoreService_.retrieveApiStoreSecretsByName(apiStoreName)
 
       if (apiStore) {
+        assertIntegrationConfigEnabled(apiStore, apiStoreName)
         return { apiStore, apiStoreName }
       }
     }
