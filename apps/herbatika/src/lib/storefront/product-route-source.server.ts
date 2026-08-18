@@ -17,8 +17,9 @@ import {
 } from "./product-route-source"
 import { resolveMedusaBackendUrl } from "./runtime-env"
 
-// This module is imported only by getServerSideProps. Pages Router rejects the
-// App-Router-only `server-only` marker and tree-shakes GSSP dependencies.
+// This module is imported only by server entry points (GSSP/Route Handlers).
+// Pages Router rejects the App-Router-only `server-only` marker, so callers
+// must keep it out of client and page render-component imports.
 
 const PRODUCT_SOURCE_TIMEOUT_MS = 5000
 const sdkByMarket = new Map<MarketCode, MedusaSdk>()

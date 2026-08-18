@@ -2,27 +2,35 @@ import type { UrlRegistryRuntimeConfig } from "./config"
 
 type OwnedPool = Readonly<{ end(): Promise<void> }>
 
-type RuntimeDependencies<Registry, Pool extends OwnedPool> = Readonly<{
+type RuntimeDependencies<
+  Registry,
+  ProductLifecycleConsumer,
+  Pool extends OwnedPool,
+> = Readonly<{
   createPool(databaseUrl: string): Pool
   createRegistry(pool: Pool): Registry
+  createProductLifecycleConsumer(pool: Pool): ProductLifecycleConsumer
   verifyMigrations(pool: Pool): Promise<void>
 }>
 
-export type UrlRegistryRuntime<Registry> =
+export type UrlRegistryRuntime<Registry, ProductLifecycleConsumer> =
   | Readonly<{
       close(): Promise<void>
       enabled: false
+      productLifecycleConsumer: null
       registry: null
     }>
   | Readonly<{
       close(): Promise<void>
       enabled: true
+      productLifecycleConsumer: ProductLifecycleConsumer
       registry: Registry
     }>
 
 const disabledRuntime = Object.freeze({
   close: () => Promise.resolve(),
   enabled: false as const,
+  productLifecycleConsumer: null,
   registry: null,
 })
 
@@ -44,11 +52,12 @@ const createClose = (pool: OwnedPool) => {
 
 export const initializeUrlRegistryRuntime = async <
   Registry,
+  ProductLifecycleConsumer,
   Pool extends OwnedPool,
 >(
   config: UrlRegistryRuntimeConfig,
-  dependencies: RuntimeDependencies<Registry, Pool>
-): Promise<UrlRegistryRuntime<Registry>> => {
+  dependencies: RuntimeDependencies<Registry, ProductLifecycleConsumer, Pool>
+): Promise<UrlRegistryRuntime<Registry, ProductLifecycleConsumer>> => {
   if (!config.enabled) {
     return disabledRuntime
   }
@@ -57,9 +66,12 @@ export const initializeUrlRegistryRuntime = async <
   try {
     await dependencies.verifyMigrations(pool)
     const registry = dependencies.createRegistry(pool)
+    const productLifecycleConsumer =
+      dependencies.createProductLifecycleConsumer(pool)
     return Object.freeze({
       close: createClose(pool),
       enabled: true as const,
+      productLifecycleConsumer,
       registry,
     })
   } catch (error) {
