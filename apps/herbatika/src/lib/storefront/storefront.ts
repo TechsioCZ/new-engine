@@ -2,6 +2,7 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { createMedusaStorefrontPreset } from "@techsio/storefront-data/medusa/preset"
+import { storefrontProductLocationAvailabilityService } from "./product-location-availability-service"
 import { storefrontSdk } from "./sdk"
 import { storefrontDefinition } from "./storefront-definition"
 
@@ -36,6 +37,9 @@ export const storefront = createMedusaStorefrontPreset<
   },
   productAttributes: {
     queryKeys: storefrontDefinition.productAttributes.queryKeys,
+  },
+  productLocationAvailability: {
+    service: storefrontProductLocationAvailabilityService,
   },
   reviews: {
     queryKeys: storefrontDefinition.reviews.queryKeys,

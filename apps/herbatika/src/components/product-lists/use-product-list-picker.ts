@@ -57,6 +57,8 @@ export function useProductListPicker({
 }: UseProductListPickerInput) {
   const tAuth = useTranslations("auth")
   const pathname = usePathname()
+  const loginRedirectTarget =
+    pathname ?? (product.handle ? `/p/${product.handle}` : "/")
   const authQuery = useAuth()
   const toast = useAppToast()
   const [isOpen, setIsOpen] = useState(false)
@@ -229,7 +231,7 @@ export function useProductListPicker({
     isMutating,
     isOpen,
     listsQuery,
-    loginHref: `/auth/login?next=${encodeURIComponent(pathname)}`,
+    loginHref: `/auth/login?next=${encodeURIComponent(loginRedirectTarget)}`,
     newListTitle,
     retryLists,
     rows,

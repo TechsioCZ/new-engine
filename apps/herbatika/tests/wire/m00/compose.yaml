@@ -1,0 +1,78 @@
+services:
+  herbatika:
+    build:
+      context: ../../../../..
+      dockerfile: docker/development/herbatika/Dockerfile
+      target: prod
+      args:
+        NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED: "0"
+        NEXT_PUBLIC_MEDUSA_BACKEND_URL: http://m00-upstream.invalid
+        NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: pk_m00_wire
+        NEXT_PUBLIC_PAYLOAD_BASE_URL: http://m00-upstream.invalid
+        NEXT_PUBLIC_STOREFRONT_AUTH_MODE: session_proxy
+    environment:
+      URL_ARCHITECTURE_M00_ENABLED: "1"
+    expose:
+      - "3000"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl --fail --silent --show-error
+          --header 'Host: herbatica.sk'
+          http://127.0.0.1:3000/__url-m00/current >/dev/null
+      start_period: 10s
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    networks:
+      - m00
+    stop_grace_period: 10s
+
+  caddy:
+    build:
+      context: ../../../../../docker/development/caddy
+      dockerfile: Dockerfile
+    depends_on:
+      herbatika:
+        condition: service_healthy
+    expose:
+      - "443"
+    networks:
+      - m00
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+  wire:
+    image: node:24-slim
+    depends_on:
+      caddy:
+        condition: service_started
+    command:
+      - node
+      - --test
+      - /wire/run.mjs
+    environment:
+      M00_CADDY_CA_PATH: /data/caddy/pki/authorities/local/root.crt
+      M00_INGRESS_HOST: caddy
+      M00_INGRESS_PORT: "443"
+    init: true
+    networks:
+      - m00
+    read_only: true
+    tmpfs:
+      - /tmp
+    volumes:
+      - ./run.mjs:/wire/run.mjs:ro
+      - caddy-data:/data:ro
+    working_dir: /wire
+
+networks:
+  m00:
+    internal: true
+
+volumes:
+  caddy-config:
+  caddy-data:

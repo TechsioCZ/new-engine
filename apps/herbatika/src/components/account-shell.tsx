@@ -75,11 +75,12 @@ export function AccountShell({ children }: AccountShellProps) {
     },
   })
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const redirectTarget = pathname
+  const stablePathname = pathname ?? ""
+  const redirectTarget = pathname ?? "/account"
   const isDeactivationConfirmationRoute =
     pathname === "/account/deactivate/confirm"
   const isOrdersListRoute = pathname === "/account/orders"
-  const isOrderDetailRoute = pathname.startsWith("/account/orders/")
+  const isOrderDetailRoute = stablePathname.startsWith("/account/orders/")
   const {
     clearLogoutError,
     handleLogout: performLogout,
@@ -101,6 +102,10 @@ export function AccountShell({ children }: AccountShellProps) {
       return
     }
 
+    if (!pathname) {
+      return
+    }
+
     if (authQuery.isLoading || authQuery.isAuthenticated) {
       return
     }
@@ -111,6 +116,7 @@ export function AccountShell({ children }: AccountShellProps) {
     authQuery.isLoading,
     isDeactivationConfirmationRoute,
     isLoggingOut,
+    pathname,
     redirectTarget,
     router,
   ])
@@ -178,7 +184,7 @@ export function AccountShell({ children }: AccountShellProps) {
 
           <nav className="flex flex-col gap-200">
             {ACCOUNT_NAV_ITEMS.map((item) => {
-              const isActive = isNavItemActive(pathname, item.href)
+              const isActive = isNavItemActive(stablePathname, item.href)
 
               return (
                 <LinkButton

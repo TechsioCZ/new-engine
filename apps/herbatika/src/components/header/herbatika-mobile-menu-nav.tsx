@@ -86,7 +86,7 @@ const buildMobileMenuEntries = (
   })
 
 const resolveExpandedValues = (
-  pathname: string,
+  pathname: string | null,
   mobileMenuEntries: readonly HerbatikaMobileMenuEntry[]
 ) => {
   const activeGroup = mobileMenuEntries.find(

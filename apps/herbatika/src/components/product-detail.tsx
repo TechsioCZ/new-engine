@@ -22,12 +22,22 @@ import { useProductDetailController } from "@/components/product-detail/use-prod
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 
-export function ProductDetail({
-  handle,
-  initialVariantId,
-}: ProductDetailProps) {
+export function ProductDetail(props: ProductDetailProps) {
+  const { initialVariantId } = props
+  const initialProduct =
+    "initialProduct" in props ? props.initialProduct : undefined
+  const handle = initialProduct?.handle ?? props.handle
+  if (!handle) {
+    throw new Error(
+      "Product detail requires a backend handle or resolved product"
+    )
+  }
   const tCatalog = useTranslations("catalog")
-  const controller = useProductDetailController({ handle, initialVariantId })
+  const controller = useProductDetailController({
+    handle,
+    initialProduct,
+    initialVariantId,
+  })
   const [activeInfoSection, setActiveInfoSection] = useState<
     string | undefined
   >(controller.defaultInfoSectionValue)

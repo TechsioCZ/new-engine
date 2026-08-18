@@ -3,17 +3,20 @@ import { defineStorefrontMarkets } from "@techsio/storefront-i18n/core/markets"
 export type HerbatikaMarketCode = "sk" | "cz" | "hu" | "ro"
 export type HerbatikaLocale = "sk-SK" | "cs-CZ" | "hu-HU" | "ro-RO"
 export type HerbatikaCountryCode = "sk" | "cz" | "hu" | "ro"
+export type HerbatikaCurrencyCode = "CZK" | "EUR" | "HUF" | "RON"
 
 export type HerbatikaMarketContext = {
   code: HerbatikaMarketCode
   locale: HerbatikaLocale
   htmlLang: HerbatikaLocale
   countryCode: HerbatikaCountryCode
+  currencyCode: HerbatikaCurrencyCode
   domain: string
   metadata: {
     title: string
     description: string
   }
+  timeZone: string
 }
 
 type ResolveMarketContextInput = {
@@ -35,44 +38,52 @@ const MARKET_CONFIG = {
     locale: "sk-SK",
     htmlLang: "sk-SK",
     countryCode: "sk",
+    currencyCode: "EUR",
     domain: "herbatica.sk",
     metadata: {
       title: "Herbatica",
       description: "Herbatica e-shop - prírodné produkty",
     },
+    timeZone: "Europe/Bratislava",
   },
   cz: {
     code: "cz",
     locale: "cs-CZ",
     htmlLang: "cs-CZ",
     countryCode: "cz",
+    currencyCode: "CZK",
     domain: "herbatica.cz",
     metadata: {
       title: "Herbatica",
       description: "Herbatica e-shop - přírodní produkty",
     },
+    timeZone: "Europe/Prague",
   },
   hu: {
     code: "hu",
     locale: "hu-HU",
     htmlLang: "hu-HU",
     countryCode: "hu",
+    currencyCode: "HUF",
     domain: "herbatica.hu",
     metadata: {
       title: "Herbatica",
       description: "Herbatica webáruház - természetes termékek",
     },
+    timeZone: "Europe/Budapest",
   },
   ro: {
     code: "ro",
     locale: "ro-RO",
     htmlLang: "ro-RO",
     countryCode: "ro",
+    currencyCode: "RON",
     domain: "herbatica.ro",
     metadata: {
       title: "Herbatica",
       description: "Herbatica magazin online - produse naturale",
     },
+    timeZone: "Europe/Bucharest",
   },
 } as const satisfies Record<HerbatikaMarketCode, HerbatikaMarketContext>
 

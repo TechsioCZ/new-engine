@@ -4,10 +4,21 @@ import type { IconType } from "@techsio/ui-kit/atoms/icon"
 
 export type Product = HttpTypes.StoreProduct
 
-export type ProductDetailProps = {
-  handle: string
+type ProductDetailBaseProps = {
   initialVariantId?: string
 }
+
+export type ProductDetailProps = ProductDetailBaseProps &
+  (
+    | {
+        handle: string
+        initialProduct?: never
+      }
+    | {
+        handle?: never
+        initialProduct: Product & { handle: string }
+      }
+  )
 
 export type ProductPriceState = {
   currentLabel: string
