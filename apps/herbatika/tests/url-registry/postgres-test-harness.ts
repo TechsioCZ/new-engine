@@ -118,6 +118,8 @@ export const createPostgresTestContext = (): PostgresTestContext => {
 
   const reset = async () => {
     await admin.query(`TRUNCATE TABLE
+      url_registry.url_registry_source_event_cursor,
+      url_registry.url_registry_source_event_receipt,
       url_registry.url_registry_invalidation_outbox,
       url_registry.url_registry_audit,
       url_registry.url_registry_command,

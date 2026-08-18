@@ -176,6 +176,9 @@ export const grantRuntimeAccess = async ({ migrationUrl, runtimeUrl }) => {
       `REVOKE INSERT, UPDATE ON TABLE url_registry.schema_migrations FROM ${runtime}`
     )
     await pool.query(
+      `REVOKE UPDATE ON TABLE url_registry.url_registry_source_event_receipt FROM ${runtime}`
+    )
+    await pool.query(
       `ALTER DEFAULT PRIVILEGES IN SCHEMA url_registry GRANT SELECT, INSERT, UPDATE ON TABLES TO ${runtime}`
     )
     await pool.query(

@@ -52,17 +52,33 @@ describe.sequential("PostgreSQL 18.1 URL registry concurrency", () => {
         has_table_privilege(current_user,
           'url_registry.schema_migrations', 'INSERT') AS "canInsertMigrations",
         has_table_privilege(current_user,
-          'url_registry.schema_migrations', 'UPDATE') AS "canUpdateMigrations"`),
+          'url_registry.schema_migrations', 'UPDATE') AS "canUpdateMigrations",
+        has_table_privilege(current_user,
+          'url_registry.url_registry_source_event_receipt', 'INSERT')
+          AS "canInsertSourceReceipt",
+        has_table_privilege(current_user,
+          'url_registry.url_registry_source_event_receipt', 'UPDATE')
+          AS "canUpdateSourceReceipt",
+        has_table_privilege(current_user,
+          'url_registry.url_registry_source_event_cursor', 'INSERT')
+          AS "canInsertSourceCursor",
+        has_table_privilege(current_user,
+          'url_registry.url_registry_source_event_cursor', 'UPDATE')
+          AS "canUpdateSourceCursor"`),
     ])
     expect(runtimePrivileges.rows[0]).toMatchObject({
       canDelete: false,
       canInsert: true,
       canInsertMigrations: false,
+      canInsertSourceCursor: true,
+      canInsertSourceReceipt: true,
       canReadMigrations: true,
       canSelect: true,
       canTruncate: false,
       canUpdate: true,
       canUpdateMigrations: false,
+      canUpdateSourceCursor: true,
+      canUpdateSourceReceipt: false,
     })
     expect(runtimePrivileges.rows[0]?.name).not.toBe(
       adminIdentity.rows[0]?.name
