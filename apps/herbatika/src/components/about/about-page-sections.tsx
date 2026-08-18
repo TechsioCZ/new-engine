@@ -1,5 +1,7 @@
 import NextLink from "next/link"
 import { Fragment } from "react"
+import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
+import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 import { ABOUT_PAGE, type AboutParagraph } from "./about-page.data"
 import {
   AboutImageFrame,
@@ -7,7 +9,6 @@ import {
   aboutParagraphClassName,
   SectionHeader,
 } from "./about-page.shared"
-import { AboutReviewRating } from "./about-review-rating"
 
 const iconLinkClassName =
   "inline-flex h-800 w-800 items-center justify-center rounded-full border border-border-secondary bg-surface text-fg-primary transition-colors hover:border-primary hover:bg-primary-light"
@@ -146,7 +147,11 @@ function AboutSocialLinks() {
   )
 }
 
-export function AboutCommunityAndReviews() {
+export function AboutCommunityAndReviews({
+  reviewTrustSources,
+}: {
+  reviewTrustSources: readonly ReviewTrustSource[]
+}) {
   return (
     <div className="space-y-650 border-border-secondary border-t pt-650">
       <div className="grid gap-500 lg:grid-cols-2">
@@ -178,7 +183,7 @@ export function AboutCommunityAndReviews() {
             paragraph={paragraph}
           />
         ))}
-        <AboutReviewRating />
+        <ReviewTrustBadges sources={reviewTrustSources} />
       </section>
     </div>
   )

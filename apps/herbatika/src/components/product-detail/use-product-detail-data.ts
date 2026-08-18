@@ -187,6 +187,7 @@ export function useProductDetailData({
     unitPriceLabel,
     vipCreditLabel,
   } = resolveProductPricingLabels({
+    locale,
     productPrice,
     regionCurrencyCode,
     offerState,

@@ -2,8 +2,12 @@ import type {
   HttpTypes,
   InferEntityType,
   MedusaContainer,
+  Query,
 } from "@medusajs/framework/types"
-import { MedusaError } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { MEASUREMENT_UNIT_MODULE } from "../modules/measurement-unit"
 import type MeasurementUnit from "../modules/measurement-unit/models/measurement-unit"
 import type ProductMeasurement from "../modules/measurement-unit/models/product-measurement"
@@ -90,11 +94,32 @@ const PRICE_PER_UNIT_QUERY_FIELDS = [
   "variants.calculated_price.is_calculated_price_tax_inclusive",
   "variants.calculated_price.is_original_price_tax_inclusive",
 ]
-const LEADING_PLUS_PATTERN = /^\+/
+const INCLUDED_FIELD_PREFIX_PATTERN = /^[+*]/
 const PRODUCT_MEASUREMENT_QUERY_CHUNK_SIZE = 500
+const PRODUCT_MEASUREMENT_QUERY_FIELDS = [
+  "id",
+  "product_id",
+  "created_at",
+  "updated_at",
+  "measurement_unit.id",
+  "measurement_unit.base_quantity",
+  "measurement_unit.code",
+  "measurement_unit.name",
+  "measurement_unit.symbol",
+  "measurement_unit.description",
+  "measurement_unit.created_at",
+  "measurement_unit.updated_at",
+  "measurement_unit.deleted_at",
+  "variant_measurements.id",
+  "variant_measurements.product_unit_quantity",
+  "variant_measurements.product_variant_id",
+  "variant_measurements.created_at",
+  "variant_measurements.updated_at",
+  "variant_measurements.deleted_at",
+]
 
 const normalizeRequestedField = (field: string) =>
-  field.trim().replace(LEADING_PLUS_PATTERN, "")
+  field.trim().replace(INCLUDED_FIELD_PREFIX_PATTERN, "")
 
 const hasRequestedField = (fields: string[], targets: string[]) =>
   fields.some((field) => {
@@ -247,7 +272,8 @@ export const toProductMeasurementResponse = (
 
 export const listProductMeasurementsByProductIds = async (
   scope: MedusaContainer,
-  productIds: string[]
+  productIds: string[],
+  locale?: string
 ) => {
   const ids = [...new Set(productIds)].filter(Boolean)
 
@@ -255,7 +281,7 @@ export const listProductMeasurementsByProductIds = async (
     return []
   }
 
-  const service = getMeasurementUnitService(scope)
+  const query = scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const measurements: ProductMeasurementRecord[] = []
 
   for (
@@ -264,16 +290,22 @@ export const listProductMeasurementsByProductIds = async (
     index += PRODUCT_MEASUREMENT_QUERY_CHUNK_SIZE
   ) {
     const chunk = ids.slice(index, index + PRODUCT_MEASUREMENT_QUERY_CHUNK_SIZE)
-    const chunkMeasurements = await service.listProductMeasurements(
+    const { data: chunkMeasurements } = await query.graph(
       {
-        product_id: { $in: chunk },
+        entity: "product_measurement",
+        fields: PRODUCT_MEASUREMENT_QUERY_FIELDS,
+        filters: {
+          product_id: { $in: chunk },
+        },
+        pagination: {
+          take: chunk.length,
+        },
       },
       {
-        relations: ["measurement_unit", "variant_measurements"],
-        take: chunk.length,
+        locale,
       }
     )
-    measurements.push(...chunkMeasurements)
+    measurements.push(...(chunkMeasurements as ProductMeasurementRecord[]))
   }
 
   return measurements
@@ -404,7 +436,8 @@ const decorateProductVariantsWithMeasurement = (
 export const decorateProductsWithMeasurements = async (
   scope: MedusaContainer,
   products: ProductLike[],
-  options: MeasurementDecorationOptions
+  options: MeasurementDecorationOptions,
+  locale?: string
 ) => {
   if (
     !(
@@ -421,7 +454,8 @@ export const decorateProductsWithMeasurements = async (
   )
   const measurements = await listProductMeasurementsByProductIds(
     scope,
-    productIds
+    productIds,
+    locale
   )
   const measurementByProductId = new Map(
     measurements.flatMap((measurement) => {

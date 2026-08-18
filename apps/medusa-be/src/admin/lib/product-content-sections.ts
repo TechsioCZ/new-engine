@@ -13,6 +13,11 @@ export type ProductContentSection = {
   key: ProductContentSectionKey
 }
 
+type ProductContentRecord = Pick<
+  ProductContentSectionHtml,
+  "composition" | "other" | "usage" | "warning"
+>
+
 export const PRODUCT_CONTENT_SECTIONS: ProductContentSection[] = [
   {
     key: "description",
@@ -117,6 +122,21 @@ export const getProductSectionHtml = (product?: AdminProduct | null) => {
 
   return sectionsHtml
 }
+
+export const getProductContentSectionHtml = (
+  product: AdminProduct | null | undefined,
+  content: ProductContentRecord | null | undefined
+) => ({
+  ...getProductSectionHtml(product),
+  ...(content
+    ? {
+        composition: content.composition,
+        other: content.other,
+        usage: content.usage,
+        warning: content.warning,
+      }
+    : {}),
+})
 
 export const buildContentSections = (sectionsHtml: ProductContentSectionHtml) =>
   PRODUCT_CONTENT_SECTIONS.map(({ key }) => ({

@@ -7,8 +7,13 @@ import { CheckoutFooter } from "@/components/checkout/checkout-footer"
 import { CheckoutHeader } from "@/components/checkout/checkout-header"
 import { HerbatikaFooter } from "@/components/herbatika-footer"
 import { HerbatikaHeader } from "@/components/herbatika-header"
+import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 
-export function AppShell({ children }: PropsWithChildren) {
+type AppShellProps = PropsWithChildren<{
+  reviewTrustSources: readonly ReviewTrustSource[]
+}>
+
+export function AppShell({ children, reviewTrustSources }: AppShellProps) {
   const pathname = usePathname()
   const isCheckoutRoute = pathname?.startsWith("/checkout") ?? false
   const shell = isCheckoutRoute ? (
@@ -21,7 +26,7 @@ export function AppShell({ children }: PropsWithChildren) {
     <div className="flex min-h-dvh flex-col bg-base">
       <HerbatikaHeader />
       <div className="flex-1">{children}</div>
-      <HerbatikaFooter />
+      <HerbatikaFooter reviewTrustSources={reviewTrustSources} />
     </div>
   )
 

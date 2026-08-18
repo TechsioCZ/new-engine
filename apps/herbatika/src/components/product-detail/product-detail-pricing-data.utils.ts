@@ -53,11 +53,13 @@ export const resolveProductVolumeDiscountOptions = ({
 }
 
 export const resolveProductPricingLabels = ({
+  locale,
   productPrice,
   regionCurrencyCode,
   offerState,
   priceUnavailableLabel,
 }: {
+  locale: string
   productPrice: ReturnType<typeof resolvePriceState> | null
   regionCurrencyCode: string
   offerState: ReturnType<typeof resolveOfferState>
@@ -81,7 +83,10 @@ export const resolveProductPricingLabels = ({
     currentCurrencyCode,
     offerState.applyLoyaltyDiscount
   )
-  const unitPriceLabel = formatUnitPriceLabel(productPrice?.pricePerUnit)
+  const unitPriceLabel = formatUnitPriceLabel(
+    productPrice?.pricePerUnit,
+    locale
+  )
 
   return {
     currentAmount,

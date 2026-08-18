@@ -37,6 +37,9 @@ const resolveMedusaImageRemotePattern = () =>
 const resolvePayloadImageRemotePattern = () =>
   resolveImageRemotePattern(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL)
 
+const resolveMinioImageRemotePattern = () =>
+  resolveImageRemotePattern(process.env.NEXT_PUBLIC_MINIO_FILE_URL)
+
 const imageRemotePatterns: ImageRemotePattern[] = [
   {
     protocol: "https",
@@ -48,6 +51,7 @@ const imageRemotePatterns: ImageRemotePattern[] = [
   },
   ...resolveMedusaImageRemotePattern(),
   ...resolvePayloadImageRemotePattern(),
+  ...resolveMinioImageRemotePattern(),
 ]
 
 const shouldDisableImageOptimization = imageRemotePatterns.some(

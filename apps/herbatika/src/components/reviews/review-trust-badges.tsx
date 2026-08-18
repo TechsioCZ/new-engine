@@ -2,18 +2,17 @@
 
 import NextImage from "next/image"
 import { useTranslations } from "next-intl"
-import { REVIEW_TRUST_SOURCES } from "@/components/reviews/reviews.data"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 
 type ReviewTrustBadgesProps = {
-  sources?: readonly ReviewTrustSource[]
+  sources: readonly ReviewTrustSource[]
   size?: ReviewTrustBadgeSize
   className?: string
 }
 
 type ReviewTrustBadgeSize = "sm" | "md"
 
-const ROOT_CLASS_NAME = "grid w-full grid-cols-1 sm:grid-cols-3"
+const ROOT_CLASS_NAME = "grid w-full grid-cols-1"
 
 const SIZE_CLASS_NAMES: Record<
   ReviewTrustBadgeSize,
@@ -34,7 +33,7 @@ function joinClassNames(...classNames: Array<string | undefined>) {
 }
 
 export function ReviewTrustBadges({
-  sources = REVIEW_TRUST_SOURCES,
+  sources,
   size = "sm",
   className,
 }: ReviewTrustBadgesProps) {
@@ -45,12 +44,15 @@ export function ReviewTrustBadges({
   }
 
   const sizeClassNames = SIZE_CLASS_NAMES[size]
+  const columnClassName =
+    sources.length > 1 ? "sm:grid-cols-2" : "sm:grid-cols-1"
 
   return (
     <ul
       aria-label={tCatalog("reviews.trust_badges_aria")}
       className={joinClassNames(
         ROOT_CLASS_NAME,
+        columnClassName,
         sizeClassNames.root,
         className
       )}

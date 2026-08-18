@@ -15,6 +15,9 @@ export function buildAdminConfig(env: MedusaConfigEnv): MedusaAdminConfig {
       esbuild: {
         target: "esnext",
       },
+      resolve: {
+        dedupe: ["react", "react-dom", "@tanstack/react-query"],
+      },
       server: {
         allowedHosts: env.adminAllowedHosts,
         hmr: false,

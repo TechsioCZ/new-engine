@@ -288,6 +288,7 @@
       "company_fields": "Firemné údaje",
       "accept_terms": "Súhlasím s obchodnými podmienkami",
       "success": "Registrácia prebehla úspešne.",
+      "confirmation_email_notice": "Potvrdenie registrácie vám pošleme na {email}.",
       "wholesale_success": "Žiadosť o VO účet bola odoslaná na schválenie. Do rozhodnutia môžete nakupovať ako bežný zákazník.",
       "email_exists": "Účet s týmto e-mailom už existuje. Prihláste sa alebo použite obnovu hesla.",
       "failed": "Registrácia sa nepodarila. Skúste to prosím znovu."
@@ -451,6 +452,12 @@
       "all_reviews": "Všetky hodnotenia",
       "verified_purchase": "Overený nákup",
       "verified_customer_badge_alt": "Overené zákazníkmi Heureka",
+      "recommends_shop": "Odporúča obchod",
+      "does_not_recommend_shop": "Neodporúča obchod",
+      "recommends_product": "Odporúča produkt",
+      "does_not_recommend_product": "Neodporúča produkt",
+      "positive_points": "Pozitíva recenzie",
+      "negative_points": "Negatíva recenzie",
       "rating_aria": "Priemerné hodnotenie produktu {rating} z {max}",
       "based_on_count": "Na základe {count, plural, one {# hodnotenia} few {# hodnotení} many {# hodnotenia} other {# hodnotení}}",
       "loading_aria": "Načítavam recenzie",
@@ -474,6 +481,11 @@
       "pending_description": "Recenzia sa zobrazí po schválení.",
       "dialog_title": "Napísať recenziu",
       "form": {
+        "author_name_label": "Meno autora",
+        "author_name_validation": "Zadajte meno, ktoré sa zobrazí pri recenzii.",
+        "captcha_label": "Ochrana proti spamu",
+        "captcha_validation": "Dokončite prosím overenie proti spamu.",
+        "captcha_unavailable": "Overenie proti spamu sa nepodarilo načítať. Skúste to prosím znova.",
         "rating_label": "Hodnotenie",
         "rating_validation": "Vyberte hodnotenie od 1 do 5 hviezdičiek.",
         "content_min_length_validation": "Napíšte aspoň {min} znakov.",
@@ -481,6 +493,8 @@
         "content_label": "Recenzia"
       },
       "errors": {
+        "author_required": "Zadajte prosím meno autora recenzie.",
+        "captcha": "Overenie proti spamu zlyhalo. Skúste to prosím znova.",
         "generic": "Recenziu sa nepodarilo odoslať. Skúste to prosím znova.",
         "purchase_required": "Na napísanie recenzie musíte mať tento produkt zakúpený.",
         "validation": "Skontrolujte prosím hodnotenie a text recenzie.",

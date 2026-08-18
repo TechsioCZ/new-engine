@@ -7,6 +7,7 @@ import type { Route } from "next"
 import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
+import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { HerbatikaLogo } from "./herbatika-logo"
 
@@ -136,7 +137,11 @@ const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [
   { code: "HU", icon: "token-icon-hu" },
   { code: "RO", icon: "token-icon-ro" },
 ]
-export function HerbatikaFooter() {
+export function HerbatikaFooter({
+  reviewTrustSources,
+}: {
+  reviewTrustSources: readonly ReviewTrustSource[]
+}) {
   const t = useTranslations("navigation")
   const marketContext = useMarketContext()
 
@@ -224,7 +229,11 @@ export function HerbatikaFooter() {
           ))}
         </div>
 
-        <ReviewTrustBadges className="lg:w-auto" size="md" />
+        <ReviewTrustBadges
+          className="lg:w-auto"
+          size="md"
+          sources={reviewTrustSources}
+        />
       </section>
 
       <Footer.Divider className="mx-auto max-w-footer-max" />

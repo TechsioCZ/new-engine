@@ -11,11 +11,13 @@ import { type AbstractIntlMessages, NextIntlClientProvider } from "next-intl"
 import { getMessages } from "next-intl/server"
 import { Suspense } from "react"
 import { AppShell } from "@/components/app-shell"
+import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 import {
   buildCategoryListParams,
   CATEGORY_TREE_FIELDS,
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
+import { fetchExternalReviewTrustSources } from "@/lib/storefront/external-reviews.server"
 import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { getMarketServerContext } from "@/lib/storefront/market-context.server"
 import { getRegionServerContext } from "@/lib/storefront/ssr/context"
@@ -82,6 +84,7 @@ type LayoutShellProps = Readonly<{
   initialRegion?: RegionInfo | null
   marketContext: HerbatikaMarketContext
   messages: AbstractIntlMessages
+  reviewTrustSources: readonly ReviewTrustSource[]
 }>
 
 function LayoutShell({
@@ -90,6 +93,7 @@ function LayoutShell({
   initialRegion = null,
   marketContext,
   messages,
+  reviewTrustSources,
 }: LayoutShellProps) {
   return (
     <NextIntlClientProvider messages={messages}>
@@ -99,7 +103,9 @@ function LayoutShell({
       >
         <HydrationBoundary state={dehydratedState}>
           <Suspense fallback={<div className="min-h-dvh bg-base" />}>
-            <AppShell>{children}</AppShell>
+            <AppShell reviewTrustSources={reviewTrustSources}>
+              {children}
+            </AppShell>
           </Suspense>
         </HydrationBoundary>
       </Providers>
@@ -114,10 +120,12 @@ async function ResolvedLayoutShell({
   children: React.ReactNode
   marketContext: HerbatikaMarketContext
 }>) {
-  const [{ queryClient, region }, messages] = await Promise.all([
-    getRegionServerContext(),
-    getMessages(),
-  ])
+  const [{ queryClient, region }, messages, reviewTrustSources] =
+    await Promise.all([
+      getRegionServerContext(),
+      getMessages(),
+      fetchExternalReviewTrustSources(),
+    ])
 
   try {
     await fetchServerCategories(
@@ -139,6 +147,7 @@ async function ResolvedLayoutShell({
       initialRegion={region}
       marketContext={marketContext}
       messages={messages}
+      reviewTrustSources={reviewTrustSources}
     >
       {children}
     </LayoutShell>

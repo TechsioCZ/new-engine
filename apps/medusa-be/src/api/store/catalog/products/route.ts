@@ -39,8 +39,13 @@ import {
 } from "../../../../modules/meilisearch/search-results"
 import { isPlainRecord } from "../../../../utils/guards"
 import {
+  decorateProductsWithLocalizedContent,
+  requestsLocalizedProductContent,
+} from "../../../../utils/localized-product-content"
+import {
   decorateProductsWithMeasurements,
   getMeasurementDecorationOptions,
+  getMeasurementDecorationQueryFields,
 } from "../../../../utils/measurement-units"
 import {
   listActiveSalePriceListProductSelection,
@@ -475,13 +480,17 @@ const hasExplicitCatalogFields = (
 
 const uniqueFields = (fields: string[]): string[] => Array.from(new Set(fields))
 
-const buildCatalogProductQueryFields = (options: {
+export const buildCatalogProductQueryFields = (options: {
   needsPricing: boolean
   responseFields: string[]
 }): string[] => {
+  const responseFields = options.responseFields.filter(
+    (field) => !isSyntheticCatalogProductField(field)
+  )
   const fields = [
-    ...options.responseFields.filter(
-      (field) => !isSyntheticCatalogProductField(field)
+    ...getMeasurementDecorationQueryFields(
+      responseFields,
+      getMeasurementDecorationOptions(responseFields)
     ),
     ...CATALOG_INTERNAL_PRODUCT_FIELDS,
   ]
@@ -828,6 +837,16 @@ export async function GET(
       })
     const fallbackCount = fallbackMetadata?.count ?? fallbackProducts.length
 
+    if (requestsLocalizedProductContent(responseProductFields)) {
+      await decorateProductsWithLocalizedContent(
+        req.scope,
+        fallbackProducts as Parameters<
+          typeof decorateProductsWithLocalizedContent
+        >[1],
+        graphLocale
+      )
+    }
+
     await wrapProductsWithTaxPrices(
       req,
       fallbackProducts as Parameters<typeof wrapProductsWithTaxPrices>[1]
@@ -837,7 +856,8 @@ export async function GET(
       fallbackProducts as Parameters<
         typeof decorateProductsWithMeasurements
       >[1],
-      measurementDecorationOptions
+      measurementDecorationOptions,
+      graphLocale
     )
     const responseProducts = hasExplicitFields
       ? projectProductsForCatalogResponse(
@@ -963,6 +983,16 @@ export async function GET(
         .slice(offset, offset + limit)
     : orderedProducts
 
+  if (requestsLocalizedProductContent(responseProductFields)) {
+    await decorateProductsWithLocalizedContent(
+      req.scope,
+      finalProducts as Parameters<
+        typeof decorateProductsWithLocalizedContent
+      >[1],
+      graphLocale
+    )
+  }
+
   const statusFacetCounts = cleanedQuery
     ? getFacetDistributionFromHits(rankedProducts.selectedHits, "facet_status")
     : getFacetDistribution(searchResult.facetDistribution, "facet_status")
@@ -1005,7 +1035,8 @@ export async function GET(
   await decorateProductsWithMeasurements(
     req.scope,
     finalProducts as Parameters<typeof decorateProductsWithMeasurements>[1],
-    measurementDecorationOptions
+    measurementDecorationOptions,
+    graphLocale
   )
 
   const responseProducts = hasExplicitFields

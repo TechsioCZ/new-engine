@@ -8,6 +8,10 @@ import {
 import { wrapProductsWithTaxPrices } from "@medusajs/medusa/api/store/products/helpers"
 import { wrapVariantsWithInventoryQuantityForSalesChannel } from "@medusajs/medusa/api/utils/middlewares/products/variant-inventory-quantity"
 import {
+  decorateProductsWithLocalizedContent,
+  requestsLocalizedProductContent,
+} from "../../../utils/localized-product-content"
+import {
   decorateProductsWithMeasurements,
   getMeasurementDecorationOptions,
   getMeasurementDecorationQueryFields,
@@ -15,6 +19,9 @@ import {
 import { normalizeProductSalesChannelFilter } from "../../utils/product-filters"
 
 type ProductRecord = {
+  description?: null | string
+  id: string
+  metadata?: null | Record<string, unknown>
   variants?: unknown[]
 }
 
@@ -69,6 +76,14 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
     }
   )
 
+  if (requestsLocalizedProductContent(fields)) {
+    await decorateProductsWithLocalizedContent(
+      req.scope,
+      products as ProductRecord[],
+      req.locale
+    )
+  }
+
   if (withInventoryQuantity) {
     await wrapVariantsWithInventoryQuantityForSalesChannel(
       req as Parameters<
@@ -89,7 +104,8 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   await decorateProductsWithMeasurements(
     req.scope,
     products as Parameters<typeof decorateProductsWithMeasurements>[1],
-    measurementDecorationOptions
+    measurementDecorationOptions,
+    req.locale
   )
 
   res.json({

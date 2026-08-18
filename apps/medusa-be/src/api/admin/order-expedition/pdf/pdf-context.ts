@@ -1,8 +1,9 @@
 import { readdir, readFile } from "node:fs/promises"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import type { MedusaRequest } from "@medusajs/framework/http"
+import { MedusaError } from "@medusajs/framework/utils"
 import fontkit from "@pdf-lib/fontkit"
-import { PageSizes, PDFDocument, StandardFonts } from "pdf-lib"
+import { PageSizes, PDFDocument } from "pdf-lib"
 import type { PostAdminOrderExpeditionPdfSchemaType } from "../validators"
 import type { DrawState } from "./types"
 
@@ -10,6 +11,7 @@ const HEADER_Y = PageSizes.A4[1] - 20
 const FONT_SEARCH_DIRS = [
   join(process.cwd(), ".medusa/server/public/admin/assets"),
   join(process.cwd(), "apps/medusa-be/.medusa/server/public/admin/assets"),
+  join(dirname(require.resolve("@medusajs/dashboard/package.json")), "dist"),
 ]
 const FONT_SEARCH_PREFIXES = {
   bold: ["Inter-Bold", "Inter-Medium"],
@@ -17,8 +19,8 @@ const FONT_SEARCH_PREFIXES = {
 } as const
 
 type ExpeditionPdfFontBytes = {
-  bold: Buffer | null
-  regular: Buffer | null
+  bold: Buffer
+  regular: Buffer
 }
 
 let expeditionPdfFontBytesPromise: Promise<ExpeditionPdfFontBytes> | null = null
@@ -31,12 +33,8 @@ export async function createExpeditionPdfContext(
   document.setTitle?.("Přehled objednávek")
   const { bold: boldFontBytes, regular: regularFontBytes } =
     await loadExpeditionPdfFontBytes()
-  const regularFont = regularFontBytes
-    ? await document.embedFont(regularFontBytes)
-    : await document.embedFont(StandardFonts.Helvetica)
-  const boldFont = boldFontBytes
-    ? await document.embedFont(boldFontBytes)
-    : await document.embedFont(StandardFonts.HelveticaBold)
+  const regularFont = await document.embedFont(regularFontBytes)
+  const boldFont = await document.embedFont(boldFontBytes)
 
   return {
     document,
@@ -83,5 +81,8 @@ async function readPdfFontBytes(prefixes: readonly string[]) {
     }
   }
 
-  return null
+  throw new MedusaError(
+    MedusaError.Types.NOT_FOUND,
+    `PDF font not found for prefixes: ${prefixes.join(", ")}`
+  )
 }

@@ -233,6 +233,9 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
       resolve: "./src/modules/product-attribute",
     },
     {
+      resolve: "./src/modules/product-content",
+    },
+    {
       resolve: "./src/modules/api-store",
     },
     {
@@ -244,6 +247,9 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     },
     {
       resolve: "./src/modules/product-review",
+    },
+    {
+      resolve: "./src/modules/claim-case",
     },
     {
       resolve: "./src/modules/search-profile",

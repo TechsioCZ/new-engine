@@ -31,7 +31,7 @@ describe("Herbatica manufacturer normalization", () => {
 })
 
 describe("Herbatica measurement-unit mapping", () => {
-  it("preserves the source unit and comparison base without correcting it", () => {
+  it("keeps canonical source units and comparison bases", () => {
     const result = buildSeedInputFromXml(`
       <SHOP>
         <SHOPITEM id="source-unit-product">
@@ -63,6 +63,84 @@ describe("Herbatica measurement-unit mapping", () => {
     expect(result.products[0]?.variants?.[0]?.measurement).toEqual({
       product_unit_quantity: 100,
     })
+  })
+
+  it("canonicalizes regional piece aliases without changing their quantity", () => {
+    const result = buildSeedInputFromXml(`
+      <SHOP>
+        <SHOPITEM id="localized-piece-unit">
+          <NAME>Localized piece unit</NAME>
+          <PRICE_VAT>10</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <UNIT_OF_MEASURE>
+            <PACKAGE_AMOUNT>100</PACKAGE_AMOUNT>
+            <PACKAGE_AMOUNT_UNIT>ks</PACKAGE_AMOUNT_UNIT>
+            <MEASURE_AMOUNT>1</MEASURE_AMOUNT>
+            <MEASURE_AMOUNT_UNIT>ks</MEASURE_AMOUNT_UNIT>
+          </UNIT_OF_MEASURE>
+          <STOCK><AMOUNT>1</AMOUNT></STOCK>
+        </SHOPITEM>
+      </SHOP>
+    `)
+
+    expect(result.products[0]?.measurement).toEqual({
+      unit: {
+        base_quantity: 1,
+        code: "pcs_1",
+        name: "pcs",
+        symbol: "pcs",
+      },
+    })
+    expect(result.products[0]?.variants?.[0]?.measurement).toEqual({
+      product_unit_quantity: 100,
+    })
+  })
+
+  it("converts package quantities when Shoptet uses compatible units", () => {
+    const result = buildSeedInputFromXml(`
+      <SHOP>
+        <SHOPITEM id="converted-mass-unit">
+          <NAME>Converted mass unit</NAME>
+          <PRICE_VAT>10</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <UNIT_OF_MEASURE>
+            <PACKAGE_AMOUNT>1</PACKAGE_AMOUNT>
+            <PACKAGE_AMOUNT_UNIT>kg</PACKAGE_AMOUNT_UNIT>
+            <MEASURE_AMOUNT>100</MEASURE_AMOUNT>
+            <MEASURE_AMOUNT_UNIT>g</MEASURE_AMOUNT_UNIT>
+          </UNIT_OF_MEASURE>
+          <STOCK><AMOUNT>1</AMOUNT></STOCK>
+        </SHOPITEM>
+      </SHOP>
+    `)
+
+    expect(result.products[0]?.measurement?.unit).toMatchObject({
+      base_quantity: 100,
+      code: "g_100",
+      symbol: "g",
+    })
+    expect(result.products[0]?.variants?.[0]?.measurement).toEqual({
+      product_unit_quantity: 1000,
+    })
+  })
+
+  it("does not clear manually configured measurements when the feed omits them", () => {
+    const result = buildSeedInputFromXml(`
+      <SHOP>
+        <SHOPITEM id="unowned-measurement">
+          <NAME>Unowned measurement</NAME>
+          <PRICE_VAT>10</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK><AMOUNT>1</AMOUNT></STOCK>
+        </SHOPITEM>
+      </SHOP>
+    `)
+
+    expect(result.products[0]?.measurement).toBeUndefined()
+    expect(result.products[0]?.variants?.[0]?.measurement).toBeUndefined()
   })
 
   it("keeps an unconfigured Variant empty within a configured Product", () => {
@@ -103,7 +181,7 @@ describe("Herbatica measurement-unit mapping", () => {
     })
     expect(
       result.products[0]?.variants?.map((variant) => variant.measurement)
-    ).toEqual([{ product_unit_quantity: 500 }, null])
+    ).toEqual([{ product_unit_quantity: 500 }, undefined])
   })
 })
 

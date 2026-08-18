@@ -67,6 +67,12 @@ export const RegisterForm = ({
         return
       }
 
+      toast.success({
+        title: tAuth("register.success"),
+        description: tAuth("register.confirmation_email_notice", {
+          email: value.email,
+        }),
+      })
       formApi.reset(defaultValues)
     },
   })

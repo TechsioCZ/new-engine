@@ -1,6 +1,5 @@
 import type { useTranslations } from "next-intl"
 
-const REVIEW_TITLE_MAX_LENGTH = 200
 const BAD_REQUEST_REVIEW_STATUSES = new Set([400, 422])
 // Broad duplicate keywords are skipped for validation statuses below.
 const BROAD_DUPLICATE_REVIEW_MESSAGE_PATTERNS = [
@@ -19,6 +18,14 @@ const DUPLICATE_REVIEW_MESSAGE_RULES = [
   ["reviewed", "product"],
 ] as const
 const REVIEW_VALIDATION_MESSAGE_RULES = [
+  {
+    patterns: ["author", "name"],
+    messageKey: "authorRequired",
+  },
+  {
+    patterns: ["captcha"],
+    messageKey: "captcha",
+  },
   {
     patterns: ["rating"],
     messageKey: "ratingRequired",
@@ -39,6 +46,8 @@ const REVIEW_VALIDATION_MESSAGE_RULES = [
 
 export type ProductReviewErrorMessages = {
   authRequired: string
+  authorRequired: string
+  captcha: string
   contentRequired: string
   duplicate: string
   forbidden: string
@@ -59,6 +68,8 @@ export const translateProductReviewErrorMessages = (
   translate: CatalogTranslator
 ): ProductReviewErrorMessages => ({
   authRequired: translate("reviews.errors.auth_required"),
+  authorRequired: translate("reviews.errors.author_required"),
+  captcha: translate("reviews.errors.captcha"),
   contentRequired: translate("reviews.errors.content_required"),
   duplicate: translate("reviews.errors.duplicate"),
   forbidden: translate("reviews.errors.forbidden"),
@@ -77,9 +88,6 @@ const hasErrorShape = (
   error: unknown
 ): error is { message?: unknown; status?: unknown; statusText?: unknown } =>
   Boolean(error && typeof error === "object")
-
-export const buildProductReviewTitle = (content: string) =>
-  content.trim().slice(0, REVIEW_TITLE_MAX_LENGTH)
 
 const extractErrorMessage = (error: unknown): string => {
   if (typeof error === "string") {
