@@ -104,7 +104,8 @@ export const GET = async (req: MedusaRequest, res: MedusaResponse) => {
   await decorateProductsWithMeasurements(
     req.scope,
     products as Parameters<typeof decorateProductsWithMeasurements>[1],
-    measurementDecorationOptions
+    measurementDecorationOptions,
+    req.locale
   )
 
   res.json({
