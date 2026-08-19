@@ -109,6 +109,7 @@ const productSaleAdapterBuilder =
   ProductSaleAdapterBuilder.withDefaultAdapters()
 
 const FACETS_TO_FETCH = [
+  "facet_product_status",
   "facet_status",
   "facet_form",
   "facet_brand",
@@ -393,11 +394,16 @@ const resolveResultCount = (options: {
   exhaustiveCandidateSearch: boolean
   fallbackCount: number
   matchingCount: number
+  productStatusFacetCount?: number
 }): number => {
   if (options.exhaustiveCandidateSearch) {
     return options.matchingCount
   }
-  return options.estimatedTotalHits ?? options.fallbackCount
+  return (
+    options.productStatusFacetCount ??
+    options.estimatedTotalHits ??
+    options.fallbackCount
+  )
 }
 
 const getStringRecordField = (
@@ -1019,6 +1025,10 @@ export async function GET(
   const priceFacetStats = cleanedQuery
     ? getNumericFacetStatsFromHits(rankedProducts.selectedHits, "facet_price")
     : getNumericFacetStats(searchResult.facetStats, "facet_price")
+  const productStatusFacetCount = getFacetDistribution(
+    searchResult.facetDistribution,
+    "facet_product_status"
+  ).get(ProductStatus.PUBLISHED)
 
   const [brandLabelsById, ingredientLabelsById] = await Promise.all([
     resolveBrandFacetLabels(
@@ -1038,6 +1048,7 @@ export async function GET(
     exhaustiveCandidateSearch,
     fallbackCount: finalProducts.length,
     matchingCount: matchingProducts.length,
+    productStatusFacetCount,
   })
   const totalPages = count > 0 ? Math.ceil(count / limit) : 0
   await decorateProductsWithMeasurements(

@@ -42,6 +42,7 @@ export type SearchProfileSyncOptions = {
 }
 
 type SearchSyncTargets = Record<SearchIndexType, string>
+type SearchIndexDocumentCounts = Record<SearchIndexType, number>
 
 type SearchProfileSyncStateService = {
   updateSearchProfiles: (data: Record<string, unknown>) => Promise<unknown>
@@ -58,6 +59,9 @@ type ProfileReferenceIds = {
 }
 
 const BATCH_SIZE = 500
+// Meilisearch defaults maxTotalHits to 1000. Sync only raises it to the
+// current index size so catalog pagination is not capped by app config.
+const MEILISEARCH_DEFAULT_MAX_TOTAL_HITS = 1000
 const SEARCH_SYNC_LOCK_KEY = "meilisearch-search-profiles-sync"
 
 const PRODUCT_FIELDS = [
@@ -612,6 +616,23 @@ const prepareTargets = async (
   }
 }
 
+const resolveIndexMaxTotalHits = (documentCount: number): number =>
+  Math.max(MEILISEARCH_DEFAULT_MAX_TOTAL_HITS, documentCount)
+
+const updateTargetPaginationTotalHits = async (
+  client: MeilisearchAdminClient,
+  targets: SearchSyncTargets,
+  documentCounts: SearchIndexDocumentCounts
+) => {
+  for (const type of SEARCH_INDEX_TYPES) {
+    await client.updateSettings(targets[type], {
+      pagination: {
+        maxTotalHits: resolveIndexMaxTotalHits(documentCounts[type]),
+      },
+    })
+  }
+}
+
 const finalizeFullSync = async (
   client: MeilisearchAdminClient,
   profile: SearchProfile,
@@ -743,7 +764,16 @@ const syncProfile = async (options: {
       )
       deleted += await deleteStaleDocuments(client, targets.brand, brandIds)
       deleted += await deleteStaleDocuments(client, targets.content, contentIds)
-    } else {
+    }
+
+    await updateTargetPaginationTotalHits(client, targets, {
+      product: products.ids.size,
+      category: categoryIds.size,
+      brand: brandIds.size,
+      content: contentIds.size,
+    })
+
+    if (mode === "full") {
       await finalizeFullSync(client, profile, targets)
 
       finalized = true
