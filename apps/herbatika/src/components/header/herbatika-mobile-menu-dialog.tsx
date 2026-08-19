@@ -4,14 +4,18 @@ import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import { HeaderContext } from "@techsio/ui-kit/organisms/header"
 import NextImage from "next/image"
 import NextLink from "next/link"
+import { useTranslations } from "next-intl"
 import { useContext, useEffect } from "react"
+import { useAuth } from "@/lib/storefront/auth"
 import { HEADER_ACTION_ITEMS } from "./herbatika-header.navigation"
 import { HerbatikaMobileMenuNav } from "./herbatika-mobile-menu-nav"
 
-const HEADER_DESKTOP_MEDIA_QUERY = "(min-width: 896px)"
+const HEADER_DESKTOP_MEDIA_QUERY = "(min-width: 77.5rem)"
 
 export function HerbatikaMobileMenuDialog() {
   const { isMobileMenuOpen, setIsMobileMenuOpen } = useContext(HeaderContext)
+  const { isAuthenticated } = useAuth()
+  const tAuth = useTranslations("auth")
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(HEADER_DESKTOP_MEDIA_QUERY)
@@ -47,6 +51,20 @@ export function HerbatikaMobileMenuDialog() {
         trapFocus
       >
         <div className="w-full overflow-x-hidden shadow-sm">
+          <div className="border-border-secondary border-b p-400">
+            <LinkButton
+              as={NextLink}
+              block
+              href={isAuthenticated ? "/account" : "/auth/login"}
+              icon="token-icon-user"
+              onClick={handleClose}
+              size="md"
+              className="bg-surface text-fg-primary hover:text-fg-reverse"
+            >
+              {isAuthenticated ? tAuth("account_label") : tAuth("sign_in")}
+            </LinkButton>
+          </div>
+
           <HerbatikaMobileMenuNav />
 
           <div className="grid w-full grid-cols-1 gap-200 p-400 sm:grid-cols-2">
