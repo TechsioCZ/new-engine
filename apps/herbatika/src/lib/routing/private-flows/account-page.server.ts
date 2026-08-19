@@ -67,6 +67,22 @@ const unauthenticatedRedirect = <Value>(
   )
 }
 
+export type AccountPrivatePageQuery =
+  | Readonly<{
+      kind: "account-lists"
+      path: Readonly<{
+        kind: "account"
+        section: "lists"
+      }>
+    }>
+  | Readonly<{
+      kind: "account-orders"
+      path: Readonly<{
+        kind: "account"
+        section: "orders"
+      }>
+    }>
+
 export const resolveAccountPrivatePage = async <Value>(
   context: GetServerSidePropsContext,
   input: Readonly<{
@@ -75,21 +91,7 @@ export const resolveAccountPrivatePage = async <Value>(
       market: Market,
       session: PrivateCustomerSession
     ) => Promise<SourceReadResult<Value>>
-    query?:
-      | Readonly<{
-          kind: "account-lists"
-          path: Readonly<{
-            kind: "account"
-            section: "lists"
-          }>
-        }>
-      | Readonly<{
-          kind: "account-orders"
-          path: Readonly<{
-            kind: "account"
-            section: "orders"
-          }>
-        }>
+    query?: AccountPrivatePageQuery
     suppressCanonicalization?: boolean
   }>
 ): Promise<GetServerSidePropsResult<PublicPageProps<Value>>> => {
