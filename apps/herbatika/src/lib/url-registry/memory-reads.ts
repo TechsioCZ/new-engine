@@ -31,8 +31,8 @@ import type {
   UrlRouteSnapshot,
 } from "./model"
 import type {
-  ActiveEquivalenceLookup,
   ActiveEntityRoutePageRequest,
+  ActiveEquivalenceLookup,
   EntityIdentityLookup,
   SourceReadResult,
   UrlRegistryPage,

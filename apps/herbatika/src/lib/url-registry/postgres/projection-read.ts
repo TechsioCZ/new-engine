@@ -5,15 +5,15 @@ import {
   encodeActiveRouteCursor,
 } from "../active-route-page"
 import type {
-  ActiveEquivalenceLookup,
   ActiveEntityRoutePageRequest,
+  ActiveEquivalenceLookup,
   ActiveRouteTarget,
   EntityIdentityLookup,
   EntityRouteSnapshot,
   SourceReadResult,
   StaticRouteSnapshot,
-  UrlRouteSnapshot,
   UrlRegistryPage,
+  UrlRouteSnapshot,
 } from "../contracts"
 import {
   assertEntityKind,
@@ -103,7 +103,11 @@ export const findActiveEntity = async (
 export const listActiveEntities = async (
   pool: SqlPool,
   input: ActiveEntityRoutePageRequest
-): Promise<SourceReadResult<UrlRegistryPage<Extract<ActiveRouteTarget, { projectionType: "entity" }>>>> => {
+): Promise<
+  SourceReadResult<
+    UrlRegistryPage<Extract<ActiveRouteTarget, { projectionType: "entity" }>>
+  >
+> => {
   assertMarket(input.market)
   assertEntityKind(input.kind)
   assertActiveRoutePageLimit(input.limit)

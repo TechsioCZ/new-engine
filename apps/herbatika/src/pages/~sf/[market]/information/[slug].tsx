@@ -4,7 +4,7 @@ import {
   type PublicPageProps,
   resolveEntityPublicPage,
 } from "@/lib/routing/public-page"
-import { fetchCmsPageById, type CmsPage } from "@/lib/storefront/cms"
+import { type CmsPage, fetchCmsPageById } from "@/lib/storefront/cms"
 import { getHerbatikaMarketContext } from "@/lib/storefront/market-context"
 
 type Props = PublicPageProps<CmsPage>

@@ -206,12 +206,13 @@ export const runReadBehavior = (createHarness: HarnessFactory) => {
       expect(secondPage.nextCursor).toBeNull()
       expect(
         new Set(
-          [...firstPage.items, ...secondPage.items].map(
-            (item) => item.route.id
-          )
+          [...firstPage.items, ...secondPage.items].map((item) => item.route.id)
         )
       ).toEqual(
-        new Set([first.result.snapshot.route.id, second.result.snapshot.route.id])
+        new Set([
+          first.result.snapshot.route.id,
+          second.result.snapshot.route.id,
+        ])
       )
     } finally {
       await harness.cleanup()

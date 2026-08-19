@@ -1,8 +1,8 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import { StorefrontLink } from "@/components/storefront-link"
 import { useLocale, useTranslations } from "next-intl"
+import { StorefrontLink } from "@/components/storefront-link"
 import {
   resolveOrderAddresses,
   resolveOrderContactEmail,

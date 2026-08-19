@@ -1,7 +1,4 @@
-import type {
-  NormalizedQueryValues,
-  QueryRouteKind,
-} from "./query-normalizer"
+import type { NormalizedQueryValues, QueryRouteKind } from "./query-normalizer"
 
 export type PublicSeoClassification = Readonly<{
   alternateEligible: boolean
@@ -12,12 +9,14 @@ export type PublicSeoClassification = Readonly<{
 
 export type PublicSeoSchemaType = "Article" | "CollectionPage" | "WebPage"
 
-export const buildPublicSeoJsonLd = (input: Readonly<{
-  canonical?: string
-  description?: string
-  schemaType?: PublicSeoSchemaType
-  title?: string
-}>): Readonly<Record<string, string>> | null =>
+export const buildPublicSeoJsonLd = (
+  input: Readonly<{
+    canonical?: string
+    description?: string
+    schemaType?: PublicSeoSchemaType
+    title?: string
+  }>
+): Readonly<Record<string, string>> | null =>
   input.canonical
     ? {
         "@context": "https://schema.org",
@@ -29,8 +28,9 @@ export const buildPublicSeoJsonLd = (input: Readonly<{
       }
     : null
 
-export const serializePublicSeoJsonLd = (value: Readonly<Record<string, string>>) =>
-  JSON.stringify(value).replaceAll("<", "\\u003c")
+export const serializePublicSeoJsonLd = (
+  value: Readonly<Record<string, string>>
+) => JSON.stringify(value).replaceAll("<", "\\u003c")
 
 const PAGINATED_LISTINGS = new Set<QueryRouteKind>([
   "advice-index",
@@ -45,11 +45,13 @@ const NEVER_INDEX = new Set<QueryRouteKind>(["account-orders", "search"])
 
 const keys = (values: NormalizedQueryValues) => Object.keys(values)
 
-export const classifySeo = (input: Readonly<{
-  canonicalRawQuery: string
-  routeKind: QueryRouteKind
-  values: NormalizedQueryValues
-}>): PublicSeoClassification => {
+export const classifySeo = (
+  input: Readonly<{
+    canonicalRawQuery: string
+    routeKind: QueryRouteKind
+    values: NormalizedQueryValues
+  }>
+): PublicSeoClassification => {
   if (NEVER_INDEX.has(input.routeKind)) {
     return {
       alternateEligible: false,

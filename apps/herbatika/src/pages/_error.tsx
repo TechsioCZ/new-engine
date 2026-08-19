@@ -16,7 +16,10 @@ export default function ErrorPage({ statusCode }: { statusCode: number }) {
 }
 
 ErrorPage.getInitialProps = ({ res, err }: NextPageContext) => {
-  res?.setHeader("Cache-Control", "private, no-store, max-age=0, must-revalidate")
+  res?.setHeader(
+    "Cache-Control",
+    "private, no-store, max-age=0, must-revalidate"
+  )
   res?.setHeader("X-Robots-Tag", "noindex, nofollow")
   return { statusCode: res?.statusCode ?? err?.statusCode ?? 500 }
 }

@@ -1,8 +1,8 @@
 "use client"
 
-import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import type { MouseEvent } from "react"
+import { StorefrontLink } from "@/components/storefront-link"
 import type {
   SearchAutocompleteStatus,
   SearchAutocompleteSuggestion,

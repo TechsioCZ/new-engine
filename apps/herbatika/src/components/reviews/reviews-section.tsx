@@ -2,7 +2,6 @@
 
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import type { StaticImageData } from "next/image"
-import { StorefrontLink } from "@/components/storefront-link"
 import { useFormatter, useTranslations } from "next-intl"
 import type { MouseEvent } from "react"
 import { FractionalRating } from "@/components/reviews/fractional-rating"
@@ -14,6 +13,7 @@ import type {
   ReviewsVariant,
   ReviewTrustSource,
 } from "@/components/reviews/reviews.types"
+import { StorefrontLink } from "@/components/storefront-link"
 
 type ReviewsSectionProps = {
   sectionClassName?: string

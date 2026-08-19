@@ -1,7 +1,7 @@
 import type { Market } from "@/lib/url/types"
 import type {
-  ActiveEquivalenceLookup,
   ActiveEntityRoutePageRequest,
+  ActiveEquivalenceLookup,
   ActiveRouteTarget,
   EntityIdentityLookup,
   EntityRouteSnapshot,

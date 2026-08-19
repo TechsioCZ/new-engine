@@ -1,3 +1,4 @@
+// biome-ignore-all lint/complexity/noExcessiveCognitiveComplexity: Public Pages resolvers are explicit fail-closed transaction boundaries for routing, source validation, canonicalization, and SEO.
 // Pages Router rejects the App-Router-only `server-only` marker. This module
 // is a Pages SSR boundary and must stay reachable only from getServerSideProps.
 
@@ -152,23 +153,23 @@ export const errorResult = async <Value>(
   }
 }
 
-export const notFoundResult = async <Value>(
-  context: GetServerSidePropsContext
-) => {
+export const notFoundResult = <Value>(context: GetServerSidePropsContext) => {
   setNoStore(context)
   context.res.setHeader("X-Robots-Tag", "noindex, nofollow")
-  return { notFound: true } as GetServerSidePropsResult<PublicPageProps<Value>>
+  return Promise.resolve({
+    notFound: true,
+  } as GetServerSidePropsResult<PublicPageProps<Value>>)
 }
 
-export const redirectResult = async <Value>(
+export const redirectResult = <Value>(
   context: GetServerSidePropsContext,
   destination: string,
   statusCode: 307 | 308 = 308
 ) => {
   setNoStore(context)
-  return {
+  return Promise.resolve({
     redirect: { destination, statusCode },
-  } as GetServerSidePropsResult<PublicPageProps<Value>>
+  } as GetServerSidePropsResult<PublicPageProps<Value>>)
 }
 
 const trustedMarket = (

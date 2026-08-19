@@ -22,7 +22,11 @@ describe("full public URL proxy", () => {
     ["/kategorie/bylinky", "/~sf/sk/category/bylinky", "category.detail"],
     ["/znacky", "/~sf/sk/brands/index", "brand.index"],
     ["/poradna/clanok", "/~sf/sk/advice/clanok", "article.detail"],
-    ["/informacie/kontaktujte-nas", "/~sf/sk/information/kontaktujte-nas", "page.detail"],
+    [
+      "/informacie/kontaktujte-nas",
+      "/~sf/sk/information/kontaktujte-nas",
+      "page.detail",
+    ],
     ["/casto-kladene-otazky", "/~sf/sk/static/faq", "static.faq"],
     ["/vyhladavanie", "/~sf/sk/search", "search"],
     ["/kosik", "/~sf/sk/cart", "cart"],
@@ -32,9 +36,21 @@ describe("full public URL proxy", () => {
       "/~sf/sk/checkout/confirmation/Order-AbC",
       "checkout.confirmation",
     ],
-    ["/ucet/objednavky/Order-AbC", "/~sf/sk/account/order/Order-AbC", "account.order"],
-    ["/ucet/zrusenie-uctu", "/~sf/sk/account/deactivation", "account.deactivation"],
-    ["/recenzie/produkt/Token-AbC", "/~sf/sk/reviews/product/Token-AbC", "reviews.product"],
+    [
+      "/ucet/objednavky/Order-AbC",
+      "/~sf/sk/account/order/Order-AbC",
+      "account.order",
+    ],
+    [
+      "/ucet/zrusenie-uctu",
+      "/~sf/sk/account/deactivation",
+      "account.deactivation",
+    ],
+    [
+      "/recenzie/produkt/Token-AbC",
+      "/~sf/sk/reviews/product/Token-AbC",
+      "reviews.product",
+    ],
   ])("rewrites %s to its semantic Pages target", (pathname, internal, routeKey) => {
     expect(resolve(pathname)).toMatchObject({
       kind: "rewrite",
@@ -51,9 +67,10 @@ describe("full public URL proxy", () => {
       market: "hu",
       pathname: "/~sf/hu/products/ashwagandha",
     })
-    expect(
-      resolve("/produkty/ashwagandha", { host: "herbatica.hu" })
-    ).toEqual({ kind: "respond", status: 404 })
+    expect(resolve("/produkty/ashwagandha", { host: "herbatica.hu" })).toEqual({
+      kind: "respond",
+      status: 404,
+    })
   })
 
   it("accepts an explicitly bound deployment host without treating it as canonical", () => {
@@ -61,7 +78,8 @@ describe("full public URL proxy", () => {
       resolve("/produkty/ashwagandha", {
         environment: {
           ALLOWED_MARKETS: "sk,cz,hu,ro",
-          HERBATICA_ACCEPTED_HOSTS_SK: "test-engine-herbatika-zane.web-revolution.cz",
+          HERBATICA_ACCEPTED_HOSTS_SK:
+            "test-engine-herbatika-zane.web-revolution.cz",
         },
         host: "test-engine-herbatika-zane.web-revolution.cz",
       })
@@ -72,12 +90,15 @@ describe("full public URL proxy", () => {
     })
   })
 
-  it.each(["/p/legacy", "/c/legacy", "/blog", "/account", "/auth/login"])(
-    "does not preserve development-only route %s",
-    (pathname) => {
-      expect(resolve(pathname)).toEqual({ kind: "respond", status: 404 })
-    }
-  )
+  it.each([
+    "/p/legacy",
+    "/c/legacy",
+    "/blog",
+    "/account",
+    "/auth/login",
+  ])("does not preserve development-only route %s", (pathname) => {
+    expect(resolve(pathname)).toEqual({ kind: "respond", status: 404 })
+  })
 
   it.each([
     ["/kampane", "herbatica.sk"],
@@ -91,12 +112,14 @@ describe("full public URL proxy", () => {
     })
   })
 
-  it.each(["/~sf/sk/home", "/~SF/sk/home", "/%7Esf/sk/home", "/%257Esf/sk/home"])(
-    "blocks the internal namespace %s",
-    (pathname) => {
-      expect(resolve(pathname)).toEqual({ kind: "respond", status: 404 })
-    }
-  )
+  it.each([
+    "/~sf/sk/home",
+    "/~SF/sk/home",
+    "/%7Esf/sk/home",
+    "/%257Esf/sk/home",
+  ])("blocks the internal namespace %s", (pathname) => {
+    expect(resolve(pathname)).toEqual({ kind: "respond", status: 404 })
+  })
 
   it("fails unknown hosts closed", () => {
     expect(resolve("/", { host: "unknown.example" })).toEqual({
@@ -125,9 +148,9 @@ describe("full public URL proxy", () => {
       kind: "respond",
       status: 421,
     })
-    expect(
-      resolve("/", { environment: { ALLOWED_MARKETS: "sk,sk" } })
-    ).toEqual({ kind: "respond", status: 421 })
+    expect(resolve("/", { environment: { ALLOWED_MARKETS: "sk,sk" } })).toEqual(
+      { kind: "respond", status: 421 }
+    )
   })
 
   it.each([

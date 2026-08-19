@@ -1,3 +1,4 @@
+// biome-ignore-all lint/complexity/noExcessiveCognitiveComplexity: The exhaustive typed switch is the single builder for every public route family.
 import { ROUTES } from "@/lib/market/market-runtime-definitions"
 import type { EntityUrlKind } from "@/lib/url-registry/model"
 import { ROUTE_SEGMENT_REGISTRY } from "./segments"
@@ -70,7 +71,10 @@ const staticSnapshotPath = (segments: readonly string[]) => {
   return `/${segments.join("/")}`
 }
 
-export const buildPath = (target: PublicRouteTarget, market: Market): string => {
+export const buildPath = (
+  target: PublicRouteTarget,
+  market: Market
+): string => {
   const segments = ROUTE_SEGMENT_REGISTRY[market]
 
   switch (target.kind) {
@@ -141,9 +145,8 @@ export const buildAbsoluteUrl = (
   market: Market
 ): URL => new URL(buildPath(target, market), ROUTES[market].canonicalOrigin)
 
-export const resolveNavigationMode = (
-  _target: PublicRouteTarget
-): "document" => "document"
+export const resolveNavigationMode = (_target: PublicRouteTarget): "document" =>
+  "document"
 
 export const withPublicSearchParams = (
   pathname: string,

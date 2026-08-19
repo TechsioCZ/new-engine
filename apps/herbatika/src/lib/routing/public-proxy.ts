@@ -1,13 +1,11 @@
-import {
-  normalizeHost,
-  ROUTES,
-} from "@/lib/market/market-runtime-definitions"
+// biome-ignore-all lint/complexity/noExcessiveCognitiveComplexity: The proxy is an explicit closed grammar and fail-closed boundary for hosts, methods, paths, and canonicalization.
+import { normalizeHost, ROUTES } from "@/lib/market/market-runtime-definitions"
 import { parseAllowedMarkets } from "@/lib/market/market-runtime-environment"
 import {
   parseAccountChildSegment,
   parseCheckoutChildSegment,
-  parseRootSegment,
   parseReviewChildSegment,
+  parseRootSegment,
   ROUTE_SEGMENT_REGISTRY,
 } from "@/lib/url/segments"
 import { validatePublishedSlug } from "@/lib/url/slug"
@@ -48,7 +46,23 @@ type ParsedPath = Readonly<{
   segments: readonly string[]
 }>
 
-const FORBIDDEN_DECODED_CHARACTER = /[\u0000-\u001f\u007f\u200b\u200c\u200d\u202a-\u202e\u2060\u2066-\u2069]/u
+const FORBIDDEN_CODE_POINT_RANGES = [
+  [0x00, 0x1f],
+  [0x7f, 0x7f],
+  [0x20_0b, 0x20_0d],
+  [0x20_2a, 0x20_2e],
+  [0x20_60, 0x20_60],
+  [0x20_66, 0x20_69],
+] as const
+
+const hasForbiddenDecodedCharacter = (value: string) =>
+  [...value].some((character) => {
+    const codePoint = character.codePointAt(0)
+    return FORBIDDEN_CODE_POINT_RANGES.some(
+      ([minimum, maximum]) =>
+        codePoint !== undefined && codePoint >= minimum && codePoint <= maximum
+    )
+  })
 const ENTITY_KINDS = {
   products: { detail: "products", index: "products/index", route: "product" },
   categories: {
@@ -102,7 +116,7 @@ const parsePath = (pathname: string): ParsedPath | null => {
           segment === ".." ||
           segment.includes("/") ||
           segment.includes("\\") ||
-          FORBIDDEN_DECODED_CHARACTER.test(segment)
+          hasForbiddenDecodedCharacter(segment)
       )
     ) {
       return null
@@ -126,7 +140,8 @@ const hostOwnership = (
   const ownership: Record<string, Market> = {}
   for (const market of allowedMarkets) {
     ownership[new URL(ROUTES[market].canonicalOrigin).hostname] = market
-    const extra = environment[`HERBATICA_ACCEPTED_HOSTS_${market.toUpperCase()}`]
+    const extra =
+      environment[`HERBATICA_ACCEPTED_HOSTS_${market.toUpperCase()}`]
     for (const value of extra?.split(",") ?? []) {
       const host = normalizeHost(value)
       if (!host) {
@@ -358,7 +373,10 @@ export const resolvePublicProxyAction = ({
 
   let route: Readonly<{ pathname: string; routeKey: string }> | null = null
   if (parsed.segments.length === 0) {
-    route = { pathname: internalPath(hostMarket.market, "home"), routeKey: "home" }
+    route = {
+      pathname: internalPath(hostMarket.market, "home"),
+      routeKey: "home",
+    }
   } else {
     const first = parsed.segments[0] ?? ""
     const match = parseRootSegment(hostMarket.market, first.toLowerCase())
@@ -366,7 +384,10 @@ export const resolvePublicProxyAction = ({
       route = entityRoute(hostMarket.market, match, parsed.segments)
     } else if (match?.group === "flow-root") {
       route = flowRoute(hostMarket.market, match.key, parsed.segments)
-    } else if (match?.group === "static-root-page" && parsed.segments.length === 1) {
+    } else if (
+      match?.group === "static-root-page" &&
+      parsed.segments.length === 1
+    ) {
       route = {
         pathname: internalPath(hostMarket.market, `static/${match.key}`),
         routeKey: `static.${match.key}`,
@@ -385,7 +406,8 @@ export const resolvePublicProxyAction = ({
     return { allow: "GET, HEAD", kind: "respond", status: 405 }
   }
 
-  const canonicalHost = new URL(ROUTES[hostMarket.market].canonicalOrigin).hostname
+  const canonicalHost = new URL(ROUTES[hostMarket.market].canonicalOrigin)
+    .hostname
   const canonicalPublicPath = (() => {
     if (parsed.segments.length === 0) {
       return "/"
@@ -398,17 +420,21 @@ export const resolvePublicProxyAction = ({
       return parsed.canonicalPath
     }
     const config = ROUTE_SEGMENT_REGISTRY[hostMarket.market]
-    const first =
-      root.group === "type-prefix"
-        ? config.typePrefixes[root.key]
-        : root.group === "flow-root"
-          ? config.flowRoots[root.key]
-          : config.staticRootPages[root.key]
-    const rest = parsed.segments.slice(1).map((segment, index) =>
-      index === 0 && root.group !== "static-root-page"
-        ? segment.toLowerCase()
-        : segment
-    )
+    let first: string
+    if (root.group === "type-prefix") {
+      first = config.typePrefixes[root.key]
+    } else if (root.group === "flow-root") {
+      first = config.flowRoots[root.key]
+    } else {
+      first = config.staticRootPages[root.key]
+    }
+    const rest = parsed.segments
+      .slice(1)
+      .map((segment, index) =>
+        index === 0 && root.group !== "static-root-page"
+          ? segment.toLowerCase()
+          : segment
+      )
     return `/${[first, ...rest].join("/")}`
   })()
 

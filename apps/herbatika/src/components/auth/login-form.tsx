@@ -2,9 +2,9 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Label } from "@techsio/ui-kit/atoms/label"
-import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import { useMemo } from "react"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useAppToast } from "@/hooks/use-app-toast"
 import {
   createLoginValidators,

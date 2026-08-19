@@ -26,9 +26,9 @@ describe("public URL API", () => {
     expect(
       buildPath({ kind: "account", section: "orders", value: "order 1" }, "ro")
     ).toBe("/cont/comenzi/order%201")
-    expect(
-      buildPath({ kind: "checkout", step: "paymentReturn" }, "cz")
-    ).toBe("/pokladna/navrat-z-platby")
+    expect(buildPath({ kind: "checkout", step: "paymentReturn" }, "cz")).toBe(
+      "/pokladna/navrat-z-platby"
+    )
   })
 
   it("preserves opaque checkout confirmation identifiers", () => {
@@ -60,9 +60,9 @@ describe("public URL API", () => {
 
   it("requires document navigation for every public HTML target", () => {
     expect(resolveNavigationMode({ kind: "home" })).toBe("document")
-    expect(resolveNavigationMode({ kind: "product", slug: "ashwagandha" })).toBe(
-      "document"
-    )
+    expect(
+      resolveNavigationMode({ kind: "product", slug: "ashwagandha" })
+    ).toBe("document")
     expect(resolveNavigationMode({ kind: "account", section: "orders" })).toBe(
       "document"
     )

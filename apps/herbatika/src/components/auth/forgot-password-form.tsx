@@ -3,9 +3,9 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import { useMemo, useState } from "react"
+import { StorefrontLink } from "@/components/storefront-link"
 import {
   createForgotPasswordValidators,
   type ForgotPasswordFormValues,

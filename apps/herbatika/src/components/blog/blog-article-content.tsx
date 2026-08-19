@@ -30,6 +30,7 @@ export function BlogArticleContent({
       {segments.map((segment, index) => {
         if (segment.type === "html") {
           return (
+            // biome-ignore lint/suspicious/noArrayIndexKey: Payload content segments have no stable IDs and their persisted order is immutable.
             <article className={ARTICLE_CONTENT_CLASS} key={`html-${index}`}>
               <BlogRichText
                 className="[&_h2]:scroll-mt-500 [&_h3]:scroll-mt-500"
@@ -46,6 +47,7 @@ export function BlogArticleContent({
 
         return (
           <InlineProductsCarousel
+            // biome-ignore lint/suspicious/noArrayIndexKey: Payload content segments have no stable IDs and their persisted order is immutable.
             key={`products-${index}`}
             keyPrefix={`article-products-${index}`}
             productPublicSlugsById={productPublicSlugsById}
