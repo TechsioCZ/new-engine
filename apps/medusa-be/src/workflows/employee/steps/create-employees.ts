@@ -44,7 +44,10 @@ export const createEmployeesStep = createStep(
       )
     }
 
-    return new StepResponse(employee, employee.id)
+    return new StepResponse(
+      employee as unknown as EmployeeWithCompany,
+      employee.id
+    )
   },
   async (employeeId: string | undefined, { container }) => {
     if (!employeeId) {

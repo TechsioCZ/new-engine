@@ -74,7 +74,7 @@ export const updateEmployeesStep = createStep(
       )
     }
 
-    return new StepResponse(employee, {
+    return new StepResponse(employee as unknown as QueryEmployee, {
       id: currentData.id,
       is_admin: currentData.is_admin,
       spending_limit: currentData.spending_limit,
