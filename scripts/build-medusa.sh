@@ -121,6 +121,13 @@ log_info "Step 3/5: Building Medusa..."
 # package explicitly because the narrowed Docker context contains no prebuilt dist.
 run_with_low_priority pnpm --filter=@techsio/storefront-i18n build
 
+# Medusa's compiled server loads workspace dependencies through CommonJS.
+# Validate the exact production import before the expensive application build.
+(
+  cd apps/medusa-be
+  node --input-type=commonjs -e 'const routes = require("@techsio/storefront-i18n/core/public-flow-routes"); if (typeof routes.buildPublicFlowPath !== "function") process.exit(1)'
+)
+
 # Use placeholder secrets for build-time validation only.
 # Medusa validates these exist but doesn't use them cryptographically during build.
 # Real secrets MUST be provided at runtime via environment variables.
