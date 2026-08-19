@@ -9,6 +9,7 @@ import {
   type ExplicitRequestServerContext,
   getRegionServerContext,
 } from "./context"
+import { loadBoundedCatalogPage } from "./load-bounded-catalog-page"
 
 export const prefetchProductIndexStorefrontData = async (
   queryState: PlpQueryState,
@@ -18,21 +19,26 @@ export const prefetchProductIndexStorefrontData = async (
     await getRegionServerContext(requestContext)
 
   if (region) {
-    const catalog = await fetchServerCatalogProducts(
-      market,
-      queryClient,
-      buildCatalogProductsParams({
-        countryCode: region.country_code,
-        limit: PLP_PAGE_SIZE,
-        locale,
-        queryState: { ...queryState, q: "" },
-        regionId: region.region_id,
-      })
-    )
+    const catalog = await loadBoundedCatalogPage({
+      loadPage: (page) =>
+        fetchServerCatalogProducts(
+          market,
+          queryClient,
+          buildCatalogProductsParams({
+            countryCode: region.country_code,
+            limit: PLP_PAGE_SIZE,
+            locale,
+            queryState: { ...queryState, page, q: "" },
+            regionId: region.region_id,
+          })
+        ),
+      requestedPage: queryState.page,
+    })
 
     return {
       dehydratedState: dehydrate(queryClient),
       region,
+      totalPages: catalog.totalPages,
       visibleProductIds: catalog.products.map((product) => product.id),
     }
   }
@@ -40,6 +46,7 @@ export const prefetchProductIndexStorefrontData = async (
   return {
     dehydratedState: dehydrate(queryClient),
     region,
+    totalPages: 0,
     visibleProductIds: [] as string[],
   }
 }

@@ -22,12 +22,15 @@ import {
 export function useSearchListingController(
   options: Readonly<{
     productPublicSlugsById?: Readonly<Record<string, string>>
+    refreshServerDataOnQueryChange?: boolean
     requireQuery?: boolean
   }> = {}
 ) {
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
-  const [queryState, setQueryState] = useQueryStates(plpQueryParsers)
+  const [queryState, setQueryState] = useQueryStates(plpQueryParsers, {
+    shallow: options.refreshServerDataOnQueryChange !== true,
+  })
   const query = queryState.q.trim()
   const isSearchQueryEnabled = Boolean(
     region?.region_id && (options.requireQuery === false || query.length > 0)

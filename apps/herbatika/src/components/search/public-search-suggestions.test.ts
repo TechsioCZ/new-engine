@@ -88,6 +88,73 @@ describe("public search suggestion boundary", () => {
     )
   })
 
+  it("preserves validated server-projected hrefs when slug maps are absent", () => {
+    const response: SearchAutocompleteResponse = {
+      brands: [
+        {
+          ...suggestion(
+            buildPath({ kind: "brand", slug: "server-brand" }, "sk")
+          ),
+          type: "brand",
+        },
+      ],
+      categories: [
+        {
+          ...suggestion(
+            buildPath({ kind: "category", slug: "server-category" }, "sk")
+          ),
+          type: "category",
+        },
+      ],
+      content: [
+        {
+          ...suggestion(
+            buildPath({ kind: "article", slug: "server-article" }, "sk")
+          ),
+          type: "content",
+        },
+        {
+          ...suggestion(
+            buildPath({ kind: "page", slug: "server-information" }, "sk")
+          ),
+          id: "server-information",
+          type: "content",
+        },
+      ],
+      products: [
+        suggestion(
+          `${buildPath({ kind: "product", slug: "server-product" }, "sk")}?variant=variant-1`
+        ),
+      ],
+      query: "result",
+    }
+
+    expect(projectSearchAutocompleteResponse(response, {}, "sk")).toEqual(
+      response
+    )
+  })
+
+  it.each([
+    "https://example.test/product",
+    "/arbitrary-path",
+    buildPath({ kind: "cart" }, "sk"),
+    buildPath({ kind: "category", slug: "wrong-kind" }, "sk"),
+    buildPath({ kind: "product" }, "sk"),
+    `${buildPath({ kind: "product", slug: "fragmented" }, "sk")}#details`,
+  ])("does not preserve an unsafe or non-product href %s", (href) => {
+    const response: SearchAutocompleteResponse = {
+      brands: [],
+      categories: [],
+      content: [],
+      products: [suggestion(href)],
+      query: "result",
+    }
+
+    expect(
+      projectSearchAutocompleteResponse(response, {}, "sk").products
+    ).toEqual([])
+  })
+
   it("drops suggestions without a stable-ID projection", () => {
     const response: SearchAutocompleteResponse = {
       brands: [],

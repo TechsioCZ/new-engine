@@ -254,18 +254,22 @@ const loadAlternates = async <Value>(
                 market: candidate.route.market,
                 sourceId: candidate.route.sourceId,
               })
-              return source.kind === "found"
-                ? ([
-                    HREF_LANG[candidate.route.market],
-                    buildAbsoluteUrl(
-                      {
-                        kind: candidate.route.kind,
-                        slug: candidate.currentSlug.normalizedSlug,
-                      },
-                      candidate.route.market
-                    ).href,
-                  ] as const)
-                : null
+              if (source.kind === "missing") {
+                return null
+              }
+              if (source.kind !== "found") {
+                throw new Error("Equivalent route source is unavailable")
+              }
+              return [
+                HREF_LANG[candidate.route.market],
+                buildAbsoluteUrl(
+                  {
+                    kind: candidate.route.kind,
+                    slug: candidate.currentSlug.normalizedSlug,
+                  },
+                  candidate.route.market
+                ).href,
+              ] as const
             })(),
           ]
         : []
@@ -352,6 +356,24 @@ export const resolveEntityPublicPage = async <Value>(
       return errorResult(context, market, 410)
     }
 
+    const sourceRoute =
+      resolution.value.disposition === "superseded"
+        ? resolution.value.successorRoute
+        : resolution.value.route
+    const source = await input.loadSource({
+      market,
+      sourceId: sourceRoute.sourceId,
+    })
+    if (source.kind === "missing") {
+      return notFoundResult(context)
+    }
+    if (source.kind === "unavailable") {
+      return errorResult(context, market, 503, source.retryAfterSeconds)
+    }
+    if (source.kind === "invalid-response") {
+      return errorResult(context, market, 503)
+    }
+
     const currentSlug = resolution.value.currentSlug.normalizedSlug
     const redirectQuery =
       query.kind === "redirect" ? query.redirectRawQuery : rawQuery
@@ -365,20 +387,6 @@ export const resolveEntityPublicPage = async <Value>(
         context,
         currentAbsoluteUrl(market, input.kind, currentSlug, redirectQuery)
       )
-    }
-
-    const source = await input.loadSource({
-      market,
-      sourceId: resolution.value.route.sourceId,
-    })
-    if (source.kind === "missing") {
-      return notFoundResult(context)
-    }
-    if (source.kind === "unavailable") {
-      return errorResult(context, market, 503, source.retryAfterSeconds)
-    }
-    if (source.kind === "invalid-response") {
-      return errorResult(context, market, 503)
     }
 
     const boundedQuery = input.lastPage

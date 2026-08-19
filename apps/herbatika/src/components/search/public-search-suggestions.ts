@@ -4,6 +4,7 @@ import type {
   SearchAutocompleteSuggestionType,
 } from "@/lib/search-autocomplete/search-autocomplete-types"
 import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
+import { parsePublicPath } from "@/lib/url/public-route-api"
 import type { Market } from "@/lib/url/types"
 import type { EntityUrlKind } from "@/lib/url-registry/model"
 
@@ -68,16 +69,50 @@ const publicSlugForSuggestion = (
   }
 }
 
+const validatedServerProjectedHref = (
+  suggestion: SearchAutocompleteSuggestion,
+  market: Market
+): string | null => {
+  if (!isCanonicalPublicSuggestion(suggestion)) {
+    return null
+  }
+
+  const href = suggestion.href.trim()
+  if (href.includes("#")) {
+    return null
+  }
+
+  const queryStart = href.indexOf("?")
+  const parsed = parsePublicPath({
+    market,
+    pathname: queryStart === -1 ? href : href.slice(0, queryStart),
+    rawQuery: queryStart === -1 ? undefined : href.slice(queryStart + 1),
+  })
+  const entityKind = ENTITY_KIND_BY_SUGGESTION_TYPE[suggestion.type]
+  const hasExpectedEntityKind =
+    parsed.kind === "found" &&
+    (parsed.target.kind === entityKind ||
+      (suggestion.type === "content" && parsed.target.kind === "page"))
+
+  return parsed.kind === "found" &&
+    !parsed.canonicalization.required &&
+    hasExpectedEntityKind &&
+    "slug" in parsed.target
+    ? href
+    : null
+}
+
 const projectSuggestion = (
   suggestion: SearchAutocompleteSuggestion,
   maps: SearchPublicSlugMaps,
   market: Market
 ): SearchAutocompleteSuggestion | null => {
-  const href = buildProjectedEntityPath(
+  const projectedHref = buildProjectedEntityPath(
     ENTITY_KIND_BY_SUGGESTION_TYPE[suggestion.type],
     { publicSlug: publicSlugForSuggestion(suggestion, maps) },
     market
   )
+  const href = projectedHref ?? validatedServerProjectedHref(suggestion, market)
   return href ? { ...suggestion, href } : null
 }
 

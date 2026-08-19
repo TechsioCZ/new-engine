@@ -14,26 +14,18 @@ import { useSearchAutocomplete } from "./search/use-search-autocomplete"
 import { useSearchListingController } from "./search/use-search-listing-controller"
 
 type SearchResultsProps = {
-  articlePublicSlugsById?: Readonly<Record<string, string>>
-  brandPublicSlugsById?: Readonly<Record<string, string>>
-  categoryPublicSlugsById?: Readonly<Record<string, string>>
   productPublicSlugsById?: Readonly<Record<string, string>>
 }
 
-export function SearchResults({
-  articlePublicSlugsById,
-  brandPublicSlugsById,
-  categoryPublicSlugsById,
-  productPublicSlugsById,
-}: SearchResultsProps) {
+export function SearchResults({ productPublicSlugsById }: SearchResultsProps) {
   const t = useTranslations("search")
   const { code: market } = useMarketContext()
-  const controller = useSearchListingController({ productPublicSlugsById })
+  const controller = useSearchListingController({
+    productPublicSlugsById,
+    refreshServerDataOnQueryChange: true,
+  })
   const safeTotalPages = Math.max(controller.catalogQuery.totalPages, 1)
   const autocomplete = useSearchAutocomplete({
-    articlePublicSlugsById,
-    brandPublicSlugsById,
-    categoryPublicSlugsById,
     countryCode: controller.searchCountryCode,
     query: controller.query,
     currencyCode: controller.productsCurrencyCode,

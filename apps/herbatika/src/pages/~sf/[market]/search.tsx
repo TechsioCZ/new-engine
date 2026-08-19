@@ -16,9 +16,6 @@ import {
 
 type Props = PublicPageProps<
   Readonly<{
-    articlePublicSlugsById: PublicEntitySlugMap
-    brandPublicSlugsById: PublicEntitySlugMap
-    categoryPublicSlugsById: PublicEntitySlugMap
     dehydratedState: DehydratedState
     productPublicSlugsById: PublicEntitySlugMap
   }>
@@ -39,37 +36,15 @@ export const getServerSideProps = ((context) => {
           causeCode: "MISSING_REGION",
         } as const
       }
-      const [
-        articlePublicSlugsById,
-        brandPublicSlugsById,
-        categoryPublicSlugsById,
-        productPublicSlugsById,
-      ] = await Promise.all([
-        readRequiredPublicEntitySlugs({ kind: "article", market }),
-        readRequiredPublicEntitySlugs({ kind: "brand", market }),
-        readRequiredPublicEntitySlugs({ kind: "category", market }),
-        readRequiredPublicEntitySlugs({
-          kind: "product",
-          market,
-          requiredSourceIds: result.visibleProductIds,
-        }),
-      ])
-      if (articlePublicSlugsById.kind !== "found") {
-        return articlePublicSlugsById
-      }
-      if (brandPublicSlugsById.kind !== "found") {
-        return brandPublicSlugsById
-      }
-      if (categoryPublicSlugsById.kind !== "found") {
-        return categoryPublicSlugsById
-      }
+      const productPublicSlugsById = await readRequiredPublicEntitySlugs({
+        kind: "product",
+        market,
+        requiredSourceIds: result.visibleProductIds,
+      })
       if (productPublicSlugsById.kind !== "found") {
         return productPublicSlugsById
       }
       return foundSource({
-        articlePublicSlugsById: articlePublicSlugsById.value,
-        brandPublicSlugsById: brandPublicSlugsById.value,
-        categoryPublicSlugsById: categoryPublicSlugsById.value,
         dehydratedState: result.dehydratedState,
         productPublicSlugsById: productPublicSlugsById.value,
       })
@@ -85,9 +60,6 @@ export default function SearchPage({ page }: Props) {
   return (
     <HydrationBoundary state={page.value.dehydratedState}>
       <SearchResults
-        articlePublicSlugsById={page.value.articlePublicSlugsById}
-        brandPublicSlugsById={page.value.brandPublicSlugsById}
-        categoryPublicSlugsById={page.value.categoryPublicSlugsById}
         productPublicSlugsById={page.value.productPublicSlugsById}
       />
     </HydrationBoundary>

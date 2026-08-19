@@ -20,6 +20,7 @@ type BrandValue = Readonly<{
   dehydratedState: DehydratedState
   productPublicSlugsById: PublicEntitySlugMap
   publicSlug: string
+  totalPages: number
 }>
 
 type Props = PublicPageProps<BrandValue>
@@ -71,9 +72,11 @@ export const getServerSideProps = ((context) => {
           dehydratedState: storefront.dehydratedState,
           productPublicSlugsById: productPublicSlugsById.value,
           publicSlug: brandPublicSlugsById.value[brand.id],
+          totalPages: storefront.totalPages,
         },
       } as const
     },
+    lastPage: (value) => value.totalPages,
     queryKind: "brand-detail",
     title: ({ brand }) => brand.title,
   })
