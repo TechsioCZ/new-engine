@@ -8,14 +8,62 @@ import type {
   StaticRouteSnapshot,
 } from "@/lib/url-registry/model"
 import type { SourceReadResult } from "@/lib/url-registry/reads"
+import { createUrlRegistrySourceIdentity } from "@/lib/url-registry/source-identity"
 import { getUrlRegistryRuntime } from "./instance.server"
 
 const MAX_PUBLIC_PROJECTIONS = 20_000
+const MAX_REQUIRED_PUBLIC_PROJECTIONS = 100
 
-export const listPublicEntityProjections = async (input: {
+type PublicEntityProjectionRequest = Readonly<{
   kind: EntityUrlKind
   market: Market
-}): Promise<SourceReadResult<readonly ActiveEntityRouteTarget[]>> => {
+  requiredSourceIds?: readonly string[]
+}>
+
+const findRequiredPublicEntityProjections = async (
+  input: PublicEntityProjectionRequest,
+  sourceIds: readonly string[]
+): Promise<SourceReadResult<readonly ActiveEntityRouteTarget[]>> => {
+  const runtime = await getUrlRegistryRuntime()
+  if (!runtime.enabled) {
+    return { kind: "unavailable" }
+  }
+
+  const results = await Promise.all(
+    sourceIds.map((sourceId) =>
+      runtime.registry.findActiveEntityRoute({
+        ...createUrlRegistrySourceIdentity(input.kind, sourceId),
+        market: input.market,
+      })
+    )
+  )
+  const projections: ActiveEntityRouteTarget[] = []
+  for (const result of results) {
+    if (result.kind === "found") {
+      projections.push(result.value)
+    } else if (result.kind !== "missing") {
+      return result
+    }
+  }
+  return { kind: "found", value: projections }
+}
+
+export const listPublicEntityProjections = async (
+  input: PublicEntityProjectionRequest
+): Promise<SourceReadResult<readonly ActiveEntityRouteTarget[]>> => {
+  const requiredSourceIds = [
+    ...new Set(input.requiredSourceIds?.filter(Boolean) ?? []),
+  ]
+  if (requiredSourceIds.length > MAX_REQUIRED_PUBLIC_PROJECTIONS) {
+    return {
+      causeCode: "REQUIRED_PUBLIC_PROJECTION_LIMIT_EXCEEDED",
+      kind: "invalid-response",
+    }
+  }
+  if (input.requiredSourceIds) {
+    return findRequiredPublicEntityProjections(input, requiredSourceIds)
+  }
+
   const runtime = await getUrlRegistryRuntime()
   if (!runtime.enabled) {
     return { kind: "unavailable" }

@@ -5,6 +5,9 @@ const mocks = vi.hoisted(() => ({
   fetchExternalReviewTrustSources: vi.fn(async () => []),
   fetchStorefrontTextMessages: vi.fn(async () => ({})),
   getHerbatikaMarketContext: vi.fn(() => ({ locale: "sk-SK" })),
+  getRegionServerContext: vi.fn(async () => ({
+    region: { region_id: "reg-sk" },
+  })),
   readRequiredPublicEntitySlugs: vi.fn(),
 }))
 
@@ -20,6 +23,9 @@ vi.mock("@/lib/storefront/market-context", () => ({
 }))
 vi.mock("@/lib/storefront/ssr/public-entity-projections", () => ({
   readRequiredPublicEntitySlugs: mocks.readRequiredPublicEntitySlugs,
+}))
+vi.mock("@/lib/storefront/ssr/context", () => ({
+  getRegionServerContext: mocks.getRegionServerContext,
 }))
 vi.mock("@/lib/storefront/storefront-texts.server", () => ({
   fetchStorefrontTextMessages: mocks.fetchStorefrontTextMessages,
@@ -63,6 +69,13 @@ describe("public storefront shell URL projections", () => {
     expect(shell.footerNavigation.columns).toHaveLength(1)
   })
 
+  it("passes the server-selected market region into the Pages shell", async () => {
+    const shell = await loadPublicShell("sk")
+
+    expect(mocks.getRegionServerContext).toHaveBeenCalledWith({ market: "sk" })
+    expect(shell.initialRegion).toEqual({ region_id: "reg-sk" })
+  })
+
   it("fails footer navigation closed without failing the public page", async () => {
     mocks.fetchCmsFooterNavigation.mockRejectedValueOnce(
       new Error("CMS unavailable")
@@ -71,6 +84,7 @@ describe("public storefront shell URL projections", () => {
     const shell = await loadPublicShell("sk")
 
     expect(shell.footerNavigation).toEqual({ columns: [] })
+    expect(shell.initialRegion).toEqual({ region_id: "reg-sk" })
   })
 
   it("fails the public shell closed when category projections are incomplete", async () => {
@@ -97,6 +111,7 @@ describe("public storefront shell URL projections", () => {
 
     expect(shell.categoryPublicSlugsById).toEqual({})
     expect(shell.footerNavigation).toEqual({ columns: [] })
+    expect(shell.initialRegion).toBeNull()
     expect(mocks.fetchCmsFooterNavigation).not.toHaveBeenCalled()
     expect(mocks.readRequiredPublicEntitySlugs).not.toHaveBeenCalled()
   })

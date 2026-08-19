@@ -3,7 +3,8 @@
 import { StorefrontDataProvider } from "@techsio/storefront-data/client/provider"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import { RegionProvider } from "@techsio/storefront-data/shared/region-context"
-import { NuqsAdapter } from "nuqs/adapters/next/app"
+import { NuqsAdapter as AppNuqsAdapter } from "nuqs/adapters/next/app"
+import { NuqsAdapter as PagesNuqsAdapter } from "nuqs/adapters/next/pages"
 import type { PropsWithChildren } from "react"
 import { useEffect } from "react"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
@@ -28,6 +29,7 @@ function RegionBootstrapProvider({
 type ProvidersProps = PropsWithChildren<{
   initialMarketContext?: HerbatikaMarketContext
   initialRegion?: RegionInfo | null
+  router?: "app" | "pages"
 }>
 
 function useDisableNextDevIndicator() {
@@ -66,19 +68,22 @@ export function Providers({
   children,
   initialMarketContext,
   initialRegion = null,
+  router = "app",
 }: ProvidersProps) {
   useDisableNextDevIndicator()
   useAuthSessionLogoutSync()
+  const RouterNuqsAdapter =
+    router === "pages" ? PagesNuqsAdapter : AppNuqsAdapter
 
   return (
     <StorefrontDataProvider>
-      <NuqsAdapter>
+      <RouterNuqsAdapter>
         <MarketProvider value={initialMarketContext}>
           <RegionBootstrapProvider initialRegion={initialRegion}>
             {children}
           </RegionBootstrapProvider>
         </MarketProvider>
-      </NuqsAdapter>
+      </RouterNuqsAdapter>
     </StorefrontDataProvider>
   )
 }

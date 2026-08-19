@@ -47,9 +47,14 @@ const CATALOG_FETCH_TIMEOUT_MS = 3000
 
 const requirePublicSlugMap = async (
   market: Market,
-  kind: EntityUrlKind
+  kind: EntityUrlKind,
+  requiredSourceIds: readonly string[]
 ): Promise<PublicEntitySlugMap> => {
-  const result = await readRequiredPublicEntitySlugs({ kind, market })
+  const result = await readRequiredPublicEntitySlugs({
+    kind,
+    market,
+    requiredSourceIds,
+  })
   if (result.kind === "found") {
     return result.value
   }
@@ -61,6 +66,10 @@ const requirePublicSlugMap = async (
 
 const normalizeSearchAutocompleteQuery = (query: string) =>
   query.trim().slice(0, SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH)
+
+const uniqueCandidateIds = (values: readonly unknown[]) => [
+  ...new Set(values.map(normalizeString).filter(Boolean)),
+]
 
 const createCatalogAutocompleteQuery = ({
   countryCode,
@@ -170,30 +179,58 @@ export const fetchSearchAutocomplete = async ({
   }
 
   const safeCurrencyCode = resolveSupportedCurrencyCode(currencyCode)
+  const catalogResponse = await fetchCatalogCandidates({
+    authToken,
+    countryCode,
+    currencyCode: safeCurrencyCode,
+    locale,
+    market,
+    query: normalizedQuery,
+    regionId,
+  })
+  const productHits = catalogResponse.products ?? []
+  const contentHits = catalogResponse.content ?? []
   const [
-    catalogResponse,
     publicSlugsByProductId,
     publicSlugsByCategoryId,
     publicSlugsByBrandId,
     publicSlugsByArticleId,
     publicSlugsByPageId,
   ] = await Promise.all([
-    fetchCatalogCandidates({
-      authToken,
-      countryCode,
-      currencyCode: safeCurrencyCode,
-      locale,
+    requirePublicSlugMap(
       market,
-      query: normalizedQuery,
-      regionId,
-    }),
-    requirePublicSlugMap(market, "product"),
-    requirePublicSlugMap(market, "category"),
-    requirePublicSlugMap(market, "brand"),
-    requirePublicSlugMap(market, "article"),
-    requirePublicSlugMap(market, "page"),
+      "product",
+      uniqueCandidateIds(productHits.map(({ id }) => id))
+    ),
+    requirePublicSlugMap(
+      market,
+      "category",
+      uniqueCandidateIds((catalogResponse.categories ?? []).map(({ id }) => id))
+    ),
+    requirePublicSlugMap(
+      market,
+      "brand",
+      uniqueCandidateIds((catalogResponse.brands ?? []).map(({ id }) => id))
+    ),
+    requirePublicSlugMap(
+      market,
+      "article",
+      uniqueCandidateIds(
+        contentHits
+          .filter(({ type }) => normalizeString(type) === "article")
+          .map(({ id }) => id)
+      )
+    ),
+    requirePublicSlugMap(
+      market,
+      "page",
+      uniqueCandidateIds(
+        contentHits
+          .filter(({ type }) => normalizeString(type) === "page")
+          .map(({ id }) => id)
+      )
+    ),
   ])
-  const productHits = catalogResponse.products ?? []
 
   return {
     query: normalizedQuery,

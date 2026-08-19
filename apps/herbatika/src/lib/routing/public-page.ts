@@ -2,6 +2,7 @@
 // Pages Router rejects the App-Router-only `server-only` marker. This module
 // is a Pages SSR boundary and must stay reachable only from getServerSideProps.
 
+import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import type { GetServerSidePropsContext, GetServerSidePropsResult } from "next"
 import type { AbstractIntlMessages } from "next-intl"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
@@ -13,6 +14,7 @@ import {
   getHerbatikaMarketContext,
   type HerbatikaMarketContext,
 } from "@/lib/storefront/market-context"
+import { getRegionServerContext } from "@/lib/storefront/ssr/context"
 import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
 import { readRequiredPublicEntitySlugs } from "@/lib/storefront/ssr/public-entity-projections"
 import { fetchStorefrontTextMessages } from "@/lib/storefront/storefront-texts.server"
@@ -42,6 +44,7 @@ export type PublicSeo = Readonly<{
 export type StorefrontShellProps = Readonly<{
   categoryPublicSlugsById: PublicEntitySlugMap
   footerNavigation: CmsFooterNavigation
+  initialRegion: RegionInfo | null
   marketContext: HerbatikaMarketContext
   messages: AbstractIntlMessages
   reviewTrustSources: readonly ReviewTrustSource[]
@@ -85,26 +88,33 @@ export const loadPublicShell = async (
   categoryPublicSlugsById?: PublicEntitySlugMap
 ): Promise<StorefrontShellProps> => {
   const marketContext = getHerbatikaMarketContext(market)
-  const [messages, reviewTrustSources, footerNavigation, categoryProjections] =
-    await Promise.all([
-      fetchStorefrontTextMessages(marketContext),
-      fetchExternalReviewTrustSources(market),
-      fetchCmsFooterNavigation(marketContext.locale).catch(() => ({
-        columns: [],
-      })),
-      categoryPublicSlugsById
-        ? Promise.resolve({
-            kind: "found" as const,
-            value: categoryPublicSlugsById,
-          })
-        : readRequiredPublicEntitySlugs({ kind: "category", market }),
-    ])
+  const [
+    messages,
+    reviewTrustSources,
+    footerNavigation,
+    categoryProjections,
+    { region },
+  ] = await Promise.all([
+    fetchStorefrontTextMessages(marketContext),
+    fetchExternalReviewTrustSources(market),
+    fetchCmsFooterNavigation(marketContext.locale).catch(() => ({
+      columns: [],
+    })),
+    categoryPublicSlugsById
+      ? Promise.resolve({
+          kind: "found" as const,
+          value: categoryPublicSlugsById,
+        })
+      : readRequiredPublicEntitySlugs({ kind: "category", market }),
+    getRegionServerContext({ market }),
+  ])
   if (categoryProjections.kind !== "found") {
     throw new Error("Category URL projections are unavailable")
   }
   return {
     categoryPublicSlugsById: categoryProjections.value,
     footerNavigation,
+    initialRegion: region,
     marketContext,
     messages,
     reviewTrustSources,
@@ -122,6 +132,7 @@ export const loadPublicErrorShell = async (
   return {
     categoryPublicSlugsById: {},
     footerNavigation: { columns: [] },
+    initialRegion: null,
     marketContext,
     messages,
     reviewTrustSources,

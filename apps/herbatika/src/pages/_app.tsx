@@ -1,4 +1,5 @@
 import { type DehydratedState, HydrationBoundary } from "@tanstack/react-query"
+import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import type { AppProps } from "next/app"
 import Head from "next/head"
 import type { AbstractIntlMessages } from "next-intl"
@@ -20,24 +21,29 @@ type StorefrontPageProps = Readonly<{
   dehydratedState?: DehydratedState
   categoryPublicSlugsById?: PublicEntitySlugMap
   footerNavigation?: CmsFooterNavigation
+  initialRegion?: RegionInfo | null
   marketContext?: HerbatikaMarketContext
   messages?: AbstractIntlMessages
   reviewTrustSources?: readonly ReviewTrustSource[]
   seo?: PublicSeo
 }>
 
-function PublicSeoHead({ seo }: { seo: PublicSeo }) {
+function PublicSeoHead({
+  marketContext,
+  seo,
+}: {
+  marketContext: HerbatikaMarketContext
+  seo: PublicSeo
+}) {
   const jsonLd = buildPublicSeoJsonLd(seo)
+  const title = seo.title ?? marketContext.metadata.title
+  const description = seo.description ?? marketContext.metadata.description
   return (
     <Head>
-      {seo.title ? <title>{seo.title}</title> : null}
-      {seo.description ? (
-        <meta content={seo.description} name="description" />
-      ) : null}
-      {seo.title ? <meta content={seo.title} property="og:title" /> : null}
-      {seo.description ? (
-        <meta content={seo.description} property="og:description" />
-      ) : null}
+      <title>{title}</title>
+      <meta content={description} name="description" />
+      <meta content={title} property="og:title" />
+      <meta content={description} property="og:description" />
       <meta content={seo.robots} name="robots" />
       {seo.canonical ? <link href={seo.canonical} rel="canonical" /> : null}
       {seo.canonical ? (
@@ -74,10 +80,23 @@ export default function HerbatikaPagesApp({
   }
 
   return (
-    <NextIntlClientProvider messages={pageProps.messages}>
-      <Providers initialMarketContext={pageProps.marketContext}>
+    <NextIntlClientProvider
+      locale={pageProps.marketContext.locale}
+      messages={pageProps.messages}
+      timeZone={pageProps.marketContext.timeZone}
+    >
+      <Providers
+        initialMarketContext={pageProps.marketContext}
+        initialRegion={pageProps.initialRegion}
+        router="pages"
+      >
         <HydrationBoundary state={pageProps.dehydratedState}>
-          {pageProps.seo ? <PublicSeoHead seo={pageProps.seo} /> : null}
+          {pageProps.seo ? (
+            <PublicSeoHead
+              marketContext={pageProps.marketContext}
+              seo={pageProps.seo}
+            />
+          ) : null}
           <AppShell
             categoryPublicSlugsById={pageProps.categoryPublicSlugsById}
             footerNavigation={pageProps.footerNavigation}
