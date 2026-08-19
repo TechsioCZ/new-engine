@@ -39,11 +39,22 @@ const enqueue = async (suffix: string) => {
   )
 }
 
+const readDatabaseNow = async (): Promise<Date> => {
+  const result = await context.runtime.query(
+    "SELECT clock_timestamp() AS database_now"
+  )
+  const databaseNow = result.rows[0]?.database_now
+  if (!(databaseNow instanceof Date)) {
+    throw new Error("Expected PostgreSQL to return its current timestamp")
+  }
+  return databaseNow
+}
+
 describe.sequential("PostgreSQL URL registry invalidation dispatcher", () => {
   it("claims safely across workers and rejects a stale claim transition", async () => {
     await Promise.all([enqueue("one"), enqueue("two")])
     const outbox = createInvalidationOutboxStore(context.sqlPool)
-    const now = new Date("2026-08-19T10:00:00.000Z")
+    const now = await readDatabaseNow()
     const [first, second] = await Promise.all([
       outbox.claim({ batchSize: 1, now, workerId: "worker-a" }),
       outbox.claim({ batchSize: 1, now, workerId: "worker-b" }),
@@ -75,7 +86,7 @@ describe.sequential("PostgreSQL URL registry invalidation dispatcher", () => {
   it("backs off retries, reclaims leases, and persists permanent diagnostics", async () => {
     await Promise.all([enqueue("retry"), enqueue("failed")])
     const outbox = createInvalidationOutboxStore(context.sqlPool)
-    const now = new Date("2026-08-19T10:00:00.000Z")
+    const now = await readDatabaseNow()
     const claims = await outbox.claim({ batchSize: 2, now, workerId: "worker" })
     const retry = claims[0]
     const failed = claims[1]

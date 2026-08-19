@@ -8,6 +8,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("../../src", import.meta.url)),
+      "@techsio/storefront-i18n": fileURLToPath(
+        new URL("../../../../libs/storefront-i18n/src", import.meta.url)
+      ),
     },
   },
   test: {
