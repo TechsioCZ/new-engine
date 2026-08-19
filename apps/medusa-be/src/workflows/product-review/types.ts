@@ -16,6 +16,15 @@ export type CreateReviewWorkflowInput = {
   review_token_id?: string
 }
 
+export type ImportedReviewInput = CreateReviewInput & {
+  created_at?: Date
+  updated_at?: Date
+}
+
+export type ImportReviewsWorkflowInput = {
+  reviews: ImportedReviewInput[]
+}
+
 export type UpdateReviewInput = Partial<
   Pick<
     CreateReviewInput,

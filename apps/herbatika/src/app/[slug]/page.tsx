@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { CmsPageSurface } from "@/components/cms/cms-page-surface"
 import { fetchCmsPageBySlug } from "@/lib/storefront/cms"
+import { getMarketServerContext } from "@/lib/storefront/market-context.server"
 
 type CmsPageRouteProps = {
   params: Promise<{
@@ -12,8 +13,11 @@ type CmsPageRouteProps = {
 export async function generateMetadata({
   params,
 }: CmsPageRouteProps): Promise<Metadata> {
-  const { slug } = await params
-  const page = await fetchCmsPageBySlug(slug)
+  const [{ slug }, marketContext] = await Promise.all([
+    params,
+    getMarketServerContext(),
+  ])
+  const page = await fetchCmsPageBySlug(slug, marketContext.locale)
 
   if (!page) {
     return {}
@@ -26,8 +30,11 @@ export async function generateMetadata({
 }
 
 export default async function CmsPageRoute({ params }: CmsPageRouteProps) {
-  const { slug } = await params
-  const page = await fetchCmsPageBySlug(slug)
+  const [{ slug }, marketContext] = await Promise.all([
+    params,
+    getMarketServerContext(),
+  ])
+  const page = await fetchCmsPageBySlug(slug, marketContext.locale)
 
   if (!page) {
     notFound()

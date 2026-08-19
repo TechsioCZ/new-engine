@@ -2,10 +2,19 @@ import {
   validateAndTransformBody,
   validateAndTransformQuery,
 } from "@medusajs/framework"
-import { authenticate, type MiddlewareRoute } from "@medusajs/framework/http"
+import {
+  applyDefaultFilters,
+  authenticate,
+  type MiddlewareRoute,
+} from "@medusajs/framework/http"
+import { ProductStatus } from "@medusajs/framework/utils"
+import { filterByValidSalesChannels } from "@medusajs/medusa/api/utils/middlewares/products/filter-by-valid-sales-channels"
 import { verifyCloudflareTurnstile } from "../../middlewares/cloudflare-turnstile"
 import { StoreGetProductReviewsSchema } from "../products/[id]/reviews/validators"
-import { StoreCreateReviewSchema } from "./validators"
+import {
+  StoreCreateReviewQuerySchema,
+  StoreCreateReviewSchema,
+} from "./validators"
 
 export const storeReviewRoutesMiddlewares: MiddlewareRoute[] = [
   {
@@ -17,6 +26,9 @@ export const storeReviewRoutesMiddlewares: MiddlewareRoute[] = [
       }),
       verifyCloudflareTurnstile({ expectedAction: "product_review" }),
       validateAndTransformBody(StoreCreateReviewSchema),
+      validateAndTransformQuery(StoreCreateReviewQuerySchema, { isList: true }),
+      filterByValidSalesChannels(),
+      applyDefaultFilters({ status: ProductStatus.PUBLISHED }),
     ],
   },
   {
@@ -26,6 +38,8 @@ export const storeReviewRoutesMiddlewares: MiddlewareRoute[] = [
       validateAndTransformQuery(StoreGetProductReviewsSchema, {
         isList: true,
       }),
+      filterByValidSalesChannels(),
+      applyDefaultFilters({ status: ProductStatus.PUBLISHED }),
     ],
   },
 ]

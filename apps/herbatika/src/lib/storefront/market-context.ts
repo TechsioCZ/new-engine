@@ -1,4 +1,5 @@
 import { defineStorefrontMarkets } from "@techsio/storefront-i18n/core/markets"
+import { normalizeHost } from "@/lib/market/market-runtime-definitions"
 
 export type HerbatikaMarketCode = "sk" | "cz" | "hu" | "ro"
 export type HerbatikaLocale = "sk-SK" | "cs-CZ" | "hu-HU" | "ro-RO"
@@ -24,13 +25,28 @@ type ResolveMarketContextInput = {
   host?: string | null
 }
 
+type ResolveHostMarketContextInput = {
+  allowDevelopmentFallback?: boolean
+  host?: string | null
+  hostAliases?: HerbatikaMarketHostAliases
+}
+
+type ResolveMarketRequestHostInput = {
+  forwardedHost?: string | null
+  host?: string | null
+  trustProxyHost?: boolean
+}
+
+export type HerbatikaMarketHostAliases = Partial<
+  Record<HerbatikaMarketCode, string | readonly string[] | null>
+>
+
 export const resolveMarketRequestHost = ({
   forwardedHost,
   host,
-}: {
-  forwardedHost?: string | null
-  host?: string | null
-}) => host ?? forwardedHost ?? undefined
+  trustProxyHost = false,
+}: ResolveMarketRequestHostInput): string | null =>
+  trustProxyHost ? (forwardedHost ?? host ?? null) : (host ?? null)
 
 const MARKET_CONFIG = {
   sk: {
@@ -104,7 +120,6 @@ const HOST_MARKET_MAP: Record<string, HerbatikaMarketCode> = {
   "www.herbatica.ro": "ro",
   "herbatika.ro": "ro",
   "www.herbatika.ro": "ro",
-  "test-engine-herbatika-ro-zane.web-revolution.cz": "ro",
 }
 
 const LANGUAGE_MARKET_MAP: Record<string, HerbatikaMarketCode> = {
@@ -116,6 +131,8 @@ const LANGUAGE_MARKET_MAP: Record<string, HerbatikaMarketCode> = {
 }
 
 export const DEFAULT_MARKET_CODE: HerbatikaMarketCode = "sk"
+export const HERBATIKA_STOREFRONT_NAMESPACE = "herbatica"
+const DEVELOPMENT_HOSTS = new Set(["127.0.0.1", "herbatika", "localhost"])
 const marketResolver = defineStorefrontMarkets({
   defaultMarketCode: DEFAULT_MARKET_CODE,
   hostMarketMap: HOST_MARKET_MAP,
@@ -135,3 +152,88 @@ export const resolveMarketContext = ({
   host,
 }: ResolveMarketContextInput = {}): HerbatikaMarketContext =>
   marketResolver.resolveMarket({ acceptLanguage, host })
+
+const normalizeConfiguredHostAlias = (value: string): string | null => {
+  const normalizedHost = normalizeHost(value)
+  if (normalizedHost) {
+    return normalizedHost
+  }
+
+  try {
+    const origin = new URL(value)
+    if (
+      (origin.protocol !== "http:" && origin.protocol !== "https:") ||
+      origin.username ||
+      origin.password ||
+      origin.pathname !== "/" ||
+      origin.search ||
+      origin.hash
+    ) {
+      return null
+    }
+
+    return normalizeHost(origin.host)
+  } catch {
+    return null
+  }
+}
+
+const resolveAliasMarketCode = (
+  normalizedHost: string,
+  hostAliases: HerbatikaMarketHostAliases
+): HerbatikaMarketCode | null => {
+  let resolvedMarketCode: HerbatikaMarketCode | null = null
+
+  for (const marketCode of Object.keys(
+    MARKET_CONFIG
+  ) as HerbatikaMarketCode[]) {
+    const configuredAliases = hostAliases[marketCode]
+    const aliases =
+      typeof configuredAliases === "string"
+        ? configuredAliases.split(",")
+        : (configuredAliases ?? [])
+    const matchesMarket = aliases.some(
+      (alias) => normalizeConfiguredHostAlias(alias) === normalizedHost
+    )
+
+    if (!matchesMarket) {
+      continue
+    }
+
+    if (resolvedMarketCode && resolvedMarketCode !== marketCode) {
+      return null
+    }
+
+    resolvedMarketCode = marketCode
+  }
+
+  return resolvedMarketCode
+}
+
+export const resolveHostMarketContext = ({
+  allowDevelopmentFallback = false,
+  host,
+  hostAliases = {},
+}: ResolveHostMarketContextInput = {}): HerbatikaMarketContext | null => {
+  const normalizedHost = normalizeHost(host)
+  if (!normalizedHost) {
+    return null
+  }
+
+  const canonicalMarketCode = HOST_MARKET_MAP[normalizedHost]
+  const aliasMarketCode = resolveAliasMarketCode(normalizedHost, hostAliases)
+  const marketCode =
+    canonicalMarketCode &&
+    aliasMarketCode &&
+    canonicalMarketCode !== aliasMarketCode
+      ? null
+      : (canonicalMarketCode ?? aliasMarketCode)
+
+  if (marketCode) {
+    return getHerbatikaMarketContext(marketCode)
+  }
+
+  return allowDevelopmentFallback && DEVELOPMENT_HOSTS.has(normalizedHost)
+    ? DEFAULT_MARKET_CONTEXT
+    : null
+}

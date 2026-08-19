@@ -20,20 +20,7 @@ export const HERBATICA_CATEGORIES_XML_PATHS = [
   resolve(__dirname, "seed-files/categories.xml"),
 ] as const
 
-export const HERBATICA_COUNTRIES = [
-  "cz",
-  "gb",
-  "de",
-  "dk",
-  "se",
-  "fr",
-  "es",
-  "it",
-  "pl",
-  "at",
-  "sk",
-  "ro",
-] as const
+export const HERBATICA_COUNTRIES = ["cz", "sk", "hu", "ro"] as const
 
 export const HERBATICA_DEFAULT_STOCK_LOCATION = {
   name: "European Warehouse",
@@ -108,6 +95,7 @@ export const HERBATICA_TAX_RATE_CONFIG = {
 export const HERBATICA_WORKFLOW_DEFAULTS = {
   fulfillmentProviderId: "manual_manual",
   shippingOptionPriceAmount: 10,
+  unconfiguredCurrencyPricePolicy: "omit",
 } satisfies NonNullable<SeedDatabaseWorkflowInput["workflowDefaults"]>
 
 export const HERBATICA_CURRENCIES = [
@@ -120,18 +108,47 @@ export const HERBATICA_CURRENCIES = [
     default: true,
   },
   {
-    code: "usd",
+    code: "huf",
+    default: false,
+  },
+  {
+    code: "ron",
     default: false,
   },
 ] satisfies SeedDatabaseWorkflowInput["currencies"]
 
 export const HERBATICA_STOREFRONT_SALES_CHANNEL_NAME = "Default Sales Channel"
+export const HERBATICA_STOREFRONT_NAMESPACE = "herbatica"
+export const HERBATICA_CZECHIA_SALES_CHANNEL_NAME = "Herbatica Czechia"
+export const HERBATICA_HUNGARY_SALES_CHANNEL_NAME = "Herbatica Hungary"
+export const HERBATICA_ROMANIA_SALES_CHANNEL_NAME = "Herbatica Romania"
+export const HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES = [
+  HERBATICA_STOREFRONT_SALES_CHANNEL_NAME,
+  HERBATICA_CZECHIA_SALES_CHANNEL_NAME,
+  HERBATICA_HUNGARY_SALES_CHANNEL_NAME,
+  HERBATICA_ROMANIA_SALES_CHANNEL_NAME,
+] as const
 export const HERBATICA_POS_SALES_CHANNEL_NAME = "Default Sales Channel POS"
 
 export const HERBATICA_SALES_CHANNELS = [
   {
     name: HERBATICA_STOREFRONT_SALES_CHANNEL_NAME,
     default: true,
+    metadata: {
+      storefront_notification_markets: {
+        sk: {
+          country_code: "sk",
+          locale: "sk-SK",
+          market_code: "sk",
+          store_name: "Herbatica",
+          storefront_domain: "herbatica.sk",
+        },
+      },
+    },
+  },
+  {
+    name: HERBATICA_CZECHIA_SALES_CHANNEL_NAME,
+    default: false,
     metadata: {
       storefront_notification_markets: {
         cz: {
@@ -141,6 +158,14 @@ export const HERBATICA_SALES_CHANNELS = [
           store_name: "Herbatica",
           storefront_domain: "herbatica.cz",
         },
+      },
+    },
+  },
+  {
+    name: HERBATICA_HUNGARY_SALES_CHANNEL_NAME,
+    default: false,
+    metadata: {
+      storefront_notification_markets: {
         hu: {
           country_code: "hu",
           locale: "hu-HU",
@@ -148,19 +173,20 @@ export const HERBATICA_SALES_CHANNELS = [
           store_name: "Herbatica",
           storefront_domain: "herbatica.hu",
         },
+      },
+    },
+  },
+  {
+    name: HERBATICA_ROMANIA_SALES_CHANNEL_NAME,
+    default: false,
+    metadata: {
+      storefront_notification_markets: {
         ro: {
           country_code: "ro",
           locale: "ro-RO",
           market_code: "ro",
           store_name: "Herbatica",
           storefront_domain: "herbatica.ro",
-        },
-        sk: {
-          country_code: "sk",
-          locale: "sk-SK",
-          market_code: "sk",
-          store_name: "Herbatica",
-          storefront_domain: "herbatica.sk",
         },
       },
     },
@@ -178,13 +204,40 @@ export const HERBATICA_DEFAULT_REGIONS = [
     countries: ["cz"],
     paymentProviders: undefined,
     isTaxInclusive: true,
+    storefrontNamespace: HERBATICA_STOREFRONT_NAMESPACE,
+    marketCode: "cz",
+    salesChannelName: HERBATICA_CZECHIA_SALES_CHANNEL_NAME,
   },
   {
-    name: "Europe",
+    name: "Slovakia",
+    legacyNames: ["Europe"],
     currencyCode: "eur",
-    countries: HERBATICA_COUNTRIES.filter((country) => country !== "cz"),
+    countries: ["sk"],
     paymentProviders: undefined,
     isTaxInclusive: true,
+    storefrontNamespace: HERBATICA_STOREFRONT_NAMESPACE,
+    marketCode: "sk",
+    salesChannelName: HERBATICA_STOREFRONT_SALES_CHANNEL_NAME,
+  },
+  {
+    name: "Hungary",
+    currencyCode: "huf",
+    countries: ["hu"],
+    paymentProviders: undefined,
+    isTaxInclusive: true,
+    storefrontNamespace: HERBATICA_STOREFRONT_NAMESPACE,
+    marketCode: "hu",
+    salesChannelName: HERBATICA_HUNGARY_SALES_CHANNEL_NAME,
+  },
+  {
+    name: "Romania",
+    currencyCode: "ron",
+    countries: ["ro"],
+    paymentProviders: undefined,
+    isTaxInclusive: true,
+    storefrontNamespace: HERBATICA_STOREFRONT_NAMESPACE,
+    marketCode: "ro",
+    salesChannelName: HERBATICA_ROMANIA_SALES_CHANNEL_NAME,
   },
 ] satisfies SeedDatabaseWorkflowInput["regions"]
 

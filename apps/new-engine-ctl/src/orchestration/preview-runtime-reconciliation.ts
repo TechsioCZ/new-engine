@@ -92,6 +92,16 @@ function buildResolvedSource(input: {
   const { manifest, source, context } = input
 
   switch (source.kind) {
+    case "literal": {
+      if (!source.value) {
+        throw new Error("Literal preview runtime source is missing its value.")
+      }
+
+      return {
+        kind: "literal",
+        value: source.value,
+      }
+    }
     case "prepare_preview_db_name":
       return {
         kind: "literal",

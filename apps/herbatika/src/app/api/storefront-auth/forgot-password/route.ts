@@ -1,8 +1,5 @@
 import { NextResponse } from "next/server"
-import {
-  resolveMarketContext,
-  resolveMarketRequestHost,
-} from "@/lib/storefront/market-context"
+import { resolveMarketContextFromHeaders } from "@/lib/storefront/market-context.server"
 import {
   badRequest,
   buildErrorResponse,
@@ -34,13 +31,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const market = resolveMarketContext({
-      acceptLanguage: request.headers.get("accept-language"),
-      host: resolveMarketRequestHost({
-        forwardedHost: request.headers.get("x-forwarded-host"),
-        host: request.headers.get("host"),
-      }),
-    })
+    const market = resolveMarketContextFromHeaders(request.headers)
+    if (!market) {
+      return badRequest("Doména obchodu nezodpovedá podporovanému trhu.")
+    }
     const medusaResponse = await fetch(
       buildMedusaUrl("/auth/customer/emailpass/reset-password"),
       {

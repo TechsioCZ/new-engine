@@ -14,6 +14,10 @@ import type {
   MedusaProductListInput,
 } from "@techsio/storefront-data/products/medusa-service"
 import type { MedusaProductReviewListInput } from "@techsio/storefront-data/reviews/medusa-service"
+import {
+  buildCompleteRegionListQueryKey,
+  fetchCompleteRegionList,
+} from "./region-pages"
 import { storefrontSdk } from "./sdk"
 import type {
   CatalogListParams,
@@ -93,6 +97,19 @@ export const fetchServerRegions = (
     storefrontServerRead.queries.regions.getListQueryOptions(listParams)
   )
 
+export const fetchCompleteServerRegionList = (queryClient: QueryClient) =>
+  queryClient.fetchQuery({
+    queryKey: buildCompleteRegionListQueryKey(
+      storefrontServerRead.queryKeys.regions.all()
+    ),
+    queryFn: () =>
+      fetchCompleteRegionList((listParams) =>
+        fetchServerRegions(queryClient, listParams)
+      ),
+    staleTime: storefrontCoreDefinition.cacheConfig.static.staleTime,
+    gcTime: storefrontCoreDefinition.cacheConfig.static.gcTime,
+  })
+
 export const prefetchServerProducts = (
   queryClient: QueryClient,
   listParams: ProductListParams
@@ -148,5 +165,13 @@ export const prefetchServerCatalogProducts = (
   listParams: CatalogListParams
 ) =>
   queryClient.prefetchQuery(
+    storefrontServerRead.queries.catalog.getListQueryOptions(listParams)
+  )
+
+export const fetchServerCatalogProducts = (
+  queryClient: QueryClient,
+  listParams: CatalogListParams
+) =>
+  queryClient.fetchQuery(
     storefrontServerRead.queries.catalog.getListQueryOptions(listParams)
   )

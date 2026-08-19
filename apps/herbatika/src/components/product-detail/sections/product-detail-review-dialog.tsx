@@ -1,5 +1,6 @@
 "use client"
 
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
@@ -29,6 +30,7 @@ export function ProductReviewCreateDialog({
   const tCatalog = useTranslations("catalog")
   const resolvedTriggerLabel = triggerLabel ?? tCatalog("reviews.write_action")
   const reviewErrorMessages = translateProductReviewErrorMessages(tCatalog)
+  const region = useRegionContext()
   const [formResetKey, setFormResetKey] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -70,6 +72,7 @@ export function ProductReviewCreateDialog({
       ...(name ? { name } : {}),
       product_id: productId,
       rating,
+      salesChannelId: region?.salesChannelId,
       ...(turnstileToken ? { turnstileToken } : {}),
     })
   }

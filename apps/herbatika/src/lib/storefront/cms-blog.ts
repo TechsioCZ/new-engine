@@ -14,6 +14,7 @@ import {
 } from "./cms-blog-mappers"
 import { fetchCmsJsonOrThrow, isCmsNotFoundError } from "./cms-client"
 import type { CmsArticle, CmsArticleCategory } from "./cms-types"
+import type { HerbatikaLocale } from "./market-context"
 
 type CmsArticleCategoriesResponse = {
   articleCategories?: CmsArticleCategory[] | null
@@ -25,14 +26,19 @@ type CmsArticleResponse = {
 
 type FetchCmsBlogListingInput = {
   category?: string
+  locale: HerbatikaLocale
   page?: number
   pageSize?: number
   signal?: AbortSignal
 }
 
-export const fetchCmsArticleCategories = async (signal?: AbortSignal) => {
+export const fetchCmsArticleCategories = async (
+  locale: HerbatikaLocale,
+  signal?: AbortSignal
+) => {
   const response = await fetchCmsJsonOrThrow<CmsArticleCategoriesResponse>(
     "article-categories",
+    locale,
     { signal }
   )
 
@@ -41,11 +47,13 @@ export const fetchCmsArticleCategories = async (signal?: AbortSignal) => {
 
 export const fetchCmsArticleBySlug = async (
   slug: string,
+  locale: HerbatikaLocale,
   signal?: AbortSignal
 ) => {
   try {
     const response = await fetchCmsJsonOrThrow<CmsArticleResponse>(
       `articles/${encodeURIComponent(slug)}`,
+      locale,
       { signal }
     )
 
@@ -61,16 +69,17 @@ export const fetchCmsArticleBySlug = async (
 
 export const fetchCmsBlogPost = async (
   slug: string,
+  locale: HerbatikaLocale,
   fallbackCategory?: BlogCategory,
   signal?: AbortSignal
 ) => {
-  const article = await fetchCmsArticleBySlug(slug, signal)
+  const article = await fetchCmsArticleBySlug(slug, locale, signal)
 
   return article ? mapCmsArticleToBlogPost(article, fallbackCategory) : null
 }
 
-export const fetchCmsBlogCategoryFilters = async () => {
-  const categories = await fetchCmsArticleCategories()
+export const fetchCmsBlogCategoryFilters = async (locale: HerbatikaLocale) => {
+  const categories = await fetchCmsArticleCategories(locale)
   const articleIndex = buildCmsArticleIndex(categories)
 
   return buildCmsCategoryFilters(categories, articleIndex.length)
@@ -78,11 +87,12 @@ export const fetchCmsBlogCategoryFilters = async () => {
 
 export const fetchCmsBlogListing = async ({
   category,
+  locale,
   page,
   pageSize = BLOG_PAGE_SIZE,
   signal,
-}: FetchCmsBlogListingInput = {}): Promise<BlogListing> => {
-  const categories = await fetchCmsArticleCategories(signal)
+}: FetchCmsBlogListingInput): Promise<BlogListing> => {
+  const categories = await fetchCmsArticleCategories(locale, signal)
   const { entries, ...listing } = buildCmsBlogPage({
     categories,
     category,
@@ -97,10 +107,11 @@ export const fetchCmsBlogListing = async ({
 }
 
 export const fetchLatestCmsBlogPosts = async (
+  locale: HerbatikaLocale,
   limit: number,
   excludeSlugs: string[] = []
 ) => {
-  const categories = await fetchCmsArticleCategories()
+  const categories = await fetchCmsArticleCategories(locale)
   const excludedSlugs = new Set(excludeSlugs)
   const candidates = buildCmsArticleIndex(categories).filter(
     ({ summary }) => !excludedSlugs.has(summary.slug?.trim() ?? "")

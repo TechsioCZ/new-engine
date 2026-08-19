@@ -6,6 +6,8 @@ import type {
   CatalogListResponse,
   UseCatalogProductsResult,
 } from "@techsio/storefront-data/catalog/types"
+import type { RegionInfo } from "@techsio/storefront-data/shared/region"
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useLocale } from "next-intl"
 import type {
   CatalogProductsParams,
@@ -33,6 +35,40 @@ const catalogHooks = storefront.hooks.catalog
 type UseCatalogProductsOptions = Parameters<
   typeof catalogHooks.useCatalogProducts
 >[1]
+
+const resolveRegionCurrencyCode = (region: RegionInfo | null) => {
+  if (
+    region &&
+    "currency_code" in region &&
+    typeof region.currency_code === "string"
+  ) {
+    return region.currency_code
+  }
+
+  return
+}
+
+const applyActiveCatalogScope = (
+  input: CatalogProductsInput,
+  region: RegionInfo | null
+): CatalogProductsInput =>
+  region
+    ? {
+        ...input,
+        country_code: region.country_code,
+        currency_code: resolveRegionCurrencyCode(region),
+        region_id: region.region_id,
+        salesChannelId: region.salesChannelId,
+      }
+    : input
+
+const hasCompleteCatalogScope = (input: CatalogProductsInput) =>
+  Boolean(
+    input.region_id &&
+      input.country_code &&
+      input.currency_code &&
+      input.salesChannelId
+  )
 
 const variantNeedsInventorySnapshot = (
   variant: HttpTypes.StoreProductVariant
@@ -98,8 +134,18 @@ export const useCatalogProducts = (
   options?: UseCatalogProductsOptions
 ): UseCatalogProductsResult<HttpTypes.StoreProduct, CatalogFacets> => {
   const locale = useLocale()
-  const localizedInput = withRequestLocale(input, locale)
-  const catalogQuery = catalogHooks.useCatalogProducts(localizedInput, options)
+  const region = useRegionContext()
+  const scopedInput = applyActiveCatalogScope(
+    withRequestLocale(input, locale),
+    region
+  )
+  const catalogQuery = catalogHooks.useCatalogProducts(
+    {
+      ...scopedInput,
+      enabled: input.enabled !== false && hasCompleteCatalogScope(scopedInput),
+    },
+    options
+  )
   const inventorySnapshotHandles = resolveInventorySnapshotHandles(
     catalogQuery.products
   )
@@ -145,17 +191,24 @@ export const useSuspenseCatalogProducts = (
   options?: Parameters<typeof catalogHooks.useSuspenseCatalogProducts>[1]
 ) => {
   const locale = useLocale()
-
-  return catalogHooks.useSuspenseCatalogProducts(
+  const region = useRegionContext()
+  const scopedInput = applyActiveCatalogScope(
     withRequestLocale(input, locale),
-    options
+    region
   )
+
+  if (!hasCompleteCatalogScope(scopedInput)) {
+    throw new Error("Complete market scope is required for catalog queries")
+  }
+
+  return catalogHooks.useSuspenseCatalogProducts(scopedInput, options)
 }
 
 export const usePrefetchCatalogProducts = (
   ...args: Parameters<typeof catalogHooks.usePrefetchCatalogProducts>
 ) => {
   const locale = useLocale()
+  const region = useRegionContext()
   const prefetch = catalogHooks.usePrefetchCatalogProducts(...args)
 
   return {
@@ -167,11 +220,17 @@ export const usePrefetchCatalogProducts = (
       > extends [unknown, ...infer TRest]
         ? TRest
         : never
-    ) =>
-      prefetch.prefetchCatalogProducts(
+    ) => {
+      const scopedInput = applyActiveCatalogScope(
         withRequestLocale(input, locale),
-        ...prefetchArgs
-      ),
+        region
+      )
+      if (!hasCompleteCatalogScope(scopedInput)) {
+        return Promise.resolve()
+      }
+
+      return prefetch.prefetchCatalogProducts(scopedInput, ...prefetchArgs)
+    },
     delayedPrefetch: (
       input: CatalogProductsInput,
       ...prefetchArgs: Parameters<typeof prefetch.delayedPrefetch> extends [
@@ -180,11 +239,17 @@ export const usePrefetchCatalogProducts = (
       ]
         ? TRest
         : never
-    ) =>
-      prefetch.delayedPrefetch(
+    ) => {
+      const scopedInput = applyActiveCatalogScope(
         withRequestLocale(input, locale),
-        ...prefetchArgs
-      ),
+        region
+      )
+      if (!hasCompleteCatalogScope(scopedInput)) {
+        return
+      }
+
+      return prefetch.delayedPrefetch(scopedInput, ...prefetchArgs)
+    },
   }
 }
 export const prefetchCatalogProducts = catalogHooks.prefetchCatalogProducts

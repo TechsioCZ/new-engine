@@ -1,4 +1,7 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type {
+  MedusaResponse,
+  MedusaStoreRequest,
+} from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import { createReviewWorkflow } from "../../../workflows/product-review/workflows/create-review"
 import {
@@ -11,7 +14,10 @@ import {
   retrieveCustomer,
   retrieveReviewToken,
 } from "./helpers"
-import type { StoreCreateReviewSchemaType } from "./validators"
+import type {
+  StoreCreateReviewQuerySchemaType,
+  StoreCreateReviewSchemaType,
+} from "./validators"
 
 const REVIEW_TITLE_MAX_LENGTH = 120
 
@@ -19,7 +25,10 @@ const buildReviewTitle = (content: string) =>
   content.trim().slice(0, REVIEW_TITLE_MAX_LENGTH)
 
 export async function POST(
-  req: MedusaRequest<StoreCreateReviewSchemaType>,
+  req: MedusaStoreRequest<
+    StoreCreateReviewSchemaType,
+    StoreCreateReviewQuerySchemaType
+  >,
   res: MedusaResponse
 ) {
   const {
@@ -55,7 +64,7 @@ export async function POST(
     )
   }
 
-  await ensureProductExists(req, product_id)
+  await ensureProductExists(req, product_id, req.filterableFields)
 
   let customerId: string
   let shouldEnforceDuplicateReview = false

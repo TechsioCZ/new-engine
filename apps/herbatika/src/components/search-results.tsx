@@ -16,11 +16,8 @@ export function SearchResults() {
   const controller = useSearchListingController()
   const safeTotalPages = Math.max(controller.catalogQuery.totalPages, 1)
   const autocomplete = useSearchAutocomplete({
-    countryCode: controller.searchCountryCode,
     query: controller.query,
-    currencyCode: controller.productsCurrencyCode,
     enabled: controller.isSearchQueryEnabled,
-    regionId: controller.searchRegionId,
   })
 
   return (

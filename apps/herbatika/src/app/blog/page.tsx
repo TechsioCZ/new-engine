@@ -3,6 +3,7 @@ import { Suspense } from "react"
 import { BlogListingPage } from "@/components/blog/blog-listing-page"
 import { loadBlogQueryState } from "@/lib/storefront/blog-query-state.server"
 import { fetchCmsBlogListing } from "@/lib/storefront/cms"
+import { getMarketServerContext } from "@/lib/storefront/market-context.server"
 
 type BlogPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>
@@ -14,9 +15,13 @@ function BlogPageFallback() {
 
 async function BlogPageContent({ searchParams }: BlogPageProps) {
   await connection()
-  const { category, page } = await loadBlogQueryState(searchParams)
+  const [{ category, page }, marketContext] = await Promise.all([
+    loadBlogQueryState(searchParams),
+    getMarketServerContext(),
+  ])
   const listing = await fetchCmsBlogListing({
     category,
+    locale: marketContext.locale,
     page,
   })
 

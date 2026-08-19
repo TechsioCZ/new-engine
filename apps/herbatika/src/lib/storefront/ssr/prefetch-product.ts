@@ -37,9 +37,14 @@ export const prefetchProductDetailPageStorefrontData = async (
 
     if (product?.id) {
       await Promise.all([
-        prefetchProductAttributes(queryClient, product.id),
+        prefetchProductAttributes(
+          queryClient,
+          product.id,
+          region.salesChannelId
+        ),
         prefetchProductReviews(queryClient, {
           productId: product.id,
+          salesChannelId: region.salesChannelId,
           limit: PRODUCT_REVIEWS_PAGE_SIZE,
           offset: 0,
         }),

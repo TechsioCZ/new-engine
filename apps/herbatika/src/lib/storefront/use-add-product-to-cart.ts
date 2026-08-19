@@ -15,6 +15,7 @@ import {
 export type UseAddProductToCartProps = {
   regionId?: string
   countryCode?: string
+  salesChannelId?: string
 }
 
 export type AddProductToCartInput = {
@@ -180,6 +181,7 @@ const assertAddProductToCartVariant = ({
 export function useAddProductToCart({
   regionId,
   countryCode,
+  salesChannelId,
 }: UseAddProductToCartProps) {
   const translateCart = useTranslations("cart")
   const [activeProductId, setActiveProductId] = useState<string | null>(null)
@@ -191,6 +193,8 @@ export function useAddProductToCart({
       autoUpdateRegion: false,
       country_code: countryCode,
       region_id: regionId,
+      salesChannelId,
+      enabled: Boolean(regionId && salesChannelId),
     },
     {
       queryOptions: cartReadQueryOptions,
@@ -202,7 +206,7 @@ export function useAddProductToCart({
     quantity = 1,
     variantId,
   }: AddProductToCartInput) => {
-    if (!regionId) {
+    if (!(regionId && salesChannelId)) {
       throw new AddProductToCartError(translateCart("missing_region"))
     }
 
@@ -228,6 +232,7 @@ export function useAddProductToCart({
         autoCreate: true,
         region_id: regionId,
         country_code: countryCode,
+        salesChannelId,
       })
     } catch (error) {
       const errorMessage = resolveErrorMessage(error, translateCart("failed"))

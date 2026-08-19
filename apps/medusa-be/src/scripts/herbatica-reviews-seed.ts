@@ -2,6 +2,8 @@ import type { ExecArgs, Logger, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { PRODUCT_REVIEW_MODULE } from "../modules/product-review"
 import type ProductReviewModuleService from "../modules/product-review/service"
+import type { ImportedReviewInput } from "../workflows/product-review/types"
+import { importReviewsWorkflow } from "../workflows/product-review/workflows/import-reviews"
 import { HERBATICA_REVIEWS_XML_ENV } from "./herbatica-seed-config"
 import {
   extractElements,
@@ -308,7 +310,7 @@ export const importHerbaticaReviews = async ({
       (review) => `${review.customer_id}:${review.product_id}`
     )
   )
-  const pendingReviews: Record<string, unknown>[] = []
+  const pendingReviews: ImportedReviewInput[] = []
   let matchedReviews = 0
   let skippedExisting = 0
   let unmatchedReviews = 0
@@ -347,7 +349,9 @@ export const importHerbaticaReviews = async ({
   }
 
   for (const reviewBatch of chunk(pendingReviews, REVIEW_BATCH_SIZE)) {
-    await reviewService.createReviews(reviewBatch)
+    await importReviewsWorkflow(container).run({
+      input: { reviews: reviewBatch },
+    })
   }
 
   logger.info(

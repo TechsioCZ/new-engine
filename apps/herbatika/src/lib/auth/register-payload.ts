@@ -5,15 +5,10 @@ import {
 import { normalizeCountryCode } from "@/lib/forms/country-options"
 import type { AuthRegisterInput } from "@/lib/storefront/auth"
 
-type BuildAuthRegisterInputOptions = {
-  currencyCode: string
-}
-
 const trimValue = (value: string) => value.trim()
 
 export const buildAuthRegisterInput = (
-  values: RegisterFormValues,
-  { currencyCode }: BuildAuthRegisterInputOptions
+  values: RegisterFormValues
 ): AuthRegisterInput => ({
   email: values.email,
   password: values.password,
@@ -24,7 +19,6 @@ export const buildAuthRegisterInput = (
         wholesale: {
           company_name: trimValue(values.company_name),
           company_identifier: trimValue(values.company_identifier),
-          currency_code: currencyCode,
           billing_address: {
             address_1: trimValue(values.billing_address_1),
             address_2: trimValue(values.billing_address_2) || undefined,

@@ -1,4 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
+
+vi.mock("server-only", () => ({}))
+
 import { POST } from "./route"
 
 describe("forgot password route", () => {
@@ -38,5 +41,24 @@ describe("forgot password route", () => {
         storefront_market_code: "cz",
       },
     })
+  })
+
+  it("rejects an unknown storefront host before calling Medusa", async () => {
+    const medusaFetch = vi.fn()
+    vi.stubGlobal("fetch", medusaFetch)
+
+    const response = await POST(
+      new Request("http://localhost/api/storefront-auth/forgot-password", {
+        body: JSON.stringify({ email: "customer@example.test" }),
+        headers: {
+          "content-type": "application/json",
+          host: "unknown.example",
+        },
+        method: "POST",
+      })
+    )
+
+    expect(response.status).toBe(400)
+    expect(medusaFetch).not.toHaveBeenCalled()
   })
 })

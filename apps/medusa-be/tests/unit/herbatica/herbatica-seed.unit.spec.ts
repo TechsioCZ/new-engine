@@ -12,7 +12,12 @@ import {
   normalizeHerbaticaManufacturerTitle,
 } from "../../../src/scripts/herbatica-seed"
 import {
+  HERBATICA_COUNTRIES,
+  HERBATICA_CURRENCIES,
+  HERBATICA_DEFAULT_REGIONS,
   HERBATICA_PRICE_LIST_SYNC_CONFIG,
+  HERBATICA_SALES_CHANNELS,
+  HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES,
   HERBATICA_TAX_RATE_CONFIG,
   HERBATICA_TAX_RATE_COUNTRIES,
   HERBATICA_WORKFLOW_DEFAULTS,
@@ -952,6 +957,50 @@ describe("Herbatica seed product content sections", () => {
 })
 
 describe("Herbatica Shoptet workflow input", () => {
+  it("defines one region and Sales Channel for every storefront market", () => {
+    const expectedMarkets = {
+      cz: { country: "cz", currency: "czk" },
+      hu: { country: "hu", currency: "huf" },
+      ro: { country: "ro", currency: "ron" },
+      sk: { country: "sk", currency: "eur" },
+    }
+
+    expect([...HERBATICA_COUNTRIES].sort()).toEqual(
+      Object.keys(expectedMarkets)
+    )
+    expect(HERBATICA_CURRENCIES.map(({ code }) => code).sort()).toEqual(
+      Object.values(expectedMarkets)
+        .map(({ currency }) => currency)
+        .sort()
+    )
+    expect(HERBATICA_DEFAULT_REGIONS).toHaveLength(4)
+    expect(HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES).toHaveLength(4)
+
+    for (const [marketCode, expected] of Object.entries(expectedMarkets)) {
+      const region = HERBATICA_DEFAULT_REGIONS.find(
+        (candidate) => candidate.marketCode === marketCode
+      )
+
+      expect(region).toMatchObject({
+        countries: [expected.country],
+        currencyCode: expected.currency,
+        storefrontNamespace: "herbatica",
+      })
+      expect(HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES).toContain(
+        region?.salesChannelName
+      )
+      const salesChannel = HERBATICA_SALES_CHANNELS.find(
+        (candidate) => candidate.name === region?.salesChannelName
+      )
+      const notificationMarkets =
+        salesChannel && "metadata" in salesChannel
+          ? salesChannel.metadata.storefront_notification_markets
+          : undefined
+
+      expect(notificationMarkets).toHaveProperty(marketCode)
+    }
+  })
+
   it("passes Herbatica policy config into generic seed inputs", () => {
     const parsed = buildSeedInputFromXml(`
       <SHOP>

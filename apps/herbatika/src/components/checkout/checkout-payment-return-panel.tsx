@@ -1,5 +1,6 @@
 "use client"
 
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
@@ -31,6 +32,7 @@ const PAYMENT_RETURN_RETRY_DELAY_MS = 1500
 
 export function CheckoutPaymentReturnPanel() {
   const tCheckout = useTranslations("checkout")
+  const region = useRegionContext()
   const confirmationPendingMessage = tCheckout(
     "payment_return_confirmation_pending"
   )
@@ -52,7 +54,15 @@ export function CheckoutPaymentReturnPanel() {
   const debugCartQuery = useCart({
     autoCreate: false,
     cartId: cartId ?? undefined,
-    enabled: Boolean(cartId && isAccountSetupDebugEnabled),
+    region_id: region?.region_id,
+    country_code: region?.country_code,
+    salesChannelId: region?.salesChannelId,
+    enabled: Boolean(
+      cartId &&
+        isAccountSetupDebugEnabled &&
+        region?.region_id &&
+        region.salesChannelId
+    ),
   })
   const debugCartMetadata = debugCartQuery.cart?.metadata
   const completeCartMutation = storefront.flows.cart.useCompleteCart()

@@ -93,8 +93,8 @@ export type CreateCartFromProductListWorkflowInput = {
   customer_id: string
   email?: string
   list_id: string
-  region_id?: string
-  sales_channel_id?: string
+  region_id: string
+  sales_channel_id: string
 }
 
 export type AddFavoriteProductListItemWorkflowInput = {

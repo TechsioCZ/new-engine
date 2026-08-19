@@ -32,12 +32,8 @@ import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
-import {
-  REGION_LIST_FIELDS,
-  REGION_LIST_LIMIT,
-} from "@/lib/storefront/region-query-config"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
-import { useRegions } from "@/lib/storefront/regions"
+import { useCompleteRegions } from "@/lib/storefront/regions"
 import { storefront } from "@/lib/storefront/storefront"
 import { isRecord, readAccountSetupRequested } from "./account-setup-metadata"
 import {
@@ -89,13 +85,11 @@ export function useCheckoutController() {
     autoCreate: allowCartAutoCreate && !completedOrderId,
     region_id: region?.region_id,
     country_code: region?.country_code,
-    enabled: Boolean(region?.region_id),
+    salesChannelId: region?.salesChannelId,
+    enabled: Boolean(region?.region_id && region.salesChannelId),
   })
   const activeRegionId = cartQuery.cart?.region_id ?? region?.region_id
-  const regionsQuery = useRegions({
-    fields: REGION_LIST_FIELDS,
-    limit: REGION_LIST_LIMIT,
-  })
+  const regionsQuery = useCompleteRegions()
 
   const [checkoutError, setCheckoutError] = useState<string | null>(null)
   const updateCartAddressMutation = useUpdateCartAddress()

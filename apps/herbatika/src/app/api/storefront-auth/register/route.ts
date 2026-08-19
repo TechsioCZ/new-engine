@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server"
-import {
-  resolveMarketContext,
-  resolveMarketRequestHost,
-} from "@/lib/storefront/market-context"
+import { HERBATIKA_STOREFRONT_NAMESPACE } from "@/lib/storefront/market-context"
+import { resolveMarketContextFromHeaders } from "@/lib/storefront/market-context.server"
+import { getRegionServerContext } from "@/lib/storefront/ssr/context"
 import { badRequest, serverError, setSessionTokenCookie } from "../_lib"
 import { asRecordOrUndefined, asStringOrUndefined } from "./parse-utils"
 import {
@@ -11,6 +10,7 @@ import {
   createWholesaleProfile,
   loginCustomerIdentity,
   type ParsedRegisterPayload,
+  type RegistrationMarketContext,
   refreshCustomerToken,
 } from "./register-flow"
 import { parseWholesaleRegistration } from "./wholesale"
@@ -50,7 +50,8 @@ const createRegisterResponse = (token: string) => {
 }
 
 const parseRegisterBody = async (
-  request: Request
+  request: Request,
+  currencyCode: string
 ): Promise<ParseRegisterBodyResult> => {
   const body = asRecordOrUndefined(await request.json()) as
     | RegisterBody
@@ -73,7 +74,7 @@ const parseRegisterBody = async (
     }
   }
 
-  const wholesale = parseWholesaleRegistration(body.wholesale)
+  const wholesale = parseWholesaleRegistration(body.wholesale, { currencyCode })
   if (wholesale.error) {
     return {
       error: wholesale.error,
@@ -95,19 +96,32 @@ const parseRegisterBody = async (
 
 export async function POST(request: Request) {
   try {
-    const parsedBody = await parseRegisterBody(request)
+    const requestMarketContext = resolveMarketContextFromHeaders(
+      request.headers
+    )
+    if (!requestMarketContext) {
+      return badRequest("Doména obchodu nezodpovedá podporovanému trhu.")
+    }
+
+    const { marketContext, region } = await getRegionServerContext({
+      marketContext: requestMarketContext,
+    })
+    if (!region) {
+      return serverError("Trh obchodu nemá nakonfigurovaný región.")
+    }
+
+    const registrationMarketContext: RegistrationMarketContext = {
+      marketCode: marketContext.code,
+      regionId: region.region_id,
+      salesChannelId: region.salesChannelId,
+      storefrontNamespace: HERBATIKA_STOREFRONT_NAMESPACE,
+    }
+    const parsedBody = await parseRegisterBody(request, region.currency_code)
     if (parsedBody.error) {
       return parsedBody.error
     }
 
     const { email, firstName, lastName, password, wholesale } = parsedBody.value
-    const market = resolveMarketContext({
-      acceptLanguage: request.headers.get("accept-language"),
-      host: resolveMarketRequestHost({
-        forwardedHost: request.headers.get("x-forwarded-host"),
-        host: request.headers.get("host"),
-      }),
-    })
     const registerError = await createCustomerIdentity({
       email,
       password,
@@ -124,11 +138,11 @@ export async function POST(request: Request) {
 
     const createCustomerError = await createCustomerProfile({
       loginToken: loginResult.token,
+      marketContext: registrationMarketContext,
       payload: {
         email,
         firstName,
         lastName,
-        marketCode: market.code,
         wholesale,
       },
     })

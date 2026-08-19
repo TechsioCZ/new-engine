@@ -8,7 +8,6 @@ export type AuthLoginInput = MedusaAuthCredentials
 export type AuthRegisterWholesaleInput = {
   company_name: string
   company_identifier: string
-  currency_code: string
   billing_address: {
     address_1: string
     address_2?: string

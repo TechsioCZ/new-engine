@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { resolveHerbaticaProductVisibility } from "../../../scripts/herbatica-seed"
+import { HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES } from "../../../scripts/herbatica-seed-config"
 import {
   selectExclusivelyScopedBrandIds,
   selectScopedLegacyBrandAttributeIds,
@@ -152,7 +153,12 @@ describe("Herbatica Product Attribute reconciliation", () => {
 
 describe("Herbatica native visibility mapping", () => {
   it.each([
-    ["visible", "published", ["Default Sales Channel"], true],
+    [
+      "visible",
+      "published",
+      [...HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES],
+      true,
+    ],
     ["cashDeskOnly", "published", ["Default Sales Channel POS"], false],
     ["hidden", "draft", [], false],
   ])("maps %s to exact status and channel membership", (visibility, status, salesChannelNames, storefrontAccessible) => {

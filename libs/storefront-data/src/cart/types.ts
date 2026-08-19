@@ -15,6 +15,7 @@ export type CartLineItemLike = {
 export type CartLike = {
   id: string
   region_id?: string | null
+  sales_channel_id?: string | null
   items?: CartLineItemLike[]
 }
 
@@ -97,6 +98,7 @@ export type CartQueryKeys = {
   active: (params: {
     cartId?: string | null
     regionId?: string | null
+    salesChannelId?: string | null
   }) => QueryKey
   detail: (cartId: string) => QueryKey
 }

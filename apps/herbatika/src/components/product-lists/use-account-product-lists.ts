@@ -163,11 +163,13 @@ export function useAccountProductLists() {
   const addToCart = useAddProductToCart({
     regionId: region?.region_id,
     countryCode: region?.country_code,
+    salesChannelId: region?.salesChannelId,
   })
   const activeListCanCreateCart = Boolean(
     activeList?.id &&
       activeListAvailabilitySummary.canAddAnyToCart &&
-      (region?.region_id || region?.country_code)
+      region?.region_id &&
+      region.salesChannelId
   )
 
   useEffect(() => {
@@ -318,7 +320,7 @@ export function useAccountProductLists() {
       return
     }
 
-    if (!(region?.region_id || region?.country_code)) {
+    if (!(region?.region_id && region.salesChannelId)) {
       toast.warning({
         title: tCart("missing_region"),
       })
@@ -334,6 +336,7 @@ export function useAccountProductLists() {
           regionId: region.region_id,
           countryCode: region.country_code,
           email: authQuery.customer?.email,
+          salesChannelId: region.salesChannelId,
         })
         return
       }

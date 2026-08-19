@@ -12,10 +12,14 @@ import {
 
 export type CreateRegionsStepInput = {
   name: string
+  legacyNames?: string[]
   currencyCode: string
   countries?: string[]
   paymentProviders?: string[]
   isTaxInclusive?: boolean
+  storefrontNamespace?: string
+  marketCode?: string
+  salesChannelName?: string
 }[]
 
 const CreateRegionsStepId = "create-regions-seed-step"
@@ -29,23 +33,32 @@ export const createRegionsStep = createStep(
       Modules.REGION
     )
 
-    const regionNames = input.map((i) => i.name)
+    const regionNames = input.flatMap((region) => [
+      region.name,
+      ...(region.legacyNames ?? []),
+    ])
 
     const existingRegions = await regionService.listRegions({
       name: { $in: regionNames },
     })
 
+    const findExistingRegion = (inputRegion: CreateRegionsStepInput[number]) =>
+      existingRegions.find(
+        (existingRegion) => existingRegion.name === inputRegion.name
+      ) ??
+      existingRegions.find((existingRegion) =>
+        inputRegion.legacyNames?.includes(existingRegion.name)
+      )
     const missingRegions = input.filter(
-      (i) => !existingRegions.find((j) => j.name === i.name)
+      (inputRegion) => !findExistingRegion(inputRegion)
     )
     const updateRegions = input.flatMap((inputRegion) => {
-      const existingRegion = existingRegions.find(
-        (existing) => existing.name === inputRegion.name
-      )
+      const existingRegion = findExistingRegion(inputRegion)
       if (existingRegion) {
         return [
           {
             ...existingRegion,
+            name: inputRegion.name,
             currency_code: inputRegion.currencyCode,
             countries: inputRegion.countries,
             payment_providers: inputRegion.paymentProviders,
@@ -55,6 +68,31 @@ export const createRegionsStep = createStep(
       }
       return []
     })
+
+    if (updateRegions.length !== 0) {
+      logger.info("Updating existing region data...")
+
+      const toUpdate = updateRegions.map((i) => ({
+        selector: { id: i.id },
+        update: {
+          name: i.name,
+          currency_code: i.currency_code,
+          countries: i.countries,
+          payment_providers: i.payment_providers ?? ["pp_system_default"],
+          is_tax_inclusive: i.is_tax_inclusive,
+        },
+      }))
+
+      for (const regionToUpdate of toUpdate) {
+        const { result: updateResult } = await updateRegionsWorkflow(
+          container
+        ).run({
+          input: regionToUpdate,
+        })
+
+        result.push(...updateResult)
+      }
+    }
 
     if (missingRegions.length !== 0) {
       logger.info("Creating missing region data...")
@@ -74,30 +112,6 @@ export const createRegionsStep = createStep(
       })
 
       result.push(...createRegionsResult)
-    }
-
-    if (updateRegions.length !== 0) {
-      logger.info("Updating existing region data...")
-
-      const toUpdate = updateRegions.map((i) => ({
-        selector: { name: i.name },
-        update: {
-          currency_code: i.currency_code,
-          countries: i.countries,
-          payment_providers: i.payment_providers ?? ["pp_system_default"],
-          is_tax_inclusive: i.is_tax_inclusive,
-        },
-      }))
-
-      for (const regionToUpdate of toUpdate) {
-        const { result: updateResult } = await updateRegionsWorkflow(
-          container
-        ).run({
-          input: regionToUpdate,
-        })
-
-        result.push(...updateResult)
-      }
     }
 
     return new StepResponse({

@@ -1,4 +1,7 @@
 import { QueryClient } from "@tanstack/react-query"
+import { describe, expect, it } from "vitest"
+import { createCartQueryKeys } from "../src/cart/query-keys"
+import type { CartQueryKeys } from "../src/cart/types"
 import {
   createDefaultActiveCartQueryMatcher,
   getCachedCartById,
@@ -6,18 +9,17 @@ import {
   patchCartCaches,
   syncCartCaches,
 } from "../src/shared/cart-cache-sync"
-import { createCartQueryKeys } from "../src/cart/query-keys"
-import type { CartQueryKeys } from "../src/cart/types"
 import { createQueryKey } from "../src/shared/query-keys"
 
 type Cart = {
   id: string
   region_id?: string | null
+  sales_channel_id?: string | null
   item_count?: number
 }
 
 describe("cart cache sync helpers", () => {
-  it("syncs active and detail cart caches", () => {
+  it("syncs only the exact active cart scope and detail cache", () => {
     const queryClient = new QueryClient()
     const queryKeys = createCartQueryKeys("cache-sync")
 
@@ -28,6 +30,21 @@ describe("cart cache sync helpers", () => {
     const activeUsKey = queryKeys.active({
       cartId: "cart_1",
       regionId: "reg_us",
+    })
+    const activeOtherChannelKey = queryKeys.active({
+      cartId: "cart_1",
+      regionId: "reg_eu",
+      salesChannelId: "sc_other",
+    })
+    const exactActiveKey = queryKeys.active({
+      cartId: "cart_1",
+      regionId: "reg_eu",
+      salesChannelId: "sc_eu",
+    })
+    const unrelatedCartKey = queryKeys.active({
+      cartId: "cart_2",
+      regionId: "reg_eu",
+      salesChannelId: "sc_eu",
     })
     const detailKey = queryKeys.detail("cart_1")
 
@@ -41,17 +58,38 @@ describe("cart cache sync helpers", () => {
       region_id: "reg_us",
       item_count: 2,
     } satisfies Cart)
+    queryClient.setQueryData(activeOtherChannelKey, {
+      id: "cart_1",
+      region_id: "reg_eu",
+      sales_channel_id: "sc_other",
+      item_count: 3,
+    } satisfies Cart)
+    queryClient.setQueryData(unrelatedCartKey, {
+      id: "cart_2",
+      region_id: "reg_eu",
+      sales_channel_id: "sc_eu",
+      item_count: 4,
+    } satisfies Cart)
 
     const updatedCart: Cart = {
       id: "cart_1",
       region_id: "reg_eu",
+      sales_channel_id: "sc_eu",
       item_count: 10,
     }
 
     syncCartCaches(queryClient, queryKeys, updatedCart)
 
-    expect(queryClient.getQueryData(activeEuKey)).toEqual(updatedCart)
-    expect(queryClient.getQueryData(activeUsKey)).toEqual(updatedCart)
+    expect(queryClient.getQueryData(exactActiveKey)).toEqual(updatedCart)
+    expect(queryClient.getQueryData(activeEuKey)).toBeUndefined()
+    expect(queryClient.getQueryData(activeUsKey)).toBeUndefined()
+    expect(queryClient.getQueryData(activeOtherChannelKey)).toBeUndefined()
+    expect(queryClient.getQueryData(unrelatedCartKey)).toEqual({
+      id: "cart_2",
+      region_id: "reg_eu",
+      sales_channel_id: "sc_eu",
+      item_count: 4,
+    })
     expect(queryClient.getQueryData(detailKey)).toEqual(updatedCart)
   })
 
@@ -124,13 +162,18 @@ describe("cart cache sync helpers", () => {
     })
     queryClient.setQueryData(activeKey, { id: "cart_custom" } satisfies Cart)
 
-    const cached = getCachedCartById<Cart>(queryClient, queryKeys, "cart_custom", {
-      isActiveCartQueryKey: (queryKey, cartId) =>
-        queryKey[0] === "custom" &&
-        queryKey[1] === "cart" &&
-        queryKey[2] === "active" &&
-        queryKey[3] === cartId,
-    })
+    const cached = getCachedCartById<Cart>(
+      queryClient,
+      queryKeys,
+      "cart_custom",
+      {
+        isActiveCartQueryKey: (queryKey, cartId) =>
+          queryKey[0] === "custom" &&
+          queryKey[1] === "cart" &&
+          queryKey[2] === "active" &&
+          queryKey[3] === cartId,
+      }
+    )
     expect(cached).toEqual({ id: "cart_custom" })
   })
 
@@ -139,11 +182,9 @@ describe("cart cache sync helpers", () => {
     const queryKeys: CartQueryKeys = {
       all: () => createQueryKey(["custom", "cart"]),
       active: ({ cartId, regionId }) =>
-        createQueryKey(
-          ["custom", "cart"],
-          cartId ?? "__none__",
-          { regionId: regionId ?? null }
-        ),
+        createQueryKey(["custom", "cart"], cartId ?? "__none__", {
+          regionId: regionId ?? null,
+        }),
       detail: (cartId) => createQueryKey(["custom", "cart"], "detail", cartId),
     }
     const activeKey = queryKeys.active({
@@ -161,15 +202,11 @@ describe("cart cache sync helpers", () => {
     expect(matcher(activeKey, "cart_derived")).toBe(true)
     expect(matcher(activeKey, "cart_other")).toBe(false)
 
-    syncCartCaches(
-      queryClient,
-      queryKeys,
-      {
-        id: "cart_derived",
-        region_id: "reg_1",
-        item_count: 9,
-      } satisfies Cart
-    )
+    syncCartCaches(queryClient, queryKeys, {
+      id: "cart_derived",
+      region_id: "reg_1",
+      item_count: 9,
+    } satisfies Cart)
 
     expect(queryClient.getQueryData(activeKey)).toEqual({
       id: "cart_derived",

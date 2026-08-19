@@ -28,7 +28,6 @@ import {
 } from "@/lib/storefront/cart"
 import { cartStorage } from "@/lib/storefront/cart-storage"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
-import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 
 type AuthControlsMode = "login" | "register"
 
@@ -58,7 +57,8 @@ export const useAuthController = ({
       autoCreate: false,
       region_id: region?.region_id,
       country_code: region?.country_code,
-      enabled: Boolean(region?.region_id),
+      salesChannelId: region?.salesChannelId,
+      enabled: Boolean(region?.region_id && region.salesChannelId),
     },
     {
       queryOptions: cartReadQueryOptions,
@@ -146,11 +146,7 @@ export const useAuthController = ({
     clearFeedback()
 
     try {
-      await registerMutation.mutateAsync(
-        buildAuthRegisterInput(values, {
-          currencyCode: resolveRegionCurrency(region),
-        })
-      )
+      await registerMutation.mutateAsync(buildAuthRegisterInput(values))
       const transferNotice = await runPostAuthCartTransfer()
 
       if (safeRedirectHref) {

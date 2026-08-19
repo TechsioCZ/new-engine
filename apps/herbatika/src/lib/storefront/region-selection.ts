@@ -5,14 +5,26 @@ import {
   type HerbatikaCurrencyCode,
   normalizeSupportedCurrencyCode,
 } from "./currency"
-import type { HerbatikaMarketContext } from "./market-context"
+import {
+  HERBATIKA_STOREFRONT_NAMESPACE,
+  type HerbatikaMarketContext,
+} from "./market-context"
 
 type RegionCurrencySource = RegionInfo & {
   currency_code?: unknown
 }
 
 export type HerbatikaRegionInfo = RegionInfo & {
-  currency_code?: HerbatikaCurrencyCode
+  region_id: string
+  country_code: string
+  currency_code: HerbatikaCurrencyCode
+  salesChannelId: string
+}
+
+type RegionMarketMetadata = {
+  storefront_market_code?: unknown
+  storefront_sales_channel_id?: unknown
+  storefront_shop_namespace?: unknown
 }
 
 const resolveRegionCountryCodes = (region: HttpTypes.StoreRegion): string[] =>
@@ -20,10 +32,40 @@ const resolveRegionCountryCodes = (region: HttpTypes.StoreRegion): string[] =>
     ?.map((country) => country.iso_2?.toLowerCase())
     .filter((countryCode): countryCode is string => Boolean(countryCode)) ?? []
 
+const resolveRegionMarketMetadata = (region: HttpTypes.StoreRegion) => {
+  const metadata: RegionMarketMetadata = region.metadata ?? {}
+
+  return {
+    marketCode:
+      typeof metadata.storefront_market_code === "string"
+        ? metadata.storefront_market_code.trim().toLowerCase()
+        : "",
+    salesChannelId:
+      typeof metadata.storefront_sales_channel_id === "string"
+        ? metadata.storefront_sales_channel_id.trim()
+        : "",
+    storefrontNamespace:
+      typeof metadata.storefront_shop_namespace === "string"
+        ? metadata.storefront_shop_namespace.trim().toLowerCase()
+        : "",
+  }
+}
+
 export const regionMatchesMarket = (
   region: HttpTypes.StoreRegion,
   marketContext: HerbatikaMarketContext
-) => resolveRegionCountryCodes(region).includes(marketContext.countryCode)
+) => {
+  const metadata = resolveRegionMarketMetadata(region)
+
+  return (
+    resolveRegionCountryCodes(region).includes(marketContext.countryCode) &&
+    normalizeSupportedCurrencyCode(region.currency_code) ===
+      marketContext.currencyCode &&
+    metadata.marketCode === marketContext.code &&
+    metadata.storefrontNamespace === HERBATIKA_STOREFRONT_NAMESPACE &&
+    Boolean(metadata.salesChannelId)
+  )
+}
 
 export const resolveCountryCode = (
   region: HttpTypes.StoreRegion,
@@ -42,14 +84,20 @@ export const resolveCountryCode = (
 
 export const toRegionInfo = (
   region: HttpTypes.StoreRegion,
-  expectedCountryCode?: string
+  marketContext: HerbatikaMarketContext
 ): HerbatikaRegionInfo => {
   const currencyCode = normalizeSupportedCurrencyCode(region.currency_code)
+  const { salesChannelId } = resolveRegionMarketMetadata(region)
+
+  if (!(currencyCode && regionMatchesMarket(region, marketContext))) {
+    throw new Error("Storefront region does not match the configured market.")
+  }
 
   return {
     region_id: region.id,
-    country_code: resolveCountryCode(region, expectedCountryCode),
-    ...(currencyCode ? { currency_code: currencyCode } : {}),
+    country_code: resolveCountryCode(region, marketContext.countryCode),
+    currency_code: currencyCode,
+    salesChannelId,
   }
 }
 
@@ -64,7 +112,11 @@ export const resolveRegionCurrency = (
     return explicitCurrencyCode
   }
 
-  return DEFAULT_CURRENCY_CODE
+  if (!region) {
+    return DEFAULT_CURRENCY_CODE
+  }
+
+  throw new Error("Storefront region is missing a valid currency.")
 }
 
 export const resolveRegionForMarket = (

@@ -4,6 +4,7 @@ import type { HeroBannerItem } from "@/components/homepage/homepage.data.types"
 import { fetchCmsJson } from "./cms-client"
 import { resolveCmsMediaUrl } from "./cms-content"
 import type { CmsHeroCarousel } from "./cms-types"
+import type { HerbatikaLocale } from "./market-context"
 
 const CMS_HERO_CAROUSEL_LIMIT = 8
 const SAFE_ABSOLUTE_HREF_PROTOCOLS = new Set(["http:", "https:"])
@@ -63,9 +64,10 @@ export const mapCmsHeroCarouselToHeroBanner = (
   }
 }
 
-export const fetchCmsHeroBanners = async () => {
+export const fetchCmsHeroBanners = async (locale: HerbatikaLocale) => {
   const response = await fetchCmsJson<CmsHeroCarouselsResponse>(
     "hero-carousels",
+    locale,
     {
       limit: CMS_HERO_CAROUSEL_LIMIT,
       sort: "-createdAt",

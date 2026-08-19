@@ -24,6 +24,7 @@ type UseCatalogListingInteractionsInput = {
   productPrefetchKeyPrefix: string
   queryState: NuqsPlpQueryState
   regionId?: string
+  salesChannelId?: string
   setQueryState: SetValues<typeof plpQueryParsers>
 }
 
@@ -80,11 +81,13 @@ export function useCatalogListingInteractions({
   productPrefetchKeyPrefix,
   queryState,
   regionId,
+  salesChannelId,
   setQueryState,
 }: UseCatalogListingInteractionsInput) {
   const addToCart = useAddProductToCartAction({
     regionId,
     countryCode,
+    salesChannelId,
   })
   const prefetchProduct = usePrefetchProduct({
     defaultDelay: 180,

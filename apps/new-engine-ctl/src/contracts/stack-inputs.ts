@@ -83,17 +83,28 @@ const localRuntimeProviderOutputAliasSchema = z.looseObject({
   local_env_var: z.string().min(1),
 })
 
-const previewRuntimeSourceSchema = z.looseObject({
-  kind: z.string().min(1),
-  service_id: z.string().min(1).optional(),
-  environment_scope: z
-    .enum(["current", "source"])
-    .optional()
-    .default("current"),
-  port: z.number().int().positive().optional(),
-  trailing_slash: z.boolean().optional().default(false),
-  bucket_shared_env_key: z.string().min(1).optional(),
-})
+const previewRuntimeSourceSchema = z
+  .looseObject({
+    kind: z.string().min(1),
+    value: z.string().min(1).optional(),
+    service_id: z.string().min(1).optional(),
+    environment_scope: z
+      .enum(["current", "source"])
+      .optional()
+      .default("current"),
+    port: z.number().int().positive().optional(),
+    trailing_slash: z.boolean().optional().default(false),
+    bucket_shared_env_key: z.string().min(1).optional(),
+  })
+  .superRefine((source, context) => {
+    if (source.kind === "literal" && !source.value) {
+      context.addIssue({
+        code: "custom",
+        message: "Literal preview runtime sources require a value.",
+        path: ["value"],
+      })
+    }
+  })
 
 const previewSharedEnvDefinitionSchema = z.looseObject({
   key: z.string().min(1),
