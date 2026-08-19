@@ -93,3 +93,42 @@ export type CmsHeroCarousel = {
   image?: CmsMedia | string | null
   subheading?: string | null
 }
+
+export const CMS_FOOTER_COLUMN_SLOTS = [
+  "information",
+  "important",
+  "partners",
+] as const
+
+export const CMS_FOOTER_ITEM_SLOTS = [
+  "blog",
+  "about",
+  "faq",
+  "gift_voucher",
+  "brands",
+  "reviews",
+  "shipping_payment",
+  "claims_returns",
+  "terms",
+  "privacy",
+  "cookies",
+  "affiliate",
+  "wholesale",
+  "dropshipping",
+  "private_label",
+] as const
+
+export type CmsFooterColumnSlot = (typeof CMS_FOOTER_COLUMN_SLOTS)[number]
+export type CmsFooterItemSlot = (typeof CMS_FOOTER_ITEM_SLOTS)[number]
+
+export type CmsFooterNavigation = {
+  columns: Array<{
+    slot: CmsFooterColumnSlot
+    items: Array<{
+      slot: CmsFooterItemSlot
+      href: string
+      type: "internal" | "external"
+      newTab?: boolean
+    }>
+  }>
+}

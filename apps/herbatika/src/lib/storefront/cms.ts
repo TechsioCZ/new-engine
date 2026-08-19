@@ -8,6 +8,7 @@ import {
   fetchLatestCmsBlogPosts as fetchLatestCmsBlogPostsValue,
 } from "./cms-blog"
 import { mapCmsArticleToBlogPost as mapCmsArticleToBlogPostValue } from "./cms-blog-mappers"
+import { fetchCmsFooterNavigation as fetchCmsFooterNavigationValue } from "./cms-footer-navigation"
 import {
   fetchCmsHeroBanners as fetchCmsHeroBannersValue,
   mapCmsHeroCarouselToHeroBanner as mapCmsHeroCarouselToHeroBannerValue,
@@ -31,6 +32,7 @@ export const fetchCmsBlogListing = fetchCmsBlogListingValue
 export const fetchCmsBlogPost = fetchCmsBlogPostValue
 export const fetchCachedLatestCmsBlogPosts = fetchCachedLatestCmsBlogPostsValue
 export const fetchLatestCmsBlogPosts = fetchLatestCmsBlogPostsValue
+export const fetchCmsFooterNavigation = fetchCmsFooterNavigationValue
 export const fetchCmsHeroBanners = fetchCmsHeroBannersValue
 export const fetchCmsHomepagePromo = fetchCmsHomepagePromoValue
 export const fetchCmsPageBySlug = fetchCmsPageBySlugValue

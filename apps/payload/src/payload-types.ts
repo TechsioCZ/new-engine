@@ -100,14 +100,21 @@ export interface Config {
   db: {
     defaultIDType: number;
   };
-  fallbackLocale: ('false' | 'none' | 'null') | false | null | ('cs' | 'sk' | 'en') | ('cs' | 'sk' | 'en')[];
+  fallbackLocale:
+    | ('false' | 'none' | 'null')
+    | false
+    | null
+    | ('cs' | 'en' | 'sk' | 'pl' | 'hu' | 'ro' | 'sl')
+    | ('cs' | 'en' | 'sk' | 'pl' | 'hu' | 'ro' | 'sl')[];
   globals: {
+    'footer-navigation': FooterNavigation;
     'translation-settings': TranslationSetting;
   };
   globalsSelect: {
+    'footer-navigation': FooterNavigationSelect<false> | FooterNavigationSelect<true>;
     'translation-settings': TranslationSettingsSelect<false> | TranslationSettingsSelect<true>;
   };
-  locale: 'cs' | 'sk' | 'en';
+  locale: 'cs' | 'en' | 'sk' | 'pl' | 'hu' | 'ro' | 'sl';
   widgets: {
     collections: CollectionsWidget;
   };
@@ -745,6 +752,116 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   createdAt?: T;
 }
 /**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "footer-navigation".
+ */
+export interface FooterNavigation {
+  id: number;
+  /**
+   * Each locale can choose, order, or omit its own footer links.
+   */
+  columns?:
+    | {
+        slot: 'information' | 'important' | 'partners';
+        items?: (FooterCmsPageLink | FooterAppRouteLink | FooterExternalLink)[] | null;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FooterCmsPageLink".
+ */
+export interface FooterCmsPageLink {
+  /**
+   * Stable key used by the storefront-text module for the visible label.
+   */
+  slot:
+    | 'blog'
+    | 'about'
+    | 'faq'
+    | 'gift_voucher'
+    | 'brands'
+    | 'reviews'
+    | 'shipping_payment'
+    | 'claims_returns'
+    | 'terms'
+    | 'privacy'
+    | 'cookies'
+    | 'affiliate'
+    | 'wholesale'
+    | 'dropshipping'
+    | 'private_label';
+  page?: (number | null) | Page;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'cmsPageLink';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FooterAppRouteLink".
+ */
+export interface FooterAppRouteLink {
+  /**
+   * Stable key used by the storefront-text module for the visible label.
+   */
+  slot:
+    | 'blog'
+    | 'about'
+    | 'faq'
+    | 'gift_voucher'
+    | 'brands'
+    | 'reviews'
+    | 'shipping_payment'
+    | 'claims_returns'
+    | 'terms'
+    | 'privacy'
+    | 'cookies'
+    | 'affiliate'
+    | 'wholesale'
+    | 'dropshipping'
+    | 'private_label';
+  /**
+   * A storefront path such as /blog or /znacka.
+   */
+  path: string;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'appRouteLink';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FooterExternalLink".
+ */
+export interface FooterExternalLink {
+  /**
+   * Stable key used by the storefront-text module for the visible label.
+   */
+  slot:
+    | 'blog'
+    | 'about'
+    | 'faq'
+    | 'gift_voucher'
+    | 'brands'
+    | 'reviews'
+    | 'shipping_payment'
+    | 'claims_returns'
+    | 'terms'
+    | 'privacy'
+    | 'cookies'
+    | 'affiliate'
+    | 'wholesale'
+    | 'dropshipping'
+    | 'private_label';
+  url: string;
+  newTab?: boolean | null;
+  id?: string | null;
+  blockName?: string | null;
+  blockType: 'externalLink';
+}
+/**
  * Configure translation settings including the system prompt and model parameters
  *
  * This interface was referenced by `Config`'s JSON-Schema
@@ -775,6 +892,59 @@ export interface TranslationSetting {
   maxTokens?: number | null;
   updatedAt?: string | null;
   createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "footer-navigation_select".
+ */
+export interface FooterNavigationSelect<T extends boolean = true> {
+  columns?:
+    | T
+    | {
+        slot?: T;
+        items?:
+          | T
+          | {
+              cmsPageLink?: T | FooterCmsPageLinkSelect<T>;
+              appRouteLink?: T | FooterAppRouteLinkSelect<T>;
+              externalLink?: T | FooterExternalLinkSelect<T>;
+            };
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FooterCmsPageLink_select".
+ */
+export interface FooterCmsPageLinkSelect<T extends boolean = true> {
+  slot?: T;
+  page?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FooterAppRouteLink_select".
+ */
+export interface FooterAppRouteLinkSelect<T extends boolean = true> {
+  slot?: T;
+  path?: T;
+  id?: T;
+  blockName?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "FooterExternalLink_select".
+ */
+export interface FooterExternalLinkSelect<T extends boolean = true> {
+  slot?: T;
+  url?: T;
+  newTab?: T;
+  id?: T;
+  blockName?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

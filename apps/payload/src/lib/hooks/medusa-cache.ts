@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto"
 import type {
   CollectionAfterChangeHook,
   CollectionAfterDeleteHook,
+  GlobalAfterChangeHook,
   PayloadRequest,
 } from "payload"
 import { getEnvString } from "../utils/env"
@@ -159,3 +160,23 @@ export const createMedusaCacheHook = (
   return invalidateCache as CollectionAfterChangeHook &
     CollectionAfterDeleteHook
 }
+
+/** Create a hook that invalidates Medusa CMS cache for a global. */
+export const createMedusaGlobalCacheHook =
+  (globalSlug: string): GlobalAfterChangeHook =>
+  async ({ doc, req }) => {
+    const payload: MedusaInvalidatePayload = {
+      collection: globalSlug,
+      doc: {
+        locale: req.locale ?? undefined,
+      },
+      operation: "update",
+    }
+
+    req.payload.logger.info(
+      `CMS invalidate hook: update -> ${JSON.stringify(payload)}`
+    )
+    await notifyMedusa(payload, req)
+
+    return doc
+  }

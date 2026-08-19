@@ -17,6 +17,9 @@ import {
   CATEGORY_TREE_FIELDS,
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
+import { fetchCmsFooterNavigation } from "@/lib/storefront/cms"
+import { getCmsLocaleForMarket } from "@/lib/storefront/cms-locale"
+import type { CmsFooterNavigation } from "@/lib/storefront/cms-types"
 import { fetchExternalReviewTrustSources } from "@/lib/storefront/external-reviews.server"
 import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { getMarketServerContext } from "@/lib/storefront/market-context.server"
@@ -82,6 +85,7 @@ type LayoutShellProps = Readonly<{
   children: React.ReactNode
   dehydratedState: DehydratedState
   initialRegion?: RegionInfo | null
+  footerNavigation: CmsFooterNavigation
   marketContext: HerbatikaMarketContext
   messages: AbstractIntlMessages
   reviewTrustSources: readonly ReviewTrustSource[]
@@ -91,6 +95,7 @@ function LayoutShell({
   children,
   dehydratedState,
   initialRegion = null,
+  footerNavigation,
   marketContext,
   messages,
   reviewTrustSources,
@@ -103,7 +108,10 @@ function LayoutShell({
       >
         <HydrationBoundary state={dehydratedState}>
           <Suspense fallback={<div className="min-h-dvh bg-base" />}>
-            <AppShell reviewTrustSources={reviewTrustSources}>
+            <AppShell
+              footerNavigation={footerNavigation}
+              reviewTrustSources={reviewTrustSources}
+            >
               {children}
             </AppShell>
           </Suspense>
@@ -120,12 +128,17 @@ async function ResolvedLayoutShell({
   children: React.ReactNode
   marketContext: HerbatikaMarketContext
 }>) {
-  const [{ queryClient, region }, messages, reviewTrustSources] =
-    await Promise.all([
-      getRegionServerContext(),
-      getMessages(),
-      fetchExternalReviewTrustSources(),
-    ])
+  const [
+    { queryClient, region },
+    messages,
+    footerNavigation,
+    reviewTrustSources,
+  ] = await Promise.all([
+    getRegionServerContext(),
+    getMessages(),
+    fetchCmsFooterNavigation(getCmsLocaleForMarket(marketContext.code)),
+    fetchExternalReviewTrustSources(),
+  ])
 
   try {
     await fetchServerCategories(
@@ -144,6 +157,7 @@ async function ResolvedLayoutShell({
   return (
     <LayoutShell
       dehydratedState={dehydrate(queryClient)}
+      footerNavigation={footerNavigation}
       initialRegion={region}
       marketContext={marketContext}
       messages={messages}

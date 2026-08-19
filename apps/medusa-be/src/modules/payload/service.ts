@@ -6,9 +6,11 @@ import type { z } from "@medusajs/framework/zod"
 import qs from "qs"
 import { safeResolve } from "../../utils/safe-resolve"
 import { toCmsStoreArticle } from "./article-store-dto"
+import { toCmsStoreFooterNavigation } from "./footer-navigation-store-dto"
 import {
   ArticleCategoriesWithArticlesSchema,
   CmsArticlesBulkResultSchema,
+  CmsFooterNavigationGlobalSchema,
   CmsHeroCarouselsBulkResultSchema,
   CmsPagesBulkResultSchema,
   PageCategoriesWithPagesSchema,
@@ -17,11 +19,13 @@ import type {
   CmsArticleCategoryDTO,
   CmsArticleDTO,
   CmsCategoryListOptions,
+  CmsFooterNavigationGlobalDTO,
   CmsHeroCarouselDTO,
   CmsListOptions,
   CmsPageCategoryDTO,
   CmsPageDTO,
   CmsStoreArticleDTO,
+  CmsStoreFooterNavigationDTO,
   PayloadBulkResult,
   PayloadModuleOptions,
   PayloadQueryOptions,
@@ -39,6 +43,7 @@ const ARTICLE_CATEGORIES = "article-categories"
 const ARTICLE_AUTHORS = "article-authors"
 const PAGE_CATEGORY_GROUPS = "page-categories-with-pages"
 const ARTICLE_CATEGORY_GROUPS = "article-categories-with-articles"
+const FOOTER_NAVIGATION = "footer-navigation"
 const RETURN_HTML_HEADER = "X-Payload-Return-Html"
 const TRAILING_SLASH_REGEX = /\/$/
 const PRIVATE_PAYLOAD_FIELD_NAMES = new Set([
@@ -69,6 +74,7 @@ const CACHE_TAGS = {
   PAGE_CATEGORIES: `${CMS}:${PAGE_CATEGORIES}`,
   ARTICLE_CATEGORIES: `${CMS}:${ARTICLE_CATEGORIES}`,
   HERO_CAROUSELS: `${CMS}:${HERO_CAROUSELS}`,
+  FOOTER_NAVIGATION: `${CMS}:${FOOTER_NAVIGATION}`,
 } as const
 
 const DEFAULT_TTLS = {
@@ -424,6 +430,7 @@ export default class PayloadModuleService extends MedusaService({}) {
           },
           limit: 1,
           locale,
+          "fallback-locale": "none",
         })
         const result = await this.makeRequest<PayloadBulkResult<CmsPageDTO>>(
           "GET",
@@ -653,6 +660,54 @@ export default class PayloadModuleService extends MedusaService({}) {
     )
   }
 
+  /** Fetch the localized footer navigation configured in Payload. */
+  async getFooterNavigation(
+    locale?: string
+  ): Promise<CmsStoreFooterNavigationDTO> {
+    const normalizedLocale = this.normalizeLocale(locale)
+    const cacheKey = `${CACHE_TAGS.FOOTER_NAVIGATION}:${normalizedLocale ?? DEFAULT_LOCALE}`
+    const footerLocaleTag = this.buildLocaleTag(
+      CACHE_TAGS.FOOTER_NAVIGATION,
+      normalizedLocale
+    )
+
+    return this.getCached(
+      cacheKey,
+      async () => {
+        const queryString = this.buildQuery({
+          locale: normalizedLocale,
+          "fallback-locale": "none",
+          depth: 1,
+          select: { columns: true },
+          populate: {
+            pages: {
+              id: true,
+              slug: true,
+              title: true,
+              status: true,
+              visibility: true,
+            },
+          },
+        })
+        const result = await this.makeRequest<CmsFooterNavigationGlobalDTO>(
+          "GET",
+          `/globals/${FOOTER_NAVIGATION}${queryString}`,
+          undefined,
+          { schema: CmsFooterNavigationGlobalSchema }
+        )
+
+        return toCmsStoreFooterNavigation(result)
+      },
+      this.listCacheTtl_,
+      [
+        CACHE_TAGS.ALL,
+        CACHE_TAGS.FOOTER_NAVIGATION,
+        CACHE_TAGS.PAGES,
+        footerLocaleTag,
+      ]
+    )
+  }
+
   /**
    * Invalidate cached CMS content for a collection and optional slug/locale.
    */
@@ -687,6 +742,7 @@ export default class PayloadModuleService extends MedusaService({}) {
 
     switch (collection) {
       case PAGES:
+        tags.push(CACHE_TAGS.FOOTER_NAVIGATION)
         addTags(
           [CACHE_TAGS.PAGES, CACHE_TAGS.PAGE_CATEGORIES],
           CACHE_TAGS.PAGE_CATEGORIES
@@ -706,6 +762,9 @@ export default class PayloadModuleService extends MedusaService({}) {
         break
       case HERO_CAROUSELS:
         addTags([CACHE_TAGS.HERO_CAROUSELS], CACHE_TAGS.HERO_CAROUSELS)
+        break
+      case FOOTER_NAVIGATION:
+        addTags([CACHE_TAGS.FOOTER_NAVIGATION], CACHE_TAGS.FOOTER_NAVIGATION)
         break
       case MEDIA:
         tags.push(CACHE_TAGS.ALL)

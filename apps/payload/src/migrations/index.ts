@@ -4,6 +4,7 @@ import * as migration_20260730_195416_add_article_category_model from './2026073
 import * as migration_20260731_135408_add_article_related_articles from './20260731_135408_add_article_related_articles';
 import * as migration_20260731_175339_add_article_authors from './20260731_175339_add_article_authors';
 import * as migration_20260813_065411_add_article_sidebar from './20260813_065411_add_article_sidebar';
+import * as migration_20260817_132825_add_footer_navigation from './20260817_132825_add_footer_navigation';
 
 export const migrations = [
   {
@@ -34,6 +35,11 @@ export const migrations = [
   {
     up: migration_20260813_065411_add_article_sidebar.up,
     down: migration_20260813_065411_add_article_sidebar.down,
-    name: '20260813_065411_add_article_sidebar'
+    name: '20260813_065411_add_article_sidebar',
+  },
+  {
+    up: migration_20260817_132825_add_footer_navigation.up,
+    down: migration_20260817_132825_add_footer_navigation.down,
+    name: '20260817_132825_add_footer_navigation'
   },
 ];
