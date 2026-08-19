@@ -14,10 +14,6 @@ const TYPO_TOLERANCE_SETTINGS = {
 const COMMON_SETTINGS = {
   typoTolerance: TYPO_TOLERANCE_SETTINGS,
 
-  pagination: {
-    maxTotalHits: 500,
-  },
-
   proximityPrecision: "byAttribute",
 }
 
