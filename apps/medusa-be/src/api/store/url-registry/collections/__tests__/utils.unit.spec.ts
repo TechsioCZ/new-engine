@@ -7,6 +7,7 @@ import type { StorefrontUrlAssignmentRecord } from "../../../../../modules/store
 import {
   readPublishedStorefrontAssignment,
   readPublishedStorefrontAssignmentPage,
+  readPublishedStorefrontAssignmentSources,
 } from "../../utils"
 
 const assignment = (
@@ -265,6 +266,39 @@ describe("Store collection assignment reads", () => {
         sales_channel_id: "sc_sk",
       },
       expect.objectContaining({ skip: 50, take: 25 })
+    )
+  })
+
+  it("reads only exact sitemap candidates and omits stale slugs", async () => {
+    const context = request({
+      collections: [{ id: "pcol_1" }],
+      records: [assignment()],
+    })
+    await expect(
+      readPublishedStorefrontAssignmentSources(
+        context.value,
+        "collection",
+        "sk",
+        [
+          { entityId: "pcol_1", publicSlug: "zimna-kolekcia" },
+          { entityId: "pcol_stale", publicSlug: "new-slug" },
+        ]
+      )
+    ).resolves.toMatchObject({
+      assignments: [{ entityId: "pcol_1", publicSlug: "zimna-kolekcia" }],
+      kind: "found",
+    })
+    expect(
+      context.assignmentService.listStorefrontUrlAssignments
+    ).toHaveBeenCalledWith(
+      {
+        entity_id: ["pcol_1", "pcol_stale"],
+        entity_kind: "collection",
+        market_code: "sk",
+        publication_status: "published",
+        sales_channel_id: "sc_sk",
+      },
+      expect.objectContaining({ take: 3 })
     )
   })
 

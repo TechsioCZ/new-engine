@@ -70,15 +70,15 @@ describe("system sitemap source wiring", () => {
   })
 
   it.each([
-    ["category", "/store/url-registry/categories/assignments"],
-    ["brand", "/store/url-registry/brands/assignments"],
-    ["collection", "/store/url-registry/collections/assignments"],
-  ] as const)("uses the bounded %s assignment endpoint", async (kind, path) => {
+    "category",
+    "brand",
+    "collection",
+  ] as const)("uses the bounded %s assignment endpoint", async (kind) => {
     mocks.fetch.mockResolvedValue({
-      count: 1,
-      items: [assignment("source_1", "public-slug")],
-      limit: 100,
-      offset: 0,
+      assignments: [assignment("source_1", "public-slug")],
+      entityKind: kind,
+      marketCode: "cz",
+      schemaVersion: 1,
     })
 
     await expect(
@@ -97,10 +97,19 @@ describe("system sitemap source wiring", () => {
       kind: "found",
       value: [{ routeId: "route_1" }],
     })
-    expect(mocks.fetch).toHaveBeenCalledWith(path, {
-      query: { limit: 100, offset: 0 },
-      signal: expect.any(AbortSignal),
-    })
+    expect(mocks.fetch).toHaveBeenCalledWith(
+      "/store/url-registry/catalog/sources",
+      {
+        body: {
+          candidates: [{ entityId: "source_1", publicSlug: "public-slug" }],
+          entityKind: kind,
+          market: "cz",
+          schemaVersion: 1,
+        },
+        method: "POST",
+        signal: expect.any(AbortSignal),
+      }
+    )
   })
 
   it("reads a CMS article by stable ID and exact market locale", async () => {

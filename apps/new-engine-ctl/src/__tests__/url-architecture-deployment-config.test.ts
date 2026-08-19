@@ -249,6 +249,19 @@ test("URL registry runtime receives only runtime credentials and a shared lifecy
       },
     ],
   })
+  expect(byKey.get("HERBATIKA_CMS_STATIC_PAGE_IDS")).toMatchObject({
+    source: {
+      kind: "local_env",
+      env_var: "DC_HERBATIKA_CMS_STATIC_PAGE_IDS",
+      default_value: "",
+    },
+    service_targets: [
+      {
+        service_id: "herbatika",
+        env_var: "HERBATIKA_CMS_STATIC_PAGE_IDS",
+      },
+    ],
+  })
   expect(byKey.get("URL_REGISTRY_CONTENT_PROJECTION_TOKEN")).toMatchObject({
     source: {
       kind: "local_env",

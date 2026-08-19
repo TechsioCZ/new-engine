@@ -47,11 +47,11 @@ const assignment = (
 const catalogDependencies = (
   items: readonly unknown[]
 ): CatalogSitemapSourceDependencies => ({
-  listAssignments: vi.fn().mockResolvedValue({
-    count: items.length,
-    items,
-    limit: 100,
-    offset: 0,
+  readAssignments: vi.fn().mockResolvedValue({
+    assignments: items,
+    entityKind: "category",
+    marketCode: "cz",
+    schemaVersion: 1,
   }),
 })
 
@@ -93,7 +93,6 @@ describe("sitemap source validation", () => {
     const dependencies = catalogDependencies([
       assignment("cat_1"),
       assignment("cat_stale", "old-slug"),
-      assignment("cat_unrouted"),
     ])
 
     await expect(
@@ -113,11 +112,14 @@ describe("sitemap source validation", () => {
       kind: "found",
       value: [{ routeId: "route_cat_1" }],
     })
-    expect(dependencies.listAssignments).toHaveBeenCalledWith({
+    expect(dependencies.readAssignments).toHaveBeenCalledWith({
       binding,
       kind: "category",
-      limit: 100,
-      offset: 0,
+      sources: [
+        source("cat_1"),
+        source("cat_stale", "new-slug"),
+        source("cat_missing"),
+      ],
     })
   })
 
@@ -125,12 +127,19 @@ describe("sitemap source validation", () => {
     await expect(
       validateCatalogSitemapSources(
         { binding, kind: "brand", sources: [source("brand_1")] },
-        catalogDependencies([
-          assignment("brand_1", "slug-brand-1", { marketCode: "sk" }),
-        ])
+        {
+          readAssignments: vi.fn().mockResolvedValue({
+            assignments: [
+              assignment("brand_1", "slug-brand-1", { marketCode: "sk" }),
+            ],
+            entityKind: "brand",
+            marketCode: "cz",
+            schemaVersion: 1,
+          }),
+        }
       )
     ).resolves.toEqual({
-      causeCode: "INVALID_SITEMAP_ASSIGNMENT_LIST_RESPONSE",
+      causeCode: "INVALID_SITEMAP_ASSIGNMENT_BATCH_RESPONSE",
       kind: "invalid-response",
     })
 
@@ -138,7 +147,7 @@ describe("sitemap source validation", () => {
       validateCatalogSitemapSources(
         { binding, kind: "collection", sources: [source("col_1")] },
         {
-          listAssignments: vi
+          readAssignments: vi
             .fn()
             .mockRejectedValue(
               Object.assign(new Error("down"), { status: 503 })

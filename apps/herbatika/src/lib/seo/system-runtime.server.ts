@@ -19,7 +19,6 @@ import {
 import type { ProductFeedDependencies } from "./product-feed"
 import type { SitemapDataDependencies } from "./sitemap-contract"
 import {
-  type CatalogSitemapKind,
   validateCatalogSitemapSources,
   validateCmsEntitySitemapSources,
   validateCmsStaticSitemapSources,
@@ -28,12 +27,6 @@ import {
 import { resolveSystemHost, type SystemHostResolution } from "./system-response"
 
 const SITEMAP_SOURCE_TIMEOUT_MS = 5000
-const ASSIGNMENT_PATH_BY_KIND: Readonly<Record<CatalogSitemapKind, string>> = {
-  brand: "/store/url-registry/brands/assignments",
-  category: "/store/url-registry/categories/assignments",
-  collection: "/store/url-registry/collections/assignments",
-}
-
 export const resolveSystemHostFromRequest = (
   request: Request
 ): SystemHostResolution =>
@@ -86,9 +79,18 @@ export const systemSitemapDependencies: SitemapDataDependencies = {
     return validateCatalogSitemapSources(
       { binding, kind, sources },
       {
-        listAssignments: ({ kind: catalogKind, limit, offset }) =>
-          sdk.client.fetch(ASSIGNMENT_PATH_BY_KIND[catalogKind], {
-            query: { limit, offset },
+        readAssignments: ({ kind: catalogKind, sources: candidates }) =>
+          sdk.client.fetch("/store/url-registry/catalog/sources", {
+            body: {
+              candidates: candidates.map((source) => ({
+                entityId: source.sourceId,
+                publicSlug: source.publicSlug,
+              })),
+              entityKind: catalogKind,
+              market,
+              schemaVersion: 1,
+            },
+            method: "POST",
             signal: AbortSignal.timeout(SITEMAP_SOURCE_TIMEOUT_MS),
           }),
       }

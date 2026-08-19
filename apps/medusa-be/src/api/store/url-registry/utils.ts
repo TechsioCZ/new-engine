@@ -14,6 +14,7 @@ import {
 } from "../../../modules/storefront-url-assignment/contracts"
 import type StorefrontUrlAssignmentModuleService from "../../../modules/storefront-url-assignment/service"
 import {
+  type CatalogMarket,
   type CatalogTranslationProof,
   readExactCatalogTranslation,
   readExactCatalogTranslations,
@@ -164,6 +165,125 @@ export type StorefrontAssignmentPage = {
   count: number
   limit: number
   offset: number
+}
+
+export const STOREFRONT_ASSIGNMENT_SOURCE_BATCH_LIMIT = 100
+
+export type StorefrontAssignmentSourceCandidate = Readonly<{
+  entityId: string
+  publicSlug: string
+}>
+
+export type StorefrontAssignmentSourceBatchRead =
+  | Readonly<{
+      assignments: readonly PublishedStorefrontAssignment[]
+      kind: "found"
+    }>
+  | Readonly<{ kind: "unavailable" }>
+
+export const readPublishedStorefrontAssignmentSources = async (
+  request: MedusaStoreRequest,
+  entityKind: StorefrontUrlAssignmentEntityKind,
+  market: CatalogMarket,
+  candidates: readonly StorefrontAssignmentSourceCandidate[]
+): Promise<StorefrontAssignmentSourceBatchRead> => {
+  if (
+    candidates.length < 1 ||
+    candidates.length > STOREFRONT_ASSIGNMENT_SOURCE_BATCH_LIMIT ||
+    new Set(candidates.map((candidate) => candidate.entityId)).size !==
+      candidates.length ||
+    new Set(candidates.map((candidate) => candidate.publicSlug)).size !==
+      candidates.length
+  ) {
+    return { kind: "unavailable" }
+  }
+
+  try {
+    const salesChannelId = resolveSalesChannelId(request)
+    const candidateByEntityId = new Map(
+      candidates.map((candidate) => [candidate.entityId, candidate])
+    )
+    const records = await resolveService(request).listStorefrontUrlAssignments(
+      {
+        entity_id: candidates.map((candidate) => candidate.entityId),
+        entity_kind: entityKind,
+        market_code: market,
+        publication_status: "published",
+        sales_channel_id: salesChannelId,
+      },
+      {
+        order: { entity_id: "ASC" },
+        take: candidates.length + 1,
+      }
+    )
+    const serialized = records.map((record) =>
+      serializeStorefrontUrlAssignment(record, entityKind)
+    )
+    if (
+      serialized.length > candidates.length ||
+      new Set(serialized.map((assignment) => assignment.entityId)).size !==
+        serialized.length ||
+      serialized.some(
+        (assignment) =>
+          !candidateByEntityId.has(assignment.entityId) ||
+          assignment.marketCode !== market ||
+          assignment.salesChannelId !== salesChannelId ||
+          assignment.publicationStatus !== "published"
+      )
+    ) {
+      return { kind: "unavailable" }
+    }
+
+    const matching = serialized.filter(
+      (assignment) =>
+        candidateByEntityId.get(assignment.entityId)?.publicSlug ===
+        assignment.publicSlug
+    )
+    if (matching.length === 0) {
+      return { assignments: [], kind: "found" }
+    }
+    if (
+      !(await sourceEntitiesExist(
+        request,
+        entityKind,
+        matching.map((assignment) => assignment.entityId)
+      ))
+    ) {
+      return { kind: "unavailable" }
+    }
+
+    const translations = await readExactCatalogTranslations({
+      container: request.scope,
+      entityIds: matching.map((assignment) => assignment.entityId),
+      entityKind,
+      market,
+    })
+    if (
+      translations.kind !== "found" ||
+      translations.missingEntityIds.length > 0
+    ) {
+      return { kind: "unavailable" }
+    }
+
+    const assignmentByEntityId = new Map(
+      matching.map((assignment) => [assignment.entityId, assignment])
+    )
+    const assignments: PublishedStorefrontAssignment[] = []
+    for (const candidate of candidates) {
+      const assignment = assignmentByEntityId.get(candidate.entityId)
+      if (!assignment) {
+        continue
+      }
+      const translation = translations.proofsByEntityId.get(candidate.entityId)
+      if (!translation) {
+        return { kind: "unavailable" }
+      }
+      assignments.push({ ...assignment, translation })
+    }
+    return { assignments, kind: "found" }
+  } catch {
+    return { kind: "unavailable" }
+  }
 }
 
 export const readPublishedStorefrontAssignmentPage = async (

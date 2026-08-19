@@ -1001,6 +1001,15 @@ bootstrap_zane_project:
         - service_id: herbatika
           env_var: URL_REGISTRY_CONTENT_PROJECTION_ENABLED
 
+    - key: HERBATIKA_CMS_STATIC_PAGE_IDS
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_CMS_STATIC_PAGE_IDS
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: HERBATIKA_CMS_STATIC_PAGE_IDS
+
     - key: URL_REGISTRY_CONTENT_PROJECTION_URL
       source:
         kind: local_env

@@ -290,6 +290,7 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     )
     expect(herbatika?.desired_env).toMatchObject({
       ALLOWED_MARKETS: "{{env.ALLOWED_MARKETS}}",
+      HERBATIKA_CMS_STATIC_PAGE_IDS: "{{env.HERBATIKA_CMS_STATIC_PAGE_IDS}}",
       HERBATIKA_ACCEPTED_HOSTS_RO: "{{env.HERBATIKA_ACCEPTED_HOSTS_RO}}",
       MARKET_ACCEPTED_HOSTS_SK: "{{env.MARKET_ACCEPTED_HOSTS_SK}}",
       MARKET_ACCEPTED_HOSTS_CZ: "{{env.MARKET_ACCEPTED_HOSTS_CZ}}",

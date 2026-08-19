@@ -3,11 +3,10 @@ import type { CmsArticle, CmsPage } from "@/lib/storefront/cms"
 import type { HerbatikaLocale } from "@/lib/storefront/market-context"
 import type { StaticRootPageKey } from "@/lib/url/types"
 import type { SourceReadResult } from "@/lib/url-registry/reads"
-import {
-  SITEMAP_MAX_URLS,
-  type SitemapEntitySourceCandidate,
-  type SitemapSourceValidation,
-  type SitemapStaticSourceCandidate,
+import type {
+  SitemapEntitySourceCandidate,
+  SitemapSourceValidation,
+  SitemapStaticSourceCandidate,
 } from "./sitemap-contract"
 
 export type CatalogSitemapKind = "brand" | "category" | "collection"
@@ -19,17 +18,11 @@ type CatalogAssignment = Readonly<{
   publicSlug: string
 }>
 
-type CatalogAssignmentPage = Readonly<{
-  count: number
-  items: readonly CatalogAssignment[]
-}>
-
 export type CatalogSitemapSourceDependencies = Readonly<{
-  listAssignments(input: {
+  readAssignments(input: {
     binding: CatalogBinding
     kind: CatalogSitemapKind
-    limit: number
-    offset: number
+    sources: readonly SitemapEntitySourceCandidate[]
   }): Promise<unknown>
 }>
 
@@ -57,7 +50,7 @@ export type ProductSitemapSourceDependencies = Readonly<{
   }): Promise<unknown>
 }>
 
-const ASSIGNMENT_PAGE_SIZE = 100
+const CATALOG_SOURCE_BATCH_LIMIT = 100
 const SOURCE_VALIDATION_CONCURRENCY = 12
 const PUBLIC_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const PRODUCT_SOURCE_BATCH_LIMIT = 100
@@ -112,29 +105,37 @@ const parseAssignment = (
     : null
 }
 
-const parseAssignmentPage = (
+const parseAssignmentBatch = (
   value: unknown,
   binding: CatalogBinding,
-  expectedOffset: number
-): CatalogAssignmentPage | null => {
+  kind: CatalogSitemapKind,
+  sources: readonly SitemapEntitySourceCandidate[]
+): readonly CatalogAssignment[] | null => {
   if (
-    !(isRecord(value) && Number.isSafeInteger(value.count)) ||
-    (value.count as number) < 0 ||
-    (value.count as number) > SITEMAP_MAX_URLS ||
-    value.limit !== ASSIGNMENT_PAGE_SIZE ||
-    value.offset !== expectedOffset ||
-    !Array.isArray(value.items) ||
-    value.items.length > ASSIGNMENT_PAGE_SIZE
+    !isRecord(value) ||
+    value.schemaVersion !== 1 ||
+    value.marketCode !== binding.market ||
+    value.entityKind !== kind ||
+    !Array.isArray(value.assignments) ||
+    value.assignments.length > sources.length
   ) {
     return null
   }
-  const items = value.items.map((item) => parseAssignment(item, binding))
-  return items.some((item) => item === null)
+  const requestedIds = new Set(sources.map((source) => source.sourceId))
+  const assignments = value.assignments.map((item) =>
+    parseAssignment(item, binding)
+  )
+  return assignments.some(
+    (assignment) =>
+      assignment === null || !requestedIds.has(assignment.entityId)
+  ) ||
+    new Set(
+      assignments.map(
+        (assignment) => (assignment as CatalogAssignment).entityId
+      )
+    ).size !== assignments.length
     ? null
-    : {
-        count: value.count as number,
-        items: items as CatalogAssignment[],
-      }
+    : (assignments as CatalogAssignment[])
 }
 
 const validateCandidateIdentities = (
@@ -152,7 +153,10 @@ export const validateCatalogSitemapSources = async (
   }>,
   dependencies: CatalogSitemapSourceDependencies
 ): Promise<SourceReadResult<readonly SitemapSourceValidation[]>> => {
-  if (!validateCandidateIdentities(input.sources)) {
+  if (
+    !validateCandidateIdentities(input.sources) ||
+    input.sources.length > CATALOG_SOURCE_BATCH_LIMIT
+  ) {
     return {
       causeCode: "INVALID_SITEMAP_SOURCE_CANDIDATES",
       kind: "invalid-response",
@@ -163,37 +167,19 @@ export const validateCatalogSitemapSources = async (
   }
 
   try {
-    const assignments: CatalogAssignment[] = []
-    let count = Number.POSITIVE_INFINITY
-    let offset = 0
-    while (offset < count) {
-      const page = parseAssignmentPage(
-        await dependencies.listAssignments({
-          binding: input.binding,
-          kind: input.kind,
-          limit: ASSIGNMENT_PAGE_SIZE,
-          offset,
-        }),
-        input.binding,
-        offset
-      )
-      if (!page || (page.items.length === 0 && offset < page.count)) {
-        return {
-          causeCode: "INVALID_SITEMAP_ASSIGNMENT_LIST_RESPONSE",
-          kind: "invalid-response",
-        }
-      }
-      assignments.push(...page.items)
-      count = page.count
-      offset += page.items.length
-    }
-    if (
-      assignments.length !== count ||
-      new Set(assignments.map((assignment) => assignment.entityId)).size !==
-        assignments.length
-    ) {
+    const assignments = parseAssignmentBatch(
+      await dependencies.readAssignments({
+        binding: input.binding,
+        kind: input.kind,
+        sources: input.sources,
+      }),
+      input.binding,
+      input.kind,
+      input.sources
+    )
+    if (!assignments) {
       return {
-        causeCode: "INVALID_SITEMAP_ASSIGNMENT_LIST_RESPONSE",
+        causeCode: "INVALID_SITEMAP_ASSIGNMENT_BATCH_RESPONSE",
         kind: "invalid-response",
       }
     }
