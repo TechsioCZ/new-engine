@@ -11,7 +11,11 @@ import {
 import { getMarketStorefrontSdk } from "@/lib/storefront/market-sdk.server"
 import { readProductRouteSourceFromMedusa } from "@/lib/storefront/product-route-source.server"
 import { getUrlRegistryRuntime } from "@/lib/url-registry/runtime/instance.server"
-import { listPublicEntityProjections } from "@/lib/url-registry/runtime/public-projections.server"
+import {
+  countPublicIndexableEntityProjections,
+  listPublicEntityProjections,
+  listPublicIndexableEntityProjectionPage,
+} from "@/lib/url-registry/runtime/public-projections.server"
 import type { ProductFeedDependencies } from "./product-feed"
 import type { SitemapDataDependencies } from "./sitemap-contract"
 import {
@@ -39,7 +43,8 @@ export const resolveSystemHostFromRequest = (
   })
 
 export const systemSitemapDependencies: SitemapDataDependencies = {
-  listEntities: listPublicEntityProjections,
+  countEntities: countPublicIndexableEntityProjections,
+  listEntities: listPublicIndexableEntityProjectionPage,
   listStatic: async (market) => {
     const runtime = await getUrlRegistryRuntime()
     return runtime.enabled
@@ -50,25 +55,21 @@ export const systemSitemapDependencies: SitemapDataDependencies = {
     const { binding, sdk } = getMarketStorefrontSdk(market)
     if (kind === "product") {
       return validateProductSitemapSources(
-        { market, sources },
+        { binding, sources },
         {
-          readProduct: async ({
-            market: sourceMarket,
-            productId,
-            publicSlug,
-          }) => {
-            const result = await readProductRouteSourceFromMedusa({
-              market: sourceMarket,
-              productId,
-              publicSlug,
-            })
-            return result.kind === "found"
-              ? {
-                  kind: "found",
-                  value: { updatedAt: result.value.updated_at },
-                }
-              : result
-          },
+          readProducts: ({ market: sourceMarket, sources: batch }) =>
+            sdk.client.fetch("/store/url-registry/products/sources", {
+              body: {
+                candidates: batch.map((source) => ({
+                  entityId: source.sourceId,
+                  publicSlug: source.publicSlug,
+                })),
+                market: sourceMarket,
+                schemaVersion: 1,
+              },
+              method: "POST",
+              signal: AbortSignal.timeout(SITEMAP_SOURCE_TIMEOUT_MS),
+            }),
         }
       )
     }

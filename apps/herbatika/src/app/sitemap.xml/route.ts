@@ -1,5 +1,5 @@
-import { SITEMAP_KINDS } from "@/lib/seo/sitemap-contract"
-import { listSitemapEntries, shardSitemapEntries } from "@/lib/seo/sitemaps"
+import { SITEMAP_KINDS, SITEMAP_SHARD_TARGET } from "@/lib/seo/sitemap-contract"
+import { countSitemapEntries } from "@/lib/seo/sitemaps"
 import {
   SYSTEM_NO_STORE,
   systemHostFailureResponse,
@@ -16,14 +16,6 @@ import { type SitemapUrl, serializeSitemapIndex } from "@/lib/seo/xml"
 
 export const dynamic = "force-dynamic"
 
-const maxLastModified = (urls: readonly SitemapUrl[]): string | undefined =>
-  urls.reduce<string | undefined>((latest, entry) => {
-    if (!entry.lastModified) {
-      return latest
-    }
-    return !latest || entry.lastModified > latest ? entry.lastModified : latest
-  }, undefined)
-
 export const GET = async (request: Request): Promise<Response> => {
   const resolution = resolveSystemHostFromRequest(request)
   if (resolution.kind !== "found") {
@@ -33,7 +25,7 @@ export const GET = async (request: Request): Promise<Response> => {
   const indexEntries: SitemapUrl[] = []
   try {
     for (const kind of SITEMAP_KINDS) {
-      const result = await listSitemapEntries(
+      const result = await countSitemapEntries(
         resolution.binding,
         kind,
         systemSitemapDependencies
@@ -43,10 +35,9 @@ export const GET = async (request: Request): Promise<Response> => {
           result.kind === "unavailable" ? result.retryAfterSeconds : undefined
         )
       }
-      const shards = shardSitemapEntries(result.value)
-      for (const [index, shard] of shards.entries()) {
+      const shardCount = Math.ceil(result.value / SITEMAP_SHARD_TARGET)
+      for (let index = 0; index < shardCount; index += 1) {
         indexEntries.push({
-          lastModified: maxLastModified(shard),
           location: new URL(
             `/sitemaps/${kind}-${index + 1}.xml`,
             resolution.binding.canonicalOrigin

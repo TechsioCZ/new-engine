@@ -3,6 +3,7 @@ import type {
   EntityUrlKind,
   EntityUrlRoute,
   UrlEntitySlug,
+  UrlIndexPolicy,
   UrlRouteKind,
 } from "./model"
 
@@ -76,8 +77,16 @@ export type EntityIdentityLookup = Readonly<{
 
 export type ActiveEntityRoutePageRequest = Readonly<{
   cursor?: string
+  indexPolicy?: UrlIndexPolicy
   kind: EntityUrlKind
   limit: number
+  market: Market
+  offset?: number
+}>
+
+export type ActiveEntityRouteCountRequest = Readonly<{
+  indexPolicy?: UrlIndexPolicy
+  kind: EntityUrlKind
   market: Market
 }>
 

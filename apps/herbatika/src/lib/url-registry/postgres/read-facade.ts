@@ -1,5 +1,6 @@
 import type { Market } from "@/lib/url/types"
 import type {
+  ActiveEntityRouteCountRequest,
   ActiveEntityRoutePageRequest,
   ActiveEquivalenceLookup,
   ActiveRouteTarget,
@@ -19,6 +20,7 @@ import type {
 } from "../contracts"
 import { listAudits, listPendingOutbox } from "./audit-read"
 import {
+  countActiveEntities,
   findActiveEntity,
   findEntity,
   findEquivalents,
@@ -64,6 +66,12 @@ export class PostgresRegistryReads {
     >
   > {
     return listActiveEntities(this.primary, input)
+  }
+
+  countActiveEntityRoutes(
+    input: ActiveEntityRouteCountRequest
+  ): Promise<SourceReadResult<number>> {
+    return countActiveEntities(this.primary, input)
   }
 
   findEntityRoute(

@@ -51,16 +51,16 @@ export type CmsSitemapSourceDependencies = Readonly<{
 }>
 
 export type ProductSitemapSourceDependencies = Readonly<{
-  readProduct(input: {
+  readProducts(input: {
     market: MarketRuntimeBinding["market"]
-    productId: string
-    publicSlug: string
-  }): Promise<SourceReadResult<Readonly<{ updatedAt?: string | null }>>>
+    sources: readonly SitemapEntitySourceCandidate[]
+  }): Promise<unknown>
 }>
 
 const ASSIGNMENT_PAGE_SIZE = 100
 const SOURCE_VALIDATION_CONCURRENCY = 12
 const PUBLIC_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const PRODUCT_SOURCE_BATCH_LIMIT = 100
 const RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504])
 const STATIC_ROOT_PAGE_KEYS = new Set<StaticRootPageKey>([
   "about",
@@ -141,7 +141,8 @@ const validateCandidateIdentities = (
   sources: readonly SitemapEntitySourceCandidate[]
 ) =>
   new Set(sources.map((source) => source.routeId)).size === sources.length &&
-  new Set(sources.map((source) => source.sourceId)).size === sources.length
+  new Set(sources.map((source) => source.sourceId)).size === sources.length &&
+  new Set(sources.map((source) => source.publicSlug)).size === sources.length
 
 export const validateCatalogSitemapSources = async (
   input: Readonly<{
@@ -224,7 +225,7 @@ const chunks = <Value>(values: readonly Value[], size: number): Value[][] => {
 
 export const validateProductSitemapSources = async (
   input: Readonly<{
-    market: MarketRuntimeBinding["market"]
+    binding: Pick<MarketRuntimeBinding, "locale" | "market" | "salesChannelId">
     sources: readonly SitemapEntitySourceCandidate[]
   }>,
   dependencies: ProductSitemapSourceDependencies
@@ -236,39 +237,79 @@ export const validateProductSitemapSources = async (
     }
   }
   const validations: SitemapSourceValidation[] = []
-  for (const batch of chunks(input.sources, SOURCE_VALIDATION_CONCURRENCY)) {
-    const results = await Promise.all(
-      batch.map((source) =>
-        dependencies.readProduct({
-          market: input.market,
-          productId: source.sourceId,
-          publicSlug: source.publicSlug,
-        })
-      )
-    )
-    for (const [index, result] of results.entries()) {
-      if (result.kind !== "found") {
-        return result.kind === "missing"
-          ? {
-              causeCode: "ACTIVE_PRODUCT_SOURCE_MISSING",
-              kind: "invalid-response",
-            }
-          : result
-      }
-      const source = batch[index]
-      if (!source) {
+  try {
+    for (const batch of chunks(input.sources, PRODUCT_SOURCE_BATCH_LIMIT)) {
+      const payload = await dependencies.readProducts({
+        market: input.binding.market,
+        sources: batch,
+      })
+      if (
+        !isRecord(payload) ||
+        payload.schemaVersion !== 1 ||
+        payload.marketCode !== input.binding.market ||
+        !Array.isArray(payload.sources) ||
+        payload.sources.length !== batch.length ||
+        Object.keys(payload).some(
+          (key) => !["marketCode", "schemaVersion", "sources"].includes(key)
+        )
+      ) {
         return {
-          causeCode: "INVALID_PRODUCT_VALIDATION_BATCH",
+          causeCode: "INVALID_PRODUCT_SITEMAP_BATCH_RESPONSE",
           kind: "invalid-response",
         }
       }
-      validations.push({
-        routeId: source.routeId,
-        updatedAt: result.value.updatedAt,
-      })
+      for (const [index, value] of payload.sources.entries()) {
+        const source = batch[index]
+        if (
+          !(source && isRecord(value)) ||
+          value.entityId !== source.sourceId ||
+          value.marketCode !== input.binding.market ||
+          value.publicSlug !== source.publicSlug ||
+          value.salesChannelId !== input.binding.salesChannelId ||
+          typeof value.sourceVersion !== "string" ||
+          !Number.isFinite(Date.parse(value.sourceVersion)) ||
+          !isRecord(value.translation) ||
+          value.translation.localeCode !== input.binding.locale ||
+          value.translation.reference !== "product" ||
+          typeof value.translation.translationId !== "string" ||
+          value.translation.translationId.length === 0 ||
+          Object.keys(value).some(
+            (key) =>
+              ![
+                "entityId",
+                "marketCode",
+                "publicSlug",
+                "salesChannelId",
+                "sourceVersion",
+                "translation",
+              ].includes(key)
+          ) ||
+          Object.keys(value.translation).some(
+            (key) => !["localeCode", "reference", "translationId"].includes(key)
+          )
+        ) {
+          return {
+            causeCode: "INVALID_PRODUCT_SITEMAP_BATCH_RESPONSE",
+            kind: "invalid-response",
+          }
+        }
+        validations.push({
+          routeId: source.routeId,
+          updatedAt: value.sourceVersion,
+        })
+      }
     }
+    return { kind: "found", value: validations }
+  } catch (error) {
+    const status = statusOf(error)
+    if (status === 404) {
+      return {
+        causeCode: "ACTIVE_PRODUCT_SOURCE_MISSING",
+        kind: "invalid-response",
+      }
+    }
+    return mapCatalogError(error)
   }
-  return { kind: "found", value: validations }
 }
 
 const contentUpdatedAt = (value: CmsArticle | CmsPage) =>

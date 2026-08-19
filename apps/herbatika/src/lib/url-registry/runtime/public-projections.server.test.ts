@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
+  countActiveEntityRoutes: vi.fn(),
   findActiveEntityRoute: vi.fn(),
   getUrlRegistryRuntime: vi.fn(),
   listActiveEntityRoutes: vi.fn(),
@@ -10,7 +11,11 @@ vi.mock("./instance.server", () => ({
   getUrlRegistryRuntime: mocks.getUrlRegistryRuntime,
 }))
 
-import { listPublicEntityProjections } from "./public-projections.server"
+import {
+  countPublicIndexableEntityProjections,
+  listPublicEntityProjections,
+  listPublicIndexableEntityProjectionPage,
+} from "./public-projections.server"
 
 describe("targeted public entity projection reads", () => {
   beforeEach(() => {
@@ -19,9 +24,57 @@ describe("targeted public entity projection reads", () => {
     mocks.getUrlRegistryRuntime.mockResolvedValue({
       enabled: true,
       registry: {
+        countActiveEntityRoutes: mocks.countActiveEntityRoutes,
         findActiveEntityRoute: mocks.findActiveEntityRoute,
         listActiveEntityRoutes: mocks.listActiveEntityRoutes,
       },
+    })
+  })
+
+  it("counts indexable routes without scanning projection pages", async () => {
+    mocks.countActiveEntityRoutes.mockResolvedValue({
+      kind: "found",
+      value: 20_000,
+    })
+
+    await expect(
+      countPublicIndexableEntityProjections({
+        kind: "product",
+        market: "sk",
+      })
+    ).resolves.toEqual({ kind: "found", value: 20_000 })
+
+    expect(mocks.countActiveEntityRoutes).toHaveBeenCalledTimes(1)
+    expect(mocks.countActiveEntityRoutes).toHaveBeenCalledWith({
+      indexPolicy: "indexable",
+      kind: "product",
+      market: "sk",
+    })
+    expect(mocks.listActiveEntityRoutes).not.toHaveBeenCalled()
+  })
+
+  it("loads one exact bounded indexable projection page", async () => {
+    mocks.listActiveEntityRoutes.mockResolvedValue({
+      kind: "found",
+      value: { items: [], nextCursor: null },
+    })
+
+    await expect(
+      listPublicIndexableEntityProjectionPage({
+        kind: "product",
+        limit: 100,
+        market: "sk",
+        offset: 19_900,
+      })
+    ).resolves.toEqual({ kind: "found", value: [] })
+
+    expect(mocks.listActiveEntityRoutes).toHaveBeenCalledTimes(1)
+    expect(mocks.listActiveEntityRoutes).toHaveBeenCalledWith({
+      indexPolicy: "indexable",
+      kind: "product",
+      limit: 100,
+      market: "sk",
+      offset: 19_900,
     })
   })
 

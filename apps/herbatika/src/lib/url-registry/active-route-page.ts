@@ -12,6 +12,21 @@ export const assertActiveRoutePageLimit = (limit: number) => {
   }
 }
 
+export const assertActiveRoutePageOffset = (
+  cursor: string | undefined,
+  offset: number | undefined
+) => {
+  if (
+    (offset !== undefined && (!Number.isSafeInteger(offset) || offset < 0)) ||
+    (cursor !== undefined && offset !== undefined)
+  ) {
+    throw new UrlRegistryError(
+      "INVALID_COMMAND",
+      "Active route page offset must be a non-negative safe integer and cannot be combined with a cursor"
+    )
+  }
+}
+
 export const decodeActiveRouteCursor = (
   cursor: string | undefined
 ): string | null => {

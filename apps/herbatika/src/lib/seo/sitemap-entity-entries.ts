@@ -38,19 +38,26 @@ const indexValidatedSources = (
 export const listEntitySitemapEntries = async (
   binding: MarketRuntimeBinding,
   kind: Exclude<EntityUrlKind, "campaign">,
-  dependencies: SitemapDataDependencies
+  dependencies: SitemapDataDependencies,
+  page: Readonly<{ limit: number; offset: number }>
 ): Promise<SitemapEntryLoadResult> => {
   const projectionResult = await dependencies.listEntities({
     kind,
+    limit: page.limit,
     market: binding.market,
+    offset: page.offset,
   })
   if (projectionResult.kind !== "found") {
     return projectionResult
   }
-  const projections = projectionResult.value.filter(
-    (projection) => projection.route.indexPolicy === "indexable"
-  )
-  if (projections.length > SITEMAP_MAX_URLS) {
+  const projections = projectionResult.value
+  if (
+    projections.length > page.limit ||
+    page.offset + projections.length > SITEMAP_MAX_URLS ||
+    projections.some(
+      (projection) => projection.route.indexPolicy !== "indexable"
+    )
+  ) {
     return {
       causeCode: "SITEMAP_KIND_LIMIT_EXCEEDED",
       kind: "invalid-response",

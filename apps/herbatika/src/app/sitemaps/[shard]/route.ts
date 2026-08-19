@@ -1,8 +1,7 @@
 import { parseSitemapShardName } from "@/lib/seo/sitemap-contract"
 import {
   assertSitemapXmlBounded,
-  listSitemapEntries,
-  shardSitemapEntries,
+  listSitemapShardEntries,
 } from "@/lib/seo/sitemaps"
 import {
   SYSTEM_NO_STORE,
@@ -39,21 +38,21 @@ export const GET = async (
   }
 
   try {
-    const result = await listSitemapEntries(
+    const result = await listSitemapShardEntries(
       resolution.binding,
       parsed.kind,
+      parsed.shard,
       systemSitemapDependencies
     )
+    if (result.kind === "missing") {
+      return systemNotFoundResponse()
+    }
     if (result.kind !== "found") {
       return systemSourceFailureResponse(
         result.kind === "unavailable" ? result.retryAfterSeconds : undefined
       )
     }
-    const shard = shardSitemapEntries(result.value)[parsed.shard - 1]
-    if (!shard) {
-      return systemNotFoundResponse()
-    }
-    const xml = serializeUrlSet(shard)
+    const xml = serializeUrlSet(result.value)
     return assertSitemapXmlBounded(xml)
       ? systemResponse(xml, "application/xml; charset=utf-8", {
           headers: { "cache-control": SYSTEM_NO_STORE },

@@ -7,7 +7,7 @@ import type {
 import type { SourceReadResult } from "@/lib/url-registry/reads"
 import type { SitemapUrl } from "./xml"
 
-export const SITEMAP_SHARD_TARGET = 10_000
+export const SITEMAP_SHARD_TARGET = 100
 export const SITEMAP_MAX_URLS = 20_000
 export const SITEMAP_MAX_BYTES = 25 * 1024 * 1024
 
@@ -45,9 +45,15 @@ export type SitemapSourceValidation = Readonly<{
 }>
 
 export type SitemapDataDependencies = Readonly<{
-  listEntities(input: {
+  countEntities(input: {
     kind: EntityUrlKind
     market: Market
+  }): Promise<SourceReadResult<number>>
+  listEntities(input: {
+    kind: EntityUrlKind
+    limit: number
+    market: Market
+    offset: number
   }): Promise<SourceReadResult<readonly ActiveEntityRouteTarget[]>>
   listStatic(
     market: Market

@@ -20,6 +20,13 @@ type PublicEntityProjectionRequest = Readonly<{
   requiredSourceIds?: readonly string[]
 }>
 
+type PublicEntityProjectionPageRequest = Readonly<{
+  kind: EntityUrlKind
+  limit: number
+  market: Market
+  offset: number
+}>
+
 const findRequiredPublicEntityProjections = async (
   input: PublicEntityProjectionRequest,
   sourceIds: readonly string[]
@@ -92,6 +99,46 @@ export const listPublicEntityProjections = async (
   } while (cursor)
 
   return { kind: "found", value: items }
+}
+
+export const countPublicIndexableEntityProjections = async (
+  input: Pick<PublicEntityProjectionRequest, "kind" | "market">
+): Promise<SourceReadResult<number>> => {
+  const runtime = await getUrlRegistryRuntime()
+  return runtime.enabled
+    ? runtime.registry.countActiveEntityRoutes({
+        ...input,
+        indexPolicy: "indexable",
+      })
+    : { kind: "unavailable" }
+}
+
+export const listPublicIndexableEntityProjectionPage = async (
+  input: PublicEntityProjectionPageRequest
+): Promise<SourceReadResult<readonly ActiveEntityRouteTarget[]>> => {
+  if (
+    !Number.isSafeInteger(input.offset) ||
+    input.offset < 0 ||
+    !Number.isSafeInteger(input.limit) ||
+    input.limit < 1 ||
+    input.limit > 100
+  ) {
+    return {
+      causeCode: "INVALID_PUBLIC_PROJECTION_PAGE",
+      kind: "invalid-response",
+    }
+  }
+  const runtime = await getUrlRegistryRuntime()
+  if (!runtime.enabled) {
+    return { kind: "unavailable" }
+  }
+  const page = await runtime.registry.listActiveEntityRoutes({
+    ...input,
+    indexPolicy: "indexable",
+  })
+  return page.kind === "found"
+    ? { kind: "found", value: page.value.items }
+    : page
 }
 
 export const listPublicStaticProjections = async (

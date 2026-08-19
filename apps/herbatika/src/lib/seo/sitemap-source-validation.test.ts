@@ -241,11 +241,84 @@ describe("sitemap source validation", () => {
   it("fails the product shard when a URLR-active product source is missing", async () => {
     await expect(
       validateProductSitemapSources(
-        { market: "cz", sources: [source("prod_1")] },
-        { readProduct: vi.fn().mockResolvedValue({ kind: "missing" }) }
+        { binding, sources: [source("prod_1")] },
+        {
+          readProducts: vi
+            .fn()
+            .mockRejectedValue(
+              Object.assign(new Error("missing"), { status: 404 })
+            ),
+        }
       )
     ).resolves.toEqual({
       causeCode: "ACTIVE_PRODUCT_SOURCE_MISSING",
+      kind: "invalid-response",
+    })
+  })
+
+  it("validates large product inputs in strict batches of at most 100", async () => {
+    const sources = Array.from({ length: 205 }, (_, index) =>
+      source(`prod_${index}`)
+    )
+    const readProducts = vi.fn().mockImplementation(({ sources: batch }) =>
+      Promise.resolve({
+        marketCode: "cz",
+        schemaVersion: 1,
+        sources: batch.map((candidate: SitemapEntitySourceCandidate) => ({
+          entityId: candidate.sourceId,
+          marketCode: "cz",
+          publicSlug: candidate.publicSlug,
+          salesChannelId: "sc_cz",
+          sourceVersion: "2026-08-19T00:00:00.000Z",
+          translation: {
+            localeCode: "cs-CZ",
+            reference: "product",
+            translationId: `translation_${candidate.sourceId}`,
+          },
+        })),
+      })
+    )
+
+    const result = await validateProductSitemapSources(
+      { binding, sources },
+      { readProducts }
+    )
+
+    expect(result.kind).toBe("found")
+    expect(readProducts).toHaveBeenCalledTimes(3)
+    expect(
+      readProducts.mock.calls.map(([input]) => input.sources.length)
+    ).toEqual([100, 100, 5])
+  })
+
+  it("fails closed when a batch response is reordered", async () => {
+    const sources = [source("prod_1"), source("prod_2")]
+    const responseSources = [...sources].reverse().map((candidate) => ({
+      entityId: candidate.sourceId,
+      marketCode: "cz",
+      publicSlug: candidate.publicSlug,
+      salesChannelId: "sc_cz",
+      sourceVersion: "2026-08-19T00:00:00.000Z",
+      translation: {
+        localeCode: "cs-CZ",
+        reference: "product",
+        translationId: `translation_${candidate.sourceId}`,
+      },
+    }))
+
+    await expect(
+      validateProductSitemapSources(
+        { binding, sources },
+        {
+          readProducts: vi.fn().mockResolvedValue({
+            marketCode: "cz",
+            schemaVersion: 1,
+            sources: responseSources,
+          }),
+        }
+      )
+    ).resolves.toEqual({
+      causeCode: "INVALID_PRODUCT_SITEMAP_BATCH_RESPONSE",
       kind: "invalid-response",
     })
   })

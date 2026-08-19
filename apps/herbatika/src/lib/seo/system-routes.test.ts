@@ -28,6 +28,11 @@ const resolveSystemHostFromRequest = vi.fn((request: Request) =>
     : ({ kind: "unknown-host" } as const)
 )
 const checkUrlRegistryHealth = vi.fn().mockResolvedValue(true)
+const countEntities = vi.fn().mockResolvedValue({ kind: "found", value: 0 })
+const listEntities = vi.fn().mockResolvedValue({ kind: "found", value: [] })
+const validateEntitySources = vi
+  .fn()
+  .mockResolvedValue({ kind: "found", value: [] })
 
 vi.mock("@/lib/market/market-runtime.server", () => ({
   getConfiguredMarketRuntime: () => runtime,
@@ -41,11 +46,10 @@ vi.mock("@/lib/seo/system-runtime.server", () => ({
     readProduct: vi.fn(),
   },
   systemSitemapDependencies: {
-    listEntities: vi.fn().mockResolvedValue({ kind: "found", value: [] }),
+    countEntities,
+    listEntities,
     listStatic: vi.fn().mockResolvedValue({ kind: "found", value: [] }),
-    validateEntitySources: vi
-      .fn()
-      .mockResolvedValue({ kind: "found", value: [] }),
+    validateEntitySources,
     validateStaticSources: vi
       .fn()
       .mockResolvedValue({ kind: "found", value: [] }),
@@ -59,6 +63,12 @@ describe("system Route Handlers", () => {
   beforeEach(() => {
     resolveSystemHostFromRequest.mockClear()
     checkUrlRegistryHealth.mockClear()
+    countEntities.mockReset()
+    countEntities.mockResolvedValue({ kind: "found", value: 0 })
+    listEntities.mockReset()
+    listEntities.mockResolvedValue({ kind: "found", value: [] })
+    validateEntitySources.mockReset()
+    validateEntitySources.mockResolvedValue({ kind: "found", value: [] })
   })
 
   it("serves host-specific robots and rejects an unknown authority", async () => {
@@ -81,6 +91,9 @@ describe("system Route Handlers", () => {
     expect(await indexResponse.text()).toContain(
       "https://herbatica.cz/sitemaps/core-1.xml"
     )
+    expect(countEntities).toHaveBeenCalledTimes(6)
+    expect(listEntities).not.toHaveBeenCalled()
+    expect(validateEntitySources).not.toHaveBeenCalled()
 
     const shardRoute = await import("@/app/sitemaps/[shard]/route")
     const core = await shardRoute.GET(makeRequest("/sitemaps/core-1.xml"), {
@@ -96,6 +109,23 @@ describe("system Route Handlers", () => {
       params: Promise.resolve({ shard: "core-2.xml" }),
     })
     expect(missing.status).toBe(404)
+  })
+
+  it("builds a 20k-product index from one count per kind and zero product reads", async () => {
+    countEntities.mockImplementation(({ kind }) =>
+      Promise.resolve({ kind: "found", value: kind === "product" ? 20_000 : 0 })
+    )
+    const indexRoute = await import("@/app/sitemap.xml/route")
+
+    const response = await indexRoute.GET(makeRequest("/sitemap.xml"))
+    const xml = await response.text()
+
+    expect(response.status).toBe(200)
+    expect(xml).toContain("https://herbatica.cz/sitemaps/product-200.xml")
+    expect(xml).not.toContain("https://herbatica.cz/sitemaps/product-201.xml")
+    expect(countEntities).toHaveBeenCalledTimes(6)
+    expect(listEntities).not.toHaveBeenCalled()
+    expect(validateEntitySources).not.toHaveBeenCalled()
   })
 
   it("localizes the manifest and emits an empty complete product feed", async () => {

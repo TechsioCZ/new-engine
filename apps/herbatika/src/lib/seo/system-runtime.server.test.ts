@@ -43,7 +43,9 @@ vi.mock("@/lib/url-registry/runtime/instance.server", () => ({
   getUrlRegistryRuntime: vi.fn(),
 }))
 vi.mock("@/lib/url-registry/runtime/public-projections.server", () => ({
+  countPublicIndexableEntityProjections: vi.fn(),
   listPublicEntityProjections: vi.fn(),
+  listPublicIndexableEntityProjectionPage: vi.fn(),
 }))
 
 import { systemSitemapDependencies } from "./system-runtime.server"

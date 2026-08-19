@@ -22,6 +22,7 @@ type Props = PublicPageProps<AdviceIndexValue>
 export const getServerSideProps = (async (context) =>
   resolveStaticPublicPage(context, {
     expectedRouteKey: "article.index",
+    lastPage: ({ listing }) => listing.totalPages,
     loadSource: async (market) => {
       const listing = await fetchCmsBlogListing({
         category:

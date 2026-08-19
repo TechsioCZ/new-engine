@@ -1,10 +1,12 @@
 import type { Market } from "@/lib/url/types"
 import {
   assertActiveRoutePageLimit,
+  assertActiveRoutePageOffset,
   decodeActiveRouteCursor,
   encodeActiveRouteCursor,
 } from "../active-route-page"
 import type {
+  ActiveEntityRouteCountRequest,
   ActiveEntityRoutePageRequest,
   ActiveEquivalenceLookup,
   ActiveRouteTarget,
@@ -111,6 +113,7 @@ export const listActiveEntities = async (
   assertMarket(input.market)
   assertEntityKind(input.kind)
   assertActiveRoutePageLimit(input.limit)
+  assertActiveRoutePageOffset(input.cursor, input.offset)
   const afterId = decodeActiveRouteCursor(input.cursor)
   const read = await executePrimaryRead(pool, async (executor) => {
     const result = await executor.query(
@@ -124,9 +127,17 @@ export const listActiveEntities = async (
         WHERE route.market = $1 AND route.kind = $2
           AND route.target_type = 'entity' AND route.status = 'active'
           AND ($3::uuid IS NULL OR route.id > $3::uuid)
+          AND ($4::text IS NULL OR route.index_policy = $4)
         ORDER BY route.id
-        LIMIT $4`,
-      [input.market, input.kind, afterId, input.limit + 1]
+        LIMIT $5 OFFSET $6`,
+      [
+        input.market,
+        input.kind,
+        afterId,
+        input.indexPolicy ?? null,
+        input.limit + 1,
+        input.offset ?? 0,
+      ]
     )
     const targets = result.rows.map(targetFromRow)
     if (targets.some((target) => target.projectionType !== "entity")) {
@@ -146,6 +157,29 @@ export const listActiveEntities = async (
     }
   })
   return read
+}
+
+export const countActiveEntities = (
+  pool: SqlPool,
+  input: ActiveEntityRouteCountRequest
+): Promise<SourceReadResult<number>> => {
+  assertMarket(input.market)
+  assertEntityKind(input.kind)
+  return executePrimaryRead(pool, async (executor) => {
+    const result = await executor.query(
+      `SELECT COUNT(*)::integer AS count
+         FROM url_registry.url_route AS route
+        WHERE route.market = $1 AND route.kind = $2
+          AND route.target_type = 'entity' AND route.status = 'active'
+          AND ($3::text IS NULL OR route.index_policy = $3)`,
+      [input.market, input.kind, input.indexPolicy ?? null]
+    )
+    const count = (result.rows[0] as { count?: unknown } | undefined)?.count
+    if (!Number.isSafeInteger(count) || (count as number) < 0) {
+      throw new TypeError("Active entity count query returned an invalid count")
+    }
+    return count as number
+  })
 }
 
 export const findEntity = async (

@@ -8,7 +8,11 @@ import {
   parseSitemapShardName,
   type SitemapDataDependencies,
 } from "./sitemap-contract"
-import { listSitemapEntries, shardSitemapEntries } from "./sitemaps"
+import {
+  listSitemapEntries,
+  listSitemapShardEntries,
+  shardSitemapEntries,
+} from "./sitemaps"
 
 const binding = {
   acceptedHosts: ["herbatica.cz"],
@@ -60,7 +64,19 @@ const projection = (
 const dependencies = (
   entities: readonly ActiveEntityRouteTarget[]
 ): SitemapDataDependencies => ({
-  listEntities: vi.fn().mockResolvedValue({ kind: "found", value: entities }),
+  countEntities: vi.fn().mockResolvedValue({
+    kind: "found",
+    value: entities.filter((entity) => entity.route.indexPolicy === "indexable")
+      .length,
+  }),
+  listEntities: vi.fn().mockImplementation(({ limit, offset }) =>
+    Promise.resolve({
+      kind: "found",
+      value: entities
+        .filter((entity) => entity.route.indexPolicy === "indexable")
+        .slice(offset, offset + limit),
+    })
+  ),
   listStatic: vi.fn().mockResolvedValue({ kind: "found", value: [] }),
   validateEntitySources: vi.fn().mockImplementation(({ sources }) =>
     Promise.resolve({
@@ -133,6 +149,35 @@ describe("system sitemaps", () => {
         kind: "invalid-response",
       }
     )
+  })
+
+  it("loads and validates only the requested bounded product shard", async () => {
+    const deps = dependencies(
+      Array.from({ length: 205 }, (_, index) =>
+        projection(`prod_${index}`, `product-${index}`)
+      )
+    )
+
+    const result = await listSitemapShardEntries(binding, "product", 2, deps)
+
+    expect(result.kind).toBe("found")
+    if (result.kind === "found") {
+      expect(result.value).toHaveLength(100)
+      expect(result.value[0]?.location).toBe(
+        "https://herbatica.cz/produkty/product-100"
+      )
+    }
+    expect(deps.listEntities).toHaveBeenCalledTimes(1)
+    expect(deps.listEntities).toHaveBeenCalledWith({
+      kind: "product",
+      limit: 100,
+      market: "cz",
+      offset: 100,
+    })
+    expect(deps.validateEntitySources).toHaveBeenCalledTimes(1)
+    expect(
+      vi.mocked(deps.validateEntitySources).mock.calls[0]?.[0].sources
+    ).toHaveLength(100)
   })
 
   it("builds hierarchical static paths and rejects broken parents", async () => {
