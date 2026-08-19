@@ -63,6 +63,18 @@ const product = {
   description: "Description & benefits",
   handle: "must-not-appear-in-public-url",
   id: "prod_1",
+  metadata: {
+    url_registry_publication: {
+      markets: {
+        cz: {
+          publicationStatus: "published",
+          publicSlug: "public-slug",
+          salesChannelId: "sc_cz",
+        },
+      },
+      schemaVersion: 1,
+    },
+  },
   thumbnail: "https://cdn.example/image?a=1&b=2",
   title: "Product <name>",
   variants: [variant],
@@ -74,7 +86,11 @@ describe("product feed", () => {
       listProducts: vi
         .fn()
         .mockResolvedValue({ kind: "found", value: [route] }),
-      readProduct: vi.fn().mockResolvedValue({ kind: "found", value: product }),
+      readProducts: vi.fn().mockResolvedValue({ products: [product] }),
+      validateProducts: vi.fn().mockResolvedValue({
+        kind: "found",
+        value: [{ routeId: "route_1" }],
+      }),
     }
     const result = await generateProductFeed(binding, dependencies)
     expect(result.kind).toBe("found")
@@ -88,10 +104,15 @@ describe("product feed", () => {
     expect(result.value).toContain("<PRICE_VAT>12.50</PRICE_VAT>")
     expect(result.value).toContain("<AVAILABILITY>in stock</AVAILABILITY>")
     expect(result.value).toContain("Product &lt;name&gt;")
-    expect(dependencies.readProduct).toHaveBeenCalledWith({
+    expect(dependencies.readProducts).toHaveBeenCalledWith({
       market: "cz",
-      productId: "prod_1",
-      publicSlug: "public-slug",
+      sources: [
+        {
+          productId: "prod_1",
+          publicSlug: "public-slug",
+          routeId: "route_1",
+        },
+      ],
     })
   })
 
@@ -100,8 +121,74 @@ describe("product feed", () => {
       listProducts: vi
         .fn()
         .mockResolvedValue({ kind: "found", value: [route] }),
-      readProduct: vi.fn().mockResolvedValue({ kind: "unavailable" }),
+      readProducts: vi.fn().mockResolvedValue({ products: [product] }),
+      validateProducts: vi.fn().mockResolvedValue({ kind: "unavailable" }),
     })
     expect(result).toEqual({ kind: "unavailable" })
+  })
+
+  it("uses bounded bulk product and proof reads", async () => {
+    const routes = Array.from({ length: 205 }, (_, index) => ({
+      ...route,
+      currentSlug: {
+        ...route.currentSlug,
+        id: `slug_${index}`,
+        normalizedSlug: `product-${index}`,
+        routeId: `route_${index}`,
+      },
+      route: {
+        ...route.route,
+        equivalenceKey: `product:prod_${index}`,
+        id: `route_${index}`,
+        sourceId: `prod_${index}`,
+      },
+    }))
+    const readProducts = vi.fn().mockImplementation(({ sources }) =>
+      Promise.resolve({
+        products: sources.map(
+          (source: { productId: string; publicSlug: string }) => ({
+            ...product,
+            id: source.productId,
+            metadata: {
+              url_registry_publication: {
+                markets: {
+                  cz: {
+                    publicationStatus: "published",
+                    publicSlug: source.publicSlug,
+                    salesChannelId: "sc_cz",
+                  },
+                },
+                schemaVersion: 1,
+              },
+            },
+            variants: [],
+          })
+        ),
+      })
+    )
+    const validateProducts = vi.fn().mockImplementation(({ sources }) =>
+      Promise.resolve({
+        kind: "found",
+        value: sources.map((source: { routeId: string }) => ({
+          routeId: source.routeId,
+        })),
+      })
+    )
+
+    await expect(
+      generateProductFeed(binding, {
+        listProducts: vi
+          .fn()
+          .mockResolvedValue({ kind: "found", value: routes }),
+        readProducts,
+        validateProducts,
+      })
+    ).resolves.toMatchObject({ kind: "found" })
+
+    expect(readProducts).toHaveBeenCalledTimes(3)
+    expect(validateProducts).toHaveBeenCalledTimes(3)
+    expect(
+      readProducts.mock.calls.map(([input]) => input.sources.length)
+    ).toEqual([100, 100, 5])
   })
 })

@@ -43,7 +43,8 @@ vi.mock("@/lib/seo/system-runtime.server", () => ({
   resolveSystemHostFromRequest,
   systemProductFeedDependencies: {
     listProducts: vi.fn().mockResolvedValue({ kind: "found", value: [] }),
-    readProduct: vi.fn(),
+    readProducts: vi.fn(),
+    validateProducts: vi.fn(),
   },
   systemSitemapDependencies: {
     countEntities,
@@ -126,6 +127,23 @@ describe("system Route Handlers", () => {
     expect(countEntities).toHaveBeenCalledTimes(6)
     expect(listEntities).not.toHaveBeenCalled()
     expect(validateEntitySources).not.toHaveBeenCalled()
+  })
+
+  it("serves a valid empty urlset for an advertised source-filtered shard", async () => {
+    countEntities.mockImplementation(({ kind }) =>
+      Promise.resolve({ kind: "found", value: kind === "product" ? 1 : 0 })
+    )
+    const shardRoute = await import("@/app/sitemaps/[shard]/route")
+
+    const response = await shardRoute.GET(
+      makeRequest("/sitemaps/product-1.xml"),
+      { params: Promise.resolve({ shard: "product-1.xml" }) }
+    )
+
+    expect(response.status).toBe(200)
+    expect(await response.text()).toBe(
+      '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>\n'
+    )
   })
 
   it("localizes the manifest and emits an empty complete product feed", async () => {

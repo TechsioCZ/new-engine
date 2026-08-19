@@ -168,6 +168,7 @@ describe("system sitemaps", () => {
       )
     }
     expect(deps.listEntities).toHaveBeenCalledTimes(1)
+    expect(deps.countEntities).toHaveBeenCalledTimes(1)
     expect(deps.listEntities).toHaveBeenCalledWith({
       kind: "product",
       limit: 100,
@@ -178,6 +179,21 @@ describe("system sitemaps", () => {
     expect(
       vi.mocked(deps.validateEntitySources).mock.calls[0]?.[0].sources
     ).toHaveLength(100)
+  })
+
+  it("serves an advertised shard as an empty urlset when every source is filtered", async () => {
+    const deps = dependencies([projection("prod_stale", "stale-slug")])
+    vi.mocked(deps.validateEntitySources).mockResolvedValue({
+      kind: "found",
+      value: [],
+    })
+
+    await expect(
+      listSitemapShardEntries(binding, "product", 1, deps)
+    ).resolves.toEqual({ kind: "found", value: [] })
+    await expect(
+      listSitemapShardEntries(binding, "product", 2, deps)
+    ).resolves.toEqual({ kind: "missing" })
   })
 
   it("builds hierarchical static paths and rejects broken parents", async () => {

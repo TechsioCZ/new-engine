@@ -48,7 +48,10 @@ vi.mock("@/lib/url-registry/runtime/public-projections.server", () => ({
   listPublicIndexableEntityProjectionPage: vi.fn(),
 }))
 
-import { systemSitemapDependencies } from "./system-runtime.server"
+import {
+  systemProductFeedDependencies,
+  systemSitemapDependencies,
+} from "./system-runtime.server"
 
 const assignment = (entityId: string, publicSlug: string) => ({
   entityId,
@@ -127,5 +130,38 @@ describe("system sitemap source wiring", () => {
       value: [{ routeId: "route_article_1", updatedAt: undefined }],
     })
     expect(mocks.readArticle).toHaveBeenCalledWith("article_1", "cs-CZ")
+  })
+
+  it("reads product-feed details through one bounded Store list request", async () => {
+    const payload = { products: [{ id: "prod_1" }, { id: "prod_2" }] }
+    mocks.fetch.mockResolvedValue(payload)
+
+    await expect(
+      systemProductFeedDependencies.readProducts({
+        market: "cz",
+        sources: [
+          {
+            productId: "prod_1",
+            publicSlug: "product-1",
+            routeId: "route_1",
+          },
+          {
+            productId: "prod_2",
+            publicSlug: "product-2",
+            routeId: "route_2",
+          },
+        ],
+      })
+    ).resolves.toBe(payload)
+    expect(mocks.fetch).toHaveBeenCalledWith("/store/products", {
+      query: expect.objectContaining({
+        country_code: "cz",
+        id: ["prod_1", "prod_2"],
+        limit: 2,
+        locale: "cs-CZ",
+        region_id: "reg_cz",
+      }),
+      signal: expect.any(AbortSignal),
+    })
   })
 })

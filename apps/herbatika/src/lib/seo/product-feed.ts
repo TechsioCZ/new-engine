@@ -1,7 +1,10 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
-import type { ProductRouteMedusaProduct } from "@/lib/storefront/product-route-source"
+import {
+  type ProductRouteMedusaProduct,
+  readProductRoutePayload,
+} from "@/lib/storefront/product-route-source"
 import { buildAbsoluteUrl } from "@/lib/url/public-url"
 import type { ActiveEntityRouteTarget } from "@/lib/url-registry/model"
 import type { SourceReadResult } from "@/lib/url-registry/reads"
@@ -9,24 +12,137 @@ import { escapeXml } from "./xml"
 
 export const PRODUCT_FEED_MAX_PRODUCTS = 20_000
 export const PRODUCT_FEED_MAX_BYTES = 25 * 1024 * 1024
-const PRODUCT_FEED_SOURCE_CONCURRENCY = 12
+const PRODUCT_FEED_SOURCE_BATCH_SIZE = 100
+
+type ProductFeedSourceCandidate = Readonly<{
+  productId: string
+  publicSlug: string
+  routeId: string
+}>
 
 export type ProductFeedDependencies = Readonly<{
   listProducts(input: {
     kind: "product"
     market: MarketRuntimeBinding["market"]
   }): Promise<SourceReadResult<readonly ActiveEntityRouteTarget[]>>
-  readProduct(input: {
+  readProducts(input: {
     market: MarketRuntimeBinding["market"]
-    productId: string
-    publicSlug: string
-  }): Promise<SourceReadResult<ProductRouteMedusaProduct>>
+    sources: readonly ProductFeedSourceCandidate[]
+  }): Promise<unknown>
+  validateProducts(input: {
+    kind: "product"
+    market: MarketRuntimeBinding["market"]
+    sources: readonly Readonly<{
+      publicSlug: string
+      routeId: string
+      sourceId: string
+    }>[]
+  }): Promise<SourceReadResult<readonly Readonly<{ routeId: string }>[]>>
 }>
 
 type ProductFeedSource = Readonly<{
   product: ProductRouteMedusaProduct
   projection: ActiveEntityRouteTarget
 }>
+
+type ProductFeedValidation = Readonly<{ routeId: string }>
+
+const invalidProductFeedBatch = (): SourceReadResult<never> => ({
+  causeCode: "INVALID_PRODUCT_FEED_BATCH",
+  kind: "invalid-response",
+})
+
+const productFeedBatchError = (error: unknown): SourceReadResult<never> => {
+  const status =
+    error && typeof error === "object" && "status" in error
+      ? error.status
+      : null
+  if (status === 404) {
+    return {
+      causeCode: "ACTIVE_PRODUCT_SOURCE_MISSING",
+      kind: "invalid-response",
+    }
+  }
+  if (
+    status === null ||
+    status === 408 ||
+    status === 425 ||
+    status === 429 ||
+    (typeof status === "number" && status >= 500)
+  ) {
+    return { kind: "unavailable" }
+  }
+  return {
+    causeCode: "MEDUSA_REJECTED_PRODUCT_FEED_BATCH",
+    kind: "invalid-response",
+  }
+}
+
+const indexProductBatch = (
+  payload: unknown,
+  expectedCount: number
+): ReadonlyMap<unknown, unknown> | null => {
+  if (
+    !payload ||
+    typeof payload !== "object" ||
+    !("products" in payload) ||
+    !Array.isArray(payload.products) ||
+    payload.products.length !== expectedCount
+  ) {
+    return null
+  }
+  const byId = new Map(
+    payload.products.flatMap((candidate) =>
+      candidate && typeof candidate === "object" && "id" in candidate
+        ? [[candidate.id, candidate] as const]
+        : []
+    )
+  )
+  return byId.size === expectedCount ? byId : null
+}
+
+const hasExactProductValidations = (
+  candidates: readonly ProductFeedSourceCandidate[],
+  validations: readonly ProductFeedValidation[]
+) => {
+  const expectedRouteIds = new Set(
+    candidates.map((candidate) => candidate.routeId)
+  )
+  return (
+    validations.length === candidates.length &&
+    new Set(validations.map((entry) => entry.routeId)).size ===
+      candidates.length &&
+    validations.every((entry) => expectedRouteIds.has(entry.routeId))
+  )
+}
+
+const readProductBatchInputs = async (
+  market: MarketRuntimeBinding["market"],
+  candidates: readonly ProductFeedSourceCandidate[],
+  dependencies: ProductFeedDependencies
+): Promise<
+  SourceReadResult<readonly [unknown, readonly ProductFeedValidation[]]>
+> => {
+  try {
+    const [payload, validation] = await Promise.all([
+      dependencies.readProducts({ market, sources: candidates }),
+      dependencies.validateProducts({
+        kind: "product",
+        market,
+        sources: candidates.map((candidate) => ({
+          publicSlug: candidate.publicSlug,
+          routeId: candidate.routeId,
+          sourceId: candidate.productId,
+        })),
+      }),
+    ])
+    return validation.kind === "found"
+      ? { kind: "found", value: [payload, validation.value] }
+      : validation
+  } catch (error) {
+    return productFeedBatchError(error)
+  }
+}
 
 const readPrice = (variant: HttpTypes.StoreProductVariant) => {
   const amount = variant.calculated_price?.calculated_amount
@@ -59,17 +175,33 @@ const readProductBatch = async (
   batch: readonly ActiveEntityRouteTarget[],
   dependencies: ProductFeedDependencies
 ): Promise<SourceReadResult<readonly ProductFeedSource[]>> => {
-  const results = await Promise.all(
-    batch.map((projection) =>
-      dependencies.readProduct({
-        market: binding.market,
-        productId: projection.route.sourceId,
-        publicSlug: projection.currentSlug.normalizedSlug,
-      })
-    )
+  const candidates = batch.map((projection) => ({
+    productId: projection.route.sourceId,
+    publicSlug: projection.currentSlug.normalizedSlug,
+    routeId: projection.route.id,
+  }))
+  const inputs = await readProductBatchInputs(
+    binding.market,
+    candidates,
+    dependencies
   )
+  if (inputs.kind !== "found") {
+    return inputs
+  }
+  const [payload, validations] = inputs.value
+  const productById = indexProductBatch(payload, batch.length)
+  if (!(productById && hasExactProductValidations(candidates, validations))) {
+    return invalidProductFeedBatch()
+  }
   const sources: ProductFeedSource[] = []
-  for (const [index, result] of results.entries()) {
+  for (const projection of batch) {
+    const result = readProductRoutePayload({
+      expectedProductId: projection.route.sourceId,
+      expectedPublicSlug: projection.currentSlug.normalizedSlug,
+      expectedSalesChannelId: binding.salesChannelId,
+      market: binding.market,
+      payload: { product: productById.get(projection.route.sourceId) },
+    })
     if (result.kind !== "found") {
       return result.kind === "missing"
         ? {
@@ -77,13 +209,6 @@ const readProductBatch = async (
             kind: "invalid-response",
           }
         : result
-    }
-    const projection = batch[index]
-    if (!projection) {
-      return {
-        causeCode: "INVALID_PRODUCT_FEED_BATCH",
-        kind: "invalid-response",
-      }
     }
     sources.push({ product: result.value, projection })
   }
@@ -137,11 +262,11 @@ export const generateProductFeed = async (
   for (
     let offset = 0;
     offset < projections.length;
-    offset += PRODUCT_FEED_SOURCE_CONCURRENCY
+    offset += PRODUCT_FEED_SOURCE_BATCH_SIZE
   ) {
     const batch = projections.slice(
       offset,
-      offset + PRODUCT_FEED_SOURCE_CONCURRENCY
+      offset + PRODUCT_FEED_SOURCE_BATCH_SIZE
     )
     const result = await readProductBatch(binding, batch, dependencies)
     if (result.kind !== "found") {

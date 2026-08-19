@@ -131,6 +131,15 @@ export const listSitemapShardEntries = async (
   ) {
     return { kind: "missing" }
   }
+  if (kind !== "core" && kind !== "static") {
+    const count = await countSitemapEntries(binding, kind, dependencies)
+    if (count.kind !== "found") {
+      return count
+    }
+    if (offset >= count.value) {
+      return { kind: "missing" }
+    }
+  }
   const result = await listSitemapEntries(binding, kind, dependencies, {
     limit: SITEMAP_SHARD_TARGET,
     offset,
@@ -142,7 +151,7 @@ export const listSitemapShardEntries = async (
     const entries = shardSitemapEntries(result.value)[shard - 1]
     return entries ? { kind: "found", value: entries } : { kind: "missing" }
   }
-  return result.value.length > 0 ? result : { kind: "missing" }
+  return result
 }
 
 export const shardSitemapEntries = (

@@ -9,7 +9,7 @@ import {
   readCmsStaticPage,
 } from "@/lib/storefront/cms"
 import { getMarketStorefrontSdk } from "@/lib/storefront/market-sdk.server"
-import { readProductRouteSourceFromMedusa } from "@/lib/storefront/product-route-source.server"
+import { PRODUCT_DETAIL_FIELDS } from "@/lib/storefront/product-query-config"
 import { getUrlRegistryRuntime } from "@/lib/url-registry/runtime/instance.server"
 import {
   countPublicIndexableEntityProjections,
@@ -105,7 +105,22 @@ export const systemSitemapDependencies: SitemapDataDependencies = {
 
 export const systemProductFeedDependencies: ProductFeedDependencies = {
   listProducts: listPublicEntityProjections,
-  readProduct: readProductRouteSourceFromMedusa,
+  readProducts: ({ market, sources }) => {
+    const { binding, sdk } = getMarketStorefrontSdk(market)
+    return sdk.client.fetch("/store/products", {
+      query: {
+        country_code: binding.countryCode.toLowerCase(),
+        fields: PRODUCT_DETAIL_FIELDS,
+        id: sources.map((source) => source.productId),
+        limit: sources.length,
+        locale: binding.locale,
+        region_id: binding.regionId,
+      },
+      signal: AbortSignal.timeout(SITEMAP_SOURCE_TIMEOUT_MS),
+    })
+  },
+  validateProducts: (input) =>
+    systemSitemapDependencies.validateEntitySources(input),
 }
 
 export const checkUrlRegistryHealth = async (

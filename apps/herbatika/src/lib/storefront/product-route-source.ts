@@ -115,7 +115,7 @@ const isVariant = (value: unknown): value is HttpTypes.StoreProductVariant =>
     value.sku === null ||
     typeof value.sku === "string")
 
-const readProductPayload = ({
+export const readProductRoutePayload = ({
   expectedProductId,
   expectedPublicSlug,
   expectedSalesChannelId,
@@ -276,7 +276,7 @@ export const readProductRouteSource = async (
     if (proof.kind !== "found") {
       return proof
     }
-    return readProductPayload({
+    return readProductRoutePayload({
       expectedProductId: productId,
       expectedPublicSlug: publicSlug,
       expectedSalesChannelId: binding.salesChannelId,
