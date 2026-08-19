@@ -25,6 +25,7 @@ import { Media } from "./collections/media"
 import { PageCategories } from "./collections/page-categories"
 import { Pages } from "./collections/pages"
 import { Users } from "./collections/users"
+import { FooterNavigation } from "./globals/footer-navigation"
 import { articleCategoriesWithArticlesEndpoint } from "./lib/endpoints/article-categories-with-articles"
 import { articleImportEndpoint } from "./lib/endpoints/article-import"
 import { articleOptionsEndpoint } from "./lib/endpoints/article-options"
@@ -33,7 +34,12 @@ import { medusaProductsEndpoint } from "./lib/endpoints/medusa-products"
 import { medusaSsoPostEndpoint } from "./lib/endpoints/medusa-sso"
 import { pageCategoriesWithPagesEndpoint } from "./lib/endpoints/page-categories-with-pages"
 import { medusaCmsInvalidationTask } from "./lib/jobs/medusa-cms-invalidation"
-import { getDocString, getEnv, isEnabled } from "./lib/utils/env"
+import {
+  getDocString,
+  getEnv,
+  isEnabled,
+  resolveEnvLocales,
+} from "./lib/utils/env"
 import { migrations } from "./migrations"
 
 const filename = fileURLToPath(import.meta.url)
@@ -41,8 +47,15 @@ const dirname = path.dirname(filename)
 
 const secret = getEnv("PAYLOAD_SECRET", true)
 const databaseUrl = getEnv("DATABASE_URL", true)
-const locales = ["sk", "cs", "hu", "ro"]
-const defaultLocale = "sk"
+const { locales, defaultLocale } = resolveEnvLocales("PAYLOAD_LOCALES", [
+  "cs",
+  "en",
+  "sk",
+  "pl",
+  "hu",
+  "ro",
+  "sl",
+])
 const isArticlesEnabled = isEnabled("FEATURE_PAYLOAD_ARTICLES_ENABLED")
 const isPagesEnabled = isEnabled("FEATURE_PAYLOAD_PAGES_ENABLED")
 const isHeroCarouselsEnabled = isEnabled(
@@ -105,6 +118,7 @@ export default buildConfig({
     ...(isPagesEnabled ? [PageCategories, Pages] : []),
     ...(isHeroCarouselsEnabled ? [HeroCarousels] : []),
   ],
+  globals: [...(isPagesEnabled ? [FooterNavigation] : [])],
   editor: lexicalEditor(),
   secret,
   typescript: {

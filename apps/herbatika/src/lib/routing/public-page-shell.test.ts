@@ -1,13 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
+  fetchCmsFooterNavigation: vi.fn(),
   fetchExternalReviewTrustSources: vi.fn(async () => []),
   fetchStorefrontTextMessages: vi.fn(async () => ({})),
-  getHerbatikaMarketContext: vi.fn(() => ({ locale: "sk" })),
+  getHerbatikaMarketContext: vi.fn(() => ({ locale: "sk-SK" })),
   readRequiredPublicEntitySlugs: vi.fn(),
 }))
 
 vi.mock("server-only", () => ({}))
+vi.mock("@/lib/storefront/cms-footer-navigation", () => ({
+  fetchCmsFooterNavigation: mocks.fetchCmsFooterNavigation,
+}))
 vi.mock("@/lib/storefront/external-reviews.server", () => ({
   fetchExternalReviewTrustSources: mocks.fetchExternalReviewTrustSources,
 }))
@@ -26,6 +30,14 @@ import { loadPublicErrorShell, loadPublicShell } from "./public-page"
 describe("public storefront shell URL projections", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.fetchCmsFooterNavigation.mockResolvedValue({
+      columns: [
+        {
+          items: [{ href: "/ignored", slot: "about", type: "internal" }],
+          slot: "information",
+        },
+      ],
+    })
     mocks.readRequiredPublicEntitySlugs.mockResolvedValue({
       kind: "found",
       value: { "pcat-herbs": "bylinky" },
@@ -42,6 +54,23 @@ describe("public storefront shell URL projections", () => {
     expect(shell.categoryPublicSlugsById).toEqual({
       "pcat-herbs": "bylinky",
     })
+  })
+
+  it("loads CMS footer navigation with the trusted market locale", async () => {
+    const shell = await loadPublicShell("sk")
+
+    expect(mocks.fetchCmsFooterNavigation).toHaveBeenCalledWith("sk-SK")
+    expect(shell.footerNavigation.columns).toHaveLength(1)
+  })
+
+  it("fails footer navigation closed without failing the public page", async () => {
+    mocks.fetchCmsFooterNavigation.mockRejectedValueOnce(
+      new Error("CMS unavailable")
+    )
+
+    const shell = await loadPublicShell("sk")
+
+    expect(shell.footerNavigation).toEqual({ columns: [] })
   })
 
   it("fails the public shell closed when category projections are incomplete", async () => {
@@ -67,6 +96,8 @@ describe("public storefront shell URL projections", () => {
     const shell = await loadPublicErrorShell("sk")
 
     expect(shell.categoryPublicSlugsById).toEqual({})
+    expect(shell.footerNavigation).toEqual({ columns: [] })
+    expect(mocks.fetchCmsFooterNavigation).not.toHaveBeenCalled()
     expect(mocks.readRequiredPublicEntitySlugs).not.toHaveBeenCalled()
   })
 })

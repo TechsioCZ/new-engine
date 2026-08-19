@@ -127,6 +127,34 @@ describe("Medusa CMS invalidation outbox", () => {
     ).rejects.toThrow("Payload request is required")
   })
 
+  it("enqueues global invalidation through the same transactional outbox", async () => {
+    const { createMedusaGlobalCacheHook } = await import(
+      "@/lib/hooks/medusa-cache"
+    )
+    const { queue, req } = request()
+    const doc = { updatedAt: "2026-08-19T02:00:00.000Z" }
+
+    await createMedusaGlobalCacheHook("footer-navigation")({
+      doc,
+      req,
+    } as never)
+
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+    expect(queue).toHaveBeenCalledOnce()
+    expect(queue).toHaveBeenCalledWith({
+      input: expect.objectContaining({
+        collection: "footer-navigation",
+        doc: { locale: "cs" },
+        eventId: expect.stringMatching(OUTBOX_EVENT_ID_PATTERN),
+        operation: "update",
+        sourceVersion: "2026-08-19T02:00:00.000Z",
+      }),
+      queue: "cms-outbox",
+      req,
+      task: "deliver-medusa-cms-invalidation",
+    })
+  })
+
   it("delivers a signed event with its idempotency key", async () => {
     const { getEnvString } = await import("@/lib/utils/env")
     vi.mocked(getEnvString)

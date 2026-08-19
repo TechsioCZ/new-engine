@@ -2,6 +2,7 @@ import { createHash } from "node:crypto"
 import type {
   CollectionAfterChangeHook,
   CollectionAfterDeleteHook,
+  GlobalAfterChangeHook,
   PayloadRequest,
 } from "payload"
 import type { MedusaCmsInvalidationInput } from "../jobs/medusa-cms-invalidation"
@@ -112,3 +113,39 @@ export const createMedusaCacheHook = (
   return enqueueInvalidation as CollectionAfterChangeHook &
     CollectionAfterDeleteHook
 }
+
+/** Create a hook that invalidates Medusa CMS cache for a global. */
+export const createMedusaGlobalCacheHook =
+  (globalSlug: string): GlobalAfterChangeHook =>
+  async ({ doc, req }) => {
+    const locale = req.locale ?? undefined
+    const cmsDoc = doc as CmsDoc
+    const occurredAt = new Date().toISOString()
+    const input: MedusaCmsInvalidationInput = {
+      collection: globalSlug,
+      doc: {
+        locale,
+      },
+      eventId: buildEventId({
+        collection: globalSlug,
+        doc: cmsDoc,
+        locale,
+        operation: "update",
+      }),
+      occurredAt,
+      operation: "update",
+      sourceVersion: cmsDoc.updatedAt ?? occurredAt,
+    }
+
+    req.payload.logger.info(
+      `CMS invalidation outbox: update -> ${input.eventId}`
+    )
+    await req.payload.jobs.queue({
+      input,
+      queue: "cms-outbox",
+      req,
+      task: "deliver-medusa-cms-invalidation",
+    })
+
+    return doc
+  }

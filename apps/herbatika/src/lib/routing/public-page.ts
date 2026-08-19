@@ -5,6 +5,8 @@ import type { GetServerSidePropsContext, GetServerSidePropsResult } from "next"
 import type { AbstractIntlMessages } from "next-intl"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 import { ROUTES } from "@/lib/market/market-runtime-definitions"
+import { fetchCmsFooterNavigation } from "@/lib/storefront/cms-footer-navigation"
+import type { CmsFooterNavigation } from "@/lib/storefront/cms-types"
 import { fetchExternalReviewTrustSources } from "@/lib/storefront/external-reviews.server"
 import {
   getHerbatikaMarketContext,
@@ -38,6 +40,7 @@ export type PublicSeo = Readonly<{
 
 export type StorefrontShellProps = Readonly<{
   categoryPublicSlugsById: PublicEntitySlugMap
+  footerNavigation: CmsFooterNavigation
   marketContext: HerbatikaMarketContext
   messages: AbstractIntlMessages
   reviewTrustSources: readonly ReviewTrustSource[]
@@ -81,23 +84,26 @@ export const loadPublicShell = async (
   categoryPublicSlugsById?: PublicEntitySlugMap
 ): Promise<StorefrontShellProps> => {
   const marketContext = getHerbatikaMarketContext(market)
-  const [messages, reviewTrustSources, categoryProjections] = await Promise.all(
-    [
+  const [messages, reviewTrustSources, footerNavigation, categoryProjections] =
+    await Promise.all([
       fetchStorefrontTextMessages(marketContext),
       fetchExternalReviewTrustSources(market),
+      fetchCmsFooterNavigation(marketContext.locale).catch(() => ({
+        columns: [],
+      })),
       categoryPublicSlugsById
         ? Promise.resolve({
             kind: "found" as const,
             value: categoryPublicSlugsById,
           })
         : readRequiredPublicEntitySlugs({ kind: "category", market }),
-    ]
-  )
+    ])
   if (categoryProjections.kind !== "found") {
     throw new Error("Category URL projections are unavailable")
   }
   return {
     categoryPublicSlugsById: categoryProjections.value,
+    footerNavigation,
     marketContext,
     messages,
     reviewTrustSources,
@@ -114,6 +120,7 @@ export const loadPublicErrorShell = async (
   ])
   return {
     categoryPublicSlugsById: {},
+    footerNavigation: { columns: [] },
     marketContext,
     messages,
     reviewTrustSources,

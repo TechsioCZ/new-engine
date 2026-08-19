@@ -7,83 +7,89 @@ import { useTranslations } from "next-intl"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 import { StorefrontLink } from "@/components/storefront-link"
+import type {
+  CmsFooterColumnSlot,
+  CmsFooterItemSlot,
+  CmsFooterNavigation,
+} from "@/lib/storefront/cms-types"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { buildPath, type PublicRouteTarget } from "@/lib/url/public-url"
 import { HerbatikaLogo } from "./herbatika-logo"
 
-type FooterNavigationLink =
-  | {
-      labelKey: string
-      external?: false
-      target: PublicRouteTarget
-    }
-  | {
-      href: `https://${string}`
-      labelKey: string
-      external: true
-    }
-
-type FooterColumn = {
-  titleKey: string
-  links: readonly FooterNavigationLink[]
-}
-
 const formatMarketDomain = (domain: string) =>
   `${domain.charAt(0).toUpperCase()}${domain.slice(1)}`
 
-const FOOTER_COLUMNS: readonly FooterColumn[] = [
-  {
-    titleKey: "footer.columns.information.title",
-    links: [
-      {
-        labelKey: "footer.columns.information.blog",
-        target: { kind: "article" },
-      },
-      {
-        labelKey: "footer.columns.information.about",
-        target: { kind: "static", page: "about" },
-      },
-      {
-        labelKey: "footer.columns.information.faq",
-        target: { kind: "static", page: "faq" },
-      },
-      {
-        labelKey: "footer.columns.information.brands",
-        target: { kind: "brand" },
-      },
-      {
-        href: "https://obchody.heureka.sk/herbatica-sk/recenze/",
-        labelKey: "footer.columns.information.reviews",
-        external: true,
-      },
-    ],
-  },
-  {
-    titleKey: "footer.columns.important.title",
-    links: [
-      {
-        labelKey: "footer.columns.important.shipping_payment",
-        target: { kind: "static", page: "shipping" },
-      },
-      {
-        labelKey: "footer.columns.important.claims_returns",
-        target: { kind: "static", page: "returns" },
-      },
-      {
-        labelKey: "footer.columns.important.terms",
-        target: { kind: "static", page: "terms" },
-      },
-      {
-        labelKey: "footer.columns.important.privacy",
-        target: { kind: "static", page: "privacy" },
-      },
-      {
-        labelKey: "footer.columns.important.cookies",
-        target: { kind: "static", page: "cookies" },
-      },
-    ],
-  },
-]
+const FOOTER_COLUMN_TITLE_KEYS = {
+  information: "footer.columns.information.title",
+  important: "footer.columns.important.title",
+  partners: "footer.columns.partners.title",
+} as const satisfies Record<CmsFooterColumnSlot, string>
+
+const FOOTER_ITEM_LABEL_KEYS = {
+  blog: "footer.columns.information.blog",
+  about: "footer.columns.information.about",
+  faq: "footer.columns.information.faq",
+  gift_voucher: "footer.columns.information.gift_voucher",
+  brands: "footer.columns.information.brands",
+  reviews: "footer.columns.information.reviews",
+  shipping_payment: "footer.columns.important.shipping_payment",
+  claims_returns: "footer.columns.important.claims_returns",
+  terms: "footer.columns.important.terms",
+  privacy: "footer.columns.important.privacy",
+  cookies: "footer.columns.important.cookies",
+  affiliate: "footer.columns.partners.affiliate",
+  wholesale: "footer.columns.partners.wholesale",
+  dropshipping: "footer.columns.partners.dropshipping",
+  private_label: "footer.columns.partners.private_label",
+} as const satisfies Record<CmsFooterItemSlot, string>
+
+const INTERNAL_FOOTER_TARGETS: Partial<
+  Record<CmsFooterItemSlot, PublicRouteTarget>
+> = {
+  about: { kind: "static", page: "about" },
+  blog: { kind: "article" },
+  brands: { kind: "brand" },
+  claims_returns: { kind: "static", page: "returns" },
+  cookies: { kind: "static", page: "cookies" },
+  faq: { kind: "static", page: "faq" },
+  privacy: { kind: "static", page: "privacy" },
+  shipping_payment: { kind: "static", page: "shipping" },
+  terms: { kind: "static", page: "terms" },
+}
+
+const validatedExternalHref = (href: string): string | null => {
+  try {
+    const url = new URL(href)
+    if (
+      (url.protocol === "http:" || url.protocol === "https:") &&
+      !url.username &&
+      !url.password
+    ) {
+      return url.href
+    }
+  } catch {
+    // Invalid CMS links fail closed and are not rendered.
+  }
+  return null
+}
+
+type CmsFooterNavigationItem =
+  CmsFooterNavigation["columns"][number]["items"][number]
+
+export const resolveFooterNavigationItem = (
+  item: CmsFooterNavigationItem
+):
+  | Readonly<{ href: string; kind: "external"; newTab: boolean }>
+  | Readonly<{ kind: "internal"; target: PublicRouteTarget }>
+  | null => {
+  if (item.type === "external") {
+    const href = validatedExternalHref(item.href)
+    return href ? { href, kind: "external", newTab: item.newTab ?? true } : null
+  }
+
+  const target = INTERNAL_FOOTER_TARGETS[item.slot]
+  return target ? { kind: "internal", target } : null
+}
 
 const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
   {
@@ -120,8 +126,10 @@ const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [
   { code: "RO", icon: "token-icon-ro" },
 ]
 export function HerbatikaFooter({
+  navigation,
   reviewTrustSources,
 }: {
+  navigation: CmsFooterNavigation
   reviewTrustSources: readonly ReviewTrustSource[]
 }) {
   const t = useTranslations("navigation")
@@ -167,28 +175,42 @@ export function HerbatikaFooter({
           </Footer.Link>
         </Footer.Section>
 
-        {FOOTER_COLUMNS.map((column) => (
-          <Footer.Section className="px-500" key={column.titleKey}>
+        {navigation.columns.map((column) => (
+          <Footer.Section className="px-500" key={column.slot}>
             <Footer.Title className="uppercase leading-relaxed">
-              {t(column.titleKey)}
+              {t(FOOTER_COLUMN_TITLE_KEYS[column.slot])}
             </Footer.Title>
             <Footer.List>
-              {column.links.map((link) => (
-                <li key={link.labelKey}>
-                  {link.external ? (
-                    <Footer.Link external href={link.href}>
-                      {t(link.labelKey)}
-                    </Footer.Link>
-                  ) : (
+              {column.items.map((item) => {
+                const resolved = resolveFooterNavigationItem(item)
+                if (!resolved) {
+                  return null
+                }
+
+                if (resolved.kind === "external") {
+                  return (
+                    <li key={item.slot}>
+                      <Footer.Link
+                        external={resolved.newTab}
+                        href={resolved.href}
+                      >
+                        {t(FOOTER_ITEM_LABEL_KEYS[item.slot])}
+                      </Footer.Link>
+                    </li>
+                  )
+                }
+
+                return (
+                  <li key={item.slot}>
                     <Footer.Link
                       as={StorefrontLink}
-                      href={buildPath(link.target, marketContext.code)}
+                      href={buildPath(resolved.target, marketContext.code)}
                     >
-                      {t(link.labelKey)}
+                      {t(FOOTER_ITEM_LABEL_KEYS[item.slot])}
                     </Footer.Link>
-                  )}
-                </li>
-              ))}
+                  </li>
+                )
+              })}
             </Footer.List>
           </Footer.Section>
         ))}

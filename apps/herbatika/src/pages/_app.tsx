@@ -7,6 +7,7 @@ import { Providers } from "@/app/providers"
 import { AppShell } from "@/components/app-shell"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 import type { PublicSeo } from "@/lib/routing/public-page"
+import type { CmsFooterNavigation } from "@/lib/storefront/cms-types"
 import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
 import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
 import {
@@ -18,6 +19,7 @@ import "@/app/globals.css"
 type StorefrontPageProps = Readonly<{
   dehydratedState?: DehydratedState
   categoryPublicSlugsById?: PublicEntitySlugMap
+  footerNavigation?: CmsFooterNavigation
   marketContext?: HerbatikaMarketContext
   messages?: AbstractIntlMessages
   reviewTrustSources?: readonly ReviewTrustSource[]
@@ -64,6 +66,7 @@ export default function HerbatikaPagesApp({
     !(
       pageProps.marketContext &&
       pageProps.messages &&
+      pageProps.footerNavigation &&
       pageProps.reviewTrustSources
     )
   ) {
@@ -77,6 +80,7 @@ export default function HerbatikaPagesApp({
           {pageProps.seo ? <PublicSeoHead seo={pageProps.seo} /> : null}
           <AppShell
             categoryPublicSlugsById={pageProps.categoryPublicSlugsById}
+            footerNavigation={pageProps.footerNavigation}
             reviewTrustSources={pageProps.reviewTrustSources}
           >
             {content}

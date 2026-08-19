@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { PAYLOAD_MODULE } from "../../../../../../src/modules/payload"
 
 const mockCmsService = {
+  getFooterNavigation: vi.fn(),
   getPublishedPage: vi.fn(),
   getPublishedPageById: vi.fn(),
   getPublishedArticle: vi.fn(),
@@ -84,6 +85,22 @@ describe("Store CMS routes", () => {
       "cs"
     )
     expect(res.json).toHaveBeenCalledWith({ page })
+  })
+
+  it("passes request locale to footer navigation lookup", async () => {
+    const { GET } = await import(
+      "../../../../../../src/api/store/cms/navigation/footer/route"
+    )
+    const req = createMockRequest({ locale: "ro" })
+    const res = createMockResponse()
+    const footerNavigation = { columns: [] }
+
+    mockCmsService.getFooterNavigation.mockResolvedValue(footerNavigation)
+
+    await GET(req, res)
+
+    expect(mockCmsService.getFooterNavigation).toHaveBeenCalledWith("ro")
+    expect(res.json).toHaveBeenCalledWith({ footerNavigation })
   })
 
   it("passes request locale to published article lookup", async () => {
