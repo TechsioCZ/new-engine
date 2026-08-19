@@ -4,6 +4,7 @@ import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
 import type { SourceReadResult } from "@/lib/url-registry/contracts"
 import type { CatalogQueryState } from "./catalog-query-state"
 import { PLP_PAGE_SIZE } from "./plp-config"
+import { loadBoundedCatalogPage } from "./ssr/load-bounded-catalog-page"
 
 export type CollectionAssignment = Readonly<{
   entityId: string
@@ -163,10 +164,17 @@ export const readCollectionRouteSource = async (
 
     const [collectionPayload, catalog] = await Promise.all([
       dependencies.retrieveCollection({ binding, collectionId }),
-      dependencies.retrieveCatalog({
-        binding,
-        collectionId,
-        queryState: buildCollectionCatalogInput(queryState),
+      loadBoundedCatalogPage({
+        loadPage: (page) =>
+          dependencies.retrieveCatalog({
+            binding,
+            collectionId,
+            queryState: buildCollectionCatalogInput({
+              ...queryState,
+              page,
+            }),
+          }),
+        requestedPage: queryState.page,
       }),
     ])
     const collection = readCollection(collectionPayload, collectionId)

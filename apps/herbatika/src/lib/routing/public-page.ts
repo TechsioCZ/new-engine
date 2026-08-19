@@ -3,9 +3,11 @@
 // is a Pages SSR boundary and must stay reachable only from getServerSideProps.
 
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
+import { nestStorefrontMessages } from "@techsio/storefront-i18n/core/messages"
 import type { GetServerSidePropsContext, GetServerSidePropsResult } from "next"
 import type { AbstractIntlMessages } from "next-intl"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
+import { getConfiguredMarketRuntime } from "@/lib/market/market-runtime.server"
 import { ROUTES } from "@/lib/market/market-runtime-definitions"
 import { fetchCmsFooterNavigation } from "@/lib/storefront/cms-footer-navigation"
 import type { CmsFooterNavigation } from "@/lib/storefront/cms-types"
@@ -89,11 +91,11 @@ export const loadPublicShell = async (
 ): Promise<StorefrontShellProps> => {
   const marketContext = getHerbatikaMarketContext(market)
   const [
-    messages,
+    flatMessages,
     reviewTrustSources,
     footerNavigation,
     categoryProjections,
-    { region },
+    regionContext,
   ] = await Promise.all([
     fetchStorefrontTextMessages(marketContext),
     fetchExternalReviewTrustSources(market),
@@ -114,9 +116,9 @@ export const loadPublicShell = async (
   return {
     categoryPublicSlugsById: categoryProjections.value,
     footerNavigation,
-    initialRegion: region,
+    initialRegion: regionContext.region,
     marketContext,
-    messages,
+    messages: nestStorefrontMessages(flatMessages),
     reviewTrustSources,
   }
 }
@@ -125,7 +127,7 @@ export const loadPublicErrorShell = async (
   market: Market
 ): Promise<StorefrontShellProps> => {
   const marketContext = getHerbatikaMarketContext(market)
-  const [messages, reviewTrustSources] = await Promise.all([
+  const [flatMessages, reviewTrustSources] = await Promise.all([
     fetchStorefrontTextMessages(marketContext).catch(() => ({})),
     fetchExternalReviewTrustSources(market).catch(() => []),
   ])
@@ -134,7 +136,7 @@ export const loadPublicErrorShell = async (
     footerNavigation: { columns: [] },
     initialRegion: null,
     marketContext,
-    messages,
+    messages: nestStorefrontMessages(flatMessages),
     reviewTrustSources,
   }
 }
@@ -243,11 +245,13 @@ const loadAlternates = async <Value>(
   if (equivalents.kind !== "found") {
     throw new Error("Equivalent routes are unavailable")
   }
+  const allowedMarkets = new Set(getConfiguredMarketRuntime().allowedMarkets)
 
   const entries = await Promise.all(
     equivalents.value.flatMap((candidate) =>
       candidate.projectionType === "entity" &&
-      candidate.route.kind === current.route.kind
+      candidate.route.kind === current.route.kind &&
+      allowedMarkets.has(candidate.route.market)
         ? [
             (async () => {
               const source = await loadSource({
@@ -285,8 +289,9 @@ const loadStaticAlternates = async <Value>(
   path: Parameters<typeof buildPath>[0],
   loadSource: (market: Market) => Promise<PublicSourceResult<Value>>
 ): Promise<Readonly<Record<string, string>>> => {
+  const { allowedMarkets } = getConfiguredMarketRuntime()
   const entries = await Promise.all(
-    (Object.keys(ROUTES) as Market[]).map(async (market) => {
+    allowedMarkets.map(async (market) => {
       const source = await loadSource(market)
       if (source.kind === "missing") {
         return null

@@ -21,6 +21,7 @@ import { getHerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { prefetchHomePageStorefrontData } from "@/lib/storefront/ssr"
 import {
   type PublicEntitySlugMap,
+  readCompletePublicEntitySlugs,
   readRequiredPublicEntitySlugs,
 } from "@/lib/storefront/ssr/public-entity-projections"
 
@@ -87,7 +88,7 @@ export const getServerSideProps = (async (context) =>
           market,
           requiredSourceIds: blogPosts.map((post) => post.sourceId),
         }),
-        readRequiredPublicEntitySlugs({
+        readCompletePublicEntitySlugs({
           kind: "category",
           market,
           requiredSourceIds: storefront.categorySourceIds,

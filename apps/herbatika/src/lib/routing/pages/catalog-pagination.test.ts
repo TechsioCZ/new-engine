@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   prefetchBrandPageStorefrontData: vi.fn(),
   prefetchCategoryPageStorefrontData: vi.fn(),
   prefetchProductIndexStorefrontData: vi.fn(),
+  readCompletePublicEntitySlugs: vi.fn(),
   readRequiredPublicEntitySlugs: vi.fn(),
   resolveRegistryRoute: vi.fn(),
 }))
@@ -43,6 +44,7 @@ vi.mock("@/lib/storefront/ssr/context", () => ({
   getRegionServerContext: mocks.getRegionServerContext,
 }))
 vi.mock("@/lib/storefront/ssr/public-entity-projections", () => ({
+  readCompletePublicEntitySlugs: mocks.readCompletePublicEntitySlugs,
   readRequiredPublicEntitySlugs: mocks.readRequiredPublicEntitySlugs,
 }))
 vi.mock("@/lib/storefront/storefront-server", () => ({
@@ -117,6 +119,10 @@ describe("catalog page pagination boundaries", () => {
     mocks.readRequiredPublicEntitySlugs.mockResolvedValue({
       kind: "found",
       value: { brand_1: "brand" },
+    })
+    mocks.readCompletePublicEntitySlugs.mockResolvedValue({
+      kind: "found",
+      value: { cat_1: "herbs" },
     })
     mocks.resolveRegistryRoute.mockImplementation(
       ({ kind }: { kind: "brand" | "category" }) =>
@@ -201,6 +207,40 @@ describe("catalog page pagination boundaries", () => {
         page: { kind: "found", value: { totalPages: 3 } },
       },
     })
+  })
+
+  it("loads a complete projection set for category trees larger than the required-ID limit", async () => {
+    const categorySourceIds = Array.from(
+      { length: 206 },
+      (_, index) => `cat_${index + 1}`
+    )
+    mocks.prefetchCategoryPageStorefrontData.mockResolvedValue({
+      categorySourceIds,
+      dehydratedState: {},
+      region: {},
+      totalPages: 3,
+      visibleProductIds: [],
+    })
+    const request = context("category.detail", "/kategorie/herbs", "herbs", "2")
+    const { getServerSideProps } = await import(
+      "@/pages/~sf/[market]/category/[slug]"
+    )
+
+    await expect(getServerSideProps(request)).resolves.toMatchObject({
+      props: { page: { kind: "found" } },
+    })
+    expect(mocks.readCompletePublicEntitySlugs).toHaveBeenCalledWith({
+      kind: "category",
+      market: "sk",
+      rejectUnexpectedSourceIds: true,
+      requiredSourceIds: categorySourceIds,
+    })
+    expect(mocks.readRequiredPublicEntitySlugs).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "category",
+        requiredSourceIds: categorySourceIds,
+      })
+    )
   })
 
   it("keeps the brand's exact last page found", async () => {

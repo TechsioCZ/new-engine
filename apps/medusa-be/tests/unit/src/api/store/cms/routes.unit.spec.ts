@@ -27,7 +27,7 @@ const createMockRequest = ({
 } = {}) =>
   ({
     params,
-    validatedQuery: { ...(locale ? { locale } : {}), ...validatedQuery },
+    validatedQuery,
     locale,
     scope: {
       resolve: vi.fn((key: string) => {
@@ -50,7 +50,7 @@ describe("Store CMS routes", () => {
     vi.clearAllMocks()
   })
 
-  it("requires one of the four exact storefront CMS locales", async () => {
+  it("allows Medusa to consume the locale before CMS query validation", async () => {
     const { StoreCmsPageByIdSchema } = await import(
       "../../../../../../src/api/store/cms/pages/by-id/[id]/route"
     )
@@ -61,7 +61,7 @@ describe("Store CMS routes", () => {
     expect(StoreCmsPageByIdSchema.safeParse({ locale: "en" }).success).toBe(
       false
     )
-    expect(StoreCmsPageByIdSchema.safeParse({}).success).toBe(false)
+    expect(StoreCmsPageByIdSchema.safeParse({}).success).toBe(true)
   })
 
   it("passes request locale to published page lookup", async () => {
@@ -204,7 +204,7 @@ describe("Store CMS routes", () => {
       "../../../../../../src/api/store/cms/article-categories/route"
     )
     const req = createMockRequest({
-      locale: "en",
+      locale: "hu",
       validatedQuery: { categorySlug: "journal" },
     })
     const res = createMockResponse()
@@ -220,7 +220,7 @@ describe("Store CMS routes", () => {
       mockCmsService.listArticleCategoriesWithArticles
     ).toHaveBeenCalledWith({
       categorySlug: "journal",
-      locale: "en",
+      locale: "hu",
     })
     expect(res.json).toHaveBeenCalledWith({ articleCategories })
   })

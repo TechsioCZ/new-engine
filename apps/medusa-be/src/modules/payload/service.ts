@@ -785,7 +785,7 @@ export default class PayloadModuleService extends MedusaService({}) {
           { schema: CmsFooterNavigationGlobalSchema }
         )
 
-        return toCmsStoreFooterNavigation(result)
+        return toCmsStoreFooterNavigation(result, normalizedLocale)
       },
       this.listCacheTtl_,
       [

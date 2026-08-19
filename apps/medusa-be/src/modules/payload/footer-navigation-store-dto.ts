@@ -7,8 +7,20 @@ import type {
 
 const trimSlashes = (value: string) => value.replace(/^\/+|\/+$/g, "")
 
+const CMS_PAGE_PREFIX_BY_LOCALE: Readonly<Record<string, string>> = {
+  cs: "informace",
+  "cs-CZ": "informace",
+  hu: "informaciok",
+  "hu-HU": "informaciok",
+  ro: "informatii",
+  "ro-RO": "informatii",
+  sk: "informacie",
+  "sk-SK": "informacie",
+}
+
 const toStoreItem = (
-  item: CmsFooterNavigationItemDTO
+  item: CmsFooterNavigationItemDTO,
+  locale: string | undefined
 ): CmsStoreFooterNavigationItemDTO | null => {
   if (item.blockType === "appRouteLink") {
     return {
@@ -38,24 +50,26 @@ const toStoreItem = (
   }
 
   const slug = page.slug?.trim()
-  if (!slug) {
+  const pagePrefix = locale ? CMS_PAGE_PREFIX_BY_LOCALE[locale] : undefined
+  if (!(slug && pagePrefix)) {
     return null
   }
 
   return {
     slot: item.slot,
-    href: `/${trimSlashes(slug)}`,
+    href: `/${pagePrefix}/${trimSlashes(slug)}`,
     type: "internal",
   }
 }
 
 export const toCmsStoreFooterNavigation = (
-  navigation: CmsFooterNavigationGlobalDTO
+  navigation: CmsFooterNavigationGlobalDTO,
+  locale?: string
 ): CmsStoreFooterNavigationDTO => {
   const columns = (navigation.columns ?? []).map((column) => ({
     slot: column.slot,
     items: (column.items ?? [])
-      .map(toStoreItem)
+      .map((item) => toStoreItem(item, locale))
       .filter((item): item is CmsStoreFooterNavigationItemDTO => Boolean(item)),
   }))
 

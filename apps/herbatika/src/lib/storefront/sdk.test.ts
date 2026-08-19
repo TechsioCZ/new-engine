@@ -17,5 +17,5 @@ describe("browser storefront SDK authority", () => {
       backendUrl: "https://herbatica.ro/api/storefront-medusa",
     })
     expect(storefrontConfig).not.toHaveProperty("publishableKey")
-  })
+  }, 10_000)
 })

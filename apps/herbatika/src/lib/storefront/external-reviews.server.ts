@@ -105,20 +105,30 @@ export const formatExternalReviewDateLabel = (value: string) => {
   return REVIEW_DATE_FORMATTER.format(date)
 }
 
-const toReviewItem = (review: ExternalReview): ReviewItem => ({
-  id: review.id,
-  author: review.author,
-  dateLabel: formatExternalReviewDateLabel(review.createdAt),
-  message: review.message,
-  merchantReply: review.merchantReply,
-  negativePoints: review.negativePoints,
-  positivePoints: review.positivePoints,
-  rating: review.rating,
-  recommended: review.recommended,
-  scores: review.scores,
-  title: review.product?.name,
-  verifiedPurchase: review.verified,
-})
+const toReviewItem = (review: ExternalReview): ReviewItem => {
+  const title = review.product?.name
+
+  return {
+    id: review.id,
+    author: review.author,
+    dateLabel: formatExternalReviewDateLabel(review.createdAt),
+    ...(review.message === undefined ? {} : { message: review.message }),
+    ...(review.merchantReply === undefined
+      ? {}
+      : { merchantReply: review.merchantReply }),
+    ...(review.negativePoints === undefined
+      ? {}
+      : { negativePoints: review.negativePoints }),
+    ...(review.positivePoints === undefined
+      ? {}
+      : { positivePoints: review.positivePoints }),
+    rating: review.rating,
+    recommended: review.recommended,
+    ...(review.scores === undefined ? {} : { scores: review.scores }),
+    ...(title === undefined ? {} : { title }),
+    verifiedPurchase: review.verified,
+  }
+}
 
 const toHeurekaTrustSummary = (
   result: ExternalReviewsResult

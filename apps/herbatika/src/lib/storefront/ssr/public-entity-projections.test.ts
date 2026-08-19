@@ -4,12 +4,22 @@ import type {
   StaticRouteSnapshot,
 } from "@/lib/url-registry/model"
 
+const mocks = vi.hoisted(() => ({
+  listPublicEntityProjections: vi.fn(),
+  listPublicStaticProjections: vi.fn(),
+}))
+
 vi.mock("server-only", () => ({}))
+vi.mock("@/lib/url-registry/runtime/public-projections.server", () => ({
+  listPublicEntityProjections: mocks.listPublicEntityProjections,
+  listPublicStaticProjections: mocks.listPublicStaticProjections,
+}))
 
 import {
   mapRequiredPublicEntitySlugs,
   mapRequiredPublicStaticHrefs,
 } from "./public-entity-projection-map"
+import { readCompletePublicEntitySlugs } from "./public-entity-projections"
 
 const projection = (
   sourceId: string,
@@ -163,6 +173,39 @@ describe("mapRequiredPublicEntitySlugs", () => {
     ).toEqual({
       causeCode: "MISMATCHED_PRODUCT_PUBLIC_PROJECTION_IDENTITY",
       kind: "invalid-response",
+    })
+  })
+})
+
+describe("readCompletePublicEntitySlugs", () => {
+  it("scans the complete projection index before validating a large source set", async () => {
+    const projections = Array.from({ length: 206 }, (_, index) =>
+      projection(`category-${index}`, `category-${index}`)
+    ).map((item) => ({
+      ...item,
+      currentSlug: { ...item.currentSlug, kind: "category" as const },
+      route: {
+        ...item.route,
+        kind: "category" as const,
+        sourceType: "category" as const,
+      },
+    }))
+    mocks.listPublicEntityProjections.mockResolvedValueOnce({
+      kind: "found",
+      value: projections,
+    })
+
+    const result = await readCompletePublicEntitySlugs({
+      kind: "category",
+      market: "sk",
+      rejectUnexpectedSourceIds: true,
+      requiredSourceIds: projections.map(({ route }) => route.sourceId),
+    })
+
+    expect(result.kind).toBe("found")
+    expect(mocks.listPublicEntityProjections).toHaveBeenCalledWith({
+      kind: "category",
+      market: "sk",
     })
   })
 })

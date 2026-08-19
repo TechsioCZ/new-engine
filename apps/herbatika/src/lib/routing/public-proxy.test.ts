@@ -17,10 +17,13 @@ const resolve = (
 describe("full public URL proxy", () => {
   it.each([
     ["/", "/~sf/sk/home", "home"],
-    ["/produkty", "/~sf/sk/products/index", "product.index"],
+    ["/produkty", "/~sf/sk/products", "product.index"],
     ["/produkty/ashwagandha", "/~sf/sk/products/ashwagandha", "product.detail"],
+    ["/kategorie", "/~sf/sk/categories", "category.index"],
     ["/kategorie/bylinky", "/~sf/sk/category/bylinky", "category.detail"],
-    ["/znacky", "/~sf/sk/brands/index", "brand.index"],
+    ["/znacky", "/~sf/sk/brands", "brand.index"],
+    ["/kolekcie", "/~sf/sk/collections", "collection.index"],
+    ["/poradna", "/~sf/sk/advice", "article.index"],
     ["/poradna/clanok", "/~sf/sk/advice/clanok", "article.detail"],
     [
       "/informacie/kontaktujte-nas",

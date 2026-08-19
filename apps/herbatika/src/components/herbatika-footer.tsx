@@ -13,7 +13,9 @@ import type {
   CmsFooterNavigation,
 } from "@/lib/storefront/cms-types"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
-import { buildPath, type PublicRouteTarget } from "@/lib/url/public-url"
+import { parsePublicPath } from "@/lib/url/public-route-api"
+import { buildPath } from "@/lib/url/public-url"
+import type { Market } from "@/lib/url/types"
 import { HerbatikaLogo } from "./herbatika-logo"
 
 const formatMarketDomain = (domain: string) =>
@@ -43,20 +45,6 @@ const FOOTER_ITEM_LABEL_KEYS = {
   private_label: "footer.columns.partners.private_label",
 } as const satisfies Record<CmsFooterItemSlot, string>
 
-const INTERNAL_FOOTER_TARGETS: Partial<
-  Record<CmsFooterItemSlot, PublicRouteTarget>
-> = {
-  about: { kind: "static", page: "about" },
-  blog: { kind: "article" },
-  brands: { kind: "brand" },
-  claims_returns: { kind: "static", page: "returns" },
-  cookies: { kind: "static", page: "cookies" },
-  faq: { kind: "static", page: "faq" },
-  privacy: { kind: "static", page: "privacy" },
-  shipping_payment: { kind: "static", page: "shipping" },
-  terms: { kind: "static", page: "terms" },
-}
-
 const validatedExternalHref = (href: string): string | null => {
   try {
     const url = new URL(href)
@@ -76,19 +64,40 @@ const validatedExternalHref = (href: string): string | null => {
 type CmsFooterNavigationItem =
   CmsFooterNavigation["columns"][number]["items"][number]
 
+const validatedInternalHref = (href: string, market: Market): string | null => {
+  let url: URL
+  try {
+    url = new URL(href, "https://storefront.internal")
+  } catch {
+    return null
+  }
+
+  if (url.origin !== "https://storefront.internal" || url.hash) {
+    return null
+  }
+
+  const parsed = parsePublicPath({
+    market,
+    pathname: url.pathname,
+    rawQuery: url.search.slice(1),
+  })
+  return parsed.kind === "found" ? parsed.canonicalization.destination : null
+}
+
 export const resolveFooterNavigationItem = (
-  item: CmsFooterNavigationItem
+  item: CmsFooterNavigationItem,
+  market: Market
 ):
   | Readonly<{ href: string; kind: "external"; newTab: boolean }>
-  | Readonly<{ kind: "internal"; target: PublicRouteTarget }>
+  | Readonly<{ href: string; kind: "internal" }>
   | null => {
   if (item.type === "external") {
     const href = validatedExternalHref(item.href)
     return href ? { href, kind: "external", newTab: item.newTab ?? true } : null
   }
 
-  const target = INTERNAL_FOOTER_TARGETS[item.slot]
-  return target ? { kind: "internal", target } : null
+  const href = validatedInternalHref(item.href, market)
+  return href ? { href, kind: "internal" } : null
 }
 
 const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
@@ -182,7 +191,10 @@ export function HerbatikaFooter({
             </Footer.Title>
             <Footer.List>
               {column.items.map((item) => {
-                const resolved = resolveFooterNavigationItem(item)
+                const resolved = resolveFooterNavigationItem(
+                  item,
+                  marketContext.code
+                )
                 if (!resolved) {
                   return null
                 }
@@ -202,10 +214,7 @@ export function HerbatikaFooter({
 
                 return (
                   <li key={item.slot}>
-                    <Footer.Link
-                      as={StorefrontLink}
-                      href={buildPath(resolved.target, marketContext.code)}
-                    >
+                    <Footer.Link as={StorefrontLink} href={resolved.href}>
                       {t(FOOTER_ITEM_LABEL_KEYS[item.slot])}
                     </Footer.Link>
                   </li>

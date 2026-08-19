@@ -1,5 +1,4 @@
-import { StepResponse } from "@medusajs/framework/workflows-sdk"
-import { createProductsWorkflow } from "@medusajs/medusa/core-flows"
+import type { StepExecutionContext } from "@medusajs/framework/workflows-sdk"
 import {
   getLegacyProductContent,
   type ProductContentValues,
@@ -9,50 +8,53 @@ import {
   type ProductContentRecord,
 } from "../../utils/product-content-service"
 
-type CreatedProduct = {
+export type CreatedProduct = {
   id: string
   metadata?: Record<string, unknown> | null
 }
 
-createProductsWorkflow.hooks.productsCreated(
-  async ({ products }, { container }) => {
-    const createdProducts = products as CreatedProduct[]
-    const productIds = createdProducts.map(({ id }) => id)
+type ProductContentHookContext = Pick<StepExecutionContext, "container">
 
-    if (productIds.length === 0) {
-      return new StepResponse(undefined, [])
-    }
+export const createProductContentForCreatedProducts = async (
+  products: readonly CreatedProduct[],
+  { container }: ProductContentHookContext
+) => {
+  const productIds = products.map(({ id }) => id)
 
-    const service = getProductContentService(container)
-    const existing = (await service.listProductContents({
-      product_id: productIds,
-    })) as ProductContentRecord[]
-    const existingProductIds = new Set(
-      existing.map(({ product_id }) => product_id)
-    )
-    const inputs = createdProducts
-      .filter(({ id }) => !existingProductIds.has(id))
-      .map(({ id, metadata }) => ({
-        ...(getLegacyProductContent(metadata) satisfies ProductContentValues),
-        product_id: id,
-      }))
-
-    if (inputs.length === 0) {
-      return new StepResponse(undefined, [])
-    }
-
-    const created = (await service.createProductContents(
-      inputs
-    )) as ProductContentRecord[]
-
-    return new StepResponse(
-      undefined,
-      created.map(({ id }) => id)
-    )
-  },
-  async (ids: string[] | undefined, { container }) => {
-    if (ids?.length) {
-      await getProductContentService(container).deleteProductContents(ids)
-    }
+  if (productIds.length === 0) {
+    return []
   }
-)
+
+  const service = getProductContentService(container)
+  const existing = (await service.listProductContents({
+    product_id: productIds,
+  })) as ProductContentRecord[]
+  const existingProductIds = new Set(
+    existing.map(({ product_id }) => product_id)
+  )
+  const inputs = products
+    .filter(({ id }) => !existingProductIds.has(id))
+    .map(({ id, metadata }) => ({
+      ...(getLegacyProductContent(metadata) satisfies ProductContentValues),
+      product_id: id,
+    }))
+
+  if (inputs.length === 0) {
+    return []
+  }
+
+  const created = (await service.createProductContents(
+    inputs
+  )) as ProductContentRecord[]
+
+  return created.map(({ id }) => id)
+}
+
+export const deleteCreatedProductContent = async (
+  ids: readonly string[] | undefined,
+  { container }: ProductContentHookContext
+) => {
+  if (ids?.length) {
+    await getProductContentService(container).deleteProductContents([...ids])
+  }
+}
