@@ -64,6 +64,7 @@ export const ACCOUNT_CHILD_KEYS = [
   "lists",
   "orders",
   "settings",
+  "deactivation",
   "login",
   "register",
   "forgotPassword",

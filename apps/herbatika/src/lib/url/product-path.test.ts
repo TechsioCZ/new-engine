@@ -26,11 +26,10 @@ describe("product URL builder", () => {
 
   it("appends an already-normalized raw query without changing case", () => {
     expect(
-      buildProductAbsoluteUrl(
-        "sk",
-        "bylinny-caj",
-        "variant=SKU-AbC-01&utm_source=test"
-      )
+      buildProductAbsoluteUrl("sk", "bylinny-caj", {
+        variant: "SKU-AbC-01",
+        utm_source: "test",
+      })
     ).toBe(
       "https://herbatica.sk/produkty/bylinny-caj?variant=SKU-AbC-01&utm_source=test"
     )

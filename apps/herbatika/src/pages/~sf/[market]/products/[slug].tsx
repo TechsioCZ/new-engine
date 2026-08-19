@@ -13,6 +13,11 @@ import {
   type SsrOutcome,
   type SsrPageProps,
 } from "@/lib/routing/pages/ssr-outcome"
+import {
+  loadPublicErrorShell,
+  loadPublicShell,
+  type StorefrontShellProps,
+} from "@/lib/routing/public-page"
 import { buildProductSeo, serializeProductJsonLd } from "@/lib/seo/product"
 import type { ProductPageContext } from "@/lib/storefront/product-page-context"
 import type { ProductRouteMedusaProduct } from "@/lib/storefront/product-route-source"
@@ -20,23 +25,30 @@ import {
   readProductPageContextFromMedusa,
   readProductRouteSourceFromMedusa,
 } from "@/lib/storefront/product-route-source.server"
+import {
+  type PublicEntitySlugMap,
+  readRequiredPublicEntitySlugs,
+} from "@/lib/storefront/ssr/public-entity-projections"
 import { parseMarket } from "@/lib/url/segments"
 import type { SourceReadResult } from "@/lib/url-registry/contracts"
 import { getUrlRegistryRuntime } from "@/lib/url-registry/runtime/instance.server"
 
 type ProductPageView = Readonly<{
+  brandPublicSlugsById: PublicEntitySlugMap
   canonicalUrl: string
+  categoryPublicSlugsById: PublicEntitySlugMap
   context: ProductPageContext
   description: string | null
   images: readonly string[]
   initialVariantId?: string
   jsonLd: string
   product: ProductRouteMedusaProduct
+  productPublicSlugsById: PublicEntitySlugMap
   publicSlug: string
   title: string
 }>
 
-type ProductPageProps = SsrPageProps<ProductPageView>
+type ProductPageProps = SsrPageProps<ProductPageView> & StorefrontShellProps
 
 const readRegistry = async (): Promise<
   SourceReadResult<ProductRouteRegistry>
@@ -52,6 +64,81 @@ const readRegistry = async (): Promise<
 }
 
 const singleHeader = (value: string | string[] | undefined) => value
+
+type ProductProjectionMaps = Readonly<{
+  brandPublicSlugsById: PublicEntitySlugMap
+  categoryPublicSlugsById: PublicEntitySlugMap
+  productPublicSlugsById: PublicEntitySlugMap
+}>
+
+const unavailableFromSource = <Value,>(
+  result: Exclude<SourceReadResult<Value>, { kind: "found" }>
+): SsrOutcome<never> =>
+  result.kind === "unavailable"
+    ? {
+        kind: "unavailable",
+        ...(result.retryAfterSeconds === undefined
+          ? {}
+          : { retryAfterSeconds: result.retryAfterSeconds }),
+      }
+    : { kind: "unavailable" }
+
+const readProductProjectionMaps = async (
+  market: NonNullable<ReturnType<typeof parseMarket>>,
+  product: ProductRouteMedusaProduct
+): Promise<SsrOutcome<ProductProjectionMaps>> => {
+  const categorySourceIds = (product.categories ?? []).map(
+    (category) => category.id
+  )
+  if (categorySourceIds.some((sourceId) => !sourceId)) {
+    return { kind: "unavailable" }
+  }
+  const productBrand = (
+    product as ProductRouteMedusaProduct & { brand?: { id?: unknown } | null }
+  ).brand
+  const brandSourceId =
+    productBrand && typeof productBrand.id === "string" && productBrand.id
+      ? productBrand.id
+      : null
+  if (productBrand && !brandSourceId) {
+    return { kind: "unavailable" }
+  }
+
+  const [brandMap, categoryMap, productMap] = await Promise.all([
+    readRequiredPublicEntitySlugs({
+      kind: "brand",
+      market,
+      requiredSourceIds: brandSourceId ? [brandSourceId] : [],
+    }),
+    readRequiredPublicEntitySlugs({
+      kind: "category",
+      market,
+      requiredSourceIds: categorySourceIds,
+    }),
+    readRequiredPublicEntitySlugs({
+      kind: "product",
+      market,
+      requiredSourceIds: [product.id],
+    }),
+  ])
+  if (brandMap.kind !== "found") {
+    return unavailableFromSource(brandMap)
+  }
+  if (categoryMap.kind !== "found") {
+    return unavailableFromSource(categoryMap)
+  }
+  if (productMap.kind !== "found") {
+    return unavailableFromSource(productMap)
+  }
+  return {
+    kind: "found",
+    value: {
+      brandPublicSlugsById: brandMap.value,
+      categoryPublicSlugsById: categoryMap.value,
+      productPublicSlugsById: productMap.value,
+    },
+  }
+}
 
 const toPageView = async (
   outcome: Awaited<
@@ -89,11 +176,20 @@ const toPageView = async (
     initialVariantId: outcome.value.initialVariantId,
     product: outcome.value.product,
   })
+  const projectionMaps = await readProductProjectionMaps(
+    market,
+    outcome.value.product
+  )
+  if (projectionMaps.kind !== "found") {
+    return projectionMaps
+  }
 
   return {
     kind: "found",
     value: {
+      brandPublicSlugsById: projectionMaps.value.brandPublicSlugsById,
       canonicalUrl: seo.canonicalUrl,
+      categoryPublicSlugsById: projectionMaps.value.categoryPublicSlugsById,
       context: context.value,
       description: seo.description,
       images: seo.images,
@@ -102,6 +198,7 @@ const toPageView = async (
         : { initialVariantId: outcome.value.initialVariantId }),
       jsonLd: serializeProductJsonLd(seo.jsonLd),
       product: outcome.value.product,
+      productPublicSlugsById: projectionMaps.value.productPublicSlugsById,
       publicSlug: outcome.value.publicSlug,
       title: seo.title,
     },
@@ -113,6 +210,9 @@ export const getServerSideProps = (async ({ params, req, res }) => {
   const request: ProductPageRequest = {
     enabled: process.env.URL_PRODUCT_RESOLVER_ENABLED === "1",
     headers: {
+      canonicalizationRequired: singleHeader(
+        req.headers["x-sf-canonicalization-required"]
+      ),
       canonicalOrigin: singleHeader(req.headers["x-sf-canonical-origin"]),
       market: marketHeader,
       publicPath: singleHeader(req.headers["x-sf-public-path"]),
@@ -135,16 +235,35 @@ export const getServerSideProps = (async ({ params, req, res }) => {
     throw new Error("Product route resolved after response headers were sent")
   }
   res.setHeader("X-SF-Resolution-Phase", "pre-flush")
-  return applySsrOutcome(res, pageOutcome)
+  const result = applySsrOutcome(res, pageOutcome)
+  if (!("props" in result)) {
+    return result
+  }
+  const market =
+    typeof marketHeader === "string" ? parseMarket(marketHeader) : null
+  if (!market) {
+    return { notFound: true }
+  }
+  const pageProps = await result.props
+  const shell =
+    pageOutcome.kind === "found"
+      ? await loadPublicShell(market, pageOutcome.value.categoryPublicSlugsById)
+      : await loadPublicErrorShell(market)
+  return { props: { ...pageProps, ...shell } }
 }) satisfies GetServerSideProps<ProductPageProps>
 
 export default function ProductPagesRoute({ page }: ProductPageProps) {
   if (page.kind === "error") {
     return (
-      <main>
-        <h1>Product unavailable</h1>
-        <p>Status: {page.status}</p>
-      </main>
+      <>
+        <Head>
+          <meta content="noindex, nofollow" name="robots" />
+        </Head>
+        <main>
+          <h1>Product unavailable</h1>
+          <p>Status: {page.status}</p>
+        </main>
+      </>
     )
   }
 
@@ -177,10 +296,14 @@ export default function ProductPagesRoute({ page }: ProductPageProps) {
           data-public-slug={page.value.publicSlug}
         >
           <ProductDetail
+            brandPublicSlugsById={page.value.brandPublicSlugsById}
+            categoryPublicSlugsById={page.value.categoryPublicSlugsById}
             {...(page.value.initialVariantId === undefined
               ? {}
               : { initialVariantId: page.value.initialVariantId })}
             initialProduct={page.value.product}
+            productPublicSlugsById={page.value.productPublicSlugsById}
+            publicSlug={page.value.publicSlug}
           />
         </div>
       </ProductPagesProvider>

@@ -291,6 +291,15 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     {
       resolve: "./src/modules/url-registry-outbox",
     },
+    {
+      resolve: "./src/modules/order-confirmation",
+    },
+    {
+      resolve: "./src/modules/payment-return-state",
+    },
+    {
+      resolve: "./src/modules/storefront-url-assignment",
+    },
     ...buildPaymentQrModules(env),
     buildEventBusModule(env),
     buildWorkflowEngineModule(env),

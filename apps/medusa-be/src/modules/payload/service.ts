@@ -402,8 +402,8 @@ export default class PayloadModuleService extends MedusaService({}) {
     }
   }
 
-  private buildArticleCacheKey(slug: string, locale?: string) {
-    return `${CMS}:${ARTICLES}:${ARTICLE_STORE_CACHE_VERSION}:${slug}:${locale ?? DEFAULT_LOCALE}`
+  private buildArticleCacheKey(slug: string, locale: string) {
+    return `${CMS}:${ARTICLES}:${ARTICLE_STORE_CACHE_VERSION}:${slug}:${locale}`
   }
 
   /**
@@ -411,19 +411,24 @@ export default class PayloadModuleService extends MedusaService({}) {
    */
   async getPublishedPage(
     slug: string,
-    locale?: string
+    locale: string
   ): Promise<CmsPageDTO | null> {
-    const cacheKey = `${CMS}:${PAGES}:${slug}:${locale ?? DEFAULT_LOCALE}`
+    const cacheKey = `${CMS}:${PAGES}:${slug}:${locale}`
     return this.getCached(
       cacheKey,
       async () => {
         const queryString = this.buildQuery({
           where: {
-            slug: { equals: slug },
-            status: { equals: STATUS_PUBLISHED },
+            and: [
+              { slug: { equals: slug } },
+              { title: { exists: true } },
+              { status: { equals: STATUS_PUBLISHED } },
+              { visibility: { equals: "public" } },
+            ],
           },
           limit: 1,
           locale,
+          "fallback-locale": "false",
         })
         const result = await this.makeRequest<PayloadBulkResult<CmsPageDTO>>(
           "GET",
@@ -449,22 +454,64 @@ export default class PayloadModuleService extends MedusaService({}) {
     )
   }
 
+  /** Fetch a published page by stable Payload document ID and locale. */
+  async getPublishedPageById(
+    id: string,
+    locale: string
+  ): Promise<CmsPageDTO | null> {
+    const cacheKey = `${CMS}:${PAGES}:id:${id}:${locale}`
+    return this.getCached(
+      cacheKey,
+      async () => {
+        const queryString = this.buildQuery({
+          where: {
+            and: [
+              { id: { equals: id } },
+              { title: { exists: true } },
+              { status: { equals: STATUS_PUBLISHED } },
+              { visibility: { equals: "public" } },
+            ],
+          },
+          limit: 1,
+          locale,
+          "fallback-locale": "false",
+        })
+        const result = await this.makeRequest<PayloadBulkResult<CmsPageDTO>>(
+          "GET",
+          `/${PAGES}${queryString}`,
+          undefined,
+          {
+            schema: CmsPagesBulkResultSchema,
+            headers: { [RETURN_HTML_HEADER]: "true" },
+          }
+        )
+        return result.docs[0] || null
+      },
+      this.contentCacheTtl_,
+      [CACHE_TAGS.ALL, CACHE_TAGS.PAGES]
+    )
+  }
+
   /**
    * List published public pages for search indexing.
    */
-  async listPublishedPages(options?: {
+  async listPublishedPages(options: {
     limit?: number
-    locale?: string
+    locale: string
     page?: number
   }): Promise<PayloadBulkResult<CmsPageDTO>> {
     const queryString = this.buildQuery({
       where: {
-        status: { equals: STATUS_PUBLISHED },
-        visibility: { equals: "public" },
+        and: [
+          { title: { exists: true } },
+          { status: { equals: STATUS_PUBLISHED } },
+          { visibility: { equals: "public" } },
+        ],
       },
-      limit: options?.limit ?? 100,
-      page: options?.page ?? 1,
-      locale: options?.locale,
+      limit: options.limit ?? 100,
+      page: options.page ?? 1,
+      locale: options.locale,
+      "fallback-locale": "false",
     })
 
     return this.makeRequest<PayloadBulkResult<CmsPageDTO>>(
@@ -518,7 +565,7 @@ export default class PayloadModuleService extends MedusaService({}) {
    */
   async getPublishedArticle(
     slug: string,
-    locale?: string
+    locale: string
   ): Promise<CmsStoreArticleDTO | null> {
     const cacheKey = this.buildArticleCacheKey(slug, locale)
     return this.getCached<CmsStoreArticleDTO | null>(
@@ -556,21 +603,64 @@ export default class PayloadModuleService extends MedusaService({}) {
     )
   }
 
+  /** Fetch a published article by stable Payload document ID and locale. */
+  async getPublishedArticleById(
+    id: string,
+    locale: string
+  ): Promise<CmsStoreArticleDTO | null> {
+    const cacheKey = `${CMS}:${ARTICLES}:id:${id}:${locale}`
+    return this.getCached(
+      cacheKey,
+      async () => {
+        const queryString = this.buildQuery({
+          where: {
+            and: [
+              { id: { equals: id } },
+              { title: { exists: true } },
+              { status: { equals: STATUS_PUBLISHED } },
+            ],
+          },
+          limit: 1,
+          locale,
+          "fallback-locale": "false",
+          depth: 2,
+          select: ARTICLE_STORE_SELECT,
+          populate: this.buildArticleStorePopulate(),
+        })
+        const result = await this.makeRequest<PayloadBulkResult<CmsArticleDTO>>(
+          "GET",
+          `/${ARTICLES}${queryString}`,
+          undefined,
+          { schema: CmsArticlesBulkResultSchema }
+        )
+        const article = result.docs[0]
+        return article ? toCmsStoreArticle(article) : null
+      },
+      this.contentCacheTtl_,
+      [CACHE_TAGS.ALL, CACHE_TAGS.ARTICLES]
+    )
+  }
+
   /**
    * List published articles for search indexing.
    */
-  async listPublishedArticles(options?: {
+  async listPublishedArticles(options: {
     limit?: number
-    locale?: string
+    locale: string
     page?: number
   }): Promise<PayloadBulkResult<CmsArticleDTO>> {
     const queryString = this.buildQuery({
       where: {
-        status: { equals: STATUS_PUBLISHED },
+        and: [
+          { slug: { exists: true } },
+          { title: { exists: true } },
+          { status: { equals: STATUS_PUBLISHED } },
+        ],
       },
-      limit: options?.limit ?? 100,
-      page: options?.page ?? 1,
-      locale: options?.locale,
+      limit: options.limit ?? 100,
+      page: options.page ?? 1,
+      locale: options.locale,
+      "fallback-locale": "false",
     })
 
     return this.makeRequest<PayloadBulkResult<CmsArticleDTO>>(

@@ -7,7 +7,7 @@ import {
   createMedusaSdk,
   type MedusaClientConfig,
 } from "@techsio/storefront-data/shared/medusa-client"
-import { resolveMedusaBackendUrl } from "./runtime-env"
+import { resolveClientMedusaGatewayBaseUrl } from "./client-medusa-gateway"
 
 export const AUTH_TOKEN_STORAGE_KEY = "herbatika_auth_token"
 export const AUTH_SESSION_LOGOUT_STORAGE_KEY = "herbatika_auth_session_logout"
@@ -15,9 +15,11 @@ export type StorefrontAuthMode = "jwt_localstorage" | "session_proxy"
 
 const DEFAULT_AUTH_MODE: StorefrontAuthMode = "session_proxy"
 
-const MEDUSA_BACKEND_URL = resolveMedusaBackendUrl()
-const MEDUSA_PUBLISHABLE_KEY =
-  process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""
+const CLIENT_MEDUSA_GATEWAY_URL = resolveClientMedusaGatewayBaseUrl(
+  typeof globalThis.location === "undefined"
+    ? undefined
+    : globalThis.location.origin
+)
 
 const resolveAuthMode = (): StorefrontAuthMode => {
   const rawMode =
@@ -42,12 +44,6 @@ const resolveAuthMode = (): StorefrontAuthMode => {
 
 export const STOREFRONT_AUTH_MODE = resolveAuthMode()
 export const isSessionProxyAuthMode = STOREFRONT_AUTH_MODE === "session_proxy"
-
-if (!MEDUSA_PUBLISHABLE_KEY && process.env.NODE_ENV !== "test") {
-  console.warn(
-    "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY is not set. Storefront requests may be rejected by Medusa."
-  )
-}
 
 let inMemoryAuthToken: string | null = null
 
@@ -82,10 +78,10 @@ export const broadcastAuthSessionLogout = () => {
 }
 
 const medusaClientConfig: MedusaClientConfig = {
-  baseUrl: MEDUSA_BACKEND_URL,
-  publishableKey: MEDUSA_PUBLISHABLE_KEY,
+  baseUrl: CLIENT_MEDUSA_GATEWAY_URL,
   debug: process.env.NODE_ENV === "development",
   auth: {
+    fetchCredentials: "same-origin",
     type: "jwt",
     jwtTokenStorageKey: AUTH_TOKEN_STORAGE_KEY,
     jwtTokenStorageMethod: isSessionProxyAuthMode ? "memory" : "local",
@@ -95,6 +91,5 @@ const medusaClientConfig: MedusaClientConfig = {
 export const storefrontSdk = createMedusaSdk(medusaClientConfig)
 
 export const storefrontConfig = {
-  backendUrl: MEDUSA_BACKEND_URL,
-  publishableKey: MEDUSA_PUBLISHABLE_KEY,
+  backendUrl: CLIENT_MEDUSA_GATEWAY_URL,
 }

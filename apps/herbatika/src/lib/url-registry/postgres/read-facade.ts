@@ -1,6 +1,7 @@
 import type { Market } from "@/lib/url/types"
 import type {
   ActiveEquivalenceLookup,
+  ActiveEntityRoutePageRequest,
   ActiveRouteTarget,
   EntityIdentityLookup,
   EntityRouteSnapshot,
@@ -22,6 +23,7 @@ import {
   findEntity,
   findEquivalents,
   getRouteSnapshot,
+  listActiveEntities,
   listStaticSnapshots,
 } from "./projection-read"
 import { resolveBatch, resolveOne } from "./resolution-read"
@@ -52,6 +54,16 @@ export class PostgresRegistryReads {
     SourceReadResult<Extract<ActiveRouteTarget, { projectionType: "entity" }>>
   > {
     return findActiveEntity(this.primary, input)
+  }
+
+  listActiveEntityRoutes(
+    input: ActiveEntityRoutePageRequest
+  ): Promise<
+    SourceReadResult<
+      UrlRegistryPage<Extract<ActiveRouteTarget, { projectionType: "entity" }>>
+    >
+  > {
+    return listActiveEntities(this.primary, input)
   }
 
   findEntityRoute(

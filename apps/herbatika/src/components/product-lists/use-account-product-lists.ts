@@ -2,12 +2,13 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { type FormEvent, useEffect, useState } from "react"
 import { useAppToast } from "@/hooks/use-app-toast"
 import { useAuth } from "@/lib/storefront/auth"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import {
   getProductListItems,
   isFavoriteProductList,
@@ -30,6 +31,7 @@ import {
   resolveAddProductToCartErrorMessage,
   useAddProductToCart,
 } from "@/lib/storefront/use-add-product-to-cart"
+import { buildPath, withPublicSearchParams } from "@/lib/url/public-url"
 import {
   buildProductMap,
   resolveProductListAvailabilitySummary,
@@ -93,7 +95,8 @@ export function useAccountProductLists() {
   const tCart = useTranslations("cart")
   const authQuery = useAuth()
   const region = useRegionContext()
-  const router = useRouter()
+  const { code: market } = useMarketContext()
+  const listsHref = buildPath({ kind: "account", section: "lists" }, market)
   const searchParams = useSearchParams()
   const toast = useAppToast()
   const [activeListId, setActiveListId] = useState<string | null>(null)
@@ -201,9 +204,7 @@ export function useAccountProductLists() {
 
   const selectList = (listId: string) => {
     setActiveListId(listId)
-    router.replace(`/account/lists?list=${encodeURIComponent(listId)}`, {
-      scroll: false,
-    })
+    window.location.replace(withPublicSearchParams(listsHref, { list: listId }))
   }
 
   const openCreateListDialog = () => {
@@ -437,7 +438,7 @@ export function useAccountProductLists() {
           selectList(nextList.id)
         } else {
           setActiveListId(null)
-          router.replace("/account/lists", { scroll: false })
+          window.location.replace(listsHref)
         }
       }
 

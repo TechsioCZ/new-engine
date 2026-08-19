@@ -14,6 +14,7 @@ import { CheckoutDetailsStepSection } from "@/components/checkout/sections/check
 import { CheckoutOrderSummarySection } from "@/components/checkout/sections/checkout-order-summary-section"
 import { CheckoutShippingPaymentStepSection } from "@/components/checkout/sections/checkout-shipping-payment-step-section"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { CheckoutInlineProductsSection } from "./sections/checkout-inline-products-section"
 
 type CheckoutStepContentProps = {
@@ -27,10 +28,14 @@ export function CheckoutStepContent({
 }: CheckoutStepContentProps) {
   const tCart = useTranslations("cart")
   const tCheckout = useTranslations("checkout")
-  const cartStepHref = resolveCheckoutStepHref("kosik")
-  const shippingStepHref = resolveCheckoutStepHref("doprava-platba")
-  const detailsStepHref = resolveCheckoutStepHref("udaje")
-  const summaryStepHref = resolveCheckoutStepHref("suhrn")
+  const marketContext = useMarketContext()
+  const cartStepHref = resolveCheckoutStepHref("kosik", marketContext.code)
+  const shippingStepHref = resolveCheckoutStepHref(
+    "doprava-platba",
+    marketContext.code
+  )
+  const detailsStepHref = resolveCheckoutStepHref("udaje", marketContext.code)
+  const summaryStepHref = resolveCheckoutStepHref("suhrn", marketContext.code)
   const selectedPaymentProviderId = controller.selectedPaymentProviderId
   const selectedShippingOption = controller.checkoutShippingQuery.selectedOption
   const selectedShippingLabel = selectedShippingOption?.name ?? undefined

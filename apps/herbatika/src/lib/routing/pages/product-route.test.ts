@@ -88,6 +88,7 @@ const resolve = (
   overrides: Partial<Parameters<typeof resolveProductRoute>[0]> = {}
 ) =>
   resolveProductRoute({
+    canonicalizationRequired: false,
     market: "sk",
     normalizedSlug: "current-product",
     rawQuery: "",
@@ -115,6 +116,20 @@ describe("resolveProductRoute", () => {
     })
   })
 
+  it("redirects directly to the current canonical URL when the trusted proxy requires canonicalization", async () => {
+    const result = await resolve(
+      { kind: "found", value: currentResolution() },
+      { kind: "found", value: sourceProduct() },
+      { canonicalizationRequired: true }
+    )
+
+    expect(result).toEqual({
+      kind: "redirect",
+      destination: "https://herbatica.sk/produkty/current-product",
+      statusCode: 308,
+    })
+  })
+
   it("composes an alias and noncanonical query into one direct 308", async () => {
     const currentRoute = route("prod-1")
     const resolution: UrlRegistryResolution = {
@@ -129,6 +144,7 @@ describe("resolveProductRoute", () => {
     })
 
     const result = await resolveProductRoute({
+      canonicalizationRequired: false,
       market: "sk",
       normalizedSlug: "old-product",
       rawQuery: "utm_source=test&variant=SKU-AbC-01&unknown=drop",
@@ -139,6 +155,7 @@ describe("resolveProductRoute", () => {
     expect(readProductById).toHaveBeenCalledWith({
       market: "sk",
       productId: "prod-1",
+      publicSlug: "current-product",
     })
     expect(result).toEqual({
       kind: "redirect",
@@ -215,6 +232,7 @@ describe("resolveProductRoute", () => {
     })
 
     const result = await resolveProductRoute({
+      canonicalizationRequired: false,
       market: "sk",
       normalizedSlug: "previous-product",
       rawQuery: "",
@@ -225,6 +243,7 @@ describe("resolveProductRoute", () => {
     expect(readProductById).toHaveBeenCalledWith({
       market: "sk",
       productId: "prod-new",
+      publicSlug: "successor-product",
     })
     expect(result).toEqual({
       kind: "redirect",
@@ -236,6 +255,7 @@ describe("resolveProductRoute", () => {
   it("maps missing and gone registry entries without reading Medusa", async () => {
     const missingReader = createSourceReader({ kind: "missing" })
     const missing = await resolveProductRoute({
+      canonicalizationRequired: false,
       market: "sk",
       normalizedSlug: "missing-product",
       rawQuery: "",
@@ -244,6 +264,7 @@ describe("resolveProductRoute", () => {
     })
     const goneReader = createSourceReader({ kind: "missing" })
     const gone = await resolveProductRoute({
+      canonicalizationRequired: false,
       market: "sk",
       normalizedSlug: "retired-product",
       rawQuery: "",

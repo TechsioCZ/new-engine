@@ -144,7 +144,8 @@ export const prepareAccountSetupStep = createStep(
     const resetUrl = buildAccountSetupUrl(
       email,
       token,
-      marketContext.storefront_base_url
+      marketContext.storefront_base_url,
+      marketContext.market_code
     )
 
     const authIdentityId = await ensureEmailPassAuthIdentity({

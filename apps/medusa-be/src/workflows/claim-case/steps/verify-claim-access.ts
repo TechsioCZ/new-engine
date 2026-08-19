@@ -1,4 +1,5 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto"
+import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -79,7 +80,7 @@ export const verifyClaimAccessStep = createStep(
       verified_at: verifiedAt,
     })
 
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const { data } = await query.graph({
       entity: "order",
       fields: [

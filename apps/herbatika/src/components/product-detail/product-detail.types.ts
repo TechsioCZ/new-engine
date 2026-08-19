@@ -5,7 +5,11 @@ import type { IconType } from "@techsio/ui-kit/atoms/icon"
 export type Product = HttpTypes.StoreProduct
 
 type ProductDetailBaseProps = {
+  brandPublicSlugsById?: Readonly<Record<string, string>>
+  categoryPublicSlugsById?: Readonly<Record<string, string>>
   initialVariantId?: string
+  productPublicSlugsById?: Readonly<Record<string, string>>
+  publicSlug?: string | null
 }
 
 export type ProductDetailProps = ProductDetailBaseProps &

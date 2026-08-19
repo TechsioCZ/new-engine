@@ -441,6 +441,15 @@ preview_runtime_reconciliation:
         kind: service_public_origin
         service_id: medusa-minio
 
+    # Preview lifecycle delivery must stay inside the preview environment if
+    # the producer is deliberately enabled there later.
+    - service_id: medusa-be
+      env_var: URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN
+      source:
+        kind: service_internal_origin
+        service_id: herbatika
+        port: 3000
+
 preview_verification:
   forbidden_service_env:
     - service_id: medusa-valkey
@@ -576,6 +585,10 @@ preview_verification:
         - ZANE_PASSWORD
 
 bootstrap_zane_project:
+  # Zane's public-URL API exposes only domain/base-path/port routing. It does
+  # not expose the managed Caddy raw-request or request-header policy. Keep the
+  # Docker Caddy contract in the M00 wire gate and run the target wire gate
+  # against every Zane environment before enabling the URL architecture.
   additional_public_urls:
     - service_id: herbatika
       domain: test-engine-herbatika-ro-zane.web-revolution.cz
@@ -901,6 +914,411 @@ bootstrap_zane_project:
           env_var: PAYLOAD_SSO_ALG
         - service_id: payload
           env_var: PAYLOAD_SSO_ALG
+
+    # Issue #545 URL architecture bootstrap. Every gate is disabled by
+    # default. Promotion is manual and ordered: registry -> commands/lifecycle
+    # producers -> product resolver -> full public resolver.
+    - key: URL_REGISTRY_ENABLED
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_URL_REGISTRY_ENABLED
+        default_value: "0"
+      service_targets:
+        - service_id: herbatika
+          env_var: URL_REGISTRY_ENABLED
+
+    - key: URL_REGISTRY_DATABASE_URL
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_URL_REGISTRY_DATABASE_URL
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: URL_REGISTRY_DATABASE_URL
+
+    - key: URL_REGISTRY_COMMANDS_ENABLED
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_URL_REGISTRY_COMMANDS_ENABLED
+        default_value: "0"
+      service_targets:
+        - service_id: herbatika
+          env_var: URL_REGISTRY_COMMANDS_ENABLED
+
+    - key: URL_REGISTRY_ADMIN_TOKEN
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_URL_REGISTRY_ADMIN_TOKEN
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: URL_REGISTRY_ADMIN_TOKEN
+
+    - key: URL_REGISTRY_INVALIDATION_ENABLED
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_URL_REGISTRY_INVALIDATION_ENABLED
+        default_value: "0"
+      service_targets:
+        - service_id: herbatika
+          env_var: URL_REGISTRY_INVALIDATION_ENABLED
+
+    - key: URL_REGISTRY_INVALIDATION_TOKEN
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_URL_REGISTRY_INVALIDATION_TOKEN
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: URL_REGISTRY_INVALIDATION_TOKEN
+
+    - key: URL_REGISTRY_INVALIDATION_DISPATCH_ENABLED
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_URL_REGISTRY_INVALIDATION_DISPATCH_ENABLED
+        default_value: "0"
+      service_targets:
+        - service_id: herbatika
+          env_var: URL_REGISTRY_INVALIDATION_DISPATCH_ENABLED
+
+    - key: URL_REGISTRY_INVALIDATION_DISPATCH_ORIGIN
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_URL_REGISTRY_INVALIDATION_DISPATCH_ORIGIN
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: URL_REGISTRY_INVALIDATION_DISPATCH_ORIGIN
+
+    - key: URL_REGISTRY_CONTENT_PROJECTION_ENABLED
+      source:
+        kind: local_env
+        env_var: DC_URL_REGISTRY_CONTENT_PROJECTION_ENABLED
+        default_value: "0"
+      service_targets:
+        - service_id: medusa-be
+          env_var: URL_REGISTRY_CONTENT_PROJECTION_ENABLED
+        - service_id: herbatika
+          env_var: URL_REGISTRY_CONTENT_PROJECTION_ENABLED
+
+    - key: URL_REGISTRY_CONTENT_PROJECTION_URL
+      source:
+        kind: local_env
+        env_var: DC_URL_REGISTRY_CONTENT_PROJECTION_URL
+        default_value: http://{{env.HERBATIKA_NETWORK_HOST}}:3000/api/internal/url-registry/content-projections
+      service_targets:
+        - service_id: medusa-be
+          env_var: URL_REGISTRY_CONTENT_PROJECTION_URL
+
+    - key: URL_REGISTRY_CONTENT_PROJECTION_TOKEN
+      source:
+        kind: local_env
+        env_var: DC_URL_REGISTRY_CONTENT_PROJECTION_TOKEN
+        default_value: ""
+      service_targets:
+        - service_id: medusa-be
+          env_var: URL_REGISTRY_CONTENT_PROJECTION_TOKEN
+        - service_id: herbatika
+          env_var: URL_REGISTRY_CONTENT_PROJECTION_TOKEN
+
+    - key: URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED
+      source:
+        kind: local_env
+        env_var: DC_URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED
+        default_value: "0"
+      service_targets:
+        - service_id: medusa-be
+          env_var: URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED
+        - service_id: herbatika
+          env_var: URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED
+
+    - key: URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN
+      source:
+        kind: local_env
+        env_var: DC_URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN
+        default_value: ""
+      service_targets:
+        - service_id: medusa-be
+          env_var: URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN
+        - service_id: herbatika
+          env_var: URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN
+
+    - key: HERBATIKA_NETWORK_HOST
+      source:
+        kind: service_network_alias
+        service_id: herbatika
+
+    - key: URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN
+      source:
+        kind: local_env
+        env_var: DC_URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN
+        default_value: http://{{env.HERBATIKA_NETWORK_HOST}}:3000
+      service_targets:
+        - service_id: medusa-be
+          env_var: URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN
+
+    - key: URL_REGISTRY_PRODUCT_LIFECYCLE_DISPATCH_SCHEDULE
+      source:
+        kind: local_env
+        env_var: DC_URL_REGISTRY_PRODUCT_LIFECYCLE_DISPATCH_SCHEDULE
+        default_value: "* * * * *"
+      service_targets:
+        - service_id: medusa-be
+          env_var: URL_REGISTRY_PRODUCT_LIFECYCLE_DISPATCH_SCHEDULE
+
+    - key: URL_PRODUCT_RESOLVER_ENABLED
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_URL_PRODUCT_RESOLVER_ENABLED
+        default_value: "0"
+      service_targets:
+        - service_id: herbatika
+          env_var: URL_PRODUCT_RESOLVER_ENABLED
+
+    - key: URL_ARCHITECTURE_M00_ENABLED
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_URL_ARCHITECTURE_M00_ENABLED
+        default_value: "0"
+      service_targets:
+        - service_id: herbatika
+          env_var: URL_ARCHITECTURE_M00_ENABLED
+
+    - key: URL_ARCHITECTURE_ENABLED
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_URL_ARCHITECTURE_ENABLED
+        default_value: "0"
+      service_targets:
+        - service_id: herbatika
+          env_var: URL_ARCHITECTURE_ENABLED
+
+    # The four-market runtime authority is server-only. Values without safe
+    # defaults stay empty and must be supplied from the deployment environment.
+    - key: ALLOWED_MARKETS
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_ALLOWED_MARKETS
+        default_value: sk,cz,hu,ro
+      service_targets:
+        - service_id: herbatika
+          env_var: ALLOWED_MARKETS
+
+    - key: MARKET_ACCEPTED_HOSTS_SK
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_SK
+        default_value: herbatica.sk
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_ACCEPTED_HOSTS_SK
+
+    - key: MARKET_ACCEPTED_HOSTS_CZ
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_CZ
+        default_value: herbatica.cz
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_ACCEPTED_HOSTS_CZ
+
+    - key: MARKET_ACCEPTED_HOSTS_HU
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_HU
+        default_value: herbatica.hu
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_ACCEPTED_HOSTS_HU
+
+    - key: MARKET_ACCEPTED_HOSTS_RO
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_RO
+        default_value: herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_ACCEPTED_HOSTS_RO
+
+    - key: HERBATIKA_ACCEPTED_HOSTS_SK
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_ACCEPTED_HOSTS_SK
+        default_value: herbatica.sk
+      service_targets:
+        - service_id: herbatika
+          env_var: HERBATIKA_ACCEPTED_HOSTS_SK
+
+    - key: HERBATIKA_ACCEPTED_HOSTS_CZ
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_ACCEPTED_HOSTS_CZ
+        default_value: herbatica.cz
+      service_targets:
+        - service_id: herbatika
+          env_var: HERBATIKA_ACCEPTED_HOSTS_CZ
+
+    - key: HERBATIKA_ACCEPTED_HOSTS_HU
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_ACCEPTED_HOSTS_HU
+        default_value: herbatica.hu
+      service_targets:
+        - service_id: herbatika
+          env_var: HERBATIKA_ACCEPTED_HOSTS_HU
+
+    - key: HERBATIKA_ACCEPTED_HOSTS_RO
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_ACCEPTED_HOSTS_RO
+        default_value: herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz
+      service_targets:
+        - service_id: herbatika
+          env_var: HERBATIKA_ACCEPTED_HOSTS_RO
+
+    - key: MARKET_PUBLISHABLE_KEY_SK
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_PUBLISHABLE_KEY_SK
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_PUBLISHABLE_KEY_SK
+
+    - key: MARKET_PUBLISHABLE_KEY_CZ
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_PUBLISHABLE_KEY_CZ
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_PUBLISHABLE_KEY_CZ
+
+    - key: MARKET_PUBLISHABLE_KEY_HU
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_PUBLISHABLE_KEY_HU
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_PUBLISHABLE_KEY_HU
+
+    - key: MARKET_PUBLISHABLE_KEY_RO
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_PUBLISHABLE_KEY_RO
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_PUBLISHABLE_KEY_RO
+
+    - key: MARKET_PUBLISHABLE_KEY_ID_SK
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_PUBLISHABLE_KEY_ID_SK
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_PUBLISHABLE_KEY_ID_SK
+
+    - key: MARKET_PUBLISHABLE_KEY_ID_CZ
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_PUBLISHABLE_KEY_ID_CZ
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_PUBLISHABLE_KEY_ID_CZ
+
+    - key: MARKET_PUBLISHABLE_KEY_ID_HU
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_PUBLISHABLE_KEY_ID_HU
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_PUBLISHABLE_KEY_ID_HU
+
+    - key: MARKET_PUBLISHABLE_KEY_ID_RO
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_PUBLISHABLE_KEY_ID_RO
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_PUBLISHABLE_KEY_ID_RO
+
+    - key: MARKET_REGION_SK
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_REGION_SK
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_REGION_SK
+
+    - key: MARKET_REGION_CZ
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_REGION_CZ
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_REGION_CZ
+
+    - key: MARKET_REGION_HU
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_REGION_HU
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_REGION_HU
+
+    - key: MARKET_REGION_RO
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_REGION_RO
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_REGION_RO
+
+    - key: MARKET_SALES_CHANNEL_SK
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_SALES_CHANNEL_SK
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_SALES_CHANNEL_SK
+
+    - key: MARKET_SALES_CHANNEL_CZ
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_SALES_CHANNEL_CZ
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_SALES_CHANNEL_CZ
+
+    - key: MARKET_SALES_CHANNEL_HU
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_SALES_CHANNEL_HU
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_SALES_CHANNEL_HU
+
+    - key: MARKET_SALES_CHANNEL_RO
+      source:
+        kind: local_env
+        env_var: DC_HERBATIKA_MARKET_SALES_CHANNEL_RO
+        default_value: ""
+      service_targets:
+        - service_id: herbatika
+          env_var: MARKET_SALES_CHANNEL_RO
 
 service_reconciliation:
   services:

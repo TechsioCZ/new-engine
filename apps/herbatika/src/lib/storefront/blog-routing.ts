@@ -1,3 +1,5 @@
+import { buildPath } from "@/lib/url/public-url"
+import type { Market } from "@/lib/url/types"
 import { serializeBlogQueryState } from "./blog-query-state"
 
 type BlogListingUrlInput = {
@@ -14,8 +16,10 @@ const resolveBlogListingUrl = (
     page,
   })
 
-export const resolveBlogListingHref = (input: BlogListingUrlInput) =>
-  resolveBlogListingUrl("/blog", input)
+export const resolveBlogListingHref = (
+  market: Market,
+  input: BlogListingUrlInput
+) => resolveBlogListingUrl(buildPath({ kind: "article" }, market), input)
 
 export const resolveBlogListingApiHref = (input: BlogListingUrlInput) =>
   resolveBlogListingUrl("/api/blog", input)

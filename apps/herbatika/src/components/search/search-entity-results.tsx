@@ -1,7 +1,7 @@
 "use client"
 
 import { Link } from "@techsio/ui-kit/atoms/link"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import type {
   SearchAutocompleteResponse,
   SearchAutocompleteSuggestion,
@@ -34,7 +34,7 @@ function SearchEntityResultSection({
         {items.map((item) => (
           <li key={`${item.type}-${item.id}`}>
             <Link
-              as={NextLink}
+              as={StorefrontLink}
               className="group flex h-full min-w-0 items-center gap-300 rounded-lg border border-border-secondary bg-surface px-400 py-250 text-fg-primary shadow-sm transition-colors hover:border-primary/30 hover:bg-fill-secondary"
               href={item.href}
             >

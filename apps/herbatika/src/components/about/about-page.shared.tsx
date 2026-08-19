@@ -1,6 +1,8 @@
 import type { StaticImageData } from "next/image"
 import NextImage from "next/image"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildPath } from "@/lib/url/public-url"
 import type { AboutParagraph } from "./about-page.data"
 
 export type AboutImage = {
@@ -18,25 +20,31 @@ const textLinkClassName =
 const isExternalHref = (href: string) => href.startsWith("http")
 
 export function AboutRichText({ content }: { content: AboutParagraph }) {
+  const market = useMarketContext().code
+
   if (typeof content === "string") {
     return content
   }
 
-  return content.map((part, index) => {
+  return content.map((part) => {
     if (typeof part === "string") {
       return part
     }
 
-    return (
-      <NextLink
+    const href = part.target ? buildPath(part.target, market) : part.href
+
+    return href ? (
+      <StorefrontLink
         className={textLinkClassName}
-        href={part.href}
-        key={`${part.href}-${index}`}
-        rel={isExternalHref(part.href) ? "noreferrer noopener" : undefined}
-        target={isExternalHref(part.href) ? "_blank" : undefined}
+        href={href}
+        key={`${href}-${part.label}`}
+        rel={isExternalHref(href) ? "noreferrer noopener" : undefined}
+        target={isExternalHref(href) ? "_blank" : undefined}
       >
         {part.label}
-      </NextLink>
+      </StorefrontLink>
+    ) : (
+      <span key={part.label}>{part.label}</span>
     )
   })
 }

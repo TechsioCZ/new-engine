@@ -94,16 +94,12 @@ const XML_ENTITY_MAP: Record<string, string> = {
   "&amp;": "&",
   "&nbsp;": " ",
 }
-const MAX_UNICODE_CODE_POINT = 0x10ffff
+const MAX_UNICODE_CODE_POINT = 0x10_ff_ff
 const XML_FETCH_TIMEOUT_MS = 15_000
 
-const decodeNumericEntity = (
-  match: string,
-  value: string,
-  radix: number
-) => {
+const decodeNumericEntity = (match: string, value: string, radix: number) => {
   const codePoint = Number.parseInt(value, radix)
-  const isSurrogate = codePoint >= 0xd800 && codePoint <= 0xdfff
+  const isSurrogate = codePoint >= 0xd8_00 && codePoint <= 0xdf_ff
   return Number.isInteger(codePoint) &&
     codePoint >= 0 &&
     codePoint <= MAX_UNICODE_CODE_POINT &&
@@ -533,8 +529,14 @@ const createHeroCarouselSeed = async (
     image: mediaId,
     heading: "Herbatica",
     subheading: "Starter CMS content",
-    button: "Browse products",
-    buttonHref: "/",
+    button: "About Herbatica",
+    buttonTarget: {
+      targetType: "static",
+      sourceSystem: null,
+      sourceType: null,
+      sourceId: null,
+      staticRouteKey: "root:about",
+    },
     translationSync: false,
   }
   const existing = await findOne(payload, "hero-carousels", {

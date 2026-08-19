@@ -3,19 +3,19 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Footer } from "@techsio/ui-kit/organisms/footer"
-import type { Route } from "next"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildPath, type PublicRouteTarget } from "@/lib/url/public-url"
 import { HerbatikaLogo } from "./herbatika-logo"
 
 type FooterNavigationLink =
   | {
-      href: Route
       labelKey: string
       external?: false
+      target: PublicRouteTarget
     }
   | {
       href: `https://${string}`
@@ -28,8 +28,6 @@ type FooterColumn = {
   links: readonly FooterNavigationLink[]
 }
 
-const giftVoucherHref = "/c/darceky" as Route
-const brandListingHref = "/znacka" as Route
 const formatMarketDomain = (domain: string) =>
   `${domain.charAt(0).toUpperCase()}${domain.slice(1)}`
 
@@ -37,16 +35,21 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
   {
     titleKey: "footer.columns.information.title",
     links: [
-      { href: "/blog", labelKey: "footer.columns.information.blog" },
-      { href: "/o-nas", labelKey: "footer.columns.information.about" },
-      { href: "/faq", labelKey: "footer.columns.information.faq" },
       {
-        href: giftVoucherHref,
-        labelKey: "footer.columns.information.gift_voucher",
+        labelKey: "footer.columns.information.blog",
+        target: { kind: "article" },
       },
       {
-        href: brandListingHref,
+        labelKey: "footer.columns.information.about",
+        target: { kind: "static", page: "about" },
+      },
+      {
+        labelKey: "footer.columns.information.faq",
+        target: { kind: "static", page: "faq" },
+      },
+      {
         labelKey: "footer.columns.information.brands",
+        target: { kind: "brand" },
       },
       {
         href: "https://obchody.heureka.sk/herbatica-sk/recenze/",
@@ -59,45 +62,24 @@ const FOOTER_COLUMNS: readonly FooterColumn[] = [
     titleKey: "footer.columns.important.title",
     links: [
       {
-        href: "/#doprava-a-platby",
         labelKey: "footer.columns.important.shipping_payment",
+        target: { kind: "static", page: "shipping" },
       },
       {
-        href: "/#reklamacia-a-vratenie",
         labelKey: "footer.columns.important.claims_returns",
+        target: { kind: "static", page: "returns" },
       },
       {
-        href: "/#obchodne-podmienky",
         labelKey: "footer.columns.important.terms",
+        target: { kind: "static", page: "terms" },
       },
       {
-        href: "/#ochrana-osobnych-udajov",
         labelKey: "footer.columns.important.privacy",
+        target: { kind: "static", page: "privacy" },
       },
       {
-        href: "/#cookies",
         labelKey: "footer.columns.important.cookies",
-      },
-    ],
-  },
-  {
-    titleKey: "footer.columns.partners.title",
-    links: [
-      {
-        href: "/#affiliate",
-        labelKey: "footer.columns.partners.affiliate",
-      },
-      {
-        href: "/#velkoobchod",
-        labelKey: "footer.columns.partners.wholesale",
-      },
-      {
-        href: "/#dropshipping",
-        labelKey: "footer.columns.partners.dropshipping",
-      },
-      {
-        href: "/#private-label",
-        labelKey: "footer.columns.partners.private_label",
+        target: { kind: "static", page: "cookies" },
       },
     ],
   },
@@ -192,13 +174,16 @@ export function HerbatikaFooter({
             </Footer.Title>
             <Footer.List>
               {column.links.map((link) => (
-                <li key={link.href}>
+                <li key={link.labelKey}>
                   {link.external ? (
                     <Footer.Link external href={link.href}>
                       {t(link.labelKey)}
                     </Footer.Link>
                   ) : (
-                    <Footer.Link as={NextLink} href={link.href}>
+                    <Footer.Link
+                      as={StorefrontLink}
+                      href={buildPath(link.target, marketContext.code)}
+                    >
                       {t(link.labelKey)}
                     </Footer.Link>
                   )}
@@ -248,9 +233,12 @@ export function HerbatikaFooter({
             year: new Date().getFullYear(),
           })}{" "}
           <Footer.Link
-            as={NextLink}
+            as={StorefrontLink}
             className="text-primary underline"
-            href="/#cookies"
+            href={buildPath(
+              { kind: "static", page: "cookies" },
+              marketContext.code
+            )}
           >
             {t("footer.cookie_settings")}
           </Footer.Link>

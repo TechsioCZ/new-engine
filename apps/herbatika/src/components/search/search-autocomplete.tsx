@@ -4,10 +4,11 @@ import { SearchForm } from "@techsio/ui-kit/molecules/search-form"
 import { useTranslations } from "next-intl"
 import type { FormEvent } from "react"
 import { SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH } from "@/lib/search-autocomplete/search-autocomplete-types"
+import type { SearchPublicSlugMaps } from "./public-search-suggestions"
 import { SearchAutocompletePanel } from "./search-autocomplete-panel"
 import { useSearchAutocompleteController } from "./use-search-autocomplete-controller"
 
-type SearchAutocompleteProps = {
+type SearchAutocompleteProps = SearchPublicSlugMaps & {
   countryCode?: string
   currencyCode: string
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
@@ -16,18 +17,26 @@ type SearchAutocompleteProps = {
 }
 
 export function SearchAutocomplete({
+  articlePublicSlugsById,
+  brandPublicSlugsById,
+  categoryPublicSlugsById,
   countryCode,
   currencyCode,
   onSubmit,
+  productPublicSlugsById,
   regionId,
   variant,
 }: SearchAutocompleteProps) {
   const t = useTranslations("search")
   const isMobile = variant === "mobile"
   const controller = useSearchAutocompleteController({
+    articlePublicSlugsById,
+    brandPublicSlugsById,
+    categoryPublicSlugsById,
     countryCode,
     currencyCode,
     onSubmit,
+    productPublicSlugsById,
     regionId,
   })
 

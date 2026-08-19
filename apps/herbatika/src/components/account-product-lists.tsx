@@ -3,14 +3,16 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { AccountSurface } from "@/components/account/account-surface"
 import { AddListDialog } from "@/components/product-lists/add-list-dialog"
 import { ProductListTabs } from "@/components/product-lists/product-list-tabs"
 import { RemoveListDialog } from "@/components/product-lists/remove-list-dialog"
 import { useAccountProductLists } from "@/components/product-lists/use-account-product-lists"
+import { StorefrontLink } from "@/components/storefront-link"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildPath } from "@/lib/url/public-url"
 
 function ProductListsEmptyState({
   onCreateList,
@@ -18,6 +20,8 @@ function ProductListsEmptyState({
   onCreateList: () => void
 }) {
   const tAuth = useTranslations("auth")
+  const { code: market } = useMarketContext()
+  const productsHref = buildPath({ kind: "product" }, market)
 
   return (
     <div className="space-y-300 rounded-md border border-border-secondary p-400">
@@ -34,7 +38,12 @@ function ProductListsEmptyState({
         >
           {tAuth("product_lists.new_list")}
         </Button>
-        <LinkButton as={NextLink} href="/" size="sm" variant="secondary">
+        <LinkButton
+          as={StorefrontLink}
+          href={productsHref}
+          size="sm"
+          variant="secondary"
+        >
           {tAuth("product_lists.browse_products")}
         </LinkButton>
       </div>
@@ -42,7 +51,13 @@ function ProductListsEmptyState({
   )
 }
 
-export function AccountProductLists() {
+type AccountProductListsProps = {
+  publicProductSlugs?: Readonly<Record<string, string | null | undefined>>
+}
+
+export function AccountProductLists({
+  publicProductSlugs,
+}: AccountProductListsProps) {
   const tAuth = useTranslations("auth")
   const accountLists = useAccountProductLists()
 
@@ -95,7 +110,10 @@ export function AccountProductLists() {
           onCreateList={accountLists.openCreateListDialog}
         />
       ) : (
-        <ProductListTabs accountLists={accountLists} />
+        <ProductListTabs
+          accountLists={accountLists}
+          publicProductSlugs={publicProductSlugs}
+        />
       )}
     </AccountSurface>
   )

@@ -124,7 +124,9 @@ describe("prepareCustomerAccountDeactivationRequestStep", () => {
       ...marketContext,
       confirmation_url: [
         marketContext.storefront_base_url,
-        "/account/deactivate/confirm?token=token%2Fwith%2Bsymbols",
+        marketContext.market_code === "sk"
+          ? "/ucet/zrusenie-uctu?token=token%2Fwith%2Bsymbols"
+          : "/ucet/zruseni-uctu?token=token%2Fwith%2Bsymbols",
       ].join(""),
       customer_id: "cus_1",
       customer_name: "Test Customer",

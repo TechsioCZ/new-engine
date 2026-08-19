@@ -74,6 +74,13 @@ export type EntityIdentityLookup = Readonly<{
   sourceId: string
 }>
 
+export type ActiveEntityRoutePageRequest = Readonly<{
+  cursor?: string
+  kind: EntityUrlKind
+  limit: number
+  market: Market
+}>
+
 export type ActiveEquivalenceLookup = Readonly<{
   kind: UrlRouteKind
   equivalenceKey: string

@@ -6,20 +6,39 @@ import { CatalogListingShell } from "@/components/catalog-listing-shell"
 import { CategoryFacetsPanel } from "@/components/category/category-facets-panel"
 import { CategoryResultsSection } from "@/components/category/category-results-section"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
+import { buildPath } from "@/lib/url/public-url"
 import { SearchEntityResults } from "./search/search-entity-results"
 import { useSearchAutocomplete } from "./search/use-search-autocomplete"
 import { useSearchListingController } from "./search/use-search-listing-controller"
 
-export function SearchResults() {
+type SearchResultsProps = {
+  articlePublicSlugsById?: Readonly<Record<string, string>>
+  brandPublicSlugsById?: Readonly<Record<string, string>>
+  categoryPublicSlugsById?: Readonly<Record<string, string>>
+  productPublicSlugsById?: Readonly<Record<string, string>>
+}
+
+export function SearchResults({
+  articlePublicSlugsById,
+  brandPublicSlugsById,
+  categoryPublicSlugsById,
+  productPublicSlugsById,
+}: SearchResultsProps) {
   const t = useTranslations("search")
-  const controller = useSearchListingController()
+  const { code: market } = useMarketContext()
+  const controller = useSearchListingController({ productPublicSlugsById })
   const safeTotalPages = Math.max(controller.catalogQuery.totalPages, 1)
   const autocomplete = useSearchAutocomplete({
+    articlePublicSlugsById,
+    brandPublicSlugsById,
+    categoryPublicSlugsById,
     countryCode: controller.searchCountryCode,
     query: controller.query,
     currencyCode: controller.productsCurrencyCode,
     enabled: controller.isSearchQueryEnabled,
+    productPublicSlugsById,
     regionId: controller.searchRegionId,
   })
 
@@ -100,6 +119,8 @@ export function SearchResults() {
                   onSortChange={controller.onSortChange}
                   page={controller.page}
                   pageSize={PLP_PAGE_SIZE}
+                  paginationBasePath={buildPath({ kind: "search" }, market)}
+                  productPublicSlugsById={controller.productPublicSlugsById}
                   products={controller.products}
                   showCategoryNotFound={false}
                   totalCount={controller.catalogQuery.totalCount}

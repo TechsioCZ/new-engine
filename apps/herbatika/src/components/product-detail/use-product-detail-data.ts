@@ -38,6 +38,7 @@ import {
 } from "@/components/product-detail/utils/metadata-parsers"
 import { resolvePriceState } from "@/components/product-detail/utils/pricing-utils"
 import { useAuth } from "@/lib/storefront/auth"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import {
   mergeWarrantyIntoProductContentSections,
   resolveProductWarranty,
@@ -51,21 +52,28 @@ import { storefront } from "@/lib/storefront/storefront"
 import { useVolumeDiscountTiers } from "@/lib/storefront/volume-discounts"
 
 type UseProductDetailDataProps = {
+  brandPublicSlugsById?: Readonly<Record<string, string>>
+  categoryPublicSlugsById?: Readonly<Record<string, string>>
   handle: string
   initialProduct?: Product
   initialVariantId?: string
+  productPublicSlugsById?: Readonly<Record<string, string>>
 }
 
 export function useProductDetailData({
+  brandPublicSlugsById,
+  categoryPublicSlugsById,
   handle,
   initialProduct,
   initialVariantId,
+  productPublicSlugsById,
 }: UseProductDetailDataProps) {
   const locale = useLocale()
   const tCatalog = useTranslations("catalog")
   const tNavigation = useTranslations("navigation")
   const authQuery = useAuth()
   const region = useRegionContext()
+  const { code: market } = useMarketContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const [quantity, setQuantity] = useState(1)
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
@@ -257,17 +265,21 @@ export function useProductDetailData({
   useProductDetailDebugLog(product)
   useRecordRecentlyVisitedProduct(product)
 
-  const breadcrumbItems = resolveProductBreadcrumbItems(
+  const breadcrumbItems = resolveProductBreadcrumbItems({
+    categoryPublicSlugsById: categoryPublicSlugsById ?? {},
+    handle,
+    homeLabel: tNavigation("breadcrumbs.home"),
+    market,
     productCategories,
     product,
-    handle,
-    tNavigation("breadcrumbs.home")
-  )
+  })
   const freeShippingThresholdLabel =
     resolveFreeShippingThresholdLabel(currentCurrencyCode)
 
   return {
     breadcrumbItems,
+    brandPublicSlugsById,
+    categoryPublicSlugsById,
     canAddToCart,
     currentAmountLabel,
     defaultInfoSectionValue: productContentSections[0]?.key ?? "description",
@@ -282,6 +294,7 @@ export function useProductDetailData({
     productCategories,
     productContentSections,
     productHighlights,
+    productPublicSlugsById,
     locationAvailabilityState,
     productQuery,
     quantity,

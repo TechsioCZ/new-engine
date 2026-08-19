@@ -2,7 +2,7 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Label } from "@techsio/ui-kit/atoms/label"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useTranslations } from "next-intl"
 import { useMemo } from "react"
 import { useAppToast } from "@/hooks/use-app-toast"
@@ -77,13 +77,13 @@ export const LoginForm = ({
         <div className="flex flex-col gap-form-field-gap">
           <div className="flex items-center justify-between gap-200">
             <Label htmlFor="login-password">{tAuth("password")}</Label>
-            <NextLink
+            <StorefrontLink
               className="font-normal text-fg-secondary text-sm underline-offset-4 transition-colors hover:text-primary hover:underline"
               href={forgotPasswordHref}
               onMouseDown={(e) => e.preventDefault()}
             >
               {tAuth("login.forgot_password")}
-            </NextLink>
+            </StorefrontLink>
           </div>
           <form.AppField name="password" validators={loginValidators.password}>
             {(field) => (

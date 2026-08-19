@@ -8,6 +8,7 @@ import {
 } from "@medusajs/framework/workflows-sdk"
 import { resolveCustomerNotificationMarketContext } from "../utils/customer-notification-market-context"
 import { resolveNotificationMarketContext } from "../utils/notification-market-context"
+import { buildStorefrontPublicFlowUrl } from "../utils/storefront-public-flow-url"
 import { sendNotificationStep } from "./steps/send-notification"
 
 type WorkflowInput = {
@@ -15,8 +16,6 @@ type WorkflowInput = {
   storefrontMarketCode?: string
   token: string
 }
-
-const TRAILING_SLASH_REGEX = /\/+$/
 
 const buildForgotPasswordNotificationStep = createStep(
   "build-forgot-password-notification",
@@ -44,22 +43,18 @@ const buildForgotPasswordNotificationStep = createStep(
           countryCode: storefrontMarketCode,
         })
       : await resolveCustomerNotificationMarketContext(container, { email })
-    const baseUrl = marketContext.storefront_base_url.replace(
-      TRAILING_SLASH_REGEX,
-      ""
-    )
-    const resetUrl = [
-      baseUrl,
-      "/auth/reset-password?token=",
-      encodeURIComponent(token),
-      "&email=",
-      encodeURIComponent(email),
-    ].join("")
+    const resetUrl = buildStorefrontPublicFlowUrl({
+      marketCode: marketContext.market_code,
+      storefrontBaseUrl: marketContext.storefront_base_url,
+      target: { kind: "account", section: "resetPassword" },
+    })
+    resetUrl.searchParams.set("token", token)
+    resetUrl.searchParams.set("email", email)
     const notification: CreateNotificationDTO = {
       channel: "email",
       data: {
         ...marketContext,
-        reset_url: resetUrl,
+        reset_url: resetUrl.toString(),
       },
       template: "user-forgotpwd",
       to: email,

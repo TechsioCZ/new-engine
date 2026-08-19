@@ -97,10 +97,6 @@ describe("send account setup steps", () => {
       storefront_base_url: "https://herbatica.sk",
       storefront_domain: "herbatica.sk",
     })
-    vi.stubEnv(
-      "ACCOUNT_SETUP_URL_TEMPLATE",
-      "https://legacy.example.test/customer/activate?token={TOKEN}&email={EMAIL}&source=checkout"
-    )
     vi.stubEnv("JWT_SECRET", "test-jwt-secret")
   })
 
@@ -144,7 +140,7 @@ describe("send account setup steps", () => {
       market_code: "sk",
       order_id: "order_1",
       reset_url:
-        "https://herbatica.sk/customer/activate?token=account-token&email=customer%40example.test&source=checkout&flow=account-setup",
+        "https://herbatica.sk/ucet/obnova-hesla?token=account-token&email=customer%40example.test&flow=account-setup",
       sales_channel_id: "sc_sk",
       storefront_base_url: "https://herbatica.sk",
       storefront_domain: "herbatica.sk",

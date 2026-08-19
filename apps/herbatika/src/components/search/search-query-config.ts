@@ -1,6 +1,8 @@
 "use client"
 
 import { parseAsInteger, parseAsString } from "nuqs"
+import { buildPath } from "@/lib/url/public-url"
+import type { Market } from "@/lib/url/types"
 
 export const SEARCH_RESULT_LIMIT = 24
 
@@ -30,11 +32,10 @@ export const normalizeSearchQuery = (value: unknown): string => {
   return value.trim()
 }
 
-export const resolveSearchHref = (value: unknown): string => {
+export const resolveSearchHref = (value: unknown, market: Market): string => {
   const query = normalizeSearchQuery(value)
-  if (!query) {
-    return "/search"
-  }
-
-  return `/search?q=${encodeURIComponent(query)}`
+  return buildPath(
+    query ? { kind: "search", query } : { kind: "search" },
+    market
+  )
 }

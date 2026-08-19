@@ -24,6 +24,9 @@ export type ProductLifecycleConsumeResult =
 
 export type ProductLifecycleEndpointDependencies = Readonly<{
   enabled: boolean
+  expectedSalesChannelId(
+    market: ProductLifecycleDeliveryV1["marketCode"]
+  ): string | null
   lifecycleToken: string | undefined
   consume(
     delivery: ProductLifecycleDeliveryV1
@@ -162,6 +165,17 @@ export const handleProductLifecycleRequest = async (
   const delivery = parseDelivery(body.value)
   if (!delivery) {
     return jsonError("invalid-delivery", 400)
+  }
+  const assignment = delivery.payload.assignment
+  const expectedSalesChannelId = dependencies.expectedSalesChannelId(
+    delivery.marketCode
+  )
+  if (
+    !expectedSalesChannelId ||
+    (assignment !== null &&
+      assignment.salesChannelId !== expectedSalesChannelId)
+  ) {
+    return jsonError("market-assignment-mismatch", 409)
   }
 
   try {

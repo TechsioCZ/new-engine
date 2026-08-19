@@ -32,6 +32,7 @@ import {
   findActiveEquivalents,
   findEntityRoute,
   getRoute,
+  listActiveEntityRoutes,
   listStaticRouteSnapshots,
 } from "./memory-reads"
 import { resolve, resolveMany } from "./memory-resolve"
@@ -50,6 +51,7 @@ import type {
 } from "./model"
 import type {
   ActiveEquivalenceLookup,
+  ActiveEntityRoutePageRequest,
   EntityIdentityLookup,
   SourceReadResult,
   UrlRegistryBatchResolution,
@@ -162,6 +164,13 @@ export class InMemoryUrlRegistry implements UrlRegistry {
   ): Promise<SourceReadResult<ActiveEntityRouteTarget>> {
     await Promise.resolve()
     return findActiveEntityRoute(this.executor.readState(), input)
+  }
+
+  async listActiveEntityRoutes(
+    input: ActiveEntityRoutePageRequest
+  ): Promise<SourceReadResult<UrlRegistryPage<ActiveEntityRouteTarget>>> {
+    await Promise.resolve()
+    return listActiveEntityRoutes(this.executor.readState(), input)
   }
 
   async findEntityRoute(

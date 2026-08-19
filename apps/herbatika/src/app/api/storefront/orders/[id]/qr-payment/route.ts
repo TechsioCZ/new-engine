@@ -8,14 +8,17 @@ import {
 import {
   buildMedusaUrl,
   getPublishableHeaders,
+  marketAuthorityError,
   parseResponseJson,
+  requireStorefrontMarketBinding,
+  StorefrontMarketAuthorityError,
 } from "../../../../storefront-auth/_lib"
 
 type RouteContext = {
   params: Promise<{ id: string }>
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   const { id } = await context.params
 
   if (!id) {
@@ -30,7 +33,7 @@ export async function GET(_request: Request, context: RouteContext) {
   try {
     const response = await fetch(medusaUrl, {
       cache: "no-store",
-      headers: getPublishableHeaders(),
+      headers: getPublishableHeaders(requireStorefrontMarketBinding(request)),
       method: "GET",
     })
 
@@ -55,6 +58,10 @@ export async function GET(_request: Request, context: RouteContext) {
 
     return NextResponse.json(qrPayment)
   } catch (error) {
+    if (error instanceof StorefrontMarketAuthorityError) {
+      return marketAuthorityError()
+    }
+
     return NextResponse.json(
       {
         message: "QR payment request failed.",

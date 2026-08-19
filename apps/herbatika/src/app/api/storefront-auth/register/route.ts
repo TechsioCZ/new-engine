@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server"
 import {
-  resolveMarketContext,
-  resolveMarketRequestHost,
-} from "@/lib/storefront/market-context"
-import { badRequest, serverError, setSessionTokenCookie } from "../_lib"
+  badRequest,
+  marketAuthorityError,
+  requireStorefrontMarketBinding,
+  StorefrontMarketAuthorityError,
+  serverError,
+  setSessionTokenCookie,
+} from "../_lib"
 import { asRecordOrUndefined, asStringOrUndefined } from "./parse-utils"
 import {
   createCustomerIdentity,
@@ -101,13 +104,7 @@ export async function POST(request: Request) {
     }
 
     const { email, firstName, lastName, password, wholesale } = parsedBody.value
-    const market = resolveMarketContext({
-      acceptLanguage: request.headers.get("accept-language"),
-      host: resolveMarketRequestHost({
-        forwardedHost: request.headers.get("x-forwarded-host"),
-        host: request.headers.get("host"),
-      }),
-    })
+    const binding = requireStorefrontMarketBinding(request)
     const registerError = await createCustomerIdentity({
       email,
       password,
@@ -123,12 +120,13 @@ export async function POST(request: Request) {
     }
 
     const createCustomerError = await createCustomerProfile({
+      binding,
       loginToken: loginResult.token,
       payload: {
         email,
         firstName,
         lastName,
-        marketCode: market.code,
+        marketCode: binding.market,
         wholesale,
       },
     })
@@ -138,6 +136,7 @@ export async function POST(request: Request) {
 
     const sessionToken = await refreshCustomerToken(loginResult.token)
     const companyError = await createWholesaleProfile({
+      binding,
       email,
       sessionToken,
       wholesale,
@@ -148,6 +147,9 @@ export async function POST(request: Request) {
 
     return createRegisterResponse(sessionToken)
   } catch (error) {
+    if (error instanceof StorefrontMarketAuthorityError) {
+      return marketAuthorityError()
+    }
     if (error instanceof SyntaxError) {
       return badRequest("Telo požiadavky musí byť platné JSON.")
     }

@@ -5,6 +5,7 @@ import { connect as connectHttp2 } from "node:http2"
 import { request as httpsRequest } from "node:https"
 import { test } from "node:test"
 import { setTimeout as delay } from "node:timers/promises"
+import { connect as connectTls } from "node:tls"
 
 const INGRESS_HOST = process.env.M00_INGRESS_HOST ?? "caddy"
 const CADDY_CA_PATH =
@@ -61,9 +62,21 @@ const PROFILES = [
       "next-router-segment-prefetch": "/_tree",
       "next-router-state-tree": "%5B%22%22%5D",
       "next-url": "/attacker-controlled",
+      purpose: "prefetch",
+      forwarded: "for=203.0.113.10;host=attacker.invalid;proto=http",
+      "sec-purpose": "prefetch",
       "x-canonical-origin": "https://attacker.invalid",
+      "x-forwarded-for": "203.0.113.10",
+      "x-forwarded-host": "attacker.invalid",
+      "x-forwarded-port": "80",
+      "x-forwarded-proto": "http",
+      "x-forwarded-scheme": "http",
       "x-market-code": "xx",
+      "x-middleware-prefetch": "1",
       "x-nextjs-data": "1",
+      "x-original-host": "attacker.invalid",
+      "x-original-url": "/attacker-controlled",
+      "x-real-ip": "203.0.113.10",
       "x-sales-channel-id": "sc_attacker",
       "x-sf-market": "xx",
     },
@@ -72,6 +85,7 @@ const PROFILES = [
 ]
 
 const MUTATING_METHODS = ["POST", "PUT", "PATCH", "DELETE"]
+const HTTP1_STATUS_LINE_PATTERN = /^HTTP\/1\.[01] (\d{3})(?: |$)/
 const NEXT_DATA_SCRIPT_PATTERN =
   /<script\b[^>]*\bid=["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i
 
@@ -204,6 +218,96 @@ const requestHttp1 = ({ ca, headers, host, method, pathname }) =>
     outgoing.on("error", (error) => settle(rejectRequest, error))
     outgoing.end()
   })
+
+const parseRawHttp1Response = (buffer) => {
+  const headEnd = buffer.indexOf("\r\n\r\n")
+  if (headEnd === -1) {
+    throw new Error("raw HTTP/1.1 response must contain headers")
+  }
+
+  const head = buffer.subarray(0, headEnd).toString("latin1")
+  const [statusLine, ...headerLines] = head.split("\r\n")
+  const statusMatch = statusLine.match(HTTP1_STATUS_LINE_PATTERN)
+  if (!statusMatch) {
+    throw new Error(`invalid HTTP/1.1 status line: ${statusLine}`)
+  }
+
+  const headers = {}
+  for (const line of headerLines) {
+    const separator = line.indexOf(":")
+    if (separator === -1) {
+      throw new Error(`invalid HTTP/1.1 header line: ${line}`)
+    }
+    const name = line.slice(0, separator).trim().toLowerCase()
+    const value = line.slice(separator + 1).trim()
+    headers[name] = headers[name] ? `${headers[name]}, ${value}` : value
+  }
+
+  return {
+    body: buffer.subarray(headEnd + 4),
+    headers,
+    protocol: "http/1.1",
+    responseHeadReceived: true,
+    status: Number(statusMatch[1]),
+  }
+}
+
+const requestRawHttp1 = ({ ca, rawRequest, servername = MARKETS[0].host }) =>
+  new Promise((resolveRequest, rejectRequest) => {
+    let settled = false
+    const chunks = []
+    const socket = connectTls({
+      ALPNProtocols: ["http/1.1"],
+      ca,
+      host: INGRESS_HOST,
+      port: INGRESS_PORT,
+      rejectUnauthorized: true,
+      servername,
+    })
+    const timeout = setTimeout(() => {
+      socket.destroy(
+        new Error(`raw HTTP/1.1 request timed out for ${servername}`)
+      )
+    }, REQUEST_TIMEOUT_MS)
+
+    const settle = (callback, value) => {
+      if (settled) {
+        return
+      }
+      settled = true
+      clearTimeout(timeout)
+      callback(value)
+    }
+
+    socket.once("secureConnect", () => {
+      try {
+        assertTlsSocket(socket, "http/1.1", servername)
+        socket.end(rawRequest)
+      } catch (error) {
+        socket.destroy()
+        settle(rejectRequest, error)
+      }
+    })
+    socket.on("data", (chunk) => chunks.push(chunk))
+    socket.once("end", () => {
+      try {
+        settle(resolveRequest, parseRawHttp1Response(Buffer.concat(chunks)))
+      } catch (error) {
+        settle(rejectRequest, error)
+      }
+    })
+    socket.once("error", (error) => settle(rejectRequest, error))
+  })
+
+const rawHttp1RequestBytes = ({ authority, method, target }) =>
+  Buffer.concat([
+    Buffer.from(`${method} `, "latin1"),
+    Buffer.isBuffer(target) ? target : Buffer.from(target, "latin1"),
+    Buffer.from(
+      ` HTTP/1.1\r\nHost: ${authority}\r\nConnection: close\r\n\r\n`,
+      "latin1"
+    ),
+  ])
 
 const requestHttp2 = async ({ ca, headers, host, method, pathname }) => {
   const session = connectHttp2(`https://${INGRESS_HOST}:${INGRESS_PORT}`, {
@@ -367,6 +471,213 @@ test("M00 production standalone keeps hard statuses through Caddy TLS", async (t
       assert.equal(headLength, getLength)
     }
   }
+
+  const assertBoundaryPair = ({ getResponse, headResponse, status }) => {
+    assert.equal(getResponse.status, status)
+    assert.equal(headResponse.status, status)
+    assert.equal(headResponse.body.byteLength, 0, "HEAD body must be empty")
+    assert.equal(getResponse.headers["cache-control"], "no-store")
+    assert.equal(headResponse.headers["cache-control"], "no-store")
+    assert.equal(getResponse.headers["x-robots-tag"], "noindex, nofollow")
+    assert.equal(headResponse.headers["x-robots-tag"], "noindex, nofollow")
+    assert.equal(getResponse.headers.location, undefined)
+    assert.equal(headResponse.headers.location, undefined)
+  }
+
+  await t.test("HTTP/1.1 validates the raw request boundary", async (raw) => {
+    const host = MARKETS[0].host
+    const boundaryPrefix = "/__url-m00/current?pad="
+    const boundaryTarget = `${boundaryPrefix}${"a".repeat(
+      2048 - Buffer.byteLength(boundaryPrefix)
+    )}`
+    const tooLongTarget = `${boundaryTarget}a`
+    assert.equal(Buffer.byteLength(boundaryTarget), 2048)
+    assert.equal(Buffer.byteLength(tooLongTarget), 2049)
+
+    const allowedBoundary = await requestHttp1({
+      ca,
+      headers: {},
+      host,
+      method: "GET",
+      pathname: boundaryTarget,
+    })
+    assert.equal(allowedBoundary.status, 200)
+
+    const encodedQuery = await requestHttp1({
+      ca,
+      headers: {},
+      host,
+      method: "GET",
+      pathname: "/__url-m00/current?return=%2Faccount%5Csettings",
+    })
+    assert.equal(encodedQuery.status, 200)
+
+    const handlerCases = [
+      {
+        authority: host,
+        name: "overlong request-target",
+        status: 414,
+        target: tooLongTarget,
+      },
+      {
+        authority: host,
+        name: "encoded slash",
+        status: 400,
+        target: "/__url-m00%2Fcurrent",
+      },
+      {
+        authority: host,
+        name: "encoded backslash",
+        status: 400,
+        target: "/__url-m00%5ccurrent",
+      },
+      {
+        authority: `${host}:bad`,
+        name: "malformed authority",
+        status: 400,
+        target: "/__url-m00/current",
+      },
+      {
+        authority: `${host}:65536`,
+        name: "out-of-range authority port",
+        status: 400,
+        target: "/__url-m00/current",
+      },
+      {
+        authority: "unknown.example",
+        name: "unknown authority",
+        status: 421,
+        target: "/__url-m00/current",
+      },
+      {
+        authority: host,
+        name: "invalid UTF-8",
+        status: 400,
+        target: Buffer.concat([
+          Buffer.from("/__url-m00/", "latin1"),
+          Buffer.from([0xc3, 0x28]),
+          Buffer.from("current", "latin1"),
+        ]),
+      },
+    ]
+
+    for (const boundaryCase of handlerCases) {
+      await raw.test(boundaryCase.name, async () => {
+        const [getResponse, headResponse] = await Promise.all(
+          ["GET", "HEAD"].map((method) =>
+            requestRawHttp1({
+              ca,
+              rawRequest: rawHttp1RequestBytes({
+                authority: boundaryCase.authority,
+                method,
+                target: boundaryCase.target,
+              }),
+            })
+          )
+        )
+        assertBoundaryPair({
+          getResponse,
+          headResponse,
+          status: boundaryCase.status,
+        })
+      })
+    }
+
+    // Go's HTTP parser rejects these before Caddy handlers. Its native malformed
+    // HEAD response may include an error body, so only status parity is configurable.
+    const parserCases = [
+      {
+        name: "malformed percent escape",
+        target: "/__url-m00/%",
+      },
+      {
+        name: "raw control character",
+        target: Buffer.concat([
+          Buffer.from("/__url-m00/", "latin1"),
+          Buffer.from([0x01]),
+          Buffer.from("current", "latin1"),
+        ]),
+      },
+    ]
+
+    for (const parserCase of parserCases) {
+      await raw.test(parserCase.name, async () => {
+        for (const method of ["GET", "HEAD"]) {
+          const response = await requestRawHttp1({
+            ca,
+            rawRequest: rawHttp1RequestBytes({
+              authority: host,
+              method,
+              target: parserCase.target,
+            }),
+          })
+          assert.equal(response.status, 400)
+          assert.equal(response.headers.location, undefined)
+        }
+      })
+    }
+  })
+
+  await t.test("HTTP/2 preserves ingress status parity", async (http2) => {
+    const host = MARKETS[0].host
+    const boundaryPrefix = "/__url-m00/current?pad="
+    const tooLongTarget = `${boundaryPrefix}${"a".repeat(
+      2049 - Buffer.byteLength(boundaryPrefix)
+    )}`
+    const cases = [
+      {
+        headers: {},
+        name: "overlong request-target",
+        pathname: tooLongTarget,
+        status: 414,
+      },
+      {
+        headers: {},
+        name: "encoded separator",
+        pathname: "/__url-m00%2Fcurrent",
+        status: 400,
+      },
+      {
+        headers: { ":authority": "herbatica.sk:bad" },
+        name: "malformed authority",
+        pathname: "/__url-m00/current",
+        status: 400,
+      },
+      {
+        headers: { ":authority": "herbatica.sk:65536" },
+        name: "out-of-range authority port",
+        pathname: "/__url-m00/current",
+        status: 400,
+      },
+      {
+        headers: { ":authority": "unknown.example" },
+        name: "unknown authority",
+        pathname: "/__url-m00/current",
+        status: 421,
+      },
+    ]
+
+    for (const boundaryCase of cases) {
+      await http2.test(boundaryCase.name, async () => {
+        const [getResponse, headResponse] = await Promise.all(
+          ["GET", "HEAD"].map((method) =>
+            requestHttp2({
+              ca,
+              headers: boundaryCase.headers,
+              host,
+              method,
+              pathname: boundaryCase.pathname,
+            })
+          )
+        )
+        assertBoundaryPair({
+          getResponse,
+          headResponse,
+          status: boundaryCase.status,
+        })
+      })
+    }
+  })
 
   for (const protocol of protocols) {
     for (const profile of PROFILES) {

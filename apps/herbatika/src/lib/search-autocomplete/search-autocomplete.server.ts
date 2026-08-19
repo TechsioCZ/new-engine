@@ -1,7 +1,13 @@
 import "server-only"
 
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
-import { storefrontSdk } from "@/lib/storefront/sdk"
+import { getMarketStorefrontSdk } from "@/lib/storefront/market-sdk.server"
+import {
+  type PublicEntitySlugMap,
+  readRequiredPublicEntitySlugs,
+} from "@/lib/storefront/ssr/public-entity-projections"
+import type { Market } from "@/lib/url/types"
+import type { EntityUrlKind } from "@/lib/url-registry/model"
 import { createContentSuggestions } from "./search-autocomplete-content-normalizers"
 import { normalizeString } from "./search-autocomplete-normalizers"
 import { createProductSuggestions } from "./search-autocomplete-product-normalizers"
@@ -29,6 +35,7 @@ type CatalogAutocompleteResponse = {
 
 type FetchSearchAutocompleteInput = {
   authToken?: string | null
+  market: Market
   query: string
   countryCode?: string | null
   currencyCode?: string | null
@@ -37,6 +44,20 @@ type FetchSearchAutocompleteInput = {
 }
 
 const CATALOG_FETCH_TIMEOUT_MS = 3000
+
+const requirePublicSlugMap = async (
+  market: Market,
+  kind: EntityUrlKind
+): Promise<PublicEntitySlugMap> => {
+  const result = await readRequiredPublicEntitySlugs({ kind, market })
+  if (result.kind === "found") {
+    return result.value
+  }
+
+  const cause =
+    result.kind === "invalid-response" ? ` (${result.causeCode})` : ""
+  throw new Error(`Public URL projections unavailable for ${kind}${cause}`)
+}
 
 const normalizeSearchAutocompleteQuery = (query: string) =>
   query.trim().slice(0, SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH)
@@ -82,6 +103,7 @@ const fetchCatalogCandidates = async ({
   countryCode,
   currencyCode,
   locale,
+  market,
   query,
   regionId,
 }: {
@@ -89,6 +111,7 @@ const fetchCatalogCandidates = async ({
   countryCode?: string | null
   currencyCode: string
   locale?: string | null
+  market: Market
   query: string
   regionId?: string | null
 }) => {
@@ -98,7 +121,9 @@ const fetchCatalogCandidates = async ({
   }, CATALOG_FETCH_TIMEOUT_MS)
 
   try {
-    return await storefrontSdk.client.fetch<CatalogAutocompleteResponse>(
+    return await getMarketStorefrontSdk(
+      market
+    ).sdk.client.fetch<CatalogAutocompleteResponse>(
       "/store/search/autocomplete",
       {
         headers: authToken
@@ -132,6 +157,7 @@ export const fetchSearchAutocomplete = async ({
   countryCode,
   currencyCode,
   locale,
+  market,
   query,
   regionId,
 }: FetchSearchAutocompleteInput): Promise<SearchAutocompleteResponse> => {
@@ -144,25 +170,54 @@ export const fetchSearchAutocomplete = async ({
   }
 
   const safeCurrencyCode = resolveSupportedCurrencyCode(currencyCode)
-  const catalogResponse = await fetchCatalogCandidates({
-    authToken,
-    countryCode,
-    currencyCode: safeCurrencyCode,
-    locale,
-    query: normalizedQuery,
-    regionId,
-  })
+  const [
+    catalogResponse,
+    publicSlugsByProductId,
+    publicSlugsByCategoryId,
+    publicSlugsByBrandId,
+    publicSlugsByArticleId,
+    publicSlugsByPageId,
+  ] = await Promise.all([
+    fetchCatalogCandidates({
+      authToken,
+      countryCode,
+      currencyCode: safeCurrencyCode,
+      locale,
+      market,
+      query: normalizedQuery,
+      regionId,
+    }),
+    requirePublicSlugMap(market, "product"),
+    requirePublicSlugMap(market, "category"),
+    requirePublicSlugMap(market, "brand"),
+    requirePublicSlugMap(market, "article"),
+    requirePublicSlugMap(market, "page"),
+  ])
   const productHits = catalogResponse.products ?? []
 
   return {
     query: normalizedQuery,
-    products: createProductSuggestions(productHits, safeCurrencyCode),
+    products: createProductSuggestions({
+      currencyCode: safeCurrencyCode,
+      hits: productHits,
+      market,
+      publicSlugsByProductId,
+    }),
     categories: createCategorySuggestions({
       categoryHits: catalogResponse.categories ?? [],
+      market,
+      publicSlugsByCategoryId,
     }),
     brands: createBrandSuggestions({
       brandHits: catalogResponse.brands ?? [],
+      market,
+      publicSlugsByBrandId,
     }),
-    content: createContentSuggestions(catalogResponse.content ?? []),
+    content: createContentSuggestions(
+      catalogResponse.content ?? [],
+      market,
+      publicSlugsByArticleId,
+      publicSlugsByPageId
+    ),
   }
 }

@@ -5,7 +5,7 @@ import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import type { StaticImageData } from "next/image"
 import NextImage from "next/image"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
 import { resolveCategoryImage } from "@/lib/category-images"
 
 export type CategoryContextImageTile = {
@@ -99,7 +99,7 @@ export function CategoryContextImageTileGrid({
       {tiles.map((tile) => (
         <li key={tile.id}>
           <Link
-            as={NextLink}
+            as={StorefrontLink}
             className="group flex items-center gap-300 rounded-lg border border-border-secondary bg-surface px-450 py-200 text-fg-primary shadow-sm transition-colors hover:border-primary/30"
             href={tile.href}
           >

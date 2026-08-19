@@ -1,5 +1,5 @@
 import { createHash, randomInt, randomUUID } from "node:crypto"
-import type { CreateNotificationDTO } from "@medusajs/framework/types"
+import type { CreateNotificationDTO, Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { CLAIM_CASE_MODULE } from "../../../modules/claim-case"
@@ -36,7 +36,7 @@ function parseDisplayId(orderNumber: string) {
 export const requestClaimAccessStep = createStep(
   "request-claim-access",
   async (input: RequestClaimAccessInput, { container }) => {
-    const query = container.resolve(ContainerRegistrationKeys.QUERY)
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
     const displayId = parseDisplayId(input.order_number)
     const normalizedEmail = input.email.trim().toLowerCase()
     const fallbackChallengeId = `claimaccess_fake_${randomUUID()}`
@@ -56,11 +56,12 @@ export const requestClaimAccessStep = createStep(
       fields: ["id", "display_id", "email"],
       filters: { display_id: String(displayId) },
     })
-    const order = data.find((candidate) =>
+    const orders = data as OrderLookup[]
+    const order = orders.find((candidate) =>
       candidate.email
         ? candidate.email.trim().toLowerCase() === normalizedEmail
         : false
-    ) as unknown as OrderLookup | undefined
+    )
 
     if (!order) {
       return new StepResponse<

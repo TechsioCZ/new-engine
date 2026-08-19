@@ -28,7 +28,11 @@ const ACTIONS = [
   "noop-source-missing",
   "noop-route-missing",
   "noop-route-terminal",
+  "noop-unpublished",
+  "published",
   "requires-publication",
+  "slug-changed",
+  "unpublished",
 ] as const satisfies readonly ProductLifecycleReceiptAction[]
 const CHANGE_TYPES = [
   "delete",

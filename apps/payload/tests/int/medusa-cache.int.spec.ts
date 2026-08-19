@@ -1,12 +1,10 @@
 import type { PayloadRequest } from "payload"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-// Mock the env utility
 vi.mock("@/lib/utils/env", () => ({
   getEnvString: vi.fn(),
 }))
 
-// Mock the request utility
 vi.mock("@/lib/utils/request", () => ({
   createRequestTimeout: vi.fn(() => ({
     controller: new AbortController(),
@@ -14,442 +12,183 @@ vi.mock("@/lib/utils/request", () => ({
   })),
 }))
 
-const ORIGINAL_ENV = { ...process.env }
+const logger = { error: vi.fn(), info: vi.fn(), warn: vi.fn() }
+const OUTBOX_EVENT_ID_PATTERN = /^payload-cms-v1:[a-f0-9]{64}$/
+const HMAC_PATTERN = /^[a-f0-9]{64}$/
 
-const resetEnv = () => {
-  for (const key of Object.keys(process.env)) {
-    if (!(key in ORIGINAL_ENV)) {
-      delete process.env[key]
-    }
-  }
-  for (const [key, value] of Object.entries(ORIGINAL_ENV)) {
-    if (typeof value === "string") {
-      process.env[key] = value
-    }
-  }
+const request = () => {
+  const queue = vi.fn().mockResolvedValue({ id: 1 })
+  const req = {
+    locale: "cs",
+    payload: { jobs: { queue }, logger },
+  } as unknown as PayloadRequest
+  return { queue, req }
 }
 
-const okResponse = () => new Response(null, { status: 204 })
+describe("Medusa CMS invalidation outbox", () => {
+  const originalFetch = globalThis.fetch
 
-describe("medusaCache hooks", () => {
-  let createMedusaCacheHook: typeof import("@/lib/hooks/medusa-cache").createMedusaCacheHook
-  let getEnvString: ReturnType<typeof vi.fn>
-  let originalFetch: typeof globalThis.fetch
-
-  beforeEach(async () => {
-    vi.resetModules()
-    resetEnv()
-    originalFetch = globalThis.fetch
+  beforeEach(() => {
+    vi.clearAllMocks()
     globalThis.fetch = vi.fn() as unknown as typeof fetch
-
-    const envModule = await import("@/lib/utils/env")
-    getEnvString = envModule.getEnvString as ReturnType<typeof vi.fn>
-
-    const cacheModule = await import("@/lib/hooks/medusa-cache")
-    createMedusaCacheHook = cacheModule.createMedusaCacheHook
   })
 
   afterEach(() => {
     globalThis.fetch = originalFetch
-    vi.clearAllMocks()
-    resetEnv()
   })
 
-  describe("createMedusaCacheHook", () => {
-    it("returns a hook function", () => {
-      const hook = createMedusaCacheHook("pages")
-      expect(typeof hook).toBe("function")
+  it("enqueues an update atomically with the originating Payload request", async () => {
+    const { createMedusaCacheHook } = await import("@/lib/hooks/medusa-cache")
+    const { queue, req } = request()
+    const doc = {
+      id: 42,
+      slug: { cs: "novinky", sk: "novinky-sk" },
+      status: "published",
+      updatedAt: "2026-08-19T00:00:00.000Z",
+    }
+
+    await createMedusaCacheHook("articles")({
+      doc,
+      operation: "update",
+      req,
+    } as never)
+
+    expect(globalThis.fetch).not.toHaveBeenCalled()
+    expect(queue).toHaveBeenCalledOnce()
+    expect(queue).toHaveBeenCalledWith({
+      input: expect.objectContaining({
+        collection: "articles",
+        doc: expect.objectContaining({
+          id: "42",
+          locale: "cs",
+          slug: "novinky",
+          status: "published",
+        }),
+        eventId: expect.stringMatching(OUTBOX_EVENT_ID_PATTERN),
+        operation: "update",
+        sourceVersion: "2026-08-19T00:00:00.000Z",
+      }),
+      queue: "cms-outbox",
+      req,
+      task: "deliver-medusa-cms-invalidation",
     })
+  })
 
-    it("returns doc unchanged for unsupported operations", async () => {
-      getEnvString.mockReturnValue("http://medusa.test")
-      const hook = createMedusaCacheHook("pages")
-      const doc = { id: 1, slug: "test" }
+  it("creates the same replay key for the same source version", async () => {
+    const { createMedusaCacheHook } = await import("@/lib/hooks/medusa-cache")
+    const hook = createMedusaCacheHook("pages")
+    const doc = { id: 7, slug: "privacy", updatedAt: "v7" }
+    const first = request()
+    const second = request()
 
-      const result = await hook({
-        doc,
+    await hook({ doc, operation: "update", req: first.req } as never)
+    await hook({ doc, operation: "update", req: second.req } as never)
+
+    expect(first.queue.mock.calls[0]?.[0].input.eventId).toBe(
+      second.queue.mock.calls[0]?.[0].input.eventId
+    )
+  })
+
+  it("omits locale from delete events", async () => {
+    const { createMedusaCacheHook } = await import("@/lib/hooks/medusa-cache")
+    const { queue, req } = request()
+
+    await createMedusaCacheHook("pages")({
+      doc: { id: 7, slug: "privacy", updatedAt: "v7" },
+      operation: "delete",
+      req,
+    } as never)
+
+    expect(queue.mock.calls[0]?.[0].input.doc.locale).toBeUndefined()
+  })
+
+  it("does not enqueue unsupported operations", async () => {
+    const { createMedusaCacheHook } = await import("@/lib/hooks/medusa-cache")
+    const { queue, req } = request()
+
+    await createMedusaCacheHook("pages")({
+      doc: { id: 7 },
+      operation: "read",
+      req,
+    } as never)
+
+    expect(queue).not.toHaveBeenCalled()
+  })
+
+  it("refuses to enqueue outside the mutation transaction", async () => {
+    const { createMedusaCacheHook } = await import("@/lib/hooks/medusa-cache")
+
+    await expect(
+      createMedusaCacheHook("pages")({
+        doc: { id: 7 },
+        operation: "update",
         req: null,
-        operation: "read",
-      } as any)
-
-      expect(result).toBe(doc)
-      expect(globalThis.fetch).not.toHaveBeenCalled()
-    })
-
-    it("notifies Medusa on create operation", async () => {
-      getEnvString
-        .mockReturnValueOnce("http://medusa.test")
-        .mockReturnValueOnce("test-secret")
-
-      const mockFetch = vi.mocked(globalThis.fetch)
-      mockFetch.mockResolvedValue(okResponse())
-
-      const hook = createMedusaCacheHook("pages")
-      const doc = { id: 1, slug: "home" }
-      const mockLogger = {
-        info: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-      }
-
-      await hook({
-        doc,
-        req: {
-          locale: "en",
-          payload: { logger: mockLogger },
-        } as unknown as PayloadRequest,
-        operation: "create",
-      } as any)
-
-      expect(mockFetch).toHaveBeenCalledWith(
-        "http://medusa.test/hooks/cms/invalidate",
-        expect.objectContaining({
-          method: "POST",
-          headers: expect.objectContaining({
-            "Content-Type": "application/json",
-            "x-payload-signature": expect.any(String),
-          }),
-        })
-      )
-    })
-
-    it("notifies Medusa on update operation", async () => {
-      getEnvString
-        .mockReturnValueOnce("http://medusa.test")
-        .mockReturnValueOnce("test-secret")
-
-      const mockFetch = vi.mocked(globalThis.fetch)
-      mockFetch.mockResolvedValue(okResponse())
-
-      const hook = createMedusaCacheHook("articles")
-      const doc = { id: 2, slug: "news" }
-      const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
-
-      await hook({
-        doc,
-        req: {
-          locale: "cs",
-          payload: { logger: mockLogger },
-        } as unknown as PayloadRequest,
-        operation: "update",
-      } as any)
-
-      expect(mockFetch).toHaveBeenCalled()
-      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit]
-      const body = JSON.parse(options.body as string)
-      expect(body.collection).toBe("articles")
-      expect(body.doc.slug).toBe("news")
-      expect(body.doc.locale).toBe("cs")
-    })
-
-    it("notifies Medusa on delete operation without locale", async () => {
-      getEnvString
-        .mockReturnValueOnce("http://medusa.test")
-        .mockReturnValueOnce("test-secret")
-
-      const mockFetch = vi.mocked(globalThis.fetch)
-      mockFetch.mockResolvedValue(okResponse())
-
-      const hook = createMedusaCacheHook("pages")
-      const doc = { id: 3, slug: "about" }
-      const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
-
-      await hook({
-        doc,
-        req: {
-          locale: "en",
-          payload: { logger: mockLogger },
-        } as unknown as PayloadRequest,
-        operation: "delete",
-      } as any)
-
-      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit]
-      const body = JSON.parse(options.body as string)
-      expect(body.doc.locale).toBeUndefined()
-    })
-
-    it("skips notification when MEDUSA_BACKEND_URL is not set", async () => {
-      getEnvString.mockReturnValue(null)
-
-      const mockFetch = vi.mocked(globalThis.fetch)
-      const hook = createMedusaCacheHook("pages")
-      const doc = { id: 1, slug: "test" }
-      const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
-
-      await hook({
-        doc,
-        req: { payload: { logger: mockLogger } } as unknown as PayloadRequest,
-        operation: "update",
-      } as any)
-
-      expect(mockFetch).not.toHaveBeenCalled()
-      expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringContaining("MEDUSA_BACKEND_URL is not set")
-      )
-    })
-
-    it("logs warning only once for missing MEDUSA_BACKEND_URL", async () => {
-      getEnvString.mockReturnValue(null)
-
-      const hook = createMedusaCacheHook("pages")
-      const doc = { id: 1, slug: "test" }
-      const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
-      const req = {
-        payload: { logger: mockLogger },
-      } as unknown as PayloadRequest
-
-      await hook({ doc, req, operation: "update" } as any)
-      await hook({ doc, req, operation: "update" } as any)
-
-      // The warning should be logged only once (due to loggedMissingBaseUrl flag)
-      // But since we reset modules, it will log each time in our test
-      expect(mockLogger.warn).toHaveBeenCalled()
-    })
-
-    it("throws when PAYLOAD_WEBHOOK_SECRET is not set", async () => {
-      getEnvString
-        .mockReturnValueOnce("http://medusa.test")
-        .mockReturnValueOnce(null) // webhook secret not set
-
-      const hook = createMedusaCacheHook("pages")
-      const doc = { id: 1, slug: "test" }
-      const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
-
-      await expect(
-        hook({
-          doc,
-          req: { payload: { logger: mockLogger } } as unknown as PayloadRequest,
-          operation: "update",
-        } as any)
-      ).rejects.toThrow("PAYLOAD_WEBHOOK_SECRET is not set")
-    })
-
-    it("logs error when fetch fails", async () => {
-      getEnvString
-        .mockReturnValueOnce("http://medusa.test")
-        .mockReturnValueOnce("test-secret")
-
-      const mockFetch = vi.mocked(globalThis.fetch)
-      mockFetch.mockRejectedValue(new Error("Network error"))
-
-      const hook = createMedusaCacheHook("pages")
-      const doc = { id: 1, slug: "test" }
-      const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
-
-      await hook({
-        doc,
-        req: { payload: { logger: mockLogger } } as unknown as PayloadRequest,
-        operation: "create",
-      } as any)
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining("Network error")
-      )
-    })
-
-    it("logs error when response is not ok", async () => {
-      getEnvString
-        .mockReturnValueOnce("http://medusa.test")
-        .mockReturnValueOnce("test-secret")
-
-      const mockFetch = vi.mocked(globalThis.fetch)
-      mockFetch.mockResolvedValue(
-        new Response("Internal Server Error", { status: 500 })
-      )
-
-      const hook = createMedusaCacheHook("pages")
-      const doc = { id: 1, slug: "test" }
-      const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
-
-      await hook({
-        doc,
-        req: { payload: { logger: mockLogger } } as unknown as PayloadRequest,
-        operation: "update",
-      } as any)
-
-      expect(mockLogger.error).toHaveBeenCalledWith(
-        expect.stringContaining("CMS cache invalidation failed (500)")
-      )
-    })
-
-    it("handles localized slug objects", async () => {
-      getEnvString
-        .mockReturnValueOnce("http://medusa.test")
-        .mockReturnValueOnce("test-secret")
-
-      const mockFetch = vi.mocked(globalThis.fetch)
-      mockFetch.mockResolvedValue(okResponse())
-
-      const hook = createMedusaCacheHook("articles")
-      const doc = {
-        id: 1,
-        slug: { en: "english-slug", cs: "czech-slug" },
-      }
-      const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
-
-      await hook({
-        doc,
-        req: {
-          locale: "cs",
-          payload: { logger: mockLogger },
-        } as unknown as PayloadRequest,
-        operation: "update",
-      } as any)
-
-      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit]
-      const body = JSON.parse(options.body as string)
-      expect(body.doc.slug).toBe("czech-slug")
-    })
-
-    it("handles doc without slug", async () => {
-      getEnvString
-        .mockReturnValueOnce("http://medusa.test")
-        .mockReturnValueOnce("test-secret")
-
-      const mockFetch = vi.mocked(globalThis.fetch)
-      mockFetch.mockResolvedValue(okResponse())
-
-      const hook = createMedusaCacheHook("hero-carousels")
-      const doc = { id: 1 }
-      const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
-
-      await hook({
-        doc,
-        req: { payload: { logger: mockLogger } } as unknown as PayloadRequest,
-        operation: "create",
-      } as any)
-
-      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit]
-      const body = JSON.parse(options.body as string)
-      expect(body.doc.slug).toBeUndefined()
-    })
-
-    it("notifies Medusa for media changes without slug", async () => {
-      getEnvString
-        .mockReturnValueOnce("http://medusa.test")
-        .mockReturnValueOnce("test-secret")
-
-      const mockFetch = globalThis.fetch as unknown as ReturnType<typeof vi.fn>
-      mockFetch.mockResolvedValue(okResponse())
-
-      const hook = createMedusaCacheHook("media")
-      const doc = { id: 1, filename: "image.png" }
-      const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
-
-      await hook({
-        doc,
-        req: {
-          locale: "cs",
-          payload: { logger: mockLogger },
-        } as unknown as PayloadRequest,
-        operation: "update",
-      } as any)
-
-      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit]
-      const body = JSON.parse(options.body as string)
-      expect(body.collection).toBe("media")
-      expect(body.doc.id).toBe("1")
-      expect(body.doc.slug).toBeUndefined()
-      expect(body.doc.locale).toBe("cs")
-    })
-
-    it("omits locale when Payload provides null locale", async () => {
-      getEnvString
-        .mockReturnValueOnce("http://medusa.test")
-        .mockReturnValueOnce("test-secret")
-
-      const mockFetch = vi.mocked(globalThis.fetch)
-      mockFetch.mockResolvedValue(okResponse())
-
-      const hook = createMedusaCacheHook("pages")
-      const doc = { id: 1, slug: { en: "home" } }
-      const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
-
-      await hook({
-        doc,
-        req: {
-          locale: null,
-          payload: { logger: mockLogger },
-        } as unknown as PayloadRequest,
-        operation: "update",
-      } as any)
-
-      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit]
-      const body = JSON.parse(options.body as string)
-      expect(body.doc.locale).toBeUndefined()
-      expect(body.doc.slug).toBeUndefined()
-    })
-
-    it("handles undefined doc gracefully", async () => {
-      getEnvString
-        .mockReturnValueOnce("http://medusa.test")
-        .mockReturnValueOnce("test-secret")
-
-      const mockFetch = vi.mocked(globalThis.fetch)
-      mockFetch.mockResolvedValue(okResponse())
-
-      const hook = createMedusaCacheHook("pages")
-      const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
-
-      await hook({
-        doc: undefined,
-        req: { payload: { logger: mockLogger } } as unknown as PayloadRequest,
-        operation: "delete",
-      } as any)
-
-      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit]
-      const body = JSON.parse(options.body as string)
-      expect(body.doc.id).toBeUndefined()
-      expect(body.doc.slug).toBeUndefined()
-    })
-
-    it("removes trailing slash from MEDUSA_BACKEND_URL", async () => {
-      getEnvString
-        .mockReturnValueOnce("http://medusa.test/")
-        .mockReturnValueOnce("test-secret")
-
-      const mockFetch = vi.mocked(globalThis.fetch)
-      mockFetch.mockResolvedValue(okResponse())
-
-      const hook = createMedusaCacheHook("pages")
-      const doc = { id: 1, slug: "test" }
-      const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
-
-      await hook({
-        doc,
-        req: { payload: { logger: mockLogger } } as unknown as PayloadRequest,
-        operation: "update",
-      } as any)
-
-      const [url] = mockFetch.mock.calls[0] as [string]
-      expect(url).toBe("http://medusa.test/hooks/cms/invalidate")
-    })
-
-    it("defaults to delete when operation is undefined", async () => {
-      getEnvString
-        .mockReturnValueOnce("http://medusa.test")
-        .mockReturnValueOnce("test-secret")
-
-      const mockFetch = vi.mocked(globalThis.fetch)
-      mockFetch.mockResolvedValue(okResponse())
-
-      const hook = createMedusaCacheHook("pages")
-      const doc = { id: 1, slug: "test" }
-      const mockLogger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() }
-
-      // Call without operation - should default to 'delete'
-      await hook({
-        doc,
-        req: {
-          locale: "en",
-          payload: { logger: mockLogger },
-        } as unknown as PayloadRequest,
-      } as any)
-
-      const [, options] = mockFetch.mock.calls[0] as [string, RequestInit]
-      const body = JSON.parse(options.body as string)
-      // Delete operation should not include locale
-      expect(body.doc.locale).toBeUndefined()
-    })
+      } as never)
+    ).rejects.toThrow("Payload request is required")
+  })
+
+  it("delivers a signed event with its idempotency key", async () => {
+    const { getEnvString } = await import("@/lib/utils/env")
+    vi.mocked(getEnvString)
+      .mockReturnValueOnce("http://medusa.test/")
+      .mockReturnValueOnce("test-secret")
+    vi.mocked(globalThis.fetch).mockResolvedValue(
+      new Response(null, { status: 204 })
+    )
+    const { deliverMedusaCmsInvalidation } = await import(
+      "@/lib/jobs/medusa-cms-invalidation"
+    )
+    const input = {
+      collection: "pages",
+      doc: { id: "7", locale: "cs" },
+      eventId: `payload-cms-v1:${"a".repeat(64)}`,
+      occurredAt: "2026-08-19T00:00:00.000Z",
+      operation: "update",
+      sourceVersion: "v7",
+    }
+
+    await deliverMedusaCmsInvalidation(input)
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "http://medusa.test/hooks/cms/invalidate",
+      expect.objectContaining({
+        body: JSON.stringify(input),
+        headers: expect.objectContaining({
+          "x-payload-event-id": input.eventId,
+          "x-payload-signature": expect.stringMatching(HMAC_PATTERN),
+        }),
+        method: "POST",
+      })
+    )
+  })
+
+  it("keeps delivery retryable when configuration or Medusa is unavailable", async () => {
+    const { getEnvString } = await import("@/lib/utils/env")
+    const { deliverMedusaCmsInvalidation } = await import(
+      "@/lib/jobs/medusa-cms-invalidation"
+    )
+    const input = {
+      collection: "pages",
+      doc: {},
+      eventId: "event",
+      occurredAt: "2026-08-19T00:00:00.000Z",
+      operation: "update",
+      sourceVersion: "v1",
+    }
+
+    vi.mocked(getEnvString).mockReturnValueOnce(null)
+    await expect(deliverMedusaCmsInvalidation(input)).rejects.toThrow(
+      "MEDUSA_BACKEND_URL"
+    )
+
+    vi.mocked(getEnvString)
+      .mockReturnValueOnce("http://medusa.test")
+      .mockReturnValueOnce("test-secret")
+    vi.mocked(globalThis.fetch).mockResolvedValue(
+      new Response("upstream failed", { status: 503 })
+    )
+    await expect(deliverMedusaCmsInvalidation(input)).rejects.toThrow(
+      "delivery failed (503)"
+    )
   })
 })

@@ -5,6 +5,10 @@ import {
   resolveStorefrontPrice,
   resolveTopOfferInStock,
 } from "@/lib/storefront/product-pricing"
+import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projections"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
+import { withPublicSearchParams } from "@/lib/url/public-url"
+import type { Market } from "@/lib/url/types"
 import { normalizeString } from "./search-autocomplete-normalizers"
 import type {
   RawSearchAutocompleteProductHit,
@@ -34,13 +38,19 @@ const resolveProductInStock = (hit: RawSearchAutocompleteProductHit) => {
 
 const createProductSuggestion = (
   hit: RawSearchAutocompleteProductHit,
-  currencyCode: HerbatikaCurrencyCode
+  currencyCode: HerbatikaCurrencyCode,
+  market: Market,
+  publicSlugsByProductId: PublicEntitySlugMap
 ): SearchAutocompleteSuggestion | null => {
   const id = normalizeString(hit.id)
   const productTitle = normalizeString(hit.title)
-  const handle = normalizeString(hit.handle)
+  const productHref = buildProjectedEntityPath(
+    "product",
+    { publicSlug: id ? publicSlugsByProductId[id] : undefined },
+    market
+  )
 
-  if (!(id && productTitle && handle)) {
+  if (!(id && productTitle && productHref)) {
     return null
   }
 
@@ -58,9 +68,10 @@ const createProductSuggestion = (
 
   return {
     id: variantId ? `${id}-${variantId}` : id,
+    sourceId: id,
     type: "product",
     title,
-    href: `/p/${handle}${variantId ? `?variant=${encodeURIComponent(variantId)}` : ""}`,
+    href: withPublicSearchParams(productHref, { variant: variantId }),
     subtitle: [brandTitle, categoryName].filter(Boolean).join(" | "),
     imageUrl: normalizeString(hit.thumbnail) || undefined,
     originalPriceLabel:
@@ -74,12 +85,22 @@ const createProductSuggestion = (
   }
 }
 
-export const createProductSuggestions = (
-  hits: RawSearchAutocompleteProductHit[],
-  currencyCode: HerbatikaCurrencyCode,
-  limit = hits.length
-) =>
+export const createProductSuggestions = ({
+  currencyCode,
+  hits,
+  limit = hits.length,
+  market,
+  publicSlugsByProductId,
+}: {
+  currencyCode: HerbatikaCurrencyCode
+  hits: RawSearchAutocompleteProductHit[]
+  limit?: number
+  market: Market
+  publicSlugsByProductId: PublicEntitySlugMap
+}) =>
   hits
-    .map((hit) => createProductSuggestion(hit, currencyCode))
+    .map((hit) =>
+      createProductSuggestion(hit, currencyCode, market, publicSlugsByProductId)
+    )
     .filter((item): item is SearchAutocompleteSuggestion => Boolean(item))
     .slice(0, limit)

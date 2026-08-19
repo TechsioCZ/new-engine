@@ -1,5 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
-import { vi } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { createMedusaCheckoutService } from "../src/checkout/medusa-service"
 
 type SdkLike = {
@@ -122,6 +122,104 @@ describe("createMedusaCheckoutService", () => {
         },
       }
     )
+  })
+
+  it("binds issued state to the exact initiated session before returning", async () => {
+    const events: string[] = []
+    const paymentCollection = {
+      id: "pay_col_1",
+      payment_sessions: [
+        {
+          id: "payses_unrelated",
+          is_selected: false,
+          provider_id: "pp_unrelated",
+        },
+        {
+          id: "payses_created",
+          is_selected: true,
+          provider_id: "pp_selected",
+        },
+      ],
+    } as HttpTypes.StorePaymentCollection
+    const sdk = createSdkMock({
+      initiatePaymentSession: () => {
+        events.push("initiate")
+        return Promise.resolve({ payment_collection: paymentCollection })
+      },
+    })
+    const bindPaymentSessionData = vi.fn(() => {
+      events.push("bind")
+      return Promise.resolve()
+    })
+    const cart = { id: "cart_bound" } as HttpTypes.StoreCart
+    const service = createMedusaCheckoutService(sdk as never, {
+      bindPaymentSessionData,
+      buildPaymentSessionData: () => {
+        events.push("issue")
+        return { payment_return_state: "opaque-state" }
+      },
+    })
+
+    const result = await service.initiatePaymentSession(
+      "cart_bound",
+      "pp_selected",
+      cart
+    )
+
+    expect(events).toEqual(["issue", "initiate", "bind"])
+    expect(bindPaymentSessionData).toHaveBeenCalledOnce()
+    expect(bindPaymentSessionData).toHaveBeenCalledWith({
+      cart,
+      cartId: "cart_bound",
+      paymentCollection,
+      paymentSessionData: { payment_return_state: "opaque-state" },
+      paymentSessionId: "payses_created",
+      providerId: "pp_selected",
+    })
+    expect(result).toBe(paymentCollection)
+  })
+
+  it("rejects before binding when the initiated session is ambiguous", async () => {
+    const sdk = createSdkMock({
+      initiatePaymentSession: async () => ({
+        payment_collection: {
+          id: "pay_col_ambiguous",
+          payment_sessions: [
+            { id: "payses_1", provider_id: "pp_selected" },
+            { id: "payses_2", provider_id: "pp_selected" },
+          ],
+        } as HttpTypes.StorePaymentCollection,
+      }),
+    })
+    const bindPaymentSessionData = vi.fn()
+    const service = createMedusaCheckoutService(sdk as never, {
+      bindPaymentSessionData,
+    })
+
+    await expect(
+      service.initiatePaymentSession("cart_1", "pp_selected")
+    ).rejects.toThrow("Failed to resolve initiated payment session")
+    expect(bindPaymentSessionData).not.toHaveBeenCalled()
+  })
+
+  it("does not return the payment collection when binding fails", async () => {
+    const sdk = createSdkMock({
+      initiatePaymentSession: async () => ({
+        payment_collection: {
+          id: "pay_col_1",
+          payment_sessions: [
+            { id: "payses_created", provider_id: "pp_selected" },
+          ],
+        } as HttpTypes.StorePaymentCollection,
+      }),
+    })
+    const service = createMedusaCheckoutService(sdk as never, {
+      bindPaymentSessionData: () => Promise.reject(new Error("Binding failed")),
+    })
+
+    await expect(
+      service.initiatePaymentSession("cart_1", "pp_selected")
+    ).rejects.toThrow("Binding failed")
   })
 
   it("passes configured cart fields to cart-returning checkout calls", async () => {

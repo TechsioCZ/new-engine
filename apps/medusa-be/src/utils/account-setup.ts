@@ -5,6 +5,7 @@ import type {
   Query,
 } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
+import { buildStorefrontPublicFlowUrl } from "./storefront-public-flow-url"
 
 export const EMAIL_PASS_PROVIDER = "emailpass"
 export const ACCOUNT_SETUP_TOKEN_EXPIRES_IN = "15m"
@@ -113,71 +114,20 @@ export function getAccountSetupCustomerName(order: AccountSetupOrder) {
   )
 }
 
-function getAccountSetupStorefrontOrigin(storefrontBaseUrl: string) {
-  let storefrontUrl: URL
-
-  try {
-    storefrontUrl = new URL(storefrontBaseUrl)
-  } catch {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "storefront_base_url must be a valid absolute URL"
-    )
-  }
-
-  if (
-    storefrontUrl.protocol !== "https:" &&
-    storefrontUrl.protocol !== "http:"
-  ) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "storefront_base_url must use HTTP or HTTPS"
-    )
-  }
-
-  return storefrontUrl.origin
-}
-
 export function buildAccountSetupUrl(
   email: string,
   token: string,
-  storefrontBaseUrl: string
+  storefrontBaseUrl: string,
+  marketCode: unknown
 ) {
-  const storefrontOrigin = getAccountSetupStorefrontOrigin(storefrontBaseUrl)
-  const template = process.env.ACCOUNT_SETUP_URL_TEMPLATE
-  let accountSetupUrl: URL
+  const accountSetupUrl = buildStorefrontPublicFlowUrl({
+    marketCode,
+    storefrontBaseUrl,
+    target: { kind: "account", section: "resetPassword" },
+  })
 
-  if (template) {
-    if (!template.includes("{TOKEN}")) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "ACCOUNT_SETUP_URL_TEMPLATE must include {TOKEN} placeholder"
-      )
-    }
-
-    const populatedTemplate = template
-      .replaceAll("{TOKEN}", encodeURIComponent(token))
-      .replaceAll("{EMAIL}", encodeURIComponent(email))
-
-    try {
-      const configuredUrl = new URL(populatedTemplate, `${storefrontOrigin}/`)
-
-      accountSetupUrl = new URL(
-        `${configuredUrl.pathname}${configuredUrl.search}${configuredUrl.hash}`,
-        storefrontOrigin
-      )
-    } catch {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "ACCOUNT_SETUP_URL_TEMPLATE must be a valid URL or path"
-      )
-    }
-  } else {
-    accountSetupUrl = new URL("/auth/reset-password", storefrontOrigin)
-    accountSetupUrl.searchParams.set("token", token)
-    accountSetupUrl.searchParams.set("email", email)
-  }
-
+  accountSetupUrl.searchParams.set("token", token)
+  accountSetupUrl.searchParams.set("email", email)
   accountSetupUrl.searchParams.set("flow", "account-setup")
 
   return accountSetupUrl.toString()

@@ -7,12 +7,19 @@ import {
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
 import { HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE } from "@/lib/storefront/homepage-catalog-config"
+import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
 import {
   PRODUCT_SECTIONS,
   PRODUCTS_PER_COLLECTION_SECTION,
 } from "./homepage.data"
 import type { HomepageProductSection } from "./homepage.types"
 import { useHomepagePrefetch } from "./use-homepage-prefetch"
+
+type UseHomepageControllerProps = {
+  categoryPublicSlugsById: PublicEntitySlugMap
+  homepageSectionCategorySourceIds: Readonly<Record<string, string>>
+  productPublicSlugsById: PublicEntitySlugMap
+}
 
 type UseHomepageControllerResult = {
   productsError: string | null
@@ -23,7 +30,11 @@ type UseHomepageControllerResult = {
   handleProductHoverEnd: (product: HttpTypes.StoreProduct) => void
 }
 
-export function useHomepageController(): UseHomepageControllerResult {
+export function useHomepageController({
+  categoryPublicSlugsById,
+  homepageSectionCategorySourceIds,
+  productPublicSlugsById,
+}: UseHomepageControllerProps): UseHomepageControllerResult {
   const region = useRegionContext()
   const categoriesQuery = useCategories({
     page: 1,
@@ -81,18 +92,40 @@ export function useHomepageController(): UseHomepageControllerResult {
       categoriesQuery.isLoading ||
       sectionQueries.some((query) => query.isLoading))
 
+  const bestsellersSourceCategoryId =
+    homepageSectionCategorySourceIds[PRODUCT_SECTIONS[0].id]
+  const newProductsSourceCategoryId =
+    homepageSectionCategorySourceIds[PRODUCT_SECTIONS[1].id]
+  const saleSourceCategoryId =
+    homepageSectionCategorySourceIds[PRODUCT_SECTIONS[2].id]
+
   const preparedProductSections: HomepageProductSection[] = [
     {
       ...PRODUCT_SECTIONS[0],
+      productPublicSlugsById,
+      publicSlug: bestsellersSourceCategoryId
+        ? categoryPublicSlugsById[bestsellersSourceCategoryId]
+        : undefined,
       products: bestsellersProductsQuery.products,
+      sourceCategoryId: bestsellersSourceCategoryId,
     },
     {
       ...PRODUCT_SECTIONS[1],
+      productPublicSlugsById,
+      publicSlug: newProductsSourceCategoryId
+        ? categoryPublicSlugsById[newProductsSourceCategoryId]
+        : undefined,
       products: newProductsQuery.products,
+      sourceCategoryId: newProductsSourceCategoryId,
     },
     {
       ...PRODUCT_SECTIONS[2],
+      productPublicSlugsById,
+      publicSlug: saleSourceCategoryId
+        ? categoryPublicSlugsById[saleSourceCategoryId]
+        : undefined,
       products: saleProductsQuery.products,
+      sourceCategoryId: saleSourceCategoryId,
     },
   ]
 

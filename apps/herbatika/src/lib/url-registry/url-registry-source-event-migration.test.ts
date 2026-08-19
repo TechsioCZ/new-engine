@@ -7,6 +7,17 @@ const migrationPath = fileURLToPath(
 )
 const sql = readFileSync(migrationPath, "utf8")
 const compactSql = sql.replace(/\s+/g, " ").trim().toLowerCase()
+const commandUpgradePath = fileURLToPath(
+  new URL(
+    "./migrations/0003_generalize_source_event_receipts.sql",
+    import.meta.url
+  )
+)
+const commandUpgradeSql = readFileSync(commandUpgradePath, "utf8")
+const compactCommandUpgradeSql = commandUpgradeSql
+  .replace(/\s+/g, " ")
+  .trim()
+  .toLowerCase()
 const MANAGED_TRANSACTION = /\b(begin|commit)\s*;/
 
 const tableDefinition = (tableName: string): string => {
@@ -159,5 +170,86 @@ describe("URL registry source-event tracking migration", () => {
       "create constraint trigger url_registry_source_event_cursor_receipt_deferred"
     )
     expect(compactSql).toContain("after insert or update on")
+  })
+})
+
+describe("URL registry source-event command receipt upgrade", () => {
+  it("preserves the immutable version-two migration and replaces its constraints", () => {
+    expect(compactCommandUpgradeSql).not.toMatch(MANAGED_TRANSACTION)
+    expect(compactCommandUpgradeSql).toContain(
+      "drop constraint url_registry_source_event_receipt_action_check"
+    )
+    expect(compactCommandUpgradeSql).toContain(
+      "drop constraint url_registry_source_event_receipt_change_action_check"
+    )
+    expect(compactCommandUpgradeSql).toContain(
+      "drop constraint url_registry_source_event_receipt_command_check"
+    )
+    expect(compactCommandUpgradeSql).toContain(
+      "drop trigger url_registry_source_event_retirement_command_deferred"
+    )
+    expect(compactCommandUpgradeSql).toContain(
+      "drop function url_registry.assert_url_registry_source_event_retirement_command()"
+    )
+  })
+
+  it("supports the complete reconcile lifecycle without weakening delete receipts", () => {
+    for (const action of [
+      "published",
+      "slug-changed",
+      "unpublished",
+      "noop-unpublished",
+    ]) {
+      expect(compactCommandUpgradeSql).toContain(`'${action}'`)
+    }
+    expect(compactCommandUpgradeSql).toContain(
+      "change_type = 'reconcile' and action in ( 'published', 'slug-changed', 'unpublished', 'noop-unpublished', 'noop-source-present', 'noop-source-missing', 'requires-publication' )"
+    )
+    expect(compactCommandUpgradeSql).toContain(
+      "change_type = 'delete' and action in ( 'retired', 'noop-source-present', 'noop-route-missing', 'noop-route-terminal' )"
+    )
+    expect(compactCommandUpgradeSql).toContain(
+      "action in ('published', 'slug-changed', 'retired') and command_idempotency_key is not null"
+    )
+    expect(compactCommandUpgradeSql).toContain(
+      "action not in ('published', 'slug-changed', 'retired') and command_idempotency_key is null"
+    )
+  })
+
+  it("validates every command-bearing receipt against its exact URLR command", () => {
+    expect(compactCommandUpgradeSql).toContain(
+      "create function url_registry.assert_url_registry_source_event_command"
+    )
+    expect(compactCommandUpgradeSql).toContain(
+      "when 'published' then 'create-entity-route'"
+    )
+    expect(compactCommandUpgradeSql).toContain(
+      "when 'slug-changed' then 'change-slug'"
+    )
+    expect(compactCommandUpgradeSql).toContain(
+      "when 'retired' then 'retire-route'"
+    )
+    expect(compactCommandUpgradeSql).toContain(
+      "persisted_command.status = 'completed'"
+    )
+    expect(compactCommandUpgradeSql).toContain(
+      "persisted_command.outcome = 'applied'"
+    )
+    expect(compactCommandUpgradeSql).toContain(
+      "persisted_command.source_system = new.source_system"
+    )
+    expect(compactCommandUpgradeSql).toContain(
+      "persisted_command.source_type = new.source_type"
+    )
+    expect(compactCommandUpgradeSql).toContain(
+      "persisted_command.source_id = new.source_id"
+    )
+    expect(compactCommandUpgradeSql).toContain(
+      "persisted_command.source_event_id = new.source_event_id"
+    )
+    expect(compactCommandUpgradeSql).toContain("route.market = new.market")
+    expect(compactCommandUpgradeSql).toContain(
+      "create constraint trigger url_registry_source_event_command_deferred"
+    )
   })
 })

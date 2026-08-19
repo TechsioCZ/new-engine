@@ -10,8 +10,13 @@ import {
   type SearchAutocompleteResponse,
   type SearchAutocompleteStatus,
 } from "@/lib/search-autocomplete/search-autocomplete-types"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import {
+  projectSearchAutocompleteResponse,
+  type SearchPublicSlugMaps,
+} from "./public-search-suggestions"
 
-type UseSearchAutocompleteInput = {
+type UseSearchAutocompleteInput = SearchPublicSlugMaps & {
   countryCode?: string
   query: string
   currencyCode: string
@@ -25,12 +30,17 @@ type UseSearchAutocompleteResult = {
 }
 
 export function useSearchAutocomplete({
+  articlePublicSlugsById,
+  brandPublicSlugsById,
+  categoryPublicSlugsById,
   countryCode,
   query,
   currencyCode,
   enabled,
+  productPublicSlugsById,
   regionId,
 }: UseSearchAutocompleteInput): UseSearchAutocompleteResult {
+  const { code: market } = useMarketContext()
   const locale = useLocale()
   const normalizedQuery = query
     .trim()
@@ -86,7 +96,18 @@ export function useSearchAutocomplete({
           return response.json() as Promise<SearchAutocompleteResponse>
         })
         .then((response) => {
-          setData(response)
+          setData(
+            projectSearchAutocompleteResponse(
+              response,
+              {
+                articlePublicSlugsById,
+                brandPublicSlugsById,
+                categoryPublicSlugsById,
+                productPublicSlugsById,
+              },
+              market
+            )
+          )
           setStatus("success")
         })
         .catch((error: unknown) => {
@@ -104,7 +125,19 @@ export function useSearchAutocomplete({
       window.clearTimeout(timeoutId)
       abortController.abort()
     }
-  }, [countryCode, currencyCode, enabled, locale, normalizedQuery, regionId])
+  }, [
+    articlePublicSlugsById,
+    brandPublicSlugsById,
+    categoryPublicSlugsById,
+    countryCode,
+    currencyCode,
+    enabled,
+    locale,
+    market,
+    normalizedQuery,
+    productPublicSlugsById,
+    regionId,
+  ])
 
   return { data, status }
 }

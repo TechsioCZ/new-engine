@@ -1,3 +1,4 @@
+import { MedusaError } from "@medusajs/framework/utils"
 import { describe, expect, it } from "vitest"
 import {
   DEFAULT_URL_REGISTRY_DISPATCH_SCHEDULE,
@@ -46,13 +47,21 @@ describe("parseUrlRegistryDispatcherConfig", () => {
     "http://herbatika:3001/?key=value",
     "http://herbatika:3001/#fragment",
   ])("rejects an invalid internal origin: %s", (origin) => {
-    expect(() =>
+    try {
       parseUrlRegistryDispatcherConfig({
         URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN: origin,
         URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED: "1",
         URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN: TOKEN,
       })
-    ).toThrow("URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN")
+    } catch (error) {
+      expect(error).toBeInstanceOf(MedusaError)
+      expect((error as MedusaError).type).toBe(MedusaError.Types.INVALID_DATA)
+      expect((error as Error).message).toContain(
+        "URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN"
+      )
+      return
+    }
+    throw new Error("Expected invalid internal origin to be rejected")
   })
 
   it.each([
@@ -62,13 +71,21 @@ describe("parseUrlRegistryDispatcherConfig", () => {
     ` ${TOKEN}`,
     `${TOKEN} `,
   ])("rejects a missing or malformed lifecycle token: %s", (token) => {
-    expect(() =>
+    try {
       parseUrlRegistryDispatcherConfig({
         URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN: "https://internal.test",
         URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED: "1",
         URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN: token,
       })
-    ).toThrow("URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN")
+    } catch (error) {
+      expect(error).toBeInstanceOf(MedusaError)
+      expect((error as MedusaError).type).toBe(MedusaError.Types.INVALID_DATA)
+      expect((error as Error).message).toContain(
+        "URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN"
+      )
+      return
+    }
+    throw new Error("Expected invalid lifecycle token to be rejected")
   })
 })
 
@@ -93,10 +110,18 @@ describe("readUrlRegistryDispatchSchedule", () => {
     "* * * * * *",
     "* * * * *\nsecret",
   ])("rejects an invalid schedule: %s", (schedule) => {
-    expect(() =>
+    try {
       readUrlRegistryDispatchSchedule({
         URL_REGISTRY_PRODUCT_LIFECYCLE_DISPATCH_SCHEDULE: schedule,
       })
-    ).toThrow("URL_REGISTRY_PRODUCT_LIFECYCLE_DISPATCH_SCHEDULE")
+    } catch (error) {
+      expect(error).toBeInstanceOf(MedusaError)
+      expect((error as MedusaError).type).toBe(MedusaError.Types.INVALID_DATA)
+      expect((error as Error).message).toContain(
+        "URL_REGISTRY_PRODUCT_LIFECYCLE_DISPATCH_SCHEDULE"
+      )
+      return
+    }
+    throw new Error("Expected invalid dispatch schedule to be rejected")
   })
 })

@@ -1,12 +1,19 @@
 import type { Market } from "@/lib/url/types"
+import {
+  assertActiveRoutePageLimit,
+  decodeActiveRouteCursor,
+  encodeActiveRouteCursor,
+} from "../active-route-page"
 import type {
   ActiveEquivalenceLookup,
+  ActiveEntityRoutePageRequest,
   ActiveRouteTarget,
   EntityIdentityLookup,
   EntityRouteSnapshot,
   SourceReadResult,
   StaticRouteSnapshot,
   UrlRouteSnapshot,
+  UrlRegistryPage,
 } from "../contracts"
 import {
   assertEntityKind,
@@ -91,6 +98,50 @@ export const findActiveEntity = async (
   return read.value === null
     ? { kind: "missing" }
     : { kind: "found", value: read.value }
+}
+
+export const listActiveEntities = async (
+  pool: SqlPool,
+  input: ActiveEntityRoutePageRequest
+): Promise<SourceReadResult<UrlRegistryPage<Extract<ActiveRouteTarget, { projectionType: "entity" }>>>> => {
+  assertMarket(input.market)
+  assertEntityKind(input.kind)
+  assertActiveRoutePageLimit(input.limit)
+  const afterId = decodeActiveRouteCursor(input.cursor)
+  const read = await executePrimaryRead(pool, async (executor) => {
+    const result = await executor.query(
+      `SELECT to_jsonb(route) AS route,
+              to_jsonb(current_slug) AS current_slug,
+              NULL::jsonb AS current_path
+         FROM url_registry.url_route AS route
+         JOIN url_registry.url_entity_slug AS current_slug
+           ON current_slug.route_id = route.id
+          AND current_slug.disposition = 'current'
+        WHERE route.market = $1 AND route.kind = $2
+          AND route.target_type = 'entity' AND route.status = 'active'
+          AND ($3::uuid IS NULL OR route.id > $3::uuid)
+        ORDER BY route.id
+        LIMIT $4`,
+      [input.market, input.kind, afterId, input.limit + 1]
+    )
+    const targets = result.rows.map(targetFromRow)
+    if (targets.some((target) => target.projectionType !== "entity")) {
+      throw new TypeError("Active entity page returned a static target")
+    }
+    const hasNext = targets.length > input.limit
+    const items = targets.slice(0, input.limit) as Extract<
+      ActiveRouteTarget,
+      { projectionType: "entity" }
+    >[]
+    return {
+      items,
+      nextCursor:
+        hasNext && items.length > 0
+          ? encodeActiveRouteCursor(items.at(-1)?.route.id as string)
+          : null,
+    }
+  })
+  return read
 }
 
 export const findEntity = async (

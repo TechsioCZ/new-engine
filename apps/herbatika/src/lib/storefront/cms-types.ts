@@ -85,9 +85,41 @@ export type CmsPage = {
   title?: string | null
 }
 
+export type CmsHeroButtonTarget =
+  | {
+      targetType: "entity"
+      sourceSystem: "medusa"
+      sourceType: "product" | "category" | "brand" | "collection"
+      sourceId: string
+      staticRouteKey?: null
+    }
+  | {
+      targetType: "entity"
+      sourceSystem: "payload"
+      sourceType: "article" | "page"
+      sourceId: string
+      staticRouteKey?: null
+    }
+  | {
+      targetType: "static"
+      sourceSystem?: null
+      sourceType?: null
+      sourceId?: null
+      staticRouteKey:
+        | "root:about"
+        | "root:contact"
+        | "root:faq"
+        | "root:shipping"
+        | "root:returns"
+        | "root:terms"
+        | "root:privacy"
+        | "root:cookies"
+    }
+
 export type CmsHeroCarousel = {
   button?: string | null
   buttonHref?: string | null
+  buttonTarget?: CmsHeroButtonTarget | null
   heading?: string | null
   id: number | string
   image?: CmsMedia | string | null

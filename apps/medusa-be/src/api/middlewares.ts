@@ -41,6 +41,8 @@ import { storeCustomerReviewRoutesMiddlewares } from "./store/customers/me/revie
 import { storeExternalReviewRoutesMiddlewares } from "./store/external-reviews/middlewares"
 import { storeGLSBranchesRoutesMiddlewares } from "./store/gls/branches/middlewares"
 import { storeMiddlewares } from "./store/middlewares"
+import { storeOrderConfirmationRoutesMiddlewares } from "./store/order-confirmations/middlewares"
+import { storePaymentReturnRoutesMiddlewares } from "./store/payment-returns/middlewares"
 import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middlewares"
 import { storeProductLocationAvailabilityRoutesMiddlewares } from "./store/products/[id]/location-availability/middlewares"
 import { storeProductAttributesRoutesMiddlewares } from "./store/products/[id]/product-attributes/middlewares"
@@ -107,6 +109,8 @@ export default defineMiddlewares({
     ...storeSearchAutocompleteRoutesMiddlewares,
     ...storeCmsRoutesMiddlewares,
     ...storeExternalReviewRoutesMiddlewares,
+    ...storeOrderConfirmationRoutesMiddlewares,
+    ...storePaymentReturnRoutesMiddlewares,
     ...storeProductListsRoutesMiddlewares,
     ...storeProductLocationAvailabilityRoutesMiddlewares,
     ...storeProductAttributesRoutesMiddlewares,

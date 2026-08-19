@@ -7,12 +7,14 @@ import type {
   RelatedProductsSection,
 } from "@/components/product-detail/product-detail.types"
 import { SupportingText } from "@/components/text/supporting-text"
+import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
 
 type ProductDetailRelatedProps = {
   isProductAdding: (productId: string) => boolean
   onAddToCart: (product: Product) => void
   onProductHoverEnd: (sectionId: string, product: Product) => void
   onProductHoverStart: (sectionId: string, product: Product) => void
+  productPublicSlugsById?: PublicEntitySlugMap
   sections: RelatedProductsSection[]
 }
 
@@ -21,6 +23,7 @@ export function ProductDetailRelated({
   onAddToCart,
   onProductHoverEnd,
   onProductHoverStart,
+  productPublicSlugsById,
   sections,
 }: ProductDetailRelatedProps) {
   const tCatalog = useTranslations("catalog")
@@ -54,6 +57,7 @@ export function ProductDetailRelated({
           onProductHoverStart={(hoveredProduct) => {
             onProductHoverStart(section.id, hoveredProduct)
           }}
+          productPublicSlugsById={productPublicSlugsById}
           products={section.products}
           sectionClassName="py-500"
           title={section.title}

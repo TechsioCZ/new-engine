@@ -48,8 +48,8 @@ const assertLifecycleAllowsEntityCreation = async (
       WHERE cursor.source_system = $1 AND cursor.source_type = $2
         AND cursor.source_id = $3 AND cursor.market = $4
         AND receipt.action IN (
-          'retired', 'noop-source-missing', 'noop-route-missing',
-          'noop-route-terminal'
+          'retired', 'unpublished', 'noop-unpublished',
+          'noop-source-missing', 'noop-route-missing', 'noop-route-terminal'
         )
       LIMIT 1`,
     [

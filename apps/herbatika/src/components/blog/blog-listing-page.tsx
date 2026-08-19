@@ -4,32 +4,44 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { useQueryStates } from "nuqs"
 import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb"
-import type {
-  BlogCategoryFilter,
-  BlogListing,
-} from "@/lib/storefront/blog-content"
-import { blogQueryParsers } from "@/lib/storefront/blog-query-state"
-import { resolveBlogListingHref } from "@/lib/storefront/blog-routing"
+import { StorefrontLink } from "@/components/storefront-link"
+import type { BlogCategoryFilter } from "@/lib/storefront/blog-content"
+import {
+  ALL_BLOG_CATEGORIES_KEY,
+  blogQueryParsers,
+} from "@/lib/storefront/blog-query-state"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
+import { buildPath, withPublicSearchParams } from "@/lib/url/public-url"
+import {
+  type BlogListingWithSourceIds,
+  resolveBlogCardPublicSlug,
+} from "./blog-card-projection"
 import { BlogListingCard } from "./blog-listing-card"
 import { useBlogListingPages } from "./use-blog-listing-pages"
 
 type BlogListingPageProps = {
-  listing: BlogListing
+  articlePublicSlugsById: PublicEntitySlugMap
+  listing: BlogListingWithSourceIds
 }
 
 const getFilterLabel = (filter: BlogCategoryFilter) =>
   `${filter.label} (${filter.count})`
 
-export function BlogListingPage({ listing }: BlogListingPageProps) {
+export function BlogListingPage({
+  articlePublicSlugsById,
+  listing,
+}: BlogListingPageProps) {
   const tContent = useTranslations("content")
+  const market = useMarketContext().code
+  const adviceHref = buildPath({ kind: "article" }, market)
   const [, setBlogQueryState] = useQueryStates(blogQueryParsers)
   const listingQuery = useBlogListingPages(listing)
   const loadedPages = listingQuery.data?.pages ?? [listing]
@@ -37,9 +49,12 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
   const firstLoadedPage = loadedPages[0]?.page ?? listing.page
   const lastLoadedPage = loadedPages.at(-1)?.page ?? listing.page
   const getPageUrl = ({ page }: { page: number }) =>
-    resolveBlogListingHref({
-      category: listing.category,
-      page,
+    withPublicSearchParams(adviceHref, {
+      category:
+        listing.category === ALL_BLOG_CATEGORIES_KEY
+          ? undefined
+          : listing.category,
+      page: page === 1 ? undefined : page,
     })
   const paginationLabel =
     firstLoadedPage === lastLoadedPage
@@ -76,7 +91,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
       label: tContent("pages.blog"),
-      href: "/blog",
+      href: adviceHref,
       icon: "token-icon-home",
     },
   ]
@@ -105,11 +120,13 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
 
                 return (
                   <LinkButton
-                    as={NextLink}
+                    as={StorefrontLink}
                     className={`h-full rounded-full border-1 border-primary px-450 py-250 font-bold font-open-sans text-md leading-[18px] ${!isActive && "border-border-muted bg-surface text-fg-muted"}`}
-                    href={resolveBlogListingHref({
-                      category: filter.key,
-                      page: 1,
+                    href={withPublicSearchParams(adviceHref, {
+                      category:
+                        filter.key === ALL_BLOG_CATEGORIES_KEY
+                          ? undefined
+                          : filter.key,
                     })}
                     key={filter.key}
                     size="sm"
@@ -125,7 +142,14 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
 
           <div className="grid gap-400 md:grid-cols-2 xl:grid-cols-4">
             {posts.map((post) => (
-              <BlogListingCard key={post.id} post={post} />
+              <BlogListingCard
+                key={post.id}
+                post={post}
+                publicSlug={resolveBlogCardPublicSlug(
+                  post,
+                  articlePublicSlugsById
+                )}
+              />
             ))}
           </div>
 
@@ -155,7 +179,7 @@ export function BlogListingPage({ listing }: BlogListingPageProps) {
                     compactLabel={() => paginationLabel}
                     count={listing.totalItems}
                     getPageUrl={getPageUrl}
-                    linkAs={NextLink}
+                    linkAs={StorefrontLink}
                     page={lastLoadedPage}
                     pageSize={listing.pageSize}
                     size="sm"

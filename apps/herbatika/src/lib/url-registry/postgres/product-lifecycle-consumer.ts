@@ -9,9 +9,11 @@ import {
   parseProductLifecycleDeliveryV1,
 } from "../product-lifecycle-parser"
 import {
+  changeProductLifecycleSlug,
   classifyProductLifecycleStream,
   isProductLifecycleConsumerError,
   ProductLifecycleConsumerError,
+  publishProductLifecycleRoute,
   retireProductLifecycleRoute,
 } from "./product-lifecycle-consumer-support"
 import {
@@ -88,10 +90,15 @@ export class PostgresProductLifecycleConsumer {
     if (replay) {
       return replay
     }
-    const source = await this.options.readProduct({
-      market: delivery.marketCode,
-      productId: delivery.entityId,
-    })
+    const requiresSourceRead =
+      delivery.changeType === "delete" ||
+      delivery.payload.assignment?.publicationStatus === "published"
+    const source = requiresSourceRead
+      ? await this.options.readProduct({
+          market: delivery.marketCode,
+          productId: delivery.entityId,
+        })
+      : ({ kind: "missing" } as const)
     if (source.kind === "unavailable" || source.kind === "invalid-response") {
       return {
         kind: "retry",
@@ -193,19 +200,39 @@ export class PostgresProductLifecycleConsumer {
       )
     }
     const route = await readProductLifecycleRoute(executor, delivery)
-    const decision = decideProductLifecycle(delivery.changeType, source, route)
+    const decision = decideProductLifecycle(
+      delivery.changeType,
+      delivery.payload.assignment,
+      source,
+      route
+    )
     if (decision.kind === "retry" || decision.kind === "conflict") {
       return decision
     }
-    const commandIdempotencyKey =
-      decision.kind === "retire"
-        ? await retireProductLifecycleRoute(
-            this.commands,
-            executor,
-            delivery,
-            decision.route
-          )
-        : null
+    let commandIdempotencyKey: string | null = null
+    if (decision.kind === "retire") {
+      commandIdempotencyKey = await retireProductLifecycleRoute(
+        this.commands,
+        executor,
+        delivery,
+        decision.route
+      )
+    } else if (decision.kind === "publish") {
+      commandIdempotencyKey = await publishProductLifecycleRoute(
+        this.commands,
+        executor,
+        delivery,
+        decision.publicSlug
+      )
+    } else if (decision.kind === "change-slug") {
+      commandIdempotencyKey = await changeProductLifecycleSlug({
+        delivery,
+        executor,
+        publicSlug: decision.publicSlug,
+        route: decision.route,
+        runner: this.commands,
+      })
+    }
     await appendProductLifecycleReceipt(executor, {
       delivery,
       fingerprint,

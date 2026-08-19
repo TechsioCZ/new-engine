@@ -4,19 +4,22 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon, type IconType } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import NextLink from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 import { useEffect, useState } from "react"
 import { AccountLayoutSkeleton } from "@/components/loading/account-layout-skeleton"
 import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton"
 import { OrderSkeleton } from "@/components/loading/order-skeleton"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useAuth } from "@/lib/storefront/auth"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useLogoutAction } from "@/lib/storefront/use-logout-action"
+import { buildPath, withPublicSearchParams } from "@/lib/url/public-url"
+import type { AccountChildKey } from "@/lib/url/types"
 
 type AccountNavItemType = {
-  href: string
+  section?: Extract<AccountChildKey, "lists" | "orders" | "settings">
   labelKey:
     | "account.navigation.lists"
     | "account.navigation.orders"
@@ -27,33 +30,36 @@ type AccountNavItemType = {
 
 const ACCOUNT_NAV_ITEMS: AccountNavItemType[] = [
   {
-    href: "/account",
     labelKey: "account.navigation.overview",
     icon: "token-icon-user",
   },
   {
-    href: "/account/orders",
+    section: "orders",
     labelKey: "account.navigation.orders",
     icon: "token-icon-order",
   },
   {
-    href: "/account/lists",
+    section: "lists",
     labelKey: "account.navigation.lists",
     icon: "token-icon-heart",
   },
   {
-    href: "/account/settings",
+    section: "settings",
     labelKey: "account.navigation.settings",
     icon: "token-icon-settings",
   },
 ] as const
 
-const isNavItemActive = (pathname: string, href: string) => {
+const isNavItemActive = (
+  pathname: string,
+  href: string,
+  accountHref: string
+) => {
   if (pathname === href) {
     return true
   }
 
-  if (href === "/account") {
+  if (href === accountHref) {
     return false
   }
 
@@ -66,8 +72,15 @@ type AccountShellProps = {
 
 export function AccountShell({ children }: AccountShellProps) {
   const tAuth = useTranslations("auth")
-  const router = useRouter()
+  const { code: market } = useMarketContext()
   const pathname = usePathname()
+  const homeHref = buildPath({ kind: "home" }, market)
+  const accountHref = buildPath({ kind: "account" }, market)
+  const ordersHref = buildPath({ kind: "account", section: "orders" }, market)
+  const deactivationHref = buildPath(
+    { kind: "account", section: "deactivation" },
+    market
+  )
   const authQuery = useAuth({
     queryOptions: {
       refetchOnMount: "always",
@@ -76,11 +89,14 @@ export function AccountShell({ children }: AccountShellProps) {
   })
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const stablePathname = pathname ?? ""
-  const redirectTarget = pathname ?? "/account"
-  const isDeactivationConfirmationRoute =
-    pathname === "/account/deactivate/confirm"
-  const isOrdersListRoute = pathname === "/account/orders"
-  const isOrderDetailRoute = stablePathname.startsWith("/account/orders/")
+  const redirectTarget = pathname ?? accountHref
+  const loginHref = withPublicSearchParams(
+    buildPath({ kind: "account", section: "login" }, market),
+    { next: redirectTarget }
+  )
+  const isDeactivationConfirmationRoute = pathname === deactivationHref
+  const isOrdersListRoute = pathname === ordersHref
+  const isOrderDetailRoute = stablePathname.startsWith(`${ordersHref}/`)
   const {
     clearLogoutError,
     handleLogout: performLogout,
@@ -89,7 +105,7 @@ export function AccountShell({ children }: AccountShellProps) {
   } = useLogoutAction({
     fallbackErrorMessage: tAuth("account.logout_failed"),
     onSuccess: () => {
-      router.replace("/")
+      window.location.replace(homeHref)
     },
   })
 
@@ -110,15 +126,14 @@ export function AccountShell({ children }: AccountShellProps) {
       return
     }
 
-    router.replace(`/auth/login?next=${encodeURIComponent(redirectTarget)}`)
+    window.location.replace(loginHref)
   }, [
     authQuery.isAuthenticated,
     authQuery.isLoading,
     isDeactivationConfirmationRoute,
     isLoggingOut,
     pathname,
-    redirectTarget,
-    router,
+    loginHref,
   ])
 
   const handleLogout = async () => {
@@ -157,8 +172,8 @@ export function AccountShell({ children }: AccountShellProps) {
             {tAuth("account.redirect.description")}
           </p>
           <LinkButton
-            as={NextLink}
-            href={`/auth/login?next=${encodeURIComponent(redirectTarget)}`}
+            as={StorefrontLink}
+            href={loginHref}
             size="sm"
             variant="secondary"
           >
@@ -184,16 +199,24 @@ export function AccountShell({ children }: AccountShellProps) {
 
           <nav className="flex flex-col gap-200">
             {ACCOUNT_NAV_ITEMS.map((item) => {
-              const isActive = isNavItemActive(stablePathname, item.href)
+              const href = buildPath(
+                { kind: "account", section: item.section },
+                market
+              )
+              const isActive = isNavItemActive(
+                stablePathname,
+                href,
+                accountHref
+              )
 
               return (
                 <LinkButton
-                  as={NextLink}
+                  as={StorefrontLink}
                   block
                   className="justify-start px-200 text-lg hover:text-primary data-[active=true]:text-primary"
                   data-active={isActive}
-                  href={item.href}
-                  key={item.href}
+                  href={href}
+                  key={href}
                   size="current"
                   theme="unstyled"
                 >

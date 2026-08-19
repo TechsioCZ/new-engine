@@ -5,9 +5,9 @@ import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { useEffect, useRef, useState } from "react"
+import { StorefrontLink } from "@/components/storefront-link"
 import {
   asFiniteNumber,
   resolveCartItemsSubtotalAmount,
@@ -15,8 +15,10 @@ import {
 } from "@/lib/storefront/cart-calculations"
 import { resolveCartShippingSubtotalAmount } from "@/lib/storefront/cart-tax-calculations"
 import type { HerbatikaCurrencyCode } from "@/lib/storefront/currency"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { useCartLineItemActions } from "@/lib/storefront/use-cart-line-item-actions"
+import { buildPath } from "@/lib/url/public-url"
 import { CartItemRow } from "./herbatika-cart-item-row"
 
 type HerbatikaCartPopoverProps = {
@@ -106,6 +108,8 @@ export function HerbatikaCartPopover({
   itemCount,
 }: HerbatikaCartPopoverProps) {
   const t = useTranslations("cart")
+  const marketContext = useMarketContext()
+  const cartHref = buildPath({ kind: "cart" }, marketContext.code)
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
   const hoverCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null
@@ -175,10 +179,10 @@ export function HerbatikaCartPopover({
         {(api) => (
           <LinkButton
             {...api.getAnchorProps()}
-            as={NextLink}
+            as={StorefrontLink}
             className="relative inline-flex items-center gap-250 py-550 text-xl data-[state=open]:bg-button-bg-primary-hover sm:w-36"
             data-state={isPopoverOpen ? "open" : "closed"}
-            href="/checkout/kosik"
+            href={cartHref}
             onClick={handleClose}
             onMouseEnter={handlePreviewOpen}
             onMouseLeave={schedulePreviewClose}
@@ -250,9 +254,9 @@ export function HerbatikaCartPopover({
 
               <div className="space-y-150">
                 <LinkButton
-                  as={NextLink}
+                  as={StorefrontLink}
                   block
-                  href="/checkout/kosik"
+                  href={cartHref}
                   onClick={handleClose}
                   size="md"
                   variant="primary"

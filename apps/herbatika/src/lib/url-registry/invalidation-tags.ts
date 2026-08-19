@@ -20,7 +20,9 @@ const mandatoryTags = (snapshots: readonly UrlRouteSnapshot[]): string[] => {
   const tags: string[] = []
   for (const { route } of snapshots) {
     tags.push(
+      `feed:${route.market}`,
       `market:${route.market}`,
+      `navigation:${route.market}`,
       `route-family:${route.market}:${route.kind}`,
       `sitemap:${route.market}`
     )

@@ -7,6 +7,11 @@ import {
 import { CATALOG_SORT_VALUES } from "./utils"
 
 const multiValueParamSchema = z.union([z.string(), z.array(z.string())])
+const exactCollectionIdSchema = z
+  .string()
+  .min(1)
+  .max(255)
+  .regex(/^[A-Za-z0-9_-]+$/)
 const onSaleParamSchema = z.preprocess(
   normalizeProductSaleAdapterSelectionInput,
   z
@@ -72,6 +77,7 @@ export const StoreCatalogProductsSchema = z
     currency_code: z.string().optional(),
     country_code: z.string().optional(),
     sales_channel_id: multiValueParamSchema.optional(),
+    collection_id: exactCollectionIdSchema.optional(),
     category_id: multiValueParamSchema.optional(),
     status: multiValueParamSchema.optional(),
     form: multiValueParamSchema.optional(),

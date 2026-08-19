@@ -17,8 +17,8 @@ import { sl } from "@payloadcms/translations/languages/sl"
 import { autoTranslate } from "@pigment/auto-translate"
 import { buildConfig } from "payload"
 import sharp from "sharp"
-import { ArticleCategories } from "./collections/article-categories"
 import { ArticleAuthors } from "./collections/article-authors"
+import { ArticleCategories } from "./collections/article-categories"
 import { Articles } from "./collections/articles"
 import { HeroCarousels } from "./collections/hero-carousels"
 import { Media } from "./collections/media"
@@ -32,12 +32,8 @@ import { healthEndpoint } from "./lib/endpoints/health"
 import { medusaProductsEndpoint } from "./lib/endpoints/medusa-products"
 import { medusaSsoPostEndpoint } from "./lib/endpoints/medusa-sso"
 import { pageCategoriesWithPagesEndpoint } from "./lib/endpoints/page-categories-with-pages"
-import {
-  getDocString,
-  getEnv,
-  isEnabled,
-  resolveEnvLocales,
-} from "./lib/utils/env"
+import { medusaCmsInvalidationTask } from "./lib/jobs/medusa-cms-invalidation"
+import { getDocString, getEnv, isEnabled } from "./lib/utils/env"
 import { migrations } from "./migrations"
 
 const filename = fileURLToPath(import.meta.url)
@@ -45,11 +41,8 @@ const dirname = path.dirname(filename)
 
 const secret = getEnv("PAYLOAD_SECRET", true)
 const databaseUrl = getEnv("DATABASE_URL", true)
-const { locales, defaultLocale } = resolveEnvLocales("PAYLOAD_LOCALES", [
-  "cs",
-  "sk",
-  "en",
-])
+const locales = ["sk", "cs", "hu", "ro"]
+const defaultLocale = "sk"
 const isArticlesEnabled = isEnabled("FEATURE_PAYLOAD_ARTICLES_ENABLED")
 const isPagesEnabled = isEnabled("FEATURE_PAYLOAD_PAGES_ENABLED")
 const isHeroCarouselsEnabled = isEnabled(
@@ -91,6 +84,19 @@ export default buildConfig({
   localization: {
     locales,
     defaultLocale,
+  },
+  jobs: {
+    autoRun: [
+      {
+        cron: "*/5 * * * * *",
+        disableScheduling: true,
+        limit: 20,
+        queue: "cms-outbox",
+      },
+    ],
+    deleteJobOnComplete: false,
+    processingOrder: "createdAt",
+    tasks: [medusaCmsInvalidationTask],
   },
   collections: [
     Users,

@@ -54,10 +54,30 @@ vi.mock("../../../../src/workflows/steps/send-notification", () => ({
 }))
 
 const MARKETS = [
-  { countryCode: "sk", domain: "herbatica.sk", locale: "sk-SK" },
-  { countryCode: "cz", domain: "herbatica.cz", locale: "cs-CZ" },
-  { countryCode: "hu", domain: "herbatica.hu", locale: "hu-HU" },
-  { countryCode: "ro", domain: "herbatica.ro", locale: "ro-RO" },
+  {
+    countryCode: "sk",
+    domain: "herbatica.sk",
+    locale: "sk-SK",
+    resetPath: "/ucet/obnova-hesla",
+  },
+  {
+    countryCode: "cz",
+    domain: "herbatica.cz",
+    locale: "cs-CZ",
+    resetPath: "/ucet/obnova-hesla",
+  },
+  {
+    countryCode: "hu",
+    domain: "herbatica.hu",
+    locale: "hu-HU",
+    resetPath: "/fiok/jelszo-visszaallitas",
+  },
+  {
+    countryCode: "ro",
+    domain: "herbatica.ro",
+    locale: "ro-RO",
+    resetPath: "/cont/resetare-parola",
+  },
 ] as const
 
 describe("send forgot password notification", () => {
@@ -69,6 +89,7 @@ describe("send forgot password notification", () => {
     countryCode,
     domain,
     locale,
+    resetPath,
   }) => {
     await import("../../../../src/workflows/send-forgot-password")
     resolveNotificationMarketContext.mockResolvedValue({
@@ -97,7 +118,8 @@ describe("send forgot password notification", () => {
         reset_url: [
           "https://",
           domain,
-          "/auth/reset-password?token=token%2Fvalue&email=customer%2Breset%40example.test",
+          resetPath,
+          "?token=token%2Fvalue&email=customer%2Breset%40example.test",
         ].join(""),
         storefront_base_url: ["https://", domain].join(""),
       },

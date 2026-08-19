@@ -1,20 +1,27 @@
-import "server-only"
+// Pages Router rejects the App-Router-only `server-only` marker. Keep this
+// module reachable only from server entry points.
 
 import { dehydrate } from "@tanstack/react-query"
 import { buildCatalogProductsParams } from "../catalog-query-state"
 import { PLP_PAGE_SIZE, type PlpQueryState } from "../plp-query-state"
-import { prefetchServerCatalogProducts } from "../storefront-server"
-import { getRegionServerContext } from "./context"
+import { fetchServerCatalogProducts } from "../storefront-server"
+import {
+  type ExplicitRequestServerContext,
+  getRegionServerContext,
+} from "./context"
 
 export const prefetchBrandPageStorefrontData = async (
   brandFacetId: string,
-  queryState: PlpQueryState
+  queryState: PlpQueryState,
+  requestContext: ExplicitRequestServerContext
 ) => {
-  const { locale, queryClient, region } = await getRegionServerContext()
+  const { locale, market, queryClient, region } =
+    await getRegionServerContext(requestContext)
 
   if (region) {
-    await Promise.all([
-      prefetchServerCatalogProducts(
+    const [catalog] = await Promise.all([
+      fetchServerCatalogProducts(
+        market,
         queryClient,
         buildCatalogProductsParams({
           queryState: {
@@ -27,7 +34,8 @@ export const prefetchBrandPageStorefrontData = async (
           countryCode: region.country_code,
         })
       ),
-      prefetchServerCatalogProducts(
+      fetchServerCatalogProducts(
+        market,
         queryClient,
         buildCatalogProductsParams({
           queryState: {
@@ -48,10 +56,17 @@ export const prefetchBrandPageStorefrontData = async (
         })
       ),
     ])
+
+    return {
+      dehydratedState: dehydrate(queryClient),
+      region,
+      visibleProductIds: catalog.products.map((product) => product.id),
+    }
   }
 
   return {
     region,
     dehydratedState: dehydrate(queryClient),
+    visibleProductIds: [] as string[],
   }
 }

@@ -4,6 +4,8 @@ import * as migration_20260730_195416_add_article_category_model from './2026073
 import * as migration_20260731_135408_add_article_related_articles from './20260731_135408_add_article_related_articles';
 import * as migration_20260731_175339_add_article_authors from './20260731_175339_add_article_authors';
 import * as migration_20260813_065411_add_article_sidebar from './20260813_065411_add_article_sidebar';
+import * as migration_20260819_004950_cms_outbox from './20260819_004950_cms_outbox';
+import * as migration_20260819_012135 from './20260819_012135';
 
 export const migrations = [
   {
@@ -34,6 +36,16 @@ export const migrations = [
   {
     up: migration_20260813_065411_add_article_sidebar.up,
     down: migration_20260813_065411_add_article_sidebar.down,
-    name: '20260813_065411_add_article_sidebar'
+    name: '20260813_065411_add_article_sidebar',
+  },
+  {
+    up: migration_20260819_004950_cms_outbox.up,
+    down: migration_20260819_004950_cms_outbox.down,
+    name: '20260819_004950_cms_outbox',
+  },
+  {
+    up: migration_20260819_012135.up,
+    down: migration_20260819_012135.down,
+    name: '20260819_012135'
   },
 ];

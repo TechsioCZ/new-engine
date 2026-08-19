@@ -20,7 +20,7 @@ import {
 import { fetchExternalReviewTrustSources } from "@/lib/storefront/external-reviews.server"
 import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { getMarketServerContext } from "@/lib/storefront/market-context.server"
-import { getRegionServerContext } from "@/lib/storefront/ssr/context"
+import { getAppRegionServerContext } from "@/lib/storefront/ssr/context.app.server"
 import { fetchServerCategories } from "@/lib/storefront/storefront-server"
 import "./globals.css"
 import { Providers } from "./providers"
@@ -120,15 +120,16 @@ async function ResolvedLayoutShell({
   children: React.ReactNode
   marketContext: HerbatikaMarketContext
 }>) {
-  const [{ queryClient, region }, messages, reviewTrustSources] =
+  const [{ market, queryClient, region }, messages, reviewTrustSources] =
     await Promise.all([
-      getRegionServerContext(),
+      getAppRegionServerContext(),
       getMessages(),
-      fetchExternalReviewTrustSources(),
+      fetchExternalReviewTrustSources(marketContext.code),
     ])
 
   try {
     await fetchServerCategories(
+      market,
       queryClient,
       buildCategoryListParams({
         page: 1,

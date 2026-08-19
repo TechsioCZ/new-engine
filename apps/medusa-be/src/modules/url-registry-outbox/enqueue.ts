@@ -54,7 +54,7 @@ export const fingerprintProductLifecycleEvent = (
     affectedMarketCodes: event.affectedMarketCodes,
     eventId: event.eventId,
     occurredAt: event.occurredAt,
-    payload: event.payload,
+    payloadByMarket: event.payloadByMarket,
     productId: event.productId,
     source: event.source,
   })
@@ -193,9 +193,9 @@ const enqueueMarket = async (
       event.productId,
       marketCode,
       streamSequence,
-      event.payload.changeType,
+      event.payloadByMarket[marketCode].changeType,
       fingerprint,
-      JSON.stringify(event.payload),
+      JSON.stringify(event.payloadByMarket[marketCode]),
       event.occurredAt,
       stream.id,
     ]

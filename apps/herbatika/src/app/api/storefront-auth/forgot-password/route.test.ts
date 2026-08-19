@@ -1,4 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
+
+vi.mock("@/lib/market/market-runtime.server", () => ({
+  resolveConfiguredMarketRuntimeBindingByHost: vi.fn(() => ({
+    acceptedHosts: ["herbatica.cz"],
+    canonicalOrigin: "https://herbatica.cz",
+    countryCode: "CZ",
+    locale: "cs-CZ",
+    market: "cz",
+    publishableApiKey: "pk_cz",
+    publishableApiKeyId: "pkid_cz",
+    regionId: "reg_cz",
+    salesChannelId: "sc_cz",
+  })),
+}))
+
 import { POST } from "./route"
 
 describe("forgot password route", () => {

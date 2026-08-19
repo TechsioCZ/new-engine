@@ -5,13 +5,18 @@ import {
   assertNoPrivateClientMarkers,
 } from "./assert-next-build.mjs"
 
-const REDIRECT_AND_ARTIFACT_ERRORS = /redirects.*standalone server/s
 const PRIVATE_CLIENT_LEAK_ERROR = /URL_REGISTRY_DATABASE_URL.*product\.js/
+const SERVER_SYMBOL_LEAK_ERROR = /getUrlRegistryRuntime.*catalog\.js/
+const REDIRECT_AND_CUTOVER_ARTIFACT_ERRORS =
+  /redirects.*standalone server.*population CLI/s
 
 const validInput = () => ({
   artifacts: {
     buildId: true,
     standaloneServer: true,
+    urlRegistryMigrationCli: true,
+    urlRegistryMigrations: true,
+    urlRegistryPopulationCli: true,
   },
   requiredServerFiles: {
     config: {
@@ -46,10 +51,11 @@ describe("assertNextBuildValues", () => {
     const input = validInput()
     input.routesManifest.redirects.push({ source: "/legacy" })
     input.artifacts.standaloneServer = false
+    input.artifacts.urlRegistryPopulationCli = false
 
     assert.throws(
       () => assertNextBuildValues(input),
-      REDIRECT_AND_ARTIFACT_ERRORS
+      REDIRECT_AND_CUTOVER_ARTIFACT_ERRORS
     )
   })
 
@@ -68,6 +74,16 @@ describe("assertNextBuildValues", () => {
           },
         ]),
       PRIVATE_CLIENT_LEAK_ERROR
+    )
+    assert.throws(
+      () =>
+        assertNoPrivateClientMarkers([
+          {
+            content: "getUrlRegistryRuntime()",
+            name: "catalog.js",
+          },
+        ]),
+      SERVER_SYMBOL_LEAK_ERROR
     )
   })
 })

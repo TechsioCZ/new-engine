@@ -54,7 +54,9 @@ export const registerGone = (
       normalizedSlug: slug.normalizedSlug,
     },
     tags: sortedUnique([
+      `feed:${slug.market}`,
       `market:${slug.market}`,
+      `navigation:${slug.market}`,
       `route-family:${slug.market}:${slug.kind}`,
       `route-slug:${slug.market}:${slug.kind}:${slug.normalizedSlug}`,
       `sitemap:${slug.market}`,

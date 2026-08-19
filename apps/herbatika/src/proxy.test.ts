@@ -5,6 +5,8 @@ import { config, proxy } from "./proxy"
 
 const originalProbeGate = process.env.URL_ARCHITECTURE_M00_ENABLED
 const originalProductResolverGate = process.env.URL_PRODUCT_RESOLVER_ENABLED
+const originalFullArchitectureGate = process.env.URL_ARCHITECTURE_ENABLED
+const originalAllowedMarkets = process.env.ALLOWED_MARKETS
 
 const request = (pathname: string, host = "herbatica.sk", method = "GET") =>
   new NextRequest(`https://${host}${pathname}`, {
@@ -13,6 +15,18 @@ const request = (pathname: string, host = "herbatica.sk", method = "GET") =>
   })
 
 afterEach(() => {
+  if (originalAllowedMarkets === undefined) {
+    Reflect.deleteProperty(process.env, "ALLOWED_MARKETS")
+  } else {
+    process.env.ALLOWED_MARKETS = originalAllowedMarkets
+  }
+
+  if (originalFullArchitectureGate === undefined) {
+    Reflect.deleteProperty(process.env, "URL_ARCHITECTURE_ENABLED")
+  } else {
+    process.env.URL_ARCHITECTURE_ENABLED = originalFullArchitectureGate
+  }
+
   if (originalProbeGate === undefined) {
     Reflect.deleteProperty(process.env, "URL_ARCHITECTURE_M00_ENABLED")
   } else {
@@ -27,8 +41,9 @@ afterEach(() => {
 })
 
 describe("M00 proxy adapter", () => {
-  it("is statically scoped to the public probe and internal namespace", () => {
+  it("covers full public HTML while retaining the incremental probe matchers", () => {
     expect(config.matcher).toEqual([
+      "/((?!api(?:/|$)|_next/static|_next/image|.*\\.(?:png|jpg|jpeg|gif|webp|svg|css|js|woff|woff2)$).*)",
       "/__url-m00/:path*",
       "/produkty/:path*",
       "/termekek/:path*",
@@ -195,5 +210,25 @@ describe("M00 proxy adapter", () => {
     expect(
       proxy(request("/_next/data/build-123/~sf/sk/__m00/current.json")).status
     ).toBe(404)
+  })
+
+  it("passes a verified-host system route through and rejects an unknown host", () => {
+    process.env.ALLOWED_MARKETS = "sk,cz,hu,ro"
+    process.env.URL_ARCHITECTURE_ENABLED = "1"
+
+    expect(proxy(request("/robots.txt")).headers.get("x-middleware-next")).toBe(
+      "1"
+    )
+    expect(proxy(request("/favicon.ico", "unknown.example")).status).toBe(421)
+  })
+
+  it("directly redirects the HU legacy about exception", () => {
+    process.env.ALLOWED_MARKETS = "sk,cz,hu,ro"
+    process.env.URL_ARCHITECTURE_ENABLED = "1"
+
+    const response = proxy(request("/o-nas", "herbatica.hu"))
+
+    expect(response.status).toBe(308)
+    expect(response.headers.get("location")).toBe("https://herbatica.hu/rolunk")
   })
 })

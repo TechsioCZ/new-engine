@@ -79,20 +79,31 @@ export const prepareCustomerAccountDeactivationRequestStep = createStep(
       )
     }
 
-    const token = createCustomerAccountDeactivationToken({
-      customer_id: customer.id,
-      email,
-    })
     const marketContext = await resolveCustomerNotificationMarketContext(
       container,
       { customerId: customer.id, email }
     )
+    const salesChannelId = marketContext.sales_channel_id
+
+    if (!salesChannelId) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Account deactivation market requires a Sales Channel binding."
+      )
+    }
+
+    const token = createCustomerAccountDeactivationToken({
+      customer_id: customer.id,
+      email,
+      sales_channel_id: salesChannelId,
+    })
 
     return new StepResponse({
       ...marketContext,
       confirmation_url: buildCustomerAccountDeactivationUrl(
         token,
-        marketContext.storefront_base_url
+        marketContext.storefront_base_url,
+        marketContext.market_code
       ),
       customer_id: customer.id,
       customer_name: normalizeCustomerName(customer),

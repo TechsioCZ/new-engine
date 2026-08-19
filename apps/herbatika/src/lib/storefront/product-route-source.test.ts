@@ -4,6 +4,7 @@ import { PRODUCT_DETAIL_FIELDS } from "./product-query-config"
 import {
   type ProductRouteSourceDependencies,
   type ProductRouteSourceMarketBinding,
+  readProductIdentitySource,
   readProductRouteSource,
 } from "./product-route-source"
 
@@ -19,14 +20,67 @@ const binding: ProductRouteSourceMarketBinding = {
 const product = {
   id: "prod_1",
   handle: "backend-handle",
+  metadata: {
+    url_registry_publication: {
+      schemaVersion: 1,
+      markets: {
+        sk: {
+          publicationStatus: "published",
+          publicSlug: "vitamin-c",
+          salesChannelId: "sc_sk",
+        },
+      },
+    },
+  },
   title: "Product",
   variants: [{ id: "variant_1", sku: "SKU-1" }],
-} as HttpTypes.StoreProduct
+} as unknown as HttpTypes.StoreProduct
+
+const request = {
+  market: "sk",
+  productId: "prod_1",
+  publicSlug: "vitamin-c",
+} as const
+
+const assignment = (
+  overrides: Record<string, unknown> = {}
+): Record<string, unknown> => ({
+  publicationStatus: "published",
+  publicSlug: "vitamin-c",
+  salesChannelId: "sc_sk",
+  ...overrides,
+})
+
+const publicationMetadata = (
+  marketAssignment: unknown = assignment(),
+  contractOverrides: Record<string, unknown> = {}
+) => ({
+  url_registry_publication: {
+    schemaVersion: 1,
+    markets: { sk: marketAssignment },
+    ...contractOverrides,
+  },
+})
+
+const productWithMetadata = (metadata: unknown): HttpTypes.StoreProduct =>
+  ({ ...product, metadata }) as unknown as HttpTypes.StoreProduct
 
 const dependencies = (
   retrieveProduct: ProductRouteSourceDependencies["retrieveProduct"]
 ): ProductRouteSourceDependencies => ({
   resolveMarket: vi.fn(() => binding),
+  retrievePublicationSource: vi.fn().mockResolvedValue({
+    entityId: "prod_1",
+    marketCode: "sk",
+    publicSlug: "vitamin-c",
+    salesChannelId: "sc_sk",
+    sourceVersion: "2026-08-19T00:00:00.000Z",
+    translation: {
+      localeCode: "sk-SK",
+      reference: "product",
+      translationId: "trans_1",
+    },
+  }),
   retrieveProduct,
 })
 
@@ -38,7 +92,7 @@ describe("readProductRouteSource", () => {
     const retrieveProduct = vi.fn().mockResolvedValue({ product })
 
     const result = await readProductRouteSource(
-      { market: "sk", productId: "prod_1" },
+      request,
       dependencies(retrieveProduct)
     )
 
@@ -59,9 +113,10 @@ describe("readProductRouteSource", () => {
     const retrieveProduct = vi.fn()
 
     const result = await readProductRouteSource(
-      { market: "ro", productId: "prod_1" },
+      { market: "ro", productId: "prod_1", publicSlug: "vitamin-c" },
       {
         resolveMarket: vi.fn(() => null),
+        retrievePublicationSource: vi.fn(),
         retrieveProduct,
       }
     )
@@ -77,7 +132,7 @@ describe("readProductRouteSource", () => {
     404, 410,
   ])("maps definitive Medusa HTTP %s according to the source contract", async (status) => {
     const result = await readProductRouteSource(
-      { market: "sk", productId: "prod_1" },
+      request,
       dependencies(vi.fn().mockRejectedValue(statusError(status)))
     )
 
@@ -95,7 +150,7 @@ describe("readProductRouteSource", () => {
     408, 425, 429, 500, 503,
   ])("maps retryable Medusa HTTP %s to unavailable", async (status) => {
     const result = await readProductRouteSource(
-      { market: "sk", productId: "prod_1" },
+      request,
       dependencies(vi.fn().mockRejectedValue(statusError(status)))
     )
 
@@ -104,11 +159,144 @@ describe("readProductRouteSource", () => {
 
   it("maps a transport failure to unavailable", async () => {
     const result = await readProductRouteSource(
-      { market: "sk", productId: "prod_1" },
+      request,
       dependencies(vi.fn().mockRejectedValue(new TypeError("fetch failed")))
     )
 
     expect(result).toEqual({ kind: "unavailable" })
+  })
+
+  it.each([
+    null,
+    undefined,
+    {},
+    { url_registry_publication: null },
+    publicationMetadata(assignment(), { markets: {} }),
+  ])("returns missing when publication metadata has no SK assignment: %o", async (metadata) => {
+    const result = await readProductRouteSource(
+      request,
+      dependencies(
+        vi.fn().mockResolvedValue({ product: productWithMetadata(metadata) })
+      )
+    )
+
+    expect(result).toEqual({ kind: "missing" })
+  })
+
+  it.each([
+    assignment({ publicationStatus: "draft" }),
+    assignment({ publicSlug: "different-slug" }),
+    assignment({ salesChannelId: "sc_other" }),
+  ])("returns missing when the requested market assignment is not publishable: %o", async (marketAssignment) => {
+    const result = await readProductRouteSource(
+      request,
+      dependencies(
+        vi.fn().mockResolvedValue({
+          product: productWithMetadata(publicationMetadata(marketAssignment)),
+        })
+      )
+    )
+
+    expect(result).toEqual({ kind: "missing" })
+  })
+
+  it.each([
+    [],
+    { url_registry_publication: [] },
+    publicationMetadata(assignment(), { schemaVersion: 2 }),
+    publicationMetadata(assignment(), { unexpected: true }),
+    {
+      url_registry_publication: { schemaVersion: 1, markets: [] },
+    },
+    {
+      url_registry_publication: {
+        schemaVersion: 1,
+        markets: { de: assignment() },
+      },
+    },
+    publicationMetadata(null),
+    publicationMetadata({
+      publicationStatus: "published",
+      publicSlug: "vitamin-c",
+    }),
+    publicationMetadata(assignment({ unexpected: true })),
+    publicationMetadata(assignment({ publicationStatus: "scheduled" })),
+    publicationMetadata(assignment({ publicSlug: "Vitamin C" })),
+    publicationMetadata(assignment({ salesChannelId: "sc sk" })),
+  ])("maps malformed publication metadata %o to invalid-response", async (metadata) => {
+    const result = await readProductRouteSource(
+      request,
+      dependencies(
+        vi.fn().mockResolvedValue({ product: productWithMetadata(metadata) })
+      )
+    )
+
+    expect(result).toEqual({
+      kind: "invalid-response",
+      causeCode: "INVALID_PRODUCT_PUBLICATION_METADATA",
+    })
+  })
+
+  it("fails closed on malformed dependency shape", async () => {
+    const malformedDependencies = await readProductRouteSource(
+      request,
+      {} as ProductRouteSourceDependencies
+    )
+    const malformedBinding = await readProductRouteSource(request, {
+      resolveMarket: vi.fn(
+        () =>
+          ({
+            ...binding,
+            market: "cz",
+          }) as unknown as ProductRouteSourceMarketBinding
+      ),
+      retrievePublicationSource: vi.fn(),
+      retrieveProduct: vi.fn(),
+    })
+
+    expect(malformedDependencies).toEqual({
+      kind: "invalid-response",
+      causeCode: "INVALID_PRODUCT_SOURCE_DEPENDENCIES",
+    })
+    expect(malformedBinding).toEqual({
+      kind: "invalid-response",
+      causeCode: "INVALID_MARKET_BINDING",
+    })
+  })
+
+  it("maps a market-binding dependency outage to unavailable", async () => {
+    const result = await readProductRouteSource(request, {
+      resolveMarket: vi.fn(() => {
+        throw new Error("configuration dependency unavailable")
+      }),
+      retrievePublicationSource: vi.fn(),
+      retrieveProduct: vi.fn(),
+    })
+
+    expect(result).toEqual({ kind: "unavailable" })
+  })
+
+  it("requires an exact-locale Translation proof from Medusa", async () => {
+    const deps = {
+      ...dependencies(vi.fn().mockResolvedValue({ product })),
+      retrievePublicationSource: vi.fn().mockResolvedValue({
+        entityId: "prod_1",
+        marketCode: "sk",
+        publicSlug: "vitamin-c",
+        salesChannelId: "sc_sk",
+        sourceVersion: "2026-08-19T00:00:00.000Z",
+        translation: {
+          localeCode: "cs-CZ",
+          reference: "product",
+          translationId: "trans_1",
+        },
+      }),
+    }
+
+    await expect(readProductRouteSource(request, deps)).resolves.toEqual({
+      causeCode: "INVALID_PRODUCT_TRANSLATION_PROOF",
+      kind: "invalid-response",
+    })
   })
 
   it.each([
@@ -133,7 +321,7 @@ describe("readProductRouteSource", () => {
     { product: { id: "prod_1", variants: [null] } },
   ])("maps malformed Medusa payload %o to invalid-response", async (payload) => {
     const result = await readProductRouteSource(
-      { market: "sk", productId: "prod_1" },
+      request,
       dependencies(vi.fn().mockResolvedValue(payload))
     )
 
@@ -145,11 +333,70 @@ describe("readProductRouteSource", () => {
 
   it("maps a mismatched product identity to invalid-response", async () => {
     const result = await readProductRouteSource(
-      { market: "sk", productId: "prod_expected" },
-      dependencies(vi.fn().mockResolvedValue({ product }))
+      { ...request, productId: "prod_expected" },
+      {
+        ...dependencies(vi.fn().mockResolvedValue({ product })),
+        retrievePublicationSource: vi.fn().mockResolvedValue({
+          entityId: "prod_expected",
+          marketCode: "sk",
+          publicSlug: "vitamin-c",
+          salesChannelId: "sc_sk",
+          sourceVersion: "2026-08-19T00:00:00.000Z",
+          translation: {
+            localeCode: "sk-SK",
+            reference: "product",
+            translationId: "trans_1",
+          },
+        }),
+      }
     )
 
     expect(result).toEqual({
+      kind: "invalid-response",
+      causeCode: "INVALID_MEDUSA_PRODUCT_RESPONSE",
+    })
+  })
+})
+
+describe("readProductIdentitySource", () => {
+  it("uses the trusted market binding for lifecycle visibility without requiring a URLR slug", async () => {
+    const retrieveProduct = vi.fn().mockResolvedValue({
+      product: { id: "prod_1" },
+    })
+
+    const result = await readProductIdentitySource(
+      { market: "sk", productId: "prod_1" },
+      dependencies(retrieveProduct)
+    )
+
+    expect(result).toEqual({ kind: "found", value: { id: "prod_1" } })
+    expect(retrieveProduct).toHaveBeenCalledWith({
+      binding,
+      productId: "prod_1",
+      query: {
+        country_code: "sk",
+        fields: "id",
+        locale: "sk-SK",
+        region_id: "reg_sk",
+      },
+    })
+  })
+
+  it("retains source outage and malformed identity semantics", async () => {
+    await expect(
+      readProductIdentitySource(
+        { market: "sk", productId: "prod_1" },
+        dependencies(vi.fn().mockRejectedValue(new TypeError("fetch failed")))
+      )
+    ).resolves.toEqual({ kind: "unavailable" })
+    await expect(
+      readProductIdentitySource(
+        { market: "sk", productId: "prod_1" },
+        dependencies(
+          vi.fn().mockResolvedValue({ product: { id: "prod_other" } })
+        )
+      )
+    ).resolves.toEqual({
       kind: "invalid-response",
       causeCode: "INVALID_MEDUSA_PRODUCT_RESPONSE",
     })

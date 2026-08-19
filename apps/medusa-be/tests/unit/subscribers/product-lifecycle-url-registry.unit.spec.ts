@@ -14,6 +14,11 @@ const INPUT = {
   eventId:
     "sha256:100b6121b095b337c4e1114c1002fd8322cced3434358b032dc49923841b847a",
   occurredAt: "2016-07-30T23:16:16.385Z",
+  marketAssignments: (["sk", "cz", "hu", "ro"] as const).map((marketCode) => ({
+    assignment: null,
+    marketCode,
+    sourceVersion: "2016-07-30T23:00:00.000Z",
+  })),
   productId: "prod_01ABC",
   reason: "updated",
 } as const satisfies ProductLifecycleOutboxInput

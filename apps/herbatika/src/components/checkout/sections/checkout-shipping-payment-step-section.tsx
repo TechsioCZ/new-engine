@@ -1,10 +1,10 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { type ComponentProps, useState } from "react"
 import { resolveCarrierPickupRequirement } from "@/components/checkout/carrier-pickup.utils"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
+import { StorefrontLink } from "@/components/storefront-link"
 import { CheckoutPaymentSection } from "./checkout-payment-section"
 import { CheckoutShippingSection } from "./checkout-shipping-section"
 
@@ -83,7 +83,7 @@ export function CheckoutShippingPaymentStepSection({
 
       <div className="flex flex-col gap-250 px-500 pt-150 sm:flex-row sm:items-center">
         <LinkButton
-          as={NextLink}
+          as={StorefrontLink}
           className="hover:button-bg-outlined-tertiary-hover"
           href={backStepHref}
           icon="token-icon-chevron-left"
@@ -95,7 +95,7 @@ export function CheckoutShippingPaymentStepSection({
         </LinkButton>
         {controller.hasShipping && controller.hasPayment ? (
           <LinkButton
-            as={NextLink}
+            as={StorefrontLink}
             className="w-full sm:ml-auto sm:w-auto"
             href={nextStepHref}
             icon="token-icon-chevron-right"

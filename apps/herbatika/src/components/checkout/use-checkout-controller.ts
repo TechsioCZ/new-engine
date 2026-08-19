@@ -28,6 +28,11 @@ import {
   fetchPaymentProviders,
   resolveSelectedPaymentProviderId,
 } from "@/lib/storefront/checkout"
+import {
+  buildOrderConfirmationHref,
+  issueOrderConfirmationAccess,
+  syncCartSession,
+} from "@/lib/storefront/checkout-access"
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
@@ -190,6 +195,17 @@ export function useCheckoutController() {
     )
   }, [activeRegionId, queryClient])
 
+  useEffect(() => {
+    const cartId = cartQuery.cart?.id
+    if (!(cartId && cartQuery.itemCount > 0)) {
+      return
+    }
+
+    runDetachedPromise(syncCartSession(cartId), () => {
+      // Completion repeats this as a required, awaited authorization step.
+    })
+  }, [cartQuery.cart?.id, cartQuery.itemCount])
+
   const countryItems = useMemo(
     () =>
       resolveCheckoutCountryItemsForRegion({
@@ -212,15 +228,22 @@ export function useCheckoutController() {
     canInitiatePayment: checkoutPaymentQuery.canInitiatePayment,
     completedOrderId,
     completeCart: async () => {
+      const cartId = cartQuery.cart?.id
+      if (!cartId) {
+        throw new Error("Checkout cart is not ready.")
+      }
+
+      await syncCartSession(cartId)
+
       logCheckoutAccountSetupDebug("complete cart invoked", {
-        cart_id: cartQuery.cart?.id ?? null,
+        cart_id: cartId,
         cart_metadata_requested: readAccountSetupRequested(
           cartQuery.cart?.metadata
         ),
       })
 
       const completeResult = await completeCheckoutMutation.mutateAsync({
-        cartId: cartQuery.cart?.id,
+        cartId,
       })
 
       logCheckoutAccountSetupDebug("complete cart returned", {
@@ -237,11 +260,46 @@ export function useCheckoutController() {
     },
     initiatePayment: checkoutPaymentQuery.initiatePaymentAsync,
     itemCount: cartQuery.itemCount,
-    onCompletedOrderIdChange: (orderId) => {
-      if (orderId) {
-        clearStoredPaymentProviderSelection(cartQuery.cart?.id)
+    onCompletedOrderIdChange: async (orderId) => {
+      if (!orderId) {
+        setCompletedOrderId(null)
+        return
       }
-      setCompletedOrderId(orderId)
+
+      const cartId = cartQuery.cart?.id
+      if (!cartId) {
+        setCompletedOrderId(orderId)
+        throw new Error("Checkout cart is not ready.")
+      }
+
+      clearStoredPaymentProviderSelection(cartId)
+
+      try {
+        if (authQuery.isAuthenticated) {
+          window.location.assign(
+            buildOrderConfirmationHref({
+              market: marketContext.code,
+              publicOrderId: orderId,
+            })
+          )
+          return
+        }
+
+        const access = await issueOrderConfirmationAccess({
+          cartId,
+          publicOrderId: orderId,
+        })
+        window.location.assign(
+          buildOrderConfirmationHref({
+            market: marketContext.code,
+            orderToken: access.orderToken,
+            publicOrderId: access.publicOrderId,
+          })
+        )
+      } catch (error) {
+        setCompletedOrderId(orderId)
+        throw error
+      }
     },
     onOrderCompletionAbort: () => {
       setAllowCartAutoCreate(true)

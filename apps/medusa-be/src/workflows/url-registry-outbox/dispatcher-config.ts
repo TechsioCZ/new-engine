@@ -1,3 +1,5 @@
+import { MedusaError } from "@medusajs/framework/utils"
+
 const LIFECYCLE_PATH = "/api/internal/url-registry/product-lifecycle"
 const TOKEN_PATTERN = /^[\x21-\x7e]{32,512}$/
 const CRON_PATTERN = /^\S+(?:[ \t]+\S+){4}$/
@@ -16,14 +18,20 @@ export type UrlRegistryDispatcherConfig =
 const readInternalOrigin = (environment: NodeJS.ProcessEnv): string => {
   const raw = environment.URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN
   if (!(raw && raw === raw.trim())) {
-    throw new Error("URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN is required")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN is required"
+    )
   }
 
   let url: URL
   try {
     url = new URL(raw)
   } catch {
-    throw new Error("URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN is invalid")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN is invalid"
+    )
   }
 
   if (
@@ -34,7 +42,10 @@ const readInternalOrigin = (environment: NodeJS.ProcessEnv): string => {
     url.search !== "" ||
     url.hash !== ""
   ) {
-    throw new Error("URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN is invalid")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN is invalid"
+    )
   }
   return url.origin
 }
@@ -42,7 +53,10 @@ const readInternalOrigin = (environment: NodeJS.ProcessEnv): string => {
 const readLifecycleToken = (environment: NodeJS.ProcessEnv): string => {
   const token = environment.URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN
   if (!(token && TOKEN_PATTERN.test(token))) {
-    throw new Error("URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN is invalid")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN is invalid"
+    )
   }
   return token
 }
@@ -75,7 +89,8 @@ export const readUrlRegistryDispatchSchedule = (
     schedule !== schedule.trim() ||
     !CRON_PATTERN.test(schedule)
   ) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       "URL_REGISTRY_PRODUCT_LIFECYCLE_DISPATCH_SCHEDULE is invalid"
     )
   }

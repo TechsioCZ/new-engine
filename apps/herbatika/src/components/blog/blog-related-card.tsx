@@ -1,31 +1,46 @@
 import { Badge } from "@techsio/ui-kit/atoms/badge"
-import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
-import NextLink from "next/link"
 import { useLocale } from "next-intl"
+import { StorefrontLink } from "@/components/storefront-link"
 import type { BlogCardItem } from "@/lib/storefront/blog-content"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
 import { formatBlogDate } from "./blog-formatters"
 
 type BlogRelatedCardProps = {
   post: BlogCardItem
+  publicSlug?: string
 }
 
-export function BlogRelatedCard({ post }: BlogRelatedCardProps) {
+export function BlogRelatedCard({ post, publicSlug }: BlogRelatedCardProps) {
   const locale = useLocale()
+  const market = useMarketContext().code
+  const articleHref = buildProjectedEntityPath(
+    "article",
+    { publicSlug },
+    market
+  )
+  const image = (
+    <NextImage
+      alt={post.title}
+      className="aspect-video w-full object-cover"
+      height={320}
+      loading="lazy"
+      quality={50}
+      src={post.imageSrc}
+      width={520}
+    />
+  )
 
   return (
     <article className="min-h-950 overflow-hidden rounded-2xl border border-border-secondary bg-surface">
-      <Link as={NextLink} className="block" href={`/blog/${post.slug}`}>
-        <NextImage
-          alt={post.title}
-          className="aspect-video w-full object-cover"
-          height={320}
-          loading="lazy"
-          quality={50}
-          src={post.imageSrc}
-          width={520}
-        />
-      </Link>
+      {articleHref ? (
+        <StorefrontLink className="block" href={articleHref}>
+          {image}
+        </StorefrontLink>
+      ) : (
+        <div className="block">{image}</div>
+      )}
 
       <div className="space-y-200 p-300">
         <div className="flex items-center justify-between gap-200">
@@ -40,13 +55,18 @@ export function BlogRelatedCard({ post }: BlogRelatedCardProps) {
           </Badge>
         </div>
 
-        <Link
-          as={NextLink}
-          className="line-clamp-2 font-bold text-fg-primary text-lg leading-snug hover:text-primary"
-          href={`/blog/${post.slug}`}
-        >
-          {post.title}
-        </Link>
+        {articleHref ? (
+          <StorefrontLink
+            className="line-clamp-2 font-bold text-fg-primary text-lg leading-snug hover:text-primary"
+            href={articleHref}
+          >
+            {post.title}
+          </StorefrontLink>
+        ) : (
+          <h3 className="line-clamp-2 font-bold text-fg-primary text-lg leading-snug">
+            {post.title}
+          </h3>
+        )}
 
         <p className="line-clamp-3 text-fg-secondary text-xs leading-relaxed">
           {post.excerpt}

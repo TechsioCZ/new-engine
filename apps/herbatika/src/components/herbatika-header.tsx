@@ -7,46 +7,43 @@ import { Link } from "@techsio/ui-kit/atoms/link"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Header } from "@techsio/ui-kit/organisms/header"
 import NextImage from "next/image"
-import NextLink from "next/link"
-import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import type { FocusEvent, FormEvent } from "react"
 import { useState } from "react"
+import { StorefrontLink } from "@/components/storefront-link"
 import { cartReadQueryOptions, useCart } from "@/lib/storefront/cart"
 import { resolveCartTotalAmount } from "@/lib/storefront/cart-calculations"
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
+import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
+import { buildPath } from "@/lib/url/public-url"
 import { HerbatikaAccountPopover } from "./header/herbatika-account-popover"
 import { HerbatikaCartPopover } from "./header/herbatika-cart-popover"
 import { HerbatikaDesktopSubmenu } from "./header/herbatika-desktop-submenu"
-import {
-  HEADER_ACTION_ITEMS,
-  PRIMARY_NAV_ITEMS,
-} from "./header/herbatika-header.navigation"
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./header/herbatika-header.submenu-data"
 import { HerbatikaMobileMenuDialog } from "./header/herbatika-mobile-menu-dialog"
+import { useHerbatikaHeaderSubmenu } from "./header/use-herbatika-header-submenu"
 import { HerbatikaLogo } from "./herbatika-logo"
 import { SearchAutocomplete } from "./search/search-autocomplete"
-import { resolveSearchHref } from "./search/search-query-config"
 
 const SUBMENU_ROOT_HANDLES = new Set<string>(
   HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS.map((group) => group.rootHandle)
 )
 
-const resolveRootHandleFromHref = (href: string) => {
-  if (!href.startsWith("/c/")) {
-    return null
-  }
-
-  return href.slice(3)
-}
-
-export function HerbatikaHeader() {
-  const router = useRouter()
+export function HerbatikaHeader({
+  categoryPublicSlugsById,
+}: {
+  categoryPublicSlugsById?: PublicEntitySlugMap
+}) {
   const t = useTranslations("navigation")
   const tAuth = useTranslations("auth")
   const region = useRegionContext()
+  const marketContext = useMarketContext()
+  const { actionItems, primaryNavItems } = useHerbatikaHeaderSubmenu(
+    categoryPublicSlugsById
+  )
   const [activeRootHandle, setActiveRootHandle] = useState<string | null>(null)
 
   const { cart, itemCount } = useCart(
@@ -73,11 +70,16 @@ export function HerbatikaHeader() {
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     const formData = new FormData(event.currentTarget)
-    router.push(resolveSearchHref(formData.get("q")))
+    const query = formData.get("q")
+    window.location.assign(
+      buildPath(
+        { kind: "search", query: typeof query === "string" ? query : "" },
+        marketContext.code
+      )
+    )
   }
 
-  const handleActivateDesktopItem = (href: string) => {
-    const rootHandle = resolveRootHandleFromHref(href)
+  const handleActivateDesktopItem = (rootHandle: string) => {
     if (!(rootHandle && SUBMENU_ROOT_HANDLES.has(rootHandle))) {
       setActiveRootHandle(null)
       return
@@ -134,9 +136,12 @@ export function HerbatikaHeader() {
 
           <LinkButton
             aria-label={tAuth("account.navigation.lists")}
-            as={NextLink}
+            as={StorefrontLink}
             className="text-3xl text-fg-secondary hover:text-primary"
-            href="/account/lists"
+            href={buildPath(
+              { kind: "account", section: "lists" },
+              marketContext.code
+            )}
             icon="token-icon-heart"
             iconSize="2xl"
             size="current"
@@ -156,9 +161,9 @@ export function HerbatikaHeader() {
         <div className="flex @header-desktop:hidden shrink-0 items-center gap-150">
           <div className="relative">
             <LinkButton
-              as={NextLink}
+              as={StorefrontLink}
               className="px-350 py-250 font-bold text-md md:text-xl"
-              href="/checkout/kosik"
+              href={buildPath({ kind: "cart" }, marketContext.code)}
               icon="token-icon-cart"
               size="sm"
               variant="primary"
@@ -198,14 +203,14 @@ export function HerbatikaHeader() {
             className="flex-nowrap overflow-x-auto [scrollbar-width:none] md:h-full [&::-webkit-scrollbar]:hidden"
             size="sm"
           >
-            {PRIMARY_NAV_ITEMS.map((item) => {
-              const rootHandle = resolveRootHandleFromHref(item.href)
+            {primaryNavItems.map((item) => {
+              const rootHandle = item.rootHandle
               const hasSubmenu = Boolean(
                 rootHandle && SUBMENU_ROOT_HANDLES.has(rootHandle)
               )
 
               return (
-                <NextLink
+                <StorefrontLink
                   aria-expanded={
                     hasSubmenu ? activeRootHandle === rootHandle : undefined
                   }
@@ -213,23 +218,23 @@ export function HerbatikaHeader() {
                   className="h-full shrink-0"
                   href={item.href}
                   key={item.href}
-                  onFocus={() => handleActivateDesktopItem(item.href)}
+                  onFocus={() => handleActivateDesktopItem(rootHandle)}
                 >
                   <Header.NavItem
                     className="flex h-full items-center whitespace-nowrap leading-none lg:max-header-tablet:p-header-item-desktop-lg lg:max-header-tablet:text-header-item-desktop-lg"
-                    onMouseEnter={() => handleActivateDesktopItem(item.href)}
+                    onMouseEnter={() => handleActivateDesktopItem(rootHandle)}
                   >
                     {item.label}
                   </Header.NavItem>
-                </NextLink>
+                </StorefrontLink>
               )
             })}
           </Header.Nav>
 
           <Header.Actions className="gap-x-250" size="sm">
-            {HEADER_ACTION_ITEMS.map((action) => (
+            {actionItems.map((action) => (
               <LinkButton
-                as={NextLink}
+                as={StorefrontLink}
                 className="h-fit rounded-xs bg-surface px-300 py-400 font-bold text-fg-primary text-sm leading-none hover:bg-highlight"
                 href={action.href}
                 key={action.href}
@@ -250,6 +255,7 @@ export function HerbatikaHeader() {
 
         <HerbatikaDesktopSubmenu
           activeRootHandle={activeRootHandle}
+          categoryPublicSlugsById={categoryPublicSlugsById}
           onClose={() => setActiveRootHandle(null)}
         />
       </Header.Desktop>
@@ -258,7 +264,9 @@ export function HerbatikaHeader() {
         className="inset-x-0 z-20 w-full max-w-full overflow-x-hidden"
         position="right"
       >
-        <HerbatikaMobileMenuDialog />
+        <HerbatikaMobileMenuDialog
+          categoryPublicSlugsById={categoryPublicSlugsById}
+        />
       </Header.Mobile>
     </Header>
   )

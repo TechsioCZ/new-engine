@@ -58,10 +58,16 @@ const delivery = (
   changeType: "reconcile",
   occurredAt: `2026-08-18T10:00:0${sequence}.000Z`,
   payload: {
+    assignment: {
+      publicationStatus: "published",
+      publicSlug: "product-01",
+      salesChannelId: "sc_sk",
+    },
     schemaVersion: 1,
     productId: sourceId,
     reason: "updated",
     changeType: "reconcile",
+    sourceVersion: "2026-08-18T09:00:00.000Z",
   },
   ...overrides,
 })
@@ -73,10 +79,12 @@ const deletedDelivery = (
   delivery(sourceId, sequence, {
     changeType: "delete",
     payload: {
+      assignment: null,
       schemaVersion: 1,
       productId: sourceId,
       reason: "deleted",
       changeType: "delete",
+      sourceVersion: "2026-08-18T09:00:00.000Z",
     },
   })
 
@@ -188,18 +196,71 @@ describe.sequential("PostgreSQL 18.1 product lifecycle consumer", () => {
 
     await expect(consumer.consume(input)).resolves.toMatchObject({
       kind: "acknowledged",
-      action: "requires-publication",
+      action: "published",
       replayed: false,
     })
     await expect(consumer.consume(input)).resolves.toMatchObject({
       kind: "acknowledged",
-      action: "requires-publication",
+      action: "published",
       replayed: true,
     })
     expect(source).toHaveBeenCalledTimes(1)
     await expect(persistedStream(sourceId)).resolves.toEqual({
       last_sequence: 1,
       receipt_count: 1,
+    })
+  })
+
+  it("publishes, changes the public slug atomically, then unpublishes without retiring history", async () => {
+    const sourceId = context.nextNamespace("lifecycle-publication")
+    const source = readSource({ kind: "found", value: { id: sourceId } })
+    const consumer = createPostgresProductLifecycleConsumer(context.sqlPool, {
+      readProduct: source,
+    })
+
+    await expect(
+      consumer.consume(delivery(sourceId, 1))
+    ).resolves.toMatchObject({ action: "published", kind: "acknowledged" })
+    const changed = delivery(sourceId, 2, {
+      payload: {
+        ...delivery(sourceId, 2).payload,
+        assignment: {
+          publicationStatus: "published",
+          publicSlug: "renamed-product-01",
+          salesChannelId: "sc_sk",
+        },
+      },
+    })
+    await expect(consumer.consume(changed)).resolves.toMatchObject({
+      action: "slug-changed",
+      kind: "acknowledged",
+    })
+    const unpublished = delivery(sourceId, 3, {
+      payload: { ...delivery(sourceId, 3).payload, assignment: null },
+    })
+    await expect(consumer.consume(unpublished)).resolves.toMatchObject({
+      action: "unpublished",
+      kind: "acknowledged",
+    })
+
+    await expect(
+      context.registry.findEntityRoute({
+        market: "sk",
+        sourceSystem: "medusa",
+        sourceType: "product",
+        sourceId,
+      })
+    ).resolves.toMatchObject({
+      kind: "found",
+      value: {
+        currentSlug: { normalizedSlug: "renamed-product-01" },
+        route: { status: "active", version: 2 },
+      },
+    })
+    expect(source).toHaveBeenCalledTimes(2)
+    await expect(persistedStream(sourceId)).resolves.toEqual({
+      last_sequence: 3,
+      receipt_count: 3,
     })
   })
 
@@ -594,7 +655,7 @@ describe.sequential("PostgreSQL 18.1 product lifecycle consumer", () => {
     ).resolves.toMatchObject({ snapshot: { route: { status: "active" } } })
   })
 
-  it("keeps publication blocked while a later reconcile still finds no source", async () => {
+  it("blocks manual route creation after an explicit unpublish", async () => {
     const sourceId = context.nextNamespace("lifecycle-still-missing")
     const identity = entityIdentity(sourceId)
     const consumer = createPostgresProductLifecycleConsumer(context.sqlPool, {
@@ -602,10 +663,11 @@ describe.sequential("PostgreSQL 18.1 product lifecycle consumer", () => {
     })
 
     await consumer.consume(deletedDelivery(sourceId))
-    await expect(
-      consumer.consume(delivery(sourceId, 2))
-    ).resolves.toMatchObject({
-      action: "noop-source-missing",
+    const unpublished = delivery(sourceId, 2, {
+      payload: { ...delivery(sourceId, 2).payload, assignment: null },
+    })
+    await expect(consumer.consume(unpublished)).resolves.toMatchObject({
+      action: "noop-unpublished",
       kind: "acknowledged",
     })
     await expect(

@@ -102,6 +102,7 @@ describe("resolveProductPageRequest", () => {
     expect(deps.readProductById).toHaveBeenCalledWith({
       market: "sk",
       productId: "prod-1",
+      publicSlug: "current-product",
     })
     expect(result).toEqual({
       kind: "found",
@@ -111,6 +112,23 @@ describe("resolveProductPageRequest", () => {
         product,
         publicSlug: "current-product",
       },
+    })
+  })
+
+  it("plumbs the trusted proxy canonicalization signal into one direct 308", async () => {
+    const result = await resolveProductPageRequest(
+      {
+        ...input,
+        headers: { ...input.headers, canonicalizationRequired: "1" },
+        rawQuery: "",
+      },
+      dependencies()
+    )
+
+    expect(result).toEqual({
+      kind: "redirect",
+      destination: "https://herbatica.sk/produkty/current-product",
+      statusCode: 308,
     })
   })
 
@@ -134,6 +152,13 @@ describe("resolveProductPageRequest", () => {
     [
       "wrong public path",
       { ...input, headers: { ...input.headers, publicPath: "/p/legacy" } },
+    ],
+    [
+      "invalid canonicalization signal",
+      {
+        ...input,
+        headers: { ...input.headers, canonicalizationRequired: "0" },
+      },
     ],
     ["array param", { ...input, slugParam: ["current-product"] }],
   ])("fails closed for %s internal context", async (_label, request) => {

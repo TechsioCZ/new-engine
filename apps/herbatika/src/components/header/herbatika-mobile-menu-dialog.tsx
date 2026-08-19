@@ -3,15 +3,21 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import { HeaderContext } from "@techsio/ui-kit/organisms/header"
 import NextImage from "next/image"
-import NextLink from "next/link"
 import { useContext, useEffect } from "react"
-import { HEADER_ACTION_ITEMS } from "./herbatika-header.navigation"
+import { StorefrontLink } from "@/components/storefront-link"
+import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
 import { HerbatikaMobileMenuNav } from "./herbatika-mobile-menu-nav"
+import { useHerbatikaHeaderSubmenu } from "./use-herbatika-header-submenu"
 
 const HEADER_DESKTOP_MEDIA_QUERY = "(min-width: 896px)"
 
-export function HerbatikaMobileMenuDialog() {
+export function HerbatikaMobileMenuDialog({
+  categoryPublicSlugsById,
+}: {
+  categoryPublicSlugsById?: PublicEntitySlugMap
+}) {
   const { isMobileMenuOpen, setIsMobileMenuOpen } = useContext(HeaderContext)
+  const { actionItems } = useHerbatikaHeaderSubmenu(categoryPublicSlugsById)
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(HEADER_DESKTOP_MEDIA_QUERY)
@@ -47,12 +53,14 @@ export function HerbatikaMobileMenuDialog() {
         trapFocus
       >
         <div className="w-full overflow-x-hidden shadow-sm">
-          <HerbatikaMobileMenuNav />
+          <HerbatikaMobileMenuNav
+            categoryPublicSlugsById={categoryPublicSlugsById}
+          />
 
           <div className="grid w-full grid-cols-1 gap-200 p-400 sm:grid-cols-2">
-            {HEADER_ACTION_ITEMS.map((action) => (
+            {actionItems.map((action) => (
               <LinkButton
-                as={NextLink}
+                as={StorefrontLink}
                 className="h-fit rounded-xs bg-surface px-300 py-400 font-bold text-fg-primary text-sm hover:bg-highlight"
                 href={action.href}
                 key={`mobile-action-${action.href}`}

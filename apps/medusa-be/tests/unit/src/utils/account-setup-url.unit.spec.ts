@@ -1,41 +1,51 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { describe, expect, it } from "vitest"
 import { buildAccountSetupUrl } from "../../../../src/utils/account-setup"
 
 describe("buildAccountSetupUrl", () => {
-  beforeEach(() => {
-    vi.stubEnv("ACCOUNT_SETUP_URL_TEMPLATE", "")
-  })
-
-  afterEach(() => {
-    vi.unstubAllEnvs()
-  })
-
-  it("builds the default account-setup link on the resolved market origin", () => {
-    const url = buildAccountSetupUrl(
-      "customer+sk@example.test",
-      "token/value",
-      "https://herbatica.sk/"
-    )
-
-    expect(url).toBe(
-      "https://herbatica.sk/auth/reset-password?token=token%2Fvalue&email=customer%2Bsk%40example.test&flow=account-setup"
+  it.each([
+    ["sk", "herbatica.sk", "/ucet/obnova-hesla"],
+    ["cz", "herbatica.cz", "/ucet/obnova-hesla"],
+    ["hu", "herbatica.hu", "/fiok/jelszo-visszaallitas"],
+    ["ro", "herbatica.ro", "/cont/resetare-parola"],
+  ] as const)("builds the exact %s account-setup path on its market origin", (market, domain, path) => {
+    expect(
+      buildAccountSetupUrl(
+        "customer+market@example.test",
+        "Token/Exact+Case",
+        `https://${domain}/ignored-path`,
+        market
+      )
+    ).toBe(
+      `https://${domain}${path}?token=Token%2FExact%2BCase&email=customer%2Bmarket%40example.test&flow=account-setup`
     )
   })
 
-  it("keeps a configured path template but replaces its origin with the resolved market origin", () => {
-    vi.stubEnv(
-      "ACCOUNT_SETUP_URL_TEMPLATE",
-      "https://legacy.example.test/customer/activate?token={TOKEN}&email={EMAIL}&campaign=welcome&flow=legacy"
+  it("ignores the retired arbitrary URL template", () => {
+    process.env.ACCOUNT_SETUP_URL_TEMPLATE =
+      "https://legacy.example.test/customer/activate?token={TOKEN}"
+
+    expect(
+      buildAccountSetupUrl(
+        "customer@example.test",
+        "account-token",
+        "https://herbatica.cz",
+        "cz"
+      )
+    ).toBe(
+      "https://herbatica.cz/ucet/obnova-hesla?token=account-token&email=customer%40example.test&flow=account-setup"
     )
 
-    const url = buildAccountSetupUrl(
-      "customer@example.test",
-      "account-token",
-      "https://herbatica.cz/storefront-path"
-    )
+    process.env.ACCOUNT_SETUP_URL_TEMPLATE = undefined
+  })
 
-    expect(url).toBe(
-      "https://herbatica.cz/customer/activate?token=account-token&email=customer%40example.test&campaign=welcome&flow=account-setup"
-    )
+  it("fails closed for an unknown market", () => {
+    expect(() =>
+      buildAccountSetupUrl(
+        "customer@example.test",
+        "token",
+        "https://herbatica.sk",
+        "de"
+      )
+    ).toThrow("Unsupported storefront market")
   })
 })

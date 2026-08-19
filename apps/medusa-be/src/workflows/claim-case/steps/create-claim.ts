@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto"
-import type { CreateNotificationDTO } from "@medusajs/framework/types"
+import type { CreateNotificationDTO, Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -117,7 +117,7 @@ export const createClaimStep = createStep(
         throw invalidAccessError()
       }
 
-      const query = container.resolve(ContainerRegistrationKeys.QUERY)
+      const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
       const { data } = await query.graph({
         entity: "order",
         fields: [
