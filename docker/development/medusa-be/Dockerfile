@@ -64,6 +64,7 @@ RUN corepack install
 # don't invalidate the expensive install/build layers.
 COPY nx.json tsconfig.base.json eslint.config.ts ./
 COPY scripts/build-medusa.sh ./scripts/build-medusa.sh
+COPY libs/storefront-i18n ./libs/storefront-i18n
 COPY apps/medusa-be ./apps/medusa-be
 COPY apps/medusa-symmy-plugin ./apps/medusa-symmy-plugin
 COPY apps/medusa-order-dashboard-plugin ./apps/medusa-order-dashboard-plugin
