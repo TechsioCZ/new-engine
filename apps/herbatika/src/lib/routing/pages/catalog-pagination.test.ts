@@ -26,10 +26,10 @@ vi.mock("@/lib/storefront/brands.server", () => ({
   fetchStorefrontBrands: mocks.fetchStorefrontBrands,
 }))
 vi.mock("@/lib/storefront/cms-footer-navigation", () => ({
-  fetchCmsFooterNavigation: vi.fn(),
+  fetchCmsFooterNavigation: vi.fn(async () => ({ columns: [] })),
 }))
 vi.mock("@/lib/storefront/external-reviews.server", () => ({
-  fetchExternalReviewTrustSources: vi.fn(),
+  fetchExternalReviewTrustSources: vi.fn(async () => []),
 }))
 vi.mock("@/lib/storefront/market-context", () => ({
   getHerbatikaMarketContext: vi.fn(() => ({ locale: "sk-SK" })),
@@ -49,7 +49,7 @@ vi.mock("@/lib/storefront/storefront-server", () => ({
   fetchServerCategories: mocks.fetchServerCategories,
 }))
 vi.mock("@/lib/storefront/storefront-texts.server", () => ({
-  fetchStorefrontTextMessages: vi.fn(),
+  fetchStorefrontTextMessages: vi.fn(async () => ({})),
 }))
 vi.mock("@/lib/url-registry/runtime/instance.server", () => ({
   getUrlRegistryRuntime: vi.fn(async () => ({
@@ -61,12 +61,13 @@ vi.mock("@/lib/url-registry/runtime/instance.server", () => ({
 const context = (
   routeKey: string,
   publicPath: string,
-  slug?: string
+  slug?: string,
+  page = "9999"
 ): GetServerSidePropsContext => {
   const setHeader = vi.fn()
   return {
     params: { market: "sk", ...(slug ? { slug } : {}) },
-    query: { page: "9999" },
+    query: { page },
     req: {
       headers: {
         "x-sf-canonical-origin": "https://herbatica.sk",
@@ -74,7 +75,7 @@ const context = (
         "x-sf-public-path": publicPath,
         "x-sf-route-key": routeKey,
       },
-      url: `${publicPath}?page=9999`,
+      url: `${publicPath}?page=${page}`,
     },
     res: { setHeader },
   } as unknown as GetServerSidePropsContext
@@ -92,6 +93,7 @@ describe("catalog page pagination boundaries", () => {
     mocks.getRegionServerContext.mockResolvedValue({
       locale: "sk-SK",
       queryClient: {},
+      region: {},
     })
     mocks.prefetchBrandPageStorefrontData.mockResolvedValue({
       dehydratedState: {},
@@ -186,5 +188,42 @@ describe("catalog page pagination boundaries", () => {
       "X-Robots-Tag",
       "noindex, nofollow"
     )
+  })
+
+  it("keeps the category's exact last page found", async () => {
+    const request = context("category.detail", "/kategorie/herbs", "herbs", "3")
+    const { getServerSideProps } = await import(
+      "@/pages/~sf/[market]/category/[slug]"
+    )
+
+    await expect(getServerSideProps(request)).resolves.toMatchObject({
+      props: {
+        page: { kind: "found", value: { totalPages: 3 } },
+      },
+    })
+  })
+
+  it("keeps the brand's exact last page found", async () => {
+    const request = context("brand.detail", "/znacka/brand", "brand", "4")
+    const { getServerSideProps } = await import(
+      "@/pages/~sf/[market]/brand/[slug]"
+    )
+
+    await expect(getServerSideProps(request)).resolves.toMatchObject({
+      props: {
+        page: { kind: "found", value: { totalPages: 4 } },
+      },
+    })
+  })
+
+  it("keeps the product index's exact last page found", async () => {
+    const request = context("product.index", "/produkty", undefined, "5")
+    const { getServerSideProps } = await import("@/pages/~sf/[market]/products")
+
+    await expect(getServerSideProps(request)).resolves.toMatchObject({
+      props: {
+        page: { kind: "found", value: { totalPages: 5 } },
+      },
+    })
   })
 })

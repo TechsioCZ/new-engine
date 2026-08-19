@@ -96,4 +96,52 @@ describe("catalog SSR prefetch pagination", () => {
 
     expect(result.totalPages).toBe(5)
   })
+
+  it("never sends an absurd requested page to any catalog prefetch", async () => {
+    const absurdQueryState = {
+      ...queryState,
+      page: Number.MAX_SAFE_INTEGER,
+    }
+    mocks.fetchServerCatalogProducts.mockResolvedValue({
+      products: [],
+      totalPages: 5,
+    })
+
+    await prefetchCategoryPageStorefrontData("herbs", absurdQueryState, {
+      market: "sk",
+    })
+    await prefetchBrandPageStorefrontData("brand-facet", absurdQueryState, {
+      market: "sk",
+    })
+    await prefetchProductIndexStorefrontData(absurdQueryState, {
+      market: "sk",
+    })
+
+    expect(
+      mocks.fetchServerCatalogProducts.mock.calls.map(
+        ([, , params]) => params.page
+      )
+    ).toEqual([1, 1, 1, 1])
+  })
+
+  it("loads the exact last catalog page after the page-one bound probe", async () => {
+    mocks.fetchServerCatalogProducts.mockImplementation(
+      (_market, _queryClient, params) =>
+        Promise.resolve({
+          products: [],
+          totalPages: 7,
+          loadedPage: params.page,
+        })
+    )
+
+    const result = await prefetchProductIndexStorefrontData(queryState, {
+      market: "sk",
+    })
+
+    expect(mocks.fetchServerCatalogProducts.mock.calls).toEqual([
+      expect.arrayContaining([expect.objectContaining({ page: 1 })]),
+      expect.arrayContaining([expect.objectContaining({ page: 7 })]),
+    ])
+    expect(result.totalPages).toBe(7)
+  })
 })

@@ -9,6 +9,7 @@ import {
   type ExplicitRequestServerContext,
   getRegionServerContext,
 } from "./context"
+import { loadBoundedCatalogPage } from "./load-bounded-catalog-page"
 
 export const prefetchBrandPageStorefrontData = async (
   brandFacetId: string,
@@ -20,20 +21,25 @@ export const prefetchBrandPageStorefrontData = async (
 
   if (region) {
     const [catalog] = await Promise.all([
-      fetchServerCatalogProducts(
-        market,
-        queryClient,
-        buildCatalogProductsParams({
-          queryState: {
-            ...queryState,
-            brand: [brandFacetId],
-          },
-          limit: PLP_PAGE_SIZE,
-          locale,
-          regionId: region.region_id,
-          countryCode: region.country_code,
-        })
-      ),
+      loadBoundedCatalogPage({
+        loadPage: (page) =>
+          fetchServerCatalogProducts(
+            market,
+            queryClient,
+            buildCatalogProductsParams({
+              queryState: {
+                ...queryState,
+                brand: [brandFacetId],
+                page,
+              },
+              limit: PLP_PAGE_SIZE,
+              locale,
+              regionId: region.region_id,
+              countryCode: region.country_code,
+            })
+          ),
+        requestedPage: queryState.page,
+      }),
       fetchServerCatalogProducts(
         market,
         queryClient,

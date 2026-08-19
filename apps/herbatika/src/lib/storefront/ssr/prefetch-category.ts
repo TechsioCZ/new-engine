@@ -20,6 +20,7 @@ import {
   type ExplicitRequestServerContext,
   getRegionServerContext,
 } from "./context"
+import { loadBoundedCatalogPage } from "./load-bounded-catalog-page"
 
 export const prefetchCategoryPageStorefrontData = async (
   slug: string,
@@ -54,20 +55,22 @@ export const prefetchCategoryPageStorefrontData = async (
         activeCategory.id
       ),
     ]
-    const catalogListParams = buildCatalogProductsParams({
-      queryState,
-      ...resolveCategoryCatalogScope(slug, categoryIds),
-      limit: PLP_PAGE_SIZE,
-      locale,
-      regionId: region.region_id,
-      countryCode: region.country_code,
+    const catalog = await loadBoundedCatalogPage({
+      loadPage: (page) =>
+        fetchServerCatalogProducts(
+          market,
+          queryClient,
+          buildCatalogProductsParams({
+            queryState: { ...queryState, page },
+            ...resolveCategoryCatalogScope(slug, categoryIds),
+            limit: PLP_PAGE_SIZE,
+            locale,
+            regionId: region.region_id,
+            countryCode: region.country_code,
+          })
+        ),
+      requestedPage: queryState.page,
     })
-
-    const catalog = await fetchServerCatalogProducts(
-      market,
-      queryClient,
-      catalogListParams
-    )
 
     return {
       categorySourceIds: categoryResponse.categories.map(
