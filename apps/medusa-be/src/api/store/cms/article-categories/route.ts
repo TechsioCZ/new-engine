@@ -5,7 +5,6 @@ import type PayloadModuleService from "../../../../modules/payload/service"
 import { optionalStringParam } from "../../../../utils/query-params"
 import { resolveStoreCmsLocale, StoreCmsLocaleQuerySchema } from "../locales"
 
-/** Query schema for fetching CMS article categories with articles. */
 export const StoreCmsArticleCategoriesSchema = z.object({
   locale: StoreCmsLocaleQuerySchema,
   categorySlug: optionalStringParam,

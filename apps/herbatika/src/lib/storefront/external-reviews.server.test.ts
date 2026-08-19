@@ -44,7 +44,7 @@ describe("toHeurekaHomepageReviews", () => {
   it("omits undefined optional review properties from SSR data", () => {
     const result = toHeurekaHomepageReviews(createResult(), [])
 
-    expect(result?.reviews[0]).toEqual({
+    expect(result?.reviews[0]).toStrictEqual({
       id: "review-1",
       author: "Customer",
       dateLabel: "19. 08. 2026",

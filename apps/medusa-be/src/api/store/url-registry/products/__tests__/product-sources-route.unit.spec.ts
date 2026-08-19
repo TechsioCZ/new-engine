@@ -2,7 +2,11 @@ import type {
   MedusaResponse,
   MedusaStoreRequest,
 } from "@medusajs/framework/http"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  Modules,
+  ProductStatus,
+} from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 import { POST } from "../sources/route"
 
@@ -96,6 +100,12 @@ describe("product sitemap source batch route", () => {
       ],
     })
     expect(graph).toHaveBeenCalledTimes(1)
+    expect(graph).toHaveBeenCalledWith({
+      entity: "product",
+      fields: ["id", "metadata", "updated_at", "sales_channels.id"],
+      filters: { id: ["prod_1"], status: ProductStatus.PUBLISHED },
+      pagination: { take: 2 },
+    })
     expect(listTranslations).toHaveBeenCalledTimes(1)
   })
 

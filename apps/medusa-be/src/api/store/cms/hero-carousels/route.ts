@@ -8,7 +8,6 @@ import {
 } from "../../../../utils/query-params"
 import { resolveStoreCmsLocale, StoreCmsLocaleQuerySchema } from "../locales"
 
-/** Query schema for fetching CMS hero carousel lists. */
 export const StoreCmsHeroCarouselsSchema = z.object({
   locale: StoreCmsLocaleQuerySchema,
   limit: optionalPositiveIntParam,

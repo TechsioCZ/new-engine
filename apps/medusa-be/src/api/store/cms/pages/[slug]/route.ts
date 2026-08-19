@@ -4,7 +4,6 @@ import { PAYLOAD_MODULE } from "../../../../../modules/payload"
 import type PayloadModuleService from "../../../../../modules/payload/service"
 import { resolveStoreCmsLocale, StoreCmsLocaleQuerySchema } from "../../locales"
 
-/** Query schema for fetching a single CMS page. */
 export const StoreCmsPageSchema = z.object({
   locale: StoreCmsLocaleQuerySchema,
 })

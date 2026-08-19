@@ -104,7 +104,9 @@ describe("mapCmsArticleToBlogPost", () => {
     })
 
     expect(post).not.toHaveProperty("author")
-    expect(post?.sidebar?.product).toEqual({ productExternalId: "4362" })
-    expect(JSON.parse(JSON.stringify(post))).toEqual(post)
+    expect(post?.sidebar?.product).toStrictEqual({
+      productExternalId: "4362",
+    })
+    expect(JSON.parse(JSON.stringify(post))).toStrictEqual(post)
   })
 })
