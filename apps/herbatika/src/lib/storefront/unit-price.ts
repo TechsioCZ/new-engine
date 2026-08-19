@@ -17,10 +17,6 @@ const normalizeCurrencyCode = (currencyCode?: string | null): string | null => {
   return normalizedCurrencyCode?.length === 3 ? normalizedCurrencyCode : null
 }
 
-const unitQuantityFormatter = new Intl.NumberFormat("sk-SK", {
-  maximumFractionDigits: 6,
-})
-
 export const resolveVariantPricePerUnit = (
   variant:
     | HttpTypes.StoreProductVariant
@@ -50,7 +46,8 @@ export const resolveVariantPricePerUnit = (
 }
 
 export const formatUnitPriceLabel = (
-  pricePerUnit?: StorePricePerUnit | null
+  pricePerUnit: StorePricePerUnit | null | undefined,
+  locale: string
 ): string | null => {
   if (!pricePerUnit) {
     return null
@@ -80,5 +77,9 @@ export const formatUnitPriceLabel = (
     return null
   }
 
-  return `${formatCurrencyAmount(calculatedAmount, currencyCode)} / ${unitQuantityFormatter.format(unitBaseQuantity)} ${normalizedUnitSymbol}`
+  const unitQuantity = new Intl.NumberFormat(locale, {
+    maximumFractionDigits: 6,
+  }).format(unitBaseQuantity)
+
+  return `${formatCurrencyAmount(calculatedAmount, currencyCode)} / ${unitQuantity} ${normalizedUnitSymbol}`
 }

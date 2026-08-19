@@ -45,6 +45,7 @@ import {
 import {
   decorateProductsWithMeasurements,
   getMeasurementDecorationOptions,
+  getMeasurementDecorationQueryFields,
 } from "../../../../utils/measurement-units"
 import {
   listActiveSalePriceListProductSelection,
@@ -479,13 +480,17 @@ const hasExplicitCatalogFields = (
 
 const uniqueFields = (fields: string[]): string[] => Array.from(new Set(fields))
 
-const buildCatalogProductQueryFields = (options: {
+export const buildCatalogProductQueryFields = (options: {
   needsPricing: boolean
   responseFields: string[]
 }): string[] => {
+  const responseFields = options.responseFields.filter(
+    (field) => !isSyntheticCatalogProductField(field)
+  )
   const fields = [
-    ...options.responseFields.filter(
-      (field) => !isSyntheticCatalogProductField(field)
+    ...getMeasurementDecorationQueryFields(
+      responseFields,
+      getMeasurementDecorationOptions(responseFields)
     ),
     ...CATALOG_INTERNAL_PRODUCT_FIELDS,
   ]
@@ -851,7 +856,8 @@ export async function GET(
       fallbackProducts as Parameters<
         typeof decorateProductsWithMeasurements
       >[1],
-      measurementDecorationOptions
+      measurementDecorationOptions,
+      graphLocale
     )
     const responseProducts = hasExplicitFields
       ? projectProductsForCatalogResponse(
@@ -1029,7 +1035,8 @@ export async function GET(
   await decorateProductsWithMeasurements(
     req.scope,
     finalProducts as Parameters<typeof decorateProductsWithMeasurements>[1],
-    measurementDecorationOptions
+    measurementDecorationOptions,
+    graphLocale
   )
 
   const responseProducts = hasExplicitFields

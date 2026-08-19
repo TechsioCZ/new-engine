@@ -28,6 +28,7 @@ describe("ShopReviewModuleService Heureka exports", () => {
           api_key: "heureka-key",
           api_url: " ",
           credentials: null,
+          enabled: true,
           name,
         })),
       },
@@ -44,5 +45,27 @@ describe("ShopReviewModuleService Heureka exports", () => {
         }),
       })
     )
+  })
+
+  it("does not call Heureka when its API Store record is disabled", async () => {
+    const fetch = vi.fn()
+    vi.stubGlobal("fetch", fetch)
+    const service = new ShopReviewModuleService({
+      [API_STORE_MODULE]: {
+        retrieveApiStoreSecretsByName: vi.fn(async (name: string) => ({
+          api_key: "heureka-key",
+          api_url: null,
+          credentials: null,
+          enabled: false,
+          name,
+        })),
+      },
+      logger,
+    } as never)
+
+    await expect(
+      service.fetchHeurekaReviews({ kind: "shop", locale: "sk" })
+    ).rejects.toThrow("Heureka SK is disabled in Settings → API Store.")
+    expect(fetch).not.toHaveBeenCalled()
   })
 })

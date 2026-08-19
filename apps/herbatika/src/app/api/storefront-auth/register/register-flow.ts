@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import type { HerbatikaMarketCode } from "@/lib/storefront/market-context"
 import {
   buildErrorResponse,
   buildMedusaUrl,
@@ -125,17 +126,21 @@ const buildCustomerProfile = ({
   email,
   firstName,
   lastName,
+  marketCode,
   wholesale,
-}: Omit<ParsedRegisterPayload, "password">): HttpTypes.StoreCreateCustomer => ({
+}: Omit<ParsedRegisterPayload, "password"> & {
+  marketCode: HerbatikaMarketCode
+}): HttpTypes.StoreCreateCustomer => ({
   email,
   first_name: firstName,
   last_name: lastName,
+  metadata: {
+    storefront_market_code: marketCode,
+    ...(wholesale ? { company_identifier: wholesale.companyIdentifier } : {}),
+  },
   ...(wholesale
     ? {
         company_name: wholesale.companyName,
-        metadata: {
-          company_identifier: wholesale.companyIdentifier,
-        },
       }
     : {}),
 })
@@ -145,7 +150,9 @@ export const createCustomerProfile = async ({
   payload,
 }: {
   loginToken: string
-  payload: Omit<ParsedRegisterPayload, "password">
+  payload: Omit<ParsedRegisterPayload, "password"> & {
+    marketCode: HerbatikaMarketCode
+  }
 }) => {
   const createCustomerResponse = await fetch(
     buildMedusaUrl("/store/customers"),

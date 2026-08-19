@@ -31,6 +31,8 @@ import {
   getCustomerForAccountSetup,
   isAccountSetupRequested,
 } from "../utils/account-setup"
+import { didNotificationDeliverySucceed } from "../utils/notification-delivery-status"
+import { resolveNotificationMarketContext } from "../utils/notification-market-context"
 import { sendNotificationStep } from "./steps/send-notification"
 
 type WorkflowInput = {
@@ -43,7 +45,11 @@ type AccountSetupCustomerUpdate = Parameters<
   has_account: boolean
 }
 
-const prepareAccountSetupStep = createStep(
+type PreparedAccountSetupResult = Omit<AccountSetupResult, "sent"> & {
+  delivery_required: boolean
+}
+
+export const prepareAccountSetupStep = createStep(
   "prepare-account-setup",
   async (input: WorkflowInput, { container }) => {
     const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
@@ -73,9 +79,9 @@ const prepareAccountSetupStep = createStep(
     assertAccountSetupOrder(graphOrder, "query.graph(order)")
 
     if (!isAccountSetupRequested(graphOrder.metadata)) {
-      return new StepResponse<AccountSetupResult>({
+      return new StepResponse<PreparedAccountSetupResult>({
+        delivery_required: false,
         order_id: graphOrder.id,
-        sent: false,
         skipped_reason: "not_requested",
       })
     }
@@ -86,9 +92,9 @@ const prepareAccountSetupStep = createStep(
       logger.warn(
         `Order ${graphOrder.id} has no email; account setup email skipped.`
       )
-      return new StepResponse<AccountSetupResult>({
+      return new StepResponse<PreparedAccountSetupResult>({
+        delivery_required: false,
         order_id: graphOrder.id,
-        sent: false,
         skipped_reason: "missing_email",
       })
     }
@@ -100,11 +106,11 @@ const prepareAccountSetupStep = createStep(
     })
 
     if (customer.has_account) {
-      return new StepResponse<AccountSetupResult>({
+      return new StepResponse<PreparedAccountSetupResult>({
         customer_id: customer.id,
+        delivery_required: false,
         email,
         order_id: graphOrder.id,
-        sent: false,
         skipped_reason: "account_exists",
       })
     }
@@ -129,7 +135,17 @@ const prepareAccountSetupStep = createStep(
         secret: jwtSecret,
       }
     )
-    const resetUrl = buildAccountSetupUrl(email, token)
+    const marketContext = await resolveNotificationMarketContext(container, {
+      countryCode:
+        graphOrder.shipping_address?.country_code ??
+        graphOrder.billing_address?.country_code,
+      salesChannelId: graphOrder.sales_channel_id,
+    })
+    const resetUrl = buildAccountSetupUrl(
+      email,
+      token,
+      marketContext.storefront_base_url
+    )
 
     const authIdentityId = await ensureEmailPassAuthIdentity({
       authModuleService,
@@ -144,22 +160,26 @@ const prepareAccountSetupStep = createStep(
       },
     })
 
-    return new StepResponse<AccountSetupResult>({
+    return new StepResponse<PreparedAccountSetupResult>({
+      ...marketContext,
       customer_id: customer.id,
       customer_name: getAccountSetupCustomerName(graphOrder),
+      delivery_required: true,
       email,
       order_display_id: getAccountSetupOrderDisplayId(graphOrder),
       order_id: graphOrder.id,
       reset_url: resetUrl,
-      sent: true,
     })
   }
 )
 
-const markCustomerHasAccountStep = createStep(
+export const markCustomerHasAccountStep = createStep(
   "mark-customer-has-account",
-  async (input: { customer_id?: string; sent: boolean }, { container }) => {
-    if (!(input.sent && input.customer_id)) {
+  async (
+    input: { customer_id?: string; delivered: boolean },
+    { container }
+  ) => {
+    if (!(input.delivered && input.customer_id)) {
       return new StepResponse({ skipped: true })
     }
 
@@ -186,7 +206,7 @@ export const sendAccountSetupWorkflow = createWorkflow(
     const notificationInput = transform({ accountSetup }, (data) => {
       if (
         !(
-          data.accountSetup.sent &&
+          data.accountSetup.delivery_required &&
           data.accountSetup.email &&
           data.accountSetup.reset_url
         )
@@ -200,10 +220,16 @@ export const sendAccountSetupWorkflow = createWorkflow(
           channel: "email",
           template: "account-setup",
           data: {
+            country_code: data.accountSetup.country_code,
             customer_id: data.accountSetup.customer_id,
             customer_name: data.accountSetup.customer_name,
+            locale: data.accountSetup.locale,
+            market_code: data.accountSetup.market_code,
             order_display_id: data.accountSetup.order_display_id,
             reset_url: data.accountSetup.reset_url,
+            sales_channel_id: data.accountSetup.sales_channel_id,
+            storefront_base_url: data.accountSetup.storefront_base_url,
+            storefront_domain: data.accountSetup.storefront_domain,
           },
           resource_id: data.accountSetup.order_id,
           resource_type: "order",
@@ -211,22 +237,32 @@ export const sendAccountSetupWorkflow = createWorkflow(
         },
       ]
     })
-    when(
+    const notification = when(
       accountSetup,
-      (result) => result.sent && Boolean(result.email && result.reset_url)
-    ).then(() => {
-      const notification = sendNotificationStep(notificationInput)
-      const markCustomerInput = transform(
-        { accountSetup, notification },
-        (data) => ({
-          customer_id: data.accountSetup.customer_id,
-          sent: data.accountSetup.sent,
-        })
-      )
+      (preparedResult) =>
+        preparedResult.delivery_required &&
+        Boolean(preparedResult.email && preparedResult.reset_url)
+    ).then(() => sendNotificationStep(notificationInput))
+    const markCustomerInput = transform(
+      { accountSetup, notification },
+      (data) => ({
+        customer_id: data.accountSetup.customer_id,
+        delivered: didNotificationDeliverySucceed(data.notification),
+      })
+    )
 
-      markCustomerHasAccountStep(markCustomerInput)
+    markCustomerHasAccountStep(markCustomerInput)
+
+    const workflowResult = transform({ accountSetup, notification }, (data) => {
+      const { delivery_required: _deliveryRequired, ...accountSetupResult } =
+        data.accountSetup
+
+      return {
+        ...accountSetupResult,
+        sent: didNotificationDeliverySucceed(data.notification),
+      }
     })
 
-    return new WorkflowResponse(accountSetup)
+    return new WorkflowResponse(workflowResult)
   }
 )

@@ -27,6 +27,7 @@ const createTrustSummaryService = () =>
           api_key: "refresh-token",
           api_url: "https://api.sklik.cz/v1/nakupy/reviews/?premiseId=126770",
           credentials: null,
+          enabled: true,
           name,
         }
       }
@@ -198,6 +199,7 @@ describe("ShopReviewModuleService Zboží token handling", () => {
             api_key: "refresh-token",
             api_url: "https://reviews.example.test?access_token=",
             credentials: null,
+            enabled: true,
             name,
           }
         }
@@ -239,6 +241,7 @@ describe("ShopReviewModuleService Zboží token handling", () => {
             api_key: "refresh-token",
             api_url: "https://reviews.example.test",
             credentials: null,
+            enabled: true,
             name,
           }
         }
@@ -271,6 +274,7 @@ describe("ShopReviewModuleService Zboží token handling", () => {
             api_key: "refresh-token",
             api_url: "https://reviews.example.test",
             credentials: null,
+            enabled: true,
             name,
           }
         }
@@ -302,6 +306,7 @@ describe("ShopReviewModuleService Zboží token handling", () => {
         api_key: null,
         api_url: "https://reviews.example.test",
         credentials: { refresh_token: "ignored" },
+        enabled: true,
         name,
       })),
     })
@@ -310,5 +315,32 @@ describe("ShopReviewModuleService Zboží token handling", () => {
     await expect(service.refreshZboziAccessToken()).rejects.toThrow(
       'API store config "Zboží" must contain api_key'
     )
+  })
+
+  it("does not call Zboží when its API Store record is disabled", async () => {
+    const fetch = vi.fn()
+    vi.stubGlobal("fetch", fetch)
+    const service = createService({
+      retrieveApiStoreSecretsByName: vi.fn(async (name: string) => {
+        if (name === REFRESH_TOKEN_API_STORE_NAME) {
+          return {
+            api_key: "refresh-token",
+            api_url: "https://reviews.example.test",
+            credentials: null,
+            enabled: false,
+            name,
+          }
+        }
+        return null
+      }),
+    })
+
+    await expect(service.fetchZboziShopReviews()).rejects.toThrow(
+      "Zboží is disabled in Settings → API Store."
+    )
+    await expect(service.refreshZboziAccessToken()).rejects.toThrow(
+      "Zboží is disabled in Settings → API Store."
+    )
+    expect(fetch).not.toHaveBeenCalled()
   })
 })

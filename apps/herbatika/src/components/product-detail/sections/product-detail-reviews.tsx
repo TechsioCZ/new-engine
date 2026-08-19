@@ -172,14 +172,14 @@ function ProductReviewListItem({ review }: { review: ReviewItem }) {
 export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
   const format = useFormatter()
   const tCatalog = useTranslations("catalog")
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ""
   const searchParams = useSearchParams()
   const [currentPage, setCurrentPage] = useQueryState(
     REVIEW_PAGE_PARAM,
     reviewPageParser
   )
   const getReviewPageUrl = ({ page }: { page: number }) => {
-    const query = searchParams.toString()
+    const query = searchParams?.toString() ?? ""
     const baseHref = query ? `${pathname}?${query}` : pathname
     const href = serializeReviewPage(baseHref, {
       reviews_page: page <= 1 ? null : page,

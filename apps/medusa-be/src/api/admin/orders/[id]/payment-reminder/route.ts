@@ -6,12 +6,8 @@ import {
 } from "@medusajs/framework/utils"
 import {
   fetchOrderById,
-  formatTotal,
-  getOrderDisplayId,
-  getPaymentUrl,
   toPaymentReminderOrderResponse,
 } from "../../../../../utils/order-payment-reminders"
-import { getMedusaStoreName } from "../../../../../utils/store-name"
 import { sendOrderPaymentReminderWorkflow } from "../../../../../workflows/send-order-payment-reminder"
 
 export async function POST(req: MedusaRequest, res: MedusaResponse) {
@@ -37,15 +33,7 @@ export async function POST(req: MedusaRequest, res: MedusaResponse) {
 
   await sendOrderPaymentReminderWorkflow(req.scope).run({
     input: {
-      customer_id: order.customer_id ?? undefined,
-      email: order.email,
-      order_display_id: getOrderDisplayId(order),
       order_id: order.id,
-      payment_url: getPaymentUrl(order),
-      store_name: await getMedusaStoreName(
-        req.scope as Record<string, unknown>
-      ),
-      total: formatTotal(order),
     },
   })
 

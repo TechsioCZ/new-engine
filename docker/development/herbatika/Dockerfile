@@ -96,8 +96,7 @@ RUN pnpm --filter=@techsio/storefront-i18n build
 RUN pnpm --filter=@techsio/storefront-data build
 RUN pnpm --filter=@techsio/ui-kit build
 
-RUN --mount=type=cache,id=next-cache-herbatika,target=/var/www/apps/herbatika/.next/cache \
-    pnpm --filter=herbatika exec next build --turbopack && \
+RUN pnpm --filter=herbatika run build && \
     test -f apps/herbatika/.next/BUILD_ID
 
 FROM node:24-slim AS prod

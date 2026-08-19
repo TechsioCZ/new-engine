@@ -136,10 +136,12 @@ async function hasQueuedReviewRequest(
 
 export async function scheduleProductReviewRequestForOrder({
   container,
+  delayMinutes,
   logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER),
   orderId,
 }: {
   container: MedusaContainer
+  delayMinutes: number
   logger?: Logger
   orderId: string
 }) {
@@ -173,7 +175,7 @@ export async function scheduleProductReviewRequestForOrder({
   }
 
   const paidAt = getOrderPaidAt(order)
-  const runAt = getReviewRequestRunAt(order)
+  const runAt = getReviewRequestRunAt(order, delayMinutes)
 
   if (!(paidAt && runAt)) {
     logger.warn(

@@ -5,13 +5,9 @@ import { EMAIL_LOG_MODULE } from "../modules/email-log"
 import type EmailLogModuleService from "../modules/email-log/service"
 import {
   fetchUnpaidOrders,
-  formatTotal,
-  getOrderDisplayId,
-  getPaymentUrl,
   isPaymentReminderReadyOrder,
   type PaymentReminderOrder,
 } from "../utils/order-payment-reminders"
-import { getMedusaStoreName } from "../utils/store-name"
 import { sendOrderPaymentReminderWorkflow } from "../workflows/send-order-payment-reminder"
 
 const JOB_LOCK_KEY = "unpaid-order-payment-reminders-job"
@@ -41,15 +37,7 @@ async function sendReminder(
 
   await sendOrderPaymentReminderWorkflow(container).run({
     input: {
-      customer_id: order.customer_id ?? undefined,
-      email: order.email,
-      order_display_id: getOrderDisplayId(order),
       order_id: order.id,
-      payment_url: getPaymentUrl(order),
-      store_name: await getMedusaStoreName(
-        container as Record<string, unknown>
-      ),
-      total: formatTotal(order),
     },
   })
 }

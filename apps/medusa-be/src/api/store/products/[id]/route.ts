@@ -147,7 +147,8 @@ export const GET = async (
   await decorateProductsWithMeasurements(
     req.scope,
     [product],
-    measurementDecorationOptions
+    measurementDecorationOptions,
+    req.locale
   )
 
   res.json({ product })

@@ -21,7 +21,7 @@ export function AppShell({
   reviewTrustSources,
 }: AppShellProps) {
   const pathname = usePathname()
-  const isCheckoutRoute = pathname.startsWith("/checkout")
+  const isCheckoutRoute = pathname?.startsWith("/checkout") ?? false
   const shell = isCheckoutRoute ? (
     <div className="flex min-h-dvh flex-col bg-base">
       <CheckoutHeader />

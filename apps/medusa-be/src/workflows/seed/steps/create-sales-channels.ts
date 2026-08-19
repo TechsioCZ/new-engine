@@ -10,6 +10,7 @@ import { createSalesChannelsWorkflow } from "@medusajs/medusa/core-flows"
 export type CreateSalesChannelsStepInput = {
   name: string
   default: boolean
+  metadata?: Record<string, unknown>
 }[]
 
 export function validateSalesChannelSeedInput(
@@ -23,6 +24,13 @@ export function validateSalesChannelSeedInput(
     throw new Error("Seed sales channels must define exactly one default")
   }
   return names
+}
+
+export function mergeSalesChannelMetadata(
+  existing: Record<string, unknown> | null | undefined,
+  configured: Record<string, unknown>
+) {
+  return { ...(existing ?? {}), ...configured }
 }
 
 const CreateSalesChannelsStepId = "create-sales-channels-seed-step"
@@ -42,7 +50,11 @@ export const createSalesChannelsStep = createStep(
 
     const missingSalesChannels = salesChannels
       .filter((i) => !existingSalesChannels.find((j) => j.name === i))
-      .map((i) => ({ name: i }))
+      .map((name) => ({
+        metadata: input.find((channel) => channel.name.trim() === name)
+          ?.metadata,
+        name,
+      }))
 
     let createdSalesChannels: SalesChannelDTO[] = []
     if (missingSalesChannels.length !== 0) {
@@ -57,11 +69,28 @@ export const createSalesChannelsStep = createStep(
       createdSalesChannels = salesChannelResult
     }
 
+    const synchronizedExistingSalesChannels = await Promise.all(
+      existingSalesChannels.map(async (channel) => {
+        const configured = input.find(
+          (candidate) => candidate.name.trim() === channel.name
+        )
+        if (!configured?.metadata) {
+          return channel
+        }
+
+        return salesChannelModuleService.updateSalesChannels(channel.id, {
+          metadata: mergeSalesChannelMetadata(
+            channel.metadata,
+            configured.metadata
+          ),
+        })
+      })
+    )
+
     const channelsByName = new Map(
-      [...existingSalesChannels, ...createdSalesChannels].map((channel) => [
-        channel.name,
-        channel,
-      ])
+      [...synchronizedExistingSalesChannels, ...createdSalesChannels].map(
+        (channel) => [channel.name, channel]
+      )
     )
     const defaultIndex = input.findIndex(({ default: isDefault }) => isDefault)
     const defaultName = salesChannels[defaultIndex]

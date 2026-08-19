@@ -8,6 +8,7 @@ import {
   QR_PAYMENT_MODULE,
   QR_PAYMENT_PROVIDER_ID,
 } from "../modules/payment-qr/constants"
+import { RESEND_CONFIG_MODULE } from "../modules/resend-config"
 import type { MedusaConfigEnv } from "./env"
 import {
   buildCachingModule,
@@ -217,9 +218,9 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     },
     {
       resolve: "@medusajs/medusa/notification",
-      dependencies: [API_STORE_MODULE],
+      dependencies: [RESEND_CONFIG_MODULE],
       options: {
-        providers: buildNotificationProviders(env),
+        providers: buildNotificationProviders(),
       },
     },
     buildCachingModule(env),
@@ -237,6 +238,10 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     },
     {
       resolve: "./src/modules/api-store",
+    },
+    {
+      resolve: "./src/modules/resend-config",
+      dependencies: [API_STORE_MODULE],
     },
     {
       resolve: "./src/modules/shop-review",
@@ -282,6 +287,9 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     },
     {
       resolve: "./src/modules/workflow-queue",
+    },
+    {
+      resolve: "./src/modules/url-registry-outbox",
     },
     ...buildPaymentQrModules(env),
     buildEventBusModule(env),

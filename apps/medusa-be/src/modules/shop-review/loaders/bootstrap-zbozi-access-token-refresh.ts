@@ -5,6 +5,7 @@ import { API_STORE_MODULE } from "../../api-store"
 import {
   ACCESS_TOKEN_API_STORE_NAME,
   calculateNextRefreshDelayMs,
+  REFRESH_TOKEN_API_STORE_NAME,
   refreshZboziAccessTokenStore,
   shouldRefreshZboziAccessToken,
   ZBOZI_ACCESS_TOKEN_RETRY_DELAY_MS,
@@ -48,6 +49,22 @@ export async function runZboziAccessTokenRefreshCycle({
   setTimer = setTimeout,
 }: SchedulerOptions): Promise<void> {
   try {
+    const refreshConfig = await apiStoreService.retrieveApiStoreSecretsByName(
+      REFRESH_TOKEN_API_STORE_NAME
+    )
+    if (refreshConfig && !refreshConfig.enabled) {
+      logger.info(
+        `Zboží is disabled in Settings → API Store; checking again in ${Math.round(ZBOZI_ACCESS_TOKEN_RETRY_DELAY_MS / 1000)} seconds.`
+      )
+      scheduleTimer(
+        () =>
+          runRefreshCycleInBackground({ apiStoreService, logger, setTimer }),
+        ZBOZI_ACCESS_TOKEN_RETRY_DELAY_MS,
+        setTimer
+      )
+      return
+    }
+
     const current = await apiStoreService.retrieveApiStoreSecretsByName(
       ACCESS_TOKEN_API_STORE_NAME
     )

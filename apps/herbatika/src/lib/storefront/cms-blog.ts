@@ -1,6 +1,6 @@
 import "server-only"
 
-import { cacheLife } from "next/cache"
+import { unstable_cache } from "next/cache"
 import type { BlogCategory, BlogListing } from "@/lib/storefront/blog-content"
 import { BLOG_PAGE_SIZE } from "@/lib/storefront/blog-content"
 import {
@@ -119,17 +119,11 @@ export const fetchLatestCmsBlogPosts = async (
   return mapCmsArticleIndexToCards(selectedEntries)
 }
 
-export const fetchCachedLatestCmsBlogPosts = async (
-  locale: CmsLocale,
-  limit: number,
-  excludeSlugs: string[] = []
-) => {
-  "use cache"
-  cacheLife({
-    expire: 3600,
+export const fetchCachedLatestCmsBlogPosts = unstable_cache(
+  fetchLatestCmsBlogPosts,
+  ["cms-blog-latest"],
+  {
     revalidate: 600,
-    stale: 300,
-  })
-
-  return await fetchLatestCmsBlogPosts(locale, limit, excludeSlugs)
-}
+    tags: ["cms-blog"],
+  }
+)

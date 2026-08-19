@@ -39,9 +39,13 @@ export function CheckoutPaymentReturnPanel() {
   )
   const paymentNotCompletedMessage = tCheckout("payment_return_not_completed")
   const searchParams = useSearchParams()
-  const cartId = normalizeSearchParam(searchParams.get("cart_id"))
-  const isCancelled = resolvePaymentCancelled(searchParams)
-  const _retryRequestKey = normalizeSearchParam(searchParams.get("retry"))
+  const cartId = normalizeSearchParam(searchParams?.get("cart_id") ?? null)
+  const isCancelled = searchParams
+    ? resolvePaymentCancelled(searchParams)
+    : false
+  const _retryRequestKey = normalizeSearchParam(
+    searchParams?.get("retry") ?? null
+  )
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null)
   const [returnError, setReturnError] = useState<string | null>(null)
   const isAccountSetupDebugEnabled = useCheckoutAccountSetupDebugEnabled()
@@ -169,6 +173,17 @@ export function CheckoutPaymentReturnPanel() {
 
   if (completedOrderId) {
     return <CheckoutCompletedOrderSection completedOrderId={completedOrderId} />
+  }
+
+  if (!searchParams) {
+    return (
+      <PaymentReturnStatusCard
+        status="default"
+        title={tCheckout("payment_return_verifying_title")}
+      >
+        {tCheckout("payment_return_verifying_description")}
+      </PaymentReturnStatusCard>
+    )
   }
 
   const summaryHref = resolveCheckoutStepHref("suhrn") as Route

@@ -249,7 +249,7 @@
       "title": "Zapomenuté heslo",
       "description": "Zadejte e-mailovou adresu, ke které máte vytvořený účet. Pošleme vám odkaz na obnovu hesla.",
       "submit": "Odeslat odkaz",
-      "sent": "Odkaz na obnovu hesla jsme odeslali na {email}. Zkontrolujte si schránku.",
+      "sent": "Pokud k adrese {email} existuje účet, přijali jsme žádost o obnovu hesla.",
       "delivery_help": "E-mail vám nedorazil? Zkontrolujte složku se spamem nebo to zkuste znovu za několik minut.",
       "failed": "Odkaz na obnovu hesla se nepodařilo odeslat."
     },

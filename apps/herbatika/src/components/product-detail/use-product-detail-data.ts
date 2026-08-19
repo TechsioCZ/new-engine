@@ -18,6 +18,11 @@ import {
   resolveProductVolumeDiscountOptions,
   resolveSelectedVolumeDiscountOption,
 } from "@/components/product-detail/product-detail-pricing-data.utils"
+import {
+  buildProductDetailQuery,
+  resolveInitialProductVariantId,
+  resolveProductDetailProduct,
+} from "@/components/product-detail/product-detail-query"
 import { useProductDetailDebugLog } from "@/components/product-detail/use-product-detail-debug-log"
 import { useProductDetailRelatedProducts } from "@/components/product-detail/use-product-detail-related-products"
 import { mergeBrandGpsrIntoProductContentSections } from "@/components/product-detail/utils/brand-gpsr"
@@ -39,7 +44,7 @@ import {
 } from "@/lib/storefront/product-attributes"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
 import { resolveProductLocationAvailabilityState } from "@/lib/storefront/product-location-availability"
-import { PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products"
+import { useProduct } from "@/lib/storefront/products"
 import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visited-products"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { storefront } from "@/lib/storefront/storefront"
@@ -47,11 +52,13 @@ import { useVolumeDiscountTiers } from "@/lib/storefront/volume-discounts"
 
 type UseProductDetailDataProps = {
   handle: string
+  initialProduct?: Product
   initialVariantId?: string
 }
 
 export function useProductDetailData({
   handle,
+  initialProduct,
   initialVariantId,
 }: UseProductDetailDataProps) {
   const locale = useLocale()
@@ -62,18 +69,32 @@ export function useProductDetailData({
   const regionCurrencyCode = resolveRegionCurrency(region)
   const [quantity, setQuantity] = useState(1)
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
-    null
+    () =>
+      resolveInitialProductVariantId(initialProduct?.variants, initialVariantId)
   )
   const [selectedVolumeDiscountId, setSelectedVolumeDiscountId] = useState<
     string | null
   >(null)
 
-  const productQuery = useProduct({
+  const productDetailQuery = buildProductDetailQuery({
     handle,
-    fields: PRODUCT_DETAIL_FIELDS,
+    initialProduct,
   })
-
-  const product = (productQuery.product ?? null) as Product | null
+  const handleProductQuery = useProduct(productDetailQuery.input)
+  const product = resolveProductDetailProduct(
+    initialProduct,
+    handleProductQuery.product as Product | null
+  )
+  const productQuery = initialProduct
+    ? {
+        ...handleProductQuery,
+        error: null,
+        isFetching: false,
+        isLoading: false,
+        isSuccess: true,
+        product,
+      }
+    : handleProductQuery
   const variants = product?.variants ?? []
   const productCategories = product?.categories ?? []
 
@@ -166,6 +187,7 @@ export function useProductDetailData({
     unitPriceLabel,
     vipCreditLabel,
   } = resolveProductPricingLabels({
+    locale,
     productPrice,
     regionCurrencyCode,
     offerState,
@@ -204,9 +226,7 @@ export function useProductDetailData({
   useEffect(() => {
     setQuantity(1)
     setSelectedVariantId(
-      product?.variants?.some((variant) => variant.id === initialVariantId)
-        ? (initialVariantId ?? null)
-        : (product?.variants?.[0]?.id ?? null)
+      resolveInitialProductVariantId(product?.variants, initialVariantId)
     )
     setSelectedVolumeDiscountId(null)
   }, [initialVariantId, product?.variants])

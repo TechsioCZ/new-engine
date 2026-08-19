@@ -7,7 +7,13 @@ export type PaymentReminderOrder = {
   custom_display_id?: string | null
   customer_id?: string | null
   email?: string | null
-  payment_collections?: Array<{ status?: string | null } | null> | null
+  payment_collections?: Array<{
+    payments?: Array<{
+      captured_at?: Date | string | null
+      data?: Record<string, unknown> | null
+    } | null> | null
+    status?: string | null
+  } | null> | null
   payment_status?: string | null
   status?: string | null
   summary?: {
@@ -22,7 +28,17 @@ type PaymentStatus = "not_paid" | "awaiting" | "requires_action"
 
 const BATCH_SIZE = 100
 const DEFAULT_MAX_ORDERS = 500
-const TRAILING_SLASH_REGEX = /\/$/
+const PAYMENT_URL_KEYS = [
+  "payment_url",
+  "paymentUrl",
+  "checkout_url",
+  "checkoutUrl",
+  "gw_url",
+  "gwUrl",
+  "redirect_url",
+  "redirectUrl",
+  "url",
+] as const
 export const PAYMENT_REMINDER_MIN_ORDER_AGE_MS = 24 * 60 * 60 * 1000
 
 const UNPAID_PAYMENT_STATUS_VALUES: PaymentStatus[] = [
@@ -52,21 +68,35 @@ const ORDER_FIELDS = [
   "currency_code",
 ]
 
-export function getStorefrontUrl() {
-  return process.env.STOREFRONT_URL ?? "http://localhost:8000"
-}
-
 export function getOrderDisplayId(order: PaymentReminderOrder) {
   return order.custom_display_id ?? `#${order.display_id}`
 }
 
 export function getPaymentUrl(order: PaymentReminderOrder) {
-  return `${getStorefrontUrl().replace(TRAILING_SLASH_REGEX, "")}/orders/${
-    order.id
-  }`
+  for (const collection of [...(order.payment_collections ?? [])].reverse()) {
+    for (const payment of [...(collection?.payments ?? [])].reverse()) {
+      for (const key of PAYMENT_URL_KEYS) {
+        const value = payment?.data?.[key]
+
+        if (typeof value === "string" && isSafePaymentUrl(value)) {
+          return value
+        }
+      }
+    }
+  }
+
+  return
 }
 
-export function formatTotal(order: PaymentReminderOrder) {
+function isSafePaymentUrl(value: string) {
+  try {
+    return new URL(value).protocol === "https:"
+  } catch {
+    return false
+  }
+}
+
+function getOrderTotal(order: PaymentReminderOrder) {
   const total =
     order.summary?.current_order_total ??
     order.summary?.original_order_total ??
@@ -82,10 +112,21 @@ export function formatTotal(order: PaymentReminderOrder) {
     return
   }
 
-  return new Intl.NumberFormat("cs-CZ", {
-    currency: (order.currency_code ?? "CZK").toUpperCase(),
+  return normalizedTotal
+}
+
+export function formatTotal(order: PaymentReminderOrder, locale: string) {
+  const total = getOrderTotal(order)
+  const currency = order.currency_code?.trim().toUpperCase()
+
+  if (total === undefined || !currency) {
+    return
+  }
+
+  return new Intl.NumberFormat(locale, {
+    currency,
     style: "currency",
-  }).format(normalizedTotal)
+  }).format(total)
 }
 
 export function isUnpaidOrder(order: PaymentReminderOrder) {
@@ -177,7 +218,6 @@ export function toPaymentReminderOrderResponse(order: PaymentReminderOrder) {
     order_display_id: getOrderDisplayId(order),
     payment_status: order.payment_status,
     status: order.status,
-    total: order.total,
-    total_formatted: formatTotal(order),
+    total: getOrderTotal(order),
   }
 }

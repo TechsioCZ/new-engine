@@ -1,0 +1,22 @@
+{
+	admin off
+	auto_https disable_redirects
+}
+
+herbatica.sk, herbatica.cz, herbatica.hu, herbatica.ro {
+	tls internal
+
+	log {
+		output stdout
+		format console
+	}
+
+	reverse_proxy herbatika:3000 {
+		header_up -Next-Router-Prefetch
+		header_up -Next-Router-Segment-Prefetch
+		header_up -Next-Router-State-Tree
+		header_up -Next-Url
+		header_up -RSC
+		header_up -X-Nextjs-Data
+	}
+}

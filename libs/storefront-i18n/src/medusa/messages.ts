@@ -6,6 +6,7 @@ export type LoadMedusaStorefrontMessagesInput = {
   endpoint?: string
   locale: string
   market: string
+  signal?: AbortSignal
 }
 
 type StorefrontMessagesResponse = {
@@ -51,6 +52,7 @@ export const loadMedusaStorefrontMessages = async (
         locale: input.locale,
         market: input.market,
       },
+      ...(input.signal ? { signal: input.signal } : {}),
     }
   )
 

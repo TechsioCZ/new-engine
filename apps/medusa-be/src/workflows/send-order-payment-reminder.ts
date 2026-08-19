@@ -16,23 +16,23 @@ import {
 import { ORDER_RECEIPT_MODULE } from "../modules/order-receipt"
 import type OrderReceiptModuleService from "../modules/order-receipt/service"
 import type { OrderReceiptOrder } from "../modules/order-receipt/service"
+import { resolveNotificationMarketContext } from "../utils/notification-market-context"
 import {
   formatTotal,
+  getOrderDisplayId,
+  getPaymentUrl,
   type PaymentReminderOrder,
 } from "../utils/order-payment-reminders"
 import { sendNotificationStep } from "./steps/send-notification"
 
 type WorkflowInput = {
-  customer_id?: string
-  email: string
-  order_display_id: string
   order_id: string
-  payment_url: string
-  store_name?: string
-  total?: string
 }
 
-type QueryOrder = OrderReceiptOrder & PaymentReminderOrder
+type QueryOrder = OrderReceiptOrder &
+  PaymentReminderOrder & {
+    sales_channel_id?: string | null
+  }
 
 function isQueryOrder(value: unknown): value is QueryOrder {
   if (typeof value !== "object" || value === null) {
@@ -60,6 +60,7 @@ const ORDER_PAYMENT_REMINDER_RECEIPT_FIELDS = [
   "item_subtotal",
   "item_tax_total",
   "metadata",
+  "sales_channel_id",
   "payment_collections.payments.data",
   "payment_collections.payments.provider_id",
   "shipping_total",
@@ -123,11 +124,34 @@ const buildOrderPaymentReminderNotificationStep = createStep(
       throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order was not found")
     }
 
+    if (!order.email) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Order has no customer email"
+      )
+    }
+
+    const marketContext = await resolveNotificationMarketContext(container, {
+      countryCode:
+        order.shipping_address?.country_code ??
+        order.billing_address?.country_code,
+      salesChannelId: order.sales_channel_id,
+    })
+    const paymentUrl = getPaymentUrl(order)
+    if (!paymentUrl) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Order does not contain a secure provider payment URL"
+      )
+    }
     let attachments: CreateNotificationDTO["attachments"] = []
 
     try {
       const attachment =
-        await orderReceiptModuleService.generateOrderReceiptAttachment(order)
+        await orderReceiptModuleService.generateOrderReceiptAttachment(order, {
+          locale: marketContext.locale,
+          storeName: marketContext.store_name,
+        })
 
       attachments = [
         {
@@ -150,17 +174,17 @@ const buildOrderPaymentReminderNotificationStep = createStep(
         attachments,
         channel: "email",
         data: {
-          order_display_id: input.order_display_id,
-          order_id: input.order_id,
-          payment_url: input.payment_url,
-          store_name: input.store_name,
-          total: formatTotal(order) ?? input.total,
+          ...marketContext,
+          order_display_id: getOrderDisplayId(order),
+          order_id: order.id,
+          payment_url: paymentUrl,
+          total: formatTotal(order, marketContext.locale),
         },
-        receiver_id: input.customer_id,
-        resource_id: input.order_id,
+        receiver_id: order.customer_id ?? undefined,
+        resource_id: order.id,
         resource_type: "order",
         template: "order-payment-reminder",
-        to: input.email,
+        to: order.email,
         trigger_type: "order.payment_reminder",
       },
     ])
