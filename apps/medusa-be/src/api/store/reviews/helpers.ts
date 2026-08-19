@@ -7,6 +7,7 @@ import {
 } from "@medusajs/framework/utils"
 import { PRODUCT_REVIEW_MODULE } from "../../../modules/product-review"
 import type ProductReviewModuleService from "../../../modules/product-review/service"
+import { normalizeProductSalesChannelFilter } from "../../utils/product-filters"
 
 type CustomerRecord = {
   first_name?: null | string
@@ -228,15 +229,19 @@ export const retrieveCustomer = async (
 
 export const ensureProductExists = async (
   req: MedusaRequest,
-  productId: string
+  productId: string,
+  filterableFields: Record<string, unknown> = {}
 ) => {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
+  const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
+  const filters = await normalizeProductSalesChannelFilter(query, remoteQuery, {
+    ...filterableFields,
+    id: productId,
+  })
   const { data } = await query.graph({
     entity: "product",
     fields: ["id"],
-    filters: {
-      id: productId,
-    },
+    filters,
   })
 
   if (!(Array.isArray(data) && isProductRecord(data[0]))) {

@@ -4,6 +4,7 @@ import {
   createEmptySearchAutocompleteResponse,
   SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH,
 } from "@/lib/search-autocomplete/search-autocomplete-types"
+import { getRegionServerContext } from "@/lib/storefront/ssr/context"
 import { getSessionTokenFromCookieHeader } from "../storefront-auth/_lib"
 
 export async function GET(request: Request) {
@@ -11,21 +12,26 @@ export async function GET(request: Request) {
   const query = (searchParams.get("q") ?? "")
     .trim()
     .slice(0, SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH)
-  const countryCode = searchParams.get("country")
-  const currencyCode = searchParams.get("currency")
-  const locale = searchParams.get("locale")
-  const regionId = searchParams.get("region")
   const authToken = getSessionTokenFromCookieHeader(
     request.headers.get("cookie")
   )
 
   try {
+    const { marketContext, region } = await getRegionServerContext()
+
+    if (!region) {
+      return NextResponse.json(createEmptySearchAutocompleteResponse(query), {
+        status: 503,
+      })
+    }
+
     const response = await fetchSearchAutocomplete({
       query,
-      countryCode,
-      currencyCode,
-      locale,
-      regionId,
+      countryCode: region.country_code,
+      currencyCode: region.currency_code,
+      locale: marketContext.locale,
+      regionId: region.region_id,
+      salesChannelId: region.salesChannelId,
       authToken,
     })
     return NextResponse.json(response)

@@ -1,28 +1,91 @@
 import { describe, expect, it } from "vitest"
 import {
-  resolveMarketContext,
+  resolveHostMarketContext,
   resolveMarketRequestHost,
 } from "./market-context"
 
-describe("resolveMarketContext", () => {
-  it("resolves the Zane Romanian test domain as the Romanian market", () => {
+describe("resolveHostMarketContext", () => {
+  it("resolves every canonical storefront host", () => {
+    expect(resolveHostMarketContext({ host: "herbatica.sk" })?.code).toBe("sk")
     expect(
-      resolveMarketContext({
-        host: "test-engine-herbatika-ro-zane.web-revolution.cz",
-      })
-    ).toMatchObject({
-      code: "ro",
-      countryCode: "ro",
-      locale: "ro-RO",
-    })
+      resolveHostMarketContext({ host: "www.herbatica.cz:443" })?.code
+    ).toBe("cz")
+    expect(resolveHostMarketContext({ host: "herbatika.hu" })?.code).toBe("hu")
+    expect(resolveHostMarketContext({ host: "herbatica.ro" })?.code).toBe("ro")
   })
 
-  it("prefers the public Host header over a proxy forwarded host", () => {
+  it("fails closed for unknown and multi-value hosts", () => {
+    expect(resolveHostMarketContext({ host: "unknown.example" })).toBeNull()
     expect(
-      resolveMarketRequestHost({
-        forwardedHost: "zn-herbatika.internal",
-        host: "test-engine-herbatika-ro-zane.web-revolution.cz",
+      resolveHostMarketContext({ host: "herbatica.sk, attacker.example" })
+    ).toBeNull()
+  })
+
+  it("resolves only explicitly configured generated deployment hosts", () => {
+    const generatedHost = "example-project-herbatika-deploy.example.test"
+
+    expect(resolveHostMarketContext({ host: generatedHost })).toBeNull()
+    expect(
+      resolveHostMarketContext({
+        host: generatedHost,
+        hostAliases: {
+          sk: "https://example-project-herbatika-deploy.example.test",
+        },
+      })?.code
+    ).toBe("sk")
+    expect(
+      resolveHostMarketContext({
+        host: generatedHost,
+        hostAliases: { sk: generatedHost, cz: generatedHost },
       })
-    ).toBe("test-engine-herbatika-ro-zane.web-revolution.cz")
+    ).toBeNull()
+  })
+
+  it("uses a configured deployment alias from a trusted proxy host only", () => {
+    const generatedHost = "example-project-herbatika-deploy.example.test"
+    const trustedHost = resolveMarketRequestHost({
+      forwardedHost: generatedHost,
+      host: "zn-herbatika:3000",
+      trustProxyHost: true,
+    })
+    const untrustedHost = resolveMarketRequestHost({
+      forwardedHost: generatedHost,
+      host: "zn-herbatika:3000",
+      trustProxyHost: false,
+    })
+
+    expect(
+      resolveHostMarketContext({
+        host: trustedHost,
+        hostAliases: { sk: generatedHost },
+      })?.code
+    ).toBe("sk")
+    expect(
+      resolveHostMarketContext({
+        host: untrustedHost,
+        hostAliases: { sk: generatedHost },
+      })
+    ).toBeNull()
+  })
+
+  it("allows the Slovak fallback only for explicit development hosts", () => {
+    expect(
+      resolveHostMarketContext({
+        allowDevelopmentFallback: true,
+        host: "localhost:3001",
+      })?.code
+    ).toBe("sk")
+    expect(
+      resolveHostMarketContext({
+        allowDevelopmentFallback: true,
+        host: "unknown.example",
+      })
+    ).toBeNull()
+    expect(
+      resolveHostMarketContext({
+        allowDevelopmentFallback: false,
+        host: "localhost:3001",
+      })
+    ).toBeNull()
   })
 })

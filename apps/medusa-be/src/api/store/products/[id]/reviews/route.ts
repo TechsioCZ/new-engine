@@ -1,4 +1,7 @@
-import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
+import type {
+  MedusaResponse,
+  MedusaStoreRequest,
+} from "@medusajs/framework/http"
 import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
@@ -10,6 +13,7 @@ import {
   filterReviewRecords,
   normalizePublicReview,
 } from "../../../../review-normalizers"
+import { ensureProductExists } from "../../../reviews/helpers"
 import type { StoreGetProductReviewsSchemaType } from "./validators"
 
 type ReviewRatingRecord = {
@@ -21,7 +25,7 @@ const isReviewRatingRecord = (value: unknown): value is ReviewRatingRecord =>
   value !== null &&
   typeof (value as Record<string, unknown>).rating === "number"
 
-async function getReviewSummary(req: MedusaRequest, productId: string) {
+async function getReviewSummary(req: MedusaStoreRequest, productId: string) {
   const query = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const filters = {
     product_id: productId,
@@ -64,7 +68,7 @@ async function getReviewSummary(req: MedusaRequest, productId: string) {
 }
 
 export async function GET(
-  req: MedusaRequest<unknown, StoreGetProductReviewsSchemaType>,
+  req: MedusaStoreRequest<unknown, StoreGetProductReviewsSchemaType>,
   res: MedusaResponse
 ) {
   const { limit, offset } = req.validatedQuery
@@ -77,6 +81,9 @@ export async function GET(
       "Product id is required"
     )
   }
+
+  await ensureProductExists(req, productId, req.filterableFields)
+
   const service = req.scope.resolve<ProductReviewModuleService>(
     PRODUCT_REVIEW_MODULE
   )

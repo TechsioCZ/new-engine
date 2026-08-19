@@ -57,6 +57,7 @@ describe("createMedusaProductReviewService", () => {
       name: "Jana",
       product_id: "prod_1",
       rating: 5,
+      salesChannelId: "sc_1",
       turnstileToken: "turnstile-token",
     })
 
@@ -69,6 +70,7 @@ describe("createMedusaProductReviewService", () => {
         rating: 5,
         turnstileToken: "turnstile-token",
       },
+      query: { sales_channel_id: "sc_1" },
     })
   })
 
@@ -84,6 +86,7 @@ describe("createMedusaProductReviewService", () => {
 
     const result = await service.listProductReviews({
       productId: "prod_1",
+      salesChannelId: "sc_1",
       limit: 10,
       offset: 0,
     })
@@ -115,6 +118,7 @@ describe("createMedusaProductReviewService", () => {
 
     const result = await service.listProductReviews({
       productId: "prod_1",
+      salesChannelId: "sc_1",
       limit: 3,
       offset: 0,
     })
@@ -123,6 +127,7 @@ describe("createMedusaProductReviewService", () => {
       query: {
         limit: 3,
         offset: 0,
+        sales_channel_id: "sc_1",
       },
       signal: undefined,
     })
@@ -130,6 +135,7 @@ describe("createMedusaProductReviewService", () => {
       query: {
         limit: 9,
         offset: 0,
+        sales_channel_id: "sc_1",
       },
       signal: undefined,
     })

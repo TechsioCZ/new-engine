@@ -8,27 +8,18 @@ import { SearchAutocompletePanel } from "./search-autocomplete-panel"
 import { useSearchAutocompleteController } from "./use-search-autocomplete-controller"
 
 type SearchAutocompleteProps = {
-  countryCode?: string
-  currencyCode: string
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
-  regionId?: string
   variant: "desktop" | "mobile"
 }
 
 export function SearchAutocomplete({
-  countryCode,
-  currencyCode,
   onSubmit,
-  regionId,
   variant,
 }: SearchAutocompleteProps) {
   const t = useTranslations("search")
   const isMobile = variant === "mobile"
   const controller = useSearchAutocompleteController({
-    countryCode,
-    currencyCode,
     onSubmit,
-    regionId,
   })
 
   return (

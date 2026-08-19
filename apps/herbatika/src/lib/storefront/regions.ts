@@ -1,13 +1,17 @@
 "use client"
 
+import { useQuery } from "@tanstack/react-query"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import { useEffect, useState } from "react"
 import { useMarketContext } from "./market-context-provider"
 import {
+  buildCompleteRegionListQueryKey,
+  fetchCompleteRegionList,
+} from "./region-pages"
+import {
   getStoredRegionPreference,
   persistRegionPreference,
 } from "./region-preferences"
-import { REGION_LIST_FIELDS, REGION_LIST_LIMIT } from "./region-query-config"
 import {
   regionMatchesMarket,
   resolveRegionForMarket,
@@ -26,6 +30,21 @@ export const {
   usePrefetchRegion,
 } = regionHooks
 
+export const useCompleteRegions = () => {
+  const query = useQuery({
+    queryKey: buildCompleteRegionListQueryKey(
+      storefront.queryKeys.regions.all()
+    ),
+    queryFn: ({ signal }) =>
+      fetchCompleteRegionList((listParams) =>
+        storefront.services.regions.getRegions(listParams, signal)
+      ),
+    ...storefront.cacheConfig.static,
+  })
+
+  return { ...query, regions: query.data?.regions ?? [] }
+}
+
 type UseRegionBootstrapOptions = {
   initialRegion?: RegionInfo | null
 }
@@ -38,10 +57,7 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
     initialRegion?.region_id ?? null
   )
 
-  const { regions, isLoading, isFetching, error } = useRegions({
-    fields: REGION_LIST_FIELDS,
-    limit: REGION_LIST_LIMIT,
-  })
+  const { regions, isLoading, isFetching, error } = useCompleteRegions()
 
   useEffect(() => {
     const storedRegion = getStoredRegionPreference()
@@ -73,9 +89,7 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
       setSelectedRegionId(resolvedRegion.id)
     }
 
-    persistRegionPreference(
-      toRegionInfo(resolvedRegion, marketContext.countryCode)
-    )
+    persistRegionPreference(toRegionInfo(resolvedRegion, marketContext))
   }, [marketContext, regions, selectedRegionId])
 
   const selectedRegion = resolveRegionForMarket(
@@ -84,7 +98,7 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
     selectedRegionId
   )
   const region = selectedRegion
-    ? toRegionInfo(selectedRegion, marketContext.countryCode)
+    ? toRegionInfo(selectedRegion, marketContext)
     : initialRegion
 
   const setRegionById = (regionId: string) => {
@@ -96,7 +110,7 @@ export function useRegionBootstrap(options: UseRegionBootstrapOptions = {}) {
     }
 
     setSelectedRegionId(nextRegion.id)
-    persistRegionPreference(toRegionInfo(nextRegion, marketContext.countryCode))
+    persistRegionPreference(toRegionInfo(nextRegion, marketContext))
   }
 
   return {

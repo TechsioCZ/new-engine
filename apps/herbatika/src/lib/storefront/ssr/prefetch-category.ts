@@ -54,6 +54,7 @@ export const prefetchCategoryPageStorefrontData = async (
       locale,
       regionId: region.region_id,
       countryCode: region.country_code,
+      salesChannelId: region.salesChannelId,
     })
 
     await prefetchServerCatalogProducts(queryClient, catalogListParams)

@@ -78,7 +78,7 @@ const PAYLOAD_SEED_ARTICLES_LOCALE_ENV = "PAYLOAD_SEED_ARTICLES_LOCALE"
 const PAYLOAD_SEED_ARTICLES_STATUS_ENV = "PAYLOAD_SEED_ARTICLES_STATUS"
 const PAYLOAD_SEED_ARTICLES_TRANSLATE_ENV = "PAYLOAD_SEED_ARTICLES_TRANSLATE"
 const PAYLOAD_SEED_ARTICLES_OVERWRITE_ENV = "PAYLOAD_SEED_ARTICLES_OVERWRITE"
-const DEFAULT_PAYLOAD_LOCALES = ["cs", "sk", "en"]
+const DEFAULT_PAYLOAD_LOCALES = ["cs", "sk", "hu", "ro", "en"]
 const HTTP_SOURCE_PATTERN = /^https?:\/\//i
 const TAG_SEPARATOR_PATTERN = /[,;]+/
 const HTML_TAG_PATTERN = /<[^>]+>/g
@@ -94,16 +94,12 @@ const XML_ENTITY_MAP: Record<string, string> = {
   "&amp;": "&",
   "&nbsp;": " ",
 }
-const MAX_UNICODE_CODE_POINT = 0x10ffff
+const MAX_UNICODE_CODE_POINT = 0x10_ff_ff
 const XML_FETCH_TIMEOUT_MS = 15_000
 
-const decodeNumericEntity = (
-  match: string,
-  value: string,
-  radix: number
-) => {
+const decodeNumericEntity = (match: string, value: string, radix: number) => {
   const codePoint = Number.parseInt(value, radix)
-  const isSurrogate = codePoint >= 0xd800 && codePoint <= 0xdfff
+  const isSurrogate = codePoint >= 0xd8_00 && codePoint <= 0xdf_ff
   return Number.isInteger(codePoint) &&
     codePoint >= 0 &&
     codePoint <= MAX_UNICODE_CODE_POINT &&

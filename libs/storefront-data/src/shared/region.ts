@@ -1,6 +1,7 @@
 export type RegionInfo = {
   region_id?: string
   country_code?: string
+  salesChannelId?: string
 }
 
 export const applyRegion = <T extends RegionInfo>(
@@ -13,12 +14,16 @@ export const applyRegion = <T extends RegionInfo>(
 
   const resolvedRegionId = input.region_id ?? region.region_id
   const resolvedCountryCode = input.country_code ?? region.country_code
+  const resolvedSalesChannelId = input.salesChannelId ?? region.salesChannelId
 
   return {
     ...input,
     ...(resolvedRegionId !== undefined ? { region_id: resolvedRegionId } : {}),
     ...(resolvedCountryCode !== undefined
       ? { country_code: resolvedCountryCode }
+      : {}),
+    ...(resolvedSalesChannelId !== undefined
+      ? { salesChannelId: resolvedSalesChannelId }
       : {}),
   }
 }

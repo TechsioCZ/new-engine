@@ -1,5 +1,6 @@
 "use client"
 
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { Rating } from "@techsio/ui-kit/atoms/rating"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
@@ -174,6 +175,7 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
   const tCatalog = useTranslations("catalog")
   const pathname = usePathname() ?? ""
   const searchParams = useSearchParams()
+  const region = useRegionContext()
   const [currentPage, setCurrentPage] = useQueryState(
     REVIEW_PAGE_PARAM,
     reviewPageParser
@@ -191,7 +193,8 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
     productId: productId ?? undefined,
     limit: PRODUCT_REVIEWS_PAGE_SIZE,
     page: currentPage,
-    enabled: Boolean(productId),
+    salesChannelId: region?.salesChannelId,
+    enabled: Boolean(productId && region?.salesChannelId),
   })
   const reviews = reviewsQuery.reviews
   const totalCount = reviewsQuery.totalCount

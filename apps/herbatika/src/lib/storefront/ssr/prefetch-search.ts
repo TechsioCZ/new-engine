@@ -19,6 +19,7 @@ export const prefetchSearchPageStorefrontData = async (
       locale,
       regionId: region.region_id,
       countryCode: region.country_code,
+      salesChannelId: region.salesChannelId,
     })
 
     await Promise.all([
@@ -42,6 +43,7 @@ export const prefetchSearchPageStorefrontData = async (
           locale,
           regionId: region.region_id,
           countryCode: region.country_code,
+          salesChannelId: region.salesChannelId,
         })
       ),
     ])

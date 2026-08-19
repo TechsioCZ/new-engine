@@ -9,11 +9,15 @@ import type {
 type StoreProductReviewsQuery = {
   limit?: number
   offset?: number
+  sales_channel_id?: string
 }
 
-export type MedusaProductReviewListInput = StoreProductReviewsQuery & {
+export type MedusaProductReviewListInput = {
   productId?: string
+  salesChannelId?: string
   page?: number
+  limit?: number
+  offset?: number
   enabled?: boolean
 }
 
@@ -39,10 +43,11 @@ const stripListInput = (
     enabled: _enabled,
     page: _page,
     productId: _productId,
+    salesChannelId,
     ...query
   } = input
 
-  return query
+  return { ...query, sales_channel_id: salesChannelId }
 }
 
 const calculateReviewSummary = (reviews: ReviewBase[]) => {
@@ -61,16 +66,15 @@ const calculateReviewSummary = (reviews: ReviewBase[]) => {
   }
 }
 
-const hasCompleteReviewSet = (response: StoreProductReviewsResponse<ReviewBase>) =>
-  response.count === response.reviews.length
+const hasCompleteReviewSet = (
+  response: StoreProductReviewsResponse<ReviewBase>
+) => response.count === response.reviews.length
 
 const hasInconsistentSummary = (
   response: StoreProductReviewsResponse<ReviewBase>
 ) => response.summary.count !== response.count
 
-export function createMedusaProductReviewService<
-  TReview = ReviewBase,
->(
+export function createMedusaProductReviewService<TReview = ReviewBase>(
   sdk: Medusa,
   config?: MedusaProductReviewServiceConfig<TReview>
 ): ProductReviewService<TReview, MedusaProductReviewListInput> {
@@ -94,6 +98,10 @@ export function createMedusaProductReviewService<
             count: 0,
           },
         }
+      }
+
+      if (!params.salesChannelId) {
+        throw new Error("Sales Channel id is required for Product Reviews.")
       }
 
       const query = stripListInput(params)
@@ -137,11 +145,20 @@ export function createMedusaProductReviewService<
     async createProductReview(
       input: MedusaCreateProductReviewInput
     ): Promise<TReview> {
+      const { salesChannelId, ...body } = input
+
+      if (!salesChannelId) {
+        throw new Error(
+          "Sales Channel id is required to create a Product Review."
+        )
+      }
+
       const response = await sdk.client.fetch<
         StoreCreateProductReviewResponse<ReviewBase>
       >("/store/reviews", {
         method: "POST",
-        body: input,
+        body,
+        query: { sales_channel_id: salesChannelId },
       })
 
       return mapReview(response.review)

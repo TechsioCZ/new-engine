@@ -22,6 +22,13 @@ export type ParsedRegisterPayload = {
   wholesale: ParsedWholesaleRegistration | null
 }
 
+export type RegistrationMarketContext = {
+  marketCode: HerbatikaMarketCode
+  regionId: string
+  salesChannelId: string
+  storefrontNamespace: string
+}
+
 export const refreshCustomerToken = async (loginToken: string) => {
   const refreshResponse = await fetch(buildMedusaUrl("/auth/token/refresh"), {
     method: "POST",
@@ -122,20 +129,23 @@ export const loginCustomerIdentity = async ({
   }
 }
 
-const buildCustomerProfile = ({
+export const buildCustomerProfile = ({
   email,
   firstName,
   lastName,
-  marketCode,
+  marketContext,
   wholesale,
 }: Omit<ParsedRegisterPayload, "password"> & {
-  marketCode: HerbatikaMarketCode
+  marketContext: RegistrationMarketContext
 }): HttpTypes.StoreCreateCustomer => ({
   email,
   first_name: firstName,
   last_name: lastName,
   metadata: {
-    storefront_market_code: marketCode,
+    storefront_market_code: marketContext.marketCode,
+    storefront_region_id: marketContext.regionId,
+    storefront_sales_channel_id: marketContext.salesChannelId,
+    storefront_shop_namespace: marketContext.storefrontNamespace,
     ...(wholesale ? { company_identifier: wholesale.companyIdentifier } : {}),
   },
   ...(wholesale
@@ -147,12 +157,12 @@ const buildCustomerProfile = ({
 
 export const createCustomerProfile = async ({
   loginToken,
+  marketContext,
   payload,
 }: {
   loginToken: string
-  payload: Omit<ParsedRegisterPayload, "password"> & {
-    marketCode: HerbatikaMarketCode
-  }
+  marketContext: RegistrationMarketContext
+  payload: Omit<ParsedRegisterPayload, "password">
 }) => {
   const createCustomerResponse = await fetch(
     buildMedusaUrl("/store/customers"),
@@ -163,7 +173,7 @@ export const createCustomerProfile = async ({
         authorization: `Bearer ${loginToken}`,
         ...getPublishableHeaders(),
       },
-      body: JSON.stringify(buildCustomerProfile(payload)),
+      body: JSON.stringify(buildCustomerProfile({ ...payload, marketContext })),
       cache: "no-store",
     }
   )

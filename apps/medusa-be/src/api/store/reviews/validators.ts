@@ -19,3 +19,13 @@ export const StoreCreateReviewSchema = z
 export type StoreCreateReviewSchemaType = z.infer<
   typeof StoreCreateReviewSchema
 >
+
+export const StoreCreateReviewQuerySchema = z
+  .object({
+    sales_channel_id: z.string().trim().min(1),
+  })
+  .strict()
+
+export type StoreCreateReviewQuerySchemaType = z.infer<
+  typeof StoreCreateReviewQuerySchema
+>

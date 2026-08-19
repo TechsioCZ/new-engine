@@ -54,7 +54,8 @@ export function HerbatikaHeader() {
       autoCreate: true,
       region_id: region?.region_id,
       country_code: region?.country_code,
-      enabled: Boolean(region?.region_id),
+      salesChannelId: region?.salesChannelId,
+      enabled: Boolean(region?.region_id && region.salesChannelId),
     },
     {
       queryOptions: cartReadQueryOptions,
@@ -107,13 +108,7 @@ export function HerbatikaHeader() {
         <HerbatikaLogo className="min-w-0 shrink" size="lg" />
 
         <div className="@header-desktop:block hidden w-full max-w-search-form flex-1">
-          <SearchAutocomplete
-            countryCode={region?.country_code}
-            currencyCode={regionCurrency}
-            onSubmit={handleSearchSubmit}
-            regionId={region?.region_id}
-            variant="desktop"
-          />
+          <SearchAutocomplete onSubmit={handleSearchSubmit} variant="desktop" />
         </div>
 
         <Header.Actions className="@max-header-desktop:hidden gap-450">
@@ -178,13 +173,7 @@ export function HerbatikaHeader() {
       </Header.Container>
 
       <div className="mx-auto @header-desktop:hidden w-full max-w-max-w px-header-lg pb-300 2xl:px-header-2xl">
-        <SearchAutocomplete
-          countryCode={region?.country_code}
-          currencyCode={regionCurrency}
-          onSubmit={handleSearchSubmit}
-          regionId={region?.region_id}
-          variant="mobile"
-        />
+        <SearchAutocomplete onSubmit={handleSearchSubmit} variant="mobile" />
       </div>
 
       <Header.Desktop

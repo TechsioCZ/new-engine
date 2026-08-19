@@ -16,6 +16,7 @@ export function BlogFeaturedProductCard({
   const addToCart = useAddProductToCartAction({
     regionId: region?.region_id,
     countryCode: region?.country_code,
+    salesChannelId: region?.salesChannelId,
   })
 
   const handleAddToCart = async (selectedProduct: HttpTypes.StoreProduct) => {

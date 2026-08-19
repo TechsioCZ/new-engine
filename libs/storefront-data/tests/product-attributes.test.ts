@@ -43,9 +43,15 @@ describe("product attributes", () => {
     expect(
       queryKeys.detail({
         productId: "prod_1",
+        salesChannelId: "sc_1",
         enabled: false,
       })
-    ).toEqual(["shop", "product-attributes", "detail", { productId: "prod_1" }])
+    ).toEqual([
+      "shop",
+      "product-attributes",
+      "detail",
+      { productId: "prod_1", salesChannelId: "sc_1" },
+    ])
   })
 
   it("reads every Store API page and forwards cancellation", async () => {
@@ -74,13 +80,16 @@ describe("product attributes", () => {
     })
 
     await expect(
-      service.getProductAttributes({ productId: "prod 1" }, signal)
+      service.getProductAttributes(
+        { productId: "prod 1", salesChannelId: "sc_1" },
+        signal
+      )
     ).resolves.toEqual([supplierAttribute, warrantyAttribute])
     expect(fetch).toHaveBeenNthCalledWith(
       1,
       "/store/products/prod%201/product-attributes",
       {
-        query: { limit: 1, offset: 0 },
+        query: { limit: 1, offset: 0, sales_channel_id: "sc_1" },
         signal,
       }
     )
@@ -88,7 +97,7 @@ describe("product attributes", () => {
       2,
       "/store/products/prod%201/product-attributes",
       {
-        query: { limit: 1, offset: 1 },
+        query: { limit: 1, offset: 1, sales_channel_id: "sc_1" },
         signal,
       }
     )
@@ -120,13 +129,25 @@ describe("product attributes", () => {
     expect(
       preset.queryKeys.productAttributes.detail({
         productId: "prod_1",
+        salesChannelId: "sc_1",
       })
-    ).toEqual(["shop", "product-attributes", "detail", { productId: "prod_1" }])
+    ).toEqual([
+      "shop",
+      "product-attributes",
+      "detail",
+      { productId: "prod_1", salesChannelId: "sc_1" },
+    ])
     expect(
       preset.hooks.productAttributes.getDetailQueryOptions({
         productId: "prod_1",
+        salesChannelId: "sc_1",
       }).queryKey
-    ).toEqual(["shop", "product-attributes", "detail", { productId: "prod_1" }])
+    ).toEqual([
+      "shop",
+      "product-attributes",
+      "detail",
+      { productId: "prod_1", salesChannelId: "sc_1" },
+    ])
     expect(preset.services.productAttributes.getProductAttributes).toBeDefined()
   })
 })

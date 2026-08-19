@@ -25,6 +25,7 @@ export const prefetchBrandPageStorefrontData = async (
           locale,
           regionId: region.region_id,
           countryCode: region.country_code,
+          salesChannelId: region.salesChannelId,
         })
       ),
       prefetchServerCatalogProducts(
@@ -45,6 +46,7 @@ export const prefetchBrandPageStorefrontData = async (
           locale,
           regionId: region.region_id,
           countryCode: region.country_code,
+          salesChannelId: region.salesChannelId,
         })
       ),
     ])

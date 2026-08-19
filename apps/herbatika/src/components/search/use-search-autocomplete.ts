@@ -1,6 +1,5 @@
 "use client"
 
-import { useLocale } from "next-intl"
 import { useEffect, useState } from "react"
 import {
   createEmptySearchAutocompleteResponse,
@@ -12,11 +11,8 @@ import {
 } from "@/lib/search-autocomplete/search-autocomplete-types"
 
 type UseSearchAutocompleteInput = {
-  countryCode?: string
   query: string
-  currencyCode: string
   enabled: boolean
-  regionId?: string
 }
 
 type UseSearchAutocompleteResult = {
@@ -25,13 +21,9 @@ type UseSearchAutocompleteResult = {
 }
 
 export function useSearchAutocomplete({
-  countryCode,
   query,
-  currencyCode,
   enabled,
-  regionId,
 }: UseSearchAutocompleteInput): UseSearchAutocompleteResult {
-  const locale = useLocale()
   const normalizedQuery = query
     .trim()
     .slice(0, SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH)
@@ -61,19 +53,7 @@ export function useSearchAutocomplete({
 
     const abortController = new AbortController()
     const timeoutId = window.setTimeout(() => {
-      const params = new URLSearchParams({
-        q: normalizedQuery,
-        currency: currencyCode,
-        locale,
-      })
-
-      if (countryCode) {
-        params.set("country", countryCode)
-      }
-
-      if (regionId) {
-        params.set("region", regionId)
-      }
+      const params = new URLSearchParams({ q: normalizedQuery })
 
       fetch(`/api/search-autocomplete?${params.toString()}`, {
         signal: abortController.signal,
@@ -104,7 +84,7 @@ export function useSearchAutocomplete({
       window.clearTimeout(timeoutId)
       abortController.abort()
     }
-  }, [countryCode, currencyCode, enabled, locale, normalizedQuery, regionId])
+  }, [enabled, normalizedQuery])
 
   return { data, status }
 }

@@ -56,6 +56,11 @@ type UseProductDetailDataProps = {
   initialVariantId?: string
 }
 
+const hasProductAttributeScope = (
+  productId: string | undefined,
+  salesChannelId: string | undefined
+) => Boolean(productId && salesChannelId)
+
 export function useProductDetailData({
   handle,
   initialProduct,
@@ -108,6 +113,8 @@ export function useProductDetailData({
   const productAttributesQuery =
     storefront.hooks.productAttributes.useProductAttributes({
       productId: product?.id ?? null,
+      salesChannelId: region?.salesChannelId ?? null,
+      enabled: hasProductAttributeScope(product?.id, region?.salesChannelId),
     })
   const locationAvailabilityState = resolveProductLocationAvailabilityState(
     productLocationAvailabilityQuery,
@@ -123,8 +130,7 @@ export function useProductDetailData({
     inStock: tCatalog("product_detail.stock.in_stock"),
     outOfStock: tCatalog("product_detail.stock.out_of_stock"),
   })
-  const salesChannelId = (region as typeof region & { salesChannelId?: string })
-    ?.salesChannelId
+  const salesChannelId = region?.salesChannelId
   const volumeDiscountTiersQuery = useVolumeDiscountTiers({
     customerId: authQuery.customer?.id ?? null,
     variantId: selectedVariant?.id ?? null,

@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { hydrateRoot } from "react-dom/client"
 import { renderToString } from "react-dom/server"
+import { describe, expect, it, vi } from "vitest"
 import { createCartHooks } from "../src/cart/hooks"
 import { createCartQueryKeys } from "../src/cart/query-keys"
 import { StorefrontDataProvider } from "../src/client/provider"
@@ -11,6 +12,7 @@ import { createLocalStorageValueStore } from "../src/shared/storage-value-store"
 type Cart = {
   id: string
   region_id?: string | null
+  sales_channel_id?: string | null
   items?: Array<{ quantity?: number }>
 }
 
@@ -42,6 +44,169 @@ const createWrapper =
   )
 
 describe("createCartHooks reactive storage and cache sync", () => {
+  it("reconciles a persisted cart to the requested sales channel", async () => {
+    const updateCart = vi.fn(
+      async (cartId: string, input: { sales_channel_id?: string }) => ({
+        id: cartId,
+        region_id: "reg_1",
+        sales_channel_id: input.sales_channel_id,
+      })
+    )
+    const { useCart } = createCartHooks<
+      Cart,
+      { region_id?: string; salesChannelId?: string },
+      { region_id?: string; sales_channel_id?: string }
+    >({
+      service: {
+        retrieveCart: async () => ({
+          id: "cart_1",
+          region_id: "reg_1",
+          sales_channel_id: "sc_old",
+        }),
+        createCart: async () => ({
+          id: "cart_created",
+          region_id: "reg_1",
+          sales_channel_id: "sc_new",
+        }),
+        updateCart,
+      },
+      requireRegion: false,
+    })
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const wrapper = createWrapper(queryClient)
+    const { result } = renderHook(
+      () =>
+        useCart({
+          autoCreate: false,
+          cartId: "cart_1",
+          region_id: "reg_1",
+          salesChannelId: "sc_new",
+        }),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(result.current.cart?.sales_channel_id).toBe("sc_new")
+    })
+
+    expect(updateCart).toHaveBeenCalledWith(
+      "cart_1",
+      expect.objectContaining({ sales_channel_id: "sc_new" })
+    )
+  })
+
+  it("recreates a populated wrong-channel cart without mutating it", async () => {
+    const createCart = vi.fn(async () => ({
+      id: "cart_created",
+      region_id: "reg_1",
+      sales_channel_id: "sc_new",
+    }))
+    const updateCart = vi.fn(async (cartId: string) => ({
+      id: cartId,
+      region_id: "reg_1",
+      sales_channel_id: "sc_new",
+    }))
+    const { useCart } = createCartHooks<
+      Cart,
+      { region_id?: string; salesChannelId?: string },
+      { region_id?: string; sales_channel_id?: string }
+    >({
+      service: {
+        retrieveCart: async () => ({
+          id: "cart_old",
+          region_id: "reg_1",
+          sales_channel_id: "sc_old",
+          items: [{ quantity: 1 }],
+        }),
+        createCart,
+        updateCart,
+      },
+      requireRegion: false,
+    })
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    const wrapper = createWrapper(queryClient)
+    const { result } = renderHook(
+      () =>
+        useCart({
+          autoCreate: true,
+          cartId: "cart_old",
+          region_id: "reg_1",
+          salesChannelId: "sc_new",
+        }),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(result.current.cart?.id).toBe("cart_created")
+    })
+
+    expect(createCart).toHaveBeenCalledWith(
+      expect.objectContaining({ sales_channel_id: "sc_new" })
+    )
+    expect(updateCart).not.toHaveBeenCalled()
+  })
+
+  it("reconciles a stored cart before adding a line item", async () => {
+    const addLineItem = vi.fn(async (cartId: string) => ({
+      id: cartId,
+      region_id: "reg_1",
+      sales_channel_id: "sc_new",
+      items: [{ quantity: 1 }],
+    }))
+    const updateCart = vi.fn(async (cartId: string) => ({
+      id: cartId,
+      region_id: "reg_1",
+      sales_channel_id: "sc_new",
+    }))
+    const { useAddLineItem } = createCartHooks<
+      Cart,
+      { region_id?: string; salesChannelId?: string },
+      { region_id?: string; sales_channel_id?: string }
+    >({
+      service: {
+        retrieveCart: async () => ({
+          id: "cart_1",
+          region_id: "reg_1",
+          sales_channel_id: "sc_old",
+        }),
+        createCart: async () => ({
+          id: "cart_created",
+          region_id: "reg_1",
+          sales_channel_id: "sc_new",
+        }),
+        updateCart,
+        addLineItem,
+      },
+      requireRegion: false,
+    })
+    const queryClient = new QueryClient({
+      defaultOptions: { mutations: { retry: false } },
+    })
+    const wrapper = createWrapper(queryClient)
+    const { result } = renderHook(() => useAddLineItem(), { wrapper })
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        autoCreate: true,
+        cartId: "cart_1",
+        quantity: 1,
+        region_id: "reg_1",
+        salesChannelId: "sc_new",
+        variantId: "variant_1",
+      })
+    })
+
+    expect(updateCart).toHaveBeenCalledTimes(1)
+    expect(addLineItem).toHaveBeenCalledWith(
+      "cart_1",
+      expect.objectContaining({ quantity: 1, variantId: "variant_1" })
+    )
+  })
+
   it("reacts to observable cartStorage changes", async () => {
     const key = "test_reactive_cart_id"
     const cartStorage = createLocalStorageValueStore({
@@ -153,7 +318,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
 
     let root: ReturnType<typeof hydrateRoot> | null = null
 
-    await act(async () => {
+    act(() => {
       root = hydrateRoot(
         container,
         <Wrapper>
@@ -175,7 +340,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
       expect(container.textContent).toBe("cart_existing")
     })
 
-    await act(async () => {
+    act(() => {
       root?.unmount()
     })
     container.remove()
@@ -190,11 +355,15 @@ describe("createCartHooks reactive storage and cache sync", () => {
       },
       set(cartId: string) {
         this.currentCartId = cartId
-        this.listeners.forEach((listener) => listener())
+        for (const listener of this.listeners) {
+          listener()
+        }
       },
       clear() {
         this.currentCartId = null
-        this.listeners.forEach((listener) => listener())
+        for (const listener of this.listeners) {
+          listener()
+        }
       },
       subscribe(listener: () => void) {
         this.listeners.add(listener)
@@ -230,7 +399,10 @@ describe("createCartHooks reactive storage and cache sync", () => {
     })
 
     const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
     })
     const wrapper = createWrapper(queryClient)
 
@@ -450,7 +622,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
       region_id: "reg_1",
       items: [{ quantity: 2 }],
     }
-    let resolveCartRead: ((cart: Cart) => void) | undefined
+    let resolveCartRead: ((resolvedCart: Cart) => void) | undefined
     const retrieveCart = vi.fn(
       () =>
         new Promise<Cart>((resolve) => {
@@ -523,7 +695,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
       region_id: "reg_1",
       items: [{ quantity: 1 }],
     }
-    let resolveCartRead: ((cart: Cart) => void) | undefined
+    let resolveCartRead: ((resolvedCart: Cart) => void) | undefined
     const retrieveCart = vi.fn(
       () =>
         new Promise<Cart>((resolve) => {
@@ -539,9 +711,7 @@ describe("createCartHooks reactive storage and cache sync", () => {
       service: {
         retrieveCart,
         createCart: async () => cart,
-        updateLineItem: async () => {
-          throw new Error("update failed")
-        },
+        updateLineItem: () => Promise.reject(new Error("update failed")),
       },
       requireRegion: false,
     })

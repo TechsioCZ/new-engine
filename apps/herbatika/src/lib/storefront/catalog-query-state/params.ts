@@ -11,6 +11,7 @@ type BuildCatalogProductsParamsInput = {
   regionId?: string
   countryCode?: string
   currencyCode?: string
+  salesChannelId?: string
   locale?: string
   onSale?: CatalogListInputBase["on_sale"]
 }
@@ -30,6 +31,7 @@ export type CatalogProductsParams = {
   region_id?: string
   country_code?: string
   currency_code?: string
+  salesChannelId?: string
   locale?: string
   on_sale?: CatalogListInputBase["on_sale"]
 }
@@ -55,6 +57,7 @@ export const buildCatalogProductsParams = ({
   regionId,
   countryCode,
   currencyCode,
+  salesChannelId,
   locale,
   onSale,
 }: BuildCatalogProductsParamsInput): CatalogProductsParams => {
@@ -89,6 +92,10 @@ export const buildCatalogProductsParams = ({
 
   if (currencyCode) {
     params.currency_code = currencyCode
+  }
+
+  if (salesChannelId) {
+    params.salesChannelId = salesChannelId
   }
 
   if (locale) {

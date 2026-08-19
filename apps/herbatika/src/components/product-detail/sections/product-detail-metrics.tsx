@@ -1,5 +1,6 @@
 "use client"
 
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useFormatter, useTranslations } from "next-intl"
 import { ReviewSkeleton } from "@/components/loading/review-skeleton"
 import {
@@ -37,11 +38,13 @@ export function ProductDetailMetrics({
 }: ProductDetailMetricsProps) {
   const format = useFormatter()
   const tCatalog = useTranslations("catalog")
+  const region = useRegionContext()
   const reviewsQuery = useProductReviews({
-    enabled: Boolean(productId),
+    enabled: Boolean(productId && region?.salesChannelId),
     limit: PRODUCT_REVIEWS_PAGE_SIZE,
     offset: 0,
     productId: productId ?? undefined,
+    salesChannelId: region?.salesChannelId,
   })
   const reviews = reviewsQuery.reviews
     .slice(0, PRODUCT_REVIEW_TEASER_LIMIT)

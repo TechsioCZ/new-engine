@@ -36,6 +36,12 @@ type SearchResponse = {
   hits?: unknown[]
 }
 
+type StorefrontRegion = {
+  countries?: Array<{ iso_2?: string | null }> | null
+  currency_code?: string | null
+  metadata?: Record<string, unknown> | null
+}
+
 const escapeFilterValue = (value: string): string =>
   value.replaceAll("\\", "\\\\").replaceAll('"', '\\"')
 
@@ -122,6 +128,36 @@ const deduplicateHits = (
   return result
 }
 
+const hasValidMarketContext = (
+  region: StorefrontRegion | undefined,
+  countryCode: string,
+  currencyCode: string,
+  salesChannelId: string
+): boolean => {
+  const metadata = region?.metadata ?? {}
+  const regionMarketCode =
+    typeof metadata.storefront_market_code === "string"
+      ? metadata.storefront_market_code.trim().toLowerCase()
+      : ""
+  const regionSalesChannelId =
+    typeof metadata.storefront_sales_channel_id === "string"
+      ? metadata.storefront_sales_channel_id.trim()
+      : ""
+  const normalizedCountryCode = countryCode.trim().toLowerCase()
+  const normalizedCurrencyCode = currencyCode.trim().toLowerCase()
+  const regionCountries =
+    region?.countries
+      ?.map((country) => country.iso_2?.trim().toLowerCase())
+      .filter((country): country is string => Boolean(country)) ?? []
+
+  return (
+    region?.currency_code?.trim().toLowerCase() === normalizedCurrencyCode &&
+    regionMarketCode === normalizedCountryCode &&
+    regionSalesChannelId === salesChannelId &&
+    regionCountries.includes(normalizedCountryCode)
+  )
+}
+
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: This endpoint coordinates four independent indices, authoritative product hydration, and degraded fallback.
 export async function GET(
   request: RequestWithContext<unknown, StoreSearchAutocompleteSchemaType>,
@@ -137,6 +173,31 @@ export async function GET(
   const salesChannelIds = getSalesChannelIds(
     request.filterableFields.sales_channel_id
   )
+  const salesChannelId = salesChannelIds[0]
+  const queryService = request.scope.resolve<Query>(
+    ContainerRegistrationKeys.QUERY
+  )
+  const regionResult = await queryService.graph({
+    entity: "region",
+    fields: ["id", "currency_code", "countries.iso_2", "metadata"],
+    filters: { id: request.validatedQuery.region_id },
+  })
+
+  if (
+    !(
+      salesChannelIds.length === 1 &&
+      salesChannelId &&
+      hasValidMarketContext(
+        regionResult.data[0] as StorefrontRegion | undefined,
+        request.validatedQuery.country_code,
+        request.validatedQuery.currency_code,
+        salesChannelId
+      )
+    )
+  ) {
+    response.status(400).json({ message: "Invalid storefront market context" })
+    return
+  }
 
   let profile: SearchProfile
 
@@ -241,9 +302,6 @@ export async function GET(
   const productIds = [
     ...new Set(productMatches.map((match) => match.productId)),
   ]
-  const queryService = request.scope.resolve<Query>(
-    ContainerRegistrationKeys.QUERY
-  )
   const remoteQuery = request.scope.resolve(
     ContainerRegistrationKeys.REMOTE_QUERY
   )

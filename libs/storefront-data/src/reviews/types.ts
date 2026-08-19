@@ -29,6 +29,7 @@ export type ReviewSummary = {
 
 export type ProductReviewListInputBase = {
   productId?: string
+  salesChannelId?: string
   limit?: number
   offset?: number
   page?: number
@@ -51,6 +52,7 @@ export type CreateProductReviewInput = {
   product_id: string
   rating: number
   review_token?: string
+  salesChannelId?: string
   title?: string
   turnstileToken?: string
 }

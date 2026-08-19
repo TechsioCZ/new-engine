@@ -441,6 +441,18 @@ preview_runtime_reconciliation:
         kind: service_public_origin
         service_id: medusa-minio
 
+    - service_id: herbatika
+      env_var: STOREFRONT_MARKET_HOST_ALIASES_SK
+      source:
+        kind: service_public_origin
+        service_id: herbatika
+
+    - service_id: herbatika
+      env_var: STOREFRONT_TRUST_PROXY_HOST
+      source:
+        kind: literal
+        value: "true"
+
 preview_verification:
   forbidden_service_env:
     - service_id: medusa-valkey

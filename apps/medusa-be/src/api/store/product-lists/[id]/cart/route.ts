@@ -6,7 +6,7 @@ import type {
   ICartModuleService,
   MedusaContainer,
 } from "@medusajs/framework/types"
-import { Modules } from "@medusajs/framework/utils"
+import { MedusaError, Modules } from "@medusajs/framework/utils"
 import { createCartFromProductListWorkflow } from "../../../../../workflows/product-list/workflows/create-cart-from-product-list"
 import {
   type StoreCreateProductListCartSchemaType,
@@ -27,6 +27,17 @@ export async function POST(
   res: MedusaResponse
 ) {
   const { id: listId } = StoreProductListParamsSchema.parse(req.params)
+  const salesChannelId = req.validatedBody.sales_channel_id
+  const allowedSalesChannelIds =
+    req.publishable_key_context?.sales_channel_ids ?? []
+
+  if (!allowedSalesChannelIds.includes(salesChannelId)) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Requested sales channel is not part of the publishable key"
+    )
+  }
+
   const { result } = await createCartFromProductListWorkflow(req.scope).run({
     input: {
       country_code: req.validatedBody.country_code,
@@ -34,7 +45,7 @@ export async function POST(
       email: req.validatedBody.email,
       list_id: listId,
       region_id: req.validatedBody.region_id,
-      sales_channel_id: req.validatedBody.sales_channel_id,
+      sales_channel_id: salesChannelId,
     },
   })
 

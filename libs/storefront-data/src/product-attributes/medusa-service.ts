@@ -9,6 +9,7 @@ export const MEDUSA_PRODUCT_ATTRIBUTES_PAGE_SIZE = 100
 
 export type MedusaProductAttributesInput = {
   productId?: null | string
+  salesChannelId?: null | string
   enabled?: boolean
 }
 
@@ -42,6 +43,10 @@ export function createMedusaProductAttributeService(
         throw new Error("Product id is required for Product Attributes.")
       }
 
+      if (!params.salesChannelId) {
+        throw new Error("Sales Channel id is required for Product Attributes.")
+      }
+
       const productAttributes: ProductAttribute[] = []
       let offset = 0
 
@@ -52,6 +57,7 @@ export function createMedusaProductAttributeService(
             query: {
               limit: pageSize,
               offset,
+              sales_channel_id: params.salesChannelId,
             },
             signal,
           }

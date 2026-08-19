@@ -7,10 +7,12 @@ import {
   fetchCmsHomepagePromo,
 } from "@/lib/storefront/cms"
 import { fetchHeurekaHomepageReviews } from "@/lib/storefront/external-reviews.server"
+import { getMarketServerContext } from "@/lib/storefront/market-context.server"
 import { prefetchHomePageStorefrontData } from "@/lib/storefront/ssr"
 
 export default async function HomePage() {
   await connection()
+  const marketContext = await getMarketServerContext()
 
   const [
     { dehydratedState },
@@ -20,9 +22,9 @@ export default async function HomePage() {
     homepageReviewsData,
   ] = await Promise.all([
     prefetchHomePageStorefrontData(),
-    fetchCmsHeroBanners(),
-    fetchCmsHomepagePromo(),
-    fetchCachedLatestCmsBlogPosts(3).catch(() => []),
+    fetchCmsHeroBanners(marketContext.locale),
+    fetchCmsHomepagePromo(marketContext.locale),
+    fetchCachedLatestCmsBlogPosts(marketContext.locale, 3).catch(() => []),
     fetchHeurekaHomepageReviews(),
   ])
 

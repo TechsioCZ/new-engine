@@ -3,7 +3,6 @@ import { existsSync } from "node:fs"
 import type {
   ExecArgs,
   IFulfillmentModuleService,
-  IRegionModuleService,
   Logger,
 } from "@medusajs/framework/types"
 import {
@@ -48,7 +47,7 @@ import {
   HERBATICA_SALE_PRICE_LIST_TITLE_TEMPLATE,
   HERBATICA_SALES_CHANNELS,
   HERBATICA_SHIPPING_OPTIONS,
-  HERBATICA_STOREFRONT_SALES_CHANNEL_NAME,
+  HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES,
   HERBATICA_TAX_RATE_CONFIG,
   HERBATICA_TAX_RATE_COUNTRIES,
   HERBATICA_WORKFLOW_DEFAULTS,
@@ -2406,7 +2405,7 @@ export function resolveHerbaticaProductVisibility(item: {
       }
     case "visible":
       return {
-        salesChannelNames: [HERBATICA_STOREFRONT_SALES_CHANNEL_NAME],
+        salesChannelNames: [...HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES],
         status: ProductStatus.PUBLISHED,
         storefrontAccessible: true,
       }
@@ -3788,27 +3787,9 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     logger.warn(warning)
   }
 
-  const regionService = container.resolve<IRegionModuleService>(Modules.REGION)
-  const existingRegions = await regionService.listRegions({})
   const defaultRegions: SeedDatabaseWorkflowInput["regions"] =
     HERBATICA_DEFAULT_REGIONS
-
-  const regionsInput: SeedDatabaseWorkflowInput["regions"] =
-    existingRegions.length === 0
-      ? defaultRegions
-      : existingRegions.map((region) => ({
-          name: region.name,
-          currencyCode: region.currency_code?.toLowerCase() || "eur",
-          countries: undefined,
-          paymentProviders: undefined,
-          isTaxInclusive: true,
-        }))
-
-  if (existingRegions.length > 0) {
-    logger.info(
-      `Using existing regions (${regionsInput.map((region) => region.name).join(", ")}) to avoid country assignment conflicts`
-    )
-  }
+  const regionsInput: SeedDatabaseWorkflowInput["regions"] = defaultRegions
 
   const fulfillmentService = container.resolve<IFulfillmentModuleService>(
     Modules.FULFILLMENT

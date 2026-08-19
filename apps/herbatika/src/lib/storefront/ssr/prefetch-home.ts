@@ -65,6 +65,7 @@ const prefetchHomepageCatalogProducts = ({
       locale,
       regionId: region.region_id,
       countryCode: region.country_code,
+      salesChannelId: region.salesChannelId,
       onSale,
     })
   )

@@ -1,44 +1,51 @@
 import "server-only"
 
-import {
-  MEDUSA_BACKEND_URL,
-  MEDUSA_PUBLISHABLE_KEY,
-  SSR_FETCH_OPTIONS,
-} from "@/lib/storefront/ssr/constants"
-import { normalizeStorefrontBrand, type StorefrontBrand } from "./brands"
-
-type StoreBrandsResponse = {
-  brands?: Array<{
-    id?: string | null
-    title?: string | null
-    handle?: string | null
-  }>
-}
-
-const STORE_BRANDS_INDEX_LIMIT = 500
+import { createBrandSlug, type StorefrontBrand } from "./brands"
+import { buildCatalogProductsParams } from "./catalog-query-state"
+import { getRegionServerContext } from "./ssr/context"
+import { fetchServerCatalogProducts } from "./storefront-server"
 
 export const fetchStorefrontBrands = async (): Promise<StorefrontBrand[]> => {
-  const url = new URL("/store/brands", MEDUSA_BACKEND_URL)
-  url.searchParams.set("limit", String(STORE_BRANDS_INDEX_LIMIT))
-  url.searchParams.set("offset", "0")
-  url.searchParams.set("order", "title")
-  url.searchParams.set("fields", "id,title,handle")
-
-  const response = await fetch(url, {
-    ...SSR_FETCH_OPTIONS.static,
-    headers: {
-      "x-publishable-api-key": MEDUSA_PUBLISHABLE_KEY,
-    },
-  })
-
-  if (!response.ok) {
-    throw new Error(`Failed to load storefront brands: ${response.status}`)
+  const { queryClient, region } = await getRegionServerContext()
+  if (!region) {
+    return []
   }
 
-  const data = (await response.json()) as StoreBrandsResponse
-  const brands = (data.brands ?? [])
-    .map((brand) => normalizeStorefrontBrand(brand))
-    .filter((brand): brand is StorefrontBrand => Boolean(brand))
+  const response = await fetchServerCatalogProducts(
+    queryClient,
+    buildCatalogProductsParams({
+      queryState: {
+        page: 1,
+        q: "",
+        sort: "recommended",
+        status: [],
+        form: [],
+        brand: [],
+        ingredient: [],
+        price_min: null,
+        price_max: null,
+      },
+      limit: 1,
+      regionId: region.region_id,
+      countryCode: region.country_code,
+      salesChannelId: region.salesChannelId,
+    })
+  )
+  const brands = response.facets.brand.flatMap((facet) => {
+    const slug = createBrandSlug(facet.label)
+
+    return slug
+      ? [
+          {
+            id: facet.id,
+            title: facet.label,
+            handle: slug,
+            slug,
+            facetId: facet.id,
+          },
+        ]
+      : []
+  })
 
   const brandsBySlug = new Map<string, StorefrontBrand>()
   for (const brand of brands) {

@@ -289,6 +289,8 @@ const sharedEnvCleanupKeys = [
   "DC_N1_NEXT_PUBLIC_MEILISEARCH_API_KEY",
   "DC_N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
   "DC_HERBATIKA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE",
+  "DC_HERBATIKA_STOREFRONT_MARKET_HOST_ALIASES_SK",
+  "DC_HERBATIKA_STOREFRONT_TRUST_PROXY_HOST",
   "DC_HERBATIKA_MEDUSA_BACKEND_URL_INTERNAL",
   "DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_BACKEND_URL",
   "DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES",
@@ -1296,7 +1298,9 @@ function buildZaneProjectServices(
         },
         {
           envVar: "PAYLOAD_LOCALES",
-          source: literalSource(process.env.DC_PAYLOAD_LOCALES ?? "cs,sk,en"),
+          source: literalSource(
+            process.env.DC_PAYLOAD_LOCALES ?? "cs,sk,hu,ro,en"
+          ),
         },
         {
           envVar: "PAYLOAD_SSO_PUBLIC_KEY",
@@ -1357,6 +1361,8 @@ function buildZaneProjectServices(
         "MEILISEARCH_PRODUCERS_INDEX",
         "DC_HERBATIKA_PUBLIC_PORT",
         "DC_HERBATIKA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE",
+        "DC_HERBATIKA_STOREFRONT_MARKET_HOST_ALIASES_SK",
+        "DC_HERBATIKA_STOREFRONT_TRUST_PROXY_HOST",
         "DC_HERBATIKA_MEDUSA_BACKEND_URL_INTERNAL",
         "DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_BACKEND_URL",
         "DC_HERBATIKA_NEXT_PUBLIC_PACKETA_WIDGET_COUNTRIES",
@@ -1386,6 +1392,14 @@ function buildZaneProjectServices(
             process.env.DC_HERBATIKA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE ??
               "session_proxy"
           ),
+        },
+        {
+          envVar: "STOREFRONT_MARKET_HOST_ALIASES_SK",
+          source: servicePublicOrigins.herbatika,
+        },
+        {
+          envVar: "STOREFRONT_TRUST_PROXY_HOST",
+          source: literalSource("true"),
         },
         {
           envVar: "NEXT_PUBLIC_PAYLOAD_BASE_URL",

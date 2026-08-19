@@ -1,4 +1,7 @@
-import { MedusaError } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { PRODUCT_LIST_MODULE } from "../../../../../src/modules/product-list/constants"
 
@@ -203,6 +206,78 @@ describe("createCustomerProductListStep", () => {
 
     expect(service.deleteProductLists).toHaveBeenCalledOnce()
     expect(service.deleteProductLists).toHaveBeenCalledWith("plist_new")
+  })
+})
+
+describe("assertProductListCartMarketContextStep", () => {
+  const buildMarketContainer = (
+    region: Record<string, unknown> | undefined
+  ) => ({
+    resolve: vi.fn((key) => {
+      if (key === ContainerRegistrationKeys.QUERY) {
+        return {
+          graph: vi.fn().mockResolvedValue({
+            data: region ? [region] : [],
+          }),
+        }
+      }
+
+      throw new Error(`Unexpected dependency: ${String(key)}`)
+    }),
+  })
+
+  it("accepts a region, country, and Sales Channel that share one market", async () => {
+    const { assertProductListCartMarketContextStep } = await import(
+      "../../../../../src/workflows/product-list/steps/assert-product-list-cart-market-context"
+    )
+    const step = assertProductListCartMarketContextStep as unknown as MockStep
+    const result = await step(
+      {
+        country_code: "SK",
+        region_id: "reg_sk",
+        sales_channel_id: "sc_sk",
+      },
+      {
+        container: buildMarketContainer({
+          countries: [{ iso_2: "sk" }],
+          id: "reg_sk",
+          metadata: { storefront_sales_channel_id: "sc_sk" },
+        }) as unknown as ReturnType<typeof makeContainer>,
+      }
+    )
+
+    expect(result.payload).toEqual({
+      region_id: "reg_sk",
+      sales_channel_id: "sc_sk",
+    })
+  })
+
+  it("rejects a Sales Channel from another market", async () => {
+    const { assertProductListCartMarketContextStep } = await import(
+      "../../../../../src/workflows/product-list/steps/assert-product-list-cart-market-context"
+    )
+    const step = assertProductListCartMarketContextStep as unknown as MockStep
+
+    await expect(
+      step(
+        {
+          country_code: "sk",
+          region_id: "reg_sk",
+          sales_channel_id: "sc_cz",
+        },
+        {
+          container: buildMarketContainer({
+            countries: [{ iso_2: "sk" }],
+            id: "reg_sk",
+            metadata: { storefront_sales_channel_id: "sc_sk" },
+          }) as unknown as ReturnType<typeof makeContainer>,
+        }
+      )
+    ).rejects.toMatchObject({
+      message:
+        "The selected sales channel does not belong to the selected region",
+      type: MedusaError.Types.INVALID_DATA,
+    })
   })
 })
 

@@ -14,6 +14,7 @@ export type SeedDatabaseWorkflowInput = {
   workflowDefaults: {
     fulfillmentProviderId: string
     shippingOptionPriceAmount: number
+    unconfiguredCurrencyPricePolicy?: "fallback" | "omit"
   }
   salesChannels: Steps.CreateSalesChannelsStepInput
   currencies: Steps.UpdateStoreCurrenciesStepCurrenciesInput
@@ -30,6 +31,30 @@ export type SeedDatabaseWorkflowInput = {
   legacyBrandAttributeNames?: string[]
   priceLists?: Steps.SyncPriceListsStepInput["priceLists"]
   priceListSync?: Steps.SyncPriceListsStepInput["config"]
+}
+
+const resolveStorefrontRegionMapping = (
+  regionInput: Steps.CreateRegionsStepInput[number]
+) => {
+  const hasMapping = Boolean(
+    regionInput.storefrontNamespace ||
+      regionInput.marketCode ||
+      regionInput.salesChannelName
+  )
+
+  if (!hasMapping) {
+    return null
+  }
+
+  const { marketCode, salesChannelName, storefrontNamespace } = regionInput
+
+  if (!(storefrontNamespace && marketCode && salesChannelName)) {
+    throw new Error(
+      `Region "${regionInput.name}" must define storefrontNamespace, marketCode, and salesChannelName together`
+    )
+  }
+
+  return { marketCode, salesChannelName, storefrontNamespace }
 }
 
 function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
@@ -50,6 +75,44 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
   )
 
   const createRegionsResult = Steps.createRegionsStep(input.regions)
+
+  const linkRegionsSalesChannelsInput: Steps.LinkRegionsSalesChannelsStepInput =
+    transform({ createRegionsResult, input, salesChannelsResult }, (data) => ({
+      regions: data.input.regions.flatMap((regionInput) => {
+        const mapping = resolveStorefrontRegionMapping(regionInput)
+        if (!mapping) {
+          return []
+        }
+
+        const region = data.createRegionsResult.result.find(
+          (candidateRegion) => candidateRegion.name === regionInput.name
+        )
+        const salesChannel = data.salesChannelsResult.result.find(
+          (candidateSalesChannel) =>
+            candidateSalesChannel.name === mapping.salesChannelName
+        )
+
+        if (!(region && salesChannel)) {
+          throw new Error(
+            `Could not link region "${regionInput.name}" to sales channel "${mapping.salesChannelName}"`
+          )
+        }
+
+        return [
+          {
+            id: region.id,
+            marketCode: mapping.marketCode,
+            metadata: region.metadata,
+            salesChannelId: salesChannel.id,
+            storefrontNamespace: mapping.storefrontNamespace,
+          },
+        ]
+      }),
+    }))
+
+  const linkRegionsSalesChannelsResult = Steps.linkRegionsSalesChannelsStep(
+    linkRegionsSalesChannelsInput
+  )
 
   const ensurePricePreferencesStepInput: Steps.EnsurePricePreferencesStepInput =
     transform(
@@ -142,16 +205,30 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
           serviceZoneId: data.createFulfillmentSetsResult.serviceZone.id,
           shippingProfileId:
             data.createDefaultShippingProfileResult.shippingProfile.id,
-          regions: data.createRegionsResult.result.map((region) => ({
-            ...region,
-            amount:
-              option.prices.find(
-                (p) =>
-                  p.currencyCode?.toLowerCase() ===
-                  region.currency_code?.toLowerCase()
-              )?.amount ??
-              data.input.workflowDefaults.shippingOptionPriceAmount,
-          })),
+          regions: data.createRegionsResult.result.flatMap((region) => {
+            const configuredPrice = option.prices.find(
+              (price) =>
+                price.currencyCode?.toLowerCase() ===
+                region.currency_code?.toLowerCase()
+            )?.amount
+
+            if (
+              configuredPrice === undefined &&
+              data.input.workflowDefaults.unconfiguredCurrencyPricePolicy ===
+                "omit"
+            ) {
+              return []
+            }
+
+            return [
+              {
+                ...region,
+                amount:
+                  configuredPrice ??
+                  data.input.workflowDefaults.shippingOptionPriceAmount,
+              },
+            ]
+          }),
           type: option.type,
           prices: option.prices,
           rules: option.rules,
@@ -306,6 +383,7 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
     salesChannelsResult,
     updateStoreCurrenciesResult,
     createRegionsResult,
+    linkRegionsSalesChannelsResult,
     ensurePricePreferencesResult,
     createTaxRegionsResult,
     createStockLocationResult,

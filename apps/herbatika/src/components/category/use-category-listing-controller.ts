@@ -35,6 +35,7 @@ export function useCategoryListingController({
     queryState,
     regionId: region?.region_id,
     countryCode: region?.country_code,
+    salesChannelId: region?.salesChannelId,
     setQueryState,
   })
   const prefetchCategory = usePrefetchCategory({

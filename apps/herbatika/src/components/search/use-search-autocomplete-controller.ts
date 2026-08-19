@@ -22,17 +22,11 @@ import {
 import { useSearchAutocomplete } from "./use-search-autocomplete"
 
 type UseSearchAutocompleteControllerInput = {
-  countryCode?: string
-  currencyCode: string
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
-  regionId?: string
 }
 
 export function useSearchAutocompleteController({
-  countryCode,
-  currencyCode,
   onSubmit,
-  regionId,
 }: UseSearchAutocompleteControllerInput) {
   const router = useRouter()
   const t = useTranslations("search")
@@ -42,11 +36,8 @@ export function useSearchAutocompleteController({
   const [isDismissed, setIsDismissed] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
   const autocomplete = useSearchAutocomplete({
-    countryCode,
-    currencyCode,
     enabled: isFocused && !isDismissed,
     query: value,
-    regionId,
   })
   const normalizedQuery = value.trim()
   const sections = createSearchAutocompleteSections(autocomplete.data, {

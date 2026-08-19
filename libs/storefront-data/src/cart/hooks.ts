@@ -578,24 +578,57 @@ export function createCartHooks<
       return createCartFromInput(input)
     }
 
-    const resolveRegionUpdate = (cart: TCart): Promise<TCart> => {
-      if (
+    const hasRegionMismatch = (cart: TCart): boolean =>
+      Boolean(
         autoUpdateRegion &&
-        input.region_id &&
-        cart.region_id &&
-        cart.region_id !== input.region_id &&
-        service.updateCart
-      ) {
-        return service.updateCart(
-          cart.id,
-          buildUpdate({
-            ...(input as TUpdateInput),
-            region_id: input.region_id,
-          })
-        )
+          input.region_id &&
+          cart.region_id !== input.region_id
+      )
+
+    const hasSalesChannelMismatch = (cart: TCart): boolean =>
+      Boolean(
+        input.salesChannelId && cart.sales_channel_id !== input.salesChannelId
+      )
+
+    const hasStorefrontScopeMismatch = (cart: TCart): boolean =>
+      hasRegionMismatch(cart) || hasSalesChannelMismatch(cart)
+
+    const updateStorefrontScope = async (
+      cart: TCart
+    ): Promise<TCart | null> => {
+      if (!service.updateCart) {
+        return null
       }
 
-      return Promise.resolve(cart)
+      const updatedCart = await service.updateCart(
+        cart.id,
+        buildUpdate(input as TUpdateInput)
+      )
+
+      return hasStorefrontScopeMismatch(updatedCart) ? null : updatedCart
+    }
+
+    const resolveStorefrontScope = async (
+      cart: TCart
+    ): Promise<TCart | null> => {
+      const salesChannelMismatch = hasSalesChannelMismatch(cart)
+
+      if (!hasStorefrontScopeMismatch(cart)) {
+        return cart
+      }
+
+      if (salesChannelMismatch && cart.items?.length) {
+        clearCartId()
+        return createIfAllowed()
+      }
+
+      const updatedCart = await updateStorefrontScope(cart)
+      if (updatedCart) {
+        return updatedCart
+      }
+
+      clearCartId()
+      return createIfAllowed()
     }
 
     if (!resolvedCartId) {
@@ -610,7 +643,7 @@ export function createCartHooks<
         return createIfAllowed()
       }
 
-      return resolveRegionUpdate(cart)
+      return resolveStorefrontScope(cart)
     } catch (error) {
       if (!isNotFoundError?.(error)) {
         throw error
@@ -621,12 +654,19 @@ export function createCartHooks<
     }
   }
 
+  type CartCacheSource = {
+    cart: CartLike | null
+    previousCartId: string | null
+    previousRegionId: string | null
+    previousSalesChannelId: string | null | undefined
+  }
+
   const syncCartCache = (
     queryClient: ReturnType<typeof useQueryClient>,
-    cart: CartLike | null,
-    previousCartId: string | null,
-    previousRegionId: string | null
+    source: CartCacheSource
   ) => {
+    const { cart, previousCartId, previousRegionId, previousSalesChannelId } =
+      source
     if (!cart?.id) {
       return
     }
@@ -634,6 +674,7 @@ export function createCartHooks<
     const sourceKey = resolvedQueryKeys.active({
       cartId: previousCartId,
       regionId: previousRegionId,
+      salesChannelId: previousSalesChannelId,
     })
     // A restored inactive observer can resume with data older than its cache.
     // Only the raw value still owned by this query may fan out to cart aliases.
@@ -647,6 +688,7 @@ export function createCartHooks<
       const previousKey = resolvedQueryKeys.active({
         cartId: previousCartId,
         regionId: previousRegionId,
+        salesChannelId: previousSalesChannelId,
       })
       queryClient.removeQueries({ queryKey: previousKey, exact: true })
     }
@@ -671,6 +713,7 @@ export function createCartHooks<
       queryKey: resolvedQueryKeys.active({
         cartId,
         regionId: resolvedInput.region_id ?? null,
+        salesChannelId: resolvedInput.salesChannelId,
       }),
       queryFn: ({ signal }) =>
         loadCart({
@@ -690,8 +733,19 @@ export function createCartHooks<
     const itemCount = getItemCount(cart)
 
     useEffect(() => {
-      syncCartCache(queryClient, cart, cartId, resolvedInput.region_id ?? null)
-    }, [cart, cartId, queryClient, resolvedInput.region_id])
+      syncCartCache(queryClient, {
+        cart,
+        previousCartId: cartId,
+        previousRegionId: resolvedInput.region_id ?? null,
+        previousSalesChannelId: resolvedInput.salesChannelId,
+      })
+    }, [
+      cart,
+      cartId,
+      queryClient,
+      resolvedInput.region_id,
+      resolvedInput.salesChannelId,
+    ])
 
     return {
       cart,
@@ -724,6 +778,7 @@ export function createCartHooks<
       queryKey: resolvedQueryKeys.active({
         cartId,
         regionId: resolvedInput.region_id ?? null,
+        salesChannelId: resolvedInput.salesChannelId,
       }),
       queryFn: ({ signal }) =>
         loadCart({
@@ -742,8 +797,19 @@ export function createCartHooks<
     const itemCount = getItemCount(cart)
 
     useEffect(() => {
-      syncCartCache(queryClient, cart, cartId, resolvedInput.region_id ?? null)
-    }, [cart, cartId, queryClient, resolvedInput.region_id])
+      syncCartCache(queryClient, {
+        cart,
+        previousCartId: cartId,
+        previousRegionId: resolvedInput.region_id ?? null,
+        previousSalesChannelId: resolvedInput.salesChannelId,
+      })
+    }, [
+      cart,
+      cartId,
+      queryClient,
+      resolvedInput.region_id,
+      resolvedInput.salesChannelId,
+    ])
 
     return {
       cart,
@@ -842,6 +908,63 @@ export function createCartHooks<
   function useAddLineItem(options?: CartMutationOptions<TCart, TAddInput>) {
     const contextRegion = useRegionContext()
     const queryClient = useQueryClient()
+
+    const resolveExistingAddLineItemCartId = async (
+      resolvedInput: TAddInput,
+      cartId: string,
+      canCreate: boolean
+    ): Promise<string> => {
+      if (!resolvedInput.salesChannelId) {
+        return cartId
+      }
+
+      const scopedCart = await loadCart({
+        input: resolvedInput,
+        cartId,
+        canCreate,
+        autoUpdateRegion:
+          (resolvedInput as TAddInput & AddLineItemTransientInput)
+            .autoUpdateRegion ?? true,
+      })
+
+      if (!scopedCart) {
+        throw new Error("A cart for the requested sales channel is required")
+      }
+
+      persistCartId(scopedCart.id)
+      syncCartCaches(queryClient, resolvedQueryKeys, scopedCart)
+      return scopedCart.id
+    }
+
+    const createAddLineItemCart = async (
+      resolvedInput: TAddInput,
+      canCreate: boolean
+    ): Promise<string> => {
+      if (!canCreate) {
+        throw new Error("Cart id is required")
+      }
+
+      const created = await service.createCart(
+        buildCreate(buildCreateInputFromAdd(resolvedInput))
+      )
+      persistCartId(created.id)
+      syncCartCaches(queryClient, resolvedQueryKeys, created)
+      return created.id
+    }
+
+    const resolveAddLineItemCartId = (
+      resolvedInput: TAddInput
+    ): Promise<string> => {
+      const cartId = resolveCartId(resolvedInput.cartId)
+      const autoCreate = resolvedInput.autoCreate ?? true
+      const canCreate =
+        autoCreate && (!requireRegion || Boolean(resolvedInput.region_id))
+
+      return cartId
+        ? resolveExistingAddLineItemCartId(resolvedInput, cartId, canCreate)
+        : createAddLineItemCart(resolvedInput, canCreate)
+    }
+
     return useMutation({
       mutationFn: async (input: TAddInput) => {
         if (!service.addLineItem) {
@@ -849,22 +972,7 @@ export function createCartHooks<
         }
 
         const resolvedInput = applyRegion(input, contextRegion ?? undefined)
-        let cartId = resolveCartId(resolvedInput.cartId)
-        const autoCreate = resolvedInput.autoCreate ?? true
-        const canCreate =
-          autoCreate && (!requireRegion || Boolean(resolvedInput.region_id))
-
-        if (!cartId) {
-          if (!canCreate) {
-            throw new Error("Cart id is required")
-          }
-          const created = await service.createCart(
-            buildCreate(buildCreateInputFromAdd(resolvedInput))
-          )
-          persistCartId(created.id)
-          cartId = created.id
-          syncCartCaches(queryClient, resolvedQueryKeys, created)
-        }
+        const cartId = await resolveAddLineItemCartId(resolvedInput)
 
         const updated = await service.addLineItem(
           cartId,
@@ -1035,6 +1143,7 @@ export function createCartHooks<
       const queryKey = resolvedQueryKeys.active({
         cartId,
         regionId: resolvedInput.region_id ?? null,
+        salesChannelId: resolvedInput.salesChannelId,
       })
 
       if (

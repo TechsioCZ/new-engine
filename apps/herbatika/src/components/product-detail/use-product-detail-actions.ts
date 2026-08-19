@@ -27,6 +27,7 @@ export function useProductDetailActions({
   const addToCart = useAddProductToCartAction({
     regionId: region?.region_id,
     countryCode: region?.country_code,
+    salesChannelId: region?.salesChannelId,
   })
   const prefetchProduct = usePrefetchProduct({
     defaultDelay: 220,

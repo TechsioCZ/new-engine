@@ -30,10 +30,11 @@ type CatalogAutocompleteResponse = {
 type FetchSearchAutocompleteInput = {
   authToken?: string | null
   query: string
-  countryCode?: string | null
-  currencyCode?: string | null
-  locale?: string | null
-  regionId?: string | null
+  countryCode: string
+  currencyCode: string
+  locale: string
+  regionId: string
+  salesChannelId: string
 }
 
 const CATALOG_FETCH_TIMEOUT_MS = 3000
@@ -47,12 +48,14 @@ const createCatalogAutocompleteQuery = ({
   locale,
   query,
   regionId,
+  salesChannelId,
 }: {
-  countryCode?: string | null
+  countryCode: string
   currencyCode: string
-  locale?: string | null
+  locale: string
   query: string
-  regionId?: string | null
+  regionId: string
+  salesChannelId: string
 }) => {
   const requestQuery: Record<string, string> = {
     q: query,
@@ -74,6 +77,11 @@ const createCatalogAutocompleteQuery = ({
     requestQuery.locale = normalizedLocale
   }
 
+  const normalizedSalesChannelId = normalizeString(salesChannelId)
+  if (normalizedSalesChannelId) {
+    requestQuery.sales_channel_id = normalizedSalesChannelId
+  }
+
   return requestQuery
 }
 
@@ -84,13 +92,15 @@ const fetchCatalogCandidates = async ({
   locale,
   query,
   regionId,
+  salesChannelId,
 }: {
   authToken?: string | null
-  countryCode?: string | null
+  countryCode: string
   currencyCode: string
-  locale?: string | null
+  locale: string
   query: string
-  regionId?: string | null
+  regionId: string
+  salesChannelId: string
 }) => {
   const abortController = new AbortController()
   const timeoutId = setTimeout(() => {
@@ -110,6 +120,7 @@ const fetchCatalogCandidates = async ({
           locale,
           query,
           regionId,
+          salesChannelId,
         }),
         signal: abortController.signal,
       }
@@ -134,6 +145,7 @@ export const fetchSearchAutocomplete = async ({
   locale,
   query,
   regionId,
+  salesChannelId,
 }: FetchSearchAutocompleteInput): Promise<SearchAutocompleteResponse> => {
   const normalizedQuery = normalizeSearchAutocompleteQuery(query)
   if (
@@ -151,6 +163,7 @@ export const fetchSearchAutocomplete = async ({
     locale,
     query: normalizedQuery,
     regionId,
+    salesChannelId,
   })
   const productHits = catalogResponse.products ?? []
 

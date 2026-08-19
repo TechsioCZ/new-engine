@@ -65,6 +65,7 @@ export function InlineProductsCarousel({
   const addToCart = useAddProductToCartAction({
     regionId: region?.region_id,
     countryCode: region?.country_code,
+    salesChannelId: region?.salesChannelId,
   })
 
   const handleAddToCart = async (product: HttpTypes.StoreProduct) => {

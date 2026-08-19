@@ -104,14 +104,10 @@ export const StoreCreateProductListCartSchema = z
   .object({
     country_code: optionalTrimmedString,
     email: optionalEmailString,
-    region_id: optionalTrimmedString,
-    sales_channel_id: optionalTrimmedString,
+    region_id: z.string().trim().min(1),
+    sales_channel_id: z.string().trim().min(1),
   })
   .strict()
-  .refine((data) => data.region_id || data.country_code, {
-    error: () => "region_id or country_code is required",
-    path: ["region_id"],
-  })
 
 export const StoreDeleteProductListItemParamsSchema = z
   .object({

@@ -141,10 +141,10 @@ export type AddFavoriteProductListItemInput = Omit<
 
 export type CreateProductListCartInput = {
   listId: string
-  regionId?: string | null
+  regionId: string
   countryCode?: string | null
   email?: string | null
-  salesChannelId?: string | null
+  salesChannelId: string
 }
 
 export type ChangeProductListItemQuantityInput = {
@@ -170,6 +170,7 @@ export type DeleteProductListItemInput = {
 export type ProductListCartLike = {
   id: string
   region_id?: string | null
+  sales_channel_id?: string | null
 }
 
 export type ProductListService<

@@ -11,6 +11,7 @@ import type { QueryKey } from "./query-keys"
 type CartLike = {
   id: string
   region_id?: string | null
+  sales_channel_id?: string | null
 }
 
 export type ActiveCartQueryKeyMatcher = (
@@ -28,7 +29,7 @@ type ActiveKeySegmentMatchInput = {
   candidate: unknown
   base: unknown
   cartVariant: unknown
-  regionVariant: unknown
+  scopeVariants: unknown[]
   cartId: string
 }
 
@@ -36,19 +37,21 @@ const matchActiveLeafSegment = ({
   candidate,
   base,
   cartVariant,
-  regionVariant,
+  scopeVariants,
   cartId,
 }: ActiveKeySegmentMatchInput): boolean => {
   const changesWithCart = !areQueryKeySegmentsEqual(base, cartVariant)
-  const changesWithRegion = !areQueryKeySegmentsEqual(base, regionVariant)
+  const changesWithScope = scopeVariants.some(
+    (scopeVariant) => !areQueryKeySegmentsEqual(base, scopeVariant)
+  )
 
-  if (!(changesWithCart || changesWithRegion)) {
+  if (!(changesWithCart || changesWithScope)) {
     return areQueryKeySegmentsEqual(candidate, base)
   }
-  if (changesWithCart && !changesWithRegion) {
+  if (changesWithCart && !changesWithScope) {
     return candidate === cartId
   }
-  if (!changesWithCart && changesWithRegion) {
+  if (!changesWithCart && changesWithScope) {
     return true
   }
   return false
@@ -58,25 +61,29 @@ const matchesActiveKeySegment = ({
   candidate,
   base,
   cartVariant,
-  regionVariant,
+  scopeVariants,
   cartId,
 }: ActiveKeySegmentMatchInput): boolean => {
   if (
     Array.isArray(base) &&
     Array.isArray(cartVariant) &&
-    Array.isArray(regionVariant)
+    scopeVariants.every(Array.isArray)
   ) {
     return (
       Array.isArray(candidate) &&
       candidate.length === base.length &&
       cartVariant.length === base.length &&
-      regionVariant.length === base.length &&
+      scopeVariants.every(
+        (scopeVariant) => scopeVariant.length === base.length
+      ) &&
       base.every((_, index) =>
         matchesActiveKeySegment({
           candidate: candidate[index],
           base: base[index],
           cartVariant: cartVariant[index],
-          regionVariant: regionVariant[index],
+          scopeVariants: scopeVariants.map(
+            (scopeVariant) => scopeVariant[index]
+          ),
           cartId,
         })
       )
@@ -86,17 +93,18 @@ const matchesActiveKeySegment = ({
   if (
     isPlainRecord(base) &&
     isPlainRecord(cartVariant) &&
-    isPlainRecord(regionVariant) &&
+    scopeVariants.every(isPlainRecord) &&
     isPlainRecord(candidate)
   ) {
-    return getSortedRecordKeys(base, cartVariant, regionVariant).every((key) =>
-      matchesActiveKeySegment({
-        candidate: candidate[key],
-        base: base[key],
-        cartVariant: cartVariant[key],
-        regionVariant: regionVariant[key],
-        cartId,
-      })
+    return getSortedRecordKeys(base, cartVariant, ...scopeVariants).every(
+      (key) =>
+        matchesActiveKeySegment({
+          candidate: candidate[key],
+          base: base[key],
+          cartVariant: cartVariant[key],
+          scopeVariants: scopeVariants.map((scopeVariant) => scopeVariant[key]),
+          cartId,
+        })
     )
   }
 
@@ -104,7 +112,7 @@ const matchesActiveKeySegment = ({
     candidate,
     base,
     cartVariant,
-    regionVariant,
+    scopeVariants,
     cartId,
   })
 }
@@ -136,14 +144,22 @@ export const createDefaultActiveCartQueryMatcher = (
   const baseActiveKey = queryKeys.active({
     cartId: "__storefront_data_cart__",
     regionId: "__storefront_data_region__",
+    salesChannelId: "__storefront_data_sales_channel__",
   })
   const cartVariantActiveKey = queryKeys.active({
     cartId: "__storefront_data_other_cart__",
     regionId: "__storefront_data_region__",
+    salesChannelId: "__storefront_data_sales_channel__",
   })
   const regionVariantActiveKey = queryKeys.active({
     cartId: "__storefront_data_cart__",
     regionId: "__storefront_data_other_region__",
+    salesChannelId: "__storefront_data_sales_channel__",
+  })
+  const salesChannelVariantActiveKey = queryKeys.active({
+    cartId: "__storefront_data_cart__",
+    regionId: "__storefront_data_region__",
+    salesChannelId: "__storefront_data_other_sales_channel__",
   })
 
   return (queryKey, cartId) => {
@@ -155,7 +171,7 @@ export const createDefaultActiveCartQueryMatcher = (
       candidate: queryKey,
       base: baseActiveKey,
       cartVariant: cartVariantActiveKey,
-      regionVariant: regionVariantActiveKey,
+      scopeVariants: [regionVariantActiveKey, salesChannelVariantActiveKey],
       cartId,
     })
   }
@@ -178,14 +194,17 @@ export function syncCartCaches<TCart extends CartLike>(
   const activeKey = queryKeys.active({
     cartId: cart.id,
     regionId: typeof cart.region_id === "string" ? cart.region_id : null,
+    salesChannelId:
+      typeof cart.sales_channel_id === "string"
+        ? cart.sales_channel_id
+        : undefined,
   })
 
-  queryClient.setQueriesData<TCart>(
-    {
-      predicate: (query) => isActiveCartQueryKey(query.queryKey, cart.id),
-    },
-    cart
-  )
+  queryClient.removeQueries({
+    predicate: (query) =>
+      isActiveCartQueryKey(query.queryKey, cart.id) &&
+      !areQueryKeySegmentsEqual(query.queryKey, activeKey),
+  })
 
   queryClient.setQueryData(activeKey, cart)
   queryClient.setQueryData(queryKeys.detail(cart.id), cart)

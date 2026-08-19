@@ -4,17 +4,17 @@ import type { QueryClient } from "@tanstack/react-query"
 import { getServerQueryClient } from "@techsio/storefront-data/server/get-query-client"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import { cookies } from "next/headers"
+import type { HerbatikaMarketContext } from "../market-context"
 import { getMarketServerContext } from "../market-context.server"
 import {
   REGION_COUNTRY_CODE_STORAGE_KEY,
   REGION_STORAGE_KEY,
   resolveRegionInfoFromCookieValues,
 } from "../region-preferences"
-import { REGION_LIST_FIELDS, REGION_LIST_LIMIT } from "../region-query-config"
 import { resolveRegionForMarket, toRegionInfo } from "../region-selection"
 import {
+  fetchCompleteServerRegionList,
   fetchServerProduct,
-  fetchServerRegions,
   prefetchServerProductAttributes,
   prefetchServerProductReviews,
   prefetchServerProducts,
@@ -23,7 +23,6 @@ import type {
   ProductDetailParams,
   ProductListParams,
   ProductReviewListParams,
-  RegionListParams,
 } from "./types"
 
 const resolveCookieRegionPreference = async (): Promise<RegionInfo | null> => {
@@ -35,31 +34,35 @@ const resolveCookieRegionPreference = async (): Promise<RegionInfo | null> => {
   )
 }
 
-export const getRegionServerContext = async () => {
+type GetRegionServerContextOptions = {
+  marketContext?: HerbatikaMarketContext
+}
+
+export const getRegionServerContext = async (
+  options: GetRegionServerContextOptions = {}
+) => {
   const queryClient = getServerQueryClient()
-  const [cookieRegionPreference, marketContext] = await Promise.all([
+  const [cookieRegionPreference, resolvedMarketContext] = await Promise.all([
     resolveCookieRegionPreference(),
-    getMarketServerContext(),
+    options.marketContext
+      ? Promise.resolve(options.marketContext)
+      : getMarketServerContext(),
   ])
 
-  const listParams: RegionListParams = {
-    fields: REGION_LIST_FIELDS,
-    limit: REGION_LIST_LIMIT,
-  }
-
-  const regionListResponse = await fetchServerRegions(queryClient, listParams)
+  const regionListResponse = await fetchCompleteServerRegionList(queryClient)
 
   const resolvedRegionRecord = resolveRegionForMarket(
     regionListResponse.regions,
-    marketContext,
+    resolvedMarketContext,
     cookieRegionPreference?.region_id
   )
   const region = resolvedRegionRecord
-    ? toRegionInfo(resolvedRegionRecord, marketContext.countryCode)
+    ? toRegionInfo(resolvedRegionRecord, resolvedMarketContext)
     : null
 
   return {
-    locale: marketContext.locale,
+    locale: resolvedMarketContext.locale,
+    marketContext: resolvedMarketContext,
     queryClient,
     region,
   }
@@ -86,7 +89,11 @@ export const prefetchProductReviews = async (
 
 export const prefetchProductAttributes = async (
   queryClient: QueryClient,
-  productId: string
+  productId: string,
+  salesChannelId: string
 ) => {
-  await prefetchServerProductAttributes(queryClient, { productId })
+  await prefetchServerProductAttributes(queryClient, {
+    productId,
+    salesChannelId,
+  })
 }

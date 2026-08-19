@@ -4,6 +4,8 @@ import type {
   MedusaProductDetailInput,
   MedusaProductListInput,
 } from "@techsio/storefront-data/products/medusa-service"
+import type { RegionInfo } from "@techsio/storefront-data/shared/region"
+import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { useLocale } from "next-intl"
 import { withRequestLocale } from "./localized-query"
 import type { StorefrontProductListInput as BaseStorefrontProductListInput } from "./product-query-config"
@@ -41,14 +43,42 @@ const productHooks = storefront.hooks.products
 const toProductListParams = (input: ProductListInput): MedusaProductListInput =>
   input as unknown as MedusaProductListInput
 
+const applyActiveProductScope = <
+  TInput extends {
+    country_code?: string
+    region_id?: string
+  },
+>(
+  input: TInput,
+  region: RegionInfo | null
+): TInput =>
+  region
+    ? {
+        ...input,
+        country_code: region.country_code,
+        region_id: region.region_id,
+      }
+    : input
+
+const hasCompleteProductScope = (region: RegionInfo | null) =>
+  Boolean(region?.region_id && region.salesChannelId)
+
 export const useProducts = (
   input: ProductListInput,
   options?: UseProductsOptions
 ) => {
   const locale = useLocale()
+  const region = useRegionContext()
+  const scopedInput = applyActiveProductScope(
+    withRequestLocale(input, locale),
+    region
+  )
 
   return productHooks.useProducts(
-    toProductListParams(withRequestLocale(input, locale)),
+    toProductListParams({
+      ...scopedInput,
+      enabled: input.enabled !== false && hasCompleteProductScope(region),
+    }),
     options
   )
 }
@@ -58,14 +88,24 @@ export const useProduct = (
   options?: UseProductOptions
 ) => {
   const locale = useLocale()
+  const region = useRegionContext()
+  const scopedInput = applyActiveProductScope(
+    withRequestLocale(input, locale),
+    region
+  )
+  const enabledInput: ProductDetailInput = {
+    ...scopedInput,
+    enabled: input.enabled !== false && hasCompleteProductScope(region),
+  }
 
-  return productHooks.useProduct(withRequestLocale(input, locale), options)
+  return productHooks.useProduct(enabledInput, options)
 }
 
 export const usePrefetchProduct = (
   ...args: Parameters<ProductHooks["usePrefetchProduct"]>
 ) => {
   const locale = useLocale()
+  const region = useRegionContext()
   const prefetch = productHooks.usePrefetchProduct(...args)
 
   return {
@@ -78,11 +118,17 @@ export const usePrefetchProduct = (
       ]
         ? TRest
         : never
-    ) =>
-      prefetch.prefetchProduct(
+    ) => {
+      const scopedInput = applyActiveProductScope(
         withRequestLocale(input, locale),
-        ...prefetchArgs
-      ),
+        region
+      )
+      if (!hasCompleteProductScope(region)) {
+        return Promise.resolve()
+      }
+
+      return prefetch.prefetchProduct(scopedInput, ...prefetchArgs)
+    },
     delayedPrefetch: (
       input: MedusaProductDetailInput,
       ...prefetchArgs: Parameters<typeof prefetch.delayedPrefetch> extends [
@@ -91,11 +137,17 @@ export const usePrefetchProduct = (
       ]
         ? TRest
         : never
-    ) =>
-      prefetch.delayedPrefetch(
+    ) => {
+      const scopedInput = applyActiveProductScope(
         withRequestLocale(input, locale),
-        ...prefetchArgs
-      ),
+        region
+      )
+      if (!hasCompleteProductScope(region)) {
+        return
+      }
+
+      return prefetch.delayedPrefetch(scopedInput, ...prefetchArgs)
+    },
   }
 }
 
@@ -103,6 +155,7 @@ export const usePrefetchProducts = (
   ...args: Parameters<ProductHooks["usePrefetchProducts"]>
 ) => {
   const locale = useLocale()
+  const region = useRegionContext()
   const prefetch = productHooks.usePrefetchProducts(...args)
 
   return {
@@ -115,11 +168,20 @@ export const usePrefetchProducts = (
       ]
         ? TRest
         : never
-    ) =>
-      prefetch.prefetchProducts(
-        toProductListParams(withRequestLocale(input, locale)),
+    ) => {
+      const scopedInput = applyActiveProductScope(
+        withRequestLocale(input, locale),
+        region
+      )
+      if (!hasCompleteProductScope(region)) {
+        return Promise.resolve()
+      }
+
+      return prefetch.prefetchProducts(
+        toProductListParams(scopedInput),
         ...prefetchArgs
-      ),
+      )
+    },
     prefetchFirstPage: (
       input: ProductListInput,
       ...prefetchArgs: Parameters<typeof prefetch.prefetchFirstPage> extends [
@@ -128,11 +190,20 @@ export const usePrefetchProducts = (
       ]
         ? TRest
         : never
-    ) =>
-      prefetch.prefetchFirstPage(
-        toProductListParams(withRequestLocale(input, locale)),
+    ) => {
+      const scopedInput = applyActiveProductScope(
+        withRequestLocale(input, locale),
+        region
+      )
+      if (!hasCompleteProductScope(region)) {
+        return Promise.resolve()
+      }
+
+      return prefetch.prefetchFirstPage(
+        toProductListParams(scopedInput),
         ...prefetchArgs
-      ),
+      )
+    },
     delayedPrefetch: (
       input: ProductListInput,
       ...prefetchArgs: Parameters<typeof prefetch.delayedPrefetch> extends [
@@ -141,10 +212,19 @@ export const usePrefetchProducts = (
       ]
         ? TRest
         : never
-    ) =>
-      prefetch.delayedPrefetch(
-        toProductListParams(withRequestLocale(input, locale)),
+    ) => {
+      const scopedInput = applyActiveProductScope(
+        withRequestLocale(input, locale),
+        region
+      )
+      if (!hasCompleteProductScope(region)) {
+        return
+      }
+
+      return prefetch.delayedPrefetch(
+        toProductListParams(scopedInput),
         ...prefetchArgs
-      ),
+      )
+    },
   }
 }

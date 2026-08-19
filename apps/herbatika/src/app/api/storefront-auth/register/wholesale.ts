@@ -27,8 +27,13 @@ type WholesaleParseResult = {
   value: ParsedWholesaleRegistration | null
 }
 
+type ParseWholesaleRegistrationOptions = {
+  currencyCode: string
+}
+
 export const parseWholesaleRegistration = (
-  value: unknown
+  value: unknown,
+  { currencyCode }: ParseWholesaleRegistrationOptions
 ): WholesaleParseResult => {
   if (value === undefined || value === null) {
     return { error: null, value: null }
@@ -91,8 +96,7 @@ export const parseWholesaleRegistration = (
     value: {
       companyName,
       companyIdentifier,
-      currencyCode:
-        asStringOrUndefined(wholesale.currency_code)?.toUpperCase() ?? "EUR",
+      currencyCode,
       billingAddress: {
         address1,
         address2: asStringOrUndefined(billingAddress.address_2),
