@@ -46,6 +46,10 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
         UNION ALL SELECT "_locale"::text FROM "payload"."page_categories_locales"
         UNION ALL SELECT "_locale"::text FROM "payload"."pages_locales"
         UNION ALL SELECT "_locale"::text FROM "payload"."hero_carousels_locales"
+        UNION ALL SELECT "_locale"::text FROM "payload"."footer_navigation_blocks_cms_page_link"
+        UNION ALL SELECT "_locale"::text FROM "payload"."footer_navigation_blocks_app_route_link"
+        UNION ALL SELECT "_locale"::text FROM "payload"."footer_navigation_blocks_external_link"
+        UNION ALL SELECT "_locale"::text FROM "payload"."footer_navigation_columns"
       ) localized_content
       WHERE locale IS NOT NULL AND locale NOT IN ('sk', 'cs', 'hu', 'ro')
     ) THEN
@@ -61,6 +65,10 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "payload"."page_categories_locales" ALTER COLUMN "_locale" SET DATA TYPE text;
   ALTER TABLE "payload"."pages_locales" ALTER COLUMN "_locale" SET DATA TYPE text;
   ALTER TABLE "payload"."hero_carousels_locales" ALTER COLUMN "_locale" SET DATA TYPE text;
+  ALTER TABLE "payload"."footer_navigation_blocks_cms_page_link" ALTER COLUMN "_locale" SET DATA TYPE text;
+  ALTER TABLE "payload"."footer_navigation_blocks_app_route_link" ALTER COLUMN "_locale" SET DATA TYPE text;
+  ALTER TABLE "payload"."footer_navigation_blocks_external_link" ALTER COLUMN "_locale" SET DATA TYPE text;
+  ALTER TABLE "payload"."footer_navigation_columns" ALTER COLUMN "_locale" SET DATA TYPE text;
   DROP TYPE "payload"."_locales";
   CREATE TYPE "payload"."_locales" AS ENUM('sk', 'cs', 'hu', 'ro');
   ALTER TABLE "payload"."article_authors_locales" ALTER COLUMN "_locale" SET DATA TYPE "payload"."_locales" USING "_locale"::"payload"."_locales";
@@ -71,6 +79,10 @@ export async function up({ db, payload, req }: MigrateUpArgs): Promise<void> {
   ALTER TABLE "payload"."page_categories_locales" ALTER COLUMN "_locale" SET DATA TYPE "payload"."_locales" USING "_locale"::"payload"."_locales";
   ALTER TABLE "payload"."pages_locales" ALTER COLUMN "_locale" SET DATA TYPE "payload"."_locales" USING "_locale"::"payload"."_locales";
   ALTER TABLE "payload"."hero_carousels_locales" ALTER COLUMN "_locale" SET DATA TYPE "payload"."_locales" USING "_locale"::"payload"."_locales";
+  ALTER TABLE "payload"."footer_navigation_blocks_cms_page_link" ALTER COLUMN "_locale" SET DATA TYPE "payload"."_locales" USING "_locale"::"payload"."_locales";
+  ALTER TABLE "payload"."footer_navigation_blocks_app_route_link" ALTER COLUMN "_locale" SET DATA TYPE "payload"."_locales" USING "_locale"::"payload"."_locales";
+  ALTER TABLE "payload"."footer_navigation_blocks_external_link" ALTER COLUMN "_locale" SET DATA TYPE "payload"."_locales" USING "_locale"::"payload"."_locales";
+  ALTER TABLE "payload"."footer_navigation_columns" ALTER COLUMN "_locale" SET DATA TYPE "payload"."_locales" USING "_locale"::"payload"."_locales";
   ALTER TABLE "payload"."payload_jobs_log" ADD CONSTRAINT "payload_jobs_log_parent_id_fk" FOREIGN KEY ("_parent_id") REFERENCES "payload"."payload_jobs"("id") ON DELETE cascade ON UPDATE no action;
   CREATE INDEX "payload_jobs_log_order_idx" ON "payload"."payload_jobs_log" USING btree ("_order");
   CREATE INDEX "payload_jobs_log_parent_id_idx" ON "payload"."payload_jobs_log" USING btree ("_parent_id");
@@ -97,6 +109,10 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   ALTER TABLE "payload"."page_categories_locales" ALTER COLUMN "_locale" SET DATA TYPE text;
   ALTER TABLE "payload"."pages_locales" ALTER COLUMN "_locale" SET DATA TYPE text;
   ALTER TABLE "payload"."hero_carousels_locales" ALTER COLUMN "_locale" SET DATA TYPE text;
+  ALTER TABLE "payload"."footer_navigation_blocks_cms_page_link" ALTER COLUMN "_locale" SET DATA TYPE text;
+  ALTER TABLE "payload"."footer_navigation_blocks_app_route_link" ALTER COLUMN "_locale" SET DATA TYPE text;
+  ALTER TABLE "payload"."footer_navigation_blocks_external_link" ALTER COLUMN "_locale" SET DATA TYPE text;
+  ALTER TABLE "payload"."footer_navigation_columns" ALTER COLUMN "_locale" SET DATA TYPE text;
   DROP TYPE "payload"."_locales";
   CREATE TYPE "payload"."_locales" AS ENUM('cs', 'en', 'sk', 'pl', 'hu', 'ro', 'sl');
   ALTER TABLE "payload"."article_authors_locales" ALTER COLUMN "_locale" SET DATA TYPE "payload"."_locales" USING "_locale"::"payload"."_locales";
@@ -107,6 +123,10 @@ export async function down({ db, payload, req }: MigrateDownArgs): Promise<void>
   ALTER TABLE "payload"."page_categories_locales" ALTER COLUMN "_locale" SET DATA TYPE "payload"."_locales" USING "_locale"::"payload"."_locales";
   ALTER TABLE "payload"."pages_locales" ALTER COLUMN "_locale" SET DATA TYPE "payload"."_locales" USING "_locale"::"payload"."_locales";
   ALTER TABLE "payload"."hero_carousels_locales" ALTER COLUMN "_locale" SET DATA TYPE "payload"."_locales" USING "_locale"::"payload"."_locales";
+  ALTER TABLE "payload"."footer_navigation_blocks_cms_page_link" ALTER COLUMN "_locale" SET DATA TYPE "payload"."_locales" USING "_locale"::"payload"."_locales";
+  ALTER TABLE "payload"."footer_navigation_blocks_app_route_link" ALTER COLUMN "_locale" SET DATA TYPE "payload"."_locales" USING "_locale"::"payload"."_locales";
+  ALTER TABLE "payload"."footer_navigation_blocks_external_link" ALTER COLUMN "_locale" SET DATA TYPE "payload"."_locales" USING "_locale"::"payload"."_locales";
+  ALTER TABLE "payload"."footer_navigation_columns" ALTER COLUMN "_locale" SET DATA TYPE "payload"."_locales" USING "_locale"::"payload"."_locales";
   DROP TYPE "payload"."enum_payload_jobs_log_task_slug";
   DROP TYPE "payload"."enum_payload_jobs_log_state";
   DROP TYPE "payload"."enum_payload_jobs_task_slug";`)
