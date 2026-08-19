@@ -15,35 +15,6 @@ const PRIVATE_CLIENT_MARKERS = Object.freeze([
   "requireConfiguredMarketRuntimeBinding",
 ])
 const TEXT_CLIENT_ARTIFACT = /\.(?:css|js|json|map)$/
-const LEGACY_PUBLIC_APP_ROUTES = Object.freeze([
-  "/page",
-  "/[slug]/page",
-  "/account/page",
-  "/account/lists/page",
-  "/account/orders/page",
-  "/account/orders/[id]/page",
-  "/account/settings/page",
-  "/auth/forgot-password/page",
-  "/auth/login/page",
-  "/auth/register/page",
-  "/auth/reset-password/page",
-  "/blog/page",
-  "/blog/[slug]/page",
-  "/c/[slug]/page",
-  "/checkout/page",
-  "/checkout/[step]/page",
-  "/checkout/platba-navrat/page",
-  "/faq/page",
-  "/p/[handle]/page",
-  "/reklamacie-a-vratenie/page",
-  "/reviews/product/[token]/page",
-  "/search/page",
-  "/znacka/page",
-  "/znacka/[slug]/page",
-])
-
-const missingLegacyPublicAppRoutes = (appPathsManifest) =>
-  LEGACY_PUBLIC_APP_ROUTES.filter((route) => !appPathsManifest?.[route])
 
 export const assertNoPrivateClientMarkers = (artifacts) => {
   for (const artifact of artifacts) {
@@ -67,7 +38,6 @@ const readClientArtifacts = (directory) =>
     })
 
 export const assertNextBuildValues = ({
-  appPathsManifest,
   artifacts,
   requiredServerFiles,
   routesManifest,
@@ -107,11 +77,6 @@ export const assertNextBuildValues = ({
   if (!artifacts?.urlRegistryMigrations) {
     errors.push("URL registry SQL migrations are missing")
   }
-  errors.push(
-    ...missingLegacyPublicAppRoutes(appPathsManifest).map(
-      (route) => `gate-off compatibility route ${route} is missing`
-    )
-  )
 
   if (errors.length > 0) {
     throw new Error(
@@ -127,7 +92,6 @@ export const assertActualNextBuild = () => {
     JSON.parse(readFileSync(resolve(nextRoot, name), "utf8"))
 
   assertNextBuildValues({
-    appPathsManifest: readJson("server/app-paths-manifest.json"),
     artifacts: {
       buildId: existsSync(resolve(nextRoot, "BUILD_ID")),
       standaloneServer: existsSync(

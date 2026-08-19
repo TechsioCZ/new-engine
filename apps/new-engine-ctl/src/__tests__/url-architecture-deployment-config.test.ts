@@ -170,6 +170,8 @@ test("production image ships private-network migration and population tools", as
   expect(runbook).toContain("node scripts/url-registry/migrate.mjs")
   expect(runbook).toContain("populate.mjs --manifest -")
   expect(runbook).toContain("URL_ARCHITECTURE_ENABLED=0")
+  expect(runbook).toMatch(/contains no legacy public-route\s+fallback/)
+  expect(runbook).toContain("atomically move production traffic")
 })
 
 test("URL registry runtime receives only runtime credentials and a shared lifecycle token", async () => {

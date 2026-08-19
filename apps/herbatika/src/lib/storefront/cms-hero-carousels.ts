@@ -8,41 +8,6 @@ import type { CmsHeroButtonTarget, CmsHeroCarousel } from "./cms-types"
 import type { HerbatikaLocale } from "./market-context"
 
 const CMS_HERO_CAROUSEL_LIMIT = 8
-const LEGACY_HERO_QUERY_OR_FRAGMENT = /[?#]/
-const TRAILING_SLASHES = /\/+$/
-const LEGACY_STATIC_HERO_TARGETS = new Map<
-  string,
-  Extract<CmsHeroButtonTarget, { targetType: "static" }>["staticRouteKey"]
->([
-  ["/o-nas", "root:about"],
-  ["/rolunk", "root:about"],
-  ["/despre-noi", "root:about"],
-  ["/kontakt", "root:contact"],
-  ["/kapcsolat", "root:contact"],
-  ["/contact", "root:contact"],
-  ["/casto-kladene-otazky", "root:faq"],
-  ["/caste-dotazy", "root:faq"],
-  ["/gyakori-kerdesek", "root:faq"],
-  ["/intrebari-frecvente", "root:faq"],
-  ["/doprava", "root:shipping"],
-  ["/szallitas", "root:shipping"],
-  ["/livrare", "root:shipping"],
-  ["/vratenie-tovaru", "root:returns"],
-  ["/vraceni-zbozi", "root:returns"],
-  ["/visszakuldes", "root:returns"],
-  ["/retururi", "root:returns"],
-  ["/obchodne-podmienky", "root:terms"],
-  ["/obchodni-podminky", "root:terms"],
-  ["/altalanos-szerzodesi-feltetelek", "root:terms"],
-  ["/termeni-si-conditii", "root:terms"],
-  ["/ochrana-osobnych-udajov", "root:privacy"],
-  ["/ochrana-osobnich-udaju", "root:privacy"],
-  ["/adatvedelmi-tajekoztato", "root:privacy"],
-  ["/politica-de-confidentialitate", "root:privacy"],
-  ["/cookies", "root:cookies"],
-  ["/cookie-tajekoztato", "root:cookies"],
-  ["/politica-cookies", "root:cookies"],
-])
 
 type CmsHeroCarouselsResponse = {
   heroCarousels?: CmsHeroCarousel[] | null
@@ -67,21 +32,6 @@ const normalizeButtonTarget = (
   return sourceId ? { ...target, sourceId } : null
 }
 
-const normalizeLegacyStaticButtonTarget = (
-  value: string | null | undefined
-): CmsHeroButtonTarget | null => {
-  const rawPath = cleanString(value)
-  if (!rawPath.startsWith("/") || rawPath.startsWith("//")) {
-    return null
-  }
-  const path = (rawPath.split(LEGACY_HERO_QUERY_OR_FRAGMENT, 1)[0] ?? "")
-    .replace(TRAILING_SLASHES, "")
-    .toLowerCase()
-  const staticRouteKey = LEGACY_STATIC_HERO_TARGETS.get(path)
-
-  return staticRouteKey ? { staticRouteKey, targetType: "static" } : null
-}
-
 export const mapCmsHeroCarouselToHeroBanner = (
   item: CmsHeroCarousel
 ): CmsHeroBannerItem | null => {
@@ -97,9 +47,7 @@ export const mapCmsHeroCarouselToHeroBanner = (
     typeof item.image === "object" && item.image ? item.image.alt : null
   )
   const subtitle = cleanString(item.subheading)
-  const buttonTarget =
-    normalizeButtonTarget(item.buttonTarget) ??
-    normalizeLegacyStaticButtonTarget(item.buttonHref)
+  const buttonTarget = normalizeButtonTarget(item.buttonTarget)
 
   return {
     id: `cms-hero-carousel-${item.id}`,

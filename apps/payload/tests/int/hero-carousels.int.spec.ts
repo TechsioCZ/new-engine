@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs"
 import type { CollectionBeforeValidateHook } from "payload"
 import { describe, expect, it } from "vitest"
 import {
@@ -16,11 +15,6 @@ type TestBeforeValidateArgs = Omit<Partial<BeforeValidateArgs>, "req"> & {
 
 const runBeforeValidate = async (args: TestBeforeValidateArgs) =>
   beforeValidate(args as unknown as BeforeValidateArgs)
-
-const stableTargetMigration = readFileSync(
-  new URL("../../src/migrations/20260819_012135.ts", import.meta.url),
-  "utf8"
-)
 
 describe("hero carousel internal title", () => {
   it("derives an internal title when creating a document without one", async () => {
@@ -75,46 +69,6 @@ describe("hero carousel internal title", () => {
 })
 
 describe("hero carousel stable button target", () => {
-  it("backfills every localized root-static legacy URL", () => {
-    expect(stableTargetMigration).toContain('UPDATE "payload"."hero_carousels"')
-    expect(stableTargetMigration).toContain(
-      "\"button_target_target_type\" = 'static'"
-    )
-
-    for (const path of [
-      "/o-nas",
-      "/rolunk",
-      "/despre-noi",
-      "/kontakt",
-      "/kapcsolat",
-      "/contact",
-      "/casto-kladene-otazky",
-      "/caste-dotazy",
-      "/gyakori-kerdesek",
-      "/intrebari-frecvente",
-      "/doprava",
-      "/szallitas",
-      "/livrare",
-      "/vratenie-tovaru",
-      "/vraceni-zbozi",
-      "/visszakuldes",
-      "/retururi",
-      "/obchodne-podmienky",
-      "/obchodni-podminky",
-      "/altalanos-szerzodesi-feltetelek",
-      "/termeni-si-conditii",
-      "/ochrana-osobnych-udajov",
-      "/ochrana-osobnich-udaju",
-      "/adatvedelmi-tajekoztato",
-      "/politica-de-confidentialitate",
-      "/cookies",
-      "/cookie-tajekoztato",
-      "/politica-cookies",
-    ]) {
-      expect(stableTargetMigration).toContain(`WHEN '${path}'`)
-    }
-  })
-
   it("normalizes a supported entity identity without a public URL", () => {
     expect(
       normalizeHeroButtonTarget({

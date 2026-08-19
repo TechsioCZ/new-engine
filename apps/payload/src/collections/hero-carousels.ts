@@ -236,8 +236,7 @@ export const HeroCarousels: CollectionConfig = {
       localized: true,
     },
     // Compatibility policy: existing free-form values remain readable for
-    // editorial audit. The migration backfills only recognized localized
-    // root-static paths; this field is never writable or sent to URLR.
+    // editorial audit, but are never writable, backfilled, or sent to URLR.
     {
       name: "buttonHref",
       label: {
@@ -253,7 +252,7 @@ export const HeroCarousels: CollectionConfig = {
       },
       admin: {
         description:
-          "Historical display only. Recognized static paths are migrated to the stable target below; arbitrary paths remain inactive.",
+          "Historical display only. Storefront links resolve exclusively from the stable target below.",
         readOnly: true,
       },
     },

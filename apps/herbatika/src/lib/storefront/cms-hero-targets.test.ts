@@ -38,42 +38,6 @@ describe("CMS hero URL projections", () => {
     })
   })
 
-  it.each([
-    ["/o-nas?utm_source=legacy", "root:about"],
-    ["/contact/", "root:contact"],
-    ["/gyakori-kerdesek", "root:faq"],
-    ["/livrare", "root:shipping"],
-    ["/vraceni-zbozi", "root:returns"],
-    ["/termeni-si-conditii", "root:terms"],
-    ["/adatvedelmi-tajekoztato", "root:privacy"],
-    ["/politica-cookies#settings", "root:cookies"],
-  ] as const)("maps recognized legacy static path %s to %s", (buttonHref, staticRouteKey) => {
-    expect(
-      mapCmsHeroCarouselToHeroBanner({
-        id: 1,
-        image: "https://cdn.example.test/hero.jpg",
-        buttonHref,
-      })
-    ).toMatchObject({
-      buttonTarget: { staticRouteKey, targetType: "static" },
-    })
-  })
-
-  it.each([
-    "/legacy-free-form-path",
-    "https://herbatica.sk/o-nas",
-    "//attacker.invalid/o-nas",
-    "/p/source-derived-handle",
-  ])("keeps unsafe or unresolvable legacy target %s inactive", (buttonHref) => {
-    expect(
-      mapCmsHeroCarouselToHeroBanner({
-        id: 1,
-        image: "https://cdn.example.test/hero.jpg",
-        buttonHref,
-      })
-    ).not.toHaveProperty("buttonTarget")
-  })
-
   it("collects stable entity identities and static keys for batch reads", () => {
     const banners: CmsHeroBannerItem[] = [
       {

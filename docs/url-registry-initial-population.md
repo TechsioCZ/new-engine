@@ -7,16 +7,19 @@ labels, and it never appends numeric collision suffixes.
 
 ## Zane production cutover procedure
 
-A Git-hash deployment is intentionally inert: every URL architecture gate
-defaults to `0`. The production Herbatika image ships the migration and
-population CLIs under `scripts/url-registry/`, so the one-time database work can
-run from the deployed container on the private Zane network without exposing
-Postgres publicly.
+This is a clean cutover release. The image contains no legacy public-route
+fallback, so a gates-off container must never receive production traffic. Every
+URL architecture gate defaults to `0` only to prevent a partially configured
+registry from becoming public. Use the production image as a private one-off or
+maintenance deployment for the migration and population work, then switch
+traffic only after the full resolver is enabled and verified.
 
-1. Deploy the new Git hash with `URL_REGISTRY_ENABLED=0`,
+1. Start the new Git hash as a private one-off or maintenance deployment with
+   `URL_REGISTRY_ENABLED=0`,
    `URL_PRODUCT_RESOLVER_ENABLED=0`, `URL_ARCHITECTURE_M00_ENABLED=0`, and
-   `URL_ARCHITECTURE_ENABLED=0`. Configure the runtime database URL and exact
-   four-market bindings, but keep every producer/resolver gate off.
+   `URL_ARCHITECTURE_ENABLED=0`. Do not attach the production domains or send
+   customer traffic to this container. Configure the runtime database URL and
+   exact four-market bindings, but keep every producer/resolver gate off.
 2. Temporarily add the migration-owner connection as the private Herbatika
    service variable `URL_REGISTRY_MIGRATION_DATABASE_URL`. Open the Herbatika
    container shell in ZaneOps (or use `docker exec` on the Zane host) and run:
@@ -28,10 +31,10 @@ Postgres publicly.
    The command uses a Postgres advisory lock, verifies checksums, and is safe to
    rerun. Remove `URL_REGISTRY_MIGRATION_DATABASE_URL` from the service
    immediately after it succeeds; the runtime must never retain the DDL role.
-3. Set only `URL_REGISTRY_ENABLED=1` and redeploy. Startup must verify migration
-   manifest V4 before the service becomes ready. The public URL resolver is
-   still off, so customers continue to receive the old routes while population
-   is prepared.
+3. Set only `URL_REGISTRY_ENABLED=1` on the private deployment and restart it.
+   Startup must verify migration manifest V4 before the service becomes ready.
+   The public URL resolver is still off and the deployment must remain outside
+   the production request path while population is prepared.
 4. Freeze Medusa/Payload publishing, export the complete authoritative manifest,
    obtain the four required G1 editorial/legal approvals, and store the manifest
    on the Zane host as a mode-`0600` file. Resolve the current Herbatika
@@ -66,15 +69,17 @@ Postgres publicly.
    lifecycle producers, verify their health, then enable
    `URL_PRODUCT_RESOLVER_ENABLED=1`. Run the four-host GET/HEAD/RSC M00 target
    matrix. Enable `URL_ARCHITECTURE_M00_ENABLED=1`, rerun the matrix and bounded
-   crawl, and only then enable `URL_ARCHITECTURE_ENABLED=1`.
+   crawl, and only then enable `URL_ARCHITECTURE_ENABLED=1`. Verify the complete
+   four-host matrix once more, then atomically move production traffic to this
+   deployment.
 7. Run the seeded release harness from a trusted operator machine. On any hard
-   failure, turn the resolver flags back to `0` first; never delete URLR history
-   or reverse migrations.
+   failure, route traffic back to the previously deployed image; never expose
+   the gates-off new image, delete URLR history, or reverse migrations.
 
 The tracked stack bootstrap deliberately does not inject the migration-owner
-URL. It supplies only the runtime DML credential and disabled gates. Production
-cutover is therefore impossible by changing the Git hash alone, and impossible
-to activate accidentally from repository defaults.
+URL. It supplies only the runtime DML credential and disabled gates. The new
+hash is therefore not a drop-in gates-off storefront: deployment must follow the
+private preparation and atomic traffic-switch procedure above.
 
 ## Authoritative inventory requirements
 
