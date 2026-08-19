@@ -1,7 +1,6 @@
 "use client"
 
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
-import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import {
@@ -29,6 +28,7 @@ import {
 import { cartStorage } from "@/lib/storefront/cart-storage"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
+import { buildPath } from "@/lib/url/public-url"
 
 type AuthControlsMode = "login" | "register"
 
@@ -42,7 +42,6 @@ export const useAuthController = ({
   afterAuthHref,
 }: UseAuthControllerProps) => {
   const tAuth = useTranslations("auth")
-  const router = useRouter()
   const marketContext = useMarketContext()
   const region = useRegionContext()
   const authQuery = useAuth()
@@ -112,8 +111,8 @@ export const useAuthController = ({
       return
     }
 
-    router.replace(safeRedirectHref)
-  }, [authQuery.isAuthenticated, authQuery.isLoading, router, safeRedirectHref])
+    window.location.replace(safeRedirectHref)
+  }, [authQuery.isAuthenticated, authQuery.isLoading, safeRedirectHref])
 
   const handleLoginSubmit = async (
     values: LoginFormValues
@@ -125,7 +124,7 @@ export const useAuthController = ({
       const transferNotice = await runPostAuthCartTransfer()
 
       if (safeRedirectHref) {
-        router.replace(safeRedirectHref)
+        window.location.replace(safeRedirectHref)
         return null
       }
 
@@ -154,7 +153,7 @@ export const useAuthController = ({
       const transferNotice = await runPostAuthCartTransfer()
 
       if (safeRedirectHref) {
-        router.replace(safeRedirectHref)
+        window.location.replace(safeRedirectHref)
         return null
       }
 
@@ -187,14 +186,17 @@ export const useAuthController = ({
       ? tAuth("register.description")
       : tAuth("login.description")
   const loginHref = buildAuthRouteHref(
-    "/auth/login",
+    buildPath({ kind: "account", section: "login" }, marketContext.code),
     safeRedirectHref ?? undefined
   )
   const registerHref = buildAuthRouteHref(
-    "/auth/register",
+    buildPath({ kind: "account", section: "register" }, marketContext.code),
     safeRedirectHref ?? undefined
   )
-  const forgotPasswordHref = "/auth/forgot-password"
+  const forgotPasswordHref = buildPath(
+    { kind: "account", section: "forgotPassword" },
+    marketContext.code
+  )
 
   return {
     authMessage,

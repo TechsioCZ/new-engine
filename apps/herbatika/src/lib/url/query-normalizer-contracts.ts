@@ -1,4 +1,5 @@
 export const QUERY_KEY_ORDER = [
+  "category",
   "page",
   "sort",
   "status",
@@ -9,6 +10,8 @@ export const QUERY_KEY_ORDER = [
   "price_max",
   "q",
   "variant",
+  "reviews_page",
+  "list",
 ] as const
 
 export type QueryKey = (typeof QUERY_KEY_ORDER)[number]
@@ -29,9 +32,10 @@ const BRAND_LISTING_QUERY_KEYS = LISTING_QUERY_KEYS.filter(
 )
 
 export const QUERY_ALLOWED_KEYS_BY_ROUTE_KIND = {
+  "account-lists": ["list"],
   "account-orders": ["page"],
   "advice-article": [],
-  "advice-index": ["page"],
+  "advice-index": ["category", "page"],
   "brand-detail": BRAND_LISTING_QUERY_KEYS,
   "brand-index": [],
   "campaign-detail": LISTING_QUERY_KEYS,
@@ -42,7 +46,7 @@ export const QUERY_ALLOWED_KEYS_BY_ROUTE_KIND = {
   "collection-index": [],
   homepage: [],
   "information-detail": [],
-  "product-detail": ["variant"],
+  "product-detail": ["variant", "reviews_page"],
   "product-index": LISTING_QUERY_KEYS,
   search: [...LISTING_QUERY_KEYS, "q"],
   "static-page": [],
@@ -53,7 +57,9 @@ export type QueryRouteKind = keyof typeof QUERY_ALLOWED_KEYS_BY_ROUTE_KIND
 export type QueryNotFoundReason =
   | "duplicate-known-key"
   | "empty-facet"
+  | "invalid-category"
   | "invalid-facet"
+  | "invalid-list"
   | "invalid-page"
   | "invalid-price"
   | "invalid-price-range"
@@ -89,12 +95,15 @@ export type FormValue =
 
 export type NormalizedQueryValues = {
   brand?: readonly string[]
+  category?: string
   form?: readonly FormValue[]
   ingredient?: readonly string[]
+  list?: string
   page?: number
   price_max?: string
   price_min?: string
   q?: string
+  reviews_page?: number
   sort?: SortValue
   status?: readonly StatusValue[]
   variant?: string

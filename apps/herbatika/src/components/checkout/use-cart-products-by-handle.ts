@@ -1,56 +1,51 @@
 "use client"
 
 import type { HttpTypes } from "@medusajs/types"
-import { resolveLineItemProductHandle } from "@/components/header/herbatika-cart-item.utils"
 import { PRODUCT_CARD_FIELDS, useProducts } from "@/lib/storefront/products"
 
-export const resolveCartProductHandles = (
+export const resolveCartProductIds = (
   cartItems: HttpTypes.StoreCartLineItem[]
 ) => {
-  const seenHandles = new Set<string>()
+  const seenIds = new Set<string>()
 
-  return cartItems.reduce<string[]>((handles, item) => {
-    const productHandle = resolveLineItemProductHandle(item)
-    if (!productHandle || seenHandles.has(productHandle)) {
-      return handles
+  return cartItems.reduce<string[]>((productIds, item) => {
+    if (!(item.product_id && !seenIds.has(item.product_id))) {
+      return productIds
     }
 
-    seenHandles.add(productHandle)
-    handles.push(productHandle)
-    return handles
+    seenIds.add(item.product_id)
+    productIds.push(item.product_id)
+    return productIds
   }, [])
 }
 
-export function useCartProductsByHandle(
+export function useCartProductsById(
   cartItems: HttpTypes.StoreCartLineItem[],
   fields = PRODUCT_CARD_FIELDS
 ) {
-  const productHandles = resolveCartProductHandles(cartItems)
+  const productIds = resolveCartProductIds(cartItems)
   const productsQuery = useProducts({
     page: 1,
-    limit: Math.max(productHandles.length, 1),
-    handle: productHandles.length > 0 ? productHandles : undefined,
+    limit: Math.max(productIds.length, 1),
+    id: productIds.length > 0 ? productIds : undefined,
     fields,
-    enabled: productHandles.length > 0,
+    enabled: productIds.length > 0,
   })
-  const expectedHandles = new Set(productHandles)
-  const products = productsQuery.products.filter(
-    (product) =>
-      typeof product.handle === "string" && expectedHandles.has(product.handle)
+  const expectedIds = new Set(productIds)
+  const products = productsQuery.products.filter((product) =>
+    expectedIds.has(product.id)
   )
 
-  const productsByHandle = new Map<string, HttpTypes.StoreProduct>()
+  const productsById = new Map<string, HttpTypes.StoreProduct>()
 
   for (const product of products) {
-    if (typeof product.handle === "string") {
-      productsByHandle.set(product.handle, product)
-    }
+    productsById.set(product.id, product)
   }
 
   return {
     isLoading: productsQuery.isLoading,
-    productHandles,
+    productIds,
     products,
-    productsByHandle,
+    productsById,
   }
 }

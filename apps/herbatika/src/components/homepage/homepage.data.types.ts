@@ -4,7 +4,18 @@ export type HeroBannerItem = {
   subtitle?: string
   badge?: string
   ctaLabel?: string
-  href: string
+  ctaTarget?:
+    | {
+        kind:
+          | "product"
+          | "category"
+          | "brand"
+          | "collection"
+          | "article"
+          | "page"
+        publicSlug: string
+      }
+    | { kind: "static"; href: string }
   imageAlt?: string
   imageSrc: string
 }
@@ -23,7 +34,7 @@ export type HomepageProductSectionTitleKey =
 export type ProductSectionDefinition = {
   id: string
   titleKey: HomepageProductSectionTitleKey
-  viewAllHref: string
+  publicSlug?: string
 }
 
 export type HomepagePromoContent = {

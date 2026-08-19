@@ -2,8 +2,8 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Label } from "@techsio/ui-kit/atoms/label"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+import { StorefrontLink } from "@/components/storefront-link"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { CheckoutSelectBenefits } from "../checkout-select-benefits"
 import { CheckoutSelectPromoCode } from "../checkout-select-promo-code"
@@ -87,7 +87,7 @@ export function CheckoutCartSidebarSection({
 
         <div className="px-400 pt-150 pb-550 md:px-550">
           <LinkButton
-            as={NextLink}
+            as={StorefrontLink}
             block
             href={nextStepHref}
             icon="token-icon-chevron-right"

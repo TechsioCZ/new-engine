@@ -16,16 +16,21 @@ import {
 } from "@/lib/storefront/use-catalog-listing-interactions"
 
 type UseCategoryListingControllerProps = {
+  categoryPublicSlugsById?: Readonly<Record<string, string>>
+  productPublicSlugsById?: Readonly<Record<string, string>>
   slug: string
 }
 
 export function useCategoryListingController({
+  categoryPublicSlugsById,
+  productPublicSlugsById,
   slug,
 }: UseCategoryListingControllerProps) {
   const region = useRegionContext()
   const [queryState, setQueryState] = useQueryStates(plpQueryParsers)
 
   const listingQueries = useCategoryListingQueries({
+    categoryPublicSlugsById,
     slug,
     queryState,
   })
@@ -57,6 +62,7 @@ export function useCategoryListingController({
   return {
     ...listingQueries,
     ...listingInteractions,
+    productPublicSlugsById,
     onCategoryBlur: (category: HttpTypes.StoreProductCategory) => {
       prefetchCategory.cancelPrefetch(`prefetch-category-${category.id}`)
     },

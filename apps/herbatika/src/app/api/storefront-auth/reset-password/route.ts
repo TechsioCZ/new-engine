@@ -3,6 +3,9 @@ import {
   badRequest,
   buildErrorResponse,
   buildMedusaUrl,
+  marketAuthorityError,
+  requireStorefrontMarketBinding,
+  StorefrontMarketAuthorityError,
   serverError,
 } from "../_lib"
 
@@ -36,6 +39,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    requireStorefrontMarketBinding(request)
     const medusaResponse = await fetch(
       buildMedusaUrl("/auth/customer/emailpass/update"),
       {
@@ -61,6 +65,9 @@ export async function POST(request: Request) {
       { status: 200 }
     )
   } catch (error) {
+    if (error instanceof StorefrontMarketAuthorityError) {
+      return marketAuthorityError()
+    }
     return serverError("Nepodarilo sa obnoviť heslo.", {
       error: error instanceof Error ? error.message : String(error),
     })

@@ -57,6 +57,7 @@ export const FORM_FACET_LABEL_BY_ID = new Map(
 )
 
 export type ProductFacetDocument = {
+  facet_collection_id?: string
   facet_product_status?: string
   facet_sales_channel_ids: string[]
   facet_status: string[]
@@ -412,6 +413,7 @@ export const buildProductFacetDocument = (
   const product = asRecord(document) ?? {}
 
   return {
+    facet_collection_id: getStringField(product, "collection_id"),
     facet_product_status: getStringField(product, "status"),
     facet_sales_channel_ids: resolveSalesChannelFacetIds(product),
     facet_status: resolveStatusFacetIds(product),

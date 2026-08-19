@@ -1,10 +1,11 @@
-import "server-only"
+// Pages Router rejects the App-Router-only `server-only` marker. CMS callers
+// must remain in server entry points and always provide an explicit locale.
 
 import type { HomepagePromoContent } from "@/components/homepage/homepage.data.types"
 import { resolveCmsMediaUrl } from "./cms-content"
-import type { CmsLocale } from "./cms-locale"
 import { fetchCmsPageBySlug } from "./cms-pages"
 import type { CmsMedia, CmsPage } from "./cms-types"
+import type { HerbatikaLocale } from "./market-context"
 
 const HOMEPAGE_PROMO_PAGE_SLUG = "homepage-promo"
 
@@ -32,7 +33,7 @@ export const mapCmsPageToHomepagePromo = (
   }
 }
 
-export const fetchCmsHomepagePromo = async (locale: CmsLocale) =>
+export const fetchCmsHomepagePromo = async (locale?: HerbatikaLocale) =>
   mapCmsPageToHomepagePromo(
     await fetchCmsPageBySlug(HOMEPAGE_PROMO_PAGE_SLUG, locale)
   )

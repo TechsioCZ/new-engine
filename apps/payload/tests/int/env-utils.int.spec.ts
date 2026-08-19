@@ -6,6 +6,7 @@ import {
   isEnabled,
   parseEnvList,
   resolveEnvLocales,
+  resolveExactEnvLocales,
 } from "@/lib/utils/env"
 
 const ORIGINAL_ENV = { ...process.env }
@@ -150,6 +151,26 @@ describe("env utilities", () => {
       locales: ["en"],
       defaultLocale: "en",
     })
+  })
+
+  it("requires the configured content locales to match the database enum", () => {
+    process.env.TEST_LOCALES = "sk,cs,hu,ro"
+    expect(
+      resolveExactEnvLocales("TEST_LOCALES", ["cs", "sk", "hu", "ro"])
+    ).toEqual({
+      defaultLocale: "sk",
+      locales: ["sk", "cs", "hu", "ro"],
+    })
+
+    process.env.TEST_LOCALES = "cs,en,sk,hu,ro"
+    expect(() =>
+      resolveExactEnvLocales("TEST_LOCALES", ["cs", "sk", "hu", "ro"])
+    ).toThrow("TEST_LOCALES must contain exactly these locales: cs,sk,hu,ro")
+
+    process.env.TEST_LOCALES = "cs,sk,hu"
+    expect(() =>
+      resolveExactEnvLocales("TEST_LOCALES", ["cs", "sk", "hu", "ro"])
+    ).toThrow("TEST_LOCALES must contain exactly these locales: cs,sk,hu,ro")
   })
 
   it("getDocString returns only string values", () => {

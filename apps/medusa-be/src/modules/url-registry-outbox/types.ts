@@ -13,6 +13,18 @@ export const PRODUCT_LIFECYCLE_REASONS = [
 
 export type ProductLifecycleReason = (typeof PRODUCT_LIFECYCLE_REASONS)[number]
 
+export type ProductPublicationAssignment = Readonly<{
+  publicationStatus: "draft" | "published"
+  publicSlug: string
+  salesChannelId: string
+}>
+
+export type ProductLifecycleMarketAssignment = Readonly<{
+  assignment: ProductPublicationAssignment | null
+  marketCode: UrlRegistryOutboxMarket
+  sourceVersion: string
+}>
+
 export type ProductLifecycleEventTrace = Readonly<{
   stepIdempotencyKey?: string
   transactionId?: string
@@ -20,10 +32,12 @@ export type ProductLifecycleEventTrace = Readonly<{
 }>
 
 export type ProductLifecycleEventPayloadV1 = Readonly<{
+  assignment: ProductPublicationAssignment | null
   changeType: "delete" | "reconcile"
   productId: string
   reason: ProductLifecycleReason
   schemaVersion: 1
+  sourceVersion: string
   trace?: ProductLifecycleEventTrace
 }>
 
@@ -31,7 +45,9 @@ export type NormalizedProductLifecycleEvent = Readonly<{
   affectedMarketCodes: readonly UrlRegistryOutboxMarket[]
   eventId: string
   occurredAt: string
-  payload: ProductLifecycleEventPayloadV1
+  payloadByMarket: Readonly<
+    Record<UrlRegistryOutboxMarket, ProductLifecycleEventPayloadV1>
+  >
   productId: string
   source: "medusa"
 }>
@@ -39,6 +55,7 @@ export type NormalizedProductLifecycleEvent = Readonly<{
 const INPUT_KEYS = new Set([
   "affectedMarketCodes",
   "eventId",
+  "marketAssignments",
   "occurredAt",
   "productId",
   "reason",
@@ -134,6 +151,101 @@ const timestamp = (value: unknown) => {
   return parsed.toISOString()
 }
 
+const ASSIGNMENT_KEYS = new Set([
+  "publicationStatus",
+  "publicSlug",
+  "salesChannelId",
+])
+const MARKET_ASSIGNMENT_KEYS = new Set([
+  "assignment",
+  "marketCode",
+  "sourceVersion",
+])
+const PUBLIC_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+const publicationAssignment = (
+  value: unknown,
+  label: string
+): ProductPublicationAssignment | null => {
+  if (value === null) {
+    return null
+  }
+  const record = asRecord(value, label)
+  assertKnownKeys(record, ASSIGNMENT_KEYS, label)
+  if (
+    Object.keys(record).length !== ASSIGNMENT_KEYS.size ||
+    (record.publicationStatus !== "draft" &&
+      record.publicationStatus !== "published") ||
+    typeof record.publicSlug !== "string" ||
+    record.publicSlug.length > 200 ||
+    !PUBLIC_SLUG.test(record.publicSlug)
+  ) {
+    throw new UrlRegistryOutboxInputError(`${label} is invalid`)
+  }
+  return {
+    publicationStatus: record.publicationStatus,
+    publicSlug: record.publicSlug,
+    salesChannelId: identifier(
+      record.salesChannelId,
+      `${label}.salesChannelId`
+    ),
+  }
+}
+
+const marketAssignments = (
+  value: unknown,
+  affectedMarkets: readonly UrlRegistryOutboxMarket[]
+) => {
+  if (!Array.isArray(value) || value.length !== affectedMarkets.length) {
+    throw new UrlRegistryOutboxInputError("marketAssignments is invalid")
+  }
+  const result = {} as Record<
+    UrlRegistryOutboxMarket,
+    ProductLifecycleMarketAssignment
+  >
+  for (const [index, candidate] of value.entries()) {
+    const record = asRecord(candidate, `marketAssignments[${index}]`)
+    assertKnownKeys(
+      record,
+      MARKET_ASSIGNMENT_KEYS,
+      `marketAssignments[${index}]`
+    )
+    if (Object.keys(record).length !== MARKET_ASSIGNMENT_KEYS.size) {
+      throw new UrlRegistryOutboxInputError(
+        `marketAssignments[${index}] is invalid`
+      )
+    }
+    const marketCode = record.marketCode
+    if (typeof marketCode !== "string" || !MARKET_SET.has(marketCode)) {
+      throw new UrlRegistryOutboxInputError(
+        `marketAssignments[${index}].marketCode is invalid`
+      )
+    }
+    if (result[marketCode as UrlRegistryOutboxMarket]) {
+      throw new UrlRegistryOutboxInputError(
+        "marketAssignments contains duplicate markets"
+      )
+    }
+    result[marketCode as UrlRegistryOutboxMarket] = {
+      assignment: publicationAssignment(
+        record.assignment,
+        `marketAssignments[${index}].assignment`
+      ),
+      marketCode: marketCode as UrlRegistryOutboxMarket,
+      sourceVersion: identifier(
+        record.sourceVersion,
+        `marketAssignments[${index}].sourceVersion`
+      ),
+    }
+  }
+  if (affectedMarkets.some((market) => !result[market])) {
+    throw new UrlRegistryOutboxInputError(
+      "marketAssignments does not match affectedMarketCodes"
+    )
+  }
+  return result
+}
+
 export const normalizeProductLifecycleEventInput = (
   input: unknown
 ): NormalizedProductLifecycleEvent => {
@@ -146,17 +258,41 @@ export const normalizeProductLifecycleEventInput = (
   const productId = identifier(record.productId, "productId")
   const normalizedTrace = trace(record.trace)
 
+  const affectedMarketCodes = markets(record.affectedMarketCodes)
+  const assignments = marketAssignments(
+    record.marketAssignments,
+    affectedMarketCodes
+  )
+  if (
+    reason === "deleted" &&
+    affectedMarketCodes.some(
+      (market) => assignments[market].assignment !== null
+    )
+  ) {
+    throw new UrlRegistryOutboxInputError(
+      "deleted lifecycle events cannot carry publication assignments"
+    )
+  }
+  const payloadByMarket = Object.fromEntries(
+    affectedMarketCodes.map((market) => [
+      market,
+      {
+        assignment: assignments[market].assignment,
+        changeType: reason === "deleted" ? "delete" : "reconcile",
+        productId,
+        reason: reason as ProductLifecycleReason,
+        schemaVersion: 1 as const,
+        sourceVersion: assignments[market].sourceVersion,
+        ...(normalizedTrace ? { trace: normalizedTrace } : {}),
+      },
+    ])
+  ) as Record<UrlRegistryOutboxMarket, ProductLifecycleEventPayloadV1>
+
   return {
-    affectedMarketCodes: markets(record.affectedMarketCodes),
+    affectedMarketCodes,
     eventId: identifier(record.eventId, "eventId"),
     occurredAt: timestamp(record.occurredAt),
-    payload: {
-      changeType: reason === "deleted" ? "delete" : "reconcile",
-      productId,
-      reason: reason as ProductLifecycleReason,
-      schemaVersion: 1,
-      ...(normalizedTrace ? { trace: normalizedTrace } : {}),
-    },
+    payloadByMarket,
     productId,
     source: "medusa",
   }

@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
-import { resolveM00ProxyAction } from "@/lib/routing/m00-proxy"
-import { resolveProductProxyAction } from "@/lib/routing/product-proxy"
+import { isM00ProbePath, resolveM00ProxyAction } from "@/lib/routing/m00-proxy"
+import { resolvePublicProxyAction } from "@/lib/routing/public-proxy"
 
 const NEXT_INTERNAL_REQUEST_HEADERS = [
   "next-router-prefetch",
@@ -22,6 +22,7 @@ const trustedRewriteHeaders = (
   request: NextRequest,
   action: Readonly<{
     canonicalOrigin: string
+    canonicalizationRequired?: boolean
     market: string
     publicPath: string
     routeKey: string
@@ -46,11 +47,17 @@ const trustedRewriteHeaders = (
   headers.set("x-sf-market", action.market)
   headers.set("x-sf-public-path", action.publicPath)
   headers.set("x-sf-route-key", action.routeKey)
+  if (action.canonicalizationRequired) {
+    headers.set("x-sf-canonicalization-required", "1")
+  }
 
   return headers
 }
 
-const statusResponse = (status: 204 | 404 | 405 | 421, allow?: "GET, HEAD") =>
+const statusResponse = (
+  status: 204 | 400 | 404 | 405 | 421,
+  allow?: "GET, HEAD"
+) =>
   new NextResponse(null, {
     status,
     headers: {
@@ -61,21 +68,19 @@ const statusResponse = (status: 204 | 404 | 405 | 421, allow?: "GET, HEAD") =>
   })
 
 export const proxy = (request: NextRequest) => {
-  const m00Action = resolveM00ProxyAction({
-    enabled: process.env.URL_ARCHITECTURE_M00_ENABLED === "1",
+  const input = {
     host: request.headers.get("host"),
     method: request.method,
     pathname: request.nextUrl.pathname,
-  })
+  }
   const action =
-    m00Action.kind === "next"
-      ? resolveProductProxyAction({
-          enabled: process.env.URL_PRODUCT_RESOLVER_ENABLED === "1",
-          host: request.headers.get("host"),
-          method: request.method,
-          pathname: request.nextUrl.pathname,
+    process.env.URL_ARCHITECTURE_M00_ENABLED === "1" &&
+    isM00ProbePath(input.pathname)
+      ? resolveM00ProxyAction({ ...input, enabled: true })
+      : resolvePublicProxyAction({
+          ...input,
+          enabled: process.env.URL_ARCHITECTURE_ENABLED === "1",
         })
-      : m00Action
 
   if (action.kind === "next") {
     return NextResponse.next()
@@ -97,10 +102,6 @@ export const proxy = (request: NextRequest) => {
 
 export const config = {
   matcher: [
-    "/__url-m00/:path*",
-    "/produkty/:path*",
-    "/termekek/:path*",
-    "/produse/:path*",
-    "/~sf/:path*",
+    "/((?!api(?:/|$)|_next/static|_next/image|.*\\.(?:png|jpg|jpeg|gif|webp|svg|css|js|woff|woff2)$).*)",
   ],
 }

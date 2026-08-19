@@ -6,6 +6,12 @@ const mocks = vi.hoisted(() => ({
 }))
 
 vi.mock("server-only", () => ({}))
+vi.mock("@/lib/market/market-runtime", () => ({
+  getMarketRuntime: () => ({ salesChannelId: "sc_sk" }),
+}))
+vi.mock("@/lib/market/market-runtime.server", () => ({
+  getConfiguredMarketRuntime: () => ({}),
+}))
 vi.mock("@/lib/url-registry/runtime/instance.server", () => ({
   getUrlRegistryRuntime: mocks.getUrlRegistryRuntime,
 }))
@@ -24,10 +30,16 @@ const delivery = Object.freeze({
   changeType: "reconcile",
   occurredAt: "2026-08-18T09:10:11.123Z",
   payload: {
+    assignment: {
+      publicationStatus: "published",
+      publicSlug: "produkt-01",
+      salesChannelId: "sc_sk",
+    },
     schemaVersion: 1,
     productId: "prod_01",
     reason: "updated",
     changeType: "reconcile",
+    sourceVersion: "2026-08-18T09:00:00.000Z",
   },
 })
 

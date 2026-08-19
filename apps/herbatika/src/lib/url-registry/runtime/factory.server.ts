@@ -1,9 +1,10 @@
 import { Pool } from "pg"
-import { readProductRouteSourceFromMedusa } from "@/lib/storefront/product-route-source.server"
+import { readProductIdentityFromMedusa } from "@/lib/storefront/product-route-source.server"
 import {
   createPostgresProductLifecycleConsumer,
   createPostgresUrlRegistry,
 } from "../postgres"
+import { createInvalidationOutboxStore } from "../postgres/invalidation-outbox-store"
 import { parseUrlRegistryRuntimeConfig } from "./config"
 import { verifyUrlRegistryMigrations } from "./migration-verifier"
 import { initializeUrlRegistryRuntime } from "./runtime-core"
@@ -33,12 +34,14 @@ export const createUrlRegistryRuntime = (
   initializeUrlRegistryRuntime<
     ReturnType<typeof createPostgresUrlRegistry>,
     ReturnType<typeof createPostgresProductLifecycleConsumer>,
+    ReturnType<typeof createInvalidationOutboxStore>,
     Pool
   >(parseUrlRegistryRuntimeConfig(environment), {
     createPool,
+    createInvalidationOutboxStore,
     createProductLifecycleConsumer: (pool) =>
       createPostgresProductLifecycleConsumer(pool, {
-        readProduct: readProductRouteSourceFromMedusa,
+        readProduct: readProductIdentityFromMedusa,
       }),
     createRegistry: createPostgresUrlRegistry,
     verifyMigrations: verifyUrlRegistryMigrations,

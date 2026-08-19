@@ -1,6 +1,9 @@
+import type { PublicRouteTarget } from "@/lib/url/public-url"
+
 export type FaqLink = {
-  href: string
+  href?: string
   label: string
+  target?: PublicRouteTarget
 }
 
 export type FaqAnswerBlock =
@@ -204,8 +207,11 @@ export const faqItems = [
       {
         type: "links",
         items: [
-          { href: "/registracia/", label: "Registrácia" },
-          { href: "/newsletter/", label: "Newsletter" },
+          {
+            label: "Registrácia",
+            target: { kind: "account", section: "register" },
+          },
+          { label: "Newsletter" },
           {
             href: "https://www.instagram.com/herbatica/",
             label: "Instagram",
@@ -308,8 +314,8 @@ export const faqItems = [
         type: "links",
         items: [
           {
-            href: "/reklamacny-poriadok/",
             label: "Reklamačný formulár",
+            target: { kind: "static", page: "returns" },
           },
         ],
       },
@@ -328,8 +334,8 @@ export const faqItems = [
         type: "links",
         items: [
           {
-            href: "/obchodne-podmienky/",
             label: "Dokumenty k stiahnutiu",
+            target: { kind: "static", page: "terms" },
           },
         ],
       },

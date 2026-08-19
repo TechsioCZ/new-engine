@@ -97,7 +97,10 @@ RUN pnpm --filter=@techsio/storefront-data build
 RUN pnpm --filter=@techsio/ui-kit build
 
 RUN pnpm --filter=herbatika run build && \
-    test -f apps/herbatika/.next/BUILD_ID
+    test -f apps/herbatika/.next/BUILD_ID && \
+    test -f apps/herbatika/.next/standalone/apps/herbatika/scripts/url-registry/migrate.mjs && \
+    test -f apps/herbatika/.next/standalone/apps/herbatika/scripts/url-registry/populate.mjs && \
+    test -f apps/herbatika/.next/standalone/apps/herbatika/src/lib/url-registry/migrations/0004_add_invalidation_delivery_diagnostics.sql
 
 FROM node:24-slim AS prod
 

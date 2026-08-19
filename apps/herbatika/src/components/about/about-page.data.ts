@@ -2,10 +2,12 @@ import type { StaticImageData } from "next/image"
 import aboutStoreImage from "@/assets/about/1.avif"
 import aboutTeamImage from "@/assets/about/2.avif"
 import aboutProductsImage from "@/assets/about/3.avif"
+import type { PublicRouteTarget } from "@/lib/url/public-url"
 
 export type AboutTextLink = {
-  href: string
+  href?: string
   label: string
+  target?: PublicRouteTarget
 }
 
 export type AboutTextPart = AboutTextLink | string
@@ -33,25 +35,36 @@ type AboutPrinciple = {
   title: string
 }
 
-type AboutSocialLink = AboutTextLink & {
+type AboutSocialLink = {
+  href: string
   icon: string
+  label: string
 }
 
 type AboutTextBlock = {
   paragraphs: readonly AboutParagraph[]
 }
 
-const link = (label: string, href: string): AboutTextLink => ({
+const externalLink = (label: string, href: string): AboutTextLink => ({
   href,
   label,
 })
+
+const routeLink = (
+  label: string,
+  target: PublicRouteTarget
+): AboutTextLink => ({ label, target })
+
+// A source handle is not a URL-registry projection. Preserve the prose while
+// upstream content loaders obtain explicit publicSlug values.
+const unlinked = (label: string): AboutTextLink => ({ label })
 
 export const ABOUT_PAGE = {
   hero: {
     title: "O našom tíme",
     lead: [
       "Vitajte v ",
-      link("Herbatica", "/znacka/herbatica/"),
+      unlinked("Herbatica"),
       ", rodinnej firme, ktorá sa zrodila z túžby priniesť ľuďom prírodné riešenia pre zdravie, krásu a well-being. Sme tu pre vás od roku 2015, aby sme vám ponúkli jedinečné produkty, ktoré spájajú tradičné liečiteľské metódy s modernými poznatkami.",
     ],
   },
@@ -63,36 +76,36 @@ export const ABOUT_PAGE = {
         "Spoluzakladateľ Juraj, inšpirovaný svojím záujmom o alternatívnu medicínu a prírodnú kozmetiku, sa rozhodol vytvoriť miesto, kde by ľudia mohli nájsť účinné a menej známe produkty pre svoje zdravie. Nápad otvoriť e-shop skrsol v jeho hlave v dobe, keď sa intenzívne zaoberal otázkou, ako môže byť pre svoje okolie prínosný, čím mu vie prispieť a ako môže pomôcť. V prostredí bolo cítiť rodiaci sa priestor pre nové cesty k uzdraveniu, odlišné od tých tradičných.",
         [
           "Juraj mal vždy blízko k alternatívnej scéne v oblasti medicíny, ",
-          link("kozmetiky", "/kozmetika-a-zdravie-2/"),
+          unlinked("kozmetiky"),
           ", liečiteľstva a v podstate všetkému, čo možno označiť, niekedy žiaľ aj hanlivo, za alternatívu.",
         ],
         "S podporou brata Michala a mamy Eleny sa v roku 2015 zrodil e-shop Herbatica.",
         "Hlavnou motiváciou jeho zrodu bola nutnosť zmeny. Zmeny v náhľade na svoje telo, dušu, myseľ a celkové zdravie. Ďalej zmeny v zmysle myšlienkového posunu od presvedčenia, že naše zdravie je pevne dané a nemenné, k uvedomeniu si, že sme jeho aktívnymi tvorcami a máme moc ovplyvniť, kedy a ako sa uzdravíme, a to bez ohľadu na to, ako je naše zdravie zapísané v zdravotnej karte.",
         [
           "Od svojho založenia sa Herbatica formuje ako unikátna zdravotná špeciálka. Zameraná je na produkty na prírodnej báze, ktoré sú ojedinelé, málo známe, ale zato veľmi účinné pri riešení konkrétnych zdravotných problémov - ",
-          link("kožné problémy", "/kozne-problemy/"),
+          unlinked("kožné problémy"),
           " (",
-          link("akné", "/akne/"),
+          unlinked("akné"),
           ", ",
-          link("psoriáza", "/psoriaza-a-lupienka/"),
+          unlinked("psoriáza"),
           ", ",
-          link("ekzémy", "/ekzem/"),
+          unlinked("ekzémy"),
           "), ",
-          link("tráviace problémy", "/zaludok-a-pecen/"),
+          unlinked("tráviace problémy"),
           ", problémy s ",
-          link("kĺbmi", "/klby-a-pohybovy-aparat/"),
+          unlinked("kĺbmi"),
           ", ",
-          link("bolesti chrbtice", "/bolest-chrbta-seknutie-v-krizoch/"),
+          unlinked("bolesti chrbtice"),
           ", ",
-          link("stres", "/stres-a-nervozita/"),
+          unlinked("stres"),
           ", ",
-          link("cukrovka", "/cukrovka/"),
+          unlinked("cukrovka"),
           ", ",
-          link("kŕčové žily", "/krcove-zily/"),
+          unlinked("kŕčové žily"),
           ", ",
-          link("vysoký krvný tlak", "/vysoky-krvny-tlak/"),
+          unlinked("vysoký krvný tlak"),
           ", oslabená ",
-          link("imunita", "/imunita/"),
+          unlinked("imunita"),
           " a i.",
         ],
       ],
@@ -108,12 +121,11 @@ export const ABOUT_PAGE = {
       paragraphs: [
         [
           "Kvalita je pre nás prvoradá. Máme vysoké nároky nielen na kvalitu, ale aj štandardy, v súlade s ktorými pracujeme na vývoji našich produktov. Pre udržanie najvyššej možnej odbornosti v Herbatica spolupracujeme so širokou sieťou ",
-          link(
-            "výrobcov, konzultantov, výživových poradcov, fyzioterapeutov a ďalších odborníkov",
-            "/odborne-poradenstvo-a-diagnostika/"
+          unlinked(
+            "výrobcov, konzultantov, výživových poradcov, fyzioterapeutov a ďalších odborníkov"
           ),
           ". Spolu títo odborníci tvoria silnú základňu, na ktorú sa vieme vždy spoľahnúť, či už v otázkach zloženia produktov, kombinácie jednotlivých ",
-          link("účinných látok", "/aktivnelatky/"),
+          unlinked("účinných látok"),
           ", diagnostikovania ochorení, alebo v rámci poradenstva pri riešení konkrétnych ochorení.",
         ],
         "Spojením tradičných metód, medzi ktoré patrí napríklad ajurvéda či tradičná čínska medicína, s modernými technológiami zabezpečujeme, že naše produkty sú nielen účinné, ale aj bezpečné. Dôraz kladieme na etický prístup, čistotu surovín a ich lokálny pôvod.",
@@ -124,13 +136,13 @@ export const ABOUT_PAGE = {
       paragraphs: [
         [
           "Od našich začiatkov v roku 2015 sme prešli dlhú cestu a firma zaznamenala významný vývoj predovšetkým v oblasti produktového portfólia. Spočiatku sme sa zameriavali na dovoz produktov z Ruska, Ukrajiny a Bieloruska. V roku 2022 sme začali vyvíjať a vyrábať vlastné produkty ",
-          link("pod značkou Herbatica", "/znacka/herbatica/"),
+          unlinked("pod značkou Herbatica"),
           ". Dnes ponúkame širokú škálu výrobkov - sypké zmesi, kapsuly, tobolky, kozmetické či ",
-          link("jedlé oleje", "/specialne-jedle-oleje/"),
+          unlinked("jedlé oleje"),
           " a krémy, gély, masti, prášky, ",
-          link("bylinné čaje", "/caje/"),
+          unlinked("bylinné čaje"),
           ", kávoviny, ",
-          link("tinktúry", "/bylinne-extrakty/"),
+          unlinked("tinktúry"),
           " a iné. Pri vývoji produktov sa snažíme prepájať tradičné princípy a liečiteľské smery, ktoré sú tu s nami tisíce rokov, s modernými výskumami a poznatkami z nich.",
         ],
       ],
@@ -154,24 +166,21 @@ export const ABOUT_PAGE = {
       paragraphs: [
         [
           "Našou víziou je stať sa lídrom, najlepším, nie najväčším, v oblasti prírodných produktov pre zdravie a krásu. Naďalej budeme upevňovať naše postavenie na trhu s ",
-          link("doplnkami stravy", "/doplnky-stravy/"),
+          unlinked("doplnkami stravy"),
           ", zdravými potravinami a ",
-          link("medicínskou kozmetikou", "/kozmetika-a-zdravie-2/"),
+          unlinked("medicínskou kozmetikou"),
           ". Našu ponuku plánujeme rozširovať o personalizované ",
-          link("doplnky stravy", "/doplnky-vyzivy/"),
+          unlinked("doplnky stravy"),
           ".",
         ],
         [
           "Budúcnosť vidíme najmä v osobnom kontakte. So snahou byť k vám ešte bližšie a ponúknuť vám viac, plánujeme otvoriť ďalšie predajne, kde vám radi poskytneme ",
-          link(
-            "odborné poradenstvo a diagnostiku",
-            "/odborne-poradenstvo-a-diagnostika/"
-          ),
+          unlinked("odborné poradenstvo a diagnostiku"),
           ". Tieto priestory chceme vybaviť modernými diagnostickými nástrojmi, ako je napríklad biorezonancia, ktoré umožňujú komplexné hodnotenie vášho zdravotného stavu.",
         ],
         [
           "Sme presvedčení, že skutočná krása pramení z vnútornej harmónie tela, duše a mysle. Preto sa budeme naďalej zameriavať na produkty podporujúce vaše celkové zdravie a ",
-          link("vitalitu", "/energia-a-vitalita/"),
+          unlinked("vitalitu"),
           ". Pre dosiahnutie týchto cieľov sa vždy radi spojíme s ďalšími odborníkmi z rôznych oblastí, vrátane biohacking komunity. Spoločne vám budeme prinášať najnovšie poznatky a účinné riešenia pre váš blahobyt.",
         ],
       ],
@@ -192,7 +201,7 @@ export const ABOUT_PAGE = {
       year: "2015",
       description: [
         "Založenie Herbatica a ",
-        link("spustenie e-shopu pre Slovensko", "/"),
+        routeLink("spustenie e-shopu pre Slovensko", { kind: "home" }),
         ".",
       ],
     },
@@ -200,7 +209,7 @@ export const ABOUT_PAGE = {
       year: "2017",
       description: [
         "Rozšírenie ",
-        link("predaja do Českej republiky", "https://www.herbatica.cz"),
+        externalLink("predaja do Českej republiky", "https://www.herbatica.cz"),
         ".",
       ],
     },
@@ -213,7 +222,7 @@ export const ABOUT_PAGE = {
       year: "2018",
       description: [
         "Vstup na ",
-        link("maďarský trh", "https://www.herbatica.hu"),
+        externalLink("maďarský trh", "https://www.herbatica.hu"),
         ".",
       ],
     },
@@ -221,7 +230,7 @@ export const ABOUT_PAGE = {
       year: "2022",
       description: [
         "Spustenie ",
-        link("predaja v Rumunsku", "https://www.herbatica.ro"),
+        externalLink("predaja v Rumunsku", "https://www.herbatica.ro"),
         ".",
       ],
     },
@@ -229,7 +238,7 @@ export const ABOUT_PAGE = {
       year: "2024",
       description: [
         "Pod našou vlastnou ",
-        link("značkou Herbatica", "/znacka/herbatica/"),
+        unlinked("značkou Herbatica"),
         " ponúkame viac ako 50 rôznych produktov.",
       ],
     },
@@ -257,16 +266,16 @@ export const ABOUT_PAGE = {
     paragraphs: [
       [
         "Sledujte náš ",
-        link("blog", "/blog/"),
+        routeLink("blog", { kind: "article" }),
         ', kde servírujeme iba tie najzaujímavejšie informácie z "Herbatického sveta". Dozviete sa tam veľa zaujímavostí a získate praktické rady zo sveta alternatívnych doplnkov stravy, tradičnej i modernej liečby, prírodnej kozmetickej starostlivosti a mnoho iného.',
       ],
       [
         "Máme aj ",
-        link("Instagram", "https://www.instagram.com/herbatica/"),
+        externalLink("Instagram", "https://www.instagram.com/herbatica/"),
         " a ",
-        link("Facebook", "https://www.facebook.com/vasaherbatica/"),
+        externalLink("Facebook", "https://www.facebook.com/vasaherbatica/"),
         " a pravidelne zasielame aj newsletter s novinkami a akciami. Dajte nám follow na sociálnych sieťach, alebo ",
-        link("sa prihláste na odber newslettera", "/newsletter/"),
+        unlinked("sa prihláste na odber newslettera"),
         " a už vám nič neutečie.",
       ],
     ],
@@ -292,7 +301,7 @@ export const ABOUT_PAGE = {
     paragraphs: [
       [
         "Pre verných zákazníkov, ktorí chcú nakupovať opakovane, sme pripravili vernostný program. Veľa v ňom ušetríte a hlavne ostanete v kontakte s komunitou, ktorá tiež verí, že naša konzumná doba je udržateľná. Viac o našom programe ",
-        link("pre verných zákazníkov nájdete tu", "/vernost/"),
+        unlinked("pre verných zákazníkov nájdete tu"),
         ".",
       ],
     ],
@@ -302,9 +311,12 @@ export const ABOUT_PAGE = {
     paragraphs: [
       [
         "Zaujíma vás, ako nás vnímajú ostatní zákazníci, ktorí už naše produkty či služby vyskúšali? Prečítajte si, čo o nás napísali: Tu je ",
-        link("hodnotenie obchodu na našom e-shope", "/hodnotenie-obchodu/"),
+        unlinked("hodnotenie obchodu na našom e-shope"),
         " a tu nájdete hodnotenia/recenzie na ",
-        link("Heuréke", "https://obchody.heureka.sk/herbatica-sk/recenze/"),
+        externalLink(
+          "Heuréke",
+          "https://obchody.heureka.sk/herbatica-sk/recenze/"
+        ),
         ".",
       ],
     ],
@@ -316,7 +328,7 @@ export const ABOUT_PAGE = {
       "V Trenčíne nájdete aj kamenný obchod s prírodnou medicínou a kozmetikou, jeho adresa je: Mierové námestie 33/33, Trenčín. Vždy vám tam ochotne poradia a poslúžia. Otvorené je denne od 12:00 do 17:00.",
       [
         "Ak máte pre nás obchodnú ponuku, návrh na zlepšenie, viete si predstaviť náš spoločný rast-rozvoj alebo máte záujem o veľkoobchodnú spoluprácu, kontaktujte nás ",
-        link("tu", "/napiste-nam/"),
+        routeLink("tu", { kind: "static", page: "contact" }),
         ".",
       ],
       "Tešíme sa na vás, nech si už vyberiete akýkoľvek spôsob kontaktu s nami.",

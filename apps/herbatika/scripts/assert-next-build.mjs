@@ -3,8 +3,16 @@ import { dirname, resolve } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 
 const PRIVATE_CLIENT_MARKERS = Object.freeze([
+  "HERBATIKA_CMS_STATIC_PAGE_IDS",
   "MARKET_PUBLISHABLE_KEY_",
+  "NEXT_SERVER_ACTIONS_ENCRYPTION_KEY",
+  "URL_REGISTRY_CONTENT_PROJECTION_TOKEN",
   "URL_REGISTRY_DATABASE_URL",
+  "URL_REGISTRY_INVALIDATION_TOKEN",
+  "createMedusaStorefrontServerReadPreset",
+  "getUrlRegistryRuntime",
+  "readRequiredPublicEntitySlugs",
+  "requireConfiguredMarketRuntimeBinding",
 ])
 const TEXT_CLIENT_ARTIFACT = /\.(?:css|js|json|map)$/
 
@@ -60,6 +68,15 @@ export const assertNextBuildValues = ({
   if (!artifacts?.standaloneServer) {
     errors.push("standalone server is missing")
   }
+  if (!artifacts?.urlRegistryMigrationCli) {
+    errors.push("URL registry migration CLI is missing")
+  }
+  if (!artifacts?.urlRegistryPopulationCli) {
+    errors.push("URL registry population CLI is missing")
+  }
+  if (!artifacts?.urlRegistryMigrations) {
+    errors.push("URL registry SQL migrations are missing")
+  }
 
   if (errors.length > 0) {
     throw new Error(
@@ -79,6 +96,24 @@ export const assertActualNextBuild = () => {
       buildId: existsSync(resolve(nextRoot, "BUILD_ID")),
       standaloneServer: existsSync(
         resolve(nextRoot, "standalone/apps/herbatika/server.js")
+      ),
+      urlRegistryMigrationCli: existsSync(
+        resolve(
+          nextRoot,
+          "standalone/apps/herbatika/scripts/url-registry/migrate.mjs"
+        )
+      ),
+      urlRegistryPopulationCli: existsSync(
+        resolve(
+          nextRoot,
+          "standalone/apps/herbatika/scripts/url-registry/populate.mjs"
+        )
+      ),
+      urlRegistryMigrations: existsSync(
+        resolve(
+          nextRoot,
+          "standalone/apps/herbatika/src/lib/url-registry/migrations/0004_add_invalidation_delivery_diagnostics.sql"
+        )
       ),
     },
     requiredServerFiles: readJson("required-server-files.json"),

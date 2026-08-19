@@ -62,15 +62,9 @@ const waitWithTimeout = async (
 }
 
 const cleanupDeactivatedSession = async () => {
-  const cleanupOperations = [authServiceBase.logout()]
-
-  if (isSessionProxyAuthMode) {
-    cleanupOperations.push(requestLogoutProxy())
-  }
-
   try {
     await waitWithTimeout(
-      Promise.allSettled(cleanupOperations),
+      requestLogoutProxy(),
       DEACTIVATED_SESSION_CLEANUP_TIMEOUT_MS
     )
   } finally {
@@ -184,13 +178,12 @@ export const authService = {
     return authServiceBase.requestAccountDeactivation()
   },
   async logout() {
-    if (isSessionProxyAuthMode) {
+    try {
       await requestLogoutProxy()
+    } finally {
+      clearToken()
+      broadcastAuthSessionLogout()
     }
-
-    await authServiceBase.logout()
-    clearToken()
-    broadcastAuthSessionLogout()
   },
   updateCustomer(input: AuthUpdateInput) {
     if (!authServiceBase.updateCustomer) {

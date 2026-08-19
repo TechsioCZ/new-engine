@@ -1,34 +1,35 @@
 "use client"
 
-import { Link } from "@techsio/ui-kit/atoms/link"
 import {
   Carousel,
   type CarouselSlide,
 } from "@techsio/ui-kit/molecules/carousel"
 import NextImage from "next/image"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import type { ComponentProps } from "react"
 import type { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "@/components/header/herbatika-header.submenu-data"
 import { useHerbatikaHeaderSubmenu } from "@/components/header/use-herbatika-header-submenu"
+import { StorefrontLink } from "@/components/storefront-link"
 import { TextActionLink } from "@/components/text-action-link"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
 
 type ImageSource = ComponentProps<typeof NextImage>["src"]
 type PurposeCarouselRootHandle =
   (typeof HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS)[number]["rootHandle"]
 
 type PurposeCarouselItem = {
-  href: string
   id: string
   label: string
   src: ImageSource
 }
 
 type PurposeCarouselProps = {
+  categoryPublicSlugsById: PublicEntitySlugMap
   items?: PurposeCarouselItem[]
   rootHandle?: PurposeCarouselRootHandle
   title?: string
-  viewAllHref?: string
 }
 
 type PurposeCarouselSlidesProps = {
@@ -56,7 +57,6 @@ const buildResolvedPurposeCarouselItems = (
 
     return [
       {
-        href: `/c/${item.handle}`,
         id: item.id,
         label: item.label,
         src: item.src,
@@ -65,30 +65,46 @@ const buildResolvedPurposeCarouselItems = (
   })
 }
 
-const buildImageSlides = (items: PurposeCarouselItem[]): CarouselSlide[] =>
-  items.map((item) => ({
-    id: item.id,
-    content: (
-      <Link
-        as={NextLink}
-        className="grid h-full min-h-800 w-full grid-rows-[auto_1fr] items-start justify-center gap-150 rounded-md border border-border-secondary bg-surface px-200 py-200 text-center text-fg-primary"
-        href={item.href}
-      >
-        <div className="flex h-850 w-full items-center justify-center">
-          <NextImage
-            alt={item.label}
-            className="aspect-square h-category-image object-contain"
-            height={86}
-            src={item.src}
-            width={86}
-          />
-        </div>
-        <span className="line-clamp-2 max-w-full font-bold font-verdana text-fg-primary text-support leading-snug">
-          {item.label}
-        </span>
-      </Link>
-    ),
-  }))
+const buildImageSlides = (
+  items: PurposeCarouselItem[],
+  categoryPublicSlugsById: PublicEntitySlugMap,
+  market: ReturnType<typeof useMarketContext>["code"]
+): CarouselSlide[] =>
+  items.flatMap((item) => {
+    const href = buildProjectedEntityPath(
+      "category",
+      { publicSlug: categoryPublicSlugsById[item.id] },
+      market
+    )
+    if (!href) {
+      return []
+    }
+
+    return [
+      {
+        id: item.id,
+        content: (
+          <StorefrontLink
+            className="grid h-full min-h-800 w-full grid-rows-[auto_1fr] items-start justify-center gap-150 rounded-md border border-border-secondary bg-surface px-200 py-200 text-center text-fg-primary"
+            href={href}
+          >
+            <div className="flex h-850 w-full items-center justify-center">
+              <NextImage
+                alt={item.label}
+                className="aspect-square h-category-image object-contain"
+                height={86}
+                src={item.src}
+                width={86}
+              />
+            </div>
+            <span className="line-clamp-2 max-w-full font-bold font-verdana text-fg-primary text-support leading-snug">
+              {item.label}
+            </span>
+          </StorefrontLink>
+        ),
+      },
+    ]
+  })
 
 function PurposeCarouselSlides({
   slides,
@@ -125,19 +141,38 @@ function PurposeCarouselSlides({
 }
 
 export function PurposeCarousel({
+  categoryPublicSlugsById,
   items,
   rootHandle = DEFAULT_ROOT_HANDLE,
   title,
-  viewAllHref,
 }: PurposeCarouselProps) {
   const tContent = useTranslations("content")
-  const { groupsByRootHandle } = useHerbatikaHeaderSubmenu()
+  const market = useMarketContext().code
+  const { categoriesQuery, groupsByRootHandle } = useHerbatikaHeaderSubmenu(
+    categoryPublicSlugsById
+  )
   const resolvedItems =
     items ?? buildResolvedPurposeCarouselItems(rootHandle, groupsByRootHandle)
   const resolvedTitle = title ?? tContent("home.purpose.title")
-  const slides = buildImageSlides(resolvedItems)
+  const slides = buildImageSlides(
+    resolvedItems,
+    categoryPublicSlugsById,
+    market
+  )
+  const rootSourceId = categoriesQuery.categories.find(
+    (category) => category.handle === rootHandle
+  )?.id
+  const viewAllHref = buildProjectedEntityPath(
+    "category",
+    {
+      publicSlug: rootSourceId
+        ? categoryPublicSlugsById[rootSourceId]
+        : undefined,
+    },
+    market
+  )
 
-  if (resolvedItems.length === 0) {
+  if (slides.length === 0) {
     return null
   }
 
@@ -147,7 +182,7 @@ export function PurposeCarousel({
         <h2 className="font-bold text-3xl text-fg-primary leading-none">
           {resolvedTitle}
         </h2>
-        <TextActionLink href={viewAllHref ?? `/c/${rootHandle}`} />
+        {viewAllHref ? <TextActionLink href={viewAllHref} /> : null}
       </div>
 
       <div className="space-y-200">

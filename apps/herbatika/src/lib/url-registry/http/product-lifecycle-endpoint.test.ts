@@ -18,10 +18,16 @@ const delivery = () => ({
   changeType: "reconcile",
   occurredAt: "2026-08-18T09:10:11.123Z",
   payload: {
+    assignment: {
+      publicationStatus: "published",
+      publicSlug: "produkt-01",
+      salesChannelId: "sc_sk",
+    },
     schemaVersion: 1,
     productId: "prod_01",
     reason: "updated",
     changeType: "reconcile",
+    sourceVersion: "2026-08-18T09:00:00.000Z",
   },
 })
 
@@ -53,6 +59,7 @@ const dependencies = (
 ) => ({
   consume,
   enabled: true,
+  expectedSalesChannelId: () => "sc_sk",
   lifecycleToken: TOKEN,
 })
 
@@ -74,6 +81,7 @@ describe("handleProductLifecycleRequest", () => {
     const response = await handleProductLifecycleRequest(lifecycleRequest, {
       consume,
       enabled: false,
+      expectedSalesChannelId: () => "sc_sk",
       lifecycleToken: TOKEN,
     })
 
@@ -92,6 +100,7 @@ describe("handleProductLifecycleRequest", () => {
     const response = await handleProductLifecycleRequest(lifecycleRequest, {
       consume,
       enabled: true,
+      expectedSalesChannelId: () => "sc_sk",
       lifecycleToken: TOKEN,
     })
 
@@ -106,6 +115,7 @@ describe("handleProductLifecycleRequest", () => {
     const response = await handleProductLifecycleRequest(request(), {
       consume,
       enabled: true,
+      expectedSalesChannelId: () => "sc_sk",
       lifecycleToken: "short",
     })
 
@@ -129,6 +139,20 @@ describe("handleProductLifecycleRequest", () => {
 
     expect(response.status).toBe(400)
     expect(await response.json()).toEqual({ error: "invalid-delivery" })
+    expect(deps.consume).not.toHaveBeenCalled()
+  })
+
+  it("rejects a cross-market sales-channel assignment before consuming", async () => {
+    const deps = dependencies()
+    const response = await handleProductLifecycleRequest(request(), {
+      ...deps,
+      expectedSalesChannelId: () => "sc_other",
+    })
+
+    expect(response.status).toBe(409)
+    expect(await response.json()).toEqual({
+      error: "market-assignment-mismatch",
+    })
     expect(deps.consume).not.toHaveBeenCalled()
   })
 

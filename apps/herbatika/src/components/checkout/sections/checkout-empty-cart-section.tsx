@@ -3,9 +3,9 @@
 import { useRegionContext } from "@techsio/storefront-data/shared/region-context"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { InlineProductsCarousel } from "@/components/blog/inline-products-carousel"
+import { StorefrontLink } from "@/components/storefront-link"
 import { SupportingText } from "@/components/text/supporting-text"
 import { useCategories } from "@/lib/storefront/categories"
 import {
@@ -13,8 +13,11 @@ import {
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
 import { collectDescendantCategoryIds } from "@/lib/storefront/category-tree"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { RELATED_PRODUCT_FIELDS, useProducts } from "@/lib/storefront/products"
 import { selectRecommendedProductRepresentatives } from "@/lib/storefront/recommended-product-families"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
+import { buildPath } from "@/lib/url/public-url"
 
 const EMPTY_CART_RECOMMENDATIONS_CATEGORY_HANDLE = "novinky"
 const EMPTY_CART_RECOMMENDATIONS_LIMIT = 10
@@ -23,6 +26,7 @@ const EMPTY_CART_RECOMMENDATIONS_CANDIDATE_LIMIT = 32
 export function CheckoutEmptyCartSection() {
   const tCheckout = useTranslations("checkout")
   const region = useRegionContext()
+  const marketContext = useMarketContext()
   const categoriesQuery = useCategories({
     page: 1,
     limit: CATEGORY_TREE_LIMIT,
@@ -58,6 +62,11 @@ export function CheckoutEmptyCartSection() {
     recommendationsQuery.products,
     EMPTY_CART_RECOMMENDATIONS_LIMIT
   )
+  const recommendationCategoryHref = buildProjectedEntityPath(
+    "category",
+    recommendationCategory as { publicSlug?: string | null } | undefined,
+    marketContext.code
+  )
 
   return (
     <section className="space-y-800">
@@ -80,18 +89,21 @@ export function CheckoutEmptyCartSection() {
 
             <div className="flex flex-col gap-200 sm:flex-row sm:flex-wrap">
               <LinkButton
-                as={NextLink}
+                as={StorefrontLink}
                 className="w-full sm:w-auto"
-                href="/c/novinky"
+                href={
+                  recommendationCategoryHref ??
+                  buildPath({ kind: "product" }, marketContext.code)
+                }
                 size="md"
                 variant="primary"
               >
                 {tCheckout("empty_cart_browse_new_products")}
               </LinkButton>
               <LinkButton
-                as={NextLink}
+                as={StorefrontLink}
                 className="w-full sm:w-auto"
-                href="/"
+                href={buildPath({ kind: "home" }, marketContext.code)}
                 size="md"
                 theme="outlined"
                 variant="secondary"

@@ -1,9 +1,5 @@
 import type { MedusaResponse } from "@medusajs/framework/http"
-import type {
-  HttpTypes,
-  QueryContextType,
-  RemoteQueryEntryPoints,
-} from "@medusajs/framework/types"
+import type { HttpTypes, QueryContextType } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -54,12 +50,8 @@ const includesCategoryVisibilityField = (fields: string[]) =>
   )
 
 const toStoreProduct = (
-  product: RemoteQueryEntryPoints["product"]
-): HttpTypes.StoreProduct => {
-  // query.graph uses the generated module entity type even when the selected
-  // fields form a Store API response. Bridge that Medusa type boundary once.
-  return product as HttpTypes.StoreProduct
-}
+  product: HttpTypes.StoreProduct
+): HttpTypes.StoreProduct => product
 
 export const GET = async (
   req: RequestWithContext<HttpTypes.StoreProductParams>,

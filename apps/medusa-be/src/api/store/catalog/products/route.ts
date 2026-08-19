@@ -56,6 +56,7 @@ import {
 import { MEILISEARCH } from "../../../../workflows/meilisearch"
 import { normalizeProductSalesChannelFilter } from "../../../utils/product-filters"
 import {
+  applyCollectionScopeToProductFilters,
   buildCatalogFilterExpressions,
   type FacetCountItem,
   getFacetDistribution,
@@ -719,6 +720,7 @@ export async function GET(
   const ingredientIds = normalizeIngredientParam(validatedQuery.ingredient)
 
   const filterExpressions = buildCatalogFilterExpressions({
+    collectionId: validatedQuery.collection_id,
     categoryIds,
     statusIds,
     formIds,
@@ -814,14 +816,17 @@ export async function GET(
         filters: await normalizeProductSalesChannelFilter(
           queryService,
           remoteQuery,
-          {
-            ...(cleanedQuery ? { q: cleanedQuery } : {}),
-            ...(saleProductSelection
-              ? { id: buildProductIdFilter(saleProductSelection.productIds) }
-              : {}),
-            sales_channel_id: req.filterableFields.sales_channel_id,
-            status: ProductStatus.PUBLISHED,
-          }
+          applyCollectionScopeToProductFilters(
+            {
+              ...(cleanedQuery ? { q: cleanedQuery } : {}),
+              ...(saleProductSelection
+                ? { id: buildProductIdFilter(saleProductSelection.productIds) }
+                : {}),
+              sales_channel_id: req.filterableFields.sales_channel_id,
+              status: ProductStatus.PUBLISHED,
+            },
+            validatedQuery.collection_id
+          )
         ),
         pagination: {
           take: limit,
@@ -926,13 +931,16 @@ export async function GET(
     filters: await normalizeProductSalesChannelFilter(
       queryService,
       remoteQuery,
-      {
-        id: {
-          $in: productIds,
+      applyCollectionScopeToProductFilters(
+        {
+          id: {
+            $in: productIds,
+          },
+          sales_channel_id: req.filterableFields.sales_channel_id,
+          status: ProductStatus.PUBLISHED,
         },
-        sales_channel_id: req.filterableFields.sales_channel_id,
-        status: ProductStatus.PUBLISHED,
-      }
+        validatedQuery.collection_id
+      )
     ),
     context: pricingContext
       ? {

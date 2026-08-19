@@ -9,6 +9,7 @@ type FakePool = Readonly<{
 const setup = () => {
   const events: string[] = []
   const productLifecycleConsumer = Object.freeze({ label: "consumer" })
+  const invalidationOutboxStore = Object.freeze({ label: "outbox" })
   const registry = Object.freeze({ label: "registry" })
   const pool: FakePool = {
     end: vi.fn(() => {
@@ -21,6 +22,10 @@ const setup = () => {
     createPool: vi.fn((_databaseUrl: string) => {
       events.push("pool")
       return pool
+    }),
+    createInvalidationOutboxStore: vi.fn((_pool: FakePool) => {
+      events.push("outbox")
+      return invalidationOutboxStore
     }),
     createRegistry: vi.fn((_pool: FakePool) => {
       events.push("registry")
@@ -35,7 +40,14 @@ const setup = () => {
       return Promise.resolve()
     }),
   }
-  return { dependencies, events, pool, productLifecycleConsumer, registry }
+  return {
+    dependencies,
+    events,
+    invalidationOutboxStore,
+    pool,
+    productLifecycleConsumer,
+    registry,
+  }
 }
 
 describe("initializeUrlRegistryRuntime", () => {
@@ -48,6 +60,7 @@ describe("initializeUrlRegistryRuntime", () => {
 
     expect(runtime).toMatchObject({
       enabled: false,
+      invalidationOutboxStore: null,
       productLifecycleConsumer: null,
       registry: null,
     })
@@ -67,6 +80,7 @@ describe("initializeUrlRegistryRuntime", () => {
 
     expect(runtime).toMatchObject({
       enabled: true,
+      invalidationOutboxStore: test.invalidationOutboxStore,
       productLifecycleConsumer: test.productLifecycleConsumer,
       registry: test.registry,
     })
@@ -74,7 +88,16 @@ describe("initializeUrlRegistryRuntime", () => {
     expect(
       test.dependencies.createProductLifecycleConsumer
     ).toHaveBeenCalledWith(test.pool)
-    expect(test.events).toEqual(["pool", "verify", "registry", "consumer"])
+    expect(
+      test.dependencies.createInvalidationOutboxStore
+    ).toHaveBeenCalledWith(test.pool)
+    expect(test.events).toEqual([
+      "pool",
+      "verify",
+      "registry",
+      "consumer",
+      "outbox",
+    ])
 
     await Promise.all([runtime.close(), runtime.close()])
     expect(test.pool.end).toHaveBeenCalledOnce()
@@ -128,6 +151,27 @@ describe("initializeUrlRegistryRuntime", () => {
     const test = setup()
     const primary = new Error("consumer construction failed")
     test.dependencies.createProductLifecycleConsumer.mockImplementationOnce(
+      () => {
+        throw primary
+      }
+    )
+
+    await expect(
+      initializeUrlRegistryRuntime(
+        {
+          databaseUrl: "postgresql://urlr:secret@db/urlr",
+          enabled: true,
+        },
+        test.dependencies
+      )
+    ).rejects.toBe(primary)
+    expect(test.pool.end).toHaveBeenCalledOnce()
+  })
+
+  it("closes the owned pool when outbox construction fails", async () => {
+    const test = setup()
+    const primary = new Error("outbox construction failed")
+    test.dependencies.createInvalidationOutboxStore.mockImplementationOnce(
       () => {
         throw primary
       }

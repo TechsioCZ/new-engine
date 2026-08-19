@@ -4,7 +4,9 @@ import { PAYLOAD_MODULE } from "../../../../../../src/modules/payload"
 const mockCmsService = {
   getFooterNavigation: vi.fn(),
   getPublishedPage: vi.fn(),
+  getPublishedPageById: vi.fn(),
   getPublishedArticle: vi.fn(),
+  getPublishedArticleById: vi.fn(),
   listPageCategoriesWithPages: vi.fn(),
   listArticleCategoriesWithArticles: vi.fn(),
   listHeroCarousels: vi.fn(),
@@ -25,7 +27,7 @@ const createMockRequest = ({
 } = {}) =>
   ({
     params,
-    validatedQuery,
+    validatedQuery: { ...(locale ? { locale } : {}), ...validatedQuery },
     locale,
     scope: {
       resolve: vi.fn((key: string) => {
@@ -46,6 +48,20 @@ const createMockResponse = () =>
 describe("Store CMS routes", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it("requires one of the four exact storefront CMS locales", async () => {
+    const { StoreCmsPageByIdSchema } = await import(
+      "../../../../../../src/api/store/cms/pages/by-id/[id]/route"
+    )
+
+    expect(StoreCmsPageByIdSchema.safeParse({ locale: "sk" }).success).toBe(
+      true
+    )
+    expect(StoreCmsPageByIdSchema.safeParse({ locale: "en" }).success).toBe(
+      false
+    )
+    expect(StoreCmsPageByIdSchema.safeParse({}).success).toBe(false)
   })
 
   it("passes request locale to published page lookup", async () => {
@@ -108,6 +124,57 @@ describe("Store CMS routes", () => {
       "sk"
     )
     expect(res.json).toHaveBeenCalledWith({ article })
+  })
+
+  it("reads a published page by stable Payload ID and exact locale", async () => {
+    const { GET } = await import(
+      "../../../../../../src/api/store/cms/pages/by-id/[id]/route"
+    )
+    const req = createMockRequest({ locale: "ro", params: { id: "77" } })
+    const res = createMockResponse()
+    const page = { id: 77, slug: "legacy-slug" }
+    mockCmsService.getPublishedPageById.mockResolvedValue(page)
+
+    await GET(req, res)
+
+    expect(mockCmsService.getPublishedPageById).toHaveBeenCalledWith("77", "ro")
+    expect(res.json).toHaveBeenCalledWith({ page })
+  })
+
+  it("reads a published article by stable Payload ID and exact locale", async () => {
+    const { GET } = await import(
+      "../../../../../../src/api/store/cms/articles/by-id/[id]/route"
+    )
+    const req = createMockRequest({ locale: "hu", params: { id: "88" } })
+    const res = createMockResponse()
+    const article = { id: 88, slug: "legacy-slug" }
+    mockCmsService.getPublishedArticleById.mockResolvedValue(article)
+
+    await GET(req, res)
+
+    expect(mockCmsService.getPublishedArticleById).toHaveBeenCalledWith(
+      "88",
+      "hu"
+    )
+    expect(res.json).toHaveBeenCalledWith({ article })
+  })
+
+  it("maps upstream CMS failures to an explicit 503", async () => {
+    const { GET } = await import(
+      "../../../../../../src/api/store/cms/pages/by-id/[id]/route"
+    )
+    const req = createMockRequest({ locale: "sk", params: { id: "77" } })
+    const res = createMockResponse()
+    mockCmsService.getPublishedPageById.mockRejectedValue(
+      new Error("Payload unavailable")
+    )
+
+    await GET(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(503)
+    expect(res.json).toHaveBeenCalledWith({
+      message: "CMS source is unavailable",
+    })
   })
 
   it("passes request locale to page category listing", async () => {

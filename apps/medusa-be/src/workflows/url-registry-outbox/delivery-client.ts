@@ -20,8 +20,12 @@ const ACK_ACTIONS = new Set([
   "noop-route-terminal",
   "noop-source-missing",
   "noop-source-present",
+  "noop-unpublished",
+  "published",
   "requires-publication",
   "retired",
+  "slug-changed",
+  "unpublished",
 ])
 const ASCII_DIGITS = /^\d+$/
 const ignoreCancellationError = () => null

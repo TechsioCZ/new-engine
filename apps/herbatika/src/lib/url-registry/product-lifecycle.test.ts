@@ -12,6 +12,7 @@ import {
 } from "./product-lifecycle"
 import {
   ProductLifecycleDeliveryValidationError,
+  type ProductPublicationAssignmentV1,
   parseProductLifecycleDeliveryV1,
 } from "./product-lifecycle-parser"
 
@@ -31,10 +32,16 @@ const delivery = () => ({
   changeType: "reconcile",
   occurredAt: "2026-08-18T09:10:11.123Z",
   payload: {
+    assignment: {
+      publicationStatus: "published",
+      publicSlug: "product-01",
+      salesChannelId: "sc_sk",
+    },
     schemaVersion: 1,
     productId: "prod_01",
     reason: "updated",
     changeType: "reconcile",
+    sourceVersion: "2026-08-18T09:00:00.000Z",
     trace: {
       stepIdempotencyKey: "step_01",
       transactionId: "txn_01",
@@ -52,7 +59,10 @@ const missingSource: SourceReadResult<unknown> = { kind: "missing" }
 const foundRoute = (status: UrlRouteStatus) =>
   ({
     kind: "found",
-    value: { route: { status } } as EntityRouteSnapshot,
+    value: {
+      currentSlug: { normalizedSlug: "product-01" },
+      route: { status },
+    } as EntityRouteSnapshot,
   }) as const
 
 const routeCases = {
@@ -79,11 +89,20 @@ describe("parseProductLifecycleDeliveryV1", () => {
     ["deleted", "delete"],
   ] as const)("accepts %s only as a %s change", (reason, changeType) => {
     const input = delivery()
-    input.changeType = changeType
-    input.payload.changeType = changeType
-    input.payload.reason = reason
+    const candidate = {
+      ...input,
+      changeType,
+      payload: {
+        ...input.payload,
+        assignment: reason === "deleted" ? null : input.payload.assignment,
+        changeType,
+        reason,
+      },
+    }
 
-    expect(parseProductLifecycleDeliveryV1(input).changeType).toBe(changeType)
+    expect(parseProductLifecycleDeliveryV1(candidate).changeType).toBe(
+      changeType
+    )
   })
 
   it.each([
@@ -209,7 +228,7 @@ describe("fingerprintProductLifecycleDelivery", () => {
     const parsed = parseProductLifecycleDeliveryV1(delivery())
 
     expect(fingerprintProductLifecycleDelivery(parsed)).toBe(
-      "sha256:bb8bbe3ef2e38c2224f2397a469a7bbf2c7f1bd80e915e88315c43d58cf4a9e1"
+      "sha256:c7875a015fec76a1005eaa75795cc1e8d29ab38b2a1b1de57f6a065fbcb1d91d"
     )
   })
 
@@ -217,11 +236,13 @@ describe("fingerprintProductLifecycleDelivery", () => {
     const input = delivery()
     const reordered = {
       payload: {
+        assignment: input.payload.assignment,
         trace: input.payload.trace,
         reason: input.payload.reason,
         productId: input.payload.productId,
         schemaVersion: input.payload.schemaVersion,
         changeType: input.payload.changeType,
+        sourceVersion: input.payload.sourceVersion,
       },
       occurredAt: input.occurredAt,
       changeType: input.changeType,
@@ -262,9 +283,16 @@ describe("fingerprintProductLifecycleDelivery", () => {
 })
 
 describe("decideProductLifecycle", () => {
+  const publishedAssignment = {
+    publicationStatus: "published",
+    publicSlug: "product-01",
+    salesChannelId: "sc_sk",
+  } as const
+
   type DecisionCase = readonly [
     string,
     "delete" | "reconcile",
+    ProductPublicationAssignmentV1 | null,
     SourceReadResult<unknown>,
     SourceReadResult<EntityRouteSnapshot>,
     ProductLifecycleDecision,
@@ -274,6 +302,7 @@ describe("decideProductLifecycle", () => {
     [
       "retries an unavailable source",
       "reconcile",
+      publishedAssignment,
       { kind: "unavailable" },
       routeCases.active,
       { kind: "retry", action: null, cause: "source-unavailable" },
@@ -281,6 +310,7 @@ describe("decideProductLifecycle", () => {
     [
       "retries an invalid source response",
       "delete",
+      null,
       { kind: "invalid-response", causeCode: "BAD_SOURCE" },
       routeCases.missing,
       { kind: "retry", action: null, cause: "source-invalid-response" },
@@ -288,6 +318,7 @@ describe("decideProductLifecycle", () => {
     [
       "retries an unavailable route read",
       "reconcile",
+      publishedAssignment,
       foundSource,
       { kind: "unavailable" },
       { kind: "retry", action: null, cause: "route-unavailable" },
@@ -295,39 +326,62 @@ describe("decideProductLifecycle", () => {
     [
       "retries an invalid route response",
       "delete",
+      null,
       missingSource,
       { kind: "invalid-response", causeCode: "BAD_ROUTE" },
       { kind: "retry", action: null, cause: "route-invalid-response" },
     ],
-    ...(["missing", "active", "retired", "superseded"] as const).map(
-      (routeKind) =>
-        [
-          `records missing source during reconcile with ${routeKind} route`,
-          "reconcile",
-          missingSource,
-          routeCases[routeKind],
-          { kind: "apply", action: "noop-source-missing" },
-        ] as const
-    ),
     [
-      "requires explicit publication for a live source without a route",
+      "publishes an explicitly assigned live source without a route",
       "reconcile",
+      publishedAssignment,
       foundSource,
       routeCases.missing,
-      { kind: "apply", action: "requires-publication" },
+      { kind: "publish", action: "published", publicSlug: "product-01" },
     ],
     [
       "keeps an active route for a live source",
       "reconcile",
+      publishedAssignment,
       foundSource,
       routeCases.active,
       { kind: "apply", action: "noop-source-present" },
+    ],
+    [
+      "changes the slug of an active published route",
+      "reconcile",
+      { ...publishedAssignment, publicSlug: "new-product-01" },
+      foundSource,
+      routeCases.active,
+      {
+        kind: "change-slug",
+        action: "slug-changed",
+        publicSlug: "new-product-01",
+        route: routeCases.active.value,
+      },
+    ],
+    [
+      "unpublishes an active route when the assignment is removed",
+      "reconcile",
+      null,
+      foundSource,
+      routeCases.active,
+      { kind: "apply", action: "unpublished" },
+    ],
+    [
+      "records an unpublished product without creating a route",
+      "reconcile",
+      null,
+      missingSource,
+      routeCases.missing,
+      { kind: "apply", action: "noop-unpublished" },
     ],
     ...(["retired", "superseded"] as const).map(
       (routeKind) =>
         [
           `rejects resurrection of a ${routeKind} route`,
           "reconcile",
+          publishedAssignment,
           foundSource,
           routeCases[routeKind],
           {
@@ -342,6 +396,7 @@ describe("decideProductLifecycle", () => {
         [
           `preserves a live source on delete with ${routeKind} route`,
           "delete",
+          null,
           foundSource,
           routeCases[routeKind],
           { kind: "apply", action: "noop-source-present" },
@@ -350,6 +405,7 @@ describe("decideProductLifecycle", () => {
     [
       "records a missing route after permanent source deletion",
       "delete",
+      null,
       missingSource,
       routeCases.missing,
       { kind: "apply", action: "noop-route-missing" },
@@ -357,6 +413,7 @@ describe("decideProductLifecycle", () => {
     [
       "retires the active route after permanent source deletion",
       "delete",
+      null,
       missingSource,
       routeCases.active,
       { kind: "retire", action: "retired", route: routeCases.active.value },
@@ -366,6 +423,7 @@ describe("decideProductLifecycle", () => {
         [
           `records an already terminal ${routeKind} route`,
           "delete",
+          null,
           missingSource,
           routeCases[routeKind],
           { kind: "apply", action: "noop-route-terminal" },
@@ -374,7 +432,9 @@ describe("decideProductLifecycle", () => {
   ]
 
   it.each(cases)("%s", (...testCase) => {
-    const [, changeType, source, route, expected] = testCase
-    expect(decideProductLifecycle(changeType, source, route)).toEqual(expected)
+    const [, changeType, assignment, source, route, expected] = testCase
+    expect(
+      decideProductLifecycle(changeType, assignment, source, route)
+    ).toEqual(expected)
   })
 })

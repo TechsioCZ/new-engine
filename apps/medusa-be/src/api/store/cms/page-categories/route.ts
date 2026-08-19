@@ -3,10 +3,11 @@ import { z } from "@medusajs/framework/zod"
 import { PAYLOAD_MODULE } from "../../../../modules/payload"
 import type PayloadModuleService from "../../../../modules/payload/service"
 import { optionalStringParam } from "../../../../utils/query-params"
+import { StoreCmsLocaleSchema } from "../locales"
 
 /** Query schema for fetching CMS page categories with pages. */
 export const StoreCmsPageCategoriesSchema = z.object({
-  locale: optionalStringParam,
+  locale: StoreCmsLocaleSchema,
   categorySlug: optionalStringParam,
 })
 
@@ -22,12 +23,16 @@ export async function GET(
 ) {
   const cmsService = req.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
 
-  const { categorySlug } = req.validatedQuery
+  const { categorySlug, locale } = req.validatedQuery
 
-  const pageCategories = await cmsService.listPageCategoriesWithPages({
-    locale: req.locale,
-    categorySlug,
-  })
+  try {
+    const pageCategories = await cmsService.listPageCategoriesWithPages({
+      locale,
+      categorySlug,
+    })
 
-  return res.json({ pageCategories })
+    return res.json({ pageCategories })
+  } catch {
+    return res.status(503).json({ message: "CMS source is unavailable" })
+  }
 }

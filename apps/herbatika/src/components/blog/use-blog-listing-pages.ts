@@ -2,10 +2,10 @@
 
 import { useInfiniteQuery } from "@tanstack/react-query"
 import { createQueryKey } from "@techsio/storefront-data/shared/query-keys"
-import type { BlogListing } from "@/lib/storefront/blog-content"
 import { resolveBlogListingApiHref } from "@/lib/storefront/blog-routing"
 import { storefrontCacheConfig } from "@/lib/storefront/cache"
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "@/lib/storefront/query-keys"
+import type { BlogListingWithSourceIds } from "./blog-card-projection"
 
 const fetchBlogListingPage = async ({
   category,
@@ -33,10 +33,10 @@ const fetchBlogListingPage = async ({
     throw new Error(`Blog listing request failed with ${response.status}`)
   }
 
-  return (await response.json()) as BlogListing
+  return (await response.json()) as BlogListingWithSourceIds
 }
 
-export const useBlogListingPages = (initialListing: BlogListing) =>
+export const useBlogListingPages = (initialListing: BlogListingWithSourceIds) =>
   useInfiniteQuery({
     queryKey: createQueryKey(
       STOREFRONT_QUERY_KEY_NAMESPACE,

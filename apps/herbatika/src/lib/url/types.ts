@@ -34,6 +34,7 @@ export type AccountChildKey =
   | "lists"
   | "orders"
   | "settings"
+  | "deactivation"
   | "login"
   | "register"
   | "forgotPassword"

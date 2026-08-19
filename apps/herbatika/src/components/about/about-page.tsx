@@ -4,6 +4,8 @@ import {
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildPath } from "@/lib/url/public-url"
 import {
   AboutArticleSections,
   AboutClosingStatement,
@@ -21,10 +23,11 @@ export function AboutPage({
 }) {
   const tContent = useTranslations("content")
   const tNavigation = useTranslations("navigation")
+  const market = useMarketContext().code
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
       label: tNavigation("breadcrumbs.home"),
-      href: "/",
+      href: buildPath({ kind: "home" }, market),
       icon: "token-icon-home",
     },
     { label: tContent("pages.about") },

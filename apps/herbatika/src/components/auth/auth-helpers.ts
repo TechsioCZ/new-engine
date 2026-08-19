@@ -3,37 +3,43 @@ import type {
   RegisterFormValues,
 } from "@/lib/auth/auth-form-validators"
 import { normalizeCountryCode } from "@/lib/forms/country-options"
+import { withPublicSearchParams } from "@/lib/url/public-url"
 
 type BuildRegisterDefaultsOptions = {
   countryCode?: string | null
 }
 
+const REDIRECT_VALIDATION_ORIGIN = "https://storefront.invalid"
+
 export const resolveSafeRedirectHref = (value?: string) => {
-  if (!value) {
+  if (
+    !value?.startsWith("/") ||
+    value.startsWith("//") ||
+    value.includes("\\")
+  ) {
     return null
   }
 
-  if (!value.startsWith("/") || value.startsWith("//")) {
+  try {
+    if (
+      new URL(value, REDIRECT_VALIDATION_ORIGIN).origin !==
+      REDIRECT_VALIDATION_ORIGIN
+    ) {
+      return null
+    }
+  } catch {
     return null
   }
 
   return value
 }
 
-export const buildAuthRouteHref = (
-  path: "/auth/login" | "/auth/register",
-  next?: string
-) => {
-  if (!next) {
-    return path
-  }
-
-  return `${path}?next=${encodeURIComponent(next)}`
-}
+export const buildAuthRouteHref = (path: string, next?: string) =>
+  withPublicSearchParams(path, { next })
 
 export const resolveAfterAuthHref = (
   value?: string | string[],
-  fallback = "/account"
+  fallback = "/"
 ) => {
   const nextValue = typeof value === "string" ? value : undefined
   return resolveSafeRedirectHref(nextValue) ?? fallback

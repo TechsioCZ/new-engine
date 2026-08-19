@@ -3,13 +3,12 @@
 import type { HttpTypes } from "@medusajs/types"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { useTranslations } from "next-intl"
-import { resolveLineItemProductHandle } from "@/components/header/herbatika-cart-item.utils"
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import { resolveFreeShippingThresholdAmount } from "@/lib/storefront/free-shipping"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { PRODUCT_DETAIL_FIELDS } from "@/lib/storefront/products"
 import { useCartLineItemActions } from "@/lib/storefront/use-cart-line-item-actions"
-import { useCartProductsByHandle } from "../use-cart-products-by-handle"
+import { useCartProductsById } from "../use-cart-products-by-handle"
 import { CheckoutCartItemRow } from "./checkout-cart-item-row"
 
 type CheckoutCartStepSectionProps = {
@@ -27,7 +26,7 @@ export function CheckoutCartStepSection({
 }: CheckoutCartStepSectionProps) {
   const tCheckout = useTranslations("checkout")
   const lineItemActions = useCartLineItemActions({ cartId })
-  const { productsByHandle: cartProductsByHandle } = useCartProductsByHandle(
+  const { productsById: cartProductsById } = useCartProductsById(
     cartItems,
     PRODUCT_DETAIL_FIELDS
   )
@@ -118,9 +117,11 @@ export function CheckoutCartStepSection({
               item={item}
               onRemove={lineItemActions.removeItem}
               onUpdateQuantity={lineItemActions.updateQuantity}
-              product={cartProductsByHandle.get(
-                resolveLineItemProductHandle(item) ?? ""
-              )}
+              product={
+                item.product_id
+                  ? cartProductsById.get(item.product_id)
+                  : undefined
+              }
             />
           </div>
         ))}

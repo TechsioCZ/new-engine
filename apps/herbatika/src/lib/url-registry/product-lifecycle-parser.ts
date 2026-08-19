@@ -26,6 +26,8 @@ const PAYLOAD_KEYS = [
   "productId",
   "reason",
   "changeType",
+  "assignment",
+  "sourceVersion",
   "trace",
 ] as const
 const REQUIRED_PAYLOAD_KEYS = PAYLOAD_KEYS.slice(0, -1)
@@ -36,6 +38,12 @@ const TRACE_KEYS = [
 ] as const
 const VISIBLE_ASCII = /^[\x21-\x7e]{1,255}$/
 const SHA256 = /^sha256:[0-9a-f]{64}$/
+const PUBLIC_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const ASSIGNMENT_KEYS = [
+  "publicationStatus",
+  "publicSlug",
+  "salesChannelId",
+] as const
 
 export type ProductLifecycleChangeType = (typeof CHANGE_TYPES)[number]
 export type ProductLifecycleReason = (typeof REASONS)[number]
@@ -44,11 +52,18 @@ export type ProductLifecycleTraceV1 = Readonly<{
   transactionId?: string
   workflowId?: string
 }>
+export type ProductPublicationAssignmentV1 = Readonly<{
+  publicationStatus: "draft" | "published"
+  publicSlug: string
+  salesChannelId: string
+}>
 export type ProductLifecyclePayloadV1 = Readonly<{
+  assignment: ProductPublicationAssignmentV1 | null
   schemaVersion: 1
   productId: string
   reason: ProductLifecycleReason
   changeType: ProductLifecycleChangeType
+  sourceVersion: string
   trace?: ProductLifecycleTraceV1
 }>
 export type ProductLifecycleDeliveryV1 = Readonly<{
@@ -138,6 +153,43 @@ const trace = (value: unknown): ProductLifecycleTraceV1 | undefined => {
   )
 }
 
+const assignment = (value: unknown): ProductPublicationAssignmentV1 | null => {
+  if (value === null) {
+    return null
+  }
+  const record = exactRecord(
+    value,
+    ASSIGNMENT_KEYS,
+    ASSIGNMENT_KEYS,
+    "payload.assignment"
+  )
+  if (
+    record.publicationStatus !== "draft" &&
+    record.publicationStatus !== "published"
+  ) {
+    throw new ProductLifecycleDeliveryValidationError(
+      "payload.assignment.publicationStatus is invalid"
+    )
+  }
+  if (
+    typeof record.publicSlug !== "string" ||
+    record.publicSlug.length > 200 ||
+    !PUBLIC_SLUG.test(record.publicSlug)
+  ) {
+    throw new ProductLifecycleDeliveryValidationError(
+      "payload.assignment.publicSlug is invalid"
+    )
+  }
+  return {
+    publicationStatus: record.publicationStatus,
+    publicSlug: record.publicSlug,
+    salesChannelId: identifier(
+      record.salesChannelId,
+      "payload.assignment.salesChannelId"
+    ),
+  }
+}
+
 const changeTypeForReason = (
   reason: ProductLifecycleReason
 ): ProductLifecycleChangeType => (reason === "deleted" ? "delete" : "reconcile")
@@ -161,16 +213,24 @@ const parsePayload = (value: unknown): ProductLifecyclePayloadV1 => {
     "payload.changeType"
   )
   const parsedTrace = trace(record.trace)
+  const parsedAssignment = assignment(record.assignment)
   if (changeType !== changeTypeForReason(reason)) {
     throw new ProductLifecycleDeliveryValidationError(
       "payload reason does not match changeType"
     )
   }
+  if (changeType === "delete" && parsedAssignment !== null) {
+    throw new ProductLifecycleDeliveryValidationError(
+      "delete payload cannot carry a publication assignment"
+    )
+  }
   return {
+    assignment: parsedAssignment,
     schemaVersion: 1,
     productId: identifier(record.productId, "payload.productId"),
     reason,
     changeType,
+    sourceVersion: identifier(record.sourceVersion, "payload.sourceVersion"),
     ...(parsedTrace === undefined ? {} : { trace: parsedTrace }),
   }
 }

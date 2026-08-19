@@ -1,21 +1,24 @@
+"use client"
+
 import { Link } from "@techsio/ui-kit/atoms/link"
 import NextImage from "next/image"
-import NextLink from "next/link"
 import logo from "@/assets/herbatica-logo.avif"
+import { StorefrontLink } from "@/components/storefront-link"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildPath } from "@/lib/url/public-url"
 
 type HerbatikaLogoProps = {
   className?: string
-  href?: string
   imageClassName?: string
   size?: "sm" | "md" | "lg"
 }
 
 export function HerbatikaLogo({
   className,
-  href = "/",
   imageClassName,
   size = "md",
 }: HerbatikaLogoProps) {
+  const marketContext = useMarketContext()
   let sizeClass = "h-13 w-auto"
   if (size === "sm") {
     sizeClass = "h-11 w-auto"
@@ -27,7 +30,11 @@ export function HerbatikaLogo({
     : sizeClass
 
   return (
-    <Link as={NextLink} className={className} href={href}>
+    <Link
+      as={StorefrontLink}
+      className={className}
+      href={buildPath({ kind: "home" }, marketContext.code)}
+    >
       <NextImage
         alt="Herbatika"
         className={imageClasses}

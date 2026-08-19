@@ -11,30 +11,43 @@ import { HomepageReviewsSection } from "@/components/homepage/sections/homepage-
 import { useHomepageController } from "@/components/homepage/use-homepage-controller"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
 import type { HomepageReviewsData } from "@/components/reviews/reviews.types"
-import type { BlogCardItem } from "@/lib/storefront/blog-content"
+import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
+import type { BlogCardItemWithSourceId } from "./blog/blog-card-projection"
 import { BenefitsSection } from "./homepage/sections/benefits-section"
 import { PurposeCarousel } from "./homepage/sections/purpose-carousel"
 
 type HerbatikaHomepageProps = {
-  blogPosts: BlogCardItem[]
+  articlePublicSlugsById: PublicEntitySlugMap
+  blogPosts: BlogCardItemWithSourceId[]
+  categoryPublicSlugsById: PublicEntitySlugMap
   heroBanners?: HeroBannerItem[]
   homepagePromo?: HomepagePromoContent | null
   homepageReviewsData?: HomepageReviewsData | null
+  homepageSectionCategorySourceIds: Readonly<Record<string, string>>
+  productPublicSlugsById: PublicEntitySlugMap
 }
 
 export function HerbatikaHomepage({
+  articlePublicSlugsById,
   blogPosts,
+  categoryPublicSlugsById,
   heroBanners,
   homepagePromo,
   homepageReviewsData,
+  homepageSectionCategorySourceIds,
+  productPublicSlugsById,
 }: HerbatikaHomepageProps) {
-  const controller = useHomepageController()
+  const controller = useHomepageController({
+    categoryPublicSlugsById,
+    homepageSectionCategorySourceIds,
+    productPublicSlugsById,
+  })
   const banners = heroBanners?.length ? heroBanners : HERO_BANNERS
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-homepage-gap p-homepage font-rubik 2xl:p-homepage-lg">
       <HomepageHeroCarouselSection banners={banners} />
-      <PurposeCarousel />
+      <PurposeCarousel categoryPublicSlugsById={categoryPublicSlugsById} />
       <BenefitsSection benefits={BENEFITS} />
 
       {controller.leadingSections.map((section) => (
@@ -59,7 +72,10 @@ export function HerbatikaHomepage({
         />
       ))}
 
-      <HomepageBlogSection posts={blogPosts} />
+      <HomepageBlogSection
+        articlePublicSlugsById={articlePublicSlugsById}
+        posts={blogPosts}
+      />
       <HomepagePromoSection promo={homepagePromo} />
       <RecentlyVisitedProductsSection />
     </main>

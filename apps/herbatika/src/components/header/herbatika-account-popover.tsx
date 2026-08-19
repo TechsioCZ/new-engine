@@ -3,14 +3,17 @@
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import { LoginForm } from "@/components/auth/login-form"
 import { useAuthController } from "@/components/auth/use-auth-controller"
+import { StorefrontLink } from "@/components/storefront-link"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildPath } from "@/lib/url/public-url"
 
 export function HerbatikaAccountPopover() {
   const tAuth = useTranslations("auth")
+  const marketContext = useMarketContext()
   const controller = useAuthController({ mode: "login" })
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
 
@@ -26,9 +29,9 @@ export function HerbatikaAccountPopover() {
     return (
       <LinkButton
         aria-label={tAuth("account_label")}
-        as={NextLink}
+        as={StorefrontLink}
         className="px-0 py-0 text-fg-secondary text-icon-2xl hover:text-primary"
-        href="/account"
+        href={buildPath({ kind: "account" }, marketContext.code)}
         icon="token-icon-user"
         size="current"
         theme="unstyled"

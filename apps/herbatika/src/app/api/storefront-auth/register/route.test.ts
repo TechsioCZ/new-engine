@@ -1,4 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
+
+vi.mock("@/lib/market/market-runtime.server", () => ({
+  resolveConfiguredMarketRuntimeBindingByHost: vi.fn(() => ({
+    acceptedHosts: ["herbatica.ro"],
+    canonicalOrigin: "https://herbatica.ro",
+    countryCode: "RO",
+    locale: "ro-RO",
+    market: "ro",
+    publishableApiKey: "pk_ro",
+    publishableApiKeyId: "pkid_ro",
+    regionId: "reg_ro",
+    salesChannelId: "sc_ro",
+  })),
+}))
+
 import { POST } from "./route"
 
 describe("register route", () => {

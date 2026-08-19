@@ -4,6 +4,7 @@ import {
   requireCredentialObject,
   retrieveIntegrationConfig,
 } from "../modules/api-store/integration-config"
+import { buildStorefrontPublicFlowUrl } from "./storefront-public-flow-url"
 
 export type ReviewRequestOrder = {
   id: string
@@ -28,9 +29,7 @@ export type ReviewRequestOrder = {
 
 const MINUTE_IN_MS = 60 * 1000
 const PAID_PAYMENT_STATUSES = new Set(["captured", "completed"])
-const PRODUCT_REVIEW_REQUEST_PATH = "/reviews/product"
 const SKIPPED_ORDER_STATUSES = new Set(["canceled", "archived", "draft"])
-const TRAILING_SLASH_REGEX = /\/+$/
 
 const REVIEW_REQUEST_COPY = {
   "cs-CZ": {
@@ -72,19 +71,19 @@ export function getReviewRequestCopy(locale: string) {
 }
 
 export function buildProductReviewRequestUrl({
-  productId,
+  marketCode,
   storefrontUrl,
   token,
 }: {
-  productId: string
+  marketCode: unknown
   storefrontUrl: string
   token: string
 }) {
-  const baseUrl = storefrontUrl.replace(TRAILING_SLASH_REGEX, "")
-  const encodedToken = encodeURIComponent(token)
-  const searchParams = new URLSearchParams({ product_id: productId })
-
-  return `${baseUrl}${PRODUCT_REVIEW_REQUEST_PATH}/${encodedToken}?${searchParams}`
+  return buildStorefrontPublicFlowUrl({
+    marketCode,
+    storefrontBaseUrl: storefrontUrl,
+    target: { kind: "review", token },
+  }).toString()
 }
 
 function getReviewRequestDelayMs(delayMinutes: number) {

@@ -8,9 +8,18 @@ export type MedusaPaymentSessionDataInput = {
   providerId: string
 }
 
+export type MedusaPaymentSessionBindingInput = MedusaPaymentSessionDataInput & {
+  paymentCollection: HttpTypes.StorePaymentCollection
+  paymentSessionData: Record<string, unknown> | undefined
+  paymentSessionId: string
+}
+
 type MaybePromise<T> = T | Promise<T>
 
 export type MedusaCheckoutServiceConfig = {
+  bindPaymentSessionData?: (
+    input: MedusaPaymentSessionBindingInput
+  ) => MaybePromise<void>
   cartFields?: string
   buildPaymentSessionData?: (
     input: MedusaPaymentSessionDataInput
@@ -25,6 +34,32 @@ const buildCartSelectParams = (
   }
 
   return { fields }
+}
+
+const resolveInitiatedPaymentSessionId = (
+  paymentCollection: HttpTypes.StorePaymentCollection,
+  providerId: string
+): string | undefined => {
+  const providerSessions = paymentCollection.payment_sessions?.filter(
+    (session) => session.provider_id === providerId
+  )
+  if (!providerSessions?.length) {
+    return
+  }
+
+  const selectedSessions = providerSessions.filter(
+    (session) => (session as { is_selected?: unknown }).is_selected === true
+  )
+  let paymentSession: (typeof providerSessions)[number] | undefined
+  if (selectedSessions.length === 1) {
+    paymentSession = selectedSessions[0]
+  } else if (providerSessions.length === 1) {
+    paymentSession = providerSessions[0]
+  }
+
+  return typeof paymentSession?.id === "string" && paymentSession.id
+    ? paymentSession.id
+    : undefined
 }
 
 /**
@@ -163,6 +198,26 @@ export function createMedusaCheckoutService(
       if (!response.payment_collection) {
         throw new Error("Failed to initiate payment session")
       }
+
+      if (config?.bindPaymentSessionData) {
+        const paymentSessionId = resolveInitiatedPaymentSessionId(
+          response.payment_collection,
+          providerId
+        )
+        if (!paymentSessionId) {
+          throw new Error("Failed to resolve initiated payment session")
+        }
+
+        await config.bindPaymentSessionData({
+          cart: resolvedCart,
+          cartId,
+          paymentCollection: response.payment_collection,
+          paymentSessionData,
+          paymentSessionId,
+          providerId,
+        })
+      }
+
       return response.payment_collection
     },
 

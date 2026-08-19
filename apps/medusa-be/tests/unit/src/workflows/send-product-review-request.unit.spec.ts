@@ -30,16 +30,20 @@ const reviewUtilities = vi.hoisted(() => {
   } as const
 
   return {
-    buildProductReviewRequestUrl: vi.fn(({ productId, storefrontUrl, token }) =>
-      [
-        storefrontUrl.endsWith("/")
-          ? storefrontUrl.slice(0, -1)
-          : storefrontUrl,
-        "/reviews/product/",
-        encodeURIComponent(token),
-        "?product_id=",
-        encodeURIComponent(productId),
-      ].join("")
+    buildProductReviewRequestUrl: vi.fn(
+      ({ marketCode, storefrontUrl, token }) =>
+        [
+          storefrontUrl.endsWith("/")
+            ? storefrontUrl.slice(0, -1)
+            : storefrontUrl,
+          {
+            sk: "/recenzie/produkt/",
+            cz: "/recenze/produkt/",
+            hu: "/velemenyek/termek/",
+            ro: "/recenzii/produs/",
+          }[marketCode as "sk" | "cz" | "hu" | "ro"],
+          encodeURIComponent(token),
+        ].join("")
     ),
     copy,
     getReviewRequestCopy: vi.fn((locale: keyof typeof copy) => copy[locale]),
@@ -103,10 +107,30 @@ vi.mock(
 )
 
 const MARKETS = [
-  { countryCode: "sk", domain: "herbatica.sk", locale: "sk-SK" },
-  { countryCode: "cz", domain: "herbatica.cz", locale: "cs-CZ" },
-  { countryCode: "hu", domain: "herbatica.hu", locale: "hu-HU" },
-  { countryCode: "ro", domain: "herbatica.ro", locale: "ro-RO" },
+  {
+    countryCode: "sk",
+    domain: "herbatica.sk",
+    locale: "sk-SK",
+    reviewPath: "/recenzie/produkt/",
+  },
+  {
+    countryCode: "cz",
+    domain: "herbatica.cz",
+    locale: "cs-CZ",
+    reviewPath: "/recenze/produkt/",
+  },
+  {
+    countryCode: "hu",
+    domain: "herbatica.hu",
+    locale: "hu-HU",
+    reviewPath: "/velemenyek/termek/",
+  },
+  {
+    countryCode: "ro",
+    domain: "herbatica.ro",
+    locale: "ro-RO",
+    reviewPath: "/recenzii/produs/",
+  },
 ] as const
 
 const createContext = (countryCode: string) => {
@@ -177,6 +201,7 @@ describe("send product review request workflow", () => {
     countryCode,
     domain,
     locale,
+    reviewPath,
   }) => {
     await import("../../../../src/workflows/send-product-review-request")
     resolveNotificationMarketContext.mockResolvedValue({
@@ -214,11 +239,7 @@ describe("send product review request workflow", () => {
     )
     expect(productReviews).toEqual([
       expect.objectContaining({
-        review_url: [
-          "https://",
-          domain,
-          "/reviews/product/token%2Fvalue?product_id=prod_1",
-        ].join(""),
+        review_url: ["https://", domain, reviewPath, "token%2Fvalue"].join(""),
         title: reviewUtilities.copy[locale].product,
       }),
     ])

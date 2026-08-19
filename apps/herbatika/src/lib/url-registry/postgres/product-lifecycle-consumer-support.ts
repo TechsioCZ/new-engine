@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto"
+import { createHash, randomUUID } from "node:crypto"
 import { createUrlRegistryCommand } from "../contracts"
 import { UrlRegistryError } from "../errors"
 import type { ProductLifecycleReceiptAction } from "../product-lifecycle"
@@ -6,6 +6,7 @@ import type {
   ProductLifecycleChangeType,
   ProductLifecycleDeliveryV1,
 } from "../product-lifecycle-parser"
+import { changeEntitySlug, createEntityRoute } from "./entity-writes"
 import { retireRoute } from "./lifecycle-writes"
 import type { SqlClient } from "./sql"
 import { asEntityResult, type PostgresCommandRunner } from "./write-runner"
@@ -133,33 +134,113 @@ const commandKey = (delivery: ProductLifecycleDeliveryV1): string =>
     )
     .digest("hex")}`
 
+const identityFor = (delivery: ProductLifecycleDeliveryV1) => ({
+  targetType: "entity" as const,
+  sourceSystem: "medusa",
+  sourceType: "product",
+  sourceId: delivery.entityId,
+  staticRouteKey: null,
+})
+
+const sourceFor = (delivery: ProductLifecycleDeliveryV1) => ({
+  producer: "herbatika-product-lifecycle",
+  sourceSystem: "medusa",
+  sourceType: "product",
+  sourceId: delivery.entityId,
+  sourceVersion: delivery.payload.sourceVersion,
+  sourceEventId: delivery.outboxEventId,
+})
+
+export const publishProductLifecycleRoute = async (
+  runner: PostgresCommandRunner,
+  executor: SqlClient,
+  delivery: ProductLifecycleDeliveryV1,
+  publicSlug: string
+): Promise<string> => {
+  const key = commandKey(delivery)
+  const command = createUrlRegistryCommand({
+    idempotencyKey: key,
+    request: {
+      commandType: "create-entity-route" as const,
+      expectedVersion: 0 as const,
+      source: sourceFor(delivery),
+      route: {
+        market: delivery.marketCode,
+        kind: "product" as const,
+        identity: identityFor(delivery),
+        equivalenceKey: `medusa:product:${delivery.entityId}`,
+        indexPolicy: "indexable" as const,
+      },
+      slug: { normalizedSlug: publicSlug, normalizationVersion: 1 },
+    },
+  })
+  const result = asEntityResult(
+    await runner.runInTransaction(executor, {
+      command,
+      expectedType: "create-entity-route",
+      mutate: (client) => createEntityRoute(client, command, randomUUID),
+    })
+  )
+  if (result.commit.outcome !== "applied") {
+    throw new UrlRegistryError(
+      "INVARIANT_VIOLATION",
+      "Product lifecycle publication did not apply"
+    )
+  }
+  return key
+}
+
+export const changeProductLifecycleSlug = async (
+  input: Readonly<{
+    delivery: ProductLifecycleDeliveryV1
+    executor: SqlClient
+    publicSlug: string
+    route: Readonly<{ route: { id: string; version: number } }>
+    runner: PostgresCommandRunner
+  }>
+): Promise<string> => {
+  const { delivery, executor, publicSlug, route, runner } = input
+  const key = commandKey(delivery)
+  const command = createUrlRegistryCommand({
+    idempotencyKey: key,
+    request: {
+      commandType: "change-slug" as const,
+      expectedVersion: route.route.version,
+      source: sourceFor(delivery),
+      target: { routeId: route.route.id, identity: identityFor(delivery) },
+      slug: { normalizedSlug: publicSlug, normalizationVersion: 1 },
+    },
+  })
+  const result = asEntityResult(
+    await runner.runInTransaction(executor, {
+      command,
+      expectedType: "change-slug",
+      mutate: (client) => changeEntitySlug(client, command, randomUUID),
+    })
+  )
+  if (result.commit.outcome !== "applied") {
+    throw new UrlRegistryError(
+      "INVARIANT_VIOLATION",
+      "Product lifecycle slug change did not apply"
+    )
+  }
+  return key
+}
+
 export const retireProductLifecycleRoute = async (
   runner: PostgresCommandRunner,
   executor: SqlClient,
   delivery: ProductLifecycleDeliveryV1,
   route: Readonly<{ route: { id: string; version: number } }>
 ): Promise<string> => {
-  const identity = {
-    targetType: "entity" as const,
-    sourceSystem: "medusa",
-    sourceType: "product",
-    sourceId: delivery.entityId,
-    staticRouteKey: null,
-  }
+  const identity = identityFor(delivery)
   const key = commandKey(delivery)
   const command = createUrlRegistryCommand({
     idempotencyKey: key,
     request: {
       commandType: "retire-route" as const,
       expectedVersion: route.route.version,
-      source: {
-        producer: "herbatika-product-lifecycle",
-        sourceSystem: "medusa",
-        sourceType: "product",
-        sourceId: delivery.entityId,
-        sourceVersion: String(delivery.streamSequence),
-        sourceEventId: delivery.outboxEventId,
-      },
+      source: sourceFor(delivery),
       target: { routeId: route.route.id, identity },
     },
   })

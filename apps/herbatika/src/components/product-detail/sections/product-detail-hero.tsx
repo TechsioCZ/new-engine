@@ -15,6 +15,8 @@ import { ProductDetailPurchasePanel } from "@/components/product-detail/sections
 import type { ProductLocationAvailabilityState } from "@/lib/storefront/product-location-availability"
 
 type ProductDetailHeroProps = {
+  brandPublicSlugsById?: Readonly<Record<string, string>>
+  categoryPublicSlugsById?: Readonly<Record<string, string>>
   children?: ReactNode
   canAddToCart: boolean
   currentAmountLabel: string
@@ -31,6 +33,7 @@ type ProductDetailHeroProps = {
   onQuantityChange: (quantity: number) => void
   onVariantChange: (variantId: string | null) => void
   product: Product
+  publicSlug?: string | null
   productCategories: HttpTypes.StoreProductCategory[]
   productHighlights: string[]
   quantity: number
@@ -41,6 +44,8 @@ type ProductDetailHeroProps = {
 }
 
 export function ProductDetailHero({
+  brandPublicSlugsById,
+  categoryPublicSlugsById,
   children,
   canAddToCart,
   currentAmountLabel,
@@ -57,6 +62,7 @@ export function ProductDetailHero({
   onQuantityChange,
   onVariantChange,
   product,
+  publicSlug,
   productCategories,
   productHighlights,
   quantity,
@@ -75,7 +81,9 @@ export function ProductDetailHero({
 
       <div className="min-w-0 space-y-300">
         <ProductDetailPurchasePanel
+          brandPublicSlugsById={brandPublicSlugsById}
           canAddToCart={canAddToCart}
+          categoryPublicSlugsById={categoryPublicSlugsById}
           currentAmountLabel={currentAmountLabel}
           displayOriginalLabel={displayOriginalLabel}
           isAdding={isAdding}
@@ -87,6 +95,7 @@ export function ProductDetailHero({
           product={product}
           productCategories={productCategories}
           productHighlights={productHighlights}
+          publicSlug={publicSlug}
           quantity={quantity}
           selectedVariantId={selectedVariantId}
           unitPriceLabel={unitPriceLabel}

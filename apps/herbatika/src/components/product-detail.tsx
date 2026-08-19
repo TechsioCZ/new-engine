@@ -3,7 +3,6 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
@@ -20,10 +19,20 @@ import { ProductDetailSkeleton } from "@/components/product-detail/sections/prod
 import { ProductDetailTabs } from "@/components/product-detail/sections/product-detail-tabs"
 import { useProductDetailController } from "@/components/product-detail/use-product-detail-controller"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
+import { StorefrontLink } from "@/components/storefront-link"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildPath } from "@/lib/url/public-url"
 
 export function ProductDetail(props: ProductDetailProps) {
-  const { initialVariantId } = props
+  const {
+    brandPublicSlugsById,
+    categoryPublicSlugsById,
+    initialVariantId,
+    productPublicSlugsById,
+    publicSlug,
+  } = props
+  const { code: market } = useMarketContext()
   const initialProduct =
     "initialProduct" in props ? props.initialProduct : undefined
   const handle = initialProduct?.handle ?? props.handle
@@ -34,9 +43,12 @@ export function ProductDetail(props: ProductDetailProps) {
   }
   const tCatalog = useTranslations("catalog")
   const controller = useProductDetailController({
+    brandPublicSlugsById,
+    categoryPublicSlugsById,
     handle,
     initialProduct,
     initialVariantId,
+    productPublicSlugsById,
   })
   const [activeInfoSection, setActiveInfoSection] = useState<
     string | undefined
@@ -111,7 +123,12 @@ export function ProductDetail(props: ProductDetailProps) {
           <StatusText showIcon status="error">
             {tCatalog("product_detail.errors.not_found")}
           </StatusText>
-          <LinkButton as={NextLink} href="/" size="sm" variant="secondary">
+          <LinkButton
+            as={StorefrontLink}
+            href={buildPath({ kind: "home" }, market)}
+            size="sm"
+            variant="secondary"
+          >
             {tCatalog("product_detail.back_home")}
           </LinkButton>
         </section>
@@ -124,7 +141,9 @@ export function ProductDetail(props: ProductDetailProps) {
       ) && controller.product ? (
         <>
           <ProductDetailHero
+            brandPublicSlugsById={brandPublicSlugsById}
             canAddToCart={controller.canAddToCart}
+            categoryPublicSlugsById={categoryPublicSlugsById}
             currentAmountLabel={controller.currentAmountLabel}
             discountPercent={controller.discountPercent}
             displayOriginalLabel={controller.displayOriginalLabel}
@@ -141,6 +160,7 @@ export function ProductDetail(props: ProductDetailProps) {
             product={controller.product}
             productCategories={controller.productCategories}
             productHighlights={controller.productHighlights}
+            publicSlug={publicSlug}
             quantity={controller.quantity}
             selectedVariantId={controller.selectedVariantId}
             unitPriceLabel={controller.unitPriceLabel}
@@ -166,6 +186,7 @@ export function ProductDetail(props: ProductDetailProps) {
             defaultSectionValue={controller.defaultInfoSectionValue}
             onSectionValueChange={setActiveInfoSection}
             productId={controller.product.id}
+            publicSlug={publicSlug}
             sections={controller.productContentSections}
           />
         </>
@@ -178,6 +199,7 @@ export function ProductDetail(props: ProductDetailProps) {
             onAddToCart={controller.handleAddRelatedProductToCart}
             onProductHoverEnd={controller.handleRelatedProductHoverEnd}
             onProductHoverStart={controller.handleRelatedProductHoverStart}
+            productPublicSlugsById={controller.productPublicSlugsById}
             sections={controller.relatedSections}
           />
           <RecentlyVisitedProductsSection

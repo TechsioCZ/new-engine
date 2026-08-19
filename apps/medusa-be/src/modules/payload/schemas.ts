@@ -202,6 +202,39 @@ const CmsArticleCategorySchema = passthroughObject({
   ),
 })
 
+const CmsHeroButtonTargetSchema = z.union([
+  passthroughObject({
+    targetType: z.literal("entity"),
+    sourceSystem: z.literal("medusa"),
+    sourceType: z.enum(["product", "category", "brand", "collection"]),
+    sourceId: z.string().trim().min(1),
+    staticRouteKey: z.null().optional(),
+  }),
+  passthroughObject({
+    targetType: z.literal("entity"),
+    sourceSystem: z.literal("payload"),
+    sourceType: z.enum(["article", "page"]),
+    sourceId: z.string().trim().min(1),
+    staticRouteKey: z.null().optional(),
+  }),
+  passthroughObject({
+    targetType: z.literal("static"),
+    sourceSystem: z.null().optional(),
+    sourceType: z.null().optional(),
+    sourceId: z.null().optional(),
+    staticRouteKey: z.enum([
+      "root:about",
+      "root:contact",
+      "root:faq",
+      "root:shipping",
+      "root:returns",
+      "root:terms",
+      "root:privacy",
+      "root:cookies",
+    ]),
+  }),
+])
+
 const CmsHeroCarouselSchema = passthroughObject({
   id: z.number(),
   image: z.unknown(),
@@ -209,6 +242,7 @@ const CmsHeroCarouselSchema = passthroughObject({
   subheading: z.string().nullable().optional(),
   button: z.string().nullable().optional(),
   buttonHref: z.string().nullable().optional(),
+  buttonTarget: CmsHeroButtonTargetSchema.nullable().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 })
@@ -392,6 +426,7 @@ export {
   CmsPageCategorySchema,
   CmsArticleSchema,
   CmsArticleCategorySchema,
+  CmsHeroButtonTargetSchema,
   CmsHeroCarouselSchema,
   CmsFooterColumnSlotSchema,
   CmsFooterItemSlotSchema,

@@ -33,7 +33,7 @@ Required:
 Optional (commonly used):
 
 - `PAYLOAD_SCHEMA_NAME`
-- `PAYLOAD_LOCALES`: comma-separated list, first entry is the default locale; defaults to `en`
+- `PAYLOAD_LOCALES`: exact comma-separated content locale set `cs,sk,hu,ro`; the first entry is the default locale
 - `FEATURE_PAYLOAD_ARTICLES_ENABLED`, `FEATURE_PAYLOAD_PAGES_ENABLED`, `FEATURE_PAYLOAD_HERO_CAROUSELS_ENABLED`
 - `OPENAI_API_KEY`, `OPENAI_BASE_URL`
 - `MEDUSA_BACKEND_URL` (enables CMS cache invalidation in Medusa)
@@ -126,5 +126,4 @@ All endpoints are mounted under the Payload API base (default: `/api`):
 ## Notes
 
 - Postgres schema migrations live in `apps/payload/src/migrations`.
-- Localization is controlled by `PAYLOAD_LOCALES`; supported languages include: `en`, `cs`, `sk`, `pl`, `hu`, `ro`,
-  `sl`, `de`, `fr`, `es`.
+- Content localization is controlled by `PAYLOAD_LOCALES` and is restricted to the four storefront markets: `cs`, `sk`, `hu`, and `ro`.

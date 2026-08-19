@@ -18,7 +18,7 @@ type UseCheckoutActionsProps = {
   cart?: HttpTypes.StoreCart | null
   cartId?: string
   completedOrderId: string | null
-  onCompletedOrderIdChange: (orderId: string | null) => void
+  onCompletedOrderIdChange: (orderId: string | null) => Promise<void> | void
   onOrderCompletionAbort: () => void
   onOrderCompletionStart: () => void
   onPaymentRedirect: (url: string) => void
@@ -194,7 +194,7 @@ export function useCheckoutActions({
       const orderId = resolveOrderId(completeResult)
 
       if (orderId) {
-        onCompletedOrderIdChange(orderId)
+        await onCompletedOrderIdChange(orderId)
         return
       }
 

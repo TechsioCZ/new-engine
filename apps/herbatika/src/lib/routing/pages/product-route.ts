@@ -25,9 +25,11 @@ export type ProductRouteRegistry = Pick<UrlRegistry, "resolve">
 export type ProductRouteSourceReadInput = Readonly<{
   market: Market
   productId: string
+  publicSlug: string
 }>
 
 type ProductRouteInput<Product extends ProductRouteSourceProduct> = Readonly<{
+  canonicalizationRequired: boolean
   market: Market
   normalizedSlug: string
   rawQuery: string
@@ -142,16 +144,37 @@ const isValidResolution = (
 }
 
 const requiresCanonicalRedirect = (
+  canonicalizationRequired: boolean,
   disposition: "alias" | "current" | "superseded",
   queryKind: "accept" | "redirect"
-) => disposition !== "current" || queryKind === "redirect"
+) =>
+  canonicalizationRequired ||
+  disposition !== "current" ||
+  queryKind === "redirect"
+
+type ProductQuery = Exclude<
+  ReturnType<typeof normalizeQuery>,
+  { kind: "not-found" }
+>
+
+const buildProductRedirectSearchParams = (query: ProductQuery) =>
+  Object.fromEntries([
+    ...(query.values.variant === undefined
+      ? []
+      : [["variant", query.values.variant] as const]),
+    ...(query.values.reviews_page === undefined
+      ? []
+      : [["reviews_page", query.values.reviews_page] as const]),
+    ...query.tracking.map(({ key, value }) => [key, value] as const),
+  ])
 
 const readValidProduct = async <Product extends ProductRouteSourceProduct>(
   readProductById: ProductRouteInput<Product>["readProductById"],
   market: Market,
-  productId: string
+  productId: string,
+  publicSlug: string
 ): Promise<SourceReadResult<Product>> => {
-  const result = await readProductById({ market, productId })
+  const result = await readProductById({ market, productId, publicSlug })
   if (result.kind !== "found") {
     return result
   }
@@ -163,6 +186,7 @@ const readValidProduct = async <Product extends ProductRouteSourceProduct>(
 export const resolveProductRoute = async <
   Product extends ProductRouteSourceProduct,
 >({
+  canonicalizationRequired,
   market,
   normalizedSlug,
   rawQuery,
@@ -210,7 +234,8 @@ export const resolveProductRoute = async <
   const productResult = await readValidProduct(
     readProductById,
     market,
-    targetRoute.sourceId
+    targetRoute.sourceId,
+    resolution.currentSlug.normalizedSlug
   )
   if (productResult.kind === "missing") {
     return { kind: "not-found" }
@@ -231,15 +256,19 @@ export const resolveProductRoute = async <
 
   const publicSlug = resolution.currentSlug.normalizedSlug
   const canonicalUrl = buildProductAbsoluteUrl(market, publicSlug)
-  if (requiresCanonicalRedirect(resolution.disposition, query.kind)) {
-    const redirectRawQuery =
-      query.kind === "redirect" ? query.redirectRawQuery : rawQuery
+  if (
+    requiresCanonicalRedirect(
+      canonicalizationRequired,
+      resolution.disposition,
+      query.kind
+    )
+  ) {
     return {
       kind: "redirect",
       destination: buildProductAbsoluteUrl(
         market,
         publicSlug,
-        redirectRawQuery
+        buildProductRedirectSearchParams(query)
       ),
       statusCode: 308,
     }

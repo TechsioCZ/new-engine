@@ -65,7 +65,10 @@ export const ROUTES = {
     countryCode: "RO",
     locale: "ro-RO",
     market: "ro",
-    proposedAliases: ["www.herbatica.ro"],
+    proposedAliases: [
+      "www.herbatica.ro",
+      "test-engine-herbatika-ro-zane.web-revolution.cz",
+    ],
   },
 } as const satisfies Record<MarketCode, MarketRouteDefinition>
 

@@ -2,8 +2,9 @@ import type { HttpTypes } from "@medusajs/types"
 import { Badge } from "@techsio/ui-kit/atoms/badge"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import NextImage from "next/image"
-import NextLink from "next/link"
 import { useLocale, useTranslations } from "next-intl"
+import { StorefrontLink } from "@/components/storefront-link"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import {
   formatOrderAmount,
   formatOrderDate,
@@ -15,21 +16,72 @@ import {
   resolveOrderProgressState,
   resolveOrderTotalAmount,
 } from "@/lib/storefront/order-format"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
+import { buildPath } from "@/lib/url/public-url"
+import type { Market } from "@/lib/url/types"
 
 type AccountOrderGroupProps = {
   order: HttpTypes.StoreOrder
   onPrefetchOrderDetail: (orderId: string) => void
+  publicProductSlugs?: Readonly<Record<string, string | null | undefined>>
+}
+
+type StoreOrderItem = NonNullable<HttpTypes.StoreOrder["items"]>[number]
+
+const resolveOrderItemProductHref = (
+  item: StoreOrderItem,
+  publicProductSlugs:
+    | Readonly<Record<string, string | null | undefined>>
+    | undefined,
+  market: Market
+) => {
+  const productId = item.product_id
+  const publicSlug = productId ? publicProductSlugs?.[productId] : undefined
+  return buildProjectedEntityPath(
+    "product",
+    publicSlug ? { publicSlug } : undefined,
+    market
+  )
+}
+
+function OrderProductDetailAction({
+  href,
+  label,
+}: {
+  href: string | null
+  label: string
+}) {
+  return (
+    <div className="flex items-center justify-end lg:justify-self-end">
+      {href ? (
+        <LinkButton
+          as={StorefrontLink}
+          href={href}
+          size="sm"
+          theme="outlined"
+          variant="secondary"
+        >
+          {label}
+        </LinkButton>
+      ) : null}
+    </div>
+  )
 }
 
 export function AccountOrderGroup({
   order,
   onPrefetchOrderDetail,
+  publicProductSlugs,
 }: AccountOrderGroupProps) {
   const locale = useLocale()
   const tAuth = useTranslations("auth")
+  const { code: market } = useMarketContext()
   const translateOrderStatus: OrderStatusTranslator = (group, status) =>
     tAuth(`account.orders.status.${group}`, { status })
-  const detailHref = `/account/orders/${order.id}`
+  const detailHref = buildPath(
+    { kind: "account", section: "orders", value: order.id },
+    market
+  )
   const invoiceUrl = resolveOrderInvoiceUrl(order)
   const orderTotalAmount = resolveOrderTotalAmount(order)
   const orderProgress = resolveOrderProgressState(order, translateOrderStatus)
@@ -86,7 +138,7 @@ export function AccountOrderGroup({
         <div className="flex flex-wrap gap-order-group-md lg:justify-self-end">
           {invoiceUrl && (
             <LinkButton
-              as={NextLink}
+              as={StorefrontLink}
               href={invoiceUrl}
               rel="noreferrer"
               size="sm"
@@ -98,7 +150,7 @@ export function AccountOrderGroup({
             </LinkButton>
           )}
           <LinkButton
-            as={NextLink}
+            as={StorefrontLink}
             href={detailHref}
             onFocus={() => {
               onPrefetchOrderDetail(order.id)
@@ -129,6 +181,11 @@ export function AccountOrderGroup({
           {orderItems.map((item) => {
             const itemQuantity = resolveOrderItemQuantity(item)
             const lineTotal = resolveOrderItemTotalAmount(item)
+            const productHref = resolveOrderItemProductHref(
+              item,
+              publicProductSlugs,
+              market
+            )
 
             return (
               <li
@@ -174,23 +231,10 @@ export function AccountOrderGroup({
                   </p>
                 </div>
 
-                <div className="flex items-center justify-end lg:justify-self-end">
-                  <LinkButton
-                    as={NextLink}
-                    href={`/p/${item.product_handle}`}
-                    onFocus={() => {
-                      onPrefetchOrderDetail(order.id)
-                    }}
-                    onMouseEnter={() => {
-                      onPrefetchOrderDetail(order.id)
-                    }}
-                    size="sm"
-                    theme="outlined"
-                    variant="secondary"
-                  >
-                    {tAuth("account.orders.product_detail")}
-                  </LinkButton>
-                </div>
+                <OrderProductDetailAction
+                  href={productHref}
+                  label={tAuth("account.orders.product_detail")}
+                />
               </li>
             )
           })}
