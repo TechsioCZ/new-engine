@@ -31,7 +31,7 @@ const ROUTE_RULES: readonly RouteRule[] = [
   {
     methods: ["POST"],
     pattern: new RegExp(
-      `^/store/carts/${ID}/(?:complete|customer|line-items|shipping-methods)$`
+      `^/store/carts/${ID}/(?:complete|customer|line-items|shipping-methods|transfer)$`
     ),
   },
   {

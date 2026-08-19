@@ -152,6 +152,22 @@ const requiresCanonicalRedirect = (
   disposition !== "current" ||
   queryKind === "redirect"
 
+type ProductQuery = Exclude<
+  ReturnType<typeof normalizeQuery>,
+  { kind: "not-found" }
+>
+
+const buildProductRedirectSearchParams = (query: ProductQuery) =>
+  Object.fromEntries([
+    ...(query.values.variant === undefined
+      ? []
+      : [["variant", query.values.variant] as const]),
+    ...(query.values.reviews_page === undefined
+      ? []
+      : [["reviews_page", query.values.reviews_page] as const]),
+    ...query.tracking.map(({ key, value }) => [key, value] as const),
+  ])
+
 const readValidProduct = async <Product extends ProductRouteSourceProduct>(
   readProductById: ProductRouteInput<Product>["readProductById"],
   market: Market,
@@ -247,18 +263,12 @@ export const resolveProductRoute = async <
       query.kind
     )
   ) {
-    const redirectSearchParams = Object.fromEntries([
-      ...(query.values.variant === undefined
-        ? []
-        : [["variant", query.values.variant] as const]),
-      ...query.tracking.map(({ key, value }) => [key, value] as const),
-    ])
     return {
       kind: "redirect",
       destination: buildProductAbsoluteUrl(
         market,
         publicSlug,
-        redirectSearchParams
+        buildProductRedirectSearchParams(query)
       ),
       statusCode: 308,
     }

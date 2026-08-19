@@ -135,6 +135,39 @@ describe("parsePublicPath", () => {
     })
   })
 
+  it("preserves account-list selection and product review pagination", () => {
+    expect(
+      parsePublicPath({
+        market: "sk",
+        pathname: "/ucet/zoznamy",
+        rawQuery: "list=plist_01HzX9_A",
+      })
+    ).toMatchObject({
+      kind: "found",
+      query: {
+        canonicalRawQuery: "list=plist_01HzX9_A",
+        kind: "accept",
+        values: { list: "plist_01HzX9_A" },
+      },
+      seo: { canonicalRawQuery: null, indexable: false },
+    })
+    expect(
+      parsePublicPath({
+        market: "sk",
+        pathname: "/produkty/ashwagandha",
+        rawQuery: "reviews_page=2",
+      })
+    ).toMatchObject({
+      kind: "found",
+      query: {
+        canonicalRawQuery: "reviews_page=2",
+        kind: "accept",
+        values: { reviews_page: 2 },
+      },
+      target: { kind: "product", slug: "ashwagandha" },
+    })
+  })
+
   it("maps invalid and out-of-range queries to a typed not-found", () => {
     expect(
       parsePublicPath({

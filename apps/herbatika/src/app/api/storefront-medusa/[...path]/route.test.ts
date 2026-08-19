@@ -235,6 +235,7 @@ describe("storefront Medusa gateway", () => {
     ["/store/claims", "POST"],
     ["/store/claims/order-access/request", "POST"],
     ["/store/claims/order-access/verify", "POST"],
+    ["/store/carts/cart_1/transfer", "POST"],
     ["/store/gls/branches?cart_id=cart_1&limit=20&q=Praha", "GET"],
     ["/store/packeta/widget-config", "GET"],
     ["/store/ppl/widget-config", "GET"],

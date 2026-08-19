@@ -41,7 +41,11 @@ const PAGINATED_LISTINGS = new Set<QueryRouteKind>([
   "product-index",
 ])
 
-const NEVER_INDEX = new Set<QueryRouteKind>(["account-orders", "search"])
+const NEVER_INDEX = new Set<QueryRouteKind>([
+  "account-lists",
+  "account-orders",
+  "search",
+])
 
 const keys = (values: NormalizedQueryValues) => Object.keys(values)
 

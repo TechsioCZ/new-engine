@@ -19,6 +19,7 @@ describe("auth public URL helpers", () => {
   it("accepts only same-origin relative redirect targets", () => {
     expect(resolveSafeRedirectHref("/moj-ucet")).toBe("/moj-ucet")
     expect(resolveSafeRedirectHref("//attacker.example/path")).toBeNull()
+    expect(resolveSafeRedirectHref("/\\attacker.example/path")).toBeNull()
     expect(resolveSafeRedirectHref("https://attacker.example/path")).toBeNull()
   })
 

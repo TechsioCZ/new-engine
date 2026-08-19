@@ -67,6 +67,7 @@ describe("public SEO classification", () => {
   })
 
   it.each([
+    "account-lists",
     "search",
     "account-orders",
   ] as const)("never indexes %s", (routeKind) => {

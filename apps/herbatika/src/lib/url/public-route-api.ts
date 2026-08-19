@@ -252,6 +252,27 @@ const optionalThirdSegment = (
   return segments.length === 3 && segments[2] ? { value: segments[2] } : null
 }
 
+const parseAccountCollectionTarget = (
+  section: "lists" | "orders",
+  segments: readonly string[],
+  optionalValue: Readonly<{ value?: string }> | null
+): ParsedTarget | null => {
+  if (section === "lists") {
+    return segments.length === 2
+      ? {
+          routeKind: "account-lists",
+          target: { kind: "account", section },
+        }
+      : null
+  }
+  return optionalValue !== null
+    ? {
+        routeKind: optionalValue.value === undefined ? "account-orders" : null,
+        target: { kind: "account", section, value: optionalValue.value },
+      }
+    : null
+}
+
 const parseAccountTarget = (
   market: Market,
   segments: readonly string[]
@@ -274,14 +295,8 @@ const parseAccountTarget = (
         }
       : null
   }
-  if (section === "orders") {
-    return optionalValue !== null
-      ? {
-          routeKind:
-            optionalValue.value === undefined ? "account-orders" : null,
-          target: { kind: "account", section, value: optionalValue.value },
-        }
-      : null
+  if (section === "orders" || section === "lists") {
+    return parseAccountCollectionTarget(section, segments, optionalValue)
   }
   return segments.length === 2
     ? { routeKind: null, target: { kind: "account", section } }

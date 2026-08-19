@@ -14,6 +14,7 @@ const MAX_SEARCH_CODE_POINTS = 200
 const PAGE_PATTERN = /^[1-9][0-9]*$/
 const PRICE_PATTERN = /^[0-9]+(?:\.[0-9]{1,2})?$/
 const FACET_TOKEN_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const MEDUSA_ID_PATTERN = /^[A-Za-z0-9_-]{1,160}$/
 const LEADING_ZERO_PATTERN = /^0+(?=\d)/
 
 const SORT_VALUES = new Set([
@@ -211,6 +212,28 @@ const applyOpaqueValues = (
   }
   if (variant !== undefined) {
     values.variant = variant
+  }
+
+  const reviewsPage = entries.get("reviews_page")?.value
+  if (reviewsPage !== undefined) {
+    if (!PAGE_PATTERN.test(reviewsPage)) {
+      return createQueryNotFoundResult("invalid-page", "reviews_page")
+    }
+    const page = Number(reviewsPage)
+    if (!Number.isSafeInteger(page)) {
+      return createQueryNotFoundResult("invalid-page", "reviews_page")
+    }
+    if (page !== 1) {
+      values.reviews_page = page
+    }
+  }
+
+  const list = entries.get("list")?.value
+  if (list !== undefined) {
+    if (!MEDUSA_ID_PATTERN.test(list)) {
+      return createQueryNotFoundResult("invalid-list", "list")
+    }
+    values.list = list
   }
   return
 }

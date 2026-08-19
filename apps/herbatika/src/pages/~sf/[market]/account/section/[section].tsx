@@ -22,11 +22,14 @@ export const getServerSideProps = (async (context) => {
   const result = await resolveAccountPrivatePage(context, {
     expectedRouteKey: `account.${section}`,
     loadSource: async () => ({ kind: "found", value: { section } }),
-    ...(section === "orders"
+    ...(section === "orders" || section === "lists"
       ? {
           query: {
-            kind: "account-orders" as const,
-            path: { kind: "account" as const, section: "orders" as const },
+            kind:
+              section === "orders"
+                ? ("account-orders" as const)
+                : ("account-lists" as const),
+            path: { kind: "account" as const, section },
           },
         }
       : {}),

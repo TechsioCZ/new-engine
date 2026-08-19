@@ -46,6 +46,7 @@ const requireNotFound = (routeKind: QueryRouteKind, rawQuery: string) => {
 describe("normalizeQuery route scopes", () => {
   it("publishes the exact per-route allowlists", () => {
     expect(QUERY_ALLOWED_KEYS_BY_ROUTE_KIND).toEqual({
+      "account-lists": ["list"],
       "account-orders": ["page"],
       "advice-article": [],
       "advice-index": ["page"],
@@ -94,7 +95,7 @@ describe("normalizeQuery route scopes", () => {
       "collection-index": [],
       homepage: [],
       "information-detail": [],
-      "product-detail": ["variant"],
+      "product-detail": ["variant", "reviews_page"],
       "product-index": [
         "page",
         "sort",
@@ -125,10 +126,12 @@ describe("normalizeQuery route scopes", () => {
       brand: "pukka",
       form: "tea",
       ingredient: "vitamin-c",
+      list: "plist_01HZX9A",
       page: "2",
       price_max: "20.00",
       price_min: "5",
       q: "Herbal Tea",
+      reviews_page: "2",
       sort: "newest",
       status: "sale",
       variant: "SKU-AbC-01",
@@ -387,6 +390,35 @@ describe("normalizeQuery search, variant, tracking, and unknown keys", () => {
 
     expect(result.values.variant).toBe("SKU-AbC-01/Blue")
     expect(result.canonicalRawQuery).toBe("variant=SKU-AbC-01%2FBlue")
+  })
+
+  it("preserves valid product-list IDs and review pagination", () => {
+    expect(
+      requireAccepted("account-lists", "list=plist_01HzX9_A")
+    ).toMatchObject({
+      canonicalRawQuery: "list=plist_01HzX9_A",
+      values: { list: "plist_01HzX9_A" },
+    })
+    expect(requireAccepted("product-detail", "reviews_page=2")).toMatchObject({
+      canonicalRawQuery: "reviews_page=2",
+      values: { reviews_page: 2 },
+    })
+    expect(requireRedirect("product-detail", "reviews_page=1")).toMatchObject({
+      canonicalRawQuery: "",
+      values: {},
+    })
+  })
+
+  it("rejects malformed product-list IDs and review pages", () => {
+    expect(requireNotFound("account-lists", "list=").reason).toBe(
+      "invalid-list"
+    )
+    expect(requireNotFound("account-lists", "list=../../customer").reason).toBe(
+      "invalid-list"
+    )
+    expect(requireNotFound("product-detail", "reviews_page=01").reason).toBe(
+      "invalid-page"
+    )
   })
 
   it("strips unknown and uppercase keys while preserving tracking in redirect", () => {

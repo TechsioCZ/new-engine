@@ -194,6 +194,27 @@ describe("resolveProductRoute", () => {
     expect(wrongCaseSku).toEqual({ kind: "not-found" })
   })
 
+  it("preserves review pagination on current and canonicalized product routes", async () => {
+    const current = await resolve(
+      { kind: "found", value: currentResolution() },
+      { kind: "found", value: sourceProduct() },
+      { rawQuery: "reviews_page=2" }
+    )
+    const canonicalized = await resolve(
+      { kind: "found", value: currentResolution() },
+      { kind: "found", value: sourceProduct() },
+      { canonicalizationRequired: true, rawQuery: "reviews_page=2" }
+    )
+
+    expect(current.kind).toBe("found")
+    expect(canonicalized).toEqual({
+      destination:
+        "https://herbatica.sk/produkty/current-product?reviews_page=2",
+      kind: "redirect",
+      statusCode: 308,
+    })
+  })
+
   it("maps duplicate matching variant keys to 503", async () => {
     const product: ProductRouteSourceProduct = {
       id: "prod-1",

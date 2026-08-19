@@ -9,12 +9,25 @@ type BuildRegisterDefaultsOptions = {
   countryCode?: string | null
 }
 
+const REDIRECT_VALIDATION_ORIGIN = "https://storefront.invalid"
+
 export const resolveSafeRedirectHref = (value?: string) => {
-  if (!value) {
+  if (
+    !value?.startsWith("/") ||
+    value.startsWith("//") ||
+    value.includes("\\")
+  ) {
     return null
   }
 
-  if (!value.startsWith("/") || value.startsWith("//")) {
+  try {
+    if (
+      new URL(value, REDIRECT_VALIDATION_ORIGIN).origin !==
+      REDIRECT_VALIDATION_ORIGIN
+    ) {
+      return null
+    }
+  } catch {
     return null
   }
 
