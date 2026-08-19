@@ -1,5 +1,5 @@
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
+import { StorefrontLink } from "@/components/storefront-link"
 
 type TextActionLinkProps = {
   href: string
@@ -10,11 +10,11 @@ export function TextActionLink({ href, text }: TextActionLinkProps) {
   const tContent = useTranslations("content")
 
   return (
-    <NextLink
+    <StorefrontLink
       className="shrink-0 font-verdana text-fg-strong text-support leading-snug underline decoration-1 underline-offset-2 hover:text-primary"
       href={href}
     >
       {text ?? tContent("actions.view_all")}
-    </NextLink>
+    </StorefrontLink>
   )
 }

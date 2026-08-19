@@ -6,11 +6,13 @@ import { Input } from "@techsio/ui-kit/atoms/input"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { Popover } from "@techsio/ui-kit/molecules/popover"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 import type { Product } from "@/components/product-detail/product-detail.types"
+import { StorefrontLink } from "@/components/storefront-link"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildPath, withPublicSearchParams } from "@/lib/url/public-url"
 import {
   type ProductListPickerRow,
   useProductListPicker,
@@ -18,6 +20,7 @@ import {
 
 type ProductListPickerPopoverProps = {
   product: Product
+  publicSlug?: string | null
   quantity: number
   selectedVariantId: string | null
 }
@@ -36,6 +39,11 @@ function ProductListPickerListRow({
   row,
 }: ProductListPickerListRowProps) {
   const tAuth = useTranslations("auth")
+  const { code: market } = useMarketContext()
+  const listsHref = withPublicSearchParams(
+    buildPath({ kind: "account", section: "lists" }, market),
+    { list: row.list?.id }
+  )
 
   return (
     <div className="flex items-center gap-200 px-350 py-250">
@@ -64,9 +72,9 @@ function ProductListPickerListRow({
           aria-label={tAuth("product_lists.picker.open_list_aria", {
             listTitle: row.title,
           })}
-          as={NextLink}
+          as={StorefrontLink}
           className="h-500 w-500 p-0"
-          href={`/account/lists?list=${encodeURIComponent(row.list.id)}`}
+          href={listsHref}
           icon="token-icon-chevron-right"
           iconSize="sm"
           size="current"
@@ -87,12 +95,14 @@ function ProductListPickerListRow({
 
 export function ProductListPickerPopover({
   product,
+  publicSlug,
   quantity,
   selectedVariantId,
 }: ProductListPickerPopoverProps) {
   const tAuth = useTranslations("auth")
   const picker = useProductListPicker({
     product,
+    publicSlug,
     quantity,
     selectedVariantId,
   })
@@ -105,7 +115,7 @@ export function ProductListPickerPopover({
           {tAuth("product_lists.picker.auth_required")}
         </p>
         <LinkButton
-          as={NextLink}
+          as={StorefrontLink}
           block
           href={picker.loginHref}
           size="sm"

@@ -1,10 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
+import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
 import {
   buildMedusaUrl,
   clearSessionTokenCookie,
   getPublishableHeaders,
   getSessionTokenFromCookieHeader,
+  marketAuthorityError,
   parseResponseJson,
+  requireStorefrontMarketBinding,
+  StorefrontMarketAuthorityError,
   serverError,
   setSessionTokenCookie,
 } from "../_lib"
@@ -31,6 +35,15 @@ const resolveToken = (
 }
 
 export async function GET(request: NextRequest) {
+  let binding: MarketRuntimeBinding
+  try {
+    binding = requireStorefrontMarketBinding(request)
+  } catch (error) {
+    if (error instanceof StorefrontMarketAuthorityError) {
+      return marketAuthorityError()
+    }
+    throw error
+  }
   const token = getSessionTokenFromCookieHeader(request.headers.get("cookie"))
 
   if (!token) {
@@ -70,7 +83,7 @@ export async function GET(request: NextRequest) {
         method: "GET",
         headers: {
           authorization: `Bearer ${token}`,
-          ...getPublishableHeaders(),
+          ...getPublishableHeaders(binding),
         },
         cache: "no-store",
       }

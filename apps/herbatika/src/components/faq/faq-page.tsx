@@ -3,16 +3,19 @@ import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildPath } from "@/lib/url/public-url"
 import { FaqAccordion } from "./faq-accordion"
 import { faqItemCount, faqItems } from "./faq-page.data"
 
 export function FaqPage() {
   const tContent = useTranslations("content")
   const tNavigation = useTranslations("navigation")
+  const market = useMarketContext().code
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
       label: tNavigation("breadcrumbs.home"),
-      href: "/",
+      href: buildPath({ kind: "home" }, market),
       icon: "token-icon-home",
     },
     { label: tContent("pages.faq") },

@@ -1,0 +1,401 @@
+{
+  "schemaVersion": 2,
+  "baseUrl": "https://caddy:443",
+  "allowSelfSignedTls": true,
+  "requestTimeoutMs": 10000,
+  "maxCrawlUrls": 200,
+  "markets": [
+    {
+      "market": "sk",
+      "host": "herbatica.sk",
+      "locale": "sk-SK",
+      "browserOrigin": "https://herbatica.sk",
+      "home": "/",
+      "aboutPathCase": {
+        "path": "/o-nas",
+        "status": 200,
+        "canonical": "https://herbatica.sk/o-nas"
+      },
+      "currentProduct": "/produkty/fixture-produkt",
+      "currentCategory": "/kategorie/fixture-kategoria",
+      "currentCms": "/poradna/fixture-clanok",
+      "unassignedProduct": "/produkty/fixture-nepriradeny",
+      "missingProduct": "/produkty/neexistuje",
+      "missingCategory": "/kategorie/neexistuje",
+      "missingCms": "/poradna/neexistuje",
+      "statusProbe": {
+        "current": "/__url-m00/current",
+        "alias": "/__url-m00/alias",
+        "missing": "/__url-m00/missing",
+        "gone": "/__url-m00/gone",
+        "unavailable": "/__url-m00/unavailable"
+      },
+      "alias": {
+        "path": "/produkty/stary-fixture-produkt?utm_source=acceptance",
+        "location": "https://herbatica.sk/produkty/fixture-produkt?utm_source=acceptance"
+      },
+      "gone": "/produkty/vyradeny-fixture-produkt",
+      "superseded": {
+        "path": "/produkty/nahradeny-fixture-produkt",
+        "location": "https://herbatica.sk/produkty/fixture-produkt"
+      },
+      "temporaryRedirect": {
+        "path": "/pokladna/fixture-docasne",
+        "location": "https://herbatica.sk/pokladna"
+      },
+      "queryCases": [
+        {
+          "path": "/produkty?page=1&utm_source=acceptance",
+          "status": 308,
+          "location": "https://herbatica.sk/produkty?utm_source=acceptance"
+        },
+        {
+          "path": "/produkty?page=2",
+          "status": 200,
+          "canonical": "https://herbatica.sk/produkty?page=2",
+          "indexable": true,
+          "hreflang": false
+        },
+        {
+          "path": "/produkty?sort=price-asc",
+          "status": 200,
+          "indexable": false,
+          "canonical": null,
+          "hreflang": false
+        },
+        {
+          "path": "/produkty?page=999999",
+          "status": 404
+        }
+      ],
+      "token": {
+        "path": "/recenzie/produkt/acceptance-secret-token",
+        "invalidPaths": [
+          "/recenzie/produkt/acceptance-invalid-token",
+          "/recenzie/produkt/acceptance-used-token",
+          "/recenzie/produkt/acceptance-expired-token"
+        ],
+        "secret": "acceptance-secret-token"
+      },
+      "outages": {
+        "urlRegistry": "/produkty/urlr-unavailable",
+        "medusa": "/produkty/medusa-unavailable",
+        "cms": "/poradna/cms-unavailable"
+      },
+      "crawlRoots": ["/", "/produkty", "/kategorie", "/znacky", "/kolekcie"],
+      "crawlPrefixes": [
+        "/produkty",
+        "/kategorie",
+        "/znacky",
+        "/kolekcie",
+        "/poradna",
+        "/informacie"
+      ]
+    },
+    {
+      "market": "cz",
+      "host": "herbatica.cz",
+      "locale": "cs-CZ",
+      "browserOrigin": "https://herbatica.cz",
+      "inheritFixtureFrom": "sk",
+      "aboutPathCase": {
+        "path": "/o-nas",
+        "status": 200,
+        "canonical": "https://herbatica.cz/o-nas"
+      },
+      "currentProduct": "/produkty/fixture-produkt",
+      "currentCategory": "/kategorie/fixture-kategorie",
+      "currentCms": "/poradna/fixture-clanek",
+      "unassignedProduct": "/produkty/fixture-neprirazeny",
+      "missingProduct": "/produkty/neexistuje",
+      "missingCategory": "/kategorie/neexistuje",
+      "missingCms": "/poradna/neexistuje",
+      "alias": {
+        "path": "/produkty/stary-fixture-produkt?utm_source=acceptance",
+        "location": "https://herbatica.cz/produkty/fixture-produkt?utm_source=acceptance"
+      },
+      "gone": "/produkty/vyrazeny-fixture-produkt",
+      "superseded": {
+        "path": "/produkty/nahrazeny-fixture-produkt",
+        "location": "https://herbatica.cz/produkty/fixture-produkt"
+      },
+      "temporaryRedirect": {
+        "path": "/pokladna/fixture-docasne",
+        "location": "https://herbatica.cz/pokladna"
+      },
+      "queryCases": [
+        {
+          "path": "/produkty?page=1&utm_source=acceptance",
+          "status": 308,
+          "location": "https://herbatica.cz/produkty?utm_source=acceptance"
+        },
+        {
+          "path": "/produkty?page=2",
+          "status": 200,
+          "canonical": "https://herbatica.cz/produkty?page=2",
+          "indexable": true,
+          "hreflang": false
+        },
+        {
+          "path": "/produkty?sort=price-asc",
+          "status": 200,
+          "indexable": false,
+          "canonical": null,
+          "hreflang": false
+        },
+        { "path": "/produkty?page=999999", "status": 404 }
+      ],
+      "token": {
+        "path": "/recenze/produkt/acceptance-secret-token",
+        "invalidPaths": [
+          "/recenze/produkt/acceptance-invalid-token",
+          "/recenze/produkt/acceptance-used-token",
+          "/recenze/produkt/acceptance-expired-token"
+        ],
+        "secret": "acceptance-secret-token"
+      },
+      "outages": {
+        "urlRegistry": "/produkty/urlr-unavailable",
+        "medusa": "/produkty/medusa-unavailable",
+        "cms": "/poradna/cms-unavailable"
+      },
+      "crawlRoots": ["/", "/produkty", "/kategorie", "/znacky", "/kolekce"],
+      "crawlPrefixes": [
+        "/produkty",
+        "/kategorie",
+        "/znacky",
+        "/kolekce",
+        "/poradna",
+        "/informace"
+      ]
+    },
+    {
+      "market": "hu",
+      "host": "herbatica.hu",
+      "locale": "hu-HU",
+      "browserOrigin": "https://herbatica.hu",
+      "inheritFixtureFrom": "sk",
+      "aboutPathCase": {
+        "path": "/o-nas",
+        "status": 404,
+        "canonical": null
+      },
+      "currentProduct": "/termekek/fixture-termek",
+      "currentCategory": "/kategoriak/fixture-kategoria",
+      "currentCms": "/tanacsok/fixture-cikk",
+      "unassignedProduct": "/termekek/fixture-nincs-hozzarendelve",
+      "missingProduct": "/termekek/nem-letezik",
+      "missingCategory": "/kategoriak/nem-letezik",
+      "missingCms": "/tanacsok/nem-letezik",
+      "alias": {
+        "path": "/termekek/regi-fixture-termek?utm_source=acceptance",
+        "location": "https://herbatica.hu/termekek/fixture-termek?utm_source=acceptance"
+      },
+      "gone": "/termekek/kivezetett-fixture-termek",
+      "superseded": {
+        "path": "/termekek/levaltott-fixture-termek",
+        "location": "https://herbatica.hu/termekek/fixture-termek"
+      },
+      "temporaryRedirect": {
+        "path": "/penztar/fixture-ideiglenes",
+        "location": "https://herbatica.hu/penztar"
+      },
+      "queryCases": [
+        {
+          "path": "/termekek?page=1&utm_source=acceptance",
+          "status": 308,
+          "location": "https://herbatica.hu/termekek?utm_source=acceptance"
+        },
+        {
+          "path": "/termekek?page=2",
+          "status": 200,
+          "canonical": "https://herbatica.hu/termekek?page=2",
+          "indexable": true,
+          "hreflang": false
+        },
+        {
+          "path": "/termekek?sort=price-asc",
+          "status": 200,
+          "indexable": false,
+          "canonical": null,
+          "hreflang": false
+        },
+        { "path": "/termekek?page=999999", "status": 404 }
+      ],
+      "token": {
+        "path": "/velemenyek/termek/acceptance-secret-token",
+        "invalidPaths": [
+          "/velemenyek/termek/acceptance-invalid-token",
+          "/velemenyek/termek/acceptance-used-token",
+          "/velemenyek/termek/acceptance-expired-token"
+        ],
+        "secret": "acceptance-secret-token"
+      },
+      "outages": {
+        "urlRegistry": "/termekek/urlr-unavailable",
+        "medusa": "/termekek/medusa-unavailable",
+        "cms": "/tanacsok/cms-unavailable"
+      },
+      "crawlRoots": [
+        "/",
+        "/termekek",
+        "/kategoriak",
+        "/markak",
+        "/gyujtemenyek"
+      ],
+      "crawlPrefixes": [
+        "/termekek",
+        "/kategoriak",
+        "/markak",
+        "/gyujtemenyek",
+        "/tanacsok",
+        "/informaciok"
+      ]
+    },
+    {
+      "market": "ro",
+      "host": "herbatica.ro",
+      "locale": "ro-RO",
+      "browserOrigin": "https://herbatica.ro",
+      "inheritFixtureFrom": "sk",
+      "aboutPathCase": {
+        "path": "/o-nas",
+        "status": 404,
+        "canonical": null
+      },
+      "currentProduct": "/produse/produs-fixture",
+      "currentCategory": "/categorii/categorie-fixture",
+      "currentCms": "/sfaturi/articol-fixture",
+      "unassignedProduct": "/produse/produs-fixture-neatribuit",
+      "missingProduct": "/produse/inexistent",
+      "missingCategory": "/categorii/inexistent",
+      "missingCms": "/sfaturi/inexistent",
+      "alias": {
+        "path": "/produse/produs-fixture-vechi?utm_source=acceptance",
+        "location": "https://herbatica.ro/produse/produs-fixture?utm_source=acceptance"
+      },
+      "gone": "/produse/produs-fixture-retras",
+      "superseded": {
+        "path": "/produse/produs-fixture-inlocuit",
+        "location": "https://herbatica.ro/produse/produs-fixture"
+      },
+      "temporaryRedirect": {
+        "path": "/finalizare-comanda/fixture-temporar",
+        "location": "https://herbatica.ro/finalizare-comanda"
+      },
+      "queryCases": [
+        {
+          "path": "/produse?page=1&utm_source=acceptance",
+          "status": 308,
+          "location": "https://herbatica.ro/produse?utm_source=acceptance"
+        },
+        {
+          "path": "/produse?page=2",
+          "status": 200,
+          "canonical": "https://herbatica.ro/produse?page=2",
+          "indexable": true,
+          "hreflang": false
+        },
+        {
+          "path": "/produse?sort=price-asc",
+          "status": 200,
+          "indexable": false,
+          "canonical": null,
+          "hreflang": false
+        },
+        { "path": "/produse?page=999999", "status": 404 }
+      ],
+      "token": {
+        "path": "/recenzii/produs/acceptance-secret-token",
+        "invalidPaths": [
+          "/recenzii/produs/acceptance-invalid-token",
+          "/recenzii/produs/acceptance-used-token",
+          "/recenzii/produs/acceptance-expired-token"
+        ],
+        "secret": "acceptance-secret-token"
+      },
+      "outages": {
+        "urlRegistry": "/produse/urlr-unavailable",
+        "medusa": "/produse/medusa-unavailable",
+        "cms": "/sfaturi/cms-unavailable"
+      },
+      "crawlRoots": ["/", "/produse", "/categorii", "/marci", "/colectii"],
+      "crawlPrefixes": [
+        "/produse",
+        "/categorii",
+        "/marci",
+        "/colectii",
+        "/sfaturi",
+        "/informatii"
+      ]
+    }
+  ],
+  "unknownHost": "unknown.acceptance.invalid",
+  "legacyPaths": [
+    "/p/legacy",
+    "/c/legacy",
+    "/znacka",
+    "/blog",
+    "/search",
+    "/faq",
+    "/account",
+    "/auth",
+    "/auth/reset-password/legacy-reset-token",
+    "/checkout",
+    "/checkout/payment-return?state=legacy-payment-state",
+    "/reviews/product/legacy-review-token",
+    "/reviews",
+    "/legacy-root",
+    "/homepage-promo"
+  ],
+  "internalNamespacePaths": [
+    "/~sf/sk/home",
+    "/~SF/sk/home",
+    "/%7Esf/sk/home",
+    "/%257Esf/sk/home"
+  ],
+  "raw400Targets": [
+    { "target": "/bad%", "status": 400 },
+    { "target": "/produkty/%E0%A4%A", "status": 400 },
+    { "target": "/produkty/%2Fetc", "status": 400 },
+    { "target": "/produkty/%5Cetc", "status": 400 },
+    { "target": "/produkty/%252Fetc", "status": 404 }
+  ],
+  "rawAuthorities": [
+    { "authority": "bad host", "status": 400 },
+    { "authority": "[::1", "status": 400 }
+  ],
+  "lifecycle": {
+    "market": "sk",
+    "oldPath": "/produkty/lifecycle-old",
+    "newPath": "/produkty/lifecycle-new",
+    "endpoint": "/api/internal/url-registry/product-lifecycle",
+    "tokenEnvironmentVariable": "URL_ARCHITECTURE_LIFECYCLE_TOKEN",
+    "convergenceTimeoutMs": 10000,
+    "delivery": {
+      "schemaVersion": 1,
+      "outboxEventId": "urlroe_acceptance_01",
+      "eventId": "event_acceptance_01",
+      "envelopeFingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "source": "medusa",
+      "entityKind": "product",
+      "entityId": "prod_acceptance_lifecycle",
+      "marketCode": "sk",
+      "streamSequence": 2,
+      "changeType": "reconcile",
+      "occurredAt": "2026-08-19T12:00:00.000Z",
+      "payload": {
+        "assignment": {
+          "publicationStatus": "published",
+          "publicSlug": "lifecycle-new",
+          "salesChannelId": "sc_acceptance_sk"
+        },
+        "schemaVersion": 1,
+        "productId": "prod_acceptance_lifecycle",
+        "reason": "seo-slug-edited",
+        "changeType": "reconcile",
+        "sourceVersion": "2026-08-19T12:00:00.000Z"
+      }
+    }
+  }
+}

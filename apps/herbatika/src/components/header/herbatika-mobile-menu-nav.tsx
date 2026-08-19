@@ -2,12 +2,15 @@
 
 import { Accordion } from "@techsio/ui-kit/molecules/accordion"
 import { Header, HeaderContext } from "@techsio/ui-kit/organisms/header"
-import NextLink from "next/link"
 import { usePathname } from "next/navigation"
 import { useContext, useEffect, useState } from "react"
-import { PRIMARY_NAV_ITEMS } from "./herbatika-header.navigation"
+import { StorefrontLink } from "@/components/storefront-link"
+import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./herbatika-header.submenu-data"
-import { useHerbatikaHeaderSubmenu } from "./use-herbatika-header-submenu"
+import {
+  type HerbatikaHeaderCategoryLink,
+  useHerbatikaHeaderSubmenu,
+} from "./use-herbatika-header-submenu"
 
 type HerbatikaMobileMenuChildItem = {
   href: string
@@ -37,23 +40,15 @@ const SUBMENU_ROOT_HANDLES = new Set<string>(
   HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS.map((group) => group.rootHandle)
 )
 
-const resolveRootHandleFromHref = (href: string) => {
-  if (!href.startsWith("/c/")) {
-    return null
-  }
-
-  return href.slice(3)
-}
-
 const resolveMobileChildItems = (
   featuredItems: Array<{
-    handle: string
+    href: string
     id: string
     label: string
   }>
 ): readonly HerbatikaMobileMenuChildItem[] =>
   featuredItems.map((item) => ({
-    href: `/c/${item.handle}`,
+    href: item.href,
     id: item.id,
     label: item.label,
   }))
@@ -61,10 +56,11 @@ const resolveMobileChildItems = (
 const buildMobileMenuEntries = (
   groupsByRootHandle: ReturnType<
     typeof useHerbatikaHeaderSubmenu
-  >["groupsByRootHandle"]
+  >["groupsByRootHandle"],
+  primaryNavItems: readonly HerbatikaHeaderCategoryLink[]
 ): readonly HerbatikaMobileMenuEntry[] =>
-  PRIMARY_NAV_ITEMS.map((item) => {
-    const rootHandle = resolveRootHandleFromHref(item.href)
+  primaryNavItems.map((item) => {
+    const rootHandle = item.rootHandle
 
     if (!(rootHandle && SUBMENU_ROOT_HANDLES.has(rootHandle))) {
       return {
@@ -107,11 +103,20 @@ const areExpandedValuesEqual = (left: string[], right: string[]) =>
   left.length === right.length &&
   left.every((value, index) => value === right[index])
 
-export function HerbatikaMobileMenuNav() {
+export function HerbatikaMobileMenuNav({
+  categoryPublicSlugsById,
+}: {
+  categoryPublicSlugsById?: PublicEntitySlugMap
+}) {
   const pathname = usePathname()
   const { setIsMobileMenuOpen } = useContext(HeaderContext)
-  const { groupsByRootHandle } = useHerbatikaHeaderSubmenu()
-  const mobileMenuEntries = buildMobileMenuEntries(groupsByRootHandle)
+  const { groupsByRootHandle, primaryNavItems } = useHerbatikaHeaderSubmenu(
+    categoryPublicSlugsById
+  )
+  const mobileMenuEntries = buildMobileMenuEntries(
+    groupsByRootHandle,
+    primaryNavItems
+  )
   const [expandedValues, setExpandedValues] = useState<string[]>(() =>
     resolveExpandedValues(pathname, mobileMenuEntries)
   )
@@ -148,9 +153,9 @@ export function HerbatikaMobileMenuNav() {
             <Accordion.Item key={entry.href} value={entry.value}>
               <Accordion.Header>
                 <Accordion.Title className="font-semibold">
-                  <NextLink href={entry.href} onClick={handleClose}>
+                  <StorefrontLink href={entry.href} onClick={handleClose}>
                     {entry.label}
-                  </NextLink>
+                  </StorefrontLink>
                 </Accordion.Title>
                 <Accordion.Indicator />
               </Accordion.Header>
@@ -158,13 +163,13 @@ export function HerbatikaMobileMenuNav() {
                 <ul className="flex flex-col">
                   {entry.items.map((item) => (
                     <li key={item.id}>
-                      <NextLink
+                      <StorefrontLink
                         className="block border-border-secondary/40 px-350 py-150 text-sm hover:bg-surface hover:text-primary"
                         href={item.href}
                         onClick={handleClose}
                       >
                         {item.label}
-                      </NextLink>
+                      </StorefrontLink>
                     </li>
                   ))}
                 </ul>
@@ -175,13 +180,13 @@ export function HerbatikaMobileMenuNav() {
               className="w-full min-w-0 border-border-secondary border-b bg-primary text-md hover:bg-accordion-bg-hover hover:text-fg-reverse"
               key={entry.href}
             >
-              <NextLink
+              <StorefrontLink
                 className="block w-full min-w-0"
                 href={entry.href}
                 onClick={handleClose}
               >
                 {entry.label}
-              </NextLink>
+              </StorefrontLink>
             </Header.NavItem>
           )
         )}

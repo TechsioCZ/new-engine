@@ -1,3 +1,4 @@
+import { PUBLIC_FLOW_ROUTE_SEGMENTS } from "@techsio/storefront-i18n/core/public-flow-routes"
 import type { RouteSegmentRegistry, SegmentRegistryG1 } from "./types"
 
 export const SEGMENT_REGISTRY_G1 = {
@@ -39,13 +40,7 @@ export const ROUTE_SEGMENT_REGISTRY = {
       advice: "poradna",
       information: "informacie",
     },
-    flowRoots: {
-      search: "vyhladavanie",
-      cart: "kosik",
-      checkout: "pokladna",
-      account: "ucet",
-      reviews: "recenzie",
-    },
+    flowRoots: PUBLIC_FLOW_ROUTE_SEGMENTS.sk.flowRoots,
     staticRootPages: {
       about: "o-nas",
       contact: "kontakt",
@@ -56,29 +51,7 @@ export const ROUTE_SEGMENT_REGISTRY = {
       privacy: "ochrana-osobnych-udajov",
       cookies: "cookies",
     },
-    children: {
-      checkout: {
-        contact: "kontakt",
-        shipping: "doprava",
-        payment: "platba",
-        review: "kontrola",
-        paymentReturn: "navrat-z-platby",
-        confirmation: "potvrdenie-objednavky",
-        checkoutResult: "vysledok",
-      },
-      account: {
-        lists: "zoznamy",
-        orders: "objednavky",
-        settings: "nastavenia",
-        login: "prihlasenie",
-        register: "registracia",
-        forgotPassword: "zabudnute-heslo",
-        resetPassword: "obnova-hesla",
-      },
-      reviews: {
-        product: "produkt",
-      },
-    },
+    children: PUBLIC_FLOW_ROUTE_SEGMENTS.sk.children,
   },
   cz: {
     typePrefixes: {
@@ -90,13 +63,7 @@ export const ROUTE_SEGMENT_REGISTRY = {
       advice: "poradna",
       information: "informace",
     },
-    flowRoots: {
-      search: "vyhledavani",
-      cart: "kosik",
-      checkout: "pokladna",
-      account: "ucet",
-      reviews: "recenze",
-    },
+    flowRoots: PUBLIC_FLOW_ROUTE_SEGMENTS.cz.flowRoots,
     staticRootPages: {
       about: "o-nas",
       contact: "kontakt",
@@ -107,29 +74,7 @@ export const ROUTE_SEGMENT_REGISTRY = {
       privacy: "ochrana-osobnich-udaju",
       cookies: "cookies",
     },
-    children: {
-      checkout: {
-        contact: "kontakt",
-        shipping: "doprava",
-        payment: "platba",
-        review: "kontrola",
-        paymentReturn: "navrat-z-platby",
-        confirmation: "potvrzeni-objednavky",
-        checkoutResult: "vysledek",
-      },
-      account: {
-        lists: "seznamy",
-        orders: "objednavky",
-        settings: "nastaveni",
-        login: "prihlaseni",
-        register: "registrace",
-        forgotPassword: "zapomenute-heslo",
-        resetPassword: "obnova-hesla",
-      },
-      reviews: {
-        product: "produkt",
-      },
-    },
+    children: PUBLIC_FLOW_ROUTE_SEGMENTS.cz.children,
   },
   hu: {
     typePrefixes: {
@@ -141,13 +86,7 @@ export const ROUTE_SEGMENT_REGISTRY = {
       advice: "tanacsok",
       information: "informaciok",
     },
-    flowRoots: {
-      search: "kereses",
-      cart: "kosar",
-      checkout: "penztar",
-      account: "fiok",
-      reviews: "velemenyek",
-    },
+    flowRoots: PUBLIC_FLOW_ROUTE_SEGMENTS.hu.flowRoots,
     staticRootPages: {
       about: "rolunk",
       contact: "kapcsolat",
@@ -158,29 +97,7 @@ export const ROUTE_SEGMENT_REGISTRY = {
       privacy: "adatvedelmi-tajekoztato",
       cookies: "cookie-tajekoztato",
     },
-    children: {
-      checkout: {
-        contact: "kapcsolat",
-        shipping: "szallitas",
-        payment: "fizetes",
-        review: "ellenorzes",
-        paymentReturn: "fizetesi-visszateres",
-        confirmation: "rendeles-visszaigazolas",
-        checkoutResult: "eredmeny",
-      },
-      account: {
-        lists: "listak",
-        orders: "rendelesek",
-        settings: "beallitasok",
-        login: "bejelentkezes",
-        register: "regisztracio",
-        forgotPassword: "elfelejtett-jelszo",
-        resetPassword: "jelszo-visszaallitas",
-      },
-      reviews: {
-        product: "termek",
-      },
-    },
+    children: PUBLIC_FLOW_ROUTE_SEGMENTS.hu.children,
   },
   ro: {
     typePrefixes: {
@@ -192,13 +109,7 @@ export const ROUTE_SEGMENT_REGISTRY = {
       advice: "sfaturi",
       information: "informatii",
     },
-    flowRoots: {
-      search: "cautare",
-      cart: "cos",
-      checkout: "finalizare-comanda",
-      account: "cont",
-      reviews: "recenzii",
-    },
+    flowRoots: PUBLIC_FLOW_ROUTE_SEGMENTS.ro.flowRoots,
     staticRootPages: {
       about: "despre-noi",
       contact: "contact",
@@ -209,28 +120,6 @@ export const ROUTE_SEGMENT_REGISTRY = {
       privacy: "politica-de-confidentialitate",
       cookies: "politica-cookies",
     },
-    children: {
-      checkout: {
-        contact: "contact",
-        shipping: "livrare",
-        payment: "plata",
-        review: "verificare",
-        paymentReturn: "retur-plata",
-        confirmation: "confirmare-comanda",
-        checkoutResult: "rezultat",
-      },
-      account: {
-        lists: "liste",
-        orders: "comenzi",
-        settings: "setari",
-        login: "autentificare",
-        register: "inregistrare",
-        forgotPassword: "parola-uitata",
-        resetPassword: "resetare-parola",
-      },
-      reviews: {
-        product: "produs",
-      },
-    },
+    children: PUBLIC_FLOW_ROUTE_SEGMENTS.ro.children,
   },
 } as const satisfies RouteSegmentRegistry

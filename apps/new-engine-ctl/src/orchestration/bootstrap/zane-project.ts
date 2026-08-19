@@ -133,6 +133,8 @@ const sharedEnvCleanupKeys = [
   "NEXT_PUBLIC_MEILISEARCH_URL",
   "NEXT_PUBLIC_MEILISEARCH_API_KEY",
   "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
+  "URL_PRODUCT_RESOLVER_ENABLED",
+  "URL_ARCHITECTURE_M00_ENABLED",
   "MINIO_FILE_URL",
   "VALKEY_HOST",
   "MINIO_HOST",
@@ -1296,7 +1298,9 @@ function buildZaneProjectServices(
         },
         {
           envVar: "PAYLOAD_LOCALES",
-          source: literalSource(process.env.DC_PAYLOAD_LOCALES ?? "cs,sk,en"),
+          source: literalSource(
+            process.env.DC_PAYLOAD_LOCALES ?? "cs,sk,hu,ro"
+          ),
         },
         {
           envVar: "PAYLOAD_SSO_PUBLIC_KEY",
@@ -1367,6 +1371,8 @@ function buildZaneProjectServices(
         "DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
         "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED",
         "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
+        "URL_PRODUCT_RESOLVER_ENABLED",
+        "URL_ARCHITECTURE_M00_ENABLED",
       ],
       env: [
         {

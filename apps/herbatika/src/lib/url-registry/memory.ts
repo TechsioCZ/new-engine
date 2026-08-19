@@ -28,10 +28,12 @@ import { changeEntitySlug, createEntityRoute } from "./memory-entity"
 import { registerGone } from "./memory-gone"
 import { updateRouteMetadata } from "./memory-metadata"
 import {
+  countActiveEntityRoutes,
   findActiveEntityRoute,
   findActiveEquivalents,
   findEntityRoute,
   getRoute,
+  listActiveEntityRoutes,
   listStaticRouteSnapshots,
 } from "./memory-reads"
 import { resolve, resolveMany } from "./memory-resolve"
@@ -49,6 +51,8 @@ import type {
   UrlRouteSnapshot,
 } from "./model"
 import type {
+  ActiveEntityRouteCountRequest,
+  ActiveEntityRoutePageRequest,
   ActiveEquivalenceLookup,
   EntityIdentityLookup,
   SourceReadResult,
@@ -162,6 +166,20 @@ export class InMemoryUrlRegistry implements UrlRegistry {
   ): Promise<SourceReadResult<ActiveEntityRouteTarget>> {
     await Promise.resolve()
     return findActiveEntityRoute(this.executor.readState(), input)
+  }
+
+  async listActiveEntityRoutes(
+    input: ActiveEntityRoutePageRequest
+  ): Promise<SourceReadResult<UrlRegistryPage<ActiveEntityRouteTarget>>> {
+    await Promise.resolve()
+    return listActiveEntityRoutes(this.executor.readState(), input)
+  }
+
+  async countActiveEntityRoutes(
+    input: ActiveEntityRouteCountRequest
+  ): Promise<SourceReadResult<number>> {
+    await Promise.resolve()
+    return countActiveEntityRoutes(this.executor.readState(), input)
   }
 
   async findEntityRoute(

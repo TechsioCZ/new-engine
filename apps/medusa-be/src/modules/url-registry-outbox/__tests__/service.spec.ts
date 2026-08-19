@@ -10,6 +10,11 @@ vi.setConfig({ testTimeout: 60_000 })
 const input = (eventId: string, reason: "created" | "updated" = "updated") => ({
   affectedMarketCodes: ["sk", "cz"] as const,
   eventId,
+  marketAssignments: (["sk", "cz"] as const).map((marketCode) => ({
+    assignment: null,
+    marketCode,
+    sourceVersion: "2026-08-18T08:00:00.000Z",
+  })),
   occurredAt: "2026-08-18T08:15:30.000Z",
   productId: "prod_1",
   reason,
@@ -22,6 +27,13 @@ const deliveryInput = (
 ) => ({
   ...input(eventId, reason),
   affectedMarketCodes: ["sk"] as const,
+  marketAssignments: [
+    {
+      assignment: null,
+      marketCode: "sk" as const,
+      sourceVersion: "2026-08-18T08:00:00.000Z",
+    },
+  ],
   productId,
 })
 
@@ -125,6 +137,7 @@ moduleIntegrationTestRunner<UrlRegistryOutboxModuleService>({
         await service.enqueueProductLifecycleEvent({
           ...input("shared-event"),
           affectedMarketCodes: ["sk"],
+          marketAssignments: [input("shared-event").marketAssignments[0]],
         })
 
         await expect(

@@ -49,6 +49,14 @@ if (isModuleIntegration) {
 
 export default defineConfig({
   root: projectRoot,
+  resolve: {
+    alias: {
+      "@techsio/storefront-i18n/core/public-flow-routes": join(
+        projectRoot,
+        "../../libs/storefront-i18n/src/core/public-flow-routes.ts"
+      ),
+    },
+  },
   test: {
     environment: "node",
     exclude: [

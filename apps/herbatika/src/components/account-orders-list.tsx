@@ -6,22 +6,32 @@ import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { parseAsInteger, useQueryState } from "nuqs"
 import { useEffect, useTransition } from "react"
 import { AccountSurface } from "@/components/account/account-surface"
 import { AccountOrderGroup } from "@/components/account/orders/account-order-group"
 import { AccountOrdersSkeleton } from "@/components/loading/account-orders-skeleton"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useAuth } from "@/lib/storefront/auth"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { getOrderDetailQueryOptions, useOrders } from "@/lib/storefront/orders"
 import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-builder"
+import { buildPath } from "@/lib/url/public-url"
 
 const ORDER_PAGE_SIZE = 10
 
-export function AccountOrdersList() {
+type AccountOrdersListProps = {
+  publicProductSlugs?: Readonly<Record<string, string | null | undefined>>
+}
+
+export function AccountOrdersList({
+  publicProductSlugs,
+}: AccountOrdersListProps) {
   const tAuth = useTranslations("auth")
+  const { code: market } = useMarketContext()
+  const productsHref = buildPath({ kind: "product" }, market)
   const queryClient = useQueryClient()
   const authQuery = useAuth()
   const [isPageTransitionPending, startTransition] = useTransition()
@@ -96,7 +106,12 @@ export function AccountOrdersList() {
         <p className="text-fg-secondary text-sm">
           {tAuth("account.orders.empty_description")}
         </p>
-        <LinkButton as={NextLink} href="/" size="sm" variant="secondary">
+        <LinkButton
+          as={StorefrontLink}
+          href={productsHref}
+          size="sm"
+          variant="secondary"
+        >
           {tAuth("account.orders.browse_products")}
         </LinkButton>
       </AccountSurface>
@@ -131,6 +146,7 @@ export function AccountOrdersList() {
             key={order.id}
             onPrefetchOrderDetail={prefetchOrderDetail}
             order={order}
+            publicProductSlugs={publicProductSlugs}
           />
         ))}
       </div>
@@ -139,7 +155,7 @@ export function AccountOrdersList() {
         <Pagination
           count={ordersQuery.totalCount}
           getPageUrl={getPageUrl}
-          linkAs={NextLink}
+          linkAs={StorefrontLink}
           page={currentPage}
           pageSize={ORDER_PAGE_SIZE}
           size="sm"

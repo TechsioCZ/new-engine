@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { resolveConfiguredMarketRuntimeBindingByHost } from "@/lib/market/market-runtime.server"
 import { fetchSearchAutocomplete } from "@/lib/search-autocomplete/search-autocomplete.server"
 import {
   createEmptySearchAutocompleteResponse,
@@ -7,6 +8,15 @@ import {
 import { getSessionTokenFromCookieHeader } from "../storefront-auth/_lib"
 
 export async function GET(request: Request) {
+  const marketBinding = resolveConfiguredMarketRuntimeBindingByHost(
+    request.headers.get("host")
+  )
+  if (!marketBinding) {
+    return NextResponse.json(createEmptySearchAutocompleteResponse(""), {
+      status: 421,
+    })
+  }
+
   const { searchParams } = new URL(request.url)
   const query = (searchParams.get("q") ?? "")
     .trim()
@@ -25,6 +35,7 @@ export async function GET(request: Request) {
       countryCode,
       currencyCode,
       locale,
+      market: marketBinding.market,
       regionId,
       authToken,
     })

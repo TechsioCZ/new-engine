@@ -3,17 +3,17 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Footer } from "@techsio/ui-kit/organisms/footer"
-import type { Route } from "next"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
+import { StorefrontLink } from "@/components/storefront-link"
 import type {
   CmsFooterColumnSlot,
   CmsFooterItemSlot,
   CmsFooterNavigation,
 } from "@/lib/storefront/cms-types"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildPath, type PublicRouteTarget } from "@/lib/url/public-url"
 import { HerbatikaLogo } from "./herbatika-logo"
 
 const formatMarketDomain = (domain: string) =>
@@ -42,6 +42,54 @@ const FOOTER_ITEM_LABEL_KEYS = {
   dropshipping: "footer.columns.partners.dropshipping",
   private_label: "footer.columns.partners.private_label",
 } as const satisfies Record<CmsFooterItemSlot, string>
+
+const INTERNAL_FOOTER_TARGETS: Partial<
+  Record<CmsFooterItemSlot, PublicRouteTarget>
+> = {
+  about: { kind: "static", page: "about" },
+  blog: { kind: "article" },
+  brands: { kind: "brand" },
+  claims_returns: { kind: "static", page: "returns" },
+  cookies: { kind: "static", page: "cookies" },
+  faq: { kind: "static", page: "faq" },
+  privacy: { kind: "static", page: "privacy" },
+  shipping_payment: { kind: "static", page: "shipping" },
+  terms: { kind: "static", page: "terms" },
+}
+
+const validatedExternalHref = (href: string): string | null => {
+  try {
+    const url = new URL(href)
+    if (
+      (url.protocol === "http:" || url.protocol === "https:") &&
+      !url.username &&
+      !url.password
+    ) {
+      return url.href
+    }
+  } catch {
+    // Invalid CMS links fail closed and are not rendered.
+  }
+  return null
+}
+
+type CmsFooterNavigationItem =
+  CmsFooterNavigation["columns"][number]["items"][number]
+
+export const resolveFooterNavigationItem = (
+  item: CmsFooterNavigationItem
+):
+  | Readonly<{ href: string; kind: "external"; newTab: boolean }>
+  | Readonly<{ kind: "internal"; target: PublicRouteTarget }>
+  | null => {
+  if (item.type === "external") {
+    const href = validatedExternalHref(item.href)
+    return href ? { href, kind: "external", newTab: item.newTab ?? true } : null
+  }
+
+  const target = INTERNAL_FOOTER_TARGETS[item.slot]
+  return target ? { kind: "internal", target } : null
+}
 
 const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
   {
@@ -133,22 +181,36 @@ export function HerbatikaFooter({
               {t(FOOTER_COLUMN_TITLE_KEYS[column.slot])}
             </Footer.Title>
             <Footer.List>
-              {column.items.map((item) => (
-                <li key={item.slot}>
-                  {item.type === "external" ? (
+              {column.items.map((item) => {
+                const resolved = resolveFooterNavigationItem(item)
+                if (!resolved) {
+                  return null
+                }
+
+                if (resolved.kind === "external") {
+                  return (
+                    <li key={item.slot}>
+                      <Footer.Link
+                        external={resolved.newTab}
+                        href={resolved.href}
+                      >
+                        {t(FOOTER_ITEM_LABEL_KEYS[item.slot])}
+                      </Footer.Link>
+                    </li>
+                  )
+                }
+
+                return (
+                  <li key={item.slot}>
                     <Footer.Link
-                      external={item.newTab ?? true}
-                      href={item.href}
+                      as={StorefrontLink}
+                      href={buildPath(resolved.target, marketContext.code)}
                     >
                       {t(FOOTER_ITEM_LABEL_KEYS[item.slot])}
                     </Footer.Link>
-                  ) : (
-                    <Footer.Link as={NextLink} href={item.href as Route}>
-                      {t(FOOTER_ITEM_LABEL_KEYS[item.slot])}
-                    </Footer.Link>
-                  )}
-                </li>
-              ))}
+                  </li>
+                )
+              })}
             </Footer.List>
           </Footer.Section>
         ))}
@@ -193,9 +255,12 @@ export function HerbatikaFooter({
             year: new Date().getFullYear(),
           })}{" "}
           <Footer.Link
-            as={NextLink}
+            as={StorefrontLink}
             className="text-primary underline"
-            href="/#cookies"
+            href={buildPath(
+              { kind: "static", page: "cookies" },
+              marketContext.code
+            )}
           >
             {t("footer.cookie_settings")}
           </Footer.Link>

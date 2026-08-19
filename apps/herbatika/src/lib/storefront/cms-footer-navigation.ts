@@ -1,8 +1,9 @@
-import "server-only"
+// Pages Router callers import this module exclusively through getServerSideProps.
+// Do not add the App-Router-only `server-only` marker here.
 
-import type { CmsLocale } from "./cms-locale"
+import { fetchCmsJsonOrThrow } from "./cms-client"
 import type { CmsFooterNavigation } from "./cms-types"
-import { storefrontSdk } from "./sdk"
+import type { HerbatikaLocale } from "./market-context"
 
 type CmsFooterNavigationResponse = {
   footerNavigation?: CmsFooterNavigation | null
@@ -10,18 +11,12 @@ type CmsFooterNavigationResponse = {
 
 const EMPTY_FOOTER_NAVIGATION: CmsFooterNavigation = { columns: [] }
 
-export const fetchCmsFooterNavigation = async (locale: CmsLocale) => {
+export const fetchCmsFooterNavigation = async (locale: HerbatikaLocale) => {
   try {
-    const response =
-      await storefrontSdk.client.fetch<CmsFooterNavigationResponse>(
-        "/store/cms/navigation/footer",
-        {
-          cache: "no-store",
-          query: {
-            locale,
-          },
-        }
-      )
+    const response = await fetchCmsJsonOrThrow<CmsFooterNavigationResponse>(
+      "navigation/footer",
+      { locale }
+    )
 
     return response.footerNavigation ?? EMPTY_FOOTER_NAVIGATION
   } catch (error) {

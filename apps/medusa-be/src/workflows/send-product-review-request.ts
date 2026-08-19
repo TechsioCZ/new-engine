@@ -90,7 +90,6 @@ type ReviewRequestProduct = {
   product_id: string
   review_url: string
   title: string
-  token: string
 }
 
 export function shouldDeleteProductReviewRequestQueueItem(
@@ -360,12 +359,11 @@ const buildProductReviewRequestNotificationStep = createStep(
           image_url: item.thumbnail ?? null,
           product_id: item.product_id,
           review_url: buildProductReviewRequestUrl({
-            productId: item.product_id,
+            marketCode: marketContext.market_code,
             storefrontUrl: marketContext.storefront_base_url,
             token,
           }),
           title: getProductTitle(item, reviewCopy.product),
-          token,
         },
       ]
     })

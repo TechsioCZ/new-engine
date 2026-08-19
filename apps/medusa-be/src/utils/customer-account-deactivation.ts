@@ -1,46 +1,27 @@
 import { generateJwtToken, MedusaError } from "@medusajs/framework/utils"
 import { jwtVerify } from "jose"
+import { buildStorefrontPublicFlowUrl } from "./storefront-public-flow-url"
 
 export const CUSTOMER_ACCOUNT_DEACTIVATION_TOKEN_EXPIRES_IN = "30m"
 export const CUSTOMER_ACCOUNT_DEACTIVATION_TOKEN_PURPOSE =
   "customer-account-deactivation"
 
-const TRAILING_SLASH_REGEX = /\/$/
-
 export type VerifiedCustomerAccountDeactivationToken = {
   customer_id: string
   email?: string
+  sales_channel_id: string
 }
 
 export function buildCustomerAccountDeactivationUrl(
   token: string,
-  storefrontBaseUrl: string
+  storefrontBaseUrl: string,
+  marketCode: unknown
 ) {
-  let storefrontUrl: URL
-
-  try {
-    storefrontUrl = new URL(storefrontBaseUrl)
-  } catch {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "storefront_base_url must be a valid absolute URL"
-    )
-  }
-
-  if (
-    storefrontUrl.protocol !== "https:" &&
-    storefrontUrl.protocol !== "http:"
-  ) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "storefront_base_url must use HTTP or HTTPS"
-    )
-  }
-
-  const confirmationUrl = new URL(
-    "/account/deactivate/confirm",
-    storefrontUrl.origin.replace(TRAILING_SLASH_REGEX, "")
-  )
+  const confirmationUrl = buildStorefrontPublicFlowUrl({
+    marketCode,
+    storefrontBaseUrl,
+    target: { kind: "account", section: "deactivation" },
+  })
   confirmationUrl.searchParams.set("token", token)
 
   return confirmationUrl.toString()
@@ -49,6 +30,7 @@ export function buildCustomerAccountDeactivationUrl(
 export function createCustomerAccountDeactivationToken(input: {
   customer_id: string
   email?: string
+  sales_channel_id: string
 }) {
   const jwtSecret = process.env.JWT_SECRET
 
@@ -64,6 +46,7 @@ export function createCustomerAccountDeactivationToken(input: {
       customer_id: input.customer_id,
       email: input.email,
       purpose: CUSTOMER_ACCOUNT_DEACTIVATION_TOKEN_PURPOSE,
+      sales_channel_id: input.sales_channel_id,
     },
     {
       expiresIn: CUSTOMER_ACCOUNT_DEACTIVATION_TOKEN_EXPIRES_IN,
@@ -97,7 +80,9 @@ export async function verifyCustomerAccountDeactivationToken(
 
   if (
     payload.purpose !== CUSTOMER_ACCOUNT_DEACTIVATION_TOKEN_PURPOSE ||
-    typeof payload.customer_id !== "string"
+    typeof payload.customer_id !== "string" ||
+    typeof payload.sales_channel_id !== "string" ||
+    !payload.sales_channel_id
   ) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
@@ -108,5 +93,6 @@ export async function verifyCustomerAccountDeactivationToken(
   return {
     customer_id: payload.customer_id,
     email: typeof payload.email === "string" ? payload.email : undefined,
+    sales_channel_id: payload.sales_channel_id,
   }
 }

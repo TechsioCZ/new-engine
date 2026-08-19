@@ -12,8 +12,9 @@ import {
 import type { SsrOutcome } from "./ssr-outcome"
 
 export type ProductPageRequest = Readonly<{
-  enabled: boolean
+  architectureEnabled: boolean
   headers: Readonly<{
+    canonicalizationRequired?: string | readonly string[] | null
     canonicalOrigin?: string | readonly string[] | null
     market?: string | readonly string[] | null
     publicPath?: string | readonly string[] | null
@@ -56,14 +57,20 @@ const singleValue = (
 ): string | null => (typeof value === "string" ? value : null)
 
 const resolveTrustedInput = (request: ProductPageRequest) => {
-  if (!request.enabled) {
+  if (!request.architectureEnabled) {
     return null
   }
 
   const marketParam = singleValue(request.marketParam)
   const slug = singleValue(request.slugParam)
+  const canonicalizationHeader = request.headers.canonicalizationRequired
   const market = marketParam ? parseMarket(marketParam) : null
-  if (!(market && slug)) {
+  if (
+    !(market && slug) ||
+    (canonicalizationHeader !== undefined &&
+      canonicalizationHeader !== null &&
+      canonicalizationHeader !== "1")
+  ) {
     return null
   }
 
@@ -84,7 +91,11 @@ const resolveTrustedInput = (request: ProductPageRequest) => {
     return null
   }
 
-  return { market, normalizedSlug: slug }
+  return {
+    canonicalizationRequired: canonicalizationHeader === "1",
+    market,
+    normalizedSlug: slug,
+  }
 }
 
 export const resolveProductPageRequest = async <

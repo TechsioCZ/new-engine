@@ -2,7 +2,7 @@ import type { HttpTypes } from "@medusajs/types"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
-import NextLink from "next/link"
+import { useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import type { ReactNode } from "react"
 import {
@@ -10,8 +10,9 @@ import {
   type HerbatikaProductGridLayout,
 } from "@/components/product/herbatika-product-grid"
 import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton"
+import { StorefrontLink } from "@/components/storefront-link"
 import type { ProductSortValue } from "@/lib/storefront/plp-query-state"
-import { usePaginationUrlBuilder } from "@/lib/storefront/use-pagination-url-builder"
+import { withPublicSearchParams } from "@/lib/url/public-url"
 import { CategorySortTabs } from "./category-sort-tabs"
 
 type CategoryResultsSectionProps = {
@@ -28,7 +29,9 @@ type CategoryResultsSectionProps = {
   onSortChange: (value: ProductSortValue) => void
   page: number
   pageSize: number
+  paginationBasePath?: string | null
   products: HttpTypes.StoreProduct[]
+  productPublicSlugsById?: Readonly<Record<string, string>>
   layout?: HerbatikaProductGridLayout
   loadingSkeleton?: ReactNode
   showCategoryNotFound: boolean
@@ -52,7 +55,9 @@ export function CategoryResultsSection({
   onSortChange,
   page,
   pageSize,
+  paginationBasePath,
   products,
+  productPublicSlugsById,
   layout = "catalog",
   loadingSkeleton,
   showCategoryNotFound,
@@ -62,7 +67,19 @@ export function CategoryResultsSection({
   isRefreshing = false,
 }: CategoryResultsSectionProps) {
   const t = useTranslations("catalog")
-  const getPageUrl = usePaginationUrlBuilder()
+  const searchParams = useSearchParams()
+  const getPageUrl = ({ page: nextPage }: { page: number }) => {
+    if (!paginationBasePath) {
+      return "#"
+    }
+    const query = searchParams?.toString() ?? ""
+    const baseHref = query
+      ? `${paginationBasePath}?${query}`
+      : paginationBasePath
+    return withPublicSearchParams(baseHref, {
+      page: nextPage <= 1 ? null : nextPage,
+    })
+  }
   const resolvedEmptyMessage = emptyMessage ?? t("results.empty_category")
   const resolvedLoadingSkeleton = loadingSkeleton ?? (
     <HerbatikaProductGridSkeleton layout={layout} />
@@ -114,15 +131,16 @@ export function CategoryResultsSection({
           onAddToCart={onAddToCart}
           onProductHoverEnd={onProductHoverEnd}
           onProductHoverStart={onProductHoverStart}
+          productPublicSlugsById={productPublicSlugsById}
           products={products}
         />
       )}
 
-      {totalPages > 1 && (
+      {totalPages > 1 && paginationBasePath ? (
         <Pagination
           count={totalCount}
           getPageUrl={getPageUrl}
-          linkAs={NextLink}
+          linkAs={StorefrontLink}
           page={page}
           pageSize={pageSize}
           size="sm"
@@ -138,7 +156,7 @@ export function CategoryResultsSection({
           }}
           variant="outlined"
         />
-      )}
+      ) : null}
     </div>
   )
 }

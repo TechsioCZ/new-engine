@@ -29,8 +29,13 @@ export const pageCategoriesWithPagesEndpoint: Endpoint = {
       pagination: false,
       limit: DEFAULT_MAX_PAGES,
       locale,
+      fallbackLocale: false,
+      overrideAccess: false,
       where: {
-        status: { equals: "published" },
+        and: [
+          { status: { equals: "published" } },
+          { visibility: { equals: "public" } },
+        ],
         ...(categorySlug
           ? {
               "category.slug": { equals: categorySlug },

@@ -1,3 +1,5 @@
+import { isPrivatePagesPath } from "./private-pages-path"
+
 export type M00Market = "sk" | "cz" | "hu" | "ro"
 
 export type M00ProxyAction =
@@ -29,36 +31,11 @@ const MARKET_BY_HOST: ReadonlyMap<
   ["herbatica.ro", { canonicalOrigin: "https://herbatica.ro", market: "ro" }],
 ])
 
-const INTERNAL_PREFIX = /^\/~sf(?:\/|$)/i
-const INTERNAL_DATA_PREFIX = /^\/_next\/data\/[^/]+\/~sf(?:\/|$)/i
 const PROBE_PATH = /^\/__url-m00\/(current|alias|missing|gone|unavailable)$/
 const AUTHORITY = /^([a-z0-9.-]+)(?::([0-9]{1,5}))?$/i
 const TRAILING_DOT = /\.$/
 
-const isDirectInternalPath = (pathname: string) => {
-  let candidate = pathname
-
-  for (let decodeCount = 0; decodeCount <= 2; decodeCount += 1) {
-    if (
-      INTERNAL_PREFIX.test(candidate) ||
-      INTERNAL_DATA_PREFIX.test(candidate)
-    ) {
-      return true
-    }
-
-    try {
-      const decoded = decodeURIComponent(candidate)
-      if (decoded === candidate) {
-        return false
-      }
-      candidate = decoded
-    } catch {
-      return false
-    }
-  }
-
-  return false
-}
+export const isM00ProbePath = (pathname: string) => PROBE_PATH.test(pathname)
 
 export const resolveCanonicalMarket = (
   host: string | null
@@ -96,7 +73,7 @@ export const resolveM00ProxyAction = ({
   method,
   pathname,
 }: M00ProxyInput): M00ProxyAction => {
-  if (isDirectInternalPath(pathname)) {
+  if (isPrivatePagesPath(pathname)) {
     return { kind: "respond", status: 404 }
   }
 

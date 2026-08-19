@@ -16,7 +16,7 @@ issue and its normative comments remain authoritative:
 - [Part 04/5: final SEO/query/status tables and M00-M22](https://github.com/TechsioCZ/new-engine/issues/545#issuecomment-5198268915)
 - [Part 05/5: release evidence and Definition of Done](https://github.com/TechsioCZ/new-engine/issues/545#issuecomment-5198269075)
 
-## 1. Conflict resolution and open decisions
+## 1. Conflict resolution and remaining external approval
 
 Later explicit corrections and narrower security rules win over earlier generic
 tables. The implementation uses these resolutions:
@@ -29,28 +29,25 @@ tables. The implementation uses these resolutions:
 | Mutable alias targets in the early URLR sketch versus corrected Part 03 section 5.10 | Alias rows store no canonical target. They are immutable history rows associated with one logical route; resolution joins that route to its one current slug. |
 | Repeated facet keys merged in an older table versus final section 7.4 | A repeated query key is `404`. CSV is the only multivalue representation. |
 | Empty `q` redirect in an older table versus final sections 7.1/7.4 | Missing or trimmed-empty `q` renders a useful `200 noindex` search landing. |
-| Generic legacy `308` rows versus token secrecy rules | Issued reset/review token URLs use an internal compatibility rewrite without a redirect until their expiry window closes, then `404`. Tokens never enter `Location`. |
+| Generic legacy `308` rows versus old token/reset/review/payment paths | No new-engine storefront was publicly deployed and no production issuance or provider-callback evidence exists. Those development-only paths return `404` without `Location`; no compatibility rewrite, redirect, fallback, or dual routing is permitted. Contrary evidence stops the cutover instead of activating staged compatibility. |
 | `/homepage-promo` alias in an older table versus final section 7.9 | It was not a public route. Do not create an alias. |
-| `/o-nas` market behavior | Preserve SK and CZ because their current canonical target is already `/o-nas`; HU and RO use a direct `308` to their localized root-static target. |
+| `/o-nas` market behavior | `/o-nas` is the canonical root-static about path for SK and CZ. On HU and RO it returns `404` without `Location`; it is not redirected or rewritten to `/rolunk` or `/despre-noi`. |
 | `cacheComponents` conditional behavior | Release configuration is `cacheComponents: false`. Re-enabling it is a separate post-release change. |
 | Medusa assignment rule in an older table versus M21/DoD | Product, category, brand, collection, and campaign publication require an explicit Medusa-owned, admin-editable, channel-scoped assignment contract. URLR current state alone is not availability. |
-| Netlify release status | Docker/standalone M00 is mandatory. The issue both rejects an unproven Netlify release adapter and asks M00 to test Netlify. Netlify remains `BLOCKED-PENDING-ISSUE-DECISION`; it must not delay the Docker implementation, but release scope must be decided explicitly. |
-| Single-instance release versus mandatory backlog row M19 | The release remains standalone single-instance unless M19's shared-cache, tag-coordination, encryption-key, deployment-ID, and hash gates are implemented and accepted. Whether M19 is required for this release or is moved post-release remains `BLOCKED-PENDING-ISSUE-DECISION`. |
-| Normal navigation versus RSC acceptance rows | Public links are document `<a href>` navigation without RSC or `/_next/data` prefetch. Adversarial requests carrying RSC headers must still preserve the correct hard status. |
+| Netlify release status | The first-release target is the existing Zane Docker/standalone service. Netlify is not a release adapter and Netlify-specific variants are out of scope, not passed or waived. Docker/standalone evidence remains mandatory. |
+| Single-instance release versus mandatory backlog row M19 | The existing Zane production service is single-instance. M19 is explicitly post-release and is not counted complete; it does not block this first release. Any later multi-instance topology change must satisfy M19 before traffic is added. |
+| Normal navigation versus RSC acceptance rows | Public links use full-document `<a href>` navigation without RSC or `/_next/data` prefetch. I37/E25 adversarial RSC-header requests are spoofing and hard-status probes only; E28 proves full-document navigation. |
 
 The localized segment registry is `proposed, unverified` until G1 records a
 native reviewer, date, and frozen registry hash for every market. Legal routes
 also require legal approval. Code and fixtures must retain that status; they
 must not claim the translations are approved.
 
-Open decisions are tracked explicitly and must not be silently resolved in code:
+The release adapter, first-release instance topology, and RSC-row meaning are
+resolved above. The remaining external approval must not be inferred from code:
 
-| Decision | Executable state until resolved | Owner and deadline |
+| Approval | Executable state until recorded | Owner and deadline |
 |---|---|---|
-| Netlify as a supported release adapter | Docker/standalone is mandatory; no Netlify release claim or adapter-specific acceptance waiver is permitted. | `TBD — issue owner; required before S8` |
-| M19 shared multi-instance runtime | Production remains single-instance. M19 cannot be counted complete or removed from M20 without a normative issue decision. | `TBD — issue owner; required before S8` |
-| RSC/client-navigation rows I37/E25/E28 | Normal public navigation is document navigation. Only an adversarial RSC-header request is retained as a hard-status/spoofing probe. | `TBD — issue owner; required before S8` |
-| Reset/review token rows in section 7.9/E30 | Token-bearing legacy requests use a compatibility rewrite without `Location`; the broad `308` wording is not applied to secrets. | `TBD — issue owner; required before S8` |
 | G1 native/editorial/legal approval | Registry values remain `proposed, unverified`; publishing them is blocked. | `TBD — issue owner; required before S8` |
 
 ## 2. Non-negotiable architecture
@@ -80,7 +77,8 @@ Open decisions are tracked explicitly and must not be silently resolved in code:
 - Pages HTML is dynamically rendered and is not shared-cacheable.
 - The release deployment is standalone and single-instance. The same build may
   be deployed separately with an `ALLOWED_MARKETS` subset, but every deployment
-  is still single-instance until the unresolved M19 gate is accepted.
+  is still single-instance. M19 remains a post-release backlog item and must be
+  completed before any later multi-instance topology is enabled.
 - Separate deployments use the same `routeTaxonomyHash`; every instance of one
   deployment uses the same taxonomy and `deploymentBindingHash`. The binding
   hash contains only a publishable-key fingerprint, never the key value.
@@ -561,17 +559,22 @@ explicit cache-life profile; `updateTag` is not used there.
 ## 8. Greenfield cutover and empty migration manifest
 
 Shoptet history remains out of scope. On 2026-08-18 the project owner confirmed
-that no new-engine storefront version has been released publicly. The initial
-release therefore treats its old code routes as development-only and uses an
-empty new-site legacy manifest. The release gate must also confirm that no
-production-issued token link or payment-provider callback used those paths.
+that no new-engine storefront version has been released publicly. There is no
+evidence that a production reset/review token link or payment-provider callback
+was issued against an old new-engine path. The initial release therefore treats
+all old code routes as development-only and uses an empty new-site legacy
+manifest.
 
 Development-only paths such as `/p/{handle}`, `/c/{slug}`, `/znacka`, `/blog`,
-`/search`, `/faq`, `/o-nas`, `/account`, `/auth`, `/checkout`, and
-`/reviews/product/{token}` receive no compatibility redirect or rewrite. Once
-their canonical replacement is enabled, these old paths are expected to return
-`404`. `/api/*`, favicon, fonts, and assets remain explicit system surfaces;
-`/homepage-promo` remains development-only with no public route or alias.
+`/search`, `/faq`, `/account`, `/auth`, `/checkout`, old reset/review token
+paths, and old payment return/callback paths receive no compatibility redirect,
+rewrite, fallback, or dual routing. Once their canonical replacement is
+enabled, these old paths return `404` without `Location`. `/o-nas` is a special
+market-specific assertion: it is canonical for SK and CZ, but returns `404`
+without `Location` on HU and RO rather than redirecting or rewriting to the HU
+or RO about path. `/api/*`, favicon, fonts, and assets remain explicit system
+surfaces; `/homepage-promo` remains development-only with no public route or
+alias.
 
 Before the first release, every internal link, email URL producer, form target,
 provider callback, sitemap entry, and canonical builder must emit only the new
@@ -581,9 +584,9 @@ change remain direct-current `308` records and retain the normal no-chain and
 no-reuse guarantees.
 
 If contrary publication, indexing, issued-token, or provider-callback evidence
-is discovered before release, cutover stops. The affected concrete paths must
-then be frozen into an immutable manifest with an explicit preserve, direct
-`308`, compatibility-rewrite, `410`, or `404` decision before release.
+is discovered before release, cutover stops and requires a new explicit issue
+decision. The release must not silently introduce a redirect, rewrite, fallback,
+dual-routing period, or compatibility manifest.
 
 ## 9. Master behavior that must survive
 
@@ -651,12 +654,12 @@ issue wording must not be copied into test expectations:
 |---|---|
 | U35 | Public Server Functions are forbidden. GET/HEAD enter the public resolver; non-action POST/PUT/PATCH/DELETE return `405` with `Allow: GET, HEAD`; OPTIONS returns `204` with the same Allow. Explicit `/api` handlers use their own route-specific method schema. |
 | I37 | This is an adversarial RSC-header spoofing/rewritten-path preservation test only. A request carrying RSC headers cannot spoof `x-sf-*`, bypass routing, or turn a hard status into `200`; it is not proof of supported public client navigation. |
-| E25 | On Docker/standalone, direct HTML and explicit adversarial RSC-header requests prove current `200`, alias `308`, miss `404`, tombstone `410`, and outage `503` before flush for GET/HEAD. The Netlify variant is pending the explicit release-target decision and cannot be marked passed or waived implicitly. |
+| E25 | On the Zane Docker/standalone target, direct HTML and explicit adversarial RSC-header requests prove current `200`, alias `308`, miss `404`, tombstone `410`, and outage `503` before flush for GET/HEAD. Netlify is not an applicable release variant. |
 | E28 | Clicking public links performs document navigation and emits neither an RSC request nor `/_next/data` prefetch. The resulting full document retains correct market, public path, status, canonical, and metadata. |
-| I44 | The section 8 initial-release manifest is empty. Development-only routes return `404`, while system/current routes remain preserved. If contrary publication evidence appears, this row is replaced by exact per-path migration outcomes before release. |
-| E30 | Crawl URLR aliases created by explicit slug changes expecting one application `308`. Separately assert current routes, development-only/unknown `404`, and retired `410`; no internal document may link to an alias or removed development route. |
-| M19 | Remains unresolved. Production is single-instance; M19 is neither silently waived nor counted complete until the issue owner decides release versus post-release scope. |
-| Netlify-dependent rows | Remain blocked pending the release-target decision. Docker evidence is mandatory and is recorded independently. |
+| I44 | The section 8 initial-release manifest is empty. Development-only routes, including old token/reset/review/payment paths, return `404` without `Location`, while system/current routes remain preserved. `/o-nas` is canonical for SK/CZ and `404` without `Location` for HU/RO. Contrary publication or issuance evidence stops release; it does not activate a fallback. |
+| E30 | Crawl URLR aliases created after cutover by explicit slug changes expecting one application `308`. Separately assert current routes, development-only/unknown `404`, retired `410`, and market-specific `/o-nas`; no internal document may link to an alias or removed development route. |
+| M19 | Post-release for this single-instance Zane deployment and not counted complete. It is not a first-release blocker; any later multi-instance rollout must complete it first. |
+| Netlify-dependent rows | Not applicable to the selected Zane Docker/standalone release target. They are neither passed nor waived and make no release claim. |
 
 - exact Next version and config capabilities;
 - all unit and integration suites for Herbatika, storefront-data, Medusa, and
@@ -673,8 +676,11 @@ issue wording must not be copied into test expectations:
 - token redaction in access logs, traces, errors, metadata, analytics, and
   redirects;
 - G1 native/editorial/legal approvals and frozen route-taxonomy hash;
-- explicit resolution of the Netlify release-target contradiction.
-- explicit resolution of M19, RSC-row, and token-legacy wording before S8.
+- release evidence for the existing Zane Docker/standalone service, with no
+  Netlify adapter claim;
+- proof that production remains single-instance, M19 is not counted complete,
+  and public navigation is full-document while RSC requests are adversarial
+  probes only.
 
 ## 12. Baseline recorded before implementation
 
@@ -708,6 +714,6 @@ issue wording must not be copied into test expectations:
   Proxy scrubbing and trusted `x-sf-*` replacement remain defense in depth.
 - Herbatika unit suite after S1: **33/33 files and 191/191 tests passed**;
   TypeScript, Biome, Actionlint, Compose validation, and Caddy validation pass.
-- Docker S1 evidence is complete. The issue's contradictory Netlify row remains
-  `BLOCKED-PENDING-ISSUE-DECISION`; M00 must not be called globally release-ready
-  until that ownership decision is recorded.
+- Docker S1 evidence is complete for the selected existing Zane
+  Docker/standalone release adapter. Netlify is excluded from this release and
+  no Netlify evidence or compatibility claim is made.

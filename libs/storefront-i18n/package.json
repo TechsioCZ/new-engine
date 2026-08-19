@@ -18,6 +18,10 @@
       "types": "./dist/core/messages.d.ts",
       "import": "./dist/core/messages.js"
     },
+    "./core/public-flow-routes": {
+      "types": "./dist/core/public-flow-routes.d.ts",
+      "import": "./dist/core/public-flow-routes.js"
+    },
     "./medusa/messages": {
       "types": "./dist/medusa/messages.d.ts",
       "import": "./dist/medusa/messages.js"
@@ -54,6 +58,14 @@
   "peerDependencies": {
     "@medusajs/js-sdk": ">=2.12.5",
     "next-intl": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@medusajs/js-sdk": {
+      "optional": true
+    },
+    "next-intl": {
+      "optional": true
+    }
   },
   "publishConfig": {
     "access": "public"

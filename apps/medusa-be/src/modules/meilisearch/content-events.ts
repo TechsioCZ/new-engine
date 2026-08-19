@@ -1,9 +1,13 @@
 import type { Logger, MedusaContainer } from "@medusajs/framework/types"
 import { MeilisearchAdminClient } from "./admin-client"
-import { buildContentSearchDocument, cleanSearchText } from "./documents"
+import { buildContentSearchDocument } from "./documents"
 import { isMeilisearchEnabled } from "./env"
 import { loadSearchProfiles } from "./profiles"
 import { CONTENT_INDEX_SETTINGS } from "./settings"
+import {
+  contentProjectionKey,
+  resolveContentProjectionHrefs,
+} from "./url-registry-content-projection"
 
 export type CmsSearchChange = {
   collection: string
@@ -26,6 +30,43 @@ const isPublished = (
   change.operation !== "delete" &&
   change.doc?.status === "published" &&
   (type === "article" || change.doc?.visibility === "public")
+
+const reconcilePublishedContent = async ({
+  change,
+  client,
+  documentId,
+  index,
+  locale,
+  logger,
+  publicHref,
+  type,
+}: {
+  change: CmsSearchChange
+  client: MeilisearchAdminClient
+  documentId: string
+  index: string
+  locale: string
+  logger: Logger
+  publicHref: string | undefined
+  type: "article" | "page"
+}) => {
+  const document = buildContentSearchDocument(
+    change.doc ?? {},
+    type,
+    locale,
+    publicHref
+  )
+
+  if (document) {
+    await client.addDocuments(index, [document])
+    return
+  }
+
+  logger.warn(
+    `Removing ${change.collection} search projection because its canonical public href is unavailable`
+  )
+  await client.deleteDocuments(index, [documentId])
+}
 
 export const reconcileContentSearchChange = async (
   change: CmsSearchChange,
@@ -78,21 +119,22 @@ export const reconcileContentSearchChange = async (
     )
 
     if (isPublished(change, type)) {
-      const contentSource = {
-        ...change.doc,
-        slug:
-          typeof change.doc?.slug === "string"
-            ? cleanSearchText(change.doc.slug)
-            : change.doc?.slug,
-      }
-
-      const document = buildContentSearchDocument(
-        contentSource,
-        type,
-        profile.locale
+      const sourceId = String(rawId).trim()
+      const projections = await resolveContentProjectionHrefs(
+        [{ sourceId, sourceType: type }],
+        profile.locale,
+        logger
       )
-
-      await client.addDocuments(index, [document])
+      await reconcilePublishedContent({
+        change,
+        client,
+        documentId,
+        index,
+        locale: profile.locale,
+        logger,
+        publicHref: projections.get(contentProjectionKey(type, sourceId)),
+        type,
+      })
     } else {
       await client.deleteDocuments(index, [documentId])
     }

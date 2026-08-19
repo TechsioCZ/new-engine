@@ -2,11 +2,11 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { z } from "@medusajs/framework/zod"
 import { PAYLOAD_MODULE } from "../../../../../modules/payload"
 import type PayloadModuleService from "../../../../../modules/payload/service"
-import { optionalStringParam } from "../../../../../utils/query-params"
+import { StoreCmsLocaleSchema } from "../../locales"
 
 /** Query schema for fetching a single CMS page. */
 export const StoreCmsPageSchema = z.object({
-  locale: optionalStringParam,
+  locale: StoreCmsLocaleSchema,
 })
 
 /** Parsed query type for the CMS page endpoint. */
@@ -22,11 +22,18 @@ export async function GET(
     return res.status(400).json({ message: "Missing slug" })
   }
   const cmsService = req.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
-  const page = await cmsService.getPublishedPage(slug, req.locale)
+  try {
+    const page = await cmsService.getPublishedPage(
+      slug,
+      req.validatedQuery.locale
+    )
 
-  if (!page) {
-    return res.status(404).json({ message: "Page not found" })
+    if (!page) {
+      return res.status(404).json({ message: "Page not found" })
+    }
+
+    return res.json({ page })
+  } catch {
+    return res.status(503).json({ message: "CMS source is unavailable" })
   }
-
-  return res.json({ page })
 }

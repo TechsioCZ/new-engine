@@ -26,6 +26,8 @@ import type {
   UrlRouteSnapshot,
 } from "./model"
 import type {
+  ActiveEntityRouteCountRequest,
+  ActiveEntityRoutePageRequest,
   ActiveEquivalenceLookup,
   EntityIdentityLookup,
   SourceReadResult,
@@ -88,6 +90,12 @@ export interface UrlRegistry {
   findActiveEntityRoute(
     input: EntityIdentityLookup
   ): Promise<SourceReadResult<ActiveEntityRouteTarget>>
+  listActiveEntityRoutes(
+    input: ActiveEntityRoutePageRequest
+  ): Promise<SourceReadResult<UrlRegistryPage<ActiveEntityRouteTarget>>>
+  countActiveEntityRoutes(
+    input: ActiveEntityRouteCountRequest
+  ): Promise<SourceReadResult<number>>
   findEntityRoute(
     input: EntityIdentityLookup
   ): Promise<SourceReadResult<EntityRouteSnapshot>>

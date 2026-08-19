@@ -23,6 +23,10 @@ import {
   type SearchProfile,
 } from "./profiles"
 import { SEARCH_INDEX_SETTINGS } from "./settings"
+import {
+  contentProjectionKey,
+  resolveContentProjectionHrefs,
+} from "./url-registry-content-projection"
 
 export type SearchProfileSyncMode = "full" | "normal"
 
@@ -64,6 +68,7 @@ const PRODUCT_FIELDS = [
   "handle",
   "thumbnail",
   "created_at",
+  "collection_id",
   "metadata",
   "categories.id",
   "categories.name",
@@ -486,12 +491,14 @@ const resolvePayloadService = (
   }
 }
 
-const indexContentDocuments = async (
-  payload: PayloadModuleService | null,
-  client: MeilisearchAdminClient,
-  profile: SearchProfile,
+const indexContentDocuments = async (options: {
+  client: MeilisearchAdminClient
   index: string
-): Promise<Set<string>> => {
+  logger: Logger
+  payload: PayloadModuleService | null
+  profile: SearchProfile
+}): Promise<Set<string>> => {
+  const { client, index, logger, payload, profile } = options
   const currentIds = new Set<string>()
 
   if (!payload) {
@@ -514,13 +521,39 @@ const indexContentDocuments = async (
               locale: profile.locale,
               page,
             })
-      const documents = result.docs.map((document) =>
-        buildContentSearchDocument(
-          document as Record<string, unknown>,
-          type,
-          profile.locale
+      const projectionEntries = result.docs
+        .map((document) => {
+          const sourceId = getId(document as Record<string, unknown>)
+          return sourceId ? { sourceId, sourceType: type } : null
+        })
+        .filter(
+          (
+            entry
+          ): entry is { sourceId: string; sourceType: "article" | "page" } =>
+            entry !== null
         )
+      const projections = await resolveContentProjectionHrefs(
+        projectionEntries,
+        profile.locale,
+        logger
       )
+      const documents = result.docs
+        .map((document) => {
+          const source = document as Record<string, unknown>
+          const sourceId = getId(source)
+
+          return buildContentSearchDocument(
+            source,
+            type,
+            profile.locale,
+            sourceId
+              ? projections.get(contentProjectionKey(type, sourceId))
+              : undefined
+          )
+        })
+        .filter((document): document is Record<string, unknown> =>
+          Boolean(document)
+        )
 
       for (const document of documents) {
         const id = getId(document)
@@ -687,12 +720,13 @@ const syncProfile = async (options: {
       transform: buildBrandSearchDocument,
     })
 
-    const contentIds = await indexContentDocuments(
-      payload,
+    const contentIds = await indexContentDocuments({
       client,
+      index: targets.content,
+      logger,
+      payload,
       profile,
-      targets.content
-    )
+    })
 
     let deleted = 0
 

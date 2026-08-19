@@ -2,7 +2,6 @@
 
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import type { StaticImageData } from "next/image"
-import NextLink from "next/link"
 import { useFormatter, useTranslations } from "next-intl"
 import type { MouseEvent } from "react"
 import { FractionalRating } from "@/components/reviews/fractional-rating"
@@ -14,6 +13,7 @@ import type {
   ReviewsVariant,
   ReviewTrustSource,
 } from "@/components/reviews/reviews.types"
+import { StorefrontLink } from "@/components/storefront-link"
 
 type ReviewsSectionProps = {
   sectionClassName?: string
@@ -122,14 +122,14 @@ export function ReviewsSection({
         ) : null}
 
         {reviewLink ? (
-          <NextLink
+          <StorefrontLink
             className="inline-flex items-center gap-50 font-verdana text-fg-strong text-sm leading-relaxed underline decoration-1 underline-offset-2 hover:text-fg-primary"
             href={reviewLink.href}
             onClick={onLinkClick}
           >
             {reviewLink.label}
             <Icon icon="token-icon-chevron-right" size="md" />
-          </NextLink>
+          </StorefrontLink>
         ) : null}
       </header>
 

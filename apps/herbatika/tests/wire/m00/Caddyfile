@@ -3,6 +3,43 @@
 	auto_https disable_redirects
 }
 
+(raw_request_boundary) {
+	@too_long expression `size(bytes({http.request.orig_uri})) > 2048`
+	handle @too_long {
+		header Cache-Control "no-store"
+		header X-Robots-Tag "noindex, nofollow"
+		respond 414
+	}
+
+	@non_ascii expression `!{http.request.orig_uri}.matches('^[\\x00-\\x7F]*$')`
+	handle @non_ascii {
+		header Cache-Control "no-store"
+		header X-Robots-Tag "noindex, nofollow"
+		respond 400
+	}
+
+	@malformed_percent expression `{http.request.orig_uri}.matches('(?i)%(?:$|[^0-9a-f]|[0-9a-f](?:$|[^0-9a-f]))')`
+	handle @malformed_percent {
+		header Cache-Control "no-store"
+		header X-Robots-Tag "noindex, nofollow"
+		respond 400
+	}
+
+	@encoded_separator expression `{http.request.orig_uri}.matches('(?i)^[^?]*(?:%2f|%5c)')`
+	handle @encoded_separator {
+		header Cache-Control "no-store"
+		header X-Robots-Tag "noindex, nofollow"
+		respond 400
+	}
+
+	@malformed_authority expression `!{http.request.hostport}.matches('(?i)^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?::(?:[1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5]))?$')`
+	handle @malformed_authority {
+		header Cache-Control "no-store"
+		header X-Robots-Tag "noindex, nofollow"
+		respond 400
+	}
+}
+
 herbatica.sk, herbatica.cz, herbatica.hu, herbatica.ro {
 	tls internal
 
@@ -11,12 +48,39 @@ herbatica.sk, herbatica.cz, herbatica.hu, herbatica.ro {
 		format console
 	}
 
-	reverse_proxy herbatika:3000 {
-		header_up -Next-Router-Prefetch
-		header_up -Next-Router-Segment-Prefetch
-		header_up -Next-Router-State-Tree
-		header_up -Next-Url
-		header_up -RSC
-		header_up -X-Nextjs-Data
+	route {
+		import raw_request_boundary
+
+		reverse_proxy herbatika:3000 {
+			# Pinned Caddy replaces client-provided X-Forwarded-For/Host/Proto by
+			# default. Do not delete them here; deletion suppresses those trusted values.
+			header_up -Forwarded
+			header_up -Next-Router-Prefetch
+			header_up -Next-Router-Segment-Prefetch
+			header_up -Next-Router-State-Tree
+			header_up -Next-Url
+			header_up -Purpose
+			header_up -RSC
+			header_up -Sec-Purpose
+			header_up -X-Forwarded-Port
+			header_up -X-Forwarded-Scheme
+			header_up -X-Middleware-Prefetch
+			header_up -X-Nextjs-Data
+			header_up -X-Original-Host
+			header_up -X-Original-URL
+			header_up -X-Real-IP
+		}
+	}
+}
+
+:443 {
+	tls internal
+
+	route {
+		import raw_request_boundary
+
+		header Cache-Control "no-store"
+		header X-Robots-Tag "noindex, nofollow"
+		respond 421
 	}
 }

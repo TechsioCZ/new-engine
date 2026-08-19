@@ -23,10 +23,12 @@ const delivery = (
   changeType: "reconcile",
   occurredAt: "2026-08-18T10:00:00.000Z",
   payload: {
+    assignment: null,
     schemaVersion: 1,
     productId: "prod_01",
     reason: "updated",
     changeType: "reconcile",
+    sourceVersion: "2026-08-18T09:00:00.000Z",
   },
   ...overrides,
 })

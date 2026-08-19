@@ -6,6 +6,7 @@ export type SearchAutocompleteSuggestionType =
 
 export type SearchAutocompleteSuggestion = {
   id: string
+  sourceId?: string
   type: SearchAutocompleteSuggestionType
   title: string
   href: string

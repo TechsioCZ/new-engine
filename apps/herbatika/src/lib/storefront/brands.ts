@@ -2,7 +2,6 @@ export type StorefrontBrand = {
   id: string
   title: string
   handle: string
-  slug: string
   facetId: string
 }
 
@@ -56,7 +55,7 @@ const brandCollator = new Intl.Collator("sk", {
   sensitivity: "base",
 })
 
-export const createBrandSlug = (value: string): string =>
+const normalizeBrandFacetValue = (value: string): string =>
   value
     .toLowerCase()
     .normalize("NFD")
@@ -65,11 +64,8 @@ export const createBrandSlug = (value: string): string =>
     .replaceAll(/-+/g, "-")
     .replaceAll(/^-+|-+$/g, "")
 
-export const createBrandHref = (brand: Pick<StorefrontBrand, "slug">) =>
-  `/znacka/${brand.slug}`
-
 export const createBrandFacetId = (value: string) =>
-  `${BRAND_FACET_PREFIX}${createBrandSlug(value)}`
+  `${BRAND_FACET_PREFIX}${normalizeBrandFacetValue(value)}`
 
 export const normalizeStorefrontBrand = (
   input: RawStorefrontBrandInput
@@ -81,9 +77,7 @@ export const normalizeStorefrontBrand = (
   }
 
   const handle = input.handle?.trim() || title
-  const slug = createBrandSlug(handle)
-
-  if (!slug) {
+  if (!normalizeBrandFacetValue(handle)) {
     return null
   }
 
@@ -91,28 +85,14 @@ export const normalizeStorefrontBrand = (
     id: input.id,
     title,
     handle,
-    slug,
     facetId: createBrandFacetId(handle),
   }
 }
 
-export const resolveBrandBySlug = (brands: StorefrontBrand[], slug: string) => {
-  const normalizedSlug = createBrandSlug(slug)
-  const canonicalBrand =
-    brands.find((brand) => brand.slug === normalizedSlug) ?? null
-
-  if (canonicalBrand) {
-    return canonicalBrand
-  }
-
-  return (
-    brands.find((brand) => createBrandSlug(brand.title) === normalizedSlug) ??
-    null
-  )
-}
-
 const resolveBrandGroupLetter = (brand: StorefrontBrand) => {
-  const firstCharacter = createBrandSlug(brand.title).charAt(0).toUpperCase()
+  const firstCharacter = normalizeBrandFacetValue(brand.title)
+    .charAt(0)
+    .toUpperCase()
 
   if (DIGIT_CHARACTER_PATTERN.test(firstCharacter)) {
     return NUMERIC_BRAND_GROUP

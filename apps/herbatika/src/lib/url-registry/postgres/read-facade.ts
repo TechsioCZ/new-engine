@@ -1,5 +1,7 @@
 import type { Market } from "@/lib/url/types"
 import type {
+  ActiveEntityRouteCountRequest,
+  ActiveEntityRoutePageRequest,
   ActiveEquivalenceLookup,
   ActiveRouteTarget,
   EntityIdentityLookup,
@@ -18,10 +20,12 @@ import type {
 } from "../contracts"
 import { listAudits, listPendingOutbox } from "./audit-read"
 import {
+  countActiveEntities,
   findActiveEntity,
   findEntity,
   findEquivalents,
   getRouteSnapshot,
+  listActiveEntities,
   listStaticSnapshots,
 } from "./projection-read"
 import { resolveBatch, resolveOne } from "./resolution-read"
@@ -52,6 +56,22 @@ export class PostgresRegistryReads {
     SourceReadResult<Extract<ActiveRouteTarget, { projectionType: "entity" }>>
   > {
     return findActiveEntity(this.primary, input)
+  }
+
+  listActiveEntityRoutes(
+    input: ActiveEntityRoutePageRequest
+  ): Promise<
+    SourceReadResult<
+      UrlRegistryPage<Extract<ActiveRouteTarget, { projectionType: "entity" }>>
+    >
+  > {
+    return listActiveEntities(this.primary, input)
+  }
+
+  countActiveEntityRoutes(
+    input: ActiveEntityRouteCountRequest
+  ): Promise<SourceReadResult<number>> {
+    return countActiveEntities(this.primary, input)
   }
 
   findEntityRoute(

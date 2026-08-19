@@ -2,11 +2,10 @@
 
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
-import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { resolveAddressFormsMatch } from "@/components/checkout/checkout-address.utils"
 import type { CheckoutController } from "@/components/checkout/use-checkout-controller"
+import { StorefrontLink } from "@/components/storefront-link"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { CheckoutAddressSection } from "./checkout-address-section"
 import { CheckoutPickupPointDetailsSection } from "./checkout-pickup-point-details-section"
@@ -33,7 +32,6 @@ export function CheckoutDetailsStepSection({
   controller,
   nextStepHref,
 }: CheckoutDetailsStepSectionProps) {
-  const router = useRouter()
   const tCheckout = useTranslations("checkout")
   const addressFormId = "checkout-address-form"
   const checkoutDetailsValues = controller.checkoutDetailsForm.values
@@ -61,7 +59,7 @@ export function CheckoutDetailsStepSection({
             (async () => {
               const didSaveAddress = await controller.handleSaveAddress()
               if (didSaveAddress) {
-                router.push(nextStepHref)
+                window.location.assign(nextStepHref)
               }
             })()
           )
@@ -143,7 +141,7 @@ export function CheckoutDetailsStepSection({
 
       <div className="flex flex-wrap items-center justify-between gap-200">
         <LinkButton
-          as={NextLink}
+          as={StorefrontLink}
           className="hover:button-bg-outlined-tertiary-hover w-full sm:w-auto sm:min-w-950"
           href={backStepHref}
           icon="token-icon-chevron-left"

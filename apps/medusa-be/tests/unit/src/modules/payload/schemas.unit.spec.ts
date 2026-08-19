@@ -7,6 +7,7 @@ import {
   CMS_FOOTER_ITEM_SLOTS,
   CmsArticleSchema,
   CmsFooterNavigationGlobalSchema,
+  CmsHeroCarouselSchema,
   CmsLexicalContentSchema,
 } from "../../../../../src/modules/payload/schemas"
 
@@ -183,6 +184,56 @@ describe("Payload CMS schemas", () => {
     )
 
     expect(parsed.success).toBe(true)
+  })
+
+  it("accepts stable hero entity and static targets", () => {
+    const entity = CmsHeroCarouselSchema.parse({
+      id: 1,
+      image: 2,
+      buttonTarget: {
+        targetType: "entity",
+        sourceSystem: "medusa",
+        sourceType: "product",
+        sourceId: "prod_123",
+      },
+    })
+    const staticTarget = CmsHeroCarouselSchema.parse({
+      id: 2,
+      image: 3,
+      buttonTarget: {
+        targetType: "static",
+        staticRouteKey: "root:about",
+      },
+    })
+
+    expect(entity.buttonTarget).toMatchObject({ sourceId: "prod_123" })
+    expect(staticTarget.buttonTarget).toMatchObject({
+      staticRouteKey: "root:about",
+    })
+  })
+
+  it("rejects hero targets that mismatch source ownership or carry a path", () => {
+    const wrongOwner = CmsHeroCarouselSchema.safeParse({
+      id: 1,
+      image: 2,
+      buttonTarget: {
+        targetType: "entity",
+        sourceSystem: "payload",
+        sourceType: "product",
+        sourceId: "prod_123",
+      },
+    })
+    const pathTarget = CmsHeroCarouselSchema.safeParse({
+      id: 2,
+      image: 3,
+      buttonTarget: {
+        targetType: "static",
+        staticRouteKey: "/arbitrary-path",
+      },
+    })
+
+    expect(wrongOwner.success).toBe(false)
+    expect(pathTarget.success).toBe(false)
   })
 
   it("validates footer navigation block targets", () => {

@@ -36,8 +36,7 @@ vi.mock(
   () => ({
     prepareCustomerAccountDeactivationRequestStep: vi.fn(() => ({
       country_code: "sk",
-      confirmation_url:
-        "https://herbatica.sk/account/deactivate/confirm?token=test",
+      confirmation_url: "https://herbatica.sk/ucet/zrusenie-uctu?token=test",
       customer_id: "cus_1",
       customer_name: "Customer",
       email: "customer@example.test",
@@ -78,7 +77,7 @@ describe("requestCustomerAccountDeactivationWorkflow", () => {
         channel: "email",
         data: {
           confirmation_url:
-            "https://herbatica.sk/account/deactivate/confirm?token=test",
+            "https://herbatica.sk/ucet/zrusenie-uctu?token=test",
           country_code: "sk",
           customer_id: "cus_1",
           customer_name: "Customer",

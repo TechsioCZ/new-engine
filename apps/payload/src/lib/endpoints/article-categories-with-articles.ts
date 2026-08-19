@@ -46,6 +46,7 @@ export const articleCategoriesWithArticlesEndpoint: Endpoint = {
       limit: MAX_ARTICLES,
       locale,
       fallbackLocale: false,
+      overrideAccess: false,
       where: {
         and: [
           { status: { equals: "published" } },

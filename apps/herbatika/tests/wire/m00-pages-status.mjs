@@ -93,8 +93,20 @@ const requestProfiles = [
       RSC: "1",
       "Next-Router-Prefetch": "1",
       "Next-Router-State-Tree": "%5B%22%22%5D",
+      Purpose: "prefetch",
+      Forwarded: "for=203.0.113.10;host=attacker.invalid;proto=http",
+      "Sec-Purpose": "prefetch",
       "X-Canonical-Origin": "https://attacker.invalid",
+      "X-Forwarded-For": "203.0.113.10",
+      "X-Forwarded-Host": "attacker.invalid",
+      "X-Forwarded-Port": "80",
+      "X-Forwarded-Proto": "http",
+      "X-Forwarded-Scheme": "http",
       "X-Market-Code": "attacker-controlled",
+      "X-Middleware-Prefetch": "1",
+      "X-Original-Host": "attacker.invalid",
+      "X-Original-URL": "/attacker-controlled",
+      "X-Real-IP": "203.0.113.10",
       "X-Sales-Channel-Id": "sc_attacker",
       "X-Sf-Market": "attacker-controlled",
     },
@@ -213,4 +225,72 @@ test("M00 Pages Router production status matrix", async () => {
     pathname: `/_next/data/${buildId}/~sf/sk/__m00/current.json`,
   })
   assert.equal(dataResponse.status, 404, "internal Pages data route")
+
+  const boundaryPrefix = "/__url-m00/current?pad="
+  const boundaryTarget = `${boundaryPrefix}${"a".repeat(
+    2048 - Buffer.byteLength(boundaryPrefix)
+  )}`
+  const tooLongTarget = `${boundaryTarget}a`
+  assert.equal(Buffer.byteLength(boundaryTarget), 2048)
+  assert.equal(Buffer.byteLength(tooLongTarget), 2049)
+  assert.equal((await request({ pathname: boundaryTarget })).status, 200)
+  assert.equal(
+    (
+      await request({
+        pathname: "/__url-m00/current?return=%2Faccount%5Csettings",
+      })
+    ).status,
+    200
+  )
+
+  for (const boundaryCase of [
+    { host: "herbatica.sk", pathname: tooLongTarget, status: 414 },
+    {
+      host: "herbatica.sk",
+      pathname: "/__url-m00%2Fcurrent",
+      status: 400,
+    },
+    {
+      host: "herbatica.sk",
+      pathname: "/__url-m00%5ccurrent",
+      status: 400,
+    },
+    {
+      host: "herbatica.sk:bad",
+      pathname: "/__url-m00/current",
+      status: 400,
+    },
+    {
+      host: "herbatica.sk:65536",
+      pathname: "/__url-m00/current",
+      status: 400,
+    },
+    {
+      host: "unknown.example",
+      pathname: "/__url-m00/current",
+      status: 421,
+    },
+  ]) {
+    const [getResponse, headResponse] = await Promise.all([
+      request({
+        host: boundaryCase.host,
+        method: "GET",
+        pathname: boundaryCase.pathname,
+      }),
+      request({
+        host: boundaryCase.host,
+        method: "HEAD",
+        pathname: boundaryCase.pathname,
+      }),
+    ])
+    assert.equal(getResponse.status, boundaryCase.status)
+    assert.equal(headResponse.status, boundaryCase.status)
+    assert.equal(headResponse.body.byteLength, 0)
+    assert.equal(getResponse.headers["cache-control"], "no-store")
+    assert.equal(headResponse.headers["cache-control"], "no-store")
+    assert.equal(getResponse.headers["x-robots-tag"], "noindex, nofollow")
+    assert.equal(headResponse.headers["x-robots-tag"], "noindex, nofollow")
+    assert.equal(getResponse.headers.location, undefined)
+    assert.equal(headResponse.headers.location, undefined)
+  }
 })

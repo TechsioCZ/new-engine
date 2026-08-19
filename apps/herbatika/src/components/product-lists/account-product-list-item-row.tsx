@@ -6,12 +6,15 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import Image from "next/image"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { useCallback, useEffect, useId, useRef, useState } from "react"
 import { PRODUCT_FALLBACK_IMAGE } from "@/components/product-card/product-card.constants"
 import { resolveVariantPriceState } from "@/components/product-card/product-card.pricing"
+import { StorefrontLink } from "@/components/storefront-link"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import type { StoreProductListItem } from "@/lib/storefront/product-lists"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
+import { withPublicSearchParams } from "@/lib/url/public-url"
 import {
   resolveProductListItemAvailability,
   resolveProductListItemQuantity,
@@ -32,9 +35,38 @@ type AccountProductListItemRowProps = {
   onDelete: (item: StoreProductListItem) => void
   onQuantitySet: (item: StoreProductListItem, quantity: number) => void
   product: HttpTypes.StoreProduct | null
+  publicSlug?: string | null
 }
 
 type AuthTranslator = ReturnType<typeof useTranslations<"auth">>
+
+function ProductListItemImage({
+  href,
+  imageSrc,
+  title,
+}: {
+  href: string | null
+  imageSrc: string
+  title: string
+}) {
+  const image = (
+    <Image
+      alt={title}
+      className="h-850 w-850 rounded-md object-contain"
+      height={80}
+      src={imageSrc}
+      width={80}
+    />
+  )
+
+  return href ? (
+    <StorefrontLink className="shrink-0" href={href}>
+      {image}
+    </StorefrontLink>
+  ) : (
+    <div className="shrink-0">{image}</div>
+  )
+}
 
 const resolveAvailabilityLabel = (
   availability: ReturnType<typeof resolveProductListItemAvailability>,
@@ -63,22 +95,28 @@ const resolveAvailabilityLabel = (
 const resolveItemDisplay = ({
   currencyCode,
   item,
+  market,
   priceUnavailableLabel,
   product,
+  publicSlug,
 }: {
   currencyCode: string
   item: StoreProductListItem
+  market: Parameters<typeof buildProjectedEntityPath>[2]
   priceUnavailableLabel: string
   product: HttpTypes.StoreProduct | null
+  publicSlug?: string | null
 }) => {
   if (!product) {
-    return { price: null, productHref: "#", selectedVariant: null }
+    return { price: null, productHref: null, selectedVariant: null }
   }
 
   const selectedVariant = resolveProductListItemVariant(item, product)
-  const variantQuery = selectedVariant?.id
-    ? `?variant=${encodeURIComponent(selectedVariant.id)}`
-    : ""
+  const productPath = buildProjectedEntityPath(
+    "product",
+    publicSlug ? { publicSlug } : undefined,
+    market
+  )
 
   return {
     price: resolveVariantPriceState(
@@ -87,7 +125,9 @@ const resolveItemDisplay = ({
       currencyCode,
       priceUnavailableLabel
     ),
-    productHref: product.handle ? `/p/${product.handle}${variantQuery}` : "#",
+    productHref: productPath
+      ? withPublicSearchParams(productPath, { variant: selectedVariant?.id })
+      : null,
     selectedVariant,
   }
 }
@@ -103,18 +143,22 @@ export function AccountProductListItemRow({
   onDelete,
   onQuantitySet,
   product,
+  publicSlug,
 }: AccountProductListItemRowProps) {
   const tAuth = useTranslations("auth")
   const tCart = useTranslations("cart")
   const tCatalog = useTranslations("catalog")
+  const { code: market } = useMarketContext()
   const itemProduct = product ?? item.product ?? null
   const productTitle =
     itemProduct?.title?.trim() || item.product_id || item.id || ""
   const { price, productHref, selectedVariant } = resolveItemDisplay({
     currencyCode,
     item,
+    market,
     priceUnavailableLabel: tCatalog("product_card.price_on_request"),
     product: itemProduct,
+    publicSlug,
   })
   const imageSrc = itemProduct?.thumbnail ?? PRODUCT_FALLBACK_IMAGE
   const quantity = resolveProductListItemQuantity(item)
@@ -162,24 +206,26 @@ export function AccountProductListItemRow({
 
   return (
     <article className="flex flex-col gap-300 border-border-secondary border-b bg-base p-300 md:flex-row md:items-center">
-      <NextLink className="shrink-0" href={productHref}>
-        <Image
-          alt={productTitle}
-          className="h-850 w-850 rounded-md object-contain"
-          height={80}
-          src={imageSrc}
-          width={80}
-        />
-      </NextLink>
+      <ProductListItemImage
+        href={productHref}
+        imageSrc={imageSrc}
+        title={productTitle}
+      />
 
       <div className="min-w-0 flex-1 space-y-100">
-        <Link
-          as={NextLink}
-          className="block truncate font-semibold text-primary text-sm underline"
-          href={productHref}
-        >
-          {productTitle}
-        </Link>
+        {productHref ? (
+          <Link
+            as={StorefrontLink}
+            className="block truncate font-semibold text-primary text-sm underline"
+            href={productHref}
+          >
+            {productTitle}
+          </Link>
+        ) : (
+          <p className="truncate font-semibold text-fg-primary text-sm">
+            {productTitle}
+          </p>
+        )}
         {selectedVariant?.title ? (
           <p className="truncate text-fg-secondary text-xs">
             {selectedVariant.title}

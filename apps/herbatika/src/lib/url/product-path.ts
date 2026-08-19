@@ -1,26 +1,26 @@
-import { ROUTES } from "@/lib/market/market-runtime-definitions"
-import { ROUTE_SEGMENT_REGISTRY } from "./segments"
-import { validatePublishedSlug } from "./slug"
+import {
+  buildAbsoluteUrl,
+  buildPath,
+  withPublicSearchParams,
+} from "./public-url"
 import type { Market } from "./types"
 
-export const buildProductPath = (
-  market: Market,
-  publicSlug: string
-): string => {
-  validatePublishedSlug(publicSlug)
-  const prefix = ROUTE_SEGMENT_REGISTRY[market].typePrefixes.products
-  return `/${prefix}/${publicSlug}`
-}
+export const buildProductPath = (market: Market, publicSlug: string): string =>
+  buildPath({ kind: "product", slug: publicSlug }, market)
 
 export const buildProductAbsoluteUrl = (
   market: Market,
   publicSlug: string,
-  rawQuery = ""
+  searchParams: Readonly<
+    Record<string, string | number | null | undefined>
+  > = {}
 ): string => {
-  const url = new URL(
+  const pathname = withPublicSearchParams(
     buildProductPath(market, publicSlug),
-    ROUTES[market].canonicalOrigin
+    searchParams
   )
-  url.search = rawQuery
-  return url.toString()
+  return new URL(
+    pathname,
+    buildAbsoluteUrl({ kind: "home" }, market)
+  ).toString()
 }

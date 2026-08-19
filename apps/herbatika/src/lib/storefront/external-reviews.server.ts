@@ -1,4 +1,5 @@
-import "server-only"
+// Pages Router rejects the App-Router-only `server-only` marker. Keep this
+// module reachable only from server entry points.
 
 import { cache } from "react"
 import { createReviewTrustSources } from "@/components/reviews/reviews.data"
@@ -8,7 +9,8 @@ import type {
   ReviewTrustProviderSummary,
   ReviewTrustSource,
 } from "@/components/reviews/reviews.types"
-import { storefrontSdk } from "./sdk"
+import type { MarketCode } from "@/lib/market/market-runtime"
+import { getMarketStorefrontSdk } from "./market-sdk.server"
 
 export type ExternalReviewKind = "shop" | "product"
 
@@ -147,11 +149,13 @@ export const toHeurekaHomepageReviews = (
 }
 
 async function fetchHeurekaExternalReviews(
+  market: MarketCode,
   kind: ExternalReviewKind,
   limit = 4
 ): Promise<ExternalReviewsResult> {
   try {
-    const data = await storefrontSdk.client.fetch<ExternalReviewsResponse>(
+    const { sdk } = getMarketStorefrontSdk(market)
+    const data = await sdk.client.fetch<ExternalReviewsResponse>(
       "/store/external-reviews/heureka",
       {
         query: {
@@ -177,12 +181,14 @@ async function fetchHeurekaExternalReviews(
   }
 }
 
-async function fetchZboziReviewTrustSummary(): Promise<ReviewTrustProviderSummary | null> {
+async function fetchZboziReviewTrustSummary(
+  market: MarketCode
+): Promise<ReviewTrustProviderSummary | null> {
   try {
-    const data =
-      await storefrontSdk.client.fetch<ZboziReviewTrustSummaryResponse>(
-        "/store/external-reviews/zbozi"
-      )
+    const { sdk } = getMarketStorefrontSdk(market)
+    const data = await sdk.client.fetch<ZboziReviewTrustSummaryResponse>(
+      "/store/external-reviews/zbozi"
+    )
 
     return {
       provider: "zbozi",
@@ -194,32 +200,37 @@ async function fetchZboziReviewTrustSummary(): Promise<ReviewTrustProviderSummar
   }
 }
 
-const fetchExternalReviewResources = cache(async (heurekaLimit: number) => {
-  const [heurekaResult, zboziSummary] = await Promise.all([
-    fetchHeurekaExternalReviews("shop", heurekaLimit),
-    fetchZboziReviewTrustSummary(),
-  ])
-  const trustSources = createReviewTrustSources([
-    toHeurekaTrustSummary(heurekaResult),
-    zboziSummary,
-  ])
+const fetchExternalReviewResources = cache(
+  async (market: MarketCode, heurekaLimit: number) => {
+    const [heurekaResult, zboziSummary] = await Promise.all([
+      fetchHeurekaExternalReviews(market, "shop", heurekaLimit),
+      fetchZboziReviewTrustSummary(market),
+    ])
+    const trustSources = createReviewTrustSources([
+      toHeurekaTrustSummary(heurekaResult),
+      zboziSummary,
+    ])
 
-  return { heurekaResult, trustSources }
-})
+    return { heurekaResult, trustSources }
+  }
+)
 
-export async function fetchExternalReviewTrustSources(): Promise<
-  readonly ReviewTrustSource[]
-> {
-  const { trustSources } = await fetchExternalReviewResources(4)
+export async function fetchExternalReviewTrustSources(
+  market: MarketCode
+): Promise<readonly ReviewTrustSource[]> {
+  const { trustSources } = await fetchExternalReviewResources(market, 4)
 
   return trustSources
 }
 
 export async function fetchHeurekaHomepageReviews(
+  market: MarketCode,
   limit = 4
 ): Promise<HomepageReviewsData | null> {
-  const { heurekaResult, trustSources } =
-    await fetchExternalReviewResources(limit)
+  const { heurekaResult, trustSources } = await fetchExternalReviewResources(
+    market,
+    limit
+  )
 
   return toHeurekaHomepageReviews(heurekaResult, trustSources)
 }

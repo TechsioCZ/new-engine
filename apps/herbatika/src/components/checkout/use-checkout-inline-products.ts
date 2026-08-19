@@ -12,7 +12,7 @@ import {
   resolveRecommendedProductFamilyKey,
   selectRecommendedProductRepresentatives,
 } from "@/lib/storefront/recommended-product-families"
-import { useCartProductsByHandle } from "./use-cart-products-by-handle"
+import { useCartProductsById } from "./use-cart-products-by-handle"
 
 const CHECKOUT_INLINE_PRODUCTS_LIMIT = 10
 const CHECKOUT_INLINE_PRODUCTS_CANDIDATE_LIMIT = 32
@@ -21,7 +21,7 @@ export function useCheckoutInlineProducts(
   cartItems: HttpTypes.StoreCartLineItem[]
 ) {
   const { isLoading: isCartProductsLoading, products: cartProducts } =
-    useCartProductsByHandle(cartItems, PRODUCT_DETAIL_FIELDS)
+    useCartProductsById(cartItems, PRODUCT_DETAIL_FIELDS)
 
   const seenCategoryIds = new Set<string>()
 

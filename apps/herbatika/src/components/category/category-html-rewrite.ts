@@ -1,4 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
+import type { Market } from "@/lib/url/types"
 
 const SHOW_MORE_MARKER_PATTERN = /#showmore#/gi
 const SHOW_MORE_MARKER_PARAGRAPH_PATTERN =
@@ -18,7 +20,9 @@ const stripShowMoreMarker = (html: string) =>
 
 const resolveLegacyCategoryHref = (
   href: string,
-  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>
+  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>,
+  publicSlugsById: Readonly<Record<string, string>>,
+  market: Market
 ) => {
   const trimmedHref = href.trim()
   if (!trimmedHref || trimmedHref.startsWith("#")) {
@@ -41,16 +45,22 @@ const resolveLegacyCategoryHref = (
   }
 
   const normalizedPath = pathname.replace(/^\/+|\/+$/g, "")
-  if (!normalizedPath || normalizedPath.startsWith("c/")) {
+  if (!normalizedPath) {
     return href
   }
 
-  const [handle] = normalizedPath.split("/")
-  if (!(handle && categoryByHandle.has(handle))) {
+  const pathSegments = normalizedPath.split("/")
+  const handle = pathSegments[0] === "c" ? pathSegments[1] : pathSegments[0]
+  const category = handle ? categoryByHandle.get(handle) : undefined
+  if (!category) {
     return href
   }
 
-  return `/c/${handle}`
+  return buildProjectedEntityPath(
+    "category",
+    { publicSlug: publicSlugsById[category.id] },
+    market
+  )
 }
 
 const resolveLegacyMediaUrl = (value: string) => {
@@ -91,22 +101,32 @@ const rewriteLegacyMediaUrls = (html: string) =>
 
 const rewriteLegacyCategoryLinks = (
   html: string,
-  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>
+  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>,
+  publicSlugsById: Readonly<Record<string, string>>,
+  market: Market
 ) =>
   html.replace(
     /\bhref=(["'])(.*?)\1/gi,
-    (_match, quote: string, href: string) =>
-      `href=${quote}${resolveLegacyCategoryHref(
+    (_match, quote: string, href: string) => {
+      const resolvedHref = resolveLegacyCategoryHref(
         href,
-        categoryByHandle
-      )}${quote}`
+        categoryByHandle,
+        publicSlugsById,
+        market
+      )
+      return resolvedHref ? `href=${quote}${resolvedHref}${quote}` : ""
+    }
   )
 
 export const rewriteCategoryMetadataHtml = (
   html: string,
-  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>
+  categoryByHandle: Map<string, HttpTypes.StoreProductCategory>,
+  publicSlugsById: Readonly<Record<string, string>>,
+  market: Market
 ) =>
   rewriteLegacyCategoryLinks(
     rewriteLegacyMediaUrls(stripShowMoreMarker(html)),
-    categoryByHandle
+    categoryByHandle,
+    publicSlugsById,
+    market
   )

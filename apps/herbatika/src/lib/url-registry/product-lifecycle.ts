@@ -10,10 +10,27 @@ type AppliedAction =
   | "noop-source-missing"
   | "noop-route-missing"
   | "noop-route-terminal"
+  | "noop-unpublished"
   | "requires-publication"
-export type ProductLifecycleReceiptAction = AppliedAction | "retired"
+  | "unpublished"
+export type ProductLifecycleReceiptAction =
+  | AppliedAction
+  | "published"
+  | "retired"
+  | "slug-changed"
 export type ProductLifecycleDecision =
   | Readonly<{ kind: "apply"; action: AppliedAction }>
+  | Readonly<{
+      kind: "publish"
+      action: "published"
+      publicSlug: string
+    }>
+  | Readonly<{
+      kind: "change-slug"
+      action: "slug-changed"
+      publicSlug: string
+      route: EntityRouteSnapshot
+    }>
   | Readonly<{
       kind: "retire"
       action: "retired"
@@ -61,35 +78,74 @@ export const productLifecycleSourceEventId = (
   delivery: ProductLifecycleDeliveryV1
 ): string => delivery.outboxEventId
 
-export const decideProductLifecycle = (
-  changeType: ProductLifecycleChangeType,
-  source: SourceReadResult<unknown>,
-  route: SourceReadResult<EntityRouteSnapshot>
+type ProductAssignment = ProductLifecycleDeliveryV1["payload"]["assignment"]
+type ProductSource = SourceReadResult<unknown>
+type ProductRoute = SourceReadResult<EntityRouteSnapshot>
+
+const retryForSource = (
+  source: ProductSource
+): Extract<ProductLifecycleDecision, { kind: "retry" }> | null =>
+  source.kind === "unavailable" || source.kind === "invalid-response"
+    ? {
+        kind: "retry",
+        action: null,
+        cause: `source-${source.kind}`,
+      }
+    : null
+
+const unpublishedDecision = (
+  route: Extract<ProductRoute, { kind: "found" | "missing" }>
+): ProductLifecycleDecision =>
+  route.kind === "found" && route.value.route.status === "active"
+    ? { kind: "apply", action: "unpublished" }
+    : { kind: "apply", action: "noop-unpublished" }
+
+const decideReconcile = (
+  assignment: ProductAssignment,
+  source: ProductSource,
+  route: Extract<ProductRoute, { kind: "found" | "missing" }>
 ): ProductLifecycleDecision => {
-  if (source.kind === "unavailable" || source.kind === "invalid-response") {
+  if (assignment?.publicationStatus !== "published") {
+    return unpublishedDecision(route)
+  }
+  const retry = retryForSource(source)
+  if (retry) {
+    return retry
+  }
+  if (source.kind === "missing") {
+    return unpublishedDecision(route)
+  }
+  if (route.kind === "missing") {
     return {
-      kind: "retry",
+      kind: "publish",
+      action: "published",
+      publicSlug: assignment.publicSlug,
+    }
+  }
+  if (route.value.route.status !== "active") {
+    return {
+      kind: "conflict",
       action: null,
-      cause: `source-${source.kind}`,
+      cause: "live-source-has-terminal-route",
     }
   }
-  if (route.kind === "unavailable" || route.kind === "invalid-response") {
-    return { kind: "retry", action: null, cause: `route-${route.kind}` }
-  }
-  if (changeType === "reconcile") {
-    if (source.kind === "missing") {
-      return { kind: "apply", action: "noop-source-missing" }
-    }
-    if (route.kind === "missing") {
-      return { kind: "apply", action: "requires-publication" }
-    }
-    return route.value.route.status === "active"
-      ? { kind: "apply", action: "noop-source-present" }
-      : {
-          kind: "conflict",
-          action: null,
-          cause: "live-source-has-terminal-route",
-        }
+  return route.value.currentSlug.normalizedSlug === assignment.publicSlug
+    ? { kind: "apply", action: "noop-source-present" }
+    : {
+        kind: "change-slug",
+        action: "slug-changed",
+        publicSlug: assignment.publicSlug,
+        route: route.value,
+      }
+}
+
+const decideDelete = (
+  source: ProductSource,
+  route: Extract<ProductRoute, { kind: "found" | "missing" }>
+): ProductLifecycleDecision => {
+  const retry = retryForSource(source)
+  if (retry) {
+    return retry
   }
   if (source.kind === "found") {
     return { kind: "apply", action: "noop-source-present" }
@@ -100,4 +156,18 @@ export const decideProductLifecycle = (
   return route.value.route.status === "active"
     ? { kind: "retire", action: "retired", route: route.value }
     : { kind: "apply", action: "noop-route-terminal" }
+}
+
+export const decideProductLifecycle = (
+  changeType: ProductLifecycleChangeType,
+  assignment: ProductAssignment,
+  source: SourceReadResult<unknown>,
+  route: SourceReadResult<EntityRouteSnapshot>
+): ProductLifecycleDecision => {
+  if (route.kind === "unavailable" || route.kind === "invalid-response") {
+    return { kind: "retry", action: null, cause: `route-${route.kind}` }
+  }
+  return changeType === "reconcile"
+    ? decideReconcile(assignment, source, route)
+    : decideDelete(source, route)
 }

@@ -162,6 +162,94 @@ export const runReadBehavior = (createHarness: HarnessFactory) => {
     }
   })
 
+  it("pages only active current entity projections for one market and kind", async () => {
+    const harness = await createHarness()
+    try {
+      const first = await createEntity(harness, "active-page-first")
+      const second = await createEntity(harness, "active-page-second")
+      await createEntity(harness, "active-page-other-market", { market: "cz" })
+      const retired = await createEntity(harness, "active-page-retired")
+      await harness.registry.retireRoute(
+        command(`${harness.namespace}:active-page-retire`, {
+          commandType: "retire-route",
+          expectedVersion: 1,
+          source: entitySource(
+            retired.identity,
+            `${harness.namespace}:active-page-retire`,
+            "2"
+          ),
+          target: {
+            routeId: retired.result.snapshot.route.id,
+            identity: retired.identity,
+          },
+        })
+      )
+
+      const firstPage = foundValue(
+        await harness.registry.listActiveEntityRoutes({
+          kind: "product",
+          limit: 1,
+          market: "sk",
+        })
+      )
+      expect(firstPage.items).toHaveLength(1)
+      expect(firstPage.nextCursor).not.toBeNull()
+      const secondPage = foundValue(
+        await harness.registry.listActiveEntityRoutes({
+          cursor: firstPage.nextCursor ?? undefined,
+          kind: "product",
+          limit: 1,
+          market: "sk",
+        })
+      )
+      expect(secondPage.items).toHaveLength(1)
+      expect(secondPage.nextCursor).toBeNull()
+      expect(
+        new Set(
+          [...firstPage.items, ...secondPage.items].map((item) => item.route.id)
+        )
+      ).toEqual(
+        new Set([
+          first.result.snapshot.route.id,
+          second.result.snapshot.route.id,
+        ])
+      )
+    } finally {
+      await harness.cleanup()
+    }
+  })
+
+  it("rejects malformed active-route page limits and cursors consistently", async () => {
+    const harness = await createHarness()
+    try {
+      for (const limit of [0, 101, 1.5]) {
+        await expect(
+          Promise.resolve().then(() =>
+            harness.registry.listActiveEntityRoutes({
+              kind: "product",
+              limit,
+              market: "sk",
+            })
+          )
+        ).rejects.toMatchObject({ code: "INVALID_COMMAND" })
+      }
+      for (const cursor of ["not-base64!", "bm90LWEtdXVpZA", "YQ=="]) {
+        await expect(
+          Promise.resolve().then(() =>
+            harness.registry.listActiveEntityRoutes({
+              cursor,
+              kind: "product",
+              limit: 10,
+              market: "sk",
+            })
+          )
+        ).rejects.toMatchObject({ code: "INVALID_COMMAND" })
+      }
+    } finally {
+      await harness.cleanup()
+    }
+  })
+
   it("pages audit and pending outbox reads with strict cursors", async () => {
     const harness = await createHarness()
     try {

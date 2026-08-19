@@ -1,9 +1,14 @@
-import { Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 import {
   buildProductLifecycleOutboxInputs,
   clearProductLifecycleEvents,
   emitProductLifecycleEvents,
+  loadProductPublicationSnapshots,
   PRODUCT_LIFECYCLE_RETRY_OPTIONS,
   ProductLifecycleProducerInputError,
   URL_REGISTRY_PRODUCT_LIFECYCLE_EVENT,
@@ -11,15 +16,74 @@ import {
 
 const GROUP_ID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
 const SHA256_FINGERPRINT = /^sha256:[a-f0-9]{64}$/
+const emptyAssignments = {
+  sk: null,
+  cz: null,
+  hu: null,
+  ro: null,
+} as const
+const productSnapshots = ["prod_1", "prod_2"].map((productId) => ({
+  assignments: {
+    ...emptyAssignments,
+    sk: {
+      publicationStatus: "published" as const,
+      publicSlug: `${productId.replace("_", "-")}-slug`,
+      salesChannelId: "sc_sk",
+    },
+  },
+  productId,
+  sourceVersion: "2026-08-18T09:00:00.000Z",
+}))
 
-const eventBusContext = () => {
+const eventBusContext = (
+  listTranslations: (filters: {
+    locale_code: string
+    reference: string
+    reference_id: string[]
+  }) => Promise<unknown[]> = async (filters) =>
+    filters.reference_id.map((referenceId, index) => ({
+      deleted_at: null,
+      id: `trans_${filters.locale_code}_${index}`,
+      locale_code: filters.locale_code,
+      reference: filters.reference,
+      reference_id: referenceId,
+      translations: { title: "Localized" },
+    }))
+) => {
   const clearGroupedEvents = vi.fn().mockResolvedValue(undefined)
   const emit = vi.fn().mockResolvedValue(undefined)
+  const graph = vi.fn().mockResolvedValue({
+    data: ["prod_1", "prod_2"].map((id) => ({
+      id,
+      metadata: {
+        url_registry_publication: {
+          schemaVersion: 1,
+          markets: {
+            sk: {
+              publicationStatus: "published",
+              publicSlug: `${id.replace("_", "-")}-slug`,
+              salesChannelId: "sc_sk",
+            },
+          },
+        },
+      },
+      sales_channels: [{ id: "sc_sk" }],
+      updated_at: "2026-08-18T09:00:00.000Z",
+    })),
+  })
   const resolve = vi.fn((key: string) => {
-    if (key !== Modules.EVENT_BUS) {
-      throw new Error(`Unexpected container resolution: ${key}`)
+    if (key === Modules.EVENT_BUS) {
+      return { clearGroupedEvents, emit }
     }
-    return { clearGroupedEvents, emit }
+    if (key === ContainerRegistrationKeys.QUERY) {
+      return { graph }
+    }
+    if (key === Modules.TRANSLATION) {
+      return {
+        listTranslations: vi.fn(listTranslations),
+      }
+    }
+    throw new Error(`Unexpected container resolution: ${key}`)
   })
 
   return {
@@ -42,11 +106,13 @@ describe("URL registry product lifecycle workflow event", () => {
     const first = buildProductLifecycleOutboxInputs({
       eventGroupId: GROUP_ID,
       productIds: ["prod_2", "prod_1", "prod_1"],
+      ...(reason === "deleted" ? {} : { productSnapshots }),
       reason,
     })
     const replay = buildProductLifecycleOutboxInputs({
       eventGroupId: GROUP_ID,
       productIds: ["prod_1", "prod_2"],
+      ...(reason === "deleted" ? {} : { productSnapshots }),
       reason,
     })
 
@@ -55,6 +121,7 @@ describe("URL registry product lifecycle workflow event", () => {
       {
         affectedMarketCodes: ["sk", "cz", "hu", "ro"],
         eventId: expect.stringMatching(SHA256_FINGERPRINT),
+        marketAssignments: expect.any(Array),
         occurredAt: "2016-07-30T23:54:10.259Z",
         productId: "prod_1",
         reason,
@@ -62,6 +129,7 @@ describe("URL registry product lifecycle workflow event", () => {
       {
         affectedMarketCodes: ["sk", "cz", "hu", "ro"],
         eventId: expect.stringMatching(SHA256_FINGERPRINT),
+        marketAssignments: expect.any(Array),
         occurredAt: "2016-07-30T23:54:10.259Z",
         productId: "prod_2",
         reason,
@@ -77,13 +145,19 @@ describe("URL registry product lifecycle workflow event", () => {
     ["overflow", `8${GROUP_ID.slice(1)}`],
     ["invalid alphabet", `${GROUP_ID.slice(0, -1)}I`],
   ])("fails closed for a %s workflow event group", (_label, eventGroupId) => {
-    expect(() =>
+    try {
       buildProductLifecycleOutboxInputs({
         eventGroupId,
         productIds: ["prod_1"],
         reason: "created",
       })
-    ).toThrow(ProductLifecycleProducerInputError)
+    } catch (error) {
+      expect(error).toBeInstanceOf(ProductLifecycleProducerInputError)
+      expect(error).toBeInstanceOf(MedusaError)
+      expect((error as MedusaError).type).toBe(MedusaError.Types.INVALID_DATA)
+      return
+    }
+    throw new Error("Expected invalid workflow event group to be rejected")
   })
 
   it("emits grouped messages with retry options and compensation metadata", async () => {
@@ -127,6 +201,32 @@ describe("URL registry product lifecycle workflow event", () => {
         context
       )
     ).rejects.toBe(failure)
+  })
+
+  it("turns a published assignment into unpublished when its exact locale Translation is missing", async () => {
+    const { context } = eventBusContext(async () => [])
+
+    const snapshots = await loadProductPublicationSnapshots(["prod_1"], context)
+
+    expect(snapshots[0]?.assignments.sk).toBeNull()
+  })
+
+  it("classifies an unavailable Translation dependency as retryable server state", async () => {
+    const { context } = eventBusContext(async () => {
+      throw new Error("translation transport unavailable")
+    })
+
+    try {
+      await loadProductPublicationSnapshots(["prod_1"], context)
+    } catch (error) {
+      expect(error).toBeInstanceOf(MedusaError)
+      expect((error as MedusaError).type).toBe(
+        MedusaError.Types.UNEXPECTED_STATE
+      )
+      expect((error as Error).message).not.toContain("transport unavailable")
+      return
+    }
+    throw new Error("Expected unavailable Translation dependency to fail")
   })
 
   it("compensates only the custom lifecycle topic in the workflow group", async () => {

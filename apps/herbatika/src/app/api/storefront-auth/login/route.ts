@@ -3,7 +3,10 @@ import {
   badRequest,
   buildErrorResponse,
   buildMedusaUrl,
+  marketAuthorityError,
   parseResponseJson,
+  requireStorefrontMarketBinding,
+  StorefrontMarketAuthorityError,
   serverError,
   setSessionTokenCookie,
 } from "../_lib"
@@ -34,6 +37,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    requireStorefrontMarketBinding(request)
     const medusaResponse = await fetch(
       buildMedusaUrl("/auth/customer/emailpass"),
       {
@@ -73,6 +77,9 @@ export async function POST(request: Request) {
     setSessionTokenCookie(response, token)
     return response
   } catch (error) {
+    if (error instanceof StorefrontMarketAuthorityError) {
+      return marketAuthorityError()
+    }
     return serverError(
       "Nepodarilo sa spojiť s autentifikačnou službou Medusa.",
       {

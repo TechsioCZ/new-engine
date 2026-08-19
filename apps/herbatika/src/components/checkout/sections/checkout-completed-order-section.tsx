@@ -3,15 +3,17 @@
 import { useQuery } from "@tanstack/react-query"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { useEffect, useState } from "react"
+import { StorefrontLink } from "@/components/storefront-link"
 import { SupportingText } from "@/components/text/supporting-text"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import {
   fetchOrderPaymentQr,
   type StorefrontOrderPaymentQr,
 } from "@/lib/storefront/order-payment-qr"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+import { buildPath } from "@/lib/url/public-url"
 
 type CheckoutCompletedOrderSectionProps = {
   completedOrderId: string
@@ -24,6 +26,7 @@ export function CheckoutCompletedOrderSection({
   completedOrderId,
 }: CheckoutCompletedOrderSectionProps) {
   const tCheckout = useTranslations("checkout")
+  const marketContext = useMarketContext()
   const [hasQrPaymentPendingTimedOut, setHasQrPaymentPendingTimedOut] =
     useState(false)
   const qrPaymentQuery = useQuery({
@@ -98,12 +101,16 @@ export function CheckoutCompletedOrderSection({
         ) : null}
       </section>
       <div className="flex w-full flex-wrap gap-200">
-        <LinkButton as={NextLink} href="/" size="md">
+        <LinkButton
+          as={StorefrontLink}
+          href={buildPath({ kind: "home" }, marketContext.code)}
+          size="md"
+        >
           {tCheckout("completed_order_continue_shopping")}
         </LinkButton>
         <LinkButton
-          as={NextLink}
-          href="/account"
+          as={StorefrontLink}
+          href={buildPath({ kind: "account" }, marketContext.code)}
           size="md"
           theme="outlined"
           variant="secondary"

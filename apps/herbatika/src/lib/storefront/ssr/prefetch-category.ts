@@ -1,4 +1,5 @@
-import "server-only"
+// Pages Router rejects the App-Router-only `server-only` marker. Keep this
+// module reachable only from server entry points.
 
 import { dehydrate } from "@tanstack/react-query"
 import { buildCatalogProductsParams } from "../catalog-query-state"
@@ -12,16 +13,21 @@ import { PLP_PAGE_SIZE } from "../plp-config"
 import type { PlpQueryState } from "../plp-query-state"
 import { resolveCategoryCatalogScope } from "../sale-catalog-policy"
 import {
+  fetchServerCatalogProducts,
   fetchServerCategories,
-  prefetchServerCatalogProducts,
 } from "../storefront-server"
-import { getRegionServerContext } from "./context"
+import {
+  type ExplicitRequestServerContext,
+  getRegionServerContext,
+} from "./context"
 
 export const prefetchCategoryPageStorefrontData = async (
   slug: string,
-  queryState: PlpQueryState
+  queryState: PlpQueryState,
+  requestContext: ExplicitRequestServerContext
 ) => {
-  const { locale, queryClient, region } = await getRegionServerContext()
+  const { locale, market, queryClient, region } =
+    await getRegionServerContext(requestContext)
 
   const categoryListParams = buildCategoryListParams({
     page: 1,
@@ -31,6 +37,7 @@ export const prefetchCategoryPageStorefrontData = async (
   })
 
   const categoryResponse = await fetchServerCategories(
+    market,
     queryClient,
     categoryListParams
   )
@@ -56,11 +63,28 @@ export const prefetchCategoryPageStorefrontData = async (
       countryCode: region.country_code,
     })
 
-    await prefetchServerCatalogProducts(queryClient, catalogListParams)
+    const catalog = await fetchServerCatalogProducts(
+      market,
+      queryClient,
+      catalogListParams
+    )
+
+    return {
+      categorySourceIds: categoryResponse.categories.map(
+        (category) => category.id
+      ),
+      dehydratedState: dehydrate(queryClient),
+      region,
+      visibleProductIds: catalog.products.map((product) => product.id),
+    }
   }
 
   return {
+    categorySourceIds: categoryResponse.categories.map(
+      (category) => category.id
+    ),
     region,
     dehydratedState: dehydrate(queryClient),
+    visibleProductIds: [] as string[],
   }
 }

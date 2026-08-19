@@ -2,11 +2,11 @@ import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { z } from "@medusajs/framework/zod"
 import { PAYLOAD_MODULE } from "../../../../../modules/payload"
 import type PayloadModuleService from "../../../../../modules/payload/service"
-import { optionalStringParam } from "../../../../../utils/query-params"
+import { StoreCmsLocaleSchema } from "../../locales"
 
 /** Query schema for fetching a single CMS article. */
 export const StoreCmsArticleSchema = z.object({
-  locale: optionalStringParam,
+  locale: StoreCmsLocaleSchema,
 })
 
 /** Parsed query type for the CMS article endpoint. */
@@ -23,11 +23,18 @@ export async function GET(
   }
   const cmsService = req.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
 
-  const article = await cmsService.getPublishedArticle(slug, req.locale)
+  try {
+    const article = await cmsService.getPublishedArticle(
+      slug,
+      req.validatedQuery.locale
+    )
 
-  if (!article) {
-    return res.status(404).json({ message: "Article not found" })
+    if (!article) {
+      return res.status(404).json({ message: "Article not found" })
+    }
+
+    return res.json({ article })
+  } catch {
+    return res.status(503).json({ message: "CMS source is unavailable" })
   }
-
-  return res.json({ article })
 }

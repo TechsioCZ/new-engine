@@ -7,9 +7,11 @@ import {
   type CarouselSlide,
 } from "@techsio/ui-kit/molecules/carousel"
 import { HerbatikaProductCard } from "@/components/herbatika-product-card"
+import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
 import { useAddProductToCartAction } from "@/lib/storefront/use-add-product-to-cart-action"
 
 type InlineProductsCarouselProps = {
+  productPublicSlugsById?: PublicEntitySlugMap
   products: HttpTypes.StoreProduct[]
   keyPrefix?: string
   onProductHoverStart?: (product: HttpTypes.StoreProduct) => void
@@ -53,6 +55,7 @@ function InlineProductsSlides({
 }
 
 export function InlineProductsCarousel({
+  productPublicSlugsById = {},
   products,
   keyPrefix = "inline-product",
   onProductHoverStart,
@@ -83,6 +86,7 @@ export function InlineProductsCarousel({
         onProductHoverEnd={onProductHoverEnd}
         onProductHoverStart={onProductHoverStart}
         product={product}
+        publicSlug={productPublicSlugsById[product.id]}
       />
     ),
   }))

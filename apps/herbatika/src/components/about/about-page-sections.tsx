@@ -1,7 +1,7 @@
-import NextLink from "next/link"
 import { Fragment } from "react"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
+import { StorefrontLink } from "@/components/storefront-link"
 import { ABOUT_PAGE, type AboutParagraph } from "./about-page.data"
 import {
   AboutImageFrame,
@@ -20,7 +20,9 @@ function getAboutParagraphKey(paragraph: AboutParagraph) {
 
   return paragraph
     .map((part) =>
-      typeof part === "string" ? part : `${part.label}:${part.href}`
+      typeof part === "string"
+        ? part
+        : `${part.label}:${part.href ?? JSON.stringify(part.target)}`
     )
     .join("|")
 }
@@ -132,7 +134,7 @@ function AboutSocialLinks() {
     <ul className="flex flex-wrap gap-150">
       {ABOUT_PAGE.socialLinks.map((link) => (
         <li key={link.href}>
-          <NextLink
+          <StorefrontLink
             aria-label={link.label}
             className={iconLinkClassName}
             href={link.href}
@@ -140,7 +142,7 @@ function AboutSocialLinks() {
             target="_blank"
           >
             <span aria-hidden="true" className={`${link.icon} text-icon-lg`} />
-          </NextLink>
+          </StorefrontLink>
         </li>
       ))}
     </ul>

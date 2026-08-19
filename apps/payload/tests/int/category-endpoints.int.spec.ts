@@ -158,10 +158,15 @@ describe("category endpoints", () => {
     expect(req.payload.find).toHaveBeenCalledWith(
       expect.objectContaining({
         collection: "pages",
+        fallbackLocale: false,
         locale: "en",
-        where: expect.objectContaining({
-          status: { equals: "published" },
-        }),
+        overrideAccess: false,
+        where: {
+          and: [
+            { status: { equals: "published" } },
+            { visibility: { equals: "public" } },
+          ],
+        },
         req,
       })
     )

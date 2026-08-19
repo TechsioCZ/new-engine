@@ -1,5 +1,11 @@
 import type { Market } from "@/lib/url/types"
 import {
+  assertActiveRoutePageLimit,
+  assertActiveRoutePageOffset,
+  decodeActiveRouteCursor,
+  encodeActiveRouteCursor,
+} from "./active-route-page"
+import {
   entitySnapshot,
   snapshotRoute,
   staticSnapshot,
@@ -26,9 +32,12 @@ import type {
   UrlRouteSnapshot,
 } from "./model"
 import type {
+  ActiveEntityRouteCountRequest,
+  ActiveEntityRoutePageRequest,
   ActiveEquivalenceLookup,
   EntityIdentityLookup,
   SourceReadResult,
+  UrlRegistryPage,
 } from "./reads"
 
 export const findActiveEntityRoute = (
@@ -64,6 +73,71 @@ export const findActiveEntityRoute = (
       route: snapshot.route,
       currentSlug: snapshot.currentSlug,
     }),
+  }
+}
+
+export const listActiveEntityRoutes = (
+  state: MemoryRegistryState,
+  input: ActiveEntityRoutePageRequest
+): SourceReadResult<UrlRegistryPage<ActiveEntityRouteTarget>> => {
+  assertMarket(input.market)
+  assertRouteKind(input.kind)
+  assertActiveRoutePageLimit(input.limit)
+  assertActiveRoutePageOffset(input.cursor, input.offset)
+  const afterId = decodeActiveRouteCursor(input.cursor)
+  const routes = [...state.routes.values()]
+    .filter(
+      (route): route is EntityUrlRoute =>
+        route.targetType === "entity" &&
+        route.market === input.market &&
+        route.kind === input.kind &&
+        route.status === "active" &&
+        (input.indexPolicy === undefined ||
+          route.indexPolicy === input.indexPolicy) &&
+        (afterId === null || compareText(route.id, afterId) > 0)
+    )
+    .sort((left, right) => compareText(left.id, right.id))
+    .slice(input.offset ?? 0)
+    .slice(0, input.limit + 1)
+  const hasNext = routes.length > input.limit
+  const pageRoutes = routes.slice(0, input.limit)
+  const items = pageRoutes.map((route): ActiveEntityRouteTarget => {
+    const snapshot = entitySnapshot(state, route)
+    return {
+      projectionType: "entity",
+      route: snapshot.route,
+      currentSlug: snapshot.currentSlug,
+    }
+  })
+  return {
+    kind: "found",
+    value: cloneValue({
+      items,
+      nextCursor:
+        hasNext && pageRoutes.length > 0
+          ? encodeActiveRouteCursor(pageRoutes.at(-1)?.id as string)
+          : null,
+    }),
+  }
+}
+
+export const countActiveEntityRoutes = (
+  state: MemoryRegistryState,
+  input: ActiveEntityRouteCountRequest
+): SourceReadResult<number> => {
+  assertMarket(input.market)
+  assertRouteKind(input.kind)
+  return {
+    kind: "found",
+    value: [...state.routes.values()].filter(
+      (route) =>
+        route.targetType === "entity" &&
+        route.market === input.market &&
+        route.kind === input.kind &&
+        route.status === "active" &&
+        (input.indexPolicy === undefined ||
+          route.indexPolicy === input.indexPolicy)
+    ).length,
   }
 }
 

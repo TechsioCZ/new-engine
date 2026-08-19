@@ -206,7 +206,7 @@ describe.sequential("PostgreSQL 18.1 source-event tracking", () => {
     ).rejects.toMatchObject({ code: "23514" })
   })
 
-  it("permits a command reference only for a completed retirement", async () => {
+  it("permits a retirement receipt only for its matching completed command", async () => {
     const namespace = context.nextNamespace("source-retire")
     const identity = entityIdentity(`${namespace}-product`)
     const createCommandKey = `${namespace}:create-command`
@@ -281,5 +281,119 @@ describe.sequential("PostgreSQL 18.1 source-event tracking", () => {
     ).resolves.toMatchObject({
       rows: [{ command_idempotency_key: commandKey }],
     })
+  })
+
+  it("links publish and slug-change receipts to their exact completed commands", async () => {
+    const namespace = context.nextNamespace("source-publication")
+    const identity = entityIdentity(`${namespace}-product`)
+    const publishEventId = `${namespace}:publish-event`
+    const publishCommandKey = `${namespace}:publish-command`
+    const created = await context.registry.createEntityRoute(
+      command(
+        publishCommandKey,
+        createEntityRequest({
+          equivalenceKey: `${namespace}:equivalent`,
+          eventId: publishEventId,
+          identity,
+          slug: `${namespace}-slug`,
+        })
+      )
+    )
+
+    await expect(
+      appendSourceEvent(context, {
+        action: "slug-changed",
+        changeType: "reconcile",
+        commandKey: publishCommandKey,
+        eventId: publishEventId,
+        sequence: 1,
+        sourceId: identity.sourceId,
+      })
+    ).rejects.toMatchObject({ code: "23514" })
+
+    await appendSourceEvent(context, {
+      action: "published",
+      changeType: "reconcile",
+      commandKey: publishCommandKey,
+      eventId: publishEventId,
+      sequence: 1,
+      sourceId: identity.sourceId,
+    })
+
+    const changeEventId = `${namespace}:slug-event`
+    const changeCommandKey = `${namespace}:slug-command`
+    await context.registry.changeSlug(
+      command(changeCommandKey, {
+        commandType: "change-slug",
+        expectedVersion: created.snapshot.route.version,
+        source: entitySource(identity, changeEventId),
+        target: { identity, routeId: created.snapshot.route.id },
+        slug: {
+          normalizedSlug: `${namespace}-renamed`,
+          normalizationVersion: 1,
+        },
+      })
+    )
+    await appendSourceEvent(context, {
+      action: "slug-changed",
+      changeType: "reconcile",
+      commandKey: changeCommandKey,
+      eventId: changeEventId,
+      sequence: 2,
+      sourceId: identity.sourceId,
+    })
+
+    const receipts = await context.runtime.query(
+      `SELECT action, command_idempotency_key
+       FROM url_registry.url_registry_source_event_receipt
+       WHERE source_id = $1
+       ORDER BY stream_sequence`,
+      [identity.sourceId]
+    )
+    expect(receipts.rows).toEqual([
+      { action: "published", command_idempotency_key: publishCommandKey },
+      { action: "slug-changed", command_idempotency_key: changeCommandKey },
+    ])
+  })
+
+  it("records unpublished lifecycle outcomes without inventing URLR commands", async () => {
+    const sourceId = context.nextNamespace("source-unpublished")
+
+    await expect(
+      appendSourceEvent(context, {
+        action: "published",
+        changeType: "reconcile",
+        eventId: `${sourceId}:invalid-published`,
+        sequence: 1,
+        sourceId,
+      })
+    ).rejects.toMatchObject({ code: "23514" })
+
+    await appendSourceEvent(context, {
+      action: "unpublished",
+      changeType: "reconcile",
+      eventId: `${sourceId}:unpublished`,
+      sequence: 1,
+      sourceId,
+    })
+    await appendSourceEvent(context, {
+      action: "noop-unpublished",
+      changeType: "reconcile",
+      eventId: `${sourceId}:noop-unpublished`,
+      sequence: 2,
+      sourceId,
+    })
+
+    const receipts = await context.runtime.query(
+      `SELECT action, command_idempotency_key
+       FROM url_registry.url_registry_source_event_receipt
+       WHERE source_id = $1
+       ORDER BY stream_sequence`,
+      [sourceId]
+    )
+    expect(receipts.rows).toEqual([
+      { action: "unpublished", command_idempotency_key: null },
+      { action: "noop-unpublished", command_idempotency_key: null },
+    ])
   })
 })

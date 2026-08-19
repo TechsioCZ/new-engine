@@ -1,5 +1,6 @@
 export const allowedQueryKeyCases = [
   ["product-detail", "variant"],
+  ["product-detail", "reviews_page"],
   ["product-index", "page"],
   ["product-index", "sort"],
   ["product-index", "status"],
@@ -12,11 +13,13 @@ export const allowedQueryKeyCases = [
   ["brand-detail", "ingredient"],
   ["collection-detail", "brand"],
   ["campaign-detail", "brand"],
+  ["advice-index", "category"],
   ["advice-index", "page"],
   ["search", "q"],
   ["search", "page"],
   ["search", "brand"],
   ["account-orders", "page"],
+  ["account-lists", "list"],
 ] as const
 
 export const forbiddenQueryKeyCases = [
@@ -26,11 +29,13 @@ export const forbiddenQueryKeyCases = [
   ["brand-index", "sort"],
   ["collection-index", "status"],
   ["campaign-index", "form"],
+  ["advice-article", "category"],
   ["advice-article", "page"],
   ["information-detail", "q"],
   ["static-page", "page"],
   ["homepage", "sort"],
   ["account-orders", "sort"],
+  ["account-lists", "page"],
 ] as const
 
 export const invalidPageValues = [

@@ -1,5 +1,5 @@
 import type { DeleteEntityInput, Link } from "@medusajs/framework/modules-sdk"
-import type { Query, RemoteQueryEntryPoints } from "@medusajs/framework/types"
+import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -10,6 +10,7 @@ import { COMPANY_MODULE } from "../../../modules/company"
 import type {
   ICompanyModuleService,
   ModuleCreateEmployee,
+  QueryEmployee,
 } from "../../../types"
 
 type EmployeeCustomerLinkRow = {
@@ -28,6 +29,11 @@ type RestorableEmployee = {
   is_admin?: boolean
   spending_limit?: number
 }
+
+export type CreateOrRestoreEmployeeResult = Pick<
+  QueryEmployee,
+  "company" | "id"
+>
 
 type CreateOrRestoreEmployeeCompensation =
   | {
@@ -67,7 +73,7 @@ export const createOrRestoreEmployeeStep = createStep(
     { container }
   ): Promise<
     StepResponse<
-      RemoteQueryEntryPoints["employee"],
+      CreateOrRestoreEmployeeResult,
       CreateOrRestoreEmployeeCompensation
     >
   > => {

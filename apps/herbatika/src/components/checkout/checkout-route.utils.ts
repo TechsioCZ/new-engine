@@ -1,3 +1,5 @@
+import { buildPath } from "@/lib/url/public-url"
+import type { Market } from "@/lib/url/types"
 import {
   CHECKOUT_STEPS,
   type CheckoutStepSlug,
@@ -19,8 +21,17 @@ export const resolveCheckoutStepSlug = (
   return isCheckoutStepSlug(value) ? value : DEFAULT_CHECKOUT_STEP_SLUG
 }
 
-export const resolveCheckoutStepHref = (step: CheckoutStepSlug) =>
-  `/checkout/${step}`
+const PUBLIC_CHECKOUT_STEP = {
+  kosik: { kind: "cart" },
+  "doprava-platba": { kind: "checkout", step: "shipping" },
+  udaje: { kind: "checkout", step: "contact" },
+  suhrn: { kind: "checkout", step: "review" },
+} as const
+
+export const resolveCheckoutStepHref = (
+  step: CheckoutStepSlug,
+  market: Market
+) => buildPath(PUBLIC_CHECKOUT_STEP[step], market)
 
 export const resolveCheckoutStepIndexBySlug = (step: CheckoutStepSlug) => {
   const index = CHECKOUT_STEPS.findIndex((item) => item.slug === step)

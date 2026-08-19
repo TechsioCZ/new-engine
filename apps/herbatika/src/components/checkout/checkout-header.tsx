@@ -3,13 +3,16 @@
 import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { HerbatikaLogo } from "@/components/herbatika-logo"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useAuth } from "@/lib/storefront/auth"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildPath } from "@/lib/url/public-url"
 
 export function CheckoutHeader() {
   const { isAuthenticated } = useAuth()
+  const marketContext = useMarketContext()
   const tAuth = useTranslations("auth")
   const tCheckout = useTranslations("checkout")
 
@@ -34,9 +37,12 @@ export function CheckoutHeader() {
           </Link>
           {!isAuthenticated && (
             <LinkButton
-              as={NextLink}
+              as={StorefrontLink}
               className="h-full text-nowrap border-2 px-400 py-300 sm:text-sm"
-              href="/auth/login"
+              href={buildPath(
+                { kind: "account", section: "login" },
+                marketContext.code
+              )}
               icon="token-icon-user"
               size="sm"
               theme="outlined"

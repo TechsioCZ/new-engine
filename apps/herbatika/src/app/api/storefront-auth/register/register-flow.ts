@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
 import type { HerbatikaMarketCode } from "@/lib/storefront/market-context"
 import {
   buildErrorResponse,
@@ -146,9 +147,11 @@ const buildCustomerProfile = ({
 })
 
 export const createCustomerProfile = async ({
+  binding,
   loginToken,
   payload,
 }: {
+  binding: MarketRuntimeBinding
   loginToken: string
   payload: Omit<ParsedRegisterPayload, "password"> & {
     marketCode: HerbatikaMarketCode
@@ -161,7 +164,7 @@ export const createCustomerProfile = async ({
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${loginToken}`,
-        ...getPublishableHeaders(),
+        ...getPublishableHeaders(binding),
       },
       body: JSON.stringify(buildCustomerProfile(payload)),
       cache: "no-store",
@@ -176,16 +179,19 @@ export const createCustomerProfile = async ({
 }
 
 export const createWholesaleProfile = async ({
+  binding,
   email,
   sessionToken,
   wholesale,
 }: {
+  binding: MarketRuntimeBinding
   email: string
   sessionToken: string
   wholesale: ParsedWholesaleRegistration | null
 }) =>
   wholesale
     ? createWholesaleCompanyRequest({
+        binding,
         email,
         token: sessionToken,
         wholesale,

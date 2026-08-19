@@ -33,11 +33,12 @@ import { healthEndpoint } from "./lib/endpoints/health"
 import { medusaProductsEndpoint } from "./lib/endpoints/medusa-products"
 import { medusaSsoPostEndpoint } from "./lib/endpoints/medusa-sso"
 import { pageCategoriesWithPagesEndpoint } from "./lib/endpoints/page-categories-with-pages"
+import { medusaCmsInvalidationTask } from "./lib/jobs/medusa-cms-invalidation"
 import {
   getDocString,
   getEnv,
   isEnabled,
-  resolveEnvLocales,
+  resolveExactEnvLocales,
 } from "./lib/utils/env"
 import { migrations } from "./migrations"
 
@@ -46,14 +47,11 @@ const dirname = path.dirname(filename)
 
 const secret = getEnv("PAYLOAD_SECRET", true)
 const databaseUrl = getEnv("DATABASE_URL", true)
-const { locales, defaultLocale } = resolveEnvLocales("PAYLOAD_LOCALES", [
+const { locales, defaultLocale } = resolveExactEnvLocales("PAYLOAD_LOCALES", [
   "cs",
-  "en",
   "sk",
-  "pl",
   "hu",
   "ro",
-  "sl",
 ])
 const isArticlesEnabled = isEnabled("FEATURE_PAYLOAD_ARTICLES_ENABLED")
 const isPagesEnabled = isEnabled("FEATURE_PAYLOAD_PAGES_ENABLED")
@@ -96,6 +94,19 @@ export default buildConfig({
   localization: {
     locales,
     defaultLocale,
+  },
+  jobs: {
+    autoRun: [
+      {
+        cron: "*/5 * * * * *",
+        disableScheduling: true,
+        limit: 20,
+        queue: "cms-outbox",
+      },
+    ],
+    deleteJobOnComplete: false,
+    processingOrder: "createdAt",
+    tasks: [medusaCmsInvalidationTask],
   },
   collections: [
     Users,
