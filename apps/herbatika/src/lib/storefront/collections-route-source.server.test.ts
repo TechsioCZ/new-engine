@@ -75,20 +75,22 @@ describe("readCollectionRouteSourceFromMedusa", () => {
         collection: { id: "pcol_1", title: "Zimná kolekcia" },
       })
     })
-    mocks.getCatalogProducts.mockResolvedValue({
-      count: 0,
-      facets: {
-        brand: [],
-        form: [],
-        ingredient: [],
-        price: { max: null, min: null },
-        status: [],
-      },
-      limit: 12,
-      page: 2,
-      products: [],
-      totalPages: 0,
-    })
+    mocks.getCatalogProducts.mockImplementation((input) =>
+      Promise.resolve({
+        count: 24,
+        facets: {
+          brand: [],
+          form: [],
+          ingredient: [],
+          price: { max: null, min: null },
+          status: [],
+        },
+        limit: 12,
+        page: input.page,
+        products: [],
+        totalPages: 2,
+      })
+    )
   })
 
   it("uses stable collection ID and the market-keyed assignment/catalog contract", async () => {
@@ -125,5 +127,6 @@ describe("readCollectionRouteSourceFromMedusa", () => {
       },
       expect.any(AbortSignal)
     )
+    expect(mocks.getCatalogProducts).toHaveBeenCalledTimes(2)
   })
 })

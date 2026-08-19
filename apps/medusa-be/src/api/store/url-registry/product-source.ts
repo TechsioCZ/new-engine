@@ -1,6 +1,9 @@
 import type { MedusaStoreRequest } from "@medusajs/framework/http"
-import type { IProductModuleService } from "@medusajs/framework/types"
-import { Modules, ProductStatus } from "@medusajs/framework/utils"
+import type { Query } from "@medusajs/framework/types"
+import {
+  ContainerRegistrationKeys,
+  ProductStatus,
+} from "@medusajs/framework/utils"
 import { z } from "@medusajs/framework/zod"
 import {
   COLLECTION_URL_ASSIGNMENT_MARKETS,
@@ -77,17 +80,13 @@ export const readPublishedProductCatalogSource = async (
     const salesChannelId = resolvePublishableKeySalesChannelId(
       request.publishable_key_context?.sales_channel_ids
     )
-    const productService = request.scope.resolve<IProductModuleService>(
-      Modules.PRODUCT
-    )
-    const products = await productService.listProducts(
-      { id: productId, status: ProductStatus.PUBLISHED },
-      {
-        relations: ["sales_channels"],
-        select: ["id", "metadata", "updated_at"],
-        take: 2,
-      }
-    )
+    const query = request.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
+    const { data: products } = await query.graph({
+      entity: "product",
+      fields: ["id", "metadata", "updated_at", "sales_channels.id"],
+      filters: { id: productId, status: ProductStatus.PUBLISHED },
+      pagination: { take: 2 },
+    })
     if (products.length === 0) {
       return { kind: "missing" }
     }
@@ -141,19 +140,15 @@ export const readPublishedProductCatalogSources = async (
     const salesChannelId = resolvePublishableKeySalesChannelId(
       request.publishable_key_context?.sales_channel_ids
     )
-    const productService = request.scope.resolve<IProductModuleService>(
-      Modules.PRODUCT
-    )
     const requestedIds = candidates.map((candidate) => candidate.entityId)
     const requestedIdSet = new Set(requestedIds)
-    const products = await productService.listProducts(
-      { id: requestedIds, status: ProductStatus.PUBLISHED },
-      {
-        relations: ["sales_channels"],
-        select: ["id", "metadata", "updated_at"],
-        take: candidates.length + 1,
-      }
-    )
+    const query = request.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
+    const { data: products } = await query.graph({
+      entity: "product",
+      fields: ["id", "metadata", "updated_at", "sales_channels.id"],
+      filters: { id: requestedIds, status: ProductStatus.PUBLISHED },
+      pagination: { take: candidates.length + 1 },
+    })
     if (
       products.length !== candidates.length ||
       new Set(products.map((product) => product.id)).size !== products.length ||

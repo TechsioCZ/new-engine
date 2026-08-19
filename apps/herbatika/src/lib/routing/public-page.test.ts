@@ -12,6 +12,11 @@ const mocks = vi.hoisted(() => ({
   fetchExternalReviewTrustSources: vi.fn(async () => []),
   fetchStorefrontTextMessages: vi.fn(async () => ({})),
   findActiveEquivalents: vi.fn(),
+  getConfiguredMarketRuntime: vi.fn(() => ({
+    allowedMarkets: ["sk", "cz"],
+    bindings: {},
+    marketByHost: {},
+  })),
   getHerbatikaMarketContext: vi.fn(() => ({ locale: "sk-SK" })),
   getRegionServerContext: vi.fn(async () => ({ region: null })),
   getUrlRegistryRuntime: vi.fn(),
@@ -40,6 +45,9 @@ vi.mock("@/lib/storefront/ssr/public-entity-projections", () => ({
 }))
 vi.mock("@/lib/storefront/storefront-texts.server", () => ({
   fetchStorefrontTextMessages: mocks.fetchStorefrontTextMessages,
+}))
+vi.mock("@/lib/market/market-runtime.server", () => ({
+  getConfiguredMarketRuntime: mocks.getConfiguredMarketRuntime,
 }))
 vi.mock("@/lib/url-registry/runtime/instance.server", () => ({
   getUrlRegistryRuntime: mocks.getUrlRegistryRuntime,

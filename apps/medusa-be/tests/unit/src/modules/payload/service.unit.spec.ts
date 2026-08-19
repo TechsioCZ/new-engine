@@ -818,7 +818,7 @@ describe("PayloadModuleService", () => {
             items: [
               {
                 slot: "shipping_payment",
-                href: "/doprava-a-platba",
+                href: "/informacie/doprava-a-platba",
                 type: "internal",
               },
             ],

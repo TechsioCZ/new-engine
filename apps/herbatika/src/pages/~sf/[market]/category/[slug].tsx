@@ -16,6 +16,7 @@ import { prefetchCategoryPageStorefrontData } from "@/lib/storefront/ssr"
 import { getRegionServerContext } from "@/lib/storefront/ssr/context"
 import {
   type PublicEntitySlugMap,
+  readCompletePublicEntitySlugs,
   readRequiredPublicEntitySlugs,
 } from "@/lib/storefront/ssr/public-entity-projections"
 import { fetchServerCategories } from "@/lib/storefront/storefront-server"
@@ -72,9 +73,10 @@ export const getServerSideProps = ((context) => {
       }
       const [categoryPublicSlugsById, productPublicSlugsById] =
         await Promise.all([
-          readRequiredPublicEntitySlugs({
+          readCompletePublicEntitySlugs({
             kind: "category",
             market,
+            rejectUnexpectedSourceIds: true,
             requiredSourceIds: storefront.categorySourceIds,
           }),
           readRequiredPublicEntitySlugs({

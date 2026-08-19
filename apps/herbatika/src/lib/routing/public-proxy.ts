@@ -60,19 +60,19 @@ const hasForbiddenDecodedCharacter = (value: string) =>
     )
   })
 const ENTITY_KINDS = {
-  products: { detail: "products", index: "products/index", route: "product" },
+  products: { detail: "products", index: "products", route: "product" },
   categories: {
     detail: "category",
-    index: "categories/index",
+    index: "categories",
     route: "category",
   },
-  brands: { detail: "brand", index: "brands/index", route: "brand" },
+  brands: { detail: "brand", index: "brands", route: "brand" },
   collections: {
     detail: "collection",
-    index: "collections/index",
+    index: "collections",
     route: "collection",
   },
-  advice: { detail: "advice", index: "advice/index", route: "article" },
+  advice: { detail: "advice", index: "advice", route: "article" },
   information: { detail: "information", index: null, route: "page" },
 } as const
 

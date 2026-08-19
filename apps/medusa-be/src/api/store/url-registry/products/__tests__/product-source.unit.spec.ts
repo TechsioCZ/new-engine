@@ -1,5 +1,5 @@
 import type { MedusaStoreRequest } from "@medusajs/framework/http"
-import { Modules } from "@medusajs/framework/utils"
+import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 import {
   readPublishedProductCatalogSource,
@@ -47,8 +47,8 @@ const request = ({
     publishable_key_context: { sales_channel_ids: salesChannelIds },
     scope: {
       resolve: vi.fn((key: string) => {
-        if (key === Modules.PRODUCT) {
-          return { listProducts: vi.fn(async () => products) }
+        if (key === ContainerRegistrationKeys.QUERY) {
+          return { graph: vi.fn(async () => ({ data: products })) }
         }
         if (key === Modules.TRANSLATION) {
           return { listTranslations: vi.fn(async () => translations) }
@@ -143,14 +143,14 @@ describe("published product catalog source", () => {
         translations: { title: "Zinok" },
       },
     ]
-    const listProducts = vi.fn(async () => products)
+    const graph = vi.fn(async () => ({ data: products }))
     const listTranslations = vi.fn(async () => translations)
     const batchRequest = {
       publishable_key_context: { sales_channel_ids: ["sc_sk"] },
       scope: {
         resolve: vi.fn((key: string) => {
-          if (key === Modules.PRODUCT) {
-            return { listProducts }
+          if (key === ContainerRegistrationKeys.QUERY) {
+            return { graph }
           }
           if (key === Modules.TRANSLATION) {
             return { listTranslations }
@@ -176,7 +176,7 @@ describe("published product catalog source", () => {
         "prod_2",
       ])
     }
-    expect(listProducts).toHaveBeenCalledTimes(1)
+    expect(graph).toHaveBeenCalledTimes(1)
     expect(listTranslations).toHaveBeenCalledTimes(1)
   })
 

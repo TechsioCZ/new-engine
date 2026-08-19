@@ -80,8 +80,8 @@ const mapCmsSidebar = (article: CmsArticle) => {
     ...(productExternalId || productSlug
       ? {
           product: {
-            productExternalId,
-            productSlug,
+            ...(productExternalId ? { productExternalId } : {}),
+            ...(productSlug ? { productSlug } : {}),
           },
         }
       : {}),
@@ -131,7 +131,10 @@ const mapCmsProductReference = (
     : undefined
 
   return productExternalId || productSlug
-    ? { productExternalId, productSlug }
+    ? {
+        ...(productExternalId ? { productExternalId } : {}),
+        ...(productSlug ? { productSlug } : {}),
+      }
     : null
 }
 
@@ -219,14 +222,16 @@ export const mapCmsArticleToBlogPost = (
       return relatedPost && relatedPost.slug !== card.slug ? [relatedPost] : []
     })
     .slice(0, 4)
+  const author = mapCmsAuthor(article)
+  const sidebar = mapCmsSidebar(article)
 
   return {
     ...card,
     excerpt,
     tags: tags.length > 0 ? tags : [card.category.title],
-    author: mapCmsAuthor(article),
+    ...(author ? { author } : {}),
     relatedPosts,
-    sidebar: mapCmsSidebar(article),
+    ...(sidebar ? { sidebar } : {}),
     lead: excerpt,
     contentSegments,
     tableOfContents: mapTableOfContents(article.tableOfContents),

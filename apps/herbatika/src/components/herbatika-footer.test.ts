@@ -2,26 +2,45 @@ import { describe, expect, it } from "vitest"
 import { resolveFooterNavigationItem } from "./herbatika-footer"
 
 describe("resolveFooterNavigationItem", () => {
-  it("rebuilds known internal slots without trusting the CMS href", () => {
+  it("accepts a valid internal path for the active market", () => {
     expect(
-      resolveFooterNavigationItem({
-        href: "/legacy-or-editor-authored-path",
-        slot: "about",
-        type: "internal",
-      })
+      resolveFooterNavigationItem(
+        {
+          href: "/informacie/about-herbatica",
+          slot: "about",
+          type: "internal",
+        },
+        "sk"
+      )
     ).toEqual({
+      href: "/informacie/about-herbatica",
       kind: "internal",
-      target: { kind: "static", page: "about" },
     })
   })
 
-  it("fails closed when an internal slot has no typed URL target", () => {
+  it("supports application routes independently of their translation slot", () => {
     expect(
-      resolveFooterNavigationItem({
-        href: "/darcekova-poukazka",
-        slot: "gift_voucher",
-        type: "internal",
-      })
+      resolveFooterNavigationItem(
+        {
+          href: "/kategorie/darceky",
+          slot: "gift_voucher",
+          type: "internal",
+        },
+        "sk"
+      )
+    ).toEqual({ href: "/kategorie/darceky", kind: "internal" })
+  })
+
+  it("fails closed for an unknown internal route", () => {
+    expect(
+      resolveFooterNavigationItem(
+        {
+          href: "/legacy-or-editor-authored-path",
+          slot: "about",
+          type: "internal",
+        },
+        "sk"
+      )
     ).toBeNull()
   })
 
@@ -31,22 +50,28 @@ describe("resolveFooterNavigationItem", () => {
     "https://user:secret@example.com/reviews",
   ])("rejects unsafe external CMS href %s", (href) => {
     expect(
-      resolveFooterNavigationItem({
-        href,
-        slot: "reviews",
-        type: "external",
-      })
+      resolveFooterNavigationItem(
+        {
+          href,
+          slot: "reviews",
+          type: "external",
+        },
+        "sk"
+      )
     ).toBeNull()
   })
 
   it("accepts an explicit HTTP(S) external URL and preserves tab intent", () => {
     expect(
-      resolveFooterNavigationItem({
-        href: "https://example.com/reviews",
-        newTab: false,
-        slot: "reviews",
-        type: "external",
-      })
+      resolveFooterNavigationItem(
+        {
+          href: "https://example.com/reviews",
+          newTab: false,
+          slot: "reviews",
+          type: "external",
+        },
+        "sk"
+      )
     ).toEqual({
       href: "https://example.com/reviews",
       kind: "external",

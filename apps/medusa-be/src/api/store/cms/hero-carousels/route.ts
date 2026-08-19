@@ -6,11 +6,11 @@ import {
   optionalPositiveIntParam,
   optionalStringParam,
 } from "../../../../utils/query-params"
-import { StoreCmsLocaleSchema } from "../locales"
+import { resolveStoreCmsLocale, StoreCmsLocaleQuerySchema } from "../locales"
 
 /** Query schema for fetching CMS hero carousel lists. */
 export const StoreCmsHeroCarouselsSchema = z.object({
-  locale: StoreCmsLocaleSchema,
+  locale: StoreCmsLocaleQuerySchema,
   limit: optionalPositiveIntParam,
   page: optionalPositiveIntParam,
   sort: optionalStringParam,
@@ -28,7 +28,8 @@ export async function GET(
 ) {
   const cmsService = req.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
 
-  const { limit, locale, page, sort } = req.validatedQuery
+  const { limit, page, sort } = req.validatedQuery
+  const locale = resolveStoreCmsLocale(req.locale ?? req.validatedQuery.locale)
 
   try {
     const heroCarousels = await cmsService.listHeroCarousels({

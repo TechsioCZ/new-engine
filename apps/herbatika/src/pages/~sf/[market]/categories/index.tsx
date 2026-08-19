@@ -14,7 +14,7 @@ import {
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
 import { getRegionServerContext } from "@/lib/storefront/ssr/context"
-import { readRequiredPublicEntitySlugs } from "@/lib/storefront/ssr/public-entity-projections"
+import { readCompletePublicEntitySlugs } from "@/lib/storefront/ssr/public-entity-projections"
 import { fetchServerCategories } from "@/lib/storefront/storefront-server"
 import { buildPath } from "@/lib/url/public-url"
 
@@ -49,7 +49,7 @@ export const getServerSideProps = (async (context) =>
           page: 1,
         })
       )
-      const publicSlugs = await readRequiredPublicEntitySlugs({
+      const publicSlugs = await readCompletePublicEntitySlugs({
         kind: "category",
         market,
         rejectUnexpectedSourceIds: true,
