@@ -2,10 +2,10 @@ import { readFile } from "node:fs/promises"
 import { isAbsolute, resolve } from "node:path"
 
 const EXPECTED_MARKETS = Object.freeze({
-  cz: { host: "herbatica.cz", locale: "cs-CZ" },
-  hu: { host: "herbatica.hu", locale: "hu-HU" },
-  ro: { host: "herbatica.ro", locale: "ro-RO" },
-  sk: { host: "herbatica.sk", locale: "sk-SK" },
+  cz: { aboutPathStatus: 200, host: "herbatica.cz", locale: "cs-CZ" },
+  hu: { aboutPathStatus: 404, host: "herbatica.hu", locale: "hu-HU" },
+  ro: { aboutPathStatus: 404, host: "herbatica.ro", locale: "ro-RO" },
+  sk: { aboutPathStatus: 200, host: "herbatica.sk", locale: "sk-SK" },
 })
 const TOKEN_ENVIRONMENT_VARIABLE = /^URL_ARCHITECTURE_[A-Z0-9_]+$/
 
@@ -86,6 +86,43 @@ const validateTokenPaths = (market) => {
   })
 }
 
+const validateAboutPathCase = (market, expected) => {
+  const pathCase = market.aboutPathCase
+  if (!pathCase || typeof pathCase !== "object") {
+    throw new Error(`${market.market}.aboutPathCase is required`)
+  }
+  if (
+    requiredPath(pathCase.path, `${market.market}.aboutPathCase.path`) !==
+    "/o-nas"
+  ) {
+    throw new Error(`${market.market}.aboutPathCase.path must be /o-nas`)
+  }
+  if (pathCase.status !== expected.aboutPathStatus) {
+    throw new Error(
+      `${market.market}.aboutPathCase.status must be ${expected.aboutPathStatus}`
+    )
+  }
+  if (pathCase.status === 404) {
+    if (pathCase.canonical !== null) {
+      throw new Error(
+        `${market.market}.aboutPathCase.canonical must be null for 404`
+      )
+    }
+    return
+  }
+  const canonical = new URL(
+    requiredString(
+      pathCase.canonical,
+      `${market.market}.aboutPathCase.canonical`
+    )
+  )
+  if (canonical.href !== `https://${market.host}/o-nas`) {
+    throw new Error(
+      `${market.market}.aboutPathCase.canonical must be its canonical /o-nas URL`
+    )
+  }
+}
+
 const validateQueryCase = (market, queryCase, index) => {
   const label = `${market.market}.queryCases[${index}]`
   requiredPath(queryCase.path, `${label}.path`)
@@ -162,6 +199,7 @@ const validateMarket = (market) => {
       `${market.market} must use ${expected.host} and ${expected.locale}`
     )
   }
+  validateAboutPathCase(market, expected)
   const browserOrigin = new URL(
     requiredString(market.browserOrigin, `${market.market}.browserOrigin`)
   )
@@ -295,8 +333,8 @@ export const loadReleaseFixture = async () => {
     throw new Error("URL_ARCHITECTURE_FIXTURE must be an absolute path")
   }
   const fixture = JSON.parse(await readFile(resolve(fixturePath), "utf8"))
-  if (fixture.schemaVersion !== 1) {
-    throw new Error("URL architecture fixture schemaVersion must be 1")
+  if (fixture.schemaVersion !== 2) {
+    throw new Error("URL architecture fixture schemaVersion must be 2")
   }
   const baseUrl = new URL(requiredString(fixture.baseUrl, "baseUrl"))
   if (!(baseUrl.protocol === "http:" || baseUrl.protocol === "https:")) {

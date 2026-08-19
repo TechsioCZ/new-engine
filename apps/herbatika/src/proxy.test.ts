@@ -1,10 +1,9 @@
 import "next/dist/server/node-environment-baseline"
 import { NextRequest } from "next/server"
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { config, proxy } from "./proxy"
 
 const originalProbeGate = process.env.URL_ARCHITECTURE_M00_ENABLED
-const originalProductResolverGate = process.env.URL_PRODUCT_RESOLVER_ENABLED
 const originalFullArchitectureGate = process.env.URL_ARCHITECTURE_ENABLED
 const originalAllowedMarkets = process.env.ALLOWED_MARKETS
 
@@ -13,6 +12,12 @@ const request = (pathname: string, host = "herbatica.sk", method = "GET") =>
     headers: { host },
     method,
   })
+
+beforeEach(() => {
+  process.env.ALLOWED_MARKETS = "sk,cz,hu,ro"
+  process.env.URL_ARCHITECTURE_ENABLED = "1"
+  Reflect.deleteProperty(process.env, "URL_ARCHITECTURE_M00_ENABLED")
+})
 
 afterEach(() => {
   if (originalAllowedMarkets === undefined) {
@@ -32,29 +37,16 @@ afterEach(() => {
   } else {
     process.env.URL_ARCHITECTURE_M00_ENABLED = originalProbeGate
   }
-
-  if (originalProductResolverGate === undefined) {
-    Reflect.deleteProperty(process.env, "URL_PRODUCT_RESOLVER_ENABLED")
-  } else {
-    process.env.URL_PRODUCT_RESOLVER_ENABLED = originalProductResolverGate
-  }
 })
 
-describe("M00 proxy adapter", () => {
-  it("covers full public HTML while retaining the incremental probe matchers", () => {
+describe("public proxy adapter", () => {
+  it("routes all public HTML through one full-architecture matcher", () => {
     expect(config.matcher).toEqual([
       "/((?!api(?:/|$)|_next/static|_next/image|.*\\.(?:png|jpg|jpeg|gif|webp|svg|css|js|woff|woff2)$).*)",
-      "/__url-m00/:path*",
-      "/produkty/:path*",
-      "/termekek/:path*",
-      "/produse/:path*",
-      "/~sf/:path*",
     ])
   })
 
   it("rewrites a canonical product path with trusted market context", () => {
-    process.env.URL_PRODUCT_RESOLVER_ENABLED = "1"
-
     const response = proxy(
       request("/termekek/zold-tea?variant=variant_01", "herbatica.hu")
     )
@@ -73,7 +65,6 @@ describe("M00 proxy adapter", () => {
   })
 
   it("scrubs spoofed storefront context from a product rewrite", () => {
-    process.env.URL_PRODUCT_RESOLVER_ENABLED = "1"
     const spoofedRequest = new NextRequest(
       "https://herbatica.ro/produse/ceai-verde",
       {
@@ -95,43 +86,31 @@ describe("M00 proxy adapter", () => {
     )
   })
 
-  it("does not claim product routes while the registry gate is disabled", () => {
-    Reflect.deleteProperty(process.env, "URL_PRODUCT_RESOLVER_ENABLED")
-
-    const response = proxy(request("/produkty/zeleny-caj"))
-
-    expect(response.headers.has("x-middleware-rewrite")).toBe(false)
-  })
-
   it("preserves the raw query while rewriting a trusted market host", () => {
-    process.env.URL_ARCHITECTURE_M00_ENABLED = "1"
-
     const response = proxy(
-      request("/__url-m00/current?variant=SKU-AbC-01", "herbatica.cz")
+      request("/produkty/zeleny-caj?variant=SKU-AbC-01", "herbatica.cz")
     )
 
     expect(response.status).toBe(200)
     expect(response.headers.get("x-middleware-rewrite")).toBe(
-      "https://herbatica.cz/~sf/cz/__m00/current?variant=SKU-AbC-01"
+      "https://herbatica.cz/~sf/cz/products/zeleny-caj?variant=SKU-AbC-01"
     )
   })
 
   it("keeps the normalized adapter origin for an internal rewrite", () => {
-    process.env.URL_ARCHITECTURE_M00_ENABLED = "1"
     const standaloneRequest = new NextRequest(
-      "http://127.0.0.1:32145/__url-m00/current",
+      "http://127.0.0.1:32145/produkty/zeleny-caj",
       { headers: { host: "herbatica.sk" } }
     )
 
     expect(proxy(standaloneRequest).headers.get("x-middleware-rewrite")).toBe(
-      "http://localhost:32145/~sf/sk/__m00/current"
+      "http://localhost:32145/~sf/sk/products/zeleny-caj"
     )
   })
 
   it("scrubs spoofed router and storefront-internal request headers", () => {
-    process.env.URL_ARCHITECTURE_M00_ENABLED = "1"
     const spoofedRequest = new NextRequest(
-      "https://herbatica.sk/__url-m00/current",
+      "https://herbatica.sk/produkty/zeleny-caj",
       {
         headers: {
           host: "herbatica.sk",
@@ -166,10 +145,10 @@ describe("M00 proxy adapter", () => {
       response.headers.get("x-middleware-request-x-sf-canonical-origin")
     ).toBe("https://herbatica.sk")
     expect(response.headers.get("x-middleware-request-x-sf-route-key")).toBe(
-      "m00.status"
+      "product.detail"
     )
     expect(response.headers.get("x-middleware-request-x-sf-public-path")).toBe(
-      "/__url-m00/current"
+      "/produkty/zeleny-caj"
     )
   })
 
@@ -180,55 +159,53 @@ describe("M00 proxy adapter", () => {
     ["PATCH", 405],
     ["DELETE", 405],
   ])("returns the public page method outcome for %s", (method, status) => {
-    process.env.URL_ARCHITECTURE_M00_ENABLED = "1"
-
-    const response = proxy(request("/__url-m00/current", undefined, method))
+    const response = proxy(request("/produkty/zeleny-caj", undefined, method))
 
     expect(response.status).toBe(status)
     expect(response.headers.get("allow")).toBe("GET, HEAD")
     expect(response.headers.has("x-middleware-rewrite")).toBe(false)
   })
 
-  it("fails closed when the probe is disabled", () => {
-    Reflect.deleteProperty(process.env, "URL_ARCHITECTURE_M00_ENABLED")
+  it("selects an exact M00 test probe without a full-resolver fallback", () => {
+    process.env.URL_ARCHITECTURE_M00_ENABLED = "1"
+    Reflect.deleteProperty(process.env, "URL_ARCHITECTURE_ENABLED")
 
-    expect(proxy(request("/__url-m00/current")).status).toBe(404)
+    const probeResponse = proxy(request("/__url-m00/current"))
+    expect(probeResponse.headers.get("x-middleware-rewrite")).toBe(
+      "https://herbatica.sk/~sf/sk/__m00/current"
+    )
+
+    const nonProbeResponse = proxy(request("/__url-m00/not-an-outcome"))
+    expect(nonProbeResponse.headers.get("x-middleware-next")).toBe("1")
+    expect(nonProbeResponse.headers.has("x-middleware-rewrite")).toBe(false)
   })
 
   it("returns 421 for an unknown host", () => {
-    process.env.URL_ARCHITECTURE_M00_ENABLED = "1"
-
-    expect(proxy(request("/__url-m00/current", "unknown.example")).status).toBe(
-      421
-    )
+    expect(proxy(request("/", "unknown.example")).status).toBe(421)
   })
 
-  it("never exposes the internal Pages namespace", () => {
+  it.each([
+    "/~sf/sk/products/x",
+    "/_next/data/build-123/~sf/sk/products/x.json",
+  ])("never exposes the internal Pages namespace with the gate disabled: %s", (pathname) => {
+    Reflect.deleteProperty(process.env, "URL_ARCHITECTURE_ENABLED")
     process.env.URL_ARCHITECTURE_M00_ENABLED = "1"
 
-    expect(proxy(request("/~sf/sk/__m00/current")).status).toBe(404)
-    expect(
-      proxy(request("/_next/data/build-123/~sf/sk/__m00/current.json")).status
-    ).toBe(404)
+    expect(proxy(request(pathname)).status).toBe(404)
   })
 
   it("passes a verified-host system route through and rejects an unknown host", () => {
-    process.env.ALLOWED_MARKETS = "sk,cz,hu,ro"
-    process.env.URL_ARCHITECTURE_ENABLED = "1"
-
     expect(proxy(request("/robots.txt")).headers.get("x-middleware-next")).toBe(
       "1"
     )
     expect(proxy(request("/favicon.ico", "unknown.example")).status).toBe(421)
   })
 
-  it("directly redirects the HU legacy about exception", () => {
-    process.env.ALLOWED_MARKETS = "sk,cz,hu,ro"
-    process.env.URL_ARCHITECTURE_ENABLED = "1"
-
-    const response = proxy(request("/o-nas", "herbatica.hu"))
-
-    expect(response.status).toBe(308)
-    expect(response.headers.get("location")).toBe("https://herbatica.hu/rolunk")
+  it("returns 404 for the HU and RO legacy about path", () => {
+    for (const host of ["herbatica.hu", "herbatica.ro"]) {
+      const response = proxy(request("/o-nas", host))
+      expect(response.status).toBe(404)
+      expect(response.headers.has("location")).toBe(false)
+    }
   })
 })

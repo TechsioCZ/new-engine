@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "baseUrl": "https://caddy:443",
   "allowSelfSignedTls": true,
   "requestTimeoutMs": 10000,
@@ -11,6 +11,11 @@
       "locale": "sk-SK",
       "browserOrigin": "https://herbatica.sk",
       "home": "/",
+      "aboutPathCase": {
+        "path": "/o-nas",
+        "status": 200,
+        "canonical": "https://herbatica.sk/o-nas"
+      },
       "currentProduct": "/produkty/fixture-produkt",
       "currentCategory": "/kategorie/fixture-kategoria",
       "currentCms": "/poradna/fixture-clanok",
@@ -93,6 +98,11 @@
       "locale": "cs-CZ",
       "browserOrigin": "https://herbatica.cz",
       "inheritFixtureFrom": "sk",
+      "aboutPathCase": {
+        "path": "/o-nas",
+        "status": 200,
+        "canonical": "https://herbatica.cz/o-nas"
+      },
       "currentProduct": "/produkty/fixture-produkt",
       "currentCategory": "/kategorie/fixture-kategorie",
       "currentCms": "/poradna/fixture-clanek",
@@ -165,6 +175,11 @@
       "locale": "hu-HU",
       "browserOrigin": "https://herbatica.hu",
       "inheritFixtureFrom": "sk",
+      "aboutPathCase": {
+        "path": "/o-nas",
+        "status": 404,
+        "canonical": null
+      },
       "currentProduct": "/termekek/fixture-termek",
       "currentCategory": "/kategoriak/fixture-kategoria",
       "currentCms": "/tanacsok/fixture-cikk",
@@ -243,6 +258,11 @@
       "locale": "ro-RO",
       "browserOrigin": "https://herbatica.ro",
       "inheritFixtureFrom": "sk",
+      "aboutPathCase": {
+        "path": "/o-nas",
+        "status": 404,
+        "canonical": null
+      },
       "currentProduct": "/produse/produs-fixture",
       "currentCategory": "/categorii/categorie-fixture",
       "currentCms": "/sfaturi/articol-fixture",
@@ -320,8 +340,10 @@
     "/faq",
     "/account",
     "/auth",
+    "/auth/reset-password/legacy-reset-token",
     "/checkout",
-    "/reviews/product/legacy-token",
+    "/checkout/payment-return?state=legacy-payment-state",
+    "/reviews/product/legacy-review-token",
     "/reviews",
     "/legacy-root",
     "/homepage-promo"

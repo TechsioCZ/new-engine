@@ -10,14 +10,10 @@ import {
 } from "@/lib/url/segments"
 import { validatePublishedSlug } from "@/lib/url/slug"
 import type { Market, RootSegmentMatch } from "@/lib/url/types"
+import { isPrivatePagesPath } from "./private-pages-path"
 
 export type PublicProxyAction =
   | Readonly<{ kind: "next" }>
-  | Readonly<{
-      destination: string
-      kind: "redirect"
-      status: 308
-    }>
   | Readonly<{
       allow?: "GET, HEAD"
       kind: "respond"
@@ -339,38 +335,23 @@ export const resolvePublicProxyAction = ({
   method,
   pathname,
 }: ResolvePublicProxyInput): PublicProxyAction => {
-  if (!enabled) {
-    return { kind: "next" }
+  if (isPrivatePagesPath(pathname)) {
+    return { kind: "respond", status: 404 }
   }
   const hostMarket = resolveMarket(host, environment)
   if (!hostMarket) {
     return { kind: "respond", status: 421 }
   }
+  if (!enabled) {
+    return { kind: "next" }
+  }
   const parsed = parsePath(pathname)
   if (!parsed) {
     return { kind: "respond", status: 400 }
   }
-  if (parsed.segments[0]?.toLowerCase() === "~sf") {
-    return { kind: "respond", status: 404 }
-  }
   if (isSystemRoute(parsed.segments)) {
     return { kind: "next" }
   }
-  if (
-    parsed.segments.length === 1 &&
-    parsed.segments[0]?.toLowerCase() === "o-nas" &&
-    (hostMarket.market === "hu" || hostMarket.market === "ro")
-  ) {
-    return {
-      destination: new URL(
-        `/${ROUTE_SEGMENT_REGISTRY[hostMarket.market].staticRootPages.about}`,
-        ROUTES[hostMarket.market].canonicalOrigin
-      ).href,
-      kind: "redirect",
-      status: 308,
-    }
-  }
-
   let route: Readonly<{ pathname: string; routeKey: string }> | null = null
   if (parsed.segments.length === 0) {
     route = {

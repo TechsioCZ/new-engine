@@ -119,6 +119,10 @@ describe("full public URL proxy", () => {
     "/%257Esf/sk/home",
   ])("blocks the internal namespace %s", (pathname) => {
     expect(resolve(pathname)).toEqual({ kind: "respond", status: 404 })
+    expect(resolve(pathname, { enabled: false })).toEqual({
+      kind: "respond",
+      status: 404,
+    })
   })
 
   it("fails unknown hosts closed", () => {
@@ -126,6 +130,9 @@ describe("full public URL proxy", () => {
       kind: "respond",
       status: 421,
     })
+    expect(
+      resolve("/robots.txt", { enabled: false, host: "unknown.example" })
+    ).toEqual({ kind: "respond", status: 421 })
   })
 
   it("restricts host ownership to the deployment ALLOWED_MARKETS", () => {
@@ -169,7 +176,7 @@ describe("full public URL proxy", () => {
     })
   })
 
-  it("preserves /o-nas for SK/CZ and redirects HU/RO to localized about", () => {
+  it("preserves canonical /o-nas for SK/CZ and rejects it for HU/RO", () => {
     expect(resolve("/o-nas")).toMatchObject({
       kind: "rewrite",
       routeKey: "static.about",
@@ -179,14 +186,12 @@ describe("full public URL proxy", () => {
       routeKey: "static.about",
     })
     expect(resolve("/o-nas", { host: "herbatica.hu" })).toEqual({
-      destination: "https://herbatica.hu/rolunk",
-      kind: "redirect",
-      status: 308,
+      kind: "respond",
+      status: 404,
     })
     expect(resolve("/o-nas", { host: "herbatica.ro" })).toEqual({
-      destination: "https://herbatica.ro/despre-noi",
-      kind: "redirect",
-      status: 308,
+      kind: "respond",
+      status: 404,
     })
   })
 
@@ -214,7 +219,8 @@ describe("full public URL proxy", () => {
     expect(
       resolvePublicProxyAction({
         enabled: false,
-        host: "unknown.example",
+        environment: { ALLOWED_MARKETS: "sk,cz,hu,ro" },
+        host: "herbatica.sk",
         method: "GET",
         pathname: "/anything",
       })

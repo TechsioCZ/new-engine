@@ -9,18 +9,23 @@ labels, and it never appends numeric collision suffixes.
 
 This is a clean cutover release. The image contains no legacy public-route
 fallback, so a gates-off container must never receive production traffic. Every
-URL architecture gate defaults to `0` only to prevent a partially configured
-registry from becoming public. Use the production image as a private one-off or
-maintenance deployment for the migration and population work, then switch
-traffic only after the full resolver is enabled and verified.
+operational URLR gate defaults to `0` so a partially configured registry cannot
+become active, and `URL_ARCHITECTURE_ENABLED` is the one all-or-nothing public
+routing control. The repository provides no product-only or M00-only production
+routing mode and no repository-provided shadow, blue/green, or atomic traffic-
+switch mechanism.
 
-1. Start the new Git hash as a private one-off or maintenance deployment with
-   `URL_REGISTRY_ENABLED=0`,
-   `URL_PRODUCT_RESOLVER_ENABLED=0`, `URL_ARCHITECTURE_M00_ENABLED=0`, and
-   `URL_ARCHITECTURE_ENABLED=0`. Do not attach the production domains or send
-   customer traffic to this container. Configure the runtime database URL and
-   exact four-market bindings, but keep every producer/resolver gate off.
-2. Temporarily add the migration-owner connection as the private Herbatika
+1. Put the existing Zane Herbatika service into a real controlled maintenance
+   window and keep it outside customer traffic. With
+   `URL_ARCHITECTURE_ENABLED=0`, deploy the final candidate Git hash to that same
+   service so its exact migration/population scripts and migration manifest are
+   available in the running container. Configure its runtime database URL plus
+   the exact four-market bindings, then complete steps 2-6 before restoring
+   traffic. The required operator prerequisite is an actual Zane maintenance,
+   domain-detach, or equivalent no-traffic control verified outside this
+   repository; if none is available, stop. Never send customer traffic to the
+   candidate while its single public architecture gate is `0`.
+2. Temporarily add the migration-owner connection as the Herbatika
    service variable `URL_REGISTRY_MIGRATION_DATABASE_URL`. Open the Herbatika
    container shell in ZaneOps (or use `docker exec` on the Zane host) and run:
 
@@ -31,10 +36,9 @@ traffic only after the full resolver is enabled and verified.
    The command uses a Postgres advisory lock, verifies checksums, and is safe to
    rerun. Remove `URL_REGISTRY_MIGRATION_DATABASE_URL` from the service
    immediately after it succeeds; the runtime must never retain the DDL role.
-3. Set only `URL_REGISTRY_ENABLED=1` on the private deployment and restart it.
+3. Set only `URL_REGISTRY_ENABLED=1` on the maintenance deployment and restart it.
    Startup must verify migration manifest V4 before the service becomes ready.
-   The public URL resolver is still off and the deployment must remain outside
-   the production request path while population is prepared.
+   Keep it outside the production request path while population is prepared.
 4. Freeze Medusa/Payload publishing, export the complete authoritative manifest,
    obtain the four required G1 editorial/legal approvals, and store the manifest
    on the Zane host as a mode-`0600` file. Resolve the current Herbatika
@@ -62,7 +66,7 @@ traffic only after the full resolver is enabled and verified.
      > /secure/urlr-apply.json
    ```
 
-   In the same private window, audit every Payload hero carousel. Any banner
+   In the same maintenance window, audit every Payload hero carousel. Any banner
    with CTA text or a legacy `buttonHref` must have an editor-approved stable
    `buttonTarget` before traffic moves. Legacy hrefs are never interpreted,
    copied, or exposed by this release; an unresolved CTA is a cutover blocker.
@@ -71,20 +75,24 @@ traffic only after the full resolver is enabled and verified.
    reports zero creates, zero blockers, and only no-ops. Drain and verify the
    invalidation outbox.
 6. Enable the authenticated command/invalidation/content-projection/product-
-   lifecycle producers, verify their health, then enable
-   `URL_PRODUCT_RESOLVER_ENABLED=1`. Run the four-host GET/HEAD/RSC M00 target
-   matrix. Enable `URL_ARCHITECTURE_M00_ENABLED=1`, rerun the matrix and bounded
-   crawl, and only then enable `URL_ARCHITECTURE_ENABLED=1`. Verify the complete
-   four-host matrix once more, then atomically move production traffic to this
-   deployment.
+   lifecycle producers and verify their health. Run the four-host GET/HEAD/RSC
+   M00 target matrix using the isolated acceptance harness, not a production
+   routing flag. Then set and synchronize `URL_ARCHITECTURE_ENABLED=1` on the
+   existing Zane service. The one gate enables product and every other public
+   architecture route together. Verify the complete four-host matrix and bounded
+   crawl against the candidate before ending the maintenance window and
+   restoring traffic.
 7. Run the seeded release harness from a trusted operator machine. On any hard
-   failure, route traffic back to the previously deployed image; never expose
-   the gates-off new image, delete URLR history, or reverse migrations.
+   failure, keep or return the service to maintenance and redeploy the previously
+   verified hash through the existing Zane deployment workflow; never invent a
+   legacy routing fallback, delete URLR history, or reverse migrations.
 
 The tracked stack bootstrap deliberately does not inject the migration-owner
 URL. It supplies only the runtime DML credential and disabled gates. The new
-hash is therefore not a drop-in gates-off storefront: deployment must follow the
-private preparation and atomic traffic-switch procedure above.
+hash is therefore not a drop-in gates-off storefront: it must be deployed to the
+existing service only inside the verified maintenance window, receive the
+complete URLR state, and have `URL_ARCHITECTURE_ENABLED=1` synchronized before
+customer traffic is restored.
 
 ## Authoritative inventory requirements
 

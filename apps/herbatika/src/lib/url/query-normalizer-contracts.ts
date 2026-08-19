@@ -1,4 +1,5 @@
 export const QUERY_KEY_ORDER = [
+  "category",
   "page",
   "sort",
   "status",
@@ -34,7 +35,7 @@ export const QUERY_ALLOWED_KEYS_BY_ROUTE_KIND = {
   "account-lists": ["list"],
   "account-orders": ["page"],
   "advice-article": [],
-  "advice-index": ["page"],
+  "advice-index": ["category", "page"],
   "brand-detail": BRAND_LISTING_QUERY_KEYS,
   "brand-index": [],
   "campaign-detail": LISTING_QUERY_KEYS,
@@ -56,6 +57,7 @@ export type QueryRouteKind = keyof typeof QUERY_ALLOWED_KEYS_BY_ROUTE_KIND
 export type QueryNotFoundReason =
   | "duplicate-known-key"
   | "empty-facet"
+  | "invalid-category"
   | "invalid-facet"
   | "invalid-list"
   | "invalid-page"
@@ -93,6 +95,7 @@ export type FormValue =
 
 export type NormalizedQueryValues = {
   brand?: readonly string[]
+  category?: string
   form?: readonly FormValue[]
   ingredient?: readonly string[]
   list?: string

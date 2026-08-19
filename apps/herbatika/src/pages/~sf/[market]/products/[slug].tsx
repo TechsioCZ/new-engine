@@ -208,7 +208,7 @@ const toPageView = async (
 export const getServerSideProps = (async ({ params, req, res }) => {
   const marketHeader = singleHeader(req.headers["x-sf-market"])
   const request: ProductPageRequest = {
-    enabled: process.env.URL_PRODUCT_RESOLVER_ENABLED === "1",
+    architectureEnabled: process.env.URL_ARCHITECTURE_ENABLED === "1",
     headers: {
       canonicalizationRequired: singleHeader(
         req.headers["x-sf-canonicalization-required"]

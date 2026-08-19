@@ -24,6 +24,10 @@ export const getServerSideProps = (async (context) =>
     expectedRouteKey: "article.index",
     loadSource: async (market) => {
       const listing = await fetchCmsBlogListing({
+        category:
+          typeof context.query.category === "string"
+            ? context.query.category
+            : undefined,
         locale: getHerbatikaMarketContext(market).locale,
         page:
           typeof context.query.page === "string"

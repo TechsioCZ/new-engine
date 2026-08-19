@@ -10,6 +10,7 @@ import {
 } from "./query-normalizer-contracts"
 
 const MAX_FACET_VALUES = 10
+const MAX_CATEGORY_CODE_POINTS = 100
 const MAX_SEARCH_CODE_POINTS = 200
 const PAGE_PATTERN = /^[1-9][0-9]*$/
 const PRICE_PATTERN = /^[0-9]+(?:\.[0-9]{1,2})?$/
@@ -190,6 +191,25 @@ const applyPrices = (
     : undefined
 }
 
+const applyCategory = (
+  entries: ReadonlyMap<QueryKey, ParsedQueryEntry>,
+  values: NormalizedQueryValues
+): QueryNotFoundResult | undefined => {
+  const rawCategory = entries.get("category")?.value
+  if (rawCategory === undefined) {
+    return
+  }
+
+  const category = rawCategory.trim()
+  if (!category || [...category].length > MAX_CATEGORY_CODE_POINTS) {
+    return createQueryNotFoundResult("invalid-category", "category")
+  }
+  if (category !== "all") {
+    values.category = category
+  }
+  return
+}
+
 const applyOpaqueValues = (
   entries: ReadonlyMap<QueryKey, ParsedQueryEntry>,
   values: NormalizedQueryValues
@@ -247,4 +267,5 @@ export const applyKnownValues = (
   applySort(entries, values) ??
   applyFacets(entries, values) ??
   applyPrices(entries, values) ??
+  applyCategory(entries, values) ??
   applyOpaqueValues(entries, values)

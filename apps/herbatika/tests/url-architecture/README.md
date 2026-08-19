@@ -21,6 +21,8 @@ provide, for all four markets:
   URLR/Medusa/CMS records;
 - at least two listing pages and a bounded sitemap/feed containing the product;
 - valid, invalid, used, and expired review-token states;
+- the root-static about page, with `/o-nas` canonical on SK/CZ and absent on
+  HU/RO;
 - a temporary redirect flow;
 - a lifecycle product whose old slug is current before the run and whose
   delivery changes it to `lifecycle.newPath`.
@@ -28,7 +30,11 @@ provide, for all four markets:
 `URL_ARCHITECTURE_LIFECYCLE_TOKEN` is read only from the environment. Do not put
 it, any market publishable key, or any issued token into the committed fixture.
 The string called `secret` is a non-production synthetic canary used only to
-detect metadata/header leakage.
+detect metadata/header leakage. Fixture schema 2 also requires an explicit
+`aboutPathCase` per market: `/o-nas` is canonical `200` for SK/CZ and hard `404`
+without `Location` for HU/RO. `legacyPaths` are common development-only paths
+and include old reset/review/payment examples; every market must return `404`
+without a compatibility redirect, rewrite, fallback, or dual route.
 
 The fixture's M00 paths require `URL_ARCHITECTURE_M00_ENABLED=1` in the isolated
 acceptance deployment. The real route checks in the same run prevent the M00

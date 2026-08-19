@@ -517,6 +517,21 @@ test("wire.empty-legacy-manifest", async () => {
       assert.equal(response.status, 404)
       assert.equal(response.headers.location, undefined)
     }
+
+    const { get: aboutPathResponse } = await requestPair({
+      host: market.host,
+      path: market.aboutPathCase.path,
+    })
+    assert.equal(aboutPathResponse.headers.location, undefined)
+    if (market.aboutPathCase.status === 200) {
+      assertIndexableHtml({
+        expectedUrl: market.aboutPathCase.canonical,
+        locale: market.locale,
+        response: aboutPathResponse,
+      })
+    } else {
+      assertHardError(aboutPathResponse, 404)
+    }
   }
 })
 

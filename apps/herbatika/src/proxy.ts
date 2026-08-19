@@ -1,7 +1,6 @@
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
-import { resolveM00ProxyAction } from "@/lib/routing/m00-proxy"
-import { resolveProductProxyAction } from "@/lib/routing/product-proxy"
+import { isM00ProbePath, resolveM00ProxyAction } from "@/lib/routing/m00-proxy"
 import { resolvePublicProxyAction } from "@/lib/routing/public-proxy"
 
 const NEXT_INTERNAL_REQUEST_HEADERS = [
@@ -69,31 +68,19 @@ const statusResponse = (
   })
 
 export const proxy = (request: NextRequest) => {
-  const publicAction = resolvePublicProxyAction({
-    enabled: process.env.URL_ARCHITECTURE_ENABLED === "1",
+  const input = {
     host: request.headers.get("host"),
     method: request.method,
     pathname: request.nextUrl.pathname,
-  })
+  }
   const action =
-    publicAction.kind === "next"
-      ? (() => {
-          const m00Action = resolveM00ProxyAction({
-            enabled: process.env.URL_ARCHITECTURE_M00_ENABLED === "1",
-            host: request.headers.get("host"),
-            method: request.method,
-            pathname: request.nextUrl.pathname,
-          })
-          return m00Action.kind === "next"
-            ? resolveProductProxyAction({
-                enabled: process.env.URL_PRODUCT_RESOLVER_ENABLED === "1",
-                host: request.headers.get("host"),
-                method: request.method,
-                pathname: request.nextUrl.pathname,
-              })
-            : m00Action
-        })()
-      : publicAction
+    process.env.URL_ARCHITECTURE_M00_ENABLED === "1" &&
+    isM00ProbePath(input.pathname)
+      ? resolveM00ProxyAction({ ...input, enabled: true })
+      : resolvePublicProxyAction({
+          ...input,
+          enabled: process.env.URL_ARCHITECTURE_ENABLED === "1",
+        })
 
   if (action.kind === "next") {
     return NextResponse.next()
@@ -101,10 +88,6 @@ export const proxy = (request: NextRequest) => {
 
   if (action.kind === "respond") {
     return statusResponse(action.status, action.allow)
-  }
-
-  if (action.kind === "redirect") {
-    return NextResponse.redirect(action.destination, action.status)
   }
 
   // Keep the adapter-provided origin. The pinned Next runtime canonicalizes
@@ -120,10 +103,5 @@ export const proxy = (request: NextRequest) => {
 export const config = {
   matcher: [
     "/((?!api(?:/|$)|_next/static|_next/image|.*\\.(?:png|jpg|jpeg|gif|webp|svg|css|js|woff|woff2)$).*)",
-    "/__url-m00/:path*",
-    "/produkty/:path*",
-    "/termekek/:path*",
-    "/produse/:path*",
-    "/~sf/:path*",
   ],
 }

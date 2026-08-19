@@ -212,10 +212,9 @@ x-herbatika-env: &herbatika-env
   NEXT_PUBLIC_PAYLOAD_BASE_URL: ${DC_HERBATIKA_NEXT_PUBLIC_PAYLOAD_BASE_URL:-http://localhost:8083}
   NEXT_PUBLIC_MINIO_FILE_URL: ${DC_HERBATIKA_NEXT_PUBLIC_MINIO_FILE_URL:-http://localhost:9004/medusa-bucket}
 
-  # Issue #545 URL cutover order:
-  # 1. migrate/seed URLR and verify bindings with every gate still at 0;
-  # 2. enable URL_REGISTRY, then controlled commands/lifecycle producers;
-  # 3. enable the product resolver; enable the full architecture last.
+  # Issue #545 clean cutover: URLR operational gates remain independent, but
+  # URL_ARCHITECTURE_ENABLED is the only public routing control. Never expose
+  # this service until the complete architecture can be enabled at once.
   URL_REGISTRY_ENABLED: ${DC_HERBATIKA_URL_REGISTRY_ENABLED:-0}
   URL_REGISTRY_DATABASE_URL: ${DC_HERBATIKA_URL_REGISTRY_DATABASE_URL:-}
   URL_REGISTRY_COMMANDS_ENABLED: ${DC_HERBATIKA_URL_REGISTRY_COMMANDS_ENABLED:-0}
@@ -228,8 +227,6 @@ x-herbatika-env: &herbatika-env
   URL_REGISTRY_CONTENT_PROJECTION_TOKEN: ${DC_URL_REGISTRY_CONTENT_PROJECTION_TOKEN:-}
   URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED: ${DC_URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED:-0}
   URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN: ${DC_URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN:-}
-  URL_PRODUCT_RESOLVER_ENABLED: ${DC_HERBATIKA_URL_PRODUCT_RESOLVER_ENABLED:-0}
-  URL_ARCHITECTURE_M00_ENABLED: ${DC_HERBATIKA_URL_ARCHITECTURE_M00_ENABLED:-0}
   URL_ARCHITECTURE_ENABLED: ${DC_HERBATIKA_URL_ARCHITECTURE_ENABLED:-0}
 
   # Complete server-only market authority. Publishable key values, key IDs,

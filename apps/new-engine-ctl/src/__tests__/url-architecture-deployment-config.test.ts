@@ -40,6 +40,10 @@ const environmentLineBreakPattern = /\r?\n/u
 const environmentAssignmentPattern = /^[A-Z0-9_]+=/u
 const pinnedCaddyImagePattern =
   /^ARG CADDY_IMAGE=caddy:\d+\.\d+\.\d+-alpine@sha256:[a-f0-9]{64}$/mu
+const legacyPublicRouteFallbackPattern =
+  /contains no legacy public-route\s+fallback/u
+const restoredTrafficPrerequisitePattern =
+  /before\s+customer traffic is restored/u
 
 async function loadUrlArchitectureDefinitions() {
   const { stackInputs } = await loadDeployContracts(
@@ -57,7 +61,7 @@ async function loadUrlArchitectureDefinitions() {
   }
 }
 
-test("URL architecture cutover gates bootstrap disabled in promotion order", async () => {
+test("one full public URL architecture gate bootstraps disabled", async () => {
   const { byKey, definitions } = await loadUrlArchitectureDefinitions()
   expect(byKey.size).toBe(definitions.length)
   const expectedTargets = new Map([
@@ -88,14 +92,6 @@ test("URL architecture cutover gates bootstrap disabled in promotion order", asy
         "herbatika.URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED",
       ],
     ],
-    [
-      "URL_PRODUCT_RESOLVER_ENABLED",
-      ["herbatika.URL_PRODUCT_RESOLVER_ENABLED"],
-    ],
-    [
-      "URL_ARCHITECTURE_M00_ENABLED",
-      ["herbatika.URL_ARCHITECTURE_M00_ENABLED"],
-    ],
     ["URL_ARCHITECTURE_ENABLED", ["herbatika.URL_ARCHITECTURE_ENABLED"]],
   ])
 
@@ -111,6 +107,9 @@ test("URL architecture cutover gates bootstrap disabled in promotion order", asy
       )
     ).toEqual(targets)
   }
+
+  expect(byKey.has("URL_PRODUCT_RESOLVER_ENABLED")).toBe(false)
+  expect(byKey.has("URL_ARCHITECTURE_M00_ENABLED")).toBe(false)
 })
 
 test("tracked Docker defaults cannot accidentally enable a URL cutover", async () => {
@@ -131,12 +130,17 @@ test("tracked Docker defaults cannot accidentally enable a URL cutover", async (
     "DC_HERBATIKA_URL_REGISTRY_INVALIDATION_DISPATCH_ENABLED",
     "DC_URL_REGISTRY_CONTENT_PROJECTION_ENABLED",
     "DC_URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED",
-    "DC_HERBATIKA_URL_PRODUCT_RESOLVER_ENABLED",
-    "DC_HERBATIKA_URL_ARCHITECTURE_M00_ENABLED",
     "DC_HERBATIKA_URL_ARCHITECTURE_ENABLED",
   ]) {
     expect(environment.get(key), key).toBe("0")
   }
+
+  expect(environment.has("DC_HERBATIKA_URL_PRODUCT_RESOLVER_ENABLED")).toBe(
+    false
+  )
+  expect(environment.has("DC_HERBATIKA_URL_ARCHITECTURE_M00_ENABLED")).toBe(
+    false
+  )
 
   expect(environment.has("DC_HERBATIKA_URL_REGISTRY_DATABASE_URL")).toBe(true)
   expect(environment.has("URL_REGISTRY_MIGRATION_DATABASE_URL")).toBe(false)
@@ -170,8 +174,13 @@ test("production image ships private-network migration and population tools", as
   expect(runbook).toContain("node scripts/url-registry/migrate.mjs")
   expect(runbook).toContain("populate.mjs --manifest -")
   expect(runbook).toContain("URL_ARCHITECTURE_ENABLED=0")
-  expect(runbook).toMatch(/contains no legacy public-route\s+fallback/)
-  expect(runbook).toContain("atomically move production traffic")
+  expect(runbook).toMatch(legacyPublicRouteFallbackPattern)
+  expect(runbook).toContain("set and synchronize `URL_ARCHITECTURE_ENABLED=1`")
+  expect(runbook).toContain("no repository-provided shadow, blue/green")
+  expect(runbook).toContain("deploy the final candidate Git hash")
+  expect(runbook).toMatch(restoredTrafficPrerequisitePattern)
+  expect(runbook).not.toContain("URL_PRODUCT_RESOLVER_ENABLED")
+  expect(runbook).not.toContain("URL_ARCHITECTURE_M00_ENABLED")
   expect(runbook).toContain("legacy `buttonHref`")
   expect(runbook).toContain("stable `buttonTarget`")
 })

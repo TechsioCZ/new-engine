@@ -114,6 +114,12 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     })
 
     expect(plan.status).toBe("ready")
+    expect(plan.shared_env_cleanup_keys).toEqual(
+      expect.arrayContaining([
+        "URL_PRODUCT_RESOLVER_ENABLED",
+        "URL_ARCHITECTURE_M00_ENABLED",
+      ])
+    )
     expect(plan.services.map((service) => service.service_id)).toEqual(
       serviceSlugs
     )
@@ -284,8 +290,6 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
       MARKET_ACCEPTED_HOSTS_RO: "{{env.MARKET_ACCEPTED_HOSTS_RO}}",
       NEXT_PUBLIC_MINIO_FILE_URL: minioPublicOrigin,
       URL_ARCHITECTURE_ENABLED: "{{env.URL_ARCHITECTURE_ENABLED}}",
-      URL_ARCHITECTURE_M00_ENABLED: "{{env.URL_ARCHITECTURE_M00_ENABLED}}",
-      URL_PRODUCT_RESOLVER_ENABLED: "{{env.URL_PRODUCT_RESOLVER_ENABLED}}",
       URL_REGISTRY_COMMANDS_ENABLED: "{{env.URL_REGISTRY_COMMANDS_ENABLED}}",
       URL_REGISTRY_CONTENT_PROJECTION_ENABLED:
         "{{env.URL_REGISTRY_CONTENT_PROJECTION_ENABLED}}",
@@ -306,6 +310,12 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
       URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN:
         "{{env.URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN}}",
     })
+    expect(herbatika?.desired_env).not.toHaveProperty(
+      "URL_PRODUCT_RESOLVER_ENABLED"
+    )
+    expect(herbatika?.desired_env).not.toHaveProperty(
+      "URL_ARCHITECTURE_M00_ENABLED"
+    )
     expect(herbatika?.desired_env).not.toHaveProperty("MEILISEARCH_HOST")
     expect(herbatika?.desired_env).not.toHaveProperty(
       "MEILISEARCH_SEARCH_API_KEY"
@@ -317,6 +327,8 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
         "MEILISEARCH_PRODUCTS_INDEX",
         "MEILISEARCH_CATEGORIES_INDEX",
         "MEILISEARCH_PRODUCERS_INDEX",
+        "URL_PRODUCT_RESOLVER_ENABLED",
+        "URL_ARCHITECTURE_M00_ENABLED",
       ])
     )
 
@@ -331,6 +343,13 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     if (!(composeMedusaEnv && composeHerbatikaEnv)) {
       throw new Error("Compose storefront/backend environments are missing.")
     }
+
+    expect(composeHerbatikaEnv).not.toHaveProperty(
+      "URL_PRODUCT_RESOLVER_ENABLED"
+    )
+    expect(composeHerbatikaEnv).not.toHaveProperty(
+      "URL_ARCHITECTURE_M00_ENABLED"
+    )
 
     const missingMedusaEnvKeys = Object.keys(composeMedusaEnv).filter(
       (key) =>

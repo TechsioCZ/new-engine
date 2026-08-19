@@ -58,6 +58,23 @@ test("committed example satisfies the strict four-market fixture schema", async 
       fixture.lifecycle.tokenEnvironmentVariable,
       "URL_ARCHITECTURE_LIFECYCLE_TOKEN"
     )
+    assert.deepEqual(
+      Object.fromEntries(
+        fixture.markets.map((market) => [
+          market.market,
+          {
+            canonical: market.aboutPathCase.canonical,
+            status: market.aboutPathCase.status,
+          },
+        ])
+      ),
+      {
+        cz: { canonical: "https://herbatica.cz/o-nas", status: 200 },
+        hu: { canonical: null, status: 404 },
+        ro: { canonical: null, status: 404 },
+        sk: { canonical: "https://herbatica.sk/o-nas", status: 200 },
+      }
+    )
   } finally {
     if (previous === undefined) {
       Reflect.deleteProperty(process.env, "URL_ARCHITECTURE_FIXTURE")

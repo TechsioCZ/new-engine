@@ -49,7 +49,7 @@ describe("normalizeQuery route scopes", () => {
       "account-lists": ["list"],
       "account-orders": ["page"],
       "advice-article": [],
-      "advice-index": ["page"],
+      "advice-index": ["category", "page"],
       "brand-detail": [
         "page",
         "sort",
@@ -124,6 +124,7 @@ describe("normalizeQuery route scopes", () => {
   it.each(allowedQueryKeyCases)("allows %s to use %s", (routeKind, key) => {
     const valueByKey: Record<string, string> = {
       brand: "pukka",
+      category: "zdravie & krása",
       form: "tea",
       ingredient: "vitamin-c",
       list: "plist_01HZX9A",
@@ -154,6 +155,21 @@ describe("normalizeQuery route scopes", () => {
 })
 
 describe("normalizeQuery canonical output", () => {
+  it("normalizes the advice category before page and omits the all default", () => {
+    const normalized = requireRedirect(
+      "advice-index",
+      "page=2&category=++zdravie+%26+kr%C3%A1sa++"
+    )
+
+    expect(normalized.canonicalRawQuery).toBe(
+      "category=zdravie+%26+kr%C3%A1sa&page=2"
+    )
+    expect(normalized.values.category).toBe("zdravie & krása")
+    expect(
+      requireRedirect("advice-index", "category=all&page=1").canonicalRawQuery
+    ).toBe("")
+  })
+
   it("serializes business keys in the binding canonical order", () => {
     const result = requireRedirect(
       "search",
@@ -228,6 +244,16 @@ describe("normalizeQuery canonical output", () => {
 })
 
 describe("normalizeQuery validation precedence", () => {
+  it("rejects empty or overlong advice category keys", () => {
+    expect(requireNotFound("advice-index", "category=++")).toMatchObject({
+      key: "category",
+      reason: "invalid-category",
+    })
+    expect(
+      requireNotFound("advice-index", `category=${"a".repeat(101)}`)
+    ).toMatchObject({ key: "category", reason: "invalid-category" })
+  })
+
   it.each(invalidPageValues)("rejects invalid page %s", (page) => {
     expect(
       requireNotFound("product-index", `unknown=strip-me&page=${page}`).reason

@@ -12,7 +12,7 @@ import {
 import type { SsrOutcome } from "./ssr-outcome"
 
 export type ProductPageRequest = Readonly<{
-  enabled: boolean
+  architectureEnabled: boolean
   headers: Readonly<{
     canonicalizationRequired?: string | readonly string[] | null
     canonicalOrigin?: string | readonly string[] | null
@@ -57,7 +57,7 @@ const singleValue = (
 ): string | null => (typeof value === "string" ? value : null)
 
 const resolveTrustedInput = (request: ProductPageRequest) => {
-  if (!request.enabled) {
+  if (!request.architectureEnabled) {
     return null
   }
 

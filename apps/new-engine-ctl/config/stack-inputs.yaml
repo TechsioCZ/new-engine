@@ -915,9 +915,9 @@ bootstrap_zane_project:
         - service_id: payload
           env_var: PAYLOAD_SSO_ALG
 
-    # Issue #545 URL architecture bootstrap. Every gate is disabled by
-    # default. Promotion is manual and ordered: registry -> commands/lifecycle
-    # producers -> product resolver -> full public resolver.
+    # Issue #545 URL architecture bootstrap. Operational URLR gates remain
+    # independently controllable, but URL_ARCHITECTURE_ENABLED is the only
+    # public routing control and switches the complete architecture at once.
     - key: URL_REGISTRY_ENABLED
       source:
         kind: local_env
@@ -1065,24 +1065,6 @@ bootstrap_zane_project:
       service_targets:
         - service_id: medusa-be
           env_var: URL_REGISTRY_PRODUCT_LIFECYCLE_DISPATCH_SCHEDULE
-
-    - key: URL_PRODUCT_RESOLVER_ENABLED
-      source:
-        kind: local_env
-        env_var: DC_HERBATIKA_URL_PRODUCT_RESOLVER_ENABLED
-        default_value: "0"
-      service_targets:
-        - service_id: herbatika
-          env_var: URL_PRODUCT_RESOLVER_ENABLED
-
-    - key: URL_ARCHITECTURE_M00_ENABLED
-      source:
-        kind: local_env
-        env_var: DC_HERBATIKA_URL_ARCHITECTURE_M00_ENABLED
-        default_value: "0"
-      service_targets:
-        - service_id: herbatika
-          env_var: URL_ARCHITECTURE_M00_ENABLED
 
     - key: URL_ARCHITECTURE_ENABLED
       source:

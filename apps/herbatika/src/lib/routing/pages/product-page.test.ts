@@ -58,7 +58,7 @@ const product: ProductRouteSourceProduct = {
 }
 
 const input = {
-  enabled: true,
+  architectureEnabled: true,
   headers: {
     canonicalOrigin: "https://herbatica.sk",
     market: "sk",
@@ -133,7 +133,7 @@ describe("resolveProductPageRequest", () => {
   })
 
   it.each([
-    ["disabled", { ...input, enabled: false }],
+    ["full architecture disabled", { ...input, architectureEnabled: false }],
     [
       "foreign market header",
       { ...input, headers: { ...input.headers, market: "cz" } },
