@@ -1298,7 +1298,9 @@ function buildZaneProjectServices(
         },
         {
           envVar: "PAYLOAD_LOCALES",
-          source: literalSource(process.env.DC_PAYLOAD_LOCALES ?? "cs,sk,en"),
+          source: literalSource(
+            process.env.DC_PAYLOAD_LOCALES ?? "cs,sk,hu,ro"
+          ),
         },
         {
           envVar: "PAYLOAD_SSO_PUBLIC_KEY",

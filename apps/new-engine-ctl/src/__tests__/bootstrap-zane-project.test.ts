@@ -258,6 +258,13 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
       },
     ])
 
+    const payload = plan.services.find(
+      (service) => service.service_id === "payload"
+    )
+    expect(payload?.desired_env).toMatchObject({
+      PAYLOAD_LOCALES: "cs,sk,hu,ro",
+    })
+
     const herbatika = plan.services.find(
       (service) => service.service_id === "herbatika"
     )

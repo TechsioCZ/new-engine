@@ -2,10 +2,7 @@ import { createHash } from "node:crypto"
 import { lookup } from "node:dns/promises"
 import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"
-import {
-  type IncomingMessage,
-  request as requestHttp,
-} from "node:http"
+import { type IncomingMessage, request as requestHttp } from "node:http"
 import { request as requestHttps } from "node:https"
 import { BlockList, isIP, type LookupFunction } from "node:net"
 import path from "node:path"
@@ -53,7 +50,7 @@ const IS_DEBUG_IMPORT = process.env.DEBUG_IMPORT_ARTICLES === "1"
 const TITLE_MAX_LENGTH = 100
 const EXCEL_EPOCH_DAYS = 25_569
 const MS_PER_DAY = 86_400_000
-const DEFAULT_LOCALES = ["cs", "sk", "en"]
+const DEFAULT_LOCALES = ["cs", "sk", "hu", "ro"]
 const RICH_TEXT_GZIP_PREFIX = "payload-richtext+gzip-base64:"
 const MEDIA_URL_PREFIX = "payload-media-url:"
 const DATA_IMAGE_PATTERN =
@@ -61,6 +58,7 @@ const DATA_IMAGE_PATTERN =
 const MEDIA_FETCH_TIMEOUT_MS = 15_000
 const MAX_MEDIA_BYTES = 10 * 1024 * 1024
 const MAX_MEDIA_REDIRECTS = 5
+const MEDIA_REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308])
 const BLOCKED_MEDIA_ADDRESSES = new BlockList()
 const BLOCKED_IPV4_SUBNETS = [
   ["0.0.0.0", 8],
@@ -438,10 +436,7 @@ const assertSafeMediaUrl = async (url: string) => {
   }
   if (
     addresses.some(({ address, family }) =>
-      BLOCKED_MEDIA_ADDRESSES.check(
-        address,
-        family === 4 ? "ipv4" : "ipv6"
-      )
+      BLOCKED_MEDIA_ADDRESSES.check(address, family === 4 ? "ipv4" : "ipv6")
     )
   ) {
     throw new Error("Blocked private or link-local media host")
@@ -450,9 +445,10 @@ const assertSafeMediaUrl = async (url: string) => {
   return { parsed, address: addresses[0] }
 }
 
-const createPinnedLookup = (
-  address: Awaited<ReturnType<typeof assertSafeMediaUrl>>["address"]
-): LookupFunction =>
+const createPinnedLookup =
+  (
+    address: Awaited<ReturnType<typeof assertSafeMediaUrl>>["address"]
+  ): LookupFunction =>
   (_hostname, options, callback) => {
     if (options.all) {
       callback(null, [address])
@@ -527,6 +523,22 @@ const fetchDataImageBuffer = (url: string) => {
   }
 }
 
+const resolveMediaRedirect = (
+  response: IncomingMessage,
+  status: number,
+  currentUrl: string
+): string | null => {
+  if (!MEDIA_REDIRECT_STATUSES.has(status)) {
+    return null
+  }
+  const location = getResponseHeader(response, "location")
+  response.resume()
+  if (!location) {
+    throw new Error("Media redirect is missing Location header")
+  }
+  return new URL(location, currentUrl).toString()
+}
+
 const fetchMediaBuffer = async (url: string) => {
   if (url.startsWith("data:")) {
     return fetchDataImageBuffer(url)
@@ -545,14 +557,9 @@ const fetchMediaBuffer = async (url: string) => {
     ) {
       const response = await requestMedia(currentUrl, controller.signal)
       const status = response.statusCode ?? 0
-
-      if ([301, 302, 303, 307, 308].includes(status)) {
-        const location = getResponseHeader(response, "location")
-        response.resume()
-        if (!location) {
-          throw new Error("Media redirect is missing Location header")
-        }
-        currentUrl = new URL(location, currentUrl).toString()
+      const redirectUrl = resolveMediaRedirect(response, status, currentUrl)
+      if (redirectUrl) {
+        currentUrl = redirectUrl
         continue
       }
 
