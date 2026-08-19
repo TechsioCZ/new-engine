@@ -48,7 +48,7 @@ describe("URL registry invalidation delivery client", () => {
   })
 
   it.each([
-    502, 503,
+    408, 425, 429, 500, 502, 503, 504, 599,
   ])("retries HTTP %i with a bounded retry hint", async (status) => {
     const response = new Response(null, {
       headers: { "retry-after": "7" },
@@ -66,7 +66,7 @@ describe("URL registry invalidation delivery client", () => {
   })
 
   it.each([
-    400, 401, 404, 409, 421, 500,
+    400, 401, 404, 409, 421,
   ])("permanently fails non-retryable HTTP %i", async (status) => {
     await expect(
       deliverInvalidationOutboxEvent(event(), config, {
@@ -75,6 +75,32 @@ describe("URL registry invalidation delivery client", () => {
         ) as unknown as typeof fetch,
       })
     ).resolves.toEqual({ errorCode: `http-${status}`, kind: "failed" })
+  })
+
+  it("caps Retry-After hints from both seconds and HTTP dates", async () => {
+    const responses = [
+      new Response(null, {
+        headers: { "retry-after": "999999999999999999999999" },
+        status: 429,
+      }),
+      new Response(null, {
+        headers: { "retry-after": "Wed, 19 Aug 2026 12:00:00 GMT" },
+        status: 504,
+      }),
+    ]
+
+    for (const response of responses) {
+      await expect(
+        deliverInvalidationOutboxEvent(event(), config, {
+          fetchImpl: vi.fn(async () => response) as unknown as typeof fetch,
+          now: () => Date.parse("2026-08-19T10:00:00.000Z"),
+        })
+      ).resolves.toEqual({
+        errorCode: `http-${response.status}`,
+        kind: "retry",
+        retryAfterMs: 3_600_000,
+      })
+    }
   })
 
   it("retries a non-JSON or mismatched success acknowledgement", async () => {

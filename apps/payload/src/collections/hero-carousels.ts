@@ -157,6 +157,38 @@ export const normalizeHeroButtonTarget = (
   return invalidButtonTarget("target type must be entity or static")
 }
 
+const mergeButtonTargetUpdate = (
+  value: Record<string, unknown>,
+  originalValue: Record<string, unknown> | null
+) => {
+  if (!originalValue) {
+    return value
+  }
+
+  const mergedValue = { ...originalValue, ...value }
+  const nextTargetType = cleanString(value.targetType)
+  const originalTargetType = cleanString(originalValue.targetType)
+
+  if (nextTargetType === originalTargetType) {
+    return mergedValue
+  }
+
+  if (nextTargetType === "entity") {
+    return { ...mergedValue, staticRouteKey: null }
+  }
+
+  if (nextTargetType === "static") {
+    return {
+      ...mergedValue,
+      sourceId: null,
+      sourceSystem: null,
+      sourceType: null,
+    }
+  }
+
+  return mergedValue
+}
+
 const resolveLocalizedString = (value: unknown, locale: string | undefined) => {
   if (typeof value === "string") {
     return cleanString(value)
@@ -329,7 +361,7 @@ export const HeroCarousels: CollectionConfig = {
             ? originalDoc.buttonTarget
             : null
           const nextTarget = isRecord(data.buttonTarget)
-            ? { ...originalTarget, ...data.buttonTarget }
+            ? mergeButtonTargetUpdate(data.buttonTarget, originalTarget)
             : data.buttonTarget
           data.buttonTarget = normalizeHeroButtonTarget(nextTarget)
         }

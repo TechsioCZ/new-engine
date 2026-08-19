@@ -2,8 +2,8 @@ import type { ClaimedInvalidationOutboxEvent } from "../postgres/invalidation-ou
 import { parseUrlRegistryInvalidationDeliveryV1 } from "./invalidation-contract"
 
 const MAX_RESPONSE_BYTES = 8 * 1024
+const MAX_RETRY_AFTER_MS = 60 * 60 * 1000
 const REQUEST_TIMEOUT_MS = 5000
-const RETRYABLE_STATUSES = new Set([502, 503])
 const UNSIGNED_INTEGER = /^\d+$/
 const ignoreCancellationError = () => {
   // The response status is the delivery result; body cancellation is cleanup.
@@ -31,11 +31,19 @@ const retryAfterMs = (
     return
   }
   if (UNSIGNED_INTEGER.test(value)) {
-    return Number(value) * 1000
+    return Math.min(MAX_RETRY_AFTER_MS, Number(value) * 1000)
   }
   const timestamp = Date.parse(value)
-  return Number.isNaN(timestamp) ? undefined : Math.max(0, timestamp - now())
+  return Number.isNaN(timestamp)
+    ? undefined
+    : Math.min(MAX_RETRY_AFTER_MS, Math.max(0, timestamp - now()))
 }
+
+const isRetryableStatus = (status: number): boolean =>
+  status === 408 ||
+  status === 425 ||
+  status === 429 ||
+  (status >= 500 && status <= 599)
 
 const readBoundedResponse = async (
   response: Response
@@ -131,7 +139,7 @@ export const deliverInvalidationOutboxEvent = async (
     }
     await response.body?.cancel().catch(ignoreCancellationError)
     const errorCode = `http-${response.status}`
-    if (!RETRYABLE_STATUSES.has(response.status)) {
+    if (!isRetryableStatus(response.status)) {
       return { errorCode, kind: "failed" }
     }
     const retry = retryAfterMs(

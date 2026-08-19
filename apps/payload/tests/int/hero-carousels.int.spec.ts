@@ -130,6 +130,76 @@ describe("hero carousel stable button target", () => {
     })
   })
 
+  it("discards stale entity identity when switching to a static target", async () => {
+    const result = await runBeforeValidate({
+      data: {
+        buttonTarget: {
+          targetType: "static",
+          sourceSystem: "medusa",
+          sourceType: "product",
+          sourceId: "prod_1",
+          staticRouteKey: "root:privacy",
+        },
+      },
+      operation: "update",
+      originalDoc: {
+        id: 1,
+        internalTitle: "Editorial title",
+        buttonTarget: {
+          targetType: "entity",
+          sourceSystem: "medusa",
+          sourceType: "product",
+          sourceId: "prod_1",
+          staticRouteKey: null,
+        },
+      },
+      req: { locale: "en" },
+    })
+
+    expect(result?.buttonTarget).toEqual({
+      targetType: "static",
+      sourceSystem: null,
+      sourceType: null,
+      sourceId: null,
+      staticRouteKey: "root:privacy",
+    })
+  })
+
+  it("discards a stale static key when switching to an entity target", async () => {
+    const result = await runBeforeValidate({
+      data: {
+        buttonTarget: {
+          targetType: "entity",
+          sourceSystem: "payload",
+          sourceType: "article",
+          sourceId: "article_2",
+          staticRouteKey: "root:privacy",
+        },
+      },
+      operation: "update",
+      originalDoc: {
+        id: 1,
+        internalTitle: "Editorial title",
+        buttonTarget: {
+          targetType: "static",
+          sourceSystem: null,
+          sourceType: null,
+          sourceId: null,
+          staticRouteKey: "root:privacy",
+        },
+      },
+      req: { locale: "en" },
+    })
+
+    expect(result?.buttonTarget).toEqual({
+      targetType: "entity",
+      sourceSystem: "payload",
+      sourceType: "article",
+      sourceId: "article_2",
+      staticRouteKey: null,
+    })
+  })
+
   it("rejects mismatched source ownership and free-form static keys", () => {
     expect(() =>
       normalizeHeroButtonTarget({
