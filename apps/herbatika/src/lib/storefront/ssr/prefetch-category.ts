@@ -75,6 +75,7 @@ export const prefetchCategoryPageStorefrontData = async (
       ),
       dehydratedState: dehydrate(queryClient),
       region,
+      totalPages: catalog.totalPages,
       visibleProductIds: catalog.products.map((product) => product.id),
     }
   }
@@ -85,6 +86,7 @@ export const prefetchCategoryPageStorefrontData = async (
     ),
     region,
     dehydratedState: dehydrate(queryClient),
+    totalPages: 0,
     visibleProductIds: [] as string[],
   }
 }

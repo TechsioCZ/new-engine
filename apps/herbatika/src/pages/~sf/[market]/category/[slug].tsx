@@ -26,6 +26,7 @@ type CategoryValue = Readonly<{
   handle: string
   name: string
   productPublicSlugsById: PublicEntitySlugMap
+  totalPages: number
 }>
 
 type Props = PublicPageProps<CategoryValue>
@@ -96,9 +97,11 @@ export const getServerSideProps = ((context) => {
           handle: categoryHandle,
           name: categoryName,
           productPublicSlugsById: productPublicSlugsById.value,
+          totalPages: storefront.totalPages,
         },
       } as const
     },
+    lastPage: (category) => category.totalPages,
     queryKind: "category-detail",
     title: (category) => category.name,
   })

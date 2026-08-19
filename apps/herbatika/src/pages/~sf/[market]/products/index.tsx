@@ -18,6 +18,7 @@ type Props = PublicPageProps<
   Readonly<{
     dehydratedState: DehydratedState
     productPublicSlugsById: PublicEntitySlugMap
+    totalPages: number
   }>
 >
 
@@ -45,9 +46,11 @@ export const getServerSideProps = ((context) => {
         ? foundSource({
             dehydratedState: result.dehydratedState,
             productPublicSlugsById: productPublicSlugsById.value,
+            totalPages: result.totalPages,
           })
         : productPublicSlugsById
     },
+    lastPage: (value) => value.totalPages,
     path: { kind: "product" },
     queryKind: "product-index",
   })

@@ -1,7 +1,6 @@
 import type { HttpTypes } from "@medusajs/types"
 import { describe, expect, it, vi } from "vitest"
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
-import type { ProductRouteMedusaProduct } from "@/lib/storefront/product-route-source"
 import type { ActiveEntityRouteTarget } from "@/lib/url-registry/model"
 import { generateProductFeed } from "./product-feed"
 
@@ -78,7 +77,7 @@ const product = {
   thumbnail: "https://cdn.example/image?a=1&b=2",
   title: "Product <name>",
   variants: [variant],
-} as ProductRouteMedusaProduct
+}
 
 describe("product feed", () => {
   it("uses URLR canonical slugs and market-scoped stable ID reads", async () => {

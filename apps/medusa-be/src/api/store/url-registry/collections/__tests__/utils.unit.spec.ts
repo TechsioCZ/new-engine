@@ -269,36 +269,67 @@ describe("Store collection assignment reads", () => {
     )
   })
 
-  it("reads only exact sitemap candidates and omits stale slugs", async () => {
+  it.each([
+    ["category", "pcat_1", "category-slug", "product_category"],
+    ["brand", "brand_1", "brand-slug", "brand"],
+    ["collection", "pcol_1", "zimna-kolekcia", "product_collection"],
+  ] as const)("reads only exact %s sitemap candidates with one bounded assignment query", async (entityKind, entityId, publicSlug, translationReference) => {
     const context = request({
-      collections: [{ id: "pcol_1" }],
-      records: [assignment()],
+      records: [
+        assignment({
+          entity_id: entityId,
+          entity_kind: entityKind,
+          public_slug: publicSlug,
+        }),
+      ],
     })
     await expect(
       readPublishedStorefrontAssignmentSources(
         context.value,
-        "collection",
+        entityKind,
         "sk",
         [
-          { entityId: "pcol_1", publicSlug: "zimna-kolekcia" },
+          { entityId, publicSlug },
           { entityId: "pcol_stale", publicSlug: "new-slug" },
         ]
       )
-    ).resolves.toMatchObject({
-      assignments: [{ entityId: "pcol_1", publicSlug: "zimna-kolekcia" }],
+    ).resolves.toEqual({
+      assignments: [
+        {
+          entityId,
+          id: entityId,
+          marketCode: "sk",
+          publicationStatus: "published",
+          publicSlug,
+          salesChannelId: "sc_sk",
+          schemaVersion: 1,
+          sourceVersion: "1",
+          translation: {
+            localeCode: "sk-SK",
+            reference: translationReference,
+            translationId: "trans_1",
+          },
+        },
+      ],
       kind: "found",
     })
     expect(
       context.assignmentService.listStorefrontUrlAssignments
+    ).toHaveBeenCalledTimes(1)
+    expect(
+      context.assignmentService.listStorefrontUrlAssignments
     ).toHaveBeenCalledWith(
       {
-        entity_id: ["pcol_1", "pcol_stale"],
-        entity_kind: "collection",
+        entity_id: [entityId, "pcol_stale"],
+        entity_kind: entityKind,
         market_code: "sk",
         publication_status: "published",
         sales_channel_id: "sc_sk",
       },
-      expect.objectContaining({ take: 3 })
+      {
+        order: { entity_id: "ASC" },
+        take: 3,
+      }
     )
   })
 

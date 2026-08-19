@@ -33,6 +33,7 @@ export const prefetchProductIndexStorefrontData = async (
     return {
       dehydratedState: dehydrate(queryClient),
       region,
+      totalPages: catalog.totalPages,
       visibleProductIds: catalog.products.map((product) => product.id),
     }
   }
@@ -40,6 +41,7 @@ export const prefetchProductIndexStorefrontData = async (
   return {
     dehydratedState: dehydrate(queryClient),
     region,
+    totalPages: 0,
     visibleProductIds: [] as string[],
   }
 }
