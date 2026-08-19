@@ -329,12 +329,14 @@ test("all four market bindings are private, explicit, and scoped to Herbatika", 
     }
   }
 
-  expect(byKey.get("MARKET_ACCEPTED_HOSTS_RO")?.source.default_value).toContain(
-    "test-engine-herbatika-ro-zane.web-revolution.cz"
+  const romanianHosts =
+    "herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz"
+  expect(byKey.get("MARKET_ACCEPTED_HOSTS_RO")?.source.default_value).toBe(
+    romanianHosts
   )
-  expect(
-    byKey.get("HERBATIKA_ACCEPTED_HOSTS_RO")?.source.default_value
-  ).toContain("test-engine-herbatika-ro-zane.web-revolution.cz")
+  expect(byKey.get("HERBATIKA_ACCEPTED_HOSTS_RO")?.source.default_value).toBe(
+    romanianHosts
+  )
 })
 
 test("Docker ingress pins Caddy and owns the raw URL boundary before Next", async () => {

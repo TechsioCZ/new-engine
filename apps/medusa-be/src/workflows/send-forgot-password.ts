@@ -46,9 +46,8 @@ const buildForgotPasswordNotificationStep = createStep(
     const resetUrl = buildStorefrontPublicFlowUrl({
       marketCode: marketContext.market_code,
       storefrontBaseUrl: marketContext.storefront_base_url,
-      target: { kind: "account", section: "resetPassword" },
+      target: { kind: "account", section: "resetPassword", value: token },
     })
-    resetUrl.searchParams.set("token", token)
     resetUrl.searchParams.set("email", email)
     const notification: CreateNotificationDTO = {
       channel: "email",

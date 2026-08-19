@@ -16,7 +16,7 @@ describe("buildAccountSetupUrl", () => {
         market
       )
     ).toBe(
-      `https://${domain}${path}?token=Token%2FExact%2BCase&email=customer%2Bmarket%40example.test&flow=account-setup`
+      `https://${domain}${path}/Token%2FExact%2BCase?email=customer%2Bmarket%40example.test&flow=account-setup`
     )
   })
 
@@ -32,7 +32,7 @@ describe("buildAccountSetupUrl", () => {
         "cz"
       )
     ).toBe(
-      "https://herbatica.cz/ucet/obnova-hesla?token=account-token&email=customer%40example.test&flow=account-setup"
+      "https://herbatica.cz/ucet/obnova-hesla/account-token?email=customer%40example.test&flow=account-setup"
     )
 
     process.env.ACCOUNT_SETUP_URL_TEMPLATE = undefined

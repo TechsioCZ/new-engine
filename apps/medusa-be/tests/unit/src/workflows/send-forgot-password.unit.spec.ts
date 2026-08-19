@@ -119,7 +119,7 @@ describe("send forgot password notification", () => {
           "https://",
           domain,
           resetPath,
-          "?token=token%2Fvalue&email=customer%2Breset%40example.test",
+          "/token%2Fvalue?email=customer%2Breset%40example.test",
         ].join(""),
         storefront_base_url: ["https://", domain].join(""),
       },

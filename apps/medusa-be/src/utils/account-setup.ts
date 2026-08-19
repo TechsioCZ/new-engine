@@ -123,10 +123,9 @@ export function buildAccountSetupUrl(
   const accountSetupUrl = buildStorefrontPublicFlowUrl({
     marketCode,
     storefrontBaseUrl,
-    target: { kind: "account", section: "resetPassword" },
+    target: { kind: "account", section: "resetPassword", value: token },
   })
 
-  accountSetupUrl.searchParams.set("token", token)
   accountSetupUrl.searchParams.set("email", email)
   accountSetupUrl.searchParams.set("flow", "account-setup")
 

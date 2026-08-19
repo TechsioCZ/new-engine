@@ -140,7 +140,7 @@ describe("send account setup steps", () => {
       market_code: "sk",
       order_id: "order_1",
       reset_url:
-        "https://herbatica.sk/ucet/obnova-hesla?token=account-token&email=customer%40example.test&flow=account-setup",
+        "https://herbatica.sk/ucet/obnova-hesla/account-token?email=customer%40example.test&flow=account-setup",
       sales_channel_id: "sc_sk",
       storefront_base_url: "https://herbatica.sk",
       storefront_domain: "herbatica.sk",
