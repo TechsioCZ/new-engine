@@ -172,6 +172,8 @@ test("production image ships private-network migration and population tools", as
   expect(runbook).toContain("URL_ARCHITECTURE_ENABLED=0")
   expect(runbook).toMatch(/contains no legacy public-route\s+fallback/)
   expect(runbook).toContain("atomically move production traffic")
+  expect(runbook).toContain("legacy `buttonHref`")
+  expect(runbook).toContain("stable `buttonTarget`")
 })
 
 test("URL registry runtime receives only runtime credentials and a shared lifecycle token", async () => {

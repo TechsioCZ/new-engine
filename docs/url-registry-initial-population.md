@@ -62,6 +62,11 @@ traffic only after the full resolver is enabled and verified.
      > /secure/urlr-apply.json
    ```
 
+   In the same private window, audit every Payload hero carousel. Any banner
+   with CTA text or a legacy `buttonHref` must have an editor-approved stable
+   `buttonTarget` before traffic moves. Legacy hrefs are never interpreted,
+   copied, or exposed by this release; an unresolved CTA is a cutover blocker.
+
 5. Rerun the dry-run command with the same manifest. Continue only when it
    reports zero creates, zero blockers, and only no-ops. Drain and verify the
    invalidation outbox.
@@ -171,6 +176,8 @@ Required pre-deploy seed/config state:
   article/page inventories, with no fallback locale;
 - `HERBATIKA_CMS_STATIC_PAGE_IDS` is complete for every `StaticRootPageKey` and
   the separately reviewed CMS stable-ID-to-public-slug mapping is available;
+- every CTA-bearing Payload hero has an explicit stable `buttonTarget`; no
+  legacy `buttonHref` is accepted as routing authority;
 - publishing is paused for the bounded export, and the generated manifest's
   `sourceSnapshotHash`, G1 taxonomy hash, and four editorial/legal approval
   references are recorded in the release artifact.
