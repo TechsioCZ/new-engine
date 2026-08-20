@@ -92,6 +92,17 @@ const getStringId = (value: unknown): string | undefined => {
   return
 }
 
+const hasCompletePricingContext = (
+  value: unknown
+): value is Record<string, unknown> => {
+  if (!(value && typeof value === "object" && !Array.isArray(value))) {
+    return false
+  }
+
+  const regionId = (value as Record<string, unknown>).region_id
+  return typeof regionId === "string" && Boolean(regionId.trim())
+}
+
 const deduplicateHits = (
   hits: unknown[] | undefined,
   field: string
@@ -247,7 +258,7 @@ export async function GET(
   const remoteQuery = request.scope.resolve(
     ContainerRegistrationKeys.REMOTE_QUERY
   )
-  const pricingContext = request.pricingContext
+  const pricingContext = hasCompletePricingContext(request.pricingContext)
     ? QueryContext(request.pricingContext)
     : undefined
   const productFields = pricingContext
