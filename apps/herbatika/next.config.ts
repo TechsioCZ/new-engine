@@ -59,12 +59,6 @@ const shouldDisableImageOptimization = imageRemotePatterns.some(
 )
 
 const nextConfig: NextConfig = {
-  allowedDevOrigins: [
-    "herbatica.sk",
-    "herbatica.cz",
-    "herbatica.hu",
-    "herbatica.ro",
-  ],
   reactStrictMode: true,
   output: "standalone",
   transpilePackages: [

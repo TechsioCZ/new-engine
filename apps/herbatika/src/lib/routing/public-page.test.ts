@@ -14,8 +14,22 @@ const mocks = vi.hoisted(() => ({
   findActiveEquivalents: vi.fn(),
   getConfiguredMarketRuntime: vi.fn(() => ({
     allowedMarkets: ["sk", "cz"],
-    bindings: {},
-    marketByHost: {},
+    bindings: {
+      cz: {
+        acceptedHosts: ["herbatica.cz"],
+        canonicalOrigin: "https://herbatica.cz",
+        market: "cz",
+      },
+      sk: {
+        acceptedHosts: ["herbatica.sk"],
+        canonicalOrigin: "https://herbatica.sk",
+        market: "sk",
+      },
+    },
+    marketByHost: {
+      "herbatica.cz": "cz",
+      "herbatica.sk": "sk",
+    },
   })),
   getHerbatikaMarketContext: vi.fn(() => ({ locale: "sk-SK" })),
   getRegionServerContext: vi.fn(async () => ({ region: null })),
@@ -47,6 +61,7 @@ vi.mock("@/lib/storefront/storefront-texts.server", () => ({
   fetchStorefrontTextMessages: mocks.fetchStorefrontTextMessages,
 }))
 vi.mock("@/lib/market/market-runtime.server", () => ({
+  getConfiguredMarketRoutingRuntime: mocks.getConfiguredMarketRuntime,
   getConfiguredMarketRuntime: mocks.getConfiguredMarketRuntime,
 }))
 vi.mock("@/lib/url-registry/runtime/instance.server", () => ({

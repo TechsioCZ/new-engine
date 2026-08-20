@@ -1,13 +1,21 @@
 import { describe, expect, it } from "vitest"
 import { resolvePublicProxyAction } from "./public-proxy"
 
+const ROUTING_ENVIRONMENT = {
+  ALLOWED_MARKETS: "sk,cz,hu,ro",
+  MARKET_ACCEPTED_HOSTS_CZ: "herbatica.cz",
+  MARKET_ACCEPTED_HOSTS_HU: "herbatica.hu",
+  MARKET_ACCEPTED_HOSTS_RO: "herbatica.ro",
+  MARKET_ACCEPTED_HOSTS_SK: "herbatica.sk",
+} as const
+
 const resolve = (
   pathname: string,
   overrides: Partial<Parameters<typeof resolvePublicProxyAction>[0]> = {}
 ) =>
   resolvePublicProxyAction({
     enabled: true,
-    environment: { ALLOWED_MARKETS: "sk,cz,hu,ro" },
+    environment: ROUTING_ENVIRONMENT,
     host: "herbatica.sk",
     method: "GET",
     pathname,
@@ -76,35 +84,49 @@ describe("full public URL proxy", () => {
     })
   })
 
-  it("accepts an explicitly bound deployment host without treating it as canonical", () => {
+  it("uses the first configured deployment host as canonical", () => {
     expect(
       resolve("/produkty/ashwagandha", {
         environment: {
-          ALLOWED_MARKETS: "sk,cz,hu,ro",
-          HERBATICA_ACCEPTED_HOSTS_SK:
-            "test-engine-herbatika-zane.web-revolution.cz",
+          ...ROUTING_ENVIRONMENT,
+          MARKET_ACCEPTED_HOSTS_SK:
+            "test-engine-herbatika-zane.web-revolution.cz,preview-alias.example",
         },
         host: "test-engine-herbatika-zane.web-revolution.cz",
       })
     ).toMatchObject({
-      canonicalizationRequired: true,
+      canonicalOrigin: "https://test-engine-herbatika-zane.web-revolution.cz",
+      canonicalizationRequired: false,
       kind: "rewrite",
       market: "sk",
     })
   })
 
-  it("accepts the declared Romanian preview host without a runtime Edge env lookup", () => {
+  it("accepts an arbitrary configured Romanian deployment host", () => {
     const previewHost = "test-engine-herbatika-ro-zane.web-revolution.cz"
 
-    expect(resolve("/", { host: previewHost })).toMatchObject({
-      canonicalizationRequired: true,
+    expect(
+      resolve("/", {
+        environment: {
+          ...ROUTING_ENVIRONMENT,
+          MARKET_ACCEPTED_HOSTS_RO: previewHost,
+        },
+        host: previewHost,
+      })
+    ).toMatchObject({
+      canonicalizationRequired: false,
       kind: "rewrite",
       market: "ro",
       pathname: "/~sf/ro/home",
     })
     expect(
       resolve("/", {
-        environment: { ALLOWED_MARKETS: "sk,cz,hu" },
+        environment: {
+          ALLOWED_MARKETS: "sk,cz,hu",
+          MARKET_ACCEPTED_HOSTS_CZ: "herbatica.cz",
+          MARKET_ACCEPTED_HOSTS_HU: "herbatica.hu",
+          MARKET_ACCEPTED_HOSTS_SK: "herbatica.sk",
+        },
         host: previewHost,
       })
     ).toEqual({ kind: "respond", status: 421 })
@@ -158,13 +180,21 @@ describe("full public URL proxy", () => {
   it("restricts host ownership to the deployment ALLOWED_MARKETS", () => {
     expect(
       resolve("/", {
-        environment: { ALLOWED_MARKETS: "sk,cz" },
+        environment: {
+          ALLOWED_MARKETS: "sk,cz",
+          MARKET_ACCEPTED_HOSTS_CZ: "herbatica.cz",
+          MARKET_ACCEPTED_HOSTS_SK: "herbatica.sk",
+        },
         host: "herbatica.hu",
       })
     ).toEqual({ kind: "respond", status: 421 })
     expect(
       resolve("/", {
-        environment: { ALLOWED_MARKETS: "sk,cz" },
+        environment: {
+          ALLOWED_MARKETS: "sk,cz",
+          MARKET_ACCEPTED_HOSTS_CZ: "herbatica.cz",
+          MARKET_ACCEPTED_HOSTS_SK: "herbatica.sk",
+        },
         host: "herbatica.cz",
       })
     ).toMatchObject({ kind: "rewrite", market: "cz" })
@@ -239,7 +269,7 @@ describe("full public URL proxy", () => {
     expect(
       resolvePublicProxyAction({
         enabled: false,
-        environment: { ALLOWED_MARKETS: "sk,cz,hu,ro" },
+        environment: ROUTING_ENVIRONMENT,
         host: "herbatica.sk",
         method: "GET",
         pathname: "/anything",

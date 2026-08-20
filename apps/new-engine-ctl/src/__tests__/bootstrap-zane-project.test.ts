@@ -22,8 +22,6 @@ const publicUrlAffix = "-deploy"
 const medusaBePublicOrigin = `https://${projectSlug}-medusa-be${publicUrlAffix}.${publicDomain}`
 const herbatikaPublicOrigin = `https://${projectSlug}-herbatika${publicUrlAffix}.${publicDomain}`
 const minioPublicOrigin = `https://${projectSlug}-medusa-minio${publicUrlAffix}.${publicDomain}`
-const herbatikaRomanianTestOrigin =
-  "https://test-engine-herbatika-ro-zane.web-revolution.cz"
 
 const serviceSlugs = [
   "medusa-db",
@@ -200,9 +198,9 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
       (service) => service.service_id === "medusa-be"
     )
     expect(medusa?.desired_env).toMatchObject({
-      STORE_CORS: `http://localhost:3001,https://storefront.example.test,${herbatikaPublicOrigin},${herbatikaRomanianTestOrigin}`,
+      STORE_CORS: `http://localhost:3001,https://storefront.example.test,${herbatikaPublicOrigin}`,
       ADMIN_CORS: `http://localhost:5173,${medusaBePublicOrigin}`,
-      AUTH_CORS: `http://127.0.0.1:3001,${medusaBePublicOrigin},${herbatikaRomanianTestOrigin}`,
+      AUTH_CORS: `http://127.0.0.1:3001,${medusaBePublicOrigin}`,
       FEATURE_PAYMENT_QR_ENABLED: "1",
       GOPAY_WEBHOOK_URL: `${medusaBePublicOrigin}/hooks/payment/paykit_gopay`,
       HERBATICA_REVIEWS_XML_PATH: "https://assets.example.test/reviews.xml",
@@ -275,13 +273,13 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
         domain: `${projectSlug}-herbatika${publicUrlAffix}.${publicDomain}`,
         strip_prefix: true,
       },
-      {
-        associated_port: 3000,
-        base_path: "/",
-        domain: "test-engine-herbatika-ro-zane.web-revolution.cz",
-        strip_prefix: true,
-      },
     ])
+    expect(herbatika?.desired_healthcheck).toEqual({
+      type: "COMMAND",
+      value: `curl -fsS -H 'Host: ${projectSlug}-herbatika${publicUrlAffix}.${publicDomain}' http://127.0.0.1:3000/api/healthz`,
+      timeout_seconds: 120,
+      interval_seconds: 30,
+    })
     expect(herbatika?.desired_env).not.toHaveProperty(
       "NEXT_PUBLIC_PPL_WIDGET_API_KEY"
     )
@@ -291,7 +289,6 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     expect(herbatika?.desired_env).toMatchObject({
       ALLOWED_MARKETS: "{{env.ALLOWED_MARKETS}}",
       HERBATIKA_CMS_STATIC_PAGE_IDS: "{{env.HERBATIKA_CMS_STATIC_PAGE_IDS}}",
-      HERBATIKA_ACCEPTED_HOSTS_RO: "{{env.HERBATIKA_ACCEPTED_HOSTS_RO}}",
       MARKET_ACCEPTED_HOSTS_SK: "{{env.MARKET_ACCEPTED_HOSTS_SK}}",
       MARKET_ACCEPTED_HOSTS_CZ: "{{env.MARKET_ACCEPTED_HOSTS_CZ}}",
       MARKET_ACCEPTED_HOSTS_HU: "{{env.MARKET_ACCEPTED_HOSTS_HU}}",
@@ -337,6 +334,10 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
         "MEILISEARCH_PRODUCERS_INDEX",
         "URL_PRODUCT_RESOLVER_ENABLED",
         "URL_ARCHITECTURE_M00_ENABLED",
+        "HERBATIKA_ACCEPTED_HOSTS_SK",
+        "HERBATIKA_ACCEPTED_HOSTS_CZ",
+        "HERBATIKA_ACCEPTED_HOSTS_HU",
+        "HERBATIKA_ACCEPTED_HOSTS_RO",
       ])
     )
 
@@ -377,6 +378,124 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
 
     expect(missingMedusaEnvKeys).toEqual([])
     expect(missingHerbatikaEnvKeys).toEqual([])
+  } finally {
+    await rm(temporaryDirectory, { recursive: true, force: true })
+  }
+})
+
+test("Herbatika healthcheck fails closed without a public runtime domain", async () => {
+  const temporaryDirectory = await mkdtemp(
+    join(tmpdir(), "new-engine-zane-project-no-domain-")
+  )
+  const inspectJsonPath = join(temporaryDirectory, "inspect.json")
+
+  await writeFile(
+    inspectJsonPath,
+    JSON.stringify({
+      project_slug: projectSlug,
+      environment_name: "production",
+      project_exists: true,
+      environment_exists: true,
+      settings: {
+        root_domain: null,
+        app_domain: null,
+      },
+      shared_variables: [],
+      services: serviceSlugs.map((serviceSlug) => ({
+        service_slug: serviceSlug,
+        exists: true,
+        details: {
+          id: serviceSlug,
+          slug: serviceSlug,
+          type: "git",
+        },
+      })),
+    }),
+    "utf8"
+  )
+
+  try {
+    const plan = await executeBootstrapZaneProjectPlan({
+      projectSlug,
+      projectDescription: "Test project",
+      environmentName: "production",
+      inspectJsonPath,
+      repositoryUrl: "https://github.com/example/new-engine.git",
+      branchName: "main",
+      publicUrlAffix,
+      stackManifestPath,
+      stackInputsPath,
+      phase: "services",
+    })
+    const herbatika = plan.services.find(
+      (service) => service.service_id === "herbatika"
+    )
+
+    expect(plan.status).toBe("blocked")
+    expect(plan.blocking_reasons).toContain(
+      "Public domain could not be derived from input or Zane settings."
+    )
+    expect(herbatika?.desired_urls).toEqual([])
+    expect(herbatika?.desired_healthcheck).toEqual({
+      type: "COMMAND",
+      value: "sh -lc 'exit 1'",
+      timeout_seconds: 120,
+      interval_seconds: 30,
+    })
+  } finally {
+    await rm(temporaryDirectory, { recursive: true, force: true })
+  }
+})
+
+test("Herbatika healthcheck rejects an unsafe derived Host header", async () => {
+  const temporaryDirectory = await mkdtemp(
+    join(tmpdir(), "new-engine-zane-project-invalid-domain-")
+  )
+  const inspectJsonPath = join(temporaryDirectory, "inspect.json")
+
+  await writeFile(
+    inspectJsonPath,
+    JSON.stringify({
+      project_slug: projectSlug,
+      environment_name: "production",
+      project_exists: true,
+      environment_exists: true,
+      settings: {
+        root_domain: null,
+        app_domain: null,
+      },
+      shared_variables: [],
+      services: serviceSlugs.map((serviceSlug) => ({
+        service_slug: serviceSlug,
+        exists: true,
+        details: {
+          id: serviceSlug,
+          slug: serviceSlug,
+          type: "git",
+        },
+      })),
+    }),
+    "utf8"
+  )
+
+  try {
+    await expect(
+      executeBootstrapZaneProjectPlan({
+        projectSlug,
+        projectDescription: "Test project",
+        environmentName: "production",
+        inspectJsonPath,
+        repositoryUrl: "https://github.com/example/new-engine.git",
+        branchName: "main",
+        publicDomain: "example.test'; exit 0; #",
+        publicUrlAffix,
+        stackManifestPath,
+        stackInputsPath,
+        phase: "services",
+      })
+    ).rejects.toThrow(
+      'Derived Herbatika public service domain is not a valid DNS hostname: "example-project-herbatika-deploy.example.test\'; exit 0; #".'
+    )
   } finally {
     await rm(temporaryDirectory, { recursive: true, force: true })
   }

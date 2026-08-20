@@ -4,7 +4,10 @@ import {
   type NestedStorefrontMessages,
   nestStorefrontMessages,
 } from "@techsio/storefront-i18n/core/messages"
-import type { MarketCode } from "@/lib/market/market-runtime"
+import type {
+  MarketCode,
+  MarketRuntimeBinding,
+} from "@/lib/market/market-runtime"
 import type { SourceReadResult } from "@/lib/url-registry/contracts"
 import { normalizeSupportedCurrencyCode } from "./currency"
 import {
@@ -32,16 +35,19 @@ export type ProductPageContext = Readonly<{
 }>
 
 export type ProductPageContextLoadMessagesInput = Readonly<{
-  binding: ProductRouteSourceMarketBinding
+  binding: ProductPageContextMarketBinding
   locale: string
   market: MarketCode
 }>
+
+type ProductPageContextMarketBinding = ProductRouteSourceMarketBinding &
+  Pick<MarketRuntimeBinding, "canonicalOrigin">
 
 export type ProductPageContextDependencies = Readonly<{
   loadMessages(
     input: ProductPageContextLoadMessagesInput
   ): Promise<FlatStorefrontMessages>
-  resolveMarket(market: MarketCode): ProductRouteSourceMarketBinding | null
+  resolveMarket(market: MarketCode): ProductPageContextMarketBinding | null
 }>
 
 export type ProductPageContextRequest = Readonly<{
@@ -51,10 +57,10 @@ export type ProductPageContextRequest = Readonly<{
 }>
 
 const validBinding = (
-  binding: ProductRouteSourceMarketBinding | null,
+  binding: ProductPageContextMarketBinding | null,
   market: MarketCode,
   marketContext: HerbatikaMarketContext
-): binding is ProductRouteSourceMarketBinding =>
+): binding is ProductPageContextMarketBinding =>
   Boolean(
     binding &&
       binding.market === market &&
@@ -85,8 +91,11 @@ export const readProductPageContext = async (
   { initialVariantId, market, product }: ProductPageContextRequest,
   dependencies: ProductPageContextDependencies
 ): Promise<SourceReadResult<ProductPageContext>> => {
-  const marketContext = getHerbatikaMarketContext(market)
   const binding = dependencies.resolveMarket(market)
+  const marketContext = getHerbatikaMarketContext(
+    market,
+    binding ? new URL(binding.canonicalOrigin).hostname : ""
+  )
   if (!validBinding(binding, market, marketContext)) {
     return {
       causeCode: "INVALID_PRODUCT_PAGE_MARKET_BINDING",

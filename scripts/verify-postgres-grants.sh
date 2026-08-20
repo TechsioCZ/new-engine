@@ -94,18 +94,43 @@ DO $do$
 DECLARE
   app_schema text := current_setting('audit.app_schema');
   app_user text := current_setting('audit.app_user');
+  app_user_oid oid;
   schema_record RECORD;
+  has_explicit_object_privileges boolean;
   has_usage boolean;
   has_create boolean;
 BEGIN
+  SELECT oid INTO STRICT app_user_oid
+  FROM pg_roles
+  WHERE rolname = app_user;
+
   FOR schema_record IN
-    SELECT nspname
+    SELECT oid, nspname
     FROM pg_namespace
     WHERE nspname <> 'information_schema'
       AND nspname NOT LIKE 'pg_%'
   LOOP
     has_usage := has_schema_privilege(app_user, schema_record.nspname, 'USAGE');
     has_create := has_schema_privilege(app_user, schema_record.nspname, 'CREATE');
+    has_explicit_object_privileges := EXISTS (
+      SELECT 1
+      FROM pg_class c
+      CROSS JOIN LATERAL aclexplode(c.relacl) acl
+      WHERE c.relnamespace = schema_record.oid
+        AND acl.grantee = app_user_oid
+      UNION ALL
+      SELECT 1
+      FROM pg_proc p
+      CROSS JOIN LATERAL aclexplode(p.proacl) acl
+      WHERE p.pronamespace = schema_record.oid
+        AND acl.grantee = app_user_oid
+      UNION ALL
+      SELECT 1
+      FROM pg_type t
+      CROSS JOIN LATERAL aclexplode(t.typacl) acl
+      WHERE t.typnamespace = schema_record.oid
+        AND acl.grantee = app_user_oid
+    );
 
     IF schema_record.nspname = app_schema THEN
       IF NOT has_usage OR NOT has_create THEN
@@ -113,6 +138,15 @@ BEGIN
           'app role "%" must have USAGE+CREATE on app schema "%"',
           app_user,
           app_schema;
+      END IF;
+    ELSIF has_explicit_object_privileges THEN
+      IF NOT has_usage OR has_create THEN
+        RAISE EXCEPTION
+          'app role "%" must have USAGE without CREATE on non-app schema "%" containing explicit object privileges (usage=% create=%)',
+          app_user,
+          schema_record.nspname,
+          has_usage,
+          has_create;
       END IF;
     ELSE
       IF has_usage OR has_create THEN

@@ -1,6 +1,6 @@
 // biome-ignore-all lint/complexity/noExcessiveCognitiveComplexity: The proxy is an explicit closed grammar and fail-closed boundary for hosts, methods, paths, and canonicalization.
-import { normalizeHost, ROUTES } from "@/lib/market/market-runtime-definitions"
-import { parseAllowedMarkets } from "@/lib/market/market-runtime-environment"
+import { createMarketRoutingRuntime } from "@/lib/market/market-runtime"
+import { normalizeHost } from "@/lib/market/market-runtime-definitions"
 import {
   parseAccountChildSegment,
   parseCheckoutChildSegment,
@@ -124,39 +124,26 @@ const parsePath = (pathname: string): ParsedPath | null => {
   }
 }
 
-const hostOwnership = (
+const routingBindingsByHost = (
   environment: Readonly<Record<string, string | undefined>>
-): Readonly<Record<string, Market>> => {
-  let allowedMarkets: readonly Market[]
+): Readonly<
+  Record<string, Readonly<{ canonicalOrigin: string; market: Market }>>
+> => {
   try {
-    allowedMarkets = parseAllowedMarkets(environment)
+    const runtime = createMarketRoutingRuntime(environment)
+    return Object.freeze(
+      Object.fromEntries(
+        Object.entries(runtime.marketByHost).flatMap(([host, market]) => {
+          const binding = runtime.bindings[market]
+          return binding
+            ? [[host, { canonicalOrigin: binding.canonicalOrigin, market }]]
+            : []
+        })
+      )
+    )
   } catch {
     return {}
   }
-  const ownership: Record<string, Market> = {}
-  for (const market of allowedMarkets) {
-    for (const host of [
-      new URL(ROUTES[market].canonicalOrigin).hostname,
-      ...ROUTES[market].proposedAliases,
-    ]) {
-      ownership[host] = market
-    }
-    const extra =
-      environment[`HERBATICA_ACCEPTED_HOSTS_${market.toUpperCase()}`]
-    for (const value of extra?.split(",") ?? []) {
-      const host = normalizeHost(value)
-      if (!host) {
-        continue
-      }
-      const existing = ownership[host]
-      if (existing && existing !== market) {
-        delete ownership[host]
-      } else {
-        ownership[host] = market
-      }
-    }
-  }
-  return ownership
 }
 
 const resolveMarket = (
@@ -167,8 +154,8 @@ const resolveMarket = (
   if (!normalized) {
     return null
   }
-  const market = hostOwnership(environment)[normalized]
-  return market ? { host: normalized, market } : null
+  const binding = routingBindingsByHost(environment)[normalized]
+  return binding ? { ...binding, host: normalized } : null
 }
 
 const validEntitySlug = (value: string): string | null => {
@@ -392,8 +379,7 @@ export const resolvePublicProxyAction = ({
     return { allow: "GET, HEAD", kind: "respond", status: 405 }
   }
 
-  const canonicalHost = new URL(ROUTES[hostMarket.market].canonicalOrigin)
-    .hostname
+  const canonicalHost = new URL(hostMarket.canonicalOrigin).hostname
   const canonicalPublicPath = (() => {
     if (parsed.segments.length === 0) {
       return "/"
@@ -425,7 +411,7 @@ export const resolvePublicProxyAction = ({
   })()
 
   return {
-    canonicalOrigin: ROUTES[hostMarket.market].canonicalOrigin,
+    canonicalOrigin: hostMarket.canonicalOrigin,
     canonicalizationRequired:
       hostMarket.host !== canonicalHost || pathname !== canonicalPublicPath,
     kind: "rewrite",

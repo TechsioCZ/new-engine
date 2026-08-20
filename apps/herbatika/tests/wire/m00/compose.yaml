@@ -11,6 +11,11 @@ services:
         NEXT_PUBLIC_PAYLOAD_BASE_URL: http://m00-upstream.invalid
         NEXT_PUBLIC_STOREFRONT_AUTH_MODE: session_proxy
     environment:
+      ALLOWED_MARKETS: sk,cz,hu,ro
+      MARKET_ACCEPTED_HOSTS_CZ: herbatica.cz
+      MARKET_ACCEPTED_HOSTS_HU: herbatica.hu
+      MARKET_ACCEPTED_HOSTS_RO: herbatica.ro
+      MARKET_ACCEPTED_HOSTS_SK: herbatica.sk
       URL_ARCHITECTURE_M00_ENABLED: "1"
     expose:
       - "3000"
@@ -19,7 +24,7 @@ services:
         - CMD-SHELL
         - >-
           curl --fail --silent --show-error
-          --header 'Host: herbatica.sk'
+          --header "Host: $$MARKET_ACCEPTED_HOSTS_SK"
           http://127.0.0.1:3000/__url-m00/current >/dev/null
       start_period: 10s
       interval: 2s

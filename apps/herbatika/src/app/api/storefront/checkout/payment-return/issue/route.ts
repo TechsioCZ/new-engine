@@ -1,3 +1,4 @@
+import { requireStorefrontMarketBinding } from "@/app/api/storefront-auth/_lib"
 import {
   fetchPrivateFlow,
   privateJson,
@@ -22,6 +23,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    const binding = requireStorefrontMarketBinding(request)
     const upstream = await fetchPrivateFlow(
       request,
       "/store/payment-returns/issue",
@@ -47,10 +49,12 @@ export async function POST(request: Request) {
     }
 
     return privateJson({
+      canonicalOrigin: binding.canonicalOrigin,
       cartId: payload.cart_id,
       expiresAt: payload.expires_at,
       provider: payload.provider,
       providerId: payload.provider_id,
+      market: binding.market,
       state: payload.state,
     })
   } catch (error) {

@@ -285,6 +285,7 @@ DO $do$
 DECLARE
   app_schema text := current_setting('zane.app_schema');
   app_user text := current_setting('zane.app_user');
+  app_user_oid oid;
   dev_user text := current_setting('zane.dev_user');
   postgres_user text := current_setting('zane.postgres_user');
   schema_record RECORD;
@@ -295,6 +296,10 @@ DECLARE
   public_routine RECORD;
   public_type RECORD;
 BEGIN
+  SELECT oid INTO STRICT app_user_oid
+  FROM pg_roles
+  WHERE rolname = app_user;
+
   EXECUTE format('CREATE SCHEMA IF NOT EXISTS %I AUTHORIZATION %I', app_schema, app_user);
   EXECUTE 'REVOKE ALL ON SCHEMA public FROM PUBLIC';
 
@@ -402,13 +407,35 @@ BEGIN
   END IF;
 
   FOR schema_record IN
-    SELECT nspname
+    SELECT oid, nspname
     FROM pg_namespace
     WHERE nspname NOT LIKE 'pg_%'
       AND nspname <> 'information_schema'
       AND nspname <> app_schema
   LOOP
     EXECUTE format('REVOKE ALL ON SCHEMA %I FROM %I', schema_record.nspname, app_user);
+
+    IF EXISTS (
+      SELECT 1
+      FROM pg_class c
+      CROSS JOIN LATERAL aclexplode(c.relacl) acl
+      WHERE c.relnamespace = schema_record.oid
+        AND acl.grantee = app_user_oid
+      UNION ALL
+      SELECT 1
+      FROM pg_proc p
+      CROSS JOIN LATERAL aclexplode(p.proacl) acl
+      WHERE p.pronamespace = schema_record.oid
+        AND acl.grantee = app_user_oid
+      UNION ALL
+      SELECT 1
+      FROM pg_type t
+      CROSS JOIN LATERAL aclexplode(t.typacl) acl
+      WHERE t.typnamespace = schema_record.oid
+        AND acl.grantee = app_user_oid
+    ) THEN
+      EXECUTE format('GRANT USAGE ON SCHEMA %I TO %I', schema_record.nspname, app_user);
+    END IF;
   END LOOP;
 
   EXECUTE format('ALTER SCHEMA %I OWNER TO %I', app_schema, app_user);

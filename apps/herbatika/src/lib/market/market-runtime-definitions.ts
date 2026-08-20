@@ -5,11 +5,15 @@ export type MarketLocale = "sk-SK" | "cs-CZ" | "hu-HU" | "ro-RO"
 export type MarketCountryCode = "SK" | "CZ" | "HU" | "RO"
 
 type MarketRouteDefinition = Readonly<{
-  canonicalOrigin: string
   countryCode: MarketCountryCode
   locale: MarketLocale
   market: MarketCode
-  proposedAliases: readonly string[]
+}>
+
+export type MarketRoutingBinding = Readonly<{
+  acceptedHosts: readonly string[]
+  canonicalOrigin: string
+  market: MarketCode
 }>
 
 export type MarketRuntimeBinding = Readonly<{
@@ -34,44 +38,36 @@ export type MarketRuntime = Readonly<{
   marketByHost: Readonly<Record<string, MarketCode>>
 }>
 
+export type MarketRoutingRuntime = Readonly<{
+  allowedMarkets: readonly MarketCode[]
+  bindings: Readonly<Partial<Record<MarketCode, MarketRoutingBinding>>>
+  marketByHost: Readonly<Record<string, MarketCode>>
+}>
+
 const HOST_PATTERN = /^([a-z0-9.-]+?)(?::([0-9]+))?$/
 const INVALID_HOST_CHARACTER_PATTERN = /[,/@\\\s]/
 const TRAILING_DOT_PATTERN = /\.$/
 
 export const ROUTES = {
   sk: {
-    canonicalOrigin: "https://herbatica.sk",
     countryCode: "SK",
     locale: "sk-SK",
     market: "sk",
-    proposedAliases: [
-      "www.herbatica.sk",
-      "test-engine-herbatika-zane.web-revolution.cz",
-    ],
   },
   cz: {
-    canonicalOrigin: "https://herbatica.cz",
     countryCode: "CZ",
     locale: "cs-CZ",
     market: "cz",
-    proposedAliases: ["www.herbatica.cz"],
   },
   hu: {
-    canonicalOrigin: "https://herbatica.hu",
     countryCode: "HU",
     locale: "hu-HU",
     market: "hu",
-    proposedAliases: ["www.herbatica.hu"],
   },
   ro: {
-    canonicalOrigin: "https://herbatica.ro",
     countryCode: "RO",
     locale: "ro-RO",
     market: "ro",
-    proposedAliases: [
-      "www.herbatica.ro",
-      "test-engine-herbatika-ro-zane.web-revolution.cz",
-    ],
   },
 } as const satisfies Record<MarketCode, MarketRouteDefinition>
 
@@ -100,36 +96,3 @@ export const normalizeHost = (
   const hostname = match[1].replace(TRAILING_DOT_PATTERN, "")
   return hostname && !hostname.includes("..") ? hostname : null
 }
-
-const buildDeclaredHostOwnership = (): Readonly<Record<string, MarketCode>> => {
-  const ownership: Record<string, MarketCode> = {}
-
-  for (const market of MARKET_CODES) {
-    const route = ROUTES[market]
-    const origin = new URL(route.canonicalOrigin)
-    if (
-      origin.protocol !== "https:" ||
-      origin.origin !== route.canonicalOrigin
-    ) {
-      throw new Error(`Invalid canonicalOrigin for market ${market}`)
-    }
-
-    for (const host of [origin.hostname, ...route.proposedAliases]) {
-      const normalizedHost = normalizeHost(host)
-      if (!normalizedHost || normalizedHost !== host) {
-        throw new Error(`Invalid accepted host for market ${market}`)
-      }
-      const existingMarket = ownership[normalizedHost]
-      if (existingMarket) {
-        throw new Error(
-          `Host ${normalizedHost} is assigned to both ${existingMarket} and ${market}`
-        )
-      }
-      ownership[normalizedHost] = market
-    }
-  }
-
-  return Object.freeze(ownership)
-}
-
-export const DECLARED_HOST_OWNERSHIP = buildDeclaredHostOwnership()

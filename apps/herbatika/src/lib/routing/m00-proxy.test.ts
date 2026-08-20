@@ -1,5 +1,21 @@
 import { describe, expect, it } from "vitest"
-import { resolveM00ProxyAction } from "./m00-proxy"
+import { resolveM00ProxyAction as resolveM00ProxyActionWithEnvironment } from "./m00-proxy"
+
+const ROUTING_ENVIRONMENT = {
+  ALLOWED_MARKETS: "sk,cz,hu,ro",
+  MARKET_ACCEPTED_HOSTS_CZ: "herbatica.cz",
+  MARKET_ACCEPTED_HOSTS_HU: "herbatica.hu",
+  MARKET_ACCEPTED_HOSTS_RO: "herbatica.ro",
+  MARKET_ACCEPTED_HOSTS_SK: "herbatica.sk",
+}
+
+const resolveM00ProxyAction = (
+  input: Parameters<typeof resolveM00ProxyActionWithEnvironment>[0]
+) =>
+  resolveM00ProxyActionWithEnvironment({
+    ...input,
+    environment: ROUTING_ENVIRONMENT,
+  })
 
 describe("resolveM00ProxyAction", () => {
   it.each([

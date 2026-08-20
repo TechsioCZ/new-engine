@@ -29,12 +29,8 @@ That lets each storefront keep a thin local composition module for:
 
 ## Install
 
-```json
-{
-  "dependencies": {
-    "@techsio/storefront-data": "workspace:*"
-  }
-}
+```bash
+pnpm add @techsio/storefront-data @medusajs/js-sdk @medusajs/types @tanstack/react-query react react-dom
 ```
 
 If you use Next.js, transpile the package:
@@ -163,6 +159,7 @@ Core subpaths:
 - `@techsio/storefront-data/shared/medusa-client`
 - `@techsio/storefront-data/shared/query-client`
 - `@techsio/storefront-data/shared/query-keys`
+- `@techsio/storefront-data/shared/region`
 - `@techsio/storefront-data/shared/region-context`
 - `@techsio/storefront-data/shared/storage-value-store`
 - `@techsio/storefront-data/medusa/preset`
@@ -204,4 +201,8 @@ Supported domains:
 pnpm -C libs/storefront-data build
 pnpm -C libs/storefront-data lint
 pnpm -C libs/storefront-data test
+pnpm -C libs/storefront-data validate:release
 ```
+
+Releases are tag-gated. A tag such as `storefront-data-v0.1.0` must exactly
+match the package version before the trusted-publishing workflow can publish it.

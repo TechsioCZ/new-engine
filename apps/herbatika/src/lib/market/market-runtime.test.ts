@@ -130,37 +130,35 @@ describe("createMarketRuntime", () => {
       "herbatica.sk",
       previewHost,
     ])
+    expect(getMarketRuntime(runtime, "sk")?.canonicalOrigin).toBe(
+      "https://herbatica.sk"
+    )
     expect(resolveMarketRuntimeByHost(runtime, previewHost)?.market).toBe("sk")
   })
 
-  it.each([
-    ["cz", "MARKET_ACCEPTED_HOSTS_CZ", "herbatica.cz"],
-    ["hu", "MARKET_ACCEPTED_HOSTS_HU", "herbatica.hu"],
-    ["ro", "MARKET_ACCEPTED_HOSTS_RO", "herbatica.ro"],
-  ])("rejects the primary Zane preview host as a %s alias", (_market, environmentName, canonicalHost) => {
-    const previewHost = "test-engine-herbatika-zane.web-revolution.cz"
+  it("accepts arbitrary deployment domains and derives the canonical origin from the first host", () => {
+    const runtime = createMarketRuntime({
+      ...COMPLETE_ENVIRONMENT,
+      MARKET_ACCEPTED_HOSTS_HU: "shop.customer.example,www.customer.example",
+    })
 
-    expect(() =>
-      createMarketRuntime({
-        ...COMPLETE_ENVIRONMENT,
-        [environmentName]: `${canonicalHost},${previewHost}`,
-      })
-    ).toThrow("not a declared route host")
+    expect(getMarketRuntime(runtime, "hu")).toMatchObject({
+      acceptedHosts: ["shop.customer.example", "www.customer.example"],
+      canonicalOrigin: "https://shop.customer.example",
+    })
+    expect(
+      resolveMarketRuntimeByHost(runtime, "www.customer.example")?.market
+    ).toBe("hu")
   })
 
-  it.each([
-    ["sk", "MARKET_ACCEPTED_HOSTS_SK", "herbatica.sk"],
-    ["cz", "MARKET_ACCEPTED_HOSTS_CZ", "herbatica.cz"],
-    ["hu", "MARKET_ACCEPTED_HOSTS_HU", "herbatica.hu"],
-  ])("rejects the Romanian preview host as a %s alias", (market, environmentName, canonicalHost) => {
-    const previewHost = "test-engine-herbatika-ro-zane.web-revolution.cz"
-
+  it("rejects a host assigned to more than one market", () => {
     expect(() =>
       createMarketRuntime({
         ...COMPLETE_ENVIRONMENT,
-        [environmentName]: `${canonicalHost},${previewHost}`,
+        MARKET_ACCEPTED_HOSTS_CZ: "shared.customer.example",
+        MARKET_ACCEPTED_HOSTS_SK: "shared.customer.example",
       })
-    ).toThrow(`not a declared route host for ${market}`)
+    ).toThrow("Host shared.customer.example is assigned to both sk and cz")
   })
 
   it.each([
@@ -255,8 +253,9 @@ describe("createMarketRuntime", () => {
   })
 
   it.each([
-    ["www.herbatica.sk", "canonical host herbatica.sk"],
-    ["herbatica.sk,evil.example", "not a declared route host"],
+    ["Herbatica.sk", "invalid host Herbatica.sk"],
+    ["https://herbatica.sk", "invalid host https://herbatica.sk"],
+    ["herbatica.sk:443", "invalid host herbatica.sk:443"],
     ["herbatica.sk,herbatica.sk", "duplicate host herbatica.sk"],
   ])("rejects an invalid accepted-host manifest %j", (acceptedHosts, message) => {
     expect(() =>

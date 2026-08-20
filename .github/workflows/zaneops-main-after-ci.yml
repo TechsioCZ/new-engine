@@ -123,10 +123,8 @@ jobs:
       (needs.approval.result == 'success' || needs.approval.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    concurrency:
-      group: zaneops-main-deploy
-      cancel-in-progress: true
     outputs:
+      is_fresh: ${{ steps.master.outputs.is_fresh }}
       environment_name: ${{ steps.run_deploy.outputs.environment_name }}
       environment_id: ${{ steps.run_deploy.outputs.environment_id }}
       environment_created: ${{ steps.run_deploy.outputs.environment_created }}
@@ -153,7 +151,35 @@ jobs:
         with:
           node-version: 24
 
+      - name: Confirm deploy commit is current master
+        id: master
+        env:
+          EXPECTED_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current_sha="$(
+            curl --fail-with-body --silent --show-error --retry 3 \
+              --header "Accept: application/vnd.github+json" \
+              --header "Authorization: Bearer $GH_TOKEN" \
+              --header "X-GitHub-Api-Version: 2022-11-28" \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/git/ref/heads/master" \
+              | jq --exit-status --raw-output '.object.sha'
+          )"
+
+          is_fresh=false
+          if [[ "$current_sha" == "$EXPECTED_SHA" ]]; then
+            is_fresh=true
+          fi
+          echo "is_fresh=$is_fresh" >> "$GITHUB_OUTPUT"
+
+          if [[ "$is_fresh" == "false" ]]; then
+            printf '%s\n' \
+              "Skipping stale deploy: CI SHA $EXPECTED_SHA is no longer current master ($current_sha)." \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Validate deploy inputs
+        if: steps.master.outputs.is_fresh == 'true'
         env:
           ZANE_OPERATOR_BASE_URL: ${{ secrets.ZANEOPS_ZANE_OPERATOR_BASE_URL }}
           ZANE_OPERATOR_API_TOKEN: ${{ secrets.ZANEOPS_ZANE_OPERATOR_API_TOKEN }}
@@ -164,6 +190,7 @@ jobs:
 
       - name: Run main deploy
         id: run_deploy
+        if: steps.master.outputs.is_fresh == 'true'
         env:
           SERVICES_CSV: ${{ needs.scope.outputs.services_csv }}
           REQUIRES_DOWNTIME_APPROVAL: ${{ needs.scope.outputs.requires_downtime_approval }}
@@ -207,7 +234,10 @@ jobs:
 
   verify:
     needs: [scope, deploy]
-    if: always() && needs.deploy.result == 'success'
+    if: >-
+      always() &&
+      needs.deploy.result == 'success' &&
+      needs.deploy.outputs.is_fresh == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

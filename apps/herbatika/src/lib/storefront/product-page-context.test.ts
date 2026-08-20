@@ -3,10 +3,7 @@ import {
   type ProductPageContextDependencies,
   readProductPageContext,
 } from "./product-page-context"
-import type {
-  ProductRouteMedusaProduct,
-  ProductRouteSourceMarketBinding,
-} from "./product-route-source"
+import type { ProductRouteMedusaProduct } from "./product-route-source"
 
 const marketDetails = {
   sk: { countryCode: "SK", currencyCode: "EUR", locale: "sk-SK" },
@@ -46,6 +43,7 @@ const createDependencies = (
       "navigation.breadcrumbs.home": "Home",
     }),
     resolveMarket: vi.fn(() => ({
+      canonicalOrigin: `https://${market}.shop.example`,
       countryCode: details.countryCode,
       locale: details.locale,
       market,
@@ -128,11 +126,17 @@ describe("readProductPageContext", () => {
     })
   })
 
-  it.each<readonly [string, ProductRouteSourceMarketBinding | null]>([
+  it.each<
+    readonly [
+      string,
+      ReturnType<ProductPageContextDependencies["resolveMarket"]>,
+    ]
+  >([
     ["missing binding", null],
     [
       "cross-market binding",
       {
+        canonicalOrigin: "https://sk.shop.example",
         countryCode: "SK",
         locale: "sk-SK",
         market: "sk",
