@@ -696,11 +696,23 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
     />
   ),
 
-  dateRange: ({ column, value, setValue, disabled, commit, cancel, size }) => {
+  dateRange: ({
+    column,
+    value,
+    setValue,
+    disabled,
+    error,
+    errorId,
+    commit,
+    cancel,
+    size,
+  }) => {
     const v = (value ?? {}) as { from?: string; to?: string }
     return (
       <>
         <Input
+          aria-describedby={error ? errorId : undefined}
+          aria-invalid={error ? true : undefined}
           aria-label={`Edit ${columnLabel(column)} from`}
           disabled={disabled}
           onChange={(e) => setValue({ ...v, from: e.target.value })}
@@ -710,6 +722,8 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
           {...editorKeyHandlers(commit, cancel)}
         />
         <Input
+          aria-describedby={error ? errorId : undefined}
+          aria-invalid={error ? true : undefined}
           aria-label={`Edit ${columnLabel(column)} to`}
           disabled={disabled}
           min={v.from || undefined}

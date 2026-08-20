@@ -420,7 +420,6 @@ export type DataTableRowAction<T extends RowData> = {
  * control clickable-but-inert first.
  */
 export type DataTableBlockedAction =
-  | "filter"
   | "globalFilter"
   | "paginate"
   | "columnVisibility"
@@ -1625,15 +1624,38 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   const leafColumns = table.getVisibleLeafColumns()
   const columnCount = leafColumns.length
 
-  /* Virtualization (windowing that preserves native table column alignment). */
+  /* Virtualization (windowing that preserves native table column alignment).
+   *
+   * The virtualizer measures `scrollTop` on `scrollRef`'s element, which is
+   * only the actual scrolling element when `maxHeight` bounds it — without a
+   * height the div grows to fit its content, the *page* scrolls instead, and
+   * `scrollTop` sits at 0 forever. Windowing then silently renders only the
+   * first `overscan`-sized slice of rows and nothing past it, however far the
+   * user scrolls. Rather than ship that quietly, virtualization is disabled
+   * (all rows render) whenever `maxHeight` is missing, with a dev warning.
+   */
+  const virtualizationUsable = enableVirtualization && !!maxHeight
+  if (
+    enableVirtualization &&
+    !maxHeight &&
+    typeof process !== "undefined" &&
+    process.env?.NODE_ENV !== "production"
+  ) {
+    console.warn(
+      "DataTable: enableVirtualization has no effect without maxHeight — " +
+        "the scroll container never gets a bounded height to measure " +
+        "scrollTop against, so only the first batch of rows would render. " +
+        "Pass maxHeight to enable virtualization."
+    )
+  }
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => estimateRowHeight,
     overscan: 12,
-    enabled: enableVirtualization,
+    enabled: virtualizationUsable,
   })
-  const virtualItems = enableVirtualization
+  const virtualItems = virtualizationUsable
     ? rowVirtualizer.getVirtualItems()
     : []
   const firstVirtual = virtualItems[0]
@@ -1642,7 +1664,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   const paddingBottom = lastVirtual
     ? rowVirtualizer.getTotalSize() - lastVirtual.end
     : 0
-  const renderRows: Row<T>[] = enableVirtualization
+  const renderRows: Row<T>[] = virtualizationUsable
     ? virtualItems
         .map((vi) => rows[vi.index])
         .filter((r): r is Row<T> => r !== undefined)
@@ -1783,19 +1805,38 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
    * Resolve a column's header filter: per-column `meta.renderFilter`, then the
    * table-wide `renderHeaderFilter` slot, then the type-driven default.
    */
+  /**
+   * `meta.filterVariant` is deprecated in favour of `meta.type`, kept only so
+   * existing columns keep filtering correctly. `"range"` predates `meta.type`
+   * entirely and has no direct equivalent; it always meant the number filter,
+   * which is range-capable via its `"between"` operator.
+   */
+  const FILTER_VARIANT_TYPE: Record<
+    "text" | "number" | "range" | "select",
+    DataTableColumnType
+  > = {
+    text: "string",
+    number: "number",
+    range: "number",
+    select: "enum",
+  }
+
   const renderColumnFilter = (column: Column<T, unknown>) => {
     const meta = column.columnDef.meta
-    const type: DataTableColumnType = meta?.type ?? "string"
+    const type: DataTableColumnType =
+      meta?.type ??
+      (meta?.filterVariant && FILTER_VARIANT_TYPE[meta.filterVariant]) ??
+      "string"
     const ctx: DataTableFilterContext<T> = {
       column,
       type,
       value: column.getFilterValue() as DataTableFilterValue | undefined,
-      setValue: (next) => {
-        if (blocked("filter")) {
-          return
-        }
-        column.setFilterValue(next)
-      },
+      // Every DEFAULT_FILTER_RENDERERS control is `disabled={locked}` (see
+      // `disabled` below), with no clear-button style escape hatch the way
+      // `GlobalSearch` has — so unlike globalFilter, no path here can ever
+      // reach `setValue` while locked, and a `blocked("filter")` guard is
+      // unreachable. Removed for the same reason "sort" and "select" were.
+      setValue: (next) => column.setFilterValue(next),
       disabled: locked,
       size,
       operatorLabels: translations.operatorLabels,
@@ -2306,7 +2347,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   const bodyRows = renderRows.map((row, i) => {
     // Under virtualization `renderRows` is a window; map back to the true index
     // in `rows` so getCellSpan inspects the correct neighbouring records.
-    const rowIndex = enableVirtualization ? (virtualItems[i]?.index ?? i) : i
+    const rowIndex = virtualizationUsable ? (virtualItems[i]?.index ?? i) : i
     // Only top-level rows are reorderable — sub-rows aren't in the top-level
     // `data` array, so dragging them could not be applied to it.
     return rowReorderActive && row.depth === 0 ? (

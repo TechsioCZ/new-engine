@@ -154,12 +154,14 @@ While a row is being edited, `lockInteractionsWhileEditing` (default `true`)
 disables sorting, column filters, global search, pagination, selection, row and
 column reorder, and row click — anything that could move the row out from under
 the user. Blocked attempts report through
-`onInteractionBlocked({ action, reason: "editing", rowId })` for `filter`,
-`globalFilter`, `paginate`, `rowReorder`, `columnReorder`, `columnVisibility`
-and `rowClick`. Sorting and selection are not reportable: those controls are
-natively `disabled` during an edit, so the click never reaches a handler.
-Filtering and sorting still compose freely with each other when no edit is
-active.
+`onInteractionBlocked({ action, reason: "editing", rowId })`, but only for
+`globalFilter`, `paginate`, `columnVisibility` and `rowClick`. Every other
+locked control — sort, column filters, selection, both reorder flavours — is
+natively `disabled` or non-draggable during an edit, so the interaction never
+reaches a handler and there is nothing to report; `globalFilter` is the one
+exception, reachable through `SearchForm`'s clear button even while its input
+is disabled. Filtering and sorting still compose freely with each other when
+no edit is active.
 
 Edit callbacks: `onEditStart`, `onEditChange`, `onEditCommit`, `onEditCancel`
 (with `dirty`), `onEditValidationError`, plus controlled `editingRowId` /

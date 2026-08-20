@@ -524,6 +524,27 @@ export const InfiniteScrollVirtualized: Story = {
   },
 }
 
+/**
+ * `enableVirtualization` without `maxHeight` has no bounded scroll container
+ * to measure, so windowing falls back to rendering every row — this asserts
+ * that fallback rather than a truncated table. Check the browser console for
+ * the accompanying dev warning.
+ */
+export const VirtualizationWithoutMaxHeight: Story = {
+  args: {
+    columns,
+    data: bigData,
+    enableVirtualization: true,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const rows = canvas.getAllByRole("row")
+    // Header row(s) plus every one of bigData's rows — not just the first
+    // windowed slice.
+    await expect(rows.length).toBeGreaterThan(bigData.length)
+  },
+}
+
 /* ── 13. colSpan / rowSpan ───────────────────────────────────────────────── */
 
 const getCellSpan: DataTableGetCellSpan<Person> = (cell, { rows, rowIndex }) => {
