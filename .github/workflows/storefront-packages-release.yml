@@ -88,6 +88,4 @@ jobs:
 
       - name: Publish package with provenance
         working-directory: ${{ steps.release.outputs.package_dir }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public --provenance
