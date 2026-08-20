@@ -69,7 +69,7 @@ import {
   parseManufacturersCsv,
   readCsvSource,
 } from "./manufacturers-csv"
-import { seedDefaultMeasurementUnitTranslations } from "./measurement-unit-translations"
+import { ensureDefaultMeasurementUnitTranslations } from "./measurement-unit-translations"
 
 type ProductSeedInput = SeedDatabaseWorkflowInput["products"][number]
 type BrandSeedInput = NonNullable<ProductSeedInput["brand"]>
@@ -3852,9 +3852,9 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     }
   )
   const measurementUnitTranslationSeed =
-    await seedDefaultMeasurementUnitTranslations(container)
+    await ensureDefaultMeasurementUnitTranslations(container)
   logger.info(
-    `Created ${measurementUnitTranslationSeed.created} missing measurement-unit translations`
+    `Measurement-unit translations: ${measurementUnitTranslationSeed.created} created, ${measurementUnitTranslationSeed.updated} updated`
   )
   if (measurementUnitTranslationSeed.unavailableLocaleCodes.length) {
     logger.warn(
