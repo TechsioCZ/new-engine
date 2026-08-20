@@ -1,6 +1,5 @@
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
-import { isM00ProbePath, resolveM00ProxyAction } from "@/lib/routing/m00-proxy"
 import { resolvePublicProxyAction } from "@/lib/routing/public-proxy"
 
 const NEXT_INTERNAL_REQUEST_HEADERS = [
@@ -73,14 +72,7 @@ export const proxy = (request: NextRequest) => {
     method: request.method,
     pathname: request.nextUrl.pathname,
   }
-  const action =
-    process.env.URL_ARCHITECTURE_M00_ENABLED === "1" &&
-    isM00ProbePath(input.pathname)
-      ? resolveM00ProxyAction({ ...input, enabled: true })
-      : resolvePublicProxyAction({
-          ...input,
-          enabled: process.env.URL_ARCHITECTURE_ENABLED === "1",
-        })
+  const action = resolvePublicProxyAction({ ...input, enabled: true })
 
   if (action.kind === "next") {
     return NextResponse.next()

@@ -3,8 +3,6 @@ import { NextRequest } from "next/server"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { config, proxy } from "./proxy"
 
-const originalProbeGate = process.env.URL_ARCHITECTURE_M00_ENABLED
-const originalFullArchitectureGate = process.env.URL_ARCHITECTURE_ENABLED
 const originalAllowedMarkets = process.env.ALLOWED_MARKETS
 
 const request = (pathname: string, host = "herbatica.sk", method = "GET") =>
@@ -15,8 +13,6 @@ const request = (pathname: string, host = "herbatica.sk", method = "GET") =>
 
 beforeEach(() => {
   process.env.ALLOWED_MARKETS = "sk,cz,hu,ro"
-  process.env.URL_ARCHITECTURE_ENABLED = "1"
-  Reflect.deleteProperty(process.env, "URL_ARCHITECTURE_M00_ENABLED")
 })
 
 afterEach(() => {
@@ -24,18 +20,6 @@ afterEach(() => {
     Reflect.deleteProperty(process.env, "ALLOWED_MARKETS")
   } else {
     process.env.ALLOWED_MARKETS = originalAllowedMarkets
-  }
-
-  if (originalFullArchitectureGate === undefined) {
-    Reflect.deleteProperty(process.env, "URL_ARCHITECTURE_ENABLED")
-  } else {
-    process.env.URL_ARCHITECTURE_ENABLED = originalFullArchitectureGate
-  }
-
-  if (originalProbeGate === undefined) {
-    Reflect.deleteProperty(process.env, "URL_ARCHITECTURE_M00_ENABLED")
-  } else {
-    process.env.URL_ARCHITECTURE_M00_ENABLED = originalProbeGate
   }
 })
 
@@ -166,20 +150,6 @@ describe("public proxy adapter", () => {
     expect(response.headers.has("x-middleware-rewrite")).toBe(false)
   })
 
-  it("selects an exact M00 test probe without a full-resolver fallback", () => {
-    process.env.URL_ARCHITECTURE_M00_ENABLED = "1"
-    Reflect.deleteProperty(process.env, "URL_ARCHITECTURE_ENABLED")
-
-    const probeResponse = proxy(request("/__url-m00/current"))
-    expect(probeResponse.headers.get("x-middleware-rewrite")).toBe(
-      "https://herbatica.sk/~sf/sk/__m00/current"
-    )
-
-    const nonProbeResponse = proxy(request("/__url-m00/not-an-outcome"))
-    expect(nonProbeResponse.headers.get("x-middleware-next")).toBe("1")
-    expect(nonProbeResponse.headers.has("x-middleware-rewrite")).toBe(false)
-  })
-
   it("returns 421 for an unknown host", () => {
     expect(proxy(request("/", "unknown.example")).status).toBe(421)
   })
@@ -187,11 +157,23 @@ describe("public proxy adapter", () => {
   it.each([
     "/~sf/sk/products/x",
     "/_next/data/build-123/~sf/sk/products/x.json",
-  ])("never exposes the internal Pages namespace with the gate disabled: %s", (pathname) => {
-    Reflect.deleteProperty(process.env, "URL_ARCHITECTURE_ENABLED")
-    process.env.URL_ARCHITECTURE_M00_ENABLED = "1"
-
+  ])("never exposes the internal Pages namespace: %s", (pathname) => {
     expect(proxy(request(pathname)).status).toBe(404)
+  })
+
+  it.each([
+    "/p",
+    "/p/legacy",
+    "/c",
+    "/c/legacy",
+  ])("returns a real 404 for a removed legacy route: %s", (pathname) => {
+    const response = proxy(request(pathname))
+
+    expect(response.status).toBe(404)
+    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow")
+    expect(response.headers.get("cache-control")).toBe(
+      "private, no-store, max-age=0"
+    )
   })
 
   it("passes a verified-host system route through and rejects an unknown host", () => {
