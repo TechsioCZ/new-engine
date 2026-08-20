@@ -1,6 +1,8 @@
 {
   "name": "@techsio/storefront-i18n",
   "version": "0.1.0",
+  "description": "Shared market resolution and backend-managed messages for Medusa storefronts.",
+  "license": "UNLICENSED",
   "type": "module",
   "repository": {
     "type": "git",
@@ -44,7 +46,9 @@
     "dev": "rslib build --watch --tsconfig tsconfig.build.json",
     "lint": "pnpm -w exec biome lint libs/storefront-i18n/src libs/storefront-i18n/tests --diagnostic-level=error",
     "test": "vitest run --config vitest.config.ts",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "validate:package": "node scripts/validate-package.mjs",
+    "validate:release": "pnpm typecheck && pnpm test && pnpm build && pnpm validate:package"
   },
   "nx": {
     "tags": [
@@ -74,5 +78,12 @@
   },
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "keywords": [
+    "ecommerce",
+    "i18n",
+    "medusa",
+    "next-intl",
+    "storefront"
+  ]
 }
