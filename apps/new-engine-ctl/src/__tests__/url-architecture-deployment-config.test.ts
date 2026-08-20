@@ -168,6 +168,12 @@ test("production image ships private-network migration and population tools", as
   expect(packageJson.scripts["build:url-registry-tools"]).toContain(
     "scripts/url-registry/populate.mjs"
   )
+  expect(packageJson.scripts["build:url-registry-tools"]).toContain(
+    "createRequire(import.meta.url)"
+  )
+  expect(packageJson.scripts["build:url-registry-tools"]).not.toContain(
+    "--packages=external"
+  )
   expect(dockerfile).toContain("scripts/url-registry/migrate.mjs")
   expect(dockerfile).toContain("scripts/url-registry/populate.mjs")
   expect(dockerfile).toContain("0004_add_invalidation_delivery_diagnostics.sql")

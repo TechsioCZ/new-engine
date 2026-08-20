@@ -202,38 +202,58 @@ const CmsArticleCategorySchema = passthroughObject({
   ),
 })
 
-const CmsHeroButtonTargetSchema = z.union([
-  passthroughObject({
-    targetType: z.literal("entity"),
-    sourceSystem: z.literal("medusa"),
-    sourceType: z.enum(["product", "category", "brand", "collection"]),
-    sourceId: z.string().trim().min(1),
-    staticRouteKey: z.null().optional(),
-  }),
-  passthroughObject({
-    targetType: z.literal("entity"),
-    sourceSystem: z.literal("payload"),
-    sourceType: z.enum(["article", "page"]),
-    sourceId: z.string().trim().min(1),
-    staticRouteKey: z.null().optional(),
-  }),
-  passthroughObject({
-    targetType: z.literal("static"),
-    sourceSystem: z.null().optional(),
-    sourceType: z.null().optional(),
-    sourceId: z.null().optional(),
-    staticRouteKey: z.enum([
-      "root:about",
-      "root:contact",
-      "root:faq",
-      "root:shipping",
-      "root:returns",
-      "root:terms",
-      "root:privacy",
-      "root:cookies",
-    ]),
-  }),
-])
+const isUnsetCmsHeroButtonTarget = (value: unknown) => {
+  if (!(value && typeof value === "object" && !Array.isArray(value))) {
+    return false
+  }
+
+  const target = value as Record<string, unknown>
+  return [
+    "targetType",
+    "sourceSystem",
+    "sourceType",
+    "sourceId",
+    "staticRouteKey",
+  ].every((key) => target[key] === null || target[key] === undefined)
+}
+
+const CmsHeroButtonTargetSchema = z.preprocess(
+  (value) => (isUnsetCmsHeroButtonTarget(value) ? null : value),
+  z
+    .union([
+      passthroughObject({
+        targetType: z.literal("entity"),
+        sourceSystem: z.literal("medusa"),
+        sourceType: z.enum(["product", "category", "brand", "collection"]),
+        sourceId: z.string().trim().min(1),
+        staticRouteKey: z.null().optional(),
+      }),
+      passthroughObject({
+        targetType: z.literal("entity"),
+        sourceSystem: z.literal("payload"),
+        sourceType: z.enum(["article", "page"]),
+        sourceId: z.string().trim().min(1),
+        staticRouteKey: z.null().optional(),
+      }),
+      passthroughObject({
+        targetType: z.literal("static"),
+        sourceSystem: z.null().optional(),
+        sourceType: z.null().optional(),
+        sourceId: z.null().optional(),
+        staticRouteKey: z.enum([
+          "root:about",
+          "root:contact",
+          "root:faq",
+          "root:shipping",
+          "root:returns",
+          "root:terms",
+          "root:privacy",
+          "root:cookies",
+        ]),
+      }),
+    ])
+    .nullable()
+)
 
 const CmsHeroCarouselSchema = passthroughObject({
   id: z.number(),
@@ -242,7 +262,7 @@ const CmsHeroCarouselSchema = passthroughObject({
   subheading: z.string().nullable().optional(),
   button: z.string().nullable().optional(),
   buttonHref: z.string().nullable().optional(),
-  buttonTarget: CmsHeroButtonTargetSchema.nullable().optional(),
+  buttonTarget: CmsHeroButtonTargetSchema.optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 })
