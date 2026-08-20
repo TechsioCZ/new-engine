@@ -23,6 +23,13 @@ import type {
 import { createPopulationSourcePage } from "./population-source-page"
 import { sourceEntityExists } from "./utils"
 
+const PAYLOAD_LOCALE_BY_MARKET = {
+  sk: "sk",
+  cz: "cs",
+  hu: "hu",
+  ro: "ro",
+} as const
+
 const readAssignedCatalogPage = async (
   request: AuthenticatedMedusaRequest,
   query: PopulationSourceQuery,
@@ -198,8 +205,9 @@ const readCmsPage = async (
   if (query.offset % query.limit !== 0) {
     return { kind: "invalid", message: "CMS offset must align to limit" }
   }
-  const locale = resolveCatalogMarketLocale(query.market)
-  if (!locale) {
+  const catalogLocale = resolveCatalogMarketLocale(query.market)
+  const payloadLocale = PAYLOAD_LOCALE_BY_MARKET[query.market]
+  if (!(catalogLocale && payloadLocale)) {
     return { kind: "invalid", message: "Market has no exact locale" }
   }
   const service = request.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
@@ -207,12 +215,12 @@ const readCmsPage = async (
     query.sourceKind === "article"
       ? await service.listPublishedArticles({
           limit: query.limit,
-          locale,
+          locale: payloadLocale,
           page: query.offset / query.limit + 1,
         })
       : await service.listPublishedPages({
           limit: query.limit,
-          locale,
+          locale: payloadLocale,
           page: query.offset / query.limit + 1,
         })
   const items = result.docs.map(
@@ -220,7 +228,7 @@ const readCmsPage = async (
       authorityKind: "payload-published-document",
       documentStatus: "published",
       legacySlug: document.slug,
-      locale,
+      locale: catalogLocale,
       sourceId: String(document.id),
       sourceVersion: sourceTimestamp(document.updatedAt),
       stableIdVerified: true,

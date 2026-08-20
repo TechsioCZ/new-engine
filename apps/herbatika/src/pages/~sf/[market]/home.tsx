@@ -21,8 +21,8 @@ import { getHerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { prefetchHomePageStorefrontData } from "@/lib/storefront/ssr"
 import {
   type PublicEntitySlugMap,
+  readAvailablePublicEntitySlugs,
   readCompletePublicEntitySlugs,
-  readRequiredPublicEntitySlugs,
 } from "@/lib/storefront/ssr/public-entity-projections"
 
 type HomeValue = Readonly<{
@@ -83,7 +83,7 @@ export const getServerSideProps = (async (context) =>
         hydratedHeroBanners,
         productPublicSlugsById,
       ] = await Promise.all([
-        readRequiredPublicEntitySlugs({
+        readAvailablePublicEntitySlugs({
           kind: "article",
           market,
           requiredSourceIds: blogPosts.map((post) => post.sourceId),
@@ -94,7 +94,7 @@ export const getServerSideProps = (async (context) =>
           requiredSourceIds: storefront.categorySourceIds,
         }),
         hydrateCmsHeroBannerTargets(heroBanners, market),
-        readRequiredPublicEntitySlugs({
+        readAvailablePublicEntitySlugs({
           kind: "product",
           market,
           requiredSourceIds: storefront.visibleProductIds,

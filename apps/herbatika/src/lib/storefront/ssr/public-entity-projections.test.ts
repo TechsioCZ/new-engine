@@ -19,7 +19,10 @@ import {
   mapRequiredPublicEntitySlugs,
   mapRequiredPublicStaticHrefs,
 } from "./public-entity-projection-map"
-import { readCompletePublicEntitySlugs } from "./public-entity-projections"
+import {
+  readAvailablePublicEntitySlugs,
+  readCompletePublicEntitySlugs,
+} from "./public-entity-projections"
 
 const projection = (
   sourceId: string,
@@ -206,6 +209,31 @@ describe("readCompletePublicEntitySlugs", () => {
     expect(mocks.listPublicEntityProjections).toHaveBeenCalledWith({
       kind: "category",
       market: "sk",
+    })
+  })
+})
+
+describe("readAvailablePublicEntitySlugs", () => {
+  it("returns only validated public projections for a partially populated listing", async () => {
+    mocks.listPublicEntityProjections.mockResolvedValueOnce({
+      kind: "found",
+      value: [projection("prod-1", "public-product")],
+    })
+
+    await expect(
+      readAvailablePublicEntitySlugs({
+        kind: "product",
+        market: "sk",
+        requiredSourceIds: ["prod-1", "prod-missing"],
+      })
+    ).resolves.toEqual({
+      kind: "found",
+      value: { "prod-1": "public-product" },
+    })
+    expect(mocks.listPublicEntityProjections).toHaveBeenCalledWith({
+      kind: "product",
+      market: "sk",
+      requiredSourceIds: ["prod-1", "prod-missing"],
     })
   })
 })
