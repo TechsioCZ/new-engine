@@ -164,22 +164,28 @@ export function columnLabel<T extends RowData>(column: Column<T, unknown>) {
 }
 
 /** Single-value Select used for operators / enums / booleans. */
-function FieldSelect({
+/**
+ * The single-value `Select` every DataTable control uses — filter dropdowns,
+ * the inline editor and the footer's page-size picker. `value: undefined`
+ * leaves it uncontrolled; `invalid` is what the editor uses to show a failed
+ * field.
+ */
+export function FieldSelect({
   items,
   value,
   ariaLabel,
   placeholder,
   disabled,
-  size,
+  size = "sm",
   invalid,
   onChange,
 }: {
   items: SelectItem[]
-  value: string
-  ariaLabel: string
+  value?: string
+  ariaLabel?: string
   placeholder?: string
   disabled?: boolean
-  size: DataTableControlSize
+  size?: DataTableControlSize
   invalid?: boolean
   onChange: (value: string) => void
 }) {
@@ -191,7 +197,7 @@ function FieldSelect({
       onValueChange={(d) => onChange(d.value[0] ?? "")}
       size={size}
       validateStatus={invalid ? "error" : "default"}
-      value={[value]}
+      value={value === undefined ? undefined : [value]}
     >
       <Select.Control>
         <Select.Trigger>

@@ -76,7 +76,7 @@ import { Skeleton } from "../atoms/skeleton"
 import { Menu, type MenuItem } from "../molecules/menu"
 import { Pagination, type PaginationProps } from "../molecules/pagination"
 import { SearchForm } from "../molecules/search-form"
-import { Select, type SelectItem } from "../molecules/select"
+import type { SelectItem } from "../molecules/select"
 import { tv } from "../utils"
 import {
   columnLabel,
@@ -89,6 +89,7 @@ import {
   type DataTableFilterValue,
   DEFAULT_EDITOR_RENDERERS,
   DEFAULT_FILTER_RENDERERS,
+  FieldSelect,
 } from "./data-table.fields"
 import {
   applyDeclaredColumnSizes,
@@ -275,53 +276,6 @@ function useControllable<S>(
 }
 
 /* ── Small single-value Select wrapper (page size, filter operator/value) ─── */
-
-type DataTableSelectProps = {
-  items: SelectItem[]
-  value?: string
-  placeholder?: string
-  size?: "xs" | "sm" | "md" | "lg"
-  disabled?: boolean
-  "aria-label"?: string
-  onValueChange?: (value: string) => void
-}
-
-function DataTableSelect({
-  items,
-  value,
-  placeholder,
-  size = "sm",
-  disabled,
-  "aria-label": ariaLabel,
-  onValueChange,
-}: DataTableSelectProps) {
-  return (
-    <Select
-      aria-label={ariaLabel}
-      disabled={disabled}
-      items={items}
-      onValueChange={(details) => onValueChange?.(details.value[0] ?? "")}
-      size={size}
-      value={value === undefined ? undefined : [value]}
-    >
-      <Select.Control>
-        <Select.Trigger>
-          <Select.ValueText placeholder={placeholder} />
-        </Select.Trigger>
-      </Select.Control>
-      <Select.Positioner>
-        <Select.Content>
-          {items.map((item) => (
-            <Select.Item item={item} key={item.value}>
-              <Select.ItemText />
-              <Select.ItemIndicator />
-            </Select.Item>
-          ))}
-        </Select.Content>
-      </Select.Positioner>
-    </Select>
-  )
-}
 
 /** Which edge of the hovered sortable should show the drop indicator. */
 function dropEdge<A, B>(
@@ -1411,14 +1365,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
 
   /**
    * TanStack keys its column cache on this array's identity, so rebuilding it
-   * every render discards every derived column. `blocked` is intentionally left
-   * out of the deps: it closes over render-scoped state and would change on
-   * every render, defeating the memo — the leading columns read it through a
-   * ref instead.
+   * every render discards every derived column — hence the memo, and hence
+   * nothing render-scoped in its deps.
    */
-  const blockedRef = useRef(blocked)
-  blockedRef.current = blocked
-
   const columns = useMemo(
     () =>
       buildColumns<T>({
@@ -1511,7 +1460,6 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     onReady?.(table)
   }, [table])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: focus follows the edited row, not the callbacks
   useEffect(() => {
     if (editingRowId) {
       // Scope to the editor wrappers so the (disabled) selection checkbox and
@@ -2746,11 +2694,11 @@ DataTable.Pagination = function DataTablePagination() {
         />
         {/* The page-size control is labelled only for assistive tech; the
             design shows the bare select next to the pager. */}
-        <DataTableSelect
-          aria-label={translations.pageSizeLabel}
+        <FieldSelect
+          ariaLabel={translations.pageSizeLabel}
           disabled={locked}
           items={pageSizeItems}
-          onValueChange={(v) => {
+          onChange={(v) => {
             if (!blocked("paginate")) {
               table.setPageSize(Number(v))
             }

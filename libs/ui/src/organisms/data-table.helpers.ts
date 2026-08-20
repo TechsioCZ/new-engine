@@ -205,6 +205,33 @@ export type DataTableConditionalFilterValue = {
  * a second copy of both lists; the two drifted, and the filter row ended up
  * offering operators the typed matcher silently mishandled. */
 
+/**
+ * The `between` arm of `evaluateCondition`, split out to keep either half
+ * legible.
+ *
+ * `num` is NaN for a blank or non-numeric cell, and every comparison against
+ * NaN is false — so without the explicit guard both bounds checks pass and such
+ * a cell sails through a numeric range. The `gt`/`lt` family excludes them for
+ * free, and `matchNumber` in `data-table.fields.tsx` does the same; this is the
+ * one arm where the NaN falls the wrong way.
+ */
+function evaluateBetween(num: number, value: unknown, to: unknown): boolean {
+  const lo = Number(value)
+  const hi = Number(to)
+  const hasLo = !(isBlank(value) || Number.isNaN(lo))
+  const hasHi = !(isBlank(to) || Number.isNaN(hi))
+  if (!(hasLo || hasHi)) {
+    return true
+  }
+  if (Number.isNaN(num)) {
+    return false
+  }
+  if (hasLo && num < lo) {
+    return false
+  }
+  return !(hasHi && num > hi)
+}
+
 function evaluateCondition(
   cellValue: unknown,
   { operator, value, to }: DataTableConditionalFilterValue
@@ -258,19 +285,8 @@ function evaluateCondition(
       return num < target
     case "lte":
       return num <= target
-    case "between": {
-      const lo = Number(value)
-      const hi = Number(to)
-      const hasLo = !(isBlank(value) || Number.isNaN(lo))
-      const hasHi = !(isBlank(to) || Number.isNaN(hi))
-      if (hasLo && num < lo) {
-        return false
-      }
-      if (hasHi && num > hi) {
-        return false
-      }
-      return true
-    }
+    case "between":
+      return evaluateBetween(num, value, to)
     default:
       return true
   }
