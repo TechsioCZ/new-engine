@@ -14,12 +14,6 @@ type M00FoundValue = {
 type M00PageProps = SsrPageProps<M00FoundValue>
 
 const MARKETS = new Set<M00Market>(["sk", "cz", "hu", "ro"])
-const ORIGIN_BY_MARKET: Readonly<Record<M00Market, string>> = {
-  sk: "https://herbatica.sk",
-  cz: "https://herbatica.cz",
-  hu: "https://herbatica.hu",
-  ro: "https://herbatica.ro",
-}
 
 const singleParam = (value: string | string[] | undefined) =>
   typeof value === "string" ? value : null
@@ -29,7 +23,8 @@ const singleHeader = (value: string | string[] | undefined) =>
 
 const resolveProbeOutcome = (
   outcome: string | null,
-  market: M00Market
+  market: M00Market,
+  canonicalOrigin: string
 ): SsrOutcome<M00FoundValue> => {
   switch (outcome) {
     case "current":
@@ -37,7 +32,7 @@ const resolveProbeOutcome = (
     case "alias":
       return {
         kind: "redirect",
-        destination: `${ORIGIN_BY_MARKET[market]}/__url-m00/current`,
+        destination: `${canonicalOrigin}/__url-m00/current`,
         statusCode: 308,
       }
     case "gone":
@@ -56,11 +51,16 @@ export const getServerSideProps = (async ({ params, req, res }) => {
     marketParam && MARKETS.has(marketParam as M00Market)
       ? (marketParam as M00Market)
       : null
+  const binding = market
+    ? (
+        await import("@/lib/market/market-runtime.server")
+      ).requireConfiguredMarketRoutingBinding(market)
+    : null
   const hasTrustedContext =
     market !== null &&
     singleHeader(req.headers["x-sf-market"]) === market &&
     singleHeader(req.headers["x-sf-canonical-origin"]) ===
-      ORIGIN_BY_MARKET[market] &&
+      binding?.canonicalOrigin &&
     singleHeader(req.headers["x-sf-route-key"]) === "m00.status" &&
     singleHeader(req.headers["x-sf-public-path"]) ===
       `/__url-m00/${outcome ?? ""}`
@@ -80,7 +80,10 @@ export const getServerSideProps = (async ({ params, req, res }) => {
 
   res.setHeader("X-M00-Resolution-Phase", "pre-flush")
   res.setHeader("X-Robots-Tag", "noindex, nofollow")
-  return applySsrOutcome(res, resolveProbeOutcome(outcome, market))
+  return applySsrOutcome(
+    res,
+    resolveProbeOutcome(outcome, market, binding.canonicalOrigin)
+  )
 }) satisfies GetServerSideProps<M00PageProps>
 
 export default function M00StatusPage({ page }: M00PageProps) {

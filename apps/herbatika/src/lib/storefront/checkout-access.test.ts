@@ -105,10 +105,12 @@ describe("checkout access client", () => {
       .mockResolvedValueOnce(
         Response.json(
           {
+            canonicalOrigin: "https://shop.customer.example",
             cartId: "cart_Case",
             expiresAt: "2030-01-01T00:00:00.000Z",
             provider: "gopay",
             providerId: "pp_gopay",
+            market: "sk",
             state: "OpaqueState",
           },
           { status: 200 }

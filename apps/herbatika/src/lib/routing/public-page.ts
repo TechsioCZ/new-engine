@@ -7,8 +7,7 @@ import { nestStorefrontMessages } from "@techsio/storefront-i18n/core/messages"
 import type { GetServerSidePropsContext, GetServerSidePropsResult } from "next"
 import type { AbstractIntlMessages } from "next-intl"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
-import { getConfiguredMarketRuntime } from "@/lib/market/market-runtime.server"
-import { ROUTES } from "@/lib/market/market-runtime-definitions"
+import { getConfiguredMarketRoutingRuntime } from "@/lib/market/market-runtime.server"
 import { fetchCmsFooterNavigation } from "@/lib/storefront/cms-footer-navigation"
 import type { CmsFooterNavigation } from "@/lib/storefront/cms-types"
 import { fetchExternalReviewTrustSources } from "@/lib/storefront/external-reviews.server"
@@ -89,7 +88,10 @@ export const loadPublicShell = async (
   market: Market,
   categoryPublicSlugsById?: PublicEntitySlugMap
 ): Promise<StorefrontShellProps> => {
-  const marketContext = getHerbatikaMarketContext(market)
+  const marketContext = getHerbatikaMarketContext(
+    market,
+    new URL(configuredCanonicalOrigin(market)).hostname
+  )
   const [
     flatMessages,
     reviewTrustSources,
@@ -126,7 +128,10 @@ export const loadPublicShell = async (
 export const loadPublicErrorShell = async (
   market: Market
 ): Promise<StorefrontShellProps> => {
-  const marketContext = getHerbatikaMarketContext(market)
+  const marketContext = getHerbatikaMarketContext(
+    market,
+    new URL(configuredCanonicalOrigin(market)).hostname
+  )
   const [flatMessages, reviewTrustSources] = await Promise.all([
     fetchStorefrontTextMessages(marketContext).catch(() => ({})),
     fetchExternalReviewTrustSources(market).catch(() => []),
@@ -185,6 +190,14 @@ export const redirectResult = <Value>(
   } as GetServerSidePropsResult<PublicPageProps<Value>>)
 }
 
+const configuredCanonicalOrigin = (market: Market): string => {
+  const binding = getConfiguredMarketRoutingRuntime().bindings[market]
+  if (!binding) {
+    throw new Error(`Market ${market} is not configured`)
+  }
+  return binding.canonicalOrigin
+}
+
 const trustedMarket = (
   context: GetServerSidePropsContext,
   expectedRouteKey: string
@@ -196,7 +209,7 @@ const trustedMarket = (
   }
   const headers = context.req.headers
   return headers["x-sf-market"] === market &&
-    headers["x-sf-canonical-origin"] === ROUTES[market].canonicalOrigin &&
+    headers["x-sf-canonical-origin"] === configuredCanonicalOrigin(market) &&
     headers["x-sf-route-key"] === expectedRouteKey &&
     typeof headers["x-sf-public-path"] === "string"
     ? market
@@ -245,7 +258,9 @@ const loadAlternates = async <Value>(
   if (equivalents.kind !== "found") {
     throw new Error("Equivalent routes are unavailable")
   }
-  const allowedMarkets = new Set(getConfiguredMarketRuntime().allowedMarkets)
+  const allowedMarkets = new Set(
+    getConfiguredMarketRoutingRuntime().allowedMarkets
+  )
 
   const entries = await Promise.all(
     equivalents.value.flatMap((candidate) =>
@@ -289,7 +304,7 @@ const loadStaticAlternates = async <Value>(
   path: Parameters<typeof buildPath>[0],
   loadSource: (market: Market) => Promise<PublicSourceResult<Value>>
 ): Promise<Readonly<Record<string, string>>> => {
-  const { allowedMarkets } = getConfiguredMarketRuntime()
+  const { allowedMarkets } = getConfiguredMarketRoutingRuntime()
   const entries = await Promise.all(
     allowedMarkets.map(async (market) => {
       const source = await loadSource(market)
@@ -475,7 +490,7 @@ export const resolveStaticPublicPage = async <Value>(
     return redirectResult(
       context,
       urlWithQuery(
-        new URL(canonicalPath, ROUTES[market].canonicalOrigin).href,
+        new URL(canonicalPath, configuredCanonicalOrigin(market)).href,
         query.kind === "redirect" ? query.redirectRawQuery : rawQuery
       )
     )
@@ -510,7 +525,7 @@ export const resolveStaticPublicPage = async <Value>(
       querySeo.indexable && (input.isIndexable?.(source.value) ?? true)
     const canonical = isIndexable
       ? urlWithQuery(
-          new URL(canonicalPath, ROUTES[market].canonicalOrigin).href,
+          new URL(canonicalPath, configuredCanonicalOrigin(market)).href,
           querySeo.canonicalRawQuery ?? ""
         )
       : undefined
@@ -569,7 +584,7 @@ export const resolveFlowPublicPage = async <Value>(
         ? buildAbsoluteUrl(input.query.path, market).href
         : new URL(
             typeof publicPath === "string" ? publicPath : "/",
-            ROUTES[market].canonicalOrigin
+            configuredCanonicalOrigin(market)
           ).href
     return redirectResult(
       context,

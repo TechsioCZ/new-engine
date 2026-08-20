@@ -341,7 +341,6 @@ test("all four market bindings are private, explicit, and scoped to Herbatika", 
   for (const market of ["SK", "CZ", "HU", "RO"] as const) {
     for (const prefix of [
       "MARKET_ACCEPTED_HOSTS",
-      "HERBATIKA_ACCEPTED_HOSTS",
       "MARKET_PUBLISHABLE_KEY",
       "MARKET_PUBLISHABLE_KEY_ID",
       "MARKET_REGION",
@@ -349,34 +348,18 @@ test("all four market bindings are private, explicit, and scoped to Herbatika", 
     ]) {
       const key = `${prefix}_${market}`
       const definition = byKey.get(key)
-      const sourceEnvVar = key.startsWith("HERBATIKA_")
-        ? `DC_${key}`
-        : `DC_HERBATIKA_${key}`
       expect(definition?.source.kind, key).toBe("local_env")
-      expect(definition?.source.env_var, key).toBe(sourceEnvVar)
+      expect(definition?.source.env_var, key).toBe(`DC_HERBATIKA_${key}`)
       expect(definition?.service_targets, key).toEqual([
         { service_id: "herbatika", env_var: key },
       ])
       expect(key.startsWith("NEXT_PUBLIC_"), key).toBe(false)
     }
+    expect(
+      byKey.get(`MARKET_ACCEPTED_HOSTS_${market}`)?.source.default_value
+    ).toBeUndefined()
+    expect(byKey.has(`HERBATIKA_ACCEPTED_HOSTS_${market}`)).toBe(false)
   }
-
-  const romanianHosts =
-    "herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz"
-  const slovakHosts =
-    "herbatica.sk,test-engine-herbatika-zane.web-revolution.cz"
-  expect(byKey.get("MARKET_ACCEPTED_HOSTS_SK")?.source.default_value).toBe(
-    slovakHosts
-  )
-  expect(byKey.get("HERBATIKA_ACCEPTED_HOSTS_SK")?.source.default_value).toBe(
-    slovakHosts
-  )
-  expect(byKey.get("MARKET_ACCEPTED_HOSTS_RO")?.source.default_value).toBe(
-    romanianHosts
-  )
-  expect(byKey.get("HERBATIKA_ACCEPTED_HOSTS_RO")?.source.default_value).toBe(
-    romanianHosts
-  )
 })
 
 test("Docker ingress pins Caddy and owns the raw URL boundary before Next", async () => {

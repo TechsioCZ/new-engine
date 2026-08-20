@@ -1,4 +1,5 @@
-import { defineStorefrontMarkets } from "@techsio/storefront-i18n/core/markets"
+import { createMarketRoutingRuntime } from "@/lib/market/market-runtime"
+import { normalizeHost } from "@/lib/market/market-runtime-definitions"
 
 export type HerbatikaMarketCode = "sk" | "cz" | "hu" | "ro"
 export type HerbatikaLocale = "sk-SK" | "cs-CZ" | "hu-HU" | "ro-RO"
@@ -21,6 +22,7 @@ export type HerbatikaMarketContext = {
 
 type ResolveMarketContextInput = {
   acceptLanguage?: string | null
+  environment?: Readonly<Record<string, string | undefined>>
   host?: string | null
 }
 
@@ -39,7 +41,6 @@ const MARKET_CONFIG = {
     htmlLang: "sk-SK",
     countryCode: "sk",
     currencyCode: "EUR",
-    domain: "herbatica.sk",
     metadata: {
       title: "Herbatica",
       description: "Herbatica e-shop - prírodné produkty",
@@ -52,7 +53,6 @@ const MARKET_CONFIG = {
     htmlLang: "cs-CZ",
     countryCode: "cz",
     currencyCode: "CZK",
-    domain: "herbatica.cz",
     metadata: {
       title: "Herbatica",
       description: "Herbatica e-shop - přírodní produkty",
@@ -65,7 +65,6 @@ const MARKET_CONFIG = {
     htmlLang: "hu-HU",
     countryCode: "hu",
     currencyCode: "HUF",
-    domain: "herbatica.hu",
     metadata: {
       title: "Herbatica",
       description: "Herbatica webáruház - természetes termékek",
@@ -78,35 +77,16 @@ const MARKET_CONFIG = {
     htmlLang: "ro-RO",
     countryCode: "ro",
     currencyCode: "RON",
-    domain: "herbatica.ro",
     metadata: {
       title: "Herbatica",
       description: "Herbatica magazin online - produse naturale",
     },
     timeZone: "Europe/Bucharest",
   },
-} as const satisfies Record<HerbatikaMarketCode, HerbatikaMarketContext>
-
-const HOST_MARKET_MAP: Record<string, HerbatikaMarketCode> = {
-  "herbatica.sk": "sk",
-  "www.herbatica.sk": "sk",
-  "herbatika.sk": "sk",
-  "www.herbatika.sk": "sk",
-  "test-engine-herbatika-zane.web-revolution.cz": "sk",
-  "herbatica.cz": "cz",
-  "www.herbatica.cz": "cz",
-  "herbatika.cz": "cz",
-  "www.herbatika.cz": "cz",
-  "herbatica.hu": "hu",
-  "www.herbatica.hu": "hu",
-  "herbatika.hu": "hu",
-  "www.herbatika.hu": "hu",
-  "herbatica.ro": "ro",
-  "www.herbatica.ro": "ro",
-  "herbatika.ro": "ro",
-  "www.herbatika.ro": "ro",
-  "test-engine-herbatika-ro-zane.web-revolution.cz": "ro",
-}
+} as const satisfies Record<
+  HerbatikaMarketCode,
+  Omit<HerbatikaMarketContext, "domain">
+>
 
 const LANGUAGE_MARKET_MAP: Record<string, HerbatikaMarketCode> = {
   cs: "cz",
@@ -117,22 +97,46 @@ const LANGUAGE_MARKET_MAP: Record<string, HerbatikaMarketCode> = {
 }
 
 export const DEFAULT_MARKET_CODE: HerbatikaMarketCode = "sk"
-const marketResolver = defineStorefrontMarkets({
-  defaultMarketCode: DEFAULT_MARKET_CODE,
-  hostMarketMap: HOST_MARKET_MAP,
-  languageMarketMap: LANGUAGE_MARKET_MAP,
-  markets: MARKET_CONFIG,
-})
-
-export const DEFAULT_MARKET_CONTEXT = marketResolver.defaultMarket
-export const HERBATIKA_MARKETS = Object.values(MARKET_CONFIG)
 
 export const getHerbatikaMarketContext = (
-  code: HerbatikaMarketCode
-): HerbatikaMarketContext => marketResolver.getMarket(code)
+  code: HerbatikaMarketCode,
+  domain = ""
+): HerbatikaMarketContext => ({ ...MARKET_CONFIG[code], domain })
+
+export const DEFAULT_MARKET_CONTEXT =
+  getHerbatikaMarketContext(DEFAULT_MARKET_CODE)
+export const HERBATIKA_MARKETS = Object.keys(MARKET_CONFIG).map((market) =>
+  getHerbatikaMarketContext(market as HerbatikaMarketCode)
+)
 
 export const resolveMarketContext = ({
   acceptLanguage,
+  environment = process.env,
   host,
-}: ResolveMarketContextInput = {}): HerbatikaMarketContext =>
-  marketResolver.resolveMarket({ acceptLanguage, host })
+}: ResolveMarketContextInput = {}): HerbatikaMarketContext => {
+  const normalizedHost = normalizeHost(host)
+  if (normalizedHost) {
+    try {
+      const runtime = createMarketRoutingRuntime(environment)
+      const market = runtime.marketByHost[normalizedHost]
+      const binding = market ? runtime.bindings[market] : undefined
+      if (binding) {
+        return getHerbatikaMarketContext(
+          binding.market,
+          new URL(binding.canonicalOrigin).hostname
+        )
+      }
+    } catch {
+      // The server boundary rejects invalid host authority. This pure resolver
+      // may still use language fallback for non-request consumers.
+    }
+  }
+
+  const language = acceptLanguage
+    ?.split(",", 1)[0]
+    ?.trim()
+    .toLowerCase()
+    .split("-", 1)[0]
+  const market = language ? LANGUAGE_MARKET_MAP[language] : undefined
+  return getHerbatikaMarketContext(market ?? DEFAULT_MARKET_CODE)
+}

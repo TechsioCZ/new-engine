@@ -1,4 +1,4 @@
-import { ROUTES } from "@/lib/market/market-runtime-definitions"
+import { getConfiguredMarketRoutingRuntime } from "@/lib/market/market-runtime.server"
 import { buildProductPath } from "@/lib/url/product-path"
 import { parseMarket } from "@/lib/url/segments"
 import type { SourceReadResult } from "@/lib/url-registry/contracts"
@@ -75,6 +75,7 @@ const resolveTrustedInput = (request: ProductPageRequest) => {
   }
 
   let expectedPublicPath: string
+  const binding = getConfiguredMarketRoutingRuntime().bindings[market]
   try {
     expectedPublicPath = buildProductPath(market, slug)
   } catch {
@@ -83,8 +84,7 @@ const resolveTrustedInput = (request: ProductPageRequest) => {
 
   if (
     singleValue(request.headers.market) !== market ||
-    singleValue(request.headers.canonicalOrigin) !==
-      ROUTES[market].canonicalOrigin ||
+    singleValue(request.headers.canonicalOrigin) !== binding?.canonicalOrigin ||
     singleValue(request.headers.routeKey) !== "product.detail" ||
     singleValue(request.headers.publicPath) !== expectedPublicPath
   ) {

@@ -585,17 +585,6 @@ preview_verification:
         - ZANE_PASSWORD
 
 bootstrap_zane_project:
-  # Zane's public-URL API exposes only domain/base-path/port routing. It does
-  # not expose the managed Caddy raw-request or request-header policy. Keep the
-  # Docker Caddy contract in the M00 wire gate and run the target wire gate
-  # against every Zane environment before enabling the URL architecture.
-  additional_public_urls:
-    - service_id: herbatika
-      domain: test-engine-herbatika-ro-zane.web-revolution.cz
-      associated_port: 3000
-      store_cors: true
-      auth_cors: true
-
   shared_env:
     - key: MEDUSA_DB_HOST
       source:
@@ -1099,7 +1088,6 @@ bootstrap_zane_project:
       source:
         kind: local_env
         env_var: DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_SK
-        default_value: herbatica.sk,test-engine-herbatika-zane.web-revolution.cz
       service_targets:
         - service_id: herbatika
           env_var: MARKET_ACCEPTED_HOSTS_SK
@@ -1108,7 +1096,6 @@ bootstrap_zane_project:
       source:
         kind: local_env
         env_var: DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_CZ
-        default_value: herbatica.cz
       service_targets:
         - service_id: herbatika
           env_var: MARKET_ACCEPTED_HOSTS_CZ
@@ -1117,7 +1104,6 @@ bootstrap_zane_project:
       source:
         kind: local_env
         env_var: DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_HU
-        default_value: herbatica.hu
       service_targets:
         - service_id: herbatika
           env_var: MARKET_ACCEPTED_HOSTS_HU
@@ -1126,46 +1112,9 @@ bootstrap_zane_project:
       source:
         kind: local_env
         env_var: DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_RO
-        default_value: herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz
       service_targets:
         - service_id: herbatika
           env_var: MARKET_ACCEPTED_HOSTS_RO
-
-    - key: HERBATIKA_ACCEPTED_HOSTS_SK
-      source:
-        kind: local_env
-        env_var: DC_HERBATIKA_ACCEPTED_HOSTS_SK
-        default_value: herbatica.sk,test-engine-herbatika-zane.web-revolution.cz
-      service_targets:
-        - service_id: herbatika
-          env_var: HERBATIKA_ACCEPTED_HOSTS_SK
-
-    - key: HERBATIKA_ACCEPTED_HOSTS_CZ
-      source:
-        kind: local_env
-        env_var: DC_HERBATIKA_ACCEPTED_HOSTS_CZ
-        default_value: herbatica.cz
-      service_targets:
-        - service_id: herbatika
-          env_var: HERBATIKA_ACCEPTED_HOSTS_CZ
-
-    - key: HERBATIKA_ACCEPTED_HOSTS_HU
-      source:
-        kind: local_env
-        env_var: DC_HERBATIKA_ACCEPTED_HOSTS_HU
-        default_value: herbatica.hu
-      service_targets:
-        - service_id: herbatika
-          env_var: HERBATIKA_ACCEPTED_HOSTS_HU
-
-    - key: HERBATIKA_ACCEPTED_HOSTS_RO
-      source:
-        kind: local_env
-        env_var: DC_HERBATIKA_ACCEPTED_HOSTS_RO
-        default_value: herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz
-      service_targets:
-        - service_id: herbatika
-          env_var: HERBATIKA_ACCEPTED_HOSTS_RO
 
     - key: MARKET_PUBLISHABLE_KEY_SK
       source:

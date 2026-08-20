@@ -31,10 +31,12 @@ export type OrderConfirmationAccess = Readonly<{
 export type PaymentReturnProvider = "comgate" | "gopay" | "stripe"
 
 export type PaymentReturnAccess = Readonly<{
+  canonicalOrigin: string
   cartId: string
   expiresAt: string
   provider: PaymentReturnProvider
   providerId: string
+  market: Market
   state: string
 }>
 
@@ -122,23 +124,37 @@ export const issuePaymentReturnAccess = async (
     fetcher
   )
 
+  let canonicalOrigin: URL
+  try {
+    canonicalOrigin = new URL(String(payload.canonicalOrigin))
+  } catch {
+    throw new Error("Payment return access response did not match the cart.")
+  }
   if (
+    canonicalOrigin.protocol !== "https:" ||
+    canonicalOrigin.origin !== payload.canonicalOrigin ||
     payload.cartId !== input.cartId ||
     payload.providerId !== input.providerId ||
     !isPaymentReturnProvider(payload.provider) ||
     typeof payload.state !== "string" ||
     payload.state.length === 0 ||
     typeof payload.expiresAt !== "string" ||
-    !Number.isFinite(Date.parse(payload.expiresAt))
+    !Number.isFinite(Date.parse(payload.expiresAt)) ||
+    (payload.market !== "sk" &&
+      payload.market !== "cz" &&
+      payload.market !== "hu" &&
+      payload.market !== "ro")
   ) {
     throw new Error("Payment return access response did not match the cart.")
   }
 
   return {
+    canonicalOrigin: canonicalOrigin.origin,
     cartId: payload.cartId,
     expiresAt: payload.expiresAt,
     provider: payload.provider,
     providerId: payload.providerId,
+    market: payload.market,
     state: payload.state,
   }
 }

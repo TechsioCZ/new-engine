@@ -4,33 +4,16 @@ import type {
   MedusaPaymentSessionDataInput,
 } from "@techsio/storefront-data/checkout/medusa-service"
 import {
-  DECLARED_HOST_OWNERSHIP,
-  normalizeHost,
-  ROUTES,
-} from "@/lib/market/market-runtime-definitions"
-import {
   bindPaymentReturnAccess,
   issuePaymentReturnAccess,
   type PaymentReturnAccess,
 } from "@/lib/storefront/checkout-access"
-import { buildAbsoluteUrl, withPublicSearchParams } from "@/lib/url/public-url"
-import type { Market } from "@/lib/url/types"
-
-const resolveBrowserMarket = (): Market | null => {
-  if (typeof window === "undefined") {
-    return null
-  }
-
-  const host = normalizeHost(window.location.host)
-  return host ? (DECLARED_HOST_OWNERSHIP[host] ?? null) : null
-}
+import { withPublicSearchParams } from "@/lib/url/public-url"
 
 export const buildHerbatikaPaymentReturnUrl = ({
   access,
-  market,
 }: {
   access: PaymentReturnAccess
-  market: Market
 }) => {
   const pathname = withPublicSearchParams(
     `/api/payments/${access.provider}/return`,
@@ -40,10 +23,7 @@ export const buildHerbatikaPaymentReturnUrl = ({
       provider_id: access.providerId,
     }
   )
-  return new URL(
-    pathname,
-    buildAbsoluteUrl({ kind: "home" }, market)
-  ).toString()
+  return new URL(pathname, access.canonicalOrigin).toString()
 }
 
 const resolveCartEmail = (cart: HttpTypes.StoreCart) => {
@@ -57,13 +37,8 @@ export const buildHerbatikaPaymentSessionData = async ({
   providerId,
 }: MedusaPaymentSessionDataInput): Promise<Record<string, unknown>> => {
   const email = resolveCartEmail(cart)
-  const market = resolveBrowserMarket()
-  if (!market) {
-    throw new Error("Payment return market could not be resolved.")
-  }
-
   const access = await issuePaymentReturnAccess({ cartId, providerId })
-  const returnUrl = buildHerbatikaPaymentReturnUrl({ access, market })
+  const returnUrl = buildHerbatikaPaymentReturnUrl({ access })
   const metadata = {
     cart_id: cartId,
     provider_id: providerId,
@@ -99,7 +74,7 @@ const readPaymentReturnState = (
   paymentSessionData: Record<string, unknown> | undefined,
   cartId: string,
   providerId: string,
-  market: Market
+  expectedOrigin: string
 ): string | null => {
   const value = paymentSessionData?.return_url
   if (typeof value !== "string") {
@@ -118,7 +93,7 @@ const readPaymentReturnState = (
   if (
     url.protocol !== "https:" ||
     Boolean(url.username || url.password) ||
-    url.origin !== ROUTES[market].canonicalOrigin ||
+    url.origin !== expectedOrigin ||
     !PAYMENT_RETURN_PATH.test(url.pathname) ||
     url.hash ||
     keys.length !== PAYMENT_RETURN_QUERY_KEYS.length ||
@@ -139,9 +114,15 @@ export const bindHerbatikaPaymentSessionData = async ({
   paymentSessionId,
   providerId,
 }: MedusaPaymentSessionBindingInput): Promise<void> => {
-  const market = resolveBrowserMarket()
-  const state = market
-    ? readPaymentReturnState(paymentSessionData, cartId, providerId, market)
+  const expectedOrigin =
+    typeof window === "undefined" ? null : window.location.origin
+  const state = expectedOrigin
+    ? readPaymentReturnState(
+        paymentSessionData,
+        cartId,
+        providerId,
+        expectedOrigin
+      )
     : null
   if (!state) {
     throw new Error("Payment return state was not prepared.")

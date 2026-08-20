@@ -4,6 +4,7 @@ import {
   type MarketCode as MarketCodeDefinition,
   type MarketCountryCode as MarketCountryCodeDefinition,
   type MarketLocale as MarketLocaleDefinition,
+  type MarketRoutingRuntime,
   type MarketRuntimeBinding as MarketRuntimeBindingDefinition,
   type MarketRuntime as MarketRuntimeDefinition,
   type MarketRuntimeEnvironment as MarketRuntimeEnvironmentDefinition,
@@ -11,9 +12,11 @@ import {
   ROUTES,
 } from "./market-runtime-definitions"
 import {
+  assertUniqueAcceptedHosts,
   assertUniqueAuthority,
   parseAllowedMarkets,
   readAcceptedHosts,
+  readCanonicalOrigin,
   readRequiredValue,
 } from "./market-runtime-environment"
 
@@ -25,14 +28,46 @@ export type MarketRuntime = MarketRuntimeDefinition
 export type MarketRuntimeBinding = MarketRuntimeBindingDefinition
 export type MarketRuntimeEnvironment = MarketRuntimeEnvironmentDefinition
 
+export const createMarketRoutingRuntime = (
+  environment: MarketRuntimeEnvironment
+): MarketRoutingRuntime => {
+  const allowedMarkets = parseAllowedMarkets(environment)
+  const bindings = allowedMarkets.map((market) => {
+    const acceptedHosts = readAcceptedHosts(environment, market)
+    return Object.freeze({
+      acceptedHosts,
+      canonicalOrigin: readCanonicalOrigin(environment, market),
+      market,
+    })
+  })
+  assertUniqueAcceptedHosts(bindings)
+
+  return Object.freeze({
+    allowedMarkets,
+    bindings: Object.freeze(
+      Object.fromEntries(bindings.map((binding) => [binding.market, binding]))
+    ),
+    marketByHost: Object.freeze(
+      Object.fromEntries(
+        bindings.flatMap((binding) =>
+          binding.acceptedHosts.map((host) => [host, binding.market] as const)
+        )
+      )
+    ),
+  })
+}
+
 export const createMarketRuntime = (
   environment: MarketRuntimeEnvironment
 ): MarketRuntime => {
-  const allowedMarkets = parseAllowedMarkets(environment)
-  const bindings = allowedMarkets.map((market) => {
+  const routing = createMarketRoutingRuntime(environment)
+  const bindings = routing.allowedMarkets.map((market) => {
     const suffix = market.toUpperCase()
     const route = ROUTES[market]
-    const canonicalHost = new URL(route.canonicalOrigin).hostname
+    const routeBinding = routing.bindings[market]
+    if (!routeBinding) {
+      throw new Error(`Missing routing binding for market ${market}`)
+    }
     const publishableApiKey = readRequiredValue(
       environment,
       `MARKET_PUBLISHABLE_KEY_${suffix}`
@@ -48,8 +83,8 @@ export const createMarketRuntime = (
     }
 
     return Object.freeze({
-      acceptedHosts: readAcceptedHosts(environment, market, canonicalHost),
-      canonicalOrigin: route.canonicalOrigin,
+      acceptedHosts: routeBinding.acceptedHosts,
+      canonicalOrigin: routeBinding.canonicalOrigin,
       countryCode: route.countryCode,
       locale: route.locale,
       market: route.market,
@@ -78,7 +113,7 @@ export const createMarketRuntime = (
   )
 
   return Object.freeze({
-    allowedMarkets,
+    allowedMarkets: routing.allowedMarkets,
     bindings: Object.freeze(bindingByMarket),
     marketByHost: Object.freeze(marketByHost),
   })
