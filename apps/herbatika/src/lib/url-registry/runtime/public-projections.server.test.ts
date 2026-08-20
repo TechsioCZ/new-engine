@@ -116,4 +116,30 @@ describe("targeted public entity projection reads", () => {
 
     expect(mocks.getUrlRegistryRuntime).not.toHaveBeenCalled()
   })
+
+  it("bounds concurrent registry reads below the runtime pool size", async () => {
+    let activeReads = 0
+    let maximumActiveReads = 0
+    mocks.findActiveEntityRoute.mockImplementation(async () => {
+      activeReads += 1
+      maximumActiveReads = Math.max(maximumActiveReads, activeReads)
+      await Promise.resolve()
+      activeReads -= 1
+      return { kind: "missing" }
+    })
+
+    await expect(
+      listPublicEntityProjections({
+        kind: "product",
+        market: "sk",
+        requiredSourceIds: Array.from(
+          { length: 12 },
+          (_, index) => `prod-${index}`
+        ),
+      })
+    ).resolves.toEqual({ kind: "found", value: [] })
+
+    expect(maximumActiveReads).toBe(5)
+    expect(mocks.findActiveEntityRoute).toHaveBeenCalledTimes(12)
+  })
 })

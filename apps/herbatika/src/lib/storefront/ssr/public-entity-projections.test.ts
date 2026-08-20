@@ -236,6 +236,36 @@ describe("readAvailablePublicEntitySlugs", () => {
       requiredSourceIds: ["prod-1", "prod-missing"],
     })
   })
+
+  it("loads large available listings in bounded projection batches", async () => {
+    const sourceIds = Array.from(
+      { length: 128 },
+      (_, index) => `brand-${index}`
+    )
+    mocks.listPublicEntityProjections.mockReset()
+    mocks.listPublicEntityProjections
+      .mockResolvedValueOnce({ kind: "found", value: [] })
+      .mockResolvedValueOnce({ kind: "found", value: [] })
+
+    await expect(
+      readAvailablePublicEntitySlugs({
+        kind: "brand",
+        market: "sk",
+        requiredSourceIds: sourceIds,
+      })
+    ).resolves.toEqual({ kind: "found", value: {} })
+
+    expect(mocks.listPublicEntityProjections).toHaveBeenNthCalledWith(1, {
+      kind: "brand",
+      market: "sk",
+      requiredSourceIds: sourceIds.slice(0, 100),
+    })
+    expect(mocks.listPublicEntityProjections).toHaveBeenNthCalledWith(2, {
+      kind: "brand",
+      market: "sk",
+      requiredSourceIds: sourceIds.slice(100),
+    })
+  })
 })
 
 describe("mapRequiredPublicStaticHrefs", () => {
