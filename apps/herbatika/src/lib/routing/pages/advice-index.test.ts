@@ -17,7 +17,7 @@ vi.mock("@/lib/storefront/market-context", () => ({
   getHerbatikaMarketContext: vi.fn(() => ({ locale: "sk-SK" })),
 }))
 vi.mock("@/lib/storefront/ssr/public-entity-projections", () => ({
-  readRequiredPublicEntitySlugs: vi.fn(),
+  readAvailablePublicEntitySlugs: vi.fn(),
 }))
 
 describe("advice index CMS source", () => {
@@ -27,7 +27,7 @@ describe("advice index CMS source", () => {
 
   it("passes the canonical category and page to the CMS listing loader", async () => {
     const { fetchCmsBlogListing } = await import("@/lib/storefront/cms")
-    const { readRequiredPublicEntitySlugs } = await import(
+    const { readAvailablePublicEntitySlugs } = await import(
       "@/lib/storefront/ssr/public-entity-projections"
     )
     vi.mocked(fetchCmsBlogListing).mockResolvedValue({
@@ -38,7 +38,7 @@ describe("advice index CMS source", () => {
       totalItems: 1,
       totalPages: 1,
     } as never)
-    vi.mocked(readRequiredPublicEntitySlugs).mockResolvedValue({
+    vi.mocked(readAvailablePublicEntitySlugs).mockResolvedValue({
       kind: "found",
       value: { "article-1": "zdravy-spanok" },
     })
