@@ -2105,6 +2105,13 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     <Table.Cell
       className={stickyActions ? "sticky end-0 bg-table-bg" : undefined}
       numeric
+      style={
+        // Pinned body cells carry `pinnedCell` from `getPinningStyles`; without
+        // the same stacking level here a frozen column scrolls straight over
+        // the sticky actions cell. The header and filter actions cells already
+        // set their own level for exactly this reason.
+        stickyActions ? { zIndex: DATA_TABLE_Z.pinnedCell } : undefined
+      }
     >
       <div className={styles.actionsCell()}>
         {enableExpanding && row.getCanExpand() ? (
