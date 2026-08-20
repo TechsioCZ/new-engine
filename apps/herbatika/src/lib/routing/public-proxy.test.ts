@@ -93,6 +93,23 @@ describe("full public URL proxy", () => {
     })
   })
 
+  it("accepts the declared Romanian preview host without a runtime Edge env lookup", () => {
+    const previewHost = "test-engine-herbatika-ro-zane.web-revolution.cz"
+
+    expect(resolve("/", { host: previewHost })).toMatchObject({
+      canonicalizationRequired: true,
+      kind: "rewrite",
+      market: "ro",
+      pathname: "/~sf/ro/home",
+    })
+    expect(
+      resolve("/", {
+        environment: { ALLOWED_MARKETS: "sk,cz,hu" },
+        host: previewHost,
+      })
+    ).toEqual({ kind: "respond", status: 421 })
+  })
+
   it.each([
     "/p/legacy",
     "/c/legacy",
