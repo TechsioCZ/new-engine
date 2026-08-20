@@ -721,7 +721,11 @@ export type DataTableProps<T extends RowData> = {
    */
   toolbarActions?: DataTableToolbarAction[]
   renderEmpty?: () => ReactNode
-  /** Row actions; receives edit-mode state so you can swap in save/cancel. */
+  /**
+   * Row actions; receives edit-mode state so you can swap in save/cancel.
+   * Return `null` to render no actions for that row, or `undefined` to fall
+   * through to the built-in edit button.
+   */
   renderRowActions?: (
     row: Row<T>,
     state: {
@@ -732,6 +736,10 @@ export type DataTableProps<T extends RowData> = {
       disabled: boolean
     }
   ) => ReactNode
+  /**
+   * Replace the filter control for a column. Return `null` for no filter at
+   * all, or `undefined` to fall through to the type-driven default.
+   */
   renderHeaderFilter?: (column: Column<T, unknown>) => ReactNode
   renderExpandedRow?: (row: Row<T>) => ReactNode
 
@@ -1796,8 +1804,10 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     if (meta?.renderFilter) {
       return meta.renderFilter(ctx)
     }
+    // Same `undefined` vs `null` contract as `rowActionsContent`: `null` is a
+    // deliberate "no filter for this column", not a fall-through.
     const slot = renderHeaderFilter?.(column)
-    if (slot != null) {
+    if (slot !== undefined) {
       return slot
     }
     const renderer =
@@ -2070,6 +2080,27 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   }
 
   /** Row-level actions cell, optionally pinned to the right edge. */
+  /**
+   * Row actions for one row: the custom slot if it rendered something, the
+   * built-in edit button otherwise.
+   *
+   * `undefined` and `null` mean different things here. An absent slot, or one
+   * returning `undefined`, is "not handling this row" and falls through to the
+   * default; returning `null` is the React convention for "render nothing" and
+   * is how a consumer suppresses the actions for a particular row. The old
+   * `?? defaultRowActions(row)` collapsed the two and put the edit pencil back.
+   */
+  const rowActionsContent = (row: Row<T>) => {
+    const custom = renderRowActions?.(row, {
+      isEditing: editingRowId === row.id,
+      startEdit: () => startEdit(row),
+      commitEdit,
+      cancelEdit,
+      disabled: isEditing && editingRowId !== row.id,
+    })
+    return custom === undefined ? defaultRowActions(row) : custom
+  }
+
   const renderActionsCell = (row: Row<T>) => (
     <Table.Cell
       className={stickyActions ? "sticky end-0 bg-table-bg" : undefined}
@@ -2112,13 +2143,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             />
           )
         )}
-        {renderRowActions?.(row, {
-          isEditing: editingRowId === row.id,
-          startEdit: () => startEdit(row),
-          commitEdit,
-          cancelEdit,
-          disabled: isEditing && editingRowId !== row.id,
-        }) ?? defaultRowActions(row)}
+        {rowActionsContent(row)}
       </div>
     </Table.Cell>
   )

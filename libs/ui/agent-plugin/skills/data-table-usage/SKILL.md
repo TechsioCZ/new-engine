@@ -165,6 +165,10 @@ Edit callbacks: `onEditStart`, `onEditChange`, `onEditCommit`, `onEditCancel`
 (with `dirty`), `onEditValidationError`, plus controlled `editingRowId` /
 `onEditingRowIdChange`.
 
+Slot return contract: `renderRowActions` and `renderHeaderFilter` treat
+`undefined` as "not handling this one" (falls through to the built-in edit
+button / the type-driven filter) and `null` as "render nothing here".
+
 ## Toolbar
 
 The toolbar is one row: the global search stretches to fill the free width, and

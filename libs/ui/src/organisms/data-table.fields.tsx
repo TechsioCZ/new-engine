@@ -850,6 +850,13 @@ function matchRangeOverlap(
 }
 
 function matchDateRange(cell: unknown, f: DateRangeFilterValue) {
+  // Clearing a date input leaves `{ from: "" }` behind rather than dropping the
+  // filter value, so "is anything constrained?" has to be asked before "is the
+  // cell blank?" — otherwise an empty filter still hides every row with no
+  // date. Same rule `matchNumber` follows.
+  if (isBlank(f.from) && isBlank(f.to)) {
+    return true
+  }
   if (isBlank(cell)) {
     return false
   }
@@ -894,12 +901,16 @@ function toMinutes(value: unknown): number | undefined {
 }
 
 function matchTime(cell: unknown, f: DateRangeFilterValue) {
+  const from = toMinutes(f.from)
+  const to = toMinutes(f.to)
+  // No bound set means no constraint — see `matchDateRange`.
+  if (from === undefined && to === undefined) {
+    return true
+  }
   const t = toMinutes(cell)
   if (t === undefined) {
     return false
   }
-  const from = toMinutes(f.from)
-  const to = toMinutes(f.to)
   // An inverted window (22:00 → 06:00) is read as crossing midnight.
   if (from !== undefined && to !== undefined && from > to) {
     return t >= from || t <= to
