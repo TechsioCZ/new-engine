@@ -2,7 +2,6 @@ import { createHash } from "node:crypto"
 import { readFile, writeFile } from "node:fs/promises"
 import { resolve } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
-import { parseRoCatalogScopePlanArtifact } from "../../../medusa-be/src/scripts/ro-catalog-readiness-contract"
 import {
   hashPopulationManifest,
   parsePopulationManifest,
@@ -16,6 +15,7 @@ import {
 import { createPgUrlrConvergenceReader } from "./urlr-convergence-db"
 import { computeUrlrConvergenceEvidence } from "./urlr-convergence-evidence"
 import { buildExpectedUrlrEntities } from "./urlr-convergence-identity"
+import { parseUrlrConvergenceImportPlan } from "./urlr-convergence-import-plan"
 
 export const MEDUSA_DATABASE_URL_ENV = "DATABASE_URL"
 export const URL_REGISTRY_DATABASE_URL_ENV = "URL_REGISTRY_DATABASE_URL"
@@ -99,7 +99,7 @@ export const runUrlrConvergenceCli = async (
     jsonFile(options.populationManifestPath),
     readFile(options.staticTaxonomyConvergencePath),
   ])
-  const importPlan = parseRoCatalogScopePlanArtifact(importPlanValue)
+  const importPlan = parseUrlrConvergenceImportPlan(importPlanValue)
   const populationManifest = parsePopulationManifest(populationValue)
   const staticConvergence = parseStaticTaxonomyConvergence(
     JSON.parse(staticBytes.toString("utf8"))

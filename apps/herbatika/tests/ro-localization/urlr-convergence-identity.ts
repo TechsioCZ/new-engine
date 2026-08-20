@@ -1,10 +1,10 @@
 import { createHash } from "node:crypto"
-import type { RoCatalogScopePlanArtifact } from "../../../medusa-be/src/scripts/ro-catalog-readiness-contract"
 import type {
   PopulationEntity,
   PopulationManifest,
 } from "../../src/lib/url-registry/population/manifest-contracts"
-import { canonicalCutoverValue } from "./cutover-receipt.mjs"
+import { canonicalizePopulationValue } from "../../src/lib/url-registry/population/manifest-primitives"
+import type { UrlrConvergenceCatalogScope } from "./urlr-convergence-import-plan"
 
 /** The actual producer identity normalized by the Medusa outbox. */
 export const RO_CATALOG_IMPORTER_SOURCE = "medusa"
@@ -31,7 +31,7 @@ export const urlrStreamKey = (kind: UrlrEntityKind, entityId: string) =>
 
 const scopeIds = (
   scope: Pick<
-    RoCatalogScopePlanArtifact,
+    UrlrConvergenceCatalogScope,
     "brandIds" | "categoryPublishedIds" | "productPublishedIds"
   >
 ) =>
@@ -74,7 +74,7 @@ const roCatalogEntities = (
  */
 export const buildExpectedUrlrEntities = (
   scope: Pick<
-    RoCatalogScopePlanArtifact,
+    UrlrConvergenceCatalogScope,
     "brandIds" | "categoryPublishedIds" | "productPublishedIds"
   >,
   manifest: PopulationManifest
@@ -132,4 +132,6 @@ export const sha256OfSortedKeys = (values: readonly string[]): string =>
     .digest("hex")
 
 export const sha256OfCanonicalValue = (value: unknown): string =>
-  createHash("sha256").update(canonicalCutoverValue(value)).digest("hex")
+  createHash("sha256")
+    .update(JSON.stringify(canonicalizePopulationValue(value)))
+    .digest("hex")

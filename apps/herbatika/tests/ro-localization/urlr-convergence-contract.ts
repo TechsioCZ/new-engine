@@ -3,10 +3,10 @@
 // `validateUrlRegistryProof` in `./cutover-receipt.mjs` (the release gate's
 // own consumer of this artifact). That function is not exported, so this
 // module re-derives the same checks instead of loosening them; if the gate's
-// shape changes, update both together. Canonical byte serialization reuses
-// the gate's own `canonicalCutoverValue` so output is guaranteed to satisfy
-// the gate's byte-exact canonical-JSON check.
-import { canonicalCutoverValue } from "./cutover-receipt.mjs"
+// shape changes, update both together. Canonical byte serialization uses the
+// same recursively sorted JSON representation as the release gate without
+// importing the gate's cross-application verification dependencies.
+import { canonicalizePopulationValue } from "../../src/lib/url-registry/population/manifest-primitives"
 
 const SHA256_PATTERN = /^[a-f0-9]{64}$/
 
@@ -314,7 +314,7 @@ export const parseUrlrConvergenceProof = (
 }
 
 export const canonicalUrlrConvergenceProof = (value: unknown): string =>
-  canonicalCutoverValue(value)
+  JSON.stringify(canonicalizePopulationValue(value))
 
 export const serializeUrlrConvergenceProof = (
   proof: UrlrConvergenceProof
