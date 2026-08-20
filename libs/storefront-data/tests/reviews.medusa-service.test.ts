@@ -115,12 +115,14 @@ describe("createMedusaProductReviewService", () => {
 
     const result = await service.listProductReviews({
       productId: "prod_1",
+      locale: "sk-SK",
       limit: 3,
       offset: 0,
     })
 
     expect(fetch).toHaveBeenNthCalledWith(1, "/store/products/prod_1/reviews", {
       query: {
+        locale: "sk-SK",
         limit: 3,
         offset: 0,
       },
@@ -128,6 +130,7 @@ describe("createMedusaProductReviewService", () => {
     })
     expect(fetch).toHaveBeenNthCalledWith(2, "/store/products/prod_1/reviews", {
       query: {
+        locale: "sk-SK",
         limit: 9,
         offset: 0,
       },
@@ -137,6 +140,30 @@ describe("createMedusaProductReviewService", () => {
     expect(result.summary).toEqual({
       average_rating: 4.7,
       count: 9,
+    })
+  })
+
+  it("forwards the exact locale used to isolate review UGC", async () => {
+    const { fetch, sdk } = createSdkMock()
+    fetch.mockResolvedValueOnce(
+      createReviewResponse({ limit: 20, ratings: [] })
+    )
+    const service = createMedusaProductReviewService(sdk)
+
+    await service.listProductReviews({
+      productId: "prod_1",
+      locale: "ro-RO",
+      limit: 20,
+      offset: 0,
+    })
+
+    expect(fetch).toHaveBeenCalledWith("/store/products/prod_1/reviews", {
+      query: {
+        locale: "ro-RO",
+        limit: 20,
+        offset: 0,
+      },
+      signal: undefined,
     })
   })
 })

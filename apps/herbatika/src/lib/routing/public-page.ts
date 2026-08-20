@@ -19,6 +19,7 @@ import { getRegionServerContext } from "@/lib/storefront/ssr/context"
 import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
 import { readRequiredPublicEntitySlugs } from "@/lib/storefront/ssr/public-entity-projections"
 import { fetchStorefrontTextMessages } from "@/lib/storefront/storefront-texts.server"
+import { hasValidActiveProjection } from "@/lib/url/public-route-api"
 import type { PublicSeoSchemaType } from "@/lib/url/public-seo"
 import { classifySeo } from "@/lib/url/public-seo"
 import { buildAbsoluteUrl, buildPath } from "@/lib/url/public-url"
@@ -226,13 +227,24 @@ const currentAbsoluteUrl = (
   rawQuery: string
 ) => urlWithQuery(buildAbsoluteUrl({ kind, slug }, market).href, rawQuery)
 
-const loadAlternates = async <Value>(
+export const loadEntityAlternates = async <Value>(
   current: ActiveEntityRouteTarget,
   loadSource: (input: {
     market: Market
     sourceId: string
-  }) => Promise<PublicSourceResult<Value>>
+  }) => Promise<PublicSourceResult<Value>>,
+  isIndexable?: (value: Value) => boolean
 ): Promise<Readonly<Record<string, string>>> => {
+  if (
+    !hasValidActiveProjection(
+      current,
+      current.route.market,
+      current.route.kind
+    ) ||
+    current.route.indexPolicy !== "indexable"
+  ) {
+    throw new Error("Current route projection is invalid")
+  }
   const self = [
     HREF_LANG[current.route.market],
     buildAbsoluteUrl(
@@ -247,52 +259,114 @@ const loadAlternates = async <Value>(
   if (!equivalenceKey) {
     return Object.fromEntries([self])
   }
-  const runtime = await getUrlRegistryRuntime()
-  if (!runtime.enabled) {
-    throw new Error("URL registry is disabled")
-  }
-  const equivalents = await runtime.registry.findActiveEquivalents({
-    equivalenceKey,
-    kind: current.route.kind,
-  })
-  if (equivalents.kind !== "found") {
-    throw new Error("Equivalent routes are unavailable")
-  }
-  const allowedMarkets = new Set(
-    getConfiguredMarketRoutingRuntime().allowedMarkets
-  )
-
-  const entries = await Promise.all(
-    equivalents.value.flatMap((candidate) =>
-      candidate.projectionType === "entity" &&
-      candidate.route.kind === current.route.kind &&
-      allowedMarkets.has(candidate.route.market)
-        ? [
-            (async () => {
-              const source = await loadSource({
-                market: candidate.route.market,
-                sourceId: candidate.route.sourceId,
-              })
-              if (source.kind === "missing") {
-                return null
-              }
-              if (source.kind !== "found") {
-                throw new Error("Equivalent route source is unavailable")
-              }
-              return [
-                HREF_LANG[candidate.route.market],
-                buildAbsoluteUrl(
-                  {
-                    kind: candidate.route.kind,
-                    slug: candidate.currentSlug.normalizedSlug,
-                  },
-                  candidate.route.market
-                ).href,
-              ] as const
-            })(),
-          ]
-        : []
+  try {
+    const runtime = await getUrlRegistryRuntime()
+    if (!runtime.enabled) {
+      return Object.fromEntries([self])
+    }
+    const equivalents = await runtime.registry.findActiveEquivalents({
+      equivalenceKey,
+      kind: current.route.kind,
+    })
+    if (equivalents.kind !== "found") {
+      return Object.fromEntries([self])
+    }
+    const allowedMarkets = new Set(
+      getConfiguredMarketRoutingRuntime().allowedMarkets
     )
+    const candidatesByMarket = new Map<Market, ActiveEntityRouteTarget>()
+    const ambiguousMarkets = new Set<Market>()
+    for (const candidate of equivalents.value) {
+      if (
+        candidate.projectionType !== "entity" ||
+        candidate.route.market === current.route.market ||
+        !allowedMarkets.has(candidate.route.market) ||
+        !hasValidActiveProjection(
+          candidate,
+          candidate.route.market,
+          current.route.kind
+        ) ||
+        candidate.route.equivalenceKey !== equivalenceKey ||
+        candidate.route.indexPolicy !== "indexable"
+      ) {
+        continue
+      }
+      if (ambiguousMarkets.has(candidate.route.market)) {
+        continue
+      }
+      const existing = candidatesByMarket.get(candidate.route.market)
+      if (existing && existing.route.id !== candidate.route.id) {
+        candidatesByMarket.delete(candidate.route.market)
+        ambiguousMarkets.add(candidate.route.market)
+        continue
+      }
+      candidatesByMarket.set(candidate.route.market, candidate)
+    }
+
+    const entries = await Promise.all(
+      [...candidatesByMarket.values()].map(async (candidate) => {
+        try {
+          const source = await loadSource({
+            market: candidate.route.market,
+            sourceId: candidate.route.sourceId,
+          })
+          if (
+            source.kind !== "found" ||
+            !(isIndexable?.(source.value) ?? true)
+          ) {
+            return null
+          }
+          return [
+            HREF_LANG[candidate.route.market],
+            buildAbsoluteUrl(
+              {
+                kind: candidate.route.kind,
+                slug: candidate.currentSlug.normalizedSlug,
+              },
+              candidate.route.market
+            ).href,
+          ] as const
+        } catch {
+          return null
+        }
+      })
+    )
+    return Object.fromEntries([
+      ...entries.filter((entry) => entry !== null),
+      self,
+    ])
+  } catch {
+    return Object.fromEntries([self])
+  }
+}
+
+const loadStaticAlternates = async <Value>(
+  currentMarket: Market,
+  path: Parameters<typeof buildPath>[0],
+  loadSource: (market: Market) => Promise<PublicSourceResult<Value>>
+): Promise<Readonly<Record<string, string>>> => {
+  const { allowedMarkets } = getConfiguredMarketRoutingRuntime()
+  const self = [
+    HREF_LANG[currentMarket],
+    buildAbsoluteUrl(path, currentMarket).href,
+  ] as const
+  const entries = await Promise.all(
+    allowedMarkets
+      .filter((market) => market !== currentMarket)
+      .map(async (market) => {
+        try {
+          const source = await loadSource(market)
+          if (source.kind !== "found") {
+            return null
+          }
+          return [
+            HREF_LANG[market],
+            buildAbsoluteUrl(path, market).href,
+          ] as const
+        } catch {
+          return null
+        }
+      })
   )
   return Object.fromEntries([
     self,
@@ -300,30 +374,11 @@ const loadAlternates = async <Value>(
   ])
 }
 
-const loadStaticAlternates = async <Value>(
-  path: Parameters<typeof buildPath>[0],
-  loadSource: (market: Market) => Promise<PublicSourceResult<Value>>
-): Promise<Readonly<Record<string, string>>> => {
-  const { allowedMarkets } = getConfiguredMarketRoutingRuntime()
-  const entries = await Promise.all(
-    allowedMarkets.map(async (market) => {
-      const source = await loadSource(market)
-      if (source.kind === "missing") {
-        return null
-      }
-      if (source.kind !== "found") {
-        throw new Error("Static alternate source is unavailable")
-      }
-      return [HREF_LANG[market], buildAbsoluteUrl(path, market).href] as const
-    })
-  )
-  return Object.fromEntries(entries.filter((entry) => entry !== null))
-}
-
 export const resolveEntityPublicPage = async <Value>(
   context: GetServerSidePropsContext,
   input: Readonly<{
     expectedRouteKey: string
+    description?: (value: Value) => string | undefined
     kind: EntityUrlKind
     loadSource: (input: {
       market: Market
@@ -434,7 +489,11 @@ export const resolveEntityPublicPage = async <Value>(
       querySeo.indexable && (input.isIndexable?.(source.value) ?? true)
     const alternates =
       isIndexable && querySeo.alternateEligible
-        ? await loadAlternates(current, input.loadSource)
+        ? await loadEntityAlternates(
+            current,
+            input.loadSource,
+            input.isIndexable
+          )
         : {}
     const canonical = isIndexable
       ? urlWithQuery(
@@ -452,6 +511,9 @@ export const resolveEntityPublicPage = async <Value>(
           alternates,
           canonical,
           robots: isIndexable ? "index, follow" : "noindex, follow",
+          ...(input.description
+            ? { description: input.description(source.value) }
+            : {}),
           ...(input.title ? { title: input.title(source.value) } : {}),
         },
       },
@@ -531,7 +593,7 @@ export const resolveStaticPublicPage = async <Value>(
       : undefined
     const alternates =
       isIndexable && querySeo.alternateEligible
-        ? await loadStaticAlternates(input.path, input.loadSource)
+        ? await loadStaticAlternates(market, input.path, input.loadSource)
         : {}
     setNoStore(context)
     return {

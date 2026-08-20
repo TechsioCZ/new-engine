@@ -211,6 +211,102 @@ describe("storefront text registry", () => {
     })
   })
 
+  it("creates localized shared-component defaults for every market", () => {
+    const localizedDefaults = Object.fromEntries(
+      STOREFRONT_TEXT_MARKETS.map(({ market }) => {
+        const messages = getStorefrontTextDefaultMessages({ market })
+
+        return [
+          market,
+          {
+            category: messages["catalog.category.default_name"],
+            categorySubtitle:
+              messages["catalog.category.subtitle.direct_products"],
+            checkoutPageUnavailable: messages["checkout.page_unavailable"],
+            contactHours: messages["navigation.contact.hours"],
+            contactEmail: messages["navigation.contact.email_display"],
+            contactEmailHref: messages["navigation.contact.email_href"],
+            contactHref: messages["navigation.contact.phone_href"],
+            contactPhone: messages["navigation.contact.phone_display"],
+            promoHeading: messages["content.home.promo.heading"],
+            productPageStatus:
+              messages["catalog.product_detail.errors.page_status"],
+            productPageUnavailable:
+              messages["catalog.product_detail.errors.page_unavailable"],
+            searchDisplayed: messages["search.results.displayed"],
+            stockLoading: messages["catalog.product_detail.stock.loading_aria"],
+          },
+        ]
+      })
+    )
+
+    expect(localizedDefaults).toEqual({
+      cz: {
+        category: "Kategorie",
+        categorySubtitle: "Zobrazené produkty dané kategorie",
+        checkoutPageUnavailable: "Pokladna momentálně není dostupná.",
+        contactHours: "(Po–Pá: 09:00–16:00)",
+        contactEmail: "ahoj@herbatica.sk",
+        contactEmailHref: "mailto:ahoj@herbatica.sk",
+        contactHref: "tel:+421232112345",
+        contactPhone: "+421 2/321 123 45",
+        promoHeading: "Přírodní kosmetika, doplňky stravy a tradiční medicína",
+        productPageStatus: "Stav: {status}",
+        productPageUnavailable: "Produkt momentálně není dostupný",
+        searchDisplayed: "zobrazeno: {count}",
+        stockLoading: "Načítám dostupnost podle skladů",
+      },
+      hu: {
+        category: "Kategória",
+        categorySubtitle: "A kategóriához tartozó termékek",
+        checkoutPageUnavailable: "A pénztár jelenleg nem érhető el.",
+        contactHours: "(Hé–Pé: 09:00–16:00)",
+        contactEmail: "ahoj@herbatica.sk",
+        contactEmailHref: "mailto:ahoj@herbatica.sk",
+        contactHref: "tel:+421232112345",
+        contactPhone: "+421 2/321 123 45",
+        promoHeading:
+          "Természetes kozmetikumok, étrend-kiegészítők és hagyományos gyógyászat",
+        productPageStatus: "Állapot: {status}",
+        productPageUnavailable: "A termék jelenleg nem érhető el",
+        searchDisplayed: "megjelenítve: {count}",
+        stockLoading: "Raktárankénti elérhetőség betöltése",
+      },
+      ro: {
+        category: "Categorie",
+        categorySubtitle: "Produsele afișate din această categorie",
+        checkoutPageUnavailable:
+          "Finalizarea comenzii nu este disponibilă momentan.",
+        contactHours: "(Lun–Vin: 09:00–16:00)",
+        contactEmail: "salut@herbatica.ro",
+        contactEmailHref: "mailto:salut@herbatica.ro",
+        contactHref: "tel:+40(31)2295431",
+        contactPhone: "+40 (31) 2295431",
+        promoHeading:
+          "Cosmetice naturale, suplimente alimentare și medicină tradițională",
+        productPageStatus: "Stare: {status}",
+        productPageUnavailable: "Produsul nu este disponibil momentan",
+        searchDisplayed: "afișate: {count}",
+        stockLoading: "Se încarcă disponibilitatea pe depozite",
+      },
+      sk: {
+        category: "Kategória",
+        categorySubtitle: "Zobrazené produkty danej kategórie",
+        checkoutPageUnavailable: "Pokladňa momentálne nie je dostupná.",
+        contactHours: "(Po–Pia: 09:00–16:00)",
+        contactEmail: "ahoj@herbatica.sk",
+        contactEmailHref: "mailto:ahoj@herbatica.sk",
+        contactHref: "tel:+421232112345",
+        contactPhone: "+421 2/321 123 45",
+        promoHeading: "Prírodná kozmetika, doplnky výživy a tradičná medicína",
+        productPageStatus: "Stav: {status}",
+        productPageUnavailable: "Produkt momentálne nie je dostupný",
+        searchDisplayed: "zobrazené: {count}",
+        stockLoading: "Načítavam dostupnosť podľa skladov",
+      },
+    })
+  })
+
   it("creates localized catalog defaults for every market", () => {
     const catalogSortRows = getStorefrontTextSeedRows().filter(
       (row) => row.key === "catalog.sort.recommended"

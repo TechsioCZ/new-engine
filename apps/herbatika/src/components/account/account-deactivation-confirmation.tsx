@@ -3,6 +3,7 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 import { StorefrontLink } from "@/components/storefront-link"
 import { useConfirmAccountDeactivation } from "@/lib/storefront/auth"
@@ -13,10 +14,6 @@ import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { buildPath } from "@/lib/url/public-url"
 import { AccountSurface } from "./account-surface"
 
-const MISSING_TOKEN_MESSAGE = "Potvrdzovací odkaz neobsahuje platný token."
-const INVALID_TOKEN_MESSAGE =
-  "Potvrdzovací odkaz je neplatný alebo jeho platnosť vypršala."
-const DEACTIVATION_FAILED_MESSAGE = "Účet sa nepodarilo zrušiť."
 const INVALID_TOKEN_ERROR_MESSAGE =
   "Account deactivation link is invalid or expired."
 
@@ -30,6 +27,7 @@ const isInvalidTokenError = (error: unknown) =>
 export function AccountDeactivationConfirmation({
   token,
 }: AccountDeactivationConfirmationProps) {
+  const t = useTranslations("auth")
   const normalizedToken = token.trim()
   const { code: market } = useMarketContext()
   const homeHref = buildPath({ kind: "home" }, market)
@@ -40,7 +38,7 @@ export function AccountDeactivationConfirmation({
   const [isConfirmed, setIsConfirmed] = useState(false)
   const displayedError = normalizedToken
     ? confirmationError
-    : MISSING_TOKEN_MESSAGE
+    : t("deactivation.confirmation.missing_token")
 
   const handleConfirmAccountDeactivation = async () => {
     if (!normalizedToken) {
@@ -54,7 +52,7 @@ export function AccountDeactivationConfirmation({
         token: normalizedToken,
       })
       if (!result.deleted) {
-        setConfirmationError(DEACTIVATION_FAILED_MESSAGE)
+        setConfirmationError(t("deactivation.confirmation.failed"))
         return
       }
 
@@ -64,8 +62,8 @@ export function AccountDeactivationConfirmation({
     } catch (error) {
       setConfirmationError(
         isInvalidTokenError(error)
-          ? INVALID_TOKEN_MESSAGE
-          : DEACTIVATION_FAILED_MESSAGE
+          ? t("deactivation.confirmation.invalid_token")
+          : t("deactivation.confirmation.failed")
       )
     }
   }
@@ -74,18 +72,18 @@ export function AccountDeactivationConfirmation({
     <main className="mx-auto w-full max-w-max-w p-account-page 2xl:p-account-page-lg">
       <AccountSurface className="mx-auto max-w-auth-content space-y-400">
         <header className="space-y-200">
-          <h1 className="font-semibold text-2xl">Potvrdenie zrušenia účtu</h1>
+          <h1 className="font-semibold text-2xl">
+            {t("deactivation.confirmation.title")}
+          </h1>
           <p className="text-fg-secondary text-sm">
-            Po potvrdení sa už nebudete môcť prihlásiť. Vaše existujúce
-            objednávky zostanú bezpečne uložené.
+            {t("deactivation.confirmation.description")}
           </p>
         </header>
 
         {isConfirmed ? (
           <div className="space-y-300">
             <StatusText align="start" showIcon status="success">
-              Účet bol zrušený. Pri opätovnej registrácii s rovnakým e-mailom sa
-              obnoví pôvodný účet aj história objednávok.
+              {t("deactivation.confirmation.success")}
             </StatusText>
 
             <LinkButton
@@ -94,7 +92,7 @@ export function AccountDeactivationConfirmation({
               size="md"
               variant="primary"
             >
-              Pokračovať do obchodu
+              {t("deactivation.confirmation.continue")}
             </LinkButton>
           </div>
         ) : (
@@ -112,13 +110,13 @@ export function AccountDeactivationConfirmation({
                   confirmAccountDeactivationMutation.isPending
                 }
                 isLoading={confirmAccountDeactivationMutation.isPending}
-                loadingText="Ruší sa účet"
+                loadingText={t("deactivation.confirmation.confirming")}
                 onClick={() => {
                   runDetachedPromise(handleConfirmAccountDeactivation())
                 }}
                 variant="danger"
               >
-                Potvrdiť zrušenie účtu
+                {t("deactivation.confirmation.confirm")}
               </Button>
 
               <LinkButton
@@ -128,7 +126,7 @@ export function AccountDeactivationConfirmation({
                 theme="outlined"
                 variant="secondary"
               >
-                Ponechať účet
+                {t("deactivation.dialog.keep_account")}
               </LinkButton>
             </div>
           </div>

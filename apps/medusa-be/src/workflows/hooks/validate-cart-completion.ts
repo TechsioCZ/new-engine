@@ -87,6 +87,12 @@ completeCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
     fields: [
       "approvals.*",
       "customer_id",
+      "currency_code",
+      "region.countries.iso_2",
+      "region.currency_code",
+      "region.metadata",
+      "sales_channel_id",
+      "shipping_address.country_code",
       "total",
       "shipping_methods.data",
       "shipping_methods.shipping_option.data",
@@ -130,6 +136,7 @@ completeCartWorkflow.hooks.validate(async ({ cart }, { container }) => {
 
   if (
     !isOnSitePaymentCompatibleWithShipping({
+      cart: queryCart,
       paymentProviderId: selectedPaymentProviderId,
       shippingMethods,
     })

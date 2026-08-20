@@ -12,6 +12,31 @@ export const STOREFRONT_NAVIGATION_TEXT_DEFINITIONS = [
     namespace: "navigation",
   },
   {
+    description: "Otevírací doba uvedená u telefonu v hlavičce.",
+    key: "navigation.contact.hours",
+    namespace: "navigation",
+  },
+  {
+    description: "Telefonní číslo zobrazené v hlavičce.",
+    key: "navigation.contact.phone_display",
+    namespace: "navigation",
+  },
+  {
+    description: "Odkaz pro vytočení telefonního čísla v hlavičce.",
+    key: "navigation.contact.phone_href",
+    namespace: "navigation",
+  },
+  {
+    description: "E-mailová adresa zobrazená v kontaktních prvcích.",
+    key: "navigation.contact.email_display",
+    namespace: "navigation",
+  },
+  {
+    description: "Odkaz pro odeslání e-mailu z kontaktních prvků.",
+    key: "navigation.contact.email_href",
+    namespace: "navigation",
+  },
+  {
     description: "Text autorských práv v patičce.",
     key: "navigation.footer.copyright",
     namespace: "navigation",
@@ -124,6 +149,71 @@ export const STOREFRONT_NAVIGATION_TEXT_DEFINITIONS = [
   {
     description: "Odkaz na domovskou stránku v drobečkové navigaci.",
     key: "navigation.breadcrumbs.home",
+    namespace: "navigation",
+  },
+  {
+    description: "Chybový stav nedostupné stránky účtu.",
+    key: "navigation.page_errors.account",
+    namespace: "navigation",
+  },
+  {
+    description: "Chybový stav nedostupné poradny nebo článku.",
+    key: "navigation.page_errors.advice",
+    namespace: "navigation",
+  },
+  {
+    description: "Chybový stav nedostupného přihlášení nebo registrace.",
+    key: "navigation.page_errors.authentication",
+    namespace: "navigation",
+  },
+  {
+    description: "Chybový stav nedostupného košíku.",
+    key: "navigation.page_errors.cart",
+    namespace: "navigation",
+  },
+  {
+    description: "Chybový stav nedostupného katalogu.",
+    key: "navigation.page_errors.catalog",
+    namespace: "navigation",
+  },
+  {
+    description: "Chybový stav nedostupné pokladny.",
+    key: "navigation.page_errors.checkout",
+    namespace: "navigation",
+  },
+  {
+    description: "Chybový stav nedostupného informačního obsahu.",
+    key: "navigation.page_errors.content",
+    namespace: "navigation",
+  },
+  {
+    description: "Chybový stav nedostupné objednávky.",
+    key: "navigation.page_errors.order",
+    namespace: "navigation",
+  },
+  {
+    description: "Chybový stav nedostupného hodnocení produktu.",
+    key: "navigation.page_errors.review",
+    namespace: "navigation",
+  },
+  {
+    description: "Chybový stav nenalezené globální stránky.",
+    key: "navigation.page_errors.not_found",
+    namespace: "navigation",
+  },
+  {
+    description: "Chybový stav nedostupného vyhledávání.",
+    key: "navigation.page_errors.search",
+    namespace: "navigation",
+  },
+  {
+    description: "Chybový stav nedostupné domovské stránky obchodu.",
+    key: "navigation.page_errors.storefront",
+    namespace: "navigation",
+  },
+  {
+    description: "Chybový stav dočasně nedostupné globální stránky.",
+    key: "navigation.page_errors.unavailable",
     namespace: "navigation",
   },
 ] as const satisfies readonly StorefrontTextDefinition[]

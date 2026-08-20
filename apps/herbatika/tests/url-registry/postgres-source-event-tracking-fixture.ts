@@ -9,6 +9,13 @@ export const INSERT_SOURCE_EVENT_RECEIPT_SQL = `
     command_idempotency_key
   ) VALUES ($1, 'product', $2, 'sk', $3, $4, $5, $6, $7, $8)
 `
+const INSERT_SOURCE_EVENT_RECEIPT_FOR_TYPE_SQL = `
+  INSERT INTO url_registry.url_registry_source_event_receipt (
+    source_system, source_type, source_id, market, stream_sequence,
+    source_event_id, envelope_fingerprint, change_type, action,
+    command_idempotency_key
+  ) VALUES ($1, $2, $3, 'sk', $4, $5, $6, $7, $8, $9)
+`
 
 type ReceiptInput = Readonly<{
   action: string
@@ -18,6 +25,7 @@ type ReceiptInput = Readonly<{
   sequence: number
   sourceId: string
   sourceSystem?: string
+  sourceType?: string
 }>
 
 export const inTransaction = async <Value>(
@@ -44,8 +52,9 @@ export const insertSourceEventReceipt = (
   client: PoolClient,
   input: ReceiptInput
 ) =>
-  client.query(INSERT_SOURCE_EVENT_RECEIPT_SQL, [
+  client.query(INSERT_SOURCE_EVENT_RECEIPT_FOR_TYPE_SQL, [
     input.sourceSystem ?? "medusa",
+    input.sourceType ?? "product",
     input.sourceId,
     input.sequence,
     input.eventId,
@@ -58,23 +67,24 @@ export const insertSourceEventReceipt = (
 export const advanceSourceEventCursor = (
   client: PoolClient,
   sourceId: string,
-  sequence: number
+  sequence: number,
+  sourceType = "product"
 ) =>
   sequence === 1
     ? client.query(
         `INSERT INTO url_registry.url_registry_source_event_cursor (
           source_system, source_type, source_id, market, last_sequence
-        ) VALUES ('medusa', 'product', $1, 'sk', 1)`,
-        [sourceId]
+        ) VALUES ('medusa', $1, $2, 'sk', 1)`,
+        [sourceType, sourceId]
       )
     : client.query(
         `UPDATE url_registry.url_registry_source_event_cursor
          SET last_sequence = $2
          WHERE source_system = 'medusa'
-           AND source_type = 'product'
+           AND source_type = $3
            AND source_id = $1
            AND market = 'sk'`,
-        [sourceId, sequence]
+        [sourceId, sequence, sourceType]
       )
 
 export const appendSourceEvent = (
@@ -83,5 +93,10 @@ export const appendSourceEvent = (
 ) =>
   inTransaction(context.runtime, async (client) => {
     await insertSourceEventReceipt(client, input)
-    await advanceSourceEventCursor(client, input.sourceId, input.sequence)
+    await advanceSourceEventCursor(
+      client,
+      input.sourceId,
+      input.sequence,
+      input.sourceType
+    )
   })

@@ -3,7 +3,7 @@
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
 import NextImage from "next/image"
-import { useTranslations } from "next-intl"
+import { useLocale, useTranslations } from "next-intl"
 import { StorefrontLink } from "@/components/storefront-link"
 import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
 import {
@@ -17,7 +17,10 @@ type HerbatikaDesktopSubmenuProps = {
   onClose: () => void
 }
 
-const sortDesktopSubmenuItems = (items: HerbatikaHeaderSubmenuFeaturedItem[]) =>
+const sortDesktopSubmenuItems = (
+  items: HerbatikaHeaderSubmenuFeaturedItem[],
+  locale: string
+) =>
   [...items].sort((left, right) => {
     const childCountDifference =
       right.childItems.length - left.childItems.length
@@ -26,7 +29,7 @@ const sortDesktopSubmenuItems = (items: HerbatikaHeaderSubmenuFeaturedItem[]) =>
       return childCountDifference
     }
 
-    return left.label.localeCompare(right.label, "sk")
+    return left.label.localeCompare(right.label, locale)
   })
 
 export function HerbatikaDesktopSubmenu({
@@ -34,6 +37,7 @@ export function HerbatikaDesktopSubmenu({
   categoryPublicSlugsById,
   onClose,
 }: HerbatikaDesktopSubmenuProps) {
+  const locale = useLocale()
   const tCatalog = useTranslations("catalog")
   const tNavigation = useTranslations("navigation")
   const { categoriesQuery, groupsByRootHandle } = useHerbatikaHeaderSubmenu(
@@ -44,7 +48,7 @@ export function HerbatikaDesktopSubmenu({
     ? (groupsByRootHandle.get(activeRootHandle) ?? null)
     : null
   const desktopSubmenuItems = activeGroup
-    ? sortDesktopSubmenuItems(activeGroup.featuredItems)
+    ? sortDesktopSubmenuItems(activeGroup.featuredItems, locale)
     : []
 
   return (

@@ -4,6 +4,7 @@ import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { XMLParser } from "fast-xml-parser"
 import type { ShopReviewModuleService } from "../../../../modules/shop-review"
 import { SHOP_REVIEW_MODULE } from "../../../../modules/shop-review"
+import { hasExactSlovakReviewScope } from "../../review-market-scope"
 import {
   type HeurekaExternalReviewKind,
   normalizeHeurekaExternalReviews,
@@ -14,7 +15,7 @@ const HEUREKA_EXPORT_CACHE_SECONDS = 6 * 60 * 60
 const HEUREKA_EXPORT_STALE_SECONDS = 24 * 60 * 60
 const HEUREKA_EXPORT_CACHE_MS = HEUREKA_EXPORT_CACHE_SECONDS * 1000
 const HEUREKA_EXPORT_STALE_MS = HEUREKA_EXPORT_STALE_SECONDS * 1000
-const HEUREKA_EXPORT_SUCCESS_CACHE_CONTROL = `public, max-age=0, s-maxage=${HEUREKA_EXPORT_CACHE_SECONDS}, stale-while-revalidate=${HEUREKA_EXPORT_STALE_SECONDS}`
+const HEUREKA_EXPORT_SUCCESS_CACHE_CONTROL = "private, no-store"
 const NO_STORE_CACHE_CONTROL = "no-store"
 const HEUREKA_EXPORT_PUBLIC_ERROR_MESSAGE =
   "External reviews are temporarily unavailable"
@@ -124,6 +125,14 @@ export async function GET(
   res: MedusaResponse
 ) {
   const { kind, limit } = req.validatedQuery
+  if (!(await hasExactSlovakReviewScope(req))) {
+    res.setHeader("Cache-Control", NO_STORE_CACHE_CONTROL)
+    res.status(404).json({
+      code: "external_reviews_not_available",
+      message: HEUREKA_EXPORT_PUBLIC_ERROR_MESSAGE,
+    })
+    return
+  }
   const shopReviewService =
     req.scope.resolve<ShopReviewModuleService>(SHOP_REVIEW_MODULE)
 

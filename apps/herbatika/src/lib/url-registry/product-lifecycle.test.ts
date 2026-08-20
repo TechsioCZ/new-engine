@@ -5,7 +5,9 @@ import type {
   UrlRouteStatus,
 } from "./contracts"
 import {
+  decideCatalogLifecycle,
   decideProductLifecycle,
+  decideTranslationInvalidatedProductLifecycle,
   fingerprintProductLifecycleDelivery,
   type ProductLifecycleDecision,
   productLifecycleSourceEventId,
@@ -86,6 +88,7 @@ describe("parseProductLifecycleDeliveryV1", () => {
     ["updated", "reconcile"],
     ["channel-linked", "reconcile"],
     ["channel-unlinked", "reconcile"],
+    ["translation-invalidated", "reconcile"],
     ["deleted", "delete"],
   ] as const)("accepts %s only as a %s change", (reason, changeType) => {
     const input = delivery()
@@ -436,5 +439,31 @@ describe("decideProductLifecycle", () => {
     expect(
       decideProductLifecycle(changeType, assignment, source, route)
     ).toEqual(expected)
+  })
+
+  it("retires an active route for a translation invalidation", () => {
+    expect(
+      decideTranslationInvalidatedProductLifecycle(
+        "reconcile",
+        null,
+        missingSource,
+        routeCases.active
+      )
+    ).toEqual({
+      action: "unpublished",
+      kind: "retire",
+      route: routeCases.active.value,
+    })
+  })
+
+  it("does not retire a catalog route for a stale queued published slug", () => {
+    expect(
+      decideCatalogLifecycle(
+        "reconcile",
+        publishedAssignment,
+        missingSource,
+        routeCases.active
+      )
+    ).toEqual({ action: "noop-source-missing", kind: "apply" })
   })
 })

@@ -1,6 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
 import { MedusaError } from "@medusajs/framework/utils"
 import { createReviewWorkflow } from "../../../workflows/product-review/workflows/create-review"
+import { hasExactSlovakReviewScope } from "../review-market-scope"
 import {
   createPublicReviewCustomerId,
   ensureProductExists,
@@ -32,6 +33,13 @@ export async function POST(
     review_token,
     title,
   } = req.validatedBody
+
+  if (!(await hasExactSlovakReviewScope(req, product_id))) {
+    throw new MedusaError(
+      MedusaError.Types.NOT_ALLOWED,
+      "Product reviews are not available for this market."
+    )
+  }
 
   const tokenRecord = review_token
     ? await retrieveReviewToken(req, review_token, product_id)

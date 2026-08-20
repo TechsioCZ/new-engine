@@ -2,9 +2,12 @@ import type { HttpTypes } from "@medusajs/types"
 
 const CATEGORY_NAME_PREFIX_PATTERN = /^>\s*/
 
-export const normalizeCategoryName = (value?: string | null) => {
+export const normalizeCategoryName = (
+  value?: string | null,
+  fallbackLabel = ""
+) => {
   if (!value) {
-    return "Kategória"
+    return fallbackLabel
   }
 
   return value.replace(CATEGORY_NAME_PREFIX_PATTERN, "").trim()

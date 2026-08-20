@@ -12,7 +12,7 @@ vi.mock("@/lib/routing/public-page", () => ({
   ),
 }))
 vi.mock("@/lib/storefront/cms", () => ({
-  readCmsStaticPage: vi.fn(),
+  readCmsStaticPageWithDemoFallback: vi.fn(),
 }))
 
 describe("root-static CMS page source", () => {
@@ -21,8 +21,10 @@ describe("root-static CMS page source", () => {
   })
 
   it("loads CMS content by deployment-bound stable ID", async () => {
-    const { readCmsStaticPage } = await import("@/lib/storefront/cms")
-    vi.mocked(readCmsStaticPage).mockResolvedValue({
+    const { readCmsStaticPageWithDemoFallback } = await import(
+      "@/lib/storefront/cms"
+    )
+    vi.mocked(readCmsStaticPageWithDemoFallback).mockResolvedValue({
       kind: "found",
       value: { id: 77, title: "Privacy" },
     })
@@ -36,7 +38,10 @@ describe("root-static CMS page source", () => {
       kind: "found",
       value: { kind: "cms", page: { id: 77, title: "Privacy" } },
     })
-    expect(readCmsStaticPage).toHaveBeenCalledWith("privacy", "cs-CZ")
+    expect(readCmsStaticPageWithDemoFallback).toHaveBeenCalledWith(
+      "privacy",
+      "cs-CZ"
+    )
   })
 
   it.each([
@@ -44,8 +49,10 @@ describe("root-static CMS page source", () => {
     { kind: "unavailable" as const, retryAfterSeconds: 9 },
     { kind: "invalid-response" as const, causeCode: "INVALID_PAGE" },
   ])("preserves the $kind source outcome", async (sourceResult) => {
-    const { readCmsStaticPage } = await import("@/lib/storefront/cms")
-    vi.mocked(readCmsStaticPage).mockResolvedValue(sourceResult)
+    const { readCmsStaticPageWithDemoFallback } = await import(
+      "@/lib/storefront/cms"
+    )
+    vi.mocked(readCmsStaticPageWithDemoFallback).mockResolvedValue(sourceResult)
     const { getServerSideProps } = await import(
       "@/pages/~sf/[market]/static/[pageKey]"
     )

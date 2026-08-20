@@ -15,12 +15,17 @@ import {
   retryUrlRegistryOutboxEvent,
 } from "./delivery-state"
 import {
+  enqueueNormalizedCatalogLifecycleEvent,
   enqueueNormalizedProductLifecycleEvent,
+  fingerprintCatalogLifecycleEvent,
   fingerprintProductLifecycleEvent,
 } from "./enqueue"
 import UrlRegistryOutboxEvent from "./models/url-registry-outbox-event"
 import UrlRegistryOutboxStream from "./models/url-registry-outbox-stream"
-import { normalizeProductLifecycleEventInput } from "./types"
+import {
+  normalizeCatalogLifecycleEventInput,
+  normalizeProductLifecycleEventInput,
+} from "./types"
 
 const transactionManager = (sharedContext: Context<SqlEntityManager>) => {
   const manager = sharedContext.transactionManager
@@ -57,6 +62,32 @@ class UrlRegistryOutboxModuleService extends MedusaService({
     @MedusaContext() sharedContext: Context<SqlEntityManager> = {}
   ) {
     return await enqueueNormalizedProductLifecycleEvent(
+      transactionManager(sharedContext),
+      event,
+      fingerprint
+    )
+  }
+
+  @InjectManager()
+  async enqueueCatalogLifecycleEvent(
+    input: unknown,
+    @MedusaContext() sharedContext: Context<SqlEntityManager> = {}
+  ) {
+    const event = normalizeCatalogLifecycleEventInput(input)
+    return await this.enqueueCatalogLifecycleEvent_(
+      event,
+      fingerprintCatalogLifecycleEvent(event),
+      sharedContext
+    )
+  }
+
+  @InjectTransactionManager()
+  protected async enqueueCatalogLifecycleEvent_(
+    event: ReturnType<typeof normalizeCatalogLifecycleEventInput>,
+    fingerprint: ReturnType<typeof fingerprintCatalogLifecycleEvent>,
+    @MedusaContext() sharedContext: Context<SqlEntityManager> = {}
+  ) {
+    return await enqueueNormalizedCatalogLifecycleEvent(
       transactionManager(sharedContext),
       event,
       fingerprint

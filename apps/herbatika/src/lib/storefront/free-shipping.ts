@@ -6,6 +6,7 @@ import {
 const FREE_SHIPPING_THRESHOLDS: Partial<Record<HerbatikaCurrencyCode, number>> =
   {
     EUR: 49,
+    RON: 249,
   }
 
 export const resolveFreeShippingThresholdAmount = (

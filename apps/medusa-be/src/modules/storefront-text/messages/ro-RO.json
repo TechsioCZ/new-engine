@@ -29,6 +29,7 @@
     "update_failed": "Actualizarea coșului a eșuat."
   },
   "checkout": {
+    "page_unavailable": "Finalizarea comenzii nu este disponibilă momentan.",
     "back_to_cart": "Înapoi la coș",
     "back_to_shipping_payment": "Înapoi la livrare și plată",
     "complete_order": "Finalizează comanda",
@@ -293,6 +294,43 @@
       "email_exists": "Există deja un cont cu această adresă de e-mail. Autentificați-vă sau folosiți recuperarea parolei.",
       "failed": "Înregistrarea nu a reușit. Încercați din nou."
     },
+    "deactivation": {
+      "page": {
+        "account_unavailable": "Contul nu este disponibil momentan.",
+        "confirmation_unavailable": "Confirmarea ștergerii contului nu este disponibilă momentan."
+      },
+      "request": {
+        "title": "Ștergerea contului",
+        "description": "Vă vom trimite un e-mail cu un link de confirmare. Contul va rămâne activ până când folosiți linkul. Comenzile existente nu vor fi șterse.",
+        "failed": "E-mailul de confirmare nu a putut fi trimis.",
+        "toast_title": "E-mailul de confirmare a fost trimis",
+        "toast_description": "Contul rămâne activ până când confirmați ștergerea lui din e-mail.",
+        "sent_status": "Verificați-vă e-mailul. Linkul de confirmare este valabil 30 de minute.",
+        "action": "Solicită ștergerea contului",
+        "resend_action": "Retrimite e-mailul"
+      },
+      "dialog": {
+        "title": "Trimiteți confirmarea pentru ștergerea contului?",
+        "intro": "Contul nu va fi încă șters prin acest pas.",
+        "email_notice": "Vă vom trimite pe e-mail un link valabil 30 de minute.",
+        "confirmation_notice": "Vom șterge contul numai după ce deschideți linkul și confirmați.",
+        "orders_notice": "Comenzile existente nu vor fi șterse.",
+        "keep_account": "Păstrează contul",
+        "send": "Trimite e-mailul de confirmare",
+        "sending": "Se trimite e-mailul"
+      },
+      "confirmation": {
+        "title": "Confirmarea ștergerii contului",
+        "description": "După confirmare, nu vă veți mai putea autentifica. Comenzile dvs. existente vor rămâne stocate în siguranță.",
+        "missing_token": "Linkul de confirmare nu conține un token valid.",
+        "invalid_token": "Linkul de confirmare nu este valid sau a expirat.",
+        "failed": "Contul nu a putut fi șters.",
+        "success": "Contul a fost șters. Dacă vă înregistrați din nou cu aceeași adresă de e-mail, contul inițial și istoricul comenzilor vor fi restaurate.",
+        "continue": "Continuă cumpărăturile",
+        "confirm": "Confirmă ștergerea contului",
+        "confirming": "Se șterge contul"
+      }
+    },
     "account_label": "Cont",
     "sign_in": "Autentificare",
     "password": "Parolă",
@@ -391,7 +429,9 @@
     "product_detail": {
       "errors": {
         "load_failed": "Produsul nu a putut fi încărcat.",
-        "not_found": "Produsul nu a putut fi găsit."
+        "not_found": "Produsul nu a putut fi găsit.",
+        "page_unavailable": "Produsul nu este disponibil momentan",
+        "page_status": "Stare: {status}"
       },
       "retry": "Încearcă din nou",
       "back_home": "Înapoi la pagina principală",
@@ -403,6 +443,7 @@
         "composition": "Compoziție",
         "warning": "Avertisment",
         "other": "Alte informații",
+        "warranty": "Garanție",
         "content": "Conținut"
       },
       "variant_label": "Variantă",
@@ -410,7 +451,11 @@
       "stock": {
         "in_stock": "În stoc",
         "out_of_stock": "Momentan nu este în stoc",
-        "physical_store_only_notice": "Produsele disponibile în magazinele fizice nu pot fi comandate în magazinul online."
+        "physical_store_only_notice": "Produsele disponibile în magazinele fizice nu pot fi comandate în magazinul online.",
+        "loading_aria": "Se încarcă disponibilitatea pe depozite",
+        "load_failed": "Disponibilitatea pe depozite nu a putut fi încărcată.",
+        "quantity": "{count, plural, one {# buc.} few {# buc.} other {# buc.}}",
+        "more_than_quantity": "În stoc (>{count} buc.)"
       },
       "delivery_by": "livrare până la {date}",
       "free_shipping_over": "Livrare gratuită peste {threshold}",
@@ -579,6 +624,21 @@
       "best_selling": "Cele mai vândute",
       "newest": "Cele mai noi"
     },
+    "category": {
+      "default_name": "Categorie",
+      "status": {
+        "found": "categorie găsită",
+        "not_found": "categorie negăsită"
+      },
+      "badges": {
+        "products": "produse: {count}",
+        "filtered_products": "după filtrare: {count}"
+      },
+      "subtitle": {
+        "direct_products": "Produsele afișate din această categorie",
+        "includes_subcategories": "{count, plural, one {Sunt afișate și produsele din # subcategorie} few {Sunt afișate și produsele din # subcategorii} other {Sunt afișate și produsele din # de subcategorii}}"
+      }
+    },
     "results": {
       "items_total": "articole în total",
       "empty_category": "În această categorie nu sunt disponibile momentan produse pentru filtrul selectat.",
@@ -603,6 +663,13 @@
       },
       "blog": {
         "title": "Blog despre sănătate și frumusețe"
+      },
+      "promo": {
+        "image_alt": "Magazinul Herbatika",
+        "heading": "Cosmetice naturale, suplimente alimentare și medicină tradițională",
+        "paragraph_1": "Descoperiți efectele benefice ale cosmeticelor naturale și influența lor pozitivă nu doar asupra pielii. Susțineți-vă sănătatea cu suplimente alimentare și produse de medicină tradițională. Toate acestea se regăsesc în oferta noastră variată, completată și de accesorii pentru sănătate din materiale naturale.",
+        "paragraph_2": "Selectăm produse de cea mai înaltă calitate, pe care le folosim, le îmbunătățim și le testăm în mod repetat chiar noi. Apreciem calitatea și acordăm atenție detaliilor. Suntem pregătiți să vă ajutăm să alegeți produsele potrivite nevoilor dumneavoastră sau unei anumite probleme de sănătate.",
+        "paragraph_3": "Herbatica are și propria marcă, sub care producem numeroase produse pe care nu le veți găsi în altă parte. Ne plac calitatea și detaliile, iar asupra lor ne concentrăm în fiecare produs."
       },
       "product_sections": {
         "bestsellers": "Cele mai populare produse",
@@ -699,6 +766,13 @@
     "submenu": {
       "loading": "Se încarcă subcategoriile..."
     },
+    "contact": {
+      "hours": "(Lun–Vin: 09:00–16:00)",
+      "email_display": "salut@herbatica.ro",
+      "email_href": "mailto:salut@herbatica.ro",
+      "phone_display": "+40 (31) 2295431",
+      "phone_href": "tel:+40(31)2295431"
+    },
     "footer": {
       "copyright": "Copyright {year} <brand>{domain}.</brand> Toate drepturile rezervate.",
       "cookie_settings": "Modifică setările cookie-urilor",
@@ -733,14 +807,31 @@
     "breadcrumbs": {
       "root_aria": "Traseu de navigare",
       "home": "Acasă"
+    },
+    "page_errors": {
+      "account": "Contul nu este disponibil momentan.",
+      "advice": "Secțiunea de sfaturi nu este disponibilă momentan.",
+      "authentication": "Autentificarea și înregistrarea nu sunt disponibile momentan.",
+      "cart": "Coșul de cumpărături nu este disponibil momentan.",
+      "catalog": "Catalogul nu este disponibil momentan.",
+      "checkout": "Finalizarea comenzii nu este disponibilă momentan.",
+      "content": "Conținutul nu este disponibil momentan.",
+      "not_found": "Pagina nu a fost găsită.",
+      "order": "Comanda nu este disponibilă momentan.",
+      "review": "Evaluarea nu este disponibilă momentan.",
+      "search": "Căutarea nu este disponibilă momentan.",
+      "storefront": "Magazinul nu este disponibil momentan.",
+      "unavailable": "Magazinul este indisponibil temporar."
     }
   },
   "search": {
     "results": {
       "title": "Căutare",
       "description": "Căutați produse în catalog.",
+      "related": "Rezultate asociate",
       "query": "căutare: {query}",
       "found": "găsite: {count}",
+      "displayed": "afișate: {count}",
       "page": "pagina: {page}/{totalPages}",
       "empty": "Nu au fost găsite produse pentru „{query}”.",
       "enter_query": "Introduceți un termen de căutare în bara de sus."

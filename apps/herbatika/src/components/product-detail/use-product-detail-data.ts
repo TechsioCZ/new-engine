@@ -128,6 +128,7 @@ export function useProductDetailData({
   const variantItems = resolveVariantItems(variants, optionTitlesById)
 
   const offerState = resolveOfferState(product, selectedVariant, {
+    allowSourceLabels: market === "sk",
     inStock: tCatalog("product_detail.stock.in_stock"),
     outOfStock: tCatalog("product_detail.stock.out_of_stock"),
   })
@@ -174,8 +175,9 @@ export function useProductDetailData({
         usage: tCatalog("product_detail.sections.usage"),
         warning: tCatalog("product_detail.sections.warning"),
       }),
-      resolveProductWarranty(productAttributesQuery.productAttributes),
-      otherSectionTitle
+      resolveProductWarranty(productAttributesQuery.productAttributes, locale),
+      otherSectionTitle,
+      tCatalog("product_detail.sections.warranty")
     ),
     product,
     otherSectionTitle,

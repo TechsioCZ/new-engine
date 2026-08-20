@@ -1,3 +1,4 @@
+import type { HerbatikaLocale } from "@/lib/storefront/market-context"
 import type { PublicRouteTarget } from "@/lib/url/public-url"
 
 export type FaqLink = {
@@ -30,6 +31,12 @@ export type FaqItem = {
   question: string
   updatedAt: string
   answer: FaqAnswerBlock[]
+}
+
+export type FaqPageData = {
+  title: string
+  intro: string
+  items: FaqItem[]
 }
 
 export const faqItems = [
@@ -344,3 +351,308 @@ export const faqItems = [
 ] satisfies FaqItem[]
 
 export const faqItemCount = faqItems.length
+
+const roFaqItems = [
+  {
+    id: "stav-objednavky",
+    question: "În ce stadiu se află comanda dumneavoastră?",
+    updatedAt: "24.9.2018",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Doriți să aflați în ce stadiu se află comanda dumneavoastră? Puteți verifica rapid și ușor:",
+      },
+      {
+        type: "list",
+        ordered: true,
+        items: [
+          "Autentificați-vă în contul de client.",
+          "Selectați opțiunea „Comenzile mele” din partea dreaptă.",
+          "Veți vedea un tabel clar cu stadiul comenzii dumneavoastră.",
+        ],
+      },
+      {
+        type: "links",
+        items: [{ label: "Urmăriți comanda din contul de client" }],
+      },
+    ],
+  },
+  {
+    id: "vypredany-tovar",
+    question: "Doriți să fiți anunțat când un produs epuizat revine în stoc?",
+    updatedAt: "15.8.2019",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Uneori apar întârzieri în aprovizionarea anumitor produse, mai ales atunci când acestea vin de la furnizori îndepărtați. De aceea primim frecvent întrebări despre data revenirii lor în stoc.",
+      },
+      {
+        type: "paragraph",
+        text: "Am pregătit funcția de alertă de stoc, care vă anunță când produsul dorit este din nou disponibil în oferta noastră.",
+      },
+      {
+        type: "paragraph",
+        text: "Astfel aflați imediat când produsul a fost reaprovizionat și îl puteți comanda fără să verificați periodic pagina.",
+      },
+      {
+        type: "paragraph",
+        text: "Apăsați „Anunțați-mă când revine în stoc”, introduceți adresa de e-mail, iar noi vă vom trimite automat un mesaj după reaprovizionare.",
+      },
+      { type: "heading", text: "Primul pas" },
+      {
+        type: "links",
+        items: [{ label: "Deschideți alerta de stoc pe pagina produsului" }],
+      },
+      { type: "heading", text: "Al doilea pas" },
+      {
+        type: "links",
+        items: [{ label: "Introduceți adresa de e-mail și confirmați alerta" }],
+      },
+    ],
+  },
+  {
+    id: "zlavovy-kupon",
+    question: "Nu puteți aplica un cupon de reducere?",
+    updatedAt: "15.8.2019",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Se întâmplă ca unele cupoane de reducere să nu poată fi aplicate din prima încercare.",
+      },
+      {
+        type: "paragraph",
+        text: "Înainte să ne sunați sau să ne scrieți, verificați dacă ați introdus codul exact așa cum a fost primit, fără ghilimele și fără spații suplimentare.",
+      },
+      {
+        type: "paragraph",
+        text: "Dacă problema persistă, trimiteți cuponul la salut@herbatica.ro sau adăugați-l în nota pentru comerciant, iar noi îl vom verifica.",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            href: "mailto:salut@herbatica.ro",
+            label: "salut@herbatica.ro",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "obchodna-ponuka",
+    question: "Aveți o propunere de afaceri pentru noi?",
+    updatedAt: "15.8.2019",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Dacă aveți o propunere comercială, o idee de îmbunătățire sau sunteți interesat de o colaborare ori de achiziții angro, scrieți-ne la salut@herbatica.ro.",
+      },
+      {
+        type: "paragraph",
+        text: "Ne puteți contacta și telefonic la +40 (31) 2295431.",
+      },
+      {
+        type: "paragraph",
+        text: "Așteptăm cu interes mesajul sau apelul dumneavoastră.",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            href: "mailto:salut@herbatica.ro",
+            label: "salut@herbatica.ro",
+          },
+          { href: "tel:+40312295431", label: "+40 (31) 2295431" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "byt-v-obraze",
+    question:
+      "Cum puteți fi la curent cu noutățile, schimbările și promoțiile Herbatica?",
+    updatedAt: "15.8.2019",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Ne bucurăm să avem clienți fideli și să le putem oferi mereu informații utile. Pentru dumneavoastră am pregătit newsletterul Herbatica și paginile noastre de Instagram și Facebook.",
+      },
+      { type: "heading", text: "Clubul Herbatica" },
+      {
+        type: "list",
+        items: [
+          "o listă de prețuri preferențiale individuală, cu avantaje pentru membrii VIP",
+          "noutăți și informații regulate din universul Herbatica prin newsletter, inclusiv cupoane atunci când sunt disponibile",
+          "pragul pentru transport gratuit este afișat în RON în coș, conform ofertei în vigoare",
+          "aveți la dispoziție 14 zile pentru returnarea produselor, în condițiile prevăzute de politica de retur",
+          "cupoanele de reducere primite pot fi folosite conform condițiilor afișate pentru fiecare campanie",
+          "comenzile din cont rămân în istoricul dumneavoastră și pot ajuta la identificarea unei achiziții",
+        ],
+      },
+      { type: "heading", text: "Cum deveniți membru al clubului?" },
+      {
+        type: "list",
+        items: [
+          "creați-vă un cont",
+          "abonați-vă la newsletter pentru a primi noutățile",
+        ],
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Înregistrare",
+            target: { kind: "account", section: "register" },
+          },
+          { label: "Newsletter" },
+          {
+            href: "https://www.instagram.com/herbatica/",
+            label: "Instagram",
+          },
+          {
+            href: "https://www.facebook.com/vasaherbatica/",
+            label: "Facebook",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "kamenna-predajna",
+    question: "Doriți să cumpărați personal de la un magazin fizic?",
+    updatedAt: "15.8.2019",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Informațiile despre punctele de vânzare fizice pot varia în funcție de țară și perioadă.",
+      },
+      {
+        type: "paragraph",
+        text: "Pentru opțiunile disponibile clienților din România, contactați echipa Herbatica România.",
+      },
+      {
+        type: "paragraph",
+        text: "Ne puteți suna la +40 (31) 2295431 sau ne puteți scrie la salut@herbatica.ro.",
+      },
+      {
+        type: "links",
+        items: [
+          { href: "tel:+40312295431", label: "+40 (31) 2295431" },
+          {
+            href: "mailto:salut@herbatica.ro",
+            label: "salut@herbatica.ro",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "affiliate",
+    question: "Doriți să colaborați cu Herbatica în calitate de afiliat?",
+    updatedAt: "15.8.2019",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Colaborăm cu parteneri afiliați prin platforma Dognet. Vă puteți înregistra pe platformă și ne puteți contacta prin această rețea.",
+      },
+      {
+        type: "paragraph",
+        text: "Pentru un alt tip de colaborare, scrieți-ne la salut@herbatica.ro.",
+      },
+      {
+        type: "links",
+        items: [
+          { href: "https://www.dognet.com/", label: "Dognet" },
+          {
+            href: "mailto:salut@herbatica.ro",
+            label: "salut@herbatica.ro",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "eurobio-lab",
+    question:
+      "Cum se interpretează marcajul termenului de valabilitate pentru produsele EUROBIO LAB?",
+    updatedAt: "8.3.2021",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Explicațiile privind marcajul termenului de valabilitate al produselor EUROBIO LAB sunt disponibile într-un document explicativ.",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            href: "mailto:salut@herbatica.ro?subject=Document%20EUROBIO%20LAB",
+            label: "Solicitați documentul explicativ",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "vratenie-reklamacia",
+    question:
+      "Cum procedați pentru returnarea sau reclamarea unui produs și unde găsiți formularele?",
+    updatedAt: "12.3.2021",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Satisfacția dumneavoastră este importantă pentru noi și ne străduim să ne facem treaba cât mai bine. Totuși, pot apărea situații care trebuie remediate. În calitate de client, puteți solicita returnarea sau puteți depune o reclamație pentru un produs, în condițiile aplicabile.",
+      },
+      {
+        type: "paragraph",
+        text: "Dacă doriți să reclamați un produs, găsiți informațiile și formularul necesar pe pagina dedicată retururilor și reclamațiilor.",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Formular de reclamație",
+            target: { kind: "static", page: "returns" },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "odstupenie-od-zmluvy",
+    question:
+      "Cum vă puteți retrage din contractul de vânzare și unde găsiți formularele?",
+    updatedAt: "12.3.2021",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Dacă doriți să vă retrageți din contractul de vânzare, documentele disponibile pot fi consultate în termenii și condițiile magazinului.",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Documente și condiții",
+            target: { kind: "static", page: "terms" },
+          },
+        ],
+      },
+    ],
+  },
+] satisfies FaqItem[]
+
+const FAQ_PAGE_DATA_BY_LOCALE: Partial<Record<HerbatikaLocale, FaqPageData>> = {
+  "sk-SK": {
+    title: "Často kladené otázky",
+    intro: "Prehľad odpovedí z pôvodného Herbatica FAQ.",
+    items: faqItems,
+  },
+  "ro-RO": {
+    title: "Întrebări frecvente",
+    intro:
+      "Răspunsuri clare la cele mai frecvente întrebări despre cumpărăturile pe Herbatica.",
+    items: roFaqItems,
+  },
+}
+
+export const getFaqPageData = (locale: HerbatikaLocale): FaqPageData | null =>
+  FAQ_PAGE_DATA_BY_LOCALE[locale] ?? null

@@ -96,8 +96,18 @@ export const buildPath = (
       }
       return `/${root}/${validatePublishedSlug(target.slug)}`
     }
-    case "static":
-      return `/${segments.staticRootPages[target.page]}`
+    case "static": {
+      const staticRootPages: Readonly<
+        Partial<Record<StaticRootPageKey, string>>
+      > = segments.staticRootPages
+      const root = staticRootPages[target.page]
+      if (!root) {
+        throw new Error(
+          `Static page ${target.page} is not available for market ${market}`
+        )
+      }
+      return `/${root}`
+    }
     case "staticSnapshot":
       return staticSnapshotPath(target.segments)
     case "search": {

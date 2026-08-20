@@ -24,10 +24,14 @@ import { useMarketContext } from "@/lib/storefront/market-context-provider"
 
 type CheckoutFlowProps = {
   activeStep: CheckoutStepSlug
+  authorizedCartId?: string
 }
 
-export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
-  const controller = useCheckoutController()
+export function CheckoutFlow({
+  activeStep,
+  authorizedCartId,
+}: CheckoutFlowProps) {
+  const controller = useCheckoutController({ authorizedCartId })
   const marketContext = useMarketContext()
   const tCart = useTranslations("cart")
   const tCheckout = useTranslations("checkout")
@@ -62,6 +66,11 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
     !canAccessStep &&
     !controller.completedOrderId &&
     redirectStep !== activeStep
+  const shouldShowEmptyCart =
+    hasResolvedCart &&
+    !isStepGateLoading &&
+    !controller.completedOrderId &&
+    !controller.hasItems
   const activeStepIndex = resolveCheckoutStepIndexBySlug(activeStep)
   const highestAccessibleStepIndex =
     resolveCheckoutStepIndexBySlug(requiredStep)
@@ -126,9 +135,7 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
         />
       ) : null}
 
-      {controller.completedOrderId || controller.hasItems ? null : (
-        <CheckoutEmptyCartSection />
-      )}
+      {shouldShowEmptyCart ? <CheckoutEmptyCartSection /> : null}
 
       {!controller.completedOrderId && controller.hasItems ? (
         <CheckoutStepContent activeStep={activeStep} controller={controller} />

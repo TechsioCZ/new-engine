@@ -29,6 +29,7 @@
     "update_failed": "A kosár frissítése nem sikerült."
   },
   "checkout": {
+    "page_unavailable": "A pénztár jelenleg nem érhető el.",
     "back_to_cart": "Vissza a kosárhoz",
     "back_to_shipping_payment": "Vissza a szállításhoz és fizetéshez",
     "complete_order": "Rendelés befejezése",
@@ -293,6 +294,43 @@
       "email_exists": "Ezzel az e-mail-címmel már létezik fiók. Jelentkezzen be, vagy állítsa vissza a jelszavát.",
       "failed": "A regisztráció nem sikerült. Próbálja újra."
     },
+    "deactivation": {
+      "page": {
+        "account_unavailable": "A fiók jelenleg nem érhető el.",
+        "confirmation_unavailable": "A fiók törlésének megerősítése jelenleg nem érhető el."
+      },
+      "request": {
+        "title": "Fiók törlése",
+        "description": "Megerősítő hivatkozást küldünk e-mailben. A fiók mindaddig aktív marad, amíg nem használja a hivatkozást. A meglévő rendelések nem törlődnek.",
+        "failed": "Nem sikerült elküldeni a megerősítő e-mailt.",
+        "toast_title": "A megerősítő e-mailt elküldtük",
+        "toast_description": "A fiók mindaddig aktív marad, amíg e-mailben meg nem erősíti a törlését.",
+        "sent_status": "Ellenőrizze az e-mail-fiókját. A megerősítő hivatkozás 30 percig érvényes.",
+        "action": "Fióktörlés kérése",
+        "resend_action": "E-mail újraküldése"
+      },
+      "dialog": {
+        "title": "Elküldi a fióktörlés megerősítését?",
+        "intro": "A fiók ezzel a lépéssel még nem törlődik.",
+        "email_notice": "E-mailben egy 30 percig érvényes hivatkozást küldünk.",
+        "confirmation_notice": "A fiókot csak a hivatkozás megnyitása és a megerősítés után töröljük.",
+        "orders_notice": "A meglévő rendelések nem törlődnek.",
+        "keep_account": "Fiók megtartása",
+        "send": "Megerősítő e-mail küldése",
+        "sending": "E-mail küldése"
+      },
+      "confirmation": {
+        "title": "Fióktörlés megerősítése",
+        "description": "A megerősítés után nem tud többé bejelentkezni. Meglévő rendeléseit biztonságosan megőrizzük.",
+        "missing_token": "A megerősítő hivatkozás nem tartalmaz érvényes tokent.",
+        "invalid_token": "A megerősítő hivatkozás érvénytelen vagy lejárt.",
+        "failed": "Nem sikerült törölni a fiókot.",
+        "success": "A fiókot töröltük. Ha ugyanazzal az e-mail-címmel újra regisztrál, az eredeti fiók és a rendelési előzmények helyreállnak.",
+        "continue": "Tovább a vásárláshoz",
+        "confirm": "Fióktörlés megerősítése",
+        "confirming": "Fiók törlése"
+      }
+    },
     "account_label": "Fiók",
     "sign_in": "Bejelentkezés",
     "password": "Jelszó",
@@ -391,7 +429,9 @@
     "product_detail": {
       "errors": {
         "load_failed": "A terméket nem sikerült betölteni.",
-        "not_found": "A termék nem található."
+        "not_found": "A termék nem található.",
+        "page_unavailable": "A termék jelenleg nem érhető el",
+        "page_status": "Állapot: {status}"
       },
       "retry": "Próbáld újra",
       "back_home": "Vissza a főoldalra",
@@ -403,6 +443,7 @@
         "composition": "Összetétel",
         "warning": "Figyelmeztetés",
         "other": "Egyéb információk",
+        "warranty": "Garancia",
         "content": "Tartalom"
       },
       "variant_label": "Változat",
@@ -410,7 +451,11 @@
       "stock": {
         "in_stock": "Raktáron",
         "out_of_stock": "Jelenleg nincs raktáron",
-        "physical_store_only_notice": "Az üzletekben elérhető termékek nem rendelhetők meg a webáruházban."
+        "physical_store_only_notice": "Az üzletekben elérhető termékek nem rendelhetők meg a webáruházban.",
+        "loading_aria": "Raktárankénti elérhetőség betöltése",
+        "load_failed": "A raktárankénti elérhetőséget nem sikerült betölteni.",
+        "quantity": "{count, plural, other {# db}}",
+        "more_than_quantity": "Raktáron (>{count} db)"
       },
       "delivery_by": "várható kézbesítés: {date}",
       "free_shipping_over": "Ingyenes szállítás {threshold} felett",
@@ -579,6 +624,21 @@
       "best_selling": "Legkelendőbb",
       "newest": "Legújabb"
     },
+    "category": {
+      "default_name": "Kategória",
+      "status": {
+        "found": "kategória megtalálva",
+        "not_found": "kategória nem található"
+      },
+      "badges": {
+        "products": "termékek: {count}",
+        "filtered_products": "szűrés után: {count}"
+      },
+      "subtitle": {
+        "direct_products": "A kategóriához tartozó termékek",
+        "includes_subcategories": "{count, plural, other {A listában # alkategória termékei is szerepelnek}}"
+      }
+    },
     "results": {
       "items_total": "összesen",
       "empty_category": "Ebben a kategóriában jelenleg nincsenek elérhető termékek a kiválasztott szűrőhöz.",
@@ -603,6 +663,13 @@
       },
       "blog": {
         "title": "Egészség- és szépségblog"
+      },
+      "promo": {
+        "image_alt": "Herbatika üzlet",
+        "heading": "Természetes kozmetikumok, étrend-kiegészítők és hagyományos gyógyászat",
+        "paragraph_1": "Ismerje meg a természetes kozmetikumok jótékony hatásait, amelyek nemcsak a bőrre vannak kedvező hatással. Támogassa egészségét étrend-kiegészítőkkel és a hagyományos gyógyászat termékeivel. Mindezt megtalálja változatos kínálatunkban, amelyet természetes anyagokból készült egészségügyi kiegészítők is gazdagítanak.",
+        "paragraph_2": "A legjobb minőségű termékeket válogatjuk, amelyeket mi magunk is használunk, fejlesztünk és rendszeresen tesztelünk. Fontos számunkra a minőség és a részletekre való odafigyelés. Szívesen segítünk kiválasztani az Ön igényeinek vagy konkrét egészségügyi problémájának megfelelő termékeket.",
+        "paragraph_3": "A Herbatica saját márkával is rendelkezik, amely alatt számos, máshol nem kapható terméket gyártunk. Szeretjük a minőséget és a részleteket, ezért minden termékünknél ezekre összpontosítunk."
       },
       "product_sections": {
         "bestsellers": "Legnépszerűbb termékek",
@@ -699,6 +766,13 @@
     "submenu": {
       "loading": "Alkategóriák betöltése..."
     },
+    "contact": {
+      "hours": "(Hé–Pé: 09:00–16:00)",
+      "email_display": "ahoj@herbatica.sk",
+      "email_href": "mailto:ahoj@herbatica.sk",
+      "phone_display": "+421 2/321 123 45",
+      "phone_href": "tel:+421232112345"
+    },
     "footer": {
       "copyright": "Copyright {year} <brand>{domain}.</brand> Minden jog fenntartva.",
       "cookie_settings": "Cookie-beállítások módosítása",
@@ -733,14 +807,31 @@
     "breadcrumbs": {
       "root_aria": "Navigációs útvonal",
       "home": "Főoldal"
+    },
+    "page_errors": {
+      "account": "A fiók jelenleg nem érhető el.",
+      "advice": "A tanácsadó jelenleg nem érhető el.",
+      "authentication": "A bejelentkezés és a regisztráció jelenleg nem érhető el.",
+      "cart": "A kosár jelenleg nem érhető el.",
+      "catalog": "A katalógus jelenleg nem érhető el.",
+      "checkout": "A pénztár jelenleg nem érhető el.",
+      "content": "A tartalom jelenleg nem érhető el.",
+      "not_found": "Az oldal nem található.",
+      "order": "A rendelés jelenleg nem érhető el.",
+      "review": "Az értékelés jelenleg nem érhető el.",
+      "search": "A keresés jelenleg nem érhető el.",
+      "storefront": "Az áruház jelenleg nem érhető el.",
+      "unavailable": "Az áruház átmenetileg nem érhető el."
     }
   },
   "search": {
     "results": {
       "title": "Keresés",
       "description": "Keressen termékeket a katalógusban.",
+      "related": "Kapcsolódó találatok",
       "query": "keresés: {query}",
       "found": "találatok: {count}",
+      "displayed": "megjelenítve: {count}",
       "page": "oldal: {page}/{totalPages}",
       "empty": "A(z) „{query}” kifejezésre nem találhatók termékek.",
       "enter_query": "Írjon be egy keresési kifejezést a felső sávba."

@@ -5,6 +5,7 @@ import {
   normalizeCategoryName,
   resolveCategoryRank,
 } from "@/components/category/category-product-utils"
+import { getHerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
 import type { Market } from "@/lib/url/types"
 
@@ -24,7 +25,10 @@ const asRecord = (value: unknown): Record<string, unknown> | null => {
 const asString = (value: unknown): string | null =>
   typeof value === "string" && value.trim().length > 0 ? value.trim() : null
 
-const sortCategories = (categories: HttpTypes.StoreProductCategory[]) =>
+const sortCategories = (
+  categories: HttpTypes.StoreProductCategory[],
+  locale: string
+) =>
   [...categories].sort((left, right) => {
     const rankDifference =
       resolveCategoryRank(left) - resolveCategoryRank(right)
@@ -34,7 +38,7 @@ const sortCategories = (categories: HttpTypes.StoreProductCategory[]) =>
 
     return normalizeCategoryName(left.name).localeCompare(
       normalizeCategoryName(right.name),
-      "sk"
+      locale
     )
   })
 
@@ -68,6 +72,25 @@ const resolveCategoryMetadataHtml = ({
 }: ResolveCategoryHtmlInput & {
   field: "bottom_description_html" | "top_description_html"
 }) => {
+  const categoryRecord = asRecord(activeCategory)
+  const localizedContent = asRecord(categoryRecord?.localized_content)
+  const localizedHtml = asString(localizedContent?.[field])
+  if (localizedHtml) {
+    return rewriteCategoryMetadataHtml(
+      localizedHtml,
+      categoryByHandle,
+      publicSlugsById,
+      market
+    )
+  }
+
+  // Only the source market may read legacy rich content from global metadata.
+  // Non-source locales use explicit nulls to mean intentionally empty and must
+  // never fall back to Slovak content.
+  if (market !== "sk") {
+    return null
+  }
+
   const metadata = asRecord(activeCategory?.metadata)
   const html = asString(metadata?.[field])
   if (!html) {
@@ -109,12 +132,15 @@ export const resolveCategoryContextImageTiles = ({
     return []
   }
 
+  const locale = getHerbatikaMarketContext(market).locale
+
   const directChildren = sortCategories(
     categories.filter(
       (category) =>
         category.parent_category_id === activeCategory.id &&
         Boolean(category.handle)
-    )
+    ),
+    locale
   ).flatMap((category) => {
     const href = buildProjectedEntityPath(
       "category",
@@ -150,7 +176,8 @@ export const resolveCategoryContextImageTiles = ({
         }
 
         return category.id !== activeCategory.id
-      })
+      }),
+    locale
   )
     .slice(0, 8)
     .flatMap((category) => {

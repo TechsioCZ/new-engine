@@ -5,7 +5,7 @@ export const URL_REGISTRY_REQUEST_LIMIT_BYTES = 64 * 1024
 export const URL_REGISTRY_RESPONSE_LIMIT_BYTES = 16 * 1024
 export const URL_REGISTRY_MAX_RETRY_DELAY_MS = 60 * 60 * 1000
 
-const PERMANENT_HTTP_STATUSES = new Set([400, 409, 413])
+const PRODUCT_PERMANENT_HTTP_STATUSES = new Set([400, 409, 413])
 const ACK_KEYS = new Set([
   "action",
   "marketCode",
@@ -48,6 +48,7 @@ export type UrlRegistryDeliveryAttempt =
     }>
 
 type DeliveryClientConfig = Readonly<{
+  catalogEndpoint?: string
   endpoint: string
   token: string
 }>
@@ -57,13 +58,28 @@ type DeliveryClientOptions = Readonly<{
   now?: () => number
 }>
 
+const isPermanentHttpStatus = (
+  event: ClaimedUrlRegistryOutboxEvent,
+  status: number
+): boolean =>
+  status === 413 ||
+  (event.entityKind === "product" &&
+    PRODUCT_PERMANENT_HTTP_STATUSES.has(status))
+
+const missingEndpointAttempt = (
+  event: ClaimedUrlRegistryOutboxEvent
+): UrlRegistryDeliveryAttempt =>
+  event.entityKind === "product"
+    ? { errorCode: "unsupported-delivery-topic", kind: "fail" }
+    : { errorCode: "catalog-consumer-not-ready", kind: "retry" }
+
 const deliveryBody = (event: ClaimedUrlRegistryOutboxEvent) => ({
   schemaVersion: 1,
   outboxEventId: event.id,
   eventId: event.eventId,
   envelopeFingerprint: event.envelopeFingerprint,
   source: "medusa",
-  entityKind: "product",
+  entityKind: event.entityKind,
   entityId: event.entityId,
   marketCode: event.marketCode,
   streamSequence: event.streamSequence,
@@ -174,8 +190,16 @@ export const deliverUrlRegistryOutboxEvent = async (
   config: DeliveryClientConfig,
   options: DeliveryClientOptions = {}
 ): Promise<UrlRegistryDeliveryAttempt> => {
-  if (event.source !== "medusa" || event.entityKind !== "product") {
+  if (
+    event.source !== "medusa" ||
+    !["product", "category", "brand", "collection"].includes(event.entityKind)
+  ) {
     return { errorCode: "unsupported-delivery-topic", kind: "fail" }
+  }
+  const endpoint =
+    event.entityKind === "product" ? config.endpoint : config.catalogEndpoint
+  if (!endpoint) {
+    return missingEndpointAttempt(event)
   }
   const body = JSON.stringify(deliveryBody(event))
   if (
@@ -189,7 +213,7 @@ export const deliverUrlRegistryOutboxEvent = async (
     URL_REGISTRY_REQUEST_TIMEOUT_MS
   )
   try {
-    const response = await (options.fetchImpl ?? fetch)(config.endpoint, {
+    const response = await (options.fetchImpl ?? fetch)(endpoint, {
       body,
       headers: {
         accept: "application/json",
@@ -205,7 +229,7 @@ export const deliverUrlRegistryOutboxEvent = async (
     }
     await response.body?.cancel().catch(ignoreCancellationError)
     const errorCode = `http-${response.status}`
-    if (PERMANENT_HTTP_STATUSES.has(response.status)) {
+    if (isPermanentHttpStatus(event, response.status)) {
       return { errorCode, kind: "fail" }
     }
     const retryAfterMs = parseRetryAfter(

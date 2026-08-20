@@ -124,6 +124,31 @@ describe("buildProductSeo", () => {
     expect(seo.description).toBe("Long fallback description")
   })
 
+  it("uses the Romanian description when localized demo rich content is empty", () => {
+    const seo = buildProductSeo({
+      canonicalUrl:
+        "https://herbatica.ro/produse/befungin-tinctura-cu-extract-de-chaga-siberian-100-ml-herbatica",
+      product: {
+        ...product,
+        description: "<p>Descriere oficială în limba română.</p>",
+        metadata: {
+          content_sections_map: {
+            composition: "",
+            description: "<p>Descriere oficială în limba română.</p>",
+            other: "",
+            usage: "",
+            warning: "",
+          },
+          short_description: "",
+        },
+      } as unknown as ProductRouteMedusaProduct,
+    })
+
+    expect(seo.description).toBe("Descriere oficială în limba română.")
+    expect(seo.jsonLd.description).toBe("Descriere oficială în limba română.")
+    expect(JSON.stringify(seo)).not.toContain("Long fallback description")
+  })
+
   it("ignores malformed optional image payloads", () => {
     const seo = buildProductSeo({
       canonicalUrl: "https://herbatica.sk/produkty/herbal-tea",

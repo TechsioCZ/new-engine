@@ -84,6 +84,37 @@ describe("full public URL proxy", () => {
     })
   })
 
+  it.each([
+    ["/contact", "contact"],
+    ["/livrare", "shipping"],
+    ["/retururi", "returns"],
+    ["/termeni-si-conditii", "terms"],
+    ["/politica-de-confidentialitate", "privacy"],
+    ["/politica-cookies", "cookies"],
+    ["/program-afiliere", "affiliate"],
+    ["/vanzare-en-gros", "wholesale"],
+    ["/dropshipping", "dropshipping"],
+    ["/marca-proprie", "privateLabel"],
+    ["/voucher-cadou", "giftVoucher"],
+  ])("rewrites the RO static route %s", (pathname, pageKey) => {
+    expect(resolve(pathname, { host: "herbatica.ro" })).toMatchObject({
+      kind: "rewrite",
+      market: "ro",
+      pathname: `/~sf/ro/static/${pageKey}`,
+      routeKey: `static.${pageKey}`,
+    })
+  })
+
+  it.each([
+    "/program-afiliere",
+    "/vanzare-en-gros",
+    "/dropshipping",
+    "/marca-proprie",
+    "/voucher-cadou",
+  ])("does not publish the RO-only static route %s on SK", (pathname) => {
+    expect(resolve(pathname)).toEqual({ kind: "respond", status: 404 })
+  })
+
   it("uses the first configured deployment host as canonical", () => {
     expect(
       resolve("/produkty/ashwagandha", {

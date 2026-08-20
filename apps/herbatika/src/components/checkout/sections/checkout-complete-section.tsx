@@ -14,6 +14,7 @@ import { SupportingText } from "@/components/text/supporting-text"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
+import { isReviewTrustProviderSupported } from "@/lib/storefront/review-market-policy"
 import { buildPath } from "@/lib/url/public-url"
 
 type CheckoutCompleteSectionProps = {
@@ -146,6 +147,10 @@ export function CheckoutCompleteSection({
   const tCheckout = useTranslations("checkout")
   const tForm = useTranslations("form")
   const marketContext = useMarketContext()
+  const supportsHeureka = isReviewTrustProviderSupported(
+    marketContext.code,
+    "heureka"
+  )
   const shippingAddressRows = resolveAddressRows(
     shippingAddressForm,
     marketContext.locale,
@@ -203,12 +208,14 @@ export function CheckoutCompleteSection({
             onCheckedChange={onMarketingConsentChange}
             size="sm"
           />
-          <FormCheckbox
-            checked={heurekaConsent}
-            label={tCheckout("review_heureka_consent")}
-            onCheckedChange={onHeurekaConsentChange}
-            size="sm"
-          />
+          {supportsHeureka ? (
+            <FormCheckbox
+              checked={heurekaConsent}
+              label={tCheckout("review_heureka_consent")}
+              onCheckedChange={onHeurekaConsentChange}
+              size="sm"
+            />
+          ) : null}
         </div>
 
         <div className="space-y-200">

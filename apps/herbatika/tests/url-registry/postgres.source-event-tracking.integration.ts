@@ -396,4 +396,31 @@ describe.sequential("PostgreSQL 18.1 source-event tracking", () => {
       { action: "noop-unpublished", command_idempotency_key: null },
     ])
   })
+
+  it("preserves a legacy commandless catalog unpublished receipt", async () => {
+    const sourceId = context.nextNamespace("legacy-category-unpublished")
+
+    await appendSourceEvent(context, {
+      action: "unpublished",
+      changeType: "reconcile",
+      eventId: `${sourceId}:unpublished`,
+      sequence: 1,
+      sourceId,
+      sourceType: "category",
+    })
+
+    const receipt = await context.runtime.query(
+      `SELECT source_type, action, command_idempotency_key
+       FROM url_registry.url_registry_source_event_receipt
+       WHERE source_type = 'category' AND source_id = $1`,
+      [sourceId]
+    )
+    expect(receipt.rows).toEqual([
+      {
+        action: "unpublished",
+        command_idempotency_key: null,
+        source_type: "category",
+      },
+    ])
+  })
 })

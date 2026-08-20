@@ -11,6 +11,7 @@ import { describe, expect, it, vi } from "vitest"
 import { POST } from "../sources/route"
 
 const product = {
+  description: "",
   id: "prod_1",
   metadata: {
     url_registry_publication: {
@@ -25,6 +26,7 @@ const product = {
     },
   },
   sales_channels: [{ id: "sc_sk" }],
+  subtitle: "",
   updated_at: "2026-08-19T00:00:00.000Z",
 }
 
@@ -46,6 +48,9 @@ const makeRequest = (body: unknown) => {
     }
     if (key === Modules.TRANSLATION) {
       return { listTranslations }
+    }
+    if (key === Modules.PRODUCT) {
+      return { listProducts: vi.fn(async () => [product]) }
     }
     throw new Error(`Unexpected dependency: ${key}`)
   })

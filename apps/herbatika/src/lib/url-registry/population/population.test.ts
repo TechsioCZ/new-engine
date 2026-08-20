@@ -122,6 +122,46 @@ describe("initial URLR population manifest", () => {
       "taxonomyApproval.hash does not match this build"
     )
   })
+
+  it("keeps only approved RO informational roots indexable", () => {
+    const roRoots = buildPopulationStaticTaxonomy().filter(
+      ({ market, routeKey }) => market === "ro" && routeKey.startsWith("root:")
+    )
+
+    expect(
+      roRoots
+        .filter(({ indexPolicy }) => indexPolicy === "indexable")
+        .map(({ routeKey }) => routeKey)
+    ).toEqual(["root:about", "root:faq"])
+    expect(
+      roRoots
+        .filter(({ indexPolicy }) => indexPolicy === "noindex")
+        .map(({ routeKey }) => routeKey)
+    ).toEqual([
+      "root:affiliate",
+      "root:contact",
+      "root:dropshipping",
+      "root:giftVoucher",
+      "root:privateLabel",
+      "root:shipping",
+      "root:returns",
+      "root:terms",
+      "root:privacy",
+      "root:cookies",
+      "root:wholesale",
+    ])
+  })
+
+  it("preserves the existing index policy for non-RO roots", () => {
+    expect(
+      buildPopulationStaticTaxonomy()
+        .filter(
+          ({ market, routeKey }) =>
+            market !== "ro" && routeKey.startsWith("root:")
+        )
+        .every(({ indexPolicy }) => indexPolicy === "indexable")
+    ).toBe(true)
+  })
 })
 
 describe("initial URLR population execution", () => {

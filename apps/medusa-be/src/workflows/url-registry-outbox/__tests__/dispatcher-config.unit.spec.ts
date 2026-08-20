@@ -32,9 +32,32 @@ describe("parseUrlRegistryDispatcherConfig", () => {
       })
     ).toEqual({
       enabled: true,
+      catalogEndpoint:
+        "http://herbatika:3001/api/internal/url-registry/catalog-lifecycle",
       endpoint:
         "http://herbatika:3001/api/internal/url-registry/product-lifecycle",
       token: TOKEN,
+    })
+  })
+
+  it("enforces consumer-first rollout before dispatcher enablement", () => {
+    const consumerSettings = {
+      URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN: "http://herbatika:3001",
+      URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN: TOKEN,
+    }
+
+    expect(parseUrlRegistryDispatcherConfig(consumerSettings)).toEqual({
+      enabled: false,
+    })
+    expect(
+      parseUrlRegistryDispatcherConfig({
+        ...consumerSettings,
+        URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED: "1",
+      })
+    ).toMatchObject({
+      enabled: true,
+      catalogEndpoint:
+        "http://herbatika:3001/api/internal/url-registry/catalog-lifecycle",
     })
   })
 

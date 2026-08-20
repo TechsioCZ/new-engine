@@ -87,4 +87,48 @@ describe("CMS page source reads", () => {
       causeCode: "MISSING_STATIC_PAGE_BINDING_TERMS",
     })
   })
+
+  it("uses an explicitly marked RO demo fallback when Payload is unbound", async () => {
+    vi.stubEnv("HERBATIKA_CMS_STATIC_PAGE_IDS", JSON.stringify({ about: 1 }))
+    const { readCmsStaticPageWithDemoFallback } = await import("./cms-pages")
+
+    await expect(
+      readCmsStaticPageWithDemoFallback("terms", "ro-RO")
+    ).resolves.toMatchObject({
+      kind: "found",
+      value: {
+        id: "demo-generated-unreviewed:ro:terms",
+        title: "Termeni și condiții",
+      },
+    })
+  })
+
+  it("does not leak the RO demo fallback into SK", async () => {
+    vi.stubEnv("HERBATIKA_CMS_STATIC_PAGE_IDS", JSON.stringify({ about: 1 }))
+    const { readCmsStaticPageWithDemoFallback } = await import("./cms-pages")
+
+    await expect(
+      readCmsStaticPageWithDemoFallback("terms", "sk-SK")
+    ).resolves.toEqual({
+      kind: "invalid-response",
+      causeCode: "MISSING_STATIC_PAGE_BINDING_TERMS",
+    })
+  })
+
+  it("prefers exact-locale Payload content over the RO demo fallback", async () => {
+    vi.stubEnv("HERBATIKA_CMS_STATIC_PAGE_IDS", JSON.stringify({ terms: 77 }))
+    const { readCmsJson } = await import("./cms-client")
+    vi.mocked(readCmsJson).mockResolvedValue({
+      kind: "found",
+      value: { page: { id: 77, title: "Termeni aprobați" } },
+    })
+    const { readCmsStaticPageWithDemoFallback } = await import("./cms-pages")
+
+    await expect(
+      readCmsStaticPageWithDemoFallback("terms", "ro-RO")
+    ).resolves.toEqual({
+      kind: "found",
+      value: { id: 77, content: "normalized:", title: "Termeni aprobați" },
+    })
+  })
 })

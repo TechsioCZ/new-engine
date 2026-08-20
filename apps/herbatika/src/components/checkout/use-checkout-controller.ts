@@ -35,7 +35,6 @@ import {
 } from "@/lib/storefront/checkout-access"
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
-import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import {
   REGION_LIST_FIELDS,
@@ -52,6 +51,10 @@ import {
 import { logCheckoutAccountSetupDebug } from "./checkout-account-setup-debug"
 import { resolveHasStoredAddress } from "./checkout-address.utils"
 import { resolveOrderId } from "./checkout-completion.utils"
+import {
+  reportCheckoutError,
+  resolveCheckoutCustomerErrorMessage,
+} from "./checkout-customer-error"
 import {
   buildCheckoutMetadata,
   isCheckoutMetadataSynced,
@@ -77,9 +80,42 @@ const resolveCompleteResultOrderMetadata = (result: unknown) => {
   return result.order.metadata
 }
 
-export function useCheckoutController() {
+type CheckoutCartReadInput = Readonly<{
+  allowCartAutoCreate: boolean
+  authorizedCartId?: string
+  completedOrderId: string | null
+  countryCode?: string
+  regionId?: string
+}>
+
+export const resolveCheckoutCartReadInput = (
+  input: CheckoutCartReadInput
+): Parameters<typeof useCart>[0] => ({
+  autoCreate:
+    input.authorizedCartId === undefined &&
+    input.allowCartAutoCreate &&
+    !input.completedOrderId,
+  cartId: input.authorizedCartId,
+  country_code: input.countryCode,
+  enabled: Boolean(input.regionId),
+  region_id: input.regionId,
+})
+
+type UseCheckoutControllerOptions = Readonly<{
+  authorizedCartId?: string
+}>
+
+export function useCheckoutController({
+  authorizedCartId,
+}: UseCheckoutControllerOptions = {}) {
   const queryClient = useQueryClient()
   const tCheckout = useTranslations("checkout")
+  const tCart = useTranslations("cart")
+  const customerErrorMessages = {
+    cartUnavailable: tCheckout("cart_not_ready"),
+    insufficientInventory: tCart("insufficient_quantity"),
+    paymentAuthorizationFailed: tCheckout("payment_return_not_completed"),
+  }
   const marketContext = useMarketContext()
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
@@ -90,12 +126,15 @@ export function useCheckoutController() {
   const [heurekaConsent, setHeurekaConsent] = useState(false)
   const saveAddressSucceededRef = useRef(false)
 
-  const cartQuery = useCart({
-    autoCreate: allowCartAutoCreate && !completedOrderId,
-    region_id: region?.region_id,
-    country_code: region?.country_code,
-    enabled: Boolean(region?.region_id),
-  })
+  const cartQuery = useCart(
+    resolveCheckoutCartReadInput({
+      allowCartAutoCreate,
+      authorizedCartId,
+      completedOrderId,
+      countryCode: region?.country_code,
+      regionId: region?.region_id,
+    })
+  )
   const activeRegionId = cartQuery.cart?.region_id ?? region?.region_id
   const regionsQuery = useRegions({
     fields: REGION_LIST_FIELDS,
@@ -116,8 +155,14 @@ export function useCheckoutController() {
     {
       enabled: Boolean(cartQuery.cart?.id),
       onError: (error) => {
+        reportCheckoutError("shipping options", error)
         setCheckoutError(
-          resolveErrorMessage(error, tCheckout("shipping_update_failed"))
+          resolveCheckoutCustomerErrorMessage(
+            error,
+            tCheckout("shipping_update_failed"),
+            customerErrorMessages,
+            "shipping"
+          )
         )
       },
     }
@@ -399,8 +444,14 @@ export function useCheckoutController() {
 
         saveAddressSucceededRef.current = true
       } catch (error) {
+        reportCheckoutError("address update", error)
         setCheckoutError(
-          resolveErrorMessage(error, tCheckout("address_update_failed"))
+          resolveCheckoutCustomerErrorMessage(
+            error,
+            tCheckout("address_update_failed"),
+            customerErrorMessages,
+            "address"
+          )
         )
       }
     },
@@ -477,8 +528,14 @@ export function useCheckoutController() {
 
       return true
     } catch (error) {
+      reportCheckoutError("metadata update", error)
       setCheckoutError(
-        resolveErrorMessage(error, tCheckout("address_update_failed"))
+        resolveCheckoutCustomerErrorMessage(
+          error,
+          tCheckout("address_update_failed"),
+          customerErrorMessages,
+          "address"
+        )
       )
       return false
     }

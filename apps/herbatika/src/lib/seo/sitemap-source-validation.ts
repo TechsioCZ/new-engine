@@ -1,6 +1,7 @@
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
 import type { CmsArticle, CmsPage } from "@/lib/storefront/cms"
 import type { HerbatikaLocale } from "@/lib/storefront/market-context"
+import { getRoDemoStaticPage } from "@/lib/storefront/ro-demo-static-pages"
 import type { StaticRootPageKey } from "@/lib/url/types"
 import type { SourceReadResult } from "@/lib/url-registry/reads"
 import type {
@@ -371,6 +372,14 @@ export const validateCmsEntitySitemapSources = async (
 const isStaticRootPageKey = (value: string): value is StaticRootPageKey =>
   STATIC_ROOT_PAGE_KEYS.has(value as StaticRootPageKey)
 
+const hasNoindexDemoFallback = (
+  source: SitemapStaticSourceCandidate,
+  locale: HerbatikaLocale
+) =>
+  Boolean(
+    getRoDemoStaticPage(source.staticRouteKey as StaticRootPageKey, locale)
+  )
+
 export const validateCmsStaticSitemapSources = async (
   input: Readonly<{
     locale: HerbatikaLocale
@@ -401,18 +410,23 @@ export const validateCmsStaticSitemapSources = async (
       )
     )
     for (const [index, result] of results.entries()) {
-      if (result.kind === "missing") {
-        continue
-      }
-      if (result.kind !== "found") {
-        return result
-      }
       const source = batch[index]
       if (!source) {
         return {
           causeCode: "INVALID_STATIC_CMS_VALIDATION_BATCH",
           kind: "invalid-response",
         }
+      }
+      if (
+        result.kind === "missing" ||
+        (result.kind !== "found" &&
+          hasNoindexDemoFallback(source, input.locale))
+      ) {
+        // Demo fallbacks are deliberately noindex and stay out of sitemaps.
+        continue
+      }
+      if (result.kind !== "found") {
+        return result
       }
       validations.push({
         routeId: source.routeId,

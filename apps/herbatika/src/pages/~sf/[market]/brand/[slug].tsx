@@ -2,6 +2,7 @@ import type { DehydratedState } from "@tanstack/react-query"
 import { HydrationBoundary } from "@tanstack/react-query"
 import type { GetServerSideProps } from "next"
 import { BrandListing } from "@/components/brands/brand-listing"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   type PublicPageProps,
   resolveEntityPublicPage,
@@ -84,7 +85,7 @@ export const getServerSideProps = ((context) => {
 
 export default function BrandPage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Brand unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="catalog" />
   }
   return (
     <HydrationBoundary state={page.value.dehydratedState}>

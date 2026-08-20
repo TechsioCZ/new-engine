@@ -1,13 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
-import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
 import {
   buildMedusaUrl,
   clearSessionTokenCookie,
+  discardResponseBody,
   getPublishableHeaders,
   getSessionTokenFromCookieHeader,
   marketAuthorityError,
   parseResponseJson,
-  requireStorefrontMarketBinding,
+  requireStorefrontAuthContext,
+  type StorefrontAuthContext,
   StorefrontMarketAuthorityError,
   serverError,
   setSessionTokenCookie,
@@ -35,15 +36,16 @@ const resolveToken = (
 }
 
 export async function GET(request: NextRequest) {
-  let binding: MarketRuntimeBinding
+  let context: StorefrontAuthContext
   try {
-    binding = requireStorefrontMarketBinding(request)
+    context = requireStorefrontAuthContext(request)
   } catch (error) {
     if (error instanceof StorefrontMarketAuthorityError) {
       return marketAuthorityError()
     }
     throw error
   }
+  const { binding, messages } = context
   const token = getSessionTokenFromCookieHeader(request.headers.get("cookie"))
 
   if (!token) {
@@ -51,7 +53,7 @@ export async function GET(request: NextRequest) {
       {
         token: null,
         authenticated: false,
-        message: "Authentication required.",
+        message: messages.authenticationRequired,
       },
       { status: 200 }
     )
@@ -76,6 +78,7 @@ export async function GET(request: NextRequest) {
       setSessionTokenCookie(response, refreshedToken)
       return response
     }
+    await discardResponseBody(refreshResponse)
 
     const customerResponse = await fetch(
       buildMedusaUrl("/store/customers/me"),
@@ -88,13 +91,14 @@ export async function GET(request: NextRequest) {
         cache: "no-store",
       }
     )
+    await discardResponseBody(customerResponse)
 
     if (!customerResponse.ok) {
       const unauthorizedResponse = NextResponse.json<SessionResponse>(
         {
           token: null,
           authenticated: false,
-          message: "Authentication required.",
+          message: messages.authenticationRequired,
         },
         { status: 200 }
       )
@@ -108,9 +112,7 @@ export async function GET(request: NextRequest) {
     )
     setSessionTokenCookie(response, token)
     return response
-  } catch (error) {
-    return serverError("Unable to restore auth session.", {
-      error: error instanceof Error ? error.message : String(error),
-    })
+  } catch {
+    return serverError(messages.sessionRestoreFailed)
   }
 }

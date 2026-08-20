@@ -1,5 +1,6 @@
 import type { GetServerSideProps } from "next"
 import { CheckoutFlow } from "@/components/checkout-flow"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   foundSource,
   type PublicPageProps,
@@ -16,7 +17,7 @@ export const getServerSideProps = (async (context) =>
 
 export default function CartPage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Cart unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="cart" />
   }
   return <CheckoutFlow activeStep="kosik" />
 }

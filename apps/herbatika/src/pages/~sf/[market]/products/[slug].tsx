@@ -1,5 +1,6 @@
 import type { GetServerSideProps } from "next"
 import Head from "next/head"
+import { useTranslations } from "next-intl"
 import { ProductDetail } from "@/components/product-detail"
 import { ProductPagesProvider } from "@/components/product-detail/product-pages-provider"
 import {
@@ -14,6 +15,7 @@ import {
   type SsrPageProps,
 } from "@/lib/routing/pages/ssr-outcome"
 import {
+  loadEntityAlternates,
   loadPublicErrorShell,
   loadPublicShell,
   type StorefrontShellProps,
@@ -22,6 +24,7 @@ import { buildProductSeo, serializeProductJsonLd } from "@/lib/seo/product"
 import type { ProductPageContext } from "@/lib/storefront/product-page-context"
 import type { ProductRouteMedusaProduct } from "@/lib/storefront/product-route-source"
 import {
+  readProductIdentityFromMedusa,
   readProductPageContextFromMedusa,
   readProductRouteSourceFromMedusa,
 } from "@/lib/storefront/product-route-source.server"
@@ -34,6 +37,7 @@ import type { SourceReadResult } from "@/lib/url-registry/contracts"
 import { getUrlRegistryRuntime } from "@/lib/url-registry/runtime/instance.server"
 
 type ProductPageView = Readonly<{
+  alternates: Readonly<Record<string, string>>
   brandPublicSlugsById: PublicEntitySlugMap
   canonicalUrl: string
   categoryPublicSlugsById: PublicEntitySlugMap
@@ -61,6 +65,33 @@ const readRegistry = async (): Promise<
     } as const
   }
   return { kind: "found", value: runtime.registry } as const
+}
+
+const readProductAlternates = async (
+  market: NonNullable<ReturnType<typeof parseMarket>>,
+  productId: string
+): Promise<Readonly<Record<string, string>>> => {
+  const runtime = await getUrlRegistryRuntime()
+  if (!runtime.enabled) {
+    throw new Error("URL registry is disabled")
+  }
+  const current = await runtime.registry.findActiveEntityRoute({
+    market,
+    sourceId: productId,
+    sourceSystem: "medusa",
+    sourceType: "product",
+  })
+  if (current.kind !== "found") {
+    throw new Error("Current product route is unavailable")
+  }
+  return loadEntityAlternates(
+    current.value,
+    ({ market: targetMarket, sourceId }) =>
+      readProductIdentityFromMedusa({
+        market: targetMarket,
+        productId: sourceId,
+      })
+  )
 }
 
 const singleHeader = (value: string | string[] | undefined) => value
@@ -176,10 +207,10 @@ const toPageView = async (
     initialVariantId: outcome.value.initialVariantId,
     product: outcome.value.product,
   })
-  const projectionMaps = await readProductProjectionMaps(
-    market,
-    outcome.value.product
-  )
+  const [alternates, projectionMaps] = await Promise.all([
+    readProductAlternates(market, outcome.value.product.id),
+    readProductProjectionMaps(market, outcome.value.product),
+  ])
   if (projectionMaps.kind !== "found") {
     return projectionMaps
   }
@@ -187,6 +218,7 @@ const toPageView = async (
   return {
     kind: "found",
     value: {
+      alternates,
       brandPublicSlugsById: projectionMaps.value.brandPublicSlugsById,
       canonicalUrl: seo.canonicalUrl,
       categoryPublicSlugsById: projectionMaps.value.categoryPublicSlugsById,
@@ -253,6 +285,8 @@ export const getServerSideProps = (async ({ params, req, res }) => {
 }) satisfies GetServerSideProps<ProductPageProps>
 
 export default function ProductPagesRoute({ page }: ProductPageProps) {
+  const tCatalog = useTranslations("catalog")
+
   if (page.kind === "error") {
     return (
       <>
@@ -260,8 +294,12 @@ export default function ProductPagesRoute({ page }: ProductPageProps) {
           <meta content="noindex, nofollow" name="robots" />
         </Head>
         <main>
-          <h1>Product unavailable</h1>
-          <p>Status: {page.status}</p>
+          <h1>{tCatalog("product_detail.errors.page_unavailable")}</h1>
+          <p>
+            {tCatalog("product_detail.errors.page_status", {
+              status: page.status,
+            })}
+          </p>
         </main>
       </>
     )
@@ -275,6 +313,14 @@ export default function ProductPagesRoute({ page }: ProductPageProps) {
           <meta content={page.value.description} name="description" />
         ) : null}
         <link href={page.value.canonicalUrl} rel="canonical" />
+        {Object.entries(page.value.alternates).map(([hrefLang, href]) => (
+          <link
+            href={href}
+            hrefLang={hrefLang}
+            key={hrefLang}
+            rel="alternate"
+          />
+        ))}
         <meta content="product" property="og:type" />
         <meta content={page.value.title} property="og:title" />
         {page.value.description ? (

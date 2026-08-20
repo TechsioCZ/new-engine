@@ -517,7 +517,7 @@ const activeTargetFromResolution = (
       : resolution.route,
 })
 
-const hasValidActiveProjection = (
+export const hasValidActiveProjection = (
   target: ActiveEntityRouteTarget,
   market: Market,
   kind: EntityUrlKind

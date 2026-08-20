@@ -3,6 +3,7 @@ import { HydrationBoundary } from "@tanstack/react-query"
 import type { GetServerSideProps } from "next"
 import { HerbatikaHomepage } from "@/components/herbatika-homepage"
 import type { HeroBannerItem } from "@/components/homepage/homepage.data.types"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   foundSource,
   type PublicPageProps,
@@ -131,7 +132,7 @@ export const getServerSideProps = (async (context) =>
 
 export default function HomePage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Storefront unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="storefront" />
   }
   return (
     <HydrationBoundary state={page.value.dehydratedState}>

@@ -15,7 +15,9 @@ PostgreSQL unavailability fails the gate; no test is skipped.
 For a dedicated CI database, set both
 `URL_REGISTRY_PG18_TEST_MIGRATION_DATABASE_URL` and
 `URL_REGISTRY_PG18_TEST_RUNTIME_DATABASE_URL`. They must identify distinct
-users on PostgreSQL 18.1. The database is destructive test infrastructure: the
+users on PostgreSQL 18.1 and begin without an existing `url_registry` schema.
+The database is destructive test infrastructure: the gate first proves the
+V4-to-V5 transition with a historical commandless catalog receipt, then the
 suite truncates the URL registry tables between scenarios.
 
 The `.integration.ts` files are intentionally absent from normal Vitest

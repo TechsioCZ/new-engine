@@ -3,6 +3,7 @@ import {
   type EntityIndexItem,
   EntityIndexPage,
 } from "@/components/entity-index-page"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   foundSource,
   type PublicPageProps,
@@ -79,7 +80,7 @@ export const getServerSideProps = (async (context) =>
 
 export default function CategoriesPage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Categories unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="catalog" />
   }
   return <EntityIndexPage {...page.value} />
 }

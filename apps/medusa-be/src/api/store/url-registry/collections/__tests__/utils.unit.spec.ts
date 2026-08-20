@@ -84,7 +84,17 @@ const request = ({
             locale_code: filters.locale_code,
             reference: filters.reference,
             reference_id: referenceId,
-            translations: { title: "Localized" },
+            translations:
+              filters.reference === "product_category"
+                ? {
+                    bottom_description_html: null,
+                    description: null,
+                    meta_description: null,
+                    meta_title: null,
+                    name: "Localized",
+                    top_description_html: null,
+                  }
+                : { title: "Localized" },
           }))
         )
       }
@@ -289,8 +299,12 @@ describe("Store collection assignment reads", () => {
         entityKind,
         "sk",
         [
-          { entityId, publicSlug },
-          { entityId: "pcol_stale", publicSlug: "new-slug" },
+          { entityId, publicSlug, sourceVersion: "1" },
+          {
+            entityId: "pcol_stale",
+            publicSlug: "new-slug",
+            sourceVersion: "2",
+          },
         ]
       )
     ).resolves.toEqual({
@@ -331,6 +345,25 @@ describe("Store collection assignment reads", () => {
         take: 3,
       }
     )
+  })
+
+  it("omits a superseded same-slug source version", async () => {
+    const context = request({ records: [assignment()] })
+
+    await expect(
+      readPublishedStorefrontAssignmentSources(
+        context.value,
+        "collection",
+        "sk",
+        [
+          {
+            entityId: "pcol_1",
+            publicSlug: "zimna-kolekcia",
+            sourceVersion: "2",
+          },
+        ]
+      )
+    ).resolves.toEqual({ assignments: [], kind: "found" })
   })
 
   it("fails the page closed when one channel contains multiple markets", async () => {

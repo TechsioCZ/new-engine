@@ -1,5 +1,6 @@
 import type { GetServerSideProps } from "next"
 import { BlogListingPage } from "@/components/blog/blog-listing-page"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   foundSource,
   type PublicPageProps,
@@ -53,7 +54,7 @@ export const getServerSideProps = (async (context) =>
 
 export default function AdviceIndexPage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Advice unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="advice" />
   }
   return (
     <BlogListingPage

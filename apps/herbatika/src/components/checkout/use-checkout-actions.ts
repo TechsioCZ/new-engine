@@ -2,7 +2,6 @@
 
 import type { HttpTypes } from "@medusajs/types"
 import { useTranslations } from "next-intl"
-import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import {
   clearStoredCarrierPickupSelection,
   writeStoredCarrierPickupSelection,
@@ -11,6 +10,10 @@ import {
   resolveCompleteCartFailure,
   resolveOrderId,
 } from "./checkout-completion.utils"
+import {
+  reportCheckoutError,
+  resolveCheckoutCustomerErrorMessage,
+} from "./checkout-customer-error"
 import { resolveReusablePaymentCollection } from "./checkout-payment-collection-reuse"
 import { resolvePaymentRedirectUrl } from "./checkout-payment-redirect.utils"
 
@@ -95,6 +98,12 @@ export function useCheckoutActions({
   setShippingMethod,
 }: UseCheckoutActionsProps) {
   const tCheckout = useTranslations("checkout")
+  const tCart = useTranslations("cart")
+  const customerErrorMessages = {
+    cartUnavailable: tCheckout("cart_not_ready"),
+    insufficientInventory: tCart("insufficient_quantity"),
+    paymentAuthorizationFailed: tCheckout("payment_return_not_completed"),
+  }
   const resetFeedback = () => {
     onCheckoutErrorChange(null)
     if (completedOrderId) {
@@ -117,8 +126,14 @@ export function useCheckoutActions({
       }
       setShippingMethod(optionId, data)
     } catch (error) {
+      reportCheckoutError("shipping selection", error)
       onCheckoutErrorChange(
-        resolveErrorMessage(error, tCheckout("shipping_update_failed"))
+        resolveCheckoutCustomerErrorMessage(
+          error,
+          tCheckout("shipping_update_failed"),
+          customerErrorMessages,
+          "shipping"
+        )
       )
     }
   }
@@ -134,8 +149,14 @@ export function useCheckoutActions({
     try {
       onPaymentProviderSelect(providerId)
     } catch (error) {
+      reportCheckoutError("payment selection", error)
       onCheckoutErrorChange(
-        resolveErrorMessage(error, tCheckout("payment_update_failed"))
+        resolveCheckoutCustomerErrorMessage(
+          error,
+          tCheckout("payment_update_failed"),
+          customerErrorMessages,
+          "payment"
+        )
       )
     }
   }
@@ -198,21 +219,34 @@ export function useCheckoutActions({
         return
       }
 
-      const completionFailureMessage =
-        resolveCompleteCartFailure(completeResult)
+      const completionFailure = resolveCompleteCartFailure(completeResult)
 
-      if (completionFailureMessage) {
+      if (completionFailure) {
+        reportCheckoutError("completion response", completionFailure)
         onOrderCompletionAbort()
-        onCheckoutErrorChange(completionFailureMessage)
+        onCheckoutErrorChange(
+          resolveCheckoutCustomerErrorMessage(
+            completionFailure,
+            tCheckout("complete_failed"),
+            customerErrorMessages,
+            "completion"
+          )
+        )
         return
       }
 
       onOrderCompletionAbort()
       onCheckoutErrorChange(tCheckout("complete_failed"))
     } catch (error) {
+      reportCheckoutError("completion", error)
       onOrderCompletionAbort()
       onCheckoutErrorChange(
-        resolveErrorMessage(error, tCheckout("complete_failed"))
+        resolveCheckoutCustomerErrorMessage(
+          error,
+          tCheckout("complete_failed"),
+          customerErrorMessages,
+          "completion"
+        )
       )
     }
   }

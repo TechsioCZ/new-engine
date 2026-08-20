@@ -4,6 +4,7 @@
 import { fetchCmsJsonOrThrow } from "./cms-client"
 import type { CmsFooterNavigation } from "./cms-types"
 import type { HerbatikaLocale } from "./market-context"
+import { getRoDemoFooterNavigation } from "./ro-demo-static-pages"
 
 type CmsFooterNavigationResponse = {
   footerNavigation?: CmsFooterNavigation | null
@@ -12,15 +13,17 @@ type CmsFooterNavigationResponse = {
 const EMPTY_FOOTER_NAVIGATION: CmsFooterNavigation = { columns: [] }
 
 export const fetchCmsFooterNavigation = async (locale: HerbatikaLocale) => {
+  const fallback = getRoDemoFooterNavigation(locale) ?? EMPTY_FOOTER_NAVIGATION
   try {
     const response = await fetchCmsJsonOrThrow<CmsFooterNavigationResponse>(
       "navigation/footer",
       { locale }
     )
 
-    return response.footerNavigation ?? EMPTY_FOOTER_NAVIGATION
+    const navigation = response.footerNavigation
+    return navigation?.columns.length ? navigation : fallback
   } catch (error) {
     console.error("Failed to fetch CMS footer navigation", error)
-    return EMPTY_FOOTER_NAVIGATION
+    return fallback
   }
 }

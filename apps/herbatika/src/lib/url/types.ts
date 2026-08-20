@@ -13,13 +13,18 @@ export type FlowRootKey = "search" | "cart" | "checkout" | "account" | "reviews"
 
 export type StaticRootPageKey =
   | "about"
+  | "affiliate"
   | "contact"
+  | "dropshipping"
   | "faq"
+  | "giftVoucher"
+  | "privateLabel"
   | "shipping"
   | "returns"
   | "terms"
   | "privacy"
   | "cookies"
+  | "wholesale"
 
 export type CheckoutChildKey =
   | "contact"
@@ -47,7 +52,7 @@ export type SegmentGroup<Key extends string> = Readonly<Record<Key, string>>
 export type MarketRouteSegments = Readonly<{
   typePrefixes: SegmentGroup<TypePrefixKey>
   flowRoots: SegmentGroup<FlowRootKey>
-  staticRootPages: SegmentGroup<StaticRootPageKey>
+  staticRootPages: Readonly<Partial<Record<StaticRootPageKey, string>>>
   children: Readonly<{
     checkout: SegmentGroup<CheckoutChildKey>
     account: SegmentGroup<AccountChildKey>

@@ -9,6 +9,7 @@ import {
   PRODUCT_DETAIL_FIELDS,
 } from "../product-query-config"
 import { RELATED_PRODUCTS_LIMIT } from "../related-products-config"
+import { isProductReviewMarketSupported } from "../review-market-policy"
 import { PRODUCT_REVIEWS_PAGE_SIZE } from "../review-query-config"
 import {
   type ExplicitRequestServerContext,
@@ -46,11 +47,16 @@ export const prefetchProductDetailPageStorefrontData = async (
     if (product?.id) {
       await Promise.all([
         prefetchProductAttributes(market, queryClient, product.id),
-        prefetchProductReviews(market, queryClient, {
-          productId: product.id,
-          limit: PRODUCT_REVIEWS_PAGE_SIZE,
-          offset: 0,
-        }),
+        ...(isProductReviewMarketSupported(market)
+          ? [
+              prefetchProductReviews(market, queryClient, {
+                productId: product.id,
+                locale,
+                limit: PRODUCT_REVIEWS_PAGE_SIZE,
+                offset: 0,
+              }),
+            ]
+          : []),
       ])
     }
 

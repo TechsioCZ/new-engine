@@ -11,6 +11,7 @@ import {
 } from "../../product-source"
 
 const product = (overrides: Record<string, unknown> = {}) => ({
+  description: "",
   id: "prod_1",
   metadata: {
     url_registry_publication: {
@@ -25,6 +26,7 @@ const product = (overrides: Record<string, unknown> = {}) => ({
     },
   },
   sales_channels: [{ id: "sc_sk" }],
+  subtitle: "",
   updated_at: "2026-08-19T00:00:00.000Z",
   ...overrides,
 })
@@ -59,6 +61,16 @@ const request = (
         }
         if (key === Modules.TRANSLATION) {
           return { listTranslations: vi.fn(async () => translations) }
+        }
+        if (key === Modules.PRODUCT) {
+          return {
+            listProducts: vi.fn(async ({ id }: { id: string[] }) =>
+              products.filter((entry) => {
+                const productId = (entry as { id?: unknown }).id
+                return typeof productId === "string" && id.includes(productId)
+              })
+            ),
+          }
         }
         throw new Error(`Unexpected dependency: ${key}`)
       }),
@@ -169,6 +181,13 @@ describe("published product catalog source", () => {
           }
           if (key === Modules.TRANSLATION) {
             return { listTranslations }
+          }
+          if (key === Modules.PRODUCT) {
+            return {
+              listProducts: vi.fn(async ({ id }: { id: string[] }) =>
+                products.filter((entry) => id.includes(entry.id))
+              ),
+            }
           }
           throw new Error(`Unexpected dependency: ${key}`)
         }),

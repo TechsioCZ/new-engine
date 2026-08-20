@@ -36,8 +36,25 @@ switch mechanism.
    The command uses a Postgres advisory lock, verifies checksums, and is safe to
    rerun. Remove `URL_REGISTRY_MIGRATION_DATABASE_URL` from the service
    immediately after it succeeds; the runtime must never retain the DDL role.
+
+   Migration V5 is a one-way compatibility boundary for the already deployed
+   `59c9bee` image: that image has an exact-length V4 verifier and cannot run
+   URLR against a V5 ledger. Before applying V5, record and test the only safe
+   rollback posture for that old image:
+
+   - `URL_ARCHITECTURE_ENABLED=0`;
+   - `URL_REGISTRY_ENABLED=0`;
+   - `URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED=0` in both services;
+   - the Herbatika service remains in maintenance and receives no traffic.
+
+   With `URL_REGISTRY_ENABLED=0`, runtime initialization allocates no pool and
+   does not verify migrations; this is covered by the runtime-core unit gate.
+   It is a maintenance rollback only, not a traffic-serving rollback. After V5,
+   never re-enable URLR on `59c9bee`; restore service only by deploying a build
+   with the prefix-compatible verifier and V5 manifest. If a traffic-serving
+   rollback to the old image is required, stop before applying V5.
 3. Set only `URL_REGISTRY_ENABLED=1` on the maintenance deployment and restart it.
-   Startup must verify migration manifest V4 before the service becomes ready.
+   Startup must verify migration manifest V5 before the service becomes ready.
    Keep it outside the production request path while population is prepared.
 4. Freeze Medusa/Payload publishing, export the complete authoritative manifest,
    obtain the four required G1 editorial/legal approvals, and store the manifest
@@ -74,7 +91,15 @@ switch mechanism.
 5. Rerun the dry-run command with the same manifest. Continue only when it
    reports zero creates, zero blockers, and only no-ops. Drain and verify the
    invalidation outbox.
-6. Enable the authenticated command/invalidation/content-projection/product-
+6. Keep `URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED=0` in Medusa until the V5
+   Herbatika product and catalog lifecycle endpoints, shared token, and all
+   market bindings are healthy. Before changing it to `1`, require URLR outbox
+   `failed=0` and `processing=0`; after enablement, drain the exact expected
+   event IDs and streams to `delivered`. A catalog HTTP 400/409 remains
+   retryable during this consumer-first cutover so an old endpoint cannot make
+   a stream predecessor terminal, but it is still a release blocker.
+
+   Then enable the authenticated command/invalidation/content-projection/product-
    lifecycle producers and verify their health. Run the four-host GET/HEAD/RSC
    M00 target matrix using the isolated acceptance harness, not a production
    routing flag. Then set and synchronize `URL_ARCHITECTURE_ENABLED=1` on the

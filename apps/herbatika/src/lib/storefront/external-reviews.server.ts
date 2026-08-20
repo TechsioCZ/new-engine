@@ -11,6 +11,7 @@ import type {
 } from "@/components/reviews/reviews.types"
 import type { MarketCode } from "@/lib/market/market-runtime"
 import { getMarketStorefrontSdk } from "./market-sdk.server"
+import { isReviewTrustProviderSupported } from "./review-market-policy"
 
 export type ExternalReviewKind = "shop" | "product"
 
@@ -131,9 +132,9 @@ const toReviewItem = (review: ExternalReview): ReviewItem => {
 }
 
 const toHeurekaTrustSummary = (
-  result: ExternalReviewsResult
+  result: ExternalReviewsResult | null
 ): ReviewTrustProviderSummary | null => {
-  if (!result.ok) {
+  if (!result?.ok) {
     return null
   }
 
@@ -212,11 +213,22 @@ async function fetchZboziReviewTrustSummary(
 
 const fetchExternalReviewResources = cache(
   async (market: MarketCode, heurekaLimit: number) => {
+    const supportsHeureka = isReviewTrustProviderSupported(market, "heureka")
+    const supportsZbozi = isReviewTrustProviderSupported(market, "zbozi")
+
+    if (!(supportsHeureka || supportsZbozi)) {
+      return { heurekaResult: null, trustSources: [] }
+    }
+
     const [heurekaResult, zboziSummary] = await Promise.all([
-      fetchHeurekaExternalReviews(market, "shop", heurekaLimit),
-      fetchZboziReviewTrustSummary(market),
+      supportsHeureka
+        ? fetchHeurekaExternalReviews(market, "shop", heurekaLimit)
+        : Promise.resolve(null),
+      supportsZbozi
+        ? fetchZboziReviewTrustSummary(market)
+        : Promise.resolve(null),
     ])
-    const trustSources = createReviewTrustSources([
+    const trustSources = createReviewTrustSources(market, [
       toHeurekaTrustSummary(heurekaResult),
       zboziSummary,
     ])
@@ -242,5 +254,7 @@ export async function fetchHeurekaHomepageReviews(
     limit
   )
 
-  return toHeurekaHomepageReviews(heurekaResult, trustSources)
+  return heurekaResult
+    ? toHeurekaHomepageReviews(heurekaResult, trustSources)
+    : null
 }

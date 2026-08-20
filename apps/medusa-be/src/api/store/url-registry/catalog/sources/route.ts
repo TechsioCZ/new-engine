@@ -24,6 +24,7 @@ const CandidateSchema = z
       .min(1)
       .max(80)
       .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    sourceVersion: z.string().regex(/^[1-9]\d*$/),
   })
   .strict()
 

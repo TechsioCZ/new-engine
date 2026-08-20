@@ -1,9 +1,13 @@
 "use client"
-import { Button } from "@techsio/ui-kit/atoms/button"
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Icon } from "@techsio/ui-kit/atoms/icon"
+import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { Footer } from "@techsio/ui-kit/organisms/footer"
 import { useTranslations } from "next-intl"
+import {
+  type FooterMarketAlternates,
+  resolveFooterMarketLinks,
+} from "@/components/herbatika-footer.market-links"
 import { ReviewTrustBadges } from "@/components/reviews/review-trust-badges"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 import { StorefrontLink } from "@/components/storefront-link"
@@ -100,7 +104,14 @@ export const resolveFooterNavigationItem = (
   return href ? { href, kind: "internal" } : null
 }
 
-const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
+type FooterSocialLink = Readonly<{
+  href: string
+  icon: IconType
+  label: string
+  markets?: readonly Market[]
+}>
+
+const SOCIAL_LINKS: readonly FooterSocialLink[] = [
   {
     href: "https://www.facebook.com/vasaherbatica",
     icon: "token-icon-fb",
@@ -120,29 +131,35 @@ const SOCIAL_LINKS: { href: string; icon: IconType; label: string }[] = [
     href: "https://www.linkedin.com/company/herbaticask/",
     icon: "token-icon-linkedin",
     label: "LinkedIn",
+    markets: ["sk"],
   },
   {
     href: "https://www.tiktok.com/@herbatica.sk",
     icon: "token-icon-tiktok",
     label: "TikTok",
+    markets: ["sk"],
   },
 ]
 
-const FOOTER_LOCALES: { active?: boolean; code: string; icon: IconType }[] = [
-  { code: "SK", icon: "token-icon-sk", active: true },
-  { code: "CZ", icon: "token-icon-cz" },
-  { code: "HU", icon: "token-icon-hu" },
-  { code: "RO", icon: "token-icon-ro" },
-]
+export const resolveFooterSocialLinks = (market: Market) =>
+  SOCIAL_LINKS.filter((link) => !link.markets || link.markets.includes(market))
+
 export function HerbatikaFooter({
+  marketAlternates = {},
   navigation,
   reviewTrustSources,
 }: {
+  marketAlternates?: FooterMarketAlternates
   navigation: CmsFooterNavigation
   reviewTrustSources: readonly ReviewTrustSource[]
 }) {
   const t = useTranslations("navigation")
   const marketContext = useMarketContext()
+  const marketLinks = resolveFooterMarketLinks(
+    marketContext.code,
+    marketAlternates
+  )
+  const socialLinks = resolveFooterSocialLinks(marketContext.code)
 
   return (
     <Footer direction="vertical">
@@ -156,7 +173,7 @@ export function HerbatikaFooter({
 
           <Footer.Link
             className="mt-250 flex items-start gap-300 text-footer-text-fg"
-            href="tel:+421232112345"
+            href={t("contact.phone_href")}
           >
             <Icon
               className="mt-50 text-fg-secondary"
@@ -165,22 +182,24 @@ export function HerbatikaFooter({
             />
             <span className="leading-normal">
               <span className="block font-bold text-primary hover:underline">
-                +421 2/321 123 45
+                {t("contact.phone_display")}
               </span>
-              <span className="block text-sm">(Po-Pia: 9:00 - 16:00)</span>
+              <span className="block text-sm">{t("contact.hours")}</span>
             </span>
           </Footer.Link>
 
           <Footer.Link
             className="mt-500 inline-flex items-center gap-300 font-bold text-primary"
-            href="mailto:ahoj@herbatica.sk"
+            href={t("contact.email_href")}
           >
             <Icon
               className="text-fg-secondary"
               icon="token-icon-email"
               size="lg"
             />
-            <span className="font-bold hover:underline">ahoj@herbatica.sk</span>
+            <span className="font-bold hover:underline">
+              {t("contact.email_display")}
+            </span>
           </Footer.Link>
         </Footer.Section>
 
@@ -228,19 +247,18 @@ export function HerbatikaFooter({
       <Footer.Divider className="mx-auto max-w-footer-max" />
       <section className="mx-auto flex w-full max-w-footer-max flex-col items-start justify-between gap-550 px-500 py-700 lg:flex-row lg:items-center lg:gap-800">
         <div className="flex w-full flex-wrap items-center justify-center gap-300 md:w-auto md:justify-start">
-          {SOCIAL_LINKS.map((social) => (
-            <Button
+          {socialLinks.map((social) => (
+            <LinkButton
               aria-label={social.label}
               className="h-750 w-750 rounded-full bg-bg-disabled p-0 text-fg-secondary hover:text-primary"
+              href={social.href}
               icon={social.icon}
               iconSize="lg"
               key={social.label}
-              onClick={() =>
-                window.open(social.href, "_blank", "noopener,noreferrer")
-              }
+              rel="noopener noreferrer"
               size="current"
+              target="_blank"
               theme="unstyled"
-              type="button"
             />
           ))}
         </div>
@@ -276,19 +294,20 @@ export function HerbatikaFooter({
         </Footer.Text>
 
         <div className="flex w-full flex-wrap items-center justify-center gap-150 md:w-auto md:justify-end">
-          {FOOTER_LOCALES.map((locale) => (
-            <Button
-              className={`${!locale.active && "bg-base"} font-bold [&_span]:brightness-100 [&_span]:saturate-[1.7]`}
-              icon={locale.icon}
+          {marketLinks.map((link) => (
+            <LinkButton
+              aria-current={link.active ? "page" : undefined}
+              className={`${link.active ? "" : "bg-base"} font-bold [&_span]:brightness-100 [&_span]:saturate-[1.7]`}
+              href={link.href}
+              icon={link.icon}
               iconSize="md"
-              key={locale.code}
+              key={link.market}
               size="sm"
-              theme={locale.active ? "light" : "borderless"}
-              type="button"
-              variant={locale.active ? "primary" : "primary"}
+              theme={link.active ? "light" : "borderless"}
+              variant="primary"
             >
-              {locale.code}
-            </Button>
+              {link.code}
+            </LinkButton>
           ))}
         </div>
       </Footer.Bottom>

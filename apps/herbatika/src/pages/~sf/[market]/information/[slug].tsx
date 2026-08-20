@@ -1,5 +1,6 @@
 import type { GetServerSideProps } from "next"
 import { CmsPageSurface } from "@/components/cms/cms-page-surface"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   type PublicPageProps,
   resolveEntityPublicPage,
@@ -28,7 +29,7 @@ export const getServerSideProps = (async (context) =>
 
 export default function InformationPage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Content unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="content" />
   }
   return <CmsPageSurface page={page.value} />
 }

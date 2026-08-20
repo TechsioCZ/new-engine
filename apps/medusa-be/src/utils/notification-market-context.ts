@@ -127,6 +127,19 @@ function getChannelMarkets(channel: SalesChannelRecord) {
   return Object.values(value).map(parseMarketConfiguration)
 }
 
+export function salesChannelSupportsMarket(
+  channel: unknown,
+  marketCode: string
+): boolean {
+  if (!isSalesChannelRecord(channel)) {
+    return false
+  }
+  const normalizedMarketCode = normalizeCode(marketCode)
+  return getChannelMarkets(channel).some(
+    (configuration) => configuration.country_code === normalizedMarketCode
+  )
+}
+
 async function listAll<T>(
   query: Query,
   entity: string,

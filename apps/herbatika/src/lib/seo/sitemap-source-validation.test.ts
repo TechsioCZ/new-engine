@@ -247,6 +247,28 @@ describe("sitemap source validation", () => {
     expect(dependencies.readStaticPage).toHaveBeenCalledWith("privacy", "cs-CZ")
   })
 
+  it("keeps an unreviewed RO demo fallback out of sitemaps", async () => {
+    const invalidResponse = {
+      causeCode: "MISSING_STATIC_PAGE_BINDING_TERMS",
+      kind: "invalid-response" as const,
+    }
+    const sourceInput = [{ routeId: "route_terms", staticRouteKey: "terms" }]
+
+    await expect(
+      validateCmsStaticSitemapSources(
+        { locale: "ro-RO", sources: sourceInput },
+        { readStaticPage: vi.fn().mockResolvedValue(invalidResponse) }
+      )
+    ).resolves.toEqual({ kind: "found", value: [] })
+
+    await expect(
+      validateCmsStaticSitemapSources(
+        { locale: "sk-SK", sources: sourceInput },
+        { readStaticPage: vi.fn().mockResolvedValue(invalidResponse) }
+      )
+    ).resolves.toEqual(invalidResponse)
+  })
+
   it("fails the product shard when a URLR-active product source is missing", async () => {
     await expect(
       validateProductSitemapSources(

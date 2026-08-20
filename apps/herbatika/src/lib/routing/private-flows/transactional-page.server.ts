@@ -28,6 +28,11 @@ const reader = createMedusaTransactionalFlowReader({
 
 export const transactionalFlowReader = reader
 
+export type CheckoutUiPageValue = Readonly<{
+  authorizedCartId: string
+  step: ReachableCheckoutStep
+}>
+
 const singleValue = (value: string | string[] | undefined): string | null =>
   typeof value === "string" ? value : null
 
@@ -56,11 +61,7 @@ export const resolveCheckoutUiPage = async (
     expectedRouteKey: string
     requestedStep?: ReachableCheckoutStep
   }>
-): Promise<
-  GetServerSidePropsResult<
-    PublicPageProps<Readonly<{ step: ReachableCheckoutStep }>>
-  >
-> => {
+): Promise<GetServerSidePropsResult<PublicPageProps<CheckoutUiPageValue>>> => {
   const market = trustedMarket(context, input.expectedRouteKey)
   if (!market) {
     return resolveFlowPublicPage(context, {
@@ -117,7 +118,10 @@ export const resolveCheckoutUiPage = async (
     expectedRouteKey: input.expectedRouteKey,
     loadSource: async () => ({
       kind: "found",
-      value: { step: requestedStep },
+      value: {
+        authorizedCartId: projection.value.cartId,
+        step: requestedStep,
+      },
     }),
   })
 }

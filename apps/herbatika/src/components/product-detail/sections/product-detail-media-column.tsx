@@ -24,6 +24,7 @@ export function ProductDetailMediaColumn({
   mediaFacts,
 }: ProductDetailMediaColumnProps) {
   const tCatalog = useTranslations("catalog")
+  const tNavigation = useTranslations("navigation")
   const isDesktopGallery = useMediaQuery("md")
   const carouselOrientation = isDesktopGallery ? "vertical" : "horizontal"
   const {
@@ -140,9 +141,9 @@ export function ProductDetailMediaColumn({
           />
           <Link
             className="whitespace-nowrap font-medium text-fg-strong text-sm leading-tight hover:text-fg-primary"
-            href="tel:+421232112345"
+            href={tNavigation("contact.phone_href")}
           >
-            +421 2/321 123 45
+            {tNavigation("contact.phone_display")}
           </Link>
         </div>
       </div>

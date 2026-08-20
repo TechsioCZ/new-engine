@@ -83,6 +83,7 @@ const DEFAULT_TTLS = {
 } as const
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
 const ARTICLE_STORE_CACHE_VERSION = "v6"
+const RO_HERO_CAROUSEL_CACHE_VERSION = "exact-locale-v1"
 const ARTICLE_STORE_SELECT = {
   id: true,
   slug: true,
@@ -723,19 +724,35 @@ export default class PayloadModuleService extends MedusaService({}) {
   async listHeroCarousels(
     options?: CmsListOptions
   ): Promise<CmsHeroCarouselDTO[]> {
-    const cacheKey = this.buildListCacheKey(CACHE_TAGS.HERO_CAROUSELS, options)
-    const localeTag = this.buildLocaleTag(
+    const locale = this.normalizeLocale(options?.locale)
+    const baseCacheKey = this.buildListCacheKey(
       CACHE_TAGS.HERO_CAROUSELS,
-      options?.locale
+      options
     )
-    return this.getCached(
+    const cacheKey =
+      locale === "ro"
+        ? `${baseCacheKey}:${RO_HERO_CAROUSEL_CACHE_VERSION}`
+        : baseCacheKey
+    const localeTag = this.buildLocaleTag(CACHE_TAGS.HERO_CAROUSELS, locale)
+    const carousels = await this.getCached(
       cacheKey,
       async () => {
         const queryString = this.buildQuery({
+          ...(locale === "ro"
+            ? {
+                where: {
+                  and: [
+                    { heading: { exists: true } },
+                    { subheading: { exists: true } },
+                  ],
+                },
+              }
+            : {}),
           limit: options?.limit,
           page: options?.page,
           sort: options?.sort,
-          locale: options?.locale,
+          locale,
+          ...(locale ? { "fallback-locale": "false" as const } : {}),
         })
         const result = await this.makeRequest<
           PayloadBulkResult<CmsHeroCarouselDTO>
@@ -746,6 +763,16 @@ export default class PayloadModuleService extends MedusaService({}) {
       },
       this.listCacheTtl_,
       [CACHE_TAGS.ALL, CACHE_TAGS.HERO_CAROUSELS, localeTag]
+    )
+
+    if (locale !== "ro") {
+      return carousels
+    }
+
+    return carousels.filter(({ heading, subheading }) =>
+      [heading, subheading].every(
+        (value) => typeof value === "string" && value.trim().length > 0
+      )
     )
   }
 

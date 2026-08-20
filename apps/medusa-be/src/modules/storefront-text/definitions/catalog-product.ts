@@ -36,6 +36,14 @@ export const STOREFRONT_CATALOG_PRODUCT_TEXT_DEFINITIONS = [
     "Chyba pro nenalezený produkt."
   ),
   defineCatalogProductText(
+    "catalog.product_detail.errors.page_unavailable",
+    "Nadpis chybového stavu nedostupné produktové stránky."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.errors.page_status",
+    "Technický stavový kód nedostupné produktové stránky."
+  ),
+  defineCatalogProductText(
     "catalog.product_detail.retry",
     "Akce pro opakování načtení produktové plochy."
   ),
@@ -72,6 +80,10 @@ export const STOREFRONT_CATALOG_PRODUCT_TEXT_DEFINITIONS = [
     "Název sekce ostatních informací produktu."
   ),
   defineCatalogProductText(
+    "catalog.product_detail.sections.warranty",
+    "Lokalizovaný label záruky produktu."
+  ),
+  defineCatalogProductText(
     "catalog.product_detail.sections.content",
     "Obecný název informační sekce produktu."
   ),
@@ -94,6 +106,22 @@ export const STOREFRONT_CATALOG_PRODUCT_TEXT_DEFINITIONS = [
   defineCatalogProductText(
     "catalog.product_detail.stock.physical_store_only_notice",
     "Informace, že sortiment dostupný v kamenných prodejnách nelze objednat v e-shopu."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.stock.loading_aria",
+    "Přístupný popis načítání dostupnosti podle skladů."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.stock.load_failed",
+    "Chyba při načítání dostupnosti podle skladů."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.stock.quantity",
+    "Dostupné skladové množství produktu."
+  ),
+  defineCatalogProductText(
+    "catalog.product_detail.stock.more_than_quantity",
+    "Stav skladového množství nad zobrazeným limitem."
   ),
   defineCatalogProductText(
     "catalog.product_detail.delivery_by",

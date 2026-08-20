@@ -1,4 +1,5 @@
 import type { GetServerSideProps } from "next"
+import { useTranslations } from "next-intl"
 import { AccountDeactivationSection } from "@/components/account/account-deactivation-section"
 import { AccountOrdersList } from "@/components/account-orders-list"
 import { AccountProductLists } from "@/components/account-product-lists"
@@ -50,8 +51,13 @@ export const getServerSideProps = (async (context) => {
 }) satisfies GetServerSideProps<Props>
 
 export default function AccountSectionPage({ page }: Props) {
+  const t = useTranslations("auth")
   if (page.kind === "error") {
-    return <main data-status={page.status}>Account unavailable.</main>
+    return (
+      <main data-status={page.status}>
+        {t("deactivation.page.account_unavailable")}
+      </main>
+    )
   }
   return (
     <AccountShell>

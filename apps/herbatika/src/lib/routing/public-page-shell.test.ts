@@ -5,15 +5,23 @@ const mocks = vi.hoisted(() => ({
   fetchExternalReviewTrustSources: vi.fn(async () => []),
   fetchStorefrontTextMessages: vi.fn(async () => ({})),
   getConfiguredMarketRuntime: vi.fn(() => ({
-    allowedMarkets: ["sk"],
+    allowedMarkets: ["sk", "cz"],
     bindings: {
+      cz: {
+        acceptedHosts: ["herbatica.cz"],
+        canonicalOrigin: "https://herbatica.cz",
+        market: "cz",
+      },
       sk: {
         acceptedHosts: ["herbatica.sk"],
         canonicalOrigin: "https://herbatica.sk",
         market: "sk",
       },
     },
-    marketByHost: { "herbatica.sk": "sk" },
+    marketByHost: {
+      "herbatica.cz": "cz",
+      "herbatica.sk": "sk",
+    },
   })),
   getHerbatikaMarketContext: vi.fn(() => ({ locale: "sk-SK" })),
   getRegionServerContext: vi.fn(async () => ({
@@ -159,7 +167,10 @@ describe("public storefront shell URL projections", () => {
     expect(mocks.readRequiredPublicEntitySlugs).not.toHaveBeenCalled()
   })
 
-  it("loads static alternates only for deployment-enabled markets", async () => {
+  it.each([
+    { causeCode: "MARKET_DISABLED", kind: "invalid-response" as const },
+    { kind: "unavailable" as const, retryAfterSeconds: 19 },
+  ])("omits a non-current static alternate whose source is $kind", async (alternateFailure) => {
     const response = {
       setHeader: vi.fn(),
       statusCode: 200,
@@ -180,7 +191,7 @@ describe("public storefront shell URL projections", () => {
     const loadSource = vi.fn(async (market: "sk" | "cz" | "hu" | "ro") =>
       market === "sk"
         ? ({ kind: "found", value: { title: "Home" } } as const)
-        : ({ causeCode: "MARKET_DISABLED", kind: "invalid-response" } as const)
+        : alternateFailure
     )
 
     const result = await resolveStaticPublicPage(context, {
@@ -200,6 +211,117 @@ describe("public storefront shell URL projections", () => {
     })
     expect(loadSource).toHaveBeenCalledTimes(2)
     expect(loadSource).toHaveBeenNthCalledWith(1, "sk")
-    expect(loadSource).toHaveBeenNthCalledWith(2, "sk")
+    expect(loadSource).toHaveBeenNthCalledWith(2, "cz")
+  })
+
+  it("omits a rejected non-current static alternate source", async () => {
+    const response = {
+      setHeader: vi.fn(),
+      statusCode: 200,
+    }
+    const context = {
+      params: { market: "sk" },
+      req: {
+        headers: {
+          "x-sf-canonical-origin": "https://herbatica.sk",
+          "x-sf-market": "sk",
+          "x-sf-public-path": "/",
+          "x-sf-route-key": "home",
+        },
+        url: "/",
+      },
+      res: response,
+    } as never
+    const loadSource = vi.fn((market: "sk" | "cz" | "hu" | "ro") =>
+      market === "sk"
+        ? Promise.resolve({
+            kind: "found" as const,
+            value: { title: "Home" },
+          })
+        : Promise.reject(new Error("CZ source transport failed"))
+    )
+
+    const result = await resolveStaticPublicPage(context, {
+      expectedRouteKey: "home",
+      loadSource,
+      path: { kind: "home" },
+      queryKind: "homepage",
+    })
+
+    expect(result).toMatchObject({
+      props: {
+        page: { kind: "found", value: { title: "Home" } },
+        seo: { alternates: { "sk-SK": "https://herbatica.sk/" } },
+      },
+    })
+  })
+
+  it.each([
+    { causeCode: "MALFORMED_HOME", kind: "invalid-response" as const },
+    { kind: "unavailable" as const, retryAfterSeconds: 19 },
+  ])("keeps the current static source $kind failure strict", async (sourceFailure) => {
+    const response = {
+      setHeader: vi.fn(),
+      statusCode: 200,
+    }
+    const context = {
+      params: { market: "sk" },
+      req: {
+        headers: {
+          "x-sf-canonical-origin": "https://herbatica.sk",
+          "x-sf-market": "sk",
+          "x-sf-public-path": "/",
+          "x-sf-route-key": "home",
+        },
+        url: "/",
+      },
+      res: response,
+    } as never
+
+    const result = await resolveStaticPublicPage(context, {
+      expectedRouteKey: "home",
+      loadSource: vi.fn(async () => sourceFailure),
+      path: { kind: "home" },
+      queryKind: "homepage",
+    })
+
+    expect(result).toMatchObject({
+      props: { page: { kind: "error", status: 503 } },
+    })
+    expect(response.statusCode).toBe(503)
+  })
+
+  it("keeps a rejected current static source strict", async () => {
+    const response = {
+      setHeader: vi.fn(),
+      statusCode: 200,
+    }
+    const context = {
+      params: { market: "sk" },
+      req: {
+        headers: {
+          "x-sf-canonical-origin": "https://herbatica.sk",
+          "x-sf-market": "sk",
+          "x-sf-public-path": "/",
+          "x-sf-route-key": "home",
+        },
+        url: "/",
+      },
+      res: response,
+    } as never
+
+    const result = await resolveStaticPublicPage(context, {
+      expectedRouteKey: "home",
+      loadSource: vi.fn(() =>
+        Promise.reject(new Error("SK source transport failed"))
+      ),
+      path: { kind: "home" },
+      queryKind: "homepage",
+    })
+
+    expect(result).toMatchObject({
+      props: { page: { kind: "error", status: 503 } },
+    })
+    expect(response.statusCode).toBe(503)
   })
 })

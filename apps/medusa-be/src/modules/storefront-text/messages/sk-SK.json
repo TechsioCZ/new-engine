@@ -29,6 +29,7 @@
     "update_failed": "Úprava košíka zlyhala."
   },
   "checkout": {
+    "page_unavailable": "Pokladňa momentálne nie je dostupná.",
     "back_to_cart": "Späť na košík",
     "back_to_shipping_payment": "Späť na dopravu a platbu",
     "complete_order": "Dokončiť objednávku",
@@ -293,6 +294,43 @@
       "email_exists": "Účet s týmto e-mailom už existuje. Prihláste sa alebo použite obnovu hesla.",
       "failed": "Registrácia sa nepodarila. Skúste to prosím znovu."
     },
+    "deactivation": {
+      "page": {
+        "account_unavailable": "Účet momentálne nie je dostupný.",
+        "confirmation_unavailable": "Potvrdenie zrušenia účtu momentálne nie je dostupné."
+      },
+      "request": {
+        "title": "Zrušenie účtu",
+        "description": "Pošleme vám e-mail s odkazom na potvrdenie. Účet zostane aktívny, kým odkaz nepoužijete. Existujúce objednávky sa nevymažú.",
+        "failed": "Potvrdzovací e-mail sa nepodarilo odoslať.",
+        "toast_title": "Potvrdzovací e-mail bol odoslaný",
+        "toast_description": "Účet zostáva aktívny, kým jeho zrušenie nepotvrdíte v e-maile.",
+        "sent_status": "Skontrolujte si e-mail. Potvrdzovací odkaz je platný 30 minút.",
+        "action": "Požiadať o zrušenie účtu",
+        "resend_action": "Znovu odoslať e-mail"
+      },
+      "dialog": {
+        "title": "Odoslať potvrdenie zrušenia účtu?",
+        "intro": "Účet sa týmto krokom ešte nezruší.",
+        "email_notice": "Na váš e-mail pošleme odkaz platný 30 minút.",
+        "confirmation_notice": "Účet zrušíme až po otvorení odkazu a potvrdení.",
+        "orders_notice": "Existujúce objednávky sa nevymažú.",
+        "keep_account": "Ponechať účet",
+        "send": "Odoslať potvrdzovací e-mail",
+        "sending": "Odosiela sa e-mail"
+      },
+      "confirmation": {
+        "title": "Potvrdenie zrušenia účtu",
+        "description": "Po potvrdení sa už nebudete môcť prihlásiť. Vaše existujúce objednávky zostanú bezpečne uložené.",
+        "missing_token": "Potvrdzovací odkaz neobsahuje platný token.",
+        "invalid_token": "Potvrdzovací odkaz je neplatný alebo jeho platnosť vypršala.",
+        "failed": "Účet sa nepodarilo zrušiť.",
+        "success": "Účet bol zrušený. Pri opätovnej registrácii s rovnakým e-mailom sa obnoví pôvodný účet aj história objednávok.",
+        "continue": "Pokračovať do obchodu",
+        "confirm": "Potvrdiť zrušenie účtu",
+        "confirming": "Ruší sa účet"
+      }
+    },
     "account_label": "Účet",
     "sign_in": "Prihlásiť sa",
     "password": "Heslo",
@@ -391,7 +429,9 @@
     "product_detail": {
       "errors": {
         "load_failed": "Produkt sa nepodarilo načítať.",
-        "not_found": "Produkt sa nepodarilo nájsť."
+        "not_found": "Produkt sa nepodarilo nájsť.",
+        "page_unavailable": "Produkt momentálne nie je dostupný",
+        "page_status": "Stav: {status}"
       },
       "retry": "Skúsiť znova",
       "back_home": "Späť na domovskú stránku",
@@ -403,6 +443,7 @@
         "composition": "Zloženie",
         "warning": "Upozornenie",
         "other": "Ostatné informácie",
+        "warranty": "Záruka",
         "content": "Obsah"
       },
       "variant_label": "Varianta",
@@ -410,7 +451,11 @@
       "stock": {
         "in_stock": "Skladom",
         "out_of_stock": "Momentálne nie je skladom",
-        "physical_store_only_notice": "Sortiment dostupný v kamenných predajniach nie je možné objednať v e-shope."
+        "physical_store_only_notice": "Sortiment dostupný v kamenných predajniach nie je možné objednať v e-shope.",
+        "loading_aria": "Načítavam dostupnosť podľa skladov",
+        "load_failed": "Dostupnosť podľa skladov sa nepodarilo načítať.",
+        "quantity": "{count, plural, one {# ks} few {# ks} other {# ks}}",
+        "more_than_quantity": "Skladom (>{count} ks)"
       },
       "delivery_by": "u vás do {date}",
       "free_shipping_over": "Doručenie zdarma nad {threshold}",
@@ -579,6 +624,21 @@
       "best_selling": "Najpredávanejšie",
       "newest": "Najnovšie"
     },
+    "category": {
+      "default_name": "Kategória",
+      "status": {
+        "found": "kategória nájdená",
+        "not_found": "kategória nenájdená"
+      },
+      "badges": {
+        "products": "produkty: {count}",
+        "filtered_products": "po filtri: {count}"
+      },
+      "subtitle": {
+        "direct_products": "Zobrazené produkty danej kategórie",
+        "includes_subcategories": "{count, plural, one {Zobrazené vrátane # podkategórie} few {Zobrazené vrátane # podkategórií} other {Zobrazené vrátane # podkategórií}}"
+      }
+    },
     "results": {
       "items_total": "položiek celkom",
       "empty_category": "V tejto kategórii zatiaľ nie sú dostupné produkty pre zvolený filter.",
@@ -603,6 +663,13 @@
       },
       "blog": {
         "title": "Blog o zdraví a kráse"
+      },
+      "promo": {
+        "image_alt": "Predajňa Herbatika",
+        "heading": "Prírodná kozmetika, doplnky výživy a tradičná medicína",
+        "paragraph_1": "Spoznajte blahodarné účinky prírodnej kozmetiky a jej pozitívny vplyv nielen na pokožku. Upevnite si svoje zdravie pomocou doplnkov stravy a tradičnej medicíny. Toto všetko nájdete v našej pestrej ponuke, ktorá je navyše obohatená aj o zdravotné doplnky z prírodných materiálov.",
+        "paragraph_2": "Špecializujeme sa na výber tých najkvalitnejších produktov, ktoré aj my sami používame, vylepšujeme a opakovane testujeme. Máme radi kvalitu a potrpíme si na detaily. Sme pripravení pomôcť vám s výberom produktov špeciálne podľa vašich potrieb alebo na váš zdravotný problém.",
+        "paragraph_3": "Herbatica má už aj svoju značku, pod ktorou vyrábame množstvo produktov, ktoré inde nenájdete. Máme radi kvalitu a detaily a na tie sa sústredíme v každom našom produkte."
       },
       "product_sections": {
         "bestsellers": "Najobľúbenejšie produkty",
@@ -699,6 +766,13 @@
     "submenu": {
       "loading": "Načítavam podkategórie..."
     },
+    "contact": {
+      "hours": "(Po–Pia: 09:00–16:00)",
+      "email_display": "ahoj@herbatica.sk",
+      "email_href": "mailto:ahoj@herbatica.sk",
+      "phone_display": "+421 2/321 123 45",
+      "phone_href": "tel:+421232112345"
+    },
     "footer": {
       "copyright": "Copyright {year} <brand>{domain}.</brand> Všetky práva vyhradené.",
       "cookie_settings": "Upraviť nastavenie cookies",
@@ -733,14 +807,31 @@
     "breadcrumbs": {
       "root_aria": "Cesta na stránke",
       "home": "Domov"
+    },
+    "page_errors": {
+      "account": "Účet momentálne nie je dostupný.",
+      "advice": "Poradňa momentálne nie je dostupná.",
+      "authentication": "Prihlásenie a registrácia momentálne nie sú dostupné.",
+      "cart": "Nákupný košík momentálne nie je dostupný.",
+      "catalog": "Katalóg momentálne nie je dostupný.",
+      "checkout": "Pokladňa momentálne nie je dostupná.",
+      "content": "Obsah momentálne nie je dostupný.",
+      "not_found": "Stránka sa nenašla.",
+      "order": "Objednávka momentálne nie je dostupná.",
+      "review": "Hodnotenie momentálne nie je dostupné.",
+      "search": "Vyhľadávanie momentálne nie je dostupné.",
+      "storefront": "Obchod je momentálne nedostupný.",
+      "unavailable": "Obchod je dočasne nedostupný."
     }
   },
   "search": {
     "results": {
       "title": "Vyhľadávanie",
       "description": "Vyhľadajte produkty v katalógu.",
+      "related": "Súvisiace výsledky",
       "query": "dotaz: {query}",
       "found": "nájdené: {count}",
+      "displayed": "zobrazené: {count}",
       "page": "strana: {page}/{totalPages}",
       "empty": "Pre výraz „{query}“ sa nenašli žiadne produkty.",
       "enter_query": "Zadajte výraz do vyhľadávania v hornom paneli."

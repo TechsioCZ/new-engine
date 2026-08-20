@@ -79,6 +79,7 @@ export function CheckoutShippingPaymentStepSection({
         paymentProviders={controller.checkoutPaymentQuery.paymentProviders}
         selectedPaymentProviderId={selectedPaymentProviderId}
         selectionMessage={paymentSelectionMessage}
+        shippingOption={controller.checkoutShippingQuery.selectedOption}
       />
 
       <div className="flex flex-col gap-250 px-500 pt-150 sm:flex-row sm:items-center">

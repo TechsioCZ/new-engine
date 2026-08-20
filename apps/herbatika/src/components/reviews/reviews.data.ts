@@ -6,6 +6,8 @@ import type {
   ReviewTrustProviderSummary,
   ReviewTrustSource,
 } from "@/components/reviews/reviews.types"
+import type { MarketCode } from "@/lib/market/market-runtime"
+import { isReviewTrustProviderSupported } from "@/lib/storefront/review-market-policy"
 
 const REVIEW_TRUST_SOURCE_BRANDING: Record<
   ReviewTrustProvider,
@@ -24,10 +26,13 @@ const REVIEW_TRUST_SOURCE_BRANDING: Record<
 }
 
 export const createReviewTrustSources = (
+  market: MarketCode,
   summaries: readonly (ReviewTrustProviderSummary | null | undefined)[]
 ): readonly ReviewTrustSource[] =>
   summaries.flatMap((summary) => {
-    if (!summary) {
+    if (
+      !(summary && isReviewTrustProviderSupported(market, summary.provider))
+    ) {
       return []
     }
 

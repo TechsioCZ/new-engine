@@ -2,7 +2,9 @@ import { NextResponse } from "next/server"
 import {
   badRequest,
   marketAuthorityError,
-  requireStorefrontMarketBinding,
+  requireStorefrontAuthContext,
+  type StorefrontAuthContext,
+  type StorefrontAuthMessages,
   StorefrontMarketAuthorityError,
   serverError,
   setSessionTokenCookie,
@@ -53,7 +55,14 @@ const createRegisterResponse = (token: string) => {
 }
 
 const parseRegisterBody = async (
-  request: Request
+  request: Request,
+  {
+    currencyCode,
+    messages,
+  }: {
+    currencyCode: string
+    messages: StorefrontAuthMessages
+  }
 ): Promise<ParseRegisterBodyResult> => {
   const body = asRecordOrUndefined(await request.json()) as
     | RegisterBody
@@ -61,7 +70,7 @@ const parseRegisterBody = async (
 
   if (!body) {
     return {
-      error: badRequest("Telo požiadavky musí byť platný JSON objekt."),
+      error: badRequest(messages.invalidJsonObject),
       value: null,
     }
   }
@@ -71,12 +80,15 @@ const parseRegisterBody = async (
 
   if (!(email && password)) {
     return {
-      error: badRequest("E-mail aj heslo sú povinné."),
+      error: badRequest(messages.emailAndPasswordRequired),
       value: null,
     }
   }
 
-  const wholesale = parseWholesaleRegistration(body.wholesale)
+  const wholesale = parseWholesaleRegistration(body.wholesale, {
+    currencyCode,
+    messages,
+  })
   if (wholesale.error) {
     return {
       error: wholesale.error,
@@ -97,16 +109,32 @@ const parseRegisterBody = async (
 }
 
 export async function POST(request: Request) {
+  let context: StorefrontAuthContext
+
   try {
-    const parsedBody = await parseRegisterBody(request)
+    context = requireStorefrontAuthContext(request)
+  } catch (error) {
+    if (error instanceof StorefrontMarketAuthorityError) {
+      return marketAuthorityError()
+    }
+    throw error
+  }
+
+  const { binding, currencyCode, messages } = context
+
+  try {
+    const parsedBody = await parseRegisterBody(request, {
+      currencyCode,
+      messages,
+    })
     if (parsedBody.error) {
       return parsedBody.error
     }
 
     const { email, firstName, lastName, password, wholesale } = parsedBody.value
-    const binding = requireStorefrontMarketBinding(request)
     const registerError = await createCustomerIdentity({
       email,
+      messages,
       password,
       wholesale,
     })
@@ -114,7 +142,11 @@ export async function POST(request: Request) {
       return registerError
     }
 
-    const loginResult = await loginCustomerIdentity({ email, password })
+    const loginResult = await loginCustomerIdentity({
+      email,
+      messages,
+      password,
+    })
     if (loginResult.error) {
       return loginResult.error
     }
@@ -122,6 +154,7 @@ export async function POST(request: Request) {
     const createCustomerError = await createCustomerProfile({
       binding,
       loginToken: loginResult.token,
+      messages,
       payload: {
         email,
         firstName,
@@ -138,6 +171,7 @@ export async function POST(request: Request) {
     const companyError = await createWholesaleProfile({
       binding,
       email,
+      messages,
       sessionToken,
       wholesale,
     })
@@ -147,15 +181,10 @@ export async function POST(request: Request) {
 
     return createRegisterResponse(sessionToken)
   } catch (error) {
-    if (error instanceof StorefrontMarketAuthorityError) {
-      return marketAuthorityError()
-    }
     if (error instanceof SyntaxError) {
-      return badRequest("Telo požiadavky musí byť platné JSON.")
+      return badRequest(messages.invalidJson)
     }
 
-    return serverError("Nepodarilo sa dokončiť registráciu zákazníka.", {
-      error: error instanceof Error ? error.message : String(error),
-    })
+    return serverError(messages.registrationFailed)
   }
 }

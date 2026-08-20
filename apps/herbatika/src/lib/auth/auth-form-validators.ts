@@ -270,7 +270,9 @@ export const resolveRegisterSubmitError = (
 
   if (
     normalizedMessage.includes("identity with email already exists") ||
-    normalizedMessage.includes("email already exists")
+    normalizedMessage.includes("email already exists") ||
+    normalizedMessage.includes("există deja un cont") ||
+    normalizedMessage.includes("účet s týmto e-mailom už existuje")
   ) {
     return messages.emailExists
   }

@@ -6,12 +6,13 @@ import type {
   ShopReviewTrustSummary,
 } from "../../../../modules/shop-review"
 import { SHOP_REVIEW_MODULE } from "../../../../modules/shop-review"
+import { hasExactSlovakReviewScope } from "../../review-market-scope"
 
 const CACHE_SECONDS = 6 * 60 * 60
 const STALE_SECONDS = 24 * 60 * 60
 const CACHE_MS = CACHE_SECONDS * 1000
 const STALE_MS = STALE_SECONDS * 1000
-const SUCCESS_CACHE_CONTROL = `public, max-age=0, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=${STALE_SECONDS}`
+const SUCCESS_CACHE_CONTROL = "private, no-store"
 const ZBOZI_SUMMARY_PUBLIC_ERROR_MESSAGE =
   "External review summary is temporarily unavailable"
 
@@ -52,6 +53,14 @@ const fetchSummary = async (
 }
 
 export async function GET(req: MedusaRequest, res: MedusaResponse) {
+  if (!(await hasExactSlovakReviewScope(req))) {
+    res.setHeader("Cache-Control", "no-store")
+    res.status(404).json({
+      code: "external_reviews_not_available",
+      message: ZBOZI_SUMMARY_PUBLIC_ERROR_MESSAGE,
+    })
+    return
+  }
   const shopReviewService =
     req.scope.resolve<ShopReviewModuleService>(SHOP_REVIEW_MODULE)
 

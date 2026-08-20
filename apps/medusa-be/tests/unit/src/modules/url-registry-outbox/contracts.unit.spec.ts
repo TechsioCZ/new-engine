@@ -41,6 +41,8 @@ describe("URL registry product lifecycle event contract", () => {
 
     expect(result).toEqual({
       affectedMarketCodes: ["cz", "sk"],
+      entityId: "prod_1",
+      entityKind: "product",
       eventId: "workflow-42:products-updated:prod_1",
       occurredAt: "2026-08-18T08:15:30.000Z",
       payloadByMarket: {

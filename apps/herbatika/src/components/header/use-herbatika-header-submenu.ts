@@ -18,6 +18,7 @@ import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-e
 import {
   HEADER_ACTION_ITEMS,
   PRIMARY_NAV_ITEMS,
+  resolveHeaderCategoryLabel,
 } from "./herbatika-header.navigation"
 import { HERBATIKA_HEADER_SUBMENU_ROOT_CONFIGS } from "./herbatika-header.submenu-data"
 
@@ -50,7 +51,10 @@ type HerbatikaHeaderSubmenuGroup = {
   featuredItems: HerbatikaHeaderSubmenuFeaturedItem[]
 }
 
-const sortCategories = (categories: HttpTypes.StoreProductCategory[]) =>
+const sortCategories = (
+  categories: HttpTypes.StoreProductCategory[],
+  locale: string
+) =>
   [...categories].sort((left, right) => {
     const rankDifference =
       resolveCategoryRank(left) - resolveCategoryRank(right)
@@ -60,7 +64,7 @@ const sortCategories = (categories: HttpTypes.StoreProductCategory[]) =>
 
     return normalizeCategoryName(left.name).localeCompare(
       normalizeCategoryName(right.name),
-      "sk"
+      locale
     )
   })
 
@@ -101,7 +105,10 @@ export function useHerbatikaHeaderSubmenu(
   }
 
   for (const [parentId, children] of childrenByParentId) {
-    childrenByParentId.set(parentId, sortCategories(children))
+    childrenByParentId.set(
+      parentId,
+      sortCategories(children, marketContext.locale)
+    )
   }
 
   const resolveCategoryHref = (
@@ -119,13 +126,37 @@ export function useHerbatikaHeaderSubmenu(
 
   const primaryNavItems: HerbatikaHeaderCategoryLink[] =
     PRIMARY_NAV_ITEMS.flatMap((item) => {
-      const href = resolveCategoryHref(categoryByHandle.get(item.rootHandle))
-      return href ? [{ ...item, href }] : []
+      const rootCategory = categoryByHandle.get(item.rootHandle)
+      const href = resolveCategoryHref(rootCategory)
+      return href && rootCategory
+        ? [
+            {
+              ...item,
+              href,
+              label: resolveHeaderCategoryLabel(
+                rootCategory.name,
+                item.rootHandle
+              ),
+            },
+          ]
+        : []
     })
   const actionItems: HerbatikaHeaderCategoryActionLink[] =
     HEADER_ACTION_ITEMS.flatMap((item) => {
-      const href = resolveCategoryHref(categoryByHandle.get(item.rootHandle))
-      return href ? [{ ...item, href }] : []
+      const rootCategory = categoryByHandle.get(item.rootHandle)
+      const href = resolveCategoryHref(rootCategory)
+      return href && rootCategory
+        ? [
+            {
+              ...item,
+              href,
+              label: resolveHeaderCategoryLabel(
+                rootCategory.name,
+                item.rootHandle
+              ),
+            },
+          ]
+        : []
     })
 
   const groupsByRootHandle = new Map<string, HerbatikaHeaderSubmenuGroup>(

@@ -4,6 +4,7 @@ const REASONS = [
   "updated",
   "channel-linked",
   "channel-unlinked",
+  "translation-invalidated",
   "deleted",
 ] as const
 const CHANGE_TYPES = ["delete", "reconcile"] as const

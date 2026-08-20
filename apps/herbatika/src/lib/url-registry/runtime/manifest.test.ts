@@ -6,6 +6,7 @@ import {
   URL_REGISTRY_MIGRATION_MANIFEST_V2,
   URL_REGISTRY_MIGRATION_MANIFEST_V3,
   URL_REGISTRY_MIGRATION_MANIFEST_V4,
+  URL_REGISTRY_MIGRATION_MANIFEST_V5,
   URL_REGISTRY_MIGRATION_MANIFEST_VERSION,
 } from "./manifest"
 
@@ -23,11 +24,15 @@ const migrationUrls = [
     "../migrations/0004_add_invalidation_delivery_diagnostics.sql",
     import.meta.url
   ),
+  new URL(
+    "../migrations/0005_allow_catalog_unpublish_retirement.sql",
+    import.meta.url
+  ),
 ] as const
 
 describe("URL registry migration manifest", () => {
   it("is an immutable, versioned, contiguous manifest", () => {
-    expect(URL_REGISTRY_MIGRATION_MANIFEST_VERSION).toBe(4)
+    expect(URL_REGISTRY_MIGRATION_MANIFEST_VERSION).toBe(5)
     expect(URL_REGISTRY_MIGRATION_MANIFEST_V1).toEqual([
       {
         checksum:
@@ -74,6 +79,18 @@ describe("URL registry migration manifest", () => {
     })
     expect(Object.isFrozen(URL_REGISTRY_MIGRATION_MANIFEST_V4)).toBe(true)
     expect(Object.isFrozen(URL_REGISTRY_MIGRATION_MANIFEST_V4[3])).toBe(true)
+    expect(URL_REGISTRY_MIGRATION_MANIFEST_V5).toHaveLength(5)
+    expect(URL_REGISTRY_MIGRATION_MANIFEST_V5.slice(0, 4)).toEqual(
+      URL_REGISTRY_MIGRATION_MANIFEST_V4
+    )
+    expect(URL_REGISTRY_MIGRATION_MANIFEST_V5[4]).toEqual({
+      checksum:
+        "sha256:2007ae50b9cecb18b5b539a8cd99da1a3eb8b7a83afa33058e7fa2ad52fa460a",
+      name: "0005_allow_catalog_unpublish_retirement.sql",
+      version: 5,
+    })
+    expect(Object.isFrozen(URL_REGISTRY_MIGRATION_MANIFEST_V5)).toBe(true)
+    expect(Object.isFrozen(URL_REGISTRY_MIGRATION_MANIFEST_V5[4])).toBe(true)
   })
 
   it("matches the normalized-LF SHA256 of the real migration", async () => {
@@ -88,7 +105,7 @@ describe("URL registry migration manifest", () => {
     )
 
     expect(checksums).toEqual(
-      URL_REGISTRY_MIGRATION_MANIFEST_V4.map(({ checksum }) => checksum)
+      URL_REGISTRY_MIGRATION_MANIFEST_V5.map(({ checksum }) => checksum)
     )
   })
 })

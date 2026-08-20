@@ -1,15 +1,15 @@
 import type { GetServerSideProps } from "next"
+import { useTranslations } from "next-intl"
 import type { CheckoutStepSlug } from "@/components/checkout/checkout.constants"
 import { CheckoutFlow } from "@/components/checkout-flow"
-import { resolveCheckoutUiPage } from "@/lib/routing/private-flows/transactional-page.server"
+import {
+  type CheckoutUiPageValue,
+  resolveCheckoutUiPage,
+} from "@/lib/routing/private-flows/transactional-page.server"
 import { notFoundResult, type PublicPageProps } from "@/lib/routing/public-page"
 import type { CheckoutChildKey } from "@/lib/url/types"
 
-type CheckoutValue = Readonly<{
-  step: CheckoutChildKey
-}>
-
-type Props = PublicPageProps<CheckoutValue>
+type Props = PublicPageProps<CheckoutUiPageValue>
 
 const UI_STEP = {
   contact: "udaje",
@@ -44,10 +44,17 @@ export const getServerSideProps = (async (context) => {
 }) satisfies GetServerSideProps<Props>
 
 export default function CheckoutStepPage({ page }: Props) {
+  const tCheckout = useTranslations("checkout")
+
   if (page.kind === "error") {
-    return <main data-status={page.status}>Checkout unavailable.</main>
+    return (
+      <main data-status={page.status}>{tCheckout("page_unavailable")}</main>
+    )
   }
   return isUiCheckoutStep(page.value.step) ? (
-    <CheckoutFlow activeStep={UI_STEP[page.value.step]} />
+    <CheckoutFlow
+      activeStep={UI_STEP[page.value.step]}
+      authorizedCartId={page.value.authorizedCartId}
+    />
   ) : null
 }

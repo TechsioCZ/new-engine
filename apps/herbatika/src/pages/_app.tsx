@@ -100,6 +100,7 @@ export default function HerbatikaPagesApp({
           <AppShell
             categoryPublicSlugsById={pageProps.categoryPublicSlugsById}
             footerNavigation={pageProps.footerNavigation}
+            marketAlternates={pageProps.seo?.alternates}
             reviewTrustSources={pageProps.reviewTrustSources}
           >
             {content}

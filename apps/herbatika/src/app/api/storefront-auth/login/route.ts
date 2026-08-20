@@ -5,7 +5,8 @@ import {
   buildMedusaUrl,
   marketAuthorityError,
   parseResponseJson,
-  requireStorefrontMarketBinding,
+  requireStorefrontAuthContext,
+  type StorefrontAuthContext,
   StorefrontMarketAuthorityError,
   serverError,
   setSessionTokenCookie,
@@ -21,23 +22,34 @@ type LoginResponse = {
 }
 
 export async function POST(request: Request) {
+  let context: StorefrontAuthContext
+
+  try {
+    context = requireStorefrontAuthContext(request)
+  } catch (error) {
+    if (error instanceof StorefrontMarketAuthorityError) {
+      return marketAuthorityError()
+    }
+    throw error
+  }
+
+  const { messages } = context
   let body: LoginBody
 
   try {
     body = (await request.json()) as LoginBody
   } catch {
-    return badRequest("Telo požiadavky musí byť platné JSON.")
+    return badRequest(messages.invalidJson)
   }
 
   const email = body.email?.trim()
   const password = body.password
 
   if (!(email && password)) {
-    return badRequest("E-mail aj heslo sú povinné.")
+    return badRequest(messages.emailAndPasswordRequired)
   }
 
   try {
-    requireStorefrontMarketBinding(request)
     const medusaResponse = await fetch(
       buildMedusaUrl("/auth/customer/emailpass"),
       {
@@ -54,7 +66,7 @@ export async function POST(request: Request) {
     )
 
     if (!medusaResponse.ok) {
-      return buildErrorResponse(medusaResponse)
+      return buildErrorResponse(medusaResponse, messages)
     }
 
     const payload = await parseResponseJson(medusaResponse)
@@ -62,9 +74,7 @@ export async function POST(request: Request) {
       payload && typeof payload.token === "string" ? payload.token : null
 
     if (!token) {
-      return serverError(
-        "Prihlásenie prebehlo úspešne, ale autentifikačný token nebol vrátený."
-      )
+      return serverError(messages.customerLoginTokenMissing)
     }
 
     const response = NextResponse.json<LoginResponse>(
@@ -76,15 +86,7 @@ export async function POST(request: Request) {
 
     setSessionTokenCookie(response, token)
     return response
-  } catch (error) {
-    if (error instanceof StorefrontMarketAuthorityError) {
-      return marketAuthorityError()
-    }
-    return serverError(
-      "Nepodarilo sa spojiť s autentifikačnou službou Medusa.",
-      {
-        error: error instanceof Error ? error.message : String(error),
-      }
-    )
+  } catch {
+    return serverError(messages.unableToReachAuthenticationService)
   }
 }

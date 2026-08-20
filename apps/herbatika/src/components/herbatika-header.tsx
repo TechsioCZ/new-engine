@@ -121,15 +121,15 @@ export function HerbatikaHeader({
         <Header.Actions className="@max-header-desktop:hidden gap-450">
           <Link
             className="inline-flex items-center gap-300 font-open-sans text-fg-secondary hover:text-fg-primary"
-            href="tel:+421232112345"
+            href={t("contact.phone_href")}
           >
             <Icon icon="token-icon-phone-talk" size="2xl" />
             <span className="leading-snug">
               <span className="block font-semibold text-fg-primary text-md leading-snug">
-                +421 2/321 123 45
+                {t("contact.phone_display")}
               </span>
               <span className="ml-50 block font-normal text-fg-secondary text-xs leading-snug">
-                (Po-Pia: 09:00 - 16:00)
+                {t("contact.hours")}
               </span>
             </span>
           </Link>

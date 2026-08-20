@@ -1,7 +1,9 @@
+import type { HttpTypes } from "@medusajs/types"
 import type { DehydratedState } from "@tanstack/react-query"
 import { HydrationBoundary } from "@tanstack/react-query"
 import type { GetServerSideProps } from "next"
 import { CategoryListing } from "@/components/category-listing"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   type PublicPageProps,
   resolveEntityPublicPage,
@@ -25,6 +27,8 @@ type CategoryValue = Readonly<{
   categoryPublicSlugsById: PublicEntitySlugMap
   dehydratedState: DehydratedState
   handle: string
+  metaDescription?: string
+  metaTitle?: string
   name: string
   productPublicSlugsById: PublicEntitySlugMap
   totalPages: number
@@ -60,6 +64,14 @@ export const getServerSideProps = ((context) => {
       }
       const categoryHandle = category.handle
       const categoryName = category.name
+      const localizedContent = (
+        category as HttpTypes.StoreProductCategory & {
+          localized_content?: {
+            meta_description?: null | string
+            meta_title?: null | string
+          }
+        }
+      ).localized_content
       const storefront = await prefetchCategoryPageStorefrontData(
         categoryHandle,
         queryState,
@@ -97,6 +109,12 @@ export const getServerSideProps = ((context) => {
           categoryPublicSlugsById: categoryPublicSlugsById.value,
           dehydratedState: storefront.dehydratedState,
           handle: categoryHandle,
+          ...(localizedContent?.meta_description
+            ? { metaDescription: localizedContent.meta_description }
+            : {}),
+          ...(localizedContent?.meta_title
+            ? { metaTitle: localizedContent.meta_title }
+            : {}),
           name: categoryName,
           productPublicSlugsById: productPublicSlugsById.value,
           totalPages: storefront.totalPages,
@@ -105,13 +123,14 @@ export const getServerSideProps = ((context) => {
     },
     lastPage: (category) => category.totalPages,
     queryKind: "category-detail",
-    title: (category) => category.name,
+    description: (category) => category.metaDescription,
+    title: (category) => category.metaTitle ?? category.name,
   })
 }) satisfies GetServerSideProps<Props>
 
 export default function CategoryPage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Category unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="catalog" />
   }
   return (
     <HydrationBoundary state={page.value.dehydratedState}>

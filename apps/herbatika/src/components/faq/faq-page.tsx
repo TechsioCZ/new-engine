@@ -6,12 +6,18 @@ import {
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { buildPath } from "@/lib/url/public-url"
 import { FaqAccordion } from "./faq-accordion"
-import { faqItemCount, faqItems } from "./faq-page.data"
+import { getFaqPageData } from "./faq-page.data"
 
 export function FaqPage() {
   const tContent = useTranslations("content")
   const tNavigation = useTranslations("navigation")
-  const market = useMarketContext().code
+  const marketContext = useMarketContext()
+  const market = marketContext.code
+  const faqPageData = getFaqPageData(marketContext.locale)
+
+  if (!faqPageData) {
+    return null
+  }
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
       label: tNavigation("breadcrumbs.home"),
@@ -29,17 +35,17 @@ export function FaqPage() {
         <section className="mx-auto w-full max-w-7xl space-y-500">
           <div className="space-y-400">
             <h1 className="font-bold text-4xl text-fg-primary leading-tight">
-              Často kladené otázky
+              {faqPageData.title}
             </h1>
             <p className="font-verdana text-fg-secondary text-md leading-relaxed">
-              Prehľad odpovedí z pôvodného Herbatica FAQ.
+              {faqPageData.intro}
             </p>
           </div>
           <p className="font-verdana text-fg-secondary text-sm leading-normal">
-            {tContent("faq.item_count", { count: faqItemCount })}
+            {tContent("faq.item_count", { count: faqPageData.items.length })}
           </p>
 
-          <FaqAccordion items={faqItems} />
+          <FaqAccordion items={faqPageData.items} />
         </section>
       </div>
     </main>

@@ -37,6 +37,30 @@ const deliveryInput = (
   productId,
 })
 
+const catalogInput = (
+  eventId: string,
+  entityKind: "category" | "brand" | "collection" = "category",
+  marketCode: "sk" | "ro" = "ro"
+) => ({
+  affectedMarketCodes: [marketCode],
+  entityId: `${entityKind}_1`,
+  entityKind,
+  eventId,
+  marketAssignments: [
+    {
+      assignment: {
+        publicationStatus: "published" as const,
+        publicSlug: `${entityKind}-${marketCode}`,
+        salesChannelId: `sc_${marketCode}`,
+      },
+      marketCode,
+      sourceVersion: "3",
+    },
+  ],
+  occurredAt: "2026-08-20T10:00:00.000Z",
+  reason: "assignment-upsert" as const,
+})
+
 const FIRST_CLAIM_AT = "2030-01-01T00:00:00.000Z"
 const SECOND_CLAIM_AT = "2030-01-01T00:00:02.000Z"
 
@@ -155,6 +179,66 @@ moduleIntegrationTestRunner<UrlRegistryOutboxModuleService>({
         ).toHaveLength(0)
         expect(
           await service.listUrlRegistryOutboxStreams({ market_code: "cz" })
+        ).toHaveLength(0)
+      })
+    })
+
+    describe("enqueueCatalogLifecycleEvent", () => {
+      it.each([
+        "category",
+        "brand",
+        "collection",
+      ] as const)("preserves the %s stream identity and replays exactly", async (entityKind) => {
+        const event = catalogInput(`catalog:${entityKind}`, entityKind)
+        const first = await service.enqueueCatalogLifecycleEvent(event)
+        const replay = await service.enqueueCatalogLifecycleEvent(event)
+
+        expect(first.events).toEqual([
+          expect.objectContaining({ marketCode: "ro", streamSequence: 1 }),
+        ])
+        expect(replay.events[0]).toEqual(
+          expect.objectContaining({ replayed: true, streamSequence: 1 })
+        )
+        const [stored] = await service.listUrlRegistryOutboxEvents({
+          event_id: event.eventId,
+        })
+        expect(stored).toMatchObject({
+          entity_id: `${entityKind}_1`,
+          entity_kind: entityKind,
+          market_code: "ro",
+        })
+      })
+
+      it("isolates the same entity and slug between SK and RO streams", async () => {
+        const ro = await service.enqueueCatalogLifecycleEvent(
+          catalogInput("catalog:ro", "category", "ro")
+        )
+        const sk = await service.enqueueCatalogLifecycleEvent(
+          catalogInput("catalog:sk", "category", "sk")
+        )
+
+        expect(ro.events[0]?.streamSequence).toBe(1)
+        expect(sk.events[0]?.streamSequence).toBe(1)
+        expect(ro.events[0]?.streamId).not.toBe(sk.events[0]?.streamId)
+      })
+
+      it("rejects multi-market catalog events before allocating a stream", async () => {
+        await expect(
+          service.enqueueCatalogLifecycleEvent({
+            ...catalogInput("catalog:cross-market"),
+            affectedMarketCodes: ["sk", "ro"],
+            marketAssignments: [
+              catalogInput("catalog:cross-market", "category", "sk")
+                .marketAssignments[0],
+              catalogInput("catalog:cross-market", "category", "ro")
+                .marketAssignments[0],
+            ],
+          })
+        ).rejects.toMatchObject({ name: "UrlRegistryOutboxInputError" })
+        expect(
+          await service.listUrlRegistryOutboxEvents({
+            event_id: "catalog:cross-market",
+          })
         ).toHaveLength(0)
       })
     })

@@ -1,11 +1,11 @@
 import { createHash, randomUUID } from "node:crypto"
 import { createUrlRegistryCommand } from "../contracts"
 import { UrlRegistryError } from "../errors"
-import type { ProductLifecycleReceiptAction } from "../product-lifecycle"
 import type {
-  ProductLifecycleChangeType,
-  ProductLifecycleDeliveryV1,
-} from "../product-lifecycle-parser"
+  ProductLifecycleReceiptAction,
+  UrlRegistryLifecycleDeliveryV1,
+} from "../product-lifecycle"
+import type { ProductLifecycleChangeType } from "../product-lifecycle-parser"
 import { changeEntitySlug, createEntityRoute } from "./entity-writes"
 import { retireRoute } from "./lifecycle-writes"
 import type { SqlClient } from "./sql"
@@ -60,7 +60,7 @@ export type ProductLifecycleStreamPosition =
   | Readonly<{ kind: "next" }>
 
 const isExactReceipt = (
-  delivery: ProductLifecycleDeliveryV1,
+  delivery: UrlRegistryLifecycleDeliveryV1,
   fingerprint: `sha256:${string}`,
   receipt: ProductLifecycleReceipt
 ): boolean =>
@@ -70,7 +70,7 @@ const isExactReceipt = (
   receipt.changeType === delivery.changeType
 
 const orderingDetails = (
-  delivery: ProductLifecycleDeliveryV1,
+  delivery: UrlRegistryLifecycleDeliveryV1,
   cursorLastSequence: number | null
 ) => ({
   sourceId: delivery.entityId,
@@ -80,7 +80,7 @@ const orderingDetails = (
 })
 
 export const classifyProductLifecycleStream = (
-  delivery: ProductLifecycleDeliveryV1,
+  delivery: UrlRegistryLifecycleDeliveryV1,
   fingerprint: `sha256:${string}`,
   state: ProductLifecycleStreamState
 ): ProductLifecycleStreamPosition => {
@@ -127,25 +127,33 @@ export const classifyProductLifecycleStream = (
   return { kind: "next" }
 }
 
-const commandKey = (delivery: ProductLifecycleDeliveryV1): string =>
-  `urlr:product-lifecycle:${createHash("sha256")
+const lifecycleCommandPrefix = (
+  delivery: UrlRegistryLifecycleDeliveryV1
+): "product-lifecycle" | "catalog-lifecycle" =>
+  delivery.entityKind === "product" ? "product-lifecycle" : "catalog-lifecycle"
+
+const commandKey = (delivery: UrlRegistryLifecycleDeliveryV1): string =>
+  `urlr:${lifecycleCommandPrefix(delivery)}:${createHash("sha256")
     .update(
       [delivery.source, delivery.outboxEventId, delivery.marketCode].join("\0")
     )
     .digest("hex")}`
 
-const identityFor = (delivery: ProductLifecycleDeliveryV1) => ({
+const identityFor = (delivery: UrlRegistryLifecycleDeliveryV1) => ({
   targetType: "entity" as const,
   sourceSystem: "medusa",
-  sourceType: "product",
+  sourceType: delivery.entityKind,
   sourceId: delivery.entityId,
   staticRouteKey: null,
 })
 
-const sourceFor = (delivery: ProductLifecycleDeliveryV1) => ({
-  producer: "herbatika-product-lifecycle",
+const sourceFor = (delivery: UrlRegistryLifecycleDeliveryV1) => ({
+  producer:
+    delivery.entityKind === "product"
+      ? "herbatika-product-lifecycle"
+      : "herbatika-catalog-lifecycle",
   sourceSystem: "medusa",
-  sourceType: "product",
+  sourceType: delivery.entityKind,
   sourceId: delivery.entityId,
   sourceVersion: delivery.payload.sourceVersion,
   sourceEventId: delivery.outboxEventId,
@@ -154,7 +162,7 @@ const sourceFor = (delivery: ProductLifecycleDeliveryV1) => ({
 export const publishProductLifecycleRoute = async (
   runner: PostgresCommandRunner,
   executor: SqlClient,
-  delivery: ProductLifecycleDeliveryV1,
+  delivery: UrlRegistryLifecycleDeliveryV1,
   publicSlug: string
 ): Promise<string> => {
   const key = commandKey(delivery)
@@ -166,9 +174,9 @@ export const publishProductLifecycleRoute = async (
       source: sourceFor(delivery),
       route: {
         market: delivery.marketCode,
-        kind: "product" as const,
+        kind: delivery.entityKind,
         identity: identityFor(delivery),
-        equivalenceKey: `medusa:product:${delivery.entityId}`,
+        equivalenceKey: `medusa:${delivery.entityKind}:${delivery.entityId}`,
         indexPolicy: "indexable" as const,
       },
       slug: { normalizedSlug: publicSlug, normalizationVersion: 1 },
@@ -192,7 +200,7 @@ export const publishProductLifecycleRoute = async (
 
 export const changeProductLifecycleSlug = async (
   input: Readonly<{
-    delivery: ProductLifecycleDeliveryV1
+    delivery: UrlRegistryLifecycleDeliveryV1
     executor: SqlClient
     publicSlug: string
     route: Readonly<{ route: { id: string; version: number } }>
@@ -230,7 +238,7 @@ export const changeProductLifecycleSlug = async (
 export const retireProductLifecycleRoute = async (
   runner: PostgresCommandRunner,
   executor: SqlClient,
-  delivery: ProductLifecycleDeliveryV1,
+  delivery: UrlRegistryLifecycleDeliveryV1,
   route: Readonly<{ route: { id: string; version: number } }>
 ): Promise<string> => {
   const identity = identityFor(delivery)

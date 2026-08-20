@@ -2,6 +2,11 @@ import type { StorefrontTextDefinition } from "../configuration"
 
 export const STOREFRONT_CHECKOUT_ENTRY_TEXT_DEFINITIONS = [
   {
+    description: "Chybový stav nedostupné stránky pokladny.",
+    key: "checkout.page_unavailable",
+    namespace: "checkout",
+  },
+  {
     description: "Text důvěryhodnosti bezpečného nákupu v hlavičce checkoutu.",
     key: "checkout.secure_purchase",
     namespace: "checkout",

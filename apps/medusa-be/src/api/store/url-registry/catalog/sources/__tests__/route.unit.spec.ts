@@ -42,7 +42,7 @@ describe("catalog source batch route", () => {
     ["brand", "brand_1", "herbatika", "brand"],
     ["collection", "pcol_1", "zimna-kolekcia", "product_collection"],
   ] as const)("returns the exact successful %s response", async (entityKind, entityId, publicSlug, translationReference) => {
-    const candidate = { entityId, publicSlug }
+    const candidate = { entityId, publicSlug, sourceVersion: "1" }
     const assignment = {
       entityId,
       id: entityId,
@@ -95,13 +95,20 @@ describe("catalog source batch route", () => {
       "an extra candidate field",
       {
         candidates: [
-          { entityId: "pcat_1", extra: true, publicSlug: "doplnky" },
+          {
+            entityId: "pcat_1",
+            extra: true,
+            publicSlug: "doplnky",
+            sourceVersion: "1",
+          },
         ],
       },
     ],
   ])("rejects %s with an exact 400 response", async (_label, overrides) => {
     const request = makeRequest({
-      candidates: [{ entityId: "pcat_1", publicSlug: "doplnky" }],
+      candidates: [
+        { entityId: "pcat_1", publicSlug: "doplnky", sourceVersion: "1" },
+      ],
       entityKind: "category",
       market: "sk",
       schemaVersion: 1,
@@ -123,7 +130,9 @@ describe("catalog source batch route", () => {
       kind: "unavailable",
     })
     const request = makeRequest({
-      candidates: [{ entityId: "pcat_1", publicSlug: "doplnky" }],
+      candidates: [
+        { entityId: "pcat_1", publicSlug: "doplnky", sourceVersion: "1" },
+      ],
       entityKind: "category",
       market: "sk",
       schemaVersion: 1,

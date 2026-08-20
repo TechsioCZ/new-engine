@@ -1,6 +1,7 @@
 import type { HttpTypes } from "@medusajs/types"
 import type { GetServerSideProps } from "next"
 import { BlogDetailPage } from "@/components/blog/blog-detail-page"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   type PublicPageProps,
   resolveEntityPublicPage,
@@ -97,7 +98,7 @@ export const getServerSideProps = (async (context) =>
 
 export default function AdviceDetailPage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Article unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="advice" />
   }
   return (
     <BlogDetailPage

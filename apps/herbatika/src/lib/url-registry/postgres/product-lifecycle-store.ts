@@ -1,10 +1,10 @@
 import type { EntityRouteSnapshot, SourceReadResult } from "../contracts"
 import { UrlRegistryError } from "../errors"
-import type { ProductLifecycleReceiptAction } from "../product-lifecycle"
 import type {
-  ProductLifecycleChangeType,
-  ProductLifecycleDeliveryV1,
-} from "../product-lifecycle-parser"
+  ProductLifecycleReceiptAction,
+  UrlRegistryLifecycleDeliveryV1,
+} from "../product-lifecycle"
+import type { ProductLifecycleChangeType } from "../product-lifecycle-parser"
 import type {
   ProductLifecycleReceipt,
   ProductLifecycleStreamState,
@@ -72,7 +72,7 @@ const parseReceipt = (value: unknown): LocatedReceipt => {
 
 export const readProductLifecycleStreamState = async (
   executor: SqlExecutor,
-  delivery: ProductLifecycleDeliveryV1,
+  delivery: UrlRegistryLifecycleDeliveryV1,
   lock: boolean
 ): Promise<ProductLifecycleStreamState> => {
   if (lock) {
@@ -90,7 +90,7 @@ export const readProductLifecycleStreamState = async (
               command_idempotency_key
          FROM url_registry.url_registry_source_event_receipt
         WHERE (
-          source_system = 'medusa' AND source_type = 'product'
+          source_system = 'medusa' AND source_type = $5
           AND source_id = $1 AND market = $2 AND stream_sequence = $3
         ) OR (
           source_system = 'medusa' AND source_event_id = $4 AND market = $2
@@ -101,15 +101,16 @@ export const readProductLifecycleStreamState = async (
         delivery.marketCode,
         delivery.streamSequence,
         delivery.outboxEventId,
+        delivery.entityKind,
       ]
     ),
     executor.query(
       `SELECT last_sequence
          FROM url_registry.url_registry_source_event_cursor
-        WHERE source_system = 'medusa' AND source_type = 'product'
+        WHERE source_system = 'medusa' AND source_type = $3
           AND source_id = $1 AND market = $2
         ${lock ? "FOR UPDATE" : ""}`,
-      [delivery.entityId, delivery.marketCode]
+      [delivery.entityId, delivery.marketCode, delivery.entityKind]
     ),
   ])
   if (cursorResult.rows.length > 1) {
@@ -131,7 +132,7 @@ export const readProductLifecycleStreamState = async (
     sequenceReceipt:
       receipts.find(
         (receipt) =>
-          receipt.sourceType === "product" &&
+          receipt.sourceType === delivery.entityKind &&
           receipt.sourceId === delivery.entityId &&
           receipt.streamSequence === delivery.streamSequence
       ) ?? null,
@@ -144,18 +145,18 @@ export const readProductLifecycleStreamState = async (
 
 export const readProductLifecycleRoute = async (
   executor: SqlExecutor,
-  delivery: ProductLifecycleDeliveryV1
+  delivery: UrlRegistryLifecycleDeliveryV1
 ): Promise<SourceReadResult<EntityRouteSnapshot>> => {
   try {
     const result = await executor.query(
       `SELECT to_jsonb(route) AS route
          FROM url_registry.url_route AS route
         WHERE route.market = $1 AND route.target_type = 'entity'
-          AND route.source_system = 'medusa' AND route.source_type = 'product'
+          AND route.source_system = 'medusa' AND route.source_type = $3
           AND route.source_id = $2
         LIMIT 1
         FOR UPDATE`,
-      [delivery.marketCode, delivery.entityId]
+      [delivery.marketCode, delivery.entityId, delivery.entityKind]
     )
     if (result.rows.length === 0) {
       return { kind: "missing" }
@@ -191,7 +192,7 @@ export const readProductLifecycleRoute = async (
 export const appendProductLifecycleReceipt = async (
   executor: SqlExecutor,
   input: Readonly<{
-    delivery: ProductLifecycleDeliveryV1
+    delivery: UrlRegistryLifecycleDeliveryV1
     fingerprint: `sha256:${string}`
     action: ProductLifecycleReceiptAction
     commandIdempotencyKey: string | null
@@ -203,9 +204,10 @@ export const appendProductLifecycleReceipt = async (
        source_system, source_type, source_id, market, stream_sequence,
        source_event_id, envelope_fingerprint, change_type, action,
        command_idempotency_key
-     ) VALUES ('medusa', 'product', $1, $2, $3, $4, $5, $6, $7, $8)
+     ) VALUES ('medusa', $1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING source_event_id`,
     [
+      delivery.entityKind,
       delivery.entityId,
       delivery.marketCode,
       delivery.streamSequence,
@@ -220,16 +222,21 @@ export const appendProductLifecycleReceipt = async (
     delivery.streamSequence === 1
       ? `INSERT INTO url_registry.url_registry_source_event_cursor (
            source_system, source_type, source_id, market, last_sequence
-         ) VALUES ('medusa', 'product', $1, $2, 1)
+         ) VALUES ('medusa', $1, $2, $3, 1)
          RETURNING last_sequence`
       : `UPDATE url_registry.url_registry_source_event_cursor
-           SET last_sequence = $3
-         WHERE source_system = 'medusa' AND source_type = 'product'
-           AND source_id = $1 AND market = $2 AND last_sequence = $3 - 1
+        SET last_sequence = $4
+         WHERE source_system = 'medusa' AND source_type = $1
+           AND source_id = $2 AND market = $3 AND last_sequence = $4 - 1
          RETURNING last_sequence`,
     delivery.streamSequence === 1
-      ? [delivery.entityId, delivery.marketCode]
-      : [delivery.entityId, delivery.marketCode, delivery.streamSequence]
+      ? [delivery.entityKind, delivery.entityId, delivery.marketCode]
+      : [
+          delivery.entityKind,
+          delivery.entityId,
+          delivery.marketCode,
+          delivery.streamSequence,
+        ]
   )
   if (inserted.rows.length !== 1 || advanced.rows.length !== 1) {
     throw new UrlRegistryError(

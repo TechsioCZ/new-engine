@@ -1,6 +1,7 @@
 "use client"
 
 import { Badge } from "@techsio/ui-kit/atoms/badge"
+import { useTranslations } from "next-intl"
 
 type SearchToolbarProps = {
   query: string
@@ -15,20 +16,28 @@ export function SearchToolbar({
   hitsCount,
   pageBadgeLabel,
 }: SearchToolbarProps) {
+  const tSearch = useTranslations("search")
+
   return (
     <>
       <div className="space-y-200">
-        <h1 className="font-bold text-2xl text-fg-primary">Vyhľadávanie</h1>
+        <h1 className="font-bold text-2xl text-fg-primary">
+          {tSearch("results.title")}
+        </h1>
         <p className="text-fg-secondary text-sm">
-          Vyhľadajte produkty v katalógu.
+          {tSearch("results.description")}
         </p>
       </div>
 
       {query ? (
         <div className="flex flex-wrap items-center gap-200">
-          <Badge variant="info">{`dotaz: ${query}`}</Badge>
-          <Badge variant="secondary">{`nájdené: ${estimatedTotalHits}`}</Badge>
-          <Badge variant="secondary">{`zobrazené: ${hitsCount}`}</Badge>
+          <Badge variant="info">{tSearch("results.query", { query })}</Badge>
+          <Badge variant="secondary">
+            {tSearch("results.found", { count: estimatedTotalHits })}
+          </Badge>
+          <Badge variant="secondary">
+            {tSearch("results.displayed", { count: hitsCount })}
+          </Badge>
           <Badge variant="secondary">{pageBadgeLabel}</Badge>
         </div>
       ) : null}

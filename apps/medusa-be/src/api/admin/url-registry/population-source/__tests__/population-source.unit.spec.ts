@@ -31,6 +31,9 @@ describe("URLR population source", () => {
 
   it("exports only published product metadata with exact Translation proof", async () => {
     const productService = {
+      listProducts: vi.fn(async () => [
+        { description: "", id: "prod_1", subtitle: "" },
+      ]),
       listAndCountProducts: vi.fn(async () => [
         [
           {
@@ -173,7 +176,14 @@ describe("URLR population source", () => {
         locale_code: "hu-HU",
         reference: "product_category",
         reference_id: "pcat_1",
-        translations: { name: "Gyógynövények" },
+        translations: {
+          bottom_description_html: null,
+          description: null,
+          meta_description: null,
+          meta_title: null,
+          name: "Gyógynövények",
+          top_description_html: null,
+        },
       },
     ])
     const sourceRequest = request({

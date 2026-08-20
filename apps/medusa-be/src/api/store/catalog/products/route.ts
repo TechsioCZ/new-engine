@@ -60,6 +60,7 @@ import { CATALOG_SALES_CHANNEL_IDS_PROPERTY } from "./middlewares"
 import {
   applyCollectionScopeToProductFilters,
   buildCatalogFilterExpressions,
+  CATALOG_SORT_VALUES,
   type FacetCountItem,
   getFacetDistribution,
   getFacetDistributionFromHits,
@@ -120,7 +121,8 @@ const FACETS_TO_FETCH = [
 ]
 
 const mapStatusFacets = (
-  facetCounts: Map<string, number>
+  facetCounts: Map<string, number>,
+  locale?: string
 ): FacetCountItem[] => {
   const usedIds = new Set<string>()
 
@@ -141,13 +143,17 @@ const mapStatusFacets = (
         id,
         label: STATUS_FACET_LABEL_BY_ID.get(id) ?? id,
         count,
-      }))
+      })),
+    locale
   )
 
   return [...result, ...additionalItems]
 }
 
-const mapFormFacets = (facetCounts: Map<string, number>): FacetCountItem[] => {
+const mapFormFacets = (
+  facetCounts: Map<string, number>,
+  locale?: string
+): FacetCountItem[] => {
   const usedIds = new Set<string>()
 
   const result: FacetCountItem[] = FORM_FACET_DEFINITIONS.map((item) => {
@@ -167,7 +173,8 @@ const mapFormFacets = (facetCounts: Map<string, number>): FacetCountItem[] => {
         id,
         label: FORM_FACET_LABEL_BY_ID.get(id) ?? id,
         count,
-      }))
+      })),
+    locale
   )
 
   return [...result, ...additionalItems]
@@ -322,14 +329,16 @@ const resolveIngredientFacetLabels = async (
 
 const mapDynamicFacets = (
   facetCounts: Map<string, number>,
-  labelsById: Map<string, string>
+  labelsById: Map<string, string>,
+  locale?: string
 ): FacetCountItem[] =>
   sortFacetCountItems(
     Array.from(facetCounts.entries()).map(([id, count]) => ({
       id,
       label: labelsById.get(id) ?? humanizeFacetHandle(id),
       count,
-    }))
+    })),
+    locale
   )
 
 const getLowestCalculatedProductPrice = (
@@ -372,13 +381,68 @@ const resolveAuthoritativePriceSortDirection = (
   return
 }
 
-const selectProductMatchesForHydration = (options: {
+export const usesIndexedProfilePriceSort = (
+  profile: Pick<SearchProfile, "locale">,
+  priceSortDirection: 1 | -1 | undefined
+): boolean =>
+  Boolean(
+    priceSortDirection &&
+      profile.locale.trim().toLowerCase().replaceAll("_", "-").split("-")[0] ===
+        "ro"
+  )
+
+export const resolveCatalogSearchExecutionPlan = (options: {
+  cleanedQuery: string
+  fullSearchLimit: number
+  limit: number
+  offset: number
+  profile: Pick<SearchProfile, "locale">
+  requestedSort: string
+}) => {
+  const priceSortDirection = resolveAuthoritativePriceSortDirection(
+    options.requestedSort
+  )
+  const indexedProfilePriceSort = usesIndexedProfilePriceSort(
+    options.profile,
+    priceSortDirection
+  )
+  const exhaustiveCandidateSearch = Boolean(
+    (options.cleanedQuery || priceSortDirection) && !indexedProfilePriceSort
+  )
+  const catalogSort = CATALOG_SORT_VALUES.find(
+    (candidate) => candidate === options.requestedSort
+  )
+  const sort =
+    (catalogSort ? resolveCatalogSort(catalogSort) : undefined) ??
+    (options.cleanedQuery ? undefined : ["facet_popularity:desc"])
+  const meiliSort =
+    priceSortDirection && !indexedProfilePriceSort ? undefined : sort
+
+  return {
+    exhaustiveCandidateSearch,
+    indexedProfilePriceSort,
+    meiliSort,
+    paginationOptions: {
+      limit: exhaustiveCandidateSearch
+        ? options.fullSearchLimit
+        : options.limit,
+      offset: exhaustiveCandidateSearch ? 0 : options.offset,
+    },
+    priceSortDirection,
+  }
+}
+
+export const selectProductMatchesForHydration = (options: {
   cleanedQuery: string
   limit: number
   matchingProducts: RankedProductMatch[]
   offset: number
+  prePaginated?: boolean
   priceSortDirection?: 1 | -1
 }): RankedProductMatch[] => {
+  if (options.prePaginated) {
+    return options.matchingProducts
+  }
   if (options.priceSortDirection) {
     return options.matchingProducts
   }
@@ -391,7 +455,7 @@ const selectProductMatchesForHydration = (options: {
   return options.matchingProducts
 }
 
-const resolveResultCount = (options: {
+export const resolveResultCount = (options: {
   estimatedTotalHits?: number
   exhaustiveCandidateSearch: boolean
   fallbackCount: number
@@ -709,8 +773,8 @@ export async function GET(
         limit,
         totalPages: 0,
         facets: {
-          status: mapStatusFacets(new Map()),
-          form: mapFormFacets(new Map()),
+          status: mapStatusFacets(new Map(), graphLocale),
+          form: mapFormFacets(new Map(), graphLocale),
           brand: [],
           ingredient: [],
           price: {
@@ -745,15 +809,20 @@ export async function GET(
     priceMax: validatedQuery.price_max,
   })
 
-  const authoritativePriceSortDirection =
-    resolveAuthoritativePriceSortDirection(validatedQuery.sort)
-  const exhaustiveCandidateSearch = Boolean(
-    cleanedQuery || authoritativePriceSortDirection
-  )
-  const sort =
-    resolveCatalogSort(validatedQuery.sort) ??
-    (cleanedQuery ? undefined : ["facet_popularity:desc"])
-  const meiliSort = authoritativePriceSortDirection ? undefined : sort
+  const {
+    exhaustiveCandidateSearch,
+    indexedProfilePriceSort,
+    meiliSort,
+    paginationOptions,
+    priceSortDirection: authoritativePriceSortDirection,
+  } = resolveCatalogSearchExecutionPlan({
+    cleanedQuery,
+    fullSearchLimit: searchProfile.limits.fullSearch,
+    limit,
+    offset,
+    profile: searchProfile,
+    requestedSort: validatedQuery.sort,
+  })
   const saleSearchExpression = saleProductSelection
     ? buildMeiliOrExpression(
         "id",
@@ -777,12 +846,7 @@ export async function GET(
       searchProfile.indexes.product,
       cleanedQuery,
       {
-        paginationOptions: {
-          limit: exhaustiveCandidateSearch
-            ? searchProfile.limits.fullSearch
-            : limit,
-          offset: exhaustiveCandidateSearch ? 0 : offset,
-        },
+        paginationOptions,
         filter: searchFilter,
         additionalOptions: {
           attributesToRetrieve: [
@@ -893,8 +957,8 @@ export async function GET(
       limit,
       totalPages: Math.ceil(fallbackCount / limit),
       facets: {
-        status: mapStatusFacets(new Map()),
-        form: mapFormFacets(new Map()),
+        status: mapStatusFacets(new Map(), graphLocale),
+        form: mapFormFacets(new Map(), graphLocale),
         brand: [],
         ingredient: [],
         price: {
@@ -923,6 +987,7 @@ export async function GET(
     limit,
     matchingProducts,
     offset,
+    prePaginated: indexedProfilePriceSort,
     priceSortDirection: authoritativePriceSortDirection,
   })
   const productIds = Array.from(
@@ -981,30 +1046,31 @@ export async function GET(
     >[1]
   )
 
-  const finalProducts = authoritativePriceSortDirection
-    ? [...orderedProducts]
-        .sort((left, right) => {
-          const leftPrice = getLowestCalculatedProductPrice(
-            left as ProductWithCalculatedPrices
-          )
-          const rightPrice = getLowestCalculatedProductPrice(
-            right as ProductWithCalculatedPrices
-          )
+  const finalProducts =
+    authoritativePriceSortDirection && !indexedProfilePriceSort
+      ? [...orderedProducts]
+          .sort((left, right) => {
+            const leftPrice = getLowestCalculatedProductPrice(
+              left as ProductWithCalculatedPrices
+            )
+            const rightPrice = getLowestCalculatedProductPrice(
+              right as ProductWithCalculatedPrices
+            )
 
-          if (leftPrice === undefined && rightPrice === undefined) {
-            return 0
-          }
-          if (leftPrice === undefined) {
-            return 1
-          }
-          if (rightPrice === undefined) {
-            return -1
-          }
+            if (leftPrice === undefined && rightPrice === undefined) {
+              return 0
+            }
+            if (leftPrice === undefined) {
+              return 1
+            }
+            if (rightPrice === undefined) {
+              return -1
+            }
 
-          return (leftPrice - rightPrice) * authoritativePriceSortDirection
-        })
-        .slice(offset, offset + limit)
-    : orderedProducts
+            return (leftPrice - rightPrice) * authoritativePriceSortDirection
+          })
+          .slice(offset, offset + limit)
+      : orderedProducts
 
   if (requestsLocalizedProductContent(responseProductFields)) {
     await decorateProductsWithLocalizedContent(
@@ -1086,10 +1152,14 @@ export async function GET(
       profile: searchProfile.key,
     },
     facets: {
-      status: mapStatusFacets(statusFacetCounts),
-      form: mapFormFacets(formFacetCounts),
-      brand: mapDynamicFacets(brandFacetCounts, brandLabelsById),
-      ingredient: mapDynamicFacets(ingredientFacetCounts, ingredientLabelsById),
+      status: mapStatusFacets(statusFacetCounts, graphLocale),
+      form: mapFormFacets(formFacetCounts, graphLocale),
+      brand: mapDynamicFacets(brandFacetCounts, brandLabelsById, graphLocale),
+      ingredient: mapDynamicFacets(
+        ingredientFacetCounts,
+        ingredientLabelsById,
+        graphLocale
+      ),
       price: {
         min: priceFacetStats.min ?? null,
         max: priceFacetStats.max ?? null,

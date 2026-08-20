@@ -9,7 +9,11 @@ import {
   ROUTE_SEGMENT_REGISTRY,
 } from "@/lib/url/segments"
 import { validatePublishedSlug } from "@/lib/url/slug"
-import type { Market, RootSegmentMatch } from "@/lib/url/types"
+import type {
+  Market,
+  MarketRouteSegments,
+  RootSegmentMatch,
+} from "@/lib/url/types"
 import { isPrivatePagesPath } from "./private-pages-path"
 
 export type PublicProxyAction =
@@ -391,14 +395,19 @@ export const resolvePublicProxyAction = ({
     if (!root) {
       return parsed.canonicalPath
     }
-    const config = ROUTE_SEGMENT_REGISTRY[hostMarket.market]
+    const config: MarketRouteSegments =
+      ROUTE_SEGMENT_REGISTRY[hostMarket.market]
     let first: string
     if (root.group === "type-prefix") {
       first = config.typePrefixes[root.key]
     } else if (root.group === "flow-root") {
       first = config.flowRoots[root.key]
     } else {
-      first = config.staticRootPages[root.key]
+      const staticRootPage = config.staticRootPages[root.key]
+      if (!staticRootPage) {
+        return parsed.canonicalPath
+      }
+      first = staticRootPage
     }
     const rest = parsed.segments
       .slice(1)

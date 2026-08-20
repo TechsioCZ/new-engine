@@ -12,6 +12,11 @@ export const STOREFRONT_SEARCH_RESULTS_TEXT_DEFINITIONS = [
     namespace: "search",
   },
   {
+    description: "Nadpis souvisejících výsledků mimo produkty.",
+    key: "search.results.related",
+    namespace: "search",
+  },
+  {
     description: "Štítek s hledaným výrazem.",
     key: "search.results.query",
     namespace: "search",
@@ -19,6 +24,11 @@ export const STOREFRONT_SEARCH_RESULTS_TEXT_DEFINITIONS = [
   {
     description: "Štítek s počtem nalezených produktů.",
     key: "search.results.found",
+    namespace: "search",
+  },
+  {
+    description: "Štítek s počtem zobrazených produktů.",
+    key: "search.results.displayed",
     namespace: "search",
   },
   {

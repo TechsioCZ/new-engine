@@ -6,6 +6,7 @@ import type { PropsWithChildren } from "react"
 import { CheckoutFooter } from "@/components/checkout/checkout-footer"
 import { CheckoutHeader } from "@/components/checkout/checkout-header"
 import { HerbatikaFooter } from "@/components/herbatika-footer"
+import type { FooterMarketAlternates } from "@/components/herbatika-footer.market-links"
 import { HerbatikaHeader } from "@/components/herbatika-header"
 import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 import type { CmsFooterNavigation } from "@/lib/storefront/cms-types"
@@ -16,6 +17,7 @@ import { buildPath } from "@/lib/url/public-url"
 type AppShellProps = PropsWithChildren<{
   categoryPublicSlugsById?: PublicEntitySlugMap
   footerNavigation: CmsFooterNavigation
+  marketAlternates?: FooterMarketAlternates
   reviewTrustSources: readonly ReviewTrustSource[]
 }>
 
@@ -23,6 +25,7 @@ export function AppShell({
   categoryPublicSlugsById,
   children,
   footerNavigation,
+  marketAlternates,
   reviewTrustSources,
 }: AppShellProps) {
   const pathname = usePathname()
@@ -41,6 +44,7 @@ export function AppShell({
       <HerbatikaHeader categoryPublicSlugsById={categoryPublicSlugsById} />
       <div className="flex-1">{children}</div>
       <HerbatikaFooter
+        marketAlternates={marketAlternates}
         navigation={footerNavigation}
         reviewTrustSources={reviewTrustSources}
       />

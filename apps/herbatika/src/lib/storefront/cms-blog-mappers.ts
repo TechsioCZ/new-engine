@@ -18,6 +18,7 @@ import {
   stripCmsHtml,
 } from "./cms-content"
 import type { CmsArticle, CmsArticleSummary } from "./cms-types"
+import type { HerbatikaLocale } from "./market-context"
 
 export type CmsBlogCardItem = BlogCardItem & { sourceId: string }
 export type CmsBlogPost = Omit<BlogPost, "relatedPosts"> & {
@@ -37,8 +38,19 @@ const resolveCmsSourceId = (value: unknown) => {
     : ""
 }
 
-const mapCmsAuthor = (article: CmsArticle) => {
-  const name = article.author?.displayName?.trim()
+const resolveCmsAuthorDisplayName = (
+  displayName: string,
+  locale?: HerbatikaLocale
+) =>
+  locale === "ro-RO" && displayName === "Herbatika redakcia"
+    ? "Redacția Herbatica"
+    : displayName
+
+const mapCmsAuthor = (article: CmsArticle, locale?: HerbatikaLocale) => {
+  const sourceName = article.author?.displayName?.trim()
+  const name = sourceName
+    ? resolveCmsAuthorDisplayName(sourceName, locale)
+    : undefined
   if (!name) {
     return
   }
@@ -202,7 +214,8 @@ const mapCmsArticleSummaryToBlogCard = (
 
 export const mapCmsArticleToBlogPost = (
   article: CmsArticle,
-  fallbackCategory?: BlogCategory
+  fallbackCategory?: BlogCategory,
+  locale?: HerbatikaLocale
 ): CmsBlogPost | null => {
   const card = mapCmsArticleSummaryToBlogCard(article, fallbackCategory)
   if (!card) {
@@ -222,7 +235,7 @@ export const mapCmsArticleToBlogPost = (
       return relatedPost && relatedPost.slug !== card.slug ? [relatedPost] : []
     })
     .slice(0, 4)
-  const author = mapCmsAuthor(article)
+  const author = mapCmsAuthor(article, locale)
   const sidebar = mapCmsSidebar(article)
 
   return {

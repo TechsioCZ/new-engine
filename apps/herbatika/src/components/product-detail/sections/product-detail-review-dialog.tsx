@@ -13,6 +13,8 @@ import {
   ProductReviewForm,
   type ProductReviewFormSubmitValues,
 } from "@/components/reviews/product-review-form"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { isProductReviewMarketSupported } from "@/lib/storefront/review-market-policy"
 import { useCreateProductReview } from "@/lib/storefront/reviews"
 
 type ProductReviewCreateDialogProps = {
@@ -27,6 +29,8 @@ export function ProductReviewCreateDialog({
   triggerLabel,
 }: ProductReviewCreateDialogProps) {
   const tCatalog = useTranslations("catalog")
+  const market = useMarketContext().code
+  const supportsProductReviews = isProductReviewMarketSupported(market)
   const resolvedTriggerLabel = triggerLabel ?? tCatalog("reviews.write_action")
   const reviewErrorMessages = translateProductReviewErrorMessages(tCatalog)
   const [formResetKey, setFormResetKey] = useState(0)
@@ -46,6 +50,10 @@ export function ProductReviewCreateDialog({
     },
   })
   const isBusy = createReviewMutation.isPending
+
+  if (!supportsProductReviews) {
+    return null
+  }
 
   const handleOpenChange = ({ open }: { open: boolean }) => {
     setIsOpen(open)

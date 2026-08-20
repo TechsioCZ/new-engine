@@ -1,6 +1,11 @@
+import {
+  type CatalogLifecycleDeliveryV1,
+  parseCatalogLifecycleDeliveryV1,
+} from "../catalog-lifecycle-parser"
 import type {
   ProductLifecycleDecision,
   ProductLifecycleReceiptAction,
+  UrlRegistryLifecycleDeliveryV1,
 } from "../product-lifecycle"
 import {
   type ProductLifecycleDeliveryV1,
@@ -29,7 +34,7 @@ export type ProductLifecycleEndpointDependencies = Readonly<{
   ): string | null
   lifecycleToken: string | undefined
   consume(
-    delivery: ProductLifecycleDeliveryV1
+    delivery: UrlRegistryLifecycleDeliveryV1
   ): Promise<ProductLifecycleConsumeResult>
 }>
 
@@ -68,9 +73,12 @@ const mediaTypeIsJson = (request: Request) =>
     ?.trim()
     .toLowerCase() === "application/json"
 
-const parseDelivery = (body: string): ProductLifecycleDeliveryV1 | null => {
+const parseDelivery = <Delivery extends UrlRegistryLifecycleDeliveryV1>(
+  body: string,
+  parser: (input: unknown) => Delivery
+): Delivery | null => {
   try {
-    return parseProductLifecycleDeliveryV1(JSON.parse(body))
+    return parser(JSON.parse(body))
   } catch {
     return null
   }
@@ -110,7 +118,7 @@ const consumerFailure = (error: unknown) => {
 }
 
 const acknowledge = (
-  delivery: ProductLifecycleDeliveryV1,
+  delivery: UrlRegistryLifecycleDeliveryV1,
   action: ProductLifecycleReceiptAction,
   replayed: boolean
 ) =>
@@ -127,9 +135,12 @@ const acknowledge = (
     { headers: responseHeaders, status: 200 }
   )
 
-export const handleProductLifecycleRequest = async (
+const handleLifecycleRequest = async <
+  Delivery extends UrlRegistryLifecycleDeliveryV1,
+>(
   request: Request,
-  dependencies: ProductLifecycleEndpointDependencies
+  dependencies: ProductLifecycleEndpointDependencies,
+  parser: (input: unknown) => Delivery
 ): Promise<Response> => {
   if (!dependencies.enabled) {
     return jsonError("not-found", 404)
@@ -162,7 +173,7 @@ export const handleProductLifecycleRequest = async (
     return jsonError("invalid-delivery", 400)
   }
 
-  const delivery = parseDelivery(body.value)
+  const delivery = parseDelivery(body.value, parser)
   if (!delivery) {
     return jsonError("invalid-delivery", 400)
   }
@@ -194,3 +205,29 @@ export const handleProductLifecycleRequest = async (
     return consumerFailure(error)
   }
 }
+
+export const handleProductLifecycleRequest = (
+  request: Request,
+  dependencies: ProductLifecycleEndpointDependencies
+) =>
+  handleLifecycleRequest(request, dependencies, parseProductLifecycleDeliveryV1)
+
+export type CatalogLifecycleEndpointDependencies = Omit<
+  ProductLifecycleEndpointDependencies,
+  "consume"
+> &
+  Readonly<{
+    consume(
+      delivery: CatalogLifecycleDeliveryV1
+    ): Promise<ProductLifecycleConsumeResult>
+  }>
+
+export const handleCatalogLifecycleRequest = (
+  request: Request,
+  dependencies: CatalogLifecycleEndpointDependencies
+) =>
+  handleLifecycleRequest(
+    request,
+    dependencies as ProductLifecycleEndpointDependencies,
+    parseCatalogLifecycleDeliveryV1
+  )

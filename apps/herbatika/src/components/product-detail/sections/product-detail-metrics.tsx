@@ -7,6 +7,8 @@ import {
   toReviewItem,
 } from "@/components/product-detail/sections/product-detail-review-utils"
 import { ReviewsSection } from "@/components/reviews/reviews-section"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { isProductReviewMarketSupported } from "@/lib/storefront/review-market-policy"
 import {
   PRODUCT_REVIEWS_PAGE_SIZE,
   useProductReviews,
@@ -37,9 +39,12 @@ export function ProductDetailMetrics({
 }: ProductDetailMetricsProps) {
   const format = useFormatter()
   const tCatalog = useTranslations("catalog")
+  const { code: market, locale } = useMarketContext()
+  const supportsProductReviews = isProductReviewMarketSupported(market)
   const reviewsQuery = useProductReviews({
-    enabled: Boolean(productId),
+    enabled: Boolean(productId) && supportsProductReviews,
     limit: PRODUCT_REVIEWS_PAGE_SIZE,
+    locale,
     offset: 0,
     productId: productId ?? undefined,
   })
@@ -57,7 +62,7 @@ export function ProductDetailMetrics({
       })
     )
 
-  if (!productId) {
+  if (!(productId && supportsProductReviews)) {
     return null
   }
 

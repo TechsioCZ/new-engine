@@ -15,6 +15,7 @@ export function CheckoutHeader() {
   const marketContext = useMarketContext()
   const tAuth = useTranslations("auth")
   const tCheckout = useTranslations("checkout")
+  const tNavigation = useTranslations("navigation")
 
   return (
     <header className="w-full border-border-secondary border-b bg-surface font-rubik">
@@ -30,10 +31,10 @@ export function CheckoutHeader() {
         <div className="flex items-center gap-200">
           <Link
             className="hidden items-center gap-100 text-fg-primary text-sm hover:text-primary lg:inline-flex"
-            href="tel:+421232112345"
+            href={tNavigation("contact.phone_href")}
           >
             <Icon color="success" icon="token-icon-phone-talk" />
-            +421 2/321 123 45
+            {tNavigation("contact.phone_display")}
           </Link>
           {!isAuthenticated && (
             <LinkButton

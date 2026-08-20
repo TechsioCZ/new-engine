@@ -2,6 +2,7 @@ import type { HttpTypes } from "@medusajs/types"
 import type { GetServerSideProps } from "next"
 import { AccountOrderDetailItems } from "@/components/account/orders/account-order-detail-items"
 import { AccountOrderDetailSummary } from "@/components/account/orders/account-order-detail-summary"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   exactOpaqueSegment,
   exactOptionalQueryValue,
@@ -44,7 +45,7 @@ export const getServerSideProps = (async (context) => {
 
 export default function OrderConfirmationPage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Order unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="order" />
   }
   return (
     <main className="mx-auto w-full max-w-max-w px-400 py-600 lg:px-550 xl:px-700">

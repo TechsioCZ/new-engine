@@ -35,13 +35,18 @@ export const FLOW_ROOT_KEYS = [
 
 export const STATIC_ROOT_PAGE_KEYS = [
   "about",
+  "affiliate",
   "contact",
+  "dropshipping",
   "faq",
+  "giftVoucher",
+  "privateLabel",
   "shipping",
   "returns",
   "terms",
   "privacy",
   "cookies",
+  "wholesale",
 ] as const satisfies readonly StaticRootPageKey[]
 
 export const LEGAL_STATIC_ROOT_PAGE_KEYS = [

@@ -8,10 +8,24 @@ export const PRODUCT_LIFECYCLE_REASONS = [
   "updated",
   "channel-linked",
   "channel-unlinked",
+  "translation-invalidated",
   "deleted",
 ] as const
 
 export type ProductLifecycleReason = (typeof PRODUCT_LIFECYCLE_REASONS)[number]
+
+export const CATALOG_LIFECYCLE_ENTITY_KINDS = [
+  "category",
+  "brand",
+  "collection",
+] as const
+export type CatalogLifecycleEntityKind =
+  (typeof CATALOG_LIFECYCLE_ENTITY_KINDS)[number]
+export const CATALOG_LIFECYCLE_REASONS = [
+  "assignment-upsert",
+  "assignment-backfill",
+] as const
+export type CatalogLifecycleReason = (typeof CATALOG_LIFECYCLE_REASONS)[number]
 
 export type ProductPublicationAssignment = Readonly<{
   publicationStatus: "draft" | "published"
@@ -49,8 +63,37 @@ export type NormalizedProductLifecycleEvent = Readonly<{
     Record<UrlRegistryOutboxMarket, ProductLifecycleEventPayloadV1>
   >
   productId: string
+  entityId: string
+  entityKind: "product"
   source: "medusa"
 }>
+
+export type CatalogLifecycleEventPayloadV1 = Readonly<{
+  assignment: ProductPublicationAssignment | null
+  changeType: "reconcile"
+  entityId: string
+  entityKind: CatalogLifecycleEntityKind
+  reason: CatalogLifecycleReason
+  schemaVersion: 1
+  sourceVersion: string
+  trace?: ProductLifecycleEventTrace
+}>
+
+export type NormalizedCatalogLifecycleEvent = Readonly<{
+  affectedMarketCodes: readonly [UrlRegistryOutboxMarket]
+  entityId: string
+  entityKind: CatalogLifecycleEntityKind
+  eventId: string
+  occurredAt: string
+  payloadByMarket: Readonly<
+    Partial<Record<UrlRegistryOutboxMarket, CatalogLifecycleEventPayloadV1>>
+  >
+  source: "medusa"
+}>
+
+export type NormalizedUrlRegistryLifecycleEvent =
+  | NormalizedProductLifecycleEvent
+  | NormalizedCatalogLifecycleEvent
 
 const INPUT_KEYS = new Set([
   "affectedMarketCodes",
@@ -58,6 +101,16 @@ const INPUT_KEYS = new Set([
   "marketAssignments",
   "occurredAt",
   "productId",
+  "reason",
+  "trace",
+])
+const CATALOG_INPUT_KEYS = new Set([
+  "affectedMarketCodes",
+  "entityId",
+  "entityKind",
+  "eventId",
+  "marketAssignments",
+  "occurredAt",
   "reason",
   "trace",
 ])
@@ -294,6 +347,67 @@ export const normalizeProductLifecycleEventInput = (
     occurredAt: timestamp(record.occurredAt),
     payloadByMarket,
     productId,
+    entityId: productId,
+    entityKind: "product",
+    source: "medusa",
+  }
+}
+
+export const normalizeCatalogLifecycleEventInput = (
+  input: unknown
+): NormalizedCatalogLifecycleEvent => {
+  const record = asRecord(input, "input")
+  assertKnownKeys(record, CATALOG_INPUT_KEYS, "input")
+  const entityKind = record.entityKind
+  if (
+    typeof entityKind !== "string" ||
+    !CATALOG_LIFECYCLE_ENTITY_KINDS.includes(
+      entityKind as CatalogLifecycleEntityKind
+    )
+  ) {
+    throw new UrlRegistryOutboxInputError("entityKind is invalid")
+  }
+  const reason = record.reason
+  if (
+    typeof reason !== "string" ||
+    !CATALOG_LIFECYCLE_REASONS.includes(reason as CatalogLifecycleReason)
+  ) {
+    throw new UrlRegistryOutboxInputError("reason is invalid")
+  }
+  const affectedMarketCodes = markets(record.affectedMarketCodes)
+  if (affectedMarketCodes.length !== 1) {
+    throw new UrlRegistryOutboxInputError(
+      "catalog lifecycle events must target exactly one market"
+    )
+  }
+  const assignments = marketAssignments(
+    record.marketAssignments,
+    affectedMarketCodes
+  )
+  const normalizedTrace = trace(record.trace)
+  const entityId = identifier(record.entityId, "entityId")
+  const marketCode = affectedMarketCodes[0]
+  if (!marketCode) {
+    throw new UrlRegistryOutboxInputError("affectedMarketCodes is invalid")
+  }
+  return {
+    affectedMarketCodes: [marketCode],
+    entityId,
+    entityKind: entityKind as CatalogLifecycleEntityKind,
+    eventId: identifier(record.eventId, "eventId"),
+    occurredAt: timestamp(record.occurredAt),
+    payloadByMarket: {
+      [marketCode]: {
+        assignment: assignments[marketCode].assignment,
+        changeType: "reconcile",
+        entityId,
+        entityKind: entityKind as CatalogLifecycleEntityKind,
+        reason: reason as CatalogLifecycleReason,
+        schemaVersion: 1,
+        sourceVersion: assignments[marketCode].sourceVersion,
+        ...(normalizedTrace ? { trace: normalizedTrace } : {}),
+      },
+    },
     source: "medusa",
   }
 }

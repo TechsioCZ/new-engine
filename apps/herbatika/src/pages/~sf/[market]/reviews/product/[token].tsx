@@ -1,5 +1,6 @@
 import type { GetServerSideProps } from "next"
 import { ProductReviewTokenPage } from "@/components/reviews/product-review-token-page"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   exactOpaqueSegment,
   exactOptionalQueryValue,
@@ -8,7 +9,7 @@ import {
   readExactPrivateQuery,
   resolvePrivateFlowPublicPage,
 } from "@/lib/routing/private-flows/private-query"
-import { transactionalFlowReader } from "@/lib/routing/private-flows/transactional-page.server"
+import { loadReviewInvitationSource } from "@/lib/routing/private-flows/review-invitation-source.server"
 import { notFoundResult, type PublicPageProps } from "@/lib/routing/public-page"
 
 type ReviewValue = Readonly<{
@@ -30,22 +31,12 @@ export const getServerSideProps = (async (context) => {
   }
   const result = await resolvePrivateFlowPublicPage<ReviewValue>(context, {
     expectedRouteKey: "reviews.product",
-    loadSource: async (market) => {
-      const invitation = await transactionalFlowReader.readReviewInvitation(
+    loadSource: async (market) =>
+      loadReviewInvitationSource({
         market,
-        token
-      )
-      if (invitation.kind !== "found") {
-        return invitation
-      }
-      if (productId && productId !== invitation.value.productId) {
-        return { kind: "missing" }
-      }
-      return {
-        kind: "found",
-        value: { productId: invitation.value.productId, token },
-      }
-    },
+        productId: productId ?? undefined,
+        token,
+      }),
     suppressCanonicalization: true,
   })
   return result
@@ -53,7 +44,7 @@ export const getServerSideProps = (async (context) => {
 
 export default function ReviewTokenPage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Review unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="review" />
   }
   return (
     <ProductReviewTokenPage

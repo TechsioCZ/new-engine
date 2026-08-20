@@ -8,6 +8,7 @@ import {
 import { rewriteCmsHtmlMediaUrls } from "./cms-content"
 import type { CmsPage } from "./cms-types"
 import type { HerbatikaLocale } from "./market-context"
+import { getRoDemoStaticPage } from "./ro-demo-static-pages"
 
 type CmsPageResponse = {
   page?: CmsPage | null
@@ -147,4 +148,21 @@ export const readCmsStaticPage = (
   }
 
   return readCmsPageById(id, locale)
+}
+
+/**
+ * Prefer deployment-bound Payload content and fall back only to an explicitly
+ * marked Romanian demo page. Non-RO markets retain the strict CMS result.
+ */
+export const readCmsStaticPageWithDemoFallback = async (
+  pageKey: StaticRootPageKey,
+  locale: HerbatikaLocale
+): Promise<CmsSourceReadResult<CmsPage>> => {
+  const result = await readCmsStaticPage(pageKey, locale)
+  if (result.kind === "found") {
+    return result
+  }
+
+  const fallback = getRoDemoStaticPage(pageKey, locale)
+  return fallback ? { kind: "found", value: fallback } : result
 }

@@ -172,6 +172,7 @@ export const STOREFRONT_ASSIGNMENT_SOURCE_BATCH_LIMIT = 100
 export type StorefrontAssignmentSourceCandidate = Readonly<{
   entityId: string
   publicSlug: string
+  sourceVersion: string
 }>
 
 export type StorefrontAssignmentSourceBatchRead =
@@ -234,11 +235,13 @@ export const readPublishedStorefrontAssignmentSources = async (
       return { kind: "unavailable" }
     }
 
-    const matching = serialized.filter(
-      (assignment) =>
-        candidateByEntityId.get(assignment.entityId)?.publicSlug ===
-        assignment.publicSlug
-    )
+    const matching = serialized.filter((assignment) => {
+      const candidate = candidateByEntityId.get(assignment.entityId)
+      return (
+        candidate?.publicSlug === assignment.publicSlug &&
+        candidate.sourceVersion === assignment.sourceVersion
+      )
+    })
     if (matching.length === 0) {
       return { assignments: [], kind: "found" }
     }

@@ -43,6 +43,7 @@ import type { Market } from "@/lib/url/types"
 
 const resolveBreadcrumbItems = ({
   activeCategory,
+  categoryFallbackLabel,
   categoryById,
   homeLabel,
   market,
@@ -50,6 +51,7 @@ const resolveBreadcrumbItems = ({
   slug,
 }: {
   activeCategory: HttpTypes.StoreProductCategory | null
+  categoryFallbackLabel: string
   categoryById: Map<string, HttpTypes.StoreProductCategory>
   homeLabel: string
   market: Market
@@ -65,7 +67,7 @@ const resolveBreadcrumbItems = ({
   ]
 
   if (!activeCategory) {
-    items.push({ label: normalizeCategoryName(slug) })
+    items.push({ label: normalizeCategoryName(slug, categoryFallbackLabel) })
     return items
   }
 
@@ -85,7 +87,7 @@ const resolveBreadcrumbItems = ({
 
   for (let index = 0; index < trail.length; index += 1) {
     const category = trail[index]
-    const label = normalizeCategoryName(category.name)
+    const label = normalizeCategoryName(category.name, categoryFallbackLabel)
     const isLast = index === trail.length - 1
     const href = isLast
       ? undefined
@@ -116,11 +118,13 @@ export function useCategoryListingQueries({
   slug,
 }: UseCategoryListingQueriesProps) {
   const locale = useLocale()
+  const tCatalog = useTranslations("catalog")
   const tContent = useTranslations("content")
   const tNavigation = useTranslations("navigation")
   const region = useRegionContext()
   const { code: market } = useMarketContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
+  const categoryFallbackLabel = tCatalog("category.default_name")
   const categoriesQuery = useCategories({
     page: 1,
     limit: CATEGORY_TREE_LIMIT,
@@ -160,14 +164,18 @@ export function useCategoryListingQueries({
         return rankDifference
       }
 
-      return normalizeCategoryName(left.name).localeCompare(
-        normalizeCategoryName(right.name),
+      return normalizeCategoryName(
+        left.name,
+        categoryFallbackLabel
+      ).localeCompare(
+        normalizeCategoryName(right.name, categoryFallbackLabel),
         locale
       )
     })
 
   const breadcrumbItems = resolveBreadcrumbItems({
     activeCategory,
+    categoryFallbackLabel,
     categoryById,
     homeLabel: tNavigation("breadcrumbs.home"),
     market,
@@ -232,12 +240,14 @@ export function useCategoryListingQueries({
     market,
     publicSlugsById: categoryPublicSlugsById,
   })
-  let categorySubtitle = "Zobrazené produkty danej kategórie"
+  let categorySubtitle = tCatalog("category.subtitle.direct_products")
 
   if (isSaleCategoryHandle(slug)) {
     categorySubtitle = tContent("home.product_sections.sale")
   } else if (activeCategoryFilterIds.length > 1) {
-    categorySubtitle = `Zobrazené vrátane ${activeCategoryFilterIds.length - 1} podkategórií`
+    categorySubtitle = tCatalog("category.subtitle.includes_subcategories", {
+      count: activeCategoryFilterIds.length - 1,
+    })
   }
 
   return {

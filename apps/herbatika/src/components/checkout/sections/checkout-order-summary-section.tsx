@@ -8,6 +8,7 @@ import {
   resolveCartItemName,
   resolveLineItemTotalAmount,
 } from "@/lib/storefront/cart-calculations"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { CheckoutSelectBenefits } from "../checkout-select-benefits"
 import { resolveAvailabilityText } from "../utils/resolve-availability-text"
@@ -36,7 +37,9 @@ export function CheckoutOrderSummarySection({
   shippingAmount,
 }: CheckoutOrderSummarySectionProps) {
   const tCart = useTranslations("cart")
+  const tCatalog = useTranslations("catalog")
   const tCheckout = useTranslations("checkout")
+  const marketContext = useMarketContext()
   const detailsFontClass = detailsFont === "inter" ? "font-inter" : "font-rubik"
   const shippingExclTaxLabel = shippingLabel
     ? tCheckout("shipping_excl_tax_with_name", { shippingName: shippingLabel })
@@ -66,7 +69,11 @@ export function CheckoutOrderSummarySection({
                 ? item.thumbnail
                 : FALLBACK_IMAGE_SRC
             const hasDivider = index < cartItems.length - 1
-            const availabilityText = resolveAvailabilityText(item)
+            const availabilityText = resolveAvailabilityText(item, {
+              allowSourceLabels: marketContext.code === "sk",
+              inStock: tCatalog("product_detail.stock.in_stock"),
+              outOfStock: tCatalog("product_detail.stock.out_of_stock"),
+            })
 
             return (
               <article

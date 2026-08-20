@@ -24,6 +24,7 @@ import type {
   CheckoutChildKey,
   ReviewChildKey,
   RootSegmentMatch,
+  StaticRootPageKey,
 } from "./types"
 
 const ASCII_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
@@ -204,13 +205,18 @@ const EXPECTED_SEGMENTS = {
     },
     staticRootPages: {
       about: "despre-noi",
+      affiliate: "program-afiliere",
       contact: "contact",
+      dropshipping: "dropshipping",
       faq: "intrebari-frecvente",
+      giftVoucher: "voucher-cadou",
+      privateLabel: "marca-proprie",
       shipping: "livrare",
       returns: "retururi",
       terms: "termeni-si-conditii",
       privacy: "politica-de-confidentialitate",
       cookies: "politica-cookies",
+      wholesale: "vanzare-en-gros",
     },
     children: {
       checkout: {
@@ -279,10 +285,16 @@ describe("localized route segment registry", () => {
   it("keeps every sibling namespace collision-free and ASCII-only", () => {
     for (const market of MARKETS) {
       const groups = ROUTE_SEGMENT_REGISTRY[market]
+      const staticRootPages: Readonly<
+        Partial<Record<StaticRootPageKey, string>>
+      > = groups.staticRootPages
       const rootSegments = [
         ...TYPE_PREFIX_KEYS.map((key) => groups.typePrefixes[key]),
         ...FLOW_ROOT_KEYS.map((key) => groups.flowRoots[key]),
-        ...STATIC_ROOT_PAGE_KEYS.map((key) => groups.staticRootPages[key]),
+        ...STATIC_ROOT_PAGE_KEYS.flatMap((key) => {
+          const segment = staticRootPages[key]
+          return segment ? [segment] : []
+        }),
       ]
 
       expect(new Set(rootSegments).size).toBe(rootSegments.length)
@@ -338,6 +350,13 @@ describe("exact sibling segment parsing", () => {
     expectTypeOf(
       parseRootSegment("ro", "produse")
     ).toEqualTypeOf<RootSegmentMatch | null>()
+  })
+
+  it("keeps RO-only demo roots unavailable in the SK namespace", () => {
+    expect(parseStaticRootPageSegment("ro", "program-afiliere")).toBe(
+      "affiliate"
+    )
+    expect(parseStaticRootPageSegment("sk", "program-afiliere")).toBeNull()
   })
 
   it("parses children only among siblings of their declared parent", () => {

@@ -21,7 +21,7 @@ import type {
 
 const parseSiblingSegment = <Key extends string>(
   keys: readonly Key[],
-  siblings: Readonly<Record<Key, string>>,
+  siblings: Readonly<Partial<Record<Key, string>>>,
   segment: string
 ): Key | null => keys.find((key) => siblings[key] === segment) ?? null
 

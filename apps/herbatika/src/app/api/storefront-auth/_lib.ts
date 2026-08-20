@@ -2,15 +2,30 @@ import { NextResponse } from "next/server"
 
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
 import { resolveConfiguredMarketRuntimeBindingByHost } from "@/lib/market/market-runtime.server"
+import {
+  getHerbatikaMarketContext,
+  type HerbatikaCurrencyCode,
+} from "@/lib/storefront/market-context"
 import { resolveMedusaBackendUrl } from "@/lib/storefront/runtime-env"
+import {
+  resolveStorefrontAuthMessages,
+  type StorefrontAuthMessages,
+} from "./_messages"
+
+export type { StorefrontAuthMessages } from "./_messages"
 
 const MEDUSA_BACKEND_URL = resolveMedusaBackendUrl()
 const AUTH_SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 14
 
 type ErrorPayload = {
   message: string
-  details?: unknown
 }
+
+export type StorefrontAuthContext = Readonly<{
+  binding: MarketRuntimeBinding
+  currencyCode: HerbatikaCurrencyCode
+  messages: StorefrontAuthMessages
+}>
 
 export const AUTH_SESSION_COOKIE_NAME = "herbatika_auth_session_token"
 
@@ -25,28 +40,38 @@ export const parseResponseJson = async (response: Response) => {
   }
 }
 
-const fallbackErrorMessage = (status: number) => {
+export const discardResponseBody = async (response: Response) => {
+  try {
+    await response.body?.cancel()
+  } catch {
+    // The upstream payload is private; cancellation is best-effort.
+  }
+}
+
+const fallbackErrorMessage = (
+  status: number,
+  messages: StorefrontAuthMessages
+) => {
   if (status === 400) {
-    return "Neplatné údaje autentifikačnej požiadavky."
+    return messages.invalidAuthenticationRequest
   }
 
   if (status === 401 || status === 403) {
-    return "Autentifikácia zlyhala."
+    return messages.authenticationFailed
   }
 
-  return `Autentifikačná požiadavka zlyhala so stavom ${status}.`
+  return messages.authenticationRequestFailed(status)
 }
 
-export const buildErrorResponse = async (response: Response) => {
-  const payload = await parseResponseJson(response)
-  const messageFromPayload =
-    payload && typeof payload.message === "string" ? payload.message : null
+export const buildErrorResponse = async (
+  response: Response,
+  messages: StorefrontAuthMessages,
+  message = fallbackErrorMessage(response.status, messages)
+) => {
+  await discardResponseBody(response)
 
   return NextResponse.json<ErrorPayload>(
-    {
-      message: messageFromPayload ?? fallbackErrorMessage(response.status),
-      details: payload ?? undefined,
-    },
+    { message },
     { status: response.status || 500 }
   )
 }
@@ -59,14 +84,8 @@ export const badRequest = (message: string) =>
 export const conflict = (message: string) =>
   NextResponse.json<ErrorPayload>({ message }, { status: 409 })
 
-export const serverError = (message: string, details?: unknown) =>
-  NextResponse.json<ErrorPayload>(
-    {
-      message,
-      details,
-    },
-    { status: 500 }
-  )
+export const serverError = (message: string) =>
+  NextResponse.json<ErrorPayload>({ message }, { status: 500 })
 
 export class StorefrontMarketAuthorityError extends Error {
   constructor() {
@@ -85,6 +104,19 @@ export const requireStorefrontMarketBinding = (
     throw new StorefrontMarketAuthorityError()
   }
   return binding
+}
+
+export const requireStorefrontAuthContext = (
+  request: Request
+): StorefrontAuthContext => {
+  const binding = requireStorefrontMarketBinding(request)
+  const marketContext = getHerbatikaMarketContext(binding.market)
+
+  return {
+    binding,
+    currencyCode: marketContext.currencyCode,
+    messages: resolveStorefrontAuthMessages(marketContext.code),
+  }
 }
 
 export const marketAuthorityError = () =>

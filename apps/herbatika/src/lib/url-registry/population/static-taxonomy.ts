@@ -46,6 +46,19 @@ const PREFIX_CHECKOUT_CHILDREN = new Set<CheckoutChildKey>([
   "checkoutResult",
 ])
 const PREFIX_REVIEW_CHILDREN = new Set<ReviewChildKey>(["product"])
+const RO_DEMO_NOINDEX_STATIC_ROOT_PAGE_KEYS = new Set<StaticRootPageKey>([
+  "affiliate",
+  "contact",
+  "cookies",
+  "dropshipping",
+  "giftVoucher",
+  "privacy",
+  "privateLabel",
+  "returns",
+  "shipping",
+  "terms",
+  "wholesale",
+])
 
 const staticRoute = (
   market: Market,
@@ -88,11 +101,21 @@ const flowRoutes = (market: Market): PopulationStaticRoute[] => {
 
 const rootRoutes = (market: Market): PopulationStaticRoute[] => {
   const registry = ROUTE_SEGMENT_REGISTRY[market]
-  return STATIC_ROOT_PAGE_KEYS.map((key) =>
-    staticRoute(market, `root:${key}`, registry.staticRootPages[key], {
-      indexPolicy: "indexable",
-    })
-  )
+  const staticRootPages: Readonly<Partial<Record<StaticRootPageKey, string>>> =
+    registry.staticRootPages
+  return STATIC_ROOT_PAGE_KEYS.flatMap((key) => {
+    const segment = staticRootPages[key]
+    return segment
+      ? [
+          staticRoute(market, `root:${key}`, segment, {
+            indexPolicy:
+              market === "ro" && RO_DEMO_NOINDEX_STATIC_ROOT_PAGE_KEYS.has(key)
+                ? "noindex"
+                : "indexable",
+          }),
+        ]
+      : []
+  })
 }
 
 const checkoutRoutes = (market: Market): PopulationStaticRoute[] => {

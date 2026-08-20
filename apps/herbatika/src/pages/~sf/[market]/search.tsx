@@ -2,6 +2,7 @@ import type { DehydratedState } from "@tanstack/react-query"
 import { HydrationBoundary } from "@tanstack/react-query"
 import type { GetServerSideProps } from "next"
 import { SearchResults } from "@/components/search-results"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   foundSource,
   type PublicPageProps,
@@ -55,7 +56,7 @@ export const getServerSideProps = ((context) => {
 
 export default function SearchPage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Search unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="search" />
   }
   return (
     <HydrationBoundary state={page.value.dehydratedState}>

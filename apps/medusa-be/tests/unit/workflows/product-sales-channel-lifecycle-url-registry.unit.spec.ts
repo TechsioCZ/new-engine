@@ -79,6 +79,17 @@ const lifecycleContext = (salesChannels: readonly { id: string }[]) => {
           if (key === Modules.TRANSLATION) {
             return { listTranslations }
           }
+          if (key === Modules.PRODUCT) {
+            return {
+              listProducts: vi.fn(async () => [
+                {
+                  description: "",
+                  id: "prod_01PRODUCT",
+                  subtitle: "",
+                },
+              ]),
+            }
+          }
           throw new Error(`Unexpected container resolution: ${key}`)
         },
       },

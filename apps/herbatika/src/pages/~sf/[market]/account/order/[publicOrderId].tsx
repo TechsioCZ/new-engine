@@ -1,6 +1,7 @@
 import type { GetServerSideProps } from "next"
 import { AccountOrderDetail } from "@/components/account-order-detail"
 import { AccountShell } from "@/components/account-shell"
+import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import { resolveAccountPrivatePage } from "@/lib/routing/private-flows/account-page.server"
 import { exactOpaqueSegment } from "@/lib/routing/private-flows/opaque-values"
 import { readExactPrivateQuery } from "@/lib/routing/private-flows/private-query"
@@ -36,7 +37,7 @@ export const getServerSideProps = (async (context) => {
 
 export default function AccountOrderPage({ page }: Props) {
   if (page.kind === "error") {
-    return <main data-status={page.status}>Order unavailable.</main>
+    return <LocalizedPageError status={page.status} surface="order" />
   }
   return (
     <AccountShell>
