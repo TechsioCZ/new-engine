@@ -120,7 +120,7 @@ const tableVariants = tv({
 })
 
 // Context for sharing state between sub-components
-interface TableContextValue {
+type TableContextValue = {
   variant?: "line" | "outline" | "striped"
   size?: "sm" | "md" | "lg"
   interactive?: boolean
@@ -308,8 +308,7 @@ export type TableAlign = "start" | "center" | "end"
 // ColumnHeader component
 // `align` is a deprecated HTML attribute typed as a bare string on th/td;
 // omitting it lets the typed prop above take the name.
-interface TableColumnHeaderProps
-  extends Omit<ComponentPropsWithoutRef<"th">, "align"> {
+type TableColumnHeaderProps = Omit<ComponentPropsWithoutRef<"th">, "align"> & {
   ref?: RefObject<HTMLTableCellElement>
   numeric?: boolean
   align?: TableAlign
@@ -340,7 +339,7 @@ Table.ColumnHeader = function TableColumnHeader({
 }
 
 // Cell component
-interface TableCellProps extends Omit<ComponentPropsWithoutRef<"td">, "align"> {
+type TableCellProps = Omit<ComponentPropsWithoutRef<"td">, "align"> & {
   ref?: RefObject<HTMLTableCellElement>
   numeric?: boolean
   align?: TableAlign
