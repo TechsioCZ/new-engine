@@ -1,5 +1,8 @@
 import { createMarketRoutingRuntime } from "@/lib/market/market-runtime"
-import { normalizeHost } from "@/lib/market/market-runtime-definitions"
+import {
+  isMarketCode,
+  normalizeHost,
+} from "@/lib/market/market-runtime-definitions"
 
 export type HerbatikaMarketCode = "sk" | "cz" | "hu" | "ro"
 export type HerbatikaLocale = "sk-SK" | "cs-CZ" | "hu-HU" | "ro-RO"
@@ -26,6 +29,14 @@ type ResolveMarketContextInput = {
   host?: string | null
 }
 
+type ResolveMarketRequestContextInput = {
+  environment?: Readonly<Record<string, string | undefined>>
+  forwardedHost?: string | null
+  host?: string | null
+  trustedCanonicalOrigin?: string | null
+  trustedMarket?: string | null
+}
+
 export const resolveMarketRequestHost = ({
   forwardedHost,
   host,
@@ -33,6 +44,53 @@ export const resolveMarketRequestHost = ({
   forwardedHost?: string | null
   host?: string | null
 }) => host ?? forwardedHost ?? undefined
+
+export const resolveMarketRequestContext = ({
+  environment = process.env,
+  forwardedHost,
+  host,
+  trustedCanonicalOrigin,
+  trustedMarket,
+}: ResolveMarketRequestContextInput): HerbatikaMarketContext | null => {
+  try {
+    const runtime = createMarketRoutingRuntime(environment)
+    const hasTrustedContext =
+      trustedCanonicalOrigin != null || trustedMarket != null
+
+    if (hasTrustedContext) {
+      if (!(trustedMarket && isMarketCode(trustedMarket))) {
+        return null
+      }
+      const binding = runtime.bindings[trustedMarket]
+      if (
+        !(binding && trustedCanonicalOrigin) ||
+        binding.canonicalOrigin !== trustedCanonicalOrigin
+      ) {
+        return null
+      }
+      return getHerbatikaMarketContext(
+        binding.market,
+        new URL(binding.canonicalOrigin).hostname
+      )
+    }
+
+    const normalizedHost = normalizeHost(
+      resolveMarketRequestHost({ forwardedHost, host })
+    )
+    const market = normalizedHost
+      ? runtime.marketByHost[normalizedHost]
+      : undefined
+    const binding = market ? runtime.bindings[market] : undefined
+    return binding
+      ? getHerbatikaMarketContext(
+          binding.market,
+          new URL(binding.canonicalOrigin).hostname
+        )
+      : null
+  } catch {
+    return null
+  }
+}
 
 const MARKET_CONFIG = {
   sk: {
@@ -114,22 +172,9 @@ export const resolveMarketContext = ({
   environment = process.env,
   host,
 }: ResolveMarketContextInput = {}): HerbatikaMarketContext => {
-  const normalizedHost = normalizeHost(host)
-  if (normalizedHost) {
-    try {
-      const runtime = createMarketRoutingRuntime(environment)
-      const market = runtime.marketByHost[normalizedHost]
-      const binding = market ? runtime.bindings[market] : undefined
-      if (binding) {
-        return getHerbatikaMarketContext(
-          binding.market,
-          new URL(binding.canonicalOrigin).hostname
-        )
-      }
-    } catch {
-      // The server boundary rejects invalid host authority. This pure resolver
-      // may still use language fallback for non-request consumers.
-    }
+  const requestContext = resolveMarketRequestContext({ environment, host })
+  if (requestContext) {
+    return requestContext
   }
 
   const language = acceptLanguage

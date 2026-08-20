@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   resolveMarketContext,
+  resolveMarketRequestContext,
   resolveMarketRequestHost,
 } from "./market-context"
 
@@ -46,5 +47,48 @@ describe("resolveMarketContext", () => {
         host: "test-engine-herbatika-ro-zane.web-revolution.cz",
       })
     ).toBe("test-engine-herbatika-ro-zane.web-revolution.cz")
+  })
+
+  it("uses the trusted rewrite market when the rendered host is internal", () => {
+    const markets = ["sk", "ro", "sk", "ro"].map((trustedMarket) =>
+      resolveMarketRequestContext({
+        environment: ROUTING_ENVIRONMENT,
+        host: "zn-herbatika.internal",
+        trustedCanonicalOrigin:
+          trustedMarket === "ro"
+            ? "https://ro.customer.example"
+            : "https://test.shop.example",
+        trustedMarket,
+      })
+    )
+
+    expect(markets.map((market) => market?.code)).toEqual([
+      "sk",
+      "ro",
+      "sk",
+      "ro",
+    ])
+    expect(markets[1]).toMatchObject({
+      currencyCode: "RON",
+      locale: "ro-RO",
+    })
+  })
+
+  it("rejects a partial or mismatched trusted rewrite context", () => {
+    expect(
+      resolveMarketRequestContext({
+        environment: ROUTING_ENVIRONMENT,
+        host: "test.shop.example",
+        trustedMarket: "ro",
+      })
+    ).toBeNull()
+    expect(
+      resolveMarketRequestContext({
+        environment: ROUTING_ENVIRONMENT,
+        host: "test.shop.example",
+        trustedCanonicalOrigin: "https://test.shop.example",
+        trustedMarket: "ro",
+      })
+    ).toBeNull()
   })
 })
