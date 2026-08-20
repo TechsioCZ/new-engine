@@ -308,7 +308,16 @@ export const DEFAULT_FILTER_RENDERERS: Record<
         <FilterConditionMenu
           columnName={columnLabel(column)}
           disabled={disabled}
-          onChange={(op) => setValue({ ...v, operator: op })}
+          // Leaving `between` drops the upper bound: `matchNumber` ignores it
+          // for every other operator, so keeping it would only resurface a
+          // stale "To" value if the user came back to `between`.
+          onChange={(op) =>
+            setValue(
+              op === "between"
+                ? { ...v, operator: op }
+                : { operator: op, value: v.value }
+            )
+          }
           operatorLabels={operatorLabels}
           operators={NUMBER_OPS}
           size={size}

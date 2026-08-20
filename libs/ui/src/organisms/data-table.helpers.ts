@@ -9,6 +9,7 @@ import {
   sortFns as builtInSortFns,
   type CellData,
   type ColumnPinningPosition,
+  type ColumnSizingState,
   columnFilteringFeature,
   columnOrderingFeature,
   columnPinningFeature,
@@ -166,9 +167,10 @@ declare module "@tanstack/table-core" {
  * a comparator. Registered by DataTable as `filterFn: "typed"`.
  */
 export const typedFilterFn: AnyFilterFn = (row, columnId, filterValue) => {
-  const type =
-    row.getAllCells().find((c) => c.column.id === columnId)?.column.columnDef
-      .meta?.type ?? "string"
+  // `table.getColumn` is a memoised id lookup. Reading the type off the row's
+  // cells instead would rescan every leaf column for every row of every
+  // filtered column.
+  const type = row.table.getColumn(columnId)?.columnDef.meta?.type ?? "string"
   return typedFilterMatch(type, row.getValue(columnId), filterValue)
 }
 
@@ -372,16 +374,26 @@ export function applyDeclaredColumnSizes<T extends RowData>(
  * cannot distinguish a declared width from the default. Numeric widths are
  * mirrored into `size` by `applyDeclaredColumnSizes`, so `getSize()` is the
  * authority for them and the rendered width always matches the sticky offsets.
- * String widths stay CSS-only, and while resizing is on the live dragged size
- * wins so dragging stays responsive.
+ *
+ * A CSS-string width (`"15%"`, `"var(--dimension-120)"`) has no pixel value to
+ * mirror, so it stays CSS-only — including while resizing is enabled, where
+ * `getSize()` would otherwise report the 150px default and collapse the
+ * declared width the moment the feature is switched on. Once the user actually
+ * drags such a column its id appears in `columnSizing` and the dragged size
+ * takes over; `resetSize()` drops the entry and the declared width returns.
  */
 export function getColumnSizeStyles<T extends RowData>(
   column: Column<T>,
-  enableColumnResizing?: boolean
+  enableColumnResizing?: boolean,
+  columnSizing?: ColumnSizingState
 ): CSSProperties {
   const meta = column.columnDef.meta
   const declared = meta?.width
-  const fromTanstack = enableColumnResizing || typeof declared === "number"
+  const wasResized =
+    enableColumnResizing === true &&
+    columnSizing !== undefined &&
+    Object.hasOwn(columnSizing, column.id)
+  const fromTanstack = wasResized || typeof declared === "number"
 
   return {
     width: toCssLength(fromTanstack ? column.getSize() : declared),

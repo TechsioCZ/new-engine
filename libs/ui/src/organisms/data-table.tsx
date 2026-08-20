@@ -972,6 +972,7 @@ function DataTableBodyCell<T extends RowData>({
   span,
   row,
   styles,
+  columnSizing,
   enableColumnResizing,
   enableRowReorder,
   dnd,
@@ -985,6 +986,7 @@ function DataTableBodyCell<T extends RowData>({
   span: { colSpan?: number; rowSpan?: number } | undefined
   row: Row<T>
   styles: DataTableStyles
+  columnSizing: ColumnSizingState
   enableColumnResizing: boolean
   enableRowReorder: boolean
   dnd?: { dragHandleProps: Record<string, unknown> }
@@ -1004,14 +1006,14 @@ function DataTableBodyCell<T extends RowData>({
 
   return (
     <Table.Cell
+      align={column.columnDef.meta?.align}
       className={pinClass(column, "body")}
       colSpan={span?.colSpan}
-      data-align={column.columnDef.meta?.align || undefined}
       data-pinned={pinnedSide(pinned)}
       rowSpan={span?.rowSpan}
       style={{
         ...getPinningStyles(column),
-        ...getColumnSizeStyles(column, enableColumnResizing),
+        ...getColumnSizeStyles(column, enableColumnResizing, columnSizing),
         ...indent,
       }}
     >
@@ -1847,18 +1849,22 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     }
     return (
       <Table.ColumnHeader
+        align={column.columnDef.meta?.align}
         aria-sort={ariaSort}
         className={`group/header relative ${pinClass(column, "header") ?? ""} ${dropClass}`}
+        // The reorderable path keys `SortableHeaderContent` instead, where this
+        // key is simply ignored; the non-reorderable path renders this element
+        // straight into the header-group map and is the one that needs it.
         colSpan={header.colSpan}
-        data-align={column.columnDef.meta?.align || undefined}
         data-dragging={dnd?.isDragging || undefined}
         data-pinned={pinnedSide(column.getIsPinned())}
+        key={header.id}
         ref={dnd?.setNodeRef as unknown as RefObject<HTMLTableCellElement>}
         style={{
           ...OPAQUE_HEADER_BG,
           ...getPinningStyles(column, "header"),
           ...dnd?.style,
-          ...getColumnSizeStyles(column, enableColumnResizing),
+          ...getColumnSizeStyles(column, enableColumnResizing, columnSizing),
         }}
       >
         <div className={styles.headerLabel()}>
@@ -1899,12 +1905,14 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
 
   /* ── Header ─────────────────────────────────────────────────────────── */
   const headerContent = (
-    <Table.Header
-      {...slotProps?.header}
-      className={hideHeader ? "sr-only" : undefined}
-    >
+    <Table.Header {...slotProps?.header}>
       {table.getHeaderGroups().map((headerGroup, groupIndex) => (
         <Table.Row
+          // `hideHeader` is documented as hiding the column labels. Putting
+          // `sr-only` on the whole `Table.Header` would also swallow the filter
+          // row below, which is a sibling inside it and is the only way to
+          // filter such a table.
+          className={hideHeader ? "sr-only" : undefined}
           key={headerGroup.id}
           ref={
             groupIndex === 0
@@ -2161,6 +2169,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       return (
         <DataTableBodyCell
           cell={cell}
+          columnSizing={columnSizing}
           dnd={dnd}
           editor={renderCellEditor(row, column)}
           editorError={

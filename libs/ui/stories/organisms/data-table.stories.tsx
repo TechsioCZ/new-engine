@@ -931,18 +931,23 @@ const typedColumns: ColumnDef<Employee>[] = [
   },
 ]
 
+/** The Employee stories are typed against their own row shape rather than
+ * being cast through `Person`, so a `meta` that does not match the column-meta
+ * contract this component introduces fails the build. */
+type EmployeeStory = StoryObj<DataTableProps<Employee>>
+
 const typedMeta = {
   columns: typedColumns,
   data: employees,
-} as unknown as Partial<DataTableProps<Person>>
+} satisfies Partial<DataTableProps<Employee>>
 
-export const TypedColumnFilters: Story = {
+export const TypedColumnFilters: EmployeeStory = {
   args: {
     ...typedMeta,
     enableColumnFilters: true,
     enableSorting: true,
     onColumnFiltersChange: fn(),
-  } as DataTableProps<Person>,
+  },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByLabelText("Filter Active")).toBeInTheDocument()
@@ -954,7 +959,7 @@ export const TypedColumnFilters: Story = {
 
 /* ── 24. Custom filter template for a non-standard column type ───────────── */
 
-export const CustomFilterTemplate: Story = {
+export const CustomFilterTemplate: EmployeeStory = {
   args: {
     ...typedMeta,
     columns: [
@@ -1003,10 +1008,10 @@ export const CustomFilterTemplate: Story = {
           ),
         },
       },
-    ] as unknown as ColumnDef<Person>[],
+    ] satisfies ColumnDef<Employee>[],
     enableColumnFilters: true,
     onColumnFiltersChange: fn(),
-  } as DataTableProps<Person>,
+  },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
     await expect(canvas.getByLabelText("Salary band")).toBeInTheDocument()
@@ -1015,7 +1020,7 @@ export const CustomFilterTemplate: Story = {
 
 /* ── 25. Inline edit driven by column type + sticky actions ──────────────── */
 
-export const InlineEditByColumnType: Story = {
+export const InlineEditByColumnType: EmployeeStory = {
   args: {
     ...typedMeta,
     enableInlineEdit: true,
@@ -1023,7 +1028,7 @@ export const InlineEditByColumnType: Story = {
     onEditStart: fn(),
     onEditCommit: fn(),
     onEditCancel: fn(),
-  } as DataTableProps<Person>,
+  },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     await userEvent.click(canvas.getByLabelText("Edit row 0"))
@@ -1038,7 +1043,7 @@ export const InlineEditByColumnType: Story = {
 
 /* ── 26. Edit mode locks filtering, selection and sorting ────────────────── */
 
-export const EditModeLocksInteractions: Story = {
+export const EditModeLocksInteractions: EmployeeStory = {
   args: {
     ...typedMeta,
     enableInlineEdit: true,
@@ -1046,7 +1051,7 @@ export const EditModeLocksInteractions: Story = {
     enableRowSelection: true,
     enableSorting: true,
     onInteractionBlocked: fn(),
-  } as DataTableProps<Person>,
+  },
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement)
     await userEvent.click(canvas.getByLabelText("Edit row 0"))
@@ -1062,7 +1067,7 @@ export const EditModeLocksInteractions: Story = {
 
 /* ── 27. Size propagates to every nested control ─────────────────────────── */
 
-export const SizeSynchronised: Story = {
+export const SizeSynchronised: EmployeeStory = {
   args: {
     ...typedMeta,
     size: "lg",
@@ -1071,7 +1076,7 @@ export const SizeSynchronised: Story = {
     enableInlineEdit: true,
     enablePagination: true,
     pageSizeOptions: [2, 5],
-  } as DataTableProps<Person>,
+  },
 }
 
 /* ── 28. Single-row selection ────────────────────────────────────────────── */

@@ -298,10 +298,21 @@ Table.Row = function TableRow({
   )
 }
 
+/**
+ * Horizontal alignment of a header or body cell. Typed so a misspelling like
+ * `"centre"` fails the build instead of silently rendering unaligned — passing
+ * `data-align` through the prop spread still works for existing call sites.
+ */
+export type TableAlign = "start" | "center" | "end"
+
 // ColumnHeader component
-interface TableColumnHeaderProps extends ComponentPropsWithoutRef<"th"> {
+// `align` is a deprecated HTML attribute typed as a bare string on th/td;
+// omitting it lets the typed prop above take the name.
+interface TableColumnHeaderProps
+  extends Omit<ComponentPropsWithoutRef<"th">, "align"> {
   ref?: RefObject<HTMLTableCellElement>
   numeric?: boolean
+  align?: TableAlign
 }
 
 Table.ColumnHeader = function TableColumnHeader({
@@ -309,6 +320,7 @@ Table.ColumnHeader = function TableColumnHeader({
   ref,
   className,
   numeric,
+  align,
   ...props
 }: TableColumnHeaderProps) {
   const { styles } = useTableContext()
@@ -316,6 +328,7 @@ Table.ColumnHeader = function TableColumnHeader({
   return (
     <th
       className={styles.columnHeader({ className })}
+      data-align={align}
       data-numeric={numeric}
       ref={ref}
       scope="col"
@@ -327,9 +340,10 @@ Table.ColumnHeader = function TableColumnHeader({
 }
 
 // Cell component
-interface TableCellProps extends ComponentPropsWithoutRef<"td"> {
+interface TableCellProps extends Omit<ComponentPropsWithoutRef<"td">, "align"> {
   ref?: RefObject<HTMLTableCellElement>
   numeric?: boolean
+  align?: TableAlign
 }
 
 Table.Cell = function TableCell({
@@ -337,6 +351,7 @@ Table.Cell = function TableCell({
   ref,
   className,
   numeric,
+  align,
   ...props
 }: TableCellProps) {
   const { styles, stickyFirstColumn } = useTableContext()
@@ -344,6 +359,7 @@ Table.Cell = function TableCell({
   return (
     <td
       className={styles.cell({ className, stickyFirstColumn })}
+      data-align={align}
       data-numeric={numeric}
       ref={ref}
       {...props}
