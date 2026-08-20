@@ -135,7 +135,12 @@ const hostOwnership = (
   }
   const ownership: Record<string, Market> = {}
   for (const market of allowedMarkets) {
-    ownership[new URL(ROUTES[market].canonicalOrigin).hostname] = market
+    for (const host of [
+      new URL(ROUTES[market].canonicalOrigin).hostname,
+      ...ROUTES[market].proposedAliases,
+    ]) {
+      ownership[host] = market
+    }
     const extra =
       environment[`HERBATICA_ACCEPTED_HOSTS_${market.toUpperCase()}`]
     for (const value of extra?.split(",") ?? []) {
