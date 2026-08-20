@@ -363,6 +363,14 @@ test("all four market bindings are private, explicit, and scoped to Herbatika", 
 
   const romanianHosts =
     "herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz"
+  const slovakHosts =
+    "herbatica.sk,test-engine-herbatika-zane.web-revolution.cz"
+  expect(byKey.get("MARKET_ACCEPTED_HOSTS_SK")?.source.default_value).toBe(
+    slovakHosts
+  )
+  expect(byKey.get("HERBATIKA_ACCEPTED_HOSTS_SK")?.source.default_value).toBe(
+    slovakHosts
+  )
   expect(byKey.get("MARKET_ACCEPTED_HOSTS_RO")?.source.default_value).toBe(
     romanianHosts
   )

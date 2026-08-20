@@ -44,7 +44,10 @@ export const ROUTES = {
     countryCode: "SK",
     locale: "sk-SK",
     market: "sk",
-    proposedAliases: ["www.herbatica.sk"],
+    proposedAliases: [
+      "www.herbatica.sk",
+      "test-engine-herbatika-zane.web-revolution.cz",
+    ],
   },
   cz: {
     canonicalOrigin: "https://herbatica.cz",

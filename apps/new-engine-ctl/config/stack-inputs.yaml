@@ -1099,7 +1099,7 @@ bootstrap_zane_project:
       source:
         kind: local_env
         env_var: DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_SK
-        default_value: herbatica.sk
+        default_value: herbatica.sk,test-engine-herbatika-zane.web-revolution.cz
       service_targets:
         - service_id: herbatika
           env_var: MARKET_ACCEPTED_HOSTS_SK
@@ -1135,7 +1135,7 @@ bootstrap_zane_project:
       source:
         kind: local_env
         env_var: DC_HERBATIKA_ACCEPTED_HOSTS_SK
-        default_value: herbatica.sk
+        default_value: herbatica.sk,test-engine-herbatika-zane.web-revolution.cz
       service_targets:
         - service_id: herbatika
           env_var: HERBATIKA_ACCEPTED_HOSTS_SK

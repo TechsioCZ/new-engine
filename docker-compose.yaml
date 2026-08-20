@@ -234,7 +234,7 @@ x-herbatika-env: &herbatika-env
   # regions, and sales channels must come from the environment; no public or
   # cross-market fallback is permitted.
   ALLOWED_MARKETS: ${DC_HERBATIKA_ALLOWED_MARKETS:-sk,cz,hu,ro}
-  MARKET_ACCEPTED_HOSTS_SK: ${DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_SK:-herbatica.sk}
+  MARKET_ACCEPTED_HOSTS_SK: ${DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_SK:-herbatica.sk,test-engine-herbatika-zane.web-revolution.cz}
   MARKET_ACCEPTED_HOSTS_CZ: ${DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_CZ:-herbatica.cz}
   MARKET_ACCEPTED_HOSTS_HU: ${DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_HU:-herbatica.hu}
   MARKET_ACCEPTED_HOSTS_RO: ${DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_RO:-herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz}
@@ -254,7 +254,7 @@ x-herbatika-env: &herbatika-env
   MARKET_SALES_CHANNEL_CZ: ${DC_HERBATIKA_MARKET_SALES_CHANNEL_CZ:-}
   MARKET_SALES_CHANNEL_HU: ${DC_HERBATIKA_MARKET_SALES_CHANNEL_HU:-}
   MARKET_SALES_CHANNEL_RO: ${DC_HERBATIKA_MARKET_SALES_CHANNEL_RO:-}
-  HERBATIKA_ACCEPTED_HOSTS_SK: ${DC_HERBATIKA_ACCEPTED_HOSTS_SK:-herbatica.sk}
+  HERBATIKA_ACCEPTED_HOSTS_SK: ${DC_HERBATIKA_ACCEPTED_HOSTS_SK:-herbatica.sk,test-engine-herbatika-zane.web-revolution.cz}
   HERBATIKA_ACCEPTED_HOSTS_CZ: ${DC_HERBATIKA_ACCEPTED_HOSTS_CZ:-herbatica.cz}
   HERBATIKA_ACCEPTED_HOSTS_HU: ${DC_HERBATIKA_ACCEPTED_HOSTS_HU:-herbatica.hu}
   HERBATIKA_ACCEPTED_HOSTS_RO: ${DC_HERBATIKA_ACCEPTED_HOSTS_RO:-herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz}

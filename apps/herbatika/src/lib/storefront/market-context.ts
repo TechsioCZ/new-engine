@@ -92,6 +92,7 @@ const HOST_MARKET_MAP: Record<string, HerbatikaMarketCode> = {
   "www.herbatica.sk": "sk",
   "herbatika.sk": "sk",
   "www.herbatika.sk": "sk",
+  "test-engine-herbatika-zane.web-revolution.cz": "sk",
   "herbatica.cz": "cz",
   "www.herbatica.cz": "cz",
   "herbatika.cz": "cz",

@@ -119,6 +119,35 @@ describe("createMarketRuntime", () => {
     expect(resolveMarketRuntimeByHost(runtime, previewHost)?.market).toBe("ro")
   })
 
+  it("binds the Slovak canonical and primary Zane preview hosts to Slovakia", () => {
+    const previewHost = "test-engine-herbatika-zane.web-revolution.cz"
+    const runtime = createMarketRuntime({
+      ...COMPLETE_ENVIRONMENT,
+      MARKET_ACCEPTED_HOSTS_SK: `herbatica.sk,${previewHost}`,
+    })
+
+    expect(getMarketRuntime(runtime, "sk")?.acceptedHosts).toEqual([
+      "herbatica.sk",
+      previewHost,
+    ])
+    expect(resolveMarketRuntimeByHost(runtime, previewHost)?.market).toBe("sk")
+  })
+
+  it.each([
+    ["cz", "MARKET_ACCEPTED_HOSTS_CZ", "herbatica.cz"],
+    ["hu", "MARKET_ACCEPTED_HOSTS_HU", "herbatica.hu"],
+    ["ro", "MARKET_ACCEPTED_HOSTS_RO", "herbatica.ro"],
+  ])("rejects the primary Zane preview host as a %s alias", (_market, environmentName, canonicalHost) => {
+    const previewHost = "test-engine-herbatika-zane.web-revolution.cz"
+
+    expect(() =>
+      createMarketRuntime({
+        ...COMPLETE_ENVIRONMENT,
+        [environmentName]: `${canonicalHost},${previewHost}`,
+      })
+    ).toThrow("not a declared route host")
+  })
+
   it.each([
     ["sk", "MARKET_ACCEPTED_HOSTS_SK", "herbatica.sk"],
     ["cz", "MARKET_ACCEPTED_HOSTS_CZ", "herbatica.cz"],
