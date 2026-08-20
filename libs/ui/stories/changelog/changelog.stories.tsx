@@ -24,7 +24,7 @@ const CHANGELOG = `
 - Opted into per-component versioning; paired 1:1 with the accordion-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.
 
 ### DataTable v1.0.0
-- New headless data-grid organism built on \`@tanstack/react-table\`, rendering into the presentational \`Table\` organism so it inherits the \`--color-table-*\` tokens. Covers sorting, conditional column filters, global search, row selection, column visibility/pinning/reorder, row reorder, tree/expanding rows, inline edit, colSpan/rowSpan, virtualization/infinite scroll and pagination. Every feature exposes a callback for Storybook interaction tests. Paired 1:1 with the data-table-usage skill and this changelog entry.
+- New headless data-grid organism built on \`@tanstack/react-table\` v9, rendering into the presentational \`Table\` organism so it inherits the \`--color-table-*\` tokens. Covers sorting, conditional column filters, global search, row selection, column visibility/pinning/reorder, row reorder, tree/expanding rows, inline edit, colSpan/rowSpan, virtualization/infinite scroll and pagination. Every feature exposes a callback for Storybook interaction tests. Paired 1:1 with the data-table-usage skill and this changelog entry.
 
 ### ActionIcon v1.0.0
 - Opted into per-component versioning; paired 1:1 with the action-icon-usage skill and this changelog entry, enforced by the check-skill-sync pre-commit gate.

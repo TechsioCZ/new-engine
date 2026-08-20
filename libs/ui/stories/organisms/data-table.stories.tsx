@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import type { CellContext, ColumnDef } from "@tanstack/react-table"
 import { type ComponentType, useState } from "react"
 import { expect, fn, userEvent, within } from "storybook/test"
 import { ActionIcon } from "../../src/atoms/action-icon"
@@ -11,6 +10,8 @@ import type {
   DataTableOption,
 } from "../../src/organisms/data-table.fields"
 import {
+  type CellContext,
+  type ColumnDef,
   DataTable,
   type DataTableGetCellSpan,
   type DataTableProps,
@@ -366,7 +367,7 @@ export const FrozenColumnWidths: Story = {
     tableLayout: "fixed",
     maxHeight: "320px",
     enableColumnPinning: true,
-    columnPinning: { left: ["firstName", "lastName"], right: [] },
+    columnPinning: { end: [], start: ["firstName", "lastName"] },
     // Widths deliberately overflow the container: with `table-layout: fixed` any
     // leftover space is redistributed across columns, which would make the
     // rendered widths drift from the declared ones. Frozen columns only make
@@ -397,7 +398,7 @@ export const FrozenColumns: Story = {
   args: {
     ...base,
     enableColumnPinning: true,
-    columnPinning: { left: ["firstName"], right: ["visits"] },
+    columnPinning: { end: ["visits"], start: ["firstName"] },
     maxHeight: "320px",
   },
 }

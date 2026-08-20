@@ -12,7 +12,7 @@
  * `Input type="date"` / `datetime-local`; swapping in a real picker later only
  * touches this file.
  */
-import type { Column, Row } from "@tanstack/react-table"
+import type { RowData } from "@tanstack/react-table"
 import type { ReactNode } from "react"
 import { ActionIcon } from "../atoms/action-icon"
 import { Input } from "../atoms/input"
@@ -21,6 +21,7 @@ import { Combobox } from "../molecules/combobox"
 import { Menu } from "../molecules/menu"
 import { Select, type SelectItem } from "../molecules/select"
 import { Switch } from "../molecules/switch"
+import type { Column, Row } from "./data-table.helpers"
 
 export type DataTableColumnType =
   | "string"
@@ -61,7 +62,7 @@ export type DataTableFilterValue =
 
 /* ── Render contexts (public — consumers implement these for custom types) ── */
 
-export type DataTableFilterContext<T = unknown> = {
+export type DataTableFilterContext<T extends RowData = RowData> = {
   column: Column<T, unknown>
   /** Localised operator labels, keyed by operator. */
   operatorLabels?: Partial<Record<string, string>>
@@ -74,7 +75,7 @@ export type DataTableFilterContext<T = unknown> = {
   options: DataTableOption[]
 }
 
-export type DataTableEditorContext<T = unknown> = {
+export type DataTableEditorContext<T extends RowData = RowData> = {
   row: Row<T>
   /** Id of the element rendering `error`, for `aria-describedby`. */
   errorId?: string
@@ -93,10 +94,10 @@ export type DataTableEditorContext<T = unknown> = {
   cancel: () => void
 }
 
-export type DataTableFilterRenderer<T = unknown> = (
+export type DataTableFilterRenderer<T extends RowData = RowData> = (
   ctx: DataTableFilterContext<T>
 ) => ReactNode
-export type DataTableEditorRenderer<T = unknown> = (
+export type DataTableEditorRenderer<T extends RowData = RowData> = (
   ctx: DataTableEditorContext<T>
 ) => ReactNode
 
@@ -133,7 +134,7 @@ const toSelectItems = (options: DataTableOption[]): SelectItem[] =>
   options.map((o) => ({ label: o.label, value: o.value }))
 
 /** Human-readable column name for generated aria-labels: string header, else id. */
-export function columnLabel<T>(column: Column<T, unknown>) {
+export function columnLabel<T extends RowData>(column: Column<T, unknown>) {
   const header = column.columnDef.header
   return typeof header === "string" && header ? header : column.id
 }

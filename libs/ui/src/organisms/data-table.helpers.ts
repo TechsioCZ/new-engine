@@ -4,16 +4,76 @@
  * Kept separate from `data-table.tsx` so the component file stays focused on
  * rendering. Re-exported through `data-table.tsx` for consumers.
  */
-import type {
-  Cell,
-  Column,
-  ColumnDef,
-  FilterFn,
-  Row,
-  RowData,
-  Table as TanstackTable,
+import {
+  filterFns as builtInFilterFns,
+  sortFns as builtInSortFns,
+  type CellData,
+  type ColumnPinningPosition,
+  columnFilteringFeature,
+  columnOrderingFeature,
+  columnPinningFeature,
+  columnResizingFeature,
+  columnSizingFeature,
+  columnVisibilityFeature,
+  createExpandedRowModel,
+  createFilteredRowModel,
+  createPaginatedRowModel,
+  createSortedRowModel,
+  globalFilteringFeature,
+  type ReactTable,
+  type RowData,
+  rowExpandingFeature,
+  rowPaginationFeature,
+  rowSelectionFeature,
+  rowSortingFeature,
+  type TableFeatures,
+  type Cell as TanstackCell,
+  type CellContext as TanstackCellContext,
+  type Column as TanstackColumn,
+  type ColumnDef as TanstackColumnDef,
+  type FilterFn as TanstackFilterFn,
+  type Header as TanstackHeader,
+  type Row as TanstackRow,
+  tableFeatures,
 } from "@tanstack/react-table"
 import type { CSSProperties, ReactNode } from "react"
+
+/** The feature set every DataTable type is parameterised by. */
+export type DataTableFeatures = typeof dataTableFeatures
+
+/* ── Feature-bound aliases ────────────────────────────────────────────────
+ * v9 threads `TFeatures` through every public type. These aliases pin it to
+ * DataTable's set so consumers keep writing `ColumnDef<Person>` rather than
+ * `ColumnDef<typeof dataTableFeatures, Person>`. */
+export type Cell<
+  T extends RowData,
+  V extends CellData = CellData,
+> = TanstackCell<DataTableFeatures, T, V>
+export type CellContext<
+  T extends RowData,
+  V extends CellData = CellData,
+> = TanstackCellContext<DataTableFeatures, T, V>
+export type Column<
+  T extends RowData,
+  V extends CellData = CellData,
+> = TanstackColumn<DataTableFeatures, T, V>
+export type ColumnDef<
+  T extends RowData,
+  V extends CellData = CellData,
+> = TanstackColumnDef<DataTableFeatures, T, V>
+export type Row<T extends RowData> = TanstackRow<DataTableFeatures, T>
+/**
+ * The instance `useTable` hands back. It is the React wrapper rather than the
+ * core table: only the wrapper carries `table.state` and `table.Subscribe`,
+ * and both are part of what DataTable hands to `onReady`/`renderToolbar`.
+ */
+export type TanstackTable<T extends RowData> = ReactTable<DataTableFeatures, T>
+export type Header<
+  T extends RowData,
+  V extends CellData = CellData,
+> = TanstackHeader<DataTableFeatures, T, V>
+export type FilterFn<T extends RowData> = TanstackFilterFn<DataTableFeatures, T>
+
 import type {
   DataTableColumnType,
   DataTableEditorContext,
@@ -22,13 +82,31 @@ import type {
 } from "./data-table.fields"
 import { typedFilterMatch } from "./data-table.fields"
 
+/**
+ * Signature for the filter functions DataTable registers on its own feature
+ * set. `TFeatures` is left as `any` on purpose: the feature set is defined in
+ * terms of these functions, so naming it here would make the type circular.
+ * TanStack widens an `any` feature set to the full API surface, so nothing is
+ * lost inside the function body.
+ */
+// biome-ignore lint/suspicious/noExplicitAny: breaks a circular type reference — see above
+type AnyFilterFn = TanstackFilterFn<any, any>
+
 /* ── Column meta augmentation ─────────────────────────────────────────────
  * Lets a column declare how it filters, aligns and edits without leaking
  * DataTable concerns into every consumer's ColumnDef. */
-declare module "@tanstack/react-table" {
+declare module "@tanstack/table-core" {
   // biome-ignore lint/style/useConsistentTypeDefinitions: module augmentation requires interface
-  // biome-ignore lint/correctness/noUnusedVariables: augmentation signature must match upstream generics
-  interface ColumnMeta<TData, TValue> {
+  interface ColumnMeta<
+    // TypeScript requires a merged declaration to repeat the upstream
+    // parameter list verbatim, names included, even though this augmentation
+    // only reads TData.
+    // biome-ignore lint/correctness/noUnusedVariables: see above
+    TFeatures extends TableFeatures,
+    TData extends RowData,
+    // biome-ignore lint/correctness/noUnusedVariables: see above
+    TValue,
+  > {
     /**
      * Horizontal alignment of the column's header and cells. Purely a
      * presentation choice — nothing is inferred from the column type, so a
@@ -76,17 +154,9 @@ declare module "@tanstack/react-table" {
 
   // biome-ignore lint/style/useConsistentTypeDefinitions: module augmentation requires interface
   // biome-ignore lint/correctness/noUnusedVariables: augmentation signature must match upstream generics
-  interface TableMeta<TData extends RowData> {
+  interface TableMeta<TFeatures extends TableFeatures, TData extends RowData> {
     /** Commit an inline cell edit; wired by DataTable to `onCellEditCommit`. */
     updateData?: (rowId: string, columnId: string, value: unknown) => void
-  }
-
-  // biome-ignore lint/style/useConsistentTypeDefinitions: module augmentation requires interface
-  interface FilterFns {
-    /** Operator-based ("with conditions") column filter registered by DataTable. */
-    conditional: FilterFn<unknown>
-    /** Column-type aware filter (see `meta.type`) registered by DataTable. */
-    typed: FilterFn<unknown>
   }
 }
 
@@ -95,11 +165,7 @@ declare module "@tanstack/react-table" {
  * `boolean`/`enum`/`date` column filters correctly without the consumer wiring
  * a comparator. Registered by DataTable as `filterFn: "typed"`.
  */
-export const typedFilterFn: FilterFn<unknown> = (
-  row,
-  columnId,
-  filterValue
-) => {
+export const typedFilterFn: AnyFilterFn = (row, columnId, filterValue) => {
   const type =
     row.getAllCells().find((c) => c.column.id === columnId)?.column.columnDef
       .meta?.type ?? "string"
@@ -238,7 +304,7 @@ function evaluateCondition(
  * filtering. Register on a column via `filterFn: conditionalFilterFn` and store
  * `{ operator, value, to? }` as the filter value.
  */
-export const conditionalFilterFn: FilterFn<unknown> = (
+export const conditionalFilterFn: AnyFilterFn = (
   row,
   columnId,
   filterValue: DataTableConditionalFilterValue
@@ -272,7 +338,7 @@ const toCssLength = (value: DataTableColumnWidth | undefined) =>
  * CSS-string widths (`"15%"`, `"var(--dimension-120)"`) cannot be resolved to
  * pixels here, so they stay CSS-only — see `getColumnSizeStyles`.
  */
-export function applyDeclaredColumnSizes<T>(
+export function applyDeclaredColumnSizes<T extends RowData>(
   columns: ColumnDef<T, unknown>[]
 ): ColumnDef<T, unknown>[] {
   return columns.map((column) => {
@@ -309,7 +375,7 @@ export function applyDeclaredColumnSizes<T>(
  * String widths stay CSS-only, and while resizing is on the live dragged size
  * wins so dragging stays responsive.
  */
-export function getColumnSizeStyles<T>(
+export function getColumnSizeStyles<T extends RowData>(
   column: Column<T>,
   enableColumnResizing?: boolean
 ): CSSProperties {
@@ -341,7 +407,7 @@ export const DATA_TABLE_Z = {
   pinnedHeaderCell: 20,
 } as const
 
-export function getPinningStyles<T>(
+export function getPinningStyles<T extends RowData>(
   column: Column<T>,
   kind: "header" | "body" = "body"
 ): CSSProperties {
@@ -351,8 +417,8 @@ export function getPinningStyles<T>(
   }
   return {
     position: "sticky",
-    left: pinned === "left" ? `${column.getStart("left")}px` : undefined,
-    right: pinned === "right" ? `${column.getAfter("right")}px` : undefined,
+    left: pinned === "start" ? `${column.getStart("start")}px` : undefined,
+    right: pinned === "end" ? `${column.getAfter("end")}px` : undefined,
     zIndex:
       kind === "header"
         ? DATA_TABLE_Z.pinnedHeaderCell
@@ -361,18 +427,38 @@ export function getPinningStyles<T>(
 }
 
 /** True when this column is the last of the left-pinned group (edge shadow). */
-export function isLastLeftPinned<T>(column: Column<T>): boolean {
+export function isLastLeftPinned<T extends RowData>(
+  column: Column<T>
+): boolean {
   return (
-    column.getIsPinned() === "left" && column.getIsLastColumn("left") === true
+    column.getIsPinned() === "start" && column.getIsLastColumn("start") === true
   )
 }
 
 /** True when this column is the first of the right-pinned group (edge shadow). */
-export function isFirstRightPinned<T>(column: Column<T>): boolean {
+export function isFirstRightPinned<T extends RowData>(
+  column: Column<T>
+): boolean {
   return (
-    column.getIsPinned() === "right" &&
-    column.getIsFirstColumn("right") === true
+    column.getIsPinned() === "end" && column.getIsFirstColumn("end") === true
   )
+}
+
+/**
+ * Maps v9's logical pin positions back to the physical `left`/`right` values
+ * DataTable has always written to `data-pinned`. Consumers style against that
+ * attribute, so the rename stays inside the component.
+ */
+export function pinnedSide(
+  pinned: ColumnPinningPosition
+): "left" | "right" | undefined {
+  if (pinned === "start") {
+    return "left"
+  }
+  if (pinned === "end") {
+    return "right"
+  }
+  return
 }
 
 /* ── colSpan / rowSpan ────────────────────────────────────────────────────
@@ -385,10 +471,48 @@ export type DataTableCellSpan = {
   hidden?: boolean
 }
 
-export type DataTableGetCellSpan<T> = (
+export type DataTableGetCellSpan<T extends RowData> = (
   cell: Cell<T, unknown>,
   context: { row: Row<T>; rows: Row<T>[]; rowIndex: number }
 ) => DataTableCellSpan | undefined
 
 /* Convenience re-export so consumers can type the instance from one import. */
-export type DataTableInstance<T> = TanstackTable<T>
+export type DataTableInstance<T extends RowData> = TanstackTable<T>
+
+/* ── TanStack Table v9 feature set ────────────────────────────────────────
+ * v9 no longer ships every feature with the table: each one has to be listed
+ * here, and the row-model factories that used to be per-instance options
+ * (`getSortedRowModel()` and friends) are registered alongside them. The set is
+ * built once at module scope — TanStack requires it to be referentially stable,
+ * and it is what every `Column`/`Row`/`Cell` type below is parameterised by.
+ *
+ * Features stay registered even when the matching `enable*` prop is off: with
+ * no state to act on, each row model short-circuits to the model before it, so
+ * this costs nothing beyond the import. */
+export const dataTableFeatures = tableFeatures({
+  columnFilteringFeature,
+  columnOrderingFeature,
+  columnPinningFeature,
+  columnResizingFeature,
+  columnSizingFeature,
+  columnVisibilityFeature,
+  globalFilteringFeature,
+  rowExpandingFeature,
+  rowPaginationFeature,
+  rowSelectionFeature,
+  rowSortingFeature,
+  expandedRowModel: createExpandedRowModel(),
+  filteredRowModel: createFilteredRowModel(),
+  paginatedRowModel: createPaginatedRowModel(),
+  sortedRowModel: createSortedRowModel(),
+  /* The built-in registries are spread wholesale so `filterFn`/`sortFn` accept
+   * the same names they did in v8 — including the `"auto"` sort path, which
+   * looks up `datetime`/`alphanumeric`/`text` by name and silently degrades to
+   * a basic comparator when they are missing. */
+  filterFns: {
+    ...builtInFilterFns,
+    conditional: conditionalFilterFn,
+    typed: typedFilterFn,
+  },
+  sortFns: builtInSortFns,
+})

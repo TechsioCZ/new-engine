@@ -72,7 +72,7 @@ Legend: ✅ native · 🟡 logic yes / you build the UI (or via a plugin) · ⚙
 
 ## Decision (final)
 
-**Chosen: `@tanstack/react-table` v8.** For a **headless, Tailwind-styleable, DOM-accessible** grid inside a Zag.js DS it is architecturally the only clean fit. VTable (Bytedance) and AntV S2 (Alibaba) are **canvas** → they cannot use our stack (`--color-table-*` tokens, `tailwind-variants` slots, `data-[…]` states, Zag atoms), so they were ruled out. Bonus: `@tanstack/react-table` was already in the repo (`apps/medusa-be`), so no new third-party platform.
+**Chosen: `@tanstack/react-table` v9.** For a **headless, Tailwind-styleable, DOM-accessible** grid inside a Zag.js DS it is architecturally the only clean fit. VTable (Bytedance) and AntV S2 (Alibaba) are **canvas** → they cannot use our stack (`--color-table-*` tokens, `tailwind-variants` slots, `data-[…]` states, Zag atoms), so they were ruled out. Bonus: `@tanstack/react-table` was already in the repo (`apps/medusa-be`), so no new third-party platform. The organism was first built against v8 and migrated to v9 before merge; v9 moves feature registration and the row models onto a module-scope `tableFeatures()` set and renames column pinning from `left`/`right` to `start`/`end`.
 
 **Why not VTable/S2 despite more out-of-the-box features:** their canvas rendering would mean a parallel JS theme system (a duplicate of our token set), no per-cell DOM access through props, and losing accessibility and DOM-level testability. They only make sense as an **isolated canvas analytics widget** outside the DS (canvas-scale 100k+ cells, pivot).
 

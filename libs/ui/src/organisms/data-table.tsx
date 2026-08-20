@@ -39,28 +39,18 @@ import {
 } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import {
-  type Cell,
-  type Column,
-  type ColumnDef,
   type ColumnFiltersState,
   type ColumnPinningState,
   type ColumnSizingState,
+  type ColumnVisibilityState,
   type ExpandedState,
   flexRender,
-  getCoreRowModel,
-  getExpandedRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  type Header,
   type OnChangeFn,
   type PaginationState,
-  type Row,
+  type RowData,
   type RowSelectionState,
   type SortingState,
-  type Table as TanstackTable,
-  useReactTable,
-  type VisibilityState,
+  useTable,
 } from "@tanstack/react-table"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import {
@@ -102,31 +92,38 @@ import {
 } from "./data-table.fields"
 import {
   applyDeclaredColumnSizes,
-  conditionalFilterFn,
+  type Cell,
+  type Column,
+  type ColumnDef,
   DATA_TABLE_Z,
   type DataTableGetCellSpan,
+  dataTableFeatures,
   getColumnSizeStyles,
   getPinningStyles,
+  type Header,
   isFirstRightPinned,
   isLastLeftPinned,
-  typedFilterFn,
+  pinnedSide,
+  type Row,
+  type TanstackTable,
 } from "./data-table.helpers"
 import { Table } from "./table"
 
 export type {
   Cell,
+  CellContext,
   Column,
   ColumnDef,
-  Row,
-  Table as TanstackTable,
-} from "@tanstack/react-table"
-export type {
   DataTableCellSpan,
   DataTableColumnWidth,
   DataTableConditionalFilterValue,
+  DataTableFeatures,
   DataTableFilterOperator,
   DataTableGetCellSpan,
   DataTableInstance,
+  Header,
+  Row,
+  TanstackTable,
 } from "./data-table.helpers"
 // biome-ignore lint/performance/noBarrelFile: DataTable's public API intentionally re-exports the conditional-filter helpers it is designed to be used with
 export {
@@ -396,7 +393,7 @@ function SortableHeaderContent({
 
 /* ── Sortable body row (row reorder) ─────────────────────────────────────── */
 
-function SortableRow<T>({
+function SortableRow<T extends RowData>({
   row,
   enabled,
   children,
@@ -451,7 +448,7 @@ function SortableRow<T>({
  * availability can follow the row's id, ownership or the current user's
  * permissions.
  */
-export type DataTableRowAction<T> = {
+export type DataTableRowAction<T extends RowData> = {
   id: string
   label: string
   icon: IconType
@@ -477,7 +474,7 @@ export type DataTableBlockedAction =
 
 /* ── Context for composable sub-components ────────────────────────────────── */
 
-type DataTableContextValue<T> = {
+type DataTableContextValue<T extends RowData> = {
   table: TanstackTable<T>
   pageSizeOptions: number[]
   translations: Required<DataTableTranslations>
@@ -491,11 +488,11 @@ type DataTableContextValue<T> = {
   toolbarActions?: DataTableToolbarAction[]
 }
 
-const DataTableContext = createContext<DataTableContextValue<unknown> | null>(
+const DataTableContext = createContext<DataTableContextValue<RowData> | null>(
   null
 )
 
-function useDataTableContext<T>() {
+function useDataTableContext<T extends RowData>() {
   const ctx = useContext(DataTableContext) as DataTableContextValue<T> | null
   if (!ctx) {
     throw new Error("DataTable sub-components must be used within DataTable")
@@ -545,7 +542,7 @@ const DEFAULT_TRANSLATIONS: Required<DataTableTranslations> = {
   rangeLabel: ({ start, end, total }) => `${start}–${end} of ${total}`,
 }
 
-export type DataTableProps<T> = {
+export type DataTableProps<T extends RowData> = {
   data: T[]
   columns: ColumnDef<T, unknown>[]
   getRowId?: (row: T, index: number) => string
@@ -636,8 +633,8 @@ export type DataTableProps<T> = {
   onGlobalFilterChange?: (value: string) => void
   rowSelection?: RowSelectionState
   onRowSelectionChange?: (state: RowSelectionState) => void
-  columnVisibility?: VisibilityState
-  onColumnVisibilityChange?: (state: VisibilityState) => void
+  columnVisibility?: ColumnVisibilityState
+  onColumnVisibilityChange?: (state: ColumnVisibilityState) => void
   columnOrder?: string[]
   onColumnOrderChange?: (order: string[]) => void
   columnPinning?: ColumnPinningState
@@ -803,12 +800,17 @@ export type DataTableProps<T> = {
 
 const SELECTION_COLUMN_ID = "__select"
 const EXPANDER_COLUMN_ID = "__expander"
+const EMPTY_COLUMN_PINNING: ColumnPinningState = { start: [], end: [] }
+
 const DRAG_COLUMN_ID = "__drag"
 
 type DataTableStyles = ReturnType<typeof dataTableVariants>
 
 /** Sticky-edge classes for a pinned cell (opaque bg + edge shadow). */
-function pinClass<T>(column: Column<T, unknown>, kind: "header" | "body") {
+function pinClass<T extends RowData>(
+  column: Column<T, unknown>,
+  kind: "header" | "body"
+) {
   if (!column.getIsPinned()) {
     return
   }
@@ -852,7 +854,7 @@ function HeaderDragHandle({
 }
 
 /** Header label with the optional sort toggle + direction icon. */
-function HeaderSortLabel<T>({
+function HeaderSortLabel<T extends RowData>({
   header,
   styles,
   enableSorting,
@@ -910,7 +912,7 @@ function HeaderSortLabel<T>({
 
 /** One body cell: pin styling, colSpan/rowSpan, tree indent, drag handle. */
 /** Cell body: drag handle, active inline editor, or the column's cell template. */
-function renderCellContent<T>({
+function renderCellContent<T extends RowData>({
   cell,
   column,
   styles,
@@ -965,7 +967,7 @@ function renderCellContent<T>({
   return flexRender(column.columnDef.cell, cell.getContext())
 }
 
-function DataTableBodyCell<T>({
+function DataTableBodyCell<T extends RowData>({
   cell,
   span,
   row,
@@ -1005,7 +1007,7 @@ function DataTableBodyCell<T>({
       className={pinClass(column, "body")}
       colSpan={span?.colSpan}
       data-align={column.columnDef.meta?.align || undefined}
-      data-pinned={pinned || undefined}
+      data-pinned={pinnedSide(pinned)}
       rowSpan={span?.rowSpan}
       style={{
         ...getPinningStyles(column),
@@ -1030,7 +1032,7 @@ function DataTableBodyCell<T>({
 }
 
 /** Run `required` + `meta.validate` over a row draft, returning field errors. */
-function validateDraft<T>(
+function validateDraft<T extends RowData>(
   columns: Column<T, unknown>[],
   draft: Record<string, unknown>
 ): Record<string, string> {
@@ -1093,7 +1095,10 @@ const OPAQUE_HEADER_BG: CSSProperties = {
 
 /** Human-readable column name for generated labels. */
 /** `aria-sort` for a header cell, or undefined when the column is not sortable. */
-function sortState<T>(column: Column<T, unknown>, enableSorting: boolean) {
+function sortState<T extends RowData>(
+  column: Column<T, unknown>,
+  enableSorting: boolean
+) {
   if (!(enableSorting && column.getCanSort())) {
     return
   }
@@ -1145,7 +1150,7 @@ function composeRowRef(
 /* ── Component ───────────────────────────────────────────────────────────── */
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: a feature-complete data-grid controller wiring ~20 optional features into one instance
-export function DataTable<T>(props: DataTableProps<T>) {
+export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   const {
     data,
     columns: userColumns,
@@ -1326,7 +1331,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
   }
 
   const [columnVisibility, setColumnVisibility] =
-    useControllable<VisibilityState>(
+    useControllable<ColumnVisibilityState>(
       columnVisibilityProp,
       {},
       onColumnVisibilityChange
@@ -1338,7 +1343,9 @@ export function DataTable<T>(props: DataTableProps<T>) {
   )
   const [columnPinning, setColumnPinning] = useControllable<ColumnPinningState>(
     columnPinningProp,
-    {},
+    // v9 made both halves of the pinning state required, so the uncontrolled
+    // default has to spell them out rather than start from `{}`.
+    EMPTY_COLUMN_PINNING,
     onColumnPinningChange
   )
   const [expanded, setExpanded] = useControllable<ExpandedState>(
@@ -1445,7 +1452,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
     ]
   )
 
-  const table = useReactTable<T>({
+  const table = useTable({
+    features: dataTableFeatures,
     data,
     columns,
     getRowId,
@@ -1470,13 +1478,16 @@ export function DataTable<T>(props: DataTableProps<T>) {
     columnResizeMode: "onChange",
     manualSorting,
     manualFiltering,
-    manualPagination,
+    // v9 registers the paginated row model on the feature set rather than
+    // per instance, so it is always present. `manualPagination` is the switch
+    // that makes the pipeline hand back the un-paginated rows, which is what
+    // "pagination is off" has to mean now.
+    manualPagination: manualPagination || !enablePagination,
     rowCount,
     pageCount,
     getSubRows,
     getRowCanExpand:
       getRowCanExpand ?? (renderExpandedRow ? () => true : undefined),
-    getExpandedRowModel: enableExpanding ? getExpandedRowModel() : undefined,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
@@ -1487,18 +1498,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
     onExpandedChange: setExpanded,
     onPaginationChange: setPagination,
     onColumnSizingChange: setColumnSizing,
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: enableSorting ? getSortedRowModel() : undefined,
-    getFilteredRowModel:
-      enableColumnFilters || enableGlobalFilter
-        ? getFilteredRowModel()
-        : undefined,
-    getPaginationRowModel:
-      enablePagination && !manualPagination
-        ? getPaginationRowModel()
-        : undefined,
     globalFilterFn: "includesString",
-    filterFns: { conditional: conditionalFilterFn, typed: typedFilterFn },
     meta: {
       updateData: (rowId: string, columnId: string, value: unknown) => {
         const target = table.getCoreRowModel().rowsById[rowId]
@@ -1728,8 +1728,8 @@ export function DataTable<T>(props: DataTableProps<T>) {
     }
     // Seed from ALL leaf columns (not just visible ones) so a reorder while
     // some columns are hidden doesn't drop the hidden ids from columnOrder.
-    const current = table.getState().columnOrder.length
-      ? table.getState().columnOrder
+    const current = table.state.columnOrder.length
+      ? table.state.columnOrder
       : table.getAllLeafColumns().map((c) => c.id)
     const from = current.indexOf(active.id as string)
     const to = current.indexOf(over.id as string)
@@ -1852,7 +1852,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
         colSpan={header.colSpan}
         data-align={column.columnDef.meta?.align || undefined}
         data-dragging={dnd?.isDragging || undefined}
-        data-pinned={column.getIsPinned() || undefined}
+        data-pinned={pinnedSide(column.getIsPinned())}
         ref={dnd?.setNodeRef as unknown as RefObject<HTMLTableCellElement>}
         style={{
           ...OPAQUE_HEADER_BG,
@@ -1956,7 +1956,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
           {leafColumns.map((column) => (
             <td
               className={`${styles.filterCell()} ${pinClass(column, "header") ?? ""}`}
-              data-pinned={column.getIsPinned() || undefined}
+              data-pinned={pinnedSide(column.getIsPinned())}
               key={column.id}
               style={{
                 ...OPAQUE_HEADER_BG,
@@ -2460,7 +2460,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
 
   return (
     <DataTableContext.Provider
-      value={ctxValue as DataTableContextValue<unknown>}
+      value={ctxValue as DataTableContextValue<RowData>}
     >
       <div className={styles.wrapper({ className })} id={instanceId} ref={ref}>
         <output aria-live="polite" className="sr-only">
@@ -2494,7 +2494,7 @@ export function DataTable<T>(props: DataTableProps<T>) {
 
 /* ── Built-in leading columns ────────────────────────────────────────────── */
 
-function buildColumns<T>({
+function buildColumns<T extends RowData>({
   userColumns,
   enableRowReorder,
   enableRowSelection,
@@ -2537,7 +2537,13 @@ function buildColumns<T>({
             aria-label={selectAllLabel}
             checked={table.getIsAllRowsSelected()}
             disabled={locked}
-            indeterminate={table.getIsSomeRowsSelected()}
+            // v9 redefined `getIsSomeRowsSelected` as "at least one row is
+            // selected", so it now stays true once every row is checked. The
+            // all-rows guard keeps the box from showing the mixed state at
+            // full selection.
+            indeterminate={
+              table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()
+            }
             onChange={table.getToggleAllRowsSelectedHandler()}
           />
         ) : null,
@@ -2599,7 +2605,7 @@ DataTable.GlobalSearch = function DataTableGlobalSearch({
           table.setGlobalFilter(value)
         }}
         size={size}
-        value={(table.getState().globalFilter as string) ?? ""}
+        value={(table.state.globalFilter as string) ?? ""}
       >
         <SearchForm.Control>
           <SearchForm.Input
@@ -2720,7 +2726,7 @@ DataTable.Pagination = function DataTablePagination() {
     size,
     paginationProps,
   } = useDataTableContext()
-  const state = table.getState().pagination
+  const state = table.state.pagination
   const total = table.getRowCount()
   const start = total === 0 ? 0 : state.pageIndex * state.pageSize + 1
   const end = Math.min((state.pageIndex + 1) * state.pageSize, total)

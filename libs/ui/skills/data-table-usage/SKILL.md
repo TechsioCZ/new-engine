@@ -3,7 +3,7 @@ component_version: "1.0.0"
 name: data-table-usage
 description: >
   Use after component-usage-ux when an app needs the @techsio/ui-kit DataTable —
-  a headless, data-driven grid built on @tanstack/react-table that renders into
+  a headless, data-driven grid built on @tanstack/react-table v9 that renders into
   the presentational Table organism. Covers column defs, sorting, conditional
   column filters, global search, row selection, column visibility/pinning/reorder,
   row reorder, tree/expanding rows, inline edit, colSpan/rowSpan, virtualization /
@@ -238,7 +238,7 @@ text; `translations.pageSizeLabel` is the page-size select's accessible name
   those two can't express. All three compose; the select-all header checkbox is
   hidden unless selection is unbounded multiple.
 - `enableColumnVisibility` — an icon-only cog button (tooltipped with `translations.columnsLabel`) opening a checkbox list of hideable columns. The list stays open while toggling, so several columns can be hidden without reopening it.
-- `enableColumnPinning` + controlled `columnPinning` — freeze columns left/right (sticky, with an edge shadow).
+- `enableColumnPinning` + controlled `columnPinning` — freeze columns to either edge (sticky, with an edge shadow). TanStack Table v9 names the two sides logically, so the state is `{ start: string[], end: string[] }` (v8's `left`/`right`). The rendered cells still carry `data-pinned="left" | "right"`.
 - `enableColumnReorder` — drag column headers (dnd-kit); fires `onColumnReorder`.
 - `enableRowReorder` — injects a drag handle column; fires `onRowReorder`.
 - `enableExpanding` — the expand toggle lives in the trailing actions cell, so it never collides with the selection checkbox. Pair with `getSubRows` for tree rows, or with `renderExpandedRow` alone for master-detail (every row becomes expandable; narrow it with `getRowCanExpand`). The detail renders as one full-width cell spanning every column, containing a plain `div` — put any layout inside, no nested table cells.
