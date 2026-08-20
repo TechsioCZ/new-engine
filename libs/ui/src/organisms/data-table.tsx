@@ -171,7 +171,6 @@ const dataTableVariants = tv({
       "group-data-dragging/header:opacity-100 group-data-dragging/row:opacity-100",
       "active:cursor-grabbing",
     ],
-    dropIndicator: ["bg-primary"],
     resizeHandle: [
       "absolute end-0 top-0 h-full w-100 cursor-col-resize touch-none select-none",
       "opacity-0 transition-opacity duration-200 motion-reduce:transition-none",
@@ -409,20 +408,21 @@ export type DataTableRowAction<T extends RowData> = {
   onAction: (row: Row<T>) => void
 }
 
-/** Interactions DataTable locks while a row is being edited inline. */
 /**
  * Interactions that report through `onInteractionBlocked` while a row is being
- * edited. Sorting and row selection are absent on purpose: those controls are
- * natively `disabled` during an edit, so a click never reaches a handler and
- * nothing could ever report them. Making them reportable means making them
- * clickable-but-inert first.
+ * edited inline.
+ *
+ * This is exactly the set `blocked()` is called with. Sorting, selection and
+ * both reorder flavours are absent on purpose: sorting and selection controls
+ * are natively `disabled` during an edit and reorder simply stops being
+ * draggable, so in every one of those cases nothing reaches a handler and
+ * nothing could ever report. Making any of them reportable means making the
+ * control clickable-but-inert first.
  */
 export type DataTableBlockedAction =
   | "filter"
   | "globalFilter"
   | "paginate"
-  | "rowReorder"
-  | "columnReorder"
   | "columnVisibility"
   | "rowClick"
 
@@ -2216,16 +2216,18 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         data-depth={row.depth || undefined}
         data-dragging={dnd?.isDragging || undefined}
         onClick={(event) => {
-          // Only report the block for a row that is actually clickable —
+          // `slotProps.row.onClick` is a raw DOM passthrough the consumer
+          // attached themselves, so it fires regardless — the edit lock governs
+          // DataTable's own row activation, not every handler on the element.
+          rowOnClick?.(event)
+          // Only report the block for a row that is actually clickable:
           // `rowKeyDown` and `tabIndex` already gate on `rowIsClickable`, and
           // without the same gate here a table with no `onRowClick` fired
           // `onInteractionBlocked({ action: "rowClick" })` for every stray
           // click during an edit.
-          if (onRowClick && blocked("rowClick")) {
-            return
+          if (onRowClick && !blocked("rowClick")) {
+            onRowClick(row, event)
           }
-          rowOnClick?.(event)
-          onRowClick?.(row, event)
         }}
         onKeyDown={rowKeyDown}
         ref={composeRowRef(editingRowId === row.id, editRowRef, dnd, rowRef)}
@@ -2460,7 +2462,10 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         <output aria-live="polite" className="sr-only">
           {statusMessage}
         </output>
-        {(enableGlobalFilter || enableColumnVisibility || renderToolbar) &&
+        {(enableGlobalFilter ||
+          enableColumnVisibility ||
+          toolbarActions?.length ||
+          renderToolbar) &&
           (renderToolbar ? (
             renderToolbar(table)
           ) : (

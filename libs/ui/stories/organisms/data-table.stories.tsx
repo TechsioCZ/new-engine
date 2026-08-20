@@ -262,6 +262,32 @@ export const ToolbarActions: Story = {
   },
 }
 
+/**
+ * Toolbar actions on their own, with no global search and no column-visibility
+ * cog. The toolbar has to render for these alone — it used to be gated on the
+ * other two, so a table configured this way silently dropped its actions.
+ */
+export const ToolbarActionsOnly: Story = {
+  args: {
+    ...base,
+    toolbarActions: [
+      {
+        id: "export",
+        label: "Export",
+        icon: "icon-[mdi--tray-arrow-down]",
+        variant: "warning",
+        onClick: fn(),
+      },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await expect(
+      canvas.getByRole("button", { name: /Export/i })
+    ).toBeInTheDocument()
+  },
+}
+
 /* ── 6. Empty state ──────────────────────────────────────────────────────── */
 
 export const EmptyState: Story = {
