@@ -1,8 +1,8 @@
 "use client"
 
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import type { MouseEvent } from "react"
+import { StorefrontLink } from "@/components/storefront-link"
 import type {
   SearchAutocompleteStatus,
   SearchAutocompleteSuggestion,
@@ -70,12 +70,17 @@ function SearchAutocompleteMeta({
 }) {
   const hasAvailability = typeof item.inStock === "boolean"
 
-  if (!(item.priceLabel || hasAvailability)) {
+  if (!(item.priceLabel || item.originalPriceLabel || hasAvailability)) {
     return null
   }
 
   return (
     <span className="shrink-0 text-right text-xs leading-snug">
+      {item.originalPriceLabel ? (
+        <span className="block text-fg-tertiary line-through">
+          {item.originalPriceLabel}
+        </span>
+      ) : null}
       {item.priceLabel ? (
         <span className="block font-bold text-primary">{item.priceLabel}</span>
       ) : null}
@@ -108,7 +113,7 @@ function SearchAutocompleteRow({
 
   return (
     <li role="presentation">
-      <NextLink
+      <StorefrontLink
         aria-selected={isActive}
         className={joinClassNames(
           "flex min-w-0 items-center gap-300 px-300 py-200 text-fg-primary transition-colors",
@@ -136,7 +141,7 @@ function SearchAutocompleteRow({
           item={item}
           outOfStockLabel={t("availability.out_of_stock")}
         />
-      </NextLink>
+      </StorefrontLink>
     </li>
   )
 }

@@ -2,7 +2,31 @@
  * Pure utility functions for PPL fulfillment processing
  * Separated from job file to allow unit testing without triggering module loading
  */
-import type { PplFulfillmentData } from "./types"
+import type {
+  PplConfigReference,
+  PplEnvironment,
+  PplFulfillmentData,
+} from "./types"
+
+export function getPplConfigReference(
+  data: Record<string, unknown> | null | undefined
+): PplConfigReference | undefined {
+  const configId = data?.config_id
+  const environment = data?.environment
+
+  const reference: PplConfigReference = {
+    ...(typeof configId === "string" && configId.trim().length > 0
+      ? { config_id: configId }
+      : {}),
+    ...(isPplEnvironment(environment) ? { environment } : {}),
+  }
+
+  return Object.keys(reference).length > 0 ? reference : undefined
+}
+
+function isPplEnvironment(value: unknown): value is PplEnvironment {
+  return value === "testing" || value === "production"
+}
 
 /**
  * Maximum number of sync attempts before marking as error

@@ -2,8 +2,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { PAYLOAD_MODULE } from "../../../../../../src/modules/payload"
 
 const mockCmsService = {
+  getFooterNavigation: vi.fn(),
   getPublishedPage: vi.fn(),
+  getPublishedPageById: vi.fn(),
   getPublishedArticle: vi.fn(),
+  getPublishedArticleById: vi.fn(),
   listPageCategoriesWithPages: vi.fn(),
   listArticleCategoriesWithArticles: vi.fn(),
   listHeroCarousels: vi.fn(),
@@ -47,6 +50,20 @@ describe("Store CMS routes", () => {
     vi.clearAllMocks()
   })
 
+  it("allows Medusa to consume the locale before CMS query validation", async () => {
+    const { StoreCmsPageByIdSchema } = await import(
+      "../../../../../../src/api/store/cms/pages/by-id/[id]/route"
+    )
+
+    expect(StoreCmsPageByIdSchema.safeParse({ locale: "sk" }).success).toBe(
+      true
+    )
+    expect(StoreCmsPageByIdSchema.safeParse({ locale: "en" }).success).toBe(
+      false
+    )
+    expect(StoreCmsPageByIdSchema.safeParse({}).success).toBe(true)
+  })
+
   it("passes request locale to published page lookup", async () => {
     const { GET } = await import(
       "../../../../../../src/api/store/cms/pages/[slug]/route"
@@ -70,6 +87,22 @@ describe("Store CMS routes", () => {
     expect(res.json).toHaveBeenCalledWith({ page })
   })
 
+  it("passes request locale to footer navigation lookup", async () => {
+    const { GET } = await import(
+      "../../../../../../src/api/store/cms/navigation/footer/route"
+    )
+    const req = createMockRequest({ locale: "ro" })
+    const res = createMockResponse()
+    const footerNavigation = { columns: [] }
+
+    mockCmsService.getFooterNavigation.mockResolvedValue(footerNavigation)
+
+    await GET(req, res)
+
+    expect(mockCmsService.getFooterNavigation).toHaveBeenCalledWith("ro")
+    expect(res.json).toHaveBeenCalledWith({ footerNavigation })
+  })
+
   it("passes request locale to published article lookup", async () => {
     const { GET } = await import(
       "../../../../../../src/api/store/cms/articles/[slug]/route"
@@ -91,6 +124,57 @@ describe("Store CMS routes", () => {
       "sk"
     )
     expect(res.json).toHaveBeenCalledWith({ article })
+  })
+
+  it("reads a published page by stable Payload ID and exact locale", async () => {
+    const { GET } = await import(
+      "../../../../../../src/api/store/cms/pages/by-id/[id]/route"
+    )
+    const req = createMockRequest({ locale: "ro", params: { id: "77" } })
+    const res = createMockResponse()
+    const page = { id: 77, slug: "legacy-slug" }
+    mockCmsService.getPublishedPageById.mockResolvedValue(page)
+
+    await GET(req, res)
+
+    expect(mockCmsService.getPublishedPageById).toHaveBeenCalledWith("77", "ro")
+    expect(res.json).toHaveBeenCalledWith({ page })
+  })
+
+  it("reads a published article by stable Payload ID and exact locale", async () => {
+    const { GET } = await import(
+      "../../../../../../src/api/store/cms/articles/by-id/[id]/route"
+    )
+    const req = createMockRequest({ locale: "hu", params: { id: "88" } })
+    const res = createMockResponse()
+    const article = { id: 88, slug: "legacy-slug" }
+    mockCmsService.getPublishedArticleById.mockResolvedValue(article)
+
+    await GET(req, res)
+
+    expect(mockCmsService.getPublishedArticleById).toHaveBeenCalledWith(
+      "88",
+      "hu"
+    )
+    expect(res.json).toHaveBeenCalledWith({ article })
+  })
+
+  it("maps upstream CMS failures to an explicit 503", async () => {
+    const { GET } = await import(
+      "../../../../../../src/api/store/cms/pages/by-id/[id]/route"
+    )
+    const req = createMockRequest({ locale: "sk", params: { id: "77" } })
+    const res = createMockResponse()
+    mockCmsService.getPublishedPageById.mockRejectedValue(
+      new Error("Payload unavailable")
+    )
+
+    await GET(req, res)
+
+    expect(res.status).toHaveBeenCalledWith(503)
+    expect(res.json).toHaveBeenCalledWith({
+      message: "CMS source is unavailable",
+    })
   })
 
   it("passes request locale to page category listing", async () => {
@@ -120,7 +204,7 @@ describe("Store CMS routes", () => {
       "../../../../../../src/api/store/cms/article-categories/route"
     )
     const req = createMockRequest({
-      locale: "en",
+      locale: "hu",
       validatedQuery: { categorySlug: "journal" },
     })
     const res = createMockResponse()
@@ -136,7 +220,7 @@ describe("Store CMS routes", () => {
       mockCmsService.listArticleCategoriesWithArticles
     ).toHaveBeenCalledWith({
       categorySlug: "journal",
-      locale: "en",
+      locale: "hu",
     })
     expect(res.json).toHaveBeenCalledWith({ articleCategories })
   })

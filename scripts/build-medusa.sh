@@ -80,13 +80,16 @@ log_info "Working directory: $PROJECT_ROOT"
 step_start
 log_info "Step 1/5: Cleaning up unused apps and libs..."
 
-# Remove all apps except medusa-be and its workspace plugin dependencies, and remove all libs
+# Remove all apps except medusa-be and its workspace plugin dependencies. Keep the
+# shared i18n package because Medusa imports its typed public-flow route builder.
 find apps -maxdepth 1 -mindepth 1 -type d \
   ! -name 'medusa-be' \
   ! -name 'medusa-symmy-plugin' \
   ! -name 'medusa-order-dashboard-plugin' \
   -exec rm -rf {} + || true
-rm -rf libs || true
+find libs -maxdepth 1 -mindepth 1 -type d \
+  ! -name 'storefront-i18n' \
+  -exec rm -rf {} + || true
 
 # Clean existing node_modules and .medusa to ensure fresh build
 rm -rf \
@@ -114,6 +117,17 @@ step_end "Install"
 step_start
 log_info "Step 3/5: Building Medusa..."
 
+# Workspace dependencies are linked from their package output. Build the shared
+# package explicitly because the narrowed Docker context contains no prebuilt dist.
+run_with_low_priority pnpm --filter=@techsio/storefront-i18n build
+
+# Medusa's compiled server loads workspace dependencies through CommonJS.
+# Validate the exact production import before the expensive application build.
+(
+  cd apps/medusa-be
+  node --input-type=commonjs -e 'const routes = require("@techsio/storefront-i18n/core/public-flow-routes"); if (typeof routes.buildPublicFlowPath !== "function") process.exit(1)'
+)
+
 # Use placeholder secrets for build-time validation only.
 # Medusa validates these exist but doesn't use them cryptographically during build.
 # Real secrets MUST be provided at runtime via environment variables.
@@ -130,7 +144,6 @@ export ESBUILD_WORKER_THREADS="${ESBUILD_WORKER_THREADS:-0}"
 # Build-time provider choices avoid requiring live Redis/Meilisearch/S3 during
 # config validation. Runtime provider envs are still supplied by deployment.
 export REDIS_SESSIONS_ENABLED="${REDIS_SESSIONS_ENABLED:-0}"
-export NOTIFICATION_PROVIDER="${NOTIFICATION_PROVIDER:-local}"
 export MEILISEARCH_ENABLED="${MEILISEARCH_ENABLED:-0}"
 export CACHE_PROVIDER="${CACHE_PROVIDER:-inmemory}"
 export EVENT_BUS_PROVIDER="${EVENT_BUS_PROVIDER:-local}"

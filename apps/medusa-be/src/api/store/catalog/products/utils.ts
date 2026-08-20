@@ -27,6 +27,7 @@ export type FacetCountItem = {
 }
 
 type CatalogFilterInput = {
+  collectionId?: string
   categoryIds: string[]
   statusIds: string[]
   formIds: string[]
@@ -175,6 +176,12 @@ export const buildCatalogFilterExpressions = (
 ): string[] => {
   const expressions: string[] = []
 
+  if (input.collectionId) {
+    expressions.push(
+      `facet_collection_id = "${escapeFilterValue(input.collectionId)}"`
+    )
+  }
+
   const categoryExpression = buildOrFilterExpression(
     "facet_category_ids",
     input.categoryIds
@@ -227,6 +234,13 @@ export const buildCatalogFilterExpressions = (
 
   return expressions
 }
+
+export const applyCollectionScopeToProductFilters = <
+  Filters extends Record<string, unknown>,
+>(
+  filters: Filters,
+  collectionId: string | undefined
+) => (collectionId ? { ...filters, collection_id: collectionId } : filters)
 
 export const getFacetDistribution = (
   distribution: unknown,

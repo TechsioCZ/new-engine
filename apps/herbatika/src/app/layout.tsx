@@ -5,65 +5,28 @@ import {
 } from "@tanstack/react-query"
 import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import type { Metadata } from "next"
-import { Inter, Open_Sans, Roboto, Rubik } from "next/font/google"
-import localFont from "next/font/local"
 import { type AbstractIntlMessages, NextIntlClientProvider } from "next-intl"
 import { getMessages } from "next-intl/server"
 import { Suspense } from "react"
 import { AppShell } from "@/components/app-shell"
+import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
 import {
   buildCategoryListParams,
   CATEGORY_TREE_FIELDS,
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
+import { fetchCmsFooterNavigation } from "@/lib/storefront/cms"
+import type { CmsFooterNavigation } from "@/lib/storefront/cms-types"
+import { fetchExternalReviewTrustSources } from "@/lib/storefront/external-reviews.server"
 import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { getMarketServerContext } from "@/lib/storefront/market-context.server"
-import { getRegionServerContext } from "@/lib/storefront/ssr/context"
+import { getAppRegionServerContext } from "@/lib/storefront/ssr/context.app.server"
 import { fetchServerCategories } from "@/lib/storefront/storefront-server"
 import "./globals.css"
 import { Providers } from "./providers"
+import { storefrontFontVariables, verdana } from "./storefront-fonts"
 
-const verdana = localFont({
-  src: [
-    {
-      path: "./fonts/Verdana-Regular.woff2",
-      weight: "400",
-      style: "normal",
-    },
-    {
-      path: "./fonts/Verdana-Bold.woff2",
-      weight: "700",
-      style: "normal",
-    },
-  ],
-  variable: "--font-verdana",
-  display: "swap",
-})
-
-const openSans = Open_Sans({
-  variable: "--font-sans",
-  subsets: ["latin", "latin-ext"],
-  display: "swap",
-})
-
-const inter = Inter({
-  variable: "--font-inter-font",
-  subsets: ["latin", "latin-ext"],
-  display: "swap",
-})
-
-const rubik = Rubik({
-  variable: "--font-rubik",
-  subsets: ["latin", "latin-ext"],
-  display: "swap",
-})
-
-const roboto = Roboto({
-  variable: "--font-roboto",
-  weight: ["400", "700"],
-  subsets: ["latin", "latin-ext"],
-  display: "swap",
-})
+export const dynamic = "force-dynamic"
 
 export async function generateMetadata(): Promise<Metadata> {
   const marketContext = await getMarketServerContext()
@@ -78,16 +41,20 @@ type LayoutShellProps = Readonly<{
   children: React.ReactNode
   dehydratedState: DehydratedState
   initialRegion?: RegionInfo | null
+  footerNavigation: CmsFooterNavigation
   marketContext: HerbatikaMarketContext
   messages: AbstractIntlMessages
+  reviewTrustSources: readonly ReviewTrustSource[]
 }>
 
 function LayoutShell({
   children,
   dehydratedState,
   initialRegion = null,
+  footerNavigation,
   marketContext,
   messages,
+  reviewTrustSources,
 }: LayoutShellProps) {
   return (
     <NextIntlClientProvider messages={messages}>
@@ -97,7 +64,12 @@ function LayoutShell({
       >
         <HydrationBoundary state={dehydratedState}>
           <Suspense fallback={<div className="min-h-dvh bg-base" />}>
-            <AppShell>{children}</AppShell>
+            <AppShell
+              footerNavigation={footerNavigation}
+              reviewTrustSources={reviewTrustSources}
+            >
+              {children}
+            </AppShell>
           </Suspense>
         </HydrationBoundary>
       </Providers>
@@ -112,18 +84,27 @@ async function ResolvedLayoutShell({
   children: React.ReactNode
   marketContext: HerbatikaMarketContext
 }>) {
-  const [{ queryClient, region }, messages] = await Promise.all([
-    getRegionServerContext(),
+  const [
+    { market, queryClient, region },
+    messages,
+    footerNavigation,
+    reviewTrustSources,
+  ] = await Promise.all([
+    getAppRegionServerContext(),
     getMessages(),
+    fetchCmsFooterNavigation(marketContext.locale),
+    fetchExternalReviewTrustSources(marketContext.code),
   ])
 
   try {
     await fetchServerCategories(
+      market,
       queryClient,
       buildCategoryListParams({
         page: 1,
         limit: CATEGORY_TREE_LIMIT,
         fields: CATEGORY_TREE_FIELDS,
+        locale: marketContext.locale,
       })
     )
   } catch (error) {
@@ -133,9 +114,11 @@ async function ResolvedLayoutShell({
   return (
     <LayoutShell
       dehydratedState={dehydrate(queryClient)}
+      footerNavigation={footerNavigation}
       initialRegion={region}
       marketContext={marketContext}
       messages={messages}
+      reviewTrustSources={reviewTrustSources}
     >
       {children}
     </LayoutShell>
@@ -150,10 +133,7 @@ async function ResolvedRootLayout({
   const marketContext = await getMarketServerContext()
 
   return (
-    <html
-      className={`${verdana.variable} ${openSans.variable} ${inter.variable} ${rubik.variable} ${roboto.variable}`}
-      lang={marketContext.htmlLang}
-    >
+    <html className={storefrontFontVariables} lang={marketContext.htmlLang}>
       <body className={`text-fg-primary ${verdana.className}`}>
         <Suspense
           // Avoid rendering a fallback app shell here. During streaming, it can

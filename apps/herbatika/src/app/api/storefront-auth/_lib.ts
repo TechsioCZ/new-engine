@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server"
 
+import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
+import { resolveConfiguredMarketRuntimeBindingByHost } from "@/lib/market/market-runtime.server"
 import { resolveMedusaBackendUrl } from "@/lib/storefront/runtime-env"
 
 const MEDUSA_BACKEND_URL = resolveMedusaBackendUrl()
-const MEDUSA_PUBLISHABLE_KEY =
-  process.env.NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY ?? ""
 const AUTH_SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 14
 
 type ErrorPayload = {
@@ -68,15 +68,36 @@ export const serverError = (message: string, details?: unknown) =>
     { status: 500 }
   )
 
-export const getPublishableHeaders = (): Record<string, string> => {
-  if (!MEDUSA_PUBLISHABLE_KEY) {
-    return {}
-  }
-
-  return {
-    "x-publishable-api-key": MEDUSA_PUBLISHABLE_KEY,
+export class StorefrontMarketAuthorityError extends Error {
+  constructor() {
+    super("Request host does not belong to an enabled storefront market")
+    this.name = "StorefrontMarketAuthorityError"
   }
 }
+
+export const requireStorefrontMarketBinding = (
+  request: Request
+): MarketRuntimeBinding => {
+  const binding = resolveConfiguredMarketRuntimeBindingByHost(
+    request.headers.get("host")
+  )
+  if (!binding) {
+    throw new StorefrontMarketAuthorityError()
+  }
+  return binding
+}
+
+export const marketAuthorityError = () =>
+  NextResponse.json<ErrorPayload>(
+    { message: "Unknown storefront host." },
+    { status: 421 }
+  )
+
+export const getPublishableHeaders = (
+  binding: MarketRuntimeBinding
+): Record<string, string> => ({
+  "x-publishable-api-key": binding.publishableApiKey,
+})
 
 export const setSessionTokenCookie = (
   response: NextResponse,

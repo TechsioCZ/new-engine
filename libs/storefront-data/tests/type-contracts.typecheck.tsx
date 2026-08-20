@@ -6,6 +6,7 @@ import type { ProductListHooks } from "../src/product-lists/hooks"
 import type { ProductListCartLike } from "../src/product-lists/types"
 import type { ProductHooks } from "../src/products/hooks"
 import type { StoreProductWithPricePerUnit } from "../src/products/types"
+import type { CreateProductReviewInput } from "../src/reviews/types"
 
 declare const sdk: Medusa
 declare const productWithPricePerUnit: StoreProductWithPricePerUnit
@@ -114,3 +115,11 @@ export const invalidSuspenseProductDetailInput = {
   // @ts-expect-error suspense product detail input must not expose enabled
   enabled: false,
 } satisfies SuspenseProductDetailInput
+
+export const validPublicProductReviewInput: CreateProductReviewInput = {
+  content: "Skvělý produkt.",
+  name: "Jana",
+  product_id: "prod_1",
+  rating: 5,
+  turnstileToken: "turnstile-token",
+}

@@ -1,11 +1,29 @@
 import { describe, expect, it } from "vitest"
-import { validateSalesChannelSeedInput } from "../steps/create-sales-channels"
+import {
+  mergeSalesChannelMetadata,
+  validateSalesChannelSeedInput,
+} from "../steps/create-sales-channels"
 import { planSalesChannelApiKeyLinks } from "../steps/link-sales-channels-api-key"
 
 const UNIQUE_NAME_PATTERN = /unique/
 const EXACTLY_ONE_DEFAULT_PATTERN = /exactly one default/
 
 describe("sales-channel seed reconciliation", () => {
+  it("preserves unrelated metadata while applying configured values", () => {
+    expect(
+      mergeSalesChannelMetadata(
+        {
+          operator_note: "keep",
+          storefront_notification_markets: { old: true },
+        },
+        { storefront_notification_markets: { sk: true } }
+      )
+    ).toEqual({
+      operator_note: "keep",
+      storefront_notification_markets: { sk: true },
+    })
+  })
+
   it("requires unique names and exactly one default", () => {
     expect(() =>
       validateSalesChannelSeedInput([

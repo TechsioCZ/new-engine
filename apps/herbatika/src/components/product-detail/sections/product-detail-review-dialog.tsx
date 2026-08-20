@@ -1,15 +1,10 @@
 "use client"
 
 import { Button } from "@techsio/ui-kit/atoms/button"
-import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Dialog } from "@techsio/ui-kit/molecules/dialog"
-import NextLink from "next/link"
-import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
-import { buildAuthRouteHref } from "@/components/auth/auth-helpers"
-import { PRODUCT_DETAIL_REVIEWS_SECTION_ID } from "@/components/product-detail/sections/product-detail-review-utils"
 import {
   resolveProductReviewSubmitErrorMessage,
   translateProductReviewErrorMessages,
@@ -18,7 +13,6 @@ import {
   ProductReviewForm,
   type ProductReviewFormSubmitValues,
 } from "@/components/reviews/product-review-form"
-import { useAuth } from "@/lib/storefront/auth"
 import { useCreateProductReview } from "@/lib/storefront/reviews"
 
 type ProductReviewCreateDialogProps = {
@@ -32,20 +26,13 @@ export function ProductReviewCreateDialog({
   productId,
   triggerLabel,
 }: ProductReviewCreateDialogProps) {
-  const tAuth = useTranslations("auth")
   const tCatalog = useTranslations("catalog")
   const resolvedTriggerLabel = triggerLabel ?? tCatalog("reviews.write_action")
   const reviewErrorMessages = translateProductReviewErrorMessages(tCatalog)
-  const authQuery = useAuth()
-  const pathname = usePathname()
   const [formResetKey, setFormResetKey] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
-  const loginHref = buildAuthRouteHref(
-    "/auth/login",
-    `${pathname}#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`
-  )
   const createReviewMutation = useCreateProductReview({
     onError: (error) => {
       setSubmitError(
@@ -59,7 +46,6 @@ export function ProductReviewCreateDialog({
     },
   })
   const isBusy = createReviewMutation.isPending
-  const isAuthenticated = authQuery.isAuthenticated
 
   const handleOpenChange = ({ open }: { open: boolean }) => {
     setIsOpen(open)
@@ -73,36 +59,22 @@ export function ProductReviewCreateDialog({
 
   const handleSubmit = ({
     content,
+    name,
     rating,
-    title,
+    turnstileToken,
   }: ProductReviewFormSubmitValues) => {
     setSubmitError(null)
 
     createReviewMutation.mutate({
       content,
+      ...(name ? { name } : {}),
       product_id: productId,
       rating,
-      title,
+      ...(turnstileToken ? { turnstileToken } : {}),
     })
   }
 
   const renderContent = () => {
-    if (authQuery.isLoading) {
-      return (
-        <StatusText showIcon status="default">
-          {tCatalog("reviews.auth_checking")}
-        </StatusText>
-      )
-    }
-
-    if (!isAuthenticated) {
-      return (
-        <StatusText showIcon status="warning">
-          {tCatalog("reviews.sign_in_required")}
-        </StatusText>
-      )
-    }
-
     if (isSubmitted) {
       return (
         <StatusText showIcon status="success">
@@ -116,6 +88,7 @@ export function ProductReviewCreateDialog({
         disabled={isBusy}
         formId={REVIEW_FORM_ID}
         onSubmit={handleSubmit}
+        requireAuthorName
         resetKey={formResetKey}
         submitError={submitError}
       />
@@ -123,29 +96,6 @@ export function ProductReviewCreateDialog({
   }
 
   const renderActions = () => {
-    if (!(isAuthenticated || authQuery.isLoading)) {
-      return (
-        <>
-          <Button
-            onClick={() => setIsOpen(false)}
-            size="sm"
-            theme="outlined"
-            variant="secondary"
-          >
-            {tCatalog("reviews.close")}
-          </Button>
-          <LinkButton
-            as={NextLink}
-            href={loginHref}
-            size="sm"
-            variant="primary"
-          >
-            {tAuth("sign_in")}
-          </LinkButton>
-        </>
-      )
-    }
-
     if (isSubmitted) {
       return (
         <Button onClick={() => setIsOpen(false)} size="sm" variant="primary">
@@ -167,7 +117,7 @@ export function ProductReviewCreateDialog({
           {tCatalog("reviews.cancel")}
         </Button>
         <Button
-          disabled={!isAuthenticated || authQuery.isLoading || isBusy}
+          disabled={isBusy}
           form={REVIEW_FORM_ID}
           isLoading={isBusy}
           loadingText={tCatalog("reviews.submitting")}

@@ -18,6 +18,11 @@ import {
   resolveProductVolumeDiscountOptions,
   resolveSelectedVolumeDiscountOption,
 } from "@/components/product-detail/product-detail-pricing-data.utils"
+import {
+  buildProductDetailQuery,
+  resolveInitialProductVariantId,
+  resolveProductDetailProduct,
+} from "@/components/product-detail/product-detail-query"
 import { useProductDetailDebugLog } from "@/components/product-detail/use-product-detail-debug-log"
 import { useProductDetailRelatedProducts } from "@/components/product-detail/use-product-detail-related-products"
 import { mergeBrandGpsrIntoProductContentSections } from "@/components/product-detail/utils/brand-gpsr"
@@ -33,47 +38,71 @@ import {
 } from "@/components/product-detail/utils/metadata-parsers"
 import { resolvePriceState } from "@/components/product-detail/utils/pricing-utils"
 import { useAuth } from "@/lib/storefront/auth"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import {
   mergeWarrantyIntoProductContentSections,
   resolveProductWarranty,
 } from "@/lib/storefront/product-attributes"
 import { resolveVariantInventoryState } from "@/lib/storefront/product-availability"
 import { resolveProductLocationAvailabilityState } from "@/lib/storefront/product-location-availability"
-import { PRODUCT_DETAIL_FIELDS, useProduct } from "@/lib/storefront/products"
+import { useProduct } from "@/lib/storefront/products"
 import { useRecordRecentlyVisitedProduct } from "@/lib/storefront/recently-visited-products"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import { storefront } from "@/lib/storefront/storefront"
 import { useVolumeDiscountTiers } from "@/lib/storefront/volume-discounts"
 
 type UseProductDetailDataProps = {
+  brandPublicSlugsById?: Readonly<Record<string, string>>
+  categoryPublicSlugsById?: Readonly<Record<string, string>>
   handle: string
+  initialProduct?: Product
   initialVariantId?: string
+  productPublicSlugsById?: Readonly<Record<string, string>>
 }
 
 export function useProductDetailData({
+  brandPublicSlugsById,
+  categoryPublicSlugsById,
   handle,
+  initialProduct,
   initialVariantId,
+  productPublicSlugsById,
 }: UseProductDetailDataProps) {
   const locale = useLocale()
   const tCatalog = useTranslations("catalog")
   const tNavigation = useTranslations("navigation")
   const authQuery = useAuth()
   const region = useRegionContext()
+  const { code: market } = useMarketContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const [quantity, setQuantity] = useState(1)
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
-    null
+    () =>
+      resolveInitialProductVariantId(initialProduct?.variants, initialVariantId)
   )
   const [selectedVolumeDiscountId, setSelectedVolumeDiscountId] = useState<
     string | null
   >(null)
 
-  const productQuery = useProduct({
+  const productDetailQuery = buildProductDetailQuery({
     handle,
-    fields: PRODUCT_DETAIL_FIELDS,
+    initialProduct,
   })
-
-  const product = (productQuery.product ?? null) as Product | null
+  const handleProductQuery = useProduct(productDetailQuery.input)
+  const product = resolveProductDetailProduct(
+    initialProduct,
+    handleProductQuery.product as Product | null
+  )
+  const productQuery = initialProduct
+    ? {
+        ...handleProductQuery,
+        error: null,
+        isFetching: false,
+        isLoading: false,
+        isSuccess: true,
+        product,
+      }
+    : handleProductQuery
   const variants = product?.variants ?? []
   const productCategories = product?.categories ?? []
 
@@ -166,6 +195,7 @@ export function useProductDetailData({
     unitPriceLabel,
     vipCreditLabel,
   } = resolveProductPricingLabels({
+    locale,
     productPrice,
     regionCurrencyCode,
     offerState,
@@ -204,9 +234,7 @@ export function useProductDetailData({
   useEffect(() => {
     setQuantity(1)
     setSelectedVariantId(
-      product?.variants?.some((variant) => variant.id === initialVariantId)
-        ? (initialVariantId ?? null)
-        : (product?.variants?.[0]?.id ?? null)
+      resolveInitialProductVariantId(product?.variants, initialVariantId)
     )
     setSelectedVolumeDiscountId(null)
   }, [initialVariantId, product?.variants])
@@ -237,17 +265,21 @@ export function useProductDetailData({
   useProductDetailDebugLog(product)
   useRecordRecentlyVisitedProduct(product)
 
-  const breadcrumbItems = resolveProductBreadcrumbItems(
+  const breadcrumbItems = resolveProductBreadcrumbItems({
+    categoryPublicSlugsById: categoryPublicSlugsById ?? {},
+    handle,
+    homeLabel: tNavigation("breadcrumbs.home"),
+    market,
     productCategories,
     product,
-    handle,
-    tNavigation("breadcrumbs.home")
-  )
+  })
   const freeShippingThresholdLabel =
     resolveFreeShippingThresholdLabel(currentCurrencyCode)
 
   return {
     breadcrumbItems,
+    brandPublicSlugsById,
+    categoryPublicSlugsById,
     canAddToCart,
     currentAmountLabel,
     defaultInfoSectionValue: productContentSections[0]?.key ?? "description",
@@ -262,6 +294,7 @@ export function useProductDetailData({
     productCategories,
     productContentSections,
     productHighlights,
+    productPublicSlugsById,
     locationAvailabilityState,
     productQuery,
     quantity,

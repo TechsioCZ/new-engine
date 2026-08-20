@@ -7,17 +7,16 @@ import {
 } from "@techsio/storefront-data/checkout/address"
 import type { StorefrontCartAddressAdapter } from "@techsio/storefront-data/shared/address"
 import type { CheckoutAddressValues } from "@/lib/forms/checkout/address.form"
+import { normalizePhoneNumberToE164 } from "@/lib/forms/phone-number"
 
 const HERBATIKA_ADDRESS_METADATA_FIELDS = [
   ["companyId", "company_id"],
   ["taxId", "tax_id"],
   ["vatId", "vat_id"],
-  ["customerNote", "customer_note"],
 ] as const
 
 export type HerbatikaCheckoutAddressInput = CheckoutAddressInput & {
   companyId?: string | null
-  customerNote?: string | null
   metadata?: Record<string, unknown>
   taxId?: string | null
   vatId?: string | null
@@ -45,7 +44,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const buildHerbatikaAddressMetadata = (
   input: Pick<
     HerbatikaCheckoutAddressInput,
-    "companyId" | "customerNote" | "metadata" | "taxId" | "vatId"
+    "companyId" | "metadata" | "taxId" | "vatId"
   >
 ) => {
   const metadata = {
@@ -75,7 +74,9 @@ export const buildHerbatikaCheckoutAddressInput = (
 ): HerbatikaCheckoutAddressInput => ({
   firstName: addressForm.firstName,
   lastName: addressForm.lastName,
-  phone: addressForm.phone,
+  phone:
+    normalizePhoneNumberToE164(addressForm.phone, addressForm.countryCode) ??
+    addressForm.phone,
   company: addressForm.company,
   companyId: addressForm.companyId,
   taxId: addressForm.taxId,
@@ -85,7 +86,6 @@ export const buildHerbatikaCheckoutAddressInput = (
   city: addressForm.city,
   postalCode: addressForm.postalCode,
   country: addressForm.countryCode,
-  customerNote: addressForm.customerNote,
 })
 
 export const mapHerbatikaAddressFormStateFromMedusaAddress = (

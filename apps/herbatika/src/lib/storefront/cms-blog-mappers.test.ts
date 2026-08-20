@@ -72,19 +72,41 @@ describe("mapCmsArticleToBlogPost", () => {
     ])
     expect(post.author?.name).toBe("Herbatika redakcia")
     expect(post.author?.imageSrc).toBe("https://cms.example.com/author.webp")
+    expect(post.sourceId).toBe("1")
     expect(post.sidebar).toEqual({
       promoImage: {
         alt: "Summer sale",
         src: "https://cms.example.com/sidebar.webp",
       },
-      product: { productExternalId: "4362", productSlug: undefined },
+      product: { productExternalId: "4362" },
     })
     expect(post.relatedPosts.map(({ slug }) => slug)).toEqual(["related"])
+    expect(post.relatedPosts.map(({ sourceId }) => sourceId)).toEqual(["2"])
   })
 
   it("keeps an article visible when its featured image is unavailable", () => {
     const post = mapCmsArticleToBlogPost({ ...article, featuredImage: null })
 
     expect(post?.imageSrc).toBe(FALLBACK_IMAGE_SRC)
+  })
+
+  it("fails closed when the stable Payload document ID is invalid", () => {
+    expect(mapCmsArticleToBlogPost({ ...article, id: " " })).toBeNull()
+  })
+
+  it("omits absent optional fields so the mapped post is JSON-safe", () => {
+    const post = mapCmsArticleToBlogPost({
+      ...article,
+      author: null,
+      sidebar: {
+        product: { productExternalId: "4362", productSlug: undefined },
+      },
+    })
+
+    expect(post).not.toHaveProperty("author")
+    expect(post?.sidebar?.product).toStrictEqual({
+      productExternalId: "4362",
+    })
+    expect(JSON.parse(JSON.stringify(post))).toStrictEqual(post)
   })
 })

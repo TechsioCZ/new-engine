@@ -1,4 +1,5 @@
-import "server-only"
+// Pages Router rejects the App-Router-only `server-only` marker. Keep this
+// module reachable only from server entry points.
 
 import type { HttpTypes } from "@medusajs/types"
 import type { BlogProductReference } from "./blog-content"
@@ -8,13 +9,15 @@ import {
   indexBlogProducts,
 } from "./blog-product-references"
 import { PRODUCT_CARD_FIELDS } from "./product-query-config"
+import type { ExplicitRequestServerContext } from "./ssr/context"
 import { getRegionServerContext } from "./ssr/context"
 import { fetchServerProducts } from "./storefront-server"
 
 const BLOG_PRODUCT_CARD_FIELDS = `${PRODUCT_CARD_FIELDS},external_id`
 
 export const resolveBlogProducts = async (
-  references: BlogProductReference[]
+  references: BlogProductReference[],
+  requestContext: ExplicitRequestServerContext
 ) => {
   const externalIds = [
     ...new Set(
@@ -33,25 +36,26 @@ export const resolveBlogProducts = async (
 
   let serverContext: Awaited<ReturnType<typeof getRegionServerContext>>
   try {
-    serverContext = await getRegionServerContext()
+    serverContext = await getRegionServerContext(requestContext)
   } catch (error) {
     console.error("Failed to resolve the region for blog products", error)
     return new Map<string, HttpTypes.StoreProduct>()
   }
 
-  const { queryClient, region } = serverContext
+  const { locale, market, queryClient, region } = serverContext
   const regionParams = {
     country_code: region?.country_code,
     region_id: region?.region_id,
     fields: BLOG_PRODUCT_CARD_FIELDS,
+    locale,
   }
   const productMap = new Map<string, HttpTypes.StoreProduct>()
 
   const fetchProducts = async (
-    params: Parameters<typeof fetchServerProducts>[1]
+    params: Parameters<typeof fetchServerProducts>[2]
   ) => {
     try {
-      const response = await fetchServerProducts(queryClient, params)
+      const response = await fetchServerProducts(market, queryClient, params)
       indexBlogProducts(productMap, response.products)
     } catch (error) {
       console.error("Failed to load blog product recommendations", error)

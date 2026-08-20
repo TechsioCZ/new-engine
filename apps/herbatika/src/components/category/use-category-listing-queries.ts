@@ -27,20 +27,41 @@ import {
   CATEGORY_TREE_LIMIT,
 } from "@/lib/storefront/category-query-config"
 import { collectDescendantCategoryIds } from "@/lib/storefront/category-tree"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import {
   type NuqsPlpQueryState,
   PLP_PAGE_SIZE,
 } from "@/lib/storefront/plp-query-state"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
+import {
+  isSaleCategoryHandle,
+  resolveCategoryCatalogScope,
+} from "@/lib/storefront/sale-catalog-policy"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
+import { buildPath } from "@/lib/url/public-url"
+import type { Market } from "@/lib/url/types"
 
-const resolveBreadcrumbItems = (
-  slug: string,
-  activeCategory: HttpTypes.StoreProductCategory | null,
-  categoryById: Map<string, HttpTypes.StoreProductCategory>,
+const resolveBreadcrumbItems = ({
+  activeCategory,
+  categoryById,
+  homeLabel,
+  market,
+  publicSlugsById,
+  slug,
+}: {
+  activeCategory: HttpTypes.StoreProductCategory | null
+  categoryById: Map<string, HttpTypes.StoreProductCategory>
   homeLabel: string
-) => {
+  market: Market
+  publicSlugsById: Readonly<Record<string, string>>
+  slug: string
+}) => {
   const items: HerbatikaBreadcrumbItem[] = [
-    { label: homeLabel, href: "/", icon: "token-icon-home" },
+    {
+      label: homeLabel,
+      href: buildPath({ kind: "home" }, market),
+      icon: "token-icon-home",
+    },
   ]
 
   if (!activeCategory) {
@@ -66,8 +87,13 @@ const resolveBreadcrumbItems = (
     const category = trail[index]
     const label = normalizeCategoryName(category.name)
     const isLast = index === trail.length - 1
-    const href =
-      isLast || !category.handle ? undefined : `/c/${category.handle}`
+    const href = isLast
+      ? undefined
+      : (buildProjectedEntityPath(
+          "category",
+          { publicSlug: publicSlugsById[category.id] },
+          market
+        ) ?? undefined)
 
     items.push({
       label,
@@ -79,17 +105,21 @@ const resolveBreadcrumbItems = (
 }
 
 type UseCategoryListingQueriesProps = {
+  categoryPublicSlugsById?: Readonly<Record<string, string>>
   queryState: NuqsPlpQueryState
   slug: string
 }
 
 export function useCategoryListingQueries({
+  categoryPublicSlugsById = {},
   queryState,
   slug,
 }: UseCategoryListingQueriesProps) {
   const locale = useLocale()
+  const tContent = useTranslations("content")
   const tNavigation = useTranslations("navigation")
   const region = useRegionContext()
+  const { code: market } = useMarketContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
   const categoriesQuery = useCategories({
     page: 1,
@@ -136,16 +166,22 @@ export function useCategoryListingQueries({
       )
     })
 
-  const breadcrumbItems = resolveBreadcrumbItems(
-    slug,
+  const breadcrumbItems = resolveBreadcrumbItems({
     activeCategory,
     categoryById,
-    tNavigation("breadcrumbs.home")
+    homeLabel: tNavigation("breadcrumbs.home"),
+    market,
+    publicSlugsById: categoryPublicSlugsById,
+    slug,
+  })
+  const categoryCatalogScope = resolveCategoryCatalogScope(
+    slug,
+    activeCategoryFilterIds
   )
 
   const catalogProductsInput = buildCatalogProductsParams({
     queryState,
-    categoryIds: activeCategoryFilterIds,
+    ...categoryCatalogScope,
     limit: PLP_PAGE_SIZE,
   })
 
@@ -168,7 +204,7 @@ export function useCategoryListingQueries({
       price_min: null,
       price_max: null,
     },
-    categoryIds: activeCategoryFilterIds,
+    ...categoryCatalogScope,
     limit: 1,
   })
 
@@ -193,7 +229,16 @@ export function useCategoryListingQueries({
     activeCategoryFilterIds,
     categories: categoriesQuery.categories,
     categoryById,
+    market,
+    publicSlugsById: categoryPublicSlugsById,
   })
+  let categorySubtitle = "Zobrazené produkty danej kategórie"
+
+  if (isSaleCategoryHandle(slug)) {
+    categorySubtitle = tContent("home.product_sections.sale")
+  } else if (activeCategoryFilterIds.length > 1) {
+    categorySubtitle = `Zobrazené vrátane ${activeCategoryFilterIds.length - 1} podkategórií`
+  }
 
   return {
     activeAsideFilterCount: resolveCatalogActiveFilterCount(queryState),
@@ -209,17 +254,18 @@ export function useCategoryListingQueries({
     categoryBottomHtml: resolveCategoryBottomHtml({
       activeCategory,
       categoryByHandle,
+      market,
+      publicSlugsById: categoryPublicSlugsById,
     }),
     categoryContextImageTiles,
     categoryIntroHtml: resolveCategoryIntroHtml({
       activeCategory,
       categoryByHandle,
+      market,
+      publicSlugsById: categoryPublicSlugsById,
     }),
     categoryIntroText: resolveCategoryIntroText({ activeCategory }),
-    categorySubtitle:
-      activeCategoryFilterIds.length > 1
-        ? `Zobrazené vrátane ${activeCategoryFilterIds.length - 1} podkategórií`
-        : "Zobrazené produkty danej kategórie",
+    categorySubtitle,
     isCatalogQueryEnabled,
     isFiltersLoading:
       categoriesQuery.isLoading ||

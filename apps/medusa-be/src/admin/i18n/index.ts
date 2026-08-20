@@ -28,6 +28,7 @@ import {
 } from "../../modules/storefront-text/admin/i18n"
 import type { OrderBusinessStatusId } from "../../utils/order-business-status"
 import type { ProductContentSectionKey } from "../lib/product-content-sections"
+import type { ProductContentLocale } from "../lib/product-content-translations"
 
 type AdminLocale = "cs" | "en"
 
@@ -60,7 +61,12 @@ type OrderCommercialValuesNamespace = {
 
 type ProductContentSectionsNamespace = {
   actions: Record<"save", string>
-  errors: Record<"saveFailed", string>
+  errors: Record<"loadFailed" | "saveFailed", string>
+  loading: string
+  locale: {
+    label: string
+    options: Record<ProductContentLocale, string>
+  }
   sections: Record<
     ProductContentSectionKey,
     Record<"ariaLabel" | "title", string>
@@ -379,7 +385,18 @@ const productContentSections = {
       save: "Uložit",
     },
     errors: {
+      loadFailed: "Překlad produktových sekcí se nepodařilo načíst.",
       saveFailed: "Sekce produktu se nepodařilo uložit.",
+    },
+    loading: "Načítám produktové sekce...",
+    locale: {
+      label: "Jazyk",
+      options: {
+        "cs-CZ": "Čeština",
+        "hu-HU": "Maďarština",
+        "ro-RO": "Rumunština",
+        "sk-SK": "Slovenština (zdroj)",
+      },
     },
     sections: {
       composition: {
@@ -413,7 +430,18 @@ const productContentSections = {
       save: "Save",
     },
     errors: {
+      loadFailed: "Failed to load the product section translation.",
       saveFailed: "Failed to save product sections.",
+    },
+    loading: "Loading product sections...",
+    locale: {
+      label: "Language",
+      options: {
+        "cs-CZ": "Czech",
+        "hu-HU": "Hungarian",
+        "ro-RO": "Romanian",
+        "sk-SK": "Slovak (source)",
+      },
     },
     sections: {
       composition: {

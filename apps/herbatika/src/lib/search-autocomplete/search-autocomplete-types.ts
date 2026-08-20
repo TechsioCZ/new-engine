@@ -6,11 +6,13 @@ export type SearchAutocompleteSuggestionType =
 
 export type SearchAutocompleteSuggestion = {
   id: string
+  sourceId?: string
   type: SearchAutocompleteSuggestionType
   title: string
   href: string
   subtitle?: string
   imageUrl?: string
+  originalPriceLabel?: string
   priceLabel?: string
   inStock?: boolean
 }
@@ -54,6 +56,7 @@ export type RawSearchAutocompleteContentHit = {
 export type RawSearchAutocompleteCalculatedPrice = {
   calculated_amount?: unknown
   currency_code?: unknown
+  original_amount?: unknown
 }
 
 export type RawSearchAutocompleteProductHit = {

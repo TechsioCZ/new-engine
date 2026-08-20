@@ -1,10 +1,11 @@
 import { z } from "@medusajs/framework/zod"
 
-/** Zod schema for validating PPL config update requests */
 export const PostAdminPplConfigSchema = z.object({
+  environment: z.enum(["testing", "production"]),
   is_enabled: z.boolean().optional(),
   client_id: z.string().optional(),
   client_secret: z.string().nullable().optional(),
+  widget_api_key: z.string().nullable().optional(),
   default_label_format: z.enum(["Png", "Jpeg", "Svg", "Pdf", "Zpl"]).optional(),
   cod_bank_account: z.string().nullable().optional(),
   cod_bank_code: z.string().nullable().optional(),
@@ -19,6 +20,15 @@ export const PostAdminPplConfigSchema = z.object({
   sender_email: z.string().email().max(50).optional(),
 })
 
+export const PostAdminPplActiveProfileSchema = z.object({
+  environment: z.enum(["testing", "production"]),
+  confirmed: z.boolean(),
+})
+
 export type PostAdminPplConfigSchemaType = z.infer<
   typeof PostAdminPplConfigSchema
+>
+
+export type PostAdminPplActiveProfileSchemaType = z.infer<
+  typeof PostAdminPplActiveProfileSchema
 >

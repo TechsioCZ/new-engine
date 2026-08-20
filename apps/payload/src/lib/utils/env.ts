@@ -58,6 +58,30 @@ export const resolveEnvLocales = (
   }
 }
 
+export const resolveExactEnvLocales = (
+  envVar: string,
+  expectedLocales: readonly string[]
+): { locales: string[]; defaultLocale: string } => {
+  if (
+    expectedLocales.length === 0 ||
+    new Set(expectedLocales).size !== expectedLocales.length
+  ) {
+    throw new Error("Expected locales must be a non-empty unique list")
+  }
+  const resolved = resolveEnvLocales(envVar, [...expectedLocales])
+  const expected = new Set(expectedLocales)
+  if (
+    resolved.locales.length !== expectedLocales.length ||
+    new Set(resolved.locales).size !== resolved.locales.length ||
+    resolved.locales.some((locale) => !expected.has(locale))
+  ) {
+    throw new Error(
+      `${envVar} must contain exactly these locales: ${expectedLocales.join(",")}`
+    )
+  }
+  return resolved
+}
+
 /** Normalize arbitrary values to a string for SEO field generation. */
 export const getDocString = (value: unknown): string =>
   typeof value === "string" ? value : ""

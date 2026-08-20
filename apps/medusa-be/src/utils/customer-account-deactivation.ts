@@ -1,34 +1,36 @@
 import { generateJwtToken, MedusaError } from "@medusajs/framework/utils"
 import { jwtVerify } from "jose"
+import { buildStorefrontPublicFlowUrl } from "./storefront-public-flow-url"
 
 export const CUSTOMER_ACCOUNT_DEACTIVATION_TOKEN_EXPIRES_IN = "30m"
 export const CUSTOMER_ACCOUNT_DEACTIVATION_TOKEN_PURPOSE =
   "customer-account-deactivation"
 
-const TRAILING_SLASH_REGEX = /\/$/
-
 export type VerifiedCustomerAccountDeactivationToken = {
   customer_id: string
   email?: string
+  sales_channel_id: string
 }
 
-export function buildCustomerAccountDeactivationUrl(token: string) {
-  const storefrontUrl = process.env.STOREFRONT_URL
+export function buildCustomerAccountDeactivationUrl(
+  token: string,
+  storefrontBaseUrl: string,
+  marketCode: unknown
+) {
+  const confirmationUrl = buildStorefrontPublicFlowUrl({
+    marketCode,
+    storefrontBaseUrl,
+    target: { kind: "account", section: "deactivation" },
+  })
+  confirmationUrl.searchParams.set("token", token)
 
-  if (!storefrontUrl) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "STOREFRONT_URL env var is not set — cannot build account deactivation link"
-    )
-  }
-
-  const baseUrl = storefrontUrl.replace(TRAILING_SLASH_REGEX, "")
-  return `${baseUrl}/account/deactivate/confirm?token=${encodeURIComponent(token)}`
+  return confirmationUrl.toString()
 }
 
 export function createCustomerAccountDeactivationToken(input: {
   customer_id: string
   email?: string
+  sales_channel_id: string
 }) {
   const jwtSecret = process.env.JWT_SECRET
 
@@ -44,6 +46,7 @@ export function createCustomerAccountDeactivationToken(input: {
       customer_id: input.customer_id,
       email: input.email,
       purpose: CUSTOMER_ACCOUNT_DEACTIVATION_TOKEN_PURPOSE,
+      sales_channel_id: input.sales_channel_id,
     },
     {
       expiresIn: CUSTOMER_ACCOUNT_DEACTIVATION_TOKEN_EXPIRES_IN,
@@ -77,7 +80,9 @@ export async function verifyCustomerAccountDeactivationToken(
 
   if (
     payload.purpose !== CUSTOMER_ACCOUNT_DEACTIVATION_TOKEN_PURPOSE ||
-    typeof payload.customer_id !== "string"
+    typeof payload.customer_id !== "string" ||
+    typeof payload.sales_channel_id !== "string" ||
+    !payload.sales_channel_id
   ) {
     throw new MedusaError(
       MedusaError.Types.INVALID_DATA,
@@ -88,5 +93,6 @@ export async function verifyCustomerAccountDeactivationToken(
   return {
     customer_id: payload.customer_id,
     email: typeof payload.email === "string" ? payload.email : undefined,
+    sales_channel_id: payload.sales_channel_id,
   }
 }

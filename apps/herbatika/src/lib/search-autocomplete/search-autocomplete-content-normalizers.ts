@@ -1,3 +1,6 @@
+import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projections"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
+import type { Market } from "@/lib/url/types"
 import { normalizeString } from "./search-autocomplete-normalizers"
 import type {
   RawSearchAutocompleteContentHit,
@@ -5,12 +8,26 @@ import type {
 } from "./search-autocomplete-types"
 
 const createContentSuggestion = (
-  hit: RawSearchAutocompleteContentHit
+  hit: RawSearchAutocompleteContentHit,
+  market: Market,
+  publicSlugsByArticleId: PublicEntitySlugMap,
+  publicSlugsByPageId: PublicEntitySlugMap
 ): SearchAutocompleteSuggestion | null => {
   const id = normalizeString(hit.id)
   const title = normalizeString(hit.title)
-  const href = normalizeString(hit.href)
   const type = normalizeString(hit.type)
+  let entityKind: "article" | "page" | null = null
+  if (type === "article" || type === "page") {
+    entityKind = type
+  }
+  const publicSlug = entityKind
+    ? (entityKind === "article" ? publicSlugsByArticleId : publicSlugsByPageId)[
+        id
+      ]
+    : undefined
+  const href = entityKind
+    ? buildProjectedEntityPath(entityKind, { publicSlug }, market)
+    : null
 
   if (!(id && title && href)) {
     return null
@@ -18,6 +35,7 @@ const createContentSuggestion = (
 
   return {
     id,
+    sourceId: id,
     type: "content",
     title,
     href,
@@ -29,8 +47,18 @@ const createContentSuggestion = (
 }
 
 export const createContentSuggestions = (
-  hits: RawSearchAutocompleteContentHit[]
+  hits: RawSearchAutocompleteContentHit[],
+  market: Market,
+  publicSlugsByArticleId: PublicEntitySlugMap,
+  publicSlugsByPageId: PublicEntitySlugMap
 ) =>
   hits
-    .map(createContentSuggestion)
+    .map((hit) =>
+      createContentSuggestion(
+        hit,
+        market,
+        publicSlugsByArticleId,
+        publicSlugsByPageId
+      )
+    )
     .filter((item): item is SearchAutocompleteSuggestion => Boolean(item))

@@ -197,7 +197,7 @@ export function getOrderBusinessPaymentStatus(order: OrderBusinessStatusInput) {
 }
 
 export function isPendingUnpaidOrder(order: OrderBusinessStatusInput) {
-  if (order.status !== "pending") {
+  if (order.status !== "pending" || getManualOrderBusinessStatusId(order)) {
     return false
   }
 

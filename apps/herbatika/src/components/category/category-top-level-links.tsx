@@ -1,9 +1,12 @@
 import type { HttpTypes } from "@medusajs/types"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
-import NextLink from "next/link"
+import { StorefrontLink } from "@/components/storefront-link"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
 
 type CategoryTopLevelLinksProps = {
   topLevelCategories: HttpTypes.StoreProductCategory[]
+  categoryPublicSlugsById?: Readonly<Record<string, string>>
   activeCategoryHandle: string | null
   getCategoryLabel: (category: HttpTypes.StoreProductCategory) => string
   onCategoryBlur: (category: HttpTypes.StoreProductCategory) => void
@@ -14,6 +17,7 @@ type CategoryTopLevelLinksProps = {
 
 export function CategoryTopLevelLinks({
   topLevelCategories,
+  categoryPublicSlugsById = {},
   activeCategoryHandle,
   getCategoryLabel,
   onCategoryBlur,
@@ -21,12 +25,22 @@ export function CategoryTopLevelLinks({
   onCategoryMouseEnter,
   onCategoryMouseLeave,
 }: CategoryTopLevelLinksProps) {
+  const { code: market } = useMarketContext()
+  const projectedCategories = topLevelCategories.flatMap((category) => {
+    const href = buildProjectedEntityPath(
+      "category",
+      { publicSlug: categoryPublicSlugsById[category.id] },
+      market
+    )
+    return href ? [{ category, href }] : []
+  })
+
   return (
     <div className="flex flex-wrap gap-200">
-      {topLevelCategories.map((category) => (
+      {projectedCategories.map(({ category, href }) => (
         <LinkButton
-          as={NextLink}
-          href={`/c/${category.handle}`}
+          as={StorefrontLink}
+          href={href}
           key={category.id}
           onBlur={() => onCategoryBlur(category)}
           onFocus={() => onCategoryFocus(category)}

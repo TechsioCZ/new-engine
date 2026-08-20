@@ -1,4 +1,5 @@
-import "server-only"
+// Pages Router rejects the App-Router-only `server-only` marker. Keep this
+// module reachable only from server entry points.
 
 import { dehydrate } from "@tanstack/react-query"
 import { resolveRelatedCategoryIds } from "../category-tree"
@@ -10,6 +11,7 @@ import {
 import { RELATED_PRODUCTS_LIMIT } from "../related-products-config"
 import { PRODUCT_REVIEWS_PAGE_SIZE } from "../review-query-config"
 import {
+  type ExplicitRequestServerContext,
   getRegionServerContext,
   prefetchProductAttributes,
   prefetchProductDetail,
@@ -19,25 +21,32 @@ import {
 import type { ProductDetailParams } from "./types"
 
 export const prefetchProductDetailPageStorefrontData = async (
-  handle: string
+  handle: string,
+  requestContext: ExplicitRequestServerContext
 ) => {
-  const { queryClient, region } = await getRegionServerContext()
+  const { locale, market, queryClient, region } =
+    await getRegionServerContext(requestContext)
 
   if (region) {
     const detailParams: ProductDetailParams = {
       handle,
       fields: PRODUCT_DETAIL_FIELDS,
+      locale,
       region_id: region.region_id,
       country_code: region.country_code,
     }
 
-    const product = await prefetchProductDetail(queryClient, detailParams)
+    const product = await prefetchProductDetail(
+      market,
+      queryClient,
+      detailParams
+    )
     const relatedCategoryIds = resolveRelatedCategoryIds(product)
 
     if (product?.id) {
       await Promise.all([
-        prefetchProductAttributes(queryClient, product.id),
-        prefetchProductReviews(queryClient, {
+        prefetchProductAttributes(market, queryClient, product.id),
+        prefetchProductReviews(market, queryClient, {
           productId: product.id,
           limit: PRODUCT_REVIEWS_PAGE_SIZE,
           offset: 0,
@@ -52,11 +61,12 @@ export const prefetchProductDetailPageStorefrontData = async (
         category_id: relatedCategoryIds,
         order: "-created_at",
         fields: PRODUCT_CARD_FIELDS,
+        locale,
         region_id: region.region_id,
         country_code: region.country_code,
       })
 
-      await prefetchProductList(queryClient, relatedProductsListParams)
+      await prefetchProductList(market, queryClient, relatedProductsListParams)
     }
   }
 

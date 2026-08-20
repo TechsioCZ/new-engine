@@ -4,7 +4,7 @@ import BrandAttribute from "./brand-attribute"
 const Brand = model
   .define("brand", {
     id: model.id().primaryKey(),
-    title: model.text().searchable(),
+    title: model.text().searchable().translatable(),
     handle: model.text().searchable(),
     gpsr_contact_email: model.text().nullable(),
     gpsr_european_reseller_contact_email: model.text().nullable(),

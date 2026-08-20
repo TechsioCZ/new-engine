@@ -202,6 +202,59 @@ const CmsArticleCategorySchema = passthroughObject({
   ),
 })
 
+const isUnsetCmsHeroButtonTarget = (value: unknown) => {
+  if (!(value && typeof value === "object" && !Array.isArray(value))) {
+    return false
+  }
+
+  const target = value as Record<string, unknown>
+  return [
+    "targetType",
+    "sourceSystem",
+    "sourceType",
+    "sourceId",
+    "staticRouteKey",
+  ].every((key) => target[key] === null || target[key] === undefined)
+}
+
+const CmsHeroButtonTargetSchema = z.preprocess(
+  (value) => (isUnsetCmsHeroButtonTarget(value) ? null : value),
+  z
+    .union([
+      passthroughObject({
+        targetType: z.literal("entity"),
+        sourceSystem: z.literal("medusa"),
+        sourceType: z.enum(["product", "category", "brand", "collection"]),
+        sourceId: z.string().trim().min(1),
+        staticRouteKey: z.null().optional(),
+      }),
+      passthroughObject({
+        targetType: z.literal("entity"),
+        sourceSystem: z.literal("payload"),
+        sourceType: z.enum(["article", "page"]),
+        sourceId: z.string().trim().min(1),
+        staticRouteKey: z.null().optional(),
+      }),
+      passthroughObject({
+        targetType: z.literal("static"),
+        sourceSystem: z.null().optional(),
+        sourceType: z.null().optional(),
+        sourceId: z.null().optional(),
+        staticRouteKey: z.enum([
+          "root:about",
+          "root:contact",
+          "root:faq",
+          "root:shipping",
+          "root:returns",
+          "root:terms",
+          "root:privacy",
+          "root:cookies",
+        ]),
+      }),
+    ])
+    .nullable()
+)
+
 const CmsHeroCarouselSchema = passthroughObject({
   id: z.number(),
   image: z.unknown(),
@@ -209,8 +262,123 @@ const CmsHeroCarouselSchema = passthroughObject({
   subheading: z.string().nullable().optional(),
   button: z.string().nullable().optional(),
   buttonHref: z.string().nullable().optional(),
+  buttonTarget: CmsHeroButtonTargetSchema.optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
+})
+
+const CMS_FOOTER_COLUMN_SLOTS = [
+  "information",
+  "important",
+  "partners",
+] as const
+
+const CMS_FOOTER_ITEM_SLOTS = [
+  "blog",
+  "about",
+  "faq",
+  "gift_voucher",
+  "brands",
+  "reviews",
+  "shipping_payment",
+  "claims_returns",
+  "terms",
+  "privacy",
+  "cookies",
+  "affiliate",
+  "wholesale",
+  "dropshipping",
+  "private_label",
+] as const
+
+const CmsFooterColumnSlotSchema = z.enum(CMS_FOOTER_COLUMN_SLOTS)
+const CmsFooterItemSlotSchema = z.enum(CMS_FOOTER_ITEM_SLOTS)
+
+const CmsFooterPageReferenceSchema = passthroughObject({
+  id: CmsDocumentIdSchema,
+  slug: z.string().nullable().optional(),
+  title: z.string().nullable().optional(),
+  status: CmsStatusSchema.optional(),
+  visibility: CmsVisibilitySchema.optional(),
+})
+
+const CmsFooterCmsPageLinkSchema = passthroughObject({
+  blockType: z.literal("cmsPageLink"),
+  blockName: z.string().nullable().optional(),
+  id: z.string().nullable().optional(),
+  slot: CmsFooterItemSlotSchema,
+  page: z
+    .union([CmsDocumentIdSchema, CmsFooterPageReferenceSchema])
+    .nullable()
+    .optional(),
+})
+
+const isInternalPath = (path: string) =>
+  path.startsWith("/") && !path.startsWith("//") && !path.includes("\\")
+
+const isHttpUrl = (value: string) => {
+  try {
+    const protocol = new URL(value).protocol
+    return protocol === "http:" || protocol === "https:"
+  } catch {
+    return false
+  }
+}
+
+const CmsFooterAppRouteLinkSchema = passthroughObject({
+  blockType: z.literal("appRouteLink"),
+  blockName: z.string().nullable().optional(),
+  id: z.string().nullable().optional(),
+  slot: CmsFooterItemSlotSchema,
+  path: z.string().trim().refine(isInternalPath),
+})
+
+const CmsFooterExternalLinkSchema = passthroughObject({
+  blockType: z.literal("externalLink"),
+  blockName: z.string().nullable().optional(),
+  id: z.string().nullable().optional(),
+  slot: CmsFooterItemSlotSchema,
+  url: z.string().trim().url().refine(isHttpUrl),
+  newTab: z.boolean().nullable().optional(),
+})
+
+const CmsFooterNavigationItemSchema = z.discriminatedUnion("blockType", [
+  CmsFooterCmsPageLinkSchema,
+  CmsFooterAppRouteLinkSchema,
+  CmsFooterExternalLinkSchema,
+])
+
+const CmsFooterNavigationGlobalSchema = passthroughObject({
+  id: CmsDocumentIdSchema.optional(),
+  columns: z
+    .array(
+      passthroughObject({
+        id: z.string().nullable().optional(),
+        slot: CmsFooterColumnSlotSchema,
+        items: z.array(CmsFooterNavigationItemSchema).nullable().optional(),
+      })
+    )
+    .nullable()
+    .optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+  globalType: z.literal("footer-navigation").optional(),
+})
+
+const CmsStoreFooterNavigationItemSchema = z.object({
+  slot: CmsFooterItemSlotSchema,
+  href: z.string(),
+  type: z.enum(["internal", "external"]),
+  newTab: z.boolean().optional(),
+})
+
+const CmsStoreFooterNavigationSchema = z.object({
+  columns: z.array(
+    z.object({
+      slot: CmsFooterColumnSlotSchema,
+      items: z.array(CmsStoreFooterNavigationItemSchema),
+    })
+  ),
 })
 
 const createPayloadBulkResultSchema = <T extends z.ZodTypeAny>(docSchema: T) =>
@@ -261,6 +429,8 @@ const CmsCategoryListOptionsSchema = z.object({
 })
 
 export {
+  CMS_FOOTER_COLUMN_SLOTS,
+  CMS_FOOTER_ITEM_SLOTS,
   CmsVisibilitySchema,
   CmsStatusSchema,
   CmsSeoSchema,
@@ -276,7 +446,15 @@ export {
   CmsPageCategorySchema,
   CmsArticleSchema,
   CmsArticleCategorySchema,
+  CmsHeroButtonTargetSchema,
   CmsHeroCarouselSchema,
+  CmsFooterColumnSlotSchema,
+  CmsFooterItemSlotSchema,
+  CmsFooterPageReferenceSchema,
+  CmsFooterNavigationItemSchema,
+  CmsFooterNavigationGlobalSchema,
+  CmsStoreFooterNavigationItemSchema,
+  CmsStoreFooterNavigationSchema,
   CmsPagesBulkResultSchema,
   CmsArticlesBulkResultSchema,
   CmsHeroCarouselsBulkResultSchema,

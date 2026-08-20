@@ -2,27 +2,42 @@ import type { HttpTypes } from "@medusajs/types"
 import { FALLBACK_IMAGE_SRC } from "@/components/fallback-image.constants"
 import { asFiniteNumber } from "@/lib/storefront/cart-calculations"
 import { resolveDefaultStockInventoryQuantity } from "@/lib/storefront/default-stock-availability"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
+import type { Market } from "@/lib/url/types"
 
 export const FALLBACK_MAX_QUANTITY = 99
 
-export const resolveLineItemProductHandle = (
-  item: HttpTypes.StoreCartLineItem
-) => {
-  const itemRecord = item as unknown as Record<string, unknown>
-  return typeof itemRecord.product_handle === "string"
-    ? itemRecord.product_handle
-    : null
-}
-
-export const resolveLineItemHref = (item: HttpTypes.StoreCartLineItem) => {
-  const productHandle = resolveLineItemProductHandle(item)
-
-  if (productHandle) {
-    return `/p/${productHandle}`
+const readPublicSlugProjection = (source: unknown) => {
+  if (!(source && typeof source === "object" && !Array.isArray(source))) {
+    return
   }
 
-  return "/checkout/kosik"
+  const record = source as Record<string, unknown>
+  if (typeof record.publicSlug === "string") {
+    return { publicSlug: record.publicSlug }
+  }
+
+  const metadata = record.metadata
+  if (metadata && typeof metadata === "object" && !Array.isArray(metadata)) {
+    const publicSlug = (metadata as Record<string, unknown>).publicSlug
+    if (typeof publicSlug === "string") {
+      return { publicSlug }
+    }
+  }
+
+  return
 }
+
+export const resolveLineItemHref = (
+  item: HttpTypes.StoreCartLineItem,
+  market: Market,
+  product?: HttpTypes.StoreProduct | null
+) =>
+  buildProjectedEntityPath(
+    "product",
+    readPublicSlugProjection(product) ?? readPublicSlugProjection(item),
+    market
+  )
 
 export const resolveLineItemInventory = (item: HttpTypes.StoreCartLineItem) => {
   const itemRecord = item as unknown as Record<string, unknown>

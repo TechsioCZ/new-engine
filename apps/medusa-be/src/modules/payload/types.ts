@@ -3,6 +3,10 @@ import type {
   CmsArticleCategorySchema,
   CmsArticleSchema,
   CmsCategoryListOptionsSchema,
+  CmsFooterColumnSlotSchema,
+  CmsFooterItemSlotSchema,
+  CmsFooterNavigationGlobalSchema,
+  CmsFooterNavigationItemSchema,
   CmsHeroCarouselSchema,
   CmsLexicalContentSchema,
   CmsListOptionsSchema,
@@ -11,6 +15,8 @@ import type {
   CmsProductReferenceSchema,
   CmsSeoSchema,
   CmsStatusSchema,
+  CmsStoreFooterNavigationItemSchema,
+  CmsStoreFooterNavigationSchema,
   CmsVisibilitySchema,
 } from "./schemas"
 
@@ -48,6 +54,20 @@ export type CmsArticleContentSegment =
     }
 export type CmsArticleCategoryDTO = z.infer<typeof CmsArticleCategorySchema>
 export type CmsHeroCarouselDTO = z.infer<typeof CmsHeroCarouselSchema>
+export type CmsFooterColumnSlot = z.infer<typeof CmsFooterColumnSlotSchema>
+export type CmsFooterItemSlot = z.infer<typeof CmsFooterItemSlotSchema>
+export type CmsFooterNavigationItemDTO = z.infer<
+  typeof CmsFooterNavigationItemSchema
+>
+export type CmsFooterNavigationGlobalDTO = z.infer<
+  typeof CmsFooterNavigationGlobalSchema
+>
+export type CmsStoreFooterNavigationItemDTO = z.infer<
+  typeof CmsStoreFooterNavigationItemSchema
+>
+export type CmsStoreFooterNavigationDTO = z.infer<
+  typeof CmsStoreFooterNavigationSchema
+>
 export type CmsListOptions = z.infer<typeof CmsListOptionsSchema>
 export type CmsCategoryListOptions = z.infer<
   typeof CmsCategoryListOptionsSchema
@@ -62,7 +82,7 @@ export type PayloadQueryOptions = {
   select?: Record<string, boolean>
   populate?: Record<string, Record<string, boolean>>
   locale?: string
-  "fallback-locale"?: "false"
+  "fallback-locale"?: "false" | "none"
   depth?: number
 }
 

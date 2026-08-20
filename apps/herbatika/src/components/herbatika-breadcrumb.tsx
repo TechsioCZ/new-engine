@@ -2,19 +2,22 @@
 
 import type { IconType } from "@techsio/ui-kit/atoms/icon"
 import { Breadcrumb } from "@techsio/ui-kit/molecules/breadcrumb"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { type ComponentPropsWithoutRef, Fragment } from "react"
+import { StorefrontLink } from "@/components/storefront-link"
 
-type NextLinkProps = ComponentPropsWithoutRef<typeof NextLink>
+type StorefrontLinkProps = ComponentPropsWithoutRef<typeof StorefrontLink>
 
 export type HerbatikaBreadcrumbItem = {
   label: string
-  href?: NextLinkProps["href"]
+  href?: StorefrontLinkProps["href"]
   icon?: IconType
   isCurrent?: boolean
   ariaLabel?: string
-  linkProps?: Omit<NextLinkProps, "as" | "children" | "className" | "href">
+  linkProps?: Omit<
+    StorefrontLinkProps,
+    "as" | "children" | "className" | "href"
+  >
 }
 
 export type HerbatikaBreadcrumbProps = Omit<
@@ -63,28 +66,33 @@ export function HerbatikaBreadcrumb({
           const isCurrentPage = hasExplicitCurrent
             ? item.isCurrent === true
             : isLastItem
+          let itemContent = <BreadcrumbItemContent item={item} />
+
+          if (isCurrentPage) {
+            itemContent = (
+              <Breadcrumb.CurrentLink
+                aria-label={item.ariaLabel}
+                className="font-bold"
+              >
+                <BreadcrumbItemContent item={item} />
+              </Breadcrumb.CurrentLink>
+            )
+          } else if (item.href) {
+            itemContent = (
+              <Breadcrumb.Link
+                aria-label={item.ariaLabel}
+                as={StorefrontLink}
+                href={item.href}
+                {...item.linkProps}
+              >
+                <BreadcrumbItemContent item={item} />
+              </Breadcrumb.Link>
+            )
+          }
 
           return (
             <Fragment key={getBreadcrumbItemKey(item, index)}>
-              <Breadcrumb.Item>
-                {isCurrentPage ? (
-                  <Breadcrumb.CurrentLink
-                    aria-label={item.ariaLabel}
-                    className="font-bold"
-                  >
-                    <BreadcrumbItemContent item={item} />
-                  </Breadcrumb.CurrentLink>
-                ) : (
-                  <Breadcrumb.Link
-                    aria-label={item.ariaLabel}
-                    as={NextLink}
-                    href={item.href ?? "#"}
-                    {...item.linkProps}
-                  >
-                    <BreadcrumbItemContent item={item} />
-                  </Breadcrumb.Link>
-                )}
-              </Breadcrumb.Item>
+              <Breadcrumb.Item>{itemContent}</Breadcrumb.Item>
 
               {isLastItem ? null : <Breadcrumb.Separator />}
             </Fragment>

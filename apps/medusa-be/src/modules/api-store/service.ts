@@ -1,5 +1,10 @@
 import type { Context } from "@medusajs/framework/types"
-import { MedusaError, MedusaService } from "@medusajs/framework/utils"
+import {
+  InjectManager,
+  MedusaContext,
+  MedusaError,
+  MedusaService,
+} from "@medusajs/framework/utils"
 import { encryptFields } from "../../utils/encryption"
 import {
   assertApiStoreHasSecret,
@@ -76,6 +81,15 @@ class ApiStoreModuleService extends MedusaService({
       return null
     }
 
+    return toApiStoreSecretDTO(record)
+  }
+
+  @InjectManager()
+  async retrieveApiStoreSecrets(
+    id: string,
+    @MedusaContext() sharedContext?: Context
+  ): Promise<ApiStoreSecretDTO> {
+    const record = await this.retrieveApiStore(id, {}, sharedContext)
     return toApiStoreSecretDTO(record)
   }
 

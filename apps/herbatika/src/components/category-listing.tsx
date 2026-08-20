@@ -7,12 +7,15 @@ import { normalizeCategoryName } from "@/components/category/category-product-ut
 import { CategoryResultsSection } from "@/components/category/category-results-section"
 import { CategoryRichText } from "@/components/category/category-rich-text"
 import { useCategoryListingController } from "@/components/category/use-category-listing-controller"
-import { PRIMARY_NAV_ITEMS } from "@/components/header/herbatika-header.navigation"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
 
 type CategoryListingProps = {
+  categoryPublicSlugsById?: Readonly<Record<string, string>>
+  productPublicSlugsById?: Readonly<Record<string, string>>
   slug: string
 }
 
@@ -29,8 +32,26 @@ const humanizeCategorySlug = (value: string) =>
     })
     .join(" ")
 
-export function CategoryListing({ slug }: CategoryListingProps) {
-  const controller = useCategoryListingController({ slug })
+export function CategoryListing({
+  categoryPublicSlugsById,
+  productPublicSlugsById,
+  slug,
+}: CategoryListingProps) {
+  const controller = useCategoryListingController({
+    categoryPublicSlugsById,
+    productPublicSlugsById,
+    slug,
+  })
+  const { code: market } = useMarketContext()
+  const paginationBasePath = buildProjectedEntityPath(
+    "category",
+    {
+      publicSlug: controller.activeCategory?.id
+        ? categoryPublicSlugsById?.[controller.activeCategory.id]
+        : undefined,
+    },
+    market
+  )
   const hasResultProducts = controller.products.length > 0
   const isResultsLoading =
     controller.categoriesQuery.isLoading ||
@@ -38,9 +59,7 @@ export function CategoryListing({ slug }: CategoryListingProps) {
   const isResultsRefreshing =
     controller.catalogQuery.isFetching &&
     (hasResultProducts || controller.catalogQuery.query.isPlaceholderData)
-  const fallbackNavTitle =
-    PRIMARY_NAV_ITEMS.find((item) => item.href === `/c/${slug}`)?.label ??
-    humanizeCategorySlug(slug)
+  const fallbackNavTitle = humanizeCategorySlug(slug)
   const categoryTitle = normalizeCategoryName(
     controller.activeCategory?.name ?? fallbackNavTitle
   )
@@ -96,6 +115,8 @@ export function CategoryListing({ slug }: CategoryListingProps) {
             onSortChange={controller.onSortChange}
             page={controller.page}
             pageSize={PLP_PAGE_SIZE}
+            paginationBasePath={paginationBasePath}
+            productPublicSlugsById={controller.productPublicSlugsById}
             products={controller.products}
             showCategoryNotFound={controller.showCategoryNotFound}
             totalCount={controller.catalogQuery.totalCount}

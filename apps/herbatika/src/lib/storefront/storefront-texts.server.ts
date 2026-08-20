@@ -1,13 +1,16 @@
-import "server-only"
+// Pages Router rejects the App-Router-only `server-only` marker. Keep this
+// module reachable only from server entry points.
 
 import { loadMedusaStorefrontMessages } from "@techsio/storefront-i18n/medusa/messages"
 import type { HerbatikaMarketContext } from "./market-context"
-import { storefrontSdk } from "./sdk"
+import { getMarketStorefrontSdk } from "./market-sdk.server"
 
-export const fetchStorefrontTextMessages = async (
+export const fetchStorefrontTextMessages = (
   marketContext: HerbatikaMarketContext
-) =>
-  loadMedusaStorefrontMessages(storefrontSdk.client, {
+) => {
+  const { sdk } = getMarketStorefrontSdk(marketContext.code)
+  return loadMedusaStorefrontMessages(sdk.client, {
     locale: marketContext.locale,
     market: marketContext.code,
   })
+}

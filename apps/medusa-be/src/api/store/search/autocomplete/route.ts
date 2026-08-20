@@ -92,6 +92,17 @@ const getStringId = (value: unknown): string | undefined => {
   return
 }
 
+const hasCompletePricingContext = (
+  value: unknown
+): value is Record<string, unknown> => {
+  if (!(value && typeof value === "object" && !Array.isArray(value))) {
+    return false
+  }
+
+  const regionId = (value as Record<string, unknown>).region_id
+  return typeof regionId === "string" && Boolean(regionId.trim())
+}
+
 const deduplicateHits = (
   hits: unknown[] | undefined,
   field: string
@@ -143,7 +154,7 @@ export async function GET(
   try {
     profile = resolveSearchProfile(
       {
-        locale: request.validatedQuery.locale,
+        locale: request.locale ?? request.validatedQuery.locale,
         requestedKey: request.validatedQuery.profile,
         salesChannelIds,
       },
@@ -247,7 +258,7 @@ export async function GET(
   const remoteQuery = request.scope.resolve(
     ContainerRegistrationKeys.REMOTE_QUERY
   )
-  const pricingContext = request.pricingContext
+  const pricingContext = hasCompletePricingContext(request.pricingContext)
     ? QueryContext(request.pricingContext)
     : undefined
   const productFields = pricingContext
@@ -261,62 +272,75 @@ export async function GET(
   let products: Record<string, unknown>[] = []
 
   if (productIds.length > 0) {
-    const result = await queryService.graph({
-      entity: "product",
-      fields: productFields,
-      filters: await normalizeProductSalesChannelFilter(
-        queryService,
-        remoteQuery,
-        {
-          id: { $in: productIds },
-          sales_channel_id: request.filterableFields.sales_channel_id,
-          status: ProductStatus.PUBLISHED,
-        }
-      ),
-      context: pricingContext
-        ? { variants: { calculated_price: pricingContext } }
-        : undefined,
-    })
+    const result = await queryService.graph(
+      {
+        entity: "product",
+        fields: productFields,
+        filters: await normalizeProductSalesChannelFilter(
+          queryService,
+          remoteQuery,
+          {
+            id: { $in: productIds },
+            sales_channel_id: request.filterableFields.sales_channel_id,
+            status: ProductStatus.PUBLISHED,
+          }
+        ),
+        context: pricingContext
+          ? { variants: { calculated_price: pricingContext } }
+          : undefined,
+      },
+      { locale: request.locale }
+    )
 
     products = expandProductsBySearchMatches(
       result.data as Record<string, unknown>[],
       productMatches
     )
   } else if (!productSearch) {
-    const result = await queryService.graph({
-      entity: "product",
-      fields: productFields,
-      filters: await normalizeProductSalesChannelFilter(
-        queryService,
-        remoteQuery,
-        {
-          q: query,
-          sales_channel_id: request.filterableFields.sales_channel_id,
-          status: ProductStatus.PUBLISHED,
-        }
-      ),
-
-      pagination: {
-        take: productResultLimit,
-        skip: 0,
-      },
-
-      context: pricingContext
-        ? {
-            variants: {
-              calculated_price: pricingContext,
-            },
+    const result = await queryService.graph(
+      {
+        entity: "product",
+        fields: productFields,
+        filters: await normalizeProductSalesChannelFilter(
+          queryService,
+          remoteQuery,
+          {
+            q: query,
+            sales_channel_id: request.filterableFields.sales_channel_id,
+            status: ProductStatus.PUBLISHED,
           }
-        : undefined,
-    })
+        ),
+
+        pagination: {
+          take: productResultLimit,
+          skip: 0,
+        },
+
+        context: pricingContext
+          ? {
+              variants: {
+                calculated_price: pricingContext,
+              },
+            }
+          : undefined,
+      },
+      { locale: request.locale }
+    )
 
     products = result.data as Record<string, unknown>[]
   }
 
-  await wrapProductsWithTaxPrices(
-    request,
-    products as unknown as Parameters<typeof wrapProductsWithTaxPrices>[1]
-  )
+  // Storefront autocomplete is also called before the browser has selected a
+  // region. In that case the request has no complete pricing context and the
+  // Medusa tax-price helper throws instead of returning unpriced suggestions.
+  // The query above deliberately omits pricing fields in the same branch, so
+  // only enrich results when a complete pricing context exists.
+  if (pricingContext) {
+    await wrapProductsWithTaxPrices(
+      request,
+      products as unknown as Parameters<typeof wrapProductsWithTaxPrices>[1]
+    )
+  }
 
   degraded ||= [categorySearch, brandSearch, contentSearch].some(
     (result) => result === null

@@ -1,5 +1,6 @@
 import type { NextResponse } from "next/server"
 import { normalizeCountryCode } from "@/lib/forms/country-options"
+import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
 import {
   badRequest,
   buildErrorResponse,
@@ -111,10 +112,12 @@ const createCompanyAddressLine = ({
   [address1, address2].filter(Boolean).join(", ")
 
 export const createWholesaleCompanyRequest = async ({
+  binding,
   email,
   token,
   wholesale,
 }: {
+  binding: MarketRuntimeBinding
   email: string
   token: string
   wholesale: ParsedWholesaleRegistration
@@ -124,7 +127,7 @@ export const createWholesaleCompanyRequest = async ({
     headers: {
       "content-type": "application/json",
       authorization: `Bearer ${token}`,
-      ...getPublishableHeaders(),
+      ...getPublishableHeaders(binding),
     },
     body: JSON.stringify({
       name: wholesale.companyName,

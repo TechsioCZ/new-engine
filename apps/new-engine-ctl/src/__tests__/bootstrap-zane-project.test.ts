@@ -21,6 +21,9 @@ const publicDomain = "example.test"
 const publicUrlAffix = "-deploy"
 const medusaBePublicOrigin = `https://${projectSlug}-medusa-be${publicUrlAffix}.${publicDomain}`
 const herbatikaPublicOrigin = `https://${projectSlug}-herbatika${publicUrlAffix}.${publicDomain}`
+const minioPublicOrigin = `https://${projectSlug}-medusa-minio${publicUrlAffix}.${publicDomain}`
+const herbatikaRomanianTestOrigin =
+  "https://test-engine-herbatika-ro-zane.web-revolution.cz"
 
 const serviceSlugs = [
   "medusa-db",
@@ -45,8 +48,6 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     "DC_ZANE_OPERATOR_DB_PREVIEW_APP_PASSWORD_SECRET",
     "preview-password-secret"
   )
-  vi.stubEnv("DC_STOREFRONT_URL", "https://storefront.example.test")
-  vi.stubEnv("DC_STORE_NAME", "Herbatika")
   vi.stubEnv(
     "DC_STORE_CORS",
     "http://localhost:3001,https://storefront.example.test/"
@@ -63,8 +64,6 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     "https://assets.example.test/reviews.xml"
   )
   vi.stubEnv("DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY", "")
-  vi.stubEnv("DC_MEDUSA_BE_RESEND_FROM_EMAIL", "")
-  vi.stubEnv("DC_RESEND_FROM_EMAIL", "noreply@example.test")
 
   const temporaryDirectory = await mkdtemp(
     join(tmpdir(), "new-engine-zane-project-")
@@ -115,6 +114,12 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     })
 
     expect(plan.status).toBe("ready")
+    expect(plan.shared_env_cleanup_keys).toEqual(
+      expect.arrayContaining([
+        "URL_PRODUCT_RESOLVER_ENABLED",
+        "URL_ARCHITECTURE_M00_ENABLED",
+      ])
+    )
     expect(plan.services.map((service) => service.service_id)).toEqual(
       serviceSlugs
     )
@@ -174,6 +179,16 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     expect(n1?.desired_env).not.toHaveProperty(
       "NEXT_PUBLIC_MEILISEARCH_API_KEY"
     )
+    expect(n1?.desired_env).not.toHaveProperty("RESEND_API_KEY")
+    expect(n1?.desired_env).not.toHaveProperty("CONTACT_EMAIL")
+    expect(n1?.desired_env).not.toHaveProperty("RESEND_FROM_EMAIL")
+    expect(n1?.cleanup_env_keys).toEqual(
+      expect.arrayContaining([
+        "RESEND_API_KEY",
+        "CONTACT_EMAIL",
+        "RESEND_FROM_EMAIL",
+      ])
+    )
     expect(n1?.cleanup_env_keys).not.toEqual(
       expect.arrayContaining([
         "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
@@ -185,30 +200,129 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
       (service) => service.service_id === "medusa-be"
     )
     expect(medusa?.desired_env).toMatchObject({
-      STOREFRONT_URL: "https://storefront.example.test",
-      STORE_NAME: "Herbatika",
-      STORE_CORS: `http://localhost:3001,https://storefront.example.test,${herbatikaPublicOrigin}`,
+      STORE_CORS: `http://localhost:3001,https://storefront.example.test,${herbatikaPublicOrigin},${herbatikaRomanianTestOrigin}`,
       ADMIN_CORS: `http://localhost:5173,${medusaBePublicOrigin}`,
-      AUTH_CORS: `http://127.0.0.1:3001,${medusaBePublicOrigin}`,
+      AUTH_CORS: `http://127.0.0.1:3001,${medusaBePublicOrigin},${herbatikaRomanianTestOrigin}`,
       FEATURE_PAYMENT_QR_ENABLED: "1",
       GOPAY_WEBHOOK_URL: `${medusaBePublicOrigin}/hooks/payment/paykit_gopay`,
       HERBATICA_REVIEWS_XML_PATH: "https://assets.example.test/reviews.xml",
-      RESEND_FROM_EMAIL: "noreply@example.test",
+      MINIO_FILE_URL: `${minioPublicOrigin}/{{env.MEDUSA_MINIO_BUCKET}}`,
+      URL_REGISTRY_CONTENT_PROJECTION_ENABLED:
+        "{{env.URL_REGISTRY_CONTENT_PROJECTION_ENABLED}}",
+      URL_REGISTRY_CONTENT_PROJECTION_TOKEN:
+        "{{env.URL_REGISTRY_CONTENT_PROJECTION_TOKEN}}",
+      URL_REGISTRY_CONTENT_PROJECTION_URL:
+        "{{env.URL_REGISTRY_CONTENT_PROJECTION_URL}}",
+      URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN:
+        "{{env.URL_REGISTRY_HERBATIKA_INTERNAL_ORIGIN}}",
+      URL_REGISTRY_PRODUCT_LIFECYCLE_DISPATCH_SCHEDULE:
+        "{{env.URL_REGISTRY_PRODUCT_LIFECYCLE_DISPATCH_SCHEDULE}}",
+      URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED:
+        "{{env.URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED}}",
+      URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN:
+        "{{env.URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN}}",
     })
     expect(medusa?.desired_env).toHaveProperty(
       "WORKFLOW_QUEUE_RUNNER_BATCH_SIZE"
     )
     expect(medusa?.desired_env).toHaveProperty("SENTRY_TRACES_SAMPLE_RATE")
     expect(medusa?.desired_env).not.toHaveProperty("MEILISEARCH_API_KEY")
+    expect(medusa?.desired_env).not.toHaveProperty("RESEND_API_KEY")
+    expect(medusa?.desired_env).not.toHaveProperty("RESEND_FROM_EMAIL")
+    expect(medusa?.desired_env).not.toHaveProperty("RESEND_WEBHOOK_SECRET")
+    expect(medusa?.desired_env).not.toHaveProperty("STOREFRONT_URL")
+    expect(medusa?.desired_env).not.toHaveProperty("STORE_NAME")
+    expect(medusa?.desired_env).not.toHaveProperty(
+      "PRODUCT_REVIEW_REQUEST_MESSAGE"
+    )
+    expect(medusa?.cleanup_env_keys).toEqual(
+      expect.arrayContaining([
+        "RESEND_API_KEY",
+        "RESEND_FROM_EMAIL",
+        "RESEND_WEBHOOK_SECRET",
+        "DC_STOREFRONT_URL",
+        "DC_STORE_NAME",
+        "DC_PRODUCT_REVIEW_REQUEST_MESSAGE",
+      ])
+    )
+
+    const minio = plan.services.find(
+      (service) => service.service_id === "medusa-minio"
+    )
+    expect(minio?.desired_urls).toEqual([
+      {
+        associated_port: 9004,
+        base_path: "/",
+        domain: `${projectSlug}-medusa-minio${publicUrlAffix}.${publicDomain}`,
+        strip_prefix: true,
+      },
+    ])
+
+    const payload = plan.services.find(
+      (service) => service.service_id === "payload"
+    )
+    expect(payload?.desired_env).toMatchObject({
+      PAYLOAD_LOCALES: "cs,sk,hu,ro",
+    })
 
     const herbatika = plan.services.find(
       (service) => service.service_id === "herbatika"
     )
-    expect(herbatika?.desired_env).toMatchObject({
-      NEXT_PUBLIC_PPL_WIDGET_API_KEY: "",
-    })
+    expect(herbatika?.desired_urls).toEqual([
+      {
+        associated_port: 3000,
+        base_path: "/",
+        domain: `${projectSlug}-herbatika${publicUrlAffix}.${publicDomain}`,
+        strip_prefix: true,
+      },
+      {
+        associated_port: 3000,
+        base_path: "/",
+        domain: "test-engine-herbatika-ro-zane.web-revolution.cz",
+        strip_prefix: true,
+      },
+    ])
+    expect(herbatika?.desired_env).not.toHaveProperty(
+      "NEXT_PUBLIC_PPL_WIDGET_API_KEY"
+    )
     expect(herbatika?.desired_env).not.toHaveProperty(
       "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY"
+    )
+    expect(herbatika?.desired_env).toMatchObject({
+      ALLOWED_MARKETS: "{{env.ALLOWED_MARKETS}}",
+      HERBATIKA_CMS_STATIC_PAGE_IDS: "{{env.HERBATIKA_CMS_STATIC_PAGE_IDS}}",
+      HERBATIKA_ACCEPTED_HOSTS_RO: "{{env.HERBATIKA_ACCEPTED_HOSTS_RO}}",
+      MARKET_ACCEPTED_HOSTS_SK: "{{env.MARKET_ACCEPTED_HOSTS_SK}}",
+      MARKET_ACCEPTED_HOSTS_CZ: "{{env.MARKET_ACCEPTED_HOSTS_CZ}}",
+      MARKET_ACCEPTED_HOSTS_HU: "{{env.MARKET_ACCEPTED_HOSTS_HU}}",
+      MARKET_ACCEPTED_HOSTS_RO: "{{env.MARKET_ACCEPTED_HOSTS_RO}}",
+      NEXT_PUBLIC_MINIO_FILE_URL: minioPublicOrigin,
+      URL_ARCHITECTURE_ENABLED: "{{env.URL_ARCHITECTURE_ENABLED}}",
+      URL_REGISTRY_COMMANDS_ENABLED: "{{env.URL_REGISTRY_COMMANDS_ENABLED}}",
+      URL_REGISTRY_CONTENT_PROJECTION_ENABLED:
+        "{{env.URL_REGISTRY_CONTENT_PROJECTION_ENABLED}}",
+      URL_REGISTRY_CONTENT_PROJECTION_TOKEN:
+        "{{env.URL_REGISTRY_CONTENT_PROJECTION_TOKEN}}",
+      URL_REGISTRY_DATABASE_URL: "{{env.URL_REGISTRY_DATABASE_URL}}",
+      URL_REGISTRY_ENABLED: "{{env.URL_REGISTRY_ENABLED}}",
+      URL_REGISTRY_INVALIDATION_ENABLED:
+        "{{env.URL_REGISTRY_INVALIDATION_ENABLED}}",
+      URL_REGISTRY_INVALIDATION_DISPATCH_ENABLED:
+        "{{env.URL_REGISTRY_INVALIDATION_DISPATCH_ENABLED}}",
+      URL_REGISTRY_INVALIDATION_DISPATCH_ORIGIN:
+        "{{env.URL_REGISTRY_INVALIDATION_DISPATCH_ORIGIN}}",
+      URL_REGISTRY_INVALIDATION_TOKEN:
+        "{{env.URL_REGISTRY_INVALIDATION_TOKEN}}",
+      URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED:
+        "{{env.URL_REGISTRY_PRODUCT_LIFECYCLE_ENABLED}}",
+      URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN:
+        "{{env.URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN}}",
+    })
+    expect(herbatika?.desired_env).not.toHaveProperty(
+      "URL_PRODUCT_RESOLVER_ENABLED"
+    )
+    expect(herbatika?.desired_env).not.toHaveProperty(
+      "URL_ARCHITECTURE_M00_ENABLED"
     )
     expect(herbatika?.desired_env).not.toHaveProperty("MEILISEARCH_HOST")
     expect(herbatika?.desired_env).not.toHaveProperty(
@@ -221,6 +335,8 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
         "MEILISEARCH_PRODUCTS_INDEX",
         "MEILISEARCH_CATEGORIES_INDEX",
         "MEILISEARCH_PRODUCERS_INDEX",
+        "URL_PRODUCT_RESOLVER_ENABLED",
+        "URL_ARCHITECTURE_M00_ENABLED",
       ])
     )
 
@@ -235,6 +351,13 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     if (!(composeMedusaEnv && composeHerbatikaEnv)) {
       throw new Error("Compose storefront/backend environments are missing.")
     }
+
+    expect(composeHerbatikaEnv).not.toHaveProperty(
+      "URL_PRODUCT_RESOLVER_ENABLED"
+    )
+    expect(composeHerbatikaEnv).not.toHaveProperty(
+      "URL_ARCHITECTURE_M00_ENABLED"
+    )
 
     const missingMedusaEnvKeys = Object.keys(composeMedusaEnv).filter(
       (key) =>

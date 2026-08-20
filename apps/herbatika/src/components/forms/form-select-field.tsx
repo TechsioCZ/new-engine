@@ -1,5 +1,6 @@
 "use client"
 
+import { useStore } from "@tanstack/react-form"
 import {
   Select,
   type SelectItem,
@@ -35,10 +36,14 @@ export function FormSelectField({
   validationMode = "blur",
 }: FormSelectFieldProps) {
   const field = useFieldContext<string>()
+  const submissionAttempts = useStore(
+    field.form.store,
+    (state) => state.submissionAttempts
+  )
   const value = typeof field.state.value === "string" ? field.state.value : ""
   const fieldFeedback = resolveVisibleFieldFeedback({
     meta: field.state.meta,
-    submissionAttempts: field.form.state.submissionAttempts,
+    submissionAttempts,
     validationMode,
   })
 

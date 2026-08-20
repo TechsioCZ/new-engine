@@ -464,8 +464,11 @@ const PacketaSettingsPage = () => {
     <Container className="divide-y p-0">
       <div className="px-6 py-4">
         <Heading level="h1">Packeta Configuration</Heading>
-        <div className="mt-4 flex items-end justify-between gap-4">
-          <div className="flex w-full max-w-xs flex-col gap-2">
+      </div>
+
+      <div className="px-6 py-4">
+        <div className="flex items-end justify-between gap-4">
+          <div className="flex w-full max-w-md flex-col gap-2">
             <Label htmlFor="packeta-profile">Configuration profile</Label>
             <Select
               onValueChange={(value) =>
@@ -477,34 +480,28 @@ const PacketaSettingsPage = () => {
                 <Select.Value />
               </Select.Trigger>
               <Select.Content>
-                <Select.Item value="testing">
-                  Testing
-                  {data?.active_environment === "testing" ? " (active)" : ""}
-                </Select.Item>
-                <Select.Item value="production">
-                  Production
-                  {data?.active_environment === "production" ? " (active)" : ""}
-                </Select.Item>
+                <Select.Item value="testing">Testing</Select.Item>
+                <Select.Item value="production">Production</Select.Item>
               </Select.Content>
             </Select>
           </div>
-          {!packetaConfig?.is_active && (
-            <Button
-              isLoading={isActivating}
-              onClick={handleActivate}
-              type="button"
-              variant={
-                displayedEnvironment === "production" ? "danger" : "secondary"
-              }
-            >
-              Activate {displayedEnvironment}
-            </Button>
-          )}
+          <Button
+            disabled={packetaConfig?.is_active || isActivating}
+            isLoading={isActivating}
+            onClick={handleActivate}
+            type="button"
+            variant={
+              displayedEnvironment === "production" && !packetaConfig?.is_active
+                ? "danger"
+                : "secondary"
+            }
+          >
+            {packetaConfig?.is_active ? "Active profile" : "Activate profile"}
+          </Button>
         </div>
       </div>
 
       <form onSubmit={handleSubmit}>
-        {/* General */}
         <div className="px-6 py-4">
           <Heading className="mb-4" level="h2">
             General
@@ -563,52 +560,9 @@ const PacketaSettingsPage = () => {
                 />
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="packeta-label-format">Label Format</Label>
-                <Select
-                  onValueChange={(value) =>
-                    updateField("default_label_format", value)
-                  }
-                  value={
-                    formData.default_label_format ??
-                    packetaConfig?.default_label_format ??
-                    DEFAULT_LABEL_FORMAT
-                  }
-                >
-                  <Select.Trigger id="packeta-label-format">
-                    <Select.Value placeholder="Select format" />
-                  </Select.Trigger>
-                  <Select.Content>
-                    {LABEL_FORMATS.map((f) => (
-                      <Select.Item key={f.value} value={f.value}>
-                        {f.label}
-                      </Select.Item>
-                    ))}
-                  </Select.Content>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="packeta-label-offset">Label Offset</Label>
-                <Input
-                  id="packeta-label-offset"
-                  max={3}
-                  min={0}
-                  onChange={(e) =>
-                    updateField(
-                      "default_label_offset",
-                      Number.parseInt(e.target.value, 10) || 0
-                    )
-                  }
-                  type="number"
-                  value={formData.default_label_offset ?? 0}
-                />
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* API Credentials */}
         <div className="border-t px-6 py-4">
           <Heading className="mb-4" level="h2">
             API Credentials
@@ -624,6 +578,54 @@ const PacketaSettingsPage = () => {
                 value={getStringField(formData, f.field)}
               />
             ))}
+          </div>
+        </div>
+
+        <div className="border-t px-6 py-4">
+          <Heading className="mb-4" level="h2">
+            Label Printing
+          </Heading>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="packeta-label-format">Label Format</Label>
+              <Select
+                onValueChange={(value) =>
+                  updateField("default_label_format", value)
+                }
+                value={
+                  formData.default_label_format ??
+                  packetaConfig?.default_label_format ??
+                  DEFAULT_LABEL_FORMAT
+                }
+              >
+                <Select.Trigger id="packeta-label-format">
+                  <Select.Value placeholder="Select format" />
+                </Select.Trigger>
+                <Select.Content>
+                  {LABEL_FORMATS.map((format) => (
+                    <Select.Item key={format.value} value={format.value}>
+                      {format.label}
+                    </Select.Item>
+                  ))}
+                </Select.Content>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="packeta-label-offset">Label Offset</Label>
+              <Input
+                id="packeta-label-offset"
+                max={3}
+                min={0}
+                onChange={(event) =>
+                  updateField(
+                    "default_label_offset",
+                    Number.parseInt(event.target.value, 10) || 0
+                  )
+                }
+                type="number"
+                value={formData.default_label_offset ?? 0}
+              />
+            </div>
           </div>
         </div>
 
@@ -666,7 +668,6 @@ const PacketaSettingsPage = () => {
           </div>
         </div>
 
-        {/* COD Banking */}
         <div className="border-t px-6 py-4">
           <Heading className="mb-2" level="h2">
             COD Banking
@@ -688,10 +689,9 @@ const PacketaSettingsPage = () => {
           </div>
         </div>
 
-        {/* Fallback Sender Address */}
         <div className="border-t px-6 py-4">
           <Heading className="mb-2" level="h2">
-            Fallback Sender Address
+            Sender Address
           </Heading>
           <Text className="mb-4 text-sm text-ui-fg-subtle">
             Used when no sender is configured in Packeta

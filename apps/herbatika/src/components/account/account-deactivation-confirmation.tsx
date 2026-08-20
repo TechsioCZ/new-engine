@@ -3,12 +3,14 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import NextLink from "next/link"
 import { useState } from "react"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useConfirmAccountDeactivation } from "@/lib/storefront/auth"
 import { cartStorage } from "@/lib/storefront/cart-storage"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildPath } from "@/lib/url/public-url"
 import { AccountSurface } from "./account-surface"
 
 const MISSING_TOKEN_MESSAGE = "Potvrdzovací odkaz neobsahuje platný token."
@@ -29,6 +31,8 @@ export function AccountDeactivationConfirmation({
   token,
 }: AccountDeactivationConfirmationProps) {
   const normalizedToken = token.trim()
+  const { code: market } = useMarketContext()
+  const homeHref = buildPath({ kind: "home" }, market)
   const confirmAccountDeactivationMutation = useConfirmAccountDeactivation()
   const [confirmationError, setConfirmationError] = useState<string | null>(
     null
@@ -56,7 +60,7 @@ export function AccountDeactivationConfirmation({
 
       cartStorage.clearCartId()
       setIsConfirmed(true)
-      window.setTimeout(() => window.location.replace("/"), 1200)
+      window.setTimeout(() => window.location.replace(homeHref), 1200)
     } catch (error) {
       setConfirmationError(
         isInvalidTokenError(error)
@@ -84,7 +88,12 @@ export function AccountDeactivationConfirmation({
               obnoví pôvodný účet aj história objednávok.
             </StatusText>
 
-            <LinkButton as={NextLink} href="/" size="md" variant="primary">
+            <LinkButton
+              as={StorefrontLink}
+              href={homeHref}
+              size="md"
+              variant="primary"
+            >
               Pokračovať do obchodu
             </LinkButton>
           </div>
@@ -113,8 +122,8 @@ export function AccountDeactivationConfirmation({
               </Button>
 
               <LinkButton
-                as={NextLink}
-                href="/"
+                as={StorefrontLink}
+                href={homeHref}
                 size="md"
                 theme="outlined"
                 variant="secondary"

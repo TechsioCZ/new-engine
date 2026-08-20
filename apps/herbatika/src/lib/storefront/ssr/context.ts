@@ -1,17 +1,9 @@
-import "server-only"
-
 import type { QueryClient } from "@tanstack/react-query"
 import { getServerQueryClient } from "@techsio/storefront-data/server/get-query-client"
-import type { RegionInfo } from "@techsio/storefront-data/shared/region"
-import { cookies } from "next/headers"
-import { getMarketServerContext } from "../market-context.server"
-import {
-  REGION_COUNTRY_CODE_STORAGE_KEY,
-  REGION_STORAGE_KEY,
-  resolveRegionInfoFromCookieValues,
-} from "../region-preferences"
+import { requireConfiguredMarketRuntimeBinding } from "@/lib/market/market-runtime.server"
+import type { Market } from "@/lib/url/types"
+import { resolveBoundRegion } from "../market-region-authority"
 import { REGION_LIST_FIELDS, REGION_LIST_LIMIT } from "../region-query-config"
-import { resolveRegionForMarket, toRegionInfo } from "../region-selection"
 import {
   fetchServerProduct,
   fetchServerRegions,
@@ -26,66 +18,64 @@ import type {
   RegionListParams,
 } from "./types"
 
-const resolveCookieRegionPreference = async (): Promise<RegionInfo | null> => {
-  const cookieStore = await cookies()
+export type ExplicitRequestServerContext = Readonly<{
+  cookieHeader?: string
+  market: Market
+}>
 
-  return resolveRegionInfoFromCookieValues(
-    cookieStore.get(REGION_STORAGE_KEY)?.value,
-    cookieStore.get(REGION_COUNTRY_CODE_STORAGE_KEY)?.value
-  )
-}
-
-export const getRegionServerContext = async () => {
+export const getRegionServerContext = async (
+  requestContext: ExplicitRequestServerContext
+) => {
   const queryClient = getServerQueryClient()
-  const [cookieRegionPreference, marketContext] = await Promise.all([
-    resolveCookieRegionPreference(),
-    getMarketServerContext(),
-  ])
+  const binding = requireConfiguredMarketRuntimeBinding(requestContext.market)
 
   const listParams: RegionListParams = {
     fields: REGION_LIST_FIELDS,
     limit: REGION_LIST_LIMIT,
   }
 
-  const regionListResponse = await fetchServerRegions(queryClient, listParams)
-
-  const resolvedRegionRecord = resolveRegionForMarket(
-    regionListResponse.regions,
-    marketContext,
-    cookieRegionPreference?.region_id
+  const regionListResponse = await fetchServerRegions(
+    binding.market,
+    queryClient,
+    listParams
   )
-  const region = resolvedRegionRecord
-    ? toRegionInfo(resolvedRegionRecord, marketContext.countryCode)
-    : null
+  const region = resolveBoundRegion(binding, regionListResponse.regions)
 
   return {
+    binding,
+    locale: binding.locale,
+    market: binding.market,
     queryClient,
     region,
   }
 }
 
 export const prefetchProductList = async (
+  market: Market,
   queryClient: QueryClient,
   listParams: ProductListParams
 ) => {
-  await prefetchServerProducts(queryClient, listParams)
+  await prefetchServerProducts(market, queryClient, listParams)
 }
 
 export const prefetchProductDetail = async (
+  market: Market,
   queryClient: QueryClient,
   detailParams: ProductDetailParams
-) => fetchServerProduct(queryClient, detailParams)
+) => fetchServerProduct(market, queryClient, detailParams)
 
 export const prefetchProductReviews = async (
+  market: Market,
   queryClient: QueryClient,
   listParams: ProductReviewListParams
 ) => {
-  await prefetchServerProductReviews(queryClient, listParams)
+  await prefetchServerProductReviews(market, queryClient, listParams)
 }
 
 export const prefetchProductAttributes = async (
+  market: Market,
   queryClient: QueryClient,
   productId: string
 ) => {
-  await prefetchServerProductAttributes(queryClient, { productId })
+  await prefetchServerProductAttributes(market, queryClient, { productId })
 }

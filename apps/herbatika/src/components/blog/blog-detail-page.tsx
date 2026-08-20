@@ -1,35 +1,43 @@
-import { Link } from "@techsio/ui-kit/atoms/link"
+import type { HttpTypes } from "@medusajs/types"
 import NextImage from "next/image"
-import NextLink from "next/link"
 import { useLocale, useTranslations } from "next-intl"
-import { getTranslations } from "next-intl/server"
 import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb"
-import type { BlogPost } from "@/lib/storefront/blog-content"
+import { StorefrontLink } from "@/components/storefront-link"
 import { resolveBlogProductReference } from "@/lib/storefront/blog-product-references"
-import { resolveBlogProducts } from "@/lib/storefront/blog-products.server"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
+import { buildPath } from "@/lib/url/public-url"
 import { BlogArticleContent } from "./blog-article-content"
 import { BlogArticleSidebar } from "./blog-article-sidebar"
 import { BlogAuthorCard } from "./blog-author-card"
+import {
+  type BlogPostWithSourceIds,
+  resolveBlogCardPublicSlug,
+} from "./blog-card-projection"
 import { formatBlogDate } from "./blog-formatters"
 import { BlogRelatedCard } from "./blog-related-card"
 import { BlogTableOfContents } from "./blog-table-of-contents"
 
 type BlogDetailPageProps = {
-  post: BlogPost
+  articlePublicSlugsById: PublicEntitySlugMap
+  post: BlogPostWithSourceIds
+  productEntries: [string, HttpTypes.StoreProduct][]
+  productPublicSlugsById: PublicEntitySlugMap
 }
 
-export async function BlogDetailPage({ post }: BlogDetailPageProps) {
-  const tContent = await getTranslations("content")
-  const productReferences = post.contentSegments.flatMap((segment) =>
-    segment.type === "productCarousel" ? segment.products : []
-  )
-  if (post.sidebar?.product) {
-    productReferences.push(post.sidebar.product)
-  }
-  const products = await resolveBlogProducts(productReferences)
+export function BlogDetailPage({
+  articlePublicSlugsById,
+  post,
+  productEntries,
+  productPublicSlugsById,
+}: BlogDetailPageProps) {
+  const tContent = useTranslations("content")
+  const market = useMarketContext().code
+  const adviceHref = buildPath({ kind: "article" }, market)
+  const products = new Map(productEntries)
   const sidebarProduct = post.sidebar?.product
     ? resolveBlogProductReference(post.sidebar.product, products)
     : undefined
@@ -37,7 +45,7 @@ export async function BlogDetailPage({ post }: BlogDetailPageProps) {
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
       label: tContent("pages.blog"),
-      href: "/blog",
+      href: adviceHref,
       icon: "token-icon-home",
     },
     {
@@ -111,7 +119,11 @@ export async function BlogDetailPage({ post }: BlogDetailPageProps) {
               title={tContent("blog.detail.table_of_contents")}
             />
 
-            <BlogArticleContent post={post} products={products} />
+            <BlogArticleContent
+              post={post}
+              productPublicSlugsById={productPublicSlugsById}
+              products={products}
+            />
 
             <BlogAuthorCard post={post} />
 
@@ -122,18 +134,24 @@ export async function BlogDetailPage({ post }: BlogDetailPageProps) {
                     {tContent("blog.detail.related_articles")}
                   </h2>
 
-                  <Link
-                    as={NextLink}
+                  <StorefrontLink
                     className="font-medium text-fg-primary text-md leading-tight underline underline-offset-2 hover:text-primary"
-                    href="/blog"
+                    href={adviceHref}
                   >
                     {tContent("actions.view_all")} →
-                  </Link>
+                  </StorefrontLink>
                 </div>
 
                 <div className="grid gap-400 md:grid-cols-2 xl:grid-cols-4">
                   {post.relatedPosts.map((relatedPost) => (
-                    <BlogRelatedCard key={relatedPost.id} post={relatedPost} />
+                    <BlogRelatedCard
+                      key={relatedPost.id}
+                      post={relatedPost}
+                      publicSlug={resolveBlogCardPublicSlug(
+                        relatedPost,
+                        articlePublicSlugsById
+                      )}
+                    />
                   ))}
                 </div>
               </section>
@@ -144,6 +162,7 @@ export async function BlogDetailPage({ post }: BlogDetailPageProps) {
             <div>
               <BlogArticleSidebar
                 product={sidebarProduct}
+                productPublicSlugsById={productPublicSlugsById}
                 sidebar={post.sidebar}
               />
             </div>
@@ -154,7 +173,7 @@ export async function BlogDetailPage({ post }: BlogDetailPageProps) {
   )
 }
 
-function BlogPostIntro({ post }: { post: BlogPost }) {
+function BlogPostIntro({ post }: { post: BlogPostWithSourceIds }) {
   const locale = useLocale()
   const tContent = useTranslations("content")
 

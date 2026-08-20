@@ -11,6 +11,9 @@ import {
   asRecord,
   asString,
 } from "@/components/product-detail/utils/value-utils"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
+import { buildPath } from "@/lib/url/public-url"
+import type { Market } from "@/lib/url/types"
 
 export const resolveSelectedVariant = (
   variants: HttpTypes.StoreProductVariant[],
@@ -71,22 +74,44 @@ export const resolveProductSummaryText = (
   return descriptionText
 }
 
-export const resolveProductBreadcrumbItems = (
-  productCategories: HttpTypes.StoreProductCategory[],
-  product: Product | null,
-  handle: string,
+export const resolveProductBreadcrumbItems = ({
+  categoryPublicSlugsById,
+  handle,
+  homeLabel,
+  market,
+  product,
+  productCategories,
+}: {
+  categoryPublicSlugsById: Readonly<Record<string, string>>
+  handle: string
   homeLabel: string
-): HerbatikaBreadcrumbItem[] => {
+  market: Market
+  product: Product | null
+  productCategories: HttpTypes.StoreProductCategory[]
+}): HerbatikaBreadcrumbItem[] => {
   const primaryCategory = productCategories[0]
   const primaryCategoryName = normalizeCategoryName(primaryCategory?.name, "")
 
   return [
-    { label: homeLabel, href: "/", icon: "token-icon-home" },
-    ...(primaryCategory?.handle && primaryCategoryName
+    {
+      label: homeLabel,
+      href: buildPath({ kind: "home" }, market),
+      icon: "token-icon-home",
+    },
+    ...(primaryCategoryName
       ? [
           {
             label: primaryCategoryName,
-            href: `/c/${primaryCategory.handle}`,
+            href:
+              buildProjectedEntityPath(
+                "category",
+                {
+                  publicSlug: primaryCategory?.id
+                    ? categoryPublicSlugsById[primaryCategory.id]
+                    : undefined,
+                },
+                market
+              ) ?? undefined,
           },
         ]
       : []),

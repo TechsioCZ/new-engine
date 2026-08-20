@@ -129,9 +129,12 @@ const sharedEnvCleanupKeys = [
   "AUTH_CORS",
   "NEXT_PUBLIC_SITE_URL",
   "NEXT_PUBLIC_MEDUSA_BACKEND_URL",
+  "NEXT_PUBLIC_MINIO_FILE_URL",
   "NEXT_PUBLIC_MEILISEARCH_URL",
   "NEXT_PUBLIC_MEILISEARCH_API_KEY",
   "NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
+  "URL_PRODUCT_RESOLVER_ENABLED",
+  "URL_ARCHITECTURE_M00_ENABLED",
   "MINIO_FILE_URL",
   "VALKEY_HOST",
   "MINIO_HOST",
@@ -437,6 +440,40 @@ function publicServiceDomain(input: {
   return `${input.projectSlug}-${input.serviceSlug}${input.publicUrlAffix}.${input.publicDomain}`
 }
 
+function appendCsvOrigins(value: string, origins: string[]): string {
+  return Array.from(
+    new Set([
+      ...value
+        .split(",")
+        .map((entry) => entry.trim())
+        .filter(Boolean),
+      ...origins,
+    ])
+  ).join(",")
+}
+
+function applyAdditionalPublicUrls(input: {
+  plannedServices: Record<string, PlannedBootstrapService>
+  stackInputs: StackInputs
+}) {
+  for (const definition of input.stackInputs.bootstrap_zane_project
+    .additional_public_urls) {
+    const service = input.plannedServices[definition.service_id]
+    if (!service) {
+      throw new Error(
+        `Missing bootstrap service plan for additional public URL ${definition.service_id}.${definition.domain}.`
+      )
+    }
+
+    service.urls.push({
+      domain: definition.domain,
+      base_path: definition.base_path,
+      strip_prefix: definition.strip_prefix,
+      associated_port: definition.associated_port,
+    })
+  }
+}
+
 function summarizeSource(input: {
   key?: string
   envVar?: string
@@ -556,6 +593,12 @@ function buildZaneProjectServices(
     publicUrlAffix: context.publicUrlAffix,
     publicDomain: context.publicDomain,
   })
+  const minioPublicDomain = publicServiceDomain({
+    projectSlug: context.projectSlug,
+    serviceSlug: minioSlug,
+    publicUrlAffix: context.publicUrlAffix,
+    publicDomain: context.publicDomain,
+  })
   const configuredGoPayWebhookUrl =
     process.env.DC_GOPAY_WEBHOOK_URL?.trim() ?? ""
   const generatedGoPayWebhookUrl = medusaBePublicDomain
@@ -572,13 +615,20 @@ function buildZaneProjectServices(
     herbatika: servicePublicOriginSource(herbatikaSlug),
     meilisearch: servicePublicOriginSource(meilisearchSlug),
   }
-  const minioFileSource = context.minioFileUrlOverride
-    ? literalSource(context.minioFileUrlOverride)
-    : serviceInternalBucketUrlSource({
-        serviceSlug: minioSlug,
-        port: 9004,
-        bucketSharedEnvKey: "MEDUSA_MINIO_BUCKET",
-      })
+  let minioFileSource: BootstrapValueSource
+  if (context.minioFileUrlOverride) {
+    minioFileSource = literalSource(context.minioFileUrlOverride)
+  } else if (minioPublicDomain) {
+    minioFileSource = literalSource(
+      `https://${minioPublicDomain}/${placeholderSharedValue("MEDUSA_MINIO_BUCKET")}`
+    )
+  } else {
+    minioFileSource = serviceInternalBucketUrlSource({
+      serviceSlug: minioSlug,
+      port: 9004,
+      bucketSharedEnvKey: "MEDUSA_MINIO_BUCKET",
+    })
+  }
 
   return {
     "medusa-db": {
@@ -697,7 +747,14 @@ function buildZaneProjectServices(
           mode: "READ_WRITE",
         },
       ],
-      urls: [],
+      urls: [
+        {
+          domain: minioPublicDomain ?? "",
+          base_path: "/",
+          strip_prefix: true,
+          associated_port: 9004,
+        },
+      ].filter((url) => url.domain),
       healthcheck: {
         type: "PATH",
         value: "/minio/health/live",
@@ -813,7 +870,6 @@ function buildZaneProjectServices(
         "DC_HERBATICA_MANUFACTURERS_CSV_PATH",
         "DC_HERBATICA_REVIEWS_XML_PATH",
         "DC_FEATURE_PPL_ENABLED",
-        "DC_PPL_ENVIRONMENT",
         "DC_FEATURE_PACKETA_ENABLED",
         "DC_NEXT_PUBLIC_PACKETA_WIDGET_API_KEY",
         "DC_FEATURE_GLS_ENABLED",
@@ -869,6 +925,9 @@ function buildZaneProjectServices(
         "DC_MINIO_BUCKET",
         "DC_MINIO_ACCESS_KEY",
         "DC_MINIO_SECRET_KEY",
+        "RESEND_API_KEY",
+        "RESEND_FROM_EMAIL",
+        "RESEND_WEBHOOK_SECRET",
         "DC_MEDUSA_BE_NOTIFICATION_PROVIDER",
         "DC_MEDUSA_BE_RESEND_API_KEY",
         "DC_MEDUSA_BE_RESEND_FROM_EMAIL",
@@ -938,29 +997,6 @@ function buildZaneProjectServices(
           ),
         },
         {
-          envVar: "STOREFRONT_URL",
-          source: process.env.DC_STOREFRONT_URL?.trim()
-            ? literalSource(process.env.DC_STOREFRONT_URL.trim())
-            : servicePublicOrigins.herbatika,
-        },
-        {
-          envVar: "STORE_NAME",
-          source: literalSource(process.env.DC_STORE_NAME ?? "Herbatika"),
-        },
-        {
-          envVar: "PRODUCT_REVIEW_REQUEST_MESSAGE",
-          source: literalSource(
-            process.env.DC_PRODUCT_REVIEW_REQUEST_MESSAGE ??
-              "Napiš recenzi produktu"
-          ),
-        },
-        {
-          envVar: "PRODUCT_REVIEW_REQUEST_DELAY_MINUTES",
-          source: literalSource(
-            process.env.DC_PRODUCT_REVIEW_REQUEST_DELAY_MINUTES ?? "10080"
-          ),
-        },
-        {
           envVar: "PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS",
           source: literalSource(
             process.env.DC_PRODUCT_REVIEW_TOKEN_EXPIRY_DAYS ?? "90"
@@ -1021,10 +1057,6 @@ function buildZaneProjectServices(
         {
           envVar: "FEATURE_PPL_ENABLED",
           source: literalSource(process.env.DC_FEATURE_PPL_ENABLED ?? "0"),
-        },
-        {
-          envVar: "PPL_ENVIRONMENT",
-          source: literalSource(process.env.DC_PPL_ENVIRONMENT ?? "testing"),
         },
         {
           envVar: "FEATURE_PACKETA_ENABLED",
@@ -1164,39 +1196,6 @@ function buildZaneProjectServices(
             trailingSlash: true,
           }),
         },
-        {
-          envVar: "NOTIFICATION_PROVIDER",
-          source: literalSource(
-            process.env.DC_MEDUSA_BE_NOTIFICATION_PROVIDER ?? "resend"
-          ),
-        },
-        {
-          envVar: "RESEND_API_KEY",
-          source: literalSource(
-            firstNonEmpty(
-              process.env.DC_MEDUSA_BE_RESEND_API_KEY,
-              process.env.DC_RESEND_API_KEY
-            ) ?? ""
-          ),
-        },
-        {
-          envVar: "RESEND_FROM_EMAIL",
-          source: literalSource(
-            firstNonEmpty(
-              process.env.DC_MEDUSA_BE_RESEND_FROM_EMAIL,
-              process.env.DC_RESEND_FROM_EMAIL
-            ) ?? ""
-          ),
-        },
-        {
-          envVar: "RESEND_WEBHOOK_SECRET",
-          source: literalSource(
-            firstNonEmpty(
-              process.env.DC_MEDUSA_BE_RESEND_WEBHOOK_SECRET,
-              process.env.DC_RESEND_WEBHOOK_SECRET
-            ) ?? ""
-          ),
-        },
       ],
     },
     payload: {
@@ -1299,7 +1298,9 @@ function buildZaneProjectServices(
         },
         {
           envVar: "PAYLOAD_LOCALES",
-          source: literalSource(process.env.DC_PAYLOAD_LOCALES ?? "cs,sk,en"),
+          source: literalSource(
+            process.env.DC_PAYLOAD_LOCALES ?? "cs,sk,hu,ro"
+          ),
         },
         {
           envVar: "PAYLOAD_SSO_PUBLIC_KEY",
@@ -1370,6 +1371,8 @@ function buildZaneProjectServices(
         "DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
         "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED",
         "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
+        "URL_PRODUCT_RESOLVER_ENABLED",
+        "URL_ARCHITECTURE_M00_ENABLED",
       ],
       env: [
         {
@@ -1391,14 +1394,12 @@ function buildZaneProjectServices(
           ),
         },
         {
-          envVar: "NEXT_PUBLIC_PPL_WIDGET_API_KEY",
-          source: literalSource(
-            process.env.DC_HERBATIKA_NEXT_PUBLIC_PPL_WIDGET_API_KEY ?? ""
-          ),
-        },
-        {
           envVar: "NEXT_PUBLIC_PAYLOAD_BASE_URL",
           source: servicePublicOrigins.payload,
+        },
+        {
+          envVar: "NEXT_PUBLIC_MINIO_FILE_URL",
+          source: servicePublicOriginSource(minioSlug),
         },
         {
           envVar: "PAYLOAD_BASE_URL_INTERNAL",
@@ -1465,9 +1466,6 @@ function buildZaneProjectServices(
               "NEXT_PUBLIC_GOOGLE_ADS_ID",
               "NEXT_PUBLIC_HEUREKA_API_KEY",
               "NEXT_PUBLIC_LEADHUB_TRACKING_ID",
-              "RESEND_API_KEY",
-              "CONTACT_EMAIL",
-              "RESEND_FROM_EMAIL",
               "DC_N1_MEDUSA_BACKEND_URL_INTERNAL",
               "DC_N1_NEXT_PUBLIC_MEDUSA_BACKEND_URL",
               "DC_N1_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY",
@@ -1484,6 +1482,9 @@ function buildZaneProjectServices(
               "DC_N1_MEDUSA_RESEND_API_KEY",
               "DC_N1_MEDUSA_CONTACT_EMAIL",
               "DC_N1_MEDUSA_RESEND_FROM_EMAIL",
+              "RESEND_API_KEY",
+              "CONTACT_EMAIL",
+              "RESEND_FROM_EMAIL",
             ],
             env: [
               {
@@ -1527,33 +1528,6 @@ function buildZaneProjectServices(
                 envVar: "NEXT_PUBLIC_LEADHUB_TRACKING_ID",
                 source: literalSource(
                   process.env.DC_N1_NEXT_PUBLIC_LEADHUB_TRACKING_ID ?? ""
-                ),
-              },
-              {
-                envVar: "RESEND_API_KEY",
-                source: literalSource(
-                  firstNonEmpty(
-                    process.env.DC_N1_RESEND_API_KEY,
-                    process.env.DC_RESEND_API_KEY
-                  ) ?? ""
-                ),
-              },
-              {
-                envVar: "CONTACT_EMAIL",
-                source: literalSource(
-                  firstNonEmpty(
-                    process.env.DC_N1_CONTACT_EMAIL,
-                    process.env.DC_CONTACT_EMAIL
-                  ) ?? ""
-                ),
-              },
-              {
-                envVar: "RESEND_FROM_EMAIL",
-                source: literalSource(
-                  firstNonEmpty(
-                    process.env.DC_N1_RESEND_FROM_EMAIL,
-                    process.env.DC_RESEND_FROM_EMAIL
-                  ) ?? ""
                 ),
               },
             ],
@@ -1701,6 +1675,7 @@ function resolveOperatorUpstreamBaseUrl(input: {
 
 function buildContext(input: {
   planInput: BootstrapZaneProjectPlanCommandInput
+  stackInputs: StackInputs
   settings: {
     root_domain?: string | null
     app_domain?: string | null
@@ -1738,6 +1713,29 @@ function buildContext(input: {
       ? input.settings.app_domain
       : null)
 
+  const additionalStoreOrigins =
+    input.stackInputs.bootstrap_zane_project.additional_public_urls
+      .filter((definition) => definition.store_cors)
+      .map((definition) => `https://${definition.domain}`)
+  const additionalAuthOrigins =
+    input.stackInputs.bootstrap_zane_project.additional_public_urls
+      .filter((definition) => definition.auth_cors)
+      .map((definition) => `https://${definition.domain}`)
+  const storeCors = preferExplicitOrMergeCsv({
+    explicitValue: input.planInput.storeCorsOverride,
+    envValue: process.env.DC_STORE_CORS,
+    fallbackValue: publicDomain
+      ? `https://${input.planInput.projectSlug}-${"herbatika"}${input.planInput.publicUrlAffix}.${publicDomain}`
+      : "https://pending-public-domain.invalid",
+  })
+  const authCors = preferExplicitOrMergeCsv({
+    explicitValue: input.planInput.authCorsOverride,
+    envValue: process.env.DC_AUTH_CORS,
+    fallbackValue: publicDomain
+      ? `https://${input.planInput.projectSlug}-${"medusa-be"}${input.planInput.publicUrlAffix}.${publicDomain}`
+      : "https://pending-public-domain.invalid",
+  })
+
   return {
     projectSlug: input.planInput.projectSlug,
     projectDescription: input.planInput.projectDescription,
@@ -1748,13 +1746,7 @@ function buildContext(input: {
     publicDomain,
     publicUrlAffix: input.planInput.publicUrlAffix,
     minioFileUrlOverride: input.planInput.minioFileUrlOverride?.trim() || null,
-    storeCors: preferExplicitOrMergeCsv({
-      explicitValue: input.planInput.storeCorsOverride,
-      envValue: process.env.DC_STORE_CORS,
-      fallbackValue: publicDomain
-        ? `https://${input.planInput.projectSlug}-${"herbatika"}${input.planInput.publicUrlAffix}.${publicDomain}`
-        : "https://pending-public-domain.invalid",
-    }),
+    storeCors: appendCsvOrigins(storeCors, additionalStoreOrigins),
     adminCors: preferExplicitOrMergeCsv({
       explicitValue: input.planInput.adminCorsOverride,
       envValue: process.env.DC_ADMIN_CORS,
@@ -1762,13 +1754,7 @@ function buildContext(input: {
         ? `https://${input.planInput.projectSlug}-${"medusa-be"}${input.planInput.publicUrlAffix}.${publicDomain}`
         : "https://pending-public-domain.invalid",
     }),
-    authCors: preferExplicitOrMergeCsv({
-      explicitValue: input.planInput.authCorsOverride,
-      envValue: process.env.DC_AUTH_CORS,
-      fallbackValue: publicDomain
-        ? `https://${input.planInput.projectSlug}-${"medusa-be"}${input.planInput.publicUrlAffix}.${publicDomain}`
-        : "https://pending-public-domain.invalid",
-    }),
+    authCors: appendCsvOrigins(authCors, additionalAuthOrigins),
     operatorUpstreamBaseUrl,
     operatorUpstreamConnectBaseUrl: connectBaseUrl ?? null,
     operatorUpstreamConnectHostHeader: connectHostHeader,
@@ -2189,6 +2175,7 @@ export async function executeBootstrapZaneProjectPlan(
   )
   const context = buildContext({
     planInput: input,
+    stackInputs,
     settings: inspectResponse.settings,
     repositoryUrl,
     branchName,
@@ -2197,6 +2184,7 @@ export async function executeBootstrapZaneProjectPlan(
     bootstrapServices.map((service) => [service.id, service.serviceSlug])
   ) as Record<string, string>
   const plannedServices = buildZaneProjectServices(context, serviceSlugById)
+  applyAdditionalPublicUrls({ plannedServices, stackInputs })
   applySharedEnvServiceTargets({ plannedServices, stackInputs })
   const inspectedServices = Object.fromEntries(
     bootstrapServices.map((service) => {

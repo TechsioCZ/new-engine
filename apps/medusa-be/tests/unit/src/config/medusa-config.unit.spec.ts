@@ -9,15 +9,12 @@ import { buildProjectConfig } from "../../../../src/config/project"
 import {
   buildCachingModule,
   buildFileModule,
-  buildNotificationProvider,
   buildNotificationProviders,
 } from "../../../../src/config/providers"
-import { INTEGRATION_CONFIG_NAMES } from "../../../../src/modules/api-store/integration-config"
 
 const baseEnv = {
   REDIS_SESSIONS_ENABLED: "0",
   MEILISEARCH_ENABLED: "0",
-  NOTIFICATION_PROVIDER: "local",
   CACHE_PROVIDER: "inmemory",
   EVENT_BUS_PROVIDER: "local",
   WORKFLOW_ENGINE_PROVIDER: "inmemory",
@@ -50,21 +47,20 @@ describe("readMedusaConfigEnv", () => {
     const env = readMedusaConfigEnv(baseEnv)
 
     expect(env.redisUrl).toBeUndefined()
-    expect(buildNotificationProvider(env)).toEqual({
-      resolve: "@medusajs/medusa/notification-local",
-      id: "local",
-      options: {
-        name: "Local Notification Provider",
-        channels: ["email", "feed"],
+    expect(buildNotificationProviders()).toEqual([
+      {
+        resolve: "./src/modules/resend",
+        id: "resend",
+        options: {
+          channels: ["email"],
+        },
       },
-    })
-    expect(buildNotificationProviders(env)).toEqual([
       {
         resolve: "@medusajs/medusa/notification-local",
-        id: "local",
+        id: "local-feed",
         options: {
-          name: "Local Notification Provider",
-          channels: ["email", "feed"],
+          name: "Local Feed Notification Provider",
+          channels: ["feed"],
         },
       },
     ])
@@ -189,23 +185,13 @@ describe("readMedusaConfigEnv", () => {
     expect(process.env.MIKRO_ORM_MIGRATIONS_TABLE_NAME).toBeUndefined()
   })
 
-  it("keeps feed notifications local when Resend handles email", () => {
-    const env = readMedusaConfigEnv({
-      ...baseEnv,
-      NOTIFICATION_PROVIDER: "resend",
-      RESEND_API_KEY: "re_test",
-      RESEND_FROM_EMAIL: "store@example.com",
-    })
-
-    expect(buildNotificationProviders(env)).toEqual([
+  it("keeps Resend credentials in runtime configuration and feed notifications local", () => {
+    expect(buildNotificationProviders()).toEqual([
       {
         resolve: "./src/modules/resend",
         id: "resend",
         options: {
           channels: ["email"],
-          apiStoreName: INTEGRATION_CONFIG_NAMES.RESEND,
-          api_key: "re_test",
-          from: "store@example.com",
         },
       },
       {
@@ -236,7 +222,7 @@ describe("readMedusaConfigEnv", () => {
     })
   })
 
-  it("includes master-added dashboard plugin and product list module", () => {
+  it("includes required plugins and always-on custom modules", () => {
     const env = readMedusaConfigEnv(baseEnv)
 
     expect(buildPlugins(env)).toEqual(
@@ -251,6 +237,9 @@ describe("readMedusaConfigEnv", () => {
       expect.arrayContaining([
         {
           resolve: "./src/modules/product-list",
+        },
+        {
+          resolve: "./src/modules/url-registry-outbox",
         },
       ])
     )

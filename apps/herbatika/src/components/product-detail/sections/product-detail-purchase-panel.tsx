@@ -7,7 +7,6 @@ import { Icon } from "@techsio/ui-kit/atoms/icon"
 import { Link } from "@techsio/ui-kit/atoms/link"
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import { Select, type SelectItem } from "@techsio/ui-kit/molecules/select"
-import NextLink from "next/link"
 import { useLocale, useTranslations } from "next-intl"
 import { resolveFlags } from "@/components/product-card/product-card.flags"
 import type {
@@ -20,42 +19,67 @@ import {
   asString,
 } from "@/components/product-detail/utils/value-utils"
 import { ProductListPickerPopover } from "@/components/product-lists/product-list-picker-popover"
-import { createBrandSlug } from "@/lib/storefront/brands"
+import { StorefrontLink } from "@/components/storefront-link"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
+import type { Market } from "@/lib/url/types"
 
 type ProductInfoLink = {
   href: string | null
   label: string
 }
 
-const resolveProductInfoLink = (
-  product: Product,
+const resolveProductInfoLink = ({
+  brandPublicSlugsById,
+  categoryPublicSlugsById,
+  market,
+  primaryCategory,
+  product,
+}: {
+  brandPublicSlugsById: Readonly<Record<string, string>>
+  categoryPublicSlugsById: Readonly<Record<string, string>>
+  market: Market
   primaryCategory: HttpTypes.StoreProductCategory | undefined
-): ProductInfoLink | null => {
+  product: Product
+}): ProductInfoLink | null => {
   const brand = asRecord((product as Product & { brand?: unknown }).brand)
   const brandTitle = asString(brand?.title)
 
   if (brandTitle) {
-    const brandHandle = asString(brand?.handle)
-    const brandSlug = createBrandSlug(brandHandle || brandTitle)
+    const brandId = asString(brand?.id)
 
     return {
-      href: brandSlug ? `/znacka/${brandSlug}` : null,
+      href: buildProjectedEntityPath(
+        "brand",
+        { publicSlug: brandId ? brandPublicSlugsById[brandId] : undefined },
+        market
+      ),
       label: brandTitle,
     }
   }
 
   const primaryCategoryName = normalizeCategoryName(primaryCategory?.name, "")
-  if (!(primaryCategory?.handle && primaryCategoryName)) {
+  if (!primaryCategoryName) {
     return null
   }
 
   return {
-    href: `/c/${primaryCategory.handle}`,
+    href: buildProjectedEntityPath(
+      "category",
+      {
+        publicSlug: primaryCategory?.id
+          ? categoryPublicSlugsById[primaryCategory.id]
+          : undefined,
+      },
+      market
+    ),
     label: primaryCategoryName,
   }
 }
 
 type ProductDetailPurchasePanelProps = {
+  brandPublicSlugsById?: Readonly<Record<string, string>>
+  categoryPublicSlugsById?: Readonly<Record<string, string>>
   canAddToCart: boolean
   currentAmountLabel: string
   displayOriginalLabel: string | null
@@ -66,6 +90,7 @@ type ProductDetailPurchasePanelProps = {
   onQuantityChange: (quantity: number) => void
   onVariantChange: (variantId: string | null) => void
   product: Product
+  publicSlug?: string | null
   productCategories: HttpTypes.StoreProductCategory[]
   productHighlights: string[]
   quantity: number
@@ -76,6 +101,8 @@ type ProductDetailPurchasePanelProps = {
 }
 
 export function ProductDetailPurchasePanel({
+  brandPublicSlugsById = {},
+  categoryPublicSlugsById = {},
   canAddToCart,
   currentAmountLabel,
   displayOriginalLabel,
@@ -86,6 +113,7 @@ export function ProductDetailPurchasePanel({
   onQuantityChange,
   onVariantChange,
   product,
+  publicSlug,
   productCategories,
   productHighlights,
   quantity,
@@ -94,11 +122,18 @@ export function ProductDetailPurchasePanel({
   variantItems,
   vipCreditLabel,
 }: ProductDetailPurchasePanelProps) {
+  const { code: market } = useMarketContext()
   const locale = useLocale()
   const tCart = useTranslations("cart")
   const tCatalog = useTranslations("catalog")
   const primaryCategory = productCategories[0]
-  const productInfoLink = resolveProductInfoLink(product, primaryCategory)
+  const productInfoLink = resolveProductInfoLink({
+    brandPublicSlugsById,
+    categoryPublicSlugsById,
+    market,
+    primaryCategory,
+    product,
+  })
   const flags = resolveFlags(product, Boolean(displayOriginalLabel), {
     action: tCatalog("filters.status.action"),
     new: tCatalog("filters.status.new"),
@@ -134,7 +169,7 @@ export function ProductDetailPurchasePanel({
                 </span>
                 {productInfoLink.href ? (
                   <Link
-                    as={NextLink}
+                    as={StorefrontLink}
                     className="min-w-0 break-words font-normal text-primary text-sm leading-tight underline hover:text-primary-strong"
                     href={productInfoLink.href}
                   >
@@ -151,6 +186,7 @@ export function ProductDetailPurchasePanel({
 
           <ProductListPickerPopover
             product={product}
+            publicSlug={publicSlug}
             quantity={quantity}
             selectedVariantId={selectedVariantId}
           />

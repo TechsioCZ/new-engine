@@ -26,6 +26,7 @@ import { readAccountSetupRequested } from "./account-setup-metadata"
 import type { CarrierPickupAddress } from "./carrier-pickup-address.utils"
 import { resolveCarrierPickupAddress } from "./carrier-pickup-address.utils"
 import { readStoredCarrierPickupSelection } from "./carrier-pickup-selection-storage"
+import { resolveOrderNoteFormValue } from "./checkout-metadata"
 
 type UseCheckoutDetailsFormProps = {
   cart: HttpTypes.StoreCart | null | undefined
@@ -324,15 +325,20 @@ const resolveCheckoutHydratedValues = ({
   const resolvedBillingAddressValues =
     mapHerbatikaAddressFormStateFromMedusaAddress(billingAddress)
   const marketCountryCode = regionCountryCode?.toUpperCase()
+  const mergedShippingAddressValues = mergeCheckoutAddressValues(
+    {
+      email: cart?.email ?? customer?.email ?? "",
+      firstName: customer?.first_name ?? "",
+      lastName: customer?.last_name ?? "",
+    },
+    resolvedShippingAddressValues,
+    carrierPickupAddress?.address
+  )
   const shippingAddressValues = {
-    ...mergeCheckoutAddressValues(
-      {
-        email: cart?.email ?? customer?.email ?? "",
-        firstName: customer?.first_name ?? "",
-        lastName: customer?.last_name ?? "",
-      },
-      resolvedShippingAddressValues,
-      carrierPickupAddress?.address
+    ...mergedShippingAddressValues,
+    customerNote: resolveOrderNoteFormValue(
+      cart?.metadata,
+      mergedShippingAddressValues.customerNote
     ),
     ...(marketCountryCode ? { countryCode: marketCountryCode } : {}),
   }

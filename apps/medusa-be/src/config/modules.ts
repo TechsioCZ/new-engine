@@ -8,6 +8,7 @@ import {
   QR_PAYMENT_MODULE,
   QR_PAYMENT_PROVIDER_ID,
 } from "../modules/payment-qr/constants"
+import { RESEND_CONFIG_MODULE } from "../modules/resend-config"
 import type { MedusaConfigEnv } from "./env"
 import {
   buildCachingModule,
@@ -87,24 +88,21 @@ function buildFulfillmentClientModules(
   if (env.featurePplEnabled) {
     modules.push({
       resolve: "./src/modules/ppl-client",
-      dependencies: [Modules.LOCKING],
-      options: {
-        environment: env.pplEnvironment,
-      },
+      dependencies: [Modules.CACHING, Modules.LOCKING],
     })
   }
 
   if (env.featurePacketaEnabled) {
     modules.push({
       resolve: "./src/modules/packeta-client",
-      dependencies: [Modules.LOCKING, API_STORE_MODULE],
+      dependencies: [Modules.CACHING, Modules.LOCKING, API_STORE_MODULE],
     })
   }
 
   if (env.featureGlsEnabled) {
     modules.push({
       resolve: "./src/modules/gls-client",
-      dependencies: [Modules.LOCKING],
+      dependencies: [Modules.CACHING, Modules.LOCKING],
     })
   }
 
@@ -220,9 +218,9 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     },
     {
       resolve: "@medusajs/medusa/notification",
-      dependencies: [API_STORE_MODULE],
+      dependencies: [RESEND_CONFIG_MODULE],
       options: {
-        providers: buildNotificationProviders(env),
+        providers: buildNotificationProviders(),
       },
     },
     buildCachingModule(env),
@@ -236,7 +234,14 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
       resolve: "./src/modules/product-attribute",
     },
     {
+      resolve: "./src/modules/product-content",
+    },
+    {
       resolve: "./src/modules/api-store",
+    },
+    {
+      resolve: "./src/modules/resend-config",
+      dependencies: [API_STORE_MODULE],
     },
     {
       resolve: "./src/modules/shop-review",
@@ -247,6 +252,9 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     },
     {
       resolve: "./src/modules/product-review",
+    },
+    {
+      resolve: "./src/modules/claim-case",
     },
     {
       resolve: "./src/modules/search-profile",
@@ -279,6 +287,18 @@ export function buildModules(env: MedusaConfigEnv): MedusaModulesConfig {
     },
     {
       resolve: "./src/modules/workflow-queue",
+    },
+    {
+      resolve: "./src/modules/url-registry-outbox",
+    },
+    {
+      resolve: "./src/modules/order-confirmation",
+    },
+    {
+      resolve: "./src/modules/payment-return-state",
+    },
+    {
+      resolve: "./src/modules/storefront-url-assignment",
     },
     ...buildPaymentQrModules(env),
     buildEventBusModule(env),

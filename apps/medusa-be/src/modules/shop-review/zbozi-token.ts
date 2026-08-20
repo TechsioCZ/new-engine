@@ -1,5 +1,6 @@
 import { MedusaError } from "@medusajs/framework/utils"
 import type { ApiStoreModuleService } from "../api-store"
+import { assertIntegrationConfigEnabled } from "../api-store/integration-config"
 import {
   getCredentialValue,
   normalizeSecret,
@@ -95,6 +96,7 @@ export async function refreshZboziAccessTokenStore({
       `API store config for ${REFRESH_TOKEN_API_STORE_NAME} was not found`
     )
   }
+  assertIntegrationConfigEnabled(refreshApiStore, REFRESH_TOKEN_API_STORE_NAME)
 
   const body = new URLSearchParams({
     grant_type: "client_credentials",

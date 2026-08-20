@@ -1,6 +1,5 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useEffect } from "react"
 import {
@@ -21,14 +20,15 @@ import { CheckoutEmptyCartSection } from "@/components/checkout/sections/checkou
 import { CheckoutFeedbackSection } from "@/components/checkout/sections/checkout-feedback-section"
 import { CheckoutStepsSection } from "@/components/checkout/sections/checkout-steps-section"
 import { useCheckoutController } from "@/components/checkout/use-checkout-controller"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 
 type CheckoutFlowProps = {
   activeStep: CheckoutStepSlug
 }
 
 export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
-  const router = useRouter()
   const controller = useCheckoutController()
+  const marketContext = useMarketContext()
   const tCart = useTranslations("cart")
   const tCheckout = useTranslations("checkout")
   const checkoutStepTitles = {
@@ -83,7 +83,9 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
       return
     }
 
-    router.push(resolveCheckoutStepHref(targetStep.slug))
+    window.location.assign(
+      resolveCheckoutStepHref(targetStep.slug, marketContext.code)
+    )
   }
 
   useEffect(() => {
@@ -91,8 +93,10 @@ export function CheckoutFlow({ activeStep }: CheckoutFlowProps) {
       return
     }
 
-    router.replace(resolveCheckoutStepHref(redirectStep))
-  }, [redirectStep, router, shouldRedirectStep])
+    window.location.replace(
+      resolveCheckoutStepHref(redirectStep, marketContext.code)
+    )
+  }, [marketContext.code, redirectStep, shouldRedirectStep])
 
   if (shouldRedirectStep) {
     return <main className="mx-auto min-h-dvh w-full max-w-max-w" />

@@ -454,10 +454,6 @@ const GLSSettingsPage = () => {
     <Container className="divide-y p-0">
       <div className="px-6 py-4">
         <Heading level="h1">GLS Configuration</Heading>
-        <Text className="text-ui-fg-subtle">
-          MyGLS uses username, password and client number — not a separate API
-          key.
-        </Text>
       </div>
 
       <div className="px-6 py-4">
@@ -487,7 +483,11 @@ const GLSSettingsPage = () => {
             isLoading={isActivating}
             onClick={handleActivate}
             type="button"
-            variant="secondary"
+            variant={
+              displayedEnvironment === "production" && !glsConfig?.is_active
+                ? "danger"
+                : "secondary"
+            }
           >
             {glsConfig?.is_active ? "Active profile" : "Activate profile"}
           </Button>
@@ -601,7 +601,7 @@ const GLSSettingsPage = () => {
 
         <div className="border-t px-6 py-4">
           <Heading className="mb-4" level="h2">
-            MyGLS Credentials
+            API Credentials
           </Heading>
           <div className="grid grid-cols-2 gap-4">
             {credentialFields.map((field) => (
@@ -678,7 +678,7 @@ const GLSSettingsPage = () => {
 
         <div className="border-t px-6 py-4">
           <Heading className="mb-2" level="h2">
-            Pickup / Sender Address
+            Sender Address
           </Heading>
           <Text className="mb-4 text-sm text-ui-fg-subtle">
             MyGLS sends this as PickupAddress when creating labels.

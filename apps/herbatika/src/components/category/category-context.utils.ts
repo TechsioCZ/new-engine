@@ -5,6 +5,8 @@ import {
   normalizeCategoryName,
   resolveCategoryRank,
 } from "@/components/category/category-product-utils"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
+import type { Market } from "@/lib/url/types"
 
 const CATEGORY_DESCRIPTION_PLACEHOLDERS = new Set([
   "Imported from Herbatica XML feed.",
@@ -42,6 +44,8 @@ type ResolveCategoryIntroTextInput = {
 
 type ResolveCategoryHtmlInput = ResolveCategoryIntroTextInput & {
   categoryByHandle: Map<string, HttpTypes.StoreProductCategory>
+  market: Market
+  publicSlugsById: Readonly<Record<string, string>>
 }
 
 export const resolveCategoryIntroText = ({
@@ -59,6 +63,8 @@ const resolveCategoryMetadataHtml = ({
   activeCategory,
   categoryByHandle,
   field,
+  market,
+  publicSlugsById,
 }: ResolveCategoryHtmlInput & {
   field: "bottom_description_html" | "top_description_html"
 }) => {
@@ -68,7 +74,12 @@ const resolveCategoryMetadataHtml = ({
     return null
   }
 
-  return rewriteCategoryMetadataHtml(html, categoryByHandle)
+  return rewriteCategoryMetadataHtml(
+    html,
+    categoryByHandle,
+    publicSlugsById,
+    market
+  )
 }
 
 export const resolveCategoryIntroHtml = (input: ResolveCategoryHtmlInput) =>
@@ -82,6 +93,8 @@ type ResolveCategoryContextTilesInput = {
   activeCategoryFilterIds: string[]
   categories: HttpTypes.StoreProductCategory[]
   categoryById: Map<string, HttpTypes.StoreProductCategory>
+  market: Market
+  publicSlugsById: Readonly<Record<string, string>>
 }
 
 export const resolveCategoryContextImageTiles = ({
@@ -89,6 +102,8 @@ export const resolveCategoryContextImageTiles = ({
   activeCategoryFilterIds,
   categories,
   categoryById,
+  market,
+  publicSlugsById,
 }: ResolveCategoryContextTilesInput) => {
   if (!activeCategory) {
     return []
@@ -100,13 +115,24 @@ export const resolveCategoryContextImageTiles = ({
         category.parent_category_id === activeCategory.id &&
         Boolean(category.handle)
     )
-  ).map((category) => ({
-    id: category.id,
-    label: normalizeCategoryName(category.name),
-    href: `/c/${category.handle}`,
-    handle: category.handle,
-    parentCategoryId: category.parent_category_id ?? null,
-  }))
+  ).flatMap((category) => {
+    const href = buildProjectedEntityPath(
+      "category",
+      { publicSlug: publicSlugsById[category.id] },
+      market
+    )
+    return href
+      ? [
+          {
+            id: category.id,
+            label: normalizeCategoryName(category.name),
+            href,
+            handle: category.handle,
+            parentCategoryId: category.parent_category_id ?? null,
+          },
+        ]
+      : []
+  })
 
   if (directChildren.length > 0) {
     return buildCategoryContextImageTiles({
@@ -127,13 +153,24 @@ export const resolveCategoryContextImageTiles = ({
       })
   )
     .slice(0, 8)
-    .map((category) => ({
-      id: category.id,
-      label: normalizeCategoryName(category.name),
-      href: `/c/${category.handle}`,
-      handle: category.handle,
-      parentCategoryId: category.parent_category_id ?? null,
-    }))
+    .flatMap((category) => {
+      const href = buildProjectedEntityPath(
+        "category",
+        { publicSlug: publicSlugsById[category.id] },
+        market
+      )
+      return href
+        ? [
+            {
+              id: category.id,
+              label: normalizeCategoryName(category.name),
+              href,
+              handle: category.handle,
+              parentCategoryId: category.parent_category_id ?? null,
+            },
+          ]
+        : []
+    })
 
   return buildCategoryContextImageTiles({
     categories: descendants,

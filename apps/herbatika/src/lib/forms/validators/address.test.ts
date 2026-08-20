@@ -21,7 +21,6 @@ const messages = {
   firstNameMinLength: "first-name-min-length",
   lastNameMinLength: "last-name-min-length",
   phoneInvalid: "phone-invalid",
-  phoneMinDigits: "phone-min-digits",
   phoneRequired: "phone-required",
   postalCodeInvalid: "postal-code-invalid",
   postalCodeMinDigits: "postal-code-min-digits",
@@ -29,6 +28,21 @@ const messages = {
   taxIdMinLength: "tax-id-min-length",
   taxIdRequired: "tax-id-required",
 } satisfies AddressValidationMessages
+
+describe("phone validation", () => {
+  it("requires a phone number and rejects a regionally invalid number", () => {
+    const validators = createAddressFieldValidators(messages, "cz")
+
+    expect(validators.phone("  ")).toBe(messages.phoneRequired)
+    expect(validators.phone("4646646456")).toBe(messages.phoneInvalid)
+  })
+
+  it("uses an explicitly selected phone country instead of the market", () => {
+    const validators = createAddressFieldValidators(messages, "sk")
+
+    expect(validators.phone("+420601123456")).toBeUndefined()
+  })
+})
 
 describe("postal-code validation", () => {
   it.each<{

@@ -1,8 +1,10 @@
 "use client"
 
 import { Accordion } from "@techsio/ui-kit/molecules/accordion"
-import NextLink from "next/link"
 import { useCallback, useState } from "react"
+import { StorefrontLink } from "@/components/storefront-link"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildPath } from "@/lib/url/public-url"
 import type {
   FaqAnswerBlock as FaqAnswerBlockData,
   FaqItem,
@@ -24,16 +26,10 @@ const accordionContentClipClassName = "min-h-0 overflow-hidden"
 
 const accordionContentBodyClassName = "space-y-300 py-450"
 
-function isExternalHref(href: string) {
-  return (
-    href.startsWith("http") ||
-    href.startsWith("mailto:") ||
-    href.startsWith("tel:")
-  )
-}
+function FaqLinkItem({ href, label, target }: FaqLink) {
+  const market = useMarketContext().code
 
-function FaqLinkItem({ href, label }: FaqLink) {
-  if (isExternalHref(href)) {
+  if (href) {
     return (
       <a
         className={answerLinkClassName}
@@ -46,10 +42,17 @@ function FaqLinkItem({ href, label }: FaqLink) {
     )
   }
 
+  if (!target) {
+    return <span>{label}</span>
+  }
+
   return (
-    <NextLink className={answerLinkClassName} href={href}>
+    <StorefrontLink
+      className={answerLinkClassName}
+      href={buildPath(target, market)}
+    >
       {label}
-    </NextLink>
+    </StorefrontLink>
   )
 }
 
@@ -72,8 +75,9 @@ function FaqAnswerBlockContent({ block }: { block: FaqAnswerBlockData }) {
         {block.items.map((link) => (
           <FaqLinkItem
             href={link.href}
-            key={`${link.href}-${link.label}`}
+            key={`${link.href ?? JSON.stringify(link.target)}-${link.label}`}
             label={link.label}
+            target={link.target}
           />
         ))}
       </div>

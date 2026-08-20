@@ -10,9 +10,11 @@ import {
 } from "@/components/product/herbatika-product-grid"
 import { HerbatikaProductGridSkeleton } from "@/components/product/herbatika-product-grid-skeleton"
 import { SupportingText } from "@/components/text/supporting-text"
+import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
 
 type ProductCollectionSectionCommonProps = {
   title: string
+  productPublicSlugsById?: PublicEntitySlugMap
   products: HttpTypes.StoreProduct[]
   id?: string
   subtitle?: string
@@ -51,6 +53,7 @@ export function ProductCollectionSection(props: ProductCollectionSectionProps) {
   const tCatalog = useTranslations("catalog")
   const {
     title,
+    productPublicSlugsById = {},
     products,
     id,
     subtitle,
@@ -107,6 +110,7 @@ export function ProductCollectionSection(props: ProductCollectionSectionProps) {
         keyPrefix={keyPrefix}
         onProductHoverEnd={onProductHoverEnd}
         onProductHoverStart={onProductHoverStart}
+        productPublicSlugsById={productPublicSlugsById}
         products={products}
         slidesLg={props.slidesLg}
         slidesMd={props.slidesMd}
@@ -122,6 +126,7 @@ export function ProductCollectionSection(props: ProductCollectionSectionProps) {
         onAddToCart={props.onAddToCart}
         onProductHoverEnd={onProductHoverEnd}
         onProductHoverStart={onProductHoverStart}
+        productPublicSlugsById={productPublicSlugsById}
         products={products}
       />
     )

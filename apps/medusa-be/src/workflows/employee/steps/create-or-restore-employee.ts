@@ -1,5 +1,5 @@
 import type { DeleteEntityInput, Link } from "@medusajs/framework/modules-sdk"
-import type { Query, RemoteQueryEntryPoints } from "@medusajs/framework/types"
+import type { Query } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -10,6 +10,7 @@ import { COMPANY_MODULE } from "../../../modules/company"
 import type {
   ICompanyModuleService,
   ModuleCreateEmployee,
+  QueryEmployee,
 } from "../../../types"
 
 type EmployeeCustomerLinkRow = {
@@ -28,6 +29,11 @@ type RestorableEmployee = {
   is_admin?: boolean
   spending_limit?: number
 }
+
+export type CreateOrRestoreEmployeeResult = Pick<
+  QueryEmployee,
+  "company" | "id"
+>
 
 type CreateOrRestoreEmployeeCompensation =
   | {
@@ -67,7 +73,7 @@ export const createOrRestoreEmployeeStep = createStep(
     { container }
   ): Promise<
     StepResponse<
-      RemoteQueryEntryPoints["employee"],
+      CreateOrRestoreEmployeeResult,
       CreateOrRestoreEmployeeCompensation
     >
   > => {
@@ -151,13 +157,16 @@ export const createOrRestoreEmployeeStep = createStep(
         )
       }
 
-      return new StepResponse(restoredEmployee, {
-        action: "restored",
-        employee_id: restorableEmployee.id,
-        previous_is_admin: restorableEmployee.is_admin ?? false,
-        previous_spending_limit: restorableEmployee.spending_limit ?? 0,
-        restored_link_input: restoredLinkInput,
-      })
+      return new StepResponse(
+        restoredEmployee as unknown as CreateOrRestoreEmployeeResult,
+        {
+          action: "restored",
+          employee_id: restorableEmployee.id,
+          previous_is_admin: restorableEmployee.is_admin ?? false,
+          previous_spending_limit: restorableEmployee.spending_limit ?? 0,
+          restored_link_input: restoredLinkInput,
+        }
+      )
     }
 
     const createdEmployee = await companyModuleService.createEmployees(input)
@@ -184,11 +193,14 @@ export const createOrRestoreEmployeeStep = createStep(
       )
     }
 
-    return new StepResponse(createdEmployeeResult, {
-      action: "created",
-      customer_id: input.customer_id,
-      employee_id: createdEmployeeResult.id,
-    })
+    return new StepResponse(
+      createdEmployeeResult as unknown as CreateOrRestoreEmployeeResult,
+      {
+        action: "created",
+        customer_id: input.customer_id,
+        employee_id: createdEmployeeResult.id,
+      }
+    )
   },
   async (
     input: CreateOrRestoreEmployeeCompensation | undefined,

@@ -249,7 +249,7 @@
       "title": "Parolă uitată",
       "description": "Introduceți adresa de e-mail asociată contului. Vă vom trimite un link pentru resetarea parolei.",
       "submit": "Trimite linkul",
-      "sent": "Am trimis linkul pentru resetarea parolei la {email}. Verificați-vă căsuța de e-mail.",
+      "sent": "Dacă există un cont asociat adresei {email}, am înregistrat solicitarea de resetare a parolei.",
       "delivery_help": "Nu ați primit e-mailul? Verificați dosarul spam sau încercați din nou peste câteva minute.",
       "failed": "Linkul pentru resetarea parolei nu a putut fi trimis."
     },
@@ -288,6 +288,7 @@
       "company_fields": "Datele companiei",
       "accept_terms": "Sunt de acord cu termenii și condițiile",
       "success": "Înregistrarea a fost efectuată cu succes.",
+      "confirmation_email_notice": "Vă vom trimite confirmarea înregistrării la {email}.",
       "wholesale_success": "Cererea pentru contul angro a fost trimisă spre aprobare. Până la luarea deciziei, puteți cumpăra ca un client obișnuit.",
       "email_exists": "Există deja un cont cu această adresă de e-mail. Autentificați-vă sau folosiți recuperarea parolei.",
       "failed": "Înregistrarea nu a reușit. Încercați din nou."
@@ -451,6 +452,12 @@
       "all_reviews": "Toate evaluările",
       "verified_purchase": "Achiziție verificată",
       "verified_customer_badge_alt": "Clienți verificați Heureka",
+      "recommends_shop": "Recomandă magazinul",
+      "does_not_recommend_shop": "Nu recomandă magazinul",
+      "recommends_product": "Recomandă produsul",
+      "does_not_recommend_product": "Nu recomandă produsul",
+      "positive_points": "Punctele forte ale recenziei",
+      "negative_points": "Punctele slabe ale recenziei",
       "rating_aria": "Evaluarea medie a produsului este {rating} din {max}",
       "based_on_count": "Pe baza a {count, plural, one {# evaluare} few {# evaluări} other {# de evaluări}}",
       "loading_aria": "Se încarcă recenziile",
@@ -474,6 +481,11 @@
       "pending_description": "Recenzia va apărea după aprobare.",
       "dialog_title": "Scrie o recenzie",
       "form": {
+        "author_name_label": "Numele autorului",
+        "author_name_validation": "Introdu numele care va apărea lângă recenzie.",
+        "captcha_label": "Protecție anti-spam",
+        "captcha_validation": "Finalizează verificarea anti-spam.",
+        "captcha_unavailable": "Verificarea anti-spam nu a putut fi încărcată. Încearcă din nou.",
         "rating_label": "Evaluare",
         "rating_validation": "Selectează o evaluare de la 1 la 5 stele.",
         "content_min_length_validation": "Scrie cel puțin {min} caractere.",
@@ -481,6 +493,8 @@
         "content_label": "Recenzie"
       },
       "errors": {
+        "author_required": "Introdu numele autorului recenziei.",
+        "captcha": "Verificarea anti-spam a eșuat. Încearcă din nou.",
         "generic": "Recenzia nu a putut fi trimisă. Încearcă din nou.",
         "purchase_required": "Pentru a scrie o recenzie trebuie să fi cumpărat acest produs.",
         "validation": "Verifică evaluarea și textul recenziei.",

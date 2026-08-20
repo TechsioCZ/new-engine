@@ -5,6 +5,7 @@ import type {
   Query,
 } from "@medusajs/framework/types"
 import { MedusaError } from "@medusajs/framework/utils"
+import { buildStorefrontPublicFlowUrl } from "./storefront-public-flow-url"
 
 export const EMAIL_PASS_PROVIDER = "emailpass"
 export const ACCOUNT_SETUP_TOKEN_EXPIRES_IN = "15m"
@@ -16,11 +17,14 @@ export type AccountSetupOrder = {
   email?: string | null
   customer_id?: string | null
   metadata?: Record<string, unknown> | null
+  sales_channel_id?: string | null
   billing_address?: {
+    country_code?: string | null
     first_name?: string | null
     last_name?: string | null
   } | null
   shipping_address?: {
+    country_code?: string | null
     first_name?: string | null
     last_name?: string | null
   } | null
@@ -49,6 +53,12 @@ export type AccountSetupResult = {
   order_display_id?: string
   reset_url?: string
   sent: boolean
+  country_code?: string
+  locale?: string
+  market_code?: string
+  sales_channel_id?: string
+  storefront_base_url?: string
+  storefront_domain?: string
   skipped_reason?: "account_exists" | "missing_email" | "not_requested"
 }
 
@@ -63,9 +73,12 @@ export const ACCOUNT_SETUP_ORDER_FIELDS = [
   "email",
   "customer_id",
   "metadata",
+  "sales_channel_id",
+  "billing_address.country_code",
   "billing_address.first_name",
   "billing_address.last_name",
   "shipping_address.first_name",
+  "shipping_address.country_code",
   "shipping_address.last_name",
   "customer.id",
   "customer.email",
@@ -101,32 +114,22 @@ export function getAccountSetupCustomerName(order: AccountSetupOrder) {
   )
 }
 
-export function buildAccountSetupUrl(email: string, token: string) {
-  const template = process.env.ACCOUNT_SETUP_URL_TEMPLATE
+export function buildAccountSetupUrl(
+  email: string,
+  token: string,
+  storefrontBaseUrl: string,
+  marketCode: unknown
+) {
+  const accountSetupUrl = buildStorefrontPublicFlowUrl({
+    marketCode,
+    storefrontBaseUrl,
+    target: { kind: "account", section: "resetPassword", value: token },
+  })
 
-  if (template) {
-    if (!template.includes("{TOKEN}")) {
-      throw new MedusaError(
-        MedusaError.Types.INVALID_DATA,
-        "ACCOUNT_SETUP_URL_TEMPLATE must include {TOKEN} placeholder"
-      )
-    }
+  accountSetupUrl.searchParams.set("email", email)
+  accountSetupUrl.searchParams.set("flow", "account-setup")
 
-    return template
-      .replaceAll("{TOKEN}", encodeURIComponent(token))
-      .replaceAll("{EMAIL}", encodeURIComponent(email))
-  }
-
-  const storefrontUrl = process.env.STOREFRONT_URL
-
-  if (!storefrontUrl) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "STOREFRONT_URL env var is not set — cannot build account setup link"
-    )
-  }
-
-  return `${storefrontUrl}/auth/reset-password?token=${encodeURIComponent(token)}&email=${encodeURIComponent(email)}`
+  return accountSetupUrl.toString()
 }
 
 function getCustomerCreateData(order: AccountSetupOrder, email: string) {

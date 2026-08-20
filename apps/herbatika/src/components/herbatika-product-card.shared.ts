@@ -11,21 +11,32 @@ import {
   asStorefrontString,
 } from "@/lib/storefront/product-pricing"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
+import { withPublicSearchParams } from "@/lib/url/public-url"
+import type { Market } from "@/lib/url/types"
 
 export type HerbatikaProductCardBaseProps = {
   product: HttpTypes.StoreProduct
+  publicSlug?: string | null
   onProductHoverStart?: (product: HttpTypes.StoreProduct) => void
   onProductHoverEnd?: (product: HttpTypes.StoreProduct) => void
 }
 
 type HerbatikaProductCardStateOptions = {
+  market: Market
   priceUnavailableLabel: string
+  publicSlug?: string | null
   onImageError?: () => void
 }
 
 export function useHerbatikaProductCardState(
   product: HttpTypes.StoreProduct,
-  { priceUnavailableLabel, onImageError }: HerbatikaProductCardStateOptions
+  {
+    market,
+    priceUnavailableLabel,
+    publicSlug,
+    onImageError,
+  }: HerbatikaProductCardStateOptions
 ) {
   const region = useRegionContext()
   const currencyCode = resolveRegionCurrency(region)
@@ -35,9 +46,16 @@ export function useHerbatikaProductCardState(
   const searchResultVariantTitle = asStorefrontString(
     searchResult?.variant_title
   )
-  const productHref = product.handle
-    ? `/p/${product.handle}${searchResultVariantId ? `?variant=${encodeURIComponent(searchResultVariantId)}` : ""}`
-    : "/#"
+  const projectedProductPath = buildProjectedEntityPath(
+    "product",
+    { publicSlug },
+    market
+  )
+  const productHref = projectedProductPath
+    ? withPublicSearchParams(projectedProductPath, {
+        variant: searchResultVariantId,
+      })
+    : null
   const price = resolvePriceState(product, currencyCode, priceUnavailableLabel)
   const thumbnail = resolveThumbnail(product)
   const [imageSrc, setImageSrc] = useState(thumbnail)

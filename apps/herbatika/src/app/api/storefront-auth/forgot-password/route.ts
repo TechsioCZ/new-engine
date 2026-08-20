@@ -3,6 +3,9 @@ import {
   badRequest,
   buildErrorResponse,
   buildMedusaUrl,
+  marketAuthorityError,
+  requireStorefrontMarketBinding,
+  StorefrontMarketAuthorityError,
   serverError,
 } from "../_lib"
 
@@ -11,7 +14,7 @@ type ForgotPasswordBody = {
 }
 
 type ForgotPasswordResponse = {
-  success: true
+  accepted: true
 }
 
 export async function POST(request: Request) {
@@ -30,6 +33,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    const binding = requireStorefrontMarketBinding(request)
     const medusaResponse = await fetch(
       buildMedusaUrl("/auth/customer/emailpass/reset-password"),
       {
@@ -40,6 +44,9 @@ export async function POST(request: Request) {
         },
         body: JSON.stringify({
           identifier: email,
+          metadata: {
+            storefront_market_code: binding.market,
+          },
         }),
         cache: "no-store",
       }
@@ -50,10 +57,13 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json<ForgotPasswordResponse>(
-      { success: true },
-      { status: 200 }
+      { accepted: true },
+      { status: 202 }
     )
   } catch (error) {
+    if (error instanceof StorefrontMarketAuthorityError) {
+      return marketAuthorityError()
+    }
     return serverError("Nepodarilo sa odoslať odkaz na obnovu hesla.", {
       error: error instanceof Error ? error.message : String(error),
     })

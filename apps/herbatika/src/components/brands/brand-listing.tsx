@@ -6,18 +6,34 @@ import { CategoryFacetsPanel } from "@/components/category/category-facets-panel
 import { CategoryResultsSection } from "@/components/category/category-results-section"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
+import { buildPath } from "@/lib/url/public-url"
 import { useBrandListingController } from "./use-brand-listing-controller"
 
 type BrandListingProps = {
   brandFacetId: string
   brandTitle: string
+  productPublicSlugsById?: Readonly<Record<string, string>>
+  publicSlug?: string | null
 }
 
-export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
+export function BrandListing({
+  brandFacetId,
+  brandTitle,
+  productPublicSlugsById,
+  publicSlug,
+}: BrandListingProps) {
   const t = useTranslations("catalog")
   const tNavigation = useTranslations("navigation")
+  const market = useMarketContext().code
   const controller = useBrandListingController({ brandFacetId })
+  const paginationBasePath = buildProjectedEntityPath(
+    "brand",
+    { publicSlug },
+    market
+  )
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-brand-listing-page-gap p-brand-listing-page font-rubik 2xl:p-brand-listing-page-lg">
@@ -25,10 +41,13 @@ export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
         items={[
           {
             label: tNavigation("breadcrumbs.home"),
-            href: "/",
+            href: buildPath({ kind: "home" }, market),
             icon: "token-icon-home",
           },
-          { label: t("brands.label"), href: "/znacka" },
+          {
+            label: t("brands.label"),
+            href: buildPath({ kind: "brand" }, market),
+          },
           { label: brandTitle },
         ]}
       />
@@ -77,6 +96,8 @@ export function BrandListing({ brandFacetId, brandTitle }: BrandListingProps) {
             onSortChange={controller.onSortChange}
             page={controller.page}
             pageSize={PLP_PAGE_SIZE}
+            paginationBasePath={paginationBasePath}
+            productPublicSlugsById={productPublicSlugsById}
             products={controller.products}
             showCategoryNotFound={false}
             totalCount={controller.catalogQuery.totalCount}

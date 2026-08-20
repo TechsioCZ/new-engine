@@ -5,10 +5,9 @@ import { Rating } from "@techsio/ui-kit/atoms/rating"
 import { Skeleton } from "@techsio/ui-kit/atoms/skeleton"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
 import { Pagination } from "@techsio/ui-kit/molecules/pagination"
-import NextLink from "next/link"
-import { usePathname, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { useFormatter, useTranslations } from "next-intl"
-import { createParser, createSerializer, useQueryState } from "nuqs"
+import { createParser, useQueryState } from "nuqs"
 import { useEffect } from "react"
 import { ProductReviewCreateDialog } from "@/components/product-detail/sections/product-detail-review-dialog"
 import {
@@ -17,13 +16,18 @@ import {
 } from "@/components/product-detail/sections/product-detail-review-utils"
 import { FractionalRating } from "@/components/reviews/fractional-rating"
 import type { ReviewItem } from "@/components/reviews/reviews.types"
+import { StorefrontLink } from "@/components/storefront-link"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import {
   PRODUCT_REVIEWS_PAGE_SIZE,
   useProductReviews,
 } from "@/lib/storefront/reviews"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
+import { withPublicSearchParams } from "@/lib/url/public-url"
 
 type ProductDetailReviewsProps = {
   productId?: string | null
+  publicSlug?: string | null
 }
 
 const REVIEW_PAGE_PARAM = "reviews_page"
@@ -38,10 +42,6 @@ const reviewPageParser = createParser({
   },
   serialize: String,
 }).withDefault(1)
-
-const serializeReviewPage = createSerializer({
-  [REVIEW_PAGE_PARAM]: reviewPageParser,
-})
 
 function ProductDetailReviewsSkeleton() {
   const tCatalog = useTranslations("catalog")
@@ -169,20 +169,31 @@ function ProductReviewListItem({ review }: { review: ReviewItem }) {
   )
 }
 
-export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
+export function ProductDetailReviews({
+  productId,
+  publicSlug,
+}: ProductDetailReviewsProps) {
   const format = useFormatter()
   const tCatalog = useTranslations("catalog")
-  const pathname = usePathname()
+  const { code: market } = useMarketContext()
   const searchParams = useSearchParams()
+  const productPath = buildProjectedEntityPath(
+    "product",
+    { publicSlug },
+    market
+  )
   const [currentPage, setCurrentPage] = useQueryState(
     REVIEW_PAGE_PARAM,
     reviewPageParser
   )
   const getReviewPageUrl = ({ page }: { page: number }) => {
-    const query = searchParams.toString()
-    const baseHref = query ? `${pathname}?${query}` : pathname
-    const href = serializeReviewPage(baseHref, {
-      reviews_page: page <= 1 ? null : page,
+    if (!productPath) {
+      return `#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`
+    }
+    const query = searchParams?.toString() ?? ""
+    const baseHref = query ? `${productPath}?${query}` : productPath
+    const href = withPublicSearchParams(baseHref, {
+      [REVIEW_PAGE_PARAM]: page <= 1 ? null : page,
     })
     return `${href}#${PRODUCT_DETAIL_REVIEWS_SECTION_ID}`
   }
@@ -213,7 +224,8 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
     reviewsQuery.isSuccess &&
     reviewsQuery.totalPages > 0 &&
     currentPage > reviewsQuery.totalPages
-  const shouldShowPagination = reviewsQuery.totalPages > 1
+  const shouldShowPagination =
+    reviewsQuery.totalPages > 1 && Boolean(productPath)
 
   useEffect(() => {
     if (!isPageOutOfRange) {
@@ -302,7 +314,7 @@ export function ProductDetailReviews({ productId }: ProductDetailReviewsProps) {
           <Pagination
             count={totalCount}
             getPageUrl={getReviewPageUrl}
-            linkAs={NextLink}
+            linkAs={StorefrontLink}
             page={currentPage}
             pageSize={PRODUCT_REVIEWS_PAGE_SIZE}
             siblingCount={0}

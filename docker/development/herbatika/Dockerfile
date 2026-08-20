@@ -78,16 +78,16 @@ COPY libs/storefront-i18n ./libs/storefront-i18n
 ARG NEXT_PUBLIC_MEDUSA_BACKEND_URL
 ARG NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY
 ARG NEXT_PUBLIC_STOREFRONT_AUTH_MODE
-ARG NEXT_PUBLIC_PPL_WIDGET_API_KEY
 ARG NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED
 ARG NEXT_PUBLIC_PAYLOAD_BASE_URL
+ARG NEXT_PUBLIC_MINIO_FILE_URL
 
 ENV NEXT_PUBLIC_MEDUSA_BACKEND_URL=${NEXT_PUBLIC_MEDUSA_BACKEND_URL}
 ENV NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY=${NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY}
 ENV NEXT_PUBLIC_STOREFRONT_AUTH_MODE=${NEXT_PUBLIC_STOREFRONT_AUTH_MODE}
-ENV NEXT_PUBLIC_PPL_WIDGET_API_KEY=${NEXT_PUBLIC_PPL_WIDGET_API_KEY}
 ENV NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED=${NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED}
 ENV NEXT_PUBLIC_PAYLOAD_BASE_URL=${NEXT_PUBLIC_PAYLOAD_BASE_URL}
+ENV NEXT_PUBLIC_MINIO_FILE_URL=${NEXT_PUBLIC_MINIO_FILE_URL}
 
 RUN --mount=type=cache,id=pnpm-store-herbatika,target=/pnpm/store \
     pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --ignore-scripts --filter=herbatika...
@@ -96,9 +96,11 @@ RUN pnpm --filter=@techsio/storefront-i18n build
 RUN pnpm --filter=@techsio/storefront-data build
 RUN pnpm --filter=@techsio/ui-kit build
 
-RUN --mount=type=cache,id=next-cache-herbatika,target=/var/www/apps/herbatika/.next/cache \
-    pnpm --filter=herbatika exec next build --turbopack && \
-    test -f apps/herbatika/.next/BUILD_ID
+RUN pnpm --filter=herbatika run build && \
+    test -f apps/herbatika/.next/BUILD_ID && \
+    test -f apps/herbatika/.next/standalone/apps/herbatika/scripts/url-registry/migrate.mjs && \
+    test -f apps/herbatika/.next/standalone/apps/herbatika/scripts/url-registry/populate.mjs && \
+    test -f apps/herbatika/.next/standalone/apps/herbatika/src/lib/url-registry/migrations/0004_add_invalidation_delivery_diagnostics.sql
 
 FROM node:24-slim AS prod
 

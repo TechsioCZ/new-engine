@@ -138,6 +138,13 @@ describe("order business status", () => {
       name: "payment is partially authorized",
       overrides: { payment_status: "partially_authorized" },
     },
+    {
+      name: "the manual status has been cleared",
+      overrides: {
+        metadata: { [ORDER_BUSINESS_STATUS_METADATA_KEY]: null },
+        payment_status: "awaiting",
+      },
+    },
   ] satisfies {
     name: string
     overrides: Partial<OrderBusinessStatusInput>
@@ -163,6 +170,14 @@ describe("order business status", () => {
     {
       name: "payment is partially captured",
       overrides: { payment_status: "partially_captured", status: "pending" },
+    },
+    {
+      name: "an admin assigned a manual status",
+      overrides: {
+        metadata: { [ORDER_BUSINESS_STATUS_METADATA_KEY]: "processing" },
+        payment_status: "awaiting",
+        status: "pending",
+      },
     },
   ] satisfies {
     name: string

@@ -10,6 +10,8 @@ const PRODUCT_IDENTIFIER_METADATA_FIELDS = [
   "external_id",
   "legacy_id",
   "symmy_id",
+  "source_shopitem_id",
+  "code",
 ] as const
 const PRODUCT_IDENTIFIER_FIELDS = [
   "id",
@@ -17,6 +19,7 @@ const PRODUCT_IDENTIFIER_FIELDS = [
   "upc",
   "barcode",
   "sku",
+  "handle",
 ] as const
 const POPULARITY_FIELDS = [
   "selled",
@@ -28,6 +31,7 @@ const TRADEMARK_SYMBOLS_REGEX = /[®™]/g
 const HTML_TAG_REGEX = /<[^>]*>/g
 const MEILISEARCH_DOCUMENT_ID_REGEX = /^[a-zA-Z0-9_-]+$/
 const MEILISEARCH_DOCUMENT_ID_MAX_BYTES = 511
+const INTERNAL_PUBLIC_PATH_PREFIXES = ["/~sf/", "/api/"] as const
 
 const asRecord = (value: unknown): UnknownRecord | undefined => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
@@ -209,7 +213,7 @@ export const buildProductSearchDocument = (
   return cleanSearchDocument(searchDocument)
 }
 
-const buildVariantDocumentId = (
+export const buildProductVariantSearchDocumentId = (
   productId: unknown,
   variantId: unknown
 ): string => {
@@ -237,7 +241,7 @@ const buildProductVariantSearchDocument = (
   return cleanSearchDocument({
     ...document,
     ...buildProductFacetDocument({ ...document, variants: [variant] }),
-    id: buildVariantDocumentId(document.id, variant.id),
+    id: buildProductVariantSearchDocumentId(document.id, variant.id),
     facet_popularity:
       popularity === undefined
         ? readPopularity(document)
@@ -342,17 +346,64 @@ const buildContentDocumentId = (
   return `${type}_${readable.slice(0, readableBudget)}_${digest}`
 }
 
+export const readContentSourceId = (value: unknown): string | undefined => {
+  if (typeof value === "string") {
+    return value.trim() || undefined
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value)
+  }
+
+  return
+}
+
+export const readCanonicalPublicHref = (value: unknown): string | undefined => {
+  if (typeof value !== "string" || value !== value.trim()) {
+    return
+  }
+
+  if (
+    !value.startsWith("/") ||
+    value.startsWith("//") ||
+    value.includes("\\") ||
+    value.includes("?") ||
+    value.includes("#") ||
+    (value.length > 1 && value.endsWith("/")) ||
+    INTERNAL_PUBLIC_PATH_PREFIXES.some((prefix) => value.startsWith(prefix))
+  ) {
+    return
+  }
+
+  let parsed: URL
+
+  try {
+    parsed = new URL(value, "https://public.invalid")
+  } catch {
+    return
+  }
+
+  return parsed.origin === "https://public.invalid" && parsed.pathname === value
+    ? value
+    : undefined
+}
+
 export const buildContentSearchDocument = (
   document: UnknownRecord,
   type: "article" | "page",
-  locale: string
-): UnknownRecord => {
-  const slug = typeof document.slug === "string" ? document.slug : ""
-  const href = type === "article" ? `/blog/${slug}` : `/${slug}`
+  locale: string,
+  publicHref: unknown
+): UnknownRecord | undefined => {
+  const sourceId = readContentSourceId(document.id)
+  const href = readCanonicalPublicHref(publicHref)
+
+  if (!(sourceId && href)) {
+    return
+  }
 
   return cleanSearchDocument({
-    id: buildContentDocumentId(type, document.id),
-    source_id: String(document.id),
+    id: buildContentDocumentId(type, sourceId),
+    source_id: sourceId,
     type,
     locale,
     title: document.title,
@@ -360,7 +411,7 @@ export const buildContentSearchDocument = (
     content: extractContentText(
       document.contentHTML ?? document.content ?? document.excerpt
     ),
-    slug,
+    slug: document.slug,
     href,
   })
 }

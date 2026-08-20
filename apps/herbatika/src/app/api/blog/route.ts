@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { resolveConfiguredMarketRuntimeBindingByHost } from "@/lib/market/market-runtime.server"
 import { loadBlogQueryState } from "@/lib/storefront/blog-query-state.server"
 import { fetchCmsBlogListing } from "@/lib/storefront/cms"
 
@@ -6,10 +7,23 @@ const CLIENT_CLOSED_REQUEST_STATUS = 499
 
 export async function GET(request: Request) {
   const { category, page } = loadBlogQueryState(request)
+  const binding = resolveConfiguredMarketRuntimeBindingByHost(
+    request.headers.get("host")
+  )
+  if (!binding) {
+    return NextResponse.json(
+      { message: "Misdirected request" },
+      {
+        headers: { "Cache-Control": "private, no-store" },
+        status: 421,
+      }
+    )
+  }
 
   try {
     const listing = await fetchCmsBlogListing({
       category,
+      locale: binding.locale,
       page,
       signal: request.signal,
     })

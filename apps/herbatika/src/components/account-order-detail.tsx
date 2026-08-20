@@ -2,16 +2,18 @@
 
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { AccountSurface } from "@/components/account/account-surface"
 import { AccountOrderDetailItems } from "@/components/account/orders/account-order-detail-items"
 import { AccountOrderDetailSummary } from "@/components/account/orders/account-order-detail-summary"
 import { HerbatikaBreadcrumb } from "@/components/herbatika-breadcrumb"
 import { OrderSkeleton } from "@/components/loading/order-skeleton"
+import { StorefrontLink } from "@/components/storefront-link"
 import { useAuth } from "@/lib/storefront/auth"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { resolveOrderDisplayId } from "@/lib/storefront/order-format"
 import { useOrder } from "@/lib/storefront/orders"
+import { buildPath } from "@/lib/url/public-url"
 
 type AccountOrderDetailProps = {
   orderId: string
@@ -20,6 +22,10 @@ type AccountOrderDetailProps = {
 export function AccountOrderDetail({ orderId }: AccountOrderDetailProps) {
   const tAuth = useTranslations("auth")
   const tNavigation = useTranslations("navigation")
+  const { code: market } = useMarketContext()
+  const homeHref = buildPath({ kind: "home" }, market)
+  const accountHref = buildPath({ kind: "account" }, market)
+  const ordersHref = buildPath({ kind: "account", section: "orders" }, market)
   const authQuery = useAuth()
   const orderQuery = useOrder({
     id: orderId,
@@ -37,8 +43,8 @@ export function AccountOrderDetail({ orderId }: AccountOrderDetailProps) {
           {orderQuery.error}
         </StatusText>
         <LinkButton
-          as={NextLink}
-          href="/account/orders"
+          as={StorefrontLink}
+          href={ordersHref}
           size="sm"
           variant="secondary"
         >
@@ -58,8 +64,8 @@ export function AccountOrderDetail({ orderId }: AccountOrderDetailProps) {
           {tAuth("account.orders.not_found_description")}
         </p>
         <LinkButton
-          as={NextLink}
-          href="/account/orders"
+          as={StorefrontLink}
+          href={ordersHref}
           size="sm"
           variant="secondary"
         >
@@ -75,11 +81,11 @@ export function AccountOrderDetail({ orderId }: AccountOrderDetailProps) {
     <div className="space-y-400">
       <HerbatikaBreadcrumb
         items={[
-          { label: tNavigation("breadcrumbs.home"), href: "/" },
-          { label: tAuth("account_label"), href: "/account" },
+          { label: tNavigation("breadcrumbs.home"), href: homeHref },
+          { label: tAuth("account_label"), href: accountHref },
           {
             label: tAuth("account.navigation.orders"),
-            href: "/account/orders",
+            href: ordersHref,
           },
           { label: resolveOrderDisplayId(order) },
         ]}

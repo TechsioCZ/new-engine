@@ -3,9 +3,6 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import type { Route } from "next"
-import NextLink from "next/link"
-import { useSearchParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { type ReactNode, useEffect, useRef, useState } from "react"
 import { readAccountSetupRequested } from "@/components/checkout/account-setup-metadata"
@@ -20,17 +17,82 @@ import {
 import { clearStoredPaymentProviderSelection } from "@/components/checkout/checkout-payment-selection-storage"
 import { resolveCheckoutStepHref } from "@/components/checkout/checkout-route.utils"
 import { CheckoutCompletedOrderSection } from "@/components/checkout/sections/checkout-completed-order-section"
+import { StorefrontLink } from "@/components/storefront-link"
 import { SupportingText } from "@/components/text/supporting-text"
+import { useAuth } from "@/lib/storefront/auth"
 import { useCart } from "@/lib/storefront/cart"
+import {
+  buildOrderConfirmationHref,
+  issueOrderConfirmationAccess,
+  syncCartSession,
+} from "@/lib/storefront/checkout-access"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import type { PaymentResultProjection } from "@/lib/storefront/payment-result-session"
 import { storefront } from "@/lib/storefront/storefront"
 
 const MAX_PAYMENT_RETURN_ATTEMPTS = 8
 const PAYMENT_RETURN_RETRY_DELAY_MS = 1500
 
-export function CheckoutPaymentReturnPanel() {
+const resolveProjectedOrderId = (paymentResult: PaymentResultProjection) =>
+  paymentResult.status === "completed" && paymentResult.publicOrderId
+    ? paymentResult.publicOrderId
+    : null
+
+const navigateToOrderConfirmation = async ({
+  cartId,
+  isAuthenticated,
+  market,
+  orderId,
+}: Readonly<{
+  cartId: string
+  isAuthenticated: boolean
+  market: Parameters<typeof buildOrderConfirmationHref>[0]["market"]
+  orderId: string
+}>) => {
+  const access = isAuthenticated
+    ? null
+    : await issueOrderConfirmationAccess({
+        cartId,
+        publicOrderId: orderId,
+      })
+
+  window.location.replace(
+    buildOrderConfirmationHref({
+      market,
+      orderToken: access?.orderToken,
+      publicOrderId: access?.publicOrderId ?? orderId,
+    })
+  )
+}
+
+const completeReturnedCart = async ({
+  attemptCount,
+  cartId,
+  completeCart,
+  debugCartMetadata,
+}: Readonly<{
+  attemptCount: number
+  cartId: string
+  completeCart: (input: { cartId: string }) => Promise<unknown>
+  debugCartMetadata: unknown
+}>) => {
+  await syncCartSession(cartId)
+  logCheckoutAccountSetupDebug("payment return complete attempt", {
+    attempt_count: attemptCount,
+    cart_id: cartId,
+    cart_metadata_requested: readAccountSetupRequested(debugCartMetadata),
+  })
+  return completeCart({ cartId })
+}
+
+export function CheckoutPaymentReturnPanel({
+  paymentResult,
+}: Readonly<{ paymentResult: PaymentResultProjection }>) {
   const tCheckout = useTranslations("checkout")
+  const marketContext = useMarketContext()
+  const authQuery = useAuth()
   const confirmationPendingMessage = tCheckout(
     "payment_return_confirmation_pending"
   )
@@ -38,16 +100,15 @@ export function CheckoutPaymentReturnPanel() {
     "payment_return_verification_failed"
   )
   const paymentNotCompletedMessage = tCheckout("payment_return_not_completed")
-  const searchParams = useSearchParams()
-  const cartId = normalizeSearchParam(searchParams.get("cart_id"))
-  const isCancelled = resolvePaymentCancelled(searchParams)
-  const _retryRequestKey = normalizeSearchParam(searchParams.get("retry"))
+  const cartId = paymentResult.cartId
+  const isCancelled = paymentResult.status === "cancelled"
+  const projectedOrderId = resolveProjectedOrderId(paymentResult)
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null)
   const [returnError, setReturnError] = useState<string | null>(null)
   const isAccountSetupDebugEnabled = useCheckoutAccountSetupDebugEnabled()
   const debugCartQuery = useCart({
     autoCreate: false,
-    cartId: cartId ?? undefined,
+    cartId,
     enabled: Boolean(cartId && isAccountSetupDebugEnabled),
   })
   const debugCartMetadata = debugCartQuery.cart?.metadata
@@ -78,7 +139,7 @@ export function CheckoutPaymentReturnPanel() {
   ])
 
   useEffect(() => {
-    if (!cartId || isCancelled || completedOrderId || returnError) {
+    if (isCancelled || completedOrderId || returnError) {
       return
     }
 
@@ -90,14 +151,23 @@ export function CheckoutPaymentReturnPanel() {
       attemptCount += 1
 
       try {
-        logCheckoutAccountSetupDebug("payment return complete attempt", {
-          attempt_count: attemptCount,
-          cart_id: cartId,
-          cart_metadata_requested: readAccountSetupRequested(debugCartMetadata),
-        })
+        if (projectedOrderId) {
+          clearStoredPaymentProviderSelection(cartId)
+          await navigateToOrderConfirmation({
+            cartId,
+            isAuthenticated: authQuery.isAuthenticated,
+            market: marketContext.code,
+            orderId: projectedOrderId,
+          })
+          setCompletedOrderId(projectedOrderId)
+          return
+        }
 
-        const completeResult = await completeCartRef.current({
+        const completeResult = await completeReturnedCart({
+          attemptCount,
           cartId,
+          completeCart: completeCartRef.current,
+          debugCartMetadata,
         })
         if (didCancel) {
           return
@@ -111,6 +181,12 @@ export function CheckoutPaymentReturnPanel() {
             order_id: orderId,
           })
           clearStoredPaymentProviderSelection(cartId)
+          await navigateToOrderConfirmation({
+            cartId,
+            isAuthenticated: authQuery.isAuthenticated,
+            market: marketContext.code,
+            orderId,
+          })
           setCompletedOrderId(orderId)
           return
         }
@@ -120,10 +196,6 @@ export function CheckoutPaymentReturnPanel() {
           confirmationPendingMessage
         scheduleRetryOrFail(failureMessage)
       } catch (error) {
-        if (didCancel) {
-          return
-        }
-
         const errorMessage = resolveErrorMessage(
           error,
           verificationFailedMessage
@@ -133,6 +205,10 @@ export function CheckoutPaymentReturnPanel() {
     }
 
     const scheduleRetryOrFail = (message: string) => {
+      if (didCancel) {
+        return
+      }
+
       if (attemptCount >= MAX_PAYMENT_RETURN_ATTEMPTS) {
         setReturnError(
           resolvePaymentReturnFailureMessage(
@@ -157,12 +233,15 @@ export function CheckoutPaymentReturnPanel() {
       }
     }
   }, [
+    authQuery.isAuthenticated,
     cartId,
     completedOrderId,
     confirmationPendingMessage,
     debugCartMetadata,
     isCancelled,
+    marketContext.code,
     paymentNotCompletedMessage,
+    projectedOrderId,
     returnError,
     verificationFailedMessage,
   ])
@@ -171,19 +250,22 @@ export function CheckoutPaymentReturnPanel() {
     return <CheckoutCompletedOrderSection completedOrderId={completedOrderId} />
   }
 
-  const summaryHref = resolveCheckoutStepHref("suhrn") as Route
-  const paymentHref = resolveCheckoutStepHref("doprava-platba") as Route
+  const summaryHref = resolveCheckoutStepHref("suhrn", marketContext.code)
+  const paymentHref = resolveCheckoutStepHref(
+    "doprava-platba",
+    marketContext.code
+  )
 
   if (isCancelled) {
     return (
       <PaymentReturnStatusCard
         actions={
           <>
-            <LinkButton as={NextLink} href={summaryHref} size="md">
+            <LinkButton as={StorefrontLink} href={summaryHref} size="md">
               {tCheckout("payment_return_back_to_summary")}
             </LinkButton>
             <LinkButton
-              as={NextLink}
+              as={StorefrontLink}
               href={paymentHref}
               size="md"
               theme="outlined"
@@ -197,22 +279,6 @@ export function CheckoutPaymentReturnPanel() {
         title={tCheckout("payment_return_cancelled_title")}
       >
         {tCheckout("payment_return_cancelled_description")}
-      </PaymentReturnStatusCard>
-    )
-  }
-
-  if (!cartId) {
-    return (
-      <PaymentReturnStatusCard
-        actions={
-          <LinkButton as={NextLink} href={summaryHref} size="md">
-            {tCheckout("payment_return_back_to_summary")}
-          </LinkButton>
-        }
-        status="error"
-        title={tCheckout("payment_return_missing_cart_title")}
-      >
-        {tCheckout("payment_return_missing_cart_description")}
       </PaymentReturnStatusCard>
     )
   }
@@ -233,7 +299,7 @@ export function CheckoutPaymentReturnPanel() {
               {tCheckout("payment_return_retry")}
             </Button>
             <LinkButton
-              as={NextLink}
+              as={StorefrontLink}
               href={summaryHref}
               size="md"
               theme="outlined"
@@ -306,18 +372,4 @@ function isPaymentProviderAuthorizationFailure(message: string) {
     normalizedMessage.includes("not authorized with the provider") ||
     normalizedMessage.includes("was not authorized")
   )
-}
-
-function normalizeSearchParam(value: string | null) {
-  const normalized = value?.trim()
-  return normalized && normalized.length > 0 ? normalized : null
-}
-
-function resolvePaymentCancelled(searchParams: {
-  get: (name: string) => string | null
-}) {
-  return ["payment_cancelled", "cancelled", "canceled"].some((key) => {
-    const value = searchParams.get(key)?.toLowerCase()
-    return value === "true" || value === "1" || value === "yes"
-  })
 }

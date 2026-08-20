@@ -1,0 +1,193 @@
+import "next/dist/server/node-environment-baseline"
+import { NextRequest } from "next/server"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
+import { config, proxy } from "./proxy"
+
+const originalAllowedMarkets = process.env.ALLOWED_MARKETS
+
+const request = (pathname: string, host = "herbatica.sk", method = "GET") =>
+  new NextRequest(`https://${host}${pathname}`, {
+    headers: { host },
+    method,
+  })
+
+beforeEach(() => {
+  process.env.ALLOWED_MARKETS = "sk,cz,hu,ro"
+})
+
+afterEach(() => {
+  if (originalAllowedMarkets === undefined) {
+    Reflect.deleteProperty(process.env, "ALLOWED_MARKETS")
+  } else {
+    process.env.ALLOWED_MARKETS = originalAllowedMarkets
+  }
+})
+
+describe("public proxy adapter", () => {
+  it("routes all public HTML through one full-architecture matcher", () => {
+    expect(config.matcher).toEqual([
+      "/((?!api(?:/|$)|_next/static|_next/image|.*\\.(?:png|jpg|jpeg|gif|webp|svg|css|js|woff|woff2)$).*)",
+    ])
+  })
+
+  it("rewrites a canonical product path with trusted market context", () => {
+    const response = proxy(
+      request("/termekek/zold-tea?variant=variant_01", "herbatica.hu")
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      "https://herbatica.hu/~sf/hu/products/zold-tea?variant=variant_01"
+    )
+    expect(response.headers.get("x-middleware-request-x-sf-market")).toBe("hu")
+    expect(response.headers.get("x-middleware-request-x-sf-route-key")).toBe(
+      "product.detail"
+    )
+    expect(response.headers.get("x-middleware-request-x-sf-public-path")).toBe(
+      "/termekek/zold-tea"
+    )
+  })
+
+  it("scrubs spoofed storefront context from a product rewrite", () => {
+    const spoofedRequest = new NextRequest(
+      "https://herbatica.ro/produse/ceai-verde",
+      {
+        headers: {
+          host: "herbatica.ro",
+          rsc: "1",
+          "x-sf-market": "sk",
+          "x-sf-route-key": "attacker-controlled",
+        },
+      }
+    )
+
+    const response = proxy(spoofedRequest)
+
+    expect(response.headers.has("x-middleware-request-rsc")).toBe(false)
+    expect(response.headers.get("x-middleware-request-x-sf-market")).toBe("ro")
+    expect(response.headers.get("x-middleware-request-x-sf-route-key")).toBe(
+      "product.detail"
+    )
+  })
+
+  it("preserves the raw query while rewriting a trusted market host", () => {
+    const response = proxy(
+      request("/produkty/zeleny-caj?variant=SKU-AbC-01", "herbatica.cz")
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      "https://herbatica.cz/~sf/cz/products/zeleny-caj?variant=SKU-AbC-01"
+    )
+  })
+
+  it("keeps the normalized adapter origin for an internal rewrite", () => {
+    const standaloneRequest = new NextRequest(
+      "http://127.0.0.1:32145/produkty/zeleny-caj",
+      { headers: { host: "herbatica.sk" } }
+    )
+
+    expect(proxy(standaloneRequest).headers.get("x-middleware-rewrite")).toBe(
+      "http://localhost:32145/~sf/sk/products/zeleny-caj"
+    )
+  })
+
+  it("scrubs spoofed router and storefront-internal request headers", () => {
+    const spoofedRequest = new NextRequest(
+      "https://herbatica.sk/produkty/zeleny-caj",
+      {
+        headers: {
+          host: "herbatica.sk",
+          "next-router-prefetch": "1",
+          "next-router-state-tree": "%5B%22%22%5D",
+          rsc: "1",
+          "x-market-code": "attacker-controlled",
+          "x-nextjs-data": "1",
+          "x-sf-market": "attacker-controlled",
+        },
+      }
+    )
+
+    const response = proxy(spoofedRequest)
+    const overridden = new Set(
+      response.headers
+        .get("x-middleware-override-headers")
+        ?.split(",")
+        .filter(Boolean)
+    )
+
+    expect(overridden.has("host")).toBe(true)
+    expect(overridden.has("rsc")).toBe(false)
+    expect(overridden.has("next-router-prefetch")).toBe(false)
+    expect(overridden.has("next-router-state-tree")).toBe(false)
+    expect(overridden.has("x-nextjs-data")).toBe(false)
+    expect(overridden.has("x-market-code")).toBe(false)
+    expect(overridden.has("x-sf-market")).toBe(true)
+    expect(response.headers.has("x-middleware-request-rsc")).toBe(false)
+    expect(response.headers.get("x-middleware-request-x-sf-market")).toBe("sk")
+    expect(
+      response.headers.get("x-middleware-request-x-sf-canonical-origin")
+    ).toBe("https://herbatica.sk")
+    expect(response.headers.get("x-middleware-request-x-sf-route-key")).toBe(
+      "product.detail"
+    )
+    expect(response.headers.get("x-middleware-request-x-sf-public-path")).toBe(
+      "/produkty/zeleny-caj"
+    )
+  })
+
+  it.each([
+    ["OPTIONS", 204],
+    ["POST", 405],
+    ["PUT", 405],
+    ["PATCH", 405],
+    ["DELETE", 405],
+  ])("returns the public page method outcome for %s", (method, status) => {
+    const response = proxy(request("/produkty/zeleny-caj", undefined, method))
+
+    expect(response.status).toBe(status)
+    expect(response.headers.get("allow")).toBe("GET, HEAD")
+    expect(response.headers.has("x-middleware-rewrite")).toBe(false)
+  })
+
+  it("returns 421 for an unknown host", () => {
+    expect(proxy(request("/", "unknown.example")).status).toBe(421)
+  })
+
+  it.each([
+    "/~sf/sk/products/x",
+    "/_next/data/build-123/~sf/sk/products/x.json",
+  ])("never exposes the internal Pages namespace: %s", (pathname) => {
+    expect(proxy(request(pathname)).status).toBe(404)
+  })
+
+  it.each([
+    "/p",
+    "/p/legacy",
+    "/c",
+    "/c/legacy",
+  ])("returns a real 404 for a removed legacy route: %s", (pathname) => {
+    const response = proxy(request(pathname))
+
+    expect(response.status).toBe(404)
+    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow")
+    expect(response.headers.get("cache-control")).toBe(
+      "private, no-store, max-age=0"
+    )
+  })
+
+  it("passes a verified-host system route through and rejects an unknown host", () => {
+    expect(proxy(request("/robots.txt")).headers.get("x-middleware-next")).toBe(
+      "1"
+    )
+    expect(proxy(request("/favicon.ico", "unknown.example")).status).toBe(421)
+  })
+
+  it("returns 404 for the HU and RO legacy about path", () => {
+    for (const host of ["herbatica.hu", "herbatica.ro"]) {
+      const response = proxy(request("/o-nas", host))
+      expect(response.status).toBe(404)
+      expect(response.headers.has("location")).toBe(false)
+    }
+  })
+})

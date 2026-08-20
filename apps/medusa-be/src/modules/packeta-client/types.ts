@@ -191,6 +191,11 @@ export interface PacketaFulfillmentData extends Record<string, unknown> {
   barcode: string
   /** Pickup point ID selected by customer */
   access_point_id: number
+  access_point_name?: string
+  access_point_street?: string
+  access_point_city?: string
+  access_point_zip?: string
+  access_point_country?: string
   supports_cod: boolean
   config_id: string
   environment: PacketaEnvironment
@@ -219,8 +224,11 @@ export type PacketaShippingOptionData = {
   /** Chosen by customer at checkout via widget (shipping_method.data only) */
   access_point_id?: number
   access_point_name?: string
+  access_point_street?: string
+  access_point_type?: string
   access_point_zip?: string
   access_point_city?: string
+  access_point_country?: string
 }
 
 // ============================================

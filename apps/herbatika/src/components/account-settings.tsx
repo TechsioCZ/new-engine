@@ -11,6 +11,10 @@ import {
 } from "@/components/account/account-surface"
 import { useHerbatikaForm } from "@/lib/forms/core/herbatika-form"
 import {
+  normalizeHerbatikaPhoneCountryCode,
+  normalizePhoneNumberToE164,
+} from "@/lib/forms/phone-number"
+import {
   createAccountSettingsValidators,
   toAccountSettingsValues,
 } from "@/lib/storefront/account-settings-validators"
@@ -18,10 +22,12 @@ import { useAuth } from "@/lib/storefront/auth"
 import { useUpdateCustomer } from "@/lib/storefront/customers"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 
 export function AccountSettings() {
   const tAuth = useTranslations("auth")
   const tForm = useTranslations("form")
+  const { countryCode } = useMarketContext()
   const authQuery = useAuth()
   const updateCustomerMutation = useUpdateCustomer()
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -29,14 +35,17 @@ export function AccountSettings() {
   const hydratedCustomerIdRef = useRef<string | null>(null)
   const accountSettingsValidators = useMemo(
     () =>
-      createAccountSettingsValidators({
-        firstNameMinLength: tForm("validation.first_name_min_length"),
-        lastNameMinLength: tForm("validation.last_name_min_length"),
-        phoneInvalid: tForm("validation.phone_invalid"),
-        phoneMinDigits: tForm("validation.phone_min_digits"),
-      }),
-    [tForm]
+      createAccountSettingsValidators(
+        {
+          firstNameMinLength: tForm("validation.first_name_min_length"),
+          lastNameMinLength: tForm("validation.last_name_min_length"),
+          phoneInvalid: tForm("validation.phone_invalid"),
+        },
+        countryCode
+      ),
+    [countryCode, tForm]
   )
+  const defaultPhoneCountry = normalizeHerbatikaPhoneCountryCode(countryCode)
 
   const form = useHerbatikaForm({
     defaultValues: toAccountSettingsValues(authQuery.customer),
@@ -48,7 +57,7 @@ export function AccountSettings() {
         const payload = {
           first_name: value.first_name.trim(),
           last_name: value.last_name.trim(),
-          phone: value.phone.trim() || undefined,
+          phone: normalizePhoneNumberToE164(value.phone, countryCode),
           company_name: value.company_name.trim() || undefined,
         }
 
@@ -194,14 +203,14 @@ export function AccountSettings() {
           validators={accountSettingsValidators.phone}
         >
           {(field) => (
-            <field.TextField
+            <field.PhoneField
+              defaultCountry={defaultPhoneCountry}
               id="account-settings-phone"
               label={tForm("phone")}
               onValueChange={() => {
                 setSubmitError(null)
                 setSubmitSuccess(null)
               }}
-              type="tel"
               validationMode="blur"
             />
           )}

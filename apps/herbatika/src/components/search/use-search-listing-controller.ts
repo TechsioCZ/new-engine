@@ -19,12 +19,22 @@ import {
   useCatalogListingPageBounds,
 } from "@/lib/storefront/use-catalog-listing-interactions"
 
-export function useSearchListingController() {
+export function useSearchListingController(
+  options: Readonly<{
+    productPublicSlugsById?: Readonly<Record<string, string>>
+    refreshServerDataOnQueryChange?: boolean
+    requireQuery?: boolean
+  }> = {}
+) {
   const region = useRegionContext()
   const regionCurrencyCode = resolveRegionCurrency(region)
-  const [queryState, setQueryState] = useQueryStates(plpQueryParsers)
+  const [queryState, setQueryState] = useQueryStates(plpQueryParsers, {
+    shallow: options.refreshServerDataOnQueryChange !== true,
+  })
   const query = queryState.q.trim()
-  const isSearchQueryEnabled = Boolean(region?.region_id && query.length > 0)
+  const isSearchQueryEnabled = Boolean(
+    region?.region_id && (options.requireQuery === false || query.length > 0)
+  )
 
   const catalogProductsInput = buildCatalogProductsParams({
     queryState,
@@ -99,10 +109,12 @@ export function useSearchListingController() {
       (catalogQuery.products.length > 0 ||
         catalogQuery.query.isPlaceholderData),
     isResultsLoading:
-      query.length > 0 && (!region?.region_id || catalogQuery.isLoading),
+      (options.requireQuery === false || query.length > 0) &&
+      (!region?.region_id || catalogQuery.isLoading),
     isSearchQueryEnabled,
     priceBounds: resolveCatalogPriceBounds(catalogQuery.facets.price),
     products: catalogQuery.products,
+    productPublicSlugsById: options.productPublicSlugsById,
     productsCurrencyCode: regionCurrencyCode,
     query,
     searchCountryCode: region?.country_code,

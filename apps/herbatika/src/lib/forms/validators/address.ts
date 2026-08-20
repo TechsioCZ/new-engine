@@ -1,9 +1,9 @@
 import { normalizeCountryCode } from "@/lib/forms/country-options"
+import { createOptionalPhoneNumberValidator } from "@/lib/forms/phone-number"
 import type { AddressValidationMessages as AddressValidationMessageSet } from "@/lib/forms/validators/address-validation-messages"
 import {
   createCustomerNameValidator,
   createEmailAddressValidator,
-  createOptionalPhoneNumberValidator,
 } from "@/lib/forms/validators/shared"
 import type { HerbatikaCountryCode } from "@/lib/storefront/market-context"
 
@@ -36,15 +36,13 @@ const createRequiredTextValidator =
   }
 
 const createRequiredPhoneNumberValidator = (
-  messages: Pick<
-    AddressValidationMessageSet,
-    "phoneInvalid" | "phoneMinDigits" | "phoneRequired"
-  >
+  messages: Pick<AddressValidationMessageSet, "phoneInvalid" | "phoneRequired">,
+  countryCode: HerbatikaCountryCode
 ): AddressFieldValidator => {
-  const validateOptionalPhoneNumber = createOptionalPhoneNumberValidator({
-    invalid: messages.phoneInvalid,
-    minDigits: messages.phoneMinDigits,
-  })
+  const validateOptionalPhoneNumber = createOptionalPhoneNumberValidator(
+    messages.phoneInvalid,
+    countryCode
+  )
 
   return (value) =>
     value.trim() ? validateOptionalPhoneNumber(value) : messages.phoneRequired
@@ -118,7 +116,7 @@ export const createAddressFieldValidators = (
   }),
   firstName: createCustomerNameValidator(messages.firstNameMinLength),
   lastName: createCustomerNameValidator(messages.lastNameMinLength),
-  phone: createRequiredPhoneNumberValidator(messages),
+  phone: createRequiredPhoneNumberValidator(messages, countryCode),
   postalCode: createPostalCodeValidator(messages, countryCode),
   taxId: createRequiredTextValidator(
     messages.taxIdRequired,

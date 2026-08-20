@@ -37,6 +37,9 @@ const resolveMedusaImageRemotePattern = () =>
 const resolvePayloadImageRemotePattern = () =>
   resolveImageRemotePattern(process.env.NEXT_PUBLIC_PAYLOAD_BASE_URL)
 
+const resolveMinioImageRemotePattern = () =>
+  resolveImageRemotePattern(process.env.NEXT_PUBLIC_MINIO_FILE_URL)
+
 const imageRemotePatterns: ImageRemotePattern[] = [
   {
     protocol: "https",
@@ -48,6 +51,7 @@ const imageRemotePatterns: ImageRemotePattern[] = [
   },
   ...resolveMedusaImageRemotePattern(),
   ...resolvePayloadImageRemotePattern(),
+  ...resolveMinioImageRemotePattern(),
 ]
 
 const shouldDisableImageOptimization = imageRemotePatterns.some(
@@ -69,16 +73,10 @@ const nextConfig: NextConfig = {
     "@techsio/storefront-i18n",
   ],
   reactCompiler: true,
-  cacheComponents: true,
-  redirects() {
-    return [
-      {
-        source: "/homepage-promo",
-        destination: "/#homepage-promo",
-        permanent: false,
-      },
-    ]
-  },
+  cacheComponents: false,
+  skipProxyUrlNormalize: true,
+  skipTrailingSlashRedirect: true,
+  redirects: async () => [],
   outputFileTracingRoot: join(__dirname, "../../"),
   outputFileTracingExcludes: {
     "*": [
@@ -105,15 +103,10 @@ const nextConfig: NextConfig = {
     qualities: [40, 50, 60, 75, 90],
   },
 
-  cacheLife: {
-    product: {
-      stale: 3600,
-      revalidate: 3600,
-      expire: 86_400,
-    },
-  },
-
   experimental: {
+    // Zane's shared build worker cannot sustain Turbopack's default parallelism.
+    // Keep production builds within the worker resource envelope.
+    cpus: 1,
     typedEnv: true,
   },
 }

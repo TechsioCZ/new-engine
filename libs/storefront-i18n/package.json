@@ -12,19 +12,28 @@
     "./package.json": "./package.json",
     "./core/markets": {
       "types": "./dist/core/markets.d.ts",
-      "import": "./dist/core/markets.js"
+      "import": "./dist/core/markets.js",
+      "require": "./dist/core/markets.cjs"
     },
     "./core/messages": {
       "types": "./dist/core/messages.d.ts",
-      "import": "./dist/core/messages.js"
+      "import": "./dist/core/messages.js",
+      "require": "./dist/core/messages.cjs"
+    },
+    "./core/public-flow-routes": {
+      "types": "./dist/core/public-flow-routes.d.ts",
+      "import": "./dist/core/public-flow-routes.js",
+      "require": "./dist/core/public-flow-routes.cjs"
     },
     "./medusa/messages": {
       "types": "./dist/medusa/messages.d.ts",
-      "import": "./dist/medusa/messages.js"
+      "import": "./dist/medusa/messages.js",
+      "require": "./dist/medusa/messages.cjs"
     },
     "./next-intl/request": {
       "types": "./dist/next-intl/request.d.ts",
-      "import": "./dist/next-intl/request.js"
+      "import": "./dist/next-intl/request.js",
+      "require": "./dist/next-intl/request.cjs"
     }
   },
   "files": [
@@ -54,6 +63,14 @@
   "peerDependencies": {
     "@medusajs/js-sdk": ">=2.12.5",
     "next-intl": ">=4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@medusajs/js-sdk": {
+      "optional": true
+    },
+    "next-intl": {
+      "optional": true
+    }
   },
   "publishConfig": {
     "access": "public"

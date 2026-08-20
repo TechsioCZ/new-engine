@@ -1,10 +1,13 @@
 import "server-only"
 
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
+import { getMarketStorefrontSdk } from "@/lib/storefront/market-sdk.server"
 import {
-  MEDUSA_BACKEND_URL,
-  MEDUSA_PUBLISHABLE_KEY,
-} from "@/lib/storefront/ssr/constants"
+  type PublicEntitySlugMap,
+  readRequiredPublicEntitySlugs,
+} from "@/lib/storefront/ssr/public-entity-projections"
+import type { Market } from "@/lib/url/types"
+import type { EntityUrlKind } from "@/lib/url-registry/model"
 import { createContentSuggestions } from "./search-autocomplete-content-normalizers"
 import { normalizeString } from "./search-autocomplete-normalizers"
 import { createProductSuggestions } from "./search-autocomplete-product-normalizers"
@@ -31,53 +34,93 @@ type CatalogAutocompleteResponse = {
 }
 
 type FetchSearchAutocompleteInput = {
+  authToken?: string | null
+  market: Market
   query: string
   countryCode?: string | null
   currencyCode?: string | null
+  locale?: string | null
   regionId?: string | null
 }
 
 const CATALOG_FETCH_TIMEOUT_MS = 3000
 
+const requirePublicSlugMap = async (
+  market: Market,
+  kind: EntityUrlKind,
+  requiredSourceIds: readonly string[]
+): Promise<PublicEntitySlugMap> => {
+  const result = await readRequiredPublicEntitySlugs({
+    kind,
+    market,
+    requiredSourceIds,
+  })
+  if (result.kind === "found") {
+    return result.value
+  }
+
+  const cause =
+    result.kind === "invalid-response" ? ` (${result.causeCode})` : ""
+  throw new Error(`Public URL projections unavailable for ${kind}${cause}`)
+}
+
 const normalizeSearchAutocompleteQuery = (query: string) =>
   query.trim().slice(0, SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH)
 
-const createCatalogAutocompleteUrl = ({
+const uniqueCandidateIds = (values: readonly unknown[]) => [
+  ...new Set(values.map(normalizeString).filter(Boolean)),
+]
+
+const createCatalogAutocompleteQuery = ({
   countryCode,
   currencyCode,
+  locale,
   query,
   regionId,
 }: {
   countryCode?: string | null
   currencyCode: string
+  locale?: string | null
   query: string
   regionId?: string | null
 }) => {
-  const url = new URL("/store/search/autocomplete", MEDUSA_BACKEND_URL)
-  url.searchParams.set("q", query)
-  url.searchParams.set("currency_code", currencyCode.toLowerCase())
+  const requestQuery: Record<string, string> = {
+    q: query,
+    currency_code: currencyCode.toLowerCase(),
+  }
 
   const normalizedRegionId = normalizeString(regionId)
   if (normalizedRegionId) {
-    url.searchParams.set("region_id", normalizedRegionId)
+    requestQuery.region_id = normalizedRegionId
   }
 
   const normalizedCountryCode = normalizeString(countryCode).toLowerCase()
   if (normalizedCountryCode) {
-    url.searchParams.set("country_code", normalizedCountryCode)
+    requestQuery.country_code = normalizedCountryCode
   }
 
-  return url
+  const normalizedLocale = normalizeString(locale)
+  if (normalizedLocale) {
+    requestQuery.locale = normalizedLocale
+  }
+
+  return requestQuery
 }
 
 const fetchCatalogCandidates = async ({
+  authToken,
   countryCode,
   currencyCode,
+  locale,
+  market,
   query,
   regionId,
 }: {
+  authToken?: string | null
   countryCode?: string | null
   currencyCode: string
+  locale?: string | null
+  market: Market
   query: string
   regionId?: string | null
 }) => {
@@ -86,34 +129,25 @@ const fetchCatalogCandidates = async ({
     abortController.abort()
   }, CATALOG_FETCH_TIMEOUT_MS)
 
-  const headers: Record<string, string> = {
-    accept: "application/json",
-  }
-
-  if (MEDUSA_PUBLISHABLE_KEY) {
-    headers["x-publishable-api-key"] = MEDUSA_PUBLISHABLE_KEY
-  }
-
   try {
-    const response = await fetch(
-      createCatalogAutocompleteUrl({
-        countryCode,
-        currencyCode,
-        query,
-        regionId,
-      }),
+    return await getMarketStorefrontSdk(
+      market
+    ).sdk.client.fetch<CatalogAutocompleteResponse>(
+      "/store/search/autocomplete",
       {
-        cache: "no-store",
-        headers,
+        headers: authToken
+          ? { authorization: `Bearer ${authToken}` }
+          : undefined,
+        query: createCatalogAutocompleteQuery({
+          countryCode,
+          currencyCode,
+          locale,
+          query,
+          regionId,
+        }),
         signal: abortController.signal,
       }
     )
-
-    if (!response.ok) {
-      throw new Error(`Catalog autocomplete failed: ${response.status}`)
-    }
-
-    return (await response.json()) as CatalogAutocompleteResponse
   } catch (error) {
     if (abortController.signal.aborted) {
       throw new Error(
@@ -128,8 +162,11 @@ const fetchCatalogCandidates = async ({
 }
 
 export const fetchSearchAutocomplete = async ({
+  authToken,
   countryCode,
   currencyCode,
+  locale,
+  market,
   query,
   regionId,
 }: FetchSearchAutocompleteInput): Promise<SearchAutocompleteResponse> => {
@@ -143,22 +180,81 @@ export const fetchSearchAutocomplete = async ({
 
   const safeCurrencyCode = resolveSupportedCurrencyCode(currencyCode)
   const catalogResponse = await fetchCatalogCandidates({
+    authToken,
     countryCode,
     currencyCode: safeCurrencyCode,
+    locale,
+    market,
     query: normalizedQuery,
     regionId,
   })
   const productHits = catalogResponse.products ?? []
+  const contentHits = catalogResponse.content ?? []
+  const [
+    publicSlugsByProductId,
+    publicSlugsByCategoryId,
+    publicSlugsByBrandId,
+    publicSlugsByArticleId,
+    publicSlugsByPageId,
+  ] = await Promise.all([
+    requirePublicSlugMap(
+      market,
+      "product",
+      uniqueCandidateIds(productHits.map(({ id }) => id))
+    ),
+    requirePublicSlugMap(
+      market,
+      "category",
+      uniqueCandidateIds((catalogResponse.categories ?? []).map(({ id }) => id))
+    ),
+    requirePublicSlugMap(
+      market,
+      "brand",
+      uniqueCandidateIds((catalogResponse.brands ?? []).map(({ id }) => id))
+    ),
+    requirePublicSlugMap(
+      market,
+      "article",
+      uniqueCandidateIds(
+        contentHits
+          .filter(({ type }) => normalizeString(type) === "article")
+          .map(({ id }) => id)
+      )
+    ),
+    requirePublicSlugMap(
+      market,
+      "page",
+      uniqueCandidateIds(
+        contentHits
+          .filter(({ type }) => normalizeString(type) === "page")
+          .map(({ id }) => id)
+      )
+    ),
+  ])
 
   return {
     query: normalizedQuery,
-    products: createProductSuggestions(productHits, safeCurrencyCode),
+    products: createProductSuggestions({
+      currencyCode: safeCurrencyCode,
+      hits: productHits,
+      market,
+      publicSlugsByProductId,
+    }),
     categories: createCategorySuggestions({
       categoryHits: catalogResponse.categories ?? [],
+      market,
+      publicSlugsByCategoryId,
     }),
     brands: createBrandSuggestions({
       brandHits: catalogResponse.brands ?? [],
+      market,
+      publicSlugsByBrandId,
     }),
-    content: createContentSuggestions(catalogResponse.content ?? []),
+    content: createContentSuggestions(
+      catalogResponse.content ?? [],
+      market,
+      publicSlugsByArticleId,
+      publicSlugsByPageId
+    ),
   }
 }

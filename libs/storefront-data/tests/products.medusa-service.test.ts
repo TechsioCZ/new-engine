@@ -15,8 +15,7 @@ const createProduct = (
   id: string,
   title = "Product",
   handle = id
-): HttpTypes.StoreProduct =>
-  ({ id, title, handle } as HttpTypes.StoreProduct)
+): HttpTypes.StoreProduct => ({ id, title, handle }) as HttpTypes.StoreProduct
 
 function createSdkMock(
   response?: Partial<HttpTypes.StoreProductListResponse>
@@ -48,7 +47,7 @@ describe("createMedusaProductService", () => {
     const controller = new AbortController()
 
     await service.getProducts(
-      { limit: 12, offset: 0, country_code: "CZ" },
+      { limit: 12, offset: 0, country_code: "CZ", locale: "cs-CZ" },
       controller.signal
     )
 
@@ -58,6 +57,7 @@ describe("createMedusaProductService", () => {
         offset: 0,
         fields: "id,title,handle",
         country_code: "cz",
+        locale: "cs-CZ",
       }),
       signal: controller.signal,
     })
@@ -115,6 +115,7 @@ describe("createMedusaProductService", () => {
     const result = await service.getProductByHandle({
       handle: "missing-product",
       country_code: "CZ",
+      locale: "cs-CZ",
     })
 
     expect(sdk.client.fetch).toHaveBeenCalledWith("/store/products", {
@@ -123,6 +124,7 @@ describe("createMedusaProductService", () => {
         limit: 1,
         fields: "id,title,handle,description",
         country_code: "cz",
+        locale: "cs-CZ",
       }),
       signal: undefined,
     })

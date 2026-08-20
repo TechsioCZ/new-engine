@@ -20,17 +20,20 @@ type ProductDetailTabsProps = {
   defaultSectionValue: string
   onSectionValueChange: (value: string | undefined) => void
   productId?: string | null
+  publicSlug?: string | null
   sections: ProductDetailContentSection[]
 }
 
 function ProductDetailReviewsSlot({
   productId,
+  publicSlug,
 }: {
   productId?: string | null
+  publicSlug?: string | null
 }) {
   return (
     <Suspense fallback={null}>
-      <ProductDetailReviews productId={productId} />
+      <ProductDetailReviews productId={productId} publicSlug={publicSlug} />
     </Suspense>
   )
 }
@@ -40,6 +43,7 @@ export function ProductDetailTabs({
   defaultSectionValue,
   onSectionValueChange,
   productId,
+  publicSlug,
   sections,
 }: ProductDetailTabsProps) {
   const tCatalog = useTranslations("catalog")
@@ -106,7 +110,10 @@ export function ProductDetailTabs({
               value={section.key}
             >
               {section.key === PRODUCT_DETAIL_REVIEWS_TAB_VALUE ? (
-                <ProductDetailReviewsSlot productId={productId} />
+                <ProductDetailReviewsSlot
+                  productId={productId}
+                  publicSlug={publicSlug}
+                />
               ) : (
                 <ProductDetailHtmlContent html={section.html} />
               )}
@@ -134,7 +141,10 @@ export function ProductDetailTabs({
               </Accordion.Header>
               <Accordion.Content>
                 {section.key === PRODUCT_DETAIL_REVIEWS_TAB_VALUE ? (
-                  <ProductDetailReviewsSlot productId={productId} />
+                  <ProductDetailReviewsSlot
+                    productId={productId}
+                    publicSlug={publicSlug}
+                  />
                 ) : (
                   <ProductDetailHtmlContent html={section.html} />
                 )}

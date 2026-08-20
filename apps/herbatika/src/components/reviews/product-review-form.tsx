@@ -2,73 +2,52 @@
 
 import { Rating } from "@techsio/ui-kit/atoms/rating"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
+import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea"
 import { useTranslations } from "next-intl"
-import { type FormEvent, useEffect, useState } from "react"
-import { buildProductReviewTitle } from "@/components/reviews/product-review-errors"
+import { type FormEvent, useCallback, useEffect, useState } from "react"
+import {
+  createProductReviewFormSubmission,
+  type ProductReviewFormErrors,
+  type ProductReviewFormSubmitValues,
+  type ProductReviewFormValues,
+  REVIEW_AUTHOR_NAME_MAX_LENGTH,
+  REVIEW_CONTENT_MIN_LENGTH,
+  validateProductReviewForm,
+} from "@/components/reviews/product-review-form.utils"
+import {
+  isProductReviewTurnstileEnabled,
+  ProductReviewTurnstile,
+} from "@/components/reviews/product-review-turnstile"
 
-export type ProductReviewFormSubmitValues = {
-  content: string
-  rating: number
-  title: string
-}
-
-type ProductReviewFormValues = {
-  content: string
-  rating: number | null
-}
-
-type ProductReviewFormErrors = Partial<
-  Record<keyof ProductReviewFormValues, string>
->
+export type { ProductReviewFormSubmitValues } from "@/components/reviews/product-review-form.utils"
 
 type ProductReviewFormProps = {
   disabled?: boolean
   formId: string
+  requireAuthorName?: boolean
   resetKey?: number
   submitError?: string | null
   onSubmit: (values: ProductReviewFormSubmitValues) => void
 }
 
-const REVIEW_CONTENT_MIN_LENGTH = 4
 const defaultValues: ProductReviewFormValues = {
+  authorName: "",
   content: "",
   rating: null,
-}
-
-const validateReviewForm = (
-  values: ProductReviewFormValues,
-  messages: {
-    contentMinLength: string
-    ratingRequired: string
-  }
-) => {
-  const errors: ProductReviewFormErrors = {}
-
-  if (
-    typeof values.rating !== "number" ||
-    !Number.isInteger(values.rating) ||
-    values.rating < 1 ||
-    values.rating > 5
-  ) {
-    errors.rating = messages.ratingRequired
-  }
-
-  if (values.content.trim().length < REVIEW_CONTENT_MIN_LENGTH) {
-    errors.content = messages.contentMinLength
-  }
-
-  return errors
+  turnstileToken: null,
 }
 
 export function ProductReviewForm({
   disabled = false,
   formId,
+  requireAuthorName = false,
   resetKey,
   submitError,
   onSubmit,
 }: ProductReviewFormProps) {
   const tCatalog = useTranslations("catalog")
+  const [captchaResetKey, setCaptchaResetKey] = useState(0)
   const [errors, setErrors] = useState<ProductReviewFormErrors>({})
   const [values, setValues] = useState<ProductReviewFormValues>(defaultValues)
 
@@ -76,16 +55,34 @@ export function ProductReviewForm({
   useEffect(() => {
     setErrors({})
     setValues(defaultValues)
+    setCaptchaResetKey((current) => current + 1)
   }, [resetKey])
+
+  const handleTurnstileTokenChange = useCallback((token: string | null) => {
+    setValues((current) => ({
+      ...current,
+      turnstileToken: token,
+    }))
+    setErrors((current) => ({ ...current, turnstileToken: undefined }))
+  }, [])
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    const nextErrors = validateReviewForm(values, {
-      contentMinLength: tCatalog("reviews.form.content_min_length_validation", {
-        min: REVIEW_CONTENT_MIN_LENGTH,
-      }),
-      ratingRequired: tCatalog("reviews.form.rating_validation"),
+    const nextErrors = validateProductReviewForm(values, {
+      messages: {
+        authorNameRequired: tCatalog("reviews.form.author_name_validation"),
+        captchaRequired: tCatalog("reviews.form.captcha_validation"),
+        contentMinLength: tCatalog(
+          "reviews.form.content_min_length_validation",
+          {
+            min: REVIEW_CONTENT_MIN_LENGTH,
+          }
+        ),
+        ratingRequired: tCatalog("reviews.form.rating_validation"),
+      },
+      requireAuthorName,
+      requireTurnstile: isProductReviewTurnstileEnabled,
     })
     setErrors(nextErrors)
 
@@ -93,18 +90,14 @@ export function ProductReviewForm({
       return
     }
 
-    const content = values.content.trim()
     const rating = values.rating
 
     if (typeof rating !== "number") {
       return
     }
 
-    onSubmit({
-      content,
-      rating,
-      title: buildProductReviewTitle(content),
-    })
+    onSubmit(createProductReviewFormSubmission({ ...values, rating }))
+    setCaptchaResetKey((current) => current + 1)
   }
 
   return (
@@ -118,6 +111,28 @@ export function ProductReviewForm({
         <StatusText showIcon status="error">
           {submitError}
         </StatusText>
+      ) : null}
+
+      {requireAuthorName ? (
+        <FormInput
+          autoComplete="name"
+          disabled={disabled}
+          helpText={errors.authorName}
+          id={`${formId}-author-name`}
+          label={tCatalog("reviews.form.author_name_label")}
+          maxLength={REVIEW_AUTHOR_NAME_MAX_LENGTH}
+          name="review-author-name"
+          onChange={(event) => {
+            setValues((current) => ({
+              ...current,
+              authorName: event.target.value,
+            }))
+            setErrors((current) => ({ ...current, authorName: undefined }))
+          }}
+          required
+          validateStatus={errors.authorName ? "error" : "default"}
+          value={values.authorName}
+        />
       ) : null}
 
       <div className="flex flex-col gap-form-field-gap">
@@ -167,6 +182,14 @@ export function ProductReviewForm({
         rows={5}
         validateStatus={errors.content ? "error" : "default"}
         value={values.content}
+      />
+
+      <ProductReviewTurnstile
+        errorMessage={errors.turnstileToken}
+        label={tCatalog("reviews.form.captcha_label")}
+        onTokenChange={handleTurnstileTokenChange}
+        resetKey={captchaResetKey}
+        unavailableMessage={tCatalog("reviews.form.captcha_unavailable")}
       />
     </form>
   )

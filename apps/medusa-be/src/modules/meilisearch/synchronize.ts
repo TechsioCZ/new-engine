@@ -23,6 +23,10 @@ import {
   type SearchProfile,
 } from "./profiles"
 import { SEARCH_INDEX_SETTINGS } from "./settings"
+import {
+  contentProjectionKey,
+  resolveContentProjectionHrefs,
+} from "./url-registry-content-projection"
 
 export type SearchProfileSyncMode = "full" | "normal"
 
@@ -38,6 +42,7 @@ export type SearchProfileSyncOptions = {
 }
 
 type SearchSyncTargets = Record<SearchIndexType, string>
+type SearchIndexDocumentCounts = Record<SearchIndexType, number>
 
 type SearchProfileSyncStateService = {
   updateSearchProfiles: (data: Record<string, unknown>) => Promise<unknown>
@@ -54,6 +59,9 @@ type ProfileReferenceIds = {
 }
 
 const BATCH_SIZE = 500
+// Meilisearch defaults maxTotalHits to 1000. Sync only raises it to the
+// current index size so catalog pagination is not capped by app config.
+const MEILISEARCH_DEFAULT_MAX_TOTAL_HITS = 1000
 const SEARCH_SYNC_LOCK_KEY = "meilisearch-search-profiles-sync"
 
 const PRODUCT_FIELDS = [
@@ -64,6 +72,7 @@ const PRODUCT_FIELDS = [
   "handle",
   "thumbnail",
   "created_at",
+  "collection_id",
   "metadata",
   "categories.id",
   "categories.name",
@@ -486,12 +495,14 @@ const resolvePayloadService = (
   }
 }
 
-const indexContentDocuments = async (
-  payload: PayloadModuleService | null,
-  client: MeilisearchAdminClient,
-  profile: SearchProfile,
+const indexContentDocuments = async (options: {
+  client: MeilisearchAdminClient
   index: string
-): Promise<Set<string>> => {
+  logger: Logger
+  payload: PayloadModuleService | null
+  profile: SearchProfile
+}): Promise<Set<string>> => {
+  const { client, index, logger, payload, profile } = options
   const currentIds = new Set<string>()
 
   if (!payload) {
@@ -514,13 +525,39 @@ const indexContentDocuments = async (
               locale: profile.locale,
               page,
             })
-      const documents = result.docs.map((document) =>
-        buildContentSearchDocument(
-          document as Record<string, unknown>,
-          type,
-          profile.locale
+      const projectionEntries = result.docs
+        .map((document) => {
+          const sourceId = getId(document as Record<string, unknown>)
+          return sourceId ? { sourceId, sourceType: type } : null
+        })
+        .filter(
+          (
+            entry
+          ): entry is { sourceId: string; sourceType: "article" | "page" } =>
+            entry !== null
         )
+      const projections = await resolveContentProjectionHrefs(
+        projectionEntries,
+        profile.locale,
+        logger
       )
+      const documents = result.docs
+        .map((document) => {
+          const source = document as Record<string, unknown>
+          const sourceId = getId(source)
+
+          return buildContentSearchDocument(
+            source,
+            type,
+            profile.locale,
+            sourceId
+              ? projections.get(contentProjectionKey(type, sourceId))
+              : undefined
+          )
+        })
+        .filter((document): document is Record<string, unknown> =>
+          Boolean(document)
+        )
 
       for (const document of documents) {
         const id = getId(document)
@@ -576,6 +613,23 @@ const prepareTargets = async (
       index,
       SEARCH_INDEX_SETTINGS[type] as Record<string, unknown>
     )
+  }
+}
+
+const resolveIndexMaxTotalHits = (documentCount: number): number =>
+  Math.max(MEILISEARCH_DEFAULT_MAX_TOTAL_HITS, documentCount)
+
+const updateTargetPaginationTotalHits = async (
+  client: MeilisearchAdminClient,
+  targets: SearchSyncTargets,
+  documentCounts: SearchIndexDocumentCounts
+) => {
+  for (const type of SEARCH_INDEX_TYPES) {
+    await client.updateSettings(targets[type], {
+      pagination: {
+        maxTotalHits: resolveIndexMaxTotalHits(documentCounts[type]),
+      },
+    })
   }
 }
 
@@ -687,12 +741,13 @@ const syncProfile = async (options: {
       transform: buildBrandSearchDocument,
     })
 
-    const contentIds = await indexContentDocuments(
-      payload,
+    const contentIds = await indexContentDocuments({
       client,
+      index: targets.content,
+      logger,
+      payload,
       profile,
-      targets.content
-    )
+    })
 
     let deleted = 0
 
@@ -709,7 +764,16 @@ const syncProfile = async (options: {
       )
       deleted += await deleteStaleDocuments(client, targets.brand, brandIds)
       deleted += await deleteStaleDocuments(client, targets.content, contentIds)
-    } else {
+    }
+
+    await updateTargetPaginationTotalHits(client, targets, {
+      product: products.ids.size,
+      category: categoryIds.size,
+      brand: brandIds.size,
+      content: contentIds.size,
+    })
+
+    if (mode === "full") {
       await finalizeFullSync(client, profile, targets)
 
       finalized = true

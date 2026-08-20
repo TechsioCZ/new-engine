@@ -2,7 +2,7 @@ import type { MedusaRequest } from "@medusajs/framework/http"
 import type { ICachingModuleService, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 
-export const ORDER_EXPEDITION_SUMMARY_CACHE_KEY = "order-expedition:summary:v1"
+export const ORDER_EXPEDITION_SUMMARY_CACHE_KEY = "order-expedition:summary:v2"
 export const ORDER_EXPEDITION_SUMMARY_CACHE_TAG = "order-expedition:summary"
 export const ORDER_EXPEDITION_SUMMARY_CACHE_TTL_SECONDS = 120
 

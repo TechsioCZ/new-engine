@@ -1,28 +1,43 @@
 import { describe, expect, it } from "vitest"
-import { buildProductReviewRequestUrl } from "../../src/utils/order-review-requests"
+import {
+  buildProductReviewRequestUrl,
+  getReviewRequestCopy,
+} from "../../src/utils/order-review-requests"
 
 describe("product review request URL", () => {
-  it("targets the Herbatika review-token route with the product ID", () => {
+  it.each([
+    ["sk", "/recenzie/produkt/Token%2FExact%2BCase"],
+    ["cz", "/recenze/produkt/Token%2FExact%2BCase"],
+    ["hu", "/velemenyek/termek/Token%2FExact%2BCase"],
+    ["ro", "/recenzii/produs/Token%2FExact%2BCase"],
+  ] as const)("targets the exact %s review-token route", (market, path) => {
     expect(
       buildProductReviewRequestUrl({
-        productId: "prod_123",
-        storefrontUrl: "https://store.example.test/",
-        token: "review_token",
+        marketCode: market,
+        storefrontUrl: "https://store.example.test/ignored/path",
+        token: "Token/Exact+Case",
       })
-    ).toBe(
-      "https://store.example.test/reviews/product/review_token?product_id=prod_123"
-    )
+    ).toBe(`https://store.example.test${path}`)
   })
 
-  it("encodes route and query values", () => {
-    expect(
-      buildProductReviewRequestUrl({
-        productId: "prod id",
-        storefrontUrl: "https://store.example.test///",
-        token: "token/segment",
-      })
-    ).toBe(
-      "https://store.example.test/reviews/product/token%2Fsegment?product_id=prod+id"
-    )
+  it.each([
+    [
+      "sk-SK",
+      "Napíšte recenziu produktu",
+      "Podeľte sa o skúsenosť s produktom",
+    ],
+    ["cs-CZ", "Napište recenzi produktu", "Podělte se o zkušenost s produktem"],
+    [
+      "hu-HU",
+      "Írjon véleményt a termékről",
+      "Ossza meg a termékkel kapcsolatos tapasztalatait",
+    ],
+    [
+      "ro-RO",
+      "Scrieți o recenzie pentru produs",
+      "Împărtășiți experiența dumneavoastră cu produsul",
+    ],
+  ])("provides localized %s review copy", (locale, action, message) => {
+    expect(getReviewRequestCopy(locale)).toMatchObject({ action, message })
   })
 })

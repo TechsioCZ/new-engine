@@ -1,29 +1,31 @@
 import type { SubscriberArgs, SubscriberConfig } from "@medusajs/framework"
-import { MedusaError } from "@medusajs/framework/utils"
 import { sendForgotPasswordWorkflow } from "../workflows/send-forgot-password"
 
 type ResetPasswordEvent = {
   entity_id: string
   token: string
   actor_type: string
+  metadata?: Record<string, unknown>
 }
 
 export default async function resetPasswordHandler({
   event: { data },
   container,
 }: SubscriberArgs<ResetPasswordEvent>) {
-  const storefrontUrl = process.env.STOREFRONT_URL
-  if (!storefrontUrl) {
-    throw new MedusaError(
-      MedusaError.Types.INVALID_DATA,
-      "STOREFRONT_URL env var is not set — cannot build password reset link"
-    )
+  if (data.actor_type !== "customer") {
+    return
   }
+
+  const storefrontMarketCode =
+    typeof data.metadata?.storefront_market_code === "string"
+      ? data.metadata.storefront_market_code.trim()
+      : ""
 
   await sendForgotPasswordWorkflow(container).run({
     input: {
       email: data.entity_id,
-      reset_url: `${storefrontUrl}/reset-password?token=${encodeURIComponent(data.token)}&email=${encodeURIComponent(data.entity_id)}`,
+      ...(storefrontMarketCode ? { storefrontMarketCode } : {}),
+      token: data.token,
     },
   })
 }

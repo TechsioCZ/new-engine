@@ -3,7 +3,6 @@
 import { Button } from "@techsio/ui-kit/atoms/button"
 import { LinkButton } from "@techsio/ui-kit/atoms/link-button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import { useState } from "react"
 import {
@@ -18,22 +17,29 @@ import {
   type ProductReviewTokenProductStatus,
   resolveProductStatusMessage,
 } from "@/components/reviews/product-review-token-status"
+import { StorefrontLink } from "@/components/storefront-link"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { useProducts } from "@/lib/storefront/products"
 import { useCreateProductReview } from "@/lib/storefront/reviews"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
+import { buildPath } from "@/lib/url/public-url"
 
 type ProductReviewTokenPageProps = {
   productId?: string
+  publicSlug?: string | null
   token: string
 }
 
 const REVIEW_TOKEN_FORM_ID = "product-review-token-form"
-const REVIEW_TOKEN_PRODUCT_FIELDS = "id,title,handle"
+const REVIEW_TOKEN_PRODUCT_FIELDS = "id,title"
 
 export function ProductReviewTokenPage({
   productId,
+  publicSlug,
   token,
 }: ProductReviewTokenPageProps) {
   const tCatalog = useTranslations("catalog")
+  const { code: market } = useMarketContext()
   const normalizedProductId = productId?.trim() ?? ""
   const [formResetKey, setFormResetKey] = useState(0)
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -46,8 +52,12 @@ export function ProductReviewTokenPage({
     enabled: Boolean(normalizedProductId),
   })
   const product = productQuery.products[0] ?? null
-  const productHref = product?.handle ? `/p/${product.handle}` : null
-  const backHref = productHref ?? "/"
+  const productHref = buildProjectedEntityPath(
+    "product",
+    publicSlug ? { publicSlug } : undefined,
+    market
+  )
+  const backHref = productHref ?? buildPath({ kind: "home" }, market)
   const backLabel = productHref
     ? tCatalog("reviews.token.back_to_product")
     : tCatalog("reviews.token.back_to_store")
@@ -93,7 +103,7 @@ export function ProductReviewTokenPage({
   const handleSubmit = ({
     content,
     rating,
-    title,
+    turnstileToken,
   }: ProductReviewFormSubmitValues) => {
     if (!normalizedProductId) {
       setSubmitError(tCatalog("reviews.token.missing_product"))
@@ -107,7 +117,7 @@ export function ProductReviewTokenPage({
       product_id: normalizedProductId,
       rating,
       review_token: token,
-      title,
+      ...(turnstileToken ? { turnstileToken } : {}),
     })
   }
 
@@ -144,12 +154,12 @@ export function ProductReviewTokenPage({
               {tCatalog("reviews.token.product_label")}
             </p>
             {productHref ? (
-              <NextLink
+              <StorefrontLink
                 className="font-semibold text-fg-primary underline underline-offset-2"
                 href={productHref}
               >
                 {product.title}
-              </NextLink>
+              </StorefrontLink>
             ) : (
               <p className="font-semibold text-fg-primary">{product.title}</p>
             )}
@@ -162,7 +172,7 @@ export function ProductReviewTokenPage({
               {tCatalog("reviews.submit_success")}
             </StatusText>
             <LinkButton
-              as={NextLink}
+              as={StorefrontLink}
               href={backHref}
               size="md"
               variant="primary"
@@ -193,7 +203,7 @@ export function ProductReviewTokenPage({
                 {tCatalog("reviews.submit")}
               </Button>
               <LinkButton
-                as={NextLink}
+                as={StorefrontLink}
                 href={backHref}
                 size="md"
                 theme="outlined"

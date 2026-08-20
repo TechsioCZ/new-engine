@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { ORDER_BUSINESS_STATUS_METADATA_KEY } from "../../../../../../../src/utils/order-business-status"
 
 vi.mock("@medusajs/framework/utils", async (importOriginal) => {
   const actual =
@@ -366,9 +367,17 @@ describe("GET /admin/order-expedition/orders", () => {
             payment_status: "awaiting",
             status: "completed",
           },
+          {
+            id: "order_manually_handled",
+            metadata: {
+              [ORDER_BUSINESS_STATUS_METADATA_KEY]: "processing",
+            },
+            payment_status: "awaiting",
+            status: "pending",
+          },
         ],
         metadata: {
-          count: 3,
+          count: 4,
         },
       })
       .mockResolvedValueOnce({ data: [matchingOrder] })
@@ -394,7 +403,7 @@ describe("GET /admin/order-expedition/orders", () => {
         count_exact: true,
         orders: [expect.objectContaining({ id: "order_pending_unpaid" })],
         pending_unpaid: true,
-        scanned_count: 3,
+        scanned_count: 4,
       })
     )
   })

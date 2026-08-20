@@ -14,10 +14,6 @@ const TYPO_TOLERANCE_SETTINGS = {
 const COMMON_SETTINGS = {
   typoTolerance: TYPO_TOLERANCE_SETTINGS,
 
-  pagination: {
-    maxTotalHits: 500,
-  },
-
   proximityPrecision: "byAttribute",
 }
 
@@ -53,6 +49,7 @@ export const PRODUCT_INDEX_SETTINGS = {
     "search_variant_title",
     "search_variant_titles",
     "facet_product_status",
+    "facet_collection_id",
     "facet_sales_channel_ids",
     "facet_status",
     "facet_form",
@@ -71,6 +68,7 @@ export const PRODUCT_INDEX_SETTINGS = {
     "search_has_variants",
     "search_result_kind",
     "facet_product_status",
+    "facet_collection_id",
     "facet_sales_channel_ids",
     "facet_status",
     "facet_form",

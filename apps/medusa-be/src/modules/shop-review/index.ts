@@ -10,4 +10,9 @@ export default Module(SHOP_REVIEW_MODULE, {
 })
 
 export type { default as ShopReviewModuleService } from "./service"
-export type { ShopReviewProvider, ShopReviewProviderResponse } from "./types"
+export type {
+  HeurekaReviewKind,
+  ShopReviewProvider,
+  ShopReviewProviderResponse,
+  ShopReviewTrustSummary,
+} from "./types"

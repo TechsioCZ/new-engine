@@ -44,13 +44,17 @@ import type {
 import { createRegionQueryKeys } from "@techsio/storefront-data/regions/query-keys"
 import type { MedusaProductReviewListInput } from "@techsio/storefront-data/reviews/medusa-service"
 import { createProductReviewQueryKeys } from "@techsio/storefront-data/reviews/query-keys"
-import { buildHerbatikaPaymentSessionData } from "./payment-session"
+import {
+  bindHerbatikaPaymentSessionData,
+  buildHerbatikaPaymentSessionData,
+} from "./payment-session"
 import {
   PRODUCT_CARD_FIELDS,
   PRODUCT_DETAIL_FIELDS,
   VARIANT_DEFAULT_STOCK_INVENTORY_FIELD_SUFFIXES,
 } from "./product-query-config"
 import { STOREFRONT_QUERY_KEY_NAMESPACE } from "./query-keys"
+import { prioritizeDiscountedVariant } from "./sale-product-variant"
 
 export const CATEGORY_FIELDS =
   "id,name,handle,parent_category_id,rank,is_active,category_children"
@@ -231,6 +235,8 @@ export const storefrontCatalogServiceConfig: MedusaCatalogServiceConfig<
 > = {
   defaultLimit: CATALOG_DEFAULT_LIMIT,
   defaultSort: CATALOG_DEFAULT_SORT,
+  transformListProduct: (product, context) =>
+    context.params.on_sale ? prioritizeDiscountedVariant(product) : product,
 }
 
 export const storefrontOrderServiceConfig: MedusaOrderServiceConfig = {
@@ -245,6 +251,7 @@ export const storefrontCartServiceConfig: MedusaCartServiceConfig = {
 }
 
 export const storefrontCheckoutServiceConfig: MedusaCheckoutServiceConfig = {
+  bindPaymentSessionData: bindHerbatikaPaymentSessionData,
   cartFields: CART_FIELDS,
   buildPaymentSessionData: buildHerbatikaPaymentSessionData,
 }

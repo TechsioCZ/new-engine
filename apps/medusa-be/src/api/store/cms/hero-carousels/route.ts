@@ -6,10 +6,10 @@ import {
   optionalPositiveIntParam,
   optionalStringParam,
 } from "../../../../utils/query-params"
+import { resolveStoreCmsLocale, StoreCmsLocaleQuerySchema } from "../locales"
 
-/** Query schema for fetching CMS hero carousel lists. */
 export const StoreCmsHeroCarouselsSchema = z.object({
-  locale: optionalStringParam,
+  locale: StoreCmsLocaleQuerySchema,
   limit: optionalPositiveIntParam,
   page: optionalPositiveIntParam,
   sort: optionalStringParam,
@@ -28,13 +28,18 @@ export async function GET(
   const cmsService = req.scope.resolve<PayloadModuleService>(PAYLOAD_MODULE)
 
   const { limit, page, sort } = req.validatedQuery
+  const locale = resolveStoreCmsLocale(req.locale ?? req.validatedQuery.locale)
 
-  const heroCarousels = await cmsService.listHeroCarousels({
-    limit,
-    locale: req.locale,
-    page,
-    sort,
-  })
+  try {
+    const heroCarousels = await cmsService.listHeroCarousels({
+      limit,
+      locale,
+      page,
+      sort,
+    })
 
-  return res.json({ heroCarousels })
+    return res.json({ heroCarousels })
+  } catch {
+    return res.status(503).json({ message: "CMS source is unavailable" })
+  }
 }

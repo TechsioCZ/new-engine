@@ -19,8 +19,23 @@ import {
 } from "./cms-content"
 import type { CmsArticle, CmsArticleSummary } from "./cms-types"
 
+export type CmsBlogCardItem = BlogCardItem & { sourceId: string }
+export type CmsBlogPost = Omit<BlogPost, "relatedPosts"> & {
+  relatedPosts: CmsBlogCardItem[]
+  sourceId: string
+}
+
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.trim().length > 0
+
+const resolveCmsSourceId = (value: unknown) => {
+  if (typeof value === "string") {
+    return value.trim()
+  }
+  return typeof value === "number" && Number.isFinite(value)
+    ? String(value)
+    : ""
+}
 
 const mapCmsAuthor = (article: CmsArticle) => {
   const name = article.author?.displayName?.trim()
@@ -65,8 +80,8 @@ const mapCmsSidebar = (article: CmsArticle) => {
     ...(productExternalId || productSlug
       ? {
           product: {
-            productExternalId,
-            productSlug,
+            ...(productExternalId ? { productExternalId } : {}),
+            ...(productSlug ? { productSlug } : {}),
           },
         }
       : {}),
@@ -116,7 +131,10 @@ const mapCmsProductReference = (
     : undefined
 
   return productExternalId || productSlug
-    ? { productExternalId, productSlug }
+    ? {
+        ...(productExternalId ? { productExternalId } : {}),
+        ...(productSlug ? { productSlug } : {}),
+      }
     : null
 }
 
@@ -158,15 +176,17 @@ const mapCmsContentSegments = (value: unknown): BlogArticleContentSegment[] =>
 const mapCmsArticleSummaryToBlogCard = (
   article: CmsArticleSummary,
   fallbackCategory?: BlogCategory
-): BlogCardItem | null => {
+): CmsBlogCardItem | null => {
+  const sourceId = resolveCmsSourceId(article.id)
   const slug = article.slug?.trim()
   const title = article.title?.trim()
-  if (!(slug && title)) {
+  if (!(sourceId && slug && title)) {
     return null
   }
 
   return {
-    id: `cms-${article.id ?? slug}`,
+    id: `cms-${sourceId}`,
+    sourceId,
     slug,
     title,
     excerpt: article.excerpt?.trim() ?? "",
@@ -183,7 +203,7 @@ const mapCmsArticleSummaryToBlogCard = (
 export const mapCmsArticleToBlogPost = (
   article: CmsArticle,
   fallbackCategory?: BlogCategory
-): BlogPost | null => {
+): CmsBlogPost | null => {
   const card = mapCmsArticleSummaryToBlogCard(article, fallbackCategory)
   if (!card) {
     return null
@@ -202,14 +222,16 @@ export const mapCmsArticleToBlogPost = (
       return relatedPost && relatedPost.slug !== card.slug ? [relatedPost] : []
     })
     .slice(0, 4)
+  const author = mapCmsAuthor(article)
+  const sidebar = mapCmsSidebar(article)
 
   return {
     ...card,
     excerpt,
     tags: tags.length > 0 ? tags : [card.category.title],
-    author: mapCmsAuthor(article),
+    ...(author ? { author } : {}),
     relatedPosts,
-    sidebar: mapCmsSidebar(article),
+    ...(sidebar ? { sidebar } : {}),
     lead: excerpt,
     contentSegments,
     tableOfContents: mapTableOfContents(article.tableOfContents),

@@ -1,9 +1,5 @@
 import type { MedusaResponse } from "@medusajs/framework/http"
-import type {
-  HttpTypes,
-  QueryContextType,
-  RemoteQueryEntryPoints,
-} from "@medusajs/framework/types"
+import type { HttpTypes, QueryContextType } from "@medusajs/framework/types"
 import {
   ContainerRegistrationKeys,
   MedusaError,
@@ -15,6 +11,10 @@ import {
   wrapProductsWithTaxPrices,
 } from "@medusajs/medusa/api/store/products/helpers"
 import { wrapVariantsWithInventoryQuantityForSalesChannel } from "@medusajs/medusa/api/utils/middlewares/products/variant-inventory-quantity"
+import {
+  decorateProductsWithLocalizedContent,
+  requestsLocalizedProductContent,
+} from "../../../../utils/localized-product-content"
 import {
   decorateProductsWithMeasurements,
   getMeasurementDecorationOptions,
@@ -49,13 +49,8 @@ const includesCategoryVisibilityField = (fields: string[]) =>
     (field) => normalizeIncludedField(field) === "categories.is_internal"
   )
 
-const toStoreProduct = (
-  product: RemoteQueryEntryPoints["product"]
-): HttpTypes.StoreProduct => {
-  // query.graph uses the generated module entity type even when the selected
-  // fields form a Store API response. Bridge that Medusa type boundary once.
-  return product as HttpTypes.StoreProduct
-}
+const toStoreProduct = (product: unknown): HttpTypes.StoreProduct =>
+  product as HttpTypes.StoreProduct
 
 export const GET = async (
   req: RequestWithContext<HttpTypes.StoreProductParams>,
@@ -123,6 +118,10 @@ export const GET = async (
 
   const product = toStoreProduct(queriedProduct)
 
+  if (requestsLocalizedProductContent(requestedFields)) {
+    await decorateProductsWithLocalizedContent(req.scope, [product], req.locale)
+  }
+
   if (withInventoryQuantity) {
     const variants = (product.variants ?? []).filter(
       isInventoryDecoratableVariant
@@ -139,7 +138,8 @@ export const GET = async (
   await decorateProductsWithMeasurements(
     req.scope,
     [product],
-    measurementDecorationOptions
+    measurementDecorationOptions,
+    req.locale
   )
 
   res.json({ product })

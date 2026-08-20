@@ -160,10 +160,19 @@ describe("PayloadModuleService", () => {
       const parsedUrl = new URL(url)
 
       expect(parsedUrl.pathname).toBe("/api/pages")
-      expect(parsedUrl.searchParams.get("where[slug][equals]")).toBe("home")
-      expect(parsedUrl.searchParams.get("where[status][equals]")).toBe(
+      expect(parsedUrl.searchParams.get("where[and][0][slug][equals]")).toBe(
+        "home"
+      )
+      expect(parsedUrl.searchParams.get("where[and][1][title][exists]")).toBe(
+        "true"
+      )
+      expect(parsedUrl.searchParams.get("where[and][2][status][equals]")).toBe(
         "published"
       )
+      expect(
+        parsedUrl.searchParams.get("where[and][3][visibility][equals]")
+      ).toBe("public")
+      expect(parsedUrl.searchParams.get("fallback-locale")).toBe("false")
       expect(parsedUrl.searchParams.get("limit")).toBe("1")
       expect(parsedUrl.searchParams.get("locale")).toBe("en")
 
@@ -187,11 +196,11 @@ describe("PayloadModuleService", () => {
       cacheService.get.mockResolvedValue(null)
       fetchMock.mockResolvedValue(createFetchResponse(createBulkResponse([])))
 
-      const result = await service.getPublishedPage("missing")
+      const result = await service.getPublishedPage("missing", "sk")
 
       expect(result).toBeNull()
       expect(cacheService.get).toHaveBeenCalledWith({
-        key: "cms:pages:missing:default",
+        key: "cms:pages:missing:sk",
       })
       expect(cacheService.set).not.toHaveBeenCalled()
     })
@@ -325,10 +334,125 @@ describe("PayloadModuleService", () => {
       cacheService.get.mockResolvedValue(null)
       fetchMock.mockResolvedValue(createFetchResponse(createBulkResponse([])))
 
-      const result = await service.getPublishedArticle("missing")
+      const result = await service.getPublishedArticle("missing", "sk")
 
       expect(result).toBeNull()
       expect(cacheService.set).not.toHaveBeenCalled()
+    })
+  })
+
+  describe("stable-ID content reads", () => {
+    it("reads a public published page with exact locale and no fallback", async () => {
+      const service = createServiceWithoutCache()
+      const page = { id: 77, slug: "privacy", title: "Privacy" }
+      fetchMock.mockResolvedValue(
+        createFetchResponse(createBulkResponse([page]))
+      )
+
+      await expect(service.getPublishedPageById("77", "ro")).resolves.toEqual(
+        page
+      )
+
+      const parsedUrl = new URL(fetchMock.mock.calls[0]?.[0])
+      expect(parsedUrl.searchParams.get("where[and][0][id][equals]")).toBe("77")
+      expect(parsedUrl.searchParams.get("where[and][1][title][exists]")).toBe(
+        "true"
+      )
+      expect(parsedUrl.searchParams.get("where[and][2][status][equals]")).toBe(
+        "published"
+      )
+      expect(
+        parsedUrl.searchParams.get("where[and][3][visibility][equals]")
+      ).toBe("public")
+      expect(parsedUrl.searchParams.get("locale")).toBe("ro")
+      expect(parsedUrl.searchParams.get("fallback-locale")).toBe("false")
+    })
+
+    it("uses the same public projection for stable-ID article reads", async () => {
+      const service = createServiceWithoutCache()
+      const article = { id: 88, slug: "advice", title: "Advice" }
+      fetchMock.mockResolvedValue(
+        createFetchResponse(createBulkResponse([article]))
+      )
+
+      await expect(
+        service.getPublishedArticleById("88", "hu")
+      ).resolves.toMatchObject(article)
+
+      const parsedUrl = new URL(fetchMock.mock.calls[0]?.[0])
+      expect(parsedUrl.searchParams.get("where[and][0][id][equals]")).toBe("88")
+      expect(parsedUrl.searchParams.get("where[and][1][title][exists]")).toBe(
+        "true"
+      )
+      expect(parsedUrl.searchParams.get("where[and][2][status][equals]")).toBe(
+        "published"
+      )
+      expect(parsedUrl.searchParams.get("locale")).toBe("hu")
+      expect(parsedUrl.searchParams.get("fallback-locale")).toBe("false")
+      expect(parsedUrl.searchParams.get("depth")).toBe("2")
+      expect(parsedUrl.searchParams.get("select[content]")).toBe("true")
+    })
+  })
+
+  describe("published population inventory", () => {
+    it("lists public pages in one exact locale without fallback", async () => {
+      const service = createServiceWithoutCache()
+      const page = {
+        id: 77,
+        slug: "privacy",
+        title: "Privacy",
+        updatedAt: "2026-08-19T00:00:00.000Z",
+      }
+      fetchMock.mockResolvedValue(
+        createFetchResponse(createBulkResponse([page], { limit: 50, page: 2 }))
+      )
+
+      await expect(
+        service.listPublishedPages({ limit: 50, locale: "ro", page: 2 })
+      ).resolves.toMatchObject({ docs: [page] })
+
+      const parsedUrl = new URL(fetchMock.mock.calls[0]?.[0])
+      expect(parsedUrl.searchParams.get("locale")).toBe("ro")
+      expect(parsedUrl.searchParams.get("fallback-locale")).toBe("false")
+      expect(parsedUrl.searchParams.get("where[and][0][title][exists]")).toBe(
+        "true"
+      )
+      expect(parsedUrl.searchParams.get("where[and][1][status][equals]")).toBe(
+        "published"
+      )
+      expect(
+        parsedUrl.searchParams.get("where[and][2][visibility][equals]")
+      ).toBe("public")
+    })
+
+    it("lists translated published articles without fallback", async () => {
+      const service = createServiceWithoutCache()
+      const article = {
+        id: 88,
+        slug: "advice",
+        title: "Advice",
+        updatedAt: "2026-08-19T00:00:00.000Z",
+      }
+      fetchMock.mockResolvedValue(
+        createFetchResponse(createBulkResponse([article]))
+      )
+
+      await expect(
+        service.listPublishedArticles({ locale: "hu" })
+      ).resolves.toMatchObject({ docs: [article] })
+
+      const parsedUrl = new URL(fetchMock.mock.calls[0]?.[0])
+      expect(parsedUrl.searchParams.get("locale")).toBe("hu")
+      expect(parsedUrl.searchParams.get("fallback-locale")).toBe("false")
+      expect(parsedUrl.searchParams.get("where[and][0][slug][exists]")).toBe(
+        "true"
+      )
+      expect(parsedUrl.searchParams.get("where[and][1][title][exists]")).toBe(
+        "true"
+      )
+      expect(parsedUrl.searchParams.get("where[and][2][status][equals]")).toBe(
+        "published"
+      )
     })
   })
 
@@ -649,6 +773,82 @@ describe("PayloadModuleService", () => {
     })
   })
 
+  describe("getFooterNavigation", () => {
+    it("fetches, maps, and caches localized navigation", async () => {
+      const { service, cacheService } = createServiceWithCache({
+        listCacheTtl: 321,
+      })
+      cacheService.get.mockResolvedValue(null)
+      fetchMock.mockResolvedValue(
+        createFetchResponse({
+          id: 1,
+          columns: [
+            {
+              id: "column-1",
+              slot: "important",
+              items: [
+                {
+                  id: "item-1",
+                  blockType: "cmsPageLink",
+                  blockName: null,
+                  slot: "shipping_payment",
+                  page: {
+                    id: 1,
+                    slug: "doprava-a-platba",
+                    title: "Doprava a platba",
+                    status: "published",
+                    visibility: "public",
+                  },
+                },
+              ],
+            },
+          ],
+          createdAt: "2026-08-18T07:46:09.195Z",
+          updatedAt: "2026-08-18T07:46:09.195Z",
+          globalType: "footer-navigation",
+        })
+      )
+
+      const result = await service.getFooterNavigation("sk")
+
+      expect(result).toEqual({
+        columns: [
+          {
+            slot: "important",
+            items: [
+              {
+                slot: "shipping_payment",
+                href: "/informacie/doprava-a-platba",
+                type: "internal",
+              },
+            ],
+          },
+        ],
+      })
+
+      const [url] = fetchMock.mock.calls[0] as [string]
+      const parsedUrl = new URL(url)
+      expect(parsedUrl.pathname).toBe("/api/globals/footer-navigation")
+      expect(parsedUrl.searchParams.get("locale")).toBe("sk")
+      expect(parsedUrl.searchParams.get("fallback-locale")).toBe("none")
+      expect(parsedUrl.searchParams.get("depth")).toBe("1")
+      expect(parsedUrl.searchParams.get("select[columns]")).toBe("true")
+      expect(parsedUrl.searchParams.get("populate[pages][slug]")).toBe("true")
+
+      expect(cacheService.set).toHaveBeenCalledWith({
+        key: "cms:footer-navigation:sk",
+        data: result,
+        ttl: 321,
+        tags: [
+          "cms",
+          "cms:footer-navigation",
+          "cms:pages",
+          "cms:footer-navigation:locale:sk",
+        ],
+      })
+    })
+  })
+
   describe("invalidateCache", () => {
     it("no-ops when caching is unavailable", async () => {
       const service = createServiceWithoutCache()
@@ -669,7 +869,7 @@ describe("PayloadModuleService", () => {
         key: "cms:pages:home:en",
       })
       expect(cacheService.clear).toHaveBeenNthCalledWith(2, {
-        tags: ["cms:page-categories:locale:en"],
+        tags: ["cms:footer-navigation", "cms:page-categories:locale:en"],
       })
     })
 
@@ -682,6 +882,18 @@ describe("PayloadModuleService", () => {
 
       expect(cacheService.clear).toHaveBeenLastCalledWith({
         tags: ["cms:hero-carousels"],
+      })
+    })
+
+    it("clears the localized footer navigation tag", async () => {
+      const { service, cacheService } = createServiceWithCache()
+
+      cacheService.clear.mockResolvedValue(undefined)
+
+      await service.invalidateCache("footer-navigation", undefined, "ro")
+
+      expect(cacheService.clear).toHaveBeenCalledWith({
+        tags: ["cms:footer-navigation:locale:ro"],
       })
     })
 
@@ -754,7 +966,7 @@ describe("PayloadModuleService", () => {
       await service.invalidateCache("pages", "home", "null")
 
       expect(cacheService.clear).toHaveBeenCalledWith({
-        tags: ["cms:pages", "cms:page-categories"],
+        tags: ["cms:footer-navigation", "cms:pages", "cms:page-categories"],
       })
     })
   })

@@ -17,6 +17,7 @@ import type { AccountProductListsController } from "./use-account-product-lists"
 
 type ProductListTabsProps = {
   accountLists: AccountProductListsController
+  publicProductSlugs?: Readonly<Record<string, string | null | undefined>>
 }
 
 function ProductListEmptyPanel() {
@@ -133,8 +134,10 @@ function ProductListSummary({
 
 function ProductListActiveContent({
   accountLists,
+  publicProductSlugs,
 }: {
   accountLists: AccountProductListsController
+  publicProductSlugs?: Readonly<Record<string, string | null | undefined>>
 }) {
   const tAuth = useTranslations("auth")
 
@@ -186,6 +189,7 @@ function ProductListActiveContent({
         return (
           <AccountProductListItemRow
             canChangeQuantity={accountLists.activeListSupportsQuantity}
+            currencyCode={accountLists.currencyCode}
             isAddingToCart={accountLists.activeProductId === product?.id}
             isDeleting={accountLists.activeDeleteItemId === existingItem?.id}
             isSettingQuantity={
@@ -197,6 +201,7 @@ function ProductListActiveContent({
             onDelete={accountLists.handleDeleteItem}
             onQuantitySet={accountLists.handleQuantitySet}
             product={product}
+            publicSlug={productId ? publicProductSlugs?.[productId] : undefined}
           />
         )
       })}
@@ -205,7 +210,10 @@ function ProductListActiveContent({
   )
 }
 
-export function ProductListTabs({ accountLists }: ProductListTabsProps) {
+export function ProductListTabs({
+  accountLists,
+  publicProductSlugs,
+}: ProductListTabsProps) {
   const tAuth = useTranslations("auth")
   const titleLabels = {
     favorite: tAuth("product_lists.favorite_title"),
@@ -265,7 +273,10 @@ export function ProductListTabs({ accountLists }: ProductListTabsProps) {
         <Tabs.Content key={list.id} value={list.id}>
           {list.id === accountLists.activeListId ? (
             <div className="space-y-400">
-              <ProductListActiveContent accountLists={accountLists} />
+              <ProductListActiveContent
+                accountLists={accountLists}
+                publicProductSlugs={publicProductSlugs}
+              />
             </div>
           ) : null}
         </Tabs.Content>

@@ -3,6 +3,9 @@ import {
   HerbatikaBreadcrumb,
   type HerbatikaBreadcrumbItem,
 } from "@/components/herbatika-breadcrumb"
+import type { ReviewTrustSource } from "@/components/reviews/reviews.types"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildPath } from "@/lib/url/public-url"
 import {
   AboutArticleSections,
   AboutClosingStatement,
@@ -13,13 +16,18 @@ import {
 } from "./about-page-sections"
 import { AboutHero } from "./about-page-top"
 
-export function AboutPage() {
+export function AboutPage({
+  reviewTrustSources,
+}: {
+  reviewTrustSources: readonly ReviewTrustSource[]
+}) {
   const tContent = useTranslations("content")
   const tNavigation = useTranslations("navigation")
+  const market = useMarketContext().code
   const breadcrumbItems: HerbatikaBreadcrumbItem[] = [
     {
       label: tNavigation("breadcrumbs.home"),
-      href: "/",
+      href: buildPath({ kind: "home" }, market),
       icon: "token-icon-home",
     },
     { label: tContent("pages.about") },
@@ -35,7 +43,7 @@ export function AboutPage() {
         <AboutArticleSections group="afterMilestones" />
         <AboutClosingStatement />
         <AboutPrinciples />
-        <AboutCommunityAndReviews />
+        <AboutCommunityAndReviews reviewTrustSources={reviewTrustSources} />
         <AboutContact />
       </div>
     </main>

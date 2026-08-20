@@ -7,8 +7,8 @@ import { parse as parseYaml } from "yaml"
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..")
 
-const workflowPaths = [
-  ".github/workflows/zaneops-main-after-ci.yml",
+const mainWorkflowPath = ".github/workflows/zaneops-main-after-ci.yml"
+const previewWorkflowPaths = [
   ".github/workflows/zaneops-preview-after-ci.yml",
   ".github/workflows/zaneops-preview-teardown.yml",
 ]
@@ -25,7 +25,7 @@ const ciCtlTestPattern = /nubx --node nx run new-engine-ctl:test/
 const mainVerifyEnvironmentFallbackPattern =
   /ENVIRONMENT_NAME:\s*\$\{\{\s*needs\.deploy\.outputs\.environment_name\s*\|\|\s*secrets\.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME\s*\}\}/
 const mainVerifySummaryEnvironmentFallbackPattern =
-  /echo "- Environment:\s*\$\{\{\s*needs\.deploy\.outputs\.environment_name\s*\|\|\s*secrets\.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME\s*\|\|\s*'n\/a'\s*\}\}"/
+  /ENVIRONMENT_NAME:\s*\$\{\{\s*needs\.deploy\.outputs\.environment_name\s*\|\|\s*secrets\.ZANEOPS_ZANE_PRODUCTION_ENVIRONMENT_NAME\s*\|\|\s*'n\/a'\s*\}\}/
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -57,18 +57,24 @@ function collectEnvMaps(
   return envMaps
 }
 
-// biome-ignore lint/suspicious/noSkippedTests: ZaneOps workflows are temporarily disabled.
-test.skip("ZaneOps workflows alias the prefixed project slug secret for ctl", async () => {
-  for (const workflowPath of workflowPaths) {
-    const raw = await readFile(join(repoRoot, workflowPath), "utf8")
-    const parsed = parseYaml(raw)
-    const envMaps = collectEnvMaps(parsed)
+async function loadProjectSlugContracts(workflowPaths: string[]) {
+  return await Promise.all(
+    workflowPaths.map(async (workflowPath) => {
+      const raw = await readFile(join(repoRoot, workflowPath), "utf8")
+      const parsed = parseYaml(raw)
+      const envMaps = collectEnvMaps(parsed)
 
+      return { envMaps, raw }
+    })
+  )
+}
+
+test("main ZaneOps workflow aliases the prefixed project slug secret for ctl", async () => {
+  const contracts = await loadProjectSlugContracts([mainWorkflowPath])
+  for (const { envMaps, raw } of contracts) {
     expect(raw.includes("ZANE_CANONICAL_PROJECT_SLUG")).toBe(false)
-
     for (const envMap of envMaps) {
       expect(Object.hasOwn(envMap, "ZANE_CANONICAL_PROJECT_SLUG")).toBe(false)
-
       if (Object.hasOwn(envMap, "ZANEOPS_ZANE_PROJECT_SLUG")) {
         expect(envMap.ZANE_PROJECT_SLUG).toBe(envMap.ZANEOPS_ZANE_PROJECT_SLUG)
       }
@@ -76,8 +82,21 @@ test.skip("ZaneOps workflows alias the prefixed project slug secret for ctl", as
   }
 })
 
-// biome-ignore lint/suspicious/noSkippedTests: ZaneOps workflows are temporarily disabled.
-test.skip("main deploy passes downtime approval only after the approval gate", async () => {
+// biome-ignore lint/suspicious/noSkippedTests: preview deployment workflows remain intentionally disabled.
+test.skip("preview ZaneOps workflows alias the prefixed project slug secret for ctl", async () => {
+  const contracts = await loadProjectSlugContracts(previewWorkflowPaths)
+  for (const { envMaps, raw } of contracts) {
+    expect(raw.includes("ZANE_CANONICAL_PROJECT_SLUG")).toBe(false)
+    for (const envMap of envMaps) {
+      expect(Object.hasOwn(envMap, "ZANE_CANONICAL_PROJECT_SLUG")).toBe(false)
+      if (Object.hasOwn(envMap, "ZANEOPS_ZANE_PROJECT_SLUG")) {
+        expect(envMap.ZANE_PROJECT_SLUG).toBe(envMap.ZANEOPS_ZANE_PROJECT_SLUG)
+      }
+    }
+  }
+})
+
+test("main deploy passes downtime approval only after the approval gate", async () => {
   const raw = await readFile(
     join(repoRoot, ".github/workflows/zaneops-main-after-ci.yml"),
     "utf8"
@@ -88,8 +107,7 @@ test.skip("main deploy passes downtime approval only after the approval gate", a
   expect(raw).toMatch(approveDowntimeRiskFlagPattern)
 })
 
-// biome-ignore lint/suspicious/noSkippedTests: ZaneOps workflows are temporarily disabled.
-test.skip("main verify falls back to the production environment secret", async () => {
+test("main verify falls back to the production environment secret", async () => {
   const raw = await readFile(
     join(repoRoot, ".github/workflows/zaneops-main-after-ci.yml"),
     "utf8"

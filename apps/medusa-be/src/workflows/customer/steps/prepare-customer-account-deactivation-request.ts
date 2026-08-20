@@ -8,7 +8,9 @@ import {
   buildCustomerAccountDeactivationUrl,
   createCustomerAccountDeactivationToken,
 } from "../../../utils/customer-account-deactivation"
+import { resolveCustomerNotificationMarketContext } from "../../../utils/customer-notification-market-context"
 import { hasArrayData } from "../../../utils/guards"
+import type { NotificationMarketContext } from "../../../utils/notification-market-context"
 import { normalizeCustomerName } from "../normalizers"
 
 type PrepareCustomerAccountDeactivationRequestInput = {
@@ -23,13 +25,13 @@ type CustomerRecord = {
   last_name?: string | null
 }
 
-export type PrepareCustomerAccountDeactivationRequestOutput = {
-  confirmation_url: string
-  customer_id: string
-  customer_name?: string
-  email: string
-  sent: true
-}
+export type PrepareCustomerAccountDeactivationRequestOutput =
+  NotificationMarketContext & {
+    confirmation_url: string
+    customer_id: string
+    customer_name?: string
+    email: string
+  }
 
 export const prepareCustomerAccountDeactivationRequestStep = createStep(
   "prepare-customer-account-deactivation-request",
@@ -77,17 +79,35 @@ export const prepareCustomerAccountDeactivationRequestStep = createStep(
       )
     }
 
+    const marketContext = await resolveCustomerNotificationMarketContext(
+      container,
+      { customerId: customer.id, email }
+    )
+    const salesChannelId = marketContext.sales_channel_id
+
+    if (!salesChannelId) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Account deactivation market requires a Sales Channel binding."
+      )
+    }
+
     const token = createCustomerAccountDeactivationToken({
       customer_id: customer.id,
       email,
+      sales_channel_id: salesChannelId,
     })
 
     return new StepResponse({
-      confirmation_url: buildCustomerAccountDeactivationUrl(token),
+      ...marketContext,
+      confirmation_url: buildCustomerAccountDeactivationUrl(
+        token,
+        marketContext.storefront_base_url,
+        marketContext.market_code
+      ),
       customer_id: customer.id,
       customer_name: normalizeCustomerName(customer),
       email,
-      sent: true,
     })
   }
 )

@@ -55,6 +55,18 @@ describe("category endpoints", () => {
         slug: "no-category",
         category: null,
       },
+      {
+        id: 5,
+        title: null,
+        slug: "missing-localized-title",
+        category: { id: 1, title: "News", slug: "news" },
+      },
+      {
+        id: 6,
+        title: "Missing localized category",
+        slug: "missing-localized-category",
+        category: { id: 3, title: null, slug: null },
+      },
     ]
 
     const req = {
@@ -158,10 +170,15 @@ describe("category endpoints", () => {
     expect(req.payload.find).toHaveBeenCalledWith(
       expect.objectContaining({
         collection: "pages",
+        fallbackLocale: false,
         locale: "en",
-        where: expect.objectContaining({
-          status: { equals: "published" },
-        }),
+        overrideAccess: false,
+        where: {
+          and: [
+            { status: { equals: "published" } },
+            { visibility: { equals: "public" } },
+          ],
+        },
         req,
       })
     )

@@ -1,6 +1,5 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import {
   type FocusEvent,
@@ -14,6 +13,7 @@ import {
   SEARCH_AUTOCOMPLETE_MIN_QUERY_LENGTH,
   type SearchAutocompleteSuggestion,
 } from "@/lib/search-autocomplete/search-autocomplete-types"
+import type { SearchPublicSlugMaps } from "./public-search-suggestions"
 import { getSearchAutocompleteOptionId } from "./search-autocomplete-panel"
 import {
   clampSearchAutocompleteIndex,
@@ -21,7 +21,7 @@ import {
 } from "./search-autocomplete-sections"
 import { useSearchAutocomplete } from "./use-search-autocomplete"
 
-type UseSearchAutocompleteControllerInput = {
+type UseSearchAutocompleteControllerInput = SearchPublicSlugMaps & {
   countryCode?: string
   currencyCode: string
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
@@ -29,12 +29,15 @@ type UseSearchAutocompleteControllerInput = {
 }
 
 export function useSearchAutocompleteController({
+  articlePublicSlugsById,
+  brandPublicSlugsById,
+  categoryPublicSlugsById,
   countryCode,
   currencyCode,
   onSubmit,
+  productPublicSlugsById,
   regionId,
 }: UseSearchAutocompleteControllerInput) {
-  const router = useRouter()
   const t = useTranslations("search")
   const panelId = `${useId()}-search-autocomplete`
   const [value, setValue] = useState("")
@@ -42,10 +45,14 @@ export function useSearchAutocompleteController({
   const [isDismissed, setIsDismissed] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
   const autocomplete = useSearchAutocomplete({
+    articlePublicSlugsById,
+    brandPublicSlugsById,
+    categoryPublicSlugsById,
     countryCode,
     currencyCode,
     enabled: isFocused && !isDismissed,
     query: value,
+    productPublicSlugsById,
     regionId,
   })
   const normalizedQuery = value.trim()
@@ -133,7 +140,7 @@ export function useSearchAutocompleteController({
 
     if (event.key === "Enter" && activeItem) {
       event.preventDefault()
-      router.push(activeItem.href)
+      window.location.assign(activeItem.href)
       closePanel()
     }
   }

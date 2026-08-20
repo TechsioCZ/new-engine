@@ -14,6 +14,7 @@ import {
 } from "./types"
 
 export const ORDER_DASHBOARD_QUERY_KEY = "order-dashboard-orders"
+export const DEFAULT_ORDER_DASHBOARD_QUEUE_ID = "all" as const
 
 export const DEFAULT_ORDER_DASHBOARD_SORTING = {
   desc: true,
@@ -82,10 +83,23 @@ export function getOrderDashboardQueueId(
   value: unknown
 ): OrderDashboardQueueId {
   if (value === null) {
-    return ORDER_DASHBOARD_PENDING_UNPAID_QUEUE_ID
+    return DEFAULT_ORDER_DASHBOARD_QUEUE_ID
   }
 
-  return isOrderDashboardQueueId(value) ? value : "all"
+  return isOrderDashboardQueueId(value)
+    ? value
+    : DEFAULT_ORDER_DASHBOARD_QUEUE_ID
+}
+
+export function getOrderDashboardDefaultQueueHref(
+  href: string,
+  origin: string
+) {
+  const url = new URL(href, origin)
+
+  url.searchParams.set("queue", DEFAULT_ORDER_DASHBOARD_QUEUE_ID)
+
+  return `${url.pathname}${url.search}${url.hash}`
 }
 
 function getOrderDashboardSortOrder(

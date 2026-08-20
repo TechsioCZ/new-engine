@@ -7,6 +7,7 @@ import type { Product } from "@/components/product-detail/product-detail.types"
 import { useAppToast } from "@/hooks/use-app-toast"
 import { useAuth } from "@/lib/storefront/auth"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import {
   getProductListItemCount,
   getProductListTitle,
@@ -19,6 +20,8 @@ import {
   useProductListDetails,
   useProductLists,
 } from "@/lib/storefront/product-lists"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
+import { buildPath, withPublicSearchParams } from "@/lib/url/public-url"
 
 export type ProductListPickerRow = {
   key: string
@@ -31,6 +34,7 @@ export type ProductListPickerRow = {
 
 type UseProductListPickerInput = {
   product: Product
+  publicSlug?: string | null
   quantity: number
   selectedVariantId: string | null
 }
@@ -52,11 +56,24 @@ const listById = (lists: Array<StoreProductList | null | undefined>) => {
 
 export function useProductListPicker({
   product,
+  publicSlug,
   quantity,
   selectedVariantId,
 }: UseProductListPickerInput) {
   const tAuth = useTranslations("auth")
+  const { code: market } = useMarketContext()
   const pathname = usePathname()
+  const projectedProductHref = buildProjectedEntityPath(
+    "product",
+    publicSlug ? { publicSlug } : undefined,
+    market
+  )
+  const loginRedirectTarget =
+    pathname ?? projectedProductHref ?? buildPath({ kind: "home" }, market)
+  const loginHref = withPublicSearchParams(
+    buildPath({ kind: "account", section: "login" }, market),
+    { next: loginRedirectTarget }
+  )
   const authQuery = useAuth()
   const toast = useAppToast()
   const [isOpen, setIsOpen] = useState(false)
@@ -229,7 +246,7 @@ export function useProductListPicker({
     isMutating,
     isOpen,
     listsQuery,
-    loginHref: `/auth/login?next=${encodeURIComponent(pathname)}`,
+    loginHref,
     newListTitle,
     retryLists,
     rows,

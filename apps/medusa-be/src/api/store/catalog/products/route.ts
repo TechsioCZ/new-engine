@@ -11,7 +11,10 @@ import {
   wrapProductsWithTaxPrices,
 } from "@medusajs/medusa/api/store/products/helpers"
 import type { MeiliSearchService } from "@rokmohar/medusa-plugin-meilisearch"
-import { cleanSearchText } from "../../../../modules/meilisearch/documents"
+import {
+  buildProductVariantSearchDocumentId,
+  cleanSearchText,
+} from "../../../../modules/meilisearch/documents"
 import { isMeilisearchEnabled } from "../../../../modules/meilisearch/env"
 import {
   extractBrandHandleFromFacetId,
@@ -32,15 +35,30 @@ import {
   expandProductsBySearchMatches,
   getSalesChannelIds,
   type RankedProductMatch,
+  resolveStorefrontSalesChannelFilter,
   selectRankedProductIds,
 } from "../../../../modules/meilisearch/search-results"
+import { isPlainRecord } from "../../../../utils/guards"
+import {
+  decorateProductsWithLocalizedContent,
+  requestsLocalizedProductContent,
+} from "../../../../utils/localized-product-content"
 import {
   decorateProductsWithMeasurements,
   getMeasurementDecorationOptions,
+  getMeasurementDecorationQueryFields,
 } from "../../../../utils/measurement-units"
+import {
+  listActiveSalePriceListProductSelection,
+  ProductSaleAdapterBuilder,
+  type ProductSaleFetchGraphConfig,
+  type ProductSaleProductSelection,
+} from "../../../../utils/product-sale-adapters"
 import { MEILISEARCH } from "../../../../workflows/meilisearch"
 import { normalizeProductSalesChannelFilter } from "../../../utils/product-filters"
+import { CATALOG_SALES_CHANNEL_IDS_PROPERTY } from "./middlewares"
 import {
+  applyCollectionScopeToProductFilters,
   buildCatalogFilterExpressions,
   type FacetCountItem,
   getFacetDistribution,
@@ -85,7 +103,15 @@ type ProductWithCalculatedPrices = {
   }> | null
 }
 
+type CatalogResponseFieldsRequest = {
+  catalogResponseFields?: string[]
+}
+
+const productSaleAdapterBuilder =
+  ProductSaleAdapterBuilder.withDefaultAdapters()
+
 const FACETS_TO_FETCH = [
+  "facet_product_status",
   "facet_status",
   "facet_form",
   "facet_brand",
@@ -188,7 +214,8 @@ const buildVisibilityFilterExpressions = (
 }
 const resolveBrandFacetLabels = async (
   queryService: Query,
-  facetIds: string[]
+  facetIds: string[],
+  locale?: string
 ): Promise<Map<string, string>> => {
   const labelsById = new Map<string, string>()
   const handles = Array.from(
@@ -203,15 +230,18 @@ const resolveBrandFacetLabels = async (
     return labelsById
   }
 
-  const { data: brands } = await queryService.graph({
-    entity: "brand",
-    fields: ["handle", "title"],
-    filters: {
-      handle: {
-        $in: handles,
+  const { data: brands } = await queryService.graph(
+    {
+      entity: "brand",
+      fields: ["handle", "title"],
+      filters: {
+        handle: {
+          $in: handles,
+        },
       },
     },
-  })
+    { locale }
+  )
 
   const brandTitleByHandle = new Map<string, string>()
   for (const brand of brands as BrandRecord[]) {
@@ -238,7 +268,8 @@ const resolveBrandFacetLabels = async (
 
 const resolveIngredientFacetLabels = async (
   queryService: Query,
-  facetIds: string[]
+  facetIds: string[],
+  locale?: string
 ): Promise<Map<string, string>> => {
   const labelsById = new Map<string, string>()
   const handles = Array.from(
@@ -253,15 +284,18 @@ const resolveIngredientFacetLabels = async (
     return labelsById
   }
 
-  const { data: categories } = await queryService.graph({
-    entity: "product_category",
-    fields: ["handle", "name"],
-    filters: {
-      handle: {
-        $in: handles,
+  const { data: categories } = await queryService.graph(
+    {
+      entity: "product_category",
+      fields: ["handle", "name"],
+      filters: {
+        handle: {
+          $in: handles,
+        },
       },
     },
-  })
+    { locale }
+  )
 
   const categoryNameByHandle = new Map<string, string>()
   for (const category of categories as CategoryRecord[]) {
@@ -362,11 +396,224 @@ const resolveResultCount = (options: {
   exhaustiveCandidateSearch: boolean
   fallbackCount: number
   matchingCount: number
+  productStatusFacetCount?: number
 }): number => {
   if (options.exhaustiveCandidateSearch) {
     return options.matchingCount
   }
-  return options.estimatedTotalHits ?? options.fallbackCount
+  return (
+    options.productStatusFacetCount ??
+    options.estimatedTotalHits ??
+    options.fallbackCount
+  )
+}
+
+const getStringRecordField = (
+  record: unknown,
+  field: string
+): string | undefined => {
+  if (!(record && typeof record === "object" && !Array.isArray(record))) {
+    return
+  }
+
+  const value = (record as Record<string, unknown>)[field]
+  return typeof value === "string" && value.trim() ? value.trim() : undefined
+}
+
+const getPricingContextCurrencyCode = (
+  pricingContext: unknown
+): string | undefined =>
+  getStringRecordField(pricingContext, "currency_code")?.toLowerCase()
+
+const getPricingContextCustomerGroupIds = (
+  pricingContext: unknown
+): string[] => {
+  if (!(pricingContext && typeof pricingContext === "object")) {
+    return []
+  }
+
+  const customer = (pricingContext as Record<string, unknown>).customer
+  if (!(customer && typeof customer === "object" && !Array.isArray(customer))) {
+    return []
+  }
+
+  const groups = (customer as Record<string, unknown>).groups
+  if (!Array.isArray(groups)) {
+    return []
+  }
+
+  return groups
+    .map((group) => getStringRecordField(group, "id"))
+    .filter((id): id is string => Boolean(id))
+}
+
+const getSaleSearchDocumentIds = (
+  selection: ProductSaleProductSelection
+): string[] =>
+  Array.from(
+    new Set([
+      ...selection.productIds,
+      ...selection.variantMatches.map((match) =>
+        buildProductVariantSearchDocumentId(match.productId, match.variantId)
+      ),
+    ])
+  )
+
+const buildProductIdFilter = (
+  productIds: string[] | undefined
+): Record<string, unknown> | undefined =>
+  productIds && productIds.length > 0 ? { $in: productIds } : undefined
+
+const CATALOG_INTERNAL_PRODUCT_FIELDS = ["id"]
+const CATALOG_SYNTHETIC_PRODUCT_FIELDS = new Set(["sale_adapters"])
+const CATALOG_INTERNAL_PRICING_FIELDS = [
+  "variants.id",
+  ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
+]
+const INCLUDED_FIELD_PREFIX_PATTERN = /^[+*]/
+
+const getCatalogResponseFields = (
+  req: RequestWithContext<unknown, StoreCatalogProductsSchemaType>
+): string[] => {
+  const storedFields = (req as CatalogResponseFieldsRequest)
+    .catalogResponseFields
+
+  return Array.isArray(storedFields)
+    ? storedFields
+    : (req.queryConfig.fields ?? STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS)
+}
+
+const hasExplicitCatalogFields = (
+  query: StoreCatalogProductsSchemaType
+): boolean => typeof query.fields === "string" && query.fields.trim().length > 0
+
+const uniqueFields = (fields: string[]): string[] => Array.from(new Set(fields))
+
+export const buildCatalogProductQueryFields = (options: {
+  needsPricing: boolean
+  responseFields: string[]
+}): string[] => {
+  const responseFields = options.responseFields.filter(
+    (field) => !isSyntheticCatalogProductField(field)
+  )
+  const fields = [
+    ...getMeasurementDecorationQueryFields(
+      responseFields,
+      getMeasurementDecorationOptions(responseFields)
+    ),
+    ...CATALOG_INTERNAL_PRODUCT_FIELDS,
+  ]
+
+  if (options.needsPricing) {
+    fields.push(...CATALOG_INTERNAL_PRICING_FIELDS)
+  }
+
+  return uniqueFields(fields)
+}
+
+const normalizeProjectionField = (field: string): string | undefined => {
+  const normalized = field.trim().replace(INCLUDED_FIELD_PREFIX_PATTERN, "")
+  return normalized ? normalized : undefined
+}
+
+const isSyntheticCatalogProductField = (field: string): boolean =>
+  CATALOG_SYNTHETIC_PRODUCT_FIELDS.has(normalizeProjectionField(field) ?? "")
+
+const setProjectedArrayField = (
+  target: Record<string, unknown>,
+  segment: string,
+  value: unknown[],
+  rest: string[]
+): void => {
+  const existingItems = Array.isArray(target[segment])
+    ? (target[segment] as unknown[])
+    : []
+  target[segment] = value.map((item, index) => {
+    const existingItem = isPlainRecord(existingItems[index])
+      ? { ...existingItems[index] }
+      : {}
+    copyProjectionField(item, existingItem, rest)
+    return existingItem
+  })
+}
+
+const setProjectedRecordField = (
+  target: Record<string, unknown>,
+  segment: string,
+  value: Record<string, unknown>,
+  rest: string[]
+): void => {
+  const existing = isPlainRecord(target[segment])
+    ? { ...(target[segment] as Record<string, unknown>) }
+    : {}
+  copyProjectionField(value, existing, rest)
+  if (Object.keys(existing).length > 0) {
+    target[segment] = existing
+  }
+}
+
+function copyProjectionField(
+  source: unknown,
+  target: Record<string, unknown>,
+  segments: string[]
+): void {
+  const [segment, ...rest] = segments
+  if (!(segment && source && typeof source === "object")) {
+    return
+  }
+
+  if (segment === "*") {
+    if (isPlainRecord(source)) {
+      Object.assign(target, source)
+    }
+    return
+  }
+
+  if (!(isPlainRecord(source) && segment in source)) {
+    return
+  }
+
+  const value = source[segment]
+  if (value === undefined) {
+    return
+  }
+
+  if (rest.length === 0 || rest[0] === "*") {
+    target[segment] = value
+    return
+  }
+
+  if (Array.isArray(value)) {
+    setProjectedArrayField(target, segment, value, rest)
+    return
+  }
+
+  if (isPlainRecord(value)) {
+    setProjectedRecordField(target, segment, value, rest)
+  }
+}
+
+const projectProductsForCatalogResponse = (
+  products: Record<string, unknown>[],
+  responseFields: string[]
+): Record<string, unknown>[] => {
+  const projectionFields = responseFields
+    .map(normalizeProjectionField)
+    .filter((field): field is string => Boolean(field))
+
+  if (projectionFields.length === 0) {
+    return products
+  }
+
+  return products.map((product) => {
+    const projected: Record<string, unknown> = {}
+
+    for (const field of projectionFields) {
+      copyProjectionField(product, projected, field.split("."))
+    }
+
+    return projected
+  })
 }
 
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: This route coordinates search, authoritative hydration, facets, pricing, and degraded fallback.
@@ -382,22 +629,35 @@ export async function GET(
   }
 
   const validatedQuery = req.validatedQuery
+  const responseProductFields = getCatalogResponseFields(req)
+  const hasExplicitFields = hasExplicitCatalogFields(validatedQuery)
+  const requestedLocale = req.locale ?? validatedQuery.locale
+  const saleAdapterMatcher = productSaleAdapterBuilder.build(
+    validatedQuery.on_sale
+  )
   const measurementDecorationOptions = getMeasurementDecorationOptions(
-    req.queryConfig.fields
+    responseProductFields
   )
   const queryService = req.scope.resolve<Query>(ContainerRegistrationKeys.QUERY)
   const remoteQuery = req.scope.resolve(ContainerRegistrationKeys.REMOTE_QUERY)
   const meilisearchService = req.scope.resolve<MeiliSearchService>(MEILISEARCH)
 
   const page = validatedQuery.page
-  const salesChannelIds = getSalesChannelIds(
-    req.filterableFields.sales_channel_id
+  const preservedSalesChannelIds = (
+    req as typeof req & {
+      [CATALOG_SALES_CHANNEL_IDS_PROPERTY]?: string[]
+    }
+  )[CATALOG_SALES_CHANNEL_IDS_PROPERTY]
+  const salesChannelFilter = resolveStorefrontSalesChannelFilter(
+    req.filterableFields.sales_channel_id,
+    preservedSalesChannelIds ?? req.publishable_key_context?.sales_channel_ids
   )
+  const salesChannelIds = getSalesChannelIds(salesChannelFilter)
   let searchProfile: SearchProfile
   try {
     searchProfile = resolveSearchProfile(
       {
-        locale: validatedQuery.locale,
+        locale: requestedLocale,
         requestedKey: validatedQuery.profile,
         salesChannelIds,
       },
@@ -410,9 +670,63 @@ export async function GET(
     }
     throw error
   }
+  const graphLocale =
+    requestedLocale ??
+    (searchProfile.locale === "default" ? undefined : searchProfile.locale)
+  let saleProductSelection: ProductSaleProductSelection | undefined
+  const fetchProducts = async (graph: ProductSaleFetchGraphConfig) =>
+    saleAdapterMatcher.enabled
+      ? productSaleAdapterBuilder.fetchProducts({
+          eligibility: {
+            productIds: saleProductSelection?.productIds ?? [],
+          },
+          graph,
+          query: {
+            graph: (config) =>
+              queryService.graph(config, { locale: graphLocale }),
+          },
+          selection: validatedQuery.on_sale ?? true,
+        })
+      : queryService.graph(graph, { locale: graphLocale })
   const limit = Math.min(validatedQuery.limit, searchProfile.limits.page)
   const offset = (page - 1) * limit
   const cleanedQuery = cleanSearchText(validatedQuery.q)
+
+  if (saleAdapterMatcher.enabled) {
+    saleProductSelection = await listActiveSalePriceListProductSelection({
+      currencyCode:
+        getPricingContextCurrencyCode(req.pricingContext) ??
+        validatedQuery.currency_code,
+      customerGroupIds: getPricingContextCustomerGroupIds(req.pricingContext),
+      query: queryService,
+    })
+
+    if (saleProductSelection.productIds.length === 0) {
+      res.json({
+        products: [],
+        count: 0,
+        page,
+        limit,
+        totalPages: 0,
+        facets: {
+          status: mapStatusFacets(new Map()),
+          form: mapFormFacets(new Map()),
+          brand: [],
+          ingredient: [],
+          price: {
+            min: null,
+            max: null,
+          },
+        },
+        search: {
+          degraded: false,
+          exactIdentifierMatch: false,
+          profile: searchProfile.key,
+        },
+      })
+      return
+    }
+  }
 
   const categoryIds = normalizeCategoryIdsParam(validatedQuery.category_id)
   const statusIds = normalizeStatusParam(validatedQuery.status)
@@ -421,6 +735,7 @@ export async function GET(
   const ingredientIds = normalizeIngredientParam(validatedQuery.ingredient)
 
   const filterExpressions = buildCatalogFilterExpressions({
+    collectionId: validatedQuery.collection_id,
     categoryIds,
     statusIds,
     formIds,
@@ -439,13 +754,20 @@ export async function GET(
     resolveCatalogSort(validatedQuery.sort) ??
     (cleanedQuery ? undefined : ["facet_popularity:desc"])
   const meiliSort = authoritativePriceSortDirection ? undefined : sort
+  const saleSearchExpression = saleProductSelection
+    ? buildMeiliOrExpression(
+        "id",
+        getSaleSearchDocumentIds(saleProductSelection)
+      )
+    : undefined
   const searchFilters = [
     buildProductResultFilter(
       searchProfile.separateVariantResults,
       cleanedQuery
     ),
     ...filterExpressions,
-    ...buildVisibilityFilterExpressions(req.filterableFields.sales_channel_id),
+    ...(saleSearchExpression ? [saleSearchExpression] : []),
+    ...buildVisibilityFilterExpressions(salesChannelFilter),
   ]
   const searchFilter =
     searchFilters.length > 0 ? searchFilters.join(" AND ") : undefined
@@ -494,24 +816,32 @@ export async function GET(
     const pricingContext = req.pricingContext
       ? QueryContext(req.pricingContext)
       : undefined
-    const productFields = pricingContext
-      ? [
-          ...STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
-          ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
-        ]
-      : STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS
+    const productFields = buildCatalogProductQueryFields({
+      needsPricing: Boolean(
+        pricingContext ||
+          saleAdapterMatcher.enabled ||
+          authoritativePriceSortDirection
+      ),
+      responseFields: responseProductFields,
+    })
     const { data: fallbackProducts, metadata: fallbackMetadata } =
-      await queryService.graph({
+      await fetchProducts({
         entity: "product",
         fields: productFields,
         filters: await normalizeProductSalesChannelFilter(
           queryService,
           remoteQuery,
-          {
-            ...(cleanedQuery ? { q: cleanedQuery } : {}),
-            sales_channel_id: req.filterableFields.sales_channel_id,
-            status: ProductStatus.PUBLISHED,
-          }
+          applyCollectionScopeToProductFilters(
+            {
+              ...(cleanedQuery ? { q: cleanedQuery } : {}),
+              ...(saleProductSelection
+                ? { id: buildProductIdFilter(saleProductSelection.productIds) }
+                : {}),
+              sales_channel_id: salesChannelFilter,
+              status: ProductStatus.PUBLISHED,
+            },
+            validatedQuery.collection_id
+          )
         ),
         pagination: {
           take: limit,
@@ -525,6 +855,17 @@ export async function GET(
             }
           : undefined,
       })
+    const fallbackCount = fallbackMetadata?.count ?? fallbackProducts.length
+
+    if (requestsLocalizedProductContent(responseProductFields)) {
+      await decorateProductsWithLocalizedContent(
+        req.scope,
+        fallbackProducts as Parameters<
+          typeof decorateProductsWithLocalizedContent
+        >[1],
+        graphLocale
+      )
+    }
 
     await wrapProductsWithTaxPrices(
       req,
@@ -535,16 +876,22 @@ export async function GET(
       fallbackProducts as Parameters<
         typeof decorateProductsWithMeasurements
       >[1],
-      measurementDecorationOptions
+      measurementDecorationOptions,
+      graphLocale
     )
+    const responseProducts = hasExplicitFields
+      ? projectProductsForCatalogResponse(
+          fallbackProducts as Record<string, unknown>[],
+          responseProductFields
+        )
+      : fallbackProducts
+
     res.json({
-      products: fallbackProducts,
-      count: fallbackMetadata?.count ?? fallbackProducts.length,
+      products: responseProducts,
+      count: fallbackCount,
       page,
       limit,
-      totalPages: Math.ceil(
-        (fallbackMetadata?.count ?? fallbackProducts.length) / limit
-      ),
+      totalPages: Math.ceil(fallbackCount / limit),
       facets: {
         status: mapStatusFacets(new Map()),
         form: mapFormFacets(new Map()),
@@ -584,38 +931,44 @@ export async function GET(
   const pricingContext = req.pricingContext
     ? QueryContext(req.pricingContext)
     : undefined
-  const productFields = pricingContext
-    ? [
-        ...STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS,
-        ...STORE_CATALOG_PRODUCTS_PRICING_FIELDS,
-      ]
-    : STORE_CATALOG_PRODUCTS_DEFAULT_FIELDS
+  const productFields = buildCatalogProductQueryFields({
+    needsPricing: Boolean(
+      pricingContext ||
+        saleAdapterMatcher.enabled ||
+        authoritativePriceSortDirection
+    ),
+    responseFields: responseProductFields,
+  })
 
+  const productQuery = {
+    entity: "product",
+    fields: productFields,
+    filters: await normalizeProductSalesChannelFilter(
+      queryService,
+      remoteQuery,
+      applyCollectionScopeToProductFilters(
+        {
+          id: {
+            $in: productIds,
+          },
+          sales_channel_id: salesChannelFilter,
+          status: ProductStatus.PUBLISHED,
+        },
+        validatedQuery.collection_id
+      )
+    ),
+    context: pricingContext
+      ? {
+          variants: {
+            calculated_price: pricingContext,
+          },
+        }
+      : undefined,
+  }
   const { data: products } =
     productIds.length === 0
       ? { data: [] as Record<string, unknown>[] }
-      : await queryService.graph({
-          entity: "product",
-          fields: productFields,
-          filters: await normalizeProductSalesChannelFilter(
-            queryService,
-            remoteQuery,
-            {
-              id: {
-                $in: productIds,
-              },
-              sales_channel_id: req.filterableFields.sales_channel_id,
-              status: ProductStatus.PUBLISHED,
-            }
-          ),
-          context: pricingContext
-            ? {
-                variants: {
-                  calculated_price: pricingContext,
-                },
-              }
-            : undefined,
-        })
+      : await fetchProducts(productQuery)
 
   const orderedProducts = expandProductsBySearchMatches(
     products as Record<string, unknown>[],
@@ -653,6 +1006,16 @@ export async function GET(
         .slice(offset, offset + limit)
     : orderedProducts
 
+  if (requestsLocalizedProductContent(responseProductFields)) {
+    await decorateProductsWithLocalizedContent(
+      req.scope,
+      finalProducts as Parameters<
+        typeof decorateProductsWithLocalizedContent
+      >[1],
+      graphLocale
+    )
+  }
+
   const statusFacetCounts = cleanedQuery
     ? getFacetDistributionFromHits(rankedProducts.selectedHits, "facet_status")
     : getFacetDistribution(searchResult.facetDistribution, "facet_status")
@@ -671,12 +1034,21 @@ export async function GET(
   const priceFacetStats = cleanedQuery
     ? getNumericFacetStatsFromHits(rankedProducts.selectedHits, "facet_price")
     : getNumericFacetStats(searchResult.facetStats, "facet_price")
+  const productStatusFacetCount = getFacetDistribution(
+    searchResult.facetDistribution,
+    "facet_product_status"
+  ).get(ProductStatus.PUBLISHED)
 
   const [brandLabelsById, ingredientLabelsById] = await Promise.all([
-    resolveBrandFacetLabels(queryService, Array.from(brandFacetCounts.keys())),
+    resolveBrandFacetLabels(
+      queryService,
+      Array.from(brandFacetCounts.keys()),
+      graphLocale
+    ),
     resolveIngredientFacetLabels(
       queryService,
-      Array.from(ingredientFacetCounts.keys())
+      Array.from(ingredientFacetCounts.keys()),
+      graphLocale
     ),
   ])
 
@@ -685,16 +1057,25 @@ export async function GET(
     exhaustiveCandidateSearch,
     fallbackCount: finalProducts.length,
     matchingCount: matchingProducts.length,
+    productStatusFacetCount,
   })
   const totalPages = count > 0 ? Math.ceil(count / limit) : 0
   await decorateProductsWithMeasurements(
     req.scope,
     finalProducts as Parameters<typeof decorateProductsWithMeasurements>[1],
-    measurementDecorationOptions
+    measurementDecorationOptions,
+    graphLocale
   )
 
+  const responseProducts = hasExplicitFields
+    ? projectProductsForCatalogResponse(
+        finalProducts as Record<string, unknown>[],
+        responseProductFields
+      )
+    : finalProducts
+
   res.json({
-    products: finalProducts,
+    products: responseProducts,
     count,
     page,
     limit,

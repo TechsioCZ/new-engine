@@ -4,11 +4,13 @@ import {
   type CarouselSlide,
 } from "@techsio/ui-kit/molecules/carousel"
 import Image from "next/image"
-import NextLink from "next/link"
 import { useTranslations } from "next-intl"
 import type { MouseEventHandler, PointerEventHandler } from "react"
 import { useEffect, useRef, useState } from "react"
 import type { HeroBannerItem } from "@/components/homepage/homepage.data"
+import { StorefrontLink } from "@/components/storefront-link"
+import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { buildProjectedEntityPath } from "@/lib/url/link-projections/projected-entity-link"
 
 const HERO_SLIDE_SPACING = "var(--spacing-400)"
 const HERO_SLIDES_PER_PAGE = {
@@ -30,6 +32,17 @@ function HeroBannerCard({
   onPointerDownCapture,
 }: HeroBannerCardProps) {
   const tContent = useTranslations("content")
+  const market = useMarketContext().code
+  let href: string | null = null
+  if (banner.ctaTarget?.kind === "static") {
+    href = banner.ctaTarget.href
+  } else if (banner.ctaTarget) {
+    href = buildProjectedEntityPath(
+      banner.ctaTarget.kind,
+      banner.ctaTarget,
+      market
+    )
+  }
   const label = banner.title ?? banner.imageAlt ?? banner.badge
   const ariaLabel =
     label && banner.ctaLabel
@@ -39,14 +52,8 @@ function HeroBannerCard({
         })
       : label
 
-  return (
-    <NextLink
-      aria-label={ariaLabel}
-      className="group relative h-full overflow-hidden rounded-lg font-open-sans shadow-sm"
-      href={banner.href}
-      onClickCapture={onClickCapture}
-      onPointerDownCapture={onPointerDownCapture}
-    >
+  const content = (
+    <>
       <Image
         alt={banner.imageAlt ?? label ?? ""}
         className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -64,7 +71,7 @@ function HeroBannerCard({
               {banner.subtitle}
             </p>
           )}
-          {banner.ctaLabel ? (
+          {banner.ctaLabel && href ? (
             <span
               className={buttonVariants({
                 className: "mt-350 rounded-xl px-450 py-250 text-md",
@@ -76,7 +83,23 @@ function HeroBannerCard({
           ) : null}
         </div>
       )}
-    </NextLink>
+    </>
+  )
+
+  return href ? (
+    <StorefrontLink
+      aria-label={ariaLabel}
+      className="group relative h-full overflow-hidden rounded-lg font-open-sans shadow-sm"
+      href={href}
+      onClickCapture={onClickCapture}
+      onPointerDownCapture={onPointerDownCapture}
+    >
+      {content}
+    </StorefrontLink>
+  ) : (
+    <div className="group relative h-full overflow-hidden rounded-lg font-open-sans shadow-sm">
+      {content}
+    </div>
   )
 }
 

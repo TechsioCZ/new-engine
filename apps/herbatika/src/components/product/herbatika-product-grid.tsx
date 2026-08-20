@@ -17,6 +17,7 @@ export type HerbatikaProductGridLayout =
   keyof typeof HERBATIKA_PRODUCT_GRID_LAYOUT_CLASSNAME
 
 type HerbatikaProductGridProps = {
+  productPublicSlugsById?: Readonly<Record<string, string>>
   products: HttpTypes.StoreProduct[]
   onAddToCart: (product: HttpTypes.StoreProduct) => Promise<void> | void
   layout: HerbatikaProductGridLayout
@@ -28,6 +29,7 @@ type HerbatikaProductGridProps = {
 }
 
 export function HerbatikaProductGrid({
+  productPublicSlugsById = {},
   products,
   onAddToCart,
   layout,
@@ -50,6 +52,7 @@ export function HerbatikaProductGrid({
           onProductHoverEnd={onProductHoverEnd}
           onProductHoverStart={onProductHoverStart}
           product={product}
+          publicSlug={productPublicSlugsById[product.id]}
         />
       ))}
     </div>
