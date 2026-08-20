@@ -9,7 +9,7 @@ import { type CmsBlogListing, fetchCmsBlogListing } from "@/lib/storefront/cms"
 import { getHerbatikaMarketContext } from "@/lib/storefront/market-context"
 import {
   type PublicEntitySlugMap,
-  readRequiredPublicEntitySlugs,
+  readAvailablePublicEntitySlugs,
 } from "@/lib/storefront/ssr/public-entity-projections"
 
 type AdviceIndexValue = Readonly<{
@@ -35,7 +35,7 @@ export const getServerSideProps = (async (context) =>
             ? Number.parseInt(context.query.page, 10)
             : 1,
       })
-      const articlePublicSlugsById = await readRequiredPublicEntitySlugs({
+      const articlePublicSlugsById = await readAvailablePublicEntitySlugs({
         kind: "article",
         market,
         requiredSourceIds: listing.posts.map((post) => post.sourceId),

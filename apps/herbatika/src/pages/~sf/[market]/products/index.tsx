@@ -11,7 +11,7 @@ import { parsePlpQueryStateFromSearchParams } from "@/lib/storefront/plp-query-s
 import { prefetchProductIndexStorefrontData } from "@/lib/storefront/ssr"
 import {
   type PublicEntitySlugMap,
-  readRequiredPublicEntitySlugs,
+  readAvailablePublicEntitySlugs,
 } from "@/lib/storefront/ssr/public-entity-projections"
 
 type Props = PublicPageProps<
@@ -37,7 +37,7 @@ export const getServerSideProps = ((context) => {
           causeCode: "MISSING_REGION",
         } as const
       }
-      const productPublicSlugsById = await readRequiredPublicEntitySlugs({
+      const productPublicSlugsById = await readAvailablePublicEntitySlugs({
         kind: "product",
         market,
         requiredSourceIds: result.visibleProductIds,

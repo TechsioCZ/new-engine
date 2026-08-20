@@ -31,6 +31,23 @@ type ArticleDoc = {
   primaryCategory?: number | CategoryDoc | null
 }
 
+const localizedText = (value: unknown): string | null => {
+  if (typeof value !== "string") {
+    return null
+  }
+  const normalized = value.trim()
+  return normalized ? normalized : null
+}
+
+const localizedCategory = (value: unknown): CategoryDoc | null => {
+  const category = getCategoryDoc(value)
+  return category &&
+    localizedText(category.title) &&
+    localizedText(category.slug)
+    ? category
+    : null
+}
+
 /** Endpoint returning article categories grouped with their articles. */
 export const articleCategoriesWithArticlesEndpoint: Endpoint = {
   path: "/article-categories-with-articles",
@@ -91,8 +108,13 @@ export const articleCategoriesWithArticlesEndpoint: Endpoint = {
       }
     >()
     for (const article of articlesResult.docs as ArticleDoc[]) {
+      const title = localizedText(article.title)
+      const slug = localizedText(article.slug)
+      if (!(title && slug)) {
+        continue
+      }
       const categories = (article.categories ?? [article.category])
-        .map(getCategoryDoc)
+        .map(localizedCategory)
         .filter((category): category is CategoryDoc => Boolean(category))
 
       for (const category of categories) {
@@ -102,11 +124,11 @@ export const articleCategoriesWithArticlesEndpoint: Endpoint = {
         }
         entry.articles.push({
           id: article.id,
-          title: article.title,
-          slug: article.slug,
+          title,
+          slug,
           excerpt: article.excerpt,
           featuredImage: getMediaUrl(article.featuredImage),
-          primaryCategory: getCategoryDoc(article.primaryCategory),
+          primaryCategory: localizedCategory(article.primaryCategory),
           publishedDate: article.publishedDate,
           readingTime: article.readingTime,
         })

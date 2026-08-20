@@ -20,6 +20,7 @@ const createResult = (): ExternalReviewsResult => ({
       },
     ],
     summary: {
+      source: "heureka",
       averageRating: 5,
       calculatedFrom: "export",
       ratingDistribution: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 1 },

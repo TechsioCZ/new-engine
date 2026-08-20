@@ -34,6 +34,23 @@ export const readRequiredPublicEntitySlugs = async (
   return mapRequiredPublicEntitySlugs(requirement, projections.value)
 }
 
+export const readAvailablePublicEntitySlugs = async (
+  requirement: ProjectionRequirement
+): Promise<SourceReadResult<PublicEntitySlugMap>> => {
+  const projections = await listPublicEntityProjections({
+    kind: requirement.kind,
+    market: requirement.market,
+    requiredSourceIds: requirement.requiredSourceIds,
+  })
+  if (projections.kind !== "found") {
+    return projections
+  }
+  return mapRequiredPublicEntitySlugs(
+    { kind: requirement.kind, market: requirement.market },
+    projections.value
+  )
+}
+
 export const readCompletePublicEntitySlugs = async (
   requirement: ProjectionRequirement
 ): Promise<SourceReadResult<PublicEntitySlugMap>> => {

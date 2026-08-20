@@ -55,6 +55,18 @@ describe("category endpoints", () => {
         slug: "no-category",
         category: null,
       },
+      {
+        id: 5,
+        title: null,
+        slug: "missing-localized-title",
+        category: { id: 1, title: "News", slug: "news" },
+      },
+      {
+        id: 6,
+        title: "Missing localized category",
+        slug: "missing-localized-category",
+        category: { id: 3, title: null, slug: null },
+      },
     ]
 
     const req = {

@@ -142,7 +142,7 @@ describe("URLR population source", () => {
     })
     expect(listPublishedArticles).toHaveBeenCalledWith({
       limit: 50,
-      locale: "cs-CZ",
+      locale: "cs",
       page: 1,
     })
   })
