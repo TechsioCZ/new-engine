@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   prefetchBrandPageStorefrontData: vi.fn(),
   prefetchCategoryPageStorefrontData: vi.fn(),
   prefetchProductIndexStorefrontData: vi.fn(),
+  readAvailablePublicEntitySlugs: vi.fn(),
   readCompletePublicEntitySlugs: vi.fn(),
   readRequiredPublicEntitySlugs: vi.fn(),
   resolveRegistryRoute: vi.fn(),
@@ -44,6 +45,7 @@ vi.mock("@/lib/storefront/ssr/context", () => ({
   getRegionServerContext: mocks.getRegionServerContext,
 }))
 vi.mock("@/lib/storefront/ssr/public-entity-projections", () => ({
+  readAvailablePublicEntitySlugs: mocks.readAvailablePublicEntitySlugs,
   readCompletePublicEntitySlugs: mocks.readCompletePublicEntitySlugs,
   readRequiredPublicEntitySlugs: mocks.readRequiredPublicEntitySlugs,
 }))
@@ -119,6 +121,10 @@ describe("catalog page pagination boundaries", () => {
     mocks.readRequiredPublicEntitySlugs.mockResolvedValue({
       kind: "found",
       value: { brand_1: "brand" },
+    })
+    mocks.readAvailablePublicEntitySlugs.mockResolvedValue({
+      kind: "found",
+      value: {},
     })
     mocks.readCompletePublicEntitySlugs.mockResolvedValue({
       kind: "found",

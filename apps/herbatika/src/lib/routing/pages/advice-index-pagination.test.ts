@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
   fetchCmsBlogListing: vi.fn(),
-  readRequiredPublicEntitySlugs: vi.fn(),
+  readAvailablePublicEntitySlugs: vi.fn(),
 }))
 
 vi.mock("server-only", () => ({}))
@@ -26,7 +26,7 @@ vi.mock("@/lib/storefront/ssr/context", () => ({
   getRegionServerContext: vi.fn(),
 }))
 vi.mock("@/lib/storefront/ssr/public-entity-projections", () => ({
-  readRequiredPublicEntitySlugs: mocks.readRequiredPublicEntitySlugs,
+  readAvailablePublicEntitySlugs: mocks.readAvailablePublicEntitySlugs,
 }))
 vi.mock("@/lib/storefront/storefront-texts.server", () => ({
   fetchStorefrontTextMessages: vi.fn(),
@@ -45,7 +45,7 @@ describe("advice index pagination boundary", () => {
       totalItems: 25,
       totalPages: 3,
     })
-    mocks.readRequiredPublicEntitySlugs.mockResolvedValue({
+    mocks.readAvailablePublicEntitySlugs.mockResolvedValue({
       kind: "found",
       value: {},
     })
