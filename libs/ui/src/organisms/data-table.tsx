@@ -101,9 +101,8 @@ import {
   getColumnSizeStyles,
   getPinningStyles,
   type Header,
-  isFirstRightPinned,
-  isLastLeftPinned,
-  pinnedSide,
+  isFirstEndPinned,
+  isLastStartPinned,
   type Row,
   type TanstackTable,
 } from "./data-table.helpers"
@@ -126,11 +125,7 @@ export type {
   TanstackTable,
 } from "./data-table.helpers"
 // biome-ignore lint/performance/noBarrelFile: DataTable's public API intentionally re-exports the conditional-filter helpers it is designed to be used with
-export {
-  conditionalFilterFn,
-  NUMBER_FILTER_OPERATORS,
-  TEXT_FILTER_OPERATORS,
-} from "./data-table.helpers"
+export { conditionalFilterFn } from "./data-table.helpers"
 
 /**
  * PROTOTYPE styling: reuses the existing `Table` component tokens
@@ -799,7 +794,6 @@ export type DataTableProps<T extends RowData> = {
 }
 
 const SELECTION_COLUMN_ID = "__select"
-const EXPANDER_COLUMN_ID = "__expander"
 const EMPTY_COLUMN_PINNING: ColumnPinningState = { start: [], end: [] }
 
 const DRAG_COLUMN_ID = "__drag"
@@ -816,11 +810,11 @@ function pinClass<T extends RowData>(
   }
   return [
     kind === "header" ? "bg-table-header-bg" : "bg-table-bg",
-    isLastLeftPinned(column)
-      ? "border-r-(length:--border-table-width) border-table-border"
+    isLastStartPinned(column)
+      ? "border-e-(length:--border-table-width) border-table-border"
       : "",
-    isFirstRightPinned(column)
-      ? "border-l-(length:--border-table-width) border-table-border"
+    isFirstEndPinned(column)
+      ? "border-s-(length:--border-table-width) border-table-border"
       : "",
   ].join(" ")
 }
@@ -910,7 +904,6 @@ function HeaderSortLabel<T extends RowData>({
   )
 }
 
-/** One body cell: pin styling, colSpan/rowSpan, tree indent, drag handle. */
 /** Cell body: drag handle, active inline editor, or the column's cell template. */
 function renderCellContent<T extends RowData>({
   cell,
@@ -1009,7 +1002,7 @@ function DataTableBodyCell<T extends RowData>({
       align={column.columnDef.meta?.align}
       className={pinClass(column, "body")}
       colSpan={span?.colSpan}
-      data-pinned={pinnedSide(pinned)}
+      data-pinned={pinned || undefined}
       rowSpan={span?.rowSpan}
       style={{
         ...getPinningStyles(column),
@@ -1095,7 +1088,6 @@ const OPAQUE_HEADER_BG: CSSProperties = {
     "linear-gradient(var(--color-table-header-bg), var(--color-table-header-bg))",
 }
 
-/** Human-readable column name for generated labels. */
 /** `aria-sort` for a header cell, or undefined when the column is not sortable. */
 function sortState<T extends RowData>(
   column: Column<T, unknown>,
@@ -1474,6 +1466,12 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     enableSorting,
     enableRowSelection: enableRowSelection ? rowSelectionPredicate : false,
     enableMultiRowSelection: selectionMode === "multiple",
+    // v9 turned shift-click range selection on by default. It applies the whole
+    // range in one updater, so every row in it is tested against the
+    // `selectedCount` captured before the click — which would let a shift-click
+    // sail past `maxSelectedRows`. Off until DataTable exposes range selection
+    // as a real, cap-aware feature.
+    enableRowRangeSelection: false,
     enableColumnFilters,
     enableColumnPinning,
     enableColumnResizing,
@@ -1769,11 +1767,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     .getAllLeafColumns()
     .some((c) => c.columnDef.footer != null)
 
-  const builtinIds = new Set<string>([
-    DRAG_COLUMN_ID,
-    SELECTION_COLUMN_ID,
-    EXPANDER_COLUMN_ID,
-  ])
+  const builtinIds = new Set<string>([DRAG_COLUMN_ID, SELECTION_COLUMN_ID])
   const indentColumnId = leafColumns.find((c) => !builtinIds.has(c.id))?.id
   const reorderableLeafIds = leafColumns
     .filter((c) => !builtinIds.has(c.id))
@@ -1857,7 +1851,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         // straight into the header-group map and is the one that needs it.
         colSpan={header.colSpan}
         data-dragging={dnd?.isDragging || undefined}
-        data-pinned={pinnedSide(column.getIsPinned())}
+        data-pinned={column.getIsPinned() || undefined}
         key={header.id}
         ref={dnd?.setNodeRef as unknown as RefObject<HTMLTableCellElement>}
         style={{
@@ -1964,7 +1958,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           {leafColumns.map((column) => (
             <td
               className={`${styles.filterCell()} ${pinClass(column, "header") ?? ""}`}
-              data-pinned={pinnedSide(column.getIsPinned())}
+              data-pinned={column.getIsPinned() || undefined}
               key={column.id}
               style={{
                 ...OPAQUE_HEADER_BG,
@@ -2681,10 +2675,7 @@ DataTable.ColumnVisibility = function DataTableColumnVisibility() {
     .getAllLeafColumns()
     .filter(
       (c) =>
-        c.getCanHide() &&
-        ![SELECTION_COLUMN_ID, EXPANDER_COLUMN_ID, DRAG_COLUMN_ID].includes(
-          c.id
-        )
+        c.getCanHide() && ![SELECTION_COLUMN_ID, DRAG_COLUMN_ID].includes(c.id)
     )
 
   const items: MenuItem[] = hideableColumns.map((column) => ({

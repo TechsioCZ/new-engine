@@ -21,7 +21,7 @@ import { Combobox } from "../molecules/combobox"
 import { Menu } from "../molecules/menu"
 import { Select, type SelectItem } from "../molecules/select"
 import { Switch } from "../molecules/switch"
-import type { Column, Row } from "./data-table.helpers"
+import type { Column, DataTableFilterOperator, Row } from "./data-table.helpers"
 
 export type DataTableColumnType =
   | "string"
@@ -103,16 +103,35 @@ export type DataTableEditorRenderer<T extends RowData = RowData> = (
 
 /* ── Shared helpers ──────────────────────────────────────────────────────── */
 
-const TEXT_OPS: DataTableOption[] = [
+/** Treats `null`, `undefined` and `""` alike — shared with the conditional filter. */
+export const isBlank = (v: unknown) => v == null || v === ""
+
+/**
+ * The operators a text column offers, in menu order. This is the single list:
+ * the typed filter row renders it, the conditional (operator-based) filter
+ * imports it through `data-table.helpers`, and `matchText` below handles every
+ * entry. Adding one here without a branch in `matchText` makes that operator
+ * fall through to "contains".
+ */
+export const TEXT_FILTER_OPERATORS: {
+  label: string
+  value: DataTableFilterOperator
+}[] = [
   { label: "Contains", value: "contains" },
+  { label: "Does not contain", value: "notContains" },
   { label: "Equals", value: "equals" },
+  { label: "Does not equal", value: "notEquals" },
   { label: "Starts with", value: "startsWith" },
   { label: "Ends with", value: "endsWith" },
   { label: "Is empty", value: "empty" },
   { label: "Is not empty", value: "notEmpty" },
 ]
 
-const NUMBER_OPS: DataTableOption[] = [
+/** Same contract as `TEXT_FILTER_OPERATORS`, for numeric columns. */
+export const NUMBER_FILTER_OPERATORS: {
+  label: string
+  value: DataTableFilterOperator
+}[] = [
   { label: "=", value: "equals" },
   { label: "≠", value: "notEquals" },
   { label: ">", value: "gt" },
@@ -120,7 +139,12 @@ const NUMBER_OPS: DataTableOption[] = [
   { label: "<", value: "lt" },
   { label: "≤", value: "lte" },
   { label: "Between", value: "between" },
+  { label: "Is empty", value: "empty" },
+  { label: "Is not empty", value: "notEmpty" },
 ]
+
+const TEXT_OPS: DataTableOption[] = TEXT_FILTER_OPERATORS
+const NUMBER_OPS: DataTableOption[] = NUMBER_FILTER_OPERATORS
 
 const BOOLEAN_FILTER_ITEMS: SelectItem[] = [
   { label: "All", value: "" },
@@ -687,8 +711,6 @@ export const DEFAULT_EDITOR_RENDERERS: Record<
 
 /* ── Type-aware filter function ──────────────────────────────────────────── */
 
-const isBlank = (v: unknown) => v == null || v === ""
-
 function matchText(cell: unknown, f: TextFilterValue) {
   const operator = f.operator ?? "contains"
   if (operator === "empty") {
@@ -705,6 +727,10 @@ function matchText(cell: unknown, f: TextFilterValue) {
   switch (operator) {
     case "equals":
       return text === q
+    case "notEquals":
+      return text !== q
+    case "notContains":
+      return !text.includes(q)
     case "startsWith":
       return text.startsWith(q)
     case "endsWith":
@@ -716,6 +742,14 @@ function matchText(cell: unknown, f: TextFilterValue) {
 
 function matchNumber(cell: unknown, f: NumberFilterValue) {
   const operator = f.operator ?? "equals"
+  // Blankness is a property of the cell, not of the filter value, so these two
+  // are answered before the "no value typed yet" short-circuit below.
+  if (operator === "empty") {
+    return isBlank(cell)
+  }
+  if (operator === "notEmpty") {
+    return !isBlank(cell)
+  }
   const n = Number(cell)
   if (operator === "between") {
     const lo = Number(f.value)

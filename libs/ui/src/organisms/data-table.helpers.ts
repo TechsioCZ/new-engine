@@ -5,10 +5,7 @@
  * rendering. Re-exported through `data-table.tsx` for consumers.
  */
 import {
-  filterFns as builtInFilterFns,
-  sortFns as builtInSortFns,
   type CellData,
-  type ColumnPinningPosition,
   type ColumnSizingState,
   columnFilteringFeature,
   columnOrderingFeature,
@@ -20,6 +17,7 @@ import {
   createFilteredRowModel,
   createPaginatedRowModel,
   createSortedRowModel,
+  filterFn_includesString,
   globalFilteringFeature,
   type ReactTable,
   type RowData,
@@ -27,6 +25,9 @@ import {
   rowPaginationFeature,
   rowSelectionFeature,
   rowSortingFeature,
+  sortFn_alphanumeric,
+  sortFn_datetime,
+  sortFn_text,
   type TableFeatures,
   type Cell as TanstackCell,
   type CellContext as TanstackCellContext,
@@ -81,7 +82,7 @@ import type {
   DataTableFilterContext,
   DataTableOption,
 } from "./data-table.fields"
-import { typedFilterMatch } from "./data-table.fields"
+import { isBlank, typedFilterMatch } from "./data-table.fields"
 
 /**
  * Signature for the filter functions DataTable registers on its own feature
@@ -96,7 +97,7 @@ type AnyFilterFn = TanstackFilterFn<any, any>
 /* ── Column meta augmentation ─────────────────────────────────────────────
  * Lets a column declare how it filters, aligns and edits without leaking
  * DataTable concerns into every consumer's ColumnDef. */
-declare module "@tanstack/table-core" {
+declare module "@tanstack/react-table" {
   // biome-ignore lint/style/useConsistentTypeDefinitions: module augmentation requires interface
   interface ColumnMeta<
     // TypeScript requires a merged declaration to repeat the upstream
@@ -199,36 +200,10 @@ export type DataTableConditionalFilterValue = {
   to?: unknown
 }
 
-export const TEXT_FILTER_OPERATORS: {
-  label: string
-  value: DataTableFilterOperator
-}[] = [
-  { label: "Contains", value: "contains" },
-  { label: "Does not contain", value: "notContains" },
-  { label: "Equals", value: "equals" },
-  { label: "Does not equal", value: "notEquals" },
-  { label: "Starts with", value: "startsWith" },
-  { label: "Ends with", value: "endsWith" },
-  { label: "Is empty", value: "empty" },
-  { label: "Is not empty", value: "notEmpty" },
-]
-
-export const NUMBER_FILTER_OPERATORS: {
-  label: string
-  value: DataTableFilterOperator
-}[] = [
-  { label: "=", value: "equals" },
-  { label: "≠", value: "notEquals" },
-  { label: ">", value: "gt" },
-  { label: "≥", value: "gte" },
-  { label: "<", value: "lt" },
-  { label: "≤", value: "lte" },
-  { label: "Between", value: "between" },
-  { label: "Is empty", value: "empty" },
-  { label: "Is not empty", value: "notEmpty" },
-]
-
-const isBlank = (v: unknown) => v == null || v === ""
+/* The canonical operator lists and `isBlank` live in `data-table.fields.tsx`,
+ * next to the controls and matchers that consume them. This file used to carry
+ * a second copy of both lists; the two drifted, and the filter row ended up
+ * offering operators the typed matcher silently mishandled. */
 
 function evaluateCondition(
   cellValue: unknown,
@@ -429,8 +404,15 @@ export function getPinningStyles<T extends RowData>(
   }
   return {
     position: "sticky",
-    left: pinned === "start" ? `${column.getStart("start")}px` : undefined,
-    right: pinned === "end" ? `${column.getAfter("end")}px` : undefined,
+    // Logical, not physical: v9 pins to `start`/`end` rather than left/right, so
+    // in an RTL table a start-pinned column has to freeze against the right
+    // edge. `insetInline*` is what the TanStack migration guide recommends for
+    // exactly this, and it matches the logical Tailwind utilities the rest of
+    // the library uses.
+    insetInlineStart:
+      pinned === "start" ? `${column.getStart("start")}px` : undefined,
+    insetInlineEnd:
+      pinned === "end" ? `${column.getAfter("end")}px` : undefined,
     zIndex:
       kind === "header"
         ? DATA_TABLE_Z.pinnedHeaderCell
@@ -438,8 +420,8 @@ export function getPinningStyles<T extends RowData>(
   }
 }
 
-/** True when this column is the last of the left-pinned group (edge shadow). */
-export function isLastLeftPinned<T extends RowData>(
+/** True when this column is the last of the start-pinned group (edge shadow). */
+export function isLastStartPinned<T extends RowData>(
   column: Column<T>
 ): boolean {
   return (
@@ -447,30 +429,13 @@ export function isLastLeftPinned<T extends RowData>(
   )
 }
 
-/** True when this column is the first of the right-pinned group (edge shadow). */
-export function isFirstRightPinned<T extends RowData>(
+/** True when this column is the first of the end-pinned group (edge shadow). */
+export function isFirstEndPinned<T extends RowData>(
   column: Column<T>
 ): boolean {
   return (
     column.getIsPinned() === "end" && column.getIsFirstColumn("end") === true
   )
-}
-
-/**
- * Maps v9's logical pin positions back to the physical `left`/`right` values
- * DataTable has always written to `data-pinned`. Consumers style against that
- * attribute, so the rename stays inside the component.
- */
-export function pinnedSide(
-  pinned: ColumnPinningPosition
-): "left" | "right" | undefined {
-  if (pinned === "start") {
-    return "left"
-  }
-  if (pinned === "end") {
-    return "right"
-  }
-  return
 }
 
 /* ── colSpan / rowSpan ────────────────────────────────────────────────────
@@ -517,14 +482,25 @@ export const dataTableFeatures = tableFeatures({
   filteredRowModel: createFilteredRowModel(),
   paginatedRowModel: createPaginatedRowModel(),
   sortedRowModel: createSortedRowModel(),
-  /* The built-in registries are spread wholesale so `filterFn`/`sortFn` accept
-   * the same names they did in v8 — including the `"auto"` sort path, which
-   * looks up `datetime`/`alphanumeric`/`text` by name and silently degrades to
-   * a basic comparator when they are missing. */
+  /* Registered individually rather than by spreading the `filterFns`/`sortFns`
+   * registries: those exports are deprecated in v9 precisely because spreading
+   * them pins every built-in into the bundle, and this library ships unbundled
+   * so the reference would survive the consumer's tree-shake.
+   *
+   * `includesString` backs the toolbar's global filter. `conditional` and
+   * `typed` are DataTable's own; a column wanting some other comparator passes
+   * the function itself, which needs no registration. */
   filterFns: {
-    ...builtInFilterFns,
     conditional: conditionalFilterFn,
+    includesString: filterFn_includesString,
     typed: typedFilterFn,
   },
-  sortFns: builtInSortFns,
+  /* These three names are not decorative: `sortFn: "auto"` samples the first
+   * rows and looks up `datetime`, `alphanumeric` or `text` by name, falling
+   * back to a basic comparator (and warning in dev) when one is missing. */
+  sortFns: {
+    alphanumeric: sortFn_alphanumeric,
+    datetime: sortFn_datetime,
+    text: sortFn_text,
+  },
 })
