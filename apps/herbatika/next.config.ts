@@ -104,6 +104,9 @@ const nextConfig: NextConfig = {
   },
 
   experimental: {
+    // Zane's shared build worker cannot sustain Turbopack's default parallelism.
+    // Keep production builds within the worker resource envelope.
+    cpus: 1,
     typedEnv: true,
   },
 }
