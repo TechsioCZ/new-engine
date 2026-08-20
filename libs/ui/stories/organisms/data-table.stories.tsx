@@ -409,6 +409,56 @@ export const StickyHeader: Story = {
   args: { ...base, data: bigData.slice(0, 40), stickyHeader: true, maxHeight: "300px" },
 }
 
+/* ── 10a. Grouped headers, sticky, with a filter row ─────────────────────── */
+
+/**
+ * Grouped headers stack two label rows above the filter row. Each row needs its
+ * own sticky offset — `Table.ColumnHeader` sticks them all at `top: 0` by
+ * default, which piles them on top of each other — and the filter row has to
+ * clear both. Scroll the body to check nothing overlaps.
+ */
+export const GroupedStickyHeader: Story = {
+  args: {
+    data: bigData.slice(0, 40),
+    stickyHeader: true,
+    maxHeight: "320px",
+    enableColumnFilters: true,
+    columns: [
+      {
+        header: "Person",
+        columns: [
+          { accessorKey: "firstName", header: "First name" },
+          { accessorKey: "lastName", header: "Last name" },
+        ],
+      },
+      {
+        header: "Activity",
+        columns: [
+          { accessorKey: "age", header: "Age", meta: { type: "number" } },
+          { accessorKey: "visits", header: "Visits", meta: { type: "number" } },
+        ],
+      },
+    ] satisfies ColumnDef<Person>[],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const rows = canvasElement.querySelectorAll("thead tr")
+    // Two label rows plus the filter row.
+    await expect(rows.length).toBe(3)
+    await expect(canvas.getByText("Person")).toBeInTheDocument()
+    const topOf = (index: number) =>
+      Number.parseFloat(
+        getComputedStyle(
+          rows[index]?.querySelector("th, td") as HTMLElement
+        ).top
+      )
+    // Each row clears the one above it instead of stacking at 0.
+    await expect(topOf(0)).toBe(0)
+    await expect(topOf(1)).toBeGreaterThan(0)
+    await expect(topOf(2)).toBeGreaterThan(topOf(1))
+  },
+}
+
 /* ── 10b. Hidden header (headerless layout) ──────────────────────────────── */
 
 export const HiddenHeader: Story = {

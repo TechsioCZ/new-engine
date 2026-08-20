@@ -911,6 +911,25 @@ function renderCellContent<T extends RowData>({
   return flexRender(column.columnDef.cell, cell.getContext())
 }
 
+/**
+ * Sticky `top` for one header label row.
+ *
+ * `Table.ColumnHeader` sticks every header row at `top: 0` through a class,
+ * which is right for a single row and wrong the moment there are grouped
+ * headers — they would all pile up on each other. This inline value wins over
+ * the class and stacks them.
+ */
+function stickyRowOffset(
+  stickyHeader: boolean | undefined,
+  offsets: number[],
+  groupIndex: number
+): CSSProperties | undefined {
+  if (!stickyHeader) {
+    return
+  }
+  return { top: offsets[groupIndex] ?? 0 }
+}
+
 function DataTableBodyCell<T extends RowData>({
   cell,
   span,
@@ -1201,8 +1220,15 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   const instanceId = idProp ?? generatedId
   const scrollRef = useRef<HTMLDivElement | null>(null)
   const reachedEndRef = useRef(false)
-  const headerRowRef = useRef<HTMLTableRowElement | null>(null)
-  const [headerHeight, setHeaderHeight] = useState(0)
+  const headerRowRefs = useRef<(HTMLTableRowElement | null)[]>([])
+  /**
+   * Cumulative sticky offset for each header label row, plus the total in the
+   * last slot. With a single header row this is `[0, rowHeight]` — exactly the
+   * previous behaviour. With grouped headers each row needs its own `top` or
+   * they all pile up at 0, and the filter row below them needs the total.
+   */
+  const [headerOffsets, setHeaderOffsets] = useState<number[]>([0])
+  const headerHeight = headerOffsets.at(-1) ?? 0
 
   /* Controlled/uncontrolled state slices */
   const [sorting, setSorting] = useControllable<SortingState>(
@@ -1499,18 +1525,33 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     }
   }, [editingRowId, data])
 
+  const headerGroupCount = table.getHeaderGroups().length
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-measure when the header gains or loses a row, which is what the group count tracks
   useEffect(() => {
-    const node = headerRowRef.current
-    if (!(node && stickyHeader)) {
+    if (!stickyHeader) {
       return
     }
-    const observer = new ResizeObserver(([entry]) => {
-      setHeaderHeight(entry?.contentRect.height ?? 0)
-    })
-    observer.observe(node)
-    setHeaderHeight(node.getBoundingClientRect().height)
+    const nodes = headerRowRefs.current.filter((n) => n !== null)
+    if (nodes.length === 0) {
+      return
+    }
+    const measure = () => {
+      const offsets = [0]
+      for (const node of nodes) {
+        offsets.push(
+          (offsets.at(-1) ?? 0) + node.getBoundingClientRect().height
+        )
+      }
+      setHeaderOffsets(offsets)
+    }
+    const observer = new ResizeObserver(measure)
+    for (const node of nodes) {
+      observer.observe(node)
+    }
+    measure()
     return () => observer.disconnect()
-  }, [stickyHeader])
+  }, [stickyHeader, headerGroupCount])
 
   const startEdit = (row: Row<T>) => {
     if (isEditing || (canEditRow && !canEditRow(row))) {
@@ -1767,6 +1808,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
 
   const renderHeaderCell = (
     header: Header<T, unknown>,
+    groupIndex: number,
     dnd?: {
       setNodeRef: (node: HTMLElement | null) => void
       setActivatorNodeRef: (node: HTMLElement | null) => void
@@ -1800,6 +1842,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         ref={dnd?.setNodeRef as unknown as RefObject<HTMLTableCellElement>}
         style={{
           ...OPAQUE_HEADER_BG,
+          ...stickyRowOffset(stickyHeader, headerOffsets, groupIndex),
           ...getPinningStyles(column, "header"),
           ...dnd?.style,
           ...getColumnSizeStyles(column, enableColumnResizing, columnSizing),
@@ -1852,9 +1895,9 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
           className={hideHeader ? "sr-only" : undefined}
           key={headerGroup.id}
           ref={
-            groupIndex === 0
-              ? (headerRowRef as RefObject<HTMLTableRowElement>)
-              : undefined
+            ((node: HTMLTableRowElement | null) => {
+              headerRowRefs.current[groupIndex] = node
+            }) as unknown as RefObject<HTMLTableRowElement>
           }
         >
           {headerGroup.headers.map((header) => {
@@ -1869,10 +1912,10 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
                 columnId={header.column.id}
                 key={header.id}
               >
-                {(dnd) => renderHeaderCell(header, dnd)}
+                {(dnd) => renderHeaderCell(header, groupIndex, dnd)}
               </SortableHeaderContent>
             ) : (
-              renderHeaderCell(header)
+              renderHeaderCell(header, groupIndex)
             )
           })}
           {hasActionsColumn && groupIndex === 0 && (
@@ -2173,7 +2216,12 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         data-depth={row.depth || undefined}
         data-dragging={dnd?.isDragging || undefined}
         onClick={(event) => {
-          if (blocked("rowClick")) {
+          // Only report the block for a row that is actually clickable —
+          // `rowKeyDown` and `tabIndex` already gate on `rowIsClickable`, and
+          // without the same gate here a table with no `onRowClick` fired
+          // `onInteractionBlocked({ action: "rowClick" })` for every stray
+          // click during an edit.
+          if (onRowClick && blocked("rowClick")) {
             return
           }
           rowOnClick?.(event)
