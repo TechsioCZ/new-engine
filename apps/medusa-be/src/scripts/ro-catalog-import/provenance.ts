@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto"
 import { readFile } from "node:fs/promises"
+import { buildRoDemoDatabaseInstanceFingerprint } from "../ro-demo-commerce/runtime"
 import type {
   RoCatalogManifest,
   RoCatalogPostCommerceInventoryEvidence,
@@ -113,6 +114,8 @@ export const assertRoCatalogRuntimeEnvironment = (
     ),
     backendReleaseSha: requiredEnvironmentValue(environment, "RELEASE_SHA"),
     backendSlot: requiredEnvironmentValue(environment, "ZANE_DEPLOYMENT_SLOT"),
+    databaseInstanceFingerprint:
+      buildRoDemoDatabaseInstanceFingerprint(environment),
     environmentId: requiredEnvironmentValue(
       environment,
       "RO_DEMO_ENVIRONMENT_ID"
@@ -123,6 +126,8 @@ export const assertRoCatalogRuntimeEnvironment = (
     observed.backendDeploymentId !== expected.backendDeploymentId ||
     observed.backendReleaseSha !== expected.backendReleaseSha ||
     observed.backendSlot !== expected.backendSlot ||
+    observed.databaseInstanceFingerprint !==
+      expected.databaseInstanceFingerprint ||
     observed.environmentId !== expected.environmentId
   ) {
     throw new Error(

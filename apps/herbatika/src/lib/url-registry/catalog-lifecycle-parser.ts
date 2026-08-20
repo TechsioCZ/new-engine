@@ -6,10 +6,7 @@ export const CATALOG_LIFECYCLE_ENTITY_KINDS = [
   "brand",
   "collection",
 ] as const
-const REASONS = [
-  "assignment-upsert",
-  "assignment-backfill",
-] as const
+const REASONS = ["assignment-upsert", "assignment-backfill"] as const
 const DELIVERY_KEYS = [
   "schemaVersion",
   "outboxEventId",

@@ -66,6 +66,7 @@ vi.mock(
 import roDemoCommerce, {
   applyRoDemoCommerce,
   buildRoDemoDatabaseFingerprint,
+  buildRoDemoDatabaseInstanceFingerprint,
   inspectRoDemoCommerce,
 } from "../../../../src/scripts/ro-demo-commerce/runtime"
 
@@ -79,6 +80,7 @@ const buildRoDemoCommercePlan = (
   ]
 ) =>
   buildRoDemoCommercePlanWithDeployment(args[0], args[1], args[2], {
+    commerceManifestSha256: HASH,
     deploymentIdentity: {
       backendBuildHash: "build-blue",
       backendDeploymentId: "deployment-blue",
@@ -88,6 +90,10 @@ const buildRoDemoCommercePlan = (
         args[3],
         "sc_storefront"
       ),
+      databaseInstanceFingerprint: buildRoDemoDatabaseInstanceFingerprint({
+        DATABASE_URL: "postgresql://medusa:secret@db-blue.internal:5432/medusa",
+        RO_DEMO_DATABASE_INSTANCE_ID: "zane-postgres-primary",
+      }),
       environmentId: "herbatika-production",
     },
     snapshot: args[3],
@@ -145,6 +151,25 @@ const catalog: RoCatalogManifest = {
   },
   schemaVersion: 1,
 }
+
+const loadedInput = (
+  priceAuthoritySha256 = HASH,
+  commerceManifestSha256 = HASH
+) => ({
+  absoluteManifestPath: "/secure/ro-demo-commerce.json",
+  commerceManifestSha256,
+  manifest: {
+    binding,
+    demo: true as const,
+    locale: "ro-RO" as const,
+    market: "ro" as const,
+    priceAuthorityPath: "./ro-prices.json",
+    schemaVersion: 1 as const,
+  },
+  priceAuthority: catalog,
+  priceAuthorityPath: "/secure/ro-prices.json",
+  priceAuthoritySha256,
+})
 
 const initialSnapshot = (): RoDemoSnapshot => ({
   fulfillmentProviderIds: ["manual_manual"],
@@ -213,10 +238,21 @@ const deploymentArgs = () => [
   "b".repeat(40),
   "--expected-backend-slot",
   "blue",
+  "--expected-commerce-manifest-sha256",
+  HASH,
   "--expected-database-fingerprint",
   buildRoDemoDatabaseFingerprint(initialSnapshot(), binding.salesChannelId),
+  "--expected-database-instance-fingerprint",
+  buildRoDemoDatabaseInstanceFingerprint({
+    DATABASE_URL: "postgresql://medusa:secret@db-blue.internal:5432/medusa",
+    RO_DEMO_DATABASE_INSTANCE_ID: "zane-postgres-primary",
+  }),
   "--expected-environment-id",
   "herbatika-production",
+  "--expected-price-authority-sha256",
+  HASH,
+  "--expected-sk-commerce-baseline-sha256",
+  hashSkCommerceBaseline(initialSnapshot()),
 ]
 
 type HarnessOptions = Readonly<{
@@ -703,19 +739,12 @@ beforeEach(() => {
   vi.stubEnv("RELEASE_SHA", "b".repeat(40))
   vi.stubEnv("ZANE_DEPLOYMENT_SLOT", "blue")
   vi.stubEnv("RO_DEMO_ENVIRONMENT_ID", "herbatika-production")
-  mocks.loadInput.mockResolvedValue({
-    absoluteManifestPath: "/secure/ro-demo-commerce.json",
-    manifest: {
-      binding,
-      demo: true,
-      locale: "ro-RO",
-      market: "ro",
-      priceAuthorityPath: "./ro-prices.json",
-      schemaVersion: 1,
-    },
-    priceAuthority: catalog,
-    priceAuthoritySha256: HASH,
-  })
+  vi.stubEnv(
+    "DATABASE_URL",
+    "postgresql://medusa:secret@db-blue.internal:5432/medusa"
+  )
+  vi.stubEnv("RO_DEMO_DATABASE_INSTANCE_ID", "zane-postgres-primary")
+  mocks.loadInput.mockResolvedValue(loadedInput())
 })
 
 afterEach(async () => {
@@ -727,6 +756,40 @@ afterEach(async () => {
 })
 
 describe("RO demo commerce runtime", () => {
+  it("binds identical catalog contents to a credential-safe database instance identity", () => {
+    const primary = buildRoDemoDatabaseInstanceFingerprint({
+      DATABASE_URL: "postgresql://medusa:first-secret@db.internal:5432/medusa",
+      RO_DEMO_DATABASE_INSTANCE_ID: "zane-postgres-primary",
+    })
+    expect(
+      buildRoDemoDatabaseInstanceFingerprint({
+        DATABASE_URL:
+          "postgresql://other-user:second-secret@DB.INTERNAL/medusa",
+        RO_DEMO_DATABASE_INSTANCE_ID: "zane-postgres-primary",
+      })
+    ).toBe(primary)
+    expect(
+      buildRoDemoDatabaseInstanceFingerprint({
+        DATABASE_URL: "postgresql://medusa:secret@clone.internal:5432/medusa",
+        RO_DEMO_DATABASE_INSTANCE_ID: "zane-postgres-clone",
+      })
+    ).not.toBe(primary)
+    expect(() =>
+      buildRoDemoDatabaseInstanceFingerprint({
+        DATABASE_URL: "not-a-url-with-secret-password",
+        RO_DEMO_DATABASE_INSTANCE_ID: "zane-postgres-primary",
+      })
+    ).toThrow("database instance identity is missing or invalid")
+    try {
+      buildRoDemoDatabaseInstanceFingerprint({
+        DATABASE_URL: "not-a-url-with-secret-password",
+        RO_DEMO_DATABASE_INSTANCE_ID: "zane-postgres-primary",
+      })
+    } catch (error) {
+      expect(String(error)).not.toContain("secret-password")
+    }
+  })
+
   it("captures a private read-only deployment and database fingerprint", async () => {
     const harness = createHarness()
     const directory = await mkdtemp(
@@ -750,22 +813,37 @@ describe("RO demo commerce runtime", () => {
         "b".repeat(40),
         "--expected-backend-slot",
         "blue",
+        "--expected-commerce-manifest-sha256",
+        HASH,
         "--expected-environment-id",
         "herbatika-production",
+        "--expected-price-authority-sha256",
+        HASH,
       ],
       container: harness.container,
     })
 
     expect(JSON.parse(await readFile(outputPath, "utf8"))).toMatchObject({
+      commerceManifestSha256: HASH,
       counts: { products: 1, stores: 1, variants: 1 },
       deploymentIdentity: {
         databaseFingerprint: buildRoDemoDatabaseFingerprint(
           initialSnapshot(),
           binding.salesChannelId
         ),
+        databaseInstanceFingerprint: buildRoDemoDatabaseInstanceFingerprint({
+          DATABASE_URL:
+            "postgresql://medusa:secret@db-blue.internal:5432/medusa",
+          RO_DEMO_DATABASE_INSTANCE_ID: "zane-postgres-primary",
+        }),
       },
       kind: "ro-demo-commerce-deployment-fingerprint",
+      priceAuthoritySha256: HASH,
       salesChannelId: binding.salesChannelId,
+      skCommerceBaseline: {
+        count: 4,
+        sha256: hashSkCommerceBaseline(initialSnapshot()),
+      },
     })
     expect(result).toMatchObject({
       deploymentIdentity: {
@@ -817,6 +895,198 @@ describe("RO demo commerce runtime", () => {
     expect(mocks.createShippingOptions).not.toHaveBeenCalled()
     expect(mocks.createTaxRates).not.toHaveBeenCalled()
     expect(mocks.updateProductVariants).not.toHaveBeenCalled()
+  })
+
+  it("rejects price-authority tampering before a dry-run plan is written", async () => {
+    const harness = createHarness()
+    const directory = await mkdtemp(join(tmpdir(), "ro-demo-authority-dry-"))
+    temporaryDirectories.push(directory)
+    const outputPath = join(directory, "reviewed-plan.json")
+    mocks.loadInput.mockResolvedValueOnce(loadedInput("c".repeat(64)))
+
+    await expect(
+      roDemoCommerce({
+        args: [
+          ...deploymentArgs(),
+          "--manifest",
+          "/secure/ro-demo-commerce.json",
+          "--plan-output",
+          outputPath,
+        ],
+        container: harness.container,
+      })
+    ).rejects.toThrow(
+      "price authority bytes do not match the externally reviewed SHA-256"
+    )
+
+    await expect(stat(outputPath)).rejects.toMatchObject({ code: "ENOENT" })
+    expect(harness.events).toEqual([])
+  })
+
+  it("rejects commerce-manifest tampering before a dry-run plan is written", async () => {
+    const harness = createHarness()
+    const directory = await mkdtemp(join(tmpdir(), "ro-demo-manifest-dry-"))
+    temporaryDirectories.push(directory)
+    const outputPath = join(directory, "reviewed-plan.json")
+    mocks.loadInput.mockResolvedValueOnce(loadedInput(HASH, "c".repeat(64)))
+
+    await expect(
+      roDemoCommerce({
+        args: [
+          ...deploymentArgs(),
+          "--manifest",
+          "/secure/ro-demo-commerce.json",
+          "--plan-output",
+          outputPath,
+        ],
+        container: harness.container,
+      })
+    ).rejects.toThrow(
+      "commerce manifest bytes do not match the externally reviewed SHA-256"
+    )
+
+    await expect(stat(outputPath)).rejects.toMatchObject({ code: "ENOENT" })
+    expect(harness.events).toEqual([])
+  })
+
+  it("rejects non-RON commerce drift from the pre-deployment fingerprint", async () => {
+    const harness = createHarness()
+    const directory = await mkdtemp(join(tmpdir(), "ro-demo-sk-baseline-"))
+    temporaryDirectories.push(directory)
+    const outputPath = join(directory, "reviewed-plan.json")
+    harness.state.snapshot = {
+      ...harness.state.snapshot,
+      variants: harness.state.snapshot.variants.map((variant) => ({
+        ...variant,
+        prices: variant.prices.map((price) =>
+          price.currencyCode === "eur" ? { ...price, amount: 25.9 } : price
+        ),
+      })),
+    }
+
+    await expect(
+      roDemoCommerce({
+        args: [
+          ...deploymentArgs(),
+          "--manifest",
+          "/secure/ro-demo-commerce.json",
+          "--plan-output",
+          outputPath,
+        ],
+        container: harness.container,
+      })
+    ).rejects.toThrow(
+      "SK commerce baseline does not match the pre-deployment fingerprint"
+    )
+
+    await expect(stat(outputPath)).rejects.toMatchObject({ code: "ENOENT" })
+    expect(harness.events).toEqual([])
+  })
+
+  it("rejects a canonical authority replay changed after review before apply writes", async () => {
+    const harness = createHarness()
+    const directory = await mkdtemp(join(tmpdir(), "ro-demo-authority-apply-"))
+    temporaryDirectories.push(directory)
+    const planOutputPath = join(directory, "reviewed-plan.json")
+    const restoreOutputPath = join(directory, "restore.json")
+    const receiptOutputPath = join(directory, "receipt.json")
+    const dryRun = await roDemoCommerce({
+      args: [
+        ...deploymentArgs(),
+        "--manifest",
+        "/secure/ro-demo-commerce.json",
+        "--plan-output",
+        planOutputPath,
+      ],
+      container: harness.container,
+    })
+    mocks.loadInput
+      .mockResolvedValueOnce(loadedInput())
+      .mockResolvedValueOnce(loadedInput("c".repeat(64)))
+
+    await expect(
+      roDemoCommerce({
+        args: [
+          ...deploymentArgs(),
+          "--manifest",
+          "/secure/ro-demo-commerce.json",
+          "--plan-output",
+          planOutputPath,
+          "--apply",
+          "--demo",
+          "--confirm-plan-hash",
+          dryRun.planHash,
+          "--restore-output",
+          restoreOutputPath,
+          "--receipt-output",
+          receiptOutputPath,
+        ],
+        container: harness.container,
+      })
+    ).rejects.toThrow(
+      "price authority bytes do not match the externally reviewed SHA-256"
+    )
+
+    await expect(stat(restoreOutputPath)).rejects.toMatchObject({
+      code: "ENOENT",
+    })
+    await expect(stat(receiptOutputPath)).rejects.toMatchObject({
+      code: "ENOENT",
+    })
+    expect(harness.events).toEqual([])
+  })
+
+  it("rejects a commerce-manifest replay changed after review before apply writes", async () => {
+    const harness = createHarness()
+    const directory = await mkdtemp(join(tmpdir(), "ro-demo-manifest-apply-"))
+    temporaryDirectories.push(directory)
+    const planOutputPath = join(directory, "reviewed-plan.json")
+    const restoreOutputPath = join(directory, "restore.json")
+    const receiptOutputPath = join(directory, "receipt.json")
+    const dryRun = await roDemoCommerce({
+      args: [
+        ...deploymentArgs(),
+        "--manifest",
+        "/secure/ro-demo-commerce.json",
+        "--plan-output",
+        planOutputPath,
+      ],
+      container: harness.container,
+    })
+    mocks.loadInput
+      .mockResolvedValueOnce(loadedInput())
+      .mockResolvedValueOnce(loadedInput(HASH, "c".repeat(64)))
+
+    await expect(
+      roDemoCommerce({
+        args: [
+          ...deploymentArgs(),
+          "--manifest",
+          "/secure/ro-demo-commerce.json",
+          "--plan-output",
+          planOutputPath,
+          "--apply",
+          "--demo",
+          "--confirm-plan-hash",
+          dryRun.planHash,
+          "--restore-output",
+          restoreOutputPath,
+          "--receipt-output",
+          receiptOutputPath,
+        ],
+        container: harness.container,
+      })
+    ).rejects.toThrow(
+      "commerce manifest bytes do not match the externally reviewed SHA-256"
+    )
+
+    await expect(stat(restoreOutputPath)).rejects.toMatchObject({
+      code: "ENOENT",
+    })
+    await expect(stat(receiptOutputPath)).rejects.toMatchObject({
+      code: "ENOENT",
+    })
+    expect(harness.events).toEqual([])
   })
 
   it("re-loads reviewed input and emits no-clobber restore and apply receipt artifacts", async () => {
@@ -951,6 +1221,57 @@ describe("RO demo commerce runtime", () => {
       container: harness.container,
     })
     vi.stubEnv("ZANE_DEPLOYMENT_ID", "wrong-deployment")
+
+    await expect(
+      roDemoCommerce({
+        args: [
+          ...deploymentArgs(),
+          "--manifest",
+          "/secure/ro-demo-commerce.json",
+          "--plan-output",
+          planOutputPath,
+          "--apply",
+          "--demo",
+          "--confirm-plan-hash",
+          dryRun.planHash,
+          "--restore-output",
+          restoreOutputPath,
+          "--receipt-output",
+          receiptOutputPath,
+        ],
+        container: harness.container,
+      })
+    ).rejects.toThrow(
+      "observed environment/build/database does not match the reviewed deployment"
+    )
+
+    await expect(stat(restoreOutputPath)).rejects.toMatchObject({
+      code: "ENOENT",
+    })
+    await expect(stat(receiptOutputPath)).rejects.toMatchObject({
+      code: "ENOENT",
+    })
+    expect(harness.events).toEqual([])
+  })
+
+  it("rejects an exact-content database clone with a different instance identity", async () => {
+    const harness = createHarness()
+    const directory = await mkdtemp(join(tmpdir(), "ro-demo-commerce-clone-"))
+    temporaryDirectories.push(directory)
+    const planOutputPath = join(directory, "reviewed-plan.json")
+    const restoreOutputPath = join(directory, "restore.json")
+    const receiptOutputPath = join(directory, "receipt.json")
+    const dryRun = await roDemoCommerce({
+      args: [
+        ...deploymentArgs(),
+        "--manifest",
+        "/secure/ro-demo-commerce.json",
+        "--plan-output",
+        planOutputPath,
+      ],
+      container: harness.container,
+    })
+    vi.stubEnv("RO_DEMO_DATABASE_INSTANCE_ID", "zane-postgres-clone")
 
     await expect(
       roDemoCommerce({

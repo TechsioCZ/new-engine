@@ -9,6 +9,7 @@ import {
 import { basename, dirname, join, resolve } from "node:path"
 import type { ExecArgs, Logger } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import { parseRoCatalogSkBaselineArtifact } from "../ro-catalog-import/baseline-artifact"
 import {
   parseRoDemoApplyReceipt,
   parseRoDemoRestoreArtifact,
@@ -29,6 +30,7 @@ import {
 import {
   RO_DEMO_SOURCE,
   type RoDemoCommercePlan,
+  type RoDemoDeploymentIdentity,
   type RoDemoSnapshot,
 } from "../ro-demo-commerce/types"
 import { validateDemoLocalizationInput } from "./generator"
@@ -36,7 +38,7 @@ import {
   parseRoPostCommerceEnvelopeContract,
   postCommerceSha256,
   stablePostCommerceJson,
-} from "./postcommerce-envelope-contract.mjs"
+} from "./postcommerce-envelope-contract.cjs"
 import type { DemoInventoryProduct, DemoLocalizationFileInput } from "./types"
 
 export {
@@ -44,7 +46,7 @@ export {
   RO_POST_COMMERCE_ENVELOPE_KEYS,
   RO_POST_COMMERCE_ENVIRONMENT_KEYS,
   stablePostCommerceJson,
-} from "./postcommerce-envelope-contract.mjs"
+} from "./postcommerce-envelope-contract.cjs"
 
 const SHA_256 = /^[a-f0-9]{64}$/
 const GIT_SHA = /^[a-f0-9]{40}$/
@@ -116,6 +118,7 @@ export type PostCommerceObservation = Readonly<{
 export type PostCommerceEnvelope = Readonly<{
   capturedAt: string
   commerceApplyReceiptSha256: string
+  commerceManifestSha256: string
   commercePlanFileSha256: string
   commercePlanHash: string
   commerceRestoreArtifactSha256: string
@@ -125,6 +128,7 @@ export type PostCommerceEnvelope = Readonly<{
     backendReleaseSha: string
     backendSlot: "blue" | "green"
     databaseFingerprint: string
+    databaseInstanceFingerprint: string
     environmentId: string
     locale: "ro-RO"
     marketCode: "ro"
@@ -137,6 +141,7 @@ export type PostCommerceEnvelope = Readonly<{
   postCommerceSharedInventoryFingerprint: PostCommerceStateFingerprint
   postCommerceSkBaseline: PostCommerceStateProof
   preCommerceSharedInventoryFingerprint: PostCommerceStateFingerprint
+  preCommerceSkBaselineArtifactSha256: string
   preCommerceSkBaseline: PostCommerceStateProof
   priceAuthoritySha256: string
   rawLiveInventorySha256: string
@@ -155,6 +160,8 @@ export type PostCommerceStateProof = PostCommerceStateFingerprint &
 export type PostCommerceEnvelopeCliOptions = Readonly<{
   commerceApplyReceiptPath: string
   commerceApplyReceiptSha256: string
+  commerceManifestPath: string
+  commerceManifestSha256: string
   commercePlanPath: string
   commercePlanFileSha256: string
   commercePlanHash: string
@@ -164,12 +171,14 @@ export type PostCommerceEnvelopeCliOptions = Readonly<{
   expectedBackendDeploymentId: string
   expectedBackendReleaseSha: string
   expectedBackendSlot: "blue" | "green"
+  expectedDatabaseFingerprint: string
+  expectedDatabaseInstanceFingerprint: string
   expectedEnvironmentId: string
   inventoryPath: string
   inventorySha256: string
   outputPath: string
-  preCommerceSharedInventoryFingerprintPath: string
-  preCommerceSharedInventoryFingerprintSha256: string
+  preCommerceSkBaselineArtifactPath: string
+  preCommerceSkBaselineArtifactSha256: string
   priceAuthorityPath: string
   priceAuthoritySha256: string
   rawLiveInventoryPath: string
@@ -181,6 +190,8 @@ export type ObservedPostCommerceDeployment = Readonly<{
   backendDeploymentId: string
   backendReleaseSha: string
   backendSlot: "blue" | "green"
+  databaseFingerprint: string
+  databaseInstanceFingerprint: string
   environmentId: string
 }>
 
@@ -594,6 +605,7 @@ const verifyReadiness = (
 export const assertRoDemoApplyArtifacts = (
   input: Readonly<{
     applyReceiptSha256: string
+    commerceManifestSha256: string
     commercePlanHash: string
     observation: PostCommerceObservation
     plan: RoDemoCommercePlan
@@ -602,10 +614,12 @@ export const assertRoDemoApplyArtifacts = (
     receipt: RoDemoApplyReceipt
     restoreArtifact: RoDemoRestoreArtifact
     restoreArtifactSha256: string
+    observedDeploymentIdentity: RoDemoDeploymentIdentity
   }>
 ) => {
   const {
     commercePlanHash,
+    commerceManifestSha256,
     observation,
     plan,
     priceAuthority,
@@ -613,6 +627,7 @@ export const assertRoDemoApplyArtifacts = (
     receipt,
     restoreArtifact,
     restoreArtifactSha256,
+    observedDeploymentIdentity,
   } = input
   if (
     sha256RoDemoArtifactBytes(serializeRoDemoArtifact(receipt)) !==
@@ -621,6 +636,9 @@ export const assertRoDemoApplyArtifacts = (
       restoreArtifactSha256 ||
     receipt.planHash !== commercePlanHash ||
     restoreArtifact.planHash !== commercePlanHash ||
+    plan.commerceManifestSha256 !== commerceManifestSha256 ||
+    receipt.commerceManifestSha256 !== commerceManifestSha256 ||
+    restoreArtifact.commerceManifestSha256 !== commerceManifestSha256 ||
     receipt.priceAuthorityKind !== plan.priceAuthorityKind ||
     restoreArtifact.priceAuthorityKind !== plan.priceAuthorityKind ||
     receipt.priceAuthoritySha256 !== priceAuthoritySha256 ||
@@ -629,6 +647,17 @@ export const assertRoDemoApplyArtifacts = (
   ) {
     throw new Error(
       "commerce apply receipt/restore chain is not bound to the reviewed plan and authority"
+    )
+  }
+  const deploymentIdentity = stablePostCommerceJson(plan.deploymentIdentity)
+  if (
+    stablePostCommerceJson(receipt.deploymentIdentity) !== deploymentIdentity ||
+    stablePostCommerceJson(restoreArtifact.deploymentIdentity) !==
+      deploymentIdentity ||
+    stablePostCommerceJson(observedDeploymentIdentity) !== deploymentIdentity
+  ) {
+    throw new Error(
+      "plan, restore, receipt, and fresh runtime deployment identities differ"
     )
   }
   const freshSkBaselineHash = hashSkCommerceBaseline(observation.commerce)
@@ -899,15 +928,19 @@ export const buildPostCommerceEnvelope = (
     capturedAt: string
     commerceApplyReceipt: RoDemoApplyReceipt
     commerceApplyReceiptSha256: string
+    commerceManifestSha256: string
     commercePlan: RoDemoCommercePlan
     commercePlanFileSha256: string
     commercePlanHash: string
     commerceRestoreArtifact: RoDemoRestoreArtifact
     commerceRestoreArtifactSha256: string
+    databaseFingerprint: string
+    databaseInstanceFingerprint: string
     environmentId: string
     observation: PostCommerceObservation
     postCommerceSharedInventoryFingerprint: PostCommerceStateFingerprint
     preCommerceSharedInventoryFingerprint: PostCommerceStateFingerprint
+    preCommerceSkBaselineArtifactSha256: string
     priceAuthority: PostCommercePriceAuthority
     priceAuthoritySha256: string
     rawLiveInventorySha256: string
@@ -923,7 +956,14 @@ export const buildPostCommerceEnvelope = (
   sha256(input.commercePlanHash, "commercePlanHash")
   sha256(input.commercePlanFileSha256, "commercePlanFileSha256")
   sha256(input.commerceApplyReceiptSha256, "commerceApplyReceiptSha256")
+  sha256(input.commerceManifestSha256, "commerceManifestSha256")
   sha256(input.commerceRestoreArtifactSha256, "commerceRestoreArtifactSha256")
+  sha256(
+    input.preCommerceSkBaselineArtifactSha256,
+    "preCommerceSkBaselineArtifactSha256"
+  )
+  sha256(input.databaseFingerprint, "databaseFingerprint")
+  sha256(input.databaseInstanceFingerprint, "databaseInstanceFingerprint")
   nonblank(input.environmentId, "environmentId")
   safeId(input.backendBuildHash, "backendBuildHash")
   safeId(input.backendDeploymentId, "backendDeploymentId")
@@ -933,6 +973,16 @@ export const buildPostCommerceEnvelope = (
   if (input.commercePlan.priceAuthoritySha256 !== input.priceAuthoritySha256) {
     throw new Error(
       "commerce plan is not bound to the reviewed price authority"
+    )
+  }
+  if (
+    input.sourceInventoryEnvelopeSha256 !==
+      input.priceAuthority.sourceRoots.inventoryEnvelopeSha256 ||
+    input.rawLiveInventorySha256 !==
+      input.priceAuthority.sourceRoots.rawLiveInventorySha256
+  ) {
+    throw new Error(
+      "supplied inventory/raw hashes do not match price authority sourceRoots"
     )
   }
   if (hashRoDemoCommercePlan(input.commercePlan) !== input.commercePlanHash) {
@@ -946,6 +996,7 @@ export const buildPostCommerceEnvelope = (
   }
   assertRoDemoApplyArtifacts({
     applyReceiptSha256: input.commerceApplyReceiptSha256,
+    commerceManifestSha256: input.commerceManifestSha256,
     commercePlanHash: input.commercePlanHash,
     observation: input.observation,
     plan: input.commercePlan,
@@ -954,6 +1005,15 @@ export const buildPostCommerceEnvelope = (
     receipt: input.commerceApplyReceipt,
     restoreArtifact: input.commerceRestoreArtifact,
     restoreArtifactSha256: input.commerceRestoreArtifactSha256,
+    observedDeploymentIdentity: {
+      backendBuildHash: input.backendBuildHash,
+      backendDeploymentId: input.backendDeploymentId,
+      backendReleaseSha: input.backendReleaseSha,
+      backendSlot: input.backendSlot,
+      databaseFingerprint: input.databaseFingerprint,
+      databaseInstanceFingerprint: input.databaseInstanceFingerprint,
+      environmentId: input.environmentId,
+    },
   })
   assertCatalogIdentityUnchanged(input.sourceInventory, input.observation)
   const observedAuthorityIdentitySha256 = sha256PrecommerceInventoryIdentity(
@@ -1031,12 +1091,14 @@ export const buildPostCommerceEnvelope = (
     errors: [],
     sha256: postCommerceSkBaselineSha256,
   }
-  const databaseFingerprint = postCommerceSha256(
-    stablePostCommerceJson({
+  const databaseFingerprint = sha256RoDemoArtifactBytes(
+    serializeRoDemoArtifact({
       moduleIdentity: "medusa-v2:product-variant-inventory",
-      productIds: sorted(
-        input.sourceInventory.inventory.products.map(({ id }) => id)
-      ),
+      productIds: sorted([
+        ...new Set(
+          input.observation.commerce.variants.map(({ productId }) => productId)
+        ),
+      ]),
       salesChannelId: input.commercePlan.salesChannelId,
       storeIds: sorted(input.observation.commerce.stores.map(({ id }) => id)),
       variantIds: sorted(
@@ -1044,9 +1106,15 @@ export const buildPostCommerceEnvelope = (
       ),
     })
   )
+  if (databaseFingerprint !== input.databaseFingerprint) {
+    throw new Error(
+      "fresh runtime database fingerprint differs from reviewed deployment"
+    )
+  }
   return {
     capturedAt: input.capturedAt,
     commerceApplyReceiptSha256: input.commerceApplyReceiptSha256,
+    commerceManifestSha256: input.commerceManifestSha256,
     commercePlanFileSha256: input.commercePlanFileSha256,
     commercePlanHash: input.commercePlanHash,
     commerceRestoreArtifactSha256: input.commerceRestoreArtifactSha256,
@@ -1056,6 +1124,7 @@ export const buildPostCommerceEnvelope = (
       backendReleaseSha: input.backendReleaseSha,
       backendSlot: input.backendSlot,
       databaseFingerprint,
+      databaseInstanceFingerprint: input.databaseInstanceFingerprint,
       environmentId: input.environmentId,
       locale: "ro-RO",
       marketCode: "ro",
@@ -1072,6 +1141,8 @@ export const buildPostCommerceEnvelope = (
     postCommerceSkBaseline,
     preCommerceSharedInventoryFingerprint:
       input.preCommerceSharedInventoryFingerprint,
+    preCommerceSkBaselineArtifactSha256:
+      input.preCommerceSkBaselineArtifactSha256,
     preCommerceSkBaseline,
     priceAuthoritySha256: input.priceAuthoritySha256,
     rawLiveInventorySha256: input.rawLiveInventorySha256,
@@ -1095,9 +1166,15 @@ export const assertObservedPostCommerceDeployment = (
     | "expectedBackendDeploymentId"
     | "expectedBackendReleaseSha"
     | "expectedBackendSlot"
+    | "expectedDatabaseFingerprint"
+    | "expectedDatabaseInstanceFingerprint"
     | "expectedEnvironmentId"
   >,
-  environment: NodeJS.ProcessEnv
+  environment: NodeJS.ProcessEnv,
+  database: Readonly<{
+    fingerprint: string
+    instanceFingerprint: string
+  }>
 ): ObservedPostCommerceDeployment => {
   const observed = {
     backendBuildHash: safeId(
@@ -1110,6 +1187,14 @@ export const assertObservedPostCommerceDeployment = (
     ),
     backendReleaseSha: nonblank(environment.RELEASE_SHA, "RELEASE_SHA"),
     backendSlot: environment.ZANE_DEPLOYMENT_SLOT,
+    databaseFingerprint: sha256(
+      database.fingerprint,
+      "observed database fingerprint"
+    ),
+    databaseInstanceFingerprint: sha256(
+      database.instanceFingerprint,
+      "observed database instance fingerprint"
+    ),
     environmentId: safeId(
       environment.RO_DEMO_ENVIRONMENT_ID,
       "RO_DEMO_ENVIRONMENT_ID"
@@ -1121,11 +1206,14 @@ export const assertObservedPostCommerceDeployment = (
     observed.backendDeploymentId !== options.expectedBackendDeploymentId ||
     observed.backendReleaseSha !== options.expectedBackendReleaseSha ||
     observed.backendSlot !== options.expectedBackendSlot ||
+    observed.databaseFingerprint !== options.expectedDatabaseFingerprint ||
+    observed.databaseInstanceFingerprint !==
+      options.expectedDatabaseInstanceFingerprint ||
     !GIT_SHA.test(observed.backendReleaseSha) ||
     (observed.backendSlot !== "blue" && observed.backendSlot !== "green")
   ) {
     throw new Error(
-      "observed environment/build does not match the reviewed deployment"
+      "observed environment/build/database does not match the reviewed deployment"
     )
   }
   return observed as ObservedPostCommerceDeployment
@@ -1137,6 +1225,8 @@ export const parsePostCommerceEnvelopeCliOptions = (
   const allowed = new Set([
     "--commerce-apply-receipt",
     "--commerce-apply-receipt-sha256",
+    "--commerce-manifest",
+    "--commerce-manifest-sha256",
     "--commerce-plan",
     "--commerce-plan-file-sha256",
     "--commerce-plan-hash",
@@ -1146,12 +1236,14 @@ export const parsePostCommerceEnvelopeCliOptions = (
     "--expected-backend-deployment-id",
     "--expected-backend-release-sha",
     "--expected-backend-slot",
+    "--expected-database-fingerprint",
+    "--expected-database-instance-fingerprint",
     "--expected-environment-id",
     "--inventory",
     "--inventory-sha256",
     "--output",
-    "--pre-commerce-shared-inventory-fingerprint",
-    "--pre-commerce-shared-inventory-fingerprint-sha256",
+    "--pre-commerce-sk-baseline",
+    "--pre-commerce-sk-baseline-sha256",
     "--price-authority",
     "--price-authority-sha256",
     "--raw-live-inventory",
@@ -1197,6 +1289,11 @@ export const parsePostCommerceEnvelopeCliOptions = (
       values.get("--commerce-apply-receipt-sha256"),
       "--commerce-apply-receipt-sha256"
     ),
+    commerceManifestPath: resolve(values.get("--commerce-manifest") as string),
+    commerceManifestSha256: sha256(
+      values.get("--commerce-manifest-sha256"),
+      "--commerce-manifest-sha256"
+    ),
     commercePlanFileSha256: sha256(
       values.get("--commerce-plan-file-sha256"),
       "--commerce-plan-file-sha256"
@@ -1220,6 +1317,14 @@ export const parsePostCommerceEnvelopeCliOptions = (
     ),
     expectedBackendReleaseSha,
     expectedBackendSlot,
+    expectedDatabaseFingerprint: sha256(
+      values.get("--expected-database-fingerprint"),
+      "--expected-database-fingerprint"
+    ),
+    expectedDatabaseInstanceFingerprint: sha256(
+      values.get("--expected-database-instance-fingerprint"),
+      "--expected-database-instance-fingerprint"
+    ),
     expectedEnvironmentId: safeId(
       values.get("--expected-environment-id"),
       "--expected-environment-id"
@@ -1230,12 +1335,12 @@ export const parsePostCommerceEnvelopeCliOptions = (
       "--inventory-sha256"
     ),
     outputPath: resolve(values.get("--output") as string),
-    preCommerceSharedInventoryFingerprintPath: resolve(
-      values.get("--pre-commerce-shared-inventory-fingerprint") as string
+    preCommerceSkBaselineArtifactPath: resolve(
+      values.get("--pre-commerce-sk-baseline") as string
     ),
-    preCommerceSharedInventoryFingerprintSha256: sha256(
-      values.get("--pre-commerce-shared-inventory-fingerprint-sha256"),
-      "--pre-commerce-shared-inventory-fingerprint-sha256"
+    preCommerceSkBaselineArtifactSha256: sha256(
+      values.get("--pre-commerce-sk-baseline-sha256"),
+      "--pre-commerce-sk-baseline-sha256"
     ),
     priceAuthorityPath: resolve(values.get("--price-authority") as string),
     priceAuthoritySha256: sha256(
@@ -1293,10 +1398,11 @@ export const assertPostCommerceArtifactPaths = async (
 ) => {
   const inputPaths = [
     options.commerceApplyReceiptPath,
+    options.commerceManifestPath,
     options.commercePlanPath,
     options.commerceRestoreArtifactPath,
     options.inventoryPath,
-    options.preCommerceSharedInventoryFingerprintPath,
+    options.preCommerceSkBaselineArtifactPath,
     options.priceAuthorityPath,
     options.rawLiveInventoryPath,
   ]
@@ -1623,21 +1729,23 @@ export default async function createPostCommerceEnvelope({
   await assertPostCommerceArtifactPaths(options)
   const [
     applyReceiptBytes,
+    commerceManifestBytes,
     inventoryBytes,
     rawLiveInventoryBytes,
     authorityBytes,
     planBytes,
-    preInventoryFingerprintBytes,
+    preCommerceSkBaselineBytes,
     restoreArtifactBytes,
     observation,
     postCommerceSharedInventoryFingerprint,
   ] = await Promise.all([
     readFile(options.commerceApplyReceiptPath, "utf8"),
+    readFile(options.commerceManifestPath, "utf8"),
     readFile(options.inventoryPath, "utf8"),
     readFile(options.rawLiveInventoryPath, "utf8"),
     readFile(options.priceAuthorityPath, "utf8"),
     readFile(options.commercePlanPath, "utf8"),
-    readFile(options.preCommerceSharedInventoryFingerprintPath, "utf8"),
+    readFile(options.preCommerceSkBaselineArtifactPath, "utf8"),
     readFile(options.commerceRestoreArtifactPath, "utf8"),
     inspectPostCommerceObservation(container),
     inspectSharedInventoryFingerprint(container),
@@ -1649,6 +1757,11 @@ export default async function createPostCommerceEnvelope({
     throw new Error(
       "commerce apply receipt bytes do not match reviewed SHA-256"
     )
+  }
+  if (
+    postCommerceSha256(commerceManifestBytes) !== options.commerceManifestSha256
+  ) {
+    throw new Error("commerce manifest bytes do not match reviewed SHA-256")
   }
   if (
     sha256RoDemoArtifactBytes(restoreArtifactBytes) !==
@@ -1673,30 +1786,33 @@ export default async function createPostCommerceEnvelope({
     throw new Error("commerce plan bytes do not match reviewed SHA-256")
   }
   if (
-    postCommerceSha256(preInventoryFingerprintBytes) !==
-    options.preCommerceSharedInventoryFingerprintSha256
+    postCommerceSha256(preCommerceSkBaselineBytes) !==
+    options.preCommerceSkBaselineArtifactSha256
   ) {
     throw new Error(
-      "pre-commerce shared inventory fingerprint bytes do not match reviewed SHA-256"
+      "pre-commerce SK baseline artifact bytes do not match reviewed SHA-256"
     )
   }
+  const preCommerceSkBaselineArtifact = parseRoCatalogSkBaselineArtifact(
+    parseJson<unknown>(preCommerceSkBaselineBytes, "pre-commerce SK baseline")
+  )
   const preCommerceSharedInventoryFingerprint =
-    parseJson<PostCommerceStateFingerprint>(
-      preInventoryFingerprintBytes,
-      "pre-commerce shared inventory fingerprint"
-    )
-  if (
-    Object.keys(preCommerceSharedInventoryFingerprint).sort().join(",") !==
-      "count,sha256" ||
-    !Number.isSafeInteger(preCommerceSharedInventoryFingerprint.count) ||
-    preCommerceSharedInventoryFingerprint.count < 0 ||
-    !SHA_256.test(preCommerceSharedInventoryFingerprint.sha256)
-  ) {
-    throw new Error("pre-commerce shared inventory fingerprint is invalid")
-  }
+    preCommerceSkBaselineArtifact.skProtection.sharedInventoryBaseline
+  const commercePlan = parseJson<RoDemoCommercePlan>(planBytes, "commerce plan")
+  const {
+    buildRoDemoDatabaseFingerprint,
+    buildRoDemoDatabaseInstanceFingerprint,
+  } = await import("../ro-demo-commerce/runtime.js")
   const observedDeployment = assertObservedPostCommerceDeployment(
     options,
-    process.env
+    process.env,
+    {
+      fingerprint: buildRoDemoDatabaseFingerprint(
+        observation.commerce,
+        commercePlan.salesChannelId
+      ),
+      instanceFingerprint: buildRoDemoDatabaseInstanceFingerprint(process.env),
+    }
   )
   const envelope = buildPostCommerceEnvelope({
     backendBuildHash: observedDeployment.backendBuildHash,
@@ -1706,15 +1822,20 @@ export default async function createPostCommerceEnvelope({
     capturedAt: new Date().toISOString(),
     commerceApplyReceipt: parseRoDemoApplyReceipt(applyReceiptBytes),
     commerceApplyReceiptSha256: options.commerceApplyReceiptSha256,
-    commercePlan: parseJson<RoDemoCommercePlan>(planBytes, "commerce plan"),
+    commerceManifestSha256: options.commerceManifestSha256,
+    commercePlan,
     commercePlanFileSha256: options.commercePlanFileSha256,
     commercePlanHash: options.commercePlanHash,
     commerceRestoreArtifact: parseRoDemoRestoreArtifact(restoreArtifactBytes),
     commerceRestoreArtifactSha256: options.commerceRestoreArtifactSha256,
+    databaseFingerprint: observedDeployment.databaseFingerprint,
+    databaseInstanceFingerprint: observedDeployment.databaseInstanceFingerprint,
     environmentId: observedDeployment.environmentId,
     observation,
     postCommerceSharedInventoryFingerprint,
     preCommerceSharedInventoryFingerprint,
+    preCommerceSkBaselineArtifactSha256:
+      options.preCommerceSkBaselineArtifactSha256,
     priceAuthority: parsePrecommercePriceAuthority(authorityBytes),
     priceAuthoritySha256: options.priceAuthoritySha256,
     rawLiveInventorySha256: options.rawLiveInventorySha256,

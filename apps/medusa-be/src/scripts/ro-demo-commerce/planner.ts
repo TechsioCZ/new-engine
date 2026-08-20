@@ -154,6 +154,7 @@ export const buildRoDemoCommercePlan = (
   priceAuthoritySha256: string,
   binding: RoDemoBinding,
   context: Readonly<{
+    commerceManifestSha256: string
     deploymentIdentity: RoDemoDeploymentIdentity
     snapshot: RoDemoSnapshot
   }>
@@ -561,6 +562,7 @@ export const buildRoDemoCommercePlan = (
 
   return {
     binding,
+    commerceManifestSha256: context.commerceManifestSha256,
     codPolicy: {
       configuredFee: 9.45,
       configuredMinimumOrder: 40,
@@ -685,3 +687,17 @@ export const hashSkCommerceBaseline = (snapshot: RoDemoSnapshot) =>
   createHash("sha256")
     .update(stableJson(buildSkCommerceBaseline(snapshot)))
     .digest("hex")
+
+export const buildSkCommerceBaselineFingerprint = (
+  snapshot: RoDemoSnapshot
+) => {
+  const projection = buildSkCommerceBaseline(snapshot)
+  return {
+    count:
+      projection.nonRonVariantPrices.length +
+      projection.skRegions.length +
+      projection.skServiceZones.length +
+      projection.storeNonRonCurrencies.length,
+    sha256: hashSkCommerceBaseline(snapshot),
+  }
+}

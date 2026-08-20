@@ -19,6 +19,9 @@ export const DISPOSABLE_DATABASE_MARKER_VERSION =
 const DISPOSABLE_DATABASE_PREFIX = "ro_demo_disposable_"
 const MARKER_TOKEN_PATTERN = /^[A-Za-z0-9._:-]{32,160}$/
 const PLAN_HASH_PATTERN = /^[a-f0-9]{64}$/
+const RELEASE_SHA_PATTERN = /^[a-f0-9]{40}$/
+const RUNTIME_IDENTIFIER_PATTERN = /^[\x21-\x7e]{1,255}$/
+const DATABASE_INSTANCE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
 
 export const redactProcessDiagnostic = (
   value: string,
@@ -75,12 +78,39 @@ export type DisposableDatabaseTarget = Readonly<{
   postgresEnv: NodeJS.ProcessEnv
 }>
 
-type CommerceInvocation = Readonly<{
+export type RoDemoCommerceRuntimeAuthority = Readonly<{
+  backendBuildHash: string
+  backendDeploymentId: string
+  backendReleaseSha: string
+  backendSlot: "blue" | "green"
+  environmentId: string
+  expectedCommerceManifestSha256: string
+  expectedPriceAuthoritySha256: string
+}>
+
+type CapturedDeploymentIdentity = Readonly<{
+  backendBuildHash: string
+  backendDeploymentId: string
+  backendReleaseSha: string
+  backendSlot: "blue" | "green"
+  databaseFingerprint: string
+  databaseInstanceFingerprint: string
+  environmentId: string
+  skCommerceBaselineSha256: string
+}>
+
+export type CommerceInvocation = Readonly<{
+  authority: RoDemoCommerceRuntimeAuthority
   confirmPlanHash?: string
   databaseUrl: string
+  databaseInstanceId: string
+  deploymentIdentity?: CapturedDeploymentIdentity
+  fingerprintOutputPath?: string
   manifestPath: string
-  mode: "apply" | "dry-run"
+  mode: "apply" | "capture-fingerprint" | "dry-run"
   planOutputPath: string
+  receiptOutputPath?: string
+  restoreOutputPath?: string
   workingDirectory: string
   signal?: AbortSignal
 }>
@@ -91,22 +121,34 @@ export type CloneHarnessCommerceRunner = (
 
 export type RoDemoCommerceCloneHarnessOptions = Readonly<{
   databaseUrl: string
+  databaseInstanceId: string
   manifestPath: string
   markerToken: string
   planOutputPath: string
+  runtimeAuthority: RoDemoCommerceRuntimeAuthority
   snapshotOutputPath: string
   signal?: AbortSignal
   workingDirectory: string
 }>
 
 export type RoDemoCommerceCloneHarnessReport = Readonly<{
+  applyReceiptSha256: string
   appliedDatabaseSha256: string
+  databaseFingerprint: string
+  databaseInstanceFingerprint: string
+  deploymentFingerprintArtifactSha256: string
   dryRunDatabaseSha256: string
+  expectedCommerceManifestSha256: string
+  idempotencyApplyReceiptSha256: string
   idempotencyPlanHash: string
+  idempotencyRestoreArtifactSha256: string
   initialDatabaseSha256: string
   planHash: string
+  priceAuthoritySha256: string
   restoredDatabaseSha256: string
+  restoreArtifactSha256: string
   rollbackVerified: true
+  skCommerceBaselineSha256: string
 }>
 
 type CloneHarnessDependencies = Readonly<{
@@ -271,6 +313,7 @@ const acquireDisposableDatabaseLock = async (
 
 const scrubbedCommerceEnvironment = (
   databaseUrl: string,
+  databaseInstanceId: string,
   uploadDirectory: string
 ): NodeJS.ProcessEnv => ({
   ...inheritedProcessEnvironment(),
@@ -305,9 +348,95 @@ const scrubbedCommerceEnvironment = (
   PAYLOAD_BASE_URL: "",
   REDIS_SESSIONS_ENABLED: "0",
   REDIS_URL: "",
+  RO_DEMO_DATABASE_INSTANCE_ID: databaseInstanceId,
   STORE_CORS: "",
   WORKFLOW_ENGINE_PROVIDER: "inmemory",
 })
+
+const assertRuntimeAuthority = (
+  authority: RoDemoCommerceRuntimeAuthority,
+  databaseInstanceId: string
+) => {
+  if (
+    !(
+      RUNTIME_IDENTIFIER_PATTERN.test(authority.backendBuildHash) &&
+      RUNTIME_IDENTIFIER_PATTERN.test(authority.backendDeploymentId) &&
+      RELEASE_SHA_PATTERN.test(authority.backendReleaseSha) &&
+      (authority.backendSlot === "blue" || authority.backendSlot === "green") &&
+      RUNTIME_IDENTIFIER_PATTERN.test(authority.environmentId) &&
+      PLAN_HASH_PATTERN.test(authority.expectedCommerceManifestSha256) &&
+      PLAN_HASH_PATTERN.test(authority.expectedPriceAuthoritySha256) &&
+      DATABASE_INSTANCE_ID_PATTERN.test(databaseInstanceId)
+    )
+  ) {
+    throw new Error("RO demo runtime authority is invalid")
+  }
+}
+
+const readCapturedDeploymentIdentity = async (
+  path: string,
+  authority: RoDemoCommerceRuntimeAuthority
+): Promise<CapturedDeploymentIdentity> => {
+  let raw: unknown
+  try {
+    raw = JSON.parse(await readFile(path, "utf8"))
+  } catch {
+    throw new Error("deployment fingerprint artifact is not valid JSON")
+  }
+  if (!(raw && typeof raw === "object" && !Array.isArray(raw))) {
+    throw new Error("deployment fingerprint artifact is invalid")
+  }
+  const artifact = raw as Record<string, unknown>
+  const identity = artifact.deploymentIdentity
+  if (!(identity && typeof identity === "object" && !Array.isArray(identity))) {
+    throw new Error("deployment fingerprint identity is missing")
+  }
+  const deployment = identity as Record<string, unknown>
+  const skCommerceBaseline = artifact.skCommerceBaseline
+  if (
+    !(
+      skCommerceBaseline &&
+      typeof skCommerceBaseline === "object" &&
+      !Array.isArray(skCommerceBaseline)
+    )
+  ) {
+    throw new Error("deployment fingerprint SK commerce baseline is missing")
+  }
+  const baseline = skCommerceBaseline as Record<string, unknown>
+  const captured: CapturedDeploymentIdentity = {
+    backendBuildHash: String(deployment.backendBuildHash ?? ""),
+    backendDeploymentId: String(deployment.backendDeploymentId ?? ""),
+    backendReleaseSha: String(deployment.backendReleaseSha ?? ""),
+    backendSlot: deployment.backendSlot === "green" ? "green" : "blue",
+    databaseFingerprint: String(deployment.databaseFingerprint ?? ""),
+    databaseInstanceFingerprint: String(
+      deployment.databaseInstanceFingerprint ?? ""
+    ),
+    environmentId: String(deployment.environmentId ?? ""),
+    skCommerceBaselineSha256: String(baseline.sha256 ?? ""),
+  }
+  if (
+    artifact.kind !== "ro-demo-commerce-deployment-fingerprint" ||
+    artifact.schemaVersion !== 1 ||
+    artifact.commerceManifestSha256 !==
+      authority.expectedCommerceManifestSha256 ||
+    artifact.priceAuthoritySha256 !== authority.expectedPriceAuthoritySha256 ||
+    captured.backendBuildHash !== authority.backendBuildHash ||
+    captured.backendDeploymentId !== authority.backendDeploymentId ||
+    captured.backendReleaseSha !== authority.backendReleaseSha ||
+    (deployment.backendSlot !== "blue" && deployment.backendSlot !== "green") ||
+    captured.backendSlot !== authority.backendSlot ||
+    captured.environmentId !== authority.environmentId ||
+    !Number.isSafeInteger(baseline.count) ||
+    Number(baseline.count) < 0 ||
+    !PLAN_HASH_PATTERN.test(captured.databaseFingerprint) ||
+    !PLAN_HASH_PATTERN.test(captured.databaseInstanceFingerprint) ||
+    !PLAN_HASH_PATTERN.test(captured.skCommerceBaselineSha256)
+  ) {
+    throw new Error("deployment fingerprint artifact does not match authority")
+  }
+  return captured
+}
 
 export const parseDisposableDatabaseTarget = (
   databaseUrl: string,
@@ -510,26 +639,77 @@ const defaultCommerceRunner =
     const uploadDirectory = `${invocation.planOutputPath}.local-files`
     const runtimePath = resolve(__dirname, "runtime.ts")
     await mkdir(uploadDirectory, { recursive: false, mode: 0o700 })
-    const args = [
-      "exec",
-      "medusa",
-      "exec",
-      runtimePath,
-      "--manifest",
-      invocation.manifestPath,
-      "--plan-output",
-      invocation.planOutputPath,
+    const args = ["exec", "medusa", "exec", runtimePath]
+    const authorityArgs = [
+      "--expected-backend-build-hash",
+      invocation.authority.backendBuildHash,
+      "--expected-backend-deployment-id",
+      invocation.authority.backendDeploymentId,
+      "--expected-backend-release-sha",
+      invocation.authority.backendReleaseSha,
+      "--expected-backend-slot",
+      invocation.authority.backendSlot,
+      "--expected-environment-id",
+      invocation.authority.environmentId,
+      "--expected-commerce-manifest-sha256",
+      invocation.authority.expectedCommerceManifestSha256,
+      "--expected-price-authority-sha256",
+      invocation.authority.expectedPriceAuthoritySha256,
     ]
-    if (invocation.mode === "apply") {
-      if (!invocation.confirmPlanHash) {
-        throw new Error("apply requires a confirmed plan hash")
+    if (invocation.mode === "capture-fingerprint") {
+      if (!invocation.fingerprintOutputPath) {
+        throw new Error("fingerprint capture requires an output path")
       }
       args.push(
-        "--demo",
-        "--apply",
-        "--confirm-plan-hash",
-        invocation.confirmPlanHash
+        "--capture-deployment-fingerprint",
+        "--manifest",
+        invocation.manifestPath,
+        "--fingerprint-output",
+        invocation.fingerprintOutputPath,
+        ...authorityArgs
       )
+    } else {
+      if (!invocation.deploymentIdentity) {
+        throw new Error(
+          "commerce execution requires captured deployment identity"
+        )
+      }
+      args.push(
+        "--manifest",
+        invocation.manifestPath,
+        "--plan-output",
+        invocation.planOutputPath,
+        ...authorityArgs,
+        "--expected-database-fingerprint",
+        invocation.deploymentIdentity.databaseFingerprint,
+        "--expected-database-instance-fingerprint",
+        invocation.deploymentIdentity.databaseInstanceFingerprint,
+        "--expected-sk-commerce-baseline-sha256",
+        invocation.deploymentIdentity.skCommerceBaselineSha256
+      )
+      if (invocation.mode === "apply") {
+        if (
+          !(
+            invocation.confirmPlanHash &&
+            invocation.receiptOutputPath &&
+            invocation.restoreOutputPath
+          )
+        ) {
+          throw new Error(
+            "apply requires a confirmed plan hash, receipt output, and restore output"
+          )
+        }
+        args.push(
+          "--demo",
+          "--apply",
+          "--confirm-plan-hash",
+          invocation.confirmPlanHash,
+          "--restore-output",
+          invocation.restoreOutputPath,
+          "--receipt-output",
+          invocation.receiptOutputPath
+        )
+      }
     }
     try {
       await processRunner({
@@ -538,6 +718,7 @@ const defaultCommerceRunner =
         cwd: invocation.workingDirectory,
         env: scrubbedCommerceEnvironment(
           invocation.databaseUrl,
+          invocation.databaseInstanceId,
           uploadDirectory
         ),
         signal: invocation.signal,
@@ -611,19 +792,31 @@ export const runRoDemoCommerceCloneHarness = async (
   const processRunner = dependencies.processRunner ?? defaultProcessRunner
   const runCommerce =
     dependencies.runCommerce ?? defaultCommerceRunner(processRunner)
+  const deploymentFingerprintPath = `${options.planOutputPath}.deployment-fingerprint.json`
+  const postFingerprintPath = `${options.snapshotOutputPath}.after-fingerprint.sql`
   const postDryRunPath = `${options.snapshotOutputPath}.after-dry-run.sql`
   const postApplyPath = `${options.snapshotOutputPath}.after-apply.sql`
   const postSecondApplyPath = `${options.snapshotOutputPath}.after-second-apply.sql`
   const restoredPath = `${options.snapshotOutputPath}.restored.sql`
   const idempotencyPlanPath = `${options.planOutputPath}.idempotency.json`
+  const restoreOutputPath = `${options.planOutputPath}.restore.json`
+  const receiptOutputPath = `${options.planOutputPath}.receipt.json`
+  const idempotencyRestoreOutputPath = `${idempotencyPlanPath}.restore.json`
+  const idempotencyReceiptOutputPath = `${idempotencyPlanPath}.receipt.json`
   const artifactPaths = [
+    deploymentFingerprintPath,
     options.planOutputPath,
     options.snapshotOutputPath,
+    postFingerprintPath,
     postDryRunPath,
     postApplyPath,
     postSecondApplyPath,
     restoredPath,
     idempotencyPlanPath,
+    restoreOutputPath,
+    receiptOutputPath,
+    idempotencyRestoreOutputPath,
+    idempotencyReceiptOutputPath,
   ]
   let initialDatabaseSha256: string | undefined
   let initialSnapshotSha256: string | undefined
@@ -634,6 +827,7 @@ export const runRoDemoCommerceCloneHarness = async (
   const assertNotAborted = () => options.signal?.throwIfAborted()
 
   try {
+    assertRuntimeAuthority(options.runtimeAuthority, options.databaseInstanceId)
     assertNotAborted()
     await assertHarnessArtifactPaths(options, artifactPaths)
     await assertDisposableDatabaseMarker(
@@ -652,7 +846,40 @@ export const runRoDemoCommerceCloneHarness = async (
     databaseCommandStarted = true
     assertNotAborted()
     await runCommerce({
+      authority: options.runtimeAuthority,
       databaseUrl: target.databaseUrl,
+      databaseInstanceId: options.databaseInstanceId,
+      fingerprintOutputPath: deploymentFingerprintPath,
+      manifestPath: options.manifestPath,
+      mode: "capture-fingerprint",
+      planOutputPath: options.planOutputPath,
+      workingDirectory: options.workingDirectory,
+      signal: options.signal,
+    })
+    const postFingerprintDatabaseSha256 = await captureDatabase(
+      target,
+      postFingerprintPath,
+      processRunner
+    )
+    ownedEphemeralPaths.add(postFingerprintPath)
+    if (postFingerprintDatabaseSha256 !== initialDatabaseSha256) {
+      throw new Error(
+        "deployment fingerprint capture changed the disposable database"
+      )
+    }
+    const deploymentIdentity = await readCapturedDeploymentIdentity(
+      deploymentFingerprintPath,
+      options.runtimeAuthority
+    )
+    const deploymentFingerprintArtifactSha256 = await fileSha256(
+      deploymentFingerprintPath
+    )
+    assertNotAborted()
+    await runCommerce({
+      authority: options.runtimeAuthority,
+      databaseUrl: target.databaseUrl,
+      databaseInstanceId: options.databaseInstanceId,
+      deploymentIdentity,
       manifestPath: options.manifestPath,
       mode: "dry-run",
       planOutputPath: options.planOutputPath,
@@ -679,11 +906,16 @@ export const runRoDemoCommerceCloneHarness = async (
     )
     assertNotAborted()
     await runCommerce({
+      authority: options.runtimeAuthority,
       confirmPlanHash: planHash,
       databaseUrl: target.databaseUrl,
+      databaseInstanceId: options.databaseInstanceId,
+      deploymentIdentity,
       manifestPath: options.manifestPath,
       mode: "apply",
       planOutputPath: options.planOutputPath,
+      receiptOutputPath,
+      restoreOutputPath,
       workingDirectory: options.workingDirectory,
       signal: options.signal,
     })
@@ -696,10 +928,12 @@ export const runRoDemoCommerceCloneHarness = async (
     if (appliedDatabaseSha256 === initialDatabaseSha256) {
       throw new Error("commerce apply produced no database change")
     }
-    ownedEphemeralPaths.add(idempotencyPlanPath)
     assertNotAborted()
     await runCommerce({
+      authority: options.runtimeAuthority,
       databaseUrl: target.databaseUrl,
+      databaseInstanceId: options.databaseInstanceId,
+      deploymentIdentity,
       manifestPath: options.manifestPath,
       mode: "dry-run",
       planOutputPath: idempotencyPlanPath,
@@ -714,11 +948,16 @@ export const runRoDemoCommerceCloneHarness = async (
     )
     assertNotAborted()
     await runCommerce({
+      authority: options.runtimeAuthority,
       confirmPlanHash: idempotencyPlanHash,
       databaseUrl: target.databaseUrl,
+      databaseInstanceId: options.databaseInstanceId,
+      deploymentIdentity,
       manifestPath: options.manifestPath,
       mode: "apply",
       planOutputPath: idempotencyPlanPath,
+      receiptOutputPath: idempotencyReceiptOutputPath,
+      restoreOutputPath: idempotencyRestoreOutputPath,
       workingDirectory: options.workingDirectory,
       signal: options.signal,
     })
@@ -731,6 +970,17 @@ export const runRoDemoCommerceCloneHarness = async (
     if (secondAppliedDatabaseSha256 !== appliedDatabaseSha256) {
       throw new Error("second commerce apply did not converge")
     }
+    const [
+      applyReceiptSha256,
+      restoreArtifactSha256,
+      idempotencyApplyReceiptSha256,
+      idempotencyRestoreArtifactSha256,
+    ] = await Promise.all([
+      fileSha256(receiptOutputPath),
+      fileSha256(restoreOutputPath),
+      fileSha256(idempotencyReceiptOutputPath),
+      fileSha256(idempotencyRestoreOutputPath),
+    ])
     await restoreDatabase({
       target,
       markerToken: options.markerToken,
@@ -749,13 +999,26 @@ export const runRoDemoCommerceCloneHarness = async (
     }
     rollbackComplete = true
     return {
+      applyReceiptSha256,
       appliedDatabaseSha256,
+      databaseFingerprint: deploymentIdentity.databaseFingerprint,
+      databaseInstanceFingerprint:
+        deploymentIdentity.databaseInstanceFingerprint,
+      deploymentFingerprintArtifactSha256,
       dryRunDatabaseSha256,
+      expectedCommerceManifestSha256:
+        options.runtimeAuthority.expectedCommerceManifestSha256,
+      idempotencyApplyReceiptSha256,
       idempotencyPlanHash,
+      idempotencyRestoreArtifactSha256,
       initialDatabaseSha256,
       planHash,
+      priceAuthoritySha256:
+        options.runtimeAuthority.expectedPriceAuthoritySha256,
       restoredDatabaseSha256,
+      restoreArtifactSha256,
       rollbackVerified: true,
+      skCommerceBaselineSha256: deploymentIdentity.skCommerceBaselineSha256,
     }
   } catch (error) {
     if (databaseCommandStarted && initialSnapshotSha256 && !rollbackComplete) {

@@ -1,8 +1,9 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises"
+import { mkdtemp, readdir, readFile, rm, stat } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import {
+  assertFreshRoDatabaseInstanceFingerprint,
   buildDemoOmissionLedgerHash,
   buildRoCatalogReadinessReport,
   buildRoCatalogScopePlanHash,
@@ -24,6 +25,7 @@ import {
   parseRoDemoContentOmissionLedgerArtifact,
   parseRoTwoPhaseProvenanceReceipt,
 } from "../../../../src/scripts/ro-catalog-readiness-contract"
+import { buildRoDemoDatabaseInstanceFingerprint } from "../../../../src/scripts/ro-demo-commerce/runtime"
 import { createRoDemoOmissionAuthority } from "../../../../src/utils/ro-demo-omission-authority"
 
 const generatedAt = "2026-08-20T12:00:00.000Z"
@@ -63,6 +65,10 @@ const cutoverReceiptFixture = () => {
         path: "commerce/apply-receipt.json",
         sha256: "b".repeat(64),
       },
+      manifest: {
+        path: "commerce/manifest.json",
+        sha256: "4".repeat(64),
+      },
       plan: { path: "commerce/plan.json", sha256: commercePlanFileSha256 },
       priceAuthoritySha256,
       restoreArtifact: {
@@ -90,6 +96,7 @@ const cutoverReceiptFixture = () => {
     },
     postCommerce: {
       commerceApplyReceiptSha256: "b".repeat(64),
+      commerceManifestSha256: "4".repeat(64),
       commercePlanFileSha256,
       commercePlanHash: "d".repeat(64),
       commerceRestoreArtifactSha256: "c".repeat(64),
@@ -106,6 +113,7 @@ const cutoverReceiptFixture = () => {
       postCommerceSkBaselineSha256: skBaselineSha256,
       preCommerceSharedInventoryFingerprintCount: 2191,
       preCommerceSharedInventoryFingerprintSha256: sharedInventorySha256,
+      preCommerceSkBaselineArtifactSha256: "5".repeat(64),
       preCommerceSkBaselineCount: 2151,
       preCommerceSkBaselineErrors: 0,
       preCommerceSkBaselineSha256: skBaselineSha256,
@@ -134,6 +142,7 @@ const cutoverReceiptFixture = () => {
       backendReleaseSha: "1".repeat(40),
       backendSlot: "blue",
       databaseFingerprint: "2".repeat(64),
+      databaseInstanceFingerprint: "3".repeat(64),
       environmentId: "zane-production",
       locale: "ro-RO",
       marketCode: "ro",
@@ -790,9 +799,63 @@ describe("RO catalog readiness audit", () => {
           reserved_quantity: 3,
         })),
       },
+      {
+        ...input,
+        products: input.products.map((product) => ({
+          ...product,
+          variants: product.variants.map((variant) => ({
+            ...variant,
+            sku: `${variant.sku}-changed`,
+          })),
+        })),
+      },
+      {
+        ...input,
+        products: input.products.map((product) => ({
+          ...product,
+          variants: product.variants.map((variant) => ({
+            ...variant,
+            ean: "8580000000999",
+          })),
+        })),
+      },
     ]) {
       expect(buildSharedInventoryBaseline(changed)).not.toEqual(expected)
     }
+    expect(
+      buildSharedInventoryBaseline({
+        ...input,
+        products: input.products.map((product) => ({
+          ...product,
+          variants: product.variants.map((variant) => ({
+            ...variant,
+            prices: [
+              ...(variant.prices ?? []),
+              { amount: 999, currency_code: "ron" },
+            ],
+          })),
+        })),
+      })
+    ).toEqual(expected)
+  })
+
+  it("rejects a database clone switch despite an unchanged semantic fingerprint", () => {
+    const reviewedEnvironment = {
+      DATABASE_URL: "postgresql://user:secret@db-blue:5432/herbatika",
+      RO_DEMO_DATABASE_INSTANCE_ID: "zane-postgres-blue",
+    }
+    const reviewed = buildRoDemoDatabaseInstanceFingerprint(reviewedEnvironment)
+
+    expect(
+      assertFreshRoDatabaseInstanceFingerprint(reviewed, reviewedEnvironment)
+    ).toBe(reviewed)
+    expect(() =>
+      assertFreshRoDatabaseInstanceFingerprint(reviewed, {
+        ...reviewedEnvironment,
+        DATABASE_URL: "postgresql://user:secret@db-clone:5432/herbatika",
+        RO_DEMO_DATABASE_INSTANCE_ID: "disposable-clone",
+      })
+    ).toThrow("Fresh database instance does not match")
   })
 
   it("requires exact RON only for plan-bound sellable variants", () => {
@@ -874,7 +937,7 @@ describe("RO catalog readiness audit", () => {
     )
   })
 
-  it("requires one absolute JSON output path and atomically writes exact JSON", async () => {
+  it("writes private exact JSON atomically and never clobbers evidence", async () => {
     const directory = await mkdtemp(join(tmpdir(), "ro-readiness-"))
     const outputPath = join(directory, "backend-ro-readiness.json")
     try {
@@ -901,12 +964,22 @@ describe("RO catalog readiness audit", () => {
       )
       await writeRoCatalogReadinessReport(outputPath, report)
 
+      const originalBytes = await readFile(outputPath, "utf8")
+
       expect(
-        parseRoCatalogReadinessReportArtifact(
-          JSON.parse(await readFile(outputPath, "utf8"))
-        )
+        parseRoCatalogReadinessReportArtifact(JSON.parse(originalBytes))
       ).toEqual(report)
-      expect((await readFile(outputPath, "utf8")).endsWith("\n")).toBe(true)
+      expect(originalBytes.endsWith("\n")).toBe(true)
+      expect((await stat(outputPath)).mode % 0o1000).toBe(0o600)
+
+      await expect(
+        writeRoCatalogReadinessReport(outputPath, {
+          ...report,
+          generatedAt: "2026-08-20T12:00:01.000Z",
+        })
+      ).rejects.toMatchObject({ code: "EEXIST" })
+      expect(await readFile(outputPath, "utf8")).toBe(originalBytes)
+      expect(await readdir(directory)).toEqual(["backend-ro-readiness.json"])
     } finally {
       await rm(directory, { force: true, recursive: true })
     }
@@ -1166,9 +1239,27 @@ describe("RO catalog readiness audit", () => {
     expect(() =>
       parseRoTwoPhaseProvenanceReceipt({
         ...fixture,
+        postCommerce: {
+          ...fixture.postCommerce,
+          commerceManifestSha256: "e".repeat(64),
+        },
+      })
+    ).toThrow("chain is broken")
+    expect(() =>
+      parseRoTwoPhaseProvenanceReceipt({
+        ...fixture,
         releaseIdentity: {
           ...fixture.releaseIdentity,
           databaseFingerprint: "wrong-environment",
+        },
+      })
+    ).toThrow("receipt.releaseIdentity is invalid")
+    expect(() =>
+      parseRoTwoPhaseProvenanceReceipt({
+        ...fixture,
+        releaseIdentity: {
+          ...fixture.releaseIdentity,
+          databaseInstanceFingerprint: "clone",
         },
       })
     ).toThrow("receipt.releaseIdentity is invalid")

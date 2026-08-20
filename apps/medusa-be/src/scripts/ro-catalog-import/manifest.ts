@@ -132,6 +132,7 @@ const postCommerceInventoryEvidence = (
   const fields = [
     "capturedAt",
     "commerceApplyReceiptSha256",
+    "commerceManifestSha256",
     "commercePlanFileSha256",
     "commercePlanHash",
     "commerceRestoreArtifactSha256",
@@ -144,6 +145,7 @@ const postCommerceInventoryEvidence = (
     "postCommerceSkBaseline",
     "preCommerceSharedInventoryFingerprint",
     "preCommerceSkBaseline",
+    "preCommerceSkBaselineArtifactSha256",
     "priceAuthoritySha256",
     "rawLiveInventorySha256",
     "schemaVersion",
@@ -163,6 +165,7 @@ const postCommerceInventoryEvidence = (
     "backendReleaseSha",
     "backendSlot",
     "databaseFingerprint",
+    "databaseInstanceFingerprint",
     "environmentId",
     "locale",
     "marketCode",
@@ -213,6 +216,10 @@ const postCommerceInventoryEvidence = (
       record.commerceApplyReceiptSha256,
       `${label}.commerceApplyReceiptSha256`
     ),
+    commerceManifestSha256: sha256(
+      record.commerceManifestSha256,
+      `${label}.commerceManifestSha256`
+    ),
     commercePlanFileSha256: sha256(
       record.commercePlanFileSha256,
       `${label}.commercePlanFileSha256`
@@ -240,6 +247,10 @@ const postCommerceInventoryEvidence = (
         environment.databaseFingerprint,
         `${label}.environment.databaseFingerprint`
       ),
+      databaseInstanceFingerprint: sha256(
+        environment.databaseInstanceFingerprint,
+        `${label}.environment.databaseInstanceFingerprint`
+      ),
       environmentId: requiredString(
         environment.environmentId,
         `${label}.environment.environmentId`
@@ -265,6 +276,10 @@ const postCommerceInventoryEvidence = (
     postCommerceSkBaseline,
     preCommerceSharedInventoryFingerprint,
     preCommerceSkBaseline,
+    preCommerceSkBaselineArtifactSha256: sha256(
+      record.preCommerceSkBaselineArtifactSha256,
+      `${label}.preCommerceSkBaselineArtifactSha256`
+    ),
     priceAuthoritySha256: sha256(
       record.priceAuthoritySha256,
       `${label}.priceAuthoritySha256`

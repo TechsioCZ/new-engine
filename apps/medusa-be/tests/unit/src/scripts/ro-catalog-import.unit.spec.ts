@@ -1,10 +1,18 @@
 import { createHash } from "node:crypto"
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises"
+import {
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { describe, expect, it } from "vitest"
 import {
   buildRoCatalogSkBaselineArtifact,
+  parseRoCatalogSkBaselineArtifact,
   parseRoCatalogSkBaselineOutputPath,
   writeRoCatalogSkBaselineArtifact,
 } from "../../../../src/scripts/ro-catalog-import/baseline-artifact"
@@ -15,6 +23,10 @@ import {
   parseRoCatalogJsonl,
 } from "../../../../src/scripts/ro-catalog-import/manifest"
 import {
+  writeRoCatalogOmissionLedger,
+  writeRoCatalogPlanArtifact,
+} from "../../../../src/scripts/ro-catalog-import/plan-artifact"
+import {
   buildExcludedProductPublicationMetadata,
   buildProductPublicationMetadata,
   buildRoCatalogImportPlan,
@@ -24,12 +36,16 @@ import {
   assertRoCatalogPostCommerceProvenance,
   assertRoCatalogRuntimeEnvironment,
 } from "../../../../src/scripts/ro-catalog-import/provenance"
-import { buildLiveDatabaseFingerprint } from "../../../../src/scripts/ro-catalog-import/runtime"
+import {
+  assertRoCatalogImportClosed,
+  buildLiveDatabaseFingerprint,
+} from "../../../../src/scripts/ro-catalog-import/runtime"
 import type {
   RoCatalogManifest,
   RoCatalogSnapshot,
 } from "../../../../src/scripts/ro-catalog-import/types"
 import { parseRoCatalogScopePlanArtifact } from "../../../../src/scripts/ro-catalog-readiness-contract"
+import { buildRoDemoDatabaseInstanceFingerprint } from "../../../../src/scripts/ro-demo-commerce/runtime"
 
 const readiness = {
   currencyCode: "ron",
@@ -61,6 +77,7 @@ const testSha256 = (value: unknown) =>
 const postCommerceInventoryEvidence = {
   capturedAt: "2026-08-20T12:00:00.000Z",
   commerceApplyReceiptSha256: "d".repeat(64),
+  commerceManifestSha256: "f".repeat(64),
   commercePlanFileSha256: "1".repeat(64),
   commercePlanHash: "2".repeat(64),
   commerceRestoreArtifactSha256: "e".repeat(64),
@@ -70,6 +87,7 @@ const postCommerceInventoryEvidence = {
     backendReleaseSha: "c".repeat(40),
     backendSlot: "blue",
     databaseFingerprint: "3".repeat(64),
+    databaseInstanceFingerprint: "f".repeat(64),
     environmentId: "zane-production",
     locale: "ro-RO",
     marketCode: "ro",
@@ -97,6 +115,7 @@ const postCommerceInventoryEvidence = {
     errors: [],
     sha256: "8".repeat(64),
   },
+  preCommerceSkBaselineArtifactSha256: "0".repeat(64),
   priceAuthoritySha256: "9".repeat(64),
   rawLiveInventorySha256: "a".repeat(64),
   schemaVersion: 1,
@@ -148,7 +167,26 @@ describe("RO catalog SK baseline artifact", () => {
       )
       await writeRoCatalogSkBaselineArtifact(outputPath, artifact)
       expect(JSON.parse(await readFile(outputPath, "utf8"))).toEqual(artifact)
+      expect(parseRoCatalogSkBaselineArtifact(artifact)).toEqual(artifact)
       expect((await stat(outputPath)).mode.toString(8).slice(-3)).toBe("600")
+    } finally {
+      await rm(directory, { recursive: true })
+    }
+  })
+
+  it("never replaces an existing baseline and cleans its temporary file", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "ro-sk-baseline-existing-"))
+    try {
+      const outputPath = join(directory, "baseline.json")
+      const original = "reviewed immutable baseline\n"
+      await writeFile(outputPath, original, { mode: 0o600 })
+      const artifact = buildRoCatalogSkBaselineArtifact(skProtection)
+
+      await expect(
+        writeRoCatalogSkBaselineArtifact(outputPath, artifact)
+      ).rejects.toMatchObject({ code: "EEXIST" })
+      expect(await readFile(outputPath, "utf8")).toBe(original)
+      expect(await readdir(directory)).toEqual(["baseline.json"])
     } finally {
       await rm(directory, { recursive: true })
     }
@@ -169,6 +207,22 @@ describe("RO catalog SK baseline artifact", () => {
         publication: { ...skProtection.publication, errors: 1 },
       })
     ).toThrow("Cannot capture an SK baseline")
+  })
+
+  it("strictly parses the complete SK protection artifact", () => {
+    const artifact = buildRoCatalogSkBaselineArtifact(skProtection)
+    expect(() =>
+      parseRoCatalogSkBaselineArtifact({ ...artifact, extra: true })
+    ).toThrow("fields are invalid")
+    expect(() =>
+      parseRoCatalogSkBaselineArtifact({
+        ...artifact,
+        skProtection: {
+          ...artifact.skProtection,
+          publication: { ...artifact.skProtection.publication, errors: 1 },
+        },
+      })
+    ).toThrow("must match error-severity issues")
   })
 })
 
@@ -415,22 +469,33 @@ describe("RO catalog manifest", () => {
 
   it("binds apply to the reviewed live deployment environment", () => {
     const environment = postCommerceInventoryEvidence.environment
+    const runtimeEnvironment = {
+      BACKEND_BUILD_HASH: environment.backendBuildHash,
+      DATABASE_URL: "postgresql://user:secret@db.internal:5432/medusa",
+      RELEASE_SHA: environment.backendReleaseSha,
+      RO_DEMO_DATABASE_INSTANCE_ID: "zane-blue-medusa-primary",
+      RO_DEMO_ENVIRONMENT_ID: environment.environmentId,
+      ZANE_DEPLOYMENT_ID: environment.backendDeploymentId,
+      ZANE_DEPLOYMENT_SLOT: environment.backendSlot,
+    }
+    const boundManifest = {
+      ...manifest,
+      postCommerceInventoryEvidence: {
+        ...manifest.postCommerceInventoryEvidence,
+        environment: {
+          ...environment,
+          databaseInstanceFingerprint:
+            buildRoDemoDatabaseInstanceFingerprint(runtimeEnvironment),
+        },
+      },
+    } as const
     expect(
-      assertRoCatalogRuntimeEnvironment(manifest, {
-        BACKEND_BUILD_HASH: environment.backendBuildHash,
-        RELEASE_SHA: environment.backendReleaseSha,
-        RO_DEMO_ENVIRONMENT_ID: environment.environmentId,
-        ZANE_DEPLOYMENT_ID: environment.backendDeploymentId,
-        ZANE_DEPLOYMENT_SLOT: environment.backendSlot,
-      })
+      assertRoCatalogRuntimeEnvironment(boundManifest, runtimeEnvironment)
     ).toMatchObject({ environmentId: environment.environmentId })
     expect(() =>
-      assertRoCatalogRuntimeEnvironment(manifest, {
-        BACKEND_BUILD_HASH: environment.backendBuildHash,
-        RELEASE_SHA: environment.backendReleaseSha,
-        RO_DEMO_ENVIRONMENT_ID: "wrong-environment",
-        ZANE_DEPLOYMENT_ID: environment.backendDeploymentId,
-        ZANE_DEPLOYMENT_SLOT: environment.backendSlot,
+      assertRoCatalogRuntimeEnvironment(boundManifest, {
+        ...runtimeEnvironment,
+        RO_DEMO_DATABASE_INSTANCE_ID: "restored-clone",
       })
     ).toThrow("does not match")
   })
@@ -642,6 +707,44 @@ describe("RO catalog manifest", () => {
 })
 
 describe("RO catalog import plan", () => {
+  it("publishes plan and omission artifacts privately without clobbering", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "ro-import-artifacts-"))
+    try {
+      const planPath = join(directory, "plan.json")
+      const ledgerPath = join(directory, "ledger.json")
+      const plan = buildRoCatalogImportPlan(manifest, snapshot(), {
+        salesChannelId: "sc_ro",
+      })
+      const planHash = hashRoCatalogImportPlan(plan)
+      const ledger = {
+        entries: [],
+        mode: "official-ro-description-only",
+        schemaVersion: 1,
+      } as const
+      await writeRoCatalogPlanArtifact(planPath, plan, planHash)
+      await writeRoCatalogOmissionLedger(ledgerPath, ledger)
+      const originalPlan = await readFile(planPath, "utf8")
+      const originalLedger = await readFile(ledgerPath, "utf8")
+      expect((await stat(planPath)).mode.toString(8).slice(-3)).toBe("600")
+      expect((await stat(ledgerPath)).mode.toString(8).slice(-3)).toBe("600")
+
+      await expect(
+        writeRoCatalogPlanArtifact(planPath, plan, planHash)
+      ).rejects.toMatchObject({ code: "EEXIST" })
+      await expect(
+        writeRoCatalogOmissionLedger(ledgerPath, ledger)
+      ).rejects.toMatchObject({ code: "EEXIST" })
+      expect(await readFile(planPath, "utf8")).toBe(originalPlan)
+      expect(await readFile(ledgerPath, "utf8")).toBe(originalLedger)
+      expect((await readdir(directory)).sort()).toEqual([
+        "ledger.json",
+        "plan.json",
+      ])
+    } finally {
+      await rm(directory, { recursive: true })
+    }
+  })
+
   it("recomputes the post-commerce database identity from live IDs", () => {
     const liveSnapshot = snapshot()
     expect(
@@ -1213,6 +1316,21 @@ describe("RO catalog import plan", () => {
       hashRoCatalogImportPlan(plan)
     )
 
+    const changedCommerceManifestPlan = buildRoCatalogImportPlan(
+      {
+        ...manifest,
+        postCommerceInventoryEvidence: {
+          ...manifest.postCommerceInventoryEvidence,
+          commerceManifestSha256: "a".repeat(64),
+        },
+      },
+      snapshot(),
+      { salesChannelId: "sc_ro" }
+    )
+    expect(hashRoCatalogImportPlan(changedCommerceManifestPlan)).not.toBe(
+      hashRoCatalogImportPlan(plan)
+    )
+
     const skChanged = snapshot({
       skProtection: {
         ...skProtection,
@@ -1303,7 +1421,8 @@ describe("RO catalog import plan", () => {
         },
       ],
     })
-    expect(buildRoCatalogImportPlan(manifest, existing).summary).toEqual({
+    const rerunPlan = buildRoCatalogImportPlan(manifest, existing)
+    expect(rerunPlan.summary).toEqual({
       brandAssignmentsToCreate: 0,
       brandAssignmentsToUpdate: 0,
       brands: 0,
@@ -1331,6 +1450,17 @@ describe("RO catalog import plan", () => {
       unchangedCategoryTranslations: 0,
       unchangedTranslations: 2,
     })
+    expect(() => assertRoCatalogImportClosed(rerunPlan)).not.toThrow()
+  })
+
+  it("rejects a post-apply reread that still contains catalog work", () => {
+    expect(() =>
+      assertRoCatalogImportClosed(
+        buildRoCatalogImportPlan(manifest, snapshot(), {
+          salesChannelId: "sc_ro",
+        })
+      )
+    ).toThrow("post-apply reread still has pending work")
   })
 
   it("plans exact category content and URL assignment without mutating source metadata", () => {

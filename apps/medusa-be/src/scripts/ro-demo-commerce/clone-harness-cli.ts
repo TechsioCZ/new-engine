@@ -5,6 +5,13 @@ import {
 } from "./clone-harness"
 
 type CliOptions = Readonly<{
+  backendBuildHash: string
+  backendDeploymentId: string
+  backendReleaseSha: string
+  backendSlot: "blue" | "green"
+  environmentId: string
+  expectedCommerceManifestSha256: string
+  expectedPriceAuthoritySha256: string
   manifestPath: string
   planOutputPath: string
   reportOutputPath: string
@@ -29,6 +36,13 @@ export const parseCloneHarnessCliOptions = (
   args: readonly string[]
 ): CliOptions => {
   const allowed = new Set([
+    "--expected-backend-build-hash",
+    "--expected-backend-deployment-id",
+    "--expected-backend-release-sha",
+    "--expected-backend-slot",
+    "--expected-environment-id",
+    "--expected-commerce-manifest-sha256",
+    "--expected-price-authority-sha256",
     "--manifest",
     "--plan-output",
     "--report-output",
@@ -40,7 +54,24 @@ export const parseCloneHarnessCliOptions = (
       throw new Error(`unknown clone harness option ${flag ?? "<missing>"}`)
     }
   }
+  const backendSlot = valueAfter(args, "--expected-backend-slot")
+  if (backendSlot !== "blue" && backendSlot !== "green") {
+    throw new Error("--expected-backend-slot must be blue or green")
+  }
   return {
+    backendBuildHash: valueAfter(args, "--expected-backend-build-hash"),
+    backendDeploymentId: valueAfter(args, "--expected-backend-deployment-id"),
+    backendReleaseSha: valueAfter(args, "--expected-backend-release-sha"),
+    backendSlot,
+    environmentId: valueAfter(args, "--expected-environment-id"),
+    expectedCommerceManifestSha256: valueAfter(
+      args,
+      "--expected-commerce-manifest-sha256"
+    ),
+    expectedPriceAuthoritySha256: valueAfter(
+      args,
+      "--expected-price-authority-sha256"
+    ),
     manifestPath: valueAfter(args, "--manifest"),
     planOutputPath: valueAfter(args, "--plan-output"),
     reportOutputPath: valueAfter(args, "--report-output"),
@@ -51,6 +82,7 @@ export const parseCloneHarnessCliOptions = (
 const main = async () => {
   const cli = parseCloneHarnessCliOptions(process.argv.slice(2))
   const databaseUrl = process.env.RO_DEMO_DISPOSABLE_DATABASE_URL
+  const databaseInstanceId = process.env.RO_DEMO_DATABASE_INSTANCE_ID
   const markerToken = process.env.RO_DEMO_DISPOSABLE_MARKER
   if (!databaseUrl) {
     throw new Error("RO_DEMO_DISPOSABLE_DATABASE_URL is required")
@@ -58,12 +90,25 @@ const main = async () => {
   if (!markerToken) {
     throw new Error("RO_DEMO_DISPOSABLE_MARKER is required")
   }
+  if (!databaseInstanceId) {
+    throw new Error("RO_DEMO_DATABASE_INSTANCE_ID is required")
+  }
   const abortController = new AbortController()
   const options = {
     databaseUrl,
+    databaseInstanceId,
     manifestPath: resolve(cli.manifestPath),
     markerToken,
     planOutputPath: resolve(cli.planOutputPath),
+    runtimeAuthority: {
+      backendBuildHash: cli.backendBuildHash,
+      backendDeploymentId: cli.backendDeploymentId,
+      backendReleaseSha: cli.backendReleaseSha,
+      backendSlot: cli.backendSlot,
+      environmentId: cli.environmentId,
+      expectedCommerceManifestSha256: cli.expectedCommerceManifestSha256,
+      expectedPriceAuthoritySha256: cli.expectedPriceAuthoritySha256,
+    },
     snapshotOutputPath: resolve(cli.snapshotOutputPath),
     signal: abortController.signal,
     workingDirectory: resolve(__dirname, "../../.."),

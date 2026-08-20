@@ -128,7 +128,9 @@ const PROOF_HMAC_KEY = "test-readiness-proof-key-with-32-bytes-minimum"
 const GATE_NOW = () => new Date("2026-08-20T18:00:00.000Z")
 const CUTOVER_CHAIN_PROOF = {
   catalogPlanHash: "1".repeat(64),
+  commerceManifestSha256: "d".repeat(64),
   commercePlanSha256: "2".repeat(64),
+  databaseInstanceFingerprint: "e".repeat(64),
   maintenanceProofSha256: "3".repeat(64),
   matched: true,
   meilisearchConvergenceSha256: "4".repeat(64),
@@ -146,6 +148,7 @@ const RELEASE_IDENTITY = {
   backendReleaseSha: "a".repeat(40),
   backendSlot: "blue",
   databaseFingerprint: "9".repeat(64),
+  databaseInstanceFingerprint: "e".repeat(64),
   environmentId: "zane-production",
   locale: "ro-RO",
   marketCode: "ro",
@@ -336,6 +339,7 @@ const backendReadinessProof = (
   signBackendReadinessProof({
     environment: {
       databaseFingerprint: RELEASE_IDENTITY.databaseFingerprint,
+      databaseInstanceFingerprint: RELEASE_IDENTITY.databaseInstanceFingerprint,
       cutoverChainProof: report.cutoverChainProof,
       deploymentHash: "build-blue-1",
       deploymentSlot: "blue",
@@ -927,6 +931,14 @@ test("rejects stale and wrong-environment signed backend proofs", async () => {
   })
   await assert.rejects(
     liveReportFor({ backendProofEnvelope: wrongEnvironment }),
+    UNTRUSTED_BACKEND_ENVELOPE_PATTERN
+  )
+
+  const clonedDatabase = backendReadinessProof(backendReadinessReport(), {
+    databaseInstanceFingerprint: "f".repeat(64),
+  })
+  await assert.rejects(
+    liveReportFor({ backendProofEnvelope: clonedDatabase }),
     UNTRUSTED_BACKEND_ENVELOPE_PATTERN
   )
 })

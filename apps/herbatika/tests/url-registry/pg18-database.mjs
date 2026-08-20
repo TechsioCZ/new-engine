@@ -141,7 +141,9 @@ export const migrateUrlRegistry = async (
       throughVersion <= 0 ||
       throughVersion > completePlan.length)
   ) {
-    throw new TypeError("throughVersion must select a contiguous migration prefix")
+    throw new TypeError(
+      "throughVersion must select a contiguous migration prefix"
+    )
   }
   const plan =
     throughVersion === undefined
@@ -168,11 +170,7 @@ export const seedLegacyCatalogUnpublishedReceipt = async (migrationUrl) => {
         'medusa', 'category', $1, 'ro', 1, $2, $3,
         'reconcile', 'unpublished', NULL
       )`,
-      [
-        sourceId,
-        `${sourceId}:event`,
-        `sha256:${"a".repeat(64)}`,
-      ]
+      [sourceId, `${sourceId}:event`, `sha256:${"a".repeat(64)}`]
     )
     await client.query(
       `INSERT INTO url_registry.url_registry_source_event_cursor (
@@ -183,7 +181,7 @@ export const seedLegacyCatalogUnpublishedReceipt = async (migrationUrl) => {
     await client.query("COMMIT")
     return sourceId
   } catch (error) {
-    await client.query("ROLLBACK").catch(() => undefined)
+    await client.query("ROLLBACK").catch(() => {})
     throw error
   } finally {
     client.release()

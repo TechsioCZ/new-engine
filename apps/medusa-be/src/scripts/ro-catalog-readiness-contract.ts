@@ -159,6 +159,7 @@ export type RoTwoPhaseProvenanceReceipt = Readonly<{
   }>
   commerce: Readonly<{
     applyReceipt: RoReceiptArtifactRef
+    manifest: RoReceiptArtifactRef
     plan: RoReceiptArtifactRef
     priceAuthoritySha256: string
     restoreArtifact: RoReceiptArtifactRef
@@ -174,6 +175,7 @@ export type RoTwoPhaseProvenanceReceipt = Readonly<{
   }>
   postCommerce: Readonly<{
     commerceApplyReceiptSha256: string
+    commerceManifestSha256: string
     commercePlanFileSha256: string
     commercePlanHash: string
     commerceRestoreArtifactSha256: string
@@ -187,6 +189,7 @@ export type RoTwoPhaseProvenanceReceipt = Readonly<{
     postCommerceSkBaselineSha256: string
     preCommerceSharedInventoryFingerprintCount: number
     preCommerceSharedInventoryFingerprintSha256: string
+    preCommerceSkBaselineArtifactSha256: string
     preCommerceSkBaselineCount: number
     preCommerceSkBaselineErrors: number
     preCommerceSkBaselineSha256: string
@@ -205,6 +208,7 @@ export type RoTwoPhaseProvenanceReceipt = Readonly<{
     backendReleaseSha: string
     backendSlot: "blue" | "green"
     databaseFingerprint: string
+    databaseInstanceFingerprint: string
     environmentId: string
     locale: "ro-RO"
     marketCode: "ro"
@@ -323,6 +327,7 @@ export const parseRoTwoPhaseProvenanceReceipt = (
     JSON.stringify(Object.keys(value.commerce).sort()) !==
       JSON.stringify([
         "applyReceipt",
+        "manifest",
         "plan",
         "priceAuthoritySha256",
         "restoreArtifact",
@@ -380,6 +385,11 @@ export const parseRoTwoPhaseProvenanceReceipt = (
       "commerce/apply-receipt.json",
       "receipt.commerce.applyReceipt"
     ),
+    manifest: parseArtifactRef(
+      value.commerce.manifest,
+      "commerce/manifest.json",
+      "receipt.commerce.manifest"
+    ),
     plan: parseArtifactRef(
       value.commerce.plan,
       "commerce/plan.json",
@@ -396,6 +406,7 @@ export const parseRoTwoPhaseProvenanceReceipt = (
   const rawPostCommerce = value.postCommerce
   const postHashKeys = [
     "commerceApplyReceiptSha256",
+    "commerceManifestSha256",
     "commercePlanFileSha256",
     "commercePlanHash",
     "commerceRestoreArtifactSha256",
@@ -404,6 +415,7 @@ export const parseRoTwoPhaseProvenanceReceipt = (
     "postCommerceSharedInventoryFingerprintSha256",
     "postCommerceSkBaselineSha256",
     "preCommerceSharedInventoryFingerprintSha256",
+    "preCommerceSkBaselineArtifactSha256",
     "preCommerceSkBaselineSha256",
     "priceAuthoritySha256",
     "rawLiveInventorySha256",
@@ -441,6 +453,7 @@ export const parseRoTwoPhaseProvenanceReceipt = (
   const postCommerce: RoTwoPhaseProvenanceReceipt["postCommerce"] = {
     commerceApplyReceiptSha256:
       rawPostCommerce.commerceApplyReceiptSha256 as string,
+    commerceManifestSha256: rawPostCommerce.commerceManifestSha256 as string,
     commercePlanFileSha256: rawPostCommerce.commercePlanFileSha256 as string,
     commercePlanHash: rawPostCommerce.commercePlanHash as string,
     commerceRestoreArtifactSha256:
@@ -463,6 +476,8 @@ export const parseRoTwoPhaseProvenanceReceipt = (
       rawPostCommerce.preCommerceSharedInventoryFingerprintCount as number,
     preCommerceSharedInventoryFingerprintSha256:
       rawPostCommerce.preCommerceSharedInventoryFingerprintSha256 as string,
+    preCommerceSkBaselineArtifactSha256:
+      rawPostCommerce.preCommerceSkBaselineArtifactSha256 as string,
     preCommerceSkBaselineCount:
       rawPostCommerce.preCommerceSkBaselineCount as number,
     preCommerceSkBaselineErrors:
@@ -553,6 +568,7 @@ export const parseRoTwoPhaseProvenanceReceipt = (
     "backendReleaseSha",
     "backendSlot",
     "databaseFingerprint",
+    "databaseInstanceFingerprint",
     "environmentId",
     "locale",
     "marketCode",
@@ -570,6 +586,8 @@ export const parseRoTwoPhaseProvenanceReceipt = (
     !SAFE_ID.test(String(value.releaseIdentity.environmentId)) ||
     typeof value.releaseIdentity.databaseFingerprint !== "string" ||
     !SHA256.test(value.releaseIdentity.databaseFingerprint) ||
+    typeof value.releaseIdentity.databaseInstanceFingerprint !== "string" ||
+    !SHA256.test(value.releaseIdentity.databaseInstanceFingerprint) ||
     value.releaseIdentity.marketCode !== "ro" ||
     value.releaseIdentity.locale !== "ro-RO" ||
     !SAFE_ID.test(String(value.releaseIdentity.salesChannelId)) ||
@@ -602,6 +620,7 @@ export const parseRoTwoPhaseProvenanceReceipt = (
     preCommerce.rawLiveInventory.sha256 !==
       postCommerce.rawLiveInventorySha256 ||
     commerce.plan.sha256 !== postCommerce.commercePlanFileSha256 ||
+    commerce.manifest.sha256 !== postCommerce.commerceManifestSha256 ||
     commerce.applyReceipt.sha256 !== postCommerce.commerceApplyReceiptSha256 ||
     commerce.restoreArtifact.sha256 !==
       postCommerce.commerceRestoreArtifactSha256 ||
@@ -890,7 +909,9 @@ export const parseRoCatalogReadinessReportArtifact = (
       JSON.stringify(
         [
           "catalogPlanHash",
+          "commerceManifestSha256",
           "commercePlanSha256",
+          "databaseInstanceFingerprint",
           "maintenanceProofSha256",
           "matched",
           "meilisearchConvergenceSha256",
@@ -909,7 +930,9 @@ export const parseRoCatalogReadinessReportArtifact = (
     !cutoverProof.releaseId.startsWith("ro-demo-") ||
     ![
       "catalogPlanHash",
+      "commerceManifestSha256",
       "commercePlanSha256",
+      "databaseInstanceFingerprint",
       "maintenanceProofSha256",
       "meilisearchConvergenceSha256",
       "postCommerceEnvelopeSha256",

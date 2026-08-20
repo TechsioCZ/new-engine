@@ -21,9 +21,11 @@ pnpm exec medusa exec ./src/scripts/ro-catalog-readiness.ts \
 
 All eight flags are mandatory and may occur exactly once. Every path must be
 an absolute `.json` path. The report is written with mode `0600` to a unique
-sibling temporary file, synced, and atomically renamed into place; any write
-failure aborts the command. The audit performs a new database read after apply
-and never derives an expected baseline from that post-apply input.
+sibling temporary file, synced, and atomically linked into place. The output
+path must not already exist; publication never replaces prior evidence, and a
+collision or other write failure removes the temporary file and aborts the
+command. The audit performs a new database read after apply and never derives
+an expected baseline from that post-apply input.
 
 The command logs one JSON report. It exits successfully only when all active
 categories and published products satisfy the complete RO contract:
@@ -111,11 +113,12 @@ prices are removed from the semantic SK projection because the RO import is
 expected to change them. Technical timestamps are excluded for the same
 reason. All SK/non-RO publication inputs, non-RON prices, and stable storefront
 content remain protected. A separate `sharedInventoryBaseline` hashes every
-variant's inventory policy, exact inventory-item links and required quantity,
-plus location-level incoming, reserved, and stocked quantities. Both baselines
-must match. Importer dry-run, chunk re-preflight, final importer read, and
-readiness CLI all call the same collector and hash builders; independent
-reimplementations are not accepted.
+variant ID, SKU, EAN and inventory policy, exact inventory-item links and
+required quantity, plus location-level incoming, reserved, and stocked
+quantities. RON-only price changes do not affect this physical inventory proof.
+Both baselines must match. Importer dry-run, chunk re-preflight, final importer
+read, and readiness CLI all call the same collector and hash builders;
+independent reimplementations are not accepted.
 
 ## Machine-readable completeness proof
 
@@ -146,11 +149,15 @@ The receipt is exact-schema and replay-resistant. Its top-level `releaseId`
 is the sole release identity. `releaseIdentity` binds the reviewed environment
 and database fingerprint, RO Sales Channel, backend and storefront release
 SHAs, Zane deployment/build identities and BLUE/GREEN slots, plus the exact SK
-and RO origins. The post-commerce section separately proves zero SK
+and RO origins. A distinct `databaseInstanceFingerprint` binds the physical
+PostgreSQL endpoint/database/instance identity and is recomputed by readiness,
+so switching to a semantically identical clone fails closed. The post-commerce
+section separately proves zero SK
 publication errors, unchanged SK semantic count/hash, and unchanged shared
 inventory count/hash. It also binds the commerce plan file and semantic hash,
-apply receipt, restore artifact, fresh post-commerce payload, and all operation
-proof references. The readiness runtime additionally requires these receipt
+commerce manifest, pre-commerce SK baseline artifact, apply receipt, restore
+artifact, fresh post-commerce payload, and all operation proof references. The
+readiness runtime additionally requires these receipt
 baselines to equal its explicit CLI handoff and requires the receipt Sales
 Channel to be the sole fresh RO publication Sales Channel.
 

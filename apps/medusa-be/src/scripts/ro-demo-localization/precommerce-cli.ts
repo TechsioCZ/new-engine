@@ -1,5 +1,6 @@
 import { access, link, open, unlink } from "node:fs/promises"
 import { basename, dirname, join, resolve } from "node:path"
+import type { ExecArgs } from "@medusajs/framework/types"
 import {
   buildPrecommercePriceAuthority,
   type PrecommercePriceAuthorityBuild,
@@ -101,10 +102,12 @@ export const runPrecommercePriceAuthorityCli = async (
   return result
 }
 
-export default async function generatePrecommercePriceAuthority() {
-  const result = await runPrecommercePriceAuthorityCli()
+export async function generatePrecommercePriceAuthority({ args }: ExecArgs) {
+  const result = await runPrecommercePriceAuthorityCli(args)
   console.log(
     JSON.stringify({ outputKind: result.artifact.kind, sha256: result.sha256 })
   )
   return result
 }
+
+export default generatePrecommercePriceAuthority

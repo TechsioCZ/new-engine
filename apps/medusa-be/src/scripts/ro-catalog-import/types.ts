@@ -38,6 +38,7 @@ export type RoCatalogSkProtectionAudit = Readonly<{
 export type RoCatalogPostCommerceInventoryEvidence = Readonly<{
   capturedAt: string
   commerceApplyReceiptSha256: string
+  commerceManifestSha256: string
   commercePlanFileSha256: string
   commercePlanHash: string
   commerceRestoreArtifactSha256: string
@@ -47,6 +48,7 @@ export type RoCatalogPostCommerceInventoryEvidence = Readonly<{
     backendReleaseSha: string
     backendSlot: "blue" | "green"
     databaseFingerprint: string
+    databaseInstanceFingerprint: string
     environmentId: string
     locale: typeof RO_CATALOG_LOCALE
     marketCode: typeof RO_CATALOG_MARKET
@@ -60,6 +62,7 @@ export type RoCatalogPostCommerceInventoryEvidence = Readonly<{
   postCommerceSkBaseline: RoCatalogSkStateProof
   preCommerceSharedInventoryFingerprint: RoCatalogStateFingerprint
   preCommerceSkBaseline: RoCatalogSkStateProof
+  preCommerceSkBaselineArtifactSha256: string
   priceAuthoritySha256: string
   rawLiveInventorySha256: string
   schemaVersion: 1

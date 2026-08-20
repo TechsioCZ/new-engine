@@ -40,8 +40,16 @@ sessions, drops/recreates the database, and restores owners and ACLs.
 ```bash
 export RO_DEMO_DISPOSABLE_DATABASE_URL='postgresql://postgres:LOCAL_PASSWORD@127.0.0.1:55432/ro_demo_disposable_20260820?sslmode=disable'
 export RO_DEMO_DISPOSABLE_MARKER='GENERATE-A-UNIQUE-LOCAL-TOKEN-OF-32-CHARS'
+export RO_DEMO_DATABASE_INSTANCE_ID='ro-demo-disposable-postgres-20260820'
 
 pnpm exec ts-node --swc ./src/scripts/ro-demo-commerce/clone-harness-cli.ts \
+  --expected-backend-build-hash LOCAL_BUILD_ID \
+  --expected-backend-deployment-id LOCAL_DEPLOYMENT_ID \
+  --expected-backend-release-sha 0123456789abcdef0123456789abcdef01234567 \
+  --expected-backend-slot blue \
+  --expected-environment-id herbatika-ro-demo-local \
+  --expected-commerce-manifest-sha256 fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210 \
+  --expected-price-authority-sha256 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef \
   --manifest ./secure-input/ro-demo-commerce.json \
   --plan-output /absolute/private/ro-commerce-plan.json \
   --snapshot-output /absolute/private/ro-commerce-before.sql \
@@ -53,6 +61,13 @@ From the monorepo root, use the app-local toolchain explicitly:
 ```bash
 pnpm --dir apps/medusa-be exec ts-node --swc \
   ./src/scripts/ro-demo-commerce/clone-harness-cli.ts \
+  --expected-backend-build-hash LOCAL_BUILD_ID \
+  --expected-backend-deployment-id LOCAL_DEPLOYMENT_ID \
+  --expected-backend-release-sha 0123456789abcdef0123456789abcdef01234567 \
+  --expected-backend-slot blue \
+  --expected-environment-id herbatika-ro-demo-local \
+  --expected-commerce-manifest-sha256 fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210 \
+  --expected-price-authority-sha256 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef \
   --manifest /absolute/private/ro-demo-commerce.json \
   --plan-output /absolute/private/ro-commerce-plan.json \
   --snapshot-output /absolute/private/ro-commerce-before.sql \
@@ -68,12 +83,24 @@ runs; `SIGINT`/`SIGTERM` abort the active commerce child and enter guarded
 rollback. It then:
 
 1. captures the pre-apply SQL snapshot;
-2. runs dry-run and proves its normalized dump is unchanged;
-3. applies only the exact reviewed plan hash;
-4. generates and applies a fresh second plan to exercise convergence;
-5. terminates clone-only sessions and fully drops/recreates the disposable
+2. invokes the real runtime fingerprint mode and proves it did not mutate the
+   database;
+3. binds dry-run/apply to the captured database fingerprint, database-instance
+   fingerprint, expected commerce-manifest SHA-256, price-authority SHA-256,
+   and SK commerce baseline;
+4. runs dry-run and proves its normalized dump is unchanged;
+5. applies only the exact reviewed plan hash and writes distinct private
+   restore/receipt artifacts;
+6. generates and applies a fresh second plan with its own no-clobber artifacts
+   to exercise convergence;
+7. terminates clone-only sessions and fully drops/recreates the disposable
    database from the pre-apply snapshot;
-6. proves the restored normalized dump matches the original.
+8. proves the restored normalized dump matches the original.
+
+The runner refuses to start if any requested or derived plan, fingerprint,
+restore, receipt, snapshot, or verification output already exists. The derived
+runtime evidence paths are based on `--plan-output` and remain private for
+review after success.
 
 On any failure after the snapshot, it attempts the guarded restore before
 returning the error. Keep the original snapshot until the report says

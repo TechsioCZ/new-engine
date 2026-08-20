@@ -15,22 +15,86 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest"
 import {
   type CloneHarnessCommerceRunner,
   type CloneHarnessProcessRunner,
+  type CommerceInvocation,
   DISPOSABLE_DATABASE_MARKER_VERSION,
   parseDisposableDatabaseTarget,
   redactProcessDiagnostic,
   runRoDemoCommerceCloneHarness,
   writeRoDemoCommerceCloneHarnessReport,
 } from "../../src/scripts/ro-demo-commerce/clone-harness"
+import {
+  parseRoDemoCliOptions,
+  parseRoDemoFingerprintCliOptions,
+} from "../../src/scripts/ro-demo-commerce/manifest"
 
 const MARKER = "local-disposable-marker-1234567890abcdef"
 const DATABASE_URL =
   "postgresql://postgres:local@127.0.0.1:5432/ro_demo_disposable_test?sslmode=disable"
 const PNPM_COMMAND_PATTERN = /^pnpm(?:\.cmd)?$/
+const PRICE_AUTHORITY_SHA256 = "a".repeat(64)
+const COMMERCE_MANIFEST_SHA256 = "f".repeat(64)
+const DATABASE_FINGERPRINT = "b".repeat(64)
+const DATABASE_INSTANCE_FINGERPRINT = "c".repeat(64)
+const SK_COMMERCE_BASELINE_SHA256 = "d".repeat(64)
+const RUNTIME_AUTHORITY = {
+  backendBuildHash: "build-local",
+  backendDeploymentId: "deployment-local",
+  backendReleaseSha: "e".repeat(40),
+  backendSlot: "blue" as const,
+  environmentId: "herbatika-ro-demo-local",
+  expectedCommerceManifestSha256: COMMERCE_MANIFEST_SHA256,
+  expectedPriceAuthoritySha256: PRICE_AUTHORITY_SHA256,
+}
+const HARNESS_SECURITY_OPTIONS = {
+  databaseInstanceId: "ro-demo-disposable-postgres",
+  runtimeAuthority: RUNTIME_AUTHORITY,
+}
 
 const hashFile = async (path: string) =>
   createHash("sha256")
     .update(await readFile(path))
     .digest("hex")
+
+const fakeDeploymentFingerprint = (
+  authority: CommerceInvocation["authority"]
+) => ({
+  commerceManifestSha256: authority.expectedCommerceManifestSha256,
+  deploymentIdentity: {
+    backendBuildHash: authority.backendBuildHash,
+    backendDeploymentId: authority.backendDeploymentId,
+    backendReleaseSha: authority.backendReleaseSha,
+    backendSlot: authority.backendSlot,
+    databaseFingerprint: DATABASE_FINGERPRINT,
+    databaseInstanceFingerprint: DATABASE_INSTANCE_FINGERPRINT,
+    environmentId: authority.environmentId,
+  },
+  kind: "ro-demo-commerce-deployment-fingerprint",
+  priceAuthoritySha256: authority.expectedPriceAuthoritySha256,
+  schemaVersion: 1,
+  skCommerceBaseline: { count: 1, sha256: SK_COMMERCE_BASELINE_SHA256 },
+})
+
+const writeFakeDeploymentFingerprint = async (
+  invocation: CommerceInvocation
+) => {
+  if (!invocation.fingerprintOutputPath) {
+    throw new Error("missing fake fingerprint output")
+  }
+  await writeFile(
+    invocation.fingerprintOutputPath,
+    `${JSON.stringify(fakeDeploymentFingerprint(invocation.authority))}\n`
+  )
+}
+
+const writeFakeApplyArtifacts = async (invocation: CommerceInvocation) => {
+  if (!(invocation.receiptOutputPath && invocation.restoreOutputPath)) {
+    throw new Error("missing fake apply artifact outputs")
+  }
+  await Promise.all([
+    writeFile(invocation.receiptOutputPath, '{"kind":"receipt"}\n'),
+    writeFile(invocation.restoreOutputPath, '{"kind":"restore"}\n'),
+  ])
+}
 
 describe("RO demo commerce disposable clone safety", () => {
   it("accepts only a loopback, prefixed database with a strong marker", () => {
@@ -139,6 +203,10 @@ describe("RO demo commerce disposable clone safety", () => {
     }
     const runCommerce: CloneHarnessCommerceRunner = async (invocation) => {
       invocations.push(invocation.mode)
+      if (invocation.mode === "capture-fingerprint") {
+        await writeFakeDeploymentFingerprint(invocation)
+        return
+      }
       if (invocation.mode === "dry-run") {
         await writeFile(
           invocation.planOutputPath,
@@ -149,12 +217,14 @@ describe("RO demo commerce disposable clone safety", () => {
       expect(invocation.confirmPlanHash).toBe(
         await hashFile(invocation.planOutputPath)
       )
+      await writeFakeApplyArtifacts(invocation)
       state.value = "applied"
     }
 
     await expect(
       runRoDemoCommerceCloneHarness(
         {
+          ...HARNESS_SECURITY_OPTIONS,
           databaseUrl: DATABASE_URL,
           manifestPath,
           markerToken: MARKER,
@@ -165,7 +235,13 @@ describe("RO demo commerce disposable clone safety", () => {
         { processRunner, runCommerce }
       )
     ).resolves.toMatchObject({ rollbackVerified: true })
-    expect(invocations).toEqual(["dry-run", "apply", "dry-run", "apply"])
+    expect(invocations).toEqual([
+      "capture-fingerprint",
+      "dry-run",
+      "apply",
+      "dry-run",
+      "apply",
+    ])
     expect(state.value).toBe("baseline")
     await rm(directory, { force: true, recursive: true })
   })
@@ -221,21 +297,48 @@ describe("RO demo commerce disposable clone safety", () => {
       expect(request.env.PGPASSFILE).toBeUndefined()
       expect(request.env.DATABASE_URL).toBe(DATABASE_URL)
       expect(request.env.LEGACY_DATABASE_URL).toBe(DATABASE_URL)
+      expect(request.env.RO_DEMO_DATABASE_INSTANCE_ID).toBe(
+        HARNESS_SECURITY_OPTIONS.databaseInstanceId
+      )
       expect(request.env.MEILISEARCH_ENABLED).toBe("0")
       expect(request.env.EVENT_BUS_PROVIDER).toBe("local")
-      const planOutputPath =
-        request.args[request.args.indexOf("--plan-output") + 1]
-      if (!planOutputPath) {
-        throw new Error("missing plan output")
+      const runtimeArgs = request.args.slice(4)
+      if (runtimeArgs.includes("--capture-deployment-fingerprint")) {
+        const capture = parseRoDemoFingerprintCliOptions(runtimeArgs)
+        expect(capture).toMatchObject({
+          ...RUNTIME_AUTHORITY,
+          expectedPriceAuthoritySha256: PRICE_AUTHORITY_SHA256,
+        })
+        await writeFile(
+          capture.fingerprintOutputPath,
+          `${JSON.stringify(fakeDeploymentFingerprint(RUNTIME_AUTHORITY))}\n`
+        )
+        return { stderr: "", stdout: "" }
       }
-      if (request.args.includes("--apply")) {
-        const confirmedHash =
-          request.args[request.args.indexOf("--confirm-plan-hash") + 1]
-        expect(confirmedHash).toBe(await hashFile(planOutputPath))
+      const parsed = parseRoDemoCliOptions(runtimeArgs)
+      expect(parsed.expectedDeployment).toMatchObject({
+        databaseFingerprint: DATABASE_FINGERPRINT,
+        databaseInstanceFingerprint: DATABASE_INSTANCE_FINGERPRINT,
+      })
+      expect(parsed.expectedPriceAuthoritySha256).toBe(PRICE_AUTHORITY_SHA256)
+      expect(parsed.expectedSkCommerceBaselineSha256).toBe(
+        SK_COMMERCE_BASELINE_SHA256
+      )
+      if (parsed.apply) {
+        expect(parsed.confirmPlanHash).toBe(
+          await hashFile(parsed.planOutputPath)
+        )
+        if (!(parsed.receiptOutputPath && parsed.restoreOutputPath)) {
+          throw new Error("real CLI parser omitted apply artifact outputs")
+        }
+        await Promise.all([
+          writeFile(parsed.receiptOutputPath, '{"kind":"receipt"}\n'),
+          writeFile(parsed.restoreOutputPath, '{"kind":"restore"}\n'),
+        ])
         state.value = "applied"
       } else {
         await writeFile(
-          planOutputPath,
+          parsed.planOutputPath,
           state.value === "baseline" ? "default-plan\n" : "converged-plan\n"
         )
       }
@@ -245,6 +348,7 @@ describe("RO demo commerce disposable clone safety", () => {
       await expect(
         runRoDemoCommerceCloneHarness(
           {
+            ...HARNESS_SECURITY_OPTIONS,
             databaseUrl: DATABASE_URL,
             manifestPath: join(directory, "manifest.json"),
             markerToken: MARKER,
@@ -300,6 +404,7 @@ describe("RO demo commerce disposable clone safety", () => {
         await expect(
           runRoDemoCommerceCloneHarness(
             {
+              ...HARNESS_SECURITY_OPTIONS,
               databaseUrl: DATABASE_URL,
               manifestPath: join(directory, "manifest.json"),
               markerToken: MARKER,
@@ -319,6 +424,117 @@ describe("RO demo commerce disposable clone safety", () => {
       }
     }
   )
+
+  it("refuses a pre-existing derived receipt before any database process", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "ro-commerce-no-clobber-"))
+    const planOutputPath = join(directory, "plan.json")
+    await writeFile(`${planOutputPath}.receipt.json`, "do-not-overwrite\n")
+    let processCalls = 0
+    try {
+      await expect(
+        runRoDemoCommerceCloneHarness(
+          {
+            ...HARNESS_SECURITY_OPTIONS,
+            databaseUrl: DATABASE_URL,
+            manifestPath: join(directory, "manifest.json"),
+            markerToken: MARKER,
+            planOutputPath,
+            snapshotOutputPath: join(directory, "before.sql"),
+            workingDirectory: resolve("apps/medusa-be"),
+          },
+          {
+            processRunner: async () => {
+              processCalls += 1
+              throw new Error("database process must not start")
+            },
+          }
+        )
+      ).rejects.toThrow("artifact output already exists")
+      expect(processCalls).toBe(0)
+      expect(await readFile(`${planOutputPath}.receipt.json`, "utf8")).toBe(
+        "do-not-overwrite\n"
+      )
+    } finally {
+      await rm(directory, { force: true, recursive: true })
+    }
+  })
+
+  it("rolls back when runtime rejects EUR/SK drift before writing commerce artifacts", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "ro-commerce-sk-drift-"))
+    const state = { value: "baseline" }
+    let dumpCount = 0
+    let restores = 0
+    const planOutputPath = join(directory, "plan.json")
+    const processRunner: CloneHarnessProcessRunner = async (request) => {
+      if (request.command === "pg_dump") {
+        dumpCount += 1
+        const outputPath = request.args[request.args.indexOf("--file") + 1]
+        if (!outputPath) {
+          throw new Error("missing fake dump output")
+        }
+        await writeFile(outputPath, "baseline\n")
+        if (dumpCount === 2) {
+          state.value = "eur-sk-mutated-after-fingerprint"
+        }
+        return { stderr: "", stdout: "" }
+      }
+      if (request.args.includes("--command")) {
+        if (
+          request.args.some((argument) => argument.includes("SELECT rolsuper"))
+        ) {
+          return { stderr: "", stdout: "t\n" }
+        }
+        return {
+          stderr: "",
+          stdout: `ro_demo_disposable_test\t${DISPOSABLE_DATABASE_MARKER_VERSION}:${MARKER}\n`,
+        }
+      }
+      restores += 1
+      state.value = "baseline"
+      return { stderr: "", stdout: "" }
+    }
+    const runCommerce: CloneHarnessCommerceRunner = async (invocation) => {
+      if (invocation.mode === "capture-fingerprint") {
+        await writeFakeDeploymentFingerprint(invocation)
+        return
+      }
+      expect(invocation.deploymentIdentity?.skCommerceBaselineSha256).toBe(
+        SK_COMMERCE_BASELINE_SHA256
+      )
+      if (state.value !== "baseline") {
+        throw new Error("expected SK commerce baseline does not match")
+      }
+      throw new Error("unexpected commerce execution")
+    }
+    try {
+      await expect(
+        runRoDemoCommerceCloneHarness(
+          {
+            ...HARNESS_SECURITY_OPTIONS,
+            databaseUrl: DATABASE_URL,
+            manifestPath: join(directory, "manifest.json"),
+            markerToken: MARKER,
+            planOutputPath,
+            snapshotOutputPath: join(directory, "before.sql"),
+            workingDirectory: resolve("apps/medusa-be"),
+          },
+          { processRunner, runCommerce }
+        )
+      ).rejects.toThrow("expected SK commerce baseline does not match")
+      expect(restores).toBe(1)
+      await expect(stat(planOutputPath)).rejects.toMatchObject({
+        code: "ENOENT",
+      })
+      await expect(
+        stat(`${planOutputPath}.restore.json`)
+      ).rejects.toMatchObject({ code: "ENOENT" })
+      await expect(
+        stat(`${planOutputPath}.receipt.json`)
+      ).rejects.toMatchObject({ code: "ENOENT" })
+    } finally {
+      await rm(directory, { force: true, recursive: true })
+    }
+  })
 
   it("rolls back when the active commerce invocation is aborted", async () => {
     const directory = await mkdtemp(join(tmpdir(), "ro-commerce-abort-"))
@@ -350,6 +566,10 @@ describe("RO demo commerce disposable clone safety", () => {
       return { stderr: "", stdout: "" }
     }
     const runCommerce: CloneHarnessCommerceRunner = async (invocation) => {
+      if (invocation.mode === "capture-fingerprint") {
+        await writeFakeDeploymentFingerprint(invocation)
+        return
+      }
       if (invocation.mode === "dry-run") {
         await writeFile(invocation.planOutputPath, "abort-plan\n")
         return
@@ -362,6 +582,7 @@ describe("RO demo commerce disposable clone safety", () => {
       await expect(
         runRoDemoCommerceCloneHarness(
           {
+            ...HARNESS_SECURITY_OPTIONS,
             databaseUrl: DATABASE_URL,
             manifestPath: join(directory, "manifest.json"),
             markerToken: MARKER,
@@ -410,6 +631,10 @@ describe("RO demo commerce disposable clone safety", () => {
       return { stderr: "", stdout: "" }
     }
     const runCommerce: CloneHarnessCommerceRunner = async (invocation) => {
+      if (invocation.mode === "capture-fingerprint") {
+        await writeFakeDeploymentFingerprint(invocation)
+        return
+      }
       state.value = "unexpected-write"
       await writeFile(invocation.planOutputPath, "invalid\n")
     }
@@ -417,6 +642,7 @@ describe("RO demo commerce disposable clone safety", () => {
     await expect(
       runRoDemoCommerceCloneHarness(
         {
+          ...HARNESS_SECURITY_OPTIONS,
           databaseUrl: DATABASE_URL,
           manifestPath: join(directory, "manifest.json"),
           markerToken: MARKER,
@@ -504,6 +730,20 @@ describe("RO demo commerce clone CLI", () => {
             "ts-node",
             "--swc",
             cliPath,
+            "--expected-backend-build-hash",
+            RUNTIME_AUTHORITY.backendBuildHash,
+            "--expected-backend-deployment-id",
+            RUNTIME_AUTHORITY.backendDeploymentId,
+            "--expected-backend-release-sha",
+            RUNTIME_AUTHORITY.backendReleaseSha,
+            "--expected-backend-slot",
+            RUNTIME_AUTHORITY.backendSlot,
+            "--expected-environment-id",
+            RUNTIME_AUTHORITY.environmentId,
+            "--expected-commerce-manifest-sha256",
+            RUNTIME_AUTHORITY.expectedCommerceManifestSha256,
+            "--expected-price-authority-sha256",
+            RUNTIME_AUTHORITY.expectedPriceAuthoritySha256,
             "--manifest",
             "manifest.json",
             "--plan-output",
@@ -645,6 +885,10 @@ describe.skipIf(process.env.RUN_RO_DEMO_CLONE_DOCKER !== "1")(
           sql,
         ])
       const runCommerce: CloneHarnessCommerceRunner = async (invocation) => {
+        if (invocation.mode === "capture-fingerprint") {
+          await writeFakeDeploymentFingerprint(invocation)
+          return
+        }
         if (invocation.mode === "dry-run") {
           await writeFile(invocation.planOutputPath, "docker-plan\n")
           return
@@ -652,12 +896,14 @@ describe.skipIf(process.env.RUN_RO_DEMO_CLONE_DOCKER !== "1")(
         expect(invocation.confirmPlanHash).toBe(
           await hashFile(invocation.planOutputPath)
         )
+        await writeFakeApplyArtifacts(invocation)
         await runSql(
           "INSERT INTO public.commerce_probe (id, value) VALUES (2, 'applied') ON CONFLICT (id) DO UPDATE SET value = EXCLUDED.value;"
         )
       }
       const report = await runRoDemoCommerceCloneHarness(
         {
+          ...HARNESS_SECURITY_OPTIONS,
           databaseUrl: `postgresql://postgres:${password}@127.0.0.1:5432/${databaseName}?sslmode=disable`,
           manifestPath: join(directory, "manifest.json"),
           markerToken: MARKER,

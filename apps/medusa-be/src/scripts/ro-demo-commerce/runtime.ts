@@ -31,6 +31,7 @@ import {
 } from "./manifest"
 import {
   buildRoDemoCommercePlan,
+  buildSkCommerceBaselineFingerprint,
   hashRoDemoCommercePlan,
   hashSkCommerceBaseline,
   serializeRoDemoCommercePlan,
@@ -54,6 +55,49 @@ type QueryService = Readonly<{
 }>
 
 const PAGE_SIZE = 500
+const DATABASE_INSTANCE_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
+
+export const buildRoDemoDatabaseInstanceFingerprint = (
+  environment: NodeJS.ProcessEnv
+) => {
+  try {
+    const databaseUrl = environment.DATABASE_URL
+    const databaseInstanceId = environment.RO_DEMO_DATABASE_INSTANCE_ID
+    if (!(databaseUrl && databaseInstanceId)) {
+      throw new Error("missing database identity")
+    }
+    if (!DATABASE_INSTANCE_ID.test(databaseInstanceId)) {
+      throw new Error("invalid database instance id")
+    }
+    const parsed = new URL(databaseUrl)
+    if (
+      (parsed.protocol !== "postgres:" && parsed.protocol !== "postgresql:") ||
+      !parsed.hostname
+    ) {
+      throw new Error("invalid database endpoint")
+    }
+    const encodedDatabaseName = parsed.pathname.slice(1)
+    if (!encodedDatabaseName || encodedDatabaseName.includes("/")) {
+      throw new Error("invalid database name")
+    }
+    const databaseName = decodeURIComponent(encodedDatabaseName)
+    if (!databaseName) {
+      throw new Error("invalid database name")
+    }
+    return sha256RoDemoArtifactBytes(
+      serializeRoDemoArtifact({
+        databaseInstanceId,
+        databaseName,
+        host: parsed.hostname.toLowerCase(),
+        port: parsed.port || "5432",
+        protocol: "postgresql",
+      })
+    )
+  } catch {
+    throw new Error("database instance identity is missing or invalid")
+  }
+}
+
 export const buildRoDemoDatabaseFingerprint = (
   snapshot: RoDemoSnapshot,
   salesChannelId: string
@@ -85,6 +129,8 @@ export const assertRoDemoDeploymentIdentity = (
       snapshot,
       salesChannelId
     ),
+    databaseInstanceFingerprint:
+      buildRoDemoDatabaseInstanceFingerprint(environment),
     environmentId: environment.RO_DEMO_ENVIRONMENT_ID,
   }
   if (
@@ -97,6 +143,39 @@ export const assertRoDemoDeploymentIdentity = (
     )
   }
   return expected
+}
+
+const assertExpectedPriceAuthority = (
+  actualSha256: string,
+  expectedSha256: string
+) => {
+  if (actualSha256 !== expectedSha256) {
+    throw new Error(
+      "price authority bytes do not match the externally reviewed SHA-256"
+    )
+  }
+}
+
+const assertExpectedCommerceManifest = (
+  actualSha256: string,
+  expectedSha256: string
+) => {
+  if (actualSha256 !== expectedSha256) {
+    throw new Error(
+      "commerce manifest bytes do not match the externally reviewed SHA-256"
+    )
+  }
+}
+
+const assertExpectedSkCommerceBaseline = (
+  snapshot: RoDemoSnapshot,
+  expectedSha256: string
+) => {
+  if (hashSkCommerceBaseline(snapshot) !== expectedSha256) {
+    throw new Error(
+      "SK commerce baseline does not match the pre-deployment fingerprint"
+    )
+  }
 }
 const stringValue = (value: unknown, label: string) => {
   if (typeof value !== "string" || value.length === 0) {
@@ -1003,6 +1082,7 @@ export const buildRoDemoRestoreArtifact = (
   planHash: string,
   snapshot: RoDemoSnapshot
 ): RoDemoRestoreArtifact => ({
+  commerceManifestSha256: plan.commerceManifestSha256,
   demo: true as const,
   deploymentIdentity: plan.deploymentIdentity,
   kind: "ro-demo-commerce-restore" as const,
@@ -1133,6 +1213,7 @@ export const buildRoDemoApplyReceipt = (
     variantPrices,
   }
   return {
+    commerceManifestSha256: plan.commerceManifestSha256,
     demo: true as const,
     deploymentIdentity: plan.deploymentIdentity,
     kind: "ro-demo-commerce-apply-receipt" as const,
@@ -1158,6 +1239,14 @@ export default async function roDemoCommerce({ args, container }: ExecArgs) {
   if (args.includes("--capture-deployment-fingerprint")) {
     const capture = parseRoDemoFingerprintCliOptions(args)
     const input = await loadRoDemoInput(capture.manifestPath)
+    assertExpectedCommerceManifest(
+      input.commerceManifestSha256,
+      capture.expectedCommerceManifestSha256
+    )
+    assertExpectedPriceAuthority(
+      input.priceAuthoritySha256,
+      capture.expectedPriceAuthoritySha256
+    )
     const snapshot = await inspectRoDemoCommerce(container)
     const salesChannelId = input.manifest.binding.salesChannelId
     const deploymentIdentity: RoDemoDeploymentIdentity = {
@@ -1168,6 +1257,9 @@ export default async function roDemoCommerce({ args, container }: ExecArgs) {
       databaseFingerprint: buildRoDemoDatabaseFingerprint(
         snapshot,
         salesChannelId
+      ),
+      databaseInstanceFingerprint: buildRoDemoDatabaseInstanceFingerprint(
+        process.env
       ),
       environmentId: capture.environmentId,
     }
@@ -1184,10 +1276,13 @@ export default async function roDemoCommerce({ args, container }: ExecArgs) {
         stores: snapshot.stores.length,
         variants: snapshot.variants.length,
       },
+      commerceManifestSha256: input.commerceManifestSha256,
       deploymentIdentity,
       kind: "ro-demo-commerce-deployment-fingerprint" as const,
+      priceAuthoritySha256: input.priceAuthoritySha256,
       salesChannelId,
       schemaVersion: 1 as const,
+      skCommerceBaseline: buildSkCommerceBaselineFingerprint(snapshot),
     }
     const bytes = serializeRoDemoArtifact(artifact)
     await writePrivateArtifact(capture.fingerprintOutputPath, bytes)
@@ -1199,7 +1294,19 @@ export default async function roDemoCommerce({ args, container }: ExecArgs) {
   }
   const options = parseRoDemoCliOptions(args)
   const input = await loadRoDemoInput(options.manifestPath)
+  assertExpectedCommerceManifest(
+    input.commerceManifestSha256,
+    options.expectedCommerceManifestSha256
+  )
+  assertExpectedPriceAuthority(
+    input.priceAuthoritySha256,
+    options.expectedPriceAuthoritySha256
+  )
   const snapshot = await inspectRoDemoCommerce(container)
+  assertExpectedSkCommerceBaseline(
+    snapshot,
+    options.expectedSkCommerceBaselineSha256
+  )
   assertRoDemoDeploymentIdentity(
     options.expectedDeployment,
     snapshot,
@@ -1210,7 +1317,11 @@ export default async function roDemoCommerce({ args, container }: ExecArgs) {
     input.priceAuthority,
     input.priceAuthoritySha256,
     input.manifest.binding,
-    { deploymentIdentity: options.expectedDeployment, snapshot }
+    {
+      commerceManifestSha256: input.commerceManifestSha256,
+      deploymentIdentity: options.expectedDeployment,
+      snapshot,
+    }
   )
   const planHash = hashRoDemoCommercePlan(plan)
   const planBytes = serializeRoDemoCommercePlan(plan)
@@ -1248,7 +1359,19 @@ export default async function roDemoCommerce({ args, container }: ExecArgs) {
     )
   }
   const refreshedInput = await loadRoDemoInput(options.manifestPath)
+  assertExpectedCommerceManifest(
+    refreshedInput.commerceManifestSha256,
+    options.expectedCommerceManifestSha256
+  )
+  assertExpectedPriceAuthority(
+    refreshedInput.priceAuthoritySha256,
+    options.expectedPriceAuthoritySha256
+  )
   const refreshedSnapshot = await inspectRoDemoCommerce(container)
+  assertExpectedSkCommerceBaseline(
+    refreshedSnapshot,
+    options.expectedSkCommerceBaselineSha256
+  )
   assertRoDemoDeploymentIdentity(
     options.expectedDeployment,
     refreshedSnapshot,
@@ -1260,6 +1383,7 @@ export default async function roDemoCommerce({ args, container }: ExecArgs) {
     refreshedInput.priceAuthoritySha256,
     refreshedInput.manifest.binding,
     {
+      commerceManifestSha256: refreshedInput.commerceManifestSha256,
       deploymentIdentity: options.expectedDeployment,
       snapshot: refreshedSnapshot,
     }

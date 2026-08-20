@@ -1,0 +1,59 @@
+FROM alpine:3.23@sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40 AS rclone
+
+ARG TARGETARCH
+ARG RCLONE_VERSION=1.74.2
+ARG RCLONE_SHA256_AMD64=72a806370072015ccbe4d81bcd348cc5eaf3beca6c65ba693fd43fb31fcca5b1
+ARG RCLONE_SHA256_ARM64=bc2b2eb8269b743ed7bcea869f3782cfb4931e41efa53fc8befc6dc8308b7a50
+
+RUN apk add --no-cache \
+      ca-certificates=20260611-r0 \
+      curl=8.20.0-r0 \
+      unzip=6.0-r16 \
+  && case "${TARGETARCH}" in \
+       amd64) rclone_sha256="${RCLONE_SHA256_AMD64}" ;; \
+       arm64) rclone_sha256="${RCLONE_SHA256_ARM64}" ;; \
+       *) echo "unsupported TARGETARCH: ${TARGETARCH}" >&2; exit 64 ;; \
+     esac \
+  && curl --fail --location --proto '=https' --tlsv1.2 \
+       --output /tmp/rclone.zip \
+       "https://downloads.rclone.org/v${RCLONE_VERSION}/rclone-v${RCLONE_VERSION}-linux-${TARGETARCH}.zip" \
+  && echo "${rclone_sha256}  /tmp/rclone.zip" | sha256sum -c - \
+  && unzip -q /tmp/rclone.zip -d /tmp/rclone \
+  && install -m 0755 "/tmp/rclone/rclone-v${RCLONE_VERSION}-linux-${TARGETARCH}/rclone" /usr/local/bin/rclone
+
+FROM alpine:3.23@sha256:fd791d74b68913cbb027c6546007b3f0d3bc45125f797758156952bc2d6daf40
+
+ARG SOURCE_COMMIT
+
+RUN case "${SOURCE_COMMIT}" in \
+       *[!0-9a-f]*|'') echo 'SOURCE_COMMIT must be a lowercase hexadecimal git SHA' >&2; exit 64 ;; \
+     esac \
+  && case "${#SOURCE_COMMIT}" in 40|64) ;; *) echo 'SOURCE_COMMIT must contain 40 or 64 hexadecimal characters' >&2; exit 64 ;; esac \
+  && apk add --no-cache \
+       ca-certificates=20260611-r0 \
+       nodejs=24.18.1-r0 \
+       postgresql18-client=18.6-r0 \
+  && addgroup -S -g 10001 cutover \
+  && adduser -S -D -H -u 10001 -G cutover cutover \
+  && install -d -m 0700 -o cutover -g cutover /work /tmp/cutover
+
+COPY --from=rclone /usr/local/bin/rclone /usr/local/bin/rclone
+COPY --chown=cutover:cutover apps/medusa-be/src/scripts/ro-cutover-backup /opt/ro-cutover-backup
+
+LABEL org.opencontainers.image.revision="${SOURCE_COMMIT}" \
+      org.opencontainers.image.title="Herbatika RO cutover private backup helper"
+
+ENV HOME=/tmp/cutover \
+    NODE_ENV=production \
+    PATH=/usr/local/bin:/usr/bin:/bin \
+    XDG_CACHE_HOME=/tmp/cutover/cache \
+    XDG_CONFIG_HOME=/tmp/cutover/config
+
+WORKDIR /work
+USER 10001:10001
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=3s --retries=3 \
+  CMD ["node", "/opt/ro-cutover-backup/index.mts", "health"]
+
+ENTRYPOINT ["node", "/opt/ro-cutover-backup/index.mts"]
+CMD ["idle"]

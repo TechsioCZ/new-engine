@@ -78,6 +78,7 @@ export type RoDemoDeploymentIdentity = Readonly<{
   backendReleaseSha: string
   backendSlot: "blue" | "green"
   databaseFingerprint: string
+  databaseInstanceFingerprint: string
   environmentId: string
 }>
 
@@ -85,6 +86,9 @@ export type RoDemoCliOptions = Readonly<{
   apply: boolean
   confirmPlanHash?: string
   demo: boolean
+  expectedCommerceManifestSha256: string
+  expectedPriceAuthoritySha256: string
+  expectedSkCommerceBaselineSha256: string
   manifestPath: string
   planOutputPath: string
   expectedDeployment: RoDemoDeploymentIdentity
@@ -184,6 +188,7 @@ export type RoDemoTaxAssignment = Readonly<{
 
 export type RoDemoCommercePlan = Readonly<{
   binding: RoDemoBinding
+  commerceManifestSha256: string
   codPolicy: Readonly<{
     configuredFee: 9.45
     configuredMinimumOrder: 40
@@ -267,6 +272,7 @@ export type RoDemoCommercePlan = Readonly<{
 
 export type RoDemoLoadedInput = Readonly<{
   absoluteManifestPath: string
+  commerceManifestSha256: string
   manifest: RoDemoManifest
   priceAuthority: RoDemoPriceAuthority
   priceAuthorityPath: string

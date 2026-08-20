@@ -23,6 +23,7 @@ const hashBytes = (value) => createHash("sha256").update(value).digest("hex")
 const hashLabel = (value) => hashBytes(`fixture:${value}`)
 const canonicalBytes = (value) => `${canonicalCutoverValue(value)}\n`
 const RAW_TAMPER_PATTERN = /rawLiveInventory file SHA-256 mismatch/
+const MANIFEST_TAMPER_PATTERN = /commerce.manifest file SHA-256 mismatch/
 const ENVELOPE_MISMATCH_PATTERN =
   /post-commerce envelope does not match receipt/
 const STALE_ENVELOPE_PATTERN = /capture is stale or from the future/
@@ -30,6 +31,8 @@ const SK_MUTATION_PATTERN =
   /Two-phase provenance receipt chain is broken|SK commerce baseline changed/
 const INVENTORY_MUTATION_PATTERN =
   /Two-phase provenance receipt chain is broken|shared inventory changed/
+const MEILI_AUTHORITY_PATTERN =
+  /Meilisearch convergence or SK isolation is invalid/
 const RELEASE_MISMATCH_PATTERN =
   /maintenance proof does not preserve RO restriction/
 const SCOPE_MISMATCH_PATTERN =
@@ -94,6 +97,7 @@ const buildEvidence = async (options = {}) => {
     backendReleaseSha: "a".repeat(40),
     backendSlot: "blue",
     databaseFingerprint: hashLabel("database"),
+    databaseInstanceFingerprint: hashLabel("database-instance"),
     environmentId: "zane-production",
     locale: "ro-RO",
     marketCode: "ro",
@@ -111,6 +115,7 @@ const buildEvidence = async (options = {}) => {
     backendReleaseSha: releaseIdentity.backendReleaseSha,
     backendSlot: releaseIdentity.backendSlot,
     databaseFingerprint: releaseIdentity.databaseFingerprint,
+    databaseInstanceFingerprint: releaseIdentity.databaseInstanceFingerprint,
     environmentId: releaseIdentity.environmentId,
   }
 
@@ -124,16 +129,38 @@ const buildEvidence = async (options = {}) => {
   )
   const priceAuthority = await writeCanonical(
     "precommerce/price-authority.json",
-    { fixture: "price-authority", schemaVersion: 1 }
+    {
+      fixture: "price-authority",
+      products: [
+        {
+          productId: "product_1",
+          variants: [
+            {
+              price: { amount: 1290, currencyCode: "ron" },
+              roAvailability: "sellable",
+              variantId: "variant_1",
+            },
+          ],
+        },
+      ],
+      schemaVersion: 1,
+    }
   )
 
+  const commerceManifest = await writeCanonical("commerce/manifest.json", {
+    fixture: "commerce-manifest",
+    schemaVersion: 1,
+  })
   const commercePlanHash = hashLabel("commerce-plan-semantic")
   const commercePlan = await writeCanonical("commerce/plan.json", {
+    commerceManifestSha256: commerceManifest.sha256,
+    deploymentIdentity,
     fixture: "commerce-plan",
     planHash: commercePlanHash,
     schemaVersion: 1,
   })
   const restoreValue = {
+    commerceManifestSha256: commerceManifest.sha256,
     demo: true,
     deploymentIdentity,
     kind: "ro-demo-commerce-restore",
@@ -167,8 +194,13 @@ const buildEvidence = async (options = {}) => {
     ],
   }
   const applyValue = {
+    commerceManifestSha256:
+      options.applyCommerceManifestSha256 ?? commerceManifest.sha256,
     demo: true,
-    deploymentIdentity,
+    deploymentIdentity: {
+      ...deploymentIdentity,
+      ...options.applyDeploymentIdentity,
+    },
     kind: "ro-demo-commerce-apply-receipt",
     market: "ro",
     planHash: commercePlanHash,
@@ -194,6 +226,7 @@ const buildEvidence = async (options = {}) => {
     backendReleaseSha: releaseIdentity.backendReleaseSha,
     backendSlot: releaseIdentity.backendSlot,
     databaseFingerprint: releaseIdentity.databaseFingerprint,
+    databaseInstanceFingerprint: releaseIdentity.databaseInstanceFingerprint,
     environmentId: releaseIdentity.environmentId,
     locale: "ro-RO",
     marketCode: "ro",
@@ -211,9 +244,13 @@ const buildEvidence = async (options = {}) => {
     ...options.postInventoryFingerprint,
   }
   const payload = { catalogProducts: 2151, commerceReady: true }
+  const preCommerceSkBaselineArtifactSha256 = hashLabel(
+    "pre-commerce-sk-baseline-artifact"
+  )
   const envelopeValue = {
     capturedAt: options.capturedAt ?? iso(now, -0.5),
     commerceApplyReceiptSha256: applyReceipt.sha256,
+    commerceManifestSha256: commerceManifest.sha256,
     commercePlanFileSha256: commercePlan.sha256,
     commercePlanHash,
     commerceRestoreArtifactSha256: restoreArtifact.sha256,
@@ -225,6 +262,7 @@ const buildEvidence = async (options = {}) => {
     postCommerceSharedInventoryFingerprint: inventoryAfter,
     postCommerceSkBaseline: skAfter,
     preCommerceSharedInventoryFingerprint: inventoryBefore,
+    preCommerceSkBaselineArtifactSha256,
     preCommerceSkBaseline: skBefore,
     priceAuthoritySha256: priceAuthority.sha256,
     rawLiveInventorySha256: rawLiveInventory.sha256,
@@ -502,6 +540,7 @@ const buildEvidence = async (options = {}) => {
       unsettledTaskCount: 0,
     },
     catalogScopeSha256: scopeForOperations,
+    environmentId: options.meiliEnvironmentId ?? releaseIdentity.environmentId,
     generatedAt: iso(now, -3),
     indexes: {
       brand: index(roUids[0], 1, scope.brandIds),
@@ -517,6 +556,8 @@ const buildEvidence = async (options = {}) => {
     kind: "herbatika-ro-meilisearch-convergence-proof",
     locale: "ro-RO",
     market: "ro",
+    marketAuthoritySha256:
+      options.meiliMarketAuthoritySha256 ?? priceAuthority.sha256,
     profile: {
       domain: new URL(releaseIdentity.roOrigin).hostname,
       key: "ro-production",
@@ -531,6 +572,13 @@ const buildEvidence = async (options = {}) => {
       strict: true,
     },
     releaseId: releaseForOperations,
+    ronPriceProjectionSha256:
+      options.meiliRonPriceProjectionSha256 ??
+      hashBytes(
+        canonicalCutoverValue([
+          { amount: 1290, productId: "product_1", variantId: "variant_1" },
+        ])
+      ),
     schemaVersion: 1,
     scope: {
       brandEntityCount: 1,
@@ -574,6 +622,7 @@ const buildEvidence = async (options = {}) => {
     },
     commerce: {
       applyReceipt,
+      manifest: commerceManifest,
       plan: commercePlan,
       priceAuthoritySha256: priceAuthority.sha256,
       restoreArtifact,
@@ -589,6 +638,7 @@ const buildEvidence = async (options = {}) => {
     },
     postCommerce: {
       commerceApplyReceiptSha256: applyReceipt.sha256,
+      commerceManifestSha256: commerceManifest.sha256,
       commercePlanFileSha256: commercePlan.sha256,
       commercePlanHash,
       commerceRestoreArtifactSha256: restoreArtifact.sha256,
@@ -605,6 +655,7 @@ const buildEvidence = async (options = {}) => {
       preCommerceSharedInventoryFingerprintSha256: inventoryBefore.sha256,
       preCommerceSkBaselineCount: skBefore.count,
       preCommerceSkBaselineErrors: skBefore.errors.length,
+      preCommerceSkBaselineArtifactSha256,
       preCommerceSkBaselineSha256: skBefore.sha256,
       priceAuthoritySha256: priceAuthority.sha256,
       rawLiveInventorySha256: rawLiveInventory.sha256,
@@ -675,6 +726,53 @@ test("rejects a post-commerce envelope from the wrong backend environment", asyn
   )
 })
 
+test("rejects a post-commerce envelope switched to a cloned database instance", async () => {
+  const fixture = await buildEvidence({
+    environment: {
+      databaseInstanceFingerprint: hashLabel("cloned-database-instance"),
+    },
+  })
+
+  await assert.rejects(
+    verifyCutoverReceiptArtifacts(fixture),
+    ENVELOPE_MISMATCH_PATTERN
+  )
+})
+
+test("rejects an apply receipt replayed from a cloned database instance", async () => {
+  const fixture = await buildEvidence({
+    applyDeploymentIdentity: {
+      databaseInstanceFingerprint: hashLabel("cloned-database-instance"),
+    },
+  })
+
+  await assert.rejects(
+    verifyCutoverReceiptArtifacts(fixture),
+    ENVELOPE_MISMATCH_PATTERN
+  )
+})
+
+test("rejects commerce evidence bound to a different reviewed manifest", async () => {
+  const fixture = await buildEvidence({
+    applyCommerceManifestSha256: hashLabel("different-commerce-manifest"),
+  })
+
+  await assert.rejects(
+    verifyCutoverReceiptArtifacts(fixture),
+    ENVELOPE_MISMATCH_PATTERN
+  )
+})
+
+test("rejects tampered raw commerce manifest bytes", async () => {
+  const fixture = await buildEvidence()
+  await appendFile(join(fixture.directoryPath, "commerce/manifest.json"), " ")
+
+  await assert.rejects(
+    verifyCutoverReceiptArtifacts(fixture),
+    MANIFEST_TAMPER_PATTERN
+  )
+})
+
 test("rejects a stale post-commerce envelope", async () => {
   const fixture = await buildEvidence({
     capturedAt: "2026-01-01T00:00:00.000Z",
@@ -705,6 +803,39 @@ test("rejects mutated shared inventory across the RO commerce phase", async () =
   await assert.rejects(
     verifyCutoverReceiptArtifacts(fixture),
     INVENTORY_MUTATION_PATTERN
+  )
+})
+
+test("rejects a Meilisearch proof bound to another market authority", async () => {
+  const fixture = await buildEvidence({
+    meiliMarketAuthoritySha256: hashLabel("substituted-market-authority"),
+  })
+
+  await assert.rejects(
+    verifyCutoverReceiptArtifacts(fixture),
+    MEILI_AUTHORITY_PATTERN
+  )
+})
+
+test("rejects a Meilisearch proof with substituted RON amounts", async () => {
+  const fixture = await buildEvidence({
+    meiliRonPriceProjectionSha256: hashLabel("substituted-ron-prices"),
+  })
+
+  await assert.rejects(
+    verifyCutoverReceiptArtifacts(fixture),
+    MEILI_AUTHORITY_PATTERN
+  )
+})
+
+test("rejects a Meilisearch proof from another environment", async () => {
+  const fixture = await buildEvidence({
+    meiliEnvironmentId: "cloned-zane-environment",
+  })
+
+  await assert.rejects(
+    verifyCutoverReceiptArtifacts(fixture),
+    MEILI_AUTHORITY_PATTERN
   )
 })
 

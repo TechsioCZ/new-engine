@@ -63,6 +63,19 @@ hash. A variant with any rule-scoped base price fails preflight rather than
 risk broadening or deleting its pricing rules. Price-list rows are never sent
 through the base-price update workflow.
 
+The currently reviewed production authority exact-byte SHA-256 is
+`7c925a58a1753a8f609223ff2b40e21c49846bc97010f410030441a0482f7fb5`.
+Supply that independently reviewed value to every fingerprint, dry-run, and
+apply invocation. The runtime rehashes the authority bytes on every load; a
+canonical but price-modified replay is rejected before a plan or mutation.
+
+Create the environment-specific commerce manifest as a private `0600` file,
+review every binding ID, and retain its exact raw-byte SHA-256. The manifest is
+not an implicit deployment setting: every fingerprint, dry-run, and apply must
+receive that independently reviewed hash through
+`--expected-commerce-manifest-sha256`. The plan, restore evidence, and apply
+receipt all carry the same hash.
+
 The safe two-phase sequence is:
 
 1. Generate and review `ro-price-authority.json` from official merged evidence.
@@ -132,9 +145,14 @@ An abbreviated structural example (not a valid production artifact) is:
 
 Both dry-run and apply are bound to the exact backend deployment and database.
 The runtime verifies `BACKEND_BUILD_HASH`, `ZANE_DEPLOYMENT_ID`, `RELEASE_SHA`,
-`ZANE_DEPLOYMENT_SLOT`, and `RO_DEMO_ENVIRONMENT_ID`. The database fingerprint
-is the canonical SHA-256 of the module identity, sorted product IDs, variant
-IDs, store IDs, and the RO sales-channel ID.
+`ZANE_DEPLOYMENT_SLOT`, `RO_DEMO_ENVIRONMENT_ID`, `DATABASE_URL`, and the
+operator-managed non-secret `RO_DEMO_DATABASE_INSTANCE_ID`. The catalog-state
+database fingerprint is the canonical SHA-256 of the module identity, sorted
+product IDs, variant IDs, store IDs, and the RO sales-channel ID. A separate
+`databaseInstanceFingerprint` binds the normalized PostgreSQL host, port and
+database name to `RO_DEMO_DATABASE_INSTANCE_ID`; credentials and URL query
+parameters are excluded and never logged. This prevents a byte-identical clone
+from reusing a reviewed production plan.
 
 Capture that value read-only on the exact deployment first:
 
@@ -147,13 +165,19 @@ pnpm exec medusa exec ./src/scripts/ro-demo-commerce/runtime.ts \
   --expected-backend-deployment-id DEPLOYMENT_ID \
   --expected-backend-release-sha 40_HEX_RELEASE_SHA \
   --expected-backend-build-hash BUILD_HASH \
-  --expected-backend-slot blue
+  --expected-backend-slot blue \
+  --expected-commerce-manifest-sha256 64_HEX_COMMERCE_MANIFEST_SHA256 \
+  --expected-price-authority-sha256 \
+    7c925a58a1753a8f609223ff2b40e21c49846bc97010f410030441a0482f7fb5
 ```
 
 The canonical `0600` no-clobber artifact reports product/variant/store counts,
-the sales channel, complete deployment identity, database fingerprint, and its
-own raw-byte SHA-256 in the log. Use that exact database fingerprint in the
-following dry-run and apply.
+the sales channel, complete deployment identity, both database fingerprints,
+the reviewed authority SHA, and `skCommerceBaseline: { count, sha256 }`. The SK
+hash uses exactly the planner's protected non-RON prices, SK regions, SK service
+zones, and non-RON store currencies. Use both database fingerprints and the SK
+baseline SHA from this pre-deployment capture in the following dry-run and
+apply.
 
 Dry-run is the default and performs no commerce writes. All output paths are
 absolute, pairwise distinct, and no-clobber:
@@ -167,7 +191,14 @@ pnpm exec medusa exec ./src/scripts/ro-demo-commerce/runtime.ts \
   --expected-backend-release-sha 40_HEX_RELEASE_SHA \
   --expected-backend-build-hash BUILD_HASH \
   --expected-backend-slot blue \
-  --expected-database-fingerprint 64_HEX_DATABASE_FINGERPRINT
+  --expected-commerce-manifest-sha256 64_HEX_COMMERCE_MANIFEST_SHA256 \
+  --expected-database-fingerprint 64_HEX_DATABASE_FINGERPRINT \
+  --expected-database-instance-fingerprint \
+    64_HEX_DATABASE_INSTANCE_FINGERPRINT \
+  --expected-price-authority-sha256 \
+    7c925a58a1753a8f609223ff2b40e21c49846bc97010f410030441a0482f7fb5 \
+  --expected-sk-commerce-baseline-sha256 \
+    64_HEX_SK_COMMERCE_BASELINE_FROM_CAPTURE
 ```
 
 Apply requires both an explicit demo acknowledgement and the exact fresh plan
@@ -184,7 +215,14 @@ pnpm exec medusa exec ./src/scripts/ro-demo-commerce/runtime.ts \
   --expected-backend-release-sha 40_HEX_RELEASE_SHA \
   --expected-backend-build-hash BUILD_HASH \
   --expected-backend-slot blue \
+  --expected-commerce-manifest-sha256 64_HEX_COMMERCE_MANIFEST_SHA256 \
   --expected-database-fingerprint 64_HEX_DATABASE_FINGERPRINT \
+  --expected-database-instance-fingerprint \
+    64_HEX_DATABASE_INSTANCE_FINGERPRINT \
+  --expected-price-authority-sha256 \
+    7c925a58a1753a8f609223ff2b40e21c49846bc97010f410030441a0482f7fb5 \
+  --expected-sk-commerce-baseline-sha256 \
+    64_HEX_SK_COMMERCE_BASELINE_FROM_CAPTURE \
   --demo --apply --confirm-plan-hash HASH_FROM_DRY_RUN
 ```
 
@@ -197,7 +235,10 @@ Before the first write, the tool re-loads the manifest and authority exact
 bytes, repeats the complete inspection and deployment/database check, rebuilds
 the exact plan, and rejects authority, plan, environment, database, or SK drift.
 It reserves the restore and receipt paths, then writes a canonical `0600`
-restore artifact containing the exact pre-write snapshot.
+restore evidence artifact containing the planner's pre-write inspection
+snapshot. It is sufficient for drift and receipt proof, but it is not a
+lossless executable rollback image: shipping and tax inspection omit fields
+needed to reconstruct every overwritten entity.
 
 The target region is staged without Romania. Store, price preference, service
 zone, shipping, tax, and RON price changes are prepared while `ro` still belongs
@@ -205,7 +246,9 @@ to its original region. The SK baseline is checked again. Only then does one
 Region Module `upsertRegions` call atomically remove `ro` from its former owner
 and assign it to the target. A post-handoff failure atomically assigns Romania
 back to the original region. Prefix resources remain isolated/tool-owned and
-can be reconciled or restored from the captured snapshot.
+can be reconciled with a new reviewed plan. Exact recovery of every prefix
+write requires the separately tested full Medusa database backup; this script
+has no restore executor.
 
 After apply it re-reads and proves the exact RO region/payment marker, service
 zone, three shipping options, 21%/11% tax IDs, and every approved RON price. It

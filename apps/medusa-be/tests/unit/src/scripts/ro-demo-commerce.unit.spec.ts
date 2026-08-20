@@ -32,6 +32,7 @@ const deploymentIdentity: RoDemoDeploymentIdentity = {
   backendReleaseSha: "b".repeat(40),
   backendSlot: "blue",
   databaseFingerprint: "c".repeat(64),
+  databaseInstanceFingerprint: "d".repeat(64),
   environmentId: "herbatika-production",
 }
 const deploymentArgs = [
@@ -43,10 +44,18 @@ const deploymentArgs = [
   deploymentIdentity.backendReleaseSha,
   "--expected-backend-slot",
   deploymentIdentity.backendSlot,
+  "--expected-commerce-manifest-sha256",
+  HASH,
   "--expected-database-fingerprint",
   deploymentIdentity.databaseFingerprint,
+  "--expected-database-instance-fingerprint",
+  deploymentIdentity.databaseInstanceFingerprint,
   "--expected-environment-id",
   deploymentIdentity.environmentId,
+  "--expected-price-authority-sha256",
+  HASH,
+  "--expected-sk-commerce-baseline-sha256",
+  "e".repeat(64),
 ]
 const buildRoDemoCommercePlan = (
   ...args: [
@@ -57,6 +66,7 @@ const buildRoDemoCommercePlan = (
   ]
 ) =>
   buildRoDemoCommercePlanWithDeployment(args[0], args[1], args[2], {
+    commerceManifestSha256: HASH,
     deploymentIdentity,
     snapshot: args[3],
   })
@@ -280,7 +290,10 @@ describe("RO demo commerce manifest", () => {
       apply: true,
       confirmPlanHash: HASH,
       demo: true,
+      expectedCommerceManifestSha256: HASH,
       expectedDeployment: deploymentIdentity,
+      expectedPriceAuthoritySha256: HASH,
+      expectedSkCommerceBaselineSha256: "e".repeat(64),
       manifestPath: "demo.json",
       planOutputPath: "/tmp/ro-plan.json",
       receiptOutputPath: "/tmp/ro-receipt.json",

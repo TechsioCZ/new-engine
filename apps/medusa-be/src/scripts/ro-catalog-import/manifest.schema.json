@@ -102,6 +102,7 @@
       "required": [
         "capturedAt",
         "commerceApplyReceiptSha256",
+        "commerceManifestSha256",
         "commercePlanFileSha256",
         "commercePlanHash",
         "commerceRestoreArtifactSha256",
@@ -114,6 +115,7 @@
         "postCommerceSkBaseline",
         "preCommerceSharedInventoryFingerprint",
         "preCommerceSkBaseline",
+        "preCommerceSkBaselineArtifactSha256",
         "priceAuthoritySha256",
         "rawLiveInventorySha256",
         "schemaVersion",
@@ -122,6 +124,10 @@
       "properties": {
         "capturedAt": { "type": "string", "format": "date-time" },
         "commerceApplyReceiptSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "commerceManifestSha256": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
         },
@@ -143,6 +149,7 @@
             "backendReleaseSha",
             "backendSlot",
             "databaseFingerprint",
+            "databaseInstanceFingerprint",
             "environmentId",
             "locale",
             "marketCode",
@@ -157,6 +164,10 @@
             },
             "backendSlot": { "enum": ["blue", "green"] },
             "databaseFingerprint": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "databaseInstanceFingerprint": {
               "type": "string",
               "pattern": "^[a-f0-9]{64}$"
             },
@@ -184,6 +195,10 @@
           "$ref": "#/$defs/stateFingerprint"
         },
         "preCommerceSkBaseline": { "$ref": "#/$defs/skStateProof" },
+        "preCommerceSkBaselineArtifactSha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
         "priceAuthoritySha256": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"

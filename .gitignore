@@ -52,6 +52,9 @@ playwright-report
 test-results
 .playwright-cli/
 .playwright
+.qa/
+agent-sitemaps/
+dogfood-output/
 .env
 .env.zane*
 

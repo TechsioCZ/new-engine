@@ -59,12 +59,19 @@ envelope, and raw live identity snapshot. It covers all `2,191` variants:
 products, and `160` variants under `149` excluded products. The file appears
 atomically with mode `0600` and there is no apply switch:
 
+Medusa 2.18 requires every script token through its repeated `--args` option;
+a bare `--` leaves `ExecArgs.args` empty:
+
 ```bash
 pnpm exec medusa exec ./src/scripts/ro-demo-localization/precommerce-cli.ts \
-  --inventory /run/secrets/herbatika/pre-commerce-inventory-envelope.json \
-  --merged-products /run/secrets/herbatika/ro-merged-products.jsonl \
-  --raw-live-inventory /run/secrets/herbatika/raw-live-inventory.json \
-  --pre-commerce-price-authority-output /run/secrets/herbatika/ro-demo-precommerce-price-authority.json
+  --args=--inventory \
+  --args=/run/secrets/herbatika/pre-commerce-inventory-envelope.json \
+  --args=--merged-products \
+  --args=/run/secrets/herbatika/ro-merged-products.jsonl \
+  --args=--raw-live-inventory \
+  --args=/run/secrets/herbatika/raw-live-inventory.json \
+  --args=--pre-commerce-price-authority-output \
+  --args=/run/secrets/herbatika/ro-demo-precommerce-price-authority.json
 ```
 
 Commerce dry-run/apply consumes that reviewed authority and creates or
@@ -76,16 +83,29 @@ or missing approved live RON price fails before output creation.
 
 Phase 2 generates one atomic directory containing `bundle.json`,
 `manifest.json`, and `omission-ledger.json`. Files are written into a sibling
-temporary directory and become visible together through one directory rename:
+private `0700` directory with `0600` files, then become visible together
+through one exclusive symlink publication. An existing output path is never
+replaced.
+The final CLI re-hashes the price-authority bytes against the post-commerce
+wrapper, then re-hashes the merged-product JSONL bytes against the authority's
+frozen `sourceRoots.mergedProductsSha256`; substituted JSONL is rejected:
 
 ```bash
 pnpm exec medusa exec ./src/scripts/ro-demo-localization/cli.ts \
-  --catalog-entities /run/secrets/herbatika/ro-catalog-entities.json \
-  --category-source /run/secrets/herbatika/ro-merged-categories.jsonl \
-  --merged-products /run/secrets/herbatika/ro-merged-products.jsonl \
-  --post-commerce-envelope /run/secrets/herbatika/ro-demo-post-commerce-envelope.json \
-  --post-commerce-envelope-sha256 REVIEWED_EXACT_BYTE_SHA256 \
-  --output-directory /run/secrets/herbatika/ro-demo-artifacts
+  --args=--catalog-entities \
+  --args=/run/secrets/herbatika/ro-catalog-entities.json \
+  --args=--category-source \
+  --args=/run/secrets/herbatika/ro-merged-categories.jsonl \
+  --args=--merged-products \
+  --args=/run/secrets/herbatika/ro-merged-products.jsonl \
+  --args=--price-authority \
+  --args=/run/secrets/herbatika/ro-demo-precommerce-price-authority.json \
+  --args=--post-commerce-envelope \
+  --args=/run/secrets/herbatika/ro-demo-post-commerce-envelope.json \
+  --args=--post-commerce-envelope-sha256 \
+  --args=REVIEWED_EXACT_BYTE_SHA256 \
+  --args=--output-directory \
+  --args=/run/secrets/herbatika/ro-demo-artifacts
 ```
 
 The post-commerce wrapper payload contains every `DemoLocalizationFileInput`

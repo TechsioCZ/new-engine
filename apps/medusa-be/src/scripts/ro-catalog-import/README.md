@@ -29,7 +29,9 @@ pnpm exec medusa exec ./src/scripts/ro-catalog-import-sk-baseline.ts \
 
 This command performs only the same readiness collector reads used by the
 importer, writes a private (`0600`) artifact atomically, and requires no RO
-commerce readiness. Cutover consumes `.skProtection.baseline`,
+commerce readiness. Publication is no-clobber: an existing target is never
+replaced, so each capture must use a new reviewed path. Cutover consumes
+`.skProtection.baseline`,
 `.skProtection.publication`, and `.skProtection.sharedInventoryBaseline`.
 Capture refuses any SK publication audit error. After commerce is ready, the
 importer dry-run must emit the same SK baseline and shared-inventory values at
@@ -66,7 +68,8 @@ importer never links channels implicitly.
   non-secret, per-entity reconciliation plan. Apply reads that existing
   artifact and requires its exact content, embedded hash, fresh plan, and
   `--confirm-plan-hash` all to agree; it never silently replaces the reviewed
-  artifact.
+  artifact. Plan and omission-ledger publication is private (`0600`) and
+  no-clobber; choose new review paths instead of overwriting evidence.
 - `--generation-plan` is mandatory and absolute. Its canonical plan hash,
   opaque reviewed input hash, embedded manifest hash, omission-ledger hash, and
   exact embedded manifest are revalidated before dry run and again before
@@ -77,9 +80,16 @@ importer never links channels implicitly.
   snapshot, deployment identity, pre/post SK proof, and shared-inventory proof
   must exactly match the manifest. Apply also requires the current BLUE/GREEN
   deployment environment variables to match the reviewed evidence.
+- `RO_DEMO_DATABASE_INSTANCE_ID` and `DATABASE_URL` are normalized through the
+  shared credential-free database-instance fingerprint. Dry run, every apply
+  chunk, and the final reread must match the exact reviewed database instance;
+  a restored clone or endpoint switch fails closed.
 - The complete catalog and commerce preflight runs before the first write.
   Every chunk is re-preflighted against the live source snapshot before its
   first mutation; drift invalidates the confirmed plan.
+- The final fresh database reread must reproduce the exact confirmed scope and
+  report zero remaining product, category, brand, exclusion, translation,
+  content, or publication mutations. Matching baselines alone is insufficient.
 - The plan carries the full fresh SK publication audit, including per-kind
   publication counts/issues, a semantic SK hash that excludes only allowed RON
   prices, and a shared inventory fingerprint covering variant inventory flags,

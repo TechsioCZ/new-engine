@@ -293,6 +293,28 @@ const observation = (): PostCommerceObservation => ({
   ],
 })
 
+const deploymentIdentity = (
+  snapshot: RoDemoSnapshot
+): RoDemoCommercePlan["deploymentIdentity"] => ({
+  backendBuildHash: "build-123",
+  backendDeploymentId: "dpl_123",
+  backendReleaseSha: "1".repeat(40),
+  backendSlot: "blue",
+  databaseFingerprint: sha256RoDemoArtifactBytes(
+    serializeRoDemoArtifact({
+      moduleIdentity: "medusa-v2:product-variant-inventory",
+      productIds: [
+        ...new Set(snapshot.variants.map(({ productId }) => productId)),
+      ].sort(),
+      salesChannelId: "sc_ro",
+      storeIds: snapshot.stores.map(({ id }) => id).sort(),
+      variantIds: snapshot.variants.map(({ id }) => id).sort(),
+    })
+  ),
+  databaseInstanceFingerprint: "8".repeat(64),
+  environmentId: "zane-herbatika-blue",
+})
+
 const authorityCounts: PrecommerceExpectedCounts = {
   excludedProducts: 0,
   excludedVariants: 0,
@@ -390,7 +412,9 @@ const plan = (snapshot = commerceSnapshot()): RoDemoCommercePlan => ({
     enabled: false,
     reason: "disabled",
   },
+  commerceManifestSha256: "5".repeat(64),
   detachRomaniaFromRegion: null,
+  deploymentIdentity: deploymentIdentity(snapshot),
   inventoryIdentitySha256: null,
   market: "ro",
   payment: {
@@ -492,7 +516,9 @@ const build = (
   }
   const commercePlanHash = hashRoDemoCommercePlan(reviewedPlan)
   const commerceRestoreArtifact: RoDemoRestoreArtifact = {
+    commerceManifestSha256: reviewedPlan.commerceManifestSha256,
     demo: true,
+    deploymentIdentity: reviewedPlan.deploymentIdentity,
     kind: "ro-demo-commerce-restore",
     market: "ro",
     planHash: commercePlanHash,
@@ -520,7 +546,9 @@ const build = (
     ),
   }
   const commerceApplyReceipt: RoDemoApplyReceipt = {
+    commerceManifestSha256: reviewedPlan.commerceManifestSha256,
     demo: true,
+    deploymentIdentity: reviewedPlan.deploymentIdentity,
     kind: "ro-demo-commerce-apply-receipt",
     market: "ro",
     planHash: commercePlanHash,
@@ -546,11 +574,15 @@ const build = (
     capturedAt,
     commerceApplyReceipt,
     commerceApplyReceiptSha256,
+    commerceManifestSha256: reviewedPlan.commerceManifestSha256,
     commercePlan: reviewedPlan,
     commercePlanFileSha256: commercePlanHash,
     commercePlanHash,
     commerceRestoreArtifact,
     commerceRestoreArtifactSha256,
+    databaseFingerprint: reviewedPlan.deploymentIdentity.databaseFingerprint,
+    databaseInstanceFingerprint:
+      reviewedPlan.deploymentIdentity.databaseInstanceFingerprint,
     environmentId: "zane-herbatika-blue",
     expectedCounts,
     observation: observed,
@@ -562,6 +594,7 @@ const build = (
       count: 2,
       sha256: "9".repeat(64),
     },
+    preCommerceSkBaselineArtifactSha256: "7".repeat(64),
     priceAuthority: parsedAuthority,
     priceAuthoritySha256,
     rawLiveInventorySha256: authorityRoots.rawLiveInventorySha256,
@@ -612,6 +645,15 @@ describe("post-commerce localization envelope", () => {
     expect(() =>
       build({ commerceRestoreArtifactSha256: "e".repeat(64) })
     ).toThrow("receipt/restore chain")
+    expect(() =>
+      build({ sourceInventoryEnvelopeSha256: "e".repeat(64) })
+    ).toThrow("price authority sourceRoots")
+    expect(() => build({ rawLiveInventorySha256: "e".repeat(64) })).toThrow(
+      "price authority sourceRoots"
+    )
+    expect(() =>
+      build({ databaseInstanceFingerprint: "e".repeat(64) })
+    ).toThrow("deployment identities differ")
   })
 
   it("parses only a fresh exact wrapper with an intact payload hash", () => {
@@ -698,6 +740,10 @@ describe("post-commerce localization envelope", () => {
         "apply-receipt.json",
         "--commerce-apply-receipt-sha256",
         sha,
+        "--commerce-manifest",
+        "commerce-manifest.json",
+        "--commerce-manifest-sha256",
+        sha,
         "--inventory",
         "inventory.json",
         "--inventory-sha256",
@@ -724,24 +770,31 @@ describe("post-commerce localization envelope", () => {
         "1".repeat(40),
         "--expected-backend-slot",
         "blue",
+        "--expected-database-fingerprint",
+        sha,
+        "--expected-database-instance-fingerprint",
+        sha,
         "--expected-environment-id",
         "zane-herbatika-blue",
         "--raw-live-inventory",
         "raw.json",
         "--raw-live-inventory-sha256",
         sha,
-        "--pre-commerce-shared-inventory-fingerprint",
+        "--pre-commerce-sk-baseline",
         "inventory-fingerprint.json",
-        "--pre-commerce-shared-inventory-fingerprint-sha256",
+        "--pre-commerce-sk-baseline-sha256",
         sha,
         "--output",
         "post-envelope.json",
       ])
     ).toMatchObject({
       commerceApplyReceiptSha256: sha,
+      commerceManifestSha256: sha,
       commercePlanFileSha256: sha,
       commercePlanHash: sha,
       commerceRestoreArtifactSha256: sha,
+      expectedDatabaseFingerprint: sha,
+      expectedDatabaseInstanceFingerprint: sha,
       inventorySha256: sha,
       priceAuthoritySha256: sha,
     })
@@ -756,6 +809,8 @@ describe("post-commerce localization envelope", () => {
       expectedBackendDeploymentId: "dpl_123",
       expectedBackendReleaseSha: "1".repeat(40),
       expectedBackendSlot: "blue" as const,
+      expectedDatabaseFingerprint: "6".repeat(64),
+      expectedDatabaseInstanceFingerprint: "8".repeat(64),
       expectedEnvironmentId: "zane-herbatika-blue",
     }
     const observed = {
@@ -765,11 +820,19 @@ describe("post-commerce localization envelope", () => {
       ZANE_DEPLOYMENT_ID: "dpl_123",
       ZANE_DEPLOYMENT_SLOT: "blue",
     }
-    expect(assertObservedPostCommerceDeployment(expected, observed)).toEqual({
+    const database = {
+      fingerprint: "6".repeat(64),
+      instanceFingerprint: "8".repeat(64),
+    }
+    expect(
+      assertObservedPostCommerceDeployment(expected, observed, database)
+    ).toEqual({
       backendBuildHash: "build-123",
       backendDeploymentId: "dpl_123",
       backendReleaseSha: "1".repeat(40),
       backendSlot: "blue",
+      databaseFingerprint: "6".repeat(64),
+      databaseInstanceFingerprint: "8".repeat(64),
       environmentId: "zane-herbatika-blue",
     })
     for (const changed of [
@@ -780,9 +843,15 @@ describe("post-commerce localization envelope", () => {
       { ...observed, ZANE_DEPLOYMENT_SLOT: "green" },
     ]) {
       expect(() =>
-        assertObservedPostCommerceDeployment(expected, changed)
+        assertObservedPostCommerceDeployment(expected, changed, database)
       ).toThrow("does not match the reviewed deployment")
     }
+    expect(() =>
+      assertObservedPostCommerceDeployment(expected, observed, {
+        ...database,
+        instanceFingerprint: "9".repeat(64),
+      })
+    ).toThrow("does not match the reviewed deployment")
   })
 
   it("refuses existing, aliased, or symlinked output/input paths", async () => {
@@ -797,6 +866,7 @@ describe("post-commerce localization envelope", () => {
         "shared.json",
         "authority.json",
         "raw.json",
+        "commerce-manifest.json",
       ]
       await Promise.all(
         names.map((name, index) =>
@@ -808,6 +878,10 @@ describe("post-commerce localization envelope", () => {
         "--commerce-apply-receipt",
         join(canonicalDirectory, names[0] as string),
         "--commerce-apply-receipt-sha256",
+        sha,
+        "--commerce-manifest",
+        join(canonicalDirectory, names[7] as string),
+        "--commerce-manifest-sha256",
         sha,
         "--inventory",
         join(canonicalDirectory, names[1] as string),
@@ -835,15 +909,19 @@ describe("post-commerce localization envelope", () => {
         "1".repeat(40),
         "--expected-backend-slot",
         "blue",
+        "--expected-database-fingerprint",
+        sha,
+        "--expected-database-instance-fingerprint",
+        sha,
         "--expected-environment-id",
         "zane-herbatika-blue",
         "--raw-live-inventory",
         join(canonicalDirectory, names[6] as string),
         "--raw-live-inventory-sha256",
         sha,
-        "--pre-commerce-shared-inventory-fingerprint",
+        "--pre-commerce-sk-baseline",
         join(canonicalDirectory, names[4] as string),
-        "--pre-commerce-shared-inventory-fingerprint-sha256",
+        "--pre-commerce-sk-baseline-sha256",
         sha,
         "--output",
         join(canonicalDirectory, "post-envelope.json"),

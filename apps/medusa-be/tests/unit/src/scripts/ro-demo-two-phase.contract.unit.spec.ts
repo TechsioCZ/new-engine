@@ -4,10 +4,10 @@ import { parseRoCatalogJson } from "../../../../src/scripts/ro-catalog-import/ma
 import { buildRoCatalogImportPlan } from "../../../../src/scripts/ro-catalog-import/planner"
 import type { RoCatalogSnapshot } from "../../../../src/scripts/ro-catalog-import/types"
 import {
-  serializeRoDemoArtifact,
-  sha256RoDemoArtifactBytes,
   type RoDemoApplyReceipt,
   type RoDemoRestoreArtifact,
+  serializeRoDemoArtifact,
+  sha256RoDemoArtifactBytes,
 } from "../../../../src/scripts/ro-demo-commerce/artifacts"
 import { parseRoDemoPriceAuthority } from "../../../../src/scripts/ro-demo-commerce/manifest"
 import {
@@ -18,6 +18,7 @@ import {
   buildPrecommercePriceAuthority,
   type PrecommerceExpectedCounts,
 } from "../../../../src/scripts/ro-demo-commerce/precommerce-price-authority"
+import { buildRoDemoDatabaseFingerprint } from "../../../../src/scripts/ro-demo-commerce/runtime"
 import type {
   RoDemoBinding,
   RoDemoCommercePlan,
@@ -40,6 +41,8 @@ const SOURCE_SHA = "a".repeat(64)
 const CAPTURED_AT = "2026-08-20T10:00:00.000Z"
 const GENERATED_AT = "2026-08-20T12:00:00.000Z"
 const RON_AMOUNT = 12_000
+const COMMERCE_MANIFEST_SHA = "c".repeat(64)
+const PRECOMMERCE_SK_BASELINE_ARTIFACT_SHA = "b".repeat(64)
 const PRECOMMERCE_COUNTS: PrecommerceExpectedCounts = {
   excludedProducts: 0,
   excludedVariants: 0,
@@ -77,6 +80,7 @@ const deploymentIdentity: RoDemoDeploymentIdentity = {
   backendReleaseSha: "e".repeat(40),
   backendSlot: "blue",
   databaseFingerprint: "f".repeat(64),
+  databaseInstanceFingerprint: "9".repeat(64),
   environmentId: "zane-herbatika-blue",
 }
 
@@ -597,11 +601,22 @@ describe("RO demo two-phase catalog contract", () => {
     )
     const priceAuthoritySha256 = authorityBuild.sha256
     const preCommerceSnapshot = commerceSnapshot()
+    const reviewedDeploymentIdentity = {
+      ...deploymentIdentity,
+      databaseFingerprint: buildRoDemoDatabaseFingerprint(
+        preCommerceSnapshot,
+        binding.salesChannelId
+      ),
+    }
     const commercePlan = buildRoDemoCommercePlan(
       priceAuthority,
       priceAuthoritySha256,
       binding,
-      { deploymentIdentity, snapshot: preCommerceSnapshot }
+      {
+        commerceManifestSha256: COMMERCE_MANIFEST_SHA,
+        deploymentIdentity: reviewedDeploymentIdentity,
+        snapshot: preCommerceSnapshot,
+      }
     )
 
     expect(commercePlan.priceAuthoritySha256).toBe(priceAuthoritySha256)
@@ -623,8 +638,9 @@ describe("RO demo two-phase catalog contract", () => {
       .update(JSON.stringify(commercePlan))
       .digest("hex")
     const commerceRestoreArtifact: RoDemoRestoreArtifact = {
+      commerceManifestSha256: COMMERCE_MANIFEST_SHA,
       demo: true,
-      deploymentIdentity,
+      deploymentIdentity: reviewedDeploymentIdentity,
       kind: "ro-demo-commerce-restore",
       market: "ro",
       planHash: commercePlanHash,
@@ -668,8 +684,9 @@ describe("RO demo two-phase catalog contract", () => {
       ),
     }
     const commerceApplyReceipt: RoDemoApplyReceipt = {
+      commerceManifestSha256: COMMERCE_MANIFEST_SHA,
       demo: true,
-      deploymentIdentity,
+      deploymentIdentity: reviewedDeploymentIdentity,
       kind: "ro-demo-commerce-apply-receipt",
       market: "ro",
       planHash: commercePlanHash,
@@ -692,23 +709,28 @@ describe("RO demo two-phase catalog contract", () => {
       sha256: "c".repeat(64),
     }
     const builtPostEnvelope = buildPostCommerceEnvelope({
-      backendBuildHash: deploymentIdentity.backendBuildHash,
-      backendDeploymentId: deploymentIdentity.backendDeploymentId,
-      backendReleaseSha: deploymentIdentity.backendReleaseSha,
-      backendSlot: deploymentIdentity.backendSlot,
+      backendBuildHash: reviewedDeploymentIdentity.backendBuildHash,
+      backendDeploymentId: reviewedDeploymentIdentity.backendDeploymentId,
+      backendReleaseSha: reviewedDeploymentIdentity.backendReleaseSha,
+      backendSlot: reviewedDeploymentIdentity.backendSlot,
       capturedAt: GENERATED_AT,
       commerceApplyReceipt,
       commerceApplyReceiptSha256,
+      commerceManifestSha256: COMMERCE_MANIFEST_SHA,
       commercePlan,
       commercePlanFileSha256,
       commercePlanHash,
       commerceRestoreArtifact,
       commerceRestoreArtifactSha256,
-      environmentId: deploymentIdentity.environmentId,
+      databaseFingerprint: reviewedDeploymentIdentity.databaseFingerprint,
+      databaseInstanceFingerprint:
+        reviewedDeploymentIdentity.databaseInstanceFingerprint,
+      environmentId: reviewedDeploymentIdentity.environmentId,
       expectedCounts: POSTCOMMERCE_COUNTS,
       observation: applied.observation,
       postCommerceSharedInventoryFingerprint: sharedInventoryFingerprint,
       preCommerceSharedInventoryFingerprint: sharedInventoryFingerprint,
+      preCommerceSkBaselineArtifactSha256: PRECOMMERCE_SK_BASELINE_ARTIFACT_SHA,
       priceAuthority: authorityBuild.artifact,
       priceAuthoritySha256,
       rawLiveInventorySha256: sourceRoots.rawLiveInventorySha256,
@@ -750,11 +772,11 @@ describe("RO demo two-phase catalog contract", () => {
     const currentSnapshot = importerSnapshot(applied, {
       baseline: {
         count:
-          parsedManifest.postCommerceInventoryEvidence
-            .postCommerceSkBaseline.count,
+          parsedManifest.postCommerceInventoryEvidence.postCommerceSkBaseline
+            .count,
         sha256:
-          parsedManifest.postCommerceInventoryEvidence
-            .postCommerceSkBaseline.sha256,
+          parsedManifest.postCommerceInventoryEvidence.postCommerceSkBaseline
+            .sha256,
       },
       issues: [],
       publication: {

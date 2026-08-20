@@ -39,6 +39,7 @@ const RELEASE_IDENTITY_KEYS = [
   "backendReleaseSha",
   "backendSlot",
   "databaseFingerprint",
+  "databaseInstanceFingerprint",
   "environmentId",
   "locale",
   "marketCode",
@@ -58,6 +59,7 @@ const validReleaseIdentity = (identity, baseUrls) =>
   RELEASE_SHA_PATTERN.test(identity.backendReleaseSha) &&
   RELEASE_SHA_PATTERN.test(identity.storefrontReleaseSha) &&
   SHA256_PATTERN.test(identity.databaseFingerprint) &&
+  SHA256_PATTERN.test(identity.databaseInstanceFingerprint) &&
   [
     identity.backendBuildHash,
     identity.backendDeploymentId,
@@ -169,6 +171,7 @@ const verifyBackendReadinessProof = ({
   const expectedEnvironment = {
     cutoverChainProof,
     databaseFingerprint: releaseIdentity.databaseFingerprint,
+    databaseInstanceFingerprint: releaseIdentity.databaseInstanceFingerprint,
     deploymentHash: skSitemap.buildHash,
     deploymentSlot: skSitemap.buildSlot,
     importPlanHash: scopePlan.planHash,

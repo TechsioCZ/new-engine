@@ -1,4 +1,5 @@
-import { readFile, rename, unlink, writeFile } from "node:fs/promises"
+import { randomUUID } from "node:crypto"
+import { link, open, readFile, unlink } from "node:fs/promises"
 import { isSameImportValue } from "./planner"
 import type { RoCatalogImportPlan } from "./types"
 
@@ -13,25 +14,36 @@ const artifactValue = (
   planHash: string
 ): RoCatalogPlanArtifact => ({ plan, planHash, schemaVersion: 1 })
 
+const writePrivateNoClobberArtifact = async (
+  outputPath: string,
+  contents: string
+) => {
+  const temporaryPath = `${outputPath}.${process.pid}.${randomUUID()}.tmp`
+  let handle: Awaited<ReturnType<typeof open>> | undefined
+  try {
+    handle = await open(temporaryPath, "wx", 0o600)
+    await handle.writeFile(contents, "utf8")
+    await handle.sync()
+    await handle.close()
+    handle = undefined
+    await link(temporaryPath, outputPath)
+    await unlink(temporaryPath)
+  } catch (error) {
+    await handle?.close().catch(() => null)
+    await unlink(temporaryPath).catch(() => null)
+    throw error
+  }
+}
+
 export const writeRoCatalogPlanArtifact = async (
   outputPath: string,
   plan: RoCatalogImportPlan,
   planHash: string
 ) => {
-  const temporaryPath = `${outputPath}.${process.pid}.${Date.now()}.tmp`
-  try {
-    await writeFile(
-      temporaryPath,
-      `${JSON.stringify(artifactValue(plan, planHash), null, 2)}\n`,
-      { encoding: "utf8", flag: "wx" }
-    )
-    await rename(temporaryPath, outputPath)
-  } catch (error) {
-    await unlink(temporaryPath).catch(() => {
-      // Best-effort cleanup of the importer-owned temporary artifact.
-    })
-    throw error
-  }
+  await writePrivateNoClobberArtifact(
+    outputPath,
+    `${JSON.stringify(artifactValue(plan, planHash), null, 2)}\n`
+  )
 }
 
 export const assertRoCatalogPlanArtifact = async (
@@ -58,19 +70,10 @@ export const writeRoCatalogOmissionLedger = async (
   outputPath: string,
   ledger: NonNullable<RoCatalogImportPlan["omissionLedger"]>
 ) => {
-  const temporaryPath = `${outputPath}.${process.pid}.${Date.now()}.tmp`
-  try {
-    await writeFile(temporaryPath, `${JSON.stringify(ledger, null, 2)}\n`, {
-      encoding: "utf8",
-      flag: "wx",
-    })
-    await rename(temporaryPath, outputPath)
-  } catch (error) {
-    await unlink(temporaryPath).catch(() => {
-      // Best-effort cleanup of the importer-owned temporary artifact.
-    })
-    throw error
-  }
+  await writePrivateNoClobberArtifact(
+    outputPath,
+    `${JSON.stringify(ledger, null, 2)}\n`
+  )
 }
 
 export const assertRoCatalogOmissionLedger = async (

@@ -27,6 +27,7 @@ export const sha256RoDemoArtifactBytes = (bytes: string) =>
   createHash("sha256").update(bytes).digest("hex")
 
 export type RoDemoRestoreArtifact = Readonly<{
+  commerceManifestSha256: string
   demo: true
   deploymentIdentity: RoDemoCommercePlan["deploymentIdentity"]
   kind: "ro-demo-commerce-restore"
@@ -39,6 +40,7 @@ export type RoDemoRestoreArtifact = Readonly<{
 }>
 
 export type RoDemoApplyReceipt = Readonly<{
+  commerceManifestSha256: string
   demo: true
   deploymentIdentity: RoDemoCommercePlan["deploymentIdentity"]
   kind: "ro-demo-commerce-apply-receipt"
@@ -142,6 +144,7 @@ const parseDeploymentIdentity = (
       "backendReleaseSha",
       "backendSlot",
       "databaseFingerprint",
+      "databaseInstanceFingerprint",
       "environmentId",
     ],
     "deploymentIdentity"
@@ -171,6 +174,10 @@ const parseDeploymentIdentity = (
     databaseFingerprint: hash(
       deployment.databaseFingerprint,
       "deploymentIdentity.databaseFingerprint"
+    ),
+    databaseInstanceFingerprint: hash(
+      deployment.databaseInstanceFingerprint,
+      "deploymentIdentity.databaseInstanceFingerprint"
     ),
     environmentId: text(
       deployment.environmentId,
@@ -216,6 +223,7 @@ export const parseRoDemoRestoreArtifact = (
   exactKeys(
     raw,
     [
+      "commerceManifestSha256",
       "demo",
       "deploymentIdentity",
       "kind",
@@ -230,6 +238,10 @@ export const parseRoDemoRestoreArtifact = (
   )
   assertCommon(raw, "ro-demo-commerce-restore")
   const artifact: RoDemoRestoreArtifact = {
+    commerceManifestSha256: hash(
+      raw.commerceManifestSha256,
+      "commerceManifestSha256"
+    ),
     demo: true,
     deploymentIdentity: parseDeploymentIdentity(raw.deploymentIdentity),
     kind: "ro-demo-commerce-restore",
@@ -254,6 +266,7 @@ export const parseRoDemoApplyReceipt = (
   exactKeys(
     raw,
     [
+      "commerceManifestSha256",
       "demo",
       "deploymentIdentity",
       "kind",
@@ -366,6 +379,10 @@ export const parseRoDemoApplyReceipt = (
     throw new Error("SK baseline differs across the commerce apply")
   }
   const receipt: RoDemoApplyReceipt = {
+    commerceManifestSha256: hash(
+      raw.commerceManifestSha256,
+      "commerceManifestSha256"
+    ),
     demo: true,
     deploymentIdentity: parseDeploymentIdentity(raw.deploymentIdentity),
     kind: "ro-demo-commerce-apply-receipt",

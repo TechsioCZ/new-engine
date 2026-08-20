@@ -1,7 +1,9 @@
 export { parseDemoCatalogEntitiesJson } from "./catalog-entities"
 export {
   assertFinalDemoPartition,
+  assertMergedProductsAuthorityBinding,
   type DemoLocalizationCliOptions,
+  generateRomanianDemoLocalization,
   parseBoundPostCommerceEnvelope,
   parseDemoLocalizationCliOptions,
   runDemoLocalizationCli,
@@ -25,6 +27,7 @@ export {
   stablePostCommerceJson,
 } from "./postcommerce-envelope"
 export {
+  generatePrecommercePriceAuthority,
   type PrecommercePriceAuthorityCliOptions,
   parsePrecommercePriceAuthorityCliOptions,
   runPrecommercePriceAuthorityCli,

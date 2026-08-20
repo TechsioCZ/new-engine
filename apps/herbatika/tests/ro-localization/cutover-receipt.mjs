@@ -569,12 +569,68 @@ const validateMeiliIndex = (value, label, expectedUid, expectedScope) => {
   return index
 }
 
+const priceProjectionSha256 = (value, publishedProductIds) => {
+  if (!(isRecord(value) && Array.isArray(value.products))) {
+    throw new Error("cutover: price authority products are invalid")
+  }
+  const projection = []
+  for (const [productIndex, rawProduct] of value.products.entries()) {
+    const product = exactRecord(
+      rawProduct,
+      ["productId", "variants"],
+      `price authority product ${productIndex}`
+    )
+    nonblank(product.productId, `price authority product ${productIndex} ID`)
+    if (!Array.isArray(product.variants)) {
+      throw new Error("cutover: price authority variants are invalid")
+    }
+    for (const rawVariant of product.variants) {
+      if (!isRecord(rawVariant) || rawVariant.roAvailability !== "sellable") {
+        continue
+      }
+      const price = isRecord(rawVariant.price) ? rawVariant.price : undefined
+      if (
+        !price ||
+        price.currencyCode !== "ron" ||
+        !Number.isSafeInteger(price.amount) ||
+        price.amount < 0
+      ) {
+        throw new Error("cutover: approved RON price projection is invalid")
+      }
+      nonblank(rawVariant.variantId, "price authority sellable variant ID")
+      projection.push({
+        amount: price.amount,
+        productId: product.productId,
+        variantId: rawVariant.variantId,
+      })
+    }
+  }
+  projection.sort((left, right) =>
+    left.variantId.localeCompare(right.variantId, "en")
+  )
+  if (
+    projection.length !== publishedProductIds.length ||
+    new Set(projection.map(({ variantId }) => variantId)).size !==
+      projection.length ||
+    canonicalJson(
+      [...new Set(projection.map(({ productId }) => productId))].sort()
+    ) !== canonicalJson(publishedProductIds)
+  ) {
+    throw new Error(
+      "cutover: approved RON prices do not cover the published product scope"
+    )
+  }
+  return sha256(canonicalJson(projection))
+}
+
 const validateMeilisearchProof = (
   value,
   {
     catalogScopeSha256,
+    marketAuthoritySha256,
     releaseId,
     releaseIdentity,
+    ronPriceProjectionSha256,
     scopePlan,
     urlRegistryProof,
   }
@@ -584,14 +640,17 @@ const validateMeilisearchProof = (
     [
       "atomicSwap",
       "catalogScopeSha256",
+      "environmentId",
       "generatedAt",
       "indexes",
       "isolation",
       "kind",
       "locale",
       "market",
+      "marketAuthoritySha256",
       "profile",
       "releaseId",
+      "ronPriceProjectionSha256",
       "schemaVersion",
       "scope",
       "skPreservation",
@@ -744,6 +803,12 @@ const validateMeilisearchProof = (
   sha256Value(isolation.skIndexUidsSha256, "Meilisearch SK UID hash")
   sha256Value(preservation.beforeSha256, "Meilisearch SK before hash")
   sha256Value(preservation.afterSha256, "Meilisearch SK after hash")
+  sha256Value(proof.marketAuthoritySha256, "Meilisearch market authority hash")
+  sha256Value(
+    proof.ronPriceProjectionSha256,
+    "Meilisearch RON price projection hash"
+  )
+  nonblank(proof.environmentId, "Meilisearch environment ID")
   const generatedAt = timestampValue(
     proof.generatedAt,
     "Meilisearch generatedAt"
@@ -763,6 +828,9 @@ const validateMeilisearchProof = (
     proof.market !== "ro" ||
     proof.locale !== "ro-RO" ||
     proof.catalogScopeSha256 !== catalogScopeSha256 ||
+    proof.environmentId !== releaseIdentity.environmentId ||
+    proof.marketAuthoritySha256 !== marketAuthoritySha256 ||
+    proof.ronPriceProjectionSha256 !== ronPriceProjectionSha256 ||
     profile.locale !== "ro-ro" ||
     profile.strict !== true ||
     profile.lastSyncStatus !== "succeeded" ||
@@ -857,8 +925,9 @@ export const verifyCutoverReceiptArtifacts = async ({
     importPlan,
     _preInventory,
     _rawInventory,
-    _priceAuthority,
-    _commercePlan,
+    priceAuthorityArtifact,
+    commercePlanArtifact,
+    _commerceManifestArtifact,
     commerceApplyReceiptArtifact,
     commerceRestoreArtifact,
     staticTaxonomyArtifact,
@@ -884,6 +953,7 @@ export const verifyCutoverReceiptArtifacts = async ({
       "preCommerce.priceAuthority"
     ),
     readArtifact(receipt.commerce.plan, "commerce.plan"),
+    readArtifact(receipt.commerce.manifest, "commerce.manifest"),
     readArtifact(receipt.commerce.applyReceipt, "commerce.applyReceipt", {
       privateArtifact: true,
     }),
@@ -919,6 +989,17 @@ export const verifyCutoverReceiptArtifacts = async ({
   const preInventory = envelope.preCommerceSharedInventoryFingerprint
   const postInventory = envelope.postCommerceSharedInventoryFingerprint
   const post = receipt.postCommerce
+  const commercePlan = commercePlanArtifact.value
+  const expectedDeploymentIdentity = {
+    backendBuildHash: receipt.releaseIdentity.backendBuildHash,
+    backendDeploymentId: receipt.releaseIdentity.backendDeploymentId,
+    backendReleaseSha: receipt.releaseIdentity.backendReleaseSha,
+    backendSlot: receipt.releaseIdentity.backendSlot,
+    databaseFingerprint: receipt.releaseIdentity.databaseFingerprint,
+    databaseInstanceFingerprint:
+      receipt.releaseIdentity.databaseInstanceFingerprint,
+    environmentId: receipt.releaseIdentity.environmentId,
+  }
   if (
     environment.locale !== "ro-RO" ||
     environment.marketCode !== "ro" ||
@@ -926,6 +1007,8 @@ export const verifyCutoverReceiptArtifacts = async ({
     environment.environmentId !== receipt.releaseIdentity.environmentId ||
     environment.databaseFingerprint !==
       receipt.releaseIdentity.databaseFingerprint ||
+    environment.databaseInstanceFingerprint !==
+      receipt.releaseIdentity.databaseInstanceFingerprint ||
     environment.backendReleaseSha !==
       receipt.releaseIdentity.backendReleaseSha ||
     environment.backendDeploymentId !==
@@ -933,6 +1016,7 @@ export const verifyCutoverReceiptArtifacts = async ({
     environment.backendBuildHash !== receipt.releaseIdentity.backendBuildHash ||
     environment.backendSlot !== receipt.releaseIdentity.backendSlot ||
     !SHA256_PATTERN.test(environment.databaseFingerprint ?? "") ||
+    !SHA256_PATTERN.test(environment.databaseInstanceFingerprint ?? "") ||
     !DEPLOYMENT_ID_PATTERN.test(environment.environmentId ?? "") ||
     !RELEASE_SHA_PATTERN.test(environment.backendReleaseSha ?? "") ||
     !DEPLOYMENT_ID_PATTERN.test(environment.backendDeploymentId ?? "") ||
@@ -945,10 +1029,22 @@ export const verifyCutoverReceiptArtifacts = async ({
     envelope.priceAuthoritySha256 !==
       receipt.preCommerce.priceAuthority.sha256 ||
     envelope.commercePlanFileSha256 !== receipt.commerce.plan.sha256 ||
+    envelope.commerceManifestSha256 !== receipt.commerce.manifest.sha256 ||
     envelope.commerceApplyReceiptSha256 !==
       receipt.commerce.applyReceipt.sha256 ||
     envelope.commerceRestoreArtifactSha256 !==
       receipt.commerce.restoreArtifact.sha256 ||
+    !isRecord(commercePlan) ||
+    commercePlan.commerceManifestSha256 !== receipt.commerce.manifest.sha256 ||
+    canonicalJson(commercePlan.deploymentIdentity) !==
+      canonicalJson(expectedDeploymentIdentity) ||
+    canonicalJson(restoreArtifact.deploymentIdentity) !==
+      canonicalJson(expectedDeploymentIdentity) ||
+    canonicalJson(applyReceipt.deploymentIdentity) !==
+      canonicalJson(expectedDeploymentIdentity) ||
+    restoreArtifact.commerceManifestSha256 !==
+      receipt.commerce.manifest.sha256 ||
+    applyReceipt.commerceManifestSha256 !== receipt.commerce.manifest.sha256 ||
     restoreArtifact.planHash !== envelope.commercePlanHash ||
     applyReceipt.planHash !== envelope.commercePlanHash ||
     restoreArtifact.priceAuthoritySha256 !== envelope.priceAuthoritySha256 ||
@@ -964,12 +1060,15 @@ export const verifyCutoverReceiptArtifacts = async ({
     post.commercePlanFileSha256 !== envelope.commercePlanFileSha256 ||
     post.commercePlanHash !== envelope.commercePlanHash ||
     post.commerceApplyReceiptSha256 !== envelope.commerceApplyReceiptSha256 ||
+    post.commerceManifestSha256 !== envelope.commerceManifestSha256 ||
     post.commerceRestoreArtifactSha256 !==
       envelope.commerceRestoreArtifactSha256 ||
     post.observedCommerceSnapshotSha256 !==
       envelope.observedCommerceSnapshotSha256 ||
     post.payloadSha256 !== envelope.payloadSha256 ||
     post.preCommerceSkBaselineSha256 !== preSk.sha256 ||
+    post.preCommerceSkBaselineArtifactSha256 !==
+      envelope.preCommerceSkBaselineArtifactSha256 ||
     post.preCommerceSkBaselineCount !== preSk.count ||
     post.preCommerceSkBaselineErrors !== preSk.errors.length ||
     post.postCommerceSkBaselineSha256 !== postSk.sha256 ||
@@ -1050,8 +1149,13 @@ export const verifyCutoverReceiptArtifacts = async ({
   })
   const meilisearchProof = validateMeilisearchProof(meilisearchArtifact.value, {
     catalogScopeSha256: parsedImportPlan.hash,
+    marketAuthoritySha256: receipt.preCommerce.priceAuthority.sha256,
     releaseId: receipt.releaseId,
     releaseIdentity: receipt.releaseIdentity,
+    ronPriceProjectionSha256: priceProjectionSha256(
+      priceAuthorityArtifact.value,
+      parsedImportPlan.scope.productPublishedIds
+    ),
     scopePlan: parsedImportPlan,
     urlRegistryProof,
   })
@@ -1065,7 +1169,10 @@ export const verifyCutoverReceiptArtifacts = async ({
   }
   const cutoverChainProof = {
     catalogPlanHash: parsedImportPlan.planHash,
+    commerceManifestSha256: receipt.commerce.manifest.sha256,
     commercePlanSha256: receipt.postCommerce.commercePlanHash,
+    databaseInstanceFingerprint:
+      receipt.releaseIdentity.databaseInstanceFingerprint,
     maintenanceProofSha256: receipt.operations.maintenance.sha256,
     matched: true,
     meilisearchConvergenceSha256:

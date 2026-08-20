@@ -1,5 +1,10 @@
 import { createHash, randomUUID } from "node:crypto"
-import { open, readFile, rename, unlink } from "node:fs/promises"
+import {
+  link as createHardLink,
+  open,
+  readFile,
+  unlink,
+} from "node:fs/promises"
 import { extname, isAbsolute } from "node:path"
 import type {
   ExecArgs,
@@ -38,6 +43,7 @@ import {
   type RoCatalogScopePlanArtifact,
   type RoVariantAvailabilityExpectation,
 } from "./ro-catalog-readiness-contract"
+import { buildRoDemoDatabaseInstanceFingerprint } from "./ro-demo-commerce/runtime"
 
 export { parseRoCatalogReadinessReportArtifact } from "./ro-catalog-readiness-contract"
 
@@ -287,7 +293,9 @@ export type RoCatalogReadinessIssue = Readonly<{
 export type RoCatalogReadinessReport = Readonly<{
   cutoverChainProof: Readonly<{
     catalogPlanHash: string
+    commerceManifestSha256: string
     commercePlanSha256: string
+    databaseInstanceFingerprint: string
     matched: true
     maintenanceProofSha256: string
     meilisearchConvergenceSha256: string
@@ -1856,7 +1864,9 @@ export const buildSharedInventoryBaseline = (
         ),
         manageInventory: variant.manage_inventory ?? null,
         productId: product.id,
+        variantEan: variant.ean ?? null,
         variantId: variant.id,
+        variantSku: variant.sku ?? null,
       }))
     )
   )
@@ -1884,6 +1894,22 @@ export const buildSkPublicationAuditBaseline = (
     },
     sharedInventoryBaseline: buildSharedInventoryBaseline(input),
   }
+}
+
+export const assertFreshRoDatabaseInstanceFingerprint = (
+  expected: string,
+  environment: NodeJS.ProcessEnv = process.env
+) => {
+  if (!SHA256.test(expected)) {
+    throw new Error("Expected database instance fingerprint is invalid")
+  }
+  const observed = buildRoDemoDatabaseInstanceFingerprint(environment)
+  if (observed !== expected) {
+    throw new Error(
+      "Fresh database instance does not match the cutover receipt"
+    )
+  }
+  return observed
 }
 
 const readRequiredFlag = (args: readonly string[], name: string) => {
@@ -2161,7 +2187,8 @@ export const writeRoCatalogReadinessReport = async (
     await handle.sync()
     await handle.close()
     handle = undefined
-    await rename(temporaryPath, outputPath)
+    await createHardLink(temporaryPath, outputPath)
+    await unlink(temporaryPath)
   } catch (error) {
     await handle?.close().catch(() => null)
     await unlink(temporaryPath).catch(() => null)
@@ -2490,7 +2517,9 @@ export const buildRoCatalogReadinessReport = (
   return {
     cutoverChainProof: cutoverChainProof ?? {
       catalogPlanHash: expectedImportPlanHash ?? resolvedExpectedScopePlanHash,
+      commerceManifestSha256: resolvedExpectedScopePlanHash,
       commercePlanSha256: resolvedExpectedScopePlanHash,
+      databaseInstanceFingerprint: resolvedExpectedScopePlanHash,
       matched: true,
       maintenanceProofSha256: resolvedExpectedScopePlanHash,
       meilisearchConvergenceSha256: resolvedExpectedScopePlanHash,
@@ -2982,6 +3011,9 @@ export default async function auditRoCatalogReadiness({
       "Cutover receipt catalog plan/scope hashes do not match reviewed importer plan"
     )
   }
+  assertFreshRoDatabaseInstanceFingerprint(
+    cutoverReceipt.receipt.releaseIdentity.databaseInstanceFingerprint
+  )
   const receiptPostCommerce = cutoverReceipt.receipt.postCommerce
   if (
     receiptPostCommerce.preCommerceSkBaselineSha256 !==
@@ -3052,8 +3084,12 @@ export default async function auditRoCatalogReadiness({
       expectedSharedInventoryBaseline,
       cutoverChainProof: {
         catalogPlanHash: expectedScopePlan.planHash,
+        commerceManifestSha256:
+          cutoverReceipt.receipt.postCommerce.commerceManifestSha256,
         commercePlanSha256:
           cutoverReceipt.receipt.postCommerce.commercePlanHash,
+        databaseInstanceFingerprint:
+          cutoverReceipt.receipt.releaseIdentity.databaseInstanceFingerprint,
         matched: true,
         maintenanceProofSha256:
           cutoverReceipt.receipt.operations.maintenance.sha256,

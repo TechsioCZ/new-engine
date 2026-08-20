@@ -1,19 +1,29 @@
 import { createHash } from "node:crypto"
 import {
-  access,
+  lstat,
   mkdir,
   mkdtemp,
+  readdir,
   readFile,
   rm,
+  stat,
   writeFile,
 } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import type { ExecArgs } from "@medusajs/framework/types"
 import { describe, expect, it } from "vitest"
 import {
+  serializePrecommercePriceAuthority,
+  sha256PrecommerceInventoryIdentity,
+} from "../../../../src/scripts/ro-demo-commerce/precommerce-price-authority"
+import {
   assertFinalDemoPartition,
+  assertMergedProductsAuthorityBinding,
   buildRomanianDemoLocalization,
   type DemoLocalizationInput,
+  generatePrecommercePriceAuthority,
+  generateRomanianDemoLocalization,
   parseBoundPostCommerceEnvelope,
   parseDemoCatalogEntitiesJson,
   parseDemoLocalizationCliOptions,
@@ -41,6 +51,7 @@ const fallbackSource = {
 const postCommerceInventoryEvidence = {
   capturedAt: "2026-08-20T12:00:00.000Z",
   commerceApplyReceiptSha256: sha,
+  commerceManifestSha256: sha,
   commercePlanFileSha256: sha,
   commercePlanHash: sha,
   commerceRestoreArtifactSha256: sha,
@@ -50,6 +61,7 @@ const postCommerceInventoryEvidence = {
     backendReleaseSha: "b".repeat(40),
     backendSlot: "blue",
     databaseFingerprint: sha,
+    databaseInstanceFingerprint: sha,
     environmentId: "test-blue",
     locale: "ro-RO",
     marketCode: "ro",
@@ -63,6 +75,7 @@ const postCommerceInventoryEvidence = {
   postCommerceSkBaseline: { count: 1, errors: [], sha256: sha },
   preCommerceSharedInventoryFingerprint: { count: 1, sha256: sha },
   preCommerceSkBaseline: { count: 1, errors: [], sha256: sha },
+  preCommerceSkBaselineArtifactSha256: sha,
   priceAuthoritySha256: sha,
   rawLiveInventorySha256: sha,
   schemaVersion: 1,
@@ -369,6 +382,8 @@ describe("Romanian demo localization fallback", () => {
       sha,
       "--merged-products",
       "merged-products.jsonl",
+      "--price-authority",
+      "price-authority.json",
       "--output-directory",
       "artifacts",
     ])
@@ -385,6 +400,8 @@ describe("Romanian demo localization fallback", () => {
         sha,
         "--merged-products",
         "merged-products.jsonl",
+        "--price-authority",
+        "price-authority.json",
         "--output-directory",
         "artifacts",
         "--apply",
@@ -429,6 +446,147 @@ describe("Romanian demo localization fallback", () => {
     ).toThrow("Post-commerce envelope SHA-256 mismatch")
   })
 
+  it("binds the exact merged-product bytes through the reviewed price authority", () => {
+    const mergedProducts = '{"matchingStatus":"exact-bijective"}\n'
+    const mergedProductsSha256 = createHash("sha256")
+      .update(mergedProducts)
+      .digest("hex")
+    const counts = {
+      excludedProducts: 0,
+      excludedVariants: 0,
+      inventoryProducts: 0,
+      inventoryVariants: 0,
+      publishedProducts: 0,
+      publishedVariants: 0,
+      sellableVariants: 0,
+      unavailableVariants: 0,
+    } as const
+    const sourceRoots = {
+      inventoryEnvelopeSha256: sha,
+      mergedProductsSha256,
+      rawLiveInventorySha256: sha,
+    }
+    const priceAuthorityJson = serializePrecommercePriceAuthority({
+      amountUnit: "major",
+      authorization: "demo-generated-unreviewed",
+      counts,
+      currencyCode: "ron",
+      exclusions: [],
+      inventoryIdentitySha256: sha256PrecommerceInventoryIdentity([]),
+      kind: "ro-demo-precommerce-price-authority",
+      locale: "ro-RO",
+      market: "ro",
+      products: [],
+      schemaVersion: 1,
+      sourceRoots,
+    })
+    const priceAuthoritySha256 = createHash("sha256")
+      .update(priceAuthorityJson)
+      .digest("hex")
+    const options = { expectedCounts: counts, expectedSourceRoots: sourceRoots }
+
+    expect(
+      assertMergedProductsAuthorityBinding(
+        mergedProducts,
+        priceAuthorityJson,
+        priceAuthoritySha256,
+        options
+      ).mergedProductsSha256
+    ).toBe(mergedProductsSha256)
+    expect(() =>
+      assertMergedProductsAuthorityBinding(
+        `${mergedProducts}\n`,
+        priceAuthorityJson,
+        priceAuthoritySha256,
+        options
+      )
+    ).toThrow("Merged-products SHA-256 mismatch")
+    expect(() =>
+      assertMergedProductsAuthorityBinding(
+        mergedProducts,
+        `${priceAuthorityJson} `,
+        priceAuthoritySha256,
+        options
+      )
+    ).toThrow("Price-authority SHA-256 mismatch")
+  })
+
+  it("passes Medusa exec args into the real final CLI entrypoint", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "ro-demo-exec-smoke-"))
+    const paths = {
+      catalog: join(directory, "catalog.json"),
+      categories: join(directory, "categories.jsonl"),
+      merged: join(directory, "merged.jsonl"),
+      output: join(directory, "output"),
+      priceAuthority: join(directory, "price-authority.json"),
+      wrapper: join(directory, "wrapper.json"),
+    }
+    const wrapperBytes = "{}"
+    try {
+      await Promise.all([
+        writeFile(paths.catalog, "{}", "utf8"),
+        writeFile(paths.categories, "", "utf8"),
+        writeFile(paths.merged, "", "utf8"),
+        writeFile(paths.priceAuthority, "{}", "utf8"),
+        writeFile(paths.wrapper, wrapperBytes, "utf8"),
+      ])
+      const args = [
+        "--catalog-entities",
+        paths.catalog,
+        "--category-source",
+        paths.categories,
+        "--merged-products",
+        paths.merged,
+        "--output-directory",
+        paths.output,
+        "--post-commerce-envelope",
+        paths.wrapper,
+        "--post-commerce-envelope-sha256",
+        createHash("sha256").update(wrapperBytes).digest("hex"),
+        "--price-authority",
+        paths.priceAuthority,
+      ]
+      await expect(
+        generateRomanianDemoLocalization({ args } as ExecArgs)
+      ).rejects.toThrow("post-commerce envelope fields are invalid")
+    } finally {
+      await rm(directory, { force: true, recursive: true })
+    }
+  })
+
+  it("passes Medusa exec args into the real pre-commerce CLI entrypoint", async () => {
+    const directory = await mkdtemp(
+      join(tmpdir(), "ro-demo-precommerce-exec-smoke-")
+    )
+    const inventory = join(directory, "inventory.json")
+    const merged = join(directory, "merged.jsonl")
+    const output = join(directory, "authority.json")
+    const rawLive = join(directory, "raw-live.json")
+    try {
+      await Promise.all([
+        writeFile(inventory, "{}", "utf8"),
+        writeFile(merged, "", "utf8"),
+        writeFile(rawLive, "{}", "utf8"),
+      ])
+      await expect(
+        generatePrecommercePriceAuthority({
+          args: [
+            "--inventory",
+            inventory,
+            "--merged-products",
+            merged,
+            "--pre-commerce-price-authority-output",
+            output,
+            "--raw-live-inventory",
+            rawLive,
+          ],
+        } as ExecArgs)
+      ).rejects.toThrow("does not match the reviewed source root")
+    } finally {
+      await rm(directory, { force: true, recursive: true })
+    }
+  })
+
   it("parses a byte-bound real post-commerce wrapper before final generation", () => {
     const value = input()
     const {
@@ -465,6 +623,7 @@ describe("Romanian demo localization fallback", () => {
     const wrapper = {
       capturedAt: "2026-08-20T12:00:00.000Z",
       commerceApplyReceiptSha256: sha,
+      commerceManifestSha256: sha,
       commercePlanFileSha256: sha,
       commercePlanHash: sha,
       commerceRestoreArtifactSha256: sha,
@@ -474,6 +633,7 @@ describe("Romanian demo localization fallback", () => {
         backendReleaseSha: "b".repeat(40),
         backendSlot: "blue",
         databaseFingerprint: sha,
+        databaseInstanceFingerprint: sha,
         environmentId: "test-blue",
         locale: "ro-RO",
         marketCode: "ro",
@@ -487,6 +647,7 @@ describe("Romanian demo localization fallback", () => {
       postCommerceSkBaseline: { count: 1, errors: [], sha256: sha },
       preCommerceSharedInventoryFingerprint: { count: 1, sha256: sha },
       preCommerceSkBaseline: { count: 1, errors: [], sha256: sha },
+      preCommerceSkBaselineArtifactSha256: sha,
       priceAuthoritySha256: sha,
       rawLiveInventorySha256: sha,
       schemaVersion: 1,
@@ -508,6 +669,27 @@ describe("Romanian demo localization fallback", () => {
     })
     expect(parsed.sha256).toBe(wrapperSha256)
     expect(parsed.envelope.commercePlanHash).toBe(sha)
+    const tamperedText = JSON.stringify({
+      ...wrapper,
+      environment: {
+        ...wrapper.environment,
+        databaseInstanceFingerprint: "b".repeat(64),
+      },
+    })
+    expect(() =>
+      parseBoundPostCommerceEnvelope(tamperedText, wrapperSha256, {
+        expectedCounts: {
+          brandsExcluded: 0,
+          brandsTotal: 0,
+          categoriesExcluded: 0,
+          categoriesTotal: 1,
+          productsExcluded: 1,
+          productsPublished: 1,
+          productsTotal: 2,
+        },
+        now: new Date("2026-08-20T12:00:00.000Z"),
+      })
+    ).toThrow("Post-commerce envelope SHA-256 mismatch")
   })
 
   it("rejects unidentified records and ledgers unmatched official sources", () => {
@@ -1262,28 +1444,40 @@ describe("Romanian demo localization fallback", () => {
     })
   })
 
-  it("atomically publishes one artifact directory and never touches an existing set", async () => {
+  it("privately and atomically publishes one no-clobber artifact directory", async () => {
     const value = input()
     const bundle = buildRomanianDemoLocalization(value)
     const directory = await mkdtemp(join(tmpdir(), "ro-demo-artifacts-"))
     const outputDirectory = join(directory, "final")
-    const markerPath = join(outputDirectory, "existing.txt")
     try {
       await mkdir(outputDirectory)
-      await writeFile(markerPath, "existing", "utf8")
+      await expect(
+        writeDemoLocalizationArtifacts(outputDirectory, bundle)
+      ).rejects.toThrow()
+      await expect(readdir(outputDirectory)).resolves.toEqual([])
+
+      await rm(outputDirectory, { recursive: true })
+      await writeDemoLocalizationArtifacts(outputDirectory, bundle)
+      expect((await lstat(outputDirectory)).isSymbolicLink()).toBe(true)
+      for (const filename of [
+        "bundle.json",
+        "manifest.json",
+        "omission-ledger.json",
+      ]) {
+        expect(
+          (await stat(join(outputDirectory, filename))).mode % 0o1000
+        ).toBe(0o600)
+      }
+      const originalBundle = await readFile(
+        join(outputDirectory, "bundle.json"),
+        "utf8"
+      )
       await expect(
         writeDemoLocalizationArtifacts(outputDirectory, bundle)
       ).rejects.toThrow()
       await expect(
-        access(join(outputDirectory, "bundle.json"))
-      ).rejects.toThrow()
-      await expect(
-        access(join(outputDirectory, "manifest.json"))
-      ).rejects.toThrow()
-      await expect(
-        access(join(outputDirectory, "omission-ledger.json"))
-      ).rejects.toThrow()
-      await expect(readFile(markerPath, "utf8")).resolves.toBe("existing")
+        readFile(join(outputDirectory, "bundle.json"), "utf8")
+      ).resolves.toBe(originalBundle)
     } finally {
       await rm(directory, { force: true, recursive: true })
     }

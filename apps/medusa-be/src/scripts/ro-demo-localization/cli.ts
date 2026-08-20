@@ -1,13 +1,12 @@
 import { createHash } from "node:crypto"
-import {
-  access,
-  mkdtemp,
-  readFile,
-  rename,
-  rm,
-  writeFile,
-} from "node:fs/promises"
+import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises"
 import { basename, dirname, join, resolve } from "node:path"
+import type { ExecArgs } from "@medusajs/framework/types"
+import {
+  type PrecommerceExpectedCounts,
+  type PrecommerceExpectedSourceRoots,
+  parsePrecommercePriceAuthority,
+} from "../ro-demo-commerce/precommerce-price-authority"
 import { parseDemoCatalogEntitiesJson } from "./catalog-entities"
 import { buildRomanianDemoLocalization } from "./generator"
 import { parseMergedDemoCategoryJsonl } from "./merged-categories"
@@ -24,6 +23,7 @@ export type DemoLocalizationCliOptions = Readonly<{
   outputDirectoryPath: string
   postCommerceEnvelopePath: string
   postCommerceEnvelopeSha256: string
+  priceAuthorityPath: string
 }>
 
 const requireValue = (argv: readonly string[], index: number, flag: string) => {
@@ -45,6 +45,7 @@ export const parseDemoLocalizationCliOptions = (
     "--output-directory",
     "--post-commerce-envelope",
     "--post-commerce-envelope-sha256",
+    "--price-authority",
   ])
   for (let index = 0; index < argv.length; index += 2) {
     const flag = argv[index]
@@ -71,6 +72,7 @@ export const parseDemoLocalizationCliOptions = (
     postCommerceEnvelopeSha256: values.get(
       "--post-commerce-envelope-sha256"
     ) as string,
+    priceAuthorityPath: resolve(values.get("--price-authority") as string),
   }
   if (!SHA_256.test(options.postCommerceEnvelopeSha256)) {
     throw new Error(
@@ -78,6 +80,48 @@ export const parseDemoLocalizationCliOptions = (
     )
   }
   return options
+}
+
+export const assertMergedProductsAuthorityBinding = (
+  mergedProductsJsonl: string,
+  priceAuthorityJson: string,
+  expectedPriceAuthoritySha256: string,
+  parserOptions?: Readonly<{
+    expectedCounts: PrecommerceExpectedCounts
+    expectedSourceRoots: PrecommerceExpectedSourceRoots
+  }>
+) => {
+  if (!SHA_256.test(expectedPriceAuthoritySha256)) {
+    throw new Error("Expected price-authority SHA-256 is invalid")
+  }
+  const priceAuthoritySha256 = createHash("sha256")
+    .update(priceAuthorityJson)
+    .digest("hex")
+  if (priceAuthoritySha256 !== expectedPriceAuthoritySha256) {
+    throw new Error(
+      `Price-authority SHA-256 mismatch: expected ${expectedPriceAuthoritySha256}, observed ${priceAuthoritySha256}`
+    )
+  }
+  const priceAuthority = parsePrecommercePriceAuthority(
+    priceAuthorityJson,
+    parserOptions?.expectedCounts,
+    parserOptions?.expectedSourceRoots
+  )
+  const mergedProductsSha256 = createHash("sha256")
+    .update(mergedProductsJsonl)
+    .digest("hex")
+  if (
+    mergedProductsSha256 !== priceAuthority.sourceRoots.mergedProductsSha256
+  ) {
+    throw new Error(
+      `Merged-products SHA-256 mismatch: expected ${priceAuthority.sourceRoots.mergedProductsSha256}, observed ${mergedProductsSha256}`
+    )
+  }
+  return {
+    mergedProductsSha256,
+    priceAuthority,
+    priceAuthoritySha256,
+  }
 }
 
 export const parseBoundPostCommerceEnvelope = (
@@ -104,18 +148,29 @@ export const runDemoLocalizationCli = async (
   argv: readonly string[] = process.argv.slice(2)
 ) => {
   const options = parseDemoLocalizationCliOptions(argv)
-  const [catalogEntitiesJson, categoryJsonl, postCommerceJson, mergedJsonl] =
-    await Promise.all([
-      readFile(options.catalogEntitiesPath, "utf8"),
-      readFile(options.categorySourcePath, "utf8"),
-      readFile(options.postCommerceEnvelopePath, "utf8"),
-      readFile(options.mergedProductsPath, "utf8"),
-    ])
+  const [
+    catalogEntitiesJson,
+    categoryJsonl,
+    postCommerceJson,
+    mergedJsonl,
+    priceAuthorityJson,
+  ] = await Promise.all([
+    readFile(options.catalogEntitiesPath, "utf8"),
+    readFile(options.categorySourcePath, "utf8"),
+    readFile(options.postCommerceEnvelopePath, "utf8"),
+    readFile(options.mergedProductsPath, "utf8"),
+    readFile(options.priceAuthorityPath, "utf8"),
+  ])
   const boundPostCommerceEnvelope = parseBoundPostCommerceEnvelope(
     postCommerceJson,
     options.postCommerceEnvelopeSha256
   )
   const postCommerceEnvelope = boundPostCommerceEnvelope.envelope
+  assertMergedProductsAuthorityBinding(
+    mergedJsonl,
+    priceAuthorityJson,
+    postCommerceEnvelope.priceAuthoritySha256
+  )
   const fileInput: DemoLocalizationFileInput = postCommerceEnvelope.payload
   const { payload: _payload, ...postCommerceEvidence } = postCommerceEnvelope
   const { brandExclusionAuthority, mergedEvidenceCapturedAt, ...baseInput } =
@@ -224,33 +279,35 @@ export const writeDemoLocalizationArtifacts = async (
     ["manifest.json", bundle.manifest],
     ["omission-ledger.json", bundle.demoOmissionLedger],
   ] as const
-  const outputExists = await access(outputDirectoryPath).then(
-    () => true,
-    () => false
-  )
-  if (outputExists) {
-    throw new Error(`Output directory already exists: ${outputDirectoryPath}`)
-  }
   const temporaryDirectory = await mkdtemp(
-    join(dirname(outputDirectoryPath), `.${basename(outputDirectoryPath)}.tmp-`)
+    join(
+      dirname(outputDirectoryPath),
+      `.${basename(outputDirectoryPath)}.artifacts-`
+    )
   )
+  let published = false
   try {
     await Promise.all(
       artifacts.map(([filename, value]) =>
         writeFile(
           join(temporaryDirectory, filename),
           `${JSON.stringify(value, null, 2)}\n`,
-          { encoding: "utf8", flag: "wx", flush: true }
+          { encoding: "utf8", flag: "wx", flush: true, mode: 0o600 }
         )
       )
     )
-    await rename(temporaryDirectory, outputDirectoryPath)
+    await symlink(basename(temporaryDirectory), outputDirectoryPath, "dir")
+    published = true
   } catch (error) {
-    await rm(temporaryDirectory, { force: true, recursive: true })
+    if (!published) {
+      await rm(temporaryDirectory, { force: true, recursive: true })
+    }
     throw error
   }
 }
 
-export default async function generateRomanianDemoLocalization() {
-  return await runDemoLocalizationCli()
+export async function generateRomanianDemoLocalization({ args }: ExecArgs) {
+  return await runDemoLocalizationCli(args)
 }
+
+export default generateRomanianDemoLocalization

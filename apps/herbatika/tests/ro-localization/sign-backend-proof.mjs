@@ -114,6 +114,7 @@ const proof = signBackendReadinessProof({
   environment: {
     cutoverChainProof: cutoverEvidence.cutoverChainProof,
     databaseFingerprint: releaseIdentity.databaseFingerprint,
+    databaseInstanceFingerprint: releaseIdentity.databaseInstanceFingerprint,
     deploymentHash: deployment.sk.hash,
     deploymentSlot: deployment.sk.slot,
     importPlanHash: scopePlan.planHash,

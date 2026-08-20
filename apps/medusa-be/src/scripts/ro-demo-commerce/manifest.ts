@@ -261,9 +261,11 @@ export const loadRoDemoInput = async (
   manifestPath: string
 ): Promise<RoDemoLoadedInput> => {
   const absoluteManifestPath = resolve(manifestPath)
-  const manifest = parseRoDemoManifest(
-    await readFile(absoluteManifestPath, "utf8")
-  )
+  const commerceManifestBytes = await readFile(absoluteManifestPath)
+  const commerceManifestSha256 = createHash("sha256")
+    .update(commerceManifestBytes)
+    .digest("hex")
+  const manifest = parseRoDemoManifest(commerceManifestBytes.toString("utf8"))
   const relativePath =
     "priceAuthorityPath" in manifest &&
     typeof manifest.priceAuthorityPath === "string"
@@ -286,6 +288,7 @@ export const loadRoDemoInput = async (
         )
   return {
     absoluteManifestPath,
+    commerceManifestSha256,
     manifest,
     priceAuthority,
     priceAuthorityPath,
@@ -330,7 +333,11 @@ export const parseRoDemoCliOptions = (
       argument !== "--expected-backend-deployment-id" &&
       argument !== "--expected-backend-release-sha" &&
       argument !== "--expected-backend-slot" &&
+      argument !== "--expected-commerce-manifest-sha256" &&
       argument !== "--expected-database-fingerprint" &&
+      argument !== "--expected-database-instance-fingerprint" &&
+      argument !== "--expected-price-authority-sha256" &&
+      argument !== "--expected-sk-commerce-baseline-sha256" &&
       argument !== "--expected-environment-id"
     ) {
       throw new Error(`unknown argument ${argument}`)
@@ -395,8 +402,16 @@ export const parseRoDemoCliOptions = (
     expectedDeployment["--expected-backend-deployment-id"]
   const backendReleaseSha = expectedDeployment["--expected-backend-release-sha"]
   const backendSlot = expectedDeployment["--expected-backend-slot"]
+  const expectedCommerceManifestSha256 =
+    expectedDeployment["--expected-commerce-manifest-sha256"]
   const databaseFingerprint =
     expectedDeployment["--expected-database-fingerprint"]
+  const databaseInstanceFingerprint =
+    expectedDeployment["--expected-database-instance-fingerprint"]
+  const expectedPriceAuthoritySha256 =
+    expectedDeployment["--expected-price-authority-sha256"]
+  const expectedSkCommerceBaselineSha256 =
+    expectedDeployment["--expected-sk-commerce-baseline-sha256"]
   const environmentId = expectedDeployment["--expected-environment-id"]
   if (
     !(
@@ -404,7 +419,11 @@ export const parseRoDemoCliOptions = (
       backendDeploymentId &&
       backendReleaseSha &&
       backendSlot &&
+      expectedCommerceManifestSha256 &&
       databaseFingerprint &&
+      databaseInstanceFingerprint &&
+      expectedPriceAuthoritySha256 &&
+      expectedSkCommerceBaselineSha256 &&
       environmentId
     )
   ) {
@@ -417,7 +436,11 @@ export const parseRoDemoCliOptions = (
       RELEASE_SHA.test(backendReleaseSha)
     ) ||
     (backendSlot !== "blue" && backendSlot !== "green") ||
+    !SHA_256.test(expectedCommerceManifestSha256) ||
     !SHA_256.test(databaseFingerprint) ||
+    !SHA_256.test(databaseInstanceFingerprint) ||
+    !SHA_256.test(expectedPriceAuthoritySha256) ||
+    !SHA_256.test(expectedSkCommerceBaselineSha256) ||
     !IDENTIFIER.test(environmentId)
   ) {
     throw new Error("expected deployment identity is invalid")
@@ -450,14 +473,18 @@ export const parseRoDemoCliOptions = (
     apply,
     confirmPlanHash,
     demo,
+    expectedCommerceManifestSha256,
     expectedDeployment: {
       backendBuildHash,
       backendDeploymentId,
       backendReleaseSha,
       backendSlot,
       databaseFingerprint,
+      databaseInstanceFingerprint,
       environmentId,
     },
+    expectedPriceAuthoritySha256,
+    expectedSkCommerceBaselineSha256,
     manifestPath,
     planOutputPath,
     ...(receiptOutputPath ? { receiptOutputPath } : {}),
@@ -474,7 +501,9 @@ export const parseRoDemoFingerprintCliOptions = (args: readonly string[]) => {
     "--expected-backend-deployment-id",
     "--expected-backend-release-sha",
     "--expected-backend-slot",
+    "--expected-commerce-manifest-sha256",
     "--expected-environment-id",
+    "--expected-price-authority-sha256",
   ] as const
   if (args.filter((argument) => argument === flag).length !== 1) {
     throw new Error(`${flag} is required exactly once`)
@@ -514,7 +543,13 @@ export const parseRoDemoFingerprintCliOptions = (args: readonly string[]) => {
   const backendDeploymentId = required("--expected-backend-deployment-id")
   const backendReleaseSha = required("--expected-backend-release-sha")
   const backendSlot = required("--expected-backend-slot")
+  const expectedCommerceManifestSha256 = required(
+    "--expected-commerce-manifest-sha256"
+  )
   const environmentId = required("--expected-environment-id")
+  const expectedPriceAuthoritySha256 = required(
+    "--expected-price-authority-sha256"
+  )
   if (
     !(
       isAbsolute(fingerprintOutputPath) &&
@@ -523,6 +558,8 @@ export const parseRoDemoFingerprintCliOptions = (args: readonly string[]) => {
       RELEASE_SHA.test(backendReleaseSha)
     ) ||
     (backendSlot !== "blue" && backendSlot !== "green") ||
+    !SHA_256.test(expectedCommerceManifestSha256) ||
+    !SHA_256.test(expectedPriceAuthoritySha256) ||
     !IDENTIFIER.test(environmentId)
   ) {
     throw new Error("fingerprint deployment identity or output path is invalid")
@@ -535,6 +572,8 @@ export const parseRoDemoFingerprintCliOptions = (args: readonly string[]) => {
     backendReleaseSha,
     backendSlot: parsedBackendSlot,
     environmentId,
+    expectedCommerceManifestSha256,
+    expectedPriceAuthoritySha256,
     fingerprintOutputPath,
     manifestPath,
   }

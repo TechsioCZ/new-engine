@@ -28,6 +28,7 @@ import {
   buildSkPublicationAuditBaseline,
   collectRoCatalogReadinessInput,
 } from "../ro-catalog-readiness"
+import { buildRoDemoDatabaseInstanceFingerprint } from "../ro-demo-commerce/runtime"
 import {
   postCommerceSha256,
   stablePostCommerceJson,
@@ -627,6 +628,14 @@ export const inspectRoCatalog = async (
   readiness: RoCatalogReadinessRequirements,
   evidence: RoCatalogPostCommerceInventoryEvidence
 ): Promise<RoCatalogSnapshot> => {
+  if (
+    buildRoDemoDatabaseInstanceFingerprint(process.env) !==
+    evidence.environment.databaseInstanceFingerprint
+  ) {
+    throw new Error(
+      "current database instance does not match post-commerce evidence"
+    )
+  }
   const query = container.resolve<QueryService>(ContainerRegistrationKeys.QUERY)
   const readinessInputPromise = collectRoCatalogReadinessInput(container)
   const translationService = container.resolve<ITranslationModuleService>(
@@ -1611,6 +1620,37 @@ const assertSkProtectionUnchanged = (
   }
 }
 
+const CATALOG_WORK_SUMMARY_KEYS = [
+  "brandAssignmentsToCreate",
+  "brandAssignmentsToUpdate",
+  "brandExclusionsToDraft",
+  "brandTranslationsToCreate",
+  "brandTranslationsToUpdate",
+  "categoryAssignmentsToCreate",
+  "categoryAssignmentsToUpdate",
+  "categoryExclusionsToDraft",
+  "categoryTranslationsToCreate",
+  "categoryTranslationsToUpdate",
+  "contentRecordsToCreate",
+  "excludedCategoryTranslationsToCreate",
+  "excludedCategoryTranslationsToUpdate",
+  "exclusionsToDraft",
+  "publicationsToUpdate",
+  "translationsToCreate",
+  "translationsToUpdate",
+] as const satisfies readonly (keyof RoCatalogImportPlan["summary"])[]
+
+export const assertRoCatalogImportClosed = (plan: RoCatalogImportPlan) => {
+  const remaining = CATALOG_WORK_SUMMARY_KEYS.filter(
+    (key) => plan.summary[key] !== 0
+  ).map((key) => `${key}=${plan.summary[key]}`)
+  if (remaining.length > 0) {
+    throw new Error(
+      `RO catalog post-apply reread still has pending work: ${remaining.join(", ")}`
+    )
+  }
+}
+
 export const applyRoCatalogImport = async (
   container: ExecArgs["container"],
   plan: RoCatalogImportPlan,
@@ -1765,10 +1805,17 @@ export const applyRoCatalogImport = async (
     manifest.readiness,
     manifest.postCommerceInventoryEvidence
   )
-  const finalProtection = buildRoCatalogImportPlan(manifest, finalSnapshot, {
+  const finalPlan = buildRoCatalogImportPlan(manifest, finalSnapshot, {
     salesChannelId: options.salesChannelId,
   })
-  assertSkProtectionUnchanged(finalProtection, plan, "during RO import")
+  assertSkProtectionUnchanged(finalPlan, plan, "during RO import")
+  if (
+    finalPlan.scopeSha256 !== plan.scopeSha256 ||
+    !isSameImportValue(finalPlan.scope, plan.scope)
+  ) {
+    throw new Error("RO catalog scope changed during import")
+  }
+  assertRoCatalogImportClosed(finalPlan)
   return {
     completedCategories,
     completedBrands,
@@ -1776,9 +1823,8 @@ export const applyRoCatalogImport = async (
     completedExcludedBrands,
     completedExcludedProducts,
     completedProducts,
-    finalSharedInventoryBaseline:
-      finalProtection.expectedSharedInventoryBaseline,
-    finalSkBaseline: finalProtection.expectedSkBaseline,
-    finalSkPublication: finalProtection.expectedSkPublication,
+    finalSharedInventoryBaseline: finalPlan.expectedSharedInventoryBaseline,
+    finalSkBaseline: finalPlan.expectedSkBaseline,
+    finalSkPublication: finalPlan.expectedSkPublication,
   }
 }

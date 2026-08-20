@@ -1,4 +1,4 @@
-import { readFile, writeFile } from "node:fs/promises"
+import { readFile } from "node:fs/promises"
 import { fileURLToPath } from "node:url"
 import { chromium } from "@playwright/test"
 import { verifyCutoverReceiptArtifacts } from "./cutover-receipt.mjs"
@@ -14,6 +14,7 @@ import {
   assertLiveReportIntegrity,
   generateLiveReadiness,
 } from "./live-readiness.mjs"
+import { writePrivateJsonOutput } from "./private-json-output.mjs"
 
 const defaults = {
   backendReadinessReport: process.env.HERBATIKA_BACKEND_READINESS_REPORT,
@@ -260,11 +261,7 @@ try {
     assertLiveReportIntegrity(liveReport, baseUrls)
     assertGlobalReadiness(liveReport)
     if (options.liveReportOutput) {
-      await writeFile(
-        options.liveReportOutput,
-        `${JSON.stringify(liveReport, null, 2)}\n`,
-        "utf8"
-      )
+      await writePrivateJsonOutput(options.liveReportOutput, liveReport)
     }
     console.log(`PASS global.live-readiness ${liveReport.evidenceHash}`)
   } catch (error) {
