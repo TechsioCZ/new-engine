@@ -13,6 +13,7 @@ import { getUrlRegistryRuntime } from "./instance.server"
 
 const MAX_PUBLIC_PROJECTIONS = 20_000
 const MAX_REQUIRED_PUBLIC_PROJECTIONS = 100
+const REQUIRED_PROJECTION_READ_CONCURRENCY = 5
 
 type PublicEntityProjectionRequest = Readonly<{
   kind: EntityUrlKind
@@ -36,22 +37,33 @@ const findRequiredPublicEntityProjections = async (
     return { kind: "unavailable" }
   }
 
-  const results = await Promise.all(
-    sourceIds.map((sourceId) =>
-      runtime.registry.findActiveEntityRoute({
-        ...createUrlRegistrySourceIdentity(input.kind, sourceId),
-        market: input.market,
-      })
-    )
-  )
   const projections: ActiveEntityRouteTarget[] = []
-  for (const result of results) {
-    if (result.kind === "found") {
-      projections.push(result.value)
-    } else if (result.kind !== "missing") {
-      return result
+
+  for (
+    let offset = 0;
+    offset < sourceIds.length;
+    offset += REQUIRED_PROJECTION_READ_CONCURRENCY
+  ) {
+    const results = await Promise.all(
+      sourceIds
+        .slice(offset, offset + REQUIRED_PROJECTION_READ_CONCURRENCY)
+        .map((sourceId) =>
+          runtime.registry.findActiveEntityRoute({
+            ...createUrlRegistrySourceIdentity(input.kind, sourceId),
+            market: input.market,
+          })
+        )
+    )
+
+    for (const result of results) {
+      if (result.kind === "found") {
+        projections.push(result.value)
+      } else if (result.kind !== "missing") {
+        return result
+      }
     }
   }
+
   return { kind: "found", value: projections }
 }
 
