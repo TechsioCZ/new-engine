@@ -199,8 +199,16 @@ export async function expandPlanForRuntimeProviderPrerequisites(input: {
     targetByServiceId = new Map(
       targetsResponse.services.map((service) => [service.service_id, service])
     )
-  } catch {
-    targetByServiceId = new Map()
+  } catch (error) {
+    const dependencyIds = dependencyServices
+      .map((service) => service.id)
+      .join(", ")
+    const reason = error instanceof Error ? error.message : String(error)
+
+    throw new Error(
+      `Failed to resolve deployment targets for runtime-provider prerequisites (${dependencyIds || "none"}): ${reason}. Dependency health is unknown; verify the Zane operator connection and retry.`,
+      { cause: error }
+    )
   }
 
   for (const dependencyService of dependencyServices) {

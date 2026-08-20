@@ -97,6 +97,8 @@ type InspectedServiceState = {
   details: BootstrapInspectServiceDetails | null
 }
 
+const DNS_HOSTNAME_LABEL_PATTERN = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/i
+
 function requiredServiceSlug(
   serviceSlugs: Record<string, string>,
   serviceId: string
@@ -444,6 +446,41 @@ function publicServiceDomain(input: {
   return `${input.projectSlug}-${input.serviceSlug}${input.publicUrlAffix}.${input.publicDomain}`
 }
 
+function buildHerbatikaHealthcheck(
+  publicDomain: string | null
+): NonNullable<PlannedBootstrapService["healthcheck"]> {
+  if (!publicDomain) {
+    return {
+      type: "COMMAND",
+      value: "sh -lc 'exit 1'",
+      timeout_seconds: 120,
+      interval_seconds: 30,
+    }
+  }
+
+  const labels = publicDomain.split(".")
+  const isValidHostname =
+    publicDomain.length <= 253 &&
+    labels.every(
+      (label) =>
+        label.length > 0 &&
+        label.length <= 63 &&
+        DNS_HOSTNAME_LABEL_PATTERN.test(label)
+    )
+  if (!isValidHostname) {
+    throw new Error(
+      `Derived Herbatika public service domain is not a valid DNS hostname: ${JSON.stringify(publicDomain)}.`
+    )
+  }
+
+  return {
+    type: "COMMAND",
+    value: `curl -fsS -H 'Host: ${publicDomain}' http://127.0.0.1:3000/api/healthz`,
+    timeout_seconds: 120,
+    interval_seconds: 30,
+  }
+}
+
 function appendCsvOrigins(value: string, origins: string[]): string {
   return Array.from(
     new Set([
@@ -600,6 +637,12 @@ function buildZaneProjectServices(
   const minioPublicDomain = publicServiceDomain({
     projectSlug: context.projectSlug,
     serviceSlug: minioSlug,
+    publicUrlAffix: context.publicUrlAffix,
+    publicDomain: context.publicDomain,
+  })
+  const herbatikaPublicDomain = publicServiceDomain({
+    projectSlug: context.projectSlug,
+    serviceSlug: herbatikaSlug,
     publicUrlAffix: context.publicUrlAffix,
     publicDomain: context.publicDomain,
   })
@@ -1334,25 +1377,13 @@ function buildZaneProjectServices(
       volumes: [],
       urls: [
         {
-          domain:
-            publicServiceDomain({
-              projectSlug: context.projectSlug,
-              serviceSlug: herbatikaSlug,
-              publicUrlAffix: context.publicUrlAffix,
-              publicDomain: context.publicDomain,
-            }) ?? "",
+          domain: herbatikaPublicDomain ?? "",
           base_path: "/",
           strip_prefix: true,
           associated_port: 3000,
         },
       ].filter((url) => url.domain),
-      healthcheck: {
-        type: "PATH",
-        value: "/",
-        timeout_seconds: 120,
-        interval_seconds: 30,
-        associated_port: 3000,
-      },
+      healthcheck: buildHerbatikaHealthcheck(herbatikaPublicDomain),
       resourceLimits: {
         cpus: 0.75,
         memory: { unit: "MEGABYTES", value: 1536 },
