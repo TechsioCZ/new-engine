@@ -32,11 +32,11 @@ export async function GET(request: Request) {
   try {
     const response = await fetchSearchAutocomplete({
       query,
-      countryCode,
+      countryCode: countryCode ?? marketBinding.countryCode.toLowerCase(),
       currencyCode,
-      locale,
+      locale: locale ?? marketBinding.locale,
       market: marketBinding.market,
-      regionId,
+      regionId: regionId ?? marketBinding.regionId,
       authToken,
     })
     return NextResponse.json(response)
