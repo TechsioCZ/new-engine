@@ -302,3 +302,16 @@ export const getSalesChannelIds = (value: unknown): string[] => {
 
   return []
 }
+
+export const resolveStorefrontSalesChannelFilter = (
+  filterableSalesChannelId: unknown,
+  publishableKeySalesChannelIds: unknown
+): unknown => {
+  const trustedSalesChannelIds = getSalesChannelIds(
+    publishableKeySalesChannelIds
+  )
+
+  return trustedSalesChannelIds.length > 0
+    ? trustedSalesChannelIds
+    : filterableSalesChannelId
+}

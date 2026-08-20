@@ -35,6 +35,7 @@ import {
   expandProductsBySearchMatches,
   getSalesChannelIds,
   type RankedProductMatch,
+  resolveStorefrontSalesChannelFilter,
   selectRankedProductIds,
 } from "../../../../modules/meilisearch/search-results"
 import { isPlainRecord } from "../../../../utils/guards"
@@ -641,9 +642,11 @@ export async function GET(
   const meilisearchService = req.scope.resolve<MeiliSearchService>(MEILISEARCH)
 
   const page = validatedQuery.page
-  const salesChannelIds = getSalesChannelIds(
-    req.filterableFields.sales_channel_id
+  const salesChannelFilter = resolveStorefrontSalesChannelFilter(
+    req.filterableFields.sales_channel_id,
+    req.publishable_key_context?.sales_channel_ids
   )
+  const salesChannelIds = getSalesChannelIds(salesChannelFilter)
   let searchProfile: SearchProfile
   try {
     searchProfile = resolveSearchProfile(
@@ -758,7 +761,7 @@ export async function GET(
     ),
     ...filterExpressions,
     ...(saleSearchExpression ? [saleSearchExpression] : []),
-    ...buildVisibilityFilterExpressions(req.filterableFields.sales_channel_id),
+    ...buildVisibilityFilterExpressions(salesChannelFilter),
   ]
   const searchFilter =
     searchFilters.length > 0 ? searchFilters.join(" AND ") : undefined
@@ -828,7 +831,7 @@ export async function GET(
               ...(saleProductSelection
                 ? { id: buildProductIdFilter(saleProductSelection.productIds) }
                 : {}),
-              sales_channel_id: req.filterableFields.sales_channel_id,
+              sales_channel_id: salesChannelFilter,
               status: ProductStatus.PUBLISHED,
             },
             validatedQuery.collection_id
@@ -942,7 +945,7 @@ export async function GET(
           id: {
             $in: productIds,
           },
-          sales_channel_id: req.filterableFields.sales_channel_id,
+          sales_channel_id: salesChannelFilter,
           status: ProductStatus.PUBLISHED,
         },
         validatedQuery.collection_id
