@@ -963,6 +963,17 @@ export function typedFilterMatch(
     case "datetime":
     case "dateRange":
       return matchDateRange(cell, filterValue as DateRangeFilterValue)
+    case "custom":
+      // A `"custom"` column supplies its own `renderFilter`, so the shape of
+      // its filter value is whatever that control writes — the operator-based
+      // `{ operator, value, to }` object in `CustomFilterTemplate`, or
+      // anything else a consumer invents. `matchNumber` already parses that
+      // shape correctly regardless of which operators it uses it for; routing
+      // here instead of falling to `matchText` (which read the object as a
+      // literal string and matched almost nothing) is a reasonable default,
+      // but a `"custom"` column with a genuinely different value shape still
+      // needs its own `filterFn`.
+      return matchNumber(cell, filterValue as NumberFilterValue)
     default:
       return matchText(cell, filterValue as TextFilterValue)
   }
