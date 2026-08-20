@@ -19,16 +19,12 @@ const schema = {
   users,
 }
 
-// Create a simplified drizzle client
-/*export const db = drizzle(
-  'postgresql://neondb_owner:npg_Ozy4jRvtHDG5@ep-nameless-river-a2qn6c6z-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require',
-  { schema }
-);*/
-const db = drizzle(
-  process.env.DATABASE_URL ??
-    "postgresql://root:root@medusa-db:5432/medusa?sslmode=disable&options=-csearch_path%3Dmedusa%2Cpg_catalog",
-  { schema }
-)
+const databaseUrl = process.env.DATABASE_URL
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is required")
+}
+
+const db = drizzle(databaseUrl, { schema })
 // Helper function to check if a string is a date (ISO format YYYY-MM-DD)
 // Uses strict regex to avoid false positives from new Date() coercion
 // Matches: YYYY-MM-DD, YYYY-MM-DD HH:MM:SS.sss, YYYY-MM-DDTHH:MM:SS.sssZ
