@@ -305,17 +305,28 @@ export const DEFAULT_FILTER_RENDERERS: Record<
   number: ({ column, value, setValue, disabled, size, operatorLabels }) => {
     const v = (value ?? {}) as NumberFilterValue
     const operator = v.operator ?? "equals"
+    /* `empty` / `notEmpty` test the cell, not a typed number. Leaving the input
+     * live would show a constraint that `matchNumber` ignores — the string
+     * filter has always gated it this way. */
+    const needsValue = operator !== "empty" && operator !== "notEmpty"
+    const activeLabel =
+      operatorLabels?.[operator] ??
+      NUMBER_FILTER_OPERATORS.find((o) => o.value === operator)?.label
+    let valuePlaceholder = activeLabel
+    if (needsValue) {
+      valuePlaceholder = operator === "between" ? "From" : "Value"
+    }
     return (
       <>
         <Input
           aria-label={`Filter value for ${columnLabel(column)}`}
           className="flex-1"
-          disabled={disabled}
+          disabled={disabled || !needsValue}
           onChange={(e) => setValue({ ...v, operator, value: e.target.value })}
-          placeholder={operator === "between" ? "From" : "Value"}
+          placeholder={valuePlaceholder}
           size={size}
-          type="number"
-          value={v.value ?? ""}
+          type={needsValue ? "number" : "text"}
+          value={needsValue ? (v.value ?? "") : ""}
         />
         {operator === "between" && (
           <Input
@@ -740,6 +751,28 @@ function matchText(cell: unknown, f: TextFilterValue) {
   }
 }
 
+/** The `between` arm of `matchNumber`, split out to keep either half legible. */
+function matchBetween(
+  n: number,
+  cellHasNoNumber: boolean,
+  f: NumberFilterValue
+) {
+  const lo = Number(f.value)
+  const hi = Number(f.to)
+  const hasLo = !(isBlank(f.value) || Number.isNaN(lo))
+  const hasHi = !(isBlank(f.to) || Number.isNaN(hi))
+  if (!(hasLo || hasHi)) {
+    return true
+  }
+  if (cellHasNoNumber) {
+    return false
+  }
+  if (hasLo && n < lo) {
+    return false
+  }
+  return !(hasHi && n > hi)
+}
+
 function matchNumber(cell: unknown, f: NumberFilterValue) {
   const operator = f.operator ?? "equals"
   // Blankness is a property of the cell, not of the filter value, so these two
@@ -751,16 +784,15 @@ function matchNumber(cell: unknown, f: NumberFilterValue) {
     return !isBlank(cell)
   }
   const n = Number(cell)
+  /* `Number(null)` and `Number("")` are both 0, so without this a blank cell
+   * would satisfy `equals 0`, `lt 5`, `lte 0` and friends. A cell with no
+   * number in it satisfies no numeric comparison — but only once the filter is
+   * actually constraining something, which is why each branch below returns
+   * early when no bound has been typed yet. */
+  const cellHasNoNumber = isBlank(cell) || Number.isNaN(n)
+
   if (operator === "between") {
-    const lo = Number(f.value)
-    const hi = Number(f.to)
-    if (!(isBlank(f.value) || Number.isNaN(lo)) && n < lo) {
-      return false
-    }
-    if (!(isBlank(f.to) || Number.isNaN(hi)) && n > hi) {
-      return false
-    }
-    return true
+    return matchBetween(n, cellHasNoNumber, f)
   }
   if (isBlank(f.value)) {
     return true
@@ -768,6 +800,9 @@ function matchNumber(cell: unknown, f: NumberFilterValue) {
   const target = Number(f.value)
   if (Number.isNaN(target)) {
     return true
+  }
+  if (cellHasNoNumber) {
+    return false
   }
   switch (operator) {
     case "notEquals":

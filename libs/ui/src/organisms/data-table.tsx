@@ -456,12 +456,17 @@ export type DataTableRowAction<T extends RowData> = {
 }
 
 /** Interactions DataTable locks while a row is being edited inline. */
+/**
+ * Interactions that report through `onInteractionBlocked` while a row is being
+ * edited. Sorting and row selection are absent on purpose: those controls are
+ * natively `disabled` during an edit, so a click never reaches a handler and
+ * nothing could ever report them. Making them reportable means making them
+ * clickable-but-inert first.
+ */
 export type DataTableBlockedAction =
-  | "sort"
   | "filter"
   | "globalFilter"
   | "paginate"
-  | "select"
   | "rowReorder"
   | "columnReorder"
   | "columnVisibility"
@@ -853,13 +858,11 @@ function HeaderSortLabel<T extends RowData>({
   styles,
   enableSorting,
   locked,
-  onBlocked,
 }: {
   header: Header<T, unknown>
   styles: DataTableStyles
   enableSorting: boolean
   locked?: boolean
-  onBlocked?: () => void
 }) {
   const column = header.column
   const canSort = enableSorting && column.getCanSort()
@@ -884,13 +887,7 @@ function HeaderSortLabel<T extends RowData>({
       className={styles.sortButton()}
       data-disabled={locked || undefined}
       disabled={locked}
-      onClick={(event) => {
-        if (locked) {
-          onBlocked?.()
-          return
-        }
-        column.getToggleSortingHandler()?.(event)
-      }}
+      onClick={(event) => column.getToggleSortingHandler()?.(event)}
       type="button"
     >
       {label}
@@ -1432,7 +1429,6 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
         getRowLabel,
         selectAllLabel: translations.selectAllLabel,
         showSelectAll: selectionMode === "multiple" && maxSelectedRows == null,
-        onBlockedSelect: () => blockedRef.current("select"),
       }),
     [
       userColumns,
@@ -1879,7 +1875,6 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
             enableSorting={enableSorting}
             header={header}
             locked={locked}
-            onBlocked={() => blocked("sort")}
             styles={styles}
           />
         </div>
@@ -2505,7 +2500,6 @@ function buildColumns<T extends RowData>({
   getRowLabel,
   selectAllLabel,
   showSelectAll,
-  onBlockedSelect,
 }: {
   userColumns: ColumnDef<T, unknown>[]
   enableRowReorder: boolean
@@ -2514,7 +2508,6 @@ function buildColumns<T extends RowData>({
   getRowLabel?: (row: Row<T>) => string
   selectAllLabel: string
   showSelectAll: boolean
-  onBlockedSelect: () => void
 }): ColumnDef<T, unknown>[] {
   const leading: ColumnDef<T, unknown>[] = []
 
@@ -2557,12 +2550,7 @@ function buildColumns<T extends RowData>({
           disabled={locked || !row.getCanSelect()}
           indeterminate={row.getIsSomeSelected()}
           onChange={row.getToggleSelectedHandler()}
-          onClick={(e) => {
-            e.stopPropagation()
-            if (locked) {
-              onBlockedSelect()
-            }
-          }}
+          onClick={(e) => e.stopPropagation()}
         />
       ),
       enableSorting: false,
