@@ -83,9 +83,8 @@ jobs:
         run: pnpm -C "$PACKAGE_DIR" validate:release
 
       - name: Inspect packed contents
-        env:
-          PACKAGE_DIR: ${{ steps.release.outputs.package_dir }}
-        run: npm pack "$PACKAGE_DIR" --dry-run --json
+        working-directory: ${{ steps.release.outputs.package_dir }}
+        run: npm pack --dry-run --json
 
       - name: Publish package with provenance
         working-directory: ${{ steps.release.outputs.package_dir }}
