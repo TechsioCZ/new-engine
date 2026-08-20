@@ -92,7 +92,7 @@ import {
   FieldSelect,
 } from "./data-table.fields"
 import {
-  applyDeclaredColumnSizes,
+  applyColumnDefaults,
   type Cell,
   type Column,
   type ColumnDef,
@@ -1371,7 +1371,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   const columns = useMemo(
     () =>
       buildColumns<T>({
-        userColumns: applyDeclaredColumnSizes(userColumns),
+        userColumns: applyColumnDefaults(userColumns),
         enableRowReorder,
         enableRowSelection,
         locked,
@@ -2592,7 +2592,7 @@ DataTable.ToolbarActions = function DataTableToolbarActions() {
       {toolbarActions?.map(
         ({ id, label, children, disabled, ...action }, i) => (
           <Button
-            disabled={disabled ?? locked}
+            disabled={disabled || locked}
             key={id ?? `toolbar-action-${i}`}
             size={size}
             {...action}

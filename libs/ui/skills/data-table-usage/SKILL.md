@@ -37,15 +37,24 @@ import type { ColumnDef } from "@techsio/ui-kit/organisms/data-table"
 
 type Order = { id: string; customer: string; total: number; status: string }
 
+const STATUS_OPTIONS = [
+  { label: "Paid", value: "paid" },
+  { label: "Pending", value: "pending" },
+]
+
 const columns: ColumnDef<Order>[] = [
   { accessorKey: "customer", header: "Customer" },
   {
     accessorKey: "total",
     header: "Total",
-    meta: { align: "end", filterVariant: "number" },
+    meta: { align: "end", type: "number" },
     cell: (info) => `${info.getValue<number>()} €`,
   },
-  { accessorKey: "status", header: "Status", meta: { filterVariant: "select" } },
+  {
+    accessorKey: "status",
+    header: "Status",
+    meta: { type: "enum", options: STATUS_OPTIONS },
+  },
 ]
 
 <DataTable
@@ -233,7 +242,7 @@ text; `translations.pageSizeLabel` is the page-size select's accessible name
 
 - `enableSorting` (default `true`) — click header to sort; `meta.align: "end"` right-aligns numeric columns.
 - `enableGlobalFilter` — renders the toolbar search (`DataTable.GlobalSearch`).
-- `enableColumnFilters` — renders a per-column filter row. The default control is operator-based ("with conditions"); pick the input via `meta.filterVariant: "text" | "number" | "range" | "select"` (+ `meta.filterOptions` for `select`). Register `filterFn: "conditional"` on the column, or override the whole UI with `renderHeaderFilter`.
+- `enableColumnFilters` — renders a per-column filter row. Pick the control with `meta.type` (`"string" | "number" | "boolean" | "enum" | "multiEnum" | "date" | "dateRange" | "time" | "custom"`), plus `meta.options` for the enum types. Columns get `filterFn: "typed"` by default, which dispatches on that same `meta.type`; set `filterFn: "conditional"` for the operator-based ("with conditions") comparator instead, or override the whole UI with `meta.renderFilter` / `renderHeaderFilter`. `meta.filterVariant` and `meta.filterOptions` are deprecated aliases kept for older columns — `filterVariant` no longer selects a control.
 - `enableRowSelection` — injects a leading checkbox column; header checkbox toggles all.
   Constrain it with `selectionMode: "single" | "multiple"` (single replaces the
   selection), `maxSelectedRows: N` (a hard cap — unselected rows disable once it

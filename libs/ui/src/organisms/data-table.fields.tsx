@@ -915,7 +915,8 @@ function matchTime(cell: unknown, f: DateRangeFilterValue) {
 
 /**
  * Filter function that dispatches on the column's declared `meta.type`.
- * Register with `filterFn: "typed"` (DataTable registers it by default).
+ * Reached through `filterFn: "typed"`, which `applyColumnDefaults` puts on
+ * every column that does not name its own.
  */
 export function typedFilterMatch(
   type: DataTableColumnType,

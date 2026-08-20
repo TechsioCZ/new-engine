@@ -165,7 +165,8 @@ declare module "@tanstack/react-table" {
 /**
  * Filter function that dispatches on the column's declared `meta.type`, so a
  * `boolean`/`enum`/`date` column filters correctly without the consumer wiring
- * a comparator. Registered by DataTable as `filterFn: "typed"`.
+ * a comparator. `applyColumnDefaults` puts this on every column that does not
+ * name its own `filterFn`.
  */
 export const typedFilterFn: AnyFilterFn = (row, columnId, filterValue) => {
   // `table.getColumn` is a memoised id lookup. Reading the type off the row's
@@ -320,8 +321,19 @@ const toCssLength = (value: DataTableColumnWidth | undefined) =>
   typeof value === "number" ? `${value}px` : value
 
 /**
- * Mirrors numeric `meta.width` / `meta.minWidth` / `meta.maxWidth` into
- * TanStack's own `size` / `minSize` / `maxSize`.
+ * Fills in the column defaults DataTable's own controls depend on.
+ *
+ * **`filterFn`.** Every column in the filter row renders one of the typed
+ * controls — `meta.type` defaults to `"string"`, so this is true even for a
+ * column that declares no type at all — and those controls write an
+ * `{ operator, value }` object. TanStack's default `auto` comparator has no
+ * idea what to do with that object and matches nothing, so a column that
+ * forgot `filterFn: "typed"` silently emptied the table the moment anyone
+ * filtered it. Defaulting it here is what the docs always claimed happened.
+ * An explicit `filterFn`, string or function, always wins.
+ *
+ * **Sizes.** Mirrors numeric `meta.width` / `meta.minWidth` / `meta.maxWidth`
+ * into TanStack's own `size` / `minSize` / `maxSize`.
  *
  * Without this the two disagree: sticky offsets for pinned columns come from
  * `column.getStart()`, which sums `getSize()`, so a frozen column rendered at
@@ -331,7 +343,7 @@ const toCssLength = (value: DataTableColumnWidth | undefined) =>
  * CSS-string widths (`"15%"`, `"var(--dimension-120)"`) cannot be resolved to
  * pixels here, so they stay CSS-only — see `getColumnSizeStyles`.
  */
-export function applyDeclaredColumnSizes<T extends RowData>(
+export function applyColumnDefaults<T extends RowData>(
   columns: ColumnDef<T, unknown>[]
 ): ColumnDef<T, unknown>[] {
   return columns.map((column) => {
@@ -339,9 +351,13 @@ export function applyDeclaredColumnSizes<T extends RowData>(
     const next: ColumnDef<T, unknown> = group.columns
       ? ({
           ...column,
-          columns: applyDeclaredColumnSizes(group.columns),
+          columns: applyColumnDefaults(group.columns),
         } as ColumnDef<T, unknown>)
       : { ...column }
+
+    if (next.filterFn === undefined) {
+      next.filterFn = "typed"
+    }
 
     const meta = next.meta
     if (typeof meta?.width === "number" && next.size === undefined) {
@@ -363,7 +379,7 @@ export function applyDeclaredColumnSizes<T extends RowData>(
  * `meta.width` is the declarative API. `columnDef.size` is deliberately *not*
  * read as a fallback: TanStack merges `size: 150` into every column def, so it
  * cannot distinguish a declared width from the default. Numeric widths are
- * mirrored into `size` by `applyDeclaredColumnSizes`, so `getSize()` is the
+ * mirrored into `size` by `applyColumnDefaults`, so `getSize()` is the
  * authority for them and the rendered width always matches the sticky offsets.
  *
  * A CSS-string width (`"15%"`, `"var(--dimension-120)"`) has no pixel value to
