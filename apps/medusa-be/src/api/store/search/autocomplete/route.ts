@@ -319,10 +319,17 @@ export async function GET(
     products = result.data as Record<string, unknown>[]
   }
 
-  await wrapProductsWithTaxPrices(
-    request,
-    products as unknown as Parameters<typeof wrapProductsWithTaxPrices>[1]
-  )
+  // Storefront autocomplete is also called before the browser has selected a
+  // region. In that case the request has no complete pricing context and the
+  // Medusa tax-price helper throws instead of returning unpriced suggestions.
+  // The query above deliberately omits pricing fields in the same branch, so
+  // only enrich results when a complete pricing context exists.
+  if (pricingContext) {
+    await wrapProductsWithTaxPrices(
+      request,
+      products as unknown as Parameters<typeof wrapProductsWithTaxPrices>[1]
+    )
+  }
 
   degraded ||= [categorySearch, brandSearch, contentSearch].some(
     (result) => result === null
