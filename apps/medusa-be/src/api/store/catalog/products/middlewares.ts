@@ -20,6 +20,8 @@ import {
 } from "./validators"
 
 export const CATALOG_RESPONSE_FIELDS_PROPERTY = "catalogResponseFields"
+export const CATALOG_SALES_CHANNEL_IDS_PROPERTY =
+  "catalogPublishableSalesChannelIds"
 
 const CATALOG_PRICING_FIELD = "variants.calculated_price.*"
 
@@ -63,6 +65,27 @@ const ensureCatalogPricingContextFields = (
   next()
 }
 
+const preserveCatalogSalesChannelContext = (
+  req: MedusaRequest,
+  _res: MedusaResponse,
+  next: MedusaNextFunction
+) => {
+  const request = req as MedusaRequest & {
+    publishable_key_context?: { sales_channel_ids?: unknown }
+    [CATALOG_SALES_CHANNEL_IDS_PROPERTY]?: string[]
+  }
+  const salesChannelIds = request.publishable_key_context?.sales_channel_ids
+
+  if (Array.isArray(salesChannelIds)) {
+    request[CATALOG_SALES_CHANNEL_IDS_PROPERTY] = salesChannelIds.filter(
+      (salesChannelId): salesChannelId is string =>
+        typeof salesChannelId === "string" && salesChannelId.length > 0
+    )
+  }
+
+  next()
+}
+
 export const storeCatalogProductsRoutesMiddlewares: MiddlewareRoute[] = [
   {
     methods: ["GET"],
@@ -77,6 +100,7 @@ export const storeCatalogProductsRoutesMiddlewares: MiddlewareRoute[] = [
         isList: true,
       }),
       ensureCatalogPricingContextFields,
+      preserveCatalogSalesChannelContext,
       filterByValidSalesChannels(),
       applyDefaultFilters({
         status: ProductStatus.PUBLISHED,

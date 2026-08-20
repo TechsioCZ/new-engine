@@ -56,6 +56,7 @@ import {
 } from "../../../../utils/product-sale-adapters"
 import { MEILISEARCH } from "../../../../workflows/meilisearch"
 import { normalizeProductSalesChannelFilter } from "../../../utils/product-filters"
+import { CATALOG_SALES_CHANNEL_IDS_PROPERTY } from "./middlewares"
 import {
   applyCollectionScopeToProductFilters,
   buildCatalogFilterExpressions,
@@ -642,9 +643,14 @@ export async function GET(
   const meilisearchService = req.scope.resolve<MeiliSearchService>(MEILISEARCH)
 
   const page = validatedQuery.page
+  const preservedSalesChannelIds = (
+    req as typeof req & {
+      [CATALOG_SALES_CHANNEL_IDS_PROPERTY]?: string[]
+    }
+  )[CATALOG_SALES_CHANNEL_IDS_PROPERTY]
   const salesChannelFilter = resolveStorefrontSalesChannelFilter(
     req.filterableFields.sales_channel_id,
-    req.publishable_key_context?.sales_channel_ids
+    preservedSalesChannelIds ?? req.publishable_key_context?.sales_channel_ids
   )
   const salesChannelIds = getSalesChannelIds(salesChannelFilter)
   let searchProfile: SearchProfile
