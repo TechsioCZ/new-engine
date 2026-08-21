@@ -256,6 +256,44 @@ describe("public storefront shell URL projections", () => {
     })
   })
 
+  it("omits a found but non-indexable static alternate source", async () => {
+    const context = {
+      params: { market: "sk" },
+      req: {
+        headers: {
+          "x-sf-canonical-origin": "https://herbatica.sk",
+          "x-sf-market": "sk",
+          "x-sf-public-path": "/",
+          "x-sf-route-key": "home",
+        },
+        url: "/",
+      },
+      res: { setHeader: vi.fn(), statusCode: 200 },
+    } as never
+    const loadSource = vi.fn(async (market: "sk" | "cz") => ({
+      kind: "found" as const,
+      value: { approved: market === "sk", title: "Home" },
+    }))
+
+    const result = await resolveStaticPublicPage(context, {
+      expectedRouteKey: "home",
+      isIndexable: (value) => value.approved,
+      loadSource,
+      path: { kind: "home" },
+      queryKind: "homepage",
+    })
+
+    expect(result).toMatchObject({
+      props: {
+        seo: { alternates: { "sk-SK": "https://herbatica.sk/" } },
+      },
+    })
+    expect(
+      (result as { props: { seo: { alternates: object } } }).props.seo
+        .alternates
+    ).not.toHaveProperty("cs-CZ")
+  })
+
   it.each([
     { causeCode: "MALFORMED_HOME", kind: "invalid-response" as const },
     { kind: "unavailable" as const, retryAfterSeconds: 19 },

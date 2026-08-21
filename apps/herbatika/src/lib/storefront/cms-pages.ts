@@ -5,7 +5,7 @@ import {
   type CmsSourceReadResult,
   readCmsJson,
 } from "./cms-client"
-import { rewriteCmsHtmlMediaUrls } from "./cms-content"
+import { rewriteCmsHtmlMediaUrls, stripCmsHtml } from "./cms-content"
 import type { CmsPage } from "./cms-types"
 import type { HerbatikaLocale } from "./market-context"
 import { getRoDemoStaticPage } from "./ro-demo-static-pages"
@@ -134,20 +134,32 @@ const readStaticPageBindings = (): Readonly<
   }
 }
 
+const requireRenderableStaticPage = (
+  result: CmsSourceReadResult<CmsPage>
+): CmsSourceReadResult<CmsPage> => {
+  if (result.kind === "found" && !stripCmsHtml(result.value.content).trim()) {
+    return {
+      causeCode: "EMPTY_STATIC_PAGE_CONTENT",
+      kind: "invalid-response",
+    }
+  }
+  return result
+}
+
 /** Read root-static content by its deployment-bound immutable Payload ID. */
-export const readCmsStaticPage = (
+export const readCmsStaticPage = async (
   pageKey: StaticRootPageKey,
   locale: HerbatikaLocale
 ): Promise<CmsSourceReadResult<CmsPage>> => {
   const id = readStaticPageBindings()?.[pageKey]
   if (!id) {
-    return Promise.resolve({
+    return {
       kind: "invalid-response" as const,
       causeCode: `MISSING_STATIC_PAGE_BINDING_${pageKey.toUpperCase()}`,
-    })
+    }
   }
 
-  return readCmsPageById(id, locale)
+  return requireRenderableStaticPage(await readCmsPageById(id, locale))
 }
 
 /**

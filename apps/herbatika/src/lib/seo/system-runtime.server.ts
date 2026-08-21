@@ -1,3 +1,5 @@
+import { getAboutPageData } from "@/components/about/about-page.data"
+import { getFaqPageData } from "@/components/faq/faq-page.data"
 import { resolveHomepageHeroSource } from "@/components/homepage/homepage.hero.data"
 import {
   type MarketRuntimeBinding,
@@ -17,12 +19,16 @@ import { readReviewedHomepageHeroBanners } from "@/lib/storefront/homepage-hero-
 import { getHerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { getMarketStorefrontSdk } from "@/lib/storefront/market-sdk.server"
 import { PRODUCT_DETAIL_FIELDS } from "@/lib/storefront/product-query-config"
+import { isRoDemoStaticPage } from "@/lib/storefront/ro-demo-static-pages"
 import { prefetchHomePageStorefrontData } from "@/lib/storefront/ssr"
 import {
   readAvailablePublicEntitySlugs,
   readCompletePublicEntitySlugs,
 } from "@/lib/storefront/ssr/public-entity-projections"
+import { assertReviewedStaticRouteSource } from "@/lib/url/segment-registry-publication/reviewed-source.server"
 import { loadStaticRoutePublicationDecision } from "@/lib/url/segment-registry-publication.server"
+import { STATIC_ROOT_PAGE_KEYS } from "@/lib/url/segments"
+import type { Market, StaticRootPageKey } from "@/lib/url/types"
 import { getUrlRegistryRuntime } from "@/lib/url-registry/runtime/instance.server"
 import {
   countPublicIndexableEntityProjections,
@@ -30,16 +36,137 @@ import {
   listPublicIndexableEntityProjectionPage,
 } from "@/lib/url-registry/runtime/public-projections.server"
 import type { ProductFeedDependencies } from "./product-feed"
-import type { SitemapDataDependencies } from "./sitemap-contract"
+import type {
+  SitemapDataDependencies,
+  SitemapSourceValidation,
+  SitemapStaticSourceCandidate,
+} from "./sitemap-contract"
 import {
   validateCatalogSitemapSources,
   validateCmsEntitySitemapSources,
-  validateCmsStaticSitemapSources,
   validateProductSitemapSources,
 } from "./sitemap-source-validation"
 import { resolveSystemHost, type SystemHostResolution } from "./system-response"
 
 const SITEMAP_SOURCE_TIMEOUT_MS = 5000
+const STATIC_ROOT_PAGE_KEY_SET = new Set<string>(STATIC_ROOT_PAGE_KEYS)
+
+const isStaticRootPageKey = (value: string): value is StaticRootPageKey =>
+  STATIC_ROOT_PAGE_KEY_SET.has(value)
+
+const staticSourceUpdatedAt = (value: unknown): string | undefined =>
+  value &&
+  typeof value === "object" &&
+  "publishedDate" in value &&
+  typeof value.publishedDate === "string"
+    ? value.publishedDate
+    : undefined
+
+const isRenderableCodeOwnedStaticSource = (
+  pageKey: "about" | "faq",
+  value: unknown
+): boolean => {
+  if (!(value && typeof value === "object")) {
+    return false
+  }
+  if (pageKey === "about") {
+    return (
+      "hero" in value &&
+      Boolean(
+        value.hero &&
+          typeof value.hero === "object" &&
+          "title" in value.hero &&
+          typeof value.hero.title === "string" &&
+          value.hero.title.trim()
+      )
+    )
+  }
+  return (
+    "title" in value &&
+    typeof value.title === "string" &&
+    Boolean(value.title.trim()) &&
+    "intro" in value &&
+    typeof value.intro === "string" &&
+    Boolean(value.intro.trim())
+  )
+}
+
+const readReviewedStaticSitemapSource = async (
+  market: Market,
+  locale: Parameters<typeof getAboutPageData>[0],
+  source: SitemapStaticSourceCandidate
+): Promise<SitemapSourceValidation | null> => {
+  if (!isStaticRootPageKey(source.staticRouteKey)) {
+    return null
+  }
+  const publication = await loadStaticRoutePublicationDecision({
+    market,
+    routeKey: source.staticRouteKey,
+  })
+  if (publication.kind !== "approved") {
+    return null
+  }
+
+  let value: unknown
+  if (source.staticRouteKey === "about") {
+    value = getAboutPageData(locale)
+  } else if (source.staticRouteKey === "faq") {
+    value = getFaqPageData(locale)
+  } else {
+    const result = await readCmsStaticPage(source.staticRouteKey, locale)
+    if (result.kind !== "found" || isRoDemoStaticPage(result.value)) {
+      return null
+    }
+    value = result.value
+  }
+  if (
+    !value ||
+    ((source.staticRouteKey === "about" || source.staticRouteKey === "faq") &&
+      !isRenderableCodeOwnedStaticSource(source.staticRouteKey, value))
+  ) {
+    return null
+  }
+  await assertReviewedStaticRouteSource({
+    market,
+    pageKey: source.staticRouteKey,
+    publication,
+    renderedSource: value,
+  })
+  return {
+    routeId: source.routeId,
+    updatedAt: staticSourceUpdatedAt(value),
+  }
+}
+
+const validateReviewedStaticSitemapSources: SitemapDataDependencies["validateStaticSources"] =
+  async ({ market, sources }) => {
+    if (
+      new Set(sources.map((source) => source.routeId)).size !== sources.length
+    ) {
+      return {
+        causeCode: "INVALID_STATIC_SITEMAP_SOURCE_CANDIDATES",
+        kind: "invalid-response",
+      }
+    }
+    const { binding } = getMarketStorefrontSdk(market)
+    try {
+      const results = await Promise.all(
+        sources.map((source) =>
+          readReviewedStaticSitemapSource(market, binding.locale, source)
+        )
+      )
+      return {
+        kind: "found",
+        value: results.filter((result) => result !== null),
+      }
+    } catch {
+      return {
+        causeCode: "STATIC_CONTENT_REVIEW_BINDING_FAILED",
+        kind: "invalid-response",
+      }
+    }
+  }
+
 export const resolveSystemHostFromRequest = (
   request: Request
 ): SystemHostResolution =>
@@ -195,24 +322,7 @@ export const systemSitemapDependencies: SitemapDataDependencies = {
       }
     )
   },
-  validateStaticSources: async ({ market, sources }) => {
-    const { binding } = getMarketStorefrontSdk(market)
-    const decisions = await Promise.all(
-      sources.map((source) =>
-        loadStaticRoutePublicationDecision({
-          market,
-          routeKey: source.staticRouteKey,
-        })
-      )
-    )
-    const approvedSources = sources.filter(
-      (_source, index) => decisions[index]?.kind === "approved"
-    )
-    return validateCmsStaticSitemapSources(
-      { locale: binding.locale, sources: approvedSources },
-      { readStaticPage: readCmsStaticPage }
-    )
-  },
+  validateStaticSources: validateReviewedStaticSitemapSources,
 }
 
 export const systemProductFeedDependencies: ProductFeedDependencies = {

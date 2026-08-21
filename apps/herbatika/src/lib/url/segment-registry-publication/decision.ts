@@ -36,6 +36,7 @@ export const getStaticRoutePublicationDecision = (
       editorialApprovalReference: route.editorialApproval.reference,
       frozenRegistrySha256: route.frozenRegistrySha256,
       legalApprovalReference: route.legalApproval.reference,
+      staticContentArtifactRef: route.staticContentArtifact.ref,
       staticContentArtifactSha256: route.staticContentArtifact.sha256,
     },
     kind: "approved",

@@ -86,6 +86,7 @@ export type StaticRoutePublicationDecision =
         editorialApprovalReference: string
         frozenRegistrySha256: string
         legalApprovalReference: string
+        staticContentArtifactRef: string
         staticContentArtifactSha256: string
       }>
       kind: "approved"

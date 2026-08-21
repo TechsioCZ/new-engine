@@ -18,20 +18,151 @@ import {
   type HerbatikaLocale,
 } from "@/lib/storefront/market-context"
 import { isRoDemoStaticPage } from "@/lib/storefront/ro-demo-static-pages"
+import type { StaticRoutePublicationDecision } from "@/lib/url/segment-registry-publication"
+import { assertReviewedStaticRouteSource } from "@/lib/url/segment-registry-publication/reviewed-source.server"
 import { loadStaticRoutePublicationDecision } from "@/lib/url/segment-registry-publication.server"
 import { STATIC_ROOT_PAGE_KEYS } from "@/lib/url/segments"
-import type { StaticRootPageKey } from "@/lib/url/types"
+import type { Market, StaticRootPageKey } from "@/lib/url/types"
 
 type StaticValue =
-  | Readonly<{ kind: "about"; locale: HerbatikaLocale }>
-  | Readonly<{ kind: "faq" }>
-  | Readonly<{ kind: "cms"; page: CmsPage }>
+  | Readonly<{
+      kind: "about"
+      locale: HerbatikaLocale
+      publicationApproved: boolean
+    }>
+  | Readonly<{ kind: "faq"; publicationApproved: boolean }>
+  | Readonly<{
+      kind: "cms"
+      page: CmsPage
+      publicationApproved: boolean
+    }>
 
 type Props = PublicPageProps<StaticValue>
 
 const isStaticPageKey = (value: unknown): value is StaticRootPageKey =>
   typeof value === "string" &&
   (STATIC_ROOT_PAGE_KEYS as readonly string[]).includes(value)
+
+type AvailablePublication = Exclude<
+  StaticRoutePublicationDecision,
+  Readonly<{ kind: "rejected" }>
+>
+
+const invalidStaticSource = (causeCode: string) =>
+  ({ causeCode, kind: "invalid-response" }) as const
+
+const isReviewedSource = async (
+  market: Market,
+  pageKey: StaticRootPageKey,
+  publication: AvailablePublication,
+  renderedSource: unknown
+): Promise<boolean> => {
+  if (publication.kind !== "approved") {
+    return true
+  }
+  try {
+    await assertReviewedStaticRouteSource({
+      market,
+      pageKey,
+      publication,
+      renderedSource,
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
+const loadAboutSource = async (
+  market: Market,
+  publication: AvailablePublication
+) => {
+  const locale = getHerbatikaMarketContext(market).locale
+  const pageData = getAboutPageData(locale)
+  if (!(pageData?.hero.title.trim() && pageData.closingStatement.trim())) {
+    return invalidStaticSource("UNSUPPORTED_ABOUT_PAGE_LOCALE")
+  }
+  if (!(await isReviewedSource(market, "about", publication, pageData))) {
+    return invalidStaticSource("STATIC_CONTENT_REVIEW_BINDING_FAILED")
+  }
+  return {
+    kind: "found",
+    value: {
+      kind: "about",
+      locale,
+      publicationApproved: publication.kind === "approved",
+    },
+  } as const
+}
+
+const loadFaqSource = async (
+  market: Market,
+  publication: AvailablePublication
+) => {
+  const locale = getHerbatikaMarketContext(market).locale
+  const pageData = getFaqPageData(locale)
+  if (!(pageData?.title.trim() && pageData.intro.trim())) {
+    return invalidStaticSource("UNSUPPORTED_FAQ_PAGE_LOCALE")
+  }
+  if (!(await isReviewedSource(market, "faq", publication, pageData))) {
+    return invalidStaticSource("STATIC_CONTENT_REVIEW_BINDING_FAILED")
+  }
+  return {
+    kind: "found",
+    value: {
+      kind: "faq",
+      publicationApproved: publication.kind === "approved",
+    },
+  } as const
+}
+
+const loadCmsSource = async (
+  market: Market,
+  pageKey: StaticRootPageKey,
+  publication: AvailablePublication
+) => {
+  const result = await readCmsStaticPageWithDemoFallback(
+    pageKey,
+    getHerbatikaMarketContext(market).locale
+  )
+  if (result.kind !== "found") {
+    return result
+  }
+  const demoSource = isRoDemoStaticPage(result.value)
+  if (
+    !(
+      demoSource ||
+      (await isReviewedSource(market, pageKey, publication, result.value))
+    )
+  ) {
+    return invalidStaticSource("STATIC_CONTENT_REVIEW_BINDING_FAILED")
+  }
+  return {
+    kind: "found",
+    value: {
+      kind: "cms",
+      page: result.value,
+      publicationApproved: publication.kind === "approved" && !demoSource,
+    },
+  } as const
+}
+
+const loadStaticSource = async (market: Market, pageKey: StaticRootPageKey) => {
+  const publication = await loadStaticRoutePublicationDecision({
+    market,
+    routeKey: pageKey,
+  })
+  if (publication.kind === "rejected") {
+    return { kind: "unavailable", retryAfterSeconds: 30 } as const
+  }
+  if (pageKey === "about") {
+    return loadAboutSource(market, publication)
+  }
+  if (pageKey === "faq") {
+    return loadFaqSource(market, publication)
+  }
+  return loadCmsSource(market, pageKey, publication)
+}
 
 export const getServerSideProps = ((context) => {
   const pageKey = context.params?.pageKey
@@ -40,52 +171,12 @@ export const getServerSideProps = ((context) => {
   }
   return resolveStaticPublicPage<StaticValue>(context, {
     expectedRouteKey: `static.${pageKey}`,
-    loadSource: async (market) => {
-      const publication = await loadStaticRoutePublicationDecision({
-        market,
-        routeKey: pageKey,
-      })
-      if (publication.kind === "rejected") {
-        return {
-          kind: "unavailable",
-          retryAfterSeconds: 30,
-        } as const
-      }
-      if (pageKey === "about") {
-        const locale = getHerbatikaMarketContext(market).locale
-        if (!getAboutPageData(locale)) {
-          return {
-            causeCode: "UNSUPPORTED_ABOUT_PAGE_LOCALE",
-            kind: "invalid-response",
-          } as const
-        }
-        return { kind: "found", value: { kind: pageKey, locale } } as const
-      }
-      if (pageKey === "faq") {
-        const locale = getHerbatikaMarketContext(market).locale
-        if (!getFaqPageData(locale)) {
-          return {
-            causeCode: "UNSUPPORTED_FAQ_PAGE_LOCALE",
-            kind: "invalid-response",
-          } as const
-        }
-        return { kind: "found", value: { kind: pageKey } } as const
-      }
-      const result = await readCmsStaticPageWithDemoFallback(
-        pageKey,
-        getHerbatikaMarketContext(market).locale
-      )
-      return result.kind === "found"
-        ? ({
-            kind: "found",
-            value: { kind: "cms", page: result.value },
-          } as const)
-        : result
-    },
+    loadSource: (market) => loadStaticSource(market, pageKey),
     path: { kind: "static", page: pageKey },
     queryKind: "static-page",
     isIndexable: (value) =>
-      value.kind !== "cms" || !isRoDemoStaticPage(value.page),
+      value.publicationApproved &&
+      (value.kind !== "cms" || !isRoDemoStaticPage(value.page)),
     title: (value) =>
       value.kind === "cms"
         ? (value.page.meta?.title ?? value.page.title ?? "Herbatica")

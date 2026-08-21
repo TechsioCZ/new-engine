@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
 
 const mocks = vi.hoisted(() => ({
+  assertReviewedStaticSource: vi.fn(),
   fetch: vi.fn(),
   fetchBlogPosts: vi.fn(),
   fetchHeroBanners: vi.fn(),
   hydrateHeroBanners: vi.fn(),
+  loadStaticPublication: vi.fn(),
   prefetchHomepage: vi.fn(),
   readAvailableSlugs: vi.fn(),
   readArticle: vi.fn(),
@@ -64,6 +66,15 @@ vi.mock("@/lib/storefront/ssr/public-entity-projections", () => ({
 vi.mock("@/lib/url-registry/runtime/instance.server", () => ({
   getUrlRegistryRuntime: vi.fn(),
 }))
+vi.mock("@/lib/url/segment-registry-publication.server", () => ({
+  loadStaticRoutePublicationDecision: mocks.loadStaticPublication,
+}))
+vi.mock(
+  "@/lib/url/segment-registry-publication/reviewed-source.server",
+  () => ({
+    assertReviewedStaticRouteSource: mocks.assertReviewedStaticSource,
+  })
+)
 vi.mock("@/lib/url-registry/runtime/public-projections.server", () => ({
   countPublicIndexableEntityProjections: vi.fn(),
   listPublicEntityProjections: vi.fn(),
@@ -110,6 +121,17 @@ describe("system sitemap source wiring", () => {
     mocks.readAvailableSlugs.mockResolvedValue({ kind: "found", value: {} })
     mocks.readCompleteSlugs.mockResolvedValue({ kind: "found", value: {} })
     mocks.readHomepageManifest.mockReturnValue(undefined)
+    mocks.assertReviewedStaticSource.mockResolvedValue(undefined)
+    mocks.loadStaticPublication.mockResolvedValue({
+      evidence: {
+        editorialApprovalReference: "CZ-EDITORIAL-static",
+        frozenRegistrySha256: "f".repeat(64),
+        legalApprovalReference: "CZ-LEGAL-static",
+        staticContentArtifactRef: "market-static-content/cz/privacy.json",
+        staticContentArtifactSha256: "a".repeat(64),
+      },
+      kind: "approved",
+    })
   })
 
   it("publishes a homepage only when every hard SSR source is ready", async () => {
@@ -242,6 +264,93 @@ describe("system sitemap source wiring", () => {
       value: [{ routeId: "route_article_1", updatedAt: undefined }],
     })
     expect(mocks.readArticle).toHaveBeenCalledWith("article_1", "cs-CZ")
+  })
+
+  it("binds an indexable static sitemap source to its reviewed payload", async () => {
+    const page = {
+      content: "Reviewed privacy content",
+      id: 77,
+      publishedDate: "2026-08-21T10:00:00.000Z",
+      title: "Privacy",
+    }
+    mocks.readStaticPage.mockResolvedValue({ kind: "found", value: page })
+
+    await expect(
+      systemSitemapDependencies.validateStaticSources({
+        market: "cz",
+        sources: [{ routeId: "route_privacy", staticRouteKey: "privacy" }],
+      })
+    ).resolves.toEqual({
+      kind: "found",
+      value: [
+        {
+          routeId: "route_privacy",
+          updatedAt: "2026-08-21T10:00:00.000Z",
+        },
+      ],
+    })
+    expect(mocks.assertReviewedStaticSource).toHaveBeenCalledWith(
+      expect.objectContaining({
+        market: "cz",
+        pageKey: "privacy",
+        renderedSource: page,
+      })
+    )
+  })
+
+  it("fails the static sitemap closed after approved CMS content drifts", async () => {
+    mocks.readStaticPage.mockResolvedValue({
+      kind: "found",
+      value: { content: "Drifted", id: 77, title: "Privacy" },
+    })
+    mocks.assertReviewedStaticSource.mockRejectedValueOnce(
+      new Error("content drift")
+    )
+
+    await expect(
+      systemSitemapDependencies.validateStaticSources({
+        market: "cz",
+        sources: [{ routeId: "route_privacy", staticRouteKey: "privacy" }],
+      })
+    ).resolves.toEqual({
+      causeCode: "STATIC_CONTENT_REVIEW_BINDING_FAILED",
+      kind: "invalid-response",
+    })
+  })
+
+  it("omits an RO demo substitution from static sitemap validation", async () => {
+    mocks.readStaticPage.mockResolvedValue({
+      kind: "found",
+      value: {
+        content: "Demo",
+        id: "demo-generated-unreviewed:ro:terms",
+        title: "Terms",
+      },
+    })
+
+    await expect(
+      systemSitemapDependencies.validateStaticSources({
+        market: "cz",
+        sources: [{ routeId: "route_terms", staticRouteKey: "terms" }],
+      })
+    ).resolves.toEqual({ kind: "found", value: [] })
+    expect(mocks.assertReviewedStaticSource).not.toHaveBeenCalled()
+  })
+
+  it("omits taxonomy-noindex static sources without reading CMS", async () => {
+    mocks.loadStaticPublication.mockResolvedValueOnce({
+      kind: "not-required",
+      reason: "route-not-indexable",
+    })
+
+    await expect(
+      systemSitemapDependencies.validateStaticSources({
+        market: "cz",
+        sources: [{ routeId: "route_contact", staticRouteKey: "contact" }],
+      })
+    ).resolves.toEqual({ kind: "found", value: [] })
+    expect(mocks.readStaticPage).not.toHaveBeenCalled()
+    expect(mocks.assertReviewedStaticSource).not.toHaveBeenCalled()
   })
 
   it("reads product-feed details through one bounded Store list request", async () => {

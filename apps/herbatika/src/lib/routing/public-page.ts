@@ -346,7 +346,8 @@ export const loadEntityAlternates = async <Value>(
 const loadStaticAlternates = async <Value>(
   currentMarket: Market,
   path: Parameters<typeof buildPath>[0],
-  loadSource: (market: Market) => Promise<PublicSourceResult<Value>>
+  loadSource: (market: Market) => Promise<PublicSourceResult<Value>>,
+  isIndexable?: (value: Value) => boolean
 ): Promise<Readonly<Record<string, string>>> => {
   const { allowedMarkets } = getConfiguredMarketRoutingRuntime()
   const self = [
@@ -359,7 +360,10 @@ const loadStaticAlternates = async <Value>(
       .map(async (market) => {
         try {
           const source = await loadSource(market)
-          if (source.kind !== "found") {
+          if (
+            source.kind !== "found" ||
+            !(isIndexable?.(source.value) ?? true)
+          ) {
             return null
           }
           return [
@@ -596,7 +600,12 @@ export const resolveStaticPublicPage = async <Value>(
       : undefined
     const alternates =
       isIndexable && querySeo.alternateEligible
-        ? await loadStaticAlternates(market, input.path, input.loadSource)
+        ? await loadStaticAlternates(
+            market,
+            input.path,
+            input.loadSource,
+            input.isIndexable
+          )
         : {}
     setNoStore(context)
     return {
