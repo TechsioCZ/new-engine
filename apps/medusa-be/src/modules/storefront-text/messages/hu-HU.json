@@ -860,10 +860,10 @@
     },
     "contact": {
       "hours": "(Hé–Pé: 09:00–16:00)",
-      "email_display": "ahoj@herbatica.sk",
-      "email_href": "mailto:ahoj@herbatica.sk",
-      "phone_display": "+421 2/321 123 45",
-      "phone_href": "tel:+421232112345"
+      "email_display": "szia@herbatica.hu",
+      "email_href": "mailto:szia@herbatica.hu",
+      "phone_display": "+36 213 00 7325",
+      "phone_href": "tel:+36213007325"
     },
     "footer": {
       "copyright": "Copyright {year} <brand>{domain}.</brand> Minden jog fenntartva.",
