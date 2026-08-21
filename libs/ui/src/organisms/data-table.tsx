@@ -1697,25 +1697,29 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
    * (all rows render) whenever `maxHeight` is missing, with a dev warning.
    */
   const virtualizationUsable = enableVirtualization && !!maxHeight
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally fires once per mount, not once per (enableVirtualization, maxHeight) value
+  const hasWarnedAboutUnboundedVirtualization = useRef(false)
   useEffect(() => {
     if (
-      enableVirtualization &&
-      !maxHeight &&
-      typeof process !== "undefined" &&
-      process.env?.NODE_ENV !== "production"
+      !enableVirtualization ||
+      maxHeight ||
+      hasWarnedAboutUnboundedVirtualization.current ||
+      typeof process === "undefined" ||
+      process.env?.NODE_ENV === "production"
     ) {
-      console.warn(
-        "DataTable: enableVirtualization has no effect without maxHeight — " +
-          "the scroll container never gets a bounded height to measure " +
-          "scrollTop against, so only the first batch of rows would render. " +
-          "Pass maxHeight to enable virtualization."
-      )
+      return
     }
-    // Every render re-hits this condition (filtering, selection, any state
-    // change on the table), and a warning that repeats on every keystroke is
-    // noise rather than a signal. Fire it once per mount instead.
-  }, [])
+    hasWarnedAboutUnboundedVirtualization.current = true
+    console.warn(
+      "DataTable: enableVirtualization has no effect without maxHeight — " +
+        "the scroll container never gets a bounded height to measure " +
+        "scrollTop against, so only the first batch of rows would render. " +
+        "Pass maxHeight to enable virtualization."
+    )
+    // A warning that repeats on every keystroke is noise rather than a signal,
+    // so the ref fires it at most once per instance. The prop deps re-check
+    // configs that become invalid only after mount (e.g. a parent flips
+    // enableVirtualization on while maxHeight stays unset).
+  }, [enableVirtualization, maxHeight])
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
