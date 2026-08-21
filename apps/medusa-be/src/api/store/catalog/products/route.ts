@@ -885,10 +885,27 @@ export async function GET(
     )
   } catch (error) {
     const logger = req.scope.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+    const searchError = error instanceof Error ? error.message : String(error)
+
+    if (authoritativePriceSortDirection) {
+      logger.warn(
+        `Meilisearch catalog query failed; price-sorted degraded fallback is unavailable: ${searchError}`
+      )
+      res.status(503).json({
+        code: "CATALOG_PRICE_SORT_UNAVAILABLE_DEGRADED",
+        message:
+          "Price sorting is unavailable while catalog search is degraded",
+        search: {
+          degraded: true,
+          exactIdentifierMatch: false,
+          profile: searchProfile.key,
+        },
+      })
+      return
+    }
+
     logger.warn(
-      `Meilisearch catalog query failed; using capped Medusa fallback: ${
-        error instanceof Error ? error.message : String(error)
-      }`
+      `Meilisearch catalog query failed; using capped Medusa fallback: ${searchError}`
     )
     const pricingContext = req.pricingContext
       ? QueryContext(req.pricingContext)
