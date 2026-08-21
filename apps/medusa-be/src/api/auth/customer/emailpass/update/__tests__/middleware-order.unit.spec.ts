@@ -3,7 +3,11 @@ import { dirname, resolve } from "node:path"
 import { sign } from "jsonwebtoken"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import apiMiddlewareConfig from "../../../../../middlewares"
-import { customerEmailpassUpdateGuardMiddlewares } from "../middlewares"
+import {
+  customerEmailpassUpdateGuardMatcher,
+  customerEmailpassUpdateGuardMiddlewares,
+  rejectGenericCustomerEmailpassUpdate,
+} from "../middlewares"
 
 const require = createRequire(import.meta.url)
 const frameworkHttpEntry = require.resolve("@medusajs/framework/http")
@@ -53,20 +57,20 @@ function flattenRouteMiddlewares(route: {
 }
 
 describe("customer emailpass update middleware order", () => {
-  it("registers the exact POST guard in the application middleware config", () => {
+  it("registers the canonicalizing POST guard in the application middleware config", () => {
     const guard = customerEmailpassUpdateGuardMiddlewares[0]
-    const registeredGuard = apiMiddlewareConfig.routes.find(
-      (route) => route.matcher === guard.matcher
+    const registeredGuard = apiMiddlewareConfig.routes.find((route) =>
+      route.middlewares.includes(rejectGenericCustomerEmailpassUpdate)
     )
 
     expect(registeredGuard).toMatchObject({
-      matcher: "/auth/customer/emailpass/update",
+      matcher: customerEmailpassUpdateGuardMatcher,
       methods: ["POST"],
     })
     expect(registeredGuard?.middlewares).toEqual(guard.middlewares)
   })
 
-  it("rejects a valid reset JWT before Medusa validates or consumes it", async () => {
+  it("rejects canonical, encoded, and unsafe variants before token consumption", async () => {
     const coreUpdateRoute = coreApiMiddlewareConfig.routes.find(
       (route: { matcher: string }) =>
         route.matcher === "/auth/:actor_type/:auth_provider/update"
@@ -99,6 +103,16 @@ describe("customer emailpass update middleware order", () => {
         method: "POST",
       },
     ]).sort()
+    expect(
+      sorted.findIndex(
+        (entry: MiddlewareEntry) =>
+          entry.handler === rejectGenericCustomerEmailpassUpdate
+      )
+    ).toBeLessThan(
+      sorted.findIndex(
+        (entry: MiddlewareEntry) => entry.handler === validateToken
+      )
+    )
     const app = express()
     const jwtSecret = "middleware-order-test-secret"
 
@@ -153,28 +167,62 @@ describe("customer emailpass update middleware order", () => {
       jwtSecret
     )
 
-    const response = await fetch(
-      `http://127.0.0.1:${address.port}/auth/customer/emailpass/update`,
-      {
+    const protectedPaths = [
+      "/auth/customer/emailpass/update",
+      "/auth/customer/%65mailpass/update",
+      "/auth/%63ustomer/emailpass/update",
+      "/auth/customer/%2565mailpass/update",
+      "/auth/%2563ustomer/emailpass/update",
+      "/auth/customer/%E0%A4%A/update",
+      "/auth/customer/%ZZmailpass/update",
+    ]
+    for (const path of protectedPaths) {
+      const response = await fetch(`http://127.0.0.1:${address.port}${path}`, {
         body: JSON.stringify({ password: "new-secure-password" }),
         headers: {
           authorization: `Bearer ${token}`,
           "content-type": "application/json",
         },
         method: "POST",
-      }
-    )
+      })
 
-    expect(response.status).toBe(404)
-    expect(response.headers.get("cache-control")).toBe("private, no-store")
-    expect(response.headers.get("pragma")).toBe("no-cache")
-    await expect(response.json()).resolves.toEqual({
-      message: "Resource was not found.",
-      type: "not_found",
-    })
+      expect(response.status, path).toBe(404)
+      expect(response.headers.get("cache-control"), path).toBe(
+        "private, no-store"
+      )
+      expect(response.headers.get("pragma"), path).toBe("no-cache")
+      await expect(response.json()).resolves.toEqual({
+        message: "Resource was not found.",
+        type: "not_found",
+      })
+    }
     expect(validateToken).not.toHaveBeenCalled()
     expect(consumePasswordResetToken).not.toHaveBeenCalled()
     expect(updateProvider).not.toHaveBeenCalled()
     expect(downstreamUpdate).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    "/auth/customer/google/update",
+    "/auth/admin/emailpass/update",
+    "/auth/%61dmin/%67oogle/update",
+  ])("allows another canonical actor/provider route: %s", (path) => {
+    const next = vi.fn()
+    const response = {
+      json: vi.fn(),
+      setHeader: vi.fn(),
+      status: vi.fn(),
+    }
+
+    rejectGenericCustomerEmailpassUpdate(
+      { path } as never,
+      response as never,
+      next
+    )
+
+    expect(next).toHaveBeenCalledOnce()
+    expect(response.status).not.toHaveBeenCalled()
+    expect(response.json).not.toHaveBeenCalled()
+    expect(response.setHeader).not.toHaveBeenCalled()
   })
 })
