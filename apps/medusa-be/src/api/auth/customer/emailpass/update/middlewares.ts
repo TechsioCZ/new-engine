@@ -6,11 +6,11 @@ import type {
 import type { MiddlewareRoute } from "@medusajs/medusa"
 import { POST } from "./route"
 
-const AUTH_UPDATE_PATH = /^\/auth\/([^/]+)\/([^/]+)\/update\/?$/
+const AUTH_UPDATE_PATH = /^\/auth\/([^/]+)\/([^/]+)\/update\/?$/i
 const ENCODED_OCTET = /%[\da-f]{2}/i
 
 export const customerEmailpassUpdateGuardMatcher =
-  /^\/auth\/[^/]+\/[^/]+\/update\/?$/
+  /^\/auth\/[^/]+\/[^/]+\/update\/?$/i
 
 type DecodedSegment = { kind: "canonical"; value: string } | { kind: "unsafe" }
 
@@ -28,7 +28,7 @@ function decodeCanonicalSegment(segment: string): DecodedSegment {
     return { kind: "unsafe" }
   }
 
-  return { kind: "canonical", value: decoded }
+  return { kind: "canonical", value: decoded.toLowerCase() }
 }
 
 /**

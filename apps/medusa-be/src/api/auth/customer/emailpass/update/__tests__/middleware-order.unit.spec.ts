@@ -175,6 +175,12 @@ describe("customer emailpass update middleware order", () => {
       "/auth/%2563ustomer/emailpass/update",
       "/auth/customer/%E0%A4%A/update",
       "/auth/customer/%ZZmailpass/update",
+      "/AUTH/customer/emailpass/update",
+      "/auth/customer/emailpass/UPDATE",
+      "/Auth/customer/emailpass/Update",
+      "/aUtH/CUSTOMER/EMAILPASS/uPdAtE",
+      "/AUTH/%63ustomer/%65mailpass/UPDATE",
+      "/Auth/%43ustomer/%45mailpass/Update",
     ]
     for (const path of protectedPaths) {
       const response = await fetch(`http://127.0.0.1:${address.port}${path}`, {
@@ -206,6 +212,7 @@ describe("customer emailpass update middleware order", () => {
     "/auth/customer/google/update",
     "/auth/admin/emailpass/update",
     "/auth/%61dmin/%67oogle/update",
+    "/AUTH/%61dmin/%67oogle/UPDATE",
   ])("allows another canonical actor/provider route: %s", (path) => {
     const next = vi.fn()
     const response = {
