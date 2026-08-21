@@ -1047,7 +1047,7 @@ describe("Herbatica Shoptet workflow input", () => {
     )
   })
 
-  it("rejects missing, duplicate, extra, or wrong-country market regions", () => {
+  it("rejects missing, duplicate, extra, wrong-country, or misbound market regions", () => {
     const parsed = buildSeedInputFromXml("<SHOP></SHOP>")
     const workflowOptions = {
       fulfillmentSetName: "European Warehouse delivery",
@@ -1079,6 +1079,14 @@ describe("Herbatica Shoptet workflow input", () => {
       HERBATICA_DEFAULT_REGIONS.map((region) =>
         region.currencyCode === "huf"
           ? { ...region, countries: ["sk"] }
+          : region
+      ),
+      HERBATICA_DEFAULT_REGIONS.map((region) =>
+        region.marketCode === "ro"
+          ? {
+              ...region,
+              salesChannelName: "Herbatica Storefront SK",
+            }
           : region
       ),
     ]

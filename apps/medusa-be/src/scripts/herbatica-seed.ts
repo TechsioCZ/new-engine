@@ -3611,23 +3611,33 @@ export function buildHerbaticaSeedWorkflowInput(
   const expectedRegions = new Map(
     HERBATICA_DEFAULT_REGIONS.map((region) => [
       region.currencyCode,
-      region.countries[0],
+      {
+        country: region.countries[0],
+        marketCode: region.marketCode,
+        salesChannelName: region.salesChannelName,
+      },
     ])
   )
   const normalizedRegions = regionsInput.map((region) => ({
     countries: region.countries?.map((country) => country.toLowerCase()),
     currencyCode: region.currencyCode.toLowerCase(),
+    marketCode: region.marketCode,
+    salesChannelName: region.salesChannelName,
   }))
   if (
     normalizedRegions.length !== expectedRegions.size ||
-    normalizedRegions.some(({ countries, currencyCode }) => {
-      const expectedCountry = expectedRegions.get(currencyCode)
-      return (
-        !expectedCountry ||
-        countries?.length !== 1 ||
-        countries[0] !== expectedCountry
-      )
-    }) ||
+    normalizedRegions.some(
+      ({ countries, currencyCode, marketCode, salesChannelName }) => {
+        const expected = expectedRegions.get(currencyCode)
+        return (
+          !expected ||
+          countries?.length !== 1 ||
+          countries[0] !== expected.country ||
+          marketCode !== expected.marketCode ||
+          salesChannelName !== expected.salesChannelName
+        )
+      }
+    ) ||
     new Set(normalizedRegions.map(({ currencyCode }) => currencyCode)).size !==
       expectedRegions.size
   ) {

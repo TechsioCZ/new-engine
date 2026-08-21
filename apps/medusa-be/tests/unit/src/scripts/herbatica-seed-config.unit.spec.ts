@@ -115,6 +115,8 @@ describe("Herbatica four-market seed config", () => {
           countries: ["cz"],
           paymentProviders: undefined,
           isTaxInclusive: true,
+          marketCode: "cz",
+          salesChannelName: "Herbatica Storefront CZ",
         },
         {
           name: "Europe",
@@ -122,6 +124,8 @@ describe("Herbatica four-market seed config", () => {
           countries: ["sk"],
           paymentProviders: undefined,
           isTaxInclusive: true,
+          marketCode: "sk",
+          salesChannelName: "Herbatica Storefront SK",
         },
         {
           name: "Hungary",
@@ -129,6 +133,8 @@ describe("Herbatica four-market seed config", () => {
           countries: ["hu"],
           paymentProviders: undefined,
           isTaxInclusive: true,
+          marketCode: "hu",
+          salesChannelName: "Herbatica Storefront HU",
         },
         {
           name: "Romania",
@@ -136,6 +142,8 @@ describe("Herbatica four-market seed config", () => {
           countries: ["ro"],
           paymentProviders: undefined,
           isTaxInclusive: true,
+          marketCode: "ro",
+          salesChannelName: "Herbatica Storefront RO",
         },
       ],
       taxRates: [

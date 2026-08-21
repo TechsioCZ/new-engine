@@ -87,7 +87,21 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
     updateStoreCurrenciesStepInput
   )
 
-  const createRegionsResult = Steps.createRegionsStep(input.regions)
+  const resolveRegionSalesChannelBindingsInput: Steps.ResolveRegionSalesChannelBindingsStepInput =
+    transform(
+      {
+        input,
+        salesChannelsResult,
+      },
+      (data) => ({
+        regions: data.input.regions,
+        salesChannels: data.salesChannelsResult.result,
+      })
+    )
+  const resolvedRegions = Steps.resolveRegionSalesChannelBindingsStep(
+    resolveRegionSalesChannelBindingsInput
+  )
+  const createRegionsResult = Steps.createRegionsStep(resolvedRegions)
 
   const ensurePricePreferencesStepInput: Steps.EnsurePricePreferencesStepInput =
     transform(

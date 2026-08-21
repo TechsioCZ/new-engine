@@ -1,5 +1,8 @@
 import type { Query } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 import { MARKET_VARIANT_AUTHORITY_MODULE } from "../../market-variant-authority"
 import { PAYLOAD_MODULE } from "../../payload"
@@ -101,7 +104,6 @@ const syncContainer = (
       currency_code: "ron",
       id: "reg_ro",
       metadata: {
-        demo_source: "herbatica-ro-demo-commerce-v1",
         market_code: "ro",
         sales_channel_id: "sc_ro",
       },
@@ -217,15 +219,34 @@ describe("Meilisearch catalog localization", () => {
   it("selects the exact requested profile set and rejects zero or missing targets", () => {
     const profiles = [roProfile("herbatika-ro"), roProfile("herbatika-cz")]
 
+    let configurationError: unknown
+    try {
+      selectRequestedSearchProfiles([])
+    } catch (error) {
+      configurationError = error
+    }
+    expect(configurationError).toMatchObject({
+      message: expect.stringContaining("at least one configured profile"),
+      type: MedusaError.Types.UNEXPECTED_STATE,
+    })
     expect(() => selectRequestedSearchProfiles([])).toThrow(
       "at least one configured profile"
     )
     expect(selectRequestedSearchProfiles(profiles, ["herbatika-cz"])).toEqual([
       profiles[1],
     ])
-    expect(() => selectRequestedSearchProfiles(profiles, [])).toThrow(
-      "must contain at least one exact profile key"
-    )
+    let requestedKeyError: unknown
+    try {
+      selectRequestedSearchProfiles(profiles, [])
+    } catch (error) {
+      requestedKeyError = error
+    }
+    expect(requestedKeyError).toMatchObject({
+      message: expect.stringContaining(
+        "must contain at least one exact profile key"
+      ),
+      type: MedusaError.Types.INVALID_DATA,
+    })
     expect(() =>
       selectRequestedSearchProfiles(profiles, [
         "herbatika-ro",
@@ -591,7 +612,8 @@ describe("Meilisearch catalog localization", () => {
   })
 
   it("fails closed when a variant has no exact availability authority", () => {
-    expect(() =>
+    let projectionError: unknown
+    try {
       projectProductForVariantAuthority(
         { id: "prod_1", variants: [{ id: "variant_1", prices: [] }] },
         {
@@ -600,7 +622,15 @@ describe("Meilisearch catalog localization", () => {
           unavailableVariantIds: new Set(),
         }
       )
-    ).toThrow('variant authority is missing or ambiguous for "variant_1"')
+    } catch (error) {
+      projectionError = error
+    }
+    expect(projectionError).toMatchObject({
+      message: expect.stringContaining(
+        'variant authority is missing or ambiguous for "variant_1"'
+      ),
+      type: MedusaError.Types.UNEXPECTED_STATE,
+    })
   })
 
   it("rejects a competing scoped RON price that could diverge from native Meili sorting", () => {
@@ -762,7 +792,6 @@ describe("Meilisearch catalog localization", () => {
               currency_code: "eur",
               id: "reg_ro",
               metadata: {
-                demo_source: "herbatica-ro-demo-commerce-v1",
                 market_code: "ro",
                 sales_channel_id: "sc_ro",
               },
@@ -1729,9 +1758,6 @@ describe("Meilisearch catalog localization", () => {
       currency_code: currencyCode,
       id: `reg_${market}`,
       metadata: {
-        ...(market === "ro"
-          ? { demo_source: "herbatica-ro-demo-commerce-v1" }
-          : {}),
         market_code: market,
         sales_channel_id: `sc_${market}`,
       },
@@ -1775,9 +1801,6 @@ describe("Meilisearch catalog localization", () => {
       currency_code: wrongCurrencyCode,
       id: `reg_${market}`,
       metadata: {
-        ...(market === "ro"
-          ? { demo_source: "herbatica-ro-demo-commerce-v1" }
-          : {}),
         market_code: market,
         sales_channel_id: `sc_${market}`,
       },

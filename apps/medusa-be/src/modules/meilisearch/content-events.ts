@@ -1,4 +1,5 @@
 import type { Logger, MedusaContainer } from "@medusajs/framework/types"
+import { MedusaError } from "@medusajs/framework/utils"
 import { MeilisearchAdminClient } from "./admin-client"
 import { buildContentSearchDocument } from "./documents"
 import { isMeilisearchEnabled } from "./env"
@@ -53,7 +54,8 @@ const requirePublishedContentDocument = ({
     return document
   }
 
-  throw new Error(
+  throw new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
     `Cannot reconcile ${change.collection} search projection because its canonical public href is unavailable`
   )
 }
@@ -94,7 +96,8 @@ export const reconcileContentSearchChange = async (
       ? normalizeLocale(change.doc.locale)
       : undefined
   if (!locale) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `Quarantining ${change.collection} search projection because its locale is missing`
     )
   }

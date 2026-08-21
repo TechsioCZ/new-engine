@@ -28,6 +28,7 @@ vi.mock("../url-registry-content-projection", () => ({
 }))
 
 import type { Logger, MedusaContainer } from "@medusajs/framework/types"
+import { MedusaError } from "@medusajs/framework/utils"
 import { reconcileContentSearchChange } from "../content-events"
 
 const profile = {
@@ -103,7 +104,10 @@ describe("CMS event URL registry projection", () => {
         logger,
         container
       )
-    ).rejects.toThrow("canonical public href is unavailable")
+    ).rejects.toMatchObject({
+      message: expect.stringContaining("canonical public href is unavailable"),
+      type: MedusaError.Types.UNEXPECTED_STATE,
+    })
 
     expect(mocks.addDocuments).not.toHaveBeenCalled()
     expect(mocks.deleteDocuments).not.toHaveBeenCalled()
@@ -122,9 +126,12 @@ describe("CMS event URL registry projection", () => {
         logger,
         container
       )
-    ).rejects.toThrow(
-      "Quarantining articles search projection because its locale is missing"
-    )
+    ).rejects.toMatchObject({
+      message: expect.stringContaining(
+        "Quarantining articles search projection because its locale is missing"
+      ),
+      type: MedusaError.Types.UNEXPECTED_STATE,
+    })
 
     expect(mocks.loadSearchProfiles).not.toHaveBeenCalled()
     expect(mocks.resolveContentProjectionHrefs).not.toHaveBeenCalled()

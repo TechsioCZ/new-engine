@@ -5,7 +5,11 @@ import type {
   MedusaContainer,
   Query,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+  Modules,
+} from "@medusajs/framework/utils"
 import { MARKET_VARIANT_AUTHORITY_MODULE } from "../market-variant-authority"
 import {
   type MarketVariantAuthorityRecord,
@@ -382,7 +386,8 @@ const resolveProfilePublicationScope = (
   )?.market
   const salesChannelIds = [...new Set(profile.salesChannelIds)]
   if (!(market && salesChannelIds.length === 1)) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `Meilisearch profile "${profile.key}" cannot prove exact publication ` +
         `for locale "${profile.locale}": expected one configured market and ` +
         "one Sales Channel."
@@ -408,7 +413,8 @@ const resolveProfileCommerceScope = async (
     (candidate) => candidate.market === publicationScope.market
   )
   if (!marketConfiguration) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `Meilisearch profile "${profile.key}" has no exact commerce market configuration.`
     )
   }
@@ -425,7 +431,8 @@ const resolveProfileCommerceScope = async (
     )
   )
   if (matchingRegions.length !== 1) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `Meilisearch profile "${profile.key}" cannot prove one exact commerce ` +
         `region for market "${publicationScope.market}".`
     )
@@ -458,13 +465,9 @@ const resolveProfileCommerceScope = async (
     countryCodes[0] === marketConfiguration.country &&
     metadata?.market_code === publicationScope.market &&
     metadata.sales_channel_id === publicationScope.salesChannelId
-  const exactRomanianDemo =
-    publicationScope.market !== "ro" ||
-    (currencyCode === "ron" &&
-      metadata?.demo_source === "herbatica-ro-demo-commerce-v1")
-
-  if (!(exactRegion && exactRomanianDemo)) {
-    throw new Error(
+  if (!exactRegion) {
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `Meilisearch profile "${profile.key}" cannot prove exact region, ` +
         `currency, and Sales Channel authority for market "${publicationScope.market}".`
     )
@@ -484,7 +487,8 @@ const productIsPublishedForProfile = (
   } catch (error) {
     const id = getId(record) ?? "unknown"
     const reason = error instanceof Error ? ` ${error.message}` : ""
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `Meilisearch profile "${profile.key}" cannot validate exact ` +
         `publication for product "${id}".${reason}`
     )
@@ -531,13 +535,17 @@ export const projectProductForVariantAuthority = (
   const projectedVariants = variants.flatMap((variant) => {
     const variantId = getId(variant)
     if (!variantId) {
-      throw new Error("Meilisearch cannot authorize a variant without an ID.")
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
+        "Meilisearch cannot authorize a variant without an ID."
+      )
     }
 
     const approved = authority.approvedVariantIds.has(variantId)
     const unavailable = authority.unavailableVariantIds.has(variantId)
     if (approved === unavailable) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
         `Meilisearch variant authority is missing or ambiguous for "${variantId}".`
       )
     }
@@ -552,7 +560,8 @@ export const projectProductForVariantAuthority = (
     )
     const exactPrices = currencyPrices.filter(isUnscopedBasePrice)
     if (currencyPrices.length !== 1 || exactPrices.length !== 1) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
         `Meilisearch cannot prove one exact ${currencyCode.toUpperCase()} ` +
           "base price with no competing scoped price for approved variant " +
           `"${variantId}".`
@@ -602,7 +611,8 @@ const loadProfileVariantAuthority = async (options: {
     (expectedVariantCount > 0 &&
       (authorityHashes.size !== 1 || sourceVersions.size !== 1))
   ) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       "Meilisearch cannot prove one exhaustive variant authority for market " +
         `"${options.publicationScope.market}".`
     )
@@ -697,7 +707,8 @@ const pinProfileVariantAuthorityIdentity = (
     (current.authoritySha256 !== authority.authoritySha256 ||
       current.sourceVersion !== authority.sourceVersion)
   ) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `Meilisearch profile "${profile.key}" received mixed variant ` +
         "authority generations across product batches."
     )
@@ -740,7 +751,8 @@ const loadPublishedReferenceIds = async (options: {
       record.publication_status === "published" &&
       record.sales_channel_id === options.scope.salesChannelId
     if (!exactRecord || publishedIds.has(record.entity_id)) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
         `Meilisearch received an invalid or ambiguous ${entityKind} URL ` +
           `assignment response for market "${options.scope.market}".`
       )
@@ -778,7 +790,8 @@ const loadAllPublishedReferenceIds = async (options: {
         record.publication_status === "published" &&
         record.sales_channel_id === options.scope.salesChannelId
       if (!exactRecord || publishedIds.has(record.entity_id)) {
-        throw new Error(
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
           `Meilisearch received an invalid or ambiguous ${entityKind} URL ` +
             `assignment response for market "${options.scope.market}".`
         )
@@ -822,7 +835,8 @@ const loadTranslationRows = async (options: {
     }
 
     const reason = error instanceof Error ? ` ${error.message}` : ""
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `Meilisearch cannot index ${options.entity} records for locale "${options.locale}": ` +
         `the exact-translation lookup failed.${reason}`
     )
@@ -899,7 +913,8 @@ const assertCompleteTranslations = (options: {
 
   const sample = missingIds.slice(0, 5).join(", ")
   const omitted = missingIds.length > 5 ? ", …" : ""
-  throw new Error(
+  throw new MedusaError(
+    MedusaError.Types.UNEXPECTED_STATE,
     `Meilisearch cannot index ${options.entity} records for locale "${options.locale}": ` +
       `${missingIds.length}/${options.ids.length} exact translation(s) are ` +
       `missing or invalid (${sample}${omitted}).`
@@ -931,7 +946,8 @@ export const applyLocalizedTranslations = async (
   }
 
   if (!sourceLocale && ids.length !== records.length) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `Meilisearch cannot index ${entity} records for locale "${locale}": ` +
         `${records.length - ids.length} record(s) have no stable ID.`
     )
@@ -1247,7 +1263,8 @@ const indexReferencedEntities = async (
         missingIds.length > 0 ||
         returnedIds.some((id) => !batchIds.includes(id))
       ) {
-        throw new Error(
+        throw new MedusaError(
+          MedusaError.Types.UNEXPECTED_STATE,
           `Meilisearch cannot index the exact published ${options.entity} set ` +
             `for locale "${options.locale}": ${missingIds.length} assigned ` +
             "record(s) are missing or ambiguous."
@@ -1312,7 +1329,8 @@ const assertCompleteContentProjection = (options: {
   const { documentCount, entries, profile, projections, sourceType } = options
 
   if (entries.length !== documentCount) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `Meilisearch profile "${profile.key}" content projection is incomplete because a published ${sourceType} has no stable source ID.`
     )
   }
@@ -1322,7 +1340,8 @@ const assertCompleteContentProjection = (options: {
   )
 
   if (projections.size !== entries.length || !hasEveryProjection) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `Meilisearch profile "${profile.key}" content projection is incomplete for published ${sourceType} records.`
     )
   }
@@ -1422,7 +1441,8 @@ const indexProjectedContentBatch = async (options: {
     sourceType,
   })
   if (requireCompleteProjection && documents.length !== sources.length) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       `Meilisearch profile "${profile.key}" content projection is incomplete or invalid for published ${sourceType} records.`
     )
   }
@@ -1494,7 +1514,8 @@ const indexContentDocuments = async (options: {
 
   if (!payload) {
     if (requireCompleteProjection) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
         `Meilisearch profile "${profile.key}" content projection is incomplete because Payload is unavailable.`
       )
     }
@@ -1581,7 +1602,8 @@ const validateRetainedSearchGeneration = (
     activeTypes.some((type, index) => type !== expectedTypes[index]) ||
     retainedTypes.some((type, index) => type !== expectedTypes[index])
   ) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       "Meilisearch rollback requires one exact retained generation for all search index types."
     )
   }
@@ -1602,7 +1624,8 @@ const validateRetainedSearchGeneration = (
       retainedUid.trim() !== retainedUid ||
       !retainedUid.startsWith(retainedPrefix)
     ) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
         "Meilisearch rollback requires one exact retained generation bound to the active indexes."
       )
     }
@@ -1612,7 +1635,8 @@ const validateRetainedSearchGeneration = (
       !suffix ||
       (generationSuffix !== undefined && suffix !== generationSuffix)
     ) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.UNEXPECTED_STATE,
         "Meilisearch rollback requires one exact retained generation bound to the active indexes."
       )
     }
@@ -1623,13 +1647,15 @@ const validateRetainedSearchGeneration = (
   }
 
   if (allUids.size !== SEARCH_INDEX_TYPES.length * 2) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       "Meilisearch rollback requires one exact retained generation with distinct index UIDs."
     )
   }
 
   if (!generationSuffix) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       "Meilisearch rollback requires one exact retained generation bound to the active indexes."
     )
   }
@@ -2049,7 +2075,8 @@ export const selectRequestedSearchProfiles = (
   requestedProfileKeys?: readonly string[]
 ): SearchProfile[] => {
   if (configuredProfiles.length === 0) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
       "Meilisearch synchronization requires at least one configured profile."
     )
   }
@@ -2057,27 +2084,33 @@ export const selectRequestedSearchProfiles = (
     return [...configuredProfiles]
   }
   if (requestedProfileKeys.length === 0) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       "Meilisearch requested profile set must contain at least one exact profile key."
     )
   }
   const requestedKeys = requestedProfileKeys.map((key) => {
     if (typeof key !== "string" || !key || key.trim() !== key) {
-      throw new Error(
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
         "Meilisearch requested profile keys must be nonblank trimmed strings."
       )
     }
     return key
   })
   if (new Set(requestedKeys).size !== requestedKeys.length) {
-    throw new Error("Meilisearch requested profile keys must be unique.")
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      "Meilisearch requested profile keys must be unique."
+    )
   }
   const configuredKeys = new Set(configuredProfiles.map(({ key }) => key))
   const missingKeys = requestedKeys
     .filter((key) => !configuredKeys.has(key))
     .sort((left, right) => left.localeCompare(right))
   if (missingKeys.length > 0) {
-    throw new Error(
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
       `Meilisearch configured profile keys are missing: ${missingKeys
         .map((key) => `"${key}"`)
         .join(", ")}.`

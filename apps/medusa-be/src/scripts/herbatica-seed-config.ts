@@ -276,6 +276,8 @@ export const HERBATICA_DEFAULT_REGIONS = [
     countries: ["cz"],
     paymentProviders: undefined,
     isTaxInclusive: true,
+    marketCode: "cz",
+    salesChannelName: HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES[1],
   },
   {
     name: "Europe",
@@ -283,6 +285,8 @@ export const HERBATICA_DEFAULT_REGIONS = [
     countries: ["sk"],
     paymentProviders: undefined,
     isTaxInclusive: true,
+    marketCode: "sk",
+    salesChannelName: HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES[0],
   },
   {
     name: "Hungary",
@@ -290,6 +294,8 @@ export const HERBATICA_DEFAULT_REGIONS = [
     countries: ["hu"],
     paymentProviders: undefined,
     isTaxInclusive: true,
+    marketCode: "hu",
+    salesChannelName: HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES[2],
   },
   {
     name: "Romania",
@@ -297,6 +303,8 @@ export const HERBATICA_DEFAULT_REGIONS = [
     countries: ["ro"],
     paymentProviders: undefined,
     isTaxInclusive: true,
+    marketCode: "ro",
+    salesChannelName: HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES[3],
   },
 ] satisfies SeedDatabaseWorkflowInput["regions"]
 
