@@ -174,16 +174,23 @@ export function columnLabel<T extends RowData>(column: Column<T, unknown>) {
  * `Select`'s trigger sizes to its selected label, so a filter or editor whose
  * value changes shape between options (`"All"` vs. `"Administrator"`) resizes
  * its own table cell on every change — which reflows the column, and with it
- * the whole table. `ch` approximates one character's width regardless of
- * font, so this only needs the option strings, not layout measurement; a
- * couple of characters of slack cover the trigger's icon and padding.
+ * the whole table.
+ *
+ * `ch` is defined as the width of the font's `"0"` glyph, not an average
+ * character — proportional fonts render `"W"` two to three times wider than
+ * `"i"`, so a same-length label can legitimately need more room than the
+ * `ch` count alone predicts. Measured against this control's own font
+ * (`Admin`/`Editor`/`Viewer` at the `sm` size), the actual chrome — icon,
+ * gaps, padding, border — plus that per-glyph variance came out to roughly
+ * double a naive "length + a little slack" estimate; `+ 7` is that margin
+ * with headroom, not `+ 4`.
  */
 function selectMinWidthCh(items: SelectItem[], placeholder?: string): string {
   const longest = items.reduce(
     (max, item) => Math.max(max, String(item.label ?? item.value).length),
     placeholder?.length ?? 0
   )
-  return `${longest + 4}ch`
+  return `${longest + 7}ch`
 }
 
 export function FieldSelect({
