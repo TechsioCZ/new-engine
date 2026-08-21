@@ -188,6 +188,7 @@ function seedDatabaseWorkflowComposer(input: SeedDatabaseWorkflowInput) {
       (data) =>
         data.input.shippingOptions.map((option) => ({
           name: option.name,
+          seedIdentity: option.seedIdentity,
           providerId:
             option.providerId ??
             data.input.workflowDefaults.fulfillmentProviderId,

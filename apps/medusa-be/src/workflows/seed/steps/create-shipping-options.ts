@@ -1,6 +1,7 @@
 import type {
   IFulfillmentModuleService,
   Logger,
+  PriceRule,
   RuleOperatorType,
   WorkflowTypes,
 } from "@medusajs/framework/types"
@@ -11,9 +12,16 @@ import {
   updateShippingOptionsWorkflow,
   updateShippingOptionTypesWorkflow,
 } from "@medusajs/medusa/core-flows"
+import {
+  assertSeedResourceNameAvailable,
+  buildSeedResourceMetadata,
+  type SeedResourceIdentity,
+  selectExactOwnedSeedResource,
+} from "./seed-resource-identity"
 
 export type CreateShippingOptionsStepInput = {
   name: string
+  seedIdentity?: SeedResourceIdentity
   providerId: string
   serviceZoneId: string
   shippingProfileId: string
@@ -30,6 +38,7 @@ export type CreateShippingOptionsStepInput = {
   prices: {
     currencyCode?: string
     amount: number
+    rules?: PriceRule[]
   }[]
   rules: {
     attribute: string
@@ -53,6 +62,82 @@ export type CreateShippingOptionsStepOutput = {
 }[]
 
 const CreateShippingOptionsStepId = "create-shipping-options-seed-step"
+
+type PersistedShippingOption = Awaited<
+  ReturnType<IFulfillmentModuleService["listShippingOptions"]>
+>[number]
+
+export function resolveShippingOptionSeedResources(
+  existingOptions: PersistedShippingOption[],
+  input: CreateShippingOptionsStepInput
+): Array<{
+  existing?: PersistedShippingOption
+  input: CreateShippingOptionsStepInput[number]
+}> {
+  const ownedHandles = input.flatMap(({ seedIdentity }) =>
+    seedIdentity ? [`${seedIdentity.owner}/${seedIdentity.handle}`] : []
+  )
+  if (new Set(ownedHandles).size !== ownedHandles.length) {
+    throw new Error("Shipping-option seed handles must be unique")
+  }
+
+  return input.map((inputOption) => {
+    let existing: PersistedShippingOption | undefined
+    if (inputOption.seedIdentity) {
+      existing = selectExactOwnedSeedResource(
+        existingOptions.map((option) => ({
+          ...option,
+          metadata: option.data,
+        })),
+        inputOption.seedIdentity,
+        "Shipping option"
+      )
+      assertSeedResourceNameAvailable(
+        existingOptions,
+        inputOption.name,
+        existing?.id,
+        "Shipping option"
+      )
+    } else {
+      const matching = existingOptions.filter(
+        (option) => option.name === inputOption.name
+      )
+      if (matching.length > 1) {
+        throw new Error(`Multiple shipping options named "${inputOption.name}"`)
+      }
+      existing = matching[0]
+    }
+    return { existing, input: inputOption }
+  })
+}
+
+function buildShippingOptionData(
+  option: CreateShippingOptionsStepInput[number],
+  existing?: PersistedShippingOption
+): Record<string, unknown> | undefined {
+  if (!option.seedIdentity) {
+    return option.data
+  }
+  return buildSeedResourceMetadata(option.seedIdentity, {
+    ...(existing?.data ?? {}),
+    ...(option.data ?? {}),
+  })
+}
+
+export const buildShippingOptionWorkflowPrices = (
+  option: Pick<CreateShippingOptionsStepInput[number], "prices" | "regions">
+) => [
+  ...option.prices.map((price) => ({
+    currency_code: price.currencyCode as string,
+    amount: price.amount,
+    ...(price.rules?.length ? { rules: price.rules } : {}),
+  })),
+  ...option.regions.map((region) => ({
+    region_id: region.id as string,
+    amount: region.amount,
+  })),
+]
+
 export const createShippingOptionsStep = createStep(
   CreateShippingOptionsStepId,
   async (input: CreateShippingOptionsStepInput, { container }) => {
@@ -63,35 +148,25 @@ export const createShippingOptionsStep = createStep(
       Modules.FULFILLMENT
     )
 
+    const hasOwnedOptions = input.some(({ seedIdentity }) => seedIdentity)
     const optionNames = input.map((i) => i.name)
-
-    // Fetch existing shipping options by name with their type relation
     const existingOptions = await fulfillmentService.listShippingOptions(
-      {
-        name: { $in: optionNames },
-      },
+      hasOwnedOptions ? {} : { name: { $in: optionNames } },
       {
         relations: ["type"],
+        take: hasOwnedOptions ? 10_000 : undefined,
       }
     )
-
-    const missingOptions = input.filter(
-      (i) => !existingOptions.find((j) => j.name === i.name)
+    const resolvedOptions = resolveShippingOptionSeedResources(
+      existingOptions,
+      input
     )
-    const updateOptions = input.flatMap((inputOption) => {
-      const existingOption = existingOptions.find(
-        (existing) => existing.name === inputOption.name
-      )
-      if (existingOption) {
-        return [
-          {
-            existing: existingOption,
-            input: inputOption,
-          },
-        ]
-      }
-      return []
-    })
+    const missingOptions = resolvedOptions.flatMap(({ existing, input }) =>
+      existing ? [] : [input]
+    )
+    const updateOptions = resolvedOptions.flatMap(({ existing, input }) =>
+      existing ? [{ existing, input }] : []
+    )
 
     if (missingOptions.length > 0) {
       logger.info("Creating missing shipping options...")
@@ -103,22 +178,13 @@ export const createShippingOptionsStep = createStep(
         provider_id: option.providerId,
         service_zone_id: option.serviceZoneId,
         shipping_profile_id: option.shippingProfileId,
-        data: option.data,
+        data: buildShippingOptionData(option),
         type: {
           label: option.type.label,
           description: option.type.description,
           code: option.type.code,
         },
-        prices: [
-          ...option.prices.map((price) => ({
-            currency_code: price.currencyCode as string,
-            amount: price.amount,
-          })),
-          ...option.regions.map((region) => ({
-            region_id: region.id as string,
-            amount: region.amount,
-          })),
-        ],
+        prices: buildShippingOptionWorkflowPrices(option),
         rules: option.rules.map((rule) => ({
           attribute: rule.attribute,
           operator: rule.operator,
@@ -155,17 +221,8 @@ export const createShippingOptionsStep = createStep(
             provider_id: inputOption.providerId,
             service_zone_id: inputOption.serviceZoneId,
             shipping_profile_id: inputOption.shippingProfileId,
-            data: inputOption.data,
-            prices: [
-              ...inputOption.prices.map((price) => ({
-                currency_code: price.currencyCode as string,
-                amount: price.amount,
-              })),
-              ...inputOption.regions.map((region) => ({
-                region_id: region.id as string,
-                amount: region.amount,
-              })),
-            ],
+            data: buildShippingOptionData(inputOption, existing),
+            prices: buildShippingOptionWorkflowPrices(inputOption),
             rules: inputOption.rules.map((rule) => ({
               attribute: rule.attribute,
               operator: rule.operator,

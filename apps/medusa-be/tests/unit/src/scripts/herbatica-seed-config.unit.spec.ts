@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest"
+import { FREE_SHIPPING_THRESHOLDS as STOREFRONT_FREE_SHIPPING_THRESHOLDS } from "../../../../../herbatika/src/lib/storefront/free-shipping"
 import {
   buildHerbaticaShippingOptions,
   HERBATICA_COUNTRIES,
   HERBATICA_CURRENCIES,
   HERBATICA_DEFAULT_REGIONS,
   HERBATICA_DEFAULT_TAX_RATES,
+  HERBATICA_FREE_SHIPPING_THRESHOLDS,
   HERBATICA_PUBLISHABLE_KEYS,
   HERBATICA_SALES_CHANNELS,
   HERBATICA_SHIPPING_PRICE_AMOUNTS_ENV,
@@ -113,7 +115,7 @@ describe("Herbatica four-market seed config", () => {
           name: "Czechia",
           currencyCode: "czk",
           countries: ["cz"],
-          paymentProviders: undefined,
+          paymentProviders: ["pp_cash_on_delivery_default"],
           isTaxInclusive: true,
           marketCode: "cz",
           salesChannelName: "Herbatica Storefront CZ",
@@ -122,7 +124,7 @@ describe("Herbatica four-market seed config", () => {
           name: "Europe",
           currencyCode: "eur",
           countries: ["sk"],
-          paymentProviders: undefined,
+          paymentProviders: ["pp_cash_on_delivery_default"],
           isTaxInclusive: true,
           marketCode: "sk",
           salesChannelName: "Herbatica Storefront SK",
@@ -131,7 +133,7 @@ describe("Herbatica four-market seed config", () => {
           name: "Hungary",
           currencyCode: "huf",
           countries: ["hu"],
-          paymentProviders: undefined,
+          paymentProviders: ["pp_cash_on_delivery_default"],
           isTaxInclusive: true,
           marketCode: "hu",
           salesChannelName: "Herbatica Storefront HU",
@@ -140,7 +142,7 @@ describe("Herbatica four-market seed config", () => {
           name: "Romania",
           currencyCode: "ron",
           countries: ["ro"],
-          paymentProviders: undefined,
+          paymentProviders: ["pp_cash_on_delivery_default"],
           isTaxInclusive: true,
           marketCode: "ro",
           salesChannelName: "Herbatica Storefront RO",
@@ -188,10 +190,23 @@ describe("Herbatica four-market seed config", () => {
     })
 
     expect(
-      options.map(({ name, type, prices }) => ({ name, type, prices }))
+      options.map(({ data, name, prices, seedIdentity, type }) => ({
+        data,
+        name,
+        prices,
+        seedIdentity,
+        type,
+      }))
     ).toEqual([
       {
-        name: "Standard Shipping",
+        data: { code: "standard_cod", supports_cod: true },
+        name: "Herbatika Standard Shipping",
+        seedIdentity: {
+          owner: "herbatika",
+          kind: "shipping-option",
+          handle: "herbatika-standard-shipping",
+          version: 1,
+        },
         type: {
           label: "Standard",
           description: "Ship in 2-3 days.",
@@ -199,13 +214,42 @@ describe("Herbatica four-market seed config", () => {
         },
         prices: [
           { currencyCode: "eur", amount: 1.25 },
+          {
+            currencyCode: "eur",
+            amount: 0,
+            rules: [{ attribute: "item_total", operator: "gte", value: 49 }],
+          },
           { currencyCode: "czk", amount: 2.5 },
+          {
+            currencyCode: "czk",
+            amount: 0,
+            rules: [{ attribute: "item_total", operator: "gte", value: 1190 }],
+          },
           { currencyCode: "huf", amount: 3.75 },
+          {
+            currencyCode: "huf",
+            amount: 0,
+            rules: [
+              { attribute: "item_total", operator: "gte", value: 17_900 },
+            ],
+          },
           { currencyCode: "ron", amount: 4 },
+          {
+            currencyCode: "ron",
+            amount: 0,
+            rules: [{ attribute: "item_total", operator: "gte", value: 249 }],
+          },
         ],
       },
       {
-        name: "Express Shipping",
+        data: { code: "express_cod", supports_cod: true },
+        name: "Herbatika Express Shipping",
+        seedIdentity: {
+          owner: "herbatika",
+          kind: "shipping-option",
+          handle: "herbatika-express-shipping",
+          version: 1,
+        },
         type: {
           label: "Express",
           description: "Ship in 24 hours.",
@@ -213,11 +257,51 @@ describe("Herbatica four-market seed config", () => {
         },
         prices: [
           { currencyCode: "eur", amount: 1.25 },
+          {
+            currencyCode: "eur",
+            amount: 0,
+            rules: [{ attribute: "item_total", operator: "gte", value: 49 }],
+          },
           { currencyCode: "czk", amount: 2.5 },
+          {
+            currencyCode: "czk",
+            amount: 0,
+            rules: [{ attribute: "item_total", operator: "gte", value: 1190 }],
+          },
           { currencyCode: "huf", amount: 3.75 },
+          {
+            currencyCode: "huf",
+            amount: 0,
+            rules: [
+              { attribute: "item_total", operator: "gte", value: 17_900 },
+            ],
+          },
           { currencyCode: "ron", amount: 4 },
+          {
+            currencyCode: "ron",
+            amount: 0,
+            rules: [{ attribute: "item_total", operator: "gte", value: 249 }],
+          },
         ],
       },
     ])
+  })
+
+  it("derives the reviewed CZ and HU thresholds upward and preserves the RO promise", () => {
+    expect(HERBATICA_FREE_SHIPPING_THRESHOLDS).toEqual({
+      eur: 49,
+      czk: 1190,
+      huf: 17_900,
+      ron: 249,
+    })
+  })
+
+  it("keeps the storefront promise identical to the enforced seed thresholds", () => {
+    expect(STOREFRONT_FREE_SHIPPING_THRESHOLDS).toEqual({
+      EUR: HERBATICA_FREE_SHIPPING_THRESHOLDS.eur,
+      CZK: HERBATICA_FREE_SHIPPING_THRESHOLDS.czk,
+      HUF: HERBATICA_FREE_SHIPPING_THRESHOLDS.huf,
+      RON: HERBATICA_FREE_SHIPPING_THRESHOLDS.ron,
+    })
   })
 })

@@ -1,7 +1,10 @@
 import { resolve } from "node:path"
+import { CASH_ON_DELIVERY_MEDUSA_PAYMENT_PROVIDER_ID } from "../modules/payment-cash-on-delivery/constants"
 import type { TaxRateSeedConfig } from "../workflows/seed/steps/create-tax-rates"
+import type { SeedResourceIdentity } from "../workflows/seed/steps/seed-resource-identity"
 import type { SyncPriceListsStepConfig } from "../workflows/seed/steps/sync-price-lists"
 import type { SeedDatabaseWorkflowInput } from "../workflows/seed/workflows/seed-database"
+import { convertEurAmountUp } from "./market-price-authority/test-conversion"
 
 export const HERBATICA_PRODUCTS_XML_ENV = "HERBATICA_XML_PATH"
 export const HERBATICA_CATEGORIES_XML_ENV = "HERBATICA_CATEGORIES_XML_PATH"
@@ -22,6 +25,18 @@ export type HerbaticaShippingPriceAmounts = Record<
   HerbaticaMarketCurrencyCode,
   number
 >
+
+const roundUpToCommercialQuantum = (amount: number, quantum: number) =>
+  Math.ceil(amount / quantum) * quantum
+
+export const HERBATICA_FREE_SHIPPING_THRESHOLDS = {
+  eur: 49,
+  czk: roundUpToCommercialQuantum(convertEurAmountUp(49, "czk"), 10),
+  huf: roundUpToCommercialQuantum(convertEurAmountUp(49, "huf"), 100),
+  // Keep the reviewed Romanian commercial promise instead of silently
+  // replacing it with the higher mechanical EUR conversion.
+  ron: 249,
+} as const satisfies Record<HerbaticaMarketCurrencyCode, number>
 // Deliberately has no default: local files must be explicit, and HTTP(S) inputs
 // should be pinned/versioned by the caller rather than pointing at a mutable feed.
 export const HERBATICA_MANUFACTURERS_CSV_ENV =
@@ -174,6 +189,10 @@ export const HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES = [
   "Herbatica Storefront RO",
 ] as const
 
+export const HERBATICA_DEFAULT_PAYMENT_PROVIDER_IDS = [
+  CASH_ON_DELIVERY_MEDUSA_PAYMENT_PROVIDER_ID,
+] as const
+
 export const HERBATICA_SALES_CHANNELS = [
   {
     name: HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES[0],
@@ -274,7 +293,7 @@ export const HERBATICA_DEFAULT_REGIONS = [
     name: "Czechia",
     currencyCode: "czk",
     countries: ["cz"],
-    paymentProviders: undefined,
+    paymentProviders: [...HERBATICA_DEFAULT_PAYMENT_PROVIDER_IDS],
     isTaxInclusive: true,
     marketCode: "cz",
     salesChannelName: HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES[1],
@@ -283,7 +302,7 @@ export const HERBATICA_DEFAULT_REGIONS = [
     name: "Europe",
     currencyCode: "eur",
     countries: ["sk"],
-    paymentProviders: undefined,
+    paymentProviders: [...HERBATICA_DEFAULT_PAYMENT_PROVIDER_IDS],
     isTaxInclusive: true,
     marketCode: "sk",
     salesChannelName: HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES[0],
@@ -292,7 +311,7 @@ export const HERBATICA_DEFAULT_REGIONS = [
     name: "Hungary",
     currencyCode: "huf",
     countries: ["hu"],
-    paymentProviders: undefined,
+    paymentProviders: [...HERBATICA_DEFAULT_PAYMENT_PROVIDER_IDS],
     isTaxInclusive: true,
     marketCode: "hu",
     salesChannelName: HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES[2],
@@ -301,7 +320,7 @@ export const HERBATICA_DEFAULT_REGIONS = [
     name: "Romania",
     currencyCode: "ron",
     countries: ["ro"],
-    paymentProviders: undefined,
+    paymentProviders: [...HERBATICA_DEFAULT_PAYMENT_PROVIDER_IDS],
     isTaxInclusive: true,
     marketCode: "ro",
     salesChannelName: HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES[3],
@@ -313,27 +332,74 @@ export const HERBATICA_DEFAULT_SHIPPING_PROFILE = {
 } satisfies SeedDatabaseWorkflowInput["defaultShippingProfile"]
 
 export const HERBATICA_DEFAULT_FULFILLMENT_SET = {
-  name: "European Warehouse delivery",
+  name: "Herbatika four-market delivery",
   type: "shipping",
-  serviceZoneName: "Europe",
+  seedIdentity: {
+    owner: "herbatika",
+    kind: "fulfillment-set",
+    handle: "herbatika-four-market-delivery",
+    version: 1,
+  } satisfies SeedResourceIdentity,
+  serviceZoneName: "Herbatika SK/CZ/HU/RO",
+  serviceZoneSeedIdentity: {
+    owner: "herbatika",
+    kind: "service-zone",
+    handle: "herbatika-sk-cz-hu-ro",
+    version: 1,
+  } satisfies SeedResourceIdentity,
 } as const
+
+export const HERBATICA_SHIPPING_OPTION_IDENTITIES = {
+  standard: {
+    owner: "herbatika",
+    kind: "shipping-option",
+    handle: "herbatika-standard-shipping",
+    version: 1,
+  },
+  express: {
+    owner: "herbatika",
+    kind: "shipping-option",
+    handle: "herbatika-express-shipping",
+    version: 1,
+  },
+} as const satisfies Record<string, SeedResourceIdentity>
 
 export function buildHerbaticaShippingOptions(
   amounts: HerbaticaShippingPriceAmounts
 ): SeedDatabaseWorkflowInput["shippingOptions"] {
+  const prices = HERBATICA_MARKET_CURRENCY_CODES.flatMap((currencyCode) => [
+    {
+      currencyCode,
+      amount: amounts[currencyCode],
+    },
+    {
+      currencyCode,
+      amount: 0,
+      rules: [
+        {
+          attribute: "item_total",
+          operator: "gte" as const,
+          value: HERBATICA_FREE_SHIPPING_THRESHOLDS[currencyCode],
+        },
+      ],
+    },
+  ])
+
   return [
     {
-      name: "Standard Shipping",
+      name: "Herbatika Standard Shipping",
+      seedIdentity: HERBATICA_SHIPPING_OPTION_IDENTITIES.standard,
       providerId: HERBATICA_WORKFLOW_DEFAULTS.fulfillmentProviderId,
+      data: {
+        code: "standard_cod",
+        supports_cod: true,
+      },
       type: {
         label: "Standard",
         description: "Ship in 2-3 days.",
         code: "standard",
       },
-      prices: HERBATICA_MARKET_CURRENCY_CODES.map((currencyCode) => ({
-        currencyCode,
-        amount: amounts[currencyCode],
-      })),
+      prices,
       rules: [
         {
           attribute: "enabled_in_store",
@@ -348,17 +414,19 @@ export function buildHerbaticaShippingOptions(
       ],
     },
     {
-      name: "Express Shipping",
+      name: "Herbatika Express Shipping",
+      seedIdentity: HERBATICA_SHIPPING_OPTION_IDENTITIES.express,
       providerId: HERBATICA_WORKFLOW_DEFAULTS.fulfillmentProviderId,
+      data: {
+        code: "express_cod",
+        supports_cod: true,
+      },
       type: {
         label: "Express",
         description: "Ship in 24 hours.",
         code: "express",
       },
-      prices: HERBATICA_MARKET_CURRENCY_CODES.map((currencyCode) => ({
-        currencyCode,
-        amount: amounts[currencyCode],
-      })),
+      prices,
       rules: [
         {
           attribute: "enabled_in_store",
