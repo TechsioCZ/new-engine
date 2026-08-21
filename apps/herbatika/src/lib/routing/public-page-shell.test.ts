@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import type { Market } from "@/lib/url/types"
 
 const mocks = vi.hoisted(() => ({
   fetchCmsFooterNavigation: vi.fn(),
@@ -270,7 +271,7 @@ describe("public storefront shell URL projections", () => {
       },
       res: { setHeader: vi.fn(), statusCode: 200 },
     } as never
-    const loadSource = vi.fn(async (market: "sk" | "cz") => ({
+    const loadSource = vi.fn(async (market: Market) => ({
       kind: "found" as const,
       value: { approved: market === "sk", title: "Home" },
     }))

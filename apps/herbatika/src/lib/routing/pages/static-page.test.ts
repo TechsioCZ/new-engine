@@ -1,4 +1,40 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
+import type { CmsPage } from "@/lib/storefront/cms"
+
+type FoundCmsStaticSource = Readonly<{
+  kind: "found"
+  value: Readonly<{
+    kind: "cms"
+    page: CmsPage
+    publicationApproved: boolean
+  }>
+}>
+
+function assertFoundCmsStaticSource(
+  result: unknown
+): asserts result is FoundCmsStaticSource {
+  if (
+    typeof result !== "object" ||
+    result === null ||
+    !("kind" in result) ||
+    result.kind !== "found" ||
+    !("value" in result) ||
+    typeof result.value !== "object" ||
+    result.value === null ||
+    !("kind" in result.value) ||
+    result.value.kind !== "cms" ||
+    !("publicationApproved" in result.value) ||
+    typeof result.value.publicationApproved !== "boolean" ||
+    !("page" in result.value) ||
+    typeof result.value.page !== "object" ||
+    result.value.page === null ||
+    !("id" in result.value.page) ||
+    (typeof result.value.page.id !== "number" &&
+      typeof result.value.page.id !== "string")
+  ) {
+    throw new Error("Expected a found CMS static source result")
+  }
+}
 
 vi.mock("@/components/about/about-page", () => ({ AboutPage: vi.fn() }))
 vi.mock("@/components/cms/cms-page-surface", () => ({
@@ -157,7 +193,8 @@ describe("root-static CMS page source", () => {
       kind: "found",
       value: { kind: "cms", publicationApproved: false },
     })
-    expect(options?.isIndexable?.((result as never).value)).toBe(false)
+    assertFoundCmsStaticSource(result)
+    expect(options?.isIndexable?.(result.value)).toBe(false)
   })
 
   it("rejects a post-approval CMS content drift", async () => {
@@ -218,7 +255,8 @@ describe("root-static CMS page source", () => {
       value: { kind: "cms", publicationApproved: false },
     })
     expect(assertReviewedStaticRouteSource).not.toHaveBeenCalled()
-    expect(options?.isIndexable?.((result as never).value)).toBe(false)
+    assertFoundCmsStaticSource(result)
+    expect(options?.isIndexable?.(result.value)).toBe(false)
   })
 
   it.each([
