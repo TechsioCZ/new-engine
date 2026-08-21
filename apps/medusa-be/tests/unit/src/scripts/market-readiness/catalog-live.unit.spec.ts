@@ -2,7 +2,10 @@ import { mkdtemp, readFile, rm, stat } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { buildFourMarketCatalogAuditReport } from "../../../../../src/scripts/market-readiness/catalog-audit"
+import {
+  buildFourMarketCatalogAuditReport,
+  hashFourMarketCatalogTranslationFields,
+} from "../../../../../src/scripts/market-readiness/catalog-audit"
 import {
   buildFourMarketCatalogLiveArtifact,
   collectFourMarketCatalogAuditInput,
@@ -37,6 +40,12 @@ const marketProfiles = [
   ["hu", "hu", "huf", "hu-HU"],
   ["ro", "ro", "ron", "ro-RO"],
 ] as const
+const translationFields = ["title", "subtitle", "description"] as const
+const translationValues = (localeCode: string) => ({
+  description: `Verified description for ${localeCode}`,
+  subtitle: `Verified subtitle for ${localeCode}`,
+  title: `Verified title for ${localeCode}`,
+})
 
 const scopeAuthority = (): FourMarketCatalogScopeAuthority => ({
   kind: "herbatika-four-market-catalog-scope-authority",
@@ -44,6 +53,7 @@ const scopeAuthority = (): FourMarketCatalogScopeAuthority => ({
     ([market, countryCode, currencyCode, localeCode]) => ({
       countryCode,
       currencyCode,
+      excludedProductIds: [],
       localeCode,
       market,
       publications: [
@@ -58,15 +68,31 @@ const scopeAuthority = (): FourMarketCatalogScopeAuthority => ({
       salesChannelId: `sc_${market}`,
     })
   ),
-  schemaVersion: 1,
+  schemaVersion: 2,
   sharedCatalog: [
     {
+      attributes: {
+        collectionId: "pcol_shared",
+        description: "Shared description",
+        externalId: "external-shared",
+        handle: "shared-product",
+        metadata: { dosage: "10 ml" },
+        subtitle: "Shared subtitle",
+        title: "Shared product",
+      },
+      brandId: "brand_shared",
+      categoryIds: ["pcat_shared"],
+      imageUrls: ["https://cdn.example.com/shared.jpg"],
       productId: "prod_shared",
       status: "published",
+      thumbnailUrl: "https://cdn.example.com/shared-thumbnail.jpg",
       variants: [
         {
+          allowBackorder: false,
+          currencyCodes: ["eur", "czk", "huf", "ron"],
           ean: "8580000000001",
           inventoryItemIds: ["iitem_shared"],
+          manageInventory: true,
           sku: "SHARED-1",
           variantId: "variant_shared",
         },
@@ -77,23 +103,20 @@ const scopeAuthority = (): FourMarketCatalogScopeAuthority => ({
 
 const translationAuthority = (): FourMarketCatalogTranslationAuthority => ({
   kind: "herbatika-four-market-catalog-translation-authority",
-  markets: marketProfiles.map(([market]) => ({
+  markets: marketProfiles.map(([market, , , localeCode]) => ({
     market,
     publications: [
       {
-        contracts: [
-          {
-            reference: "product",
-            referenceId: "prod_shared",
-            requiredFields: ["title"],
-          },
-        ],
         entityId: "prod_shared",
         entityKind: "product",
+        reviewedTranslationSha256: hashFourMarketCatalogTranslationFields(
+          translationValues(localeCode),
+          translationFields
+        ),
       },
     ],
   })),
-  schemaVersion: 1,
+  schemaVersion: 2,
 })
 
 const reader = (): FourMarketCatalogLiveReader => ({
@@ -135,15 +158,32 @@ const reader = (): FourMarketCatalogLiveReader => ({
     if (entity === "product") {
       return [
         {
+          brand: { id: "brand_shared" },
+          categories: [{ id: "pcat_shared" }],
+          collection_id: "pcol_shared",
+          description: "Shared description",
+          external_id: "external-shared",
+          handle: "shared-product",
           id: "prod_shared",
+          images: [{ url: "https://cdn.example.com/shared.jpg" }],
+          metadata: { dosage: "10 ml" },
           sales_channels: marketProfiles.map(([market]) => ({
             id: `sc_${market}`,
           })),
           status: "published",
+          subtitle: "Shared subtitle",
+          thumbnail: "https://cdn.example.com/shared-thumbnail.jpg",
+          title: "Shared product",
           variants: [
             {
+              allow_backorder: false,
               ean: "8580000000001",
               id: "variant_shared",
+              manage_inventory: true,
+              prices: marketProfiles.map(([, , currencyCode]) => ({
+                amount: 100,
+                currency_code: currencyCode,
+              })),
               sku: "SHARED-1",
             },
           ],
@@ -158,7 +198,7 @@ const reader = (): FourMarketCatalogLiveReader => ({
       locale_code: localeCode,
       reference: "product",
       reference_id: "prod_shared",
-      translations: { title: `Title ${localeCode}` },
+      translations: translationValues(localeCode),
     },
   ]),
 })
@@ -203,6 +243,44 @@ describe("four-market live catalog readiness", () => {
         })
       )
     ).toThrow("exact ordered SK/CZ/HU/RO profiles")
+
+    expect(() =>
+      parseFourMarketCatalogTranslationAuthority(
+        JSON.stringify({ ...translationAuthority(), schemaVersion: 1 })
+      )
+    ).toThrow("translation authority discriminator is invalid")
+    const authorityWithCallerSelectedFields = translationAuthority()
+    expect(() =>
+      parseFourMarketCatalogTranslationAuthority(
+        JSON.stringify({
+          ...authorityWithCallerSelectedFields,
+          markets: authorityWithCallerSelectedFields.markets.map((market) => ({
+            ...market,
+            publications: market.publications.map((publication) => ({
+              ...publication,
+              contracts: [{ requiredFields: ["title"] }],
+            })),
+          })),
+        })
+      )
+    ).toThrow("must contain exactly")
+
+    expect(() =>
+      parseFourMarketCatalogScopeAuthority(
+        JSON.stringify({ ...scopeAuthority(), schemaVersion: 1 })
+      )
+    ).toThrow("scope authority discriminator is invalid")
+    const incompleteProduct = scopeAuthority()
+    expect(() =>
+      parseFourMarketCatalogScopeAuthority(
+        JSON.stringify({
+          ...incompleteProduct,
+          sharedCatalog: incompleteProduct.sharedCatalog.map(
+            ({ imageUrls: _imageUrls, ...product }) => product
+          ),
+        })
+      )
+    ).toThrow("must contain exactly")
   })
 
   it("collects the exact read-only snapshot required by the audit", async () => {
@@ -222,8 +300,70 @@ describe("four-market live catalog readiness", () => {
     expect(input.products[0]?.variants[0]?.inventoryItemIds).toEqual([
       "iitem_shared",
     ])
+    expect(input.products[0]).toMatchObject({
+      brandId: "brand_shared",
+      categoryIds: ["pcat_shared"],
+      imageUrls: ["https://cdn.example.com/shared.jpg"],
+      thumbnailUrl: "https://cdn.example.com/shared-thumbnail.jpg",
+      variants: [
+        {
+          allowBackorder: false,
+          currencyCodes: ["eur", "czk", "huf", "ron"],
+          manageInventory: true,
+        },
+      ],
+    })
     expect(liveReader.listGraphRows).toHaveBeenCalledTimes(5)
     expect(liveReader.listTranslations).toHaveBeenCalledTimes(4)
+    expect(liveReader.listGraphRows).toHaveBeenCalledWith(
+      expect.objectContaining({
+        entity: "product",
+        fields: expect.arrayContaining([
+          "brand.id",
+          "categories.id",
+          "images.url",
+          "thumbnail",
+          "variants.allow_backorder",
+          "variants.manage_inventory",
+          "variants.prices.amount",
+          "variants.prices.currency_code",
+        ]),
+      })
+    )
+  })
+
+  it("fails closed when a live price row has no valid amount", async () => {
+    const invalidReader = reader()
+    vi.mocked(invalidReader.listGraphRows).mockImplementation(
+      async ({ entity }) => {
+        if (entity !== "product") {
+          return reader().listGraphRows({ entity, fields: [] })
+        }
+        const rows = await reader().listGraphRows({ entity, fields: [] })
+        return rows.map((row) => {
+          if (!(row && typeof row === "object" && "variants" in row)) {
+            return row
+          }
+          return {
+            ...row,
+            variants: (row.variants as readonly Record<string, unknown>[]).map(
+              (variant) => ({
+                ...variant,
+                prices: [{ amount: null, currency_code: "eur" }],
+              })
+            ),
+          }
+        })
+      }
+    )
+
+    await expect(
+      collectFourMarketCatalogAuditInput(
+        invalidReader,
+        scopeAuthority(),
+        translationAuthority()
+      )
+    ).rejects.toThrow("price.amount must be a non-negative finite number")
   })
 
   it("hash-binds reviewed authorities and emits one release-bound artifact", async () => {

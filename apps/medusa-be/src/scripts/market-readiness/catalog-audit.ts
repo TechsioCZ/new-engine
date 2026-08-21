@@ -33,8 +33,48 @@ export type FourMarketCatalogMarket =
 export type FourMarketCatalogExpectedTranslation = Readonly<{
   reference: string
   referenceId: string
+  reviewedTranslationSha256: string
   requiredFields: readonly string[]
 }>
+
+const FOUR_MARKET_CANONICAL_TRANSLATION_CONTRACTS = {
+  brand: { reference: "brand", requiredFields: ["title"] },
+  category: {
+    reference: "product_category",
+    requiredFields: [
+      "name",
+      "description",
+      "top_description_html",
+      "bottom_description_html",
+      "meta_title",
+      "meta_description",
+    ],
+  },
+  collection: { reference: "product_collection", requiredFields: ["title"] },
+  product: {
+    reference: "product",
+    requiredFields: ["title", "subtitle", "description"],
+  },
+} as const
+
+export const canonicalFourMarketCatalogTranslation = (
+  entityKind: string,
+  entityId: string,
+  reviewedTranslationSha256: string
+): FourMarketCatalogExpectedTranslation | null => {
+  const contract =
+    FOUR_MARKET_CANONICAL_TRANSLATION_CONTRACTS[
+      entityKind as keyof typeof FOUR_MARKET_CANONICAL_TRANSLATION_CONTRACTS
+    ]
+  return contract
+    ? {
+        reference: contract.reference,
+        referenceId: entityId,
+        reviewedTranslationSha256,
+        requiredFields: contract.requiredFields,
+      }
+    : null
+}
 
 export type FourMarketCatalogExpectedPublication = Readonly<{
   entityId: string
@@ -46,6 +86,7 @@ export type FourMarketCatalogExpectedPublication = Readonly<{
 export type FourMarketCatalogExpectedMarket = Readonly<{
   countryCode: string
   currencyCode: string
+  excludedProductIds: readonly string[]
   localeCode: string
   market: FourMarketCatalogMarket
   publications: readonly FourMarketCatalogExpectedPublication[]
@@ -55,15 +96,33 @@ export type FourMarketCatalogExpectedMarket = Readonly<{
 }>
 
 export type FourMarketCatalogVariantIdentity = Readonly<{
+  allowBackorder: boolean | null
+  currencyCodes: readonly string[]
   ean: string | null
   inventoryItemIds: readonly string[]
+  manageInventory: boolean | null
   sku: string | null
   variantId: string
 }>
 
+export type FourMarketCatalogProductAttributes = Readonly<{
+  collectionId: string | null
+  description: string | null
+  externalId: string | null
+  handle: string | null
+  metadata: Readonly<Record<string, unknown>> | null
+  subtitle: string | null
+  title: string
+}>
+
 export type FourMarketCatalogProductIdentity = Readonly<{
+  attributes: FourMarketCatalogProductAttributes
+  brandId: string | null
+  categoryIds: readonly string[]
+  imageUrls: readonly string[]
   productId: string
   status: string
+  thumbnailUrl: string | null
   variants: readonly FourMarketCatalogVariantIdentity[]
 }>
 
@@ -135,7 +194,7 @@ export type FourMarketCatalogAuditReport = Readonly<{
     translationContractCount: number
   }>[]
   ready: boolean
-  schemaVersion: 1
+  schemaVersion: 2
   scope: "four-market-catalog-readiness"
   sharedIdentity: Readonly<{
     algorithm: "sha256-canonical-json-v1"
@@ -178,6 +237,21 @@ const canonicalJson = (value: unknown): string =>
 const sha256 = (value: string): string =>
   createHash("sha256").update(value, "utf8").digest("hex")
 
+export const hashFourMarketCatalogTranslationFields = (
+  translations: Readonly<Record<string, unknown>>,
+  requiredFields: readonly string[]
+): string =>
+  sha256(
+    canonicalJson(
+      Object.fromEntries(
+        sortedUnique(requiredFields).map((field) => [
+          field,
+          translations[field],
+        ])
+      )
+    )
+  )
+
 const sortedUnique = (values: readonly string[]): readonly string[] =>
   [...new Set(values)].sort()
 
@@ -200,6 +274,9 @@ const sortedVariantIdentity = (
   variant: FourMarketCatalogVariantIdentity
 ): FourMarketCatalogVariantIdentity => ({
   ...variant,
+  currencyCodes: sortedUnique(
+    variant.currencyCodes.map((currencyCode) => currencyCode.toLowerCase())
+  ),
   inventoryItemIds: sortedUnique(variant.inventoryItemIds),
 })
 
@@ -209,6 +286,8 @@ const sortedSharedCatalog = (
   products
     .map((product) => ({
       ...product,
+      categoryIds: sortedUnique(product.categoryIds),
+      imageUrls: sortedUnique(product.imageUrls),
       variants: product.variants
         .map(sortedVariantIdentity)
         .sort((left, right) => left.variantId.localeCompare(right.variantId)),
@@ -218,8 +297,13 @@ const sortedSharedCatalog = (
 const observedProductIdentity = (
   product: FourMarketCatalogObservedProduct
 ): FourMarketCatalogProductIdentity => ({
+  attributes: product.attributes,
+  brandId: product.brandId,
+  categoryIds: product.categoryIds,
+  imageUrls: product.imageUrls,
   productId: product.productId,
   status: product.status,
+  thumbnailUrl: product.thumbnailUrl,
   variants: product.variants,
 })
 
@@ -275,8 +359,70 @@ function buildFourMarketCatalogAuditReport(
         code: "SHARED_PRODUCT_IDENTITY_MISMATCH",
         entityId: expectedProduct.productId,
         entityKind: "product",
-        message: `Product ${expectedProduct.productId} must preserve its exact status, variant and inventory identity`,
+        message: `Product ${expectedProduct.productId} must preserve its exact catalog, media, relationship, variant, availability and price-currency identity`,
       })
+    }
+  }
+
+  for (const product of observedSharedCatalog) {
+    const requiredAttributes = [
+      product.attributes.title,
+      product.attributes.handle,
+      product.attributes.description,
+    ]
+    if (
+      requiredAttributes.some(
+        (value) => typeof value !== "string" || value.trim().length === 0
+      )
+    ) {
+      addIssue(issues, {
+        code: "PRODUCT_ATTRIBUTES_INCOMPLETE",
+        entityId: product.productId,
+        entityKind: "product",
+        message: `Product ${product.productId} must have non-empty title, handle and description attributes`,
+      })
+    }
+    if (!(product.brandId && product.brandId.trim().length > 0)) {
+      addIssue(issues, {
+        code: "PRODUCT_BRAND_BINDING_MISSING",
+        entityId: product.productId,
+        entityKind: "product",
+        message: `Product ${product.productId} must have an exact brand binding`,
+      })
+    }
+    if (product.categoryIds.length === 0) {
+      addIssue(issues, {
+        code: "PRODUCT_CATEGORY_BINDING_MISSING",
+        entityId: product.productId,
+        entityKind: "product",
+        message: `Product ${product.productId} must have at least one category binding`,
+      })
+    }
+    if (
+      !(product.thumbnailUrl && product.thumbnailUrl.trim().length > 0) ||
+      product.imageUrls.length === 0 ||
+      product.imageUrls.some((url) => url.trim().length === 0)
+    ) {
+      addIssue(issues, {
+        code: "PRODUCT_MEDIA_INCOMPLETE",
+        entityId: product.productId,
+        entityKind: "product",
+        message: `Product ${product.productId} must have a thumbnail and at least one image`,
+      })
+    }
+    for (const variant of product.variants) {
+      if (
+        typeof variant.allowBackorder !== "boolean" ||
+        typeof variant.manageInventory !== "boolean" ||
+        (variant.manageInventory && variant.inventoryItemIds.length === 0)
+      ) {
+        addIssue(issues, {
+          code: "VARIANT_AVAILABILITY_INVALID",
+          entityId: variant.variantId,
+          entityKind: "product_variant",
+          message: `Variant ${variant.variantId} must have explicit inventory availability controls and managed inventory linkage`,
+        })
+      }
     }
   }
 
@@ -405,6 +551,38 @@ function buildFourMarketCatalogAuditReport(
       const sharedProductIds = new Set(
         input.expectedSharedCatalog.map(({ productId }) => productId)
       )
+      const publishedProductIds = new Set(expected.publishedProductIds)
+      const excludedProductIds = new Set(expected.excludedProductIds)
+      if (
+        [...publishedProductIds].some((id) => excludedProductIds.has(id)) ||
+        !sameStrings(
+          [...publishedProductIds, ...excludedProductIds],
+          [...sharedProductIds]
+        ) ||
+        [...publishedProductIds, ...excludedProductIds].some(
+          (id) => !sharedProductIds.has(id)
+        )
+      ) {
+        addIssue(issues, {
+          code: "PRODUCT_MARKET_PARTITION_INVALID",
+          market: binding.market,
+          message: `Market ${binding.market} published and excluded product IDs must form an exact disjoint shared-catalog partition`,
+        })
+      }
+      for (const product of input.products) {
+        if (
+          !publishedProductIds.has(product.productId) &&
+          product.salesChannelIds.includes(expected.salesChannelId)
+        ) {
+          addIssue(issues, {
+            code: "UNEXPECTED_PRODUCT_SALES_CHANNEL_PUBLICATION",
+            entityId: product.productId,
+            entityKind: "product",
+            market: binding.market,
+            message: `Product ${product.productId} is outside the ${binding.market} published scope but carries its sales channel`,
+          })
+        }
+      }
       for (const productId of expected.publishedProductIds) {
         if (!sharedProductIds.has(productId)) {
           addIssue(issues, {
@@ -434,6 +612,26 @@ function buildFourMarketCatalogAuditReport(
             market: binding.market,
             message: `Market ${binding.market} product publication requires one globally published shared product`,
           })
+        }
+        const observedProduct = observedProducts[0]
+        if (observedProduct) {
+          for (const variant of observedProduct.variants) {
+            if (
+              !variant.currencyCodes.some(
+                (currencyCode) =>
+                  currencyCode.toLowerCase() ===
+                  expected.currencyCode.toLowerCase()
+              )
+            ) {
+              addIssue(issues, {
+                code: "VARIANT_MARKET_CURRENCY_PRICE_MISSING",
+                entityId: variant.variantId,
+                entityKind: "product_variant",
+                market: binding.market,
+                message: `Variant ${variant.variantId} must have a valid ${expected.currencyCode.toUpperCase()} price for market ${binding.market}`,
+              })
+            }
+          }
         }
       }
       const expectedProductPublicationIds = publications
@@ -465,6 +663,34 @@ function buildFourMarketCatalogAuditReport(
           })
         }
         expectedPublicationKeys.add(key)
+
+        const canonicalTranslation = canonicalFourMarketCatalogTranslation(
+          publication.entityKind,
+          publication.entityId,
+          publication.translations[0]?.reviewedTranslationSha256 ?? ""
+        )
+        if (
+          !canonicalTranslation ||
+          publication.translations.length !== 1 ||
+          canonicalJson({
+            ...publication.translations[0],
+            requiredFields: sortedUnique(
+              publication.translations[0]?.requiredFields ?? []
+            ),
+          }) !==
+            canonicalJson({
+              ...canonicalTranslation,
+              requiredFields: sortedUnique(canonicalTranslation.requiredFields),
+            })
+        ) {
+          addIssue(issues, {
+            code: "TRANSLATION_CONTRACT_AUTHORITY_INVALID",
+            entityId: publication.entityId,
+            entityKind: publication.entityKind,
+            market: binding.market,
+            message: `Market ${binding.market} ${publication.entityKind} translation contract must use the canonical mandatory field set`,
+          })
+        }
 
         const assignmentMatches = input.assignments.filter(
           (candidate) =>
@@ -507,7 +733,9 @@ function buildFourMarketCatalogAuditReport(
           }
         }
 
-        for (const contract of publication.translations) {
+        for (const contract of canonicalTranslation
+          ? [canonicalTranslation]
+          : []) {
           const translationMatches = input.translations.filter(
             (candidate) =>
               candidate.deletedAt == null &&
@@ -530,6 +758,50 @@ function buildFourMarketCatalogAuditReport(
               market: binding.market,
               message: `Market ${binding.market} requires exactly one complete ${contract.reference} translation for ${contract.referenceId}`,
             })
+          } else if (
+            hashFourMarketCatalogTranslationFields(
+              boundTranslation.translations,
+              contract.requiredFields
+            ) !== contract.reviewedTranslationSha256
+          ) {
+            addIssue(issues, {
+              code: "TRANSLATION_REVIEWED_PROVENANCE_MISMATCH",
+              entityId: publication.entityId,
+              entityKind: publication.entityKind,
+              market: binding.market,
+              message: `Market ${binding.market} translation does not match its externally reviewed field hash`,
+            })
+          }
+          if (boundTranslation && binding.market !== "sk") {
+            const skTranslation = input.translations.find(
+              (candidate) =>
+                candidate.deletedAt == null &&
+                candidate.localeCode === "sk-SK" &&
+                candidate.reference === contract.reference &&
+                candidate.referenceId === contract.referenceId
+            )
+            const contaminated = contract.requiredFields.some((field) => {
+              const value = boundTranslation.translations[field]
+              const skValue = skTranslation?.translations[field]
+              return (
+                typeof value === "string" &&
+                (value.trim() === skValue?.toString().trim() ||
+                  /\bprodus\s+herbatica(?:\s+\d+)?\b/i.test(value) ||
+                  /\b(?:localized|translated|translation pending|mechanical fallback|todo)\b/i.test(
+                    value
+                  ) ||
+                  /\{\{[^}]+\}\}/.test(value))
+              )
+            })
+            if (contaminated) {
+              addIssue(issues, {
+                code: "TRANSLATION_CONTENT_CONTAMINATED",
+                entityId: publication.entityId,
+                entityKind: publication.entityKind,
+                market: binding.market,
+                message: `Market ${binding.market} translation contains Slovak reuse, placeholder content or a mechanical fallback`,
+              })
+            }
           }
         }
       }
@@ -563,7 +835,15 @@ function buildFourMarketCatalogAuditReport(
       regionId: expected?.regionId ?? "",
       salesChannelId: expected?.salesChannelId ?? "",
       translationContractCount: publications.reduce(
-        (count, publication) => count + publication.translations.length,
+        (count, publication) =>
+          count +
+          (canonicalFourMarketCatalogTranslation(
+            publication.entityKind,
+            publication.entityId,
+            publication.translations[0]?.reviewedTranslationSha256 ?? ""
+          )
+            ? 1
+            : 0),
         0
       ),
     }
@@ -592,7 +872,7 @@ function buildFourMarketCatalogAuditReport(
     kind: "herbatika-four-market-catalog-readiness",
     markets: marketReports,
     ready: sortedIssues.length === 0,
-    schemaVersion: 1,
+    schemaVersion: 2,
     scope: "four-market-catalog-readiness",
     sharedIdentity: {
       algorithm: "sha256-canonical-json-v1",

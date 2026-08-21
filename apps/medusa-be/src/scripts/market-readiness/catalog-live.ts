@@ -3,13 +3,14 @@ import { link, open, unlink } from "node:fs/promises"
 import { isAbsolute, resolve } from "node:path"
 import {
   buildFourMarketCatalogAuditReport,
+  canonicalFourMarketCatalogTranslation,
   FOUR_MARKET_CATALOG_BINDINGS,
   type FourMarketCatalogAuditInput,
   type FourMarketCatalogAuditReport,
   type FourMarketCatalogExpectedMarket,
   type FourMarketCatalogExpectedPublication,
-  type FourMarketCatalogExpectedTranslation,
   type FourMarketCatalogMarket,
+  type FourMarketCatalogProductAttributes,
   type FourMarketCatalogProductIdentity,
   hashFourMarketCatalogAuditReport,
 } from "./catalog-audit"
@@ -55,7 +56,7 @@ export type FourMarketCatalogScopeAuthority = Readonly<{
       >[]
     }
   >[]
-  schemaVersion: 1
+  schemaVersion: 2
   sharedCatalog: readonly FourMarketCatalogProductIdentity[]
 }>
 
@@ -64,12 +65,12 @@ export type FourMarketCatalogTranslationAuthority = Readonly<{
   markets: readonly Readonly<{
     market: FourMarketCatalogMarket
     publications: readonly Readonly<{
-      contracts: readonly FourMarketCatalogExpectedTranslation[]
       entityId: string
       entityKind: string
+      reviewedTranslationSha256: string
     }>[]
   }>[]
-  schemaVersion: 1
+  schemaVersion: 2
 }>
 
 export type FourMarketCatalogLiveReader = Readonly<{
@@ -99,7 +100,7 @@ export type FourMarketCatalogLiveArtifact = Readonly<{
   capturedAt: string
   kind: "herbatika-four-market-catalog-live-readiness"
   releaseIdentity: FourMarketCatalogReleaseIdentity
-  schemaVersion: 1
+  schemaVersion: 2
   scope: "four-market-catalog-readiness"
 }>
 
@@ -206,6 +207,66 @@ const requiredStringArray = (value: unknown, label: string): string[] => {
 const nullableDeletedAt = (value: unknown): string | null =>
   typeof value === "string" ? value : null
 
+const nullableText = (value: unknown): string | null =>
+  typeof value === "string" ? value : null
+
+const nullableRecord = (
+  value: unknown,
+  label: string
+): Readonly<Record<string, unknown>> | null => {
+  if (value === null || value === undefined) {
+    return null
+  }
+  if (!isRecord(value)) {
+    throw new Error(`${label} must be an object or null`)
+  }
+  return value
+}
+
+const requiredBoolean = (value: unknown, label: string): boolean => {
+  if (typeof value !== "boolean") {
+    throw new Error(`${label} must be a boolean`)
+  }
+  return value
+}
+
+const requiredProductAttributes = (
+  value: unknown,
+  label: string
+): FourMarketCatalogProductAttributes => {
+  if (!isRecord(value)) {
+    throw new Error(`${label} must be an object`)
+  }
+  exactKeys(
+    value,
+    [
+      "collectionId",
+      "description",
+      "externalId",
+      "handle",
+      "metadata",
+      "subtitle",
+      "title",
+    ],
+    label
+  )
+  const optionalText = (field: string): string | null => {
+    const candidate = value[field]
+    return candidate === null
+      ? null
+      : requiredText(candidate, `${label}.${field}`)
+  }
+  return {
+    collectionId: optionalText("collectionId"),
+    description: optionalText("description"),
+    externalId: optionalText("externalId"),
+    handle: optionalText("handle"),
+    metadata: nullableRecord(value.metadata, `${label}.metadata`),
+    subtitle: optionalText("subtitle"),
+    title: requiredText(value.title, `${label}.title`),
+  }
+}
+
 const requiredMarket = (
   value: unknown,
   label: string
@@ -240,16 +301,54 @@ const parseSharedCatalog = (
 ): FourMarketCatalogProductIdentity[] =>
   recordArray(value, "scopeAuthority.sharedCatalog").map((product, index) => {
     const label = `scopeAuthority.sharedCatalog[${index}]`
-    exactKeys(product, ["productId", "status", "variants"], label)
+    exactKeys(
+      product,
+      [
+        "attributes",
+        "brandId",
+        "categoryIds",
+        "imageUrls",
+        "productId",
+        "status",
+        "thumbnailUrl",
+        "variants",
+      ],
+      label
+    )
+    const optionalProductText = (field: "brandId" | "thumbnailUrl") => {
+      const candidate = product[field]
+      return candidate === null
+        ? null
+        : requiredText(candidate, `${label}.${field}`)
+    }
     return {
+      attributes: requiredProductAttributes(
+        product.attributes,
+        `${label}.attributes`
+      ),
+      brandId: optionalProductText("brandId"),
+      categoryIds: requiredStringArray(
+        product.categoryIds,
+        `${label}.categoryIds`
+      ),
+      imageUrls: requiredStringArray(product.imageUrls, `${label}.imageUrls`),
       productId: requiredText(product.productId, `${label}.productId`),
       status: requiredText(product.status, `${label}.status`),
+      thumbnailUrl: optionalProductText("thumbnailUrl"),
       variants: recordArray(product.variants, `${label}.variants`).map(
         (variant, variantIndex) => {
           const variantLabel = `${label}.variants[${variantIndex}]`
           exactKeys(
             variant,
-            ["ean", "inventoryItemIds", "sku", "variantId"],
+            [
+              "allowBackorder",
+              "currencyCodes",
+              "ean",
+              "inventoryItemIds",
+              "manageInventory",
+              "sku",
+              "variantId",
+            ],
             variantLabel
           )
           const optionalText = (field: "ean" | "sku") => {
@@ -259,10 +358,22 @@ const parseSharedCatalog = (
               : requiredText(candidate, `${variantLabel}.${field}`)
           }
           return {
+            allowBackorder: requiredBoolean(
+              variant.allowBackorder,
+              `${variantLabel}.allowBackorder`
+            ),
+            currencyCodes: requiredStringArray(
+              variant.currencyCodes,
+              `${variantLabel}.currencyCodes`
+            ).map((currencyCode) => currencyCode.toLowerCase()),
             ean: optionalText("ean"),
             inventoryItemIds: requiredStringArray(
               variant.inventoryItemIds,
               `${variantLabel}.inventoryItemIds`
+            ),
+            manageInventory: requiredBoolean(
+              variant.manageInventory,
+              `${variantLabel}.manageInventory`
             ),
             sku: optionalText("sku"),
             variantId: requiredText(
@@ -286,7 +397,7 @@ export const parseFourMarketCatalogScopeAuthority = (
   )
   if (
     value.kind !== "herbatika-four-market-catalog-scope-authority" ||
-    value.schemaVersion !== 1
+    value.schemaVersion !== 2
   ) {
     throw new Error("scope authority discriminator is invalid")
   }
@@ -298,6 +409,7 @@ export const parseFourMarketCatalogScopeAuthority = (
         [
           "countryCode",
           "currencyCode",
+          "excludedProductIds",
           "localeCode",
           "market",
           "publications",
@@ -321,6 +433,10 @@ export const parseFourMarketCatalogScopeAuthority = (
       }
       return {
         ...binding,
+        excludedProductIds: requiredStringArray(
+          market.excludedProductIds,
+          `${label}.excludedProductIds`
+        ),
         publications: (Array.isArray(market.publications)
           ? market.publications
           : (() => {
@@ -352,7 +468,7 @@ export const parseFourMarketCatalogScopeAuthority = (
   return {
     kind: "herbatika-four-market-catalog-scope-authority",
     markets,
-    schemaVersion: 1,
+    schemaVersion: 2,
     sharedCatalog: parseSharedCatalog(value.sharedCatalog),
   }
 }
@@ -368,7 +484,7 @@ export const parseFourMarketCatalogTranslationAuthority = (
   )
   if (
     value.kind !== "herbatika-four-market-catalog-translation-authority" ||
-    value.schemaVersion !== 1
+    value.schemaVersion !== 2
   ) {
     throw new Error("translation authority discriminator is invalid")
   }
@@ -393,44 +509,36 @@ export const parseFourMarketCatalogTranslationAuthority = (
         const publicationLabel = `${label}.publications[${publicationIndex}]`
         exactKeys(
           publication,
-          ["contracts", "entityId", "entityKind"],
+          ["entityId", "entityKind", "reviewedTranslationSha256"],
           publicationLabel
         )
-        return {
-          contracts: recordArray(
-            publication.contracts,
-            `${publicationLabel}.contracts`
-          ).map((contract, contractIndex) => {
-            const contractLabel = `${publicationLabel}.contracts[${contractIndex}]`
-            exactKeys(
-              contract,
-              ["reference", "referenceId", "requiredFields"],
-              contractLabel
-            )
-            return {
-              reference: requiredText(
-                contract.reference,
-                `${contractLabel}.reference`
-              ),
-              referenceId: requiredText(
-                contract.referenceId,
-                `${contractLabel}.referenceId`
-              ),
-              requiredFields: requiredStringArray(
-                contract.requiredFields,
-                `${contractLabel}.requiredFields`
-              ),
-            }
-          }),
-          entityId: requiredText(
-            publication.entityId,
-            `${publicationLabel}.entityId`
-          ),
-          entityKind: requiredText(
-            publication.entityKind,
-            `${publicationLabel}.entityKind`
-          ),
+        const entityId = requiredText(
+          publication.entityId,
+          `${publicationLabel}.entityId`
+        )
+        const entityKind = requiredText(
+          publication.entityKind,
+          `${publicationLabel}.entityKind`
+        )
+        const reviewedTranslationSha256 = requiredText(
+          publication.reviewedTranslationSha256,
+          `${publicationLabel}.reviewedTranslationSha256`
+        )
+        if (!SHA256.test(reviewedTranslationSha256)) {
+          throw new Error(
+            `${publicationLabel}.reviewedTranslationSha256 must be a lowercase SHA-256`
+          )
         }
+        if (
+          !canonicalFourMarketCatalogTranslation(
+            entityKind,
+            entityId,
+            reviewedTranslationSha256
+          )
+        ) {
+          throw new Error(`${publicationLabel}.entityKind is not supported`)
+        }
+        return { entityId, entityKind, reviewedTranslationSha256 }
       }),
     }
   })
@@ -442,7 +550,7 @@ export const parseFourMarketCatalogTranslationAuthority = (
   return {
     kind: "herbatika-four-market-catalog-translation-authority",
     markets,
-    schemaVersion: 1,
+    schemaVersion: 2,
   }
 }
 
@@ -491,7 +599,17 @@ const authorityMarketProfiles = (
           `Catalog translation authority must bind exactly one ${scopeMarket.market} ${publication.entityKind}:${publication.entityId}`
         )
       }
-      return { ...publication, translations: matches[0]?.contracts ?? [] }
+      const canonicalTranslation = canonicalFourMarketCatalogTranslation(
+        publication.entityKind,
+        publication.entityId,
+        matches[0]?.reviewedTranslationSha256 ?? ""
+      )
+      if (!canonicalTranslation) {
+        throw new Error(
+          `Unsupported catalog publication kind ${publication.entityKind}`
+        )
+      }
+      return { ...publication, translations: [canonicalTranslation] }
     })
     if (translationMarket.publications.length !== publications.length) {
       throw new Error(
@@ -543,19 +661,64 @@ const mapProducts = (
   inventoryIndex: ReadonlyMap<string, readonly string[]>
 ) =>
   recordArray(rows, "product rows").map((row) => ({
+    attributes: {
+      collectionId: nullableText(row.collection_id),
+      description: nullableText(row.description),
+      externalId: nullableText(row.external_id),
+      handle: nullableText(row.handle),
+      metadata: nullableRecord(row.metadata, "product.metadata"),
+      subtitle: nullableText(row.subtitle),
+      title: requiredText(row.title, "product.title"),
+    },
+    brandId: isRecord(row.brand)
+      ? requiredText(row.brand.id, "product.brand.id")
+      : null,
+    categoryIds: recordArray(row.categories ?? [], "product.categories").map(
+      (category) => requiredText(category.id, "product.category.id")
+    ),
+    imageUrls: recordArray(row.images ?? [], "product.images").map((image) =>
+      requiredText(image.url, "product.image.url")
+    ),
     productId: requiredText(row.id, "product.id"),
     salesChannelIds: recordArray(
       row.sales_channels ?? [],
       "product.sales_channels"
     ).map((channel) => requiredText(channel.id, "product.sales_channel.id")),
     status: requiredText(row.status, "product.status"),
+    thumbnailUrl: nullableText(row.thumbnail),
     variants: recordArray(row.variants ?? [], "product.variants").map(
       (variant) => {
         const variantId = requiredText(variant.id, "product.variant.id")
         return {
+          allowBackorder:
+            typeof variant.allow_backorder === "boolean"
+              ? variant.allow_backorder
+              : null,
+          currencyCodes: recordArray(
+            variant.prices ?? [],
+            "product.variant.prices"
+          ).map((price) => {
+            if (
+              typeof price.amount !== "number" ||
+              !Number.isFinite(price.amount) ||
+              price.amount < 0
+            ) {
+              throw new Error(
+                "product.variant.price.amount must be a non-negative finite number"
+              )
+            }
+            return requiredText(
+              price.currency_code,
+              "product.variant.price.currency_code"
+            ).toLowerCase()
+          }),
           ean: typeof variant.ean === "string" ? variant.ean : null,
           inventoryItemIds: [...(inventoryIndex.get(variantId) ?? [])].sort(),
           sku: typeof variant.sku === "string" ? variant.sku : null,
+          manageInventory:
+            typeof variant.manage_inventory === "boolean"
+              ? variant.manage_inventory
+              : null,
           variantId,
         }
       }
@@ -602,20 +765,20 @@ export const collectFourMarketCatalogAuditInput = async (
     scopeAuthority,
     translationAuthority
   )
-  const translationRequests = expectedMarkets.flatMap((market) =>
-    [
-      ...new Set(
+  const translationReferences = [
+    ...new Set(
+      expectedMarkets.flatMap((market) =>
         market.publications.flatMap((publication) =>
-          publication.translations.map(
-            (translation) =>
-              `${market.localeCode}\u0000${translation.reference}`
-          )
+          publication.translations.map((translation) => translation.reference)
         )
-      ),
-    ].map((key) => {
-      const [localeCode = "", reference = ""] = key.split("\u0000")
-      return { localeCode, reference }
-    })
+      )
+    ),
+  ]
+  const translationRequests = FOUR_MARKET_CATALOG_BINDINGS.flatMap((binding) =>
+    translationReferences.map((reference) => ({
+      localeCode: binding.localeCode,
+      reference,
+    }))
   )
   const [
     locales,
@@ -641,11 +804,26 @@ export const collectFourMarketCatalogAuditInput = async (
       entity: "product",
       fields: [
         "id",
+        "external_id",
+        "handle",
+        "title",
+        "subtitle",
+        "description",
+        "collection_id",
+        "brand.id",
+        "categories.id",
+        "images.url",
+        "thumbnail",
+        "metadata",
         "status",
         "sales_channels.id",
         "variants.id",
         "variants.sku",
         "variants.ean",
+        "variants.allow_backorder",
+        "variants.manage_inventory",
+        "variants.prices.amount",
+        "variants.prices.currency_code",
       ],
       filters: { status: "published" },
     }),
@@ -732,7 +910,7 @@ export const buildFourMarketCatalogLiveArtifact = (
   capturedAt: input.capturedAt,
   kind: "herbatika-four-market-catalog-live-readiness",
   releaseIdentity: input.releaseIdentity,
-  schemaVersion: 1,
+  schemaVersion: 2,
   scope: "four-market-catalog-readiness",
 })
 

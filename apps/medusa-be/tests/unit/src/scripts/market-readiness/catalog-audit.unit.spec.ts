@@ -3,11 +3,33 @@ import {
   buildFourMarketCatalogAuditReport,
   type FourMarketCatalogAuditInput,
   hashFourMarketCatalogAuditReport,
+  hashFourMarketCatalogTranslationFields,
   serializeFourMarketCatalogAuditReport,
 } from "../../../../../src/scripts/market-readiness/catalog-audit"
 
 const generatedAt = "2026-08-21T00:00:00.000Z"
 const SHA256_PATTERN = /^[a-f0-9]{64}$/
+const translationFields = ["title", "subtitle", "description"] as const
+const translationValues = (market: "sk" | "cz" | "hu" | "ro") => ({
+  description: {
+    cz: "Podrobný český popis výrobku",
+    hu: "Részletes magyar termékleírás",
+    ro: "Descriere detaliată a produsului în română",
+    sk: "Podrobný slovenský opis výrobku",
+  }[market],
+  subtitle: {
+    cz: "Český podtitul",
+    hu: "Magyar alcím",
+    ro: "Subtitlu în limba română",
+    sk: "Slovenský podtitul",
+  }[market],
+  title: {
+    cz: "Český název výrobku",
+    hu: "Magyar terméknév",
+    ro: "Denumire românească a produsului",
+    sk: "Slovenský názov výrobku",
+  }[market],
+})
 
 const inputFixture = (): FourMarketCatalogAuditInput => {
   const bindings = [
@@ -56,6 +78,7 @@ const inputFixture = (): FourMarketCatalogAuditInput => {
     })),
     expectedMarkets: bindings.map((binding) => ({
       ...binding,
+      excludedProductIds: [],
       publications: [
         {
           entityId: "prod_shared",
@@ -65,7 +88,11 @@ const inputFixture = (): FourMarketCatalogAuditInput => {
             {
               reference: "product",
               referenceId: "prod_shared",
-              requiredFields: ["title"],
+              reviewedTranslationSha256: hashFourMarketCatalogTranslationFields(
+                translationValues(binding.market),
+                translationFields
+              ),
+              requiredFields: translationFields,
             },
           ],
         },
@@ -74,12 +101,28 @@ const inputFixture = (): FourMarketCatalogAuditInput => {
     })),
     expectedSharedCatalog: [
       {
+        attributes: {
+          collectionId: "pcol_shared",
+          description: "Shared description",
+          externalId: "external-shared",
+          handle: "shared-product",
+          metadata: { dosage: "10 ml" },
+          subtitle: "Shared subtitle",
+          title: "Shared product",
+        },
+        brandId: "brand_shared",
+        categoryIds: ["pcat_shared"],
+        imageUrls: ["https://cdn.example.com/shared.jpg"],
         productId: "prod_shared",
         status: "published",
+        thumbnailUrl: "https://cdn.example.com/shared-thumbnail.jpg",
         variants: [
           {
+            allowBackorder: false,
+            currencyCodes: ["eur", "czk", "huf", "ron"],
             ean: "8580000000001",
             inventoryItemIds: ["iitem_shared"],
+            manageInventory: true,
             sku: "SHARED-1",
             variantId: "variant_shared",
           },
@@ -92,13 +135,29 @@ const inputFixture = (): FourMarketCatalogAuditInput => {
     })),
     products: [
       {
+        attributes: {
+          collectionId: "pcol_shared",
+          description: "Shared description",
+          externalId: "external-shared",
+          handle: "shared-product",
+          metadata: { dosage: "10 ml" },
+          subtitle: "Shared subtitle",
+          title: "Shared product",
+        },
+        brandId: "brand_shared",
+        categoryIds: ["pcat_shared"],
+        imageUrls: ["https://cdn.example.com/shared.jpg"],
         productId: "prod_shared",
         salesChannelIds: bindings.map(({ salesChannelId }) => salesChannelId),
         status: "published",
+        thumbnailUrl: "https://cdn.example.com/shared-thumbnail.jpg",
         variants: [
           {
+            allowBackorder: false,
+            currencyCodes: ["eur", "czk", "huf", "ron"],
             ean: "8580000000001",
             inventoryItemIds: ["iitem_shared"],
+            manageInventory: true,
             sku: "SHARED-1",
             variantId: "variant_shared",
           },
@@ -118,7 +177,7 @@ const inputFixture = (): FourMarketCatalogAuditInput => {
       localeCode: binding.localeCode,
       reference: "product",
       referenceId: "prod_shared",
-      translations: { title: `Localized ${binding.market}` },
+      translations: translationValues(binding.market),
     })),
   }
 }
@@ -133,7 +192,7 @@ describe("four-market catalog audit", () => {
     expect(report.ready).toBe(true)
     expect(report.kind).toBe("herbatika-four-market-catalog-readiness")
     expect(report.scope).toBe("four-market-catalog-readiness")
-    expect(report.schemaVersion).toBe(1)
+    expect(report.schemaVersion).toBe(2)
     expect(report.markets.map(({ market }) => market)).toEqual([
       "sk",
       "cz",
@@ -268,6 +327,180 @@ describe("four-market catalog audit", () => {
     )
   })
 
+  it("rejects an authority that weakens canonical translation fields", () => {
+    const input = inputFixture()
+    const report = buildFourMarketCatalogAuditReport(
+      {
+        ...input,
+        expectedMarkets: input.expectedMarkets.map((market) =>
+          market.market === "hu"
+            ? {
+                ...market,
+                publications: market.publications.map((publication) => ({
+                  ...publication,
+                  translations: publication.translations.map((contract) => ({
+                    ...contract,
+                    requiredFields: ["title"],
+                  })),
+                })),
+              }
+            : market
+        ),
+        translations: input.translations.map((translation) =>
+          translation.localeCode === "ro-RO"
+            ? {
+                ...translation,
+                translations: {
+                  description: translation.translations.description,
+                  subtitle: "   ",
+                  title: translation.translations.title,
+                },
+              }
+            : translation
+        ),
+      },
+      generatedAt
+    )
+
+    expect(report.ready).toBe(false)
+    expect(report.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "TRANSLATION_CONTRACT_AUTHORITY_INVALID",
+          market: "hu",
+        }),
+        expect.objectContaining({
+          code: "TRANSLATION_CONTRACT_INVALID",
+          market: "ro",
+        }),
+      ])
+    )
+  })
+
+  it("rejects Slovak reuse and placeholder translations in target locales", () => {
+    const input = inputFixture()
+    const sk = translationValues("sk")
+    const report = buildFourMarketCatalogAuditReport(
+      {
+        ...input,
+        translations: input.translations.map((translation) => {
+          if (translation.localeCode === "cs-CZ") {
+            return {
+              ...translation,
+              translations: {
+                ...translation.translations,
+                title: sk.title,
+              },
+            }
+          }
+          if (translation.localeCode === "hu-HU") {
+            return {
+              ...translation,
+              translations: {
+                ...translation.translations,
+                title: "Produs Herbatica 42",
+              },
+            }
+          }
+          return translation
+        }),
+      },
+      generatedAt
+    )
+
+    expect(report.ready).toBe(false)
+    expect(report.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "TRANSLATION_CONTENT_CONTAMINATED",
+          market: "cz",
+        }),
+        expect.objectContaining({
+          code: "TRANSLATION_CONTENT_CONTAMINATED",
+          market: "hu",
+        }),
+        expect.objectContaining({
+          code: "TRANSLATION_REVIEWED_PROVENANCE_MISMATCH",
+          market: "cz",
+        }),
+      ])
+    )
+  })
+
+  it("rejects a product outside a market publication partition carrying its channel", () => {
+    const input = inputFixture()
+    const expectedSource = input.expectedSharedCatalog[0]
+    const observedSource = input.products[0]
+    if (!(expectedSource && observedSource)) {
+      throw new Error("Fixture product is required")
+    }
+    const expectedExcluded = {
+      ...expectedSource,
+      productId: "prod_excluded",
+      variants: expectedSource.variants.map((variant) => ({
+        ...variant,
+        ean: "8580000000002",
+        inventoryItemIds: ["iitem_excluded"],
+        sku: "EXCLUDED-1",
+        variantId: "variant_excluded",
+      })),
+    }
+    const observedExcluded = {
+      ...observedSource,
+      productId: "prod_excluded",
+      salesChannelIds: ["sc_cz"],
+      variants: expectedExcluded.variants,
+    }
+    const report = buildFourMarketCatalogAuditReport(
+      {
+        ...input,
+        expectedMarkets: input.expectedMarkets.map((market) => ({
+          ...market,
+          excludedProductIds: ["prod_excluded"],
+        })),
+        expectedSharedCatalog: [expectedSource, expectedExcluded],
+        products: [observedSource, observedExcluded],
+      },
+      generatedAt
+    )
+
+    expect(report.ready).toBe(false)
+    expect(report.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "UNEXPECTED_PRODUCT_SALES_CHANNEL_PUBLICATION",
+          entityId: "prod_excluded",
+          market: "cz",
+        }),
+      ])
+    )
+  })
+
+  it("rejects an incomplete or overlapping market product partition", () => {
+    const input = inputFixture()
+    const report = buildFourMarketCatalogAuditReport(
+      {
+        ...input,
+        expectedMarkets: input.expectedMarkets.map((market) =>
+          market.market === "ro"
+            ? { ...market, excludedProductIds: ["prod_shared"] }
+            : market
+        ),
+      },
+      generatedAt
+    )
+
+    expect(report.ready).toBe(false)
+    expect(report.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "PRODUCT_MARKET_PARTITION_INVALID",
+          market: "ro",
+        }),
+      ])
+    )
+  })
+
   it("rejects cloned products and altered variant inventory identity", () => {
     const input = inputFixture()
     const sourceProduct = input.products[0]
@@ -306,6 +539,114 @@ describe("four-market catalog audit", () => {
         "SHARED_PRODUCT_IDENTITY_MISMATCH",
         "SHARED_PRODUCT_SCOPE_MISMATCH",
       ])
+    )
+  })
+
+  it("rejects incomplete product media, relationships and attributes", () => {
+    const input = inputFixture()
+    const report = buildFourMarketCatalogAuditReport(
+      {
+        ...input,
+        products: input.products.map((product) => ({
+          ...product,
+          attributes: { ...product.attributes, description: null },
+          brandId: null,
+          categoryIds: [],
+          imageUrls: [],
+          thumbnailUrl: null,
+        })),
+      },
+      generatedAt
+    )
+
+    expect(report.ready).toBe(false)
+    expect(report.sharedIdentity.matched).toBe(false)
+    expect(report.issues.map(({ code }) => code)).toEqual(
+      expect.arrayContaining([
+        "PRODUCT_ATTRIBUTES_INCOMPLETE",
+        "PRODUCT_BRAND_BINDING_MISSING",
+        "PRODUCT_CATEGORY_BINDING_MISSING",
+        "PRODUCT_MEDIA_INCOMPLETE",
+        "SHARED_PRODUCT_IDENTITY_MISMATCH",
+      ])
+    )
+  })
+
+  it("rejects unavailable variants and every missing exact market currency", () => {
+    const input = inputFixture()
+    const report = buildFourMarketCatalogAuditReport(
+      {
+        ...input,
+        products: input.products.map((product) => ({
+          ...product,
+          variants: product.variants.map((variant) => ({
+            ...variant,
+            currencyCodes: ["eur", "czk"],
+            inventoryItemIds: [],
+          })),
+        })),
+      },
+      generatedAt
+    )
+
+    expect(report.ready).toBe(false)
+    expect(report.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: "VARIANT_AVAILABILITY_INVALID",
+          entityId: "variant_shared",
+        }),
+        expect.objectContaining({
+          code: "VARIANT_MARKET_CURRENCY_PRICE_MISSING",
+          market: "hu",
+        }),
+        expect.objectContaining({
+          code: "VARIANT_MARKET_CURRENCY_PRICE_MISSING",
+          market: "ro",
+        }),
+      ])
+    )
+  })
+
+  it("hashes set-like catalog identity fields canonically", () => {
+    const input = inputFixture()
+    const product = input.products[0]
+    if (!product) {
+      throw new Error("Fixture product is required")
+    }
+    const reordered = buildFourMarketCatalogAuditReport(
+      {
+        ...input,
+        expectedSharedCatalog: input.expectedSharedCatalog.map((expected) => ({
+          ...expected,
+          categoryIds: [...expected.categoryIds].reverse(),
+          imageUrls: [...expected.imageUrls].reverse(),
+          variants: expected.variants.map((variant) => ({
+            ...variant,
+            currencyCodes: [...variant.currencyCodes].reverse(),
+            inventoryItemIds: [...variant.inventoryItemIds].reverse(),
+          })),
+        })),
+        products: [
+          {
+            ...product,
+            categoryIds: [...product.categoryIds].reverse(),
+            imageUrls: [...product.imageUrls].reverse(),
+            variants: product.variants.map((variant) => ({
+              ...variant,
+              currencyCodes: [...variant.currencyCodes].reverse(),
+              inventoryItemIds: [...variant.inventoryItemIds].reverse(),
+            })),
+          },
+        ],
+      },
+      generatedAt
+    )
+    const baseline = buildFourMarketCatalogAuditReport(input, generatedAt)
+
+    expect(reordered.ready).toBe(true)
+    expect(reordered.sharedIdentity.dataHash).toBe(
+      baseline.sharedIdentity.dataHash
     )
   })
 
