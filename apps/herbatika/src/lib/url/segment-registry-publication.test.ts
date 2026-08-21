@@ -1,4 +1,14 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
+import {
+  chmod,
+  link,
+  mkdir,
+  mkdtemp,
+  realpath,
+  rm,
+  symlink,
+  unlink,
+  writeFile,
+} from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
@@ -113,8 +123,12 @@ describe("segment-registry G1 publication", () => {
   })
 
   it("loads exact private market files and rejects absent evidence", async () => {
-    const directory = await mkdtemp(join(tmpdir(), "segment-registry-g1-"))
-    directories.push(directory)
+    const artifactRoot = await realpath(
+      await mkdtemp(join(tmpdir(), "static-artifacts-"))
+    )
+    directories.push(artifactRoot)
+    const directory = join(artifactRoot, "segment-registry-g1")
+    await mkdir(directory, { mode: 0o700 })
     const build = buildSegmentRegistryPublicationArtifacts(
       parsedPlan(),
       "/private/plan.json"
@@ -144,8 +158,74 @@ describe("segment-registry G1 publication", () => {
     ).resolves.toEqual({ kind: "not-required", reason: "route-not-indexable" })
   })
 
+  it("rejects unsafe roots and linked G1 artifacts", async () => {
+    const artifactRoot = await realpath(
+      await mkdtemp(join(tmpdir(), "static-artifacts-"))
+    )
+    directories.push(artifactRoot)
+    const publicationDirectory = join(artifactRoot, "segment-registry-g1")
+    await mkdir(publicationDirectory, { mode: 0o700 })
+    const build = buildSegmentRegistryPublicationArtifacts(
+      parsedPlan(),
+      "/private/plan.json"
+    ).find(({ market }) => market === "sk")
+    if (!build) {
+      throw new Error("missing SK test build")
+    }
+    const targetPath = join(artifactRoot, "sk-target.json")
+    const publicationPath = join(publicationDirectory, "sk.json")
+    await writeFile(targetPath, build.canonicalJson, { mode: 0o600 })
+    const load = (directory = publicationDirectory) =>
+      loadStaticRoutePublicationDecision(
+        { market: "sk", routeKey: "about" },
+        { HERBATIKA_SEGMENT_REGISTRY_G1_DIR: directory }
+      )
+
+    await chmod(artifactRoot, 0o777)
+    await expect(load()).resolves.toEqual({
+      kind: "rejected",
+      reason: "artifact-unavailable",
+    })
+    await chmod(artifactRoot, 0o700)
+
+    await chmod(publicationDirectory, 0o777)
+    await expect(load()).resolves.toEqual({
+      kind: "rejected",
+      reason: "artifact-unavailable",
+    })
+    await chmod(publicationDirectory, 0o700)
+
+    const publicationAlias = join(artifactRoot, "segment-registry-g1-alias")
+    await symlink(publicationDirectory, publicationAlias)
+    await expect(load(publicationAlias)).resolves.toEqual({
+      kind: "rejected",
+      reason: "artifact-unavailable",
+    })
+    await expect(
+      load(`${publicationDirectory}/../segment-registry-g1`)
+    ).resolves.toEqual({
+      kind: "rejected",
+      reason: "artifact-unavailable",
+    })
+
+    await symlink(targetPath, publicationPath)
+    await expect(load()).resolves.toEqual({
+      kind: "rejected",
+      reason: "artifact-unavailable",
+    })
+    await unlink(publicationPath)
+
+    await link(targetPath, publicationPath)
+    await expect(load()).resolves.toEqual({
+      kind: "rejected",
+      reason: "artifact-unavailable",
+    })
+  })
+
   it("binds rendered bytes through the approved artifact and payload hashes", async () => {
-    const artifactRoot = await mkdtemp(join(tmpdir(), "static-artifacts-"))
+    const artifactRoot = await realpath(
+      await mkdtemp(join(tmpdir(), "static-artifacts-"))
+    )
     directories.push(artifactRoot)
     const publicationDirectory = join(artifactRoot, "segment-registry-g1")
     const payloadDirectory = join(
@@ -199,12 +279,15 @@ describe("segment-registry G1 publication", () => {
     const environment = {
       HERBATIKA_SEGMENT_REGISTRY_G1_DIR: publicationDirectory,
     }
+    const sourceInput = {
+      market: "sk" as const,
+      pageKey: "about" as const,
+      publication,
+      renderedSource,
+    }
 
     await expect(
-      assertReviewedStaticRouteSource(
-        { market: "sk", pageKey: "about", publication, renderedSource },
-        environment
-      )
+      assertReviewedStaticRouteSource(sourceInput, environment)
     ).resolves.toBeUndefined()
     await expect(
       assertReviewedStaticRouteSource(
@@ -217,5 +300,40 @@ describe("segment-registry G1 publication", () => {
         environment
       )
     ).rejects.toThrow("drifted from reviewed payload")
+
+    const artifactPath = join(
+      artifactRoot,
+      "market-static-content",
+      "sk",
+      "about.json"
+    )
+    const artifactTarget = join(artifactRoot, "artifact-target.json")
+    await writeFile(artifactTarget, artifactRaw, { mode: 0o600 })
+    await unlink(artifactPath)
+    await symlink(artifactTarget, artifactPath)
+    await expect(
+      assertReviewedStaticRouteSource(sourceInput, environment)
+    ).rejects.toThrow()
+    await unlink(artifactPath)
+    await link(artifactTarget, artifactPath)
+    await expect(
+      assertReviewedStaticRouteSource(sourceInput, environment)
+    ).rejects.toThrow()
+    await unlink(artifactPath)
+    await writeFile(artifactPath, artifactRaw, { mode: 0o600 })
+
+    const payloadPath = join(payloadDirectory, "about.json")
+    const payloadTarget = join(artifactRoot, "payload-target.json")
+    await writeFile(payloadTarget, payloadRaw, { mode: 0o600 })
+    await unlink(payloadPath)
+    await symlink(payloadTarget, payloadPath)
+    await expect(
+      assertReviewedStaticRouteSource(sourceInput, environment)
+    ).rejects.toThrow()
+    await unlink(payloadPath)
+    await link(payloadTarget, payloadPath)
+    await expect(
+      assertReviewedStaticRouteSource(sourceInput, environment)
+    ).rejects.toThrow()
   })
 })

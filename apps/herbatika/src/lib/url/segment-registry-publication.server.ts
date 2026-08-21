@@ -1,6 +1,5 @@
 // Pages Router server boundary: do not add the App-Router-only server-only marker.
-import { readFile } from "node:fs/promises"
-import { isAbsolute, join } from "node:path"
+import { join } from "node:path"
 import type { Market } from "@/lib/url/types"
 import {
   getStaticRoutePublicationDecision,
@@ -9,26 +8,36 @@ import {
   SEGMENT_REGISTRY_PUBLICATION_ENV,
   type StaticRoutePublicationDecision,
 } from "./segment-registry-publication"
+import {
+  closeSecureArtifactBoundary,
+  openSecureArtifactBoundary,
+  readSecureArtifactText,
+} from "./segment-registry-publication/secure-artifact-reader.server"
 
 export const readSegmentRegistryPublicationArtifact = async (
   market: Market,
   environment: Readonly<Record<string, string | undefined>> = process.env
 ): Promise<ParsedSegmentRegistryPublication> => {
   const directory = environment[SEGMENT_REGISTRY_PUBLICATION_ENV]
-  if (!(directory && isAbsolute(directory))) {
+  if (!directory) {
     throw new Error(
       `${SEGMENT_REGISTRY_PUBLICATION_ENV} must be an absolute directory`
     )
   }
-  const path = join(directory, `${market}.json`)
-  const parsed = parseSegmentRegistryPublicationArtifact(
-    await readFile(path, "utf8"),
-    path
-  )
-  if (parsed.artifact.market !== market) {
-    throw new Error(`segment-registry G1 artifact does not match ${market}`)
+  const boundary = await openSecureArtifactBoundary(directory)
+  const ref = join(boundary.publicationDirectoryRef, `${market}.json`)
+  try {
+    const parsed = parseSegmentRegistryPublicationArtifact(
+      await readSecureArtifactText(boundary, ref),
+      ref
+    )
+    if (parsed.artifact.market !== market) {
+      throw new Error(`segment-registry G1 artifact does not match ${market}`)
+    }
+    return parsed
+  } finally {
+    await closeSecureArtifactBoundary(boundary)
   }
-  return parsed
 }
 
 export const loadStaticRoutePublicationDecision = async (
