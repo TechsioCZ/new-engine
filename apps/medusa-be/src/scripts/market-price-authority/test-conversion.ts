@@ -179,6 +179,22 @@ const targetAction = (
   return sourceCents === 0n ? "unavailable" : "create"
 }
 
+const targetCurrenciesBySalesChannel = (
+  binding: TestPriceConversionBinding
+) => {
+  const result = new Map<string, TargetCurrencyCode>()
+  for (const { marketCode, salesChannelId } of binding.marketSalesChannels) {
+    if (marketCode === "cz") {
+      result.set(salesChannelId, "czk")
+    } else if (marketCode === "hu") {
+      result.set(salesChannelId, "huf")
+    } else if (marketCode === "ro") {
+      result.set(salesChannelId, "ron")
+    }
+  }
+  return result
+}
+
 const buildVariantMutations = (
   productId: string,
   variant: MarketPriceDatabaseSnapshot["products"][number]["variants"][number],
@@ -326,14 +342,7 @@ export const buildTestPriceConversionPlan = (
   const marketChannelIds = new Set(
     binding.marketSalesChannels.map(({ salesChannelId }) => salesChannelId)
   )
-  const targetCurrencyBySalesChannelId = new Map(
-    binding.marketSalesChannels.flatMap(({ marketCode, salesChannelId }) => {
-      const currencyCode = { cz: "czk", hu: "huf", ro: "ron" }[marketCode]
-      return currencyCode
-        ? ([[salesChannelId, currencyCode]] as const)
-        : ([] as const)
-    })
-  )
+  const targetCurrencyBySalesChannelId = targetCurrenciesBySalesChannel(binding)
   const scopedProducts = snapshot.products.filter(
     (product) =>
       product.status === "published" &&
