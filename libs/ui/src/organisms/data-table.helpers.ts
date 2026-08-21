@@ -163,6 +163,42 @@ declare module "@tanstack/react-table" {
 }
 
 /**
+ * `meta.filterVariant` is deprecated in favour of `meta.type`, kept only so
+ * existing columns keep filtering correctly. `"range"` predates `meta.type`
+ * entirely and has no direct equivalent; it always meant the number filter,
+ * which is range-capable via its `"between"` operator.
+ */
+const FILTER_VARIANT_TYPE: Record<
+  "text" | "number" | "range" | "select",
+  DataTableColumnType
+> = {
+  text: "string",
+  number: "number",
+  range: "number",
+  select: "enum",
+}
+
+/**
+ * The single source of truth for "what type is this column", shared by the
+ * filter-row control that renders `meta.type` (or its deprecated
+ * `filterVariant` alias) and the `typed` filter function that matches
+ * against it. The two resolving `type` independently — as they briefly did —
+ * is how a `filterVariant`-only column ends up with a number control writing
+ * `{ operator: "gt", value, to }` while the matcher still treats it as
+ * `"string"` and reads that object through `matchText`.
+ */
+export function resolveColumnType(meta?: {
+  type?: DataTableColumnType
+  filterVariant?: "text" | "number" | "range" | "select"
+}): DataTableColumnType {
+  return (
+    meta?.type ??
+    (meta?.filterVariant && FILTER_VARIANT_TYPE[meta.filterVariant]) ??
+    "string"
+  )
+}
+
+/**
  * Filter function that dispatches on the column's declared `meta.type`, so a
  * `boolean`/`enum`/`date` column filters correctly without the consumer wiring
  * a comparator. `applyColumnDefaults` puts this on every column that does not
@@ -172,7 +208,7 @@ export const typedFilterFn: AnyFilterFn = (row, columnId, filterValue) => {
   // `table.getColumn` is a memoised id lookup. Reading the type off the row's
   // cells instead would rescan every leaf column for every row of every
   // filtered column.
-  const type = row.table.getColumn(columnId)?.columnDef.meta?.type ?? "string"
+  const type = resolveColumnType(row.table.getColumn(columnId)?.columnDef.meta)
   return typedFilterMatch(type, row.getValue(columnId), filterValue)
 }
 

@@ -105,6 +105,7 @@ import {
   isFirstEndPinned,
   isLastStartPinned,
   type Row,
+  resolveColumnType,
   type TanstackTable,
 } from "./data-table.helpers"
 import { Table } from "./table"
@@ -511,6 +512,15 @@ export type DataTableProps<T extends RowData> = {
    * `variant="outline"` (the `variant="striped"` value cannot).
    */
   striped?: boolean
+  /**
+   * Tint rows by nesting depth (`getSubRows` tree data or `renderExpandedRow`
+   * detail rows) — same idea as `striped`, but keyed on `row.depth` instead of
+   * row index, so a child row reads as "inside" its parent instead of just
+   * being the next row in a flat zebra pattern. Composes with `striped`: the
+   * depth tint and the odd/even stripe are different CSS properties and stack
+   * rather than fight for the same one.
+   */
+  tintNestedRows?: boolean
   size?: "sm" | "md" | "lg"
   stickyHeader?: boolean
   interactive?: boolean
@@ -1035,13 +1045,28 @@ function validateDraft<T extends RowData>(
 function rowDragClass(
   dnd: { isDragging?: boolean; dropSide?: "top" | "bottom" } | undefined,
   className?: string,
-  striped?: boolean
+  striped?: boolean,
+  tintNestedRows?: boolean
 ) {
   return [
     "group/row",
     "focus-visible:outline-(style:--default-ring-style) focus-visible:outline-(length:--default-ring-width) focus-visible:outline-primary",
+    // `Table.Row`'s own row-divider border and the zebra background are two
+    // ways of doing the same job — separating one row from the next — and
+    // showing both at once double-marks every boundary. `border-b-0` wins the
+    // conflict against Table's base `border-b-(length:--border-table-width)`
+    // through the same className-merge-order mechanism that made `relative`
+    // cancel `sticky` on the header cells.
     striped
-      ? "odd:bg-table-row-striped-primary even:bg-table-row-striped-secondary"
+      ? "odd:bg-table-row-striped-primary even:bg-table-row-striped-secondary border-b-0"
+      : "",
+    // `data-depth` is only ever set for `row.depth > 0` (see below), and an
+    // inset box-shadow paints as its own layer rather than replacing
+    // `background-color` — unlike another `bg-*` class, it composes with
+    // `striped`'s zebra background instead of losing the Tailwind-merge
+    // conflict against it.
+    tintNestedRows
+      ? "data-[depth]:shadow-[inset_0_0_0_9999px_var(--color-fill-hover)]"
       : "",
     dnd?.isDragging ? "shadow-table-outline" : "",
     dnd?.dropSide === "top" ? "border-primary border-t-2" : "",
@@ -1211,6 +1236,7 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     rowActions,
     getRowLabel,
     striped = false,
+    tintNestedRows = false,
     loading = false,
     loadingRowCount = 5,
     loadingMore = false,
@@ -1804,29 +1830,12 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
   /**
    * Resolve a column's header filter: per-column `meta.renderFilter`, then the
    * table-wide `renderHeaderFilter` slot, then the type-driven default.
+   * `resolveColumnType` is the same resolution `typedFilterFn` uses, so the
+   * control shown here and the matcher that runs against it never disagree.
    */
-  /**
-   * `meta.filterVariant` is deprecated in favour of `meta.type`, kept only so
-   * existing columns keep filtering correctly. `"range"` predates `meta.type`
-   * entirely and has no direct equivalent; it always meant the number filter,
-   * which is range-capable via its `"between"` operator.
-   */
-  const FILTER_VARIANT_TYPE: Record<
-    "text" | "number" | "range" | "select",
-    DataTableColumnType
-  > = {
-    text: "string",
-    number: "number",
-    range: "number",
-    select: "enum",
-  }
-
   const renderColumnFilter = (column: Column<T, unknown>) => {
     const meta = column.columnDef.meta
-    const type: DataTableColumnType =
-      meta?.type ??
-      (meta?.filterVariant && FILTER_VARIANT_TYPE[meta.filterVariant]) ??
-      "string"
+    const type: DataTableColumnType = resolveColumnType(meta)
     const ctx: DataTableFilterContext<T> = {
       column,
       type,
@@ -2293,7 +2302,12 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       <Table.Row
         {...restRowProps}
         aria-rowindex={headerRowCount + pageRowOffset + rowIndex + 1}
-        className={rowDragClass(dnd, restRowProps.className, striped)}
+        className={rowDragClass(
+          dnd,
+          restRowProps.className,
+          striped,
+          tintNestedRows
+        )}
         data-depth={row.depth || undefined}
         data-dragging={dnd?.isDragging || undefined}
         onClick={(event) => {

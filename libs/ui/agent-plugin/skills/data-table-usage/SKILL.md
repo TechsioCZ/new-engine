@@ -320,6 +320,14 @@ adds the outline shadow on top of it.
 
 `striped` is a standalone boolean, so zebra rows compose with any variant —
 prefer it over `variant="striped"`, which cannot be combined with `outline`.
+A striped row drops its own bottom border (the alternating background is
+already a separator; drawing both looked doubled-up), so an unstriped table
+still has the row-divider border and a striped one doesn't.
+
+`tintNestedRows` shades rows by `row.depth` — a tree (`getSubRows`) or
+expanded-detail child reads as "inside" its parent instead of just being the
+next row. Layered as an inset shadow rather than a background, so it composes
+with `striped` instead of losing the conflict against its zebra background.
 
 Setting `onRowClick` automatically makes rows interactive (pointer cursor +
 hover background); the affordance is dropped while an inline edit locks row

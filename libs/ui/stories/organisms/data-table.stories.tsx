@@ -730,6 +730,30 @@ export const TreeStructure: Story = {
   },
 }
 
+/* ── 20a2. Tree structure with nested rows tinted by depth ───────────────── */
+
+export const TreeStructureTinted: Story = {
+  args: {
+    columns: columns as ColumnDef<Person>[],
+    data: tree,
+    enableExpanding: true,
+    tintNestedRows: true,
+    getSubRows: (row) => (row as Node).children,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    await userEvent.click(canvas.getAllByLabelText("Expand row")[0] as HTMLElement)
+    const rows = canvasElement.querySelectorAll("tbody tr")
+    const childRow = [...rows].find(
+      (r) => r.getAttribute("data-depth") === "1"
+    )
+    await expect(childRow).toBeTruthy()
+    await expect(
+      childRow && getComputedStyle(childRow).boxShadow
+    ).not.toBe("none")
+  },
+}
+
 /* ── 20b. Master-detail: the expanded row is one free-form box ───────────── */
 
 export const ExpandedRowDetail: Story = {
@@ -1051,6 +1075,44 @@ export const TypedColumnFilters: EmployeeStory = {
     await expect(canvas.getByLabelText("Filter Shift from")).toBeInTheDocument()
     await userEvent.type(canvas.getByLabelText("Filter Start date"), "2021-01-01")
     await expect(args.onColumnFiltersChange).toHaveBeenCalled()
+  },
+}
+
+/* ── 23b. Deprecated `filterVariant`, no explicit filterFn ────────────────── */
+
+/**
+ * A column declaring only the deprecated `meta.filterVariant` — no
+ * `meta.type`, no explicit `filterFn` — is what `applyColumnDefaults` and
+ * `resolveColumnType` exist to keep working: the default `filterFn: "typed"`
+ * and the number control both have to resolve the same type from
+ * `filterVariant` alone, or the control writes an operator object the
+ * matcher reads as plain text.
+ */
+export const DeprecatedFilterVariant: Story = {
+  args: {
+    columns: [
+      { accessorKey: "firstName", header: "First name" },
+      {
+        accessorKey: "age",
+        header: "Age",
+        meta: { align: "end", filterVariant: "number" },
+      },
+    ],
+    data: people,
+    enableColumnFilters: true,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement)
+    const ageInput = canvas.getByLabelText("Filter value for Age")
+    await expect(ageInput).toHaveAttribute("type", "number")
+    // Default operator is "equals"; no fixture row is age 4. Correct numeric
+    // matching shows the empty state. Misread as `meta.type: "string"`, the
+    // `{ operator: "equals", value: "4" }` object reaches `matchText`, whose
+    // switch has no "equals"-on-an-object case and falls to
+    // `String(cell).includes("4")` — five ages (41/44/45/47/48) contain "4"
+    // as a substring, so a still-populated table means the bug is back.
+    await userEvent.type(ageInput, "4")
+    await expect(canvas.getByText("No records")).toBeInTheDocument()
   },
 }
 
