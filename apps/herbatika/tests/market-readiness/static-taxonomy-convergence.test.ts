@@ -115,7 +115,7 @@ describe("four-market static taxonomy convergence", () => {
     }
     expect(
       expected.some(({ routeKey }) => routeKey.includes("campaigns"))
-    ).toBe(false)
+    ).toBe(true)
 
     const bytes = serializeFourMarketStaticTaxonomyConvergence(proof)
     expect(bytes.endsWith("\n")).toBe(true)

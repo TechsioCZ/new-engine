@@ -24,6 +24,7 @@ const NO_STORE = /no-store/
 const HOST_MATRIX = [
   ["herbatica.sk", "sk"],
   ["www.herbatica.sk", "sk"],
+  ["test-engine-herbatika-sk-zane.web-revolution.cz", "sk"],
   ["test-engine-herbatika-zane.web-revolution.cz", "sk"],
   ["herbatica.cz", "cz"],
   ["www.herbatica.cz", "cz"],
@@ -133,6 +134,7 @@ const requestProfiles = [
 
 test("M00 Pages Router production status matrix", async () => {
   assertActualNextVersion()
+  assert.equal(HOST_MATRIX.length, 13)
   const pagesManifest = JSON.parse(
     readFileSync(resolve(appRoot, ".next/server/pages-manifest.json"), "utf8")
   )

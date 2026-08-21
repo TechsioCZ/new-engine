@@ -12,13 +12,22 @@ import type {
   SitemapStaticSourceCandidate,
 } from "./sitemap-contract"
 
+type SitemapEntityIdentityCandidate = Omit<
+  SitemapEntitySourceCandidate,
+  "sourceVersion"
+>
+
 export type CatalogSitemapKind = "brand" | "category" | "collection"
 
-type CatalogBinding = Pick<MarketRuntimeBinding, "market" | "salesChannelId">
+type CatalogBinding = Pick<
+  MarketRuntimeBinding,
+  "locale" | "market" | "salesChannelId"
+>
 
 type CatalogAssignment = Readonly<{
   entityId: string
   publicSlug: string
+  sourceVersion: string
 }>
 
 export type CatalogSitemapSourceDependencies = Readonly<{
@@ -49,13 +58,14 @@ export type CmsSitemapSourceDependencies = Readonly<{
 export type ProductSitemapSourceDependencies = Readonly<{
   readProducts(input: {
     market: MarketRuntimeBinding["market"]
-    sources: readonly SitemapEntitySourceCandidate[]
+    sources: readonly SitemapEntityIdentityCandidate[]
   }): Promise<unknown>
 }>
 
 const CATALOG_SOURCE_BATCH_LIMIT = 100
 const SOURCE_VALIDATION_CONCURRENCY = 12
 const PUBLIC_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const CATALOG_SOURCE_VERSION_PATTERN = /^[1-9]\d*$/
 const PRODUCT_SOURCE_BATCH_LIMIT = 100
 const RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504])
 const STATIC_ROOT_PAGE_KEYS = new Set<StaticRootPageKey>([
@@ -68,6 +78,11 @@ const STATIC_ROOT_PAGE_KEYS = new Set<StaticRootPageKey>([
   "privacy",
   "cookies",
 ])
+const TRANSLATION_REFERENCE_BY_CATALOG_KIND = {
+  brand: "brand",
+  category: "product_category",
+  collection: "product_collection",
+} as const satisfies Readonly<Record<CatalogSitemapKind, string>>
 
 const hasCodeOwnedStaticPage = (
   pageKey: StaticRootPageKey,
@@ -97,11 +112,13 @@ const mapCatalogError = <Value>(error: unknown): SourceReadResult<Value> => {
 
 const parseAssignment = (
   value: unknown,
-  binding: CatalogBinding
+  binding: CatalogBinding,
+  kind: CatalogSitemapKind
 ): CatalogAssignment | null => {
   if (!isRecord(value)) {
     return null
   }
+  const translation = value.translation
   return value.schemaVersion === 1 &&
     typeof value.id === "string" &&
     value.id.length > 0 &&
@@ -113,8 +130,17 @@ const parseAssignment = (
     value.publicSlug.length <= 80 &&
     PUBLIC_SLUG_PATTERN.test(value.publicSlug) &&
     typeof value.sourceVersion === "string" &&
-    value.sourceVersion.length > 0
-    ? { entityId: value.id, publicSlug: value.publicSlug }
+    CATALOG_SOURCE_VERSION_PATTERN.test(value.sourceVersion) &&
+    isRecord(translation) &&
+    translation.localeCode === binding.locale &&
+    translation.reference === TRANSLATION_REFERENCE_BY_CATALOG_KIND[kind] &&
+    typeof translation.translationId === "string" &&
+    translation.translationId.length > 0
+    ? {
+        entityId: value.id,
+        publicSlug: value.publicSlug,
+        sourceVersion: value.sourceVersion,
+      }
     : null
 }
 
@@ -136,7 +162,7 @@ const parseAssignmentBatch = (
   }
   const requestedIds = new Set(sources.map((source) => source.sourceId))
   const assignments = value.assignments.map((item) =>
-    parseAssignment(item, binding)
+    parseAssignment(item, binding, kind)
   )
   return assignments.some(
     (assignment) =>
@@ -152,7 +178,7 @@ const parseAssignmentBatch = (
 }
 
 const validateCandidateIdentities = (
-  sources: readonly SitemapEntitySourceCandidate[]
+  sources: readonly SitemapEntityIdentityCandidate[]
 ) =>
   new Set(sources.map((source) => source.routeId)).size === sources.length &&
   new Set(sources.map((source) => source.sourceId)).size === sources.length &&
@@ -168,6 +194,9 @@ export const validateCatalogSitemapSources = async (
 ): Promise<SourceReadResult<readonly SitemapSourceValidation[]>> => {
   if (
     !validateCandidateIdentities(input.sources) ||
+    input.sources.some(
+      (source) => !CATALOG_SOURCE_VERSION_PATTERN.test(source.sourceVersion)
+    ) ||
     input.sources.length > CATALOG_SOURCE_BATCH_LIMIT
   ) {
     return {
@@ -204,7 +233,8 @@ export const validateCatalogSitemapSources = async (
       kind: "found",
       value: input.sources.flatMap((source) => {
         const assignment = assignmentBySourceId.get(source.sourceId)
-        return assignment?.publicSlug === source.publicSlug
+        return assignment?.publicSlug === source.publicSlug &&
+          assignment.sourceVersion === source.sourceVersion
           ? [{ routeId: source.routeId }]
           : []
       }),
@@ -225,7 +255,7 @@ const chunks = <Value>(values: readonly Value[], size: number): Value[][] => {
 export const validateProductSitemapSources = async (
   input: Readonly<{
     binding: Pick<MarketRuntimeBinding, "locale" | "market" | "salesChannelId">
-    sources: readonly SitemapEntitySourceCandidate[]
+    sources: readonly SitemapEntityIdentityCandidate[]
   }>,
   dependencies: ProductSitemapSourceDependencies
 ): Promise<SourceReadResult<readonly SitemapSourceValidation[]>> => {

@@ -14,7 +14,7 @@ const COMPLETE_ENVIRONMENT = {
   MARKET_ACCEPTED_HOSTS_RO:
     "herbatica.ro,www.herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz",
   MARKET_ACCEPTED_HOSTS_SK:
-    "herbatica.sk,www.herbatica.sk,test-engine-herbatika-zane.web-revolution.cz",
+    "herbatica.sk,www.herbatica.sk,test-engine-herbatika-sk-zane.web-revolution.cz,test-engine-herbatika-zane.web-revolution.cz",
   MARKET_PUBLISHABLE_KEY_CZ: "pk_cz",
   MARKET_PUBLISHABLE_KEY_HU: "pk_hu",
   MARKET_PUBLISHABLE_KEY_RO: "pk_ro",
@@ -36,6 +36,7 @@ const COMPLETE_ENVIRONMENT = {
 const HOST_MATRIX = [
   ["herbatica.sk", "sk"],
   ["www.herbatica.sk", "sk"],
+  ["test-engine-herbatika-sk-zane.web-revolution.cz", "sk"],
   ["test-engine-herbatika-zane.web-revolution.cz", "sk"],
   ["herbatica.cz", "cz"],
   ["www.herbatica.cz", "cz"],
@@ -53,10 +54,12 @@ describe("createMarketRuntime", () => {
     const runtime = createMarketRuntime(COMPLETE_ENVIRONMENT)
 
     expect(runtime.allowedMarkets).toEqual(["sk", "cz", "hu", "ro"])
+    expect(HOST_MATRIX).toHaveLength(13)
     expect(getMarketRuntime(runtime, "sk")).toEqual({
       acceptedHosts: [
         "herbatica.sk",
         "www.herbatica.sk",
+        "test-engine-herbatika-sk-zane.web-revolution.cz",
         "test-engine-herbatika-zane.web-revolution.cz",
       ],
       canonicalOrigin: "https://herbatica.sk",

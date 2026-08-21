@@ -56,6 +56,8 @@ import type {
   ActiveEquivalenceLookup,
   EntityIdentityLookup,
   SourceReadResult,
+  StaticRouteResolution,
+  StaticRouteResolveInput,
   UrlRegistryBatchResolution,
   UrlRegistryPage,
   UrlRegistryPageRequest,
@@ -63,6 +65,7 @@ import type {
   UrlRegistryResolveInput,
   UrlRegistryResolveManyInput,
 } from "./reads"
+import { resolveStaticRouteSnapshots } from "./static-path-resolution"
 
 export type { InMemoryUrlRegistryOptions, MemoryIdKind } from "./memory-support"
 
@@ -159,6 +162,19 @@ export class InMemoryUrlRegistry implements UrlRegistry {
   ): Promise<SourceReadResult<readonly UrlRegistryBatchResolution[]>> {
     await Promise.resolve()
     return resolveMany(this.executor.readState(), input)
+  }
+
+  async resolveStaticPath(
+    input: StaticRouteResolveInput
+  ): Promise<SourceReadResult<StaticRouteResolution>> {
+    await Promise.resolve()
+    const snapshots = listStaticRouteSnapshots(
+      this.executor.readState(),
+      input.market
+    )
+    return snapshots.kind === "found"
+      ? resolveStaticRouteSnapshots(snapshots.value, input)
+      : snapshots
   }
 
   async findActiveEntityRoute(

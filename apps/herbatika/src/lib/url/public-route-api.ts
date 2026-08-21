@@ -53,7 +53,7 @@ const hasForbiddenCharacter = (value: string) =>
 const ENTITY_KIND_BY_PREFIX = {
   advice: "article",
   brands: "brand",
-  campaigns: null,
+  campaigns: "campaign",
   categories: "category",
   collections: "collection",
   information: "page",
@@ -63,7 +63,7 @@ const ENTITY_KIND_BY_PREFIX = {
 const INDEX_QUERY_KIND = {
   article: "advice-index",
   brand: "brand-index",
-  campaign: null,
+  campaign: "campaign-index",
   category: "category-index",
   collection: "collection-index",
   page: null,
@@ -73,6 +73,7 @@ const INDEX_QUERY_KIND = {
 const DETAIL_QUERY_KIND = {
   article: "advice-article",
   brand: "brand-detail",
+  campaign: "campaign-detail",
   category: "category-detail",
   collection: "collection-detail",
   page: "information-detail",

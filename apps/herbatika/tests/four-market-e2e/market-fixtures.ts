@@ -42,7 +42,7 @@ export const MARKET_FIXTURES = {
     checkoutShippingPath: "/pokladna/doprava",
     completeOrderLabel: "Dokončiť objednávku",
     currencyPattern: /€/u,
-    defaultOrigin: "https://test-engine-herbatika-zane.web-revolution.cz",
+    defaultOrigin: "https://test-engine-herbatika-sk-zane.web-revolution.cz",
     invalidCredentialsLabel: "Nesprávny e-mail alebo heslo.",
     locale: "sk-SK",
     loginPath: "/ucet/prihlasenie",

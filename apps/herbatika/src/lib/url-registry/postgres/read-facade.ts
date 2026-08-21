@@ -7,6 +7,8 @@ import type {
   EntityIdentityLookup,
   EntityRouteSnapshot,
   SourceReadResult,
+  StaticRouteResolution,
+  StaticRouteResolveInput,
   StaticRouteSnapshot,
   UrlRegistryAuditRecord,
   UrlRegistryBatchResolution,
@@ -18,6 +20,7 @@ import type {
   UrlRegistryResolveManyInput,
   UrlRouteSnapshot,
 } from "../contracts"
+import { resolveStaticRouteSnapshots } from "../static-path-resolution"
 import { listAudits, listPendingOutbox } from "./audit-read"
 import {
   countActiveEntities,
@@ -48,6 +51,15 @@ export class PostgresRegistryReads {
     input: UrlRegistryResolveManyInput
   ): Promise<SourceReadResult<readonly UrlRegistryBatchResolution[]>> {
     return resolveBatch(this.primary, input)
+  }
+
+  async resolveStaticPath(
+    input: StaticRouteResolveInput
+  ): Promise<SourceReadResult<StaticRouteResolution>> {
+    const snapshots = await listStaticSnapshots(this.primary, input.market)
+    return snapshots.kind === "found"
+      ? resolveStaticRouteSnapshots(snapshots.value, input)
+      : snapshots
   }
 
   findActiveEntityRoute(

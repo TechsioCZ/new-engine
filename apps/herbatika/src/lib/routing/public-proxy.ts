@@ -39,6 +39,7 @@ type ResolvePublicProxyInput = Readonly<{
   host: string | null
   method: string
   pathname: string
+  resolveUnknownStaticPaths?: boolean
 }>
 
 type ParsedPath = Readonly<{
@@ -76,6 +77,7 @@ const ENTITY_KINDS = {
     index: "collections",
     route: "collection",
   },
+  campaigns: { detail: "campaign", index: "campaigns", route: "campaign" },
   advice: { detail: "advice", index: "advice", route: "article" },
   information: { detail: "information", index: null, route: "page" },
 } as const
@@ -179,9 +181,6 @@ const entityRoute = (
   match: Extract<RootSegmentMatch, { group: "type-prefix" }>,
   segments: readonly string[]
 ): Readonly<{ pathname: string; routeKey: string }> | null => {
-  if (match.key === "campaigns") {
-    return null
-  }
   const definition = ENTITY_KINDS[match.key]
   if (segments.length === 1) {
     return definition.index
@@ -330,6 +329,7 @@ export const resolvePublicProxyAction = ({
   host,
   method,
   pathname,
+  resolveUnknownStaticPaths = false,
 }: ResolvePublicProxyInput): PublicProxyAction => {
   if (isPrivatePagesPath(pathname)) {
     return { kind: "respond", status: 404 }
@@ -372,7 +372,16 @@ export const resolvePublicProxyAction = ({
     }
   }
   if (!route) {
-    return { kind: "respond", status: 404 }
+    if (!resolveUnknownStaticPaths || parsed.segments.length === 0) {
+      return { kind: "respond", status: 404 }
+    }
+    route = {
+      pathname: internalPath(
+        hostMarket.market,
+        `url-registry/${parsed.segments.map(encodeURIComponent).join("/")}`
+      ),
+      routeKey: "url-registry.resolve",
+    }
   }
 
   const normalizedMethod = method.toUpperCase()

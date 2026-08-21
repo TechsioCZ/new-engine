@@ -43,6 +43,11 @@ const MARKETS = [
   { canonicalHost: "herbatica.sk", host: "www.herbatica.sk", market: "sk" },
   {
     canonicalHost: "herbatica.sk",
+    host: "test-engine-herbatika-sk-zane.web-revolution.cz",
+    market: "sk",
+  },
+  {
+    canonicalHost: "herbatica.sk",
     host: "test-engine-herbatika-zane.web-revolution.cz",
     market: "sk",
   },
@@ -453,6 +458,7 @@ const waitForIngress = async () => {
 // biome-ignore lint/style/noDoneCallback: node:test passes a TestContext used for named subtests, not a completion callback.
 test("M00 production standalone keeps hard statuses through Caddy TLS", async (t) => {
   const ca = await waitForIngress()
+  assert.equal(MARKETS.length, 13)
   const protocols = [
     { name: "http/1.1", request: requestHttp1 },
     { name: "h2", request: requestHttp2 },

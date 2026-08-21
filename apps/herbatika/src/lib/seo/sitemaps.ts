@@ -24,6 +24,7 @@ const SEO_ROUTE_KIND_BY_SITEMAP_KIND = {
   collection: "collection-detail",
   article: "advice-article",
   page: "information-detail",
+  campaign: "campaign-detail",
   static: "static-page",
 } as const satisfies Record<SitemapKind, QueryRouteKind>
 

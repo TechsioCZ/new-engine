@@ -62,6 +62,23 @@ const projection = (
   },
 })
 
+const campaignProjection = (
+  sourceId: string,
+  slug: string
+): ActiveEntityRouteTarget => {
+  const target = projection(sourceId, slug)
+  return {
+    ...target,
+    currentSlug: { ...target.currentSlug, kind: "campaign" },
+    route: {
+      ...target.route,
+      equivalenceKey: `campaign:${sourceId}`,
+      kind: "campaign",
+      sourceType: "campaign",
+    },
+  }
+}
+
 const dependencies = (
   entities: readonly ActiveEntityRouteTarget[]
 ): SitemapDataDependencies => ({
@@ -79,6 +96,15 @@ const dependencies = (
     })
   ),
   listStatic: vi.fn().mockResolvedValue({ kind: "found", value: [] }),
+  readEntitySourceVersions: vi.fn().mockImplementation((projections) =>
+    Promise.resolve({
+      kind: "found",
+      value: projections.map((item: ActiveEntityRouteTarget) => ({
+        routeId: item.route.id,
+        sourceVersion: `source-${item.route.id}`,
+      })),
+    })
+  ),
   validateHomepageSource: vi.fn().mockResolvedValue({
     kind: "found",
     value: true,
@@ -109,9 +135,43 @@ describe("system sitemaps", () => {
       shard: 1,
     })
     expect(parseSitemapShardName("product-0.xml")).toBeNull()
-    expect(parseSitemapShardName("campaign-1.xml")).toBeNull()
+    expect(parseSitemapShardName("campaign-1.xml")).toEqual({
+      kind: "campaign",
+      shard: 1,
+    })
     expect(parseSitemapShardName("unknown-1.xml")).toBeNull()
     expect(parseSitemapShardName("product-1.xml/extra")).toBeNull()
+  })
+
+  it("emits campaign URLs only after exact publication-source validation", async () => {
+    const deps = dependencies([campaignProjection("campaign_1", "letni-akce")])
+
+    const result = await listSitemapEntries(binding, "campaign", deps)
+
+    expect(result).toEqual({
+      kind: "found",
+      value: [
+        {
+          alternates: {
+            "cs-CZ": "https://herbatica.cz/akce/letni-akce",
+          },
+          lastModified: "2026-08-19T11:00:00.000Z",
+          location: "https://herbatica.cz/akce/letni-akce",
+        },
+      ],
+    })
+    expect(deps.validateEntitySources).toHaveBeenCalledWith({
+      kind: "campaign",
+      market: "cz",
+      sources: [
+        {
+          publicSlug: "letni-akce",
+          routeId: "route_campaign_1",
+          sourceId: "campaign_1",
+          sourceVersion: "source-route_campaign_1",
+        },
+      ],
+    })
   })
 
   it("builds product URLs only from URLR slugs and verifies stable source IDs", async () => {
@@ -140,6 +200,7 @@ describe("system sitemaps", () => {
           publicSlug: "public-slug",
           routeId: "route_prod_1",
           sourceId: "prod_1",
+          sourceVersion: "source-route_prod_1",
         },
       ],
     })
@@ -192,6 +253,7 @@ describe("system sitemaps", () => {
           publicSlug: "slovensky-produkt",
           routeId: "route_prod_1_sk",
           sourceId: "prod_1_sk",
+          sourceVersion: "source-route_prod_1_sk",
         },
       ],
     })

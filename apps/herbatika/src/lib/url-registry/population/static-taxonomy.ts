@@ -17,7 +17,6 @@ import type {
   Market,
   ReviewChildKey,
   StaticRootPageKey,
-  TypePrefixKey,
 } from "@/lib/url/types"
 import type { StaticPathMatchMode, UrlIndexPolicy } from "../model"
 
@@ -31,7 +30,6 @@ export type PopulationStaticRoute = Readonly<{
   segment: string
 }>
 
-const OMITTED_TYPE_PREFIXES = new Set<TypePrefixKey>(["campaigns"])
 const PREFIX_FLOW_ROOTS = new Set<FlowRootKey>([
   "account",
   "checkout",
@@ -81,12 +79,11 @@ const staticRoute = (
 
 const typeRoutes = (market: Market): PopulationStaticRoute[] => {
   const registry = ROUTE_SEGMENT_REGISTRY[market]
-  return TYPE_PREFIX_KEYS.filter((key) => !OMITTED_TYPE_PREFIXES.has(key)).map(
-    (key) =>
-      staticRoute(market, `type:${key}`, registry.typePrefixes[key], {
-        indexPolicy: "indexable",
-        matchMode: "prefix",
-      })
+  return TYPE_PREFIX_KEYS.map((key) =>
+    staticRoute(market, `type:${key}`, registry.typePrefixes[key], {
+      indexPolicy: "indexable",
+      matchMode: "prefix",
+    })
   )
 }
 

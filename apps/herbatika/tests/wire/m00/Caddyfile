@@ -40,7 +40,7 @@
 	}
 }
 
-herbatica.sk, www.herbatica.sk, test-engine-herbatika-zane.web-revolution.cz, herbatica.cz, www.herbatica.cz, test-engine-herbatika-cz-zane.web-revolution.cz, herbatica.hu, www.herbatica.hu, test-engine-herbatika-hu-zane.web-revolution.cz, herbatica.ro, www.herbatica.ro, test-engine-herbatika-ro-zane.web-revolution.cz {
+herbatica.sk, www.herbatica.sk, test-engine-herbatika-sk-zane.web-revolution.cz, test-engine-herbatika-zane.web-revolution.cz, herbatica.cz, www.herbatica.cz, test-engine-herbatika-cz-zane.web-revolution.cz, herbatica.hu, www.herbatica.hu, test-engine-herbatika-hu-zane.web-revolution.cz, herbatica.ro, www.herbatica.ro, test-engine-herbatika-ro-zane.web-revolution.cz {
 	tls internal
 
 	log {

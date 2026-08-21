@@ -10,12 +10,18 @@ const ROUTING_ENVIRONMENT = {
   MARKET_ACCEPTED_HOSTS_RO:
     "herbatica.ro,www.herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz",
   MARKET_ACCEPTED_HOSTS_SK:
-    "herbatica.sk,www.herbatica.sk,test-engine-herbatika-zane.web-revolution.cz",
+    "herbatica.sk,www.herbatica.sk,test-engine-herbatika-sk-zane.web-revolution.cz,test-engine-herbatika-zane.web-revolution.cz",
 } as const
 
 const HOST_MATRIX = [
   ["herbatica.sk", "sk", false, "https://herbatica.sk"],
   ["www.herbatica.sk", "sk", true, "https://herbatica.sk"],
+  [
+    "test-engine-herbatika-sk-zane.web-revolution.cz",
+    "sk",
+    true,
+    "https://herbatica.sk",
+  ],
   [
     "test-engine-herbatika-zane.web-revolution.cz",
     "sk",
@@ -70,6 +76,8 @@ describe("full public URL proxy", () => {
     ["/kategorie/bylinky", "/~sf/sk/category/bylinky", "category.detail"],
     ["/znacky", "/~sf/sk/brands", "brand.index"],
     ["/kolekcie", "/~sf/sk/collections", "collection.index"],
+    ["/akcie", "/~sf/sk/campaigns", "campaign.index"],
+    ["/akcie/letna", "/~sf/sk/campaign/letna", "campaign.detail"],
     ["/poradna", "/~sf/sk/advice", "article.index"],
     ["/poradna/clanok", "/~sf/sk/advice/clanok", "article.detail"],
     [
@@ -223,12 +231,38 @@ describe("full public URL proxy", () => {
     expect(resolve(pathname)).toEqual({ kind: "respond", status: 404 })
   })
 
+  it("rewrites a safe unknown path to the private URL Registry resolver when enabled", () => {
+    expect(
+      resolve("/stare-produkty/Ashwagandha-AbC", {
+        resolveUnknownStaticPaths: true,
+      })
+    ).toMatchObject({
+      kind: "rewrite",
+      market: "sk",
+      pathname: "/~sf/sk/url-registry/stare-produkty/Ashwagandha-AbC",
+      publicPath: "/stare-produkty/Ashwagandha-AbC",
+      routeKey: "url-registry.resolve",
+    })
+  })
+
   it.each([
-    ["/kampane", "herbatica.sk"],
-    ["/kampany", "herbatica.cz"],
-    ["/kampanyok", "herbatica.hu"],
-    ["/campanii", "herbatica.ro"],
-  ])("omits the unimplemented campaign family %s", (pathname, host) => {
+    ["/akcie", "herbatica.sk", "/~sf/sk/campaigns"],
+    ["/akce/jarni", "herbatica.cz", "/~sf/cz/campaign/jarni"],
+    ["/akciok", "herbatica.hu", "/~sf/hu/campaigns"],
+    ["/promotii/vara", "herbatica.ro", "/~sf/ro/campaign/vara"],
+  ])("publishes the localized campaign route %s", (pathname, host, internal) => {
+    expect(resolve(pathname, { host })).toMatchObject({
+      kind: "rewrite",
+      pathname: internal,
+    })
+  })
+
+  it.each([
+    ["/akce", "herbatica.sk"],
+    ["/akcie", "herbatica.cz"],
+    ["/promotii", "herbatica.hu"],
+    ["/akciok", "herbatica.ro"],
+  ])("rejects the foreign-market campaign namespace %s", (pathname, host) => {
     expect(resolve(pathname, { host })).toEqual({
       kind: "respond",
       status: 404,

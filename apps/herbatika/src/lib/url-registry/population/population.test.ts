@@ -110,12 +110,17 @@ describe("initial URLR population manifest", () => {
     )
   })
 
-  it("requires the exact build taxonomy hash and omits campaigns", () => {
+  it("requires the exact build taxonomy hash and publishes campaign roots", () => {
     expect(
-      buildPopulationStaticTaxonomy().some(({ routeKey }) =>
-        routeKey.includes("campaigns")
-      )
-    ).toBe(false)
+      buildPopulationStaticTaxonomy()
+        .filter(({ routeKey }) => routeKey === "type:campaigns")
+        .map(({ market, segment }) => [market, segment])
+    ).toEqual([
+      ["sk", "akcie"],
+      ["cz", "akce"],
+      ["hu", "akciok"],
+      ["ro", "promotii"],
+    ])
     const input = inputManifest()
     input.taxonomyApproval.hash = HASH
     expect(() => parsePopulationManifest(input)).toThrow(

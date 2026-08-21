@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
+import type { ActiveEntityRouteTarget } from "@/lib/url-registry/model"
 
 const mocks = vi.hoisted(() => ({
   assertReviewedStaticSource: vi.fn(),
@@ -7,10 +8,12 @@ const mocks = vi.hoisted(() => ({
   fetchBlogPosts: vi.fn(),
   fetchHeroBanners: vi.fn(),
   hydrateHeroBanners: vi.fn(),
+  getRuntime: vi.fn(),
   loadStaticPublication: vi.fn(),
   prefetchHomepage: vi.fn(),
   readAvailableSlugs: vi.fn(),
   readArticle: vi.fn(),
+  validateCampaigns: vi.fn(),
   readCompleteSlugs: vi.fn(),
   readHomepageManifest: vi.fn(),
   readPage: vi.fn(),
@@ -56,6 +59,9 @@ vi.mock("@/lib/storefront/market-sdk.server", () => ({
 vi.mock("@/lib/storefront/product-route-source.server", () => ({
   readProductRouteSourceFromMedusa: mocks.readProduct,
 }))
+vi.mock("@/lib/storefront/campaign-publication-source.server", () => ({
+  validateCampaignPublicationCandidates: mocks.validateCampaigns,
+}))
 vi.mock("@/lib/storefront/ssr", () => ({
   prefetchHomePageStorefrontData: mocks.prefetchHomepage,
 }))
@@ -64,7 +70,7 @@ vi.mock("@/lib/storefront/ssr/public-entity-projections", () => ({
   readCompletePublicEntitySlugs: mocks.readCompleteSlugs,
 }))
 vi.mock("@/lib/url-registry/runtime/instance.server", () => ({
-  getUrlRegistryRuntime: vi.fn(),
+  getUrlRegistryRuntime: mocks.getRuntime,
 }))
 vi.mock("@/lib/url/segment-registry-publication.server", () => ({
   loadStaticRoutePublicationDecision: mocks.loadStaticPublication,
@@ -86,7 +92,17 @@ import {
   systemSitemapDependencies,
 } from "./system-runtime.server"
 
-const assignment = (entityId: string, publicSlug: string) => ({
+const referenceByKind = {
+  brand: "brand",
+  category: "product_category",
+  collection: "product_collection",
+} as const
+
+const assignment = (
+  entityId: string,
+  publicSlug: string,
+  kind: keyof typeof referenceByKind
+) => ({
   entityId,
   id: entityId,
   marketCode: "cz",
@@ -94,7 +110,46 @@ const assignment = (entityId: string, publicSlug: string) => ({
   publicSlug,
   salesChannelId: "sc_cz",
   schemaVersion: 1,
-  sourceVersion: "1",
+  sourceVersion: "7",
+  translation: {
+    localeCode: "cs-CZ",
+    reference: referenceByKind[kind],
+    translationId: `translation_${entityId}`,
+  },
+})
+
+const projection = (
+  sourceId: string,
+  version = 1
+): ActiveEntityRouteTarget => ({
+  currentSlug: {
+    createdAt: "2026-08-21T10:00:00.000Z",
+    disposition: "current",
+    id: `slug_${sourceId}`,
+    kind: "category",
+    market: "cz",
+    normalizationVersion: 1,
+    normalizedSlug: `slug-${sourceId.replaceAll("_", "-")}`,
+    routeId: `route_${sourceId}`,
+  },
+  projectionType: "entity",
+  route: {
+    createdAt: "2026-08-21T10:00:00.000Z",
+    equivalenceKey: `category:${sourceId}`,
+    id: `route_${sourceId}`,
+    indexPolicy: "indexable",
+    kind: "category",
+    market: "cz",
+    sourceId,
+    sourceSystem: "medusa",
+    sourceType: "category",
+    staticRouteKey: null,
+    status: "active",
+    successorRouteId: null,
+    targetType: "entity",
+    updatedAt: "2026-08-21T10:00:00.000Z",
+    version,
+  },
 })
 
 describe("system sitemap source wiring", () => {
@@ -121,6 +176,7 @@ describe("system sitemap source wiring", () => {
     mocks.readAvailableSlugs.mockResolvedValue({ kind: "found", value: {} })
     mocks.readCompleteSlugs.mockResolvedValue({ kind: "found", value: {} })
     mocks.readHomepageManifest.mockReturnValue(undefined)
+    mocks.validateCampaigns.mockReturnValue({ kind: "found", value: [] })
     mocks.assertReviewedStaticSource.mockResolvedValue(undefined)
     mocks.loadStaticPublication.mockResolvedValue({
       evidence: {
@@ -131,6 +187,15 @@ describe("system sitemap source wiring", () => {
         staticContentArtifactSha256: "a".repeat(64),
       },
       kind: "approved",
+    })
+    mocks.getRuntime.mockResolvedValue({
+      enabled: true,
+      registry: {
+        listAuditRecords: vi.fn().mockResolvedValue({
+          kind: "found",
+          value: { items: [], nextCursor: null },
+        }),
+      },
     })
   })
 
@@ -194,13 +259,44 @@ describe("system sitemap source wiring", () => {
     expect(result.kind).not.toBe("found")
   })
 
+  it("validates campaign sitemap candidates against reviewed publication proof", async () => {
+    const sources = [
+      {
+        publicSlug: "letni-akce",
+        routeId: "route_campaign_1",
+        sourceId: "campaign_1",
+        sourceVersion: "7",
+      },
+    ]
+    mocks.validateCampaigns.mockReturnValue({
+      kind: "found",
+      value: [{ routeId: "route_campaign_1" }],
+    })
+
+    await expect(
+      systemSitemapDependencies.validateEntitySources({
+        kind: "campaign",
+        market: "cz",
+        sources,
+      })
+    ).resolves.toEqual({
+      kind: "found",
+      value: [{ routeId: "route_campaign_1" }],
+    })
+    expect(mocks.validateCampaigns).toHaveBeenCalledWith({
+      market: "cz",
+      sources,
+    })
+    expect(mocks.fetch).not.toHaveBeenCalled()
+  })
+
   it.each([
     "category",
     "brand",
     "collection",
   ] as const)("uses the bounded %s assignment endpoint", async (kind) => {
     mocks.fetch.mockResolvedValue({
-      assignments: [assignment("source_1", "public-slug")],
+      assignments: [assignment("source_1", "public-slug", kind)],
       entityKind: kind,
       marketCode: "cz",
       schemaVersion: 1,
@@ -215,6 +311,7 @@ describe("system sitemap source wiring", () => {
             publicSlug: "public-slug",
             routeId: "route_1",
             sourceId: "source_1",
+            sourceVersion: "7",
           },
         ],
       })
@@ -226,7 +323,13 @@ describe("system sitemap source wiring", () => {
       "/store/url-registry/catalog/sources",
       {
         body: {
-          candidates: [{ entityId: "source_1", publicSlug: "public-slug" }],
+          candidates: [
+            {
+              entityId: "source_1",
+              publicSlug: "public-slug",
+              sourceVersion: "7",
+            },
+          ],
           entityKind: kind,
           market: "cz",
           schemaVersion: 1,
@@ -235,6 +338,67 @@ describe("system sitemap source wiring", () => {
         signal: expect.any(AbortSignal),
       }
     )
+  })
+
+  it("resolves the current catalog source version from the matching URLR audit", async () => {
+    const target = projection("category_1", 2)
+    const listAuditRecords = vi
+      .fn()
+      .mockResolvedValueOnce({
+        kind: "found",
+        value: {
+          items: [
+            {
+              resultVersion: 1,
+              routeId: target.route.id,
+              source: {
+                sourceId: target.route.sourceId,
+                sourceSystem: target.route.sourceSystem,
+                sourceType: target.route.sourceType,
+                sourceVersion: "6",
+              },
+            },
+          ],
+          nextCursor: "audit-page-2",
+        },
+      })
+      .mockResolvedValueOnce({
+        kind: "found",
+        value: {
+          items: [
+            {
+              resultVersion: 2,
+              routeId: target.route.id,
+              source: {
+                sourceId: target.route.sourceId,
+                sourceSystem: target.route.sourceSystem,
+                sourceType: target.route.sourceType,
+                sourceVersion: "7",
+              },
+            },
+          ],
+          nextCursor: null,
+        },
+      })
+    mocks.getRuntime.mockResolvedValue({
+      enabled: true,
+      registry: { listAuditRecords },
+    })
+
+    await expect(
+      systemSitemapDependencies.readEntitySourceVersions([target])
+    ).resolves.toEqual({
+      kind: "found",
+      value: [{ routeId: target.route.id, sourceVersion: "7" }],
+    })
+    expect(listAuditRecords).toHaveBeenNthCalledWith(1, {
+      cursor: undefined,
+      limit: 100,
+    })
+    expect(listAuditRecords).toHaveBeenNthCalledWith(2, {
+      cursor: "audit-page-2",
+      limit: 100,
+    })
   })
 
   it("reads a CMS article by stable ID and exact market locale", async () => {
@@ -256,6 +420,7 @@ describe("system sitemap source wiring", () => {
             publicSlug: "healthy-advice",
             routeId: "route_article_1",
             sourceId: "article_1",
+            sourceVersion: "2026-08-21T10:00:00.000Z",
           },
         ],
       })
@@ -296,6 +461,36 @@ describe("system sitemap source wiring", () => {
         renderedSource: page,
       })
     )
+  })
+
+  it("normalizes only production root static taxonomy keys", async () => {
+    const page = {
+      content: "Reviewed privacy content",
+      id: 77,
+      title: "Privacy",
+    }
+    mocks.readStaticPage.mockResolvedValue({ kind: "found", value: page })
+
+    await expect(
+      systemSitemapDependencies.validateStaticSources({
+        market: "cz",
+        sources: [
+          { routeId: "route_privacy", staticRouteKey: "root:privacy" },
+          { routeId: "route_type", staticRouteKey: "type:privacy" },
+          { routeId: "route_flow", staticRouteKey: "flow:privacy" },
+        ],
+      })
+    ).resolves.toEqual({
+      kind: "found",
+      value: [{ routeId: "route_privacy", updatedAt: undefined }],
+    })
+    expect(mocks.loadStaticPublication).toHaveBeenCalledTimes(1)
+    expect(mocks.loadStaticPublication).toHaveBeenCalledWith({
+      market: "cz",
+      routeKey: "privacy",
+    })
+    expect(mocks.readStaticPage).toHaveBeenCalledOnce()
+    expect(mocks.readStaticPage).toHaveBeenCalledWith("privacy", "cs-CZ")
   })
 
   it("fails the static sitemap closed after approved CMS content drifts", async () => {

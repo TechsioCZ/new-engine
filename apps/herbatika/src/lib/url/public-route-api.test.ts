@@ -54,6 +54,10 @@ describe("parsePublicPath", () => {
     ["hu", "/kategoriak/bylinky", { kind: "category", slug: "bylinky" }],
     ["ro", "/marci/herbatica", { kind: "brand", slug: "herbatica" }],
     ["sk", "/kolekcie/spanok", { kind: "collection", slug: "spanok" }],
+    ["sk", "/akcie", { kind: "campaign" }],
+    ["cz", "/akce/jarni", { kind: "campaign", slug: "jarni" }],
+    ["hu", "/akciok/nyari", { kind: "campaign", slug: "nyari" }],
+    ["ro", "/promotii/vara", { kind: "campaign", slug: "vara" }],
     ["cz", "/poradna/spanek", { kind: "article", slug: "spanek" }],
     ["hu", "/informaciok/rolunk", { kind: "page", slug: "rolunk" }],
     ["ro", "/intrebari-frecvente", { kind: "static", page: "faq" }],
@@ -240,8 +244,6 @@ describe("parsePublicPath", () => {
   })
 
   it.each([
-    "/akcie",
-    "/akcie/letna",
     "/p/legacy",
     "/informacie",
   ])("omits disabled or invalid public route %s", (pathname) => {

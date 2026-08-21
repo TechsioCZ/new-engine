@@ -10,7 +10,7 @@ import { buildStaticTaxonomyTransitionPlan } from "./static-taxonomy-transition-
 const MUTATION_SQL_PATTERN = /\b(?:delete|insert|update|truncate)\b/i
 const SHA256_PATTERN = /^sha256:[a-f0-9]{64}$/
 const TAXONOMY_HASH =
-  "sha256:a532ad08f718b0a8ff5d58026144a24314dd53f1c7bb38a0840efb5fe59aae39"
+  "sha256:37ff2f582fe74571669d18e4e7b91d389d6282f481d19e2c62a1cd4dceb0acef"
 
 const rows = (
   state: "absent" | "indexable" | "noindex" = "indexable"

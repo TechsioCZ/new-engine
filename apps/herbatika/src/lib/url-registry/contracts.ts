@@ -31,6 +31,8 @@ import type {
   ActiveEquivalenceLookup,
   EntityIdentityLookup,
   SourceReadResult,
+  StaticRouteResolution,
+  StaticRouteResolveInput,
   UrlRegistryBatchResolution,
   UrlRegistryPage,
   UrlRegistryPageRequest,
@@ -87,6 +89,9 @@ export interface UrlRegistry {
   resolveMany(
     input: UrlRegistryResolveManyInput
   ): Promise<SourceReadResult<readonly UrlRegistryBatchResolution[]>>
+  resolveStaticPath(
+    input: StaticRouteResolveInput
+  ): Promise<SourceReadResult<StaticRouteResolution>>
   findActiveEntityRoute(
     input: EntityIdentityLookup
   ): Promise<SourceReadResult<ActiveEntityRouteTarget>>

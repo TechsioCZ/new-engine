@@ -14,12 +14,13 @@ const ROUTING_ENVIRONMENT = {
   MARKET_ACCEPTED_HOSTS_RO:
     "herbatica.ro,www.herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz",
   MARKET_ACCEPTED_HOSTS_SK:
-    "herbatica.sk,www.herbatica.sk,test-engine-herbatika-zane.web-revolution.cz",
+    "herbatica.sk,www.herbatica.sk,test-engine-herbatika-sk-zane.web-revolution.cz,test-engine-herbatika-zane.web-revolution.cz",
 } as const
 
 const HOST_MATRIX = [
   ["herbatica.sk", "sk", "sk", "sk-SK"],
   ["www.herbatica.sk", "sk", "sk", "sk-SK"],
+  ["test-engine-herbatika-sk-zane.web-revolution.cz", "sk", "sk", "sk-SK"],
   ["test-engine-herbatika-zane.web-revolution.cz", "sk", "sk", "sk-SK"],
   ["herbatica.cz", "cz", "cz", "cs-CZ"],
   ["www.herbatica.cz", "cz", "cz", "cs-CZ"],

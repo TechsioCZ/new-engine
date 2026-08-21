@@ -12,7 +12,8 @@ const ROUTING_ENVIRONMENT = {
   MARKET_ACCEPTED_HOSTS_RO:
     "herbatica.ro,www.herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz",
   MARKET_ACCEPTED_HOSTS_SK:
-    "herbatica.sk,www.herbatica.sk,test-engine-herbatika-zane.web-revolution.cz",
+    "herbatica.sk,www.herbatica.sk,test-engine-herbatika-sk-zane.web-revolution.cz,test-engine-herbatika-zane.web-revolution.cz",
+  URL_ARCHITECTURE_ENABLED: "1",
 } as const
 
 const originalRoutingEnvironment = Object.fromEntries(
@@ -22,6 +23,11 @@ const originalRoutingEnvironment = Object.fromEntries(
 const HOST_MATRIX = [
   ["herbatica.sk", "sk", "https://herbatica.sk"],
   ["www.herbatica.sk", "sk", "https://herbatica.sk"],
+  [
+    "test-engine-herbatika-sk-zane.web-revolution.cz",
+    "sk",
+    "https://herbatica.sk",
+  ],
   [
     "test-engine-herbatika-zane.web-revolution.cz",
     "sk",
@@ -93,6 +99,38 @@ describe("public proxy adapter", () => {
     expect(response.headers.get("x-middleware-request-x-sf-public-path")).toBe(
       "/termekek/zold-tea"
     )
+  })
+
+  it.each(
+    HOST_MATRIX
+  )("leaves public routing disabled for accepted host %s when the production flag is 0", (host) => {
+    process.env.URL_ARCHITECTURE_ENABLED = "0"
+
+    const response = proxy(request("/", host))
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get("x-middleware-next")).toBe("1")
+    expect(response.headers.has("x-middleware-rewrite")).toBe(false)
+  })
+
+  it.each(
+    HOST_MATRIX
+  )("rewrites accepted host %s when the production flag is 1", (host, market) => {
+    process.env.URL_ARCHITECTURE_ENABLED = "1"
+
+    const response = proxy(request("/", host))
+
+    expect(response.status).toBe(200)
+    expect(response.headers.has("x-middleware-rewrite")).toBe(true)
+    expect(response.headers.get("x-middleware-request-x-sf-market")).toBe(
+      market
+    )
+  })
+
+  it("still rejects an unknown Host when production routing is enabled", () => {
+    process.env.URL_ARCHITECTURE_ENABLED = "1"
+
+    expect(proxy(request("/", "unknown.example")).status).toBe(421)
   })
 
   it("scrubs spoofed storefront context from a product rewrite", () => {
@@ -238,13 +276,15 @@ describe("public proxy adapter", () => {
     "/p/legacy",
     "/c",
     "/c/legacy",
-  ])("returns a real 404 for a removed legacy route: %s", (pathname) => {
+  ])("delegates an unknown legacy route to URL Registry: %s", (pathname) => {
     const response = proxy(request(pathname))
 
-    expect(response.status).toBe(404)
-    expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow")
-    expect(response.headers.get("cache-control")).toBe(
-      "private, no-store, max-age=0"
+    expect(response.status).toBe(200)
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      `https://herbatica.sk/~sf/sk/url-registry${pathname}`
+    )
+    expect(response.headers.get("x-middleware-request-x-sf-route-key")).toBe(
+      "url-registry.resolve"
     )
   })
 
@@ -255,11 +295,19 @@ describe("public proxy adapter", () => {
     expect(proxy(request("/favicon.ico", "unknown.example")).status).toBe(421)
   })
 
-  it("returns 404 for the HU and RO legacy about path", () => {
-    for (const host of ["herbatica.hu", "herbatica.ro"]) {
-      const response = proxy(request("/o-nas", host))
-      expect(response.status).toBe(404)
-      expect(response.headers.has("location")).toBe(false)
-    }
+  it.each([
+    ["herbatica.hu", "hu"],
+    ["herbatica.ro", "ro"],
+  ])("delegates the legacy about path on %s to URL Registry", (host, market) => {
+    const response = proxy(request("/o-nas", host))
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get("x-middleware-rewrite")).toBe(
+      `https://${host}/~sf/${market}/url-registry/o-nas`
+    )
+    expect(response.headers.get("x-middleware-request-x-sf-route-key")).toBe(
+      "url-registry.resolve"
+    )
+    expect(response.headers.has("location")).toBe(false)
   })
 })

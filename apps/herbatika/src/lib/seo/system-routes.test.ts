@@ -83,6 +83,9 @@ const checkUrlRegistryHealth = vi.fn().mockResolvedValue(true)
 const getConfiguredMarketRuntime = vi.fn(() => runtime)
 const countEntities = vi.fn().mockResolvedValue({ kind: "found", value: 0 })
 const listEntities = vi.fn().mockResolvedValue({ kind: "found", value: [] })
+const readEntitySourceVersions = vi
+  .fn()
+  .mockResolvedValue({ kind: "found", value: [] })
 const validateEntitySources = vi
   .fn()
   .mockResolvedValue({ kind: "found", value: [] })
@@ -102,6 +105,7 @@ vi.mock("@/lib/seo/system-runtime.server", () => ({
   systemSitemapDependencies: {
     countEntities,
     listEntities,
+    readEntitySourceVersions,
     listStatic: vi.fn().mockResolvedValue({ kind: "found", value: [] }),
     validateHomepageSource: vi
       .fn()
@@ -126,6 +130,8 @@ describe("system Route Handlers", () => {
     countEntities.mockResolvedValue({ kind: "found", value: 0 })
     listEntities.mockReset()
     listEntities.mockResolvedValue({ kind: "found", value: [] })
+    readEntitySourceVersions.mockReset()
+    readEntitySourceVersions.mockResolvedValue({ kind: "found", value: [] })
     validateEntitySources.mockReset()
     validateEntitySources.mockResolvedValue({ kind: "found", value: [] })
   })
@@ -154,7 +160,7 @@ describe("system Route Handlers", () => {
     expect(await indexResponse.text()).toContain(
       "https://herbatica.cz/sitemaps/core-1.xml"
     )
-    expect(countEntities).toHaveBeenCalledTimes(6)
+    expect(countEntities).toHaveBeenCalledTimes(7)
     expect(listEntities).not.toHaveBeenCalled()
     expect(validateEntitySources).not.toHaveBeenCalled()
 
@@ -186,7 +192,7 @@ describe("system Route Handlers", () => {
     expect(response.status).toBe(200)
     expect(xml).toContain("https://herbatica.cz/sitemaps/product-200.xml")
     expect(xml).not.toContain("https://herbatica.cz/sitemaps/product-201.xml")
-    expect(countEntities).toHaveBeenCalledTimes(6)
+    expect(countEntities).toHaveBeenCalledTimes(7)
     expect(listEntities).not.toHaveBeenCalled()
     expect(validateEntitySources).not.toHaveBeenCalled()
   })

@@ -79,7 +79,11 @@ export const proxy = (request: NextRequest) => {
   })
   const action =
     m00Action.kind === "next"
-      ? resolvePublicProxyAction({ ...input, enabled: true })
+      ? resolvePublicProxyAction({
+          ...input,
+          enabled: process.env.URL_ARCHITECTURE_ENABLED === "1",
+          resolveUnknownStaticPaths: true,
+        })
       : m00Action
 
   if (action.kind === "next") {

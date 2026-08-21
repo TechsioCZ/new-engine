@@ -6,6 +6,7 @@ import {
   resolveMarketRuntimeByHost,
 } from "@/lib/market/market-runtime"
 import { getConfiguredMarketRuntime } from "@/lib/market/market-runtime.server"
+import { validateCampaignPublicationCandidates } from "@/lib/storefront/campaign-publication-source.server"
 import {
   fetchCachedLatestCmsBlogPosts,
   fetchCmsHeroBanners,
@@ -29,6 +30,7 @@ import { assertReviewedStaticRouteSource } from "@/lib/url/segment-registry-publ
 import { loadStaticRoutePublicationDecision } from "@/lib/url/segment-registry-publication.server"
 import { STATIC_ROOT_PAGE_KEYS } from "@/lib/url/segments"
 import type { Market, StaticRootPageKey } from "@/lib/url/types"
+import { readCurrentEntitySourceVersions } from "@/lib/url-registry/current-entity-source-versions"
 import { getUrlRegistryRuntime } from "@/lib/url-registry/runtime/instance.server"
 import {
   countPublicIndexableEntityProjections,
@@ -38,6 +40,7 @@ import {
 import type { ProductFeedDependencies } from "./product-feed"
 import type {
   SitemapDataDependencies,
+  SitemapEntitySourceCandidate,
   SitemapSourceValidation,
   SitemapStaticSourceCandidate,
 } from "./sitemap-contract"
@@ -53,6 +56,17 @@ const STATIC_ROOT_PAGE_KEY_SET = new Set<string>(STATIC_ROOT_PAGE_KEYS)
 
 const isStaticRootPageKey = (value: string): value is StaticRootPageKey =>
   STATIC_ROOT_PAGE_KEY_SET.has(value)
+
+const resolveStaticRootPageKey = (value: string): StaticRootPageKey | null => {
+  if (isStaticRootPageKey(value)) {
+    return value
+  }
+  if (!value.startsWith("root:")) {
+    return null
+  }
+  const pageKey = value.slice("root:".length)
+  return isStaticRootPageKey(pageKey) ? pageKey : null
+}
 
 const staticSourceUpdatedAt = (value: unknown): string | undefined =>
   value &&
@@ -96,24 +110,25 @@ const readReviewedStaticSitemapSource = async (
   locale: Parameters<typeof getAboutPageData>[0],
   source: SitemapStaticSourceCandidate
 ): Promise<SitemapSourceValidation | null> => {
-  if (!isStaticRootPageKey(source.staticRouteKey)) {
+  const pageKey = resolveStaticRootPageKey(source.staticRouteKey)
+  if (!pageKey) {
     return null
   }
   const publication = await loadStaticRoutePublicationDecision({
     market,
-    routeKey: source.staticRouteKey,
+    routeKey: pageKey,
   })
   if (publication.kind !== "approved") {
     return null
   }
 
   let value: unknown
-  if (source.staticRouteKey === "about") {
+  if (pageKey === "about") {
     value = getAboutPageData(locale)
-  } else if (source.staticRouteKey === "faq") {
+  } else if (pageKey === "faq") {
     value = getFaqPageData(locale)
   } else {
-    const result = await readCmsStaticPage(source.staticRouteKey, locale)
+    const result = await readCmsStaticPage(pageKey, locale)
     if (result.kind !== "found" || isRoDemoStaticPage(result.value)) {
       return null
     }
@@ -121,14 +136,14 @@ const readReviewedStaticSitemapSource = async (
   }
   if (
     !value ||
-    ((source.staticRouteKey === "about" || source.staticRouteKey === "faq") &&
-      !isRenderableCodeOwnedStaticSource(source.staticRouteKey, value))
+    ((pageKey === "about" || pageKey === "faq") &&
+      !isRenderableCodeOwnedStaticSource(pageKey, value))
   ) {
     return null
   }
   await assertReviewedStaticRouteSource({
     market,
-    pageKey: source.staticRouteKey,
+    pageKey,
     publication,
     renderedSource: value,
   })
@@ -167,6 +182,51 @@ const validateReviewedStaticSitemapSources: SitemapDataDependencies["validateSta
     }
   }
 
+const readSitemapEntitySourceVersions: SitemapDataDependencies["readEntitySourceVersions"] =
+  async (projections) => {
+    if (projections.length === 0) {
+      return { kind: "found", value: [] }
+    }
+    try {
+      const runtime = await getUrlRegistryRuntime()
+      return runtime.enabled
+        ? readCurrentEntitySourceVersions(projections, runtime.registry)
+        : { kind: "unavailable" }
+    } catch {
+      return { kind: "unavailable" }
+    }
+  }
+
+type ProductSitemapSourceCandidate = Omit<
+  SitemapEntitySourceCandidate,
+  "sourceVersion"
+>
+
+const validateMedusaProductSitemapSources = (input: {
+  market: Market
+  sources: readonly ProductSitemapSourceCandidate[]
+}) => {
+  const { binding, sdk } = getMarketStorefrontSdk(input.market)
+  return validateProductSitemapSources(
+    { binding, sources: input.sources },
+    {
+      readProducts: ({ market: sourceMarket, sources: batch }) =>
+        sdk.client.fetch("/store/url-registry/products/sources", {
+          body: {
+            candidates: batch.map((source) => ({
+              entityId: source.sourceId,
+              publicSlug: source.publicSlug,
+            })),
+            market: sourceMarket,
+            schemaVersion: 1,
+          },
+          method: "POST",
+          signal: AbortSignal.timeout(SITEMAP_SOURCE_TIMEOUT_MS),
+        }),
+    }
+  )
+}
+
 export const resolveSystemHostFromRequest = (
   request: Request
 ): SystemHostResolution =>
@@ -196,6 +256,7 @@ export const systemSitemapDependencies: SitemapDataDependencies = {
   },
   listEntities: listPublicIndexableEntityProjectionPage,
   listMarkets: () => getConfiguredMarketRuntime().allowedMarkets,
+  readEntitySourceVersions: readSitemapEntitySourceVersions,
   listStatic: async (market) => {
     const runtime = await getUrlRegistryRuntime()
     return runtime.enabled
@@ -272,25 +333,13 @@ export const systemSitemapDependencies: SitemapDataDependencies = {
   },
   validateEntitySources: ({ kind, market, sources }) => {
     const { binding, sdk } = getMarketStorefrontSdk(market)
-    if (kind === "product") {
-      return validateProductSitemapSources(
-        { binding, sources },
-        {
-          readProducts: ({ market: sourceMarket, sources: batch }) =>
-            sdk.client.fetch("/store/url-registry/products/sources", {
-              body: {
-                candidates: batch.map((source) => ({
-                  entityId: source.sourceId,
-                  publicSlug: source.publicSlug,
-                })),
-                market: sourceMarket,
-                schemaVersion: 1,
-              },
-              method: "POST",
-              signal: AbortSignal.timeout(SITEMAP_SOURCE_TIMEOUT_MS),
-            }),
-        }
+    if (kind === "campaign") {
+      return Promise.resolve(
+        validateCampaignPublicationCandidates({ market, sources })
       )
+    }
+    if (kind === "product") {
+      return validateMedusaProductSitemapSources({ market, sources })
     }
     if (kind === "article" || kind === "page") {
       return validateCmsEntitySitemapSources(
@@ -311,6 +360,7 @@ export const systemSitemapDependencies: SitemapDataDependencies = {
               candidates: candidates.map((source) => ({
                 entityId: source.sourceId,
                 publicSlug: source.publicSlug,
+                sourceVersion: source.sourceVersion,
               })),
               entityKind: catalogKind,
               market,
@@ -341,8 +391,7 @@ export const systemProductFeedDependencies: ProductFeedDependencies = {
       signal: AbortSignal.timeout(SITEMAP_SOURCE_TIMEOUT_MS),
     })
   },
-  validateProducts: (input) =>
-    systemSitemapDependencies.validateEntitySources(input),
+  validateProducts: validateMedusaProductSitemapSources,
 }
 
 export const checkUrlRegistryHealth = async (
