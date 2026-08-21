@@ -35,6 +35,7 @@ describe("register route", () => {
   })
 
   it("stores the market resolved from the public storefront host", async () => {
+    const customer = { email: "customer@example.test", id: "cus_ro" }
     const medusaFetch = vi
       .fn()
       .mockResolvedValueOnce(new Response(null, { status: 201 }))
@@ -45,6 +46,7 @@ describe("register route", () => {
       .mockResolvedValueOnce(
         Response.json({ token: "session-token" }, { status: 200 })
       )
+      .mockResolvedValueOnce(Response.json({ customer }, { status: 200 }))
     vi.stubGlobal("fetch", medusaFetch)
 
     const response = await POST(
@@ -68,8 +70,11 @@ describe("register route", () => {
     expect(response.headers.get("set-cookie")).toContain(
       "herbatika_auth_session_token=session-token"
     )
-    await expect(response.json()).resolves.toEqual({ token: "session-token" })
-    expect(medusaFetch).toHaveBeenCalledTimes(4)
+    const responsePayload = await response.json()
+    expect(responsePayload).toEqual({ authenticated: true, user: customer })
+    expect(responsePayload).not.toHaveProperty("token")
+    expect(JSON.stringify(responsePayload)).not.toContain("session-token")
+    expect(medusaFetch).toHaveBeenCalledTimes(5)
 
     const [url, init] = medusaFetch.mock.calls[2] as [string, RequestInit]
     expect(new URL(url).pathname).toBe("/store/customers")
@@ -92,6 +97,7 @@ describe("register route", () => {
   })
 
   it("forces the Romanian wholesale company currency to RON", async () => {
+    const customer = { email: "wholesale@example.test", id: "cus_ro" }
     const medusaFetch = vi
       .fn()
       .mockResolvedValueOnce(new Response(null, { status: 201 }))
@@ -103,6 +109,7 @@ describe("register route", () => {
         Response.json({ token: "session-token" }, { status: 200 })
       )
       .mockResolvedValueOnce(new Response(null, { status: 201 }))
+      .mockResolvedValueOnce(Response.json({ customer }, { status: 200 }))
     vi.stubGlobal("fetch", medusaFetch)
 
     const response = await POST(
@@ -131,7 +138,7 @@ describe("register route", () => {
     )
 
     expect(response.status).toBe(200)
-    expect(medusaFetch).toHaveBeenCalledTimes(5)
+    expect(medusaFetch).toHaveBeenCalledTimes(6)
 
     const [url, init] = medusaFetch.mock.calls[4] as [string, RequestInit]
     expect(new URL(url).pathname).toBe("/store/companies")

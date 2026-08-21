@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+import type { NextResponse } from "next/server"
 import {
   getAuthPasswordPolicyViolation,
   isRegistrationCompanyIdentifierValid,
@@ -11,15 +11,15 @@ import {
 } from "@/lib/auth/registration-policy"
 import type { HerbatikaCountryCode } from "@/lib/storefront/market-context"
 import {
-  applyStorefrontAuthResponsePolicy,
+  authenticatedCustomerResponse,
   badRequest,
+  fetchAuthenticatedCustomer,
   marketAuthorityError,
   requireStorefrontAuthContext,
   type StorefrontAuthContext,
   type StorefrontAuthMessages,
   StorefrontMarketAuthorityError,
   serverError,
-  setSessionTokenCookie,
 } from "../_lib"
 import { asRecordOrUndefined, asStringOrUndefined } from "./parse-utils"
 import {
@@ -42,10 +42,6 @@ type RegisterBody = {
   wholesale?: unknown
 }
 
-type RegisterResponse = {
-  token: string
-}
-
 type ParseRegisterBodyResult =
   | {
       error: NextResponse
@@ -55,18 +51,6 @@ type ParseRegisterBodyResult =
       error: null
       value: ParsedRegisterPayload
     }
-
-const createRegisterResponse = (token: string) => {
-  const response = NextResponse.json<RegisterResponse>(
-    {
-      token,
-    },
-    { status: 200 }
-  )
-
-  setSessionTokenCookie(response, token)
-  return applyStorefrontAuthResponsePolicy(response)
-}
 
 const parseRegisterBody = async (
   request: Request,
@@ -237,7 +221,12 @@ export async function POST(request: Request) {
       return companyError
     }
 
-    return createRegisterResponse(sessionToken)
+    const customer = await fetchAuthenticatedCustomer(binding, sessionToken)
+    if (!customer) {
+      return serverError(messages.sessionRestoreFailed)
+    }
+
+    return authenticatedCustomerResponse(customer, sessionToken)
   } catch (error) {
     if (error instanceof SyntaxError) {
       return badRequest(messages.invalidJson)

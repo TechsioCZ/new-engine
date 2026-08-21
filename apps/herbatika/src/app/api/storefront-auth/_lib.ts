@@ -1,3 +1,4 @@
+import type { HttpTypes } from "@medusajs/types"
 import { NextResponse } from "next/server"
 
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
@@ -169,6 +170,37 @@ export const getPublishableHeaders = (
   "x-publishable-api-key": binding.publishableApiKey,
 })
 
+export const fetchAuthenticatedCustomer = async (
+  binding: MarketRuntimeBinding,
+  token: string
+): Promise<HttpTypes.StoreCustomer | null> => {
+  const response = await fetch(buildMedusaUrl("/store/customers/me"), {
+    method: "GET",
+    headers: {
+      authorization: `Bearer ${token}`,
+      ...getPublishableHeaders(binding),
+    },
+    cache: "no-store",
+  })
+
+  if (!response.ok) {
+    await discardResponseBody(response)
+    return null
+  }
+
+  const payload = await parseResponseJson(response)
+  const customer = payload?.customer
+  if (
+    !customer ||
+    typeof customer !== "object" ||
+    typeof (customer as { id?: unknown }).id !== "string"
+  ) {
+    return null
+  }
+
+  return customer as HttpTypes.StoreCustomer
+}
+
 export const setSessionTokenCookie = (
   response: NextResponse,
   token: string
@@ -183,6 +215,21 @@ export const setSessionTokenCookie = (
     secure: IS_PRODUCTION,
     maxAge: AUTH_SESSION_COOKIE_MAX_AGE_SECONDS,
   })
+}
+
+export const authenticatedCustomerResponse = (
+  customer: HttpTypes.StoreCustomer,
+  token: string
+) => {
+  const response = NextResponse.json(
+    {
+      authenticated: true as const,
+      user: customer,
+    },
+    { status: 200 }
+  )
+  setSessionTokenCookie(response, token)
+  return applyStorefrontAuthResponsePolicy(response)
 }
 
 export const clearSessionTokenCookie = (response: NextResponse) => {

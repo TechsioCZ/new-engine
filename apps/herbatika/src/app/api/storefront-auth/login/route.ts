@@ -1,25 +1,20 @@
-import { NextResponse } from "next/server"
 import {
-  applyStorefrontAuthResponsePolicy,
+  authenticatedCustomerResponse,
   badRequest,
   buildErrorResponse,
   buildMedusaUrl,
+  fetchAuthenticatedCustomer,
   marketAuthorityError,
   parseResponseJson,
   requireStorefrontAuthContext,
   type StorefrontAuthContext,
   StorefrontMarketAuthorityError,
   serverError,
-  setSessionTokenCookie,
 } from "../_lib"
 
 type LoginBody = {
   email?: string
   password?: string
-}
-
-type LoginResponse = {
-  token: string
 }
 
 export async function POST(request: Request) {
@@ -78,15 +73,12 @@ export async function POST(request: Request) {
       return serverError(messages.customerLoginTokenMissing)
     }
 
-    const response = NextResponse.json<LoginResponse>(
-      {
-        token,
-      },
-      { status: 200 }
-    )
+    const customer = await fetchAuthenticatedCustomer(context.binding, token)
+    if (!customer) {
+      return serverError(messages.sessionRestoreFailed)
+    }
 
-    setSessionTokenCookie(response, token)
-    return applyStorefrontAuthResponsePolicy(response)
+    return authenticatedCustomerResponse(customer, token)
   } catch {
     return serverError(messages.unableToReachAuthenticationService)
   }

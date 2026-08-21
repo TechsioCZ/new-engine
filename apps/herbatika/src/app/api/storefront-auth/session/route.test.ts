@@ -50,11 +50,12 @@ describe("session route Romanian localization", () => {
     expect(response.status).toBe(200)
     expect(response.headers.get("cache-control")).toBe("private, no-store")
     expect(response.headers.get("vary")).toBe("Cookie")
-    await expect(response.json()).resolves.toEqual({
+    const payload = await response.json()
+    expect(payload).toEqual({
       authenticated: false,
       message: "Este necesară autentificarea.",
-      token: null,
     })
+    expect(payload).not.toHaveProperty("token")
   })
 
   it("keeps the Slovak session response localized", async () => {
@@ -64,11 +65,12 @@ describe("session route Romanian localization", () => {
       })
     )
 
-    await expect(response.json()).resolves.toEqual({
+    const payload = await response.json()
+    expect(payload).toEqual({
       authenticated: false,
       message: "Vyžaduje sa prihlásenie.",
-      token: null,
     })
+    expect(payload).not.toHaveProperty("token")
   })
 
   it("returns Romanian copy and clears the cookie for an invalid token", async () => {
@@ -112,11 +114,12 @@ describe("session route Romanian localization", () => {
     expect(response.status).toBe(200)
     expect(response.headers.get("cache-control")).toBe("private, no-store")
     expect(response.headers.get("vary")).toBe("Cookie")
-    await expect(response.json()).resolves.toEqual({
+    const payload = await response.json()
+    expect(payload).toEqual({
       authenticated: false,
       message: "Este necesară autentificarea.",
-      token: null,
     })
+    expect(payload).not.toHaveProperty("token")
     expect(response.headers.get("set-cookie")).toContain("Max-Age=0")
     expect(medusaFetch).toHaveBeenCalledTimes(2)
     expect(refreshCancel).toHaveBeenCalledOnce()
@@ -124,13 +127,15 @@ describe("session route Romanian localization", () => {
   })
 
   it("returns a private response and preserves a refreshed session cookie", async () => {
+    const customer = { email: "customer@example.test", id: "cus_ro" }
     vi.stubGlobal(
       "fetch",
       vi
         .fn()
-        .mockResolvedValue(
+        .mockResolvedValueOnce(
           Response.json({ token: "refreshed-token" }, { status: 200 })
         )
+        .mockResolvedValueOnce(Response.json({ customer }, { status: 200 }))
     )
 
     const response = await GET(
@@ -148,13 +153,13 @@ describe("session route Romanian localization", () => {
     expect(response.headers.get("set-cookie")).toContain(
       "herbatika_auth_session_token=refreshed-token"
     )
-    await expect(response.json()).resolves.toEqual({
-      authenticated: true,
-      token: "refreshed-token",
-    })
+    const payload = await response.json()
+    expect(payload).toEqual({ authenticated: true, user: customer })
+    expect(payload).not.toHaveProperty("token")
+    expect(JSON.stringify(payload)).not.toContain("refreshed-token")
   })
 
-  it("cancels unused successful customer bodies during token fallback", async () => {
+  it("consumes the successful customer body during token fallback", async () => {
     const refreshCancel = vi.fn()
     const customerCancel = vi.fn()
     vi.stubGlobal(
@@ -177,7 +182,10 @@ describe("session route Romanian localization", () => {
             new ReadableStream({
               cancel: customerCancel,
               start(controller) {
-                controller.enqueue(new TextEncoder().encode('{"customer":{}}'))
+                controller.enqueue(
+                  new TextEncoder().encode('{"customer":{"id":"cus_ro"}}')
+                )
+                controller.close()
               },
             }),
             { status: 200 }
@@ -200,12 +208,15 @@ describe("session route Romanian localization", () => {
     expect(response.headers.get("set-cookie")).toContain(
       "herbatika_auth_session_token=valid-token"
     )
-    await expect(response.json()).resolves.toEqual({
+    const payload = await response.json()
+    expect(payload).toEqual({
       authenticated: true,
-      token: "valid-token",
+      user: { id: "cus_ro" },
     })
+    expect(payload).not.toHaveProperty("token")
+    expect(JSON.stringify(payload)).not.toContain("valid-token")
     expect(refreshCancel).toHaveBeenCalledOnce()
-    expect(customerCancel).toHaveBeenCalledOnce()
+    expect(customerCancel).not.toHaveBeenCalled()
   })
 
   it("returns a Romanian session error without internal exception details", async () => {

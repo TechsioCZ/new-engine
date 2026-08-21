@@ -26,13 +26,18 @@ describe("login route Romanian localization", () => {
   })
 
   it("returns a private cookie-varying success response without losing the session cookie", async () => {
+    const customer = {
+      email: "customer@example.test",
+      id: "cus_ro",
+    }
     vi.stubGlobal(
       "fetch",
       vi
         .fn()
-        .mockResolvedValue(
+        .mockResolvedValueOnce(
           Response.json({ token: "session-token" }, { status: 200 })
         )
+        .mockResolvedValueOnce(Response.json({ customer }, { status: 200 }))
     )
 
     const response = await POST(
@@ -55,7 +60,10 @@ describe("login route Romanian localization", () => {
     expect(response.headers.get("set-cookie")).toContain(
       "herbatika_auth_session_token=session-token"
     )
-    await expect(response.json()).resolves.toEqual({ token: "session-token" })
+    const payload = await response.json()
+    expect(payload).toEqual({ authenticated: true, user: customer })
+    expect(payload).not.toHaveProperty("token")
+    expect(JSON.stringify(payload)).not.toContain("session-token")
   })
 
   it("localizes invalid credentials and does not surface upstream English", async () => {
