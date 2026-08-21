@@ -635,9 +635,478 @@ const ROMANIAN_ABOUT_PAGE = {
   },
 } as const satisfies AboutPageData
 
+const CZECH_ABOUT_PAGE = {
+  hero: {
+    title: "O našem týmu",
+    lead: [
+      "Vítejte v ",
+      unlinked("Herbatica"),
+      ", rodinné značce, která vznikla z přání nabízet lidem přírodou inspirované možnosti péče o zdraví, krásu a celkovou pohodu. Od roku 2015 vybíráme produkty, v nichž se tradiční přístupy potkávají se současnými znalostmi.",
+    ],
+  },
+  sections: [
+    {
+      title: "Začátky značky Herbatica",
+      paragraphs: [
+        "Na začátku byla Herbatica snem a vizí svých zakladatelů. Vznikla jako rodinný projekt Gajdošových, kteří se už od roku 1991 věnovali obchodu v kamenné prodejně v Piešťanech.",
+        "Spoluzakladatel Juraj se dlouhodobě zajímal o přírodní kosmetiku a doplňkové přístupy k péči o zdraví. Chtěl vytvořit místo, kde lidé snadno objeví účinné a méně známé produkty a dostanou k nim srozumitelné informace. Z této myšlenky postupně vyrostl internetový obchod.",
+        [
+          "Jurajovi byly vždy blízké oblasti přírodní ",
+          unlinked("kosmetiky"),
+          ", bylinářství a tradičních postupů založených na rostlinách.",
+        ],
+        "S podporou bratra Michala a maminky Eleny vznikl v roce 2015 e-shop Herbatica.",
+        "Hlavní motivací byla chuť přinést změnu v tom, jak lidé přemýšlejí o svém těle, mysli a celkové pohodě. Věříme, že informovaná rozhodnutí a odpovědná péče mohou být důležitou součástí každodenního životního stylu.",
+        [
+          "Od svého založení se Herbatica rozvíjí jako specializovaný obchod s pečlivě vybranými produkty na přírodní bázi pro různé potřeby: ",
+          unlinked("péči o pokožku"),
+          ", podporu ",
+          unlinked("trávení"),
+          ", pohodlí ",
+          unlinked("kloubů"),
+          ", ",
+          unlinked("energii a vitalitu"),
+          " nebo podporu ",
+          unlinked("imunity"),
+          ".",
+        ],
+      ],
+      image: {
+        alt: "První regály v prodejně Herbatica",
+        caption:
+          "První regály v prodejně; na fotografii zakladatel Herbatica Juraj Gajdoš. Zdroj: vlastní archiv.",
+        src: aboutStoreImage,
+      },
+    },
+    {
+      title: "Důraz na kvalitu a spolupráce s odborníky",
+      paragraphs: [
+        [
+          "Kvalita je pro nás zásadní. Vysoké požadavky klademe na produkty i na standardy, podle nichž pracujeme. Herbatica spolupracuje se sítí ",
+          unlinked(
+            "výrobců, konzultantů, výživových poradců, fyzioterapeutů a dalších odborníků"
+          ),
+          ". Jejich zkušenosti nám pomáhají posuzovat složení, kombinace ",
+          unlinked("účinných látek"),
+          " a informace o správném používání produktů.",
+        ],
+        "Propojujeme tradice, jako je ájurvéda nebo tradiční čínská medicína, se současnými technologiemi a poznatky. Důraz klademe na odpovědný přístup, čistotu surovin a tam, kde je to možné, také na jejich místní původ.",
+      ],
+    },
+    {
+      title: "Vývoj vlastních produktů",
+      paragraphs: [
+        [
+          "Od roku 2015 jsme ušli dlouhou cestu a výrazně rozšířili své portfolio. Zpočátku jsme se soustředili na dovoz produktů z Ruska, Ukrajiny a Běloruska. V roce 2022 jsme začali vyvíjet a vyrábět produkty ",
+          unlinked("pod značkou Herbatica"),
+          ". Dnes nabízíme sypké směsi, kapsle, kosmetiku, ",
+          unlinked("jedlé oleje"),
+          ", krémy, gely, masti, prášky, ",
+          unlinked("bylinné čaje"),
+          ", kávové nápoje, ",
+          unlinked("tinktury"),
+          " a další výrobky. Při jejich vývoji propojujeme tradiční principy se současným výzkumem a znalostmi.",
+        ],
+      ],
+    },
+    {
+      title: "Náš tým",
+      paragraphs: [
+        "Lidé měli v Herbatica vždy zásadní roli. Za značkou stojí tým nadšených profesionálů, kteří věří v sílu přírody. Každý člen přispívá zkušenostmi a odbornými znalostmi k tomu, abychom mohli nabídnout kvalitní výběr produktů a spolehlivé služby.",
+        "Členy týmu vybíráme pečlivě, vážíme si jich a vytváříme bezpečné prostředí, ve kterém se mohou soustředit na své cíle a naplno využít vlastní potenciál.",
+        "Společně pracujeme na nových produktech, komunikujeme se zákazníky a staráme se o hladký chod e-shopu. Víme, že správný tým je základem dalšího rozvoje i dobré zákaznické zkušenosti.",
+      ],
+      image: {
+        alt: "Tým Herbatica a kamenná prodejna v Piešťanech",
+        caption:
+          "Tým Herbatica v začátcích internetového obchodu od roku 2015. Zdroj: vlastní archiv.",
+        src: aboutTeamImage,
+      },
+    },
+    {
+      title: "Vize do budoucna",
+      paragraphs: [
+        [
+          "Naší vizí je být nejlepší, nikoli největší, v oblasti přírodních produktů pro zdraví a krásu. Nadále chceme prohlubovat zkušenosti se ",
+          unlinked("doplňky stravy"),
+          ", pečlivě vybranými potravinami a ",
+          unlinked("přírodní kosmetikou"),
+          ". Nabídku chceme rozvíjet odpovědně a s ohledem na skutečné potřeby zákazníků.",
+        ],
+        "Budoucnost vidíme také v bližším kontaktu se zákazníky. Chceme vytvářet místa a služby, kde lidé získají jasné informace a pomoc s výběrem i používáním produktů, vždy v mezích odbornosti zapojených specialistů.",
+        [
+          "Věříme, že opravdová krása vyrůstá z rovnováhy těla a mysli. Proto se budeme dál soustředit na produkty podporující celkovou pohodu a ",
+          unlinked("vitalitu"),
+          ". Spolupráce s odborníky z různých oblastí nám pomáhá přinášet komunitě aktuální poznatky a pečlivě posouzená řešení.",
+        ],
+      ],
+      image: {
+        alt: "Produkty značky Herbatica",
+        caption: "Zdroj: vlastní archiv.",
+        src: aboutProductsImage,
+      },
+    },
+  ] satisfies readonly AboutArticleSection[],
+  logoMeaning: {
+    paragraphs: [
+      "Logo Herbatica představuje jeden z nejcennějších zdrojů naší planety: rostliny, které nás živí a provázejí v každodenní péči. Zelené listy uspořádané do kruhu symbolizují bohatství přírody a význam rostlin v našem výběru produktů.",
+    ],
+  } satisfies AboutTextBlock,
+  milestones: [
+    {
+      year: "2015",
+      description: [
+        "Založení Herbatica a ",
+        unlinked("spuštění internetového obchodu pro Slovensko"),
+        ".",
+      ],
+    },
+    {
+      year: "2017",
+      description: [
+        "Rozšíření ",
+        routeLink("prodeje do České republiky", { kind: "home" }),
+        ".",
+      ],
+    },
+    {
+      year: "2018",
+      description:
+        "Otevření samostatné prodejny o rozloze 100 m² v Piešťanech.",
+    },
+    {
+      year: "2018",
+      description: [
+        "Vstup na ",
+        externalLink("maďarský trh", "https://www.herbatica.hu"),
+        ".",
+      ],
+    },
+    {
+      year: "2022",
+      description: [
+        "Zahájení ",
+        externalLink("prodeje v Rumunsku", "https://www.herbatica.ro"),
+        ".",
+      ],
+    },
+    {
+      year: "2024",
+      description: [
+        "Portfolio ",
+        unlinked("vlastní značky Herbatica"),
+        " překročilo 50 produktů.",
+      ],
+    },
+  ] satisfies readonly AboutMilestone[],
+  milestonesTitle: "Důležité milníky naší historie",
+  closingStatement:
+    "Jsme tu pro vás a těší nás, že můžeme společně kráčet cestou k životu bližšímu přírodě.",
+  principles: [
+    {
+      title: "Objevujeme",
+      description:
+        "Svět kolem nás je plný krásy. Nepřestává nás bavit vnímat ho všemi smysly. Nechceme jen čekat a přihlížet; objevujeme nové lidi, nápady a možnosti.",
+    },
+    {
+      title: "Vybíráme",
+      description:
+        "Spolupracujeme s autentickými výrobci, kteří mají jasnou tvář, příběh a blízkou komunitu. Znají své řemeslo a za svou prací si stojí. Zkušenost nás naučila vybírat každou spolupráci pečlivě.",
+    },
+    {
+      title: "Komunikujeme",
+      description:
+        "Sdílíme to, co se učíme o odpovědném životním stylu. Chceme, aby každý pečlivě připravený produkt našel správného člověka, který si vědomě vybírá jen to, co skutečně potřebuje.",
+    },
+  ] satisfies readonly AboutPrinciple[],
+  follow: {
+    paragraphs: [
+      [
+        "Sledujte náš ",
+        routeLink("blog", { kind: "article" }),
+        ", kde zveřejňujeme novinky a praktické rady ze světa doplňků stravy, přírodní péče a vyváženého životního stylu.",
+      ],
+      [
+        "Najdete nás také na ",
+        externalLink("Instagramu", "https://www.instagram.com/herbatica/"),
+        " a ",
+        externalLink("Facebooku", "https://www.facebook.com/vasaherbatica/"),
+        ". Pravidelně posíláme newsletter s novinkami a akcemi. Sledujte nás na sociálních sítích nebo ",
+        unlinked("se přihlaste k odběru newsletteru"),
+        ", aby vám nic neuniklo.",
+      ],
+    ],
+  } satisfies AboutTextBlock,
+  socialLinks: SLOVAK_ABOUT_PAGE.socialLinks,
+  loyalty: {
+    paragraphs: [
+      "Pro zákazníky, kteří se vracejí, připravujeme výhody a speciální nabídky. Chceme zůstat v kontaktu s komunitou, která nakupuje odpovědně a oceňuje pečlivě vybrané produkty.",
+    ],
+  } satisfies AboutTextBlock,
+  reviews: {
+    title: "Hodnocení našich zákazníků",
+    paragraphs: [
+      "Zajímá vás, jak nás vnímají zákazníci, kteří už vyzkoušeli naše produkty nebo služby? Prohlédněte si hodnocení obchodu a zkušenosti sdílené komunitou Herbatica.",
+    ],
+  },
+  contact: {
+    title: "Kontakt",
+    operatorTitle: "Kontakt pro český trh",
+    paragraphs: [
+      "S dotazy k objednávce, výběru produktů nebo spolupráci se obraťte na zákaznickou podporu pro český trh.",
+      [
+        "Aktuální způsoby spojení a provozní dobu najdete na naší ",
+        routeLink("kontaktní stránce", { kind: "static", page: "contact" }),
+        ".",
+      ],
+      "Kontaktní stránka vždy uvádí údaje platné pro trh, na kterém právě nakupujete.",
+      "Na vaše dotazy rádi odpovíme.",
+    ],
+    companyDetails: [
+      "Zákaznická podpora Herbatica pro Českou republiku",
+      "Aktuální kontaktní a provozní údaje jsou uvedeny na kontaktní stránce.",
+    ],
+  },
+} as const satisfies AboutPageData
+
+const HUNGARIAN_ABOUT_PAGE = {
+  hero: {
+    title: "Csapatunkról",
+    lead: [
+      "Üdvözöljük a ",
+      unlinked("Herbatica"),
+      " oldalán! Családi márkánk azért jött létre, hogy természet ihlette megoldásokat kínáljon az egészség, a szépség és a jó közérzet mindennapi támogatásához. 2015 óta olyan termékeket válogatunk, amelyekben a hagyományos szemlélet korszerű ismeretekkel találkozik.",
+    ],
+  },
+  sections: [
+    {
+      title: "A Herbatica márka kezdetei",
+      paragraphs: [
+        "A Herbatica kezdetben az alapítók álma és jövőképe volt. A Gajdoš család közös projektjeként indult; a család már 1991-től kereskedelmi tevékenységet folytatott egy pöstyéni üzletben.",
+        "Juraj társalapító régóta érdeklődött a természetes kozmetikumok és az egészségtudatos, kiegészítő szemléletek iránt. Olyan helyet szeretett volna létrehozni, ahol az emberek hatékony, kevésbé ismert termékeket fedezhetnek fel, és közérthető tájékoztatást kapnak róluk. Ebből az elképzelésből nőtt ki a webáruház.",
+        [
+          "Jurajhoz mindig közel állt a természetes ",
+          unlinked("kozmetikumok"),
+          ", a gyógynövények és a növényi hagyományok világa.",
+        ],
+        "Testvére, Michal és édesanyja, Elena támogatásával 2015-ben megszületett a Herbatica webáruház.",
+        "A fő motiváció a változtatás igénye volt: tudatosabban tekinteni a testre, az elmére és az általános jóllétre. Hiszünk abban, hogy a hiteles információkra épülő döntések és a felelős gondoskodás fontos részei lehetnek a mindennapoknak.",
+        [
+          "A Herbatica megalakulása óta természetes alapú, gondosan válogatott termékek szaküzletévé fejlődött. Kínálatunk többek között a ",
+          unlinked("bőrápolás"),
+          ", az ",
+          unlinked("emésztés"),
+          ", az ",
+          unlinked("ízületek komfortja"),
+          ", az ",
+          unlinked("energia és vitalitás"),
+          ", valamint az ",
+          unlinked("immunrendszer támogatása"),
+          " területére terjed ki.",
+        ],
+      ],
+      image: {
+        alt: "A Herbatica üzlet első polcai",
+        caption:
+          "Az üzlet első polcai; a fényképen Juraj Gajdoš, a Herbatica alapítója. Forrás: saját archívum.",
+        src: aboutStoreImage,
+      },
+    },
+    {
+      title: "Minőség és szakértői együttműködés",
+      paragraphs: [
+        [
+          "Számunkra a minőség az első. Magas követelményeket támasztunk a termékekkel és a munkánkat meghatározó szabványokkal szemben. A Herbatica ",
+          unlinked(
+            "gyártókkal, tanácsadókkal, táplálkozási szakemberekkel, gyógytornászokkal és más szakértőkkel"
+          ),
+          " működik együtt. Tapasztalatuk segít az összetételek, a ",
+          unlinked("hatóanyagok"),
+          " kombinációi és a használati információk gondos értékelésében.",
+        ],
+        "Az ájurvédához és a hagyományos kínai orvosláshoz hasonló tradíciókat korszerű technológiákkal és ismeretekkel kapcsoljuk össze. Fontos számunkra a felelős szemlélet, az alapanyagok tisztasága és lehetőség szerint helyi eredete.",
+      ],
+    },
+    {
+      title: "Saját termékek fejlesztése",
+      paragraphs: [
+        [
+          "2015 óta hosszú utat tettünk meg, és jelentősen bővítettük kínálatunkat. Kezdetben orosz, ukrán és belarusz termékek importjára összpontosítottunk. 2022-ben megkezdtük a ",
+          unlinked("Herbatica márkanév alatt"),
+          " forgalmazott saját termékek fejlesztését és gyártását. Ma ömlesztett keverékeket, kapszulákat, kozmetikumokat, ",
+          unlinked("étkezési olajokat"),
+          ", krémeket, géleket, kenőcsöket, porokat, ",
+          unlinked("gyógyteákat"),
+          ", kávéitalokat, ",
+          unlinked("tinktúrákat"),
+          " és más termékeket kínálunk. Fejlesztésük során a hagyományos elveket korszerű kutatási eredményekkel ötvözzük.",
+        ],
+      ],
+    },
+    {
+      title: "Csapatunk",
+      paragraphs: [
+        "A Herbatica életében mindig meghatározó szerepet játszottak az emberek. A márka mögött lelkes szakemberek csapata áll, akik hisznek a természet erejében. Minden munkatárs tapasztalatával és tudásával járul hozzá a gondos termékválasztékhoz és a megbízható kiszolgáláshoz.",
+        "Körültekintően választjuk ki kollégáinkat, megbecsüljük őket, és olyan biztonságos környezetet teremtünk, ahol céljaikra összpontosíthatnak és kibontakoztathatják egyéni képességeiket.",
+        "Együtt dolgozunk új termékeken, kapcsolatot tartunk vásárlóinkkal, és gondoskodunk a webáruház zökkenőmentes működéséről. Tudjuk, hogy a megfelelő csapat a folyamatos fejlődés és a jó vásárlói élmény alapja.",
+      ],
+      image: {
+        alt: "A Herbatica csapata és a pöstyéni üzlet",
+        caption:
+          "A Herbatica csapata a webáruház 2015-ben kezdődő első éveiben. Forrás: saját archívum.",
+        src: aboutTeamImage,
+      },
+    },
+    {
+      title: "Jövőképünk",
+      paragraphs: [
+        [
+          "Célunk, hogy ne a legnagyobbak, hanem a legjobbak legyünk a természetes egészség- és szépségápolási termékek területén. Tovább mélyítjük tapasztalatainkat az ",
+          unlinked("étrend-kiegészítők"),
+          ", a gondosan válogatott élelmiszerek és a ",
+          unlinked("természetes kozmetikumok"),
+          " világában. Kínálatunkat felelősen, a valós vásárlói igényekhez igazítva szeretnénk bővíteni.",
+        ],
+        "A jövőt a vásárlókkal való szorosabb kapcsolatban is látjuk. Olyan helyeket és szolgáltatásokat szeretnénk teremteni, ahol az érdeklődők világos információt és segítséget kapnak a termékek kiválasztásához és használatához, mindig az érintett szakemberek kompetenciájának keretein belül.",
+        [
+          "Hiszünk abban, hogy a valódi szépség a test és az elme egyensúlyából fakad. Ezért továbbra is az általános jóllétet és a ",
+          unlinked("vitalitást"),
+          " támogató termékekre összpontosítunk. A különböző területek szakértőivel való együttműködés révén korszerű ismereteket és gondosan értékelt megoldásokat kínálunk közösségünknek.",
+        ],
+      ],
+      image: {
+        alt: "Herbatica márkájú termékek",
+        caption: "Forrás: saját archívum.",
+        src: aboutProductsImage,
+      },
+    },
+  ] satisfies readonly AboutArticleSection[],
+  logoMeaning: {
+    paragraphs: [
+      "A Herbatica logója bolygónk egyik legértékesebb erőforrását, a tápláló és mindennapi gondoskodásunkat kísérő növényeket jeleníti meg. A körbe rendezett zöld levelek a természet gazdagságát és a növények kínálatunkban betöltött szerepét jelképezik.",
+    ],
+  } satisfies AboutTextBlock,
+  milestones: [
+    {
+      year: "2015",
+      description: [
+        "A Herbatica megalapítása és ",
+        unlinked("a szlovákiai webáruház elindítása"),
+        ".",
+      ],
+    },
+    {
+      year: "2017",
+      description: [
+        "Az értékesítés ",
+        externalLink("kiterjesztése Csehországra", "https://www.herbatica.cz"),
+        ".",
+      ],
+    },
+    {
+      year: "2018",
+      description: "Egy 100 m²-es önálló üzlet megnyitása Pöstyénben.",
+    },
+    {
+      year: "2018",
+      description: [
+        "Belépés a ",
+        routeLink("magyar piacra", { kind: "home" }),
+        ".",
+      ],
+    },
+    {
+      year: "2022",
+      description: [
+        "Az értékesítés ",
+        externalLink("elindítása Romániában", "https://www.herbatica.ro"),
+        ".",
+      ],
+    },
+    {
+      year: "2024",
+      description: [
+        "A ",
+        unlinked("saját Herbatica márka"),
+        " kínálata meghaladta az 50 terméket.",
+      ],
+    },
+  ] satisfies readonly AboutMilestone[],
+  milestonesTitle: "Történetünk fontos mérföldkövei",
+  closingStatement:
+    "Azért dolgozunk, hogy együtt haladhassunk egy természetközelibb élet felé.",
+  principles: [
+    {
+      title: "Felfedezünk",
+      description:
+        "A körülöttünk lévő világ tele van szépséggel. Soha nem unjuk meg, hogy minden érzékünkkel megtapasztaljuk. Nem akarunk csupán várni és figyelni: új embereket, ötleteket és lehetőségeket fedezünk fel.",
+    },
+    {
+      title: "Válogatunk",
+      description:
+        "Olyan hiteles gyártókkal működünk együtt, akiknek saját arculatuk, történetük és közösségük van. Ismerik a mesterségüket, és vállalják munkájuk eredményét. A tapasztalat megtanított bennünket arra, hogy minden együttműködést körültekintően válasszunk ki.",
+    },
+    {
+      title: "Kommunikálunk",
+      description:
+        "Megosztjuk mindazt, amit a felelős életmódról tanulunk. Azt szeretnénk, hogy minden gondosan előkészített termék ahhoz jusson el, aki tudatosan csak azt választja, amire valóban szüksége van.",
+    },
+  ] satisfies readonly AboutPrinciple[],
+  follow: {
+    paragraphs: [
+      [
+        "Kövesse ",
+        routeLink("blogunkat", { kind: "article" }),
+        ", ahol újdonságokat és gyakorlati tanácsokat osztunk meg az étrend-kiegészítők, a természetes ápolás és a kiegyensúlyozott életmód világából.",
+      ],
+      [
+        "Megtalál minket az ",
+        externalLink("Instagramon", "https://www.instagram.com/herbatica/"),
+        " és a ",
+        externalLink("Facebookon", "https://www.facebook.com/vasaherbatica/"),
+        " is. Rendszeresen küldünk hírlevelet hírekkel és akciókkal. Kövessen minket a közösségi médiában, vagy ",
+        unlinked("iratkozzon fel hírlevelünkre"),
+        ", hogy ne maradjon le semmiről.",
+      ],
+    ],
+  } satisfies AboutTextBlock,
+  socialLinks: SLOVAK_ABOUT_PAGE.socialLinks,
+  loyalty: {
+    paragraphs: [
+      "Visszatérő vásárlóink számára külön előnyöket és ajánlatokat készítünk. Kapcsolatban szeretnénk maradni azzal a közösséggel, amely felelősen vásárol és értékeli a gondosan válogatott termékeket.",
+    ],
+  } satisfies AboutTextBlock,
+  reviews: {
+    title: "Vásárlóink véleménye",
+    paragraphs: [
+      "Kíváncsi arra, hogyan látnak minket azok, akik már kipróbálták termékeinket vagy szolgáltatásainkat? Ismerje meg a Herbatica közössége által megosztott értékeléseket és tapasztalatokat.",
+    ],
+  },
+  contact: {
+    title: "Kapcsolat",
+    operatorTitle: "Kapcsolat a magyar piachoz",
+    paragraphs: [
+      "Rendeléssel, termékválasztással vagy együttműködéssel kapcsolatos kérdésével forduljon a magyar piac ügyfélszolgálatához.",
+      [
+        "Az aktuális elérhetőségeket és ügyfélfogadási időt a ",
+        routeLink("kapcsolati oldalon", { kind: "static", page: "contact" }),
+        " találja.",
+      ],
+      "A kapcsolati oldal mindig az éppen használt piachoz tartozó érvényes adatokat mutatja.",
+      "Szívesen válaszolunk kérdéseire.",
+    ],
+    companyDetails: [
+      "Herbatica ügyfélszolgálat Magyarország számára",
+      "Az aktuális kapcsolati és működési adatok a kapcsolati oldalon találhatók.",
+    ],
+  },
+} as const satisfies AboutPageData
+
 const ABOUT_PAGE_DATA_BY_LOCALE: Partial<
   Record<HerbatikaLocale, AboutPageData>
 > = {
+  "cs-CZ": CZECH_ABOUT_PAGE,
+  "hu-HU": HUNGARIAN_ABOUT_PAGE,
   "ro-RO": ROMANIAN_ABOUT_PAGE,
   "sk-SK": SLOVAK_ABOUT_PAGE,
 }

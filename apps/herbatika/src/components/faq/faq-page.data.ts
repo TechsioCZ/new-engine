@@ -640,7 +640,587 @@ const roFaqItems = [
   },
 ] satisfies FaqItem[]
 
+const csFaqItems = [
+  {
+    id: "stav-objednavky",
+    question: "V jakém stavu je vaše objednávka?",
+    updatedAt: "24.9.2018",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Chcete zjistit, v jakém stavu je vaše objednávka? Ověříte to rychle a snadno:",
+      },
+      {
+        type: "list",
+        ordered: true,
+        items: [
+          "Přihlaste se ke svému zákaznickému účtu.",
+          "Zvolte možnost „Moje objednávky“.",
+          "V přehledné tabulce uvidíte aktuální stav objednávky.",
+        ],
+      },
+      {
+        type: "links",
+        items: [{ label: "Sledovat objednávku v zákaznickém účtu" }],
+      },
+    ],
+  },
+  {
+    id: "vypredany-tovar",
+    question: "Chcete vědět, až bude vyprodané zboží znovu skladem?",
+    updatedAt: "15.8.2019",
+    answer: [
+      {
+        type: "paragraph",
+        text: "U některých produktů se může doplnění zásob zpozdit, zejména pokud přicházejí od vzdálenějších dodavatelů. Proto se často ptáte, kdy budou opět dostupné.",
+      },
+      {
+        type: "paragraph",
+        text: "K tomu slouží upozornění na dostupnost, které vám dá vědět, jakmile se vybraný produkt vrátí do nabídky.",
+      },
+      {
+        type: "paragraph",
+        text: "O naskladnění se tak dozvíte bez pravidelného kontrolování stránky a produkt můžete rovnou objednat.",
+      },
+      {
+        type: "paragraph",
+        text: "Klikněte na „Upozornit, až bude skladem“, zadejte svůj e-mail a po doplnění zásob vám automaticky pošleme zprávu.",
+      },
+      { type: "heading", text: "První krok" },
+      {
+        type: "links",
+        items: [{ label: "Otevřete upozornění na stránce produktu" }],
+      },
+      { type: "heading", text: "Druhý krok" },
+      {
+        type: "links",
+        items: [{ label: "Zadejte e-mail a potvrďte upozornění" }],
+      },
+    ],
+  },
+  {
+    id: "zlavovy-kupon",
+    question: "Nedaří se vám uplatnit slevový kupón?",
+    updatedAt: "15.8.2019",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Někdy se může stát, že slevový kupón nejde použít na první pokus.",
+      },
+      {
+        type: "paragraph",
+        text: "Zkontrolujte, zda jste kód zadali přesně tak, jak jste ho obdrželi, bez uvozovek a bez mezer navíc. Ověřte také podmínky akce a platnost kupónu.",
+      },
+      {
+        type: "paragraph",
+        text: "Pokud potíže přetrvávají, pošlete kód zákaznické podpoře nebo ho uveďte do poznámky k objednávce. Rádi ho prověříme.",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Kontaktovat zákaznickou podporu",
+            target: { kind: "static", page: "contact" },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "obchodna-ponuka",
+    question: "Máte pro nás obchodní nabídku?",
+    updatedAt: "15.8.2019",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Máte obchodní nabídku, návrh na zlepšení nebo zájem o velkoobchodní spolupráci? Pošlete nám stručné představení a kontaktní údaje.",
+      },
+      {
+        type: "paragraph",
+        text: "Aktuální způsob spojení pro český trh najdete na kontaktní stránce.",
+      },
+      {
+        type: "paragraph",
+        text: "Každou smysluplnou nabídku si rádi projdeme a ozveme se vám.",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Kontaktní stránka",
+            target: { kind: "static", page: "contact" },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "byt-v-obraze",
+    question: "Jak mít přehled o novinkách a akcích Herbatica?",
+    updatedAt: "15.8.2019",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Těší nás zájem stálých zákazníků. Novinky, praktické informace a aktuální nabídky sdílíme v newsletteru a na sociálních sítích Herbatica.",
+      },
+      { type: "heading", text: "Klub Herbatica" },
+      {
+        type: "list",
+        items: [
+          "členské výhody a ceny podle právě platné nabídky",
+          "pravidelné novinky a informace z Herbatica prostřednictvím newsletteru",
+          "aktuální hranice dopravy zdarma se v košíku zobrazuje v CZK",
+          "podmínky vrácení zboží najdete vždy v platných pravidlech pro český trh",
+          "slevové kupóny lze použít podle podmínek konkrétní kampaně",
+          "objednávky zůstávají uložené v historii zákaznického účtu",
+        ],
+      },
+      { type: "heading", text: "Jak se stát členem klubu?" },
+      {
+        type: "list",
+        items: [
+          "vytvořte si zákaznický účet",
+          "přihlaste se k newsletteru, pokud chcete dostávat novinky",
+        ],
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Registrace",
+            target: { kind: "account", section: "register" },
+          },
+          { label: "Newsletter" },
+          {
+            href: "https://www.instagram.com/herbatica/",
+            label: "Instagram",
+          },
+          {
+            href: "https://www.facebook.com/vasaherbatica/",
+            label: "Facebook",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "kamenna-predajna",
+    question: "Chcete nakoupit osobně v kamenné prodejně?",
+    updatedAt: "15.8.2019",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Dostupnost kamenných prodejen a výdejních míst se může v jednotlivých zemích a obdobích lišit.",
+      },
+      {
+        type: "paragraph",
+        text: "Aktuální možnosti pro zákazníky v České republice vám potvrdí místní zákaznická podpora.",
+      },
+      {
+        type: "paragraph",
+        text: "Před cestou si na kontaktní stránce ověřte adresu, otevírací dobu a dostupné služby.",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Ověřit aktuální kontakty",
+            target: { kind: "static", page: "contact" },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "affiliate",
+    question: "Chcete spolupracovat s Herbatica jako affiliate partner?",
+    updatedAt: "15.8.2019",
+    answer: [
+      {
+        type: "paragraph",
+        text: "S affiliate partnery spolupracujeme prostřednictvím sítě Dognet. Zaregistrujte se v této síti a oslovte nás jejím prostřednictvím.",
+      },
+      {
+        type: "paragraph",
+        text: "Pokud máte zájem o jiný druh spolupráce, využijte kontaktní stránku pro český trh.",
+      },
+      {
+        type: "links",
+        items: [
+          { href: "https://www.dognet.com/", label: "Dognet" },
+          {
+            label: "Kontakt pro spolupráci",
+            target: { kind: "static", page: "contact" },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "eurobio-lab",
+    question:
+      "Jak číst označení data spotřeby na produktech výrobce EUROBIO LAB?",
+    updatedAt: "8.3.2021",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Vysvětlení označení doby použitelnosti produktů EUROBIO LAB je k dispozici v samostatném informačním dokumentu.",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Vyžádat informační dokument",
+            target: { kind: "static", page: "contact" },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "vratenie-reklamacia",
+    question: "Jak postupovat při vrácení nebo reklamaci zboží?",
+    updatedAt: "12.3.2021",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Na vaší spokojenosti nám záleží. Pokud se s objednávkou nebo produktem něco nepovede, můžete požádat o vrácení zboží nebo podat reklamaci podle pravidel platných pro český trh.",
+      },
+      {
+        type: "paragraph",
+        text: "Postup, potřebné údaje a dostupné formuláře najdete na stránce vrácení a reklamací.",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Vrácení a reklamace",
+            target: { kind: "static", page: "returns" },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "odstupenie-od-zmluvy",
+    question: "Jak odstoupit od kupní smlouvy?",
+    updatedAt: "12.3.2021",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Informace o odstoupení od kupní smlouvy a dostupné dokumenty najdete v obchodních podmínkách platných pro český trh.",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Obchodní podmínky a dokumenty",
+            target: { kind: "static", page: "terms" },
+          },
+        ],
+      },
+    ],
+  },
+] satisfies FaqItem[]
+
+const huFaqItems = [
+  {
+    id: "stav-objednavky",
+    question: "Hol tart a rendelése?",
+    updatedAt: "24.9.2018",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Szeretné megtudni rendelése aktuális állapotát? Gyorsan és egyszerűen ellenőrizheti:",
+      },
+      {
+        type: "list",
+        ordered: true,
+        items: [
+          "Jelentkezzen be vásárlói fiókjába.",
+          "Válassza a „Rendeléseim” lehetőséget.",
+          "Az áttekintő táblázatban látni fogja rendelése aktuális állapotát.",
+        ],
+      },
+      {
+        type: "links",
+        items: [{ label: "Rendelés követése a vásárlói fiókban" }],
+      },
+    ],
+  },
+  {
+    id: "vypredany-tovar",
+    question:
+      "Szeretne értesítést kapni, ha egy elfogyott termék újra kapható?",
+    updatedAt: "15.8.2019",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Egyes termékek utánpótlása késhet, különösen ha távolabbi beszállítóktól érkeznek. Ezért gyakran kérdezik tőlünk, mikor lesznek ismét elérhetők.",
+      },
+      {
+        type: "paragraph",
+        text: "A készletértesítő funkció jelzi, amikor a kiválasztott termék visszakerül kínálatunkba.",
+      },
+      {
+        type: "paragraph",
+        text: "Így az oldal rendszeres ellenőrzése nélkül értesülhet a feltöltésről, és azonnal leadhatja rendelését.",
+      },
+      {
+        type: "paragraph",
+        text: "Kattintson az „Értesítést kérek, ha újra kapható” gombra, adja meg e-mail-címét, és a készlet feltöltésekor automatikus üzenetet küldünk.",
+      },
+      { type: "heading", text: "Első lépés" },
+      {
+        type: "links",
+        items: [{ label: "Nyissa meg a készletértesítőt a termékoldalon" }],
+      },
+      { type: "heading", text: "Második lépés" },
+      {
+        type: "links",
+        items: [
+          { label: "Adja meg e-mail-címét, majd erősítse meg az értesítést" },
+        ],
+      },
+    ],
+  },
+  {
+    id: "zlavovy-kupon",
+    question: "Nem sikerül beváltani a kedvezménykupont?",
+    updatedAt: "15.8.2019",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Előfordulhat, hogy egy kedvezménykupon elsőre nem alkalmazható.",
+      },
+      {
+        type: "paragraph",
+        text: "Ellenőrizze, hogy a kódot pontosan a kapott formában, idézőjelek és felesleges szóközök nélkül írta-e be. Nézze meg a kampány feltételeit és a kupon érvényességét is.",
+      },
+      {
+        type: "paragraph",
+        text: "Ha a probléma továbbra is fennáll, küldje el a kódot az ügyfélszolgálatnak, vagy írja be a rendelés megjegyzésébe. Szívesen ellenőrizzük.",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Kapcsolat az ügyfélszolgálattal",
+            target: { kind: "static", page: "contact" },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "obchodna-ponuka",
+    question: "Üzleti ajánlata van számunkra?",
+    updatedAt: "15.8.2019",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Üzleti ajánlata, fejlesztési javaslata vagy nagykereskedelmi együttműködési elképzelése van? Küldjön rövid bemutatkozást és elérhetőséget.",
+      },
+      {
+        type: "paragraph",
+        text: "A magyar piachoz tartozó aktuális kapcsolatfelvételi módot a kapcsolati oldalon találja.",
+      },
+      {
+        type: "paragraph",
+        text: "Minden érdemi ajánlatot szívesen átnézünk, és visszajelzünk.",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Kapcsolati oldal",
+            target: { kind: "static", page: "contact" },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "byt-v-obraze",
+    question: "Hogyan követheti a Herbatica újdonságait és akcióit?",
+    updatedAt: "15.8.2019",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Örülünk visszatérő vásárlóink érdeklődésének. Az újdonságokat, hasznos információkat és aktuális ajánlatokat hírlevelünkben és a Herbatica közösségi oldalain osztjuk meg.",
+      },
+      { type: "heading", text: "Herbatica klub" },
+      {
+        type: "list",
+        items: [
+          "tagsági előnyök és árak az éppen érvényes ajánlat szerint",
+          "rendszeres hírek és információk a Herbatica világából hírlevélben",
+          "az ingyenes szállítás aktuális értékhatára a kosárban, HUF pénznemben jelenik meg",
+          "a visszaküldési feltételeket mindig a magyar piac aktuális szabályzata tartalmazza",
+          "a kedvezménykuponok az adott kampány feltételei szerint használhatók fel",
+          "a rendelések megmaradnak a vásárlói fiók előzményeiben",
+        ],
+      },
+      { type: "heading", text: "Hogyan lehet a klub tagja?" },
+      {
+        type: "list",
+        items: [
+          "hozzon létre vásárlói fiókot",
+          "iratkozzon fel a hírlevélre, ha értesülni szeretne az újdonságokról",
+        ],
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Regisztráció",
+            target: { kind: "account", section: "register" },
+          },
+          { label: "Hírlevél" },
+          {
+            href: "https://www.instagram.com/herbatica/",
+            label: "Instagram",
+          },
+          {
+            href: "https://www.facebook.com/vasaherbatica/",
+            label: "Facebook",
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "kamenna-predajna",
+    question: "Személyesen vásárolna egy üzletben?",
+    updatedAt: "15.8.2019",
+    answer: [
+      {
+        type: "paragraph",
+        text: "A fizikai üzletek és átvételi pontok elérhetősége országonként és időszakonként változhat.",
+      },
+      {
+        type: "paragraph",
+        text: "A Magyarországon elérhető aktuális lehetőségekről a helyi ügyfélszolgálat ad tájékoztatást.",
+      },
+      {
+        type: "paragraph",
+        text: "Indulás előtt ellenőrizze a címet, a nyitvatartást és az elérhető szolgáltatásokat a kapcsolati oldalon.",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Aktuális elérhetőségek ellenőrzése",
+            target: { kind: "static", page: "contact" },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "affiliate",
+    question: "Affiliate partnerként működne együtt a Herbaticával?",
+    updatedAt: "15.8.2019",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Affiliate partnereinkkel a Dognet hálózaton keresztül működünk együtt. Regisztráljon a hálózatban, és azon keresztül vegye fel velünk a kapcsolatot.",
+      },
+      {
+        type: "paragraph",
+        text: "Más típusú együttműködés esetén használja a magyar piac kapcsolati oldalát.",
+      },
+      {
+        type: "links",
+        items: [
+          { href: "https://www.dognet.com/", label: "Dognet" },
+          {
+            label: "Kapcsolat együttműködéshez",
+            target: { kind: "static", page: "contact" },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "eurobio-lab",
+    question:
+      "Hogyan kell értelmezni az EUROBIO LAB termékek lejárati jelölését?",
+    updatedAt: "8.3.2021",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Az EUROBIO LAB termékek lejárati jelölésének magyarázata külön tájékoztató dokumentumban érhető el.",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Tájékoztató dokumentum kérése",
+            target: { kind: "static", page: "contact" },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "vratenie-reklamacia",
+    question: "Hogyan küldhet vissza vagy reklamálhat meg egy terméket?",
+    updatedAt: "12.3.2021",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Fontos számunkra elégedettsége. Ha a rendeléssel vagy a termékkel kapcsolatban probléma merül fel, a magyar piacra érvényes szabályok szerint kérhet visszaküldést vagy nyújthat be reklamációt.",
+      },
+      {
+        type: "paragraph",
+        text: "A lépéseket, a szükséges adatokat és az elérhető űrlapokat a visszaküldési és reklamációs oldalon találja.",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Visszaküldés és reklamáció",
+            target: { kind: "static", page: "returns" },
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "odstupenie-od-zmluvy",
+    question: "Hogyan állhat el az adásvételi szerződéstől?",
+    updatedAt: "12.3.2021",
+    answer: [
+      {
+        type: "paragraph",
+        text: "Az elállásról és az elérhető dokumentumokról a magyar piacra érvényes általános szerződési feltételekben talál tájékoztatást.",
+      },
+      {
+        type: "links",
+        items: [
+          {
+            label: "Szerződési feltételek és dokumentumok",
+            target: { kind: "static", page: "terms" },
+          },
+        ],
+      },
+    ],
+  },
+] satisfies FaqItem[]
+
 const FAQ_PAGE_DATA_BY_LOCALE: Partial<Record<HerbatikaLocale, FaqPageData>> = {
+  "cs-CZ": {
+    title: "Často kladené otázky",
+    intro: "Jasné odpovědi na nejčastější otázky o nakupování na Herbatica.",
+    items: csFaqItems,
+  },
+  "hu-HU": {
+    title: "Gyakran ismételt kérdések",
+    intro:
+      "Közérthető válaszok a Herbatica webáruházban történő vásárlás leggyakoribb kérdéseire.",
+    items: huFaqItems,
+  },
   "sk-SK": {
     title: "Často kladené otázky",
     intro: "Prehľad odpovedí z pôvodného Herbatica FAQ.",

@@ -6,6 +6,10 @@ const SLOVAK_COMMERCE_CANARY =
   /ahoj@|lenka@|herbatica\.sk|\+421|00421|49\s*€|\bEUR\b/i
 const SLOVAK_VISIBLE_COPY_CANARY =
   /Vaša|objednávka|tovar|zľav|Prihláste|prehľad|stiahnutie|reklamáci|predajň|kúpnej/i
+const FOREIGN_CONTACT_AUTHORITY_CANARY =
+  /ahoj@|lenka@|salut@|herbatica\.(?:sk|ro)|\+421|00421|\+40|49\s*€|\bEUR\b|\bRON\b|Herbatica s\.r\.o\.|Turzovka-Stred|Piešťany|Trenčín/i
+const HUF_CANARY = /\bHUF\b/i
+const CZK_CANARY = /\bCZK\b/i
 
 const visibleStrings = (items: FaqItem[]) =>
   items.flatMap((item) => [
@@ -80,8 +84,52 @@ describe("localized FAQ data", () => {
     expect(renderedCopy).not.toMatch(SLOVAK_VISIBLE_COPY_CANARY)
   })
 
-  it("fails closed instead of falling back to Slovak for unsupported locales", () => {
-    expect(getFaqPageData("cs-CZ")).toBeNull()
-    expect(getFaqPageData("hu-HU")).toBeNull()
+  it.each([
+    ["cs-CZ", "Často kladené otázky", "CZK"],
+    ["hu-HU", "Gyakran ismételt kérdések", "HUF"],
+  ] as const)("provides full %s item and answer-block parity", (locale, expectedTitle, currency) => {
+    const slovak = getFaqPageData("sk-SK")
+    const localized = getFaqPageData(locale)
+
+    expect(localized).not.toBeNull()
+    expect(localized?.title).toBe(expectedTitle)
+    expect(localized?.items.map((item) => item.id)).toEqual(
+      slovak?.items.map((item) => item.id)
+    )
+    expect(
+      localized?.items.map((item) => item.answer.map(({ type }) => type))
+    ).toEqual(slovak?.items.map((item) => item.answer.map(({ type }) => type)))
+    expect(
+      localized?.items.every(
+        (item) =>
+          item.question.trim().length > 0 &&
+          item.answer.every((block) =>
+            block.type === "list" || block.type === "links"
+              ? block.items.length > 0
+              : block.text.trim().length > 0
+          )
+      )
+    ).toBe(true)
+    expect(visibleStrings(localized?.items ?? []).join("\n")).toContain(
+      currency
+    )
+  })
+
+  it.each([
+    ["cs-CZ", HUF_CANARY],
+    ["hu-HU", CZK_CANARY],
+  ] as const)("keeps %s FAQ free of foreign contacts, operator claims, and currency leakage", (locale, otherMarketCurrency) => {
+    const localized = getFaqPageData(locale)
+    const serialized = JSON.stringify(localized)
+
+    expect(serialized).not.toMatch(FOREIGN_CONTACT_AUTHORITY_CANARY)
+    expect(serialized).not.toMatch(otherMarketCurrency)
+    expect(serialized).toContain('"page":"contact"')
+  })
+
+  it("has approved FAQ content for every supported storefront locale", () => {
+    for (const locale of ["sk-SK", "cs-CZ", "hu-HU", "ro-RO"] as const) {
+      expect(getFaqPageData(locale)).not.toBeNull()
+    }
   })
 })
