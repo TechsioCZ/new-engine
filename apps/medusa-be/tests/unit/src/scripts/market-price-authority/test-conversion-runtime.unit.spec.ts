@@ -12,6 +12,9 @@ import type { MarketPriceDatabaseSnapshot } from "../../../../../src/scripts/mar
 import { price } from "./fixtures"
 
 const binding = {
+  backendBuildHash: "build_1",
+  backendDeploymentId: "dpl_1",
+  backendDeploymentSlot: "green" as const,
   backendReleaseSha: "6827bfd450a163e7dd350a396ca1f9363e06235e",
   databaseInstanceFingerprint: "a".repeat(64),
   environmentId: "test-engine" as const,

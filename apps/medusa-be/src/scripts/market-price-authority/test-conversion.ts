@@ -45,6 +45,9 @@ export const TEST_PRICE_CONVERSION_FX_AUTHORITY = {
 type TargetCurrencyCode = Exclude<MarketPriceCurrencyCode, "eur">
 
 export type TestPriceConversionBinding = Readonly<{
+  backendBuildHash: string
+  backendDeploymentId: string
+  backendDeploymentSlot: "blue" | "green"
   backendReleaseSha: string
   databaseInstanceFingerprint: string
   environmentId: "test-engine"
@@ -254,6 +257,17 @@ const validateBinding = (binding: TestPriceConversionBinding) => {
   }
   if (!RELEASE_SHA.test(binding.backendReleaseSha)) {
     throw new Error("backend release SHA must be a lowercase 40-character SHA")
+  }
+  for (const [label, value] of [
+    ["backend build hash", binding.backendBuildHash],
+    ["backend deployment ID", binding.backendDeploymentId],
+  ] as const) {
+    if (value.length === 0 || value !== value.trim()) {
+      throw new Error(`${label} must be a non-empty canonical string`)
+    }
+  }
+  if (!(["blue", "green"] as const).includes(binding.backendDeploymentSlot)) {
+    throw new Error("backend deployment slot must be blue or green")
   }
   for (const [label, value] of [
     ["database instance fingerprint", binding.databaseInstanceFingerprint],

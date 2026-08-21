@@ -270,9 +270,9 @@ export const buildTestPriceConversionDatabaseInstanceFingerprint = (
   }
   return sha256Bytes(
     canonicalJsonLine({
+      databaseInstanceId: instanceId,
       databaseName,
       host: databaseUrl.hostname.toLowerCase(),
-      instanceId,
       port: databaseUrl.port || "5432",
       protocol: "postgresql",
     })
@@ -293,6 +293,24 @@ export const buildTestPriceConversionBinding = (
     throw new Error("RELEASE_SHA must be a lowercase 40-character SHA")
   }
   return {
+    backendBuildHash: text(
+      environment.BACKEND_BUILD_HASH,
+      "BACKEND_BUILD_HASH"
+    ),
+    backendDeploymentId: text(
+      environment.ZANE_DEPLOYMENT_ID,
+      "ZANE_DEPLOYMENT_ID"
+    ),
+    backendDeploymentSlot: (() => {
+      const slot = text(
+        environment.ZANE_DEPLOYMENT_SLOT,
+        "ZANE_DEPLOYMENT_SLOT"
+      )
+      if (slot !== "blue" && slot !== "green") {
+        throw new Error("ZANE_DEPLOYMENT_SLOT must be blue or green")
+      }
+      return slot
+    })(),
     backendReleaseSha,
     databaseInstanceFingerprint:
       buildTestPriceConversionDatabaseInstanceFingerprint(environment),
