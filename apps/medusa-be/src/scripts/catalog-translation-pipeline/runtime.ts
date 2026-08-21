@@ -44,7 +44,7 @@ const REFERENCES = new Set<string>([
   "product_content",
 ])
 const TRANSLATION_APPLY_LOCK_KEY = "catalog-translation-pipeline:exact-apply:v1"
-const PROTECTED_DATABASE_TABLE_LOCK =
+export const PROTECTED_DATABASE_TABLE_LOCK =
   "lock table product, product_category, brand, product_content, product_variant, product_variant_inventory_item, inventory_level in share mode"
 const PROTECTED_DATABASE_QUERIES = [
   "select id, title, description, subtitle from product where deleted_at is null order by id",
