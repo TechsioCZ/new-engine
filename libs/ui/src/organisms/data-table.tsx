@@ -1882,7 +1882,15 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
       <Table.ColumnHeader
         align={column.columnDef.meta?.align}
         aria-sort={ariaSort}
-        className={`group/header relative ${pinClass(column, "header") ?? ""} ${dropClass}`}
+        // `relative` gives the absolutely-positioned resize handle a local
+        // positioning context. Tailwind-merge treats `position` utilities as
+        // one conflict group and this `className` is merged in last, so an
+        // unconditional `relative` here silently cancelled the `sticky`
+        // utility `stickyHeader` puts on `Table.ColumnHeader` — the header
+        // simply stopped sticking, grouped or not. `sticky` is itself a
+        // positioned value, so it already gives the resize handle the same
+        // context; `relative` is only needed when sticky isn't in play.
+        className={`group/header ${stickyHeader ? "" : "relative"} ${pinClass(column, "header") ?? ""} ${dropClass}`}
         // The reorderable path keys `SortableHeaderContent` instead, where this
         // key is simply ignored; the non-reorderable path renders this element
         // straight into the header-group map and is the one that needs it.

@@ -170,6 +170,22 @@ export function columnLabel<T extends RowData>(column: Column<T, unknown>) {
  * leaves it uncontrolled; `invalid` is what the editor uses to show a failed
  * field.
  */
+/**
+ * `Select`'s trigger sizes to its selected label, so a filter or editor whose
+ * value changes shape between options (`"All"` vs. `"Administrator"`) resizes
+ * its own table cell on every change — which reflows the column, and with it
+ * the whole table. `ch` approximates one character's width regardless of
+ * font, so this only needs the option strings, not layout measurement; a
+ * couple of characters of slack cover the trigger's icon and padding.
+ */
+function selectMinWidthCh(items: SelectItem[], placeholder?: string): string {
+  const longest = items.reduce(
+    (max, item) => Math.max(max, String(item.label ?? item.value).length),
+    placeholder?.length ?? 0
+  )
+  return `${longest + 4}ch`
+}
+
 export function FieldSelect({
   items,
   value,
@@ -190,31 +206,33 @@ export function FieldSelect({
   onChange: (value: string) => void
 }) {
   return (
-    <Select
-      aria-label={ariaLabel}
-      disabled={disabled}
-      items={items}
-      onValueChange={(d) => onChange(d.value[0] ?? "")}
-      size={size}
-      validateStatus={invalid ? "error" : "default"}
-      value={value === undefined ? undefined : [value]}
-    >
-      <Select.Control>
-        <Select.Trigger>
-          <Select.ValueText placeholder={placeholder} />
-        </Select.Trigger>
-      </Select.Control>
-      <Select.Positioner>
-        <Select.Content>
-          {items.map((item) => (
-            <Select.Item item={item} key={item.value}>
-              <Select.ItemText />
-              <Select.ItemIndicator />
-            </Select.Item>
-          ))}
-        </Select.Content>
-      </Select.Positioner>
-    </Select>
+    <div style={{ minWidth: selectMinWidthCh(items, placeholder) }}>
+      <Select
+        aria-label={ariaLabel}
+        disabled={disabled}
+        items={items}
+        onValueChange={(d) => onChange(d.value[0] ?? "")}
+        size={size}
+        validateStatus={invalid ? "error" : "default"}
+        value={value === undefined ? undefined : [value]}
+      >
+        <Select.Control>
+          <Select.Trigger>
+            <Select.ValueText placeholder={placeholder} />
+          </Select.Trigger>
+        </Select.Control>
+        <Select.Positioner>
+          <Select.Content>
+            {items.map((item) => (
+              <Select.Item item={item} key={item.value}>
+                <Select.ItemText />
+                <Select.ItemIndicator />
+              </Select.Item>
+            ))}
+          </Select.Content>
+        </Select.Positioner>
+      </Select>
+    </div>
   )
 }
 
