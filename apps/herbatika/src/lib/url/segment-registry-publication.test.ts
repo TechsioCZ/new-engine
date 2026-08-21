@@ -208,6 +208,31 @@ describe("segment-registry G1 publication", () => {
       reason: "artifact-unavailable",
     })
 
+    const getuidDescriptor = Object.getOwnPropertyDescriptor(process, "getuid")
+    if (!getuidDescriptor) {
+      throw new Error("process.getuid descriptor is unavailable")
+    }
+    Object.defineProperty(process, "getuid", {
+      ...getuidDescriptor,
+      value: undefined,
+    })
+    try {
+      await expect(load()).resolves.toEqual({
+        kind: "rejected",
+        reason: "artifact-unavailable",
+      })
+    } finally {
+      Object.defineProperty(process, "getuid", getuidDescriptor)
+    }
+
+    await writeFile(publicationPath, build.canonicalJson, { mode: 0o600 })
+    await chmod(publicationPath, 0o666)
+    await expect(load()).resolves.toEqual({
+      kind: "rejected",
+      reason: "artifact-unavailable",
+    })
+    await unlink(publicationPath)
+
     await symlink(targetPath, publicationPath)
     await expect(load()).resolves.toEqual({
       kind: "rejected",
@@ -307,6 +332,18 @@ describe("segment-registry G1 publication", () => {
       "sk",
       "about.json"
     )
+    const payloadPath = join(payloadDirectory, "about.json")
+    await chmod(artifactPath, 0o666)
+    await expect(
+      assertReviewedStaticRouteSource(sourceInput, environment)
+    ).rejects.toThrow()
+    await chmod(artifactPath, 0o600)
+    await chmod(payloadPath, 0o666)
+    await expect(
+      assertReviewedStaticRouteSource(sourceInput, environment)
+    ).rejects.toThrow()
+    await chmod(payloadPath, 0o600)
+
     const artifactTarget = join(artifactRoot, "artifact-target.json")
     await writeFile(artifactTarget, artifactRaw, { mode: 0o600 })
     await unlink(artifactPath)
@@ -322,7 +359,6 @@ describe("segment-registry G1 publication", () => {
     await unlink(artifactPath)
     await writeFile(artifactPath, artifactRaw, { mode: 0o600 })
 
-    const payloadPath = join(payloadDirectory, "about.json")
     const payloadTarget = join(artifactRoot, "payload-target.json")
     await writeFile(payloadTarget, payloadRaw, { mode: 0o600 })
     await unlink(payloadPath)

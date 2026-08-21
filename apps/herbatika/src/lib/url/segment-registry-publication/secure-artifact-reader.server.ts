@@ -31,14 +31,17 @@ const isSameFile = (left: FileIdentity, right: FileIdentity) =>
 const isProcessOwned = (metadata: Stats) =>
   typeof process.getuid === "function" && metadata.uid === process.getuid()
 
-const assertPrivateDirectoryMetadata = (metadata: Stats) => {
+const isWritableByAnotherPrincipal = (metadata: Stats) => {
   // biome-ignore lint/suspicious/noBitwiseOperators: POSIX permission masks are bit fields.
-  const writableByAnotherPrincipal = (metadata.mode & 0o022) !== 0
+  return (metadata.mode & 0o022) !== 0
+}
+
+const assertPrivateDirectoryMetadata = (metadata: Stats) => {
   if (
     !metadata.isDirectory() ||
     metadata.isSymbolicLink() ||
     !isProcessOwned(metadata) ||
-    writableByAnotherPrincipal
+    isWritableByAnotherPrincipal(metadata)
   ) {
     throw new Error("segment-registry artifact directory is unsafe")
   }
@@ -157,10 +160,16 @@ const assertStableFile = (initial: Stats, final: Stats, pathname: Stats) => {
   if (
     !initial.isFile() ||
     initial.nlink !== 1 ||
+    !isProcessOwned(initial) ||
+    isWritableByAnotherPrincipal(initial) ||
     !final.isFile() ||
     final.nlink !== 1 ||
+    !isProcessOwned(final) ||
+    isWritableByAnotherPrincipal(final) ||
     !pathname.isFile() ||
     pathname.nlink !== 1 ||
+    !isProcessOwned(pathname) ||
+    isWritableByAnotherPrincipal(pathname) ||
     !isSameFile(initial, final) ||
     !isSameFile(final, pathname) ||
     initial.size !== final.size ||
