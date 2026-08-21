@@ -294,5 +294,4 @@ describe("Herbatica four-market seed config", () => {
       ron: 249,
     })
   })
-
 })

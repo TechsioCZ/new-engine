@@ -4,7 +4,6 @@ import type { Logger } from "@medusajs/medusa"
 import { hashCatalogTranslationValue } from "./catalog-translation-pipeline/canonical"
 import { loadCatalogTranslationInput } from "./catalog-translation-pipeline/manifest"
 import { assertCatalogTranslationTestEnvironment } from "./catalog-translation-pipeline/runtime"
-import { assertMarketCatalogPublicationTranslationEvidence } from "./market-catalog-publication/evidence"
 import {
   assertMarketCatalogPublicationPlanArtifact,
   buildMarketCatalogPublicationApplyReceipt,
@@ -13,6 +12,7 @@ import {
   writeMarketCatalogPublicationPlanArtifact,
   writeMarketCatalogPublicationRollbackArtifact,
 } from "./market-catalog-publication/artifacts"
+import { assertMarketCatalogPublicationTranslationEvidence } from "./market-catalog-publication/evidence"
 import {
   loadMarketCatalogPublicationManifest,
   parseMarketCatalogPublicationCliOptions,

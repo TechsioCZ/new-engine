@@ -173,8 +173,12 @@ describe("fulfillment seed identity reconciliation", () => {
   })
 
   it("reconciles the owned service zone to exactly SK/CZ/HU/RO", () => {
+    const ownedZoneInput = input().serviceZones.at(0)
+    if (!ownedZoneInput) {
+      throw new Error("Expected the canonical owned service zone input")
+    }
     const mutation = buildServiceZoneMutation(
-      input().serviceZones[0]!,
+      ownedZoneInput,
       serviceZone({
         geo_zones: [
           { id: "geo_sk", type: "country", country_code: "sk" },

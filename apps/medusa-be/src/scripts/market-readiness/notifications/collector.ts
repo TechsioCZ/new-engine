@@ -212,16 +212,22 @@ const inspectTemplate = async (
   return "failed"
 }
 
-const renderTemplate = async (
-  context: TemplateCollectionContext,
-  templateId: string,
-  inspection: NotificationTemplateReadiness["inspection"],
-  expectedSubject: string,
+const renderTemplate = async ({
+  context,
+  templateId,
+  inspection,
+  expectedSubject,
+  expectedBodyProof,
+}: Readonly<{
+  context: TemplateCollectionContext
+  templateId: string
+  inspection: NotificationTemplateReadiness["inspection"]
+  expectedSubject: string
   expectedBodyProof: Readonly<{
     htmlSha256: string
     textSha256: string
   }>
-): Promise<NotificationTemplateReadiness> => {
+}>): Promise<NotificationTemplateReadiness> => {
   const locale = FOUR_MARKET_NOTIFICATION_BINDINGS[context.market].locale
   try {
     const rendered = await context.input.renderer.render({
@@ -328,13 +334,13 @@ const collectTemplate = async (
     })
     return failedTemplate(locale, true, inspection)
   }
-  return renderTemplate(
+  return renderTemplate({
     context,
-    observedTemplateId,
+    templateId: observedTemplateId,
     inspection,
     expectedSubject,
-    expectedBodyProof
-  )
+    expectedBodyProof,
+  })
 }
 
 const rejectBodyIdentityCollisions = (

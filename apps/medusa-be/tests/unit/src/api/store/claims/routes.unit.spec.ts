@@ -9,11 +9,9 @@ const workflows = vi.hoisted(() => ({
   createClaimRun: vi
     .fn()
     .mockResolvedValue({ result: { case_number: "RMA-1" } }),
-  requestAccessRun: vi
-    .fn()
-    .mockResolvedValue({
-      result: { accepted: true, challenge_id: "access_1" },
-    }),
+  requestAccessRun: vi.fn().mockResolvedValue({
+    result: { accepted: true, challenge_id: "access_1" },
+  }),
   verifyAccessRun: vi
     .fn()
     .mockResolvedValue({ result: { access_token: "token_1", order: {} } }),

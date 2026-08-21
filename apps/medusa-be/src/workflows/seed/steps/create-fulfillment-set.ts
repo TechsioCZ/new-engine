@@ -140,7 +140,7 @@ export function resolveOwnedFulfillmentTopology(
   validateSeedIdentityTopology(input)
   if (!input.seedIdentity) {
     const matching = existingFulfillmentSets.filter(
-      (fulfillmentSet) => fulfillmentSet.name === input.name
+      (candidateSet) => candidateSet.name === input.name
     )
     if (matching.length > 1) {
       throw new Error(`Multiple fulfillment sets named "${input.name}"`)

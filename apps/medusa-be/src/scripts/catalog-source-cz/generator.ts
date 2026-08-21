@@ -815,11 +815,9 @@ export const buildCzechCatalogBundle = async ({
     } else if (official) {
       descriptionMethod = "official-exact-unique-ean"
     }
-    let descriptionSourceReference =
-      `temporary-ai-translation-from-sk-SK:${product.product_id}:field:description`
+    let descriptionSourceReference = `temporary-ai-translation-from-sk-SK:${product.product_id}:field:description`
     if (descriptionMethod === "source-null") {
-      descriptionSourceReference =
-        `sk-SK-source-null:${product.product_id}:field:description`
+      descriptionSourceReference = `sk-SK-source-null:${product.product_id}:field:description`
     } else if (official) {
       descriptionSourceReference = `${officialSourceReference}:field:description`
     }

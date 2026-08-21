@@ -2,8 +2,8 @@ import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
-import type { CatalogTranslationPlan } from "../../../../src/scripts/catalog-translation-pipeline/types"
 import { hashCatalogTranslationBytes } from "../../../../src/scripts/catalog-translation-pipeline/canonical"
+import type { CatalogTranslationPlan } from "../../../../src/scripts/catalog-translation-pipeline/types"
 import {
   assertMarketCatalogPublicationPlanArtifact,
   buildMarketCatalogPublicationApplyReceipt,

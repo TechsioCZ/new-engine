@@ -161,11 +161,12 @@ export const createShippingOptionsStep = createStep(
       existingOptions,
       input
     )
-    const missingOptions = resolvedOptions.flatMap(({ existing, input }) =>
-      existing ? [] : [input]
+    const missingOptions = resolvedOptions.flatMap(
+      ({ existing, input: option }) => (existing ? [] : [option])
     )
-    const updateOptions = resolvedOptions.flatMap(({ existing, input }) =>
-      existing ? [{ existing, input }] : []
+    const updateOptions = resolvedOptions.flatMap(
+      ({ existing, input: option }) =>
+        existing ? [{ existing, input: option }] : []
     )
 
     if (missingOptions.length > 0) {
