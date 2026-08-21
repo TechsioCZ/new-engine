@@ -1,12 +1,12 @@
 import type { HttpTypes } from "@medusajs/types"
-import type { RegionInfo } from "@techsio/storefront-data/shared/region"
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
-import { toRegionInfo } from "./region-selection"
+import { getHerbatikaMarketContext } from "./market-context"
+import { type HerbatikaRegionInfo, toRegionInfo } from "./region-selection"
 
 export const resolveBoundRegion = (
   binding: MarketRuntimeBinding,
   regions: readonly HttpTypes.StoreRegion[]
-): RegionInfo => {
+): HerbatikaRegionInfo => {
   const region = regions.find((candidate) => candidate.id === binding.regionId)
   if (!region) {
     throw new Error(
@@ -21,5 +21,15 @@ export const resolveBoundRegion = (
       `Configured region does not contain the country for market ${binding.market}`
     )
   }
+
+  const expectedCurrencyCode = getHerbatikaMarketContext(
+    binding.market
+  ).currencyCode
+  if (regionInfo.currency_code !== expectedCurrencyCode) {
+    throw new Error(
+      `Configured region currency does not match market ${binding.market}: expected ${expectedCurrencyCode}`
+    )
+  }
+
   return regionInfo
 }
