@@ -17,11 +17,15 @@ import {
 
 const SHA256 = /^[a-f0-9]{64}$/u
 const ISSUE_CODES = new Set([
+  "BODY_IDENTITY_PROOF_MISSING",
   "LOCALIZED_SUBJECT_MISSING",
   "MARKET_CONFIGURATION_MISSING",
   "RENDER_FAILED",
+  "RENDERED_BODY_IDENTITY_COLLISION",
+  "RENDERED_BODY_IDENTITY_MISMATCH",
   "RENDERED_SUBJECT_MISMATCH",
   "REMOTE_INSPECTION_FAILED",
+  "REMOTE_INSPECTION_REQUIRED",
   "SENDER_TUPLE_MISMATCH",
   "TEMPLATE_MAPPING_MISMATCH",
 ])
@@ -265,7 +269,7 @@ const parseHeader = (value: unknown): ParsedHeader => {
         "summary",
       ])
     ) ||
-    value.schemaVersion !== 1 ||
+    value.schemaVersion !== 2 ||
     value.scope !== "four-market-notification-readiness" ||
     JSON.stringify(value.markets) !==
       JSON.stringify(NOTIFICATION_READINESS_MARKETS) ||
@@ -303,12 +307,14 @@ const parseTemplateProof = (
       isRecord(value) &&
       hasExactKeys(value, [
         "configuredTemplateMatched",
+        "htmlContentSha256",
         "htmlStructureSha256",
         "inspection",
         "locale",
         "ready",
         "rendered",
         "subjectSha256",
+        "textContentSha256",
         "textStructureSha256",
       ])
     ) ||
@@ -320,19 +326,29 @@ const parseTemplateProof = (
   ) {
     return invalid()
   }
+  const htmlContentSha256 = value.htmlContentSha256
   const htmlStructureSha256 = value.htmlStructureSha256
   const subjectSha256 = value.subjectSha256
+  const textContentSha256 = value.textContentSha256
   const textStructureSha256 = value.textStructureSha256
   if (
     !(
+      isNullableSha256(htmlContentSha256) &&
       isNullableSha256(htmlStructureSha256) &&
       isNullableSha256(subjectSha256) &&
+      isNullableSha256(textContentSha256) &&
       isNullableSha256(textStructureSha256)
     )
   ) {
     return invalid()
   }
-  const hashes = [htmlStructureSha256, subjectSha256, textStructureSha256]
+  const hashes = [
+    htmlContentSha256,
+    htmlStructureSha256,
+    subjectSha256,
+    textContentSha256,
+    textStructureSha256,
+  ]
   const hasAllHashes = hashes.every(
     (hash) => typeof hash === "string" && SHA256.test(hash)
   )
@@ -342,18 +358,20 @@ const parseTemplateProof = (
     !(hasAllHashes || hasNoHashes) ||
     (value.ready &&
       (!(value.configuredTemplateMatched && value.rendered) ||
-        value.inspection === "failed"))
+        value.inspection !== "passed"))
   ) {
     return invalid()
   }
   return {
     configuredTemplateMatched: value.configuredTemplateMatched,
+    htmlContentSha256,
     htmlStructureSha256,
     inspection: value.inspection,
     locale,
     ready: value.ready,
     rendered: value.rendered,
     subjectSha256,
+    textContentSha256,
     textStructureSha256,
   }
 }
@@ -499,7 +517,7 @@ export const parseNotificationReadinessArtifact = (
     marketResults,
     markets: NOTIFICATION_READINESS_MARKETS,
     ready: value.ready,
-    schemaVersion: 1,
+    schemaVersion: 2,
     scope: "four-market-notification-readiness",
     summary,
   }

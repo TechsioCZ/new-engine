@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import {
   chmod,
   mkdir,
@@ -20,8 +21,10 @@ import { canonicalJsonWithLf } from "../../../../src/scripts/market-readiness/ca
 import {
   collectFourMarketNotificationReadiness,
   FOUR_MARKET_NOTIFICATION_BINDINGS,
+  type FourMarketNotificationReadinessInput,
   NOTIFICATION_CRITICAL_TEMPLATES,
   type NotificationTemplateRenderRequest,
+  type NotificationTemplateRenderResult,
   parseNotificationReadinessArtifact,
   writeNotificationReadinessArtifact,
 } from "../../../../src/scripts/market-readiness/notifications"
@@ -61,6 +64,21 @@ vi.mock("node:fs/promises", async (importOriginal) => {
 const temporaryDirectories: string[] = []
 const SHA256 = /^[a-f0-9]{64}$/u
 
+const bodySha256 = (value: string): string =>
+  createHash("sha256")
+    .update(value.replaceAll("\r\n", "\n").replaceAll("\r", "\n"), "utf8")
+    .digest("hex")
+
+type RenderFixture = (
+  request: NotificationTemplateRenderRequest
+) => NotificationTemplateRenderResult
+
+const localizedRenderResult: RenderFixture = ({ locale, template }) => ({
+  html: `<html><body><main data-locale="${locale}"><h1>translation:${locale}:${template}</h1></main></body></html>`,
+  subject: `subject:${template}:${locale}`,
+  text: `translation:${locale}:${template}`,
+})
+
 const templateMappings = (market: string) =>
   Object.fromEntries(
     NOTIFICATION_CRITICAL_TEMPLATES.map((template) => [
@@ -80,7 +98,37 @@ const marketConfiguration = (market: "cz" | "hu" | "ro" | "sk") => {
   }
 }
 
-const fourMarketInput = () => ({
+const expectedBodyProofs = (
+  renderFixture: RenderFixture
+): FourMarketNotificationReadinessInput["expectedBodyProofs"] =>
+  Object.fromEntries(
+    Object.entries(FOUR_MARKET_NOTIFICATION_BINDINGS).map(
+      ([market, binding]) => [
+        market,
+        Object.fromEntries(
+          NOTIFICATION_CRITICAL_TEMPLATES.map((template) => {
+            const rendered = renderFixture({
+              locale: binding.locale,
+              market: market as keyof typeof FOUR_MARKET_NOTIFICATION_BINDINGS,
+              template,
+              templateId: `tmpl_${market}_${template}`,
+              variables: {},
+            })
+            return [
+              template,
+              {
+                htmlSha256: bodySha256(rendered.html),
+                textSha256: bodySha256(rendered.text),
+              },
+            ]
+          })
+        ),
+      ]
+    )
+  ) as FourMarketNotificationReadinessInput["expectedBodyProofs"]
+
+const fourMarketInput = (renderFixture = localizedRenderResult) => ({
+  expectedBodyProofs: expectedBodyProofs(renderFixture),
   expectedMarkets: {
     cz: marketConfiguration("cz"),
     hu: marketConfiguration("hu"),
@@ -108,17 +156,18 @@ afterEach(async () => {
 
 describe("four-market notification readiness collector", () => {
   it("validates and safely fingerprints every critical template without sending", async () => {
-    const render = vi.fn(
-      async ({ locale, template }: NotificationTemplateRenderRequest) => ({
-        html: `<html><body><main data-market="${locale}"><h1>Private Customer</h1><a href="https://private.example.test/token">Open</a></main></body></html>`,
-        subject: `subject:${template}:${locale}`,
-        text: `Private Customer\nhttps://private.example.test/token\n${template}`,
-      })
+    const renderFixture: RenderFixture = ({ locale, template }) => ({
+      html: `<html><body><main data-market="${locale}"><h1>Private Customer</h1><a href="https://private.example.test/token">Open</a></main></body></html>`,
+      subject: `subject:${template}:${locale}`,
+      text: `Private Customer\nhttps://private.example.test/token\n${template}\n${locale}`,
+    })
+    const render = vi.fn(async (request: NotificationTemplateRenderRequest) =>
+      renderFixture(request)
     )
     const inspect = vi.fn(async () => ({ published: true }))
 
     const report = await collectFourMarketNotificationReadiness({
-      ...fourMarketInput(),
+      ...fourMarketInput(renderFixture),
       inspector: { inspect },
       renderer: { render },
       subjectResolver: (template, locale) => `subject:${template}:${locale}`,
@@ -128,7 +177,7 @@ describe("four-market notification readiness collector", () => {
     expect(report).toMatchObject({
       markets: ["sk", "cz", "hu", "ro"],
       ready: true,
-      schemaVersion: 1,
+      schemaVersion: 2,
       scope: "four-market-notification-readiness",
       summary: {
         errors: 0,
@@ -158,6 +207,99 @@ describe("four-market notification readiness collector", () => {
     expect(serialized).not.toContain("notifications@")
     expect(serialized).not.toContain("support@")
     expect(serialized).not.toContain("tmpl_cz_")
+  })
+
+  it("rejects Slovak body content rendered for another market even when the subject is localized", async () => {
+    const render = vi.fn(async (request: NotificationTemplateRenderRequest) => {
+      const body = localizedRenderResult({
+        ...request,
+        locale: "sk-SK",
+      })
+      return {
+        ...body,
+        subject: `subject:${request.template}:${request.locale}`,
+      }
+    })
+
+    const report = await collectFourMarketNotificationReadiness({
+      ...fourMarketInput(),
+      inspector: { inspect: vi.fn(async () => ({ published: true })) },
+      renderer: { render },
+      subjectResolver: (template, locale) => `subject:${template}:${locale}`,
+    })
+
+    expect(report.ready).toBe(false)
+    expect(report.marketResults.cz.templates["order-placed"].ready).toBe(false)
+    expect(report.issues).toContainEqual({
+      code: "RENDERED_BODY_IDENTITY_MISMATCH",
+      market: "cz",
+      template: "order-placed",
+    })
+  })
+
+  it("rejects cross-locale body hash collisions even when each expected proof matches", async () => {
+    const sharedBody: RenderFixture = ({ locale, template }) => ({
+      html: `<html><body><p>shared:${template}</p></body></html>`,
+      subject: `subject:${template}:${locale}`,
+      text: `shared:${template}`,
+    })
+    const report = await collectFourMarketNotificationReadiness({
+      ...fourMarketInput(sharedBody),
+      inspector: { inspect: vi.fn(async () => ({ published: true })) },
+      renderer: { render: vi.fn(async (request) => sharedBody(request)) },
+      subjectResolver: (template, locale) => `subject:${template}:${locale}`,
+    })
+
+    expect(report.ready).toBe(false)
+    expect(report.summary.templatesReady).toBe(0)
+    expect(report.issues).toContainEqual({
+      code: "RENDERED_BODY_IDENTITY_COLLISION",
+      market: "hu",
+      template: "order-placed",
+    })
+  })
+
+  it("requires published remote-template inspection for readiness", async () => {
+    const report = await collectFourMarketNotificationReadiness({
+      ...fourMarketInput(),
+      renderer: {
+        render: vi.fn(async (request) => localizedRenderResult(request)),
+      },
+      subjectResolver: (template, locale) => `subject:${template}:${locale}`,
+    })
+
+    expect(report.ready).toBe(false)
+    expect(report.summary.templatesReady).toBe(0)
+    expect(report.issues).toContainEqual({
+      code: "REMOTE_INSPECTION_REQUIRED",
+      market: "ro",
+      template: "order-placed",
+    })
+  })
+
+  it("fails closed when a reviewed body identity proof is missing", async () => {
+    const input = fourMarketInput()
+    const { "order-placed": _missing, ...remainingCzechProofs } =
+      input.expectedBodyProofs.cz
+    const report = await collectFourMarketNotificationReadiness({
+      ...input,
+      expectedBodyProofs: {
+        ...input.expectedBodyProofs,
+        cz: remainingCzechProofs,
+      } as FourMarketNotificationReadinessInput["expectedBodyProofs"],
+      inspector: { inspect: vi.fn(async () => ({ published: true })) },
+      renderer: {
+        render: vi.fn(async (request) => localizedRenderResult(request)),
+      },
+      subjectResolver: (template, locale) => `subject:${template}:${locale}`,
+    })
+
+    expect(report.ready).toBe(false)
+    expect(report.issues).toContainEqual({
+      code: "BODY_IDENTITY_PROOF_MISSING",
+      market: "cz",
+      template: "order-placed",
+    })
   })
 
   it("fails closed on an exact tuple mismatch without leaking configuration", async () => {

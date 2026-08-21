@@ -13,6 +13,7 @@ export {
   type NotificationMarketConfiguration,
   type NotificationReadinessIssue,
   type NotificationReadinessMarket,
+  type NotificationTemplateBodyProof,
   type NotificationTemplateInspector,
   type NotificationTemplateRenderer,
 } from "./contracts"

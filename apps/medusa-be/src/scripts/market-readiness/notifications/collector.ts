@@ -18,6 +18,7 @@ import {
 } from "./contracts"
 
 const MAILBOX = /^(?:[^<>]*<)?([^<>\s@]+)@([^<>\s@]+)>?$/u
+const SHA256 = /^[a-f0-9]{64}$/u
 const HTML_TAG = /<\/?([A-Za-z][\w:-]*)([^>]*)>/gu
 const HTML_ATTRIBUTE = /\s([A-Za-z_:][\w:.-]*)(?:\s*=|\s|$)/gu
 const URL = /https?:\/\/\S+/giu
@@ -27,6 +28,9 @@ const WORD = /[\p{L}\p{M}]+/gu
 
 const sha256 = (value: string): string =>
   createHash("sha256").update(value, "utf8").digest("hex")
+
+const canonicalBody = (value: string): string =>
+  value.replaceAll("\r\n", "\n").replaceAll("\r", "\n")
 
 const mailboxDomain = (value: string): string | undefined =>
   MAILBOX.exec(value.trim())?.[2]?.toLowerCase()
@@ -152,12 +156,14 @@ const failedTemplate = (
   inspection: NotificationTemplateReadiness["inspection"]
 ): NotificationTemplateReadiness => ({
   configuredTemplateMatched,
+  htmlContentSha256: null,
   htmlStructureSha256: null,
   inspection,
   locale,
   ready: false,
   rendered: false,
   subjectSha256: null,
+  textContentSha256: null,
   textStructureSha256: null,
 })
 
@@ -176,6 +182,11 @@ const inspectTemplate = async (
   templateId: string
 ): Promise<NotificationTemplateReadiness["inspection"]> => {
   if (!context.input.inspector) {
+    addIssue(context.issues, {
+      code: "REMOTE_INSPECTION_REQUIRED",
+      market: context.market,
+      template: context.template,
+    })
     return "notRequested"
   }
   try {
@@ -205,7 +216,11 @@ const renderTemplate = async (
   context: TemplateCollectionContext,
   templateId: string,
   inspection: NotificationTemplateReadiness["inspection"],
-  expectedSubject: string
+  expectedSubject: string,
+  expectedBodyProof: Readonly<{
+    htmlSha256: string
+    textSha256: string
+  }>
 ): Promise<NotificationTemplateReadiness> => {
   const locale = FOUR_MARKET_NOTIFICATION_BINDINGS[context.market].locale
   try {
@@ -226,14 +241,31 @@ const renderTemplate = async (
       })
       return failedTemplate(locale, true, inspection)
     }
+    const htmlContentSha256 = sha256(canonicalBody(rendered.html))
+    const textContentSha256 = sha256(canonicalBody(rendered.text))
+    const bodyIdentityMatched =
+      htmlContentSha256 === expectedBodyProof.htmlSha256 &&
+      textContentSha256 === expectedBodyProof.textSha256
+    if (!bodyIdentityMatched) {
+      addIssue(context.issues, {
+        code: "RENDERED_BODY_IDENTITY_MISMATCH",
+        market: context.market,
+        template: context.template,
+      })
+    }
     return {
       configuredTemplateMatched: true,
+      htmlContentSha256,
       htmlStructureSha256: sha256(htmlStructure(rendered.html)),
       inspection,
       locale,
-      ready: context.baseTupleMatched && inspection !== "failed",
+      ready:
+        context.baseTupleMatched &&
+        inspection === "passed" &&
+        bodyIdentityMatched,
       rendered: true,
       subjectSha256: sha256(rendered.subject),
+      textContentSha256,
       textStructureSha256: sha256(textStructure(rendered.text)),
     }
   } catch {
@@ -269,6 +301,22 @@ const collectTemplate = async (
   }
 
   const inspection = await inspectTemplate(context, observedTemplateId)
+  const expectedBodyProof =
+    context.input.expectedBodyProofs?.[context.market]?.[context.template]
+  if (
+    !(
+      expectedBodyProof &&
+      SHA256.test(expectedBodyProof.htmlSha256) &&
+      SHA256.test(expectedBodyProof.textSha256)
+    )
+  ) {
+    addIssue(context.issues, {
+      code: "BODY_IDENTITY_PROOF_MISSING",
+      market: context.market,
+      template: context.template,
+    })
+    return failedTemplate(locale, true, inspection)
+  }
   const subjectResolver =
     context.input.subjectResolver ?? getResendTemplateSubject
   const expectedSubject = subjectResolver(context.template, locale)
@@ -284,8 +332,65 @@ const collectTemplate = async (
     context,
     observedTemplateId,
     inspection,
-    expectedSubject
+    expectedSubject,
+    expectedBodyProof
   )
+}
+
+const rejectBodyIdentityCollisions = (
+  marketResults: Record<
+    NotificationReadinessMarket,
+    NotificationMarketReadiness
+  >,
+  issues: NotificationReadinessIssue[]
+): Record<NotificationReadinessMarket, NotificationMarketReadiness> => {
+  const collisionKeys = new Set<string>()
+  for (const template of NOTIFICATION_CRITICAL_TEMPLATES) {
+    for (const market of NOTIFICATION_READINESS_MARKETS) {
+      const proof = marketResults[market].templates[template]
+      if (!(proof.htmlContentSha256 && proof.textContentSha256)) {
+        continue
+      }
+      const collides = NOTIFICATION_READINESS_MARKETS.some((otherMarket) => {
+        if (otherMarket === market) {
+          return false
+        }
+        const other = marketResults[otherMarket].templates[template]
+        return (
+          other.htmlContentSha256 === proof.htmlContentSha256 ||
+          other.textContentSha256 === proof.textContentSha256
+        )
+      })
+      if (collides) {
+        collisionKeys.add(`${market}:${template}`)
+      }
+    }
+  }
+
+  for (const key of collisionKeys) {
+    const [market, template] = key.split(":") as [
+      NotificationReadinessMarket,
+      NotificationCriticalTemplate,
+    ]
+    addIssue(issues, {
+      code: "RENDERED_BODY_IDENTITY_COLLISION",
+      market,
+      template,
+    })
+    const marketResult = marketResults[market]
+    marketResults[market] = {
+      ...marketResult,
+      ready: false,
+      templates: {
+        ...marketResult.templates,
+        [template]: {
+          ...marketResult.templates[template],
+          ready: false,
+        },
+      },
+    }
+  }
+  return marketResults
 }
 
 const collectMarket = async (
@@ -371,10 +476,13 @@ export const collectFourMarketNotificationReadiness = async (
         [market, await collectMarket(input, market, issues)] as const
     )
   )
-  const marketResults = Object.fromEntries(results) as Record<
-    NotificationReadinessMarket,
-    NotificationMarketReadiness
-  >
+  const marketResults = rejectBodyIdentityCollisions(
+    Object.fromEntries(results) as Record<
+      NotificationReadinessMarket,
+      NotificationMarketReadiness
+    >,
+    issues
+  )
   const templates = Object.values(marketResults).flatMap((market) =>
     Object.values(market.templates)
   )
@@ -391,7 +499,7 @@ export const collectFourMarketNotificationReadiness = async (
     ready:
       sortedIssues.length === 0 &&
       marketsReady === NOTIFICATION_READINESS_MARKETS.length,
-    schemaVersion: 1,
+    schemaVersion: 2,
     scope: "four-market-notification-readiness",
     summary: {
       errors: sortedIssues.length,

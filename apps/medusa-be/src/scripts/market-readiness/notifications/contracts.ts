@@ -57,6 +57,11 @@ export type NotificationTemplateRenderResult = Readonly<{
   text: string
 }>
 
+export type NotificationTemplateBodyProof = Readonly<{
+  htmlSha256: string
+  textSha256: string
+}>
+
 export type NotificationTemplateRenderer = Readonly<{
   render: (
     request: NotificationTemplateRenderRequest
@@ -72,11 +77,15 @@ export type NotificationTemplateInspector = Readonly<{
 
 export type NotificationReadinessIssue = Readonly<{
   code:
+    | "BODY_IDENTITY_PROOF_MISSING"
     | "LOCALIZED_SUBJECT_MISSING"
     | "MARKET_CONFIGURATION_MISSING"
     | "RENDER_FAILED"
+    | "RENDERED_BODY_IDENTITY_COLLISION"
+    | "RENDERED_BODY_IDENTITY_MISMATCH"
     | "RENDERED_SUBJECT_MISMATCH"
     | "REMOTE_INSPECTION_FAILED"
+    | "REMOTE_INSPECTION_REQUIRED"
     | "SENDER_TUPLE_MISMATCH"
     | "TEMPLATE_MAPPING_MISMATCH"
   market: NotificationReadinessMarket
@@ -85,12 +94,14 @@ export type NotificationReadinessIssue = Readonly<{
 
 export type NotificationTemplateReadiness = Readonly<{
   configuredTemplateMatched: boolean
+  htmlContentSha256: string | null
   htmlStructureSha256: string | null
   inspection: "failed" | "notRequested" | "passed"
   locale: ResendEmailLocale
   ready: boolean
   rendered: boolean
   subjectSha256: string | null
+  textContentSha256: string | null
   textStructureSha256: string | null
 }>
 
@@ -112,7 +123,7 @@ export type FourMarketNotificationReadinessArtifact = Readonly<{
   >
   markets: typeof NOTIFICATION_READINESS_MARKETS
   ready: boolean
-  schemaVersion: 1
+  schemaVersion: 2
   scope: "four-market-notification-readiness"
   summary: Readonly<{
     errors: number
@@ -123,6 +134,14 @@ export type FourMarketNotificationReadinessArtifact = Readonly<{
 }>
 
 export type FourMarketNotificationReadinessInput = Readonly<{
+  expectedBodyProofs: Readonly<
+    Record<
+      NotificationReadinessMarket,
+      Readonly<
+        Record<NotificationCriticalTemplate, NotificationTemplateBodyProof>
+      >
+    >
+  >
   expectedMarkets: Readonly<
     Record<NotificationReadinessMarket, NotificationMarketConfiguration>
   >
