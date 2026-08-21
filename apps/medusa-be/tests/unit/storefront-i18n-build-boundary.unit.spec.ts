@@ -40,8 +40,20 @@ describe("storefront i18n backend build boundary", () => {
     const frozenInstall = ciDevStage.indexOf(
       "pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --filter=medusa-be..."
     )
+    const dependencyBuild = ciDevStage.indexOf(
+      "pnpm --filter @techsio/storefront-i18n build"
+    )
+    const runtimeModuleCheck = ciDevStage.indexOf(
+      "require('@techsio/storefront-i18n/core/public-flow-routes')"
+    )
+    const runtimeWorkingDirectory = ciDevStage.indexOf(
+      "WORKDIR /var/www/apps/medusa-be"
+    )
 
     expect(dependencyCopy).toBeGreaterThan(-1)
     expect(frozenInstall).toBeGreaterThan(dependencyCopy)
+    expect(dependencyBuild).toBeGreaterThan(frozenInstall)
+    expect(runtimeModuleCheck).toBeGreaterThan(dependencyBuild)
+    expect(runtimeWorkingDirectory).toBeGreaterThan(runtimeModuleCheck)
   })
 })

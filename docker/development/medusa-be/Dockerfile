@@ -46,6 +46,10 @@ RUN --mount=type=cache,id=pnpm-store-medusa,target=/pnpm/store \
     pnpm_config_store_dir=/pnpm/store \
     pnpm install --store-dir=/pnpm/store --prefer-offline --frozen-lockfile --filter=medusa-be...
 
+RUN pnpm --filter @techsio/storefront-i18n build && \
+    pnpm --filter medusa-be exec node -e \
+    "require('@techsio/storefront-i18n/core/public-flow-routes')"
+
 WORKDIR /var/www/apps/medusa-be
 
 CMD ["npm", "run", "start:ci-dev"]
