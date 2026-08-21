@@ -3,13 +3,17 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework/http"
 import { requestCustomerAccountDeactivationWorkflow } from "../../../../../workflows/customer/workflows/request-customer-account-deactivation"
-import { resolveExactMarketSalesChannelId } from "../../../private-flow-utils"
+import {
+  resolveExactMarketSalesChannelId,
+  setPrivateNoStore,
+} from "../../../private-flow-utils"
 import type { StoreDeactivateCustomerAccountSchemaType } from "../../validators"
 
 export async function POST(
   req: AuthenticatedMedusaRequest<StoreDeactivateCustomerAccountSchemaType>,
   res: MedusaResponse
 ) {
+  setPrivateNoStore(res)
   const salesChannelId = resolveExactMarketSalesChannelId(req)
   const { result } = await requestCustomerAccountDeactivationWorkflow(
     req.scope

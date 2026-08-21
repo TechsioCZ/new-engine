@@ -19,8 +19,9 @@ import { POST } from "../route"
 const response = () => {
   const json = vi.fn()
   const status = vi.fn(() => ({ json }))
+  const setHeader = vi.fn()
 
-  return { json, status }
+  return { json, setHeader, status }
 }
 
 describe("POST /store/customers/me/deactivate", () => {
@@ -56,6 +57,12 @@ describe("POST /store/customers/me/deactivate", () => {
       customer_id: "cus_1",
       sent: true,
     })
+    expect(result.setHeader).toHaveBeenNthCalledWith(
+      1,
+      "Cache-Control",
+      "private, no-store"
+    )
+    expect(result.setHeader).toHaveBeenNthCalledWith(2, "Pragma", "no-cache")
   })
 
   it.each([
@@ -64,6 +71,8 @@ describe("POST /store/customers/me/deactivate", () => {
     ["sc_cz", "sc_hu"],
     [null, ""],
   ])("rejects missing or ambiguous publishable-key scope: %o", async (salesChannelIds) => {
+    const result = response()
+
     await expect(
       POST(
         {
@@ -71,9 +80,15 @@ describe("POST /store/customers/me/deactivate", () => {
           publishable_key_context: { sales_channel_ids: salesChannelIds },
           scope: {},
         } as never,
-        response() as never
+        result as never
       )
     ).rejects.toThrow("Resource was not found.")
     expect(workflow.request).not.toHaveBeenCalled()
+    expect(result.setHeader).toHaveBeenNthCalledWith(
+      1,
+      "Cache-Control",
+      "private, no-store"
+    )
+    expect(result.setHeader).toHaveBeenNthCalledWith(2, "Pragma", "no-cache")
   })
 })

@@ -4,6 +4,7 @@ import { verifyCustomerAccountDeactivationWorkflow } from "../../../../../workfl
 import {
   privateFlowNotFound,
   resolveExactMarketSalesChannelId,
+  setPrivateNoStore,
 } from "../../../private-flow-utils"
 import type { StoreConfirmDeactivateCustomerAccountSchemaType } from "../../validators"
 
@@ -11,6 +12,7 @@ export async function POST(
   req: MedusaRequest<StoreConfirmDeactivateCustomerAccountSchemaType>,
   res: MedusaResponse
 ) {
+  setPrivateNoStore(res)
   const salesChannelId = resolveExactMarketSalesChannelId(req)
   const { result: verified } = await verifyCustomerAccountDeactivationWorkflow(
     req.scope

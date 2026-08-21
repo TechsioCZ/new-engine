@@ -31,8 +31,9 @@ import { POST } from "../route"
 const response = () => {
   const json = vi.fn()
   const status = vi.fn(() => ({ json }))
+  const setHeader = vi.fn()
 
-  return { json, status }
+  return { json, setHeader, status }
 }
 
 const request = (salesChannelIds: unknown) => ({
@@ -76,15 +77,29 @@ describe("POST /store/customers/deactivate/confirm", () => {
       customer_id: "cus_1",
       deleted: true,
     })
+    expect(res.setHeader).toHaveBeenNthCalledWith(
+      1,
+      "Cache-Control",
+      "private, no-store"
+    )
+    expect(res.setHeader).toHaveBeenNthCalledWith(2, "Pragma", "no-cache")
   })
 
   it("rejects cross-market token replay before account mutation", async () => {
+    const res = response()
+
     await expect(
-      POST(request(["sc_cz"]) as never, response() as never)
+      POST(request(["sc_cz"]) as never, res as never)
     ).rejects.toThrow("Resource was not found.")
 
     expect(workflows.verifyRun).toHaveBeenCalledOnce()
     expect(workflows.deactivate).not.toHaveBeenCalled()
+    expect(res.setHeader).toHaveBeenNthCalledWith(
+      1,
+      "Cache-Control",
+      "private, no-store"
+    )
+    expect(res.setHeader).toHaveBeenNthCalledWith(2, "Pragma", "no-cache")
   })
 
   it.each([
@@ -93,11 +108,19 @@ describe("POST /store/customers/deactivate/confirm", () => {
     ["sc_ro", "sc_cz"],
     [null, ""],
   ])("rejects missing or ambiguous current market scope: %o", async (salesChannelIds) => {
+    const res = response()
+
     await expect(
-      POST(request(salesChannelIds) as never, response() as never)
+      POST(request(salesChannelIds) as never, res as never)
     ).rejects.toThrow("Resource was not found.")
 
     expect(workflows.verify).not.toHaveBeenCalled()
     expect(workflows.deactivate).not.toHaveBeenCalled()
+    expect(res.setHeader).toHaveBeenNthCalledWith(
+      1,
+      "Cache-Control",
+      "private, no-store"
+    )
+    expect(res.setHeader).toHaveBeenNthCalledWith(2, "Pragma", "no-cache")
   })
 })
