@@ -106,8 +106,8 @@ export interface Config {
     | ('false' | 'none' | 'null')
     | false
     | null
-    | ('cs' | 'en' | 'sk' | 'pl' | 'hu' | 'ro' | 'sl')
-    | ('cs' | 'en' | 'sk' | 'pl' | 'hu' | 'ro' | 'sl')[];
+    | ('cs' | 'sk' | 'hu' | 'ro')
+    | ('cs' | 'sk' | 'hu' | 'ro')[];
   globals: {
     'footer-navigation': FooterNavigation;
     'translation-settings': TranslationSetting;
@@ -116,7 +116,7 @@ export interface Config {
     'footer-navigation': FooterNavigationSelect<false> | FooterNavigationSelect<true>;
     'translation-settings': TranslationSettingsSelect<false> | TranslationSettingsSelect<true>;
   };
-  locale: 'cs' | 'en' | 'sk' | 'pl' | 'hu' | 'ro' | 'sl';
+  locale: 'cs' | 'sk' | 'hu' | 'ro';
   widgets: {
     collections: CollectionsWidget;
   };

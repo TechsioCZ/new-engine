@@ -94,6 +94,12 @@ export const readPublishedCategoryScope = async ({
     }
   }
 
+  // No assignments for the market means publication scoping is not managed
+  // yet; the full source catalog stays visible instead of hiding everything.
+  if (records.length === 0) {
+    return { kind: "source" }
+  }
+
   const categoryIds = new Set<string>()
   for (const record of records) {
     if (

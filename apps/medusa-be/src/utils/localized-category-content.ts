@@ -4,7 +4,6 @@ import type {
   TranslationDTO,
 } from "@medusajs/framework/types"
 import { Modules } from "@medusajs/framework/utils"
-import { isCompleteCategoryPublicationTranslation } from "./catalog-publication-predicate"
 
 export const CATEGORY_CONTENT_SOURCE_LOCALE = "sk-SK"
 export const CATEGORY_TRANSLATION_REFERENCE = "product_category"
@@ -80,16 +79,11 @@ const readTranslatedContent = (
     return null
   }
 
+  // Translations carry whichever fields editors filled in; anything absent or
+  // non-textual renders as empty rather than blocking the whole catalog.
   const content = {} as Record<CategoryLocalizedContentField, string | null>
   for (const field of CATEGORY_LOCALIZED_CONTENT_FIELDS) {
-    if (!Object.hasOwn(translation.translations, field)) {
-      return null
-    }
-    const value = translation.translations[field]
-    if (!(value === null || typeof value === "string")) {
-      return null
-    }
-    content[field] = normalizeOptionalContent(value)
+    content[field] = normalizeOptionalContent(translation.translations[field])
   }
 
   return {
@@ -117,7 +111,7 @@ const stripSourceRichContent = (
   category.metadata = metadata
 }
 
-const isExactCategoryContentTranslation = ({
+const isUsableCategoryContentTranslation = ({
   locale,
   requestedIds,
   translation,
@@ -132,10 +126,9 @@ const isExactCategoryContentTranslation = ({
   translation.reference === CATEGORY_TRANSLATION_REFERENCE &&
   translation.locale_code === locale &&
   (translation.deleted_at === null || translation.deleted_at === undefined) &&
-  isCompleteCategoryPublicationTranslation(translation) &&
-  Boolean(readTranslatedContent(translation))
+  isRecord(translation.translations)
 
-const indexExactCategoryContentTranslations = ({
+const indexUsableCategoryContentTranslations = ({
   categoryIds,
   locale,
   translations,
@@ -143,25 +136,23 @@ const indexExactCategoryContentTranslations = ({
   categoryIds: readonly string[]
   locale: string
   translations: TranslationDTO[]
-}): ReadonlyMap<string, TranslationDTO> | null => {
+}): ReadonlyMap<string, TranslationDTO> => {
   const requestedIds = new Set(categoryIds)
   const translationsByCategoryId = new Map<string, TranslationDTO>()
   for (const translation of translations) {
     if (
       translationsByCategoryId.has(translation.reference_id) ||
-      !isExactCategoryContentTranslation({
+      !isUsableCategoryContentTranslation({
         locale,
         requestedIds,
         translation,
       })
     ) {
-      return null
+      continue
     }
     translationsByCategoryId.set(translation.reference_id, translation)
   }
-  return translationsByCategoryId.size === categoryIds.length
-    ? translationsByCategoryId
-    : null
+  return translationsByCategoryId
 }
 
 const applyTranslatedCategoryContent = (
@@ -172,10 +163,14 @@ const applyTranslatedCategoryContent = (
   if (!(content && isRecord(translation.translations))) {
     return false
   }
-  if (Object.hasOwn(category, "name")) {
-    category.name = (translation.translations.name as string).trim()
+  const translatedName = normalizeOptionalContent(translation.translations.name)
+  if (translatedName && Object.hasOwn(category, "name")) {
+    category.name = translatedName
   }
-  if (Object.hasOwn(category, "description")) {
+  if (
+    Object.hasOwn(category, "description") &&
+    Object.hasOwn(translation.translations, "description")
+  ) {
     category.description = normalizeOptionalContent(
       translation.translations.description
     )
@@ -229,27 +224,20 @@ export const decorateCategoriesWithLocalizedContent = async (
     return { kind: "unavailable" }
   }
 
-  const translationsByCategoryId = indexExactCategoryContentTranslations({
+  const translationsByCategoryId = indexUsableCategoryContentTranslations({
     categoryIds: uniqueCategoryIds,
     locale,
     translations,
   })
-  if (!translationsByCategoryId) {
-    return {
-      causeCode: "INVALID_OR_MISSING_LOCALIZED_CATEGORY_CONTENT",
-      kind: "invalid-response",
-    }
-  }
 
+  // Categories without a usable translation fall back to their source-locale
+  // content instead of failing the whole listing.
   for (const category of categories) {
     const translation = translationsByCategoryId.get(category.id)
     if (
       !(translation && applyTranslatedCategoryContent(category, translation))
     ) {
-      return {
-        causeCode: "INVALID_LOCALIZED_CATEGORY_CONTENT",
-        kind: "invalid-response",
-      }
+      category.localized_content = readSourceContent(category)
     }
   }
 

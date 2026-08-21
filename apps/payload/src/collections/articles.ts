@@ -5,7 +5,7 @@ import type {
   Where,
 } from "payload"
 import { ValidationError } from "payload"
-import { requireAuth } from "../lib/access/require-auth"
+import { publishedOrAuth, requireAuth } from "../lib/access/require-auth"
 import { fieldDescriptions } from "../lib/constants/descriptions"
 import {
   createContentField,
@@ -72,7 +72,7 @@ export const Articles: CollectionConfig = {
     group: adminGroups.content,
   },
   access: {
-    read: requireAuth,
+    read: publishedOrAuth,
     create: requireAuth,
     update: requireAuth,
     delete: requireAuth,

@@ -1,5 +1,5 @@
 import type { CollectionConfig } from "payload"
-import { requireAuth } from "../lib/access/require-auth"
+import { publicRead, requireAuth } from "../lib/access/require-auth"
 import { fieldDescriptions } from "../lib/constants/descriptions"
 import { createSlugField, createTitleField } from "../lib/constants/fields"
 import { adminGroups, collectionLabels } from "../lib/constants/labels"
@@ -20,7 +20,7 @@ export const ArticleCategories: CollectionConfig = {
     group: adminGroups.library,
   },
   access: {
-    read: requireAuth,
+    read: publicRead,
     create: requireAuth,
     update: requireAuth,
     delete: requireAuth,

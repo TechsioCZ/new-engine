@@ -1,5 +1,5 @@
 import type { CollectionConfig } from "payload"
-import { requireAuth } from "../lib/access/require-auth"
+import { publicRead, requireAuth } from "../lib/access/require-auth"
 import { adminGroups, collectionLabels } from "../lib/constants/labels"
 import { createMedusaCacheHook } from "../lib/hooks/medusa-cache"
 import { generateSlugFromTitle } from "../lib/hooks/slug"
@@ -15,7 +15,7 @@ export const ArticleAuthors: CollectionConfig = {
     defaultColumns: ["displayName", "role", "updatedAt"],
   },
   access: {
-    read: requireAuth,
+    read: publicRead,
     create: requireAuth,
     update: requireAuth,
     delete: requireAuth,

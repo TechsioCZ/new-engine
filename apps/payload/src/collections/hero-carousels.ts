@@ -1,5 +1,5 @@
 import { APIError, type CollectionConfig } from "payload"
-import { requireAuth } from "../lib/access/require-auth"
+import { publicRead, requireAuth } from "../lib/access/require-auth"
 import {
   adminGroups,
   collectionLabels,
@@ -221,7 +221,7 @@ const resolveInternalTitle = (
 export const HeroCarousels: CollectionConfig = {
   slug: COLLECTION_SLUG,
   access: {
-    read: requireAuth,
+    read: publicRead,
     create: requireAuth,
     update: requireAuth,
     delete: requireAuth,
