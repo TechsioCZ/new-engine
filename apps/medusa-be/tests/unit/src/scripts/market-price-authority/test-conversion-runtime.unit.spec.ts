@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from "vitest"
 import { buildTestPriceConversionPlan } from "../../../../../src/scripts/market-price-authority/test-conversion"
 import {
+  addTestPriceConversionPrices,
   assertTestPriceConversionApplied,
   buildTestPriceConversionDatabaseInstanceFingerprint,
   buildTestPriceConversionPriceAdds,
   parseTestPriceConversionCliOptions,
+  withTestPriceConversionApplyLock,
 } from "../../../../../src/scripts/market-price-authority/test-conversion-runtime"
 import type { MarketPriceDatabaseSnapshot } from "../../../../../src/scripts/market-price-authority/types"
 import { price } from "./fixtures"
@@ -55,6 +57,47 @@ describe("test-only price conversion runtime", () => {
         ],
       },
     ])
+  })
+
+  it("does not call the pricing module for a zero-create plan", async () => {
+    const pricing = { addPrices: vi.fn() }
+    const plan = buildTestPriceConversionPlan(databaseSnapshot(), binding)
+    await addTestPriceConversionPrices(pricing as never, {
+      ...plan,
+      mutations: plan.mutations.map((mutation) => ({
+        ...mutation,
+        action: "unchanged" as const,
+        currentAmount: mutation.desiredAmount,
+        currentPriceId: `existing_${mutation.currencyCode}`,
+      })),
+      summary: { ...plan.summary, create: 0, unchanged: 3 },
+    })
+    expect(pricing.addPrices).not.toHaveBeenCalled()
+  })
+
+  it("holds a database advisory lock around the apply task", async () => {
+    const events: string[] = []
+    const execute = vi.fn(async () => {
+      events.push("lock")
+    })
+    const transactional = vi.fn(
+      async (callback: (manager: { execute: typeof execute }) => unknown) =>
+        await callback({ execute })
+    )
+    const container = {
+      resolve: vi.fn(() => ({ transactional })),
+    }
+    await expect(
+      withTestPriceConversionApplyLock(container as never, async () => {
+        events.push("task")
+        return "done"
+      })
+    ).resolves.toBe("done")
+    expect(execute).toHaveBeenCalledWith(
+      "select pg_advisory_xact_lock(hashtextextended(?, 0))",
+      ["test-price-conversion:test-engine"]
+    )
+    expect(events).toEqual(["lock", "task"])
   })
 
   it("proves the exact price-only delta while preserving EUR and catalog identity", () => {

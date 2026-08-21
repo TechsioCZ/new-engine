@@ -1,5 +1,6 @@
 import { lstat, mkdir, readFile, realpath } from "node:fs/promises"
 import { dirname, isAbsolute, join, resolve } from "node:path"
+import type { SqlEntityManager } from "@medusajs/framework/mikro-orm/knex"
 import type {
   ExecArgs,
   IPricingModuleService,
@@ -10,10 +11,7 @@ import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
 import { writePrivateCommerceArtifactNoClobber } from "../market-commerce-readiness/writer"
 import { canonicalJson, canonicalJsonLine, sha256Bytes } from "./canonical"
 import { collectMarketPriceDatabaseSnapshot } from "./collector"
-import {
-  hashMarketPriceDatabaseSnapshot,
-  serializeMarketPriceDatabaseSnapshot,
-} from "./planner"
+import { hashMarketPriceDatabaseSnapshot } from "./planner"
 import {
   buildTestPriceConversionPlan,
   buildTestPriceConversionPlanArtifact,
@@ -98,6 +96,7 @@ const RELEASE_SHA = /^[a-f0-9]{40}$/
 const SHA_256 = /^[a-f0-9]{64}$/
 const DATABASE_INSTANCE_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
 const CANONICAL_DECIMAL = /^-?(?:0|[1-9]\d*)(?:\.\d+)?$/
+const APPLY_LOCK_KEY = "test-price-conversion:test-engine"
 
 const text = (value: unknown, label: string) => {
   if (
@@ -621,35 +620,13 @@ export const buildTestPriceConversionPriceAdds = (
   }))
 }
 
-const rollbackCreatedPrices = async (
+export const addTestPriceConversionPrices = async (
   pricing: IPricingModuleService,
-  before: MarketPriceDatabaseSnapshot,
-  plan: TestPriceConversionPlan,
-  collectSnapshot: () => Promise<MarketPriceDatabaseSnapshot>
+  plan: TestPriceConversionPlan
 ) => {
-  const beforeIds = new Set(flattenPrices(before).map(({ price }) => price.id))
-  const current = await collectSnapshot()
-  const plannedTargets = new Set(
-    plan.mutations
-      .filter(({ action }) => action === "create")
-      .map(({ currencyCode, variantId }) => `${variantId}\u0000${currencyCode}`)
-  )
-  const createdIds = flattenPrices(current)
-    .filter(
-      ({ price, variantId }) =>
-        !beforeIds.has(price.id) &&
-        plannedTargets.has(`${variantId}\u0000${price.currencyCode}`)
-    )
-    .map(({ price }) => price.id)
-  if (createdIds.length > 0) {
-    await pricing.removePrices(createdIds)
-  }
-  const restored = await collectSnapshot()
-  if (
-    serializeMarketPriceDatabaseSnapshot(restored) !==
-    serializeMarketPriceDatabaseSnapshot(before)
-  ) {
-    throw new Error("automatic price rollback did not restore the backup state")
+  const additions = buildTestPriceConversionPriceAdds(plan)
+  if (additions.length > 0) {
+    await pricing.addPrices(additions)
   }
 }
 
@@ -672,51 +649,39 @@ export const applyTestPriceConversion = async (
   const receiptPath = join(artifactDirectory, "receipt.json")
   await writePrivateCommerceArtifactNoClobber(backupPath, backupBytes)
 
-  try {
-    const additions = buildTestPriceConversionPriceAdds(plan)
-    await pricing.addPrices(additions)
-    const [after, inventoryAfter] = await Promise.all([
-      collectSnapshot(),
-      collectTestPriceConversionInventorySnapshot(container),
-    ])
-    const inventoryFingerprintSha256After =
-      hashTestPriceConversionInventorySnapshot(inventoryAfter)
-    if (
-      inventoryFingerprintSha256After !==
-      plan.binding.inventoryFingerprintSha256
-    ) {
-      throw new Error("shared inventory changed during price conversion")
-    }
-    const createdPrices = assertTestPriceConversionApplied(before, after, plan)
-    const receipt: TestPriceConversionReceipt = {
-      backupSha256: sha256Bytes(backupBytes),
-      binding: plan.binding,
-      createdPrices,
-      databaseSnapshotSha256After: hashMarketPriceDatabaseSnapshot(after),
-      databaseSnapshotSha256Before: plan.databaseSnapshotSha256,
-      inventoryFingerprintSha256After,
-      inventoryFingerprintSha256Before: plan.binding.inventoryFingerprintSha256,
-      kind: "test-market-price-conversion-apply-receipt",
-      planSha256,
-      schemaVersion: 1,
-      writeScope: ["pricing.price"],
-    }
-    await writePrivateCommerceArtifactNoClobber(
-      receiptPath,
-      canonicalJsonLine(receipt)
+  await addTestPriceConversionPrices(pricing, plan)
+  const [after, inventoryAfter] = await Promise.all([
+    collectSnapshot(),
+    collectTestPriceConversionInventorySnapshot(container),
+  ])
+  const inventoryFingerprintSha256After =
+    hashTestPriceConversionInventorySnapshot(inventoryAfter)
+  if (
+    inventoryFingerprintSha256After !== plan.binding.inventoryFingerprintSha256
+  ) {
+    throw new Error(
+      `shared inventory changed during price conversion; stop price writers and perform a reviewed manual restore from ${backupPath}`
     )
-    return receipt
-  } catch (error) {
-    try {
-      await rollbackCreatedPrices(pricing, before, plan, collectSnapshot)
-    } catch (rollbackError) {
-      throw new AggregateError(
-        [error, rollbackError],
-        `price conversion failed and automatic rollback failed; restore from ${backupPath}`
-      )
-    }
-    throw error
   }
+  const createdPrices = assertTestPriceConversionApplied(before, after, plan)
+  const receipt: TestPriceConversionReceipt = {
+    backupSha256: sha256Bytes(backupBytes),
+    binding: plan.binding,
+    createdPrices,
+    databaseSnapshotSha256After: hashMarketPriceDatabaseSnapshot(after),
+    databaseSnapshotSha256Before: plan.databaseSnapshotSha256,
+    inventoryFingerprintSha256After,
+    inventoryFingerprintSha256Before: plan.binding.inventoryFingerprintSha256,
+    kind: "test-market-price-conversion-apply-receipt",
+    planSha256,
+    schemaVersion: 1,
+    writeScope: ["pricing.price"],
+  }
+  await writePrivateCommerceArtifactNoClobber(
+    receiptPath,
+    canonicalJsonLine(receipt)
+  )
+  return receipt
 }
 
 const collectCurrentPlan = async (
@@ -738,13 +703,29 @@ const collectCurrentPlan = async (
   }
 }
 
+export const withTestPriceConversionApplyLock = async <Value>(
+  container: MedusaContainer,
+  task: () => Promise<Value>
+): Promise<Value> => {
+  const manager = container.resolve<SqlEntityManager>(
+    ContainerRegistrationKeys.MANAGER
+  )
+  return await manager.transactional(async (transactionManager) => {
+    await transactionManager.execute(
+      "select pg_advisory_xact_lock(hashtextextended(?, 0))",
+      [APPLY_LOCK_KEY]
+    )
+    return await task()
+  })
+}
+
 export const runTestPriceConversion = async (
   container: MedusaContainer,
   options: CliOptions,
   environment: NodeJS.ProcessEnv = process.env
 ) => {
-  const current = await collectCurrentPlan(container, environment)
   if (options.mode === "dry-run") {
+    const current = await collectCurrentPlan(container, environment)
     const artifact = buildTestPriceConversionPlanArtifact(current.plan)
     const bytes = serializeTestPriceConversionPlanArtifact(artifact)
     await writePrivateCommerceArtifactNoClobber(options.planOutputPath, bytes)
@@ -762,22 +743,28 @@ export const runTestPriceConversion = async (
     options.expectedPlanArtifactSha256,
     options.expectedPlanSha256
   )
-  if (
-    serializeTestPriceConversionPlan(artifact.plan) !==
-    serializeTestPriceConversionPlan(current.plan)
-  ) {
-    throw new Error(
-      "current release, database, prices, or inventory do not match the reviewed dry-run plan"
-    )
-  }
-  await createArtifactDirectory(options.artifactDirectory)
-  const receipt = await applyTestPriceConversion({
-    artifactDirectory: options.artifactDirectory,
-    before: current.databaseSnapshot,
+  const receipt = await withTestPriceConversionApplyLock(
     container,
-    inventoryBefore: current.inventorySnapshot,
-    plan: current.plan,
-  })
+    async () => {
+      const current = await collectCurrentPlan(container, environment)
+      if (
+        serializeTestPriceConversionPlan(artifact.plan) !==
+        serializeTestPriceConversionPlan(current.plan)
+      ) {
+        throw new Error(
+          "current release, database, prices, or inventory do not match the reviewed dry-run plan"
+        )
+      }
+      await createArtifactDirectory(options.artifactDirectory)
+      return await applyTestPriceConversion({
+        artifactDirectory: options.artifactDirectory,
+        before: current.databaseSnapshot,
+        container,
+        inventoryBefore: current.inventorySnapshot,
+        plan: current.plan,
+      })
+    }
+  )
   return { mode: options.mode, receipt } as const
 }
 
