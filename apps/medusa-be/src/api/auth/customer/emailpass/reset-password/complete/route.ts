@@ -1,9 +1,7 @@
 import type { MedusaRequest, MedusaResponse } from "@medusajs/framework/http"
-import { MedusaError, Modules } from "@medusajs/framework/utils"
-import {
-  privateFlowNotFound,
-  setPrivateNoStore,
-} from "../../../../../store/private-flow-utils"
+import { MedusaError } from "@medusajs/framework/utils"
+import { completeCustomerPasswordResetWorkflow } from "../../../../../../workflows/customer/workflows/complete-customer-password-reset"
+import { setPrivateNoStore } from "../../../../../store/private-flow-utils"
 import {
   readExactPasswordResetBearerToken,
   requirePasswordResetSecret,
@@ -35,27 +33,9 @@ export async function POST(
     )
   }
 
-  const authModule = request.scope.resolve(Modules.AUTH)
-  try {
-    await authModule.consumePasswordResetToken({
-      entity_id: claims.entityId,
-      jti: claims.jti,
-      provider: "emailpass",
-    })
-  } catch {
-    return privateFlowNotFound()
-  }
-
-  const { authIdentity, error, success } = await authModule.updateProvider(
-    "emailpass",
-    { entity_id: claims.entityId, password }
-  )
-  if (!(success && authIdentity)) {
-    throw new MedusaError(
-      MedusaError.Types.UNAUTHORIZED,
-      error || "Unauthorized"
-    )
-  }
+  await completeCustomerPasswordResetWorkflow(request.scope).run({
+    input: { entity_id: claims.entityId, jti: claims.jti, password },
+  })
 
   response.status(200).json({ success: true })
 }

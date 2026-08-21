@@ -1,12 +1,25 @@
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  MedusaError,
+} from "@medusajs/framework/utils"
 import { SignJWT } from "jose"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 const resolveNotificationMarketContext = vi.hoisted(() => vi.fn())
+const completeCustomerPasswordResetRun = vi.hoisted(() => vi.fn())
 
 vi.mock("../../../../../../../utils/notification-market-context", () => ({
   resolveNotificationMarketContext,
 }))
+
+vi.mock(
+  "../../../../../../../workflows/customer/workflows/complete-customer-password-reset",
+  () => ({
+    completeCustomerPasswordResetWorkflow: vi.fn(() => ({
+      run: completeCustomerPasswordResetRun,
+    })),
+  })
+)
 
 import { POST } from "../route"
 
@@ -25,6 +38,9 @@ beforeEach(() => {
   resolveNotificationMarketContext.mockReset().mockResolvedValue({
     market_code: "sk",
     sales_channel_id: "sc_sk",
+  })
+  completeCustomerPasswordResetRun.mockReset().mockResolvedValue({
+    result: { auth_identity_id: "auth_identity_1" },
   })
 })
 
@@ -53,12 +69,6 @@ const buildRoute = (token: string, marketSalesChannelIds = ["sc_sk"]) => {
       },
     ],
   })
-  const consumePasswordResetToken = vi.fn().mockResolvedValue(undefined)
-  const updateProvider = vi.fn().mockResolvedValue({
-    authIdentity: { id: "auth_identity_1" },
-    success: true,
-  })
-  const authModule = { consumePasswordResetToken, updateProvider }
   const request = {
     body: { password: "new-secure-password" },
     headers: {
@@ -69,9 +79,6 @@ const buildRoute = (token: string, marketSalesChannelIds = ["sc_sk"]) => {
       resolve: vi.fn((key: string) => {
         if (key === ContainerRegistrationKeys.QUERY) {
           return { graph }
-        }
-        if (key === Modules.AUTH) {
-          return authModule
         }
         throw new Error(`Unexpected dependency: ${key}`)
       }),
@@ -84,7 +91,6 @@ const buildRoute = (token: string, marketSalesChannelIds = ["sc_sk"]) => {
   }
   response.status.mockReturnValue(response)
   return {
-    authModule,
     graph,
     request: request as never,
     response,
@@ -99,17 +105,34 @@ describe("POST /auth/customer/emailpass/reset-password/complete", () => {
 
     await POST(route.request, route.response as never)
 
-    expect(route.authModule.consumePasswordResetToken).toHaveBeenCalledWith({
-      entity_id: customerEmail,
-      jti: "jti_reset_1",
-      provider: "emailpass",
-    })
-    expect(route.authModule.updateProvider).toHaveBeenCalledWith("emailpass", {
-      entity_id: customerEmail,
-      password: "new-secure-password",
+    expect(completeCustomerPasswordResetRun).toHaveBeenCalledWith({
+      input: {
+        entity_id: customerEmail,
+        jti: "jti_reset_1",
+        password: "new-secure-password",
+      },
     })
     expect(route.response.status).toHaveBeenCalledWith(200)
     expect(route.response.json).toHaveBeenCalledWith({ success: true })
+  })
+
+  it("preserves a provider rejection from the retry-safe workflow", async () => {
+    process.env.JWT_SECRET = "reset-test-secret"
+    const token = await signResetToken("sc_sk")
+    const route = buildRoute(token)
+    completeCustomerPasswordResetRun.mockRejectedValue(
+      new MedusaError(MedusaError.Types.UNAUTHORIZED, "Invalid password")
+    )
+
+    await expect(
+      POST(route.request, route.response as never)
+    ).rejects.toMatchObject({
+      message: "Invalid password",
+      type: MedusaError.Types.UNAUTHORIZED,
+    })
+
+    expect(completeCustomerPasswordResetRun).toHaveBeenCalledOnce()
+    expect(route.response.status).not.toHaveBeenCalled()
   })
 
   it("rejects cross-market replay without consuming the token", async () => {
@@ -123,8 +146,7 @@ describe("POST /auth/customer/emailpass/reset-password/complete", () => {
       type: "not_found",
     })
 
-    expect(route.authModule.consumePasswordResetToken).not.toHaveBeenCalled()
-    expect(route.authModule.updateProvider).not.toHaveBeenCalled()
+    expect(completeCustomerPasswordResetRun).not.toHaveBeenCalled()
   })
 
   it("rejects an ambiguous publishable-key context without consuming the token", async () => {
@@ -138,16 +160,15 @@ describe("POST /auth/customer/emailpass/reset-password/complete", () => {
       type: "not_found",
     })
 
-    expect(route.authModule.consumePasswordResetToken).not.toHaveBeenCalled()
-    expect(route.authModule.updateProvider).not.toHaveBeenCalled()
+    expect(completeCustomerPasswordResetRun).not.toHaveBeenCalled()
   })
 
   it("collapses a consumed or unknown token to not found", async () => {
     process.env.JWT_SECRET = "reset-test-secret"
     const token = await signResetToken("sc_sk")
     const route = buildRoute(token)
-    route.authModule.consumePasswordResetToken.mockRejectedValue(
-      new Error("already consumed")
+    completeCustomerPasswordResetRun.mockRejectedValue(
+      new MedusaError(MedusaError.Types.NOT_FOUND, "Resource was not found.")
     )
 
     await expect(
@@ -156,6 +177,6 @@ describe("POST /auth/customer/emailpass/reset-password/complete", () => {
       type: "not_found",
     })
 
-    expect(route.authModule.updateProvider).not.toHaveBeenCalled()
+    expect(completeCustomerPasswordResetRun).toHaveBeenCalledOnce()
   })
 })
