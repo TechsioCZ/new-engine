@@ -32,6 +32,7 @@ export type CzechCatalogBundleSummary = Readonly<{
   artifacts: Readonly<{
     inputSha256: string
     ledgerSha256: string
+    sourceAttestationSha256: string
   }>
   counts: Readonly<{
     brands: Readonly<{

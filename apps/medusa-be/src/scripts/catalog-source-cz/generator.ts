@@ -311,7 +311,7 @@ const temporaryProvenance = (
 ): CatalogTranslationProvenance => ({
   artifactSha256: sourceArtifactSha256,
   method: "ai-generated",
-  sourceReference: `temporary-ai-translation-from-sk-SK:${sourceReference}`,
+  sourceReference: `temporary-ai-translation-from-sk-SK:${sourceReference}:source-artifact-sha256:${sourceArtifactSha256}`,
 })
 
 const officialProvenance = (
@@ -738,8 +738,31 @@ export const buildCzechCatalogBundle = async ({
 
   const normalizedEntries = normalizeEntries(entries)
   assertCount(normalizedEntries.length, EXPECTED.entries, "translation entries")
+  const sourceAttestation = {
+    records: normalizedEntries.map((entry) => ({
+      reference: entry.reference,
+      referenceId: entry.referenceId,
+      sourceReference: entry.provenance.sourceReference,
+      translations: entry.translations,
+    })),
+    schemaVersion: 1 as const,
+  }
+  const sourceAttestationBytes = Buffer.from(
+    `${stableCatalogTranslationJson(sourceAttestation)}\n`
+  )
+  const sourceAttestationSha256 = hashCatalogTranslationBytes(
+    sourceAttestationBytes
+  )
+  const attestedEntries = normalizedEntries.map((entry) => ({
+    ...entry,
+    provenance: {
+      ...entry.provenance,
+      artifactSha256: sourceAttestationSha256,
+    },
+  }))
+  const absoluteOutput = resolve(outputDirectory)
   const input: CatalogTranslationInput = {
-    entries: normalizedEntries,
+    entries: attestedEntries,
     environment: { ...environment, kind: "test" },
     inventory: {
       brands: EXPECTED.brands,
@@ -750,12 +773,12 @@ export const buildCzechCatalogBundle = async ({
     mode: "replace",
     schemaVersion: 1,
     sourceLocale: "sk-SK",
-    sourceArtifacts: Object.values(loaded)
-      .map(({ absolutePath, bytes }) => ({
-        path: absolutePath,
-        sha256: sha256(bytes),
-      }))
-      .sort((left, right) => left.path.localeCompare(right.path, "en")),
+    sourceArtifacts: [
+      {
+        path: join(absoluteOutput, "cz-catalog-source-attestation.json"),
+        sha256: sourceAttestationSha256,
+      },
+    ],
     targetLocale: "cs-CZ",
   }
   const inputBytes = Buffer.from(`${stableCatalogTranslationJson(input)}\n`)
@@ -772,6 +795,7 @@ export const buildCzechCatalogBundle = async ({
     artifacts: {
       inputSha256: hashCatalogTranslationBytes(inputBytes),
       ledgerSha256: hashCatalogTranslationBytes(ledgerBytes),
+      sourceAttestationSha256,
     },
     counts: {
       brands: {
@@ -811,9 +835,12 @@ export const buildCzechCatalogBundle = async ({
     },
   }
   const summaryBytes = Buffer.from(`${stableCatalogTranslationJson(summary)}\n`)
-  const absoluteOutput = resolve(outputDirectory)
   await mkdir(absoluteOutput, { mode: 0o700, recursive: false })
   await Promise.all([
+    writeExclusive(
+      join(absoluteOutput, "cz-catalog-source-attestation.json"),
+      sourceAttestationBytes
+    ),
     writeExclusive(
       join(absoluteOutput, "cz-catalog-translation-input.json"),
       inputBytes
