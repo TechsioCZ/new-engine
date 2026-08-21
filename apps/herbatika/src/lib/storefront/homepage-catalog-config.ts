@@ -6,3 +6,10 @@ export const HOMEPAGE_SECTION_CATEGORY_HANDLES = {
   "najoblubenejsie-produkty": HOMEPAGE_BESTSELLERS_CATEGORY_HANDLE,
   novinky: "novinky",
 } as const
+
+export const hasCompleteHomepageSectionSources = (
+  sources: Readonly<Record<string, string>>
+): boolean =>
+  Object.keys(HOMEPAGE_SECTION_CATEGORY_HANDLES).every((sectionId) =>
+    Boolean(sources[sectionId])
+  )

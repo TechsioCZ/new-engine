@@ -3,7 +3,14 @@ import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
 
 const mocks = vi.hoisted(() => ({
   fetch: vi.fn(),
+  fetchBlogPosts: vi.fn(),
+  fetchHeroBanners: vi.fn(),
+  hydrateHeroBanners: vi.fn(),
+  prefetchHomepage: vi.fn(),
+  readAvailableSlugs: vi.fn(),
   readArticle: vi.fn(),
+  readCompleteSlugs: vi.fn(),
+  readHomepageManifest: vi.fn(),
   readPage: vi.fn(),
   readProduct: vi.fn(),
   readStaticPage: vi.fn(),
@@ -26,9 +33,17 @@ vi.mock("@/lib/market/market-runtime.server", () => ({
   getConfiguredMarketRuntime: vi.fn(),
 }))
 vi.mock("@/lib/storefront/cms", () => ({
+  fetchCachedLatestCmsBlogPosts: mocks.fetchBlogPosts,
+  fetchCmsHeroBanners: mocks.fetchHeroBanners,
   readCmsArticleById: mocks.readArticle,
   readCmsPageById: mocks.readPage,
   readCmsStaticPage: mocks.readStaticPage,
+}))
+vi.mock("@/lib/storefront/cms-hero-targets.server", () => ({
+  hydrateCmsHeroBannerTargets: mocks.hydrateHeroBanners,
+}))
+vi.mock("@/lib/storefront/homepage-hero-source-manifest.server", () => ({
+  readReviewedHomepageHeroBanners: mocks.readHomepageManifest,
 }))
 vi.mock("@/lib/storefront/market-sdk.server", () => ({
   getMarketStorefrontSdk: () => ({
@@ -38,6 +53,13 @@ vi.mock("@/lib/storefront/market-sdk.server", () => ({
 }))
 vi.mock("@/lib/storefront/product-route-source.server", () => ({
   readProductRouteSourceFromMedusa: mocks.readProduct,
+}))
+vi.mock("@/lib/storefront/ssr", () => ({
+  prefetchHomePageStorefrontData: mocks.prefetchHomepage,
+}))
+vi.mock("@/lib/storefront/ssr/public-entity-projections", () => ({
+  readAvailablePublicEntitySlugs: mocks.readAvailableSlugs,
+  readCompletePublicEntitySlugs: mocks.readCompleteSlugs,
 }))
 vi.mock("@/lib/url-registry/runtime/instance.server", () => ({
   getUrlRegistryRuntime: vi.fn(),
@@ -67,6 +89,87 @@ const assignment = (entityId: string, publicSlug: string) => ({
 describe("system sitemap source wiring", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.fetchBlogPosts.mockResolvedValue([])
+    mocks.fetchHeroBanners.mockResolvedValue([
+      { id: "cms-home", imageSrc: "/cms-home.avif" },
+    ])
+    mocks.hydrateHeroBanners.mockResolvedValue({
+      kind: "found",
+      value: [{ id: "cms-home", imageSrc: "/cms-home.avif" }],
+    })
+    mocks.prefetchHomepage.mockResolvedValue({
+      categorySourceIds: ["cat_1"],
+      homepageSectionCategorySourceIds: {
+        "aktuálne-v.zlave": "cat_sale",
+        "najoblubenejsie-produkty": "cat_best",
+        novinky: "cat_new",
+      },
+      region: { id: "reg_cz" },
+      visibleProductIds: ["prod_1"],
+    })
+    mocks.readAvailableSlugs.mockResolvedValue({ kind: "found", value: {} })
+    mocks.readCompleteSlugs.mockResolvedValue({ kind: "found", value: {} })
+    mocks.readHomepageManifest.mockReturnValue(undefined)
+  })
+
+  it("publishes a homepage only when every hard SSR source is ready", async () => {
+    await expect(
+      systemSitemapDependencies.validateHomepageSource("cz")
+    ).resolves.toEqual({ kind: "found", value: true })
+
+    expect(mocks.prefetchHomepage).toHaveBeenCalledWith({ market: "cz" })
+    expect(mocks.readCompleteSlugs).toHaveBeenCalledWith({
+      kind: "category",
+      market: "cz",
+      requiredSourceIds: ["cat_1"],
+    })
+    expect(mocks.readAvailableSlugs).toHaveBeenCalledWith({
+      kind: "product",
+      market: "cz",
+      requiredSourceIds: ["prod_1"],
+    })
+  })
+
+  it("keeps the Romanian demo hero out of homepage publication", async () => {
+    mocks.fetchHeroBanners.mockResolvedValue([])
+
+    await expect(
+      systemSitemapDependencies.validateHomepageSource("ro")
+    ).resolves.toEqual({ kind: "unavailable" })
+    expect(mocks.hydrateHeroBanners).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    [
+      "missing region",
+      () =>
+        mocks.prefetchHomepage.mockResolvedValue({
+          categorySourceIds: [],
+          homepageSectionCategorySourceIds: {},
+          region: null,
+          visibleProductIds: [],
+        }),
+    ],
+    [
+      "incomplete market categories",
+      () =>
+        mocks.prefetchHomepage.mockResolvedValue({
+          categorySourceIds: [],
+          homepageSectionCategorySourceIds: {},
+          region: { id: "reg_cz" },
+          visibleProductIds: [],
+        }),
+    ],
+    [
+      "missing URLR category projections",
+      () => mocks.readCompleteSlugs.mockResolvedValue({ kind: "unavailable" }),
+    ],
+  ] as const)("fails closed for %s", async (_case, arrange) => {
+    arrange()
+
+    const result = await systemSitemapDependencies.validateHomepageSource("cz")
+
+    expect(result.kind).not.toBe("found")
   })
 
   it.each([
