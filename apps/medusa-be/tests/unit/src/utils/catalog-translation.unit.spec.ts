@@ -111,7 +111,14 @@ describe("exact catalog Translation-record reads", () => {
       "ro-RO",
       { title: "Colecție" },
     ],
-  ] as const)("requires the localized display field for %s translations", async (entityKind, reference, entityId, market, localeCode, translations) => { // biome-ignore lint/nursery/useMaxParams: each positional value is a visible table-test column.
+  ] as const)("requires the localized display field for %s translations", async (...[
+    entityKind,
+    reference,
+    entityId,
+    market,
+    localeCode,
+    translations,
+  ]) => {
     const { container } = context([
       translation({
         locale_code: localeCode,
