@@ -34,6 +34,7 @@ import { adminReviewRoutesMiddlewares } from "./admin/reviews/middlewares"
 import { adminSearchProfileRoutesMiddlewares } from "./admin/search-profiles/middlewares"
 import { adminStorefrontTextRoutesMiddlewares } from "./admin/storefront-texts/middlewares"
 import { serveAdminAppStatic } from "./admin-app-static"
+import { customerEmailpassUpdateGuardMiddlewares } from "./auth/customer/emailpass/update/middlewares"
 import {
   buildSafeApiErrorObservation,
   ensureRequestIdResponseHeader,
@@ -96,6 +97,7 @@ export default defineMiddlewares({
       matcher: "/webhooks/*",
       bodyParser: { preserveRawBody: true },
     },
+    ...customerEmailpassUpdateGuardMiddlewares,
     ...adminMiddlewares,
     ...adminOrderExpeditionRoutesMiddlewares,
     ...adminOrderBusinessStatusesRoutesMiddlewares,
