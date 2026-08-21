@@ -6,6 +6,13 @@ export const CATALOG_TRANSLATION_TARGET_LOCALES = [
   "ro-RO",
 ] as const
 
+export const CATALOG_TRANSLATION_EXACT_INVENTORY = {
+  brands: 128,
+  categories: 209,
+  productContents: 2151,
+  products: 2151,
+} as const
+
 export type CatalogTranslationTargetLocale =
   (typeof CATALOG_TRANSLATION_TARGET_LOCALES)[number]
 
@@ -45,6 +52,8 @@ export type CatalogTranslationInput = Readonly<{
   mode: "replace"
   schemaVersion: 1
   sourceLocale: typeof CATALOG_TRANSLATION_SOURCE_LOCALE
+  sourceArtifacts: readonly Readonly<{ path: string; sha256: string }>[]
+  targetLocale: CatalogTranslationTargetLocale
 }>
 
 export type ExistingCatalogTranslation = Readonly<{

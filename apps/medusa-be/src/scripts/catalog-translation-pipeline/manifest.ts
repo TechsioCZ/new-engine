@@ -1,7 +1,8 @@
-import { readFile } from "node:fs/promises"
+import { lstat, readFile } from "node:fs/promises"
 import { extname, isAbsolute, resolve } from "node:path"
 import { hashCatalogTranslationBytes } from "./canonical"
 import {
+  CATALOG_TRANSLATION_EXACT_INVENTORY,
   CATALOG_TRANSLATION_SOURCE_LOCALE,
   CATALOG_TRANSLATION_TARGET_LOCALES,
   type CatalogTranslationCliOptions,
@@ -150,6 +151,8 @@ export const parseCatalogTranslationInput = (
       "mode",
       "schemaVersion",
       "sourceLocale",
+      "sourceArtifacts",
+      "targetLocale",
     ],
     "input"
   )
@@ -157,6 +160,7 @@ export const parseCatalogTranslationInput = (
     input.schemaVersion !== 1 ||
     input.mode !== "replace" ||
     input.sourceLocale !== CATALOG_TRANSLATION_SOURCE_LOCALE ||
+    !TARGET_LOCALES.has(String(input.targetLocale)) ||
     !Array.isArray(input.entries) ||
     input.entries.length === 0
   ) {
@@ -180,6 +184,34 @@ export const parseCatalogTranslationInput = (
     )
   }
   const entries = input.entries.map(parseEntry)
+  if (
+    !Array.isArray(input.sourceArtifacts) ||
+    input.sourceArtifacts.length < 1
+  ) {
+    throw new Error("input.sourceArtifacts must be a non-empty array")
+  }
+  const sourceArtifacts = input.sourceArtifacts.map((candidate, index) => {
+    const label = `input.sourceArtifacts[${index}]`
+    const artifact = asRecord(candidate, label)
+    exactKeys(artifact, ["path", "sha256"], label)
+    if (
+      typeof artifact.path !== "string" ||
+      !isAbsolute(artifact.path) ||
+      !SHA_256.test(String(artifact.sha256))
+    ) {
+      throw new Error(`${label} is invalid`)
+    }
+    return { path: artifact.path, sha256: artifact.sha256 as string }
+  })
+  if (
+    new Set(sourceArtifacts.map(({ path }) => path)).size !==
+    sourceArtifacts.length
+  ) {
+    throw new Error("input.sourceArtifacts paths must be unique")
+  }
+  const sourceArtifactHashes = new Set(
+    sourceArtifacts.map(({ sha256 }) => sha256)
+  )
   const inventoryValue = asRecord(input.inventory, "input.inventory")
   exactKeys(
     inventoryValue,
@@ -194,8 +226,23 @@ export const parseCatalogTranslationInput = (
       return [key, count]
     })
   ) as CatalogTranslationInput["inventory"]
+  if (
+    Object.entries(CATALOG_TRANSLATION_EXACT_INVENTORY).some(
+      ([key, count]) => inventory[key as keyof typeof inventory] !== count
+    )
+  ) {
+    throw new Error("input.inventory does not match the frozen exact inventory")
+  }
   const identities = new Set<string>()
   for (const entry of entries) {
+    if (!sourceArtifactHashes.has(entry.provenance.artifactSha256)) {
+      throw new Error(
+        "entry provenance does not reference a declared source artifact"
+      )
+    }
+    if (entry.localeCode !== input.targetLocale) {
+      throw new Error("every entry must use input.targetLocale")
+    }
     const identity = `${entry.localeCode}\u0000${entry.reference}\u0000${entry.referenceId}`
     if (identities.has(identity)) {
       throw new Error(
@@ -249,6 +296,8 @@ export const parseCatalogTranslationInput = (
     mode: "replace",
     schemaVersion: 1,
     sourceLocale: CATALOG_TRANSLATION_SOURCE_LOCALE,
+    sourceArtifacts,
+    targetLocale: input.targetLocale as CatalogTranslationTargetLocale,
   }
 }
 
@@ -261,9 +310,29 @@ export const loadCatalogTranslationInput = async (inputPath: string) => {
   } catch (error) {
     throw new Error(`input is not valid JSON: ${(error as Error).message}`)
   }
+  const input = parseCatalogTranslationInput(parsed)
+  for (const artifact of input.sourceArtifacts) {
+    const before = await lstat(artifact.path).catch(() => {
+      throw new Error(`source artifact does not exist: ${artifact.path}`)
+    })
+    if (!before.isFile() || before.isSymbolicLink() || before.nlink !== 1) {
+      throw new Error(
+        `source artifact is not a private regular file: ${artifact.path}`
+      )
+    }
+    const artifactBytes = await readFile(artifact.path)
+    const after = await lstat(artifact.path)
+    if (
+      before.dev !== after.dev ||
+      before.ino !== after.ino ||
+      hashCatalogTranslationBytes(artifactBytes) !== artifact.sha256
+    ) {
+      throw new Error(`source artifact bytes do not match: ${artifact.path}`)
+    }
+  }
   return {
     absolutePath,
-    input: parseCatalogTranslationInput(parsed),
+    input,
     inputSha256: hashCatalogTranslationBytes(bytes),
   }
 }

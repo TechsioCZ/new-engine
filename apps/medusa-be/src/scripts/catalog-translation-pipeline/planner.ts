@@ -100,10 +100,7 @@ const buildPlanItem = (
   )
   const previousTranslations = existing?.translations ?? null
   const resultingTranslations: Record<string, unknown> = {
-    ...(previousTranslations ?? {}),
-  }
-  for (const [field, desired] of Object.entries(entry.translations)) {
-    resultingTranslations[field] = desired
+    ...entry.translations,
   }
   let action: CatalogTranslationPlanItem["action"] = "unchanged"
   if (!sameValue(previousTranslations, resultingTranslations)) {

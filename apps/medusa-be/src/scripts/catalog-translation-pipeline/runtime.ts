@@ -367,6 +367,14 @@ const readEntityIdentity = async (
   assertIds(categoryIds, categories, "category")
   assertIds(brandIds, brands, "brand")
   assertIds(productContentIds, productContents, "product content")
+  const contentProductIds = productContents
+    .map(({ productId }) => productId)
+    .sort((left, right) => left.localeCompare(right, "en"))
+  if (!same(productIds, contentProductIds)) {
+    throw new Error(
+      "product content ownership does not match the exact product inventory"
+    )
+  }
   const sourceRecords = [
     ...products.map(({ variants: _variants, ...product }) => ({
       reference: "product" as const,

@@ -99,11 +99,47 @@ const inputValue = (): CatalogTranslationInput => ({
     environmentId: "catalog-test-blue",
     kind: "test",
   },
-  inventory: { brands: 1, categories: 1, productContents: 1, products: 1 },
+  inventory: {
+    brands: 128,
+    categories: 209,
+    productContents: 2151,
+    products: 2151,
+  },
   mode: "replace",
   schemaVersion: 1,
   sourceLocale: "sk-SK",
+  sourceArtifacts: [
+    { path: "/tmp/ai-source.jsonl", sha256: SHA },
+    { path: "/tmp/reviewed-source.jsonl", sha256: "b".repeat(64) },
+  ],
+  targetLocale: "cs-CZ",
 })
+
+const fullInputValue = () => {
+  const input = inputValue()
+  const templates = Object.fromEntries(
+    input.entries.map((entry) => [entry.reference, entry])
+  )
+  const entries = [
+    ...Array.from({ length: 2151 }, (_, index) => ({
+      ...templates.product,
+      referenceId: `prod_${index}`,
+    })),
+    ...Array.from({ length: 2151 }, (_, index) => ({
+      ...templates.product_content,
+      referenceId: `pcontent_${index}`,
+    })),
+    ...Array.from({ length: 209 }, (_, index) => ({
+      ...templates.product_category,
+      referenceId: `pcat_${index}`,
+    })),
+    ...Array.from({ length: 128 }, (_, index) => ({
+      ...templates.brand,
+      referenceId: `brand_${index}`,
+    })),
+  ] as CatalogTranslationInput["entries"]
+  return { ...input, entries }
+}
 
 const translation = (
   id: string,
@@ -171,7 +207,8 @@ afterEach(async () => {
 
 describe("catalog translation test pipeline", () => {
   it("parses exact provenance and rejects duplicate or production-bound input", () => {
-    expect(parseCatalogTranslationInput(inputValue())).toEqual(inputValue())
+    const fullInput = fullInputValue()
+    expect(parseCatalogTranslationInput(fullInput).entries).toHaveLength(4639)
     expect(() =>
       parseCatalogTranslationInput({
         ...inputValue(),
@@ -265,6 +302,7 @@ describe("catalog translation test pipeline", () => {
       "1".repeat(64),
       snapshot([
         translation("tr_cs", "cs-CZ", {
+          legacy: "remove-me",
           title: "Zkopírovaný slovenský název",
         }),
       ])
@@ -274,8 +312,10 @@ describe("catalog translation test pipeline", () => {
     )
     expect(productItem?.action).toBe("update")
     expect(productItem?.previousTranslations).toEqual({
+      legacy: "remove-me",
       title: "Zkopírovaný slovenský název",
     })
+    expect(productItem?.resultingTranslations).not.toHaveProperty("legacy")
   })
 
   it("requires a matching explicit test environment and credential-free database fingerprint", () => {
