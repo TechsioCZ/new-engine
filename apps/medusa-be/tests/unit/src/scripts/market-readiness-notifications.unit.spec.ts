@@ -28,9 +28,11 @@ import {
 
 const publicationFsInterceptors = vi.hoisted(
   (): {
+    afterLstat: ((path: string) => Promise<void>) | null
     afterLink: ((source: string, destination: string) => Promise<void>) | null
     afterUnlink: ((path: string) => Promise<void>) | null
   } => ({
+    afterLstat: null,
     afterLink: null,
     afterUnlink: null,
   })
@@ -40,6 +42,11 @@ vi.mock("node:fs/promises", async (importOriginal) => {
   const actual = await importOriginal<typeof import("node:fs/promises")>()
   return {
     ...actual,
+    lstat: async (path: string) => {
+      const result = await actual.lstat(path)
+      await publicationFsInterceptors.afterLstat?.(path)
+      return result
+    },
     link: async (source: string, destination: string) => {
       await actual.link(source, destination)
       await publicationFsInterceptors.afterLink?.(source, destination)
@@ -89,6 +96,7 @@ const fourMarketInput = () => ({
 })
 
 afterEach(async () => {
+  publicationFsInterceptors.afterLstat = null
   publicationFsInterceptors.afterLink = null
   publicationFsInterceptors.afterUnlink = null
   await Promise.all(
@@ -372,6 +380,48 @@ describe("four-market notification readiness collector", () => {
     })
   })
 
+  it("cleans an owned final link after post-link validation fails and permits retry", async () => {
+    const report = await collectFourMarketNotificationReadiness({
+      ...fourMarketInput(),
+      renderer: {
+        render: vi.fn(async ({ locale, template }) => ({
+          html: "<html><body><p>safe</p></body></html>",
+          subject: `subject:${template}:${locale}`,
+          text: "safe",
+        })),
+      },
+      subjectResolver: (template, locale) => `subject:${template}:${locale}`,
+    })
+    const directory = await realpath(
+      await mkdtemp(join(tmpdir(), "notification-readiness-post-link-failure-"))
+    )
+    temporaryDirectories.push(directory)
+    const outputPath = join(directory, "notifications.json")
+    const failure = new Error("injected post-link validation failure")
+    publicationFsInterceptors.afterLink = async () => {
+      publicationFsInterceptors.afterLink = null
+      publicationFsInterceptors.afterLstat = async (path) => {
+        if (path !== directory) {
+          return
+        }
+        publicationFsInterceptors.afterLstat = null
+        throw failure
+      }
+    }
+
+    await expect(
+      writeNotificationReadinessArtifact(outputPath, report)
+    ).rejects.toBe(failure)
+    expect(await readdir(directory)).toEqual([])
+
+    await expect(
+      writeNotificationReadinessArtifact(outputPath, report)
+    ).resolves.toMatchObject({ path: outputPath })
+    expect(
+      parseNotificationReadinessArtifact(await readFile(outputPath, "utf8"))
+    ).toEqual(report)
+  })
+
   it("rejects an output inode swap while removing the temporary link", async () => {
     const report = await collectFourMarketNotificationReadiness({
       ...fourMarketInput(),
@@ -403,6 +453,10 @@ describe("four-market notification readiness collector", () => {
     ).rejects.toThrow(
       "Published notification readiness artifact changed during artifact publication"
     )
+    expect(await readFile(outputPath, "utf8")).toBe("substituted output")
+    await expect(
+      writeNotificationReadinessArtifact(outputPath, report)
+    ).rejects.toMatchObject({ code: "EEXIST" })
     expect(await readFile(outputPath, "utf8")).toBe("substituted output")
   })
 

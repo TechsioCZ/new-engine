@@ -105,6 +105,82 @@ const assertSameRegularFile = (
   }
 }
 
+const unlinkSameRegularFile = async (
+  path: string,
+  expected: FileIdentity
+): Promise<void> => {
+  let actual: Stats
+  try {
+    actual = await lstat(path)
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return
+    }
+    throw error
+  }
+  if (
+    actual.isSymbolicLink() ||
+    !actual.isFile() ||
+    actual.dev !== expected.dev ||
+    actual.ino !== expected.ino
+  ) {
+    return
+  }
+  await unlink(path)
+}
+
+const cleanupFailedPublication = async ({
+  finalLinkCreated,
+  handle,
+  originalError,
+  outputPath,
+  temporaryIdentity: knownTemporaryIdentity,
+  temporaryPath,
+}: Readonly<{
+  finalLinkCreated: boolean
+  handle: Awaited<ReturnType<typeof open>> | undefined
+  originalError: unknown
+  outputPath: string
+  temporaryIdentity: Stats | undefined
+  temporaryPath: string
+}>): Promise<never> => {
+  const cleanupErrors: unknown[] = []
+  let temporaryIdentity = knownTemporaryIdentity
+  if (!temporaryIdentity && handle) {
+    try {
+      temporaryIdentity = await handle.stat()
+    } catch (cleanupError) {
+      cleanupErrors.push(cleanupError)
+    }
+  }
+  try {
+    await handle?.close()
+  } catch (cleanupError) {
+    cleanupErrors.push(cleanupError)
+  }
+  if (temporaryIdentity) {
+    if (finalLinkCreated) {
+      try {
+        await unlinkSameRegularFile(outputPath, temporaryIdentity)
+      } catch (cleanupError) {
+        cleanupErrors.push(cleanupError)
+      }
+    }
+    try {
+      await unlinkSameRegularFile(temporaryPath, temporaryIdentity)
+    } catch (cleanupError) {
+      cleanupErrors.push(cleanupError)
+    }
+  }
+  if (cleanupErrors.length > 0) {
+    throw new AggregateError(
+      [originalError, ...cleanupErrors],
+      "Notification readiness artifact publication failed and cleanup was incomplete"
+    )
+  }
+  throw originalError
+}
+
 const isNotificationReadinessMarket = (
   value: unknown
 ): value is NotificationReadinessMarket =>
@@ -432,11 +508,25 @@ export const writeNotificationReadinessArtifact = async (
   }
   const temporaryPath = `${parentPath}/.${basename(outputPath)}.${process.pid}.${randomUUID()}.tmp`
   let handle: Awaited<ReturnType<typeof open>> | undefined
+  let temporaryIdentity: Stats | undefined
+  let finalLinkCreated = false
   try {
     handle = await open(temporaryPath, "wx", 0o600)
+    temporaryIdentity = await handle.stat()
+    assertSameRegularFile(
+      temporaryIdentity,
+      temporaryIdentity,
+      "Temporary notification readiness artifact",
+      1
+    )
     await handle.writeFile(serialized, "utf8")
     await handle.sync()
-    const temporaryIdentity = await handle.stat()
+    assertSameRegularFile(
+      temporaryIdentity,
+      await handle.stat(),
+      "Temporary notification readiness artifact",
+      1
+    )
     await handle.close()
     handle = undefined
     assertSameRegularFile(
@@ -447,6 +537,7 @@ export const writeNotificationReadinessArtifact = async (
     )
     await assertStableOutputParent(parentPath, parentIdentity)
     await link(temporaryPath, outputPath)
+    finalLinkCreated = true
     await assertStableOutputParent(parentPath, parentIdentity)
     assertSameRegularFile(
       temporaryIdentity,
@@ -463,13 +554,14 @@ export const writeNotificationReadinessArtifact = async (
       1
     )
   } catch (error) {
-    await handle?.close().catch(() => {
-      // Preserve the original publication failure.
+    await cleanupFailedPublication({
+      finalLinkCreated,
+      handle,
+      originalError: error,
+      outputPath,
+      temporaryIdentity,
+      temporaryPath,
     })
-    await unlink(temporaryPath).catch(() => {
-      // Preserve the original publication failure.
-    })
-    throw error
   }
   return {
     path: outputPath,
