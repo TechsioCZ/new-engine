@@ -102,8 +102,8 @@ const buildPlanItem = (
   const previousTranslations = existing?.translations ?? null
   const canonicalTranslations = Object.fromEntries(
     Object.entries(source.values).map(([field, value]) => {
-      if (value === null || value === undefined || value === "") {
-        return [field, null]
+      if (value === null || value === undefined) {
+        return [field, ""]
       }
       if (typeof value !== "string") {
         throw new Error(

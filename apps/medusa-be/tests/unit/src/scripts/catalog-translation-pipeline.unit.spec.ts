@@ -121,16 +121,16 @@ const normalizeSourceInputValue = (): CatalogTranslationInput => {
     brand: { title: "Značka SK" },
     product: {
       description: "Slovenský popis",
-      subtitle: null,
+      subtitle: "",
       title: "Slovenský názov",
     },
     product_category: {
-      bottom_description_html: null,
+      bottom_description_html: "",
       description: "Slovenská kategória",
       meta_description: "SEO popis SK",
       meta_title: "SEO titul SK",
       name: "Kategória",
-      top_description_html: null,
+      top_description_html: "",
     },
     product_content: {
       composition: "Zloženie",
@@ -296,6 +296,10 @@ describe("catalog translation test pipeline", () => {
       plan.items.find(({ reference }) => reference === "product")
         ?.resultingTranslations
     ).toEqual(sourceInput.entries[0]?.translations)
+    expect(
+      plan.items.find(({ reference }) => reference === "product")
+        ?.resultingTranslations.subtitle
+    ).toBe("")
     expect(() =>
       buildCatalogTranslationPlan(
         {

@@ -74,7 +74,8 @@ const requiredString = (value: unknown, label: string) => {
 
 const parseEntry = (
   value: unknown,
-  index: number
+  index: number,
+  mode: CatalogTranslationInput["mode"]
 ): CatalogTranslationInputEntry => {
   const label = `input.entries[${index}]`
   const entry = asRecord(value, label)
@@ -107,7 +108,8 @@ const parseEntry = (
     if (
       !(
         fieldValue === null ||
-        (typeof fieldValue === "string" && fieldValue.trim().length > 0)
+        (typeof fieldValue === "string" &&
+          (mode === "normalize-source" || fieldValue.trim().length > 0))
       )
     ) {
       throw new Error(`${label}.translations.${field} is invalid`)
@@ -188,7 +190,9 @@ export const parseCatalogTranslationInput = (
       "input.environment must identify a non-production test environment"
     )
   }
-  const entries = input.entries.map(parseEntry)
+  const entries = input.entries.map((entry, index) =>
+    parseEntry(entry, index, input.mode as CatalogTranslationInput["mode"])
+  )
   if (
     !Array.isArray(input.sourceArtifacts) ||
     input.sourceArtifacts.length < 1
