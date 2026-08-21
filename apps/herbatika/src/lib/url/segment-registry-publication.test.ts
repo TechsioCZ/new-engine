@@ -4,6 +4,7 @@ import {
   mkdir,
   mkdtemp,
   realpath,
+  rename,
   rm,
   symlink,
   unlink,
@@ -31,6 +32,12 @@ import {
 import { loadStaticRoutePublicationDecision } from "./segment-registry-publication.server"
 
 const directories: string[] = []
+
+const createArtifactRoot = async (prefix = ".static-artifacts-") => {
+  const root = await realpath(await mkdtemp(join(tmpdir(), prefix)))
+  directories.push(root)
+  return root
+}
 
 afterEach(async () => {
   await Promise.all(
@@ -123,10 +130,7 @@ describe("segment-registry G1 publication", () => {
   })
 
   it("loads exact private market files and rejects absent evidence", async () => {
-    const artifactRoot = await realpath(
-      await mkdtemp(join(tmpdir(), "static-artifacts-"))
-    )
-    directories.push(artifactRoot)
+    const artifactRoot = await createArtifactRoot()
     const directory = join(artifactRoot, "segment-registry-g1")
     await mkdir(directory, { mode: 0o700 })
     const build = buildSegmentRegistryPublicationArtifacts(
@@ -159,10 +163,7 @@ describe("segment-registry G1 publication", () => {
   })
 
   it("rejects unsafe roots and linked G1 artifacts", async () => {
-    const artifactRoot = await realpath(
-      await mkdtemp(join(tmpdir(), "static-artifacts-"))
-    )
-    directories.push(artifactRoot)
+    const artifactRoot = await createArtifactRoot()
     const publicationDirectory = join(artifactRoot, "segment-registry-g1")
     await mkdir(publicationDirectory, { mode: 0o700 })
     const build = buildSegmentRegistryPublicationArtifacts(
@@ -247,11 +248,54 @@ describe("segment-registry G1 publication", () => {
     })
   })
 
+  it("rejects a root swap beneath an untrusted ancestor", async () => {
+    const ancestor = await createArtifactRoot(".swappable-artifacts-")
+    const artifactRoot = join(ancestor, "trusted")
+    const attackerRoot = join(ancestor, "attacker")
+    const trustedPublication = join(artifactRoot, "segment-registry-g1")
+    const attackerPublication = join(attackerRoot, "segment-registry-g1")
+    await Promise.all([
+      mkdir(trustedPublication, { mode: 0o700, recursive: true }),
+      mkdir(attackerPublication, { mode: 0o700, recursive: true }),
+    ])
+    const build = buildSegmentRegistryPublicationArtifacts(
+      parsedPlan(),
+      "/private/plan.json"
+    ).find(({ market }) => market === "sk")
+    if (!build) {
+      throw new Error("missing SK test build")
+    }
+    await Promise.all([
+      writeFile(join(trustedPublication, "sk.json"), build.canonicalJson, {
+        mode: 0o600,
+      }),
+      writeFile(join(attackerPublication, "sk.json"), build.canonicalJson, {
+        mode: 0o600,
+      }),
+    ])
+    const trustedBackup = join(ancestor, "trusted-backup")
+    await chmod(ancestor, 0o777)
+    await rename(artifactRoot, trustedBackup)
+    await rename(attackerRoot, artifactRoot)
+    try {
+      await expect(
+        loadStaticRoutePublicationDecision(
+          { market: "sk", routeKey: "about" },
+          { HERBATIKA_SEGMENT_REGISTRY_G1_DIR: trustedPublication }
+        )
+      ).resolves.toEqual({
+        kind: "rejected",
+        reason: "artifact-unavailable",
+      })
+    } finally {
+      await rename(artifactRoot, attackerRoot)
+      await rename(trustedBackup, artifactRoot)
+      await chmod(ancestor, 0o700)
+    }
+  })
+
   it("binds rendered bytes through the approved artifact and payload hashes", async () => {
-    const artifactRoot = await realpath(
-      await mkdtemp(join(tmpdir(), "static-artifacts-"))
-    )
-    directories.push(artifactRoot)
+    const artifactRoot = await createArtifactRoot()
     const publicationDirectory = join(artifactRoot, "segment-registry-g1")
     const payloadDirectory = join(
       artifactRoot,

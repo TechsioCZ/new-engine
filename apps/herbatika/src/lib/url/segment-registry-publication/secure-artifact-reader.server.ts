@@ -2,6 +2,7 @@ import { constants, type Stats } from "node:fs"
 import type { FileHandle } from "node:fs/promises"
 import { lstat, open, realpath } from "node:fs/promises"
 import {
+  basename,
   dirname,
   isAbsolute,
   join,
@@ -17,9 +18,11 @@ type SecureDirectory = Readonly<{
   handle: FileHandle
   identity: FileIdentity
   path: string
+  policy: "private" | "trusted-ancestor"
 }>
 
 export type SecureArtifactBoundary = Readonly<{
+  directories: readonly SecureDirectory[]
   artifactRoot: SecureDirectory
   publicationDirectory: SecureDirectory
   publicationDirectoryRef: string
@@ -36,6 +39,11 @@ const isWritableByAnotherPrincipal = (metadata: Stats) => {
   return (metadata.mode & 0o022) !== 0
 }
 
+const isRootOwnedStickyDirectory = (metadata: Stats) => {
+  // biome-ignore lint/suspicious/noBitwiseOperators: POSIX mode flags are bit fields.
+  return metadata.uid === 0 && (metadata.mode & 0o1000) !== 0
+}
+
 const assertPrivateDirectoryMetadata = (metadata: Stats) => {
   if (
     !metadata.isDirectory() ||
@@ -44,6 +52,30 @@ const assertPrivateDirectoryMetadata = (metadata: Stats) => {
     isWritableByAnotherPrincipal(metadata)
   ) {
     throw new Error("segment-registry artifact directory is unsafe")
+  }
+}
+
+const assertTrustedAncestorMetadata = (metadata: Stats) => {
+  const ownedByTrustedPrincipal = metadata.uid === 0 || isProcessOwned(metadata)
+  if (
+    !metadata.isDirectory() ||
+    metadata.isSymbolicLink() ||
+    !ownedByTrustedPrincipal ||
+    (isWritableByAnotherPrincipal(metadata) &&
+      !isRootOwnedStickyDirectory(metadata))
+  ) {
+    throw new Error("segment-registry artifact ancestor is unsafe")
+  }
+}
+
+const assertDirectoryMetadata = (
+  metadata: Stats,
+  policy: SecureDirectory["policy"]
+) => {
+  if (policy === "private") {
+    assertPrivateDirectoryMetadata(metadata)
+  } else {
+    assertTrustedAncestorMetadata(metadata)
   }
 }
 
@@ -60,7 +92,7 @@ const assertDirectoryUnchanged = async (directory: SecureDirectory) => {
       lstat(directory.path),
       realpath(directory.path),
     ])
-  assertPrivateDirectoryMetadata(pathnameMetadata)
+  assertDirectoryMetadata(pathnameMetadata, directory.policy)
   if (
     !(
       descriptorMetadata.isDirectory() &&
@@ -73,10 +105,16 @@ const assertDirectoryUnchanged = async (directory: SecureDirectory) => {
   }
 }
 
-const openSecureDirectory = async (path: string): Promise<SecureDirectory> => {
+const openSecureDirectory = async (
+  path: string,
+  policy: SecureDirectory["policy"]
+): Promise<SecureDirectory> => {
   assertCanonicalAbsolutePath(path)
   const pathnameMetadata = await lstat(path)
-  assertPrivateDirectoryMetadata(pathnameMetadata)
+  assertDirectoryMetadata(pathnameMetadata, policy)
+  if ((await realpath(path)) !== path) {
+    throw new Error("segment-registry artifact directory is not canonical")
+  }
   const handle = await open(
     path,
     // biome-ignore lint/suspicious/noBitwiseOperators: POSIX open flags are a bitmask.
@@ -86,6 +124,7 @@ const openSecureDirectory = async (path: string): Promise<SecureDirectory> => {
     handle,
     identity: { dev: pathnameMetadata.dev, ino: pathnameMetadata.ino },
     path,
+    policy,
   }
   try {
     await assertDirectoryUnchanged(directory)
@@ -96,36 +135,65 @@ const openSecureDirectory = async (path: string): Promise<SecureDirectory> => {
   }
 }
 
+const pathPartsBelowRoot = (path: string) =>
+  relative(sep, path).split(sep).filter(Boolean)
+
+/**
+ * Node does not expose openat(2), so make absolute pathname traversal safe by
+ * starting at the non-renamable filesystem root and holding every directory
+ * descriptor in the chain. Each parent is exclusively controlled by root or
+ * this process identity; an untrusted principal therefore cannot rename or
+ * substitute the next component during a leaf read. The process UID is the
+ * explicit trust domain for these unsigned publication bundles.
+ */
 export const openSecureArtifactBoundary = async (
   publicationDirectoryPath: string
 ): Promise<SecureArtifactBoundary> => {
   assertCanonicalAbsolutePath(publicationDirectoryPath)
-  const artifactRoot = await openSecureDirectory(
-    dirname(publicationDirectoryPath)
-  )
-  let publicationDirectory: SecureDirectory | undefined
-  try {
-    publicationDirectory = await openSecureDirectory(publicationDirectoryPath)
-    await assertDirectoryUnchanged(artifactRoot)
-    const publicationDirectoryRef = relative(
-      artifactRoot.path,
-      publicationDirectory.path
+  const artifactRootPath = dirname(publicationDirectoryPath)
+  const publicationDirectoryRef = basename(publicationDirectoryPath)
+  if (
+    !publicationDirectoryRef ||
+    dirname(artifactRootPath) === artifactRootPath
+  ) {
+    throw new Error(
+      "segment-registry publication directory must be below its artifact root"
     )
-    if (
-      !publicationDirectoryRef ||
-      publicationDirectoryRef.includes(sep) ||
-      isAbsolute(publicationDirectoryRef)
-    ) {
-      throw new Error(
-        "segment-registry publication directory must be below its artifact root"
-      )
+  }
+  const directories: SecureDirectory[] = []
+  try {
+    const root = await openSecureDirectory(sep, "trusted-ancestor")
+    directories.push(root)
+    let parent = root
+    for (const part of pathPartsBelowRoot(publicationDirectoryPath)) {
+      const path = join(/* turbopackIgnore: true */ parent.path, part)
+      const policy: SecureDirectory["policy"] =
+        path === artifactRootPath || path === publicationDirectoryPath
+          ? "private"
+          : "trusted-ancestor"
+      const directory = await openSecureDirectory(path, policy)
+      directories.push(directory)
+      parent = directory
     }
-    return { artifactRoot, publicationDirectory, publicationDirectoryRef }
+    const artifactRoot = directories.find(
+      (directory) => directory.path === artifactRootPath
+    )
+    const publicationDirectory = directories.at(-1)
+    if (
+      !(artifactRoot && publicationDirectory) ||
+      publicationDirectory.path !== publicationDirectoryPath
+    ) {
+      throw new Error("segment-registry artifact boundary is incomplete")
+    }
+    await Promise.all(directories.map(assertDirectoryUnchanged))
+    return {
+      artifactRoot,
+      directories,
+      publicationDirectory,
+      publicationDirectoryRef,
+    }
   } catch (error) {
-    await Promise.allSettled([
-      artifactRoot.handle.close(),
-      ...(publicationDirectory ? [publicationDirectory.handle.close()] : []),
-    ])
+    await Promise.allSettled(directories.map(({ handle }) => handle.close()))
     throw error
   }
 }
@@ -133,10 +201,9 @@ export const openSecureArtifactBoundary = async (
 export const closeSecureArtifactBoundary = async (
   boundary: SecureArtifactBoundary
 ) => {
-  await Promise.allSettled([
-    boundary.publicationDirectory.handle.close(),
-    boundary.artifactRoot.handle.close(),
-  ])
+  await Promise.allSettled(
+    boundary.directories.map(({ handle }) => handle.close())
+  )
 }
 
 const resolveSecureRef = (root: string, ref: string) => {
@@ -193,15 +260,12 @@ export const readSecureArtifactText = async (
   )
   const directories: SecureDirectory[] = []
   try {
-    await Promise.all([
-      assertDirectoryUnchanged(boundary.artifactRoot),
-      assertDirectoryUnchanged(boundary.publicationDirectory),
-    ])
+    await Promise.all(boundary.directories.map(assertDirectoryUnchanged))
     const parts = pathFromRoot.split(sep)
     let directoryPath = boundary.artifactRoot.path
     for (const part of parts.slice(0, -1)) {
       directoryPath = join(directoryPath, part)
-      directories.push(await openSecureDirectory(directoryPath))
+      directories.push(await openSecureDirectory(directoryPath, "private"))
     }
     const handle = await open(
       path,
@@ -219,8 +283,7 @@ export const readSecureArtifactText = async (
       ])
       assertStableFile(initialMetadata, finalMetadata, finalPathMetadata)
       await Promise.all([
-        assertDirectoryUnchanged(boundary.artifactRoot),
-        assertDirectoryUnchanged(boundary.publicationDirectory),
+        ...boundary.directories.map(assertDirectoryUnchanged),
         ...directories.map(assertDirectoryUnchanged),
       ])
       return contents
