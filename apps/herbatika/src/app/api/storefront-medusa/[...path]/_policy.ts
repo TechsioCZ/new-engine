@@ -226,13 +226,17 @@ export const pathHasValidMarketScope = (
   binding: MarketRuntimeBinding
 ): boolean => authority?.kind !== "region" || authority.id === binding.regionId
 
-const parseOrigin = (value: string | null): string | null => {
+const parseWebOriginHost = (value: string | null): string | null => {
   if (!value) {
     return null
   }
 
   try {
-    return new URL(value).origin
+    const url = new URL(value)
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return null
+    }
+    return url.host
   } catch {
     return null
   }
@@ -240,25 +244,20 @@ const parseOrigin = (value: string | null): string | null => {
 
 export const hasSameOriginCsrfEvidence = (
   request: Request,
-  binding: MarketRuntimeBinding
+  _binding: MarketRuntimeBinding
 ): boolean => {
+  // Compare the Origin/Referer host against the request Host header instead
+  // of a canonical-protocol origin: TLS terminates at the edge proxy, so the
+  // scheme the app sees never reliably matches what the browser sent.
   const host = request.headers.get("host")
   if (!host) {
     return false
   }
 
-  let expectedOrigin: string
-  try {
-    const canonicalProtocol = new URL(binding.canonicalOrigin).protocol
-    expectedOrigin = new URL(`${canonicalProtocol}//${host}`).origin
-  } catch {
-    return false
+  const originHost = parseWebOriginHost(request.headers.get("origin"))
+  if (originHost) {
+    return originHost === host
   }
 
-  const origin = parseOrigin(request.headers.get("origin"))
-  if (origin) {
-    return origin === expectedOrigin
-  }
-
-  return parseOrigin(request.headers.get("referer")) === expectedOrigin
+  return parseWebOriginHost(request.headers.get("referer")) === host
 }
