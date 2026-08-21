@@ -56,7 +56,10 @@ const Harness = () => {
   return null
 }
 
-const labelsForLocale = (market: "ro" | "sk", locale: "ro-RO" | "sk-SK") => {
+const labelsForLocale = (
+  market: "cz" | "hu" | "ro" | "sk",
+  locale: "cs-CZ" | "hu-HU" | "ro-RO" | "sk-SK"
+) => {
   mocks.useMarketContext.mockReturnValue({ code: market, locale })
   renderToStaticMarkup(<Harness />)
 
@@ -75,11 +78,12 @@ describe("Herbatika header category ordering", () => {
     })
   })
 
-  it("orders Romanian diacritics with the exact ro-RO collation", () => {
-    expect(labelsForLocale("ro", "ro-RO")).toEqual(["Sare", "Șalvie"])
-  })
-
-  it("preserves the existing Slovak collation", () => {
-    expect(labelsForLocale("sk", "sk-SK")).toEqual(["Șalvie", "Sare"])
+  it.each([
+    ["sk", "sk-SK", ["Șalvie", "Sare"]],
+    ["cz", "cs-CZ", ["Șalvie", "Sare"]],
+    ["hu", "hu-HU", ["Șalvie", "Sare"]],
+    ["ro", "ro-RO", ["Sare", "Șalvie"]],
+  ] as const)("orders %s categories with the exact %s collation", (market, locale, expected) => {
+    expect(labelsForLocale(market, locale)).toEqual(expected)
   })
 })

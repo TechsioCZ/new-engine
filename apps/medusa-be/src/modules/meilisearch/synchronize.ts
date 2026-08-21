@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import type {
   ILockingModule,
   Logger,
@@ -19,7 +20,10 @@ import { STOREFRONT_URL_ASSIGNMENT_MODULE } from "../storefront-url-assignment"
 import type StorefrontUrlAssignmentModuleService from "../storefront-url-assignment/service"
 import { parseProductPublicationSnapshot } from "../url-registry-outbox/product-publication-assignment"
 import type { UrlRegistryOutboxMarket } from "../url-registry-outbox/types"
-import { MeilisearchAdminClient } from "./admin-client"
+import {
+  MeilisearchAdminClient,
+  MeilisearchSwapIndexError,
+} from "./admin-client"
 import {
   buildBrandSearchDocument,
   buildCategorySearchDocument,
@@ -27,6 +31,7 @@ import {
   buildProductSearchDocuments,
 } from "./documents"
 import { isMeilisearchEnabled } from "./env"
+import { resolveVerifiedFacetPriceCurrency } from "./profile-currency"
 import {
   loadSearchProfiles,
   SEARCH_INDEX_TYPES,
@@ -52,8 +57,16 @@ export type SearchProfileSyncOptions = {
   profileKeys?: string[]
 }
 
+export type SearchIndexGeneration = Readonly<Record<SearchIndexType, string>>
+
+export type RetainedSearchGeneration = Readonly<{
+  active: SearchIndexGeneration
+  retained: SearchIndexGeneration
+}>
+
 type SearchSyncTargets = Record<SearchIndexType, string>
 type SearchIndexDocumentCounts = Record<SearchIndexType, number>
+type ContentProjectionResolver = typeof resolveContentProjectionHrefs
 
 type SearchProfileSyncStateService = {
   updateSearchProfiles: (data: Record<string, unknown>) => Promise<unknown>
@@ -359,7 +372,7 @@ const URL_ASSIGNMENT_KIND_BY_ENTITY: Readonly<
 const resolveProfilePublicationScope = (
   profile: SearchProfile
 ): ProfilePublicationScope | undefined => {
-  if (isCatalogSourceLocale(profile.locale)) {
+  if (profile.locale === "default") {
     return
   }
 
@@ -430,9 +443,17 @@ const resolveProfileCommerceScope = async (
       ? [country.iso_2.trim().toLowerCase()]
       : []
   )
+  const verifiedCurrencyCode = resolveVerifiedFacetPriceCurrency(
+    profile.locale,
+    {
+      pricingContextCurrencyCode: currencyCode,
+      requestedCurrencyCode: currencyCode,
+    }
+  )
   const exactRegion =
     regionId &&
     currencyCode &&
+    verifiedCurrencyCode === currencyCode &&
     countryCodes.length === 1 &&
     countryCodes[0] === marketConfiguration.country &&
     metadata?.market_code === publicationScope.market &&
@@ -1265,90 +1286,234 @@ const resolvePayloadService = (
   }
 }
 
+type SearchContentSourceType = "article" | "page"
+
+type ContentProjectionEntry = {
+  sourceId: string
+  sourceType: SearchContentSourceType
+}
+
+const toContentProjectionEntries = (
+  documents: Record<string, unknown>[],
+  sourceType: SearchContentSourceType
+): ContentProjectionEntry[] =>
+  documents.flatMap((document) => {
+    const sourceId = getId(document)
+    return sourceId ? [{ sourceId, sourceType }] : []
+  })
+
+const assertCompleteContentProjection = (options: {
+  documentCount: number
+  entries: ContentProjectionEntry[]
+  profile: SearchProfile
+  projections: ReadonlyMap<string, string>
+  sourceType: SearchContentSourceType
+}): void => {
+  const { documentCount, entries, profile, projections, sourceType } = options
+
+  if (entries.length !== documentCount) {
+    throw new Error(
+      `Meilisearch profile "${profile.key}" content projection is incomplete because a published ${sourceType} has no stable source ID.`
+    )
+  }
+
+  const hasEveryProjection = entries.every(({ sourceId, sourceType: type }) =>
+    projections.has(contentProjectionKey(type, sourceId))
+  )
+
+  if (projections.size !== entries.length || !hasEveryProjection) {
+    throw new Error(
+      `Meilisearch profile "${profile.key}" content projection is incomplete for published ${sourceType} records.`
+    )
+  }
+}
+
+const buildProjectedContentDocuments = (options: {
+  documents: Record<string, unknown>[]
+  locale: string
+  projections: ReadonlyMap<string, string>
+  sourceType: SearchContentSourceType
+}): Record<string, unknown>[] => {
+  const { documents, locale, projections, sourceType } = options
+
+  return documents.flatMap((source) => {
+    const sourceId = getId(source)
+    const document = buildContentSearchDocument(
+      source,
+      sourceType,
+      locale,
+      sourceId
+        ? projections.get(contentProjectionKey(sourceType, sourceId))
+        : undefined
+    )
+
+    return document ? [document] : []
+  })
+}
+
+type PublishedContentPage = {
+  docs: Record<string, unknown>[]
+  hasNextPage: boolean
+}
+
+const loadPublishedContentPage = async (options: {
+  locale: string
+  page: number
+  payload: PayloadModuleService
+  sourceType: SearchContentSourceType
+}): Promise<PublishedContentPage> => {
+  const { locale, page, payload, sourceType } = options
+  const query = { limit: BATCH_SIZE, locale, page }
+
+  const result =
+    sourceType === "article"
+      ? await payload.listPublishedArticles(query)
+      : await payload.listPublishedPages(query)
+
+  return {
+    docs: result.docs as Record<string, unknown>[],
+    hasNextPage: result.hasNextPage,
+  }
+}
+
+const indexProjectedContentBatch = async (options: {
+  client: MeilisearchAdminClient
+  contentProjectionResolver: ContentProjectionResolver
+  currentIds: Set<string>
+  documents: Record<string, unknown>[]
+  index: string
+  logger: Logger
+  profile: SearchProfile
+  requireCompleteProjection: boolean
+  sourceType: SearchContentSourceType
+}): Promise<void> => {
+  const {
+    client,
+    contentProjectionResolver,
+    currentIds,
+    documents: sources,
+    index,
+    logger,
+    profile,
+    requireCompleteProjection,
+    sourceType,
+  } = options
+  const projectionEntries = toContentProjectionEntries(sources, sourceType)
+  const projections = await contentProjectionResolver(
+    projectionEntries,
+    profile.locale,
+    logger
+  )
+
+  if (requireCompleteProjection) {
+    assertCompleteContentProjection({
+      documentCount: sources.length,
+      entries: projectionEntries,
+      profile,
+      projections,
+      sourceType,
+    })
+  }
+
+  const documents = buildProjectedContentDocuments({
+    documents: sources,
+    locale: profile.locale,
+    projections,
+    sourceType,
+  })
+  if (requireCompleteProjection && documents.length !== sources.length) {
+    throw new Error(
+      `Meilisearch profile "${profile.key}" content projection is incomplete or invalid for published ${sourceType} records.`
+    )
+  }
+
+  for (const document of documents) {
+    const id = getId(document)
+
+    if (id) {
+      currentIds.add(id)
+    }
+  }
+
+  await client.addDocuments(index, documents)
+}
+
+const indexContentCollection = async (options: {
+  client: MeilisearchAdminClient
+  contentProjectionResolver: ContentProjectionResolver
+  currentIds: Set<string>
+  index: string
+  logger: Logger
+  payload: PayloadModuleService
+  profile: SearchProfile
+  requireCompleteProjection: boolean
+  sourceType: SearchContentSourceType
+}): Promise<void> => {
+  let page = 1
+
+  while (true) {
+    const result = await loadPublishedContentPage({
+      locale: options.profile.locale,
+      page,
+      payload: options.payload,
+      sourceType: options.sourceType,
+    })
+
+    await indexProjectedContentBatch({
+      ...options,
+      documents: result.docs,
+    })
+
+    if (!result.hasNextPage) {
+      return
+    }
+
+    page += 1
+  }
+}
+
 const indexContentDocuments = async (options: {
   client: MeilisearchAdminClient
+  contentProjectionResolver: ContentProjectionResolver
   index: string
   logger: Logger
   payload: PayloadModuleService | null
   profile: SearchProfile
+  requireCompleteProjection: boolean
 }): Promise<Set<string>> => {
-  const { client, index, logger, payload, profile } = options
+  const {
+    client,
+    contentProjectionResolver,
+    index,
+    logger,
+    payload,
+    profile,
+    requireCompleteProjection,
+  } = options
   const currentIds = new Set<string>()
 
   if (!payload) {
+    if (requireCompleteProjection) {
+      throw new Error(
+        `Meilisearch profile "${profile.key}" content projection is incomplete because Payload is unavailable.`
+      )
+    }
     return currentIds
   }
 
-  const indexCollection = async (type: "article" | "page") => {
-    let page = 1
-
-    while (true) {
-      const result =
-        type === "article"
-          ? await payload.listPublishedArticles({
-              limit: BATCH_SIZE,
-              locale: profile.locale,
-              page,
-            })
-          : await payload.listPublishedPages({
-              limit: BATCH_SIZE,
-              locale: profile.locale,
-              page,
-            })
-      const projectionEntries = result.docs
-        .map((document) => {
-          const sourceId = getId(document as Record<string, unknown>)
-          return sourceId ? { sourceId, sourceType: type } : null
-        })
-        .filter(
-          (
-            entry
-          ): entry is { sourceId: string; sourceType: "article" | "page" } =>
-            entry !== null
-        )
-      const projections = await resolveContentProjectionHrefs(
-        projectionEntries,
-        profile.locale,
-        logger
-      )
-      const documents = result.docs
-        .map((document) => {
-          const source = document as Record<string, unknown>
-          const sourceId = getId(source)
-
-          return buildContentSearchDocument(
-            source,
-            type,
-            profile.locale,
-            sourceId
-              ? projections.get(contentProjectionKey(type, sourceId))
-              : undefined
-          )
-        })
-        .filter((document): document is Record<string, unknown> =>
-          Boolean(document)
-        )
-
-      for (const document of documents) {
-        const id = getId(document)
-
-        if (id) {
-          currentIds.add(id)
-        }
-      }
-
-      await client.addDocuments(index, documents)
-
-      if (!result.hasNextPage) {
-        break
-      }
-
-      page += 1
-    }
+  const collectionOptions = {
+    client,
+    contentProjectionResolver,
+    currentIds,
+    index,
+    logger,
+    payload,
+    profile,
+    requireCompleteProjection,
   }
 
-  await indexCollection("page")
-  await indexCollection("article")
+  await indexContentCollection({ ...collectionOptions, sourceType: "page" })
+  await indexContentCollection({ ...collectionOptions, sourceType: "article" })
 
   return currentIds
 }
@@ -1403,10 +1568,168 @@ const updateTargetPaginationTotalHits = async (
   }
 }
 
+const validateRetainedSearchGeneration = (
+  generation: RetainedSearchGeneration
+): string => {
+  const expectedTypes = [...SEARCH_INDEX_TYPES].sort()
+  const activeTypes = Object.keys(generation.active).sort()
+  const retainedTypes = Object.keys(generation.retained).sort()
+
+  if (
+    activeTypes.length !== expectedTypes.length ||
+    retainedTypes.length !== expectedTypes.length ||
+    activeTypes.some((type, index) => type !== expectedTypes[index]) ||
+    retainedTypes.some((type, index) => type !== expectedTypes[index])
+  ) {
+    throw new Error(
+      "Meilisearch rollback requires one exact retained generation for all search index types."
+    )
+  }
+
+  const allUids = new Set<string>()
+  let generationSuffix: string | undefined
+
+  for (const type of SEARCH_INDEX_TYPES) {
+    const activeUid = generation.active[type]
+    const retainedUid = generation.retained[type]
+    const retainedPrefix = `${activeUid}__build_`
+
+    if (
+      typeof activeUid !== "string" ||
+      activeUid.trim() !== activeUid ||
+      !activeUid ||
+      typeof retainedUid !== "string" ||
+      retainedUid.trim() !== retainedUid ||
+      !retainedUid.startsWith(retainedPrefix)
+    ) {
+      throw new Error(
+        "Meilisearch rollback requires one exact retained generation bound to the active indexes."
+      )
+    }
+
+    const suffix = retainedUid.slice(retainedPrefix.length)
+    if (
+      !suffix ||
+      (generationSuffix !== undefined && suffix !== generationSuffix)
+    ) {
+      throw new Error(
+        "Meilisearch rollback requires one exact retained generation bound to the active indexes."
+      )
+    }
+
+    generationSuffix = suffix
+    allUids.add(activeUid)
+    allUids.add(retainedUid)
+  }
+
+  if (allUids.size !== SEARCH_INDEX_TYPES.length * 2) {
+    throw new Error(
+      "Meilisearch rollback requires one exact retained generation with distinct index UIDs."
+    )
+  }
+
+  if (!generationSuffix) {
+    throw new Error(
+      "Meilisearch rollback requires one exact retained generation bound to the active indexes."
+    )
+  }
+
+  return generationSuffix
+}
+
+const deleteMarkerBestEffort = async (
+  client: MeilisearchAdminClient,
+  index: string,
+  markerId: string
+): Promise<void> => {
+  try {
+    await client.deleteDocuments(index, [markerId])
+  } catch {
+    // Markers are namespaced and excluded from accepted proof document IDs.
+  }
+}
+
+const rollbackCompletionMarkerId = (generationSuffix: string): string =>
+  `search_rollback_marker_${createHash("sha256")
+    .update(generationSuffix)
+    .digest("hex")
+    .slice(0, 24)}`
+
+export const rollbackRetainedSearchGeneration = async (
+  client: MeilisearchAdminClient,
+  generation: RetainedSearchGeneration
+): Promise<void> => {
+  const generationSuffix = validateRetainedSearchGeneration(generation)
+  const completionMarkerId = rollbackCompletionMarkerId(generationSuffix)
+
+  const activeDocumentIds = await client.getDocumentIds(
+    generation.active.content
+  )
+  if (activeDocumentIds.includes(completionMarkerId)) {
+    return
+  }
+
+  await client.addDocuments(generation.retained.content, [
+    { id: completionMarkerId },
+  ])
+
+  try {
+    await client.swapIndexPairs(
+      SEARCH_INDEX_TYPES.map((type) => ({
+        first: generation.active[type],
+        second: generation.retained[type],
+      })),
+      {
+        index: generation.active.content,
+        documentId: completionMarkerId,
+      }
+    )
+  } catch (error) {
+    try {
+      const documentIds = await client.getDocumentIds(generation.active.content)
+      if (documentIds.includes(completionMarkerId)) {
+        return
+      }
+    } catch {
+      // The original swap failure remains authoritative when probing fails.
+    }
+
+    try {
+      await client.deleteDocuments(generation.retained.content, [
+        completionMarkerId,
+      ])
+    } catch {
+      // Preserve the swap failure; the marker is namespaced and harmless.
+    }
+
+    throw error
+  }
+}
+
+export const acceptRetainedSearchGeneration = async (
+  client: MeilisearchAdminClient,
+  generation: RetainedSearchGeneration
+): Promise<void> => {
+  const generationSuffix = validateRetainedSearchGeneration(generation)
+
+  for (const type of SEARCH_INDEX_TYPES) {
+    await client.deleteIndex(generation.retained[type])
+  }
+
+  await client.deleteDocuments(generation.active.content, [
+    rollbackCompletionMarkerId(generationSuffix),
+  ])
+}
+
 const finalizeFullSync = async (
   client: MeilisearchAdminClient,
   profile: SearchProfile,
-  targets: SearchSyncTargets
+  targets: SearchSyncTargets,
+  options: {
+    logger: Logger
+    onSwapCommittedOrUncertain: () => void
+    retainPreviousGeneration: boolean
+  }
 ) => {
   const completionMarkerId = `search_build_marker_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
 
@@ -1415,14 +1738,42 @@ const finalizeFullSync = async (
   }
 
   await client.addDocuments(targets.content, [{ id: completionMarkerId }])
-  await client.swapIndexPairs(
-    SEARCH_INDEX_TYPES.map((type) => ({
-      first: profile.indexes[type],
-      second: targets[type],
-    })),
-    { index: profile.indexes.content, documentId: completionMarkerId }
+  try {
+    await client.swapIndexPairs(
+      SEARCH_INDEX_TYPES.map((type) => ({
+        first: profile.indexes[type],
+        second: targets[type],
+      })),
+      { index: profile.indexes.content, documentId: completionMarkerId }
+    )
+  } catch (error) {
+    if (
+      !(
+        error instanceof MeilisearchSwapIndexError &&
+        error.definitelyNotCommitted
+      )
+    ) {
+      options.onSwapCommittedOrUncertain()
+    }
+    throw error
+  }
+  options.onSwapCommittedOrUncertain()
+  await deleteMarkerBestEffort(
+    client,
+    profile.indexes.content,
+    completionMarkerId
   )
-  await client.deleteDocuments(profile.indexes.content, [completionMarkerId])
+
+  if (options.retainPreviousGeneration) {
+    options.logger.info(
+      `Meilisearch profile ${profile.key} retained previous full-sync generation: ${Object.values(
+        targets
+      )
+        .sort((left, right) => left.localeCompare(right))
+        .join(",")}`
+    )
+    return
+  }
 
   for (const type of SEARCH_INDEX_TYPES) {
     await client.deleteIndex(targets[type])
@@ -1448,6 +1799,7 @@ const cleanupBuildTargets = async (
 export const syncProfile = async (options: {
   client: MeilisearchAdminClient
   container: MedusaContainer
+  contentProjectionResolver?: ContentProjectionResolver
   logger: Logger
   mode: SearchProfileSyncMode
   profile: SearchProfile
@@ -1458,9 +1810,8 @@ export const syncProfile = async (options: {
     ContainerRegistrationKeys.PG_CONNECTION
   )
   const payload = resolvePayloadService(container)
-  const usesStagedTargets =
-    mode === "full" || !isCatalogSourceLocale(profile.locale)
   const publicationScope = resolveProfilePublicationScope(profile)
+  const usesStagedTargets = mode === "full" || publicationScope !== undefined
   const commerceScope = await resolveProfileCommerceScope(
     query,
     profile,
@@ -1479,6 +1830,7 @@ export const syncProfile = async (options: {
   const targets = createTargets(profile, usesStagedTargets ? "full" : "normal")
 
   let finalized = false
+  let swapCommittedOrUncertain = false
 
   try {
     await prepareTargets(client, targets)
@@ -1554,10 +1906,13 @@ export const syncProfile = async (options: {
 
     const contentIds = await indexContentDocuments({
       client,
+      contentProjectionResolver:
+        options.contentProjectionResolver ?? resolveContentProjectionHrefs,
       index: targets.content,
       logger,
       payload,
       profile,
+      requireCompleteProjection: usesStagedTargets,
     })
 
     let deleted = 0
@@ -1585,7 +1940,13 @@ export const syncProfile = async (options: {
     })
 
     if (usesStagedTargets) {
-      await finalizeFullSync(client, profile, targets)
+      await finalizeFullSync(client, profile, targets, {
+        logger,
+        onSwapCommittedOrUncertain: () => {
+          swapCommittedOrUncertain = true
+        },
+        retainPreviousGeneration: mode === "full",
+      })
 
       finalized = true
     }
@@ -1599,7 +1960,7 @@ export const syncProfile = async (options: {
 
     return { deleted, indexed }
   } finally {
-    if (usesStagedTargets && !finalized) {
+    if (usesStagedTargets && !(finalized || swapCommittedOrUncertain)) {
       await cleanupBuildTargets(client, targets, logger)
     }
   }
@@ -1683,6 +2044,49 @@ const syncProfileWithStatus = async (options: {
   }
 }
 
+export const selectRequestedSearchProfiles = (
+  configuredProfiles: readonly SearchProfile[],
+  requestedProfileKeys?: readonly string[]
+): SearchProfile[] => {
+  if (configuredProfiles.length === 0) {
+    throw new Error(
+      "Meilisearch synchronization requires at least one configured profile."
+    )
+  }
+  if (requestedProfileKeys === undefined) {
+    return [...configuredProfiles]
+  }
+  if (requestedProfileKeys.length === 0) {
+    throw new Error(
+      "Meilisearch requested profile set must contain at least one exact profile key."
+    )
+  }
+  const requestedKeys = requestedProfileKeys.map((key) => {
+    if (typeof key !== "string" || !key || key.trim() !== key) {
+      throw new Error(
+        "Meilisearch requested profile keys must be nonblank trimmed strings."
+      )
+    }
+    return key
+  })
+  if (new Set(requestedKeys).size !== requestedKeys.length) {
+    throw new Error("Meilisearch requested profile keys must be unique.")
+  }
+  const configuredKeys = new Set(configuredProfiles.map(({ key }) => key))
+  const missingKeys = requestedKeys
+    .filter((key) => !configuredKeys.has(key))
+    .sort((left, right) => left.localeCompare(right))
+  if (missingKeys.length > 0) {
+    throw new Error(
+      `Meilisearch configured profile keys are missing: ${missingKeys
+        .map((key) => `"${key}"`)
+        .join(", ")}.`
+    )
+  }
+  const requestedSet = new Set(requestedKeys)
+  return configuredProfiles.filter(({ key }) => requestedSet.has(key))
+}
+
 const synchronizeUnlocked = async (
   container: MedusaContainer,
   mode: SearchProfileSyncMode,
@@ -1697,12 +2101,10 @@ const synchronizeUnlocked = async (
   }
 
   const configuredProfiles = await loadSearchProfiles(container)
-  const requestedKeys = options?.profileKeys?.length
-    ? new Set(options.profileKeys)
-    : undefined
-  const profiles = requestedKeys
-    ? configuredProfiles.filter((profile) => requestedKeys.has(profile.key))
-    : configuredProfiles
+  const profiles = selectRequestedSearchProfiles(
+    configuredProfiles,
+    options?.profileKeys
+  )
   const client = new MeilisearchAdminClient()
 
   let deleted = 0

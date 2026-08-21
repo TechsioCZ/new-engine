@@ -1,4 +1,5 @@
 import type { HttpTypes } from "@medusajs/types"
+import type { RegistrationTermsVersion } from "@/lib/auth/registration-policy"
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
 import type { HerbatikaMarketCode } from "@/lib/storefront/market-context"
 import {
@@ -21,6 +22,10 @@ export type ParsedRegisterPayload = {
   password: string
   firstName?: string
   lastName?: string
+  termsAcceptance: {
+    acceptedAt: string
+    version: RegistrationTermsVersion
+  }
   wholesale: ParsedWholesaleRegistration | null
 }
 
@@ -139,6 +144,7 @@ const buildCustomerProfile = ({
   firstName,
   lastName,
   marketCode,
+  termsAcceptance,
   wholesale,
 }: Omit<ParsedRegisterPayload, "password"> & {
   marketCode: HerbatikaMarketCode
@@ -148,6 +154,8 @@ const buildCustomerProfile = ({
   last_name: lastName,
   metadata: {
     storefront_market_code: marketCode,
+    registration_terms_accepted_at: termsAcceptance.acceptedAt,
+    registration_terms_version: termsAcceptance.version,
     ...(wholesale ? { company_identifier: wholesale.companyIdentifier } : {}),
   },
   ...(wholesale

@@ -16,9 +16,24 @@ describe("SEO XML serialization", () => {
       ])
     ).toContain("https://herbatica.cz/sitemaps/product-1.xml?a=1&amp;b=2")
     const urlSet = serializeUrlSet([
-      { location: "https://herbatica.cz/produkty/example" },
+      {
+        alternates: {
+          "cs-CZ": "https://herbatica.cz/produkty/example?a=1&b=2",
+          "sk-SK": "https://herbatica.sk/produkty/example-sk",
+        },
+        location: "https://herbatica.cz/produkty/example",
+      },
     ])
     expect(urlSet).not.toContain("<lastmod>")
-    expect(urlSet).toContain("<urlset")
+    expect(urlSet).toContain(
+      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'
+    )
+    expect(urlSet).toContain(
+      '<xhtml:link rel="alternate" hreflang="cs-CZ" href="https://herbatica.cz/produkty/example?a=1&amp;b=2"/>'
+    )
+    expect(urlSet).toContain(
+      '<xhtml:link rel="alternate" hreflang="sk-SK" href="https://herbatica.sk/produkty/example-sk"/>'
+    )
+    expect(urlSet.indexOf("<loc>")).toBeLessThan(urlSet.indexOf("<xhtml:link"))
   })
 })

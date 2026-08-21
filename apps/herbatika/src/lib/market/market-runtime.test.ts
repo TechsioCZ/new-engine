@@ -7,10 +7,14 @@ import {
 
 const COMPLETE_ENVIRONMENT = {
   ALLOWED_MARKETS: "sk,cz,hu,ro",
-  MARKET_ACCEPTED_HOSTS_CZ: "herbatica.cz",
-  MARKET_ACCEPTED_HOSTS_HU: "herbatica.hu",
-  MARKET_ACCEPTED_HOSTS_RO: "herbatica.ro",
-  MARKET_ACCEPTED_HOSTS_SK: "herbatica.sk",
+  MARKET_ACCEPTED_HOSTS_CZ:
+    "herbatica.cz,www.herbatica.cz,test-engine-herbatika-cz-zane.web-revolution.cz",
+  MARKET_ACCEPTED_HOSTS_HU:
+    "herbatica.hu,www.herbatica.hu,test-engine-herbatika-hu-zane.web-revolution.cz",
+  MARKET_ACCEPTED_HOSTS_RO:
+    "herbatica.ro,www.herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz",
+  MARKET_ACCEPTED_HOSTS_SK:
+    "herbatica.sk,www.herbatica.sk,test-engine-herbatika-zane.web-revolution.cz",
   MARKET_PUBLISHABLE_KEY_CZ: "pk_cz",
   MARKET_PUBLISHABLE_KEY_HU: "pk_hu",
   MARKET_PUBLISHABLE_KEY_RO: "pk_ro",
@@ -29,13 +33,32 @@ const COMPLETE_ENVIRONMENT = {
   MARKET_SALES_CHANNEL_SK: "sc_sk",
 } as const
 
+const HOST_MATRIX = [
+  ["herbatica.sk", "sk"],
+  ["www.herbatica.sk", "sk"],
+  ["test-engine-herbatika-zane.web-revolution.cz", "sk"],
+  ["herbatica.cz", "cz"],
+  ["www.herbatica.cz", "cz"],
+  ["test-engine-herbatika-cz-zane.web-revolution.cz", "cz"],
+  ["herbatica.hu", "hu"],
+  ["www.herbatica.hu", "hu"],
+  ["test-engine-herbatika-hu-zane.web-revolution.cz", "hu"],
+  ["herbatica.ro", "ro"],
+  ["www.herbatica.ro", "ro"],
+  ["test-engine-herbatika-ro-zane.web-revolution.cz", "ro"],
+] as const
+
 describe("createMarketRuntime", () => {
   it("builds the exact four-market server authority", () => {
     const runtime = createMarketRuntime(COMPLETE_ENVIRONMENT)
 
     expect(runtime.allowedMarkets).toEqual(["sk", "cz", "hu", "ro"])
     expect(getMarketRuntime(runtime, "sk")).toEqual({
-      acceptedHosts: ["herbatica.sk"],
+      acceptedHosts: [
+        "herbatica.sk",
+        "www.herbatica.sk",
+        "test-engine-herbatika-zane.web-revolution.cz",
+      ],
       canonicalOrigin: "https://herbatica.sk",
       countryCode: "SK",
       locale: "sk-SK",
@@ -76,64 +99,22 @@ describe("createMarketRuntime", () => {
     expect(resolveMarketRuntimeByHost(runtime, "unknown.example")).toBeNull()
   })
 
-  it.each([
-    ["herbatica.sk", "sk"],
-    ["HERBATICA.CZ:443", "cz"],
-    ["herbatica.hu.", "hu"],
-    ["herbatica.ro:3001", "ro"],
-  ])("resolves the accepted host %s to only market %s", (host, market) => {
+  it.each(
+    HOST_MATRIX
+  )("resolves the exact accepted host %s to only market %s", (host, market) => {
     const runtime = createMarketRuntime(COMPLETE_ENVIRONMENT)
 
     expect(resolveMarketRuntimeByHost(runtime, host)?.market).toBe(market)
   })
 
-  it("accepts a known alias only when deployment ownership enables it", () => {
-    const withoutAlias = createMarketRuntime(COMPLETE_ENVIRONMENT)
-    const withAlias = createMarketRuntime({
-      ...COMPLETE_ENVIRONMENT,
-      MARKET_ACCEPTED_HOSTS_SK: "herbatica.sk,www.herbatica.sk",
-    })
+  it.each([
+    ["HERBATICA.CZ:443", "cz"],
+    ["herbatica.hu.", "hu"],
+    ["herbatica.ro:3001", "ro"],
+  ])("normalizes the accepted host %s to market %s", (host, market) => {
+    const runtime = createMarketRuntime(COMPLETE_ENVIRONMENT)
 
-    expect(
-      resolveMarketRuntimeByHost(withoutAlias, "www.herbatica.sk")
-    ).toBeNull()
-    expect(
-      resolveMarketRuntimeByHost(withAlias, "www.herbatica.sk")?.market
-    ).toBe("sk")
-  })
-
-  it("binds the Romanian canonical and Zane preview hosts to Romania", () => {
-    const previewHost = "test-engine-herbatika-ro-zane.web-revolution.cz"
-    const runtime = createMarketRuntime({
-      ...COMPLETE_ENVIRONMENT,
-      MARKET_ACCEPTED_HOSTS_RO: `herbatica.ro,${previewHost}`,
-    })
-
-    expect(getMarketRuntime(runtime, "ro")?.acceptedHosts).toEqual([
-      "herbatica.ro",
-      previewHost,
-    ])
-    expect(resolveMarketRuntimeByHost(runtime, "herbatica.ro")?.market).toBe(
-      "ro"
-    )
-    expect(resolveMarketRuntimeByHost(runtime, previewHost)?.market).toBe("ro")
-  })
-
-  it("binds the Slovak canonical and primary Zane preview hosts to Slovakia", () => {
-    const previewHost = "test-engine-herbatika-zane.web-revolution.cz"
-    const runtime = createMarketRuntime({
-      ...COMPLETE_ENVIRONMENT,
-      MARKET_ACCEPTED_HOSTS_SK: `herbatica.sk,${previewHost}`,
-    })
-
-    expect(getMarketRuntime(runtime, "sk")?.acceptedHosts).toEqual([
-      "herbatica.sk",
-      previewHost,
-    ])
-    expect(getMarketRuntime(runtime, "sk")?.canonicalOrigin).toBe(
-      "https://herbatica.sk"
-    )
-    expect(resolveMarketRuntimeByHost(runtime, previewHost)?.market).toBe("sk")
+    expect(resolveMarketRuntimeByHost(runtime, host)?.market).toBe(market)
   })
 
   it("accepts arbitrary deployment domains and derives the canonical origin from the first host", () => {

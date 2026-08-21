@@ -6,6 +6,7 @@ type MarketCode = "cz" | "hu" | "ro" | "sk"
 
 type RegionFixture = {
   countries?: Array<{ iso_2: string }>
+  currency_code: string
   id: string
 }
 
@@ -16,21 +17,25 @@ type SalesChannelFixture = {
 
 const MARKET_FIXTURES = {
   sk: {
+    currencyCode: "eur",
     locale: "sk-SK",
     storeName: "Herbatica Slovensko",
     storefrontDomain: "herbatica.sk",
   },
   cz: {
+    currencyCode: "czk",
     locale: "cs-CZ",
     storeName: "Herbatica Česko",
     storefrontDomain: "herbatica.cz",
   },
   hu: {
+    currencyCode: "huf",
     locale: "hu-HU",
     storeName: "Herbatica Magyarország",
     storefrontDomain: "herbatica.hu",
   },
   ro: {
+    currencyCode: "ron",
     locale: "ro-RO",
     storeName: "Herbatica România",
     storefrontDomain: "herbatica.ro",
@@ -39,6 +44,7 @@ const MARKET_FIXTURES = {
 
 const buildRegion = (marketCode: MarketCode): RegionFixture => ({
   countries: [{ iso_2: marketCode }],
+  currency_code: MARKET_FIXTURES[marketCode].currencyCode,
   id: `region_${marketCode}`,
 })
 
@@ -156,7 +162,7 @@ describe("resolveNotificationMarketContext", () => {
     )
   })
 
-  it("rejects ambiguous country mappings", async () => {
+  it("rejects duplicate market authorities without a Sales Channel", async () => {
     const { container } = buildQuery({
       regions: [buildRegion("sk")],
       salesChannels: [
@@ -168,7 +174,7 @@ describe("resolveNotificationMarketContext", () => {
     await expect(
       resolveNotificationMarketContext(container, { countryCode: "sk" })
     ).rejects.toThrow(
-      "Notification market cannot be resolved unambiguously from Sales Channel metadata."
+      "Notification market authority must be unique across Sales Channels."
     )
   })
 
@@ -205,6 +211,128 @@ describe("resolveNotificationMarketContext", () => {
         salesChannelId: salesChannel.id,
       })
     ).rejects.toThrow("Notification market configuration is incomplete.")
+  })
+
+  it.each([
+    ["country_code", "cz"],
+    ["locale", "cs-CZ"],
+    ["market_code", "cz"],
+    ["storefront_domain", "herbatica.cz"],
+  ])("rejects a %s cross-wired to another canonical market", async (field, value) => {
+    const salesChannel = buildSalesChannel(["sk"])
+    const marketConfiguration = salesChannel.metadata
+      ?.storefront_notification_markets as Record<
+      string,
+      Record<string, unknown>
+    >
+    const slovakMarket = marketConfiguration.sk
+    if (!slovakMarket) {
+      throw new Error("Expected the Slovak market fixture")
+    }
+    slovakMarket[field] = value
+    const { container } = buildQuery({
+      regions: [buildRegion("sk")],
+      salesChannels: [salesChannel],
+    })
+
+    await expect(
+      resolveNotificationMarketContext(container, {
+        salesChannelId: salesChannel.id,
+      })
+    ).rejects.toThrow(
+      "Notification market configuration does not match its canonical authority."
+    )
+  })
+
+  it("rejects a canonical tuple published under another market key", async () => {
+    const salesChannel = buildSalesChannel(["sk"])
+    const marketConfiguration = salesChannel.metadata
+      ?.storefront_notification_markets as Record<
+      string,
+      Record<string, unknown>
+    >
+    const slovakMarket = marketConfiguration.sk
+    if (!slovakMarket) {
+      throw new Error("Expected the Slovak market fixture")
+    }
+    marketConfiguration.alias = slovakMarket
+    Reflect.deleteProperty(marketConfiguration, "sk")
+    const { container } = buildQuery({
+      regions: [buildRegion("sk")],
+      salesChannels: [salesChannel],
+    })
+
+    await expect(
+      resolveNotificationMarketContext(container, {
+        salesChannelId: salesChannel.id,
+      })
+    ).rejects.toThrow(
+      "Notification market configuration does not match its canonical authority."
+    )
+  })
+
+  it("rejects duplicate market authorities even with an explicit Sales Channel", async () => {
+    const selectedChannel = buildSalesChannel(["sk"], "sales_channel_selected")
+    const { container } = buildQuery({
+      regions: [buildRegion("sk")],
+      salesChannels: [
+        selectedChannel,
+        buildSalesChannel(["sk"], "sales_channel_duplicate"),
+      ],
+    })
+
+    await expect(
+      resolveNotificationMarketContext(container, {
+        salesChannelId: selectedChannel.id,
+      })
+    ).rejects.toThrow(
+      "Notification market authority must be unique across Sales Channels."
+    )
+  })
+
+  it("rejects a canonical market backed by the wrong region currency", async () => {
+    const salesChannel = buildSalesChannel(["sk"])
+    const region = buildRegion("sk")
+    region.currency_code = "czk"
+    const { container } = buildQuery({
+      regions: [region],
+      salesChannels: [salesChannel],
+    })
+
+    await expect(
+      resolveNotificationMarketContext(container, {
+        salesChannelId: salesChannel.id,
+      })
+    ).rejects.toThrow(
+      "Notification market region must use its canonical currency."
+    )
+  })
+
+  it("normalizes an explicitly configured canonical storefront host", async () => {
+    const salesChannel = buildSalesChannel(["sk"])
+    const marketConfiguration = salesChannel.metadata
+      ?.storefront_notification_markets as Record<
+      string,
+      Record<string, unknown>
+    >
+    const slovakMarket = marketConfiguration.sk
+    if (!slovakMarket) {
+      throw new Error("Expected the Slovak market fixture")
+    }
+    slovakMarket.storefront_domain = "  HERBATICA.SK  "
+    const { container } = buildQuery({
+      regions: [buildRegion("sk")],
+      salesChannels: [salesChannel],
+    })
+
+    await expect(
+      resolveNotificationMarketContext(container, {
+        salesChannelId: salesChannel.id,
+      })
+    ).resolves.toMatchObject({
+      storefront_base_url: "https://herbatica.sk",
+      storefront_domain: "herbatica.sk",
+    })
   })
 
   it("rejects a storefront domain containing URL user information", async () => {

@@ -46,6 +46,7 @@ describe("buildProductSeo", () => {
     const seo = buildProductSeo({
       canonicalUrl: "https://herbatica.sk/produkty/herbal-tea",
       initialVariantId: "variant-2",
+      locale: "sk-SK",
       product,
     })
 
@@ -66,6 +67,7 @@ describe("buildProductSeo", () => {
           "https://cdn.example.test/tea-cover.jpg",
           "https://cdn.example.test/tea-side.jpg",
         ],
+        inLanguage: "sk-SK",
         name: "Herbal Tea </script>",
         offers: {
           "@type": "Offer",
@@ -85,6 +87,7 @@ describe("buildProductSeo", () => {
     const seo = buildProductSeo({
       canonicalUrl: "https://herbatica.sk/produkty/herbal-tea",
       initialVariantId: "variant-1",
+      locale: "sk-SK",
       product,
     })
 
@@ -98,6 +101,35 @@ describe("buildProductSeo", () => {
     })
   })
 
+  it.each([
+    ["sk-SK", "EUR", "https://herbatica.sk/produkty/herbal-tea"],
+    ["cs-CZ", "CZK", "https://herbatica.cz/produkty/bylinny-caj"],
+    ["hu-HU", "HUF", "https://herbatica.hu/termekek/gyogytea"],
+    ["ro-RO", "RON", "https://herbatica.ro/produse/ceai-de-plante"],
+  ] as const)("emits %s Product JSON-LD in %s", (locale, currency, canonicalUrl) => {
+    const marketProduct = {
+      ...product,
+      variants: [
+        {
+          ...product.variants[0],
+          calculated_price: {
+            calculated_amount: 125,
+            currency_code: currency.toLowerCase(),
+          },
+        },
+      ],
+    } as unknown as ProductRouteMedusaProduct
+
+    const jsonLd = buildProductSeo({
+      canonicalUrl,
+      locale,
+      product: marketProduct,
+    }).jsonLd
+
+    expect(jsonLd.inLanguage).toBe(locale)
+    expect(jsonLd.offers?.priceCurrency).toBe(currency)
+  })
+
   it("omits an invalid GTIN instead of publishing unverified identifiers", () => {
     const invalidGtinProduct = {
       ...product,
@@ -106,6 +138,7 @@ describe("buildProductSeo", () => {
 
     const seo = buildProductSeo({
       canonicalUrl: "https://herbatica.sk/produkty/herbal-tea",
+      locale: "sk-SK",
       product: invalidGtinProduct,
     })
 
@@ -115,6 +148,7 @@ describe("buildProductSeo", () => {
   it("falls back to the product description when short copy has no text", () => {
     const seo = buildProductSeo({
       canonicalUrl: "https://herbatica.sk/produkty/herbal-tea",
+      locale: "sk-SK",
       product: {
         ...product,
         metadata: { short_description: "<script>ignored</script>" },
@@ -128,6 +162,7 @@ describe("buildProductSeo", () => {
     const seo = buildProductSeo({
       canonicalUrl:
         "https://herbatica.ro/produse/befungin-tinctura-cu-extract-de-chaga-siberian-100-ml-herbatica",
+      locale: "ro-RO",
       product: {
         ...product,
         description: "<p>Descriere oficială în limba română.</p>",
@@ -152,6 +187,7 @@ describe("buildProductSeo", () => {
   it("ignores malformed optional image payloads", () => {
     const seo = buildProductSeo({
       canonicalUrl: "https://herbatica.sk/produkty/herbal-tea",
+      locale: "sk-SK",
       product: {
         ...product,
         images: [
@@ -179,6 +215,7 @@ describe("buildProductSeo", () => {
 
     const seo = buildProductSeo({
       canonicalUrl: "https://herbatica.sk/produkty/herbal-tea",
+      locale: "sk-SK",
       product: withoutOptionalFields,
     })
 
@@ -196,9 +233,9 @@ describe("buildProductSeo", () => {
     "https://herbatica.sk/produkty/herbal-tea?variant=x",
     "https://herbatica.sk/produkty/herbal-tea#fragment",
   ])("rejects the noncanonical URL %s", (canonicalUrl) => {
-    expect(() => buildProductSeo({ canonicalUrl, product })).toThrow(
-      "Product SEO URL must be an absolute clean HTTPS URL"
-    )
+    expect(() =>
+      buildProductSeo({ canonicalUrl, locale: "sk-SK", product })
+    ).toThrow("Product SEO URL must be an absolute clean HTTPS URL")
   })
 })
 
@@ -206,6 +243,7 @@ describe("serializeProductJsonLd", () => {
   it("escapes script-breaking characters without changing JSON data", () => {
     const seo = buildProductSeo({
       canonicalUrl: "https://herbatica.sk/produkty/herbal-tea",
+      locale: "sk-SK",
       product,
     })
     const serialized = serializeProductJsonLd(seo.jsonLd)

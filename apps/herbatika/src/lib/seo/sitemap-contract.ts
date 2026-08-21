@@ -1,10 +1,14 @@
 import type { Market } from "@/lib/url/types"
 import type {
   ActiveEntityRouteTarget,
+  ActiveRouteTarget,
   EntityUrlKind,
   StaticRouteSnapshot,
 } from "@/lib/url-registry/model"
-import type { SourceReadResult } from "@/lib/url-registry/reads"
+import type {
+  ActiveEquivalenceLookup,
+  SourceReadResult,
+} from "@/lib/url-registry/reads"
 import type { SitemapUrl } from "./xml"
 
 export const SITEMAP_SHARD_TARGET = 100
@@ -58,6 +62,10 @@ export type SitemapDataDependencies = Readonly<{
   listStatic(
     market: Market
   ): Promise<SourceReadResult<readonly StaticRouteSnapshot[]>>
+  findEntityEquivalents?(
+    input: ActiveEquivalenceLookup
+  ): Promise<SourceReadResult<readonly ActiveRouteTarget[]>>
+  listMarkets?(): readonly Market[]
   validateEntitySources(input: {
     kind: Exclude<EntityUrlKind, "campaign">
     market: Market

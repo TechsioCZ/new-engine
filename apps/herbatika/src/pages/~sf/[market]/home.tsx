@@ -3,6 +3,7 @@ import { HydrationBoundary } from "@tanstack/react-query"
 import type { GetServerSideProps } from "next"
 import { HerbatikaHomepage } from "@/components/herbatika-homepage"
 import type { HeroBannerItem } from "@/components/homepage/homepage.data.types"
+import { resolveHomepageHeroSource } from "@/components/homepage/homepage.hero.data"
 import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   foundSource,
@@ -18,6 +19,7 @@ import {
 import { hydrateCmsHeroBannerTargets } from "@/lib/storefront/cms-hero-targets.server"
 import { fetchHeurekaHomepageReviews } from "@/lib/storefront/external-reviews.server"
 import { HOMEPAGE_SECTION_CATEGORY_HANDLES } from "@/lib/storefront/homepage-catalog-config"
+import { readReviewedHomepageHeroBanners } from "@/lib/storefront/homepage-hero-source-manifest.server"
 import { getHerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { prefetchHomePageStorefrontData } from "@/lib/storefront/ssr"
 import {
@@ -39,6 +41,13 @@ type HomeValue = Readonly<{
 }>
 
 type Props = PublicPageProps<HomeValue>
+
+const hasCompleteHomepageSectionSources = (
+  sources: Readonly<Record<string, string>>
+) =>
+  Object.keys(HOMEPAGE_SECTION_CATEGORY_HANDLES).every((sectionId) =>
+    Boolean(sources[sectionId])
+  )
 
 export const getServerSideProps = (async (context) =>
   resolveStaticPublicPage(context, {
@@ -67,16 +76,21 @@ export const getServerSideProps = (async (context) =>
           causeCode: "MISSING_REGION",
         } as const
       }
-      const sectionIds = Object.keys(HOMEPAGE_SECTION_CATEGORY_HANDLES)
       if (
-        sectionIds.some(
-          (sectionId) => !storefront.homepageSectionCategorySourceIds[sectionId]
+        !hasCompleteHomepageSectionSources(
+          storefront.homepageSectionCategorySourceIds
         )
       ) {
         return {
           causeCode: "INCOMPLETE_HOMEPAGE_SECTION_CATEGORY_SOURCE",
           kind: "invalid-response",
         } as const
+      }
+      const heroSource = resolveHomepageHeroSource(heroBanners, market, () =>
+        readReviewedHomepageHeroBanners(locale)
+      )
+      if (heroSource.kind === "unavailable") {
+        return heroSource
       }
       const [
         articlePublicSlugsById,
@@ -94,7 +108,7 @@ export const getServerSideProps = (async (context) =>
           market,
           requiredSourceIds: storefront.categorySourceIds,
         }),
-        hydrateCmsHeroBannerTargets(heroBanners, market),
+        hydrateCmsHeroBannerTargets(heroSource.value, market),
         readAvailablePublicEntitySlugs({
           kind: "product",
           market,

@@ -1,3 +1,5 @@
+import { getAboutPageData } from "@/components/about/about-page.data"
+import { getFaqPageData } from "@/components/faq/faq-page.data"
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
 import type { CmsArticle, CmsPage } from "@/lib/storefront/cms"
 import type { HerbatikaLocale } from "@/lib/storefront/market-context"
@@ -66,6 +68,16 @@ const STATIC_ROOT_PAGE_KEYS = new Set<StaticRootPageKey>([
   "privacy",
   "cookies",
 ])
+
+const hasCodeOwnedStaticPage = (
+  pageKey: StaticRootPageKey,
+  locale: HerbatikaLocale
+) => {
+  if (pageKey === "about") {
+    return Boolean(getAboutPageData(locale))
+  }
+  return pageKey === "faq" ? Boolean(getFaqPageData(locale)) : null
+}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   Boolean(value && typeof value === "object" && !Array.isArray(value))
@@ -380,6 +392,68 @@ const hasNoindexDemoFallback = (
     getRoDemoStaticPage(source.staticRouteKey as StaticRootPageKey, locale)
   )
 
+type StaticSourcePartition = Readonly<{
+  cmsSources: readonly SitemapStaticSourceCandidate[]
+  validations: readonly SitemapSourceValidation[]
+}>
+
+const partitionStaticSources = (
+  sources: readonly SitemapStaticSourceCandidate[],
+  locale: HerbatikaLocale
+): SourceReadResult<StaticSourcePartition> => {
+  const cmsSources: SitemapStaticSourceCandidate[] = []
+  const validations: SitemapSourceValidation[] = []
+  for (const source of sources) {
+    if (!isStaticRootPageKey(source.staticRouteKey)) {
+      continue
+    }
+    const codeOwned = hasCodeOwnedStaticPage(source.staticRouteKey, locale)
+    if (codeOwned === null) {
+      cmsSources.push(source)
+    } else if (codeOwned) {
+      validations.push({ routeId: source.routeId })
+    } else {
+      return {
+        causeCode: "MISSING_CODE_OWNED_STATIC_PAGE_SOURCE",
+        kind: "invalid-response",
+      }
+    }
+  }
+  return { kind: "found", value: { cmsSources, validations } }
+}
+
+const collectStaticCmsBatchValidations = (
+  batch: readonly SitemapStaticSourceCandidate[],
+  results: readonly CmsReadResult<CmsPage>[],
+  locale: HerbatikaLocale
+): SourceReadResult<readonly SitemapSourceValidation[]> => {
+  const validations: SitemapSourceValidation[] = []
+  for (const [index, result] of results.entries()) {
+    const source = batch[index]
+    if (!source) {
+      return {
+        causeCode: "INVALID_STATIC_CMS_VALIDATION_BATCH",
+        kind: "invalid-response",
+      }
+    }
+    if (
+      result.kind === "missing" ||
+      (result.kind !== "found" && hasNoindexDemoFallback(source, locale))
+    ) {
+      // Demo fallbacks are deliberately noindex and stay out of sitemaps.
+      continue
+    }
+    if (result.kind !== "found") {
+      return result
+    }
+    validations.push({
+      routeId: source.routeId,
+      updatedAt: contentUpdatedAt(result.value),
+    })
+  }
+  return { kind: "found", value: validations }
+}
+
 export const validateCmsStaticSitemapSources = async (
   input: Readonly<{
     locale: HerbatikaLocale
@@ -396,11 +470,15 @@ export const validateCmsStaticSitemapSources = async (
       kind: "invalid-response",
     }
   }
-  const validations: SitemapSourceValidation[] = []
-  const sources = input.sources.filter((source) =>
-    isStaticRootPageKey(source.staticRouteKey)
-  )
-  for (const batch of chunks(sources, SOURCE_VALIDATION_CONCURRENCY)) {
+  const partition = partitionStaticSources(input.sources, input.locale)
+  if (partition.kind !== "found") {
+    return partition
+  }
+  const validations = [...partition.value.validations]
+  for (const batch of chunks(
+    partition.value.cmsSources,
+    SOURCE_VALIDATION_CONCURRENCY
+  )) {
     const results = await Promise.all(
       batch.map((source) =>
         dependencies.readStaticPage(
@@ -409,30 +487,15 @@ export const validateCmsStaticSitemapSources = async (
         )
       )
     )
-    for (const [index, result] of results.entries()) {
-      const source = batch[index]
-      if (!source) {
-        return {
-          causeCode: "INVALID_STATIC_CMS_VALIDATION_BATCH",
-          kind: "invalid-response",
-        }
-      }
-      if (
-        result.kind === "missing" ||
-        (result.kind !== "found" &&
-          hasNoindexDemoFallback(source, input.locale))
-      ) {
-        // Demo fallbacks are deliberately noindex and stay out of sitemaps.
-        continue
-      }
-      if (result.kind !== "found") {
-        return result
-      }
-      validations.push({
-        routeId: source.routeId,
-        updatedAt: contentUpdatedAt(result.value),
-      })
+    const batchValidation = collectStaticCmsBatchValidations(
+      batch,
+      results,
+      input.locale
+    )
+    if (batchValidation.kind !== "found") {
+      return batchValidation
     }
+    validations.push(...batchValidation.value)
   }
   return { kind: "found", value: validations }
 }

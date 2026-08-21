@@ -1183,6 +1183,34 @@ describe("RO catalog readiness audit", () => {
     ).toThrow("forbidden in production readiness mode")
   })
 
+  it("accepts exactly one price-authority post-commerce hash key", () => {
+    const fixture = cutoverReceiptFixture()
+
+    expect(parseRoTwoPhaseProvenanceReceipt(fixture).receipt).toEqual(fixture)
+
+    const missingPriceAuthority = Object.fromEntries(
+      Object.entries(fixture.postCommerce).filter(
+        ([key]) => key !== "priceAuthoritySha256"
+      )
+    )
+    expect(() =>
+      parseRoTwoPhaseProvenanceReceipt({
+        ...fixture,
+        postCommerce: missingPriceAuthority,
+      })
+    ).toThrow("receipt.postCommerce is invalid")
+
+    expect(() =>
+      parseRoTwoPhaseProvenanceReceipt({
+        ...fixture,
+        postCommerce: {
+          ...fixture.postCommerce,
+          priceAuthoritySha256Copy: fixture.postCommerce.priceAuthoritySha256,
+        },
+      })
+    ).toThrow("receipt.postCommerce is invalid")
+  })
+
   it("parses the exact cutover receipt and rejects chain or path tampering", () => {
     const fixture = cutoverReceiptFixture()
     const parsed = parseRoTwoPhaseProvenanceReceipt(fixture)

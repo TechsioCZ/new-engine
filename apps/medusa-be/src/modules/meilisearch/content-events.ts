@@ -31,25 +31,17 @@ const isPublished = (
   change.doc?.status === "published" &&
   (type === "article" || change.doc?.visibility === "public")
 
-const reconcilePublishedContent = async ({
+const requirePublishedContentDocument = ({
   change,
-  client,
-  documentId,
-  index,
   locale,
-  logger,
   publicHref,
   type,
 }: {
   change: CmsSearchChange
-  client: MeilisearchAdminClient
-  documentId: string
-  index: string
   locale: string
-  logger: Logger
   publicHref: string | undefined
   type: "article" | "page"
-}) => {
+}): Record<string, unknown> => {
   const document = buildContentSearchDocument(
     change.doc ?? {},
     type,
@@ -58,14 +50,12 @@ const reconcilePublishedContent = async ({
   )
 
   if (document) {
-    await client.addDocuments(index, [document])
-    return
+    return document
   }
 
-  logger.warn(
-    `Removing ${change.collection} search projection because its canonical public href is unavailable`
+  throw new Error(
+    `Cannot reconcile ${change.collection} search projection because its canonical public href is unavailable`
   )
-  await client.deleteDocuments(index, [documentId])
 }
 
 export const reconcileContentSearchChange = async (
@@ -103,20 +93,19 @@ export const reconcileContentSearchChange = async (
     typeof change.doc?.locale === "string"
       ? normalizeLocale(change.doc.locale)
       : undefined
+  if (!locale) {
+    throw new Error(
+      `Quarantining ${change.collection} search projection because its locale is missing`
+    )
+  }
   const profiles = (await loadSearchProfiles(container)).filter(
-    (profile) => !locale || normalizeLocale(profile.locale) === locale
+    (profile) => normalizeLocale(profile.locale) === locale
   )
   const client = new MeilisearchAdminClient()
   const documentId = `${type}_${String(rawId)}`
 
   for (const profile of profiles) {
     const index = profile.indexes.content
-
-    await client.ensureIndex(index)
-    await client.updateSettings(
-      index,
-      CONTENT_INDEX_SETTINGS as Record<string, unknown>
-    )
 
     if (isPublished(change, type)) {
       const sourceId = String(rawId).trim()
@@ -125,17 +114,24 @@ export const reconcileContentSearchChange = async (
         profile.locale,
         logger
       )
-      await reconcilePublishedContent({
+      const document = requirePublishedContentDocument({
         change,
-        client,
-        documentId,
-        index,
         locale: profile.locale,
-        logger,
         publicHref: projections.get(contentProjectionKey(type, sourceId)),
         type,
       })
+      await client.ensureIndex(index)
+      await client.updateSettings(
+        index,
+        CONTENT_INDEX_SETTINGS as Record<string, unknown>
+      )
+      await client.addDocuments(index, [document])
     } else {
+      await client.ensureIndex(index)
+      await client.updateSettings(
+        index,
+        CONTENT_INDEX_SETTINGS as Record<string, unknown>
+      )
       await client.deleteDocuments(index, [documentId])
     }
   }

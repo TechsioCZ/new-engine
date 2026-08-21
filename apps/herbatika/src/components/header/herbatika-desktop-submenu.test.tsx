@@ -49,7 +49,7 @@ const featuredItems = [
   },
 ]
 
-const renderLabels = (locale: "ro-RO" | "sk-SK") => {
+const renderLabels = (locale: "cs-CZ" | "hu-HU" | "ro-RO" | "sk-SK") => {
   mocks.locale = locale
   return renderToStaticMarkup(
     <HerbatikaDesktopSubmenu activeRootHandle="trapi-ma" onClose={vi.fn()} />
@@ -66,15 +66,14 @@ describe("Herbatika desktop submenu ordering", () => {
     })
   })
 
-  it("orders Romanian diacritics with the exact ro-RO collation", () => {
-    const html = renderLabels("ro-RO")
+  it.each([
+    ["sk-SK", "Șalvie", "Sare"],
+    ["cs-CZ", "Șalvie", "Sare"],
+    ["hu-HU", "Șalvie", "Sare"],
+    ["ro-RO", "Sare", "Șalvie"],
+  ] as const)("orders desktop categories with the exact %s collation", (locale, first, second) => {
+    const html = renderLabels(locale)
 
-    expect(html.indexOf("Sare")).toBeLessThan(html.indexOf("Șalvie"))
-  })
-
-  it("preserves the existing Slovak collation", () => {
-    const html = renderLabels("sk-SK")
-
-    expect(html.indexOf("Șalvie")).toBeLessThan(html.indexOf("Sare"))
+    expect(html.indexOf(first)).toBeLessThan(html.indexOf(second))
   })
 })

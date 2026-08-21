@@ -84,16 +84,63 @@ describe("CMS event URL registry projection", () => {
     expect(mocks.deleteDocuments).not.toHaveBeenCalled()
   })
 
-  it("deletes the search document when the trusted projection is absent", async () => {
+  it("preserves the last-good document for retry when the trusted projection is absent", async () => {
     mocks.resolveContentProjectionHrefs.mockResolvedValue(new Map())
 
+    await expect(
+      reconcileContentSearchChange(
+        {
+          collection: "pages",
+          doc: {
+            id: "7",
+            locale: "cs-CZ",
+            status: "published",
+            title: "Doprava",
+            visibility: "public",
+          },
+          operation: "update",
+        },
+        logger,
+        container
+      )
+    ).rejects.toThrow("canonical public href is unavailable")
+
+    expect(mocks.addDocuments).not.toHaveBeenCalled()
+    expect(mocks.deleteDocuments).not.toHaveBeenCalled()
+    expect(mocks.ensureIndex).not.toHaveBeenCalled()
+    expect(mocks.updateSettings).not.toHaveBeenCalled()
+  })
+
+  it("quarantines a missing-locale event instead of broadcasting it", async () => {
+    await expect(
+      reconcileContentSearchChange(
+        {
+          collection: "articles",
+          doc: { id: "42", status: "published", title: "Bylinky" },
+          operation: "update",
+        },
+        logger,
+        container
+      )
+    ).rejects.toThrow(
+      "Quarantining articles search projection because its locale is missing"
+    )
+
+    expect(mocks.loadSearchProfiles).not.toHaveBeenCalled()
+    expect(mocks.resolveContentProjectionHrefs).not.toHaveBeenCalled()
+    expect(mocks.ensureIndex).not.toHaveBeenCalled()
+    expect(mocks.addDocuments).not.toHaveBeenCalled()
+    expect(mocks.deleteDocuments).not.toHaveBeenCalled()
+  })
+
+  it("deletes an explicitly localized unpublished document", async () => {
     await reconcileContentSearchChange(
       {
         collection: "pages",
         doc: {
           id: "7",
           locale: "cs-CZ",
-          status: "published",
+          status: "draft",
           title: "Doprava",
           visibility: "public",
         },
@@ -103,7 +150,6 @@ describe("CMS event URL registry projection", () => {
       container
     )
 
-    expect(mocks.addDocuments).not.toHaveBeenCalled()
     expect(mocks.deleteDocuments).toHaveBeenCalledWith("content-herbatika-cz", [
       "page_7",
     ])

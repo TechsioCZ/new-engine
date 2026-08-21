@@ -55,6 +55,70 @@ const SK_AUTH_MESSAGES: StorefrontAuthMessages = {
   wholesaleDataInvalid: "Firemné údaje musia byť platný objekt.",
 }
 
+const CZ_AUTH_MESSAGES: StorefrontAuthMessages = {
+  authenticationFailed: "E-mailová adresa nebo heslo nejsou správné.",
+  authenticationRequired: "Je vyžadováno přihlášení.",
+  authenticationRequestFailed: (status) =>
+    `Požadavek na ověření selhal se stavem ${status}.`,
+  customerLoginTokenMissing:
+    "Přihlášení zákazníka proběhlo úspěšně, ale token nebyl vrácen.",
+  emailAndPasswordRequired: "E-mail i heslo jsou povinné.",
+  emailRequired: "E-mail je povinný.",
+  invalidAuthenticationRequest: "Údaje požadavku na přihlášení nejsou platné.",
+  invalidBillingAddressCountry: "Vyberte platnou zemi pro fakturační adresu.",
+  invalidJson: "Tělo požadavku musí být platný JSON.",
+  invalidJsonObject: "Tělo požadavku musí být platný objekt JSON.",
+  newPasswordRequired: "Nové heslo je povinné.",
+  registrationFailed: "Registraci zákazníka se nepodařilo dokončit.",
+  resetPasswordFailed: "Heslo se nepodařilo obnovit.",
+  resetPasswordLinkFailed: "Odkaz pro obnovení hesla se nepodařilo odeslat.",
+  resetPasswordTokenRequired: "Token pro obnovení hesla je povinný.",
+  sessionRestoreFailed: "Přihlašovací relaci se nepodařilo obnovit.",
+  unableToReachAuthenticationService:
+    "K autentizační službě Medusa se nepodařilo připojit.",
+  wholesaleBillingAddressRequired: "Fakturační adresa je povinná.",
+  wholesaleCompanyIdentifierRequired:
+    "IČO nebo jiný identifikátor společnosti je povinný.",
+  wholesaleCompanyNameRequired: "Název společnosti je povinný.",
+  wholesaleConflict:
+    "Účet s touto e-mailovou adresou již existuje. Přihlaste se a požádejte podporu o velkoobchodní účet.",
+  wholesaleDataInvalid: "Firemní údaje musí být platný objekt.",
+}
+
+const HU_AUTH_MESSAGES: StorefrontAuthMessages = {
+  authenticationFailed: "Az e-mail-cím vagy a jelszó helytelen.",
+  authenticationRequired: "Bejelentkezés szükséges.",
+  authenticationRequestFailed: (status) =>
+    `A hitelesítési kérés ${status} állapotkóddal sikertelen volt.`,
+  customerLoginTokenMissing:
+    "Az ügyfél bejelentkezése sikeres volt, de a rendszer nem adott vissza tokent.",
+  emailAndPasswordRequired: "Az e-mail-cím és a jelszó megadása kötelező.",
+  emailRequired: "Az e-mail-cím megadása kötelező.",
+  invalidAuthenticationRequest: "A hitelesítési kérés adatai érvénytelenek.",
+  invalidBillingAddressCountry:
+    "Válasszon érvényes országot a számlázási címhez.",
+  invalidJson: "A kérés törzsének érvényes JSON-nak kell lennie.",
+  invalidJsonObject: "A kérés törzsének érvényes JSON-objektumnak kell lennie.",
+  newPasswordRequired: "Az új jelszó megadása kötelező.",
+  registrationFailed: "Az ügyfél regisztrációja nem sikerült.",
+  resetPasswordFailed: "A jelszó visszaállítása nem sikerült.",
+  resetPasswordLinkFailed:
+    "Nem sikerült elküldeni a jelszó-visszaállítási hivatkozást.",
+  resetPasswordTokenRequired:
+    "A jelszó-visszaállítási token megadása kötelező.",
+  sessionRestoreFailed:
+    "A bejelentkezési munkamenet visszaállítása nem sikerült.",
+  unableToReachAuthenticationService:
+    "Nem sikerült kapcsolódni a Medusa hitelesítési szolgáltatásához.",
+  wholesaleBillingAddressRequired: "A számlázási cím megadása kötelező.",
+  wholesaleCompanyIdentifierRequired:
+    "Az adószám vagy a cégazonosító megadása kötelező.",
+  wholesaleCompanyNameRequired: "A cégnév megadása kötelező.",
+  wholesaleConflict:
+    "Már létezik fiók ezzel az e-mail-címmel. Jelentkezzen be, és kérjen nagykereskedelmi fiókot az ügyfélszolgálattól.",
+  wholesaleDataInvalid: "A cégadatoknak érvényes objektumnak kell lenniük.",
+}
+
 const RO_AUTH_MESSAGES: StorefrontAuthMessages = {
   authenticationFailed: "Adresa de e-mail sau parola este incorectă.",
   authenticationRequired: "Este necesară autentificarea.",
@@ -88,7 +152,19 @@ const RO_AUTH_MESSAGES: StorefrontAuthMessages = {
   wholesaleDataInvalid: "Datele companiei trebuie să fie un obiect valid.",
 }
 
+const AUTH_MESSAGES_BY_MARKET = {
+  cz: CZ_AUTH_MESSAGES,
+  hu: HU_AUTH_MESSAGES,
+  ro: RO_AUTH_MESSAGES,
+  sk: SK_AUTH_MESSAGES,
+} as const satisfies Record<HerbatikaMarketCode, StorefrontAuthMessages>
+
 export const resolveStorefrontAuthMessages = (
   market: HerbatikaMarketCode
-): StorefrontAuthMessages =>
-  market === "ro" ? RO_AUTH_MESSAGES : SK_AUTH_MESSAGES
+): StorefrontAuthMessages => {
+  if (!Object.hasOwn(AUTH_MESSAGES_BY_MARKET, market)) {
+    throw new Error("Unsupported storefront auth market")
+  }
+
+  return AUTH_MESSAGES_BY_MARKET[market]
+}

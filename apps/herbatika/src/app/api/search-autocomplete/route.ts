@@ -5,7 +5,13 @@ import {
   createEmptySearchAutocompleteResponse,
   SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH,
 } from "@/lib/search-autocomplete/search-autocomplete-types"
+import { getHerbatikaMarketContext } from "@/lib/storefront/market-context"
 import { getSessionTokenFromCookieHeader } from "../storefront-auth/_lib"
+
+const PRIVATE_RESPONSE_HEADERS = {
+  "cache-control": "private, no-store, max-age=0",
+  vary: "Host, Cookie",
+} as const
 
 export async function GET(request: Request) {
   const marketBinding = resolveConfiguredMarketRuntimeBindingByHost(
@@ -13,6 +19,7 @@ export async function GET(request: Request) {
   )
   if (!marketBinding) {
     return NextResponse.json(createEmptySearchAutocompleteResponse(""), {
+      headers: PRIVATE_RESPONSE_HEADERS,
       status: 421,
     })
   }
@@ -21,29 +28,27 @@ export async function GET(request: Request) {
   const query = (searchParams.get("q") ?? "")
     .trim()
     .slice(0, SEARCH_AUTOCOMPLETE_MAX_QUERY_LENGTH)
-  const countryCode = searchParams.get("country")
-  const currencyCode = searchParams.get("currency")
-  const locale = searchParams.get("locale")
-  const regionId = searchParams.get("region")
   const authToken = getSessionTokenFromCookieHeader(
     request.headers.get("cookie")
   )
+  const marketContext = getHerbatikaMarketContext(marketBinding.market)
 
   try {
     const response = await fetchSearchAutocomplete({
       query,
-      countryCode: countryCode ?? marketBinding.countryCode.toLowerCase(),
-      currencyCode,
-      locale: locale ?? marketBinding.locale,
+      countryCode: marketBinding.countryCode.toLowerCase(),
+      currencyCode: marketContext.currencyCode,
+      locale: marketBinding.locale,
       market: marketBinding.market,
-      regionId: regionId ?? marketBinding.regionId,
+      regionId: marketBinding.regionId,
       authToken,
     })
-    return NextResponse.json(response)
+    return NextResponse.json(response, { headers: PRIVATE_RESPONSE_HEADERS })
   } catch (error) {
     console.error("Search autocomplete failed", error)
 
     return NextResponse.json(createEmptySearchAutocompleteResponse(query), {
+      headers: PRIVATE_RESPONSE_HEADERS,
       status: 502,
     })
   }

@@ -4,6 +4,7 @@ import type {
   MedusaResponse,
 } from "@medusajs/framework"
 import { errorHandler } from "@medusajs/framework/http"
+import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { defineMiddlewares } from "@medusajs/medusa"
 import { captureException } from "@sentry/node"
 import { normalizeError, shouldCaptureException } from "../utils/errors"
@@ -33,6 +34,11 @@ import { adminReviewRoutesMiddlewares } from "./admin/reviews/middlewares"
 import { adminSearchProfileRoutesMiddlewares } from "./admin/search-profiles/middlewares"
 import { adminStorefrontTextRoutesMiddlewares } from "./admin/storefront-texts/middlewares"
 import { serveAdminAppStatic } from "./admin-app-static"
+import {
+  buildSafeApiErrorObservation,
+  ensureRequestIdResponseHeader,
+  requestObservabilityMiddleware,
+} from "./request-observability"
 import { storeBrandsRoutesMiddlewares } from "./store/brands/middlewares"
 import { storeCatalogProductsRoutesMiddlewares } from "./store/catalog/products/middlewares"
 import { storeClaimRoutesMiddlewares } from "./store/claims/middlewares"
@@ -42,10 +48,12 @@ import { storeExternalReviewRoutesMiddlewares } from "./store/external-reviews/m
 import { storeGLSBranchesRoutesMiddlewares } from "./store/gls/branches/middlewares"
 import { storeMiddlewares } from "./store/middlewares"
 import { storeOrderConfirmationRoutesMiddlewares } from "./store/order-confirmations/middlewares"
+import { storeOrderMarketScopeRoutesMiddlewares } from "./store/orders/middlewares"
 import { storePaymentReturnRoutesMiddlewares } from "./store/payment-returns/middlewares"
 import { storeProductListsRoutesMiddlewares } from "./store/product-lists/middlewares"
 import { storeProductLocationAvailabilityRoutesMiddlewares } from "./store/products/[id]/location-availability/middlewares"
 import { storeProductAttributesRoutesMiddlewares } from "./store/products/[id]/product-attributes/middlewares"
+import { storeProductMarketScopeRoutesMiddlewares } from "./store/products/middlewares"
 import { storeReviewRoutesMiddlewares } from "./store/reviews/middlewares"
 import { storeSearchAutocompleteRoutesMiddlewares } from "./store/search/autocomplete/middlewares"
 import { storeShopReviewRoutesMiddlewares } from "./store/shop-reviews/middlewares"
@@ -61,6 +69,13 @@ export default defineMiddlewares({
     res: MedusaResponse,
     next: MedusaNextFunction
   ) => {
+    try {
+      ensureRequestIdResponseHeader(req, res)
+      const logger = req.scope.resolve(ContainerRegistrationKeys.LOGGER)
+      logger.error(JSON.stringify(buildSafeApiErrorObservation(req, error)))
+    } catch {
+      // Observability must never replace the original API error response.
+    }
     const normalizedError = normalizeError(error)
     if (shouldCaptureException(error)) {
       captureException(normalizedError)
@@ -68,6 +83,10 @@ export default defineMiddlewares({
     return originalErrorHandler(error, req, res, next)
   },
   routes: [
+    {
+      matcher: /^\/(?:admin|auth|healthz?|hooks|store|webhooks)(?:\/|$)/,
+      middlewares: [requestObservabilityMiddleware],
+    },
     {
       matcher: "/app*",
       middlewares: [serveAdminAppStatic],
@@ -110,8 +129,10 @@ export default defineMiddlewares({
     ...storeCmsRoutesMiddlewares,
     ...storeExternalReviewRoutesMiddlewares,
     ...storeOrderConfirmationRoutesMiddlewares,
+    ...storeOrderMarketScopeRoutesMiddlewares,
     ...storePaymentReturnRoutesMiddlewares,
     ...storeProductListsRoutesMiddlewares,
+    ...storeProductMarketScopeRoutesMiddlewares,
     ...storeProductLocationAvailabilityRoutesMiddlewares,
     ...storeProductAttributesRoutesMiddlewares,
     ...storeBrandsRoutesMiddlewares,

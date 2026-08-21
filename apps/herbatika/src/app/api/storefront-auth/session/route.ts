@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import {
+  applyStorefrontAuthResponsePolicy,
   buildMedusaUrl,
   clearSessionTokenCookie,
   discardResponseBody,
@@ -49,13 +50,15 @@ export async function GET(request: NextRequest) {
   const token = getSessionTokenFromCookieHeader(request.headers.get("cookie"))
 
   if (!token) {
-    return NextResponse.json<SessionResponse>(
-      {
-        token: null,
-        authenticated: false,
-        message: messages.authenticationRequired,
-      },
-      { status: 200 }
+    return applyStorefrontAuthResponsePolicy(
+      NextResponse.json<SessionResponse>(
+        {
+          token: null,
+          authenticated: false,
+          message: messages.authenticationRequired,
+        },
+        { status: 200 }
+      )
     )
   }
 
@@ -76,7 +79,7 @@ export async function GET(request: NextRequest) {
         { status: 200 }
       )
       setSessionTokenCookie(response, refreshedToken)
-      return response
+      return applyStorefrontAuthResponsePolicy(response)
     }
     await discardResponseBody(refreshResponse)
 
@@ -103,7 +106,7 @@ export async function GET(request: NextRequest) {
         { status: 200 }
       )
       clearSessionTokenCookie(unauthorizedResponse)
-      return unauthorizedResponse
+      return applyStorefrontAuthResponsePolicy(unauthorizedResponse)
     }
 
     const response = NextResponse.json<SessionResponse>(
@@ -111,7 +114,7 @@ export async function GET(request: NextRequest) {
       { status: 200 }
     )
     setSessionTokenCookie(response, token)
-    return response
+    return applyStorefrontAuthResponsePolicy(response)
   } catch {
     return serverError(messages.sessionRestoreFailed)
   }

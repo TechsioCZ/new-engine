@@ -10,6 +10,8 @@ export const ORDER_PAYMENT_QR_FIELDS = [
   "id",
   "display_id",
   "custom_display_id",
+  "region_id",
+  "sales_channel_id",
   "total",
   "currency_code",
   "+metadata",
@@ -31,6 +33,8 @@ export type StoreOrderResponse = {
         provider_id?: string | null
       }> | null
     }> | null
+    region_id?: string | null
+    sales_channel_id?: string | null
     total?: number | null
   } | null
 }

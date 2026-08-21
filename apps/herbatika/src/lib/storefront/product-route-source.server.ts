@@ -6,6 +6,7 @@ import {
 import { loadMedusaStorefrontMessages } from "@techsio/storefront-i18n/medusa/messages"
 import { getMarketRuntime, type MarketCode } from "@/lib/market/market-runtime"
 import { getConfiguredMarketRuntime } from "@/lib/market/market-runtime.server"
+import { applyOperatorContactAuthority } from "./operator-contact-authority.server"
 import {
   type ProductPageContextRequest,
   readProductPageContext,
@@ -98,5 +99,5 @@ export const readProductPageContextFromMedusa = (
         locale,
         market,
         signal: AbortSignal.timeout(PRODUCT_SOURCE_TIMEOUT_MS),
-      }),
+      }).then((messages) => applyOperatorContactAuthority(market, messages)),
   })

@@ -14,6 +14,13 @@ import {
 } from "@/lib/forms/validators/shared"
 import { resolveErrorMessage } from "@/lib/storefront/error-utils"
 import type { HerbatikaCountryCode } from "@/lib/storefront/market-context"
+import {
+  getAuthPasswordPolicyViolation,
+  isRegistrationCompanyIdentifierValid,
+  isRegistrationCompanyNameValid,
+  isRegistrationNameValid,
+  isRegistrationPostalCodeValid,
+} from "./registration-policy"
 
 export type LoginFormValues = {
   email: string
@@ -88,19 +95,14 @@ const createWholesaleFieldValidators = <TFormValues>(
 
 const createPasswordValidator =
   (messages: PasswordValidationMessages) => (value: string) => {
-    if (!value) {
+    const violation = getAuthPasswordPolicyViolation(value)
+    if (violation === "required") {
       return messages.passwordRequired
     }
-
-    if (value.length < 8) {
+    if (violation === "min-length") {
       return messages.passwordMinLength
     }
-
-    if (!passwordHasNumber(value)) {
-      return messages.passwordNumber
-    }
-
-    return
+    return violation === "number" ? messages.passwordNumber : undefined
   }
 
 const createPasswordConfirmationValidator =
@@ -162,8 +164,12 @@ export const createRegisterValidators = (
         ? undefined
         : messages.accountTypeRequired
     ),
-    first_name: createChangeBlurFieldValidators(addressValidators.firstName),
-    last_name: createChangeBlurFieldValidators(addressValidators.lastName),
+    first_name: createChangeBlurFieldValidators((value: string) =>
+      isRegistrationNameValid(value) ? undefined : messages.firstNameMinLength
+    ),
+    last_name: createChangeBlurFieldValidators((value: string) =>
+      isRegistrationNameValid(value) ? undefined : messages.lastNameMinLength
+    ),
     email: createChangeBlurFieldValidators(addressValidators.email),
     password: createChangeBlurFieldValidators(validatePassword),
     confirm_password: {
@@ -187,11 +193,23 @@ export const createRegisterValidators = (
     accept_terms: createChangeBlurFieldValidators((value: boolean) =>
       validateRequiredAgreement(value, messages.termsRequired)
     ),
-    company_name: createWholesaleValidator(addressValidators.company),
-    company_identifier: createWholesaleValidator(addressValidators.companyId),
+    company_name: createWholesaleValidator((value) =>
+      isRegistrationCompanyNameValid(value)
+        ? undefined
+        : messages.companyNameMinLength
+    ),
+    company_identifier: createWholesaleValidator((value) =>
+      isRegistrationCompanyIdentifierValid(value)
+        ? undefined
+        : messages.companyIdMinLength
+    ),
     billing_address_1: createWholesaleValidator(addressValidators.address1),
     billing_city: createWholesaleValidator(addressValidators.city),
-    billing_postal_code: createWholesaleValidator(addressValidators.postalCode),
+    billing_postal_code: createWholesaleValidator((value) =>
+      isRegistrationPostalCodeValid(value, countryCode)
+        ? undefined
+        : messages.postalCodeInvalid
+    ),
     billing_country_code: createWholesaleValidator(
       addressValidators.countryCode
     ),

@@ -8,13 +8,14 @@ import {
   buildCustomerAccountDeactivationUrl,
   createCustomerAccountDeactivationToken,
 } from "../../../utils/customer-account-deactivation"
-import { resolveCustomerNotificationMarketContext } from "../../../utils/customer-notification-market-context"
 import { hasArrayData } from "../../../utils/guards"
 import type { NotificationMarketContext } from "../../../utils/notification-market-context"
+import { resolveNotificationMarketContext } from "../../../utils/notification-market-context"
 import { normalizeCustomerName } from "../normalizers"
 
 type PrepareCustomerAccountDeactivationRequestInput = {
   customer_id: string
+  sales_channel_id: string
 }
 
 type CustomerRecord = {
@@ -79,23 +80,21 @@ export const prepareCustomerAccountDeactivationRequestStep = createStep(
       )
     }
 
-    const marketContext = await resolveCustomerNotificationMarketContext(
-      container,
-      { customerId: customer.id, email }
-    )
-    const salesChannelId = marketContext.sales_channel_id
+    const marketContext = await resolveNotificationMarketContext(container, {
+      salesChannelId: input.sales_channel_id,
+    })
 
-    if (!salesChannelId) {
+    if (marketContext.sales_channel_id !== input.sales_channel_id) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Account deactivation market requires a Sales Channel binding."
+        "Account deactivation market does not match the requested Sales Channel."
       )
     }
 
     const token = createCustomerAccountDeactivationToken({
       customer_id: customer.id,
       email,
-      sales_channel_id: salesChannelId,
+      sales_channel_id: input.sales_channel_id,
     })
 
     return new StepResponse({

@@ -3,7 +3,52 @@ import { NextRequest } from "next/server"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { config, proxy } from "./proxy"
 
-const originalAllowedMarkets = process.env.ALLOWED_MARKETS
+const ROUTING_ENVIRONMENT = {
+  ALLOWED_MARKETS: "sk,cz,hu,ro",
+  MARKET_ACCEPTED_HOSTS_CZ:
+    "herbatica.cz,www.herbatica.cz,test-engine-herbatika-cz-zane.web-revolution.cz",
+  MARKET_ACCEPTED_HOSTS_HU:
+    "herbatica.hu,www.herbatica.hu,test-engine-herbatika-hu-zane.web-revolution.cz",
+  MARKET_ACCEPTED_HOSTS_RO:
+    "herbatica.ro,www.herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz",
+  MARKET_ACCEPTED_HOSTS_SK:
+    "herbatica.sk,www.herbatica.sk,test-engine-herbatika-zane.web-revolution.cz",
+} as const
+
+const originalRoutingEnvironment = Object.fromEntries(
+  Object.keys(ROUTING_ENVIRONMENT).map((key) => [key, process.env[key]])
+)
+
+const HOST_MATRIX = [
+  ["herbatica.sk", "sk", "https://herbatica.sk"],
+  ["www.herbatica.sk", "sk", "https://herbatica.sk"],
+  [
+    "test-engine-herbatika-zane.web-revolution.cz",
+    "sk",
+    "https://herbatica.sk",
+  ],
+  ["herbatica.cz", "cz", "https://herbatica.cz"],
+  ["www.herbatica.cz", "cz", "https://herbatica.cz"],
+  [
+    "test-engine-herbatika-cz-zane.web-revolution.cz",
+    "cz",
+    "https://herbatica.cz",
+  ],
+  ["herbatica.hu", "hu", "https://herbatica.hu"],
+  ["www.herbatica.hu", "hu", "https://herbatica.hu"],
+  [
+    "test-engine-herbatika-hu-zane.web-revolution.cz",
+    "hu",
+    "https://herbatica.hu",
+  ],
+  ["herbatica.ro", "ro", "https://herbatica.ro"],
+  ["www.herbatica.ro", "ro", "https://herbatica.ro"],
+  [
+    "test-engine-herbatika-ro-zane.web-revolution.cz",
+    "ro",
+    "https://herbatica.ro",
+  ],
+] as const
 
 const request = (pathname: string, host = "herbatica.sk", method = "GET") =>
   new NextRequest(`https://${host}${pathname}`, {
@@ -12,14 +57,16 @@ const request = (pathname: string, host = "herbatica.sk", method = "GET") =>
   })
 
 beforeEach(() => {
-  process.env.ALLOWED_MARKETS = "sk,cz,hu,ro"
+  Object.assign(process.env, ROUTING_ENVIRONMENT)
 })
 
 afterEach(() => {
-  if (originalAllowedMarkets === undefined) {
-    Reflect.deleteProperty(process.env, "ALLOWED_MARKETS")
-  } else {
-    process.env.ALLOWED_MARKETS = originalAllowedMarkets
+  for (const [key, value] of Object.entries(originalRoutingEnvironment)) {
+    if (value === undefined) {
+      Reflect.deleteProperty(process.env, key)
+    } else {
+      process.env[key] = value
+    }
   }
 })
 
@@ -79,6 +126,20 @@ describe("public proxy adapter", () => {
     expect(response.headers.get("x-middleware-rewrite")).toBe(
       "https://herbatica.cz/~sf/cz/products/zeleny-caj?variant=SKU-AbC-01"
     )
+  })
+
+  it.each(
+    HOST_MATRIX
+  )("recognizes accepted host %s as %s with the canonical origin", (host, market, canonicalOrigin) => {
+    const response = proxy(request("/", host))
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get("x-middleware-request-x-sf-market")).toBe(
+      market
+    )
+    expect(
+      response.headers.get("x-middleware-request-x-sf-canonical-origin")
+    ).toBe(canonicalOrigin)
   })
 
   it("keeps the normalized adapter origin for an internal rewrite", () => {
@@ -152,6 +213,17 @@ describe("public proxy adapter", () => {
 
   it("returns 421 for an unknown host", () => {
     expect(proxy(request("/", "unknown.example")).status).toBe(421)
+  })
+
+  it("does not trust x-forwarded-host when the public Host is unknown", () => {
+    const spoofedRequest = new NextRequest("https://unknown.example/", {
+      headers: {
+        host: "unknown.example",
+        "x-forwarded-host": "herbatica.sk",
+      },
+    })
+
+    expect(proxy(spoofedRequest).status).toBe(421)
   })
 
   it.each([

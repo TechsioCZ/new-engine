@@ -4,6 +4,7 @@ import { Button } from "@techsio/ui-kit/atoms/button"
 import { FormInput } from "@techsio/ui-kit/molecules/form-input"
 import { FormTextarea } from "@techsio/ui-kit/molecules/form-textarea"
 import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group"
+import { useTranslations } from "next-intl"
 import type { FormEvent } from "react"
 import type {
   ClaimResolution,
@@ -13,11 +14,11 @@ import type {
 import { ClaimOrderItems, type SelectedClaimItem } from "./claim-order-items"
 import { TurnstileWidget } from "./turnstile-widget"
 
-const resolutionOptions: Array<{ label: string; value: ClaimResolution }> = [
-  { label: "Oprava", value: "repair" },
-  { label: "Výmena", value: "replacement" },
-  { label: "Zľava", value: "discount" },
-  { label: "Vrátenie peňazí", value: "refund" },
+const RESOLUTIONS: ClaimResolution[] = [
+  "repair",
+  "replacement",
+  "discount",
+  "refund",
 ]
 
 type ClaimDetailsFormProps = {
@@ -45,12 +46,14 @@ type ClaimDetailsFormProps = {
 }
 
 export function ClaimDetailsForm(props: ClaimDetailsFormProps) {
+  const t = useTranslations("claims")
+
   return (
     <form className="flex flex-col gap-400" onSubmit={props.onSubmit}>
       {props.order ? (
         <>
           <p className="font-bold text-fg-primary">
-            Objednávka č. {props.order.display_id}
+            {t("order_heading", { orderNumber: props.order.display_id })}
           </p>
           <ClaimOrderItems
             items={props.order.items}
@@ -63,7 +66,7 @@ export function ClaimDetailsForm(props: ClaimDetailsFormProps) {
           <FormInput
             autoComplete="email"
             id="manual-claim-email"
-            label="Kontaktný e-mail"
+            label={t("contact_email_label")}
             onChange={(event) => props.onEmailChange(event.target.value)}
             required
             type="email"
@@ -71,14 +74,14 @@ export function ClaimDetailsForm(props: ClaimDetailsFormProps) {
           />
           <FormInput
             id="manual-claim-item"
-            label="Názov produktu"
+            label={t("product_name_label")}
             onChange={(event) => props.onManualItemChange(event.target.value)}
             required
             value={props.manualItem}
           />
           <FormTextarea
             id="manual-purchase-details"
-            label="Údaje o nákupe"
+            label={t("purchase_details_label")}
             onChange={(event) =>
               props.onPurchaseDetailsChange(event.target.value)
             }
@@ -91,8 +94,8 @@ export function ClaimDetailsForm(props: ClaimDetailsFormProps) {
         id="claim-reason"
         label={
           props.type === "return"
-            ? "Dôvod vrátenia (nepovinné)"
-            : "Doplňujúce informácie (nepovinné)"
+            ? t("return_reason_optional")
+            : t("complaint_info_optional")
         }
         onChange={(event) => props.onReasonChange(event.target.value)}
         value={props.reason}
@@ -101,7 +104,7 @@ export function ClaimDetailsForm(props: ClaimDetailsFormProps) {
         <>
           <FormTextarea
             id="claim-defect"
-            label="Popis vady"
+            label={t("defect_description_label")}
             onChange={(event) =>
               props.onDefectDescriptionChange(event.target.value)
             }
@@ -114,14 +117,19 @@ export function ClaimDetailsForm(props: ClaimDetailsFormProps) {
             }
             value={props.resolution}
           >
-            <RadioGroup.Label>Požadované riešenie</RadioGroup.Label>
+            <RadioGroup.Label>{t("requested_resolution")}</RadioGroup.Label>
             <RadioGroup.ItemGroup>
-              {resolutionOptions.map((option) => (
-                <RadioGroup.Item key={option.value} value={option.value}>
+              {RESOLUTIONS.map((resolutionOption) => (
+                <RadioGroup.Item
+                  key={resolutionOption}
+                  value={resolutionOption}
+                >
                   <RadioGroup.ItemHiddenInput />
                   <RadioGroup.ItemControl />
                   <RadioGroup.ItemContent>
-                    <RadioGroup.ItemText>{option.label}</RadioGroup.ItemText>
+                    <RadioGroup.ItemText>
+                      {t(`resolution_${resolutionOption}`)}
+                    </RadioGroup.ItemText>
                   </RadioGroup.ItemContent>
                 </RadioGroup.Item>
               ))}
@@ -134,7 +142,7 @@ export function ClaimDetailsForm(props: ClaimDetailsFormProps) {
         onTokenChange={props.onTurnstileTokenChange}
       />
       <Button isLoading={props.busy} type="submit">
-        Odoslať {props.type === "return" ? "vrátenie" : "reklamáciu"}
+        {t(props.type === "return" ? "submit_return" : "submit_complaint")}
       </Button>
       <Button
         onClick={props.onBack}
@@ -142,7 +150,7 @@ export function ClaimDetailsForm(props: ClaimDetailsFormProps) {
         type="button"
         variant="secondary"
       >
-        Späť
+        {t("back")}
       </Button>
     </form>
   )

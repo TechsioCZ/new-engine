@@ -5,6 +5,7 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { CLAIM_CASE_MODULE } from "../../../modules/claim-case"
 import type ClaimCaseModuleService from "../../../modules/claim-case/service"
 import { resendEmailTemplates } from "../../../modules/resend/templates"
+import { resolveNotificationMarketContext } from "../../../utils/notification-market-context"
 import type {
   ClaimStepResult,
   RequestClaimAccessInput,
@@ -12,9 +13,12 @@ import type {
 } from "../types"
 
 type OrderLookup = {
+  billing_address?: { country_code?: string | null } | null
   display_id: null | string
   email: null | string
   id: string
+  sales_channel_id?: string | null
+  shipping_address?: { country_code?: string | null } | null
 }
 
 const ACCESS_TTL_MINUTES = 15
@@ -53,7 +57,14 @@ export const requestClaimAccessStep = createStep(
 
     const { data } = await query.graph({
       entity: "order",
-      fields: ["id", "display_id", "email"],
+      fields: [
+        "id",
+        "display_id",
+        "email",
+        "sales_channel_id",
+        "shipping_address.country_code",
+        "billing_address.country_code",
+      ],
       filters: { display_id: String(displayId) },
     })
     const orders = data as OrderLookup[]
@@ -73,6 +84,12 @@ export const requestClaimAccessStep = createStep(
       })
     }
 
+    const marketContext = await resolveNotificationMarketContext(container, {
+      countryCode:
+        order.shipping_address?.country_code ??
+        order.billing_address?.country_code,
+      salesChannelId: order.sales_channel_id,
+    })
     const code = randomInt(0, 1_000_000).toString().padStart(6, "0")
     const expiresAt = new Date(Date.now() + ACCESS_TTL_MINUTES * 60_000)
     const service = container.resolve<ClaimCaseModuleService>(CLAIM_CASE_MODULE)
@@ -87,6 +104,7 @@ export const requestClaimAccessStep = createStep(
       {
         channel: "email",
         data: {
+          ...marketContext,
           expires_in_minutes: ACCESS_TTL_MINUTES,
           order_display_id: String(order.display_id),
           verification_code: code,

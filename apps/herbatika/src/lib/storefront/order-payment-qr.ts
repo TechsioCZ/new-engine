@@ -46,15 +46,21 @@ type StoreOrderPaymentQrResponse = {
 }
 
 type FetchOrderPaymentQrOptions = {
+  orderToken?: string
   orderId: string
 }
 
 export const fetchOrderPaymentQr = async ({
+  orderToken,
   orderId,
 }: FetchOrderPaymentQrOptions): Promise<StorefrontOrderPaymentQrResult> => {
   const response = await fetch(
     `/api/storefront/orders/${encodeURIComponent(orderId)}/qr-payment`,
-    { method: "GET" }
+    {
+      body: JSON.stringify(orderToken ? { order_token: orderToken } : {}),
+      headers: { "content-type": "application/json" },
+      method: "POST",
+    }
   )
 
   if (!response.ok) {
@@ -65,6 +71,20 @@ export const fetchOrderPaymentQr = async ({
 
   return mapOrderPaymentQr(payload)
 }
+
+export const hasOrderPaymentQrAuthority = ({
+  isAuthenticated,
+  orderToken,
+}: Readonly<{
+  isAuthenticated: boolean
+  orderToken?: string
+}>): boolean =>
+  isAuthenticated ||
+  (typeof orderToken === "string" &&
+    orderToken.length > 0 &&
+    orderToken.length <= 512 &&
+    orderToken === orderToken.trim() &&
+    !orderToken.includes("\0"))
 
 function mapOrderPaymentQr(
   payload: StoreOrderPaymentQrResponse

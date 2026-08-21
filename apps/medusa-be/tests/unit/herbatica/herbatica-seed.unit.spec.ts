@@ -12,7 +12,11 @@ import {
   normalizeHerbaticaManufacturerTitle,
 } from "../../../src/scripts/herbatica-seed"
 import {
+  buildHerbaticaShippingOptions,
+  HERBATICA_DEFAULT_REGIONS,
   HERBATICA_PRICE_LIST_SYNC_CONFIG,
+  HERBATICA_PUBLISHABLE_KEYS,
+  HERBATICA_SALES_CHANNELS,
   HERBATICA_TAX_RATE_CONFIG,
   HERBATICA_TAX_RATE_COUNTRIES,
   HERBATICA_WORKFLOW_DEFAULTS,
@@ -978,26 +982,148 @@ describe("Herbatica Shoptet workflow input", () => {
       </SHOP>
     `)
 
+    const shippingOptions = buildHerbaticaShippingOptions({
+      eur: 1.25,
+      czk: 2.5,
+      huf: 3.75,
+      ron: 4,
+    })
+    for (const variant of parsed.products.flatMap(
+      ({ variants }) => variants ?? []
+    )) {
+      variant.prices = [
+        { amount: 10, currency_code: "eur" },
+        { amount: 250, currency_code: "czk" },
+        { amount: 4000, currency_code: "huf" },
+        { amount: 50, currency_code: "ron" },
+      ]
+    }
     const input = buildHerbaticaSeedWorkflowInput(parsed, {
-      regionsInput: [
-        {
-          name: "Europe",
-          currencyCode: "eur",
-          countries: ["sk"],
-          paymentProviders: undefined,
-          isTaxInclusive: true,
-        },
-      ],
+      regionsInput: HERBATICA_DEFAULT_REGIONS,
       fulfillmentSetName: "European Warehouse delivery",
       fulfillmentSetType: "shipping",
       serviceZoneName: "Europe",
+      shippingOptions,
     })
 
     expect(input.workflowDefaults).toBe(HERBATICA_WORKFLOW_DEFAULTS)
+    expect(input.salesChannels).toBe(HERBATICA_SALES_CHANNELS)
+    expect(input.publishableKeys).toBe(HERBATICA_PUBLISHABLE_KEYS)
+    expect(input.legacySharedPublishableKey).toBeUndefined()
     expect(input.priceLists).toBe(parsed.priceLists)
     expect(input.priceListSync).toBe(HERBATICA_PRICE_LIST_SYNC_CONFIG)
     expect(input.taxRates?.config).toBe(HERBATICA_TAX_RATE_CONFIG)
     expect(input.taxRates?.countries).toBe(HERBATICA_TAX_RATE_COUNTRIES)
+    expect(input.shippingOptions).toBe(shippingOptions)
+  })
+
+  it("fails closed instead of assigning fallback shipping to an unsupported region currency", () => {
+    const parsed = buildSeedInputFromXml("<SHOP></SHOP>")
+    const shippingOptions = buildHerbaticaShippingOptions({
+      eur: 1.25,
+      czk: 2.5,
+      huf: 3.75,
+      ron: 4,
+    })
+
+    expect(() =>
+      buildHerbaticaSeedWorkflowInput(parsed, {
+        regionsInput: [
+          {
+            name: "Unsupported",
+            currencyCode: "usd",
+            countries: undefined,
+            paymentProviders: undefined,
+            isTaxInclusive: true,
+          },
+        ],
+        fulfillmentSetName: "European Warehouse delivery",
+        fulfillmentSetType: "shipping",
+        serviceZoneName: "Europe",
+        shippingOptions,
+      })
+    ).toThrow(
+      "Herbatica regions must be exactly SK/EUR, CZ/CZK, HU/HUF, and RO/RON"
+    )
+  })
+
+  it("rejects missing, duplicate, extra, or wrong-country market regions", () => {
+    const parsed = buildSeedInputFromXml("<SHOP></SHOP>")
+    const workflowOptions = {
+      fulfillmentSetName: "European Warehouse delivery",
+      fulfillmentSetType: "shipping",
+      serviceZoneName: "Europe",
+      shippingOptions: buildHerbaticaShippingOptions({
+        eur: 1.25,
+        czk: 2.5,
+        huf: 3.75,
+        ron: 4,
+      }),
+    }
+    const invalidRegionSets = [
+      HERBATICA_DEFAULT_REGIONS.slice(0, 3),
+      [
+        ...HERBATICA_DEFAULT_REGIONS.slice(0, 3),
+        { ...HERBATICA_DEFAULT_REGIONS[0], name: "Duplicate Czechia" },
+      ],
+      [
+        ...HERBATICA_DEFAULT_REGIONS,
+        {
+          name: "Unexpected",
+          currencyCode: "usd",
+          countries: ["us"],
+          paymentProviders: undefined,
+          isTaxInclusive: true,
+        },
+      ],
+      HERBATICA_DEFAULT_REGIONS.map((region) =>
+        region.currencyCode === "huf"
+          ? { ...region, countries: ["sk"] }
+          : region
+      ),
+    ]
+
+    for (const regionsInput of invalidRegionSets) {
+      expect(() =>
+        buildHerbaticaSeedWorkflowInput(parsed, {
+          ...workflowOptions,
+          regionsInput,
+        })
+      ).toThrow(
+        "Herbatica regions must be exactly SK/EUR, CZ/CZK, HU/HUF, and RO/RON"
+      )
+    }
+  })
+
+  it("fails closed when a visible variant lacks approved four-currency base prices", () => {
+    const parsed = buildSeedInputFromXml(`
+      <SHOP>
+        <SHOPITEM id="missing-market-prices">
+          <NAME>Missing market prices</NAME>
+          <PRICE_VAT>10</PRICE_VAT>
+          <CURRENCY>EUR</CURRENCY>
+          <VISIBLE>1</VISIBLE>
+          <STOCK><AMOUNT>1</AMOUNT></STOCK>
+        </SHOPITEM>
+      </SHOP>
+    `)
+
+    expect(() =>
+      buildHerbaticaSeedWorkflowInput(parsed, {
+        regionsInput: HERBATICA_DEFAULT_REGIONS,
+        fulfillmentSetName: "European Warehouse delivery",
+        fulfillmentSetType: "shipping",
+        serviceZoneName: "Europe",
+        shippingOptions: buildHerbaticaShippingOptions({
+          eur: 1.25,
+          czk: 2.5,
+          huf: 3.75,
+          ron: 4,
+        }),
+      })
+    ).toThrow(
+      "requires exact positive EUR/CZK/HUF/RON base prices from approved commercial authority"
+    )
   })
 })
 

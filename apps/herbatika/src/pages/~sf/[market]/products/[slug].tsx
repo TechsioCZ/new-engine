@@ -32,6 +32,7 @@ import {
   type PublicEntitySlugMap,
   readRequiredPublicEntitySlugs,
 } from "@/lib/storefront/ssr/public-entity-projections"
+import { buildPublicOpenGraphLocales } from "@/lib/url/public-seo"
 import { parseMarket } from "@/lib/url/segments"
 import type { SourceReadResult } from "@/lib/url-registry/contracts"
 import { getUrlRegistryRuntime } from "@/lib/url-registry/runtime/instance.server"
@@ -205,6 +206,7 @@ const toPageView = async (
   const seo = buildProductSeo({
     canonicalUrl: outcome.value.canonicalUrl,
     initialVariantId: outcome.value.initialVariantId,
+    locale: context.value.marketContext.locale,
     product: outcome.value.product,
   })
   const [alternates, projectionMaps] = await Promise.all([
@@ -305,6 +307,11 @@ export default function ProductPagesRoute({ page }: ProductPageProps) {
     )
   }
 
+  const openGraphLocales = buildPublicOpenGraphLocales({
+    alternates: page.value.alternates,
+    locale: page.value.context.marketContext.locale,
+  })
+
   return (
     <>
       <Head>
@@ -322,6 +329,10 @@ export default function ProductPagesRoute({ page }: ProductPageProps) {
           />
         ))}
         <meta content="product" property="og:type" />
+        <meta content={openGraphLocales.locale} property="og:locale" />
+        {openGraphLocales.alternateLocales.map((locale) => (
+          <meta content={locale} key={locale} property="og:locale:alternate" />
+        ))}
         <meta content={page.value.title} property="og:title" />
         {page.value.description ? (
           <meta content={page.value.description} property="og:description" />

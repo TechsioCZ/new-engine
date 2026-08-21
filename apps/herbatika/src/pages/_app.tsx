@@ -12,6 +12,7 @@ import type { CmsFooterNavigation } from "@/lib/storefront/cms-types"
 import type { HerbatikaMarketContext } from "@/lib/storefront/market-context"
 import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
 import {
+  buildPublicOpenGraphLocales,
   buildPublicSeoJsonLd,
   serializePublicSeoJsonLd,
 } from "@/lib/url/public-seo"
@@ -35,7 +36,14 @@ function PublicSeoHead({
   marketContext: HerbatikaMarketContext
   seo: PublicSeo
 }) {
-  const jsonLd = buildPublicSeoJsonLd(seo)
+  const jsonLd = buildPublicSeoJsonLd({
+    ...seo,
+    inLanguage: marketContext.locale,
+  })
+  const openGraphLocales = buildPublicOpenGraphLocales({
+    alternates: seo.alternates,
+    locale: marketContext.locale,
+  })
   const title = seo.title ?? marketContext.metadata.title
   const description = seo.description ?? marketContext.metadata.description
   return (
@@ -44,6 +52,10 @@ function PublicSeoHead({
       <meta content={description} name="description" />
       <meta content={title} property="og:title" />
       <meta content={description} property="og:description" />
+      <meta content={openGraphLocales.locale} property="og:locale" />
+      {openGraphLocales.alternateLocales.map((locale) => (
+        <meta content={locale} key={locale} property="og:locale:alternate" />
+      ))}
       <meta content={seo.robots} name="robots" />
       {seo.canonical ? <link href={seo.canonical} rel="canonical" /> : null}
       {seo.canonical ? (

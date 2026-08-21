@@ -8,6 +8,8 @@ import { createStep, StepResponse } from "@medusajs/framework/workflows-sdk"
 import { CLAIM_CASE_MODULE } from "../../../modules/claim-case"
 import type ClaimCaseModuleService from "../../../modules/claim-case/service"
 import { resendEmailTemplates } from "../../../modules/resend/templates"
+import { resolveCustomerNotificationMarketContext } from "../../../utils/customer-notification-market-context"
+import { resolveNotificationMarketContext } from "../../../utils/notification-market-context"
 import type {
   ClaimStepResult,
   CreateClaimInput,
@@ -16,11 +18,14 @@ import type {
 } from "../types"
 
 type OrderLookup = {
+  billing_address?: { country_code?: string | null } | null
   customer_id: null | string
   display_id: number | string
   email: null | string
   id: string
   items: VerifiedOrderItem[]
+  sales_channel_id?: string | null
+  shipping_address?: { country_code?: string | null } | null
 }
 
 type CompensationInput = {
@@ -125,6 +130,9 @@ export const createClaimStep = createStep(
           "display_id",
           "email",
           "customer_id",
+          "sales_channel_id",
+          "shipping_address.country_code",
+          "billing_address.country_code",
           "items.id",
           "items.title",
           "items.quantity",
@@ -140,6 +148,16 @@ export const createClaimStep = createStep(
       accessId = access.id
     }
 
+    const marketContext = order
+      ? await resolveNotificationMarketContext(container, {
+          countryCode:
+            order.shipping_address?.country_code ??
+            order.billing_address?.country_code,
+          salesChannelId: order.sales_channel_id,
+        })
+      : await resolveCustomerNotificationMarketContext(container, {
+          email: normalizedEmail,
+        })
     const resolvedItems = resolveClaimItems(input, order)
 
     const submittedAt = new Date()
@@ -173,6 +191,7 @@ export const createClaimStep = createStep(
     }
 
     const notificationData = {
+      ...marketContext,
       case_number: caseNumber,
       case_type: input.type,
       items: resolvedItems.map((item) => ({

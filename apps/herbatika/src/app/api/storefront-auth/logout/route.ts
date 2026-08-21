@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import {
+  applyStorefrontAuthResponsePolicy,
   clearSessionTokenCookie,
   marketAuthorityError,
   requireStorefrontMarketBinding,
@@ -24,5 +25,5 @@ export function POST(request: Request) {
     { status: 200 }
   )
   clearSessionTokenCookie(response)
-  return response
+  return applyStorefrontAuthResponsePolicy(response)
 }

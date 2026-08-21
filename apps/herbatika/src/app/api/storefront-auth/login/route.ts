@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import {
+  applyStorefrontAuthResponsePolicy,
   badRequest,
   buildErrorResponse,
   buildMedusaUrl,
@@ -85,7 +86,7 @@ export async function POST(request: Request) {
     )
 
     setSessionTokenCookie(response, token)
-    return response
+    return applyStorefrontAuthResponsePolicy(response)
   } catch {
     return serverError(messages.unableToReachAuthenticationService)
   }

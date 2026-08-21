@@ -49,7 +49,9 @@ const productMediaColumnSource = readFileSync(
   "utf8"
 )
 
-const messagesForLocale = (locale: "ro-RO" | "sk-SK") =>
+type TestLocale = "cs-CZ" | "hu-HU" | "ro-RO" | "sk-SK"
+
+const messagesForLocale = (locale: TestLocale) =>
   JSON.parse(
     readFileSync(
       resolve(
@@ -60,34 +62,76 @@ const messagesForLocale = (locale: "ro-RO" | "sk-SK") =>
     )
   )
 
-const renderCheckoutHeader = (locale: "ro-RO" | "sk-SK") =>
+const unavailableByLocale = {
+  "cs-CZ": "Kontaktní údaje nejsou momentálně dostupné.",
+  "hu-HU": "Az elérhetőségek jelenleg nem állnak rendelkezésre.",
+  "ro-RO": "Datele de contact nu sunt disponibile momentan.",
+} as const
+
+const authorizedMessagesForLocale = (locale: TestLocale) => {
+  const messages = messagesForLocale(locale)
+  if (locale === "sk-SK") {
+    messages.navigation.contact.authority_status = "available"
+    messages.navigation.contact.authority_source = "sk-existing"
+    messages.navigation.contact.social_links = "[]"
+    messages.navigation.contact.unavailable =
+      "Kontaktné údaje momentálne nie sú dostupné."
+    return messages
+  }
+
+  messages.navigation.contact = {
+    authority_status: "unavailable",
+    authority_source: "unavailable",
+    email_display: "",
+    email_href: "",
+    hours: "",
+    phone_display: "",
+    phone_href: "",
+    social_links: "[]",
+    unavailable: unavailableByLocale[locale],
+  }
+  return messages
+}
+
+const renderCheckoutHeader = (locale: TestLocale) =>
   renderToStaticMarkup(
     <NextIntlClientProvider
       locale={locale}
-      messages={messagesForLocale(locale)}
+      messages={authorizedMessagesForLocale(locale)}
     >
       <CheckoutHeader />
     </NextIntlClientProvider>
   )
 
 describe("localized contact phone", () => {
+  it("keeps the validated Slovak contact actionable", () => {
+    const html = renderCheckoutHeader("sk-SK")
+
+    expect(html).toContain('href="tel:+421232112345"')
+    expect(html).toContain("+421 2/321 123 45")
+  })
+
   it.each([
-    ["sk-SK", "tel:+421232112345", "+421 2/321 123 45"],
-    ["ro-RO", "tel:+40(31)2295431", "+40 (31) 2295431"],
-  ] as const)("renders the %s storefront-text contact in checkout", (locale, phoneHref, phoneDisplay) => {
+    ["cs-CZ", unavailableByLocale["cs-CZ"]],
+    ["hu-HU", unavailableByLocale["hu-HU"]],
+    ["ro-RO", unavailableByLocale["ro-RO"]],
+  ] as const)("hides all contact actions for %s without reviewed authority", (locale, unavailable) => {
     const html = renderCheckoutHeader(locale)
 
-    expect(html).toContain(`href="${phoneHref}"`)
-    expect(html).toContain(phoneDisplay)
+    expect(html).toContain(unavailable)
+    expect(html).not.toContain('href="tel:')
+    expect(html).not.toContain("+421 2/321 123 45")
+    expect(html).not.toContain("+40 (31) 2295431")
   })
 
   it.each([
     ["checkout header", checkoutHeaderSource],
     ["product media column", productMediaColumnSource],
-  ])("keeps the %s contact wired to navigation storefront text", (_, source) => {
-    expect(source).toContain('useTranslations("navigation")')
-    expect(source).toContain('tNavigation("contact.phone_href")')
-    expect(source).toContain('tNavigation("contact.phone_display")')
+  ])("keeps the %s contact wired to the authority hook", (_, source) => {
+    expect(source).toContain("useOperatorContact()")
+    expect(source).toContain("operatorContact.phoneHref")
+    expect(source).toContain("operatorContact.phoneDisplay")
+    expect(source).toContain("operatorContact.unavailable")
     expect(source).not.toContain("tel:+421")
     expect(source).not.toContain("+421 2/321")
   })

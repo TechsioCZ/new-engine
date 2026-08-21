@@ -1,9 +1,8 @@
 import type { GetServerSideProps } from "next"
 import { useTranslations } from "next-intl"
-import { AccountDeactivationSection } from "@/components/account/account-deactivation-section"
+import { AccountSettingsSections } from "@/components/account/account-settings-sections"
 import { AccountOrdersList } from "@/components/account-orders-list"
 import { AccountProductLists } from "@/components/account-product-lists"
-import { AccountSettings } from "@/components/account-settings"
 import { AccountShell } from "@/components/account-shell"
 import {
   type AccountPrivatePageQuery,
@@ -63,12 +62,7 @@ export default function AccountSectionPage({ page }: Props) {
     <AccountShell>
       {page.value.section === "orders" ? <AccountOrdersList /> : null}
       {page.value.section === "lists" ? <AccountProductLists /> : null}
-      {page.value.section === "settings" ? (
-        <div className="space-y-400">
-          <AccountSettings />
-          <AccountDeactivationSection />
-        </div>
-      ) : null}
+      {page.value.section === "settings" ? <AccountSettingsSections /> : null}
     </AccountShell>
   )
 }

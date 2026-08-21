@@ -2,6 +2,7 @@ import {
   isWholesaleRegistration,
   type RegisterFormValues,
 } from "@/lib/auth/auth-form-validators"
+import { REGISTRATION_TERMS_VERSION } from "@/lib/auth/registration-policy"
 import { normalizeCountryCode } from "@/lib/forms/country-options"
 import type { AuthRegisterInput } from "@/lib/storefront/auth"
 
@@ -9,16 +10,23 @@ type BuildAuthRegisterInputOptions = {
   currencyCode: string
 }
 
+export type AuthRegisterPolicyInput = AuthRegisterInput & {
+  accept_terms: boolean
+  terms_version: typeof REGISTRATION_TERMS_VERSION
+}
+
 const trimValue = (value: string) => value.trim()
 
 export const buildAuthRegisterInput = (
   values: RegisterFormValues,
   { currencyCode }: BuildAuthRegisterInputOptions
-): AuthRegisterInput => ({
+): AuthRegisterPolicyInput => ({
   email: values.email,
   password: values.password,
   first_name: values.first_name,
   last_name: values.last_name,
+  accept_terms: values.accept_terms,
+  terms_version: REGISTRATION_TERMS_VERSION,
   ...(isWholesaleRegistration(values)
     ? {
         wholesale: {

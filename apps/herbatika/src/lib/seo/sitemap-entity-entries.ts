@@ -1,4 +1,6 @@
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
+import { ROUTES } from "@/lib/market/market-runtime-definitions"
+import { buildAlternates } from "@/lib/url/public-route-api"
 import { buildAbsoluteUrl } from "@/lib/url/public-url"
 import type {
   ActiveEntityRouteTarget,
@@ -11,6 +13,7 @@ import {
   type SitemapEntryLoadResult,
   type SitemapSourceValidation,
 } from "./sitemap-contract"
+import type { SitemapUrl } from "./xml"
 
 const indexValidatedSources = (
   projections: readonly ActiveEntityRouteTarget[],
@@ -33,6 +36,56 @@ const indexValidatedSources = (
     byRouteId.set(validation.routeId, validation.updatedAt)
   }
   return byRouteId
+}
+
+const loadValidatedEntitySource = async (
+  target: ActiveEntityRouteTarget,
+  dependencies: SitemapDataDependencies
+) => {
+  const result = await dependencies.validateEntitySources({
+    kind: target.route.kind as Exclude<EntityUrlKind, "campaign">,
+    market: target.route.market,
+    sources: [
+      {
+        publicSlug: target.currentSlug.normalizedSlug,
+        routeId: target.route.id,
+        sourceId: target.route.sourceId,
+      },
+    ],
+  })
+  if (result.kind !== "found") {
+    return result
+  }
+  return result.value.some(
+    (validation) => validation.routeId === target.route.id
+  )
+    ? { kind: "found" as const, value: target }
+    : { kind: "missing" as const }
+}
+
+const buildEntitySitemapAlternates = (
+  projection: ActiveEntityRouteTarget,
+  dependencies: SitemapDataDependencies
+) => {
+  if (!dependencies.findEntityEquivalents) {
+    return Promise.resolve({
+      kind: "found" as const,
+      value: {
+        [ROUTES[projection.route.market].locale]: buildAbsoluteUrl(
+          {
+            kind: projection.route.kind,
+            slug: projection.currentSlug.normalizedSlug,
+          },
+          projection.route.market
+        ).href,
+      },
+    })
+  }
+  return buildAlternates({
+    findActiveEquivalents: dependencies.findEntityEquivalents,
+    loadSource: (target) => loadValidatedEntitySource(target, dependencies),
+    target: projection,
+  })
 }
 
 export const listEntitySitemapEntries = async (
@@ -87,23 +140,29 @@ export const listEntitySitemapEntries = async (
     }
   }
 
-  return {
-    kind: "found",
-    value: projections.flatMap((projection) =>
-      sourceUpdatedAtByRouteId.has(projection.route.id)
-        ? [
-            {
-              lastModified: latestSitemapTimestamp(
-                projection.route.updatedAt,
-                sourceUpdatedAtByRouteId.get(projection.route.id)
-              ),
-              location: buildAbsoluteUrl(
-                { kind, slug: projection.currentSlug.normalizedSlug },
-                binding.market
-              ).href,
-            },
-          ]
-        : []
-    ),
+  const entries: SitemapUrl[] = []
+  for (const projection of projections) {
+    if (!sourceUpdatedAtByRouteId.has(projection.route.id)) {
+      continue
+    }
+    const alternates = await buildEntitySitemapAlternates(
+      projection,
+      dependencies
+    )
+    if (alternates.kind !== "found") {
+      return alternates
+    }
+    entries.push({
+      alternates: alternates.value,
+      lastModified: latestSitemapTimestamp(
+        projection.route.updatedAt,
+        sourceUpdatedAtByRouteId.get(projection.route.id)
+      ),
+      location: buildAbsoluteUrl(
+        { kind, slug: projection.currentSlug.normalizedSlug },
+        binding.market
+      ).href,
+    })
   }
+  return { kind: "found", value: entries }
 }

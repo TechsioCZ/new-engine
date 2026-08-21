@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest"
+import { createDeniedCheckoutConsent } from "@/lib/storefront/checkout-consent"
 import {
   buildCheckoutMetadata,
   isCheckoutMetadataSynced,
@@ -6,16 +7,21 @@ import {
   resolveOrderNoteFormValue,
 } from "./checkout-metadata"
 
+const NOW = new Date()
+const consent = createDeniedCheckoutConsent("sk", NOW)
+
 describe("checkout metadata", () => {
   it("stores a normalized order note without dropping existing metadata", () => {
     expect(
       buildCheckoutMetadata({
         accountSetupRequested: true,
+        consent,
         metadata: { source: "storefront" },
         orderNote: "  Please call before delivery  ",
       })
     ).toEqual({
       account_setup_requested: true,
+      checkout_consent: consent,
       order_note: "Please call before delivery",
       source: "storefront",
     })
@@ -25,11 +31,13 @@ describe("checkout metadata", () => {
     expect(
       buildCheckoutMetadata({
         accountSetupRequested: false,
+        consent,
         metadata: { order_note: "Old note" },
         orderNote: "   ",
       })
     ).toEqual({
       account_setup_requested: false,
+      checkout_consent: consent,
       order_note: "",
     })
   })
@@ -53,8 +61,10 @@ describe("checkout metadata", () => {
     expect(
       isCheckoutMetadataSynced({
         accountSetupRequested: true,
+        consent,
         metadata: {
           account_setup_requested: true,
+          checkout_consent: consent,
           order_note: "Keep upright",
         },
         orderNote: "  Keep upright  ",
@@ -64,11 +74,40 @@ describe("checkout metadata", () => {
     expect(
       isCheckoutMetadataSynced({
         accountSetupRequested: true,
+        consent,
         metadata: {
           account_setup_requested: true,
+          checkout_consent: consent,
           order_note: "Old note",
         },
         orderNote: "New note",
+      })
+    ).toBe(false)
+  })
+
+  it("rejects market, policy, or timestamp changes in stored consent", () => {
+    expect(
+      isCheckoutMetadataSynced({
+        accountSetupRequested: false,
+        consent,
+        metadata: {
+          account_setup_requested: false,
+          checkout_consent: { ...consent, market: "ro" },
+          order_note: "",
+        },
+        orderNote: "",
+      })
+    ).toBe(false)
+    expect(
+      isCheckoutMetadataSynced({
+        accountSetupRequested: false,
+        consent,
+        metadata: {
+          account_setup_requested: false,
+          checkout_consent: { ...consent, policyVersion: "old" },
+          order_note: "",
+        },
+        orderNote: "",
       })
     ).toBe(false)
   })

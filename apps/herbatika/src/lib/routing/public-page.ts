@@ -15,6 +15,7 @@ import {
   getHerbatikaMarketContext,
   type HerbatikaMarketContext,
 } from "@/lib/storefront/market-context"
+import { applyOperatorContactAuthority } from "@/lib/storefront/operator-contact-authority.server"
 import { getRegionServerContext } from "@/lib/storefront/ssr/context"
 import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
 import { readRequiredPublicEntitySlugs } from "@/lib/storefront/ssr/public-entity-projections"
@@ -134,7 +135,9 @@ export const loadPublicErrorShell = async (
     new URL(configuredCanonicalOrigin(market)).hostname
   )
   const [flatMessages, reviewTrustSources] = await Promise.all([
-    fetchStorefrontTextMessages(marketContext).catch(() => ({})),
+    fetchStorefrontTextMessages(marketContext).catch(() =>
+      applyOperatorContactAuthority(market, {})
+    ),
     fetchExternalReviewTrustSources(market).catch(() => []),
   ])
   return {

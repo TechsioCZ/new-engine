@@ -25,6 +25,39 @@ describe("login route Romanian localization", () => {
     vi.unstubAllGlobals()
   })
 
+  it("returns a private cookie-varying success response without losing the session cookie", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          Response.json({ token: "session-token" }, { status: 200 })
+        )
+    )
+
+    const response = await POST(
+      new Request("http://localhost/api/storefront-auth/login", {
+        body: JSON.stringify({
+          email: "customer@example.test",
+          password: "correct-password",
+        }),
+        headers: {
+          "content-type": "application/json",
+          host: "herbatica.ro",
+        },
+        method: "POST",
+      })
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get("cache-control")).toBe("private, no-store")
+    expect(response.headers.get("vary")).toBe("Cookie")
+    expect(response.headers.get("set-cookie")).toContain(
+      "herbatika_auth_session_token=session-token"
+    )
+    await expect(response.json()).resolves.toEqual({ token: "session-token" })
+  })
+
   it("localizes invalid credentials and does not surface upstream English", async () => {
     vi.stubGlobal(
       "fetch",

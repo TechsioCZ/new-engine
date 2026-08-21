@@ -29,14 +29,15 @@ const binding = {
 const projection = (
   sourceId: string,
   slug: string,
-  indexPolicy: "indexable" | "noindex" = "indexable"
+  indexPolicy: "indexable" | "noindex" = "indexable",
+  market: "cz" | "sk" = "cz"
 ): ActiveEntityRouteTarget => ({
   currentSlug: {
     createdAt: "2026-08-18T10:00:00.000Z",
     disposition: "current",
     id: `slug_${sourceId}`,
     kind: "product",
-    market: "cz",
+    market,
     normalizationVersion: 1,
     normalizedSlug: slug,
     routeId: `route_${sourceId}`,
@@ -48,7 +49,7 @@ const projection = (
     id: `route_${sourceId}`,
     indexPolicy,
     kind: "product",
-    market: "cz",
+    market,
     sourceId,
     sourceSystem: "medusa",
     sourceType: "product",
@@ -119,6 +120,9 @@ describe("system sitemaps", () => {
       kind: "found",
       value: [
         {
+          alternates: {
+            "cs-CZ": "https://herbatica.cz/produkty/public-slug",
+          },
           lastModified: "2026-08-19T11:00:00.000Z",
           location: "https://herbatica.cz/produkty/public-slug",
         },
@@ -149,6 +153,44 @@ describe("system sitemaps", () => {
         kind: "invalid-response",
       }
     )
+  })
+
+  it("emits source-validated reciprocal entity alternates", async () => {
+    const current = projection("prod_1", "cesky-produkt")
+    const skProjection = projection(
+      "prod_1_sk",
+      "slovensky-produkt",
+      "indexable",
+      "sk"
+    )
+    const equivalent = {
+      ...skProjection,
+      route: { ...skProjection.route, equivalenceKey: "product:prod_1" },
+    } satisfies ActiveEntityRouteTarget
+    const deps = {
+      ...dependencies([current]),
+      findEntityEquivalents: vi
+        .fn()
+        .mockResolvedValue({ kind: "found", value: [equivalent] }),
+    } satisfies SitemapDataDependencies
+
+    const result = await listSitemapEntries(binding, "product", deps)
+
+    expect(result.kind === "found" && result.value[0]?.alternates).toEqual({
+      "cs-CZ": "https://herbatica.cz/produkty/cesky-produkt",
+      "sk-SK": "https://herbatica.sk/produkty/slovensky-produkt",
+    })
+    expect(deps.validateEntitySources).toHaveBeenCalledWith({
+      kind: "product",
+      market: "sk",
+      sources: [
+        {
+          publicSlug: "slovensky-produkt",
+          routeId: "route_prod_1_sk",
+          sourceId: "prod_1_sk",
+        },
+      ],
+    })
   })
 
   it("loads and validates only the requested bounded product shard", async () => {
@@ -264,16 +306,50 @@ describe("system sitemaps", () => {
     expect(result).toEqual({
       kind: "found",
       value: [
-        { location: "https://herbatica.cz/" },
-        { location: "https://herbatica.cz/produkty" },
-        { location: "https://herbatica.cz/kategorie" },
-        { location: "https://herbatica.cz/znacky" },
-        { location: "https://herbatica.cz/kolekce" },
-        { location: "https://herbatica.cz/poradna" },
+        {
+          alternates: { "cs-CZ": "https://herbatica.cz/" },
+          location: "https://herbatica.cz/",
+        },
+        {
+          alternates: { "cs-CZ": "https://herbatica.cz/produkty" },
+          location: "https://herbatica.cz/produkty",
+        },
+        {
+          alternates: { "cs-CZ": "https://herbatica.cz/kategorie" },
+          location: "https://herbatica.cz/kategorie",
+        },
+        {
+          alternates: { "cs-CZ": "https://herbatica.cz/znacky" },
+          location: "https://herbatica.cz/znacky",
+        },
+        {
+          alternates: { "cs-CZ": "https://herbatica.cz/kolekce" },
+          location: "https://herbatica.cz/kolekce",
+        },
+        {
+          alternates: { "cs-CZ": "https://herbatica.cz/poradna" },
+          location: "https://herbatica.cz/poradna",
+        },
       ],
     })
     expect(
       result.kind === "found" && shardSitemapEntries(result.value)
     ).toHaveLength(1)
+  })
+
+  it("uses canonical origins for all enabled-market core alternates", async () => {
+    const deps = {
+      ...dependencies([]),
+      listMarkets: vi.fn().mockReturnValue(["sk", "cz", "hu", "ro"]),
+    } satisfies SitemapDataDependencies
+
+    const result = await listSitemapEntries(binding, "core", deps)
+
+    expect(result.kind === "found" && result.value[0]?.alternates).toEqual({
+      "cs-CZ": "https://herbatica.cz/",
+      "hu-HU": "https://herbatica.hu/",
+      "ro-RO": "https://herbatica.ro/",
+      "sk-SK": "https://herbatica.sk/",
+    })
   })
 })

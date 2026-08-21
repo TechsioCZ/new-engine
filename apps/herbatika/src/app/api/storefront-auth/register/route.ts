@@ -1,5 +1,17 @@
 import { NextResponse } from "next/server"
 import {
+  getAuthPasswordPolicyViolation,
+  isRegistrationCompanyIdentifierValid,
+  isRegistrationCompanyNameValid,
+  isRegistrationNameValid,
+  isRegistrationPostalCodeValid,
+  isRegistrationTermsAcceptanceValid,
+  normalizeRegistrationCountryCode,
+  REGISTRATION_TERMS_VERSION,
+} from "@/lib/auth/registration-policy"
+import type { HerbatikaCountryCode } from "@/lib/storefront/market-context"
+import {
+  applyStorefrontAuthResponsePolicy,
   badRequest,
   marketAuthorityError,
   requireStorefrontAuthContext,
@@ -25,6 +37,8 @@ type RegisterBody = {
   password?: string
   first_name?: string
   last_name?: string
+  accept_terms?: unknown
+  terms_version?: unknown
   wholesale?: unknown
 }
 
@@ -51,16 +65,18 @@ const createRegisterResponse = (token: string) => {
   )
 
   setSessionTokenCookie(response, token)
-  return response
+  return applyStorefrontAuthResponsePolicy(response)
 }
 
 const parseRegisterBody = async (
   request: Request,
   {
     currencyCode,
+    countryCode,
     messages,
   }: {
     currencyCode: string
+    countryCode: HerbatikaCountryCode
     messages: StorefrontAuthMessages
   }
 ): Promise<ParseRegisterBodyResult> => {
@@ -77,10 +93,24 @@ const parseRegisterBody = async (
 
   const email = asStringOrUndefined(body.email)
   const password = asStringOrUndefined(body.password)
+  const firstName = asStringOrUndefined(body.first_name)
+  const lastName = asStringOrUndefined(body.last_name)
 
   if (!(email && password)) {
     return {
       error: badRequest(messages.emailAndPasswordRequired),
+      value: null,
+    }
+  }
+
+  if (
+    getAuthPasswordPolicyViolation(password) ||
+    !isRegistrationNameValid(firstName) ||
+    !isRegistrationNameValid(lastName) ||
+    !isRegistrationTermsAcceptanceValid(body.accept_terms, body.terms_version)
+  ) {
+    return {
+      error: badRequest(messages.registrationFailed),
       value: null,
     }
   }
@@ -96,13 +126,34 @@ const parseRegisterBody = async (
     }
   }
 
+  if (
+    wholesale.value &&
+    !(
+      isRegistrationCompanyNameValid(wholesale.value.companyName) &&
+      isRegistrationCompanyIdentifierValid(wholesale.value.companyIdentifier) &&
+      isRegistrationPostalCodeValid(
+        wholesale.value.billingAddress.postalCode,
+        countryCode
+      )
+    )
+  ) {
+    return {
+      error: badRequest(messages.registrationFailed),
+      value: null,
+    }
+  }
+
   return {
     error: null,
     value: {
       email,
       password,
-      firstName: asStringOrUndefined(body.first_name),
-      lastName: asStringOrUndefined(body.last_name),
+      firstName,
+      lastName,
+      termsAcceptance: {
+        acceptedAt: new Date().toISOString(),
+        version: REGISTRATION_TERMS_VERSION,
+      },
       wholesale: wholesale.value,
     } satisfies ParsedRegisterPayload,
   }
@@ -121,17 +172,23 @@ export async function POST(request: Request) {
   }
 
   const { binding, currencyCode, messages } = context
+  const countryCode = normalizeRegistrationCountryCode(binding.countryCode)
+  if (!countryCode) {
+    return serverError(messages.registrationFailed)
+  }
 
   try {
     const parsedBody = await parseRegisterBody(request, {
       currencyCode,
+      countryCode,
       messages,
     })
     if (parsedBody.error) {
       return parsedBody.error
     }
 
-    const { email, firstName, lastName, password, wholesale } = parsedBody.value
+    const { email, firstName, lastName, password, termsAcceptance, wholesale } =
+      parsedBody.value
     const registerError = await createCustomerIdentity({
       email,
       messages,
@@ -160,6 +217,7 @@ export async function POST(request: Request) {
         firstName,
         lastName,
         marketCode: binding.market,
+        termsAcceptance,
         wholesale,
       },
     })

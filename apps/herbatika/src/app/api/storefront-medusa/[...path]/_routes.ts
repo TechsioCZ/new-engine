@@ -1,11 +1,21 @@
 export type GatewayMethod = "DELETE" | "GET" | "POST"
 
+export type GatewayPathAuthority =
+  | Readonly<{ id: string; kind: "cart" }>
+  | Readonly<{ id: string; kind: "order" }>
+  | Readonly<{ kind: "order-list" }>
+  | Readonly<{ id: string; kind: "region" }>
+
 type RouteRule = Readonly<{
   methods: readonly GatewayMethod[]
   pattern: RegExp
 }>
 
 const ID = "[A-Za-z0-9_-]{1,160}"
+const CART_PATH_PATTERN = new RegExp(`^/store/carts/(${ID})(?:/|$)`)
+const ORDER_PATH_PATTERN = new RegExp(`^/store/orders/(${ID})$`)
+const ORDER_LIST_PATH_PATTERN = /^\/store\/orders$/
+const REGION_PATH_PATTERN = new RegExp(`^/store/regions/(${ID})$`)
 
 const ROUTE_RULES: readonly RouteRule[] = [
   { methods: ["GET"], pattern: /^\/store\/products$/ },
@@ -108,3 +118,23 @@ const ROUTE_RULES: readonly RouteRule[] = [
 
 export const allowedMethodsForPath = (path: string): readonly GatewayMethod[] =>
   ROUTE_RULES.find((rule) => rule.pattern.test(path))?.methods ?? []
+
+export const resolveGatewayPathAuthority = (
+  path: string
+): GatewayPathAuthority | null => {
+  const regionId = REGION_PATH_PATTERN.exec(path)?.[1]
+  if (regionId) {
+    return { id: regionId, kind: "region" }
+  }
+
+  const cartId = CART_PATH_PATTERN.exec(path)?.[1]
+  if (cartId) {
+    return { id: cartId, kind: "cart" }
+  }
+
+  const orderId = ORDER_PATH_PATTERN.exec(path)?.[1]
+  if (orderId) {
+    return { id: orderId, kind: "order" }
+  }
+  return ORDER_LIST_PATH_PATTERN.test(path) ? { kind: "order-list" } : null
+}

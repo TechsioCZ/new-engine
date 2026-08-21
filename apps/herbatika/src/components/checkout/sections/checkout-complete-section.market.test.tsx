@@ -97,18 +97,19 @@ const renderSection = () =>
   )
 
 describe("CheckoutCompleteSection external review consent", () => {
-  it("shows the Heureka consent for SK", () => {
-    testContext.market = { code: "sk", locale: "sk-SK" }
-
-    expect(renderSection()).toContain("checkout.review_heureka_consent")
-  })
-
-  it("hides the Heureka consent for RO while keeping marketing consent", () => {
-    testContext.market = { code: "ro", locale: "ro-RO" }
+  it.each([
+    ["sk", "sk-SK", true],
+    ["cz", "cs-CZ", false],
+    ["hu", "hu-HU", false],
+    ["ro", "ro-RO", false],
+  ] as const)("renders approved optional purposes for %s", (code, locale, supportsHeureka) => {
+    testContext.market = { code, locale }
 
     const markup = renderSection()
 
-    expect(markup).not.toContain("checkout.review_heureka_consent")
     expect(markup).toContain("checkout.review_marketing_consent")
+    expect(markup.includes("checkout.review_heureka_consent")).toBe(
+      supportsHeureka
+    )
   })
 })

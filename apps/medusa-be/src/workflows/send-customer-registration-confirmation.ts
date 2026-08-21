@@ -1,9 +1,12 @@
+import type { CreateNotificationDTO } from "@medusajs/framework/types"
 import {
+  createStep,
   createWorkflow,
-  transform,
+  StepResponse,
   WorkflowResponse,
 } from "@medusajs/framework/workflows-sdk"
 import { resendEmailTemplates } from "../modules/resend/templates"
+import { resolveCustomerNotificationMarketContext } from "../utils/customer-notification-market-context"
 import { sendNotificationStep } from "./steps/send-notification"
 
 type WorkflowInput = {
@@ -12,24 +15,44 @@ type WorkflowInput = {
   email: string
 }
 
-export const sendCustomerRegistrationConfirmationWorkflow = createWorkflow(
-  "send-customer-registration-confirmation",
-  (input: WorkflowInput) => {
-    const notificationInput = transform({ input }, (data) => [
+const buildCustomerRegistrationConfirmationNotificationStep = createStep(
+  "build-customer-registration-confirmation-notification",
+  async (
+    input: WorkflowInput,
+    { container }
+  ): Promise<StepResponse<CreateNotificationDTO[]>> => {
+    const marketContext = await resolveCustomerNotificationMarketContext(
+      container,
       {
-        to: data.input.email,
+        customerId: input.customer_id,
+        email: input.email,
+      }
+    )
+
+    return new StepResponse([
+      {
+        to: input.email,
         channel: "email",
         template: resendEmailTemplates.CUSTOMER_REGISTRATION_CONFIRMATION,
         data: {
-          customer_id: data.input.customer_id,
-          customer_name: data.input.customer_name,
+          ...marketContext,
+          customer_id: input.customer_id,
+          customer_name: input.customer_name,
         },
-        receiver_id: data.input.customer_id,
-        resource_id: data.input.customer_id,
+        receiver_id: input.customer_id,
+        resource_id: input.customer_id,
         resource_type: "customer",
         trigger_type: "customer.registration_confirmed",
       },
     ])
+  }
+)
+
+export const sendCustomerRegistrationConfirmationWorkflow = createWorkflow(
+  "send-customer-registration-confirmation",
+  (input: WorkflowInput) => {
+    const notificationInput =
+      buildCustomerRegistrationConfirmationNotificationStep(input)
     const notification = sendNotificationStep(notificationInput)
 
     return new WorkflowResponse({

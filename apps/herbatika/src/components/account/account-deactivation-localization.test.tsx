@@ -68,7 +68,9 @@ vi.mock("@/lib/url/public-url", () => ({
 import { AccountDeactivationConfirmation } from "./account-deactivation-confirmation"
 import { AccountDeactivationSection } from "./account-deactivation-section"
 
-const messagesForLocale = (locale: "ro-RO" | "sk-SK") =>
+type TestLocale = "cs-CZ" | "hu-HU" | "ro-RO" | "sk-SK"
+
+const messagesForLocale = (locale: TestLocale) =>
   JSON.parse(
     readFileSync(
       resolve(
@@ -79,11 +81,11 @@ const messagesForLocale = (locale: "ro-RO" | "sk-SK") =>
     )
   )
 
-const renderRomanian = (node: ReactNode) =>
+const renderLocalized = (locale: TestLocale, node: ReactNode) =>
   renderToStaticMarkup(
     <NextIntlClientProvider
-      locale="ro-RO"
-      messages={messagesForLocale("ro-RO")}
+      locale={locale}
+      messages={messagesForLocale(locale)}
     >
       {node}
     </NextIntlClientProvider>
@@ -96,45 +98,120 @@ const componentSources = [
   "src/pages/~sf/[market]/account/deactivation.tsx",
 ].map((path) => readFileSync(resolve(process.cwd(), path), "utf8"))
 
-const slovakCopy =
-  /Zrušenie účtu|Požiadať o zrušenie|Ponechať účet|Odoslať potvrdzovací|Potvrdenie zrušenia|Potvrdiť zrušenie|Účet bol zrušený/
+const LOCALIZED_ACCOUNT_COPY =
+  /Zrušenie účtu|Zrušení účtu|Fiók törlése|Ștergerea contului|Požiadať o zrušenie|Požádat o zrušení|Fióktörlés kérése|Solicită ștergerea/
+
+const ACCOUNT_CASES = [
+  {
+    confirmationAction: "Potvrdiť zrušenie účtu",
+    confirmationTitle: "Potvrdenie zrušenia účtu",
+    dialogTitle: "Odoslať potvrdenie zrušenia účtu?",
+    failed: "Potvrdzovací e-mail sa nepodarilo odoslať.",
+    foreignCanaries: ["Zrušení účtu", "Fiók törlése", "Ștergerea contului"],
+    invalidTokenCanary: "vypršala",
+    locale: "sk-SK",
+    requestAction: "Požiadať o zrušenie účtu",
+    requestTitle: "Zrušenie účtu",
+    sentStatusCanary: "30 minút",
+    successCanary: "história objednávok",
+  },
+  {
+    confirmationAction: "Potvrdit zrušení účtu",
+    confirmationTitle: "Potvrzení zrušení účtu",
+    dialogTitle: "Odeslat potvrzení zrušení účtu?",
+    failed: "Potvrzovací e-mail se nepodařilo odeslat.",
+    foreignCanaries: ["Zrušenie účtu", "Fiók törlése", "Ștergerea contului"],
+    invalidTokenCanary: "vypršela",
+    locale: "cs-CZ",
+    requestAction: "Požádat o zrušení účtu",
+    requestTitle: "Zrušení účtu",
+    sentStatusCanary: "30 minut",
+    successCanary: "historie objednávek",
+  },
+  {
+    confirmationAction: "Fióktörlés megerősítése",
+    confirmationTitle: "Fióktörlés megerősítése",
+    dialogTitle: "Elküldi a fióktörlés megerősítését?",
+    failed: "Nem sikerült elküldeni a megerősítő e-mailt.",
+    foreignCanaries: ["Zrušenie účtu", "Zrušení účtu", "Ștergerea contului"],
+    invalidTokenCanary: "lejárt",
+    locale: "hu-HU",
+    requestAction: "Fióktörlés kérése",
+    requestTitle: "Fiók törlése",
+    sentStatusCanary: "30 percig",
+    successCanary: "rendelési előzmények",
+  },
+  {
+    confirmationAction: "Confirmă ștergerea contului",
+    confirmationTitle: "Confirmarea ștergerii contului",
+    dialogTitle: "Trimiteți confirmarea pentru ștergerea contului?",
+    failed: "E-mailul de confirmare nu a putut fi trimis.",
+    foreignCanaries: ["Zrušenie účtu", "Zrušení účtu", "Fiók törlése"],
+    invalidTokenCanary: "a expirat",
+    locale: "ro-RO",
+    requestAction: "Solicită ștergerea contului",
+    requestTitle: "Ștergerea contului",
+    sentStatusCanary: "30 de minute",
+    successCanary: "istoricul comenzilor",
+  },
+] as const
 
 describe("account deactivation localization", () => {
-  it("renders the Romanian request, modal, and confirmation copy", () => {
-    const requestHtml = renderRomanian(<AccountDeactivationSection />)
-    const confirmationHtml = renderRomanian(
+  it.each(
+    ACCOUNT_CASES
+  )("renders the exact $locale request, modal, and confirmation copy", ({
+    confirmationAction,
+    confirmationTitle,
+    dialogTitle,
+    foreignCanaries,
+    locale,
+    requestAction,
+    requestTitle,
+  }) => {
+    const requestHtml = renderLocalized(locale, <AccountDeactivationSection />)
+    const confirmationHtml = renderLocalized(
+      locale,
       <AccountDeactivationConfirmation token="valid-token" />
     )
     const html = `${requestHtml}${confirmationHtml}`
 
-    expect(requestHtml).toContain("Ștergerea contului")
-    expect(requestHtml).toContain(
-      "Trimiteți confirmarea pentru ștergerea contului?"
-    )
-    expect(requestHtml).toContain("Solicită ștergerea contului")
-    expect(confirmationHtml).toContain("Confirmarea ștergerii contului")
-    expect(confirmationHtml).toContain("Confirmă ștergerea contului")
-    expect(html).not.toMatch(slovakCopy)
-  })
-
-  it("keeps every reachable source wired to storefront text without Slovak copy", () => {
-    for (const source of componentSources) {
-      expect(source).toContain('useTranslations("auth")')
-      expect(source).not.toMatch(slovakCopy)
+    expect(requestHtml).toContain(requestTitle)
+    expect(requestHtml).toContain(dialogTitle)
+    expect(requestHtml).toContain(requestAction)
+    expect(confirmationHtml).toContain(confirmationTitle)
+    expect(confirmationHtml).toContain(confirmationAction)
+    for (const foreignCanary of foreignCanaries) {
+      expect(html).not.toContain(foreignCanary)
     }
   })
 
-  it("publishes distinct Romanian status and error messages", () => {
-    const romanian = messagesForLocale("ro-RO").auth.deactivation
-    const slovak = messagesForLocale("sk-SK").auth.deactivation
+  it("keeps every reachable source wired to storefront text without market copy", () => {
+    for (const source of componentSources) {
+      expect(source).toContain('useTranslations("auth")')
+      expect(source).not.toMatch(LOCALIZED_ACCOUNT_COPY)
+    }
+  })
 
-    expect(romanian.request.failed).toBe(
-      "E-mailul de confirmare nu a putut fi trimis."
+  it.each(
+    ACCOUNT_CASES
+  )("publishes exact $locale status and error messages without foreign canaries", ({
+    failed,
+    foreignCanaries,
+    invalidTokenCanary,
+    locale,
+    sentStatusCanary,
+    successCanary,
+  }) => {
+    const deactivation = messagesForLocale(locale).auth.deactivation
+
+    expect(deactivation.request.failed).toBe(failed)
+    expect(deactivation.request.sent_status).toContain(sentStatusCanary)
+    expect(deactivation.confirmation.invalid_token).toContain(
+      invalidTokenCanary
     )
-    expect(romanian.request.sent_status).toContain("30 de minute")
-    expect(romanian.confirmation.invalid_token).toContain("a expirat")
-    expect(romanian.confirmation.success).toContain("istoricul comenzilor")
-    expect(romanian).not.toEqual(slovak)
-    expect(JSON.stringify(romanian)).not.toMatch(slovakCopy)
+    expect(deactivation.confirmation.success).toContain(successCanary)
+    for (const foreignCanary of foreignCanaries) {
+      expect(JSON.stringify(deactivation)).not.toContain(foreignCanary)
+    }
   })
 })

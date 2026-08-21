@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server"
 import {
+  applyStorefrontAuthResponsePolicy,
   badRequest,
   buildErrorResponse,
   buildMedusaUrl,
+  getPublishableHeaders,
   marketAuthorityError,
   requireStorefrontAuthContext,
   type StorefrontAuthContext,
@@ -53,6 +55,7 @@ export async function POST(request: Request) {
         headers: {
           accept: "text/plain",
           "content-type": "application/json",
+          ...getPublishableHeaders(binding),
         },
         body: JSON.stringify({
           identifier: email,
@@ -72,9 +75,11 @@ export async function POST(request: Request) {
       )
     }
 
-    return NextResponse.json<ForgotPasswordResponse>(
-      { accepted: true },
-      { status: 202 }
+    return applyStorefrontAuthResponsePolicy(
+      NextResponse.json<ForgotPasswordResponse>(
+        { accepted: true },
+        { status: 202 }
+      )
     )
   } catch {
     return serverError(messages.resetPasswordLinkFailed)

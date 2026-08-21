@@ -7,6 +7,7 @@ export const STOREFRONT_TEXT_NAMESPACES = [
   "catalog",
   "cart",
   "checkout",
+  "claims",
   "content",
   "form",
   "navigation",

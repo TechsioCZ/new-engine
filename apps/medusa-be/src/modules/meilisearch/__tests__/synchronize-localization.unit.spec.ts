@@ -2,14 +2,21 @@ import type { Query } from "@medusajs/framework/types"
 import { ContainerRegistrationKeys } from "@medusajs/framework/utils"
 import { describe, expect, it, vi } from "vitest"
 import { MARKET_VARIANT_AUTHORITY_MODULE } from "../../market-variant-authority"
+import { PAYLOAD_MODULE } from "../../payload"
 import { STOREFRONT_URL_ASSIGNMENT_MODULE } from "../../storefront-url-assignment"
-import type { MeilisearchAdminClient } from "../admin-client"
+import {
+  type MeilisearchAdminClient,
+  MeilisearchSwapIndexError,
+} from "../admin-client"
 import { buildProductSearchDocuments } from "../documents"
 import type { SearchProfile } from "../profiles"
 import {
+  acceptRetainedSearchGeneration,
   applyLocalizedProductRelations,
   applyLocalizedTranslations,
   projectProductForVariantAuthority,
+  rollbackRetainedSearchGeneration,
+  selectRequestedSearchProfiles,
   syncProfile,
 } from "../synchronize"
 
@@ -118,6 +125,18 @@ const syncContainer = (
       if (key === ContainerRegistrationKeys.PG_CONNECTION) {
         return { raw: vi.fn().mockResolvedValue([[]]) }
       }
+      if (key === PAYLOAD_MODULE) {
+        return {
+          listPublishedArticles: vi.fn().mockResolvedValue({
+            docs: [],
+            hasNextPage: false,
+          }),
+          listPublishedPages: vi.fn().mockResolvedValue({
+            docs: [],
+            hasNextPage: false,
+          }),
+        }
+      }
       if (key === STOREFRONT_URL_ASSIGNMENT_MODULE) {
         return { listStorefrontUrlAssignments }
       }
@@ -195,6 +214,30 @@ const inMemoryIndexClient = (
 }
 
 describe("Meilisearch catalog localization", () => {
+  it("selects the exact requested profile set and rejects zero or missing targets", () => {
+    const profiles = [roProfile("herbatika-ro"), roProfile("herbatika-cz")]
+
+    expect(() => selectRequestedSearchProfiles([])).toThrow(
+      "at least one configured profile"
+    )
+    expect(selectRequestedSearchProfiles(profiles, ["herbatika-cz"])).toEqual([
+      profiles[1],
+    ])
+    expect(() => selectRequestedSearchProfiles(profiles, [])).toThrow(
+      "must contain at least one exact profile key"
+    )
+    expect(() =>
+      selectRequestedSearchProfiles(profiles, [
+        "herbatika-ro",
+        "herbatika-missing",
+      ])
+    ).toThrow('configured profile keys are missing: "herbatika-missing"')
+    expect(() =>
+      selectRequestedSearchProfiles(profiles, ["herbatika-ro", "herbatika-ro"])
+    ).toThrow("must be unique")
+    expect(selectRequestedSearchProfiles(profiles)).toEqual(profiles)
+  })
+
   it("preserves default catalog records without a translation lookup", async () => {
     const { graph, query } = queryWith([])
 
@@ -1301,7 +1344,465 @@ describe("Meilisearch catalog localization", () => {
     ).toBe(true)
   })
 
-  it("preserves live-target normal synchronization for Slovak profiles", async () => {
+  it("keeps the last-good generation when full-sync content projection is incomplete", async () => {
+    const profile = {
+      availability: "all",
+      domain: "default.example.test",
+      indexes: {
+        brand: "active_default_brand",
+        category: "active_default_category",
+        content: "active_default_content",
+        product: "active_default_product",
+      },
+      key: "default-content-fail-closed",
+      limits: {
+        autocomplete: { brand: 5, category: 5, content: 5, product: 5 },
+        fullSearch: 20,
+        page: 20,
+        popular: 10,
+      },
+      locale: "default",
+      minimumRankingScore: 0.55,
+      salesChannelIds: [],
+      separateVariantResults: false,
+      shop: "default",
+      strict: false,
+    } satisfies SearchProfile
+    const query = {
+      graph: vi.fn().mockResolvedValue({ data: [] }),
+    } as unknown as Query
+    const payload = {
+      listPublishedArticles: vi.fn().mockResolvedValue({
+        docs: [],
+        hasNextPage: false,
+      }),
+      listPublishedPages: vi.fn().mockResolvedValue({
+        docs: [
+          {
+            id: "page_1",
+            status: "published",
+            title: "Existing public page",
+            visibility: "public",
+          },
+        ],
+        hasNextPage: false,
+      }),
+    }
+    const container = {
+      resolve: vi.fn((key: unknown) => {
+        if (key === ContainerRegistrationKeys.QUERY) {
+          return query
+        }
+        if (key === ContainerRegistrationKeys.PG_CONNECTION) {
+          return { raw: vi.fn().mockResolvedValue([[]]) }
+        }
+        if (key === PAYLOAD_MODULE) {
+          return payload
+        }
+        throw new Error(`Unexpected container key: ${String(key)}`)
+      }),
+    }
+    const indexState = inMemoryIndexClient({
+      [profile.indexes.content]: [
+        {
+          href: "/old-public-page",
+          id: "page_page_1",
+          title: "Last-good public page",
+        },
+      ],
+    })
+    const contentProjectionResolver = vi.fn().mockResolvedValue(new Map())
+
+    await expect(
+      syncProfile({
+        client: indexState.client,
+        container: container as never,
+        contentProjectionResolver,
+        logger: { info: vi.fn(), warn: vi.fn() } as never,
+        mode: "full",
+        profile,
+      })
+    ).rejects.toThrow("content projection is incomplete")
+
+    expect(indexState.documentIds(profile.indexes.content)).toEqual([
+      "page_page_1",
+    ])
+    expect(indexState.swapIndexPairs).not.toHaveBeenCalled()
+    expect(
+      [...indexState.indexes.keys()].some((index) => index.includes("__build_"))
+    ).toBe(false)
+  })
+
+  it("retains the previous generation after a successful explicit full sync", async () => {
+    const profile = {
+      availability: "all",
+      domain: "default.example.test",
+      indexes: {
+        brand: "retained_default_brand",
+        category: "retained_default_category",
+        content: "retained_default_content",
+        product: "retained_default_product",
+      },
+      key: "default-retained-generation",
+      limits: {
+        autocomplete: { brand: 5, category: 5, content: 5, product: 5 },
+        fullSearch: 20,
+        page: 20,
+        popular: 10,
+      },
+      locale: "default",
+      minimumRankingScore: 0.55,
+      salesChannelIds: [],
+      separateVariantResults: false,
+      shop: "default",
+      strict: false,
+    } satisfies SearchProfile
+    const query = {
+      graph: vi.fn().mockResolvedValue({ data: [] }),
+    } as unknown as Query
+    const indexState = inMemoryIndexClient({
+      [profile.indexes.product]: [
+        { id: "product_last_good", title: "Last-good product" },
+      ],
+    })
+
+    await expect(
+      syncProfile({
+        client: indexState.client,
+        container: syncContainer(query) as never,
+        logger: { info: vi.fn(), warn: vi.fn() } as never,
+        mode: "full",
+        profile,
+      })
+    ).resolves.toEqual({ deleted: 0, indexed: 0 })
+
+    expect(indexState.documentIds(profile.indexes.product)).toEqual([])
+    const retainedIndexes = [...indexState.indexes.keys()].filter((index) =>
+      index.includes("__build_")
+    )
+    expect(retainedIndexes).toHaveLength(4)
+    const retainedProductIndex = retainedIndexes.find((index) =>
+      index.startsWith(`${profile.indexes.product}__build_`)
+    )
+    expect(retainedProductIndex).toBeDefined()
+    expect(indexState.documentIds(retainedProductIndex as string)).toContain(
+      "product_last_good"
+    )
+    expect(indexState.deleteIndex).not.toHaveBeenCalled()
+  })
+
+  it("retains the rollback generation when post-swap marker cleanup fails", async () => {
+    const profile = {
+      ...roProfile("full-sync-marker-cleanup-failure"),
+      locale: "default",
+      salesChannelIds: [],
+      strict: false,
+    } satisfies SearchProfile
+    const query = {
+      graph: vi.fn().mockResolvedValue({ data: [] }),
+    } as unknown as Query
+    const indexState = inMemoryIndexClient({
+      [profile.indexes.product]: [{ id: "last_good_product" }],
+    })
+    vi.mocked(indexState.client.deleteDocuments).mockRejectedValueOnce(
+      new Error("marker cleanup unavailable")
+    )
+
+    await expect(
+      syncProfile({
+        client: indexState.client,
+        container: syncContainer(query) as never,
+        logger: { info: vi.fn(), warn: vi.fn() } as never,
+        mode: "full",
+        profile,
+      })
+    ).resolves.toEqual({ deleted: 0, indexed: 0 })
+
+    const retainedProductIndex = [...indexState.indexes.keys()].find((index) =>
+      index.startsWith(`${profile.indexes.product}__build_`)
+    )
+    expect(retainedProductIndex).toBeDefined()
+    expect(indexState.documentIds(retainedProductIndex as string)).toContain(
+      "last_good_product"
+    )
+    expect(indexState.deleteIndex).not.toHaveBeenCalled()
+  })
+
+  it("cleans staged targets when a swap is rejected before commit", async () => {
+    const profile = {
+      ...roProfile("full-sync-pre-swap-failure"),
+      locale: "default",
+      salesChannelIds: [],
+      strict: false,
+    } satisfies SearchProfile
+    const query = {
+      graph: vi.fn().mockResolvedValue({ data: [] }),
+    } as unknown as Query
+    const indexState = inMemoryIndexClient({
+      [profile.indexes.product]: [{ id: "last_good_product" }],
+    })
+    indexState.swapIndexPairs.mockRejectedValueOnce(
+      new MeilisearchSwapIndexError("swap rejected before commit", {
+        cause: new Error("HTTP 400"),
+        definitelyNotCommitted: true,
+      })
+    )
+
+    await expect(
+      syncProfile({
+        client: indexState.client,
+        container: syncContainer(query) as never,
+        logger: { info: vi.fn(), warn: vi.fn() } as never,
+        mode: "full",
+        profile,
+      })
+    ).rejects.toThrow("swap rejected before commit")
+
+    expect(indexState.documentIds(profile.indexes.product)).toEqual([
+      "last_good_product",
+    ])
+    expect(
+      [...indexState.indexes.keys()].some((index) => index.includes("__build_"))
+    ).toBe(false)
+  })
+
+  it("preserves staged targets when an accepted swap completes after a timeout", async () => {
+    const profile = {
+      ...roProfile("full-sync-accepted-timeout"),
+      locale: "default",
+      salesChannelIds: [],
+      strict: false,
+    } satisfies SearchProfile
+    const query = {
+      graph: vi.fn().mockResolvedValue({ data: [] }),
+    } as unknown as Query
+    const indexState = inMemoryIndexClient({
+      [profile.indexes.product]: [{ id: "last_good_product" }],
+    })
+    let queuedPairs: { first: string; second: string }[] | undefined
+    indexState.swapIndexPairs.mockImplementationOnce(async (pairs) => {
+      queuedPairs = pairs
+      throw new MeilisearchSwapIndexError("accepted swap timed out", {
+        cause: new Error("task pending"),
+        definitelyNotCommitted: false,
+      })
+    })
+
+    await expect(
+      syncProfile({
+        client: indexState.client,
+        container: syncContainer(query) as never,
+        logger: { info: vi.fn(), warn: vi.fn() } as never,
+        mode: "full",
+        profile,
+      })
+    ).rejects.toThrow("accepted swap timed out")
+
+    expect(queuedPairs).toBeDefined()
+    expect(indexState.deleteIndex).not.toHaveBeenCalled()
+    await indexState.swapIndexPairs(queuedPairs ?? [])
+
+    const retainedProductIndex = [...indexState.indexes.keys()].find((index) =>
+      index.startsWith(`${profile.indexes.product}__build_`)
+    )
+    expect(indexState.documentIds(profile.indexes.product)).toEqual([])
+    expect(retainedProductIndex).toBeDefined()
+    expect(indexState.documentIds(retainedProductIndex as string)).toContain(
+      "last_good_product"
+    )
+  })
+
+  it("supports bounded reverse-swap rollback followed by exact retained-generation GC", async () => {
+    const active = {
+      brand: "rollback_brand",
+      category: "rollback_category",
+      content: "rollback_content",
+      product: "rollback_product",
+    }
+    const retained = Object.fromEntries(
+      Object.entries(active).map(([kind, uid]) => [
+        kind,
+        `${uid}__build_generation-1`,
+      ])
+    ) as typeof active
+    const indexState = inMemoryIndexClient({
+      [active.product]: [{ id: "new_product", title: "New product" }],
+      [retained.product]: [{ id: "old_product", title: "Old product" }],
+    })
+
+    await rollbackRetainedSearchGeneration(indexState.client, {
+      active,
+      retained,
+    })
+
+    expect(indexState.documentIds(active.product)).toEqual(["old_product"])
+    expect(indexState.documentIds(retained.product)).toEqual(["new_product"])
+    expect(indexState.swapIndexPairs).toHaveBeenCalledTimes(1)
+
+    await acceptRetainedSearchGeneration(indexState.client, {
+      active,
+      retained,
+    })
+
+    expect(
+      Object.values(retained).every((uid) => !indexState.indexes.has(uid))
+    ).toBe(true)
+  })
+
+  it("does not reverse a completed rollback when delivery is duplicated", async () => {
+    const active = {
+      brand: "retry_brand",
+      category: "retry_category",
+      content: "retry_content",
+      product: "retry_product",
+    }
+    const retained = Object.fromEntries(
+      Object.entries(active).map(([kind, uid]) => [
+        kind,
+        `${uid}__build_generation-retry`,
+      ])
+    ) as typeof active
+    const indexState = inMemoryIndexClient({
+      [active.product]: [{ id: "rejected_product" }],
+      [retained.product]: [{ id: "last_good_product" }],
+    })
+    await rollbackRetainedSearchGeneration(indexState.client, {
+      active,
+      retained,
+    })
+    await rollbackRetainedSearchGeneration(indexState.client, {
+      active,
+      retained,
+    })
+
+    expect(indexState.documentIds(active.product)).toEqual([
+      "last_good_product",
+    ])
+    expect(indexState.swapIndexPairs).toHaveBeenCalledTimes(1)
+  })
+
+  it("rejects an unbound retained generation before swap or GC", async () => {
+    const active = {
+      brand: "invalid_brand",
+      category: "invalid_category",
+      content: "invalid_content",
+      product: "invalid_product",
+    }
+    const retained = {
+      brand: "other_brand",
+      category: "other_category",
+      content: "other_content",
+      product: "other_product",
+    }
+    const indexState = inMemoryIndexClient()
+
+    await expect(
+      rollbackRetainedSearchGeneration(indexState.client, {
+        active,
+        retained,
+      })
+    ).rejects.toThrow("exact retained generation")
+    await expect(
+      acceptRetainedSearchGeneration(indexState.client, { active, retained })
+    ).rejects.toThrow("exact retained generation")
+    expect(indexState.swapIndexPairs).not.toHaveBeenCalled()
+    expect(indexState.deleteIndex).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ["sk", "sk-SK", "sk", "eur"],
+    ["cz", "cs-CZ", "cz", "czk"],
+    ["hu", "hu-HU", "hu", "huf"],
+    ["ro", "ro-RO", "ro", "ron"],
+  ] as const)("requires explicit %s publication and commerce authority", async (market, locale, country, currencyCode) => {
+    const query = {
+      graph: vi.fn().mockResolvedValue({ data: [] }),
+    } as unknown as Query
+    const profile = {
+      ...roProfile(`herbatika-${market}`),
+      locale,
+      salesChannelIds: [`sc_${market}`],
+    } satisfies SearchProfile
+    const indexState = inMemoryIndexClient()
+    const region = {
+      countries: [{ iso_2: country }],
+      currency_code: currencyCode,
+      id: `reg_${market}`,
+      metadata: {
+        ...(market === "ro"
+          ? { demo_source: "herbatica-ro-demo-commerce-v1" }
+          : {}),
+        market_code: market,
+        sales_channel_id: `sc_${market}`,
+      },
+    }
+
+    await expect(
+      syncProfile({
+        client: indexState.client,
+        container: syncContainer(
+          query,
+          vi.fn().mockResolvedValue([]),
+          vi.fn().mockResolvedValue([]),
+          [region]
+        ) as never,
+        logger: { info: vi.fn(), warn: vi.fn() } as never,
+        mode: "normal",
+        profile,
+      })
+    ).resolves.toEqual({ deleted: 0, indexed: 0 })
+
+    expect(indexState.swapIndexPairs).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    ["sk", "sk-SK", "sk", "czk"],
+    ["cz", "cs-CZ", "cz", "eur"],
+    ["hu", "hu-HU", "hu", "ron"],
+    ["ro", "ro-RO", "ro", "huf"],
+  ] as const)("rejects a %s profile whose region violates its exact currency contract", async (market, locale, country, wrongCurrencyCode) => {
+    const query = {
+      graph: vi.fn().mockRejectedValue(new Error("catalog must not be read")),
+    } as unknown as Query
+    const profile = {
+      ...roProfile(`herbatika-${market}-wrong-currency`),
+      locale,
+      salesChannelIds: [`sc_${market}`],
+    } satisfies SearchProfile
+    const indexState = inMemoryIndexClient()
+    const region = {
+      countries: [{ iso_2: country }],
+      currency_code: wrongCurrencyCode,
+      id: `reg_${market}`,
+      metadata: {
+        ...(market === "ro"
+          ? { demo_source: "herbatica-ro-demo-commerce-v1" }
+          : {}),
+        market_code: market,
+        sales_channel_id: `sc_${market}`,
+      },
+    }
+
+    await expect(
+      syncProfile({
+        client: indexState.client,
+        container: syncContainer(
+          query,
+          vi.fn().mockResolvedValue([]),
+          vi.fn().mockResolvedValue([]),
+          [region]
+        ) as never,
+        logger: { info: vi.fn(), warn: vi.fn() } as never,
+        mode: "normal",
+        profile,
+      })
+    ).rejects.toThrow("cannot prove exact region, currency")
+
+    expect(indexState.swapIndexPairs).not.toHaveBeenCalled()
+    expect(query.graph).not.toHaveBeenCalled()
+  })
+
+  it("rejects an implicit Slovak profile without exact market scope", async () => {
     const query = {
       graph: vi.fn().mockResolvedValue({ data: [] }),
     } as unknown as Query
@@ -1359,11 +1860,9 @@ describe("Meilisearch catalog localization", () => {
         mode: "normal",
         profile,
       })
-    ).resolves.toEqual({ deleted: 0, indexed: 0 })
+    ).rejects.toThrow("cannot prove exact publication")
 
-    expect(ensureIndex.mock.calls.map(([index]) => index)).toEqual(
-      Object.values(indexes)
-    )
+    expect(ensureIndex).not.toHaveBeenCalled()
     expect(swapIndexPairs).not.toHaveBeenCalled()
     expect(deleteIndex).not.toHaveBeenCalled()
   })

@@ -9,6 +9,7 @@ import { prepareCustomerAccountDeactivationRequestStep } from "../steps/prepare-
 
 type RequestCustomerAccountDeactivationWorkflowInput = {
   customer_id: string
+  sales_channel_id: string
 }
 
 export const requestCustomerAccountDeactivationWorkflow = createWorkflow(

@@ -3,7 +3,6 @@ import { existsSync } from "node:fs"
 import type {
   ExecArgs,
   IFulfillmentModuleService,
-  IRegionModuleService,
   Logger,
 } from "@medusajs/framework/types"
 import {
@@ -26,6 +25,7 @@ import {
 } from "./herbatica-category-export"
 import { importHerbaticaReviews } from "./herbatica-reviews-seed"
 import {
+  buildHerbaticaShippingOptions,
   HERBATICA_CATEGORIES_XML_ENV,
   HERBATICA_CATEGORIES_XML_PATHS,
   HERBATICA_COUNTRIES,
@@ -38,20 +38,21 @@ import {
   HERBATICA_DEFAULT_STOCK_LOCATION,
   HERBATICA_FALLBACK_SHOPTET_WAREHOUSE,
   HERBATICA_MANUFACTURERS_CSV_ENV,
-  HERBATICA_POS_SALES_CHANNEL_NAME,
+  HERBATICA_MARKET_CURRENCY_CODES,
   HERBATICA_PRICE_LIST_SYNC_CONFIG,
   HERBATICA_PRODUCTS_XML_ENV,
   HERBATICA_PRODUCTS_XML_PATHS,
   HERBATICA_PROMO_REBASE_DAYS_ENV,
-  HERBATICA_PUBLISHABLE_KEY,
+  HERBATICA_PUBLISHABLE_KEYS,
   HERBATICA_REVIEWS_XML_ENV,
   HERBATICA_SALE_PRICE_LIST_TITLE_TEMPLATE,
   HERBATICA_SALES_CHANNELS,
-  HERBATICA_SHIPPING_OPTIONS,
-  HERBATICA_STOREFRONT_SALES_CHANNEL_NAME,
+  HERBATICA_SHIPPING_PRICE_AMOUNTS_ENV,
+  HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES,
   HERBATICA_TAX_RATE_CONFIG,
   HERBATICA_TAX_RATE_COUNTRIES,
   HERBATICA_WORKFLOW_DEFAULTS,
+  parseHerbaticaShippingPriceAmounts,
 } from "./herbatica-seed-config"
 import {
   decodeXml,
@@ -311,6 +312,7 @@ type HerbaticaWorkflowInputOptions = {
   fulfillmentSetName: string
   fulfillmentSetType: string
   serviceZoneName: string
+  shippingOptions: SeedDatabaseWorkflowInput["shippingOptions"]
 }
 
 type SeedBuildOptions = {
@@ -2394,7 +2396,7 @@ export function resolveHerbaticaProductVisibility(item: {
   switch ((item.visibility ?? "visible").trim().toLowerCase()) {
     case "cashdeskonly":
       return {
-        salesChannelNames: [HERBATICA_POS_SALES_CHANNEL_NAME],
+        salesChannelNames: [],
         status: ProductStatus.PUBLISHED,
         storefrontAccessible: false,
       }
@@ -2406,7 +2408,7 @@ export function resolveHerbaticaProductVisibility(item: {
       }
     case "visible":
       return {
-        salesChannelNames: [HERBATICA_STOREFRONT_SALES_CHANNEL_NAME],
+        salesChannelNames: [...HERBATICA_STOREFRONT_SALES_CHANNEL_NAMES],
         status: ProductStatus.PUBLISHED,
         storefrontAccessible: true,
       }
@@ -3603,8 +3605,66 @@ export function buildHerbaticaSeedWorkflowInput(
     fulfillmentSetName,
     fulfillmentSetType,
     serviceZoneName,
+    shippingOptions,
   }: HerbaticaWorkflowInputOptions
 ): SeedDatabaseWorkflowInput {
+  const expectedRegions = new Map(
+    HERBATICA_DEFAULT_REGIONS.map((region) => [
+      region.currencyCode,
+      region.countries[0],
+    ])
+  )
+  const normalizedRegions = regionsInput.map((region) => ({
+    countries: region.countries?.map((country) => country.toLowerCase()),
+    currencyCode: region.currencyCode.toLowerCase(),
+  }))
+  if (
+    normalizedRegions.length !== expectedRegions.size ||
+    normalizedRegions.some(({ countries, currencyCode }) => {
+      const expectedCountry = expectedRegions.get(currencyCode)
+      return (
+        !expectedCountry ||
+        countries?.length !== 1 ||
+        countries[0] !== expectedCountry
+      )
+    }) ||
+    new Set(normalizedRegions.map(({ currencyCode }) => currencyCode)).size !==
+      expectedRegions.size
+  ) {
+    throw new Error(
+      "Herbatica regions must be exactly SK/EUR, CZ/CZK, HU/HUF, and RO/RON"
+    )
+  }
+
+  for (const product of parsed.products) {
+    if (!product.salesChannelNames.length) {
+      continue
+    }
+    for (const variant of product.variants ?? []) {
+      const prices = variant.prices ?? []
+      const priceCurrencies = prices.map(({ currency_code }) =>
+        currency_code.toLowerCase()
+      )
+      const hasExactCoverage =
+        prices.length === HERBATICA_MARKET_CURRENCY_CODES.length &&
+        new Set(priceCurrencies).size ===
+          HERBATICA_MARKET_CURRENCY_CODES.length &&
+        HERBATICA_MARKET_CURRENCY_CODES.every((currencyCode) =>
+          prices.some(
+            (price) =>
+              price.currency_code.toLowerCase() === currencyCode &&
+              Number.isFinite(price.amount) &&
+              price.amount > 0
+          )
+        )
+      if (!hasExactCoverage) {
+        throw new Error(
+          `Visible Herbatica variant "${variant.sku}" requires exact positive EUR/CZK/HUF/RON base prices from approved commercial authority`
+        )
+      }
+    }
+  }
+
   return {
     workflowDefaults: HERBATICA_WORKFLOW_DEFAULTS,
     salesChannels: HERBATICA_SALES_CHANNELS,
@@ -3634,8 +3694,8 @@ export function buildHerbaticaSeedWorkflowInput(
         },
       ],
     },
-    shippingOptions: HERBATICA_SHIPPING_OPTIONS,
-    publishableKey: HERBATICA_PUBLISHABLE_KEY,
+    shippingOptions,
+    publishableKeys: HERBATICA_PUBLISHABLE_KEYS,
     productCategories: parsed.categories,
     products: parsed.products,
     legacyBrandAttributeNames: ["supplier", "manufacturer", "item_type"],
@@ -3724,6 +3784,10 @@ function resolveFeedPaths(args?: string[]): ResolvedFeedPaths {
 // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: This seed script is intentionally linear and only runs in dev/seed flows.
 export default async function herbaticaSeed({ container, args }: ExecArgs) {
   const logger = container.resolve<Logger>(ContainerRegistrationKeys.LOGGER)
+  const shippingPriceAmounts = parseHerbaticaShippingPriceAmounts(
+    process.env[HERBATICA_SHIPPING_PRICE_AMOUNTS_ENV]
+  )
+  const shippingOptions = buildHerbaticaShippingOptions(shippingPriceAmounts)
 
   logger.info("Starting Herbatica seed from XML feed...")
   const feedPaths = resolveFeedPaths(args)
@@ -3788,27 +3852,8 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     logger.warn(warning)
   }
 
-  const regionService = container.resolve<IRegionModuleService>(Modules.REGION)
-  const existingRegions = await regionService.listRegions({})
-  const defaultRegions: SeedDatabaseWorkflowInput["regions"] =
-    HERBATICA_DEFAULT_REGIONS
-
   const regionsInput: SeedDatabaseWorkflowInput["regions"] =
-    existingRegions.length === 0
-      ? defaultRegions
-      : existingRegions.map((region) => ({
-          name: region.name,
-          currencyCode: region.currency_code?.toLowerCase() || "eur",
-          countries: undefined,
-          paymentProviders: undefined,
-          isTaxInclusive: true,
-        }))
-
-  if (existingRegions.length > 0) {
-    logger.info(
-      `Using existing regions (${regionsInput.map((region) => region.name).join(", ")}) to avoid country assignment conflicts`
-    )
-  }
+    HERBATICA_DEFAULT_REGIONS
 
   const fulfillmentService = container.resolve<IFulfillmentModuleService>(
     Modules.FULFILLMENT
@@ -3843,6 +3888,7 @@ export default async function herbaticaSeed({ container, args }: ExecArgs) {
     fulfillmentSetName,
     fulfillmentSetType,
     serviceZoneName,
+    shippingOptions,
   })
 
   logger.info("Running Herbatica seed workflow...")

@@ -1,3 +1,4 @@
+import type { HerbatikaLocale } from "@/lib/storefront/market-context"
 import type { NormalizedQueryValues, QueryRouteKind } from "./query-normalizer"
 
 export type PublicSeoClassification = Readonly<{
@@ -9,10 +10,32 @@ export type PublicSeoClassification = Readonly<{
 
 export type PublicSeoSchemaType = "Article" | "CollectionPage" | "WebPage"
 
+const OPEN_GRAPH_LOCALE_BY_LOCALE = {
+  "cs-CZ": "cs_CZ",
+  "hu-HU": "hu_HU",
+  "ro-RO": "ro_RO",
+  "sk-SK": "sk_SK",
+} as const satisfies Record<HerbatikaLocale, string>
+
+const HERBATIKA_LOCALES = Object.freeze(
+  Object.keys(OPEN_GRAPH_LOCALE_BY_LOCALE) as HerbatikaLocale[]
+)
+
+export const buildPublicOpenGraphLocales = (input: {
+  alternates?: Readonly<Partial<Record<HerbatikaLocale, string>>>
+  locale: HerbatikaLocale
+}) => ({
+  alternateLocales: HERBATIKA_LOCALES.filter(
+    (locale) => locale !== input.locale && Boolean(input.alternates?.[locale])
+  ).map((locale) => OPEN_GRAPH_LOCALE_BY_LOCALE[locale]),
+  locale: OPEN_GRAPH_LOCALE_BY_LOCALE[input.locale],
+})
+
 export const buildPublicSeoJsonLd = (
   input: Readonly<{
     canonical?: string
     description?: string
+    inLanguage?: HerbatikaLocale
     schemaType?: PublicSeoSchemaType
     title?: string
   }>
@@ -25,6 +48,7 @@ export const buildPublicSeoJsonLd = (
         url: input.canonical,
         ...(input.title ? { name: input.title } : {}),
         ...(input.description ? { description: input.description } : {}),
+        ...(input.inLanguage ? { inLanguage: input.inLanguage } : {}),
       }
     : null
 

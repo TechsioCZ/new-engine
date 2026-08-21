@@ -3,11 +3,50 @@ import { resolvePublicProxyAction } from "./public-proxy"
 
 const ROUTING_ENVIRONMENT = {
   ALLOWED_MARKETS: "sk,cz,hu,ro",
-  MARKET_ACCEPTED_HOSTS_CZ: "herbatica.cz",
-  MARKET_ACCEPTED_HOSTS_HU: "herbatica.hu",
-  MARKET_ACCEPTED_HOSTS_RO: "herbatica.ro",
-  MARKET_ACCEPTED_HOSTS_SK: "herbatica.sk",
+  MARKET_ACCEPTED_HOSTS_CZ:
+    "herbatica.cz,www.herbatica.cz,test-engine-herbatika-cz-zane.web-revolution.cz",
+  MARKET_ACCEPTED_HOSTS_HU:
+    "herbatica.hu,www.herbatica.hu,test-engine-herbatika-hu-zane.web-revolution.cz",
+  MARKET_ACCEPTED_HOSTS_RO:
+    "herbatica.ro,www.herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz",
+  MARKET_ACCEPTED_HOSTS_SK:
+    "herbatica.sk,www.herbatica.sk,test-engine-herbatika-zane.web-revolution.cz",
 } as const
+
+const HOST_MATRIX = [
+  ["herbatica.sk", "sk", false, "https://herbatica.sk"],
+  ["www.herbatica.sk", "sk", true, "https://herbatica.sk"],
+  [
+    "test-engine-herbatika-zane.web-revolution.cz",
+    "sk",
+    true,
+    "https://herbatica.sk",
+  ],
+  ["herbatica.cz", "cz", false, "https://herbatica.cz"],
+  ["www.herbatica.cz", "cz", true, "https://herbatica.cz"],
+  [
+    "test-engine-herbatika-cz-zane.web-revolution.cz",
+    "cz",
+    true,
+    "https://herbatica.cz",
+  ],
+  ["herbatica.hu", "hu", false, "https://herbatica.hu"],
+  ["www.herbatica.hu", "hu", true, "https://herbatica.hu"],
+  [
+    "test-engine-herbatika-hu-zane.web-revolution.cz",
+    "hu",
+    true,
+    "https://herbatica.hu",
+  ],
+  ["herbatica.ro", "ro", false, "https://herbatica.ro"],
+  ["www.herbatica.ro", "ro", true, "https://herbatica.ro"],
+  [
+    "test-engine-herbatika-ro-zane.web-revolution.cz",
+    "ro",
+    true,
+    "https://herbatica.ro",
+  ],
+] as const
 
 const resolve = (
   pathname: string,
@@ -81,6 +120,17 @@ describe("full public URL proxy", () => {
     expect(resolve("/produkty/ashwagandha", { host: "herbatica.hu" })).toEqual({
       kind: "respond",
       status: 404,
+    })
+  })
+
+  it.each(
+    HOST_MATRIX
+  )("binds accepted host %s to %s and its canonical origin", (host, market, canonicalizationRequired, canonicalOrigin) => {
+    expect(resolve("/", { host })).toMatchObject({
+      canonicalOrigin,
+      canonicalizationRequired,
+      kind: "rewrite",
+      market,
     })
   })
 

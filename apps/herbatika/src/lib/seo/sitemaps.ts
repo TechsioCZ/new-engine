@@ -1,4 +1,5 @@
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
+import { ROUTES } from "@/lib/market/market-runtime-definitions"
 import { classifySeo } from "@/lib/url/public-seo"
 import { buildAbsoluteUrl } from "@/lib/url/public-url"
 import type { QueryRouteKind } from "@/lib/url/query-normalizer"
@@ -43,16 +44,26 @@ const isCleanRouteSitemapEligible = (kind: SitemapKind): boolean =>
   }).sitemapEligible
 
 const listCoreEntries = (
-  binding: MarketRuntimeBinding
+  binding: MarketRuntimeBinding,
+  dependencies: SitemapDataDependencies
 ): SitemapEntryLoadResult => ({
   kind: "found",
   value: CORE_ROUTES.filter(
     ({ routeKind }) =>
       classifySeo({ canonicalRawQuery: "", routeKind, values: {} })
         .sitemapEligible
-  ).map(({ target }) => ({
-    location: buildAbsoluteUrl(target, binding.market).href,
-  })),
+  ).map(({ target }) => {
+    const markets = dependencies.listMarkets?.() ?? [binding.market]
+    return {
+      alternates: Object.fromEntries(
+        markets.map((market) => [
+          ROUTES[market].locale,
+          buildAbsoluteUrl(target, market).href,
+        ])
+      ),
+      location: buildAbsoluteUrl(target, binding.market).href,
+    }
+  }),
 })
 
 const validateSitemapEntryCount = (
@@ -84,7 +95,7 @@ export const listSitemapEntries = (
     return Promise.resolve({ kind: "found", value: [] })
   }
   if (kind === "core") {
-    return Promise.resolve(listCoreEntries(binding))
+    return Promise.resolve(listCoreEntries(binding, dependencies))
   }
   return kind === "static"
     ? listStaticSitemapEntries(binding, dependencies)
@@ -97,7 +108,7 @@ export const countSitemapEntries = async (
   dependencies: SitemapDataDependencies
 ): Promise<SourceReadResult<number>> => {
   if (kind === "core") {
-    const result = listCoreEntries(binding)
+    const result = listCoreEntries(binding, dependencies)
     return validateSitemapEntryCount(
       result.kind === "found"
         ? { kind: "found", value: result.value.length }

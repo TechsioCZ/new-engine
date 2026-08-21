@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const workflowSdkMock = vi.hoisted(() => ({
   steps: new Map<string, (...arguments_: unknown[]) => unknown>(),
+  workflowBuilders: new Map<string, (...arguments_: unknown[]) => unknown>(),
 }))
 const resolveNotificationMarketContext = vi.hoisted(() => vi.fn())
+const sendNotificationStep = vi.hoisted(() => vi.fn())
 
 vi.mock("@medusajs/framework/utils", () => ({
   ContainerRegistrationKeys: { LOGGER: "logger", QUERY: "query" },
@@ -18,10 +20,22 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
     (name: string, handler: (...arguments_: unknown[]) => unknown) => {
       workflowSdkMock.steps.set(name, handler)
 
+      return (...arguments_: unknown[]) => {
+        if (arguments_.length === 1) {
+          return { input: arguments_[0], step: name }
+        }
+
+        return handler(...arguments_)
+      }
+    }
+  ),
+  createWorkflow: vi.fn(
+    (name: string, handler: (...arguments_: unknown[]) => unknown) => {
+      workflowSdkMock.workflowBuilders.set(name, handler)
+
       return handler
     }
   ),
-  createWorkflow: vi.fn((_name: string, handler: unknown) => handler),
   StepResponse: class StepResponse<TOutput> {
     output: TOutput
 
@@ -44,6 +58,10 @@ vi.mock("../../../../src/modules/order-receipt", () => ({
 
 vi.mock("../../../../src/utils/notification-market-context", () => ({
   resolveNotificationMarketContext,
+}))
+
+vi.mock("../../../../src/workflows/steps/send-notification", () => ({
+  sendNotificationStep,
 }))
 
 const MARKETS = [
@@ -78,6 +96,19 @@ describe("send order receipt workflow", () => {
     vi.clearAllMocks()
   })
 
+  it("routes delivery through the shared observable notification step", async () => {
+    await import("../../../../src/workflows/send-order-receipt")
+    const buildWorkflow =
+      workflowSdkMock.workflowBuilders.get("send-order-receipt")
+
+    buildWorkflow?.({ order_id: "order_1" })
+
+    expect(sendNotificationStep).toHaveBeenCalledWith({
+      input: { order_id: "order_1" },
+      step: "build-order-receipt-notification",
+    })
+  })
+
   it.each(
     MARKETS
   )("uses authoritative order data and $locale notification formatting", async ({
@@ -110,9 +141,6 @@ describe("send order receipt workflow", () => {
       total: 9999,
     }
     const graph = vi.fn().mockResolvedValue({ data: [order] })
-    const createNotifications = vi
-      .fn()
-      .mockResolvedValue([{ id: "notification_1" }])
     const generateOrderReceiptAttachment = vi.fn().mockResolvedValue({
       content: Buffer.from("pdf"),
       content_type: "application/pdf",
@@ -128,10 +156,6 @@ describe("send order receipt workflow", () => {
           return { warn: vi.fn() }
         }
 
-        if (key === "notification") {
-          return { createNotifications }
-        }
-
         if (key === "order_receipt") {
           return { generateOrderReceiptAttachment }
         }
@@ -139,11 +163,14 @@ describe("send order receipt workflow", () => {
         throw new Error("Unexpected dependency")
       }),
     }
-    const step = workflowSdkMock.steps.get("send-order-receipt")
+    const step = workflowSdkMock.steps.get("build-order-receipt-notification")
 
-    await step?.({ order_id: "order_1" }, { container })
+    const response = await step?.({ order_id: "order_1" }, { container })
+    const notification = (
+      response as { output: Record<string, unknown>[] } | undefined
+    )?.output[0]
 
-    expect(createNotifications).toHaveBeenCalledWith(
+    expect(notification).toEqual(
       expect.objectContaining({
         data: expect.objectContaining({
           customer_name: "Fetched Customer",
@@ -154,6 +181,8 @@ describe("send order receipt workflow", () => {
             style: "currency",
           }).format(1234.5),
         }),
+        idempotency_key: "order-receipt:order_1",
+        receiver_id: "cus_1",
         resource_id: "order_1",
         to: "fetched@example.test",
       })
@@ -166,5 +195,44 @@ describe("send order receipt workflow", () => {
       locale,
       storeName: "Herbatica",
     })
+  })
+
+  it("skips a recipient-less order before attachment generation", async () => {
+    await import("../../../../src/workflows/send-order-receipt")
+    const graph = vi.fn().mockResolvedValue({
+      data: [{ id: "order_without_email" }],
+    })
+    const warn = vi.fn()
+    const generateOrderReceiptAttachment = vi.fn()
+    const container = {
+      resolve: vi.fn((key: string) => {
+        if (key === "query") {
+          return { graph }
+        }
+
+        if (key === "logger") {
+          return { warn }
+        }
+
+        if (key === "order_receipt") {
+          return { generateOrderReceiptAttachment }
+        }
+
+        throw new Error("Unexpected dependency")
+      }),
+    }
+    const step = workflowSdkMock.steps.get("build-order-receipt-notification")
+
+    const response = await step?.(
+      { order_id: "order_without_email" },
+      { container }
+    )
+
+    expect((response as { output: unknown[] }).output).toEqual([])
+    expect(generateOrderReceiptAttachment).not.toHaveBeenCalled()
+    expect(resolveNotificationMarketContext).not.toHaveBeenCalled()
+    expect(warn).toHaveBeenCalledWith(
+      "Order order_without_email has no email; receipt email skipped."
+    )
   })
 })

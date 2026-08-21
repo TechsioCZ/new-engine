@@ -48,6 +48,8 @@ describe("session route Romanian localization", () => {
     )
 
     expect(response.status).toBe(200)
+    expect(response.headers.get("cache-control")).toBe("private, no-store")
+    expect(response.headers.get("vary")).toBe("Cookie")
     await expect(response.json()).resolves.toEqual({
       authenticated: false,
       message: "Este necesară autentificarea.",
@@ -108,6 +110,8 @@ describe("session route Romanian localization", () => {
     )
 
     expect(response.status).toBe(200)
+    expect(response.headers.get("cache-control")).toBe("private, no-store")
+    expect(response.headers.get("vary")).toBe("Cookie")
     await expect(response.json()).resolves.toEqual({
       authenticated: false,
       message: "Este necesară autentificarea.",
@@ -117,6 +121,37 @@ describe("session route Romanian localization", () => {
     expect(medusaFetch).toHaveBeenCalledTimes(2)
     expect(refreshCancel).toHaveBeenCalledOnce()
     expect(customerCancel).toHaveBeenCalledOnce()
+  })
+
+  it("returns a private response and preserves a refreshed session cookie", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          Response.json({ token: "refreshed-token" }, { status: 200 })
+        )
+    )
+
+    const response = await GET(
+      new NextRequest("http://localhost/api/storefront-auth/session", {
+        headers: {
+          cookie: "herbatika_auth_session_token=old-token",
+          host: "herbatica.ro",
+        },
+      })
+    )
+
+    expect(response.status).toBe(200)
+    expect(response.headers.get("cache-control")).toBe("private, no-store")
+    expect(response.headers.get("vary")).toBe("Cookie")
+    expect(response.headers.get("set-cookie")).toContain(
+      "herbatika_auth_session_token=refreshed-token"
+    )
+    await expect(response.json()).resolves.toEqual({
+      authenticated: true,
+      token: "refreshed-token",
+    })
   })
 
   it("cancels unused successful customer bodies during token fallback", async () => {
@@ -160,6 +195,11 @@ describe("session route Romanian localization", () => {
     )
 
     expect(response.status).toBe(200)
+    expect(response.headers.get("cache-control")).toBe("private, no-store")
+    expect(response.headers.get("vary")).toBe("Cookie")
+    expect(response.headers.get("set-cookie")).toContain(
+      "herbatika_auth_session_token=valid-token"
+    )
     await expect(response.json()).resolves.toEqual({
       authenticated: true,
       token: "valid-token",

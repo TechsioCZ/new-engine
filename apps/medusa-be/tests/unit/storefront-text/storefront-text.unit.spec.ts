@@ -10,6 +10,7 @@ import {
 import { GET } from "../../../src/api/store/storefront-texts/route"
 import {
   flattenStorefrontTextCatalog,
+  getFlatStorefrontTextCatalog,
   getPublishedStorefrontTextMessages,
   nestStorefrontTextMessages,
   STOREFRONT_TEXT_CATALOG_SCHEMA_VERSION,
@@ -189,6 +190,124 @@ describe("storefront text registry", () => {
             overrideValue: localizedValue ?? "",
           }),
           `${definition.key} (${market.market})`
+        ).toEqual({ success: true })
+      }
+    }
+  })
+
+  it("keeps the Hungarian legal confirmation free of Slovak leakage", () => {
+    const slovakValue = getStorefrontTextDefaultMessages({ market: "sk" })[
+      "checkout.review_legal_confirmation"
+    ]
+    const hungarianValue = getStorefrontTextDefaultMessages({ market: "hu" })[
+      "checkout.review_legal_confirmation"
+    ]
+
+    expect(hungarianValue).toContain("Megerősítem, hogy ")
+    expect(hungarianValue).not.toContain("že")
+    expect(
+      validateStorefrontTextOverride({
+        defaultValue: slovakValue ?? "",
+        locale: "hu-HU",
+        overrideValue: hungarianValue ?? "",
+      })
+    ).toEqual({ success: true })
+  })
+
+  it("keeps the claims namespace exact and ICU-compatible in every locale", () => {
+    const claimsDefinitions = STOREFRONT_TEXT_DEFINITIONS.filter(
+      (definition) => definition.namespace === "claims"
+    )
+    const expectedKeys = claimsDefinitions
+      .map((definition) => definition.key)
+      .sort()
+    const slovakCatalog = getFlatStorefrontTextCatalog("sk-SK")
+    const expectedPlaceholders = {
+      "claims.code_sent": "{email}",
+      "claims.item_quantity": "{title}",
+      "claims.order_heading": "{orderNumber}",
+      "claims.ordered_quantity": "{quantity}",
+      "claims.success_case": "{caseNumber}",
+    } as const
+
+    expect(expectedKeys).toHaveLength(47)
+
+    for (const { locale, market } of STOREFRONT_TEXT_MARKETS) {
+      const catalog = getFlatStorefrontTextCatalog(locale)
+      const localeClaimsKeys = Object.keys(catalog)
+        .filter((key) => key.startsWith("claims."))
+        .sort()
+
+      expect(localeClaimsKeys, locale).toEqual(expectedKeys)
+      expect(
+        Object.keys(
+          getStorefrontTextDefaultMessages({ market, namespace: "claims" })
+        ).sort(),
+        `${locale} published claims namespace`
+      ).toEqual(expectedKeys)
+
+      for (const key of expectedKeys) {
+        expect(
+          validateStorefrontTextOverride({
+            defaultValue: slovakCatalog[key] ?? "",
+            locale,
+            overrideValue: catalog[key] ?? "",
+          }),
+          `${key} (${locale})`
+        ).toEqual({ success: true })
+      }
+
+      for (const [key, placeholder] of Object.entries(expectedPlaceholders)) {
+        expect(catalog[key], `${key} (${locale})`).toContain(placeholder)
+      }
+    }
+  })
+
+  it("keeps saved-address keys exact and ICU-compatible in every locale", () => {
+    const expectedKeys = [
+      "auth.account.addresses.add",
+      "auth.account.addresses.cancel",
+      "auth.account.addresses.create_failed",
+      "auth.account.addresses.created",
+      "auth.account.addresses.default_billing",
+      "auth.account.addresses.default_shipping",
+      "auth.account.addresses.delete",
+      "auth.account.addresses.delete_description",
+      "auth.account.addresses.delete_failed",
+      "auth.account.addresses.delete_title",
+      "auth.account.addresses.deleted",
+      "auth.account.addresses.description",
+      "auth.account.addresses.edit",
+      "auth.account.addresses.edit_title",
+      "auth.account.addresses.empty_description",
+      "auth.account.addresses.empty_title",
+      "auth.account.addresses.load_failed",
+      "auth.account.addresses.new_title",
+      "auth.account.addresses.optional_label",
+      "auth.account.addresses.retry",
+      "auth.account.addresses.save",
+      "auth.account.addresses.title",
+      "auth.account.addresses.update_failed",
+      "auth.account.addresses.updated",
+    ]
+    const slovakCatalog = getFlatStorefrontTextCatalog("sk-SK")
+
+    for (const { locale } of STOREFRONT_TEXT_MARKETS) {
+      const catalog = getFlatStorefrontTextCatalog(locale)
+      const addressKeys = Object.keys(catalog)
+        .filter((key) => key.startsWith("auth.account.addresses."))
+        .sort()
+
+      expect(addressKeys, locale).toEqual(expectedKeys)
+
+      for (const key of expectedKeys) {
+        expect(
+          validateStorefrontTextOverride({
+            defaultValue: slovakCatalog[key] ?? "",
+            locale,
+            overrideValue: catalog[key] ?? "",
+          }),
+          `${key} (${locale})`
         ).toEqual({ success: true })
       }
     }

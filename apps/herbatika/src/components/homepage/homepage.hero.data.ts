@@ -155,3 +155,29 @@ export const resolveHomepageHeroBanners = (
 
   return HERO_BANNERS_BY_MARKET[market] ?? []
 }
+
+export type HomepageHeroSourceResult =
+  | Readonly<{ kind: "found"; value: HeroBannerItem[] }>
+  | Readonly<{ kind: "unavailable" }>
+
+export const resolveHomepageHeroSource = (
+  cmsBanners: HeroBannerItem[] | undefined,
+  market: HerbatikaMarketCode,
+  readReviewedBanners?: () => HeroBannerItem[] | undefined
+): HomepageHeroSourceResult => {
+  if (cmsBanners?.length) {
+    return { kind: "found", value: cmsBanners }
+  }
+
+  const marketFallback = HERO_BANNERS_BY_MARKET[market]
+  if (marketFallback?.length) {
+    return { kind: "found", value: marketFallback }
+  }
+
+  const reviewedBanners = readReviewedBanners?.()
+  if (reviewedBanners?.length) {
+    return { kind: "found", value: reviewedBanners }
+  }
+
+  return { kind: "unavailable" }
+}

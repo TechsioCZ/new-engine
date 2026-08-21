@@ -6,37 +6,43 @@ import {
 } from "./market-context"
 
 const ROUTING_ENVIRONMENT = {
-  ALLOWED_MARKETS: "sk,ro",
-  MARKET_ACCEPTED_HOSTS_RO: "ro.customer.example",
-  MARKET_ACCEPTED_HOSTS_SK: "test.shop.example",
+  ALLOWED_MARKETS: "sk,cz,hu,ro",
+  MARKET_ACCEPTED_HOSTS_CZ:
+    "herbatica.cz,www.herbatica.cz,test-engine-herbatika-cz-zane.web-revolution.cz",
+  MARKET_ACCEPTED_HOSTS_HU:
+    "herbatica.hu,www.herbatica.hu,test-engine-herbatika-hu-zane.web-revolution.cz",
+  MARKET_ACCEPTED_HOSTS_RO:
+    "herbatica.ro,www.herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz",
+  MARKET_ACCEPTED_HOSTS_SK:
+    "herbatica.sk,www.herbatica.sk,test-engine-herbatika-zane.web-revolution.cz",
 } as const
 
-describe("resolveMarketContext", () => {
-  it("resolves a configured deployment domain as the Slovak market", () => {
-    expect(
-      resolveMarketContext({
-        environment: ROUTING_ENVIRONMENT,
-        host: "test.shop.example",
-      })
-    ).toMatchObject({
-      code: "sk",
-      countryCode: "sk",
-      domain: "test.shop.example",
-      locale: "sk-SK",
-    })
-  })
+const HOST_MATRIX = [
+  ["herbatica.sk", "sk", "sk", "sk-SK"],
+  ["www.herbatica.sk", "sk", "sk", "sk-SK"],
+  ["test-engine-herbatika-zane.web-revolution.cz", "sk", "sk", "sk-SK"],
+  ["herbatica.cz", "cz", "cz", "cs-CZ"],
+  ["www.herbatica.cz", "cz", "cz", "cs-CZ"],
+  ["test-engine-herbatika-cz-zane.web-revolution.cz", "cz", "cz", "cs-CZ"],
+  ["herbatica.hu", "hu", "hu", "hu-HU"],
+  ["www.herbatica.hu", "hu", "hu", "hu-HU"],
+  ["test-engine-herbatika-hu-zane.web-revolution.cz", "hu", "hu", "hu-HU"],
+  ["herbatica.ro", "ro", "ro", "ro-RO"],
+  ["www.herbatica.ro", "ro", "ro", "ro-RO"],
+  ["test-engine-herbatika-ro-zane.web-revolution.cz", "ro", "ro", "ro-RO"],
+] as const
 
-  it("resolves another configured domain as the Romanian market", () => {
+describe("resolveMarketContext", () => {
+  it.each(
+    HOST_MATRIX
+  )("resolves accepted host %s as the %s market", (host, code, countryCode, locale) => {
     expect(
-      resolveMarketContext({
-        environment: ROUTING_ENVIRONMENT,
-        host: "ro.customer.example",
-      })
+      resolveMarketContext({ environment: ROUTING_ENVIRONMENT, host })
     ).toMatchObject({
-      code: "ro",
-      countryCode: "ro",
-      domain: "ro.customer.example",
-      locale: "ro-RO",
+      code,
+      countryCode,
+      domain: `herbatica.${code}`,
+      locale,
     })
   })
 
@@ -49,26 +55,42 @@ describe("resolveMarketContext", () => {
     ).toBe("test-engine-herbatika-ro-zane.web-revolution.cz")
   })
 
+  it("does not let a valid x-forwarded-host rescue an unknown public Host", () => {
+    const host = resolveMarketRequestHost({
+      forwardedHost: "herbatica.sk",
+      host: "unknown.example",
+    })
+
+    expect(host).toBe("unknown.example")
+    expect(
+      resolveMarketRequestContext({
+        environment: ROUTING_ENVIRONMENT,
+        forwardedHost: "herbatica.sk",
+        host,
+      })
+    ).toBeNull()
+  })
+
   it("uses the trusted rewrite market when the rendered host is internal", () => {
-    const markets = ["sk", "ro", "sk", "ro"].map((trustedMarket) =>
+    const markets = ["sk", "cz", "hu", "ro"].map((trustedMarket) =>
       resolveMarketRequestContext({
         environment: ROUTING_ENVIRONMENT,
         host: "zn-herbatika.internal",
         trustedCanonicalOrigin:
-          trustedMarket === "ro"
-            ? "https://ro.customer.example"
-            : "https://test.shop.example",
+          trustedMarket === "sk"
+            ? "https://herbatica.sk"
+            : `https://herbatica.${trustedMarket}`,
         trustedMarket,
       })
     )
 
     expect(markets.map((market) => market?.code)).toEqual([
       "sk",
-      "ro",
-      "sk",
+      "cz",
+      "hu",
       "ro",
     ])
-    expect(markets[1]).toMatchObject({
+    expect(markets[3]).toMatchObject({
       currencyCode: "RON",
       locale: "ro-RO",
     })
@@ -78,15 +100,15 @@ describe("resolveMarketContext", () => {
     expect(
       resolveMarketRequestContext({
         environment: ROUTING_ENVIRONMENT,
-        host: "test.shop.example",
+        host: "herbatica.sk",
         trustedMarket: "ro",
       })
     ).toBeNull()
     expect(
       resolveMarketRequestContext({
         environment: ROUTING_ENVIRONMENT,
-        host: "test.shop.example",
-        trustedCanonicalOrigin: "https://test.shop.example",
+        host: "herbatica.sk",
+        trustedCanonicalOrigin: "https://herbatica.sk",
         trustedMarket: "ro",
       })
     ).toBeNull()

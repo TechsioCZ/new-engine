@@ -25,6 +25,10 @@ import {
   STATUS_FACET_LABEL_BY_ID,
 } from "../../../../modules/meilisearch/facets/product-facets"
 import {
+  type FacetPriceCurrencyScope,
+  resolveVerifiedFacetPriceCurrency,
+} from "../../../../modules/meilisearch/profile-currency"
+import {
   loadSearchProfiles,
   resolveSearchProfile,
   type SearchProfile,
@@ -383,12 +387,12 @@ const resolveAuthoritativePriceSortDirection = (
 
 export const usesIndexedProfilePriceSort = (
   profile: Pick<SearchProfile, "locale">,
-  priceSortDirection: 1 | -1 | undefined
+  priceSortDirection: 1 | -1 | undefined,
+  currencyScope: FacetPriceCurrencyScope
 ): boolean =>
   Boolean(
     priceSortDirection &&
-      profile.locale.trim().toLowerCase().replaceAll("_", "-").split("-")[0] ===
-        "ro"
+      resolveVerifiedFacetPriceCurrency(profile.locale, currencyScope)
   )
 
 export const resolveCatalogSearchExecutionPlan = (options: {
@@ -397,14 +401,20 @@ export const resolveCatalogSearchExecutionPlan = (options: {
   limit: number
   offset: number
   profile: Pick<SearchProfile, "locale">
+  pricingContextCurrencyCode?: string
   requestedSort: string
+  requestedCurrencyCode?: string
 }) => {
   const priceSortDirection = resolveAuthoritativePriceSortDirection(
     options.requestedSort
   )
   const indexedProfilePriceSort = usesIndexedProfilePriceSort(
     options.profile,
-    priceSortDirection
+    priceSortDirection,
+    {
+      pricingContextCurrencyCode: options.pricingContextCurrencyCode,
+      requestedCurrencyCode: options.requestedCurrencyCode,
+    }
   )
   const exhaustiveCandidateSearch = Boolean(
     (options.cleanedQuery || priceSortDirection) && !indexedProfilePriceSort
@@ -755,12 +765,13 @@ export async function GET(
   const limit = Math.min(validatedQuery.limit, searchProfile.limits.page)
   const offset = (page - 1) * limit
   const cleanedQuery = cleanSearchText(validatedQuery.q)
+  const pricingContextCurrencyCode = getPricingContextCurrencyCode(
+    req.pricingContext
+  )
 
   if (saleAdapterMatcher.enabled) {
     saleProductSelection = await listActiveSalePriceListProductSelection({
-      currencyCode:
-        getPricingContextCurrencyCode(req.pricingContext) ??
-        validatedQuery.currency_code,
+      currencyCode: pricingContextCurrencyCode ?? validatedQuery.currency_code,
       customerGroupIds: getPricingContextCustomerGroupIds(req.pricingContext),
       query: queryService,
     })
@@ -821,7 +832,9 @@ export async function GET(
     limit,
     offset,
     profile: searchProfile,
+    pricingContextCurrencyCode,
     requestedSort: validatedQuery.sort,
+    requestedCurrencyCode: validatedQuery.currency_code,
   })
   const saleSearchExpression = saleProductSelection
     ? buildMeiliOrExpression(

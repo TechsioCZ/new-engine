@@ -152,8 +152,18 @@ describe("Herbatica Product Attribute reconciliation", () => {
 
 describe("Herbatica native visibility mapping", () => {
   it.each([
-    ["visible", "published", ["Default Sales Channel"], true],
-    ["cashDeskOnly", "published", ["Default Sales Channel POS"], false],
+    [
+      "visible",
+      "published",
+      [
+        "Herbatica Storefront SK",
+        "Herbatica Storefront CZ",
+        "Herbatica Storefront HU",
+        "Herbatica Storefront RO",
+      ],
+      true,
+    ],
+    ["cashDeskOnly", "published", [], false],
     ["hidden", "draft", [], false],
   ])("maps %s to exact status and channel membership", (visibility, status, salesChannelNames, storefrontAccessible) => {
     expect(

@@ -21,64 +21,82 @@ const pagesAppSource = readFileSync(
 )
 
 describe("HerbatikaFooter contact localization", () => {
-  it("renders every contact value through the active navigation messages", () => {
-    expect(footerSource).toContain('href={t("contact.phone_href")}')
-    expect(footerSource).toContain('{t("contact.phone_display")}')
-    expect(footerSource).toContain('{t("contact.hours")}')
-    expect(footerSource).toContain('href={t("contact.email_href")}')
-    expect(footerSource).toContain('{t("contact.email_display")}')
+  it("renders contact actions only through the verified authority hook", () => {
+    expect(footerSource).toContain("useOperatorContact()")
+    expect(footerSource).toContain("operatorContact.available")
+    expect(footerSource).toContain("href={operatorContact.phoneHref}")
+    expect(footerSource).toContain("{operatorContact.phoneDisplay}")
+    expect(footerSource).toContain("{operatorContact.hours}")
+    expect(footerSource).toContain("href={operatorContact.emailHref}")
+    expect(footerSource).toContain("{operatorContact.emailDisplay}")
+    expect(footerSource).toContain("{operatorContact.unavailable}")
   })
 
   it("does not embed a market-specific phone, schedule, or email", () => {
-    expect(footerSource).not.toContain("tel:+421")
-    expect(footerSource).not.toContain("+421 2/321")
-    expect(footerSource).not.toContain("Po-Pia")
-    expect(footerSource).not.toContain("mailto:ahoj@herbatica.sk")
+    for (const marketSpecificCopy of [
+      "tel:+421",
+      "+421 2/321",
+      "Po-Pia",
+      "mailto:ahoj@herbatica.sk",
+      "tel:+40",
+      "+40 (31)",
+      "Lun–Vin",
+      "mailto:salut@herbatica.ro",
+    ]) {
+      expect(footerSource).not.toContain(marketSpecificCopy)
+    }
   })
 })
 
 describe("HerbatikaFooter market links", () => {
   const configuredAlternates = {
+    "cs-CZ": "https://cz.shop.example/produkty/zeleny-caj",
+    "hu-HU": "https://hu.shop.example/termekek/zold-tea",
     "ro-RO": "https://ro.shop.example/produse/ceai-verde",
     "sk-SK": "https://sk.shop.example/produkty/zeleny-caj",
   }
 
-  it("marks SK active and links to the configured Romanian equivalent", () => {
-    expect(resolveFooterMarketLinks("sk", configuredAlternates)).toEqual([
-      {
-        active: true,
-        code: "SK",
-        href: "https://sk.shop.example/produkty/zeleny-caj",
-        icon: "token-icon-sk",
-        market: "sk",
-      },
-      {
-        active: false,
-        code: "RO",
-        href: "https://ro.shop.example/produse/ceai-verde",
-        icon: "token-icon-ro",
-        market: "ro",
-      },
-    ])
-  })
+  const expectedLinks = [
+    {
+      code: "SK",
+      href: "https://sk.shop.example/produkty/zeleny-caj",
+      icon: "token-icon-sk",
+      market: "sk",
+    },
+    {
+      code: "CZ",
+      href: "https://cz.shop.example/produkty/zeleny-caj",
+      icon: "token-icon-cz",
+      market: "cz",
+    },
+    {
+      code: "HU",
+      href: "https://hu.shop.example/termekek/zold-tea",
+      icon: "token-icon-hu",
+      market: "hu",
+    },
+    {
+      code: "RO",
+      href: "https://ro.shop.example/produse/ceai-verde",
+      icon: "token-icon-ro",
+      market: "ro",
+    },
+  ] as const
 
-  it("marks RO active and links back to the configured Slovak equivalent", () => {
-    expect(resolveFooterMarketLinks("ro", configuredAlternates)).toEqual([
-      {
-        active: false,
-        code: "SK",
-        href: "https://sk.shop.example/produkty/zeleny-caj",
-        icon: "token-icon-sk",
-        market: "sk",
-      },
-      {
-        active: true,
-        code: "RO",
-        href: "https://ro.shop.example/produse/ceai-verde",
-        icon: "token-icon-ro",
-        market: "ro",
-      },
-    ])
+  it.each([
+    "sk",
+    "cz",
+    "hu",
+    "ro",
+  ] as const)("marks only %s active and preserves every configured market alternate", (activeMarket) => {
+    expect(
+      resolveFooterMarketLinks(activeMarket, configuredAlternates)
+    ).toEqual(
+      expectedLinks.map((link) => ({
+        active: link.market === activeMarket,
+        ...link,
+      }))
+    )
   })
 
   it("omits unavailable or unsafe markets instead of guessing a domain", () => {
@@ -116,20 +134,29 @@ describe("HerbatikaFooter social links", () => {
     ])
   })
 
-  it("keeps generic profiles but hides Slovak LinkedIn and TikTok on RO", () => {
-    const links = resolveFooterSocialLinks("ro")
+  it.each([
+    "cz",
+    "hu",
+    "ro",
+  ] as const)("hides every social action without %s market authority", (market) => {
+    expect(resolveFooterSocialLinks(market)).toEqual([])
+  })
 
-    expect(links.map((link) => link.label)).toEqual([
-      "Facebook",
-      "Instagram",
-      "YouTube",
+  it("renders only the exact reviewed market profiles", () => {
+    expect(
+      resolveFooterSocialLinks("cz", "reviewed", [
+        {
+          href: "https://www.instagram.com/herbatica.cz",
+          platform: "instagram",
+        },
+      ])
+    ).toEqual([
+      {
+        href: "https://www.instagram.com/herbatica.cz",
+        icon: "token-icon-instagram",
+        label: "Instagram",
+      },
     ])
-    expect(links.map((link) => link.href)).not.toContain(
-      "https://www.linkedin.com/company/herbaticask/"
-    )
-    expect(links.map((link) => link.href)).not.toContain(
-      "https://www.tiktok.com/@herbatica.sk"
-    )
   })
 
   it("renders social destinations as links instead of window actions", () => {

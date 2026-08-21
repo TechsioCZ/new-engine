@@ -1,9 +1,10 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import type { HeroBannerItem } from "./homepage.data.types"
 import {
   HERO_BANNERS,
   RO_HERO_BANNERS,
   resolveHomepageHeroBanners,
+  resolveHomepageHeroSource,
 } from "./homepage.hero.data"
 
 const SLOVAK_CANARY =
@@ -52,5 +53,52 @@ describe("resolveHomepageHeroBanners", () => {
     ]
 
     expect(resolveHomepageHeroBanners(cmsBanners, "ro")).toBe(cmsBanners)
+  })
+})
+
+describe("resolveHomepageHeroSource", () => {
+  it.each([
+    "cz",
+    "hu",
+  ] as const)("fails closed for %s without CMS or a reviewed manifest", (market) => {
+    expect(resolveHomepageHeroSource([], market)).toEqual({
+      kind: "unavailable",
+    })
+  })
+
+  it("uses exact reviewed data for a market without a bundled fallback", () => {
+    const reviewed: HeroBannerItem[] = [
+      {
+        id: "reviewed-cz",
+        imageAlt: "Schválený testovací obrázek",
+        imageSrc: "/reviewed-cz.avif",
+      },
+    ]
+
+    expect(resolveHomepageHeroSource([], "cz", () => reviewed)).toEqual({
+      kind: "found",
+      value: reviewed,
+    })
+  })
+
+  it("preserves CMS precedence and the existing SK/RO fallbacks", () => {
+    const cms: HeroBannerItem[] = [{ id: "cms", imageSrc: "/cms.avif" }]
+    const readReviewed = vi.fn(() => [
+      { id: "must-not-be-read", imageSrc: "/must-not-be-read.avif" },
+    ])
+
+    expect(resolveHomepageHeroSource(cms, "cz", readReviewed)).toEqual({
+      kind: "found",
+      value: cms,
+    })
+    expect(resolveHomepageHeroSource([], "sk", readReviewed)).toEqual({
+      kind: "found",
+      value: HERO_BANNERS,
+    })
+    expect(resolveHomepageHeroSource([], "ro", readReviewed)).toEqual({
+      kind: "found",
+      value: RO_HERO_BANNERS,
+    })
+    expect(readReviewed).not.toHaveBeenCalled()
   })
 })

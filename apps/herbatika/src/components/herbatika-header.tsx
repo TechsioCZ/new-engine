@@ -15,6 +15,7 @@ import { cartReadQueryOptions, useCart } from "@/lib/storefront/cart"
 import { resolveCartTotalAmount } from "@/lib/storefront/cart-calculations"
 import { resolveSupportedCurrencyCode } from "@/lib/storefront/currency"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import { useOperatorContact } from "@/lib/storefront/operator-contact"
 import { formatCurrencyAmount } from "@/lib/storefront/price-format"
 import { resolveRegionCurrency } from "@/lib/storefront/region-selection"
 import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projection-map"
@@ -39,6 +40,7 @@ export function HerbatikaHeader({
 }) {
   const t = useTranslations("navigation")
   const tAuth = useTranslations("auth")
+  const operatorContact = useOperatorContact()
   const region = useRegionContext()
   const marketContext = useMarketContext()
   const { actionItems, primaryNavItems } = useHerbatikaHeaderSubmenu(
@@ -119,20 +121,27 @@ export function HerbatikaHeader({
         </div>
 
         <Header.Actions className="@max-header-desktop:hidden gap-450">
-          <Link
-            className="inline-flex items-center gap-300 font-open-sans text-fg-secondary hover:text-fg-primary"
-            href={t("contact.phone_href")}
-          >
-            <Icon icon="token-icon-phone-talk" size="2xl" />
-            <span className="leading-snug">
-              <span className="block font-semibold text-fg-primary text-md leading-snug">
-                {t("contact.phone_display")}
+          {operatorContact.available ? (
+            <Link
+              className="inline-flex items-center gap-300 font-open-sans text-fg-secondary hover:text-fg-primary"
+              href={operatorContact.phoneHref}
+            >
+              <Icon icon="token-icon-phone-talk" size="2xl" />
+              <span className="leading-snug">
+                <span className="block font-semibold text-fg-primary text-md leading-snug">
+                  {operatorContact.phoneDisplay}
+                </span>
+                <span className="ml-50 block font-normal text-fg-secondary text-xs leading-snug">
+                  {operatorContact.hours}
+                </span>
               </span>
-              <span className="ml-50 block font-normal text-fg-secondary text-xs leading-snug">
-                {t("contact.hours")}
-              </span>
+            </Link>
+          ) : (
+            <span className="inline-flex max-w-52 items-center gap-300 text-fg-secondary text-xs leading-snug">
+              <Icon icon="token-icon-phone-talk" size="2xl" />
+              {operatorContact.unavailable}
             </span>
-          </Link>
+          )}
 
           <LinkButton
             aria-label={tAuth("account.navigation.lists")}

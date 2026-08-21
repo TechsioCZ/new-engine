@@ -164,7 +164,7 @@ export default async function seedDevData({ container }: ExecArgs) {
         ],
       },
     ],
-    publishableKey: {
+    legacySharedPublishableKey: {
       title: "Webshop",
     },
     productCategories: [

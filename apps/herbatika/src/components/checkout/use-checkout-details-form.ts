@@ -386,8 +386,6 @@ const resolveCheckoutHydratedValues = ({
         (hasCarrierPickupAddress ? undefined : shippingAddress?.company)
     ),
     accountSetupRequested: readAccountSetupRequested(cart?.metadata),
-    marketingConsent: false,
-    heurekaConsent: false,
   }
 }
 

@@ -1,4 +1,5 @@
 import type { MarketRuntimeBinding } from "@/lib/market/market-runtime"
+import type { GatewayPathAuthority } from "./_routes"
 
 const PATH_SEPARATOR_PATTERN = /[\\/]/
 const ENCODED_SEPARATOR_PATTERN = /%(?:2e|2f|5c)/i
@@ -200,6 +201,11 @@ export const bodyHasValidMarketScope = (
       record[countryEntry].toLowerCase() === binding.countryCode.toLowerCase())
   )
 }
+
+export const pathHasValidMarketScope = (
+  authority: GatewayPathAuthority | null,
+  binding: MarketRuntimeBinding
+): boolean => authority?.kind !== "region" || authority.id === binding.regionId
 
 const parseOrigin = (value: string | null): string | null => {
   if (!value) {

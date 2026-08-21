@@ -54,6 +54,8 @@ describe("forgot password route", () => {
     )
 
     expect(response.status).toBe(202)
+    expect(response.headers.get("cache-control")).toBe("private, no-store")
+    expect(response.headers.get("vary")).toBe("Cookie")
     await expect(response.json()).resolves.toEqual({ accepted: true })
     expect(medusaFetch).toHaveBeenCalledOnce()
 
@@ -61,6 +63,9 @@ describe("forgot password route", () => {
     expect(new URL(url).pathname).toBe(
       "/auth/customer/emailpass/reset-password"
     )
+    expect(init.headers).toMatchObject({
+      "x-publishable-api-key": "pk_cz",
+    })
     expect(JSON.parse(String(init.body))).toEqual({
       identifier: "customer@example.test",
       metadata: {

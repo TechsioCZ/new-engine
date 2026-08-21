@@ -16,6 +16,9 @@ export type { StorefrontAuthMessages } from "./_messages"
 
 const MEDUSA_BACKEND_URL = resolveMedusaBackendUrl()
 const AUTH_SESSION_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 14
+const AUTH_SESSION_COOKIE_BASE_NAME = "herbatika_auth_session_token"
+const IS_PRODUCTION = process.env.NODE_ENV === "production"
+const PRIVATE_AUTH_CACHE_CONTROL = "private, no-store"
 
 type ErrorPayload = {
   message: string
@@ -27,7 +30,32 @@ export type StorefrontAuthContext = Readonly<{
   messages: StorefrontAuthMessages
 }>
 
-export const AUTH_SESSION_COOKIE_NAME = "herbatika_auth_session_token"
+export const AUTH_SESSION_COOKIE_NAME = IS_PRODUCTION
+  ? `__Host-${AUTH_SESSION_COOKIE_BASE_NAME}`
+  : AUTH_SESSION_COOKIE_BASE_NAME
+
+export const applyStorefrontAuthResponsePolicy = <TResponse extends Response>(
+  response: TResponse
+): TResponse => {
+  response.headers.set("cache-control", PRIVATE_AUTH_CACHE_CONTROL)
+
+  const vary = response.headers.get("vary")
+  const varyValues = vary
+    ?.split(",")
+    .map((value) => value.trim())
+    .filter(Boolean)
+
+  if (!varyValues?.some((value) => value === "*")) {
+    const hasCookieVary = varyValues?.some(
+      (value) => value.toLowerCase() === "cookie"
+    )
+    if (!hasCookieVary) {
+      response.headers.set("vary", [...(varyValues ?? []), "Cookie"].join(", "))
+    }
+  }
+
+  return response
+}
 
 export const buildMedusaUrl = (path: string) =>
   new URL(path, MEDUSA_BACKEND_URL).toString()
@@ -70,22 +98,30 @@ export const buildErrorResponse = async (
 ) => {
   await discardResponseBody(response)
 
-  return NextResponse.json<ErrorPayload>(
-    { message },
-    { status: response.status || 500 }
+  return applyStorefrontAuthResponsePolicy(
+    NextResponse.json<ErrorPayload>(
+      { message },
+      { status: response.status || 500 }
+    )
   )
 }
 
 export const isConflictStatus = (status: number) => status === 409
 
 export const badRequest = (message: string) =>
-  NextResponse.json<ErrorPayload>({ message }, { status: 400 })
+  applyStorefrontAuthResponsePolicy(
+    NextResponse.json<ErrorPayload>({ message }, { status: 400 })
+  )
 
 export const conflict = (message: string) =>
-  NextResponse.json<ErrorPayload>({ message }, { status: 409 })
+  applyStorefrontAuthResponsePolicy(
+    NextResponse.json<ErrorPayload>({ message }, { status: 409 })
+  )
 
 export const serverError = (message: string) =>
-  NextResponse.json<ErrorPayload>({ message }, { status: 500 })
+  applyStorefrontAuthResponsePolicy(
+    NextResponse.json<ErrorPayload>({ message }, { status: 500 })
+  )
 
 export class StorefrontMarketAuthorityError extends Error {
   constructor() {
@@ -120,9 +156,11 @@ export const requireStorefrontAuthContext = (
 }
 
 export const marketAuthorityError = () =>
-  NextResponse.json<ErrorPayload>(
-    { message: "Unknown storefront host." },
-    { status: 421 }
+  applyStorefrontAuthResponsePolicy(
+    NextResponse.json<ErrorPayload>(
+      { message: "Unknown storefront host." },
+      { status: 421 }
+    )
   )
 
 export const getPublishableHeaders = (
@@ -135,25 +173,27 @@ export const setSessionTokenCookie = (
   response: NextResponse,
   token: string
 ) => {
+  applyStorefrontAuthResponsePolicy(response)
   response.cookies.set({
     name: AUTH_SESSION_COOKIE_NAME,
     value: token,
     httpOnly: true,
     path: "/",
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: IS_PRODUCTION,
     maxAge: AUTH_SESSION_COOKIE_MAX_AGE_SECONDS,
   })
 }
 
 export const clearSessionTokenCookie = (response: NextResponse) => {
+  applyStorefrontAuthResponsePolicy(response)
   response.cookies.set({
     name: AUTH_SESSION_COOKIE_NAME,
     value: "",
     httpOnly: true,
     path: "/",
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    secure: IS_PRODUCTION,
     maxAge: 0,
   })
 }
@@ -165,24 +205,23 @@ export const getSessionTokenFromCookieHeader = (
     return null
   }
 
-  const entries = cookieHeader.split(";")
-  for (const entry of entries) {
+  const matches: string[] = []
+  for (const entry of cookieHeader.split(";")) {
     const [rawName, ...valueParts] = entry.trim().split("=")
     if (rawName !== AUTH_SESSION_COOKIE_NAME) {
       continue
     }
 
-    const encodedValue = valueParts.join("=")
-    if (!encodedValue) {
-      return null
-    }
-
-    try {
-      return decodeURIComponent(encodedValue)
-    } catch {
-      return encodedValue
-    }
+    matches.push(valueParts.join("="))
   }
 
-  return null
+  if (matches.length !== 1 || !matches[0]) {
+    return null
+  }
+
+  try {
+    return decodeURIComponent(matches[0])
+  } catch {
+    return matches[0]
+  }
 }

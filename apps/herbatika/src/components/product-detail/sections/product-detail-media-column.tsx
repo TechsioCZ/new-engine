@@ -11,6 +11,7 @@ import { ProductDetailGalleryLightbox } from "@/components/product-detail/sectio
 import { useProductDetailGalleryState } from "@/components/product-detail/sections/use-product-detail-gallery-state"
 import { SupportingText } from "@/components/text/supporting-text"
 import { useMediaQuery } from "@/hooks/use-media-query"
+import { useOperatorContact } from "@/lib/storefront/operator-contact"
 
 type ProductDetailMediaColumnProps = {
   discountPercent: number | null
@@ -24,7 +25,7 @@ export function ProductDetailMediaColumn({
   mediaFacts,
 }: ProductDetailMediaColumnProps) {
   const tCatalog = useTranslations("catalog")
-  const tNavigation = useTranslations("navigation")
+  const operatorContact = useOperatorContact()
   const isDesktopGallery = useMediaQuery("md")
   const carouselOrientation = isDesktopGallery ? "vertical" : "horizontal"
   const {
@@ -139,12 +140,18 @@ export function ProductDetailMediaColumn({
             icon="token-icon-phone-talk"
             size="xl"
           />
-          <Link
-            className="whitespace-nowrap font-medium text-fg-strong text-sm leading-tight hover:text-fg-primary"
-            href={tNavigation("contact.phone_href")}
-          >
-            {tNavigation("contact.phone_display")}
-          </Link>
+          {operatorContact.available ? (
+            <Link
+              className="whitespace-nowrap font-medium text-fg-strong text-sm leading-tight hover:text-fg-primary"
+              href={operatorContact.phoneHref}
+            >
+              {operatorContact.phoneDisplay}
+            </Link>
+          ) : (
+            <SupportingText className="max-w-56 text-fg-secondary text-xs leading-tight">
+              {operatorContact.unavailable}
+            </SupportingText>
+          )}
         </div>
       </div>
     </div>

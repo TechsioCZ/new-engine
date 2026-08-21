@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server"
+import { getAuthPasswordPolicyViolation } from "@/lib/auth/registration-policy"
 import {
+  applyStorefrontAuthResponsePolicy,
   badRequest,
   buildErrorResponse,
   buildMedusaUrl,
+  getPublishableHeaders,
   marketAuthorityError,
   requireStorefrontAuthContext,
   type StorefrontAuthContext,
@@ -31,7 +34,7 @@ export async function POST(request: Request) {
     throw error
   }
 
-  const { messages } = context
+  const { binding, messages } = context
   let body: ResetPasswordBody
 
   try {
@@ -51,15 +54,20 @@ export async function POST(request: Request) {
     return badRequest(messages.newPasswordRequired)
   }
 
+  if (getAuthPasswordPolicyViolation(password)) {
+    return badRequest(messages.resetPasswordFailed)
+  }
+
   try {
     const medusaResponse = await fetch(
-      buildMedusaUrl("/auth/customer/emailpass/update"),
+      buildMedusaUrl("/auth/customer/emailpass/reset-password/complete"),
       {
         method: "POST",
         headers: {
           accept: "text/plain",
           authorization: `Bearer ${token}`,
           "content-type": "application/json",
+          ...getPublishableHeaders(binding),
         },
         body: JSON.stringify({
           password,
@@ -76,9 +84,11 @@ export async function POST(request: Request) {
       )
     }
 
-    return NextResponse.json<ResetPasswordResponse>(
-      { success: true },
-      { status: 200 }
+    return applyStorefrontAuthResponsePolicy(
+      NextResponse.json<ResetPasswordResponse>(
+        { success: true },
+        { status: 200 }
+      )
     )
   } catch {
     return serverError(messages.resetPasswordFailed)

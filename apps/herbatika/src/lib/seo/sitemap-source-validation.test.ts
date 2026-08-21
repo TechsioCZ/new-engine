@@ -247,6 +247,43 @@ describe("sitemap source validation", () => {
     expect(dependencies.readStaticPage).toHaveBeenCalledWith("privacy", "cs-CZ")
   })
 
+  it("recognizes localized code-owned About and FAQ without CMS duplication", async () => {
+    const readStaticPage = vi.fn()
+    await expect(
+      validateCmsStaticSitemapSources(
+        {
+          locale: "sk-SK",
+          sources: [
+            { routeId: "route_about", staticRouteKey: "about" },
+            { routeId: "route_faq", staticRouteKey: "faq" },
+          ],
+        },
+        { readStaticPage }
+      )
+    ).resolves.toEqual({
+      kind: "found",
+      value: [{ routeId: "route_about" }, { routeId: "route_faq" }],
+    })
+    expect(readStaticPage).not.toHaveBeenCalled()
+  })
+
+  it("fails closed when localized code-owned static data is absent", async () => {
+    const readStaticPage = vi.fn()
+    await expect(
+      validateCmsStaticSitemapSources(
+        {
+          locale: "cs-CZ",
+          sources: [{ routeId: "route_about", staticRouteKey: "about" }],
+        },
+        { readStaticPage }
+      )
+    ).resolves.toEqual({
+      causeCode: "MISSING_CODE_OWNED_STATIC_PAGE_SOURCE",
+      kind: "invalid-response",
+    })
+    expect(readStaticPage).not.toHaveBeenCalled()
+  })
+
   it("keeps an unreviewed RO demo fallback out of sitemaps", async () => {
     const invalidResponse = {
       causeCode: "MISSING_STATIC_PAGE_BINDING_TERMS",

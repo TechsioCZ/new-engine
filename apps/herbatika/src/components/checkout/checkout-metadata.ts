@@ -1,4 +1,8 @@
 import {
+  type CheckoutConsentSnapshot,
+  parseCheckoutConsentSnapshot,
+} from "@/lib/storefront/checkout-consent"
+import {
   buildAccountSetupRequestedMetadata,
   isRecord,
   readAccountSetupRequested,
@@ -8,6 +12,7 @@ const ORDER_NOTE_METADATA_KEY = "order_note"
 
 type CheckoutMetadataInput = {
   accountSetupRequested: boolean
+  consent: CheckoutConsentSnapshot
   metadata: unknown
   orderNote: unknown
 }
@@ -33,17 +38,30 @@ export const resolveOrderNoteFormValue = (
 
 export const buildCheckoutMetadata = ({
   accountSetupRequested,
+  consent,
   metadata,
   orderNote,
 }: CheckoutMetadataInput): Record<string, unknown> => ({
   ...buildAccountSetupRequestedMetadata(metadata, accountSetupRequested),
+  checkout_consent: consent,
   [ORDER_NOTE_METADATA_KEY]: normalizeOrderNote(orderNote) ?? "",
 })
 
 export const isCheckoutMetadataSynced = ({
   accountSetupRequested,
+  consent,
   metadata,
   orderNote,
-}: CheckoutMetadataInput) =>
-  readAccountSetupRequested(metadata) === accountSetupRequested &&
-  readOrderNote(metadata) === normalizeOrderNote(orderNote)
+}: CheckoutMetadataInput) => {
+  const storedConsent = isRecord(metadata)
+    ? parseCheckoutConsentSnapshot(metadata.checkout_consent, {
+        market: consent.market,
+      })
+    : null
+
+  return (
+    readAccountSetupRequested(metadata) === accountSetupRequested &&
+    readOrderNote(metadata) === normalizeOrderNote(orderNote) &&
+    JSON.stringify(storedConsent) === JSON.stringify(consent)
+  )
+}

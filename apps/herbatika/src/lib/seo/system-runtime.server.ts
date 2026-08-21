@@ -10,6 +10,7 @@ import {
 } from "@/lib/storefront/cms"
 import { getMarketStorefrontSdk } from "@/lib/storefront/market-sdk.server"
 import { PRODUCT_DETAIL_FIELDS } from "@/lib/storefront/product-query-config"
+import { loadStaticRoutePublicationDecision } from "@/lib/url/segment-registry-publication.server"
 import { getUrlRegistryRuntime } from "@/lib/url-registry/runtime/instance.server"
 import {
   countPublicIndexableEntityProjections,
@@ -37,7 +38,25 @@ export const resolveSystemHostFromRequest = (
 
 export const systemSitemapDependencies: SitemapDataDependencies = {
   countEntities: countPublicIndexableEntityProjections,
+  findEntityEquivalents: async (input) => {
+    const runtime = await getUrlRegistryRuntime()
+    if (!runtime.enabled) {
+      return { kind: "unavailable" }
+    }
+    const result = await runtime.registry.findActiveEquivalents(input)
+    if (result.kind !== "found") {
+      return result
+    }
+    const allowedMarkets = new Set(getConfiguredMarketRuntime().allowedMarkets)
+    return {
+      kind: "found",
+      value: result.value.filter((target) =>
+        allowedMarkets.has(target.route.market)
+      ),
+    }
+  },
   listEntities: listPublicIndexableEntityProjectionPage,
+  listMarkets: () => getConfiguredMarketRuntime().allowedMarkets,
   listStatic: async (market) => {
     const runtime = await getUrlRegistryRuntime()
     return runtime.enabled
@@ -96,10 +115,21 @@ export const systemSitemapDependencies: SitemapDataDependencies = {
       }
     )
   },
-  validateStaticSources: ({ market, sources }) => {
+  validateStaticSources: async ({ market, sources }) => {
     const { binding } = getMarketStorefrontSdk(market)
+    const decisions = await Promise.all(
+      sources.map((source) =>
+        loadStaticRoutePublicationDecision({
+          market,
+          routeKey: source.staticRouteKey,
+        })
+      )
+    )
+    const approvedSources = sources.filter(
+      (_source, index) => decisions[index]?.kind === "approved"
+    )
     return validateCmsStaticSitemapSources(
-      { locale: binding.locale, sources },
+      { locale: binding.locale, sources: approvedSources },
       { readStaticPage: readCmsStaticPage }
     )
   },

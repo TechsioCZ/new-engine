@@ -17,6 +17,10 @@ import type {
   CmsFooterNavigation,
 } from "@/lib/storefront/cms-types"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
+import {
+  type OperatorSocialLink,
+  useOperatorContact,
+} from "@/lib/storefront/operator-contact"
 import { parsePublicPath } from "@/lib/url/public-route-api"
 import { buildPath } from "@/lib/url/public-url"
 import type { Market } from "@/lib/url/types"
@@ -141,8 +145,40 @@ const SOCIAL_LINKS: readonly FooterSocialLink[] = [
   },
 ]
 
-export const resolveFooterSocialLinks = (market: Market) =>
-  SOCIAL_LINKS.filter((link) => !link.markets || link.markets.includes(market))
+const SOCIAL_ICON_BY_PLATFORM = {
+  facebook: "token-icon-fb",
+  instagram: "token-icon-instagram",
+  linkedin: "token-icon-linkedin",
+  tiktok: "token-icon-tiktok",
+  youtube: "token-icon-youtube",
+} as const satisfies Record<OperatorSocialLink["platform"], IconType>
+
+const SOCIAL_LABEL_BY_PLATFORM = {
+  facebook: "Facebook",
+  instagram: "Instagram",
+  linkedin: "LinkedIn",
+  tiktok: "TikTok",
+  youtube: "YouTube",
+} as const satisfies Record<OperatorSocialLink["platform"], string>
+
+export const resolveFooterSocialLinks = (
+  market: Market,
+  authoritySource = market === "sk" ? "sk-existing" : "unavailable",
+  reviewedLinks: readonly OperatorSocialLink[] = []
+): readonly FooterSocialLink[] => {
+  if (authoritySource === "reviewed") {
+    return reviewedLinks.map(({ href, platform }) => ({
+      href,
+      icon: SOCIAL_ICON_BY_PLATFORM[platform],
+      label: SOCIAL_LABEL_BY_PLATFORM[platform],
+    }))
+  }
+  return authoritySource === "sk-existing" && market === "sk"
+    ? SOCIAL_LINKS.filter(
+        (link) => !link.markets || link.markets.includes(market)
+      )
+    : []
+}
 
 export function HerbatikaFooter({
   marketAlternates = {},
@@ -154,12 +190,17 @@ export function HerbatikaFooter({
   reviewTrustSources: readonly ReviewTrustSource[]
 }) {
   const t = useTranslations("navigation")
+  const operatorContact = useOperatorContact()
   const marketContext = useMarketContext()
   const marketLinks = resolveFooterMarketLinks(
     marketContext.code,
     marketAlternates
   )
-  const socialLinks = resolveFooterSocialLinks(marketContext.code)
+  const socialLinks = resolveFooterSocialLinks(
+    marketContext.code,
+    operatorContact.authoritySource,
+    operatorContact.socialLinks
+  )
 
   return (
     <Footer direction="vertical">
@@ -171,36 +212,49 @@ export function HerbatikaFooter({
             {t("footer.tagline")}
           </Footer.Text>
 
-          <Footer.Link
-            className="mt-250 flex items-start gap-300 text-footer-text-fg"
-            href={t("contact.phone_href")}
-          >
-            <Icon
-              className="mt-50 text-fg-secondary"
-              icon="token-icon-phone-talk"
-              size="lg"
-            />
-            <span className="leading-normal">
-              <span className="block font-bold text-primary hover:underline">
-                {t("contact.phone_display")}
-              </span>
-              <span className="block text-sm">{t("contact.hours")}</span>
-            </span>
-          </Footer.Link>
+          {operatorContact.available ? (
+            <>
+              <Footer.Link
+                className="mt-250 flex items-start gap-300 text-footer-text-fg"
+                href={operatorContact.phoneHref}
+              >
+                <Icon
+                  className="mt-50 text-fg-secondary"
+                  icon="token-icon-phone-talk"
+                  size="lg"
+                />
+                <span className="leading-normal">
+                  <span className="block font-bold text-primary hover:underline">
+                    {operatorContact.phoneDisplay}
+                  </span>
+                  <span className="block text-sm">{operatorContact.hours}</span>
+                </span>
+              </Footer.Link>
 
-          <Footer.Link
-            className="mt-500 inline-flex items-center gap-300 font-bold text-primary"
-            href={t("contact.email_href")}
-          >
-            <Icon
-              className="text-fg-secondary"
-              icon="token-icon-email"
-              size="lg"
-            />
-            <span className="font-bold hover:underline">
-              {t("contact.email_display")}
-            </span>
-          </Footer.Link>
+              <Footer.Link
+                className="mt-500 inline-flex items-center gap-300 font-bold text-primary"
+                href={operatorContact.emailHref}
+              >
+                <Icon
+                  className="text-fg-secondary"
+                  icon="token-icon-email"
+                  size="lg"
+                />
+                <span className="font-bold hover:underline">
+                  {operatorContact.emailDisplay}
+                </span>
+              </Footer.Link>
+            </>
+          ) : (
+            <Footer.Text className="mt-250 flex items-start gap-300 text-footer-text-fg leading-normal">
+              <Icon
+                className="mt-50 shrink-0 text-fg-secondary"
+                icon="token-icon-phone-talk"
+                size="lg"
+              />
+              {operatorContact.unavailable}
+            </Footer.Text>
+          )}
         </Footer.Section>
 
         {navigation.columns.map((column) => (

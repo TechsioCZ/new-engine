@@ -3,6 +3,7 @@ import { AboutPage } from "@/components/about/about-page"
 import { getAboutPageData } from "@/components/about/about-page.data"
 import { CmsPageSurface } from "@/components/cms/cms-page-surface"
 import { FaqPage } from "@/components/faq/faq-page"
+import { getFaqPageData } from "@/components/faq/faq-page.data"
 import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   type PublicPageProps,
@@ -17,6 +18,7 @@ import {
   type HerbatikaLocale,
 } from "@/lib/storefront/market-context"
 import { isRoDemoStaticPage } from "@/lib/storefront/ro-demo-static-pages"
+import { loadStaticRoutePublicationDecision } from "@/lib/url/segment-registry-publication.server"
 import { STATIC_ROOT_PAGE_KEYS } from "@/lib/url/segments"
 import type { StaticRootPageKey } from "@/lib/url/types"
 
@@ -39,6 +41,16 @@ export const getServerSideProps = ((context) => {
   return resolveStaticPublicPage<StaticValue>(context, {
     expectedRouteKey: `static.${pageKey}`,
     loadSource: async (market) => {
+      const publication = await loadStaticRoutePublicationDecision({
+        market,
+        routeKey: pageKey,
+      })
+      if (publication.kind === "rejected") {
+        return {
+          kind: "unavailable",
+          retryAfterSeconds: 30,
+        } as const
+      }
       if (pageKey === "about") {
         const locale = getHerbatikaMarketContext(market).locale
         if (!getAboutPageData(locale)) {
@@ -50,6 +62,13 @@ export const getServerSideProps = ((context) => {
         return { kind: "found", value: { kind: pageKey, locale } } as const
       }
       if (pageKey === "faq") {
+        const locale = getHerbatikaMarketContext(market).locale
+        if (!getFaqPageData(locale)) {
+          return {
+            causeCode: "UNSUPPORTED_FAQ_PAGE_LOCALE",
+            kind: "invalid-response",
+          } as const
+        }
         return { kind: "found", value: { kind: pageKey } } as const
       }
       const result = await readCmsStaticPageWithDemoFallback(

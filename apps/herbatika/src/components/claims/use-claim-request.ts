@@ -1,8 +1,10 @@
 "use client"
 
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 
 export function useClaimRequest() {
+  const t = useTranslations("claims")
   const [error, setError] = useState("")
   const [busy, setBusy] = useState(false)
 
@@ -13,11 +15,7 @@ export function useClaimRequest() {
       await action()
     } catch (caught) {
       console.error("Claim form request failed", caught)
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : "Požiadavku sa nepodarilo spracovať. Skúste to znova."
-      )
+      setError(caught instanceof Error ? caught.message : t("generic_error"))
     } finally {
       setBusy(false)
     }

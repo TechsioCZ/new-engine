@@ -18,7 +18,9 @@ vi.mock("@/components/search/search-autocomplete-media", () => ({
 
 import { SearchEntityResults } from "./search-entity-results"
 
-const messagesForLocale = (locale: "ro-RO" | "sk-SK") =>
+type TestLocale = "cs-CZ" | "hu-HU" | "ro-RO" | "sk-SK"
+
+const messagesForLocale = (locale: TestLocale) =>
   JSON.parse(
     readFileSync(
       resolve(
@@ -43,14 +45,85 @@ const componentSource = readFileSync(
   resolve(process.cwd(), "src/components/search/search-entity-results.tsx"),
   "utf8"
 )
-const SLOVAK_ENTITY_LABELS = /Súvisiace výsledky|Kategórie|Výrobcovia|Obsah/
+const LOCALIZED_ENTITY_LABELS =
+  /Súvisiace výsledky|Související výsledky|Kapcsolódó találatok|Rezultate asociate/
+
+const SEARCH_CASES = [
+  {
+    foreignCanaries: [
+      "Související výsledky",
+      "Kapcsolódó találatok",
+      "Rezultate asociate",
+    ],
+    locale: "sk-SK",
+    related: "Súvisiace výsledky",
+    sections: {
+      brands: "Značky",
+      categories: "Kategórie",
+      content: "Obsah",
+      products: "Produkty",
+    },
+  },
+  {
+    foreignCanaries: [
+      "Súvisiace výsledky",
+      "Kapcsolódó találatok",
+      "Rezultate asociate",
+    ],
+    locale: "cs-CZ",
+    related: "Související výsledky",
+    sections: {
+      brands: "Značky",
+      categories: "Kategorie",
+      content: "Obsah",
+      products: "Produkty",
+    },
+  },
+  {
+    foreignCanaries: [
+      "Súvisiace výsledky",
+      "Související výsledky",
+      "Rezultate asociate",
+    ],
+    locale: "hu-HU",
+    related: "Kapcsolódó találatok",
+    sections: {
+      brands: "Márkák",
+      categories: "Kategóriák",
+      content: "Tartalom",
+      products: "Termékek",
+    },
+  },
+  {
+    foreignCanaries: [
+      "Súvisiace výsledky",
+      "Související výsledky",
+      "Kapcsolódó találatok",
+    ],
+    locale: "ro-RO",
+    related: "Rezultate asociate",
+    sections: {
+      brands: "Mărci",
+      categories: "Categorii",
+      content: "Conținut",
+      products: "Produse",
+    },
+  },
+] as const
 
 describe("search entity result localization", () => {
-  it("renders every public entity label in Romanian", () => {
+  it.each(
+    SEARCH_CASES
+  )("renders every $locale public entity label without cross-market copy", ({
+    foreignCanaries,
+    locale,
+    related,
+    sections,
+  }) => {
     const html = renderToStaticMarkup(
       <NextIntlClientProvider
-        locale="ro-RO"
-        messages={messagesForLocale("ro-RO")}
+        locale={locale}
+        messages={messagesForLocale(locale)}
       >
         <SearchEntityResults
           brands={[suggestion("brand", "brand")]}
@@ -60,32 +133,34 @@ describe("search entity result localization", () => {
       </NextIntlClientProvider>
     )
 
-    expect(html).toContain("Rezultate asociate")
-    expect(html).toContain("Categorii")
-    expect(html).toContain("Mărci")
-    expect(html).toContain("Conținut")
-    expect(html).not.toMatch(SLOVAK_ENTITY_LABELS)
+    expect(html).toContain(related)
+    expect(html).toContain(sections.categories)
+    expect(html).toContain(sections.brands)
+    expect(html).toContain(sections.content)
+    for (const foreignCanary of foreignCanaries) {
+      expect(html).not.toContain(foreignCanary)
+    }
   })
 
-  it("keeps the reachable component source free of hardcoded Slovak labels", () => {
+  it("keeps the reachable component source free of hardcoded market labels", () => {
     expect(componentSource).toContain('useTranslations("search")')
-    expect(componentSource).not.toMatch(SLOVAK_ENTITY_LABELS)
+    expect(componentSource).not.toMatch(LOCALIZED_ENTITY_LABELS)
   })
 
-  it("publishes Romanian entity labels distinct from Slovak", () => {
-    const romanian = messagesForLocale("ro-RO").search
-    const slovak = messagesForLocale("sk-SK").search
+  it.each(
+    SEARCH_CASES
+  )("publishes the exact $locale search catalog without foreign canaries", ({
+    foreignCanaries,
+    locale,
+    related,
+    sections,
+  }) => {
+    const search = messagesForLocale(locale).search
 
-    expect(romanian.results.related).toBe("Rezultate asociate")
-    expect(romanian.autocomplete.sections).toEqual({
-      brands: "Mărci",
-      categories: "Categorii",
-      content: "Conținut",
-      products: "Produse",
-    })
-    expect(romanian.results.related).not.toBe(slovak.results.related)
-    expect(romanian.autocomplete.sections).not.toEqual(
-      slovak.autocomplete.sections
-    )
+    expect(search.results.related).toBe(related)
+    expect(search.autocomplete.sections).toEqual(sections)
+    for (const foreignCanary of foreignCanaries) {
+      expect(JSON.stringify(search)).not.toContain(foreignCanary)
+    }
   })
 })

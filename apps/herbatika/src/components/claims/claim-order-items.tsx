@@ -2,6 +2,7 @@
 
 import { NumericInput } from "@techsio/ui-kit/atoms/numeric-input"
 import { FormCheckbox } from "@techsio/ui-kit/molecules/form-checkbox"
+import { useTranslations } from "next-intl"
 import type { VerifiedOrderItem } from "@/lib/claims/claims-api"
 
 export type SelectedClaimItem = VerifiedOrderItem & { selectedQuantity: number }
@@ -17,10 +18,12 @@ export function ClaimOrderItems({
   selectedItems,
   onChange,
 }: ClaimOrderItemsProps) {
+  const t = useTranslations("claims")
+
   return (
     <fieldset className="flex flex-col gap-300">
       <legend className="mb-200 font-bold text-fg-primary text-lg">
-        Vyberte produkty
+        {t("select_products")}
       </legend>
       {items.map((item) => {
         const selected = selectedItems.find(({ id }) => id === item.id)
@@ -32,7 +35,7 @@ export function ClaimOrderItems({
             <FormCheckbox
               checked={Boolean(selected)}
               id={`claim-item-${item.id}`}
-              label={`${item.title} (objednané: ${item.quantity})`}
+              label={`${item.title} (${t("ordered_quantity", { quantity: item.quantity })})`}
               onCheckedChange={(checked) => {
                 onChange(
                   checked
@@ -43,7 +46,7 @@ export function ClaimOrderItems({
             />
             {selected ? (
               <NumericInput
-                aria-label={`Počet kusov pre ${item.title}`}
+                aria-label={t("item_quantity", { title: item.title })}
                 id={`claim-quantity-${item.id}`}
                 max={item.quantity}
                 min={1}

@@ -70,6 +70,7 @@ import {
   writeStoredPaymentProviderSelection,
 } from "./checkout-payment-selection-storage"
 import { useCheckoutActions } from "./use-checkout-actions"
+import { useCheckoutConsent } from "./use-checkout-consent"
 import { useCheckoutDetailsForm } from "./use-checkout-details-form"
 
 const resolveCompleteResultOrderMetadata = (result: unknown) => {
@@ -122,8 +123,7 @@ export function useCheckoutController({
   const authQuery = useAuth()
   const [allowCartAutoCreate, setAllowCartAutoCreate] = useState(true)
   const [completedOrderId, setCompletedOrderId] = useState<string | null>(null)
-  const [marketingConsent, setMarketingConsent] = useState(false)
-  const [heurekaConsent, setHeurekaConsent] = useState(false)
+  const checkoutConsent = useCheckoutConsent(marketContext.code)
   const saveAddressSucceededRef = useRef(false)
 
   const cartQuery = useCart(
@@ -406,6 +406,7 @@ export function useCheckoutController({
         const checkoutMetadata = buildCheckoutMetadata({
           accountSetupRequested:
             !authQuery.isAuthenticated && values.accountSetupRequested,
+          consent: checkoutConsent.consent,
           metadata: cartQuery.cart.metadata,
           orderNote: effectiveCheckoutDetails.shipping.customerNote,
         })
@@ -497,6 +498,7 @@ export function useCheckoutController({
     if (
       isCheckoutMetadataSynced({
         accountSetupRequested: requested,
+        consent: checkoutConsent.consent,
         metadata: cart.metadata,
         orderNote,
       })
@@ -513,6 +515,7 @@ export function useCheckoutController({
         cartId: cart.id,
         metadata: buildCheckoutMetadata({
           accountSetupRequested: requested,
+          consent: checkoutConsent.consent,
           metadata: cart.metadata,
           orderNote,
         }),
@@ -600,7 +603,8 @@ export function useCheckoutController({
     updateCartMutation.isPending ||
     checkoutShippingQuery.isSettingShipping ||
     checkoutPaymentQuery.isInitiatingPayment ||
-    completeCheckoutMutation.isPending
+    completeCheckoutMutation.isPending ||
+    checkoutConsent.isPending
 
   return {
     ...actions,
@@ -628,14 +632,14 @@ export function useCheckoutController({
     hasPayment,
     hasShipping,
     hasStoredAddress,
-    heurekaConsent,
+    heurekaConsent: checkoutConsent.heurekaConsent,
     isAuthenticated: authQuery.isAuthenticated,
     isBusy,
     isCompanyPurchase: checkoutDetailsForm.values.isCompanyPurchase,
-    marketingConsent,
+    marketingConsent: checkoutConsent.marketingConsent,
     selectedPaymentProviderId: effectiveSelectedPaymentProviderId,
-    setHeurekaConsent,
-    setMarketingConsent,
+    setHeurekaConsent: checkoutConsent.setHeurekaConsent,
+    setMarketingConsent: checkoutConsent.setMarketingConsent,
     shippingAddressForm: checkoutDetailsForm.effectiveValues.shipping,
     updateCartAddressMutation,
     useSameAddress: checkoutDetailsForm.values.useSameAddress,

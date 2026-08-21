@@ -1,0 +1,189 @@
+{
+  "schemaVersion": 1,
+  "xDefaultMarket": "sk",
+  "proofRequirements": [
+    {
+      "name": "catalog",
+      "kind": "herbatika-four-market-catalog-live-readiness",
+      "schemaVersion": 1,
+      "assertions": [
+        { "path": ["scope"], "equals": "four-market-catalog-readiness" }
+      ]
+    },
+    {
+      "name": "commerce",
+      "kind": "four-market-commerce-collection",
+      "schemaVersion": 1,
+      "assertions": [{ "path": ["ready"], "equals": true }]
+    },
+    {
+      "name": "urlRegistry",
+      "kind": "herbatika-four-market-urlr-convergence",
+      "schemaVersion": 1,
+      "assertions": [{ "path": ["state"], "equals": "converged" }]
+    },
+    {
+      "name": "staticTaxonomy",
+      "kind": "herbatika-four-market-static-taxonomy-convergence",
+      "schemaVersion": 1,
+      "assertions": [{ "path": ["state"], "equals": "converged" }]
+    },
+    {
+      "name": "meilisearch",
+      "kind": "herbatika-four-market-meilisearch-convergence-proof",
+      "schemaVersion": 1,
+      "assertions": [{ "path": ["aggregate", "state"], "equals": "converged" }]
+    },
+    {
+      "name": "hostname",
+      "kind": "herbatika-four-market-hostname-readiness",
+      "schemaVersion": 1,
+      "assertions": [
+        { "path": ["ready"], "equals": true },
+        { "path": ["issues"], "equals": [] }
+      ]
+    }
+  ],
+  "markets": {
+    "sk": {
+      "locale": "sk-SK",
+      "htmlLang": "sk-SK",
+      "currencyCode": "EUR",
+      "forbiddenCurrencyCodes": ["CZK", "HUF", "RON"],
+      "currencyPathPrefixes": ["/REPLACE_SK_PRODUCT_PREFIX/"],
+      "requiredPages": [
+        {
+          "approvalBinding": null,
+          "kind": "catalog",
+          "path": "/REPLACE_SK_CATALOG_PATH",
+          "requiredText": ["REPLACE_SK_CATALOG_TEXT"]
+        },
+        {
+          "approvalBinding": {
+            "contentKind": "about",
+            "entryId": "about",
+            "routeKey": "root:about"
+          },
+          "kind": "static",
+          "path": "/REPLACE_SK_STATIC_PATH",
+          "requiredText": ["REPLACE_SK_STATIC_TEXT"]
+        },
+        {
+          "approvalBinding": {
+            "contentKind": "cms-legal",
+            "entryId": "terms",
+            "routeKey": "root:terms"
+          },
+          "kind": "legal",
+          "path": "/REPLACE_SK_LEGAL_PATH",
+          "requiredText": ["REPLACE_SK_LEGAL_TEXT"]
+        }
+      ]
+    },
+    "cz": {
+      "locale": "cs-CZ",
+      "htmlLang": "cs-CZ",
+      "currencyCode": "CZK",
+      "forbiddenCurrencyCodes": ["EUR", "HUF", "RON"],
+      "currencyPathPrefixes": ["/REPLACE_CZ_PRODUCT_PREFIX/"],
+      "requiredPages": [
+        {
+          "approvalBinding": null,
+          "kind": "catalog",
+          "path": "/REPLACE_CZ_CATALOG_PATH",
+          "requiredText": ["REPLACE_CZ_CATALOG_TEXT"]
+        },
+        {
+          "approvalBinding": {
+            "contentKind": "about",
+            "entryId": "about",
+            "routeKey": "root:about"
+          },
+          "kind": "static",
+          "path": "/REPLACE_CZ_STATIC_PATH",
+          "requiredText": ["REPLACE_CZ_STATIC_TEXT"]
+        },
+        {
+          "approvalBinding": {
+            "contentKind": "cms-legal",
+            "entryId": "terms",
+            "routeKey": "root:terms"
+          },
+          "kind": "legal",
+          "path": "/REPLACE_CZ_LEGAL_PATH",
+          "requiredText": ["REPLACE_CZ_LEGAL_TEXT"]
+        }
+      ]
+    },
+    "hu": {
+      "locale": "hu-HU",
+      "htmlLang": "hu-HU",
+      "currencyCode": "HUF",
+      "forbiddenCurrencyCodes": ["EUR", "CZK", "RON"],
+      "currencyPathPrefixes": ["/REPLACE_HU_PRODUCT_PREFIX/"],
+      "requiredPages": [
+        {
+          "approvalBinding": null,
+          "kind": "catalog",
+          "path": "/REPLACE_HU_CATALOG_PATH",
+          "requiredText": ["REPLACE_HU_CATALOG_TEXT"]
+        },
+        {
+          "approvalBinding": {
+            "contentKind": "about",
+            "entryId": "about",
+            "routeKey": "root:about"
+          },
+          "kind": "static",
+          "path": "/REPLACE_HU_STATIC_PATH",
+          "requiredText": ["REPLACE_HU_STATIC_TEXT"]
+        },
+        {
+          "approvalBinding": {
+            "contentKind": "cms-legal",
+            "entryId": "terms",
+            "routeKey": "root:terms"
+          },
+          "kind": "legal",
+          "path": "/REPLACE_HU_LEGAL_PATH",
+          "requiredText": ["REPLACE_HU_LEGAL_TEXT"]
+        }
+      ]
+    },
+    "ro": {
+      "locale": "ro-RO",
+      "htmlLang": "ro-RO",
+      "currencyCode": "RON",
+      "forbiddenCurrencyCodes": ["EUR", "CZK", "HUF"],
+      "currencyPathPrefixes": ["/REPLACE_RO_PRODUCT_PREFIX/"],
+      "requiredPages": [
+        {
+          "approvalBinding": null,
+          "kind": "catalog",
+          "path": "/REPLACE_RO_CATALOG_PATH",
+          "requiredText": ["REPLACE_RO_CATALOG_TEXT"]
+        },
+        {
+          "approvalBinding": {
+            "contentKind": "about",
+            "entryId": "about",
+            "routeKey": "root:about"
+          },
+          "kind": "static",
+          "path": "/REPLACE_RO_STATIC_PATH",
+          "requiredText": ["REPLACE_RO_STATIC_TEXT"]
+        },
+        {
+          "approvalBinding": {
+            "contentKind": "cms-legal",
+            "entryId": "terms",
+            "routeKey": "root:terms"
+          },
+          "kind": "legal",
+          "path": "/REPLACE_RO_LEGAL_PATH",
+          "requiredText": ["REPLACE_RO_LEGAL_TEXT"]
+        }
+      ]
+    }
+  }
+}

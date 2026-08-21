@@ -1,6 +1,7 @@
 "use client"
 
 import { RadioGroup } from "@techsio/ui-kit/molecules/radio-group"
+import { useTranslations } from "next-intl"
 import type { ClaimType } from "@/lib/claims/claims-api"
 
 export function ClaimTypePicker({
@@ -10,20 +11,22 @@ export function ClaimTypePicker({
   value: ClaimType
   onChange: (value: ClaimType) => void
 }) {
+  const t = useTranslations("claims")
+
   return (
     <RadioGroup
       onValueChange={(next) => onChange(next as ClaimType)}
       value={value}
     >
-      <RadioGroup.Label>Čo potrebujete vybaviť?</RadioGroup.Label>
+      <RadioGroup.Label>{t("type_question")}</RadioGroup.Label>
       <RadioGroup.ItemGroup>
         <RadioGroup.Item value="return">
           <RadioGroup.ItemHiddenInput />
           <RadioGroup.ItemControl />
           <RadioGroup.ItemContent>
-            <RadioGroup.ItemText>Vrátiť tovar</RadioGroup.ItemText>
+            <RadioGroup.ItemText>{t("return_title")}</RadioGroup.ItemText>
             <RadioGroup.ItemDescription>
-              Odstúpenie od zmluvy bez uvedenia dôvodu.
+              {t("return_description")}
             </RadioGroup.ItemDescription>
           </RadioGroup.ItemContent>
         </RadioGroup.Item>
@@ -31,9 +34,9 @@ export function ClaimTypePicker({
           <RadioGroup.ItemHiddenInput />
           <RadioGroup.ItemControl />
           <RadioGroup.ItemContent>
-            <RadioGroup.ItemText>Reklamovať tovar</RadioGroup.ItemText>
+            <RadioGroup.ItemText>{t("complaint_title")}</RadioGroup.ItemText>
             <RadioGroup.ItemDescription>
-              Riešenie vady produktu.
+              {t("complaint_description")}
             </RadioGroup.ItemDescription>
           </RadioGroup.ItemContent>
         </RadioGroup.Item>

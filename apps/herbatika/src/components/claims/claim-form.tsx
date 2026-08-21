@@ -1,31 +1,29 @@
 "use client"
 
-import { Button } from "@techsio/ui-kit/atoms/button"
 import { StatusText } from "@techsio/ui-kit/atoms/status-text"
-import { FormInput } from "@techsio/ui-kit/molecules/form-input"
+import { useTranslations } from "next-intl"
 import { useState } from "react"
 import {
-  buildClaimInput,
   type ClaimResolution,
   type ClaimType,
-  createClaim,
   requestClaimAccess,
   type VerifiedOrder,
   verifyClaimAccess,
 } from "@/lib/claims/claims-api"
 import { runDetachedPromise } from "@/lib/storefront/detached-promise"
-import { ClaimDetailsForm } from "./claim-details-form"
+import { ClaimLookupForm, ClaimVerifyForm } from "./claim-access-forms"
+import { ClaimDetailsStage } from "./claim-details-stage"
 import type { SelectedClaimItem } from "./claim-order-items"
 import { ClaimSuccess } from "./claim-success"
 import { ClaimTypePicker } from "./claim-type-picker"
-import { isTurnstileRequired, TurnstileWidget } from "./turnstile-widget"
+import { isTurnstileRequired } from "./turnstile-widget"
 import { useClaimRequest } from "./use-claim-request"
 
 type Stage = "lookup" | "verify" | "details" | "success"
 const ACCESS_CODE_PATTERN = /^\d{6}$/
-const NON_DIGIT_PATTERN = /\D/g
 
 export function ClaimForm() {
+  const t = useTranslations("claims")
   const [stage, setStage] = useState<Stage>("lookup")
   const [type, setType] = useState<ClaimType>("return")
   const [email, setEmail] = useState("")
@@ -47,7 +45,7 @@ export function ClaimForm() {
 
   const requireCaptcha = () => {
     if (isTurnstileRequired && !turnstileToken) {
-      setError("Dokončite, prosím, overenie proti robotom.")
+      setError(t("captcha_required"))
       return false
     }
     return true
@@ -67,8 +65,18 @@ export function ClaimForm() {
       ) : null}
 
       {stage === "lookup" ? (
-        <form
-          className="flex flex-col gap-300"
+        <ClaimLookupForm
+          busy={busy}
+          email={email}
+          onEmailChange={setEmail}
+          onManualEntry={() => {
+            setOrder(null)
+            setAccessToken("")
+            setStage("details")
+            setError("")
+            setTurnstileReset((value) => value + 1)
+          }}
+          onOrderNumberChange={setOrderNumber}
           onSubmit={(event) => {
             event.preventDefault()
             if (!(email.trim() && orderNumber.trim() && requireCaptcha())) {
@@ -88,54 +96,23 @@ export function ClaimForm() {
               })
             )
           }}
-        >
-          <FormInput
-            autoComplete="email"
-            id="claim-email"
-            label="E-mail z objednávky"
-            onChange={(event) => setEmail(event.target.value)}
-            required
-            type="email"
-            value={email}
-          />
-          <FormInput
-            id="claim-order-number"
-            label="Číslo objednávky"
-            onChange={(event) => setOrderNumber(event.target.value)}
-            required
-            value={orderNumber}
-          />
-          <TurnstileWidget
-            key={turnstileReset}
-            onTokenChange={setTurnstileToken}
-          />
-          <Button isLoading={busy} type="submit">
-            Poslať overovací kód
-          </Button>
-          <Button
-            onClick={() => {
-              setOrder(null)
-              setAccessToken("")
-              setStage("details")
-              setError("")
-              setTurnstileReset((value) => value + 1)
-            }}
-            theme="outlined"
-            type="button"
-            variant="secondary"
-          >
-            Nemám číslo objednávky alebo iný e-mail
-          </Button>
-        </form>
+          onTurnstileTokenChange={setTurnstileToken}
+          orderNumber={orderNumber}
+          turnstileReset={turnstileReset}
+        />
       ) : null}
 
       {stage === "verify" ? (
-        <form
-          className="flex flex-col gap-300"
+        <ClaimVerifyForm
+          busy={busy}
+          code={code}
+          email={email}
+          onBack={() => setStage("lookup")}
+          onCodeChange={setCode}
           onSubmit={(event) => {
             event.preventDefault()
             if (!ACCESS_CODE_PATTERN.test(code)) {
-              setError("Zadajte šesťmiestny kód z e-mailu.")
+              setError(t("code_invalid"))
               return
             }
             runDetachedPromise(
@@ -152,38 +129,12 @@ export function ClaimForm() {
               })
             )
           }}
-        >
-          <p className="text-fg-secondary">
-            Ak sa údaje zhodujú, poslali sme šesťmiestny kód na {email}.
-          </p>
-          <FormInput
-            autoComplete="one-time-code"
-            id="claim-code"
-            inputMode="numeric"
-            label="Overovací kód"
-            maxLength={6}
-            onChange={(event) =>
-              setCode(event.target.value.replace(NON_DIGIT_PATTERN, ""))
-            }
-            required
-            value={code}
-          />
-          <Button isLoading={busy} type="submit">
-            Overiť objednávku
-          </Button>
-          <Button
-            onClick={() => setStage("lookup")}
-            theme="outlined"
-            type="button"
-            variant="secondary"
-          >
-            Späť
-          </Button>
-        </form>
+        />
       ) : null}
 
       {stage === "details" ? (
-        <ClaimDetailsForm
+        <ClaimDetailsStage
+          accessToken={accessToken}
           busy={busy}
           defectDescription={defectDescription}
           email={email}
@@ -196,60 +147,22 @@ export function ClaimForm() {
           onReasonChange={setReason}
           onResolutionChange={setResolution}
           onSelectedItemsChange={setSelectedItems}
-          // biome-ignore lint/complexity/noExcessiveCognitiveComplexity: validation covers verified and manual claim modes in one submit boundary
-          onSubmit={(event) => {
-            event.preventDefault()
-            const items = order
-              ? selectedItems.map((item) => ({
-                  order_item_id: item.id,
-                  quantity: item.selectedQuantity,
-                }))
-              : [{ title: manualItem.trim(), quantity: 1 }]
-            const manualFieldsComplete = Boolean(
-              email.trim() && manualItem.trim() && purchaseDetails.trim()
-            )
-            const hasValidItems = order
-              ? items.length > 0
-              : manualFieldsComplete
-            if (!hasValidItems) {
-              setError("Vyplňte povinné údaje a vyberte aspoň jeden produkt.")
-              return
-            }
-            if (type === "complaint" && defectDescription.trim().length < 3) {
-              setError("Popíšte, prosím, vadu produktu.")
-              return
-            }
-            if (!requireCaptcha()) {
-              return
-            }
-            runDetachedPromise(
-              run(async () => {
-                const result = await createClaim(
-                  buildClaimInput({
-                    accessToken,
-                    defectDescription,
-                    email,
-                    items,
-                    orderNumber,
-                    purchaseDetails,
-                    reason,
-                    resolution,
-                    turnstileToken,
-                    type,
-                  })
-                )
-                setCaseNumber(result.case_number)
-                setStage("success")
-              })
-            )
+          onSuccess={(nextCaseNumber) => {
+            setCaseNumber(nextCaseNumber)
+            setStage("success")
           }}
           onTurnstileTokenChange={setTurnstileToken}
           order={order}
+          orderNumber={orderNumber}
           purchaseDetails={purchaseDetails}
           reason={reason}
+          requireCaptcha={requireCaptcha}
           resolution={resolution}
+          run={run}
           selectedItems={selectedItems}
+          setError={setError}
           turnstileReset={turnstileReset}
+          turnstileToken={turnstileToken}
           type={type}
         />
       ) : null}
