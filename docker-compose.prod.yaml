@@ -37,13 +37,35 @@ services:
     build:
       target: prod
       args:
+        ALLOWED_MARKETS: ${DC_HERBATIKA_ALLOWED_MARKETS:-sk,cz,hu,ro}
+        MARKET_ACCEPTED_HOSTS_SK: ${DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_SK:-}
+        MARKET_ACCEPTED_HOSTS_CZ: ${DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_CZ:-}
+        MARKET_ACCEPTED_HOSTS_HU: ${DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_HU:-}
+        MARKET_ACCEPTED_HOSTS_RO: ${DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_RO:-}
         NEXT_PUBLIC_MEDUSA_BACKEND_URL: ${DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_BACKEND_URL:-http://localhost:9000}
         NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY: ${DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY:-}
         NEXT_PUBLIC_STOREFRONT_AUTH_MODE: ${DC_HERBATIKA_NEXT_PUBLIC_STOREFRONT_AUTH_MODE:-session_proxy}
         NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED: ${DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED:-${DC_CLOUDFLARE_TURNSTILE_ENABLED:-0}}
+        NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY: ${DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY:-}
         NEXT_PUBLIC_PAYLOAD_BASE_URL: ${DC_HERBATIKA_NEXT_PUBLIC_PAYLOAD_BASE_URL:-http://localhost:8083}
     environment:
       NODE_ENV: production
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          case ",$${ALLOWED_MARKETS}," in
+            *,sk,*) host=$${MARKET_ACCEPTED_HOSTS_SK%%,*} ;;
+            *,cz,*) host=$${MARKET_ACCEPTED_HOSTS_CZ%%,*} ;;
+            *,hu,*) host=$${MARKET_ACCEPTED_HOSTS_HU%%,*} ;;
+            *,ro,*) host=$${MARKET_ACCEPTED_HOSTS_RO%%,*} ;;
+          esac;
+          test -n "$$host" &&
+          curl -fsS -H "Host: $$host" http://127.0.0.1:3000/api/healthz
+      start_period: 120s
+      interval: 15s
+      timeout: 10s
+      retries: 8
     volumes: !reset []  # Remove inherited dev bind mounts in prod
   payload:
     build:

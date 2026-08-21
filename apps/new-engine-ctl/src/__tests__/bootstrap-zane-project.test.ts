@@ -5,7 +5,10 @@ import { fileURLToPath } from "node:url"
 
 import { afterEach, expect, test, vi } from "vitest"
 import { parse } from "yaml"
-import { executeBootstrapZaneProjectPlan } from "../orchestration/bootstrap/zane-project.js"
+import {
+  executeBootstrapZaneProjectPlan,
+  resolveTurnstileDeploymentConfig,
+} from "../orchestration/bootstrap/zane-project.js"
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..")
 const stackManifestPath = join(
@@ -22,6 +25,54 @@ const publicUrlAffix = "-deploy"
 const medusaBePublicOrigin = `https://${projectSlug}-medusa-be${publicUrlAffix}.${publicDomain}`
 const herbatikaPublicOrigin = `https://${projectSlug}-herbatika${publicUrlAffix}.${publicDomain}`
 const minioPublicOrigin = `https://${projectSlug}-medusa-minio${publicUrlAffix}.${publicDomain}`
+const herbatikaPreviewDomains = [
+  "test-engine-herbatika-zane.web-revolution.cz",
+  "test-engine-herbatika-sk-zane.web-revolution.cz",
+  "test-engine-herbatika-ro-zane.web-revolution.cz",
+  "test-engine-herbatika-cz-zane.web-revolution.cz",
+  "test-engine-herbatika-hu-zane.web-revolution.cz",
+]
+const herbatikaPreviewOrigins = herbatikaPreviewDomains.map(
+  (domain) => `https://${domain}`
+)
+const marketAcceptedHostnames = {
+  CZ: "herbatica.cz,www.herbatica.cz,test-engine-herbatika-cz-zane.web-revolution.cz",
+  HU: "herbatica.hu,www.herbatica.hu,test-engine-herbatika-hu-zane.web-revolution.cz",
+  RO: "herbatica.ro,www.herbatica.ro,test-engine-herbatika-ro-zane.web-revolution.cz",
+  SK: "herbatica.sk,www.herbatica.sk,test-engine-herbatika-zane.web-revolution.cz,test-engine-herbatika-sk-zane.web-revolution.cz",
+} as const
+const turnstileAllowedHostnames = [
+  marketAcceptedHostnames.SK,
+  marketAcceptedHostnames.CZ,
+  marketAcceptedHostnames.HU,
+  marketAcceptedHostnames.RO,
+].join(",")
+const turnstileAuthorityMismatchPattern = /single backend\/frontend authority/
+const herbatikaAdditionalUrls = herbatikaPreviewDomains.map((domain) => ({
+  associated_port: 3000,
+  base_path: "/",
+  domain,
+  strip_prefix: true,
+}))
+const marketValuePrefixes = [
+  "MARKET_PUBLISHABLE_KEY",
+  "MARKET_PUBLISHABLE_KEY_ID",
+  "MARKET_REGION",
+  "MARKET_SALES_CHANNEL",
+] as const
+
+function stubFourMarketDeploymentConfig() {
+  vi.stubEnv("DC_HERBATIKA_ALLOWED_MARKETS", "sk,cz,hu,ro")
+  for (const [market, hostnames] of Object.entries(marketAcceptedHostnames)) {
+    vi.stubEnv(`DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_${market}`, hostnames)
+    for (const prefix of marketValuePrefixes) {
+      vi.stubEnv(
+        `DC_HERBATIKA_${prefix}_${market}`,
+        `${prefix.toLowerCase()}-${market.toLowerCase()}`
+      )
+    }
+  }
+}
 
 const serviceSlugs = [
   "medusa-db",
@@ -37,7 +88,34 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
+test("Turnstile deployment config rejects frontend/backend enablement drift", () => {
+  expect(() =>
+    resolveTurnstileDeploymentConfig({
+      DC_CLOUDFLARE_TURNSTILE_ENABLED: "1",
+      DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED: "0",
+    })
+  ).toThrow(turnstileAuthorityMismatchPattern)
+})
+
+test("Turnstile derives its authority from enabled market host bindings", () => {
+  expect(
+    resolveTurnstileDeploymentConfig({
+      DC_CLOUDFLARE_TURNSTILE_ENABLED: "1",
+      DC_HERBATIKA_ALLOWED_MARKETS: "sk,ro",
+      DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_RO: marketAcceptedHostnames.RO,
+      DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_SK: marketAcceptedHostnames.SK,
+    })
+  ).toEqual({
+    allowedHostnames: [
+      marketAcceptedHostnames.SK,
+      marketAcceptedHostnames.RO,
+    ].join(","),
+    enabled: "1",
+  })
+})
+
 test("project sync manages Herbatika and current Medusa runtime envs", async () => {
+  stubFourMarketDeploymentConfig()
   vi.stubEnv("DC_ZANE_OPERATOR_ZANE_USERNAME", "admin")
   vi.stubEnv("DC_ZANE_OPERATOR_ZANE_PASSWORD", "password")
   vi.stubEnv("DC_ZANE_OPERATOR_API_AUTH_TOKEN", "operator-token")
@@ -60,6 +138,11 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
   vi.stubEnv(
     "DC_HERBATICA_REVIEWS_XML_PATH",
     "https://assets.example.test/reviews.xml"
+  )
+  vi.stubEnv("DC_CLOUDFLARE_TURNSTILE_ENABLED", "1")
+  vi.stubEnv(
+    "DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY",
+    "turnstile-site-key"
   )
   vi.stubEnv("DC_HERBATIKA_NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY", "")
 
@@ -198,9 +281,9 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
       (service) => service.service_id === "medusa-be"
     )
     expect(medusa?.desired_env).toMatchObject({
-      STORE_CORS: `http://localhost:3001,https://storefront.example.test,${herbatikaPublicOrigin}`,
+      CLOUDFLARE_TURNSTILE_ALLOWED_HOSTNAMES: turnstileAllowedHostnames,
+      CLOUDFLARE_TURNSTILE_ENABLED: "1",
       ADMIN_CORS: `http://localhost:5173,${medusaBePublicOrigin}`,
-      AUTH_CORS: `http://127.0.0.1:3001,${medusaBePublicOrigin}`,
       FEATURE_PAYMENT_QR_ENABLED: "1",
       GOPAY_WEBHOOK_URL: `${medusaBePublicOrigin}/hooks/payment/paykit_gopay`,
       HERBATICA_REVIEWS_XML_PATH: "https://assets.example.test/reviews.xml",
@@ -220,6 +303,26 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
       URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN:
         "{{env.URL_REGISTRY_PRODUCT_LIFECYCLE_TOKEN}}",
     })
+    const expectedMarketOrigins = turnstileAllowedHostnames
+      .split(",")
+      .map((hostname) => `https://${hostname}`)
+    expect(new Set(medusa?.desired_env.STORE_CORS?.split(","))).toEqual(
+      new Set([
+        "http://localhost:3001",
+        "https://storefront.example.test",
+        herbatikaPublicOrigin,
+        ...herbatikaPreviewOrigins,
+        ...expectedMarketOrigins,
+      ])
+    )
+    expect(new Set(medusa?.desired_env.AUTH_CORS?.split(","))).toEqual(
+      new Set([
+        "http://127.0.0.1:3001",
+        medusaBePublicOrigin,
+        ...herbatikaPreviewOrigins,
+        ...expectedMarketOrigins,
+      ])
+    )
     expect(medusa?.desired_env).toHaveProperty(
       "WORKFLOW_QUEUE_RUNNER_BATCH_SIZE"
     )
@@ -266,14 +369,26 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
     const herbatika = plan.services.find(
       (service) => service.service_id === "herbatika"
     )
-    expect(herbatika?.desired_urls).toEqual([
-      {
-        associated_port: 3000,
-        base_path: "/",
-        domain: `${projectSlug}-herbatika${publicUrlAffix}.${publicDomain}`,
-        strip_prefix: true,
-      },
-    ])
+    expect(herbatika?.desired_urls).toEqual(
+      expect.arrayContaining([
+        {
+          associated_port: 3000,
+          base_path: "/",
+          domain: `${projectSlug}-herbatika${publicUrlAffix}.${publicDomain}`,
+          strip_prefix: true,
+        },
+        ...herbatikaAdditionalUrls,
+      ])
+    )
+    expect(new Set(herbatika?.desired_urls.map((url) => url.domain))).toEqual(
+      new Set([
+        `${projectSlug}-herbatika${publicUrlAffix}.${publicDomain}`,
+        ...turnstileAllowedHostnames.split(","),
+      ])
+    )
+    expect(new Set(herbatika?.desired_urls.map((url) => url.domain)).size).toBe(
+      herbatika?.desired_urls.length
+    )
     expect(herbatika?.desired_healthcheck).toEqual({
       type: "COMMAND",
       value: `curl -fsS -H 'Host: ${projectSlug}-herbatika${publicUrlAffix}.${publicDomain}' http://127.0.0.1:3000/api/healthz`,
@@ -293,6 +408,8 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
       MARKET_ACCEPTED_HOSTS_CZ: "{{env.MARKET_ACCEPTED_HOSTS_CZ}}",
       MARKET_ACCEPTED_HOSTS_HU: "{{env.MARKET_ACCEPTED_HOSTS_HU}}",
       MARKET_ACCEPTED_HOSTS_RO: "{{env.MARKET_ACCEPTED_HOSTS_RO}}",
+      NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_ENABLED: "1",
+      NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY: "turnstile-site-key",
       NEXT_PUBLIC_MINIO_FILE_URL: minioPublicOrigin,
       URL_ARCHITECTURE_ENABLED: "{{env.URL_ARCHITECTURE_ENABLED}}",
       URL_REGISTRY_COMMANDS_ENABLED: "{{env.URL_REGISTRY_COMMANDS_ENABLED}}",
@@ -378,6 +495,56 @@ test("project sync manages Herbatika and current Medusa runtime envs", async () 
 
     expect(missingMedusaEnvKeys).toEqual([])
     expect(missingHerbatikaEnvKeys).toEqual([])
+
+    const productionCompose = await readFile(
+      join(repoRoot, "docker-compose.prod.yaml"),
+      "utf8"
+    )
+    expect(productionCompose).toContain(
+      "NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY: $" +
+        "{DC_HERBATIKA_NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY:-}"
+    )
+    expect(productionCompose).toContain(
+      'curl -fsS -H "Host: $$host" http://127.0.0.1:3000/api/healthz'
+    )
+    for (const market of ["SK", "CZ", "HU", "RO"]) {
+      expect(productionCompose).toContain(
+        `host=$${"${"}MARKET_ACCEPTED_HOSTS_${market}%%,*}`
+      )
+    }
+
+    const missingMarketVariables = [
+      "DC_HERBATIKA_MARKET_ACCEPTED_HOSTS_SK",
+      "DC_HERBATIKA_MARKET_PUBLISHABLE_KEY_CZ",
+      "DC_HERBATIKA_MARKET_PUBLISHABLE_KEY_ID_HU",
+      "DC_HERBATIKA_MARKET_REGION_RO",
+      "DC_HERBATIKA_MARKET_SALES_CHANNEL_SK",
+    ]
+    for (const environmentVariable of missingMarketVariables) {
+      vi.stubEnv(environmentVariable, "")
+    }
+    const blockedPlan = await executeBootstrapZaneProjectPlan({
+      projectSlug,
+      projectDescription: "Test project",
+      environmentName: "production",
+      inspectJsonPath,
+      repositoryUrl: "https://github.com/example/new-engine.git",
+      branchName: "main",
+      publicDomain,
+      publicUrlAffix,
+      stackManifestPath,
+      stackInputsPath,
+      phase: "env",
+    })
+    expect(blockedPlan.status).toBe("blocked")
+    expect(blockedPlan.blocking_reasons).toEqual(
+      expect.arrayContaining(
+        missingMarketVariables.map(
+          (environmentVariable) =>
+            `${environmentVariable} could not be resolved for bootstrap.`
+        )
+      )
+    )
   } finally {
     await rm(temporaryDirectory, { recursive: true, force: true })
   }
@@ -435,7 +602,7 @@ test("Herbatika healthcheck fails closed without a public runtime domain", async
     expect(plan.blocking_reasons).toContain(
       "Public domain could not be derived from input or Zane settings."
     )
-    expect(herbatika?.desired_urls).toEqual([])
+    expect(herbatika?.desired_urls).toEqual(herbatikaAdditionalUrls)
     expect(herbatika?.desired_healthcheck).toEqual({
       type: "COMMAND",
       value: "sh -lc 'exit 1'",

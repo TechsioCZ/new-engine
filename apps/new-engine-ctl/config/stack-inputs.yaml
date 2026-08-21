@@ -585,6 +585,49 @@ preview_verification:
         - ZANE_PASSWORD
 
 bootstrap_zane_project:
+  # Explicit Techsio test-engine overlay. Customer canonical routes are not
+  # encoded here; they are derived from MARKET_ACCEPTED_HOSTS_<MARKET>.
+  additional_public_urls:
+    - service_id: herbatika
+      domain: test-engine-herbatika-zane.web-revolution.cz
+      associated_port: 3000
+      base_path: /
+      strip_prefix: true
+      store_cors: true
+      auth_cors: true
+
+    - service_id: herbatika
+      domain: test-engine-herbatika-sk-zane.web-revolution.cz
+      associated_port: 3000
+      base_path: /
+      strip_prefix: true
+      store_cors: true
+      auth_cors: true
+
+    - service_id: herbatika
+      domain: test-engine-herbatika-ro-zane.web-revolution.cz
+      associated_port: 3000
+      base_path: /
+      strip_prefix: true
+      store_cors: true
+      auth_cors: true
+
+    - service_id: herbatika
+      domain: test-engine-herbatika-cz-zane.web-revolution.cz
+      associated_port: 3000
+      base_path: /
+      strip_prefix: true
+      store_cors: true
+      auth_cors: true
+
+    - service_id: herbatika
+      domain: test-engine-herbatika-hu-zane.web-revolution.cz
+      associated_port: 3000
+      base_path: /
+      strip_prefix: true
+      store_cors: true
+      auth_cors: true
+
   shared_env:
     - key: MEDUSA_DB_HOST
       source:
