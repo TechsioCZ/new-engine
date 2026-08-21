@@ -7,6 +7,16 @@ import type {
   SearchAutocompleteSuggestion,
 } from "./search-autocomplete-types"
 
+const CONTENT_SUBTITLES: Record<
+  Market,
+  Readonly<{ article: string; page: string }>
+> = {
+  cz: { article: "Článek", page: "Informační stránka" },
+  hu: { article: "Cikk", page: "Információs oldal" },
+  ro: { article: "Articol", page: "Pagină de informații" },
+  sk: { article: "Článok", page: "Informačná stránka" },
+}
+
 const createContentSuggestion = (
   hit: RawSearchAutocompleteContentHit,
   market: Market,
@@ -47,8 +57,8 @@ const createContentSuggestion = (
     href,
     subtitle:
       type === "article"
-        ? "Článok"
-        : normalizeString(hit.excerpt) || "Informačná stránka",
+        ? CONTENT_SUBTITLES[market].article
+        : normalizeString(hit.excerpt) || CONTENT_SUBTITLES[market].page,
   }
 }
 
