@@ -32,6 +32,13 @@ const failMarketScope = (message: string): never => {
   throw new MedusaError(MedusaError.Types.INVALID_DATA, message)
 }
 
+const failProductScope = (): never => {
+  throw new MedusaError(
+    MedusaError.Types.NOT_FOUND,
+    "Product was not found in this storefront."
+  )
+}
+
 const resolveExactPublishableSalesChannelId = (
   request: StorefrontTransportRequest
 ): string => {
@@ -101,12 +108,9 @@ const assertExactMarketBinding = (
   }
 }
 
-export const enforceExactStorefrontMarketSalesChannel = async (
-  req: MedusaRequest,
-  _res: MedusaResponse,
-  next: MedusaNextFunction
+const resolveVerifiedStorefrontMarketSalesChannel = async (
+  request: StorefrontTransportRequest
 ) => {
-  const request = req as StorefrontTransportRequest
   const salesChannelId = resolveExactPublishableSalesChannelId(request)
   const locale = request.locale
 
@@ -135,9 +139,58 @@ export const enforceExactStorefrontMarketSalesChannel = async (
     salesChannelId
   )
 
+  return { query, salesChannelId }
+}
+
+export const enforceExactStorefrontMarketSalesChannel = async (
+  req: MedusaRequest,
+  _res: MedusaResponse,
+  next: MedusaNextFunction
+) => {
+  const request = req as StorefrontTransportRequest
+  const { salesChannelId } =
+    await resolveVerifiedStorefrontMarketSalesChannel(request)
+
   request.filterableFields = {
     ...(request.filterableFields ?? {}),
     sales_channel_id: [salesChannelId],
   }
+  next()
+}
+
+export const enforceExactStorefrontProductDetailMarketSalesChannel = async (
+  req: MedusaRequest,
+  _res: MedusaResponse,
+  next: MedusaNextFunction
+) => {
+  const request = req as StorefrontTransportRequest
+  const productId = request.params?.id
+  if (typeof productId !== "string" || !productId) {
+    return failProductScope()
+  }
+
+  const { query, salesChannelId } =
+    await resolveVerifiedStorefrontMarketSalesChannel(request)
+  const { data: links } = await query.graph({
+    entity: "product_sales_channel",
+    fields: ["product_id"],
+    filters: {
+      product_id: productId,
+      sales_channel_id: [salesChannelId],
+    },
+    pagination: { take: 2 },
+  })
+  if (
+    links.length !== 1 ||
+    (links[0] as { product_id?: unknown } | undefined)?.product_id !== productId
+  ) {
+    return failProductScope()
+  }
+
+  const {
+    sales_channel_id: _callerSalesChannelScope,
+    ...supportedProductFilters
+  } = request.filterableFields ?? {}
+  request.filterableFields = supportedProductFilters
   next()
 }

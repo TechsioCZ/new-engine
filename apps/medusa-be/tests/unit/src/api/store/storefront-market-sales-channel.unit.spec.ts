@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { storeCatalogProductsRoutesMiddlewares } from "../../../../../src/api/store/catalog/products/middlewares"
 import { storeProductLocationAvailabilityRoutesMiddlewares } from "../../../../../src/api/store/products/[id]/location-availability/middlewares"
 import { storeProductMarketScopeRoutesMiddlewares } from "../../../../../src/api/store/products/middlewares"
-import { enforceExactStorefrontMarketSalesChannel } from "../../../../../src/api/store/storefront-market-sales-channel"
+import {
+  enforceExactStorefrontMarketSalesChannel,
+  enforceExactStorefrontProductDetailMarketSalesChannel,
+} from "../../../../../src/api/store/storefront-market-sales-channel"
 
 const MARKETS = [
   {
@@ -229,7 +232,7 @@ describe("ordinary storefront transport registration", () => {
       }),
       expect.objectContaining({
         matcher: "/store/products/:id",
-        middlewares: [enforceExactStorefrontMarketSalesChannel],
+        middlewares: [enforceExactStorefrontProductDetailMarketSalesChannel],
       }),
     ])
   })

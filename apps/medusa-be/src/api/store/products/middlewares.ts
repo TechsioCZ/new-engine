@@ -1,5 +1,8 @@
 import type { MiddlewareRoute } from "@medusajs/framework/http"
-import { enforceExactStorefrontMarketSalesChannel } from "../storefront-market-sales-channel"
+import {
+  enforceExactStorefrontMarketSalesChannel,
+  enforceExactStorefrontProductDetailMarketSalesChannel,
+} from "../storefront-market-sales-channel"
 
 export const storeProductMarketScopeRoutesMiddlewares: MiddlewareRoute[] = [
   {
@@ -10,6 +13,6 @@ export const storeProductMarketScopeRoutesMiddlewares: MiddlewareRoute[] = [
   {
     methods: ["GET"],
     matcher: "/store/products/:id",
-    middlewares: [enforceExactStorefrontMarketSalesChannel],
+    middlewares: [enforceExactStorefrontProductDetailMarketSalesChannel],
   },
 ]
