@@ -20,6 +20,7 @@ import type {
   CatalogTranslationReference,
   ExistingCatalogTranslation,
 } from "./types"
+import { CATALOG_TRANSLATION_EXACT_INVENTORY } from "./types"
 
 type QueryService = Readonly<{
   graph: <Value>(
@@ -34,6 +35,9 @@ type QueryService = Readonly<{
 
 const PAGE_SIZE = 500
 const DATABASE_INSTANCE_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
+const ENVIRONMENT_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
+const FORBIDDEN_TEST_ENVIRONMENTS =
+  /(?:^|[-_.])(live|prod|production)(?:$|[-_.])/i
 const REFERENCES = new Set<string>([
   "brand",
   "product",
@@ -121,6 +125,28 @@ export const assertCatalogTranslationTestEnvironment = (
   return input.environment
 }
 
+export const readCatalogTranslationTestEnvironment = (
+  environment: NodeJS.ProcessEnv = process.env
+): CatalogTranslationInput["environment"] => {
+  const environmentId = environment.CATALOG_TRANSLATION_PIPELINE_ENVIRONMENT_ID
+  if (
+    environment.CATALOG_TRANSLATION_PIPELINE_ENVIRONMENT_KIND !== "test" ||
+    !environmentId ||
+    !ENVIRONMENT_ID.test(environmentId) ||
+    FORBIDDEN_TEST_ENVIRONMENTS.test(environmentId)
+  ) {
+    throw new Error(
+      "source generation requires an explicit non-production test environment"
+    )
+  }
+  return {
+    databaseInstanceFingerprint:
+      buildCatalogTranslationDatabaseInstanceFingerprint(environment),
+    environmentId,
+    kind: "test",
+  }
+}
+
 const readCatalogTranslations = async (
   service: ITranslationModuleService,
   referenceIds: readonly string[],
@@ -173,7 +199,7 @@ const readCatalogTranslations = async (
 
 const readEntityIdentity = async (
   container: ExecArgs["container"],
-  input: CatalogTranslationInput
+  input: Pick<CatalogTranslationInput, "entries">
 ) => {
   const query = container.resolve<QueryService>(ContainerRegistrationKeys.QUERY)
   const productIds = [
@@ -416,6 +442,145 @@ const readEntityIdentity = async (
   return {
     identity: { brands, categories, productContents, products },
     sourceRecords,
+  }
+}
+
+const emptyTranslationsByReference: Readonly<
+  Record<CatalogTranslationReference, Readonly<Record<string, string>>>
+> = {
+  brand: { title: "" },
+  product: { description: "", subtitle: "", title: "" },
+  product_category: {
+    bottom_description_html: "",
+    description: "",
+    meta_description: "",
+    meta_title: "",
+    name: "",
+    top_description_html: "",
+  },
+  product_content: { composition: "", other: "", usage: "", warning: "" },
+}
+
+export const inspectCanonicalCatalogTranslationSource = async (
+  container: ExecArgs["container"]
+) => {
+  const query = container.resolve<QueryService>(ContainerRegistrationKeys.QUERY)
+  const [productsResult, categoriesResult, brandsResult] = await Promise.all([
+    query.graph<{ id?: unknown }>({
+      entity: "product",
+      fields: ["id"],
+      pagination: {
+        take: CATALOG_TRANSLATION_EXACT_INVENTORY.products + 1,
+      },
+    }),
+    query.graph<{ id?: unknown }>({
+      entity: "product_category",
+      fields: ["id"],
+      pagination: {
+        take: CATALOG_TRANSLATION_EXACT_INVENTORY.categories + 1,
+      },
+    }),
+    query.graph<{ id?: unknown }>({
+      entity: "brand",
+      fields: ["id"],
+      pagination: { take: CATALOG_TRANSLATION_EXACT_INVENTORY.brands + 1 },
+    }),
+  ])
+  const exactIds = (
+    values: readonly Readonly<{ id?: unknown }>[],
+    expected: number,
+    label: string
+  ) => {
+    const ids = values
+      .map((value, index) => stringValue(value.id, `${label} ${index}.id`))
+      .sort((left, right) => left.localeCompare(right, "en"))
+    if (ids.length !== expected || new Set(ids).size !== expected) {
+      throw new Error(`${label} discovery does not match exact inventory`)
+    }
+    return ids
+  }
+  const productIds = exactIds(
+    productsResult.data ?? [],
+    CATALOG_TRANSLATION_EXACT_INVENTORY.products,
+    "product"
+  )
+  const categoryIds = exactIds(
+    categoriesResult.data ?? [],
+    CATALOG_TRANSLATION_EXACT_INVENTORY.categories,
+    "category"
+  )
+  const brandIds = exactIds(
+    brandsResult.data ?? [],
+    CATALOG_TRANSLATION_EXACT_INVENTORY.brands,
+    "brand"
+  )
+  const contentService = getProductContentService(container)
+  const productContents: Array<{ id: string; productId: string }> = []
+  for (const ids of chunk(productIds, PAGE_SIZE)) {
+    const rows = (await contentService.listProductContents(
+      { product_id: ids },
+      { take: ids.length + 1 }
+    )) as Record<string, unknown>[]
+    productContents.push(
+      ...rows.map((row, index) => ({
+        id: stringValue(row.id, `product content ${index}.id`),
+        productId: stringValue(
+          row.product_id,
+          `product content ${index}.productId`
+        ),
+      }))
+    )
+  }
+  productContents.sort((left, right) => left.id.localeCompare(right.id, "en"))
+  if (
+    productContents.length !==
+      CATALOG_TRANSLATION_EXACT_INVENTORY.productContents ||
+    new Set(productContents.map(({ id }) => id)).size !==
+      CATALOG_TRANSLATION_EXACT_INVENTORY.productContents ||
+    !same(
+      productIds,
+      productContents
+        .map(({ productId }) => productId)
+        .sort((left, right) => left.localeCompare(right, "en"))
+    )
+  ) {
+    throw new Error("product content discovery does not match exact ownership")
+  }
+  const entrySeeds = [
+    ...productIds.map((referenceId) => ({
+      reference: "product" as const,
+      referenceId,
+    })),
+    ...productContents.map(({ id: referenceId }) => ({
+      reference: "product_content" as const,
+      referenceId,
+    })),
+    ...categoryIds.map((referenceId) => ({
+      reference: "product_category" as const,
+      referenceId,
+    })),
+    ...brandIds.map((referenceId) => ({
+      reference: "brand" as const,
+      referenceId,
+    })),
+  ]
+  const provisionalInput = {
+    entries: entrySeeds.map(({ reference, referenceId }) => ({
+      localeCode: "sk-SK" as const,
+      provenance: {
+        artifactSha256: "0".repeat(64),
+        method: "canonical-source" as const,
+        sourceReference: "generated-live-canonical-source",
+      },
+      reference,
+      referenceId,
+      translations: emptyTranslationsByReference[reference],
+    })),
+  }
+  const state = await readEntityIdentity(container, provisionalInput)
+  return {
+    inventory: CATALOG_TRANSLATION_EXACT_INVENTORY,
+    sourceRecords: state.sourceRecords,
   }
 }
 

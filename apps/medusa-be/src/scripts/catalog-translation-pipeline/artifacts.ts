@@ -32,6 +32,11 @@ const writePrivateNoClobber = async (outputPath: string, value: unknown) => {
   return hashCatalogTranslationBytes(bytes)
 }
 
+export const writeCatalogTranslationInputArtifact = writePrivateNoClobber
+
+export const writeCatalogTranslationCanonicalSourceArtifact =
+  writePrivateNoClobber
+
 const planArtifact = (
   plan: CatalogTranslationPlan,
   planHash: string

@@ -17,6 +17,7 @@ import {
   loadCatalogTranslationInput,
   parseCatalogTranslationCliOptions,
   parseCatalogTranslationInput,
+  parseCatalogTranslationSourceGeneratorCliOptions,
 } from "../../../../src/scripts/catalog-translation-pipeline/manifest"
 import {
   buildCatalogTranslationPlan,
@@ -353,6 +354,17 @@ describe("catalog translation test pipeline", () => {
   })
 
   it("requires an absolute dry-run plan and hash-bound apply receipt", () => {
+    expect(
+      parseCatalogTranslationSourceGeneratorCliOptions([
+        "--generate-source-input",
+        "--input-output=/tmp/sk-input.json",
+        "--source-output",
+        "/tmp/sk-source.json",
+      ])
+    ).toEqual({
+      inputOutputPath: "/tmp/sk-input.json",
+      sourceOutputPath: "/tmp/sk-source.json",
+    })
     expect(
       parseCatalogTranslationCliOptions([
         "--input",

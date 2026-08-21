@@ -158,3 +158,8 @@ export type CatalogTranslationCliOptions = Readonly<{
   receiptOutputPath?: string
   rollbackOutputPath?: string
 }>
+
+export type CatalogTranslationSourceGeneratorCliOptions = Readonly<{
+  inputOutputPath: string
+  sourceOutputPath: string
+}>

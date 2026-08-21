@@ -10,6 +10,7 @@ import {
   type CatalogTranslationInputEntry,
   type CatalogTranslationLocale,
   type CatalogTranslationReference,
+  type CatalogTranslationSourceGeneratorCliOptions,
 } from "./types"
 
 const SHA_256 = /^[a-f0-9]{64}$/
@@ -484,5 +485,41 @@ export const parseCatalogTranslationCliOptions = (
           ),
         }
       : {}),
+  }
+}
+
+export const parseCatalogTranslationSourceGeneratorCliOptions = (
+  args: readonly string[]
+): CatalogTranslationSourceGeneratorCliOptions => {
+  const values = new Map<string, string>()
+  for (let index = 0; index < args.length; index += 1) {
+    const argument = args[index] ?? ""
+    if (argument === "--generate-source-input") {
+      continue
+    }
+    const name = argument.split("=", 1)[0] ?? ""
+    if (name !== "--input-output" && name !== "--source-output") {
+      throw new Error(`Unknown source generator argument: ${name}`)
+    }
+    const inline = argument.indexOf("=")
+    const value =
+      inline >= 0 ? argument.slice(inline + 1) : (args[index + 1] ?? "")
+    if (!(value && !value.startsWith("--")) || values.has(name)) {
+      throw new Error(`Invalid source generator value for ${name}`)
+    }
+    if (inline < 0) {
+      index += 1
+    }
+    values.set(name, value)
+  }
+  return {
+    inputOutputPath: absoluteJsonPath(
+      values.get("--input-output"),
+      "--input-output"
+    ),
+    sourceOutputPath: absoluteJsonPath(
+      values.get("--source-output"),
+      "--source-output"
+    ),
   }
 }
