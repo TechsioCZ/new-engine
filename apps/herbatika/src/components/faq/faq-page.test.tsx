@@ -46,8 +46,27 @@ describe("FaqPage locale selection", () => {
     expect(markup).not.toContain("Întrebări frecvente")
   })
 
+  it.each([
+    [
+      "cz",
+      "cs-CZ",
+      "Často kladené otázky",
+      "V jakém stavu je vaše objednávka?",
+    ],
+    ["hu", "hu-HU", "Gyakran ismételt kérdések", "Hol tart a rendelése?"],
+  ])("renders approved %s market FAQ copy", (code, locale, title, firstQuestion) => {
+    testContext.market = { code, locale }
+
+    const markup = renderToStaticMarkup(<FaqPage />)
+
+    expect(markup).toContain(title)
+    expect(markup).toContain(firstQuestion)
+    expect(markup).toContain("faq.item_count:10")
+    expect(markup).not.toContain("În ce stadiu se află comanda dumneavoastră?")
+  })
+
   it("renders no FAQ content for an unsupported locale", () => {
-    testContext.market = { code: "cz", locale: "cs-CZ" }
+    testContext.market = { code: "gb", locale: "en-GB" }
 
     expect(renderToStaticMarkup(<FaqPage />)).toBe("")
   })

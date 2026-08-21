@@ -77,9 +77,7 @@ export const authService = {
     await cleanupDeactivatedSession()
     return result
   },
-  async getCustomer(
-    _signal?: AbortSignal
-  ): Promise<HttpTypes.StoreCustomer | null> {
+  getCustomer(_signal?: AbortSignal): Promise<HttpTypes.StoreCustomer | null> {
     return fetchSessionCustomer()
   },
   async login(credentials: AuthLoginInput) {

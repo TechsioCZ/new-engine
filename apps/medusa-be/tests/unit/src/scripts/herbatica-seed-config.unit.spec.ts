@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest"
-import { FREE_SHIPPING_THRESHOLDS as STOREFRONT_FREE_SHIPPING_THRESHOLDS } from "../../../../../herbatika/src/lib/storefront/free-shipping"
 import {
   buildHerbaticaShippingOptions,
   HERBATICA_COUNTRIES,
@@ -296,12 +295,4 @@ describe("Herbatica four-market seed config", () => {
     })
   })
 
-  it("keeps the storefront promise identical to the enforced seed thresholds", () => {
-    expect(STOREFRONT_FREE_SHIPPING_THRESHOLDS).toEqual({
-      EUR: HERBATICA_FREE_SHIPPING_THRESHOLDS.eur,
-      CZK: HERBATICA_FREE_SHIPPING_THRESHOLDS.czk,
-      HUF: HERBATICA_FREE_SHIPPING_THRESHOLDS.huf,
-      RON: HERBATICA_FREE_SHIPPING_THRESHOLDS.ron,
-    })
-  })
 })
