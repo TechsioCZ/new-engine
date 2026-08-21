@@ -44,7 +44,10 @@ const PREFIX_CHECKOUT_CHILDREN = new Set<CheckoutChildKey>([
   "checkoutResult",
 ])
 const PREFIX_REVIEW_CHILDREN = new Set<ReviewChildKey>(["product"])
-const RO_DEMO_NOINDEX_STATIC_ROOT_PAGE_KEYS = new Set<StaticRootPageKey>([
+// Static-root CMS pages ship demo content that has not passed the G1
+// editorial/legal publication gate on any market, so they stay noindex
+// (and therefore renderable) until reviewed artifacts exist.
+const DEMO_NOINDEX_STATIC_ROOT_PAGE_KEYS = new Set<StaticRootPageKey>([
   "affiliate",
   "contact",
   "cookies",
@@ -105,10 +108,9 @@ const rootRoutes = (market: Market): PopulationStaticRoute[] => {
     return segment
       ? [
           staticRoute(market, `root:${key}`, segment, {
-            indexPolicy:
-              market === "ro" && RO_DEMO_NOINDEX_STATIC_ROOT_PAGE_KEYS.has(key)
-                ? "noindex"
-                : "indexable",
+            indexPolicy: DEMO_NOINDEX_STATIC_ROOT_PAGE_KEYS.has(key)
+              ? "noindex"
+              : "indexable",
           }),
         ]
       : []

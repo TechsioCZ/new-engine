@@ -157,15 +157,25 @@ describe("initial URLR population manifest", () => {
     ])
   })
 
-  it("preserves the existing index policy for non-RO roots", () => {
-    expect(
-      buildPopulationStaticTaxonomy()
-        .filter(
-          ({ market, routeKey }) =>
-            market !== "ro" && routeKey.startsWith("root:")
+  it("keeps only reviewed informational roots indexable on non-RO markets", () => {
+    for (const market of ["sk", "cz", "hu"] as const) {
+      const roots = buildPopulationStaticTaxonomy().filter(
+        (route) => route.market === market && route.routeKey.startsWith("root:")
+      )
+      expect(
+        roots
+          .filter(({ indexPolicy }) => indexPolicy === "indexable")
+          .map(({ routeKey }) => routeKey)
+      ).toEqual(["root:about", "root:faq"])
+      expect(
+        roots.every(
+          ({ indexPolicy, routeKey }) =>
+            indexPolicy === "noindex" ||
+            routeKey === "root:about" ||
+            routeKey === "root:faq"
         )
-        .every(({ indexPolicy }) => indexPolicy === "indexable")
-    ).toBe(true)
+      ).toBe(true)
+    }
   })
 })
 

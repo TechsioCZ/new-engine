@@ -55,7 +55,7 @@ describe("segment-registry G1 publication", () => {
     )
     expect(builds.map(({ market }) => market)).toEqual(["cz", "hu", "ro", "sk"])
     expect(builds.map(({ artifact }) => artifact.routes.length)).toEqual([
-      8, 8, 2, 8,
+      2, 2, 2, 2,
     ])
     for (const build of builds) {
       const parsed = parseSegmentRegistryPublicationArtifact(
