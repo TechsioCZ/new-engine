@@ -197,6 +197,63 @@ const readCatalogTranslations = async (
   return records
 }
 
+const readCompleteCatalogTranslations = async (
+  service: ITranslationModuleService,
+  localeCodes: readonly string[]
+): Promise<ExistingCatalogTranslation[]> => {
+  const expectedByReference: Readonly<
+    Record<CatalogTranslationReference, number>
+  > = {
+    brand: CATALOG_TRANSLATION_EXACT_INVENTORY.brands,
+    product: CATALOG_TRANSLATION_EXACT_INVENTORY.products,
+    product_category: CATALOG_TRANSLATION_EXACT_INVENTORY.categories,
+    product_content: CATALOG_TRANSLATION_EXACT_INVENTORY.productContents,
+  }
+  const records: ExistingCatalogTranslation[] = []
+  for (const localeCode of localeCodes) {
+    for (const reference of REFERENCES as Set<CatalogTranslationReference>) {
+      const page = await service.listTranslations(
+        { locale_code: localeCode, reference },
+        {
+          select: [
+            "id",
+            "locale_code",
+            "reference",
+            "reference_id",
+            "translations",
+            "deleted_at",
+          ],
+          take: expectedByReference[reference] + 1,
+        }
+      )
+      for (const translation of page) {
+        if (
+          translation.deleted_at ||
+          translation.locale_code !== localeCode ||
+          translation.reference !== reference ||
+          !(
+            translation.translations &&
+            typeof translation.translations === "object" &&
+            !Array.isArray(translation.translations)
+          )
+        ) {
+          throw new Error(
+            "translation module returned invalid full-locale state"
+          )
+        }
+        records.push({
+          id: translation.id,
+          localeCode: translation.locale_code,
+          reference,
+          referenceId: translation.reference_id,
+          translations: translation.translations,
+        })
+      }
+    }
+  }
+  return records
+}
+
 const readEntityIdentity = async (
   container: ExecArgs["container"],
   input: Pick<CatalogTranslationInput, "entries">
@@ -579,6 +636,7 @@ export const inspectCanonicalCatalogTranslationSource = async (
   }
   const state = await readEntityIdentity(container, provisionalInput)
   return {
+    identity: state.identity,
     inventory: CATALOG_TRANSLATION_EXACT_INVENTORY,
     sourceRecords: state.sourceRecords,
   }
@@ -606,21 +664,61 @@ export const inspectCatalogTranslationSnapshot = async (
       "required catalog translation locales are missing or ambiguous"
     )
   }
-  const referenceIds = input.entries.map(({ referenceId }) => referenceId)
-  const [existingTranslations, entityState, sharedInventory] =
+  const [existingTranslations, canonicalSource, sharedInventory] =
     await Promise.all([
-      readCatalogTranslations(service, referenceIds, localeCodes),
-      readEntityIdentity(container, input),
+      readCompleteCatalogTranslations(service, localeCodes),
+      inspectCanonicalCatalogTranslationSource(container),
       inspectSharedInventoryFingerprint(container),
     ])
+  const manifestIdentity = input.entries
+    .map(({ reference, referenceId }) => ({ reference, referenceId }))
+    .sort((left, right) =>
+      `${left.reference}\u0000${left.referenceId}`.localeCompare(
+        `${right.reference}\u0000${right.referenceId}`,
+        "en"
+      )
+    )
+  const canonicalIdentity = canonicalSource.sourceRecords
+    .map(({ reference, referenceId }) => ({ reference, referenceId }))
+    .sort((left, right) =>
+      `${left.reference}\u0000${left.referenceId}`.localeCompare(
+        `${right.reference}\u0000${right.referenceId}`,
+        "en"
+      )
+    )
+  if (!same(manifestIdentity, canonicalIdentity)) {
+    throw new Error(
+      "manifest IDs do not match the authoritative catalog inventory"
+    )
+  }
+  const manifestTranslationIdentities = new Set(
+    input.entries.map(
+      ({ localeCode, reference, referenceId }) =>
+        `${localeCode}\u0000${reference}\u0000${referenceId}`
+    )
+  )
+  if (
+    existingTranslations.some(
+      ({ localeCode, reference, referenceId }) =>
+        !manifestTranslationIdentities.has(
+          `${localeCode}\u0000${reference}\u0000${referenceId}`
+        )
+    )
+  ) {
+    throw new Error("target locale contains out-of-scope catalog translations")
+  }
   return {
     existingTranslations,
     protectedState: {
-      entityIdentitySha256: hashCatalogTranslationValue(entityState.identity),
+      entityIdentitySha256: hashCatalogTranslationValue(
+        canonicalSource.identity
+      ),
       sharedInventory,
-      sourceStateSha256: hashCatalogTranslationValue(entityState.sourceRecords),
+      sourceStateSha256: hashCatalogTranslationValue(
+        canonicalSource.sourceRecords
+      ),
     },
-    sourceRecords: entityState.sourceRecords,
+    sourceRecords: canonicalSource.sourceRecords,
   }
 }
 
