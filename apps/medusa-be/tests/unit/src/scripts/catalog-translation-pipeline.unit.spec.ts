@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises"
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
@@ -9,8 +9,12 @@ import {
   writeCatalogTranslationPlanArtifact,
   writeCatalogTranslationRollbackArtifact,
 } from "../../../../src/scripts/catalog-translation-pipeline/artifacts"
-import { hashCatalogTranslationValue } from "../../../../src/scripts/catalog-translation-pipeline/canonical"
 import {
+  hashCatalogTranslationBytes,
+  hashCatalogTranslationValue,
+} from "../../../../src/scripts/catalog-translation-pipeline/canonical"
+import {
+  loadCatalogTranslationInput,
   parseCatalogTranslationCliOptions,
   parseCatalogTranslationInput,
 } from "../../../../src/scripts/catalog-translation-pipeline/manifest"
@@ -317,6 +321,35 @@ describe("catalog translation test pipeline", () => {
         snapshot()
       )
     ).toThrow("differs from canonical")
+  })
+
+  it("verifies the exact bytes of every declared provenance artifact", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "catalog-source-proof-"))
+    temporaryDirectories.push(directory)
+    const sourcePath = join(directory, "source.jsonl")
+    const manifestPath = join(directory, "manifest.json")
+    const sourceBytes = Buffer.from('{"source":"reviewed"}\n', "utf8")
+    const sourceSha256 = hashCatalogTranslationBytes(sourceBytes)
+    await writeFile(sourcePath, sourceBytes, { mode: 0o600 })
+    const input = fullInputValue()
+    const manifest = {
+      ...input,
+      entries: input.entries.map((entry) => ({
+        ...entry,
+        provenance: { ...entry.provenance, artifactSha256: sourceSha256 },
+      })),
+      sourceArtifacts: [{ path: sourcePath, sha256: sourceSha256 }],
+    }
+    await writeFile(manifestPath, `${JSON.stringify(manifest)}\n`, {
+      mode: 0o600,
+    })
+    await expect(
+      loadCatalogTranslationInput(manifestPath)
+    ).resolves.toMatchObject({ input: { entries: expect.any(Array) } })
+    await writeFile(sourcePath, '{"source":"tampered"}\n')
+    await expect(loadCatalogTranslationInput(manifestPath)).rejects.toThrow(
+      "source artifact bytes do not match"
+    )
   })
 
   it("requires an absolute dry-run plan and hash-bound apply receipt", () => {
