@@ -599,7 +599,9 @@ describe("Meilisearch catalog localization", () => {
       }),
     ])
     expect(documents).toHaveLength(2)
-    expect(documents.map((document) => document.facet_price)).toEqual([50, 50])
+    expect(documents.map((document) => document.facet_price)).toEqual([
+      5000, 5000,
+    ])
     expect(documents.map((document) => document.search_variant_id)).toEqual([
       undefined,
       "variant_approved",
@@ -745,7 +747,9 @@ describe("Meilisearch catalog localization", () => {
       .documentIds(profile.indexes.product)
       .map((id) => indexState.document(profile.indexes.product, id))
     expect(documents).toHaveLength(2)
-    expect(documents.map((document) => document?.facet_price)).toEqual([50, 50])
+    expect(documents.map((document) => document?.facet_price)).toEqual([
+      5000, 5000,
+    ])
     expect(documents.map((document) => document?.search_variant_id)).toEqual([
       undefined,
       "variant_approved",

@@ -347,11 +347,6 @@ const normalizeFacetPrice = (value: number | undefined): number | undefined => {
   return Math.round(value * 100) / 100
 }
 
-const toMajorUnitAmount = (value: number): number => {
-  // Medusa price amounts are persisted in minor currency units (for example cents).
-  return Number.isInteger(value) ? value / 100 : value
-}
-
 const parsePositiveFacetPrice = (value: unknown): number | undefined => {
   const parsedPrice = parseNumericValue(value)
   if (parsedPrice === undefined || parsedPrice <= 0) {
@@ -384,7 +379,9 @@ const resolveVariantMinFacetPrice = (
         continue
       }
 
-      const normalizedPrice = normalizeFacetPrice(toMajorUnitAmount(amount))
+      // Medusa v2 price amounts are already expressed in major currency units.
+      // Preserve the exact market quantum instead of treating integers as cents.
+      const normalizedPrice = normalizeFacetPrice(amount)
       if (normalizedPrice === undefined) {
         continue
       }
