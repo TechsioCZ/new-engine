@@ -1,8 +1,6 @@
-import {
-  createTranslationsWorkflow,
-  updateTranslationsWorkflow,
-} from "@medusajs/core-flows"
+import type { SqlEntityManager } from "@medusajs/framework/mikro-orm/knex"
 import type {
+  Context,
   CreateTranslationDTO,
   ExecArgs,
   ITranslationModuleService,
@@ -44,6 +42,7 @@ const REFERENCES = new Set<string>([
   "product_category",
   "product_content",
 ])
+const TRANSLATION_APPLY_LOCK_KEY = "catalog-translation-pipeline:exact-apply:v1"
 
 const chunk = <Value>(values: readonly Value[], size: number) => {
   const chunks: Value[][] = []
@@ -150,7 +149,8 @@ export const readCatalogTranslationTestEnvironment = (
 const readCatalogTranslations = async (
   service: ITranslationModuleService,
   referenceIds: readonly string[],
-  localeCodes: readonly string[]
+  localeCodes: readonly string[],
+  sharedContext?: Context<SqlEntityManager>
 ): Promise<ExistingCatalogTranslation[]> => {
   const records: ExistingCatalogTranslation[] = []
   for (const ids of chunk([...new Set(referenceIds)], PAGE_SIZE)) {
@@ -169,7 +169,8 @@ const readCatalogTranslations = async (
           "deleted_at",
         ],
         take: ids.length * localeCodes.length * 3 + 1,
-      }
+      },
+      sharedContext
     )
     for (const translation of page) {
       if (
@@ -199,7 +200,8 @@ const readCatalogTranslations = async (
 
 const readCompleteCatalogTranslations = async (
   service: ITranslationModuleService,
-  localeCodes: readonly string[]
+  localeCodes: readonly string[],
+  sharedContext?: Context<SqlEntityManager>
 ): Promise<ExistingCatalogTranslation[]> => {
   const expectedByReference: Readonly<
     Record<CatalogTranslationReference, number>
@@ -224,7 +226,8 @@ const readCompleteCatalogTranslations = async (
             "deleted_at",
           ],
           take: expectedByReference[reference] + 1,
-        }
+        },
+        sharedContext
       )
       for (const translation of page) {
         if (
@@ -780,92 +783,108 @@ const assertChunkApplied = (
 
 export const applyCatalogTranslationPlan = async (
   container: ExecArgs["container"],
-  input: CatalogTranslationInput,
+  _input: CatalogTranslationInput,
   plan: CatalogTranslationPlan,
   chunkSize: number
 ) => {
   const service = container.resolve<ITranslationModuleService>(
     Modules.TRANSLATION
   )
-  for (const items of chunk(plan.items, chunkSize)) {
-    const referenceIds = items.map(({ referenceId }) => referenceId)
-    const localeCodes = [...new Set(items.map(({ localeCode }) => localeCode))]
-    const before = await readCatalogTranslations(
-      service,
-      referenceIds,
-      localeCodes
-    )
-    assertChunkPreconditions(items, before)
-    const creates: CreateTranslationDTO[] = items.flatMap((item) =>
-      item.action === "create"
-        ? [
-            {
-              locale_code: item.localeCode,
-              reference: item.reference,
-              reference_id: item.referenceId,
-              translations: { ...item.resultingTranslations },
-            },
-          ]
-        : []
-    )
-    const updates: UpdateTranslationDTO[] = items.flatMap((item) =>
-      item.action === "update" && item.existingId
-        ? [
-            {
-              id: item.existingId,
-              translations: { ...item.resultingTranslations },
-            },
-          ]
-        : []
-    )
-    if (creates.length) {
-      await createTranslationsWorkflow(container).run({
-        input: { translations: creates },
-      })
-    }
-    if (updates.length) {
-      await updateTranslationsWorkflow(container).run({
-        input: { translations: updates },
-      })
-    }
-    const after = await readCatalogTranslations(
-      service,
-      referenceIds,
-      localeCodes
-    )
-    assertChunkApplied(items, after)
-  }
-  const finalSnapshot = await inspectCatalogTranslationSnapshot(
-    container,
-    input
+  const manager = container.resolve<SqlEntityManager>(
+    ContainerRegistrationKeys.MANAGER
   )
-  if (!same(finalSnapshot.protectedState, plan.protectedState)) {
-    throw new Error(
-      "source identity or shared inventory changed during translation apply"
-    )
-  }
-  const targetState = plan.items.map((item) => {
-    const matches = finalSnapshot.existingTranslations.filter(
-      (translation) =>
-        translation.localeCode === item.localeCode &&
-        translation.reference === item.reference &&
-        translation.referenceId === item.referenceId
-    )
-    if (
-      matches.length !== 1 ||
-      !same(matches[0]?.translations, item.resultingTranslations)
-    ) {
-      throw new Error("final target translation state does not match the plan")
+  const targetState = await manager.transactional(
+    async (transactionManager) => {
+      await transactionManager.execute(
+        "select pg_advisory_xact_lock(hashtextextended(?, 0))",
+        [TRANSLATION_APPLY_LOCK_KEY]
+      )
+      const sharedContext: Context<SqlEntityManager> = { transactionManager }
+      for (const items of chunk(plan.items, chunkSize)) {
+        const referenceIds = items.map(({ referenceId }) => referenceId)
+        const localeCodes = [
+          ...new Set(items.map(({ localeCode }) => localeCode)),
+        ]
+        const before = await readCatalogTranslations(
+          service,
+          referenceIds,
+          localeCodes,
+          sharedContext
+        )
+        assertChunkPreconditions(items, before)
+        const creates: CreateTranslationDTO[] = items.flatMap((item) =>
+          item.action === "create"
+            ? [
+                {
+                  locale_code: item.localeCode,
+                  reference: item.reference,
+                  reference_id: item.referenceId,
+                  translations: { ...item.resultingTranslations },
+                },
+              ]
+            : []
+        )
+        const updates: UpdateTranslationDTO[] = items.flatMap((item) =>
+          item.action === "update" && item.existingId
+            ? [
+                {
+                  id: item.existingId,
+                  translations: { ...item.resultingTranslations },
+                },
+              ]
+            : []
+        )
+        if (creates.length) {
+          await service.createTranslations(creates, sharedContext)
+        }
+        if (updates.length) {
+          await service.updateTranslations(updates, sharedContext)
+        }
+        const after = await readCatalogTranslations(
+          service,
+          referenceIds,
+          localeCodes,
+          sharedContext
+        )
+        assertChunkApplied(items, after)
+      }
+      const localeCodes = [
+        ...new Set(plan.items.map(({ localeCode }) => localeCode)),
+      ]
+      const finalTranslations = await readCompleteCatalogTranslations(
+        service,
+        localeCodes,
+        sharedContext
+      )
+      if (finalTranslations.length !== plan.items.length) {
+        throw new Error("final target translation inventory is not exact")
+      }
+      return plan.items.map((item) => {
+        const matches = finalTranslations.filter(
+          (translation) =>
+            translation.localeCode === item.localeCode &&
+            translation.reference === item.reference &&
+            translation.referenceId === item.referenceId
+        )
+        if (
+          matches.length !== 1 ||
+          !same(matches[0]?.translations, item.resultingTranslations)
+        ) {
+          throw new Error(
+            "final target translation state does not match the plan"
+          )
+        }
+        return {
+          localeCode: item.localeCode,
+          reference: item.reference,
+          referenceId: item.referenceId,
+          translations: matches[0]?.translations,
+        }
+      })
     }
-    return {
-      localeCode: item.localeCode,
-      reference: item.reference,
-      referenceId: item.referenceId,
-      translations: matches[0]?.translations,
-    }
-  })
+  )
   return {
-    protectedState: finalSnapshot.protectedState,
+    protectedState: plan.protectedState,
     targetStateSha256: hashCatalogTranslationValue(targetState),
   }
 }

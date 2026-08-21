@@ -25,6 +25,7 @@ import {
   hashCatalogTranslationPlan,
 } from "../../../../src/scripts/catalog-translation-pipeline/planner"
 import {
+  applyCatalogTranslationPlan,
   assertCatalogTranslationTestEnvironment,
   buildCatalogTranslationDatabaseInstanceFingerprint,
 } from "../../../../src/scripts/catalog-translation-pipeline/runtime"
@@ -465,6 +466,74 @@ describe("catalog translation test pipeline", () => {
       title: "Zkopírovaný slovenský název",
     })
     expect(productItem?.resultingTranslations).not.toHaveProperty("legacy")
+  })
+
+  it("rolls back every prior chunk when a middle translation write fails", async () => {
+    const plan = buildCatalogTranslationPlan(
+      inputValue(),
+      "1".repeat(64),
+      snapshot()
+    )
+    let records: Record<string, unknown>[] = []
+    let createCalls = 0
+    const transactionManager = {
+      execute: async () => {},
+    }
+    const service = {
+      createTranslations: async (
+        creates: Record<string, unknown>[],
+        context: { transactionManager: unknown }
+      ) => {
+        expect(context.transactionManager).toBe(transactionManager)
+        createCalls += 1
+        if (createCalls === 2) {
+          throw new Error("forced middle chunk failure")
+        }
+        records.push(
+          ...creates.map((create, index) => ({
+            deleted_at: null,
+            id: `created_${createCalls}_${index}`,
+            locale_code: create.locale_code,
+            reference: create.reference,
+            reference_id: create.reference_id,
+            translations: create.translations,
+          }))
+        )
+      },
+      listTranslations: async (filters: Record<string, unknown>) =>
+        records.filter(
+          (record) =>
+            (!filters.locale_code ||
+              (Array.isArray(filters.locale_code)
+                ? filters.locale_code.includes(record.locale_code)
+                : filters.locale_code === record.locale_code)) &&
+            (!filters.reference || filters.reference === record.reference) &&
+            (!filters.reference_id ||
+              (filters.reference_id as unknown[]).includes(record.reference_id))
+        ),
+      updateTranslations: async () => {},
+    }
+    const manager = {
+      transactional: async (
+        operation: (transaction: unknown) => Promise<unknown>
+      ) => {
+        const preimage = structuredClone(records)
+        try {
+          return await operation(transactionManager)
+        } catch (error) {
+          records = preimage
+          throw error
+        }
+      },
+    }
+    const container = {
+      resolve: (key: string) => (key === "manager" ? manager : service),
+    }
+    await expect(
+      applyCatalogTranslationPlan(container as never, inputValue(), plan, 1)
+    ).rejects.toThrow("forced middle chunk failure")
+    expect(createCalls).toBe(2)
+    expect(records).toEqual([])
   })
 
   it("requires a matching explicit test environment and credential-free database fingerprint", () => {
