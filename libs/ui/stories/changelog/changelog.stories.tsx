@@ -12,6 +12,9 @@ import type { Meta, StoryObj } from '@storybook/react'
 const CHANGELOG = `
 ## @techsio/ui-kit — Unreleased
 
+### Dialog v1.0.1
+- Controlled dialogs now close on Escape immediately after their content mounts, including before Zag's deferred dismissable listener is registered.
+
 ### Button v0.3.2
 - Introduced per-component versioning: the component now carries \`@componentVersion\` + \`@skill\`,
   paired 1:1 with the \`button-usage\` skill's \`component_version\` and this changelog entry,

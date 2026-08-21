@@ -2,7 +2,7 @@
  * Dialog — @techsio/ui-kit molecule.
  *
  * @component Dialog
- * @componentVersion v1.0.0
+ * @componentVersion v1.0.1
  * @skill dialog-usage
  * @changelog libs/ui/stories/changelog/changelog.stories.tsx
  *
@@ -11,7 +11,7 @@
  */
 import * as dialog from "@zag-js/dialog"
 import { normalizeProps, Portal, useMachine } from "@zag-js/react"
-import { type ReactNode, useId } from "react"
+import { type KeyboardEventHandler, type ReactNode, useId } from "react"
 import { tv, type VariantProps } from "tailwind-variants"
 import { ActionIcon } from "../atoms/action-icon"
 import { Button } from "../atoms/button"
@@ -242,6 +242,28 @@ export function Dialog({
   })
 
   const api = dialog.connect(service as dialog.Service, normalizeProps)
+  const contentProps = api.getContentProps()
+  const handleContentKeyDown: KeyboardEventHandler<HTMLDivElement> = (
+    event
+  ) => {
+    contentProps.onKeyDown?.(event)
+
+    if (
+      open === undefined ||
+      !closeOnEscape ||
+      event.defaultPrevented ||
+      event.key !== "Escape"
+    ) {
+      return
+    }
+
+    event.preventDefault()
+    api.setOpen(false)
+  }
+  const interactiveContentProps = {
+    ...contentProps,
+    onKeyDown: handleContentKeyDown,
+  }
 
   const {
     backdrop,
@@ -258,7 +280,7 @@ export function Dialog({
     <>
       <div className={backdrop()} {...api.getBackdropProps()} />
       <div className={positioner()} {...api.getPositionerProps()}>
-        <div className={content({ className })} {...api.getContentProps()}>
+        <div className={content({ className })} {...interactiveContentProps}>
           {!hideCloseButton && (
             <ActionIcon
               className={closeTrigger()}

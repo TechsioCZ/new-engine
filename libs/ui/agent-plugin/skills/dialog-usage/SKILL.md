@@ -1,5 +1,5 @@
 ---
-component_version: "1.0.0"
+component_version: "1.0.1"
 name: dialog-usage
 description: >
   Use after component-usage-ux when an app needs @techsio/ui-kit Dialog for
@@ -49,6 +49,10 @@ role: dialog | alertdialog
 open, onOpenChange, customTrigger, triggerText, title, description, actions
 closeOnEscape, closeOnInteractOutside, preventScroll, trapFocus, modal, portal
 ```
+
+Controlled dialogs close on Escape as soon as their content is mounted. The
+component composes any Zag content key handler first and respects
+`closeOnEscape={false}` or a prevented keyboard event.
 
 ## Core Patterns
 
