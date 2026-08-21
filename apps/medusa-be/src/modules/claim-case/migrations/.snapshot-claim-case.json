@@ -38,6 +38,22 @@
           "enumItems": [],
           "mappedType": "text"
         },
+        "sales_channel_id": {
+          "name": "sales_channel_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": false,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
         "email": {
           "name": "email",
           "type": "text",
@@ -221,6 +237,15 @@
           "expression": "CREATE INDEX IF NOT EXISTS \"IDX_claim_access_order_email\" ON \"claim_access\" (\"order_id\", \"email\") WHERE deleted_at IS NULL"
         },
         {
+          "keyName": "IDX_claim_access_sales_channel_id",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_claim_access_sales_channel_id\" ON \"claim_access\" (\"sales_channel_id\") WHERE deleted_at IS NULL"
+        },
+        {
           "keyName": "IDX_claim_access_token_hash",
           "columnNames": [],
           "composite": false,
@@ -368,6 +393,22 @@
         },
         "order_display_id": {
           "name": "order_display_id",
+          "type": "text",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "unique": false,
+          "length": null,
+          "precision": null,
+          "scale": null,
+          "default": null,
+          "comment": null,
+          "enumItems": [],
+          "mappedType": "text"
+        },
+        "sales_channel_id": {
+          "name": "sales_channel_id",
           "type": "text",
           "unsigned": false,
           "autoincrement": false,
@@ -609,6 +650,15 @@
           "primary": false,
           "unique": false,
           "expression": "CREATE INDEX IF NOT EXISTS \"IDX_claim_case_order_id\" ON \"claim_case\" (\"order_id\") WHERE deleted_at IS NULL AND order_id IS NOT NULL"
+        },
+        {
+          "keyName": "IDX_claim_case_sales_channel_id",
+          "columnNames": [],
+          "composite": false,
+          "constraint": false,
+          "primary": false,
+          "unique": false,
+          "expression": "CREATE INDEX IF NOT EXISTS \"IDX_claim_case_sales_channel_id\" ON \"claim_case\" (\"sales_channel_id\") WHERE deleted_at IS NULL AND sales_channel_id IS NOT NULL"
         },
         {
           "keyName": "IDX_claim_case_email",

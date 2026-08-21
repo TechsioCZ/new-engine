@@ -65,12 +65,16 @@ export const requestClaimAccessStep = createStep(
         "shipping_address.country_code",
         "billing_address.country_code",
       ],
-      filters: { display_id: String(displayId) },
+      filters: {
+        display_id: String(displayId),
+        sales_channel_id: input.sales_channel_id,
+      },
     })
     const orders = data as OrderLookup[]
     const order = orders.find((candidate) =>
       candidate.email
-        ? candidate.email.trim().toLowerCase() === normalizedEmail
+        ? candidate.email.trim().toLowerCase() === normalizedEmail &&
+          candidate.sales_channel_id === input.sales_channel_id
         : false
     )
 
@@ -99,6 +103,7 @@ export const requestClaimAccessStep = createStep(
       email: normalizedEmail,
       expires_at: expiresAt,
       order_id: order.id,
+      sales_channel_id: input.sales_channel_id,
     })
     const notificationInput: CreateNotificationDTO[] = [
       {

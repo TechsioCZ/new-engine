@@ -77,6 +77,7 @@ function createContext(countryCode = "cz", salesChannelId = "sc_cz") {
 describe("request claim access step", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resolveNotificationMarketContext.mockReset()
   })
 
   it.each([
@@ -96,12 +97,19 @@ describe("request claim access step", () => {
     })
     await import("../request-claim-access")
     const step = workflowSdkMock.steps.get("request-claim-access")
-    const { container, graph } = createContext(marketCode, `sc_${marketCode}`)
+    const { container, createClaimAccesses, graph } = createContext(
+      marketCode,
+      `sc_${marketCode}`
+    )
 
     expect(step).toBeDefined()
 
     const result = (await step?.(
-      { email: "customer@example.test", order_number: "1001" },
+      {
+        email: "customer@example.test",
+        order_number: "1001",
+        sales_channel_id: `sc_${marketCode}`,
+      },
       { container }
     )) as { output: { notification_input: Notification[] } }
 
@@ -116,7 +124,14 @@ describe("request claim access step", () => {
           "shipping_address.country_code",
           "billing_address.country_code",
         ]),
+        filters: {
+          display_id: "1001",
+          sales_channel_id: `sc_${marketCode}`,
+        },
       })
+    )
+    expect(createClaimAccesses).toHaveBeenCalledWith(
+      expect.objectContaining({ sales_channel_id: `sc_${marketCode}` })
     )
     expect(result.output.notification_input[0]).toMatchObject({
       data: {
@@ -140,10 +155,34 @@ describe("request claim access step", () => {
 
     await expect(
       step?.(
-        { email: "customer@example.test", order_number: "1001" },
+        {
+          email: "customer@example.test",
+          order_number: "1001",
+          sales_channel_id: "sc_cz",
+        },
         { container }
       )
     ).rejects.toThrow("cannot be resolved unambiguously")
     expect(createClaimAccesses).not.toHaveBeenCalled()
+  })
+
+  it("does not create a challenge when the order belongs to another Sales Channel", async () => {
+    await import("../request-claim-access")
+    const step = workflowSdkMock.steps.get("request-claim-access")
+    const { container, createClaimAccesses } = createContext("hu", "sc_hu")
+
+    const result = (await step?.(
+      {
+        email: "customer@example.test",
+        order_number: "1001",
+        sales_channel_id: "sc_cz",
+      },
+      { container }
+    )) as { output: { notification_input: Notification[] } }
+
+    expect(createClaimAccesses).not.toHaveBeenCalled()
+    expect(resolveNotificationMarketContext).not.toHaveBeenCalled()
+    expect(result.output.notification_input).toEqual([])
+    expect(result.output.result).toMatchObject({ accepted: true })
   })
 })

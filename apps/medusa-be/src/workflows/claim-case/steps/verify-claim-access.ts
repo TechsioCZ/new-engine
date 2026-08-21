@@ -17,6 +17,7 @@ type OrderLookup = {
   display_id: number | string
   id: string
   items: VerifiedOrderItem[]
+  sales_channel_id?: string | null
 }
 
 type CompensationInput = {
@@ -57,6 +58,7 @@ export const verifyClaimAccessStep = createStep(
     }
 
     if (
+      access.sales_channel_id !== input.sales_channel_id ||
       access.used_at ||
       access.verified_at ||
       access.expires_at.getTime() <= Date.now() ||
@@ -71,6 +73,33 @@ export const verifyClaimAccessStep = createStep(
       throw invalidCodeError()
     }
 
+    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
+    const { data } = await query.graph({
+      entity: "order",
+      fields: [
+        "id",
+        "display_id",
+        "sales_channel_id",
+        "items.id",
+        "items.title",
+        "items.quantity",
+        "items.product_id",
+        "items.variant_id",
+      ],
+      filters: {
+        id: access.order_id,
+        sales_channel_id: input.sales_channel_id,
+      },
+    })
+    const order = data[0] as OrderLookup | undefined
+    if (
+      !order ||
+      order.id !== access.order_id ||
+      order.sales_channel_id !== input.sales_channel_id
+    ) {
+      throw invalidCodeError()
+    }
+
     const accessToken = randomBytes(32).toString("base64url")
     const verifiedAt = new Date()
     await service.updateClaimAccesses({
@@ -79,25 +108,6 @@ export const verifyClaimAccessStep = createStep(
       id: access.id,
       verified_at: verifiedAt,
     })
-
-    const query = container.resolve<Query>(ContainerRegistrationKeys.QUERY)
-    const { data } = await query.graph({
-      entity: "order",
-      fields: [
-        "id",
-        "display_id",
-        "items.id",
-        "items.title",
-        "items.quantity",
-        "items.product_id",
-        "items.variant_id",
-      ],
-      filters: { id: access.order_id },
-    })
-    const order = data[0] as OrderLookup | undefined
-    if (!order) {
-      throw new MedusaError(MedusaError.Types.NOT_FOUND, "Order not found.")
-    }
 
     return new StepResponse<VerifyClaimAccessResult, CompensationInput>(
       {

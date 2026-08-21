@@ -15,7 +15,6 @@ const workflowSdkMock = vi.hoisted(() => {
   }
 })
 
-const resolveCustomerNotificationMarketContext = vi.hoisted(() => vi.fn())
 const resolveNotificationMarketContext = vi.hoisted(() => vi.fn())
 
 vi.mock("@medusajs/framework/workflows-sdk", () => ({
@@ -26,10 +25,6 @@ vi.mock("@medusajs/framework/workflows-sdk", () => ({
       return handler
     }
   ),
-}))
-
-vi.mock("../../../../utils/customer-notification-market-context", () => ({
-  resolveCustomerNotificationMarketContext,
 }))
 
 vi.mock("../../../../utils/notification-market-context", () => ({
@@ -66,6 +61,7 @@ function createContext() {
 describe("create claim step", () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    resolveNotificationMarketContext.mockReset()
   })
 
   it.each([
@@ -74,7 +70,7 @@ describe("create claim step", () => {
     ["hu", "hu-HU", "herbatica.hu"],
     ["ro", "ro-RO", "herbatica.ro"],
   ])("adds the canonical %s market context to a manual claim confirmation", async (marketCode, locale, domain) => {
-    resolveCustomerNotificationMarketContext.mockResolvedValue({
+    resolveNotificationMarketContext.mockResolvedValue({
       country_code: marketCode,
       locale,
       market_code: marketCode,
@@ -93,15 +89,15 @@ describe("create claim step", () => {
       {
         email: "customer@example.test",
         items: [{ quantity: 1, title: "Herbal tea" }],
+        sales_channel_id: `sc_${marketCode}`,
         type: "complaint",
       },
       { container }
     )) as { output: { notification_input: Notification[] } }
 
-    expect(resolveCustomerNotificationMarketContext).toHaveBeenCalledWith(
-      container,
-      { email: "customer@example.test" }
-    )
+    expect(resolveNotificationMarketContext).toHaveBeenCalledWith(container, {
+      salesChannelId: `sc_${marketCode}`,
+    })
     expect(result.output.notification_input[0]).toMatchObject({
       data: {
         locale,
@@ -115,7 +111,7 @@ describe("create claim step", () => {
   })
 
   it("fails before creating a claim when the customer market is ambiguous", async () => {
-    resolveCustomerNotificationMarketContext.mockRejectedValue(
+    resolveNotificationMarketContext.mockRejectedValue(
       new Error("Notification market cannot be resolved unambiguously")
     )
     await import("../create-claim")
@@ -127,6 +123,7 @@ describe("create claim step", () => {
         {
           email: "customer@example.test",
           items: [{ quantity: 1, title: "Herbal tea" }],
+          sales_channel_id: "sc_cz",
           type: "return",
         },
         { container }
@@ -157,6 +154,7 @@ describe("create claim step", () => {
           expires_at: new Date(Date.now() + 60_000),
           id: "access_123",
           order_id: "order_123",
+          sales_channel_id: "sc_hu",
           used_at: null,
           verified_at: new Date(),
         },
@@ -202,6 +200,7 @@ describe("create claim step", () => {
         access_token: "verified-token",
         email: "customer@example.test",
         items: [{ order_item_id: "item_123", quantity: 1 }],
+        sales_channel_id: "sc_hu",
         type: "return",
       },
       { container }
@@ -211,7 +210,6 @@ describe("create claim step", () => {
       countryCode: "hu",
       salesChannelId: "sc_hu",
     })
-    expect(resolveCustomerNotificationMarketContext).not.toHaveBeenCalled()
     expect(result.output.notification_input[0]).toMatchObject({
       data: {
         locale: "hu-HU",
@@ -220,5 +218,49 @@ describe("create claim step", () => {
       },
       receiver_id: "cus_123",
     })
+  })
+
+  it("rejects cross-market access-token replay before reads or writes", async () => {
+    await import("../create-claim")
+    const step = workflowSdkMock.steps.get("create-claim")
+    const createClaimCases = vi.fn()
+    const listClaimAccesses = vi.fn().mockResolvedValue([
+      {
+        email: "customer@example.test",
+        expires_at: new Date(Date.now() + 60_000),
+        id: "access_hu",
+        order_id: "order_hu",
+        sales_channel_id: "sc_hu",
+        used_at: null,
+        verified_at: new Date(),
+      },
+    ])
+    const graph = vi.fn()
+    const container = {
+      resolve: vi.fn((key: string) => {
+        if (key === "claim_case") {
+          return { createClaimCases, listClaimAccesses }
+        }
+        if (key === "query") {
+          return { graph }
+        }
+        throw new Error(`Unexpected dependency ${key}`)
+      }),
+    }
+
+    await expect(
+      step?.(
+        {
+          access_token: "verified-token",
+          email: "customer@example.test",
+          items: [{ order_item_id: "item_123", quantity: 1 }],
+          sales_channel_id: "sc_cz",
+          type: "return",
+        },
+        { container }
+      )
+    ).rejects.toThrow("invalid or expired")
+    expect(graph).not.toHaveBeenCalled()
+    expect(createClaimCases).not.toHaveBeenCalled()
   })
 })
