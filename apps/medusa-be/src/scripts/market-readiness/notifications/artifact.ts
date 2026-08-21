@@ -105,6 +105,36 @@ const assertSameRegularFile = (
   }
 }
 
+const assertHeldFileContents = async (
+  handle: Awaited<ReturnType<typeof open>>,
+  expected: Buffer
+): Promise<void> => {
+  if ((await handle.stat()).size !== expected.byteLength) {
+    throw new Error(
+      "Published notification readiness artifact contents changed during artifact publication"
+    )
+  }
+  const actual = Buffer.alloc(expected.byteLength)
+  let offset = 0
+  while (offset < actual.byteLength) {
+    const { bytesRead } = await handle.read(
+      actual,
+      offset,
+      actual.byteLength - offset,
+      offset
+    )
+    if (bytesRead === 0) {
+      break
+    }
+    offset += bytesRead
+  }
+  if (offset !== expected.byteLength || !actual.equals(expected)) {
+    throw new Error(
+      "Published notification readiness artifact contents changed during artifact publication"
+    )
+  }
+}
+
 const unlinkSameRegularFile = async (
   path: string,
   expected: FileIdentity
@@ -153,11 +183,6 @@ const cleanupFailedPublication = async ({
       cleanupErrors.push(cleanupError)
     }
   }
-  try {
-    await handle?.close()
-  } catch (cleanupError) {
-    cleanupErrors.push(cleanupError)
-  }
   if (temporaryIdentity) {
     if (finalLinkCreated) {
       try {
@@ -171,6 +196,11 @@ const cleanupFailedPublication = async ({
     } catch (cleanupError) {
       cleanupErrors.push(cleanupError)
     }
+  }
+  try {
+    await handle?.close()
+  } catch (cleanupError) {
+    cleanupErrors.push(cleanupError)
   }
   if (cleanupErrors.length > 0) {
     throw new AggregateError(
@@ -485,6 +515,7 @@ export const writeNotificationReadinessArtifact = async (
     )
   }
   const serialized = canonicalJsonWithLf(artifact)
+  const serializedBytes = Buffer.from(serialized, "utf8")
   parseNotificationReadinessArtifact(serialized)
 
   const parentPath = dirname(outputPath)
@@ -511,7 +542,7 @@ export const writeNotificationReadinessArtifact = async (
   let temporaryIdentity: Stats | undefined
   let finalLinkCreated = false
   try {
-    handle = await open(temporaryPath, "wx", 0o600)
+    handle = await open(temporaryPath, "wx+", 0o600)
     temporaryIdentity = await handle.stat()
     assertSameRegularFile(
       temporaryIdentity,
@@ -519,7 +550,7 @@ export const writeNotificationReadinessArtifact = async (
       "Temporary notification readiness artifact",
       1
     )
-    await handle.writeFile(serialized, "utf8")
+    await handle.writeFile(serializedBytes)
     await handle.sync()
     assertSameRegularFile(
       temporaryIdentity,
@@ -527,8 +558,6 @@ export const writeNotificationReadinessArtifact = async (
       "Temporary notification readiness artifact",
       1
     )
-    await handle.close()
-    handle = undefined
     assertSameRegularFile(
       temporaryIdentity,
       await lstat(temporaryPath),
@@ -553,6 +582,15 @@ export const writeNotificationReadinessArtifact = async (
       "Published notification readiness artifact",
       1
     )
+    assertSameRegularFile(
+      temporaryIdentity,
+      await handle.stat(),
+      "Published notification readiness artifact",
+      1
+    )
+    await assertHeldFileContents(handle, serializedBytes)
+    await handle.close()
+    handle = undefined
   } catch (error) {
     await cleanupFailedPublication({
       finalLinkCreated,

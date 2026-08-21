@@ -460,6 +460,42 @@ describe("four-market notification readiness collector", () => {
     expect(await readFile(outputPath, "utf8")).toBe("substituted output")
   })
 
+  it("rejects and cleans in-place content mutation of the writer-owned inode", async () => {
+    const report = await collectFourMarketNotificationReadiness({
+      ...fourMarketInput(),
+      renderer: {
+        render: vi.fn(async ({ locale, template }) => ({
+          html: "<html><body><p>safe</p></body></html>",
+          subject: `subject:${template}:${locale}`,
+          text: "safe",
+        })),
+      },
+      subjectResolver: (template, locale) => `subject:${template}:${locale}`,
+    })
+    const directory = await realpath(
+      await mkdtemp(join(tmpdir(), "notification-readiness-content-mutation-"))
+    )
+    temporaryDirectories.push(directory)
+    const outputPath = join(directory, "notifications.json")
+    publicationFsInterceptors.afterUnlink = async (path) => {
+      if (!path.endsWith(".tmp")) {
+        return
+      }
+      publicationFsInterceptors.afterUnlink = null
+      await writeFile(outputPath, "mutated in place", { flag: "w" })
+    }
+
+    await expect(
+      writeNotificationReadinessArtifact(outputPath, report)
+    ).rejects.toThrow(
+      "Published notification readiness artifact contents changed during artifact publication"
+    )
+    expect(await readdir(directory)).toEqual([])
+    await expect(
+      writeNotificationReadinessArtifact(outputPath, report)
+    ).resolves.toMatchObject({ path: outputPath })
+  })
+
   it("rejects artifacts without exact four-market coverage or with unbounded issue data", async () => {
     const report = await collectFourMarketNotificationReadiness({
       ...fourMarketInput(),
