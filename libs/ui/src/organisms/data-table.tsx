@@ -1041,6 +1041,43 @@ function validateDraft<T extends RowData>(
   return errors
 }
 
+/**
+ * One master-detail row: a single full-width cell holding whatever the
+ * `renderExpandedRow` slot returns. Split out of `renderBodyRow` to keep that
+ * function's branching under the complexity ceiling.
+ */
+function renderExpandedDetailRow<T extends RowData>({
+  row,
+  renderExpandedRow,
+  colSpan,
+  instanceId,
+  styles,
+  tintNestedRows,
+}: {
+  row: Row<T>
+  renderExpandedRow: (row: Row<T>) => ReactNode
+  colSpan: number
+  instanceId: string
+  styles: DataTableStyles
+  tintNestedRows: boolean
+}) {
+  return (
+    <tr
+      className={tintNestedRows ? "data-table-row-nested-tint" : undefined}
+      data-depth={row.depth + 1}
+    >
+      <td colSpan={colSpan}>
+        <div
+          className={styles.detailBox()}
+          id={`${instanceId}-detail-${row.id}`}
+        >
+          {renderExpandedRow(row)}
+        </div>
+      </td>
+    </tr>
+  )
+}
+
 /** Row classes conveying drag state: lifted while dragging, edge while hovered. */
 function rowDragClass(
   dnd: { isDragging?: boolean; dropSide?: "top" | "bottom" } | undefined,
@@ -1060,14 +1097,13 @@ function rowDragClass(
     striped
       ? "odd:bg-table-row-striped-primary even:bg-table-row-striped-secondary border-b-0"
       : "",
-    // `data-depth` is only ever set for `row.depth > 0` (see below), and an
-    // inset box-shadow paints as its own layer rather than replacing
-    // `background-color` — unlike another `bg-*` class, it composes with
+    // `data-depth` is only ever set for `row.depth > 0` (see below).
+    // `data-table-row-nested-tint` (defined in
+    // tokens/components/organisms/_data-table.css) is an inset box-shadow, not
+    // a background — it paints as its own layer, so it composes with
     // `striped`'s zebra background instead of losing the Tailwind-merge
-    // conflict against it.
-    tintNestedRows
-      ? "data-[depth]:shadow-[inset_0_0_0_9999px_var(--color-fill-hover)]"
-      : "",
+    // conflict a second `bg-*` class would.
+    tintNestedRows ? "data-[depth]:data-table-row-nested-tint" : "",
     dnd?.isDragging ? "shadow-table-outline" : "",
     dnd?.dropSide === "top" ? "border-primary border-t-2" : "",
     dnd?.dropSide === "bottom" ? "border-primary border-b-2" : "",
@@ -1661,19 +1697,25 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
    * (all rows render) whenever `maxHeight` is missing, with a dev warning.
    */
   const virtualizationUsable = enableVirtualization && !!maxHeight
-  if (
-    enableVirtualization &&
-    !maxHeight &&
-    typeof process !== "undefined" &&
-    process.env?.NODE_ENV !== "production"
-  ) {
-    console.warn(
-      "DataTable: enableVirtualization has no effect without maxHeight — " +
-        "the scroll container never gets a bounded height to measure " +
-        "scrollTop against, so only the first batch of rows would render. " +
-        "Pass maxHeight to enable virtualization."
-    )
-  }
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally fires once per mount, not once per (enableVirtualization, maxHeight) value
+  useEffect(() => {
+    if (
+      enableVirtualization &&
+      !maxHeight &&
+      typeof process !== "undefined" &&
+      process.env?.NODE_ENV !== "production"
+    ) {
+      console.warn(
+        "DataTable: enableVirtualization has no effect without maxHeight — " +
+          "the scroll container never gets a bounded height to measure " +
+          "scrollTop against, so only the first batch of rows would render. " +
+          "Pass maxHeight to enable virtualization."
+      )
+    }
+    // Every render re-hits this condition (filtering, selection, any state
+    // change on the table), and a warning that repeats on every keystroke is
+    // noise rather than a signal. Fire it once per mount instead.
+  }, [])
   const rowVirtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scrollRef.current,
@@ -2337,18 +2379,16 @@ export function DataTable<T extends RowData>(props: DataTableProps<T>) {
     )
 
     const expandedRow =
-      renderExpandedRow && row.getIsExpanded() ? (
-        <tr>
-          <td colSpan={columnCount + actionsColumn}>
-            <div
-              className={styles.detailBox()}
-              id={`${instanceId}-detail-${row.id}`}
-            >
-              {renderExpandedRow(row)}
-            </div>
-          </td>
-        </tr>
-      ) : null
+      renderExpandedRow && row.getIsExpanded()
+        ? renderExpandedDetailRow({
+            row,
+            renderExpandedRow,
+            colSpan: columnCount + actionsColumn,
+            instanceId,
+            styles,
+            tintNestedRows,
+          })
+        : null
 
     return (
       <Fragment key={row.id}>
