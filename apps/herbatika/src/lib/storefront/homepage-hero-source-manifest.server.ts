@@ -6,7 +6,7 @@ import type { HerbatikaLocale } from "./market-context"
 export const HOMEPAGE_HERO_SOURCE_MANIFEST_ENV =
   "HERBATIKA_HOMEPAGE_HERO_REVIEWED_MANIFEST_JSON"
 
-const REVIEWED_LOCALES = new Set<HerbatikaLocale>(["cs-CZ", "hu-HU"])
+const REVIEWED_LOCALES = new Set<HerbatikaLocale>(["cs-CZ", "hu-HU", "ro-RO"])
 const SHA256_PATTERN = /^[0-9a-f]{64}$/
 const BANNER_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const PUBLIC_SOURCE_ID_PATTERN = /^[A-Za-z0-9_:-]{1,255}$/
@@ -50,7 +50,7 @@ export type ReviewedHomepageHeroManifestEntry = Readonly<{
     reference: string
     status: "approved"
   }>
-  locale: "cs-CZ" | "hu-HU"
+  locale: "cs-CZ" | "hu-HU" | "ro-RO"
   source: Readonly<{
     rawSha256: string
     reference: string
@@ -222,7 +222,7 @@ const parseEntry = (
     typeof item.locale !== "string" ||
     !REVIEWED_LOCALES.has(item.locale as HerbatikaLocale)
   ) {
-    fail(`${path}.locale must be cs-CZ or hu-HU`)
+    fail(`${path}.locale must be cs-CZ, hu-HU, or ro-RO`)
   }
   if (
     !Array.isArray(item.banners) ||
@@ -281,7 +281,7 @@ const parseEntry = (
       ),
       status: "approved",
     },
-    locale: item.locale as "cs-CZ" | "hu-HU",
+    locale: item.locale as "cs-CZ" | "hu-HU" | "ro-RO",
     source: {
       rawSha256: source.rawSha256 as string,
       reference: sourceReference(source.reference, `${path}.source.reference`),
@@ -306,9 +306,9 @@ export const parseReviewedHomepageHeroManifest = (
   if (
     !Array.isArray(manifest.entries) ||
     manifest.entries.length < 1 ||
-    manifest.entries.length > 2
+    manifest.entries.length > 3
   ) {
-    fail("root.entries must contain one or two locale entries")
+    fail("root.entries must contain between one and three locale entries")
   }
   const entries = (manifest.entries as unknown[]).map(parseEntry)
   if (new Set(entries.map(({ locale }) => locale)).size !== entries.length) {

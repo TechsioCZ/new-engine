@@ -61,6 +61,20 @@ describe("reviewed homepage hero source manifest", () => {
     expect(readReviewedHomepageHeroBanners("cs-CZ", {})).toBeUndefined()
   })
 
+  it("accepts Romanian only through an explicit reviewed manifest entry", () => {
+    const input = validManifest()
+    const raw = JSON.stringify({
+      ...input,
+      entries: [{ ...input.entries[0], locale: "ro-RO" }],
+    })
+    const environment = { [HOMEPAGE_HERO_SOURCE_MANIFEST_ENV]: raw }
+
+    expect(readReviewedHomepageHeroBanners("ro-RO", environment)).toHaveLength(
+      1
+    )
+    expect(readReviewedHomepageHeroBanners("ro-RO", {})).toBeUndefined()
+  })
+
   it("rejects manifests without exact editorial approval", () => {
     const input = validManifest()
     const raw = JSON.stringify({
