@@ -10,9 +10,17 @@ import type { StorefrontBrand } from "@/lib/storefront/brands"
 import { fetchStorefrontBrands } from "@/lib/storefront/brands.server"
 import { readCompletePublicEntitySlugs } from "@/lib/storefront/ssr/public-entity-projections"
 
+const BRAND_INDEX_TITLE = {
+  sk: "Značky",
+  cz: "Značky",
+  hu: "Márkák",
+  ro: "Mărci",
+} as const
+
 type Props = PublicPageProps<
   Readonly<{
     brands: readonly (StorefrontBrand & { publicSlug: string })[]
+    title: string
   }>
 >
 
@@ -35,10 +43,12 @@ export const getServerSideProps = (async (context) =>
           ...brand,
           publicSlug: publicSlugs.value[brand.id],
         })),
+        title: BRAND_INDEX_TITLE[market],
       })
     },
     path: { kind: "brand" },
     queryKind: "brand-index",
+    title: (value) => value.title,
   })) satisfies GetServerSideProps<Props>
 
 export default function BrandsPage({ page }: Props) {

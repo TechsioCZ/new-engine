@@ -78,8 +78,8 @@ describe("full public URL proxy", () => {
     ["/kolekcie", "/~sf/sk/collections", "collection.index"],
     ["/akcie", "/~sf/sk/campaigns", "campaign.index"],
     ["/akcie/letna", "/~sf/sk/campaign/letna", "campaign.detail"],
-    ["/poradna", "/~sf/sk/advice", "article.index"],
-    ["/poradna/clanok", "/~sf/sk/advice/clanok", "article.detail"],
+    ["/blog", "/~sf/sk/advice", "article.index"],
+    ["/blog/clanok", "/~sf/sk/advice/clanok", "article.detail"],
     [
       "/informacie/kontaktujte-nas",
       "/~sf/sk/information/kontaktujte-nas",
@@ -224,7 +224,7 @@ describe("full public URL proxy", () => {
   it.each([
     "/p/legacy",
     "/c/legacy",
-    "/blog",
+    "/legacy-blog",
     "/account",
     "/auth/login",
   ])("does not preserve development-only route %s", (pathname) => {

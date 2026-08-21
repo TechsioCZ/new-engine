@@ -25,7 +25,10 @@ describe("Pages Router storefront runtime contract", () => {
     const appSource = source("pages/_app.tsx")
     const documentSource = source("pages/_document.tsx")
 
-    expect(appSource).toContain("seo.title ?? marketContext.metadata.title")
+    expect(appSource).toContain(
+      "const brandTitle = marketContext.metadata.title"
+    )
+    expect(appSource).toContain("` : brandTitle")
     expect(appSource).toContain(
       "seo.description ?? marketContext.metadata.description"
     )

@@ -11,10 +11,10 @@ describe("CMS footer navigation fallback", () => {
   })
 
   it.each([
-    ["sk-SK", ["/poradna", "/o-nas", "/casto-kladene-otazky", "/znacky"]],
-    ["cs-CZ", ["/poradna", "/o-nas", "/caste-dotazy", "/znacky"]],
-    ["hu-HU", ["/tanacsok", "/rolunk", "/gyakori-kerdesek", "/markak"]],
-    ["ro-RO", ["/sfaturi", "/despre-noi", "/intrebari-frecvente", "/marci"]],
+    ["sk-SK", ["/blog", "/o-nas", "/casto-kladene-otazky"]],
+    ["cs-CZ", ["/blog", "/o-nas", "/caste-dotazy"]],
+    ["hu-HU", ["/blog", "/rolunk", "/gyakori-kerdesek"]],
+    ["ro-RO", ["/blog", "/despre-noi", "/intrebari-frecvente"]],
   ] as const)("uses route-derived %s navigation when Payload is empty", async (locale, expectedHrefs) => {
     const { fetchCmsJsonOrThrow } = await import("./cms-client")
     vi.mocked(fetchCmsJsonOrThrow).mockResolvedValue({
@@ -36,7 +36,9 @@ describe("CMS footer navigation fallback", () => {
       navigation.columns.flatMap((column) =>
         column.items.map((item) => item.slot)
       )
-    ).toEqual(["blog", "about", "faq", "brands"])
+      // The catalog currently ships without brand records, so the fallback
+      // footer intentionally omits the brands link.
+    ).toEqual(["blog", "about", "faq"])
   })
 
   it("preserves an approved non-empty Payload navigation", async () => {

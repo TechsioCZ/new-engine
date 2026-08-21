@@ -33,7 +33,7 @@ export const prioritizeDiscountedVariant = (
   const searchResult = { ...(productWithSearchResult.search_result ?? {}) }
 
   if (searchResult.variant_id !== discountedVariant.id) {
-    searchResult.variant_title = undefined
+    delete searchResult.variant_title
   }
   searchResult.variant_id = discountedVariant.id
 

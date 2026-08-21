@@ -11,6 +11,8 @@ import {
   resolveSelectedVariant,
   resolveShortDescriptionHtml,
   resolveVariantItems,
+  translateOptionTitles,
+  translateOptionValue,
 } from "@/components/product-detail/product-detail-data.utils"
 import {
   resolveFreeShippingThresholdLabel,
@@ -124,8 +126,18 @@ export function useProductDetailData({
       isInventoryManaged: selectedVariant?.manage_inventory,
     }
   )
-  const optionTitlesById = resolveOptionTitlesById(product)
-  const variantItems = resolveVariantItems(variants, optionTitlesById)
+  const optionTitlesById = translateOptionTitles(
+    resolveOptionTitlesById(product),
+    (key) => tCatalog(`product_detail.option_titles.${key}`)
+  )
+  const variantItems = resolveVariantItems(
+    variants,
+    optionTitlesById,
+    (value) =>
+      translateOptionValue(value, (key) =>
+        tCatalog(`product_detail.option_values.${key}`)
+      )
+  )
 
   const offerState = resolveOfferState(product, selectedVariant, {
     allowSourceLabels: market === "sk",

@@ -3,17 +3,16 @@ import type { GetServerSideProps } from "next"
 import { BlogDetailPage } from "@/components/blog/blog-detail-page"
 import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
+  foundSource,
+  notFoundResult,
   type PublicPageProps,
-  resolveEntityPublicPage,
+  resolveStaticPublicPage,
 } from "@/lib/routing/public-page"
-import { resolveBlogProductReference } from "@/lib/storefront/blog-product-references"
 import { resolveBlogProducts } from "@/lib/storefront/blog-products.server"
-import { type CmsBlogPost, fetchCmsBlogPostById } from "@/lib/storefront/cms"
+import { type CmsBlogPost, fetchCmsBlogPost } from "@/lib/storefront/cms"
 import { getHerbatikaMarketContext } from "@/lib/storefront/market-context"
-import {
-  type PublicEntitySlugMap,
-  readRequiredPublicEntitySlugs,
-} from "@/lib/storefront/ssr/public-entity-projections"
+import type { PublicEntitySlugMap } from "@/lib/storefront/ssr/public-entity-projections"
+import { validatePublishedSlug } from "@/lib/url/slug"
 
 type AdviceValue = Readonly<{
   articlePublicSlugsById: PublicEntitySlugMap
@@ -24,13 +23,30 @@ type AdviceValue = Readonly<{
 
 type Props = PublicPageProps<AdviceValue>
 
-export const getServerSideProps = (async (context) =>
-  resolveEntityPublicPage<AdviceValue>(context, {
+const singleValue = (value: string | string[] | undefined): string | null =>
+  typeof value === "string" ? value : null
+
+// Without the URL registry, an article's own CMS slug IS its public slug
+// (registry-projected slugs are unavailable while URL_REGISTRY_ENABLED=0).
+export const getServerSideProps = (async (context) => {
+  const slugParam = singleValue(context.params?.slug)
+  if (!slugParam) {
+    return notFoundResult(context)
+  }
+  const slug = slugParam.toLowerCase()
+  try {
+    validatePublishedSlug(slug)
+  } catch {
+    return notFoundResult(context)
+  }
+
+  return await resolveStaticPublicPage<AdviceValue>(context, {
     expectedRouteKey: "article.detail",
-    kind: "article",
-    loadSource: async ({ market, sourceId }) => {
-      const post = await fetchCmsBlogPostById(
-        sourceId,
+    loadSource: async (market) => {
+      const post = await fetchCmsBlogPost(
+        slug,
+        undefined,
+        undefined,
         getHerbatikaMarketContext(market).locale
       )
       if (!post) {
@@ -46,55 +62,34 @@ export const getServerSideProps = (async (context) =>
         cookieHeader: context.req.headers.cookie,
         market,
       })
-      const resolvedProducts = productReferences.map((reference) =>
-        resolveBlogProductReference(reference, products)
+
+      // Unresolved inline product refs are skipped by the components below
+      // (resolveBlogProductReference returns undefined for them) rather than
+      // failing the page.
+      const articlePublicSlugsById: PublicEntitySlugMap = Object.fromEntries([
+        [post.sourceId, post.slug],
+        ...post.relatedPosts.map(
+          (relatedPost) => [relatedPost.sourceId, relatedPost.slug] as const
+        ),
+      ])
+      const productPublicSlugsById: PublicEntitySlugMap = Object.fromEntries(
+        Array.from(products.values())
+          .filter((product) => Boolean(product.handle))
+          .map((product) => [product.id, product.handle as string])
       )
-      if (resolvedProducts.some((product) => !product)) {
-        return {
-          causeCode: "INCOMPLETE_ARTICLE_PRODUCT_SOURCE",
-          kind: "invalid-response",
-        } as const
-      }
-      const productSourceIds = Array.from(
-        new Set(
-          resolvedProducts.flatMap((product) => (product ? [product.id] : []))
-        )
-      )
-      const [articlePublicSlugsById, productPublicSlugsById] =
-        await Promise.all([
-          readRequiredPublicEntitySlugs({
-            kind: "article",
-            market,
-            requiredSourceIds: [
-              post.sourceId,
-              ...post.relatedPosts.map((relatedPost) => relatedPost.sourceId),
-            ],
-          }),
-          readRequiredPublicEntitySlugs({
-            kind: "product",
-            market,
-            requiredSourceIds: productSourceIds,
-          }),
-        ])
-      if (articlePublicSlugsById.kind !== "found") {
-        return articlePublicSlugsById
-      }
-      if (productPublicSlugsById.kind !== "found") {
-        return productPublicSlugsById
-      }
-      return {
-        kind: "found",
-        value: {
-          articlePublicSlugsById: articlePublicSlugsById.value,
-          post,
-          productEntries: Array.from(products.entries()),
-          productPublicSlugsById: productPublicSlugsById.value,
-        },
-      } as const
+
+      return foundSource({
+        articlePublicSlugsById,
+        post,
+        productEntries: Array.from(products.entries()),
+        productPublicSlugsById,
+      })
     },
+    path: { kind: "article", slug },
     queryKind: "advice-article",
     title: ({ post }) => post.title,
-  })) satisfies GetServerSideProps<Props>
+  })
+}) satisfies GetServerSideProps<Props>
 
 export default function AdviceDetailPage({ page }: Props) {
   if (page.kind === "error") {

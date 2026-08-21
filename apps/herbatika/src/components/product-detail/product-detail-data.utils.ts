@@ -42,19 +42,73 @@ export const resolveOptionTitlesById = (product: Product | null) => {
   return optionTitlesById
 }
 
+// Medusa stores option titles once per product (mostly in Slovak); map the
+// known titles onto message keys so every market renders its own language.
+const OPTION_TITLE_MESSAGE_KEYS: Record<string, string> = {
+  balenie: "packaging",
+  color: "color",
+  farba: "color",
+  hmotnosť: "weight",
+  objem: "volume",
+  príchuť: "flavor",
+  rozmer: "dimensions",
+  size: "size",
+  variant: "variant",
+  varianta: "variant",
+  veľkosť: "size",
+  veľkosti: "size",
+}
+
+export const translateOptionTitles = (
+  optionTitlesById: Map<string, string>,
+  translate: (key: string) => string
+): Map<string, string> => {
+  const translated = new Map<string, string>()
+  for (const [id, title] of optionTitlesById) {
+    const messageKey = OPTION_TITLE_MESSAGE_KEYS[title.trim().toLowerCase()]
+    translated.set(id, messageKey ? translate(messageKey) : title)
+  }
+  return translated
+}
+
+// Option values also arrive in Slovak ("20 tabliet"); translate the known
+// unit words in place so counts stay intact on every market.
+const OPTION_VALUE_MESSAGE_KEYS: Record<string, string> = {
+  kapsúl: "capsules",
+  tabliet: "tablets",
+}
+
+const OPTION_VALUE_WORD_PATTERN = /\p{L}+/gu
+
+export const translateOptionValue = (
+  value: string,
+  translate: (key: string) => string
+): string =>
+  value.replace(OPTION_VALUE_WORD_PATTERN, (word) => {
+    const messageKey = OPTION_VALUE_MESSAGE_KEYS[word.toLowerCase()]
+    return messageKey ? translate(messageKey) : word
+  })
+
 export const resolveVariantItems = (
   variants: HttpTypes.StoreProductVariant[],
-  optionTitlesById: Map<string, string>
+  optionTitlesById: Map<string, string>,
+  translateValue?: (value: string) => string
 ): SelectItem[] =>
   variants
     .filter(
       (variant): variant is HttpTypes.StoreProductVariant & { id: string } =>
         Boolean(variant.id)
     )
-    .map((variant) => ({
-      value: variant.id,
-      label: resolveVariantLabel(variant, optionTitlesById),
-    }))
+    .map((variant) => {
+      const label = resolveVariantLabel(
+        variant,
+        optionTitlesById,
+        translateValue
+      )
+      // displayValue keeps the hidden native <select> from falling back to the
+      // raw variant id, which would end up in SSR HTML and screen readers.
+      return { value: variant.id, label, displayValue: label }
+    })
 
 export const resolveShortDescriptionHtml = (product: Product | null) => {
   const metadata = asRecord(product?.metadata)

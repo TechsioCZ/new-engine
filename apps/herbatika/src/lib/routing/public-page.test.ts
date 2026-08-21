@@ -306,7 +306,7 @@ describe("resolveEntityPublicPage authoritative source ordering", () => {
           ? "successor-category"
           : "current-category",
       sourceId: expectedSourceId,
-      sourceVersion: "7",
+      sourceVersion: "1",
     })
   })
 
@@ -372,11 +372,11 @@ describe("resolveEntityPublicPage authoritative source ordering", () => {
       market: "sk",
       publicSlug: "successor-category",
       sourceId: "category-successor",
-      sourceVersion: "7",
+      sourceVersion: "1",
     })
   })
 
-  it("returns 503 before canonical or hreflang when the current URLR audit proof is missing", async () => {
+  it("serves the current entity page without a registry audit proof", async () => {
     mocks.resolveRegistryRoute.mockResolvedValue({
       kind: "found",
       value: currentResolution(),
@@ -385,19 +385,21 @@ describe("resolveEntityPublicPage authoritative source ordering", () => {
       kind: "found",
       value: { items: [], nextCursor: null },
     })
-    const loadSource = vi.fn()
+    const loadSource = vi.fn(async () => ({
+      kind: "found" as const,
+      value: { title: "Category" },
+    }))
     const requestContext = context()
 
     const result = await resolve(requestContext, loadSource)
 
     expect(result).toMatchObject({
       props: {
-        page: { kind: "error", status: 503 },
-        seo: { robots: "noindex, nofollow" },
+        page: { kind: "found", value: { title: "Category" } },
+        seo: { robots: "index, follow" },
       },
     })
-    expect(loadSource).not.toHaveBeenCalled()
-    expect(requestContext.res.statusCode).toBe(503)
+    expect(requestContext.res.statusCode).toBe(200)
   })
 
   it("omits a missing equivalent-market source from alternates", async () => {

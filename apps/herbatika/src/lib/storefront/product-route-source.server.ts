@@ -19,6 +19,7 @@ import {
   readProductAlternateSource,
   readProductIdentitySource,
   readProductRouteSource,
+  readProductRouteSourceByHandle,
 } from "./product-route-source"
 import { resolveMedusaBackendUrl } from "./runtime-env"
 
@@ -60,11 +61,20 @@ export const readProductRouteSourceFromMedusa = (
         }
       )
     },
-    retrievePublicationSource: ({ binding, market, productId }) =>
-      getMarketSdk(binding).client.fetch(
-        `/store/url-registry/products/${encodeURIComponent(productId)}/source`,
+  })
+
+export const readProductRouteSourceByHandleFromMedusa = (input: {
+  market: MarketCode
+  publicSlug: string
+}) =>
+  readProductRouteSourceByHandle(input, {
+    resolveMarket: (market) =>
+      getMarketRuntime(getConfiguredMarketRuntime(), market),
+    retrieveProducts: ({ binding, query }) =>
+      getMarketSdk(binding).client.fetch<HttpTypes.StoreProductListResponse>(
+        "/store/products",
         {
-          query: { market },
+          query,
           signal: AbortSignal.timeout(PRODUCT_SOURCE_TIMEOUT_MS),
         }
       ),
@@ -84,10 +94,6 @@ export const readProductIdentityFromMedusa = (
           signal: AbortSignal.timeout(PRODUCT_SOURCE_TIMEOUT_MS),
         }
       ),
-    retrievePublicationSource: () =>
-      Promise.reject(
-        new Error("Publication proof is not used for identity reads")
-      ),
   })
 
 export const readProductAlternateSourceFromMedusa = (
@@ -101,14 +107,6 @@ export const readProductAlternateSourceFromMedusa = (
         `/store/products/${encodeURIComponent(productId)}`,
         {
           query,
-          signal: AbortSignal.timeout(PRODUCT_SOURCE_TIMEOUT_MS),
-        }
-      ),
-    retrievePublicationSource: ({ binding, market, productId }) =>
-      getMarketSdk(binding).client.fetch(
-        `/store/url-registry/products/${encodeURIComponent(productId)}/source`,
-        {
-          query: { market },
           signal: AbortSignal.timeout(PRODUCT_SOURCE_TIMEOUT_MS),
         }
       ),

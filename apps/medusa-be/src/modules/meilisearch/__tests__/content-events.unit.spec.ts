@@ -50,7 +50,7 @@ describe("CMS event URL registry projection", () => {
 
   it("indexes a published document only with its trusted current href", async () => {
     mocks.resolveContentProjectionHrefs.mockResolvedValue(
-      new Map([["article\u000042", "/poradna/bylinky"]])
+      new Map([["article\u000042", "/blog/bylinky"]])
     )
 
     await reconcileContentSearchChange(
@@ -77,7 +77,7 @@ describe("CMS event URL registry projection", () => {
     )
     expect(mocks.addDocuments).toHaveBeenCalledWith("content-herbatika-cz", [
       expect.objectContaining({
-        href: "/poradna/bylinky",
+        href: "/blog/bylinky",
         id: "article_42",
         source_id: "42",
       }),

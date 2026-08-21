@@ -136,7 +136,7 @@ describe("root-static CMS page source", () => {
       getServerSideProps({ params: { pageKey: "faq" } } as never)
     ).resolves.toEqual({
       kind: "found",
-      value: { kind: "faq", publicationApproved: true },
+      value: { kind: "faq", publicationApproved: true, title: "Localized FAQ" },
     })
     expect(getFaqPageData).toHaveBeenCalledWith("cs-CZ")
   })
@@ -160,6 +160,35 @@ describe("root-static CMS page source", () => {
       getServerSideProps({ params: { pageKey: "privacy" } } as never)
     ).resolves.toEqual({ kind: "unavailable", retryAfterSeconds: 30 })
     expect(readCmsStaticPageWithDemoFallback).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    "about",
+    "faq",
+  ] as const)("keeps safe code-owned %s content available but unapproved without G1", async (pageKey) => {
+    const { getFaqPageData } = await import("@/components/faq/faq-page.data")
+    const { loadStaticRoutePublicationDecision } = await import(
+      "@/lib/url/segment-registry-publication.server"
+    )
+    vi.mocked(getFaqPageData).mockReturnValue({
+      intro: "Localized intro",
+      items: [],
+      title: "Localized FAQ",
+    })
+    vi.mocked(loadStaticRoutePublicationDecision).mockResolvedValueOnce({
+      kind: "rejected",
+      reason: "artifact-unavailable",
+    })
+    const { getServerSideProps } = await import(
+      "@/pages/~sf/[market]/static/[pageKey]"
+    )
+
+    await expect(
+      getServerSideProps({ params: { pageKey } } as never)
+    ).resolves.toMatchObject({
+      kind: "found",
+      value: { kind: pageKey, publicationApproved: false },
+    })
   })
 
   it("keeps a real CMS source noindex when taxonomy does not require G1", async () => {

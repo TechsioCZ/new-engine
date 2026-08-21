@@ -38,7 +38,8 @@ export function HerbatikaHomepage({
   homepageSectionCategorySourceIds,
   productPublicSlugsById,
 }: HerbatikaHomepageProps) {
-  const market = useMarketContext().code
+  const marketContext = useMarketContext()
+  const market = marketContext.code
   const controller = useHomepageController({
     categoryPublicSlugsById,
     homepageSectionCategorySourceIds,
@@ -48,6 +49,7 @@ export function HerbatikaHomepage({
 
   return (
     <main className="mx-auto flex w-full max-w-max-w flex-col gap-homepage-gap p-homepage font-rubik 2xl:p-homepage-lg">
+      <h1 className="sr-only">{marketContext.metadata.description}</h1>
       <HomepageHeroCarouselSection banners={banners} />
       <PurposeCarousel categoryPublicSlugsById={categoryPublicSlugsById} />
       <BenefitsSection benefits={BENEFITS} />

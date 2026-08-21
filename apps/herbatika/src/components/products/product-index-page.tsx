@@ -3,17 +3,11 @@
 import { CatalogListingShell } from "@/components/catalog-listing-shell"
 import { CategoryFacetsPanel } from "@/components/category/category-facets-panel"
 import { CategoryResultsSection } from "@/components/category/category-results-section"
+import { PRODUCT_INDEX_TITLE } from "@/components/products/product-index-title"
 import { RecentlyVisitedProductsSection } from "@/components/recently-visited-products-section"
 import { useSearchListingController } from "@/components/search/use-search-listing-controller"
 import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { PLP_PAGE_SIZE } from "@/lib/storefront/plp-query-state"
-
-const PRODUCT_INDEX_TITLE = {
-  sk: "Produkty",
-  cz: "Produkty",
-  hu: "Termékek",
-  ro: "Produse",
-} as const
 
 type ProductIndexPageProps = Readonly<{
   productPublicSlugsById: Readonly<Record<string, string>>

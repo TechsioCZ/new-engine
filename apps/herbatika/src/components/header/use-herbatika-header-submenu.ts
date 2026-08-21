@@ -118,7 +118,9 @@ export function useHerbatikaHeaderSubmenu(
       "category",
       {
         publicSlug: category
-          ? categoryPublicSlugsById?.[category.id]
+          ? (categoryPublicSlugsById?.[category.id] ??
+            category.handle ??
+            undefined)
           : undefined,
       },
       marketContext.code

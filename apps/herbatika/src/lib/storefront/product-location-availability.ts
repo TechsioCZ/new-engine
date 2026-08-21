@@ -50,23 +50,3 @@ export const shouldShowPhysicalStoreOnlyNotice = (
 ) =>
   !(isOnlineInStock || state.isLoading || state.error) &&
   Boolean(state.items?.some((location) => location.available_quantity > 0))
-
-export const formatLocationAvailability = (
-  availableQuantity: number,
-  options: { isInventoryManaged?: boolean | null } = {}
-) => {
-  if (options.isInventoryManaged === false) {
-    return "Skladom"
-  }
-
-  const finiteQuantity = Number.isFinite(availableQuantity)
-    ? availableQuantity
-    : 0
-  const normalizedQuantity = Math.max(0, Math.floor(finiteQuantity))
-
-  if (normalizedQuantity > 10) {
-    return "Skladom (>10 ks)"
-  }
-
-  return `${normalizedQuantity} ks`
-}

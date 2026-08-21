@@ -3,21 +3,43 @@ import { describe, expect, it, vi } from "vitest"
 
 const mocks = vi.hoisted(() => ({
   fetchCachedLatestCmsBlogPosts: vi.fn(async () => []),
+  fetchCmsFooterNavigation: vi.fn(async () => ({ columns: [] })),
   fetchCmsHeroBanners: vi.fn(async () => []),
   fetchCmsHomepagePromo: vi.fn(async () => null),
   fetchExternalReviewTrustSources: vi.fn(async () => []),
   fetchHeurekaHomepageReviews: vi.fn(async () => null),
   fetchStorefrontTextMessages: vi.fn(async () => ({})),
-  hydrateCmsHeroBannerTargets: vi.fn(),
+  getRegionServerContext: vi.fn(async () => ({
+    region: {
+      country_code: "ro",
+      currency_code: "eur",
+      name: "Test region",
+      region_id: "reg_test",
+    },
+  })),
+  hydrateCmsHeroBannerTargets: vi.fn(async (banners) => ({
+    kind: "found",
+    value: banners,
+  })),
   prefetchHomePageStorefrontData: vi.fn(async () => ({
     categorySourceIds: [],
     dehydratedState: { mutations: [], queries: [] },
     homepageSectionCategorySourceIds: {},
-    region: { id: "reg_cz" },
+    region: { id: "reg_cz" } as { id: string } | null,
     visibleProductIds: [],
   })),
-  readAvailablePublicEntitySlugs: vi.fn(),
-  readCompletePublicEntitySlugs: vi.fn(),
+  readAvailablePublicEntitySlugs: vi.fn(async () => ({
+    kind: "found",
+    value: {},
+  })),
+  readCompletePublicEntitySlugs: vi.fn(async () => ({
+    kind: "found",
+    value: {},
+  })),
+  readRequiredPublicEntitySlugs: vi.fn(async () => ({
+    kind: "found",
+    value: {},
+  })),
   readReviewedHomepageHeroBanners: vi.fn(
     function missingReviewedHomepageHeroManifest(): undefined {
       return
@@ -69,6 +91,9 @@ vi.mock("@/lib/storefront/cms", () => ({
 vi.mock("@/lib/storefront/cms-hero-targets.server", () => ({
   hydrateCmsHeroBannerTargets: mocks.hydrateCmsHeroBannerTargets,
 }))
+vi.mock("@/lib/storefront/cms-footer-navigation", () => ({
+  fetchCmsFooterNavigation: mocks.fetchCmsFooterNavigation,
+}))
 vi.mock("@/lib/storefront/external-reviews.server", () => ({
   fetchExternalReviewTrustSources: mocks.fetchExternalReviewTrustSources,
   fetchHeurekaHomepageReviews: mocks.fetchHeurekaHomepageReviews,
@@ -103,9 +128,13 @@ vi.mock("@/lib/storefront/market-context", () => ({
 vi.mock("@/lib/storefront/ssr", () => ({
   prefetchHomePageStorefrontData: mocks.prefetchHomePageStorefrontData,
 }))
+vi.mock("@/lib/storefront/ssr/context", () => ({
+  getRegionServerContext: mocks.getRegionServerContext,
+}))
 vi.mock("@/lib/storefront/ssr/public-entity-projections", () => ({
   readAvailablePublicEntitySlugs: mocks.readAvailablePublicEntitySlugs,
   readCompletePublicEntitySlugs: mocks.readCompletePublicEntitySlugs,
+  readRequiredPublicEntitySlugs: mocks.readRequiredPublicEntitySlugs,
 }))
 vi.mock("@/lib/storefront/storefront-texts.server", () => ({
   fetchStorefrontTextMessages: mocks.fetchStorefrontTextMessages,
@@ -140,29 +169,79 @@ const requestContext = (market: "cz" | "hu" | "ro" = "cz") => {
 
 describe("homepage hero readiness", () => {
   it.each([
-    ["cz", "cs-CZ"],
-    ["hu", "hu-HU"],
-    ["ro", "ro-RO"],
-  ] as const)("returns an explicit noindex 503 when %s has no publication-ready source", async (market, locale) => {
+    "cz",
+    "hu",
+    "ro",
+  ] as const)("renders the approved bundled hero source for %s without CMS content", async (market) => {
     const request = requestContext(market)
 
     const result = await getServerSideProps(request.context)
 
-    expect(mocks.readReviewedHomepageHeroBanners).toHaveBeenCalledWith(locale)
-    expect(mocks.hydrateCmsHeroBannerTargets).not.toHaveBeenCalled()
-    expect(mocks.readAvailablePublicEntitySlugs).not.toHaveBeenCalled()
-    expect(mocks.readCompletePublicEntitySlugs).not.toHaveBeenCalled()
+    expect(mocks.readReviewedHomepageHeroBanners).not.toHaveBeenCalled()
+    expect(mocks.hydrateCmsHeroBannerTargets).toHaveBeenCalled()
+    expect(result).toMatchObject({
+      props: {
+        page: {
+          kind: "found",
+          value: { publicationApproved: true },
+        },
+        seo: { robots: "index, follow" },
+      },
+    })
+    expect(request.context.res.statusCode).toBe(200)
+  })
+
+  it("returns 503 when commerce region authority is missing", async () => {
+    mocks.prefetchHomePageStorefrontData.mockResolvedValueOnce({
+      categorySourceIds: [],
+      dehydratedState: { mutations: [], queries: [] },
+      homepageSectionCategorySourceIds: {},
+      region: null,
+      visibleProductIds: [],
+    })
+    const request = requestContext("ro")
+
+    const result = await getServerSideProps(request.context)
+
     expect(result).toMatchObject({
       props: {
         page: { kind: "error", status: 503 },
-        seo: { robots: "noindex, nofollow" },
       },
     })
     expect(request.context.res.statusCode).toBe(503)
-    expect(request.headers.get("x-robots-tag")).toBe("noindex, nofollow")
-    expect(request.headers.get("retry-after")).toBe("30")
-    expect(request.headers.get("cache-control")).toBe(
-      "private, no-store, max-age=0, must-revalidate"
+  })
+
+  it("keeps the RO homepage available when optional CMS sources reject", async () => {
+    mocks.fetchCmsHeroBanners.mockRejectedValueOnce(
+      new Error("CMS unavailable")
     )
+    mocks.fetchCmsHomepagePromo.mockRejectedValueOnce(
+      new Error("CMS unavailable")
+    )
+    mocks.fetchCachedLatestCmsBlogPosts.mockRejectedValueOnce(
+      new Error("CMS unavailable")
+    )
+    mocks.fetchHeurekaHomepageReviews.mockRejectedValueOnce(
+      new Error("reviews unavailable")
+    )
+    const request = requestContext("ro")
+
+    const result = await getServerSideProps(request.context)
+
+    expect(result).toMatchObject({
+      props: {
+        page: {
+          kind: "found",
+          value: {
+            blogPosts: [],
+            homepagePromo: null,
+            homepageReviewsData: null,
+            publicationApproved: true,
+          },
+        },
+        seo: { robots: "index, follow" },
+      },
+    })
+    expect(request.context.res.statusCode).toBe(200)
   })
 })

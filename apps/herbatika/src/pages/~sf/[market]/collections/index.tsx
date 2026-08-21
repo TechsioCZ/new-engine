@@ -71,6 +71,7 @@ export const getServerSideProps = (async (context) =>
     },
     path: { kind: "collection" },
     queryKind: "collection-index",
+    title: (value) => value.title,
   })) satisfies GetServerSideProps<Props>
 
 export default function CollectionsPage({ page }: Props) {

@@ -27,6 +27,20 @@ import {
   readAvailablePublicEntitySlugs,
   readCompletePublicEntitySlugs,
 } from "@/lib/storefront/ssr/public-entity-projections"
+import type { SourceReadResult } from "@/lib/url-registry/contracts"
+
+// Registry slug projections are best-effort: the URL registry runtime can be
+// disabled, so a non-approved hero source (or a rejected read) degrades to an
+// empty slug map instead of failing the whole homepage.
+const readOptionalPublicEntitySlugs = (
+  approved: boolean,
+  read: () => Promise<SourceReadResult<PublicEntitySlugMap>>
+): Promise<SourceReadResult<PublicEntitySlugMap>> =>
+  approved ? read() : Promise.resolve({ kind: "found" as const, value: {} })
+
+const publicEntitySlugValue = (
+  result: SourceReadResult<PublicEntitySlugMap>
+): PublicEntitySlugMap => (result.kind === "found" ? result.value : {})
 
 type HomeValue = Readonly<{
   articlePublicSlugsById: PublicEntitySlugMap
@@ -38,6 +52,7 @@ type HomeValue = Readonly<{
   homepageReviewsData: Awaited<ReturnType<typeof fetchHeurekaHomepageReviews>>
   homepageSectionCategorySourceIds: Readonly<Record<string, string>>
   productPublicSlugsById: PublicEntitySlugMap
+  publicationApproved: boolean
 }>
 
 type Props = PublicPageProps<HomeValue>
@@ -58,18 +73,22 @@ export const getServerSideProps = (async (context) =>
           cookieHeader: context.req.headers.cookie,
           market,
         }),
-        fetchCmsHeroBanners(locale),
-        fetchCmsHomepagePromo(locale),
-        fetchCachedLatestCmsBlogPosts(3, [], locale),
-        fetchHeurekaHomepageReviews(market),
+        fetchCmsHeroBanners(locale).catch(() => []),
+        fetchCmsHomepagePromo(locale).catch(() => null),
+        fetchCachedLatestCmsBlogPosts(3, [], locale).catch(() => []),
+        fetchHeurekaHomepageReviews(market).catch(() => null),
       ])
-      if (!storefront.region) {
+      const heroSource = resolveHomepageHeroSource(heroBanners, market, () =>
+        readReviewedHomepageHeroBanners(locale)
+      )
+      if (heroSource.publicationApproved && !storefront.region) {
         return {
           kind: "invalid-response",
           causeCode: "MISSING_REGION",
         } as const
       }
       if (
+        heroSource.publicationApproved &&
         !hasCompleteHomepageSectionSources(
           storefront.homepageSectionCategorySourceIds
         )
@@ -79,62 +98,62 @@ export const getServerSideProps = (async (context) =>
           kind: "invalid-response",
         } as const
       }
-      const heroSource = resolveHomepageHeroSource(heroBanners, market, () =>
-        readReviewedHomepageHeroBanners(locale)
-      )
-      if (heroSource.kind === "unavailable") {
-        return heroSource
-      }
       const [
         articlePublicSlugsById,
         categoryPublicSlugsById,
         hydratedHeroBanners,
         productPublicSlugsById,
       ] = await Promise.all([
-        readAvailablePublicEntitySlugs({
-          kind: "article",
-          market,
-          requiredSourceIds: blogPosts.map((post) => post.sourceId),
-        }),
-        readCompletePublicEntitySlugs({
-          kind: "category",
-          market,
-          requiredSourceIds: storefront.categorySourceIds,
-        }),
+        readOptionalPublicEntitySlugs(heroSource.publicationApproved, () =>
+          readAvailablePublicEntitySlugs({
+            kind: "article",
+            market,
+            requiredSourceIds: blogPosts.map((post) => post.sourceId),
+          })
+        ),
+        readOptionalPublicEntitySlugs(heroSource.publicationApproved, () =>
+          readCompletePublicEntitySlugs({
+            kind: "category",
+            market,
+            requiredSourceIds: storefront.categorySourceIds,
+          })
+        ),
         hydrateCmsHeroBannerTargets(heroSource.value, market),
-        readAvailablePublicEntitySlugs({
-          kind: "product",
-          market,
-          requiredSourceIds: storefront.visibleProductIds,
-        }),
+        readOptionalPublicEntitySlugs(heroSource.publicationApproved, () =>
+          readAvailablePublicEntitySlugs({
+            kind: "product",
+            market,
+            requiredSourceIds: storefront.visibleProductIds,
+          })
+        ),
       ])
-      if (articlePublicSlugsById.kind !== "found") {
-        return articlePublicSlugsById
-      }
-      if (categoryPublicSlugsById.kind !== "found") {
-        return categoryPublicSlugsById
-      }
-      if (hydratedHeroBanners.kind !== "found") {
+      if (
+        heroSource.publicationApproved &&
+        hydratedHeroBanners.kind !== "found"
+      ) {
         return hydratedHeroBanners
       }
-      if (productPublicSlugsById.kind !== "found") {
-        return productPublicSlugsById
-      }
       return foundSource({
-        articlePublicSlugsById: articlePublicSlugsById.value,
+        articlePublicSlugsById: publicEntitySlugValue(articlePublicSlugsById),
         blogPosts,
-        categoryPublicSlugsById: categoryPublicSlugsById.value,
+        categoryPublicSlugsById: publicEntitySlugValue(categoryPublicSlugsById),
         dehydratedState: storefront.dehydratedState,
-        heroBanners: hydratedHeroBanners.value,
+        heroBanners:
+          hydratedHeroBanners.kind === "found"
+            ? hydratedHeroBanners.value
+            : heroSource.value,
         homepagePromo,
         homepageReviewsData,
         homepageSectionCategorySourceIds:
           storefront.homepageSectionCategorySourceIds,
-        productPublicSlugsById: productPublicSlugsById.value,
+        productPublicSlugsById: publicEntitySlugValue(productPublicSlugsById),
+        publicationApproved: heroSource.publicationApproved,
       })
     },
+    isIndexable: (value) => value.publicationApproved,
     path: { kind: "home" },
     queryKind: "homepage",
+    useLinkFreeShellWhenNoindex: true,
   })) satisfies GetServerSideProps<Props>
 
 export default function HomePage({ page }: Props) {

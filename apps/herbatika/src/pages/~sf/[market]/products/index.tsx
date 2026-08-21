@@ -2,6 +2,7 @@ import type { DehydratedState } from "@tanstack/react-query"
 import { HydrationBoundary } from "@tanstack/react-query"
 import type { GetServerSideProps } from "next"
 import { ProductIndexPage } from "@/components/products/product-index-page"
+import { PRODUCT_INDEX_TITLE } from "@/components/products/product-index-title"
 import { LocalizedPageError } from "@/lib/routing/pages/localized-page-error"
 import {
   foundSource,
@@ -19,6 +20,7 @@ type Props = PublicPageProps<
   Readonly<{
     dehydratedState: DehydratedState
     productPublicSlugsById: PublicEntitySlugMap
+    title: string
     totalPages: number
   }>
 >
@@ -43,17 +45,21 @@ export const getServerSideProps = ((context) => {
         market,
         requiredSourceIds: result.visibleProductIds,
       })
-      return productPublicSlugsById.kind === "found"
-        ? foundSource({
-            dehydratedState: result.dehydratedState,
-            productPublicSlugsById: productPublicSlugsById.value,
-            totalPages: result.totalPages,
-          })
-        : productPublicSlugsById
+      // Registry projections are optional: Medusa handles are the public slugs.
+      return foundSource({
+        dehydratedState: result.dehydratedState,
+        productPublicSlugsById:
+          productPublicSlugsById.kind === "found"
+            ? productPublicSlugsById.value
+            : result.visibleProductSlugsById,
+        title: PRODUCT_INDEX_TITLE[market],
+        totalPages: result.totalPages,
+      })
     },
     lastPage: (value) => value.totalPages,
     path: { kind: "product" },
     queryKind: "product-index",
+    title: (value) => value.title,
   })
 }) satisfies GetServerSideProps<Props>
 

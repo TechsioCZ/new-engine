@@ -26,8 +26,14 @@ import { buildPath } from "@/lib/url/public-url"
 import type { Market } from "@/lib/url/types"
 import { HerbatikaLogo } from "./herbatika-logo"
 
-const formatMarketDomain = (domain: string) =>
-  `${domain.charAt(0).toUpperCase()}${domain.slice(1)}`
+// The runtime domain is whatever host serves the app (localhost, a staging
+// proxy, ...); the copyright line must always name the brand storefront.
+const BRAND_DOMAIN_BY_MARKET: Record<Market, string> = {
+  cz: "Herbatica.cz",
+  hu: "Herbatica.hu",
+  ro: "Herbatica.ro",
+  sk: "Herbatica.sk",
+}
 
 const FOOTER_COLUMN_TITLE_KEYS = {
   information: "footer.columns.information.title",
@@ -332,7 +338,7 @@ export function HerbatikaFooter({
             brand: (chunks) => (
               <strong className="text-fg-primary">{chunks}</strong>
             ),
-            domain: formatMarketDomain(marketContext.domain),
+            domain: BRAND_DOMAIN_BY_MARKET[marketContext.code],
             year: new Date().getFullYear(),
           })}{" "}
           <Footer.Link

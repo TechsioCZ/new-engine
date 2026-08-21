@@ -58,7 +58,7 @@ describe("parsePublicPath", () => {
     ["cz", "/akce/jarni", { kind: "campaign", slug: "jarni" }],
     ["hu", "/akciok/nyari", { kind: "campaign", slug: "nyari" }],
     ["ro", "/promotii/vara", { kind: "campaign", slug: "vara" }],
-    ["cz", "/poradna/spanek", { kind: "article", slug: "spanek" }],
+    ["cz", "/blog/spanek", { kind: "article", slug: "spanek" }],
     ["hu", "/informaciok/rolunk", { kind: "page", slug: "rolunk" }],
     ["ro", "/intrebari-frecvente", { kind: "static", page: "faq" }],
     ["sk", "/vyhladavanie", { kind: "search" }],

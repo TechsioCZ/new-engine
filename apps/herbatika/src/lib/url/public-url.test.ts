@@ -19,7 +19,7 @@ describe("public URL API", () => {
   })
 
   it("builds entity indexes, root-static pages, and private flows", () => {
-    expect(buildPath({ kind: "article" }, "sk")).toBe("/poradna")
+    expect(buildPath({ kind: "article" }, "sk")).toBe("/blog")
     expect(buildPath({ kind: "static", page: "faq" }, "hu")).toBe(
       "/gyakori-kerdesek"
     )
@@ -49,10 +49,10 @@ describe("public URL API", () => {
   it("builds a validated hierarchical static URLR snapshot path", () => {
     expect(
       buildAbsoluteUrl(
-        { kind: "staticSnapshot", segments: ["poradna", "spanok"] },
+        { kind: "staticSnapshot", segments: ["blog", "spanok"] },
         "sk"
       ).href
-    ).toBe("https://herbatica.sk/poradna/spanok")
+    ).toBe("https://herbatica.sk/blog/spanok")
     expect(() =>
       buildPath({ kind: "staticSnapshot", segments: ["Not-Canonical"] }, "sk")
     ).toThrow("normalized ASCII")

@@ -117,7 +117,7 @@ describe("CMS hero URL projections", () => {
     })
   })
 
-  it("fails closed when any requested target has no projection", () => {
+  it("degrades a target without a projection to a link-free banner", () => {
     expect(
       mapCmsHeroBannersToPublicTargets(
         [
@@ -134,8 +134,8 @@ describe("CMS hero URL projections", () => {
         { entityPublicSlugsByKind: {}, staticHrefsByRouteKey: {} }
       )
     ).toEqual({
-      causeCode: "MISSING_HERO_ENTITY_PUBLIC_PROJECTION",
-      kind: "invalid-response",
+      kind: "found",
+      value: [baseBanner],
     })
   })
 })

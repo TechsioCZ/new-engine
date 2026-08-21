@@ -209,7 +209,7 @@ export function HerbatikaHeader({
         <Header.Container className="mx-auto flex min-h-header-nav max-w-max-w items-center justify-between px-header-lg 2xl:px-header-2xl">
           <Header.Nav
             aria-label={t("primary_aria")}
-            className="flex-nowrap overflow-x-auto [scrollbar-width:none] md:h-full [&::-webkit-scrollbar]:hidden"
+            className="flex-wrap"
             size="sm"
           >
             {primaryNavItems.map((item) => {
@@ -224,7 +224,7 @@ export function HerbatikaHeader({
                     hasSubmenu ? activeRootHandle === rootHandle : undefined
                   }
                   aria-haspopup={hasSubmenu ? "dialog" : undefined}
-                  className="h-full shrink-0"
+                  className="shrink-0 self-stretch"
                   href={item.href}
                   key={item.href}
                   onFocus={() => handleActivateDesktopItem(rootHandle)}

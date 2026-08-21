@@ -139,14 +139,15 @@ describe("public storefront shell URL projections", () => {
     expect(shell.initialRegion).toMatchObject({ region_id: "reg-sk" })
   })
 
-  it("fails the public shell closed when category projections are incomplete", async () => {
+  it("renders the public shell fail-open when category projections are incomplete", async () => {
     mocks.readRequiredPublicEntitySlugs.mockResolvedValueOnce({
       kind: "missing",
     })
 
-    await expect(loadPublicShell("sk")).rejects.toThrow(
-      "Category URL projections are unavailable"
-    )
+    const shell = await loadPublicShell("sk")
+
+    expect(shell.categoryPublicSlugsById).toEqual({})
+    expect(shell.initialRegion).toMatchObject({ region_id: "reg-sk" })
   })
 
   it("reuses an already hydrated category map without another URLR read", async () => {
@@ -163,7 +164,8 @@ describe("public storefront shell URL projections", () => {
 
     expect(shell.categoryPublicSlugsById).toEqual({})
     expect(shell.footerNavigation).toEqual({ columns: [] })
-    expect(shell.initialRegion).toBeNull()
+    // Currency is not a link — the link-free shell still carries the region.
+    expect(shell.initialRegion).toMatchObject({ region_id: "reg-sk" })
     expect(mocks.fetchCmsFooterNavigation).not.toHaveBeenCalled()
     expect(mocks.readRequiredPublicEntitySlugs).not.toHaveBeenCalled()
   })

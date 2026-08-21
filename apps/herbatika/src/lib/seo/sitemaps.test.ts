@@ -393,8 +393,8 @@ describe("system sitemaps", () => {
           location: "https://herbatica.cz/kolekce",
         },
         {
-          alternates: { "cs-CZ": "https://herbatica.cz/poradna" },
-          location: "https://herbatica.cz/poradna",
+          alternates: { "cs-CZ": "https://herbatica.cz/blog" },
+          location: "https://herbatica.cz/blog",
         },
       ],
     })

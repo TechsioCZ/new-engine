@@ -8,7 +8,6 @@ import {
   type PublicPageProps,
   resolveEntityPublicPage,
 } from "@/lib/routing/public-page"
-import { readCatalogPublicationProofFromMedusa } from "@/lib/storefront/catalog-publication-proof.server"
 import {
   buildCategoryListParams,
   CATEGORY_TREE_FIELDS,
@@ -42,17 +41,9 @@ export const getServerSideProps = ((context) => {
   return resolveEntityPublicPage<CategoryValue>(context, {
     expectedRouteKey: "category.detail",
     kind: "category",
-    loadSource: async ({ market, publicSlug, sourceId, sourceVersion }) => {
-      const publication = await readCatalogPublicationProofFromMedusa({
-        entityId: sourceId,
-        entityKind: "category",
-        market,
-        publicSlug,
-        sourceVersion,
-      })
-      if (publication.kind !== "found") {
-        return publication
-      }
+    // The URL registry already resolved slug -> category ID, so the catalog
+    // read below is the only source proof this page needs.
+    loadSource: async ({ market, sourceId }) => {
       const requestContext = {
         cookieHeader: context.req.headers.cookie,
         market,

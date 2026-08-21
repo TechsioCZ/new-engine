@@ -33,18 +33,6 @@ const binding: ProductRouteSourceMarketBinding = {
 const product = {
   handle: "backend-handle",
   id: "prod_1",
-  metadata: {
-    url_registry_publication: {
-      markets: {
-        sk: {
-          publicationStatus: "published",
-          publicSlug: "vitamin-c",
-          salesChannelId: "sc_sk",
-        },
-      },
-      schemaVersion: 1,
-    },
-  },
   title: "Vitamin C",
   variants: [],
 }
@@ -57,22 +45,7 @@ describe("readProductRouteSourceFromMedusa", () => {
   it("creates its server SDK with the trusted market key, never the global public key", async () => {
     vi.stubEnv("NEXT_PUBLIC_MEDUSA_PUBLISHABLE_KEY", "pk_global_untrusted")
     mocks.getMarketRuntime.mockReturnValue(binding)
-    mocks.fetch.mockImplementation(async (path: string) =>
-      path.includes("/url-registry/products/")
-        ? {
-            entityId: "prod_1",
-            marketCode: "sk",
-            publicSlug: "vitamin-c",
-            salesChannelId: "sc_sk",
-            sourceVersion: "2026-08-19T00:00:00.000Z",
-            translation: {
-              localeCode: "sk-SK",
-              reference: "product",
-              translationId: "trans_1",
-            },
-          }
-        : { product }
-    )
+    mocks.fetch.mockResolvedValue({ product })
     mocks.createMedusaSdk.mockReturnValue({ client: { fetch: mocks.fetch } })
     const { readProductRouteSourceFromMedusa } = await import(
       "./product-route-source.server"
@@ -93,8 +66,39 @@ describe("readProductRouteSourceFromMedusa", () => {
       expect.objectContaining({ publishableKey: "pk_global_untrusted" })
     )
     expect(mocks.fetch).toHaveBeenCalledWith(
-      "/store/url-registry/products/prod_1/source",
-      expect.objectContaining({ query: { market: "sk" } })
+      "/store/products/prod_1",
+      expect.objectContaining({
+        query: expect.objectContaining({ locale: "sk-SK" }),
+      })
+    )
+  })
+})
+
+describe("readProductRouteSourceByHandleFromMedusa", () => {
+  it("lists products by handle without contacting the URL registry", async () => {
+    mocks.getMarketRuntime.mockReturnValue(binding)
+    mocks.fetch.mockClear()
+    mocks.fetch.mockResolvedValue({ products: [product] })
+    mocks.createMedusaSdk.mockReturnValue({ client: { fetch: mocks.fetch } })
+    const { readProductRouteSourceByHandleFromMedusa } = await import(
+      "./product-route-source.server"
+    )
+
+    const result = await readProductRouteSourceByHandleFromMedusa({
+      market: "sk",
+      publicSlug: "backend-handle",
+    })
+
+    expect(result).toEqual({ kind: "found", value: product })
+    expect(mocks.fetch).toHaveBeenCalledWith(
+      "/store/products",
+      expect.objectContaining({
+        query: expect.objectContaining({ handle: "backend-handle" }),
+      })
+    )
+    expect(mocks.fetch).not.toHaveBeenCalledWith(
+      expect.stringContaining("/url-registry/"),
+      expect.anything()
     )
   })
 })

@@ -32,7 +32,8 @@ const UNAVAILABLE_MESSAGE = {
   sk: "Kontaktné údaje momentálne nie sú dostupné.",
 } as const satisfies Record<Market, string>
 
-const resolveSkMessageContact = (
+const resolveMessageContact = (
+  market: Market,
   messages: FlatStorefrontMessages
 ): OperatorContact =>
   parseOperatorContact(
@@ -44,7 +45,7 @@ const resolveSkMessageContact = (
       phoneHref: messages[CONTACT_KEYS.phoneHref],
       socialLinks: [],
     },
-    "SK storefront contact"
+    `${market.toUpperCase()} storefront contact`
   )
 
 const unavailableMessages = (
@@ -74,9 +75,10 @@ const resolveContactAuthority = (
   authorityEnv: string | undefined
 ): ResolvedContactAuthority | null => {
   if (!authorityEnv) {
-    return market === "sk"
-      ? { contact: resolveSkMessageContact(messages), source: "sk-existing" }
-      : null
+    return {
+      contact: resolveMessageContact(market, messages),
+      source: "sk-existing",
+    }
   }
   const files = parseOperatorContactAuthorityEnv(authorityEnv).find(
     (candidate) => candidate.market === market
@@ -87,9 +89,10 @@ const resolveContactAuthority = (
       source: "reviewed",
     }
   }
-  return market === "sk"
-    ? { contact: resolveSkMessageContact(messages), source: "sk-existing" }
-    : null
+  return {
+    contact: resolveMessageContact(market, messages),
+    source: "sk-existing",
+  }
 }
 
 export const applyOperatorContactAuthority = (
@@ -101,12 +104,9 @@ export const applyOperatorContactAuthority = (
   try {
     resolved = resolveContactAuthority(market, messages, authorityEnv)
   } catch {
-    if (market !== "sk") {
-      return unavailableMessages(market, messages)
-    }
     try {
       resolved = {
-        contact: resolveSkMessageContact(messages),
+        contact: resolveMessageContact(market, messages),
         source: "sk-existing",
       }
     } catch {

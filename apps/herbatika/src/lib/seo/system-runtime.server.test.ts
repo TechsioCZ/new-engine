@@ -217,13 +217,12 @@ describe("system sitemap source wiring", () => {
     })
   })
 
-  it("keeps the Romanian demo hero out of homepage publication", async () => {
+  it("publishes the RO homepage from the approved bundled hero source", async () => {
     mocks.fetchHeroBanners.mockResolvedValue([])
 
     await expect(
       systemSitemapDependencies.validateHomepageSource("ro")
-    ).resolves.toEqual({ kind: "unavailable" })
-    expect(mocks.hydrateHeroBanners).not.toHaveBeenCalled()
+    ).resolves.toEqual({ kind: "found", value: true })
   })
 
   it.each([

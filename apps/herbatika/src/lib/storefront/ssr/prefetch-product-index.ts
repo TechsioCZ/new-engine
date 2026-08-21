@@ -40,6 +40,11 @@ export const prefetchProductIndexStorefrontData = async (
       region,
       totalPages: catalog.totalPages,
       visibleProductIds: catalog.products.map((product) => product.id),
+      visibleProductSlugsById: Object.fromEntries(
+        catalog.products.flatMap((product) =>
+          product.handle ? [[product.id, product.handle]] : []
+        )
+      ),
     }
   }
 
@@ -48,5 +53,6 @@ export const prefetchProductIndexStorefrontData = async (
     region,
     totalPages: 0,
     visibleProductIds: [] as string[],
+    visibleProductSlugsById: {} as Record<string, string>,
   }
 }

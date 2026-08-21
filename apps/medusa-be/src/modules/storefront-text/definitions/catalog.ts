@@ -17,6 +17,11 @@ export const STOREFRONT_CATALOG_TEXT_DEFINITIONS = [
     namespace: "catalog",
   },
   {
+    description: "Prázdný stav přehledu značek bez dostupných značek.",
+    key: "catalog.brands.empty",
+    namespace: "catalog",
+  },
+  {
     description: "SEO titulek abecedního přehledu všech značek.",
     key: "catalog.brands.metadata.index_title",
     namespace: "catalog",

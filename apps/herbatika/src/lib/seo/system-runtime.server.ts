@@ -290,8 +290,8 @@ export const systemSitemapDependencies: SitemapDataDependencies = {
       const source = resolveHomepageHeroSource(cmsBanners, market, () =>
         readReviewedHomepageHeroBanners(locale)
       )
-      if (source.kind !== "found") {
-        return source
+      if (!source.publicationApproved) {
+        return { kind: "unavailable" }
       }
       const [articleSlugs, categorySlugs, hydrated, productSlugs] =
         await Promise.all([

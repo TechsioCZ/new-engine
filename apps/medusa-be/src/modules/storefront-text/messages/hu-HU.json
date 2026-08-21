@@ -564,6 +564,20 @@
         "also_bought": "Mások ezeket is megvették",
         "products": "Kapcsolódó termékek",
         "found": "Találatok: {count}"
+      },
+      "option_titles": {
+        "color": "Szín",
+        "dimensions": "Méretek",
+        "flavor": "Íz",
+        "packaging": "Kiszerelés",
+        "size": "Méret",
+        "variant": "Változat",
+        "volume": "Űrtartalom",
+        "weight": "Tömeg"
+      },
+      "option_values": {
+        "capsules": "kapszula",
+        "tablets": "tabletta"
       }
     },
     "reviews": {
@@ -646,6 +660,7 @@
       "label": "Márkák",
       "all_title": "Összes márka A-tól Z-ig",
       "list_aria": "Márkák betűrend szerinti listája",
+      "empty": "A márkalistát hamarosan elérhetővé tesszük.",
       "metadata": {
         "index_title": "Összes márka A-tól Z-ig | Herbatica",
         "index_description": "A Herbatica webáruházban elérhető összes márka betűrendben.",
@@ -767,7 +782,8 @@
     "blog": {
       "listing": {
         "title": "Egészség- és szépségblog",
-        "description": "Szakértőink cikkei az egészségről, szépségápolásról, táplálkozásról és wellnessről."
+        "description": "Szakértőink cikkei az egészségről, szépségápolásról, táplálkozásról és wellnessről.",
+        "filter_all": "Összes"
       },
       "card": {
         "open_article": "Cikk megnyitása"

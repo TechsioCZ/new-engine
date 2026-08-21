@@ -37,7 +37,7 @@ const EXPECTED_SEGMENTS = {
       brands: "znacky",
       collections: "kolekcie",
       campaigns: "akcie",
-      advice: "poradna",
+      advice: "blog",
       information: "informacie",
     },
     flowRoots: {
@@ -89,7 +89,7 @@ const EXPECTED_SEGMENTS = {
       brands: "znacky",
       collections: "kolekce",
       campaigns: "akce",
-      advice: "poradna",
+      advice: "blog",
       information: "informace",
     },
     flowRoots: {
@@ -141,7 +141,7 @@ const EXPECTED_SEGMENTS = {
       brands: "markak",
       collections: "gyujtemenyek",
       campaigns: "akciok",
-      advice: "tanacsok",
+      advice: "blog",
       information: "informaciok",
     },
     flowRoots: {
@@ -193,7 +193,7 @@ const EXPECTED_SEGMENTS = {
       brands: "marci",
       collections: "colectii",
       campaigns: "promotii",
-      advice: "sfaturi",
+      advice: "blog",
       information: "informatii",
     },
     flowRoots: {

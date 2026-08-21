@@ -24,7 +24,7 @@ export const getServerSideProps = (async (context) =>
         : ({ kind: "missing" } as const)
     },
     queryKind: "information-detail",
-    title: (page) => page.meta?.title ?? page.title ?? "Herbatica",
+    title: (page) => page.meta?.title ?? page.title ?? undefined,
   })) satisfies GetServerSideProps<Props>
 
 export default function InformationPage({ page }: Props) {

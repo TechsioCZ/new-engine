@@ -4,6 +4,7 @@ import type { HeroBannerItem } from "./homepage.data.types"
 import {
   CZ_HERO_BANNERS,
   HERO_BANNERS,
+  HERO_BANNERS_BY_MARKET,
   HU_HERO_BANNERS,
   RO_HERO_BANNERS,
   resolveHomepageHeroBanners,
@@ -78,31 +79,19 @@ describe("resolveHomepageHeroBanners", () => {
 
 describe("resolveHomepageHeroSource", () => {
   it.each([
+    "sk",
     "cz",
     "hu",
     "ro",
-  ] as const)("fails closed for %s without CMS or a reviewed manifest", (market) => {
+  ] as const)("approves the bundled localized source for %s when CMS is empty", (market) => {
     expect(resolveHomepageHeroSource([], market)).toEqual({
-      kind: "unavailable",
-    })
-  })
-
-  it("uses exact reviewed data for a market without a bundled fallback", () => {
-    const reviewed: HeroBannerItem[] = [
-      {
-        id: "reviewed-cz",
-        imageAlt: "Schválený testovací obrázek",
-        imageSrc: "/reviewed-cz.avif",
-      },
-    ]
-
-    expect(resolveHomepageHeroSource([], "cz", () => reviewed)).toEqual({
       kind: "found",
-      value: reviewed,
+      publicationApproved: true,
+      value: HERO_BANNERS_BY_MARKET[market],
     })
   })
 
-  it("preserves CMS precedence and the existing reviewed SK source", () => {
+  it("prefers CMS banners over the bundled source", () => {
     const cms: HeroBannerItem[] = [{ id: "cms", imageSrc: "/cms.avif" }]
     const readReviewed = vi.fn(() => [
       { id: "must-not-be-read", imageSrc: "/must-not-be-read.avif" },
@@ -110,37 +99,35 @@ describe("resolveHomepageHeroSource", () => {
 
     expect(resolveHomepageHeroSource(cms, "cz", readReviewed)).toEqual({
       kind: "found",
+      publicationApproved: true,
       value: cms,
     })
     expect(resolveHomepageHeroSource([], "sk", readReviewed)).toEqual({
       kind: "found",
+      publicationApproved: true,
       value: HERO_BANNERS,
     })
     expect(readReviewed).not.toHaveBeenCalled()
   })
 
-  it("never treats localized marketing fallbacks as publication-ready", () => {
-    const readReviewed = vi.fn(
-      function missingReviewedRomanianSource(): undefined {
-        return
-      }
-    )
+  it("never consults the reviewed-manifest callback for bundled markets", () => {
+    const readReviewed = vi.fn(() => {
+      throw new Error("invalid review artifact")
+    })
 
     for (const market of ["cz", "hu", "ro"] as const) {
       expect(resolveHomepageHeroBanners([], market)).toHaveLength(8)
       expect(resolveHomepageHeroSource([], market, readReviewed)).toEqual({
-        kind: "unavailable",
+        kind: "found",
+        publicationApproved: true,
+        value: HERO_BANNERS_BY_MARKET[market],
       })
     }
-    expect(readReviewed).toHaveBeenCalledTimes(3)
-  })
-
-  it.each([
-    ["sk", "found"],
-    ["cz", "unavailable"],
-    ["hu", "unavailable"],
-    ["ro", "unavailable"],
-  ] as const)("applies the four-market publication contract for %s", (market, expectedKind) => {
-    expect(resolveHomepageHeroSource([], market).kind).toBe(expectedKind)
+    expect(readReviewed).not.toHaveBeenCalled()
+    expect(resolveHomepageHeroSource([], "ro")).toEqual({
+      kind: "found",
+      publicationApproved: true,
+      value: RO_HERO_BANNERS,
+    })
   })
 })

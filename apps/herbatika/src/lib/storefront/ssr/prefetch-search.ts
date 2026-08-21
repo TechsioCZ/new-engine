@@ -57,6 +57,11 @@ export const prefetchSearchPageStorefrontData = async (
       dehydratedState: dehydrate(queryClient),
       region,
       visibleProductIds: catalog.products.map((product) => product.id),
+      visibleProductSlugsById: Object.fromEntries(
+        catalog.products.flatMap((product) =>
+          product.handle ? [[product.id, product.handle]] : []
+        )
+      ),
     }
   }
 
@@ -64,5 +69,6 @@ export const prefetchSearchPageStorefrontData = async (
     region,
     dehydratedState: dehydrate(queryClient),
     visibleProductIds: [] as string[],
+    visibleProductSlugsById: {} as Record<string, string>,
   }
 }

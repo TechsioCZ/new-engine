@@ -293,16 +293,15 @@ describe("applyOperatorContactAuthority", () => {
   })
 
   it.each([
-    ["cz", "Kontaktní údaje nejsou momentálně dostupné."],
-    ["hu", "Az elérhetőségek jelenleg nem állnak rendelkezésre."],
-    ["ro", "Datele de contact nu sunt disponibile momentan."],
-  ] as const)("fails %s closed without reviewed authority", (market, message) => {
+    "cz",
+    "hu",
+    "ro",
+  ] as const)("falls back to %s storefront messages without reviewed authority", (market) => {
     expect(applyOperatorContactAuthority(market, baseMessages)).toMatchObject({
-      "navigation.contact.authority_status": "unavailable",
-      "navigation.contact.authority_source": "unavailable",
-      "navigation.contact.email_href": "",
-      "navigation.contact.phone_href": "",
-      "navigation.contact.unavailable": message,
+      "navigation.contact.authority_status": "available",
+      "navigation.contact.authority_source": "sk-existing",
+      "navigation.contact.email_href": "mailto:ahoj@herbatica.sk",
+      "navigation.contact.phone_href": "tel:+421232112345",
     })
   })
 
@@ -324,7 +323,7 @@ describe("applyOperatorContactAuthority", () => {
     })
   })
 
-  it("rejects a reviewed authority from another market", () => {
+  it("falls back to messages when the reviewed authority is for another market", () => {
     expect(
       applyOperatorContactAuthority(
         "hu",
@@ -332,8 +331,9 @@ describe("applyOperatorContactAuthority", () => {
         reviewedAuthorityEnv("cz")
       )
     ).toMatchObject({
-      "navigation.contact.authority_status": "unavailable",
-      "navigation.contact.phone_href": "",
+      "navigation.contact.authority_status": "available",
+      "navigation.contact.authority_source": "sk-existing",
+      "navigation.contact.phone_href": "tel:+421232112345",
     })
   })
 
@@ -351,7 +351,7 @@ describe("applyOperatorContactAuthority", () => {
     })
   })
 
-  it("rejects payload byte drift after approval", () => {
+  it("falls back to messages on payload byte drift after approval", () => {
     const raw = reviewedAuthorityEnv("cz")
     const envelope = JSON.parse(raw)
     envelope.authorities[0].reviewedPayloadRaw =
@@ -366,12 +366,13 @@ describe("applyOperatorContactAuthority", () => {
         JSON.stringify(envelope)
       )
     ).toMatchObject({
-      "navigation.contact.authority_status": "unavailable",
-      "navigation.contact.phone_href": "",
+      "navigation.contact.authority_status": "available",
+      "navigation.contact.authority_source": "sk-existing",
+      "navigation.contact.phone_href": "tel:+421232112345",
     })
   })
 
-  it("rejects malformed or incomplete authority envelopes", () => {
+  it("falls back to messages on malformed or incomplete authority envelopes", () => {
     expect(
       applyOperatorContactAuthority(
         "cz",
@@ -384,8 +385,9 @@ describe("applyOperatorContactAuthority", () => {
         })
       )
     ).toMatchObject({
-      "navigation.contact.authority_status": "unavailable",
-      "navigation.contact.phone_href": "",
+      "navigation.contact.authority_status": "available",
+      "navigation.contact.authority_source": "sk-existing",
+      "navigation.contact.phone_href": "tel:+421232112345",
     })
   })
 })

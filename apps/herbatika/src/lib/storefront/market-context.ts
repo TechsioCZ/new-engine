@@ -100,7 +100,7 @@ const MARKET_CONFIG = {
     countryCode: "sk",
     currencyCode: "EUR",
     metadata: {
-      title: "Herbatica",
+      title: "Herbatica.sk",
       description: "Herbatica e-shop - prírodné produkty",
     },
     timeZone: "Europe/Bratislava",
@@ -112,7 +112,7 @@ const MARKET_CONFIG = {
     countryCode: "cz",
     currencyCode: "CZK",
     metadata: {
-      title: "Herbatica",
+      title: "Herbatica.cz",
       description: "Herbatica e-shop - přírodní produkty",
     },
     timeZone: "Europe/Prague",
@@ -124,7 +124,7 @@ const MARKET_CONFIG = {
     countryCode: "hu",
     currencyCode: "HUF",
     metadata: {
-      title: "Herbatica",
+      title: "Herbatica.hu",
       description: "Herbatica webáruház - természetes termékek",
     },
     timeZone: "Europe/Budapest",
@@ -136,7 +136,7 @@ const MARKET_CONFIG = {
     countryCode: "ro",
     currencyCode: "RON",
     metadata: {
-      title: "Herbatica",
+      title: "Herbatica.ro",
       description: "Herbatica magazin online - produse naturale",
     },
     timeZone: "Europe/Bucharest",

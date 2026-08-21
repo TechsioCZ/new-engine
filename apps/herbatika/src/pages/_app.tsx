@@ -44,7 +44,8 @@ function PublicSeoHead({
     alternates: seo.alternates,
     locale: marketContext.locale,
   })
-  const title = seo.title ?? marketContext.metadata.title
+  const brandTitle = marketContext.metadata.title
+  const title = seo.title ? `${seo.title} | ${brandTitle}` : brandTitle
   const description = seo.description ?? marketContext.metadata.description
   return (
     <Head>

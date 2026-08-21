@@ -2,7 +2,6 @@ import NextImage from "next/image"
 import { useTranslations } from "next-intl"
 import { useEffect, useRef } from "react"
 import type { HomepagePromoContent } from "@/components/homepage/homepage.data.types"
-import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { sanitizeHomepagePromoHtml } from "./homepage-promo-html"
 
 const HOMEPAGE_PROMO_SECTION_ID = "homepage-promo"
@@ -17,9 +16,7 @@ type HomepagePromoSectionProps = {
 export function HomepagePromoSection({ promo }: HomepagePromoSectionProps) {
   const sectionRef = useRef<HTMLElement>(null)
   const tContent = useTranslations("content")
-  const { code: market } = useMarketContext()
   const contentHtml = sanitizeHomepagePromoHtml(promo?.contentHtml ?? "")
-  const hasLocalizedPromo = Boolean(promo?.heading.trim() && contentHtml)
   const imageAlt = promo?.imageAlt || tContent("home.promo.image_alt")
   const imageSrc = promo?.imageSrc || DEFAULT_IMAGE_SRC
 
@@ -28,10 +25,6 @@ export function HomepagePromoSection({ promo }: HomepagePromoSectionProps) {
       sectionRef.current?.scrollIntoView({ block: "start" })
     }
   }, [])
-
-  if (market !== "sk" && !hasLocalizedPromo) {
-    return null
-  }
 
   return (
     <section

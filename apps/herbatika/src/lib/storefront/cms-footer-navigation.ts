@@ -18,11 +18,12 @@ const MARKET_BY_LOCALE = {
   "sk-SK": "sk",
 } as const satisfies Record<HerbatikaLocale, Market>
 
+// The brand index stays reachable by URL, but the catalog currently ships
+// without brand records, so the fallback footer does not advertise it.
 const FALLBACK_INFORMATION_ITEMS = [
   { slot: "blog", target: { kind: "article" } },
   { slot: "about", target: { kind: "static", page: "about" } },
   { slot: "faq", target: { kind: "static", page: "faq" } },
-  { slot: "brands", target: { kind: "brand" } },
 ] as const satisfies readonly {
   slot: "about" | "blog" | "brands" | "faq"
   target: PublicRouteTarget

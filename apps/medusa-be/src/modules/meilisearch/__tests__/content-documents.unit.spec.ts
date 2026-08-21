@@ -16,10 +16,10 @@ describe("content search documents", () => {
         },
         "article",
         "sk-SK",
-        "/poradna/urlr-canonical-slug"
+        "/blog/urlr-canonical-slug"
       )
     ).toMatchObject({
-      href: "/poradna/urlr-canonical-slug",
+      href: "/blog/urlr-canonical-slug",
       id: "article_42",
       source_id: "42",
       type: "article",
@@ -29,15 +29,15 @@ describe("content search documents", () => {
   it.each([
     undefined,
     "",
-    " /poradna/article",
-    "https://attacker.example/poradna/article",
+    " /blog/article",
+    "https://attacker.example/blog/article",
     "//attacker.example/article",
     "/~sf/sk/advice/article",
     "/api/content/article",
-    "/poradna/article?preview=true",
-    "/poradna/article#draft",
-    "/poradna/../article",
-    "/poradna/article/",
+    "/blog/article?preview=true",
+    "/blog/article#draft",
+    "/blog/../article",
+    "/blog/article/",
   ])("fails closed for a non-canonical public href %s", (publicHref) => {
     expect(
       buildContentSearchDocument(
@@ -65,7 +65,7 @@ describe("content search documents", () => {
       buildContentSearchDocument(
         {
           id: "article_1",
-          public_href: "/poradna/cms-controlled",
+          public_href: "/blog/cms-controlled",
           slug: "cms-controlled",
         },
         "article",
@@ -76,7 +76,7 @@ describe("content search documents", () => {
   })
 
   it.each([
-    "/poradna/article",
+    "/blog/article",
     "/informace/kontakt",
     "/",
   ])("accepts a public path %s", (href) => {

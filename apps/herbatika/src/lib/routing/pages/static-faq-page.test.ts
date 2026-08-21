@@ -5,11 +5,18 @@ const mocks = vi.hoisted(() => ({
   fetchCmsFooterNavigation: vi.fn(async () => ({ columns: [] })),
   fetchExternalReviewTrustSources: vi.fn(async () => []),
   fetchStorefrontTextMessages: vi.fn(async () => ({})),
-  getFaqPageData: vi.fn(() => null),
-  getHerbatikaMarketContext: vi.fn(() => ({
-    code: "cz",
-    locale: "cs-CZ",
-  })),
+  getFaqPageData: vi.fn(
+    (): { intro: string; items: never[]; title: string } | null => null
+  ),
+  getHerbatikaMarketContext: vi.fn((market: "cz" | "hu" | "ro" | "sk") => {
+    const localeByMarket = {
+      cz: "cs-CZ",
+      hu: "hu-HU",
+      ro: "ro-RO",
+      sk: "sk-SK",
+    } as const
+    return { code: market, locale: localeByMarket[market] }
+  }),
   getRegionServerContext: vi.fn(async () => ({ region: null })),
   readRequiredPublicEntitySlugs: vi.fn(async () => ({
     kind: "found",
@@ -27,7 +34,7 @@ vi.mock("@/components/faq/faq-page.data", () => ({
 }))
 vi.mock("@/lib/market/market-runtime.server", () => ({
   getConfiguredMarketRoutingRuntime: vi.fn(() => ({
-    allowedMarkets: ["cz", "ro"],
+    allowedMarkets: ["sk", "cz", "hu", "ro"],
     bindings: {
       cz: {
         acceptedHosts: ["herbatica.cz"],
@@ -39,8 +46,23 @@ vi.mock("@/lib/market/market-runtime.server", () => ({
         canonicalOrigin: "https://herbatica.ro",
         market: "ro",
       },
+      hu: {
+        acceptedHosts: ["herbatica.hu"],
+        canonicalOrigin: "https://herbatica.hu",
+        market: "hu",
+      },
+      sk: {
+        acceptedHosts: ["herbatica.sk"],
+        canonicalOrigin: "https://herbatica.sk",
+        market: "sk",
+      },
     },
-    marketByHost: { "herbatica.cz": "cz", "herbatica.ro": "ro" },
+    marketByHost: {
+      "herbatica.cz": "cz",
+      "herbatica.hu": "hu",
+      "herbatica.ro": "ro",
+      "herbatica.sk": "sk",
+    },
   })),
 }))
 vi.mock("@/lib/storefront/cms", () => ({
@@ -129,6 +151,46 @@ describe("localized FAQ route", () => {
     expect(request.headers.get("cache-control")).toBe(
       "private, no-store, max-age=0, must-revalidate"
     )
+  })
+
+  it.each(
+    (["sk", "cz", "hu", "ro"] as const).flatMap((market) => [
+      [market, "about"],
+      [market, "faq"],
+    ])
+  )("renders %s %s as noindex when G1 evidence is absent", async (market, pageKey) => {
+    const { loadStaticRoutePublicationDecision } = await import(
+      "@/lib/url/segment-registry-publication.server"
+    )
+    mocks.getFaqPageData.mockReturnValueOnce({
+      intro: "Întrebări și răspunsuri generale.",
+      items: [],
+      title: "Întrebări frecvente",
+    })
+    vi.mocked(loadStaticRoutePublicationDecision).mockResolvedValueOnce({
+      kind: "rejected",
+      reason: "artifact-unavailable",
+    })
+    const request = requestContext(pageKey, market)
+
+    const result = await getServerSideProps(request.context)
+
+    expect(result).toMatchObject({
+      props: {
+        page: {
+          kind: "found",
+          value: { kind: pageKey, publicationApproved: false },
+        },
+        seo: { alternates: {}, robots: "noindex, follow" },
+      },
+    })
+    expect(
+      (result as { props: { seo: { canonical?: string } } }).props.seo.canonical
+    ).toBeUndefined()
+    expect(request.context.res.statusCode).toBe(200)
+    expect(request.headers.get("x-robots-tag")).toBe("noindex, follow")
+    expect(request.headers.get("retry-after")).toBeUndefined()
+    expect(mocks.readRequiredPublicEntitySlugs).not.toHaveBeenCalled()
   })
 
   it("keeps a real CMS page noindex when the market taxonomy excludes it from G1", async () => {

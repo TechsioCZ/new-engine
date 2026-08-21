@@ -29,8 +29,9 @@ type StaticValue =
       kind: "about"
       locale: HerbatikaLocale
       publicationApproved: boolean
+      title: string
     }>
-  | Readonly<{ kind: "faq"; publicationApproved: boolean }>
+  | Readonly<{ kind: "faq"; publicationApproved: boolean; title: string }>
   | Readonly<{
       kind: "cms"
       page: CmsPage
@@ -43,18 +44,13 @@ const isStaticPageKey = (value: unknown): value is StaticRootPageKey =>
   typeof value === "string" &&
   (STATIC_ROOT_PAGE_KEYS as readonly string[]).includes(value)
 
-type AvailablePublication = Exclude<
-  StaticRoutePublicationDecision,
-  Readonly<{ kind: "rejected" }>
->
-
 const invalidStaticSource = (causeCode: string) =>
   ({ causeCode, kind: "invalid-response" }) as const
 
 const isReviewedSource = async (
   market: Market,
   pageKey: StaticRootPageKey,
-  publication: AvailablePublication,
+  publication: StaticRoutePublicationDecision,
   renderedSource: unknown
 ): Promise<boolean> => {
   if (publication.kind !== "approved") {
@@ -75,7 +71,7 @@ const isReviewedSource = async (
 
 const loadAboutSource = async (
   market: Market,
-  publication: AvailablePublication
+  publication: StaticRoutePublicationDecision
 ) => {
   const locale = getHerbatikaMarketContext(market).locale
   const pageData = getAboutPageData(locale)
@@ -91,13 +87,14 @@ const loadAboutSource = async (
       kind: "about",
       locale,
       publicationApproved: publication.kind === "approved",
+      title: pageData.hero.title,
     },
   } as const
 }
 
 const loadFaqSource = async (
   market: Market,
-  publication: AvailablePublication
+  publication: StaticRoutePublicationDecision
 ) => {
   const locale = getHerbatikaMarketContext(market).locale
   const pageData = getFaqPageData(locale)
@@ -112,6 +109,7 @@ const loadFaqSource = async (
     value: {
       kind: "faq",
       publicationApproved: publication.kind === "approved",
+      title: pageData.title,
     },
   } as const
 }
@@ -119,7 +117,7 @@ const loadFaqSource = async (
 const loadCmsSource = async (
   market: Market,
   pageKey: StaticRootPageKey,
-  publication: AvailablePublication
+  publication: StaticRoutePublicationDecision
 ) => {
   const result = await readCmsStaticPageWithDemoFallback(
     pageKey,
@@ -152,14 +150,14 @@ const loadStaticSource = async (market: Market, pageKey: StaticRootPageKey) => {
     market,
     routeKey: pageKey,
   })
-  if (publication.kind === "rejected") {
-    return { kind: "unavailable", retryAfterSeconds: 30 } as const
-  }
   if (pageKey === "about") {
     return loadAboutSource(market, publication)
   }
   if (pageKey === "faq") {
     return loadFaqSource(market, publication)
+  }
+  if (publication.kind === "rejected") {
+    return { kind: "unavailable", retryAfterSeconds: 30 } as const
   }
   return loadCmsSource(market, pageKey, publication)
 }
@@ -179,8 +177,9 @@ export const getServerSideProps = ((context) => {
       (value.kind !== "cms" || !isRoDemoStaticPage(value.page)),
     title: (value) =>
       value.kind === "cms"
-        ? (value.page.meta?.title ?? value.page.title ?? "Herbatica")
-        : "Herbatica",
+        ? (value.page.meta?.title ?? value.page.title ?? undefined)
+        : value.title,
+    useLinkFreeShellWhenNoindex: true,
   })
 }) satisfies GetServerSideProps<Props>
 

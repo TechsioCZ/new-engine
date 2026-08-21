@@ -15,10 +15,18 @@ import {
   readRequiredPublicEntitySlugs,
 } from "@/lib/storefront/ssr/public-entity-projections"
 
+const SEARCH_PAGE_TITLE = {
+  sk: "Vyhľadávanie",
+  cz: "Vyhledávání",
+  hu: "Keresés",
+  ro: "Căutare",
+} as const
+
 type Props = PublicPageProps<
   Readonly<{
     dehydratedState: DehydratedState
     productPublicSlugsById: PublicEntitySlugMap
+    title: string
   }>
 >
 
@@ -42,15 +50,18 @@ export const getServerSideProps = ((context) => {
         market,
         requiredSourceIds: result.visibleProductIds,
       })
-      if (productPublicSlugsById.kind !== "found") {
-        return productPublicSlugsById
-      }
+      // Registry projections are optional: Medusa handles are the public slugs.
       return foundSource({
         dehydratedState: result.dehydratedState,
-        productPublicSlugsById: productPublicSlugsById.value,
+        productPublicSlugsById:
+          productPublicSlugsById.kind === "found"
+            ? productPublicSlugsById.value
+            : result.visibleProductSlugsById,
+        title: SEARCH_PAGE_TITLE[market],
       })
     },
     query: { kind: "search", path: { kind: "search" } },
+    title: (value) => value.title,
   })
 }) satisfies GetServerSideProps<Props>
 

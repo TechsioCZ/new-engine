@@ -515,6 +515,20 @@
         "also_bought": "Ďalšie kúpil tiež",
         "products": "Súvisiace produkty",
         "found": "Nájdené: {count}"
+      },
+      "option_titles": {
+        "color": "Farba",
+        "dimensions": "Rozmer",
+        "flavor": "Príchuť",
+        "packaging": "Balenie",
+        "size": "Veľkosť",
+        "variant": "Varianta",
+        "volume": "Objem",
+        "weight": "Hmotnosť"
+      },
+      "option_values": {
+        "capsules": "kapsúl",
+        "tablets": "tabliet"
       }
     },
     "reviews": {
@@ -597,6 +611,7 @@
       "label": "Značky",
       "all_title": "Všetky značky A-Z",
       "list_aria": "Zoznam značiek podľa abecedy",
+      "empty": "Zoznam značiek pre vás pripravujeme.",
       "metadata": {
         "index_title": "Všetky značky A-Z | Herbatica",
         "index_description": "Prehľad všetkých značiek dostupných v e-shope Herbatica zoradený podľa abecedy.",
@@ -718,7 +733,8 @@
     "blog": {
       "listing": {
         "title": "Blog o zdraví a kráse",
-        "description": "Články o zdraví, kráse, stravovaní a wellness od našich odborníkov."
+        "description": "Články o zdraví, kráse, stravovaní a wellness od našich odborníkov.",
+        "filter_all": "Všetky"
       },
       "card": {
         "open_article": "Prejsť na článok"

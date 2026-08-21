@@ -109,8 +109,10 @@ export const loadPublicShell = async (
     categoryProjections,
     regionContext,
   ] = await Promise.all([
-    fetchStorefrontTextMessages(marketContext),
-    fetchExternalReviewTrustSources(market),
+    fetchStorefrontTextMessages(marketContext).catch(() =>
+      applyOperatorContactAuthority(market, {})
+    ),
+    fetchExternalReviewTrustSources(market).catch(() => []),
     fetchCmsFooterNavigation(marketContext.locale).catch(() => ({
       columns: [],
     })),
@@ -122,11 +124,9 @@ export const loadPublicShell = async (
       : readRequiredPublicEntitySlugs({ kind: "category", market }),
     getRegionServerContext({ market }),
   ])
-  if (categoryProjections.kind !== "found") {
-    throw new Error("Category URL projections are unavailable")
-  }
   return {
-    categoryPublicSlugsById: categoryProjections.value,
+    categoryPublicSlugsById:
+      categoryProjections.kind === "found" ? categoryProjections.value : {},
     footerNavigation,
     initialRegion: regionContext.region,
     marketContext,
@@ -142,16 +142,19 @@ export const loadPublicErrorShell = async (
     market,
     new URL(configuredCanonicalOrigin(market)).hostname
   )
-  const [flatMessages, reviewTrustSources] = await Promise.all([
+  const [flatMessages, reviewTrustSources, regionContext] = await Promise.all([
     fetchStorefrontTextMessages(marketContext).catch(() =>
       applyOperatorContactAuthority(market, {})
     ),
     fetchExternalReviewTrustSources(market).catch(() => []),
+    // The link-free shell exists to keep crawlable links off noindex pages;
+    // currency is not a link, so the header still needs the market region.
+    getRegionServerContext({ market }).catch(() => null),
   ])
   return {
     categoryPublicSlugsById: {},
     footerNavigation: { columns: [] },
-    initialRegion: null,
+    initialRegion: regionContext?.region ?? null,
     marketContext,
     messages: nestStorefrontMessages(flatMessages),
     reviewTrustSources,
@@ -421,7 +424,7 @@ export const resolveEntityPublicPage = async <Value>(
     isIndexable?: (value: Value) => boolean
     lastPage?: (value: Value) => number | undefined
     queryKind: QueryRouteKind
-    title?: (value: Value) => string
+    title?: (value: Value) => string | undefined
   }>
 ): Promise<GetServerSidePropsResult<PublicPageProps<Value>>> => {
   const market = trustedMarket(context, input.expectedRouteKey)
@@ -477,25 +480,14 @@ export const resolveEntityPublicPage = async <Value>(
     if (!hasValidActiveProjection(sourceProjection, market, input.kind)) {
       return errorResult(context, market, 503)
     }
-    const sourceVersions = await readCurrentEntitySourceVersions(
-      [sourceProjection],
-      runtime.registry
-    )
-    if (sourceVersions.kind === "unavailable") {
-      return errorResult(context, market, 503, sourceVersions.retryAfterSeconds)
-    }
-    if (sourceVersions.kind !== "found") {
-      return errorResult(context, market, 503)
-    }
-    const sourceVersion = sourceVersions.value[0]?.sourceVersion
-    if (!sourceVersion) {
-      return errorResult(context, market, 503)
-    }
+    // The registry route is the authority for slug -> source identity; page
+    // sources no longer consume the audit-log source version, so a constant
+    // satisfies the input shape without blocking rendering on audit history.
     const source = await input.loadSource({
       market,
       publicSlug: resolution.value.currentSlug.normalizedSlug,
       sourceId: sourceRoute.sourceId,
-      sourceVersion,
+      sourceVersion: "1",
     })
     if (source.kind === "missing") {
       return notFoundResult(context)
@@ -557,22 +549,23 @@ export const resolveEntityPublicPage = async <Value>(
         )
       : undefined
     setNoStore(context)
+    const description = input.description?.(source.value)
+    const title = input.title?.(source.value)
     return {
       props: {
         ...(await loadPublicShell(market)),
         page: { kind: "found", value: source.value },
         seo: {
           alternates,
-          canonical,
+          ...(canonical ? { canonical } : {}),
           robots: isIndexable ? "index, follow" : "noindex, follow",
-          ...(input.description
-            ? { description: input.description(source.value) }
-            : {}),
-          ...(input.title ? { title: input.title(source.value) } : {}),
+          ...(description === undefined ? {} : { description }),
+          ...(title === undefined ? {} : { title }),
         },
       },
     }
-  } catch {
+  } catch (error) {
+    console.error("resolveStaticPublicPage failed", error)
     return errorResult(context, market, 503)
   }
 }
@@ -586,7 +579,8 @@ export const resolveStaticPublicPage = async <Value>(
     lastPage?: (value: Value) => number | undefined
     path: Parameters<typeof buildPath>[0]
     queryKind: QueryRouteKind
-    title?: (value: Value) => string
+    title?: (value: Value) => string | undefined
+    useLinkFreeShellWhenNoindex?: boolean
   }>
 ): Promise<GetServerSidePropsResult<PublicPageProps<Value>>> => {
   const market = trustedMarket(context, input.expectedRouteKey)
@@ -613,6 +607,9 @@ export const resolveStaticPublicPage = async <Value>(
   }
   try {
     const source = await input.loadSource(market)
+    if (source.kind !== "found") {
+      console.error("resolveStaticPublicPage source rejected", source)
+    }
     if (source.kind === "missing") {
       return notFoundResult(context)
     }
@@ -654,16 +651,22 @@ export const resolveStaticPublicPage = async <Value>(
             input.isIndexable
           )
         : {}
+    if (!isIndexable) {
+      context.res.setHeader("X-Robots-Tag", "noindex, follow")
+    }
     setNoStore(context)
+    const title = input.title?.(source.value)
     return {
       props: {
-        ...(await loadPublicShell(market)),
+        ...(await (input.useLinkFreeShellWhenNoindex && !isIndexable
+          ? loadPublicErrorShell(market)
+          : loadPublicShell(market))),
         page: { kind: "found", value: source.value },
         seo: {
           alternates,
-          canonical,
+          ...(canonical ? { canonical } : {}),
           robots: isIndexable ? "index, follow" : "noindex, follow",
-          ...(input.title ? { title: input.title(source.value) } : {}),
+          ...(title === undefined ? {} : { title }),
         },
       },
     }
@@ -681,6 +684,7 @@ export const resolveFlowPublicPage = async <Value>(
       kind: QueryRouteKind
       path: Parameters<typeof buildPath>[0]
     }>
+    title?: (value: Value) => string | undefined
   }>
 ): Promise<GetServerSidePropsResult<PublicPageProps<Value>>> => {
   const market = trustedMarket(context, input.expectedRouteKey)
@@ -727,11 +731,15 @@ export const resolveFlowPublicPage = async <Value>(
       return errorResult(context, market, 503)
     }
     setNoStore(context)
+    const title = input.title?.(source.value)
     return {
       props: {
         ...(await loadPublicShell(market)),
         page: { kind: "found", value: source.value },
-        seo: { robots: "noindex, follow" },
+        seo: {
+          robots: "noindex, follow",
+          ...(title === undefined ? {} : { title }),
+        },
       },
     }
   } catch {

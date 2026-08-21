@@ -86,14 +86,18 @@ export const resolveProductImages = (product: Product | null): string[] => {
 
 export const resolveVariantLabel = (
   variant: HttpTypes.StoreProductVariant,
-  optionTitlesById: Map<string, string>
+  optionTitlesById: Map<string, string>,
+  translateOptionValue?: (value: string) => string
 ) => {
   const optionLabels = (variant.options ?? [])
     .map((option) => {
-      const optionValue = asString(option?.value)
-      if (!optionValue) {
+      const rawOptionValue = asString(option?.value)
+      if (!rawOptionValue) {
         return null
       }
+      const optionValue = translateOptionValue
+        ? translateOptionValue(rawOptionValue)
+        : rawOptionValue
 
       const optionTitle = option.option_id
         ? optionTitlesById.get(option.option_id)

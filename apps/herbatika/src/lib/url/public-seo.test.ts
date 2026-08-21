@@ -80,16 +80,16 @@ describe("public SEO classification", () => {
   it("emits matching canonical JSON-LD only for a public SEO identity", () => {
     expect(
       buildPublicSeoJsonLd({
-        canonical: "https://herbatica.sk/poradna/spanok",
+        canonical: "https://herbatica.sk/blog/spanok",
         inLanguage: "sk-SK",
         schemaType: "Article",
         title: "Spánok < zdravie",
       })
     ).toMatchObject({
-      "@id": "https://herbatica.sk/poradna/spanok",
+      "@id": "https://herbatica.sk/blog/spanok",
       "@type": "Article",
       inLanguage: "sk-SK",
-      url: "https://herbatica.sk/poradna/spanok",
+      url: "https://herbatica.sk/blog/spanok",
     })
     expect(buildPublicSeoJsonLd({ title: "Noindex" })).toBeNull()
     expect(
@@ -101,9 +101,9 @@ describe("public SEO classification", () => {
     expect(
       buildPublicOpenGraphLocales({
         alternates: {
-          "cs-CZ": "https://herbatica.cz/poradna/spanek",
-          "ro-RO": "https://herbatica.ro/sfaturi/somn",
-          "sk-SK": "https://herbatica.sk/poradna/spanok",
+          "cs-CZ": "https://herbatica.cz/blog/spanek",
+          "ro-RO": "https://herbatica.ro/blog/somn",
+          "sk-SK": "https://herbatica.sk/blog/spanok",
         },
         locale: "sk-SK",
       })

@@ -8,7 +8,10 @@ import {
   rawQueryFromRequestTarget,
   resolveProductPageRequest,
 } from "@/lib/routing/pages/product-page"
-import type { ProductRouteRegistry } from "@/lib/routing/pages/product-route"
+import type {
+  ProductRouteRegistry,
+  ResolvedProductRoute,
+} from "@/lib/routing/pages/product-route"
 import {
   applySsrOutcome,
   type SsrOutcome,
@@ -26,12 +29,15 @@ import type { ProductRouteMedusaProduct } from "@/lib/storefront/product-route-s
 import {
   readProductAlternateSourceFromMedusa,
   readProductPageContextFromMedusa,
+  readProductRouteSourceByHandleFromMedusa,
   readProductRouteSourceFromMedusa,
 } from "@/lib/storefront/product-route-source.server"
 import {
   type PublicEntitySlugMap,
+  readAvailablePublicEntitySlugs,
   readRequiredPublicEntitySlugs,
 } from "@/lib/storefront/ssr/public-entity-projections"
+import { buildProductAbsoluteUrl } from "@/lib/url/product-path"
 import { buildPublicOpenGraphLocales } from "@/lib/url/public-seo"
 import { parseMarket } from "@/lib/url/segments"
 import type { SourceReadResult } from "@/lib/url-registry/contracts"
@@ -105,6 +111,48 @@ type ProductProjectionMaps = Readonly<{
   productPublicSlugsById: PublicEntitySlugMap
 }>
 
+// Registry-free path: Medusa handles are the public slugs and brand links are
+// dropped because they have no registry projection to link to.
+const handleProjectionMaps = (
+  product: ProductRouteMedusaProduct
+): ProductProjectionMaps => ({
+  brandPublicSlugsById: {},
+  categoryPublicSlugsById: Object.fromEntries(
+    (product.categories ?? []).flatMap((category) =>
+      category.handle ? [[category.id, category.handle]] : []
+    )
+  ),
+  productPublicSlugsById: { [product.id]: product.handle },
+})
+
+const resolveProductByHandle = async (
+  market: ReturnType<typeof parseMarket>,
+  slugParam: string | string[] | undefined
+): Promise<SsrOutcome<ResolvedProductRoute<ProductRouteMedusaProduct>>> => {
+  if (!(market && typeof slugParam === "string")) {
+    return { kind: "not-found" }
+  }
+  let canonicalUrl: string
+  try {
+    canonicalUrl = buildProductAbsoluteUrl(market, slugParam)
+  } catch {
+    return { kind: "not-found" }
+  }
+  const result = await readProductRouteSourceByHandleFromMedusa({
+    market,
+    publicSlug: slugParam,
+  })
+  if (result.kind !== "found") {
+    return result.kind === "missing"
+      ? { kind: "not-found" }
+      : { kind: "unavailable" }
+  }
+  return {
+    kind: "found",
+    value: { canonicalUrl, product: result.value, publicSlug: slugParam },
+  }
+}
+
 const unavailableFromSource = <Value,>(
   result: Exclude<SourceReadResult<Value>, { kind: "found" }>
 ): SsrOutcome<never> =>
@@ -138,8 +186,10 @@ const readProductProjectionMaps = async (
     return { kind: "unavailable" }
   }
 
+  // Brand routes may not be projected in the registry yet; a missing brand
+  // slug drops the brand link instead of taking the whole PDP down.
   const [brandMap, categoryMap, productMap] = await Promise.all([
-    readRequiredPublicEntitySlugs({
+    readAvailablePublicEntitySlugs({
       kind: "brand",
       market,
       requiredSourceIds: brandSourceId ? [brandSourceId] : [],
@@ -175,10 +225,9 @@ const readProductProjectionMaps = async (
 }
 
 const toPageView = async (
-  outcome: Awaited<
-    ReturnType<typeof resolveProductPageRequest<ProductRouteMedusaProduct>>
-  >,
-  market: ReturnType<typeof parseMarket>
+  outcome: SsrOutcome<ResolvedProductRoute<ProductRouteMedusaProduct>>,
+  market: ReturnType<typeof parseMarket>,
+  registryProjections: boolean
 ): Promise<SsrOutcome<ProductPageView>> => {
   if (outcome.kind !== "found") {
     return outcome
@@ -211,10 +260,12 @@ const toPageView = async (
     locale: context.value.marketContext.locale,
     product: outcome.value.product,
   })
-  const [alternates, projectionMaps] = await Promise.all([
-    readProductAlternates(market, outcome.value.product.id),
-    readProductProjectionMaps(market, outcome.value.product),
-  ])
+  const alternates = registryProjections
+    ? await readProductAlternates(market, outcome.value.product.id)
+    : {}
+  const projectionMaps: SsrOutcome<ProductProjectionMaps> = registryProjections
+    ? await readProductProjectionMaps(market, outcome.value.product)
+    : { kind: "found", value: handleProjectionMaps(outcome.value.product) }
   if (projectionMaps.kind !== "found") {
     return projectionMaps
   }
@@ -258,15 +309,24 @@ export const getServerSideProps = (async ({ params, req, res }) => {
     rawQuery: rawQueryFromRequestTarget(req.url),
     slugParam: params?.slug,
   }
-  const outcome = await resolveProductPageRequest(request, {
-    readProductById: readProductRouteSourceFromMedusa,
-    readRegistry,
-  })
-
-  const pageOutcome = await toPageView(
-    outcome,
+  const headerMarket =
     typeof marketHeader === "string" ? parseMarket(marketHeader) : null
-  ).catch((): SsrOutcome<ProductPageView> => ({ kind: "unavailable" }))
+  const registry = await readRegistry()
+  const registryOutcome =
+    registry.kind === "found"
+      ? await resolveProductPageRequest(request, {
+          readProductById: readProductRouteSourceFromMedusa,
+          readRegistry: () => Promise.resolve(registry),
+        })
+      : null
+  const byHandle = !registryOutcome || registryOutcome.kind === "not-found"
+  const outcome = byHandle
+    ? await resolveProductByHandle(headerMarket, params?.slug)
+    : registryOutcome
+
+  const pageOutcome = await toPageView(outcome, headerMarket, !byHandle).catch(
+    (): SsrOutcome<ProductPageView> => ({ kind: "unavailable" })
+  )
   if (res.headersSent) {
     throw new Error("Product route resolved after response headers were sent")
   }
@@ -275,16 +335,17 @@ export const getServerSideProps = (async ({ params, req, res }) => {
   if (!("props" in result)) {
     return result
   }
-  const market =
-    typeof marketHeader === "string" ? parseMarket(marketHeader) : null
-  if (!market) {
+  if (!headerMarket) {
     return { notFound: true }
   }
   const pageProps = await result.props
   const shell =
     pageOutcome.kind === "found"
-      ? await loadPublicShell(market, pageOutcome.value.categoryPublicSlugsById)
-      : await loadPublicErrorShell(market)
+      ? await loadPublicShell(
+          headerMarket,
+          pageOutcome.value.categoryPublicSlugsById
+        )
+      : await loadPublicErrorShell(headerMarket)
   return { props: { ...pageProps, ...shell } }
 }) satisfies GetServerSideProps<ProductPageProps>
 
@@ -317,7 +378,7 @@ export default function ProductPagesRoute({ page }: ProductPageProps) {
   return (
     <>
       <Head>
-        <title>{page.value.title}</title>
+        <title>{`${page.value.title} | ${page.value.context.marketContext.metadata.title}`}</title>
         {page.value.description ? (
           <meta content={page.value.description} name="description" />
         ) : null}

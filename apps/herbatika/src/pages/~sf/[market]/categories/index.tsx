@@ -76,6 +76,7 @@ export const getServerSideProps = (async (context) =>
     },
     path: { kind: "category" },
     queryKind: "category-index",
+    title: (value) => value.title,
   })) satisfies GetServerSideProps<Props>
 
 export default function CategoriesPage({ page }: Props) {

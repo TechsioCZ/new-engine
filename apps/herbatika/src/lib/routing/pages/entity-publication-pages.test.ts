@@ -6,7 +6,6 @@ const mocks = vi.hoisted(() => ({
   fetchStorefrontBrands: vi.fn(),
   prefetchBrandPageStorefrontData: vi.fn(),
   prefetchCategoryPageStorefrontData: vi.fn(),
-  readCatalogPublicationProofFromMedusa: vi.fn(),
   resolveEntityPublicPage: vi.fn(),
 }))
 
@@ -21,10 +20,6 @@ vi.mock("@/lib/routing/pages/localized-page-error", () => ({
 }))
 vi.mock("@/lib/routing/public-page", () => ({
   resolveEntityPublicPage: mocks.resolveEntityPublicPage,
-}))
-vi.mock("@/lib/storefront/catalog-publication-proof.server", () => ({
-  readCatalogPublicationProofFromMedusa:
-    mocks.readCatalogPublicationProofFromMedusa,
 }))
 vi.mock("@/lib/storefront/plp-query-state", () => ({
   parsePlpQueryStateFromSearchParams: vi.fn(() => ({ page: 1 })),
@@ -60,7 +55,7 @@ const context = {
   res: {},
 } as unknown as GetServerSidePropsContext
 
-describe("category and brand detail publication proof", () => {
+describe("category and brand detail source reads", () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mocks.resolveEntityPublicPage.mockImplementation(async (_context, input) =>
@@ -71,35 +66,23 @@ describe("category and brand detail publication proof", () => {
         sourceVersion: "7",
       })
     )
-    mocks.readCatalogPublicationProofFromMedusa.mockResolvedValue({
-      causeCode: "CATALOG_PUBLICATION_PROOF_MISMATCH",
-      kind: "invalid-response",
-    })
   })
 
-  it("rejects a category before its catalog payload when assignment or Translation proof drifts", async () => {
-    await getCategoryServerSideProps(context)
+  it("reads the category catalog directly and maps an absent category to missing", async () => {
+    mocks.fetchServerCategories.mockResolvedValue({ categories: [] })
 
-    expect(mocks.readCatalogPublicationProofFromMedusa).toHaveBeenCalledWith({
-      entityId: "category_1",
-      entityKind: "category",
-      market: "cz",
-      publicSlug: "vitaminy",
-      sourceVersion: "7",
-    })
-    expect(mocks.fetchServerCategories).not.toHaveBeenCalled()
+    const result = await getCategoryServerSideProps(context)
+
+    expect(mocks.fetchServerCategories).toHaveBeenCalledTimes(1)
+    expect(result).toEqual({ kind: "missing" })
   })
 
-  it("rejects a brand before its catalog payload when assignment or Translation proof drifts", async () => {
-    await getBrandServerSideProps(context)
+  it("reads the brand catalog directly and maps an absent brand to missing", async () => {
+    mocks.fetchStorefrontBrands.mockResolvedValue([])
 
-    expect(mocks.readCatalogPublicationProofFromMedusa).toHaveBeenCalledWith({
-      entityId: "brand_1",
-      entityKind: "brand",
-      market: "cz",
-      publicSlug: "vitaminy",
-      sourceVersion: "7",
-    })
-    expect(mocks.fetchStorefrontBrands).not.toHaveBeenCalled()
+    const result = await getBrandServerSideProps(context)
+
+    expect(mocks.fetchStorefrontBrands).toHaveBeenCalledWith("cz")
+    expect(result).toEqual({ kind: "missing" })
   })
 })

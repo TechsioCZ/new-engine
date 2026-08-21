@@ -12,7 +12,6 @@ const mocks = vi.hoisted(() => ({
   prefetchProductIndexStorefrontData: vi.fn(),
   readAvailablePublicEntitySlugs: vi.fn(),
   readCompletePublicEntitySlugs: vi.fn(),
-  readCatalogPublicationProofFromMedusa: vi.fn(),
   readRequiredPublicEntitySlugs: vi.fn(),
   resolveRegistryRoute: vi.fn(),
 }))
@@ -29,10 +28,6 @@ vi.mock("@/components/products/product-index-page", () => ({
 }))
 vi.mock("@/lib/storefront/brands.server", () => ({
   fetchStorefrontBrands: mocks.fetchStorefrontBrands,
-}))
-vi.mock("@/lib/storefront/catalog-publication-proof.server", () => ({
-  readCatalogPublicationProofFromMedusa:
-    mocks.readCatalogPublicationProofFromMedusa,
 }))
 vi.mock("@/lib/storefront/cms-footer-navigation", () => ({
   fetchCmsFooterNavigation: vi.fn(async () => ({ columns: [] })),
@@ -142,10 +137,6 @@ describe("catalog page pagination boundaries", () => {
     mocks.readCompletePublicEntitySlugs.mockResolvedValue({
       kind: "found",
       value: { cat_1: "herbs" },
-    })
-    mocks.readCatalogPublicationProofFromMedusa.mockResolvedValue({
-      kind: "found",
-      value: {},
     })
     mocks.findActiveEquivalents.mockResolvedValue({
       kind: "found",

@@ -43,54 +43,58 @@ export function BrandIndexPage({ brands }: BrandIndexPageProps) {
         </h1>
       </section>
 
-      <section
-        aria-label={t("brands.list_aria")}
-        className="border-border-secondary border-y"
-      >
-        <div className="divide-y divide-border-secondary">
-          {brandGroups.map((group) => (
-            <section
-              aria-labelledby={`brand-group-${group.letter}`}
-              className="grid grid-cols-12 gap-x-300 gap-y-300 py-450"
-              key={group.letter}
-            >
-              <h2
-                className="col-span-2 font-bold text-2xl text-fg-primary leading-snug sm:col-span-1"
-                id={`brand-group-${group.letter}`}
+      {brandGroups.length === 0 ? (
+        <p className="text-base text-fg-muted">{t("brands.empty")}</p>
+      ) : (
+        <section
+          aria-label={t("brands.list_aria")}
+          className="border-border-secondary border-y"
+        >
+          <div className="divide-y divide-border-secondary">
+            {brandGroups.map((group) => (
+              <section
+                aria-labelledby={`brand-group-${group.letter}`}
+                className="grid grid-cols-12 gap-x-300 gap-y-300 py-450"
+                key={group.letter}
               >
-                {group.letter}
-              </h2>
+                <h2
+                  className="col-span-2 font-bold text-2xl text-fg-primary leading-snug sm:col-span-1"
+                  id={`brand-group-${group.letter}`}
+                >
+                  {group.letter}
+                </h2>
 
-              <ul className="col-span-10 grid gap-x-800 gap-y-200 sm:col-span-11 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {group.brands.map((brand) => {
-                  const href = buildProjectedEntityPath(
-                    "brand",
-                    { publicSlug: publicSlugById.get(brand.id) },
-                    market
-                  )
+                <ul className="col-span-10 grid gap-x-800 gap-y-200 sm:col-span-11 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {group.brands.map((brand) => {
+                    const href = buildProjectedEntityPath(
+                      "brand",
+                      { publicSlug: publicSlugById.get(brand.id) },
+                      market
+                    )
 
-                  return (
-                    <li className="min-w-0" key={brand.id}>
-                      {href ? (
-                        <StorefrontLink
-                          className="inline-flex max-w-full font-medium text-base text-primary uppercase leading-snug hover:text-primary-strong hover:underline"
-                          href={href}
-                        >
-                          <span className="break-words">{brand.title}</span>
-                        </StorefrontLink>
-                      ) : (
-                        <span className="inline-flex max-w-full font-medium text-base text-fg-muted uppercase leading-snug">
-                          <span className="break-words">{brand.title}</span>
-                        </span>
-                      )}
-                    </li>
-                  )
-                })}
-              </ul>
-            </section>
-          ))}
-        </div>
-      </section>
+                    return (
+                      <li className="min-w-0" key={brand.id}>
+                        {href ? (
+                          <StorefrontLink
+                            className="inline-flex max-w-full font-medium text-base text-primary uppercase leading-snug hover:text-primary-strong hover:underline"
+                            href={href}
+                          >
+                            <span className="break-words">{brand.title}</span>
+                          </StorefrontLink>
+                        ) : (
+                          <span className="inline-flex max-w-full font-medium text-base text-fg-muted uppercase leading-snug">
+                            <span className="break-words">{brand.title}</span>
+                          </span>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              </section>
+            ))}
+          </div>
+        </section>
+      )}
     </main>
   )
 }

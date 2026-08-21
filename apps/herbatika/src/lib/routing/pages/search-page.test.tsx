@@ -34,6 +34,10 @@ describe("search page URL projections", () => {
       dehydratedState: { mutations: [], queries: [] },
       region: { id: "reg-sk" },
       visibleProductIds: ["prod-1", "prod-2"],
+      visibleProductSlugsById: {
+        "prod-1": "handle-one",
+        "prod-2": "handle-two",
+      },
     })
     mocks.readRequiredPublicEntitySlugs.mockResolvedValue({
       kind: "found",
@@ -61,7 +65,7 @@ describe("search page URL projections", () => {
     ])
   })
 
-  it("fails closed when a visible product projection is unavailable", async () => {
+  it("falls back to Medusa handles when projections are unavailable", async () => {
     mocks.readRequiredPublicEntitySlugs.mockResolvedValue({
       causeCode: "MISSING_PRODUCT_PUBLIC_PROJECTION",
       kind: "invalid-response",
@@ -73,8 +77,15 @@ describe("search page URL projections", () => {
         req: { headers: {} },
       } as never)
     ).resolves.toEqual({
-      causeCode: "MISSING_PRODUCT_PUBLIC_PROJECTION",
-      kind: "invalid-response",
+      kind: "found",
+      value: {
+        dehydratedState: { mutations: [], queries: [] },
+        productPublicSlugsById: {
+          "prod-1": "handle-one",
+          "prod-2": "handle-two",
+        },
+        title: "Vyhľadávanie",
+      },
     })
   })
 })
