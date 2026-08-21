@@ -300,6 +300,36 @@ export const buildTestPriceConversionBinding = (
     environmentId: "test-engine",
     inventoryFingerprintSha256:
       hashTestPriceConversionInventorySnapshot(inventorySnapshot),
+    marketSalesChannels: [
+      {
+        marketCode: "cz",
+        salesChannelId: text(
+          environment.MARKET_SALES_CHANNEL_ID_CZ,
+          "MARKET_SALES_CHANNEL_ID_CZ"
+        ),
+      },
+      {
+        marketCode: "hu",
+        salesChannelId: text(
+          environment.MARKET_SALES_CHANNEL_ID_HU,
+          "MARKET_SALES_CHANNEL_ID_HU"
+        ),
+      },
+      {
+        marketCode: "ro",
+        salesChannelId: text(
+          environment.MARKET_SALES_CHANNEL_ID_RO,
+          "MARKET_SALES_CHANNEL_ID_RO"
+        ),
+      },
+      {
+        marketCode: "sk",
+        salesChannelId: text(
+          environment.MARKET_SALES_CHANNEL_ID_SK,
+          "MARKET_SALES_CHANNEL_ID_SK"
+        ),
+      },
+    ],
   }
 }
 

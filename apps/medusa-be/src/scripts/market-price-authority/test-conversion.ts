@@ -49,6 +49,12 @@ export type TestPriceConversionBinding = Readonly<{
   databaseInstanceFingerprint: string
   environmentId: "test-engine"
   inventoryFingerprintSha256: string
+  marketSalesChannels: readonly [
+    Readonly<{ marketCode: "cz"; salesChannelId: string }>,
+    Readonly<{ marketCode: "hu"; salesChannelId: string }>,
+    Readonly<{ marketCode: "ro"; salesChannelId: string }>,
+    Readonly<{ marketCode: "sk"; salesChannelId: string }>,
+  ]
 }>
 
 export type TestPriceConversionMutation = Readonly<{
@@ -74,6 +80,7 @@ export type TestPriceConversionPlan = Readonly<{
   schemaVersion: 1
   summary: Readonly<{
     create: number
+    sourceProducts: number
     sourceVariants: number
     targetCurrencies: 3
     unchanged: number
@@ -255,6 +262,31 @@ const validateBinding = (binding: TestPriceConversionBinding) => {
       throw new Error(`${label} must be a lowercase SHA-256`)
     }
   }
+  const expectedMarkets = ["cz", "hu", "ro", "sk"] as const
+  const channelIds = binding.marketSalesChannels.map(
+    ({ salesChannelId }, index) => {
+      if (
+        binding.marketSalesChannels[index]?.marketCode !==
+        expectedMarkets[index]
+      ) {
+        throw new Error(
+          "market sales channels must use canonical cz, hu, ro, sk order"
+        )
+      }
+      if (
+        salesChannelId.length === 0 ||
+        salesChannelId !== salesChannelId.trim()
+      ) {
+        throw new Error(
+          "market sales channel IDs must be non-empty canonical strings"
+        )
+      }
+      return salesChannelId
+    }
+  )
+  if (new Set(channelIds).size !== expectedMarkets.length) {
+    throw new Error("market sales channel IDs must be distinct")
+  }
 }
 
 export const buildTestPriceConversionPlan = (
@@ -276,7 +308,28 @@ export const buildTestPriceConversionPlan = (
 
   const mutations: TestPriceConversionMutation[] = []
   const variantIds = new Set<string>()
-  for (const product of snapshot.products) {
+  const marketChannelIds = new Set(
+    binding.marketSalesChannels.map(({ salesChannelId }) => salesChannelId)
+  )
+  const scopedProducts = snapshot.products.filter(
+    (product) =>
+      product.status === "published" &&
+      product.salesChannelIds.some((salesChannelId) =>
+        marketChannelIds.has(salesChannelId)
+      )
+  )
+  for (const { marketCode, salesChannelId } of binding.marketSalesChannels) {
+    if (
+      !scopedProducts.some((product) =>
+        product.salesChannelIds.includes(salesChannelId)
+      )
+    ) {
+      throw new Error(
+        `market ${marketCode} sales channel has no published product scope`
+      )
+    }
+  }
+  for (const product of scopedProducts) {
     for (const variant of product.variants) {
       if (variantIds.has(variant.id)) {
         throw new Error(`duplicate variant ${variant.id}`)
@@ -303,6 +356,7 @@ export const buildTestPriceConversionPlan = (
     schemaVersion: 1,
     summary: {
       create: count("create"),
+      sourceProducts: scopedProducts.length,
       sourceVariants: variantIds.size,
       targetCurrencies: 3,
       unchanged: count("unchanged"),

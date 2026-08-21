@@ -14,6 +14,12 @@ const binding = {
   databaseInstanceFingerprint: "a".repeat(64),
   environmentId: "test-engine" as const,
   inventoryFingerprintSha256: "b".repeat(64),
+  marketSalesChannels: [
+    { marketCode: "cz" as const, salesChannelId: "sc_cz" },
+    { marketCode: "hu" as const, salesChannelId: "sc_hu" },
+    { marketCode: "ro" as const, salesChannelId: "sc_ro" },
+    { marketCode: "sk" as const, salesChannelId: "sc_sk" },
+  ] as const,
 }
 
 const snapshot = (
@@ -22,7 +28,7 @@ const snapshot = (
   products: [
     {
       id: "prod_1",
-      salesChannelIds: ["sc_shared"],
+      salesChannelIds: ["sc_cz", "sc_hu", "sc_ro", "sc_sk"],
       status: "published",
       variants: [{ id: "variant_1", priceSetId: "pset_1", prices }],
     },
@@ -48,6 +54,7 @@ describe("test-only ECB price conversion planner", () => {
     const plan = buildTestPriceConversionPlan(current, binding)
     expect(plan.summary).toEqual({
       create: 2,
+      sourceProducts: 1,
       sourceVariants: 1,
       targetCurrencies: 3,
       unchanged: 1,
@@ -149,5 +156,45 @@ describe("test-only ECB price conversion planner", () => {
         environmentId: "production" as "test-engine",
       })
     ).toThrow("restricted to test-engine")
+  })
+
+  it("scopes only published products assigned to the exact four market channels", () => {
+    const current = snapshot()
+    const plan = buildTestPriceConversionPlan(
+      {
+        products: [
+          ...current.products,
+          {
+            id: "prod_draft",
+            salesChannelIds: ["sc_cz"],
+            status: "draft",
+            variants: [
+              {
+                id: "variant_draft",
+                priceSetId: "pset_draft",
+                prices: [price("price_draft_eur", "eur", 12)],
+              },
+            ],
+          },
+          {
+            id: "prod_unassigned",
+            salesChannelIds: ["sc_other"],
+            status: "published",
+            variants: [
+              {
+                id: "variant_unassigned",
+                priceSetId: "pset_unassigned",
+                prices: [price("price_unassigned_eur", "eur", 12)],
+              },
+            ],
+          },
+        ],
+      },
+      binding
+    )
+    expect(plan.summary).toMatchObject({ sourceProducts: 1, sourceVariants: 1 })
+    expect(new Set(plan.mutations.map(({ variantId }) => variantId))).toEqual(
+      new Set(["variant_1"])
+    )
   })
 })

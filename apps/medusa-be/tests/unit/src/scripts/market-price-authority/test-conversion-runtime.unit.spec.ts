@@ -14,13 +14,19 @@ const binding = {
   databaseInstanceFingerprint: "a".repeat(64),
   environmentId: "test-engine" as const,
   inventoryFingerprintSha256: "b".repeat(64),
+  marketSalesChannels: [
+    { marketCode: "cz" as const, salesChannelId: "sc_cz" },
+    { marketCode: "hu" as const, salesChannelId: "sc_hu" },
+    { marketCode: "ro" as const, salesChannelId: "sc_ro" },
+    { marketCode: "sk" as const, salesChannelId: "sc_sk" },
+  ] as const,
 }
 
 const databaseSnapshot = (): MarketPriceDatabaseSnapshot => ({
   products: [
     {
       id: "prod_shared",
-      salesChannelIds: ["sc_shared"],
+      salesChannelIds: ["sc_cz", "sc_hu", "sc_ro", "sc_sk"],
       status: "published",
       variants: [
         {
