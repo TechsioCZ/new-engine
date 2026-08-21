@@ -1,9 +1,18 @@
 import { isAbsolute } from "node:path"
 import { buildCzechCatalogBundle } from "./generator"
-import type { CzechCatalogEnvironment, CzechCatalogSourcePaths } from "./types"
+import type { CzechCatalogSourcePaths } from "./types"
 
-type Options = Partial<CzechCatalogSourcePaths> &
-  Partial<CzechCatalogEnvironment> & { outputDirectory?: string }
+type Options = {
+  brandsJsonl?: string
+  categoriesJsonl?: string
+  databaseInstanceFingerprint?: string
+  environmentId?: string
+  officialFeedXml?: string
+  officialPagesJsonl?: string
+  outputDirectory?: string
+  productsJsonl?: string
+  rawInventoryJson?: string
+}
 
 const ARGUMENTS: Readonly<Record<string, keyof Options>> = {
   "--brands-jsonl": "brandsJsonl",

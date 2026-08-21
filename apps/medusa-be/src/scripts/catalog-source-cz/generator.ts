@@ -513,6 +513,7 @@ export const buildCzechCatalogBundle = async ({
       ? officialPagesByUrl.get(official.url)
       : undefined
     const verifiedOfficialPage =
+      official &&
       officialPage?.result === "ok" &&
       officialPage.eanMatchesFeed === true &&
       officialPage.pageCanonicalUrl === official.url &&
@@ -685,9 +686,9 @@ export const buildCzechCatalogBundle = async ({
     if (officialMethod === "official-explicit-brand-alias") {
       officialAliasBrandCount += 1
     }
-    const source = officialMethod
+    const source = officialMatch
       ? {
-          officialManufacturer: officialMatch?.manufacturer,
+          officialManufacturer: officialMatch.manufacturer,
           targetBrandSlug: brand.blue.sk.handle,
           ...(officialMethod === "official-explicit-brand-alias"
             ? { aliasSourceSlug: slugify(officialMatch.manufacturer) }
@@ -823,7 +824,7 @@ export const buildCzechCatalogBundle = async ({
       },
     },
     environment,
-    kind: "herbatika-cz-test-catalog-translation-bundle",
+    kind: "herbatica-cz-test-catalog-translation-bundle",
     schemaVersion: 1,
     sources: {
       brandsJsonlSha256: sourceHashes.brandsJsonl,
