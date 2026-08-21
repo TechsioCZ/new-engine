@@ -16,6 +16,12 @@ export const CATALOG_TRANSLATION_EXACT_INVENTORY = {
 export type CatalogTranslationTargetLocale =
   (typeof CATALOG_TRANSLATION_TARGET_LOCALES)[number]
 
+export type CatalogTranslationLocale =
+  | CatalogTranslationTargetLocale
+  | typeof CATALOG_TRANSLATION_SOURCE_LOCALE
+
+export type CatalogTranslationMode = "normalize-source" | "replace"
+
 export type CatalogTranslationReference =
   | "brand"
   | "product"
@@ -24,12 +30,12 @@ export type CatalogTranslationReference =
 
 export type CatalogTranslationProvenance = Readonly<{
   artifactSha256: string
-  method: "ai-generated" | "existing-reviewed-artifact"
+  method: "ai-generated" | "canonical-source" | "existing-reviewed-artifact"
   sourceReference: string
 }>
 
 export type CatalogTranslationInputEntry = Readonly<{
-  localeCode: CatalogTranslationTargetLocale
+  localeCode: CatalogTranslationLocale
   provenance: CatalogTranslationProvenance
   reference: CatalogTranslationReference
   referenceId: string
@@ -49,11 +55,11 @@ export type CatalogTranslationInput = Readonly<{
     productContents: number
     products: number
   }>
-  mode: "replace"
+  mode: CatalogTranslationMode
   schemaVersion: 1
   sourceLocale: typeof CATALOG_TRANSLATION_SOURCE_LOCALE
   sourceArtifacts: readonly Readonly<{ path: string; sha256: string }>[]
-  targetLocale: CatalogTranslationTargetLocale
+  targetLocale: CatalogTranslationLocale
 }>
 
 export type ExistingCatalogTranslation = Readonly<{
@@ -68,7 +74,7 @@ export type CatalogTranslationPlanItem = Readonly<{
   action: "create" | "unchanged" | "update"
   desiredTranslations: Readonly<Record<string, string | null>>
   existingId?: string
-  localeCode: CatalogTranslationTargetLocale
+  localeCode: CatalogTranslationLocale
   previousTranslations: Readonly<Record<string, unknown>> | null
   provenance: CatalogTranslationProvenance
   reference: CatalogTranslationReference
@@ -88,13 +94,14 @@ export type CatalogTranslationPlan = Readonly<{
   inputSha256: string
   items: readonly CatalogTranslationPlanItem[]
   protectedState: CatalogTranslationProtectedState
+  mode: CatalogTranslationMode
   schemaVersion: 1
   scope: Readonly<{
     brandIds: readonly string[]
     categoryIds: readonly string[]
     productContentIds: readonly string[]
     productIds: readonly string[]
-    targetLocales: readonly CatalogTranslationTargetLocale[]
+    targetLocales: readonly CatalogTranslationLocale[]
   }>
   scopeSha256: string
   sourceLocale: typeof CATALOG_TRANSLATION_SOURCE_LOCALE
@@ -130,7 +137,7 @@ export type CatalogTranslationRollbackArtifact = Readonly<{
   environment: CatalogTranslationInput["environment"]
   items: readonly Readonly<{
     existingId?: string
-    localeCode: CatalogTranslationTargetLocale
+    localeCode: CatalogTranslationLocale
     previousTranslations: Readonly<Record<string, unknown>> | null
     reference: CatalogTranslationReference
     referenceId: string

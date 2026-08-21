@@ -8,8 +8,8 @@ import {
   type CatalogTranslationCliOptions,
   type CatalogTranslationInput,
   type CatalogTranslationInputEntry,
+  type CatalogTranslationLocale,
   type CatalogTranslationReference,
-  type CatalogTranslationTargetLocale,
 } from "./types"
 
 const SHA_256 = /^[a-f0-9]{64}$/
@@ -18,6 +18,10 @@ const ENVIRONMENT_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/
 const FORBIDDEN_TEST_ENVIRONMENTS =
   /(?:^|[-_.])(live|prod|production)(?:$|[-_.])/i
 const TARGET_LOCALES = new Set<string>(CATALOG_TRANSLATION_TARGET_LOCALES)
+const ALL_PIPELINE_LOCALES = new Set<string>([
+  CATALOG_TRANSLATION_SOURCE_LOCALE,
+  ...CATALOG_TRANSLATION_TARGET_LOCALES,
+])
 const REFERENCES = new Set<string>([
   "brand",
   "product",
@@ -79,8 +83,8 @@ const parseEntry = (
     ["localeCode", "provenance", "reference", "referenceId", "translations"],
     label
   )
-  if (!TARGET_LOCALES.has(String(entry.localeCode))) {
-    throw new Error(`${label}.localeCode is not a supported target locale`)
+  if (!ALL_PIPELINE_LOCALES.has(String(entry.localeCode))) {
+    throw new Error(`${label}.localeCode is not a supported pipeline locale`)
   }
   if (!REFERENCES.has(String(entry.reference))) {
     throw new Error(`${label}.reference is invalid`)
@@ -118,12 +122,13 @@ const parseEntry = (
   if (
     !SHA_256.test(String(provenance.artifactSha256)) ||
     (provenance.method !== "ai-generated" &&
+      provenance.method !== "canonical-source" &&
       provenance.method !== "existing-reviewed-artifact")
   ) {
     throw new Error(`${label}.provenance is invalid`)
   }
   return {
-    localeCode: entry.localeCode as CatalogTranslationTargetLocale,
+    localeCode: entry.localeCode as CatalogTranslationLocale,
     provenance: {
       artifactSha256: provenance.artifactSha256 as string,
       method: provenance.method,
@@ -158,9 +163,9 @@ export const parseCatalogTranslationInput = (
   )
   if (
     input.schemaVersion !== 1 ||
-    input.mode !== "replace" ||
+    (input.mode !== "replace" && input.mode !== "normalize-source") ||
     input.sourceLocale !== CATALOG_TRANSLATION_SOURCE_LOCALE ||
-    !TARGET_LOCALES.has(String(input.targetLocale)) ||
+    !ALL_PIPELINE_LOCALES.has(String(input.targetLocale)) ||
     !Array.isArray(input.entries) ||
     input.entries.length === 0
   ) {
@@ -243,6 +248,22 @@ export const parseCatalogTranslationInput = (
     if (entry.localeCode !== input.targetLocale) {
       throw new Error("every entry must use input.targetLocale")
     }
+    if (
+      input.mode === "normalize-source" &&
+      (input.targetLocale !== CATALOG_TRANSLATION_SOURCE_LOCALE ||
+        entry.provenance.method !== "canonical-source")
+    ) {
+      throw new Error(
+        "normalize-source is restricted to canonical sk-SK provenance"
+      )
+    }
+    if (
+      input.mode === "replace" &&
+      (!TARGET_LOCALES.has(String(input.targetLocale)) ||
+        entry.provenance.method === "canonical-source")
+    ) {
+      throw new Error("replace is restricted to non-source target locales")
+    }
     const identity = `${entry.localeCode}\u0000${entry.reference}\u0000${entry.referenceId}`
     if (identities.has(identity)) {
       throw new Error(
@@ -293,11 +314,11 @@ export const parseCatalogTranslationInput = (
       kind: "test",
     },
     inventory,
-    mode: "replace",
+    mode: input.mode,
     schemaVersion: 1,
     sourceLocale: CATALOG_TRANSLATION_SOURCE_LOCALE,
     sourceArtifacts,
-    targetLocale: input.targetLocale as CatalogTranslationTargetLocale,
+    targetLocale: input.targetLocale as CatalogTranslationLocale,
   }
 }
 

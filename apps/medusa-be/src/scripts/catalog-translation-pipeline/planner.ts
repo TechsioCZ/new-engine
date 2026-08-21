@@ -79,19 +79,20 @@ export const buildCatalogTranslationScope = (
 
 const buildPlanItem = (
   snapshot: CatalogTranslationSnapshot,
-  entry: CatalogTranslationInput["entries"][number]
+  entry: CatalogTranslationInput["entries"][number],
+  mode: CatalogTranslationInput["mode"]
 ): CatalogTranslationPlanItem => {
   const sourceMatches = snapshot.sourceRecords.filter(
     (candidate) =>
       candidate.reference === entry.reference &&
       candidate.referenceId === entry.referenceId
   )
-  if (sourceMatches.length !== 1) {
+  const source = sourceMatches[0]
+  if (sourceMatches.length !== 1 || !source) {
     throw new Error(
       `missing or ambiguous source ${entry.reference} record for ${entry.referenceId}`
     )
   }
-  const source = sourceMatches[0]
   const existing = oneTranslation(
     snapshot,
     entry.localeCode,
@@ -99,8 +100,31 @@ const buildPlanItem = (
     entry.referenceId
   )
   const previousTranslations = existing?.translations ?? null
+  const canonicalTranslations = Object.fromEntries(
+    Object.entries(source.values).map(([field, value]) => {
+      if (value === null || value === undefined || value === "") {
+        return [field, null]
+      }
+      if (typeof value !== "string") {
+        throw new Error(
+          `canonical source ${entry.reference}:${entry.referenceId}.${field} is not text`
+        )
+      }
+      return [field, value]
+    })
+  )
+  if (
+    mode === "normalize-source" &&
+    !sameValue(entry.translations, canonicalTranslations)
+  ) {
+    throw new Error(
+      `normalize-source payload differs from canonical ${entry.reference}:${entry.referenceId}`
+    )
+  }
+  const desiredTranslations =
+    mode === "normalize-source" ? canonicalTranslations : entry.translations
   const resultingTranslations: Record<string, unknown> = {
-    ...entry.translations,
+    ...desiredTranslations,
   }
   let action: CatalogTranslationPlanItem["action"] = "unchanged"
   if (!sameValue(previousTranslations, resultingTranslations)) {
@@ -108,7 +132,7 @@ const buildPlanItem = (
   }
   return {
     action,
-    desiredTranslations: entry.translations,
+    desiredTranslations,
     ...(existing ? { existingId: existing.id } : {}),
     localeCode: entry.localeCode,
     previousTranslations,
@@ -126,7 +150,7 @@ export const buildCatalogTranslationPlan = (
   snapshot: CatalogTranslationSnapshot
 ): CatalogTranslationPlan => {
   const items = input.entries
-    .map((entry) => buildPlanItem(snapshot, entry))
+    .map((entry) => buildPlanItem(snapshot, entry, input.mode))
     .sort((left, right) =>
       `${left.localeCode}\u0000${left.reference}\u0000${left.referenceId}`.localeCompare(
         `${right.localeCode}\u0000${right.reference}\u0000${right.referenceId}`,
@@ -138,6 +162,7 @@ export const buildCatalogTranslationPlan = (
     environment: input.environment,
     inputSha256,
     items,
+    mode: input.mode,
     protectedState: snapshot.protectedState,
     schemaVersion: 1,
     scope,

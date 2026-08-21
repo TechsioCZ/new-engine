@@ -115,8 +115,44 @@ const inputValue = (): CatalogTranslationInput => ({
   targetLocale: "cs-CZ",
 })
 
-const fullInputValue = () => {
+const normalizeSourceInputValue = (): CatalogTranslationInput => {
   const input = inputValue()
+  const translationsByReference = {
+    brand: { title: "Značka SK" },
+    product: {
+      description: "Slovenský popis",
+      subtitle: null,
+      title: "Slovenský názov",
+    },
+    product_category: {
+      bottom_description_html: null,
+      description: "Slovenská kategória",
+      meta_description: "SEO popis SK",
+      meta_title: "SEO titul SK",
+      name: "Kategória",
+      top_description_html: null,
+    },
+    product_content: {
+      composition: "Zloženie",
+      other: "Iné",
+      usage: "Použitie",
+      warning: "Pozor",
+    },
+  } as const
+  return {
+    ...input,
+    entries: input.entries.map((entry) => ({
+      ...entry,
+      localeCode: "sk-SK",
+      provenance: { ...entry.provenance, method: "canonical-source" },
+      translations: translationsByReference[entry.reference],
+    })),
+    mode: "normalize-source",
+    targetLocale: "sk-SK",
+  }
+}
+
+const fullInputValue = (input: CatalogTranslationInput = inputValue()) => {
   const templates = Object.fromEntries(
     input.entries.map((entry) => [entry.reference, entry])
   )
@@ -187,7 +223,14 @@ const snapshot = (
     {
       reference: "product_category",
       referenceId: "pcat_1",
-      values: { name: "Kategória" },
+      values: {
+        bottom_description_html: null,
+        description: "Slovenská kategória",
+        meta_description: "SEO popis SK",
+        meta_title: "SEO titul SK",
+        name: "Kategória",
+        top_description_html: null,
+      },
     },
     {
       reference: "brand",
@@ -224,6 +267,52 @@ describe("catalog translation test pipeline", () => {
         },
       })
     ).toThrow("non-production test environment")
+  })
+
+  it("keeps canonical sk-SK normalization distinct from translated targets", () => {
+    const sourceInput = normalizeSourceInputValue()
+    expect(parseCatalogTranslationInput(fullInputValue(sourceInput)).mode).toBe(
+      "normalize-source"
+    )
+    expect(() =>
+      parseCatalogTranslationInput(
+        fullInputValue({
+          ...sourceInput,
+          entries: sourceInput.entries.map((entry) => ({
+            ...entry,
+            provenance: { ...entry.provenance, method: "ai-generated" },
+          })),
+        })
+      )
+    ).toThrow("canonical sk-SK provenance")
+    const plan = buildCatalogTranslationPlan(
+      sourceInput,
+      "1".repeat(64),
+      snapshot()
+    )
+    expect(plan.mode).toBe("normalize-source")
+    expect(plan.scope.targetLocales).toEqual(["sk-SK"])
+    expect(
+      plan.items.find(({ reference }) => reference === "product")
+        ?.resultingTranslations
+    ).toEqual(sourceInput.entries[0]?.translations)
+    expect(() =>
+      buildCatalogTranslationPlan(
+        {
+          ...sourceInput,
+          entries: sourceInput.entries.map((entry) =>
+            entry.reference === "product"
+              ? {
+                  ...entry,
+                  translations: { ...entry.translations, title: "AI názov" },
+                }
+              : entry
+          ),
+        },
+        "1".repeat(64),
+        snapshot()
+      )
+    ).toThrow("differs from canonical")
   })
 
   it("requires an absolute dry-run plan and hash-bound apply receipt", () => {
