@@ -1,6 +1,5 @@
 import firstCarouselSlide from "@/assets/homepage-carousel/first.avif"
 import fourthCarouselSlide from "@/assets/homepage-carousel/fourth.avif"
-import secondCarouselSlide from "@/assets/homepage-carousel/second.avif"
 import thirdCarouselSlide from "@/assets/homepage-carousel/third.avif"
 import type { HerbatikaMarketCode } from "@/lib/storefront/market-context"
 import { buildPath, type PublicRouteTarget } from "@/lib/url/public-url"
@@ -13,11 +12,6 @@ export const HERO_BANNERS: HeroBannerItem[] = [
     subtitle: "Rýchle dodanie a balenie",
     badge: "Rýchle dodanie",
     imageSrc: firstCarouselSlide.src,
-  },
-  {
-    id: "black-friday",
-    badge: "Kozmetika",
-    imageSrc: secondCarouselSlide.src,
   },
   {
     id: "nova-prevadzka",
@@ -73,7 +67,8 @@ const LOCALIZED_HERO_VISUALS = [
     target: { kind: "product" },
   },
   {
-    imageSrc: secondCarouselSlide.src,
+    imageSrc:
+      "https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?auto=format&fit=crop&w=900&q=80",
     key: "categories",
     target: { kind: "category" },
   },
@@ -345,9 +340,7 @@ export const HERO_BANNERS_BY_MARKET: Record<
 
 const CODE_OWNED_HOMEPAGE_HERO_SOURCES: Partial<
   Record<HerbatikaMarketCode, HeroBannerItem[]>
-> = {
-  sk: HERO_BANNERS,
-}
+> = HERO_BANNERS_BY_MARKET
 
 export const resolveHomepageHeroBanners = (
   heroBanners: HeroBannerItem[] | undefined,
@@ -360,9 +353,11 @@ export const resolveHomepageHeroBanners = (
   return HERO_BANNERS_BY_MARKET[market] ?? []
 }
 
-export type HomepageHeroSourceResult =
-  | Readonly<{ kind: "found"; value: HeroBannerItem[] }>
-  | Readonly<{ kind: "unavailable" }>
+export type HomepageHeroSourceResult = Readonly<{
+  kind: "found"
+  publicationApproved: boolean
+  value: HeroBannerItem[]
+}>
 
 export const resolveHomepageHeroSource = (
   cmsBanners: HeroBannerItem[] | undefined,
@@ -370,18 +365,39 @@ export const resolveHomepageHeroSource = (
   readReviewedBanners?: () => HeroBannerItem[] | undefined
 ): HomepageHeroSourceResult => {
   if (cmsBanners?.length) {
-    return { kind: "found", value: cmsBanners }
+    return {
+      kind: "found",
+      publicationApproved: true,
+      value: cmsBanners,
+    }
   }
 
   const codeOwnedSource = CODE_OWNED_HOMEPAGE_HERO_SOURCES[market]
   if (codeOwnedSource?.length) {
-    return { kind: "found", value: codeOwnedSource }
+    return {
+      kind: "found",
+      publicationApproved: true,
+      value: codeOwnedSource,
+    }
   }
 
-  const reviewedBanners = readReviewedBanners?.()
+  let reviewedBanners: HeroBannerItem[] | undefined
+  try {
+    reviewedBanners = readReviewedBanners?.()
+  } catch {
+    reviewedBanners = undefined
+  }
   if (reviewedBanners?.length) {
-    return { kind: "found", value: reviewedBanners }
+    return {
+      kind: "found",
+      publicationApproved: true,
+      value: reviewedBanners,
+    }
   }
 
-  return { kind: "unavailable" }
+  return {
+    kind: "found",
+    publicationApproved: false,
+    value: HERO_BANNERS_BY_MARKET[market] ?? [],
+  }
 }
