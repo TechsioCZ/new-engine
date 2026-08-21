@@ -1,6 +1,9 @@
 import { lstat, readFile } from "node:fs/promises"
 import { extname, isAbsolute, resolve } from "node:path"
-import { hashCatalogTranslationBytes } from "./canonical"
+import {
+  hashCatalogTranslationBytes,
+  hashCatalogTranslationValue,
+} from "./canonical"
 import {
   CATALOG_TRANSLATION_EXACT_INVENTORY,
   CATALOG_TRANSLATION_SOURCE_LOCALE,
@@ -337,6 +340,7 @@ export const loadCatalogTranslationInput = async (inputPath: string) => {
     throw new Error(`input is not valid JSON: ${(error as Error).message}`)
   }
   const input = parseCatalogTranslationInput(parsed)
+  const matchedEntries = new Set<string>()
   for (const artifact of input.sourceArtifacts) {
     const before = await lstat(artifact.path).catch(() => {
       throw new Error(`source artifact does not exist: ${artifact.path}`)
@@ -355,6 +359,73 @@ export const loadCatalogTranslationInput = async (inputPath: string) => {
     ) {
       throw new Error(`source artifact bytes do not match: ${artifact.path}`)
     }
+    let artifactValue: unknown
+    try {
+      artifactValue = JSON.parse(artifactBytes.toString("utf8"))
+    } catch {
+      throw new Error(`source artifact is not semantic JSON: ${artifact.path}`)
+    }
+    const artifactRecord = asRecord(artifactValue, "source artifact")
+    if (!Array.isArray(artifactRecord.records)) {
+      throw new Error(`source artifact has no records: ${artifact.path}`)
+    }
+    const artifactMatchedEntries = new Set<string>()
+    for (const [index, candidate] of artifactRecord.records.entries()) {
+      const label = `source artifact record ${index}`
+      const record = asRecord(candidate, label)
+      const isCanonical = Object.hasOwn(record, "values")
+      exactKeys(
+        record,
+        isCanonical
+          ? ["reference", "referenceId", "values"]
+          : ["reference", "referenceId", "sourceReference", "translations"],
+        label
+      )
+      const reference = requiredString(record.reference, `${label}.reference`)
+      const referenceId = requiredString(
+        record.referenceId,
+        `${label}.referenceId`
+      )
+      const sourceReference = isCanonical
+        ? "generated-live-canonical-source"
+        : requiredString(record.sourceReference, `${label}.sourceReference`)
+      const rawTranslations = asRecord(
+        isCanonical ? record.values : record.translations,
+        `${label}.translations`
+      )
+      const translations = Object.fromEntries(
+        Object.entries(rawTranslations).map(([field, value]) => {
+          if (isCanonical && (value === null || value === undefined)) {
+            return [field, ""]
+          }
+          return [field, value]
+        })
+      )
+      const matches = input.entries.filter(
+        (entry) =>
+          entry.provenance.artifactSha256 === artifact.sha256 &&
+          entry.provenance.sourceReference === sourceReference &&
+          entry.reference === reference &&
+          entry.referenceId === referenceId &&
+          hashCatalogTranslationValue(entry.translations) ===
+            hashCatalogTranslationValue(translations)
+      )
+      if (matches.length !== 1) {
+        throw new Error(`${label} does not attest exactly one manifest entry`)
+      }
+      const identity = `${artifact.sha256}\u0000${sourceReference}\u0000${reference}\u0000${referenceId}`
+      if (
+        artifactMatchedEntries.has(identity) ||
+        matchedEntries.has(identity)
+      ) {
+        throw new Error(`${label} is a duplicate semantic attestation`)
+      }
+      artifactMatchedEntries.add(identity)
+      matchedEntries.add(identity)
+    }
+  }
+  if (matchedEntries.size !== input.entries.length) {
+    throw new Error("source artifacts do not attest every manifest entry")
   }
   return {
     absolutePath,

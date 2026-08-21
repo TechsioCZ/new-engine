@@ -329,10 +329,21 @@ describe("catalog translation test pipeline", () => {
     temporaryDirectories.push(directory)
     const sourcePath = join(directory, "source.jsonl")
     const manifestPath = join(directory, "manifest.json")
-    const sourceBytes = Buffer.from('{"source":"reviewed"}\n', "utf8")
+    const input = fullInputValue()
+    const sourceBytes = Buffer.from(
+      `${JSON.stringify({
+        records: input.entries.map((entry) => ({
+          reference: entry.reference,
+          referenceId: entry.referenceId,
+          sourceReference: entry.provenance.sourceReference,
+          translations: entry.translations,
+        })),
+        schemaVersion: 1,
+      })}\n`,
+      "utf8"
+    )
     const sourceSha256 = hashCatalogTranslationBytes(sourceBytes)
     await writeFile(sourcePath, sourceBytes, { mode: 0o600 })
-    const input = fullInputValue()
     const manifest = {
       ...input,
       entries: input.entries.map((entry) => ({
