@@ -1,3 +1,4 @@
+import { IsolationLevel } from "@medusajs/framework/mikro-orm/core"
 import type { SqlEntityManager } from "@medusajs/framework/mikro-orm/knex"
 import type {
   Context,
@@ -43,6 +44,23 @@ const REFERENCES = new Set<string>([
   "product_content",
 ])
 const TRANSLATION_APPLY_LOCK_KEY = "catalog-translation-pipeline:exact-apply:v1"
+const PROTECTED_DATABASE_QUERIES = [
+  "select id, title, description, subtitle from product where deleted_at is null order by id",
+  "select id, name, description, metadata, parent_category_id from product_category where deleted_at is null order by id",
+  "select id, title from brand where deleted_at is null order by id",
+  "select id, product_id, usage, composition, warning, other from product_content where deleted_at is null order by id",
+  "select id, product_id from product_variant where deleted_at is null order by id",
+  "select variant_id, inventory_item_id, required_quantity from product_variant_inventory_item where deleted_at is null order by variant_id, inventory_item_id",
+  "select inventory_item_id, location_id, stocked_quantity, reserved_quantity from inventory_level where deleted_at is null order by inventory_item_id, location_id",
+] as const
+
+const readProtectedDatabaseStateSha256 = async (manager: SqlEntityManager) => {
+  const projections: unknown[] = []
+  for (const query of PROTECTED_DATABASE_QUERIES) {
+    projections.push(await manager.execute(query))
+  }
+  return hashCatalogTranslationValue(projections)
+}
 
 const chunk = <Value>(values: readonly Value[], size: number) => {
   const chunks: Value[][] = []
@@ -652,6 +670,9 @@ export const inspectCatalogTranslationSnapshot = async (
   const service = container.resolve<ITranslationModuleService>(
     Modules.TRANSLATION
   )
+  const manager = container.resolve<SqlEntityManager>(
+    ContainerRegistrationKeys.MANAGER
+  )
   const localeCodes = [
     ...new Set(input.entries.map(({ localeCode }) => localeCode)),
   ]
@@ -667,12 +688,17 @@ export const inspectCatalogTranslationSnapshot = async (
       "required catalog translation locales are missing or ambiguous"
     )
   }
-  const [existingTranslations, canonicalSource, sharedInventory] =
-    await Promise.all([
-      readCompleteCatalogTranslations(service, localeCodes),
-      inspectCanonicalCatalogTranslationSource(container),
-      inspectSharedInventoryFingerprint(container),
-    ])
+  const [
+    existingTranslations,
+    canonicalSource,
+    sharedInventory,
+    databaseStateSha256,
+  ] = await Promise.all([
+    readCompleteCatalogTranslations(service, localeCodes),
+    inspectCanonicalCatalogTranslationSource(container),
+    inspectSharedInventoryFingerprint(container),
+    readProtectedDatabaseStateSha256(manager),
+  ])
   const manifestIdentity = input.entries
     .map(({ reference, referenceId }) => ({ reference, referenceId }))
     .sort((left, right) =>
@@ -713,6 +739,7 @@ export const inspectCatalogTranslationSnapshot = async (
   return {
     existingTranslations,
     protectedState: {
+      databaseStateSha256,
       entityIdentitySha256: hashCatalogTranslationValue(
         canonicalSource.identity
       ),
@@ -800,6 +827,14 @@ export const applyCatalogTranslationPlan = async (
         [TRANSLATION_APPLY_LOCK_KEY]
       )
       const sharedContext: Context<SqlEntityManager> = { transactionManager }
+      const assertProtectedDatabaseState = async () => {
+        const current =
+          await readProtectedDatabaseStateSha256(transactionManager)
+        if (current !== plan.protectedState.databaseStateSha256) {
+          throw new Error("protected catalog source or inventory state changed")
+        }
+      }
+      await assertProtectedDatabaseState()
       for (const items of chunk(plan.items, chunkSize)) {
         const referenceIds = items.map(({ referenceId }) => referenceId)
         const localeCodes = [
@@ -859,7 +894,7 @@ export const applyCatalogTranslationPlan = async (
       if (finalTranslations.length !== plan.items.length) {
         throw new Error("final target translation inventory is not exact")
       }
-      return plan.items.map((item) => {
+      const exactTargetState = plan.items.map((item) => {
         const matches = finalTranslations.filter(
           (translation) =>
             translation.localeCode === item.localeCode &&
@@ -881,7 +916,10 @@ export const applyCatalogTranslationPlan = async (
           translations: matches[0]?.translations,
         }
       })
-    }
+      await assertProtectedDatabaseState()
+      return exactTargetState
+    },
+    { isolationLevel: IsolationLevel.SERIALIZABLE }
   )
   return {
     protectedState: plan.protectedState,

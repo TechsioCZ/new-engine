@@ -35,6 +35,9 @@ import type {
 } from "../../../../src/scripts/catalog-translation-pipeline/types"
 
 const SHA = "a".repeat(64)
+const PROTECTED_DATABASE_SHA = hashCatalogTranslationValue(
+  Array.from({ length: 7 }, () => [])
+)
 const temporaryDirectories: string[] = []
 
 const inputValue = (): CatalogTranslationInput => ({
@@ -196,6 +199,7 @@ const translation = (
 })
 
 const protectedState = {
+  databaseStateSha256: PROTECTED_DATABASE_SHA,
   entityIdentitySha256: "d".repeat(64),
   sharedInventory: { count: 7, sha256: "e".repeat(64) },
   sourceStateSha256: "f".repeat(64),
@@ -468,7 +472,7 @@ describe("catalog translation test pipeline", () => {
     expect(productItem?.resultingTranslations).not.toHaveProperty("legacy")
   })
 
-  it("rolls back every prior chunk when a middle translation write fails", async () => {
+  it("rolls back every chunk when protected state drifts during apply", async () => {
     const plan = buildCatalogTranslationPlan(
       inputValue(),
       "1".repeat(64),
@@ -476,8 +480,14 @@ describe("catalog translation test pipeline", () => {
     )
     let records: Record<string, unknown>[] = []
     let createCalls = 0
+    let protectedStateDrifted = false
     const transactionManager = {
-      execute: async () => {},
+      execute: async (query: string) => {
+        if (query.includes("pg_advisory_xact_lock")) {
+          return
+        }
+        return protectedStateDrifted ? [{ changed: true }] : []
+      },
     }
     const service = {
       createTranslations: async (
@@ -487,7 +497,7 @@ describe("catalog translation test pipeline", () => {
         expect(context.transactionManager).toBe(transactionManager)
         createCalls += 1
         if (createCalls === 2) {
-          throw new Error("forced middle chunk failure")
+          protectedStateDrifted = true
         }
         records.push(
           ...creates.map((create, index) => ({
@@ -531,8 +541,8 @@ describe("catalog translation test pipeline", () => {
     }
     await expect(
       applyCatalogTranslationPlan(container as never, inputValue(), plan, 1)
-    ).rejects.toThrow("forced middle chunk failure")
-    expect(createCalls).toBe(2)
+    ).rejects.toThrow("protected catalog source or inventory state changed")
+    expect(createCalls).toBe(4)
     expect(records).toEqual([])
   })
 

@@ -84,6 +84,7 @@ export type CatalogTranslationPlanItem = Readonly<{
 }>
 
 export type CatalogTranslationProtectedState = Readonly<{
+  databaseStateSha256: string
   entityIdentitySha256: string
   sharedInventory: Readonly<{ count: number; sha256: string }>
   sourceStateSha256: string
