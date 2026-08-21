@@ -112,11 +112,12 @@ const eurCents = (amount: number, label: string): bigint => {
   if (!Number.isFinite(amount) || amount < 0) {
     throw new Error(`${label} must be a non-negative finite EUR amount`)
   }
-  const cents = amount * 100
-  if (!Number.isSafeInteger(cents)) {
+  const fixed = amount.toFixed(2)
+  if (Number(fixed) !== amount) {
     throw new Error(`${label} must be exact at the EUR 0.01 quantum`)
   }
-  return BigInt(cents)
+  const [whole, fraction] = fixed.split(".") as [string, string]
+  return BigInt(whole) * 100n + BigInt(fraction)
 }
 
 export const convertEurAmountUp = (
@@ -134,18 +135,17 @@ export const convertEurAmountUp = (
   const denominator = BigInt(rate.denominator)
   if (currencyCode === "ron") {
     const targetCents = ceilDivide(numerator, denominator)
-    const result = Number(targetCents) / 100
-    if (!Number.isSafeInteger(result * 100)) {
+    if (targetCents > BigInt(Number.MAX_SAFE_INTEGER)) {
       throw new Error("converted RON amount exceeds the safe cent range")
     }
+    const result = Number(targetCents) / 100
     return result
   }
   const targetWholeUnits = ceilDivide(numerator, denominator * 100n)
-  const result = Number(targetWholeUnits)
-  if (!Number.isSafeInteger(result)) {
+  if (targetWholeUnits > BigInt(Number.MAX_SAFE_INTEGER)) {
     throw new Error(`converted ${currencyCode} amount exceeds the safe range`)
   }
-  return result
+  return Number(targetWholeUnits)
 }
 
 const isDefaultBasePrice = (price: MarketPriceDatabasePrice) =>
@@ -178,7 +178,8 @@ const targetAction = (
 
 const buildVariantMutations = (
   productId: string,
-  variant: MarketPriceDatabaseSnapshot["products"][number]["variants"][number]
+  variant: MarketPriceDatabaseSnapshot["products"][number]["variants"][number],
+  targetCurrencies: readonly TargetCurrencyCode[]
 ): TestPriceConversionMutation[] => {
   const source = exactlyOne(
     variant.prices.filter(
@@ -191,7 +192,7 @@ const buildVariantMutations = (
     `variant ${variant.id} authoritative base EUR source`
   )
 
-  return (["czk", "huf", "ron"] as const).map((currencyCode) => {
+  return targetCurrencies.map((currencyCode) => {
     const currentPrices = variant.prices.filter(
       (price) =>
         price.currencyCode === currencyCode && isDefaultBasePrice(price)
@@ -311,6 +312,14 @@ export const buildTestPriceConversionPlan = (
   const marketChannelIds = new Set(
     binding.marketSalesChannels.map(({ salesChannelId }) => salesChannelId)
   )
+  const targetCurrencyBySalesChannelId = new Map(
+    binding.marketSalesChannels.flatMap(({ marketCode, salesChannelId }) => {
+      const currencyCode = { cz: "czk", hu: "huf", ro: "ron" }[marketCode]
+      return currencyCode
+        ? ([[salesChannelId, currencyCode]] as const)
+        : ([] as const)
+    })
+  )
   const scopedProducts = snapshot.products.filter(
     (product) =>
       product.status === "published" &&
@@ -335,7 +344,20 @@ export const buildTestPriceConversionPlan = (
         throw new Error(`duplicate variant ${variant.id}`)
       }
       variantIds.add(variant.id)
-      mutations.push(...buildVariantMutations(product.id, variant))
+      const targetCurrencies = product.salesChannelIds.flatMap(
+        (salesChannelId) => {
+          const currencyCode =
+            targetCurrencyBySalesChannelId.get(salesChannelId)
+          return currencyCode ? [currencyCode] : []
+        }
+      )
+      mutations.push(
+        ...buildVariantMutations(
+          product.id,
+          variant,
+          [...new Set(targetCurrencies)].sort(compareText)
+        )
+      )
     }
   }
   if (variantIds.size === 0) {
