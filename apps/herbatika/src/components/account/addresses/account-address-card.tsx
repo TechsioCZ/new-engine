@@ -7,12 +7,14 @@ import type { CustomerAddress } from "./account-address-model"
 
 type AccountAddressCardProps = {
   address: CustomerAddress
+  canEdit: boolean
   onDelete: (address: CustomerAddress) => void
   onEdit: (address: CustomerAddress) => void
 }
 
 export function AccountAddressCard({
   address,
+  canEdit,
   onDelete,
   onEdit,
 }: AccountAddressCardProps) {
@@ -55,16 +57,18 @@ export function AccountAddressCard({
       </div>
 
       <div className="flex flex-wrap gap-200">
-        <Button
-          icon="token-icon-pen"
-          onClick={() => onEdit(address)}
-          size="sm"
-          theme="outlined"
-          type="button"
-          variant="secondary"
-        >
-          {tAuth("account.addresses.edit")}
-        </Button>
+        {canEdit ? (
+          <Button
+            icon="token-icon-pen"
+            onClick={() => onEdit(address)}
+            size="sm"
+            theme="outlined"
+            type="button"
+            variant="secondary"
+          >
+            {tAuth("account.addresses.edit")}
+          </Button>
+        ) : null}
         <Button
           icon="token-icon-trash"
           onClick={() => onDelete(address)}

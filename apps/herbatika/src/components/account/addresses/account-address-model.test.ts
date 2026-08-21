@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest"
 import {
   type CustomerAddress,
+  canManageAddressInMarket,
   createEmptyAccountAddressValues,
   resolveAddressCountryCode,
+  resolveAddressMarket,
   toAccountAddressFormValues,
   toCustomerAddressCreateInput,
   toCustomerAddressUpdateInput,
@@ -42,6 +44,15 @@ describe("account address model", () => {
     expect(resolveAddressCountryCode("DE", "cz")).toBe("cz")
     expect(resolveAddressCountryCode(null, "hu")).toBe("hu")
     expect(createEmptyAccountAddressValues("ro").country_code).toBe("ro")
+  })
+
+  it("fails closed when deciding whether a saved address can be managed", () => {
+    expect(resolveAddressMarket(" RO ")).toBe("ro")
+    expect(resolveAddressMarket("DE")).toBeNull()
+    expect(resolveAddressMarket(null)).toBeNull()
+    expect(canManageAddressInMarket(SAVED_ADDRESS, "ro")).toBe(true)
+    expect(canManageAddressInMarket(SAVED_ADDRESS, "sk")).toBe(false)
+    expect(canManageAddressInMarket({ country_code: "DE" }, "sk")).toBe(false)
   })
 
   it("trims submitted values and omits blank optional values", () => {

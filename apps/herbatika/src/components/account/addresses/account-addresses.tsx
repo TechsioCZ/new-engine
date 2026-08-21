@@ -14,7 +14,10 @@ import { useMarketContext } from "@/lib/storefront/market-context-provider"
 import { AccountAddressCard } from "./account-address-card"
 import { AccountAddressDeleteDialog } from "./account-address-delete-dialog"
 import { AccountAddressFormDialog } from "./account-address-form-dialog"
-import type { CustomerAddress } from "./account-address-model"
+import {
+  type CustomerAddress,
+  canManageAddressInMarket,
+} from "./account-address-model"
 
 export function AccountAddresses() {
   const tAuth = useTranslations("auth")
@@ -100,12 +103,16 @@ export function AccountAddresses() {
           {addressesQuery.addresses.map((address) => (
             <AccountAddressCard
               address={address}
+              canEdit={canManageAddressInMarket(address, countryCode)}
               key={address.id}
               onDelete={(selectedAddress) => {
                 setSuccessMessage(null)
                 setDeletingAddress(selectedAddress)
               }}
               onEdit={(selectedAddress) => {
+                if (!canManageAddressInMarket(selectedAddress, countryCode)) {
+                  return
+                }
                 setSuccessMessage(null)
                 setEditingAddress(selectedAddress)
               }}
@@ -114,7 +121,9 @@ export function AccountAddresses() {
         </div>
       ) : null}
 
-      {isCreating || editingAddress ? (
+      {isCreating ||
+      (editingAddress &&
+        canManageAddressInMarket(editingAddress, countryCode)) ? (
         <AccountAddressFormDialog
           address={editingAddress}
           countryCode={countryCode}

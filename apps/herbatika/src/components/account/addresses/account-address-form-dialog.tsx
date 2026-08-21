@@ -22,6 +22,7 @@ import { AccountAddressCountryField } from "./account-address-country-field"
 import { AccountAddressDialogActions } from "./account-address-dialog-actions"
 import {
   type CustomerAddress,
+  canManageAddressInMarket,
   toAccountAddressFormValues,
   toCustomerAddressCreateInput,
   toCustomerAddressUpdateInput,
@@ -105,6 +106,10 @@ export function AccountAddressFormDialog({
     },
   })
   const clearSubmitError = () => setSubmitError(null)
+
+  if (address && !canManageAddressInMarket(address, countryCode)) {
+    return null
+  }
 
   const closeDialog = () => {
     if (!isPending) {

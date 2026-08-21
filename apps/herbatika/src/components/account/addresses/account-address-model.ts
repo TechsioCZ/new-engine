@@ -42,16 +42,25 @@ const HERBATIKA_COUNTRY_CODES = new Set<HerbatikaCountryCode>([
 
 const optionalTrimmed = (value: string) => value.trim() || undefined
 
-export const resolveAddressCountryCode = (
-  countryCode: string | null | undefined,
-  fallback: HerbatikaCountryCode
-): HerbatikaCountryCode => {
+export const resolveAddressMarket = (
+  countryCode: string | null | undefined
+): HerbatikaCountryCode | null => {
   const normalized = countryCode?.trim().toLowerCase()
   return normalized &&
     HERBATIKA_COUNTRY_CODES.has(normalized as HerbatikaCountryCode)
     ? (normalized as HerbatikaCountryCode)
-    : fallback
+    : null
 }
+
+export const canManageAddressInMarket = (
+  address: Pick<CustomerAddress, "country_code">,
+  market: HerbatikaCountryCode
+): boolean => resolveAddressMarket(address.country_code) === market
+
+export const resolveAddressCountryCode = (
+  countryCode: string | null | undefined,
+  fallback: HerbatikaCountryCode
+): HerbatikaCountryCode => resolveAddressMarket(countryCode) ?? fallback
 
 export const createEmptyAccountAddressValues = (
   countryCode: HerbatikaCountryCode
