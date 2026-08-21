@@ -1,6 +1,6 @@
-import { createHash } from "node:crypto"
-import { open } from "node:fs/promises"
-import { isAbsolute } from "node:path"
+import { createHash, randomUUID } from "node:crypto"
+import { link, lstat, open, realpath, unlink } from "node:fs/promises"
+import { basename, dirname, isAbsolute, resolve } from "node:path"
 import { canonicalJsonWithLf, parseCanonicalJsonWithLf } from "../canonical"
 import {
   FOUR_MARKET_NOTIFICATION_BINDINGS,
@@ -36,6 +36,42 @@ const hasExactKeys = (
 
 const invalid = (): never => {
   throw new Error("Four-market notification readiness artifact is invalid")
+}
+
+const assertStableOutputParent = async (
+  parentPath: string,
+  expected: Readonly<{ dev: number; ino: number }>
+) => {
+  const [parent, physicalParentPath] = await Promise.all([
+    lstat(parentPath),
+    realpath(parentPath),
+  ])
+  if (
+    parent.isSymbolicLink() ||
+    !parent.isDirectory() ||
+    physicalParentPath !== parentPath ||
+    parent.dev !== expected.dev ||
+    parent.ino !== expected.ino
+  ) {
+    throw new Error(
+      "Notification readiness output parent changed during artifact publication"
+    )
+  }
+}
+
+const assertSameRegularFile = (
+  expected: Readonly<{ dev: number; ino: number }>,
+  actual: Awaited<ReturnType<typeof lstat>>,
+  label: string
+) => {
+  if (
+    actual.isSymbolicLink() ||
+    !actual.isFile() ||
+    actual.dev !== expected.dev ||
+    actual.ino !== expected.ino
+  ) {
+    throw new Error(`${label} changed during artifact publication`)
+  }
 }
 
 const isNotificationReadinessMarket = (
@@ -336,17 +372,61 @@ export const writeNotificationReadinessArtifact = async (
   outputPath: string,
   artifact: FourMarketNotificationReadinessArtifact
 ): Promise<Readonly<{ path: string; sha256: string }>> => {
-  if (!isAbsolute(outputPath)) {
-    throw new Error("Notification readiness output path must be absolute")
+  if (!isAbsolute(outputPath) || resolve(outputPath) !== outputPath) {
+    throw new Error(
+      "Notification readiness output path must be a canonical absolute path"
+    )
   }
   const serialized = canonicalJsonWithLf(artifact)
   parseNotificationReadinessArtifact(serialized)
-  const handle = await open(outputPath, "wx", 0o600)
+
+  const parentPath = dirname(outputPath)
+  const [parent, physicalParentPath] = await Promise.all([
+    lstat(parentPath),
+    realpath(parentPath),
+  ])
+  if (
+    parent.isSymbolicLink() ||
+    !parent.isDirectory() ||
+    physicalParentPath !== parentPath
+  ) {
+    throw new Error(
+      "Notification readiness output parent must be a non-symlink directory"
+    )
+  }
+  const parentIdentity = { dev: parent.dev, ino: parent.ino }
+  const temporaryPath = `${parentPath}/.${basename(outputPath)}.${process.pid}.${randomUUID()}.tmp`
+  let handle: Awaited<ReturnType<typeof open>> | undefined
   try {
+    handle = await open(temporaryPath, "wx", 0o600)
     await handle.writeFile(serialized, "utf8")
     await handle.sync()
-  } finally {
+    const temporaryIdentity = await handle.stat()
     await handle.close()
+    handle = undefined
+    assertSameRegularFile(
+      temporaryIdentity,
+      await lstat(temporaryPath),
+      "Temporary notification readiness artifact"
+    )
+    await assertStableOutputParent(parentPath, parentIdentity)
+    await link(temporaryPath, outputPath)
+    assertSameRegularFile(
+      temporaryIdentity,
+      await lstat(outputPath),
+      "Published notification readiness artifact"
+    )
+    await unlink(temporaryPath).catch(() => {
+      // Publication is committed; stale temporary cleanup is best-effort.
+    })
+  } catch (error) {
+    await handle?.close().catch(() => {
+      // Preserve the original publication failure.
+    })
+    await unlink(temporaryPath).catch(() => {
+      // Preserve the original publication failure.
+    })
+    throw error
   }
   return {
     path: outputPath,
