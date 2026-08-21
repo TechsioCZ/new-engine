@@ -11,5 +11,7 @@ export type { default as ResendConfigModuleService } from "./service"
 export type {
   ResendConfigAdminDTO,
   ResendConfigUpdateInput,
+  ResendMarketConfiguration,
+  ResendMarketConfigurations,
   ResendRuntimeConfig,
 } from "./types"

@@ -12,6 +12,12 @@ import {
   type ResendConfigModuleService,
 } from "../resend-config"
 import {
+  getResendMailboxDomain,
+  type ResendEmailMarket,
+  resendEmailMarketBindings,
+  resolveResendEmailMarket,
+} from "./contracts"
+import {
   getResendTemplateDefinition,
   getResendTemplateSubject,
   type ResendEmailTemplate,
@@ -52,6 +58,7 @@ type ResendTemplateEmailOptions = {
     path?: string
   }[]
   from: string
+  replyTo: string
   requestTimeoutMs: number
   subject: string
   template: {
@@ -65,6 +72,7 @@ type ResendRuntimeOptions = {
   apiKey: string
   apiUrl: string
   from: string
+  replyTo: string
   requestTimeoutMs: number
   templateMappings: Record<string, string>
 }
@@ -295,7 +303,9 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
     }
   }
 
-  protected async getRuntimeOptions(): Promise<ResendRuntimeOptions> {
+  protected async getRuntimeOptions(
+    market: ResendEmailMarket
+  ): Promise<ResendRuntimeOptions> {
     const service = this.container[RESEND_CONFIG_MODULE]
 
     if (!service || typeof service !== "object") {
@@ -309,12 +319,37 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
       service as ResendConfigModuleService
     ).getRuntimeConfig()
 
+    const binding = resendEmailMarketBindings[market]
+    const marketConfiguration = runtimeConfig.market_configurations?.[market]
+
+    if (!marketConfiguration) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Resend configuration is missing the ${market.toUpperCase()} notification market`
+      )
+    }
+
+    const from = marketConfiguration.from_email
+    const replyTo = marketConfiguration.reply_to
+    const templateMappings = marketConfiguration.template_mappings
+
+    if (
+      getResendMailboxDomain(from) !== binding.senderDomain ||
+      getResendMailboxDomain(replyTo) !== binding.senderDomain
+    ) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Resend sender configuration does not match the ${market.toUpperCase()} notification market`
+      )
+    }
+
     return {
       apiKey: runtimeConfig.api_key,
       apiUrl: normalizeApiUrl(runtimeConfig.api_url),
-      from: runtimeConfig.from_email,
+      from,
+      replyTo,
       requestTimeoutMs: runtimeConfig.request_timeout_ms,
-      templateMappings: runtimeConfig.template_mappings,
+      templateMappings,
     }
   }
 
@@ -330,6 +365,7 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
         body: JSON.stringify({
           attachments: emailOptions.attachments,
           from: emailOptions.from,
+          reply_to: emailOptions.replyTo,
           subject: emailOptions.subject,
           template: emailOptions.template,
           to: emailOptions.to,
@@ -393,6 +429,27 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
       )
     }
 
+    const locale = notification.data?.locale
+    const storefrontDomain = notification.data?.storefront_domain
+    const market = resolveResendEmailMarket(locale, storefrontDomain)
+
+    if (!market) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        "Resend notification requires an exact supported locale and storefront domain tuple"
+      )
+    }
+
+    for (const field of ["market_code", "country_code"] as const) {
+      const value = notification.data?.[field]
+      if (value !== undefined && value !== market) {
+        throw new MedusaError(
+          MedusaError.Types.INVALID_DATA,
+          "Resend notification market context is cross-wired"
+        )
+      }
+    }
+
     const { invalidVariables, missingVariables, variables } =
       this.getTemplateVariables(template, notification.data)
 
@@ -410,11 +467,10 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
       )
     }
 
-    const locale =
-      typeof notification.data?.locale === "string"
-        ? notification.data.locale
-        : undefined
-    const subject = getResendTemplateSubject(templateKey, locale)
+    const subject = getResendTemplateSubject(
+      templateKey,
+      resendEmailMarketBindings[market].locale
+    )
 
     if (!subject) {
       throw new MedusaError(
@@ -423,7 +479,7 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
       )
     }
 
-    const runtimeOptions = await this.getRuntimeOptions()
+    const runtimeOptions = await this.getRuntimeOptions(market)
     const templateId = runtimeOptions.templateMappings[templateKey]?.trim()
 
     if (!templateId) {
@@ -437,6 +493,7 @@ class ResendNotificationProviderService extends AbstractNotificationProviderServ
       apiUrl: runtimeOptions.apiUrl,
       attachments: this.getAttachments(notification),
       from: runtimeOptions.from,
+      replyTo: runtimeOptions.replyTo,
       requestTimeoutMs: runtimeOptions.requestTimeoutMs,
       subject,
       template: {

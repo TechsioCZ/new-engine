@@ -4,7 +4,10 @@ import { decryptFields, encryptFields } from "../../utils/encryption"
 import type { ApiStoreAdminDTO, ApiStoreModuleService } from "../api-store"
 import { API_STORE_MODULE } from "../api-store"
 import {
+  getResendMailboxDomain,
   type ResendEmailTemplate,
+  resendEmailMarketBindings,
+  resendEmailMarkets,
   resendEmailTemplateKeys,
 } from "../resend/contracts"
 import {
@@ -16,6 +19,7 @@ import ResendConfig from "./models/resend-config"
 import type {
   ResendConfigAdminDTO,
   ResendConfigUpdateInput,
+  ResendMarketConfigurations,
   ResendRuntimeConfig,
 } from "./types"
 
@@ -34,6 +38,7 @@ type ResendConfigWriteData = {
   from_email?: string | null
   webhook_secret?: string | null
   request_timeout_ms?: number
+  market_configurations?: ResendMarketConfigurations
   template_mappings?: Record<ResendEmailTemplate, string>
   product_review_request_delay_minutes?: number
 }
@@ -116,6 +121,57 @@ function normalizeTemplateMappings(
   return mappings
 }
 
+function normalizeMarketConfigurations(
+  value: ResendMarketConfigurations | null | undefined
+): ResendMarketConfigurations {
+  if (!value) {
+    return {}
+  }
+
+  const unknownMarkets = Object.keys(value).filter(
+    (market) => !resendEmailMarkets.includes(market as never)
+  )
+  if (unknownMarkets.length) {
+    throw new MedusaError(
+      MedusaError.Types.INVALID_DATA,
+      `Unsupported Resend notification markets: ${unknownMarkets.join(", ")}`
+    )
+  }
+
+  const configurations: ResendMarketConfigurations = {}
+  for (const market of resendEmailMarkets) {
+    const input = value[market]
+    if (!input) {
+      continue
+    }
+
+    const fromEmail = input.from_email?.trim()
+    const replyTo = input.reply_to?.trim()
+    validateFromEmail(fromEmail || null)
+    validateFromEmail(replyTo || null)
+    const senderDomain = resendEmailMarketBindings[market].senderDomain
+
+    if (
+      !(fromEmail && replyTo) ||
+      getResendMailboxDomain(fromEmail) !== senderDomain ||
+      getResendMailboxDomain(replyTo) !== senderDomain
+    ) {
+      throw new MedusaError(
+        MedusaError.Types.INVALID_DATA,
+        `Resend ${market.toUpperCase()} From Email and Reply-To must use ${senderDomain}`
+      )
+    }
+
+    configurations[market] = {
+      from_email: fromEmail,
+      reply_to: replyTo,
+      template_mappings: normalizeTemplateMappings(input.template_mappings),
+    }
+  }
+
+  return configurations
+}
+
 function validateFromEmail(fromEmail: string | null) {
   if (
     !fromEmail ||
@@ -161,32 +217,41 @@ function normalizeApiUrl(value: string) {
   return DEFAULT_RESEND_API_URL
 }
 
+function hasCompleteMarketConfiguration(
+  marketConfigurations: ResendMarketConfigurations
+): boolean {
+  return resendEmailMarkets.every((market) => {
+    const configuration = marketConfigurations[market]
+    return Boolean(
+      configuration &&
+        resendEmailTemplateKeys.every((template) =>
+          Boolean(configuration.template_mappings[template])
+        )
+    )
+  })
+}
+
 function validateEnabledConfiguration({
   apiStore,
-  fromEmail,
   isEnabled,
-  templateMappings,
+  marketConfigurations,
 }: {
   apiStore: ApiStoreAdminDTO | null
-  fromEmail: string | null
   isEnabled: boolean
-  templateMappings: Record<ResendEmailTemplate, string>
+  marketConfigurations: ResendMarketConfigurations
 }) {
   if (
     !isEnabled ||
     (apiStore?.enabled &&
       apiStore.has_api_key &&
-      Boolean(fromEmail) &&
-      resendEmailTemplateKeys.every((template) =>
-        Boolean(templateMappings[template])
-      ))
+      hasCompleteMarketConfiguration(marketConfigurations))
   ) {
     return
   }
 
   throw new MedusaError(
     MedusaError.Types.INVALID_DATA,
-    "Enable Resend only after selecting an enabled API Store configuration with an API key, entering From Email, and mapping every email template"
+    "Enable Resend only after selecting an enabled API Store configuration with an API key and configuring every email template for all four markets"
   )
 }
 
@@ -201,6 +266,9 @@ function toAdminDTO(
     has_webhook_secret: Boolean(record?.webhook_secret),
     request_timeout_ms:
       record?.request_timeout_ms ?? DEFAULT_RESEND_REQUEST_TIMEOUT_MS,
+    market_configurations: normalizeMarketConfigurations(
+      record?.market_configurations as ResendMarketConfigurations | undefined
+    ),
     template_mappings: normalizeTemplateMappings(
       record?.template_mappings as
         | Partial<Record<ResendEmailTemplate, string>>
@@ -236,11 +304,22 @@ class ResendConfigModuleService extends MedusaService({ ResendConfig }) {
 
     const apiStoreId = record.api_store_id?.trim()
     const fromEmail = record.from_email?.trim()
+    const apiUrl = normalizeApiUrl(record.api_url)
+    const marketConfigurations = normalizeMarketConfigurations(
+      record.market_configurations as ResendMarketConfigurations | undefined
+    )
 
-    if (!(apiStoreId && fromEmail)) {
+    if (!apiStoreId) {
       throw new MedusaError(
         MedusaError.Types.INVALID_DATA,
-        "Resend requires an API Store configuration and From Email in Settings → Resend"
+        "Resend requires an API Store configuration"
+      )
+    }
+
+    if (!hasCompleteMarketConfiguration(marketConfigurations)) {
+      throw new MedusaError(
+        MedusaError.Types.NOT_ALLOWED,
+        "Enabled Resend requires complete sender and template configuration for all four markets"
       )
     }
 
@@ -261,9 +340,10 @@ class ResendConfigModuleService extends MedusaService({ ResendConfig }) {
 
     return {
       api_key: apiStore.api_key.trim(),
-      api_url: normalizeApiUrl(record.api_url),
+      api_url: apiUrl,
       api_store_id: apiStoreId,
-      from_email: fromEmail,
+      from_email: fromEmail ?? "",
+      market_configurations: marketConfigurations,
       request_timeout_ms: record.request_timeout_ms,
       template_mappings: normalizeTemplateMappings(
         record.template_mappings as
@@ -311,6 +391,12 @@ class ResendConfigModuleService extends MedusaService({ ResendConfig }) {
           | Partial<Record<ResendEmailTemplate, string>>
           | undefined)
     )
+    const marketConfigurations = normalizeMarketConfigurations(
+      input.market_configurations ??
+        (existing?.market_configurations as
+          | ResendMarketConfigurations
+          | undefined)
+    )
     const productReviewRequestDelayMinutes =
       input.product_review_request_delay_minutes ??
       existing?.product_review_request_delay_minutes ??
@@ -327,9 +413,8 @@ class ResendConfigModuleService extends MedusaService({ ResendConfig }) {
 
     validateEnabledConfiguration({
       apiStore,
-      fromEmail,
       isEnabled,
-      templateMappings,
+      marketConfigurations,
     })
 
     const writeData: ResendConfigWriteData = {
@@ -337,6 +422,7 @@ class ResendConfigModuleService extends MedusaService({ ResendConfig }) {
       api_url: apiUrl,
       from_email: fromEmail,
       is_enabled: isEnabled,
+      market_configurations: marketConfigurations,
       request_timeout_ms: requestTimeoutMs,
       template_mappings: templateMappings,
       product_review_request_delay_minutes: productReviewRequestDelayMinutes,

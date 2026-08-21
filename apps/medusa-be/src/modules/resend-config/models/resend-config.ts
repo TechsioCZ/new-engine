@@ -10,6 +10,7 @@ const ResendConfig = model
     from_email: model.text().nullable(),
     webhook_secret: model.text().nullable(),
     request_timeout_ms: model.number().default(10_000),
+    market_configurations: model.json().default({}),
     template_mappings: model.json().default({}),
     product_review_request_delay_minutes: model.number().default(10_080),
   })
