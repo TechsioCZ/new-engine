@@ -1,4 +1,5 @@
 import type { MedusaRequest } from "@medusajs/framework"
+import { MedusaError } from "@medusajs/framework/utils"
 import type { ApiStoreModuleService } from "../../../modules/api-store"
 import { API_STORE_MODULE } from "../../../modules/api-store"
 import {
@@ -102,7 +103,10 @@ export async function verifyTurnstileToken(
   })
 
   if (!response.ok) {
-    throw new Error("Turnstile Siteverify request failed")
+    throw new MedusaError(
+      MedusaError.Types.UNEXPECTED_STATE,
+      "Turnstile Siteverify request failed"
+    )
   }
 
   return (await response.json()) as TurnstileSiteverifyResponse
