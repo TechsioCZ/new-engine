@@ -81,7 +81,7 @@ describe("resolveHomepageHeroSource", () => {
     })
   })
 
-  it("preserves CMS precedence and the existing SK/RO fallbacks", () => {
+  it("preserves CMS precedence and the existing reviewed SK source", () => {
     const cms: HeroBannerItem[] = [{ id: "cms", imageSrc: "/cms.avif" }]
     const readReviewed = vi.fn(() => [
       { id: "must-not-be-read", imageSrc: "/must-not-be-read.avif" },
@@ -95,10 +95,29 @@ describe("resolveHomepageHeroSource", () => {
       kind: "found",
       value: HERO_BANNERS,
     })
-    expect(resolveHomepageHeroSource([], "ro", readReviewed)).toEqual({
-      kind: "found",
-      value: RO_HERO_BANNERS,
-    })
     expect(readReviewed).not.toHaveBeenCalled()
+  })
+
+  it("never treats the Romanian demo fallback as publication-ready", () => {
+    const readReviewed = vi.fn(
+      function missingReviewedRomanianSource(): undefined {
+        return
+      }
+    )
+
+    expect(resolveHomepageHeroBanners([], "ro")).toBe(RO_HERO_BANNERS)
+    expect(resolveHomepageHeroSource([], "ro", readReviewed)).toEqual({
+      kind: "unavailable",
+    })
+    expect(readReviewed).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    ["sk", "found"],
+    ["cz", "unavailable"],
+    ["hu", "unavailable"],
+    ["ro", "unavailable"],
+  ] as const)("applies the four-market publication contract for %s", (market, expectedKind) => {
+    expect(resolveHomepageHeroSource([], market).kind).toBe(expectedKind)
   })
 })

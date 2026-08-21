@@ -145,6 +145,12 @@ export const HERO_BANNERS_BY_MARKET: Partial<
   sk: HERO_BANNERS,
 }
 
+const CODE_OWNED_HOMEPAGE_HERO_SOURCES: Partial<
+  Record<HerbatikaMarketCode, HeroBannerItem[]>
+> = {
+  sk: HERO_BANNERS,
+}
+
 export const resolveHomepageHeroBanners = (
   heroBanners: HeroBannerItem[] | undefined,
   market: HerbatikaMarketCode
@@ -169,9 +175,9 @@ export const resolveHomepageHeroSource = (
     return { kind: "found", value: cmsBanners }
   }
 
-  const marketFallback = HERO_BANNERS_BY_MARKET[market]
-  if (marketFallback?.length) {
-    return { kind: "found", value: marketFallback }
+  const codeOwnedSource = CODE_OWNED_HOMEPAGE_HERO_SOURCES[market]
+  if (codeOwnedSource?.length) {
+    return { kind: "found", value: codeOwnedSource }
   }
 
   const reviewedBanners = readReviewedBanners?.()

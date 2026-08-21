@@ -103,6 +103,9 @@ vi.mock("@/lib/seo/system-runtime.server", () => ({
     countEntities,
     listEntities,
     listStatic: vi.fn().mockResolvedValue({ kind: "found", value: [] }),
+    validateHomepageSource: vi
+      .fn()
+      .mockResolvedValue({ kind: "found", value: true }),
     validateEntitySources,
     validateStaticSources: vi
       .fn()

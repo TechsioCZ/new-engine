@@ -79,6 +79,10 @@ const dependencies = (
     })
   ),
   listStatic: vi.fn().mockResolvedValue({ kind: "found", value: [] }),
+  validateHomepageSource: vi.fn().mockResolvedValue({
+    kind: "found",
+    value: true,
+  }),
   validateEntitySources: vi.fn().mockImplementation(({ sources }) =>
     Promise.resolve({
       kind: "found",
@@ -351,5 +355,59 @@ describe("system sitemaps", () => {
       "ro-RO": "https://herbatica.ro/",
       "sk-SK": "https://herbatica.sk/",
     })
+  })
+
+  it("omits unavailable homepages and their hreflang alternates reciprocally", async () => {
+    const readyMarkets = new Set(["sk", "cz", "hu"])
+    const deps = {
+      ...dependencies([]),
+      listMarkets: vi.fn().mockReturnValue(["sk", "cz", "hu", "ro"]),
+      validateHomepageSource: vi.fn((market: "sk" | "cz" | "hu" | "ro") =>
+        Promise.resolve(
+          readyMarkets.has(market)
+            ? ({ kind: "found", value: true } as const)
+            : ({ kind: "unavailable" } as const)
+        )
+      ),
+    } satisfies SitemapDataDependencies
+
+    const czResult = await listSitemapEntries(binding, "core", deps)
+    const roResult = await listSitemapEntries(
+      {
+        ...binding,
+        acceptedHosts: ["herbatica.ro"],
+        canonicalOrigin: "https://herbatica.ro",
+        countryCode: "RO",
+        locale: "ro-RO",
+        market: "ro",
+        publishableApiKey: "pk_ro",
+        publishableApiKeyId: "pkid_ro",
+        regionId: "reg_ro",
+        salesChannelId: "sc_ro",
+      },
+      "core",
+      deps
+    )
+
+    expect(czResult.kind === "found" && czResult.value[0]).toEqual({
+      alternates: {
+        "cs-CZ": "https://herbatica.cz/",
+        "hu-HU": "https://herbatica.hu/",
+        "sk-SK": "https://herbatica.sk/",
+      },
+      location: "https://herbatica.cz/",
+    })
+    expect(
+      roResult.kind === "found" &&
+        roResult.value.some(
+          ({ location }) => location === "https://herbatica.ro/"
+        )
+    ).toBe(false)
+    expect(
+      roResult.kind === "found" &&
+        roResult.value.some(
+          ({ location }) => location === "https://herbatica.ro/produse"
+        )
+    ).toBe(true)
   })
 })

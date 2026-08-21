@@ -66,6 +66,7 @@ export type SitemapDataDependencies = Readonly<{
     input: ActiveEquivalenceLookup
   ): Promise<SourceReadResult<readonly ActiveRouteTarget[]>>
   listMarkets?(): readonly Market[]
+  validateHomepageSource(market: Market): Promise<SourceReadResult<true>>
   validateEntitySources(input: {
     kind: Exclude<EntityUrlKind, "campaign">
     market: Market
