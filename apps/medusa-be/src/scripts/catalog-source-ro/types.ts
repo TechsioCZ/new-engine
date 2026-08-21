@@ -45,6 +45,7 @@ export type RomanianCatalogSourceEnvironment =
   CatalogTranslationInput["environment"]
 
 export type RomanianCatalogSourceFiles = Readonly<{
+  attestationOutputPath: string
   catalogEntities: Uint8Array
   inventoryEnvelope: Uint8Array
   mergedCategories: Uint8Array
@@ -86,6 +87,11 @@ export type RomanianCatalogSourceAuthority = Readonly<{
   }>
   preimagesSha256: string
   schemaVersion: 1
+  semanticAttestation: Readonly<{
+    path: string
+    records: number
+    sha256: string
+  }>
   sourceArtifacts: Readonly<{
     catalogEntitiesSha256: string
     inventoryEnvelopeSha256: string
@@ -96,7 +102,18 @@ export type RomanianCatalogSourceAuthority = Readonly<{
   sourceLocale: "sk-SK"
 }>
 
+export type RomanianCatalogSemanticAttestation = Readonly<{
+  records: readonly Readonly<{
+    reference: CatalogTranslationReference
+    referenceId: string
+    sourceReference: string
+    translations: Readonly<Record<string, string | null>>
+  }>[]
+  schemaVersion: 1
+}>
+
 export type RomanianCatalogSourceBundle = Readonly<{
+  attestation: RomanianCatalogSemanticAttestation
   authority: RomanianCatalogSourceAuthority
   manifest: CatalogTranslationInput
   preimages: readonly RomanianCatalogSourcePreimage[]

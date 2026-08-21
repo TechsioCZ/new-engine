@@ -4,6 +4,7 @@ import { stableCatalogTranslationJson } from "../catalog-translation-pipeline/ca
 import { buildRomanianCatalogSourceBundle } from "./generator"
 
 type Options = Readonly<{
+  attestationOutput: string
   authorityOutput: string
   catalogEntities: string
   databaseInstanceFingerprint: string
@@ -17,6 +18,7 @@ type Options = Readonly<{
 }>
 
 const PATH_FLAGS = new Set([
+  "--attestation-output",
   "--authority-output",
   "--catalog-entities",
   "--inventory-envelope",
@@ -40,6 +42,7 @@ const parseOptions = (args: readonly string[]): Options => {
     values.set(name, value)
   }
   const required = [
+    "--attestation-output",
     "--authority-output",
     "--catalog-entities",
     "--database-instance-fingerprint",
@@ -62,6 +65,7 @@ const parseOptions = (args: readonly string[]): Options => {
     }
   }
   return {
+    attestationOutput: values.get("--attestation-output") as string,
     authorityOutput: values.get("--authority-output") as string,
     catalogEntities: values.get("--catalog-entities") as string,
     databaseInstanceFingerprint: values.get(
@@ -106,6 +110,7 @@ export const runRomanianCatalogSourceCli = async (
   ])
   const bundle = buildRomanianCatalogSourceBundle(
     {
+      attestationOutputPath: options.attestationOutput,
       catalogEntities,
       inventoryEnvelope,
       mergedCategories,
@@ -125,6 +130,7 @@ export const runRomanianCatalogSourceCli = async (
       kind: "test",
     }
   )
+  await writeNewCanonicalJson(options.attestationOutput, bundle.attestation)
   await writeNewCanonicalJson(options.manifestOutput, bundle.manifest)
   await writeNewCanonicalJson(options.preimagesOutput, bundle.preimages)
   await writeNewCanonicalJson(options.authorityOutput, bundle.authority)

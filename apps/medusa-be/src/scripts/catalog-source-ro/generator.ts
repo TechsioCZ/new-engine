@@ -12,6 +12,7 @@ import type {
 } from "../catalog-translation-pipeline/types"
 import {
   ROMANIAN_CATALOG_SOURCE_CONTRACT,
+  type RomanianCatalogSemanticAttestation,
   type RomanianCatalogSourceAuthority,
   type RomanianCatalogSourceBundle,
   type RomanianCatalogSourceContract,
@@ -637,6 +638,9 @@ export const buildRomanianCatalogSourceBundle = (
       throw new Error(`${name} source path must be absolute`)
     }
   }
+  if (!isAbsolute(files.attestationOutputPath)) {
+    throw new Error("semantic attestation output path must be absolute")
+  }
   const inventoryEnvelope = json(files.inventoryEnvelope, "inventory envelope")
   const rawLiveInventory = json(files.rawLiveInventory, "raw live inventory")
   const inventoryProducts = readInventoryProducts(inventoryEnvelope)
@@ -766,34 +770,34 @@ export const buildRomanianCatalogSourceBundle = (
       "en"
     )
   )
+  const attestation: RomanianCatalogSemanticAttestation = {
+    records: entries.map(({ provenance: entryProvenance, ...item }) => ({
+      reference: item.reference,
+      referenceId: item.referenceId,
+      sourceReference: entryProvenance.sourceReference,
+      translations: item.translations,
+    })),
+    schemaVersion: 1,
+  }
+  const attestationSha256 = bytesSha256(
+    Buffer.from(`${stableCatalogTranslationJson(attestation)}\n`)
+  )
+  const attestedEntries = entries.map((item) => ({
+    ...item,
+    provenance: {
+      ...item.provenance,
+      artifactSha256: attestationSha256,
+    },
+  }))
   const manifest: CatalogTranslationInput = {
-    entries,
+    entries: attestedEntries,
     environment,
     inventory: contract.inventory,
     mode: "replace",
     schemaVersion: 1,
     sourceLocale: "sk-SK",
     sourceArtifacts: [
-      {
-        path: files.sourcePaths.catalogEntities,
-        sha256: sourceArtifacts.catalogEntitiesSha256,
-      },
-      {
-        path: files.sourcePaths.inventoryEnvelope,
-        sha256: sourceArtifacts.inventoryEnvelopeSha256,
-      },
-      {
-        path: files.sourcePaths.mergedCategories,
-        sha256: sourceArtifacts.mergedCategoriesSha256,
-      },
-      {
-        path: files.sourcePaths.mergedProducts,
-        sha256: sourceArtifacts.mergedProductsSha256,
-      },
-      {
-        path: files.sourcePaths.rawLiveInventory,
-        sha256: sourceArtifacts.rawLiveInventorySha256,
-      },
+      { path: files.attestationOutputPath, sha256: attestationSha256 },
     ],
     targetLocale: "ro-RO",
   }
@@ -821,8 +825,13 @@ export const buildRomanianCatalogSourceBundle = (
     },
     preimagesSha256,
     schemaVersion: 1,
+    semanticAttestation: {
+      path: files.attestationOutputPath,
+      records: attestation.records.length,
+      sha256: attestationSha256,
+    },
     sourceArtifacts,
     sourceLocale: "sk-SK",
   }
-  return { authority, manifest, preimages }
+  return { attestation, authority, manifest, preimages }
 }

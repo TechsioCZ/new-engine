@@ -4,6 +4,7 @@ runRomanianCatalogSourceCli()
   .then((authority) => {
     console.log(
       JSON.stringify({
+        attestationSha256: authority.semanticAttestation.sha256,
         inventory: authority.inventory,
         manifestSha256: authority.manifestSha256,
         partitions: {

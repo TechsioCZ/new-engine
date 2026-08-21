@@ -23,6 +23,7 @@ const contract: RomanianCatalogSourceContract = {
 }
 
 const files = (): RomanianCatalogSourceFiles => ({
+  attestationOutputPath: "/tmp/ro-semantic-attestation.json",
   catalogEntities: bytes({
     brands_by_medusa_id: {
       brand_1: {
@@ -165,7 +166,13 @@ describe("Romanian catalog translation source", () => {
 
     expect(bundle.manifest.entries).toHaveLength(8)
     expect(bundle.manifest.targetLocale).toBe("ro-RO")
-    expect(bundle.manifest.sourceArtifacts).toHaveLength(5)
+    expect(bundle.manifest.sourceArtifacts).toEqual([
+      {
+        path: "/tmp/ro-semantic-attestation.json",
+        sha256: bundle.authority.semanticAttestation.sha256,
+      },
+    ])
+    expect(bundle.attestation.records).toHaveLength(8)
     expect(
       bundle.manifest.entries.every(({ localeCode }) => localeCode === "ro-RO")
     ).toBe(true)
@@ -175,6 +182,18 @@ describe("Romanian catalog translation source", () => {
     expect(
       bundle.manifest.entries.every(({ provenance }) =>
         declaredArtifactHashes.has(provenance.artifactSha256)
+      )
+    ).toBe(true)
+    expect(
+      bundle.manifest.entries.every((entry) =>
+        bundle.attestation.records.some(
+          (record) =>
+            record.reference === entry.reference &&
+            record.referenceId === entry.referenceId &&
+            record.sourceReference === entry.provenance.sourceReference &&
+            stableCatalogTranslationJson(record.translations) ===
+              stableCatalogTranslationJson(entry.translations)
+        )
       )
     ).toBe(true)
     expect(bundle.preimages).toHaveLength(8)
