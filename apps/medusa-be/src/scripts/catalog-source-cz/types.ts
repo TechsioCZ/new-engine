@@ -4,6 +4,7 @@ export type CzechCatalogSourcePaths = Readonly<{
   brandsJsonl: string
   categoriesJsonl: string
   officialFeedXml: string
+  officialPagesJsonl: string
   productsJsonl: string
   rawInventoryJson: string
 }>
@@ -43,7 +44,9 @@ export type CzechCatalogBundleSummary = Readonly<{
     entries: number
     productContents: Readonly<{ temporaryAi: number; total: number }>
     products: Readonly<{
+      officialFeedOnly: number
       officialExactUniqueEan: number
+      officialPage: number
       temporaryAi: number
       total: number
     }>
@@ -55,6 +58,7 @@ export type CzechCatalogBundleSummary = Readonly<{
     brandsJsonlSha256: string
     categoriesJsonlSha256: string
     officialFeedSha256: string
+    officialPagesJsonlSha256: string
     productsJsonlSha256: string
     rawInventoryJsonSha256: string
   }>

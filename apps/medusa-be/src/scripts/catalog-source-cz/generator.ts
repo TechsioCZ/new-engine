@@ -1,6 +1,6 @@
 // biome-ignore-all lint/complexity/noExcessiveCognitiveComplexity: exact-source assembly intentionally keeps all partition gates in one auditable transaction.
 import { createHash } from "node:crypto"
-import { mkdir, open, readFile, stat } from "node:fs/promises"
+import { lstat, mkdir, open, readFile } from "node:fs/promises"
 import { basename, join, resolve } from "node:path"
 import {
   hashCatalogTranslationBytes,
@@ -39,6 +39,8 @@ const EXPECTED = {
 
 export const CZ_OFFICIAL_FEED_SHA256 =
   "bf05673d19e38665ae8d5867e1060e4382e73c310a33bdc6eb5e76e8241a44f4"
+export const CZ_OFFICIAL_PAGES_SHA256 =
+  "e79d15a5c3bba61550301fcf47be3b8e6cebe1d9a180cfcd4e707da5b75cdb19"
 
 const EXPLICIT_BRAND_ALIASES: Readonly<Record<string, string>> = {
   "sungitove-kameny": "sungitove-kamene",
@@ -91,6 +93,16 @@ type OfficialFeedGroup = Readonly<{
   eans: readonly string[]
   manufacturers: readonly string[]
   titles: readonly string[]
+  url: string
+}>
+
+type OfficialPage = Readonly<{
+  eanMatchesFeed: boolean | null
+  feedEans: readonly string[]
+  fullDescriptionHtml: string | null
+  h1: string | null
+  pageCanonicalUrl: string | null
+  result: "error" | "ok"
   url: string
 }>
 
@@ -365,14 +377,16 @@ export const buildCzechCatalogBundle = async ({
   const sourceEntries = await Promise.all(
     Object.entries(sources).map(async ([key, path]) => {
       const absolutePath = resolve(path)
-      const metadata = await stat(absolutePath)
-      if (!metadata.isFile() || metadata.nlink !== 1) {
+      const before = await lstat(absolutePath)
+      if (!before.isFile() || before.isSymbolicLink() || before.nlink !== 1) {
         throw new Error(`${key} must be a regular single-link source artifact`)
       }
-      return [
-        key,
-        { absolutePath, bytes: await readFile(absolutePath) },
-      ] as const
+      const bytes = await readFile(absolutePath)
+      const after = await lstat(absolutePath)
+      if (before.dev !== after.dev || before.ino !== after.ino) {
+        throw new Error(`${key} changed while it was read`)
+      }
+      return [key, { absolutePath, bytes }] as const
     })
   )
   const loaded = Object.fromEntries(sourceEntries) as Record<
@@ -384,6 +398,9 @@ export const buildCzechCatalogBundle = async ({
   ) as Record<keyof CzechCatalogSourcePaths, string>
   if (sourceHashes.officialFeedXml !== CZ_OFFICIAL_FEED_SHA256) {
     throw new Error("official CZ feed does not match the frozen audited bytes")
+  }
+  if (sourceHashes.officialPagesJsonl !== CZ_OFFICIAL_PAGES_SHA256) {
+    throw new Error("official CZ pages do not match the frozen audited bytes")
   }
 
   const products = parseJsonl<BlueProduct>(
@@ -425,6 +442,13 @@ export const buildCzechCatalogBundle = async ({
   }
   const officialGroups = parseCzechOfficialFeed(
     loaded.officialFeedXml.bytes.toString("utf8")
+  )
+  const officialPages = parseJsonl<OfficialPage>(
+    loaded.officialPagesJsonl.bytes,
+    "official pages"
+  )
+  const officialPagesByUrl = new Map(
+    officialPages.map((page) => [canonicalOfficialUrl(page.url), page])
   )
   const groupsByEan = new Map<string, OfficialFeedGroup[]>()
   for (const group of officialGroups) {
@@ -471,6 +495,7 @@ export const buildCzechCatalogBundle = async ({
 
   const entries: CatalogTranslationInputEntry[] = []
   const ledger: CzechCatalogSourceLedgerRow[] = []
+  let officialPageCount = 0
   for (const product of [...products].sort((left, right) =>
     left.product_id.localeCompare(right.product_id, "en")
   )) {
@@ -484,25 +509,48 @@ export const buildCzechCatalogBundle = async ({
       title: requiredString(product.sk.title, `${product.product_id}.title`),
     }
     const official = officialByProductId.get(product.product_id)
+    const officialPage = official
+      ? officialPagesByUrl.get(official.url)
+      : undefined
+    const verifiedOfficialPage =
+      officialPage?.result === "ok" &&
+      officialPage.eanMatchesFeed === true &&
+      officialPage.pageCanonicalUrl === official.url &&
+      officialPage.feedEans.some((ean) => official?.eans.includes(ean)) &&
+      officialPage.h1 &&
+      officialPage.fullDescriptionHtml
+        ? officialPage
+        : undefined
+    if (verifiedOfficialPage) {
+      officialPageCount += 1
+    }
     const productEntry: CatalogTranslationInputEntry = official
       ? {
           localeCode: "cs-CZ",
           provenance: officialProvenance(
-            sourceHashes.officialFeedXml,
-            `official-herbatica-cz-feed:${CZ_OFFICIAL_FEED_SHA256}:${official.url}`
+            verifiedOfficialPage
+              ? sourceHashes.officialPagesJsonl
+              : sourceHashes.officialFeedXml,
+            verifiedOfficialPage
+              ? `official-herbatica-cz-page:${CZ_OFFICIAL_PAGES_SHA256}:${official.url}:identity-feed:${CZ_OFFICIAL_FEED_SHA256}`
+              : `official-herbatica-cz-feed:${CZ_OFFICIAL_FEED_SHA256}:${official.url}`
           ),
           reference: "product",
           referenceId: product.product_id,
           translations: {
-            description: chooseLongest(
-              official.descriptions,
-              `${product.product_id}.official.description`
-            ),
+            description:
+              verifiedOfficialPage?.fullDescriptionHtml ??
+              chooseLongest(
+                official.descriptions,
+                `${product.product_id}.official.description`
+              ),
             subtitle: buildTemporaryCzechTranslation(sourceProduct.subtitle),
-            title: chooseShortest(
-              official.titles,
-              `${product.product_id}.official.title`
-            ),
+            title:
+              verifiedOfficialPage?.h1 ??
+              chooseShortest(
+                official.titles,
+                `${product.product_id}.official.title`
+              ),
           },
         }
       : {
@@ -522,12 +570,19 @@ export const buildCzechCatalogBundle = async ({
           },
         }
     entries.push(productEntry)
+    let productSourceArtifactSha256 = sourceHashes.productsJsonl
+    if (official) {
+      productSourceArtifactSha256 = sourceHashes.officialFeedXml
+    }
+    if (verifiedOfficialPage) {
+      productSourceArtifactSha256 = sourceHashes.officialPagesJsonl
+    }
     ledger.push(
       ledgerRow(
         productEntry,
         official ? "official-exact-unique-ean" : "temporary-ai-from-sk",
-        official ? sourceHashes.officialFeedXml : sourceHashes.productsJsonl,
-        official ?? sourceProduct
+        productSourceArtifactSha256,
+        verifiedOfficialPage ?? official ?? sourceProduct
       )
     )
 
@@ -736,7 +791,9 @@ export const buildCzechCatalogBundle = async ({
         total: EXPECTED.productContents,
       },
       products: {
+        officialFeedOnly: officialByProductId.size - officialPageCount,
         officialExactUniqueEan: officialByProductId.size,
+        officialPage: officialPageCount,
         temporaryAi: EXPECTED.products - officialByProductId.size,
         total: EXPECTED.products,
       },
@@ -748,6 +805,7 @@ export const buildCzechCatalogBundle = async ({
       brandsJsonlSha256: sourceHashes.brandsJsonl,
       categoriesJsonlSha256: sourceHashes.categoriesJsonl,
       officialFeedSha256: sourceHashes.officialFeedXml,
+      officialPagesJsonlSha256: sourceHashes.officialPagesJsonl,
       productsJsonlSha256: sourceHashes.productsJsonl,
       rawInventoryJsonSha256: sourceHashes.rawInventoryJson,
     },
