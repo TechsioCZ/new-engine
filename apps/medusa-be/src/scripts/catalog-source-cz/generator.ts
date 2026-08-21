@@ -22,7 +22,12 @@ import { buildTemporaryCzechTranslation } from "./temporary-czech"
 import type {
   CzechCatalogBundleSummary,
   CzechCatalogEnvironment,
+  CzechCatalogFieldAttestation,
+  CzechCatalogFieldAttestations,
+  CzechCatalogSourceAttestation,
+  CzechCatalogSourceAttestationRecord,
   CzechCatalogSourceLedgerRow,
+  CzechCatalogSourceMethod,
   CzechCatalogSourcePaths,
 } from "./types"
 
@@ -47,6 +52,28 @@ const EXPLICIT_BRAND_ALIASES: Readonly<Record<string, string>> = {
 }
 const LOWERCASE_SHA256 = /^[a-f0-9]{64}$/
 const TRAILING_SLASHES = /\/+$/
+const CZECH_FIELDS_BY_REFERENCE = {
+  brand: ["title"],
+  product: ["description", "subtitle", "title"],
+  product_category: [
+    "bottom_description_html",
+    "description",
+    "meta_description",
+    "meta_title",
+    "name",
+    "top_description_html",
+  ],
+  product_content: ["composition", "other", "usage", "warning"],
+} as const satisfies Readonly<
+  Record<CatalogTranslationInputEntry["reference"], readonly string[]>
+>
+const CZECH_SOURCE_METHODS = new Set<CzechCatalogSourceMethod>([
+  "official-explicit-brand-alias",
+  "official-exact-brand-slug",
+  "official-exact-unique-ean",
+  "source-null",
+  "temporary-ai-from-sk",
+])
 
 type BlueProduct = Readonly<{
   product_id: string
@@ -136,6 +163,27 @@ const parseJsonl = <Value>(bytes: Buffer, label: string): Value[] => {
         )
       }
     })
+}
+
+const asRecord = (value: unknown, label: string): Record<string, unknown> => {
+  if (!(value && typeof value === "object" && !Array.isArray(value))) {
+    throw new Error(`${label} must be an object`)
+  }
+  return value as Record<string, unknown>
+}
+
+const exactKeys = (
+  value: Record<string, unknown>,
+  expected: readonly string[],
+  label: string
+) => {
+  const actual = Object.keys(value)
+  if (
+    actual.length !== expected.length ||
+    expected.some((key) => !Object.hasOwn(value, key))
+  ) {
+    throw new Error(`${label} fields are invalid`)
+  }
 }
 
 const canonicalOfficialUrl = (value: string) => {
@@ -305,38 +353,245 @@ const chooseLongest = (values: readonly string[], label: string) => {
   return requiredString(selected, label)
 }
 
-const temporaryProvenance = (
+const fieldAttestation = (
+  method: CzechCatalogSourceMethod,
   sourceArtifactSha256: string,
-  sourceReference: string
-): CatalogTranslationProvenance => ({
-  artifactSha256: sourceArtifactSha256,
-  method: "ai-generated",
-  sourceReference: `temporary-ai-translation-from-sk-SK:${sourceReference}:source-artifact-sha256:${sourceArtifactSha256}`,
-})
-
-const officialProvenance = (
-  sourceArtifactSha256: string,
-  sourceReference: string
-): CatalogTranslationProvenance => ({
-  artifactSha256: sourceArtifactSha256,
-  method: "existing-reviewed-artifact",
+  sourceReference: string,
+  sourceRecord: unknown
+): CzechCatalogFieldAttestation => ({
+  method,
+  sourceArtifactSha256,
+  sourceRecordSha256: hashCatalogTranslationValue(sourceRecord),
   sourceReference,
 })
 
+const isPublicationGradeMethod = (method: CzechCatalogSourceMethod) =>
+  method !== "source-null" && method !== "temporary-ai-from-sk"
+
+const parseCzechSourceAttestationRecord = (
+  value: unknown,
+  index: number
+): CzechCatalogSourceAttestationRecord => {
+  const label = `CZ source attestation records[${index}]`
+  const record = asRecord(value, label)
+  exactKeys(
+    record,
+    [
+      "fields",
+      "publicationGrade",
+      "reference",
+      "referenceId",
+      "sourceReference",
+      "translations",
+    ],
+    label
+  )
+  if (
+    typeof record.reference !== "string" ||
+    !Object.hasOwn(CZECH_FIELDS_BY_REFERENCE, record.reference)
+  ) {
+    throw new Error(`${label}.reference is invalid`)
+  }
+  const reference =
+    record.reference as CatalogTranslationInputEntry["reference"]
+  const expectedFields = CZECH_FIELDS_BY_REFERENCE[reference]
+  const translations = asRecord(record.translations, `${label}.translations`)
+  const fields = asRecord(record.fields, `${label}.fields`)
+  exactKeys(translations, expectedFields, `${label}.translations`)
+  exactKeys(fields, expectedFields, `${label}.fields`)
+
+  const parsedFields = Object.fromEntries(
+    expectedFields.map((field) => {
+      const translation = translations[field]
+      if (
+        translation !== null &&
+        !(typeof translation === "string" && translation.trim())
+      ) {
+        throw new Error(`${label}.translations.${field} is invalid`)
+      }
+      const fieldLabel = `${label}.fields.${field}`
+      const attestation = asRecord(fields[field], fieldLabel)
+      exactKeys(
+        attestation,
+        [
+          "method",
+          "sourceArtifactSha256",
+          "sourceRecordSha256",
+          "sourceReference",
+        ],
+        fieldLabel
+      )
+      if (
+        typeof attestation.method !== "string" ||
+        !CZECH_SOURCE_METHODS.has(
+          attestation.method as CzechCatalogSourceMethod
+        ) ||
+        !LOWERCASE_SHA256.test(String(attestation.sourceArtifactSha256)) ||
+        !LOWERCASE_SHA256.test(String(attestation.sourceRecordSha256))
+      ) {
+        throw new Error(`${fieldLabel} is invalid`)
+      }
+      if ((translation === null) !== (attestation.method === "source-null")) {
+        throw new Error(`${fieldLabel} null value and source method disagree`)
+      }
+      return [
+        field,
+        {
+          method: attestation.method as CzechCatalogSourceMethod,
+          sourceArtifactSha256: String(attestation.sourceArtifactSha256),
+          sourceRecordSha256: String(attestation.sourceRecordSha256),
+          sourceReference: requiredString(
+            attestation.sourceReference,
+            `${fieldLabel}.sourceReference`
+          ),
+        },
+      ] as const
+    })
+  )
+  const publicationGrade = Object.values(parsedFields).every(({ method }) =>
+    isPublicationGradeMethod(method)
+  )
+  if (record.publicationGrade !== publicationGrade) {
+    throw new Error(`${label}.publicationGrade does not match field evidence`)
+  }
+  return {
+    fields: parsedFields,
+    publicationGrade,
+    reference,
+    referenceId: requiredString(record.referenceId, `${label}.referenceId`),
+    sourceReference: requiredString(
+      record.sourceReference,
+      `${label}.sourceReference`
+    ),
+    translations: translations as Record<string, string | null>,
+  }
+}
+
+export const parseCzechCatalogSourceAttestation = (
+  value: unknown
+): CzechCatalogSourceAttestation => {
+  const attestation = asRecord(value, "CZ source attestation")
+  exactKeys(attestation, ["records", "schemaVersion"], "CZ source attestation")
+  if (attestation.schemaVersion !== 2 || !Array.isArray(attestation.records)) {
+    throw new Error("CZ source attestation header is invalid")
+  }
+  const records = attestation.records.map(parseCzechSourceAttestationRecord)
+  const keys = records.map(
+    ({ reference, referenceId }) => `${reference}\u0000${referenceId}`
+  )
+  if (
+    new Set(keys).size !== keys.length ||
+    keys.some((key, index) => index > 0 && key <= (keys[index - 1] as string))
+  ) {
+    throw new Error("CZ source attestation records must be unique and sorted")
+  }
+  return { records, schemaVersion: 2 }
+}
+
+export const assertCzechCatalogPublicationGrade = (
+  fields: CzechCatalogFieldAttestations,
+  requiredFields: readonly string[],
+  label: string
+) => {
+  for (const field of requiredFields) {
+    const attestation = fields[field]
+    if (!attestation) {
+      throw new Error(`${label}.${field} has no field source attestation`)
+    }
+    if (!isPublicationGradeMethod(attestation.method)) {
+      throw new Error(
+        `${label}.${field} is not publication-grade: ${attestation.method}`
+      )
+    }
+  }
+}
+
+export const buildCzechCatalogEntry = ({
+  fields,
+  reference,
+  referenceId,
+  translations,
+}: Readonly<{
+  fields: CzechCatalogFieldAttestations
+  reference: CatalogTranslationInputEntry["reference"]
+  referenceId: string
+  translations: CatalogTranslationInputEntry["translations"]
+}>): CatalogTranslationInputEntry => {
+  const translationFields = Object.keys(translations).sort()
+  const attestedFields = Object.keys(fields).sort()
+  if (
+    translationFields.length !== attestedFields.length ||
+    translationFields.some((field, index) => field !== attestedFields[index])
+  ) {
+    throw new Error(
+      `${reference}:${referenceId} translations and field attestations differ`
+    )
+  }
+  for (const [field, value] of Object.entries(translations)) {
+    const method = fields[field]?.method
+    if ((value === null) !== (method === "source-null")) {
+      throw new Error(
+        `${reference}:${referenceId}.${field} null value and source method disagree`
+      )
+    }
+  }
+  const populatedFields = translationFields.filter(
+    (field) => translations[field] !== null
+  )
+  const reviewed =
+    populatedFields.length > 0 &&
+    populatedFields.every((field) =>
+      isPublicationGradeMethod(fields[field]?.method ?? "source-null")
+    )
+  const primaryField = populatedFields[0] ?? translationFields[0]
+  const primaryAttestation = primaryField ? fields[primaryField] : undefined
+  if (!primaryAttestation) {
+    throw new Error(
+      `${reference}:${referenceId} has no field source attestation`
+    )
+  }
+  const provenance: CatalogTranslationProvenance = {
+    artifactSha256: primaryAttestation.sourceArtifactSha256,
+    method: reviewed ? "existing-reviewed-artifact" : "ai-generated",
+    sourceReference: `cz-field-source-attestation:${reference}:${referenceId}:${reviewed ? "reviewed" : "contains-temporary"}`,
+  }
+  return {
+    localeCode: "cs-CZ",
+    provenance,
+    reference,
+    referenceId,
+    translations,
+  }
+}
+
 const ledgerRow = (
   entry: CatalogTranslationInputEntry,
-  method: CzechCatalogSourceLedgerRow["method"],
-  sourceArtifactSha256: string,
-  sourceRecord: unknown
-): CzechCatalogSourceLedgerRow => ({
-  localeCode: "cs-CZ",
-  method,
-  reference: entry.reference,
-  referenceId: entry.referenceId,
-  sourceArtifactSha256,
-  sourceRecordSha256: hashCatalogTranslationValue(sourceRecord),
-  sourceReference: entry.provenance.sourceReference,
-})
+  fields: CzechCatalogFieldAttestations
+): CzechCatalogSourceLedgerRow => {
+  const populatedMethods = Object.entries(entry.translations)
+    .filter(([, value]) => value !== null)
+    .map(([field]) => fields[field]?.method ?? "source-null")
+  const publicationGrade = Object.values(fields).every(({ method }) =>
+    isPublicationGradeMethod(method)
+  )
+  const aggregateMethod = populatedMethods.includes("temporary-ai-from-sk")
+    ? "temporary-ai-from-sk"
+    : (populatedMethods[0] ?? "source-null")
+  return {
+    fields,
+    localeCode: "cs-CZ",
+    method: aggregateMethod,
+    publicationGrade,
+    reference: entry.reference,
+    referenceId: entry.referenceId,
+    sourceArtifactSha256: entry.provenance.artifactSha256,
+    sourceRecordSha256: hashCatalogTranslationValue({
+      fields,
+      translations: entry.translations,
+    }),
+    sourceReference: entry.provenance.sourceReference,
+  }
+}
 
 const normalizeEntries = (entries: readonly CatalogTranslationInputEntry[]) =>
   [...entries].sort((left, right) =>
@@ -525,67 +780,85 @@ export const buildCzechCatalogBundle = async ({
     if (verifiedOfficialPage) {
       officialPageCount += 1
     }
-    const productEntry: CatalogTranslationInputEntry = official
+    const officialSourceArtifactSha256 = verifiedOfficialPage
+      ? sourceHashes.officialPagesJsonl
+      : sourceHashes.officialFeedXml
+    const officialSourceReference = verifiedOfficialPage
+      ? `official-herbatica-cz-page:${CZ_OFFICIAL_PAGES_SHA256}:${official?.url}:identity-feed:${CZ_OFFICIAL_FEED_SHA256}`
+      : `official-herbatica-cz-feed:${CZ_OFFICIAL_FEED_SHA256}:${official?.url}`
+    const productTranslations = official
       ? {
-          localeCode: "cs-CZ",
-          provenance: officialProvenance(
-            verifiedOfficialPage
-              ? sourceHashes.officialPagesJsonl
-              : sourceHashes.officialFeedXml,
-            verifiedOfficialPage
-              ? `official-herbatica-cz-page:${CZ_OFFICIAL_PAGES_SHA256}:${official.url}:identity-feed:${CZ_OFFICIAL_FEED_SHA256}`
-              : `official-herbatica-cz-feed:${CZ_OFFICIAL_FEED_SHA256}:${official.url}`
-          ),
-          reference: "product",
-          referenceId: product.product_id,
-          translations: {
-            description:
-              verifiedOfficialPage?.fullDescriptionHtml ??
-              chooseLongest(
-                official.descriptions,
-                `${product.product_id}.official.description`
-              ),
-            subtitle: buildTemporaryCzechTranslation(sourceProduct.subtitle),
-            title:
-              verifiedOfficialPage?.h1 ??
-              chooseShortest(
-                official.titles,
-                `${product.product_id}.official.title`
-              ),
-          },
+          description:
+            verifiedOfficialPage?.fullDescriptionHtml ??
+            chooseLongest(
+              official.descriptions,
+              `${product.product_id}.official.description`
+            ),
+          subtitle: buildTemporaryCzechTranslation(sourceProduct.subtitle),
+          title:
+            verifiedOfficialPage?.h1 ??
+            chooseShortest(
+              official.titles,
+              `${product.product_id}.official.title`
+            ),
         }
       : {
-          localeCode: "cs-CZ",
-          provenance: temporaryProvenance(
-            sourceHashes.productsJsonl,
-            product.product_id
+          description: buildTemporaryCzechTranslation(
+            sourceProduct.description
           ),
-          reference: "product",
-          referenceId: product.product_id,
-          translations: {
-            description: buildTemporaryCzechTranslation(
-              sourceProduct.description
-            ),
-            subtitle: buildTemporaryCzechTranslation(sourceProduct.subtitle),
-            title: buildTemporaryCzechTranslation(sourceProduct.title),
-          },
+          subtitle: buildTemporaryCzechTranslation(sourceProduct.subtitle),
+          title: buildTemporaryCzechTranslation(sourceProduct.title),
         }
-    entries.push(productEntry)
-    let productSourceArtifactSha256 = sourceHashes.productsJsonl
-    if (official) {
-      productSourceArtifactSha256 = sourceHashes.officialFeedXml
+    let descriptionMethod: CzechCatalogSourceMethod = "temporary-ai-from-sk"
+    if (productTranslations.description === null) {
+      descriptionMethod = "source-null"
+    } else if (official) {
+      descriptionMethod = "official-exact-unique-ean"
     }
-    if (verifiedOfficialPage) {
-      productSourceArtifactSha256 = sourceHashes.officialPagesJsonl
+    let descriptionSourceReference =
+      `temporary-ai-translation-from-sk-SK:${product.product_id}:field:description`
+    if (descriptionMethod === "source-null") {
+      descriptionSourceReference =
+        `sk-SK-source-null:${product.product_id}:field:description`
+    } else if (official) {
+      descriptionSourceReference = `${officialSourceReference}:field:description`
     }
-    ledger.push(
-      ledgerRow(
-        productEntry,
+    const subtitleSourceReference =
+      productTranslations.subtitle === null
+        ? `sk-SK-source-null:${product.product_id}:field:subtitle`
+        : `temporary-ai-translation-from-sk-SK:${product.product_id}:field:subtitle`
+    const productFields: CzechCatalogFieldAttestations = {
+      description: fieldAttestation(
+        descriptionMethod,
+        official ? officialSourceArtifactSha256 : sourceHashes.productsJsonl,
+        descriptionSourceReference,
+        official ? productTranslations.description : sourceProduct.description
+      ),
+      subtitle: fieldAttestation(
+        productTranslations.subtitle === null
+          ? "source-null"
+          : "temporary-ai-from-sk",
+        sourceHashes.rawInventoryJson,
+        subtitleSourceReference,
+        sourceProduct.subtitle
+      ),
+      title: fieldAttestation(
         official ? "official-exact-unique-ean" : "temporary-ai-from-sk",
-        productSourceArtifactSha256,
-        verifiedOfficialPage ?? official ?? sourceProduct
-      )
-    )
+        official ? officialSourceArtifactSha256 : sourceHashes.productsJsonl,
+        official
+          ? `${officialSourceReference}:field:title`
+          : `temporary-ai-translation-from-sk-SK:${product.product_id}:field:title`,
+        official ? productTranslations.title : sourceProduct.title
+      ),
+    }
+    const productEntry = buildCzechCatalogEntry({
+      fields: productFields,
+      reference: "product",
+      referenceId: product.product_id,
+      translations: productTranslations,
+    })
+    entries.push(productEntry)
+    ledger.push(ledgerRow(productEntry, productFields))
 
     const contentMap = product.sk.content?.content_sections_map ?? {}
     const sourceContent = {
@@ -594,30 +867,37 @@ export const buildCzechCatalogBundle = async ({
       usage: optionalString(contentMap.usage),
       warning: optionalString(contentMap.warning),
     }
-    const contentEntry: CatalogTranslationInputEntry = {
-      localeCode: "cs-CZ",
-      provenance: temporaryProvenance(
-        sourceHashes.productsJsonl,
-        `${product.product_id}:${rawProduct.productContentId}`
-      ),
+    const contentTranslations = {
+      composition: buildTemporaryCzechTranslation(sourceContent.composition),
+      other: buildTemporaryCzechTranslation(sourceContent.other),
+      usage: buildTemporaryCzechTranslation(sourceContent.usage),
+      warning: buildTemporaryCzechTranslation(sourceContent.warning),
+    }
+    const contentFields = Object.fromEntries(
+      Object.entries(sourceContent).map(([field, value]) => {
+        const prefix =
+          value === null
+            ? "sk-SK-source-null"
+            : "temporary-ai-translation-from-sk-SK"
+        return [
+          field,
+          fieldAttestation(
+            value === null ? "source-null" : "temporary-ai-from-sk",
+            sourceHashes.productsJsonl,
+            `${prefix}:${product.product_id}:${rawProduct.productContentId}:field:${field}`,
+            value
+          ),
+        ]
+      })
+    )
+    const contentEntry = buildCzechCatalogEntry({
+      fields: contentFields,
       reference: "product_content",
       referenceId: rawProduct.productContentId,
-      translations: {
-        composition: buildTemporaryCzechTranslation(sourceContent.composition),
-        other: buildTemporaryCzechTranslation(sourceContent.other),
-        usage: buildTemporaryCzechTranslation(sourceContent.usage),
-        warning: buildTemporaryCzechTranslation(sourceContent.warning),
-      },
-    }
+      translations: contentTranslations,
+    })
     entries.push(contentEntry)
-    ledger.push(
-      ledgerRow(
-        contentEntry,
-        "temporary-ai-from-sk",
-        sourceHashes.productsJsonl,
-        sourceContent
-      )
-    )
+    ledger.push(ledgerRow(contentEntry, contentFields))
   }
 
   for (const category of [...categories].sort((left, right) =>
@@ -643,30 +923,37 @@ export const buildCzechCatalogBundle = async ({
           category.locales.sk.metadata?.top_description_html
       ),
     }
-    const entry: CatalogTranslationInputEntry = {
-      localeCode: "cs-CZ",
-      provenance: temporaryProvenance(
-        sourceHashes.categoriesJsonl,
-        category.id
-      ),
+    const translations = Object.fromEntries(
+      Object.entries(source).map(([key, value]) => [
+        key,
+        buildTemporaryCzechTranslation(value),
+      ])
+    )
+    const fields = Object.fromEntries(
+      Object.entries(source).map(([field, value]) => {
+        const prefix =
+          value === null
+            ? "sk-SK-source-null"
+            : "temporary-ai-translation-from-sk-SK"
+        return [
+          field,
+          fieldAttestation(
+            value === null ? "source-null" : "temporary-ai-from-sk",
+            sourceHashes.categoriesJsonl,
+            `${prefix}:${category.id}:field:${field}`,
+            value
+          ),
+        ]
+      })
+    )
+    const entry = buildCzechCatalogEntry({
+      fields,
       reference: "product_category",
       referenceId: category.id,
-      translations: Object.fromEntries(
-        Object.entries(source).map(([key, value]) => [
-          key,
-          buildTemporaryCzechTranslation(value),
-        ])
-      ),
-    }
+      translations,
+    })
     entries.push(entry)
-    ledger.push(
-      ledgerRow(
-        entry,
-        "temporary-ai-from-sk",
-        sourceHashes.categoriesJsonl,
-        source
-      )
-    )
+    ledger.push(ledgerRow(entry, fields))
   }
 
   const officialBrandMatches = buildOfficialBrandMatches(
@@ -686,45 +973,34 @@ export const buildCzechCatalogBundle = async ({
     if (officialMethod === "official-explicit-brand-alias") {
       officialAliasBrandCount += 1
     }
-    const source = officialMatch
-      ? {
-          officialManufacturer: officialMatch.manufacturer,
-          targetBrandSlug: brand.blue.sk.handle,
-          ...(officialMethod === "official-explicit-brand-alias"
-            ? { aliasSourceSlug: slugify(officialMatch.manufacturer) }
-            : {}),
-        }
-      : { title: brand.blue.sk.title }
-    const entry: CatalogTranslationInputEntry = {
-      localeCode: "cs-CZ",
-      provenance: officialMethod
-        ? officialProvenance(
-            sourceHashes.officialFeedXml,
-            `official-herbatica-cz-feed:${CZ_OFFICIAL_FEED_SHA256}:manufacturer:${officialMatch?.manufacturer}`
+    const translations = {
+      title: officialMethod
+        ? requiredString(
+            officialMatch?.manufacturer,
+            `${brand.medusa_id}.manufacturer`
           )
-        : temporaryProvenance(sourceHashes.brandsJsonl, brand.medusa_id),
-      reference: "brand",
-      referenceId: brand.medusa_id,
-      translations: {
-        title: officialMethod
-          ? requiredString(
-              officialMatch?.manufacturer,
-              `${brand.medusa_id}.manufacturer`
-            )
-          : buildTemporaryCzechTranslation(brand.blue.sk.title),
-      },
+        : buildTemporaryCzechTranslation(brand.blue.sk.title),
     }
-    entries.push(entry)
-    ledger.push(
-      ledgerRow(
-        entry,
+    const fields = {
+      title: fieldAttestation(
         officialMethod ?? "temporary-ai-from-sk",
         officialMethod
           ? sourceHashes.officialFeedXml
           : sourceHashes.brandsJsonl,
-        source
-      )
-    )
+        officialMethod
+          ? `official-herbatica-cz-feed:${CZ_OFFICIAL_FEED_SHA256}:manufacturer:${officialMatch?.manufacturer}:field:title`
+          : `temporary-ai-translation-from-sk-SK:${brand.medusa_id}:field:title`,
+        officialMethod ? officialMatch?.manufacturer : brand.blue.sk.title
+      ),
+    }
+    const entry = buildCzechCatalogEntry({
+      fields,
+      reference: "brand",
+      referenceId: brand.medusa_id,
+      translations,
+    })
+    entries.push(entry)
+    ledger.push(ledgerRow(entry, fields))
   }
   assertCount(
     officialExactBrandCount,
@@ -739,15 +1015,40 @@ export const buildCzechCatalogBundle = async ({
 
   const normalizedEntries = normalizeEntries(entries)
   assertCount(normalizedEntries.length, EXPECTED.entries, "translation entries")
-  const sourceAttestation = {
-    records: normalizedEntries.map((entry) => ({
-      reference: entry.reference,
-      referenceId: entry.referenceId,
-      sourceReference: entry.provenance.sourceReference,
-      translations: entry.translations,
-    })),
-    schemaVersion: 1 as const,
+  const normalizedLedger = [...ledger].sort((left, right) =>
+    `${left.reference}\u0000${left.referenceId}`.localeCompare(
+      `${right.reference}\u0000${right.referenceId}`,
+      "en"
+    )
+  )
+  const ledgerByReference = new Map(
+    normalizedLedger.map((row) => [
+      `${row.reference}\u0000${row.referenceId}`,
+      row,
+    ])
+  )
+  const sourceAttestation: CzechCatalogSourceAttestation = {
+    records: normalizedEntries.map((entry) => {
+      const row = ledgerByReference.get(
+        `${entry.reference}\u0000${entry.referenceId}`
+      )
+      if (!row) {
+        throw new Error(
+          `missing source ledger row ${entry.reference}:${entry.referenceId}`
+        )
+      }
+      return {
+        fields: row.fields,
+        publicationGrade: row.publicationGrade,
+        reference: entry.reference,
+        referenceId: entry.referenceId,
+        sourceReference: entry.provenance.sourceReference,
+        translations: entry.translations,
+      }
+    }),
+    schemaVersion: 2 as const,
   }
+  parseCzechCatalogSourceAttestation(sourceAttestation)
   const sourceAttestationBytes = Buffer.from(
     `${stableCatalogTranslationJson(sourceAttestation)}\n`
   )
@@ -783,12 +1084,6 @@ export const buildCzechCatalogBundle = async ({
     targetLocale: "cs-CZ",
   }
   const inputBytes = Buffer.from(`${stableCatalogTranslationJson(input)}\n`)
-  const normalizedLedger = [...ledger].sort((left, right) =>
-    `${left.reference}\u0000${left.referenceId}`.localeCompare(
-      `${right.reference}\u0000${right.referenceId}`,
-      "en"
-    )
-  )
   const ledgerBytes = Buffer.from(
     `${normalizedLedger.map((row) => stableCatalogTranslationJson(row)).join("\n")}\n`
   )

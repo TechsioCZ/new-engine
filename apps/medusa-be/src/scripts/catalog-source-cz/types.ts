@@ -14,13 +14,43 @@ export type CzechCatalogEnvironment = Readonly<{
   environmentId: string
 }>
 
+export type CzechCatalogSourceMethod =
+  | "official-explicit-brand-alias"
+  | "official-exact-brand-slug"
+  | "official-exact-unique-ean"
+  | "source-null"
+  | "temporary-ai-from-sk"
+
+export type CzechCatalogFieldAttestation = Readonly<{
+  method: CzechCatalogSourceMethod
+  sourceArtifactSha256: string
+  sourceRecordSha256: string
+  sourceReference: string
+}>
+
+export type CzechCatalogFieldAttestations = Readonly<
+  Record<string, CzechCatalogFieldAttestation>
+>
+
+export type CzechCatalogSourceAttestationRecord = Readonly<{
+  fields: CzechCatalogFieldAttestations
+  publicationGrade: boolean
+  reference: CatalogTranslationInputEntry["reference"]
+  referenceId: string
+  sourceReference: string
+  translations: CatalogTranslationInputEntry["translations"]
+}>
+
+export type CzechCatalogSourceAttestation = Readonly<{
+  records: readonly CzechCatalogSourceAttestationRecord[]
+  schemaVersion: 2
+}>
+
 export type CzechCatalogSourceLedgerRow = Readonly<{
+  fields: CzechCatalogFieldAttestations
   localeCode: "cs-CZ"
-  method:
-    | "official-explicit-brand-alias"
-    | "official-exact-brand-slug"
-    | "official-exact-unique-ean"
-    | "temporary-ai-from-sk"
+  method: CzechCatalogSourceMethod
+  publicationGrade: boolean
   reference: CatalogTranslationInputEntry["reference"]
   referenceId: string
   sourceArtifactSha256: string
