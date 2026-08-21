@@ -1,4 +1,4 @@
-import { lstat, mkdir, readFile, realpath } from "node:fs/promises"
+import { lstat, mkdir, readFile, realpath, unlink } from "node:fs/promises"
 import { dirname, isAbsolute, join, resolve } from "node:path"
 import type { SqlEntityManager } from "@medusajs/framework/mikro-orm/knex"
 import type {
@@ -7,7 +7,11 @@ import type {
   Logger,
   MedusaContainer,
 } from "@medusajs/framework/types"
-import { ContainerRegistrationKeys, Modules } from "@medusajs/framework/utils"
+import {
+  ContainerRegistrationKeys,
+  generateEntityId,
+  Modules,
+} from "@medusajs/framework/utils"
 import { writePrivateCommerceArtifactNoClobber } from "../market-commerce-readiness/writer"
 import { canonicalJson, canonicalJsonLine, sha256Bytes } from "./canonical"
 import { collectMarketPriceDatabaseSnapshot } from "./collector"
@@ -680,12 +684,28 @@ export const buildTestPriceConversionPriceAdds = (
 
 export const addTestPriceConversionPrices = async (
   pricing: IPricingModuleService,
-  plan: TestPriceConversionPlan
+  plan: TestPriceConversionPlan,
+  captureStagedPriceIds: (priceIds: readonly string[]) => void = () => {
+    // Callers that only need the write result do not need to retain ownership IDs.
+  }
 ) => {
   const additions = buildTestPriceConversionPriceAdds(plan)
-  if (additions.length > 0) {
-    await pricing.addPrices(additions)
+  if (additions.length === 0) {
+    return []
   }
+  const stagedAdditions = additions.map((addition) => ({
+    ...addition,
+    prices: addition.prices.map((candidate) => ({
+      ...candidate,
+      id: generateEntityId(undefined, "price"),
+    })),
+  }))
+  const stagedPriceIds = stagedAdditions.flatMap((addition) =>
+    addition.prices.map((candidate) => candidate.id)
+  )
+  captureStagedPriceIds(stagedPriceIds)
+  await pricing.addPrices(stagedAdditions)
+  return stagedPriceIds
 }
 
 export const applyTestPriceConversion = async (
@@ -707,39 +727,56 @@ export const applyTestPriceConversion = async (
   const receiptPath = join(artifactDirectory, "receipt.json")
   await writePrivateCommerceArtifactNoClobber(backupPath, backupBytes)
 
-  await addTestPriceConversionPrices(pricing, plan)
-  const [after, inventoryAfter] = await Promise.all([
-    collectSnapshot(),
-    collectTestPriceConversionInventorySnapshot(container),
-  ])
-  const inventoryFingerprintSha256After =
-    hashTestPriceConversionInventorySnapshot(inventoryAfter)
-  if (
-    inventoryFingerprintSha256After !== plan.binding.inventoryFingerprintSha256
-  ) {
-    throw new Error(
-      `shared inventory changed during price conversion; stop price writers and perform a reviewed manual restore from ${backupPath}`
+  let stagedPriceIds: readonly string[] = []
+  try {
+    await addTestPriceConversionPrices(pricing, plan, (priceIds) => {
+      stagedPriceIds = priceIds
+    })
+    const [after, inventoryAfter] = await Promise.all([
+      collectSnapshot(),
+      collectTestPriceConversionInventorySnapshot(container),
+    ])
+    const inventoryFingerprintSha256After =
+      hashTestPriceConversionInventorySnapshot(inventoryAfter)
+    if (
+      inventoryFingerprintSha256After !==
+      plan.binding.inventoryFingerprintSha256
+    ) {
+      throw new Error("shared inventory changed during price conversion")
+    }
+    const createdPrices = assertTestPriceConversionApplied(before, after, plan)
+    const receipt: TestPriceConversionReceipt = {
+      backupSha256: sha256Bytes(backupBytes),
+      binding: plan.binding,
+      createdPrices,
+      databaseSnapshotSha256After: hashMarketPriceDatabaseSnapshot(after),
+      databaseSnapshotSha256Before: plan.databaseSnapshotSha256,
+      inventoryFingerprintSha256After,
+      inventoryFingerprintSha256Before: plan.binding.inventoryFingerprintSha256,
+      kind: "test-market-price-conversion-apply-receipt",
+      planSha256,
+      schemaVersion: 1,
+      writeScope: ["pricing.price"],
+    }
+    await writePrivateCommerceArtifactNoClobber(
+      receiptPath,
+      canonicalJsonLine(receipt)
     )
+    return receipt
+  } catch (applyError) {
+    try {
+      if (stagedPriceIds.length > 0) {
+        await pricing.removePrices([...stagedPriceIds])
+      }
+      await unlink(backupPath)
+    } catch (compensationError) {
+      throw new AggregateError(
+        [applyError, compensationError],
+        `price conversion failed and automatic compensation did not complete; preserve ${backupPath} for reviewed recovery`
+      )
+    }
+    throw applyError
   }
-  const createdPrices = assertTestPriceConversionApplied(before, after, plan)
-  const receipt: TestPriceConversionReceipt = {
-    backupSha256: sha256Bytes(backupBytes),
-    binding: plan.binding,
-    createdPrices,
-    databaseSnapshotSha256After: hashMarketPriceDatabaseSnapshot(after),
-    databaseSnapshotSha256Before: plan.databaseSnapshotSha256,
-    inventoryFingerprintSha256After,
-    inventoryFingerprintSha256Before: plan.binding.inventoryFingerprintSha256,
-    kind: "test-market-price-conversion-apply-receipt",
-    planSha256,
-    schemaVersion: 1,
-    writeScope: ["pricing.price"],
-  }
-  await writePrivateCommerceArtifactNoClobber(
-    receiptPath,
-    canonicalJsonLine(receipt)
-  )
-  return receipt
 }
 
 const collectCurrentPlan = async (
